@@ -761,6 +761,83 @@ void indexed_staged_rebuild() {
   require(source.read("data",0,100)==contents,"new indexed writer changed its source snapshot");
 }
 
+void indexed_reconciled_rebuild() {
+  auto backing=empty(),target=empty();
+  auto writer=new_writer(backing);
+  const auto name=[](unsigned i){return "sample"+std::to_string(i);};
+  std::map<std::string,Bytes> expected;
+  const auto create=[&](unsigned i) {
+    const auto path=name(i);
+    auto bytes=data(251+i,92+i);
+    writer.apply(std::array{file_create(path),file_write(path,0,bytes)});
+    expected.emplace(path,std::move(bytes));
+  };
+  for(unsigned i=0;i<84;++i)create(i);
+  const auto pinned=writer.snapshot();
+  const auto image_id=identity_for(51);
+  auto candidate=writer.prepare_paged_recompression(target,image_id,raw,false,PagedRewriteMode::reconcile_foreground);
+  require(!writer.advance_paged_recompression(candidate),"indexed candidate completed before first scan");
+  // Delete enough adjoining keys to remove old leaves and insert new keys
+  // beyond the old tree's end. Neither change should restart the private copy.
+  for(unsigned i=0;i<31;++i) {
+    file_apply(writer,file_remove(name(i)));
+    expected.erase(name(i));
+  }
+  for(unsigned i=84;i<96;++i)create(i);
+  unsigned steps=0;
+  while(candidate.progress().phase!=PagedRewritePhase::reconciling) {
+    require(!writer.advance_paged_recompression(candidate) && ++steps<2000,
+        "indexed rebuild did not start reconciliation against committed edits");
+  }
+  // Admit another foreground commit after the delta cursor captured its root.
+  create(96);
+  unsigned catchup=0;
+  while(!writer.advance_paged_recompression(candidate))
+    require(++catchup<500,"indexed reconciliation did not converge");
+  require(writer.paged_recompression_ready(candidate),"reconciled image did not bind to the current source");
+
+  const auto former_path=name(65);
+  file_apply(writer,file_rename(former_path,"renamed"));
+  auto bytes=std::move(expected.at(former_path));
+  expected.erase(former_path);
+  expected.emplace("renamed",std::move(bytes));
+  const auto previous_target_extent=target->extent();
+  require(!writer.paged_recompression_ready(candidate),"late commit left the staged target publishable");
+  refuses(NativeFsErrorCode::storage_failure,[&]{(void)writer.finish_paged_recompression(candidate);});
+  require(target->extent()==previous_target_extent,"stale publication touched the private image");
+  unsigned late_steps=0;
+  while(!writer.advance_paged_recompression(candidate))
+    require(++late_steps<100,"late foreground commit restarted the full copy");
+
+  const auto source=writer.snapshot();
+  auto rebuilt=writer.finish_paged_recompression(candidate);
+  const auto observed=NativeFilesystemSnapshot::open_image(target,indexed);
+  observed.verify_all();
+  require(observed.sequence()==source.sequence() && observed.identity()==image_id &&
+      observed.storage_info().objects==source.storage_info().objects &&
+      observed.storage_info().physical_end<source.storage_info().physical_end &&
+      late_steps*4<steps && pinned.read(name(0),0,512)==data(251,92),
+      "incremental reconciliation lost source identity, space or a pinned reader");
+  const auto prior_records=PagedObjectStoreSnapshot::open(backing,limits).list_page(0,4096);
+  const auto new_records=PagedObjectStoreSnapshot::open(target,limits).list_page(0,4096);
+  require(prior_records.size()==new_records.size(),"reconciled object inventory count differs");
+  for(std::size_t i=0;i<prior_records.size();++i) {
+    const auto& original=prior_records[i];
+    const auto& copied=new_records[i];
+    require(original.id==copied.id && original.generation==copied.generation &&
+        original.logical_bytes==copied.logical_bytes,
+        "reconciled object identity or version differs");
+  }
+  for(const auto& [path,value]:expected)
+    require(observed.read(path,0,512)==value,"reconciled reopen lost file bytes");
+  for(unsigned i=0;i<31;++i)
+    refuses(NativeFsErrorCode::not_found,[&]{(void)observed.stat(name(i));});
+  refuses(NativeFsErrorCode::not_found,[&]{(void)observed.stat(former_path);});
+  require(rebuilt.snapshot().sequence()==source.sequence(),"reconciled writer cached a stale namespace");
+  std::cout<<"indexed_reconciliation retained_files="<<expected.size()<<" deleted_files=31 baseline_steps="<<steps
+      <<" catchup_steps="<<catchup<<" late_steps="<<late_steps<<'\n';
+}
+
 void advance_to_compaction_ready(NativeFileSession& session) {
   using Progress=NativeFileSession::RecompressionProgress;
   for(unsigned step=0;step<2000;++step) {
@@ -1000,7 +1077,7 @@ void indexed_transaction_recovery() {
 
 int main() {
   try { populated_native_snapshot();migration(false);migration(true);growing_native_writer();indexed_capacity_and_metadata();indexed_stable_inode_io();indexed_session_lifetimes();indexed_detach_recovery();
-    indexed_large_retirement();indexed_head_independent_sequence();indexed_staged_rebuild();
+    indexed_large_retirement();indexed_head_independent_sequence();indexed_staged_rebuild();indexed_reconciled_rebuild();
     indexed_managed_handoff();indexed_managed_staged_compaction();indexed_managed_staged_faults();
     indexed_transaction_recovery();indexed_extent_advice(); }
   catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}

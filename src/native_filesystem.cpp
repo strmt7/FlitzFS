@@ -1957,7 +1957,8 @@ NativeFilesystemWriter::Recompression NativeFilesystemWriter::prepare_recompress
 }
 
 PagedObjectStoreWriter::Rewrite NativeFilesystemWriter::prepare_paged_recompression(
-    std::shared_ptr<StoreByteIo> target,StoreIdentity id,StoreCompressionOptions compression,bool reencode) const {
+    std::shared_ptr<StoreByteIo> target,StoreIdentity id,StoreCompressionOptions compression,bool reencode,
+    PagedRewriteMode mode) const {
   if(poisoned() || !impl_->objects.paged_if())
     fail(Code::invalid_operation,"staged paged rebuild needs a healthy paged writer");
   if(impl_->indexed) {
@@ -1966,11 +1967,12 @@ PagedObjectStoreWriter::Rewrite NativeFilesystemWriter::prepare_paged_recompress
     try {
       const auto root=detail::rebind_indexed_volume_root(*impl_->indexed,id);
       return impl_->objects.prepare_paged_rebuild(std::move(target),id,root,compression,reencode,
-          detail::kIndexedVolumeIdentityOffset);
+          detail::kIndexedVolumeIdentityOffset,mode);
     }catch(const std::bad_alloc&){fail(Code::limit,"staged indexed preparation allocation failure");}
     catch(const NativeFsError&){throw;}
     catch(const std::exception&){fail(Code::storage_failure,"staged indexed preparation failed");}
   }
+  if(mode!=PagedRewriteMode::exact_checkpoint)fail(Code::invalid_operation,"foreground reconciliation needs indexed storage");
   for(const auto& [inode,entry]:impl_->model.nodes) {
     (void)inode;if(entry.delete_pending || entry.unlinked)
       fail(Code::invalid_operation,"staged paged rebuild needs resolved file contexts");
@@ -1990,6 +1992,10 @@ bool NativeFilesystemWriter::advance_paged_recompression(PagedObjectStoreWriter:
   catch(const std::bad_alloc&){fail(Code::limit,"staged paged allocation failure");}
   catch(const std::exception&){fail(Code::storage_failure,"staged paged candidate failed; source selection unchanged");}
 }
+bool NativeFilesystemWriter::paged_recompression_ready(const PagedObjectStoreWriter::Rewrite& candidate) const noexcept {
+  return !poisoned() && impl_->objects.paged_if() && candidate.ready_for(*impl_->objects.paged_if());
+}
+
 NativeFilesystemWriter NativeFilesystemWriter::finish_paged_recompression(PagedObjectStoreWriter::Rewrite& candidate) const {
   if(poisoned() || !impl_->objects.paged_if() || !candidate.replaces_native_root())
     fail(Code::invalid_operation,"invalid native paged candidate/source");

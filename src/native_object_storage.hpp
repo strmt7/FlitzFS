@@ -69,10 +69,10 @@ class NativeObjectWriter final {
   const PagedObjectStoreWriter* paged_if() const noexcept {return std::get_if<PagedObjectStoreWriter>(&value_);}
   PagedObjectStoreWriter::Rewrite prepare_paged_rebuild(std::shared_ptr<StoreByteIo> target,
       StoreIdentity id,std::span<const std::byte> root,StoreCompressionOptions compression,bool reencode,
-      std::size_t identity_offset=40) const {
+      std::size_t identity_offset=40,PagedRewriteMode mode=PagedRewriteMode::exact_checkpoint) const {
     const auto* source=paged_if();
     if(!source)throw NativeFsError(NativeFsErrorCode::invalid_operation,"staged paged rebuild needs paged storage");
-    return source->prepare_rebuild_replacing(std::move(target),id,compression,root,reencode,identity_offset);
+    return source->prepare_rebuild_replacing(std::move(target),id,compression,root,reencode,identity_offset,mode);
   }
   const ObjectStoreWriter* flat_if() const noexcept {return std::get_if<ObjectStoreWriter>(&value_);}
   bool poisoned() const noexcept {

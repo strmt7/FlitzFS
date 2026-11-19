@@ -981,11 +981,11 @@ bool NativeFileSession::stage_recompression(std::shared_ptr<StoreByteIo> target,
   return true;
 }
 
-bool NativeFileSession::begin_idle_compaction(std::shared_ptr<StoreByteIo> target,StoreIdentity next) {
-  return begin_idle_compaction_impl(std::move(target),next,false);
+bool NativeFileSession::begin_idle_compaction(std::shared_ptr<StoreByteIo> target,StoreIdentity next,PagedRewriteMode mode) {
+  return begin_idle_compaction_impl(std::move(target),next,false,mode);
 }
 bool NativeFileSession::begin_idle_compaction_impl(std::shared_ptr<StoreByteIo> target,StoreIdentity next,
-    bool owned_file_target) {
+    bool owned_file_target,PagedRewriteMode mode) {
   auto& self=ready();
   if(!self.volume || self.volume->head->info().selection.storage.kind!=NativeImageKind::indexed_paged)
     fail(E::invalid_options,"idle compaction requires a managed indexed image");
@@ -995,7 +995,7 @@ bool NativeFileSession::begin_idle_compaction_impl(std::shared_ptr<StoreByteIo> 
   admit_replacement(self,target,next,owned_file_target);
   admit_handoff_contexts(self);
   admit_empty(target);
-  auto rebuild=self.writer.prepare_paged_recompression(target,next,self.volume->foreground,false);
+  auto rebuild=self.writer.prepare_paged_recompression(target,next,self.volume->foreground,false,mode);
   self.recompression=std::make_unique<Impl::StagedRecompression>(
       Impl::StagedRecompression{std::move(target),next,std::move(rebuild),true});
   self.evaluated_image=self.volume->active_id;
@@ -1010,7 +1010,9 @@ bool NativeFileSession::idle_compaction_preparation_pending() const noexcept {
   using Phase=PagedRewritePhase;
   const auto phase=work->progress().phase;
   return phase==Phase::verifying_source || phase==Phase::copying || phase==Phase::building_index ||
-      phase==Phase::verifying_target || phase==Phase::verifying_publication;
+      phase==Phase::verifying_target || phase==Phase::verifying_publication ||
+      phase==Phase::reconciling || phase==Phase::verifying_reconciliation ||
+      (phase==Phase::ready && !impl_->writer.paged_recompression_ready(*work));
 }
 
 std::optional<StoreRecompressionInput> NativeFileSession::next_recompression_input() const {
@@ -1072,8 +1074,8 @@ std::optional<NativeVolumeHeadInfo> NativeFileSession::publish_staged_recompress
   }
   admit_handoff_contexts(self);
   if(auto* paged=std::get_if<PagedObjectStoreWriter::Rewrite>(&self.recompression->work)) {
-    if(paged->progress().phase!=PagedRewritePhase::ready)
-      fail(E::invalid_options,"staged indexed compaction is incomplete");
+    if(!self.writer.paged_recompression_ready(*paged))
+      fail(E::invalid_options,"staged indexed compaction has not verified current commits");
     auto staged=std::move(self.recompression);
     auto candidate=self.writer.finish_paged_recompression(*paged);
     auto verified=candidate.snapshot();

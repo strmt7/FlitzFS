@@ -106,6 +106,7 @@ struct Entry {
   std::uint32_t logical=0,stored=0;
   Digest digest{};
   std::uint64_t peer=0;
+  bool operator==(const Entry&) const =default;
 };
 void encode_ref(std::span<std::byte> b,std::size_t at,const Ref& r) {
   put64(b,at,r.first);put64(b,at+8,r.last);put64(b,at+16,r.count);
@@ -561,6 +562,55 @@ struct Plan {
     for(const auto& page:pages)write_page(*next.image,page);
   }
 };
+// Merge immutable versions of the same tree by key. An identical reference
+// skips its subtree. Each frontier retains only the remaining siblings on its
+// current path and one decoded leaf.
+struct TreeDifference {
+  struct Side {
+    std::vector<Ref> pending;
+    std::vector<Entry> entries;
+
+    bool present() const noexcept {return !entries.empty() || !pending.empty();}
+    std::uint64_t first() const noexcept {return entries.empty()?pending.back().first:entries.back().id;}
+    void open(const State& state) {
+      auto node=read_node(state,pending.back());
+      pending.pop_back();
+      pending.insert(pending.end(),node.children.rbegin(),node.children.rend());
+      entries=std::move(node.entries);
+      std::ranges::reverse(entries);
+    }
+    Entry take() noexcept {auto entry=entries.back();entries.pop_back();return entry;}
+  };
+  struct Edit {
+    std::uint64_t id;
+    std::optional<Entry> source;
+  };
+  Side prior,current;
+
+  TreeDifference(const Ref& before,const Ref& after):prior{{before},{}},current{{after},{}} {}
+  bool done() const noexcept {return !prior.present() && !current.present();}
+  std::optional<Edit> next(const State& before,const State& after,std::size_t& steps) {
+    while(steps && !done()) {
+      --steps;
+      if(prior.entries.empty() && current.entries.empty() && prior.present() && current.present() &&
+          prior.pending.back()==current.pending.back()) {
+        prior.pending.pop_back();current.pending.pop_back();continue;
+      }
+      const bool old_first=prior.present() && (!current.present() || prior.first()<=current.first());
+      const bool new_first=current.present() && (!prior.present() || current.first()<=prior.first());
+      if(old_first && prior.entries.empty() && (!new_first || !current.entries.empty() ||
+          prior.pending.back().height>=current.pending.back().height)) {
+        prior.open(before);continue;
+      }
+      if(new_first && current.entries.empty()) {current.open(after);continue;}
+      if(!new_first)return Edit{prior.take().id,{}};
+      const auto entry=current.take();
+      if(!old_first || !(prior.take()==entry))return Edit{entry.id,entry};
+    }
+    return {};
+  }
+};
+
 // Bulk construction keeps one unfinished leaf plus <=35 child references per
 // level. Completed pages stream directly to the unpublished target. It does not
 // retain a page plan or object inventory proportional to the source volume.
@@ -665,26 +715,37 @@ struct Rebuild {
     pad_index(*next.image,next.unit,next.end,pages);
   }
 };
+PreparedObject prepare_rebuilt_object(const State& target,const Entry& source_entry,ObjectRecord source_record,
+    const Bytes& decoded,detail::StoreCodecEncoder& encoder,bool reencode) {
+  auto encoded=[&] {
+    if(reencode)return encoder.encode(decoded);
+    return detail::EncodedStoreObject{get32(source_record.header,12),std::move(source_record.payload),
+        field<32>(source_record.header,56)};
+  }();
+  PreparedObject record;
+  auto& entry=record.entry;
+  entry={source_entry.id,source_entry.generation,0,static_cast<std::uint32_t>(decoded.size()),
+         static_cast<std::uint32_t>(encoded.payload.size()),{}};
+  auto& header=record.header;
+  set_magic(header,data_magic);put32(header,8,1);put32(header,12,encoded.codec);
+  put64(header,16,entry.id);put64(header,24,entry.generation);put32(header,32,entry.logical);
+  put32(header,36,entry.stored);copy(header,40,target.id);
+  if(encoded.codec!=detail::kStoreRaw)copy(header,56,encoded.decoded_digest);
+  entry.digest=detail::record_digest(std::span<const std::byte>(header).first(96),encoded.payload);copy(header,96,entry.digest);
+  record.payload=std::move(encoded.payload);
+  return record;
+}
 bool copy_rebuild_object(Rebuild& build,const State& original,const Entry& source_entry,
     detail::StoreCodecEncoder& encoder,std::uint64_t replacement_id,
     std::span<const std::byte> replacement,bool reencode,
     const std::function<bool(std::uint64_t,std::span<const std::byte>)>* keep=nullptr) {
-  auto source_record=read_record(original,source_entry);auto bytes=decode_record(original,source_entry,source_record);
+  auto source_record=read_record(original,source_entry);
+  auto bytes=decode_record(original,source_entry,source_record);
   if(keep && !(*keep)(source_entry.id,bytes))return false;
   if(source_entry.id==replacement_id)bytes.assign(replacement.begin(),replacement.end());
-  auto encoded=[&] {
-    if(reencode || source_entry.id==replacement_id)return encoder.encode(bytes);
-    return detail::EncodedStoreObject{get32(source_record.header,12),std::move(source_record.payload),
-        field<32>(source_record.header,56)};
-  }();
-  Entry entry{source_entry.id,source_entry.generation,0,static_cast<std::uint32_t>(bytes.size()),
-              static_cast<std::uint32_t>(encoded.payload.size()),{}};
-  RecordHeader header{};set_magic(header,data_magic);put32(header,8,1);put32(header,12,encoded.codec);
-  put64(header,16,entry.id);put64(header,24,entry.generation);put32(header,32,entry.logical);
-  put32(header,36,entry.stored);copy(header,40,build.next.id);
-  if(encoded.codec!=detail::kStoreRaw)copy(header,56,encoded.decoded_digest);
-  entry.digest=detail::record_digest(std::span<const std::byte>(header).first(96),encoded.payload);copy(header,96,entry.digest);
-  build.append_payload(entry,header,encoded.payload,bytes);
+  auto record=prepare_rebuilt_object(build.next,source_entry,std::move(source_record),bytes,
+      encoder,reencode || source_entry.id==replacement_id);
+  build.append_payload(record.entry,record.header,record.payload,bytes);
   return true;
 }
 
@@ -732,12 +793,22 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
   std::uint64_t source_extent=0,target_extent=0,after=0,completed=0,logical=0,stored=0,write_bound=0;
   PagedRewritePhase phase=PagedRewritePhase::verifying_source;
   bool reencode=true,replacement_seen=false;
+  PagedRewriteMode mode;
+  struct Reconciliation {
+    State source;
+    Bytes root;
+    TreeDifference edits;
+    std::optional<TreeDifference::Edit> deferred;
+  };
+  std::optional<Reconciliation> reconciliation;
 
   Impl(const PagedObjectStoreWriter::Impl& writer,std::shared_ptr<StoreByteIo> output,
       StoreIdentity id,StoreCompressionOptions compression,std::span<const std::byte> root,bool encode,
-      std::size_t identity_offset,std::optional<RebuildRetention> filter)
+      std::size_t identity_offset,std::optional<RebuildRetention> filter,PagedRewriteMode rewrite_mode)
       :original(writer.state),owner(writer.owner),replacement_identity_offset(identity_offset),
-       retention(std::move(filter)),reencode(encode) {
+       retention(std::move(filter)),reencode(encode),mode(rewrite_mode) {
+    if(mode==PagedRewriteMode::reconcile_foreground && (retention || root.empty() || encode))
+      fail("foreground reconciliation requires a lossless native identity-only rebuild");
     if(zero(id) || (id==original.id && !retention))fail("staged rebuild needs a new identity");
     if(retention && (id!=original.id || !root.empty() || encode || original.mirrored ||
         !retention->keep || !retention->charge || !retention->maximum_object_bytes ||
@@ -754,11 +825,19 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
     build.next.generation=add(original.generation,2);build.next.checkpoint=original.generation+1;
     build.next.unit=(std::max)(static_cast<std::uint32_t>(page_bytes),image->contract().write_failure_unit_bytes);
   }
-  void source_check() const {
-    admit_contract(original.image->contract());
-    if(original.image->contract().write_failure_unit_bytes>original.unit ||
-        original.image->extent()!=source_extent || !same(original,load(original.image,original.limits)))
+  void source_check(const State& current) const {
+    auto& image=*current.image;
+    admit_contract(image.contract());
+    const auto expected_extent=current.generation==original.generation?source_extent:current.end;
+    if(image.contract().write_failure_unit_bytes>current.unit || image.extent()!=expected_extent ||
+        !same(current,load(current.image,current.limits)))
       fail("staged rebuild source checkpoint/contract changed");
+  }
+  bool compatible(const State& current) const noexcept {
+    if(same(original,current))return true;
+    return mode==PagedRewriteMode::reconcile_foreground && original.image==current.image &&
+        current.id==original.id && current.unit==original.unit && current.mirrored==original.mirrored &&
+        current.end>=original.end && current.generation>original.generation;
   }
   void reset(PagedRewritePhase next) noexcept {phase=next;after=completed=logical=stored=0;}
   void count(const Entry& entry) {
@@ -781,8 +860,8 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
     walk(input,input.root,after,visitor,done);
     return completed!=before;
   }
-  void begin_copy() {
-    source_check();
+  void begin_copy(const State& current) {
+    source_check(current);
     build.next.image->admit_write(start+2*build.next.unit);
     if(retention) {
       if(!retention->charge(write_bound))return;
@@ -791,16 +870,99 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
     zeros(*build.next.image,0,start);
     reset(PagedRewritePhase::copying);
   }
-  void compare(const Entry& entry) {
-    const auto source=lookup(original,entry.id);
-    if(!source || source->generation!=entry.generation || source->logical!=entry.logical)
+  void compare(const State& source,const Entry& expected_entry,const Entry& entry,
+      std::span<const std::byte> native_root) const {
+    if(expected_entry.generation!=entry.generation || expected_entry.logical!=entry.logical)
       fail("staged target object differs");
-    auto expected=read_object(original,*source);
-    if(entry.id==1 && !replacement.empty())expected=replacement;
+    auto expected=read_object(source,expected_entry);
+    if(entry.id==1 && !native_root.empty())expected.assign(native_root.begin(),native_root.end());
     if(read_object(build.next,entry)!=expected)fail("staged target CPU comparison");
     if(build.next.mirrored)verify_object(build.next,entry);
   }
-  void step() {
+  void mark_ready(const State& current) {
+    source_check(current);
+    build.next.limits=original.limits;
+    target->state=build.next;target->append_floor=build.next.end;
+    phase=PagedRewritePhase::ready;
+  }
+  void begin_reconciliation(const State& current) {
+    source_check(current);
+    const auto descriptor=lookup(current,1);
+    if(!descriptor || descriptor->logical!=replacement.size())fail("reconciled native root length");
+    auto root=read_object(current,*descriptor);
+    if(replacement_identity_offset>root.size() || current.id.size()>root.size()-replacement_identity_offset ||
+        field<16>(root,replacement_identity_offset)!=current.id)
+      fail("reconciled native root identity");
+    copy(root,replacement_identity_offset,build.next.id);
+    reconciliation.emplace(Reconciliation{current,std::move(root),TreeDifference(original.root,current.root),{}});
+    build.next.generation=add(current.generation,2);
+    build.next.checkpoint=current.generation+1;
+    phase=PagedRewritePhase::reconciling;
+  }
+  void apply_reconciliation() {
+    auto& work=*reconciliation;
+    Plan plan{build.next};
+    auto cursor=build.next.end;
+    PayloadAllocation allocation;
+    std::vector<PreparedObject> objects;
+    std::vector<Change> changes;
+    std::uint64_t remaining=kStoreMaxObjectBytes;
+    for(auto steps=leaf_capacity(work.source);steps;) {
+      auto edit=std::exchange(work.deferred,std::nullopt);
+      if(edit)--steps;
+      else edit=work.edits.next(original,work.source,steps);
+      if(!edit)break;
+      if(!edit->source) {changes.push_back({edit->id,true,{}});continue;}
+      const auto& entry=*edit->source;
+      if(entry.logical>remaining) {work.deferred=std::move(edit);break;}
+      remaining-=entry.logical;
+      auto from=read_record(work.source,entry);
+      const bool rebind=entry.id==1;
+      const auto decoded=rebind?Bytes{}:decode_record(work.source,entry,from);
+      const auto& bytes=rebind?work.root:decoded;
+      auto record=prepare_rebuilt_object(plan.next,entry,std::move(from),bytes,target->encoder,rebind);
+      allocation.place(plan.next,record.entry,add(record_header_bytes,record.entry.stored),cursor);
+      changes.push_back({entry.id,false,record.entry});
+      objects.push_back(std::move(record));
+    }
+    if(!changes.empty()) {
+      allocation.seal();plan.page_start=align(cursor,plan.next.unit);
+      plan.changed_keys=changes.size();
+      plan.finish(plan.rewrite(build.next,build.next.root,changes));
+      if(plan.next.end>=work.source.end)capacity("reconciled rebuild cannot reduce occupied bytes");
+      plan.next.image->admit_write(plan.next.end);
+      for(const auto& record:objects)
+        write_object_record(*plan.next.image,record.entry,record.header,record.payload,plan.next.unit);
+      allocation.write_padding(*plan.next.image);
+      plan.write_pages(cursor);
+      target->obsolete_bytes=add(target->obsolete_bytes,plan.obsolete_bytes);
+      build.next=std::move(plan.next);
+    }
+    if(work.edits.done() && !work.deferred) {
+      if(build.next.root.count!=work.source.root.count || build.next.root.logical!=work.source.root.logical)
+        fail("reconciled rebuild inventory differs");
+      phase=PagedRewritePhase::publishing;
+    }
+  }
+  void verify_reconciliation(const State& current) {
+    auto& work=*reconciliation;
+    // One affected payload per step. A deleted key must be absent in the
+    // independently reparsed target. Unchanged subtrees were already checked.
+    auto steps=leaf_capacity(work.source);
+    if(const auto edit=work.edits.next(original,work.source,steps)) {
+      const auto entry=lookup(build.next,edit->id);
+      if(entry.has_value()!=edit->source.has_value())fail("reconciled rebuild membership differs");
+      if(entry)compare(work.source,*edit->source,*entry,work.root);
+    }
+    if(work.edits.done()) {
+      original=std::move(work.source);
+      source_extent=original.end;
+      replacement=std::move(work.root);
+      reconciliation.reset();
+      mark_ready(current);
+    }
+  }
+  void step(const State& current) {
     auto image=build.next.image;
     if(image->extent()!=target_extent)fail("staged target extent changed");
     admit_contract(image->contract());
@@ -827,10 +989,10 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
             capacity("filtered copy cannot reduce occupied bytes");
           write_bound=add(projected,2*page_bytes);
           phase=PagedRewritePhase::awaiting_charge;
-        }else begin_copy();
+        }else begin_copy(current);
       }
     } else if(phase==PagedRewritePhase::awaiting_charge) {
-      begin_copy();
+      begin_copy(current);
     } else if(phase==PagedRewritePhase::copying) {
       const bool advanced=visit_quantum(original,[&](const Entry& entry) {
         const auto kept=copy_rebuild_object(build,original,entry,target->encoder,replacement.empty()?0:1,
@@ -859,24 +1021,33 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
         reset(PagedRewritePhase::verifying_target);
       }
     } else if(phase==PagedRewritePhase::verifying_target || phase==PagedRewritePhase::verifying_publication) {
-      if(!visit_quantum(build.next,[&](const Entry& entry){compare(entry);})) {
+      if(!visit_quantum(build.next,[&](const Entry& entry){
+        const auto source=lookup(original,entry.id);
+        if(!source)fail("staged target object differs");
+        compare(original,*source,entry,replacement);
+      })) {
         totals(build.next);
         if(phase==PagedRewritePhase::verifying_target)reset(PagedRewritePhase::publishing);
-        else {
-          source_check();
-          build.next.limits=original.limits;
-          target->state=build.next;target->append_floor=build.next.end;
-          phase=PagedRewritePhase::ready;
-        }
+        else mark_ready(current);
       }
-      if(build.next.degraded_metadata || build.next.degraded_payloads)fail("staged target replicas are degraded");
     } else if(phase==PagedRewritePhase::publishing) {
-      source_check();image->admit_write(build.next.end);publish(build.next);
+      source_check(current);image->admit_write(build.next.end);publish(build.next);
       auto published=load(image,build.next.limits);
       if(!same(build.next,published) || published.degraded_roots || published.degraded_metadata || published.degraded_payloads)
         fail("staged published checkpoint differs/degraded");
-      build.next=std::move(published);reset(PagedRewritePhase::verifying_publication);
+      build.next=std::move(published);
+      if(reconciliation) {
+        reconciliation->edits=TreeDifference(original.root,reconciliation->source.root);
+        reset(PagedRewritePhase::verifying_reconciliation);
+      } else reset(PagedRewritePhase::verifying_publication);
+    } else if(phase==PagedRewritePhase::ready) {
+      begin_reconciliation(current);
+    } else if(phase==PagedRewritePhase::reconciling) {
+      apply_reconciliation();
+    } else if(phase==PagedRewritePhase::verifying_reconciliation) {
+      verify_reconciliation(current);
     }
+    if(build.next.degraded_metadata || build.next.degraded_payloads)fail("staged target replicas are degraded");
     target_extent=image->extent();
   }
 };
@@ -885,7 +1056,10 @@ PagedObjectStoreWriter::Rewrite::Rewrite(Rewrite&&) noexcept=default;
 PagedObjectStoreWriter::Rewrite& PagedObjectStoreWriter::Rewrite::operator=(Rewrite&&) noexcept=default;
 PagedObjectStoreWriter::Rewrite::~Rewrite()=default;
 bool PagedObjectStoreWriter::Rewrite::matches(const PagedObjectStoreWriter& writer) const noexcept {
-  return impl_ && !writer.poisoned() && impl_->owner.lock()==writer.impl_->owner && same(impl_->original,writer.impl_->state);
+  return impl_ && !writer.poisoned() && impl_->owner.lock()==writer.impl_->owner && impl_->compatible(writer.impl_->state);
+}
+bool PagedObjectStoreWriter::Rewrite::ready_for(const PagedObjectStoreWriter& writer) const noexcept {
+  return matches(writer) && impl_->phase==PagedRewritePhase::ready && same(impl_->original,writer.impl_->state);
 }
 StoreIdentity PagedObjectStoreWriter::Rewrite::identity() const noexcept {return impl_?impl_->build.next.id:StoreIdentity{};}
 bool PagedObjectStoreWriter::Rewrite::replaces_native_root() const noexcept {return impl_ && !impl_->replacement.empty();}
@@ -894,13 +1068,13 @@ PagedRewriteProgress PagedObjectStoreWriter::Rewrite::progress() const noexcept 
 }
 bool PagedObjectStoreWriter::Rewrite::advance(const PagedObjectStoreWriter& writer) {
   if(!matches(writer)) {impl_.reset();fail("staged rebuild source owner/generation is stale");}
-  if(impl_->phase==PagedRewritePhase::ready)return true;
-  try{impl_->step();return impl_->phase==PagedRewritePhase::ready;}
+  if(ready_for(writer))return true;
+  try{impl_->step(writer.impl_->state);return ready_for(writer);}
   catch(...){impl_.reset();throw;}
 }
 PagedObjectStoreWriter PagedObjectStoreWriter::Rewrite::finish(const PagedObjectStoreWriter& writer) {
   if(!matches(writer)) {impl_.reset();fail("staged rebuild source owner/generation is stale");}
-  if(impl_->phase!=PagedRewritePhase::ready)fail("staged rebuild is incomplete");
+  if(!ready_for(writer))fail("staged rebuild has not verified the current source");
   auto candidate=std::move(impl_);return PagedObjectStoreWriter(std::move(candidate->target));
 }
 PagedObjectStoreWriter::Rewrite PagedObjectStoreWriter::prepare_rebuild(std::shared_ptr<StoreByteIo> target,
@@ -909,21 +1083,22 @@ PagedObjectStoreWriter::Rewrite PagedObjectStoreWriter::prepare_rebuild(std::sha
 }
 PagedObjectStoreWriter::Rewrite PagedObjectStoreWriter::prepare_rebuild_replacing(std::shared_ptr<StoreByteIo> target,
     StoreIdentity id,StoreCompressionOptions compression,std::span<const std::byte> replacement,bool reencode,
-    std::size_t identity_offset) const {
-  return prepare_rebuild_impl(std::move(target),id,compression,replacement,reencode,identity_offset,{});
+    std::size_t identity_offset,PagedRewriteMode mode) const {
+  return prepare_rebuild_impl(std::move(target),id,compression,replacement,reencode,identity_offset,{},mode);
 }
 PagedObjectStoreWriter::Rewrite PagedObjectStoreWriter::prepare_rebuild_retaining(std::shared_ptr<StoreByteIo> target,
     StoreCompressionOptions compression,RebuildRetention keep) const {
   if(poisoned())fail("filtered rebuild requires a healthy source writer");
-  return prepare_rebuild_impl(std::move(target),impl_->state.id,compression,{},false,0,std::move(keep));
+  return prepare_rebuild_impl(std::move(target),impl_->state.id,compression,{},false,0,std::move(keep),
+      PagedRewriteMode::exact_checkpoint);
 }
 PagedObjectStoreWriter::Rewrite PagedObjectStoreWriter::prepare_rebuild_impl(std::shared_ptr<StoreByteIo> target,
     StoreIdentity id,StoreCompressionOptions compression,std::span<const std::byte> replacement,bool reencode,
-    std::size_t identity_offset,std::optional<RebuildRetention> retention) const {
+    std::size_t identity_offset,std::optional<RebuildRetention> retention,PagedRewriteMode mode) const {
   if(poisoned())fail("staged rebuild requires a healthy source writer");
   if(!impl_->pending_rebuild.expired())fail("source already has a staged rebuild");
   auto candidate=std::make_unique<Rewrite::Impl>(*impl_,std::move(target),id,compression,
-      replacement,reencode,identity_offset,std::move(retention));
+      replacement,reencode,identity_offset,std::move(retention),mode);
   impl_->pending_rebuild=candidate->reservation;return Rewrite(std::move(candidate));
 }
 PagedObjectStoreSnapshot::PagedObjectStoreSnapshot(std::unique_ptr<Impl> p) noexcept:impl_(std::move(p)){}

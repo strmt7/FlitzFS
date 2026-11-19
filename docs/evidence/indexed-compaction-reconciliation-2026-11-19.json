@@ -1,0 +1,320 @@
+{
+  "schema": 1,
+  "captured_local": "2026-11-19T23:58:43+01:00",
+  "source_base": "c5402a2e7a1899db7ba3fa901052f6a479e034cf",
+  "base_tree": "cc1220f106a99fd7e8cfa1ea3474f7c66a239fdf",
+  "code_patch_sha256": "23ff57a1f932ba35d227d1df7dd516172ffcd27070edcead5ad0e41a8deb8d95",
+  "source_binding": [
+    {
+      "path": "include/flitzfs/native_filesystem.hpp",
+      "git_blob": "29b2b50a47fe263a86077c4254084fb1e8d23a18",
+      "worktree_sha256": "be2d3c8636ebbf8c3f5de4a952c476ef2580bfc6e54a4469e2060124a9f38361"
+    },
+    {
+      "path": "include/flitzfs/native_session.hpp",
+      "git_blob": "028366316001a61e9bfa3b56fe2a9321982219ab",
+      "worktree_sha256": "5938e05782a8177bf9f558e02744ee5b951168948b2b1c7ec1b4b4d27918cdcb"
+    },
+    {
+      "path": "include/flitzfs/paged_store.hpp",
+      "git_blob": "67e7fa9213d5563ad6d7ef06dea2181b469cea5c",
+      "worktree_sha256": "d11003d339ec6255fe52c4106cab3113e08f3ef232997a5fcd4f6273ef8100b8"
+    },
+    {
+      "path": "src/native_filesystem.cpp",
+      "git_blob": "8cfa1c75a4683055e058b15bca6517d32bee6273",
+      "worktree_sha256": "65d046abbe7871af1605077bb83a61099000760dee30314b89b27c41336e37d9"
+    },
+    {
+      "path": "src/native_object_storage.hpp",
+      "git_blob": "6f11fe1770c17e451433e0de387603bd5a4b4ccf",
+      "worktree_sha256": "b28b8ac4d7190ffaf84c357125abae1bcbb9e3f4fbacafe9adb2c715e841c65d"
+    },
+    {
+      "path": "src/native_session.cpp",
+      "git_blob": "03cd312e7db858f3c0ccc021739d68e87ac21050",
+      "worktree_sha256": "9a15b8a8ef83176c0d77f849ddccf18cefb5066c69555f4d1cef95767333f7e2"
+    },
+    {
+      "path": "src/native_volume_file.cpp",
+      "git_blob": "51fc95da1badd1d8351185157d6150287095f292",
+      "worktree_sha256": "397ba70c6d3dae79698476a8d3d6a7cf02acc2f0d56b1e6dee38d24b99ad6269"
+    },
+    {
+      "path": "src/paged_store.cpp",
+      "git_blob": "cc0ca5d8c0cca8f4642f0f94c09a56b6180884c1",
+      "worktree_sha256": "37b1b77c4028d3b1c2f64bb9eddac23b0172851b0b3f44c8b48662c3db2f84be"
+    },
+    {
+      "path": "src/windows/memory_volume_factory.cpp",
+      "git_blob": "5f3dce3ba3901b50da61752eeddb67c8199eb18d",
+      "worktree_sha256": "31f6adb8e5e48852969e7846a7d192871eb82b9af98eafb1303900a2c9a1b101"
+    },
+    {
+      "path": "tests/test_native_indexed_volume.cpp",
+      "git_blob": "79e7b533a17a3efc3aad316e797001030fec355e",
+      "worktree_sha256": "3cb9988f3adb3bffaa80b0d67e200f7380ac0c1a84c824fd20e861f41c61ab2f"
+    },
+    {
+      "path": "tests/test_native_volume_file.cpp",
+      "git_blob": "c38748a476e8f73f6afdd1d91858feb6d993856a",
+      "worktree_sha256": "f6fc666d887bdc9fec9be8ab3e4c5dcc1fc5bb73cb9f87e1c33ff1cff087ba32"
+    },
+    {
+      "path": "tests/test_winfsp_controller.cpp",
+      "git_blob": "82a9f5732b6bc6e72f7721551f2250cdf7bc194a",
+      "worktree_sha256": "0e5d8aaa2b8873e16f731bc63d4e948a515d19e7f97ab4460f0875285f9243be"
+    }
+  ],
+  "host": {
+    "platform": "Windows 11 x64 26H2 26300.9974",
+    "cpu": "AMD Ryzen 9 9950X",
+    "gpu": "AMD Radeon RX 9070 XT"
+  },
+  "research": {
+    "semantic_provider": "0.2.43",
+    "query": "Locate indexed copy-on-write commit root updates, exact object generations, staged rebuild materialization and independent verification, and bounded ways to carry foreground edits into a private compacted candidate without replaying old contents.",
+    "semantic_receipt_sha256": "131e80ce50fa87250b13d4fad00ca3b6f019bae37b75a987b9da676840f4e2f2",
+    "search_sha256": "a91c366cce13eafd0f7705350232bb3ccbeb794b8eec9a7f1c85f1648026243a",
+    "web_pages": [
+      {
+        "provider_version": "0.9.5+flitzzip.portable2",
+        "receipt_sha256": "8e1767a1c42826c236f7e9486f561bba440d4ef87e4e07ce335c220aaa79567f",
+        "url": "https://docs.kernel.org/filesystems/f2fs.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 56622,
+        "markdown_sha256": "c61e10babaebdf586b5a71287450db014ebfdb1399b0e9a746cd3fb9ff0742c4",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.512,
+        "capture": "f2fs-gc.native.json",
+        "capture_sha256": "966d9ba72b8be4520287f9d38c16e459a1d5500f650f472087f276e23426d948",
+        "name": "f2fs-gc"
+      },
+      {
+        "provider_version": "0.9.5+flitzzip.portable2",
+        "receipt_sha256": "8e1767a1c42826c236f7e9486f561bba440d4ef87e4e07ce335c220aaa79567f",
+        "url": "https://www.postgresql.org/docs/19/sql-repack.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 16115,
+        "markdown_sha256": "66751d9df352cd81cce557163b78c31a19de6f31d88ddeade30c56b886632165",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.954,
+        "capture": "postgres-repack.native.json",
+        "capture_sha256": "49c8f9f5f63b6bb114a8d5d86a4c0e5878d736b11ed67ac6722590ec04220d8d",
+        "name": "postgres-repack"
+      },
+      {
+        "provider_version": "0.9.5+flitzzip.portable2",
+        "receipt_sha256": "cdca39e6332c2a342c0a669d22f2819d7a249ce025e19a9c4455980984b89877",
+        "url": "https://docs.kernel.org/filesystems/f2fs.html",
+        "success": false,
+        "failure_category": "timeout",
+        "error": "Page exceeded the 45-second deadline",
+        "seconds": 45.019,
+        "capture": "f2fs-gc.native.json",
+        "capture_sha256": "eafa38b32e3d3a4eeddb03f116468c70c4244f47a80903a89550b1e4b2f0cb8b",
+        "name": "f2fs-gc"
+      },
+      {
+        "provider_version": "0.9.5+flitzzip.portable2",
+        "receipt_sha256": "cdca39e6332c2a342c0a669d22f2819d7a249ce025e19a9c4455980984b89877",
+        "url": "https://www.postgresql.org/docs/19/sql-repack.html",
+        "success": false,
+        "native_success": false,
+        "http_status": 0,
+        "final_http_status": 0,
+        "markdown_bytes": 0,
+        "markdown_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "expected_content": false,
+        "failure_category": "native_failure",
+        "error": "Unexpected error in _crawl_web at line 779 in _crawl_web (C:\\Users\\strat\\AppData\\Local\\FlitzZip\\crawl4ai\\0.9.5+flitzzip.portable2-py313-01fbef3b628f772e\\Lib\\site-packages\\crawl4ai\\async_crawler_strategy.py):",
+        "seconds": 1.062,
+        "capture": "postgres-repack.native.json",
+        "capture_sha256": "b15e1f47b466cd3d68244dcf9742c00eeeb951d82ab1db7b4b2a1dafdd83c357",
+        "name": "postgres-repack"
+      }
+    ],
+    "design_use": "F2FS documents segmented background cleaning. PostgreSQL documents change capture before concurrent replacement. FlitzFS compares immutable COW references and verifies the target against the current source checkpoint."
+  },
+  "release_ctest": {
+    "run": "local-run-ca450e2ba0bd4ebd9ec03a561bf5dde4",
+    "receipt_sha256": "1319c6fb9af70a922916c68db6d14d30a4d1e9d8c0bed8df715aa0fca859316b",
+    "log_sha256": "3ee9a0d6ccd068845abde5ce5b7ca22f85dd0e84e6502ea7368640ff97a0891f",
+    "checked_output": [
+      "1/11 Test  #36: bounded_native_indexed_volume .........   Passed    8.97 sec",
+      "2/11 Test #108: bounded_native_volume_file ............   Passed    9.46 sec",
+      "3/11 Test #165: bounded_winfsp_memory_volume ..........   Passed    4.35 sec",
+      "4/11 Test #164: bounded_winfsp_controller .............   Passed    5.68 sec",
+      "5/11 Test #167: bounded_winfsp_indexed_memory .........   Passed    2.36 sec",
+      "6/11 Test #169: bounded_winfsp_volume_file ............   Passed    0.21 sec",
+      "7/11 Test  #37: bounded_native_staged_paged_rebuild ...   Passed    0.72 sec",
+      "8/11 Test  #53: bounded_native_indexed_group_advice ...   Passed    0.04 sec",
+      "9/11 Test #185: bounded_winfsp_session_test ...........   Passed    0.06 sec",
+      "10/11 Test  #54: bounded_native_indexed_group_batch ....   Passed    0.21 sec",
+      "11/11 Test  #39: bounded_native_shared_bases ...........   Passed    9.78 sec",
+      "100% tests passed out of 11"
+    ],
+    "exit_code": 0,
+    "tree_retired": true,
+    "residual_children": 0,
+    "elapsed_seconds": 25.98838959999557,
+    "timeout_seconds": 175.0,
+    "memory_bytes": 2629828608,
+    "peak_job_bytes": 91791360,
+    "cpu_percent": 24,
+    "physical_available_bytes": 27946946560,
+    "commit_available_bytes": 73859997696
+  },
+  "raw_address_sanitizer_ctest": {
+    "run": "local-run-59d88a0721d944d793e878d8c67f01d2",
+    "receipt_sha256": "2ec178bd22953f2270459608e5cf4a0e06805761670aa63628a776f5f9fa5140",
+    "log_sha256": "ea47c6fb390c9f9330ffa09aaf9d6a380790078ec3302d1824e278cf64053abc",
+    "checked_output": [
+      "1/10 Test #190: windows_asan_runtime_preflight ........   Passed    0.03 sec",
+      "2/10 Test #108: bounded_native_volume_file ............   Passed   23.19 sec",
+      "3/10 Test  #36: bounded_native_indexed_volume .........   Passed   28.25 sec",
+      "4/10 Test  #39: bounded_native_shared_bases ...........   Passed   52.91 sec",
+      "5/10 Test #169: bounded_winfsp_volume_file ............   Passed    0.46 sec",
+      "6/10 Test  #37: bounded_native_staged_paged_rebuild ...   Passed    1.92 sec",
+      "7/10 Test #185: bounded_winfsp_session_test ...........   Passed    0.15 sec",
+      "8/10 Test #167: bounded_winfsp_indexed_memory .........   Passed    2.73 sec",
+      "9/10 Test #147: windows_asan_staging_regression .......   Passed    0.51 sec",
+      "10/10 Test #164: bounded_winfsp_controller .............   Passed    6.94 sec",
+      "100% tests passed out of 10"
+    ],
+    "exit_code": 0,
+    "tree_retired": true,
+    "residual_children": 0,
+    "elapsed_seconds": 60.476408299997274,
+    "timeout_seconds": 215.0,
+    "memory_bytes": 2982150144,
+    "peak_job_bytes": 2199089152,
+    "cpu_percent": 24,
+    "physical_available_bytes": 28132786176,
+    "commit_available_bytes": 74197901312
+  },
+  "model": {
+    "test_log_sha256": "51f6d0b75f39dc23dd76b728efd2dc216be380a289da431ce1ff0a44762047d9",
+    "checked_output": [
+      "indexed_reconciliation retained_files=66 deleted_files=31 baseline_steps=706 catchup_steps=108 late_steps=9",
+      "range_retirement_cuts unit=4096 reconciled=0 operation_boundaries=6 modes=3",
+      "range_retirement_cuts unit=4096 reconciled=1 operation_boundaries=33 modes=3",
+      "range_retirement_cuts unit=65536 reconciled=0 operation_boundaries=8 modes=3",
+      "range_retirement_cuts unit=65536 reconciled=1 operation_boundaries=83 modes=3"
+    ],
+    "foreground_reconciliation_failure_cases": 348,
+    "cases": "Three modeled interruption modes at observed operation boundaries during replay, private and external publication, or old-range retirement, under 4 KiB and 64 KiB contracts.",
+    "checks": [
+      "All 66 surviving files reopened byte for byte. 31 removed paths stayed absent.",
+      "The new object index preserved each object ID, generation and logical length.",
+      "A pinned old reader kept its contents. The late rename reached Ready on the tenth advance.",
+      "The paired range reused its original staged identity after a later foreground commit.",
+      "The independent CPU reopen recovered each acknowledged payload and witness after each injected interruption."
+    ]
+  },
+  "live_windows_sdk": {
+    "executable_sha256": "10722ced3ec8f28dffc36aaa36f0322b7489cee70d254126bb9c7f55667ea108",
+    "qualification_manifest_sha256": "d3b2da67b3f670b542e42097cde13cef3e2c735155093328df4d41fbf052b7d7",
+    "reconciled_volume": {
+      "run": "local-run-e3c0352458944b95ba2bd27e1a1f7d3f",
+      "receipt_sha256": "ce07112d33c265075df447780c8ec2d5ae61b6785c537bb5ef6d8b6b2d2a0537",
+      "log_sha256": "77c315f0ded7c66d047e06103e57c4bf39a3ff10ce8fa5a4c343adef25384692",
+      "checked_output": [
+        "live_indexed_compaction elapsed_ms=6078 quanta=7 continued_compaction_steps=40 max_quantum_ns=1094300 foreground_edits=2 selected_epoch=2",
+        "controller_handles before=162 after=162",
+        "PASS: 26 owned controller checks; real local telemetry and SDK callbacks; injected lifecycle; no mount/GPU"
+      ],
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "elapsed_seconds": 41.915029000003415,
+      "timeout_seconds": 128.0,
+      "memory_bytes": 1479540736,
+      "peak_job_bytes": 13172736,
+      "cpu_percent": 16,
+      "physical_available_bytes": 27949338624,
+      "commit_available_bytes": 73912270848
+    },
+    "first_run_handle_check": {
+      "run": "local-run-18470f9c380b4231a0a9224e196d39a0",
+      "receipt_sha256": "b5c59072c6882c7c748785f408fa06d8660215092c3da8cdbd2affd3e4bc0721",
+      "log_sha256": "60d55c311d40f03706dfe6704dd722227ab7860d3e937f14005fd54098d44945",
+      "checked_output": [
+        "live_indexed_compaction elapsed_ms=6079 quanta=7 continued_compaction_steps=40 max_quantum_ns=1031300 foreground_edits=2 selected_epoch=2",
+        "controller_handles before=158 after=162",
+        "after 22 checks: controller handle leak"
+      ],
+      "exit_code": 1,
+      "tree_retired": true,
+      "residual_children": 0,
+      "elapsed_seconds": 42.00348919999669,
+      "timeout_seconds": 128.0,
+      "memory_bytes": 1441792000,
+      "peak_job_bytes": 13430784,
+      "cpu_percent": 16,
+      "physical_available_bytes": 27343233024,
+      "commit_available_bytes": 73261961216
+    },
+    "correction": "The new trial mode originally omitted the existing process-wide Windows RNG warm-up. The corrected mode runs native RNG and PDH controls before measuring handles.",
+    "checks": [
+      "Two foreground SDK writes during preparation and before selection.",
+      "The original open handle and an independent CPU reopen returned the latest bytes.",
+      "The final controller handle count equaled the warmed native baseline."
+    ]
+  },
+  "amd": {
+    "verified_result_survives_foreground_reads": {
+      "run": "local-run-9ca844ce048342b9b15d3784fce5280c",
+      "receipt_sha256": "ada7df4fc49f7e0e909b3a7b63c5e1978579fa735240982b805ed984b12b4345",
+      "log_sha256": "315fc73c76758126a0e50a47810af78073edfe69bd2fa9cb8d9d8ffe845bdfc0",
+      "checked_output": [
+        "foreground_read phase=before_launch count=101 bytes_per_read=4096 p50_ns=25500 p95_ns=29800 p99_ns=33800 max_ns=36000",
+        "foreground_read phase=verified_reply count=101 bytes_per_read=4096 p50_ns=23900 p95_ns=46800 p99_ns=50300 max_ns=72300",
+        "anchor_owner mode=verified-read host=1 quanta=15 groups=1 continued_steps=31 settled_ms=33515 declined_groups=0 phase=5 sampled=11 attempted=1 cpu_limit_ppm=500000 submitted=1 verified=1 submitted_queued_batches=1 verified_queued_batches=1 dispatches_per_wait=4 submitted_groups=1 verified_groups=1 declined=0 yielded=0 integrity_failures=0 empty_xor_batches=0 advised_members=10 installed_attempts=1 metadata_queries=1 installed_status=0 handles_before=136 handles_after=329 retired=true cpu_readback_verified=true deferrals=6,2,0,0,0,7,0,0,"
+      ],
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "elapsed_seconds": 33.594002799996815,
+      "timeout_seconds": 110.0,
+      "memory_bytes": 1431306240,
+      "peak_job_bytes": 126976000,
+      "cpu_percent": 16,
+      "physical_available_bytes": 27183521792,
+      "commit_available_bytes": 73150464000
+    },
+    "changed_member_uses_cpu": {
+      "run": "local-run-c4d2e5c3bfa74c58ae85b7b2824ab4df",
+      "receipt_sha256": "f924506b2aae4fac4e668cfbc1658da390781372870badabf8a9cdf5c04c06fe",
+      "log_sha256": "3a60a6e46c599f9e40c52c1f847f3a5a8f61d7ab27cf6078f0843564a30b1914",
+      "checked_output": [
+        "anchor_owner mode=verified-edit host=1 quanta=16 groups=1 continued_steps=50 settled_ms=32594 declined_groups=0 phase=0 sampled=13 attempted=2 cpu_limit_ppm=500000 submitted=1 verified=1 submitted_queued_batches=1 verified_queued_batches=1 dispatches_per_wait=4 submitted_groups=1 verified_groups=1 declined=0 yielded=0 integrity_failures=0 empty_xor_batches=0 advised_members=0 installed_attempts=1 metadata_queries=1 installed_status=0 handles_before=136 handles_after=329 retired=true cpu_readback_verified=true deferrals=6,2,0,0,0,8,0,0,"
+      ],
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "elapsed_seconds": 32.69180320000305,
+      "timeout_seconds": 110.0,
+      "memory_bytes": 1459617792,
+      "peak_job_bytes": 126566400,
+      "cpu_percent": 16,
+      "physical_available_bytes": 27632390144,
+      "commit_available_bytes": 73575079936
+    }
+  },
+  "limits": [
+    "Test volumes and fault fixtures used memory backing. The physical machine ran the Windows SDK callback and AMD user-mode tests with injected lifecycle.",
+    "Persistent replay of an interrupted candidate, segment-level reuse, actual mounted concurrency and qualified physical power-loss behavior remain open.",
+    "This evidence establishes a scoped mechanism and its recovery checks. Corpus-wide compression and throughput qualification require their own comparisons."
+  ]
+}

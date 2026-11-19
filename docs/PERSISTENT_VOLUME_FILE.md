@@ -31,10 +31,10 @@ select the first range and even epochs select the second. The indexed
 object and file record encodings are shared by both layouts.
 
 The WinFsp maintenance owner stages a candidate when measured obsolete
-history justifies the copy and the host admits idle work. It copies and
-verifies the selected image incrementally and rejects a candidate when a
-foreground edit changes the source checkpoint. A smaller verified image
-is flushed before publishing the two head records. The old image remains
+history justifies the copy and the host admits idle work. It verifies the
+packed image incrementally and reconciles later commits from immutable
+index checkpoints. The owner requires a smaller candidate that has verified
+the current generation before publishing the two head records. The old image remains
 allocated until both durable records select the new epoch and readers
 release the old backing. Each retirement opportunity rechecks the
 selector and retires up to 4 MiB from the inactive range.
@@ -115,8 +115,9 @@ exercises the exclusive file handle and reopen after close. These helper
 checks use injected WinFsp lifecycle operations.
 [Helper validation](evidence/windows-volume-file-attachment-2026-11-19.json)
 
-The paired-range model covers interrupted head publication and reclamation,
-pinned old readers, foreground invalidation and later reuse. The disposable
+The paired-range model covers interrupted replay, head publication and
+reclamation, pinned old readers, late foreground edits and later reuse.
+[Reconciliation validation](evidence/indexed-compaction-reconciliation-2026-11-19.json) The disposable
 Windows 11 fixture verified release of actual NTFS allocation, reuse of
 both image ranges and independent CPU readback after each switch.
 [Reclamation validation](evidence/windows-sparse-volume-reclamation-2026-11-19.json)

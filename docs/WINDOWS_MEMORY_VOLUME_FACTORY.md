@@ -135,8 +135,11 @@ space. The counter counts superseded page pairs and encoded records within
 the current writer's lifetime. It is a lower bound and does not authorize
 reusing any part of a selected or pinned image. A failed or superseded attempt
 requires new obsolete history at least as large as its written candidate bytes
-before staging again. The copy preserves existing object encodings and requires
-a strictly smaller verified image before switching.
+before staging again. The copy preserves existing object encodings and
+reconciles acknowledged edits by comparing immutable index checkpoints.
+A foreground commit before selection keeps the same private image in
+preparation until it has caught up. Switching requires a strictly smaller
+image verified against the current generation.
 
 An indexed compression transaction can also report an append-space shortfall
 before writing. The owner considers compaction if its known obsolete history

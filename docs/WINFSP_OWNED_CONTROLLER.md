@@ -55,7 +55,10 @@ headroom, and checks foreground activity and stop before each continuation.
 Each continuation stays with the preparation that received the opportunity.
 A device launch or route acquisition ends the sequence. Opening a compaction
 candidate, publishing its private roots, switching the selected image and
-reclaiming the old backing each require a fresh CPU capture. Group publication,
+reclaiming the old backing each require a fresh CPU capture. The indexed
+compactor can catch up with foreground commits in bounded private steps.
+The selector waits for the current generation, and a late commit returns the
+same candidate to preparation. Group publication,
 indexed inode retirement and advisory checkpoints retain their own fresh
 capture requirement. Indexed final Close records retirement and signals the
 controller.

@@ -20,17 +20,13 @@ does not rewrite user object bodies. The native wrapper uses a private,
 identity-only root replacement through `prepare_paged_recompression`,
 `advance_paged_recompression` and `finish_paged_recompression`.
 
-The source writer keeps its existing exclusive lease; the candidate owns a
-separate new-target lease. A weak source-owner token and cached checkpoint
-identity/generation guard every advance and finish before I/O. A committed
-foreground mutation invalidates the candidate, including after private target
-publication. Reopening the same source creates a new owner and cannot revive
-an old attempt. Moving writer/candidate objects preserves the original owner.
-This guard is currently volume-wide: an unrelated committed change also aborts
-the candidate. Continuous foreground writes can therefore prevent completion.
-Per-group generation checks, reconciled snapshots and persistent resumable work
-are future mechanisms; automatic retries must not turn invalidation into repeated
-large writes or capacity pressure.
+The source writer keeps its existing exclusive lease and the candidate leases
+a separate target. The source-owner token and checkpoint identity guard each
+advance and finish. A foreground commit invalidates an exact-checkpoint
+candidate. The owned indexed compactor can instead advance from an immutable
+source checkpoint and reconcile subsequent commits before selection.
+Reopening the source creates a new owner and cannot revive an old attempt.
+Moving writer or candidate objects preserves the original owner.
 Only one candidate per writer is admitted; duplicate preparation refuses before
 backing I/O. Cancellation or terminal failure releases its reservation and
 target lease. Partial target bytes remain owned by the provider, never deleted
@@ -93,6 +89,34 @@ no thread, service, timer, online model or GPU launch. An OS flush can still
 block; this is a bounded-work contract, not a wall-clock or zero-interference
 guarantee. A qualified controller must supply fresh headroom/contention evidence,
 low scheduling/I/O priority and foreground-yield opportunities.
+
+## Foreground reconciliation
+
+The owned indexed compactor fully verifies the packed base image against its
+captured source, even when new commits are arriving. Each reconciliation
+captures a later immutable source checkpoint. Its sorted tree walk skips
+identical references, preserving progress on unaffected subtrees. It compares
+changed leaves by object key and detects inserts, replacements and removals
+across leaf splits and disappearing branches. The walk uses the roots of
+completed foreground commits.
+
+An apply step has one leaf's descriptor budget and admits at most 1 MiB of
+decoded payload. The private image preserves current object
+generations and codecs. It rebinds only the native root identity, and patches
+the private tree with the existing copy-on-write transaction planner. Replay
+stops if the private append span can no longer reduce occupied bytes against
+the captured source. Root publication uses a fresh observation and verifies
+the private checkpoint after its barriers. A second tree walk compares every
+changed payload through that checkpoint and confirms each removed key is absent.
+Unchanged references still point to individually verified records.
+
+Selection requires the current writer and an exact, verified source
+generation. A commit during replay or after Ready triggers another bounded
+pass on the same private image. The selector commits the verified image.
+Retirement releases space after old readers drop their pins. A failed replay
+leaves the selected source readable. Existing readers use the same format.
+Staging requires a second image and quiet opportunities. Persistent
+candidate recovery and segment reuse remain work for the release.
 
 ## Filtered advisory compaction
 

@@ -438,12 +438,13 @@ class NativeFilesystemWriter final {
   static NativeFilesystemWriter recompress(const NativeFilesystemSnapshot& source,
       std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_identity,
       StoreCompressionOptions compression={},StoreCheckpointOptions checkpoints={});
-  // Explicit staged candidate, no scheduler or active-volume handoff. Source
-  // foreground reads continue; a committed mutation invalidates the candidate.
-  // Copy and pre/post-publication verification advance one object at a time.
+  // Explicit staged candidate with bounded copy and verification. Exact
+  // checkpoint mode invalidates on a foreground commit. Indexed compaction
+  // can opt into reconciling committed edits before handoff.
   PagedObjectStoreWriter::Rewrite prepare_paged_recompression(std::shared_ptr<StoreByteIo>,
-      StoreIdentity,StoreCompressionOptions={},bool reencode=true) const;
+      StoreIdentity,StoreCompressionOptions={},bool reencode=true,PagedRewriteMode=PagedRewriteMode::exact_checkpoint) const;
   bool advance_paged_recompression(PagedObjectStoreWriter::Rewrite&) const;
+  bool paged_recompression_ready(const PagedObjectStoreWriter::Rewrite&) const noexcept;
   NativeFilesystemWriter finish_paged_recompression(PagedObjectStoreWriter::Rewrite&) const;
   NativeFilesystemWriter(NativeFilesystemWriter&&) noexcept;
   NativeFilesystemWriter& operator=(NativeFilesystemWriter&&) noexcept;

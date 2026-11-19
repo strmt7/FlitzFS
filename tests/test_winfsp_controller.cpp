@@ -1270,7 +1270,7 @@ void memory_compaction_retirement() {
            <<" retirement_steps="<<retirement_steps<<'\n';
 }
 
-void live_indexed_compaction() {
+void live_indexed_compaction(bool reconcile=false) {
   Provider p;Provider::active=&p;
   WinFspMemoryVolume volume(p.api(),plan(),NativeImageKind::indexed_paged);
   await([&]{return volume.view().state==SessionState::running || volume.view().retired;},5000,
@@ -1288,20 +1288,32 @@ void live_indexed_compaction() {
   require(table->Create(&p.fs,path,FILE_NON_DIRECTORY_FILE,FILE_ALL_ACCESS,FILE_ATTRIBUTE_NORMAL,
       security.data(),0,&file,&file_info)==STATUS_SUCCESS && file,"live compaction SDK Create");
   auto expected=data(kNativeExtentBytes,519);
-  for(unsigned i=0;i<7;++i) {
+  const auto overwrite=[&](unsigned i) {
     expected[i]^=std::byte{1};ULONG count=0;
     require(table->Write(&p.fs,file,expected.data(),0,static_cast<ULONG>(expected.size()),
         FALSE,FALSE,&count,&file_info)==STATUS_SUCCESS && count==expected.size(),"live compaction SDK Write");
-  }
+  };
+  for(unsigned i=0;i<7;++i)overwrite(i);
   const auto begin=GetTickCount64(),deadline=begin+82000;
+  unsigned foreground_edits=0;
   while(GetTickCount64()<deadline) {
     const auto status=volume.view();
     if(status.compactions || status.compaction_failures || status.maintenance_disabled || status.retired)break;
-    Sleep(50);
+    if(reconcile && foreground_edits==0 && status.continued_compaction_steps &&
+        status.maintenance.phase==NativeMaintenancePhase::preparing) {
+      overwrite(7);
+      ++foreground_edits;
+    }
+    if(reconcile && foreground_edits==1 && status.maintenance.phase==NativeMaintenancePhase::publishing) {
+      overwrite(8);
+      ++foreground_edits;
+    }
+    Sleep(20);
   }
   const auto status=volume.view();
   require(status.compactions==1 && status.compaction_failures==0 && !status.maintenance_disabled,
       "live host observations did not complete staged compaction");
+  require(!reconcile || foreground_edits==2,"did not observe both foreground reconciliation windows");
   Bytes readback(expected.size());ULONG count=0;
   require(table->Read(&p.fs,file,readback.data(),0,static_cast<ULONG>(readback.size()),&count)==STATUS_SUCCESS &&
       count==readback.size() && readback==expected,"SDK open handle read changed after automatic selection");
@@ -1317,7 +1329,7 @@ void live_indexed_compaction() {
   std::cout<<"live_indexed_compaction elapsed_ms="<<GetTickCount64()-begin
            <<" quanta="<<status.maintenance_quanta<<" continued_compaction_steps="<<status.continued_compaction_steps
            <<" max_quantum_ns="<<status.maximum_quantum_ns
-           <<" selected_epoch="<<recovered.info().selection.epoch<<'\n';
+           <<" foreground_edits="<<foreground_edits<<" selected_epoch="<<recovered.info().selection.epoch<<'\n';
 }
 
 void memory_backing_ownership() {
@@ -1810,14 +1822,16 @@ int main(int argc,char** argv){try {
   // use. Prove native-only stabilization before measuring factory ownership.
   const bool remount=argc==2 && std::string_view(argv[1])=="--memory-remount";
   const bool volume_file=argc==2 && std::string_view(argv[1])=="--volume-file";
-  if(lifetime_only || shifted_grouping || checkpoint || remount || volume_file || (argc==2 && (std::string_view(argv[1])=="--memory" || std::string_view(argv[1])=="--memory-handles" ||
+  const bool reconciled_compaction=argc==2 && std::string_view(argv[1])=="--live-indexed-reconcile";
+  const bool indexed_compaction=reconciled_compaction || (argc==2 && std::string_view(argv[1])=="--live-indexed-compaction");
+  if(lifetime_only || shifted_grouping || checkpoint || remount || volume_file || indexed_compaction ||
+      (argc==2 && (std::string_view(argv[1])=="--memory" || std::string_view(argv[1])=="--memory-handles" ||
       std::string_view(argv[1])=="--read-only-memory" || std::string_view(argv[1])=="--indexed-memory" ||
-      std::string_view(argv[1])=="--live-indexed-compaction" || std::string_view(argv[1])=="--live-indexed-grouping")))
+      std::string_view(argv[1])=="--live-indexed-grouping")))
     native_rng_initialization();
   // A long native PDH-only control initializes process-wide OS handles
   // before the explicit long-volume mode measures controller ownership.
-  if(lifetime_only || (argc==2 && std::string_view(argv[1])=="--live-indexed-compaction"))
-    initialize_long_pdh_window();
+  if(lifetime_only || indexed_compaction)initialize_long_pdh_window();
   require(GetProcessHandleCount(GetCurrentProcess(),&before)!=FALSE,"initial handle count");
   if(argc==1){event_ownership();lifecycle();idle_until_owner_stop(100);invalid_and_unexpected();live_opportunities();}
   else if(lifetime_only)idle_until_owner_stop(31000);
@@ -1842,8 +1856,8 @@ int main(int argc,char** argv){try {
     retained_memory_remount(NativeImageKind::indexed_paged);
     unconfirmed_remount_refusal();
     require(MemoryVolumeDomain::cleanup_healthy(),"remount fixture did not retire memory");
-  }else if(argc==2 && std::string_view(argv[1])=="--live-indexed-compaction") {
-    live_indexed_compaction();
+  }else if(indexed_compaction) {
+    live_indexed_compaction(reconciled_compaction);
   }else if(argc==2 && std::string_view(argv[1])=="--live-indexed-grouping") {
     live_memory_composition(NativeImageKind::indexed_paged);
   }else if(shifted_grouping) {

@@ -108,7 +108,7 @@ MemoryCompactionStep MemoryVolumeBacking::advance_compaction(NativeFileSession& 
       abandoned_bytes_=0;
       alternate_identity_=fresh_volume_identity();
       alternate_=domain->create_store(layout.image_capacity);
-      if(!session.begin_idle_compaction(alternate_,alternate_identity_)) {
+      if(!session.begin_idle_compaction(alternate_,alternate_identity_,PagedRewriteMode::reconcile_foreground)) {
         retire_alternate(false);
         return MemoryCompactionStep::retiring;
       }
@@ -123,6 +123,10 @@ MemoryCompactionStep MemoryVolumeBacking::advance_compaction(NativeFileSession& 
         case NativeFileSession::RecompressionProgress::stale:
           retire_alternate(true);return MemoryCompactionStep::retiring;
       }
+    }
+    if(session.idle_compaction_preparation_pending()) {
+      phase_=CompactionPhase::copying;
+      return MemoryCompactionStep::copying;
     }
     phase_=CompactionPhase::uncertain;
     if(!session.publish_idle_recompression()) {

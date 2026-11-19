@@ -239,21 +239,17 @@ void reclaimed_ranges() {
       "CPU inspection depended on the sparse writer");
   {
     auto second=NativeVolumeFile::resume(stable,id(90),raw);
-    // Trigger another rotation, interrupt a candidate with a foreground edit,
-    // and keep the selected image writable through that interruption.
+    // Retain the same staged physical range after a late foreground edit.
     for(unsigned i=0;i<12 && !second.persistent_reclamation_pending();++i) {
       expected=data(12289,310+i);update(second,expected);
     }
     require(stage_compaction(second,94)==Reclaim::ready,"second range did not stage");
     expected=data(12289,440);update(second,expected);
-    require(second.advance_persistent_reclamation({})==Reclaim::failed && second.volume_info().selection.epoch==2,
-        "a foreground edit did not invalidate the staged file image");
-    release_inactive(second);
-    for(unsigned i=0;i<12 && !second.persistent_reclamation_pending();++i) {
-      expected=data(12289,550+i);update(second,expected);
-    }
-    require(stage_compaction(second,95)==Reclaim::ready && second.advance_persistent_reclamation({})==Reclaim::published,
-        "retired first range could not be reused");
+    require(second.advance_persistent_reclamation({})==Reclaim::copying && second.volume_info().selection.epoch==2,
+        "a foreground edit allowed stale selection");
+    require(stage_compaction(second,95)==Reclaim::ready && second.advance_persistent_reclamation({})==Reclaim::published &&
+        second.volume_info().selection.image_identity==id(94),
+        "reconciled first range did not retain the originally staged identity");
     release_inactive(second);
     require(second.volume_info().selection.epoch==3 &&
         !stable->allocated_extent(kNativeVolumeFileImageOffset+limits.maximum_physical_bytes,limits.maximum_physical_bytes),
@@ -264,7 +260,7 @@ void reclaimed_ranges() {
 }
 
 void range_publication_cuts() {
-  for(const auto unit:{4096U,65536U}) {
+  for(const auto unit:{4096U,65536U})for(const bool reconcile:{false,true}) {
     const auto run=[&](std::optional<std::size_t> cut,unsigned mode) {
       std::size_t boundaries=0;
       auto io=std::make_shared<SparseVolumeRam>(unit);
@@ -273,19 +269,24 @@ void range_publication_cuts() {
         auto session=NativeVolumeFile::create(io,id(90),id(91),limits,raw);
         expected=establish_history(session);
         require(stage_compaction(session)==Reclaim::ready,"fault matrix could not stage a verified successor");
+        if(reconcile) {
+          expected=data(expected.size(),170);
+          update(session,expected);
+        }
         const auto before=io->io.calls;
         if(cut) {
           io->io.fail_at=before+*cut;io->io.failure=mode;
         }
         try {
-          const auto published=session.advance_persistent_reclamation({});
+          const bool ready=!reconcile || stage_compaction(session)==Reclaim::ready;
+          const auto published=ready?session.advance_persistent_reclamation({}):Reclaim::failed;
           if(published==Reclaim::published) {
             for(unsigned i=0;i<4 && session.persistent_reclamation_pending();++i)
               (void)session.advance_persistent_reclamation({});
           }
         }catch(const NativeFsError&){if(!cut)throw;}
         boundaries=io->io.calls-before;
-        if(!cut)require(boundaries>=6 && boundaries<35 && io->range_reclaims>0,
+        if(!cut)require(boundaries>=6 && boundaries<160 && io->range_reclaims>0,
             "fault matrix did not cross durable selection and reclamation");
       }
       auto stable=io->replay();
@@ -306,7 +307,7 @@ void range_publication_cuts() {
     };
     const auto cuts=run({},0);
     for(unsigned mode=0;mode<3;++mode)for(std::size_t cut=0;cut<cuts;++cut)(void)run(cut,mode);
-    std::cout<<"range_retirement_cuts unit="<<unit<<" operation_boundaries="<<cuts<<" modes=3\n";
+    std::cout<<"range_retirement_cuts unit="<<unit<<" reconciled="<<reconcile<<" operation_boundaries="<<cuts<<" modes=3\n";
   }
 }
 

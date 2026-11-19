@@ -10,6 +10,17 @@
     "tree": "936409737d1c4a5d4aeb37fe5af48f55ba9accff",
     "note": "Architectural review baseline. Layer and runtime evidence have separate source bindings."
   },
+  "indexed_compaction_foreground_reconciliation": {
+    "source_base": "c5402a2e7a1899db7ba3fa901052f6a479e034cf",
+    "evidence": "docs/evidence/indexed-compaction-reconciliation-2026-11-19.json",
+    "live_windows_sdk_foreground_edits": 2,
+    "live_windows_sdk_selected_epoch": 2,
+    "late_rename_advances": 10,
+    "reconciled_modeled_interruption_cases": 348,
+    "stable_candidate_identity_in_paired_model": true,
+    "persistent_restart_of_staged_candidate": false,
+    "segment_reuse_without_second_image": false
+  },
   "indexed_compaction_idle_credit": {
     "source_base": "aab4bb86054739ce3e4be1ba65eaf09da16f4868",
     "evidence": "docs/evidence/indexed-compaction-idle-credit-2026-11-19.json",

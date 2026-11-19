@@ -196,7 +196,8 @@ class NativeFileSession final {
       StoreCompressionOptions compression={},StoreCheckpointOptions checkpoints={});
   // Repack the selected indexed image, preserving existing object encodings.
   // Use the same serialized advance, publish and cancel calls as idle recompression.
-  bool begin_idle_compaction(std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_image);
+  bool begin_idle_compaction(std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_image,
+      PagedRewriteMode=PagedRewriteMode::exact_checkpoint);
   bool idle_compaction_context_ready() const noexcept;
   // Inspect the staged phase and source token without backing I/O.
   bool idle_compaction_preparation_pending() const noexcept;
@@ -434,7 +435,7 @@ class NativeFileSession final {
   friend class WinFspNativeWritable;
   void bind_persistent_reclamation(std::shared_ptr<detail::NativeVolumeFileReclaimer>);
   friend class detail::NativeVolumeFileReclaimer;
-  bool begin_idle_compaction_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,bool owned_file_target);
+  bool begin_idle_compaction_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,bool owned_file_target,PagedRewriteMode);
   NativeOptimizationInfo bind_optimization_area(std::shared_ptr<StoreByteIo>,
       std::uint64_t,unsigned,bool create,bool rebuild,bool budgeted=false);
   static void admit_replacement(const Impl&,const std::shared_ptr<StoreByteIo>&,StoreIdentity,bool owned_file_target=false);

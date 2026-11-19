@@ -155,7 +155,8 @@ Progress NativeVolumeFileReclaimer::advance(NativeFileSession& session,const std
       abandoned_bytes_=0;
       if(!identity || spare_.use_count()!=1 || spare_->allocation_extent())
         fail(Error::invalid_operation,"inactive volume range is unavailable");
-      if(!session.begin_idle_compaction_impl(spare_,identity(),true))return Progress::idle;
+      if(!session.begin_idle_compaction_impl(spare_,identity(),true,PagedRewriteMode::reconcile_foreground))
+        return Progress::idle;
       phase_=Phase::copying;
       return Progress::copying;
     }
@@ -166,6 +167,10 @@ Progress NativeVolumeFileReclaimer::advance(NativeFileSession& session,const std
         case NativeFileSession::RecompressionProgress::stale:
           abandoned_bytes_=spare_->extent();phase_=Phase::retiring;return Progress::retiring;
       }
+    }
+    if(session.idle_compaction_preparation_pending()) {
+      phase_=Phase::copying;
+      return Progress::copying;
     }
     phase_=Phase::uncertain;
     if(!session.publish_staged_recompression(true,true)) {

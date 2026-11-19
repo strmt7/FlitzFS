@@ -40,6 +40,7 @@ struct PagedStoreWriteResult {
 struct PagedCompactedSizes {
   std::uint64_t before=0,after_upper=0;
 };
+enum class PagedRewriteMode { exact_checkpoint, reconcile_foreground };
 class IndexedCoherenceWriter;
 class PagedObjectStoreWriter;
 class PagedObjectStoreSnapshot final {
@@ -142,7 +143,7 @@ class PagedObjectStoreWriter final {
       const std::function<bool(std::uint64_t)>& reserve_writes={});
   Rewrite prepare_rebuild_replacing(std::shared_ptr<StoreByteIo>,StoreIdentity,
       StoreCompressionOptions,std::span<const std::byte> replacement,bool reencode,
-      std::size_t identity_offset=40) const;
+      std::size_t identity_offset=40,PagedRewriteMode=PagedRewriteMode::exact_checkpoint) const;
   struct RebuildRetention {
     std::size_t maximum_object_bytes;
     std::function<bool(std::uint64_t,std::span<const std::byte>)> keep;
@@ -152,7 +153,7 @@ class PagedObjectStoreWriter final {
   Rewrite prepare_rebuild_retaining(std::shared_ptr<StoreByteIo>,StoreCompressionOptions,RebuildRetention) const;
   Rewrite prepare_rebuild_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,
       StoreCompressionOptions,std::span<const std::byte> replacement,bool reencode,
-      std::size_t identity_offset,std::optional<RebuildRetention>) const;
+      std::size_t identity_offset,std::optional<RebuildRetention>,PagedRewriteMode) const;
   static PagedObjectStoreWriter rebuild_replacing(const PagedObjectStoreSnapshot&,
       std::shared_ptr<StoreByteIo>,StoreIdentity,PagedStoreLimits,StoreCompressionOptions,
       std::uint64_t replacement_id,std::span<const std::byte> replacement,bool reencode,
@@ -175,14 +176,15 @@ class PagedObjectStoreWriter final {
   std::unique_ptr<Impl> impl_;
 };
 enum class PagedRewritePhase {verifying_source,copying,verifying_target,publishing,
-    verifying_publication,ready,failed,building_index,awaiting_charge};
+    verifying_publication,ready,failed,building_index,awaiting_charge,reconciling,verifying_reconciliation};
 struct PagedRewriteProgress {
   PagedRewritePhase phase=PagedRewritePhase::failed;
   std::uint64_t objects=0,completed_in_phase=0,required_write_bytes=0;
 };
-// One control thread. Every operation takes the current writer and checks its
-// owner/generation before I/O. Each advance handles one payload or up to a
-// leaf of descriptors. Tree finishing and root publication are separate steps.
+// One control thread. Validate the source owner and checkpoint before using a
+// candidate. The optional indexed compactor reconciles immutable checkpoints.
+// All modes require an exact current checkpoint at finish. Root publication
+// stays separate from bounded payload and index preparation.
 // Destruction cancels, releases only the target lease and retains partial bytes.
 class PagedObjectStoreWriter::Rewrite final {
  public:
@@ -190,6 +192,7 @@ class PagedObjectStoreWriter::Rewrite final {
   Rewrite& operator=(Rewrite&&) noexcept;
   ~Rewrite();
   bool matches(const PagedObjectStoreWriter&) const noexcept;
+  bool ready_for(const PagedObjectStoreWriter&) const noexcept;
   StoreIdentity identity() const noexcept;
   bool replaces_native_root() const noexcept;
   PagedRewriteProgress progress() const noexcept;

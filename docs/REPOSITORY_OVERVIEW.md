@@ -317,8 +317,15 @@ indexed rebuild steps. One matched Windows memory fixture completed in
 3,063 ms, down from 36,391 ms, with byte-exact open-handle and independent CPU
 readback. The paired-range model also verified fresh observations at both
 publication boundaries and retained the old range while a reader pinned it.
-Resumable reclamation under sustained foreground writes remains open.
 [Compaction pacing evidence](evidence/indexed-compaction-idle-credit-2026-11-19.json)
+
+Indexed compaction also reconciles foreground commits against the same private
+image. In the 66-file memory model, a late rename reached Ready on the tenth
+advance after about 700 advances to build and verify the initial copy. The paired-range model retained
+the candidate identity through a late write and recovered the acknowledged
+files after 348 interruptions across replay, publication and retirement.
+Persistent candidate restart and segment-level space reuse remain open.
+[Reconciliation evidence](evidence/indexed-compaction-reconciliation-2026-11-19.json)
 
 The writable controller now stays available for the owner-controlled
 lifetime. Probe time budgets belong to the external test supervisor.

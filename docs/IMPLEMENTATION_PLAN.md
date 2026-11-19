@@ -339,8 +339,9 @@ context-preserving head handoff and source-preserving recovery.
 owned Windows memory and modeled paired-range paths, using measured obsolete
 history and CPU verification. Private preparation uses work credit within a
 fresh CPU sample. Publication and retirement each require a fresh observation.
-**Missing:** resumable segment evacuation under foreground
-commits, durable liveness/progress, and persistent-provider qualification.
+Indexed compaction can preserve its private work across foreground commits by
+reconciling immutable tree checkpoints. **Missing:** segment-level evacuation,
+durable staging progress, and persistent-provider qualification.
 **Planning effort:** 5–10 person-weeks; confidence low.
 
 ### Implementation steps
@@ -364,8 +365,9 @@ commits, durable liveness/progress, and persistent-provider qualification.
    provider publishes a smaller verified image, protects the previous range
    while snapshots pin it and releases allocation after confirmed selection.
    Recovery identifies out-of-selection ranges from the head's epoch.
-   Persist useful staging progress across foreground changes and measure
-   interference during mounted Windows 11 activity.
+   Preserve private staging across foreground changes by reconciling
+   checkpoint differences. Persist restart progress and measure interference
+   during mounted Windows 11 activity.
    [Persistent range evidence](evidence/windows-sparse-volume-reclamation-2026-11-19.json)
 6. Implement steady-state segment evacuation with bounded units and a persistent
    liveness index or equivalent reverse mapping. Select a victim using its live
