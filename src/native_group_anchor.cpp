@@ -280,6 +280,8 @@ AnchorMatchAdvice accept_anchor_match_reply(std::span<const std::byte> frame,con
   return read_anchor_match_reply(frame,request,nullptr);
 }
 
+std::uint32_t anchor_match_batch_member_limit() noexcept {return maximum_members;}
+
 AnchorMatchBatchPlan plan_anchor_match_batch(std::span<const std::uint32_t> members,
     std::uint32_t maximum_quantum,std::uint64_t maximum_device_bytes,std::uint32_t maximum_launches,
     match::BatchOutput output) {

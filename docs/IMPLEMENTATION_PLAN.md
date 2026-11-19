@@ -752,6 +752,14 @@ device classes before enabling automatic routing.
 [Wider paired trial](evidence/amd-wide-packed-xor-2026-11-19.json) ·
 [Dispatch and phase measurements](evidence/amd-adaptive-packed-xor-2026-11-19.json)
 
+The indexed owner now fills a finite worker exchange across several scan
+windows under live host and exact channel admission. In the related-data
+fixture, one real AMD exchange supplied 310 verified candidates for five
+independent group transactions. Compacted CPU readback verified every file.
+Use the larger attainable batches to qualify heterogeneous input profiles
+against complete CPU cost, including preparation, publication, and contention.
+[Multiwindow maintenance evidence](evidence/amd-multiwindow-maintenance-2026-11-19.json)
+
 The first collective AMD trial reused the authenticated uniform LZ4 worker.
 Copies from tiles that contain the same base produced a 600 KiB complete
 image on the seeded fragmented fixture, compared with 752 KiB for the same

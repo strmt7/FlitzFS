@@ -30,7 +30,7 @@ class NativeAnchorSearchController final {
   ~NativeAnchorSearchController();
   NativeAnchorSearchController(const NativeAnchorSearchController&)=delete;
   NativeAnchorSearchController& operator=(const NativeAnchorSearchController&)=delete;
-  std::size_t stage_grant(std::uint64_t now) const noexcept;
+  std::size_t stage_grant(std::uint64_t now,std::size_t funded_extents) const noexcept;
   bool fits_group_budget(std::size_t admitted_members) const noexcept;
   void start(std::span<const NativeSharedBaseSearchWindow>,std::uint64_t activity) noexcept;
   // Input validation only runs on an admitted idle opportunity.

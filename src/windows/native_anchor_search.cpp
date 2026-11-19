@@ -52,7 +52,8 @@ struct NativeAnchorSearchController::Impl {
   }
   bool valid_profile() const noexcept {
     return options.minimum_members && options.minimum_members<=options.maximum_members &&
-        options.maximum_members<kNativeMaxExtents && options.duty_ppm && options.duty_ppm<=100000 &&
+        options.minimum_members<=detail::anchor_match_batch_member_limit() &&
+        options.duty_ppm && options.duty_ppm<=100000 &&
         options.worker.memory_share_divisor && valid_process_budget(options.worker);
   }
   void discard() noexcept {
@@ -91,10 +92,13 @@ struct NativeAnchorSearchController::Impl {
 NativeAnchorSearchController::NativeAnchorSearchController(NativeAnchorSearchOptions options)
     :impl_(std::make_unique<Impl>(std::move(options))) {}
 NativeAnchorSearchController::~NativeAnchorSearchController(){impl_->yield(Impl::Disposition::yielded);}
-std::size_t NativeAnchorSearchController::stage_grant(std::uint64_t now) const noexcept {
+std::size_t NativeAnchorSearchController::stage_grant(std::uint64_t now,std::size_t funded_extents) const noexcept {
   const auto& self=*impl_;
-  return self.enabled && !self.flight && self.windows.empty() && !self.unobserved_ticket && now>=self.next_launch?
-      self.options.maximum_members:0;
+  if(!self.enabled || self.flight || !self.windows.empty() || self.unobserved_ticket ||
+      now<self.next_launch || funded_extents<2)return 0;
+  const auto grant=(std::min)({funded_extents-1,static_cast<std::size_t>(self.options.maximum_members),
+      static_cast<std::size_t>(detail::anchor_match_batch_member_limit())});
+  return grant>=self.options.minimum_members?grant:0;
 }
 bool NativeAnchorSearchController::fits_group_budget(std::size_t admitted_members) const noexcept {
   if(admitted_members<2)return false;
@@ -108,11 +112,12 @@ void NativeAnchorSearchController::start(std::span<const NativeSharedBaseSearchW
     std::uint64_t activity) noexcept {
   auto& self=*impl_;
   const auto& options=self.options;
-  if(!stage_grant(GetTickCount64()) || !WorkerExchangeSession::available())return;
+  const auto grant=stage_grant(GetTickCount64(),std::size_t{detail::anchor_match_batch_member_limit()}+1);
+  if(!grant || !WorkerExchangeSession::available())return;
   std::uint32_t total=0,largest=0;
   for(const auto& window:windows) {
     const auto members=window.members().size();
-    if(!members || members>options.maximum_members-total)return;
+    if(!members || members>grant-total)return;
     const auto count=static_cast<std::uint32_t>(members);
     total+=count;
     largest=(std::max)(largest,count);

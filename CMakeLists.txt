@@ -473,6 +473,8 @@ if(FLITZFS_BUILD_TESTS)
   set_tests_properties(bounded_native_indexed_projected_coherence PROPERTIES TIMEOUT 100)
   add_test(NAME bounded_native_indexed_group_advice COMMAND flitzfs_native_group_maintenance_tests --indexed-advice)
   add_test(NAME bounded_native_indexed_group_batch COMMAND flitzfs_native_group_maintenance_tests --indexed-batch)
+  add_test(NAME bounded_native_indexed_multiwindow_batch COMMAND flitzfs_native_group_maintenance_tests --indexed-multiwindow-batch)
+  set_tests_properties(bounded_native_indexed_multiwindow_batch PROPERTIES TIMEOUT 120)
   set_tests_properties(bounded_native_indexed_group_advice PROPERTIES TIMEOUT 30)
   set_tests_properties(bounded_native_automatic_group_maintenance bounded_native_indexed_group_maintenance
     bounded_native_indexed_group_resume PROPERTIES TIMEOUT 120)

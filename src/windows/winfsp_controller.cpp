@@ -193,8 +193,9 @@ struct WinFspVolumeController::Impl {
     }
     const auto epoch=adapter->foreground_activity();
     const auto resources=detail::maintenance_resources(observed,now,adapter->group_maintenance_policy());
+    const auto funded_extents=resources?detail::maintenance_group_member_limit(*resources,true):0;
     const bool idle=resources && !resources->cpu_busy && !adapter->foreground_pending() &&
-        anchor->fits_group_budget(detail::maintenance_group_member_limit(*resources,true));
+        anchor->fits_group_budget(funded_extents);
     if(!idle)anchor->cancel();
     anchor->observe(epoch,now,idle);
     // Preserve PDH sampling while the worker runs. The storage step can wait
@@ -202,7 +203,7 @@ struct WinFspVolumeController::Impl {
     if(anchor->waiting())return {WinFspMaintenanceState::busy};
     const auto replies=anchor->replies();
     auto result=session->advance_background_maintenance(observed,GetTickCount64(),
-        {idle?anchor->stage_grant(now):0,nullptr,true,replies});
+        {idle?anchor->stage_grant(now,funded_extents):0,nullptr,true,replies});
     if(!replies.empty()) {
       anchor->settle_reply_checks();
       if(!result.retained_search && result.state!=WinFspMaintenanceState::busy &&

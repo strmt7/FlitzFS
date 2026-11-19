@@ -170,6 +170,52 @@ void batched_indexed_maintenance(BatchOutcome outcome) {
     require(snapshot.read("f"+std::to_string(i),0,kNativeExtentBytes)==originals[i],"batch readback differs");
 }
 
+void indexed_batch_across_scan_windows() {
+  constexpr auto families=anchor_search_fixture::indexed_batch_families;
+  constexpr auto expected_members=anchor_search_fixture::indexed_batch_members;
+  Fixture f(4096,0,true);
+  const auto originals=anchor_search_fixture::indexed_batch_files();
+  for(std::size_t i=0;i<originals.size();++i)put(*f.session,"f"+std::to_string(i),originals[i]);
+  NativeGroupMaintenance controller(*f.session);
+  NativeMaintenanceProgress progress;
+  for(unsigned tick=0;tick<2000;++tick) {
+    const auto observed=f.clock.next();
+    // Leave some work unfilled. Reaching the end of the scan must send the
+    // partial batch without waiting for more files to appear.
+    progress=controller.advance(observed,f.clock.now,{expected_members+families,nullptr,true});
+    require(progress.phase!=Phase::failed && !progress.published_groups,
+        "cross-window batch published before receiving advice");
+    if(progress.search_batch_ready)break;
+  }
+  auto windows=controller.search_batch();
+  require(progress.search_batch_ready && windows.size()==families,
+      "batch stopped at the boundary of a scan window");
+  std::size_t members=0;
+  for(const auto& window:windows) {
+    require(window.members().size()==kNativeMaxDirtyExtents-1,"batch changed the transaction work bound");
+    members+=window.members().size();
+  }
+  require(members==expected_members && progress.sampled_extents==families*kNativeMaxDirtyExtents,
+      "batch omitted members or rescanned source extents");
+
+  auto pressure=f.clock.next();
+  pressure.physical_available=pressure.physical_total/16;
+  // The test owns independent references just like the adviser. Retire them
+  // before confirming the maintenance owner's memory has been released.
+  windows.clear();
+  const auto deferred=controller.advance(pressure,f.clock.now,{expected_members+families,nullptr,true});
+  require(deferred.deferral==Defer::memory && !deferred.owned_payload_bytes &&
+      !controller.active_group() && !controller.has_retained_search(),
+      "cross-window batch retained work after its resource grant contracted");
+  const auto snapshot=f.session->snapshot();
+  snapshot.verify_all();
+  for(std::size_t i=0;i<originals.size();++i)
+    require(snapshot.read("f"+std::to_string(i),0,originals[i].size())==originals[i],
+        "cross-window retirement changed acknowledged data");
+  std::cout<<"indexed batch scan windows="<<families<<" admitted members="<<members
+      <<" source extents="<<progress.sampled_extents<<" retired under memory pressure\n";
+}
+
 void shifted_indexed_family(const Bytes& base,StoreCompressionOptions compression,bool corpus) {
   constexpr unsigned count=12;
   constexpr std::uint32_t unit=4096;
@@ -1065,6 +1111,8 @@ int main(int argc,char** argv){try{
     batched_indexed_maintenance(BatchOutcome::cpu_fallback);
     batched_indexed_maintenance(BatchOutcome::changed_source);
     batched_indexed_maintenance(BatchOutcome::memory_pressure);
+  } else if(argc==2 && std::string_view(argv[1])=="--indexed-multiwindow-batch") {
+    indexed_batch_across_scan_windows();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed") {
     for(auto unit:{4096U,65536U})automatic_and_extension(unit,true);
     indexed_scan_windows();indexed_stale_binding_and_padding();

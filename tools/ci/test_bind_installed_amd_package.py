@@ -96,6 +96,12 @@ class PackageTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "Inverted anchor work range"):
             self.bind()
 
+    def test_profile_can_cover_several_indexed_scan_windows(self):
+        self.anchor().update(minimum_members=512, maximum_members=2048)
+        header, _ = self.bind()
+        self.assertIn("anchor_minimum_members=512U", header)
+        self.assertIn("anchor_maximum_members=2048U", header)
+
     def test_install_plan_cannot_alias_windows_paths(self):
         self.anchor()
         self.manifest["files"].append(dict(path=ANCHOR_WORKER.upper()))

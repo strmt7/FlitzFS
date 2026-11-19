@@ -96,6 +96,9 @@ AnchorMatchAdvice accept_anchor_match_reply(std::span<const std::byte> frame,con
 AnchorMatchBatchPlan plan_anchor_match_batch(std::span<const std::uint32_t> members,
     std::uint32_t maximum_quantum,std::uint64_t maximum_device_bytes,std::uint32_t maximum_launches,
     anchor_match::BatchOutput=anchor_match::BatchOutput::anchors);
+// Upper bound from the request representation. The exact planner also
+// charges each group's header and base and the selected reply layout.
+std::uint32_t anchor_match_batch_member_limit() noexcept;
 // Transfers can span several launches. The last transfer of each group may
 // be partial, while every earlier transfer ends at a dispatch boundary.
 AnchorMatchTransferPlan plan_anchor_match_transfers(const AnchorMatchBatchPlan&,std::uint64_t maximum_device_bytes);

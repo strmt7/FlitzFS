@@ -391,9 +391,104 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
   return result.anchor_search.submitted==1 && result.anchor_search.verified==1 && result.anchor_search.verified_groups==groups &&
       result.maintenance.published_groups==groups && result.maintenance.advised_members_published==count-groups?0:2;
 }
+
+int live_multiwindow_anchor(NativeAnchorSearchOptions options) {
+  constexpr auto families=anchor_search_fixture::indexed_batch_families;
+  constexpr auto members=anchor_search_fixture::indexed_batch_members;
+  const StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
+  auto head=std::make_shared<Ram>(),image=std::make_shared<Ram>();
+  // Match the multiwindow CPU fixture's modeled device geometry. Leave room
+  // in the 64 MiB image for both live records and independently committed COW.
+  head->failure_unit=image->failure_unit=4096;
+  std::optional<NativeFileSession> session(NativeFileSession::create_indexed_volume(
+      head,id(90),image,id(1),{kStoreMaxPhysicalBytes},raw));
+  const auto originals=anchor_search_fixture::indexed_batch_files();
+  for(std::size_t i=0;i<originals.size();++i) {
+    const auto path="f"+std::to_string(i);
+    session->create_entry(path);
+    const auto handle=session->open(path,{true,true,false});
+    session->write(handle,0,originals[i]);
+    session->cleanup(handle,false);session->close(handle);
+  }
+  const auto resolve=[&](const auto& key)->std::shared_ptr<StoreByteIo> {return key==id(1)?image:nullptr;};
+  std::uint64_t baseline_bytes=0;
+  session.reset();
+  {
+    const auto closed=NativeVolumeHeadView::open(head,id(90),resolve);
+    auto copy=std::make_shared<Ram>();copy->failure_unit=image->failure_unit;
+    (void)NativeFilesystemWriter::compact(closed.filesystem(),copy,id(2),raw);
+    baseline_bytes=copy->extent();
+  }
+  session.emplace(NativeFileSession::resume_closed_indexed_volume(head,id(90),1,resolve,raw));
+  NativeGroupMaintenance maintenance(*session);
+  NativeAnchorSearchController anchor(std::move(options));
+  const auto now=GetTickCount64();
+  const auto grant=anchor.stage_grant(now,members+families+1);
+  require(!anchor.stage_grant(now,members) && grant==members+families,
+      "Wide route used a legacy cap or ignored its funded range");
+  NativeMaintenanceProgress progress;
+  std::uint64_t sequence=0;
+  const auto background_step=[&](NativeGroupSearchOpportunity search) {
+    MEMORYSTATUSEX host{};host.dwLength=sizeof(host);
+    require(GlobalMemoryStatusEx(&host)!=0,"Cannot confirm current memory headroom");
+    // Model idle time to exercise the larger batch quickly. HIP admission and
+    // the physical and commit observations still use the real host.
+    NativeMaintenanceObservation observation{++sequence,1000*sequence,host.ullTotalPhys,host.ullAvailPhys,
+        host.ullTotalPageFile,host.ullAvailPageFile,1000,0,1000,true,false};
+    progress=maintenance.advance(observation,observation.captured_ms,search);
+    if(progress.phase==NativeMaintenancePhase::failed || progress.deferral==NativeMaintenanceDeferral::memory)
+      std::cerr<<"multiwindow refusal phase="<<static_cast<unsigned>(progress.phase)
+          <<" deferral="<<static_cast<unsigned>(progress.deferral)<<" sampled="<<progress.sampled_extents
+          <<" published="<<progress.published_groups<<" declined="<<progress.declined_groups
+          <<" image_bytes="<<image->extent()<<" physical_available="<<host.ullAvailPhys
+          <<" commit_available="<<host.ullAvailPageFile<<'\n';
+    require(progress.phase!=NativeMaintenancePhase::failed &&
+        progress.deferral!=NativeMaintenanceDeferral::memory,"Large batch preparation or publication failed");
+  };
+  for(unsigned i=0;i<2000 && !progress.search_batch_ready;++i)background_step({grant,nullptr,true});
+  auto windows=maintenance.search_batch();
+  require(windows.size()==families,"The assembled work did not span all scan windows");
+  const auto started=GetTickCount64();
+  anchor.start(windows,1);
+  windows.clear();
+  require(anchor.stats().submitted==1,"AMD controller did not admit the funded multiwindow batch");
+  await([&] {
+    anchor.observe(1,GetTickCount64(),true);
+    return !anchor.waiting();
+  },8000,"Multiwindow AMD worker did not retire");
+  const auto worker_ms=GetTickCount64()-started;
+  require(anchor.replies().size()==families,"AMD batch did not return one reply per group");
+  for(unsigned i=0;i<2000 && progress.published_groups<families;++i) {
+    background_step({0,nullptr,true,anchor.replies()});
+    anchor.settle_reply_checks();
+  }
+  const auto stats=anchor.stats();
+  require(progress.published_groups==families && progress.advised_members_published==members &&
+      stats.verified==1 && stats.verified_groups==families && !stats.integrity_failures &&
+      anchor.stop() && WorkerExchangeSession::available(),
+      "Large AMD batch lost verified advice, protected publication or ownership");
+
+  maintenance.cancel();
+  session.reset();
+  const auto closed=NativeVolumeHeadView::open(head,id(90),resolve);
+  auto packed=std::make_shared<Ram>();packed->failure_unit=image->failure_unit;
+  (void)NativeFilesystemWriter::compact(closed.filesystem(),packed,id(3),raw);
+  const auto reopened=NativeFilesystemSnapshot::open_image(packed,{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes});
+  reopened.verify_all();
+  for(std::size_t i=0;i<originals.size();++i)
+    require(reopened.read("f"+std::to_string(i),0,originals[i].size())==originals[i],
+        "Large AMD batch changed independently reopened file bytes");
+  require(packed->extent()<baseline_bytes,"Large AMD batch did not reduce complete compacted size");
+  std::cout<<"multiwindow_amd groups="<<families<<" members="<<members<<" worker_ms="<<worker_ms
+      <<" input_compacted_bytes="<<baseline_bytes<<" grouped_compacted_bytes="<<packed->extent()
+      <<" retired=true independent_cpu_readback=true modeled_idle_time=true\n";
+  return 0;
+}
+
 int live_anchor_owner(char** argv) {
   const std::string_view mode(argv[6]);
-  const bool xor_mode=mode=="xor" || mode=="xor-wide" || mode=="xor-narrow";
+  const bool multiwindow=mode=="xor-multiwindow";
+  const bool xor_mode=mode=="xor" || mode=="xor-wide" || mode=="xor-narrow" || multiwindow;
   require(mode=="accept" || mode=="yield" || mode=="both" || mode=="batch" || mode=="batch-yield" || xor_mode,
       "Expected an AMD ownership trial");
   const ProcessBudget profile{128,2000,5000,16};
@@ -404,6 +499,12 @@ int live_anchor_owner(char** argv) {
   const auto binding=discover_system_hip_route(request);
   require(binding.status==HipDiscoveryStatus::ready && binding.route && binding.route->pins->anchor_module_pinned() &&
       !binding.route->pins->uniform_module_pinned(),"Shared-base worker route was not authenticated");
+  if(multiwindow) {
+    constexpr auto members=anchor_search_fixture::indexed_batch_members;
+    constexpr auto families=anchor_search_fixture::indexed_batch_families;
+    return live_multiwindow_anchor({*binding.route,profile,members,members+families,10000,
+        anchor_match::BatchOutput::wide_packed_xor});
+  }
   const std::uint32_t members=(mode=="batch" || mode=="batch-yield" || xor_mode)?8:4;
   NativeAnchorSearchOptions execution{*binding.route,profile,members,members};
   if(xor_mode)execution.output=mode=="xor-wide"?anchor_match::BatchOutput::wide_packed_xor:

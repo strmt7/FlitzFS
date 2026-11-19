@@ -87,6 +87,15 @@ optional reply. The owner holds the session that owns the exact supervisor
 handle while waiting alongside the stop and activity events.
 [Windows wait contract](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitformultipleobjects)
 
+An indexed batch can span several scan windows. The aggregate preparation
+budget follows current physical and commit headroom and the qualified worker
+grant. Each group still passes through its own bounded transaction.
+Collection ends when the grant fills, the next group would exceed the
+retained extent budget, the scan ends, or the admitted number of further
+extent visits has been spent. No GPU worker waits during collection. The
+saved scan cursor pauses while tentative groups remain in memory so a
+restart can reconsider that work.
+
 A foreground callback can wake the owner at entry while a GPU request is
 outstanding. Activity or lost group headroom discards the optional result and
 signals cancellation. CPU work resumes on admitted opportunities while the
@@ -119,6 +128,14 @@ yielded on a real callback event and completed both groups on CPU. The
 missing-package control finished on CPU with zero metadata queries or compute
 launches. These fixtures use the Windows host and SDK callback lifecycle.
 [Batch, cancellation and fallback evidence](evidence/amd-owned-group-batch-2026-11-18.json)
+
+In the larger fixture, five scan windows supplied 310 packed-XOR members
+from 45 files to one authenticated AMD compute worker. The five group
+transactions completed independently. A fresh CPU reader verified every
+byte after compaction. The protected image shrank from 41,623,552 bytes to
+11,411,456 bytes on this two-plane related-data workload. The fixture used
+actual host memory admission and GPU execution with modeled idle timing.
+[Multiwindow evidence](evidence/amd-multiwindow-maintenance-2026-11-19.json)
 
 ## Retirement and qualification
 
