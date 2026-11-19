@@ -21,7 +21,12 @@ constexpr std::uint64_t lifetime_domain=2ULL<<61,retirement_domain=5ULL<<61;
 constexpr std::uint64_t ordinal_mask=kNativeIndexedInodeLimit-1;
 constexpr std::size_t original_root_size=96,lifetime_root_size=120,root_size=136,extent_header=24;
 constexpr std::size_t base_size=8+kNativeExtentBytes;
-constexpr std::uint32_t anchor_copy_capability=4;
+constexpr std::uint32_t anchor_copy_capability=4,packed_xor_capability=5;
+constexpr NativeGroupMethod available_group_method(std::uint32_t capability) noexcept {
+  if(capability>=packed_xor_capability)return NativeGroupMethod::packed_xor;
+  if(capability>=anchor_copy_capability)return NativeGroupMethod::anchor_copies;
+  return NativeGroupMethod::aligned_patches;
+}
 static_assert(kNativeIndexedDataObject==kNativeGroupBaseBit);
 constexpr std::size_t maximum_inode_bytes=104+100+kNativeMaxSecurityBytes;
 
@@ -80,7 +85,7 @@ void validate_header_fields(const IndexedVolumeRoot& root) {
       root.next_extent>kNativeIndexedInodeLimit || (!root.workload.enabled && root.workload.committed_input_bytes))
     fail(Code::corrupt,"invalid indexed root identity or allocator");
   const auto non_root=root.inodes?root.inodes-1:0;
-  if(root.format<1 || root.format>anchor_copy_capability || root.active_lifetimes>non_root ||
+  if(root.format<1 || root.format>packed_xor_capability || root.active_lifetimes>non_root ||
       root.retiring_inodes>non_root-root.active_lifetimes ||
       root.detached_inodes<root.retiring_inodes ||
       root.detached_inodes-root.retiring_inodes>root.active_lifetimes ||
@@ -99,7 +104,7 @@ IndexedVolumeRoot decode_root(std::span<const std::byte> bytes) {
   IndexedVolumeRoot root;
   root.format=static_cast<std::uint32_t>(get(bytes,8,4));
   const auto expected_size=root.format==1?original_root_size:root.format==2?lifetime_root_size:root_size;
-  if(root.format<1 || root.format>anchor_copy_capability || bytes.size()!=expected_size)
+  if(root.format<1 || root.format>packed_xor_capability || bytes.size()!=expected_size)
     fail(Code::corrupt,"indexed native volume capability and length differ");
   if(root.format>=2) {
     root.active_lifetimes=get(bytes,96);root.detached_inodes=get(bytes,104);root.retiring_inodes=get(bytes,112);
@@ -202,8 +207,8 @@ DecodedIndexedExtent decode_extent(const PagedObjectStoreSnapshot& source,const 
   if(root.format<3 || !magic(bytes,member_magic))fail(Code::corrupt,"unsupported indexed extent frame");
   const auto member=std::span<const std::byte>(bytes).subspan(extent_header);
   try {
-    const auto allow_anchor_copies=root.format>=anchor_copy_capability;
-    const auto reference=parse_native_group_member(member,allow_anchor_copies);
+    const auto maximum_method=available_group_method(root.format);
+    const auto reference=parse_native_group_member(member,maximum_method);
     if(reference.base_id==object || (reference.base_id&ordinal_mask)>=root.next_extent ||
         index.find(native_group_reference_key(reference.base_id,object))!=object)
       fail(Code::corrupt,"indexed shared-base backreference is missing");
@@ -213,7 +218,7 @@ DecodedIndexedExtent decode_extent(const PagedObjectStoreSnapshot& source,const 
     const auto base=required(source,reference.base_id,base_size);
     verify_base_frame(base);
     const auto anchor_payload=std::span(base).subspan(base_magic.size());
-    auto decoded=decode_native_group_member(member,anchor_payload,allow_anchor_copies);
+    auto decoded=decode_native_group_member(member,anchor_payload,maximum_method);
     const auto reusable=compare_anchor && std::ranges::equal(decoded,anchor_payload)?anchor->generation:0;
     while(!decoded.empty() && decoded.back()==std::byte{})decoded.pop_back();
     validate_payload(inode,block,decoded);
@@ -1228,19 +1233,28 @@ bool IndexedSharedBasePreparation::advance(std::span<const NativeSharedBaseCopyR
     // The private placeholder binds no stored dependency. The final anchor
     // identity and generation come from the live transaction at finish.
     auto encoded=encode_native_group_member(bytes,base_,kNativeGroupBaseBit+1,1);
+    std::uint32_t capability=3;
     bool selected_advice=false;
     if(!is_base && !advice.empty()) {
       if(auto candidate=encode_native_group_copies(bytes,base_,kNativeGroupBaseBit+1,1,advice,
           encoded?encoded->size():kNativeExtentBytes)) {
-        encoded=std::move(candidate);selected_advice=true;
+        encoded=std::move(candidate);
+        capability=anchor_copy_capability;
+        selected_advice=true;
       }
+    }
+    if(auto packed=encode_native_group_xor(bytes,base_,kNativeGroupBaseBit+1,1,
+        encoded?encoded->size():kNativeExtentBytes)) {
+      encoded=std::move(packed);
+      capability=packed_xor_capability;
+      selected_advice=false;
     }
     const auto limit=encoded?encoded->size():kNativeExtentBytes;
     if(limit>kNativeGroupCopyMinimumBytes) {
       if(!anchor_index_)anchor_index_.emplace(base_);
       if(auto shifted=anchor_index_->encode(bytes,base_,kNativeGroupBaseBit+1,1,limit)) {
         encoded=std::move(shifted);
-        uses_anchor_copies_=true;
+        capability=anchor_copy_capability;
         selected_advice=false;
       }
     }
@@ -1250,9 +1264,10 @@ bool IndexedSharedBasePreparation::advance(std::span<const NativeSharedBaseCopyR
       progress_.phase=Phase::declined;
       return true;
     }
-    if(!std::ranges::equal(decode_native_group_member(*encoded,base_,true),bytes))
+    if(!std::ranges::equal(decode_native_group_member(*encoded,base_,available_group_method(capability)),bytes))
       fail(Code::corrupt,"indexed shared-base private CPU comparison failed");
-    if(selected_advice){uses_anchor_copies_=true;++progress_.selected_advice_members;}
+    group_capability_=(std::max)(group_capability_,capability);
+    if(selected_advice)++progress_.selected_advice_members;
     const auto frame_bytes=extent_header+encoded->size();
     const auto committed_input=root_size+(reusable_anchor_?0:base_size)+progress_.owned_payload_bytes-base_.size();
     if(frame_bytes>kStoreMaxTransactionBytes-committed_input)
@@ -1289,7 +1304,7 @@ NativeSharedBaseCommit IndexedSharedBasePreparation::finish(PagedObjectStoreWrit
       before.generation>(std::numeric_limits<std::uint64_t>::max)()-2)
     fail(Code::limit,"indexed shared-base generation exhausted");
   auto next=current;
-  next.format=(std::max)(current.format,uses_anchor_copies_?anchor_copy_capability:3U);
+  next.format=(std::max)(current.format,group_capability_);
   ++next.sequence;
   auto anchor=reusable_anchor_,generation=reusable_generation_;
   const bool new_anchor=!anchor;
@@ -1321,7 +1336,7 @@ NativeSharedBaseCommit IndexedSharedBasePreparation::finish(PagedObjectStoreWrit
       fail(Code::invalid_operation,"selected indexed shared-base binding changed");
     if(member.frame.empty())continue;
     bind_native_group_member(std::span(member.frame).subspan(extent_header),anchor,generation,
-        next.format>=anchor_copy_capability);
+        available_group_method(next.format));
     records.push_back({member.object,false,std::move(member.frame)});
     if(member.previous_base)retire_group_reference(member.previous_base,member.object,next,retired,edits);
     edits.push_back({native_group_reference_key(anchor,member.object),{},member.object});

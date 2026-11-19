@@ -707,6 +707,16 @@ and on mixed corpora. Count index bytes, transfer costs and CPU readback when
 selecting a method for the ordinary optimizer.
 [Shifted group validation](evidence/shifted-indexed-groups-2026-11-18.json)
 
+Indexed capability 5 adds independently readable packed XOR planes for dense,
+low-bit differences against an immutable base. In a matched nine-file
+low-bit fixture, automatic grouping reduced the protected compacted image
+from 1,176 KiB with the previous optimizer to 400 KiB. Discovery used one
+unchanged band per extent. Next measure approximate signatures for groups
+with changes in every band, and compare batched AMD plane generation with
+the CPU encoder using transfer, verification, read and total size costs.
+[Packed XOR format](INDEXED_NATIVE_VOLUME.md#packed-xor-members) ·
+[Source-bound results](evidence/indexed-packed-xor-2026-11-19.json)
+
 The first collective AMD trial reused the authenticated uniform LZ4 worker.
 Copies from tiles that contain the same base produced a 600 KiB complete
 image on the seeded fragmented fixture, compared with 752 KiB for the same

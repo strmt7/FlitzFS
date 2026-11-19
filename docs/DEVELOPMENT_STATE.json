@@ -22,6 +22,18 @@
     "local_mount": false,
     "release": false
   },
+  "native_packed_xor": {
+    "source_base": "97f023a3bc021724afcef4ec4f497061bdb71c56",
+    "evidence": "docs/evidence/indexed-packed-xor-2026-11-19.json",
+    "indexed_capability": 5,
+    "previous_compacted_fixture_bytes": 1204224,
+    "packed_xor_compacted_fixture_bytes": 409600,
+    "modeled_publication_cases_per_configuration": 528,
+    "independent_cpu_readback": true,
+    "physical_amd_anchor_regression": true,
+    "packed_xor_gpu_encoding": false,
+    "next": "Measure discovery across wholly perturbed extents and qualify batched AMD plane generation against complete CPU, transfer, verification and read costs."
+  },
   "native_path_lookup": {
     "source_base": "700cdb31de32b847497b02cc0e113d27482e6c85",
     "evidence": "docs/evidence/native-path-lookup-2026-11-17.json",

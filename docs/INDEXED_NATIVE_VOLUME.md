@@ -5,9 +5,9 @@ extent records on demand. The native snapshot API provides lookup, directory
 pages, metadata and file reads. The native writer can initialize a new mirrored
 image and resume a fully verified indexed image. Its path transactions update
 the checked index and changed records together. New volumes use capability 2,
-which supports file lifetimes through `NativeFileSession`. Useful shared-base
-publication selects capability 3 for aligned patches or capability 4 when a
-member copies ranges from its base. The managed head and
+which supports file lifetimes through `NativeFileSession`. Shared-base
+publication selects capability 3 for aligned patches, 4 for anchor copies,
+or 5 for packed XOR planes. The managed head and
 writable WinFsp SDK adapter can select indexed images. The owned mounted
 provider passed an earlier indexed external-client fixture on disposable
 Windows Server 2025. Current Windows 11 client and mounted shared-base
@@ -19,14 +19,14 @@ qualification remain open.
 
 Object 1 is the little-endian native root. Capability 1 has 96 bytes.
 Capability 2 has 120 bytes and appends three lifetime counts. Capability 3
-has 136 bytes and adds the shared-base and member counts. Capability 4 preserves
-the 136-byte root layout and permits anchor-copy members. Readers accept all four
-capabilities and check each against its exact length.
+has 136 bytes and adds the shared-base and member counts. Capabilities 4 and 5
+keep the 136-byte root layout and permit additional group encodings. Readers
+accept all five capabilities and check each against its exact length.
 
 | Offset | Bytes | Value |
 | --- | --- | --- |
 | 0 | 8 | `FLTXPV01` |
-| 8 | 4 | Indexed native capability, 1 through 4 |
+| 8 | 4 | Indexed native capability, 1 through 5 |
 | 12 | 4 | Workload accounting flag, 0 or 1 |
 | 16 | 8 | Native namespace sequence |
 | 24, 32 | 8 each | Next inode ID and next extent ordinal |
@@ -65,7 +65,7 @@ independent CPU decoders and mirrored-payload verification.
 
 ## Shared-base extents
 
-Capabilities 3 and 4 keep the ordinary extent frame. A grouped member has
+Capabilities 3 through 5 keep the ordinary extent frame. A grouped member has
 the same 24-byte owner and logical-block header with magic `FLTXPD01`,
 followed by the existing checked [shared-base delta](SHARED_BASE_GROUPS.md#exact-member-bytes).
 A base object uses the data-object allocator and starts with `FLTXPA01`,
@@ -113,10 +113,10 @@ members, and readers limited to capability 3 refuse a capability 4 root.
 
 Indexed preparation also accepts borrowed base-copy suggestions for its next
 member. It checks bounds, order and each proposed byte range against the
-selected decoded extent and immutable base. Valid hints compete with the two
-CPU encodings. The chosen frame passes complete CPU decoding and the existing
-packed-size and live-generation checks. An admitted frame uses capability 4
-and can be read independently on CPU.
+selected decoded extent and immutable base. Valid hints compete with the CPU
+encodings. The chosen frame passes complete CPU decoding and the existing
+packed-size and live-generation checks. A selected copy frame requires at
+least capability 4 and can be read independently on CPU.
 
 An edit or removal detaches its old reference in the same COW transaction
 as the file change. Ordered index ranks determine whether an anchor has
@@ -131,6 +131,29 @@ The AMD worker compressed the incoming overwrite.
 [Shared-base evidence](evidence/indexed-shared-base-2026-11-18.json) ·
 [Packed layout evidence](evidence/packed-rebuild-accounting-2026-11-18.json) ·
 [Cooperative preparation evidence](evidence/cooperative-indexed-shared-base-2026-11-18.json)
+
+### Packed XOR members
+
+Capability 5 admits `FLTXGM03` after the ordinary grouped extent header. Its
+128-byte member header uses version 3 and retains the base identity, generation,
+decoded size and both digests. Offset 96 holds the fixed tile count of 256.
+Offset 100 holds the exact body length. Offsets 104–127 are zero.
+
+The body covers the extent in consecutive 256-byte tiles. Each tile starts with
+an eight-bit mask of the XOR planes that contain changes. A zero mask uses one
+byte for an unchanged tile. For each set mask bit, in increasing bit order, the
+body contains 32 bytes from that plane. In each plane byte, the least significant
+bit belongs to the first of the eight covered positions. The last tile ends at
+the exact body boundary. Each advertised plane must contain a change. At least
+one tile in the member must change.
+
+The CPU decoder starts with the verified immutable base and applies the XOR
+planes to reconstruct one extent. It checks both digests. A member must be
+smaller than the current competing private frame and the published group must
+pass the existing strict complete-image savings check. The COW transaction
+raises the capability only when it publishes a selected XOR member. Capability
+5 also reads aligned and anchor-copy members. Earlier capabilities reject
+packed XOR members.
 
 ### Automatic candidate discovery
 

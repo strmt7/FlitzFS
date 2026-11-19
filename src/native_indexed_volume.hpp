@@ -92,7 +92,8 @@ class IndexedSharedBasePreparation final {
   std::size_t base_index_=0;
   std::uint64_t reusable_anchor_=0,reusable_generation_=0;
   NativeSharedBaseProgress progress_{NativeSharedBasePhase::reading_base};
-  bool invalidated_=false,uses_anchor_copies_=false,search_storage_unavailable_=false;
+  std::uint32_t group_capability_=3;
+  bool invalidated_=false,search_storage_unavailable_=false;
 };
 struct IndexedPreparationWatch {
   std::weak_ptr<IndexedSharedBasePreparation> preparation;

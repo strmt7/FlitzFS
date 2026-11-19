@@ -9,6 +9,10 @@ constexpr std::size_t extent=65536,header=128;
 constexpr std::array<std::byte,8> aligned_magic{std::byte{'F'},std::byte{'L'},std::byte{'T'},std::byte{'X'},
     std::byte{'G'},std::byte{'M'},std::byte{'0'},std::byte{'1'}};
 constexpr auto copy_magic=[] {auto value=aligned_magic;value.back()=std::byte{'2'};return value;}();
+constexpr auto xor_magic=[] {auto value=aligned_magic;value.back()=std::byte{'3'};return value;}();
+constexpr std::array member_magics{aligned_magic,copy_magic,xor_magic};
+constexpr std::size_t xor_tile_bytes=256,xor_plane_bytes=xor_tile_bytes/8,xor_tiles=extent/xor_tile_bytes;
+static_assert(extent%xor_tile_bytes==0 && xor_tile_bytes%8==0);
 constexpr std::size_t window_bytes=16,anchor_stride=16;
 constexpr std::uint32_t copy_flag=1U<<31;
 constexpr std::uint64_t multiplier=0x100000001B3ULL;
@@ -28,18 +32,17 @@ void put(std::span<std::byte> bytes,std::size_t at,std::uint64_t value,unsigned 
   for(unsigned i=0;i<count;++i)bytes[at+i]=static_cast<std::byte>(value>>(i*8));
 }
 bool base_id_valid(std::uint64_t id){return id>kNativeGroupBaseBit && id<2*kNativeGroupBaseBit;}
-NativeGroupMethod member_method(std::span<const std::byte> bytes,bool allow_anchor_copies) {
+NativeGroupMethod member_method(std::span<const std::byte> bytes,NativeGroupMethod maximum_method) {
   if(bytes.size()<header || bytes.size()>=extent)fail();
   const auto version=get(bytes,8,4);
-  if(version==1 && std::equal(aligned_magic.begin(),aligned_magic.end(),bytes.begin()))
-    return NativeGroupMethod::aligned_patches;
-  if(allow_anchor_copies && version==2 && std::equal(copy_magic.begin(),copy_magic.end(),bytes.begin()))
-    return NativeGroupMethod::anchor_copies;
-  fail();
+  if(!version || version>static_cast<std::uint32_t>(maximum_method) || version>member_magics.size() ||
+      !std::ranges::equal(bytes.first(8),member_magics[static_cast<std::size_t>(version-1)]))
+    fail();
+  return static_cast<NativeGroupMethod>(version);
 }
 void write_header(std::span<std::byte> bytes,NativeGroupMethod method,std::span<const std::byte> member,
     std::span<const std::byte> base,std::uint64_t base_id,std::uint64_t generation,std::uint32_t count) {
-  const auto& magic=method==NativeGroupMethod::aligned_patches?aligned_magic:copy_magic;
+  const auto& magic=member_magics[static_cast<std::size_t>(method)-1];
   std::copy(magic.begin(),magic.end(),bytes.begin());
   put(bytes,8,static_cast<std::uint32_t>(method),4);
   put(bytes,12,extent,4);put(bytes,16,base_id,8);put(bytes,24,generation,8);
@@ -116,6 +119,27 @@ void spans(std::span<const std::byte> bytes,Copy copy,Literal literal) {
   if(output!=extent || input!=bytes.size())fail();
 }
 
+template<class Apply>void packed_xor_planes(std::span<const std::byte> frame,Apply apply) {
+  if(get(frame,96,4)!=xor_tiles)fail();
+  std::size_t input=header;
+  bool changed=false;
+  for(std::size_t tile=0;tile<xor_tiles;++tile) {
+    if(input==frame.size())fail();
+    const auto mask=std::to_integer<unsigned>(frame[input++]);
+    const auto payload=static_cast<std::size_t>(std::popcount(mask))*xor_plane_bytes;
+    if(payload>frame.size()-input)fail();
+    for(unsigned bit=0;bit<8;++bit) {
+      if(!(mask&(1U<<bit)))continue;
+      const auto plane=frame.subspan(input,xor_plane_bytes);
+      if(std::ranges::all_of(plane,[](auto packed){return packed==std::byte{};}))fail();
+      apply(tile*xor_tile_bytes,bit,plane);
+      input+=xor_plane_bytes;
+      changed=true;
+    }
+  }
+  if(input!=frame.size() || !changed)fail();
+}
+
 std::uint64_t fingerprint(std::span<const std::byte> window) noexcept {
   std::uint64_t value=0;
   for(const auto byte:window)value=value*multiplier+std::to_integer<unsigned>(byte);
@@ -133,39 +157,50 @@ std::uint64_t mix(std::uint64_t value) noexcept {
 }
 }
 
-NativeGroupReference parse_native_group_member(std::span<const std::byte> bytes,bool allow_anchor_copies) {
-  const auto method=member_method(bytes,allow_anchor_copies);
+NativeGroupReference parse_native_group_member(std::span<const std::byte> bytes,NativeGroupMethod maximum_method) {
+  const auto method=member_method(bytes,maximum_method);
   if(get(bytes,12,4)!=extent || get(bytes,100,4)!=bytes.size()-header ||
       !std::all_of(bytes.begin()+104,bytes.begin()+128,[](auto value){return value==std::byte{0};}))fail();
   NativeGroupReference ref;ref.base_id=get(bytes,16,8);ref.base_generation=get(bytes,24,8);
   if(!base_id_valid(ref.base_id) || !ref.base_generation)fail();
   std::copy_n(bytes.begin()+32,32,ref.base_digest.begin());std::copy_n(bytes.begin()+64,32,ref.decoded_digest.begin());
   ref.member_bytes=static_cast<std::uint32_t>(bytes.size());ref.method=method;
-  if(method==NativeGroupMethod::aligned_patches)patches(bytes,[](auto,auto){});
-  else spans(bytes,[](auto,auto,auto){},[](auto,auto){});
+  switch(method) {
+    case NativeGroupMethod::aligned_patches:patches(bytes,[](auto,auto){});break;
+    case NativeGroupMethod::anchor_copies:spans(bytes,[](auto,auto,auto){},[](auto,auto){});break;
+    case NativeGroupMethod::packed_xor:packed_xor_planes(bytes,[](auto,auto,auto){});break;
+  }
   return ref;
 }
 std::vector<std::byte> decode_native_group_member(std::span<const std::byte> bytes,
-    std::span<const std::byte> base,bool allow_anchor_copies) {
-  const auto ref=parse_native_group_member(bytes,allow_anchor_copies);
+    std::span<const std::byte> base,NativeGroupMethod maximum_method) {
+  const auto ref=parse_native_group_member(bytes,maximum_method);
   if(base.size()!=extent || record_digest(base)!=ref.base_digest)fail();
   std::vector<std::byte> result;
   const auto literal=[&](auto offset,auto input){std::copy(input.begin(),input.end(),result.begin()+offset);};
-  if(ref.method==NativeGroupMethod::aligned_patches) {
-    result.assign(base.begin(),base.end());
-    patches(bytes,literal);
-  } else {
+  if(ref.method==NativeGroupMethod::anchor_copies) {
     result.resize(extent);
     spans(bytes,[&](auto output,auto source,auto length){
       std::copy_n(base.begin()+source,length,result.begin()+output);
     },literal);
+  } else {
+    result.assign(base.begin(),base.end());
+    if(ref.method==NativeGroupMethod::aligned_patches)patches(bytes,literal);
+    else packed_xor_planes(bytes,[&](std::size_t output,unsigned bit,std::span<const std::byte> plane) {
+      for(const auto packed:plane) {
+        const auto value=std::to_integer<unsigned>(packed);
+        for(unsigned i=0;i<8;++i)
+          result[output+i]^=static_cast<std::byte>(((value>>i)&1U)<<bit);
+        output+=8;
+      }
+    });
   }
   if(record_digest(result)!=ref.decoded_digest)fail();return result;
 }
 void bind_native_group_member(std::span<std::byte> member,std::uint64_t base_id,
-    std::uint64_t generation,bool allow_anchor_copies) {
+    std::uint64_t generation,NativeGroupMethod maximum_method) {
   if(!base_id_valid(base_id) || !generation)fail();
-  (void)member_method(member,allow_anchor_copies);
+  (void)member_method(member,maximum_method);
   put(member,16,base_id,8);
   put(member,24,generation,8);
 }
@@ -190,6 +225,39 @@ std::optional<std::vector<std::byte>> encode_native_group_member(std::span<const
   }
   write_header(result,NativeGroupMethod::aligned_patches,member,base,base_id,generation,count);
   return result;
+}
+
+std::optional<std::vector<std::byte>> encode_native_group_xor(std::span<const std::byte> member,
+    std::span<const std::byte> base,std::uint64_t base_id,std::uint64_t generation,std::size_t exclusive_limit) {
+  if(member.size()!=extent || base.size()!=extent || !base_id_valid(base_id) || !generation ||
+      exclusive_limit>extent)fail();
+  if(exclusive_limit<=header+xor_tiles+xor_plane_bytes)return {};
+  std::vector<std::byte> frame(header);
+  std::array<unsigned char,xor_tile_bytes> differences{};
+  for(std::size_t tile=0;tile<xor_tiles;++tile) {
+    const auto output=tile*xor_tile_bytes;
+    unsigned mask=0;
+    for(std::size_t i=0;i<xor_tile_bytes;++i) {
+      differences[i]=std::to_integer<unsigned char>(member[output+i]^base[output+i]);
+      mask|=differences[i];
+    }
+    const auto payload=static_cast<std::size_t>(std::popcount(mask))*xor_plane_bytes;
+    // Charge one mask byte for every remaining tile before retaining any planes.
+    if(payload+xor_tiles-tile>=exclusive_limit-frame.size())return {};
+    frame.push_back(static_cast<std::byte>(mask));
+    for(unsigned bit=0;bit<8;++bit) {
+      if(!(mask&(1U<<bit)))continue;
+      for(std::size_t first=0;first<xor_tile_bytes;first+=8) {
+        unsigned packed=0;
+        for(unsigned i=0;i<8;++i)
+          packed|=((differences[first+i]>>bit)&1U)<<i;
+        frame.push_back(static_cast<std::byte>(packed));
+      }
+    }
+  }
+  if(frame.size()==header+xor_tiles)return {};
+  write_header(frame,NativeGroupMethod::packed_xor,member,base,base_id,generation,static_cast<std::uint32_t>(xor_tiles));
+  return frame;
 }
 
 std::array<std::uint64_t,kNativeGroupShiftFeatures> native_group_shift_features(std::span<const std::byte> bytes) noexcept {

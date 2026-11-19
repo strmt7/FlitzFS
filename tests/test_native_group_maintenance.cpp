@@ -215,6 +215,57 @@ void shifted_indexed_family(const Bytes& base,StoreCompressionOptions compressio
   std::cout<<"shifted_indexed corpus="<<corpus<<" members="<<count<<" before_bytes="<<baseline->extent()
       <<" after_bytes="<<compacted->extent()<<" minimum_compacted_saved="<<result.minimum_compacted_bytes_saved<<'\n';
 }
+void xor_indexed_family(bool require_xor) {
+  constexpr unsigned count=9,unit=4096;
+  const StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
+  const NativeImageStorage indexed{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes};
+  Fixture f(unit,0,true,raw);
+  const auto base=data(kNativeExtentBytes,714);
+  std::array<Bytes,count> originals;
+  for(unsigned member=0;member<count;++member) {
+    originals[member]=base;
+    if(member) {
+      const auto variation=data(kNativeExtentBytes,861+member);
+      // One original band anchors normal discovery. Every later band has
+      // dense low-bit changes with no long, exact byte runs.
+      for(std::size_t i=kNativeExtentBytes/8;i<base.size();++i)
+        originals[member][i]^=variation[i]&std::byte{1};
+    }
+    put(*f.session,"xor"+std::to_string(member),originals[member]);
+  }
+  const auto prior=f.session->snapshot();
+  const auto baseline_source=image(f.image->stable,unit);
+  auto baseline=ram(unit);
+  (void)NativeFilesystemWriter::compact(NativeFilesystemSnapshot::open_image(baseline_source,indexed),
+      baseline,id(2),raw);
+
+  NativeGroupMaintenance maintenance(*f.session);
+  const auto workload=f.session->workload_info();
+  const auto result=f.finish(maintenance);
+  const auto after=f.session->snapshot();
+  const auto root=PagedObjectStoreSnapshot::open(f.image,{kStoreMaxPhysicalBytes}).read(1);
+  const auto capability=std::to_integer<unsigned>(root[8]);
+  require(f.session->workload_info()==workload,"XOR grouping changed user input provenance");
+  maintenance.cancel();
+  f.session.reset();
+  auto compacted=ram(unit);
+  (void)NativeFilesystemWriter::compact(after,compacted,id(3),raw);
+  const auto reopened=NativeFilesystemSnapshot::open_image(compacted,indexed);
+  reopened.verify_all();
+  for(unsigned member=0;member<count;++member) {
+    const auto path="xor"+std::to_string(member);
+    require(reopened.read(path,0,kNativeExtentBytes)==originals[member] &&
+        prior.read(path,0,kNativeExtentBytes)==originals[member],"XOR group changed current or prior bytes");
+  }
+  if(require_xor)
+    require(capability==5 && result.published_groups==1 && reopened.shared_base_info().members==count &&
+        reopened.shared_base_info().bases==1 && compacted->extent()<baseline->extent()/2,
+        "automatic indexed XOR group was absent or missed its expected size");
+  std::cout<<"indexed_xor capability="<<capability<<" members="<<reopened.shared_base_info().members
+      <<" logical_bytes="<<count*kNativeExtentBytes<<" before_bytes="<<baseline->extent()
+      <<" after_bytes="<<compacted->extent()<<" groups="<<result.published_groups
+      <<" accounted_savings="<<result.minimum_compacted_bytes_saved<<'\n';
+}
 void automatic_and_extension(std::uint32_t unit,bool indexed=false) {
   Fixture f(unit,8,indexed);const auto workload=f.session->workload_info();NativeGroupMaintenance original(*f.session);
   rejects([&]{NativeGroupMaintenance duplicate(*f.session);},"duplicate controller admitted");
@@ -920,6 +971,10 @@ int main(int argc,char** argv){try{
     compact_full_indexed_catalog(CoherenceCopyOutcome::charge_cut);
     compact_full_indexed_catalog(CoherenceCopyOutcome::target_cut);
     compact_full_indexed_catalog(CoherenceCopyOutcome::target_cut,writes_and_barriers-1);
+  } else if(argc==2 && std::string_view(argv[1])=="--indexed-xor") {
+    xor_indexed_family(true);
+  } else if(argc==2 && std::string_view(argv[1])=="--profile-group-xor") {
+    xor_indexed_family(false);
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-advice") {
     advised_indexed_maintenance();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-batch") {

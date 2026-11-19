@@ -25,6 +25,14 @@ Bytes shifted_family(unsigned member) {
   std::rotate(bytes.begin(),bytes.begin()+member*37,bytes.end());
   return bytes;
 }
+Bytes xor_family(unsigned member) {
+  auto bytes=family(0);
+  if(member) {
+    const auto pattern=data(kNativeExtentBytes,819+member);
+    for(std::size_t i=0;i<bytes.size();++i)bytes[i]^=pattern[i]&std::byte{1};
+  }
+  return bytes;
+}
 void populate(NativeFilesystemWriter& writer,unsigned count,Bytes(*content)(unsigned)=family) {
   for(unsigned i=0;i<count;++i)writer.apply(std::array{file_create("f"+std::to_string(i)),file_write("f"+std::to_string(i),0,content(i))});
 }
@@ -45,15 +53,15 @@ void anchor_copy_codec() {
     std::rotate(member.begin(),member.begin()+shift,member.end());
     require(!detail::encode_native_group_member(member,base,id,17),"aligned patches accepted a shifted control");
     const auto encoded=index.encode(member,base,id,17,kNativeExtentBytes);
-    require(encoded && encoded->size()<512 && detail::decode_native_group_member(*encoded,base,true)==member,
+    require(encoded && encoded->size()<512 && detail::decode_native_group_member(*encoded,base,detail::NativeGroupMethod::anchor_copies)==member,
         "shifted member did not round trip in a bounded frame");
     rejects([&]{(void)detail::decode_native_group_member(*encoded,base);},"legacy capability accepted anchor copies");
     require(!index.encode(member,base,id,17,encoded->size()),"anchor copy exceeded the competing size limit");
     auto rebound=*encoded;
-    detail::bind_native_group_member(rebound,id+1,19,true);
-    const auto reference=detail::parse_native_group_member(rebound,true);
+    detail::bind_native_group_member(rebound,id+1,19,detail::NativeGroupMethod::anchor_copies);
+    const auto reference=detail::parse_native_group_member(rebound,detail::NativeGroupMethod::anchor_copies);
     require(reference.method==detail::NativeGroupMethod::anchor_copies && reference.base_id==id+1 &&
-        reference.base_generation==19 && detail::decode_native_group_member(rebound,base,true)==member,
+        reference.base_generation==19 && detail::decode_native_group_member(rebound,base,detail::NativeGroupMethod::anchor_copies)==member,
         "rebinding affected the copy frame");
   }
   auto member=base;
@@ -70,7 +78,58 @@ void anchor_copy_codec() {
     if(variant==5)corrupt[32]^=std::byte{1};
     if(variant==6)corrupt[64]^=std::byte{1};
     if(variant==7)corrupt.pop_back();
-    rejects([&]{(void)detail::decode_native_group_member(corrupt,base,true);},"malformed anchor copy decoded");
+    rejects([&]{(void)detail::decode_native_group_member(corrupt,base,detail::NativeGroupMethod::anchor_copies);},"malformed anchor copy decoded");
+  }
+}
+void packed_xor_codec() {
+  using detail::NativeGroupMethod;
+  constexpr auto method=NativeGroupMethod::packed_xor;
+  constexpr auto id=detail::kNativeGroupBaseBit+1;
+  const auto base=xor_family(0),dense=xor_family(1);
+  const auto encoded=detail::encode_native_group_xor(dense,base,id,17,kNativeExtentBytes);
+  require(encoded && encoded->size()==128+256+kNativeExtentBytes/8 &&
+      detail::decode_native_group_member(*encoded,base,method)==dense,"dense one-bit delta was not lossless");
+  require(!detail::encode_native_group_member(dense,base,id,17),"dense control used aligned patches");
+  require(!detail::encode_native_group_xor(dense,base,id,17,encoded->size()),"XOR exceeded its exclusive bound");
+  require(!detail::encode_native_group_xor(base,base,id,17,kNativeExtentBytes),"unchanged bytes used XOR");
+  const auto noise=data(kNativeExtentBytes,715);
+  require(!detail::encode_native_group_xor(noise,base,id,17,kNativeExtentBytes),"incompressible residual expanded");
+  rejects([&]{(void)detail::decode_native_group_member(*encoded,base,NativeGroupMethod::anchor_copies);},
+      "anchor-copy capability admitted a packed XOR frame");
+
+  auto member=base;
+  member[0]^=std::byte{0x81};
+  member[1]^=std::byte{0x80};
+  member[255]^=std::byte{1};
+  member[256]^=std::byte{4};
+  member.back()^=std::byte{0x80};
+  const auto frame=detail::encode_native_group_xor(member,base,id,17,kNativeExtentBytes);
+  require(frame && frame->size()==128+256+4*32 && (*frame)[128]==std::byte{0x81} &&
+      (*frame)[129]==std::byte{1} && (*frame)[160]==std::byte{0x80} &&
+      (*frame)[161]==std::byte{3} && (*frame)[193]==std::byte{4} &&
+      (*frame)[194]==std::byte{1} && frame->back()==std::byte{0x80},
+      "XOR plane order or bit order differed from the wire contract");
+  auto rebound=*frame;
+  detail::bind_native_group_member(rebound,id+1,19,method);
+  const auto reference=detail::parse_native_group_member(rebound,method);
+  require(reference.method==method && reference.base_id==id+1 && reference.base_generation==19 &&
+      detail::decode_native_group_member(rebound,base,method)==member,"rebinding changed packed XOR recovery");
+
+  for(unsigned variant=0;variant<8;++variant) {
+    auto bad=*frame;
+    if(variant==0)bad[97]=std::byte{}; // Wrong tile count.
+    if(variant==1)std::fill_n(bad.begin()+129,32,std::byte{}); // Empty advertised plane.
+    if(variant==2)bad[128]=std::byte{0xff}; // Excess planes.
+    if(variant==3)bad.pop_back();
+    if(variant==4)bad.push_back(std::byte{});
+    if(variant==5)bad[32]^=std::byte{1};
+    if(variant==6)bad[64]^=std::byte{1};
+    if(variant==7)bad[129]^=std::byte{0x80}; // Valid shape, wrong decoded bytes.
+    if(variant==3 || variant==4) {
+      const auto payload=bad.size()-128;
+      for(unsigned i=0;i<4;++i)bad[100+i]=static_cast<std::byte>(payload>>(8*i));
+    }
+    rejects([&]{(void)detail::decode_native_group_member(bad,base,method);},"malformed packed XOR member decoded");
   }
 }
 void anchor_copy_advice() {
@@ -79,7 +138,7 @@ void anchor_copy_advice() {
   const auto ranges=anchor_search_fixture::fragment_ranges(1);
   const auto id=detail::kNativeGroupBaseBit+1;
   const auto frame=detail::encode_native_group_copies(member,base,id,1,ranges,kNativeExtentBytes);
-  require(frame && detail::decode_native_group_member(*frame,base,true)==member,
+  require(frame && detail::decode_native_group_member(*frame,base,detail::NativeGroupMethod::anchor_copies)==member,
       "advisory short copies failed independent readback");
   auto invalid=ranges;
   invalid.front().length=kNativeExtentBytes;
@@ -235,9 +294,11 @@ void independent_and_decline() {
   rejects([&]{NativeFilesystemWriter::initialize_shared_bases(PagedObjectStoreWriter::create(legacy,identity(),limits));},"unprotected shared-base namespace admitted");
   require(legacy->calls>start,"legacy fixture did not create standalone empty storage");
 }
-void fault_matrix(std::uint32_t unit,bool indexed_layout=false,bool shifted=false) {
+enum class GroupFixture { aligned, shifted, packed_xor };
+void fault_matrix(std::uint32_t unit,bool indexed_layout=false,GroupFixture shape=GroupFixture::aligned) {
   auto original=std::make_shared<Ram>();original->failure_unit=unit;
-  const auto content=shifted?shifted_family:family;
+  const auto content=shape==GroupFixture::shifted?shifted_family:
+      shape==GroupFixture::packed_xor?xor_family:family;
   {auto writer=fresh(original,indexed_layout);populate(writer,4,content);}
   const auto keys=selections(view(original),4);
   auto resume=[&](const std::shared_ptr<Ram>& ram) {
@@ -255,16 +316,18 @@ void fault_matrix(std::uint32_t unit,bool indexed_layout=false,bool shifted=fals
     ram->live=ram->stable;ram->fail_at=(std::numeric_limits<std::size_t>::max)();
     const auto recovered=view(ram);verify_family(recovered,4,content);const auto info=recovered.shared_base_info();
     require((info.members==0 && info.bases==0) || (info.members==4 && info.bases==1),"partial shared group published");
-    if(shifted) {
+    if(shape!=GroupFixture::aligned) {
       const auto root=PagedObjectStoreSnapshot::open(ram,limits).read(1);
-      require(root[8]==(info.members?std::byte{4}:std::byte{2}),"anchor copy capability changed outside the group transaction");
+      const auto grouped=shape==GroupFixture::packed_xor?std::byte{5}:std::byte{4};
+      require(root[8]==(info.members?grouped:std::byte{2}),"codec capability changed outside the group transaction");
     }
     if(info.members)++complete;else ++prior;
     auto continued=resume(ram);file_apply(continued,file_write("f1",0,Bytes{std::byte{79}}));
     auto expected=content(1);expected[0]=std::byte{79};require(continued.snapshot().read("f1",0,kNativeExtentBytes)==expected,"recovered group could not continue");++faults;
   }
   require(prior && complete,"shared-base faults did not recover both roots");
-  std::cout<<"shared_base_faults indexed="<<indexed_layout<<" shifted="<<shifted<<" unit="<<unit<<" cuts="<<cuts
+  std::cout<<"shared_base_faults indexed="<<indexed_layout<<" shape="<<static_cast<unsigned>(shape)
+      <<" unit="<<unit<<" cuts="<<cuts
       <<" modes=3 prior="<<prior<<" complete="<<complete<<'\n';
 }
 void indexed_extension_and_reclamation() {
@@ -532,6 +595,12 @@ int main(int argc,char** argv){try {
     for(auto unit:{4096U,65536U})layouts(unit);
     return 0;
   }
+  if(argc==2 && std::string_view(argv[1])=="--packed-xor") {
+    packed_xor_codec();
+    for(const auto unit:{4096U,65536U})fault_matrix(unit,true,GroupFixture::packed_xor);
+    std::cout<<"PASS: "<<checks<<" packed XOR checks; "<<faults<<" injected write/barrier cases\n";
+    return 0;
+  }
   require(argc==1,"unknown shared-base test mode");
   codec();anchor_copy_codec();anchor_copy_advice();independent_and_decline();malformed_storage();indexed_extension_and_reclamation();
   indexed_group_on_populated_volume();
@@ -541,7 +610,7 @@ int main(int argc,char** argv){try {
       lost_base_bank(unit,indexed_layout);
       for(bool reencode:{false,true})staged_group(unit,reencode,indexed_layout);
     }
-    fault_matrix(unit,true,true);
+    fault_matrix(unit,true,GroupFixture::shifted);
     layouts(unit);
   }
   std::cout<<"PASS: "<<checks<<" native shared-base checks; "<<faults<<" injected write/barrier cases; memory CPU only\n";return 0;

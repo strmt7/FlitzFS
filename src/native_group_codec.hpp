@@ -10,7 +10,7 @@
 #include <vector>
 namespace flitzfs::detail {
 inline constexpr std::uint64_t kNativeGroupBaseBit=1ULL<<61;
-enum class NativeGroupMethod : std::uint32_t { aligned_patches=1,anchor_copies=2 };
+enum class NativeGroupMethod : std::uint32_t { aligned_patches=1,anchor_copies=2,packed_xor=3 };
 struct NativeGroupReference {
   std::uint64_t base_id=0,base_generation=0;
   Digest base_digest{},decoded_digest{};
@@ -18,14 +18,17 @@ struct NativeGroupReference {
   NativeGroupMethod method=NativeGroupMethod::aligned_patches;
   bool operator==(const NativeGroupReference&) const=default;
 };
-NativeGroupReference parse_native_group_member(std::span<const std::byte>,bool allow_anchor_copies=false);
+NativeGroupReference parse_native_group_member(std::span<const std::byte>,
+    NativeGroupMethod maximum_method=NativeGroupMethod::aligned_patches);
 std::vector<std::byte> decode_native_group_member(std::span<const std::byte> member,
-    std::span<const std::byte> base,bool allow_anchor_copies=false);
+    std::span<const std::byte> base,NativeGroupMethod maximum_method=NativeGroupMethod::aligned_patches);
 std::optional<std::vector<std::byte>> encode_native_group_member(std::span<const std::byte> member,
     std::span<const std::byte> base,std::uint64_t base_id,std::uint64_t base_generation);
+std::optional<std::vector<std::byte>> encode_native_group_xor(std::span<const std::byte> member,
+    std::span<const std::byte> base,std::uint64_t base_id,std::uint64_t base_generation,std::size_t exclusive_limit);
 // Bind a private, already CPU-verified frame to its final protected object.
 void bind_native_group_member(std::span<std::byte>,std::uint64_t base_id,std::uint64_t base_generation,
-    bool allow_anchor_copies=false);
+    NativeGroupMethod maximum_method=NativeGroupMethod::aligned_patches);
 
 // Content evidence for a sparse search. A zero entry contributes no posting.
 inline constexpr std::size_t kNativeGroupShiftFeatures=4;
