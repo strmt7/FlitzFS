@@ -164,8 +164,23 @@
   "isolated_file_handles": {
     "test": "isolated_native_volume_file",
     "registration": "WIN32 and FLITZFS_REGISTER_INTEGRATION_FIXTURES",
-    "status": "pending isolated execution at this source snapshot",
-    "host_hyper_v": "read-only guest query denied by local account permissions"
+    "status": "passed",
+    "host_hyper_v": "read-only guest query denied by local account permissions",
+    "tested_commit": "bafafa59368493e94bf082f8785c9d70edad3f3c",
+    "runner": "windows-2025-vs2026",
+    "result_scope": "ordinary file-handle and flush API correctness on a disposable Windows runner",
+    "run_id": 44495652737,
+    "job_id": 135462028724,
+    "job_name": "cpu (windows-2025-vs2026, OFF)",
+    "test_step": 22,
+    "passed_ctest_entries": 161,
+    "file_fixture_test_index": 101,
+    "artifact_id": 14514619542,
+    "artifact_name": "cpu-tests-Windows-OFF-bafafa59368493e94bf082f8785c9d70edad3f3c",
+    "artifact_digest": "sha256:6c92148ccb94798a4fbcdc5a046d3437393fafa43940b9cd9cf2095c3d443700",
+    "artifact_expiry_utc": "2026-12-19T09:29:14Z",
+    "performance_measurement": false,
+    "physical_media_power_loss_qualification": false
   },
   "bounds": {
     "owner_device_or_file_backed_volume": false,
