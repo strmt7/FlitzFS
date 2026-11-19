@@ -14,6 +14,25 @@ inline Bytes data(std::size_t n,unsigned seed) {
   for(auto& b:out){x^=x<<13;x^=x>>7;x^=x<<17;b=static_cast<std::byte>(x>>21);}
   return out;
 }
+inline void add_little_endian(std::span<std::byte> word,std::uint64_t value) {
+  for(auto& byte:word) {
+    const auto sum=std::to_integer<unsigned>(byte)+static_cast<unsigned>(value&255);
+    byte=static_cast<std::byte>(sum&255);
+    value=(value>>8)+(sum>>8);
+  }
+}
+inline Bytes calibrated_extent(std::span<const std::byte> base,unsigned member) {
+  Bytes bytes(base.begin(),base.end());
+  if(!member)return bytes;
+  for(std::size_t at=0;at<bytes.size();at+=4) {
+    auto change=std::uint64_t{0x31ac05d9}*member;
+    // A reproducible calibration shift with occasional positive and negative
+    // residuals outside the sampled intervals.
+    if(at%4096>=64)change+=(at/4+member)%3-std::uint64_t{1};
+    add_little_endian(std::span(bytes).subspan(at,4),change);
+  }
+  return bytes;
+}
 inline NativeFileMutation file_create(std::string path,bool directory=false) {
   NativeFileMutation op;op.operation=directory?NativeFileOperation::create_directory:NativeFileOperation::create_file;op.path=std::move(path);return op;
 }

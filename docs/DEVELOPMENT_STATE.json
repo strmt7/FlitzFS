@@ -46,6 +46,15 @@
     "paged_masked_discovery_evidence": "docs/evidence/projected-coherence-catalog-2026-11-19.json",
     "next": "Calibrate completed multiwindow batches and catalog lookup utility across workload classes and devices. Use actual preparation, initialization, CPU verification, protected publication, and contention costs before automatic selection."
   },
+  "native_modular_delta": {
+    "source_base": "5fda5473d6e91114f6e05e17868cad80c62a8a70",
+    "evidence": "docs/evidence/indexed-modular-delta-2026-11-19.json",
+    "indexed_capability": 6,
+    "complete_image_pairs_bytes": [[786432, 188416], [933888, 204800]],
+    "modeled_publication_cases_per_lane": 528,
+    "scope": "Automatic CPU selection on controlled modular shifts of public sample bytes with independent CPU reopen. Supports four word widths and per-tile signed residuals.",
+    "next": "Persist sparse numeric signatures and qualify AMD scoring and body generation on natural numeric cohorts."
+  },
   "native_path_lookup": {
     "source_base": "700cdb31de32b847497b02cc0e113d27482e6c85",
     "evidence": "docs/evidence/native-path-lookup-2026-11-17.json",

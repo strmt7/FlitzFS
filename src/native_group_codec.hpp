@@ -10,7 +10,7 @@
 #include <vector>
 namespace flitzfs::detail {
 inline constexpr std::uint64_t kNativeGroupBaseBit=1ULL<<61;
-enum class NativeGroupMethod : std::uint32_t { aligned_patches=1,anchor_copies=2,packed_xor=3 };
+enum class NativeGroupMethod : std::uint32_t { aligned_patches=1,anchor_copies=2,packed_xor=3,modular_delta=4 };
 struct NativeGroupReference {
   std::uint64_t base_id=0,base_generation=0;
   Digest base_digest{},decoded_digest{};
@@ -26,6 +26,8 @@ std::optional<std::vector<std::byte>> encode_native_group_member(std::span<const
     std::span<const std::byte> base,std::uint64_t base_id,std::uint64_t base_generation);
 std::optional<std::vector<std::byte>> encode_native_group_xor(std::span<const std::byte> member,
     std::span<const std::byte> base,std::uint64_t base_id,std::uint64_t base_generation,std::size_t exclusive_limit);
+std::optional<std::vector<std::byte>> encode_native_group_delta(std::span<const std::byte> member,
+    std::span<const std::byte> base,std::uint64_t base_id,std::uint64_t base_generation,std::size_t exclusive_limit);
 struct NativeGroupXorCandidate {
   std::optional<std::vector<std::byte>> frame;
   NativePackedXorCheck check=NativePackedXorCheck::pending;
@@ -40,6 +42,8 @@ void bind_native_group_member(std::span<std::byte>,std::uint64_t base_id,std::ui
 // Content evidence for a sparse search. A zero entry contributes no posting.
 inline constexpr std::size_t kNativeGroupShiftFeatures=4;
 std::array<std::uint64_t,kNativeGroupShiftFeatures> native_group_shift_features(std::span<const std::byte>) noexcept;
+using NativeGroupDeltaSignatures=std::array<std::uint64_t,4>;
+NativeGroupDeltaSignatures native_group_delta_signatures(std::span<const std::byte> extent);
 
 inline constexpr std::size_t kNativeGroupCopyMinimumBytes=136;
 inline constexpr std::size_t kNativeGroupAnchorIndexBytes=65536;

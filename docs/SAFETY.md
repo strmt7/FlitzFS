@@ -74,6 +74,12 @@ The complete private frame must decode on CPU before the indexed transaction
 can publish it.
 [Indexed group contract](INDEXED_NATIVE_VOLUME.md#shared-base-extents)
 
+Modular-delta members bind one protected base, their word width, bias and
+exact reconstruction digest. Capability 6 and its member publish together.
+The CPU checks the complete payload and its reconstructed bytes before the
+writer can install that dependency.
+[Modular-delta contract](INDEXED_NATIVE_VOLUME.md#modular-delta-members)
+
 The [shared memory factory](WINDOWS_MEMORY_VOLUME_FACTORY.md) now admits and
 retains backing for both the helper and WinFsp composition. Explicit controller
 join precedes CPU inspection; a surviving reader/store retains the provider

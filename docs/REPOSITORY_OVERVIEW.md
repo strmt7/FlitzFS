@@ -144,9 +144,9 @@ Authoritative source: [native limits and interfaces](../include/flitzfs/native_f
 ### The important compression bottleneck
 
 The current group format stores an immutable 64-KiB base. Indexed members can
-use literal patches, anchor copies or packed XOR planes. CPU decoding verifies
-both the base and reconstructed member digests. Arbitrary reordering and
-learned grouping and transforms remain open.
+use literal patches, anchor copies, packed XOR planes or modular deltas. CPU
+decoding verifies both the base and reconstructed member digests. Arbitrary
+reordering and learned grouping and transforms remain open.
 
 Discovery uses digests and band features. The indexed scanner extends aligned
 features with shifted samples and restores verified feature bindings from

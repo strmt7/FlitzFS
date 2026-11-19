@@ -42,6 +42,12 @@ Persistent segment reclamation under concurrent edits remains a release gate.
 [Owned indexed evidence](evidence/indexed-owned-windows-2026-11-18.json)
 [Managed indexed evidence](evidence/indexed-managed-winfsp-2026-11-18.json)
 
+Indexed maintenance can group numeric extents with a common modular bias
+and encode their signed residuals. It selects the method using the existing
+size and byte-verification rules. Extend the persisted candidate search and
+qualify GPU scoring across actual related numeric workloads.
+[Modular-delta members](INDEXED_NATIVE_VOLUME.md#modular-delta-members)
+
 The indexed SDK adapter now supports controlled deferred AMD encoding.
 In the live 128 KiB fixture, both mirrored copies of each accepted extent
 matched the verified GPU stream after removing the indexed prefix. CPU reopen

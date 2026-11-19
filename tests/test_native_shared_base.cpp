@@ -1,6 +1,7 @@
 #include "native_fs_fixture.hpp"
 #include "native_group_codec.hpp"
 #include "anchor_search_fixture.hpp"
+#include <bit>
 #include <iostream>
 #include <set>
 namespace {
@@ -32,6 +33,9 @@ Bytes xor_family(unsigned member) {
     for(std::size_t i=0;i<bytes.size();++i)bytes[i]^=pattern[i]&std::byte{1};
   }
   return bytes;
+}
+Bytes modular_family(unsigned member) {
+  return calibrated_extent(family(0),member);
 }
 void populate(NativeFilesystemWriter& writer,unsigned count,Bytes(*content)(unsigned)=family) {
   for(unsigned i=0;i<count;++i)writer.apply(std::array{file_create("f"+std::to_string(i)),file_write("f"+std::to_string(i),0,content(i))});
@@ -131,6 +135,61 @@ void packed_xor_codec() {
     }
     rejects([&]{(void)detail::decode_native_group_member(bad,base,method);},"malformed packed XOR member decoded");
   }
+}
+void modular_delta_codec() {
+  using detail::NativeGroupMethod;
+  constexpr auto method=NativeGroupMethod::modular_delta;
+  constexpr auto id=detail::kNativeGroupBaseBit+1;
+  const auto base=family(0);
+  for(unsigned width:{1U,2U,4U,8U}) {
+    auto member=base;
+    for(std::size_t at=0;at<member.size();at+=width)
+      add_little_endian(std::span(member).subspan(at,width),0xc74482fa26e3bd97ULL);
+    const auto bias_only=detail::encode_native_group_delta(member,base,id,17,kNativeExtentBytes);
+    require(bias_only && bias_only->size()==128 && (*bias_only)[104]==static_cast<std::byte>(width) &&
+        detail::decode_native_group_member(*bias_only,base,method)==member,"Modular bias failed byte-exact wraparound");
+    const auto base_keys=detail::native_group_delta_signatures(base);
+    const auto shifted_keys=detail::native_group_delta_signatures(member);
+    const auto key=static_cast<std::size_t>(std::countr_zero(width));
+    require(base_keys[key] && base_keys[key]==shifted_keys[key],"Modular signature did not cancel constant bias");
+
+    add_little_endian(std::span(member).subspan(width,width),1);
+    add_little_endian(std::span(member).subspan(width*2,width),~std::uint64_t{0});
+    add_little_endian(std::span(member).last(width),1);
+    const auto plane_bytes=32/width;
+    const auto frame=detail::encode_native_group_delta(member,base,id,17,kNativeExtentBytes);
+    require(frame && (*frame)[104]==static_cast<std::byte>(width) &&
+        frame->size()==128+256+4*plane_bytes && (*frame)[128]==std::byte{2} &&
+        (*frame)[129]==std::byte{4} && (*frame)[129+plane_bytes]==std::byte{2} &&
+        detail::decode_native_group_member(*frame,base,method)==member,"Signed residual plane order or CPU readback");
+    require(!detail::encode_native_group_delta(member,base,id,17,frame->size()),"Modular delta ignored strict size");
+    rejects([&]{(void)detail::decode_native_group_member(*frame,base,NativeGroupMethod::packed_xor);},
+        "Earlier group capability admitted a modular delta");
+    auto rebound=*frame;
+    detail::bind_native_group_member(rebound,id+1,19,method);
+    const auto ref=detail::parse_native_group_member(rebound,method);
+    require(ref.base_id==id+1 && ref.base_generation==19 &&
+        detail::decode_native_group_member(rebound,base,method)==member,"Changing final dependency binding changed content");
+    for(unsigned defect=0;defect<9;++defect) {
+      auto bad=*frame;
+      if(defect==0)bad[104]=std::byte{3};
+      if(defect==1)bad[105]=std::byte{1};
+      if(defect==2)bad[120]=std::byte{1};
+      if(defect==3)bad[97]=std::byte{};
+      if(defect==4)bad[128]=std::byte{65};
+      if(defect==5)std::fill_n(bad.begin()+129+plane_bytes,plane_bytes,std::byte{});
+      if(defect==6)bad[32]^=std::byte{1};
+      if(defect==7)bad[64]^=std::byte{1};
+      if(defect==8) {
+        bad.pop_back();
+        for(unsigned i=0;i<4;++i)bad[100+i]=static_cast<std::byte>((bad.size()-128)>>(8*i));
+      }
+      rejects([&]{(void)detail::decode_native_group_member(bad,base,method);},"Malformed modular member decoded");
+    }
+  }
+  require(!detail::encode_native_group_delta(base,base,id,17,kNativeExtentBytes),"Unchanged bytes used a modular member");
+  require(!detail::encode_native_group_delta(data(kNativeExtentBytes,716),base,id,17,kNativeExtentBytes),
+      "Unrelated input used an expanding modular member");
 }
 void anchor_copy_advice() {
   const auto base=family(0);
@@ -294,11 +353,11 @@ void independent_and_decline() {
   rejects([&]{NativeFilesystemWriter::initialize_shared_bases(PagedObjectStoreWriter::create(legacy,identity(),limits));},"unprotected shared-base namespace admitted");
   require(legacy->calls>start,"legacy fixture did not create standalone empty storage");
 }
-enum class GroupFixture { aligned, shifted, packed_xor };
+enum class GroupFixture { aligned, shifted, packed_xor, modular_delta };
 void fault_matrix(std::uint32_t unit,bool indexed_layout=false,GroupFixture shape=GroupFixture::aligned) {
   auto original=std::make_shared<Ram>();original->failure_unit=unit;
-  const auto content=shape==GroupFixture::shifted?shifted_family:
-      shape==GroupFixture::packed_xor?xor_family:family;
+  const std::array methods{family,shifted_family,xor_family,modular_family};
+  const auto content=methods[static_cast<std::size_t>(shape)];
   {auto writer=fresh(original,indexed_layout);populate(writer,4,content);}
   const auto keys=selections(view(original),4);
   auto resume=[&](const std::shared_ptr<Ram>& ram) {
@@ -318,7 +377,7 @@ void fault_matrix(std::uint32_t unit,bool indexed_layout=false,GroupFixture shap
     require((info.members==0 && info.bases==0) || (info.members==4 && info.bases==1),"partial shared group published");
     if(shape!=GroupFixture::aligned) {
       const auto root=PagedObjectStoreSnapshot::open(ram,limits).read(1);
-      const auto grouped=shape==GroupFixture::packed_xor?std::byte{5}:std::byte{4};
+      const auto grouped=static_cast<std::byte>(3+static_cast<unsigned>(shape));
       require(root[8]==(info.members?grouped:std::byte{2}),"codec capability changed outside the group transaction");
     }
     if(info.members)++complete;else ++prior;
@@ -599,6 +658,12 @@ int main(int argc,char** argv){try {
     packed_xor_codec();
     for(const auto unit:{4096U,65536U})fault_matrix(unit,true,GroupFixture::packed_xor);
     std::cout<<"PASS: "<<checks<<" packed XOR checks; "<<faults<<" injected write/barrier cases\n";
+    return 0;
+  }
+  if(argc==2 && std::string_view(argv[1])=="--modular-delta") {
+    modular_delta_codec();
+    for(const auto unit:{4096U,65536U})fault_matrix(unit,true,GroupFixture::modular_delta);
+    std::cout<<"PASS: "<<checks<<" modular delta checks; "<<faults<<" injected write/barrier cases\n";
     return 0;
   }
   require(argc==1,"unknown shared-base test mode");

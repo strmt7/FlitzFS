@@ -786,6 +786,17 @@ next GPU selection evidence needs work that yields complete-image savings or
 amortizes stream setup and allocation over more useful candidates.
 [Overlap scheduling evidence](evidence/indexed-overlap-batch-2026-11-19.json)
 
+Indexed capability 6 adds a modular predictor for 1-, 2-, 4- and 8-byte
+words. The scanner uses bias-invariant samples to nominate related extents.
+The writer selects the smallest admitted member representation, verifies it
+on CPU and publishes it with the protected base. Two nine-file controlled
+public-derived cases with Zstandard level 6 fell from 768 to 184 KiB and
+from 912 to 200 KiB in complete compacted size. Qualify natural numeric
+workloads, persist the sparse signatures and compare bounded AMD scoring
+and packing against the complete CPU path.
+[Modular-delta format](INDEXED_NATIVE_VOLUME.md#modular-delta-members) ·
+[Size and recovery evidence](evidence/indexed-modular-delta-2026-11-19.json)
+
 The first collective AMD trial reused the authenticated uniform LZ4 worker.
 Copies from tiles that contain the same base produced a 600 KiB complete
 image on the seeded fragmented fixture, compared with 752 KiB for the same

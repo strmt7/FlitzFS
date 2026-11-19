@@ -19,7 +19,8 @@ constexpr unsigned positional_bands=8;
 static_assert(kOptimizationGroupBands==positional_bands+detail::kNativeGroupShiftFeatures);
 // Charge extra history for its retained entry, bucket membership, and the
 // overlapping controller, publisher and verifier copies of checkpoint rows.
-constexpr auto representative_scratch=8*(sizeof(OptimizationGroupFeature)+sizeof(OptimizationGroupProjection));
+constexpr auto representative_scratch=8*(sizeof(OptimizationGroupFeature)+sizeof(OptimizationGroupProjection)+
+    sizeof(detail::NativeGroupDeltaSignatures));
 static_assert(kOptimizationGroupRepresentatives>kNativeMaxDirtyExtents);
 struct GroupMemoryBudget {std::size_t members=0,representatives=0;};
 GroupMemoryBudget group_memory_budget(const detail::MaintenanceResources& resources,bool indexed) noexcept {
@@ -100,6 +101,7 @@ struct NativeGroupMaintenance::Impl {
     Digest content{};
     std::array<std::uint64_t,kOptimizationGroupBands> bands{};
     OptimizationXorSignatures projections{};
+    detail::NativeGroupDeltaSignatures deltas{};
     bool projected=false;
   };
   struct StagedGroup {
@@ -310,6 +312,7 @@ struct NativeGroupMaintenance::Impl {
       const auto shifted=detail::native_group_shift_features(bytes);
       std::copy(shifted.begin(),shifted.end(),feature.bands.begin()+positional_bands);
       feature.projections=sample_xor_signatures(bytes);
+      feature.deltas=detail::native_group_delta_signatures(bytes);
       feature.projected=true;
     }
     ++state.sampled_extents;
@@ -326,8 +329,14 @@ struct NativeGroupMaintenance::Impl {
       for(unsigned i=0;i<count;++i) {
         if(!indexed || usable_indexed_band(i,feature.bands[i]))add_band({i,feature.bands[i]});
       }
-      if(indexed)for(unsigned i=0;i<feature.projections.size();++i) {
-        if(feature.projections[i])add_band({static_cast<unsigned>(kOptimizationGroupBands)+i,feature.projections[i]});
+      if(indexed) {
+        for(unsigned i=0;i<feature.projections.size();++i) {
+          if(feature.projections[i])add_band({static_cast<unsigned>(kOptimizationGroupBands)+i,feature.projections[i]});
+        }
+        constexpr auto delta_band=static_cast<unsigned>(kOptimizationGroupBands+kOptimizationXorProjections);
+        for(unsigned i=0;i<feature.deltas.size();++i) {
+          if(feature.deltas[i])add_band({delta_band+i,feature.deltas[i]});
+        }
       }
     };
     for(const auto& [id,feature]:features) {

@@ -330,6 +330,46 @@ void indexed_partial_overlap_preserves_candidates() {
   std::cout<<"indexed overlap cpu_bytes="<<cpu<<" batched_bytes="<<batched<<'\n';
 }
 
+void modular_delta_indexed_family(const Bytes& base,StoreCompressionOptions compression,bool require_delta) {
+  constexpr unsigned count=9;
+  Fixture f(4096,0,true,compression);
+  std::vector<Bytes> original;
+  for(unsigned i=0;i<count;++i) {
+    original.push_back(calibrated_extent(base,i));
+    put(*f.session,"f"+std::to_string(i),original.back());
+  }
+  const auto compact_size=[&](const auto& snapshot,unsigned identity) {
+    auto output=ram(4096);
+    (void)NativeFilesystemWriter::compact(snapshot,output,id(identity),compression);
+    auto reopened=NativeFilesystemSnapshot::open_image(output,{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes});
+    reopened.verify_all();
+    for(unsigned i=0;i<count;++i)
+      require(reopened.read("f"+std::to_string(i),0,kNativeExtentBytes)==original[i],
+          "Modular delta compaction changed source bytes");
+    return output->extent();
+  };
+  const auto resolve=[&](const auto& image)->std::shared_ptr<StoreByteIo> {return image==id(1)?f.image:nullptr;};
+  f.session.reset();
+  const auto baseline=compact_size(NativeVolumeHeadView::open(f.head,id(90),resolve).filesystem(),2);
+  f.session.emplace(NativeFileSession::resume_closed_indexed_volume(f.head,id(90),1,resolve,compression));
+  NativeGroupMaintenance controller(*f.session);
+  const auto start=std::chrono::steady_clock::now();
+  const auto progress=f.finish(controller);
+  const auto maintenance_ns=std::chrono::duration_cast<std::chrono::nanoseconds>(
+      std::chrono::steady_clock::now()-start).count();
+  controller.cancel();
+  f.session.reset();
+  const auto closed=NativeVolumeHeadView::open(f.head,id(90),resolve);
+  const auto grouped=compact_size(closed.filesystem(),3);
+  const auto root=PagedObjectStoreSnapshot::open(f.image,{kStoreMaxPhysicalBytes}).read(1);
+  const auto capability=std::to_integer<unsigned>(root[8]);
+  std::cout<<"indexed_modular_delta files="<<count<<" groups="<<progress.published_groups
+      <<" capability="<<capability<<" input_bytes="<<baseline<<" output_bytes="<<grouped
+      <<" maintenance_ns="<<maintenance_ns<<" cpu_readback=true\n";
+  if(require_delta)require(progress.published_groups && capability==6 && grouped<baseline,
+      "Automatic maintenance missed fully shifted numeric data");
+}
+
 void shifted_indexed_family(const Bytes& base,StoreCompressionOptions compression,bool corpus) {
   constexpr unsigned count=12;
   constexpr std::uint32_t unit=4096;
@@ -1218,6 +1258,14 @@ int main(int argc,char** argv){try{
     xor_indexed_family(false,true);
   } else if(argc==2 && std::string_view(argv[1])=="--profile-group-xor") {
     xor_indexed_family(false);
+  } else if(argc==2 && std::string_view(argv[1])=="--indexed-modular-delta") {
+    modular_delta_indexed_family(data(kNativeExtentBytes,20561),{StoreCompressionMode::raw,1,false},true);
+  } else if(argc==3 && std::string_view(argv[1])=="--profile-modular-delta") {
+    auto input=ReadOnlyFile::open(argv[2]);
+    require(input.size()==kNativeExtentBytes,"expected one extent of public source data");
+    Bytes bytes(kNativeExtentBytes);
+    input.read_exact_at(0,bytes.data(),bytes.size());
+    modular_delta_indexed_family(bytes,{StoreCompressionMode::automatic,6,true},false);
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-advice") {
     advised_indexed_maintenance();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-batch") {

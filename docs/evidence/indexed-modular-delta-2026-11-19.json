@@ -1,0 +1,556 @@
+{
+  "schema": "flitzfs-indexed-modular-delta-v1",
+  "experimental": true,
+  "captured_local": "2026-11-19T16:02:12.3456090+01:00",
+  "source_base": "5fda5473d6e91114f6e05e17868cad80c62a8a70",
+  "source_binding": [
+    {
+      "path": "CMakeLists.txt",
+      "git_blob": "45c31b36b8c36fbd8f2b1d1c766fae870e5f7c9d"
+    },
+    {
+      "path": "src/native_group_codec.cpp",
+      "git_blob": "954642a5e83e7b6c91f779415b6766d7137e41ac"
+    },
+    {
+      "path": "src/native_group_codec.hpp",
+      "git_blob": "cf67b31e382d87c606ff5a03895b1728516ca098"
+    },
+    {
+      "path": "src/native_indexed_volume.cpp",
+      "git_blob": "e51a52bc57ac2f1880805e1eab840a3b7182e91e"
+    },
+    {
+      "path": "src/native_maintenance.cpp",
+      "git_blob": "478d2476f7905df0db416ea728e9f74d94d6d786"
+    },
+    {
+      "path": "tests/native_fs_fixture.hpp",
+      "git_blob": "c21e5ccd0757bc1af49f9e340974d6a43b6639c9"
+    },
+    {
+      "path": "tests/test_native_group_maintenance.cpp",
+      "git_blob": "0545264a68249a9d816cb2b1f20d466932461ac1"
+    },
+    {
+      "path": "tests/test_native_shared_base.cpp",
+      "git_blob": "e8060ea85658f58f61782dcf82e552cbf4e12453"
+    }
+  ],
+  "navigation": {
+    "commit": "5fda5473d6e91114f6e05e17868cad80c62a8a70",
+    "provider_version": "0.2.43",
+    "files": 16,
+    "source_bound_job": {
+      "run": "local-run-2c7c65153d59431a8fc90adfda3bcbde",
+      "exit_code": 0,
+      "wall_seconds": 49.235866,
+      "memory_envelope_bytes": 1580204032,
+      "peak_job_bytes": 1132175360,
+      "cpu_percent": 15,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "children_at_forced_retirement": 0,
+      "receipt_sha256": "2786a23378c8c2963c60c0cf8cb152e0eef39ab296c1f03f2a5d8539b4377061",
+      "log_sha256": "369b98b1266e4b231f02219522708fef1eb16f038df3c15903141ba0ab3f7825"
+    },
+    "receipt_sha256": "e5b4a0f3032fdf9e5499946c318bd589c3dd147ae4d5b2929cc13bd7d6e3cfb2",
+    "response_sha256": "3477e11c347afb09bd311daab034019cc28f4e314911cef8a8dfbd93072da730"
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "no_external_llm": true,
+    "robots_checked": true,
+    "timeout_seconds": 45,
+    "pages": [
+      {
+        "url": "https://parquet.apache.org/docs/file-format/data-pages/encodings/",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 27802,
+        "markdown_sha256": "b39a7454b12966a3c04bf1cf61d1ef7a23804d003e36e86035527f53c07ef1b0",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.459,
+        "capture": "parquet-delta.native.json",
+        "capture_sha256": "32ac64116416d5649189d1361d673bd54c0e2698ff168d9d2a5e389e90adabbc",
+        "name": "parquet-delta"
+      },
+      {
+        "url": "https://blosc.org/c-blosc2/c-blosc2.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 26189,
+        "markdown_sha256": "b7d2005fc003ebe782ec47b13417e285be7b48daed75a4de87412950c5e236ba",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.429,
+        "capture": "blosc-filters.native.json",
+        "capture_sha256": "4ac480de6e8b3822aaf68f2ddad3566dc013edb82a2f19cf7cfb9ddb0617fd16",
+        "name": "blosc-filters"
+      }
+    ],
+    "receipt_sha256": "5d7f740b02305715e03b6c7753e60a1ff111717c6b131616827c9367392bcad8",
+    "job": {
+      "run": "local-run-2a214b02bac74e74b1cd462515691301",
+      "exit_code": 0,
+      "wall_seconds": 6.744906,
+      "memory_envelope_bytes": 2091909120,
+      "peak_job_bytes": 1175912448,
+      "cpu_percent": 15,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "children_at_forced_retirement": 0,
+      "receipt_sha256": "edb8824ee52a12544cc67e6ff165635ed3dd65d00a70a73db5beb5b6ed91b14b",
+      "log_sha256": "d01292cbc5c295f8d7d33614da1495e21c72b497a2cf71085501b93838d531f3"
+    }
+  },
+  "qualification": {
+    "raw_build": {
+      "build": {
+        "run": "local-run-14dbf9268e474d2b8c1f9211ad0568f4",
+        "exit_code": 0,
+        "wall_seconds": 23.833014,
+        "memory_envelope_bytes": 1586495488,
+        "peak_job_bytes": 453951488,
+        "cpu_percent": 16,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "children_at_forced_retirement": 1,
+        "receipt_sha256": "3ceb236ec7253e9a164ad2d00020f7fbe1c286aa25286c94792e9d631d5ceed8",
+        "log_sha256": "b06cb460d3b745db150513f66159c1227e97c07340d07636499ef1ecde03186e"
+      },
+      "tests": {
+        "run": "local-run-f51767c67195456e83145a4c2de6e4f4",
+        "exit_code": 0,
+        "wall_seconds": 28.970147,
+        "memory_envelope_bytes": 1138753536,
+        "peak_job_bytes": 177106944,
+        "cpu_percent": 16,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "children_at_forced_retirement": 0,
+        "receipt_sha256": "774e7a534018ef17cbc01c5c5b6c2f3253e2805303ac9ef77a377791f01e06cb",
+        "log_sha256": "45b3c4e1937d6f05668f4dd489f852321649caf2810555dcb7b345c1227d532f"
+      },
+      "selected_passed": 6,
+      "modeled_fault_rows": [
+        "shared_base_faults indexed=1 shape=3 unit=4096 cuts=79 modes=3 prior=229 complete=8",
+        "shared_base_faults indexed=1 shape=3 unit=65536 cuts=97 modes=3 prior=283 complete=8"
+      ]
+    },
+    "windows_sdk_with_codecs": {
+      "build": {
+        "run": "local-run-839cb7105c214b05b26a66b75e5337b3",
+        "exit_code": 0,
+        "wall_seconds": 25.206674,
+        "memory_envelope_bytes": 1987051520,
+        "peak_job_bytes": 428920832,
+        "cpu_percent": 16,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "children_at_forced_retirement": 0,
+        "receipt_sha256": "bc8d13b10476631631b588daafd565154b360910cd603a5ec6d32b2d7add5e0c",
+        "log_sha256": "c8ece73d21286d8d6677e503427ed625fe52cf4213d088c910118dc467b8cd59"
+      },
+      "tests": {
+        "run": "local-run-4804c060c27a4e13aec1defb57ed0f2e",
+        "exit_code": 0,
+        "wall_seconds": 63.781079,
+        "memory_envelope_bytes": 1142947840,
+        "peak_job_bytes": 324628480,
+        "cpu_percent": 17,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "children_at_forced_retirement": 0,
+        "receipt_sha256": "d042e0711d596094ce38135fb421e8fc70cc61bc15cbd8b1f704407b2b4b9b8e",
+        "log_sha256": "2a4f32f0a1d0477a6a113d99273e8b3171740b21fc7b9612ec54591a54f7cbe5"
+      },
+      "selected_passed": 16,
+      "modeled_fault_rows": [
+        "shared_base_faults indexed=1 shape=3 unit=4096 cuts=79 modes=3 prior=229 complete=8",
+        "shared_base_faults indexed=1 shape=3 unit=65536 cuts=97 modes=3 prior=283 complete=8"
+      ]
+    },
+    "windows_sdk_projected_coherence": {
+      "run": "local-run-8890d770afad4842ac2483ae4cfcb920",
+      "exit_code": 0,
+      "wall_seconds": 1.527594,
+      "memory_envelope_bytes": 1071644672,
+      "peak_job_bytes": 166715392,
+      "cpu_percent": 17,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "children_at_forced_retirement": 0,
+      "receipt_sha256": "3b1bebe8fbb020ca7f542e72363631060069fb624636112c691137c889fefc14",
+      "log_sha256": "9ec77dd4f1c98ebe7daa832a3812259e3ed9f9841779d6cd231681b2c3bd506f"
+    },
+    "windows_sdk_address_sanitizer": {
+      "build": {
+        "run": "local-run-0243a4c384964e61a5b3b2cb22b2ee54",
+        "exit_code": 0,
+        "wall_seconds": 28.623585,
+        "memory_envelope_bytes": 1987051520,
+        "peak_job_bytes": 689958912,
+        "cpu_percent": 16,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "children_at_forced_retirement": 1,
+        "receipt_sha256": "5de15eb0fad6efd0eed02f2415dcf1412ed754380e51bfcb429e62e3947d7eee",
+        "log_sha256": "8ec221fe0aea8bfc506e4a403c1ae50b28051aa0b620de9b93326b955a79dcdb"
+      },
+      "first_job": {
+        "run": "local-run-8d7560b546934646bdab2fdb1ca3d9eb",
+        "exit_code": 1460,
+        "wall_seconds": 310.087254,
+        "memory_envelope_bytes": 1802502144,
+        "peak_job_bytes": 1137201152,
+        "cpu_percent": 17,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "children_at_forced_retirement": 0,
+        "receipt_sha256": "7672b645ac051a252e9dd9b04f51581a83af04ac6620b74f4590548ebac342e0",
+        "log_sha256": "4947070c8c2dabbbde6bdfe67d1d30ab907328ed04d4af85a2f3389f30671507"
+      },
+      "first_job_passed": 12,
+      "ended_at_overall_deadline": true,
+      "remaining_job": {
+        "run": "local-run-d099c203d04448fb88d7f1ffc407a750",
+        "exit_code": 0,
+        "wall_seconds": 64.735907,
+        "memory_envelope_bytes": 1753219072,
+        "peak_job_bytes": 970854400,
+        "cpu_percent": 17,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "children_at_forced_retirement": 0,
+        "receipt_sha256": "6d53486b22ff20ad51e9474476b9c08dde0a0de409872e01ca6210067849d0de",
+        "log_sha256": "a5b3ee941cd0d8f22f22d632720218c2c8326b097d42d3cbcac83f8f212e69c1"
+      },
+      "remaining_job_passed": 7,
+      "unique_passed": 18,
+      "modeled_fault_rows": [
+        "shared_base_faults indexed=1 shape=3 unit=4096 cuts=79 modes=3 prior=229 complete=8",
+        "shared_base_faults indexed=1 shape=3 unit=65536 cuts=97 modes=3 prior=283 complete=8"
+      ]
+    },
+    "initial_fixture_failure": {
+      "run": "local-run-0ab1fb1d527340a193ee97f239228d66",
+      "exit_code": 1,
+      "wall_seconds": 0.072452,
+      "memory_envelope_bytes": 546308096,
+      "peak_job_bytes": 9199616,
+      "cpu_percent": 15,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "children_at_forced_retirement": 0,
+      "receipt_sha256": "d9f812a7a7faa224c7390e9a010e5d83e3453c99bfc6d8259e7c7665e79790f0",
+      "log_sha256": "3c3c7a5f0d0f4d8d1330f80c56c3d63086e806592cafe5293c772f502737d47e"
+    },
+    "correction": "Close the source writer before compacting the baseline and resume via the verified indexed head.",
+    "prior_comparison_fixture_build": {
+      "run": "local-run-2c5669e922734b2c8e88802dc87c7547",
+      "exit_code": 0,
+      "wall_seconds": 5.222723,
+      "memory_envelope_bytes": 1288699904,
+      "peak_job_bytes": 371539968,
+      "cpu_percent": 16,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "children_at_forced_retirement": 1,
+      "receipt_sha256": "c206c9feb251cfd0e101f58adb2d0aead5278746ee0f5312581928f00e4a69cf",
+      "log_sha256": "715bb015c1243daabf003f16256e9efcf956cae12b494cc180d419b1eeb50801"
+    }
+  },
+  "compaction": {
+    "compression": "Same indexed mirrored container with automatic compression and required Zstandard level 6.",
+    "original_provenance": [
+      "shifted-indexed-groups-2026-11-18.json",
+      "amd-maintenance-parity-2026-11-19.json"
+    ],
+    "sample_construction": "Controlled additive calibration shifts and signed residuals derived from public extents. Sampled regions share a constant bias.",
+    "paired_sizes": [
+      {
+        "input": "Published FlitzFS source extent",
+        "word_bytes": 4,
+        "base_sha256": "aaf45ea2d8bb996d559478d0ea28002e819306e56ab5d1c46fce92b4607d51af",
+        "base_bytes": 65536,
+        "previous_fixture_sha256": "0ea3c66cdbbbec41375eb18e7b40eccf206e79998c5e0c747897b48fd59fe112",
+        "new_fixture_sha256": "fae5094142414cb25f07b51e14c54dc5f3cf9108f0f50eb4fbb55e49932437af",
+        "before": {
+          "files": 9,
+          "groups": 0,
+          "capability": 2,
+          "input_bytes": 786432,
+          "output_bytes": 786432,
+          "maintenance_ns": 1723800,
+          "cpu_readback": true,
+          "job": {
+            "run": "local-run-dae5f7f53f2249d4b8d006a1dc8a8d66",
+            "exit_code": 0,
+            "wall_seconds": 0.12576,
+            "memory_envelope_bytes": 611319808,
+            "peak_job_bytes": 9158656,
+            "cpu_percent": 15,
+            "exit_confirmed": true,
+            "tree_retired": true,
+            "children_at_forced_retirement": 0,
+            "receipt_sha256": "d81777b08fdcec8fdd71449540d3e737e33e3e89812d1240c9c2a2494c373210",
+            "log_sha256": "43f46e0a1fa209b87848e117ed6a3986538ad7181d441f980fc858a9ac00bb70"
+          }
+        },
+        "after": {
+          "files": 9,
+          "groups": 1,
+          "capability": 6,
+          "input_bytes": 786432,
+          "output_bytes": 188416,
+          "maintenance_ns": 31096800,
+          "cpu_readback": true,
+          "job": {
+            "run": "local-run-358e9892521d47d18e888b085b15ab05",
+            "exit_code": 0,
+            "wall_seconds": 0.124614,
+            "memory_envelope_bytes": 664797184,
+            "peak_job_bytes": 9850880,
+            "cpu_percent": 15,
+            "exit_confirmed": true,
+            "tree_retired": true,
+            "children_at_forced_retirement": 0,
+            "receipt_sha256": "db8e5919b89b58fe65c746e370fe3c5de57b65abb802c4954c54be14cef73cda",
+            "log_sha256": "1e30d48bf647ba9dc1f375f30100513d58aa4b71c837bbfd7b76b0ca0e9f0229"
+          }
+        },
+        "reduction_ppm": 760417.0
+      },
+      {
+        "input": "Silesia OSDB extent",
+        "word_bytes": 4,
+        "base_sha256": "7fd9aee660de27c2ebcf8a19462e092abade5e210fdcf8d31ee8248a42f19c82",
+        "base_bytes": 65536,
+        "previous_fixture_sha256": "0ea3c66cdbbbec41375eb18e7b40eccf206e79998c5e0c747897b48fd59fe112",
+        "new_fixture_sha256": "fae5094142414cb25f07b51e14c54dc5f3cf9108f0f50eb4fbb55e49932437af",
+        "before": {
+          "files": 9,
+          "groups": 0,
+          "capability": 2,
+          "input_bytes": 933888,
+          "output_bytes": 933888,
+          "maintenance_ns": 1860400,
+          "cpu_readback": true,
+          "job": {
+            "run": "local-run-2be51e5c6c784b41bdea1219ea3a0a2b",
+            "exit_code": 0,
+            "wall_seconds": 0.102002,
+            "memory_envelope_bytes": 611319808,
+            "peak_job_bytes": 9715712,
+            "cpu_percent": 15,
+            "exit_confirmed": true,
+            "tree_retired": true,
+            "children_at_forced_retirement": 0,
+            "receipt_sha256": "d6f256cc34f951e5c95c0bc31c38ad55d834bb2502f9e9e63b0575cf39561982",
+            "log_sha256": "c3d0a6c4a5e568e87c63c38daa352c9d3671ae0a06d49ebf76d037dc0621fbad"
+          }
+        },
+        "after": {
+          "files": 9,
+          "groups": 1,
+          "capability": 6,
+          "input_bytes": 933888,
+          "output_bytes": 204800,
+          "maintenance_ns": 31168600,
+          "cpu_readback": true,
+          "job": {
+            "run": "local-run-ffe2ffcdd5fd48dfb02c65b342854cdd",
+            "exit_code": 0,
+            "wall_seconds": 0.122947,
+            "memory_envelope_bytes": 664797184,
+            "peak_job_bytes": 9338880,
+            "cpu_percent": 15,
+            "exit_confirmed": true,
+            "tree_retired": true,
+            "children_at_forced_retirement": 0,
+            "receipt_sha256": "066315a568f629665259cdea017c286128a5887a2f000869d13487fcd768946e",
+            "log_sha256": "1feed96478565a64439fbf259099153b9ecdcc827dd3d5761341606ee2e4fad3"
+          }
+        },
+        "reduction_ppm": 780702.0
+      }
+    ]
+  },
+  "physical_owner": {
+    "windows": "Microsoft Windows 11 Pro",
+    "windows_build": "26300",
+    "cpu": "AMD Ryzen 9 9950X 16-Core Processor            ",
+    "adapter": "AMD Radeon RX 9070 XT",
+    "driver": "32.0.32015.16001",
+    "worker_sha256": "a430d2bb3e2d3ad6f5647d7ae0585e9802a2e0a7e5dfcf9d4f6aecff6023b77a",
+    "module_sha256": "90bef69b9673f700caad28317bb7d4e9cbd2ec8c12595a74b455c84ee9166203",
+    "runtime_sha256": "7fc6465b18ff337a80c863b6350d02d7576cfb30528f97b982a6e5723bbb9848",
+    "fixture_sha256": "f273749315a486d24646525417865a0c7e758c6f7ad3712867f71d3fcee4a9ab",
+    "existing_amd_packed_xor_regression": [
+      {
+        "mode": "amd",
+        "cohort": "related",
+        "files": 45,
+        "groups": 5,
+        "advised_members": 310,
+        "submitted": 1,
+        "verified_batches": 1,
+        "worker_ns": 1750614100,
+        "discovery_ns": 242359300,
+        "maintenance_ns": 2867686600,
+        "compact_verify_ns": 348918900,
+        "input_compacted_bytes": 41623552,
+        "grouped_compacted_bytes": 11411456,
+        "retired": true,
+        "independent_cpu_readback": true,
+        "modeled_idle_time": true,
+        "input_blake3": "0072845ebd71b3f4469bc9723b0c44cd8487f46682e5ee2d2d21a764500d4e7b",
+        "complete_ns": 3458964800,
+        "job": {
+          "run": "local-run-46cb3ab15c034610bff74bd97f79737b",
+          "exit_code": 0,
+          "wall_seconds": 4.255356,
+          "memory_envelope_bytes": 1037041664,
+          "peak_job_bytes": 350826496,
+          "cpu_percent": 16,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "children_at_forced_retirement": 0,
+          "receipt_sha256": "de27972608bb5a93582234940afe236b2200843dc4809a77b90db5314436126f",
+          "log_sha256": "46d51b788048e4b773d69f681138d3a4641bb9c6a759b3e5c972f90b4f0766f0"
+        }
+      },
+      {
+        "mode": "cpu",
+        "cohort": "related",
+        "files": 45,
+        "groups": 5,
+        "advised_members": 0,
+        "submitted": 0,
+        "verified_batches": 0,
+        "worker_ns": 0,
+        "discovery_ns": 0,
+        "maintenance_ns": 1117038700,
+        "compact_verify_ns": 344789600,
+        "input_compacted_bytes": 41623552,
+        "grouped_compacted_bytes": 11411456,
+        "retired": true,
+        "independent_cpu_readback": true,
+        "modeled_idle_time": true,
+        "input_blake3": "0072845ebd71b3f4469bc9723b0c44cd8487f46682e5ee2d2d21a764500d4e7b",
+        "complete_ns": 1461828300,
+        "job": {
+          "run": "local-run-23af7d11a3af44e3a4deb6a78124c215",
+          "exit_code": 0,
+          "wall_seconds": 2.270318,
+          "memory_envelope_bytes": 1035993088,
+          "peak_job_bytes": 253976576,
+          "cpu_percent": 16,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "children_at_forced_retirement": 0,
+          "receipt_sha256": "9029ce23cacd47a8aaa57357a693c8d4c0077a338a6a134d72b793f224a0bbc2",
+          "log_sha256": "1b46f5c4dc92b77e89de415a8dcbf8f90ec8843a81003bf39fdaa8c88033959f"
+        }
+      },
+      {
+        "mode": "cpu",
+        "cohort": "mixed",
+        "files": 45,
+        "groups": 15,
+        "advised_members": 0,
+        "submitted": 0,
+        "verified_batches": 0,
+        "worker_ns": 0,
+        "discovery_ns": 0,
+        "maintenance_ns": 1089385100,
+        "compact_verify_ns": 325031600,
+        "input_compacted_bytes": 41623552,
+        "grouped_compacted_bytes": 8650752,
+        "retired": true,
+        "independent_cpu_readback": true,
+        "modeled_idle_time": true,
+        "input_blake3": "bc0939f793f0c7e5f96173f83191d2e29f9d9283fa7c905044bf6c4092253943",
+        "complete_ns": 1414416700,
+        "job": {
+          "run": "local-run-2943591920a5473289ad8ff18ff9a733",
+          "exit_code": 0,
+          "wall_seconds": 2.242513,
+          "memory_envelope_bytes": 1032847360,
+          "peak_job_bytes": 254947328,
+          "cpu_percent": 16,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "children_at_forced_retirement": 0,
+          "receipt_sha256": "44c397a09d986a824b137b51ed832819e3a3178095047f337fe6bfea4755ca86",
+          "log_sha256": "cd973c6528ab818b23a77ae1df11a110fa753af2f2d3011e3d968363f13b7743"
+        }
+      },
+      {
+        "mode": "amd",
+        "cohort": "mixed",
+        "files": 45,
+        "groups": 15,
+        "advised_members": 36,
+        "submitted": 1,
+        "verified_batches": 1,
+        "worker_ns": 1575161800,
+        "discovery_ns": 255717800,
+        "maintenance_ns": 2702509500,
+        "compact_verify_ns": 362074600,
+        "input_compacted_bytes": 41623552,
+        "grouped_compacted_bytes": 8650752,
+        "retired": true,
+        "independent_cpu_readback": true,
+        "modeled_idle_time": true,
+        "input_blake3": "bc0939f793f0c7e5f96173f83191d2e29f9d9283fa7c905044bf6c4092253943",
+        "complete_ns": 3320301900,
+        "job": {
+          "run": "local-run-2dab21e89ef342a8a4c0cb25eccaebb6",
+          "exit_code": 0,
+          "wall_seconds": 4.130975,
+          "memory_envelope_bytes": 1032847360,
+          "peak_job_bytes": 270565376,
+          "cpu_percent": 16,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "children_at_forced_retirement": 0,
+          "receipt_sha256": "2799f61d254b609ab6e84c16b7b6cc00963c55cca8de0277f0f162b57f75f6a6",
+          "log_sha256": "de79b4069668d07f78ea8e831c25c4781e19d64d5b6947e942000cac7bd4e7b1"
+        }
+      }
+    ],
+    "rejected_fixture_arguments": {
+      "run": "local-run-39173b2973904f5e9e733a148ea4a30d",
+      "exit_code": 1,
+      "wall_seconds": 0.044681,
+      "memory_envelope_bytes": 1009778688,
+      "peak_job_bytes": 3170304,
+      "cpu_percent": 16,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "children_at_forced_retirement": 0,
+      "receipt_sha256": "4e2ca2e415957401d0098a230cf290ccbc182382f13d0b62a3e49cfea9894dbe",
+      "log_sha256": "cfd1afcb89d9266a17cf8cee1f79244c30d6e9dd9c077a0b3db85b8eba3a90ab"
+    },
+    "tool_argument_correction": "Keep the sanitizer receipt separate from the authenticated worker arguments."
+  },
+  "scope": {
+    "indexed_capability": 6,
+    "all_new_methods_cpu_readable": true,
+    "modular_encoding_backend": "CPU",
+    "modular_signature_persistence": false,
+    "mounted": false,
+    "modeled_power_loss_only": true,
+    "numeric_price": "Complete verified compacted bytes. Physical host trials use modeled idle opportunities.",
+    "speed_gain_claimed": false
+  }
+}

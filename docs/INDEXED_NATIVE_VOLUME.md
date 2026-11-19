@@ -7,7 +7,7 @@ image and resume a fully verified indexed image. Its path transactions update
 the checked index and changed records together. New volumes use capability 2,
 which supports file lifetimes through `NativeFileSession`. Shared-base
 publication selects capability 3 for aligned patches, 4 for anchor copies,
-or 5 for packed XOR planes. The managed head and
+5 for packed XOR planes or 6 for modular deltas. The managed head and
 writable WinFsp SDK adapter can select indexed images. The owned mounted
 provider passed an earlier indexed external-client fixture on disposable
 Windows Server 2025. Current Windows 11 client and mounted shared-base
@@ -19,14 +19,14 @@ qualification remain open.
 
 Object 1 is the little-endian native root. Capability 1 has 96 bytes.
 Capability 2 has 120 bytes and appends three lifetime counts. Capability 3
-has 136 bytes and adds the shared-base and member counts. Capabilities 4 and 5
+has 136 bytes and adds the shared-base and member counts. Capabilities 4 through 6
 keep the 136-byte root layout and permit additional group encodings. Readers
-accept all five capabilities and check each against its exact length.
+accept all six capabilities and check each against its exact length.
 
 | Offset | Bytes | Value |
 | --- | --- | --- |
 | 0 | 8 | `FLTXPV01` |
-| 8 | 4 | Indexed native capability, 1 through 5 |
+| 8 | 4 | Indexed native capability, 1 through 6 |
 | 12 | 4 | Workload accounting flag, 0 or 1 |
 | 16 | 8 | Native namespace sequence |
 | 24, 32 | 8 each | Next inode ID and next extent ordinal |
@@ -65,7 +65,7 @@ independent CPU decoders and mirrored-payload verification.
 
 ## Shared-base extents
 
-Capabilities 3 through 5 keep the ordinary extent frame. A grouped member has
+Capabilities 3 through 6 keep the ordinary extent frame. A grouped member has
 the same 24-byte owner and logical-block header with magic `FLTXPD01`,
 followed by the existing checked [shared-base delta](SHARED_BASE_GROUPS.md#exact-member-bytes).
 A base object uses the data-object allocator and starts with `FLTXPA01`,
@@ -178,6 +178,46 @@ invoke the CPU encoder. The full-image savings and live-generation checks
 still govern publication. The controller verifies the batch only after
 all supplied bodies pass the byte comparison.
 [Packed XOR verification and recovery](evidence/amd-packed-xor-verdicts-2026-11-19.json)
+
+### Modular-delta members
+
+Capability 6 admits `FLTXGM04` with member version 4. The shared header
+retains the verified base identity, generation and both digests. The declared
+decoded extent and its base remain 65,536 bytes.
+
+| Header offset | Bytes | Value |
+| --- | ---: | --- |
+| 96 | 4 | Tile count. Zero for a bias-only member, otherwise 256. |
+| 100 | 4 | Exact body length |
+| 104 | 1 | Little-endian word width in bytes. One of 1, 2, 4 or 8. |
+| 105 | 7 | Zero |
+| 112 | 8 | Unsigned additive bias within the selected word width |
+| 120 | 8 | Zero |
+
+The predictor adds the bias to each base word modulo its width. The
+encoder subtracts the predictor from the original word using the same
+modulus and applies ZigZag to the signed interpretation of that residue.
+An exact nonzero bias needs no body. Other members use consecutive
+256-byte tiles. Each tile has a one-byte residual bit width followed by
+its least-to-most-significant bit planes. A plane takes 32 bytes divided
+by the word width. Its first word occupies the low bit of the first byte.
+The highest advertised plane must have a set bit. A nonempty body must
+contain a residual and end at the exact tile boundary.
+
+The CPU evaluates the zero bias and the first word's bias at each supported
+width. It emits only a candidate that beats the competing private frame.
+The writer independently reconstructs every byte and applies the existing
+strict complete-image size check before COW publication. Capability 6
+readers support earlier members. Earlier capabilities refuse modular-delta
+frames. The protected member contains every parameter needed for CPU recovery.
+[Parquet modular arithmetic and bit packing](https://parquet.apache.org/docs/file-format/data-pages/encodings/) ·
+[Blosc2 filter composition](https://blosc.org/c-blosc2/c-blosc2.html)
+
+The automatic scanner samples sixteen 64-byte regions and tries each
+word width. It hashes their modular differences from the first word and
+uses those signatures alongside existing similarity features. The scanner
+retains the new signatures in memory. Persisting them in the sparse
+coherence index and hardware acceleration for modular scoring remain open.
 
 ### Automatic candidate discovery
 
