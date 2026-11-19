@@ -450,6 +450,15 @@ interference and retirement, including cohorts where the stronger encoding
 does not pay for its setup.
 [Topology lifetime and matched worker evidence](evidence/amd-topology-reuse-2026-11-18.json)
 
+Indexed native writes now use one CPU comparison of the standalone GPU
+compression candidate before prefixing authoritative extent metadata. Mirrored
+readback still precedes publication. The physical-host acceptance profile
+measured a 7.0% median paired improvement. Whole-write comparisons still
+favored CPU for both 1 MiB inputs. Keep this class on CPU and evaluate finite
+AMD work on groups where savings amortize worker initialization. Include
+stale-budget outcomes in qualification, even when CPU recovery succeeds.
+[Acceptance and paired write evidence](evidence/native-lz4-advice-acceptance-2026-11-19.json)
+
 ### Implementation steps
 
 1. Build a trusted configuration identity from OS/architecture, adapter LUID/node,

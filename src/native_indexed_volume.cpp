@@ -3,7 +3,6 @@
 #include "native_object_storage.hpp"
 #include "store_codec.hpp"
 #include "flitzfs/catalog.hpp"
-#include "flitzfs/gpu_lz4_verify.hpp"
 #include <algorithm>
 #include <iterator>
 #include <limits>
@@ -172,17 +171,13 @@ std::span<const std::byte> unique_extent_candidate(std::span<const NativeLz4Exte
   }
   return found?found->payload:std::span<const std::byte>{};
 }
-void apply_extent_candidate(StoreMutation& mutation,std::span<const std::byte> candidate,
-    std::unique_ptr<std::byte[]>& scratch) {
-  const auto frame=std::span<const std::byte>(mutation.bytes);
-  const auto body=frame.subspan(extent_header);
-  if(candidate.empty() || candidate.size()>=body.size() || !store_lz4_available())return;
+void apply_extent_candidate(StoreMutation& mutation,std::span<const std::byte> candidate) {
+  if(candidate.empty() || candidate.size()>=mutation.bytes.size()-extent_header || !store_lz4_available())return;
   try {
-    if(!scratch)scratch=std::make_unique<std::byte[]>(kNativeExtentBytes);
-    if(verify_gpu_lz4_candidate(body,candidate,{scratch.get(),body.size()})==GpuLz4Verification::verified)
-      mutation.lz4_candidate=prepend_lz4_literals(frame.first(extent_header),candidate,body.size());
+    mutation.lz4_candidate.assign(candidate.begin(),candidate.end());
+    mutation.lz4_literal_prefix_bytes=extent_header;
   }catch(const std::bad_alloc&) {
-    // Optional acceleration must leave the authoritative CPU frame available.
+    // Optional acceleration leaves the authoritative CPU frame available.
   }
 }
 struct DecodedIndexedExtent {
@@ -473,7 +468,6 @@ class IndexedVolumeTransaction final {
     std::vector<StoreMutation> records;
     std::vector<NativeNameEdit> edits;
     RetiredGroupReferences retired;
-    std::unique_ptr<std::byte[]> candidate_scratch;
     bool content_changed=false;
     for(const auto& [key,replacement]:names_) {
       const auto expected=index_.find(key);
@@ -506,7 +500,7 @@ class IndexedVolumeTransaction final {
         }
         StoreMutation mutation{*object,false,encode_extent(n,{id,block,extent.payload})};
         if(id==advised_inode)
-          apply_extent_candidate(mutation,unique_extent_candidate(candidates,block),candidate_scratch);
+          apply_extent_candidate(mutation,unique_extent_candidate(candidates,block));
         records.push_back(std::move(mutation));
       }
     }

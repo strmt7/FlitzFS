@@ -14,8 +14,8 @@ inline constexpr std::size_t kStoreEncoderMemoryCap=16U*1024U*1024U;
 inline constexpr std::size_t kStoreDecoderMemoryCap=2U*1024U*1024U;
 void validate_store_compression(StoreCompressionOptions options);
 bool store_codec_framing(std::uint32_t codec,std::uint32_t logical,std::uint32_t stored) noexcept;
-// Extend the first literal run of an already independently verified raw block.
-// The result is still private and must pass complete-frame decode validation.
+// Prefix a standalone LZ4 block whose entire decoded suffix was checked.
+// Literal insertion shifts both ends of each back-reference equally.
 std::vector<std::byte> prepend_lz4_literals(std::span<const std::byte> prefix,
     std::span<const std::byte> block,std::size_t decoded_body_bytes);
 struct EncodedStoreObject {
@@ -46,11 +46,13 @@ class StoreCodecEncoder final {
   StoreCodecEncoder& operator=(const StoreCodecEncoder&)=delete;
   // Takes ownership. Compression/round-trip validation finish before I/O.
   EncodedStoreObject encode(std::vector<std::byte> input);
-  EncodedStoreObject encode_with_lz4(std::vector<std::byte> input,std::span<const std::byte> candidate);
+  EncodedStoreObject encode_with_lz4(std::span<const std::byte> input,std::span<const std::byte> candidate,
+      std::uint32_t literal_prefix_bytes=0);
   EncodedStoreObject encode_with_matches(std::vector<std::byte> input,std::span<const StoreMatchProposal> matches);
   std::size_t peak_bytes() const noexcept;
  private:
-  EncodedStoreObject encode_impl(std::vector<std::byte> input,bool cpu_fast);
+  EncodedStoreObject encode_compressed(std::span<const std::byte> input,bool cpu_fast);
+  EncodedStoreObject verify_encoding(EncodedStoreObject,std::span<const std::byte> input);
   struct Impl;
   std::unique_ptr<Impl> impl_;
 };

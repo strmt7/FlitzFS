@@ -2,10 +2,13 @@
 #include "native_fs_fixture.hpp"
 #include "native_lz4_fixture.hpp"
 #include "flitzfs/native_session.hpp"
+#include "flitzfs/gpu_lz4_verify.hpp"
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <iostream>
 #include <stdexcept>
+#include <string_view>
 #include <vector>
 #ifdef FLITZFS_TEST_HAS_LZ4
 #include <lz4.h>
@@ -142,6 +145,99 @@ Bytes alternative_block(const Bytes& source){
   require(source.size()==65536,"alternative block extent");
   return native_lz4_fixture::alternative_block(source);
 }
+
+void prefixed_advice() {
+  const auto source=input(65536,true),candidate=alternative_block(source);
+  StoreCodecEncoder fast({StoreCompressionMode::fast,6,false});
+  StoreCodecEncoder automatic({});
+  StoreCodecDecoder reader;
+  for(const auto prefix_bytes:{1U,24U,269U,270U,524U}) {
+    const auto literal=input(prefix_bytes,false);
+    auto frame=literal;
+    frame.insert(frame.end(),source.begin(),source.end());
+    const auto composed=prepend_lz4_literals(literal,candidate,source.size());
+    require(!composed.empty(),"fixture prefix could not be composed");
+    const auto accepted=fast.encode_with_lz4(frame,candidate,prefix_bytes);
+    const auto ordinary=fast.encode_with_lz4(frame,composed);
+    require(accepted.codec==ordinary.codec && accepted.payload==ordinary.payload &&
+        accepted.decoded_digest==ordinary.decoded_digest &&
+        reader.decode(accepted.codec,accepted.payload,static_cast<std::uint32_t>(frame.size()))==frame,
+        "prefix changed the accepted store bytes");
+    const auto reference=automatic.encode(frame);
+    const auto chosen=automatic.encode_with_lz4(frame,candidate,prefix_bytes);
+    require(chosen.payload.size()<=reference.payload.size() &&
+        reader.decode(chosen.codec,chosen.payload,static_cast<std::uint32_t>(frame.size()))==frame,
+        "prefix displaced a smaller CPU representation");
+
+    auto changed=frame;changed[prefix_bytes+17]^=std::byte{1};
+    const auto expected=fast.encode(changed);
+    const auto stale=fast.encode_with_lz4(changed,candidate,prefix_bytes);
+    require(stale.codec==expected.codec && stale.payload==expected.payload &&
+        stale.decoded_digest==expected.decoded_digest,"stale suffix changed the ordinary encoding");
+    const auto inconsistent=fast.encode_with_lz4(changed,candidate,static_cast<std::uint32_t>(changed.size()+1));
+    require(inconsistent.codec==expected.codec && inconsistent.payload==expected.payload,
+        "invalid prefix did not fall back to the original input");
+  }
+  if(store_lz4_available()) {
+    auto literal=input(24,false);
+    literal.back()=std::byte{0x78};
+    Bytes frame=literal;
+    frame.insert(frame.end(),27,std::byte{0x78});
+    const Bytes final_literals{std::byte{0x61},std::byte{0x62},std::byte{0x63},std::byte{0x64},std::byte{0x65}};
+    frame.insert(frame.end(),final_literals.begin(),final_literals.end());
+
+    // This match can succeed only if the decoder is given prior history.
+    Bytes dependent{std::byte{0x0f},std::byte{1},std::byte{0},std::byte{8},std::byte{0x50}};
+    dependent.insert(dependent.end(),final_literals.begin(),final_literals.end());
+    const auto composed=prepend_lz4_literals(literal,dependent,32);
+    require(reader.decode(kStoreLz4,composed,static_cast<std::uint32_t>(frame.size()))==frame,
+        "cross-prefix fixture should decode if metadata is used as history");
+    StoreCodecEncoder starved({StoreCompressionMode::fast,6,false},1);
+    const auto refused=starved.encode_with_lz4(frame,dependent,24);
+    require(refused.codec==kStoreRaw && refused.payload==frame,
+        "advice depended on native metadata for its first match");
+  }
+}
+
+void profile_prefixed_advice() {
+  require(store_lz4_available(),"Prefix profile needs an independent LZ4 decoder");
+  const StoreCompressionOptions options{StoreCompressionMode::fast,6,false};
+  StoreCodecEncoder encoder(options);
+  const auto body=input(65536,true),original=alternative_block(body),prefix=input(24,false);
+  auto frame=prefix;frame.insert(frame.end(),body.begin(),body.end());
+  auto reference=prepend_lz4_literals(prefix,original,body.size());
+  Bytes scratch(body.size());
+  constexpr unsigned iterations=500;
+  const auto capture=[&](bool duplicate) {
+    EncodedStoreObject result;
+    const auto started=std::chrono::steady_clock::now();
+    for(unsigned i=0;i<iterations;++i) {
+      if(duplicate) {
+        if(verify_gpu_lz4_candidate(body,original,scratch)!=GpuLz4Verification::verified)
+          throw std::runtime_error("Reference suffix verification failed");
+        const auto composed=prepend_lz4_literals(prefix,original,body.size());
+        result=encoder.encode_with_lz4(frame,composed);
+      } else {
+        result=encoder.encode_with_lz4(frame,original,static_cast<std::uint32_t>(prefix.size()));
+      }
+    }
+    const auto ns=std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now()-started);
+    StoreCodecDecoder independent;
+    require(result.codec==kStoreLz4 && result.payload==reference && result.decoded_digest==record_digest(frame) &&
+        independent.decode(result.codec,result.payload,static_cast<std::uint32_t>(frame.size()))==frame,
+        "Timed acceptance paths produced different bytes");
+    return ns.count();
+  };
+  (void)capture(true);(void)capture(false);
+  for(unsigned pair=0;pair<7;++pair) {
+    const bool original_first=pair%2==0;
+    const auto first=capture(original_first);
+    const auto second=capture(!original_first);
+    std::cout<<"prefix_profile pair="<<pair+1<<" original_first="<<original_first<<" iterations="<<iterations
+        <<" two_decodes_ns="<<(original_first?first:second)<<" one_decode_ns="<<(original_first?second:first)
+        <<" encoded_bytes="<<reference.size()<<'\n';
+  }
+}
 void native_advisory_write(){
   using namespace native_fixture;
   auto ram=std::make_shared<Ram>();
@@ -255,8 +351,17 @@ void session_advisory_write(){
 }
 
 }
-int main(){
-  try{policies();advisory();native_file_readback();native_advisory_write();session_advisory_write();std::cout<<"Fast native ingestion: "<<checks
-      <<" checks; cpu_lz4="<<store_lz4_available()<<" gpu_executed=false\n";return 0;}
-  catch(const std::exception& e){std::cerr<<"fast ingestion: "<<e.what()<<'\n';return 1;}
+int main(int argc,char** argv) {
+  try {
+    if(argc==2 && std::string_view(argv[1])=="--profile-prefixed-advice") {
+      profile_prefixed_advice();
+      return 0;
+    }
+    require(argc==1,"Unknown ingestion fixture mode");
+    policies();advisory();prefixed_advice();
+    native_file_readback();native_advisory_write();session_advisory_write();
+    std::cout<<"Fast native ingestion: "<<checks<<" checks; cpu_lz4="<<store_lz4_available()
+        <<" gpu_executed=false\n";
+    return 0;
+  }catch(const std::exception& e){std::cerr<<"fast ingestion: "<<e.what()<<'\n';return 1;}
 }

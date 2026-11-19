@@ -7,13 +7,15 @@ retain their existing CPU behavior until a qualified caller supplies advice.
 
 ## Indexed native extents
 
-The indexed writer verifies the original candidate against the staged extent
-body before changing its encoded representation. The frame adds the
-authoritative inode and block numbers. Extending the first LZ4 literal run
-preserves relative match offsets. The existing store encoder then decodes the
-complete frame and accepts it only when it saves space under the selected
-policy. Both mirrored records use the same verified encoding. Raw mode and
-CPU operation without the optional codec retain their existing behavior.
+The store encoder decodes the supplied block against the exact staged extent
+body using the CPU. After byte-for-byte validation, it extends the first LZ4
+literal run with the authoritative inode and block metadata. Both ends of each
+match shift by the same number of bytes, preserving the relative offsets.
+A block that requires the metadata as its initial match history fails
+standalone validation and falls back to CPU encoding. The splice reuses the
+validated suffix, saving a second pre-commit decode. The paged store still
+independently reads both mirrored records back before it publishes the new
+transaction root.
 [Upstream LZ4 block specification](https://github.com/lz4/lz4/blob/v1.11.1/doc/lz4_Block_format.md)
 
 The deferred Windows service uses the active file-info policy for input size,
@@ -25,6 +27,23 @@ their existing terminal-selection and retirement rules. The explicit callback
 fixture covers indexed writes above the old offset and input-size limits,
 verified advice, forced CPU publication and independent reopen.
 [Source-bound results](evidence/indexed-lz4-deferred-2026-11-18.json)
+
+## Physical-host acceptance and write comparisons
+
+Seven alternating microbenchmark pairs reduced median paired acceptance time
+by 7.0% for the same 64 KiB body and 24-byte prefix. Both paths produced the
+same 8,487-byte LZ4 block and recovered the exact input. This measurement
+covers only candidate acceptance.
+
+The 1 MiB indexed write fixture ran three alternating pairs each on synthetic
+and source-code inputs. It executed the installed AMD worker, then reopened
+the completed image with the CPU reader. Synthetic inputs used 2 MiB on both
+paths and verified all 32 mirrored records in each AMD sample. The source-code
+images occupied 3 MiB on CPU and 3.125 MiB with AMD advice. Across both inputs,
+CPU writes took 1.98–4.21 ms and AMD writes took 1.00–1.65 s. One earlier AMD
+attempt refused stale completion telemetry, retired its worker and completed
+with byte-exact CPU recovery. CPU remains the preferred write path for these
+workloads. [Physical-host evidence](evidence/native-lz4-advice-acceptance-2026-11-19.json)
 
 ## Original source contract
 

@@ -110,10 +110,11 @@ struct StoreMutation {
   std::uint64_t id=0;
   bool erase=false;
   std::vector<std::byte> bytes;
-  // Optional complete independent LZ4 block; advisory, never trusted by its tag.
-  // Borrowed as part of this immutable mutation. Invalid/inferior input selects
-  // ordinary CPU encoding before any I/O. No worker is launched here.
+  // Optional independent LZ4 block. A retained prefix is emitted as literals
+  // after the block has been decoded against the exact suffix of bytes.
+  // Invalid advice falls back to ordinary CPU encoding before any I/O.
   std::vector<std::byte> lz4_candidate{};
+  std::uint32_t lz4_literal_prefix_bytes=0;
 };
 struct StoreCommitInfo {
   std::uint64_t generation=0,physical_end=0,logical_bytes=0;

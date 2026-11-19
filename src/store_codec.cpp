@@ -224,14 +224,17 @@ std::vector<std::byte> StoreCodecDecoder::decode(std::uint32_t codec,
   return output;
 }
 EncodedStoreObject StoreCodecEncoder::encode(Bytes input) {
-  return encode_impl(std::move(input),true);
-}
-EncodedStoreObject StoreCodecEncoder::encode_impl(Bytes input,bool cpu_fast) {
-  if(input.size()>kStoreMaxObjectBytes) fail("object exceeds codec limit");
-  EncodedStoreObject result;
-  if(impl_->options.mode==StoreCompressionMode::raw || input.empty()) {
-    result.payload=std::move(input);return result;
+  auto result=encode_compressed(input,true);
+  if(result.codec==kStoreRaw) {
+    result.payload=std::move(input);
+    return result;
   }
+  return verify_encoding(std::move(result),input);
+}
+EncodedStoreObject StoreCodecEncoder::encode_compressed(std::span<const std::byte> input,bool cpu_fast) {
+  if(input.size()>kStoreMaxObjectBytes)fail("object exceeds codec limit");
+  EncodedStoreObject result;
+  if(impl_->options.mode==StoreCompressionMode::raw || input.empty())return result;
   if(std::all_of(input.begin(),input.end(),[](auto b){return b==std::byte{0};})) result.codec=kStoreZero;
   else if(const auto period=pattern_period(input)) {
     result.codec=kStorePattern;
@@ -280,11 +283,16 @@ EncodedStoreObject StoreCodecEncoder::encode_impl(Bytes input,bool cpu_fast) {
 #else
   (void)cpu_fast;
 #endif
-  if(result.codec==kStoreRaw) {result.payload=std::move(input);return result;}
-  // All compressed candidates remain private until independent CPU readback
-  // agrees byte-for-byte. Codec errors cannot poison or mutate backing storage.
+  return result;
+}
+EncodedStoreObject StoreCodecEncoder::verify_encoding(EncodedStoreObject result,std::span<const std::byte> input) {
+  if(result.codec==kStoreRaw) {
+    result.payload.assign(input.begin(),input.end());
+    return result;
+  }
+  // Compressed candidates remain private until independent CPU readback.
   const auto decoded=impl_->verifier.decode(result.codec,result.payload,static_cast<std::uint32_t>(input.size()));
-  if(decoded!=input) fail("compression round-trip mismatch");
+  if(!std::ranges::equal(decoded,input))fail("compression round-trip mismatch");
   result.decoded_digest=record_digest(input);
   return result;
 }
@@ -326,22 +334,37 @@ Bytes prepend_lz4_literals(std::span<const std::byte> prefix,std::span<const std
   result.insert(result.end(),remaining.begin(),remaining.end());
   return result;
 }
-EncodedStoreObject StoreCodecEncoder::encode_with_lz4(Bytes input,std::span<const std::byte> candidate) {
+EncodedStoreObject StoreCodecEncoder::encode_with_lz4(std::span<const std::byte> input,
+    std::span<const std::byte> candidate,std::uint32_t literal_prefix_bytes) {
   if(input.size()>kStoreMaxObjectBytes)fail("object exceeds codec limit");
-  if(impl_->options.mode==StoreCompressionMode::raw || input.empty() ||
-      candidate.empty() || candidate.size()>=input.size() || !store_lz4_available())
-    return encode(std::move(input));
+  const auto cpu=[&]{return verify_encoding(encode_compressed(input,true),input);};
+  if(impl_->options.mode==StoreCompressionMode::raw || candidate.empty() ||
+      literal_prefix_bytes>=input.size() || candidate.size()>=input.size()-literal_prefix_bytes ||
+      !store_lz4_available())
+    return cpu();
+
+  // Validate independently of the prefix. An LZ4 block cannot use newly
+  // prepended metadata as a dictionary to pass validation.
+  const auto suffix=input.subspan(literal_prefix_bytes);
   Bytes owned;
-  bool valid=false;
   try {
-    valid=impl_->verifier.decode(kStoreLz4,candidate,static_cast<std::uint32_t>(input.size()))==input;
-    if(valid)owned.assign(candidate.begin(),candidate.end()); // Retain no borrowed worker bytes.
-  }catch(const std::exception&){valid=false;}
-  if(!valid)return encode(std::move(input));
-  // A valid fast candidate avoids running the CPU compressor a second time.
-  // The automatic policy still compares its ordinary CPU baseline by size.
-  auto baseline=encode_impl(Bytes(input),false);
-  if(owned.size()>=baseline.payload.size())return baseline;
+    const auto decoded=impl_->verifier.decode(kStoreLz4,candidate,static_cast<std::uint32_t>(suffix.size()));
+    if(std::ranges::equal(decoded,suffix)) {
+      if(literal_prefix_bytes)
+        owned=prepend_lz4_literals(input.first(literal_prefix_bytes),candidate,suffix.size());
+      else
+        owned.assign(candidate.begin(),candidate.end());
+    }
+  }catch(const std::exception&) {
+    owned.clear();
+  }
+  if(owned.empty())return cpu();
+
+  // Size the CPU alternative against the immutable input. Validate only
+  // the selected CPU representation, and retain owned bytes for publication.
+  auto baseline=encode_compressed(input,false);
+  const auto best=baseline.codec==kStoreRaw?input.size():baseline.payload.size();
+  if(owned.size()>=best)return verify_encoding(std::move(baseline),input);
   return {kStoreLz4,std::move(owned),record_digest(input),false,0};
 }
 EncodedStoreObject StoreCodecEncoder::encode_with_matches(Bytes input,std::span<const StoreMatchProposal> matches) {

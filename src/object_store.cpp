@@ -725,7 +725,7 @@ StoreCommitInfo ObjectStoreWriter::commit_impl(std::span<const StoreMutation> ch
   std::uint64_t input_bytes=0,candidate_bytes=0;
   for(std::size_t i=0;i<changes.size();++i) {
     const auto& m=changes[i];
-    if(!m.id || m.bytes.size()>kStoreMaxObjectBytes || m.lz4_candidate.size()>kStoreMaxObjectBytes || (m.erase && (!m.bytes.empty() || !m.lz4_candidate.empty()))) fail("invalid mutation");
+    if(!m.id || m.bytes.size()>kStoreMaxObjectBytes || m.lz4_candidate.size()>kStoreMaxObjectBytes || (m.erase && (!m.bytes.empty() || !m.lz4_candidate.empty() || m.lz4_literal_prefix_bytes))) fail("invalid mutation");
     for(std::size_t j=0;j<i;++j) if(changes[j].id==m.id) fail("duplicate mutation ID");
     input_bytes+=m.bytes.size();candidate_bytes+=m.lz4_candidate.size();
     if(input_bytes>kStoreMaxTransactionBytes || candidate_bytes>kStoreMaxTransactionBytes)
@@ -775,7 +775,7 @@ StoreCommitInfo ObjectStoreWriter::commit_impl(std::span<const StoreMutation> ch
       if(it==next.entries.end() || it->id!=m.id) fail("cannot erase missing object");
       next.entries.erase(it);continue;
     }
-    auto encoded=impl_->encoder.encode_with_lz4(m.bytes,m.lz4_candidate);
+    auto encoded=impl_->encoder.encode_with_lz4(m.bytes,m.lz4_candidate,m.lz4_literal_prefix_bytes);
     Prepared record{cursor,{},std::move(encoded.payload)};
     auto& h=record.header;
     copy_field(h,0,kDataMagic);put32(h,8,1);put32(h,12,encoded.codec);put64(h,16,m.id);put64(h,24,next.generation);

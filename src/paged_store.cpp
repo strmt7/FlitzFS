@@ -459,7 +459,7 @@ void pad_index(StoreByteIo& image,std::uint32_t unit,std::uint64_t end,std::uint
 struct PreparedObject {Entry entry;RecordHeader header{};Bytes payload;};
 PreparedObject prepare_object(const State& state,detail::StoreCodecEncoder& encoder,
     const StoreMutation& mutation,PayloadAllocation& allocation,std::uint64_t& cursor) {
-  auto encoded=encoder.encode_with_lz4(mutation.bytes,mutation.lz4_candidate);
+  auto encoded=encoder.encode_with_lz4(mutation.bytes,mutation.lz4_candidate,mutation.lz4_literal_prefix_bytes);
   PreparedObject record;
   auto& e=record.entry;
   e={mutation.id,state.checkpoint,cursor,static_cast<std::uint32_t>(mutation.bytes.size()),
@@ -1047,7 +1047,7 @@ PagedObjectStoreWriter PagedObjectStoreWriter::create_impl(std::shared_ptr<Store
   std::vector<Entry> entries;entries.reserve(initial.size());
   for(const auto& mutation:initial) {
     if(mutation.id<=previous || mutation.erase || mutation.bytes.size()>kStoreMaxObjectBytes ||
-        !mutation.lz4_candidate.empty())fail("initial transaction fields");
+        !mutation.lz4_candidate.empty() || mutation.lz4_literal_prefix_bytes)fail("initial transaction fields");
     previous=mutation.id;
     input=add(input,mutation.bytes.size());
     if(input>kStoreMaxTransactionBytes)capacity("initial transaction input budget");
@@ -1170,7 +1170,7 @@ PagedStoreWriteResult PagedObjectStoreWriter::commit_impl(
   std::vector<const StoreMutation*> sorted;sorted.reserve(mutations.size());std::uint64_t input=0;
   for(const auto& m:mutations) {
     if(!m.id || m.bytes.size()>kStoreMaxObjectBytes || m.lz4_candidate.size()>kStoreMaxObjectBytes ||
-        (m.erase && (!m.bytes.empty() || !m.lz4_candidate.empty())))fail("mutation fields");
+        (m.erase && (!m.bytes.empty() || !m.lz4_candidate.empty() || m.lz4_literal_prefix_bytes)))fail("mutation fields");
     input=add(input,m.bytes.size());if(input>maximum_input)capacity("transaction input budget");sorted.push_back(&m);
   }
   std::sort(sorted.begin(),sorted.end(),[](auto a,auto b){return a->id<b->id;});

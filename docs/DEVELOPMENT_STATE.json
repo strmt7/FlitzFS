@@ -1,6 +1,6 @@
 {
   "schema": 2,
-  "updated": "2026-11-18",
+  "updated": "2026-11-19",
   "goal_status": "active",
   "product": "Windows 11 AMD64 filesystem/helper/driver integration; AMD acceleration with independent CPU recovery",
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
@@ -11,12 +11,12 @@
     "note": "Architectural review baseline. Layer and runtime evidence have separate source bindings."
   },
   "current_qualification": {
-    "source_base": "a513e0dc9ae35ed0b9c27e52da2df0d4d40bbb02",
-    "changed_source_binding": "docs/evidence/amd-route-2026-11-17.json",
-    "selected_ctest_passed": 8,
-    "scope": "Windows x64 raw build, CPU recovery and retirement tests, installed runtime fingerprint and supervised AMD identity acquisition.",
+    "source_base": "d324a4f8819ade3d21f3c1255034238742c1840f",
+    "changed_source_binding": "docs/evidence/native-lz4-advice-acceptance-2026-11-19.json",
+    "selected_ctest_passed": 14,
+    "scope": "Windows x64 codec and WinFsp SDK tests, with separate raw and AddressSanitizer lanes. Single CPU validation of standalone LZ4 advice with retained mirrored readback.",
     "compatible_system_runtime_observed": true,
-    "hardware_observation": "Prior exact d384b6c fixture compressed 128 KiB on the detected adapter with independent CPU readback.",
+    "hardware_observation": "Three alternating 1 MiB comparisons per workload executed AMD and independently reopened the fixture on CPU. CPU won for both inputs. A stale completion observation selected CPU and preserved the written bytes.",
     "automatic_gpu_routing": false,
     "gpu_benefit_qualified": false,
     "local_mount": false,
