@@ -186,7 +186,8 @@ void NativeAnchorSearchController::start(std::span<const NativeSharedBaseSearchW
     auto request=builder.finish();
     std::vector<NativeSharedBaseSearchWindow> retained(windows.begin(),windows.end());
     const auto begun=GetTickCount64();
-    const auto command=options.output==anchor_match::BatchOutput::sparse_xor?L"--driver-anchor-sparse-xor-batch":
+    const auto command=options.output==anchor_match::BatchOutput::collective?L"--driver-anchor-collective-batch":
+        options.output==anchor_match::BatchOutput::sparse_xor?L"--driver-anchor-sparse-xor-batch":
         options.output==anchor_match::BatchOutput::modular_delta?L"--driver-anchor-modular-delta-batch":
         options.output==anchor_match::BatchOutput::wide_packed_xor?L"--driver-anchor-xor-wide-batch":
         options.output==anchor_match::BatchOutput::packed_xor?L"--driver-anchor-xor-batch":L"--driver-anchor-transfer-batch";
@@ -257,7 +258,8 @@ void NativeAnchorSearchController::observe(std::uint64_t activity,std::uint64_t 
           self.packed_checks.reserve(self.windows.size());
           const auto method=self.options.output==anchor_match::BatchOutput::modular_delta?
               NativePackedGroupMethod::modular_delta:self.options.output==anchor_match::BatchOutput::sparse_xor?
-              NativePackedGroupMethod::sparse_xor:NativePackedGroupMethod::xor_planes;
+              NativePackedGroupMethod::sparse_xor:self.options.output==anchor_match::BatchOutput::collective?
+              NativePackedGroupMethod::collective:NativePackedGroupMethod::xor_planes;
           for(std::size_t i=0;i<self.windows.size();++i) {
             auto& checks=self.packed_checks.emplace_back(self.packed_advice[i].size(),NativePackedGroupCheck::pending);
             self.replies.push_back({self.windows[i],{},self.packed_advice[i],checks,method});

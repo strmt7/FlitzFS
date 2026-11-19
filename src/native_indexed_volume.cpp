@@ -1239,6 +1239,16 @@ bool IndexedSharedBasePreparation::advance(std::span<const NativeSharedBaseCopyR
     }
   }
   (void)check_group_storage(source_);
+  if(body_method==NativePackedGroupMethod::collective && !packed_body.empty()) {
+    if(const auto body=parse_collective_group_body(packed_body)) {
+      body_method=body->method;
+      packed_body=body->bytes;
+    } else {
+      if(packed_check)*packed_check=NativePackedGroupCheck::invalid;
+      packed_check=nullptr;
+      packed_body={};
+    }
+  }
   if(!reusable_anchor_ || member.previous_base!=reusable_anchor_) {
     // The private placeholder binds no stored dependency. The final anchor
     // identity and generation come from the live transaction at finish.

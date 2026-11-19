@@ -5,6 +5,7 @@
 #include "flitzfs/paged_store.hpp"
 #include "flitzfs/native_volume_file.hpp"
 #include "native_fs_fixture.hpp"
+#include "../src/native_group_codec.hpp"
 #include "../src/native_maintenance_source.hpp"
 #include "../src/record_digest.hpp"
 #include "volume_range_fixture.hpp"
@@ -426,6 +427,7 @@ std::optional<IndexedBatchPattern> multiwindow_pattern(std::string_view mode) {
   if(mode=="xor-tile-reference")return IndexedBatchPattern::xor_tile_reference;
   if(mode=="sparse-xor" || mode=="sparse-xor-device")return IndexedBatchPattern::sparse_xor;
   if(mode=="sparse-xor-all-planes" || mode=="sparse-xor-all-planes-device")return IndexedBatchPattern::sparse_xor_all_planes;
+  if(mode=="collective" || mode=="collective-sparse" || mode=="collective-delta")return IndexedBatchPattern::collective;
   return {};
 }
 
@@ -436,7 +438,9 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   const bool tile_reference=pattern==IndexedBatchPattern::xor_tile_reference;
   const bool all_planes=pattern==IndexedBatchPattern::sparse_xor_all_planes;
   const bool sparse_xor=pattern==IndexedBatchPattern::sparse_xor || all_planes;
+  const bool collective=pattern==IndexedBatchPattern::collective;
   const bool sparse_device=options && options->output==anchor_match::BatchOutput::sparse_xor;
+  const bool collective_device=options && options->output==anchor_match::BatchOutput::collective;
   const bool dense_overflow=options && all_planes && !sparse_device;
   const bool alternate_reference=pattern==IndexedBatchPattern::xor_reference || tile_reference;
   const bool modular=shifted_bias || pattern==IndexedBatchPattern::modular_delta;
@@ -485,7 +489,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   NativeGroupMaintenance maintenance(*session,policy);
   std::unique_ptr<NativeAnchorSearchController> anchor;
   if(options)anchor=std::make_unique<NativeAnchorSearchController>(std::move(*options));
-  if(anchor && bank.empty() && !shifted_bias && !alternate_reference && !sparse_xor) {
+  if(anchor && bank.empty() && !shifted_bias && !alternate_reference && !sparse_xor && !collective) {
     const auto now=GetTickCount64();
     require(!anchor->stage_grant(now,members) && anchor->stage_grant(now,members+families+1)==members+families,
         "Wide route used a legacy cap or ignored its funded range");
@@ -493,6 +497,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   NativeMaintenanceProgress progress;
   std::uint64_t sequence=0,worker_ns=0;
   std::uint64_t packed_payload_bytes=0,sampled_bias_members=0;
+  std::size_t sparse_bodies=0,delta_bodies=0;
   unsigned packed_widths=0;
   for(unsigned i=0;i<5200 && maintenance.pending();++i) {
     MEMORYSTATUSEX host{};host.dwLength=sizeof(host);
@@ -528,13 +533,22 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
       return !anchor->waiting();
     },8000,"Multiwindow AMD worker did not retire");
     worker_ns+=elapsed_ns(started);
-    if(modular || alternate_reference || sparse_xor)for(const auto& reply:anchor->replies()) {
+    if(modular || alternate_reference || sparse_xor || collective)for(const auto& reply:anchor->replies()) {
       require(reply.packed_bodies.size()==reply.window.members().size(),"Unbound packed reply");
       for(std::size_t member=0;member<reply.packed_bodies.size();++member) {
-        const auto& body=reply.packed_bodies[member];
+        auto body=std::span<const std::byte>(reply.packed_bodies[member]);
         if(body.empty())continue;
         packed_payload_bytes+=body.size();
-        if(modular) {
+        auto method=reply.body_method;
+        if(collective_device) {
+          const auto selected=detail::parse_collective_group_body(body);
+          require(selected.has_value(),"Expected typed collective device advice");
+          method=selected->method;
+          body=selected->bytes;
+        }
+        if(method==NativePackedGroupMethod::sparse_xor)++sparse_bodies;
+        if(method==NativePackedGroupMethod::modular_delta) {
+          ++delta_bodies;
           packed_widths|=std::to_integer<unsigned>(body.front());
           if(sampled_bias_reply(body,reply.window.base(),reply.window.members()[member]))++sampled_bias_members;
         }
@@ -556,7 +570,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   } else if(anchor) {
     require(stats.verified && progress.advised_members_published,"Large batch lost verified advice");
   }
-  if(anchor && bank.empty() && !modular && !dense_overflow)
+  if(anchor && bank.empty() && !modular && !dense_overflow && !collective)
     require(stats.submitted==1 && stats.verified_groups==families &&
         (tile_reference || sparse_xor || progress.advised_members_published==members),
         "Related AMD work did not fill one verified multiwindow batch");
@@ -564,6 +578,9 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
     require(progress.published_groups==families,"Packed XOR did not group the complete cohort");
   if(anchor && modular && !shifted_bias)
     require(packed_widths==15 && packed_payload_bytes,"AMD modular batch did not cover all word widths");
+  if(collective_device)
+    require(stats.submitted==1 && sparse_bodies && delta_bodies && stats.verified_groups==families,
+        "The shared AMD exchange did not verify both codec choices");
   const auto maintenance_ns=elapsed_ns(maintenance_start);
 
   const auto verify_start=std::chrono::steady_clock::now();
@@ -581,8 +598,9 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   require(packed->extent()<baseline_bytes,"Multiwindow maintenance did not reduce complete compacted size");
   const auto root=PagedObjectStoreSnapshot::open(packed,{kStoreMaxPhysicalBytes}).read(1);
   const auto capability=std::to_integer<unsigned>(root[8]);
-  if(sparse_xor)require(capability==7,"Sparse XOR did not survive compaction");
-  const auto cohort=all_planes?(bank.empty()?"sparse-xor-all-planes-synthetic":"sparse-xor-all-planes-public"):
+  if(sparse_xor || collective)require(capability==7,"Sparse XOR did not survive compaction");
+  const auto cohort=collective?(bank.empty()?"collective-synthetic":"collective-public"):
+      all_planes?(bank.empty()?"sparse-xor-all-planes-synthetic":"sparse-xor-all-planes-public"):
       sparse_xor?(bank.empty()?"sparse-xor-synthetic":"sparse-xor-public"):
       tile_reference?(bank.empty()?"xor-tile-reference-synthetic":"xor-tile-reference-public"):
       alternate_reference?(bank.empty()?"xor-reference-synthetic":"xor-reference-public"):
@@ -598,6 +616,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
       <<" input_compacted_bytes="<<baseline_bytes<<" grouped_compacted_bytes="<<packed->extent()
       <<" packed_widths="<<packed_widths<<" packed_payload_bytes="<<packed_payload_bytes
       <<" sampled_bias_members="<<sampled_bias_members
+      <<" sparse_bodies="<<sparse_bodies<<" delta_bodies="<<delta_bodies
       <<" retired=true independent_cpu_readback=true modeled_idle_time=true input_blake3=";
   constexpr char digits[]="0123456789abcdef";
   for(const auto byte:detail::record_digest(file_digests)) {
@@ -627,12 +646,13 @@ int live_anchor_owner(int argc,char** argv) {
   if(multiwindow) {
     constexpr auto families=anchor_search_fixture::indexed_batch_families;
     const bool small_batch=anchor_search_fixture::small_indexed_batch(*multiwindow);
-    const bool modular=*multiwindow==IndexedBatchPattern::modular_delta || *multiwindow==IndexedBatchPattern::shifted_bias;
-    const bool sparse=mode=="sparse-xor-device" || mode=="sparse-xor-all-planes-device";
+    const bool modular=*multiwindow==IndexedBatchPattern::modular_delta || *multiwindow==IndexedBatchPattern::shifted_bias ||
+        mode=="collective-delta";
+    const bool sparse=mode=="sparse-xor-device" || mode=="sparse-xor-all-planes-device" || mode=="collective-sparse";
     const auto members=small_batch?families*(anchor_search_fixture::indexed_small_extents_per_family-1):
         anchor_search_fixture::indexed_batch_members;
     const auto minimum=argc==8 || small_batch?2U:static_cast<std::uint32_t>(members);
-    const auto output=sparse?anchor_match::BatchOutput::sparse_xor:
+    const auto output=mode=="collective"?anchor_match::BatchOutput::collective:sparse?anchor_match::BatchOutput::sparse_xor:
         modular?anchor_match::BatchOutput::modular_delta:anchor_match::BatchOutput::wide_packed_xor;
     return live_multiwindow_anchor(NativeAnchorSearchOptions{*binding.route,profile,minimum,
         static_cast<std::uint32_t>(members+families),10000,

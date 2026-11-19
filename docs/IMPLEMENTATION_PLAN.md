@@ -833,6 +833,20 @@ needs more useful search per stream and complete-volume comparisons with
 fresh pressure, cancellation and retirement evidence.
 [Sparse device readback evidence](evidence/amd-sparse-device-readback-2026-11-19.json)
 
+The mixed AMD dispatch compares sparse XOR and modular delta after a
+single upload for each admitted window. In 24 matched physical-host
+runs, the mixed worker supplied 100 used candidates per batch, including
+60 sparse and 40 modular members. The two single-codec workers supplied
+60 and 40 used candidates respectively. The mixed reply occupied
+500,884 bytes, compared with 833,695 to 1,423,691 for sparse-only and
+3,887,888 to 3,888,956 for modular-only. All routes produced a
+1,900,544-byte compacted image from 13,975,552 bytes and reopened all 15
+files byte-for-byte. Median complete time was 2.45 to 2.53 seconds for
+mixed AMD and about 0.26 seconds for CPU. Automatic GPU preference needs
+whole-workload evidence with enough alternative reference and codec
+search to justify startup and verification costs.
+[Mixed-codec measurements](evidence/amd-mixed-codec-selection-2026-11-19.json)
+
 The indexed owner now fills a finite worker exchange across several scan
 windows under live host and exact channel admission. In the related-data
 fixture, one real AMD exchange supplied 310 verified candidates for five

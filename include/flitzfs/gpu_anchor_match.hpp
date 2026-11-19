@@ -59,10 +59,23 @@ struct ModularDeltaScratch {
   u8 widths[delta_modes][xor_tiles];
   u32 sizes[delta_modes],offsets[xor_tiles],mode;
 };
-enum class BatchOutput : u32 {anchors,packed_xor,wide_packed_xor,modular_delta,sparse_xor};
+enum class CollectiveBody : u32 {sparse_xor=1,modular_delta=2};
+inline constexpr u32 collective_body_tag_bytes=sizeof(u32);
+static_assert((sparse_xor_arena_directory_words(1)+
+    sparse_xor_arena_words(collective_body_tag_bytes+delta_max_payload_bytes))*sizeof(u32)<=xor_wide_slot_bytes);
+struct CollectivePackingScratch {
+  ModularDeltaScratch delta;
+  SparseXorScratch sparse;
+  u32 body_offset,admitted;
+};
+enum class BatchOutput : u32 {anchors,packed_xor,wide_packed_xor,modular_delta,sparse_xor,collective};
+
+constexpr bool arena_output(BatchOutput output) noexcept {
+  return output==BatchOutput::sparse_xor || output==BatchOutput::collective;
+}
 
 constexpr bool compact_output(BatchOutput output) noexcept {
-  return output==BatchOutput::modular_delta || output==BatchOutput::sparse_xor;
+  return output==BatchOutput::modular_delta || arena_output(output);
 }
 
 constexpr bool wide_output(BatchOutput output) noexcept {

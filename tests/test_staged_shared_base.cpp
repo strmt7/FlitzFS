@@ -102,6 +102,49 @@ void staged_packed_advice(bool modular) {
         after.read(path,0,kNativeExtentBytes)==originals[i],"packed advice changed acknowledged bytes");
   }
 }
+void staged_collective_advice() {
+  constexpr unsigned count=5;
+  auto ram=std::make_shared<Ram>();ram->failure_unit=4096;
+  auto writer=fresh(ram,true);
+  const auto base=family(0);
+  std::array<Bytes,count> originals;
+  for(unsigned i=0;i<count;++i) {
+    originals[i]=i%2?base:calibrated_extent(base,i);
+    if(i%2)anchor_search_fixture::apply_all_xor_planes(originals[i],i);
+    const auto path="f"+std::to_string(i);
+    writer.apply(std::array{file_create(path),file_write(path,0,originals[i])});
+  }
+  const auto keys=selections(writer.snapshot(),count);
+  auto work=writer.prepare_shared_base(keys.front(),keys);
+  writer.advance_shared_base(work);
+  for(unsigned i=1;i<count;++i)require(writer.stage_shared_base_search(work,count-1),"Collective advice staging");
+  const auto window=work.search_window();
+  std::array<Bytes,count-1> bodies;
+  constexpr auto id=detail::kNativeGroupBaseBit+1;
+  for(unsigned i=0;i<bodies.size();++i) {
+    const auto& member=window.members()[i];
+    const bool sparse=i%2==0;
+    const auto frame=sparse?detail::encode_native_group_sparse_xor(member,base,id,1,kNativeExtentBytes):
+        detail::encode_native_group_delta(member,base,id,1,kNativeExtentBytes);
+    require(frame.has_value(),"Collective staged candidate");
+    const auto payload=sparse?Bytes(frame->begin()+128,frame->end()):anchor_search_fixture::modular_advice_payload(*frame);
+    bodies[i]=anchor_search_fixture::collective_advice_payload(
+        sparse?anchor_match::CollectiveBody::sparse_xor:anchor_match::CollectiveBody::modular_delta,payload);
+  }
+  bodies[2][1]=std::byte{1};
+  bodies[3]=bodies[1];
+  std::array<NativePackedGroupCheck,count-1> outcomes{};
+  const NativeSharedBaseSearchReply reply{window,{},bodies,outcomes,NativePackedGroupMethod::collective};
+  while(!writer.advance_shared_base(work,{},&reply)) {}
+  using Check=NativePackedGroupCheck;
+  require(outcomes==std::array{Check::verified,Check::verified,Check::invalid,Check::invalid} &&
+      work.progress().selected_advice_members==2,"Collective advice did not verify both codecs and fall back");
+  require(writer.finish_shared_base(work).applied,"Collective advice did not publish");
+  const auto after=writer.snapshot();
+  after.verify_all();
+  for(unsigned i=0;i<count;++i)
+    require(after.read("f"+std::to_string(i),0,kNativeExtentBytes)==originals[i],"Collective advice changed bytes");
+}
 void staged_search_binding() {
   constexpr unsigned count=5,base_index=2;
   auto ram=std::make_shared<Ram>();ram->failure_unit=4096;
@@ -345,6 +388,7 @@ int main(int argc,char** argv){try {
     staged_search_binding();
     staged_packed_advice(false);
     staged_packed_advice(true);
+    staged_collective_advice();
     std::cout<<"PASS: "<<checks<<" staged search window checks\n";
     return 0;
   }

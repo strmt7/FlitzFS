@@ -126,16 +126,16 @@ AnchorMatchBatchRequest decode_anchor_match_batch_request(SharedWorkerRequest sn
     anchor_match::BatchOutput=anchor_match::BatchOutput::anchors);
 std::vector<std::byte> encode_anchor_match_batch_reply(const AnchorMatchBatchRequest&,
     std::span<const std::vector<anchor_match::u32>> records,std::size_t reserve_tail_bytes=0);
-struct SparseXorArenaBody {
+struct AnchorArenaBody {
   anchor_match::u32 offset_words,size_bytes,member;
 };
 // Validate the complete layout before using the device's count for readback.
-std::vector<SparseXorArenaBody> check_sparse_xor_arena_directory(
-    std::span<const anchor_match::u32> directory,anchor_match::u32 arena_capacity_words);
+std::vector<AnchorArenaBody> check_anchor_arena_directory(
+    std::span<const anchor_match::u32> directory,anchor_match::u32 arena_capacity_words,anchor_match::BatchOutput);
 // Consume only slices from the checked directory, preserving member order.
-void take_sparse_xor_arena_bodies(std::span<const SparseXorArenaBody>,
+void take_anchor_arena_bodies(std::span<const AnchorArenaBody>,
     std::span<const std::byte> arena,std::span<std::vector<std::byte>> members);
-std::vector<std::byte> encode_anchor_sparse_batch_reply(const AnchorMatchBatchRequest&,
+std::vector<std::byte> encode_anchor_arena_batch_reply(const AnchorMatchBatchRequest&,
     std::span<const AnchorPackedAdvice>,std::size_t reserve_tail_bytes=0);
 std::vector<AnchorMatchAdvice> accept_anchor_match_batch_reply(
     std::span<const std::byte> frame,const AnchorMatchBatchRequest&);

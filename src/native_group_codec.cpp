@@ -620,6 +620,24 @@ NativeGroupDeltaSignatures native_group_delta_signatures(std::span<const std::by
       delta_signature<std::uint32_t>(bytes),delta_signature<std::uint64_t>(bytes)};
 }
 
+std::optional<CollectiveGroupBody> parse_collective_group_body(std::span<const std::byte> frame) noexcept {
+  using namespace anchor_match;
+  if(frame.size()<=collective_body_tag_bytes)return {};
+  const auto tag=static_cast<CollectiveBody>(get(frame,0,collective_body_tag_bytes));
+  const auto bytes=frame.subspan(collective_body_tag_bytes);
+  switch(tag) {
+    case CollectiveBody::sparse_xor:
+      if(bytes.size()>=sparse_xor_min_body_bytes && bytes.size()<=sparse_xor_max_body_bytes)
+        return CollectiveGroupBody{NativePackedGroupMethod::sparse_xor,bytes};
+      break;
+    case CollectiveBody::modular_delta:
+      if(bytes.size()>=delta_parameters_bytes && bytes.size()<=delta_max_payload_bytes)
+        return CollectiveGroupBody{NativePackedGroupMethod::modular_delta,bytes};
+      break;
+  }
+  return {};
+}
+
 NativeGroupPackedCandidate check_native_group_delta_body(std::span<const std::byte> payload,
     std::span<const std::byte> member,std::span<const std::byte> base,std::uint64_t base_id,
     std::uint64_t generation,std::size_t exclusive_limit) {

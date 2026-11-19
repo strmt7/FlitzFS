@@ -22,7 +22,7 @@ std::vector<anchor_match::u32> run_hip_anchor_match_in_worker(HMODULE runtime,
 std::vector<std::byte> run_hip_anchor_batch_in_worker(HMODULE runtime,
     const anchor_match::KernelApi&,int ordinal,std::array<std::byte,8> luid,
     std::uint32_t node_mask,const detail::AnchorMatchBatchRequest&,HipPhaseRecorder&,
-    const anchor_match::WindowSearchApi* window,const anchor_match::SparseXorArenaApi* arena,
+    const anchor_match::WindowSearchApi* window,const anchor_match::AnchorArenaApi* arena,
     std::uint32_t transfer_grant,std::uint32_t dispatches_per_wait,AnchorSetupTiming*,std::size_t reserve_tail_bytes);
 // The caller owns the verified runtime and kernel module for the whole call.
 // This is the compute stage of a supervised worker, with no module discovery.

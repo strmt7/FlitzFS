@@ -553,9 +553,9 @@ void sparse_xor_arena() {
   auto payload=std::vector<std::byte>(directory[0]*sizeof(match::u32),std::byte{255});
   std::ranges::copy(narrow_body,payload.begin());
   std::ranges::copy(wide_body,payload.begin()+narrow_words*sizeof(match::u32));
-  const auto slices=check_sparse_xor_arena_directory(directory,directory[0]);
+  const auto slices=check_anchor_arena_directory(directory,directory[0],output);
   std::array<AnchorPackedAdvice,1> bodies{AnchorPackedAdvice(3)};
-  take_sparse_xor_arena_bodies(slices,payload,bodies[0]);
+  take_anchor_arena_bodies(slices,payload,bodies[0]);
   check(bodies[0][1].empty() && std::ranges::equal(bodies[0][0],wide_body) &&
       std::ranges::equal(bodies[0][2],narrow_body),"Sparse device offsets lost member order or empty bodies");
   constexpr auto words=match::xor_wide_slot_bytes/sizeof(match::u32);
@@ -563,11 +563,11 @@ void sparse_xor_arena() {
   put_xor_test_slot(std::span(slots[0]).first(words),wide_body);
   slots[0][words]=0;
   put_xor_test_slot(std::span(slots[0]).last(words),narrow_body);
-  const auto arena_reply=encode_anchor_sparse_batch_reply(request,bodies,256);
+  const auto arena_reply=encode_anchor_arena_batch_reply(request,bodies,256);
   check(arena_reply==encode_anchor_match_batch_reply(request,slots,256),
       "Sparse arena changed the request-bound IPC format");
-  rejects([&]{(void)check_sparse_xor_arena_directory(directory,directory[0]-1);});
-  rejects([&]{(void)check_sparse_xor_arena_directory(std::span(directory).first(6),directory[0]);});
+  rejects([&]{(void)check_anchor_arena_directory(directory,directory[0]-1,output);});
+  rejects([&]{(void)check_anchor_arena_directory(std::span(directory).first(6),directory[0],output);});
   const std::array<std::pair<std::size_t,match::u32>,6> invalid_entries{{
       {0,directory[0]+1}, // trailing words
       {1,narrow_words-1}, {1,narrow_words+1}, {2,match::empty}, {3,1}, {5,directory[0]}
@@ -575,15 +575,67 @@ void sparse_xor_arena() {
   for(const auto& [at,value]:invalid_entries) {
     auto invalid=directory;
     invalid[at]=value;
-    rejects([&]{(void)check_sparse_xor_arena_directory(invalid,directory[0]+1);});
+    rejects([&]{(void)check_anchor_arena_directory(invalid,directory[0]+1,output);});
   }
-  rejects([&]{take_sparse_xor_arena_bodies(slices,std::span(payload).first(payload.size()-1),bodies[0]);});
+  rejects([&]{take_anchor_arena_bodies(slices,std::span(payload).first(payload.size()-1),bodies[0]);});
   payload[narrow_body.size()]=std::byte{};
-  rejects([&]{take_sparse_xor_arena_bodies(slices,payload,bodies[0]);});
+  rejects([&]{take_anchor_arena_bodies(slices,payload,bodies[0]);});
   constexpr std::array<match::u32,3> empty{0,0,0};
-  check(check_sparse_xor_arena_directory(empty,1).empty(),"Empty transfer produced a device payload");
+  check(check_anchor_arena_directory(empty,1,output).empty(),"Empty transfer produced a device payload");
   bodies[0].pop_back();
-  rejects([&]{(void)encode_anchor_sparse_batch_reply(request,bodies);});
+  rejects([&]{(void)encode_anchor_arena_batch_reply(request,bodies);});
+}
+
+void collective_reply() {
+  constexpr auto output=match::BatchOutput::collective;
+  constexpr auto id=kNativeGroupBaseBit+1;
+  const auto base=native_fixture::data(match::extent_bytes,5071);
+  auto sparse=base;
+  anchor_search_fixture::apply_all_xor_planes(sparse,1);
+  auto delta=base;
+  for(std::size_t at=0;at<delta.size();at+=4)
+    native_fixture::add_little_endian(std::span(delta).subspan(at,4),0x31ac05d9U);
+  const auto sparse_frame=encode_native_group_sparse_xor(sparse,base,id,1,match::extent_bytes);
+  const auto delta_frame=encode_native_group_delta(delta,base,id,1,match::extent_bytes);
+  check(sparse_frame && delta_frame,"Collective advice fixture bodies");
+  const auto delta_body=anchor_search_fixture::modular_advice_payload(*delta_frame);
+  const std::array<AnchorPackedAdvice,1> bodies{AnchorPackedAdvice{
+      anchor_search_fixture::collective_advice_payload(match::CollectiveBody::sparse_xor,
+          std::span(*sparse_frame).subspan(128)),
+      anchor_search_fixture::collective_advice_payload(match::CollectiveBody::modular_delta,delta_body),{}}};
+
+  constexpr std::array<match::u32,1> counts{3};
+  const auto plan=plan_anchor_match_batch(counts,2,match::device_bytes(2,output),2,output);
+  AnchorMatchBatchBuilder builder(150,plan);
+  auto members=sparse;
+  members.insert(members.end(),delta.begin(),delta.end());
+  members.insert(members.end(),base.begin(),base.end());
+  builder.append(11,base,members);
+  const auto request=builder.finish();
+  const auto received=decode_anchor_match_batch_request(request.snapshot(),plan.request_bytes,plan.reply_bytes,
+      plan.quantum_members,plan.device_bytes,plan.launches,output);
+  rejects([&]{(void)decode_anchor_match_batch_request(request.snapshot(),plan.request_bytes,plan.reply_bytes,
+      plan.quantum_members,plan.device_bytes,plan.launches,match::BatchOutput::sparse_xor);});
+  const auto response=encode_anchor_arena_batch_reply(received,bodies);
+  check(response.size()<plan.reply_bytes,"Collective reply carried full slots");
+  const auto decoded=decode_anchor_packed_batch_reply(response,request);
+  check(decoded.size()==1 && decoded[0]==bodies[0],"Collective reply lost typed advice or member order");
+  const auto checked_sparse=parse_collective_group_body(decoded[0][0]);
+  const auto checked_delta=parse_collective_group_body(decoded[0][1]);
+  check(checked_sparse && checked_delta &&
+      check_native_group_sparse_xor_body(checked_sparse->bytes,sparse,base,id,1,match::extent_bytes).check==
+          NativePackedGroupCheck::verified &&
+      check_native_group_delta_body(checked_delta->bytes,delta,base,id,1,match::extent_bytes).check==
+          NativePackedGroupCheck::verified,"Collective body did not independently decode");
+  constexpr std::size_t first_tag=64+4+64+4;
+  for(const auto byte:{first_tag,first_tag+1}) {
+    auto invalid=response;
+    invalid[byte]=std::byte{255};
+    rejects([&]{(void)decode_anchor_packed_batch_reply(invalid,request);});
+  }
+  auto invalid=bodies;
+  invalid[0][1][0]=static_cast<std::byte>(match::CollectiveBody::sparse_xor);
+  rejects([&]{(void)encode_anchor_arena_batch_reply(received,invalid);});
 }
 }
 
@@ -617,6 +669,7 @@ int main() {
     modular_delta_reply();
     sparse_xor_reply();
     sparse_xor_arena();
+    collective_reply();
     sampled_modular_biases<match::u8>();
     sampled_modular_biases<unsigned short>();
     sampled_modular_biases<match::u32>();

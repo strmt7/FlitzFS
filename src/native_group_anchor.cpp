@@ -1,4 +1,5 @@
 #include "native_group_anchor.hpp"
+#include "native_group_codec.hpp"
 #include "flitzfs/worker_wire.hpp"
 #include "record_digest.hpp"
 #include <algorithm>
@@ -27,6 +28,8 @@ constexpr std::string_view delta_request_magic="FLFSABQ\3";
 constexpr std::string_view delta_batch_magic="FLFSADP\1",delta_group_magic="FLFSADG\1";
 constexpr std::string_view sparse_request_magic="FLFSABQ\4";
 constexpr std::string_view sparse_batch_magic="FLFSASP\1",sparse_group_magic="FLFSASG\1";
+constexpr std::string_view collective_request_magic="FLFSABQ\5";
+constexpr std::string_view collective_batch_magic="FLFSACP\1",collective_group_magic="FLFSACG\1";
 constexpr std::uint32_t group_prefix_bytes=4;
 constexpr auto minimum_group_request=group_prefix_bytes+header_size+2*match::extent_bytes;
 constexpr auto execution=static_cast<std::uint32_t>(WorkerExecution::hip);
@@ -88,17 +91,20 @@ void check_header(std::span<const std::byte> frame,std::string_view magic,std::u
 }
 
 std::string_view batch_request_tag(match::BatchOutput output) noexcept {
+  if(output==match::BatchOutput::collective)return collective_request_magic;
   if(output==match::BatchOutput::modular_delta)return delta_request_magic;
   if(output==match::BatchOutput::sparse_xor)return sparse_request_magic;
   return match::wide_output(output)?wide_xor_request_magic:batch_request_magic;
 }
 std::string_view batch_reply_tag(match::BatchOutput output) noexcept {
+  if(output==match::BatchOutput::collective)return collective_batch_magic;
   if(output==match::BatchOutput::sparse_xor)return sparse_batch_magic;
   if(output==match::BatchOutput::modular_delta)return delta_batch_magic;
   if(output==match::BatchOutput::wide_packed_xor)return wide_xor_batch_magic;
   return output==match::BatchOutput::packed_xor?xor_batch_magic:batch_reply_magic;
 }
 std::string_view group_reply_tag(match::BatchOutput output) noexcept {
+  if(output==match::BatchOutput::collective)return collective_group_magic;
   if(output==match::BatchOutput::sparse_xor)return sparse_group_magic;
   if(output==match::BatchOutput::modular_delta)return delta_group_magic;
   if(output==match::BatchOutput::wide_packed_xor)return wide_xor_group_magic;
@@ -106,11 +112,18 @@ std::string_view group_reply_tag(match::BatchOutput output) noexcept {
 }
 bool valid_packed_payload_size(std::size_t bytes,match::BatchOutput output) noexcept {
   if(!bytes)return true;
+  if(output==match::BatchOutput::collective)
+    return bytes>=match::collective_body_tag_bytes+match::delta_parameters_bytes &&
+        bytes<=match::collective_body_tag_bytes+match::delta_max_payload_bytes;
   if(output==match::BatchOutput::modular_delta)
     return bytes>=match::delta_parameters_bytes && bytes<=match::delta_max_payload_bytes;
   if(output==match::BatchOutput::sparse_xor)
     return bytes>=match::sparse_xor_min_body_bytes && bytes<=match::sparse_xor_max_body_bytes;
   return bytes>=match::xor_tiles+match::xor_plane_bytes && (bytes-match::xor_tiles)%match::xor_plane_bytes==0;
+}
+bool valid_packed_payload(std::span<const std::byte> body,match::BatchOutput output) noexcept {
+  return valid_packed_payload_size(body.size(),output) &&
+      (body.empty() || output!=match::BatchOutput::collective || parse_collective_group_body(body).has_value());
 }
 std::span<const std::byte> packed_slot(std::span<const std::byte> slot,match::BatchOutput output) {
   require(slot.size()==match::reply_member_bytes(output),"packed reply slot extent");
@@ -527,7 +540,8 @@ Bytes encode_anchor_match_batch_reply(const AnchorMatchBatchRequest& request,
   const auto words_per_member=slot_bytes/record_bytes;
   const auto batch_magic=batch_reply_tag(plan.output);
   const auto group_magic=group_reply_tag(plan.output);
-  require(!records.empty() && records.size()==groups.size(),"anchor batch result count");
+  require(plan.output!=match::BatchOutput::collective && !records.empty() && records.size()==groups.size(),
+      "anchor batch result count or layout");
   if(match::compact_output(plan.output)) {
     for(std::size_t i=0;i<records.size();++i)
       require(records[i].size()==plan.groups[i].whole.members*words_per_member,"packed reply record count");
@@ -554,62 +568,62 @@ Bytes encode_anchor_match_batch_reply(const AnchorMatchBatchRequest& request,
   return frame;
 }
 
-std::vector<SparseXorArenaBody> check_sparse_xor_arena_directory(
-    std::span<const match::u32> directory,match::u32 arena_capacity_words) {
+std::vector<AnchorArenaBody> check_anchor_arena_directory(
+    std::span<const match::u32> directory,match::u32 arena_capacity_words,match::BatchOutput output) {
   const auto header=match::sparse_xor_arena_header_words;
   const auto stride=match::sparse_xor_arena_entry_words;
-  require(directory.size()>header && (directory.size()-header)%stride==0 &&
-      (directory.size()-header)/stride<=maximum_members,"sparse XOR device directory extent");
+  require(match::arena_output(output) && directory.size()>header && (directory.size()-header)%stride==0 &&
+      (directory.size()-header)/stride<=maximum_members,"anchor device directory extent");
   const auto used_words=directory.front();
-  require(used_words<=arena_capacity_words,"sparse XOR device arena extent");
-  std::vector<SparseXorArenaBody> bodies;
+  require(used_words<=arena_capacity_words,"anchor device arena extent");
+  std::vector<AnchorArenaBody> bodies;
   bodies.reserve((directory.size()-header)/stride);
   for(auto at=static_cast<std::size_t>(header);at<directory.size();at+=stride) {
     const auto offset=directory[at];
     const auto size=directory[at+1];
-    require(valid_packed_payload_size(size,match::BatchOutput::sparse_xor),"sparse XOR device body size");
+    require(valid_packed_payload_size(size,output),"anchor device body size");
     if(!size) {
-      require(!offset,"sparse XOR empty device body offset");
+      require(!offset,"empty anchor device body offset");
       continue;
     }
     require(offset<=used_words && match::sparse_xor_arena_words(size)<=used_words-offset,
-        "sparse XOR device body range");
+        "anchor device body range");
     bodies.push_back({offset,size,static_cast<match::u32>((at-header)/stride)});
   }
-  std::ranges::sort(bodies,{},&SparseXorArenaBody::offset_words);
+  std::ranges::sort(bodies,{},&AnchorArenaBody::offset_words);
   match::u32 next=0;
   for(const auto& body:bodies) {
-    require(body.offset_words==next,"sparse XOR device arena gap or overlap");
+    require(body.offset_words==next,"anchor device arena gap or overlap");
     next+=match::sparse_xor_arena_words(body.size_bytes);
   }
-  require(next==used_words,"sparse XOR device arena trailing bytes");
+  require(next==used_words,"anchor device arena trailing bytes");
   return bodies;
 }
 
-void take_sparse_xor_arena_bodies(std::span<const SparseXorArenaBody> bodies,
+void take_anchor_arena_bodies(std::span<const AnchorArenaBody> bodies,
     std::span<const std::byte> arena,std::span<Bytes> members) {
   for(const auto& body:bodies) {
     const auto at=std::size_t{body.offset_words}*record_bytes;
     const auto aligned=std::size_t{match::sparse_xor_arena_words(body.size_bytes)}*record_bytes;
     require(body.member<members.size() && at<=arena.size() && aligned<=arena.size()-at,
-        "sparse XOR device readback extent");
+        "anchor device readback extent");
     const auto slot=arena.subspan(at,aligned);
     require(std::ranges::all_of(slot.subspan(body.size_bytes),[](auto byte){return byte==std::byte{255};}),
-        "sparse XOR device arena padding");
+        "anchor device arena padding");
     members[body.member].assign(slot.begin(),slot.begin()+body.size_bytes);
   }
 }
 
-Bytes encode_anchor_sparse_batch_reply(const AnchorMatchBatchRequest& request,
+Bytes encode_anchor_arena_batch_reply(const AnchorMatchBatchRequest& request,
     std::span<const AnchorPackedAdvice> groups,std::size_t reserve_tail_bytes) {
   const auto& plan=request.plan();
-  require(plan.output==match::BatchOutput::sparse_xor && !groups.empty() &&
-      groups.size()==plan.groups.size(),"sparse XOR device reply groups");
+  require(match::arena_output(plan.output) && !groups.empty() &&
+      groups.size()==plan.groups.size(),"anchor device reply groups");
   std::size_t members_bytes=0;
   for(std::size_t i=0;i<groups.size();++i) {
-    require(groups[i].size()==plan.groups[i].whole.members,"sparse XOR device reply members");
+    require(groups[i].size()==plan.groups[i].whole.members,"anchor device reply members");
     for(const auto& body:groups[i]) {
-      require(valid_packed_payload_size(body.size(),plan.output),"sparse XOR device payload size");
+      require(valid_packed_payload(body,plan.output),"anchor device payload");
       members_bytes+=record_bytes+body.size();
     }
   }
@@ -683,6 +697,7 @@ std::vector<AnchorPackedAdvice> decode_anchor_packed_batch_reply(
             at+=record_bytes;
             require(valid_packed_payload_size(size,output) && size<=bytes.size()-at,"invalid compact payload length");
             const auto body=bytes.subspan(at,size);
+            require(valid_packed_payload(body,output),"invalid compact payload codec");
             result.emplace_back(body.begin(),body.end());
             at+=size;
             continue;

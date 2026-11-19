@@ -233,17 +233,19 @@ int worker(int argc, wchar_t** argv) {
   const bool sparse_slot_profile=mode==L"--driver-anchor-sparse-xor-slot-profile";
   const bool sparse_xor_profile=mode==L"--driver-anchor-sparse-xor-setup-profile" || sparse_slot_profile;
   const bool sparse_xor=mode==L"--driver-anchor-sparse-xor-batch" || sparse_xor_profile;
+  const bool collective=mode==L"--driver-anchor-collective-batch";
   const bool wide_xor_setup_profile=mode==L"--driver-anchor-xor-wide-setup-profile";
   const bool wide_xor_profile=mode==L"--driver-anchor-xor-wide-batch-profile" || wide_xor_setup_profile;
   const bool anchor_batch_profile=mode==L"--driver-anchor-transfer-batch-profile" || wide_xor_profile || sparse_xor_profile;
   const bool wide_xor=mode==L"--driver-anchor-xor-wide-batch" || wide_xor_profile;
   const bool packed_xor=wide_xor || mode==L"--driver-anchor-xor-batch";
-  const auto anchor_output=sparse_xor?anchor_match::BatchOutput::sparse_xor:
+  const auto anchor_output=collective?anchor_match::BatchOutput::collective:
+      sparse_xor?anchor_match::BatchOutput::sparse_xor:
       modular_delta?anchor_match::BatchOutput::modular_delta:
       wide_xor?anchor_match::BatchOutput::wide_packed_xor:
       packed_xor?anchor_match::BatchOutput::packed_xor:anchor_match::BatchOutput::anchors;
   const bool anchor_transfer=mode==L"--driver-anchor-transfer-batch" || anchor_batch_profile ||
-      packed_xor || modular_delta || sparse_xor;
+      packed_xor || modular_delta || sparse_xor || collective;
   const bool anchor_batch=mode==L"--driver-anchor-batch" || anchor_transfer;
   const bool anchor_profile=mode==L"--driver-anchor-sweep-profile";
   const bool anchor_sweep=mode==L"--driver-anchor-sweep" || anchor_profile;
@@ -593,13 +595,16 @@ int worker(int argc, wchar_t** argv) {
     require(api && anchor_match::compatible_kernel_api(*api),Exit::unsupported_configuration,
         "incompatible HIP anchor match table",HipWorkerStage::kernel_table);
     const anchor_match::WindowSearchApi* window=nullptr;
-    const anchor_match::SparseXorArenaApi* arena=nullptr;
-    const auto arena_address=sparse_xor && !sparse_slot_profile?
-        GetProcAddress(kernels.get(),"flitzfs_rocm_anchor_sparse_xor_arena_api_v8"):nullptr;
+    const anchor_match::AnchorArenaApi* arena=nullptr;
+    const auto arena_address=(collective || (sparse_xor && !sparse_slot_profile))?
+        GetProcAddress(kernels.get(),collective?"flitzfs_rocm_anchor_collective_arena_api_v9":
+            "flitzfs_rocm_anchor_sparse_xor_arena_api_v8"):nullptr;
+    require(!collective || arena_address,Exit::unsupported_configuration,"HIP collective entry unavailable",
+        HipWorkerStage::kernel_entry);
     if(arena_address) {
-      arena=std::bit_cast<anchor_match::SparseXorArenaApiEntry>(arena_address)();
-      require(arena && anchor_match::compatible_sparse_xor_arena_api(*arena),Exit::unsupported_configuration,
-          "incompatible HIP sparse XOR arena table",HipWorkerStage::kernel_table);
+      arena=std::bit_cast<anchor_match::AnchorArenaApiEntry>(arena_address)();
+      require(arena && anchor_match::compatible_anchor_arena_api(*arena,anchor_output),Exit::unsupported_configuration,
+          "incompatible HIP anchor arena table",HipWorkerStage::kernel_table);
     } else if(anchor_transfer) {
       const auto window_address=GetProcAddress(kernels.get(),
           sparse_xor?"flitzfs_rocm_anchor_sparse_xor_api_v7":modular_delta?"flitzfs_rocm_anchor_modular_delta_api_v6":

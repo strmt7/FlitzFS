@@ -242,7 +242,7 @@ struct AnchorStreamWork {
 
 struct AnchorReadback {
   std::vector<std::vector<anchor_match::u32>> slots;
-  std::vector<detail::AnchorPackedAdvice> sparse;
+  std::vector<detail::AnchorPackedAdvice> compact;
 };
 
 AnchorReadback run_hip_anchor_groups(HMODULE runtime,
@@ -251,11 +251,12 @@ AnchorReadback run_hip_anchor_groups(HMODULE runtime,
     std::span<const detail::AnchorMatchSweepPlan> plans,anchor_match::u32 quantum,HipPhaseRecorder& profile,
     anchor_match::u32 transfer_members,anchor_match::WindowSearchKernel window_search=nullptr,
     std::uint32_t dispatches_per_wait=1,anchor_match::BatchOutput mode=anchor_match::BatchOutput::anchors,
-    AnchorSetupTiming* setup=nullptr,anchor_match::SparseXorArenaKernel arena_search=nullptr) {
+    AnchorSetupTiming* setup=nullptr,anchor_match::AnchorArenaKernel arena_search=nullptr) {
   namespace match=anchor_match;
   const bool packed=mode!=match::BatchOutput::anchors;
   const bool modular=mode==match::BatchOutput::modular_delta;
   const bool sparse=mode==match::BatchOutput::sparse_xor;
+  const bool collective=mode==match::BatchOutput::collective;
   const bool windowed=window_search || arena_search;
   const auto slot_bytes=match::reply_member_bytes(mode);
   const auto words_per_member=slot_bytes/static_cast<match::u32>(sizeof(match::u32));
@@ -263,7 +264,7 @@ AnchorReadback run_hip_anchor_groups(HMODULE runtime,
       !requests.empty() && requests.size()==plans.size() && quantum && quantum<=match::dispatch_member_limit(mode) &&
       transfer_members>=quantum && dispatches_per_wait && dispatches_per_wait<=kAnchorProfileMaxQueuedDispatches &&
       (windowed || (!packed && transfer_members==quantum && dispatches_per_wait==1)) &&
-      (!arena_search || (sparse && !window_search)) &&
+      (!arena_search || (match::arena_output(mode) && !window_search)) && (!collective || arena_search) &&
       transfer_members<=detail::anchor_match_batch_member_limit(),
       "invalid HIP anchor match configuration");
   for(std::size_t i=0;i<requests.size();++i) {
@@ -292,9 +293,10 @@ AnchorReadback run_hip_anchor_groups(HMODULE runtime,
     hipDeviceProp_t properties{};
     hip_detail::check_hip(api.properties(&properties,ordinal),"packed group launch properties",
         HipWorkerStage::device_properties);
+    const auto shared_bytes=collective?sizeof(match::CollectivePackingScratch):
+        modular?sizeof(match::ModularDeltaScratch):sparse?sizeof(match::SparseXorScratch):0;
     if((!modular && ((properties.warpSize!=32 && properties.warpSize!=64) || !properties.arch.hasWarpShuffle)) ||
-        (modular && properties.sharedMemPerBlock<sizeof(match::ModularDeltaScratch)) ||
-        (sparse && properties.sharedMemPerBlock<sizeof(match::SparseXorScratch)) ||
+        properties.sharedMemPerBlock<shared_bytes ||
         (arena_search && !properties.arch.hasGlobalInt32Atomics) ||
         properties.maxThreadsPerBlock<static_cast<int>(match::threads) ||
         properties.maxThreadsDim[0]<static_cast<int>(match::threads) ||
@@ -327,7 +329,7 @@ AnchorReadback run_hip_anchor_groups(HMODULE runtime,
 
   auto version=match::abi_version;
   auto window_version=match::window_version(mode);
-  auto arena_version=match::sparse_xor_arena_abi_version;
+  auto arena_version=collective?match::collective_arena_abi_version:match::sparse_xor_arena_abi_version;
   void* arena=nullptr;
   match::u32 arena_words=0;
   void* index_arguments[]{&source,&table,&version};
@@ -353,13 +355,13 @@ AnchorReadback run_hip_anchor_groups(HMODULE runtime,
     profile.end(HipPhase::post_admission);
   };
   AnchorReadback result;
-  if(arena_search)result.sparse.reserve(requests.size());
+  if(arena_search)result.compact.reserve(requests.size());
   else result.slots.reserve(requests.size());
   for(std::size_t group=0;group<requests.size();++group) {
     const auto& request=requests[group];
     const auto& plan=plans[group];
     const auto whole_members=plan.whole.members;
-    auto* members=arena_search?&result.sparse.emplace_back(whole_members):nullptr;
+    auto* members=arena_search?&result.compact.emplace_back(whole_members):nullptr;
     auto* slots=arena_search?nullptr:&result.slots.emplace_back(whole_members*words_per_member);
     for (match::u32 first=0;first<whole_members;) {
       const auto staged=(std::min)(whole_members-first,transfer_members);
@@ -382,7 +384,7 @@ AnchorReadback run_hip_anchor_groups(HMODULE runtime,
         const auto directory_bytes=directory_words*sizeof(match::u32);
         arena_words=static_cast<match::u32>((result_bytes-directory_bytes)/sizeof(match::u32));
         arena=reinterpret_cast<void*>(address+window_input+directory_bytes);
-        check_hip(clear(output,0,sizeof(match::u32),resources.stream),"reset sparse XOR cursor");
+        check_hip(clear(output,0,sizeof(match::u32),resources.stream),"reset anchor result cursor");
       }
       profile.end(HipPhase::host_to_device);
       if(windowed)check_admitted_slab();
@@ -407,7 +409,7 @@ AnchorReadback run_hip_anchor_groups(HMODULE runtime,
           command.directory=reinterpret_cast<void*>(address+window_input+
               (match::sparse_xor_arena_header_words+at*match::sparse_xor_arena_entry_words)*sizeof(match::u32));
           check_hip(api.launch(reinterpret_cast<const void*>(arena_search),blocks,dim3(match::threads),
-              command.arena_arguments.data(),0,resources.stream),"launch compact sparse XOR window");
+              command.arena_arguments.data(),0,resources.stream),"launch compact anchor result window");
         } else if(window_search) {
           command.input=reinterpret_cast<void*>(address+(1+at)*match::extent_bytes);
           command.result=reinterpret_cast<void*>(address+window_input+index_bytes+at*slot_bytes);
@@ -431,19 +433,19 @@ AnchorReadback run_hip_anchor_groups(HMODULE runtime,
         const auto directory_bytes=std::span(directory).size_bytes();
         profile.begin(HipPhase::device_to_host);
         check_hip(api.copy(directory.data(),output,directory_bytes,hipMemcpyDeviceToHost),
-            "read sparse XOR arena directory");
+            "read anchor arena directory");
         profile.end(HipPhase::device_to_host);
         profile.begin(HipPhase::cpu_verification);
-        const auto bodies=detail::check_sparse_xor_arena_directory(directory,arena_words);
+        const auto bodies=detail::check_anchor_arena_directory(directory,arena_words,mode);
         profile.end(HipPhase::cpu_verification);
         std::vector<std::byte> payload(std::size_t{directory.front()}*sizeof(match::u32));
         if(!payload.empty()) {
           profile.begin(HipPhase::device_to_host);
-          check_hip(api.copy(payload.data(),arena,payload.size(),hipMemcpyDeviceToHost),"read sparse XOR arena");
+          check_hip(api.copy(payload.data(),arena,payload.size(),hipMemcpyDeviceToHost),"read anchor result arena");
           profile.end(HipPhase::device_to_host);
         }
         profile.begin(HipPhase::cpu_verification);
-        detail::take_sparse_xor_arena_bodies(bodies,payload,std::span(*members).subspan(first,staged));
+        detail::take_anchor_arena_bodies(bodies,payload,std::span(*members).subspan(first,staged));
         profile.end(HipPhase::cpu_verification);
         if(setup)setup->device_readback_bytes+=directory_bytes+payload.size();
       } else {
@@ -482,15 +484,14 @@ std::vector<anchor_match::u32> run_hip_anchor_match_in_worker(HMODULE runtime,
 std::vector<std::byte> run_hip_anchor_batch_in_worker(HMODULE runtime,
     const anchor_match::KernelApi& kernel,int ordinal,std::array<std::byte,8> luid,
     std::uint32_t node_mask,const detail::AnchorMatchBatchRequest& request,HipPhaseRecorder& profile,
-    const anchor_match::WindowSearchApi* window,const anchor_match::SparseXorArenaApi* arena,
+    const anchor_match::WindowSearchApi* window,const anchor_match::AnchorArenaApi* arena,
     std::uint32_t transfer_grant,std::uint32_t dispatches_per_wait,AnchorSetupTiming* setup,
     std::size_t reserve_tail_bytes) {
   require_hip_worker_job(true);
   const auto& plan=request.plan();
   const auto version=anchor_match::window_version(plan.output);
-  require(arena?(!window && plan.output==anchor_match::BatchOutput::sparse_xor &&
-          anchor_match::compatible_sparse_xor_arena_api(*arena)):
-      window?anchor_match::compatible_window_search_api(*window,version):
+  require(arena?(!window && anchor_match::compatible_anchor_arena_api(*arena,plan.output)):
+      window?(plan.output!=anchor_match::BatchOutput::collective && anchor_match::compatible_window_search_api(*window,version)):
       (!transfer_grant && plan.output==anchor_match::BatchOutput::anchors),
       "invalid anchor transfer kernel API");
   const auto members=(window || arena)?detail::plan_anchor_match_transfers(plan,transfer_grant).members_per_transfer:
@@ -499,7 +500,7 @@ std::vector<std::byte> run_hip_anchor_batch_in_worker(HMODULE runtime,
       request.groups(),plan.groups,plan.quantum_members,profile,members,window?window->search:nullptr,
       dispatches_per_wait,plan.output,setup,arena?arena->search:nullptr);
   profile.begin(HipPhase::reply_encode);
-  auto frame=arena?detail::encode_anchor_sparse_batch_reply(request,records.sparse,reserve_tail_bytes):
+  auto frame=arena?detail::encode_anchor_arena_batch_reply(request,records.compact,reserve_tail_bytes):
       detail::encode_anchor_match_batch_reply(request,records.slots,reserve_tail_bytes);
   profile.end(HipPhase::reply_encode);
   return frame;

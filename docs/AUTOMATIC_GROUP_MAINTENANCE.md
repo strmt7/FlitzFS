@@ -7,8 +7,9 @@
 The experimental `NativeGroupMaintenance` controller discovers related extents
 in a managed mirrored paged session and prepares protected
 [shared-base groups](SHARED_BASE_GROUPS.md). Callers supply resource observations
-and opportunities, rather than file lists. The implementation is a deterministic
-CPU baseline for collective optimization, not a completed AI learner or GPU path.
+and opportunities. The controller uses deterministic CPU discovery and
+encoding. A qualified Windows adviser can contribute independently verified
+device candidates during preparation.
 No thread, timer, online model, driver, mount or service starts implicitly.
 
 An explicit adviser can supply a member grant on an idle opportunity. The
@@ -23,6 +24,12 @@ and the other groups can still publish through their independent transactions.
 CPU preparation can consume the staged bytes when advice is unavailable.
 Device and transport admission remain the adviser's responsibility. Volumes
 without a qualified adviser use CPU preparation.
+
+The mixed AMD adviser tests sparse XOR and modular delta for each staged
+member in one admitted dispatch. A batch can supply both kinds of advice.
+The writer independently decodes each proposed member and compares the
+prospective compacted size before publishing the protected group.
+[Mixed-codec validation](evidence/amd-mixed-codec-selection-2026-11-19.json)
 
 The Windows diagnostic used the same discovery controller and coalesced AMD
 worker to publish five-file groups for synthetic and public-derived inputs.

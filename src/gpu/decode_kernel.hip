@@ -167,23 +167,13 @@ void flitzfs_anchor_packed_xor_v5(const unsigned char* base,const unsigned char*
 namespace {
 using namespace flitzfs::anchor_match;
 
-template<bool Arena> __device__ __forceinline__
-void pack_sparse_xor_members(const u8* base,const u8* window,u32 members,u32* output,u32 version,
-    u32* cursor=nullptr,u32* directory=nullptr,u32 arena_words=0) {
-  constexpr auto abi=Arena?sparse_xor_arena_abi_version:sparse_xor_window_abi_version;
-  if(version!=abi || !base || !window || !output ||
-      !members || members>dispatch_member_limit(BatchOutput::sparse_xor) ||
-      blockIdx.x>=members || blockDim.x!=threads)return;
-  if constexpr(Arena)if(!cursor || !directory || !arena_words)return;
+__device__ __forceinline__ void size_sparse_xor(SparseXorScratch& scratch,const u8* base,const u8* member) {
   constexpr auto lanes=xor_plane_bytes;
   constexpr auto tiles_per_block=threads/lanes;
   static_assert(lanes==32 && xor_tiles%tiles_per_block==0);
-  __shared__ SparseXorScratch scratch;
   const auto lane=threadIdx.x;
   const auto segment=lane%lanes;
   const auto first_tile=lane/lanes;
-  const auto* member=window+blockIdx.x*extent_bytes;
-  if constexpr(!Arena)output+=blockIdx.x*(xor_wide_slot_bytes/sizeof(u32));
   for(u32 tile=first_tile;tile<xor_tiles;tile+=tiles_per_block) {
     const auto at=tile*xor_tile_bytes+segment*8;
     const auto difference=xor_segment(base+at,member+at);
@@ -217,25 +207,28 @@ void pack_sparse_xor_members(const u8* base,const u8* window,u32 members,u32* ou
       size+=bytes;
     }
     scratch.size=size>=sparse_xor_min_body_bytes && size<=sparse_xor_max_body_bytes?size:0;
-    if constexpr(Arena) {
-      auto* entry=directory+blockIdx.x*sparse_xor_arena_entry_words;
-      const auto words=sparse_xor_arena_words(scratch.size);
-      const auto at=words?atomicAdd(cursor,words):0U;
-      // Leave a poisoned entry if a reservation escapes the admitted arena.
-      if(at>arena_words || words>arena_words-at)scratch.size=0;
-      else {
-        entry[0]=at;
-        entry[1]=scratch.size;
-        scratch.body_offset=at;
-      }
-    } else {
-      output[0]=scratch.size;
-      scratch.body_offset=1;
-    }
   }
   __syncthreads();
-  if(!scratch.size)return;
-  auto* body=reinterpret_cast<u8*>(output+scratch.body_offset);
+}
+
+__device__ __forceinline__ bool reserve_group_body(u32 size,u32* cursor,u32* directory,
+    u32 arena_words,u32& offset) {
+  const auto words=sparse_xor_arena_words(size);
+  offset=words?atomicAdd(cursor,words):0U;
+  // Leave a poisoned entry if a reservation escapes the admitted arena.
+  if(offset>arena_words || words>arena_words-offset)return false;
+  auto* entry=directory+blockIdx.x*sparse_xor_arena_entry_words;
+  entry[0]=offset;
+  entry[1]=size;
+  return true;
+}
+
+__device__ __forceinline__ void write_sparse_xor(const SparseXorScratch& scratch,const u8* base,
+    const u8* member,u8* body) {
+  constexpr auto lanes=xor_plane_bytes;
+  constexpr auto tiles_per_block=threads/lanes;
+  const auto segment=threadIdx.x%lanes;
+  const auto first_tile=threadIdx.x/lanes;
   for(u32 tile=first_tile;tile<xor_tiles;tile+=tiles_per_block) {
     auto* target=body+scratch.offsets[tile];
     const auto mask=scratch.masks[tile];
@@ -277,6 +270,30 @@ void pack_sparse_xor_members(const u8* base,const u8* window,u32 members,u32* ou
       target+=1+count;
     }
   }
+}
+
+template<bool Arena> __device__ __forceinline__
+void pack_sparse_xor_members(const u8* base,const u8* window,u32 members,u32* output,u32 version,
+    u32* cursor=nullptr,u32* directory=nullptr,u32 arena_words=0) {
+  constexpr auto abi=Arena?sparse_xor_arena_abi_version:sparse_xor_window_abi_version;
+  if(version!=abi || !base || !window || !output ||
+      !members || members>dispatch_member_limit(BatchOutput::sparse_xor) ||
+      blockIdx.x>=members || blockDim.x!=threads)return;
+  if constexpr(Arena)if(!cursor || !directory || !arena_words)return;
+  __shared__ SparseXorScratch scratch;
+  const auto* member=window+blockIdx.x*extent_bytes;
+  if constexpr(!Arena)output+=blockIdx.x*(xor_wide_slot_bytes/sizeof(u32));
+  size_sparse_xor(scratch,base,member);
+  if(!threadIdx.x) {
+    if constexpr(Arena) {
+      if(!reserve_group_body(scratch.size,cursor,directory,arena_words,scratch.body_offset))scratch.size=0;
+    } else {
+      output[0]=scratch.size;
+      scratch.body_offset=1;
+    }
+  }
+  __syncthreads();
+  if(scratch.size)write_sparse_xor(scratch,base,member,reinterpret_cast<u8*>(output+scratch.body_offset));
 }
 }
 
@@ -367,20 +384,9 @@ void pack_modular_tile(u8* output,const u8* base,const u8* member,u32 bits,u64 b
     }
   }
 }
-}
-
-extern "C" __global__ __attribute__((amdgpu_flat_work_group_size(64,64)))
-void flitzfs_anchor_modular_delta_v6(const unsigned char* base,const unsigned char* window,unsigned int members,
-    const flitzfs::anchor_match::Bucket*,unsigned int* output,unsigned int version) {
-  using namespace flitzfs::anchor_match;
-  if(version!=modular_delta_window_abi_version || !base || !window || !output ||
-      !members || members>dispatch_member_limit(BatchOutput::modular_delta) ||
-      blockIdx.x>=members || blockDim.x!=threads)return;
+__device__ __forceinline__ void size_modular_delta(ModularDeltaScratch& scratch,const u8* base,const u8* member) {
   static_assert(sizeof(unsigned short)==2);
-  __shared__ ModularDeltaScratch scratch;
   const auto lane=threadIdx.x;
-  const auto* member=window+blockIdx.x*extent_bytes;
-  auto* slot=output+blockIdx.x*(xor_wide_slot_bytes/sizeof(u32));
   switch(lane) {
     case 0:select_modular_biases<u8>(scratch,0,base,member);break;
     case 1:select_modular_biases<unsigned short>(scratch,1,base,member);break;
@@ -409,45 +415,101 @@ void flitzfs_anchor_modular_delta_v6(const unsigned char* base,const unsigned ch
   __syncthreads();
   if(!lane) {
     scratch.mode=delta_modes;
-    slot[0]=0;
+    u32 best_size=0;
     for(u32 mode=0;mode<delta_modes;++mode) {
       const auto size=scratch.sizes[mode];
-      if(size && (!slot[0] || size<slot[0])) {
-        slot[0]=size;
+      if(size && (!best_size || size<best_size)) {
+        best_size=size;
         scratch.mode=mode;
       }
     }
-    if(scratch.mode<delta_modes) {
+    if(best_size>delta_parameters_bytes) {
       const auto width=modular_word_bytes(scratch.mode);
-      const auto bias=scratch.biases[scratch.mode];
-      slot[1]=width;
-      slot[2]=static_cast<u32>(bias);
-      slot[3]=static_cast<u32>(bias>>32);
-      if(slot[0]>delta_parameters_bytes) {
-        u32 at=0;
-        for(u32 tile=0;tile<xor_tiles;++tile) {
-          scratch.offsets[tile]=at;
-          at+=1+scratch.widths[scratch.mode][tile]*(xor_plane_bytes/width);
-        }
+      u32 at=0;
+      for(u32 tile=0;tile<xor_tiles;++tile) {
+        scratch.offsets[tile]=at;
+        at+=1+scratch.widths[scratch.mode][tile]*(xor_plane_bytes/width);
       }
     }
   }
   __syncthreads();
+}
+
+__device__ __forceinline__ u32 modular_payload_size(const ModularDeltaScratch& scratch) {
+  return scratch.mode<delta_modes?scratch.sizes[scratch.mode]:0U;
+}
+
+__device__ __forceinline__ void write_modular_delta(const ModularDeltaScratch& scratch,const u8* base,
+    const u8* member,u32* output) {
   const auto mode=scratch.mode;
-  if(mode==delta_modes || scratch.sizes[mode]==delta_parameters_bytes)return;
   const auto bias=scratch.biases[mode];
-  auto* body=reinterpret_cast<u8*>(slot+1)+delta_parameters_bytes;
-  for(u32 tile=lane;tile<xor_tiles;tile+=threads) {
+  const auto width=modular_word_bytes(mode);
+  if(!threadIdx.x) {
+    output[0]=width;
+    output[1]=static_cast<u32>(bias);
+    output[2]=static_cast<u32>(bias>>32);
+  }
+  if(scratch.sizes[mode]==delta_parameters_bytes)return;
+  auto* body=reinterpret_cast<u8*>(output)+delta_parameters_bytes;
+  for(u32 tile=threadIdx.x;tile<xor_tiles;tile+=threads) {
     const auto start=tile*xor_tile_bytes;
     auto* target=body+scratch.offsets[tile];
     const auto bits=scratch.widths[mode][tile];
-    switch(modular_word_bytes(mode)) {
+    switch(width) {
       case 1:pack_modular_tile<u8>(target,base+start,member+start,bits,bias);break;
       case 2:pack_modular_tile<unsigned short>(target,base+start,member+start,bits,bias);break;
       case 4:pack_modular_tile<u32>(target,base+start,member+start,bits,bias);break;
       default:pack_modular_tile<u64>(target,base+start,member+start,bits,bias);break;
     }
   }
+}
+}
+
+extern "C" __global__ __attribute__((amdgpu_flat_work_group_size(64,64)))
+void flitzfs_anchor_modular_delta_v6(const unsigned char* base,const unsigned char* window,unsigned int members,
+    const flitzfs::anchor_match::Bucket*,unsigned int* output,unsigned int version) {
+  using namespace flitzfs::anchor_match;
+  if(version!=modular_delta_window_abi_version || !base || !window || !output ||
+      !members || members>dispatch_member_limit(BatchOutput::modular_delta) ||
+      blockIdx.x>=members || blockDim.x!=threads)return;
+  __shared__ ModularDeltaScratch scratch;
+  const auto* member=window+blockIdx.x*extent_bytes;
+  auto* slot=output+blockIdx.x*(xor_wide_slot_bytes/sizeof(u32));
+  size_modular_delta(scratch,base,member);
+  const auto size=modular_payload_size(scratch);
+  if(!threadIdx.x)slot[0]=size;
+  if(size)write_modular_delta(scratch,base,member,slot+1);
+}
+
+extern "C" __global__ __attribute__((amdgpu_flat_work_group_size(64,64)))
+void flitzfs_anchor_collective_arena_v9(const unsigned char* base,const unsigned char* window,unsigned int members,
+    unsigned int* cursor,unsigned int* directory,unsigned int* arena,unsigned int arena_words,unsigned int version) {
+  using namespace flitzfs::anchor_match;
+  if(version!=collective_arena_abi_version || !base || !window || !arena || !cursor || !directory ||
+      !arena_words || !members || members>dispatch_member_limit(BatchOutput::collective) ||
+      blockIdx.x>=members || blockDim.x!=threads)return;
+  __shared__ CollectivePackingScratch scratch;
+  const auto* member=window+blockIdx.x*extent_bytes;
+  size_modular_delta(scratch.delta,base,member);
+  const auto delta_bytes=modular_payload_size(scratch.delta);
+  u32 sparse_bytes=0;
+  // A bias-only result has no body in the stored frame.
+  if(delta_bytes!=delta_parameters_bytes) {
+    size_sparse_xor(scratch.sparse,base,member);
+    sparse_bytes=scratch.sparse.size;
+  }
+  const bool sparse=sparse_bytes && (!delta_bytes || sparse_bytes<=delta_bytes-delta_parameters_bytes);
+  const auto size=sparse?sparse_bytes:delta_bytes;
+  if(!threadIdx.x) {
+    scratch.admitted=reserve_group_body(size?size+collective_body_tag_bytes:0U,cursor,directory,
+        arena_words,scratch.body_offset);
+  }
+  __syncthreads();
+  if(!scratch.admitted || !size)return;
+  auto* target=arena+scratch.body_offset;
+  if(!threadIdx.x)*target=static_cast<u32>(sparse?CollectiveBody::sparse_xor:CollectiveBody::modular_delta);
+  if(sparse)write_sparse_xor(scratch.sparse,base,member,reinterpret_cast<u8*>(target+1));
+  else write_modular_delta(scratch.delta,base,member,target+1);
 }
 
 namespace flitzfs::anchor_match {
@@ -473,7 +535,10 @@ void bind_anchor_modular_delta_window(WindowSearchApi& api) noexcept {
 void bind_anchor_sparse_xor_window(WindowSearchApi& api) noexcept {
   api.search=flitzfs_anchor_sparse_xor_v7;
 }
-void bind_anchor_sparse_xor_arena(SparseXorArenaApi& api) noexcept {
+void bind_anchor_sparse_xor_arena(AnchorArenaApi& api) noexcept {
   api.search=flitzfs_anchor_sparse_xor_arena_v8;
+}
+void bind_anchor_collective_arena(AnchorArenaApi& api) noexcept {
+  api.search=flitzfs_anchor_collective_arena_v9;
 }
 }

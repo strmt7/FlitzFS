@@ -42,7 +42,8 @@ void bind_anchor_wide_xor_window(WindowSearchApi&) noexcept;
 void bind_anchor_adaptive_xor_window(WindowSearchApi&) noexcept;
 void bind_anchor_modular_delta_window(WindowSearchApi&) noexcept;
 void bind_anchor_sparse_xor_window(WindowSearchApi&) noexcept;
-void bind_anchor_sparse_xor_arena(SparseXorArenaApi&) noexcept;
+void bind_anchor_sparse_xor_arena(AnchorArenaApi&) noexcept;
+void bind_anchor_collective_arena(AnchorArenaApi&) noexcept;
 }
 extern "C" __declspec(dllexport)
 const flitzfs::anchor_match::KernelApi* flitzfs_rocm_anchor_match_api_v1() noexcept {
@@ -122,11 +123,22 @@ const flitzfs::anchor_match::WindowSearchApi* flitzfs_rocm_anchor_sparse_xor_api
 }
 
 extern "C" __declspec(dllexport)
-const flitzfs::anchor_match::SparseXorArenaApi* flitzfs_rocm_anchor_sparse_xor_arena_api_v8() noexcept {
+const flitzfs::anchor_match::AnchorArenaApi* flitzfs_rocm_anchor_sparse_xor_arena_api_v8() noexcept {
   using namespace flitzfs::anchor_match;
   static const auto api=[]() noexcept {
-    SparseXorArenaApi value{sizeof(SparseXorArenaApi),sparse_xor_arena_abi_version,nullptr};
+    AnchorArenaApi value{sizeof(AnchorArenaApi),sparse_xor_arena_abi_version,nullptr};
     bind_anchor_sparse_xor_arena(value);
+    return value;
+  }();
+  return &api;
+}
+
+extern "C" __declspec(dllexport)
+const flitzfs::anchor_match::AnchorArenaApi* flitzfs_rocm_anchor_collective_arena_api_v9() noexcept {
+  using namespace flitzfs::anchor_match;
+  static const auto api=[]() noexcept {
+    AnchorArenaApi value{sizeof(AnchorArenaApi),collective_arena_abi_version,nullptr};
+    bind_anchor_collective_arena(value);
     return value;
   }();
   return &api;

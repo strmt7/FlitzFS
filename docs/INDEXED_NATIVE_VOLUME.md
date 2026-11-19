@@ -306,6 +306,13 @@ Missing or refused device results leave CPU encoding available.
 [Direct AMD encoding evidence](evidence/amd-direct-sparse-xor-2026-11-19.json) ·
 [Device readback evidence](evidence/amd-sparse-device-readback-2026-11-19.json)
 
+The mixed AMD route evaluates sparse XOR and modular delta for each
+staged extent in a shared dispatch. Advice can include both codecs in one
+batch. CPU verification binds each winning candidate to the same owned
+base and member bytes. A protected sparse result uses capability 7 and a
+modular result uses its existing capability 6 representation.
+[Mixed worker protocol](WORKER_CHANNEL.md#mixed-codec-batch)
+
 ### Automatic candidate discovery
 
 The scanner seeks the next allocated extent in the ordered index. It advances

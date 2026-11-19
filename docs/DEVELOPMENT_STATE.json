@@ -78,6 +78,18 @@
     "scope": "Fixed references on two controlled 15-file cohorts. The initial worker supplied dense planes for CPU conversion. Direct sparse trials verified the compact output from AMD.",
     "next": "Amortize stream setup over more useful collective search and qualify measured workload routing. Sparse device readback now validates and downloads the used payload within the existing grant."
   },
+  "native_mixed_codec_batch": {
+    "source_base": "099844343bf8af3c659733e49cc7bbeec7c638fc",
+    "evidence": "docs/evidence/amd-mixed-codec-selection-2026-11-19.json",
+    "worker_abi": 9,
+    "physical_host_comparisons": 24,
+    "used_amd_members_per_mixed_batch": [60, 40],
+    "complete_image_bytes": [13975552, 1900544],
+    "independent_cpu_readback": true,
+    "automatic_gpu_selection": false,
+    "scope": "One admitted AMD launch per work quantum compares sparse XOR and modular delta in shared device input. Separate verified fixtures cover both GPU choices, malformed advice fallback and protected CPU reopen.",
+    "next": "Qualify larger groups with useful reference alternatives and compare complete storage size and end-to-end cost across devices before enabling automatic preference."
+  },
   "native_path_lookup": {
     "source_base": "700cdb31de32b847497b02cc0e113d27482e6c85",
     "evidence": "docs/evidence/native-path-lookup-2026-11-17.json",

@@ -435,3 +435,28 @@ adapter. Readback includes directory bytes and the aligned payload.
 [Sparse XOR format](INDEXED_NATIVE_VOLUME.md#sparse-xor-members)
 [Matched transport measurements](evidence/amd-direct-sparse-xor-2026-11-19.json)
 [Physical readback measurements](evidence/amd-sparse-device-readback-2026-11-19.json)
+
+## Mixed-codec batch
+
+The mixed batch uses request tag `FLFSABQ\5` and reply tags `FLFSACP\1`
+and `FLFSACG\1`. Kernel ABI 9 uses the checked arena layout. Every nonempty
+member body starts with a little-endian 32-bit codec identifier, followed
+by the existing candidate bytes. Identifier 1 selects sparse XOR and
+identifier 2 selects modular delta. A zero-length member defers to CPU.
+Unknown identifiers, mismatched body lengths and invalid directory
+ranges reject the exchange.
+
+One workgroup evaluates both candidate sizes against the uploaded base.
+It compares the bytes the indexed volume would store, accounting for the
+modular parameters that fit inside the common member header. An exact
+modular bias fills that header alone, so the workgroup can skip the sparse
+size pass in that case. The workgroup writes only the selected body.
+Live device admission includes the shared memory for both encoders.
+All existing stream, transfer and dispatch checks apply to the combined
+work, and the parent waits for confirmed retirement before consuming it.
+[AMD performance guidelines](https://rocm.docs.amd.com/projects/HIP/en/latest/how-to/performance_guidelines.html)
+
+The native writer strips the private codec identifier, reconstructs the
+member on CPU and compares it to the owned input. Alternative CPU codecs,
+revision validation and the full compacted-size check govern publication.
+[Mixed-codec validation](evidence/amd-mixed-codec-selection-2026-11-19.json)

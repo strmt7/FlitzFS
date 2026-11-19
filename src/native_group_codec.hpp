@@ -37,6 +37,11 @@ struct NativeGroupPackedCandidate {
   NativePackedGroupCheck check=NativePackedGroupCheck::pending;
   NativeGroupMethod method=NativeGroupMethod::packed_xor;
 };
+struct CollectiveGroupBody {
+  NativePackedGroupMethod method;
+  std::span<const std::byte> bytes;
+};
+std::optional<CollectiveGroupBody> parse_collective_group_body(std::span<const std::byte>) noexcept;
 NativeGroupPackedCandidate check_native_group_xor_body(std::span<const std::byte> body,
     std::span<const std::byte> member,std::span<const std::byte> base,std::uint64_t base_id,
     std::uint64_t base_generation,std::size_t exclusive_limit,bool include_sparse=false);
