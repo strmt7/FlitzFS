@@ -40,6 +40,9 @@ struct NativeGroupPackedCandidate {
 NativeGroupPackedCandidate check_native_group_xor_body(std::span<const std::byte> body,
     std::span<const std::byte> member,std::span<const std::byte> base,std::uint64_t base_id,
     std::uint64_t base_generation,std::size_t exclusive_limit,bool include_sparse=false);
+NativeGroupPackedCandidate check_native_group_sparse_xor_body(std::span<const std::byte> body,
+    std::span<const std::byte> member,std::span<const std::byte> base,std::uint64_t base_id,
+    std::uint64_t base_generation,std::size_t exclusive_limit);
 NativeGroupPackedCandidate check_native_group_delta_body(std::span<const std::byte> payload,
     std::span<const std::byte> member,std::span<const std::byte> base,std::uint64_t base_id,
     std::uint64_t base_generation,std::size_t exclusive_limit);

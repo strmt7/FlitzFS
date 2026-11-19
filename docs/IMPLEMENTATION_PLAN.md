@@ -810,9 +810,18 @@ byte-for-byte. Each raw, WinFsp SDK and AddressSanitizer lane recovered from
 528 modeled publication interruptions. Six live AMD runs each supplied 100
 published members through the verified dense reply and CPU conversion.
 Both routes reached the same complete size. CPU was faster in these runs.
-Prepare the sparse body directly on AMD and measure complete work including
-transport. The CPU reader and fallback already support the sparse format.
 [Sparse XOR format and evidence](evidence/indexed-sparse-xor-2026-11-19.json)
+
+The direct AMD sparse window now returns actual sparse bodies. Its reply
+occupied 423,204 bytes for the original cohort and 653,604 bytes when all
+eight planes differed. The dense route sent 6,554,004 bytes in both cases.
+It supplied 100 members in the first cohort and empty slots in the second.
+Direct sparse encoding supplied 100 independently verified members each
+time. Every route produced the same protected compacted size within each
+cohort. CPU had the lowest median complete time in both. Reduce fixed
+device-to-host copies and amortize stream creation before qualifying an
+automatic direct sparse policy.
+[Direct AMD sparse and CPU fallback evidence](evidence/amd-direct-sparse-xor-2026-11-19.json)
 
 The indexed owner now fills a finite worker exchange across several scan
 windows under live host and exact channel admission. In the related-data

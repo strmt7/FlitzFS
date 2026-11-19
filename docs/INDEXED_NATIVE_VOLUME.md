@@ -282,6 +282,25 @@ carry a useful body. Capability 7 readers accept earlier group versions.
 Readers limited to capability 6 reject a capability 7 image.
 [Sparse XOR format and recovery evidence](evidence/indexed-sparse-xor-2026-11-19.json)
 
+#### Direct AMD sparse encoding
+
+The sparse window entry with private ABI 7 counts the set bits in each
+tile plane using 32-lane subgroups. The kernel prices all tiles before
+writing within the admitted member slot. Prefix counts give each segment
+separate positions in the ordered sparse lists. The worker sends only
+the used bodies in the compact reply, with the request and group digests.
+Device slab admission and device-to-host copies still account for full
+slots. The Windows controller requires a dispatch grant, live adapter
+headroom and compatible thread, shuffle and shared-memory limits.
+[HIP device language extensions](https://rocm.docs.amd.com/projects/HIP/en/latest/how-to/hip_cpp_language_extensions.html)
+
+The controller consumes a reply after confirmed worker and supervisor
+retirement. The CPU checks the sparse grammar and reconstructs every byte
+against the owned input. It rejects malformed candidates, honors the
+exclusive size bound and keeps the dense form on equal encoded cost.
+Missing or refused device results leave CPU encoding available.
+[Direct AMD encoding evidence](evidence/amd-direct-sparse-xor-2026-11-19.json)
+
 ### Automatic candidate discovery
 
 The scanner seeks the next allocated extent in the ordered index. It advances

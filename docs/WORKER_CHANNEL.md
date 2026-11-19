@@ -408,3 +408,15 @@ supervised exchange, require confirmed worker exit, and verify candidate bytes
 on CPU before comparing timings. The original `FLHPB002` and `FLHPB003`
 profiles retain their original layout.
 [Startup evidence](evidence/amd-anchor-stream-setup-2026-11-19.json)
+
+## Compact sparse XOR exchange
+
+The sparse XOR batch uses request tag `FLFSABQ\4` and reply tags
+`FLFSASP\1` and `FLFSASG\1`. Each group has an exact length and each member
+has a checked length followed by its sparse XOR body, or a zero length
+for a refused candidate. Capacity admission still uses full member slots.
+The child checks slot lengths and padding before compacting them. The
+parent verifies the request and source digests, complete framing and exact
+worker retirement. The writer independently verifies decoded bytes before
+publication. [Sparse XOR format](INDEXED_NATIVE_VOLUME.md#sparse-xor-members)
+[Matched transport measurements](evidence/amd-direct-sparse-xor-2026-11-19.json)

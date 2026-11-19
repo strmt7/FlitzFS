@@ -30,6 +30,14 @@ inline constexpr u32 xor_tiles=extent_bytes/xor_tile_bytes;
 inline constexpr u32 xor_slot_bytes=tiles*sizeof(u32);
 inline constexpr u32 xor_body_capacity=xor_slot_bytes-sizeof(u32);
 inline constexpr u32 xor_wide_slot_bytes=extent_bytes;
+inline constexpr u32 sparse_plane_max=xor_plane_bytes-2,sparse_plane_inverse=0x80,sparse_plane_dense=0x40;
+inline constexpr u32 sparse_xor_min_body_bytes=xor_tiles+2;
+inline constexpr u32 sparse_xor_max_body_bytes=extent_bytes-128-1;
+struct SparseXorScratch {
+  u8 descriptors[xor_tiles][8],masks[xor_tiles],sparse_masks[xor_tiles];
+  u32 offsets[xor_tiles],size;
+};
+static_assert(xor_tile_bytes==256 && sparse_plane_max<sparse_plane_dense && sparse_plane_dense<sparse_plane_inverse);
 inline constexpr u32 delta_parameters_bytes=12;
 inline constexpr u32 delta_max_payload_bytes=extent_bytes-128+delta_parameters_bytes-1;
 inline constexpr u32 delta_word_widths=4;
@@ -42,10 +50,14 @@ struct ModularDeltaScratch {
   u8 widths[delta_modes][xor_tiles];
   u32 sizes[delta_modes],offsets[xor_tiles],mode;
 };
-enum class BatchOutput : u32 {anchors,packed_xor,wide_packed_xor,modular_delta};
+enum class BatchOutput : u32 {anchors,packed_xor,wide_packed_xor,modular_delta,sparse_xor};
+
+constexpr bool compact_output(BatchOutput output) noexcept {
+  return output==BatchOutput::modular_delta || output==BatchOutput::sparse_xor;
+}
 
 constexpr bool wide_output(BatchOutput output) noexcept {
-  return output==BatchOutput::wide_packed_xor || output==BatchOutput::modular_delta;
+  return output==BatchOutput::wide_packed_xor || compact_output(output);
 }
 
 constexpr u32 reply_member_bytes(BatchOutput output) noexcept {
@@ -67,6 +79,20 @@ constexpr u32 device_bytes(u32 members,BatchOutput output=BatchOutput::anchors) 
   // Preserve the narrow protocol's original grant. Wide XOR needs no index.
   const auto index=wide_output(output)?0U:index_bytes;
   return (members+1)*extent_bytes+index+members*reply_member_bytes(output);
+}
+
+FLITZFS_ANCHOR_INLINE u32 xor_plane_bits(u64 differences,u32 bit) noexcept {
+  u32 packed=0;
+  for(u32 i=0;i<8;++i)packed|=static_cast<u32>((differences>>(8*i+bit))&1ULL)<<i;
+  return packed;
+}
+
+FLITZFS_ANCHOR_INLINE constexpr u32 sparse_xor_descriptor(u32 ones) noexcept {
+  if(!ones)return 0;
+  const bool inverse=ones>xor_tile_bytes/2;
+  const auto minority=inverse?xor_tile_bytes-ones:ones;
+  if(minority>sparse_plane_max)return sparse_plane_dense;
+  return minority|(inverse?sparse_plane_inverse:0U);
 }
 
 FLITZFS_ANCHOR_INLINE constexpr u32 modular_bias_sample_offset(u32 sample) noexcept {

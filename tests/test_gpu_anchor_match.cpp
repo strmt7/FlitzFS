@@ -10,6 +10,7 @@
 namespace {
 namespace match=flitzfs::anchor_match;
 using namespace flitzfs::detail;
+using flitzfs::NativePackedGroupCheck;
 using flitzfs::NativePackedXorCheck;
 using Bytes=std::vector<std::byte>;
 
@@ -461,6 +462,67 @@ void modular_delta_reply() {
   rejects([&]{(void)encode_anchor_match_batch_reply(request,slots);});
   std::cout<<"modular_reply actual_bytes="<<frame.size()<<" admitted_bytes="<<plan.reply_bytes<<'\n';
 }
+
+void sparse_xor_reply() {
+  constexpr auto output=match::BatchOutput::sparse_xor;
+  constexpr auto id=kNativeGroupBaseBit+1;
+  constexpr std::size_t header=128;
+  const auto base=native_fixture::data(match::extent_bytes,2147);
+  auto member=base;
+  anchor_search_fixture::apply_all_xor_planes(member,1);
+  const auto encoded=encode_native_group_sparse_xor(member,base,id,1,match::extent_bytes);
+  check(encoded && !encode_native_group_xor(member,base,id,1,match::extent_bytes),
+      "All-plane sparse input did not exercise the dense capacity refusal");
+  const auto body=std::span<const std::byte>(*encoded).subspan(header);
+  const std::array<std::uint32_t,1> counts{2};
+  const auto plan=plan_anchor_match_batch(counts,1,match::device_bytes(1,output),2,output);
+  AnchorMatchBatchBuilder builder(130,plan);
+  auto members=member;
+  members.insert(members.end(),base.begin(),base.end());
+  builder.append(1,base,members);
+  const auto request=builder.finish();
+  const auto received=decode_anchor_match_batch_request(request.snapshot(),plan.request_bytes,plan.reply_bytes,
+      plan.quantum_members,plan.device_bytes,plan.launches,output);
+  rejects([&]{(void)decode_anchor_match_batch_request(request.snapshot(),plan.request_bytes,plan.reply_bytes,
+      plan.quantum_members,plan.device_bytes,plan.launches,match::BatchOutput::modular_delta);});
+  constexpr auto words=match::xor_wide_slot_bytes/sizeof(match::u32);
+  std::vector<std::vector<match::u32>> slots{std::vector<match::u32>(2*words,match::empty)};
+  put_xor_test_slot(std::span(slots.front()).first(words),body);
+  slots.front()[words]=0;
+  const auto reply=encode_anchor_match_batch_reply(received,slots);
+  const auto advice=decode_anchor_packed_batch_reply(reply,request);
+  check(reply.size()==64+4+64+2*4+body.size() && reply.size()<plan.reply_bytes &&
+      advice.size()==1 && advice[0].size()==2 && std::ranges::equal(advice[0][0],body) && advice[0][1].empty(),
+      "Compacted sparse bodies did not preserve their group binding");
+  const auto accepted=check_native_group_sparse_xor_body(advice[0][0],member,base,id,1,match::extent_bytes);
+  check(accepted.frame==encoded && accepted.check==NativePackedGroupCheck::verified &&
+      accepted.method==NativeGroupMethod::sparse_xor,"Sparse advice changed decoded bytes");
+  check(check_native_group_sparse_xor_body(body,base,base,id,1,match::extent_bytes).check==NativePackedGroupCheck::invalid,
+      "Sparse reply verified against the wrong source");
+  const auto equal=check_native_group_sparse_xor_body(body,member,base,id,1,encoded->size());
+  check(!equal.frame && equal.check==NativePackedGroupCheck::verified,"Sparse advice exceeded its exact bound");
+  auto rival=base;
+  for(std::size_t i=0;i<rival.size();i+=2)rival[i]^=std::byte{1};
+  const auto dense=encode_native_group_xor(rival,base,id,1,match::extent_bytes);
+  const auto sparse=encode_native_group_sparse_xor(rival,base,id,1,match::extent_bytes);
+  check(dense && sparse && dense->size()<sparse->size(),"Dense selection control did not exercise the competing codec");
+  const auto inferior=check_native_group_sparse_xor_body(std::span<const std::byte>(*sparse).subspan(header),
+      rival,base,id,1,match::extent_bytes);
+  check(!inferior.frame && inferior.check==NativePackedGroupCheck::verified,"GPU advice overrode the cheaper dense form");
+  for(const auto at:{7,35,64,68,132}) {
+    auto bad=reply;
+    bad[at]^=std::byte{255};
+    rejects([&]{(void)decode_anchor_packed_batch_reply(bad,request);});
+  }
+  slots.front().back()=0;
+  rejects([&]{(void)encode_anchor_match_batch_reply(request,slots);});
+  check(match::sparse_xor_descriptor(0)==0 && match::sparse_xor_descriptor(30)==30 &&
+      match::sparse_xor_descriptor(31)==64 && match::sparse_xor_descriptor(225)==64 &&
+      match::sparse_xor_descriptor(226)==158 && match::sparse_xor_descriptor(256)==128,
+      "Device descriptor thresholds diverged from the CPU grammar");
+  std::cout<<"sparse_xor_reply actual_bytes="<<reply.size()<<" admitted_bytes="<<plan.reply_bytes
+      <<" dense_overflow=true cpu_exact=true\n";
+}
 }
 
 template<class Word>
@@ -491,6 +553,7 @@ int main() {
     packed_xor_reply();
     wide_xor_reply();
     modular_delta_reply();
+    sparse_xor_reply();
     sampled_modular_biases<match::u8>();
     sampled_modular_biases<unsigned short>();
     sampled_modular_biases<match::u32>();

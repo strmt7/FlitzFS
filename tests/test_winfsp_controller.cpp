@@ -424,7 +424,8 @@ std::optional<IndexedBatchPattern> multiwindow_pattern(std::string_view mode) {
   if(mode=="modular-shifted-bias")return IndexedBatchPattern::shifted_bias;
   if(mode=="xor-reference")return IndexedBatchPattern::xor_reference;
   if(mode=="xor-tile-reference")return IndexedBatchPattern::xor_tile_reference;
-  if(mode=="sparse-xor")return IndexedBatchPattern::sparse_xor;
+  if(mode=="sparse-xor" || mode=="sparse-xor-device")return IndexedBatchPattern::sparse_xor;
+  if(mode=="sparse-xor-all-planes" || mode=="sparse-xor-all-planes-device")return IndexedBatchPattern::sparse_xor_all_planes;
   return {};
 }
 
@@ -433,7 +434,10 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   constexpr auto families=anchor_search_fixture::indexed_batch_families;
   const bool shifted_bias=pattern==IndexedBatchPattern::shifted_bias;
   const bool tile_reference=pattern==IndexedBatchPattern::xor_tile_reference;
-  const bool sparse_xor=pattern==IndexedBatchPattern::sparse_xor;
+  const bool all_planes=pattern==IndexedBatchPattern::sparse_xor_all_planes;
+  const bool sparse_xor=pattern==IndexedBatchPattern::sparse_xor || all_planes;
+  const bool sparse_device=options && options->output==anchor_match::BatchOutput::sparse_xor;
+  const bool dense_overflow=options && all_planes && !sparse_device;
   const bool alternate_reference=pattern==IndexedBatchPattern::xor_reference || tile_reference;
   const bool modular=shifted_bias || pattern==IndexedBatchPattern::modular_delta;
   const auto members=anchor_search_fixture::small_indexed_batch(pattern)?families*(anchor_search_fixture::indexed_small_extents_per_family-1):
@@ -541,7 +545,10 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   const bool retired=(!anchor || anchor->stop()) && WorkerExchangeSession::available();
   require(!maintenance.pending() && progress.published_groups && retired && !stats.integrity_failures,
       "Large batch lost protected publication or ownership");
-  if(anchor && shifted_bias) {
+  if(dense_overflow) {
+    require(stats.submitted==1 && stats.empty_xor_batches==1 && !stats.verified &&
+        !progress.advised_members_published,"Dense slots unexpectedly handled all active planes");
+  }else if(anchor && shifted_bias) {
     std::cout<<"shifted_bias_reply submitted="<<stats.submitted<<" verified="<<stats.verified
         <<" empty="<<stats.empty_xor_batches<<" published="<<progress.advised_members_published<<'\n';
     require(stats.submitted && (stats.verified || stats.empty_xor_batches || packed_payload_bytes),
@@ -549,7 +556,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   } else if(anchor) {
     require(stats.verified && progress.advised_members_published,"Large batch lost verified advice");
   }
-  if(anchor && bank.empty() && !modular)
+  if(anchor && bank.empty() && !modular && !dense_overflow)
     require(stats.submitted==1 && stats.verified_groups==families &&
         (tile_reference || sparse_xor || progress.advised_members_published==members),
         "Related AMD work did not fill one verified multiwindow batch");
@@ -575,12 +582,14 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   const auto root=PagedObjectStoreSnapshot::open(packed,{kStoreMaxPhysicalBytes}).read(1);
   const auto capability=std::to_integer<unsigned>(root[8]);
   if(sparse_xor)require(capability==7,"Sparse XOR did not survive compaction");
-  const auto cohort=sparse_xor?(bank.empty()?"sparse-xor-synthetic":"sparse-xor-public"):
+  const auto cohort=all_planes?(bank.empty()?"sparse-xor-all-planes-synthetic":"sparse-xor-all-planes-public"):
+      sparse_xor?(bank.empty()?"sparse-xor-synthetic":"sparse-xor-public"):
       tile_reference?(bank.empty()?"xor-tile-reference-synthetic":"xor-tile-reference-public"):
       alternate_reference?(bank.empty()?"xor-reference-synthetic":"xor-reference-public"):
       shifted_bias?(bank.empty()?"shifted-bias-synthetic":"shifted-bias-public"):
       modular?(bank.empty()?"modular-synthetic":"modular-public"):(bank.empty()?"related":"mixed");
   std::cout<<"multiwindow_trial mode="<<(anchor?"amd":"cpu")<<" cohort="<<cohort
+      <<" sparse_device="<<sparse_device<<" reply_bytes="<<stats.reply_bytes
       <<" files="<<originals.size()<<" groups="<<progress.published_groups<<" advised_members="<<progress.advised_members_published
       <<" capability="<<capability
       <<" submitted="<<stats.submitted<<" verified_batches="<<stats.verified<<" worker_ns="<<worker_ns
@@ -619,10 +628,12 @@ int live_anchor_owner(int argc,char** argv) {
     constexpr auto families=anchor_search_fixture::indexed_batch_families;
     const bool small_batch=anchor_search_fixture::small_indexed_batch(*multiwindow);
     const bool modular=*multiwindow==IndexedBatchPattern::modular_delta || *multiwindow==IndexedBatchPattern::shifted_bias;
+    const bool sparse=mode=="sparse-xor-device" || mode=="sparse-xor-all-planes-device";
     const auto members=small_batch?families*(anchor_search_fixture::indexed_small_extents_per_family-1):
         anchor_search_fixture::indexed_batch_members;
     const auto minimum=argc==8 || small_batch?2U:static_cast<std::uint32_t>(members);
-    const auto output=modular?anchor_match::BatchOutput::modular_delta:anchor_match::BatchOutput::wide_packed_xor;
+    const auto output=sparse?anchor_match::BatchOutput::sparse_xor:
+        modular?anchor_match::BatchOutput::modular_delta:anchor_match::BatchOutput::wide_packed_xor;
     return live_multiwindow_anchor(NativeAnchorSearchOptions{*binding.route,profile,minimum,
         static_cast<std::uint32_t>(members+families),10000,
         output,small_batch?4U:modular?16U:0U},argc==8?std::filesystem::path(argv[7]):std::filesystem::path{},

@@ -1254,18 +1254,22 @@ bool IndexedSharedBasePreparation::advance(std::span<const NativeSharedBaseCopyR
       }
     }
     const auto xor_limit=encoded?encoded->size():kNativeExtentBytes;
+    const bool sparse_advice=body_method==NativePackedGroupMethod::sparse_xor;
     const auto xor_body=body_method==NativePackedGroupMethod::xor_planes?packed_body:std::span<const std::byte>{};
-    auto checked=check_native_group_xor_body(xor_body,bytes,base_,kNativeGroupBaseBit+1,1,xor_limit,true);
-    if(packed_check && body_method==NativePackedGroupMethod::xor_planes)*packed_check=checked.check;
+    auto checked=sparse_advice?check_native_group_sparse_xor_body(packed_body,bytes,base_,kNativeGroupBaseBit+1,1,xor_limit):
+        check_native_group_xor_body(xor_body,bytes,base_,kNativeGroupBaseBit+1,1,xor_limit,true);
+    if(packed_check && (sparse_advice || body_method==NativePackedGroupMethod::xor_planes))*packed_check=checked.check;
     const bool checked_packed=checked.frame.has_value();
     auto packed=std::move(checked.frame);
     auto xor_method=checked.method;
-    if(checked.check!=NativePackedGroupCheck::verified) {
+    if(checked.check!=NativePackedGroupCheck::verified || (sparse_advice && !packed)) {
       packed=encode_native_group_xor(bytes,base_,kNativeGroupBaseBit+1,1,xor_limit);
-      if(auto sparse=encode_native_group_sparse_xor(bytes,base_,kNativeGroupBaseBit+1,1,
-          packed?packed->size():xor_limit)) {
-        packed=std::move(sparse);
-        xor_method=NativeGroupMethod::sparse_xor;
+      if(checked.check!=NativePackedGroupCheck::verified) {
+        if(auto sparse=encode_native_group_sparse_xor(bytes,base_,kNativeGroupBaseBit+1,1,
+            packed?packed->size():xor_limit)) {
+          packed=std::move(sparse);
+          xor_method=NativeGroupMethod::sparse_xor;
+        }
       }
     }
     if(packed) {
@@ -1302,7 +1306,8 @@ bool IndexedSharedBasePreparation::advance(std::span<const NativeSharedBaseCopyR
       progress_.phase=Phase::declined;
       return true;
     }
-    const auto packed_advice=selected_advice && (capability==packed_xor_capability || capability==modular_delta_capability);
+    const auto packed_advice=selected_advice && (capability==packed_xor_capability || capability==modular_delta_capability ||
+        (sparse_advice && capability==sparse_xor_capability));
     if(!packed_advice &&
         !std::ranges::equal(decode_native_group_member(*encoded,base_,available_group_method(capability)),bytes))
       fail(Code::corrupt,"indexed shared-base private CPU comparison failed");

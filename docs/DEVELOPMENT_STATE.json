@@ -72,8 +72,10 @@
     "modeled_interruption_cases_per_lane": 528,
     "independent_cpu_readback": true,
     "amd_verified_plane_input": true,
-    "scope": "Fixed references on two controlled 15-file cohorts. The current worker supplies dense XOR planes and CPU compacts them after byte verification.",
-    "next": "Pack sparse planes directly on AMD to measure smaller transport and cover tile layouts that exceed the dense reply slot."
+    "amd_direct_sparse_encoding": true,
+    "amd_direct_sparse_evidence": "docs/evidence/amd-direct-sparse-xor-2026-11-19.json",
+    "scope": "Fixed references on two controlled 15-file cohorts. The initial worker supplied dense planes for CPU conversion. Direct sparse trials verified the compact output from AMD.",
+    "next": "Reduce fixed device-to-host slot copies and amortize stream setup before selecting direct sparse AMD automatically."
   },
   "native_path_lookup": {
     "source_base": "700cdb31de32b847497b02cc0e113d27482e6c85",

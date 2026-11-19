@@ -35,11 +35,14 @@ inline constexpr auto indexed_small_extents_per_family=3*indexed_batch_extents_p
 inline constexpr auto indexed_batch_members=indexed_batch_families*(kNativeMaxDirtyExtents-1);
 inline constexpr auto indexed_sample_bank_bytes=(indexed_batch_families+1)*kNativeExtentBytes;
 static_assert(kNativeMaxDirtyExtents%indexed_batch_extents_per_file==0 && indexed_batch_members>kNativeMaxExtents);
-enum class IndexedBatchPattern {packed_xor,modular_delta,shifted_bias,xor_reference,xor_tile_reference,sparse_xor};
+enum class IndexedBatchPattern {
+  packed_xor,modular_delta,shifted_bias,xor_reference,xor_tile_reference,sparse_xor,sparse_xor_all_planes
+};
 
 inline bool small_indexed_batch(IndexedBatchPattern pattern) noexcept {
   return pattern==IndexedBatchPattern::shifted_bias || pattern==IndexedBatchPattern::xor_reference ||
-      pattern==IndexedBatchPattern::xor_tile_reference || pattern==IndexedBatchPattern::sparse_xor;
+      pattern==IndexedBatchPattern::xor_tile_reference || pattern==IndexedBatchPattern::sparse_xor ||
+      pattern==IndexedBatchPattern::sparse_xor_all_planes;
 }
 
 inline void apply_reference_variation(std::span<std::byte> extent,unsigned member) {
@@ -87,6 +90,21 @@ inline void apply_sparse_xor_variation(std::span<std::byte> extent,unsigned memb
     }
   }
 }
+
+inline void apply_all_xor_planes(std::span<std::byte> extent,unsigned member) {
+  if(!member)return;
+  constexpr auto tile_bytes=anchor_match::xor_tile_bytes;
+  for(std::size_t at=0;at<extent.size();at+=tile_bytes) {
+    auto tile=extent.subspan(at,tile_bytes);
+    const auto index=at/tile_bytes;
+    // All eight planes differ, with a mixture of dense, sparse and inverse
+    // lists across tiles. Keep the masked discovery bytes intact.
+    if(index%4==0)for(std::size_t i=64;i<tile.size();i+=2)tile[i]^=std::byte{2};
+    if(index%4==1 && member%2)for(auto& byte:tile)byte^=std::byte{0x80};
+    for(unsigned bit=0;bit<8;++bit)
+      tile[64+(73*member+37*bit+11*index)%192]^=static_cast<std::byte>(1U<<bit);
+  }
+}
 // Each scan window sees one disjoint family spread across several files.
 // The optional holdout bank also contributes unmodified unrelated extents.
 inline std::vector<Bytes> indexed_batch_files(std::span<const std::byte> bank={},
@@ -121,6 +139,10 @@ inline std::vector<Bytes> indexed_batch_files(std::span<const std::byte> bank={}
         }
         if(pattern==IndexedBatchPattern::sparse_xor) {
           apply_sparse_xor_variation(extent,static_cast<unsigned>(member));
+          continue;
+        }
+        if(pattern==IndexedBatchPattern::sparse_xor_all_planes) {
+          apply_all_xor_planes(extent,static_cast<unsigned>(member));
           continue;
         }
         if(member) {

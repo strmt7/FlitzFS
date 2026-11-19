@@ -21,12 +21,14 @@ using KernelApiEntry=const KernelApi* (*)() noexcept;
 
 inline constexpr u32 window_abi_version=2,packed_xor_window_abi_version=3,wide_xor_window_abi_version=4;
 inline constexpr u32 adaptive_xor_window_abi_version=5,modular_delta_window_abi_version=6;
+inline constexpr u32 sparse_xor_window_abi_version=7;
 constexpr u32 window_version(BatchOutput output) noexcept {
   switch(output) {
     case BatchOutput::anchors:return window_abi_version;
     case BatchOutput::packed_xor:return packed_xor_window_abi_version;
     case BatchOutput::wide_packed_xor:return adaptive_xor_window_abi_version;
     case BatchOutput::modular_delta:return modular_delta_window_abi_version;
+    case BatchOutput::sparse_xor:return sparse_xor_window_abi_version;
   }
   return 0;
 }

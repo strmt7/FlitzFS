@@ -53,7 +53,7 @@ struct NativeAnchorSearchController::Impl {
   bool valid_profile() const noexcept {
     return options.minimum_members && options.minimum_members<=options.maximum_members &&
         options.minimum_members<=detail::anchor_match_batch_member_limit() &&
-        (options.output!=anchor_match::BatchOutput::modular_delta || options.maximum_dispatch_members) &&
+        (!anchor_match::compact_output(options.output) || options.maximum_dispatch_members) &&
         options.duty_ppm && options.duty_ppm<=100000 &&
         options.worker.memory_share_divisor && valid_process_budget(options.worker);
   }
@@ -186,7 +186,8 @@ void NativeAnchorSearchController::start(std::span<const NativeSharedBaseSearchW
     auto request=builder.finish();
     std::vector<NativeSharedBaseSearchWindow> retained(windows.begin(),windows.end());
     const auto begun=GetTickCount64();
-    const auto command=options.output==anchor_match::BatchOutput::modular_delta?L"--driver-anchor-modular-delta-batch":
+    const auto command=options.output==anchor_match::BatchOutput::sparse_xor?L"--driver-anchor-sparse-xor-batch":
+        options.output==anchor_match::BatchOutput::modular_delta?L"--driver-anchor-modular-delta-batch":
         options.output==anchor_match::BatchOutput::wide_packed_xor?L"--driver-anchor-xor-wide-batch":
         options.output==anchor_match::BatchOutput::packed_xor?L"--driver-anchor-xor-batch":L"--driver-anchor-transfer-batch";
     auto session=WorkerExchangeSession::start_sized(route.helper,
@@ -255,7 +256,8 @@ void NativeAnchorSearchController::observe(std::uint64_t activity,std::uint64_t 
           if(self.packed_advice.size()!=self.windows.size())throw std::invalid_argument("Incomplete packed batch");
           self.packed_checks.reserve(self.windows.size());
           const auto method=self.options.output==anchor_match::BatchOutput::modular_delta?
-              NativePackedGroupMethod::modular_delta:NativePackedGroupMethod::xor_planes;
+              NativePackedGroupMethod::modular_delta:self.options.output==anchor_match::BatchOutput::sparse_xor?
+              NativePackedGroupMethod::sparse_xor:NativePackedGroupMethod::xor_planes;
           for(std::size_t i=0;i<self.windows.size();++i) {
             auto& checks=self.packed_checks.emplace_back(self.packed_advice[i].size(),NativePackedGroupCheck::pending);
             self.replies.push_back({self.windows[i],{},self.packed_advice[i],checks,method});
@@ -272,6 +274,7 @@ void NativeAnchorSearchController::observe(std::uint64_t activity,std::uint64_t 
           ++self.stats.verified;
           self.stats.verified_groups+=self.windows.size();
         }
+        self.stats.reply_bytes+=result->response.size();
       }catch(const std::bad_alloc&) {
         self.fail(flight.ticket,GpuRecoveryOutcome::temporary_pressure,true);
         self.discard();++self.stats.declined;

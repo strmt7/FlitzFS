@@ -134,10 +134,7 @@ void pack_xor_members(const unsigned char* base,const unsigned char* window,unsi
     unsigned plane_offset=1+segment;
     for(unsigned bit=0;bit<8;++bit) {
       if(!(mask&(1U<<bit)))continue;
-      unsigned packed=0;
-      for(unsigned i=0;i<8;++i)
-        packed|=static_cast<unsigned>(((difference>>(8*i+bit))&1ULL)<<i);
-      tile_body[plane_offset]=static_cast<unsigned char>(packed);
+      tile_body[plane_offset]=static_cast<unsigned char>(xor_plane_bits(difference,bit));
       plane_offset+=xor_plane_bytes;
     }
   }
@@ -165,6 +162,103 @@ void flitzfs_anchor_packed_xor_v5(const unsigned char* base,const unsigned char*
   using namespace flitzfs::anchor_match;
   pack_xor_members<adaptive_xor_window_abi_version,xor_wide_slot_bytes,
       dispatch_member_limit(BatchOutput::wide_packed_xor)>(base,window,members,output,version);
+}
+
+extern "C" __global__ __attribute__((amdgpu_flat_work_group_size(64,64)))
+void flitzfs_anchor_sparse_xor_v7(const unsigned char* base,const unsigned char* window,unsigned int members,
+    const flitzfs::anchor_match::Bucket*,unsigned int* output,unsigned int version) {
+  using namespace flitzfs::anchor_match;
+  if(version!=sparse_xor_window_abi_version || !base || !window || !output ||
+      !members || members>dispatch_member_limit(BatchOutput::sparse_xor) ||
+      blockIdx.x>=members || blockDim.x!=threads)return;
+  constexpr auto lanes=xor_plane_bytes;
+  constexpr auto tiles_per_block=threads/lanes;
+  static_assert(lanes==32 && xor_tiles%tiles_per_block==0);
+  __shared__ SparseXorScratch scratch;
+  const auto lane=threadIdx.x;
+  const auto segment=lane%lanes;
+  const auto first_tile=lane/lanes;
+  const auto* member=window+blockIdx.x*extent_bytes;
+  auto* slot=output+blockIdx.x*(xor_wide_slot_bytes/sizeof(u32));
+  for(u32 tile=first_tile;tile<xor_tiles;tile+=tiles_per_block) {
+    const auto at=tile*xor_tile_bytes+segment*8;
+    const auto difference=xor_segment(base+at,member+at);
+    u32 mask=0,sparse=0,payload=0;
+    for(u32 bit=0;bit<8;++bit) {
+      auto ones=static_cast<u32>(__popc(xor_plane_bits(difference,bit)));
+      for(u32 step=lanes/2;step;step/=2)ones+=__shfl_down(ones,step,lanes);
+      if(segment)continue;
+      const auto descriptor=sparse_xor_descriptor(ones);
+      scratch.descriptors[tile][bit]=static_cast<u8>(descriptor);
+      if(!descriptor)continue;
+      mask|=1U<<bit;
+      if(descriptor==sparse_plane_dense)payload+=xor_plane_bytes;
+      else {
+        sparse|=1U<<bit;
+        payload+=1+(descriptor&~sparse_plane_inverse);
+      }
+    }
+    if(!segment) {
+      scratch.masks[tile]=static_cast<u8>(mask);
+      scratch.sparse_masks[tile]=static_cast<u8>(sparse);
+      scratch.offsets[tile]=1+(mask!=0)+payload;
+    }
+  }
+  __syncthreads();
+  if(!lane) {
+    u32 size=0;
+    for(u32 tile=0;tile<xor_tiles;++tile) {
+      const auto bytes=scratch.offsets[tile];
+      scratch.offsets[tile]=size;
+      size+=bytes;
+    }
+    scratch.size=size>=sparse_xor_min_body_bytes && size<=sparse_xor_max_body_bytes?size:0;
+    slot[0]=scratch.size;
+  }
+  __syncthreads();
+  if(!scratch.size)return;
+  auto* body=reinterpret_cast<u8*>(slot+1);
+  for(u32 tile=first_tile;tile<xor_tiles;tile+=tiles_per_block) {
+    auto* target=body+scratch.offsets[tile];
+    const auto mask=scratch.masks[tile];
+    if(!segment)*target=mask;
+    if(!mask)continue;
+    if(!segment)target[1]=scratch.sparse_masks[tile];
+    target+=2;
+    const auto at=tile*xor_tile_bytes+segment*8;
+    const auto difference=xor_segment(base+at,member+at);
+    for(u32 bit=0;bit<8;++bit) {
+      const auto descriptor=static_cast<u32>(scratch.descriptors[tile][bit]);
+      if(!descriptor)continue;
+      auto packed=xor_plane_bits(difference,bit);
+      if(descriptor==sparse_plane_dense) {
+        target[segment]=static_cast<u8>(packed);
+        target+=xor_plane_bytes;
+        continue;
+      }
+      if(!segment)*target=static_cast<u8>(descriptor);
+      const auto count=descriptor&~sparse_plane_inverse;
+      if(count) {
+        if(descriptor&sparse_plane_inverse)packed^=255U;
+        const auto population=static_cast<u32>(__popc(packed));
+        auto last=population;
+        for(u32 step=1;step<lanes;step*=2) {
+          const auto earlier=__shfl_up(last,step,lanes);
+          if(segment>=step)last+=earlier;
+        }
+        // Prefix counts give each segment its disjoint part of the list.
+        if(last<=count) {
+          auto next=last-population+1;
+          while(packed) {
+            const auto bit_index=static_cast<u32>(__ffs(packed)-1);
+            target[next++]=static_cast<u8>(segment*8+bit_index);
+            packed&=packed-1;
+          }
+        }
+      }
+      target+=1+count;
+    }
+  }
 }
 
 namespace {
@@ -344,5 +438,8 @@ void bind_anchor_adaptive_xor_window(WindowSearchApi& api) noexcept {
 }
 void bind_anchor_modular_delta_window(WindowSearchApi& api) noexcept {
   api.search=flitzfs_anchor_modular_delta_v6;
+}
+void bind_anchor_sparse_xor_window(WindowSearchApi& api) noexcept {
+  api.search=flitzfs_anchor_sparse_xor_v7;
 }
 }

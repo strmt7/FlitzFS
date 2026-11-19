@@ -175,7 +175,7 @@ class NativeSharedBaseSearchWindow final {
 };
 enum class NativePackedGroupCheck : std::uint8_t {pending,verified,invalid};
 using NativePackedXorCheck=NativePackedGroupCheck;
-enum class NativePackedGroupMethod : std::uint8_t {xor_planes,modular_delta};
+enum class NativePackedGroupMethod : std::uint8_t {xor_planes,modular_delta,sparse_xor};
 struct NativeSharedBaseSearchReply {
   NativeSharedBaseSearchWindow window;
   // The caller retains these spans for the synchronous preparation step.

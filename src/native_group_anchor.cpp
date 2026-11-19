@@ -25,6 +25,8 @@ constexpr std::string_view wide_xor_request_magic="FLFSABQ\2";
 constexpr std::string_view wide_xor_batch_magic="FLFSAXP\2",wide_xor_group_magic="FLFSAXG\2";
 constexpr std::string_view delta_request_magic="FLFSABQ\3";
 constexpr std::string_view delta_batch_magic="FLFSADP\1",delta_group_magic="FLFSADG\1";
+constexpr std::string_view sparse_request_magic="FLFSABQ\4";
+constexpr std::string_view sparse_batch_magic="FLFSASP\1",sparse_group_magic="FLFSASG\1";
 constexpr std::uint32_t group_prefix_bytes=4;
 constexpr auto minimum_group_request=group_prefix_bytes+header_size+2*match::extent_bytes;
 constexpr auto execution=static_cast<std::uint32_t>(WorkerExecution::hip);
@@ -87,17 +89,33 @@ void check_header(std::span<const std::byte> frame,std::string_view magic,std::u
 
 std::string_view batch_request_tag(match::BatchOutput output) noexcept {
   if(output==match::BatchOutput::modular_delta)return delta_request_magic;
+  if(output==match::BatchOutput::sparse_xor)return sparse_request_magic;
   return match::wide_output(output)?wide_xor_request_magic:batch_request_magic;
 }
-bool valid_delta_payload_size(std::size_t bytes) noexcept {
-  return !bytes || (bytes>=match::delta_parameters_bytes && bytes<=match::delta_max_payload_bytes);
+std::string_view batch_reply_tag(match::BatchOutput output) noexcept {
+  if(output==match::BatchOutput::sparse_xor)return sparse_batch_magic;
+  if(output==match::BatchOutput::modular_delta)return delta_batch_magic;
+  if(output==match::BatchOutput::wide_packed_xor)return wide_xor_batch_magic;
+  return output==match::BatchOutput::packed_xor?xor_batch_magic:batch_reply_magic;
+}
+std::string_view group_reply_tag(match::BatchOutput output) noexcept {
+  if(output==match::BatchOutput::sparse_xor)return sparse_group_magic;
+  if(output==match::BatchOutput::modular_delta)return delta_group_magic;
+  if(output==match::BatchOutput::wide_packed_xor)return wide_xor_group_magic;
+  return output==match::BatchOutput::packed_xor?xor_group_magic:reply_magic;
+}
+bool valid_packed_payload_size(std::size_t bytes,match::BatchOutput output) noexcept {
+  if(!bytes)return true;
+  if(output==match::BatchOutput::modular_delta)
+    return bytes>=match::delta_parameters_bytes && bytes<=match::delta_max_payload_bytes;
+  if(output==match::BatchOutput::sparse_xor)
+    return bytes>=match::sparse_xor_min_body_bytes && bytes<=match::sparse_xor_max_body_bytes;
+  return bytes>=match::xor_tiles+match::xor_plane_bytes && (bytes-match::xor_tiles)%match::xor_plane_bytes==0;
 }
 std::span<const std::byte> packed_slot(std::span<const std::byte> slot,match::BatchOutput output) {
   require(slot.size()==match::reply_member_bytes(output),"packed reply slot extent");
   const auto size=static_cast<std::size_t>(get(slot,0,record_bytes));
-  require(size<=slot.size()-record_bytes && (output==match::BatchOutput::modular_delta?valid_delta_payload_size(size):
-      (!size || (size>=match::xor_tiles+match::xor_plane_bytes &&
-        (size-match::xor_tiles)%match::xor_plane_bytes==0))),"packed reply body length");
+  require(size<=slot.size()-record_bytes && valid_packed_payload_size(size,output),"packed reply body length");
   require(std::ranges::all_of(slot.subspan(record_bytes+size),[](auto byte){return byte==std::byte{255};}),
       "packed reply slot padding");
   return slot.subspan(record_bytes,size);
@@ -473,13 +491,12 @@ Bytes encode_anchor_match_batch_reply(const AnchorMatchBatchRequest& request,
     std::span<const std::vector<match::u32>> records,std::size_t reserve_tail_bytes) {
   const auto groups=request.groups();
   const auto& plan=request.plan();
-  const bool wide=plan.output==match::BatchOutput::wide_packed_xor;
   const bool packed=plan.output!=match::BatchOutput::anchors;
-  const bool compact=plan.output==match::BatchOutput::modular_delta;
+  const bool compact=match::compact_output(plan.output);
   const auto slot_bytes=match::reply_member_bytes(plan.output);
   const auto words_per_member=slot_bytes/record_bytes;
-  const auto batch_magic=compact?delta_batch_magic:wide?wide_xor_batch_magic:packed?xor_batch_magic:batch_reply_magic;
-  const auto group_magic=compact?delta_group_magic:wide?wide_xor_group_magic:packed?xor_group_magic:reply_magic;
+  const auto batch_magic=batch_reply_tag(plan.output);
+  const auto group_magic=group_reply_tag(plan.output);
   require(!records.empty() && records.size()==groups.size(),"anchor batch result count");
   require(reserve_tail_bytes<=maximum_channel_bytes-plan.reply_bytes,"anchor batch reply tail capacity");
   const auto reserve=compact?records.size()*(group_prefix_bytes+header_size):
@@ -521,7 +538,7 @@ template<class ReadGroup>auto read_anchor_batch_reply(std::span<const std::byte>
   const auto groups=request.groups();
   const auto& plan=request.plan();
   const auto& digest=request.digest();
-  const bool compact=plan.output==match::BatchOutput::modular_delta;
+  const bool compact=match::compact_output(plan.output);
   require(!groups.empty() && (compact?frame.size()<=plan.reply_bytes:frame.size()==plan.reply_bytes) &&
       get(frame,8,8)==request.id() &&
       get(frame,16,4)==groups.size() && get(frame,20,4)==plan.launches &&
@@ -561,12 +578,11 @@ std::vector<AnchorPackedAdvice> decode_anchor_packed_batch_reply(
     std::span<const std::byte> frame,const AnchorMatchBatchRequest& request) {
   const auto output=request.plan().output;
   require(output!=match::BatchOutput::anchors,"packed reply requested for a copy batch");
-  const bool wide=output==match::BatchOutput::wide_packed_xor;
-  const bool compact=output==match::BatchOutput::modular_delta;
+  const bool compact=match::compact_output(output);
   const auto slot_bytes=match::reply_member_bytes(output);
-  return read_anchor_batch_reply(frame,request,compact?delta_batch_magic:wide?wide_xor_batch_magic:xor_batch_magic,
-      [output,slot_bytes,wide,compact](auto bytes,const auto& group,auto layout) {
-        check_header(bytes,compact?delta_group_magic:wide?wide_xor_group_magic:xor_group_magic,execution);
+  return read_anchor_batch_reply(frame,request,batch_reply_tag(output),
+      [output,slot_bytes,compact](auto bytes,const auto& group,auto layout) {
+        check_header(bytes,group_reply_tag(output),execution);
         require(get(bytes,8,8)==group.id && get(bytes,16,4)==layout.members &&
             get(bytes,20,4)==layout.members*(slot_bytes/record_bytes) &&
             std::ranges::equal(group.source_digest,bytes.subspan(32,32)),"packed reply group binding");
@@ -575,10 +591,10 @@ std::vector<AnchorPackedAdvice> decode_anchor_packed_batch_reply(
         std::size_t at=header_size;
         for(std::uint32_t i=0;i<layout.members;++i) {
           if(compact) {
-            require(bytes.size()-at>=record_bytes,"truncated modular payload length");
+            require(bytes.size()-at>=record_bytes,"truncated compact payload length");
             const auto size=static_cast<std::size_t>(get(bytes,at,record_bytes));
             at+=record_bytes;
-            require(valid_delta_payload_size(size) && size<=bytes.size()-at,"invalid modular payload length");
+            require(valid_packed_payload_size(size,output) && size<=bytes.size()-at,"invalid compact payload length");
             const auto body=bytes.subspan(at,size);
             result.emplace_back(body.begin(),body.end());
             at+=size;

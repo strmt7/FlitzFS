@@ -250,6 +250,7 @@ std::vector<std::vector<anchor_match::u32>> run_hip_anchor_groups(HMODULE runtim
   namespace match=anchor_match;
   const bool packed=mode!=match::BatchOutput::anchors;
   const bool modular=mode==match::BatchOutput::modular_delta;
+  const bool sparse=mode==match::BatchOutput::sparse_xor;
   const auto slot_bytes=match::reply_member_bytes(mode);
   const auto words_per_member=slot_bytes/static_cast<match::u32>(sizeof(match::u32));
   require(runtime && match::compatible_kernel_api(kernel) && ordinal>=0 && ordinal<64 &&
@@ -285,6 +286,7 @@ std::vector<std::vector<anchor_match::u32>> run_hip_anchor_groups(HMODULE runtim
         HipWorkerStage::device_properties);
     if((!modular && ((properties.warpSize!=32 && properties.warpSize!=64) || !properties.arch.hasWarpShuffle)) ||
         (modular && properties.sharedMemPerBlock<sizeof(match::ModularDeltaScratch)) ||
+        (sparse && properties.sharedMemPerBlock<sizeof(match::SparseXorScratch)) ||
         properties.maxThreadsPerBlock<static_cast<int>(match::threads) ||
         properties.maxThreadsDim[0]<static_cast<int>(match::threads) ||
         properties.maxGridSize[0]<static_cast<int>(quantum))

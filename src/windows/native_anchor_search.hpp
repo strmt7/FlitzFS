@@ -21,6 +21,7 @@ struct NativeAnchorSearchStats {
   std::uint64_t submitted=0,verified=0,declined=0,yielded=0;
   bool retirement_confirmed=true;
   std::uint64_t submitted_groups=0,verified_groups=0,integrity_failures=0,empty_xor_batches=0;
+  std::uint64_t reply_bytes=0;
 };
 
 // One serialized owner, outside the filesystem control lock. The transport

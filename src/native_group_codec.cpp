@@ -17,7 +17,8 @@ constexpr auto delta_magic=[] {auto value=aligned_magic;value.back()=std::byte{'
 constexpr auto sparse_xor_magic=[] {auto value=aligned_magic;value.back()=std::byte{'5'};return value;}();
 constexpr std::array member_magics{aligned_magic,copy_magic,xor_magic,delta_magic,sparse_xor_magic};
 constexpr std::size_t xor_tile_bytes=256,xor_plane_bytes=xor_tile_bytes/8,xor_tiles=extent/xor_tile_bytes;
-constexpr unsigned sparse_plane_max=xor_plane_bytes-2,sparse_plane_inverse=0x80;
+using anchor_match::sparse_plane_max;
+using anchor_match::sparse_plane_inverse;
 static_assert(extent%xor_tile_bytes==0 && xor_tile_bytes%8==0 &&
     extent==anchor_match::extent_bytes && xor_tile_bytes==anchor_match::xor_tile_bytes);
 static_assert(xor_tile_bytes==256 && sparse_plane_max<sparse_plane_inverse);
@@ -174,8 +175,8 @@ unsigned plane_ones(std::span<const std::byte> plane) noexcept {
 }
 
 template<class Dense,class Sparse>
-void sparse_xor_planes(std::span<const std::byte> body,Dense dense,Sparse sparse) {
-  bool changed=false;
+std::size_t sparse_xor_planes(std::span<const std::byte> body,Dense dense,Sparse sparse) {
+  std::size_t planes=0;
   for(std::size_t tile=0;tile<xor_tiles;++tile) {
     if(body.empty())fail();
     const auto mask=std::to_integer<unsigned>(body.front());
@@ -185,6 +186,7 @@ void sparse_xor_planes(std::span<const std::byte> body,Dense dense,Sparse sparse
     const auto compact=std::to_integer<unsigned>(body.front());
     body=body.subspan(1);
     if(compact&~mask)fail();
+    planes+=static_cast<std::size_t>(std::popcount(mask));
     const auto output=tile*xor_tile_bytes;
     for(unsigned bit=0;bit<8;++bit) {
       if(!(mask&(1U<<bit)))continue;
@@ -208,13 +210,13 @@ void sparse_xor_planes(std::span<const std::byte> body,Dense dense,Sparse sparse
         body=body.subspan(count);
       }
     }
-    changed=true;
   }
-  if(!changed || !body.empty())fail();
+  if(!planes || !body.empty())fail();
+  return planes;
 }
 
-void apply_sparse_xor(std::span<const std::byte> body,std::span<std::byte> result) {
-  sparse_xor_planes(body,[&](std::size_t at,unsigned bit,std::span<const std::byte> plane) {
+std::size_t apply_sparse_xor(std::span<const std::byte> body,std::span<std::byte> result) {
+  return sparse_xor_planes(body,[&](std::size_t at,unsigned bit,std::span<const std::byte> plane) {
     apply_dense_xor_plane(result.subspan(at,xor_tile_bytes),bit,plane);
   },[&](std::size_t at,unsigned bit,bool invert,std::span<const std::byte> positions) {
     const auto mask=static_cast<std::byte>(1U<<bit);
@@ -687,6 +689,32 @@ NativeGroupPackedCandidate check_native_group_xor_body(std::span<const std::byte
   std::ranges::copy(body,frame.begin()+header);
   write_header(frame,NativeGroupMethod::packed_xor,member,base,base_id,generation,static_cast<std::uint32_t>(xor_tiles));
   return {std::move(frame),NativePackedXorCheck::verified};
+}
+
+NativeGroupPackedCandidate check_native_group_sparse_xor_body(std::span<const std::byte> body,
+    std::span<const std::byte> member,std::span<const std::byte> base,std::uint64_t base_id,
+    std::uint64_t generation,std::size_t exclusive_limit) {
+  using Check=NativePackedGroupCheck;
+  if(member.size()!=extent || base.size()!=extent || !base_id_valid(base_id) || !generation ||
+      exclusive_limit>extent)fail();
+  if(body.empty())return {};
+  if(body.size()>anchor_match::sparse_xor_max_body_bytes)return {{},Check::invalid};
+  std::vector<std::byte> decoded(base.begin(),base.end());
+  std::size_t planes=0;
+  try {
+    planes=apply_sparse_xor(body,decoded);
+  }catch(const std::runtime_error&) {
+    return {{},Check::invalid};
+  }
+  if(!std::ranges::equal(decoded,member))return {{},Check::invalid};
+  // The dense format prices every changed plane equally. Preserve it on ties
+  // and only encode it on CPU when this sparse candidate cannot be selected.
+  if(header+body.size()>=exclusive_limit || body.size()>=xor_tiles+planes*xor_plane_bytes)
+    return {{},Check::verified};
+  std::vector<std::byte> frame(header+body.size());
+  std::ranges::copy(body,frame.begin()+header);
+  write_header(frame,NativeGroupMethod::sparse_xor,member,base,base_id,generation,static_cast<std::uint32_t>(xor_tiles));
+  return {std::move(frame),Check::verified,NativeGroupMethod::sparse_xor};
 }
 
 std::array<std::uint64_t,kNativeGroupShiftFeatures> native_group_shift_features(std::span<const std::byte> bytes) noexcept {
