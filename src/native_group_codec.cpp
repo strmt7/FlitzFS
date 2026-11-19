@@ -180,6 +180,10 @@ struct DeltaChoice {
   std::size_t bytes,word_bytes=0;
   std::uint64_t bias=0;
 };
+bool valid_delta_parameters(std::size_t width,std::uint64_t bias) noexcept {
+  return (width==1 || width==2 || width==4 || width==8) &&
+      (width==8 || (bias>>(8*width))==0);
+}
 template<class Word>void consider_delta(std::span<const std::byte> member,std::span<const std::byte> base,
     DeltaChoice& best) {
   if(best.bytes<=header)return;
@@ -230,8 +234,7 @@ template<class Word>void append_delta_tiles(std::vector<std::byte>& frame,std::s
 DeltaChoice delta_parameters(std::span<const std::byte> frame) {
   const auto width=static_cast<std::size_t>(get(frame,104,1));
   const auto bias=get(frame,112,8);
-  if((width!=1 && width!=2 && width!=4 && width!=8) ||
-      (width<8 && (bias>>(8*width))) ||
+  if(!valid_delta_parameters(width,bias) ||
       !std::ranges::all_of(frame.subspan(105,7),[](auto value){return value==std::byte{};}) ||
       get(frame,120,8) || get(frame,96,4)!=(frame.size()==header?0:xor_tiles) ||
       (frame.size()==header && !bias))fail();
@@ -277,9 +280,7 @@ template<class Word>void unpack_delta(std::span<const std::byte> body,std::uint6
     for(std::size_t i=0;i<words;++i)add_residual(tile+i*sizeof(Word),residuals[i]);
   });
 }
-void apply_modular_delta(std::span<const std::byte> frame,std::span<std::byte> result) {
-  const auto choice=delta_parameters(frame);
-  const auto body=frame.subspan(header);
+void apply_modular_delta(std::span<const std::byte> body,const DeltaChoice& choice,std::span<std::byte> result) {
   switch(choice.word_bytes) {
     case 1: unpack_delta<std::uint8_t>(body,choice.bias,result);break;
     case 2: unpack_delta<std::uint16_t>(body,choice.bias,result);break;
@@ -361,7 +362,7 @@ std::vector<std::byte> decode_native_group_member(std::span<const std::byte> byt
     result.assign(base.begin(),base.end());
     if(ref.method==NativeGroupMethod::aligned_patches)patches(bytes,literal);
     else if(ref.method==NativeGroupMethod::packed_xor)apply_packed_xor(bytes.subspan(header),result);
-    else apply_modular_delta(bytes,result);
+    else apply_modular_delta(bytes.subspan(header),delta_parameters(bytes),result);
   }
   if(record_digest(result)!=ref.decoded_digest)fail();return result;
 }
@@ -461,7 +462,36 @@ NativeGroupDeltaSignatures native_group_delta_signatures(std::span<const std::by
       delta_signature<std::uint32_t>(bytes),delta_signature<std::uint64_t>(bytes)};
 }
 
-NativeGroupXorCandidate check_native_group_xor_body(std::span<const std::byte> body,
+NativeGroupPackedCandidate check_native_group_delta_body(std::span<const std::byte> payload,
+    std::span<const std::byte> member,std::span<const std::byte> base,std::uint64_t base_id,
+    std::uint64_t generation,std::size_t exclusive_limit) {
+  using Check=NativePackedGroupCheck;
+  if(member.size()!=extent || base.size()!=extent || !base_id_valid(base_id) || !generation ||
+      exclusive_limit>extent)fail();
+  if(payload.empty())return {};
+  constexpr auto metadata=anchor_match::delta_parameters_bytes;
+  static_assert(anchor_match::delta_max_payload_bytes==extent-header+metadata-1);
+  if(payload.size()<metadata || payload.size()>anchor_match::delta_max_payload_bytes)return {{},Check::invalid};
+  const auto width=static_cast<std::size_t>(get(payload,0,4));
+  const auto bias=get(payload,4,8);
+  const auto body=payload.subspan(metadata);
+  if(!valid_delta_parameters(width,bias) || (body.empty() && !bias))return {{},Check::invalid};
+  std::vector<std::byte> decoded(base.begin(),base.end());
+  try {
+    apply_modular_delta(body,{header+body.size(),width,bias},decoded);
+  }catch(const std::runtime_error&) {return {{},Check::invalid};}
+  if(!std::ranges::equal(decoded,member))return {{},Check::invalid};
+  if(header+body.size()>=exclusive_limit)return {{},Check::verified};
+  std::vector<std::byte> frame(header+body.size());
+  std::ranges::copy(body,frame.begin()+header);
+  write_header(frame,NativeGroupMethod::modular_delta,member,base,base_id,generation,
+      body.empty()?0:static_cast<std::uint32_t>(xor_tiles));
+  frame[104]=static_cast<std::byte>(width);
+  put(frame,112,bias,8);
+  return {std::move(frame),Check::verified};
+}
+
+NativeGroupPackedCandidate check_native_group_xor_body(std::span<const std::byte> body,
     std::span<const std::byte> member,std::span<const std::byte> base,std::uint64_t base_id,
     std::uint64_t generation,std::size_t exclusive_limit) {
   if(member.size()!=extent || base.size()!=extent || !base_id_valid(base_id) || !generation ||

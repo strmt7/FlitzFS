@@ -32,7 +32,7 @@ struct AnchorMatchRequest {
   AnchorMatchSource view() const && = delete;
 };
 using AnchorMatchAdvice=std::vector<std::vector<NativeSharedBaseCopyRange>>;
-using AnchorXorAdvice=std::vector<std::vector<std::byte>>;
+using AnchorPackedAdvice=std::vector<std::vector<std::byte>>;
 
 struct AnchorMatchBatchPlan {
   std::vector<AnchorMatchSweepPlan> groups;
@@ -130,13 +130,13 @@ std::vector<AnchorMatchAdvice> accept_anchor_match_batch_reply(
     std::span<const std::byte> frame,const AnchorMatchBatchRequest&);
 // These bodies are owned, bound to the request and structurally checked.
 // The native indexed writer independently proves each candidate's decoded bytes.
-std::vector<AnchorXorAdvice> decode_anchor_xor_batch_reply(
+std::vector<AnchorPackedAdvice> decode_anchor_packed_batch_reply(
     std::span<const std::byte> frame,const AnchorMatchBatchRequest&);
-enum class AnchorXorBatchStatus {pending,verified,empty,invalid};
-struct AnchorXorBatchCheck {
-  AnchorXorBatchStatus status=AnchorXorBatchStatus::pending;
+enum class AnchorPackedBatchStatus {pending,verified,empty,invalid};
+struct AnchorPackedBatchCheck {
+  AnchorPackedBatchStatus status=AnchorPackedBatchStatus::pending;
   std::size_t verified_groups=0;
 };
-AnchorXorBatchCheck inspect_anchor_xor_checks(std::span<const NativeSharedBaseSearchReply>) noexcept;
+AnchorPackedBatchCheck inspect_anchor_packed_checks(std::span<const NativeSharedBaseSearchReply>) noexcept;
 
 } // namespace flitzfs::detail

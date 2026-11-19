@@ -247,13 +247,14 @@ std::vector<std::vector<anchor_match::u32>> run_hip_anchor_groups(HMODULE runtim
     anchor_match::u32 transfer_members,anchor_match::WindowSearchKernel window_search=nullptr,
     std::uint32_t dispatches_per_wait=1,anchor_match::BatchOutput mode=anchor_match::BatchOutput::anchors) {
   namespace match=anchor_match;
-  const bool packed_xor=mode!=match::BatchOutput::anchors;
+  const bool packed=mode!=match::BatchOutput::anchors;
+  const bool modular=mode==match::BatchOutput::modular_delta;
   const auto slot_bytes=match::reply_member_bytes(mode);
   const auto words_per_member=slot_bytes/static_cast<match::u32>(sizeof(match::u32));
   require(runtime && match::compatible_kernel_api(kernel) && ordinal>=0 && ordinal<64 &&
       !requests.empty() && requests.size()==plans.size() && quantum && quantum<=match::dispatch_member_limit(mode) &&
       transfer_members>=quantum && dispatches_per_wait && dispatches_per_wait<=kAnchorProfileMaxQueuedDispatches &&
-      (window_search || (!packed_xor && transfer_members==quantum && dispatches_per_wait==1)),
+      (window_search || (!packed && transfer_members==quantum && dispatches_per_wait==1)),
       "invalid HIP anchor match configuration");
   for(std::size_t i=0;i<requests.size();++i) {
     const auto& plan=plans[i];
@@ -262,7 +263,7 @@ std::vector<std::vector<anchor_match::u32>> run_hip_anchor_groups(HMODULE runtim
         plan==detail::plan_anchor_match_sweep(count,plan.quantum_members,plan.device_bytes,plan.windows,mode),
         "anchor match sweep differs from its admitted plan");
   }
-  const auto index_bytes=packed_xor?0U:match::index_bytes;
+  const auto index_bytes=packed?0U:match::index_bytes;
   const auto allocation=(1+transfer_members)*match::extent_bytes+index_bytes+transfer_members*slot_bytes;
   profile.begin(HipPhase::device_initialize);
   WindowsGpuBudgetSampler sampler(luid,node_mask);
@@ -277,16 +278,17 @@ std::vector<std::vector<anchor_match::u32>> run_hip_anchor_groups(HMODULE runtim
   const auto least=initialize_device(api,ordinal,luid,node_mask,[](auto identity) {
     return verified_single_gpu_node(query_windows_gpu_topology(identity),identity);
   });
-  if(packed_xor) {
+  if(packed) {
     hipDeviceProp_t properties{};
-    hip_detail::check_hip(api.properties(&properties,ordinal),"packed XOR launch properties",
+    hip_detail::check_hip(api.properties(&properties,ordinal),"packed group launch properties",
         HipWorkerStage::device_properties);
-    if((properties.warpSize!=32 && properties.warpSize!=64) || !properties.arch.hasWarpShuffle ||
+    if((!modular && ((properties.warpSize!=32 && properties.warpSize!=64) || !properties.arch.hasWarpShuffle)) ||
+        (modular && properties.sharedMemPerBlock<sizeof(match::ModularDeltaScratch)) ||
         properties.maxThreadsPerBlock<static_cast<int>(match::threads) ||
         properties.maxThreadsDim[0]<static_cast<int>(match::threads) ||
         properties.maxGridSize[0]<static_cast<int>(quantum))
       throw HipWorkerFailure(HipWorkerExit::unsupported_configuration,
-          "packed XOR device geometry unavailable",HipWorkerStage::device_properties);
+          "packed group device geometry unavailable",HipWorkerStage::device_properties);
   }
   const auto before=sampler.sample().snapshot;
   require_hip_memory(before,luid,node_mask,GetTickCount64(),allocation,HipMemoryPoint::initialized,&before_init);
@@ -350,7 +352,7 @@ std::vector<std::vector<anchor_match::u32>> run_hip_anchor_groups(HMODULE runtim
       }
       profile.end(HipPhase::host_to_device);
       if(window_search)check_admitted_slab();
-      if(!first && !packed_xor) {
+      if(!first && !packed) {
         profile.begin(HipPhase::kernel_wait);
         check_hip(api.launch(reinterpret_cast<const void*>(kernel.index),
             dim3(match::extent_bytes/match::threads),dim3(match::threads),index_arguments,0,resources.stream),
@@ -363,7 +365,7 @@ std::vector<std::vector<anchor_match::u32>> run_hip_anchor_groups(HMODULE runtim
       for(match::u32 at=0;at<staged;) {
         auto& command=dispatches[queued];
         command.members=(std::min)(staged-at,plan.quantum_members);
-        const auto blocks=dim3(packed_xor?command.members:command.members*match::tiles/match::threads);
+        const auto blocks=dim3(packed?command.members:command.members*match::tiles/match::threads);
         profile.begin(HipPhase::kernel_wait);
         submitted.pending=true;
         if(window_search) {
@@ -389,7 +391,7 @@ std::vector<std::vector<anchor_match::u32>> run_hip_anchor_groups(HMODULE runtim
           "read anchor match window");
       profile.end(HipPhase::device_to_host);
       profile.begin(HipPhase::cpu_verification);
-      require(packed_xor || std::none_of(window.begin(),window.end(),[](auto record){return record==match::empty;}),
+      require(packed || std::none_of(window.begin(),window.end(),[](auto record){return record==match::empty;}),
           "incomplete anchor match window",HipWorkerStage::execution);
       profile.end(HipPhase::cpu_verification);
       check_admitted_slab();

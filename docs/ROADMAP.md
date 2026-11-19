@@ -44,9 +44,11 @@ Persistent segment reclamation under concurrent edits remains a release gate.
 
 Indexed maintenance can group numeric extents with a common modular bias
 and encode their signed residuals. It selects the method using the existing
-size and byte-verification rules. Extend the persisted candidate search and
-qualify GPU scoring across actual related numeric workloads.
-[Modular-delta members](INDEXED_NATIVE_VOLUME.md#modular-delta-members)
+size and byte-verification rules. The AMD worker scores and packs modular
+deltas for the same CPU-readable format. Extend persisted candidate search
+and qualify routing on natural numeric workloads.
+[Modular-delta members](INDEXED_NATIVE_VOLUME.md#modular-delta-members) ·
+[Matched AMD trials](evidence/amd-modular-delta-2026-11-19.json)
 
 The indexed SDK adapter now supports controlled deferred AMD encoding.
 In the live 128 KiB fixture, both mirrored copies of each accepted extent

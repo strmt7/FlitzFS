@@ -229,13 +229,15 @@ std::string runtime_digest(std::wstring_view wide) {
 
 int worker(int argc, wchar_t** argv) {
   const std::wstring_view mode = argc > 1 ? argv[1] : L"";
+  const bool modular_delta=mode==L"--driver-anchor-modular-delta-batch";
   const bool wide_xor_profile=mode==L"--driver-anchor-xor-wide-batch-profile";
   const bool anchor_batch_profile=mode==L"--driver-anchor-transfer-batch-profile" || wide_xor_profile;
   const bool wide_xor=mode==L"--driver-anchor-xor-wide-batch" || wide_xor_profile;
   const bool packed_xor=wide_xor || mode==L"--driver-anchor-xor-batch";
-  const auto anchor_output=wide_xor?anchor_match::BatchOutput::wide_packed_xor:
+  const auto anchor_output=modular_delta?anchor_match::BatchOutput::modular_delta:
+      wide_xor?anchor_match::BatchOutput::wide_packed_xor:
       packed_xor?anchor_match::BatchOutput::packed_xor:anchor_match::BatchOutput::anchors;
-  const bool anchor_transfer=mode==L"--driver-anchor-transfer-batch" || anchor_batch_profile || packed_xor;
+  const bool anchor_transfer=mode==L"--driver-anchor-transfer-batch" || anchor_batch_profile || packed_xor || modular_delta;
   const bool anchor_batch=mode==L"--driver-anchor-batch" || anchor_transfer;
   const bool anchor_profile=mode==L"--driver-anchor-sweep-profile";
   const bool anchor_sweep=mode==L"--driver-anchor-sweep" || anchor_profile;
@@ -585,6 +587,7 @@ int worker(int argc, wchar_t** argv) {
     const anchor_match::WindowSearchApi* window=nullptr;
     if(anchor_transfer) {
       const auto window_address=GetProcAddress(kernels.get(),
+          modular_delta?"flitzfs_rocm_anchor_modular_delta_api_v6":
           wide_xor?"flitzfs_rocm_anchor_xor_api_v5":
           packed_xor?"flitzfs_rocm_anchor_xor_api_v3":"flitzfs_rocm_anchor_window_api_v2");
       require(window_address!=nullptr,Exit::unsupported_configuration,"HIP anchor window entry unavailable",

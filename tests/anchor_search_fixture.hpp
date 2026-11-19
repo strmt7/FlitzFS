@@ -36,7 +36,7 @@ static_assert(kNativeMaxDirtyExtents%indexed_batch_extents_per_file==0 && indexe
 
 // Each scan window sees one disjoint family spread across several files.
 // The optional holdout bank also contributes unmodified unrelated extents.
-inline std::vector<Bytes> indexed_batch_files(std::span<const std::byte> bank={}) {
+inline std::vector<Bytes> indexed_batch_files(std::span<const std::byte> bank={},bool modular=false) {
   if(!bank.empty() && bank.size()!=indexed_sample_bank_bytes)throw std::invalid_argument("Indexed sample bank size");
   std::vector<Bytes> files;
   for(std::size_t family=0;family<indexed_batch_families;++family) {
@@ -47,12 +47,21 @@ inline std::vector<Bytes> indexed_batch_files(std::span<const std::byte> bank={}
       for(std::size_t block=0;block<indexed_batch_extents_per_file;++block) {
         const auto member=first+block;
         auto extent=std::span(file).subspan(block*kNativeExtentBytes,kNativeExtentBytes);
-        if(!bank.empty() && member%7==6) {
+        if(!modular && !bank.empty() && member%7==6) {
           std::ranges::copy(bank.last(kNativeExtentBytes),extent.begin());
           continue;
         }
         std::ranges::copy(base,extent.begin());
         if(member) {
+          if(modular) {
+            const auto width=std::size_t{1}<<(family%4);
+            for(std::size_t at=0;at<extent.size();at+=width) {
+              auto bias=std::uint64_t{0xc74482fa26e3bd97ULL}*member;
+              if(member%2 && at%4096>=64)bias+=(at/width+member)%3-std::uint64_t{1};
+              native_fixture::add_little_endian(extent.subspan(at,width),bias);
+            }
+            continue;
+          }
           const auto delta=native_fixture::data(kNativeExtentBytes,
               static_cast<unsigned>(1511+family*kNativeMaxDirtyExtents+member));
           const auto mask=!bank.empty() && member%3==0?std::byte{1}:std::byte{0x30};
@@ -63,5 +72,14 @@ inline std::vector<Bytes> indexed_batch_files(std::span<const std::byte> bank={}
     }
   }
   return files;
+}
+
+inline Bytes modular_advice_payload(std::span<const std::byte> frame) {
+  if(frame.size()<128 || frame[8]!=std::byte{4})throw std::invalid_argument("Expected a modular member frame");
+  Bytes payload(12);
+  payload[0]=frame[104];
+  std::copy_n(frame.begin()+112,8,payload.begin()+4);
+  payload.insert(payload.end(),frame.begin()+128,frame.end());
+  return payload;
 }
 }

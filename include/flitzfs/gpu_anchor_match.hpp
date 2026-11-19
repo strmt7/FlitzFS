@@ -30,16 +30,27 @@ inline constexpr u32 xor_tiles=extent_bytes/xor_tile_bytes;
 inline constexpr u32 xor_slot_bytes=tiles*sizeof(u32);
 inline constexpr u32 xor_body_capacity=xor_slot_bytes-sizeof(u32);
 inline constexpr u32 xor_wide_slot_bytes=extent_bytes;
-enum class BatchOutput : u32 {anchors,packed_xor,wide_packed_xor};
+inline constexpr u32 delta_parameters_bytes=12;
+inline constexpr u32 delta_max_payload_bytes=extent_bytes-128+delta_parameters_bytes-1;
+inline constexpr u32 delta_modes=8;
+struct ModularDeltaScratch {
+  u8 widths[delta_modes][xor_tiles];
+  u32 sizes[delta_modes],offsets[xor_tiles],mode;
+};
+enum class BatchOutput : u32 {anchors,packed_xor,wide_packed_xor,modular_delta};
+
+constexpr bool wide_output(BatchOutput output) noexcept {
+  return output==BatchOutput::wide_packed_xor || output==BatchOutput::modular_delta;
+}
 
 constexpr u32 reply_member_bytes(BatchOutput output) noexcept {
-  return output==BatchOutput::wide_packed_xor?xor_wide_slot_bytes:xor_slot_bytes;
+  return wide_output(output)?xor_wide_slot_bytes:xor_slot_bytes;
 }
 
 constexpr u32 dispatch_member_limit(BatchOutput output) noexcept {
   // One shared base and disjoint input/result slots must fit the 32-bit slab.
   // The work grant and live memory and grid limits further constrain each launch.
-  return output==BatchOutput::wide_packed_xor?
+  return wide_output(output)?
       (0xffffffffU-extent_bytes)/(extent_bytes+xor_wide_slot_bytes):max_members;
 }
 
@@ -49,7 +60,7 @@ inline constexpr u32 index_bytes=buckets*sizeof(Bucket);
 
 constexpr u32 device_bytes(u32 members,BatchOutput output=BatchOutput::anchors) noexcept {
   // Preserve the narrow protocol's original grant. Wide XOR needs no index.
-  const auto index=output==BatchOutput::wide_packed_xor?0U:index_bytes;
+  const auto index=wide_output(output)?0U:index_bytes;
   return (members+1)*extent_bytes+index+members*reply_member_bytes(output);
 }
 

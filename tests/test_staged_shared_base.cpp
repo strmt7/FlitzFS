@@ -42,15 +42,15 @@ void staged_search_fallback() {
   require(writer.finish_shared_base(work).applied,"abandoned advice blocked CPU publication");
   verify(writer.snapshot(),4);
 }
-void staged_packed_xor_advice() {
+void staged_packed_advice(bool modular) {
   constexpr unsigned count=4;
   auto ram=std::make_shared<Ram>();ram->failure_unit=4096;
   auto writer=fresh(ram,true);
   const auto base=family(0);
   std::array<Bytes,count> originals;
   for(unsigned i=0;i<count;++i) {
-    originals[i]=base;
-    if(i) {
+    originals[i]=modular?calibrated_extent(base,i):base;
+    if(i && !modular) {
       const auto variation=data(kNativeExtentBytes,1061+i);
       for(std::size_t j=0;j<base.size();++j)originals[i][j]^=variation[j]&std::byte{1};
     }
@@ -61,43 +61,45 @@ void staged_packed_xor_advice() {
   const auto keys=selections(before,count);
   auto work=writer.prepare_shared_base(keys.front(),keys);
   writer.advance_shared_base(work);
-  for(unsigned i=1;i<count;++i)require(writer.stage_shared_base_search(work,count-1),"XOR advice staging");
+  for(unsigned i=1;i<count;++i)require(writer.stage_shared_base_search(work,count-1),"Packed advice staging");
   const auto window=work.search_window();
-  require(window.members().size()==count-1,"XOR reply window shape");
+  require(window.members().size()==count-1,"Packed reply window shape");
   std::vector<Bytes> bodies(count-1);
   for(unsigned i=0;i<2;++i) {
-    const auto frame=detail::encode_native_group_xor(window.members()[i],base,detail::kNativeGroupBaseBit+1,1,
-        kNativeExtentBytes);
-    require(frame && frame->size()>128,"XOR advice fixture body");
-    bodies[i].assign(frame->begin()+128,frame->end());
+    constexpr auto id=detail::kNativeGroupBaseBit+1;
+    const auto frame=modular?detail::encode_native_group_delta(window.members()[i],base,id,1,kNativeExtentBytes):
+        detail::encode_native_group_xor(window.members()[i],base,id,1,kNativeExtentBytes);
+    require(frame.has_value(),"Packed advice fixture body");
+    bodies[i]=modular?anchor_search_fixture::modular_advice_payload(*frame):Bytes(frame->begin()+128,frame->end());
   }
   // A valid body for the wrong member must select the independent CPU encoder.
   bodies[1]=bodies[0];
-  std::array<NativePackedXorCheck,count-1> outcomes{};
-  const NativeSharedBaseSearchReply reply{window,{},bodies,outcomes};
-  const auto inspect=[&]{return detail::inspect_anchor_xor_checks(std::span(&reply,1));};
-  using Status=detail::AnchorXorBatchStatus;
-  require(inspect().status==Status::pending,"unconsumed XOR advice was counted as verified");
+  std::array<NativePackedGroupCheck,count-1> outcomes{};
+  const auto method=modular?NativePackedGroupMethod::modular_delta:NativePackedGroupMethod::xor_planes;
+  const NativeSharedBaseSearchReply reply{window,{},bodies,outcomes,method};
+  const auto inspect=[&]{return detail::inspect_anchor_packed_checks(std::span(&reply,1));};
+  using Status=detail::AnchorPackedBatchStatus;
+  require(inspect().status==Status::pending,"unconsumed packed advice was counted as verified");
   require(!writer.advance_shared_base(work,{},&reply) && !writer.advance_shared_base(work,{},&reply) &&
-      outcomes[0]==NativePackedXorCheck::verified && inspect().status==Status::pending,
+      outcomes[0]==NativePackedGroupCheck::verified && inspect().status==Status::pending,
       "one successful comparison verified the entire batch");
   while(!writer.advance_shared_base(work,{},&reply)) {}
-  require(outcomes[1]==NativePackedXorCheck::invalid && outcomes[2]==NativePackedXorCheck::pending &&
+  require(outcomes[1]==NativePackedGroupCheck::invalid && outcomes[2]==NativePackedGroupCheck::pending &&
       inspect().status==Status::invalid && work.progress().selected_advice_members==1,
-      "wrong XOR advice did not report its integrity fault and select CPU encoding");
+      "wrong packed advice did not report its integrity fault and select CPU encoding");
   bodies[1].clear();
   const auto confirmed=inspect();
   require(confirmed.status==Status::verified && confirmed.verified_groups==1,
       "empty slots prevented completion after genuine byte verification");
   bodies[0].clear();
   require(inspect().status==Status::empty,"an empty result was counted as a verified batch");
-  require(writer.finish_shared_base(work).applied,"verified XOR advice did not reach publication");
+  require(writer.finish_shared_base(work).applied,"verified packed advice did not reach publication");
   const auto after=writer.snapshot();
   after.verify_all();
   for(unsigned i=0;i<count;++i) {
     const auto path="f"+std::to_string(i);
     require(before.read(path,0,kNativeExtentBytes)==originals[i] &&
-        after.read(path,0,kNativeExtentBytes)==originals[i],"XOR advice changed acknowledged bytes");
+        after.read(path,0,kNativeExtentBytes)==originals[i],"packed advice changed acknowledged bytes");
   }
 }
 void staged_search_binding() {
@@ -341,7 +343,8 @@ int main(int argc,char** argv){try {
   if(argc==2 && std::string_view(argv[1])=="--search-window") {
     staged_search_fallback();
     staged_search_binding();
-    staged_packed_xor_advice();
+    staged_packed_advice(false);
+    staged_packed_advice(true);
     std::cout<<"PASS: "<<checks<<" staged search window checks\n";
     return 0;
   }

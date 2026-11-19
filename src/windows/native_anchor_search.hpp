@@ -14,6 +14,7 @@ struct NativeAnchorSearchOptions {
   std::uint32_t minimum_members=0,maximum_members=0;
   std::uint32_t duty_ppm=10000;
   anchor_match::BatchOutput output=anchor_match::BatchOutput::anchors;
+  std::uint32_t maximum_dispatch_members=0;
 };
 
 struct NativeAnchorSearchStats {

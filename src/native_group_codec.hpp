@@ -28,11 +28,14 @@ std::optional<std::vector<std::byte>> encode_native_group_xor(std::span<const st
     std::span<const std::byte> base,std::uint64_t base_id,std::uint64_t base_generation,std::size_t exclusive_limit);
 std::optional<std::vector<std::byte>> encode_native_group_delta(std::span<const std::byte> member,
     std::span<const std::byte> base,std::uint64_t base_id,std::uint64_t base_generation,std::size_t exclusive_limit);
-struct NativeGroupXorCandidate {
+struct NativeGroupPackedCandidate {
   std::optional<std::vector<std::byte>> frame;
-  NativePackedXorCheck check=NativePackedXorCheck::pending;
+  NativePackedGroupCheck check=NativePackedGroupCheck::pending;
 };
-NativeGroupXorCandidate check_native_group_xor_body(std::span<const std::byte> body,
+NativeGroupPackedCandidate check_native_group_xor_body(std::span<const std::byte> body,
+    std::span<const std::byte> member,std::span<const std::byte> base,std::uint64_t base_id,
+    std::uint64_t base_generation,std::size_t exclusive_limit);
+NativeGroupPackedCandidate check_native_group_delta_body(std::span<const std::byte> payload,
     std::span<const std::byte> member,std::span<const std::byte> base,std::uint64_t base_id,
     std::uint64_t base_generation,std::size_t exclusive_limit);
 // Bind a private, already CPU-verified frame to its final protected object.

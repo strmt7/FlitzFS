@@ -791,11 +791,18 @@ words. The scanner uses bias-invariant samples to nominate related extents.
 The writer selects the smallest admitted member representation, verifies it
 on CPU and publishes it with the protected base. Two nine-file controlled
 public-derived cases with Zstandard level 6 fell from 768 to 184 KiB and
-from 912 to 200 KiB in complete compacted size. Qualify natural numeric
-workloads, persist the sparse signatures and compare bounded AMD scoring
-and packing against the complete CPU path.
+from 912 to 200 KiB in complete compacted size. The AMD worker now scores
+and packs the same format, returning compact replies to the CPU verifier.
+Six matched pairs on one physical Windows host used 310 verified AMD
+members per batch and all four word widths. Both routes compacted from
+41,623,552 to 4,096,000 bytes and reopened every file exactly.
+Median complete times were 0.98 seconds on CPU and 3.16 seconds with AMD for
+synthetic inputs, and 1.00 and 3.17 seconds for the public-derived inputs.
+Expand the predictor search and validate larger, natural numeric cohorts
+before calibrating automatic route selection. Persist the sparse signatures.
 [Modular-delta format](INDEXED_NATIVE_VOLUME.md#modular-delta-members) ·
-[Size and recovery evidence](evidence/indexed-modular-delta-2026-11-19.json)
+[Size and recovery evidence](evidence/indexed-modular-delta-2026-11-19.json) ·
+[Matched AMD evidence](evidence/amd-modular-delta-2026-11-19.json)
 
 The first collective AMD trial reused the authenticated uniform LZ4 worker.
 Copies from tiles that contain the same base produced a 600 KiB complete

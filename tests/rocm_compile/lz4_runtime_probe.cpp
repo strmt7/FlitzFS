@@ -770,7 +770,7 @@ int compare_packed_xor(const fs::path& worker,const std::vector<std::wstring>& a
         [&](std::span<const std::byte> response) {
           const auto verify_start=std::chrono::steady_clock::now();
           const auto metadata=decode_anchor_batch_profile(response.last(kAnchorBatchProfileBytes),binding);
-          const auto advice=detail::decode_anchor_xor_batch_reply(response.first(plan.reply_bytes),request);
+          const auto advice=detail::decode_anchor_packed_batch_reply(response.first(plan.reply_bytes),request);
           for(std::size_t i=0;i<advice.size();++i) {
             const auto source=groups[i].source;
             const auto base=source.first(extent);

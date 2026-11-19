@@ -173,14 +173,17 @@ class NativeSharedBaseSearchWindow final {
   };
   std::shared_ptr<const Payload> payload_;
 };
-enum class NativePackedXorCheck : std::uint8_t {pending,verified,invalid};
+enum class NativePackedGroupCheck : std::uint8_t {pending,verified,invalid};
+using NativePackedXorCheck=NativePackedGroupCheck;
+enum class NativePackedGroupMethod : std::uint8_t {xor_planes,modular_delta};
 struct NativeSharedBaseSearchReply {
   NativeSharedBaseSearchWindow window;
   // The caller retains these spans for the synchronous preparation step.
   std::span<const std::vector<NativeSharedBaseCopyRange>> copies{};
-  std::span<const std::vector<std::byte>> packed_xor_bodies{};
+  std::span<const std::vector<std::byte>> packed_bodies{};
   // Optional CPU verdicts, indexed by the exact staged member.
-  std::span<NativePackedXorCheck> packed_xor_checks{};
+  std::span<NativePackedGroupCheck> packed_checks{};
+  NativePackedGroupMethod body_method=NativePackedGroupMethod::xor_planes;
 };
 struct NativeContentToken {
   NativeExtentSelection extent;

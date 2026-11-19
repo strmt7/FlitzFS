@@ -217,7 +217,29 @@ The automatic scanner samples sixteen 64-byte regions and tries each
 word width. It hashes their modular differences from the first word and
 uses those signatures alongside existing similarity features. The scanner
 retains the new signatures in memory. Persisting them in the sparse
-coherence index and hardware acceleration for modular scoring remain open.
+coherence index remains open.
+
+#### Batched AMD modular-delta advice
+
+The configured Windows owner can send several groups to one supervised
+AMD worker. The private v6 kernel scores both biases at all four word
+widths and emits the best admitted parameter and residual payload per member.
+It uses block-wide barriers and sizes its launches from the qualified
+dispatch grant, current device geometry and live headroom.
+[HIP programming model](https://rocm.docs.amd.com/projects/HIP/en/latest/understand/programming_model.html)
+
+The worker checks the device slots and sends a compact reply. Each group
+has a length prefix and each member carries a payload length or an empty
+slot. The batch and group headers bind the reply to its immutable request.
+Admission still charges the complete worst-case mapping and device slabs.
+The owner waits for exact worker retirement before consuming the reply.
+
+The indexed writer reconstructs the exact member on CPU, checks its bytes
+against the staged original and compares the resulting frame size with
+the competing representations. The CPU encoder handles rejected, missing
+or uncompetitive candidates. A payload mismatch also fails the recovery
+ticket. Protected publication uses the same capability 6 member format.
+[AMD execution and CPU readback evidence](evidence/amd-modular-delta-2026-11-19.json)
 
 ### Automatic candidate discovery
 

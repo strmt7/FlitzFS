@@ -1217,17 +1217,19 @@ bool IndexedSharedBasePreparation::advance(std::span<const NativeSharedBaseCopyR
   auto& member=members_[position];
   const auto is_base=position==base_index_;
   Bytes owned;
-  std::span<const std::byte> bytes=base_,xor_body{};
-  NativePackedXorCheck* xor_check=nullptr;
+  std::span<const std::byte> bytes=base_,packed_body{};
+  auto body_method=NativePackedGroupMethod::xor_planes;
+  NativePackedGroupCheck* packed_check=nullptr;
   if(!is_base) {
     const auto slot=search_?search_slot(position):0;
     if(search_ && slot<search_->bytes->members.size()) {
       bytes=search_->bytes->members[slot];
       if(reply && reply->window.payload_==search_->bytes) {
         if(reply->copies.size()==search_->member_count)advice=reply->copies[slot];
-        if(reply->packed_xor_bodies.size()==search_->member_count) {
-          xor_body=reply->packed_xor_bodies[slot];
-          if(reply->packed_xor_checks.size()==search_->member_count)xor_check=&reply->packed_xor_checks[slot];
+        if(reply->packed_bodies.size()==search_->member_count) {
+          packed_body=reply->packed_bodies[slot];
+          body_method=reply->body_method;
+          if(reply->packed_checks.size()==search_->member_count)packed_check=&reply->packed_checks[slot];
         }
       }
     } else {
@@ -1251,11 +1253,12 @@ bool IndexedSharedBasePreparation::advance(std::span<const NativeSharedBaseCopyR
       }
     }
     const auto xor_limit=encoded?encoded->size():kNativeExtentBytes;
+    const auto xor_body=body_method==NativePackedGroupMethod::xor_planes?packed_body:std::span<const std::byte>{};
     auto checked=check_native_group_xor_body(xor_body,bytes,base_,kNativeGroupBaseBit+1,1,xor_limit);
-    if(xor_check)*xor_check=checked.check;
+    if(packed_check && body_method==NativePackedGroupMethod::xor_planes)*packed_check=checked.check;
     const bool checked_packed=checked.frame.has_value();
     auto packed=std::move(checked.frame);
-    if(checked.check!=NativePackedXorCheck::verified)
+    if(checked.check!=NativePackedGroupCheck::verified)
       packed=encode_native_group_xor(bytes,base_,kNativeGroupBaseBit+1,1,xor_limit);
     if(packed) {
       encoded=std::move(packed);
@@ -1263,11 +1266,17 @@ bool IndexedSharedBasePreparation::advance(std::span<const NativeSharedBaseCopyR
       selected_advice=checked_packed;
     }
     if(!is_base) {
-      if(auto delta=encode_native_group_delta(bytes,base_,kNativeGroupBaseBit+1,1,
-          encoded?encoded->size():kNativeExtentBytes)) {
+      const auto delta_limit=encoded?encoded->size():kNativeExtentBytes;
+      const auto delta_body=body_method==NativePackedGroupMethod::modular_delta?packed_body:std::span<const std::byte>{};
+      auto checked_delta=check_native_group_delta_body(delta_body,bytes,base_,kNativeGroupBaseBit+1,1,delta_limit);
+      if(packed_check && body_method==NativePackedGroupMethod::modular_delta)*packed_check=checked_delta.check;
+      const bool advised_delta=checked_delta.frame.has_value();
+      auto delta=std::move(checked_delta.frame);
+      if(!delta)delta=encode_native_group_delta(bytes,base_,kNativeGroupBaseBit+1,1,delta_limit);
+      if(delta) {
         encoded=std::move(delta);
         capability=modular_delta_capability;
-        selected_advice=false;
+        selected_advice=advised_delta;
       }
     }
     const auto limit=encoded?encoded->size():kNativeExtentBytes;
@@ -1285,7 +1294,8 @@ bool IndexedSharedBasePreparation::advance(std::span<const NativeSharedBaseCopyR
       progress_.phase=Phase::declined;
       return true;
     }
-    if(!(selected_advice && capability==packed_xor_capability) &&
+    const auto packed_advice=selected_advice && (capability==packed_xor_capability || capability==modular_delta_capability);
+    if(!packed_advice &&
         !std::ranges::equal(decode_native_group_member(*encoded,base_,available_group_method(capability)),bytes))
       fail(Code::corrupt,"indexed shared-base private CPU comparison failed");
     group_capability_=(std::max)(group_capability_,capability);

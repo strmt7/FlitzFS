@@ -167,6 +167,143 @@ void flitzfs_anchor_packed_xor_v5(const unsigned char* base,const unsigned char*
       dispatch_member_limit(BatchOutput::wide_packed_xor)>(base,window,members,output,version);
 }
 
+namespace {
+using namespace flitzfs::anchor_match;
+
+template<class Word> __device__ __forceinline__
+Word modular_word(const u8* bytes) {
+  Word value{};
+  __builtin_memcpy(&value,bytes,sizeof(value));
+  return value;
+}
+template<class Word> __device__ __forceinline__
+Word modular_bias(const u8* base,const u8* member) {
+  return static_cast<Word>(u64{modular_word<Word>(member)}-modular_word<Word>(base));
+}
+template<class Word> __device__ __forceinline__
+Word modular_residual(Word difference,Word bias) {
+  const auto value=u64{static_cast<Word>(u64{difference}-bias)};
+  return static_cast<Word>((value<<1)^(0ULL-(value>>(8*sizeof(Word)-1))));
+}
+__device__ __forceinline__ u8 modular_width(u64 value) {
+  return value?static_cast<u8>(64-__builtin_clzll(value)):0;
+}
+template<class Word> __device__ __forceinline__
+void score_modular_tile(ModularDeltaScratch& scratch,u32 mode,u32 tile,const u8* base,const u8* member) {
+  const auto bias=modular_bias<Word>(base,member);
+  Word centered=0,unbiased=0;
+  const auto start=tile*xor_tile_bytes;
+  for(u32 at=start;at<start+xor_tile_bytes;at+=sizeof(Word)) {
+    const auto difference=modular_bias<Word>(base+at,member+at);
+    centered|=modular_residual<Word>(difference,bias);
+    unbiased|=modular_residual<Word>(difference,0);
+  }
+  scratch.widths[mode][tile]=modular_width(centered);
+  scratch.widths[mode+1][tile]=modular_width(unbiased);
+}
+__device__ __forceinline__ u32 modular_word_bytes(u32 mode) {
+  return 1U<<(mode/2);
+}
+__device__ __forceinline__
+u64 selected_modular_bias(u32 mode,const u8* base,const u8* member) {
+  if(mode%2)return 0;
+  switch(modular_word_bytes(mode)) {
+    case 1:return modular_bias<u8>(base,member);
+    case 2:return modular_bias<unsigned short>(base,member);
+    case 4:return modular_bias<u32>(base,member);
+    default:return modular_bias<u64>(base,member);
+  }
+}
+template<class Word> __device__ __forceinline__
+void pack_modular_tile(u8* output,const u8* base,const u8* member,u32 bits,u64 bias) {
+  constexpr u32 plane_bytes=xor_tile_bytes/(8*sizeof(Word));
+  output[0]=static_cast<u8>(bits);
+  if(!bits)return;
+  for(u32 i=0;i<plane_bytes;++i) {
+    Word values[8];
+    for(u32 j=0;j<8;++j) {
+      const auto at=(i*8+j)*sizeof(Word);
+      values[j]=modular_residual<Word>(modular_bias<Word>(base+at,member+at),static_cast<Word>(bias));
+    }
+    for(u32 bit=0;bit<bits;++bit) {
+      u32 packed=0;
+      for(u32 j=0;j<8;++j)packed|=static_cast<u32>((values[j]>>bit)&1U)<<j;
+      output[1+bit*plane_bytes+i]=static_cast<u8>(packed);
+    }
+  }
+}
+}
+
+extern "C" __global__ __attribute__((amdgpu_flat_work_group_size(64,64)))
+void flitzfs_anchor_modular_delta_v6(const unsigned char* base,const unsigned char* window,unsigned int members,
+    const flitzfs::anchor_match::Bucket*,unsigned int* output,unsigned int version) {
+  using namespace flitzfs::anchor_match;
+  if(version!=modular_delta_window_abi_version || !base || !window || !output ||
+      !members || members>dispatch_member_limit(BatchOutput::modular_delta) ||
+      blockIdx.x>=members || blockDim.x!=threads)return;
+  static_assert(sizeof(unsigned short)==2);
+  __shared__ ModularDeltaScratch scratch;
+  const auto lane=threadIdx.x;
+  const auto* member=window+blockIdx.x*extent_bytes;
+  auto* slot=output+blockIdx.x*(xor_wide_slot_bytes/sizeof(u32));
+  for(u32 tile=lane;tile<xor_tiles;tile+=threads) {
+    score_modular_tile<u8>(scratch,0,tile,base,member);
+    score_modular_tile<unsigned short>(scratch,2,tile,base,member);
+    score_modular_tile<u32>(scratch,4,tile,base,member);
+    score_modular_tile<u64>(scratch,6,tile,base,member);
+  }
+  __syncthreads();
+  if(lane<delta_modes) {
+    u32 planes=0;
+    for(u32 tile=0;tile<xor_tiles;++tile)planes+=scratch.widths[lane][tile];
+    const auto size=planes?delta_parameters_bytes+xor_tiles+planes*(xor_plane_bytes/modular_word_bytes(lane)):
+        selected_modular_bias(lane,base,member)?delta_parameters_bytes:0U;
+    scratch.sizes[lane]=size<=delta_max_payload_bytes?size:0;
+  }
+  __syncthreads();
+  if(!lane) {
+    scratch.mode=delta_modes;
+    slot[0]=0;
+    for(u32 mode=0;mode<delta_modes;++mode) {
+      const auto size=scratch.sizes[mode];
+      if(size && (!slot[0] || size<slot[0])) {
+        slot[0]=size;
+        scratch.mode=mode;
+      }
+    }
+    if(scratch.mode<delta_modes) {
+      const auto width=modular_word_bytes(scratch.mode);
+      const auto bias=selected_modular_bias(scratch.mode,base,member);
+      slot[1]=width;
+      slot[2]=static_cast<u32>(bias);
+      slot[3]=static_cast<u32>(bias>>32);
+      if(slot[0]>delta_parameters_bytes) {
+        u32 at=0;
+        for(u32 tile=0;tile<xor_tiles;++tile) {
+          scratch.offsets[tile]=at;
+          at+=1+scratch.widths[scratch.mode][tile]*(xor_plane_bytes/width);
+        }
+      }
+    }
+  }
+  __syncthreads();
+  const auto mode=scratch.mode;
+  if(mode==delta_modes || scratch.sizes[mode]==delta_parameters_bytes)return;
+  const auto bias=selected_modular_bias(mode,base,member);
+  auto* body=reinterpret_cast<u8*>(slot+1)+delta_parameters_bytes;
+  for(u32 tile=lane;tile<xor_tiles;tile+=threads) {
+    const auto start=tile*xor_tile_bytes;
+    auto* target=body+scratch.offsets[tile];
+    const auto bits=scratch.widths[mode][tile];
+    switch(modular_word_bytes(mode)) {
+      case 1:pack_modular_tile<u8>(target,base+start,member+start,bits,bias);break;
+      case 2:pack_modular_tile<unsigned short>(target,base+start,member+start,bits,bias);break;
+      case 4:pack_modular_tile<u32>(target,base+start,member+start,bits,bias);break;
+      default:pack_modular_tile<u64>(target,base+start,member+start,bits,bias);break;
+    }
+  }
+}
+
 namespace flitzfs::anchor_match {
 void bind_anchor_kernels(KernelApi& api) noexcept {
   api.index=flitzfs_anchor_index_v1;
@@ -183,5 +320,8 @@ void bind_anchor_wide_xor_window(WindowSearchApi& api) noexcept {
 }
 void bind_anchor_adaptive_xor_window(WindowSearchApi& api) noexcept {
   api.search=flitzfs_anchor_packed_xor_v5;
+}
+void bind_anchor_modular_delta_window(WindowSearchApi& api) noexcept {
+  api.search=flitzfs_anchor_modular_delta_v6;
 }
 }

@@ -402,7 +402,7 @@ std::uint64_t elapsed_ns(std::chrono::steady_clock::time_point started) {
 }
 
 int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
-    const std::filesystem::path& bank_path={},std::uint64_t discovery_ns=0) {
+    const std::filesystem::path& bank_path={},std::uint64_t discovery_ns=0,bool modular=false) {
   constexpr auto families=anchor_search_fixture::indexed_batch_families;
   constexpr auto members=anchor_search_fixture::indexed_batch_members;
   const StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
@@ -421,7 +421,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
     require(bool(input.read(reinterpret_cast<char*>(bank.data()),static_cast<std::streamsize>(bank.size()))) &&
         input.peek()==std::char_traits<char>::eof(),"Public sample bank changed");
   }
-  const auto originals=anchor_search_fixture::indexed_batch_files(bank);
+  const auto originals=anchor_search_fixture::indexed_batch_files(bank,modular);
   std::vector<std::byte> file_digests;
   file_digests.reserve(32*originals.size());
   for(std::size_t i=0;i<originals.size();++i) {
@@ -455,6 +455,8 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   }
   NativeMaintenanceProgress progress;
   std::uint64_t sequence=0,worker_ns=0;
+  std::uint64_t packed_payload_bytes=0;
+  unsigned packed_widths=0;
   for(unsigned i=0;i<5200 && maintenance.pending();++i) {
     MEMORYSTATUSEX host{};host.dwLength=sizeof(host);
     require(GlobalMemoryStatusEx(&host)!=0,"Cannot confirm current memory headroom");
@@ -489,15 +491,23 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
       return !anchor->waiting();
     },8000,"Multiwindow AMD worker did not retire");
     worker_ns+=elapsed_ns(started);
+    if(modular)for(const auto& reply:anchor->replies()) {
+      for(const auto& body:reply.packed_bodies)if(!body.empty()) {
+        packed_widths|=std::to_integer<unsigned>(body.front());
+        packed_payload_bytes+=body.size();
+      }
+    }
   }
   const auto stats=anchor?anchor->stats():NativeAnchorSearchStats{};
   const bool retired=(!anchor || anchor->stop()) && WorkerExchangeSession::available();
   require(!maintenance.pending() && progress.published_groups && retired &&
       (!anchor || (stats.verified && progress.advised_members_published && !stats.integrity_failures)),
       "Large batch lost verified advice, protected publication or ownership");
-  if(anchor && bank.empty())
+  if(anchor && bank.empty() && !modular)
     require(stats.submitted==1 && stats.verified_groups==families && progress.advised_members_published==members,
         "Related AMD work did not fill one verified multiwindow batch");
+  if(anchor && modular)
+    require(packed_widths==15 && packed_payload_bytes,"AMD modular batch did not cover all word widths");
   const auto maintenance_ns=elapsed_ns(maintenance_start);
 
   const auto verify_start=std::chrono::steady_clock::now();
@@ -513,11 +523,13 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
         "Large AMD batch changed independently reopened file bytes");
   const auto compact_verify_ns=elapsed_ns(verify_start);
   require(packed->extent()<baseline_bytes,"Multiwindow maintenance did not reduce complete compacted size");
-  std::cout<<"multiwindow_trial mode="<<(anchor?"amd":"cpu")<<" cohort="<<(bank.empty()?"related":"mixed")
+  const auto cohort=modular?(bank.empty()?"modular-synthetic":"modular-public"):(bank.empty()?"related":"mixed");
+  std::cout<<"multiwindow_trial mode="<<(anchor?"amd":"cpu")<<" cohort="<<cohort
       <<" files="<<originals.size()<<" groups="<<progress.published_groups<<" advised_members="<<progress.advised_members_published
       <<" submitted="<<stats.submitted<<" verified_batches="<<stats.verified<<" worker_ns="<<worker_ns
       <<" discovery_ns="<<discovery_ns<<" maintenance_ns="<<maintenance_ns<<" compact_verify_ns="<<compact_verify_ns
       <<" input_compacted_bytes="<<baseline_bytes<<" grouped_compacted_bytes="<<packed->extent()
+      <<" packed_widths="<<packed_widths<<" packed_payload_bytes="<<packed_payload_bytes
       <<" retired=true independent_cpu_readback=true modeled_idle_time=true input_blake3=";
   constexpr char digits[]="0123456789abcdef";
   for(const auto byte:detail::record_digest(file_digests)) {
@@ -530,9 +542,10 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
 
 int live_anchor_owner(int argc,char** argv) {
   const std::string_view mode(argv[6]);
-  const bool multiwindow=mode=="xor-multiwindow";
-  const bool xor_mode=mode=="xor" || mode=="xor-wide" || mode=="xor-narrow" || multiwindow;
-  require(mode=="accept" || mode=="yield" || mode=="both" || mode=="batch" || mode=="batch-yield" || xor_mode,
+  const bool modular=mode=="modular-multiwindow";
+  const bool multiwindow=modular || mode=="xor-multiwindow";
+  const bool xor_mode=mode=="xor" || mode=="xor-wide" || mode=="xor-narrow";
+  require(mode=="accept" || mode=="yield" || mode=="both" || mode=="batch" || mode=="batch-yield" || xor_mode || multiwindow,
       "Expected an AMD ownership trial");
   const ProcessBudget profile{128,2000,5000,16};
   HipRouteDiscoveryRequest request;
@@ -548,8 +561,9 @@ int live_anchor_owner(int argc,char** argv) {
     constexpr auto members=anchor_search_fixture::indexed_batch_members;
     constexpr auto families=anchor_search_fixture::indexed_batch_families;
     const auto minimum=argc==8?2U:static_cast<std::uint32_t>(members);
+    const auto output=modular?anchor_match::BatchOutput::modular_delta:anchor_match::BatchOutput::wide_packed_xor;
     return live_multiwindow_anchor(NativeAnchorSearchOptions{*binding.route,profile,minimum,members+families,10000,
-        anchor_match::BatchOutput::wide_packed_xor},argc==8?std::filesystem::path(argv[7]):std::filesystem::path{},discovery_ns);
+        output,modular?16U:0U},argc==8?std::filesystem::path(argv[7]):std::filesystem::path{},discovery_ns,modular);
   }
   const std::uint32_t members=(mode=="batch" || mode=="batch-yield" || xor_mode)?8:4;
   NativeAnchorSearchOptions execution{*binding.route,profile,members,members};
@@ -1440,10 +1454,13 @@ void indexed_group_callback_contract() {
 int main(int argc,char** argv){try {
   app_fixture::Budget budget;DWORD before=0,after=0;
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
-  if((argc==7 || (argc==8 && std::string_view(argv[6])=="xor-multiwindow")) &&
+  if((argc==7 || (argc==8 && (std::string_view(argv[6])=="xor-multiwindow" ||
+     std::string_view(argv[6])=="modular-multiwindow"))) &&
       std::string_view(argv[1])=="--live-anchor-owner")return live_anchor_owner(argc,argv);
-  if((argc==2 || argc==3) && std::string_view(argv[1])=="--cpu-multiwindow")
-    return live_multiwindow_anchor(std::nullopt,argc==3?std::filesystem::path(argv[2]):std::filesystem::path{});
+  if((argc==2 || argc==3) && (std::string_view(argv[1])=="--cpu-multiwindow" ||
+     std::string_view(argv[1])=="--cpu-modular-multiwindow"))
+    return live_multiwindow_anchor(std::nullopt,argc==3?std::filesystem::path(argv[2]):std::filesystem::path{},0,
+        std::string_view(argv[1])=="--cpu-modular-multiwindow");
   if(argc==2 && std::string_view(argv[1])=="--live-packed-xor-cpu")
     return run_live_anchor_owner("xor-cpu",NativeAnchorSearchOptions{});
   if(argc==3 && std::string_view(argv[1])=="--live-installed-anchor-owner") {

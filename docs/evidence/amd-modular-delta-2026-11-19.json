@@ -1,0 +1,914 @@
+{
+  "schema": "flitzfs-amd-modular-delta-v1",
+  "experimental": true,
+  "captured_local": "2026-11-19T16:32:26.5798428+01:00",
+  "source_base": "3caba479a8c9db6508ed3aebdcb18ddc8c83c200",
+  "source_binding": [
+    {
+      "path": "include/flitzfs/gpu_anchor_kernel_api.hpp",
+      "git_blob": "d47645fa880480231a333fb645451b501c8cc3a7"
+    },
+    {
+      "path": "include/flitzfs/gpu_anchor_match.hpp",
+      "git_blob": "8221bf4c79e28ad54293b0282a303dd37515ed01"
+    },
+    {
+      "path": "include/flitzfs/native_filesystem.hpp",
+      "git_blob": "5a90fd7742bc50edcc1c28225e1ca09bb6477ec5"
+    },
+    {
+      "path": "src/gpu/decode_kernel.hip",
+      "git_blob": "9e722fa5b0dab1957f5f54d15646b7c47ecdb4a5"
+    },
+    {
+      "path": "src/native_group_anchor.cpp",
+      "git_blob": "35e6ca1af1048839755f42ca632fa6a4979232ee"
+    },
+    {
+      "path": "src/native_group_anchor.hpp",
+      "git_blob": "f1a0bb6c0e9c48be600b55ac0781dc344483fa50"
+    },
+    {
+      "path": "src/native_group_codec.cpp",
+      "git_blob": "1e58a028b3e4098caeb8587d169575e4ba984e63"
+    },
+    {
+      "path": "src/native_group_codec.hpp",
+      "git_blob": "513cea8489dc2735b8b4fa7472423cadae331dd3"
+    },
+    {
+      "path": "src/native_indexed_volume.cpp",
+      "git_blob": "e599f596068a1cea481b146c091eef8169707fe2"
+    },
+    {
+      "path": "src/windows/hip_decode_worker.cpp",
+      "git_blob": "e38776f0355342ede2c134743ac86974fe8e1af3"
+    },
+    {
+      "path": "src/windows/hip_worker_main.cpp",
+      "git_blob": "1022bedbd7f0e4ab2e47893d5bfbf06c74ca7ba3"
+    },
+    {
+      "path": "src/windows/native_anchor_search.cpp",
+      "git_blob": "74bcb88747222199efc0b19403ebde50963e159f"
+    },
+    {
+      "path": "src/windows/native_anchor_search.hpp",
+      "git_blob": "44f9b2d588a27dce4b684ab79c1380552588c4f3"
+    },
+    {
+      "path": "tests/anchor_search_fixture.hpp",
+      "git_blob": "65e858a2188361048d4121b2f4b6aefa18203d0c"
+    },
+    {
+      "path": "tests/rocm_compile/kernel_module.cpp",
+      "git_blob": "cb07cb3b817802de4e1c280b66280326be40ba23"
+    },
+    {
+      "path": "tests/rocm_compile/lz4_runtime_probe.cpp",
+      "git_blob": "0062e0f0471f743db9d1775c4ff12f0268dff72e"
+    },
+    {
+      "path": "tests/test_gpu_anchor_match.cpp",
+      "git_blob": "65ea705bab3a88577a727965d255ccc94f7e9531"
+    },
+    {
+      "path": "tests/test_staged_shared_base.cpp",
+      "git_blob": "cf236321b9dfd31fb7d2ba17d2d5df6447678372"
+    },
+    {
+      "path": "tests/test_winfsp_controller.cpp",
+      "git_blob": "3e68dc0358aac20a606be186bfd8399bcecb2608"
+    }
+  ],
+  "semantic_navigation": {
+    "commit": "3caba479a8c9db6508ed3aebdcb18ddc8c83c200",
+    "provider_version": "0.2.43",
+    "files": 15,
+    "receipt_sha256": "430fb675fe38427784674eabc2e3b76f69262cbb4a5b2f719243c6c6be28b670",
+    "response_sha256": "fb37e8955afe2d3a51d5bfb3c30855e59b4cfa44052c6a5f23222a4bc67e348e",
+    "job": {
+      "run": "local-run-c384484ba80549558e5b29dc3887f9ce",
+      "exit_code": 0,
+      "wall_seconds": 47.58508,
+      "memory_envelope_bytes": 1929379840,
+      "peak_job_bytes": 1130008576,
+      "cpu_percent": 15,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "children_at_forced_retirement": 0,
+      "receipt_sha256": "a3db21ca8f0ef4db6c0c8267816a80a21171d3dde9f316fe5a81a71426ac78b2",
+      "log_sha256": "a3b5fc90bf6db9ae28593c91a7f9942323f99adc4d1926c6a93def1fab45c951"
+    }
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "robots_checked": true,
+    "external_llm": false,
+    "timeout_seconds": 45,
+    "receipt_sha256": "cf9dc9f5ab96b280b0578b983e689aca515a70557639e69c962d646c252900fe",
+    "pages": [
+      {
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/how-to/hip_cpp_language_extensions.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 79475,
+        "markdown_sha256": "2b2ae6fd028e30ba7f9ebe43cb49ba81f58fc1243faa9da35a0bae096dce2ba2",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.495,
+        "capture": "hip-language.native.json",
+        "capture_sha256": "56714d65134e52f50970673cc34d451fc63432c1ff6ff7347a99696adb37e3f2",
+        "name": "hip-language"
+      },
+      {
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/latest/understand/programming_model.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 87125,
+        "markdown_sha256": "6fec01b1c3a01ebbe3632a813abea74f2503eae36d590ab4d035d19db2b18cd9",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.823,
+        "capture": "hip-programming.native.json",
+        "capture_sha256": "c229a8be2c23b329fb928f8dd1b56ff64964e9c706d0c3875a78ce64fe55dabb",
+        "name": "hip-programming"
+      }
+    ],
+    "job": {
+      "run": "local-run-960470b129f0497ab490e4ad6faf4d4a",
+      "exit_code": 0,
+      "wall_seconds": 7.054862,
+      "memory_envelope_bytes": 2155872256,
+      "peak_job_bytes": 1388056576,
+      "cpu_percent": 15,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "children_at_forced_retirement": 0,
+      "receipt_sha256": "561f31a2f4084c1d912d13d75f9a5e60852ecc43e859f689bdd38fedb231a2ef",
+      "log_sha256": "34e4937437fe5e1587bcf10c60bad2e5d568fcc705825c2476192f91a7f2e5b0"
+    }
+  },
+  "qualification": {
+    "raw": {
+      "build": {
+        "run": "local-run-984e18fe306047cd843f5f4ac33b426b",
+        "exit_code": 0,
+        "wall_seconds": 39.467673,
+        "memory_envelope_bytes": 1607467008,
+        "peak_job_bytes": 443047936,
+        "cpu_percent": 16,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "children_at_forced_retirement": 0,
+        "receipt_sha256": "915ef954c350d44ebe9c14bdd463c238e5a2631d79c8b2ff97bfa4b9332600e3",
+        "log_sha256": "f03cbd852b148dba88443fcc1080fad0fde24668014dc8d896a2e95e1b35460d"
+      },
+      "tests": {
+        "run": "local-run-a22445c4cfa14133bbaab6f33fac5a25",
+        "exit_code": 0,
+        "wall_seconds": 6.915797,
+        "memory_envelope_bytes": 1039138816,
+        "peak_job_bytes": 323821568,
+        "cpu_percent": 17,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "children_at_forced_retirement": 0,
+        "receipt_sha256": "287e8232b633219981837db4c60ad217c8160c901bda7741d674343c701cc613",
+        "log_sha256": "ddabbd0c2dcba08008f13fc2c3e1792c98f707a27b8698b34d70db3304e21ef1"
+      },
+      "passed": 9,
+      "compact_reply_bytes": 4588,
+      "wire_admission_bytes": 196808,
+      "staged_search_checks": 82
+    },
+    "windows_sdk": {
+      "build": {
+        "run": "local-run-bfee61a813b3460aa761c1c8d0632be3",
+        "exit_code": 0,
+        "wall_seconds": 68.379093,
+        "memory_envelope_bytes": 1607467008,
+        "peak_job_bytes": 775450624,
+        "cpu_percent": 16,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "children_at_forced_retirement": 1,
+        "receipt_sha256": "c7d21fb9d00a57f9ef7806458e66dac3e8057f022c2cc5328cb38a27de2af51d",
+        "log_sha256": "787175033dc21ce34583a0fcf3955d30dd3748321ce873f08f0562e877cf4dde"
+      },
+      "tests": {
+        "run": "local-run-2cb27d4f9d494a3db46676c929e24ef9",
+        "exit_code": 0,
+        "wall_seconds": 23.972308,
+        "memory_envelope_bytes": 1127219200,
+        "peak_job_bytes": 324050944,
+        "cpu_percent": 17,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "children_at_forced_retirement": 0,
+        "receipt_sha256": "a967467731f7afe890835cc96f0db65af14d389697e5412a38c1e9143d0ac4f5",
+        "log_sha256": "b0eb3256e9d209a643dca78e0ec3677c4e9e4e3e996d5fc724a816a6f4c9c31c"
+      },
+      "passed": 11,
+      "compact_reply_bytes": 4588,
+      "wire_admission_bytes": 196808,
+      "staged_search_checks": 82
+    },
+    "windows_sdk_address_sanitizer": {
+      "build": {
+        "run": "local-run-581344991e1345dc81b61951165563ca",
+        "exit_code": 0,
+        "wall_seconds": 64.908879,
+        "memory_envelope_bytes": 1607467008,
+        "peak_job_bytes": 763744256,
+        "cpu_percent": 16,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "children_at_forced_retirement": 0,
+        "receipt_sha256": "21190d1136be9739fb60ba0944d872254171cabebdb1f08aa64316d8bd13216a",
+        "log_sha256": "afc7fbc2bb49b0f19e2c4f08c7b4e82d8e735c1729d0fc27188e086c566a7e79"
+      },
+      "tests": {
+        "run": "local-run-ea1dcba5b006445ca5b4df2a74c3ea2c",
+        "exit_code": 0,
+        "wall_seconds": 67.286828,
+        "memory_envelope_bytes": 1724907520,
+        "peak_job_bytes": 1005625344,
+        "cpu_percent": 17,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "children_at_forced_retirement": 0,
+        "receipt_sha256": "0a63c1254cd44ba5ef51a5348cea67fa22617c604ad41697a8fd38d2852d4470",
+        "log_sha256": "3220c55af6bce73ec83812084dddc42092f51c1667c5a178a0852d31af263147"
+      },
+      "passed": 12,
+      "compact_reply_bytes": 4588,
+      "wire_admission_bytes": 196808,
+      "staged_search_checks": 82
+    },
+    "sdk": "AMD ROCm Core SDK 10.1.0",
+    "architecture_recipe": "release",
+    "device_sources": [
+      {
+        "path": "include/flitzfs/gpu_anchor_kernel_api.hpp",
+        "sha256": "d6ce53e01a8c404f577e112f21e996316ad24a2829dae2a0fc61fcc633766734"
+      },
+      {
+        "path": "include/flitzfs/gpu_anchor_match.hpp",
+        "sha256": "066d993193fbe3621687751c97494f693781fcf0c1b476d88ea553ff0660c1e5"
+      },
+      {
+        "path": "include/flitzfs/gpu_kernel_api.hpp",
+        "sha256": "3099ea1f31b8d56de1d9899f4707f0c76486484f1714888690e2c4e615c7f84c"
+      },
+      {
+        "path": "include/flitzfs/gpu_match_kernel_api.hpp",
+        "sha256": "dd668d84d07a28118ac51ed337e4bcf7dc80980002afe0fd097ccd4152c58b4e"
+      },
+      {
+        "path": "include/flitzfs/gpu_match_protocol.hpp",
+        "sha256": "c978606dd3339666bf3067f8d4c40cd924e390e480d88305d030e1c8b3647192"
+      },
+      {
+        "path": "include/flitzfs/gpu_protocol.hpp",
+        "sha256": "a0c3b5e1170b45ad788c2baebe5323712bcef450f9d4aa681317ef5c5da4e159"
+      },
+      {
+        "path": "src/gpu/decode_kernel.hip",
+        "sha256": "8e3a286dc660e2bb65bab422f72d809b6798802d295bc4084f1ee55eec116972"
+      },
+      {
+        "path": "src/gpu/decode_kernel.hpp",
+        "sha256": "57ffed94096d61d24cc5154615a1d2c4c63818602d655fb82959606314848850"
+      }
+    ],
+    "device_compile": {
+      "run": "local-run-ac7afa7a90354f03a1da161657c09fd3",
+      "exit_code": 0,
+      "wall_seconds": 27.865334,
+      "memory_envelope_bytes": 1499463680,
+      "peak_job_bytes": 205627392,
+      "cpu_percent": 17,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "children_at_forced_retirement": 0,
+      "receipt_sha256": "dbde31c90531aa92bd316c0dd1696aa93bbe3295bc5cc581d9485fab8e56023e",
+      "log_sha256": "2e97fb20e6eb226d48cf1c7385a016509d21a1b0ea3e88ece227d69745dc8b11"
+    },
+    "device_object_sha256": "3538ea7d51f4f49da22ff4602bc2acfad136224846e6bb8f20c8a69570293aad",
+    "worker_configure": {
+      "run": "local-run-0df0f0577def411ab80ac6250826791e",
+      "exit_code": 0,
+      "wall_seconds": 6.386785,
+      "memory_envelope_bytes": 1599078400,
+      "peak_job_bytes": 336805888,
+      "cpu_percent": 16,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "children_at_forced_retirement": 1,
+      "receipt_sha256": "c9e5bf0f9cac02009dacbff5e928cedfa9773b421327568db3a671ee2807a43c",
+      "log_sha256": "e70c92639358db736bad76ea7888e63aba5948f3ababaad3b5a55b013416555e"
+    },
+    "worker_build": {
+      "run": "local-run-ae1e2f5f6a4547049635513dfbdf96ec",
+      "exit_code": 0,
+      "wall_seconds": 67.272782,
+      "memory_envelope_bytes": 1754267648,
+      "peak_job_bytes": 616677376,
+      "cpu_percent": 16,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "children_at_forced_retirement": 1,
+      "receipt_sha256": "a1c4efa2af27e804b5222323854141eb943aea6ef5eb4035ba85e7010c9b9b2b",
+      "log_sha256": "e5ea521b243c64cb4d48ed830a78f7d714360e71e92e99721bc6647538c5e116"
+    },
+    "preflight_build": {
+      "run": "local-run-74d3c400381447f0aec8b66fcb5dbd3c",
+      "exit_code": 0,
+      "wall_seconds": 8.821508,
+      "memory_envelope_bytes": 1190133760,
+      "peak_job_bytes": 350949376,
+      "cpu_percent": 16,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "children_at_forced_retirement": 1,
+      "receipt_sha256": "8a0142e04d88711ad69fb9ff599237604b93abe6d549a164a76781ec69782c71",
+      "log_sha256": "0e5692aaafc3c98f233749bf330ab30efdf3e28c098eac5227fc146418fe2dcd"
+    },
+    "preflight_confirmed_children": 20,
+    "preflight": {
+      "run": "local-run-f028e7ba39b9430aa9ac24b1664004c7",
+      "exit_code": 0,
+      "wall_seconds": 0.861866,
+      "memory_envelope_bytes": 563085312,
+      "peak_job_bytes": 7376896,
+      "cpu_percent": 18,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "children_at_forced_retirement": 0,
+      "receipt_sha256": "72353b9606454ec2ef52f0400b5187893910b69c521dff715b2c47624c2c9ec7",
+      "log_sha256": "7737a4059080502fbffa63f7922d013c93cb6b37426646f9e925d1ae54b37958"
+    },
+    "rejected_direct_preflight": {
+      "run": "local-run-a68e4937fe3b42288171495b9a727023",
+      "exit_code": 1179848709,
+      "wall_seconds": 0.069714,
+      "memory_envelope_bytes": 617611264,
+      "peak_job_bytes": 2666496,
+      "cpu_percent": 14,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "children_at_forced_retirement": 0,
+      "receipt_sha256": "f28298ed39ff9ab8a1fe0fae5a5e574e21e61154cb87b1f88b70ebf6276b4f3a",
+      "log_sha256": "e13b37d5d5e7c759de58e8f9da911faf71a6f3c5ccb55773c371674c457e6152"
+    },
+    "correction": "Run the kernel bundle verification under its required one-child supervisor job."
+  },
+  "hardware": {
+    "windows": "Microsoft Windows 11 Pro",
+    "windows_build": "26300",
+    "adapter": "AMD Radeon RX 9070 XT",
+    "driver": "32.0.32015.16001",
+    "worker_sha256": "1bd066800d7bffba891c45fbe129207b205f1fbac934ddcc9deb28bf90c2579c",
+    "compute_module_sha256": "d48ff72a0130483d6647a721db1a35c9669333d800a051ec3b47481ac44985d3",
+    "runtime_sha256": "7fc6465b18ff337a80c863b6350d02d7576cfb30528f97b982a6e5723bbb9848",
+    "owner_fixture_sha256": "0cc42211571fb39b11981028009cf1541ae11a32cc61f4da2b5ecd9e9f55a633",
+    "public_bank_sha256": "110d4b44ae78a793ee0bb5922e0d26a657f6966748219692282bd4f6c44986d5",
+    "input_description": "Synthetic numeric relatives and corresponding controlled transformations of bounded public source samples.",
+    "maximum_dispatch_members_in_this_trial": 16,
+    "metric": "Monotonic discovery, maintenance with worker retirement and protected publication, then verified compaction and CPU reopen and readback.",
+    "matched_summary": [
+      {
+        "cohort": "modular-synthetic",
+        "pairs": 3,
+        "files": 45,
+        "groups": 5,
+        "input_blake3": "5695d404c70e185c66ac2d53bdcc2a54afd466507973de844b1043b777d166ac",
+        "input_compacted_bytes": 41623552,
+        "grouped_compacted_bytes": 4096000,
+        "actual_amd_selected_members": 310,
+        "amd_payload_bytes": 1503624,
+        "word_width_bytes": [
+          1,
+          2,
+          4,
+          8
+        ],
+        "cpu_complete_ns": {
+          "minimum": 966048600,
+          "maximum": 1037404000,
+          "median": 976793000
+        },
+        "amd_complete_ns": {
+          "minimum": 2865922100,
+          "maximum": 3238865800,
+          "median": 3161373800
+        }
+      },
+      {
+        "cohort": "modular-public",
+        "pairs": 3,
+        "files": 45,
+        "groups": 5,
+        "input_blake3": "2a629256050f63f66a5786af6b1cdde33d5405074611257d0982b47c5c6bfac7",
+        "input_compacted_bytes": 41623552,
+        "grouped_compacted_bytes": 4096000,
+        "actual_amd_selected_members": 310,
+        "amd_payload_bytes": 1503624,
+        "word_width_bytes": [
+          1,
+          2,
+          4,
+          8
+        ],
+        "cpu_complete_ns": {
+          "minimum": 955360000,
+          "maximum": 1013367300,
+          "median": 997526100
+        },
+        "amd_complete_ns": {
+          "minimum": 2779034900,
+          "maximum": 3328983300,
+          "median": 3170185700
+        }
+      }
+    ],
+    "execution_order": [
+      {
+        "mode": "cpu",
+        "cohort": "modular-synthetic",
+        "files": 45,
+        "groups": 5,
+        "advised_members": 0,
+        "submitted": 0,
+        "verified_batches": 0,
+        "worker_ns": 0,
+        "discovery_ns": 0,
+        "maintenance_ns": 709417200,
+        "compact_verify_ns": 327986800,
+        "input_compacted_bytes": 41623552,
+        "grouped_compacted_bytes": 4096000,
+        "packed_widths": 0,
+        "packed_payload_bytes": 0,
+        "retired": true,
+        "independent_cpu_readback": true,
+        "modeled_idle_time": true,
+        "input_blake3": "5695d404c70e185c66ac2d53bdcc2a54afd466507973de844b1043b777d166ac",
+        "complete_ns": 1037404000,
+        "job": {
+          "run": "local-run-ad15fe59ff42482d8e1ea5f82db1193a",
+          "exit_code": 0,
+          "wall_seconds": 1.897153,
+          "memory_envelope_bytes": 757071872,
+          "peak_job_bytes": 253980672,
+          "cpu_percent": 16,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "children_at_forced_retirement": 0,
+          "receipt_sha256": "5a546fbd54889d5b514433fec2a8b7236cc9da1a8d0c68288c65964c4d8f04cb",
+          "log_sha256": "95d18ed63698c0b2a061e99c218e28e818c27e356410e0858259f5b035bf68e0"
+        }
+      },
+      {
+        "mode": "amd",
+        "cohort": "modular-synthetic",
+        "files": 45,
+        "groups": 5,
+        "advised_members": 310,
+        "submitted": 1,
+        "verified_batches": 1,
+        "worker_ns": 1957884600,
+        "discovery_ns": 268522500,
+        "maintenance_ns": 2651793800,
+        "compact_verify_ns": 318549500,
+        "input_compacted_bytes": 41623552,
+        "grouped_compacted_bytes": 4096000,
+        "packed_widths": 15,
+        "packed_payload_bytes": 1503624,
+        "retired": true,
+        "independent_cpu_readback": true,
+        "modeled_idle_time": true,
+        "input_blake3": "5695d404c70e185c66ac2d53bdcc2a54afd466507973de844b1043b777d166ac",
+        "complete_ns": 3238865800,
+        "job": {
+          "run": "local-run-d80057ff1de54baabbfef9d690fe9012",
+          "exit_code": 0,
+          "wall_seconds": 4.08709,
+          "memory_envelope_bytes": 746586112,
+          "peak_job_bytes": 335368192,
+          "cpu_percent": 16,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "children_at_forced_retirement": 0,
+          "receipt_sha256": "a24344102d6e769595e80883c54a956a0fb3ff8320c54ed9d94adebc3b12237d",
+          "log_sha256": "e4d99e6b41baf2fcd6d46f42e243f7117ff86daeca2ed8abeb2c592e8599417d"
+        }
+      },
+      {
+        "mode": "amd",
+        "cohort": "modular-synthetic",
+        "files": 45,
+        "groups": 5,
+        "advised_members": 310,
+        "submitted": 1,
+        "verified_batches": 1,
+        "worker_ns": 1677074300,
+        "discovery_ns": 253778500,
+        "maintenance_ns": 2314408000,
+        "compact_verify_ns": 297735600,
+        "input_compacted_bytes": 41623552,
+        "grouped_compacted_bytes": 4096000,
+        "packed_widths": 15,
+        "packed_payload_bytes": 1503624,
+        "retired": true,
+        "independent_cpu_readback": true,
+        "modeled_idle_time": true,
+        "input_blake3": "5695d404c70e185c66ac2d53bdcc2a54afd466507973de844b1043b777d166ac",
+        "complete_ns": 2865922100,
+        "job": {
+          "run": "local-run-8a0089b5872543b5a7af63fd87fc91b9",
+          "exit_code": 0,
+          "wall_seconds": 3.76235,
+          "memory_envelope_bytes": 667942912,
+          "peak_job_bytes": 334163968,
+          "cpu_percent": 16,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "children_at_forced_retirement": 0,
+          "receipt_sha256": "14ccb0953512ff18514835d40bec45cc2e6d800c94b8f855e91f03e2c85d7ea0",
+          "log_sha256": "730d5743998674871b31b170dfdcaf4b1dfdc353c8d8fbeb826f37c8aacfb327"
+        }
+      },
+      {
+        "mode": "cpu",
+        "cohort": "modular-synthetic",
+        "files": 45,
+        "groups": 5,
+        "advised_members": 0,
+        "submitted": 0,
+        "verified_batches": 0,
+        "worker_ns": 0,
+        "discovery_ns": 0,
+        "maintenance_ns": 673159200,
+        "compact_verify_ns": 303633800,
+        "input_compacted_bytes": 41623552,
+        "grouped_compacted_bytes": 4096000,
+        "packed_widths": 0,
+        "packed_payload_bytes": 0,
+        "retired": true,
+        "independent_cpu_readback": true,
+        "modeled_idle_time": true,
+        "input_blake3": "5695d404c70e185c66ac2d53bdcc2a54afd466507973de844b1043b777d166ac",
+        "complete_ns": 976793000,
+        "job": {
+          "run": "local-run-c2bbb1370e904481931c27ff79b6203c",
+          "exit_code": 0,
+          "wall_seconds": 1.820965,
+          "memory_envelope_bytes": 671088640,
+          "peak_job_bytes": 254005248,
+          "cpu_percent": 16,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "children_at_forced_retirement": 0,
+          "receipt_sha256": "4f02be0f22f8ead27a7ffe9eb2e6f5fb37444b961910a7f36bd8a4880a8e28e5",
+          "log_sha256": "f3610ac6f6c4e50b9a550b68ab07ddf8e7d2bb5b1bc9b7b46b3f3a9daf13c2d9"
+        }
+      },
+      {
+        "mode": "cpu",
+        "cohort": "modular-public",
+        "files": 45,
+        "groups": 5,
+        "advised_members": 0,
+        "submitted": 0,
+        "verified_batches": 0,
+        "worker_ns": 0,
+        "discovery_ns": 0,
+        "maintenance_ns": 690216800,
+        "compact_verify_ns": 323150500,
+        "input_compacted_bytes": 41623552,
+        "grouped_compacted_bytes": 4096000,
+        "packed_widths": 0,
+        "packed_payload_bytes": 0,
+        "retired": true,
+        "independent_cpu_readback": true,
+        "modeled_idle_time": true,
+        "input_blake3": "2a629256050f63f66a5786af6b1cdde33d5405074611257d0982b47c5c6bfac7",
+        "complete_ns": 1013367300,
+        "job": {
+          "run": "local-run-b098460b6ad24d94940ded44d751ee9a",
+          "exit_code": 0,
+          "wall_seconds": 1.97312,
+          "memory_envelope_bytes": 670040064,
+          "peak_job_bytes": 255004672,
+          "cpu_percent": 16,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "children_at_forced_retirement": 0,
+          "receipt_sha256": "88d2378421a855717b3714db7da056bf4f209ae7434e18df1158dd0da21f7e36",
+          "log_sha256": "53b586ca36fd590a73da2de725e630df385afc75d950359eac72d73ab04d8bcb"
+        }
+      },
+      {
+        "mode": "amd",
+        "cohort": "modular-public",
+        "files": 45,
+        "groups": 5,
+        "advised_members": 310,
+        "submitted": 1,
+        "verified_batches": 1,
+        "worker_ns": 1488874700,
+        "discovery_ns": 260551100,
+        "maintenance_ns": 2156110600,
+        "compact_verify_ns": 362373200,
+        "input_compacted_bytes": 41623552,
+        "grouped_compacted_bytes": 4096000,
+        "packed_widths": 15,
+        "packed_payload_bytes": 1503624,
+        "retired": true,
+        "independent_cpu_readback": true,
+        "modeled_idle_time": true,
+        "input_blake3": "2a629256050f63f66a5786af6b1cdde33d5405074611257d0982b47c5c6bfac7",
+        "complete_ns": 2779034900,
+        "job": {
+          "run": "local-run-b4eed67325e3423fb77190ba71a9789b",
+          "exit_code": 0,
+          "wall_seconds": 3.642312,
+          "memory_envelope_bytes": 671088640,
+          "peak_job_bytes": 334782464,
+          "cpu_percent": 16,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "children_at_forced_retirement": 0,
+          "receipt_sha256": "8b6efbcae4408952d25e7caf83b2f0aee8beb29f5f57b3d509eb471d6e3806c6",
+          "log_sha256": "2879d541c790b8e931c1b562b54685de5b4c68c0b07adc3823407a2599827436"
+        }
+      },
+      {
+        "mode": "cpu",
+        "cohort": "modular-synthetic",
+        "files": 45,
+        "groups": 5,
+        "advised_members": 0,
+        "submitted": 0,
+        "verified_batches": 0,
+        "worker_ns": 0,
+        "discovery_ns": 0,
+        "maintenance_ns": 667212900,
+        "compact_verify_ns": 298835700,
+        "input_compacted_bytes": 41623552,
+        "grouped_compacted_bytes": 4096000,
+        "packed_widths": 0,
+        "packed_payload_bytes": 0,
+        "retired": true,
+        "independent_cpu_readback": true,
+        "modeled_idle_time": true,
+        "input_blake3": "5695d404c70e185c66ac2d53bdcc2a54afd466507973de844b1043b777d166ac",
+        "complete_ns": 966048600,
+        "job": {
+          "run": "local-run-66da66bf825b42d6916a810fdd2b81aa",
+          "exit_code": 0,
+          "wall_seconds": 1.783477,
+          "memory_envelope_bytes": 670040064,
+          "peak_job_bytes": 254005248,
+          "cpu_percent": 16,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "children_at_forced_retirement": 0,
+          "receipt_sha256": "a81994da0781def45e4d0fe83d2bab9103b5d8b47cba2d627e08fa5c63f2e6c7",
+          "log_sha256": "94431a651e0fcf4f3e211eaf9387f46292ca559e2a747de4a73454d5f5df5b14"
+        }
+      },
+      {
+        "mode": "amd",
+        "cohort": "modular-synthetic",
+        "files": 45,
+        "groups": 5,
+        "advised_members": 310,
+        "submitted": 1,
+        "verified_batches": 1,
+        "worker_ns": 1927375400,
+        "discovery_ns": 232526600,
+        "maintenance_ns": 2588874800,
+        "compact_verify_ns": 339972400,
+        "input_compacted_bytes": 41623552,
+        "grouped_compacted_bytes": 4096000,
+        "packed_widths": 15,
+        "packed_payload_bytes": 1503624,
+        "retired": true,
+        "independent_cpu_readback": true,
+        "modeled_idle_time": true,
+        "input_blake3": "5695d404c70e185c66ac2d53bdcc2a54afd466507973de844b1043b777d166ac",
+        "complete_ns": 3161373800,
+        "job": {
+          "run": "local-run-16fd659fe53c46118e3543eded5776ad",
+          "exit_code": 0,
+          "wall_seconds": 3.963153,
+          "memory_envelope_bytes": 672137216,
+          "peak_job_bytes": 335163392,
+          "cpu_percent": 16,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "children_at_forced_retirement": 0,
+          "receipt_sha256": "3361d8fc71fc45861704f28c0850d6dced15d2c4efbd4da9128c04e778201735",
+          "log_sha256": "f58bccd824047af9b1bbd8845efccf8c9639c3f23b60d64af37463d8d0c03a0c"
+        }
+      },
+      {
+        "mode": "amd",
+        "cohort": "modular-public",
+        "files": 45,
+        "groups": 5,
+        "advised_members": 310,
+        "submitted": 1,
+        "verified_batches": 1,
+        "worker_ns": 1970941500,
+        "discovery_ns": 232536200,
+        "maintenance_ns": 2621230400,
+        "compact_verify_ns": 316419100,
+        "input_compacted_bytes": 41623552,
+        "grouped_compacted_bytes": 4096000,
+        "packed_widths": 15,
+        "packed_payload_bytes": 1503624,
+        "retired": true,
+        "independent_cpu_readback": true,
+        "modeled_idle_time": true,
+        "input_blake3": "2a629256050f63f66a5786af6b1cdde33d5405074611257d0982b47c5c6bfac7",
+        "complete_ns": 3170185700,
+        "job": {
+          "run": "local-run-49f169d6ab284fb38f8c303f124f4114",
+          "exit_code": 0,
+          "wall_seconds": 3.976316,
+          "memory_envelope_bytes": 667942912,
+          "peak_job_bytes": 335650816,
+          "cpu_percent": 16,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "children_at_forced_retirement": 0,
+          "receipt_sha256": "f30ac7043368d9dac0edb4e0377c2a2c3b96107f874598123e8765f9c2065834",
+          "log_sha256": "a0180f01bb783553deb1c268e73e0db5fe014d583de13c96e321fc4ef666e393"
+        }
+      },
+      {
+        "mode": "cpu",
+        "cohort": "modular-public",
+        "files": 45,
+        "groups": 5,
+        "advised_members": 0,
+        "submitted": 0,
+        "verified_batches": 0,
+        "worker_ns": 0,
+        "discovery_ns": 0,
+        "maintenance_ns": 652339700,
+        "compact_verify_ns": 303020300,
+        "input_compacted_bytes": 41623552,
+        "grouped_compacted_bytes": 4096000,
+        "packed_widths": 0,
+        "packed_payload_bytes": 0,
+        "retired": true,
+        "independent_cpu_readback": true,
+        "modeled_idle_time": true,
+        "input_blake3": "2a629256050f63f66a5786af6b1cdde33d5405074611257d0982b47c5c6bfac7",
+        "complete_ns": 955360000,
+        "job": {
+          "run": "local-run-6b0adef1526949e499ad8bcc97e5dd1f",
+          "exit_code": 0,
+          "wall_seconds": 1.867917,
+          "memory_envelope_bytes": 661651456,
+          "peak_job_bytes": 254992384,
+          "cpu_percent": 16,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "children_at_forced_retirement": 0,
+          "receipt_sha256": "c71672d7c5b59c054e7623d6de7c61b6d6358def4645350a56d8db7ea3d484b8",
+          "log_sha256": "f0342c3405ca58789212d0a88b848559ddce4c7cd6b7d5d241dc87c7922ffa26"
+        }
+      },
+      {
+        "mode": "cpu",
+        "cohort": "modular-public",
+        "files": 45,
+        "groups": 5,
+        "advised_members": 0,
+        "submitted": 0,
+        "verified_batches": 0,
+        "worker_ns": 0,
+        "discovery_ns": 0,
+        "maintenance_ns": 671457200,
+        "compact_verify_ns": 326068900,
+        "input_compacted_bytes": 41623552,
+        "grouped_compacted_bytes": 4096000,
+        "packed_widths": 0,
+        "packed_payload_bytes": 0,
+        "retired": true,
+        "independent_cpu_readback": true,
+        "modeled_idle_time": true,
+        "input_blake3": "2a629256050f63f66a5786af6b1cdde33d5405074611257d0982b47c5c6bfac7",
+        "complete_ns": 997526100,
+        "job": {
+          "run": "local-run-5b7afa6320a54cf3a9c59b2a38b5aa46",
+          "exit_code": 0,
+          "wall_seconds": 1.906771,
+          "memory_envelope_bytes": 660602880,
+          "peak_job_bytes": 255000576,
+          "cpu_percent": 16,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "children_at_forced_retirement": 0,
+          "receipt_sha256": "917ffb2e73234f3e8a56535758d6e0743ff27d47ef3e8a9c147d4457e783066c",
+          "log_sha256": "41b7d0d00a6003995571e5374d6fec13749758988a1fcf6d3c849d01aeb0f15f"
+        }
+      },
+      {
+        "mode": "amd",
+        "cohort": "modular-public",
+        "files": 45,
+        "groups": 5,
+        "advised_members": 310,
+        "submitted": 1,
+        "verified_batches": 1,
+        "worker_ns": 1973009200,
+        "discovery_ns": 277260900,
+        "maintenance_ns": 2700567200,
+        "compact_verify_ns": 351155200,
+        "input_compacted_bytes": 41623552,
+        "grouped_compacted_bytes": 4096000,
+        "packed_widths": 15,
+        "packed_payload_bytes": 1503624,
+        "retired": true,
+        "independent_cpu_readback": true,
+        "modeled_idle_time": true,
+        "input_blake3": "2a629256050f63f66a5786af6b1cdde33d5405074611257d0982b47c5c6bfac7",
+        "complete_ns": 3328983300,
+        "job": {
+          "run": "local-run-b975bc42d4c24c3ba2cd03c17d83c82e",
+          "exit_code": 0,
+          "wall_seconds": 4.372883,
+          "memory_envelope_bytes": 641728512,
+          "peak_job_bytes": 334110720,
+          "cpu_percent": 16,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "children_at_forced_retirement": 0,
+          "receipt_sha256": "dbfa4950d767bca1b02b05a69836a324d6db27bb63063ceff10b87082dcc976c",
+          "log_sha256": "bdbcee3158be684b0d48d4a0af4ef12baa4f9cc8c2976ea8a0da9f016bef5a8d"
+        }
+      }
+    ],
+    "wide_xor_profile_probe_build": {
+      "run": "local-run-37b2614bb30c4d499f4c99817c7b5b6e",
+      "exit_code": 0,
+      "wall_seconds": 46.702211,
+      "memory_envelope_bytes": 621805568,
+      "peak_job_bytes": 419549184,
+      "cpu_percent": 16,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "children_at_forced_retirement": 1,
+      "receipt_sha256": "ce799e8497745ada297cdd3ba1aac3f201fa27c270122d92eb117af2630a66ce",
+      "log_sha256": "9d062dc499c0c5f2f7ed3aca7c10aa2e9a92ec6c29f3fb0ed5b45842b6b1ab59"
+    },
+    "wide_xor_profile_regression": {
+      "run": "local-run-e6f0fe1ea4c648fe85824b971707596c",
+      "exit_code": 0,
+      "wall_seconds": 1.664564,
+      "memory_envelope_bytes": 443547648,
+      "peak_job_bytes": 90984448,
+      "cpu_percent": 16,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "children_at_forced_retirement": 0,
+      "receipt_sha256": "2bcf07620419cd01d5e1e3762dfbc2a61318a2703d2650030b580192aa0b0018",
+      "log_sha256": "94ef449976f20067247c5c67b95c9510c4b6b97eab8efb6f6f8b06c15129a48c"
+    },
+    "large_wide_xor_unverified": {
+      "run": "local-run-ba8a456462d74ce598737a10a384bf43",
+      "exit_code": 1,
+      "wall_seconds": 2.490105,
+      "memory_envelope_bytes": 415236096,
+      "peak_job_bytes": 270008320,
+      "cpu_percent": 16,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "children_at_forced_retirement": 0,
+      "receipt_sha256": "1e32d53a8fe14d66b04015b6715d25be81948f4bea59bd2c1f6e62d4ea0745a6",
+      "log_sha256": "b068b7be4f3a40f5cc77cc7cafef570ed252bf7ff46b8a4242b89a07441a02b1"
+    },
+    "large_wide_xor_scope": "The optional owner fixture lacked verified advice with lower contemporaneous host headroom. A separate small matched legacy probe exercised the unchanged v5 export."
+  },
+  "scope": {
+    "actual_amd_runtime": true,
+    "modular_advice_cpu_verified": true,
+    "automatic_gpu_preference_qualified": false,
+    "persisted_numeric_discovery": false,
+    "model_idle_opportunities": true,
+    "mounted": false,
+    "release": false
+  }
+}

@@ -41,11 +41,11 @@ struct NativeAnchorSearchController::Impl {
   std::optional<Flight> flight;
   std::vector<NativeSharedBaseSearchWindow> windows;
   std::vector<detail::AnchorMatchAdvice> advice;
-  std::vector<detail::AnchorXorAdvice> xor_advice;
-  std::vector<std::vector<NativePackedXorCheck>> xor_checks;
+  std::vector<detail::AnchorPackedAdvice> packed_advice;
+  std::vector<std::vector<NativePackedGroupCheck>> packed_checks;
   std::vector<NativeSharedBaseSearchReply> replies;
   NativeAnchorSearchStats stats;
-  std::uint64_t activity=0,next_launch=0,sequence=0,unobserved_ticket=0,xor_ticket=0;
+  std::uint64_t activity=0,next_launch=0,sequence=0,unobserved_ticket=0,packed_ticket=0;
   bool enabled=false,configuration_blocked=false;
   explicit Impl(NativeAnchorSearchOptions configured):options(std::move(configured)) {
     enabled=valid_anchor_route(options.route) && valid_profile();
@@ -53,16 +53,17 @@ struct NativeAnchorSearchController::Impl {
   bool valid_profile() const noexcept {
     return options.minimum_members && options.minimum_members<=options.maximum_members &&
         options.minimum_members<=detail::anchor_match_batch_member_limit() &&
+        (options.output!=anchor_match::BatchOutput::modular_delta || options.maximum_dispatch_members) &&
         options.duty_ppm && options.duty_ppm<=100000 &&
         options.worker.memory_share_divisor && valid_process_budget(options.worker);
   }
   void discard() noexcept {
-    if(xor_ticket)(void)recovery.abandon(std::exchange(xor_ticket,0),true);
+    if(packed_ticket)(void)recovery.abandon(std::exchange(packed_ticket,0),true);
     replies.clear();
     windows.clear();
     std::vector<detail::AnchorMatchAdvice>{}.swap(advice);
-    std::vector<detail::AnchorXorAdvice>{}.swap(xor_advice);
-    xor_checks.clear();
+    std::vector<detail::AnchorPackedAdvice>{}.swap(packed_advice);
+    packed_checks.clear();
   }
   void yield(Disposition disposition) noexcept {
     discard();
@@ -149,7 +150,9 @@ void NativeAnchorSearchController::start(std::span<const NativeSharedBaseSearchW
       else limit=test-1;
     }
     if(!fit){defer();return;}
-    const auto quantum=(std::min)(fit,anchor_match::dispatch_member_limit(options.output));
+    const auto dispatch_limit=anchor_match::dispatch_member_limit(options.output);
+    const auto grant_limit=options.maximum_dispatch_members?options.maximum_dispatch_members:dispatch_limit;
+    const auto quantum=(std::min)({fit,dispatch_limit,grant_limit});
     std::vector<std::uint32_t> counts;
     counts.reserve(windows.size());
     for(const auto& window:windows)counts.push_back(static_cast<std::uint32_t>(window.members().size()));
@@ -183,7 +186,8 @@ void NativeAnchorSearchController::start(std::span<const NativeSharedBaseSearchW
     auto request=builder.finish();
     std::vector<NativeSharedBaseSearchWindow> retained(windows.begin(),windows.end());
     const auto begun=GetTickCount64();
-    const auto command=options.output==anchor_match::BatchOutput::wide_packed_xor?L"--driver-anchor-xor-wide-batch":
+    const auto command=options.output==anchor_match::BatchOutput::modular_delta?L"--driver-anchor-modular-delta-batch":
+        options.output==anchor_match::BatchOutput::wide_packed_xor?L"--driver-anchor-xor-wide-batch":
         options.output==anchor_match::BatchOutput::packed_xor?L"--driver-anchor-xor-batch":L"--driver-anchor-transfer-batch";
     auto session=WorkerExchangeSession::start_sized(route.helper,
         {command,
@@ -247,16 +251,18 @@ void NativeAnchorSearchController::observe(std::uint64_t activity,std::uint64_t 
       try {
         self.replies.reserve(self.windows.size());
         if(self.options.output!=anchor_match::BatchOutput::anchors) {
-          self.xor_advice=detail::decode_anchor_xor_batch_reply(result->response,flight.request);
-          if(self.xor_advice.size()!=self.windows.size())throw std::invalid_argument("Incomplete packed XOR batch");
-          self.xor_checks.reserve(self.windows.size());
+          self.packed_advice=detail::decode_anchor_packed_batch_reply(result->response,flight.request);
+          if(self.packed_advice.size()!=self.windows.size())throw std::invalid_argument("Incomplete packed batch");
+          self.packed_checks.reserve(self.windows.size());
+          const auto method=self.options.output==anchor_match::BatchOutput::modular_delta?
+              NativePackedGroupMethod::modular_delta:NativePackedGroupMethod::xor_planes;
           for(std::size_t i=0;i<self.windows.size();++i) {
-            auto& checks=self.xor_checks.emplace_back(self.xor_advice[i].size(),NativePackedXorCheck::pending);
-            self.replies.push_back({self.windows[i],{},self.xor_advice[i],checks});
+            auto& checks=self.packed_checks.emplace_back(self.packed_advice[i].size(),NativePackedGroupCheck::pending);
+            self.replies.push_back({self.windows[i],{},self.packed_advice[i],checks,method});
           }
           // Retirement is proven, but the recovery ticket still awaits the
           // byte verdicts from the exact members consuming this reply.
-          self.xor_ticket=flight.ticket;
+          self.packed_ticket=flight.ticket;
         } else {
           self.advice=detail::accept_anchor_match_batch_reply(result->response,flight.request);
           if(self.advice.size()!=self.windows.size())throw std::invalid_argument("Incomplete verified anchor batch");
@@ -292,17 +298,17 @@ std::span<const NativeSharedBaseSearchReply> NativeAnchorSearchController::repli
 }
 void NativeAnchorSearchController::settle_reply_checks() noexcept {
   auto& self=*impl_;
-  if(!self.xor_ticket)return;
-  const auto check=detail::inspect_anchor_xor_checks(self.replies);
-  if(check.status==detail::AnchorXorBatchStatus::pending)return;
-  const auto ticket=std::exchange(self.xor_ticket,0);
-  if(check.status==detail::AnchorXorBatchStatus::verified &&
+  if(!self.packed_ticket)return;
+  const auto check=detail::inspect_anchor_packed_checks(self.replies);
+  if(check.status==detail::AnchorPackedBatchStatus::pending)return;
+  const auto ticket=std::exchange(self.packed_ticket,0);
+  if(check.status==detail::AnchorPackedBatchStatus::verified &&
       self.recovery.finish(ticket,GpuRecoveryOutcome::accepted,true)) {
     ++self.stats.verified;
     self.stats.verified_groups+=check.verified_groups;
     return;
   }
-  if(check.status==detail::AnchorXorBatchStatus::empty) {
+  if(check.status==detail::AnchorPackedBatchStatus::empty) {
     (void)self.recovery.abandon(ticket,true);
     ++self.stats.empty_xor_batches;
   }else self.fail(ticket,GpuRecoveryOutcome::integrity_failure,true);
