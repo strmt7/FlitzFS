@@ -472,6 +472,68 @@ void persistent_indexed_scan() {
   std::cout<<"persistent_indexed_scan total="<<count<<" resumed_samples="<<resumed_samples
       <<" checkpoint_store_bytes="<<advice->extent()<<" write_cost="<<kOptimizationAreaBytes<<'\n';
 }
+void retain_distant_indexed_candidate() {
+  constexpr auto prefix=2*kNativeMaxDirtyExtents;
+  Fixture f(4096,0,true);
+  auto advice=ram(4096);
+  require(f.session->create_budgeted_optimization_area(advice).phase==NativeOptimizationPhase::ready,
+      "long-range discovery advice unavailable");
+  const auto initial_advice_bytes=advice->write_bytes;
+  put(*f.session,"original",family(0));
+  for(std::size_t i=1;i<prefix;++i)
+    put(*f.session,"unrelated-"+std::to_string(i),data(kNativeExtentBytes,static_cast<unsigned>(3000+i)));
+  put(*f.session,"distant",family(1));
+  put(*f.session,"sparse-funding",Bytes(kOptimizationGroupScanInputBytes/2));
+  const auto original_inode=f.session->snapshot().stat("original").inode;
+  {
+    NativeGroupMaintenance controller(*f.session);
+    for(unsigned expected=1;expected<=2;++expected) {
+      for(unsigned tick=0;tick<3500&&controller.progress().checkpoints_published<expected;++tick)
+        require(f.step(controller).phase!=Phase::failed,"long-range discovery failed");
+      require(controller.progress().checkpoints_published==expected &&
+          controller.progress().attempted_groups==0 && controller.pending(),
+          "unrelated windows did not checkpoint before reaching the distant member");
+      // Retain the older format when the checkpoint fits its original capacity.
+      require(advice->stable.at(7)==static_cast<std::byte>('2'+expected),"checkpoint writer capability differs");
+    }
+  }
+  const auto saved=read_optimization_state(*advice,id(90));
+  require(saved.code==OptimizationReadCode::available && !saved.degraded && saved.state.group_scan &&
+      !saved.state.group_scan->complete && saved.state.group_scan->representatives.size()==prefix &&
+      saved.state.group_scan->representatives.front().inode==original_inode,
+      "extended checkpoint lost the early candidate");
+  require(advice->extent()==kOptimizationAreaBytes &&
+      advice->write_bytes-initial_advice_bytes==2*kOptimizationAreaBytes,
+      "retaining more representatives increased the checkpoint footprint or write traffic");
+  // A foreground edit after the checkpoint changes one earlier extent.
+  const auto replacement=data(kNativeExtentBytes,9001);
+  const auto handle=f.session->open("unrelated-1",{true,true,false});
+  f.session->write(handle,0,replacement);f.session->cleanup(handle,false);f.session->close(handle);
+  reopen_indexed(f,advice,saved.sequence);
+  NativeGroupMaintenance controller(*f.session);
+  for(unsigned tick=0;tick<2500 && controller.progress().published_groups==0;++tick)
+    require(f.step(controller).phase!=Phase::failed,"reopened distant selection failed");
+  const auto selected=controller.progress();
+  require(selected.checkpoints_restored==1 && selected.published_groups==1 &&
+      selected.minimum_compacted_bytes_saved>0 && selected.sampled_extents==1,
+      "reopened scanner missed the distant match before revisiting the edited prefix");
+  finish_pending(f,controller);
+  const auto progress=controller.progress();
+  require(progress.reused_features>=prefix-1 && progress.sampled_extents<prefix,
+      "unrelated edit discarded the saved scan work");
+  const auto snapshot=f.session->snapshot();
+  require(snapshot.shared_base_info().members==2 && snapshot.shared_base_info().bases==1 &&
+      snapshot.read("original",0,kNativeExtentBytes)==family(0) &&
+      snapshot.read("distant",0,kNativeExtentBytes)==family(1) &&
+      snapshot.read("unrelated-1",0,kNativeExtentBytes)==replacement,
+      "distant group reopened with different contents");
+  snapshot.verify_all();
+  std::cout<<"indexed_distant_match prefix_representatives="<<prefix
+      <<" samples_before_match="<<selected.sampled_extents
+      <<" total_resumed_samples="<<progress.sampled_extents<<" reused_features="<<progress.reused_features
+      <<" minimum_compacted_bytes_saved="<<progress.minimum_compacted_bytes_saved
+      <<" checkpoint_bytes="<<advice->extent()<<'\n';
+}
 void indexed_scan_checkpoint_faults() {
   for(const auto unit:{4096U,65536U})for(unsigned mode=0;mode<3;++mode)for(unsigned cut=0;cut<4;++cut) {
     Fixture f(4096,0,true);auto advice=ram(unit);
@@ -498,7 +560,7 @@ void indexed_scan_checkpoint_faults() {
 }
 int main(int argc,char** argv){try{
   if(argc==2 && std::string_view(argv[1])=="--indexed-resume") {
-    persistent_indexed_scan();indexed_scan_checkpoint_faults();
+    persistent_indexed_scan();retain_distant_indexed_candidate();indexed_scan_checkpoint_faults();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-advice") {
     advised_indexed_maintenance();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-batch") {

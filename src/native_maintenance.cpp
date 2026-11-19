@@ -16,7 +16,22 @@ using Digest=detail::Digest;using Phase=NativeMaintenancePhase;using Defer=Nativ
 constexpr std::uint64_t million=1000000,fixed_scratch=16ULL*kNativeExtentBytes,member_scratch=8ULL*kNativeExtentBytes;
 constexpr unsigned positional_bands=8;
 static_assert(kOptimizationGroupBands==positional_bands+detail::kNativeGroupShiftFeatures);
-static_assert(kOptimizationGroupRepresentatives==kNativeMaxDirtyExtents);
+// Charge extra history for its retained entry, bucket membership, and the
+// overlapping controller, publisher and verifier copies of checkpoint rows.
+constexpr auto representative_scratch=8*sizeof(OptimizationGroupFeature);
+static_assert(kOptimizationGroupRepresentatives>kNativeMaxDirtyExtents);
+struct GroupMemoryBudget {std::size_t members=0,representatives=0;};
+GroupMemoryBudget group_memory_budget(const detail::MaintenanceResources& resources,bool indexed) noexcept {
+  const auto scratch=fixed_scratch+(indexed?detail::kNativeGroupAnchorIndexBytes:0);
+  if(resources.memory_allowance<=scratch)return {};
+  const auto available=resources.memory_allowance-scratch;
+  if(available<2*member_scratch)return {};
+  const auto extra=indexed?(std::min)(std::uint64_t{kOptimizationGroupRepresentatives-kNativeMaxDirtyExtents},
+      (available-2*member_scratch)/representative_scratch):0;
+  const auto members=static_cast<std::size_t>((std::min)(std::uint64_t{kNativeMaxExtents},
+      (available-extra*representative_scratch)/member_scratch));
+  return {members,indexed?(std::min)(members,kNativeMaxDirtyExtents)+static_cast<std::size_t>(extra):0};
+}
 constexpr auto checkpoint_window_samples=kOptimizationGroupScanInputBytes/(2*kNativeExtentBytes);
 std::uint64_t fraction(std::uint64_t total,std::uint64_t ppm) noexcept {
   return total/million*ppm+total%million*ppm/million;
@@ -46,10 +61,7 @@ std::optional<detail::MaintenanceResources> detail::maintenance_resources(
       observed.cpu_busy_ticks>fraction(observed.cpu_total_ticks,policy.maximum_cpu_busy_ppm)};
 }
 std::size_t detail::maintenance_group_member_limit(const MaintenanceResources& resources,bool indexed) noexcept {
-  const auto scratch=fixed_scratch+(indexed?detail::kNativeGroupAnchorIndexBytes:0);
-  if(resources.memory_allowance<=scratch)return 0;
-  return static_cast<std::size_t>((std::min)(std::uint64_t(kNativeMaxExtents),
-      (resources.memory_allowance-scratch)/member_scratch));
+  return group_memory_budget(resources,indexed).members;
 }
 struct NativeGroupMaintenance::Impl {
   struct Feature {
@@ -140,29 +152,34 @@ struct NativeGroupMaintenance::Impl {
     if(scan_revisit || writer.maintenance_content_sequence()!=scan_sequence)begin_scan(writer);
     else {completed_sequence=scan_sequence;phase=Phase::idle;}
   }
-  bool restore_scan(NativeFilesystemWriter& writer,const detail::NativeMaintenanceSource& owner) {
+  bool restore_scan(NativeFilesystemWriter& writer,const detail::NativeMaintenanceSource& owner,
+      std::size_t maximum_representatives) {
     checkpoint_loaded=true;
     const auto saved=owner.restore_scan();
     if(!saved || saved->image!=image || saved->namespace_sequence>writer.maintenance_sequence())return false;
     const bool same=saved->namespace_sequence==writer.maintenance_sequence();
-    if(saved->complete && !same)return false;
-    scan_sequence=writer.maintenance_content_sequence();
-    scan_revisit=saved->revisit || !same;
-    cursor={saved->inode,saved->extent_index};first=false;
-    if(same && !saved->revisit)for(const auto& item:saved->representatives) {
+    begin_scan(writer);
+    if(!saved->complete || same) {
+      scan_revisit=saved->revisit || !same;
+      cursor={saved->inode,saved->extent_index};first=false;
+    }
+    // Same-image records can span unrelated commits. The live extent binding
+    // must still match before any representative is reused or selected.
+    for(const auto& item:saved->representatives) {
       const NativeContentToken token{{item.inode,item.extent_index},item.object,item.revision,item.revision,
           item.exact_base,item.exact_base};
       representatives.emplace(item.object,Feature{token,item.content,item.bands});
+      trim_representatives(maximum_representatives);
     }
-    if(saved->complete){completed_sequence=scan_sequence;phase=Phase::idle;}
-    else phase=Phase::scanning;
+    if(saved->complete && same){completed_sequence=scan_sequence;phase=Phase::idle;}
     ++state.checkpoints_restored;
     return true;
   }
-  bool checkpoint_step(NativeFilesystemWriter& writer,const detail::NativeMaintenanceSource& owner) {
+  bool checkpoint_step(NativeFilesystemWriter& writer,const detail::NativeMaintenanceSource& owner,
+      std::size_t maximum_representatives) {
     if(checkpoint_unavailable)return false;
     try {
-      if(!checkpoint_loaded && restore_scan(writer,owner))return true;
+      if(!checkpoint_loaded && restore_scan(writer,owner,maximum_representatives))return true;
       if(!checkpoint_due)return false;
       checkpoint_due=false;
       if(!owner.scan_funded())return false;
@@ -171,13 +188,11 @@ struct NativeGroupMaintenance::Impl {
       scan.inode=cursor.inode;scan.extent_index=cursor.extent_index;
       scan.revisit=scan_revisit || scan_sequence!=writer.maintenance_content_sequence();
       scan.complete=phase==Phase::idle&&!scan.revisit;
-      if(!scan.revisit) {
-        scan.representatives.reserve(representatives.size());
-        for(const auto& [id,feature]:representatives) {
-          const auto& token=feature.token;
-          scan.representatives.push_back({token.extent.inode,token.extent.extent_index,
-              id,token.revision,feature.content,feature.bands,token.exact_base});
-        }
+      scan.representatives.reserve(representatives.size());
+      for(const auto& [id,feature]:representatives) {
+        const auto& token=feature.token;
+        scan.representatives.push_back({token.extent.inode,token.extent.extent_index,
+            id,token.revision,feature.content,feature.bands,token.exact_base});
       }
       if(owner.publish_scan(std::move(scan))) {
         ++state.checkpoints_published;
@@ -241,15 +256,18 @@ struct NativeGroupMaintenance::Impl {
     const auto sampled=features.find(id);
     return sampled!=features.end()?sampled->second:representatives.at(id);
   }
+  void trim_representatives(std::size_t maximum) noexcept {
+    while(representatives.size()>maximum) {
+      const auto disposable=std::ranges::find_if(representatives,[](const auto& item){return !item.second.token.exact_base;});
+      representatives.erase(disposable==representatives.end()?representatives.begin():disposable);
+    }
+  }
   void retain_indexed_window(std::size_t maximum) {
     for(const auto& [id,feature]:features) {
       if(!feature.token.grouped || feature.token.exact_base)representatives.insert_or_assign(id,feature);
       else representatives.erase(id);
     }
-    while(representatives.size()>maximum) {
-      const auto disposable=std::ranges::find_if(representatives,[](const auto& item){return !item.second.token.exact_base;});
-      representatives.erase(disposable==representatives.end()?representatives.begin():disposable);
-    }
+    trim_representatives(maximum);
     features.clear();buckets.clear();candidate_order.clear();
   }
   void propose_indexed_group(NativeFilesystemWriter& writer,std::size_t maximum_members,
@@ -303,7 +321,8 @@ struct NativeGroupMaintenance::Impl {
     indexed_work_base=base;work_members=expected.size();work_batched=collect_batch;
     ++state.attempted_groups;phase=Phase::preparing;
   }
-  void step_indexed(NativeFilesystemWriter& writer,std::size_t maximum_members,bool collect_batch) {
+  void step_indexed(NativeFilesystemWriter& writer,std::size_t maximum_members,
+      std::size_t maximum_representatives,bool collect_batch) {
     // The budget limits one trial and one scan window. Existing anchors can
     // accept further windows without rewriting earlier members.
     const auto maximum=(std::min)(maximum_members,kNativeMaxDirtyExtents);
@@ -314,6 +333,7 @@ struct NativeGroupMaintenance::Impl {
         auto feature=measure(writer,*token);
         if(feature.token.exact_base)representatives.insert_or_assign(token->object,std::move(feature));
       }
+      trim_representatives(maximum_representatives);
       rank_buckets(true);
       return;
     }
@@ -323,8 +343,13 @@ struct NativeGroupMaintenance::Impl {
         cursor=token->extent;first=false;
         if(token->object) {
           const auto known=representatives.find(token->object);
-          if(known!=representatives.end() && known->second.token.revision==token->revision) {
-            features.insert_or_assign(token->object,known->second);++state.reused_features;
+          if(known!=representatives.end() && known->second.token.revision==token->revision &&
+              known->second.token.extent.inode==token->extent.inode &&
+              known->second.token.extent.extent_index==token->extent.extent_index) {
+            // Index lookups provide the revision; a verified payload sample
+            // also carries the representation's learned group role.
+            features.insert_or_assign(token->object,known->second);
+            ++state.reused_features;
           } else features.insert_or_assign(token->object,measure(writer,*token));
         }
         if(features.size()>=maximum)rank_buckets(true);
@@ -335,14 +360,15 @@ struct NativeGroupMaintenance::Impl {
       propose_indexed_group(writer,maximum,maximum_members-staged_extents,collect_batch);
       return;
     }
-    retain_indexed_window(maximum);
+    retain_indexed_window(maximum_representatives);
     if(extent_scan_exhausted)complete_scan(writer);
     else phase=Phase::scanning;
     const auto samples=state.sampled_extents-checkpoint_samples;
     checkpoint_due=!checkpoint_unavailable && !first && samples &&
         (phase==Phase::idle || samples>=checkpoint_window_samples);
   }
-  void step(NativeFilesystemWriter& writer,std::size_t maximum_members,NativeGroupSearchOpportunity search) {
+  void step(NativeFilesystemWriter& writer,std::size_t maximum_members,std::size_t maximum_representatives,
+      NativeGroupSearchOpportunity search) {
     const bool can_batch=search.collect_batch && writer.maintenance_indexed();
     const bool collect_batch=can_batch && search.maximum_members;
     if(!staged_groups.empty() && !batch_draining) {
@@ -356,7 +382,7 @@ struct NativeGroupMaintenance::Impl {
     if(batch_draining && !work) {
       if(refresh_base) {
         if(staged_groups.empty())batch_draining=false;
-        step_indexed(writer,maximum_members,false);
+        step_indexed(writer,maximum_members,maximum_representatives,false);
         return;
       }
       if(staged_groups.empty()) {
@@ -430,7 +456,10 @@ struct NativeGroupMaintenance::Impl {
       if(completed_sequence==writer.maintenance_content_sequence())return;
       begin_scan(writer);return;
     }
-    if(writer.maintenance_indexed()){step_indexed(writer,maximum_members,can_batch && !batch_draining);return;}
+    if(writer.maintenance_indexed()) {
+      step_indexed(writer,maximum_members,maximum_representatives,can_batch && !batch_draining);
+      return;
+    }
     if(phase==Phase::scanning) {
       const auto next=writer.maintenance_next(cursor,first);
       if(next) {
@@ -542,8 +571,13 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
   if(!resources || observed.captured_ms<p.last_capture)return p.defer(Defer::observation,true);
   const auto elapsed=p.last_capture?(std::min)(observed.captured_ms-p.last_capture,observed.cpu_window_ms):0;
   p.last_capture=observed.captured_ms;
-  const auto maximum_members=detail::maintenance_group_member_limit(*resources,writer.maintenance_indexed());
+  const bool indexed=writer.maintenance_indexed();
+  const auto [maximum_members,maximum_representatives]=group_memory_budget(*resources,indexed);
   if(maximum_members<2 || p.group_members()>maximum_members)return p.defer(Defer::memory,true);
+  if(p.representatives.size()>maximum_representatives) {
+    if(p.phase!=Phase::idle)return p.defer(Defer::memory,true);
+    p.trim_representatives(maximum_representatives);
+  }
   if(!writer.maintenance_has_candidates())p.reset_index();
   if(!writer.maintenance_has_candidates() ||
       (!p.active_group() && !p.checkpoint_due && p.phase==Phase::idle && p.completed_sequence==writer.maintenance_content_sequence())) {
@@ -567,8 +601,8 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
   }
   const auto before=std::chrono::steady_clock::now();
   try {
-    if(!writer.maintenance_indexed() || !p.checkpoint_step(writer,*source))
-      p.step(writer,maximum_members,search);
+    if(!indexed || !p.checkpoint_step(writer,*source,maximum_representatives))
+      p.step(writer,maximum_members,maximum_representatives,search);
     if(p.checkpoint_due && !source->scan_funded())p.checkpoint_due=false;
     p.state.phase=p.phase;p.state.deferral=Defer::none;
   }catch(const std::bad_alloc&){p.reset_index();p.state.phase=Phase::deferred;p.state.deferral=Defer::memory;}

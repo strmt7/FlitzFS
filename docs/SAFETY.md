@@ -1160,6 +1160,13 @@ driver action or GPU operation is enabled.
 
 ## Input-funded advisory control
 
+Extended discovery checkpoints fit the existing pair of 64 KiB records. They
+preserve the digest, version, sequence, write funding and independent file-data
+recovery rules. A matching image alone grants no candidate authority. The
+scanner checks the live extent identity and revision before using a retained
+feature, and publication independently verifies its selected bytes.
+[Checkpoint format](OPTIMIZATION_STATE.md#indexed-discovery-checkpoints)
+
 [OPTIMIZATION_BUDGET.md](OPTIMIZATION_BUDGET.md) requires verified native input,
 monotonic persisted settlement, charged creation/repair and fresh-input forfeiture
 after loss. Only actual NEW head/image creation can fund one initial provision;

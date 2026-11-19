@@ -193,6 +193,70 @@ void decoding(const Bytes& acknowledged) {
   require(read_optimization_state(*unavailable,volume()).code==OptimizationReadCode::io_failure,"I/O failure hidden");
   rejects([&]{(void)read_optimization_state(*unavailable,{});},"missing reader binding");
 }
+void extended_scan_decoding(const Bytes& acknowledged) {
+  constexpr std::size_t scan_at=2624,first_feature=2688,feature_bytes=168;
+  constexpr std::uint64_t data_namespace=1ULL<<61;
+  Bytes legacy;
+  for(const unsigned version:{3U,4U}) {
+    const auto count=version==3?63:kOptimizationGroupRepresentatives;
+    auto bytes=acknowledged;
+    auto expected=policy();
+    expected.settled_input_bytes=kOptimizationGroupScanInputBytes;
+    auto& scan=expected.group_scan.emplace();
+    scan.image=volume(41);scan.namespace_sequence=9;scan.inode=8;scan.extent_index=6;
+    scan.representatives.reserve(count);
+    for(std::size_t i=0;i<count;++i) {
+      OptimizationGroupFeature feature;
+      feature.inode=i+2;feature.extent_index=i;feature.object=data_namespace+i+1;feature.revision=9;
+      feature.content[0]=static_cast<std::byte>(i);
+      feature.bands[0]=i+1;feature.exact_base=i%2==0;
+      scan.representatives.push_back(feature);
+    }
+    for(unsigned slot=0;slot<2;++slot) {
+      const auto base=slot*kStoreCommitUnit,at=base+scan_at;
+      bytes.at(base+7)=static_cast<std::byte>('0'+version);
+      put(bytes,base+8,version,4);
+      put(bytes,base+52,1,4);
+      put(bytes,base+56,*expected.settled_input_bytes);
+      std::copy(scan.image.begin(),scan.image.end(),bytes.begin()+static_cast<std::ptrdiff_t>(at));
+      put(bytes,at+16,scan.namespace_sequence);
+      put(bytes,at+24,scan.inode);put(bytes,at+32,scan.extent_index);
+      put(bytes,at+44,1,4);put(bytes,at+48,count,4);
+      for(std::size_t i=0;i<count;++i) {
+        const auto row=base+first_feature+i*feature_bytes;
+        const auto& value=scan.representatives[i];
+        put(bytes,row,value.inode);put(bytes,row+8,value.extent_index);
+        put(bytes,row+16,value.object);put(bytes,row+24,value.revision);
+        bytes.at(row+32)=value.content[0];
+        put(bytes,row+64,value.bands[0]);put(bytes,row+160,value.exact_base);
+      }
+      seal(bytes,slot);
+    }
+    expect_state(read(bytes),2,expected);
+    if(version==3)legacy=bytes;
+    else {
+      auto mixed=legacy;
+      std::copy_n(bytes.begin(),kStoreCommitUnit,mixed.begin());
+      put(mixed,16,3);
+      put(mixed,56,*expected.settled_input_bytes+kOptimizationGroupScanInputBytes);
+      seal(mixed,0);
+      auto published=expected;
+      *published.settled_input_bytes+=kOptimizationGroupScanInputBytes;
+      const auto recovered=read(mixed);
+      expect_state(recovered,3,published);
+      require(recovered.degraded,"mixed checkpoint generations did not request repair");
+      mixed.at(kStoreCommitUnit-32)^=std::byte{1};
+      const auto prior=read(legacy),survivor=read(mixed);
+      expect_state(survivor,2,prior.state);
+      require(survivor.degraded,"torn extended checkpoint hid the legacy peer");
+    }
+    auto oversized=bytes;
+    put(oversized,scan_at+48,count+1,4);seal(oversized,0);
+    require(read(oversized).code==OptimizationReadCode::invalid,"oversized checkpoint count exposed advice");
+    bytes.at(kStoreCommitUnit-33)=std::byte{1};seal(bytes,0);
+    require(read(bytes).code==OptimizationReadCode::invalid,"nonzero reserved checkpoint tail exposed advice");
+  }
+}
 void crash_matrix(const Bytes& acknowledged) {
   auto baseline=std::make_shared<Ram>();
   {auto writer=OptimizationStateWriter::create(baseline,volume(),4);}
@@ -630,7 +694,7 @@ void rebuild_limits_and_failures() {
 int main() {
   try {
     admission_and_budget();const auto acknowledged=initial_area();
-    decoding(acknowledged);crash_matrix(acknowledged);user_data_isolation(acknowledged);
+    decoding(acknowledged);extended_scan_decoding(acknowledged);crash_matrix(acknowledged);user_data_isolation(acknowledged);
     session_binding_and_handoff();advisory_failures_do_not_fence_data();advisory_control_edges();
     rebuild_live_ownership();rebuild_limits_and_failures();
     std::cout<<"Optimization advisory-state checks: "<<checks

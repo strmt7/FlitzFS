@@ -71,11 +71,12 @@ aligned and shifted content families, extends existing groups, reuses unchanged 
 and suppresses repeated outcomes under supplied resource/foreground observations.
 Measured elapsed work paces later opportunities; selected edits are reconciled.
 The indexed controller verified protected anchor-copy members and published a
-funded scan checkpoint through Windows SDK callbacks. A reopened controller
-can extend a group from the saved window. Larger persistent sparse discovery,
-mounted operation and useful collective AMD work remain required.
+funded scan checkpoint through Windows SDK callbacks. Larger advisory
+checkpoints preserve distant candidates across restart and unrelated writes
+within the existing storage and write budget. Paged sparse discovery, mounted
+maintenance and useful collective AMD work remain required.
 [Shifted group validation](evidence/shifted-indexed-groups-2026-11-18.json) ·
-[Restart validation](evidence/persistent-indexed-discovery-2026-11-18.json)
+[Restart validation](evidence/indexed-representative-retention-2026-11-19.json)
 
 The indexed writer accepted smaller frames derived from a finite AMD
 cross-file search in an explicit comparison. The seeded fixture gained space.

@@ -1,0 +1,122 @@
+{
+  "schema": 1,
+  "date": "2026-11-19",
+  "source_base": "945364a326a18c9dd8b7b8fe0724440ec9cdc506",
+  "tested_sources": {
+    "include/flitzfs/optimization_state.hpp": {
+      "sha256": "b71f0de11baaf5c439556cabf6d2146d9dc68ba5e9c826b83ed584fff1857664",
+      "blob": "bcd370a2b9753847817a9ae707c6c1c69f206298"
+    },
+    "src/native_maintenance.cpp": {
+      "sha256": "9caad7251f5743fbbf16db99ab77c11563fb44e739ca1f15fced6a844f2dbd92",
+      "blob": "58fc1bfe750d5ff1841bdb0f55b9527a7e15cd1e"
+    },
+    "src/optimization_state.cpp": {
+      "sha256": "314e9a0414f34485d835e42cdb5cbd5695f7b47857650deedfe7ef535a9220d2",
+      "blob": "e6f07b2d9edb48bef4665d850d4e0ac0cc226565"
+    },
+    "tests/test_native_group_maintenance.cpp": {
+      "sha256": "a22fb38533266e75be6b6dcff48acead3d94a59295d747bdc409dce28ee4fdee",
+      "blob": "4af0ebfac03061c1dff3f156f88e34800bdd2401"
+    },
+    "tests/test_optimization_state.cpp": {
+      "sha256": "60c824b0d3fd4aafbdc992d742f73cf8e0ff79eaf9fd8a1dea9e9766f8b2d0f9",
+      "blob": "739822bf7e94fc0c77e15e684e4c3511a9501c81"
+    }
+  },
+  "navigation": {
+    "scope": "indexed-coherence-routing-9576898c423b4ef098b9ce5c71389b67",
+    "sha256": "3a0d4d6b0b1a69c4ce2572ad37abffdae038e2480a292620cc78c5f9d384c76b",
+    "tool_version": "0.2.43"
+  },
+  "research": {
+    "scope": "indexed-coherence-research-21561f40963948f8a1f28beb9f5d8956",
+    "tool_version": "0.9.5+flitzzip.portable2",
+    "pages": [
+      {
+        "url": "https://www.usenix.org/conference/fast26/presentation/huang",
+        "http_status": 200,
+        "markdown_sha256": "b271b38f1feb88acd780ae11d756c7f3723fecb288cfe5e7803fed9c5d93767d"
+      },
+      {
+        "url": "https://www.usenix.org/conference/fast25/presentation/wu",
+        "http_status": 200,
+        "markdown_sha256": "eccac3054eae2930a74adc32e13bfad7a579f34e7a649c37d7dd451acedf84f9"
+      }
+    ]
+  },
+  "host": "Physical Windows 11 Pro AMD64",
+  "correctness": {
+    "codec_release": {
+      "run": "local-run-0321d66b8fd7495aadfdac006cb5e079",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "56d9549269eafe68aac429cf0aa9e26205779b61df0f3c3457f3831e9ffcf8f3",
+      "log_sha256": "f1897a3e2310aca599267202a67990ee7051f35b65bbda2203fe1a662b87ccf0",
+      "peak_process_tree_commit_bytes": 106389504
+    },
+    "raw_release": {
+      "run": "local-run-912fad52affe4f429fdf2399fd435885",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "f6251263e3734346d0ccf8e416e8d2bc7aa731bac6a6ba5d5b8cd4a4cc46955c",
+      "log_sha256": "29aca1063910d1be745409ca1a0f67918866105e52b578cc4599b0b163085b93",
+      "peak_process_tree_commit_bytes": 106434560
+    },
+    "raw_address_sanitizer": {
+      "run": "local-run-c2d45780c55942629a724bab1569bfc7",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "a677a9c132616d0945a917dd8408577d155d344db8242fc623bb6c1b042ae18e",
+      "log_sha256": "2cf1b27acede665ff20d351706a2212bad51ddb1c74203f7537409e72c2385b2",
+      "peak_process_tree_commit_bytes": 802844672
+    },
+    "sanitizer_preflight": "Matching toolset runtime staged and the CTest runtime check passed",
+    "guest_execution": false,
+    "benchmarks": false
+  },
+  "checkpoint": {
+    "legacy_capacity": 63,
+    "extended_capacity": 373,
+    "slot_pair_bytes": 131072,
+    "write_charge_bytes_per_publication": 4194304,
+    "resumed_prefix_representatives": 126,
+    "changed_prefix_extents": 1,
+    "samples_before_match": 1,
+    "total_resumed_samples": 4,
+    "reused_features": 125,
+    "compacted_lower_bound_saved_bytes": 131072,
+    "recovery": "Legacy and extended limits, mixed generation selection, torn upgrade fallback and byte-exact CPU readback"
+  },
+  "host_amd": {
+    "checks": {
+      "run": "local-run-09fba41fb1dc4cafb4b9196430812249",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "954641edb2c363e4ca0a36494f58198dde183eaf26c965eebfa5f16ce5ce1382",
+      "log_sha256": "c3b66580e663b466bdde060b25d0558113dc20672b4364e46ce1475a6bfd00c9",
+      "peak_process_tree_commit_bytes": 108994560
+    },
+    "scope": "Installed package through user-mode WinFsp test callbacks",
+    "fixture_sha256": "4da8150bedb94ac8ce4c07d96f6ef4c386ec0139d54b2c74690c6dafce9e0476",
+    "manifest_sha256": "73817fe8f2aa70b1b3923abc72e2b948de9b4dffd5079146d9a1348d7ca20c19",
+    "gpu_dispatches": 1,
+    "groups_independently_verified": 2,
+    "groups_published": 2,
+    "files_cpu_reopened": 6,
+    "host_driver": "WinFsp service stayed stopped"
+  },
+  "prior_failure": {
+    "checks": {
+      "run": "local-run-33adfeb124fa41aaa2f13f32cfa7c5d8",
+      "exit_code": 8,
+      "tree_retired": true,
+      "receipt_sha256": "d17e70509074d44ace20b55fb8dfbc2927b0e30a8fafb6678658f86028175577",
+      "log_sha256": "5e10242dbedc4fb1413b8484e1e64956bb58d28b35c3569014f3a1dba0d01f35",
+      "peak_process_tree_commit_bytes": 106536960
+    },
+    "cause": "A metadata-only extent lookup was treated as authoritative for the payload representation role",
+    "correction": "Preserve sampled role for the same physical revision and independently bind current data during group preparation"
+  },
+  "remaining": "Persistent paged postings, mounted performance and durability, and comparative compression qualification"
+}

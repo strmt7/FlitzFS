@@ -65,9 +65,11 @@ new physical revisions of a just-published group. An unchanged completed scan
 performs no backing I/O. The indexed path can restore a cursor and its bounded
 sparse representatives from the [funded advisory area](OPTIMIZATION_STATE.md#indexed-discovery-checkpoints).
 An exact completed checkpoint skips resampling. An older incomplete checkpoint
-continues to the end before revisiting the prefix. Changed images rebuild
-discovery from their current index. Each selected prior representative must
-still match its live object and revision.
+continues to the end before revisiting the prefix. Same-image checkpoints retain
+representatives across unrelated transactions. Each reuse checks the live
+extent coordinate, object and physical revision. Group preparation uses the
+current representation and independently verifies the selected data. Changed
+images rebuild discovery from their current index.
 
 ## Resource and foreground admission
 
@@ -81,8 +83,10 @@ installed RAM is a product assumption.
 The default policy reserves 1/16 of reported physical and commit totals, then
 admits at most 1/64 of their smaller remaining headroom. The conservative
 scratch estimate includes sixteen 64-KiB extents plus eight extents per group
-member and a 64-KiB base index for indexed volumes.
-Fewer than two admitted members defers work. Current native limits still bound
+member and a 64-KiB base index for indexed volumes. Expanded indexed history
+uses a separate charge within that grant for retained features, bucket
+references and checkpoint copies. The controller may admit fewer representatives
+as headroom falls. Fewer than two admitted members defers work. Current native limits still bound
 the index and group size; these are prototype limits, not intended product caps.
 These estimates and observations are not an OS memory reservation.
 

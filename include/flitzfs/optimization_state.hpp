@@ -6,7 +6,8 @@ namespace flitzfs {
 inline constexpr std::uint64_t kOptimizationAreaBytes=2*kStoreCommitUnit;
 inline constexpr std::size_t kOptimizationMaxProfiles=32,kOptimizationMaxBenchmarks=16;
 inline constexpr std::size_t kOptimizationGroupBands=12;
-inline constexpr std::size_t kOptimizationGroupRepresentatives=kStoreMaxTransactionBytes/kStoreCommitUnit-1;
+// Number of feature records that fit in an extended advisory slot.
+inline constexpr std::size_t kOptimizationGroupRepresentatives=373;
 inline constexpr std::uint64_t kOptimizationGroupScanInputBytes=32*kOptimizationAreaBytes;
 struct OptimizationGroupFeature {
   std::uint64_t inode=0,extent_index=0,object=0,revision=0;

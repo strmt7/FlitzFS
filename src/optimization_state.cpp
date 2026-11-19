@@ -14,8 +14,9 @@ namespace {
 using Bytes=std::vector<std::byte>;
 constexpr std::size_t digest_at=kStoreCommitUnit-32,profile_at=64,benchmark_at=64+32*64;
 constexpr std::size_t scan_at=benchmark_at+kOptimizationMaxBenchmarks*32,feature_at=scan_at+64,feature_size=168;
-constexpr char magic[]="FLTOP001",budget_magic[]="FLTOP002",scan_magic[]="FLTOP003";
-static_assert(feature_at+kOptimizationGroupRepresentatives*feature_size<digest_at);
+constexpr std::array slot_magic{"FLTOP001","FLTOP002","FLTOP003","FLTOP004"};
+constexpr std::size_t legacy_scan_capacity=63;
+static_assert(kOptimizationGroupRepresentatives==(digest_at-feature_at)/feature_size);
 [[noreturn]] void fail(const char* text){throw std::runtime_error(text);}
 void require(bool value,const char* text){if(!value)fail(text);}
 void put(Bytes& b,std::size_t at,std::uint64_t value,unsigned count=8) {
@@ -57,9 +58,9 @@ void encode_scan(Bytes& b,const OptimizationGroupScan& scan) {
     put(b,at+160,item.exact_base);
   }
 }
-std::optional<OptimizationGroupScan> decode_scan(std::span<const std::byte> b) {
+std::optional<OptimizationGroupScan> decode_scan(std::span<const std::byte> b,std::size_t capacity) {
   const auto flags=get(b,scan_at+40,4),count=get(b,scan_at+48,4);
-  if(flags>2 || get(b,scan_at+44,4)!=1 || count>kOptimizationGroupRepresentatives ||
+  if(flags>2 || get(b,scan_at+44,4)!=1 || count>capacity ||
       !zeros(b.subspan(scan_at+52,12)))return {};
   const auto end=feature_at+static_cast<std::size_t>(count)*feature_size;
   if(!zeros(b.subspan(end,digest_at-end)))return {};
@@ -101,9 +102,10 @@ Bytes encode(const OptimizationSnapshot& snapshot,unsigned slot) {
       "invalid optimization state");
   Bytes b(kStoreCommitUnit);
   const bool budgeted=snapshot.state.settled_input_bytes.has_value();
-  const bool scan=snapshot.state.group_scan.has_value();
-  std::memcpy(b.data(),scan?scan_magic:budgeted?budget_magic:magic,8);
-  put(b,8,scan?3:budgeted?2:1,4);put(b,12,slot,4);put(b,16,snapshot.sequence);
+  const auto& scan=snapshot.state.group_scan;
+  const unsigned version=scan?(scan->representatives.size()>legacy_scan_capacity?4:3):budgeted?2:1;
+  std::memcpy(b.data(),slot_magic[version-1],8);
+  put(b,8,version,4);put(b,12,slot,4);put(b,16,snapshot.sequence);
   if(budgeted){put(b,52,1,4);put(b,56,*snapshot.state.settled_input_bytes);}
   std::copy(snapshot.volume.begin(),snapshot.volume.end(),b.begin()+24);
   put(b,40,1,4);put(b,44,snapshot.state.profiles.size(),4);put(b,48,snapshot.state.benchmarks.size(),4);
@@ -118,7 +120,7 @@ Bytes encode(const OptimizationSnapshot& snapshot,unsigned slot) {
     put(b,at,v.workload_key);put(b,at+8,v.strategy,4);put(b,at+12,v.logical_bytes,4);
     put(b,at+16,v.stored_bytes,4);put(b,at+20,v.backend,4);put(b,at+24,v.elapsed_ns);
   }
-  if(scan)encode_scan(b,*snapshot.state.group_scan);
+  if(scan)encode_scan(b,*scan);
   const auto digest=detail::record_digest(std::span<const std::byte>(b).first(digest_at));
   std::copy(digest.begin(),digest.end(),b.begin()+digest_at);return b;
 }
@@ -128,7 +130,7 @@ Slot decode(std::span<const std::byte> b,unsigned slot,StoreIdentity volume) {
   const auto digest=detail::record_digest(b.first(digest_at));
   if(!std::equal(digest.begin(),digest.end(),b.begin()+digest_at))return {};
   const auto version=get(b,8,4);
-  if((version<1||version>3)||std::memcmp(b.data(),version==3?scan_magic:version==2?budget_magic:magic,8)||
+  if(version<1 || version>slot_magic.size() || std::memcmp(b.data(),slot_magic[version-1],8) ||
       get(b,40,4)!=1)return {SlotCode::unsupported,{}};
   OptimizationSnapshot out;out.code=OptimizationReadCode::available;out.sequence=get(b,16);
   std::copy_n(b.begin()+24,16,out.volume.begin());
@@ -157,8 +159,8 @@ Slot decode(std::span<const std::byte> b,unsigned slot,StoreIdentity volume) {
     v.logical_bytes=static_cast<std::uint32_t>(get(b,at+12,4));v.stored_bytes=static_cast<std::uint32_t>(get(b,at+16,4));
     v.backend=static_cast<std::uint32_t>(get(b,at+20,4));v.elapsed_ns=get(b,at+24);out.state.benchmarks.push_back(v);
   }
-  if(version==3) {
-    out.state.group_scan=decode_scan(b);
+  if(version>=3) {
+    out.state.group_scan=decode_scan(b,version==3?legacy_scan_capacity:kOptimizationGroupRepresentatives);
     if(!out.state.group_scan)return {SlotCode::invalid,{}};
   } else if(!zeros(b.subspan(scan_at,digest_at-scan_at)))return {SlotCode::invalid,{}};
   if(!valid(out.state))return {SlotCode::invalid,{}};

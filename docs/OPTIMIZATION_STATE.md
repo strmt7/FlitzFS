@@ -247,10 +247,13 @@ mapping, authenticated authority or autonomous learner.
 
 ## Indexed discovery checkpoints
 
-Funded capability 3 uses magic `FLTOP003` and version 3. It preserves the
-profile and benchmark fields, budget marker and settled-input counter of
-capability 2. Each of the two 64 KiB slots has a digest covering bytes 0–65503.
-The following fields occupy the previous reserved region.
+Funded discovery checkpoints preserve the profile and benchmark fields,
+budget marker and settled-input counter of capability 2. Capability 3 uses
+`FLTOP003` and allows 63 representatives. Capability 4 uses `FLTOP004` and
+can use the remaining slot space for up to 373 representatives. The writer
+uses capability 3 for smaller checkpoints. Each of the two 64 KiB slots has a
+digest covering bytes 0–65503. Both discovery capabilities use the same field
+layout.
 
 | Offset | Bytes | Meaning |
 |---:|---:|---|
@@ -259,7 +262,7 @@ The following fields occupy the previous reserved region.
 | 2648, 2656 | 8 each | Last visited inode and extent index |
 | 2664 | 4 | 0 for a continuing pass, 1 for complete, 2 for revisit after the pass |
 | 2668 | 4 | Similarity feature schema 1 |
-| 2672 | 4 | Up to 63 retained representatives |
+| 2672 | 4 | Number of retained representatives within the selected capability |
 | 2676 | 12 | Reserved zero |
 | 2688 | 168 per representative | Sparse feature records in strict data-object order |
 
@@ -268,12 +271,16 @@ revision in four 8-byte fields. Its full 32-byte digest follows at offset 32,
 then twelve 8-byte band values at offset 64 and an exact-base bit at offset 160
 in an 8-byte field. All remaining bytes before the slot digest are zero.
 Readers validate the count, coordinates, flags, object domain and ordering
-before exposing the checkpoint. Capability 1 and 2 records remain readable.
-An older advisory reader can fall back to ordinary discovery.
+before exposing the checkpoint. The current loader accepts capabilities 1–4
+and applies the original count limit to capability 3. The slot sequence and
+budget rules apply during a capability transition. An older advisory reader
+can fall back to ordinary discovery while user data remains independently
+readable.
 
 The indexed controller checkpoints at settled window boundaries during an
 admitted opportunity. Each publication costs 128 KiB and consumes 4 MiB of
 durably accounted write input. Accepted input renews this budget across a
 long-running session. Explicit profile publications and repairs use their
 caller-provided allowance. Optional advice and its backing
-remain outside file-data recovery. [Discovery validation](evidence/persistent-indexed-discovery-2026-11-18.json)
+remain outside file-data recovery.
+[Restart and transition validation](evidence/indexed-representative-retention-2026-11-19.json)

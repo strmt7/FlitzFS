@@ -157,10 +157,11 @@ Detached-inode reclamation and managed compaction share the controller's
 serialized opportunities. An active group releases its source before the
 controller begins a compaction handoff. The controller admits work using
 fresh resource observations, foreground readiness and measured duty. A funded
-advisory pair retains the scan cursor and bounded representatives across owner
-restart. The stored feature window follows the selected image identity and
-durable namespace sequence. A larger persistent sparse index and measured
-collective AMD benefit remain open.
+advisory pair retains the scan cursor and representatives across owner
+restart. The extended checkpoint fits up to 373 rows within the existing pair,
+subject to admitted memory. The scanner revalidates same-image representatives
+after an intervening edit and resamples changed extents. A persistent paged
+sparse index and measured collective AMD benefit remain open.
 [Restart validation](evidence/persistent-indexed-discovery-2026-11-18.json)
 [Automatic indexed discovery evidence](evidence/automatic-indexed-discovery-2026-11-18.json)
 
