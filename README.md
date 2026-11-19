@@ -1,4 +1,4 @@
-<p align="center">
+<p align="left">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="resources/brand/flitzfs-logo-dark.png">
     <img src="resources/brand/flitzfs-logo-typed.png" alt="FlitzFS logo" width="760">
