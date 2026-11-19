@@ -1,0 +1,1583 @@
+{
+  "schema": "flitzfs-amd-sparse-device-readback-v1",
+  "experimental": true,
+  "captured_local": "2026-11-19T19:43:54.8205659+01:00",
+  "source_base": "6b6bb9beb74220106d86159c6dbacaff416ecb0e",
+  "source_binding": [
+    {
+      "path": "CMakeLists.txt",
+      "git_blob": "545ce60b86d28165dac14a04485c2e26753355b1",
+      "working_sha256": "9d90746bebe7d452da98a95fd4bb71bf5d66e8f6a7e475890bb3b230224ceb1e"
+    },
+    {
+      "path": "include/flitzfs/gpu_anchor_kernel_api.hpp",
+      "git_blob": "8b88ec18316584e8f762955e2b243f2e356b2712",
+      "working_sha256": "0e74823f990c29108f49b9f5f02f60bc50cee579e26c318c4ffbf96e36c3bf4b"
+    },
+    {
+      "path": "include/flitzfs/gpu_anchor_match.hpp",
+      "git_blob": "d8bf2ceefb6ee843569650fba15c24e778162858",
+      "working_sha256": "b33249b8c33eebb2c0b2741e5839941793949288672ebe59d7df8b0102c87097"
+    },
+    {
+      "path": "src/gpu/decode_kernel.hip",
+      "git_blob": "bf959f4d0c9ce9b86a2a5d03cffe9ba0c5e98d8d",
+      "working_sha256": "a870c8d9f1e141102b2846d9023bac64622322dc098bc101cdbd2232a14d19a8"
+    },
+    {
+      "path": "src/native_group_anchor.cpp",
+      "git_blob": "c5988e9a3514a9e0afd672547ff658f96e3485dc",
+      "working_sha256": "3cd2bc710ba3f9c9e5629f4f1ad507a6915a72fec3721640194980a26d835893"
+    },
+    {
+      "path": "src/native_group_anchor.hpp",
+      "git_blob": "8bb5b82326b4feeca559c1632a79d54f176f8d09",
+      "working_sha256": "552fb72bb3a1b2f50e8f64ce3a7788f36e9fad7d830540d7ef8040c799c920f8"
+    },
+    {
+      "path": "src/native_group_codec.cpp",
+      "git_blob": "baf9226514cab3af08d9a01fe39fe74be48a46cb",
+      "working_sha256": "1380e535862134e2317858d5ba8e84766fae9193d3693202cf9f0c3701af84c8"
+    },
+    {
+      "path": "src/native_indexed_volume.cpp",
+      "git_blob": "818903411c93cb1b4f463c565f477852fa7cfae0",
+      "working_sha256": "80dcceacbf62a5a87e890383b9b827c305b2ac39431b75e857802645fc00f66b"
+    },
+    {
+      "path": "src/windows/anchor_batch_profile.hpp",
+      "git_blob": "4f1230907b18947682aaa1de11efba9737e16c0b",
+      "working_sha256": "e807647f1cfa90365587080f2f7e2018ff62fe88d4fca205de48d40b02f92d40"
+    },
+    {
+      "path": "src/windows/hip_decode_worker.cpp",
+      "git_blob": "0816acce9059efda4e099edc42c82f760564afcd",
+      "working_sha256": "b5bf87dea7210b7ed360962c7c0c09775cd3c119455bac4ca77eae67d47f75c4"
+    },
+    {
+      "path": "src/windows/hip_decode_worker.hpp",
+      "git_blob": "314bcca9470a396a0a42198c05aa5a11fb45d8f8",
+      "working_sha256": "58f8025459137fcd619703a9745b091f1b74d6dc327d063fa0df14cc4a08d8bc"
+    },
+    {
+      "path": "src/windows/hip_worker_main.cpp",
+      "git_blob": "43f67ad1fafbe99097291bb82cc2b207f9b44fea",
+      "working_sha256": "65a2ab07faf68b7158217741c251ffcd382dcb9b8045eb0b96e3260e615b459a"
+    },
+    {
+      "path": "tests/anchor_search_fixture.hpp",
+      "git_blob": "2ed13d6c6b5850b4d4a3248bcc754b52f7d7ec9b",
+      "working_sha256": "05d647b5377d4a4c422397e404ab395dc2676338c828b21c28b5042ecd853179"
+    },
+    {
+      "path": "tests/rocm_compile/CMakeLists.txt",
+      "git_blob": "4895225ed600118b75590b49a70ba56baba55a61",
+      "working_sha256": "500887848a7e6e7f20cc5ca26390e0768f341d7c835af64e295c402c980fc899"
+    },
+    {
+      "path": "tests/rocm_compile/kernel_module.cpp",
+      "git_blob": "fde088f1daa5bed44c0d59ee6142ff84e51c4d65",
+      "working_sha256": "1820105e07b892d19c3fa38ffea91fd2298d5c037dd08e945671b1d75495f799"
+    },
+    {
+      "path": "tests/rocm_compile/lz4_runtime_probe.cpp",
+      "git_blob": "9fa44e404833d881608e42eb224fdc04c2b72bd3",
+      "working_sha256": "9514425a22390af9b3294f6de0a0dddfbe6475abd413725dfae6f559b8229377"
+    },
+    {
+      "path": "tests/test_gpu_anchor_match.cpp",
+      "git_blob": "1931a458b362a228794c9f070eb13c26fef7a081",
+      "working_sha256": "98b07328a51086201ad94a807bbc8e6eb0b35f99d35045b345a9e2e8a9ccb944"
+    },
+    {
+      "path": "tests/test_hip_phase_profile.cpp",
+      "git_blob": "d652b10154b33010c55915c8040d7761e5b21065",
+      "working_sha256": "23d9b4a2d49288030d2d7fe23e12031a5be27e253bccef57cdf05b9c72b4fcd5"
+    },
+    {
+      "path": "tests/test_winfsp_controller.cpp",
+      "git_blob": "16073e05a5fd1631c30d9a0c0cb278b95da6f129",
+      "working_sha256": "f228f1c085ed2b00c18ccd9bb7bc24df87613774e6eef707a1afaf7361005fb5"
+    },
+    {
+      "path": "tools/dev/windows_run.py",
+      "git_blob": "fd5fccabac196abe157afe991b06e4dfef0240af",
+      "working_sha256": "f060f444e6e6b9fe22e406a24ec38455a4278a8bbedcec8e7c252bcd32b5bfd2"
+    }
+  ],
+  "navigation": {
+    "commit": "6b6bb9beb74220106d86159c6dbacaff416ecb0e",
+    "provider_version": "0.2.43",
+    "files": 13,
+    "actual_searches": 1,
+    "receipt_sha256": "f616d717fe3ea9734177da3ec21a28259502b887f756ccdf75043bdaf63b1477",
+    "native_search_sha256": "e26b7b6ff36857b03424746a3b8ff1904c2a2362eaf45c791b302cb62401e10e",
+    "job": {
+      "run": "local-run-73018caab8a34f329595f42b0513f2e5",
+      "exit_code": 0,
+      "wall_seconds": 35.804111,
+      "memory_envelope_bytes": 3041918976,
+      "peak_job_bytes": 1135403008,
+      "cpu_percent": 16,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "children_at_forced_retirement": 0,
+      "receipt_sha256": "0d60d924919a8cefd8afe9789b341a83bbfcb4f083e9d0c3e156c289367144ea",
+      "log_sha256": "4af65dbaa887f21fc17b0705cfd4361e7c547680eccf479106fa76b1c4e608d8"
+    }
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "robots_checked": true,
+    "external_llm": false,
+    "timeout_seconds": 45,
+    "receipt_sha256": "cbac8158cd9e5178b6b8d0fc09bc13b79a971a80193c013dbb0bfef251a1ffe0",
+    "pages": [
+      {
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/latest/reference/hip_runtime_api/modules/memory_management.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 233611,
+        "markdown_sha256": "4e77ffddbb18ebec23e873126c94363ab906828bbd757e505e0c0fe1a378bdab",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.752,
+        "capture": "hip-memory-management.native.json",
+        "capture_sha256": "069b642c261d4e06c33c244d3d55c6bfb7b807029a9765b8ba895455bc1d89f4",
+        "name": "hip-memory-management"
+      },
+      {
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/latest/reference/hip_runtime_api/modules/stream_management.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 50171,
+        "markdown_sha256": "8449b52650b1f8645620738ca5e99b1b308b9ab706b497f7efb056d235f0e7df",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.682,
+        "capture": "hip-stream-management.native.json",
+        "capture_sha256": "901cc0cc5acb2b96eee2be2aab3d44be3933ae451e4ab0978d58a00444b1d3be",
+        "name": "hip-stream-management"
+      }
+    ],
+    "job": {
+      "run": "local-run-94ad27f4781d4672a86ba371c3fbe943",
+      "exit_code": 0,
+      "wall_seconds": 8.864986,
+      "memory_envelope_bytes": 2604662784,
+      "peak_job_bytes": 1361018880,
+      "cpu_percent": 14,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "children_at_forced_retirement": 0,
+      "receipt_sha256": "475ffcc5256f372a86dd78c4fc626fb340abff7d2b414452809c013d2b19b47e",
+      "log_sha256": "83ef02d751bf2f1cf32aa12652a6e751f2ccb761572a109510eaf0e4301b5415"
+    }
+  },
+  "validation": {
+    "raw": {
+      "build": {
+        "run": "local-run-ba4f541a46334a52aed64f25bcccbbd9",
+        "exit_code": 0,
+        "wall_seconds": 24.893481,
+        "memory_envelope_bytes": 1340080128,
+        "peak_job_bytes": 432693248,
+        "cpu_percent": 14,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "children_at_forced_retirement": 0,
+        "receipt_sha256": "2f35b27042abb4535c55c89458ef7bb8b00e25e4e1aac7fefc907ddbfcb49a16",
+        "log_sha256": "8ebcf3bc7abe2633fd051f0d6f64383f797afcd26bdcc7d6b8170ba2b9b1f783"
+      },
+      "tests": {
+        "run": "local-run-836e114c836747df96370a4077b36b19",
+        "exit_code": 0,
+        "wall_seconds": 29.838607,
+        "memory_envelope_bytes": 1033895936,
+        "peak_job_bytes": 106401792,
+        "cpu_percent": 16,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "children_at_forced_retirement": 0,
+        "receipt_sha256": "08ed0ba08ccfba4479bc06578be99c6cca28d8001e594d35e39f93ec7f471806",
+        "log_sha256": "909c0f38fbe65943eff9b00c5f5db3089ea35b838ea15bc314de6644111baf25"
+      },
+      "passed": [
+        "bounded_gpu_anchor_match",
+        "bounded_hip_phase_profile",
+        "bounded_native_shared_base_packed_xor",
+        "bounded_native_shared_base_modular_delta",
+        "bounded_native_shared_base_sparse_xor",
+        "bounded_native_staged_search_window",
+        "bounded_native_indexed_group_maintenance",
+        "bounded_native_indexed_group_xor",
+        "bounded_native_indexed_group_modular_delta",
+        "bounded_native_indexed_group_advice",
+        "bounded_native_indexed_group_batch",
+        "windows_asan_staging_regression"
+      ],
+      "modeled_write_barrier_faults": 528
+    },
+    "winfsp_sdk": {
+      "build": {
+        "run": "local-run-a4a0521c90e142ee82c6ac7b88f18e85",
+        "exit_code": 0,
+        "wall_seconds": 37.535733,
+        "memory_envelope_bytes": 1341128704,
+        "peak_job_bytes": 466587648,
+        "cpu_percent": 14,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "children_at_forced_retirement": 1,
+        "receipt_sha256": "0ac57e07d5a2f914ad0e010d4edbe8b92b57301719d6a47551b1597b7480c993",
+        "log_sha256": "c8053761431366ca0b70e1928606f84116ad8be3a700ef5713f4e3c8d5d1bac6"
+      },
+      "tests": {
+        "run": "local-run-549a7c9ef7a44fa2bb6746972b05ae87",
+        "exit_code": 0,
+        "wall_seconds": 51.436959,
+        "memory_envelope_bytes": 1034944512,
+        "peak_job_bytes": 106635264,
+        "cpu_percent": 16,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "children_at_forced_retirement": 0,
+        "receipt_sha256": "9540d2bd236209b306f658fa602550c76750cae692abb5a7e726fd1bbdf87809",
+        "log_sha256": "104d90d7fc05acbacc542fd0a3585a158e251e0601c178475a85e445ce72daee"
+      },
+      "passed": [
+        "bounded_gpu_anchor_match",
+        "bounded_hip_phase_profile",
+        "bounded_native_shared_base_packed_xor",
+        "bounded_native_shared_base_modular_delta",
+        "bounded_native_shared_base_sparse_xor",
+        "bounded_native_staged_search_window",
+        "bounded_native_indexed_group_maintenance",
+        "bounded_native_indexed_group_xor",
+        "bounded_native_indexed_group_modular_delta",
+        "bounded_native_indexed_group_advice",
+        "bounded_native_indexed_group_batch",
+        "windows_asan_staging_regression",
+        "bounded_winfsp_controller",
+        "bounded_winfsp_indexed_memory"
+      ],
+      "modeled_write_barrier_faults": 528
+    },
+    "address_sanitizer": {
+      "build": {
+        "run": "local-run-03fcac9d97ea4987881108d0dc39ed90",
+        "exit_code": 0,
+        "wall_seconds": 35.242475,
+        "memory_envelope_bytes": 1563426816,
+        "peak_job_bytes": 655409152,
+        "cpu_percent": 15,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "children_at_forced_retirement": 0,
+        "receipt_sha256": "aaa32533e23b8797e2e80d23e16464d539f7ed5684663837f1c564e433ed7483",
+        "log_sha256": "367713ad86dac3eb353d6f7d76263b7ebf45a6699a6938bccef5ea767c520fed"
+      },
+      "tests": {
+        "run": "local-run-a8dde1ad8af240c0ae99b420c66150f3",
+        "exit_code": 0,
+        "wall_seconds": 287.072958,
+        "memory_envelope_bytes": 1044381696,
+        "peak_job_bytes": 526086144,
+        "cpu_percent": 22,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "children_at_forced_retirement": 0,
+        "receipt_sha256": "efac3e3dfa78b0e4ebd365fbaf4729fe254cdb5cfd436ec943f7ac85a4d5a3a4",
+        "log_sha256": "5eba3edee6cc1bed4605c718bbba661891fd4da0f3e2e8587a02b14a6e75683a"
+      },
+      "passed": [
+        "windows_asan_runtime_preflight",
+        "bounded_gpu_anchor_match",
+        "bounded_hip_phase_profile",
+        "bounded_native_shared_base_packed_xor",
+        "bounded_native_shared_base_modular_delta",
+        "bounded_native_shared_base_sparse_xor",
+        "bounded_native_staged_search_window",
+        "bounded_native_indexed_group_maintenance",
+        "bounded_native_indexed_group_xor",
+        "bounded_native_indexed_group_modular_delta",
+        "bounded_native_indexed_group_advice",
+        "bounded_native_indexed_group_batch",
+        "windows_asan_staging_regression",
+        "bounded_winfsp_controller",
+        "bounded_winfsp_indexed_memory"
+      ],
+      "modeled_write_barrier_faults": 528
+    },
+    "actual_asan_runtime_preflight": true,
+    "architecture_recipe": "release",
+    "offline_sdk": "AMD ROCm Core SDK 10.1.0",
+    "offline_compiled_sources": {
+      "src/gpu/decode_kernel.hip": "a870c8d9f1e141102b2846d9023bac64622322dc098bc101cdbd2232a14d19a8",
+      "src/gpu/decode_kernel.hpp": "57ffed94096d61d24cc5154615a1d2c4c63818602d655fb82959606314848850",
+      "include/flitzfs/gpu_anchor_match.hpp": "b33249b8c33eebb2c0b2741e5839941793949288672ebe59d7df8b0102c87097",
+      "include/flitzfs/gpu_anchor_kernel_api.hpp": "0e74823f990c29108f49b9f5f02f60bc50cee579e26c318c4ffbf96e36c3bf4b",
+      "include/flitzfs/gpu_kernel_api.hpp": "3099ea1f31b8d56de1d9899f4707f0c76486484f1714888690e2c4e615c7f84c",
+      "include/flitzfs/gpu_match_kernel_api.hpp": "dd668d84d07a28118ac51ed337e4bcf7dc80980002afe0fd097ccd4152c58b4e",
+      "include/flitzfs/gpu_match_protocol.hpp": "c978606dd3339666bf3067f8d4c40cd924e390e480d88305d030e1c8b3647192",
+      "include/flitzfs/gpu_protocol.hpp": "a0c3b5e1170b45ad788c2baebe5323712bcef450f9d4aa681317ef5c5da4e159"
+    },
+    "device_compile": {
+      "run": "local-run-00fe40f9492d4afab296c23a46928d1e",
+      "exit_code": 0,
+      "wall_seconds": 54.576135,
+      "memory_envelope_bytes": 993001472,
+      "peak_job_bytes": 207753216,
+      "cpu_percent": 13,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "children_at_forced_retirement": 0,
+      "receipt_sha256": "fb1218e2b68e0103c25e2fd813342c6bcb241f497071a2237cb2178945a625b4",
+      "log_sha256": "2e97fb20e6eb226d48cf1c7385a016509d21a1b0ea3e88ece227d69745dc8b11"
+    },
+    "worker_configure": {
+      "run": "local-run-4f83d9ae6c8b42c59ebd82e1f143e66b",
+      "exit_code": 0,
+      "wall_seconds": 10.782167,
+      "memory_envelope_bytes": 1146093568,
+      "peak_job_bytes": 330752000,
+      "cpu_percent": 14,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "children_at_forced_retirement": 1,
+      "receipt_sha256": "cb9d92c48522ce90a29909f54d6eebdf1099828fe687456ecacff5dbc053ef39",
+      "log_sha256": "aab4de5ff72317ab4b79997371241eb3bd5f420fcb22ea26a7381b4784da57c8"
+    },
+    "worker_build": {
+      "run": "local-run-4b55c45fa8d44697ac02f165f39985d3",
+      "exit_code": 0,
+      "wall_seconds": 91.520921,
+      "memory_envelope_bytes": 2045771776,
+      "peak_job_bytes": 688144384,
+      "cpu_percent": 23,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "children_at_forced_retirement": 1,
+      "receipt_sha256": "6ed9e766e9490609b1d1a0c2f285994eb093c1ee76020489b385589a02e3f3a5",
+      "log_sha256": "4763bdb80a836f4e3d23f91a6bb2289b57bffa8cf7345aa8e97eef8cb0c48a91"
+    },
+    "export_versions": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "export_inspection": {
+      "run": "local-run-04c20c83a5d74cd28f35187fa918743c",
+      "exit_code": 0,
+      "wall_seconds": 0.260863,
+      "memory_envelope_bytes": 1041235968,
+      "peak_job_bytes": 10735616,
+      "cpu_percent": 12,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "children_at_forced_retirement": 0,
+      "receipt_sha256": "265efc0bbd935a595daa83261a4c396280a0be4e4d1852dc322c42bab22280b6",
+      "log_sha256": "b048cc32a41aeaa5e74c33a702e29a5469c75505d6b6606ae489608c42ea66e1"
+    },
+    "cpu_bundle_admission": {
+      "run": "local-run-a887a9f9393e40ceae89c3ab975dae47",
+      "exit_code": 0,
+      "wall_seconds": 1.329093,
+      "memory_envelope_bytes": 1041235968,
+      "peak_job_bytes": 7360512,
+      "cpu_percent": 15,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "children_at_forced_retirement": 0,
+      "receipt_sha256": "1481bb6cc0967e89a6dfdb0d2a57b32af38bbfbc02145eaa28c12adeffed6571",
+      "log_sha256": "ab41e946158efb1e179e6f63fcd173d373a7ef26654f223595cbc5c392243a14"
+    },
+    "confirmed_cpu_admission_exits": 20
+  },
+  "physical_host": {
+    "windows": "Microsoft Windows 11 Pro",
+    "version": "10.0.26300",
+    "build": "26300",
+    "adapters": [
+      {
+        "Name": "AMD Radeon RX 9070 XT",
+        "DriverVersion": "32.0.32015.16001"
+      }
+    ],
+    "runtime_file_version": "10.0.3683.0",
+    "artifacts": {
+      "worker_sha256": "e9eae040bbc919b517ce8862a1f21f44a475a9e3389c95611df0078c11ae2604",
+      "kernel_sha256": "29d93ede72a229ae8a915e21832a8a2a54447cfcef6debce848f29c0d91e406a",
+      "profile_sha256": "056540e3c0f4990e88bd6d037fafa0b679698e5e7edff3aa818525704dfb4122",
+      "owner_sha256": "6ef321567a6aaca771c4a2fca24431ba8cef2243208bf8610e37d5f6fbf12e64",
+      "bank_sha256": "110d4b44ae78a793ee0bb5922e0d26a657f6966748219692282bd4f6c44986d5",
+      "system_runtime_sha256": "7fc6465b18ff337a80c863b6350d02d7576cfb30528f97b982a6e5723bbb9848",
+      "device_object_sha256": "7d2b154838a5b0f4ca8863734f24ad5b599b1e9162a8fd6a012674479c7e5e1a"
+    },
+    "seed_bank_provenance": "amd-maintenance-parity-2026-11-19.json",
+    "method": "Two public-derived, controlled cohorts with unchanged requests across routes. Three alternating pairs per cohort. Three groups and 60 members with dispatch quantum four and transfer grant eight. Completion includes confirmed retirement and independent CPU byte verification. Device-to-host phase measures HIP readback calls.",
+    "trials": [
+      {
+        "round": 0,
+        "route": "slots",
+        "report": {
+          "gpu_verified": true,
+          "matched_candidate_costs": true,
+          "cohort": "related",
+          "amd_first": false,
+          "groups": 3,
+          "members": 60,
+          "launches": 16,
+          "transfers": 9,
+          "device_bytes": 1114112,
+          "request_bytes": 4129036,
+          "reply_bytes": 3932684,
+          "actual_reply_bytes": 392188,
+          "cpu_candidate_count": 60,
+          "amd_candidate_count": 60,
+          "cpu_candidate_bytes": 399360,
+          "amd_candidate_bytes": 399360,
+          "prepare_ns": 1066500,
+          "cpu_encode_and_verify_ns": 12419300,
+          "amd_exchange_and_verify_ns": 1590277600,
+          "amd_parent_verify_ns": 1382400,
+          "job_peak_bytes": 99139584,
+          "transport_quiescent": true,
+          "request_blake3": "2218eb51eeae5537c2517508054b416fbc329550817f2930e8482bdcb5cf02ed",
+          "profile_verified": true,
+          "worker_wall_ns": 1513721700,
+          "phase_times_ns": {
+            "request_decode": 2008500,
+            "bundle_verify": 56902400,
+            "adapter_admit": 10526200,
+            "modules_load": 1858100,
+            "entry_bind": 3200,
+            "device_initialize": 199702700,
+            "stream_allocate": 1208654000,
+            "host_to_device": 10221900,
+            "kernel_wait": 11796900,
+            "device_to_host": 3015400,
+            "cpu_verification": 300,
+            "post_admission": 96400,
+            "resources_release": 3131600,
+            "reply_encode": 924700,
+            "modules_release": 4169900
+          },
+          "stream_create_ns": 1208629700,
+          "slab_allocate_ns": 24200,
+          "device_readback_bytes": 3932160,
+          "sparse_arena": false
+        },
+        "job": {
+          "run": "local-run-17c4dd344b7e4407a2966a5668b294ff",
+          "exit_code": 0,
+          "wall_seconds": 1.699707,
+          "memory_envelope_bytes": 854589440,
+          "peak_job_bytes": 100421632,
+          "cpu_percent": 16,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "children_at_forced_retirement": 0,
+          "receipt_sha256": "4d25f55e1c1b20b1610ff890ce8c3aff62bfaf2ae4211cba5df3dde9ca13be92",
+          "log_sha256": "c3c8f2b103cb4b409df68badf05463670200fdc828b909f8a046e987627d91eb"
+        }
+      },
+      {
+        "round": 0,
+        "route": "arena",
+        "report": {
+          "gpu_verified": true,
+          "matched_candidate_costs": true,
+          "cohort": "related",
+          "amd_first": false,
+          "groups": 3,
+          "members": 60,
+          "launches": 16,
+          "transfers": 9,
+          "device_bytes": 1114112,
+          "request_bytes": 4129036,
+          "reply_bytes": 3932684,
+          "actual_reply_bytes": 392188,
+          "cpu_candidate_count": 60,
+          "amd_candidate_count": 60,
+          "cpu_candidate_bytes": 399360,
+          "amd_candidate_bytes": 399360,
+          "prepare_ns": 1099700,
+          "cpu_encode_and_verify_ns": 11344300,
+          "amd_exchange_and_verify_ns": 1755067800,
+          "amd_parent_verify_ns": 1330000,
+          "job_peak_bytes": 94650368,
+          "transport_quiescent": true,
+          "request_blake3": "2218eb51eeae5537c2517508054b416fbc329550817f2930e8482bdcb5cf02ed",
+          "profile_verified": true,
+          "worker_wall_ns": 1690082900,
+          "phase_times_ns": {
+            "request_decode": 1960500,
+            "bundle_verify": 52432500,
+            "adapter_admit": 10993800,
+            "modules_load": 1858500,
+            "entry_bind": 2900,
+            "device_initialize": 375270600,
+            "stream_allocate": 1220331600,
+            "host_to_device": 9522500,
+            "kernel_wait": 10689800,
+            "device_to_host": 1734800,
+            "cpu_verification": 31200,
+            "post_admission": 58300,
+            "resources_release": 2182600,
+            "reply_encode": 63500,
+            "modules_release": 2856300
+          },
+          "stream_create_ns": 1220307700,
+          "slab_allocate_ns": 23500,
+          "device_readback_bytes": 392196,
+          "sparse_arena": true
+        },
+        "job": {
+          "run": "local-run-41e723fe486e43eca90d38360c45c8bc",
+          "exit_code": 0,
+          "wall_seconds": 1.825053,
+          "memory_envelope_bytes": 855638016,
+          "peak_job_bytes": 95932416,
+          "cpu_percent": 16,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "children_at_forced_retirement": 0,
+          "receipt_sha256": "448979c1ea351cc69c6ab52b1f060f4edd6d6496f6a151956419afc71ab7c033",
+          "log_sha256": "085fc80183ca30c84ee6cdc70c20d5b21645e2f71888d4b49d4bf53698e5c7eb"
+        }
+      },
+      {
+        "round": 0,
+        "route": "arena",
+        "report": {
+          "gpu_verified": true,
+          "matched_candidate_costs": true,
+          "cohort": "mixed",
+          "amd_first": true,
+          "groups": 3,
+          "members": 60,
+          "launches": 16,
+          "transfers": 9,
+          "device_bytes": 1114112,
+          "request_bytes": 4129036,
+          "reply_bytes": 3932684,
+          "actual_reply_bytes": 242044,
+          "cpu_candidate_count": 37,
+          "amd_candidate_count": 37,
+          "cpu_candidate_bytes": 246272,
+          "amd_candidate_bytes": 246272,
+          "prepare_ns": 1065500,
+          "cpu_encode_and_verify_ns": 9980000,
+          "amd_exchange_and_verify_ns": 1960204400,
+          "amd_parent_verify_ns": 1530500,
+          "job_peak_bytes": 94552064,
+          "transport_quiescent": true,
+          "request_blake3": "4a7ff3c1efbb055007b689399cf1a36ca765d98304b6920d74e068dcf3dd30a6",
+          "profile_verified": true,
+          "worker_wall_ns": 1887226000,
+          "phase_times_ns": {
+            "request_decode": 2000300,
+            "bundle_verify": 54485600,
+            "adapter_admit": 11762600,
+            "modules_load": 1890600,
+            "entry_bind": 3200,
+            "device_initialize": 71128200,
+            "stream_allocate": 1254372000,
+            "host_to_device": 9506700,
+            "kernel_wait": 11111700,
+            "device_to_host": 2062500,
+            "cpu_verification": 42000,
+            "post_admission": 63700,
+            "resources_release": 2559700,
+            "reply_encode": 36100,
+            "modules_release": 466094500
+          },
+          "stream_create_ns": 1254348100,
+          "slab_allocate_ns": 23800,
+          "device_readback_bytes": 242052,
+          "sparse_arena": true
+        },
+        "job": {
+          "run": "local-run-69e8b9508749439fb2fd21a03047a01b",
+          "exit_code": 0,
+          "wall_seconds": 2.042622,
+          "memory_envelope_bytes": 836763648,
+          "peak_job_bytes": 95830016,
+          "cpu_percent": 16,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "children_at_forced_retirement": 0,
+          "receipt_sha256": "4db2bb61d728766362a2500c3febe134729752e473921a876951cf74a835a7ad",
+          "log_sha256": "bdf6046528712961ad60db972724f1ebecc52ba4625f6f9a5dd3f55e3bb6dcc3"
+        }
+      },
+      {
+        "round": 0,
+        "route": "slots",
+        "report": {
+          "gpu_verified": true,
+          "matched_candidate_costs": true,
+          "cohort": "mixed",
+          "amd_first": true,
+          "groups": 3,
+          "members": 60,
+          "launches": 16,
+          "transfers": 9,
+          "device_bytes": 1114112,
+          "request_bytes": 4129036,
+          "reply_bytes": 3932684,
+          "actual_reply_bytes": 242044,
+          "cpu_candidate_count": 37,
+          "amd_candidate_count": 37,
+          "cpu_candidate_bytes": 246272,
+          "amd_candidate_bytes": 246272,
+          "prepare_ns": 1061700,
+          "cpu_encode_and_verify_ns": 9198500,
+          "amd_exchange_and_verify_ns": 1872748600,
+          "amd_parent_verify_ns": 1847500,
+          "job_peak_bytes": 99606528,
+          "transport_quiescent": true,
+          "request_blake3": "4a7ff3c1efbb055007b689399cf1a36ca765d98304b6920d74e068dcf3dd30a6",
+          "profile_verified": true,
+          "worker_wall_ns": 1798954200,
+          "phase_times_ns": {
+            "request_decode": 2046600,
+            "bundle_verify": 59022500,
+            "adapter_admit": 10705700,
+            "modules_load": 1919600,
+            "entry_bind": 3200,
+            "device_initialize": 467875200,
+            "stream_allocate": 1226504900,
+            "host_to_device": 9306300,
+            "kernel_wait": 11379600,
+            "device_to_host": 2377400,
+            "cpu_verification": 100,
+            "post_admission": 59900,
+            "resources_release": 2726300,
+            "reply_encode": 824200,
+            "modules_release": 3521000
+          },
+          "stream_create_ns": 1226478500,
+          "slab_allocate_ns": 26100,
+          "device_readback_bytes": 3932160,
+          "sparse_arena": false
+        },
+        "job": {
+          "run": "local-run-7ac98edcb346438b98de24c8617dc9b0",
+          "exit_code": 0,
+          "wall_seconds": 1.939993,
+          "memory_envelope_bytes": 837812224,
+          "peak_job_bytes": 100880384,
+          "cpu_percent": 16,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "children_at_forced_retirement": 0,
+          "receipt_sha256": "0d5fbecdd91323553690ed57aaef1efb341fa84f1af7d64cebebf89655aa0b06",
+          "log_sha256": "fce1b0ccb5b9abd0b39b067669858e731a2633f3295258d38329e81b463d2f3e"
+        }
+      },
+      {
+        "round": 1,
+        "route": "slots",
+        "report": {
+          "gpu_verified": true,
+          "matched_candidate_costs": true,
+          "cohort": "mixed",
+          "amd_first": false,
+          "groups": 3,
+          "members": 60,
+          "launches": 16,
+          "transfers": 9,
+          "device_bytes": 1114112,
+          "request_bytes": 4129036,
+          "reply_bytes": 3932684,
+          "actual_reply_bytes": 242044,
+          "cpu_candidate_count": 37,
+          "amd_candidate_count": 37,
+          "cpu_candidate_bytes": 246272,
+          "amd_candidate_bytes": 246272,
+          "prepare_ns": 1057500,
+          "cpu_encode_and_verify_ns": 9981000,
+          "amd_exchange_and_verify_ns": 1949278800,
+          "amd_parent_verify_ns": 1600400,
+          "job_peak_bytes": 98603008,
+          "transport_quiescent": true,
+          "request_blake3": "4a7ff3c1efbb055007b689399cf1a36ca765d98304b6920d74e068dcf3dd30a6",
+          "profile_verified": true,
+          "worker_wall_ns": 1876182300,
+          "phase_times_ns": {
+            "request_decode": 2002300,
+            "bundle_verify": 52548200,
+            "adapter_admit": 11308000,
+            "modules_load": 1944100,
+            "entry_bind": 3100,
+            "device_initialize": 71016600,
+            "stream_allocate": 1706078900,
+            "host_to_device": 10150200,
+            "kernel_wait": 10271100,
+            "device_to_host": 2723500,
+            "cpu_verification": 200,
+            "post_admission": 70900,
+            "resources_release": 3071100,
+            "reply_encode": 825300,
+            "modules_release": 3515000
+          },
+          "stream_create_ns": 1706054800,
+          "slab_allocate_ns": 23900,
+          "device_readback_bytes": 3932160,
+          "sparse_arena": false
+        },
+        "job": {
+          "run": "local-run-5d2851cb481f4bae957a9f1296ebbff8",
+          "exit_code": 0,
+          "wall_seconds": 2.031097,
+          "memory_envelope_bytes": 837812224,
+          "peak_job_bytes": 99872768,
+          "cpu_percent": 16,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "children_at_forced_retirement": 0,
+          "receipt_sha256": "a7f79c43d12974706e35f428fd97efa623eefcdc7c6ef383defaccd326a3e93e",
+          "log_sha256": "3b9f0f22b15fdc3b31dedc73b5fa7c743b319241d412a390d6df6315eb687852"
+        }
+      },
+      {
+        "round": 1,
+        "route": "arena",
+        "report": {
+          "gpu_verified": true,
+          "matched_candidate_costs": true,
+          "cohort": "mixed",
+          "amd_first": false,
+          "groups": 3,
+          "members": 60,
+          "launches": 16,
+          "transfers": 9,
+          "device_bytes": 1114112,
+          "request_bytes": 4129036,
+          "reply_bytes": 3932684,
+          "actual_reply_bytes": 242044,
+          "cpu_candidate_count": 37,
+          "amd_candidate_count": 37,
+          "cpu_candidate_bytes": 246272,
+          "amd_candidate_bytes": 246272,
+          "prepare_ns": 1131300,
+          "cpu_encode_and_verify_ns": 10163600,
+          "amd_exchange_and_verify_ns": 2291019900,
+          "amd_parent_verify_ns": 1597700,
+          "job_peak_bytes": 94375936,
+          "transport_quiescent": true,
+          "request_blake3": "4a7ff3c1efbb055007b689399cf1a36ca765d98304b6920d74e068dcf3dd30a6",
+          "profile_verified": true,
+          "worker_wall_ns": 2232108200,
+          "phase_times_ns": {
+            "request_decode": 2024900,
+            "bundle_verify": 55405800,
+            "adapter_admit": 11757800,
+            "modules_load": 2057900,
+            "entry_bind": 3600,
+            "device_initialize": 399698700,
+            "stream_allocate": 1260178800,
+            "host_to_device": 11425000,
+            "kernel_wait": 18386400,
+            "device_to_host": 2479000,
+            "cpu_verification": 30700,
+            "post_admission": 65300,
+            "resources_release": 453779800,
+            "reply_encode": 51800,
+            "modules_release": 14628800
+          },
+          "stream_create_ns": 1260155200,
+          "slab_allocate_ns": 23300,
+          "device_readback_bytes": 242052,
+          "sparse_arena": true
+        },
+        "job": {
+          "run": "local-run-f1caaf6d02514ffa99d3d59dec6b4bbe",
+          "exit_code": 0,
+          "wall_seconds": 2.362947,
+          "memory_envelope_bytes": 836763648,
+          "peak_job_bytes": 95657984,
+          "cpu_percent": 16,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "children_at_forced_retirement": 0,
+          "receipt_sha256": "f7c3d211b803042836f4f405e33db9fe78ca2767e23bf5f23679f4887fd84b49",
+          "log_sha256": "963f28ccfbf7e52df61b4a11d7134bd07d819b6057026f9e7eaa9500e066de82"
+        }
+      },
+      {
+        "round": 1,
+        "route": "arena",
+        "report": {
+          "gpu_verified": true,
+          "matched_candidate_costs": true,
+          "cohort": "related",
+          "amd_first": true,
+          "groups": 3,
+          "members": 60,
+          "launches": 16,
+          "transfers": 9,
+          "device_bytes": 1114112,
+          "request_bytes": 4129036,
+          "reply_bytes": 3932684,
+          "actual_reply_bytes": 392188,
+          "cpu_candidate_count": 60,
+          "amd_candidate_count": 60,
+          "cpu_candidate_bytes": 399360,
+          "amd_candidate_bytes": 399360,
+          "prepare_ns": 1079700,
+          "cpu_encode_and_verify_ns": 12504400,
+          "amd_exchange_and_verify_ns": 1553142700,
+          "amd_parent_verify_ns": 1318300,
+          "job_peak_bytes": 94363648,
+          "transport_quiescent": true,
+          "request_blake3": "2218eb51eeae5537c2517508054b416fbc329550817f2930e8482bdcb5cf02ed",
+          "profile_verified": true,
+          "worker_wall_ns": 1485559400,
+          "phase_times_ns": {
+            "request_decode": 2036400,
+            "bundle_verify": 53589900,
+            "adapter_admit": 11782300,
+            "modules_load": 2038600,
+            "entry_bind": 3100,
+            "device_initialize": 168635600,
+            "stream_allocate": 1218024400,
+            "host_to_device": 10150600,
+            "kernel_wait": 11030900,
+            "device_to_host": 1823300,
+            "cpu_verification": 40000,
+            "post_admission": 61100,
+            "resources_release": 2887600,
+            "reply_encode": 59900,
+            "modules_release": 3299600
+          },
+          "stream_create_ns": 1217999400,
+          "slab_allocate_ns": 24900,
+          "device_readback_bytes": 392196,
+          "sparse_arena": true
+        },
+        "job": {
+          "run": "local-run-89740984acc84fc5b55a104abe8c4c8b",
+          "exit_code": 0,
+          "wall_seconds": 1.636646,
+          "memory_envelope_bytes": 835715072,
+          "peak_job_bytes": 95641600,
+          "cpu_percent": 16,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "children_at_forced_retirement": 0,
+          "receipt_sha256": "bcf4e3f9eee041660c62b00c0934fe352db6e11c2a6b9006e9887d6671e0882b",
+          "log_sha256": "0fa9a140dabead1cd2ab6c002fb03681a584bd71c80c60d0db28981c05a72b1e"
+        }
+      },
+      {
+        "round": 1,
+        "route": "slots",
+        "report": {
+          "gpu_verified": true,
+          "matched_candidate_costs": true,
+          "cohort": "related",
+          "amd_first": true,
+          "groups": 3,
+          "members": 60,
+          "launches": 16,
+          "transfers": 9,
+          "device_bytes": 1114112,
+          "request_bytes": 4129036,
+          "reply_bytes": 3932684,
+          "actual_reply_bytes": 392188,
+          "cpu_candidate_count": 60,
+          "amd_candidate_count": 60,
+          "cpu_candidate_bytes": 399360,
+          "amd_candidate_bytes": 399360,
+          "prepare_ns": 1132700,
+          "cpu_encode_and_verify_ns": 12526400,
+          "amd_exchange_and_verify_ns": 1739542200,
+          "amd_parent_verify_ns": 1391700,
+          "job_peak_bytes": 98398208,
+          "transport_quiescent": true,
+          "request_blake3": "2218eb51eeae5537c2517508054b416fbc329550817f2930e8482bdcb5cf02ed",
+          "profile_verified": true,
+          "worker_wall_ns": 1681050800,
+          "phase_times_ns": {
+            "request_decode": 1956000,
+            "bundle_verify": 52200600,
+            "adapter_admit": 10284200,
+            "modules_load": 2348700,
+            "entry_bind": 2900,
+            "device_initialize": 356715800,
+            "stream_allocate": 1220098300,
+            "host_to_device": 10399300,
+            "kernel_wait": 17094500,
+            "device_to_host": 2749900,
+            "cpu_verification": 200,
+            "post_admission": 70000,
+            "resources_release": 2274300,
+            "reply_encode": 884600,
+            "modules_release": 3344600
+          },
+          "stream_create_ns": 1220074200,
+          "slab_allocate_ns": 23900,
+          "device_readback_bytes": 3932160,
+          "sparse_arena": false
+        },
+        "job": {
+          "run": "local-run-ed38421d59064a6792155bce55fa9b34",
+          "exit_code": 0,
+          "wall_seconds": 1.813867,
+          "memory_envelope_bytes": 836763648,
+          "peak_job_bytes": 99680256,
+          "cpu_percent": 16,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "children_at_forced_retirement": 0,
+          "receipt_sha256": "c13c0d36dda7dfc9b9cadd7eeb26720538d92dd8a258e8817d85061d3a19eaae",
+          "log_sha256": "af9721fa9482883492301091706ea52cfa6418a752d78839ea7ee827a8492c49"
+        }
+      },
+      {
+        "round": 2,
+        "route": "slots",
+        "report": {
+          "gpu_verified": true,
+          "matched_candidate_costs": true,
+          "cohort": "related",
+          "amd_first": false,
+          "groups": 3,
+          "members": 60,
+          "launches": 16,
+          "transfers": 9,
+          "device_bytes": 1114112,
+          "request_bytes": 4129036,
+          "reply_bytes": 3932684,
+          "actual_reply_bytes": 392188,
+          "cpu_candidate_count": 60,
+          "amd_candidate_count": 60,
+          "cpu_candidate_bytes": 399360,
+          "amd_candidate_bytes": 399360,
+          "prepare_ns": 1214400,
+          "cpu_encode_and_verify_ns": 11237300,
+          "amd_exchange_and_verify_ns": 1920774600,
+          "amd_parent_verify_ns": 1301900,
+          "job_peak_bytes": 99217408,
+          "transport_quiescent": true,
+          "request_blake3": "2218eb51eeae5537c2517508054b416fbc329550817f2930e8482bdcb5cf02ed",
+          "profile_verified": true,
+          "worker_wall_ns": 1848491700,
+          "phase_times_ns": {
+            "request_decode": 1962600,
+            "bundle_verify": 52784000,
+            "adapter_admit": 11168700,
+            "modules_load": 1938300,
+            "entry_bind": 3300,
+            "device_initialize": 73405600,
+            "stream_allocate": 1215457100,
+            "host_to_device": 11916000,
+            "kernel_wait": 17357900,
+            "device_to_host": 2785100,
+            "cpu_verification": 0,
+            "post_admission": 71800,
+            "resources_release": 454716300,
+            "reply_encode": 900500,
+            "modules_release": 3357200
+          },
+          "stream_create_ns": 1215431100,
+          "slab_allocate_ns": 25900,
+          "device_readback_bytes": 3932160,
+          "sparse_arena": false
+        },
+        "job": {
+          "run": "local-run-b7d2e96a540d49698f234d9f8375ea72",
+          "exit_code": 0,
+          "wall_seconds": 2.008773,
+          "memory_envelope_bytes": 848297984,
+          "peak_job_bytes": 100487168,
+          "cpu_percent": 16,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "children_at_forced_retirement": 0,
+          "receipt_sha256": "d4f9b0a40da4e5754b55fc9cadcba495d40c026deb353be53ae6252685354081",
+          "log_sha256": "f5bdb054bf36e93c50396dfa83bfa5ff0b967f5796776da78ec41bb5d45d99c7"
+        }
+      },
+      {
+        "round": 2,
+        "route": "arena",
+        "report": {
+          "gpu_verified": true,
+          "matched_candidate_costs": true,
+          "cohort": "related",
+          "amd_first": false,
+          "groups": 3,
+          "members": 60,
+          "launches": 16,
+          "transfers": 9,
+          "device_bytes": 1114112,
+          "request_bytes": 4129036,
+          "reply_bytes": 3932684,
+          "actual_reply_bytes": 392188,
+          "cpu_candidate_count": 60,
+          "amd_candidate_count": 60,
+          "cpu_candidate_bytes": 399360,
+          "amd_candidate_bytes": 399360,
+          "prepare_ns": 1085800,
+          "cpu_encode_and_verify_ns": 15171700,
+          "amd_exchange_and_verify_ns": 1868536200,
+          "amd_parent_verify_ns": 1882500,
+          "job_peak_bytes": 94470144,
+          "transport_quiescent": true,
+          "request_blake3": "2218eb51eeae5537c2517508054b416fbc329550817f2930e8482bdcb5cf02ed",
+          "profile_verified": true,
+          "worker_wall_ns": 1798961500,
+          "phase_times_ns": {
+            "request_decode": 2330800,
+            "bundle_verify": 60926600,
+            "adapter_admit": 11767500,
+            "modules_load": 2193500,
+            "entry_bind": 3300,
+            "device_initialize": 445364300,
+            "stream_allocate": 1239752500,
+            "host_to_device": 11444000,
+            "kernel_wait": 17145700,
+            "device_to_host": 2194900,
+            "cpu_verification": 53600,
+            "post_admission": 68100,
+            "resources_release": 2461500,
+            "reply_encode": 65900,
+            "modules_release": 3071900
+          },
+          "stream_create_ns": 1239700900,
+          "slab_allocate_ns": 51300,
+          "device_readback_bytes": 392196,
+          "sparse_arena": true
+        },
+        "job": {
+          "run": "local-run-22dd43540be546b186675c4d16bf9b7e",
+          "exit_code": 0,
+          "wall_seconds": 1.945474,
+          "memory_envelope_bytes": 836763648,
+          "peak_job_bytes": 95739904,
+          "cpu_percent": 16,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "children_at_forced_retirement": 0,
+          "receipt_sha256": "7fb7189fb303e128c9274dbc2a639c16b611def0f2f215330871b5f0e98f525b",
+          "log_sha256": "ab8541a0a3cfd34609faa8c585cc39b19614754fc881dbba909d91181e374278"
+        }
+      },
+      {
+        "round": 2,
+        "route": "arena",
+        "report": {
+          "gpu_verified": true,
+          "matched_candidate_costs": true,
+          "cohort": "mixed",
+          "amd_first": true,
+          "groups": 3,
+          "members": 60,
+          "launches": 16,
+          "transfers": 9,
+          "device_bytes": 1114112,
+          "request_bytes": 4129036,
+          "reply_bytes": 3932684,
+          "actual_reply_bytes": 242044,
+          "cpu_candidate_count": 37,
+          "amd_candidate_count": 37,
+          "cpu_candidate_bytes": 246272,
+          "amd_candidate_bytes": 246272,
+          "prepare_ns": 1057600,
+          "cpu_encode_and_verify_ns": 9085200,
+          "amd_exchange_and_verify_ns": 1933998700,
+          "amd_parent_verify_ns": 1764600,
+          "job_peak_bytes": 94994432,
+          "transport_quiescent": true,
+          "request_blake3": "4a7ff3c1efbb055007b689399cf1a36ca765d98304b6920d74e068dcf3dd30a6",
+          "profile_verified": true,
+          "worker_wall_ns": 1396498600,
+          "phase_times_ns": {
+            "request_decode": 1995000,
+            "bundle_verify": 58534600,
+            "adapter_admit": 11686500,
+            "modules_load": 2076900,
+            "entry_bind": 3000,
+            "device_initialize": 73041700,
+            "stream_allocate": 1209231200,
+            "host_to_device": 12303400,
+            "kernel_wait": 17270300,
+            "device_to_host": 2307300,
+            "cpu_verification": 23900,
+            "post_admission": 64000,
+            "resources_release": 2582600,
+            "reply_encode": 48000,
+            "modules_release": 5241300
+          },
+          "stream_create_ns": 1209202900,
+          "slab_allocate_ns": 28100,
+          "device_readback_bytes": 242052,
+          "sparse_arena": true
+        },
+        "job": {
+          "run": "local-run-2f0ff00b2c9347fc882c57756d51147b",
+          "exit_code": 0,
+          "wall_seconds": 2.014339,
+          "memory_envelope_bytes": 852492288,
+          "peak_job_bytes": 96268288,
+          "cpu_percent": 16,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "children_at_forced_retirement": 0,
+          "receipt_sha256": "46eec9923f4d46c88fd4cb5a762095d54a2553d5dfd81c5b8277183010512e67",
+          "log_sha256": "dd4365e778f0ec226bec4d6ba0b4c68876ad8ea9d699249623b9a30ec02242f2"
+        }
+      },
+      {
+        "round": 2,
+        "route": "slots",
+        "report": {
+          "gpu_verified": true,
+          "matched_candidate_costs": true,
+          "cohort": "mixed",
+          "amd_first": true,
+          "groups": 3,
+          "members": 60,
+          "launches": 16,
+          "transfers": 9,
+          "device_bytes": 1114112,
+          "request_bytes": 4129036,
+          "reply_bytes": 3932684,
+          "actual_reply_bytes": 242044,
+          "cpu_candidate_count": 37,
+          "amd_candidate_count": 37,
+          "cpu_candidate_bytes": 246272,
+          "amd_candidate_bytes": 246272,
+          "prepare_ns": 1069000,
+          "cpu_encode_and_verify_ns": 10112500,
+          "amd_exchange_and_verify_ns": 1826625700,
+          "amd_parent_verify_ns": 1949300,
+          "job_peak_bytes": 98480128,
+          "transport_quiescent": true,
+          "request_blake3": "4a7ff3c1efbb055007b689399cf1a36ca765d98304b6920d74e068dcf3dd30a6",
+          "profile_verified": true,
+          "worker_wall_ns": 1772566700,
+          "phase_times_ns": {
+            "request_decode": 1924900,
+            "bundle_verify": 52018000,
+            "adapter_admit": 11199900,
+            "modules_load": 1854600,
+            "entry_bind": 2900,
+            "device_initialize": 464768300,
+            "stream_allocate": 1199815600,
+            "host_to_device": 12070400,
+            "kernel_wait": 18208800,
+            "device_to_host": 3022600,
+            "cpu_verification": 300,
+            "post_admission": 62800,
+            "resources_release": 2591800,
+            "reply_encode": 786400,
+            "modules_release": 3584300
+          },
+          "stream_create_ns": 1199785800,
+          "slab_allocate_ns": 29500,
+          "device_readback_bytes": 3932160,
+          "sparse_arena": false
+        },
+        "job": {
+          "run": "local-run-8265319cc8b242ce93f61fcaccdb8487",
+          "exit_code": 0,
+          "wall_seconds": 1.896309,
+          "memory_envelope_bytes": 835715072,
+          "peak_job_bytes": 99749888,
+          "cpu_percent": 16,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "children_at_forced_retirement": 0,
+          "receipt_sha256": "5b05a1f90477058c110a07f3a1855f12b19b98dee75f60889ce0546f4b61e19c",
+          "log_sha256": "95d3755718a942e14d8fee9706b1e442acd20da3b64b76a5079b7e647b63948c"
+        }
+      }
+    ],
+    "winfsp_controller_compression_and_cpu_reopen": [
+      {
+        "mode": "sparse-xor-device",
+        "report": {
+          "mode": "amd",
+          "cohort": "sparse-xor-synthetic",
+          "sparse_device": "1",
+          "reply_bytes": "423204",
+          "files": "15",
+          "groups": "5",
+          "advised_members": "100",
+          "capability": "7",
+          "submitted": "1",
+          "verified_batches": "1",
+          "worker_ns": "1801373300",
+          "empty_batches": "0",
+          "discovery_ns": "478338000",
+          "maintenance_ns": "2007542700",
+          "compact_verify_ns": "100924400",
+          "input_compacted_bytes": "13975552",
+          "grouped_compacted_bytes": "1753088",
+          "packed_widths": "0",
+          "packed_payload_bytes": "422400",
+          "sampled_bias_members": "0",
+          "retired": "true",
+          "independent_cpu_readback": "true",
+          "modeled_idle_time": "true",
+          "input_blake3": "6b5bbce026ca49ccaae3f1893facf7e54b12e0ec5844ceeef8a110e9ce2aa5e0"
+        },
+        "job": {
+          "run": "local-run-69f07ec98ee04f7399bd02a676baf593",
+          "exit_code": 0,
+          "wall_seconds": 2.841402,
+          "memory_envelope_bytes": 1043333120,
+          "peak_job_bytes": 169381888,
+          "cpu_percent": 16,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "children_at_forced_retirement": 0,
+          "receipt_sha256": "a1a42e0a37eac76d528bd3d79f158b249aae88add67f47b8c1b80a7797357dac",
+          "log_sha256": "4d0acbc279ef539cc4d161ff3ae1a6709d26ba406ff80e4e61cc1fdca798bca0"
+        }
+      },
+      {
+        "mode": "sparse-xor-all-planes-device",
+        "report": {
+          "mode": "amd",
+          "cohort": "sparse-xor-all-planes-public",
+          "sparse_device": "1",
+          "reply_bytes": "653604",
+          "files": "15",
+          "groups": "5",
+          "advised_members": "100",
+          "capability": "7",
+          "submitted": "1",
+          "verified_batches": "1",
+          "worker_ns": "2004732100",
+          "empty_batches": "0",
+          "discovery_ns": "353728200",
+          "maintenance_ns": "2077877100",
+          "compact_verify_ns": "107978200",
+          "input_compacted_bytes": "13975552",
+          "grouped_compacted_bytes": "2211840",
+          "packed_widths": "0",
+          "packed_payload_bytes": "652800",
+          "sampled_bias_members": "0",
+          "retired": "true",
+          "independent_cpu_readback": "true",
+          "modeled_idle_time": "true",
+          "input_blake3": "716b1787e7b4f4d4b11987475dbb2bbd80f8da47d5c5b4f9c2c9b58eb52746e2"
+        },
+        "job": {
+          "run": "local-run-918b6db292a44540b1f389c1de179d7f",
+          "exit_code": 0,
+          "wall_seconds": 2.780681,
+          "memory_envelope_bytes": 1041235968,
+          "peak_job_bytes": 170442752,
+          "cpu_percent": 16,
+          "exit_confirmed": true,
+          "tree_retired": true,
+          "children_at_forced_retirement": 0,
+          "receipt_sha256": "78be8e85b7c1a9d1b8144c149b4183281753af2909520f09875133af32e2e14a",
+          "log_sha256": "d88296ad7893a655f3e72d38ec3e38a549c7b2acf7a848d85ff1ada78cd637f5"
+        }
+      }
+    ],
+    "untimed_empty_transfer_check": {
+      "report": {
+        "gpu_verified": true,
+        "matched_candidate_costs": true,
+        "cohort": "mixed",
+        "amd_first": false,
+        "groups": 2,
+        "members": 5,
+        "launches": 5,
+        "transfers": 3,
+        "device_bytes": 327680,
+        "request_bytes": 458952,
+        "reply_bytes": 328136,
+        "actual_reply_bytes": 6748,
+        "cpu_candidate_count": 1,
+        "amd_candidate_count": 1,
+        "cpu_candidate_bytes": 6656,
+        "amd_candidate_bytes": 6656,
+        "prepare_ns": 153200,
+        "cpu_encode_and_verify_ns": 650200,
+        "amd_exchange_and_verify_ns": 1744663500,
+        "amd_parent_verify_ns": 70400,
+        "job_peak_bytes": 86917120,
+        "transport_quiescent": true,
+        "request_blake3": "77221b53ae9012ab1c21fbf72d4f7351f30794b20158f99b2819b1682eaf9e5f",
+        "profile_verified": true,
+        "worker_wall_ns": 1663323000,
+        "phase_times_ns": {
+          "request_decode": 296600,
+          "bundle_verify": 56346100,
+          "adapter_admit": 12621100,
+          "modules_load": 2361000,
+          "entry_bind": 3100,
+          "device_initialize": 353317600,
+          "stream_allocate": 1215370500,
+          "host_to_device": 9682900,
+          "kernel_wait": 4085000,
+          "device_to_host": 1231100,
+          "cpu_verification": 11400,
+          "post_admission": 59800,
+          "resources_release": 4205300,
+          "reply_encode": 3000,
+          "modules_release": 3588900
+        },
+        "stream_create_ns": 1215347300,
+        "slab_allocate_ns": 23100,
+        "device_readback_bytes": 6580,
+        "sparse_arena": true
+      },
+      "job": {
+        "run": "local-run-f242197cda4a4552b808a5f7affacc1d",
+        "exit_code": 0,
+        "wall_seconds": 1.818468,
+        "memory_envelope_bytes": 751828992,
+        "peak_job_bytes": 88195072,
+        "cpu_percent": 16,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "children_at_forced_retirement": 0,
+        "receipt_sha256": "07debffe264223cfe2e76ef37888db53368b33aa545905c6ecc88eedfbb9a977",
+        "log_sha256": "918d8db6722f723ee7f14dc1100ef7e39b894660d56f30a7f1a06f5b8049caf9"
+      }
+    },
+    "summary": {
+      "related": {
+        "slots": {
+          "trials": 3,
+          "request_blake3": [
+            "2218eb51eeae5537c2517508054b416fbc329550817f2930e8482bdcb5cf02ed"
+          ],
+          "members": [
+            60
+          ],
+          "selected": [
+            60
+          ],
+          "candidate_bytes": [
+            399360
+          ],
+          "ipc_bytes": [
+            392188
+          ],
+          "device_copy_bytes": [
+            3932160
+          ],
+          "slab_bytes": [
+            1114112
+          ],
+          "transfer_windows": [
+            9
+          ],
+          "launches": [
+            16
+          ],
+          "median_cpu_ns": 12419300,
+          "median_worker_ns": 1681050800,
+          "median_exchange_ns": 1739542200,
+          "median_d2h_ns": 2785100,
+          "median_stream_ns": 1215431100,
+          "median_verify_ns": 1382400,
+          "peak_report_bytes": 99217408
+        },
+        "arena": {
+          "trials": 3,
+          "request_blake3": [
+            "2218eb51eeae5537c2517508054b416fbc329550817f2930e8482bdcb5cf02ed"
+          ],
+          "members": [
+            60
+          ],
+          "selected": [
+            60
+          ],
+          "candidate_bytes": [
+            399360
+          ],
+          "ipc_bytes": [
+            392188
+          ],
+          "device_copy_bytes": [
+            392196
+          ],
+          "slab_bytes": [
+            1114112
+          ],
+          "transfer_windows": [
+            9
+          ],
+          "launches": [
+            16
+          ],
+          "median_cpu_ns": 12504400,
+          "median_worker_ns": 1690082900,
+          "median_exchange_ns": 1755067800,
+          "median_d2h_ns": 1823300,
+          "median_stream_ns": 1220307700,
+          "median_verify_ns": 1330000,
+          "peak_report_bytes": 94650368
+        }
+      },
+      "mixed": {
+        "slots": {
+          "trials": 3,
+          "request_blake3": [
+            "4a7ff3c1efbb055007b689399cf1a36ca765d98304b6920d74e068dcf3dd30a6"
+          ],
+          "members": [
+            60
+          ],
+          "selected": [
+            37
+          ],
+          "candidate_bytes": [
+            246272
+          ],
+          "ipc_bytes": [
+            242044
+          ],
+          "device_copy_bytes": [
+            3932160
+          ],
+          "slab_bytes": [
+            1114112
+          ],
+          "transfer_windows": [
+            9
+          ],
+          "launches": [
+            16
+          ],
+          "median_cpu_ns": 9981000,
+          "median_worker_ns": 1798954200,
+          "median_exchange_ns": 1872748600,
+          "median_d2h_ns": 2723500,
+          "median_stream_ns": 1226478500,
+          "median_verify_ns": 1847500,
+          "peak_report_bytes": 99606528
+        },
+        "arena": {
+          "trials": 3,
+          "request_blake3": [
+            "4a7ff3c1efbb055007b689399cf1a36ca765d98304b6920d74e068dcf3dd30a6"
+          ],
+          "members": [
+            60
+          ],
+          "selected": [
+            37
+          ],
+          "candidate_bytes": [
+            246272
+          ],
+          "ipc_bytes": [
+            242044
+          ],
+          "device_copy_bytes": [
+            242052
+          ],
+          "slab_bytes": [
+            1114112
+          ],
+          "transfer_windows": [
+            9
+          ],
+          "launches": [
+            16
+          ],
+          "median_cpu_ns": 9980000,
+          "median_worker_ns": 1887226000,
+          "median_exchange_ns": 1960204400,
+          "median_d2h_ns": 2307300,
+          "median_stream_ns": 1254348100,
+          "median_verify_ns": 1597700,
+          "peak_report_bytes": 94994432
+        }
+      }
+    }
+  },
+  "earlier_attempts": [
+    {
+      "reason": "Initial offline script argument positions were incorrect. No device operation occurred.",
+      "job": {
+        "run": "local-run-572effad623543f79b079f51a3fa0187",
+        "exit_code": 1,
+        "wall_seconds": 1.107605,
+        "memory_envelope_bytes": 1042284544,
+        "peak_job_bytes": 63934464,
+        "cpu_percent": 13,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "children_at_forced_retirement": 0,
+        "receipt_sha256": "6f17ec7e1f9e2427b3e80bd9f3486d86ff763c825949ed89ef2c69b013d92e99",
+        "log_sha256": "1a3364a8da02d80f4ddb5702f9d6f087a26717106c12ff0db01ad78ae25ea916"
+      }
+    },
+    {
+      "reason": "Private SDK fixture configure required the staged WinFsp header path.",
+      "job": {
+        "run": "local-run-19630eae31a045e0911c53b84be6459c",
+        "exit_code": 1,
+        "wall_seconds": 12.042279,
+        "memory_envelope_bytes": 1153433600,
+        "peak_job_bytes": 322686976,
+        "cpu_percent": 14,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "children_at_forced_retirement": 1,
+        "receipt_sha256": "25bc24ddef46d68b46dccc49e6589b9c651aeb79f658a0902fe24119372d70c2",
+        "log_sha256": "bd41ab9f140190a12594b90127346272aeae9c89a33b9eda05d812346898dc58"
+      }
+    },
+    {
+      "reason": "The private SDK fixture configure also required explicit Zstandard enablement.",
+      "job": {
+        "run": "local-run-edbdd36a0c6c4ef9a0550a7b5ff1bbcc",
+        "exit_code": 1,
+        "wall_seconds": 4.671039,
+        "memory_envelope_bytes": 1149239296,
+        "peak_job_bytes": 20844544,
+        "cpu_percent": 14,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "children_at_forced_retirement": 0,
+        "receipt_sha256": "2d8f19489eb64e11ead59a05a21ebc3dc550aed6d8222ef19fa3475b7c0469f9",
+        "log_sha256": "db95a654a5d4dc9eddae70a99092e7cea70ca7f1df11d69b3bfe6c11c4af43c2"
+      }
+    },
+    {
+      "reason": "The simultaneous sanitizer pass timed out in the modular-delta test and then reached its outer deadline. Process-tree termination was confirmed.",
+      "job": {
+        "run": "local-run-515bd460ce3444eaa7f79c04b721321d",
+        "exit_code": 1460,
+        "wall_seconds": 235.073614,
+        "memory_envelope_bytes": 1032847360,
+        "peak_job_bytes": 526061568,
+        "cpu_percent": 16,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "children_at_forced_retirement": 0,
+        "receipt_sha256": "c5819babf1609bab75add38061f4cece4e236463c3a438a023cd986dad728491",
+        "log_sha256": "cfcb7a7f7f4e182393e207fb4440cfe94eb415b79684a76fd86084058db5cd71"
+      }
+    }
+  ],
+  "scope": "Physical Windows AMD hardware, fixed-slot and compact device readback in the same worker package. Existing staged input, conservative device grant, compact worker reply grammar and protected on-volume capability 7 apply to both paths."
+}

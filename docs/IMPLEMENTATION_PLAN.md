@@ -818,10 +818,20 @@ eight planes differed. The dense route sent 6,554,004 bytes in both cases.
 It supplied 100 members in the first cohort and empty slots in the second.
 Direct sparse encoding supplied 100 independently verified members each
 time. Every route produced the same protected compacted size within each
-cohort. CPU had the lowest median complete time in both. Reduce fixed
-device-to-host copies and amortize stream creation before qualifying an
-automatic direct sparse policy.
+cohort. CPU had the lowest median complete time in both.
 [Direct AMD sparse and CPU fallback evidence](evidence/amd-direct-sparse-xor-2026-11-19.json)
+
+The sparse device arena reduces the readback of 60 extents from 3,932,160
+bytes to 392,196 on the related input and 242,052 on the mixed input. Twelve
+physical-host exchanges matched the independently verified CPU candidate
+counts and sizes. Median readback wall times declined from 2.79 to 1.82 ms
+and from 2.72 to 2.31 ms, respectively. Median HIP stream creation remained
+above 1.2 seconds for both entries and inputs. CPU completed these
+comparisons sooner. The normal controller used the arena in two compacted
+image tests and independently reopened all files. The next qualification
+needs more useful search per stream and complete-volume comparisons with
+fresh pressure, cancellation and retirement evidence.
+[Sparse device readback evidence](evidence/amd-sparse-device-readback-2026-11-19.json)
 
 The indexed owner now fills a finite worker exchange across several scan
 windows under live host and exact channel admission. In the related-data

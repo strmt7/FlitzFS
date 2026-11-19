@@ -233,6 +233,28 @@ void anchor_batch_profile_cases() {
   }
   const AnchorSetupTiming too_large{measured.wall_ns[phase],1};
   rejects([&]{(void)encode_anchor_batch_profile(wide_binding,measured,&too_large);});
+
+  constexpr auto sparse=anchor_match::BatchOutput::sparse_xor;
+  const auto sparse_plan=detail::plan_anchor_match_batch(counts,3,anchor_match::device_bytes(3,sparse),7,sparse);
+  const auto sparse_transfer=detail::plan_anchor_match_transfers(sparse_plan,anchor_match::device_bytes(6,sparse));
+  detail::AnchorMatchBatchBuilder sparse_builder(93,sparse_plan);
+  sparse_builder.append(14,base,std::span(members).first(4*anchor_match::extent_bytes));
+  sparse_builder.append(15,base,members);
+  const auto sparse_request=sparse_builder.finish();
+  const auto sparse_binding=anchor_batch_profile_binding(sparse_request,sparse_transfer,2,binding().luid,1,1);
+  for(const auto timing:{AnchorSetupTiming{13,27,2048,true},
+      AnchorSetupTiming{13,27,11*anchor_match::xor_wide_slot_bytes,false}}) {
+    const auto encoded=encode_anchor_batch_profile(sparse_binding,measured,&timing);
+    require(encoded[7]==std::byte{'5'} &&
+        decode_anchor_batch_profile(encoded,sparse_binding,&recovered).wall_ns==measured.wall_ns &&
+        recovered==timing,"Sparse profile lost the counted device readback");
+    rejects([&]{(void)decode_anchor_batch_profile(encoded,sparse_binding);});
+    auto corrupt=encoded;
+    corrupt.back()^=std::byte{128};
+    rejects([&]{(void)decode_anchor_batch_profile(corrupt,sparse_binding,&recovered);});
+  }
+  const AnchorSetupTiming impossible{13,27,4,true};
+  rejects([&]{(void)encode_anchor_batch_profile(sparse_binding,measured,&impossible);});
 }
 }
 int main(){try{

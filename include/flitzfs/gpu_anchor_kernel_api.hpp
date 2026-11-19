@@ -42,4 +42,17 @@ inline bool compatible_window_search_api(const WindowSearchApi& api,u32 version=
   return api.size_bytes==sizeof(WindowSearchApi) && api.version==version && api.search;
 }
 using WindowSearchApiEntry=const WindowSearchApi* (*)() noexcept;
+
+inline constexpr u32 sparse_xor_arena_abi_version=8;
+using SparseXorArenaKernel=void (*)(const u8* base,const u8* members,u32 member_count,
+    u32* cursor,u32* directory,u32* arena,u32 arena_words,u32 version);
+struct SparseXorArenaApi {
+  u32 size_bytes,version;
+  SparseXorArenaKernel search;
+};
+static_assert(std::is_standard_layout_v<SparseXorArenaApi> && std::is_trivially_copyable_v<SparseXorArenaApi>);
+inline bool compatible_sparse_xor_arena_api(const SparseXorArenaApi& api) noexcept {
+  return api.size_bytes==sizeof(SparseXorArenaApi) && api.version==sparse_xor_arena_abi_version && api.search;
+}
+using SparseXorArenaApiEntry=const SparseXorArenaApi* (*)() noexcept;
 }

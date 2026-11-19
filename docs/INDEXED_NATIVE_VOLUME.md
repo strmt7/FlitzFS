@@ -289,9 +289,13 @@ tile plane using 32-lane subgroups. The kernel prices all tiles before
 writing within the admitted member slot. Prefix counts give each segment
 separate positions in the ordered sparse lists. The worker sends only
 the used bodies in the compact reply, with the request and group digests.
-Device slab admission and device-to-host copies still account for full
-slots. The Windows controller requires a dispatch grant, live adapter
-headroom and compatible thread, shuffle and shared-memory limits.
+Private ABI 8 shares the tile encoder and places the output in aligned
+ranges within the admitted slab. The worker validates the directory
+before downloading the used payload. An authenticated module with the
+ABI 7 entry supports the same operation through fixed-slot readback.
+The Windows controller requires a dispatch grant, live adapter headroom
+and compatible thread, shuffle and shared-memory limits. ABI 8 also
+requires global 32-bit device atomics.
 [HIP device language extensions](https://rocm.docs.amd.com/projects/HIP/en/latest/how-to/hip_cpp_language_extensions.html)
 
 The controller consumes a reply after confirmed worker and supervisor
@@ -299,7 +303,8 @@ retirement. The CPU checks the sparse grammar and reconstructs every byte
 against the owned input. It rejects malformed candidates, honors the
 exclusive size bound and keeps the dense form on equal encoded cost.
 Missing or refused device results leave CPU encoding available.
-[Direct AMD encoding evidence](evidence/amd-direct-sparse-xor-2026-11-19.json)
+[Direct AMD encoding evidence](evidence/amd-direct-sparse-xor-2026-11-19.json) ·
+[Device readback evidence](evidence/amd-sparse-device-readback-2026-11-19.json)
 
 ### Automatic candidate discovery
 

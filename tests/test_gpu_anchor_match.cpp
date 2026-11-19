@@ -6,6 +6,7 @@
 #include <iostream>
 #include <limits>
 #include <stdexcept>
+#include <utility>
 
 namespace {
 namespace match=flitzfs::anchor_match;
@@ -523,6 +524,67 @@ void sparse_xor_reply() {
   std::cout<<"sparse_xor_reply actual_bytes="<<reply.size()<<" admitted_bytes="<<plan.reply_bytes
       <<" dense_overflow=true cpu_exact=true\n";
 }
+
+void sparse_xor_arena() {
+  constexpr auto output=match::BatchOutput::sparse_xor;
+  constexpr auto id=kNativeGroupBaseBit+1;
+  const auto base=native_fixture::data(match::extent_bytes,2149);
+  auto wide=base,narrow=base;
+  anchor_search_fixture::apply_all_xor_planes(wide,1);
+  narrow[421]^=std::byte{1};
+  const auto wide_frame=encode_native_group_sparse_xor(wide,base,id,1,match::extent_bytes);
+  const auto narrow_frame=encode_native_group_sparse_xor(narrow,base,id,1,match::extent_bytes);
+  check(wide_frame && narrow_frame,"Sparse device arena fixture bodies");
+  const auto wide_body=std::span(*wide_frame).subspan(128);
+  const auto narrow_body=std::span(*narrow_frame).subspan(128);
+  const auto wide_words=match::sparse_xor_arena_words(static_cast<match::u32>(wide_body.size()));
+  const auto narrow_words=match::sparse_xor_arena_words(static_cast<match::u32>(narrow_body.size()));
+  check(narrow_body.size()%sizeof(match::u32)!=0,"Sparse device arena fixture padding");
+  constexpr std::array<match::u32,1> counts{3};
+  const auto plan=plan_anchor_match_batch(counts,1,match::device_bytes(1,output),3,output);
+  AnchorMatchBatchBuilder builder(131,plan);
+  auto sources=wide;
+  sources.insert(sources.end(),base.begin(),base.end());
+  sources.insert(sources.end(),narrow.begin(),narrow.end());
+  builder.append(1,base,sources);
+  const auto request=builder.finish();
+  const std::array<match::u32,7> directory{narrow_words+wide_words,
+      narrow_words,static_cast<match::u32>(wide_body.size()),0,0,0,static_cast<match::u32>(narrow_body.size())};
+  auto payload=std::vector<std::byte>(directory[0]*sizeof(match::u32),std::byte{255});
+  std::ranges::copy(narrow_body,payload.begin());
+  std::ranges::copy(wide_body,payload.begin()+narrow_words*sizeof(match::u32));
+  const auto slices=check_sparse_xor_arena_directory(directory,directory[0]);
+  std::array<AnchorPackedAdvice,1> bodies{AnchorPackedAdvice(3)};
+  take_sparse_xor_arena_bodies(slices,payload,bodies[0]);
+  check(bodies[0][1].empty() && std::ranges::equal(bodies[0][0],wide_body) &&
+      std::ranges::equal(bodies[0][2],narrow_body),"Sparse device offsets lost member order or empty bodies");
+  constexpr auto words=match::xor_wide_slot_bytes/sizeof(match::u32);
+  std::array<std::vector<match::u32>,1> slots{std::vector<match::u32>(3*words,match::empty)};
+  put_xor_test_slot(std::span(slots[0]).first(words),wide_body);
+  slots[0][words]=0;
+  put_xor_test_slot(std::span(slots[0]).last(words),narrow_body);
+  const auto arena_reply=encode_anchor_sparse_batch_reply(request,bodies,256);
+  check(arena_reply==encode_anchor_match_batch_reply(request,slots,256),
+      "Sparse arena changed the request-bound IPC format");
+  rejects([&]{(void)check_sparse_xor_arena_directory(directory,directory[0]-1);});
+  rejects([&]{(void)check_sparse_xor_arena_directory(std::span(directory).first(6),directory[0]);});
+  const std::array<std::pair<std::size_t,match::u32>,6> invalid_entries{{
+      {0,directory[0]+1}, // trailing words
+      {1,narrow_words-1}, {1,narrow_words+1}, {2,match::empty}, {3,1}, {5,directory[0]}
+  }};
+  for(const auto& [at,value]:invalid_entries) {
+    auto invalid=directory;
+    invalid[at]=value;
+    rejects([&]{(void)check_sparse_xor_arena_directory(invalid,directory[0]+1);});
+  }
+  rejects([&]{take_sparse_xor_arena_bodies(slices,std::span(payload).first(payload.size()-1),bodies[0]);});
+  payload[narrow_body.size()]=std::byte{};
+  rejects([&]{take_sparse_xor_arena_bodies(slices,payload,bodies[0]);});
+  constexpr std::array<match::u32,3> empty{0,0,0};
+  check(check_sparse_xor_arena_directory(empty,1).empty(),"Empty transfer produced a device payload");
+  bodies[0].pop_back();
+  rejects([&]{(void)encode_anchor_sparse_batch_reply(request,bodies);});
+}
 }
 
 template<class Word>
@@ -554,6 +616,7 @@ int main() {
     wide_xor_reply();
     modular_delta_reply();
     sparse_xor_reply();
+    sparse_xor_arena();
     sampled_modular_biases<match::u8>();
     sampled_modular_biases<unsigned short>();
     sampled_modular_biases<match::u32>();

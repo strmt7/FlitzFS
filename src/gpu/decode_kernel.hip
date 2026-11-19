@@ -164,13 +164,17 @@ void flitzfs_anchor_packed_xor_v5(const unsigned char* base,const unsigned char*
       dispatch_member_limit(BatchOutput::wide_packed_xor)>(base,window,members,output,version);
 }
 
-extern "C" __global__ __attribute__((amdgpu_flat_work_group_size(64,64)))
-void flitzfs_anchor_sparse_xor_v7(const unsigned char* base,const unsigned char* window,unsigned int members,
-    const flitzfs::anchor_match::Bucket*,unsigned int* output,unsigned int version) {
-  using namespace flitzfs::anchor_match;
-  if(version!=sparse_xor_window_abi_version || !base || !window || !output ||
+namespace {
+using namespace flitzfs::anchor_match;
+
+template<bool Arena> __device__ __forceinline__
+void pack_sparse_xor_members(const u8* base,const u8* window,u32 members,u32* output,u32 version,
+    u32* cursor=nullptr,u32* directory=nullptr,u32 arena_words=0) {
+  constexpr auto abi=Arena?sparse_xor_arena_abi_version:sparse_xor_window_abi_version;
+  if(version!=abi || !base || !window || !output ||
       !members || members>dispatch_member_limit(BatchOutput::sparse_xor) ||
       blockIdx.x>=members || blockDim.x!=threads)return;
+  if constexpr(Arena)if(!cursor || !directory || !arena_words)return;
   constexpr auto lanes=xor_plane_bytes;
   constexpr auto tiles_per_block=threads/lanes;
   static_assert(lanes==32 && xor_tiles%tiles_per_block==0);
@@ -179,7 +183,7 @@ void flitzfs_anchor_sparse_xor_v7(const unsigned char* base,const unsigned char*
   const auto segment=lane%lanes;
   const auto first_tile=lane/lanes;
   const auto* member=window+blockIdx.x*extent_bytes;
-  auto* slot=output+blockIdx.x*(xor_wide_slot_bytes/sizeof(u32));
+  if constexpr(!Arena)output+=blockIdx.x*(xor_wide_slot_bytes/sizeof(u32));
   for(u32 tile=first_tile;tile<xor_tiles;tile+=tiles_per_block) {
     const auto at=tile*xor_tile_bytes+segment*8;
     const auto difference=xor_segment(base+at,member+at);
@@ -213,11 +217,25 @@ void flitzfs_anchor_sparse_xor_v7(const unsigned char* base,const unsigned char*
       size+=bytes;
     }
     scratch.size=size>=sparse_xor_min_body_bytes && size<=sparse_xor_max_body_bytes?size:0;
-    slot[0]=scratch.size;
+    if constexpr(Arena) {
+      auto* entry=directory+blockIdx.x*sparse_xor_arena_entry_words;
+      const auto words=sparse_xor_arena_words(scratch.size);
+      const auto at=words?atomicAdd(cursor,words):0U;
+      // Leave a poisoned entry if a reservation escapes the admitted arena.
+      if(at>arena_words || words>arena_words-at)scratch.size=0;
+      else {
+        entry[0]=at;
+        entry[1]=scratch.size;
+        scratch.body_offset=at;
+      }
+    } else {
+      output[0]=scratch.size;
+      scratch.body_offset=1;
+    }
   }
   __syncthreads();
   if(!scratch.size)return;
-  auto* body=reinterpret_cast<u8*>(slot+1);
+  auto* body=reinterpret_cast<u8*>(output+scratch.body_offset);
   for(u32 tile=first_tile;tile<xor_tiles;tile+=tiles_per_block) {
     auto* target=body+scratch.offsets[tile];
     const auto mask=scratch.masks[tile];
@@ -259,6 +277,19 @@ void flitzfs_anchor_sparse_xor_v7(const unsigned char* base,const unsigned char*
       target+=1+count;
     }
   }
+}
+}
+
+extern "C" __global__ __attribute__((amdgpu_flat_work_group_size(64,64)))
+void flitzfs_anchor_sparse_xor_v7(const unsigned char* base,const unsigned char* window,unsigned int members,
+    const flitzfs::anchor_match::Bucket*,unsigned int* output,unsigned int version) {
+  pack_sparse_xor_members<false>(base,window,members,output,version);
+}
+
+extern "C" __global__ __attribute__((amdgpu_flat_work_group_size(64,64)))
+void flitzfs_anchor_sparse_xor_arena_v8(const unsigned char* base,const unsigned char* window,unsigned int members,
+    unsigned int* cursor,unsigned int* directory,unsigned int* arena,unsigned int arena_words,unsigned int version) {
+  pack_sparse_xor_members<true>(base,window,members,arena,version,cursor,directory,arena_words);
 }
 
 namespace {
@@ -441,5 +472,8 @@ void bind_anchor_modular_delta_window(WindowSearchApi& api) noexcept {
 }
 void bind_anchor_sparse_xor_window(WindowSearchApi& api) noexcept {
   api.search=flitzfs_anchor_sparse_xor_v7;
+}
+void bind_anchor_sparse_xor_arena(SparseXorArenaApi& api) noexcept {
+  api.search=flitzfs_anchor_sparse_xor_arena_v8;
 }
 }

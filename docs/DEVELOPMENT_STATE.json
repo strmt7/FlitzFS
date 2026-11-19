@@ -74,8 +74,9 @@
     "amd_verified_plane_input": true,
     "amd_direct_sparse_encoding": true,
     "amd_direct_sparse_evidence": "docs/evidence/amd-direct-sparse-xor-2026-11-19.json",
+    "amd_sparse_device_readback_evidence": "docs/evidence/amd-sparse-device-readback-2026-11-19.json",
     "scope": "Fixed references on two controlled 15-file cohorts. The initial worker supplied dense planes for CPU conversion. Direct sparse trials verified the compact output from AMD.",
-    "next": "Reduce fixed device-to-host slot copies and amortize stream setup before selecting direct sparse AMD automatically."
+    "next": "Amortize stream setup over more useful collective search and qualify measured workload routing. Sparse device readback now validates and downloads the used payload within the existing grant."
   },
   "native_path_lookup": {
     "source_base": "700cdb31de32b847497b02cc0e113d27482e6c85",

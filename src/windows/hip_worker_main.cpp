@@ -230,10 +230,12 @@ std::string runtime_digest(std::wstring_view wide) {
 int worker(int argc, wchar_t** argv) {
   const std::wstring_view mode = argc > 1 ? argv[1] : L"";
   const bool modular_delta=mode==L"--driver-anchor-modular-delta-batch";
-  const bool sparse_xor=mode==L"--driver-anchor-sparse-xor-batch";
+  const bool sparse_slot_profile=mode==L"--driver-anchor-sparse-xor-slot-profile";
+  const bool sparse_xor_profile=mode==L"--driver-anchor-sparse-xor-setup-profile" || sparse_slot_profile;
+  const bool sparse_xor=mode==L"--driver-anchor-sparse-xor-batch" || sparse_xor_profile;
   const bool wide_xor_setup_profile=mode==L"--driver-anchor-xor-wide-setup-profile";
   const bool wide_xor_profile=mode==L"--driver-anchor-xor-wide-batch-profile" || wide_xor_setup_profile;
-  const bool anchor_batch_profile=mode==L"--driver-anchor-transfer-batch-profile" || wide_xor_profile;
+  const bool anchor_batch_profile=mode==L"--driver-anchor-transfer-batch-profile" || wide_xor_profile || sparse_xor_profile;
   const bool wide_xor=mode==L"--driver-anchor-xor-wide-batch" || wide_xor_profile;
   const bool packed_xor=wide_xor || mode==L"--driver-anchor-xor-batch";
   const auto anchor_output=sparse_xor?anchor_match::BatchOutput::sparse_xor:
@@ -474,7 +476,7 @@ int worker(int argc, wchar_t** argv) {
   require(dispatches_per_wait!=0,Exit::invalid_request,"anchor batch wait grant");
   HipPhaseProfile phase_value;
   AnchorSetupTiming anchor_setup;
-  auto* const setup=wide_xor_setup_profile?&anchor_setup:nullptr;
+  auto* const setup=(wide_xor_setup_profile || sparse_xor_profile)?&anchor_setup:nullptr;
   const bool profile_anchor=anchor_profile || anchor_batch_profile;
   HipPhaseRecorder phase_clock(phase_observation || profile_anchor?&phase_value.trace:nullptr,
       hip_phase_detail::clock_ns,profile_anchor?HipPhaseOrder::accumulate:HipPhaseOrder::ordered,
@@ -591,7 +593,14 @@ int worker(int argc, wchar_t** argv) {
     require(api && anchor_match::compatible_kernel_api(*api),Exit::unsupported_configuration,
         "incompatible HIP anchor match table",HipWorkerStage::kernel_table);
     const anchor_match::WindowSearchApi* window=nullptr;
-    if(anchor_transfer) {
+    const anchor_match::SparseXorArenaApi* arena=nullptr;
+    const auto arena_address=sparse_xor && !sparse_slot_profile?
+        GetProcAddress(kernels.get(),"flitzfs_rocm_anchor_sparse_xor_arena_api_v8"):nullptr;
+    if(arena_address) {
+      arena=std::bit_cast<anchor_match::SparseXorArenaApiEntry>(arena_address)();
+      require(arena && anchor_match::compatible_sparse_xor_arena_api(*arena),Exit::unsupported_configuration,
+          "incompatible HIP sparse XOR arena table",HipWorkerStage::kernel_table);
+    } else if(anchor_transfer) {
       const auto window_address=GetProcAddress(kernels.get(),
           sparse_xor?"flitzfs_rocm_anchor_sparse_xor_api_v7":modular_delta?"flitzfs_rocm_anchor_modular_delta_api_v6":
           wide_xor?"flitzfs_rocm_anchor_xor_api_v5":
@@ -608,20 +617,18 @@ int worker(int argc, wchar_t** argv) {
       // Match records have byte checks here. The native writer independently
       // proves the decoded packed XOR candidate before it can publish.
       if(anchors) {
-        const auto records=run_hip_anchor_batch_in_worker(runtime.get(),*api,static_cast<int>(ordinal),
-            luid,node_mask,*anchors,phase_clock,window,transfer_grant,dispatches_per_wait,setup);
-        phase_clock.begin(HipPhase::reply_encode);
-        frame=detail::encode_anchor_match_batch_reply(*anchors,records,profile_bytes);
+        frame=run_hip_anchor_batch_in_worker(runtime.get(),*api,static_cast<int>(ordinal),
+            luid,node_mask,*anchors,phase_clock,window,arena,transfer_grant,dispatches_per_wait,setup,profile_bytes);
       } else {
         const auto records=run_hip_anchor_match_in_worker(runtime.get(),*api,static_cast<int>(ordinal),
             luid,node_mask,*anchor,*anchor_plan,phase_clock,anchor_sweep);
         phase_clock.begin(HipPhase::reply_encode);
         frame=detail::encode_anchor_match_reply(anchor->view(),records,profile_bytes);
+        phase_clock.end(HipPhase::reply_encode);
       }
     } catch(const std::invalid_argument&) {
       throw HipWorkerFailure(Exit::integrity_failure,"HIP shared base suggestion failed independent byte verification");
     }
-    phase_clock.end(HipPhase::reply_encode);
   } else if(matching) {
     phase_clock.begin(HipPhase::entry_bind);
     const auto address=GetProcAddress(kernels.get(),"flitzfs_rocm_match_api_v1");

@@ -487,48 +487,135 @@ AnchorMatchBatchRequest decode_anchor_match_batch_request(SharedWorkerRequest sn
   return request;
 }
 
+namespace {
+template<class ReadBody>
+Bytes encode_compact_batch_reply(const AnchorMatchBatchRequest& request,ReadBody read_body,
+    std::size_t reserve_tail_bytes,std::size_t known_body_bytes=0) {
+  const auto groups=request.groups();
+  const auto& plan=request.plan();
+  const auto slot_bytes=match::reply_member_bytes(plan.output);
+  const auto words_per_member=slot_bytes/record_bytes;
+  require(reserve_tail_bytes<=maximum_channel_bytes-plan.reply_bytes,"anchor batch reply tail capacity");
+  auto frame=header(batch_reply_tag(plan.output),request.id(),static_cast<std::uint32_t>(groups.size()),
+      plan.launches,execution,request.digest(),groups.size()*(group_prefix_bytes+header_size)+
+      known_body_bytes+reserve_tail_bytes);
+  for(std::size_t i=0;i<groups.size();++i) {
+    const auto members=plan.groups[i].whole.members;
+    const auto prefix=frame.size();
+    put(frame,0,group_prefix_bytes);
+    append_header(frame,group_reply_tag(plan.output),groups[i].id,members,members*words_per_member,
+        execution,groups[i].source_digest);
+    for(std::uint32_t member=0;member<members;++member) {
+      const auto body=read_body(i,member);
+      put(frame,body.size(),record_bytes);
+      frame.insert(frame.end(),body.begin(),body.end());
+    }
+    const auto group_bytes=frame.size()-prefix-group_prefix_bytes;
+    for(unsigned j=0;j<group_prefix_bytes;++j)frame[prefix+j]=static_cast<std::byte>(group_bytes>>(8*j));
+  }
+  require(frame.size()<=plan.reply_bytes,"anchor batch reply length");
+  return frame;
+}
+}
+
 Bytes encode_anchor_match_batch_reply(const AnchorMatchBatchRequest& request,
     std::span<const std::vector<match::u32>> records,std::size_t reserve_tail_bytes) {
   const auto groups=request.groups();
   const auto& plan=request.plan();
   const bool packed=plan.output!=match::BatchOutput::anchors;
-  const bool compact=match::compact_output(plan.output);
   const auto slot_bytes=match::reply_member_bytes(plan.output);
   const auto words_per_member=slot_bytes/record_bytes;
   const auto batch_magic=batch_reply_tag(plan.output);
   const auto group_magic=group_reply_tag(plan.output);
   require(!records.empty() && records.size()==groups.size(),"anchor batch result count");
+  if(match::compact_output(plan.output)) {
+    for(std::size_t i=0;i<records.size();++i)
+      require(records[i].size()==plan.groups[i].whole.members*words_per_member,"packed reply record count");
+    return encode_compact_batch_reply(request,[&](auto group,auto member) {
+      return packed_slot(std::as_bytes(std::span(records[group])).subspan(member*slot_bytes,slot_bytes),plan.output);
+    },reserve_tail_bytes);
+  }
   require(reserve_tail_bytes<=maximum_channel_bytes-plan.reply_bytes,"anchor batch reply tail capacity");
-  const auto reserve=compact?records.size()*(group_prefix_bytes+header_size):
-      plan.reply_bytes-header_size+reserve_tail_bytes;
   auto frame=header(batch_magic,request.id(),static_cast<std::uint32_t>(records.size()),
-      plan.launches,execution,request.digest(),reserve);
+      plan.launches,execution,request.digest(),plan.reply_bytes-header_size+reserve_tail_bytes);
   for(std::size_t i=0;i<records.size();++i) {
     const auto& group=groups[i];
     const auto members=plan.groups[i].whole.members;
     if(packed)require(records[i].size()==members*words_per_member,"packed reply record count");
     else check_records(group,records[i],nullptr);
-    const auto prefix=frame.size();
     put(frame,members,group_prefix_bytes);
     append_header(frame,group_magic,group.id,members,members*words_per_member,execution,group.source_digest);
-    if(compact) {
-      const auto slots=std::as_bytes(std::span(records[i]));
-      for(std::size_t at=0;at<slots.size();at+=slot_bytes) {
-        const auto body=packed_slot(slots.subspan(at,slot_bytes),plan.output);
-        put(frame,body.size(),record_bytes);
-        frame.insert(frame.end(),body.begin(),body.end());
-      }
-      const auto group_bytes=frame.size()-prefix-group_prefix_bytes;
-      for(unsigned j=0;j<group_prefix_bytes;++j)frame[prefix+j]=static_cast<std::byte>(group_bytes>>(8*j));
-    } else {
-      const auto start=frame.size();
-      append_records(frame,records[i]);
-      if(packed)for(auto at=start;at<frame.size();at+=slot_bytes)
-        (void)packed_slot(std::span<const std::byte>(frame).subspan(at,slot_bytes),plan.output);
+    const auto start=frame.size();
+    append_records(frame,records[i]);
+    if(packed)for(auto at=start;at<frame.size();at+=slot_bytes)
+      (void)packed_slot(std::span<const std::byte>(frame).subspan(at,slot_bytes),plan.output);
+  }
+  require(frame.size()==plan.reply_bytes,"anchor batch reply length");
+  return frame;
+}
+
+std::vector<SparseXorArenaBody> check_sparse_xor_arena_directory(
+    std::span<const match::u32> directory,match::u32 arena_capacity_words) {
+  const auto header=match::sparse_xor_arena_header_words;
+  const auto stride=match::sparse_xor_arena_entry_words;
+  require(directory.size()>header && (directory.size()-header)%stride==0 &&
+      (directory.size()-header)/stride<=maximum_members,"sparse XOR device directory extent");
+  const auto used_words=directory.front();
+  require(used_words<=arena_capacity_words,"sparse XOR device arena extent");
+  std::vector<SparseXorArenaBody> bodies;
+  bodies.reserve((directory.size()-header)/stride);
+  for(auto at=static_cast<std::size_t>(header);at<directory.size();at+=stride) {
+    const auto offset=directory[at];
+    const auto size=directory[at+1];
+    require(valid_packed_payload_size(size,match::BatchOutput::sparse_xor),"sparse XOR device body size");
+    if(!size) {
+      require(!offset,"sparse XOR empty device body offset");
+      continue;
+    }
+    require(offset<=used_words && match::sparse_xor_arena_words(size)<=used_words-offset,
+        "sparse XOR device body range");
+    bodies.push_back({offset,size,static_cast<match::u32>((at-header)/stride)});
+  }
+  std::ranges::sort(bodies,{},&SparseXorArenaBody::offset_words);
+  match::u32 next=0;
+  for(const auto& body:bodies) {
+    require(body.offset_words==next,"sparse XOR device arena gap or overlap");
+    next+=match::sparse_xor_arena_words(body.size_bytes);
+  }
+  require(next==used_words,"sparse XOR device arena trailing bytes");
+  return bodies;
+}
+
+void take_sparse_xor_arena_bodies(std::span<const SparseXorArenaBody> bodies,
+    std::span<const std::byte> arena,std::span<Bytes> members) {
+  for(const auto& body:bodies) {
+    const auto at=std::size_t{body.offset_words}*record_bytes;
+    const auto aligned=std::size_t{match::sparse_xor_arena_words(body.size_bytes)}*record_bytes;
+    require(body.member<members.size() && at<=arena.size() && aligned<=arena.size()-at,
+        "sparse XOR device readback extent");
+    const auto slot=arena.subspan(at,aligned);
+    require(std::ranges::all_of(slot.subspan(body.size_bytes),[](auto byte){return byte==std::byte{255};}),
+        "sparse XOR device arena padding");
+    members[body.member].assign(slot.begin(),slot.begin()+body.size_bytes);
+  }
+}
+
+Bytes encode_anchor_sparse_batch_reply(const AnchorMatchBatchRequest& request,
+    std::span<const AnchorPackedAdvice> groups,std::size_t reserve_tail_bytes) {
+  const auto& plan=request.plan();
+  require(plan.output==match::BatchOutput::sparse_xor && !groups.empty() &&
+      groups.size()==plan.groups.size(),"sparse XOR device reply groups");
+  std::size_t members_bytes=0;
+  for(std::size_t i=0;i<groups.size();++i) {
+    require(groups[i].size()==plan.groups[i].whole.members,"sparse XOR device reply members");
+    for(const auto& body:groups[i]) {
+      require(valid_packed_payload_size(body.size(),plan.output),"sparse XOR device payload size");
+      members_bytes+=record_bytes+body.size();
     }
   }
-  require(compact?frame.size()<=plan.reply_bytes:frame.size()==plan.reply_bytes,"anchor batch reply length");
-  return frame;
+  return encode_compact_batch_reply(request,[&](auto group,auto member) {
+    return std::span<const std::byte>(groups[group][member]);
+  },reserve_tail_bytes,members_bytes);
 }
 
 namespace {

@@ -33,9 +33,18 @@ inline constexpr u32 xor_wide_slot_bytes=extent_bytes;
 inline constexpr u32 sparse_plane_max=xor_plane_bytes-2,sparse_plane_inverse=0x80,sparse_plane_dense=0x40;
 inline constexpr u32 sparse_xor_min_body_bytes=xor_tiles+2;
 inline constexpr u32 sparse_xor_max_body_bytes=extent_bytes-128-1;
+inline constexpr u32 sparse_xor_arena_header_words=1,sparse_xor_arena_entry_words=2;
+FLITZFS_ANCHOR_INLINE constexpr u32 sparse_xor_arena_words(u32 bytes) noexcept {
+  return bytes/sizeof(u32)+(bytes%sizeof(u32)!=0);
+}
+constexpr u32 sparse_xor_arena_directory_words(u32 members) noexcept {
+  return sparse_xor_arena_header_words+members*sparse_xor_arena_entry_words;
+}
+static_assert((sparse_xor_arena_directory_words(1)+sparse_xor_arena_words(sparse_xor_max_body_bytes))*
+    sizeof(u32)<=xor_wide_slot_bytes);
 struct SparseXorScratch {
   u8 descriptors[xor_tiles][8],masks[xor_tiles],sparse_masks[xor_tiles];
-  u32 offsets[xor_tiles],size;
+  u32 offsets[xor_tiles],size,body_offset;
 };
 static_assert(xor_tile_bytes==256 && sparse_plane_max<sparse_plane_dense && sparse_plane_dense<sparse_plane_inverse);
 inline constexpr u32 delta_parameters_bytes=12;

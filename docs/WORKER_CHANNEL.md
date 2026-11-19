@@ -415,8 +415,23 @@ The sparse XOR batch uses request tag `FLFSABQ\4` and reply tags
 `FLFSASP\1` and `FLFSASG\1`. Each group has an exact length and each member
 has a checked length followed by its sparse XOR body, or a zero length
 for a refused candidate. Capacity admission still uses full member slots.
-The child checks slot lengths and padding before compacting them. The
-parent verifies the request and source digests, complete framing and exact
-worker retirement. The writer independently verifies decoded bytes before
-publication. [Sparse XOR format](INDEXED_NATIVE_VOLUME.md#sparse-xor-members)
+The slot entry checks lengths and padding before compacting them. The arena
+entry places a word count and an ordered directory of offsets and byte
+lengths at the start of the admitted result region. Workgroups use one
+32-bit atomic reservation per nonempty body. The worker waits for its
+stream, reads the directory and validates all populated ranges before
+copying the used payload. The ranges must cover the used prefix exactly.
+The worker checks alignment padding and restores member order in the reply.
+An inconsistent directory ends the exchange as an integrity failure.
+[HIP device functions](https://rocm.docs.amd.com/projects/HIP/en/latest/how-to/hip_cpp_language_extensions.html) ·
+[HIP stream management](https://rocm.docs.amd.com/projects/HIP/en/latest/reference/hip_runtime_api/modules/stream_management.html)
+
+Both device entries put the same request and source digests in the
+same reply format. The parent verifies framing and confirmed worker
+retirement. The writer independently verifies decoded bytes before
+publication. The `FLHPB005` diagnostic binds the stream/slab timings,
+readback byte count and device result layout to the request, geometry and
+adapter. Readback includes directory bytes and the aligned payload.
+[Sparse XOR format](INDEXED_NATIVE_VOLUME.md#sparse-xor-members)
 [Matched transport measurements](evidence/amd-direct-sparse-xor-2026-11-19.json)
+[Physical readback measurements](evidence/amd-sparse-device-readback-2026-11-19.json)
