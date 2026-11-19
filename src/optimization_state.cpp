@@ -370,20 +370,24 @@ OptimizationStateWriter::BudgetResult OptimizationStateWriter::repair_budgeted(s
   return BudgetResult::published;
 }
 OptimizationStateWriter::BudgetResult OptimizationStateWriter::publish_budgeted(
-    const OptimizationState& state,std::uint64_t input,bool automatic_scan) {
+    const OptimizationState& state,std::uint64_t input,bool automatic_scan,std::uint64_t additional_write_bytes) {
   require(impl_&&!impl_->poisoned&&!impl_->repair_pending&&impl_->selected.state.settled_input_bytes,
       "no ready budgeted writer");
   auto& p=*impl_;
   require(valid(state)&&state.settled_input_bytes==p.selected.state.settled_input_bytes,
       "caller cannot change budget settlement");
   require(!automatic_scan||state.group_scan.has_value(),"automatic publication needs a scan checkpoint");
-  if(state==p.selected.state) {
+  require(automatic_scan||!additional_write_bytes,"only a scan can reserve catalog writes");
+  if(state==p.selected.state && !additional_write_bytes) {
     try{p.check();}catch(...){p.poisoned=true;throw;}
     return BudgetResult::unchanged;
   }
   const auto settled=*p.selected.state.settled_input_bytes;
-  const auto cost=automatic_scan?kOptimizationGroupScanInputBytes:kOptimizationAreaBytes;
-  if((!automatic_scan&&!p.remaining)||input<settled||input-settled<cost)return BudgetResult::deferred;
+  const auto base_cost=automatic_scan?kOptimizationGroupScanInputBytes:kOptimizationAreaBytes;
+  if((!automatic_scan&&!p.remaining)||input<settled||input-settled<base_cost ||
+      additional_write_bytes>(input-settled-base_cost)/kOptimizationGroupScanInputPerWriteByte)
+    return BudgetResult::deferred;
+  const auto cost=base_cost+additional_write_bytes*kOptimizationGroupScanInputPerWriteByte;
   require(p.selected.sequence!=(std::numeric_limits<std::uint64_t>::max)(),"optimization sequence exhausted");
   OptimizationSnapshot next;next.code=OptimizationReadCode::available;next.volume=p.selected.volume;
   next.sequence=p.selected.sequence+1;next.state=state;

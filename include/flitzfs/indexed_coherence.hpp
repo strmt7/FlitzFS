@@ -18,6 +18,7 @@ class IndexedCoherenceSnapshot final {
       StoreIdentity volume,StoreIdentity image,PagedStoreLimits);
   std::optional<OptimizationGroupFeature> find(std::uint32_t band,std::uint64_t fingerprint) const;
   PagedStoreInfo info() const noexcept {return store_.info();}
+  StoreIdentity volume() const noexcept {return store_.identity();}
   StoreIdentity image() const noexcept {return image_;}
 
  private:
@@ -41,6 +42,9 @@ class IndexedCoherenceWriter final {
   bool poisoned() const noexcept {return store_.poisoned();}
 
  private:
+  friend class NativeFileSession;
+  PagedStoreWriteResult publish_reserved(std::span<const IndexedCoherencePosting>,
+      std::uint64_t maximum_write_bytes,const std::function<bool(std::uint64_t)>& reserve);
   IndexedCoherenceWriter(PagedObjectStoreWriter,StoreIdentity volume,StoreIdentity image);
   PagedObjectStoreWriter store_;
   StoreIdentity volume_,image_;

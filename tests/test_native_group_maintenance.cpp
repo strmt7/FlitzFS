@@ -557,10 +557,14 @@ void indexed_catalog_discovery(CatalogCase scenario) {
   auto advice=ram(4096);
   require(f.session->create_budgeted_optimization_area(advice).phase==NativeOptimizationPhase::ready,
       "coherence discovery advice binding");
+  auto backing=ram(4096);
+  auto catalog=IndexedCoherenceWriter::create(backing,id(90),id(1),{kStoreMaxPhysicalBytes});
+  f.session->bind_indexed_coherence_writer(std::move(catalog));
   const auto original=family(0);
   put(*f.session,"original",original);
   for(unsigned i=0;i<4;++i)put(*f.session,"noise-"+std::to_string(i),data(kNativeExtentBytes,590+i));
   put(*f.session,"funding",Bytes(kOptimizationGroupScanInputBytes-5*kNativeExtentBytes));
+  put(*f.session,"catalog-input",Bytes(kOptimizationGroupScanInputBytes/2));
   {
     NativeGroupMaintenance initial(*f.session);
     finish_pending(f,initial);
@@ -572,13 +576,10 @@ void indexed_catalog_discovery(CatalogCase scenario) {
   require(saved.state.group_scan && !saved.state.group_scan->representatives.empty() &&
       saved.state.group_scan->representatives.front().inode==before_generations.stat("original").inode,
       "archive lacked an actual native extent binding");
-  auto backing=ram(4096);
-  {
-    auto writer=IndexedCoherenceWriter::create(backing,id(90),id(1),{kStoreMaxPhysicalBytes});
-    const IndexedCoherencePosting posting{0,saved.state.group_scan->representatives.front()};
-    require(writer.publish(std::span(&posting,1),256*1024).write_bytes_upper_bound>0,
-        "funded sample did not populate the paged catalog");
-  }
+  const auto& original_feature=saved.state.group_scan->representatives.front();
+  const auto archive=IndexedCoherenceSnapshot::open(backing,id(90),id(1),{kStoreMaxPhysicalBytes});
+  require(archive.find(0,original_feature.bands[0])==original_feature,
+      "ordinary funded sampling did not populate the paged catalog");
   auto distant=original;
   distant[distant.size()-91]^=std::byte{0x31};
   put(*f.session,"distant",distant);
@@ -623,6 +624,80 @@ void indexed_catalog_discovery(CatalogCase scenario) {
       view.shared_base_info().members==(scenario==CatalogCase::available?2:0),"catalog integration changed file data");
   view.verify_all();
 }
+enum class CatalogFunding {available,checkpoint_only,journal_failure,catalog_failure};
+void funded_indexed_catalog(CatalogFunding outcome) {
+  Fixture f(4096,0,true);
+  auto advice=ram(4096);
+  require(f.session->create_budgeted_optimization_area(advice).phase==NativeOptimizationPhase::ready,
+      "funded catalog needs a work journal");
+  auto backing=ram(4096);
+  auto catalog=IndexedCoherenceWriter::create(backing,id(90),id(1),{kStoreMaxPhysicalBytes});
+  const auto initial_end=catalog.snapshot().info().physical_end;
+  f.session->bind_indexed_coherence_writer(std::move(catalog));
+
+  const auto first=data(kNativeExtentBytes,117),second=data(kNativeExtentBytes,846);
+  put(*f.session,"first",first);put(*f.session,"second",second);
+  put(*f.session,"input-a",Bytes(kOptimizationGroupScanInputBytes-2*kNativeExtentBytes));
+  if(outcome!=CatalogFunding::checkpoint_only)
+    put(*f.session,"input-b",Bytes(kOptimizationGroupScanInputBytes/2));
+  const auto before=read_optimization_state(*advice,id(90));
+  const auto catalog_writes=backing->write_bytes;
+  const auto catalog_calls=backing->calls;
+  if(outcome==CatalogFunding::journal_failure)
+    advice->fail_at=advice->calls+2; // The first paid slot survives, then the peer fails.
+  if(outcome==CatalogFunding::catalog_failure)backing->fail_at=backing->calls;
+
+  {
+    NativeGroupMaintenance controller(*f.session);
+    finish_pending(f,controller);
+    require(controller.progress().checkpoints_published==(outcome==CatalogFunding::journal_failure?0U:1U),
+        "catalog reservation confused an acknowledged checkpoint with a failed one");
+    const auto reads=backing->read_calls,calls=backing->calls;
+    for(unsigned tick=0;tick<4;++tick)f.step(controller);
+    require(backing->calls==calls && backing->read_calls==reads,
+        "unchanged workload retried catalog maintenance");
+  }
+  const auto settled=read_optimization_state(*image(advice->stable,4096),id(90));
+  const auto view=IndexedCoherenceSnapshot::open(image(backing->stable,4096),id(90),id(1),{kStoreMaxPhysicalBytes});
+  require(settled.code==OptimizationReadCode::available && settled.state.group_scan &&
+      settled.sequence==before.sequence+1,"funded catalog lost the checked settlement");
+  const auto recorded=*settled.state.settled_input_bytes;
+  if(outcome==CatalogFunding::available) {
+    const auto spent=backing->write_bytes-catalog_writes;
+    require(view.info().objects==3 && view.info().physical_end>initial_end && spent>0 &&
+        recorded>=kOptimizationGroupScanInputBytes+spent*kOptimizationGroupScanInputPerWriteByte,
+        "automatic feature publication escaped its durable write charge");
+    for(const auto& feature:settled.state.group_scan->representatives)
+      require(view.find(0,feature.bands[0])==feature,"catalog lost its sampled representative");
+  } else if(outcome==CatalogFunding::checkpoint_only) {
+    require(recorded==kOptimizationGroupScanInputBytes && backing->calls==catalog_calls &&
+        view.info().objects==1,"checkpoint-only credit permitted catalog writes");
+  } else if(outcome==CatalogFunding::journal_failure) {
+    require(recorded>kOptimizationGroupScanInputBytes && settled.degraded &&
+        backing->calls==catalog_calls && view.info().objects==1 &&
+        f.session->optimization_info().phase==NativeOptimizationPhase::terminal,
+        "interrupted settlement released catalog writes");
+  } else {
+    require(recorded>kOptimizationGroupScanInputBytes && backing->calls==catalog_calls+1 &&
+        view.info().objects==1 && f.session->optimization_info().phase==NativeOptimizationPhase::ready,
+        "a catalog failure discarded the paid checkpoint or retried");
+    // Reopening the last valid catalog and charged journal cannot spend the
+    // acknowledged input again, even though the optional output was lost.
+    reopen_indexed(f,advice,settled.sequence);
+    auto recovered=IndexedCoherenceWriter::resume(backing,id(90),id(1),view.info().generation,{kStoreMaxPhysicalBytes});
+    f.session->bind_indexed_coherence_writer(std::move(recovered));
+    const auto calls=backing->calls;
+    NativeGroupMaintenance resumed(*f.session);
+    finish_pending(f,resumed);
+    require(backing->calls==calls &&
+        f.session->optimization_snapshot().state.settled_input_bytes==recorded,
+        "catalog restart minted previously charged input");
+  }
+  const auto user=f.session->snapshot();
+  require(!f.session->poisoned() && user.read("first",0,kNativeExtentBytes)==first &&
+      user.read("second",0,kNativeExtentBytes)==second,"optional catalog altered acknowledged files");
+  user.verify_all();
+}
 void indexed_scan_checkpoint_faults() {
   for(const auto unit:{4096U,65536U})for(unsigned mode=0;mode<3;++mode)for(unsigned cut=0;cut<4;++cut) {
     Fixture f(4096,0,true);auto advice=ram(unit);
@@ -653,6 +728,8 @@ int main(int argc,char** argv){try{
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-coherence") {
     for(const auto scenario:{CatalogCase::available,CatalogCase::unavailable,CatalogCase::stale})
       indexed_catalog_discovery(scenario);
+    for(const auto outcome:{CatalogFunding::available,CatalogFunding::checkpoint_only,
+        CatalogFunding::journal_failure,CatalogFunding::catalog_failure})funded_indexed_catalog(outcome);
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-advice") {
     advised_indexed_maintenance();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-batch") {

@@ -1,0 +1,128 @@
+{
+  "schema": 1,
+  "date": "2026-11-19",
+  "source_base": "6dfd2527dacf534e729bdd0d2a74ad2d7beb1c3b",
+  "source_binding": {
+    "include/flitzfs/indexed_coherence.hpp": {
+      "sha256": "35eade5da4e205fdfdd6c176bb5a28f48f0c84054fd01b0c94417bce3b7c0b8b",
+      "git_blob": "88a4f615760d51bd68e4d448f1a7b7c051624721"
+    },
+    "include/flitzfs/native_session.hpp": {
+      "sha256": "cd0ce58aeb52ad2348460a04fffbff9461837acf4f096512969d749af79367bd",
+      "git_blob": "519b1ca96fb569f8237401e08a0d38af1595d772"
+    },
+    "include/flitzfs/optimization_state.hpp": {
+      "sha256": "918c876ce3fc0b3e8c846cc2a0673d53c44464d1dd63a46685a64c93d508913b",
+      "git_blob": "7754478fa66b1e8c5462212ab7b95aee1b789b50"
+    },
+    "include/flitzfs/paged_store.hpp": {
+      "sha256": "6ebd4d094a69bb7de712997c2fec7e120f0460c4aa729bd406a5ecf6c053adc0",
+      "git_blob": "bf2231b171efe4c02cbe6940ead496825acb33a1"
+    },
+    "src/indexed_coherence.cpp": {
+      "sha256": "a2664c487aad3330542295e6089db668382c594b188c771ccb36a66affa64f93",
+      "git_blob": "cc2ad344c10c9d58017e5844c324d68b57cb452b"
+    },
+    "src/native_maintenance.cpp": {
+      "sha256": "3853a3e098bf8683694d146f3eb5bbf7ed1a4889fcb341caa8ea35454337facb",
+      "git_blob": "616231b3d6e407a51bd00281fbc7237c8f6c208e"
+    },
+    "src/native_maintenance_source.hpp": {
+      "sha256": "c9243d7d919bfb058f3f13454fe4e70cbf4d2cde4492146c2e57c96014bac63b",
+      "git_blob": "7187e69e3755c0698514529be0d47fa5ab7e622c"
+    },
+    "src/native_session.cpp": {
+      "sha256": "c31c25e30f155205e66abac49881ab0165f3aa7f618c397128290e41637422a7",
+      "git_blob": "79d7a53ab48ebbe6f9438410badf2707f00e5699"
+    },
+    "src/optimization_state.cpp": {
+      "sha256": "e26bddd8a129444a1c38b8ce815a195a8c7088916e2ed60b2058537454493726",
+      "git_blob": "cc68ca1083780b520b56f100f22f944f53ad5456"
+    },
+    "src/paged_store.cpp": {
+      "sha256": "b7c25a26bfaf3a2c3787d572f270f6cf84b3fb7eb48fe0eba1538ef024c6bb31",
+      "git_blob": "38ea0dc82fea69aecc9f200d793cf83aa93b6b9b"
+    },
+    "tests/test_native_group_maintenance.cpp": {
+      "sha256": "3cfb58404bc453cae7b8e393a0c3aaafc617a8f6e215aa0bf15c1a96188a7bb9",
+      "git_blob": "01f08d7c011567d32f2b163b33beea8ca3406b7b"
+    }
+  },
+  "navigation": {
+    "scope": "funded-catalog-routing-4c058a0914b24b4fba8af08bfcd69d64",
+    "sha256": "3728ebf392c6d54bb5e2e1c889de1b969e4f76779ff5541ebb1c62bf7838a6a1",
+    "provider_version": "0.2.43"
+  },
+  "primary_sources": {
+    "scope": "funded-catalog-research-a645741a4bce41ef9b0548717ed676d5",
+    "sha256": "e898e52c790c8c62cb632219aa73a63f864a964e566d9d40d069c34ecd350802",
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "pages": [
+      {
+        "url": "https://sqlite.org/atomiccommit.html",
+        "final_http_status": 200,
+        "markdown_sha256": "9c9c6a4670910f28df92212b0a0d2fb209932b5e502d1a5f98d17f96f603adf2"
+      },
+      {
+        "url": "https://github.com/facebook/rocksdb/wiki/Rate-Limiter",
+        "final_http_status": 200,
+        "markdown_sha256": "b8ee8b80023fe288c09e699380616c7029cb349833a574c5970efa3f86e571f8"
+      }
+    ]
+  },
+  "host": "Physical Windows 11 Pro AMD64",
+  "correctness": {
+    "codec": {
+      "run": "local-run-6e6454e0fdb34052bd366eaab1fffba2",
+      "entries": 15,
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "e86c7fc46dabbb03032ef7f008556f4dfcad876b515c2ba4a5ec2873240bdd00",
+      "log_sha256": "68a2ea3385466be9b3b3c997883645265e051a0aef8edd23de56e14af6a2998b",
+      "peak_process_tree_commit_bytes": 106524672
+    },
+    "raw": {
+      "run": "local-run-7a13dce6ccc1414ab004a78a8d25c27e",
+      "entries": 15,
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "bc0609932f8d913aae88885665e320993f66615975eb570f2b4ef6efa8277497",
+      "log_sha256": "350b128d4878995b9ffc3a2c38f7c489c3bc9ebbb51558ebad80ab08428a1ccc",
+      "peak_process_tree_commit_bytes": 106545152
+    },
+    "address_sanitizer": {
+      "run": "local-run-850d4c0215b8441497dac047fd047738",
+      "entries": 16,
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "f79679ba5caa453393a28b1f2ba271c305a8fb5004df07e92902f3a987258fad",
+      "log_sha256": "bfed9adaa5a25a6db22463c7cdd05dbfbf1fcb3c9c671e785762532b2882c4ef",
+      "peak_process_tree_commit_bytes": 802791424
+    },
+    "asan_runtime_preflight": true
+  },
+  "checked_cases": [
+    "Ordinary indexed scans populated a provisioned paged catalog",
+    "A reopened catalog nominated a match beyond the live window",
+    "The durable journal paid for the upper bound on catalog append and root writes",
+    "Checkpoint-only credit admitted no catalog write",
+    "An interrupted journal after the first paid slot wrote no catalog bytes",
+    "A failed catalog write preserved the spent allowance across reopen",
+    "Unchanged inputs issued no new catalog work",
+    "An independent CPU reader verified the accepted file bytes"
+  ],
+  "hardware": {
+    "amd_executed": false,
+    "preflight_observed_local": "2026-11-19T08:46:30.0378733+01:00",
+    "available_physical_bytes": 3025883136,
+    "available_commit_bytes": 48744329216,
+    "fixture_minimum_bytes": 9611915264,
+    "eligibility": false,
+    "earlier_preflight": "Headroom below the integration fixture requirement after the sanitizer suite"
+  },
+  "remaining": [
+    "Automatic Windows catalog backing provisioning and reclaim",
+    "Persistent media recovery and mounted qualification",
+    "Complete compression and performance comparisons on the physical host"
+  ]
+}

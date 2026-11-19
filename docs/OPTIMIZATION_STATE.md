@@ -314,8 +314,15 @@ can look up the first eligible band of an ungrouped sample. One point lookup
 runs per admitted step. A match goes through the ordinary live extent and CPU
 publication checks. An unreadable catalog is retired from active discovery
 and the ordinary window can continue. The binding and publication APIs
-currently receive an explicitly reserved backend. Binding a fresh catalog
-can wake a settled controller, and selecting another image drops the earlier
-catalog. Automatic catalog funding, population and retirement in the Windows
-providers remain separate work.
-[Host validation](evidence/paged-coherence-catalog-2026-11-19.json)
+currently receive an explicitly reserved backend. Binding a fresh catalog can
+wake a settled controller, and selecting another image retires the earlier
+catalog owner.
+
+A managed session can take ownership of a provisioned writer. On settled
+scan windows it offers a rotating batch of retained features using the same
+primary band rule as lookup. The batch uses the existing scan quantum and
+shares the input-funded checkpoint ledger. Successful updates refresh the
+snapshot for later windows without forcing a full rescan. Automatic backing
+provisioning and space retirement in the Windows providers remain open.
+[Write funding](OPTIMIZATION_BUDGET.md#funded-catalog-updates) ·
+[Host validation](evidence/funded-paged-coherence-2026-11-19.json)

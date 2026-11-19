@@ -2,6 +2,7 @@
 #include "native_maintenance_source.hpp"
 #include "flitzfs/catalog.hpp"
 #include "store_codec.hpp"
+#include <algorithm>
 #include <optional>
 #include <new>
 #include <array>
@@ -122,6 +123,51 @@ struct NativeFileSession::Impl {
     return settled && input.enabled && input.committed_input_bytes>=*settled &&
         input.committed_input_bytes-*settled>=kOptimizationGroupScanInputBytes;
   }
+  void adopt_coherence(IndexedCoherenceSnapshot catalog,
+      std::optional<IndexedCoherenceWriter> writer_owner={}) {
+    if(maintenance->coherence_binding==(std::numeric_limits<std::uint64_t>::max)())
+      fail(E::limit,"coherence binding sequence exhausted");
+    maintenance->retire_coherence();
+    maintenance->coherence.emplace(std::move(catalog));
+    maintenance->coherence_writer=std::move(writer_owner);
+    ++maintenance->coherence_binding;
+  }
+  bool publish_coherence_scan(OptimizationStateWriter& advice,const OptimizationState& state,
+      std::uint64_t input) {
+    if(!maintenance || !maintenance->coherence_writer)return false;
+    const auto settled=*state.settled_input_bytes;
+    if(input<settled || input-settled<=kOptimizationGroupScanInputBytes)return false;
+    const auto maximum_bytes=(input-settled-kOptimizationGroupScanInputBytes)/
+        kOptimizationGroupScanInputPerWriteByte;
+    const auto& features=state.group_scan->representatives;
+    auto first=std::ranges::upper_bound(features,maintenance->coherence_offer_after,{},&OptimizationGroupFeature::object);
+    if(first==features.end())first=features.begin();
+    const auto count=(std::min)(static_cast<std::size_t>(features.end()-first),kNativeMaxDirtyExtents);
+    if(!count)return false;
+    std::vector<IndexedCoherencePosting> postings;
+    postings.reserve(count);
+    const auto end=first+static_cast<std::ptrdiff_t>(count);
+    for(auto it=first;it!=end;++it)
+      if(const auto band=detail::coherence_primary_band(it->bands))postings.push_back({*band,*it});
+    bool settled_catalog=false;
+    auto& catalog=*maintenance->coherence_writer;
+    try {
+      const auto result=catalog.publish_reserved(postings,maximum_bytes,[&](std::uint64_t write_bytes) {
+        settled_catalog=advice.publish_budgeted(state,input,true,write_bytes)==OptimizationStateWriter::BudgetResult::published;
+        return settled_catalog;
+      });
+      if(result.write_bytes_upper_bound)maintenance->coherence.emplace(catalog.snapshot());
+      maintenance->coherence_offer_after=(end-1)->object;
+    }catch(const PagedStoreCapacityError&) {
+      if(advice.poisoned())throw;
+      if(catalog.poisoned())maintenance->retire_coherence();
+    }catch(const std::exception&) {
+      if(advice.poisoned())throw;
+      maintenance->retire_coherence();
+    }
+    // A charged catalog attempt is settled even if its own publication failed.
+    return settled_catalog;
+  }
   bool publish_scan_advice(OptimizationGroupScan scan) {
     if(!scan_advice_funded())return false;
     auto& advice=*ready_scan_advice();
@@ -130,7 +176,8 @@ struct NativeFileSession::Impl {
     auto state=advice.snapshot().state;
     state.group_scan=std::move(scan);
     try {
-      return advice.publish_budgeted(state,actual.committed_input_bytes,true)==OptimizationStateWriter::BudgetResult::published;
+      return publish_coherence_scan(advice,state,actual.committed_input_bytes) ||
+          advice.publish_budgeted(state,actual.committed_input_bytes,true)==OptimizationStateWriter::BudgetResult::published;
     }catch(...) {
       if(advice.poisoned()) {
         optimization->phase=NativeOptimizationPhase::terminal;
@@ -393,11 +440,18 @@ void NativeFileSession::bind_indexed_coherence(std::shared_ptr<StoreByteIo> back
       backing==self.volume->candidate_io || self.owns_optimization_backend(backing))
     fail(E::invalid_options,"coherence catalog needs separate backing and an indexed managed session");
   auto catalog=IndexedCoherenceSnapshot::open(std::move(backing),self.volume->volume_id,self.volume->active_id,limits);
-  const auto source=maintenance_source().lock();
-  if(source->coherence_binding==(std::numeric_limits<std::uint64_t>::max)())
-    fail(E::limit,"coherence binding sequence exhausted");
-  source->coherence.emplace(std::move(catalog));
-  ++source->coherence_binding;
+  (void)maintenance_source();
+  self.adopt_coherence(std::move(catalog));
+}
+void NativeFileSession::bind_indexed_coherence_writer(IndexedCoherenceWriter writer) {
+  auto& self=ready();
+  if(!self.ready_scan_advice() || !self.writer.maintenance_indexed())
+    fail(E::invalid_options,"writable coherence catalog needs indexed storage and funded advice");
+  auto catalog=writer.snapshot();
+  if(catalog.volume()!=self.volume->volume_id || catalog.image()!=self.volume->active_id)
+    fail(E::invalid_options,"writable coherence catalog identity differs");
+  (void)maintenance_source();
+  self.adopt_coherence(std::move(catalog),std::move(writer));
 }
 NativeOptimizationInfo NativeFileSession::optimization_info() const noexcept {
   NativeOptimizationInfo out;
@@ -681,7 +735,7 @@ void NativeFileSession::adopt_handoff(Impl& self,const NativeVolumeHeadInfo& pub
   auto& volume=*self.volume;
   volume.active_io=std::move(volume.candidate_io);
   volume.active_id=published.selection.image_identity;
-  if(self.maintenance)self.maintenance->coherence.reset();
+  if(self.maintenance)self.maintenance->retire_coherence();
   volume.epoch=published.selection.epoch;
   volume.candidate_id={};
   volume.baseline.reset();
@@ -894,7 +948,7 @@ NativeVolumeHeadInfo NativeFileSession::recover_volume() {
   volume.head.emplace(NativeVolumeHeadWriter::resume(volume.head_io,volume.volume_id,observed.epoch,checked));
   const auto restored=volume.head->info();
   self.writer=resume_image(chosen,checked,volume.foreground);
-  if(self.maintenance && observed.image_identity!=volume.active_id)self.maintenance->coherence.reset();
+  if(self.maintenance && observed.image_identity!=volume.active_id)self.maintenance->retire_coherence();
   volume.active_io=std::move(chosen);volume.active_id=observed.image_identity;volume.epoch=observed.epoch;
   volume.candidate_io.reset();volume.candidate_id={};volume.baseline.reset();
   volume.pending=false;self.terminal=false;return restored;

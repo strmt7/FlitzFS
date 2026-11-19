@@ -20,10 +20,11 @@ the same 128-KiB area. Bytes52..55 hold little-endian funding marker1 and bytes
 56..63 hold the unsigned settled-input position. All existing profile/history,
 digest, sequence, identity, reserved-space and size rules remain.
 
-A pair with mixed capabilities is invalid. Equal sequences must contain identical
-state. Consecutive funded sequences must advance settlement by at least128 KiB;
-an intact backward/uncharged position, unsupported or foreign peer supplies no
-policy. Old readers reject capability2 explicitly. Ordinary filesystem encodings
+A pair mixing funded and unfunded records is invalid. Equal sequences must
+contain identical state. Consecutive funded sequences must advance settlement
+by at least 128 KiB. A verified backward or uncharged position, an unsupported
+peer, or a foreign peer supplies no policy. Old readers reject capability 2
+explicitly. Ordinary filesystem encodings
 and native workload capability6 do not change.
 
 ## Trusted control and costs
@@ -33,12 +34,26 @@ They require enabled native workload provenance and obtain current input from
 a verified CPU snapshot under serialized control. Cached scalars may decline
 work early; they never fund a write.
 
-Each changed publication spends128 KiB of previously unsettled committed input
-and writes two64-KiB records. Fresh-area creation writes four64-KiB records,
+Each changed profile publication spends 128 KiB of previously unsettled
+committed input and writes two 64 KiB records. Fresh-area creation writes four 64 KiB records,
 including initialization, and costs256 KiB. These are current journal byte-write
 costs under an experimental one-to-one input policy, not optimal compression
 policy, physical flash-wear measurements or a hardware guarantee. Future mapping
 and image/work costs require separate admission.
+
+### Funded catalog updates
+
+An indexed scan uses 4 MiB of unsettled input for its paired checkpoint. If its
+dedicated catalog writer has a changed batch, paged planning calculates the
+upper bound covering appended bytes, index pages, padding and both root writes.
+Before the first catalog write, the same checkpoint settles an additional 32
+input bytes per charged catalog byte. This uses the existing settlement field.
+The verified journal write and readback finish before the catalog writes begin.
+Insufficient additional credit leaves the independent catalog untouched and can
+still fund the ordinary scan checkpoint. A failed catalog write keeps the
+settlement charged across reopen.
+[Catalog lifecycle](OPTIMIZATION_STATE.md#paged-coherence-catalog) ·
+[Host validation](evidence/funded-paged-coherence-2026-11-19.json)
 
 The result explicitly distinguishes published, unchanged checked audit and
 deferred. Callers cannot supply/reset a settlement. A legacy changed publication

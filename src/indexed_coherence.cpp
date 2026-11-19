@@ -117,6 +117,11 @@ IndexedCoherenceSnapshot IndexedCoherenceWriter::snapshot() const {
 }
 PagedStoreWriteResult IndexedCoherenceWriter::publish(
     std::span<const IndexedCoherencePosting> postings,std::uint64_t maximum_write_bytes) {
+  return publish_reserved(postings,maximum_write_bytes,{});
+}
+PagedStoreWriteResult IndexedCoherenceWriter::publish_reserved(
+    std::span<const IndexedCoherencePosting> postings,std::uint64_t maximum_write_bytes,
+    const std::function<bool(std::uint64_t)>& reserve) {
   if(postings.size()>kStoreMaxObjects)throw PagedStoreCapacityError("coherence catalog transaction size");
   std::map<std::uint64_t,const IndexedCoherencePosting*> pending;
   for(const auto& posting:postings) {
@@ -137,6 +142,6 @@ PagedStoreWriteResult IndexedCoherenceWriter::publish(
     mutations.push_back({key,false,encode_posting(*posting)});
   }
   if(mutations.empty())return {previous.info(),0};
-  return store_.commit_with_write_budget(mutations,maximum_write_bytes);
+  return store_.commit_impl(mutations,kStoreMaxObjects,kStoreMaxTransactionBytes,maximum_write_bytes,reserve);
 }
 }

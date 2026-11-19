@@ -1047,7 +1047,8 @@ PagedStoreInfo PagedObjectStoreWriter::commit_native(std::span<const StoreMutati
 }
 PagedStoreWriteResult PagedObjectStoreWriter::commit_impl(
     std::span<const StoreMutation> mutations,std::size_t maximum_operations,
-    std::uint64_t maximum_input,std::uint64_t maximum_write_bytes) {
+    std::uint64_t maximum_input,std::uint64_t maximum_write_bytes,
+    const std::function<bool(std::uint64_t)>& reserve_writes) {
   if(!impl_ || impl_->poisoned)fail("writer unavailable/poisoned");
   auto& p=*impl_;const auto& old=p.state;
   if(old.degraded_payloads){p.poisoned=true;fail("payload rebuild required before further writes");}
@@ -1108,6 +1109,9 @@ PagedStoreWriteResult PagedObjectStoreWriter::commit_impl(
   if(write_bound>maximum_write_bytes)capacity("transaction write budget");
   try{old.image->admit_write(plan.next.end);}
   catch(const std::runtime_error& error){capacity(error.what());}
+  // The reserved catalog is independent of its credit journal. A failed
+  // settlement leaves this catalog's bytes and checkpoint untouched.
+  if(reserve_writes && !reserve_writes(write_bound))capacity("transaction write reservation declined");
   try {
     for(const auto& record:objects) {
       write_object_record(*old.image,record.entry,record.header,record.payload,old.unit);

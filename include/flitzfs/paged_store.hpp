@@ -1,5 +1,6 @@
 #pragma once
 #include "flitzfs/object_store.hpp"
+#include <functional>
 #include <stdexcept>
 
 namespace flitzfs {
@@ -31,6 +32,7 @@ struct PagedStoreWriteResult {
 struct PagedCompactedSizes {
   std::uint64_t before=0,after_upper=0;
 };
+class IndexedCoherenceWriter;
 class PagedObjectStoreWriter;
 class PagedObjectStoreSnapshot final {
  public:
@@ -120,6 +122,7 @@ class PagedObjectStoreWriter final {
   bool poisoned() const noexcept;
  private:
   friend class detail::NativeObjectWriter;
+  friend class IndexedCoherenceWriter;
   static PagedObjectStoreWriter create_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,
       PagedStoreLimits,StoreCompressionOptions,bool mirrored);
   Rewrite prepare_rebuild_replacing(std::shared_ptr<StoreByteIo>,StoreIdentity,
@@ -140,7 +143,8 @@ class PagedObjectStoreWriter final {
   // input for shared-base namespaces. Public admission is unchanged.
   PagedStoreInfo commit_native(std::span<const StoreMutation>,bool directory_indexes=false,bool shared_bases=false);
   PagedStoreWriteResult commit_impl(std::span<const StoreMutation>,std::size_t maximum_operations,
-      std::uint64_t maximum_input,std::uint64_t maximum_write_bytes);
+      std::uint64_t maximum_input,std::uint64_t maximum_write_bytes,
+      const std::function<bool(std::uint64_t)>& reserve_writes={});
   struct Impl;
   explicit PagedObjectStoreWriter(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;

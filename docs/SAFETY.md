@@ -1170,7 +1170,11 @@ feature, and publication independently verifies its selected bytes.
 The paged catalog binds its volume and source image and uses a separate
 backing. Its read failures disable catalog lookup while the ordinary scanner
 and file reads remain available. Candidate publication still requires current
-extent bindings and independent CPU verification. [Catalog format](OPTIMIZATION_STATE.md#paged-coherence-catalog)
+extent bindings and independent CPU verification. The volume journal durably
+settles an approved catalog write before the first catalog mutation. An
+interrupted charge prevents the write. A failed catalog attempt leaves the
+charge spent and file access available. [Catalog format](OPTIMIZATION_STATE.md#paged-coherence-catalog) ·
+[Funding contract](OPTIMIZATION_BUDGET.md#funded-catalog-updates)
 
 [OPTIMIZATION_BUDGET.md](OPTIMIZATION_BUDGET.md) requires verified native input,
 monotonic persisted settlement, charged creation/repair and fresh-input forfeiture

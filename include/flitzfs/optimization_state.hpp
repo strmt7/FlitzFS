@@ -8,7 +8,9 @@ inline constexpr std::size_t kOptimizationMaxProfiles=32,kOptimizationMaxBenchma
 inline constexpr std::size_t kOptimizationGroupBands=12;
 // Number of feature records that fit in an extended advisory slot.
 inline constexpr std::size_t kOptimizationGroupRepresentatives=373;
-inline constexpr std::uint64_t kOptimizationGroupScanInputBytes=32*kOptimizationAreaBytes;
+inline constexpr std::uint64_t kOptimizationGroupScanInputPerWriteByte=32;
+inline constexpr std::uint64_t kOptimizationGroupScanInputBytes=
+    kOptimizationGroupScanInputPerWriteByte*kOptimizationAreaBytes;
 struct OptimizationGroupFeature {
   std::uint64_t inode=0,extent_index=0,object=0,revision=0;
   std::array<std::byte,32> content{};
@@ -84,7 +86,8 @@ class OptimizationStateWriter final {
       std::uint64_t settled_input,unsigned limit);
   static OptimizationStateWriter resume_budgeted(std::shared_ptr<StoreByteIo>,StoreIdentity,
       std::uint64_t sequence,std::uint64_t current_input,unsigned limit);
-  BudgetResult publish_budgeted(const OptimizationState&,std::uint64_t current_input,bool automatic_scan=false);
+  BudgetResult publish_budgeted(const OptimizationState&,std::uint64_t current_input,bool automatic_scan=false,
+      std::uint64_t additional_write_bytes=0);
   BudgetResult repair_budgeted(std::uint64_t current_input);
   bool budget_repair_pending() const noexcept;
   std::optional<std::uint64_t> budget_settlement() const noexcept;
