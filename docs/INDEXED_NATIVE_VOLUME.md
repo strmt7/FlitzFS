@@ -161,8 +161,11 @@ A qualified controller can ask the owned AMD worker for packed XOR bodies using
 the same immutable base and member windows as anchor search. The worker checks
 the current adapter, warp and launch geometry and the admitted memory envelope.
 It packs 256-byte tiles into each bounded reply slot and returns an empty slot
-when the candidate exceeds that transport capacity. CPU encoding still considers
-the full native extent under the usual size bound.
+when the candidate exceeds that transport capacity. The selected layout can
+supply 16 KiB or 64 KiB slots. The wider layout fits a two-plane change across
+the full extent and every packed body that can beat the raw extent size. The
+writer still prices each result under the usual stored-image rule.
+[Wider reply validation](evidence/amd-wide-packed-xor-2026-11-19.json)
 
 The reply binds the batch and each group to their original identities and
 source digests. The controller collects it after successful worker and

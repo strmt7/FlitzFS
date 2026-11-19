@@ -124,7 +124,7 @@ void NativeAnchorSearchController::start(std::span<const NativeSharedBaseSearchW
     const auto observed=query_windows_gpu_budget(route.memory.luid,route.memory.node_mask);
     const auto now=GetTickCount64();
     const auto defer=[&] {
-      (void)self.recovery.consider_anchor(true,{},anchor_match::device_bytes(1),now);
+      (void)self.recovery.consider_anchor(true,{},anchor_match::device_bytes(1,options.output),now);
       ++self.stats.declined;
     };
     if(observed.status!=WindowsGpuBudgetStatus::success) {
@@ -138,7 +138,7 @@ void NativeAnchorSearchController::start(std::span<const NativeSharedBaseSearchW
     while(fit<limit) {
       const auto test=fit+(limit-fit+1)/2;
       if(check_gpu_memory_budget(observed.snapshot,route.memory.luid,route.memory.node_mask,now,
-          anchor_match::device_bytes(test))==GpuGateCode::admitted)fit=test;
+          anchor_match::device_bytes(test,options.output))==GpuGateCode::admitted)fit=test;
       else limit=test-1;
     }
     if(!fit){defer();return;}
@@ -146,9 +146,9 @@ void NativeAnchorSearchController::start(std::span<const NativeSharedBaseSearchW
     std::vector<std::uint32_t> counts;
     counts.reserve(windows.size());
     for(const auto& window:windows)counts.push_back(static_cast<std::uint32_t>(window.members().size()));
-    const auto plan=detail::plan_anchor_match_batch(counts,quantum,anchor_match::device_bytes(quantum),
-        total+static_cast<std::uint32_t>(windows.size()));
-    const auto transfer=detail::plan_anchor_match_transfers(plan,anchor_match::device_bytes(fit));
+    const auto plan=detail::plan_anchor_match_batch(counts,quantum,anchor_match::device_bytes(quantum,options.output),
+        total+static_cast<std::uint32_t>(windows.size()),options.output);
+    const auto transfer=detail::plan_anchor_match_transfers(plan,anchor_match::device_bytes(fit,options.output));
     const WorkerChannelCapacity capacity{plan.request_bytes,plan.reply_bytes};
     const auto variable=std::uint64_t(transfer.device_bytes)+2ULL*plan.request_bytes+2ULL*plan.reply_bytes;
     constexpr auto maximum=(std::numeric_limits<std::uint64_t>::max)();
@@ -176,8 +176,10 @@ void NativeAnchorSearchController::start(std::span<const NativeSharedBaseSearchW
     auto request=builder.finish();
     std::vector<NativeSharedBaseSearchWindow> retained(windows.begin(),windows.end());
     const auto begun=GetTickCount64();
+    const auto command=options.output==anchor_match::BatchOutput::wide_packed_xor?L"--driver-anchor-xor-wide-batch":
+        options.output==anchor_match::BatchOutput::packed_xor?L"--driver-anchor-xor-batch":L"--driver-anchor-transfer-batch";
     auto session=WorkerExchangeSession::start_sized(route.helper,
-        {options.packed_xor?L"--driver-anchor-xor-batch":L"--driver-anchor-transfer-batch",
+        {command,
             std::to_wstring(route.ordinal),hex(route.memory.luid),
             std::to_wstring(route.memory.node_mask),hex(route.runtime_sha256),std::to_wstring(plan.request_bytes),
             std::to_wstring(plan.reply_bytes),std::to_wstring(quantum),std::to_wstring(plan.device_bytes),
@@ -237,7 +239,7 @@ void NativeAnchorSearchController::observe(std::uint64_t activity,std::uint64_t 
       if(!collect)return;
       try {
         self.replies.reserve(self.windows.size());
-        if(self.options.packed_xor) {
+        if(self.options.output!=anchor_match::BatchOutput::anchors) {
           self.xor_advice=detail::decode_anchor_xor_batch_reply(result->response,flight.request);
           if(self.xor_advice.size()!=self.windows.size())throw std::invalid_argument("Incomplete packed XOR batch");
           self.xor_checks.reserve(self.windows.size());
@@ -293,9 +295,10 @@ void NativeAnchorSearchController::settle_reply_checks() noexcept {
     self.stats.verified_groups+=check.verified_groups;
     return;
   }
-  if(check.status==detail::AnchorXorBatchStatus::empty)
+  if(check.status==detail::AnchorXorBatchStatus::empty) {
     (void)self.recovery.abandon(ticket,true);
-  else self.fail(ticket,GpuRecoveryOutcome::integrity_failure,true);
+    ++self.stats.empty_xor_batches;
+  }else self.fail(ticket,GpuRecoveryOutcome::integrity_failure,true);
   self.discard();
   ++self.stats.declined;
 }

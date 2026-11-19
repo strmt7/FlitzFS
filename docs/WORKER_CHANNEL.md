@@ -301,14 +301,19 @@ Normal operations still never launch a worker or load the private candidate DLL.
 
 ## Packed XOR advice batches
 
-The packed XOR request reuses the bounded shared-base batch and its verified
-source windows. Its reply uses the distinct eight-byte tags `FLFSAXP` and
-`FLFSAXG` followed by byte 1 for the outer batch and individual groups.
-Identities, plan counts and original source digests are checked against the
-owned request. Each 16 KiB member slot starts with a four-byte little-endian
-body length, then the packed XOR body and `0xff` padding. A zero length
-declines the candidate. The sized transport funds the existing slot geometry
-against current host and device headroom.
+Packed XOR reuses the bounded shared-base batch and its verified source
+windows. Window ABI 3 retains the version 1 batch and group tags and 16 KiB
+member slots. Window ABI 4 uses version 2 of `FLFSABQ` for the batch request,
+`FLFSAXP` for the batch reply and `FLFSAXG` for each reply group. It reserves
+64 KiB per member. The worker verifies the request version, slot stride,
+identities, plan counts and original source digests before use.
+
+Each slot starts with a four-byte little-endian body length, followed by
+the packed body and `0xff` padding. A zero length declines the candidate.
+The sized transport charges the exact request and reply sizes, including
+copies. The ABI 4 device slab includes the base, current members and output
+slots. Its launch grant counts only the XOR dispatches.
+The controller derives each grant from current host and device headroom.
 
 Reply decoding validates the envelope and slots after successful exact-child
 exit and supervisor retirement. The controller keeps the ticket active while

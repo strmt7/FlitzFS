@@ -1,0 +1,338 @@
+{
+  "schema": "flitzfs-amd-wide-packed-xor-v1",
+  "captured_local": "2026-11-19T13:58:40+01:00",
+  "source_base": "fea9fa8823681a415233a38bd23e728587b1b900",
+  "source_binding": [
+    {
+      "path": "include/flitzfs/gpu_anchor_kernel_api.hpp",
+      "git_blob": "56af0be15d975b4bc412f997a0681b8c4a7f8ae3"
+    },
+    {
+      "path": "include/flitzfs/gpu_anchor_match.hpp",
+      "git_blob": "610660979e1fe0033d4f774c3d4fbffbc92ea695"
+    },
+    {
+      "path": "src/gpu/decode_kernel.hip",
+      "git_blob": "a8bbbc298e74cd88e96640ae4f3da68a15cb189b"
+    },
+    {
+      "path": "src/native_group_anchor.cpp",
+      "git_blob": "947617023b369527f9d7a5008307a14f5650f4c0"
+    },
+    {
+      "path": "src/native_group_anchor.hpp",
+      "git_blob": "658387d1341cf86fe2bfb0ebe1bae90f02cc421a"
+    },
+    {
+      "path": "src/native_group_codec.cpp",
+      "git_blob": "e233a79dbc302170c502b12dc05b9d1f7e823ea5"
+    },
+    {
+      "path": "src/windows/hip_decode_worker.cpp",
+      "git_blob": "b4012fa55694d7c259a851239c11c4619692897a"
+    },
+    {
+      "path": "src/windows/hip_decode_worker.hpp",
+      "git_blob": "5e1a6d2ae9d3681f03a2fff850a49db329e8a1e1"
+    },
+    {
+      "path": "src/windows/hip_worker_main.cpp",
+      "git_blob": "db2bc4c9d0ec42c257e0990c13dc8e98b1feda13"
+    },
+    {
+      "path": "src/windows/native_anchor_search.cpp",
+      "git_blob": "8738fec4ed57d2fa5c6f2c7f51b4a3ed6a2b44bb"
+    },
+    {
+      "path": "src/windows/native_anchor_search.hpp",
+      "git_blob": "0028796136a08634a5af880dac810143abed7a29"
+    },
+    {
+      "path": "tests/rocm_compile/kernel_module.cpp",
+      "git_blob": "b48bed34d24dc43203c2024ba6d0247bb843ec61"
+    },
+    {
+      "path": "tests/test_gpu_anchor_match.cpp",
+      "git_blob": "915c39ed23daccfb0c6d31f259a8e37fcfc93677"
+    },
+    {
+      "path": "tests/test_winfsp_controller.cpp",
+      "git_blob": "71e030e75b4cac28aa91464869e3ba28cdc7e705"
+    }
+  ],
+  "semantic_navigation": {
+    "provider_version": "0.2.43",
+    "source_files": 12,
+    "actual_searches": 1,
+    "receipt_sha256": "0693612968947f60d67423fdbb5ad2bd386a34c85b70409ad94871b751553789",
+    "native_response_sha256": "67179b1b48986e296e427ce04c227b025d76b76a81dc81c84588c46606e04c12",
+    "job": {
+      "run": "local-run-6ec21e74f344464ca47de9f248b3bf04",
+      "receipt_sha256": "f431f3d4e1a39723e516a2de70527ea0d657df8844a9aded401dfe9ebef752f1",
+      "log_sha256": "bf2d87218bd26a4b98bbf4afbc53cf15bb6daf4043b55cac8315efb6f235b3c9",
+      "exit_code": 0,
+      "memory_envelope_bytes": 2033188864,
+      "peak_job_bytes": 1137192960,
+      "cpu_percent": 13,
+      "tree_retired": true
+    }
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "dab8f9fc84dd2263eceea0c53834543cadc0edaf0a90e162e07d1d181a0b0439",
+    "provider_entry_sha256": "e84a0e54ee07e4e13d3d2f35491f641730096a78126068f232c1f2397a467d8c",
+    "robots": true,
+    "external_llm": false,
+    "timeout_seconds": 45,
+    "source": {
+      "name": "hip-language",
+      "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/how-to/hip_cpp_language_extensions.html",
+      "http_status": 200,
+      "final_http_status": 200,
+      "native_success": true,
+      "markdown_bytes": 79475,
+      "markdown_sha256": "2b2ae6fd028e30ba7f9ebe43cb49ba81f58fc1243faa9da35a0bae096dce2ba2",
+      "capture_sha256": "16baf43a9bc945a327f89fa18bbddf22d744b0eb66c27869a3dc90c145a497ba",
+      "error": ""
+    },
+    "reused_same_day_native_capture": true
+  },
+  "device_build": {
+    "rocm": "10.1.0",
+    "architecture_selection": "release",
+    "initial_include_layout_error": {
+      "run": "local-run-31c6cb62a88744738931edfc238b4e5e",
+      "receipt_sha256": "2738ccddab045de7d737c085c31129c50793020d8215cf583250a15827b0cf43",
+      "log_sha256": "fe412795e5d90f4d494c86e3305b8fbf54caa4e2d3a826aacf0e93e05f81eeb1",
+      "exit_code": 1,
+      "memory_envelope_bytes": 1853882368,
+      "peak_job_bytes": 202067968,
+      "cpu_percent": 17,
+      "tree_retired": true
+    },
+    "correction": "Map the admitted public headers into the existing compiler adapter's src include root.",
+    "compile": {
+      "run": "local-run-60292a49d0e24a4a8a35ccab9a65a4de",
+      "receipt_sha256": "a3e8fa35005260503413ccfc49f2d316c38694b9dd820fff1c692ca6c830bc72",
+      "log_sha256": "2e97fb20e6eb226d48cf1c7385a016509d21a1b0ea3e88ece227d69745dc8b11",
+      "exit_code": 0,
+      "memory_envelope_bytes": 1873805312,
+      "peak_job_bytes": 205639680,
+      "cpu_percent": 17,
+      "tree_retired": true
+    },
+    "source_inputs": [
+      {
+        "path": "src/gpu/decode_kernel.hip",
+        "sha256": "f739cc11a15b4c702c8ac1165ee32db5e893d43d77aba0802be78019250fc569"
+      },
+      {
+        "path": "src/gpu/decode_kernel.hpp",
+        "sha256": "57ffed94096d61d24cc5154615a1d2c4c63818602d655fb82959606314848850"
+      },
+      {
+        "path": "include/flitzfs/gpu_protocol.hpp",
+        "sha256": "a0c3b5e1170b45ad788c2baebe5323712bcef450f9d4aa681317ef5c5da4e159"
+      },
+      {
+        "path": "include/flitzfs/gpu_kernel_api.hpp",
+        "sha256": "3099ea1f31b8d56de1d9899f4707f0c76486484f1714888690e2c4e615c7f84c"
+      },
+      {
+        "path": "include/flitzfs/gpu_match_protocol.hpp",
+        "sha256": "c978606dd3339666bf3067f8d4c40cd924e390e480d88305d030e1c8b3647192"
+      },
+      {
+        "path": "include/flitzfs/gpu_match_kernel_api.hpp",
+        "sha256": "dd668d84d07a28118ac51ed337e4bcf7dc80980002afe0fd097ccd4152c58b4e"
+      },
+      {
+        "path": "include/flitzfs/gpu_anchor_match.hpp",
+        "sha256": "5aa65060676159782ed00cd635b4e78abc5fe723be9ad39267ac12b5cbc28349"
+      },
+      {
+        "path": "include/flitzfs/gpu_anchor_kernel_api.hpp",
+        "sha256": "b9f6772d155db80ae8cbde14d254a78ed86ca6f5c41bf2c22b1a8e156667abf5"
+      }
+    ],
+    "object_sha256": "be95d65dc39ab97e2266439ebec8fed2795e4bfce06874dd444d900cb2a0c06d",
+    "configure": {
+      "run": "local-run-23db4a2b0c5446f78cc89ddf89669c6c",
+      "receipt_sha256": "2bd3c5df091e7c66e0765d7e1347298571f3175bebd8805689e9a1924f48cafb",
+      "log_sha256": "70dc33584605cfd6d3f102b4f929373557c25001f98cf0f3189d1566186ac72c",
+      "exit_code": 0,
+      "memory_envelope_bytes": 1852833792,
+      "peak_job_bytes": 292139008,
+      "cpu_percent": 16,
+      "tree_retired": true
+    },
+    "build": {
+      "run": "local-run-1333bed256e14a8fb488c69b6f3e5136",
+      "receipt_sha256": "ef7163f5ae3944697bf17aaa9c2969e19c5f9c84d73ee97f0a188b6f981695f6",
+      "log_sha256": "8e60349c28a6e228dc273c53dab7b6b23d1ac11d375fd882170353735872ae18",
+      "exit_code": 0,
+      "memory_envelope_bytes": 2167406592,
+      "peak_job_bytes": 603684864,
+      "cpu_percent": 16,
+      "tree_retired": true
+    },
+    "pe_exports": {
+      "run": "local-run-cb0c9a964f4f4f53b3901f917b1f8268",
+      "receipt_sha256": "f31a365740e1a57b86a7168448d2282ea9394618b4ba709431e9a5c4b5dc3545",
+      "log_sha256": "013128491e83ef419d53e410cbc53a747c7f44cd1587e962f9463c6b2666f63c",
+      "exit_code": 0,
+      "memory_envelope_bytes": 456130560,
+      "peak_job_bytes": 10727424,
+      "cpu_percent": 12,
+      "tree_retired": true
+    }
+  },
+  "qualification": [
+    {
+      "lane": "Windows Release, LZ4, Zstandard and WinFsp SDK",
+      "passed": 10,
+      "build": {
+        "run": "local-run-bee76bbd3c364ee7b1327f895c8524f3",
+        "receipt_sha256": "00afba7b7a7fd2cc78e61b478bc56076ad514851cf60bd9ffdadf48ab3260589",
+        "log_sha256": "55c73eac032427d6d8500b73b15f69bd1576f8acc6c96ca55b9c188b730407ee",
+        "exit_code": 0,
+        "memory_envelope_bytes": 1237319680,
+        "peak_job_bytes": 413683712,
+        "cpu_percent": 16,
+        "tree_retired": true
+      },
+      "tests": {
+        "run": "local-run-4737f75d67f04aa68b70437d5bbaa7d4",
+        "receipt_sha256": "5e272f350fcb5fb28ca7f06021caaa56a4ee348b44307e90eebe56949259e2c4",
+        "log_sha256": "f7969c96ea8dd29b18491cd14de98dbd5c6775c5da166c67909744bb5187b991",
+        "exit_code": 0,
+        "memory_envelope_bytes": 919601152,
+        "peak_job_bytes": 30150656,
+        "cpu_percent": 16,
+        "tree_retired": true
+      }
+    },
+    {
+      "lane": "Windows Release, raw only",
+      "passed": 8,
+      "build": {
+        "run": "local-run-057599e121ff4dbe93b64aa3c46a0148",
+        "receipt_sha256": "b4732c278b6622ded84d734664b17367d28a9a6831f6b7f0fa01eba4b0f6e5d7",
+        "log_sha256": "7ff48e33f126d8f3ced6e75e0d0730a0f623db9242d6f9917101ecea326201d6",
+        "exit_code": 0,
+        "memory_envelope_bytes": 1237319680,
+        "peak_job_bytes": 341270528,
+        "cpu_percent": 12,
+        "tree_retired": true
+      },
+      "tests": {
+        "run": "local-run-937fa9db455149ab8323a15a3979ded9",
+        "receipt_sha256": "1a9375b191f7e7a393b11b93e88457187717547e2c7107d47be356fa0bbc1b5d",
+        "log_sha256": "690a3abbc711df7932bae786a2bf9e4952f0276b1c238e1633ac187d7da62dd7",
+        "exit_code": 0,
+        "memory_envelope_bytes": 915406848,
+        "peak_job_bytes": 30052352,
+        "cpu_percent": 12,
+        "tree_retired": true
+      }
+    },
+    {
+      "lane": "Windows MSVC AddressSanitizer and WinFsp SDK",
+      "passed": 11,
+      "configure": {
+        "run": "local-run-b34bdb34e2474789a1f5f6382962472e",
+        "receipt_sha256": "5c5083c26b690892483c381d93b4f77b5204bdaf7789b3e818ce10746ef430ea",
+        "log_sha256": "67ebfb075ac549565718a30aa37882260cf4eff3efbe0b01647b396867958d79",
+        "exit_code": 0,
+        "memory_envelope_bytes": 2208301056,
+        "peak_job_bytes": 26959872,
+        "cpu_percent": 15,
+        "tree_retired": true
+      },
+      "build": {
+        "run": "local-run-5bc3d5e3fa8446acaa7b7ae55f12c55f",
+        "receipt_sha256": "4b2558d2e6aac892b33e3db97c924ff2871d3b0ea77474adcbab1ca8620c97d0",
+        "log_sha256": "f336e597921265ca60505f942a58f32ad516eb541e3d9683ef64945b508f9acf",
+        "exit_code": 0,
+        "memory_envelope_bytes": 2212495360,
+        "peak_job_bytes": 628404224,
+        "cpu_percent": 15,
+        "tree_retired": true
+      },
+      "tests": {
+        "run": "local-run-edb4d84bd20746e489ff881cb9bee23d",
+        "receipt_sha256": "22e92658882cf45fe10d47bd2e6493005f09d20243fb59636cc7013e1dfeb852",
+        "log_sha256": "e7ec2ed81dee9e9665296c797df17e7cdff896314bd29bacc3c9c8834b05e56e",
+        "exit_code": 0,
+        "memory_envelope_bytes": 2243952640,
+        "peak_job_bytes": 562049024,
+        "cpu_percent": 15,
+        "tree_retired": true
+      },
+      "staged_runtime_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed"
+    }
+  ],
+  "physical_trials": {
+    "device": "AMD Radeon RX 9070 XT",
+    "driver_version": "32.0.32015.16001",
+    "case": "Two groups of five 64 KiB files with two varying bit planes throughout each derived member",
+    "execution": "Sequential use of the same authenticated worker, kernel, platform runtime and callback fixture",
+    "owner_sha256": "c8f34035cd5af7d954ef6ca159496a9afb887c2bee1f7997e117bc2d07fe0723",
+    "worker_sha256": "1b6f0b36b9e5cf840928cd8471f89ac8a8ab162cfda2fdc04d29a6ab560ec890",
+    "kernel_sha256": "75191a47563d712664cd8e392c74f88c8a2dc55e26bfc2001e85d3160f1d881e",
+    "outcomes": [
+      {
+        "mode": "xor-narrow",
+        "window_abi": 3,
+        "slot_bytes": 16384,
+        "submitted_groups": 2,
+        "verified_batches": 0,
+        "empty_batches": 1,
+        "advised_members_published": 0,
+        "logical_bytes": 655360,
+        "compacted_bytes": 917504,
+        "elapsed_settled_ms": 55484,
+        "independent_cpu_verify_all": true,
+        "job": {
+          "run": "local-run-36d749f8a1e14f77990437a2a6181b8c",
+          "receipt_sha256": "24ec6c85e4618c2c00900541d96080f26653340d202fc7adf158638c7a2c6a82",
+          "log_sha256": "363d448df6eed7cc93a4ea3da8619cefe0891f6da2f7f147eaef53e5b2301f16",
+          "exit_code": 0,
+          "memory_envelope_bytes": 471859200,
+          "peak_job_bytes": 114548736,
+          "cpu_percent": 16,
+          "tree_retired": true
+        }
+      },
+      {
+        "mode": "xor-wide",
+        "window_abi": 4,
+        "slot_bytes": 65536,
+        "submitted_groups": 2,
+        "verified_batches": 1,
+        "empty_batches": 0,
+        "advised_members_published": 8,
+        "logical_bytes": 655360,
+        "compacted_bytes": 917504,
+        "elapsed_settled_ms": 59031,
+        "independent_cpu_verify_all": true,
+        "job": {
+          "run": "local-run-65dfc9aab5e84fa8a209b95cbe4d57f7",
+          "receipt_sha256": "39daef277671166f814dd8d1794e82964c2398f0bf1b6b60e9cf00d5ff34e7ba",
+          "log_sha256": "d7d38d5a5fd112c35ae221fda3f69b75afeb4814cdec3075c535618d99ad9f8c",
+          "exit_code": 0,
+          "memory_envelope_bytes": 472907776,
+          "peak_job_bytes": 114528256,
+          "cpu_percent": 16,
+          "tree_retired": true
+        }
+      }
+    ]
+  },
+  "scope": [
+    "A canonical two-plane body occupies 16640 bytes before framing. The new stride covers every packed native frame that can beat a raw extent.",
+    "The memory grant reflects the exact device slab for ABI 4. Reply frames and transport copies are included in host admission.",
+    "The recorded times belong to a matched functional pair. A throughput advantage and automatic selection require broader performance qualification.",
+    "The version change is confined to the transient worker protocol. The protected filesystem format and independent CPU readback remain the same."
+  ]
+}

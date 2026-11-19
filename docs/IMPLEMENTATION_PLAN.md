@@ -729,12 +729,18 @@ protected compacted image from 1,304 KiB to 544 KiB with exact CPU readback.
 The Windows owner now keeps the recovery ticket through the per-member byte
 comparisons. A mismatch quarantines the configuration and leaves CPU grouping
 available. The verifier constructs and hashes a stored frame only for a body
-that beats the competing size. Measure recall and complete costs on heterogeneous
-groups and qualified hosts before enabling automatic packed XOR dispatch.
+that beats the competing size. The wider worker exchange now carries a packed
+body up to a full extent slot. In one physical two-plane pair, the 16 KiB
+layout declined all eight bodies and the 64 KiB layout supplied all eight.
+Both compacted to 896 KiB and reopened exactly on CPU. Completion took
+55.5 seconds for the narrow exchange with CPU fallback and 59.0 seconds for
+the wider exchange. Measure mixed cohorts, transfer overhead and repeated
+complete costs against independent CPU encoding before automatic selection.
 [Packed XOR format](INDEXED_NATIVE_VOLUME.md#packed-xor-members) ·
 [CPU size evidence](evidence/indexed-packed-xor-2026-11-19.json) ·
 [Physical AMD evidence](evidence/amd-packed-xor-batch-2026-11-19.json) ·
-[Packed XOR semantic verification](evidence/amd-packed-xor-verdicts-2026-11-19.json)
+[Packed XOR semantic verification](evidence/amd-packed-xor-verdicts-2026-11-19.json) ·
+[Wider paired trial](evidence/amd-wide-packed-xor-2026-11-19.json)
 
 The first collective AMD trial reused the authenticated uniform LZ4 worker.
 Copies from tiles that contain the same base produced a 600 KiB complete

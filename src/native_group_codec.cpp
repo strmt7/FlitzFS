@@ -273,7 +273,8 @@ NativeGroupXorCandidate check_native_group_xor_body(std::span<const std::byte> b
   if(member.size()!=extent || base.size()!=extent || !base_id_valid(base_id) || !generation ||
       exclusive_limit>extent)fail();
   if(body.empty())return {};
-  if(body.size()>=extent-header)return {{},NativePackedXorCheck::invalid};
+  constexpr auto maximum_body=xor_tiles*(1+8*xor_plane_bytes);
+  if(body.size()>maximum_body)return {{},NativePackedXorCheck::invalid};
   std::vector<std::byte> decoded(base.begin(),base.end());
   try {
     apply_packed_xor(body,decoded);

@@ -35,6 +35,7 @@
     "packed_xor_gpu_evidence": "docs/evidence/amd-packed-xor-batch-2026-11-19.json",
     "packed_xor_gpu_automatic_selection": false,
     "packed_xor_gpu_semantic_recovery_evidence": "docs/evidence/amd-packed-xor-verdicts-2026-11-19.json",
+    "packed_xor_wide_transport_evidence": "docs/evidence/amd-wide-packed-xor-2026-11-19.json",
     "masked_discovery_evidence": "docs/evidence/projected-xor-discovery-2026-11-19.json",
     "mask_fixture_previous_compacted_bytes": 1335296,
     "mask_fixture_current_compacted_bytes": 557056,

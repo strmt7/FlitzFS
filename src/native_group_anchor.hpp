@@ -37,6 +37,7 @@ using AnchorXorAdvice=std::vector<std::vector<std::byte>>;
 struct AnchorMatchBatchPlan {
   std::vector<AnchorMatchSweepPlan> groups;
   std::uint32_t request_bytes,reply_bytes,quantum_members,device_bytes,launches;
+  anchor_match::BatchOutput output=anchor_match::BatchOutput::anchors;
   bool operator==(const AnchorMatchBatchPlan&) const = default;
 };
 
@@ -59,7 +60,7 @@ class AnchorMatchBatchRequest final {
   AnchorMatchBatchRequest()=default;
   friend class AnchorMatchBatchBuilder;
   friend AnchorMatchBatchRequest decode_anchor_match_batch_request(SharedWorkerRequest,
-      std::uint32_t,std::uint32_t,std::uint32_t,std::uint64_t,std::uint32_t);
+      std::uint32_t,std::uint32_t,std::uint32_t,std::uint64_t,std::uint32_t,anchor_match::BatchOutput);
   // Every group view is validated against this one private allocation.
   SharedWorkerRequest snapshot_;
   std::uint64_t id_=0;
@@ -74,11 +75,13 @@ struct AnchorMatchTransferPlan {
 };
 
 std::uint32_t anchor_match_members(std::span<const std::byte> source);
-AnchorMatchLayout anchor_match_layout(std::uint32_t members);
+AnchorMatchLayout anchor_match_layout(std::uint32_t members,
+    anchor_match::BatchOutput=anchor_match::BatchOutput::anchors);
 // The caller independently admits the whole host request and its transport.
 // This plan admits one device slab and bounds the number of search dispatches.
 AnchorMatchSweepPlan plan_anchor_match_sweep(std::uint32_t members,std::uint32_t maximum_quantum,
-    std::uint64_t maximum_device_bytes,std::uint32_t maximum_windows);
+    std::uint64_t maximum_device_bytes,std::uint32_t maximum_windows,
+    anchor_match::BatchOutput=anchor_match::BatchOutput::anchors);
 std::vector<std::byte> encode_anchor_match_request(std::span<const std::byte> base,
     std::span<const std::byte> members,std::uint64_t id,std::optional<AnchorMatchLayout> admitted={});
 AnchorMatchRequest decode_anchor_match_request(std::span<const std::byte> frame,
@@ -91,7 +94,8 @@ AnchorMatchAdvice accept_anchor_match_reply(std::span<const std::byte> frame,con
 
 // The grant counts the index build and all search launches for each group.
 AnchorMatchBatchPlan plan_anchor_match_batch(std::span<const std::uint32_t> members,
-    std::uint32_t maximum_quantum,std::uint64_t maximum_device_bytes,std::uint32_t maximum_launches);
+    std::uint32_t maximum_quantum,std::uint64_t maximum_device_bytes,std::uint32_t maximum_launches,
+    anchor_match::BatchOutput=anchor_match::BatchOutput::anchors);
 // Transfers can span several launches. The last transfer of each group may
 // be partial, while every earlier transfer ends at a dispatch boundary.
 AnchorMatchTransferPlan plan_anchor_match_transfers(const AnchorMatchBatchPlan&,std::uint64_t maximum_device_bytes);
@@ -115,9 +119,10 @@ class AnchorMatchBatchBuilder final {
 
 AnchorMatchBatchRequest decode_anchor_match_batch_request(SharedWorkerRequest snapshot,
     std::uint32_t request_capacity,std::uint32_t reply_capacity,std::uint32_t maximum_quantum,
-    std::uint64_t maximum_device_bytes,std::uint32_t maximum_launches);
+    std::uint64_t maximum_device_bytes,std::uint32_t maximum_launches,
+    anchor_match::BatchOutput=anchor_match::BatchOutput::anchors);
 std::vector<std::byte> encode_anchor_match_batch_reply(const AnchorMatchBatchRequest&,
-    std::span<const std::vector<anchor_match::u32>> records,std::size_t reserve_tail_bytes=0,bool packed_xor=false);
+    std::span<const std::vector<anchor_match::u32>> records,std::size_t reserve_tail_bytes=0);
 std::vector<AnchorMatchAdvice> accept_anchor_match_batch_reply(
     std::span<const std::byte> frame,const AnchorMatchBatchRequest&);
 // These bodies are owned, bound to the request and structurally checked.

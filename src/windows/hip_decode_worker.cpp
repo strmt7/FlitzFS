@@ -245,8 +245,11 @@ std::vector<std::vector<anchor_match::u32>> run_hip_anchor_groups(HMODULE runtim
     std::uint32_t node_mask,std::span<const detail::AnchorMatchSource> requests,
     std::span<const detail::AnchorMatchSweepPlan> plans,anchor_match::u32 quantum,HipPhaseRecorder& profile,
     anchor_match::u32 transfer_members,anchor_match::WindowSearchKernel window_search=nullptr,
-    std::uint32_t dispatches_per_wait=1,bool packed_xor=false) {
+    std::uint32_t dispatches_per_wait=1,anchor_match::BatchOutput mode=anchor_match::BatchOutput::anchors) {
   namespace match=anchor_match;
+  const bool packed_xor=mode!=match::BatchOutput::anchors;
+  const auto slot_bytes=match::reply_member_bytes(mode);
+  const auto words_per_member=slot_bytes/static_cast<match::u32>(sizeof(match::u32));
   require(runtime && match::compatible_kernel_api(kernel) && ordinal>=0 && ordinal<64 &&
       !requests.empty() && requests.size()==plans.size() && quantum && quantum<=match::max_members &&
       transfer_members>=quantum && dispatches_per_wait && dispatches_per_wait<=kAnchorProfileMaxQueuedDispatches &&
@@ -256,11 +259,11 @@ std::vector<std::vector<anchor_match::u32>> run_hip_anchor_groups(HMODULE runtim
     const auto& plan=plans[i];
     const auto count=detail::anchor_match_members(requests[i].source);
     require(requests[i].id && plan.quantum_members<=quantum &&
-        plan==detail::plan_anchor_match_sweep(count,plan.quantum_members,plan.device_bytes,plan.windows),
+        plan==detail::plan_anchor_match_sweep(count,plan.quantum_members,plan.device_bytes,plan.windows,mode),
         "anchor match sweep differs from its admitted plan");
   }
   const auto index_bytes=packed_xor?0U:match::index_bytes;
-  const auto allocation=match::device_bytes(transfer_members)-match::index_bytes+index_bytes;
+  const auto allocation=(1+transfer_members)*match::extent_bytes+index_bytes+transfer_members*slot_bytes;
   profile.begin(HipPhase::device_initialize);
   WindowsGpuBudgetSampler sampler(luid,node_mask);
   const auto before_init=sampler.sample().snapshot;
@@ -305,7 +308,7 @@ std::vector<std::vector<anchor_match::u32>> run_hip_anchor_groups(HMODULE runtim
   profile.end(HipPhase::stream_allocate);
 
   auto version=match::abi_version;
-  auto window_version=packed_xor?match::packed_xor_window_abi_version:match::window_abi_version;
+  auto window_version=match::window_version(mode);
   void* index_arguments[]{&source,&table,&version};
   struct Dispatch {
     void* input=nullptr;
@@ -328,10 +331,10 @@ std::vector<std::vector<anchor_match::u32>> run_hip_anchor_groups(HMODULE runtim
     const auto& request=requests[group];
     const auto& plan=plans[group];
     const auto whole_members=plan.whole.members;
-    auto& records=all_records.emplace_back(whole_members*match::tiles);
+    auto& records=all_records.emplace_back(whole_members*words_per_member);
     for (match::u32 first=0;first<whole_members;) {
       const auto staged=(std::min)(whole_members-first,transfer_members);
-      auto window=std::span(records).subspan(first*match::tiles,staged*match::tiles);
+      auto window=std::span(records).subspan(first*words_per_member,staged*words_per_member);
       profile.begin(HipPhase::host_to_device);
       if (first) {
         const auto* input=request.source.data()+(first+1)*match::extent_bytes;
@@ -365,7 +368,7 @@ std::vector<std::vector<anchor_match::u32>> run_hip_anchor_groups(HMODULE runtim
         submitted.pending=true;
         if(window_search) {
           command.input=reinterpret_cast<void*>(address+(1+at)*match::extent_bytes);
-          command.result=reinterpret_cast<void*>(address+window_input+index_bytes+at*match::tiles*sizeof(match::u32));
+          command.result=reinterpret_cast<void*>(address+window_input+index_bytes+at*slot_bytes);
           check_hip(api.launch(reinterpret_cast<const void*>(window_search),blocks,dim3(match::threads),
               command.arguments.data(),0,resources.stream),"launch resident anchor match window");
         } else {
@@ -415,17 +418,18 @@ std::vector<std::vector<anchor_match::u32>> run_hip_anchor_batch_in_worker(HMODU
     const anchor_match::KernelApi& kernel,int ordinal,std::array<std::byte,8> luid,
     std::uint32_t node_mask,const detail::AnchorMatchBatchRequest& request,HipPhaseRecorder& profile,
     const anchor_match::WindowSearchApi* window,std::uint32_t transfer_grant,
-    std::uint32_t dispatches_per_wait,bool packed_xor) {
+    std::uint32_t dispatches_per_wait) {
   require_hip_worker_job(true);
-  const auto version=packed_xor?anchor_match::packed_xor_window_abi_version:anchor_match::window_abi_version;
-  require(window?anchor_match::compatible_window_search_api(*window,version):!transfer_grant && !packed_xor,
-      "invalid anchor transfer kernel API");
   const auto& plan=request.plan();
+  const auto version=anchor_match::window_version(plan.output);
+  require(window?anchor_match::compatible_window_search_api(*window,version):
+      !transfer_grant && plan.output==anchor_match::BatchOutput::anchors,
+      "invalid anchor transfer kernel API");
   const auto members=window?detail::plan_anchor_match_transfers(plan,transfer_grant).members_per_transfer:
       plan.quantum_members;
   return run_hip_anchor_groups(runtime,kernel,ordinal,luid,node_mask,
       request.groups(),plan.groups,plan.quantum_members,profile,members,window?window->search:nullptr,
-      dispatches_per_wait,packed_xor);
+      dispatches_per_wait,plan.output);
 }
 
 }

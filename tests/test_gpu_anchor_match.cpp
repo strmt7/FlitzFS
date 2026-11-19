@@ -276,9 +276,18 @@ void independent_batch() {
   records.back().front()=match::empty;
   rejects([&]{(void)encode_anchor_match_batch_reply(batch,records);});
 }
+void put_xor_test_slot(std::span<match::u32> slot,std::span<const std::byte> body) {
+  check(sizeof(match::u32)+body.size()<=slot.size_bytes(),"fixture body exceeds its slot");
+  slot[0]=static_cast<match::u32>(body.size());
+  for(std::size_t i=0;i<body.size();++i) {
+    const auto shift=static_cast<unsigned>(i%4)*8;
+    auto& word=slot[1+i/4];
+    word=(word&~(255U<<shift))|(std::to_integer<unsigned>(body[i])<<shift);
+  }
+}
 void packed_xor_reply() {
   const std::array<std::uint32_t,1> counts{2};
-  const auto plan=plan_anchor_match_batch(counts,2,match::device_bytes(2),3);
+  const auto plan=plan_anchor_match_batch(counts,2,match::device_bytes(2),3,match::BatchOutput::packed_xor);
   AnchorMatchBatchBuilder builder(91,plan);
   Bytes base(match::extent_bytes,std::byte{0x73});
   Bytes members(2*match::extent_bytes,std::byte{0x73});
@@ -292,14 +301,9 @@ void packed_xor_reply() {
   check(candidate.has_value(),"missing independent XOR test body");
   const auto body=std::span<const std::byte>(*candidate).subspan(128);
   std::vector<std::vector<match::u32>> slots(1,std::vector<match::u32>(2*match::tiles,match::empty));
-  slots.front().front()=static_cast<match::u32>(body.size());
+  put_xor_test_slot(std::span(slots.front()).first(match::tiles),body);
   slots.front()[match::tiles]=0;
-  for(std::size_t i=0;i<body.size();++i) {
-    const auto shift=static_cast<unsigned>(i%4)*8;
-    auto& word=slots.front()[1+i/4];
-    word=(word&~(255U<<shift))|(std::to_integer<unsigned>(body[i])<<shift);
-  }
-  const auto encoded=encode_anchor_match_batch_reply(request,slots,0,true);
+  const auto encoded=encode_anchor_match_batch_reply(request,slots);
   const auto decoded=decode_anchor_xor_batch_reply(encoded,request);
   check(decoded.size()==1 && decoded.front().size()==2 && decoded.front().back().empty() &&
       std::ranges::equal(decoded.front().front(),body),"packed XOR reply lost its accepted or declined slot");
@@ -325,7 +329,67 @@ void packed_xor_reply() {
     rejects([&]{(void)decode_anchor_xor_batch_reply(bad,request);});
   }
   slots.front().front()=match::empty;
-  rejects([&]{(void)encode_anchor_match_batch_reply(request,slots,0,true);});
+  rejects([&]{(void)encode_anchor_match_batch_reply(request,slots);});
+}
+void wide_xor_reply() {
+  constexpr auto wide=match::BatchOutput::wide_packed_xor;
+  constexpr auto narrow=match::BatchOutput::packed_xor;
+  const std::array<std::uint32_t,1> counts{2};
+  const auto plan=plan_anchor_match_batch(counts,2,match::device_bytes(1,wide),2,wide);
+  const auto original=plan_anchor_match_batch(counts,2,match::device_bytes(2,narrow),3,narrow);
+  check(plan.quantum_members==1 && plan.launches==2 && plan.request_bytes==original.request_bytes &&
+      plan.reply_bytes-original.reply_bytes==2*(match::xor_wide_slot_bytes-match::xor_slot_bytes) &&
+      plan.device_bytes==3*match::extent_bytes,"wide request did not charge its exact geometry");
+  rejects([&]{(void)plan_anchor_match_batch(counts,2,plan.device_bytes-1,2,wide);});
+  check(plan_anchor_match_transfers(plan,match::device_bytes(2,wide))==
+      AnchorMatchTransferPlan{2,5*match::extent_bytes,1},"wide transfer did not share one base and two full slots");
+
+  Bytes base(match::extent_bytes,std::byte{0x71});
+  Bytes members(2*match::extent_bytes,std::byte{0x71});
+  std::fill_n(members.begin(),match::extent_bytes,std::byte{0x41});
+  AnchorMatchBatchBuilder builder(92,plan);
+  builder.append(1,base,members);
+  const auto request=builder.finish();
+  const auto received=decode_anchor_match_batch_request(request.snapshot(),plan.request_bytes,plan.reply_bytes,
+      plan.quantum_members,plan.device_bytes,plan.launches,wide);
+  check(received.plan()==plan && received.digest()==request.digest(),"wide request changed at the worker boundary");
+  rejects([&]{(void)decode_anchor_match_batch_request(request.snapshot(),original.request_bytes,original.reply_bytes,
+      original.quantum_members,original.device_bytes,original.launches,narrow);});
+  const auto member=std::span<const std::byte>(members).first(match::extent_bytes);
+  constexpr auto base_id=kNativeGroupBaseBit+1;
+  const auto candidate=encode_native_group_xor(member,base,base_id,1,match::extent_bytes);
+  check(candidate.has_value(),"two varying planes lacked a CPU candidate");
+  const auto body=std::span<const std::byte>(*candidate).subspan(128);
+  check(body.size()==16640 && body.size()>match::xor_body_capacity,"fixture did not exceed the narrow reply");
+  constexpr auto words=match::xor_wide_slot_bytes/sizeof(match::u32);
+  std::vector<std::vector<match::u32>> slots(1,std::vector<match::u32>(2*words,match::empty));
+  put_xor_test_slot(std::span(slots.front()).first(words),body);
+  slots.front()[words]=0;
+  const auto frame=encode_anchor_match_batch_reply(received,slots);
+  const auto decoded=decode_anchor_xor_batch_reply(frame,request);
+  check(frame.size()==plan.reply_bytes && decoded.size()==1 && decoded.front().size()==2 &&
+      decoded.front().back().empty() && check_native_group_xor_body(decoded.front().front(),member,base,
+          base_id,1,match::extent_bytes).frame==candidate,"wide frame did not preserve the independent CPU result");
+  auto malformed=frame;
+  malformed[7]=std::byte{1};
+  rejects([&]{(void)decode_anchor_xor_batch_reply(malformed,request);});
+  malformed=frame;
+  malformed.back()=std::byte{};
+  rejects([&]{(void)decode_anchor_xor_batch_reply(malformed,request);});
+
+  // A canonical reply can fit the transport and still lose to a raw extent.
+  Bytes almost_raw;
+  for(unsigned tile=0;tile<match::xor_tiles;++tile) {
+    const auto mask=tile<247?std::byte{0xff}:std::byte{0x7f};
+    almost_raw.push_back(mask);
+    almost_raw.insert(almost_raw.end(),(tile<247?8:7)*match::xor_plane_bytes,std::byte{0xff});
+    std::fill_n(members.begin()+tile*match::xor_tile_bytes,match::xor_tile_bytes,base.front()^mask);
+  }
+  const auto large=check_native_group_xor_body(almost_raw,member,base,base_id,1,match::extent_bytes);
+  check(almost_raw.size()==65504 && !large.frame && large.check==NativePackedXorCheck::verified,
+      "size selection treated valid wide advice as corruption");
+  std::cout<<"wide_xor narrow_slot_bytes="<<match::xor_slot_bytes<<" wide_slot_bytes="<<match::xor_wide_slot_bytes
+      <<" two_plane_bytes="<<body.size()<<" device_bytes="<<plan.device_bytes<<" launch_count="<<plan.launches<<'\n';
 }
 }
 
@@ -336,6 +400,7 @@ int main() {
     sized_sweep();
     independent_batch();
     packed_xor_reply();
+    wide_xor_reply();
     std::cout<<"Direct shared base match CPU semantics and reply verification passed\n";
     return 0;
   } catch (const std::exception& error) {

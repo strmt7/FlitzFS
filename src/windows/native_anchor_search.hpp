@@ -1,5 +1,6 @@
 #pragma once
 #include "flitzfs/native_filesystem.hpp"
+#include "flitzfs/gpu_anchor_match.hpp"
 #include "hip_route_discovery.hpp"
 
 namespace flitzfs {
@@ -12,13 +13,13 @@ struct NativeAnchorSearchOptions {
   ProcessBudget worker;
   std::uint32_t minimum_members=0,maximum_members=0;
   std::uint32_t duty_ppm=10000;
-  bool packed_xor=false;
+  anchor_match::BatchOutput output=anchor_match::BatchOutput::anchors;
 };
 
 struct NativeAnchorSearchStats {
   std::uint64_t submitted=0,verified=0,declined=0,yielded=0;
   bool retirement_confirmed=true;
-  std::uint64_t submitted_groups=0,verified_groups=0,integrity_failures=0;
+  std::uint64_t submitted_groups=0,verified_groups=0,integrity_failures=0,empty_xor_batches=0;
 };
 
 // One serialized owner, outside the filesystem control lock. The transport

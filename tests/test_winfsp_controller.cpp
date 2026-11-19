@@ -243,7 +243,8 @@ void restore_private_anchor_package() {
 int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearchOptions> options) {
   const bool installed=!options;
   const bool restoring=mode=="restored";
-  const bool xor_encoding=mode=="xor" || mode=="xor-cpu";
+  const bool two_planes=mode=="xor-wide" || mode=="xor-narrow";
+  const bool xor_encoding=two_planes || mode=="xor" || mode=="xor-cpu";
   const bool packed=mode=="batch" || mode=="batch-yield" || xor_encoding;
   const unsigned files_per_group=installed && (packed || restoring)?3:5;
   const unsigned groups=restoring?4:packed?2:1;
@@ -267,10 +268,11 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
       auto derived=base;
       if(i && xor_encoding) {
         const auto variation=data(kNativeExtentBytes,1511+group*103+i);
-        for(std::size_t at=0;at<base.size();++at)derived[at]^=variation[at]&std::byte{1};
+        const auto mask=two_planes?std::byte{0x30}:std::byte{1};
+        for(std::size_t at=0;at<base.size();++at)derived[at]^=variation[at]&mask;
       } else if(i && restoring && group<2)derived[kNativeExtentBytes/8+(i+1)*719]^=std::byte{0x67};
       else if(i)derived=anchor_search_fixture::fragmented(base,i);
-      std::copy_n(base.begin(),kNativeExtentBytes/8,derived.begin());
+      if(!two_planes)std::copy_n(base.begin(),kNativeExtentBytes/8,derived.begin());
       originals.push_back(std::move(derived));
     }
   }
@@ -336,6 +338,7 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
       <<" submitted_groups="<<result.anchor_search.submitted_groups<<" verified_groups="<<result.anchor_search.verified_groups
       <<" declined="<<result.anchor_search.declined<<" yielded="<<result.anchor_search.yielded
       <<" integrity_failures="<<result.anchor_search.integrity_failures
+      <<" empty_xor_batches="<<result.anchor_search.empty_xor_batches
       <<" advised_members="<<result.maintenance.advised_members_published
       <<" installed_attempts="<<result.installed_anchor_attempts
       <<" metadata_queries="<<result.installed_anchor_queries
@@ -376,6 +379,9 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
         <<" exact_compacted_cpu_readback=true\n";
     if(mode=="xor-cpu")
       return !result.anchor_search.submitted && !result.maintenance.advised_members_published?0:2;
+    if(mode=="xor-narrow")
+      return result.anchor_search.submitted==1 && result.anchor_search.empty_xor_batches==1 &&
+          !result.anchor_search.verified && !result.maintenance.advised_members_published?0:2;
   }
   if(restoring)return restored && result.anchor_search.submitted==1 && result.anchor_search.verified==1 &&
       result.anchor_search.verified_groups==2 && result.maintenance.published_groups>2 &&
@@ -387,7 +393,8 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
 }
 int live_anchor_owner(char** argv) {
   const std::string_view mode(argv[6]);
-  require(mode=="accept" || mode=="yield" || mode=="both" || mode=="batch" || mode=="batch-yield" || mode=="xor",
+  const bool xor_mode=mode=="xor" || mode=="xor-wide" || mode=="xor-narrow";
+  require(mode=="accept" || mode=="yield" || mode=="both" || mode=="batch" || mode=="batch-yield" || xor_mode,
       "Expected an AMD ownership trial");
   const ProcessBudget profile{128,2000,5000,16};
   HipRouteDiscoveryRequest request;
@@ -397,9 +404,10 @@ int live_anchor_owner(char** argv) {
   const auto binding=discover_system_hip_route(request);
   require(binding.status==HipDiscoveryStatus::ready && binding.route && binding.route->pins->anchor_module_pinned() &&
       !binding.route->pins->uniform_module_pinned(),"Shared-base worker route was not authenticated");
-  const std::uint32_t members=(mode=="batch" || mode=="batch-yield" || mode=="xor")?8:4;
+  const std::uint32_t members=(mode=="batch" || mode=="batch-yield" || xor_mode)?8:4;
   NativeAnchorSearchOptions execution{*binding.route,profile,members,members};
-  execution.packed_xor=mode=="xor";
+  if(xor_mode)execution.output=mode=="xor-wide"?anchor_match::BatchOutput::wide_packed_xor:
+      anchor_match::BatchOutput::packed_xor;
   if(mode!="both")return run_live_anchor_owner(mode,execution);
   const auto accepted=run_live_anchor_owner("accept",execution);
   if(accepted)return accepted;

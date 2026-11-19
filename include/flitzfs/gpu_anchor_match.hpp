@@ -29,13 +29,21 @@ inline constexpr u32 xor_tile_bytes=256,xor_plane_bytes=xor_tile_bytes/8;
 inline constexpr u32 xor_tiles=extent_bytes/xor_tile_bytes;
 inline constexpr u32 xor_slot_bytes=tiles*sizeof(u32);
 inline constexpr u32 xor_body_capacity=xor_slot_bytes-sizeof(u32);
+inline constexpr u32 xor_wide_slot_bytes=extent_bytes;
+enum class BatchOutput : u32 {anchors,packed_xor,wide_packed_xor};
+
+constexpr u32 reply_member_bytes(BatchOutput output) noexcept {
+  return output==BatchOutput::wide_packed_xor?xor_wide_slot_bytes:xor_slot_bytes;
+}
 
 struct Bucket { u32 first,second; };
 static_assert(sizeof(Bucket)==8);
 inline constexpr u32 index_bytes=buckets*sizeof(Bucket);
 
-constexpr u32 device_bytes(u32 members) {
-  return (members+1)*extent_bytes+index_bytes+members*tiles*sizeof(u32);
+constexpr u32 device_bytes(u32 members,BatchOutput output=BatchOutput::anchors) noexcept {
+  // Preserve the narrow protocol's original grant. Wide XOR needs no index.
+  const auto index=output==BatchOutput::wide_packed_xor?0U:index_bytes;
+  return (members+1)*extent_bytes+index+members*reply_member_bytes(output);
 }
 
 FLITZFS_ANCHOR_INLINE u64 seed(const u8* bytes,u32 at) {
