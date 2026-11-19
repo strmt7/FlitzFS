@@ -559,17 +559,22 @@ allowance before catalog mutation. The owned Windows memory path provisions
 the catalog on the first useful funded batch, retains it on a joined remount
 and reclaims discarded backing in bounded steps. A full catalog now prunes
 stale postings in a funded staged copy and releases the unselected pages.
-The scan window and advisory checkpoint now retain masked XOR signatures
-for candidates with changes in every aligned band. The restarted scanner
-found such a match after one new sample across 126 retained representatives.
-Extend projected lookup to the paged catalog, measure recall and retained
-overhead under continuous changes, and qualify persistent catalog compaction.
+The scan window, advisory checkpoint and paged catalog retain masked XOR
+signatures for candidates with changes in every aligned band. The restarted
+scanner found a match after one new sample across 126 retained representatives.
+The paged path found another match across 374 unrelated extents after its
+representative left checkpoint history. That group saved at least 96 KiB in
+the compacted user image. The catalog occupied 412 KiB and the controller
+performed 1,879 point lookups. Measure total storage cost and lookup yield
+on mixed workloads, adapt signature retention to observed value, and
+qualify persistent catalog compaction.
 [Restart validation](evidence/indexed-representative-retention-2026-11-19.json)
 [Paged coherence catalog](OPTIMIZATION_STATE.md#paged-coherence-catalog) ·
 [Funding validation](evidence/funded-paged-coherence-2026-11-19.json) ·
 [Windows ownership validation](evidence/windows-catalog-provisioning-2026-11-19.json) ·
 [Catalog compaction validation](evidence/windows-catalog-compaction-2026-11-19.json) ·
-[Masked signature validation](evidence/projected-xor-discovery-2026-11-19.json)
+[Masked signature validation](evidence/projected-xor-discovery-2026-11-19.json) ·
+[Paged masked discovery](evidence/projected-coherence-catalog-2026-11-19.json)
 
 RubikFS provides evidence for evaluating similarity and access hotness
 together. MedFS shows why selective delta maintenance should account for write

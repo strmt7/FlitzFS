@@ -9,6 +9,8 @@ namespace detail {struct NativeMaintenanceSource;}
 struct IndexedCoherencePosting {
   std::uint32_t band=0;
   OptimizationGroupFeature representative;
+  // Projected bands follow the original band ordinals. They carry one full key.
+  std::uint64_t projected_fingerprint=0;
 };
 
 // Independent advisory backing for one native image. The volume ID binds
@@ -18,6 +20,7 @@ class IndexedCoherenceSnapshot final {
   static IndexedCoherenceSnapshot open(std::shared_ptr<StoreByteIo>,
       StoreIdentity volume,StoreIdentity image,PagedStoreLimits);
   std::optional<OptimizationGroupFeature> find(std::uint32_t band,std::uint64_t fingerprint) const;
+  bool has_projected_keys() const noexcept {return projected_keys_;}
   PagedStoreInfo info() const noexcept {return store_.info();}
   StoreIdentity volume() const noexcept {return store_.identity();}
   StoreIdentity image() const noexcept {return image_;}
@@ -27,6 +30,7 @@ class IndexedCoherenceSnapshot final {
   IndexedCoherenceSnapshot(PagedObjectStoreSnapshot,StoreIdentity volume,StoreIdentity image);
   PagedObjectStoreSnapshot store_;
   StoreIdentity image_;
+  bool projected_keys_=false;
 };
 
 class IndexedCoherenceWriter final {

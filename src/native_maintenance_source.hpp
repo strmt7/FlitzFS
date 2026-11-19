@@ -47,7 +47,7 @@ struct NativeMaintenanceSource {
   }
   std::function<std::optional<OptimizationGroupScan>()> restore_scan;
   std::function<bool()> scan_funded;
-  std::function<bool(OptimizationGroupScan)> publish_scan;
+  std::function<bool(OptimizationGroupScan,std::span<const OptimizationGroupProjection>)> publish_scan;
   std::function<bool()> coherence_pending;
   std::function<void()> advance_coherence;
 };

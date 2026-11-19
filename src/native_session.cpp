@@ -219,7 +219,7 @@ struct NativeFileSession::Impl {
     }
   }
   bool publish_coherence_scan(OptimizationStateWriter& advice,const OptimizationState& state,
-      std::uint64_t input) {
+      std::uint64_t input,std::span<const OptimizationGroupProjection> projections) {
     if(!writer.maintenance_indexed() || !maintenance || coherence_reserves_credit())return false;
     const auto storage=maintenance->coherence_storage;
     const bool creating=!maintenance->coherence_writer;
@@ -232,13 +232,25 @@ struct NativeFileSession::Impl {
     const auto& features=state.group_scan->representatives;
     auto first=std::ranges::upper_bound(features,maintenance->coherence_offer_after,{},&OptimizationGroupFeature::object);
     if(first==features.end())first=features.begin();
-    const auto count=(std::min)(static_cast<std::size_t>(features.end()-first),kNativeMaxDirtyExtents);
-    if(!count)return false;
     std::vector<IndexedCoherencePosting> postings;
-    postings.reserve(count);
-    const auto end=first+static_cast<std::ptrdiff_t>(count);
-    for(auto it=first;it!=end;++it)
-      if(const auto band=detail::coherence_primary_band(it->bands))postings.push_back({*band,*it});
+    postings.reserve(kNativeMaxDirtyExtents);
+    auto row=static_cast<std::uint32_t>(first-features.begin());
+    auto projected=std::ranges::lower_bound(projections,row,{},&OptimizationGroupProjection::representative);
+    auto end=first;
+    for(;end!=features.end();++end,++row) {
+      const auto band=detail::coherence_primary_band(end->bands);
+      OptimizationXorSignatures signatures{};
+      if(projected!=projections.end() && projected->representative==row) {
+        signatures=projected->signatures;
+        ++projected;
+      }
+      const auto signature_count=std::ranges::count_if(signatures,[](auto key){return key!=0;});
+      const auto needed=static_cast<std::size_t>(band.has_value())+static_cast<std::size_t>(signature_count);
+      if(needed>kNativeMaxDirtyExtents-postings.size())break;
+      if(band)postings.push_back({*band,*end});
+      for(std::uint32_t i=0;i<signatures.size();++i)
+        if(signatures[i])postings.push_back({static_cast<std::uint32_t>(kOptimizationGroupBands)+i,*end,signatures[i]});
+    }
     if(postings.empty())return false;
     bool settled_catalog=false;
     const auto reserve=[&](std::uint64_t write_bytes) {
@@ -271,7 +283,7 @@ struct NativeFileSession::Impl {
     // A charged catalog attempt is settled even if its own publication failed.
     return settled_catalog;
   }
-  bool publish_scan_advice(OptimizationGroupScan scan) {
+  bool publish_scan_advice(OptimizationGroupScan scan,std::span<const OptimizationGroupProjection> projections) {
     if(!scan_advice_funded())return false;
     auto& advice=*ready_scan_advice();
     const auto actual=writer.snapshot().workload_info();
@@ -279,7 +291,7 @@ struct NativeFileSession::Impl {
     auto state=advice.snapshot().state;
     state.group_scan=std::move(scan);
     try {
-      return publish_coherence_scan(advice,state,actual.committed_input_bytes) ||
+      return publish_coherence_scan(advice,state,actual.committed_input_bytes,projections) ||
           (!coherence_reserves_credit() &&
            advice.publish_budgeted(state,actual.committed_input_bytes,true)==OptimizationStateWriter::BudgetResult::published);
     }catch(...) {
@@ -547,7 +559,9 @@ std::weak_ptr<detail::NativeMaintenanceSource> NativeFileSession::maintenance_so
       return advice->snapshot().state.group_scan;
     };
     source->scan_funded=[owner=&self]{return owner->scan_advice_funded();};
-    source->publish_scan=[owner=&self](OptimizationGroupScan scan){return owner->publish_scan_advice(std::move(scan));};
+    source->publish_scan=[owner=&self](OptimizationGroupScan scan,std::span<const OptimizationGroupProjection> projections) {
+      return owner->publish_scan_advice(std::move(scan),projections);
+    };
     source->coherence_pending=[owner=&self]{return owner->coherence_work_pending();};
     source->advance_coherence=[owner=&self]{owner->advance_coherence_work();};
     self.maintenance=std::move(source);

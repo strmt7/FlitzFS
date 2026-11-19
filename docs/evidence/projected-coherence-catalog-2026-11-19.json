@@ -1,0 +1,335 @@
+{
+  "schema": "flitzfs-projected-paged-coherence-v1",
+  "captured_local": "2026-11-19T13:23:45+01:00",
+  "source_base": "e115f3bed4d3c4ee349014fd53d2d03baadcff0e",
+  "source_binding": [
+    {
+      "path": "CMakeLists.txt",
+      "git_blob": "3bcb2aa8e9e66035aefe9e1c2928b19daff8c14c"
+    },
+    {
+      "path": "include/flitzfs/indexed_coherence.hpp",
+      "git_blob": "012147ac5c339b5b0acbcbf371dafb00c4e55578"
+    },
+    {
+      "path": "src/indexed_coherence.cpp",
+      "git_blob": "fd96eacd829fba4a0405bd3a45bde16c6d9cfc77"
+    },
+    {
+      "path": "src/native_maintenance.cpp",
+      "git_blob": "8049b62ca356cce8a1d03e5c830d381e0f671722"
+    },
+    {
+      "path": "src/native_maintenance_source.hpp",
+      "git_blob": "47df0fa2cbdf6e9a2574ef7a2cb4e0ae90fda55f"
+    },
+    {
+      "path": "src/native_session.cpp",
+      "git_blob": "e4b2619f8f0b1978c529619f5e9920b571374d5a"
+    },
+    {
+      "path": "tests/test_native_group_maintenance.cpp",
+      "git_blob": "034016b257e741883eb9d5cd9af9cc0cb7d15989"
+    },
+    {
+      "path": "tests/test_paged_store.cpp",
+      "git_blob": "583f681fbf8c11c18a577fe5ed3a412f7c5efa32"
+    }
+  ],
+  "semantic": {
+    "provider_version": "0.2.43",
+    "source_files": 8,
+    "actual_searches": 1,
+    "receipt_sha256": "c18d96e3891eb7330bc1c6b2412e35a5a26f440e259d305c49a858bcb49aac2a",
+    "native_response_sha256": "c2013492645120807e130724c06eb4e3ddcef2da8b64224a906cc81996b80f37",
+    "parsed_capture_sha256": "5739024f72b589014ff6cd29208d28c911dec113c09c16f23cb106a724b8c2ba",
+    "job": {
+      "run": "local-run-d1d908a0c34c486a9d3972dd2717cd49",
+      "exit_code": 0,
+      "receipt_sha256": "80fa758045f88883e843b69e28fb47180f9493fa5ff27042742b58a69840a1f8",
+      "log_sha256": "927de3274bfc610370b32b609706984c4395b40c54e2b79c2d4a94beb59ecb7c",
+      "memory_envelope_bytes": 1926234112,
+      "peak_job_bytes": 1099931648,
+      "cpu_percent": 14,
+      "tree_retired": true
+    }
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "provider_entry_sha256": "e84a0e54ee07e4e13d3d2f35491f641730096a78126068f232c1f2397a467d8c",
+    "receipt_sha256": "1be0f70d5b596f417d27f5a63bf0e13e7a6c4f096c2ca78a2934adb1e904bd37",
+    "robots": true,
+    "external_llm": false,
+    "timeout_seconds": 45,
+    "pages": [
+      {
+        "name": "historical-base",
+        "url": "https://www.mdpi.com/2079-9292/15/20/4712",
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 87177,
+        "markdown_sha256": "4d509b2768a9b667b02f8c92c8da6c4fb814d96a0ca548e4f8a61fe5869084b0",
+        "capture_sha256": "43c05a05128ab065734c4b075daecfef5c6e104cf54ce4b81a238426445a0e25",
+        "error": ""
+      },
+      {
+        "name": "rubikfs",
+        "url": "https://www.usenix.org/conference/fast26/presentation/huang",
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 10395,
+        "markdown_sha256": "b271b38f1feb88acd780ae11d756c7f3723fecb288cfe5e7803fed9c5d93767d",
+        "capture_sha256": "63739a857e6516d42c9776feebb894eee5bf6379f6a8e7ad02c6b9680f139424",
+        "error": ""
+      }
+    ],
+    "job": {
+      "run": "local-run-bbb2dc44b6f24cac9d4de5d9e5b4b372",
+      "exit_code": 0,
+      "receipt_sha256": "eab19b75952ac370fdd71c57c602f180b6cd92a0d4c044d38ab5b719c7fd7b17",
+      "log_sha256": "24ab7f476c5dfa4408823cb131d5a99f317c325621719c008bdc97493058a612",
+      "memory_envelope_bytes": 1412431872,
+      "peak_job_bytes": 1380556800,
+      "cpu_percent": 10,
+      "tree_retired": true
+    },
+    "design_inference": "Persist compact historical nominations beyond the working set. Preserve a live extent and full-size check before any group is selected."
+  },
+  "fixture": {
+    "platform": "Physical Windows 11 AMD64, CPU maintenance, memory-backed synthetic filesystem",
+    "intervening_extents": 374,
+    "extent_bytes": 65536,
+    "initial_representative_evicted_from_checkpoint": true,
+    "reopen_before_catalog_lookup": true,
+    "cpu_verify_all_after_maintenance": true,
+    "maximum_point_lookups_per_idle_step": 1,
+    "projected_catalog": {
+      "groups": 1,
+      "members": 2,
+      "point_lookups": 1879,
+      "catalog_bytes": 421888,
+      "minimum_compacted_user_image_savings_bytes": 98304
+    },
+    "aligned_only": {
+      "groups": 0,
+      "point_lookups": 376,
+      "catalog_bytes": 155648,
+      "minimum_compacted_user_image_savings_bytes": 0,
+      "scope": "Same files and original live binding, seeded through one schema-1 posting."
+    },
+    "stale_revision_blocked": true,
+    "unreadable_catalog_retired_after_one_failure": true
+  },
+  "protocol": {
+    "root_versions_read": [
+      1,
+      2
+    ],
+    "projected_posting_bytes": 96,
+    "promotion_write_bound_bytes": 20480,
+    "modeled_interruption_cases_per_configuration": 36,
+    "tests": [
+      "Read old and new keys after a single protected promotion",
+      "Zero-budget refusal left the old schema selected",
+      "Replayed and older observations issued no writes",
+      "Resumed checkpoint kept the prior key and atomically selected the projected root and row",
+      "Valid outer record with wrong projected binding was rejected",
+      "Funded compaction preserved live and pruned stale projected rows",
+      "Interrupted write settlement issued no catalog writes",
+      "CPU verification of the complete selected user image"
+    ]
+  },
+  "qualification": [
+    {
+      "lane": "Windows Release, LZ4 and Zstandard with WinFsp SDK",
+      "ctest_passed": 14,
+      "builds": [
+        {
+          "run": "local-run-77a10fc20a684914b0c1b261f4c40f78",
+          "exit_code": 0,
+          "receipt_sha256": "4caed28d3e3213c1a318444abad845291ddb041dc17f4138d8e22b2edea4e328",
+          "log_sha256": "823dd993b5e41ddb6872701b3a91056f0268fd455abb9eb87e58a3a84be936f8",
+          "memory_envelope_bytes": 1226833920,
+          "peak_job_bytes": 745340928,
+          "cpu_percent": 14,
+          "tree_retired": true
+        },
+        {
+          "run": "local-run-6a5663402a05468281304af81afba774",
+          "exit_code": 0,
+          "receipt_sha256": "51e637a3534d973acf7af82d875d01cf39cff37752244fa2868ab8045e60b451",
+          "log_sha256": "77876ad17539b54f285f66b9f75fcac067faa7f7cc4b40b6096ca3e3e3c12e82",
+          "memory_envelope_bytes": 1054867456,
+          "peak_job_bytes": 311951360,
+          "cpu_percent": 16,
+          "tree_retired": true
+        },
+        {
+          "run": "local-run-76804f8fe6c64b67b27e43b993345227",
+          "exit_code": 0,
+          "receipt_sha256": "260de124c521c08ca02a35500819ca30f79dcd1bfa118e822171ef58d9c5b9cc",
+          "log_sha256": "8589871215d90ac84066447729d860dc4b6fc7cfe6498ef7dab8f00cbfb2f9e2",
+          "memory_envelope_bytes": 1095761920,
+          "peak_job_bytes": 287055872,
+          "cpu_percent": 14,
+          "tree_retired": true
+        }
+      ],
+      "tests": {
+        "run": "local-run-140a94c39ce84596bd474e4fe9017a17",
+        "exit_code": 0,
+        "receipt_sha256": "42c761104e263160a019ac03856873ca0c8b390682c50b958ca053064da1d835",
+        "log_sha256": "3ba4254856b015c7cc1f76ffbc4c3207deb04cb4b353358a5f64e4042e09b0b7",
+        "memory_envelope_bytes": 1071644672,
+        "peak_job_bytes": 165777408,
+        "cpu_percent": 14,
+        "tree_retired": true
+      }
+    },
+    {
+      "lane": "Windows Release, raw only",
+      "ctest_passed": 12,
+      "builds": [
+        {
+          "run": "local-run-eadee0a80a8d45229c3647fcf9256149",
+          "exit_code": 0,
+          "receipt_sha256": "7d2677869a2a2edca37191f4911125660b78b0711ba55bcba11994c3880c5b23",
+          "log_sha256": "12ec318922765365d25cd56f8f126365451789e1e2cfde37a9419bc094a65a72",
+          "memory_envelope_bytes": 1226833920,
+          "peak_job_bytes": 442060800,
+          "cpu_percent": 12,
+          "tree_retired": true
+        },
+        {
+          "run": "local-run-4d5a467ab8d54e31a099402bf83a5448",
+          "exit_code": 0,
+          "receipt_sha256": "878f374137f68c2d83203ec2ca4f8e733a1d325a94234e9f16585c01aeb60dc6",
+          "log_sha256": "fd894d4fdb83246cc5382915c3de853cadcb4ed5e115c772c405abe0854333f4",
+          "memory_envelope_bytes": 1003487232,
+          "peak_job_bytes": 314327040,
+          "cpu_percent": 14,
+          "tree_retired": true
+        },
+        {
+          "run": "local-run-a9e86b47910f4d2cb5b9a0f7feafe7bc",
+          "exit_code": 0,
+          "receipt_sha256": "16caed7bf8795fbc60b9a60a7d39fee687d105450df08578ef7423f3d3cb3d56",
+          "log_sha256": "a2eb747fc7ddd2e8f6d8220a3004338d7f220c2aec8a8a1115e5e5b92434c122",
+          "memory_envelope_bytes": 1095761920,
+          "peak_job_bytes": 263434240,
+          "cpu_percent": 12,
+          "tree_retired": true
+        }
+      ],
+      "tests": {
+        "run": "local-run-3f747bbc65d542ed8e7d0ebe11c2a865",
+        "exit_code": 0,
+        "receipt_sha256": "19606067d16c4623f73711f176b09bc3543d50734a83f91d61b222b54a9e2bbc",
+        "log_sha256": "7b458324d558b50257a4b4414513ba10880a008f45f572f82ae456637854becc",
+        "memory_envelope_bytes": 1089470464,
+        "peak_job_bytes": 165662720,
+        "cpu_percent": 12,
+        "tree_retired": true
+      }
+    },
+    {
+      "lane": "Windows MSVC AddressSanitizer with LZ4 and WinFsp SDK",
+      "ctest_passed": 15,
+      "builds": [
+        {
+          "run": "local-run-8e3f954571f64315aa005b20e765fd09",
+          "exit_code": 0,
+          "receipt_sha256": "6b45e39001b54ce00dde75a8eee904e9284c1d99a3fc4b4e14973f396d0fae30",
+          "log_sha256": "67ebfb075ac549565718a30aa37882260cf4eff3efbe0b01647b396867958d79",
+          "memory_envelope_bytes": 2453667840,
+          "peak_job_bytes": 26927104,
+          "cpu_percent": 16,
+          "tree_retired": true
+        },
+        {
+          "run": "local-run-f17159d52ced4d6c9fcff4098e730364",
+          "exit_code": 0,
+          "receipt_sha256": "d7f431dc5ed0686671058025f324884401da6c8ec4f49f732067bdb9badaad6f",
+          "log_sha256": "c295c300cf9d059c02d225ac3db2943d8281a95aca86f7c14a67813f1ce42793",
+          "memory_envelope_bytes": 2423259136,
+          "peak_job_bytes": 602497024,
+          "cpu_percent": 16,
+          "tree_retired": true
+        },
+        {
+          "run": "local-run-ff9a6d5e14dc4bccbfb9732291b9f502",
+          "exit_code": 0,
+          "receipt_sha256": "8098c7ee4a795a687da8305dc5fc3fcb1df891ea78bbd830a0d40350f60138ca",
+          "log_sha256": "d342bda74868ca599bb64b5f7a2e04c06936615267e2f0075c2944184d84af44",
+          "memory_envelope_bytes": 2192572416,
+          "peak_job_bytes": 462487552,
+          "cpu_percent": 16,
+          "tree_retired": true
+        }
+      ],
+      "tests": {
+        "run": "local-run-06189cb402cf4ea68bcf910f5d6ec23e",
+        "exit_code": 0,
+        "receipt_sha256": "85698690b2c2c181e89694343569a0c8d3124425d69e77562f12c4b020aec438",
+        "log_sha256": "cfae0136f26861eb649afe34e18587d40a173abc41aeb416dfc4fe5f9be26ae5",
+        "memory_envelope_bytes": 2179989504,
+        "peak_job_bytes": 856076288,
+        "cpu_percent": 16,
+        "tree_retired": true
+      },
+      "staged_runtime_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed"
+    }
+  ],
+  "corrected_fixture_failures": [
+    {
+      "issue": "Cut index omitted the reopen flush. A one-file-per-extent fixture exhausted its 64 MiB image.",
+      "resolution": "Offset the cut by actual calls and write unrelated extents in batches with distinct seeds.",
+      "job": {
+        "run": "local-run-93787eba43bd4a24b7dc9c19e4c36b71",
+        "exit_code": 8,
+        "receipt_sha256": "a9f52b5e3d969e569f14491437b92a932cf04fccc22289890f812dc6cd757d57",
+        "log_sha256": "3c2a9b587532dbbdf88029f1a006cc9bbf788261ed4c8f5342703eb7faee47cc",
+        "memory_envelope_bytes": 769654784,
+        "peak_job_bytes": 224600064,
+        "cpu_percent": 12,
+        "tree_retired": true
+      }
+    },
+    {
+      "issue": "An interruption can leave one valid root for the new checkpoint with a different replica generation.",
+      "resolution": "Classify selection by the persisted checkpoint generation and still verify both key families.",
+      "job": {
+        "run": "local-run-536f47b6d8734b84bf4f4c659799213e",
+        "exit_code": 8,
+        "receipt_sha256": "77738b33dda69c9e41471d13c6db2a09129f6e053432c96482dd1b916d2b927a",
+        "log_sha256": "47b63235927f14438b9dbdfd05a0971e14376ff954c2681312b34527e4fc8b98",
+        "memory_envelope_bytes": 902823936,
+        "peak_job_bytes": 166002688,
+        "cpu_percent": 14,
+        "tree_retired": true
+      }
+    },
+    {
+      "issue": "The defect fixture tried to acquire a second writer on one backing.",
+      "resolution": "Inject the malformed posting into a separate copy with its own writer.",
+      "job": {
+        "run": "local-run-4eca61f1c325475f9593f5edd52c0153",
+        "exit_code": 8,
+        "receipt_sha256": "2d4b11318493d61fd4381e7a57ee4dddb8abd6fb1c1d1532568e50f3685e0dbe",
+        "log_sha256": "fce254e959ed86928bba2d06fc837a682e4c7e7eadd86e204b5b261a862b8d3a",
+        "memory_envelope_bytes": 1004535808,
+        "peak_job_bytes": 165715968,
+        "cpu_percent": 14,
+        "tree_retired": true
+      }
+    }
+  ],
+  "scope": [
+    "The savings figure is a checked lower bound for compacted user data and metadata. The separate catalog footprint is reported independently.",
+    "The aligned-only fixture has a smaller catalog because it contains a single original binding. Its footprint is not a same-inventory overhead baseline.",
+    "Resource limits and scheduling were exercised on one host with modeled observations in the compression fixtures.",
+    "Commercial scale, total space on mixed workloads, qualified GPU selection, and physical power-loss behavior remain open."
+  ]
+}

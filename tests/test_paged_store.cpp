@@ -171,6 +171,76 @@ void paged_coherence_catalog() {
   const auto malformed=IndexedCoherenceSnapshot::open(ram,volume,source,limits);
   rejects([&]{(void)malformed.find(0,fingerprint);},"malformed coherence row supplied advice");
 }
+void projected_coherence_transition() {
+  auto volume=identity(),source=volume;
+  source[0]=std::byte{27};
+  auto ram=std::make_shared<Ram>();
+  auto catalog=IndexedCoherenceWriter::create(ram,volume,source,limits);
+  const auto aligned=posting(7);
+  catalog.publish(std::span(&aligned,1),UINT64_MAX);
+  const auto legacy=catalog.snapshot();
+  const auto original=ram->stable;
+  constexpr auto projected_band=static_cast<std::uint32_t>(kOptimizationGroupBands)+2;
+  constexpr std::uint64_t fingerprint=0xfedcba9876543210ULL;
+  auto projected=posting(9);
+  projected.band=projected_band;
+  projected.projected_fingerprint=fingerprint;
+  projected.representative.exact_base=true;
+  auto expected=projected.representative;
+  expected.bands={};
+  require(!legacy.has_projected_keys() && !legacy.find(projected_band,fingerprint),
+      "legacy catalog exposed projected keys");
+  const auto before=ram->calls;
+  rejects([&]{catalog.publish(std::span(&projected,1),0);},"projection exceeded a zero write budget");
+  require(ram->calls==before && !catalog.poisoned() && !catalog.snapshot().has_projected_keys(),
+      "budget refusal promoted the catalog");
+  const auto published=catalog.publish(std::span(&projected,1),UINT64_MAX);
+  const auto calls=ram->calls-before;
+  auto upgraded=IndexedCoherenceSnapshot::open(ram,volume,source,limits);
+  require(upgraded.has_projected_keys() && upgraded.find(0,aligned.representative.bands[0])==aligned.representative &&
+      upgraded.find(projected_band,fingerprint)==expected && !upgraded.find(projected_band+1,fingerprint) &&
+      !upgraded.find(projected_band,fingerprint^1) && !legacy.find(projected_band,fingerprint),
+      "catalog promotion lost a binding or exposed an unrelated key");
+  const auto writes=ram->calls;
+  auto older=projected;
+  --older.representative.revision;
+  require(!catalog.publish(std::span(&projected,1),0).write_bytes_upper_bound &&
+      !catalog.publish(std::span(&older,1),0).write_bytes_upper_bound && ram->calls==writes,
+      "projected key replay wrote extra history");
+
+  for(unsigned mode=0;mode<3;++mode)for(std::size_t cut=0;cut<calls;++cut) {
+    auto fault=image(original);
+    auto writer=IndexedCoherenceWriter::resume(fault,volume,source,legacy.info().generation,limits);
+    fault->mode=mode;
+    fault->fail_at=fault->calls+cut;
+    rejects([&]{writer.publish(std::span(&projected,1),UINT64_MAX);},"projection cut was not exercised");
+    const auto recovered=IndexedCoherenceSnapshot::open(image(fault->stable),volume,source,limits);
+    const auto checkpoint=recovered.info().checkpoint_generation;
+    const bool promoted=checkpoint==published.storage.checkpoint_generation;
+    require((promoted || checkpoint==legacy.info().checkpoint_generation) &&
+        recovered.has_projected_keys()==promoted &&
+        recovered.find(0,aligned.representative.bands[0])==aligned.representative &&
+        recovered.find(projected_band,fingerprint)==(promoted?std::optional{expected}:std::nullopt),
+        "interrupted promotion exposed an unmatched schema or changed an existing key");
+  }
+
+  const auto altered=image(ram->stable);
+  auto generic=PagedObjectStoreWriter::resume(altered,volume,upgraded.info().generation,limits,
+      {StoreCompressionMode::raw,1,false});
+  const auto raw=generic.snapshot();
+  const auto rows=raw.list_page(1,3);
+  const auto compact=std::ranges::find(rows,96,&StoreObjectInfo::logical_bytes);
+  require(compact!=rows.end(),"projected records exceeded the compact wire size");
+  auto record=raw.read(compact->id);
+  record.at(88)^=std::byte{1}; // The outer record is valid, but the key no longer matches its body.
+  generic.commit(std::array<StoreMutation,1>{{{compact->id,false,std::move(record)}}});
+  const auto malformed=IndexedCoherenceSnapshot::open(altered,volume,source,limits);
+  rejects([&]{(void)malformed.find(projected_band,fingerprint);},"malformed projection supplied a candidate");
+  require(malformed.find(0,aligned.representative.bands[0])==aligned.representative,
+      "malformed projection changed an unrelated posting");
+  std::cout<<"projected_catalog record_bytes=96 promotion_write_bytes="<<published.write_bytes_upper_bound
+      <<" modeled_interruptions="<<3*calls<<'\n';
+}
 void basic_and_oracle() {
   auto ram=std::make_shared<Ram>();auto writer=create(ram);auto empty=writer.snapshot();
   require(empty.info().objects==0 && empty.list_page(0,1).empty(),"empty index");
@@ -464,7 +534,8 @@ void scale(std::uint64_t count) {
 int main(int argc,char** argv) {
   try {
     if(argc==2 && std::string_view(argv[1])=="--million")scale(1000000);
-    else if(argc==1) {append_write_accounting();paged_coherence_catalog();basic_and_oracle();remove_all_keys();
+    else if(argc==1) {append_write_accounting();paged_coherence_catalog();projected_coherence_transition();
+      basic_and_oracle();remove_all_keys();
       failure_matrix(4096);failure_matrix(65536);
       damage_and_malformed();semantic_pages_and_units();codec_modes();rebuild_and_recovery();rebuild_failures();scale(16384);}
     else throw std::runtime_error("unsupported test arguments");

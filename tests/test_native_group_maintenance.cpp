@@ -610,8 +610,8 @@ class CatalogReadGate final:public StoreByteIo {
  private:
   std::shared_ptr<Ram> backing_;
 };
-enum class CatalogCase {available,unavailable,stale};
-void indexed_catalog_discovery(CatalogCase scenario) {
+enum class CatalogCase {available,unavailable,stale,aligned_only};
+void indexed_catalog_discovery(CatalogCase scenario,bool projected=false) {
   Fixture f(4096,0,true);
   auto advice=ram(4096);
   require(f.session->create_budgeted_optimization_area(advice).phase==NativeOptimizationPhase::ready,
@@ -621,26 +621,72 @@ void indexed_catalog_discovery(CatalogCase scenario) {
   f.session->bind_indexed_coherence_writer(std::move(catalog));
   const auto original=family(0);
   put(*f.session,"original",original);
-  for(unsigned i=0;i<4;++i)put(*f.session,"noise-"+std::to_string(i),data(kNativeExtentBytes,590+i));
-  put(*f.session,"funding",Bytes(kOptimizationGroupScanInputBytes-5*kNativeExtentBytes));
+  const bool long_range=projected && (scenario==CatalogCase::available || scenario==CatalogCase::aligned_only);
+  const auto noise_count=long_range?kOptimizationGroupRepresentatives+1:4;
+  if(long_range) {
+    f.session->create_entry("noise");
+    const auto noise=f.session->open("noise",{true,true,false});
+    for(std::size_t first=0;first<noise_count;first+=kNativeMaxDirtyExtents) {
+      const auto count=(std::min)(noise_count-first,kNativeMaxDirtyExtents);
+      Bytes batch(count*kNativeExtentBytes);
+      for(std::size_t i=0;i<count;++i) {
+        const auto bytes=data(kNativeExtentBytes,4000+static_cast<unsigned>(first+i));
+        std::ranges::copy(bytes,batch.begin()+i*kNativeExtentBytes);
+      }
+      f.session->write(noise,first*kNativeExtentBytes,batch);
+    }
+    f.session->cleanup(noise,false);
+    f.session->close(noise);
+    for(unsigned i=0;i<3;++i)
+      put(*f.session,"funding-"+std::to_string(i),Bytes(3*kOptimizationGroupScanInputBytes/4));
+  }else {
+    for(unsigned i=0;i<noise_count;++i)
+      put(*f.session,"noise-"+std::to_string(i),data(kNativeExtentBytes,590+i));
+    put(*f.session,"funding",Bytes(kOptimizationGroupScanInputBytes-5*kNativeExtentBytes));
+  }
   put(*f.session,"catalog-input",Bytes(kOptimizationGroupScanInputBytes/2));
+  OptimizationGroupFeature original_feature;
+  OptimizationXorSignatures original_signatures{};
   {
     NativeGroupMaintenance initial(*f.session);
+    for(unsigned tick=0;tick<200 && !initial.progress().checkpoints_published;++tick)
+      require(f.step(initial).phase!=Phase::failed,"catalog scanning failed");
+    const auto saved=read_optimization_state(*advice,id(90));
+    const auto before_generations=f.session->snapshot();
+    require(saved.state.group_scan && !saved.state.group_scan->representatives.empty() &&
+        saved.state.group_scan->representatives.front().inode==before_generations.stat("original").inode &&
+        !saved.state.group_scan->projections.empty() && saved.state.group_scan->projections.front().representative==0,
+        "archive lacked an actual native extent binding");
+    original_feature=saved.state.group_scan->representatives.front();
+    original_signatures=saved.state.group_scan->projections.front().signatures;
     finish_pending(f,initial);
-    require(initial.progress().checkpoints_published==1 && initial.progress().published_groups==0,
+    require(initial.progress().checkpoints_published && initial.progress().published_groups==0,
         "catalog feature source lacked a funded sample");
+    if(long_range) {
+      const auto latest=f.session->optimization_snapshot().state.group_scan;
+      require(latest && std::ranges::find(latest->representatives,original_feature.object,
+          &OptimizationGroupFeature::object)==latest->representatives.end(),
+          "long-range test still retained the original in checkpoint history");
+    }
   }
-  const auto saved=read_optimization_state(*advice,id(90));
-  const auto before_generations=f.session->snapshot();
-  require(saved.state.group_scan && !saved.state.group_scan->representatives.empty() &&
-      saved.state.group_scan->representatives.front().inode==before_generations.stat("original").inode,
-      "archive lacked an actual native extent binding");
-  const auto& original_feature=saved.state.group_scan->representatives.front();
+  constexpr auto masked_band=static_cast<std::uint32_t>(kOptimizationGroupBands)+2;
   const auto archive=IndexedCoherenceSnapshot::open(backing,id(90),id(1),{kStoreMaxPhysicalBytes});
-  require(archive.find(0,original_feature.bands[0])==original_feature,
-      "ordinary funded sampling did not populate the paged catalog");
+  auto expected=original_feature;expected.bands={};
+  require(archive.has_projected_keys() && archive.find(0,original_feature.bands[0])==original_feature &&
+      archive.find(masked_band,original_signatures[2])==expected,
+      "ordinary funded sampling did not populate both paged key families");
+  if(scenario==CatalogCase::aligned_only) {
+    backing=ram(4096);
+    auto control=IndexedCoherenceWriter::create(backing,id(90),id(1),{kStoreMaxPhysicalBytes});
+    const IndexedCoherencePosting legacy{0,original_feature};
+    control.publish(std::span(&legacy,1),UINT64_MAX);
+    require(!control.snapshot().has_projected_keys(),"aligned-only control acquired projections");
+  }
   auto distant=original;
-  distant[distant.size()-91]^=std::byte{0x31};
+  if(projected) {
+    const auto variation=data(distant.size(),9121);
+    for(std::size_t i=0;i<distant.size();++i)distant[i]^=variation[i]&std::byte{0x30};
+  }else distant[distant.size()-91]^=std::byte{0x31};
   put(*f.session,"distant",distant);
   const auto edited=scenario==CatalogCase::stale;
   const auto current_original=edited?data(kNativeExtentBytes,811):original;
@@ -665,16 +711,21 @@ void indexed_catalog_discovery(CatalogCase scenario) {
     // Reserve just enough modeled headroom for two ordinary members and two
     // cached representatives, forcing the original out of the live window.
     observation.physical_available=observation.physical_total/16+64*(33ULL*kNativeExtentBytes);
-    require(controller.advance(observation,f.clock.now).phase!=Phase::failed,
-        "optional catalog affected data maintenance health");
+    const auto lookups=controller.progress().coherence_lookups;
+    const auto progress=controller.advance(observation,f.clock.now);
+    require(progress.phase!=Phase::failed && progress.coherence_lookups<=lookups+1,
+        "optional catalog exceeded one lookup or affected data maintenance health");
   }
   const auto progress=controller.progress();
   require(!controller.pending() && !f.session->poisoned(),"indexed catalog maintenance did not settle");
   if(scenario==CatalogCase::unavailable)
     require(progress.coherence_lookups==1 && progress.coherence_failures==1 && progress.published_groups==0,
         "failed catalog lookup retried or manufactured a group");
+  else if(scenario==CatalogCase::aligned_only)
+    require(!progress.coherence_matches && !progress.coherence_failures && !progress.attempted_groups &&
+        !progress.published_groups,"aligned-only catalog found an extent with no matching aligned key");
   else
-    require(progress.coherence_matches==1 && !progress.coherence_failures &&
+    require(progress.coherence_matches>=1 && !progress.coherence_failures &&
         progress.published_groups==(edited?0U:1U) && progress.attempted_groups==(edited?0U:1U),
         "paged candidate was missed or an edited binding entered preparation");
   const auto view=f.session->snapshot();
@@ -682,6 +733,10 @@ void indexed_catalog_discovery(CatalogCase scenario) {
       view.read("distant",0,kNativeExtentBytes)==distant &&
       view.shared_base_info().members==(scenario==CatalogCase::available?2:0),"catalog integration changed file data");
   view.verify_all();
+  if(long_range)std::cout<<"projected_catalog_discovery aligned_only="<<(scenario==CatalogCase::aligned_only)
+      <<" intervening_extents="<<noise_count<<" lookups="<<progress.coherence_lookups
+      <<" groups="<<progress.published_groups<<" minimum_compacted_bytes_saved="<<progress.minimum_compacted_bytes_saved
+      <<" catalog_bytes="<<progress.coherence_catalog_bytes<<'\n';
 }
 enum class CatalogFunding {available,checkpoint_only,journal_failure,catalog_failure};
 void funded_indexed_catalog(CatalogFunding outcome) {
@@ -723,7 +778,7 @@ void funded_indexed_catalog(CatalogFunding outcome) {
   const auto recorded=*settled.state.settled_input_bytes;
   if(outcome==CatalogFunding::available) {
     const auto spent=backing->write_bytes-catalog_writes;
-    require(view.info().objects==3 && view.info().physical_end>initial_end && spent>0 &&
+    require(view.info().objects==11 && view.info().physical_end>initial_end && spent>0 &&
         recorded>=kOptimizationGroupScanInputBytes+spent*kOptimizationGroupScanInputPerWriteByte,
         "automatic feature publication escaped its durable write charge");
     for(const auto& feature:settled.state.group_scan->representatives)
@@ -799,7 +854,7 @@ void automatic_indexed_catalog(CatalogFunding outcome) {
         "a funded catalog creation failed to reserve exactly once");
     if(outcome==CatalogFunding::available) {
       const auto snapshot=IndexedCoherenceSnapshot::open(backing,id(90),id(1),limits);
-      require(snapshot.info().objects==3 && snapshot.info().generation==2 &&
+      require(snapshot.info().objects==11 && snapshot.info().generation==2 &&
           settled==kOptimizationGroupScanInputBytes+backing->write_bytes*kOptimizationGroupScanInputPerWriteByte,
           "initial catalog and postings escaped one complete charged checkpoint");
       for(const auto& feature:journal.state.group_scan->representatives)
@@ -873,6 +928,16 @@ std::size_t compact_full_indexed_catalog(CoherenceCopyOutcome outcome,std::size_
     return *found;
   };
   const auto keep=find_feature("keep"),stale=find_feature("edited");
+  const auto projected_key=[&](const OptimizationGroupFeature& feature) {
+    const auto row=std::ranges::find(first_scan.representatives,feature.object,&OptimizationGroupFeature::object)-
+        first_scan.representatives.begin();
+    const auto projection=std::ranges::find(first_scan.projections,row,&OptimizationGroupProjection::representative);
+    if(projection==first_scan.projections.end())throw std::runtime_error("fixture lost its masked signature");
+    return projection->signatures[2];
+  };
+  constexpr auto masked_band=static_cast<std::uint32_t>(kOptimizationGroupBands)+2;
+  const auto keep_key=projected_key(keep),stale_key=projected_key(stale);
+  auto projected_keep=keep;projected_keep.bands={};
   const auto active=backings.front();
   edit(data(kNativeExtentBytes,57012));
   earn(2);
@@ -914,8 +979,9 @@ std::size_t compact_full_indexed_catalog(CoherenceCopyOutcome outcome,std::size_
     const auto replacement=IndexedCoherenceSnapshot::open(candidate,id(90),id(1),limits);
     require(progress.coherence_compactions==1 && !progress.coherence_discards &&
         progress.coherence_compacted_bytes_saved==full-replacement.info().physical_end &&
-        replacement.info().objects==2 && replacement.find(0,keep.bands[0])==keep &&
-        !replacement.find(0,stale.bands[0]),"compaction kept stale postings or lost a current representative");
+        replacement.info().objects==6 && replacement.find(0,keep.bands[0])==keep &&
+        replacement.find(masked_band,keep_key)==projected_keep && !replacement.find(0,stale.bands[0]) &&
+        !replacement.find(masked_band,stale_key),"compaction kept stale postings or lost a current representative");
     require(*settled.state.settled_input_bytes-*before.state.settled_input_bytes==
         kOptimizationGroupScanInputBytes+candidate->write_bytes*kOptimizationGroupScanInputPerWriteByte,
         "candidate grew beyond the durable write charge");
@@ -969,6 +1035,9 @@ int main(int argc,char** argv){try{
     retain_distant_indexed_candidate();
     retain_distant_indexed_candidate(true);
     indexed_scan_checkpoint_faults();
+  } else if(argc==2 && std::string_view(argv[1])=="--indexed-projected-coherence") {
+    for(const auto scenario:{CatalogCase::available,CatalogCase::aligned_only,CatalogCase::unavailable,CatalogCase::stale})
+      indexed_catalog_discovery(scenario,true);
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-coherence") {
     for(const auto scenario:{CatalogCase::available,CatalogCase::unavailable,CatalogCase::stale})
       indexed_catalog_discovery(scenario);

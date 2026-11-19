@@ -206,11 +206,13 @@ restart. The extended checkpoint fits up to 373 representatives within the
 existing pair, subject to admitted memory, with a sparse tail for masked
 signatures. The scanner revalidates same-image representatives after an
 intervening edit and resamples changed extents. The paged coherence catalog
-currently uses aligned and offset-independent keys. Projected lookups
-beyond checkpoint history and measured collective AMD benefit remain open.
+can find masked matches outside checkpoint history using the same live
+checks. Its new postings cost 96 decoded bytes per stored signature.
+Measured collective AMD benefit across workloads remains open.
 [Restart validation](evidence/persistent-indexed-discovery-2026-11-18.json) ·
 [Automatic indexed discovery](evidence/automatic-indexed-discovery-2026-11-18.json) ·
-[Masked XOR discovery and restart](evidence/projected-xor-discovery-2026-11-19.json)
+[Masked XOR discovery and restart](evidence/projected-xor-discovery-2026-11-19.json) ·
+[Paged masked discovery](evidence/projected-coherence-catalog-2026-11-19.json)
 
 ## Writable transactions
 

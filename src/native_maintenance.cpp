@@ -126,6 +126,7 @@ struct NativeGroupMaintenance::Impl {
   std::vector<Band> candidate_order;
   std::size_t candidate_index=0,band_offset=0;
   std::uint64_t coherence_after=0,coherence_binding=0;
+  unsigned coherence_query=0;
   std::set<Digest> attempted;std::deque<Digest> attempted_order;
   std::optional<NativeFilesystemWriter::SharedBaseWork> work;
   std::deque<StagedGroup> staged_groups;
@@ -152,6 +153,7 @@ struct NativeGroupMaintenance::Impl {
     candidate_index=band_offset=0;completed_sequence=0;phase=Phase::idle;state.owned_payload_bytes=0;pending_history=0;work_ids.clear();
     representatives.clear();refresh_base.reset();extent_scan_exhausted=false;
     coherence_after=coherence_binding=0;
+    coherence_query=0;
     checkpoint_loaded=checkpoint_due=false;checkpoint_samples=state.sampled_extents;scan_revisit=false;
   }
   void remember(const Digest& key) {
@@ -255,8 +257,13 @@ struct NativeGroupMaintenance::Impl {
       scan.complete=phase==Phase::idle&&!scan.revisit;
       scan.xor_sampling=true;
       scan.representatives.reserve(representatives.size());
+      std::vector<OptimizationGroupProjection> catalog_projections;
+      const bool can_publish_catalog=owner.coherence_writer || owner.coherence_storage;
+      if(can_publish_catalog)catalog_projections.reserve(representatives.size());
       for(const auto& [id,feature]:representatives) {
         const auto& token=feature.token;
+        if(can_publish_catalog && feature.projected)
+          catalog_projections.push_back({static_cast<std::uint32_t>(scan.representatives.size()),feature.projections});
         scan.representatives.push_back({token.extent.inode,token.extent.extent_index,
             id,token.revision,feature.content,feature.bands,token.exact_base});
       }
@@ -274,7 +281,7 @@ struct NativeGroupMaintenance::Impl {
         }
       }
       std::ranges::sort(scan.projections,{},&OptimizationGroupProjection::representative);
-      if(owner.publish_scan(std::move(scan))) {
+      if(owner.publish_scan(std::move(scan),catalog_projections)) {
         ++state.checkpoints_published;
         checkpoint_samples=state.sampled_extents;
       }
@@ -354,33 +361,63 @@ struct NativeGroupMaintenance::Impl {
       else representatives.erase(id);
     }
     trim_representatives(maximum);
-    features.clear();buckets.clear();candidate_order.clear();coherence_after=0;
+    features.clear();buckets.clear();candidate_order.clear();
+    coherence_after=0;coherence_query=0;
+  }
+  void accept_coherence_candidate(const OptimizationGroupFeature& hit,Band key,
+      std::size_t maximum_representatives) {
+    if(features.contains(hit.object))return;
+    auto known=representatives.find(hit.object);
+    const bool added=known==representatives.end();
+    if(added) {
+      trim_representatives(maximum_representatives-1);
+      const NativeContentToken token{{hit.inode,hit.extent_index},hit.object,hit.revision,hit.revision,
+          hit.exact_base,hit.exact_base};
+      known=representatives.emplace(hit.object,Feature{token,hit.content,hit.bands}).first;
+    }
+    auto& feature=known->second;
+    if(feature.projected || feature.token.revision!=hit.revision || feature.content!=hit.content ||
+        feature.token.extent.inode!=hit.inode || feature.token.extent.extent_index!=hit.extent_index ||
+        feature.token.exact_base!=hit.exact_base)return;
+    if(key.first>=kOptimizationGroupBands) {
+      auto& signature=feature.projections[key.first-kOptimizationGroupBands];
+      if(signature==key.second)return;
+      signature=key.second;
+    }else {
+      if(!added && feature.bands==hit.bands)return;
+      feature.bands=hit.bands;
+    }
+    ++state.coherence_matches;
+    // Trial preparation checks the live binding and independently verifies
+    // the selected bytes before publication.
+    rank_buckets(true);
   }
   bool query_coherence(detail::NativeMaintenanceSource& owner,std::size_t maximum_representatives) {
     const auto& catalog=owner.coherence;
     if(!catalog)return false;
     if(catalog->image()!=image){owner.retire_coherence();return false;}
-    for(auto sample=features.upper_bound(coherence_after);sample!=features.end();++sample) {
+    const auto queries=catalog->has_projected_keys()?1+kOptimizationXorProjections:1;
+    for(auto sample=features.lower_bound(coherence_after);sample!=features.end();++sample,coherence_query=0) {
       const auto& feature=sample->second;
       coherence_after=sample->first;
       if(feature.token.grouped)continue;
-      const auto band=detail::coherence_primary_band(feature.bands);
-      if(!band)continue;
-      std::optional<OptimizationGroupFeature> hit;
-      ++state.coherence_lookups;
-      try{hit=catalog->find(*band,feature.bands[*band]);}
-      catch(const std::exception&){owner.retire_coherence();++state.coherence_failures;return true;}
-      if(hit && !features.contains(hit->object) && !representatives.contains(hit->object)) {
-        trim_representatives(maximum_representatives-1);
-        const NativeContentToken token{{hit->inode,hit->extent_index},hit->object,hit->revision,hit->revision,
-            hit->exact_base,hit->exact_base};
-        representatives.emplace(hit->object,Feature{token,hit->content,hit->bands});
-        ++state.coherence_matches;
-        // The ordinary candidate path checks the live binding and verifies
-        // selected source bytes before any publication.
-        rank_buckets(true);
+      while(coherence_query<queries) {
+        const auto query=coherence_query++;
+        Band key{};
+        if(query==0) {
+          if(const auto band=detail::coherence_primary_band(feature.bands))key={*band,feature.bands[*band]};
+        } else {
+          const auto index=query-1;
+          key={static_cast<unsigned>(kOptimizationGroupBands)+index,feature.projections[index]};
+        }
+        if(!key.second)continue;
+        std::optional<OptimizationGroupFeature> hit;
+        ++state.coherence_lookups;
+        try{hit=catalog->find(key.first,key.second);}
+        catch(const std::exception&){owner.retire_coherence();++state.coherence_failures;return true;}
+        if(hit)accept_coherence_candidate(*hit,key,maximum_representatives);
+        return true; // One point lookup in an admitted opportunity.
       }
-      return true; // One point lookup in an admitted opportunity.
     }
     return false;
   }
@@ -730,6 +767,7 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
       if(new_catalog) {
         p.coherence_binding=source->coherence_binding;
         p.coherence_after=0;
+        p.coherence_query=0;
         p.completed_sequence=0;
         if(p.phase!=Phase::idle)p.scan_revisit=true;
       }
