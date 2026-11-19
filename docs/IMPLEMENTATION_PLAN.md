@@ -775,6 +775,17 @@ compacted replacement, resumed compression and read all 45 files byte-exactly.
 [Multiwindow maintenance evidence](evidence/amd-multiwindow-maintenance-2026-11-19.json)
 [Matched timing and capacity evidence](evidence/amd-maintenance-parity-2026-11-19.json)
 
+The owner now continues collecting independent groups in a window with
+deferred overlaps. It retains the candidate order for intersecting extents
+and revisits them when the batch settles. The overlap regression collected
+three groups in place of the previous single group and preserved compacted
+size and CPU readback. Three before/after pairs on the public-derived workload
+both had a 3.28-second median with AMD assistance. The matched CPU median was
+1.32 seconds and the compacted size was 8,650,752 bytes in every run. The
+next GPU selection evidence needs work that yields complete-image savings or
+amortizes stream setup and allocation over more useful candidates.
+[Overlap scheduling evidence](evidence/indexed-overlap-batch-2026-11-19.json)
+
 The first collective AMD trial reused the authenticated uniform LZ4 worker.
 Copies from tiles that contain the same base produced a 600 KiB complete
 image on the seeded fragmented fixture, compared with 752 KiB for the same

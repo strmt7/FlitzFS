@@ -283,7 +283,15 @@ void indexed_batch_reclaims_append_space() {
 
 void indexed_partial_overlap_preserves_candidates() {
   const auto bank=data(anchor_search_fixture::indexed_sample_bank_bytes,4839);
-  const auto original=anchor_search_fixture::indexed_batch_files(bank);
+  auto original=anchor_search_fixture::indexed_batch_files(bank);
+  const auto independent=data(kNativeExtentBytes,15293);
+  // Put a small independent cohort in the window containing the larger,
+  // partially overlapping cohorts. Its candidate ranks below their conflict.
+  for(std::size_t i=0;i<3;++i) {
+    auto extent=std::span(original[i]).last(kNativeExtentBytes);
+    std::ranges::copy(independent,extent.begin());
+    extent[23]^=static_cast<std::byte>(i);
+  }
   const auto compare=[&](bool offer_batch) {
     Fixture f(4096,0,true);
     for(std::size_t i=0;i<original.size();++i)put(*f.session,"f"+std::to_string(i),original[i]);
@@ -294,7 +302,14 @@ void indexed_partial_overlap_preserves_candidates() {
       const auto grant=offer_batch && !emitted?anchor_search_fixture::indexed_batch_members:0;
       const auto progress=controller.advance(o,f.clock.now,{grant,nullptr,offer_batch});
       require(progress.phase!=Phase::failed && progress.deferral!=Defer::capacity,"Overlap fixture did not settle");
-      emitted=emitted || progress.search_batch_ready;
+      if(progress.search_batch_ready) {
+        const auto windows=controller.search_batch();
+        std::cout<<"indexed overlap first_batch_groups="<<windows.size()<<'\n';
+        require(std::ranges::any_of(windows,[&](const auto& window) {
+          return std::ranges::equal(window.base(),independent) && window.members().size()==2;
+        }),"A partial overlap prevented the independent candidate from joining the batch");
+        emitted=true;
+      }
     }
     require(!controller.pending() && emitted==offer_batch && controller.progress().published_groups,
         "Overlap fixture did not exercise its requested grouping path");

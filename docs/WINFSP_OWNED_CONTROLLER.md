@@ -90,16 +90,19 @@ handle while waiting alongside the stop and activity events.
 An indexed batch can span several scan windows. The aggregate preparation
 budget follows current physical and commit headroom and the qualified worker
 grant. Each group still passes through its own bounded transaction.
-Collection ends when the grant fills, the next group would exceed the
-retained extent budget, the scan ends, or the admitted number of further
-extent visits has been spent. No GPU worker waits during collection. The
-saved scan cursor pauses while tentative groups remain in memory so a
-restart can reconsider that work.
+Collection ends when the grant fills, the scan ends or the admitted number
+of further extent visits has been spent. No GPU worker waits during
+collection. The saved scan cursor pauses while tentative groups remain in
+memory so a restart can reconsider that work.
 
-When a partly covered candidate needs additional extents, the owner settles
-the already staged batch before leaving that scan window. The remaining
-extents stay eligible for CPU grouping or a later funded AMD batch. This
-preserves compression opportunities when several families share features.
+A partially covered candidate or one that exceeds the remaining extent
+budget defers its intersecting candidates in the current window. Independent
+candidates can still fill the batch. If the window has deferred candidates at
+the end of the ranking, the owner settles the batch and recomputes the
+ranking before leaving the window. Outstanding extents remain eligible for
+CPU grouping or a later funded AMD batch. Deferred identifiers are advisory,
+bounded by the resident discovery window and retained representatives, and
+release with the staged batch.
 
 A foreground callback can wake the owner at entry while a GPU request is
 outstanding. Activity or lost group headroom discards the optional result and

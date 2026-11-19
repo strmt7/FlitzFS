@@ -135,6 +135,7 @@ struct NativeGroupMaintenance::Impl {
   std::optional<NativeFilesystemWriter::SharedBaseWork> work;
   std::deque<StagedGroup> staged_groups;
   std::set<std::uint64_t> staged_objects;
+  std::set<std::uint64_t> deferred_batch_objects;
   std::size_t staged_extents=0,staged_search_members=0;
   std::size_t staged_scan_extents=0;
   bool work_batched=false,batch_draining=false;
@@ -154,7 +155,7 @@ struct NativeGroupMaintenance::Impl {
         (image!=image_id || completed_sequence!=writer.maintenance_content_sequence() || new_coherence(owner,image_id)));
   }
   void reset_index() noexcept {
-    work.reset();staged_groups.clear();staged_objects.clear();
+    work.reset();staged_groups.clear();staged_objects.clear();deferred_batch_objects.clear();
     staged_extents=staged_search_members=staged_scan_extents=0;
     work_batched=batch_draining=false;
     features.clear();buckets.clear();attempted.clear();attempted_order.clear();candidate_order.clear();
@@ -453,20 +454,15 @@ struct NativeGroupMaintenance::Impl {
       const auto staged=static_cast<std::size_t>(std::ranges::count_if(expected,[&](const auto& token) {
         return staged_objects.contains(token.object);
       }));
-      if(staged) {
-        // An already-covered candidate can be skipped. For a partial overlap,
-        // settle the waiting groups before allowing this scan window to retire.
-        if(staged<expected.size()) {
-          --candidate_index;
-          emit_batch();
-        }
+      if(staged==expected.size())return;
+      if(staged || expected.size()>remaining_extents || std::ranges::any_of(expected,[&](const auto& token) {
+        return deferred_batch_objects.contains(token.object);
+      })) {
+        // Keep the ranking of intersecting candidates. Other candidates can
+        // still fill this batch. Revisit the same window after it settles.
+        for(const auto& token:expected)deferred_batch_objects.insert(token.object);
         return;
       }
-    }
-    if(expected.size()>remaining_extents) {
-      --candidate_index;
-      emit_batch();
-      return;
     }
     std::ranges::sort(expected,{},&NativeContentToken::object);
     std::vector<NativeExtentSelection> selected;
@@ -529,6 +525,10 @@ struct NativeGroupMaintenance::Impl {
       propose_indexed_group(writer,maximum,maximum_members-staged_extents,collect_batch);
       return;
     }
+    if(!deferred_batch_objects.empty()) {
+      emit_batch();
+      return;
+    }
     if(query_coherence(owner,maximum_representatives))return;
     retain_indexed_window(maximum_representatives);
     if(extent_scan_exhausted && !staged_groups.empty() && !batch_draining) {
@@ -554,13 +554,15 @@ struct NativeGroupMaintenance::Impl {
       }
     }
     if(batch_draining && !work) {
+      if(staged_groups.empty()) {
+        batch_draining=false;
+        deferred_batch_objects.clear();
+      }
       if(refresh_base) {
-        if(staged_groups.empty())batch_draining=false;
         step_indexed(writer,maximum_members,maximum_representatives,false,owner);
         return;
       }
       if(staged_groups.empty()) {
-        batch_draining=false;
         rank_buckets(true);
         return;
       } else {
