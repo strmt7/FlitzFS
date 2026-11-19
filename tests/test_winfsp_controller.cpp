@@ -335,6 +335,7 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
       <<" submitted="<<result.anchor_search.submitted<<" verified="<<result.anchor_search.verified
       <<" submitted_groups="<<result.anchor_search.submitted_groups<<" verified_groups="<<result.anchor_search.verified_groups
       <<" declined="<<result.anchor_search.declined<<" yielded="<<result.anchor_search.yielded
+      <<" integrity_failures="<<result.anchor_search.integrity_failures
       <<" advised_members="<<result.maintenance.advised_members_published
       <<" installed_attempts="<<result.installed_anchor_attempts
       <<" metadata_queries="<<result.installed_anchor_queries
@@ -362,7 +363,8 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
   if(xor_encoding) {
     const auto root=PagedObjectStoreSnapshot::open(image,{kStoreMaxPhysicalBytes}).read(1);
     require(root[8]==std::byte{5} && snapshot.shared_base_info().members==count &&
-        result.maintenance.published_groups==groups,"packed XOR callback groups were not committed");
+        result.maintenance.published_groups==groups && !result.anchor_search.integrity_failures,
+        "packed XOR callback groups or verified worker results differed");
     auto packed_image=std::make_shared<Ram>();packed_image->failure_unit=image->failure_unit;
     (void)NativeFilesystemWriter::compact(snapshot,packed_image,id(3),{StoreCompressionMode::raw,1,false});
     const auto reopened=NativeFilesystemSnapshot::open_image(packed_image,{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes});

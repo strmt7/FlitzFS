@@ -124,5 +124,11 @@ std::vector<AnchorMatchAdvice> accept_anchor_match_batch_reply(
 // The native indexed writer independently proves each candidate's decoded bytes.
 std::vector<AnchorXorAdvice> decode_anchor_xor_batch_reply(
     std::span<const std::byte> frame,const AnchorMatchBatchRequest&);
+enum class AnchorXorBatchStatus {pending,verified,empty,invalid};
+struct AnchorXorBatchCheck {
+  AnchorXorBatchStatus status=AnchorXorBatchStatus::pending;
+  std::size_t verified_groups=0;
+};
+AnchorXorBatchCheck inspect_anchor_xor_checks(std::span<const NativeSharedBaseSearchReply>) noexcept;
 
 } // namespace flitzfs::detail

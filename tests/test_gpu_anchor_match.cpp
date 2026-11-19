@@ -10,6 +10,7 @@
 namespace {
 namespace match=flitzfs::anchor_match;
 using namespace flitzfs::detail;
+using flitzfs::NativePackedXorCheck;
 using Bytes=std::vector<std::byte>;
 
 void check(bool condition,const char* message) {
@@ -302,8 +303,21 @@ void packed_xor_reply() {
   const auto decoded=decode_anchor_xor_batch_reply(encoded,request);
   check(decoded.size()==1 && decoded.front().size()==2 && decoded.front().back().empty() &&
       std::ranges::equal(decoded.front().front(),body),"packed XOR reply lost its accepted or declined slot");
-  check(accept_native_group_xor_body(decoded.front().front(),member,base,id,1,match::extent_bytes)==candidate,
+  const auto accepted=check_native_group_xor_body(decoded.front().front(),member,base,id,1,match::extent_bytes);
+  check(accepted.frame==candidate && accepted.check==NativePackedXorCheck::verified,
       "independent CPU readback did not reconstruct the packed XOR reply");
+  const auto too_large=check_native_group_xor_body(body,member,base,id,1,candidate->size());
+  check(!too_large.frame && too_large.check==NativePackedXorCheck::verified,
+      "a correct but unprofitable body was treated as an integrity failure");
+  const auto wrong=check_native_group_xor_body(body,base,base,id,1,candidate->size());
+  check(!wrong.frame && wrong.check==NativePackedXorCheck::invalid,
+      "competing size concealed a mismatched XOR body");
+  const auto truncated=check_native_group_xor_body(body.first(body.size()-1),member,base,id,1,match::extent_bytes);
+  check(!truncated.frame && truncated.check==NativePackedXorCheck::invalid,
+      "truncated advice passed the canonical body check");
+  const auto empty=check_native_group_xor_body({},member,base,id,1,match::extent_bytes);
+  check(!empty.frame && empty.check==NativePackedXorCheck::pending,
+      "an empty transport slot supplied an integrity verdict");
   rejects([&]{(void)accept_anchor_match_batch_reply(encoded,request);});
   for(const auto at:{std::size_t{32},std::size_t{64+4+32},std::size_t{64+4+64},encoded.size()-1}) {
     auto bad=encoded;

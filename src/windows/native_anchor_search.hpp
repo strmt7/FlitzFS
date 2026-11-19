@@ -18,7 +18,7 @@ struct NativeAnchorSearchOptions {
 struct NativeAnchorSearchStats {
   std::uint64_t submitted=0,verified=0,declined=0,yielded=0;
   bool retirement_confirmed=true;
-  std::uint64_t submitted_groups=0,verified_groups=0;
+  std::uint64_t submitted_groups=0,verified_groups=0,integrity_failures=0;
 };
 
 // One serialized owner, outside the filesystem control lock. The transport
@@ -38,6 +38,8 @@ class NativeAnchorSearchController final {
   std::uint64_t deadline() const noexcept;
   void* wake_handle() const noexcept;
   std::span<const NativeSharedBaseSearchReply> replies() const noexcept;
+  // Called after the serialized writer advances one admitted step.
+  void settle_reply_checks() noexcept;
   bool can_reacquire() const noexcept;
   bool rebind(HipDiscoveredRoute) noexcept;
   void discard_reply() noexcept;

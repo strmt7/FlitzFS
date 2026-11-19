@@ -726,12 +726,15 @@ in 55.7 seconds, including idle scheduling and worker retirement. Keep CPU
 preferred for the observed workload. A separate nine-file fixture changed
 two middle bit planes throughout each extent. Masked discovery reduced the
 protected compacted image from 1,304 KiB to 544 KiB with exact CPU readback.
-Measure recall and full cost on heterogeneous groups and qualified hosts.
-Account for per-member semantic refusals in the recovery policy before allowing
-automatic packed XOR dispatch.
+The Windows owner now keeps the recovery ticket through the per-member byte
+comparisons. A mismatch quarantines the configuration and leaves CPU grouping
+available. The verifier constructs and hashes a stored frame only for a body
+that beats the competing size. Measure recall and complete costs on heterogeneous
+groups and qualified hosts before enabling automatic packed XOR dispatch.
 [Packed XOR format](INDEXED_NATIVE_VOLUME.md#packed-xor-members) ·
 [CPU size evidence](evidence/indexed-packed-xor-2026-11-19.json) ·
-[Physical AMD evidence](evidence/amd-packed-xor-batch-2026-11-19.json)
+[Physical AMD evidence](evidence/amd-packed-xor-batch-2026-11-19.json) ·
+[Packed XOR semantic verification](evidence/amd-packed-xor-verdicts-2026-11-19.json)
 
 The first collective AMD trial reused the authenticated uniform LZ4 worker.
 Copies from tiles that contain the same base produced a 600 KiB complete

@@ -73,9 +73,24 @@ void staged_packed_xor_advice() {
   }
   // A valid body for the wrong member must select the independent CPU encoder.
   bodies[1]=bodies[0];
-  const NativeSharedBaseSearchReply reply{window,{},bodies};
+  std::array<NativePackedXorCheck,count-1> outcomes{};
+  const NativeSharedBaseSearchReply reply{window,{},bodies,outcomes};
+  const auto inspect=[&]{return detail::inspect_anchor_xor_checks(std::span(&reply,1));};
+  using Status=detail::AnchorXorBatchStatus;
+  require(inspect().status==Status::pending,"unconsumed XOR advice was counted as verified");
+  require(!writer.advance_shared_base(work,{},&reply) && !writer.advance_shared_base(work,{},&reply) &&
+      outcomes[0]==NativePackedXorCheck::verified && inspect().status==Status::pending,
+      "one successful comparison verified the entire batch");
   while(!writer.advance_shared_base(work,{},&reply)) {}
-  require(work.progress().selected_advice_members==1,"invalid or absent XOR advice displaced CPU encoding");
+  require(outcomes[1]==NativePackedXorCheck::invalid && outcomes[2]==NativePackedXorCheck::pending &&
+      inspect().status==Status::invalid && work.progress().selected_advice_members==1,
+      "wrong XOR advice did not report its integrity fault and select CPU encoding");
+  bodies[1].clear();
+  const auto confirmed=inspect();
+  require(confirmed.status==Status::verified && confirmed.verified_groups==1,
+      "empty slots prevented completion after genuine byte verification");
+  bodies[0].clear();
+  require(inspect().status==Status::empty,"an empty result was counted as a verified batch");
   require(writer.finish_shared_base(work).applied,"verified XOR advice did not reach publication");
   const auto after=writer.snapshot();
   after.verify_all();
@@ -116,7 +131,9 @@ void staged_search_binding() {
     contiguous.insert(contiguous.end(),original[i].begin(),original[i].end());
   }
   auto old=prepare();
-  NativeSharedBaseSearchReply prior{old.search_window(),copies};
+  const std::vector<Bytes> old_xor(count-1,Bytes{std::byte{1}});
+  std::array<NativePackedXorCheck,count-1> old_checks{};
+  NativeSharedBaseSearchReply prior{old.search_window(),copies,old_xor,old_checks};
   old.cancel();
   require(!old.search_window() && std::ranges::equal(prior.window.base(),base),"cancel changed leased source bytes");
   auto wrong=writer.prepare_shared_base(keys[base_index],keys);
@@ -125,7 +142,9 @@ void staged_search_binding() {
   require(!writer.stage_shared_base_search(wrong,count-1) && io(*ram)==retained,
       "the writer staged a second window while the consumer retained the first");
   require(writer.advance_shared_base(wrong,{},&prior) && wrong.progress().phase==Phase::declined &&
-      wrong.progress().selected_advice_members==0,"reply from retired work influenced a new group");
+      wrong.progress().selected_advice_members==0 &&
+      std::ranges::all_of(old_checks,[](auto check){return check==NativePackedXorCheck::pending;}),
+      "reply from retired work influenced a new group or received a verdict");
   prior.window={};
   auto work=prepare();
   NativeSharedBaseSearchReply reply{work.search_window(),copies};

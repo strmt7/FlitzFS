@@ -138,3 +138,15 @@ results remain pending at publication of that correction. All work after the
 host boundary used remote repository tools only; the local checkout is untouched.
 
 The same pure policy now admits typed match searches as well as decoder batches. Each overload supplies its actual immutable device allocation to the existing telemetry and quarantine logic. A match requires at least four input bytes. Workload type does not bypass an outstanding ticket, and fresh match telemetry cannot clear a device fault. See GPU_MATCH_CONTROLLER.md.
+
+## Packed XOR byte verification
+
+The Windows owner keeps a packed XOR recovery ticket after the worker retires
+and the reply passes its transport checks. The serialized writer reports
+a verdict for each nonempty slot as it compares the canonical reconstructed
+bytes with the exact staged extent. If a result differs, the current member
+uses CPU encoding. The owner quarantines that configuration and drops all
+remaining advice before another GPU launch. A correct body that loses the
+size comparison counts as verified. A batch with only empty slots, or one
+abandoned before all checks, can continue on CPU without recording GPU success.
+[Validation evidence](evidence/amd-packed-xor-verdicts-2026-11-19.json)

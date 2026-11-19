@@ -310,10 +310,12 @@ body length, then the packed XOR body and `0xff` padding. A zero length
 declines the candidate. The sized transport funds the existing slot geometry
 against current host and device headroom.
 
-Reply decoding validates the envelope and slots. Independent CPU reconstruction
-against the exact staged bytes governs native admission, including validly
-framed work that belongs to a different member. The transport continues to
-require successful exact-child exit and supervisor retirement.
+Reply decoding validates the envelope and slots after successful exact-child
+exit and supervisor retirement. The controller keeps the ticket active while
+the writer checks each nonempty body against its exact staged member. Incorrect
+bytes or framing quarantine the configuration and release the other replies.
+A yielded or obsolete window abandons the remaining checks. Empty slots decline
+advice and the writer proceeds on CPU.
 [Packed XOR native admission](INDEXED_NATIVE_VOLUME.md#batched-amd-advice)
 
 ## Resource-sized transport (experimental)

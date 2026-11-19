@@ -1,0 +1,218 @@
+{
+  "schema": "flitzfs-amd-packed-xor-semantic-recovery-v1",
+  "captured_local": "2026-11-19T13:39:45+01:00",
+  "source_base": "23de759068f1cd782e9d5b7933cefe8a28fae5bd",
+  "source_binding": [
+    {
+      "path": "include/flitzfs/native_filesystem.hpp",
+      "git_blob": "c0d8c9d7cc8d3e697cc756f4c5293cd0d1d89180"
+    },
+    {
+      "path": "src/native_group_anchor.cpp",
+      "git_blob": "c0be46e3d252680d39642ac2b43ec0ca3f97c87f"
+    },
+    {
+      "path": "src/native_group_anchor.hpp",
+      "git_blob": "21d2e7f563f779bc6eac7352612ff2ee9021deaf"
+    },
+    {
+      "path": "src/native_group_codec.cpp",
+      "git_blob": "7b24882c1b6d9fe17312305e39c5d62b31fb1f64"
+    },
+    {
+      "path": "src/native_group_codec.hpp",
+      "git_blob": "0f3c282a8cb740a0aead78976e5dda9d9cba0772"
+    },
+    {
+      "path": "src/native_indexed_volume.cpp",
+      "git_blob": "e760b1ffc6a8e0ab088c4ae4b27b9676dbd87a86"
+    },
+    {
+      "path": "src/windows/native_anchor_search.cpp",
+      "git_blob": "db9bccaba0684062a27271c50dea2639d3cf6315"
+    },
+    {
+      "path": "src/windows/native_anchor_search.hpp",
+      "git_blob": "226b267c150089e584c834204a7d0777be66425a"
+    },
+    {
+      "path": "src/windows/winfsp_controller.cpp",
+      "git_blob": "afd6010e528fb898f4be2161fc44ad7eddbc42f6"
+    },
+    {
+      "path": "tests/test_gpu_anchor_match.cpp",
+      "git_blob": "8cd490a2e4fb75d2b2c9d7fbc28cfded1a03c4ae"
+    },
+    {
+      "path": "tests/test_staged_shared_base.cpp",
+      "git_blob": "da85d75641f93778d53e7460b966a7fc4cdee870"
+    },
+    {
+      "path": "tests/test_winfsp_controller.cpp",
+      "git_blob": "c163c42c67e09073b1735b973c664dc7eaa52955"
+    }
+  ],
+  "semantic_navigation": {
+    "provider_version": "0.2.43",
+    "indexed_source_files": 13,
+    "actual_searches": 1,
+    "receipt_sha256": "2830c604b0ee25b25380bc17ebd172179dab2c8fab14ee1debe1522c03e8251f",
+    "native_response_sha256": "92a758167233d3e8c02788d5388e35cff0f9e887cbb3927588a7ea17a5e6eb63",
+    "job": {
+      "run": "local-run-7604af9723514b6f83519faebef1bcb3",
+      "receipt_sha256": "eaec8a0bf5304a3d2ea9070fe3274139e67132f297025d2e4396b4499ce924aa",
+      "log_sha256": "dd90ac01b46bbd44e09f4b2fcf7f8d468e9a0f150514d80cb901c717e071a04d",
+      "exit_code": 0,
+      "memory_envelope_bytes": 2045771776,
+      "peak_job_bytes": 1070997504,
+      "cpu_percent": 13,
+      "tree_retired": true
+    }
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "dab8f9fc84dd2263eceea0c53834543cadc0edaf0a90e162e07d1d181a0b0439",
+    "provider_entry_sha256": "e84a0e54ee07e4e13d3d2f35491f641730096a78126068f232c1f2397a467d8c",
+    "robots": true,
+    "external_llm": false,
+    "timeout_seconds": 45,
+    "source": {
+      "name": "hip-perf",
+      "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/how-to/performance_guidelines.html",
+      "http_status": 200,
+      "final_http_status": 200,
+      "native_success": true,
+      "markdown_bytes": 51203,
+      "markdown_sha256": "7c03fd7a936db6752487b5f3320a7b8b36208bcbbc6319c12034ed7fc839ed8e",
+      "capture_sha256": "faee752cb31784132331827b03536018f95c1627ac7410c095bd2cc4539bc028",
+      "error": ""
+    },
+    "capture_admission": "Verified a current same-day native capture from the prior bounded AMD research run."
+  },
+  "qualification": [
+    {
+      "lane": "Windows Release, LZ4 and Zstandard with WinFsp SDK",
+      "ctest_passed": 13,
+      "build": {
+        "run": "local-run-910fa865080e4e2080ecf8bb5434b0e7",
+        "receipt_sha256": "f336f3d79fed1292784e97dabb2a4e526bf6d18c90096f005a08f3ff4baebc63",
+        "log_sha256": "9da0bfd96ab79af086f56b5c59482c258935df0d6654132d592b77db89dfad26",
+        "exit_code": 0,
+        "memory_envelope_bytes": 1531969536,
+        "peak_job_bytes": 776302592,
+        "cpu_percent": 16,
+        "tree_retired": true
+      },
+      "tests": {
+        "run": "local-run-790ad0aa6ea44aaaa581e629ebc965a4",
+        "receipt_sha256": "b46a7dc72aa100b46584ccf42981d4d2e4385c5ee3dd51cd1f5ab50d4d1a1920",
+        "log_sha256": "f0ae5c6433672d0f18e350536ce448a5e4ee339ca1d2aa1371e74a322dd85981",
+        "exit_code": 0,
+        "memory_envelope_bytes": 1055916032,
+        "peak_job_bytes": 172060672,
+        "cpu_percent": 16,
+        "tree_retired": true
+      }
+    },
+    {
+      "lane": "Windows Release, raw only",
+      "ctest_passed": 11,
+      "build": {
+        "run": "local-run-b051b46639f740299f500b29d1fddcaf",
+        "receipt_sha256": "8a5626693310ea5558b829821cce3ab4866fc905078beaadc478b70fe2dc006e",
+        "log_sha256": "9b1d5ce1b0468afd3cdadcc30211461a320285225f6d9137c2cd7525eb275340",
+        "exit_code": 0,
+        "memory_envelope_bytes": 1533018112,
+        "peak_job_bytes": 441835520,
+        "cpu_percent": 13,
+        "tree_retired": true
+      },
+      "tests": {
+        "run": "local-run-9c8d3136a6e346c6a5ea8a7c6cdcb39d",
+        "receipt_sha256": "0603eff3337cb4c4db4c8ee12611b709c9e7be606ea6ef4ea06d777ba442f96f",
+        "log_sha256": "3bb75fac47215f9f3c0cb636c2f356f1d7aee5b06e2c5424cb10ab5e2e098c92",
+        "exit_code": 0,
+        "memory_envelope_bytes": 1041235968,
+        "peak_job_bytes": 171843584,
+        "cpu_percent": 13,
+        "tree_retired": true
+      }
+    },
+    {
+      "lane": "Windows MSVC AddressSanitizer with LZ4 and WinFsp SDK",
+      "ctest_passed": 14,
+      "configure": {
+        "run": "local-run-2c3d9a537e4d48ba9ccd38c55b8141c8",
+        "receipt_sha256": "e811f7aefa94e24f180126bc3209bd97f575aa831db6a2ff0d637581511d1494",
+        "log_sha256": "01016e144525be96336dfe670fdf629a2411fabab8e9e746026670e1481dd1b4",
+        "exit_code": 0,
+        "memory_envelope_bytes": 2114977792,
+        "peak_job_bytes": 27357184,
+        "cpu_percent": 14,
+        "tree_retired": true
+      },
+      "build": {
+        "run": "local-run-b5fd4dae7635408f83857103b7ebd2c4",
+        "receipt_sha256": "b1977ae96554e05946396d26a00d4654bff7a03b462bd7a863b9985ccbb9cee7",
+        "log_sha256": "e1a16bd497c119987067da3ec543cdd12b9f56b3b3fdbde5556da02f8ddf2c07",
+        "exit_code": 0,
+        "memory_envelope_bytes": 2110783488,
+        "peak_job_bytes": 603271168,
+        "cpu_percent": 14,
+        "tree_retired": true
+      },
+      "tests": {
+        "run": "local-run-6104236c761c49a1bb8c299858ac1934",
+        "receipt_sha256": "c6efd3585218a01da76ab22bdb4782baf8a79730f52b97d7475a6650ab01b3cc",
+        "log_sha256": "a81e711133bee43ff0266ec0c4487b3f1ee3bd24b193a2ffaa63200a3175cf4a",
+        "exit_code": 0,
+        "memory_envelope_bytes": 2130706432,
+        "peak_job_bytes": 1137205248,
+        "cpu_percent": 14,
+        "tree_retired": true
+      },
+      "staged_runtime_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed"
+    }
+  ],
+  "recovery_model": [
+    "Transport-valid XOR body for another member reports invalid and independent CPU encoding preserves the original bytes.",
+    "A valid body at the competing size is verified and declined economically.",
+    "The canonical body check rejects truncated tile payloads.",
+    "Absent slots and unrelated or retired windows leave no semantic verdict.",
+    "A partial sequence of successful comparisons cannot verify the batch.",
+    "Persisted packed XOR readback, CPU fallback and existing recovery policy checks passed."
+  ],
+  "physical_trial": {
+    "adapter": "AMD Radeon RX 9070 XT",
+    "driver_version": "32.0.32015.16001",
+    "fixture": "Live installed AMD execution through the Windows SDK callback fixture on memory backing",
+    "controller_sha256": "a419bb8d3137c4debdda9e34ec491572cc5b2a0ce6e24a2e1e97d96300c58f77",
+    "worker_sha256": "bb9aba377feb818c118c6d03a2fc007ea8e9fdbd274be28975b1d6c0e34709d9",
+    "kernel_sha256": "a780227135722bfead2730d1ae1582aa05fb82e6b2b10e9e185838e5e080143a",
+    "package_origin": "Previously qualified immutable worker and device module retained from the first packed XOR batch trial.",
+    "submitted": 1,
+    "verified": 1,
+    "verified_groups": 2,
+    "advised_members_published": 8,
+    "integrity_failures": 0,
+    "logical_bytes": 655360,
+    "protected_compacted_bytes": 786432,
+    "settled_ms": 58047,
+    "exact_independent_cpu_reopen": true,
+    "job": {
+      "run": "local-run-00f208bf051b426eb91e04cbf2c20982",
+      "receipt_sha256": "e820a93e977bcdeaa0910d3dbcc38dd407991a914a5cc91037daf677f94f092d",
+      "log_sha256": "6f9bb896de4d7f2e9e8b428e3f6985db90698cb7f2588fdba466749658314d4a",
+      "exit_code": 0,
+      "memory_envelope_bytes": 420478976,
+      "peak_job_bytes": 114307072,
+      "cpu_percent": 16,
+      "tree_retired": true
+    }
+  },
+  "scope": [
+    "Incorrect-worker data was modeled in the CPU fixture. The physical trial exercised the ordinary successful compute and retirement path.",
+    "The functional AMD trial overlapped an AddressSanitizer test lane. It provides no paired throughput or latency conclusion.",
+    "Automatic packed XOR selection, heterogeneous workload performance, physical failure durability and a mounted product remain qualification work."
+  ]
+}

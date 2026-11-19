@@ -521,4 +521,25 @@ std::vector<AnchorXorAdvice> decode_anchor_xor_batch_reply(
       });
 }
 
+AnchorXorBatchCheck inspect_anchor_xor_checks(std::span<const NativeSharedBaseSearchReply> replies) noexcept {
+  std::size_t verified_groups=0;
+  bool pending=false;
+  for(const auto& reply:replies) {
+    const auto bodies=reply.packed_xor_bodies;
+    const auto checks=reply.packed_xor_checks;
+    if(bodies.size()!=checks.size() || bodies.size()!=reply.window.members().size())
+      return {AnchorXorBatchStatus::invalid,0};
+    bool verified=false;
+    for(std::size_t i=0;i<bodies.size();++i) {
+      if(bodies[i].empty())continue;
+      if(checks[i]==NativePackedXorCheck::invalid)return {AnchorXorBatchStatus::invalid,0};
+      if(checks[i]==NativePackedXorCheck::verified)verified=true;
+      else pending=true;
+    }
+    if(verified)++verified_groups;
+  }
+  if(pending)return {AnchorXorBatchStatus::pending,0};
+  return {verified_groups?AnchorXorBatchStatus::verified:AnchorXorBatchStatus::empty,verified_groups};
+}
+
 } // namespace flitzfs::detail

@@ -26,7 +26,11 @@ std::optional<std::vector<std::byte>> encode_native_group_member(std::span<const
     std::span<const std::byte> base,std::uint64_t base_id,std::uint64_t base_generation);
 std::optional<std::vector<std::byte>> encode_native_group_xor(std::span<const std::byte> member,
     std::span<const std::byte> base,std::uint64_t base_id,std::uint64_t base_generation,std::size_t exclusive_limit);
-std::optional<std::vector<std::byte>> accept_native_group_xor_body(std::span<const std::byte> body,
+struct NativeGroupXorCandidate {
+  std::optional<std::vector<std::byte>> frame;
+  NativePackedXorCheck check=NativePackedXorCheck::pending;
+};
+NativeGroupXorCandidate check_native_group_xor_body(std::span<const std::byte> body,
     std::span<const std::byte> member,std::span<const std::byte> base,std::uint64_t base_id,
     std::uint64_t base_generation,std::size_t exclusive_limit);
 // Bind a private, already CPU-verified frame to its final protected object.

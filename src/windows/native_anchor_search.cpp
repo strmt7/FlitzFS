@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <dxgi.h>
 #include <limits>
+#include <utility>
 
 namespace flitzfs {
 namespace {
@@ -41,9 +42,10 @@ struct NativeAnchorSearchController::Impl {
   std::vector<NativeSharedBaseSearchWindow> windows;
   std::vector<detail::AnchorMatchAdvice> advice;
   std::vector<detail::AnchorXorAdvice> xor_advice;
+  std::vector<std::vector<NativePackedXorCheck>> xor_checks;
   std::vector<NativeSharedBaseSearchReply> replies;
   NativeAnchorSearchStats stats;
-  std::uint64_t activity=0,next_launch=0,sequence=0,unobserved_ticket=0;
+  std::uint64_t activity=0,next_launch=0,sequence=0,unobserved_ticket=0,xor_ticket=0;
   bool enabled=false,configuration_blocked=false;
   explicit Impl(NativeAnchorSearchOptions configured):options(std::move(configured)) {
     enabled=valid_anchor_route(options.route) && valid_profile();
@@ -54,10 +56,12 @@ struct NativeAnchorSearchController::Impl {
         options.worker.memory_share_divisor && valid_process_budget(options.worker);
   }
   void discard() noexcept {
+    if(xor_ticket)(void)recovery.abandon(std::exchange(xor_ticket,0),true);
     replies.clear();
     windows.clear();
     std::vector<detail::AnchorMatchAdvice>{}.swap(advice);
     std::vector<detail::AnchorXorAdvice>{}.swap(xor_advice);
+    xor_checks.clear();
   }
   void yield(Disposition disposition) noexcept {
     discard();
@@ -80,6 +84,7 @@ struct NativeAnchorSearchController::Impl {
   }
   void fail(std::uint64_t ticket,GpuRecoveryOutcome outcome,bool retired) noexcept {
     (void)recovery.finish(ticket,outcome,retired);
+    if(outcome==GpuRecoveryOutcome::integrity_failure)++stats.integrity_failures;
     if(outcome!=GpuRecoveryOutcome::temporary_pressure)suspend(true,retired);
   }
 };
@@ -235,17 +240,23 @@ void NativeAnchorSearchController::observe(std::uint64_t activity,std::uint64_t 
         if(self.options.packed_xor) {
           self.xor_advice=detail::decode_anchor_xor_batch_reply(result->response,flight.request);
           if(self.xor_advice.size()!=self.windows.size())throw std::invalid_argument("Incomplete packed XOR batch");
-          for(std::size_t i=0;i<self.windows.size();++i)
-            self.replies.push_back({self.windows[i],{},self.xor_advice[i]});
+          self.xor_checks.reserve(self.windows.size());
+          for(std::size_t i=0;i<self.windows.size();++i) {
+            auto& checks=self.xor_checks.emplace_back(self.xor_advice[i].size(),NativePackedXorCheck::pending);
+            self.replies.push_back({self.windows[i],{},self.xor_advice[i],checks});
+          }
+          // Retirement is proven, but the recovery ticket still awaits the
+          // byte verdicts from the exact members consuming this reply.
+          self.xor_ticket=flight.ticket;
         } else {
           self.advice=detail::accept_anchor_match_batch_reply(result->response,flight.request);
           if(self.advice.size()!=self.windows.size())throw std::invalid_argument("Incomplete verified anchor batch");
           for(std::size_t i=0;i<self.windows.size();++i)
             self.replies.push_back({self.windows[i],self.advice[i],{}});
+          (void)self.recovery.finish(flight.ticket,GpuRecoveryOutcome::accepted,true);
+          ++self.stats.verified;
+          self.stats.verified_groups+=self.windows.size();
         }
-        (void)self.recovery.finish(flight.ticket,GpuRecoveryOutcome::accepted,true);
-        ++self.stats.verified;
-        self.stats.verified_groups+=self.windows.size();
       }catch(const std::bad_alloc&) {
         self.fail(flight.ticket,GpuRecoveryOutcome::temporary_pressure,true);
         self.discard();++self.stats.declined;
@@ -256,6 +267,7 @@ void NativeAnchorSearchController::observe(std::uint64_t activity,std::uint64_t 
     }
   }
   self.flight.reset();
+  settle_reply_checks();
 }
 bool NativeAnchorSearchController::waiting() const noexcept {
   return impl_->flight && !impl_->flight->supervisor_exited && impl_->flight->disposition==Impl::Disposition::pending;
@@ -268,6 +280,24 @@ void* NativeAnchorSearchController::wake_handle() const noexcept {
 }
 std::span<const NativeSharedBaseSearchReply> NativeAnchorSearchController::replies() const noexcept {
   return impl_->replies;
+}
+void NativeAnchorSearchController::settle_reply_checks() noexcept {
+  auto& self=*impl_;
+  if(!self.xor_ticket)return;
+  const auto check=detail::inspect_anchor_xor_checks(self.replies);
+  if(check.status==detail::AnchorXorBatchStatus::pending)return;
+  const auto ticket=std::exchange(self.xor_ticket,0);
+  if(check.status==detail::AnchorXorBatchStatus::verified &&
+      self.recovery.finish(ticket,GpuRecoveryOutcome::accepted,true)) {
+    ++self.stats.verified;
+    self.stats.verified_groups+=check.verified_groups;
+    return;
+  }
+  if(check.status==detail::AnchorXorBatchStatus::empty)
+    (void)self.recovery.abandon(ticket,true);
+  else self.fail(ticket,GpuRecoveryOutcome::integrity_failure,true);
+  self.discard();
+  ++self.stats.declined;
 }
 bool NativeAnchorSearchController::can_reacquire() const noexcept {
   const auto& self=*impl_;

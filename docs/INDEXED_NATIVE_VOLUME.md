@@ -166,12 +166,15 @@ the full native extent under the usual size bound.
 
 The reply binds the batch and each group to their original identities and
 source digests. The controller collects it after successful worker and
-supervisor retirement. The native writer accepts a body only for its exact
-staged member. It attaches the authoritative base and member digests, independently
-decodes the frame and compares every byte before considering publication.
-Missing or invalid advice invokes the CPU encoder. A verified candidate still
-competes with the CPU alternatives and must pass the unchanged complete-image
-savings and live-generation checks.
+supervisor retirement. For each exact staged member, the writer applies the
+canonical body to the base and compares every byte with the original extent.
+It constructs a frame and attaches the authoritative digests only when the
+body beats the competing size. Valid bodies at or above the limit need no
+CPU repack because the tile encoding is canonical. Missing or invalid bodies
+invoke the CPU encoder. The full-image savings and live-generation checks
+still govern publication. The controller verifies the batch only after
+all supplied bodies pass the byte comparison.
+[Packed XOR verification and recovery](evidence/amd-packed-xor-verdicts-2026-11-19.json)
 
 ### Automatic candidate discovery
 

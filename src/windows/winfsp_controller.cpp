@@ -204,6 +204,7 @@ struct WinFspVolumeController::Impl {
     auto result=session->advance_background_maintenance(observed,GetTickCount64(),
         {idle?anchor->stage_grant(now):0,nullptr,true,replies});
     if(!replies.empty()) {
+      anchor->settle_reply_checks();
       if(!result.retained_search && result.state!=WinFspMaintenanceState::busy &&
           result.progress.deferral==NativeMaintenanceDeferral::none)anchor->discard_reply();
     } else if(!stop_requested.load(std::memory_order_acquire)) {
