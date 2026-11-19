@@ -767,7 +767,7 @@ void memory_paged_footprint() {
 void memory_coherence_lifecycle() {
   auto backing=MemoryVolumeBacking::create(true);
   const auto volume=backing.volume_identity,image=backing.image_identity;
-  const auto fixture_catalog_limit=2*kStoreCommitUnit+6ULL*backing.image->contract().write_failure_unit_bytes;
+  const auto fixture_catalog_limit=2*kStoreCommitUnit+7ULL*backing.image->contract().write_failure_unit_bytes;
   require(backing.layout.coherence_capacity>=fixture_catalog_limit,"insufficient catalog fixture capacity");
   backing.layout.coherence_capacity=fixture_catalog_limit;
   const StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};

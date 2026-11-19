@@ -14,6 +14,11 @@ std::optional<MaintenanceResources> maintenance_resources(const NativeMaintenanc
 std::size_t maintenance_group_member_limit(const MaintenanceResources&,bool indexed) noexcept;
 std::optional<std::uint32_t> coherence_primary_band(
     const std::array<std::uint64_t,kOptimizationGroupBands>&);
+struct CoherenceScanKeys {
+  std::uint32_t representative;
+  OptimizationXorSignatures masked;
+  std::array<std::uint64_t,kCoherenceModularWidths> modular;
+};
 // Borrowed only under the session's existing serialized control contract.
 // The session owns this token; controllers retain weak references, never the
 // session or its writer. Impl addresses survive outer-session moves.
@@ -55,7 +60,7 @@ struct NativeMaintenanceSource {
   }
   std::function<std::optional<OptimizationGroupScan>()> restore_scan;
   std::function<bool()> scan_funded;
-  std::function<bool(OptimizationGroupScan,std::span<const OptimizationGroupProjection>)> publish_scan;
+  std::function<bool(OptimizationGroupScan,std::span<const CoherenceScanKeys>)> publish_scan;
   std::function<bool()> coherence_pending;
   std::function<void()> advance_coherence;
 };

@@ -576,6 +576,16 @@ qualify persistent catalog compaction.
 [Masked signature validation](evidence/projected-xor-discovery-2026-11-19.json) ·
 [Paged masked discovery](evidence/projected-coherence-catalog-2026-11-19.json)
 
+Schema 3 of the optional catalog adds modular word signatures. An indexed
+restart fixture recovered a reference eight unrelated extents away with
+room for two decoded candidates. The complete compacted footprint,
+including head, journal and selected catalog, fell from 2,019,328 to
+1,896,448 bytes. The masked-only control occupied 2,015,232 bytes. A stale
+binding could nominate a candidate and was rejected before group
+preparation. With a smaller write grant the managed scanner published
+the earlier signature families in the same reservation.
+[Numeric discovery evidence](evidence/modular-coherence-catalog-2026-11-19.json)
+
 RubikFS provides evidence for evaluating similarity and access hotness
 together. MedFS shows why selective delta maintenance should account for write
 traffic as well as the stored representation. FlitzFS uses its own live
@@ -799,7 +809,8 @@ members per batch and all four word widths. Both routes compacted from
 Median complete times were 0.98 seconds on CPU and 3.16 seconds with AMD for
 synthetic inputs, and 1.00 and 3.17 seconds for the public-derived inputs.
 Expand the predictor search and validate larger, natural numeric cohorts
-before calibrating automatic route selection. Persist the sparse signatures.
+before calibrating automatic route selection. Measure the yield and stored
+cost of the new persistent signature keys.
 [Modular-delta format](INDEXED_NATIVE_VOLUME.md#modular-delta-members) ·
 [Size and recovery evidence](evidence/indexed-modular-delta-2026-11-19.json) ·
 [Matched AMD evidence](evidence/amd-modular-delta-2026-11-19.json)

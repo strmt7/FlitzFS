@@ -1196,7 +1196,10 @@ extent bindings and independent CPU verification. The volume journal durably
 settles an approved catalog write before the first catalog mutation. An
 interrupted charge prevents the write. A failed catalog attempt leaves the
 charge spent and file access available. The first catalog and its postings
-also require settlement before writing. The memory owner can retain a healthy
+also require settlement before writing. A numeric schema promotion publishes
+with its postings in one transaction. A smaller catalog plan can follow a
+capacity refusal only before charge settlement, with a checked writer or
+the original empty reservation. The memory owner can retain a healthy
 catalog across a joined remount. It reclaims its pages only after the writer
 and lookup references retire, including after a catalog compaction or an
 image switch. Compaction verifies a smaller candidate on separate backing.

@@ -3,6 +3,7 @@
 #include "flitzfs/native_session.hpp"
 #include "flitzfs/read_only_file.hpp"
 #include "../src/native_group_anchor.hpp"
+#include "../src/native_group_codec.hpp"
 #include "anchor_search_fixture.hpp"
 #include "native_fs_fixture.hpp"
 #include <iostream>
@@ -837,7 +838,9 @@ void indexed_catalog_discovery(CatalogCase scenario,bool projected=false) {
     }
     f.session->cleanup(noise,false);
     f.session->close(noise);
-    for(unsigned i=0;i<3;++i)
+    // Fund the optional postings and retain a settled checkpoint after the
+    // last window, even when the catalog also carries numeric projections.
+    for(unsigned i=0;i<6;++i)
       put(*f.session,"funding-"+std::to_string(i),Bytes(3*kOptimizationGroupScanInputBytes/4));
   }else {
     for(unsigned i=0;i<noise_count;++i)
@@ -906,7 +909,8 @@ void indexed_catalog_discovery(CatalogCase scenario,bool projected=false) {
   f.session->bind_indexed_coherence(gate,{kStoreMaxPhysicalBytes});
   gate->refuse=scenario==CatalogCase::unavailable;
   require(controller.pending(),"new catalog did not wake settled maintenance");
-  for(unsigned tick=0;tick<3000 && controller.pending();++tick) {
+  const auto lookup_quanta=(noise_count+2)*(1+kOptimizationXorProjections+kCoherenceModularWidths);
+  for(std::size_t tick=0;tick<3000+lookup_quanta && controller.pending();++tick) {
     auto observation=f.clock.next();
     // Reserve just enough modeled headroom for two ordinary members and two
     // cached representatives, forcing the original out of the live window.
@@ -938,7 +942,103 @@ void indexed_catalog_discovery(CatalogCase scenario,bool projected=false) {
       <<" groups="<<progress.published_groups<<" minimum_compacted_bytes_saved="<<progress.minimum_compacted_bytes_saved
       <<" catalog_bytes="<<progress.coherence_catalog_bytes<<'\n';
 }
-enum class CatalogFunding {available,checkpoint_only,journal_failure,catalog_failure};
+enum class ModularCatalogCase {available,masked_only,stale};
+void indexed_modular_catalog_discovery(ModularCatalogCase scenario) {
+  Fixture f(4096,0,true);
+  const PagedStoreLimits limits{kStoreMaxPhysicalBytes};
+  auto advice=ram(4096),backing=ram(4096);
+  require(f.session->create_budgeted_optimization_area(advice).phase==NativeOptimizationPhase::ready,
+      "modular catalog needs a funded advisory journal");
+  f.session->bind_indexed_coherence_writer(IndexedCoherenceWriter::create(backing,id(90),id(1),limits));
+  const auto original=data(kNativeExtentBytes,19463);
+  const auto distant=calibrated_extent(original,1);
+  put(*f.session,"original",original);
+  put(*f.session,"other",data(kNativeExtentBytes,9137));
+  for(unsigned i=0;i<2;++i)put(*f.session,"input-"+std::to_string(i),Bytes(3*kOptimizationGroupScanInputBytes/4));
+  {
+    NativeGroupMaintenance initial(*f.session);
+    finish_pending(f,initial);
+    require(initial.progress().checkpoints_published==1 && !initial.progress().published_groups,
+        "initial numeric sample did not settle");
+  }
+  const auto checkpoint=f.session->optimization_snapshot().state.group_scan;
+  require(checkpoint && checkpoint->representatives.size()==2 && checkpoint->projections.size()==2,
+      "numeric source was absent from the settled scan");
+  const auto& measured=checkpoint->representatives.front();
+  const auto& masked=checkpoint->projections.front().signatures;
+  constexpr auto modular_band=kCoherenceModularBand+2;
+  const auto key=detail::native_group_delta_signatures(original)[2];
+  require(key && key==detail::native_group_delta_signatures(distant)[2],"fixture lacks a shared numeric signature");
+  {
+    const auto archived=IndexedCoherenceSnapshot::open(backing,id(90),id(1),limits);
+    auto expected=measured;
+    expected.bands={};
+    require(archived.has_modular_keys() && archived.find(modular_band,key)==expected,
+        "automatic funded sampling did not persist the numeric signature");
+  }
+  if(scenario==ModularCatalogCase::masked_only) {
+    backing=ram(4096);
+    auto control=IndexedCoherenceWriter::create(backing,id(90),id(1),limits);
+    std::vector<IndexedCoherencePosting> postings{{0,measured}};
+    for(std::uint32_t i=0;i<masked.size();++i)postings.push_back({kCoherenceMaskedBand+i,measured,masked[i]});
+    control.publish(postings,UINT64_MAX);
+    require(control.snapshot().has_projected_keys() && !control.snapshot().has_modular_keys(),
+        "control did not preserve the preceding catalog schema");
+  }
+  constexpr unsigned intervening=8;
+  for(unsigned i=0;i<intervening;++i)
+    put(*f.session,"noise-"+std::to_string(i),data(kNativeExtentBytes,4201+i));
+  put(*f.session,"distant",distant);
+  const auto current=scenario==ModularCatalogCase::stale?data(kNativeExtentBytes,52943):original;
+  if(scenario==ModularCatalogCase::stale) {
+    const auto file=f.session->open("original",{true,true,false});
+    f.session->write(file,0,current);
+    f.session->cleanup(file,false);
+    f.session->close(file);
+  }
+  const auto resolve=[&](const auto& key)->std::shared_ptr<StoreByteIo>{return key==id(1)?f.image:nullptr;};
+  const auto compacted_bytes=[&](unsigned identity) {
+    const auto closed=NativeVolumeHeadView::open(f.head,id(90),resolve);
+    auto output=ram(4096);
+    const StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
+    (void)NativeFilesystemWriter::compact(closed.filesystem(),output,id(identity),raw);
+    auto verified=NativeFilesystemSnapshot::open_image(output,{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes});
+    verified.verify_all();
+    require(verified.read("original",0,kNativeExtentBytes)==current &&
+        verified.read("distant",0,kNativeExtentBytes)==distant,"numeric catalog trial changed a file");
+    return output->extent();
+  };
+  f.session.reset();
+  const auto before=compacted_bytes(2);
+  f.session.emplace(NativeFileSession::resume_closed_indexed_volume(f.head,id(90),1,resolve,
+      {StoreCompressionMode::raw,1,false}));
+  f.session->bind_indexed_coherence(backing,limits);
+  NativeGroupMaintenance controller(*f.session);
+  for(unsigned i=0;i<1000 && controller.pending();++i) {
+    auto observed=f.clock.next();
+    observed.physical_available=observed.physical_total/16+64*(33ULL*kNativeExtentBytes);
+    const auto prior=controller.progress().coherence_lookups;
+    const auto next=controller.advance(observed,f.clock.now);
+    require(next.phase!=Phase::failed && next.coherence_lookups<=prior+1,
+        "numeric catalog exceeded the admitted lookup quantum");
+  }
+  const auto progress=controller.progress();
+  const bool grouped=scenario==ModularCatalogCase::available;
+  require(!controller.pending() && !f.session->poisoned() && !progress.coherence_failures &&
+      progress.published_groups==(grouped?1U:0U) && progress.attempted_groups==(grouped?1U:0U) &&
+      (scenario==ModularCatalogCase::masked_only?!progress.coherence_matches:progress.coherence_matches>0),
+      "numeric catalog missed a live nomination or used a stale binding");
+  controller.cancel();
+  f.session.reset();
+  const auto after=compacted_bytes(3);
+  const auto overhead=f.head->extent()+advice->extent()+backing->extent();
+  require(grouped?after<before:after==before,"numeric catalog compacted size changed unexpectedly");
+  std::cout<<"modular_catalog_discovery scenario="<<static_cast<unsigned>(scenario)
+      <<" intervening_extents="<<intervening<<" lookups="<<progress.coherence_lookups
+      <<" groups="<<progress.published_groups<<" catalog_bytes="<<backing->extent()
+      <<" complete_before="<<before+overhead<<" complete_after="<<after+overhead<<" byte_exact=true\n";
+}
+enum class CatalogFunding {available,checkpoint_only,journal_failure,catalog_failure,earlier_keys_only};
 void funded_indexed_catalog(CatalogFunding outcome) {
   Fixture f(4096,0,true);
   auto advice=ram(4096);
@@ -978,7 +1078,8 @@ void funded_indexed_catalog(CatalogFunding outcome) {
   const auto recorded=*settled.state.settled_input_bytes;
   if(outcome==CatalogFunding::available) {
     const auto spent=backing->write_bytes-catalog_writes;
-    require(view.info().objects==11 && view.info().physical_end>initial_end && spent>0 &&
+    require(view.info().objects==1+2*(1+kOptimizationXorProjections+kCoherenceModularWidths) &&
+        view.has_modular_keys() && view.info().physical_end>initial_end && spent>0 &&
         recorded>=kOptimizationGroupScanInputBytes+spent*kOptimizationGroupScanInputPerWriteByte,
         "automatic feature publication escaped its durable write charge");
     for(const auto& feature:settled.state.group_scan->representatives)
@@ -1029,7 +1130,14 @@ void automatic_indexed_catalog(CatalogFunding outcome) {
   const auto first=data(kNativeExtentBytes,214),second=data(kNativeExtentBytes,624);
   put(*f.session,"first",first);put(*f.session,"second",second);
   put(*f.session,"base-input",Bytes(kOptimizationGroupScanInputBytes-2*kNativeExtentBytes));
-  if(outcome!=CatalogFunding::checkpoint_only) {
+  const bool earlier_only=outcome==CatalogFunding::earlier_keys_only;
+  if(earlier_only) {
+    // The grant covers the primary and masked rows plus the root writes.
+    // The numeric rows require one further 4 KiB page in this model.
+    constexpr auto input=37*4096*kOptimizationGroupScanInputPerWriteByte;
+    put(*f.session,"more-input-a",Bytes(input/2));
+    put(*f.session,"more-input-b",Bytes(input/2));
+  }else if(outcome!=CatalogFunding::checkpoint_only) {
     put(*f.session,"more-input-a",Bytes(3*kOptimizationGroupScanInputBytes/4));
     put(*f.session,"more-input-b",Bytes(3*kOptimizationGroupScanInputBytes/4));
   }
@@ -1052,11 +1160,15 @@ void automatic_indexed_catalog(CatalogFunding outcome) {
   }else {
     require(reservations==1 && settled>kOptimizationGroupScanInputBytes,
         "a funded catalog creation failed to reserve exactly once");
-    if(outcome==CatalogFunding::available) {
+    if(outcome==CatalogFunding::available || earlier_only) {
       const auto snapshot=IndexedCoherenceSnapshot::open(backing,id(90),id(1),limits);
-      require(snapshot.info().objects==11 && snapshot.info().generation==2 &&
+      const auto projected=kOptimizationXorProjections+(earlier_only?0:kCoherenceModularWidths);
+      require(snapshot.info().objects==1+2*(1+projected) &&
+          snapshot.has_projected_keys() && snapshot.has_modular_keys()!=earlier_only && snapshot.info().generation==2 &&
           settled==kOptimizationGroupScanInputBytes+backing->write_bytes*kOptimizationGroupScanInputPerWriteByte,
           "initial catalog and postings escaped one complete charged checkpoint");
+      if(earlier_only)std::cout<<"modular_catalog_tight_grant catalog_bytes="<<snapshot.info().physical_end
+          <<" charged_catalog_writes="<<backing->write_bytes<<" reservations="<<reservations<<'\n';
       for(const auto& feature:journal.state.group_scan->representatives)
         require(snapshot.find(0,feature.bands[0])==feature,"initial catalog lost a real feature");
       reopen_indexed(f,advice,journal.sequence);
@@ -1095,7 +1207,7 @@ std::size_t compact_full_indexed_catalog(CoherenceCopyOutcome outcome,std::size_
       "catalog copy needs funded advice");
   // The backing holds exactly one incremental page rewrite after creation.
   // This is fixture pressure; Windows uses a headroom-derived layout.
-  const PagedStoreLimits limits{38*4096};
+  const PagedStoreLimits limits{39*4096};
   std::vector<std::shared_ptr<Ram>> backings;
   auto owner=std::make_shared<IndexedCoherenceStorage>(limits,[&]() -> std::shared_ptr<StoreByteIo> {
     if(backings.size()==2)throw std::runtime_error("unexpected catalog reservation");
@@ -1170,8 +1282,13 @@ std::size_t compact_full_indexed_catalog(CoherenceCopyOutcome outcome,std::size_
   const auto copy_calls=candidate->calls;
   require(backings.size()==2 && active->calls==old_writes,"compaction modified the old catalog or restarted on unrelated input");
   const auto original=IndexedCoherenceSnapshot::open(active,id(90),id(1),limits);
+  constexpr auto numeric_band=kCoherenceModularBand+2;
+  const auto keep_numeric=detail::native_group_delta_signatures(stable)[2];
+  const auto stale_numeric=detail::native_group_delta_signatures(old)[2];
   require(original.find(0,keep.bands[0])==keep && original.find(0,stale.bands[0])==stale,
       "compaction altered the existing catalog's live or old bindings");
+  require(original.find(numeric_band,keep_numeric)==projected_keep && original.find(numeric_band,stale_numeric),
+      "compaction changed the original numeric catalog");
   const auto settled=read_optimization_state(*image(advice->stable,4096),id(90));
   require(settled.code==OptimizationReadCode::available &&
       *settled.state.settled_input_bytes>*before.state.settled_input_bytes,"copy did not settle its write budget");
@@ -1179,7 +1296,9 @@ std::size_t compact_full_indexed_catalog(CoherenceCopyOutcome outcome,std::size_
     const auto replacement=IndexedCoherenceSnapshot::open(candidate,id(90),id(1),limits);
     require(progress.coherence_compactions==1 && !progress.coherence_discards &&
         progress.coherence_compacted_bytes_saved==full-replacement.info().physical_end &&
-        replacement.info().objects==6 && replacement.find(0,keep.bands[0])==keep &&
+        replacement.info().objects==2+kOptimizationXorProjections+kCoherenceModularWidths &&
+        replacement.find(0,keep.bands[0])==keep && replacement.find(numeric_band,keep_numeric)==projected_keep &&
+        !replacement.find(numeric_band,stale_numeric) &&
         replacement.find(masked_band,keep_key)==projected_keep && !replacement.find(0,stale.bands[0]) &&
         !replacement.find(masked_band,stale_key),"compaction kept stale postings or lost a current representative");
     require(*settled.state.settled_input_bytes-*before.state.settled_input_bytes==
@@ -1236,6 +1355,8 @@ int main(int argc,char** argv){try{
     retain_distant_indexed_candidate(true);
     indexed_scan_checkpoint_faults();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-projected-coherence") {
+    for(const auto scenario:{ModularCatalogCase::available,ModularCatalogCase::masked_only,ModularCatalogCase::stale})
+      indexed_modular_catalog_discovery(scenario);
     for(const auto scenario:{CatalogCase::available,CatalogCase::aligned_only,CatalogCase::unavailable,CatalogCase::stale})
       indexed_catalog_discovery(scenario,true);
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-coherence") {
@@ -1246,6 +1367,7 @@ int main(int argc,char** argv){try{
       funded_indexed_catalog(outcome);
       automatic_indexed_catalog(outcome);
     }
+    automatic_indexed_catalog(CatalogFunding::earlier_keys_only);
     const auto writes_and_barriers=compact_full_indexed_catalog(CoherenceCopyOutcome::completed);
     require(writes_and_barriers>1,"completed catalog copy never reached the final barrier");
     compact_full_indexed_catalog(CoherenceCopyOutcome::charge_cut);

@@ -215,9 +215,11 @@ frames. The protected member contains every parameter needed for CPU recovery.
 
 The automatic scanner samples sixteen 64-byte regions and tries each
 word width. It hashes their modular differences from the first word and
-uses those signatures alongside existing similarity features. The scanner
-retains the new signatures in memory. Persisting them in the sparse
-coherence index remains open.
+uses those signatures alongside existing similarity features. Funded
+maintenance can persist them in the paged coherence catalog. A subsequent
+scan can find a reference outside its bounded memory window, then recheck
+the live revision and decoded bytes during preparation.
+[Modular coherence evidence](evidence/modular-coherence-catalog-2026-11-19.json)
 
 #### Batched AMD modular-delta advice
 
@@ -274,8 +276,8 @@ restart. The extended checkpoint fits up to 373 representatives within the
 existing pair, subject to admitted memory, with a sparse tail for masked
 signatures. The scanner revalidates same-image representatives after an
 intervening edit and resamples changed extents. The paged coherence catalog
-can find masked matches outside checkpoint history using the same live
-checks. Its new postings cost 96 decoded bytes per stored signature.
+can find masked and modular matches outside checkpoint history using the same
+live checks. Each compact posting costs 96 decoded bytes per stored signature.
 Measured collective AMD benefit across workloads remains open.
 [Restart validation](evidence/persistent-indexed-discovery-2026-11-18.json) ·
 [Automatic indexed discovery](evidence/automatic-indexed-discovery-2026-11-18.json) ·

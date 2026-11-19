@@ -219,7 +219,7 @@ struct NativeFileSession::Impl {
     }
   }
   bool publish_coherence_scan(OptimizationStateWriter& advice,const OptimizationState& state,
-      std::uint64_t input,std::span<const OptimizationGroupProjection> projections) {
+      std::uint64_t input,std::span<const detail::CoherenceScanKeys> keys) {
     if(!writer.maintenance_indexed() || !maintenance || coherence_reserves_credit())return false;
     const auto storage=maintenance->coherence_storage;
     const bool creating=!maintenance->coherence_writer;
@@ -235,21 +235,32 @@ struct NativeFileSession::Impl {
     std::vector<IndexedCoherencePosting> postings;
     postings.reserve(kNativeMaxDirtyExtents);
     auto row=static_cast<std::uint32_t>(first-features.begin());
-    auto projected=std::ranges::lower_bound(projections,row,{},&OptimizationGroupProjection::representative);
+    auto signature=std::ranges::lower_bound(keys,row,{},&detail::CoherenceScanKeys::representative);
     auto end=first;
+    const auto nonzero=[](auto key){return key!=0;};
     for(;end!=features.end();++end,++row) {
       const auto band=detail::coherence_primary_band(end->bands);
-      OptimizationXorSignatures signatures{};
-      if(projected!=projections.end() && projected->representative==row) {
-        signatures=projected->signatures;
-        ++projected;
-      }
-      const auto signature_count=std::ranges::count_if(signatures,[](auto key){return key!=0;});
+      const bool has_keys=signature!=keys.end() && signature->representative==row;
+      const auto signature_count=has_keys?std::ranges::count_if(signature->masked,nonzero):0;
       const auto needed=static_cast<std::size_t>(band.has_value())+static_cast<std::size_t>(signature_count);
       if(needed>kNativeMaxDirtyExtents-postings.size())break;
       if(band)postings.push_back({*band,*end});
-      for(std::uint32_t i=0;i<signatures.size();++i)
-        if(signatures[i])postings.push_back({static_cast<std::uint32_t>(kOptimizationGroupBands)+i,*end,signatures[i]});
+      if(has_keys) {
+        for(std::uint32_t i=0;i<signature->masked.size();++i)
+          if(signature->masked[i])postings.push_back({kCoherenceMaskedBand+i,*end,signature->masked[i]});
+        ++signature;
+      }
+    }
+    const auto earlier_count=postings.size();
+    // Preserve the primary and masked scan coverage. Numeric keys compete for
+    // the remaining slots in the same funded batch.
+    const auto first_row=static_cast<std::uint32_t>(first-features.begin());
+    for(auto extra=std::ranges::lower_bound(keys,first_row,{},&detail::CoherenceScanKeys::representative);
+        extra!=signature && postings.size()<kNativeMaxDirtyExtents;++extra) {
+      for(std::uint32_t i=0;i<extra->modular.size() && postings.size()<kNativeMaxDirtyExtents;++i) {
+        if(extra->modular[i])postings.push_back({kCoherenceModularBand+i,
+            features[extra->representative],extra->modular[i]});
+      }
     }
     if(postings.empty())return false;
     bool settled_catalog=false;
@@ -258,18 +269,28 @@ struct NativeFileSession::Impl {
       return settled_catalog;
     };
     try {
-      if(creating) {
-        auto backing=reserve_coherence_backing(*storage);
-        if(!backing)return false;
-        auto catalog=std::make_shared<IndexedCoherenceWriter>(IndexedCoherenceWriter::create_reserved(
-            std::move(backing),volume->volume_id,volume->active_id,storage->limits_,postings,maximum_bytes,reserve));
-        auto snapshot=catalog->snapshot();
-        adopt_coherence(std::move(snapshot),catalog);
-        storage->retained_=std::move(catalog);
-      }else {
-        auto& catalog=*maintenance->coherence_writer;
-        const auto result=catalog.publish_reserved(postings,maximum_bytes,reserve);
-        if(result.write_bytes_upper_bound)maintenance->coherence.emplace(catalog.snapshot());
+      auto backing=creating?reserve_coherence_backing(*storage):nullptr;
+      if(creating && !backing)return false;
+      const auto publish=[&](std::span<const IndexedCoherencePosting> batch) {
+        if(creating) {
+          auto catalog=std::make_shared<IndexedCoherenceWriter>(IndexedCoherenceWriter::create_reserved(
+              backing,volume->volume_id,volume->active_id,storage->limits_,batch,maximum_bytes,reserve));
+          auto snapshot=catalog->snapshot();
+          adopt_coherence(std::move(snapshot),catalog);
+          storage->retained_=std::move(catalog);
+        }else {
+          auto& catalog=*maintenance->coherence_writer;
+          const auto result=catalog.publish_reserved(batch,maximum_bytes,reserve);
+          if(result.write_bytes_upper_bound)maintenance->coherence.emplace(catalog.snapshot());
+        }
+      };
+      try{publish(postings);}
+      catch(const PagedStoreCapacityError&) {
+        // Only a clean pre-publication refusal can retry with the earlier
+        // key families. No charge, partial catalog or poisoned owner is reused.
+        if(!earlier_count || earlier_count==postings.size() || settled_catalog || advice.poisoned() ||
+            (creating?backing->extent()!=0:maintenance->coherence_writer->poisoned()))throw;
+        publish(std::span(postings).first(earlier_count));
       }
       maintenance->coherence_offer_after=(end-1)->object;
     }catch(const PagedStoreCapacityError& error) {
@@ -283,7 +304,7 @@ struct NativeFileSession::Impl {
     // A charged catalog attempt is settled even if its own publication failed.
     return settled_catalog;
   }
-  bool publish_scan_advice(OptimizationGroupScan scan,std::span<const OptimizationGroupProjection> projections) {
+  bool publish_scan_advice(OptimizationGroupScan scan,std::span<const detail::CoherenceScanKeys> keys) {
     if(!scan_advice_funded())return false;
     auto& advice=*ready_scan_advice();
     const auto actual=writer.snapshot().workload_info();
@@ -291,7 +312,7 @@ struct NativeFileSession::Impl {
     auto state=advice.snapshot().state;
     state.group_scan=std::move(scan);
     try {
-      return publish_coherence_scan(advice,state,actual.committed_input_bytes,projections) ||
+      return publish_coherence_scan(advice,state,actual.committed_input_bytes,keys) ||
           (!coherence_reserves_credit() &&
            advice.publish_budgeted(state,actual.committed_input_bytes,true)==OptimizationStateWriter::BudgetResult::published);
     }catch(...) {
@@ -561,8 +582,8 @@ std::weak_ptr<detail::NativeMaintenanceSource> NativeFileSession::maintenance_so
       return advice->snapshot().state.group_scan;
     };
     source->scan_funded=[owner=&self]{return owner->scan_advice_funded();};
-    source->publish_scan=[owner=&self](OptimizationGroupScan scan,std::span<const OptimizationGroupProjection> projections) {
-      return owner->publish_scan_advice(std::move(scan),projections);
+    source->publish_scan=[owner=&self](OptimizationGroupScan scan,std::span<const detail::CoherenceScanKeys> keys) {
+      return owner->publish_scan_advice(std::move(scan),keys);
     };
     source->coherence_pending=[owner=&self]{return owner->coherence_work_pending();};
     source->advance_coherence=[owner=&self]{owner->advance_coherence_work();};

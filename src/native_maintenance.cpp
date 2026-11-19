@@ -17,10 +17,11 @@ using Digest=detail::Digest;using Phase=NativeMaintenancePhase;using Defer=Nativ
 constexpr std::uint64_t million=1000000,fixed_scratch=16ULL*kNativeExtentBytes,member_scratch=8ULL*kNativeExtentBytes;
 constexpr unsigned positional_bands=8;
 static_assert(kOptimizationGroupBands==positional_bands+detail::kNativeGroupShiftFeatures);
+static_assert(std::tuple_size_v<detail::NativeGroupDeltaSignatures> == kCoherenceModularWidths);
 // Charge extra history for its retained entry, bucket membership, and the
 // overlapping controller, publisher and verifier copies of checkpoint rows.
 constexpr auto representative_scratch=8*(sizeof(OptimizationGroupFeature)+sizeof(OptimizationGroupProjection)+
-    sizeof(detail::NativeGroupDeltaSignatures));
+    sizeof(detail::CoherenceScanKeys));
 static_assert(kOptimizationGroupRepresentatives>kNativeMaxDirtyExtents);
 struct GroupMemoryBudget {std::size_t members=0,representatives=0;};
 GroupMemoryBudget group_memory_budget(const detail::MaintenanceResources& resources,bool indexed) noexcept {
@@ -102,7 +103,7 @@ struct NativeGroupMaintenance::Impl {
     std::array<std::uint64_t,kOptimizationGroupBands> bands{};
     OptimizationXorSignatures projections{};
     detail::NativeGroupDeltaSignatures deltas{};
-    bool projected=false;
+    bool projected=false,deltas_sampled=false;
   };
   struct StagedGroup {
     NativeFilesystemWriter::SharedBaseWork work;
@@ -265,13 +266,15 @@ struct NativeGroupMaintenance::Impl {
       scan.complete=phase==Phase::idle&&!scan.revisit;
       scan.xor_sampling=true;
       scan.representatives.reserve(representatives.size());
-      std::vector<OptimizationGroupProjection> catalog_projections;
+      std::vector<detail::CoherenceScanKeys> catalog_keys;
       const bool can_publish_catalog=owner.coherence_writer || owner.coherence_storage;
-      if(can_publish_catalog)catalog_projections.reserve(representatives.size());
+      if(can_publish_catalog)catalog_keys.reserve(representatives.size());
       for(const auto& [id,feature]:representatives) {
         const auto& token=feature.token;
-        if(can_publish_catalog && feature.projected)
-          catalog_projections.push_back({static_cast<std::uint32_t>(scan.representatives.size()),feature.projections});
+        if(can_publish_catalog && (feature.projected || feature.deltas_sampled))
+          catalog_keys.push_back({static_cast<std::uint32_t>(scan.representatives.size()),
+              feature.projected?feature.projections:OptimizationXorSignatures{},
+              feature.deltas_sampled?feature.deltas:detail::NativeGroupDeltaSignatures{}});
         scan.representatives.push_back({token.extent.inode,token.extent.extent_index,
             id,token.revision,feature.content,feature.bands,token.exact_base});
       }
@@ -289,7 +292,7 @@ struct NativeGroupMaintenance::Impl {
         }
       }
       std::ranges::sort(scan.projections,{},&OptimizationGroupProjection::representative);
-      if(owner.publish_scan(std::move(scan),catalog_projections)) {
+      if(owner.publish_scan(std::move(scan),catalog_keys)) {
         ++state.checkpoints_published;
         checkpoint_samples=state.sampled_extents;
       }
@@ -313,7 +316,7 @@ struct NativeGroupMaintenance::Impl {
       std::copy(shifted.begin(),shifted.end(),feature.bands.begin()+positional_bands);
       feature.projections=sample_xor_signatures(bytes);
       feature.deltas=detail::native_group_delta_signatures(bytes);
-      feature.projected=true;
+      feature.projected=feature.deltas_sampled=true;
     }
     ++state.sampled_extents;
     return feature;
@@ -331,11 +334,10 @@ struct NativeGroupMaintenance::Impl {
       }
       if(indexed) {
         for(unsigned i=0;i<feature.projections.size();++i) {
-          if(feature.projections[i])add_band({static_cast<unsigned>(kOptimizationGroupBands)+i,feature.projections[i]});
+          if(feature.projections[i])add_band({kCoherenceMaskedBand+i,feature.projections[i]});
         }
-        constexpr auto delta_band=static_cast<unsigned>(kOptimizationGroupBands+kOptimizationXorProjections);
         for(unsigned i=0;i<feature.deltas.size();++i) {
-          if(feature.deltas[i])add_band({delta_band+i,feature.deltas[i]});
+          if(feature.deltas[i])add_band({kCoherenceModularBand+i,feature.deltas[i]});
         }
       }
     };
@@ -391,15 +393,19 @@ struct NativeGroupMaintenance::Impl {
       known=representatives.emplace(hit.object,Feature{token,hit.content,hit.bands}).first;
     }
     auto& feature=known->second;
-    if(feature.projected || feature.token.revision!=hit.revision || feature.content!=hit.content ||
+    if(feature.token.revision!=hit.revision || feature.content!=hit.content ||
         feature.token.extent.inode!=hit.inode || feature.token.extent.extent_index!=hit.extent_index ||
         feature.token.exact_base!=hit.exact_base)return;
-    if(key.first>=kOptimizationGroupBands) {
-      auto& signature=feature.projections[key.first-kOptimizationGroupBands];
-      if(signature==key.second)return;
+    if(key.first>=kCoherenceModularBand) {
+      auto& signature=feature.deltas[key.first-kCoherenceModularBand];
+      if(feature.deltas_sampled || signature==key.second)return;
+      signature=key.second;
+    }else if(key.first>=kCoherenceMaskedBand) {
+      auto& signature=feature.projections[key.first-kCoherenceMaskedBand];
+      if(feature.projected || signature==key.second)return;
       signature=key.second;
     }else {
-      if(!added && feature.bands==hit.bands)return;
+      if(feature.projected || (!added && feature.bands==hit.bands))return;
       feature.bands=hit.bands;
     }
     ++state.coherence_matches;
@@ -411,7 +417,9 @@ struct NativeGroupMaintenance::Impl {
     const auto& catalog=owner.coherence;
     if(!catalog)return false;
     if(catalog->image()!=image){owner.retire_coherence();return false;}
-    const auto queries=catalog->has_projected_keys()?1+kOptimizationXorProjections:1;
+    constexpr auto modular_query=1+kOptimizationXorProjections;
+    const auto queries=catalog->has_modular_keys()?modular_query+kCoherenceModularWidths:
+        catalog->has_projected_keys()?modular_query:1;
     for(auto sample=features.lower_bound(coherence_after);sample!=features.end();++sample,coherence_query=0) {
       const auto& feature=sample->second;
       coherence_after=sample->first;
@@ -421,9 +429,12 @@ struct NativeGroupMaintenance::Impl {
         Band key{};
         if(query==0) {
           if(const auto band=detail::coherence_primary_band(feature.bands))key={*band,feature.bands[*band]};
-        } else {
+        }else if(query<modular_query) {
           const auto index=query-1;
-          key={static_cast<unsigned>(kOptimizationGroupBands)+index,feature.projections[index]};
+          key={kCoherenceMaskedBand+index,feature.projections[index]};
+        }else {
+          const auto index=query-modular_query;
+          key={kCoherenceModularBand+static_cast<unsigned>(index),feature.deltas[index]};
         }
         if(!key.second)continue;
         std::optional<OptimizationGroupFeature> hit;
@@ -517,7 +528,9 @@ struct NativeGroupMaintenance::Impl {
         cursor=token->extent;first=false;
         if(token->object) {
           const auto known=representatives.find(token->object);
+          const bool can_publish_catalog=owner.coherence_writer || owner.coherence_storage;
           if(known!=representatives.end() && known->second.projected && known->second.token.revision==token->revision &&
+              (known->second.deltas_sampled || !can_publish_catalog) &&
               known->second.token.extent.inode==token->extent.inode &&
               known->second.token.extent.extent_index==token->extent.extent_index) {
             // Index lookups provide the revision; a verified payload sample

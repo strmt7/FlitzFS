@@ -1,0 +1,453 @@
+{
+  "schema": "flitzfs-modular-coherence-catalog-v1",
+  "experimental": true,
+  "captured_local": "2026-11-19T16:53:54.3704074+01:00",
+  "source_base": "489d6df99cb5be8c59a440bd133b7489df8ad8e2",
+  "source_binding": [
+    {
+      "path": "include/flitzfs/indexed_coherence.hpp",
+      "git_blob": "12727205ac63aa723786500e467fe9336ba711fb"
+    },
+    {
+      "path": "src/indexed_coherence.cpp",
+      "git_blob": "fdacee14673f6e1e9290add9a2ce966b02b57b70"
+    },
+    {
+      "path": "src/native_maintenance.cpp",
+      "git_blob": "78b14b6cc7e66fd231ceaf89fcdf993fc8c4e30c"
+    },
+    {
+      "path": "src/native_maintenance_source.hpp",
+      "git_blob": "7f049dcfda9ec7c38b20f50ec9a87d87c232a465"
+    },
+    {
+      "path": "src/native_session.cpp",
+      "git_blob": "0ac6fe01def59686e51579e50a138ecb9324ec85"
+    },
+    {
+      "path": "tests/test_native_group_maintenance.cpp",
+      "git_blob": "b08558fbfa2bf9eb4973d520e6fa5e23ae2c8121"
+    },
+    {
+      "path": "tests/test_paged_store.cpp",
+      "git_blob": "6a157065daf73045e746853e50f2174e674fff52"
+    },
+    {
+      "path": "tests/test_winfsp_controller.cpp",
+      "git_blob": "655588c1a648ea8dff19aac59d86058df560ea2f"
+    }
+  ],
+  "semantic_navigation": {
+    "provider_version": "0.2.43",
+    "files": 6,
+    "receipt_sha256": "af052417cb35bc0dfff8a6cefe4d4f1859edfc895181ea91c9874645d3c77717",
+    "response_sha256": "2155429f65d41363b33a8cf9e2b425c129ed3a50256e65068170ebf85b6cb6b2",
+    "job": {
+      "run": "local-run-2a932c4dcb6a4428bc70a4db9a3fb627",
+      "exit_code": 0,
+      "wall_seconds": 23.709829,
+      "memory_envelope_bytes": 1292894208,
+      "peak_job_bytes": 1056890880,
+      "cpu_percent": 12,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "children_at_forced_retirement": 0,
+      "receipt_sha256": "5579ec435057f0d55f536e684fab823acab201648c6dd32488acc56ce68b0983",
+      "log_sha256": "fa8305a712f4fa1b2cd39108377f094169aa85f71462ddf40f8be23dee68df5b"
+    }
+  },
+  "research": {
+    "reviewed": {
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "robots_checked": true,
+      "external_llm": false,
+      "timeout_seconds": 45,
+      "receipt_sha256": "05b7c9bedd2634ac7b59a692a887b8b9df0b09a153c203c4b6e6a0036c0fcff9",
+      "pages": [
+        {
+          "url": "https://link.springer.com/article/10.1007/s44443-026-01042-5",
+          "success": true,
+          "http_status": 303,
+          "final_http_status": 200,
+          "markdown_bytes": 151330,
+          "markdown_sha256": "aec258dce33c2af92cf7be4b0058a157ec442bb25a48a516f121ad72223cf103",
+          "capture": "delta-index.native.json",
+          "capture_sha256": "c51d94e2cc0ea073916653ba0d760452f8f97936c873e33266e89753fe64b989",
+          "failure_category": ""
+        },
+        {
+          "url": "https://rocksdb.org/blog/2026/06/20/fifo-kv-ratio-compaction.html",
+          "success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 18737,
+          "markdown_sha256": "978a635c89f7e1d673ffc0837076d0fcc43296f60f45cb72785de8d8013bf8d4",
+          "capture": "rocksdb-cost.native.json",
+          "capture_sha256": "c333010c09f6c538db5f5f28f28034b960bf7920ce31f0951a6357c79d35e0a3",
+          "failure_category": ""
+        }
+      ],
+      "job": {
+        "run": "local-run-6e2e9d0f8ef14fe2b38202e35d75c17f",
+        "exit_code": 0,
+        "wall_seconds": 7.89915,
+        "memory_envelope_bytes": 1812987904,
+        "peak_job_bytes": 1186443264,
+        "cpu_percent": 12,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "children_at_forced_retirement": 0,
+        "receipt_sha256": "217402fbf816b17071185bd03eeebeb1e3fa6208411f29ebaad052a18687f424",
+        "log_sha256": "93b12e0b308a5c6530929d1886a50c9323180991a84acf643d71331339f4e5ab"
+      }
+    },
+    "failed_first_capture": {
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "robots_checked": true,
+      "external_llm": false,
+      "timeout_seconds": 45,
+      "receipt_sha256": "23885cf92363b12126dc48873e860f42e11da447c004b1d632360fda01e90a15",
+      "pages": [
+        {
+          "url": "https://www.mdpi.com/2073-431X/15/9/607",
+          "success": false,
+          "http_status": 0,
+          "final_http_status": 0,
+          "markdown_bytes": 0,
+          "markdown_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "capture": "delta-index.native.json",
+          "capture_sha256": "4c6cc92eead477ae6121905b6308a2b94fcf2f6951d0c149220418089f7f4bed",
+          "failure_category": "native_failure"
+        },
+        {
+          "url": "https://rocksdb.org/blog/2026/06/20/fifo-kv-ratio-compaction.html",
+          "success": false,
+          "http_status": 0,
+          "final_http_status": 0,
+          "markdown_bytes": 0,
+          "markdown_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "capture": "rocksdb-cost.native.json",
+          "capture_sha256": "780b2dccfd1eeee1fb10a729aac18f8b1a48227f870b3a4bfda36087fe9dd4e5",
+          "failure_category": "native_failure"
+        }
+      ],
+      "job": {
+        "run": "local-run-911b3d04ff7445c7ba4b992ede7e335a",
+        "exit_code": 0,
+        "wall_seconds": 17.098903,
+        "memory_envelope_bytes": 1179648000,
+        "peak_job_bytes": 1183969280,
+        "cpu_percent": 12,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "children_at_forced_retirement": 0,
+        "receipt_sha256": "3052f9fd984f7ddddf5104474eb67801b13aae93806fbfd3b39dbadc5aa7bb1b",
+        "log_sha256": "2a4ae41b6fcea28a34f0372380b2fc4d59737a1417f3db7a8914080a5472f5ae"
+      }
+    },
+    "correction": "Reran the reviewed isolated browser within current host headroom and used an accessible primary research page."
+  },
+  "validation": {
+    "windows": "Microsoft Windows 11 Pro",
+    "windows_build": "26300",
+    "raw": {
+      "build": {
+        "run": "local-run-855270dd91e54bb6a463f5b6e54be554",
+        "exit_code": 0,
+        "wall_seconds": 7.661019,
+        "memory_envelope_bytes": 970981376,
+        "peak_job_bytes": 372527104,
+        "cpu_percent": 15,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "children_at_forced_retirement": 1,
+        "receipt_sha256": "644fcd5af6487dd872cc5617e66c5bb8f0f966d34a8fa2174a4ade3b51df46da",
+        "log_sha256": "1c2a21b42d2c6e02e4b7eb51438e1be9e1f78d622952b02999fd482324399410"
+      },
+      "tests": {
+        "run": "local-run-80f33aaeab384cd0ae8bbdadfd733d46",
+        "exit_code": 0,
+        "wall_seconds": 6.759637,
+        "memory_envelope_bytes": 914358272,
+        "peak_job_bytes": 165871616,
+        "cpu_percent": 14,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "children_at_forced_retirement": 0,
+        "receipt_sha256": "409a77e8e2e948f3ffb2314abd3d0c11f67fda2bd3bcdf858ff42596104ddd30",
+        "log_sha256": "c9cce2a223b69faaec4008d1d47a1105fbcb8980a5152c4c8a19213d73062587"
+      },
+      "passed": 8,
+      "controlled_cases": [
+        {
+          "scenario": 0,
+          "intervening_extents": 8,
+          "lookups": 98,
+          "groups": 1,
+          "catalog_bytes": 159744,
+          "complete_before": 2019328,
+          "complete_after": 1896448,
+          "byte_exact": true
+        },
+        {
+          "scenario": 1,
+          "intervening_extents": 8,
+          "lookups": 55,
+          "groups": 0,
+          "catalog_bytes": 155648,
+          "complete_before": 2015232,
+          "complete_after": 2015232,
+          "byte_exact": true
+        },
+        {
+          "scenario": 2,
+          "intervening_extents": 8,
+          "lookups": 99,
+          "groups": 0,
+          "catalog_bytes": 159744,
+          "complete_before": 2019328,
+          "complete_after": 2019328,
+          "byte_exact": true
+        }
+      ]
+    },
+    "windows_sdk": {
+      "build": {
+        "run": "local-run-62c5efee6c9f4f77906e9d0a7d30319e",
+        "exit_code": 0,
+        "wall_seconds": 10.46906,
+        "memory_envelope_bytes": 649068544,
+        "peak_job_bytes": 411688960,
+        "cpu_percent": 16,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "children_at_forced_retirement": 1,
+        "receipt_sha256": "98a3fa1514a65208c4a482e804c2e696e1005bcb65d3d86472e55004d951417d",
+        "log_sha256": "27e450d15778dcbdaa5aca96618a2a435568f3e93ef389f32966165b6220362f"
+      },
+      "tests": {
+        "run": "local-run-8061ae6a4e7b459493989c9bb8d11be3",
+        "exit_code": 0,
+        "wall_seconds": 17.004818,
+        "memory_envelope_bytes": 615514112,
+        "peak_job_bytes": 166039552,
+        "cpu_percent": 16,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "children_at_forced_retirement": 0,
+        "receipt_sha256": "e22a54eb232f5e0ec8386f63e6af359524e0ff852a216e1066f7d5c03d6706e9",
+        "log_sha256": "c126dacf0d15296b9ebd5d3e7d2aeb5b07ef511a0f55ada2684637d1388ef2ac"
+      },
+      "passed": 10,
+      "controlled_cases": [
+        {
+          "scenario": 0,
+          "intervening_extents": 8,
+          "lookups": 98,
+          "groups": 1,
+          "catalog_bytes": 159744,
+          "complete_before": 2019328,
+          "complete_after": 1896448,
+          "byte_exact": true
+        },
+        {
+          "scenario": 1,
+          "intervening_extents": 8,
+          "lookups": 55,
+          "groups": 0,
+          "catalog_bytes": 155648,
+          "complete_before": 2015232,
+          "complete_after": 2015232,
+          "byte_exact": true
+        },
+        {
+          "scenario": 2,
+          "intervening_extents": 8,
+          "lookups": 99,
+          "groups": 0,
+          "catalog_bytes": 159744,
+          "complete_before": 2019328,
+          "complete_after": 2019328,
+          "byte_exact": true
+        }
+      ]
+    },
+    "windows_sdk_address_sanitizer": {
+      "build": {
+        "run": "local-run-995f9d59af714ffd9ab38d4e6375e7e3",
+        "exit_code": 0,
+        "wall_seconds": 14.981427,
+        "memory_envelope_bytes": 884998144,
+        "peak_job_bytes": 645201920,
+        "cpu_percent": 16,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "children_at_forced_retirement": 1,
+        "receipt_sha256": "32c39ecce1c83b5f0f1ba3a186fb565b5c19b51e77bc5a51d75dfbb8161987e1",
+        "log_sha256": "a4249821ffb7eefa6337757320d6a860293e9fc74ea8ba3d59fb2c399223fadd"
+      },
+      "tests": {
+        "run": "local-run-1400a72837394f45825c39947a8f57af",
+        "exit_code": 0,
+        "wall_seconds": 21.061999,
+        "memory_envelope_bytes": 1291845632,
+        "peak_job_bytes": 869502976,
+        "cpu_percent": 16,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "children_at_forced_retirement": 0,
+        "receipt_sha256": "6ceb295852a41ee2678d9acfeedbaef841f4218d0cd9d545dbae53665c388e3f",
+        "log_sha256": "7951dd8fb1f6b7a43dedbbc0060628a098d20ab8822aeae449241716e1543451"
+      },
+      "passed": 11,
+      "controlled_cases": [
+        {
+          "scenario": 0,
+          "intervening_extents": 8,
+          "lookups": 98,
+          "groups": 1,
+          "catalog_bytes": 159744,
+          "complete_before": 2019328,
+          "complete_after": 1896448,
+          "byte_exact": true
+        },
+        {
+          "scenario": 1,
+          "intervening_extents": 8,
+          "lookups": 55,
+          "groups": 0,
+          "catalog_bytes": 155648,
+          "complete_before": 2015232,
+          "complete_after": 2015232,
+          "byte_exact": true
+        },
+        {
+          "scenario": 2,
+          "intervening_extents": 8,
+          "lookups": 99,
+          "groups": 0,
+          "catalog_bytes": 159744,
+          "complete_before": 2019328,
+          "complete_after": 2019328,
+          "byte_exact": true
+        }
+      ]
+    },
+    "promotion": {
+      "from_schema": 2,
+      "to_schema": 3,
+      "posting_bytes": 96,
+      "charged_bytes": 20480,
+      "modeled_interruption_cases": 36,
+      "supported_word_width_bytes": [
+        1,
+        2,
+        4,
+        8
+      ]
+    },
+    "catalog_size_charge_refusal": {
+      "selected_schema": 2,
+      "catalog_bytes": 143360,
+      "charged_bytes": 151552,
+      "reservations": 1
+    },
+    "windows_backing_rotation": {
+      "old_catalog_bytes": 159744,
+      "new_catalog_bytes": 147456,
+      "retired_locked_bytes": 159744
+    },
+    "fixture": {
+      "cases": [
+        "numeric catalog",
+        "masked catalog control",
+        "stale numeric catalog"
+      ],
+      "intervening_extents": 8,
+      "admitted_decoded_candidates": 2,
+      "includes": [
+        "compacted native file data",
+        "volume head",
+        "journal",
+        "selected catalog"
+      ],
+      "complete_savings_vs_masked_bytes": 118784,
+      "one_catalog_lookup_per_opportunity": true,
+      "byte_exact_cpu_reopen": true
+    }
+  },
+  "development_failures": [
+    {
+      "job": {
+        "run": "local-run-e32838b8e79b4c6d8a7b00ae13349463",
+        "exit_code": 8,
+        "wall_seconds": 5.464357,
+        "memory_envelope_bytes": 1115684864,
+        "peak_job_bytes": 165515264,
+        "cpu_percent": 14,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "children_at_forced_retirement": 0,
+        "receipt_sha256": "103a3b3be0b8e888f0c3633527e34b3a8860c9231ed4fc9e0a39123c4785a821",
+        "log_sha256": "cc52014fc58fc611186f0b23af9c41337cd7119caf3074264df81bd48fb50417"
+      },
+      "finding": "Unconditional numeric postings exceeded the small catalog fixture and the long scan funding. Preserved the earlier key batch, added a clean capacity fallback and bound test funding to the new storage footprint."
+    },
+    {
+      "job": {
+        "run": "local-run-d94dae360c444aa9ac82d0323421975b",
+        "exit_code": 8,
+        "wall_seconds": 9.72352,
+        "memory_envelope_bytes": 974127104,
+        "peak_job_bytes": 165859328,
+        "cpu_percent": 15,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "children_at_forced_retirement": 0,
+        "receipt_sha256": "8281bc1ce0753a1368b84bd695df80df58ccdb2e270e83e804cfb1a75ce004b0",
+        "log_sha256": "33d6f0688f7bebb64e79dc25581cc08069dbecf3ed9757c5750a6dafbec4848e"
+      },
+      "finding": "The Windows fixture had room for fewer pages than the new catalog layout. Updated its disposable pressure fixture and verified retirement."
+    },
+    {
+      "job": {
+        "run": "local-run-1625f59f0b44463a8f4001744d7101b3",
+        "exit_code": 1,
+        "wall_seconds": 29.834815,
+        "memory_envelope_bytes": 1221591040,
+        "peak_job_bytes": 651370496,
+        "cpu_percent": 15,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "children_at_forced_retirement": 0,
+        "receipt_sha256": "887f48db253e00f2eed5096539f4d900f41f167e0b116bdc9ca9f0acd8929518",
+        "log_sha256": "881dfbfa61b9ecca7b320f6bfe27c7dbc3b064fb1dd06a864a53d1ffc5738a18"
+      },
+      "finding": "The preview configuration has the Explorer test target disabled. Built the configured preview core and selected SDK targets."
+    },
+    {
+      "job": {
+        "run": "local-run-5d5f319a744a48988672b79243508378",
+        "exit_code": 8,
+        "wall_seconds": 23.122677,
+        "memory_envelope_bytes": 822083584,
+        "peak_job_bytes": 823357440,
+        "cpu_percent": 16,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "children_at_forced_retirement": 0,
+        "receipt_sha256": "3df4caa2d308fbceba63fd7c5601dfcc9dfe1fbcc7168be7afea9d9ff9b1fb2b",
+        "log_sha256": "345c3c1bc9dc1993ec0da091e3f76f763b03d7dfa15f902f7729f8ca9d43f652"
+      },
+      "finding": "Two tests reached the supervised AddressSanitizer allocation limit. Retried with fresh headroom and full sanitizer instrumentation."
+    }
+  ],
+  "scope": {
+    "modeled_maintenance_opportunities": true,
+    "live_windows_memory_ownership": true,
+    "hardware_gpu_executed_by_this_catalog_suite": false,
+    "mounted": false,
+    "physical_power_loss": false,
+    "release": false
+  }
+}

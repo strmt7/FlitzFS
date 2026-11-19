@@ -4,12 +4,17 @@
 
 namespace flitzfs {
 namespace detail {struct NativeMaintenanceSource;}
+inline constexpr std::uint32_t kCoherenceMaskedBand=kOptimizationGroupBands;
+inline constexpr std::uint32_t kCoherenceModularBand=kCoherenceMaskedBand+kOptimizationXorProjections;
+inline constexpr std::uint32_t kCoherenceModularWidths=4;
+inline constexpr std::uint32_t kCoherenceBandCount=kCoherenceModularBand+kCoherenceModularWidths;
+
 // A nomination only. The publisher supplies a verified feature sample.
 // A consumer rechecks the selected extent binding against its live volume.
 struct IndexedCoherencePosting {
   std::uint32_t band=0;
   OptimizationGroupFeature representative;
-  // Projected bands follow the original band ordinals. They carry one full key.
+  // Masked byte and modular word bands carry one full key.
   std::uint64_t projected_fingerprint=0;
 };
 
@@ -20,7 +25,8 @@ class IndexedCoherenceSnapshot final {
   static IndexedCoherenceSnapshot open(std::shared_ptr<StoreByteIo>,
       StoreIdentity volume,StoreIdentity image,PagedStoreLimits);
   std::optional<OptimizationGroupFeature> find(std::uint32_t band,std::uint64_t fingerprint) const;
-  bool has_projected_keys() const noexcept {return projected_keys_;}
+  bool has_projected_keys() const noexcept {return schema_>=2;}
+  bool has_modular_keys() const noexcept {return schema_>=3;}
   PagedStoreInfo info() const noexcept {return store_.info();}
   StoreIdentity volume() const noexcept {return store_.identity();}
   StoreIdentity image() const noexcept {return image_;}
@@ -30,7 +36,7 @@ class IndexedCoherenceSnapshot final {
   IndexedCoherenceSnapshot(PagedObjectStoreSnapshot,StoreIdentity volume,StoreIdentity image);
   PagedObjectStoreSnapshot store_;
   StoreIdentity image_;
-  bool projected_keys_=false;
+  std::uint8_t schema_=1;
 };
 
 class IndexedCoherenceWriter final {

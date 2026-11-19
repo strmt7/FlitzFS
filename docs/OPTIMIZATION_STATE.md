@@ -296,10 +296,12 @@ remain outside file-data recovery.
 A managed indexed session can bind a read-only snapshot of a separately
 reserved catalog. The paged store identity binds the volume. A typed object
 at key 1 binds the selected image and feature schema. Its 32-byte record has
-`FLTZCOR1` or `FLTZCOR2` at offset 0, the 16-byte image identity at offset 8,
-and schema 1 or 2 at byte 24. Bytes 25–31 are reserved zero. Schema 2 admits
-both posting types. The first projected write promotes an existing root and
-adds its postings in the same funded copy-on-write transaction.
+`FLTZCOR1`, `FLTZCOR2` or `FLTZCOR3` at offset 0, the 16-byte image identity
+at offset 8, and the matching schema at byte 24. Bytes 25–31 are reserved
+zero. Each schema admits the preceding posting types. A newly admitted
+posting and any required root promotion share one funded copy-on-write
+transaction. The catalog is rebuildable advice. The file-data image uses its
+own format capability when opened independently.
 
 The first 16 bytes of each posting contain the signature at offset 0, the
 band ordinal at byte 8, and seven reserved zero bytes.
@@ -308,8 +310,9 @@ band ordinal at byte 8, and seven reserved zero bytes.
 |---|---:|---:|---|
 | `FLTZCOE1` | 0–11 | 184 | Original 168-byte representative |
 | `FLTZCOE2` | 12–15 | 96 | Four 8-byte extent binding fields, 32-byte content digest, 8-byte role, 8-byte masked signature |
+| `FLTZCOE3` | 16–19 | 96 | Same extent binding, digest and role, followed by a modular signature for 1, 2, 4 or 8 byte words |
 
-Each `FLTZCOE2` row stores only its own signature. Its decoded representative
+Each compact row stores its own signature. Its decoded representative
 provides the extent binding and role with an empty legacy band array. The
 high bit of each object key identifies a posting. Its other bits come from
 the first eight BLAKE3 digest bytes over the one-byte band and eight-byte
@@ -326,21 +329,25 @@ The read path checks one paged lookup path without loading the whole catalog.
 [Paginated object storage](PAGED_OBJECT_STORE.md#memory-and-capacity)
 
 After ordinary window candidates are exhausted, the maintenance controller
-can look up the primary band and, for schema 2, up to four masked signatures
-of an ungrouped sample. The controller advances one point lookup per admitted
-step and skips missing signatures. A result goes through the ordinary live
+can look up the primary band, up to four masked signatures in schema 2 or
+later, and up to four modular signatures in schema 3. The controller advances
+one point lookup per admitted step for ungrouped samples and skips missing
+signatures. A result goes through the ordinary live
 extent and CPU publication checks. An unreadable catalog is retired and the
 ordinary window can continue. A fresh catalog can wake a settled controller.
 Selecting another image retires the earlier catalog owner.
 
 A managed session can take ownership of a provisioned writer. On settled
 scan windows it offers a rotating batch of retained features using the same
-band and signature rules as lookup. The scan passes its measured signatures
-to the catalog before the checkpoint drops rows that exceed its slot space.
-The bound on postings per batch stays at the existing scan window limit.
-The existing input-funded ledger charges the complete transaction, including
-schema promotion. Successful updates refresh the snapshot for later windows.
+band and signature rules as lookup. The primary and masked postings get
+space first. Measured modular signatures can fill the remaining posting
+slots and use the same input-funded write grant. If that plan exceeds
+capacity before writing or settling the charge, the controller can retry
+the earlier key families in the same reservation. It charges the full
+published transaction, including root promotion, and refreshes the
+snapshot for later windows. The modular signatures live in paged postings.
 [Projected catalog validation](evidence/projected-coherence-catalog-2026-11-19.json)
+[Modular catalog validation](evidence/modular-coherence-catalog-2026-11-19.json)
 
 The owned indexed Windows memory volume now supplies a private reservation to
 that scanner. The first useful funded batch creates the catalog in one paged
