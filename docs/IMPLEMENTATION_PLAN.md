@@ -450,6 +450,17 @@ interference and retirement, including cohorts where the stronger encoding
 does not pay for its setup.
 [Topology lifetime and matched worker evidence](evidence/amd-topology-reuse-2026-11-18.json)
 
+The wide packed-XOR setup profile separates stream creation from slab
+allocation. On the physical Windows host, median stream creation took
+1.213 seconds for 24 members and 1.215 seconds for 101 members. Median slab
+allocation took 24 and 23 microseconds, respectively. The six measured
+exchanges completed with verified GPU candidates, matched CPU costs and
+confirmed process retirement. The complete AMD exchange still exceeded CPU
+encoding and verification in both cohorts. These are host call timings for
+one adapter. Prioritize more valuable collective search per admitted stream
+and compare complete savings and elapsed cost before automatic selection.
+[Split setup measurements](evidence/amd-anchor-stream-setup-2026-11-19.json)
+
 Indexed native writes now use one CPU comparison of the standalone GPU
 compression candidate before prefixing authoritative extent metadata. Mirrored
 readback still precedes publication. The physical-host acceptance profile
@@ -808,7 +819,7 @@ size and CPU readback. Three before/after pairs on the public-derived workload
 both had a 3.28-second median with AMD assistance. The matched CPU median was
 1.32 seconds and the compacted size was 8,650,752 bytes in every run. The
 next GPU selection evidence needs work that yields complete-image savings or
-amortizes stream setup and allocation over more useful candidates.
+amortizes stream creation over more useful candidates.
 [Overlap scheduling evidence](evidence/indexed-overlap-batch-2026-11-19.json)
 
 Indexed capability 6 adds a modular predictor for 1-, 2-, 4- and 8-byte

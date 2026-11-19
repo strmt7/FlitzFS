@@ -245,7 +245,8 @@ std::vector<std::vector<anchor_match::u32>> run_hip_anchor_groups(HMODULE runtim
     std::uint32_t node_mask,std::span<const detail::AnchorMatchSource> requests,
     std::span<const detail::AnchorMatchSweepPlan> plans,anchor_match::u32 quantum,HipPhaseRecorder& profile,
     anchor_match::u32 transfer_members,anchor_match::WindowSearchKernel window_search=nullptr,
-    std::uint32_t dispatches_per_wait=1,anchor_match::BatchOutput mode=anchor_match::BatchOutput::anchors) {
+    std::uint32_t dispatches_per_wait=1,anchor_match::BatchOutput mode=anchor_match::BatchOutput::anchors,
+    AnchorSetupTiming* setup=nullptr) {
   namespace match=anchor_match;
   const bool packed=mode!=match::BatchOutput::anchors;
   const bool modular=mode==match::BatchOutput::modular_delta;
@@ -296,9 +297,12 @@ std::vector<std::vector<anchor_match::u32>> run_hip_anchor_groups(HMODULE runtim
 
   profile.begin(HipPhase::stream_allocate);
   DeviceResources resources(api);
+  const auto stream_started=setup?hip_phase_detail::clock_ns():0;
   hip_detail::check_hip(api.create_stream(&resources.stream,hipStreamNonBlocking,least),
       "create anchor match stream",HipWorkerStage::stream_create);
+  const auto allocation_started=setup?hip_phase_detail::clock_ns():0;
   check_hip(api.allocate(&resources.buffers[0],allocation),"allocate anchor match slab");
+  if(setup)*setup={allocation_started-stream_started,hip_phase_detail::clock_ns()-allocation_started};
   const auto address=reinterpret_cast<std::uintptr_t>(resources.buffers[0]);
   require(address && address%8==0 && address<=(std::numeric_limits<std::uintptr_t>::max)()-allocation,
       "invalid anchor match slab address",HipWorkerStage::execution);
@@ -420,7 +424,7 @@ std::vector<std::vector<anchor_match::u32>> run_hip_anchor_batch_in_worker(HMODU
     const anchor_match::KernelApi& kernel,int ordinal,std::array<std::byte,8> luid,
     std::uint32_t node_mask,const detail::AnchorMatchBatchRequest& request,HipPhaseRecorder& profile,
     const anchor_match::WindowSearchApi* window,std::uint32_t transfer_grant,
-    std::uint32_t dispatches_per_wait) {
+    std::uint32_t dispatches_per_wait,AnchorSetupTiming* setup) {
   require_hip_worker_job(true);
   const auto& plan=request.plan();
   const auto version=anchor_match::window_version(plan.output);
@@ -431,7 +435,7 @@ std::vector<std::vector<anchor_match::u32>> run_hip_anchor_batch_in_worker(HMODU
       plan.quantum_members;
   return run_hip_anchor_groups(runtime,kernel,ordinal,luid,node_mask,
       request.groups(),plan.groups,plan.quantum_members,profile,members,window?window->search:nullptr,
-      dispatches_per_wait,plan.output);
+      dispatches_per_wait,plan.output,setup);
 }
 
 }

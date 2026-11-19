@@ -396,3 +396,15 @@ They check the same exclusive admission, exact retirement, closed mappings and
 zero-growth handle baseline as the legacy suite. Those sizes are TEST fixtures,
 not product caps or assumed host specifications. Exact-source CI outcomes are
 required before qualification; no owner-PC execution is authorized by these tests.
+
+## AMD packed-XOR startup measurements
+
+The wide packed-XOR diagnostic supports a setup profile with the
+`FLHPB004` marker. It records the host time spent in the HIP stream creation
+and slab allocation calls within the existing combined setup phase. The
+verifier binds both times to the original request and adapter and rejects
+durations that exceed the recorded setup phase. Diagnostics use the existing
+supervised exchange, require confirmed worker exit, and verify candidate bytes
+on CPU before comparing timings. The original `FLHPB002` and `FLHPB003`
+profiles retain their original layout.
+[Startup evidence](evidence/amd-anchor-stream-setup-2026-11-19.json)

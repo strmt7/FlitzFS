@@ -230,7 +230,8 @@ std::string runtime_digest(std::wstring_view wide) {
 int worker(int argc, wchar_t** argv) {
   const std::wstring_view mode = argc > 1 ? argv[1] : L"";
   const bool modular_delta=mode==L"--driver-anchor-modular-delta-batch";
-  const bool wide_xor_profile=mode==L"--driver-anchor-xor-wide-batch-profile";
+  const bool wide_xor_setup_profile=mode==L"--driver-anchor-xor-wide-setup-profile";
+  const bool wide_xor_profile=mode==L"--driver-anchor-xor-wide-batch-profile" || wide_xor_setup_profile;
   const bool anchor_batch_profile=mode==L"--driver-anchor-transfer-batch-profile" || wide_xor_profile;
   const bool wide_xor=mode==L"--driver-anchor-xor-wide-batch" || wide_xor_profile;
   const bool packed_xor=wide_xor || mode==L"--driver-anchor-xor-batch";
@@ -469,6 +470,8 @@ int worker(int argc, wchar_t** argv) {
   const auto dispatches_per_wait=anchor_batch_profile?decimal(argv[12],kAnchorProfileMaxQueuedDispatches):1;
   require(dispatches_per_wait!=0,Exit::invalid_request,"anchor batch wait grant");
   HipPhaseProfile phase_value;
+  AnchorSetupTiming anchor_setup;
+  auto* const setup=wide_xor_setup_profile?&anchor_setup:nullptr;
   const bool profile_anchor=anchor_profile || anchor_batch_profile;
   HipPhaseRecorder phase_clock(phase_observation || profile_anchor?&phase_value.trace:nullptr,
       hip_phase_detail::clock_ns,profile_anchor?HipPhaseOrder::accumulate:HipPhaseOrder::ordered,
@@ -603,7 +606,7 @@ int worker(int argc, wchar_t** argv) {
       // proves the decoded packed XOR candidate before it can publish.
       if(anchors) {
         const auto records=run_hip_anchor_batch_in_worker(runtime.get(),*api,static_cast<int>(ordinal),
-            luid,node_mask,*anchors,phase_clock,window,transfer_grant,dispatches_per_wait);
+            luid,node_mask,*anchors,phase_clock,window,transfer_grant,dispatches_per_wait,setup);
         phase_clock.begin(HipPhase::reply_encode);
         frame=detail::encode_anchor_match_batch_reply(*anchors,records,profile_bytes);
       } else {
@@ -667,7 +670,7 @@ int worker(int argc, wchar_t** argv) {
     phase_clock.finish();
     const auto transfer=detail::plan_anchor_match_transfers(anchors->plan(),transfer_grant);
     const auto binding=anchor_batch_profile_binding(*anchors,transfer,ordinal,luid,node_mask,dispatches_per_wait);
-    const auto metadata=encode_anchor_batch_profile(binding,phase_value.trace);
+    const auto metadata=encode_anchor_batch_profile(binding,phase_value.trace,setup);
     frame.insert(frame.end(),metadata.begin(),metadata.end());
   } else if(anchor_profile) {
     phase_clock.finish();

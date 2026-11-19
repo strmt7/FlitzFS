@@ -213,6 +213,26 @@ void anchor_batch_profile_cases() {
   rejects([&]{(void)decode_anchor_batch_profile(wide_frame,mismatched);});
   mismatched.output=anchor_match::BatchOutput::packed_xor;
   rejects([&]{(void)encode_anchor_batch_profile(mismatched,trace);});
+
+  auto measured=trace;
+  const auto phase=static_cast<unsigned>(HipPhase::stream_allocate);
+  measured.total_wall_ns+=40;
+  measured.wall_ns[phase]+=40;
+  const AnchorSetupTiming setup{13,27};
+  const auto extended=encode_anchor_batch_profile(wide_binding,measured,&setup);
+  AnchorSetupTiming recovered;
+  require(extended[7]==std::byte{'4'} && decode_anchor_batch_profile(extended,wide_binding,&recovered).wall_ns==measured.wall_ns &&
+      recovered==setup,"Stream and slab costs were not bound to the exact setup phase");
+  rejects([&]{(void)decode_anchor_batch_profile(extended,wide_binding);});
+  rejects([&]{(void)decode_anchor_batch_profile(wide_frame,wide_binding,&recovered);});
+  rejects([&]{(void)encode_anchor_batch_profile(expected,trace,&setup);});
+  for(const auto index:{anchor_batch_profile_detail::work_end+7,anchor_batch_profile_detail::setup_end-1,extended.size()-1}) {
+    auto corrupt=extended;corrupt[index]^=std::byte{0x80};
+    rejects([&]{(void)decode_anchor_batch_profile(corrupt,wide_binding,&recovered);});
+    require(recovered==setup,"Refused phase metadata changed the accepted setup measurement");
+  }
+  const AnchorSetupTiming too_large{measured.wall_ns[phase],1};
+  rejects([&]{(void)encode_anchor_batch_profile(wide_binding,measured,&too_large);});
 }
 }
 int main(){try{

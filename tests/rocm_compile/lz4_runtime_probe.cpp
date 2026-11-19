@@ -736,13 +736,14 @@ int discovered_anchor_gpu_once(wchar_t** argv,const fs::path& worker,const std::
 int compare_packed_xor(const fs::path& worker,const std::vector<std::wstring>& arguments,
     const detail::AnchorMatchBatchRequest& request,const AnchorBatchProfileBinding& binding,
     ProcessBudget transfer_budget,const gpu_probe_fixture::Budget& controller,
-    bool mixed,bool amd_first,std::uint64_t prepare_ns) {
+    bool mixed,bool amd_first,std::uint64_t prepare_ns,bool setup_profile) {
   const auto& plan=request.plan();
   constexpr auto extent=kNativeExtentBytes;
   constexpr auto base_id=detail::kNativeGroupBaseBit+1;
   constexpr auto method=detail::NativeGroupMethod::packed_xor;
   const auto reply_bytes=plan.reply_bytes+kAnchorBatchProfileBytes;
   std::optional<HipPhaseTrace> trace;
+  AnchorSetupTiming setup;
   std::vector<std::size_t> cpu_sizes,amd_sizes;
   const auto groups=request.groups();
   std::size_t members=0;
@@ -769,7 +770,8 @@ int compare_packed_xor(const fs::path& worker,const std::vector<std::wstring>& a
     const auto completed=anchor_verified_exchange(worker,arguments,request.snapshot(),reply_bytes,transfer_budget,
         [&](std::span<const std::byte> response) {
           const auto verify_start=std::chrono::steady_clock::now();
-          const auto metadata=decode_anchor_batch_profile(response.last(kAnchorBatchProfileBytes),binding);
+          const auto metadata=decode_anchor_batch_profile(response.last(kAnchorBatchProfileBytes),binding,
+              setup_profile?&setup:nullptr);
           const auto advice=detail::decode_anchor_packed_batch_reply(response.first(plan.reply_bytes),request);
           for(std::size_t i=0;i<advice.size();++i) {
             const auto source=groups[i].source;
@@ -817,14 +819,17 @@ int compare_packed_xor(const fs::path& worker,const std::vector<std::wstring>& a
   }
   std::cout<<'"';
   write_phase_profile(trace);
+  if(verified && setup_profile)
+    std::cout<<",\"stream_create_ns\":"<<setup.stream_create_ns<<",\"slab_allocate_ns\":"<<setup.slab_allocate_ns;
   std::cout<<"}\n";
   return same_sizes?0:2;
 }
 
-enum class AnchorBatchMode {separate,transfers,calibration,profile,wide_xor_profile};
+enum class AnchorBatchMode {separate,transfers,calibration,profile,wide_xor_profile,wide_xor_setup_profile};
 
 int direct_anchor_batch_compare(int argc,wchar_t** argv,AnchorBatchMode mode) {
-  const auto wide_xor=mode==AnchorBatchMode::wide_xor_profile;
+  const auto setup_profile=mode==AnchorBatchMode::wide_xor_setup_profile;
+  const auto wide_xor=mode==AnchorBatchMode::wide_xor_profile || setup_profile;
   const auto profiling=mode==AnchorBatchMode::profile || wide_xor;
   const auto calibration=mode==AnchorBatchMode::calibration || profiling;
   const auto transfers=mode!=AnchorBatchMode::separate;
@@ -948,12 +953,13 @@ int direct_anchor_batch_compare(int argc,wchar_t** argv,AnchorBatchMode mode) {
   }();
   if(wide_xor) {
     const auto binding=anchor_batch_profile_binding(batch,*transfer,ordinal,luid,mask,dispatches_per_wait);
-    const std::vector<std::wstring> arguments{L"--driver-anchor-xor-wide-batch-profile",argv[3],argv[4],argv[5],
+    const std::vector<std::wstring> arguments{setup_profile?L"--driver-anchor-xor-wide-setup-profile":
+        L"--driver-anchor-xor-wide-batch-profile",argv[3],argv[4],argv[5],
         argv[6],std::to_wstring(plan.request_bytes),std::to_wstring(capacity.reply_bytes),
         std::to_wstring(plan.quantum_members),std::to_wstring(plan.device_bytes),std::to_wstring(plan.launches),
         std::to_wstring(transfer->device_bytes),std::to_wstring(dispatches_per_wait)};
     return compare_packed_xor(worker,arguments,batch,binding,transfer_budget,controller,order==L"mixed",
-        comparison_order==L"amd-first",prepare_ns);
+        comparison_order==L"amd-first",prepare_ns,setup_profile);
   }
   const auto groups=batch.groups();
   std::vector<Bytes> individual_replies;
@@ -1345,6 +1351,8 @@ int wmain(int argc,wchar_t** argv){
       return direct_anchor_batch_compare(argc,argv,AnchorBatchMode::profile);
     if(mode==L"--gpu-direct-wide-xor-profile-once")
       return direct_anchor_batch_compare(argc,argv,AnchorBatchMode::wide_xor_profile);
+    if(mode==L"--gpu-direct-wide-xor-setup-once")
+      return direct_anchor_batch_compare(argc,argv,AnchorBatchMode::wide_xor_setup_profile);
     gpu_probe_fixture::Budget controller;
     if(argc==2&&std::wstring_view(argv[1])==L"--deferred-native-cpu-fixture")
       return deferred_native_fixture::run({},controller);
