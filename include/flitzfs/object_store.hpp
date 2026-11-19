@@ -53,6 +53,7 @@ class StoreByteIo {
   friend class ObjectStoreWriter;
   friend class PagedObjectStoreWriter;
   friend class NativeVolumeHeadWriter;
+  friend class NativeVolumeFile;
   friend class OptimizationStateWriter;
   bool acquire_writer() noexcept {
     if(!allows_writer())return false;

@@ -1137,6 +1137,15 @@ refuses one specific allocation in the VM test executable only, after the core
 admitted a new area. It creates no global memory pressure and is not an owner
 fault experiment. Its publishing-source qualification remains required.
 
+## Persistent volume-file ownership
+
+The [indexed volume-file provider](PERSISTENT_VOLUME_FILE.md) acquires an
+exclusive write lease and bounds the head, advice and data to separate
+aligned regions. It opens existing files without truncation. Failed head or
+image validation refuses writable admission. The checked CPU inspection
+does not mutate the file. Geometry checks constrain the supplied contract,
+which still needs independent qualification on the actual storage stack.
+
 ## Persistent write provenance
 
 The optional [workload counter](WORKLOAD_ACCOUNTING.md) grants no optimization

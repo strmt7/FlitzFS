@@ -14,6 +14,10 @@ struct NativeVolumeHeadInfo {NativeVolumeSelection selection;bool degraded=false
 using NativeVolumeImageResolver=std::function<std::shared_ptr<StoreByteIo>(const StoreIdentity&)>;
 class NativeVolumeHeadView final {
  public:
+  // Read the checked selector alone. Without an expected identity at
+  // bootstrap, intact peers still have to agree on the volume identity.
+  static NativeVolumeHeadInfo inspect_selector(const StoreByteIo& head,
+      std::optional<StoreIdentity> expected_volume=std::nullopt);
   // Resolver must own an immutable, globally unambiguous image-ID mapping.
   // The view owns its independently verified native image; never falls back.
   static NativeVolumeHeadView open(std::shared_ptr<StoreByteIo> head,StoreIdentity expected_volume,

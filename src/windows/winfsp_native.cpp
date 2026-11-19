@@ -7,6 +7,7 @@
 #include "native_close.hpp"
 #include "native_windows_boundary.hpp"
 #include "flitzfs/directory_order.hpp"
+#include "flitzfs/native_volume_file.hpp"
 #include <sddl.h>
 #include <algorithm>
 #include <array>
@@ -661,6 +662,28 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_managed_index
   impl->groups=std::make_unique<NativeGroupMaintenance>(impl->session,group_policy);
   impl->group_policy=group_policy;
   return std::unique_ptr<WinFspNativeWritable>(new WinFspNativeWritable(std::move(impl)));
+}
+std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_file_volume(std::shared_ptr<StoreByteIo> empty,
+    StoreIdentity volume,StoreIdentity image,PagedStoreLimits limits,StoreCompressionOptions foreground) {
+  auto regions=NativeVolumeFile::new_regions(std::move(empty),limits);
+  return create_managed_indexed(std::move(regions.head),volume,std::move(regions.image),image,
+      limits,foreground,std::move(regions.advice));
+}
+std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_file_volume(std::shared_ptr<StoreByteIo> existing,
+    std::optional<StoreIdentity> expected,StoreCompressionOptions foreground) {
+  auto regions=NativeVolumeFile::open_regions(std::move(existing),true,expected);
+  const auto& selected=regions.selection;
+  const auto sequence=regions.advice_sequence();
+  return resume_indexed_retired(std::move(regions.head),selected.volume_identity,selected.epoch,
+      regions.resolver(),foreground,sequence?std::move(regions.advice):nullptr,sequence);
+}
+std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_file_volume(const std::filesystem::path& path,
+    StoreIoContract contract,StoreIdentity volume,StoreIdentity image,PagedStoreLimits limits,StoreCompressionOptions foreground) {
+  return create_file_volume(NativeVolumeFile::create_backing(path,contract,limits),volume,image,limits,foreground);
+}
+std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_file_volume(const std::filesystem::path& path,
+    StoreIoContract contract,std::optional<StoreIdentity> expected,StoreCompressionOptions foreground) {
+  return resume_file_volume(NativeVolumeFile::reopen_backing(path,contract),expected,foreground);
 }
 std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_indexed_retired(
     std::shared_ptr<StoreByteIo> head,StoreIdentity volume,std::uint64_t epoch,

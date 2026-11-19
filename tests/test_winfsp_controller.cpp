@@ -3,6 +3,7 @@
 #include "winfsp_memory_volume.hpp"
 #include "anchor_search_fixture.hpp"
 #include "flitzfs/paged_store.hpp"
+#include "flitzfs/native_volume_file.hpp"
 #include "native_fs_fixture.hpp"
 #include "windows_app_budget.hpp"
 #include <bcrypt.h>
@@ -112,6 +113,49 @@ void callback_file(Provider& p,unsigned n,const Bytes& bytes) {
   Bytes out(bytes.size());count=0;require(table->Read(&p.fs,context,out.data(),0,static_cast<ULONG>(out.size()),&count)==STATUS_SUCCESS &&
       count==out.size() && out==bytes,"controller SDK byte readback");
   callback_cleanup_close(p,context);
+}
+void volume_file_callbacks() {
+  constexpr PagedStoreLimits limits{8ULL*1024*1024};
+  constexpr StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
+  auto first=std::make_shared<Ram>();first->failure_unit=4096;
+  const auto payload=data(16712,431),another=data(3948,393);
+  {
+    Provider initial;Provider::active=&initial;
+    WinFspNativeSession mounted(WinFspNativeWritable::create_file_volume(first,id(90),id(1),limits,raw),initial.api());
+    require(mounted.start(plan())==STATUS_SUCCESS,"volume-file callback provider start");
+    callback_file(initial,0,payload);
+    mounted.stop();
+    require(mounted.write_restart_ready() && initial.fs.UserContext==nullptr,
+        "volume-file provider failed to retire before reopening");
+  }
+  auto recovered=image(first->stable,4096);
+  {
+    const auto cpu=NativeVolumeFile::inspect(recovered,id(90));
+    require(cpu.filesystem().read("f0",0,static_cast<std::uint32_t>(payload.size()))==payload,
+        "volume-file CPU reopen lost acknowledged callback data");
+  }
+  {
+    Provider replacement;Provider::active=&replacement;
+    WinFspNativeSession mounted(WinFspNativeWritable::resume_file_volume(recovered,id(90),raw),replacement.api());
+    require(mounted.start(plan())==STATUS_SUCCESS,"volume-file callback provider restart");
+    auto* fs=&replacement.fs;
+    wchar_t name[]=L"\\f0";
+    PVOID handle=nullptr;FSP_FSCTL_FILE_INFO found{};
+    constexpr auto open_file=FILE_NON_DIRECTORY_FILE|(1U<<24);
+    require(fs->Interface->Open(fs,name,open_file,FILE_READ_DATA,&handle,&found)==STATUS_SUCCESS &&
+        handle && found.FileSize==payload.size(),"reopened callback metadata differs");
+    Bytes output(payload.size());ULONG written=0;
+    require(fs->Interface->Read(fs,handle,output.data(),0,static_cast<ULONG>(output.size()),&written)==STATUS_SUCCESS &&
+        written==output.size() && output==payload,"reopened file callback readback differs");
+    callback_cleanup_close(replacement,handle);
+    callback_file(replacement,1,another);
+    mounted.stop();
+    require(mounted.write_restart_ready() && replacement.fs.UserContext==nullptr,"reopened volume-file owner not retired");
+  }
+  const auto cpu=NativeVolumeFile::inspect(image(recovered->stable,4096),id(90));
+  require(cpu.filesystem().read("f1",0,10000)==another &&
+      cpu.filesystem().read("f0",0,static_cast<std::uint32_t>(payload.size()))==payload,
+      "fresh CPU model reopen lost original or subsequent callback bytes");
 }
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
 std::array<std::byte,32> artifact_digest(std::string_view input) {
@@ -1212,6 +1256,8 @@ int main(int argc,char** argv){try {
     indexed_memory_composition();
     indexed_group_callback_contract();
     memory_coherence_lifecycle();
+  }else if(argc==2 && std::string_view(argv[1])=="--volume-file") {
+    volume_file_callbacks();
   }else if(argc==2 && std::string_view(argv[1])=="--read-only-memory") {
     read_only_memory();
   }else if(remount) {

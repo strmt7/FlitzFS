@@ -54,6 +54,15 @@ class WinFspNativeWritable final {
       std::shared_ptr<StoreByteIo> empty_image,StoreIdentity image_identity,
       PagedStoreLimits,StoreCompressionOptions foreground={},
       std::shared_ptr<StoreByteIo> empty_advice={},NativeMaintenancePolicy group_policy={});
+  // The same indexed callback profile over one qualified volume file.
+  static std::unique_ptr<WinFspNativeWritable> create_file_volume(std::shared_ptr<StoreByteIo> empty,
+      StoreIdentity volume,StoreIdentity image,PagedStoreLimits,StoreCompressionOptions foreground={});
+  static std::unique_ptr<WinFspNativeWritable> resume_file_volume(std::shared_ptr<StoreByteIo> existing,
+      std::optional<StoreIdentity> expected_volume=std::nullopt,StoreCompressionOptions foreground={});
+  static std::unique_ptr<WinFspNativeWritable> create_file_volume(const std::filesystem::path&,StoreIoContract,
+      StoreIdentity volume,StoreIdentity image,PagedStoreLimits,StoreCompressionOptions foreground={});
+  static std::unique_ptr<WinFspNativeWritable> resume_file_volume(const std::filesystem::path&,StoreIoContract,
+      std::optional<StoreIdentity> expected_volume=std::nullopt,StoreCompressionOptions foreground={});
   static std::unique_ptr<WinFspNativeWritable> resume_indexed_retired(
       std::shared_ptr<StoreByteIo> head,StoreIdentity volume_identity,std::uint64_t expected_epoch,
       const NativeVolumeImageResolver&,StoreCompressionOptions foreground={},

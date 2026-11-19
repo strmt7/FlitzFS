@@ -1055,8 +1055,11 @@ source-pinned tools, helper/tray and module verification.
    least privilege, bounded frames/queues and explicit ownership; no online model
    service or globally writable control endpoint is required.
 6. Implement supported creation/open/mount/unmount/recovery workflows for temporary
-   memory and persistent providers. Persistent file-backed images are distinct
-   from a direct block-volume provider; neither may be claimed without its own tests.
+   memory and persistent providers. The [indexed volume-file provider](PERSISTENT_VOLUME_FILE.md)
+   now has exclusive creation, checked reopen, independent CPU inspection and
+   a WinFsp callback entry point. Helper selection, persistent generation
+   replacement and media qualification remain open. A direct block-volume
+   provider needs its own design and tests.
 7. Build any direct-volume provisioning/format support only under explicit product
    design and isolated disposable-device tests. Development never formats or writes
    raw owner devices, and this plan is not permission to do so.

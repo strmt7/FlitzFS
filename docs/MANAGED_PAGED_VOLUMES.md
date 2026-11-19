@@ -10,6 +10,8 @@ a driver, creates a mount or qualifies useful GPU operation.
 The [WinFsp paged factory and restart bridge](WINFSP_PAGED_VOLUMES.md) now expose
 these same sessions through the existing writable SDK callbacks, with serialized
 group opportunities. Actual mounted scheduling/qualification remains separate.
+The [indexed volume-file provider](PERSISTENT_VOLUME_FILE.md) uses the same
+selector and engine with three disjoint regions in one explicitly opened stream.
 
 ## Creation, reading and ordinary files
 

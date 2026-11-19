@@ -8,6 +8,7 @@
 #include <fstream>
 #include <limits>
 #include <mutex>
+#include <optional>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -68,13 +69,60 @@ void path_policy(const std::filesystem::path& p) {
   }
 #endif
 }
+#ifdef _WIN32
+constexpr auto maximum_windows_file_bytes=static_cast<std::uint64_t>((std::numeric_limits<LONGLONG>::max)());
+struct PinnedDirectory {
+  HANDLE handle=INVALID_HANDLE_VALUE;
+  PinnedDirectory()=default;
+  PinnedDirectory(const PinnedDirectory&)=delete;
+  PinnedDirectory& operator=(const PinnedDirectory&)=delete;
+  ~PinnedDirectory(){if(handle!=INVALID_HANDLE_VALUE)CloseHandle(handle);}
+};
+void require_opened_path(HANDLE handle,std::filesystem::path path) {
+  path.make_preferred();
+  const auto expected=L"\\\\?\\"+path.native();
+  const auto flags=FILE_NAME_NORMALIZED|VOLUME_NAME_DOS;
+  const auto required=GetFinalPathNameByHandleW(handle,nullptr,0,flags);
+  if(!required || required>32768)fail("cannot resolve the opened volume-file path");
+  std::wstring actual(required,L'\0');
+  const auto length=GetFinalPathNameByHandleW(handle,actual.data(),required,flags);
+  if(!length || length>=required || CompareStringOrdinal(actual.data(),static_cast<int>(length),
+      expected.data(),static_cast<int>(expected.size()),TRUE)!=CSTR_EQUAL)
+    fail("the opened volume-file path is redirected");
+}
+void pin_volume_directory(PinnedDirectory& pinned,std::filesystem::path file) {
+  file.make_preferred();
+  if(!file.is_absolute() || file!=file.lexically_normal() || GetDriveTypeW(file.root_path().c_str())!=DRIVE_FIXED)
+    fail("volume file requires a normalized absolute local path");
+  const auto path=file.parent_path();
+  pinned.handle=CreateFileW(path.c_str(),FILE_READ_ATTRIBUTES,FILE_SHARE_READ|FILE_SHARE_WRITE,
+      nullptr,OPEN_EXISTING,FILE_FLAG_BACKUP_SEMANTICS|FILE_FLAG_OPEN_REPARSE_POINT,nullptr);
+  FILE_ATTRIBUTE_TAG_INFO info{};
+  if(pinned.handle==INVALID_HANDLE_VALUE ||
+      !GetFileInformationByHandleEx(pinned.handle,FileAttributeTagInfo,&info,sizeof(info)) ||
+      !(info.FileAttributes&FILE_ATTRIBUTE_DIRECTORY) || (info.FileAttributes&FILE_ATTRIBUTE_REPARSE_POINT))
+    fail("cannot pin the volume-file directory");
+  if(path!=path.root_path())require_opened_path(pinned.handle,path);
+}
+void validate_volume_storage(HANDLE file,StoreIoContract qualified) {
+  FILE_STORAGE_INFO disk{};
+  if(!GetFileInformationByHandleEx(file,FileStorageInfo,&disk,sizeof(disk)) ||
+      disk.ByteOffsetForSectorAlignment || disk.ByteOffsetForPartitionAlignment)
+    fail("volume storage alignment is unavailable or incompatible");
+  for(auto unit:{disk.LogicalBytesPerSector,disk.PhysicalBytesPerSectorForAtomicity,
+      disk.FileSystemEffectivePhysicalBytesPerSectorForAtomicity}) {
+    if(!unit || (unit&(unit-1)) || unit>qualified.write_failure_unit_bytes)
+      fail("live storage geometry exceeds the qualified failure unit");
+  }
+}
+#endif
 class Input final:public StoreByteIo {
   mutable std::mutex mutex_;
   ReadOnlyFile file_;
  public:
-  explicit Input(const std::filesystem::path& p):file_(ReadOnlyFile::open(p)) {
+  Input(const std::filesystem::path& p,std::uint64_t limit):file_(ReadOnlyFile::open(p)) {
     file_.lock_shared_nonblocking();
-    if(file_.size()>kStoreMaxPhysicalBytes) fail("physical input cap");
+    if(!limit || file_.size()>limit)fail("physical input cap");
   }
   std::uint64_t extent() const override { return file_.size(); }
   void read_exact(std::uint64_t at,std::span<std::byte> out) const override {
@@ -90,7 +138,11 @@ class Output final:public StoreByteIo {
   StoreIoContract contract_;
   mutable std::uint64_t extent_=0;
   std::filesystem::path parent_path_;
+  const std::uint64_t capacity_;
 #ifdef _WIN32
+  const bool volume_file_;
+  std::uint64_t admitted_extent_=0;
+  PinnedDirectory parent_pin_;
   HANDLE handle_=INVALID_HANDLE_VALUE;
 #else
   int fd_=-1,parent_=-1;
@@ -100,37 +152,56 @@ class Output final:public StoreByteIo {
 #ifdef _WIN32
     LARGE_INTEGER size{};
     if(!GetFileSizeEx(handle_,&size) || size.QuadPart<0 ||
-        static_cast<std::uint64_t>(size.QuadPart)>kStoreMaxPhysicalBytes) fail("cannot qualify current file extent");
+        static_cast<std::uint64_t>(size.QuadPart)>capacity_) fail("cannot qualify current file extent");
     extent_=static_cast<std::uint64_t>(size.QuadPart);
 #else
     struct stat st{};
     if(::fstat(fd_,&st)!=0 || !S_ISREG(st.st_mode) || st.st_size<0 ||
-        static_cast<std::uint64_t>(st.st_size)>kStoreMaxPhysicalBytes) fail("cannot qualify current file extent");
+        static_cast<std::uint64_t>(st.st_size)>capacity_) fail("cannot qualify current file extent");
     extent_=static_cast<std::uint64_t>(st.st_size);
 #endif
   }
  public:
-  Output(const std::filesystem::path& p,StoreIoContract c,bool reopen=false):contract_(c) {
+  Output(const std::filesystem::path& p,StoreIoContract c,bool reopen=false,
+      std::optional<std::uint64_t> volume_limit=std::nullopt)
+      :contract_(c),capacity_(volume_limit.value_or(kStoreMaxPhysicalBytes))
+#ifdef _WIN32
+       ,volume_file_(volume_limit.has_value())
+#endif
+  {
     path_policy(p);memory_headroom();
     const auto parent=p.parent_path().empty() ? std::filesystem::path(".") : p.parent_path();
     parent_path_=parent;
 #ifdef _WIN32
+    if(volume_file_) {
+      if(!capacity_ || capacity_>maximum_windows_file_bytes || !valid_store_io_contract(c))
+        fail("invalid persistent-file qualification");
+      pin_volume_directory(parent_pin_,p);
+    }
     std::error_code ec;const auto space=std::filesystem::space(parent,ec);
-    if(ec || space.available==static_cast<std::uintmax_t>(-1) ||
-        space.available<kStoreMaxPhysicalBytes+kReserve) fail("insufficient verified disk reserve");
+    const auto required=kReserve+(volume_file_?0:kStoreMaxPhysicalBytes);
+    if(ec || space.available==static_cast<std::uintmax_t>(-1) || space.available<required)
+      fail("insufficient verified disk reserve");
     handle_=CreateFileW(p.c_str(),GENERIC_READ|GENERIC_WRITE,0,nullptr,reopen?OPEN_EXISTING:CREATE_NEW,
                         FILE_ATTRIBUTE_NORMAL|FILE_FLAG_OPEN_REPARSE_POINT,nullptr);
     if(handle_==INVALID_HANDLE_VALUE) fail("exclusive creation failed");
-    FILE_ATTRIBUTE_TAG_INFO attr{};FILE_STANDARD_INFO info{};LARGE_INTEGER size{};
-    if(GetFileType(handle_)!=FILE_TYPE_DISK ||
-        !GetFileInformationByHandleEx(handle_,FileAttributeTagInfo,&attr,sizeof(attr)) ||
-        (attr.FileAttributes&(FILE_ATTRIBUTE_DIRECTORY|FILE_ATTRIBUTE_REPARSE_POINT)) ||
-        !GetFileInformationByHandleEx(handle_,FileStandardInfo,&info,sizeof(info)) || info.NumberOfLinks!=1 ||
-        !GetFileSizeEx(handle_,&size) || size.QuadPart<0 ||
-        static_cast<std::uint64_t>(size.QuadPart)>kStoreMaxPhysicalBytes || (!reopen && size.QuadPart!=0)) {
-      CloseHandle(handle_);handle_=INVALID_HANDLE_VALUE;fail("backing is not an admissible single-link ordinary file");
-    }
-    extent_=static_cast<std::uint64_t>(size.QuadPart);
+    try {
+      FILE_ATTRIBUTE_TAG_INFO attr{};FILE_STANDARD_INFO info{};LARGE_INTEGER size{};
+      if(GetFileType(handle_)!=FILE_TYPE_DISK ||
+          !GetFileInformationByHandleEx(handle_,FileAttributeTagInfo,&attr,sizeof(attr)) ||
+          (attr.FileAttributes&(FILE_ATTRIBUTE_DIRECTORY|FILE_ATTRIBUTE_REPARSE_POINT)) ||
+          !GetFileInformationByHandleEx(handle_,FileStandardInfo,&info,sizeof(info)) || info.NumberOfLinks!=1 ||
+          !GetFileSizeEx(handle_,&size) || size.QuadPart<0 ||
+          static_cast<std::uint64_t>(size.QuadPart)>capacity_ || (!reopen && size.QuadPart!=0))
+        fail("backing is not an admissible single-link ordinary file");
+      if(volume_file_) {
+        if(attr.FileAttributes&(FILE_ATTRIBUTE_SPARSE_FILE|FILE_ATTRIBUTE_COMPRESSED|FILE_ATTRIBUTE_ENCRYPTED))
+          fail("volume-file storage requires ordinary allocation and caching semantics");
+        require_opened_path(handle_,p);
+        validate_volume_storage(handle_,c);
+      }
+      extent_=admitted_extent_=static_cast<std::uint64_t>(size.QuadPart);
+    }catch(...) {CloseHandle(handle_);handle_=INVALID_HANDLE_VALUE;throw;}
 #else
     parent_=::open(parent.c_str(),O_RDONLY|O_DIRECTORY|O_CLOEXEC|O_NOFOLLOW);
     if(parent_<0) fail("cannot pin ordinary parent directory");
@@ -183,7 +254,11 @@ class Output final:public StoreByteIo {
   }
   void write_exact(std::uint64_t at,std::span<const std::byte> bytes) override {
     std::lock_guard lock(mutex_);
-    if(at>kStoreMaxPhysicalBytes || bytes.size()>kStoreMaxPhysicalBytes-at) fail("physical output budget");
+    if(at>capacity_ || bytes.size()>capacity_-at)fail("physical output budget");
+#ifdef _WIN32
+    if(volume_file_ && !bytes.empty() && at+bytes.size()>admitted_extent_)
+      fail("volume-file growth was not admitted");
+#endif
     std::size_t done=0;
     while(done<bytes.size()) {
 #ifdef _WIN32
@@ -204,13 +279,14 @@ class Output final:public StoreByteIo {
   void admit_write(std::uint64_t projected) override {
     std::lock_guard lock(mutex_);
     refresh_extent();
-    if(projected<extent_ || projected>kStoreMaxPhysicalBytes) fail("projected extent outside budget");
+    if(projected<extent_ || projected>capacity_)fail("projected extent outside budget");
     memory_headroom();
     const auto needed=projected-extent_+kReserve;
 #ifdef _WIN32
     std::error_code ec;const auto free=std::filesystem::space(parent_path_,ec);
     if(ec || free.available==static_cast<std::uintmax_t>(-1) || free.available<needed)
       fail("insufficient verified disk reserve");
+    admitted_extent_=projected;
 #else
     struct statvfs free{};
     if(::fstatvfs(parent_,&free)!=0 || !free.f_frsize ||
@@ -240,7 +316,15 @@ std::shared_ptr<StoreByteIo> new_store_file(const std::filesystem::path& path,St
 std::shared_ptr<StoreByteIo> reopen_store_file_for_hosted_test(const std::filesystem::path& path,StoreIoContract c) {
   return std::make_shared<Output>(path,c,true);
 }
-std::shared_ptr<StoreByteIo> read_store_file(const std::filesystem::path& path) {
-  return std::make_shared<Input>(path);
+std::shared_ptr<StoreByteIo> read_store_file(const std::filesystem::path& path,std::uint64_t limit) {
+  return std::make_shared<Input>(path,limit);
 }
+#ifdef _WIN32
+std::shared_ptr<StoreByteIo> new_volume_file(const std::filesystem::path& path,StoreIoContract c,std::uint64_t limit) {
+  return std::make_shared<Output>(path,c,false,limit);
+}
+std::shared_ptr<StoreByteIo> reopen_volume_file(const std::filesystem::path& path,StoreIoContract c,std::uint64_t limit) {
+  return std::make_shared<Output>(path,c,true,limit);
+}
+#endif
 } // namespace flitzfs::detail

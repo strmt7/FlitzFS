@@ -52,7 +52,8 @@ Bytes encoded(const NativeVolumeSelection& s,unsigned slot) {
   const auto digest=detail::record_digest(std::span<const std::byte>(b).first(digest_at));
   std::copy(digest.begin(),digest.end(),b.begin()+digest_at);return b;
 }
-std::optional<NativeVolumeSelection> decoded(std::span<const std::byte> b,unsigned slot,StoreIdentity expected) {
+std::optional<NativeVolumeSelection> decoded(std::span<const std::byte> b,unsigned slot,
+    const std::optional<StoreIdentity>& expected) {
   const auto digest=detail::record_digest(b.first(digest_at));
   if(!std::equal(digest.begin(),digest.end(),b.begin()+digest_at))return {};
   // Intact unsupported/contradictory metadata is NEVER an excuse to roll back.
@@ -67,12 +68,12 @@ std::optional<NativeVolumeSelection> decoded(std::span<const std::byte> b,unsign
   s.minimum_checkpoint=get(b,72);s.namespace_sequence=get(b,80);s.parent_checkpoint=get(b,88);
   if(capability>1)s.storage={static_cast<NativeImageKind>(capability-1),get(b,104)};
   valid(s,Code::corrupt);
-  if(s.volume_identity!=expected)fail(Code::corrupt,"volume head identity mismatch");
+  if(expected && s.volume_identity!=*expected)fail(Code::corrupt,"volume head identity mismatch");
   return s;
 }
 struct Loaded {NativeVolumeHeadInfo info;unsigned selected_slot=0;};
-Loaded load(const StoreByteIo& io,StoreIdentity expected) {
-  if(zero(expected))fail(Code::invalid_operation,"missing expected volume identity");
+Loaded load(const StoreByteIo& io,std::optional<StoreIdentity> expected) {
+  if(expected && zero(*expected))fail(Code::invalid_operation,"missing expected volume identity");
   if(io.extent()!=kVolumeHeadBytes)fail(Code::corrupt,"volume head must have its exact fixed extent");
   Bytes scratch(kStoreCommitUnit);std::optional<NativeVolumeSelection> slots[2];
   for(unsigned i=0;i<2;++i){io.read_exact(i*kStoreCommitUnit,scratch);slots[i]=decoded(scratch,i,expected);}
@@ -85,7 +86,7 @@ Loaded load(const StoreByteIo& io,StoreIdentity expected) {
   }
   const unsigned newer=slots[0]->epoch>slots[1]->epoch?0:1,older=1-newer;
   const auto& n=*slots[newer];const auto& o=*slots[older];
-  if(n.storage!=o.storage || n.epoch-o.epoch!=1||n.parent_identity!=o.image_identity||
+  if(n.volume_identity!=o.volume_identity || n.storage!=o.storage || n.epoch-o.epoch!=1||n.parent_identity!=o.image_identity||
       n.parent_checkpoint<o.minimum_checkpoint||n.namespace_sequence<o.namespace_sequence)
     fail(Code::corrupt,"volume head transition is not a bound successor");
   return {{n,true},newer};
@@ -126,6 +127,13 @@ NativeVolumeHeadView::NativeVolumeHeadView(std::unique_ptr<Impl> p) noexcept:imp
 NativeVolumeHeadView::NativeVolumeHeadView(NativeVolumeHeadView&&) noexcept=default;
 NativeVolumeHeadView& NativeVolumeHeadView::operator=(NativeVolumeHeadView&&) noexcept=default;
 NativeVolumeHeadView::~NativeVolumeHeadView()=default;
+NativeVolumeHeadInfo NativeVolumeHeadView::inspect_selector(const StoreByteIo& head,
+    std::optional<StoreIdentity> expected) {
+  try{return load(head,expected).info;}
+  catch(const std::bad_alloc&){fail(Code::limit,"volume selector allocation");}
+  catch(const NativeFsError&){throw;}
+  catch(const std::exception&){fail(Code::storage_failure,"volume selector read failed");}
+}
 NativeVolumeHeadView NativeVolumeHeadView::open(std::shared_ptr<StoreByteIo> head,StoreIdentity volume,
     const NativeVolumeImageResolver& resolve) {
   return open_impl(std::move(head),volume,resolve,false);
