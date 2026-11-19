@@ -1,4 +1,5 @@
 #include "../src/native_group_anchor.hpp"
+#include "../src/native_group_codec.hpp"
 #include "anchor_search_fixture.hpp"
 #include "native_fs_fixture.hpp"
 #include <iostream>
@@ -40,6 +41,49 @@ void staged_search_fallback() {
   ready(writer,work);
   require(writer.finish_shared_base(work).applied,"abandoned advice blocked CPU publication");
   verify(writer.snapshot(),4);
+}
+void staged_packed_xor_advice() {
+  constexpr unsigned count=4;
+  auto ram=std::make_shared<Ram>();ram->failure_unit=4096;
+  auto writer=fresh(ram,true);
+  const auto base=family(0);
+  std::array<Bytes,count> originals;
+  for(unsigned i=0;i<count;++i) {
+    originals[i]=base;
+    if(i) {
+      const auto variation=data(kNativeExtentBytes,1061+i);
+      for(std::size_t j=0;j<base.size();++j)originals[i][j]^=variation[j]&std::byte{1};
+    }
+    const auto path="f"+std::to_string(i);
+    writer.apply(std::array{file_create(path),file_write(path,0,originals[i])});
+  }
+  const auto before=writer.snapshot();
+  const auto keys=selections(before,count);
+  auto work=writer.prepare_shared_base(keys.front(),keys);
+  writer.advance_shared_base(work);
+  for(unsigned i=1;i<count;++i)require(writer.stage_shared_base_search(work,count-1),"XOR advice staging");
+  const auto window=work.search_window();
+  require(window.members().size()==count-1,"XOR reply window shape");
+  std::vector<Bytes> bodies(count-1);
+  for(unsigned i=0;i<2;++i) {
+    const auto frame=detail::encode_native_group_xor(window.members()[i],base,detail::kNativeGroupBaseBit+1,1,
+        kNativeExtentBytes);
+    require(frame && frame->size()>128,"XOR advice fixture body");
+    bodies[i].assign(frame->begin()+128,frame->end());
+  }
+  // A valid body for the wrong member must select the independent CPU encoder.
+  bodies[1]=bodies[0];
+  const NativeSharedBaseSearchReply reply{window,{},bodies};
+  while(!writer.advance_shared_base(work,{},&reply)) {}
+  require(work.progress().selected_advice_members==1,"invalid or absent XOR advice displaced CPU encoding");
+  require(writer.finish_shared_base(work).applied,"verified XOR advice did not reach publication");
+  const auto after=writer.snapshot();
+  after.verify_all();
+  for(unsigned i=0;i<count;++i) {
+    const auto path="f"+std::to_string(i);
+    require(before.read(path,0,kNativeExtentBytes)==originals[i] &&
+        after.read(path,0,kNativeExtentBytes)==originals[i],"XOR advice changed acknowledged bytes");
+  }
 }
 void staged_search_binding() {
   constexpr unsigned count=5,base_index=2;
@@ -278,6 +322,7 @@ int main(int argc,char** argv){try {
   if(argc==2 && std::string_view(argv[1])=="--search-window") {
     staged_search_fallback();
     staged_search_binding();
+    staged_packed_xor_advice();
     std::cout<<"PASS: "<<checks<<" staged search window checks\n";
     return 0;
   }

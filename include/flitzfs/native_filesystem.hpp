@@ -172,8 +172,9 @@ class NativeSharedBaseSearchWindow final {
 };
 struct NativeSharedBaseSearchReply {
   NativeSharedBaseSearchWindow window;
-  // Consumed synchronously. The caller keeps the range lists alive for the step.
-  std::span<const std::vector<NativeSharedBaseCopyRange>> copies;
+  // The caller retains these inputs for the synchronous preparation step.
+  std::span<const std::vector<NativeSharedBaseCopyRange>> copies{};
+  std::span<const std::vector<std::byte>> packed_xor_bodies{};
 };
 struct NativeContentToken {
   NativeExtentSelection extent;

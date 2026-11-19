@@ -31,8 +31,10 @@
     "modeled_publication_cases_per_configuration": 528,
     "independent_cpu_readback": true,
     "physical_amd_anchor_regression": true,
-    "packed_xor_gpu_encoding": false,
-    "next": "Measure discovery across wholly perturbed extents and qualify batched AMD plane generation against complete CPU, transfer, verification and read costs."
+    "packed_xor_gpu_encoding": true,
+    "packed_xor_gpu_evidence": "docs/evidence/amd-packed-xor-batch-2026-11-19.json",
+    "packed_xor_gpu_automatic_selection": false,
+    "next": "Measure discovery across wholly perturbed extents and qualify automatic selection using matched complete cost and size across workloads, runtimes and devices."
   },
   "native_path_lookup": {
     "source_base": "700cdb31de32b847497b02cc0e113d27482e6c85",

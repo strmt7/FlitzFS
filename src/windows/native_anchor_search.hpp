@@ -12,6 +12,7 @@ struct NativeAnchorSearchOptions {
   ProcessBudget worker;
   std::uint32_t minimum_members=0,maximum_members=0;
   std::uint32_t duty_ppm=10000;
+  bool packed_xor=false;
 };
 
 struct NativeAnchorSearchStats {

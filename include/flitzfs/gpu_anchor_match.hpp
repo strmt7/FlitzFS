@@ -23,6 +23,12 @@ inline constexpr u32 maximum_match=64;
 inline constexpr u32 buckets=65536;
 inline constexpr u32 empty=0xffffffffU;
 inline constexpr u32 threads=64;
+// A separate worker reply representation reuses the admitted per-member slab.
+// Its body is the packed XOR format without the authoritative 128-byte header.
+inline constexpr u32 xor_tile_bytes=256,xor_plane_bytes=xor_tile_bytes/8;
+inline constexpr u32 xor_tiles=extent_bytes/xor_tile_bytes;
+inline constexpr u32 xor_slot_bytes=tiles*sizeof(u32);
+inline constexpr u32 xor_body_capacity=xor_slot_bytes-sizeof(u32);
 
 struct Bucket { u32 first,second; };
 static_assert(sizeof(Bucket)==8);

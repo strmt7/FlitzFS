@@ -155,6 +155,24 @@ raises the capability only when it publishes a selected XOR member. Capability
 5 also reads aligned and anchor-copy members. Earlier capabilities reject
 packed XOR members.
 
+#### Batched AMD advice
+
+A qualified controller can ask the owned AMD worker for packed XOR bodies using
+the same immutable base and member windows as anchor search. The worker checks
+the current adapter, warp and launch geometry and the admitted memory envelope.
+It packs 256-byte tiles into each bounded reply slot and returns an empty slot
+when the candidate exceeds that transport capacity. CPU encoding still considers
+the full native extent under the usual size bound.
+
+The reply binds the batch and each group to their original identities and
+source digests. The controller collects it after successful worker and
+supervisor retirement. The native writer accepts a body only for its exact
+staged member. It attaches the authoritative base and member digests, independently
+decodes the frame and compares every byte before considering publication.
+Missing or invalid advice invokes the CPU encoder. A verified candidate still
+competes with the CPU alternatives and must pass the unchanged complete-image
+savings and live-generation checks.
+
 ### Automatic candidate discovery
 
 The scanner seeks the next allocated extent in the ordered index. It advances

@@ -711,11 +711,17 @@ Indexed capability 5 adds independently readable packed XOR planes for dense,
 low-bit differences against an immutable base. In a matched nine-file
 low-bit fixture, automatic grouping reduced the protected compacted image
 from 1,176 KiB with the previous optimizer to 400 KiB. Discovery used one
-unchanged band per extent. Next measure approximate signatures for groups
-with changes in every band, and compare batched AMD plane generation with
-the CPU encoder using transfer, verification, read and total size costs.
+unchanged band per extent. A later physical-host trial used batched AMD advice
+for all eight proposed members across two groups. CPU and AMD both compacted
+to 768 KiB with byte-exact CPU reopen. CPU settled in 49.7 seconds and AMD
+in 55.7 seconds, including idle scheduling and worker retirement. Keep CPU
+preferred for the observed workload. Profile larger heterogeneous groups on
+qualified hosts and measure approximate signatures for changes in every band.
+Account for per-member semantic refusals in the recovery policy before allowing
+automatic packed XOR dispatch.
 [Packed XOR format](INDEXED_NATIVE_VOLUME.md#packed-xor-members) ·
-[Source-bound results](evidence/indexed-packed-xor-2026-11-19.json)
+[CPU size evidence](evidence/indexed-packed-xor-2026-11-19.json) ·
+[Physical AMD evidence](evidence/amd-packed-xor-batch-2026-11-19.json)
 
 The first collective AMD trial reused the authenticated uniform LZ4 worker.
 Copies from tiles that contain the same base produced a 600 KiB complete

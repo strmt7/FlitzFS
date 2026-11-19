@@ -20,6 +20,7 @@ constexpr auto maximum_members=maximum_source_bytes/match::extent_bytes-1;
 constexpr auto record_bytes=static_cast<std::uint32_t>(sizeof(match::u32));
 constexpr std::string_view request_magic="FLFSAMQ\1",reply_magic="FLFSAMP\1";
 constexpr std::string_view batch_request_magic="FLFSABQ\1",batch_reply_magic="FLFSABP\1";
+constexpr std::string_view xor_batch_magic="FLFSAXP\1",xor_group_magic="FLFSAXG\1";
 constexpr std::uint32_t group_prefix_bytes=4;
 constexpr auto minimum_group_request=group_prefix_bytes+header_size+2*match::extent_bytes;
 constexpr auto execution=static_cast<std::uint32_t>(WorkerExecution::hip);
@@ -76,6 +77,18 @@ void check_header(std::span<const std::byte> frame,std::string_view magic,std::u
   require(frame.size()>=header_size && std::memcmp(frame.data(),magic.data(),magic.size())==0 &&
       get(frame,8,8)!=0 && get(frame,24,4)==backend && get(frame,28,4)==0,
       "invalid anchor match frame header");
+}
+
+std::span<const std::byte> packed_xor_slot(std::span<const std::byte> slot) {
+  require(slot.size()==match::xor_slot_bytes,"packed XOR reply slot extent");
+  const auto size=static_cast<std::size_t>(get(slot,0,record_bytes));
+  require(size<=match::xor_body_capacity &&
+      (!size || (size>=match::xor_tiles+match::xor_plane_bytes &&
+        (size-match::xor_tiles)%match::xor_plane_bytes==0)),
+      "packed XOR reply body length");
+  require(std::ranges::all_of(slot.subspan(record_bytes+size),[](auto byte){return byte==std::byte{255};}),
+      "packed XOR reply slot padding");
+  return slot.subspan(record_bytes,size);
 }
 
 void require_admitted_layout(AnchorMatchLayout layout,std::optional<AnchorMatchLayout> admitted) {
@@ -429,35 +442,42 @@ AnchorMatchBatchRequest decode_anchor_match_batch_request(SharedWorkerRequest sn
 }
 
 Bytes encode_anchor_match_batch_reply(const AnchorMatchBatchRequest& request,
-    std::span<const std::vector<match::u32>> records,std::size_t reserve_tail_bytes) {
+    std::span<const std::vector<match::u32>> records,std::size_t reserve_tail_bytes,bool packed_xor) {
   const auto groups=request.groups();
   const auto& plan=request.plan();
   require(!records.empty() && records.size()==groups.size(),"anchor batch result count");
   require(reserve_tail_bytes<=maximum_channel_bytes-plan.reply_bytes,"anchor batch reply tail capacity");
-  auto frame=header(batch_reply_magic,request.id(),static_cast<std::uint32_t>(records.size()),
+  auto frame=header(packed_xor?xor_batch_magic:batch_reply_magic,request.id(),static_cast<std::uint32_t>(records.size()),
       plan.launches,execution,request.digest(),plan.reply_bytes-header_size+reserve_tail_bytes);
   for(std::size_t i=0;i<records.size();++i) {
     const auto& group=groups[i];
     const auto members=plan.groups[i].whole.members;
-    check_records(group,records[i],nullptr);
+    if(packed_xor)require(records[i].size()==members*match::tiles,"packed XOR reply record count");
+    else check_records(group,records[i],nullptr);
     put(frame,members,group_prefix_bytes);
-    append_header(frame,reply_magic,group.id,members,members*match::tiles,execution,group.source_digest);
+    append_header(frame,packed_xor?xor_group_magic:reply_magic,
+        group.id,members,members*match::tiles,execution,group.source_digest);
+    const auto start=frame.size();
     append_records(frame,records[i]);
+    if(packed_xor)for(auto at=start;at<frame.size();at+=match::xor_slot_bytes)
+      (void)packed_xor_slot(std::span<const std::byte>(frame).subspan(at,match::xor_slot_bytes));
   }
   require(frame.size()==plan.reply_bytes,"anchor batch reply length");
   return frame;
 }
 
-std::vector<AnchorMatchAdvice> accept_anchor_match_batch_reply(
-    std::span<const std::byte> frame,const AnchorMatchBatchRequest& request) {
-  check_header(frame,batch_reply_magic,execution);
+namespace {
+template<class ReadGroup>auto read_anchor_batch_reply(std::span<const std::byte> frame,
+    const AnchorMatchBatchRequest& request,std::string_view magic,ReadGroup read_group) {
+  check_header(frame,magic,execution);
   const auto groups=request.groups();
   const auto& plan=request.plan();
   const auto& digest=request.digest();
   require(!groups.empty() && frame.size()==plan.reply_bytes && get(frame,8,8)==request.id() &&
       get(frame,16,4)==groups.size() && get(frame,20,4)==plan.launches &&
       std::equal(digest.begin(),digest.end(),frame.begin()+32),"anchor batch reply binding");
-  std::vector<AnchorMatchAdvice> result;
+  using Advice=decltype(read_group(frame,groups.front(),plan.groups.front().whole));
+  std::vector<Advice> result;
   result.reserve(groups.size());
   std::size_t at=header_size;
   for(std::size_t i=0;i<groups.size();++i) {
@@ -468,11 +488,37 @@ std::vector<AnchorMatchAdvice> accept_anchor_match_batch_reply(
     require(frame.size()-at>=layout.reply_bytes,"truncated anchor batch reply group");
     // The batch owns these source bytes and binds their digest during construction or parsing.
     const auto& group=groups[i];
-    result.push_back(read_anchor_match_reply(frame.subspan(at,layout.reply_bytes),group,&group.source_digest));
+    result.push_back(read_group(frame.subspan(at,layout.reply_bytes),group,layout));
     at+=layout.reply_bytes;
   }
   require(at==frame.size(),"anchor batch reply trailing bytes");
   return result;
+}
+}
+
+std::vector<AnchorMatchAdvice> accept_anchor_match_batch_reply(
+    std::span<const std::byte> frame,const AnchorMatchBatchRequest& request) {
+  return read_anchor_batch_reply(frame,request,batch_reply_magic,
+      [](auto bytes,const auto& group,auto) {
+        return read_anchor_match_reply(bytes,group,&group.source_digest);
+      });
+}
+std::vector<AnchorXorAdvice> decode_anchor_xor_batch_reply(
+    std::span<const std::byte> frame,const AnchorMatchBatchRequest& request) {
+  return read_anchor_batch_reply(frame,request,xor_batch_magic,
+      [](auto bytes,const auto& group,auto layout) {
+        check_header(bytes,xor_group_magic,execution);
+        require(get(bytes,8,8)==group.id && get(bytes,16,4)==layout.members &&
+            get(bytes,20,4)==layout.members*match::tiles &&
+            std::ranges::equal(group.source_digest,bytes.subspan(32,32)),"packed XOR reply group binding");
+        AnchorXorAdvice result;
+        result.reserve(layout.members);
+        for(std::size_t at=header_size;at<bytes.size();at+=match::xor_slot_bytes) {
+          const auto body=packed_xor_slot(bytes.subspan(at,match::xor_slot_bytes));
+          result.emplace_back(body.begin(),body.end());
+        }
+        return result;
+      });
 }
 
 } // namespace flitzfs::detail

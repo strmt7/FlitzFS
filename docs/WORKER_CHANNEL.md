@@ -299,6 +299,23 @@ closed mappings and zero-growth handle checks. New-source execution is pending.
 Neither those CPU semantics nor backend declarations establish actual GPU work.
 Normal operations still never launch a worker or load the private candidate DLL.
 
+## Packed XOR advice batches
+
+The packed XOR request reuses the bounded shared-base batch and its verified
+source windows. Its reply uses the distinct eight-byte tags `FLFSAXP` and
+`FLFSAXG` followed by byte 1 for the outer batch and individual groups.
+Identities, plan counts and original source digests are checked against the
+owned request. Each 16 KiB member slot starts with a four-byte little-endian
+body length, then the packed XOR body and `0xff` padding. A zero length
+declines the candidate. The sized transport funds the existing slot geometry
+against current host and device headroom.
+
+Reply decoding validates the envelope and slots. Independent CPU reconstruction
+against the exact staged bytes governs native admission, including validly
+framed work that belongs to a different member. The transport continues to
+require successful exact-child exit and supervisor retirement.
+[Packed XOR native admission](INDEXED_NATIVE_VOLUME.md#batched-amd-advice)
+
 ## Resource-sized transport (experimental)
 
 The new explicit `WorkerExchangeSession::start_sized` and

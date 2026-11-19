@@ -1,4 +1,5 @@
 #include "native_group_anchor.hpp"
+#include "native_group_codec.hpp"
 #include "anchor_search_fixture.hpp"
 #include "record_digest.hpp"
 #include <algorithm>
@@ -274,6 +275,44 @@ void independent_batch() {
   records.back().front()=match::empty;
   rejects([&]{(void)encode_anchor_match_batch_reply(batch,records);});
 }
+void packed_xor_reply() {
+  const std::array<std::uint32_t,1> counts{2};
+  const auto plan=plan_anchor_match_batch(counts,2,match::device_bytes(2),3);
+  AnchorMatchBatchBuilder builder(91,plan);
+  Bytes base(match::extent_bytes,std::byte{0x73});
+  Bytes members(2*match::extent_bytes,std::byte{0x73});
+  members[0]^=std::byte{0x80};
+  members[255]^=std::byte{0x04};
+  builder.append(1,base,members);
+  const auto request=builder.finish();
+  constexpr auto id=kNativeGroupBaseBit+1;
+  const auto member=std::span<const std::byte>(members).first(match::extent_bytes);
+  const auto candidate=encode_native_group_xor(member,base,id,1,match::extent_bytes);
+  check(candidate.has_value(),"missing independent XOR test body");
+  const auto body=std::span<const std::byte>(*candidate).subspan(128);
+  std::vector<std::vector<match::u32>> slots(1,std::vector<match::u32>(2*match::tiles,match::empty));
+  slots.front().front()=static_cast<match::u32>(body.size());
+  slots.front()[match::tiles]=0;
+  for(std::size_t i=0;i<body.size();++i) {
+    const auto shift=static_cast<unsigned>(i%4)*8;
+    auto& word=slots.front()[1+i/4];
+    word=(word&~(255U<<shift))|(std::to_integer<unsigned>(body[i])<<shift);
+  }
+  const auto encoded=encode_anchor_match_batch_reply(request,slots,0,true);
+  const auto decoded=decode_anchor_xor_batch_reply(encoded,request);
+  check(decoded.size()==1 && decoded.front().size()==2 && decoded.front().back().empty() &&
+      std::ranges::equal(decoded.front().front(),body),"packed XOR reply lost its accepted or declined slot");
+  check(accept_native_group_xor_body(decoded.front().front(),member,base,id,1,match::extent_bytes)==candidate,
+      "independent CPU readback did not reconstruct the packed XOR reply");
+  rejects([&]{(void)accept_anchor_match_batch_reply(encoded,request);});
+  for(const auto at:{std::size_t{32},std::size_t{64+4+32},std::size_t{64+4+64},encoded.size()-1}) {
+    auto bad=encoded;
+    bad[at]^=std::byte{1};
+    rejects([&]{(void)decode_anchor_xor_batch_reply(bad,request);});
+  }
+  slots.front().front()=match::empty;
+  rejects([&]{(void)encode_anchor_match_batch_reply(request,slots,0,true);});
+}
 }
 
 int main() {
@@ -282,6 +321,7 @@ int main() {
     unrelated();
     sized_sweep();
     independent_batch();
+    packed_xor_reply();
     std::cout<<"Direct shared base match CPU semantics and reply verification passed\n";
     return 0;
   } catch (const std::exception& error) {

@@ -243,7 +243,8 @@ void restore_private_anchor_package() {
 int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearchOptions> options) {
   const bool installed=!options;
   const bool restoring=mode=="restored";
-  const bool packed=mode=="batch" || mode=="batch-yield";
+  const bool xor_encoding=mode=="xor" || mode=="xor-cpu";
+  const bool packed=mode=="batch" || mode=="batch-yield" || xor_encoding;
   const unsigned files_per_group=installed && (packed || restoring)?3:5;
   const unsigned groups=restoring?4:packed?2:1;
   const unsigned initial_files=restoring?2*files_per_group:groups*files_per_group;
@@ -264,7 +265,10 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
     const auto base=data(kNativeExtentBytes,seed);
     for(unsigned i=0;i<files_per_group;++i) {
       auto derived=base;
-      if(i && restoring && group<2)derived[kNativeExtentBytes/8+(i+1)*719]^=std::byte{0x67};
+      if(i && xor_encoding) {
+        const auto variation=data(kNativeExtentBytes,1511+group*103+i);
+        for(std::size_t at=0;at<base.size();++at)derived[at]^=variation[at]&std::byte{1};
+      } else if(i && restoring && group<2)derived[kNativeExtentBytes/8+(i+1)*719]^=std::byte{0x67};
       else if(i)derived=anchor_search_fixture::fragmented(base,i);
       std::copy_n(base.begin(),kNativeExtentBytes/8,derived.begin());
       originals.push_back(std::move(derived));
@@ -273,13 +277,14 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
   WinFspControllerView result;
   bool signalled=false,restored=false;
   std::array<unsigned,7> deferrals{};
-  std::uint64_t last_quantum=0;
+  std::uint64_t last_quantum=0,settled_ms=0;
   {
     WinFspVolumeController controller(std::move(adapter),provider.api(),plan(),std::move(options));
     await([&]{return controller.view().state==SessionState::running;},5000,"AMD controller startup deadline");
     for(unsigned i=0;i<initial_files;++i)callback_file(provider,i,originals[i]);
     // Each group is staged and published across admitted idle observations.
-    const auto deadline=GetTickCount64()+57000ULL*groups;
+    const auto started=GetTickCount64();
+    const auto deadline=started+57000ULL*groups;
     do {
       result=controller.view();
       if(result.maintenance_quanta!=last_quantum) {
@@ -310,6 +315,7 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
       Sleep(10);
     }while(GetTickCount64()<deadline);
     controller.stop_and_join();
+    settled_ms=GetTickCount64()-started;
     result=controller.view();
     require(result.retired && result.anchor_search.retirement_confirmed && !result.controller_failed &&
         WorkerExchangeSession::available(),"AMD controller or worker did not retire");
@@ -353,6 +359,22 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
     require(result.installed_anchor_status==HipDiscoveryStatus::ready && result.installed_anchor_queries!=0,
         "Installed package did not acquire a verified route");
   }
+  if(xor_encoding) {
+    const auto root=PagedObjectStoreSnapshot::open(image,{kStoreMaxPhysicalBytes}).read(1);
+    require(root[8]==std::byte{5} && snapshot.shared_base_info().members==count &&
+        result.maintenance.published_groups==groups,"packed XOR callback groups were not committed");
+    auto packed_image=std::make_shared<Ram>();packed_image->failure_unit=image->failure_unit;
+    (void)NativeFilesystemWriter::compact(snapshot,packed_image,id(3),{StoreCompressionMode::raw,1,false});
+    const auto reopened=NativeFilesystemSnapshot::open_image(packed_image,{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes});
+    reopened.verify_all();
+    for(unsigned i=0;i<count;++i)
+      require(reopened.read("f"+std::to_string(i),0,kNativeExtentBytes)==originals[i],"compacted XOR group changed data");
+    std::cout<<"xor_owner mode="<<mode<<" compacted_bytes="<<packed_image->extent()
+        <<" settled_ms="<<settled_ms<<" logical_bytes="<<count*kNativeExtentBytes
+        <<" exact_compacted_cpu_readback=true\n";
+    if(mode=="xor-cpu")
+      return !result.anchor_search.submitted && !result.maintenance.advised_members_published?0:2;
+  }
   if(restoring)return restored && result.anchor_search.submitted==1 && result.anchor_search.verified==1 &&
       result.anchor_search.verified_groups==2 && result.maintenance.published_groups>2 &&
       result.maintenance.advised_members_published>0?0:2;
@@ -363,7 +385,7 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
 }
 int live_anchor_owner(char** argv) {
   const std::string_view mode(argv[6]);
-  require(mode=="accept" || mode=="yield" || mode=="both" || mode=="batch" || mode=="batch-yield",
+  require(mode=="accept" || mode=="yield" || mode=="both" || mode=="batch" || mode=="batch-yield" || mode=="xor",
       "Expected an AMD ownership trial");
   const ProcessBudget profile{128,2000,5000,16};
   HipRouteDiscoveryRequest request;
@@ -373,8 +395,9 @@ int live_anchor_owner(char** argv) {
   const auto binding=discover_system_hip_route(request);
   require(binding.status==HipDiscoveryStatus::ready && binding.route && binding.route->pins->anchor_module_pinned() &&
       !binding.route->pins->uniform_module_pinned(),"Shared-base worker route was not authenticated");
-  const std::uint32_t members=(mode=="batch" || mode=="batch-yield")?8:4;
-  const NativeAnchorSearchOptions execution{*binding.route,profile,members,members};
+  const std::uint32_t members=(mode=="batch" || mode=="batch-yield" || mode=="xor")?8:4;
+  NativeAnchorSearchOptions execution{*binding.route,profile,members,members};
+  execution.packed_xor=mode=="xor";
   if(mode!="both")return run_live_anchor_owner(mode,execution);
   const auto accepted=run_live_anchor_owner("accept",execution);
   if(accepted)return accepted;
@@ -1261,6 +1284,8 @@ int main(int argc,char** argv){try {
   app_fixture::Budget budget;DWORD before=0,after=0;
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
   if(argc==7 && std::string_view(argv[1])=="--live-anchor-owner")return live_anchor_owner(argv);
+  if(argc==2 && std::string_view(argv[1])=="--live-packed-xor-cpu")
+    return run_live_anchor_owner("xor-cpu",NativeAnchorSearchOptions{});
   if(argc==3 && std::string_view(argv[1])=="--live-installed-anchor-owner") {
     const std::string_view mode(argv[2]);
     require(mode=="accept" || mode=="missing" || mode=="changed" || mode=="stop" || mode=="repeat" || mode=="batch" || mode=="restored",

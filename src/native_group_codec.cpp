@@ -1,4 +1,5 @@
 #include "native_group_codec.hpp"
+#include "flitzfs/gpu_anchor_match.hpp"
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -12,7 +13,8 @@ constexpr auto copy_magic=[] {auto value=aligned_magic;value.back()=std::byte{'2
 constexpr auto xor_magic=[] {auto value=aligned_magic;value.back()=std::byte{'3'};return value;}();
 constexpr std::array member_magics{aligned_magic,copy_magic,xor_magic};
 constexpr std::size_t xor_tile_bytes=256,xor_plane_bytes=xor_tile_bytes/8,xor_tiles=extent/xor_tile_bytes;
-static_assert(extent%xor_tile_bytes==0 && xor_tile_bytes%8==0);
+static_assert(extent%xor_tile_bytes==0 && xor_tile_bytes%8==0 &&
+    extent==anchor_match::extent_bytes && xor_tile_bytes==anchor_match::xor_tile_bytes);
 constexpr std::size_t window_bytes=16,anchor_stride=16;
 constexpr std::uint32_t copy_flag=1U<<31;
 constexpr std::uint64_t multiplier=0x100000001B3ULL;
@@ -258,6 +260,24 @@ std::optional<std::vector<std::byte>> encode_native_group_xor(std::span<const st
   if(frame.size()==header+xor_tiles)return {};
   write_header(frame,NativeGroupMethod::packed_xor,member,base,base_id,generation,static_cast<std::uint32_t>(xor_tiles));
   return frame;
+}
+
+std::optional<std::vector<std::byte>> accept_native_group_xor_body(std::span<const std::byte> body,
+    std::span<const std::byte> member,std::span<const std::byte> base,std::uint64_t base_id,
+    std::uint64_t generation,std::size_t exclusive_limit) {
+  if(member.size()!=extent || base.size()!=extent || !base_id_valid(base_id) || !generation ||
+      exclusive_limit>extent)fail();
+  if(body.empty() || exclusive_limit<=header || body.size()>=exclusive_limit-header)return {};
+  std::vector<std::byte> frame(header);
+  frame.insert(frame.end(),body.begin(),body.end());
+  write_header(frame,NativeGroupMethod::packed_xor,member,base,base_id,generation,static_cast<std::uint32_t>(xor_tiles));
+  try {
+    if(std::ranges::equal(decode_native_group_member(frame,base,NativeGroupMethod::packed_xor),member))
+      return frame;
+  }catch(const std::runtime_error&) {
+    // Untrusted advice can fail framing or readback without fencing storage.
+  }
+  return {};
 }
 
 std::array<std::uint64_t,kNativeGroupShiftFeatures> native_group_shift_features(std::span<const std::byte> bytes) noexcept {

@@ -76,6 +76,73 @@ void flitzfs_anchor_search_window_v2(const unsigned char* base,const unsigned ch
   output[lane]=search(base,member,table,lane%tiles);
 }
 
+namespace {
+__device__ flitzfs::anchor_match::u64 xor_segment(const unsigned char* base,const unsigned char* member) {
+  flitzfs::anchor_match::u64 left=0,right=0;
+  __builtin_memcpy(&left,base,sizeof(left));
+  __builtin_memcpy(&right,member,sizeof(right));
+  return left^right;
+}
+}
+
+extern "C" __global__ __attribute__((amdgpu_flat_work_group_size(64,64)))
+void flitzfs_anchor_packed_xor_v3(const unsigned char* base,const unsigned char* window,unsigned int members,
+    const flitzfs::anchor_match::Bucket*,unsigned int* output,unsigned int version) {
+  using namespace flitzfs::anchor_match;
+  if(version!=packed_xor_window_abi_version || !base || !window || !output ||
+      !members || members>max_members || blockIdx.x>=members || blockDim.x!=threads)return;
+  constexpr unsigned lanes_per_tile=xor_plane_bytes;
+  constexpr unsigned tiles_per_block=threads/lanes_per_tile;
+  static_assert(lanes_per_tile==32 && xor_tiles%tiles_per_block==0);
+  __shared__ unsigned masks[xor_tiles],offsets[xor_tiles],body_size;
+  const auto lane=threadIdx.x;
+  const auto segment=lane%lanes_per_tile;
+  const auto first_tile=lane/lanes_per_tile;
+  const auto* member=window+blockIdx.x*extent_bytes;
+  auto* slot=output+blockIdx.x*tiles;
+  for(unsigned tile=first_tile;tile<xor_tiles;tile+=tiles_per_block) {
+    const auto at=tile*xor_tile_bytes+segment*8;
+    auto difference=xor_segment(base+at,member+at);
+    difference|=difference>>32;
+    difference|=difference>>16;
+    difference|=difference>>8;
+    auto mask=static_cast<unsigned>(difference)&255U;
+    for(unsigned distance=lanes_per_tile/2;distance;distance/=2)
+      mask|=__shfl_down(mask,distance,lanes_per_tile);
+    if(!segment)masks[tile]=mask;
+  }
+  __syncthreads();
+  if(!lane) {
+    unsigned size=0;
+    for(unsigned tile=0;tile<xor_tiles;++tile) {
+      offsets[tile]=size;
+      size+=1+static_cast<unsigned>(__popc(masks[tile]))*xor_plane_bytes;
+    }
+    body_size=size>xor_tiles && size<=xor_body_capacity?size:0;
+    slot[0]=body_size;
+  }
+  __syncthreads();
+  if(!body_size)return;
+  auto* body=reinterpret_cast<unsigned char*>(slot+1);
+  for(unsigned tile=first_tile;tile<xor_tiles;tile+=tiles_per_block) {
+    const auto mask=masks[tile];
+    auto* tile_body=body+offsets[tile];
+    if(!segment)*tile_body=static_cast<unsigned char>(mask);
+    if(!mask)continue;
+    const auto at=tile*xor_tile_bytes+segment*8;
+    const auto difference=xor_segment(base+at,member+at);
+    unsigned plane_offset=1+segment;
+    for(unsigned bit=0;bit<8;++bit) {
+      if(!(mask&(1U<<bit)))continue;
+      unsigned packed=0;
+      for(unsigned i=0;i<8;++i)
+        packed|=static_cast<unsigned>(((difference>>(8*i+bit))&1ULL)<<i);
+      tile_body[plane_offset]=static_cast<unsigned char>(packed);
+      plane_offset+=xor_plane_bytes;
+    }
+  }
+}
+
 namespace flitzfs::anchor_match {
 void bind_anchor_kernels(KernelApi& api) noexcept {
   api.index=flitzfs_anchor_index_v1;
@@ -83,5 +150,8 @@ void bind_anchor_kernels(KernelApi& api) noexcept {
 }
 void bind_anchor_window_search(WindowSearchApi& api) noexcept {
   api.search=flitzfs_anchor_search_window_v2;
+}
+void bind_anchor_packed_xor_window(WindowSearchApi& api) noexcept {
+  api.search=flitzfs_anchor_packed_xor_v3;
 }
 }

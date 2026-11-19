@@ -230,7 +230,8 @@ std::string runtime_digest(std::wstring_view wide) {
 int worker(int argc, wchar_t** argv) {
   const std::wstring_view mode = argc > 1 ? argv[1] : L"";
   const bool anchor_batch_profile=mode==L"--driver-anchor-transfer-batch-profile";
-  const bool anchor_transfer=mode==L"--driver-anchor-transfer-batch" || anchor_batch_profile;
+  const bool packed_xor=mode==L"--driver-anchor-xor-batch";
+  const bool anchor_transfer=mode==L"--driver-anchor-transfer-batch" || anchor_batch_profile || packed_xor;
   const bool anchor_batch=mode==L"--driver-anchor-batch" || anchor_transfer;
   const bool anchor_profile=mode==L"--driver-anchor-sweep-profile";
   const bool anchor_sweep=mode==L"--driver-anchor-sweep" || anchor_profile;
@@ -578,21 +579,24 @@ int worker(int argc, wchar_t** argv) {
         "incompatible HIP anchor match table",HipWorkerStage::kernel_table);
     const anchor_match::WindowSearchApi* window=nullptr;
     if(anchor_transfer) {
-      const auto window_address=GetProcAddress(kernels.get(),"flitzfs_rocm_anchor_window_api_v2");
+      const auto window_address=GetProcAddress(kernels.get(),
+          packed_xor?"flitzfs_rocm_anchor_xor_api_v3":"flitzfs_rocm_anchor_window_api_v2");
       require(window_address!=nullptr,Exit::unsupported_configuration,"HIP anchor window entry unavailable",
           HipWorkerStage::kernel_entry);
       window=std::bit_cast<anchor_match::WindowSearchApiEntry>(window_address)();
-      require(window && anchor_match::compatible_window_search_api(*window),Exit::unsupported_configuration,
+      const auto version=packed_xor?anchor_match::packed_xor_window_abi_version:anchor_match::window_abi_version;
+      require(window && anchor_match::compatible_window_search_api(*window,version),Exit::unsupported_configuration,
           "incompatible HIP anchor window table",HipWorkerStage::kernel_table);
     }
     phase_clock.end(HipPhase::entry_bind);
     try {
-      // Encoding includes independent comparison with the original bytes.
+      // Match records have byte checks here. The native writer independently
+      // proves the decoded packed XOR candidate before it can publish.
       if(anchors) {
         const auto records=run_hip_anchor_batch_in_worker(runtime.get(),*api,static_cast<int>(ordinal),
-            luid,node_mask,*anchors,phase_clock,window,transfer_grant,dispatches_per_wait);
+            luid,node_mask,*anchors,phase_clock,window,transfer_grant,dispatches_per_wait,packed_xor);
         phase_clock.begin(HipPhase::reply_encode);
-        frame=detail::encode_anchor_match_batch_reply(*anchors,records,profile_bytes);
+        frame=detail::encode_anchor_match_batch_reply(*anchors,records,profile_bytes,packed_xor);
       } else {
         const auto records=run_hip_anchor_match_in_worker(runtime.get(),*api,static_cast<int>(ordinal),
             luid,node_mask,*anchor,*anchor_plan,phase_clock,anchor_sweep);

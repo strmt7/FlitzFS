@@ -40,6 +40,7 @@ struct NativeAnchorSearchController::Impl {
   std::optional<Flight> flight;
   std::vector<NativeSharedBaseSearchWindow> windows;
   std::vector<detail::AnchorMatchAdvice> advice;
+  std::vector<detail::AnchorXorAdvice> xor_advice;
   std::vector<NativeSharedBaseSearchReply> replies;
   NativeAnchorSearchStats stats;
   std::uint64_t activity=0,next_launch=0,sequence=0,unobserved_ticket=0;
@@ -56,6 +57,7 @@ struct NativeAnchorSearchController::Impl {
     replies.clear();
     windows.clear();
     std::vector<detail::AnchorMatchAdvice>{}.swap(advice);
+    std::vector<detail::AnchorXorAdvice>{}.swap(xor_advice);
   }
   void yield(Disposition disposition) noexcept {
     discard();
@@ -170,7 +172,8 @@ void NativeAnchorSearchController::start(std::span<const NativeSharedBaseSearchW
     std::vector<NativeSharedBaseSearchWindow> retained(windows.begin(),windows.end());
     const auto begun=GetTickCount64();
     auto session=WorkerExchangeSession::start_sized(route.helper,
-        {L"--driver-anchor-transfer-batch",std::to_wstring(route.ordinal),hex(route.memory.luid),
+        {options.packed_xor?L"--driver-anchor-xor-batch":L"--driver-anchor-transfer-batch",
+            std::to_wstring(route.ordinal),hex(route.memory.luid),
             std::to_wstring(route.memory.node_mask),hex(route.runtime_sha256),std::to_wstring(plan.request_bytes),
             std::to_wstring(plan.reply_bytes),std::to_wstring(quantum),std::to_wstring(plan.device_bytes),
             std::to_wstring(plan.launches),std::to_wstring(transfer.device_bytes)},
@@ -228,11 +231,18 @@ void NativeAnchorSearchController::observe(std::uint64_t activity,std::uint64_t 
     } else {
       if(!collect)return;
       try {
-        auto verified=detail::accept_anchor_match_batch_reply(result->response,flight.request);
-        if(verified.size()!=self.windows.size())throw std::invalid_argument("Incomplete verified anchor batch");
-        self.replies.reserve(verified.size());
-        self.advice=std::move(verified);
-        for(std::size_t i=0;i<self.windows.size();++i)self.replies.push_back({self.windows[i],self.advice[i]});
+        self.replies.reserve(self.windows.size());
+        if(self.options.packed_xor) {
+          self.xor_advice=detail::decode_anchor_xor_batch_reply(result->response,flight.request);
+          if(self.xor_advice.size()!=self.windows.size())throw std::invalid_argument("Incomplete packed XOR batch");
+          for(std::size_t i=0;i<self.windows.size();++i)
+            self.replies.push_back({self.windows[i],{},self.xor_advice[i]});
+        } else {
+          self.advice=detail::accept_anchor_match_batch_reply(result->response,flight.request);
+          if(self.advice.size()!=self.windows.size())throw std::invalid_argument("Incomplete verified anchor batch");
+          for(std::size_t i=0;i<self.windows.size();++i)
+            self.replies.push_back({self.windows[i],self.advice[i],{}});
+        }
         (void)self.recovery.finish(flight.ticket,GpuRecoveryOutcome::accepted,true);
         ++self.stats.verified;
         self.stats.verified_groups+=self.windows.size();
