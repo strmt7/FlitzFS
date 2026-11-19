@@ -41,8 +41,12 @@ exclusive, nonaliasing storage and stable successful-write/flush semantics;
 per-instance leases do not stop another facade or hostile provider. Native
 preparation rejects pending/detached file contexts, an invalid source/backend
 or invalid identity. [Managed paged sessions](MANAGED_PAGED_VOLUMES.md) support synchronous handoff.
-The indexed memory policy also uses the staged path with a bounded selector
-switch and separate reader-safe retirement.
+The owned Windows memory and paired-range paths use the staged copy with a
+separate selector switch and reader-safe retirement. The controller can
+advance several private preparation steps within one admitted CPU observation.
+Each step releases the callback lock afterward and requires current memory
+headroom. Candidate creation, private root writes and barriers, selector
+publication and retirement each start from a fresh CPU capture.
 
 ## Work phases
 

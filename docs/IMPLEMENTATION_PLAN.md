@@ -336,8 +336,10 @@ for production-scale completion, but their bounded design/experiments can start 
 **Reuse:** mirrored payloads, COW records, protected anchors, staged rebuild,
 context-preserving head handoff and source-preserving recovery.
 **Available:** bounded indexed handoff and automatic staged compaction on the
-owned Windows memory provider, using measured obsolete history and CPU
-verification. **Missing:** resumable segment evacuation under foreground
+owned Windows memory and modeled paired-range paths, using measured obsolete
+history and CPU verification. Private preparation uses work credit within a
+fresh CPU sample. Publication and retirement each require a fresh observation.
+**Missing:** resumable segment evacuation under foreground
 commits, durable liveness/progress, and persistent-provider qualification.
 **Planning effort:** 5–10 person-weeks; confidence low.
 

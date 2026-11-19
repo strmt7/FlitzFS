@@ -65,6 +65,7 @@ struct HostedVolumeMaintenanceResult;
 enum class HostedIdleMaintenanceAction;
 struct HostedIdleMaintenanceResult;
 struct WinFspMaintenanceResult;
+enum class WinFspMaintenanceContinuation;
 struct NativeMaintenanceObservation;
 struct NativeWriteMountPlan {
   std::wstring directory;
@@ -93,7 +94,7 @@ class WinFspNativeSession final {
       StoreCompressionOptions candidate={});
   HostedIdleMaintenanceResult idle_recompression_hosted(HostedIdleMaintenanceAction);
   WinFspMaintenanceResult advance_background_maintenance(const NativeMaintenanceObservation&,std::uint64_t now_ms,
-      NativeGroupSearchOpportunity={});
+      NativeGroupSearchOpportunity={},WinFspMaintenanceContinuation={});
   bool background_maintenance_pending() const;
   void cancel_background_maintenance();
   void stop() noexcept;

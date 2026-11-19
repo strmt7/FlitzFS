@@ -145,9 +145,12 @@ generation. The owner releases tentative compression work before evaluating
 the replacement, and the existing source verification and reader-retirement
 checks govern handoff.
 
-The old mapping stays live while any CPU snapshot holds it. Its retirement
-checks pins first and securely clears and decommits at most one object-sized
-span per resource-admitted opportunity. This work shares the control lock
+Private reconstruction and verification can use the remainder of an idle CPU
+sample. Each step rechecks foreground access and memory headroom. The owner
+waits for fresh samples before publishing candidate roots or selecting the
+verified image. The old mapping stays live while any CPU snapshot holds it.
+Its retirement checks pins first and securely clears and decommits at most
+one object-sized span per fresh resource-admitted opportunity. This work shares the control lock
 with callbacks. A failed selector keeps both mappings for independent
 post-join inspection. Join releases any known unselected image that was still
 staging or retiring. [Managed handoff contract](MANAGED_PAGED_VOLUMES.md#indexed-images)

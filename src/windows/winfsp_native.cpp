@@ -156,7 +156,7 @@ struct WinFspNativeWritable::Impl {
   std::unique_ptr<NativeGroupMaintenance> groups;
   NativeMaintenancePolicy group_policy;
   MemoryVolumeBacking* memory_backing=nullptr;
-  std::uint64_t last_retirement_observation=0,last_retirement_capture=0;
+  std::uint64_t last_indexed_observation=0,last_indexed_capture=0;
   bool maintenance_cancelled=false;
   std::atomic<bool> maintenance_signal_failed{false};
   bool callbacks_bound=false;
@@ -188,7 +188,7 @@ struct WinFspNativeWritable::Impl {
     if(!groups->pending())return {State::unchanged,groups->progress()};
     const auto progress=groups->advance(observed,now,search);
     WinFspMaintenanceResult result{State::advanced,progress};
-    result.group_step=true;
+    result.continuation=WinFspMaintenanceContinuation::group;
     result.group_members=groups->active_group_members();
     if(progress.search_window_ready || search.reply)result.search_window=groups->search_window();
     if(progress.search_batch_ready)result.search_batch=groups->search_batch();
@@ -208,19 +208,24 @@ struct WinFspNativeWritable::Impl {
     };
     const bool reap=session.retirement_pending();
     const bool discard_catalog=memory_backing && memory_backing->coherence_retirement_pending();
+    if(observed.continued && (reap || discard_catalog || !session.idle_compaction_preparation_pending()))
+      return defer(Deferral::observation);
     const bool persistent=session.persistent_reclamation_pending();
     const bool memory=memory_backing && memory_backing->compaction_pending(session);
     if(!reap && !discard_catalog && !persistent && !memory)return {State::unchanged};
-    if(!observed.sequence || observed.sequence<=last_retirement_observation)
+    if(!observed.sequence || observed.sequence<=last_indexed_observation)
       return defer(Deferral::observation);
-    last_retirement_observation=observed.sequence;
+    last_indexed_observation=observed.sequence;
     const auto resources=detail::maintenance_resources(observed,now,{});
-    if(!resources || observed.captured_ms<=last_retirement_capture)return defer(Deferral::observation);
-    last_retirement_capture=observed.captured_ms;
+    const bool admitted_capture=observed.continued
+        ?last_indexed_capture && observed.captured_ms==last_indexed_capture
+        :observed.captured_ms>last_indexed_capture;
+    if(!resources || !admitted_capture)return defer(Deferral::observation);
+    last_indexed_capture=observed.captured_ms;
     if(observed.foreground_pending)return defer(Deferral::foreground);
     if(resources->cpu_busy)return defer(Deferral::cpu);
     // Fund prefix verification, decoded pages, COW edit/encoding scratch and
-    // allocation planning before entering the existing one-transaction reaper.
+    // allocation planning before advancing indexed maintenance.
     constexpr auto transaction_scratch=8ULL*kStoreMaxTransactionBytes;
     if(resources->memory_allowance<transaction_scratch)return defer(Deferral::memory);
     try {
@@ -235,7 +240,12 @@ struct WinFspNativeWritable::Impl {
       const auto progress=[&]<class Step>(Step step)->WinFspMaintenanceResult {
         switch(step) {
           case Step::idle:return {State::unchanged};
-          case Step::copying:return {State::advanced,{Phase::preparing}};
+          case Step::copying: {
+            WinFspMaintenanceResult result{State::advanced,{Phase::preparing}};
+            if(session.idle_compaction_preparation_pending())
+              result.continuation=WinFspMaintenanceContinuation::compaction;
+            return result;
+          }
           case Step::ready:return {State::advanced,{Phase::publishing}};
           case Step::published:return {State::advanced,{Phase::idle},false,true};
           case Step::retiring:return {State::advanced,{Phase::preparing}};
@@ -805,7 +815,8 @@ void WinFspNativeWritable::cancel_background_maintenance() {
   impl_->session.cancel_persistent_reclamation();
 }
 WinFspMaintenanceResult WinFspNativeWritable::advance_background_maintenance(
-    const NativeMaintenanceObservation& observed,std::uint64_t now,NativeGroupSearchOpportunity search) {
+    const NativeMaintenanceObservation& observed,std::uint64_t now,NativeGroupSearchOpportunity search,
+    WinFspMaintenanceContinuation continuation) {
   std::unique_lock guard(impl_->control,std::try_to_lock);
   if(!guard || impl_->foreground.load(std::memory_order_acquire)!=0 ||
       (impl_->deferred&&(impl_->deferred->publication_pending_locked() || impl_->deferred->stats_locked().worker_busy)))
@@ -816,18 +827,21 @@ WinFspMaintenanceResult WinFspNativeWritable::advance_background_maintenance(
     impl_->groups.reset();
     return {WinFspMaintenanceState::unavailable};
   }
+  const bool indexed=impl_->info_policy==indexed_file_info;
   if(observed.continued) {
-    if(impl_->session.retirement_pending())return {WinFspMaintenanceState::busy};
-    return impl_->advance_groups(observed,now,search);
+    if(continuation==WinFspMaintenanceContinuation::group && !impl_->session.retirement_pending())
+      return impl_->advance_groups(observed,now,search);
+    if(continuation!=WinFspMaintenanceContinuation::compaction || !indexed)
+      return {WinFspMaintenanceState::busy};
   }
-  if(impl_->info_policy==indexed_file_info) {
+  if(indexed) {
     // An admitted group pins its source image. Complete or retire it before
     // a compaction handoff. Detached-inode reclamation can still invalidate it.
-    if(!impl_->session.retirement_pending() && impl_->groups && impl_->groups->active_group())
+    if(!observed.continued && !impl_->session.retirement_pending() && impl_->groups && impl_->groups->active_group())
       return impl_->advance_groups(observed,now,search);
     auto storage=impl_->advance_indexed_maintenance(observed,now);
-    if(storage.state!=WinFspMaintenanceState::unchanged &&
-        (storage.progress.deferral!=NativeMaintenanceDeferral::other_maintenance || !impl_->groups || !impl_->groups->pending())) {
+    if(observed.continued || (storage.state!=WinFspMaintenanceState::unchanged &&
+        (storage.progress.deferral!=NativeMaintenanceDeferral::other_maintenance || !impl_->groups || !impl_->groups->pending()))) {
       if(impl_->groups) {
         auto progress=impl_->groups->progress();
         progress.phase=storage.progress.phase;progress.deferral=storage.progress.deferral;

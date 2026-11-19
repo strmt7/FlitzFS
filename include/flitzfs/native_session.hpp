@@ -198,6 +198,8 @@ class NativeFileSession final {
   // Use the same serialized advance, publish and cancel calls as idle recompression.
   bool begin_idle_compaction(std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_image);
   bool idle_compaction_context_ready() const noexcept;
+  // Inspect the staged phase and source token without backing I/O.
+  bool idle_compaction_preparation_pending() const noexcept;
   // Requires a ready idle candidate and a separate quiet publication window.
   // An empty result indicates measured savings did not justify a handoff.
   std::optional<NativeVolumeHeadInfo> publish_idle_recompression();

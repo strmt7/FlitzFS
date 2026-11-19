@@ -193,33 +193,66 @@ void volume_file_idle_reclamation() {
     callback_cleanup_close(provider,context);
   }
   NativeMaintenanceObservation observed{1,1000,16ULL<<30,12ULL<<30,32ULL<<30,24ULL<<30,1000,0,1000,true,true};
+  using Continuation=WinFspMaintenanceContinuation;
+  using Deferral=NativeMaintenanceDeferral;
+  const auto step=[&](bool continued,std::uint64_t age_ms=0) {
+    ++observed.sequence;
+    observed.continued=continued;
+    if(!continued)observed.captured_ms+=1000;
+    return session.advance_background_maintenance(observed,observed.captured_ms+age_ms,{},
+        continued?Continuation::compaction:Continuation::none);
+  };
+  const auto refuse=[&](Deferral reason,std::uint64_t age_ms=0) {
+    const auto writes=file->io.calls;
+    require(step(true,age_ms).progress.deferral==reason && file->io.calls==writes,
+        "paired-file continuation performed deferred backing work");
+  };
   const auto before=file->occupied();
+  unsigned private_steps=0,publish_boundaries=0;
   {
     const auto retained=source->snapshot();
     const auto writes=file->io.calls;
-    require(session.advance_background_maintenance(observed,observed.captured_ms).progress.deferral==
-        NativeMaintenanceDeferral::foreground && file->io.calls==writes,"paired-file compaction ran under foreground load");
+    require(step(false).progress.deferral==Deferral::foreground && file->io.calls==writes,
+        "paired-file compaction ran under foreground load");
     observed.foreground_pending=false;
-    bool published=false;
-    for(unsigned tick=0;!published && tick<350;++tick) {
-      ++observed.sequence;observed.captured_ms+=1000;
-      const auto step=session.advance_background_maintenance(observed,observed.captured_ms);
-      require(!step.compaction_failed,"paired-file SDK idle compaction failed");
-      published=step.compacted;
+    refuse(Deferral::observation); // A reused sample cannot start a new image.
+
+    auto progress=step(false);
+    require(progress.continuation==Continuation::compaction,"paired-file preparation was not admitted");
+    refuse(Deferral::observation,NativeMaintenancePolicy{}.maximum_age_ms+1);
+    const auto available=observed.physical_available;
+    observed.physical_available=0;
+    refuse(Deferral::memory);
+    observed.physical_available=available;
+    observed.foreground_pending=true;
+    refuse(Deferral::foreground);
+    observed.foreground_pending=false;
+
+    for(unsigned tick=0;!progress.compacted && tick<350;++tick) {
+      const bool continued=progress.continuation==Continuation::compaction;
+      if(continued)++private_steps;
+      else {
+        refuse(Deferral::observation);
+        ++publish_boundaries;
+      }
+      progress=step(continued);
+      require(!progress.compaction_failed && progress.progress.deferral==Deferral::none,
+          "paired-file SDK idle compaction failed");
     }
-    require(published && !file->range_reclaims &&
-        retained.read("f0",0,50000)==expected,"paired-file source was discarded while a reader held it");
+    require(progress.compacted && private_steps && publish_boundaries==2 && !file->range_reclaims &&
+        retained.read("f0",0,50000)==expected,"paired-file publication boundaries or pinned source changed");
   }
-  for(unsigned tick=0;tick<8 && file->allocated_extent(kNativeVolumeFileImageOffset,limits.maximum_physical_bytes);++tick) {
-    ++observed.sequence;observed.captured_ms+=1000;
-    (void)session.advance_background_maintenance(observed,observed.captured_ms);
-  }
+  refuse(Deferral::observation); // Even an unpinned range needs a fresh capture.
+  require(!file->range_reclaims,"continued step reclaimed the old range");
+  for(unsigned tick=0;tick<8 && file->allocated_extent(kNativeVolumeFileImageOffset,limits.maximum_physical_bytes);++tick)
+    (void)step(false);
   require(file->range_reclaims && file->occupied()<before,"the native idle owner did not reclaim the old range");
   session.stop();
   require(session.write_restart_ready(),"paired-file dispatcher did not retire");
   require(NativeVolumeFile::inspect(file->replay()).filesystem().read("f0",0,50000)==expected,
       "reclaimed SDK volume lost acknowledged bytes on independent CPU reopen");
-  std::cout<<"paired_file_sdk_idle published=1 prior_readers_preserved=1 reclaimed=1 cpu_reopen=1\n";
+  std::cout<<"paired_file_sdk_idle private_steps="<<private_steps<<" fresh_publish_boundaries="<<publish_boundaries
+      <<" published=1 prior_readers_preserved=1 reclaimed=1 cpu_reopen=1\n";
 }
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
 std::array<std::byte,32> artifact_digest(std::string_view input) {
@@ -1282,7 +1315,8 @@ void live_indexed_compaction() {
       recovered.filesystem().read("compacted",0,static_cast<std::uint32_t>(expected.size()))==expected,
       "CPU inspection did not resolve automatic selection");
   std::cout<<"live_indexed_compaction elapsed_ms="<<GetTickCount64()-begin
-           <<" quanta="<<status.maintenance_quanta<<" max_quantum_ns="<<status.maximum_quantum_ns
+           <<" quanta="<<status.maintenance_quanta<<" continued_compaction_steps="<<status.continued_compaction_steps
+           <<" max_quantum_ns="<<status.maximum_quantum_ns
            <<" selected_epoch="<<recovered.info().selection.epoch<<'\n';
 }
 

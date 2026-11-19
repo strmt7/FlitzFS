@@ -312,6 +312,14 @@ publication. Actual Windows resource scheduling completed staged compaction
 and retired with balanced handles.
 [Packed compaction evidence](evidence/packed-rebuild-accounting-2026-11-18.json)
 
+The controller now uses the remainder of an idle CPU sample for private
+indexed rebuild steps. One matched Windows memory fixture completed in
+3,063 ms, down from 36,391 ms, with byte-exact open-handle and independent CPU
+readback. The paired-range model also verified fresh observations at both
+publication boundaries and retained the old range while a reader pinned it.
+Resumable reclamation under sustained foreground writes remains open.
+[Compaction pacing evidence](evidence/indexed-compaction-idle-credit-2026-11-19.json)
+
 The writable controller now stays available for the owner-controlled
 lifetime. Probe time budgets belong to the external test supervisor.
 The controller wakes on a stop, dispatcher termination, deferred write

@@ -10,7 +10,7 @@ struct WinFspControllerView {
   MaintenanceHostStatus host=MaintenanceHostStatus::warming;
   NativeMaintenanceProgress maintenance;
   std::uint64_t maintenance_quanta=0,reclamation_quanta=0,compactions=0,compaction_failures=0;
-  std::uint64_t continued_preparation_steps=0;
+  std::uint64_t continued_preparation_steps=0,continued_compaction_steps=0;
   std::uint64_t maintenance_elapsed_ns=0,maximum_quantum_ns=0;
   std::uint64_t gpu_budget_queries=0,gpu_budget_refusals=0;
   NativeAnchorSearchStats anchor_search;

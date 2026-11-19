@@ -123,7 +123,7 @@ struct WinFspVolumeController::Impl {
           }
           const auto begin=std::chrono::steady_clock::now();
           WinFspMaintenanceResult result;
-          std::uint64_t continued=0;
+          std::uint64_t continued=0,continued_compaction=0;
           MaintenanceThreadScope priority;
           if(!priority.active())disabled=true;
           else try {
@@ -134,17 +134,23 @@ struct WinFspVolumeController::Impl {
             };
             auto observed=host.observe(stop_requested.load(std::memory_order_acquire));
             if(!stop_requested.load(std::memory_order_acquire) && host.status()!=MaintenanceHostStatus::waiting) {
+              auto continuation=WinFspMaintenanceContinuation::none;
               for(;;) {
                 if(residency && observed.valid)residency->verify_working_set();
                 if(observed.continued && interrupted())break;
-                auto step=advance(observed);
+                auto step=advance(observed,continuation);
                 if(observed.continued && step.state==WinFspMaintenanceState::busy)break;
                 result=std::move(step);
                 if(result.state==WinFspMaintenanceState::unavailable ||
                     result.progress.phase==NativeMaintenancePhase::failed)disabled=true;
-                if(observed.continued && result.group_step &&
-                    result.progress.deferral==NativeMaintenanceDeferral::none)++continued;
-                if(disabled || !result.group_step || !can_continue_preparation(result.progress) || interrupted() ||
+                if(observed.continued && result.state==WinFspMaintenanceState::advanced &&
+                    result.progress.deferral==NativeMaintenanceDeferral::none) {
+                  ++continued;
+                  if(continuation==WinFspMaintenanceContinuation::compaction)++continued_compaction;
+                }
+                continuation=result.continuation;
+                if(disabled || continuation==WinFspMaintenanceContinuation::none ||
+                    !can_continue_preparation(result.progress) || interrupted() ||
                     (anchor && anchor->waiting()) || (gpu && GetTickCount64()>gpu->after_ms))break;
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
                 if(acquisition_thread.joinable())break;
@@ -172,6 +178,7 @@ struct WinFspVolumeController::Impl {
               current.maintenance=result.progress;
             ++current.maintenance_quanta;
             current.continued_preparation_steps+=continued;
+            current.continued_compaction_steps+=continued_compaction;
             if(result.reclaimed)++current.reclamation_quanta;
             if(result.compacted)++current.compactions;
             if(result.compaction_failed)++current.compaction_failures;
@@ -202,16 +209,19 @@ struct WinFspVolumeController::Impl {
     current.maintenance_disabled=disabled;current.retired=anchor_retired;
     if(status_changed.value)SetEvent(status_changed.value);
   }
-  WinFspMaintenanceResult advance(const NativeMaintenanceObservation& observed) {
+  WinFspMaintenanceResult advance(const NativeMaintenanceObservation& observed,
+      WinFspMaintenanceContinuation continuation) {
     const auto now=GetTickCount64();
+    if(continuation==WinFspMaintenanceContinuation::compaction)
+      return session->advance_background_maintenance(observed,now,{},continuation);
     if(!anchor) {
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
       const bool may_acquire=installed && acquisition_retired;
-      auto result=session->advance_background_maintenance(observed,now,{0,nullptr,may_acquire});
+      auto result=session->advance_background_maintenance(observed,now,{0,nullptr,may_acquire},continuation);
       begin_acquisition(result,observed);
       return result;
 #else
-      return session->advance_background_maintenance(observed,now);
+      return session->advance_background_maintenance(observed,now,{},continuation);
 #endif
     }
     const auto epoch=adapter->foreground_activity();
@@ -228,7 +238,7 @@ struct WinFspVolumeController::Impl {
     if(anchor->waiting())return {WinFspMaintenanceState::busy};
     const auto replies=anchor->replies();
     auto result=session->advance_background_maintenance(observed,GetTickCount64(),
-        {idle?anchor->stage_grant(now,funded_extents):0,nullptr,true,replies});
+        {idle?anchor->stage_grant(now,funded_extents):0,nullptr,true,replies},continuation);
     if(!replies.empty()) {
       anchor->settle_reply_checks();
       if(!result.retained_search && result.state!=WinFspMaintenanceState::busy &&

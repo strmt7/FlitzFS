@@ -49,12 +49,15 @@ and refuses queued/active foreground calls and deferred publication/retirement.
 Collector, priority, optional-controller and event failures disable optional work;
 they never enable a GPU path or reinterpret unknown headroom as idle capacity.
 
-The owner can continue preparation inside one fresh CPU sample. It releases
-the callback lock between steps, refreshes memory headroom, and checks the
-foreground generation, pending work and stop before each continuation.
-It ends the sequence on a device launch or route acquisition. Group publication,
-indexed retirement, compaction and advisory checkpoint writes each require
-a fresh CPU capture. Indexed final Close records retirement and signals the
+The owner can continue group or indexed compaction preparation inside one
+fresh CPU sample. It releases the callback lock between steps, refreshes memory
+headroom, and checks foreground activity and stop before each continuation.
+Each continuation stays with the preparation that received the opportunity.
+A device launch or route acquisition ends the sequence. Opening a compaction
+candidate, publishing its private roots, switching the selected image and
+reclaiming the old backing each require a fresh CPU capture. Group publication,
+indexed inode retirement and advisory checkpoints retain their own fresh
+capture requirement. Indexed final Close records retirement and signals the
 controller.
 
 Complete elapsed time across the admitted steps, including wrapper and
@@ -63,9 +66,8 @@ erase the next due time. Timed waits pace pending maintenance and GPU budget
 observations.
 A reaper transaction removes at most 64 mappings. The controller checks
 foreground activity, deferred response ownership and worker retirement before
-entering the transaction. The owned memory controller can then advance one justified compaction
-opportunity, including bounded work to release an unpinned old image. A quiet
-volume with no pending retirement or compaction sleeps until an event.
+entering the transaction. A quiet volume with no pending retirement or
+compaction sleeps until an event.
 [Indexed checks](evidence/indexed-owned-windows-2026-11-18.json) ·
 [Memory reclamation](WINDOWS_MEMORY_VOLUME_FACTORY.md#automatic-indexed-compaction)
 

@@ -1003,6 +1003,16 @@ bool NativeFileSession::begin_idle_compaction_impl(std::shared_ptr<StoreByteIo> 
   return true;
 }
 
+bool NativeFileSession::idle_compaction_preparation_pending() const noexcept {
+  if(poisoned() || !impl_->recompression || !impl_->recompression->idle)return false;
+  const auto* work=std::get_if<PagedObjectStoreWriter::Rewrite>(&impl_->recompression->work);
+  if(!work || !impl_->writer.matches_paged_recompression(*work))return false;
+  using Phase=PagedRewritePhase;
+  const auto phase=work->progress().phase;
+  return phase==Phase::verifying_source || phase==Phase::copying || phase==Phase::building_index ||
+      phase==Phase::verifying_target || phase==Phase::verifying_publication;
+}
+
 std::optional<StoreRecompressionInput> NativeFileSession::next_recompression_input() const {
   auto& self=ready();
   if(!self.recompression)return std::nullopt;

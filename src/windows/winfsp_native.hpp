@@ -22,6 +22,7 @@ struct HostedIdleMaintenanceResult {
   NativeVolumeHeadInfo head{};
 };
 enum class WinFspMaintenanceState {busy,unavailable,unchanged,advanced};
+enum class WinFspMaintenanceContinuation {none,group,compaction};
 struct WinFspMaintenanceResult {
   WinFspMaintenanceState state=WinFspMaintenanceState::unavailable;
   NativeMaintenanceProgress progress;
@@ -30,7 +31,7 @@ struct WinFspMaintenanceResult {
   std::size_t group_members=0;
   std::vector<NativeSharedBaseSearchWindow> search_batch;
   bool retained_search=false;
-  bool group_step=false;
+  WinFspMaintenanceContinuation continuation=WinFspMaintenanceContinuation::none;
 };
 class WinFspNativeWritable final {
  public:
@@ -76,9 +77,9 @@ class WinFspNativeWritable final {
       std::shared_ptr<StoreByteIo> advice={},std::uint64_t expected_advice_sequence=0);
   // Trusted low-priority controller opportunity, not a filesystem callback.
   // Try-lock/refuse foreground or deferred publication before backing access.
-  // Caller supplies fresh observations and owns serialization with stop.
+  // The owner may continue only the preparation kind offered by the preceding step.
   WinFspMaintenanceResult advance_background_maintenance(const NativeMaintenanceObservation&,std::uint64_t now_ms,
-      NativeGroupSearchOpportunity={});
+      NativeGroupSearchOpportunity={},WinFspMaintenanceContinuation=WinFspMaintenanceContinuation::none);
   bool background_maintenance_pending() const;
   void cancel_background_maintenance();
   // Before callback binding only. Duplicate a same-process event with signal
