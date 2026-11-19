@@ -181,6 +181,16 @@
     "scope": "One matched final-source Windows SDK callback pair and two preliminary pairs. The preview used real CPU telemetry and settled under its ordinary resource policy.",
     "next": "Measure interference and background completion under larger mixed workloads and live callback demand."
   },
+  "amd_foreground_advice_retention": {
+    "source_base": "2fbb3d71660c8bc5e936c4dbd96dc4e7d5d82708",
+    "evidence": "docs/evidence/amd-verified-foreground-2026-11-19.json",
+    "advised_members_published_after_reads": [1, 10],
+    "files_verified_per_trial": 11,
+    "selected_edit_rebuilt_group_on_cpu": true,
+    "outstanding_exchange_yield_verified": true,
+    "scope": "Physical host AMD execution and direct Windows SDK callbacks with injected lifecycle. One matched related-file cohort, one selected edit, and one foreground-cancellation trial.",
+    "next": "Measure sustained mixed workloads, retention under resource changes, and mounted foreground latency."
+  },
   "native_path_lookup": {
     "source_base": "700cdb31de32b847497b02cc0e113d27482e6c85",
     "evidence": "docs/evidence/native-path-lookup-2026-11-17.json",

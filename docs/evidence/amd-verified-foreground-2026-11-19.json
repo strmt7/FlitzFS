@@ -1,0 +1,567 @@
+{
+  "schema": "flitzfs-amd-verified-foreground-v1",
+  "experimental": true,
+  "recorded_local": "2026-11-19T23:15:59.2865795+01:00",
+  "source_base": "2fbb3d71660c8bc5e936c4dbd96dc4e7d5d82708",
+  "source_binding": [
+    {
+      "path": "src/windows/native_anchor_search.cpp",
+      "blob": "c622d84c0a7ef34b6d3f131b6df4db2a4dee3820",
+      "sha256": "a87a08274207102355b920fb451f00c480810a493c40242a1511706ba73ee946"
+    },
+    {
+      "path": "src/windows/native_anchor_search.hpp",
+      "blob": "2f1beba3a244d15f9f73329717215bf8ce3dda29",
+      "sha256": "eb55298797b199e0a046f6f14d3d4c5bf2a4ec96d6272b596e880c1a0549e41c"
+    },
+    {
+      "path": "src/windows/winfsp_controller.cpp",
+      "blob": "7f3170fccb16bb614cc45cae99bab3bd02fa67e2",
+      "sha256": "a53c4ccf85190634b86526365aec4c03202c5867ede9c7649f2ae36cf8a0b406"
+    },
+    {
+      "path": "tests/test_winfsp_controller.cpp",
+      "blob": "3daf8be38d2bf53237843c818802692baeb1b2f8",
+      "sha256": "e47d377e5549142e43a6084838b43355a9e3e4ce48281b1f16ec6af2fd8da545"
+    }
+  ],
+  "navigation": {
+    "version": "0.2.43",
+    "source_files": 6,
+    "searches": 1,
+    "receipt_sha256": "0547864a2b1e8612d3778608cd4d839701c99f35874b51a6a4736baf45fb831d",
+    "result_sha256": "ffb5eaea479658a552b75ddb247cd98b4f743a58a4a3f10598d423077ba5f038",
+    "provider_response_sha256": "ee2d2fc247d138285a0a1b56e94501d90e333be29eebefeae4a26dfca83572a0",
+    "candidates": [
+      {
+        "file_path": "src/windows/winfsp_native.cpp",
+        "start_line": 807,
+        "end_line": 822
+      },
+      {
+        "file_path": "src/windows/winfsp_controller.cpp",
+        "start_line": 204,
+        "end_line": 222
+      },
+      {
+        "file_path": "src/windows/winfsp_native.cpp",
+        "start_line": 707,
+        "end_line": 718
+      },
+      {
+        "file_path": "src/windows/winfsp_native.cpp",
+        "start_line": 797,
+        "end_line": 806
+      },
+      {
+        "file_path": "tests/test_winfsp_controller.cpp",
+        "start_line": 719,
+        "end_line": 729
+      }
+    ]
+  },
+  "research": {
+    "version": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "699827a930461f130217e4948c50fbc1d41c6aa30d7a1cdd812097e143ba9034",
+    "robots_checked": true,
+    "external_llm": false,
+    "references": [
+      {
+        "url": "https://winfsp.dev/doc/WinFsp-API-winfsp.h/",
+        "final_http_status": 200,
+        "success": true,
+        "native_success": true,
+        "markdown_bytes": 73095,
+        "markdown_sha256": "23f2e7b26b2297a12d6e98acb7b612010c44361803cc72c3563f82571cce5837",
+        "capture_sha256": "0c2442a943a323f3d8ee5e7c11c332e1892bbe22111006284bfe7186928a4b1e",
+        "failure_category": "",
+        "error": ""
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/procthread/priority-inversion",
+        "final_http_status": 200,
+        "success": true,
+        "native_success": true,
+        "markdown_bytes": 19323,
+        "markdown_sha256": "fb496e3e37164daed9af0eb2b9c23243e53f4d0cce9eb5369c465a16146920ee",
+        "capture_sha256": "4b0af985950a105781463a0dd00ded8cb5884ac88339d1e644c738aaca412978",
+        "failure_category": "",
+        "error": ""
+      }
+    ]
+  },
+  "host": {
+    "os": "Microsoft Windows 11 Pro",
+    "version": "10.0.26300",
+    "build": "26300",
+    "adapter": "AMD Radeon RX 9070 XT",
+    "driver_version": "32.0.32015.16001"
+  },
+  "artifacts": {
+    "baseline_sha256": "c559cbc13aa26e91a4f79eb94d35133eb125479fecebb1eeb92dd903321ba1fd",
+    "candidate_sha256": "42f7ceb4926876be996bc20bed0e255d0ba2f9fae700fe6c5e1f8b8a96525e4f",
+    "shared_fixture_source_sha256": "e47d377e5549142e43a6084838b43355a9e3e4ce48281b1f16ec6af2fd8da545",
+    "winfsp_sdk_sha256": "08d7389b8d030770a4de108a60a86047d5cdd00b9ecafc6dd66e957bc51c2437",
+    "worker_sha256": "3bf7a176c9cae60dfc4b3c3bf3cd4f03a525bff5360dd78a18046e4cde57a91f",
+    "kernel_sha256": "ff1b9b8879ffd7fefc50923535882602d0f7b69e36e9e087d081920c90b12f43",
+    "installed_runtime_sha256": "7fc6465b18ff337a80c863b6350d02d7576cfb30528f97b982a6e5723bbb9848",
+    "test_package_manifest_sha256": "d3b2da67b3f670b542e42097cde13cef3e2c735155093328df4d41fbf052b7d7"
+  },
+  "validation": {
+    "tests": [
+      {
+        "run": "local-run-00f0629e09384ecaa89f05064b118708",
+        "passed": [
+          "bounded_native_indexed_group_maintenance",
+          "bounded_native_indexed_group_advice",
+          "bounded_native_indexed_group_batch",
+          "bounded_winfsp_controller",
+          "bounded_winfsp_indexed_memory",
+          "bounded_winfsp_paged_callbacks",
+          "bounded_winfsp_session_test"
+        ]
+      },
+      {
+        "run": "local-run-abc7223374e6430d89072717a803508a",
+        "passed": [
+          "windows_asan_runtime_preflight",
+          "bounded_native_indexed_group_maintenance",
+          "bounded_native_indexed_group_batch",
+          "bounded_winfsp_controller",
+          "bounded_winfsp_indexed_memory"
+        ]
+      }
+    ],
+    "scoped_processes_after_validation": [],
+    "retained_failures": [
+      {
+        "job": "local-run-6d1d003cc15d41b5852ad36a48a386d0",
+        "outcome": "The initial fixture compilation found an out-of-scope open option constant. The fixture now explicitly uses the existing-file disposition, and both builds passed."
+      },
+      {
+        "job": "local-run-4c4ae247aeaf4fe2b784bebdd6b2c9e1",
+        "outcome": "The baseline returned the expected fixture failure after dropping nine members' advice on foreground activity. It still completed one protected group and recovered all 11 source files on CPU."
+      }
+    ]
+  },
+  "scope": {
+    "fixture": "Eleven related synthetic files created through native Windows SDK callbacks in a disposable memory-backed image. WinFsp lifecycle functions are injected. AMD work ran on the physical host with the installed driver and verified private package.",
+    "comparison": "The preceding commit plus the same test-only changes provides the baseline. Baseline and candidate use the same worker, module, runtime, options, callback sequences and initial bytes. The candidate retains a fully verified reply until it loses admission, its group consumes it or the staged work becomes obsolete.",
+    "edit": "The test replaces one selected file after reply verification and before any group publication. The eventual group uses CPU preparation. The edited and unaffected files reopen byte-for-byte with the independent CPU reader.",
+    "timing": "Each labeled phase contains one burst of 101 byte-verified 4 KiB direct Read callbacks. Open and close are outside timing. The outstanding-exchange samples start after submission and trigger cancellation. These small sequential bursts describe observed callback execution on this host. Sustained concurrent or mounted throughput needs separate validation."
+  },
+  "summary": {
+    "verified_read_advised_members": [
+      1,
+      10
+    ],
+    "selected_edit_attempted_groups": 2,
+    "selected_edit_published_advised_members": 0,
+    "foreground_cancelled_outstanding_exchange": true,
+    "files_verified_per_trial": 11
+  },
+  "runs": [
+    {
+      "case": "baseline",
+      "job": "local-run-4c4ae247aeaf4fe2b784bebdd6b2c9e1",
+      "exit": 2,
+      "owner": {
+        "mode": "verified-read",
+        "host": "1",
+        "quanta": "15",
+        "groups": "1",
+        "continued_steps": "31",
+        "settled_ms": "31875",
+        "declined_groups": "0",
+        "phase": "5",
+        "sampled": "11",
+        "attempted": "1",
+        "cpu_limit_ppm": "500000",
+        "submitted": "1",
+        "verified": "1",
+        "submitted_queued_batches": "1",
+        "verified_queued_batches": "1",
+        "dispatches_per_wait": "4",
+        "submitted_groups": "1",
+        "verified_groups": "1",
+        "declined": "0",
+        "yielded": "0",
+        "integrity_failures": "0",
+        "empty_xor_batches": "0",
+        "advised_members": "1",
+        "installed_attempts": "1",
+        "metadata_queries": "1",
+        "installed_status": "0",
+        "handles_before": "136",
+        "handles_after": "329",
+        "retired": "true",
+        "cpu_readback_verified": "true",
+        "deferrals": "4,2,0,0,0,9,0,0,"
+      },
+      "read_samples": [
+        {
+          "phase": "before_launch",
+          "count": 101,
+          "bytes_per_read": 4096,
+          "p50_ns": 22800,
+          "p95_ns": 26000,
+          "p99_ns": 32700,
+          "max_ns": 37200
+        },
+        {
+          "phase": "verified_reply",
+          "count": 101,
+          "bytes_per_read": 4096,
+          "p50_ns": 23300,
+          "p95_ns": 25300,
+          "p99_ns": 38700,
+          "max_ns": 133200
+        }
+      ]
+    },
+    {
+      "case": "verified_read",
+      "job": "local-run-46043f7f5dc24682ab34dec21e589922",
+      "exit": 0,
+      "owner": {
+        "mode": "verified-read",
+        "host": "1",
+        "quanta": "14",
+        "groups": "1",
+        "continued_steps": "34",
+        "settled_ms": "30469",
+        "declined_groups": "0",
+        "phase": "0",
+        "sampled": "12",
+        "attempted": "1",
+        "cpu_limit_ppm": "500000",
+        "submitted": "1",
+        "verified": "1",
+        "submitted_queued_batches": "1",
+        "verified_queued_batches": "1",
+        "dispatches_per_wait": "4",
+        "submitted_groups": "1",
+        "verified_groups": "1",
+        "declined": "0",
+        "yielded": "0",
+        "integrity_failures": "0",
+        "empty_xor_batches": "0",
+        "advised_members": "10",
+        "installed_attempts": "1",
+        "metadata_queries": "1",
+        "installed_status": "0",
+        "handles_before": "136",
+        "handles_after": "329",
+        "retired": "true",
+        "cpu_readback_verified": "true",
+        "deferrals": "6,2,0,0,0,6,0,0,"
+      },
+      "read_samples": [
+        {
+          "phase": "before_launch",
+          "count": 101,
+          "bytes_per_read": 4096,
+          "p50_ns": 22900,
+          "p95_ns": 28700,
+          "p99_ns": 32200,
+          "max_ns": 55400
+        },
+        {
+          "phase": "verified_reply",
+          "count": 101,
+          "bytes_per_read": 4096,
+          "p50_ns": 23500,
+          "p95_ns": 46300,
+          "p99_ns": 48800,
+          "max_ns": 91900
+        }
+      ]
+    },
+    {
+      "case": "selected_edit",
+      "job": "local-run-d6a6ee26836147edbe8960652bdcbc16",
+      "exit": 0,
+      "owner": {
+        "mode": "verified-edit",
+        "host": "1",
+        "quanta": "16",
+        "groups": "1",
+        "continued_steps": "50",
+        "settled_ms": "33594",
+        "declined_groups": "0",
+        "phase": "0",
+        "sampled": "13",
+        "attempted": "2",
+        "cpu_limit_ppm": "500000",
+        "submitted": "1",
+        "verified": "1",
+        "submitted_queued_batches": "1",
+        "verified_queued_batches": "1",
+        "dispatches_per_wait": "4",
+        "submitted_groups": "1",
+        "verified_groups": "1",
+        "declined": "0",
+        "yielded": "0",
+        "integrity_failures": "0",
+        "empty_xor_batches": "0",
+        "advised_members": "0",
+        "installed_attempts": "1",
+        "metadata_queries": "1",
+        "installed_status": "0",
+        "handles_before": "136",
+        "handles_after": "329",
+        "retired": "true",
+        "cpu_readback_verified": "true",
+        "deferrals": "7,2,0,0,0,7,0,0,"
+      },
+      "read_samples": []
+    },
+    {
+      "case": "active_exchange_yield",
+      "job": "local-run-6ad108a84c38441b982a5aa51ecfa79c",
+      "exit": 0,
+      "owner": {
+        "mode": "queued-yield",
+        "host": "1",
+        "quanta": "12",
+        "groups": "1",
+        "continued_steps": "27",
+        "settled_ms": "27312",
+        "declined_groups": "0",
+        "phase": "5",
+        "sampled": "11",
+        "attempted": "1",
+        "cpu_limit_ppm": "500000",
+        "submitted": "1",
+        "verified": "0",
+        "submitted_queued_batches": "1",
+        "verified_queued_batches": "0",
+        "dispatches_per_wait": "0",
+        "submitted_groups": "1",
+        "verified_groups": "0",
+        "declined": "0",
+        "yielded": "1",
+        "integrity_failures": "0",
+        "empty_xor_batches": "0",
+        "advised_members": "0",
+        "installed_attempts": "0",
+        "metadata_queries": "0",
+        "installed_status": "-1",
+        "handles_before": "331",
+        "handles_after": "340",
+        "retired": "true",
+        "cpu_readback_verified": "true",
+        "deferrals": "2,2,0,0,0,8,0,0,"
+      },
+      "read_samples": [
+        {
+          "phase": "outstanding_exchange",
+          "count": 101,
+          "bytes_per_read": 4096,
+          "p50_ns": 24000,
+          "p95_ns": 25900,
+          "p99_ns": 49100,
+          "max_ns": 133400
+        }
+      ]
+    }
+  ],
+  "jobs": [
+    {
+      "run": "local-run-e6c0339a9f0b492ba4b337bb718d91d6",
+      "exit": 0,
+      "retired": true,
+      "elapsed_seconds": 29.673807,
+      "physical_available_bytes": 29065388032,
+      "commit_available_bytes": 75334676480,
+      "maximum_commit_bytes": 2253389824,
+      "peak_commit_bytes": 1209151488,
+      "cpu_percent": 12,
+      "deadline_seconds": 93,
+      "result_sha256": "1fafe5f65bec2c3a414e51e188fc6b61a1f47780e8ad4a62c542cbcfd6ee7e9a",
+      "log_sha256": "e666f678c3eec0a79fa4220d068c0fabdf82e3567af10e90bfa615a0a09440a4"
+    },
+    {
+      "run": "local-run-70e8642127d843b1acc0f0f051786120",
+      "exit": 0,
+      "retired": true,
+      "elapsed_seconds": 7.20254,
+      "physical_available_bytes": 29062123520,
+      "commit_available_bytes": 75332972544,
+      "maximum_commit_bytes": 1906311168,
+      "peak_commit_bytes": 1162608640,
+      "cpu_percent": 11,
+      "deadline_seconds": 100,
+      "result_sha256": "c0aa34864889aa7b4035f837f7520f78af0fc0396a365a37cb18d7ec3b4a1e14",
+      "log_sha256": "70c59ba7cd35eedaf61639436342f39b64d7d7066cf06f5453f20bc6c7fb1151"
+    },
+    {
+      "run": "local-run-6d1d003cc15d41b5852ad36a48a386d0",
+      "exit": 1,
+      "retired": true,
+      "elapsed_seconds": 4.480904,
+      "physical_available_bytes": 29560115200,
+      "commit_available_bytes": 75416367104,
+      "maximum_commit_bytes": 1805647872,
+      "peak_commit_bytes": 388354048,
+      "cpu_percent": 15,
+      "deadline_seconds": 140,
+      "result_sha256": "4440322cfefe914c8a49333022212474dd26c540d1b6cb14a7b0fecb6093e90d",
+      "log_sha256": "0795f4715dc57b048d0ce5bb78de09ef15d94c86f970493b83b04c7afaa812ca"
+    },
+    {
+      "run": "local-run-d5657069c511494091f02f73efe16a29",
+      "exit": 0,
+      "retired": true,
+      "elapsed_seconds": 6.218797,
+      "physical_available_bytes": 29450260480,
+      "commit_available_bytes": 75282841600,
+      "maximum_commit_bytes": 1798307840,
+      "peak_commit_bytes": 417935360,
+      "cpu_percent": 15,
+      "deadline_seconds": 110,
+      "result_sha256": "164a458257a307588b8da8d188fe955894c8556e69689573e4e2406c2df30fa9",
+      "log_sha256": "5da08a775fd1dfc3786d84abcc8888b753d23a736e342790604fd8067236adf6"
+    },
+    {
+      "run": "local-run-586c3563b1df48608b2d76628df3f928",
+      "exit": 0,
+      "retired": true,
+      "elapsed_seconds": 0.072934,
+      "physical_available_bytes": 29465513984,
+      "commit_available_bytes": 75300122624,
+      "maximum_commit_bytes": 1398800384,
+      "peak_commit_bytes": 5746688,
+      "cpu_percent": 10,
+      "deadline_seconds": 28,
+      "result_sha256": "e2039bf4658368642fb6c4ae2130d72c74897f28cf132732eea7cc489d51dbc2",
+      "log_sha256": "204f7117ae5d5952bf8a5c1d9ded08edfd8081a81d7978291432a52a64276f55"
+    },
+    {
+      "run": "local-run-4c4ae247aeaf4fe2b784bebdd6b2c9e1",
+      "exit": 2,
+      "retired": true,
+      "elapsed_seconds": 32.011785,
+      "physical_available_bytes": 29454852096,
+      "commit_available_bytes": 75291176960,
+      "maximum_commit_bytes": 1398800384,
+      "peak_commit_bytes": 126812160,
+      "cpu_percent": 16,
+      "deadline_seconds": 97,
+      "result_sha256": "2b99f00fdd983198ebf158b986bf9a97f1ba6986aa8e13fd3d7eccbdedd9c82d",
+      "log_sha256": "cfe711ed4e063e9aa55adf4f7210fd09b143f98dbcd6271f9be044f9468b5256"
+    },
+    {
+      "run": "local-run-97865eee423248df9f9b358d8ebe30d6",
+      "exit": 0,
+      "retired": true,
+      "elapsed_seconds": 17.024002,
+      "physical_available_bytes": 29343137792,
+      "commit_available_bytes": 75152351232,
+      "maximum_commit_bytes": 1790967808,
+      "peak_commit_bytes": 427851776,
+      "cpu_percent": 15,
+      "deadline_seconds": 145,
+      "result_sha256": "909238a13e1cf55acb987600e39c53fa329ebb217a5cad714660532fd54ac86a",
+      "log_sha256": "7a50f903d08df2384bf3322e7d4214776789c3b10f2f1f0174f09972792a8670"
+    },
+    {
+      "run": "local-run-00f0629e09384ecaa89f05064b118708",
+      "exit": 0,
+      "retired": true,
+      "elapsed_seconds": 9.462347,
+      "physical_available_bytes": 28994523136,
+      "commit_available_bytes": 74803130368,
+      "maximum_commit_bytes": 1648361472,
+      "peak_commit_bytes": 106647552,
+      "cpu_percent": 13,
+      "deadline_seconds": 170,
+      "result_sha256": "25bdf4c0dcdd3e5de3310bd783042a704de2a010fdb655aca3881d3574eb2e58",
+      "log_sha256": "b2359dfd47663c4a6a9aa0428ffaafad59037e67f772a5fab4a0f24102e872a9"
+    },
+    {
+      "run": "local-run-3dfdbea7ec7b49c389e0b9d3f2831de6",
+      "exit": 0,
+      "retired": true,
+      "elapsed_seconds": 0.052942,
+      "physical_available_bytes": 29387374592,
+      "commit_available_bytes": 75269341184,
+      "maximum_commit_bytes": 1394606080,
+      "peak_commit_bytes": 5705728,
+      "cpu_percent": 10,
+      "deadline_seconds": 28,
+      "result_sha256": "7184d4d29231874fb99cb289a1bcc81ca77c89e2d15a684f1d41a5d7e97766c1",
+      "log_sha256": "3b1e1e5b3868bc7e613d1f4a3c7fa299ab4c1505f89a211a5d2108e2d2cf0af8"
+    },
+    {
+      "run": "local-run-4d0894eae6164da1b9da1511e023b1ba",
+      "exit": 0,
+      "retired": true,
+      "elapsed_seconds": 9.8537,
+      "physical_available_bytes": 29342986240,
+      "commit_available_bytes": 75152351232,
+      "maximum_commit_bytes": 1671430144,
+      "peak_commit_bytes": 660709376,
+      "cpu_percent": 12,
+      "deadline_seconds": 140,
+      "result_sha256": "9af6f7a46a81426ddf5e763d4fd976ebb2acea5519b10a697e9c013949c8f523",
+      "log_sha256": "74f1e66a67ed031674cf57b41ada1a9237a206b19e9f74a39c84e76c34dbde4a"
+    },
+    {
+      "run": "local-run-abc7223374e6430d89072717a803508a",
+      "exit": 0,
+      "retired": true,
+      "elapsed_seconds": 13.391191,
+      "physical_available_bytes": 29304188928,
+      "commit_available_bytes": 75114254336,
+      "maximum_commit_bytes": 1668284416,
+      "peak_commit_bytes": 513720320,
+      "cpu_percent": 12,
+      "deadline_seconds": 165,
+      "result_sha256": "d66540886da467c0b78972b36def7448cd0f962ad4ffa4cbf88c418a2a16cdb5",
+      "log_sha256": "2b78cfe1117c139cfe0605d445f90937a39157d24aa22a8a231bb95181b2491d"
+    },
+    {
+      "run": "local-run-46043f7f5dc24682ab34dec21e589922",
+      "exit": 0,
+      "retired": true,
+      "elapsed_seconds": 30.586733,
+      "physical_available_bytes": 29414051840,
+      "commit_available_bytes": 75304382464,
+      "maximum_commit_bytes": 1396703232,
+      "peak_commit_bytes": 126648320,
+      "cpu_percent": 16,
+      "deadline_seconds": 97,
+      "result_sha256": "87dca2e996c09b2be87d1fe8cc06bfac75e02fff809d9f5ffdbb10dbc829d57b",
+      "log_sha256": "cd20ab8237516c7c2ad46a92bb668c4d96904dcd21f6303e639d5b060b8fc3d4"
+    },
+    {
+      "run": "local-run-d6a6ee26836147edbe8960652bdcbc16",
+      "exit": 0,
+      "retired": true,
+      "elapsed_seconds": 33.687673,
+      "physical_available_bytes": 29451182080,
+      "commit_available_bytes": 75345113088,
+      "maximum_commit_bytes": 1398800384,
+      "peak_commit_bytes": 126754816,
+      "cpu_percent": 16,
+      "deadline_seconds": 97,
+      "result_sha256": "535f6ca4ae8891cbb8b50d3c631af49d2466e17c03c98df7a0867428ee5209bf",
+      "log_sha256": "cd0d3445f5c3a7e4ef289fa3b842b7c8850127d877ef902fd4f5560d415798de"
+    },
+    {
+      "run": "local-run-6ad108a84c38441b982a5aa51ecfa79c",
+      "exit": 0,
+      "retired": true,
+      "elapsed_seconds": 27.646299,
+      "physical_available_bytes": 29461684224,
+      "commit_available_bytes": 75378774016,
+      "maximum_commit_bytes": 1398800384,
+      "peak_commit_bytes": 50319360,
+      "cpu_percent": 16,
+      "deadline_seconds": 97,
+      "result_sha256": "dcb3c768d5b76696dc7ca1f3648fd9e113f35ee74036542fd96ad7e7b983f77b",
+      "log_sha256": "1109288e8f5ed7e0bcad9ef23588845d6f69486f7d5cbae84605dd83f86d3d58"
+    }
+  ]
+}

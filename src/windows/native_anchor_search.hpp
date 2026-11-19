@@ -51,6 +51,8 @@ class NativeAnchorSearchController final {
   bool can_reacquire() const noexcept;
   bool rebind(HipDiscoveredRoute) noexcept;
   void discard_reply() noexcept;
+  // Cancel unresolved work and keep fully verified, detached advice.
+  void yield_to_foreground() noexcept;
   void cancel() noexcept;
   bool stop() noexcept;
   NativeAnchorSearchStats stats() const noexcept;

@@ -86,7 +86,8 @@ struct WinFspVolumeController::Impl {
           settle_acquisition(true);
 #endif
           if(anchor) {
-            if(disabled || adapter->foreground_pending())anchor->cancel();
+            if(disabled)anchor->cancel();
+            else if(adapter->foreground_pending())anchor->yield_to_foreground();
             anchor->observe(adapter->foreground_activity(),now);
             adapter->signal_foreground_for_anchor(anchor->waiting());
           }
@@ -216,9 +217,11 @@ struct WinFspVolumeController::Impl {
     const auto epoch=adapter->foreground_activity();
     const auto resources=detail::maintenance_resources(observed,now,adapter->group_maintenance_policy());
     const auto funded_extents=resources?detail::maintenance_group_member_limit(*resources,true):0;
-    const bool idle=resources && !resources->cpu_busy && !adapter->foreground_pending() &&
-        anchor->fits_group_budget(funded_extents);
-    if(!idle)anchor->cancel();
+    const bool admitted=resources && !resources->cpu_busy && anchor->fits_group_budget(funded_extents);
+    const bool foreground=adapter->foreground_pending();
+    if(!admitted)anchor->cancel();
+    else if(foreground)anchor->yield_to_foreground();
+    const bool idle=admitted && !foreground;
     anchor->observe(epoch,now,idle);
     // Preserve PDH sampling while the worker runs. The storage step can wait
     // for advice without allowing the host observation window to expire.

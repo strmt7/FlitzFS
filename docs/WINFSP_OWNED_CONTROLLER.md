@@ -121,16 +121,21 @@ bounded by the resident discovery window and retained representatives, and
 release with the staged batch.
 
 A foreground callback can wake the owner at entry while a GPU request is
-outstanding. Activity or lost group headroom discards the optional result and
-signals cancellation. CPU work resumes on admitted opportunities while the
-supervisor retains the worker and its resources until retirement. A foreground
-yield carries no device-fault conclusion. Late results cannot reenter group
-preparation. Runtime and integrity failures retain their recovery
-classification, and transient pressure retries require fresh qualified
+outstanding. Foreground activity cancels unresolved exchanges and releases
+packed replies with pending CPU checks. CPU work resumes on admitted
+opportunities while the supervisor retains the cancelled worker and its
+resources until retirement. A foreground yield carries no device-fault
+conclusion. Late results cannot reenter group preparation.
+
+A reply that has fully verified and detached from its worker stays available
+across foreground operations. It remains bound to the original immutable
+window, and a selected-content edit invalidates the prepared group before
+publication. Resource refusal, cancelled maintenance and exhausted work still
+release the reply. Runtime and integrity failures retain their recovery
+classification. Transient pressure retries require fresh qualified
 observations and exact retirement. Elapsed worker time separately paces later
-GPU launches. Reply verification runs during a fresh idle opportunity. Every
-group consumes its own verified reply and publishes through the same revision,
-CPU byte comparison and packed-size checks.
+GPU launches. Reply verification runs during idle opportunities. Every group
+publishes through the same revision, CPU byte comparison and packed-size checks.
 [Windows thread priorities](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadpriority) ·
 [Worker ownership](WORKER_CHANNEL.md#asynchronous-sessions-and-independent-cpu-completion)
 

@@ -251,9 +251,52 @@ void restore_private_anchor_package() {
   }
 }
 
+constexpr auto open_existing_file=FILE_NON_DIRECTORY_FILE|(1U<<24);
+
+void foreground_read_samples(Provider& provider,unsigned file,const Bytes& original,std::string_view phase) {
+  auto name=L"\\f"+std::to_wstring(file);
+  auto* fs=&provider.fs;
+  PVOID context=nullptr;FSP_FSCTL_FILE_INFO info{};
+  require(fs->Interface->Open(fs,name.data(),open_existing_file,FILE_READ_DATA,&context,&info)==STATUS_SUCCESS && context,
+      "Foreground sample Open");
+  std::array<std::uint64_t,101> elapsed{};
+  std::array<std::byte,4096> output{};
+  require(original.size()>=output.size(),"Foreground sample input size");
+  for(std::size_t i=0;i<elapsed.size();++i) {
+    const auto offset=(i*997)%(original.size()-output.size()+1);
+    ULONG transferred=0;
+    const auto start=std::chrono::steady_clock::now();
+    const auto status=fs->Interface->Read(fs,context,output.data(),offset,
+        static_cast<ULONG>(output.size()),&transferred);
+    elapsed[i]=static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
+        std::chrono::steady_clock::now()-start).count());
+    require(status==STATUS_SUCCESS && transferred==output.size() &&
+        std::ranges::equal(output,std::span(original).subspan(offset,output.size())),"Foreground sample Read changed bytes");
+  }
+  callback_cleanup_close(provider,context);
+  std::ranges::sort(elapsed);
+  std::cout<<"foreground_read phase="<<phase<<" count="<<elapsed.size()<<" bytes_per_read="<<output.size()
+      <<" p50_ns="<<elapsed[50]<<" p95_ns="<<elapsed[95]<<" p99_ns="<<elapsed[99]<<" max_ns="<<elapsed.back()<<'\n';
+}
+
+void replace_callback_file(Provider& provider,unsigned file,const Bytes& replacement) {
+  auto name=L"\\f"+std::to_wstring(file);
+  auto* fs=&provider.fs;
+  PVOID context=nullptr;FSP_FSCTL_FILE_INFO info{};
+  require(fs->Interface->Open(fs,name.data(),open_existing_file,FILE_WRITE_DATA,&context,&info)==STATUS_SUCCESS && context,
+      "Selected extent edit Open");
+  ULONG transferred=0;
+  require(fs->Interface->Write(fs,context,const_cast<std::byte*>(replacement.data()),0,
+      static_cast<ULONG>(replacement.size()),FALSE,FALSE,&transferred,&info)==STATUS_SUCCESS &&
+      transferred==replacement.size(),"Selected extent edit Write");
+  callback_cleanup_close(provider,context);
+}
+
 int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearchOptions> options) {
   const bool installed=!options;
-  const bool queued=mode=="queued" || mode=="queued-yield";
+  const bool read_after_verification=mode=="verified-read";
+  const bool edit_after_verification=mode=="verified-edit";
+  const bool queued=mode=="queued" || mode=="queued-yield" || read_after_verification || edit_after_verification;
   const bool restoring=mode=="restored";
   const bool two_planes=mode=="xor-wide" || mode=="xor-narrow";
   const bool xor_encoding=two_planes || mode=="xor" || mode=="xor-cpu";
@@ -296,6 +339,10 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
     WinFspVolumeController controller(std::move(adapter),provider.api(),plan(),std::move(options));
     await([&]{return controller.view().state==SessionState::running;},5000,"AMD controller startup deadline");
     for(unsigned i=0;i<initial_files;++i)callback_file(provider,i,originals[i]);
+    if(read_after_verification) {
+      require(!controller.view().anchor_search.submitted,"GPU launched before baseline reads");
+      foreground_read_samples(provider,1,originals[1],"before_launch");
+    }
     // Each group is staged and published across admitted idle observations.
     const auto started=GetTickCount64();
     const auto deadline=started+(queued?85000ULL:57000ULL)*groups;
@@ -321,9 +368,21 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
         for(unsigned i=initial_files;i<count;++i)callback_file(provider,i,originals[i]);
       }
       if(yield && result.anchor_search.submitted && !signalled) {
-        FSP_FSCTL_VOLUME_INFO info{};
-        require(provider.fs.Interface->GetVolumeInfo(&provider.fs,&info)==STATUS_SUCCESS,
-            "foreground callback could not run while AMD work was outstanding");
+        if(queued)foreground_read_samples(provider,1,originals[1],"outstanding_exchange");
+        else {
+          FSP_FSCTL_VOLUME_INFO info{};
+          require(provider.fs.Interface->GetVolumeInfo(&provider.fs,&info)==STATUS_SUCCESS,
+              "foreground callback could not run while AMD work was outstanding");
+        }
+        signalled=true;
+      }
+      if(!signalled && result.anchor_search.verified && (read_after_verification || edit_after_verification)) {
+        if(read_after_verification)foreground_read_samples(provider,1,originals[1],"verified_reply");
+        else {
+          auto& changed=originals[initial_files-1];
+          changed=data(changed.size(),970131);
+          replace_callback_file(provider,initial_files-1,changed);
+        }
         signalled=true;
       }
       Sleep(10);
@@ -406,8 +465,13 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
       (yield?result.anchor_search.verified_queued_batches==0:result.anchor_search.verified_queued_batches==1 &&
           result.anchor_search.queued_dispatches_per_wait==kAnchorProfileMaxQueuedDispatches),
       "Queued dispatch did not match the controller retirement and acceptance outcome");
+  if(read_after_verification || edit_after_verification)
+    require(signalled,"Foreground activity missed the verified reply before publication");
   if(yield)return signalled && result.anchor_search.yielded==1 && result.anchor_search.submitted_groups==groups &&
       result.maintenance.published_groups==groups && result.maintenance.advised_members_published==0?0:2;
+  if(edit_after_verification)
+    return result.maintenance.published_groups==groups && result.maintenance.attempted_groups>=2 &&
+        result.maintenance.advised_members_published==0 && !result.anchor_search.integrity_failures?0:2;
   return result.anchor_search.submitted==1 && result.anchor_search.verified==1 && result.anchor_search.verified_groups==groups &&
       result.maintenance.published_groups==groups && result.maintenance.advised_members_published==count-groups?0:2;
 }
@@ -745,7 +809,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
 int live_anchor_owner(int argc,char** argv) {
   const std::string_view mode(argv[6]);
   const auto multiwindow=multiwindow_pattern(mode);
-  const bool queued=mode=="queued" || mode=="queued-yield" || argc==9;
+  const bool queued=mode=="queued" || mode=="queued-yield" || mode=="verified-read" || mode=="verified-edit" || argc==9;
   const bool xor_mode=mode=="xor" || mode=="xor-wide" || mode=="xor-narrow";
   require(mode=="accept" || mode=="yield" || mode=="both" || mode=="batch" || mode=="batch-yield" || queued ||
       xor_mode || multiwindow,
@@ -1687,7 +1751,7 @@ int main(int argc,char** argv){try {
   if(argc==3 && std::string_view(argv[1])=="--live-installed-anchor-owner") {
     const std::string_view mode(argv[2]);
     require(mode=="accept" || mode=="missing" || mode=="changed" || mode=="stop" || mode=="repeat" || mode=="batch" ||
-        mode=="restored" || mode=="queued",
+        mode=="restored" || mode=="queued" || mode=="verified-read" || mode=="verified-edit",
         "Unknown installed route trial");
     if(mode=="repeat") {
       const auto accepted=run_live_anchor_owner("accept",std::nullopt);

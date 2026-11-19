@@ -436,6 +436,13 @@ installed AMD callback fixture completed in 30.2 seconds compared with
 publication, and an independent CPU reader verified every file.
 [Windows preparation evidence](evidence/windows-maintenance-opportunities-2026-11-19.json)
 
+Verified AMD copy advice now survives foreground reads while its staged
+source remains eligible. On the Windows callback fixture, the same read
+burst left one advised member on the previous controller and ten on the
+updated controller. A selected edit invalidated the prepared group and
+CPU rebuilt it with exact readback of the edited file.
+[Foreground advice evidence](evidence/amd-verified-foreground-2026-11-19.json)
+
 The evidence covers specific CPU paths, modeled failures, SDK callbacks and
 helper behavior. Full current-source CTest, an actual mounted product, useful
 ordinary GPU operation and physical power-loss qualification remain open.

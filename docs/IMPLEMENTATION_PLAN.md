@@ -949,6 +949,17 @@ CPU completion when a foreground callback cancelled the AMD exchange.
 The desktop helper used the same scheduling mechanism in its live test.
 [Windows maintenance timing and validation](evidence/windows-maintenance-opportunities-2026-11-19.json)
 
+A foreground callback now releases unresolved AMD work and preserves a
+settled verified reply. In the installed-package fixture, the previous
+controller published one advised member after a foreground read burst.
+The updated controller published all ten from its verified batch. Another
+trial edited a selected extent after verification. CPU preparation rebuilt
+the group and independent readback matched the new bytes. Reads after
+submission also cancelled an outstanding worker and CPU finished the group.
+The recorded 4 KiB timings cover the direct callbacks in those short bursts.
+Measure sustained mixed access and mounted latency separately.
+[Foreground advice and callback evidence](evidence/amd-verified-foreground-2026-11-19.json)
+
 The indexed owner now fills a finite worker exchange across several scan
 windows under live host and exact channel admission. In the related-data
 fixture, one real AMD exchange supplied 310 verified candidates for five

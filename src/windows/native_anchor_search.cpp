@@ -254,7 +254,10 @@ void NativeAnchorSearchController::observe(std::uint64_t activity,std::uint64_t 
     (void)self.recovery.confirm_quiescent(self.unobserved_ticket);
     self.unobserved_ticket=0;
   }
-  if(activity!=self.activity)self.yield(Impl::Disposition::yielded);
+  if(activity!=self.activity) {
+    self.activity=activity;
+    yield_to_foreground();
+  }
   if(!self.flight)return;
   auto& flight=*self.flight;
   if(!flight.supervisor_exited) {
@@ -393,6 +396,10 @@ bool NativeAnchorSearchController::rebind(HipDiscoveredRoute route) noexcept {
   return true;
 }
 void NativeAnchorSearchController::discard_reply() noexcept {impl_->discard();}
+void NativeAnchorSearchController::yield_to_foreground() noexcept {
+  auto& self=*impl_;
+  if(self.flight || self.packed_ticket)self.yield(Impl::Disposition::yielded);
+}
 void NativeAnchorSearchController::cancel() noexcept {impl_->yield(Impl::Disposition::yielded);}
 bool NativeAnchorSearchController::stop() noexcept {
   auto& self=*impl_;
