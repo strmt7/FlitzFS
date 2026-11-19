@@ -86,13 +86,14 @@ class IndexedSharedBasePreparation final {
   IndexedVolumeRoot original_;
   std::optional<NativeNameIndex> index_;
   std::vector<Member> members_;
-  std::vector<std::byte> base_;
+  std::vector<std::byte> base_,nominated_base_;
   std::optional<NativeGroupAnchorIndex> anchor_index_;
   std::optional<SearchWindow> search_;
   std::size_t base_index_=0;
   std::uint64_t reusable_anchor_=0,reusable_generation_=0;
   NativeSharedBaseProgress progress_{NativeSharedBasePhase::reading_base};
   std::uint32_t group_capability_=3;
+  std::uint32_t reference_member_=0;
   bool invalidated_=false,search_storage_unavailable_=false;
 };
 struct IndexedPreparationWatch {

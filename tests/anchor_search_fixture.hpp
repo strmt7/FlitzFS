@@ -36,13 +36,14 @@ inline constexpr auto indexed_batch_members=indexed_batch_families*(kNativeMaxDi
 inline constexpr auto indexed_sample_bank_bytes=(indexed_batch_families+1)*kNativeExtentBytes;
 static_assert(kNativeMaxDirtyExtents%indexed_batch_extents_per_file==0 && indexed_batch_members>kNativeMaxExtents);
 enum class IndexedBatchPattern {
-  packed_xor,modular_delta,shifted_bias,xor_reference,xor_tile_reference,xor_sparse_reference,
+  packed_xor,modular_delta,shifted_bias,xor_reference,xor_tile_reference,xor_sparse_reference,xor_full_reference,
   sparse_xor,sparse_xor_all_planes,collective
 };
 
 inline bool small_indexed_batch(IndexedBatchPattern pattern) noexcept {
   return pattern==IndexedBatchPattern::shifted_bias || pattern==IndexedBatchPattern::xor_reference ||
       pattern==IndexedBatchPattern::xor_tile_reference || pattern==IndexedBatchPattern::xor_sparse_reference ||
+      pattern==IndexedBatchPattern::xor_full_reference ||
       pattern==IndexedBatchPattern::sparse_xor ||
       pattern==IndexedBatchPattern::sparse_xor_all_planes || pattern==IndexedBatchPattern::collective;
 }
@@ -160,8 +161,15 @@ inline std::vector<Bytes> indexed_batch_files(std::span<const std::byte> bank={}
           apply_tile_reference_variation(extent,static_cast<unsigned>(member),static_cast<unsigned>(extent_count));
           continue;
         }
-        if(pattern==IndexedBatchPattern::xor_sparse_reference) {
+        if(pattern==IndexedBatchPattern::xor_sparse_reference || pattern==IndexedBatchPattern::xor_full_reference) {
           apply_sparse_reference_variation(extent,static_cast<unsigned>(member),static_cast<unsigned>(extent_count));
+          if(pattern==IndexedBatchPattern::xor_full_reference) {
+            constexpr std::size_t samples=8,tile=anchor_match::xor_tile_bytes,spacing=kNativeExtentBytes/(samples*tile);
+            for(std::size_t site=0;site<samples;++site) {
+              const auto at=(site*spacing+2*((site*7)%(spacing/2))+1)*tile;
+              std::ranges::copy(base.subspan(at,tile),extent.begin()+at);
+            }
+          }
           continue;
         }
         if(pattern==IndexedBatchPattern::sparse_xor) {

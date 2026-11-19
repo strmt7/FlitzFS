@@ -335,6 +335,13 @@ use the same nominated base. The writer independently reconstructs each
 member and compares complete compacted size before publication.
 [Reference selection](AUTOMATIC_GROUP_MAINTENANCE.md#discovery-and-reuse)
 
+An admitted AMD batch can compare several staged references across every
+tile in a complete new group. The chosen reference is an existing decoded
+member of that group. The writer treats the original base as ordinary file
+content during preparation and keeps the previously recorded source
+identities for validation. The stored group uses the existing protected
+base and sparse XOR formats. [Reference pricing protocol](WORKER_CHANNEL.md#full-tile-reference-pricing)
+
 A candidate carries the sampled object identity and generation into group
 preparation. An intervening selected change invalidates the candidate before
 its payload is decoded. Unrelated edits preserve the cursor and the prepared

@@ -38,6 +38,7 @@ struct AnchorMatchBatchPlan {
   std::vector<AnchorMatchSweepPlan> groups;
   std::uint32_t request_bytes,reply_bytes,quantum_members,device_bytes,launches;
   anchor_match::BatchOutput output=anchor_match::BatchOutput::anchors;
+  std::uint32_t reference_candidates=0;
   bool operator==(const AnchorMatchBatchPlan&) const = default;
 };
 
@@ -96,6 +97,7 @@ AnchorMatchAdvice accept_anchor_match_reply(std::span<const std::byte> frame,con
 AnchorMatchBatchPlan plan_anchor_match_batch(std::span<const std::uint32_t> members,
     std::uint32_t maximum_quantum,std::uint64_t maximum_device_bytes,std::uint32_t maximum_launches,
     anchor_match::BatchOutput=anchor_match::BatchOutput::anchors);
+std::uint32_t anchor_reference_pricing_launches(const AnchorMatchBatchPlan&) noexcept;
 // Upper bound from the request representation. The exact planner also
 // charges each group's header and base and the selected reply layout.
 std::uint32_t anchor_match_batch_member_limit() noexcept;
@@ -136,13 +138,14 @@ std::vector<AnchorArenaBody> check_anchor_arena_directory(
 void take_anchor_arena_bodies(std::span<const AnchorArenaBody>,
     std::span<const std::byte> arena,std::span<std::vector<std::byte>> members);
 std::vector<std::byte> encode_anchor_arena_batch_reply(const AnchorMatchBatchRequest&,
-    std::span<const AnchorPackedAdvice>,std::size_t reserve_tail_bytes=0);
+    std::span<const AnchorPackedAdvice>,std::size_t reserve_tail_bytes=0,
+    std::span<const std::uint32_t> reference_members={});
 std::vector<AnchorMatchAdvice> accept_anchor_match_batch_reply(
     std::span<const std::byte> frame,const AnchorMatchBatchRequest&);
 // These bodies are owned, bound to the request and structurally checked.
 // The native indexed writer independently proves each candidate's decoded bytes.
 std::vector<AnchorPackedAdvice> decode_anchor_packed_batch_reply(
-    std::span<const std::byte> frame,const AnchorMatchBatchRequest&);
+    std::span<const std::byte> frame,const AnchorMatchBatchRequest&,std::span<std::uint32_t> reference_members={});
 enum class AnchorPackedBatchStatus {pending,verified,empty,invalid};
 struct AnchorPackedBatchCheck {
   AnchorPackedBatchStatus status=AnchorPackedBatchStatus::pending;

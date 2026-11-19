@@ -22,7 +22,7 @@ using KernelApiEntry=const KernelApi* (*)() noexcept;
 inline constexpr u32 window_abi_version=2,packed_xor_window_abi_version=3,wide_xor_window_abi_version=4;
 inline constexpr u32 adaptive_xor_window_abi_version=5,modular_delta_window_abi_version=6;
 inline constexpr u32 sparse_xor_window_abi_version=7;
-inline constexpr u32 sparse_xor_arena_abi_version=8,collective_arena_abi_version=9;
+inline constexpr u32 sparse_xor_arena_abi_version=8,collective_arena_abi_version=9,reference_price_abi_version=10;
 constexpr u32 window_version(BatchOutput output) noexcept {
   switch(output) {
     case BatchOutput::anchors:return window_abi_version;
@@ -31,6 +31,7 @@ constexpr u32 window_version(BatchOutput output) noexcept {
     case BatchOutput::modular_delta:return modular_delta_window_abi_version;
     case BatchOutput::sparse_xor:return sparse_xor_window_abi_version;
     case BatchOutput::collective:return collective_arena_abi_version;
+    case BatchOutput::reference_xor:return reference_price_abi_version;
   }
   return 0;
 }
@@ -58,4 +59,14 @@ inline bool compatible_anchor_arena_api(const AnchorArenaApi& api,BatchOutput ou
   return api.size_bytes==sizeof(AnchorArenaApi) && api.version==version && api.search;
 }
 using AnchorArenaApiEntry=const AnchorArenaApi* (*)() noexcept;
+using AnchorPriceKernel=void (*)(const u8* base,const u8* peers,u32 peer_count,u32* prices,u32 version);
+struct AnchorReferenceApi {
+  u32 size_bytes,version;
+  AnchorPriceKernel price;
+};
+static_assert(std::is_standard_layout_v<AnchorReferenceApi> && std::is_trivially_copyable_v<AnchorReferenceApi>);
+inline bool compatible_anchor_reference_api(const AnchorReferenceApi& api) noexcept {
+  return api.size_bytes==sizeof(AnchorReferenceApi) && api.version==reference_price_abi_version && api.price;
+}
+using AnchorReferenceApiEntry=const AnchorReferenceApi* (*)() noexcept;
 }

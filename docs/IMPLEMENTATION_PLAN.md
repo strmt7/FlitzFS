@@ -858,6 +858,19 @@ inputs. Larger profiles should compare competing references with full-image
 costs and include naturally related data beyond the controlled cohorts.
 [Sparse-aware reference measurements](evidence/sparse-reference-cost-2026-11-19.json)
 
+When a complete new group fits the admitted device allocation and launch
+budget, the AMD worker can compare several references across every tile. It
+encodes the selected reference in the same stream. In 18 matched host trials
+on two controlled 15-file cohorts, the full-tile route changed the reference
+for all five groups and reduced both compacted images from 3,121,152 to
+2,768,896 bytes. All routes reopened every file byte-for-byte on CPU. Median
+complete times were 0.23–0.24 seconds for CPU, 2.11–2.12 seconds for AMD with
+the sampled reference and 2.57–2.58 seconds for AMD with full-tile pricing.
+CPU remains the default. Compare full-tile pricing on both devices and
+measure retained storage, read amplification and foreground interference
+on naturally related files before using the new route automatically.
+[Full-tile reference measurements](evidence/amd-full-reference-pricing-2026-11-19.json)
+
 The indexed owner now fills a finite worker exchange across several scan
 windows under live host and exact channel admission. In the related-data
 fixture, one real AMD exchange supplied 310 verified candidates for five

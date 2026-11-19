@@ -1152,6 +1152,7 @@ std::vector<std::byte> IndexedSharedBasePreparation::read_member(Member& member,
 
 NativeSharedBaseProgress IndexedSharedBasePreparation::progress() const noexcept {
   auto result=progress_;
+  result.owned_payload_bytes+=nominated_base_.size();
   if(search_)result.owned_payload_bytes+=search_->bytes->base.size()+
       search_->bytes->members.size()*std::uint64_t(kNativeExtentBytes);
   return result;
@@ -1172,6 +1173,7 @@ bool IndexedSharedBasePreparation::stage_search(std::size_t maximum_members,std:
       auto bytes=std::make_shared<NativeSharedBaseSearchWindow::Payload>();
       bytes->members.reserve(count);
       bytes->base=base_;
+      bytes->whole_new_group=!first && count==available && !reusable_anchor_;
       owner_window=bytes;
       search_.emplace(SearchWindow{std::move(bytes),first,count});
     }catch(const std::bad_alloc&){
@@ -1217,15 +1219,24 @@ bool IndexedSharedBasePreparation::advance(std::span<const NativeSharedBaseCopyR
   const auto position=progress_.completed_members;
   auto& member=members_[position];
   const auto is_base=position==base_index_;
+  const bool same_window=reply && search_ && reply->window.payload_==search_->bytes;
+  if(!position && same_window && reply->reference_member && search_->bytes->whole_new_group &&
+      search_->bytes->members.size()==search_->member_count && reply->reference_member<=search_->member_count &&
+      reply->body_method==NativePackedGroupMethod::sparse_xor && reply->packed_bodies.size()==search_->member_count) {
+    auto selected=search_->bytes->members[reply->reference_member-1];
+    nominated_base_=std::move(base_);
+    base_=std::move(selected);
+    reference_member_=reply->reference_member;
+  }
   Bytes owned;
-  std::span<const std::byte> bytes=base_,packed_body{};
+  std::span<const std::byte> bytes=reference_member_?nominated_base_:base_,packed_body{};
   auto body_method=NativePackedGroupMethod::xor_planes;
   NativePackedGroupCheck* packed_check=nullptr;
   if(!is_base) {
     const auto slot=search_?search_slot(position):0;
     if(search_ && slot<search_->bytes->members.size()) {
       bytes=search_->bytes->members[slot];
-      if(reply && reply->window.payload_==search_->bytes) {
+      if(same_window && reply->reference_member==reference_member_) {
         if(reply->copies.size()==search_->member_count)advice=reply->copies[slot];
         if(reply->packed_bodies.size()==search_->member_count) {
           packed_body=reply->packed_bodies[slot];
@@ -1233,6 +1244,8 @@ bool IndexedSharedBasePreparation::advance(std::span<const NativeSharedBaseCopyR
           if(reply->packed_checks.size()==search_->member_count)packed_check=&reply->packed_checks[slot];
         }
       }
+      else if(same_window && reply->packed_checks.size()==search_->member_count)
+        reply->packed_checks[slot]=NativePackedGroupCheck::invalid;
     } else {
       owned=read_member(member,false);
       bytes=owned;
@@ -1287,7 +1300,7 @@ bool IndexedSharedBasePreparation::advance(std::span<const NativeSharedBaseCopyR
       capability=xor_method==NativeGroupMethod::sparse_xor?sparse_xor_capability:packed_xor_capability;
       selected_advice=checked_packed;
     }
-    if(!is_base) {
+    if(!is_base || reference_member_) {
       const auto delta_limit=encoded?encoded->size():kNativeExtentBytes;
       const auto delta_body=body_method==NativePackedGroupMethod::modular_delta?packed_body:std::span<const std::byte>{};
       auto checked_delta=check_native_group_delta_body(delta_body,bytes,base_,kNativeGroupBaseBit+1,1,delta_limit);

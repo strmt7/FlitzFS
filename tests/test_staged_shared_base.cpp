@@ -145,6 +145,51 @@ void staged_collective_advice() {
   for(unsigned i=0;i<count;++i)
     require(after.read("f"+std::to_string(i),0,kNativeExtentBytes)==originals[i],"Collective advice changed bytes");
 }
+void staged_reference_advice(bool whole_group) {
+  constexpr unsigned count=6;
+  auto ram=std::make_shared<Ram>();ram->failure_unit=4096;
+  auto writer=fresh(ram,true);
+  const auto base=family(0);
+  std::array<Bytes,count> originals;
+  for(unsigned i=0;i<count;++i) {
+    originals[i]=base;
+    anchor_search_fixture::apply_sparse_reference_variation(originals[i],(i+1)%count,count);
+    const auto path="f"+std::to_string(i);
+    writer.apply(std::array{file_create(path),file_write(path,0,originals[i])});
+  }
+  const auto prior=writer.snapshot();
+  const auto keys=selections(prior,count);
+  auto work=writer.prepare_shared_base(keys.back(),keys);
+  writer.advance_shared_base(work);
+  const auto grant=whole_group?count-1:count-2;
+  for(unsigned i=0;i<grant;++i)require(writer.stage_shared_base_search(work,grant),"Reference advice staging");
+  const auto window=work.search_window();
+  require(window.members().size()==grant && window.permits_reference_change()==whole_group,
+      "Only a complete newly prepared group admits reference selection");
+  std::vector<Bytes> bodies(grant);
+  constexpr auto id=detail::kNativeGroupBaseBit+1;
+  const auto& proposed=window.members().back();
+  for(unsigned i=0;i+1<grant;++i) {
+    const auto frame=detail::encode_native_group_sparse_xor(window.members()[i],proposed,id,1,kNativeExtentBytes);
+    require(frame.has_value(),"Expected candidate for the new reference");
+    bodies[i].assign(frame->begin()+128,frame->end());
+  }
+  std::vector<NativePackedGroupCheck> outcomes(grant);
+  const NativeSharedBaseSearchReply reply{window,{},bodies,outcomes,NativePackedGroupMethod::sparse_xor,grant};
+  while(!writer.advance_shared_base(work,{},&reply)) {}
+  using Check=NativePackedGroupCheck;
+  require(outcomes.front()==(whole_group?Check::verified:Check::invalid) &&
+      work.progress().selected_advice_members==(whole_group?grant-1:0),
+      "A complete proposal must be checked against the selected base, and an incomplete proposal must use CPU");
+  require(writer.finish_shared_base(work).applied,"CPU-verified reference selection failed to publish");
+  const auto after=writer.snapshot();
+  after.verify_all();
+  for(unsigned i=0;i<count;++i) {
+    const auto path="f"+std::to_string(i);
+    require(after.read(path,0,kNativeExtentBytes)==originals[i] && prior.read(path,0,kNativeExtentBytes)==originals[i],
+        "Reference selection changed a file or its prior snapshot");
+  }
+}
 void staged_search_binding() {
   constexpr unsigned count=5,base_index=2;
   auto ram=std::make_shared<Ram>();ram->failure_unit=4096;
@@ -389,6 +434,8 @@ int main(int argc,char** argv){try {
     staged_packed_advice(false);
     staged_packed_advice(true);
     staged_collective_advice();
+    staged_reference_advice(true);
+    staged_reference_advice(false);
     std::cout<<"PASS: "<<checks<<" staged search window checks\n";
     return 0;
   }

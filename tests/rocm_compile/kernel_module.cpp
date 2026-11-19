@@ -44,6 +44,7 @@ void bind_anchor_modular_delta_window(WindowSearchApi&) noexcept;
 void bind_anchor_sparse_xor_window(WindowSearchApi&) noexcept;
 void bind_anchor_sparse_xor_arena(AnchorArenaApi&) noexcept;
 void bind_anchor_collective_arena(AnchorArenaApi&) noexcept;
+void bind_anchor_reference_price(AnchorReferenceApi&) noexcept;
 }
 extern "C" __declspec(dllexport)
 const flitzfs::anchor_match::KernelApi* flitzfs_rocm_anchor_match_api_v1() noexcept {
@@ -139,6 +140,17 @@ const flitzfs::anchor_match::AnchorArenaApi* flitzfs_rocm_anchor_collective_aren
   static const auto api=[]() noexcept {
     AnchorArenaApi value{sizeof(AnchorArenaApi),collective_arena_abi_version,nullptr};
     bind_anchor_collective_arena(value);
+    return value;
+  }();
+  return &api;
+}
+
+extern "C" __declspec(dllexport)
+const flitzfs::anchor_match::AnchorReferenceApi* flitzfs_rocm_anchor_reference_api_v10() noexcept {
+  using namespace flitzfs::anchor_match;
+  static const auto api=[]() noexcept {
+    AnchorReferenceApi value{sizeof(AnchorReferenceApi),reference_price_abi_version,nullptr};
+    bind_anchor_reference_price(value);
     return value;
   }();
   return &api;

@@ -234,18 +234,20 @@ int worker(int argc, wchar_t** argv) {
   const bool sparse_xor_profile=mode==L"--driver-anchor-sparse-xor-setup-profile" || sparse_slot_profile;
   const bool sparse_xor=mode==L"--driver-anchor-sparse-xor-batch" || sparse_xor_profile;
   const bool collective=mode==L"--driver-anchor-collective-batch";
+  const bool reference=mode==L"--driver-anchor-reference-batch";
   const bool wide_xor_setup_profile=mode==L"--driver-anchor-xor-wide-setup-profile";
   const bool wide_xor_profile=mode==L"--driver-anchor-xor-wide-batch-profile" || wide_xor_setup_profile;
   const bool anchor_batch_profile=mode==L"--driver-anchor-transfer-batch-profile" || wide_xor_profile || sparse_xor_profile;
   const bool wide_xor=mode==L"--driver-anchor-xor-wide-batch" || wide_xor_profile;
   const bool packed_xor=wide_xor || mode==L"--driver-anchor-xor-batch";
-  const auto anchor_output=collective?anchor_match::BatchOutput::collective:
+  const auto anchor_output=reference?anchor_match::BatchOutput::reference_xor:
+      collective?anchor_match::BatchOutput::collective:
       sparse_xor?anchor_match::BatchOutput::sparse_xor:
       modular_delta?anchor_match::BatchOutput::modular_delta:
       wide_xor?anchor_match::BatchOutput::wide_packed_xor:
       packed_xor?anchor_match::BatchOutput::packed_xor:anchor_match::BatchOutput::anchors;
   const bool anchor_transfer=mode==L"--driver-anchor-transfer-batch" || anchor_batch_profile ||
-      packed_xor || modular_delta || sparse_xor || collective;
+      packed_xor || modular_delta || sparse_xor || collective || reference;
   const bool anchor_batch=mode==L"--driver-anchor-batch" || anchor_transfer;
   const bool anchor_profile=mode==L"--driver-anchor-sweep-profile";
   const bool anchor_sweep=mode==L"--driver-anchor-sweep" || anchor_profile;
@@ -596,15 +598,23 @@ int worker(int argc, wchar_t** argv) {
         "incompatible HIP anchor match table",HipWorkerStage::kernel_table);
     const anchor_match::WindowSearchApi* window=nullptr;
     const anchor_match::AnchorArenaApi* arena=nullptr;
-    const auto arena_address=(collective || (sparse_xor && !sparse_slot_profile))?
+    const anchor_match::AnchorReferenceApi* pricing=nullptr;
+    const auto arena_address=(collective || reference || (sparse_xor && !sparse_slot_profile))?
         GetProcAddress(kernels.get(),collective?"flitzfs_rocm_anchor_collective_arena_api_v9":
             "flitzfs_rocm_anchor_sparse_xor_arena_api_v8"):nullptr;
-    require(!collective || arena_address,Exit::unsupported_configuration,"HIP collective entry unavailable",
+    require(!(collective || reference) || arena_address,Exit::unsupported_configuration,"HIP anchor arena entry unavailable",
         HipWorkerStage::kernel_entry);
     if(arena_address) {
       arena=std::bit_cast<anchor_match::AnchorArenaApiEntry>(arena_address)();
       require(arena && anchor_match::compatible_anchor_arena_api(*arena,anchor_output),Exit::unsupported_configuration,
           "incompatible HIP anchor arena table",HipWorkerStage::kernel_table);
+      if(reference) {
+        const auto price=GetProcAddress(kernels.get(),"flitzfs_rocm_anchor_reference_api_v10");
+        require(price,Exit::unsupported_configuration,"HIP reference price entry unavailable",HipWorkerStage::kernel_entry);
+        pricing=std::bit_cast<anchor_match::AnchorReferenceApiEntry>(price)();
+        require(pricing && anchor_match::compatible_anchor_reference_api(*pricing),Exit::unsupported_configuration,
+            "incompatible HIP reference price table",HipWorkerStage::kernel_table);
+      }
     } else if(anchor_transfer) {
       const auto window_address=GetProcAddress(kernels.get(),
           sparse_xor?"flitzfs_rocm_anchor_sparse_xor_api_v7":modular_delta?"flitzfs_rocm_anchor_modular_delta_api_v6":
@@ -623,7 +633,7 @@ int worker(int argc, wchar_t** argv) {
       // proves the decoded packed XOR candidate before it can publish.
       if(anchors) {
         frame=run_hip_anchor_batch_in_worker(runtime.get(),*api,static_cast<int>(ordinal),
-            luid,node_mask,*anchors,phase_clock,window,arena,transfer_grant,dispatches_per_wait,setup,profile_bytes);
+            luid,node_mask,*anchors,phase_clock,window,arena,transfer_grant,dispatches_per_wait,setup,profile_bytes,pricing);
       } else {
         const auto records=run_hip_anchor_match_in_worker(runtime.get(),*api,static_cast<int>(ordinal),
             luid,node_mask,*anchor,*anchor_plan,phase_clock,anchor_sweep);

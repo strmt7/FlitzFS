@@ -157,6 +157,7 @@ class NativeSharedBaseSearchWindow final {
   NativeSharedBaseSearchWindow() noexcept=default;
   explicit operator bool() const noexcept{return bool(payload_);}
   bool operator==(const NativeSharedBaseSearchWindow&) const noexcept=default;
+  bool permits_reference_change() const noexcept {return payload_ && payload_->whole_new_group;}
   std::span<const std::byte> base() const & noexcept {
     return payload_?std::span<const std::byte>(payload_->base):std::span<const std::byte>{};
   }
@@ -170,6 +171,7 @@ class NativeSharedBaseSearchWindow final {
   struct Payload {
     std::vector<std::byte> base;
     std::vector<std::vector<std::byte>> members;
+    bool whole_new_group=false;
   };
   std::shared_ptr<const Payload> payload_;
 };
@@ -184,6 +186,8 @@ struct NativeSharedBaseSearchReply {
   // Optional CPU verdicts, indexed by the exact staged member.
   std::span<NativePackedGroupCheck> packed_checks{};
   NativePackedGroupMethod body_method=NativePackedGroupMethod::xor_planes;
+  // Zero retains the nominated base. Other values are one-based staged members.
+  std::uint32_t reference_member=0;
 };
 struct NativeContentToken {
   NativeExtentSelection extent;

@@ -637,6 +637,39 @@ void collective_reply() {
   invalid[0][1][0]=static_cast<std::byte>(match::CollectiveBody::sparse_xor);
   rejects([&]{(void)encode_anchor_arena_batch_reply(received,invalid);});
 }
+
+void reference_reply() {
+  constexpr auto mode=match::BatchOutput::reference_xor;
+  constexpr std::array<match::u32,2> counts{20,12};
+  constexpr auto device=match::device_bytes(4,mode);
+  rejects([&]{(void)plan_anchor_match_batch(counts,4,device,27,mode);});
+  const auto plan=plan_anchor_match_batch(counts,4,device,39,mode);
+  check(plan.reference_candidates==3 && plan.launches==38 && anchor_reference_pricing_launches(plan)==10,
+      "Reference pricing was not counted against the launch grant");
+  rejects([&]{(void)plan_anchor_match_transfers(plan,match::device_bytes(19,mode));});
+  check(plan_anchor_match_transfers(plan,match::device_bytes(20,mode)).transfers==2,
+      "Reference pricing did not require both complete groups");
+  const auto base=native_fixture::data(match::extent_bytes,5479);
+  AnchorMatchBatchBuilder builder(161,plan);
+  for(std::size_t i=0;i<counts.size();++i){
+    const auto members=Bytes(match::extent_bytes*counts[i],std::byte{73});
+    builder.append(i+1,base,members);
+  }
+  const auto request=builder.finish();
+  const auto decoded=decode_anchor_match_batch_request(request.snapshot(),plan.request_bytes,plan.reply_bytes,4,
+      plan.device_bytes,plan.launches,mode);
+  check(decoded.plan()==plan,"Reference depth did not survive worker admission");
+  const std::array bodies{AnchorPackedAdvice(counts[0]),AnchorPackedAdvice(counts[1])};
+  constexpr std::array<match::u32,2> expected{10,12};
+  const auto frame=encode_anchor_arena_batch_reply(request,bodies,0,expected);
+  std::array<match::u32,2> selected{};
+  const auto advice=decode_anchor_packed_batch_reply(frame,request,selected);
+  check(selected==expected && advice.size()==2 && advice[0]==bodies[0],"Reference reply lost its staged identities");
+  rejects([&]{(void)decode_anchor_packed_batch_reply(frame,request);});
+  auto outside=frame;
+  outside[64+4+28]=std::byte{9};
+  rejects([&]{(void)decode_anchor_packed_batch_reply(outside,request,selected);});
+}
 }
 
 template<class Word>
@@ -670,6 +703,7 @@ int main() {
     sparse_xor_reply();
     sparse_xor_arena();
     collective_reply();
+    reference_reply();
     sampled_modular_biases<match::u8>();
     sampled_modular_biases<unsigned short>();
     sampled_modular_biases<match::u32>();

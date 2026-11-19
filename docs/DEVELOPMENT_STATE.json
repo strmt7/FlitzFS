@@ -100,6 +100,18 @@
     "scope": "Sampled sparse and dense body cost ranks the immutable reference before encoding. The native writer still checks the complete protected compacted size.",
     "next": "Evaluate reference quality over naturally related files and profile adaptive depth and batch costs on the current CPU and AMD implementations."
   },
+  "native_full_reference_pricing": {
+    "source_base": "a72462f2fca1a76d4a6228209030a1e63029638d",
+    "evidence": "docs/evidence/amd-full-reference-pricing-2026-11-19.json",
+    "worker_abi": 10,
+    "physical_host_comparisons": 18,
+    "reselected_groups_per_full_trial": 5,
+    "complete_image_bytes": [3121152, 2768896],
+    "independent_cpu_readback": true,
+    "automatic_gpu_selection": false,
+    "scope": "Full-tile pricing across two admitted references per complete resident group, on controlled synthetic and public-derived cohorts.",
+    "next": "Compare the same reference search on CPU and AMD on naturally related files, including stored size, read amplification and foreground interference."
+  },
   "native_path_lookup": {
     "source_base": "700cdb31de32b847497b02cc0e113d27482e6c85",
     "evidence": "docs/evidence/native-path-lookup-2026-11-17.json",

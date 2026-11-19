@@ -309,6 +309,25 @@ void flitzfs_anchor_sparse_xor_arena_v8(const unsigned char* base,const unsigned
   pack_sparse_xor_members<true>(base,window,members,arena,version,cursor,directory,arena_words);
 }
 
+extern "C" __global__ __attribute__((amdgpu_flat_work_group_size(64,64)))
+void flitzfs_anchor_reference_price_v10(const unsigned char* base,const unsigned char* peers,
+    unsigned int count,unsigned int* prices,unsigned int version) {
+  using namespace flitzfs::anchor_match;
+  if(version!=reference_price_abi_version || !base || !peers || !prices ||
+      !count || count>dispatch_member_limit(BatchOutput::reference_xor) ||
+      blockIdx.x>=count || blockDim.x!=threads)return;
+  __shared__ SparseXorScratch scratch;
+  size_sparse_xor(scratch,base,peers+blockIdx.x*extent_bytes);
+  if(!threadIdx.x) {
+    constexpr u32 header=extent_bytes-sparse_xor_max_body_bytes-1;
+    u32 dense=xor_tiles;
+    for(u32 tile=0;tile<xor_tiles;++tile)
+      dense+=static_cast<u32>(__popc(scratch.masks[tile]))*xor_plane_bytes;
+    const auto chosen=scratch.size && scratch.size<dense?scratch.size:dense;
+    prices[blockIdx.x]=dense==xor_tiles?header:(chosen<extent_bytes-header?header+chosen:extent_bytes);
+  }
+}
+
 namespace {
 using namespace flitzfs::anchor_match;
 
@@ -540,5 +559,8 @@ void bind_anchor_sparse_xor_arena(AnchorArenaApi& api) noexcept {
 }
 void bind_anchor_collective_arena(AnchorArenaApi& api) noexcept {
   api.search=flitzfs_anchor_collective_arena_v9;
+}
+void bind_anchor_reference_price(AnchorReferenceApi& api) noexcept {
+  api.price=flitzfs_anchor_reference_price_v10;
 }
 }

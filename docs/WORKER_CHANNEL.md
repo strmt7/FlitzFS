@@ -460,3 +460,29 @@ The native writer strips the private codec identifier, reconstructs the
 member on CPU and compares it to the owned input. Alternative CPU codecs,
 revision validation and the full compacted-size check govern publication.
 [Mixed-codec validation](evidence/amd-mixed-codec-selection-2026-11-19.json)
+
+## Full-tile reference pricing
+
+Request tag `FLFSABQ\6` admits sparse-XOR reference pricing over complete
+resident groups. Reply tags `FLFSARP\1` and `FLFSARG\1` carry sparse bodies
+with a reference member number in each group header. Zero denotes the
+original base. The remaining numbers identify the staged members in their
+request order. The decoder checks each number against the deterministic set
+of candidates derived from the launch grant.
+
+The planner charges the encoding launches and each preceding pricing pass.
+Pricing includes the original base in every comparison, including a pass
+that considers another member as the base. The number of candidates depends
+on the available launches and group sizes. The owner uses the ordinary
+sparse route if the launch grant or complete resident input cannot admit
+reference pricing. Device entry ABI 10 writes one checked price per peer.
+The worker selects the lowest sum and uses ABI 8 to encode against it in
+the same stream. It transfers only the used sparse bodies. [AMD HIP
+reduction guidance](https://rocm.docs.amd.com/projects/HIP/en/latest/tutorial/reduction.html)
+
+The native writer applies a selected reference to a complete new group
+before preparing any member frames. It retains the original base as a member
+and independently verifies the input, decoder results and live identities.
+The complete protected compacted-size comparison governs publication.
+[Indexed shared-base format](INDEXED_NATIVE_VOLUME.md#automatic-candidate-discovery)
+[Full-tile reference measurements](evidence/amd-full-reference-pricing-2026-11-19.json)

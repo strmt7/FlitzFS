@@ -426,6 +426,7 @@ std::optional<IndexedBatchPattern> multiwindow_pattern(std::string_view mode) {
   if(mode=="xor-reference")return IndexedBatchPattern::xor_reference;
   if(mode=="xor-tile-reference")return IndexedBatchPattern::xor_tile_reference;
   if(mode=="xor-sparse-reference")return IndexedBatchPattern::xor_sparse_reference;
+  if(mode=="xor-full-reference" || mode=="xor-full-reference-sparse")return IndexedBatchPattern::xor_full_reference;
   if(mode=="sparse-xor" || mode=="sparse-xor-device")return IndexedBatchPattern::sparse_xor;
   if(mode=="sparse-xor-all-planes" || mode=="sparse-xor-all-planes-device")return IndexedBatchPattern::sparse_xor_all_planes;
   if(mode=="collective" || mode=="collective-sparse" || mode=="collective-delta")return IndexedBatchPattern::collective;
@@ -438,11 +439,13 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   const bool shifted_bias=pattern==IndexedBatchPattern::shifted_bias;
   const bool tile_reference=pattern==IndexedBatchPattern::xor_tile_reference;
   const bool sparse_reference=pattern==IndexedBatchPattern::xor_sparse_reference;
+  const bool full_reference=pattern==IndexedBatchPattern::xor_full_reference;
   const bool all_planes=pattern==IndexedBatchPattern::sparse_xor_all_planes;
-  const bool sparse_xor=pattern==IndexedBatchPattern::sparse_xor || all_planes || sparse_reference;
+  const bool sparse_xor=pattern==IndexedBatchPattern::sparse_xor || all_planes || sparse_reference || full_reference;
   const bool collective=pattern==IndexedBatchPattern::collective;
   const bool sparse_device=options && options->output==anchor_match::BatchOutput::sparse_xor;
   const bool collective_device=options && options->output==anchor_match::BatchOutput::collective;
+  const bool reference_device=options && options->output==anchor_match::BatchOutput::reference_xor;
   const bool dense_overflow=options && all_planes && !sparse_device;
   const bool alternate_reference=pattern==IndexedBatchPattern::xor_reference || tile_reference;
   const bool modular=shifted_bias || pattern==IndexedBatchPattern::modular_delta;
@@ -583,6 +586,9 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   if(collective_device)
     require(stats.submitted==1 && sparse_bodies && delta_bodies && stats.verified_groups==families,
         "The shared AMD exchange did not verify both codec choices");
+  if(reference_device)
+    require(stats.reference_batches==1 && stats.reselected_groups==families && stats.verified_groups==families,
+        "AMD full reference search did not verify each improved group");
   const auto maintenance_ns=elapsed_ns(maintenance_start);
 
   const auto verify_start=std::chrono::steady_clock::now();
@@ -602,6 +608,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   const auto capability=std::to_integer<unsigned>(root[8]);
   if(sparse_xor || collective)require(capability==7,"Sparse XOR did not survive compaction");
   const auto cohort=collective?(bank.empty()?"collective-synthetic":"collective-public"):
+      full_reference?(bank.empty()?"xor-full-reference-synthetic":"xor-full-reference-public"):
       sparse_reference?(bank.empty()?"xor-sparse-reference-synthetic":"xor-sparse-reference-public"):
       all_planes?(bank.empty()?"sparse-xor-all-planes-synthetic":"sparse-xor-all-planes-public"):
       sparse_xor?(bank.empty()?"sparse-xor-synthetic":"sparse-xor-public"):
@@ -620,6 +627,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
       <<" packed_widths="<<packed_widths<<" packed_payload_bytes="<<packed_payload_bytes
       <<" sampled_bias_members="<<sampled_bias_members
       <<" sparse_bodies="<<sparse_bodies<<" delta_bodies="<<delta_bodies
+      <<" reference_batches="<<stats.reference_batches<<" reselected_groups="<<stats.reselected_groups
       <<" retired=true independent_cpu_readback=true modeled_idle_time=true input_blake3=";
   constexpr char digits[]="0123456789abcdef";
   for(const auto byte:detail::record_digest(file_digests)) {
@@ -652,11 +660,12 @@ int live_anchor_owner(int argc,char** argv) {
     const bool modular=*multiwindow==IndexedBatchPattern::modular_delta || *multiwindow==IndexedBatchPattern::shifted_bias ||
         mode=="collective-delta";
     const bool sparse=mode=="sparse-xor-device" || mode=="sparse-xor-all-planes-device" || mode=="collective-sparse" ||
-        mode=="xor-sparse-reference";
+        mode=="xor-sparse-reference" || mode=="xor-full-reference-sparse";
     const auto members=small_batch?families*(anchor_search_fixture::indexed_small_extents_per_family-1):
         anchor_search_fixture::indexed_batch_members;
     const auto minimum=argc==8 || small_batch?2U:static_cast<std::uint32_t>(members);
-    const auto output=mode=="collective"?anchor_match::BatchOutput::collective:sparse?anchor_match::BatchOutput::sparse_xor:
+    const auto output=mode=="xor-full-reference"?anchor_match::BatchOutput::reference_xor:
+        mode=="collective"?anchor_match::BatchOutput::collective:sparse?anchor_match::BatchOutput::sparse_xor:
         modular?anchor_match::BatchOutput::modular_delta:anchor_match::BatchOutput::wide_packed_xor;
     return live_multiwindow_anchor(NativeAnchorSearchOptions{*binding.route,profile,minimum,
         static_cast<std::uint32_t>(members+families),10000,

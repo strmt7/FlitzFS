@@ -68,10 +68,13 @@ struct CollectivePackingScratch {
   SparseXorScratch sparse;
   u32 body_offset,admitted;
 };
-enum class BatchOutput : u32 {anchors,packed_xor,wide_packed_xor,modular_delta,sparse_xor,collective};
+enum class BatchOutput : u32 {anchors,packed_xor,wide_packed_xor,modular_delta,sparse_xor,collective,reference_xor};
 
 constexpr bool arena_output(BatchOutput output) noexcept {
-  return output==BatchOutput::sparse_xor || output==BatchOutput::collective;
+  return output==BatchOutput::sparse_xor || output==BatchOutput::collective || output==BatchOutput::reference_xor;
+}
+constexpr u32 reference_member_at(u32 candidate,u32 candidates,u32 members) noexcept {
+  return candidates>1?static_cast<u32>(u64{candidate}*members/(candidates-1)):0;
 }
 
 constexpr bool compact_output(BatchOutput output) noexcept {

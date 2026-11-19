@@ -156,9 +156,15 @@ void NativeAnchorSearchController::start(std::span<const NativeSharedBaseSearchW
     std::vector<std::uint32_t> counts;
     counts.reserve(windows.size());
     for(const auto& window:windows)counts.push_back(static_cast<std::uint32_t>(window.members().size()));
-    const auto plan=detail::plan_anchor_match_batch(counts,quantum,anchor_match::device_bytes(quantum,options.output),
-        total+static_cast<std::uint32_t>(windows.size()),options.output);
-    const auto transfer=detail::plan_anchor_match_transfers(plan,anchor_match::device_bytes(fit,options.output));
+    using Output=anchor_match::BatchOutput;
+    const auto reference=options.output==Output::reference_xor;
+    const auto baseline=reference?Output::sparse_xor:options.output;
+    const auto launches=total+static_cast<std::uint32_t>(windows.size());
+    auto plan=detail::plan_anchor_match_batch(counts,quantum,anchor_match::device_bytes(quantum,baseline),launches,baseline);
+    if(reference && fit==largest && std::ranges::all_of(windows,&NativeSharedBaseSearchWindow::permits_reference_change) &&
+        launches-plan.launches>=2*detail::anchor_reference_pricing_launches(plan))
+      plan=detail::plan_anchor_match_batch(counts,quantum,anchor_match::device_bytes(quantum,options.output),launches,options.output);
+    const auto transfer=detail::plan_anchor_match_transfers(plan,anchor_match::device_bytes(fit,plan.output));
     const WorkerChannelCapacity capacity{plan.request_bytes,plan.reply_bytes};
     const auto variable=std::uint64_t(transfer.device_bytes)+2ULL*plan.request_bytes+2ULL*plan.reply_bytes;
     constexpr auto maximum=(std::numeric_limits<std::uint64_t>::max)();
@@ -186,11 +192,12 @@ void NativeAnchorSearchController::start(std::span<const NativeSharedBaseSearchW
     auto request=builder.finish();
     std::vector<NativeSharedBaseSearchWindow> retained(windows.begin(),windows.end());
     const auto begun=GetTickCount64();
-    const auto command=options.output==anchor_match::BatchOutput::collective?L"--driver-anchor-collective-batch":
-        options.output==anchor_match::BatchOutput::sparse_xor?L"--driver-anchor-sparse-xor-batch":
-        options.output==anchor_match::BatchOutput::modular_delta?L"--driver-anchor-modular-delta-batch":
-        options.output==anchor_match::BatchOutput::wide_packed_xor?L"--driver-anchor-xor-wide-batch":
-        options.output==anchor_match::BatchOutput::packed_xor?L"--driver-anchor-xor-batch":L"--driver-anchor-transfer-batch";
+    const auto command=plan.output==Output::reference_xor?L"--driver-anchor-reference-batch":
+        plan.output==Output::collective?L"--driver-anchor-collective-batch":
+        plan.output==Output::sparse_xor?L"--driver-anchor-sparse-xor-batch":
+        plan.output==Output::modular_delta?L"--driver-anchor-modular-delta-batch":
+        plan.output==Output::wide_packed_xor?L"--driver-anchor-xor-wide-batch":
+        plan.output==Output::packed_xor?L"--driver-anchor-xor-batch":L"--driver-anchor-transfer-batch";
     auto session=WorkerExchangeSession::start_sized(route.helper,
         {command,
             std::to_wstring(route.ordinal),hex(route.memory.luid),
@@ -252,17 +259,26 @@ void NativeAnchorSearchController::observe(std::uint64_t activity,std::uint64_t 
       if(!collect)return;
       try {
         self.replies.reserve(self.windows.size());
-        if(self.options.output!=anchor_match::BatchOutput::anchors) {
-          self.packed_advice=detail::decode_anchor_packed_batch_reply(result->response,flight.request);
+        const auto output=flight.request.plan().output;
+        if(output!=anchor_match::BatchOutput::anchors) {
+          const bool reference=output==anchor_match::BatchOutput::reference_xor;
+          std::vector<std::uint32_t> selected_references(reference?self.windows.size():0);
+          self.packed_advice=detail::decode_anchor_packed_batch_reply(result->response,flight.request,selected_references);
           if(self.packed_advice.size()!=self.windows.size())throw std::invalid_argument("Incomplete packed batch");
           self.packed_checks.reserve(self.windows.size());
-          const auto method=self.options.output==anchor_match::BatchOutput::modular_delta?
-              NativePackedGroupMethod::modular_delta:self.options.output==anchor_match::BatchOutput::sparse_xor?
-              NativePackedGroupMethod::sparse_xor:self.options.output==anchor_match::BatchOutput::collective?
+          const auto method=output==anchor_match::BatchOutput::modular_delta?
+              NativePackedGroupMethod::modular_delta:(output==anchor_match::BatchOutput::sparse_xor || reference)?
+              NativePackedGroupMethod::sparse_xor:output==anchor_match::BatchOutput::collective?
               NativePackedGroupMethod::collective:NativePackedGroupMethod::xor_planes;
           for(std::size_t i=0;i<self.windows.size();++i) {
             auto& checks=self.packed_checks.emplace_back(self.packed_advice[i].size(),NativePackedGroupCheck::pending);
-            self.replies.push_back({self.windows[i],{},self.packed_advice[i],checks,method});
+            self.replies.push_back({self.windows[i],{},self.packed_advice[i],checks,method,
+                reference?selected_references[i]:0});
+          }
+          if(reference) {
+            ++self.stats.reference_batches;
+            self.stats.reselected_groups+=static_cast<std::uint64_t>(
+                std::ranges::count_if(selected_references,[](auto member){return member!=0;}));
           }
           // Retirement is proven, but the recovery ticket still awaits the
           // byte verdicts from the exact members consuming this reply.

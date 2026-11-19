@@ -7,7 +7,8 @@ security audit or a new full-suite, mounted-filesystem or GPU qualification.
 The [detailed implementation plan](IMPLEMENTATION_PLAN.md) is the forward plan.
 [Review receipts](evidence/repository-review-2026-11-17.json) bind inventories,
 semantic searches, inspected sources, current research and API captures.
-The 18 November follow-up is recorded under recent executed evidence.
+Later checkpoints are recorded under recent executed evidence and in the
+[development state ledger](DEVELOPMENT_STATE.json).
 
 ## Assessment
 
@@ -401,6 +402,14 @@ raw and AddressSanitizer configurations. In the codec lane the helper declined
 the already compact family without writes and grouped a separate profitable
 family with at least 128 KiB of modeled compacted savings. The live helper runs
 recorded resource deferral. [Follow-up evidence](evidence/paged-write-accounting-2026-11-17.json).
+
+On 19 November, AMD full-tile reference pricing produced 11.3% smaller
+protected compacted images than sampled reference selection in two
+controlled cohorts. Eighteen matched runs reopened all files on CPU.
+Sampled CPU preparation finished sooner on both cohorts. A matched
+comparison on naturally related files still needs CPU full-tile pricing
+and measurements of read amplification and foreground interference.
+[Full-tile reference evidence](evidence/amd-full-reference-pricing-2026-11-19.json)
 
 The evidence covers specific CPU paths, modeled failures, SDK callbacks and
 helper behavior. Full current-source CTest, an actual mounted product, useful
