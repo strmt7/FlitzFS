@@ -130,7 +130,8 @@ struct App {
     EnableWindow(buttons[0],idle&&!v.has_volume());
     for(std::size_t i=1;i<4;++i)EnableWindow(buttons[i],idle&&v.volume.ready&&!v.volume.fenced);
     EnableWindow(buttons[4],idle&&(v.volume.ready || state==VolumeAttachmentState::detached));
-    EnableWindow(buttons[5],!v.has_volume()&&(idle||v.stopped));
+    SetWindowTextW(buttons[4],v.attachment.persistent?L"Close volume file":L"Discard temporary volume");
+    EnableWindow(buttons[5],v.can_exit_without_discard()&&(idle||v.stopped));
     if(buttons[6]) {
       EnableWindow(buttons[6],idle&&!v.volume.ready &&
           (state==VolumeAttachmentState::empty || state==VolumeAttachmentState::detached));
@@ -147,8 +148,12 @@ struct App {
       if(v.text)SetWindowTextW(text,wide(*v.text).c_str());
     }
     std::wstring summary_text=L"Experimental memory workspace";
-    if(state==VolumeAttachmentState::attached)summary_text=L"Attached temporary volume\r\n"+v.attachment.location;
-    else if(v.attachment.retained())summary_text=L"Temporary volume retained in memory";
+    if(state==VolumeAttachmentState::attached) {
+      summary_text=v.attachment.persistent?L"Attached volume file\r\n":L"Attached temporary volume\r\n";
+      summary_text+=v.attachment.location;
+    } else if(v.attachment.retained()) {
+      summary_text=v.attachment.persistent?L"Persistent volume file retained":L"Temporary volume retained in memory";
+    }
     if(v.volume.ready)summary_text+=v.volume.optimization.phase==NativeOptimizationPhase::ready?
         L" | Optimization state: ready":L" | Optimization state: unavailable";
     if(v.volume.ready)summary_text+=v.maintenance_disabled?L" | Background optimization unavailable":
@@ -178,7 +183,7 @@ struct App {
     }
     if(id==exit_id) {
       const auto v=controller->view();
-      if(v.has_volume())return;
+      if(!v.can_exit_without_discard())return;
       if(v.stopped){quitting=true;remove_tray();DestroyWindow(window);return;}
       if(controller->stop(false)){quitting=true;refresh();}
       return;
@@ -250,14 +255,15 @@ LRESULT CALLBACK procedure(HWND window,UINT message,WPARAM w,LPARAM l) {
         if(app->controller)app->controller->acknowledge_notification();app->refresh();return 0;
       case tray_message:app->tray_event(l);return 0;
       case WM_CLOSE:
-        if(app->controller && app->controller->view().has_volume()) {
+        if(app->controller && !app->controller->view().can_exit_without_discard()) {
           if(app->tray_added)ShowWindow(window,SW_HIDE);
-          else SetWindowTextW(app->status,L"A temporary volume is active. Discard it explicitly before exit.");
+          else SetWindowTextW(app->status,app->controller->view().attachment.persistent?
+              L"Detach the volume file before exit.":L"A temporary volume is active. Discard it explicitly before exit.");
         } else app->command(exit_id);
         return 0;
       case WM_QUERYENDSESSION:
         if(!app->controller)return TRUE;
-        {const auto v=app->controller->view();return !(v.has_volume()||v.busy);}
+        {const auto v=app->controller->view();return v.can_exit_without_discard()&&!v.busy;}
       case WM_DESTROY:PostQuitMessage(0);return 0;
       case WM_NCDESTROY:SetWindowLongPtrW(window,GWLP_USERDATA,0);break;
     }

@@ -27,7 +27,7 @@ struct WinFspControllerView {
 class WinFspVolumeController final {
  public:
   WinFspVolumeController(std::unique_ptr<WinFspNativeWritable>,WinFspSessionApi,NativeWriteMountPlan,
-      std::optional<NativeAnchorSearchOptions> anchor={});
+      std::optional<NativeAnchorSearchOptions> anchor={},HANDLE state_changed=nullptr);
   // Qualified memory composition: domain must outlive the controller's joined
   // worker. Allocation and retirement share the callback's control lock.
   WinFspVolumeController(std::unique_ptr<WinFspNativeWritable>,WinFspSessionApi,NativeWriteMountPlan,MemoryVolumeDomain&,

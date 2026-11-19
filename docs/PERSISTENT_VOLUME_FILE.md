@@ -49,6 +49,22 @@ lifetimes. A writable reopen uses the same indexed session-recovery transaction
 after the previous provider's confirmed retirement. The WinFsp bridge applies
 the existing Windows root ACL and timestamp profile.
 
+## Windows helper ownership
+
+A qualified caller supplies the backing, the expected volume identity and
+optional creation geometry to the same attachment worker that manages memory
+volumes. It acquires the file exclusively before asking WinFsp to attach.
+A mount failure keeps the backing open for recovery. Reattachment uses the
+retained file handle and verifies the selected volume before starting a new
+dispatcher. Creation is requested once per acquired backing.
+
+Detach joins the dispatcher and worker before permitting another attach.
+An uncertain retirement keeps the attachment blocked. Closing a detached
+volume file releases its handle and preserves the file. Ordinary app exit
+can close a detached file without a discard confirmation. A fresh helper can
+reopen the file by its checked identity.
+[WinFsp dispatcher and mount API](https://winfsp.dev/doc/WinFsp-API-winfsp.h/)
+
 ## Validation and remaining integration
 
 The in-memory suite recreates the backing from durable bytes, checks old and
@@ -58,6 +74,12 @@ with injected lifecycle operations. The optional real file-handle test uses
 a newly created disposable fixture and belongs to a separately qualified
 Windows test environment. [Validation record](evidence/windows-volume-file-recovery-2026-11-19.json)
 
-The helper still needs persistent-volume selection and ownership. This
-provider also needs bounded generation replacement, persistent catalog
-compaction and full storage-failure qualification before release.
+The helper tests exercise failed attachment, joined detach, independent CPU
+readback, a fresh mount target and ordinary exit. The Windows 11 guest also
+exercises the exclusive file handle and reopen after close. These helper
+checks use injected WinFsp lifecycle operations.
+[Helper validation](evidence/windows-volume-file-attachment-2026-11-19.json)
+
+User-facing persistent-volume selection and backing qualification remain
+open. Persistent generation replacement, catalog compaction and physical
+storage-failure qualification remain release gates.

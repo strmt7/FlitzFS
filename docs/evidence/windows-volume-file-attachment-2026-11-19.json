@@ -1,0 +1,201 @@
+{
+  "schema": 1,
+  "date": "2026-11-19",
+  "source_base": "88bfc193d3c0eab6ae031a95bc3568f05f1a5280",
+  "code_patch_sha256": "b2a75fe6208fe3653b36d4bc8bb3412a92397cd43652d8bb5c4bc6b52975aad2",
+  "source_binding": {
+    "CMakeLists.txt": {
+      "git_blob": "05c50406d263c496604ed7646f9043eb8d038a41",
+      "working_bytes_sha256": "eb1ef2ad12969231b5df4997d09e5e94635e378ae17a4feb292b87cd64a3ee3d"
+    },
+    "include/flitzfs/native_volume_file.hpp": {
+      "git_blob": "7d7b1bd0c85ac3276088ff46d27b8a127660f218",
+      "working_bytes_sha256": "38c5c8a8d245fa27a9417d6ddfab16c955206e0d7b02e34909e161e308c723b1"
+    },
+    "src/windows/volume_app.cpp": {
+      "git_blob": "ba100cc529bde3327b0a07da782b023f0ab79f9e",
+      "working_bytes_sha256": "617dabea25084ea4346656d57ae8df3908ffe8a7b73b2624f2e28445fc0e09fa"
+    },
+    "src/windows/volume_attachment.hpp": {
+      "git_blob": "a5c02b5c6dd94c166e21ea294b7e801207dc6cd7",
+      "working_bytes_sha256": "ee55a5c435352453f6303a0dee3ae513923a969b538b41a17414d743d015a3ae"
+    },
+    "src/windows/volume_controller.cpp": {
+      "git_blob": "877c1e4ea25b3674f2be604dbbe5ed303eea728a",
+      "working_bytes_sha256": "a972e6f0a259d3e9d6887f5826e22c3205dbe7327fdf6905049289bfc3ee02ac"
+    },
+    "src/windows/volume_controller.hpp": {
+      "git_blob": "bcd8b9a780424e1dc680715249c41337ce8cfb20",
+      "working_bytes_sha256": "269c69be688c183f2a3dc33b0fcb635092be9443c8391c33a0b65dad87e984d0"
+    },
+    "src/windows/winfsp_controller.cpp": {
+      "git_blob": "a471b80e26812e4e56c8c984905225506cd841fd",
+      "working_bytes_sha256": "c89bce5950284d293da753175993073b36586e35ece7b08c0b5888f83eefde4e"
+    },
+    "src/windows/winfsp_controller.hpp": {
+      "git_blob": "d60a3de5eca5eaaf7c9c865ba8d712af28b8fe61",
+      "working_bytes_sha256": "15708a6d3ce2c9d0d820950f47a4c40faf3ba686b9c9305ac6904f6cd3cc6b30"
+    },
+    "src/windows/winfsp_volume_attachment.cpp": {
+      "git_blob": "8639c6d3cfacfbd7e7fbcd4af3fb1eb2a5a3b743",
+      "working_bytes_sha256": "86d24bb7c291f6b0ecb00fe4455f73c771ff1b1d4e7cb2f622ce4821afaff8ab"
+    },
+    "src/windows/winfsp_volume_attachment.hpp": {
+      "git_blob": "19756f93b32a56d1941c674970df9d6124486f99",
+      "working_bytes_sha256": "3b6e7af291fa91c2c268e519039b81cbce494a6dbb242d2f7cf8d5c4edffa350"
+    },
+    "tests/windows_volume_attachment_tests.cpp": {
+      "git_blob": "1e21003b04f45a6a3f8e5454500adc6978cb63c3",
+      "working_bytes_sha256": "8f5c81b228f3f0ab844b41e5cfa2fa9b6ea5a49807996f9a7a7a0a9cefc89088"
+    }
+  },
+  "contract": "docs/PERSISTENT_VOLUME_FILE.md#windows-helper-ownership",
+  "binary_sha256": {
+    "flitzfs_volume_app.exe": "226f0ff5f8838dbf56f556bda1eb216e5171a3d3c9651c023fe1fb6ff5049c2a",
+    "flitzfs_volume_app_tests.exe": "14345f5875ee017dded8444b38d210fa4ce416b24bea27058ccd122c6da07c3b",
+    "flitzfs_volume_attachment_tests.exe": "777c38d63cc29895956925cb6411e3f9554c7bdbb29eee8105d3d5e63e166987",
+    "winfsp-x64.dll": "94323b3de265c66a9b5428ee054313b9b14f179571201dfbaf5e7f15ba4918e3"
+  },
+  "releases_published": false,
+  "host_checks": {
+    "windows_codec_build": {
+      "run": "local-run-9d045aa443f1473794499b4e72778589",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "ddcf502dcadec3fe47df75f2b305b9fe562741951201643cb9e61eb1d6ef1aa0",
+      "log_sha256": "86c9a8841fff436ccf660f4769166632cb463be493a9321763cb430f3f07745b",
+      "peak_process_tree_commit_bytes": 412921856
+    },
+    "windows_codec_regressions": {
+      "run": "local-run-065ad921e8884e31a97ed10b70ae828d",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "ec7dc971281f42f577befb7e75dcba2295cfab994605aca17313bc808d5d65ce",
+      "log_sha256": "0ed531e5cddc489b4a6a06381dc6ccf1c61c8afcac771edd00d9a3cfa6b57b02",
+      "peak_process_tree_commit_bytes": 39542784,
+      "entries": 7
+    },
+    "initial_fixture_build_failed_missing_include": {
+      "run": "local-run-f36aba2367f24f6dad4a451d68c18549",
+      "exit_code": 1,
+      "tree_retired": true,
+      "receipt_sha256": "936533878856fbed2aec29a4dd54795a007ac9a28ebd96819b4d9742e621e28e",
+      "log_sha256": "5c9b3293ced5114bd6d958ffb262252c49b5b157b1184d92612119b3c6255b1b",
+      "peak_process_tree_commit_bytes": 593182720
+    },
+    "raw_addresssanitizer_configure": {
+      "run": "local-run-41779d21002c4c9586e332a1a8478e73",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "66da9da60b641440afa530df4305f93bb423902817635578deb7768147a6a68f",
+      "log_sha256": "47c6399343eddbd8e9c7b3842f21f34c10365d6d3e2b719e7780b7584ed7531b",
+      "peak_process_tree_commit_bytes": 295206912
+    },
+    "raw_addresssanitizer_build": {
+      "run": "local-run-12afa029a0d8497fb257ee59de8ff54c",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "ab5bd9aab69d77cc7d5f4b522aab7152e44c0cd107020014f2370d4bfc28cfa1",
+      "log_sha256": "88cba9a8b5b8eedbefe632fe9cd9cba9cbb24dbef5b8d47b7a2e4978164735a5",
+      "peak_process_tree_commit_bytes": 756547584
+    },
+    "raw_addresssanitizer_regressions": {
+      "run": "local-run-d633b33fa17e454b9be1e30f1fed9a42",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "195b507cee671b12a80254b644f9de4d02052e1d21123de3cb83705ab9cbe10f",
+      "log_sha256": "698c2b019d67a2f8f5b0643a5a4eb813fc7bca1806a1a774335e8c85425e17e2",
+      "peak_process_tree_commit_bytes": 457281536,
+      "entries": 4
+    },
+    "addresssanitizer_runtime_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed",
+    "private_desktop_cpu_gui": {
+      "run": "local-run-661ca383f6e649e6a2b9797f2d8f3f3c",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "1da8717bca35516b189218b28071ccf1a31e053e3ec9c1e2fffb0743bdca9738",
+      "log_sha256": "49ca229021d95846bff9f4592e27ab1fcf1967b9de61a4ed07181d232df024b2",
+      "peak_process_tree_commit_bytes": 14733312
+    },
+    "gui_assertions": 58,
+    "private_desktop_closed": true,
+    "host_winfsp_unchanged": true,
+    "owner_disk_backed_fixture": false,
+    "unconfirmed_retirement_refused": true
+  },
+  "isolated_file_lifecycle": {
+    "scope": "persistent-attachment-sandbox-d96eeabe4254472294f8c2dac6c50ac7",
+    "windows": {
+      "caption": "Microsoft Windows 11 Enterprise",
+      "version": "10.0.26100",
+      "build": "26100"
+    },
+    "guest_storage": "fresh ordinary file on the disposable Windows 11 Sandbox guest",
+    "host_run": {
+      "run": "local-run-d0816d5c4e7144adbb9f7eedebadbc07",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "2125c77959a211d21fe048130c00b2f0d3b99595a898013af8702de188c067b2",
+      "log_sha256": "d80c5841d82cb1e4f2820d411f6c9684eabed1b6dfe07be2df9fc7f1bef520ac",
+      "peak_process_tree_commit_bytes": 46317568
+    },
+    "sandbox_sha256": "918b28842f9a13064c3b2ea2f604e49692bb8092de8d29e7087bb8b4c7f1767a",
+    "guest_sha256": "913b12a5e438f623ebf0c3cf5095d42510b7904d100061f43529742a4ea63818",
+    "fixture": "flitzfs_volume_attachment_tests --disposable-volume-file",
+    "admitted_artifacts": {
+      "flitzfs_volume_attachment_tests.exe": "777c38d63cc29895956925cb6411e3f9554c7bdbb29eee8105d3d5e63e166987",
+      "winfsp-x64.dll": "94323b3de265c66a9b5428ee054313b9b14f179571201dfbaf5e7f15ba4918e3",
+      "msvcp140.dll": "59d325227321d52b9a523ea401ce6787a5d59f78229a0ff3a6f124e5d3445685",
+      "msvcp140_atomic_wait.dll": "8b10c6bd4c3c427ce7c8be96ef0fef0f8187bc236962be62a03caef834b37dcd",
+      "vcruntime140.dll": "eb1ee979bf02324712346e5bdbfc59c785388bc50d18cc2688aae4b0734915a0",
+      "vcruntime140_1.dll": "a14b4a42a2c6df04d6d53a8340816023d953406f7f3d94996c7cab30c414ff63"
+    },
+    "new_joined_sessions": 4,
+    "exclusive_handle_retained": true,
+    "cpu_reopen_verified": true,
+    "ordinary_exit": true,
+    "sandbox_retired": true,
+    "winfsp_lifecycle": "injected operations, with the verified user-mode SDK",
+    "driver_count": 0,
+    "benchmarks": false,
+    "physical_power_loss": false
+  },
+  "navigation": {
+    "receipt_sha256": "49f27b30cc50963948d823a6ac782b5fb33ab4fbedd57f1607be04bbe0fcafb4",
+    "provider_version": "0.2.43",
+    "source_files": 14,
+    "native_response_sha256": "80f123fc349fa661f0facdb5d890152c6fe62fd48814d72d7404ba3954f31051"
+  },
+  "web_research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "c75a697c927831c7e79f47a8857e1de7b3665e320618ab90c0538f1b773e9fba",
+    "pages": [
+      {
+        "url": "https://winfsp.dev/doc/WinFsp-API-winfsp.h/",
+        "final_http_status": 200,
+        "markdown_bytes": 73095,
+        "markdown_sha256": "23f2e7b26b2297a12d6e98acb7b612010c44361803cc72c3563f82571cce5837",
+        "capture_sha256": "a419b0d1848928ebfb498cb22a1fb9ff39929c14ea5882f9a843faaddb7ad693"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers",
+        "final_http_status": 200,
+        "markdown_bytes": 36453,
+        "markdown_sha256": "2b7d8cde005239d02486b70403d995991f8f40bce69cfc5d732c6b6bd891a634",
+        "capture_sha256": "c4ce8914dc7e276afdb3047a457a02741863ceb527ca013833fa4d3c842633e4"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/nn-shobjidl_core-ifiledialog",
+        "final_http_status": 200,
+        "markdown_bytes": 52597,
+        "markdown_sha256": "3992224c945fad7009888f798b62ad768457eecdd5c00b801e90cc701596b51a",
+        "capture_sha256": "7edb4750b0e2241d9b788db3a27cb5af7dc57a68da544c5cad1c777662c8f2c3"
+      }
+    ]
+  },
+  "remaining_scope": [
+    "User-facing selection and trusted backing qualification",
+    "Real persistent Explorer mounting on supported Windows 11 targets",
+    "Persistent reclamation and physical power-loss and repair qualification"
+  ]
+}

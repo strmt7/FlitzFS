@@ -31,7 +31,15 @@ the native lifecycle events.
 The SDK fixture uses injected lifecycle operations and verifies file bytes
 after attach, detach and reattach. GUI tests exercise the actual executable
 with absent and altered dependencies. Interactive File Explorer integration
-and persistent-volume provisioning require separate qualification.
+requires separate qualification.
+
+The controller also accepts a qualified persistent-file selection. It retains
+the exclusive handle through detach and failed startup, and releases it on
+Close volume file or ordinary exit after detachment. The current app
+entry point selects memory volumes. A persistent-volume picker and
+qualified backing selection remain future integration work.
+[File attachment contract](PERSISTENT_VOLUME_FILE.md#windows-helper-ownership) ·
+[File attachment validation](evidence/windows-volume-file-attachment-2026-11-19.json)
 [Current attachment evidence](evidence/windows-tray-attachment-2026-11-18.json)
 
 ### Initial Windows 11 driver trial

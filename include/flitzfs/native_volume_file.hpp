@@ -38,6 +38,7 @@ class NativeVolumeFile final {
 
  private:
   friend class WinFspNativeWritable;
+  friend class WinFspVolumeAttachment;
   struct Owner;
   struct Region;
   struct Regions {

@@ -293,8 +293,8 @@ struct WinFspVolumeController::Impl {
 #endif
 };
 WinFspVolumeController::WinFspVolumeController(std::unique_ptr<WinFspNativeWritable> adapter,
-    WinFspSessionApi api,NativeWriteMountPlan plan,std::optional<NativeAnchorSearchOptions> anchor):
-    impl_(std::make_unique<Impl>(std::move(adapter),api,std::move(plan),nullptr,std::move(anchor),nullptr)){}
+    WinFspSessionApi api,NativeWriteMountPlan plan,std::optional<NativeAnchorSearchOptions> anchor,HANDLE state_changed):
+    impl_(std::make_unique<Impl>(std::move(adapter),api,std::move(plan),nullptr,std::move(anchor),state_changed)){}
 WinFspVolumeController::~WinFspVolumeController()=default;
 WinFspVolumeController::WinFspVolumeController(std::unique_ptr<WinFspNativeWritable> adapter,
     WinFspSessionApi api,NativeWriteMountPlan plan,MemoryVolumeDomain& memory,

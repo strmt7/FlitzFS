@@ -1,6 +1,10 @@
 #include "volume_controller.hpp"
+#include "memory_volume_factory.hpp"
 #include "volume_app_winfsp.hpp"
 #include "windows_app_budget.hpp"
+#include "flitzfs/native_volume_file.hpp"
+#include <chrono>
+#include <algorithm>
 #include <atomic>
 #include <cstring>
 #include <iostream>
@@ -16,7 +20,7 @@ void require(bool condition,const char* message) {
 struct Provider {
   FSP_FILE_SYSTEM filesystem{};
   std::atomic<unsigned> started{0},stopped{0},unmounted{0},deleted{0};
-  std::atomic<bool> collision{true};
+  std::atomic<bool> collision{true},confirm_retirement{true};
   static Provider* current;
 
   static NTSTATUS preflight(PWSTR,PWSTR path) {
@@ -39,7 +43,7 @@ struct Provider {
   }
   static VOID stop(FSP_FILE_SYSTEM* fs) {
     ++current->stopped;
-    fs->Interface->DispatcherStopped(fs,TRUE);
+    if(current->confirm_retirement)fs->Interface->DispatcherStopped(fs,TRUE);
   }
   static VOID unmount(FSP_FILE_SYSTEM*) {++current->unmounted;}
   static VOID destroy(FSP_FILE_SYSTEM* fs) {++current->deleted;fs->UserContext=nullptr;}
@@ -171,16 +175,140 @@ void lifecycle() {
   std::cout<<"attachment_lifecycle collision_retained=1 fresh_targets=2 cpu_readback=1 "
       <<"spontaneous_stop_observed=1 joined_provider_sessions="<<provider.deleted.load()<<'\n';
 }
+
+void verify_backing(const WinFspVolumeFileSelection& file) {
+  const auto* path=std::get_if<WinFspVolumeFileSelection::WindowsFile>(&file.backing);
+  const auto verified=path?NativeVolumeFile::inspect(path->path,file.volume):
+      NativeVolumeFile::inspect(std::get<std::shared_ptr<StoreByteIo>>(file.backing),file.volume);
+  const auto recovered=verified.filesystem().read("retained.txt",0,4096);
+  const auto expected=std::as_bytes(std::span(contents.data(),contents.size()));
+  require(std::ranges::equal(recovered,expected),"Persistent helper close lost acknowledged bytes");
 }
 
-int main() {
+void file_lifecycle(const WinFspVolumeFileSelection& file) {
+  Provider provider;
+  Provider::current=&provider;
+  Window window;
+  VolumeController controller(window.handle,make_winfsp_volume_file_attachment(Provider::load,file));
+  const auto submit=[&](VolumeCommandKind kind){require(controller.submit({kind,{},{}}),"Volume file command refused");};
+  const auto wait_state=[&](VolumeAttachmentState expected) {
+    return await(controller,[&](const auto& view){return view.idle() && view.attachment.state==expected;});
+  };
+
+  submit(VolumeCommandKind::attach);
+  const auto failed=wait_state(VolumeAttachmentState::detached);
+  require(failed.attachment.persistent && failed.can_exit_without_discard() &&
+      failed.attachment.status==STATUS_OBJECT_NAME_COLLISION && provider.deleted==1 && provider.unmounted==0,
+      "Mount failure did not retain the persistent backing");
+  provider.collision=false;
+  submit(VolumeCommandKind::attach);
+  const auto first=wait_state(VolumeAttachmentState::attached).attachment.location;
+  require(!first.empty() && !controller.stop(false) &&
+      !controller.submit({VolumeCommandKind::discard,{},{}}),"Closing a mounted file was admitted");
+  make_file(provider);
+
+  submit(VolumeCommandKind::detach);
+  require(wait_state(VolumeAttachmentState::detached).can_exit_without_discard(),
+      "Detached file required destructive discard before exit");
+  if(const auto* path=std::get_if<WinFspVolumeFileSelection::WindowsFile>(&file.backing)) {
+    bool shared=false;
+    try{(void)NativeVolumeFile::inspect(path->path,file.volume);shared=true;}
+    catch(const std::exception&){}
+    require(!shared,"Detached helper released its exclusive backing prematurely");
+  }
+  submit(VolumeCommandKind::attach);
+  const auto second=wait_state(VolumeAttachmentState::attached).attachment.location;
+  require(!second.empty() && second!=first,"File reattachment reused a mount target");
+  verify_file(provider);
+  provider.filesystem.Interface->DispatcherStopped(&provider.filesystem,FALSE);
+  require(wait_state(VolumeAttachmentState::detached).has_volume(),
+      "Unsolicited dispatcher stop discarded the persistent backing");
+
+  submit(VolumeCommandKind::discard);
+  const auto closed=wait_state(VolumeAttachmentState::empty);
+  require(!closed.has_volume() && closed.message=="Volume file closed.",
+      "File close did not release the selection");
+  verify_backing(file);
+
+  submit(VolumeCommandKind::attach);
+  wait_state(VolumeAttachmentState::attached);
+  verify_file(provider);
+  submit(VolumeCommandKind::detach);
+  wait_state(VolumeAttachmentState::detached);
+  require(controller.stop(false),"Detached persistent attachment refused ordinary exit");
+  await(controller,[](const auto& view){return view.stopped;});
+  verify_backing(file);
+  require(provider.started==4 && provider.stopped==4 && provider.unmounted==3 && provider.deleted==4,
+      "File attachment provider ownership was unbalanced");
+  std::cout<<"file_attachment collision_retained=1 fresh_mount_target=1 cpu_reopen=1 "
+      <<"ordinary_exit=1 joined_provider_sessions="<<provider.deleted.load()<<'\n';
+}
+
+void uncertain_file_retirement() {
+  constexpr std::uint64_t capacity=8*1024*1024;
+  auto domain=MemoryVolumeDomain::create(capacity);
+  auto backing=domain.create_store(capacity);
+  const WinFspVolumeFileSelection file{backing,fresh_volume_identity(),
+      WinFspVolumeFileSelection::Create{fresh_volume_identity(),{capacity-kNativeVolumeFileImageOffset}}};
+  Provider provider;
+  Provider::current=&provider;
+  provider.collision=false;
+  Window window;
+  {
+    VolumeController controller(window.handle,make_winfsp_volume_file_attachment(Provider::load,file));
+    require(controller.submit({VolumeCommandKind::attach,{},{}}),"Cannot start retirement fixture");
+    await(controller,[](const auto& view){return view.idle() && view.attachment.state==VolumeAttachmentState::attached;});
+    make_file(provider);
+    provider.confirm_retirement=false;
+    require(controller.submit({VolumeCommandKind::detach,{},{}}),"Cannot request retirement");
+    const auto blocked=await(controller,[](const auto& view){
+      return view.idle() && view.attachment.state==VolumeAttachmentState::blocked;
+    });
+    require(blocked.attachment.persistent && blocked.has_volume() && !blocked.can_exit_without_discard() &&
+        !controller.stop(false) && !controller.stop(true) &&
+        !controller.submit({VolumeCommandKind::attach,{},{}}) &&
+        !controller.submit({VolumeCommandKind::discard,{},{}}),
+        "Unconfirmed dispatcher retirement allowed ownership to change");
+  }
+  verify_backing(file);
+  require(provider.started==1 && provider.stopped==1 && provider.unmounted==1 && provider.deleted==1,
+      "Indeterminate-retirement fixture leaked an owner");
+  std::cout<<"file_attachment unconfirmed_retirement_refused=1 acknowledged_bytes_retained=1\n";
+}
+
+void file_lifecycle_in_memory() {
+  {
+    constexpr std::uint64_t capacity=8*1024*1024;
+    auto domain=MemoryVolumeDomain::create(capacity);
+    file_lifecycle({domain.create_store(capacity),fresh_volume_identity(),
+        WinFspVolumeFileSelection::Create{fresh_volume_identity(),{capacity-kNativeVolumeFileImageOffset}}});
+  }
+  uncertain_file_retirement();
+  require(MemoryVolumeDomain::cleanup_healthy(),"Volume file memory backing cleanup failed");
+}
+
+void disposable_file_lifecycle(const std::filesystem::path& base) {
+  const auto ticks=std::chrono::steady_clock::now().time_since_epoch().count();
+  const auto directory=std::filesystem::canonical(base)/("flitzfs-volume-attachment-"+std::to_string(ticks));
+  require(std::filesystem::create_directory(directory),"Cannot exclusively create the volume file attachment fixture");
+  const auto path=directory/"attached.flfs";
+  file_lifecycle({WinFspVolumeFileSelection::WindowsFile{path,{65536,true}},
+      fresh_volume_identity(),WinFspVolumeFileSelection::Create{fresh_volume_identity(),{8*1024*1024}}});
+}
+}
+
+int wmain(int argc,wchar_t** argv) {
   try {
     app_fixture::Budget budget;
     require(!GetModuleHandleW(L"winfsp-x64.dll"),"WinFsp SDK loaded before explicit runtime binding");
     require(load_volume_app_winfsp().complete() && GetModuleHandleW(L"winfsp-x64.dll"),
         "App loader did not bind its verified WinFsp SDK");
     std::cout<<"attachment_sdk_binding delay_loaded=1 verified_exports=1\n";
-    lifecycle();
+    if(argc==1)lifecycle();
+    else if(argc==2 && std::wstring_view(argv[1])==L"--memory-volume-file")file_lifecycle_in_memory();
+    else if(argc==3 && std::wstring_view(argv[1])==L"--disposable-volume-file")
+      disposable_file_lifecycle(std::filesystem::path(argv[2]));
+    else throw std::invalid_argument("Invalid attachment fixture mode");
     return 0;
   } catch(const std::exception& error) {
     std::cerr<<error.what()<<'\n';

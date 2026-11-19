@@ -5,16 +5,18 @@
 namespace flitzfs {
 namespace {
 std::string attachment_message(const VolumeAttachmentView& attachment) {
+  const std::string volume=attachment.persistent?"Volume file":"Memory volume";
   switch(attachment.state) {
     case VolumeAttachmentState::unavailable:
-    case VolumeAttachmentState::empty:return "No attachment. Create or attach a memory volume.";
-    case VolumeAttachmentState::starting:return "Attaching the memory volume.";
-    case VolumeAttachmentState::attached:return "Memory volume attached.";
+    case VolumeAttachmentState::empty:return attachment.persistent?"Volume file closed.":
+        "No attachment. Create or attach a memory volume.";
+    case VolumeAttachmentState::starting:return volume+" is attaching.";
+    case VolumeAttachmentState::attached:return volume+" attached.";
     case VolumeAttachmentState::detached:
-      if(attachment.status<0)return "Attachment failed. The memory volume is retained. Windows status "+
+      if(attachment.status<0)return volume+" retained after attachment failure. Windows status "+
           std::to_string(attachment.status)+".";
-      return "Memory volume detached and retained.";
-    case VolumeAttachmentState::blocked:return "Attachment retirement could not be confirmed. The memory volume is retained.";
+      return volume+" detached and retained.";
+    case VolumeAttachmentState::blocked:return volume+" retained because attachment retirement is unconfirmed.";
   }
   return {};
 }
@@ -55,7 +57,7 @@ bool VolumeController::submit(VolumeCommand command) {
 bool VolumeController::stop(bool discard) {
   std::lock_guard lock(mutex_);
   if(view_.busy || command_ || stop_requested_)return false;
-  if(view_.has_volume() && !discard)return false;
+  if(!discard && !view_.can_exit_without_discard())return false;
   if(view_.attachment.retained() && view_.attachment.state!=VolumeAttachmentState::detached)return false;
   if(!SetEvent(wake_.value))return false;
   stop_requested_=true;discard_on_stop_=discard;view_.stopping=true;foreground_pending_=true;return true;
@@ -95,8 +97,8 @@ void VolumeController::run() noexcept {
         {
           std::unique_lock lock(mutex_);
           if(stop_requested_) {
-            if((model.ready() || (attachment_ && attachment_->retains_volume())) && !discard_on_stop_)
-              throw std::runtime_error("Unapproved temporary volume discard");
+            if(!discard_on_stop_ && (model.ready() || !view_.can_exit_without_discard()))
+              throw std::runtime_error("Volume ownership prevents unattended exit");
             break;
           }
           if(command_){command=std::move(command_);command_.reset();foreground_pending_=false;}
@@ -168,9 +170,14 @@ void VolumeController::run() noexcept {
               attachment_->detach();
               break;
             case VolumeCommandKind::discard:
-              if(attachment_ && attachment_->retains_volume())attachment_->discard();
-              else model.discard();
-              message="Temporary volume explicitly discarded.";
+              if(attachment_ && attachment_->retains_volume()) {
+                const bool persistent=attachment_->refresh().persistent;
+                attachment_->discard();
+                message=persistent?"Volume file closed.":"Temporary volume explicitly discarded.";
+              } else {
+                model.discard();
+                message="Temporary volume explicitly discarded.";
+              }
               break;
             case VolumeCommandKind::stop:throw std::runtime_error("Invalid queued stop");
           }

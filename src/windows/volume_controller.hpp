@@ -21,6 +21,10 @@ struct VolumeControllerView {
   bool maintenance_disabled=false;
   std::uint64_t maintenance_quanta=0,maintenance_elapsed_ns=0,maintenance_maximum_quantum_ns=0;
   bool has_volume() const noexcept {return volume.ready || attachment.retained();}
+  bool can_exit_without_discard() const noexcept {
+    return !volume.ready && (!attachment.retained() ||
+        (attachment.persistent && attachment.state==VolumeAttachmentState::detached));
+  }
   bool idle() const noexcept {return !busy && !stopping && !stopped;}
 };
 // One owned worker, one admitted command, one coalesced scalar notification.
@@ -35,7 +39,8 @@ class VolumeController final {
   // Window owner calls when consuming completion_message, before refreshing.
   // Background progress never queues a second unconsumed notification.
   void acknowledge_notification() noexcept;
-  // Refuses an implicit discard. Caller must have explicitly obtained it.
+  // Exit closes a detached persistent file. Discarding a temporary volume
+  // requires the caller's explicit approval.
   bool stop(bool discard_temporary_volume);
  private:
   struct WakeEvent {

@@ -5,9 +5,10 @@
 The [indexed volume-file provider](PERSISTENT_VOLUME_FILE.md) retains the
 head, indexed data and funded advice together. It supports exclusive
 creation, CPU inspection and checked writable reopening through the WinFsp
-adapter. Model and SDK tests exercise recovery after interruption. Helper
-integration, persistent reclamation and actual power-failure qualification
-remain release work.
+adapter. Model and SDK tests exercise recovery after interruption. The
+helper's qualified file attachment keeps the exclusive handle during detach
+and can exit after a clean join. User-facing selection, persistent reclamation
+and actual power-failure qualification remain release work.
 
 The [repository overview](REPOSITORY_OVERVIEW.md) records the architecture
 decisions and measured baseline. The [implementation plan](IMPLEMENTATION_PLAN.md)

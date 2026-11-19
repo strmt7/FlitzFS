@@ -1057,9 +1057,11 @@ source-pinned tools, helper/tray and module verification.
 6. Implement supported creation/open/mount/unmount/recovery workflows for temporary
    memory and persistent providers. The [indexed volume-file provider](PERSISTENT_VOLUME_FILE.md)
    now has exclusive creation, checked reopen, independent CPU inspection and
-   a WinFsp callback entry point. Helper selection, persistent generation
-   replacement and media qualification remain open. A direct block-volume
-   provider needs its own design and tests.
+   a WinFsp callback entry point. The helper's attachment worker now owns a
+   qualified file through mount failure, detach, reopen and exit. Add the
+   user-facing selection and safe provisioning path against the qualified
+   storage provider. Generation replacement and media qualification remain
+   open. A direct block-volume provider needs its own design and tests.
 7. Build any direct-volume provisioning/format support only under explicit product
    design and isolated disposable-device tests. Development never formats or writes
    raw owner devices, and this plan is not permission to do so.
