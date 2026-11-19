@@ -114,6 +114,16 @@ inline void apply_sparse_reference_variation(std::span<std::byte> extent,unsigne
   }
 }
 
+inline void apply_full_reference_variation(std::span<std::byte> extent,std::span<const std::byte> base,
+    unsigned member,unsigned group_size) {
+  apply_sparse_reference_variation(extent,member,group_size);
+  constexpr std::size_t samples=8,tile=anchor_match::xor_tile_bytes,spacing=kNativeExtentBytes/(samples*tile);
+  for(std::size_t site=0;site<samples;++site) {
+    const auto at=(site*spacing+2*((site*7)%(spacing/2))+1)*tile;
+    std::ranges::copy(base.subspan(at,tile),extent.begin()+at);
+  }
+}
+
 inline void apply_all_xor_planes(std::span<std::byte> extent,unsigned member) {
   if(!member)return;
   constexpr auto tile_bytes=anchor_match::xor_tile_bytes;
@@ -161,15 +171,12 @@ inline std::vector<Bytes> indexed_batch_files(std::span<const std::byte> bank={}
           apply_tile_reference_variation(extent,static_cast<unsigned>(member),static_cast<unsigned>(extent_count));
           continue;
         }
-        if(pattern==IndexedBatchPattern::xor_sparse_reference || pattern==IndexedBatchPattern::xor_full_reference) {
+        if(pattern==IndexedBatchPattern::xor_sparse_reference) {
           apply_sparse_reference_variation(extent,static_cast<unsigned>(member),static_cast<unsigned>(extent_count));
-          if(pattern==IndexedBatchPattern::xor_full_reference) {
-            constexpr std::size_t samples=8,tile=anchor_match::xor_tile_bytes,spacing=kNativeExtentBytes/(samples*tile);
-            for(std::size_t site=0;site<samples;++site) {
-              const auto at=(site*spacing+2*((site*7)%(spacing/2))+1)*tile;
-              std::ranges::copy(base.subspan(at,tile),extent.begin()+at);
-            }
-          }
+          continue;
+        }
+        if(pattern==IndexedBatchPattern::xor_full_reference) {
+          apply_full_reference_variation(extent,base,static_cast<unsigned>(member),static_cast<unsigned>(extent_count));
           continue;
         }
         if(pattern==IndexedBatchPattern::sparse_xor) {

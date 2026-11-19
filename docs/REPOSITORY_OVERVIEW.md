@@ -406,10 +406,13 @@ recorded resource deferral. [Follow-up evidence](evidence/paged-write-accounting
 On 19 November, AMD full-tile reference pricing produced 11.3% smaller
 protected compacted images than sampled reference selection in two
 controlled cohorts. Eighteen matched runs reopened all files on CPU.
-Sampled CPU preparation finished sooner on both cohorts. A matched
-comparison on naturally related files still needs CPU full-tile pricing
-and measurements of read amplification and foreground interference.
+The next 18 trials exercised full-tile CPU pricing, which matched AMD's
+compacted size and completed sooner on both cohorts. CPU now performs this
+work in bounded steps during normal indexed maintenance. The next
+comparison needs naturally related files, read amplification and measured
+foreground interference.
 [Full-tile reference evidence](evidence/amd-full-reference-pricing-2026-11-19.json)
+[CPU reference pricing evidence](evidence/cpu-full-reference-pricing-2026-11-19.json)
 
 The evidence covers specific CPU paths, modeled failures, SDK callbacks and
 helper behavior. Full current-source CTest, an actual mounted product, useful

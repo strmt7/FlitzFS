@@ -110,7 +110,19 @@
     "independent_cpu_readback": true,
     "automatic_gpu_selection": false,
     "scope": "Full-tile pricing across two admitted references per complete resident group, on controlled synthetic and public-derived cohorts.",
-    "next": "Compare the same reference search on CPU and AMD on naturally related files, including stored size, read amplification and foreground interference."
+    "next": "Measure equal-depth reference search on naturally related files, including read amplification and foreground interference."
+  },
+  "native_cpu_full_reference_pricing": {
+    "source_base": "a9c28db906bbd074878bcb1b672d3d0f6ccef3ee",
+    "evidence": "docs/evidence/cpu-full-reference-pricing-2026-11-19.json",
+    "normal_cpu_maintenance_path": true,
+    "physical_host_comparisons": 18,
+    "admitted_cpu_pairs_per_opportunity": 1,
+    "reselected_references_per_full_trial": 5,
+    "complete_compacted_bytes": [3121152, 2768896],
+    "independent_cpu_readback": true,
+    "scope": "Two controlled 15-file cohorts using synthetic and public-derived bytes. CPU and live AMD produced equal compacted sizes with different admitted search depths.",
+    "next": "Qualify on naturally related files and use measured cost, read amplification and foreground contention to admit deeper work."
   },
   "native_path_lookup": {
     "source_base": "700cdb31de32b847497b02cc0e113d27482e6c85",

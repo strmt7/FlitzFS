@@ -3,7 +3,9 @@
 #include "native_object_storage.hpp"
 #include "store_codec.hpp"
 #include "flitzfs/catalog.hpp"
+#include "flitzfs/gpu_anchor_match.hpp"
 #include <algorithm>
+#include <bit>
 #include <iterator>
 #include <limits>
 #include <map>
@@ -1152,6 +1154,7 @@ std::vector<std::byte> IndexedSharedBasePreparation::read_member(Member& member,
 
 NativeSharedBaseProgress IndexedSharedBasePreparation::progress() const noexcept {
   auto result=progress_;
+  result.reference_changed=reference_member_!=0;
   result.owned_payload_bytes+=nominated_base_.size();
   if(search_)result.owned_payload_bytes+=search_->bytes->base.size()+
       search_->bytes->members.size()*std::uint64_t(kNativeExtentBytes);
@@ -1200,6 +1203,43 @@ NativeSharedBaseSearchWindow IndexedSharedBasePreparation::search_window() const
   return window;
 }
 
+bool IndexedSharedBasePreparation::can_change_reference() const noexcept {
+  return !progress_.completed_members && !reference_member_ && search_ && search_->bytes->whole_new_group &&
+      search_->bytes->members.size()==search_->member_count;
+}
+
+void IndexedSharedBasePreparation::change_reference(std::uint32_t member) {
+  if(!member)return;
+  auto selected=search_->bytes->members[member-1];
+  nominated_base_=std::move(base_);
+  base_=std::move(selected);
+  reference_member_=member;
+}
+
+bool IndexedSharedBasePreparation::price_reference() {
+  if(!can_change_reference() || search_->member_count<2)return false;
+  const auto members=static_cast<std::uint32_t>(search_->member_count);
+  const auto candidates=static_cast<std::uint32_t>(std::bit_width(members+1));
+  auto& progress=pricing_;
+  if(progress.candidate>=candidates)return false;
+  const auto reference=anchor_match::reference_member_at(progress.candidate,candidates,members);
+  const auto peer=progress.peer+(progress.peer>=reference);
+  const auto staged=[&](auto ordinal)->const Bytes& {
+    return ordinal?search_->bytes->members[ordinal-1]:search_->bytes->base;
+  };
+  progress.total+=price_native_group_xor(staged(peer),staged(reference));
+  if(++progress.peer==members) {
+    if(!progress.candidate || progress.total<progress.best) {
+      progress.best=progress.total;
+      progress.selected=reference;
+    }
+    progress.peer=0;
+    progress.total=0;
+    if(++progress.candidate==candidates)change_reference(progress.selected);
+  }
+  return true;
+}
+
 bool IndexedSharedBasePreparation::advance(std::span<const NativeSharedBaseCopyRange> advice,
     const NativeSharedBaseSearchReply* reply) {
   using Phase=NativeSharedBasePhase;
@@ -1220,14 +1260,9 @@ bool IndexedSharedBasePreparation::advance(std::span<const NativeSharedBaseCopyR
   auto& member=members_[position];
   const auto is_base=position==base_index_;
   const bool same_window=reply && search_ && reply->window.payload_==search_->bytes;
-  if(!position && same_window && reply->reference_member && search_->bytes->whole_new_group &&
-      search_->bytes->members.size()==search_->member_count && reply->reference_member<=search_->member_count &&
-      reply->body_method==NativePackedGroupMethod::sparse_xor && reply->packed_bodies.size()==search_->member_count) {
-    auto selected=search_->bytes->members[reply->reference_member-1];
-    nominated_base_=std::move(base_);
-    base_=std::move(selected);
-    reference_member_=reply->reference_member;
-  }
+  if(same_window && can_change_reference() && reply->reference_member<=search_->member_count &&
+      reply->body_method==NativePackedGroupMethod::sparse_xor && reply->packed_bodies.size()==search_->member_count)
+    change_reference(reply->reference_member);
   Bytes owned;
   std::span<const std::byte> bytes=reference_member_?nominated_base_:base_,packed_body{};
   auto body_method=NativePackedGroupMethod::xor_planes;
@@ -1435,6 +1470,12 @@ NativeSharedBaseCommit IndexedSharedBasePreparation::finish(PagedObjectStoreWrit
   }
   current=next;
   result.transaction.sequence=next.sequence;
+  auto reference_index=base_index_;
+  if(reference_member_) {
+    const auto slot=static_cast<std::size_t>(reference_member_-1);
+    reference_index=slot+(slot>=base_index_);
+  }
+  result.reference=members_[reference_index].selected;
   result.applied=true;
   return result;
 }

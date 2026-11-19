@@ -245,6 +245,10 @@ void xor_plane(const XorDifferences& differences,unsigned bit,XorPlane& plane) {
   }
 }
 
+std::size_t sparse_xor_plane_bytes(std::size_t ones) noexcept {
+  return (std::min)({ones+1,xor_tile_bytes-ones+1,xor_plane_bytes});
+}
+
 template<class Plane>
 bool append_sparse_xor_tile(std::vector<std::byte>& frame,std::size_t limit,
     std::size_t tile,unsigned mask,Plane get_plane) {
@@ -262,7 +266,7 @@ bool append_sparse_xor_tile(std::vector<std::byte>& frame,std::size_t limit,
     const bool invert=ones>xor_tile_bytes/2;
     const auto count=invert?xor_tile_bytes-ones:ones;
     const bool compact=count<=sparse_plane_max;
-    const auto bytes=compact?count+1:xor_plane_bytes;
+    const auto bytes=sparse_xor_plane_bytes(ones);
     if(bytes>=bound-frame.size())return false;
     if(!compact) {
       frame.insert(frame.end(),plane.begin(),plane.end());
@@ -585,6 +589,40 @@ std::optional<std::vector<std::byte>> encode_native_group_sparse_xor(std::span<c
   if(frame.size()==header+xor_tiles)return {};
   write_header(frame,NativeGroupMethod::sparse_xor,member,base,base_id,generation,static_cast<std::uint32_t>(xor_tiles));
   return frame;
+}
+
+std::size_t price_native_group_xor(std::span<const std::byte> member,std::span<const std::byte> base) {
+  if(member.size()!=extent || base.size()!=extent)fail();
+  constexpr auto masks=header+xor_tiles;
+  std::size_t dense=masks,sparse=masks;
+  std::array<std::uint64_t,xor_tile_bytes/sizeof(std::uint64_t)> differences;
+  for(std::size_t tile=0;tile<extent;tile+=xor_tile_bytes) {
+    std::uint64_t changed=0;
+    for(std::size_t word=0;word<differences.size();++word) {
+      const auto offset=tile+word*sizeof(std::uint64_t);
+      std::uint64_t a=0,b=0;
+      std::memcpy(&a,member.data()+offset,sizeof(a));
+      std::memcpy(&b,base.data()+offset,sizeof(b));
+      differences[word]=a^b;
+      changed|=differences[word];
+    }
+    if(!changed)continue;
+    changed|=changed>>32;
+    changed|=changed>>16;
+    changed|=changed>>8;
+    auto planes=static_cast<unsigned>(changed&255U);
+    dense+=static_cast<std::size_t>(std::popcount(planes))*xor_plane_bytes;
+    ++sparse; // A changed tile carries a second mask for the sparse planes.
+    while(planes) {
+      const auto plane=0x0101010101010101ULL<<std::countr_zero(planes);
+      std::size_t ones=0;
+      for(const auto word:differences)ones+=static_cast<std::size_t>(std::popcount(word&plane));
+      sparse+=sparse_xor_plane_bytes(ones);
+      planes&=planes-1;
+    }
+    if(dense>=extent && sparse>=extent)return extent;
+  }
+  return dense==masks?header:(std::min)({dense,sparse,extent});
 }
 
 std::optional<std::vector<std::byte>> encode_native_group_delta(std::span<const std::byte> member,

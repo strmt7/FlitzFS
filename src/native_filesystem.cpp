@@ -1638,11 +1638,19 @@ bool NativeFilesystemWriter::advance_shared_base(SharedBaseWork& work,std::span<
     const NativeSharedBaseSearchReply* reply) {
   return shared_base_step(work,advice,reply,0);
 }
+bool NativeFilesystemWriter::price_shared_base_reference(SharedBaseWork& work) {
+  return shared_base_step(work,{},nullptr,0,0,true);
+}
 bool NativeFilesystemWriter::shared_base_step(SharedBaseWork& work,std::span<const NativeSharedBaseCopyRange> advice,
-    const NativeSharedBaseSearchReply* reply,std::size_t search_members,std::size_t retained_extents) {
+    const NativeSharedBaseSearchReply* reply,std::size_t search_members,std::size_t retained_extents,bool price_reference) {
   auto* p=work.impl_.get();
   try {
     check_shared_base(work);
+    if(price_reference) {
+      if(!p->indexed || !p->indexed->price_reference())return false;
+      p->state=p->indexed->progress();
+      return true;
+    }
     if(search_members) {
       if(!p->indexed)return false;
       auto& owner=*impl_->shared_owner;

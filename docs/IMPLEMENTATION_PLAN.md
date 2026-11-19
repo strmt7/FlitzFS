@@ -866,10 +866,22 @@ for all five groups and reduced both compacted images from 3,121,152 to
 2,768,896 bytes. All routes reopened every file byte-for-byte on CPU. Median
 complete times were 0.23–0.24 seconds for CPU, 2.11–2.12 seconds for AMD with
 the sampled reference and 2.57–2.58 seconds for AMD with full-tile pricing.
-CPU remains the default. Compare full-tile pricing on both devices and
-measure retained storage, read amplification and foreground interference
-on naturally related files before using the new route automatically.
+CPU remains the default.
 [Full-tile reference measurements](evidence/amd-full-reference-pricing-2026-11-19.json)
+
+Indexed CPU maintenance now prices complete admitted masked-XOR groups one
+extent pair at a time. The physical-host comparison used three rotations
+of sampled CPU, full-tile CPU and full-tile AMD on each of the two cohorts.
+Both full-tile routes produced the same 2,768,896-byte compacted size.
+Full-tile CPU medians were 226–228 ms and full-tile AMD medians were
+2.56–2.59 seconds. CPU considered five references per group and AMD
+considered two under its launch grant. All 18 trials read back every file
+on CPU. Five published references changed per full-tile trial, and the
+controller now retains the actual selected reference for later reuse.
+Qualification on naturally related files needs equal-depth comparisons,
+read amplification, and measurements during foreground activity. Any
+automatic AMD preference also needs a workload that pays for startup.
+[CPU full-tile measurements](evidence/cpu-full-reference-pricing-2026-11-19.json)
 
 The indexed owner now fills a finite worker exchange across several scan
 windows under live host and exact channel admission. In the related-data

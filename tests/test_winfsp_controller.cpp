@@ -589,6 +589,9 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   if(reference_device)
     require(stats.reference_batches==1 && stats.reselected_groups==families && stats.verified_groups==families,
         "AMD full reference search did not verify each improved group");
+  if(full_reference && !anchor)
+    require(progress.cpu_reference_pairs && progress.reselected_reference_groups==families,
+        "CPU full reference search did not improve each sampled reference");
   const auto maintenance_ns=elapsed_ns(maintenance_start);
 
   const auto verify_start=std::chrono::steady_clock::now();
@@ -628,6 +631,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
       <<" sampled_bias_members="<<sampled_bias_members
       <<" sparse_bodies="<<sparse_bodies<<" delta_bodies="<<delta_bodies
       <<" reference_batches="<<stats.reference_batches<<" reselected_groups="<<stats.reselected_groups
+      <<" cpu_reference_pairs="<<progress.cpu_reference_pairs<<" published_references_changed="<<progress.reselected_reference_groups
       <<" retired=true independent_cpu_readback=true modeled_idle_time=true input_blake3=";
   constexpr char digits[]="0123456789abcdef";
   for(const auto byte:detail::record_digest(file_digests)) {

@@ -181,7 +181,11 @@ void staged_reference_advice(bool whole_group) {
   require(outcomes.front()==(whole_group?Check::verified:Check::invalid) &&
       work.progress().selected_advice_members==(whole_group?grant-1:0),
       "A complete proposal must be checked against the selected base, and an incomplete proposal must use CPU");
-  require(writer.finish_shared_base(work).applied,"CPU-verified reference selection failed to publish");
+  const auto commit=writer.finish_shared_base(work);
+  const auto expected_reference=whole_group?keys[grant-1]:keys.back();
+  require(commit.applied && commit.reference.inode==expected_reference.inode &&
+      commit.reference.extent_index==expected_reference.extent_index,
+      "Published group did not identify its verified logical reference");
   const auto after=writer.snapshot();
   after.verify_all();
   for(unsigned i=0;i<count;++i) {

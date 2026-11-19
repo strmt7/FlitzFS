@@ -179,6 +179,14 @@ void sparse_xor_codec() {
   const auto dense=detail::encode_native_group_xor(member,base,id,17,kNativeExtentBytes);
   require(dense && dense->size()>frame->size() &&
       detail::decode_native_group_member(*dense,base,method)==member,"Capability 7 lost the original XOR format");
+  auto dense_preferred=base;
+  for(std::size_t i=0;i<tile_bytes/2;++i)dense_preferred[i]^=std::byte{1};
+  require(detail::price_native_group_xor(member,base)==expected &&
+      detail::price_native_group_xor(base,member)==expected &&
+      detail::price_native_group_xor(base,base)==header &&
+      detail::price_native_group_xor(dense_preferred,base)==header+tile_bytes+32 &&
+      detail::price_native_group_xor(data(kNativeExtentBytes,715),base)==kNativeExtentBytes,
+      "Reference prices differ from sparse, dense, unchanged or expanding frames");
   const auto body=std::span(*dense).subspan(header);
   const auto converted=detail::check_native_group_xor_body(body,member,base,id,17,expected+1,true);
   require(converted.check==NativePackedGroupCheck::verified && converted.method==method &&
@@ -215,6 +223,8 @@ void sparse_xor_codec() {
   const auto sparse_only=detail::encode_native_group_sparse_xor(all_planes,base,id,17,kNativeExtentBytes);
   require(sparse_only && sparse_only->size()==4736 && detail::decode_native_group_member(*sparse_only,base,method)==all_planes,
       "CPU sparse encoding depended on a dense frame");
+  require(detail::price_native_group_xor(all_planes,base)==sparse_only->size(),
+      "Reference price requires a representable dense frame");
   std::cout<<"sparse_xor_codec dense_bytes="<<dense->size()<<" sparse_bytes="<<frame->size()
       <<" sparse_only_bytes="<<sparse_only->size()<<" malformed_cases=11 byte_exact=true\n";
 }

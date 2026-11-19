@@ -474,11 +474,13 @@ void xor_reference_selection(anchor_search_fixture::IndexedBatchPattern pattern)
   constexpr unsigned count=9,unit=4096;
   const StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
   const NativeImageStorage indexed{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes};
+  const bool full=pattern==Pattern::xor_full_reference;
   std::array<Bytes,count> originals;
   const auto base=data(kNativeExtentBytes,74181);
   for(unsigned i=0;i<count;++i) {
     originals[i]=base;
-    if(pattern==Pattern::xor_sparse_reference)anchor_search_fixture::apply_sparse_reference_variation(originals[i],i,count);
+    if(full)anchor_search_fixture::apply_full_reference_variation(originals[i],base,i,count);
+    else if(pattern==Pattern::xor_sparse_reference)anchor_search_fixture::apply_sparse_reference_variation(originals[i],i,count);
     else if(pattern==Pattern::xor_tile_reference)anchor_search_fixture::apply_tile_reference_variation(originals[i],i,count);
     else anchor_search_fixture::apply_reference_variation(originals[i],i);
   }
@@ -489,7 +491,21 @@ void xor_reference_selection(anchor_search_fixture::IndexedBatchPattern pattern)
     const auto workload=f.session->workload_info();
     if(automatic) {
       NativeGroupMaintenance controller(*f.session);
-      require(f.finish(controller).published_groups==1,"Sampled reference did not publish one group");
+      if(full) {
+        for(unsigned opportunity=0;opportunity<4*count && !controller.progress().cpu_reference_pairs;++opportunity)
+          f.step(controller);
+        require(controller.progress().cpu_reference_pairs==1,"CPU pricing did not start one pair at a time");
+        auto foreground=f.clock.next();
+        foreground.foreground_pending=true;
+        const auto reads=f.image->read_calls,writes=f.image->calls;
+        const auto deferred=controller.advance(foreground,f.clock.now);
+        require(deferred.deferral==Defer::foreground && deferred.cpu_reference_pairs==1 &&
+            f.image->read_calls==reads && f.image->calls==writes,"CPU pricing did not yield to foreground work");
+      }
+      const auto result=f.finish(controller);
+      require(result.published_groups==1,"Automatic reference did not publish one group");
+      if(full)require(result.cpu_reference_pairs==32 && result.reselected_reference_groups==1,
+          "The complete search did not improve the sampled reference");
     }else {
       // Apply the same encoder and publication checks using the first extent.
       std::array<NativeExtentSelection,count> group;
@@ -515,8 +531,8 @@ void xor_reference_selection(anchor_search_fixture::IndexedBatchPattern pattern)
     return packed->extent();
   };
   const auto first=run(false),selected=run(true);
-  require(selected<first,"Sampled reference did not improve the complete image");
-  const auto label=pattern==Pattern::xor_sparse_reference?"xor_sparse_reference":
+  require(selected<first,"Automatic reference did not improve the complete image");
+  const auto label=full?"xor_full_reference":pattern==Pattern::xor_sparse_reference?"xor_sparse_reference":
       pattern==Pattern::xor_tile_reference?"xor_tile_reference":"xor_reference";
   std::cout<<label<<" members="<<count
       <<" first_bytes="<<first<<" selected_bytes="<<selected
@@ -1474,6 +1490,7 @@ int main(int argc,char** argv){try{
     xor_reference_selection(anchor_search_fixture::IndexedBatchPattern::xor_reference);
     xor_reference_selection(anchor_search_fixture::IndexedBatchPattern::xor_tile_reference);
     xor_reference_selection(anchor_search_fixture::IndexedBatchPattern::xor_sparse_reference);
+    xor_reference_selection(anchor_search_fixture::IndexedBatchPattern::xor_full_reference);
     xor_reference_decline_fallback();
   } else if(argc==2 && std::string_view(argv[1])=="--profile-projected-xor") {
     xor_indexed_family(false,true);

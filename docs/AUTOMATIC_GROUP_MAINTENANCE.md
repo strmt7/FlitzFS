@@ -72,6 +72,22 @@ and previously retained representatives keep their priority. The earlier
 candidates remain eligible if an estimated reference declines publication.
 [Sparse reference validation](evidence/sparse-reference-cost-2026-11-19.json)
 
+For a new masked-XOR group, the CPU path can refine its first sampled
+reference after staging the entire group within the current memory grant.
+It prices one pair of extents per admitted maintenance opportunity. The
+reference set includes the sampled choice and evenly spaced alternatives
+in stable member order. Its size grows logarithmically with the group.
+Pricing compares the complete dense and sparse XOR frame sizes, including
+mask and header bytes, without allocating candidate frames. Each member
+is then encoded and independently checked by the writer.
+
+The same preparation accepts a verified AMD proposal when it is available.
+A declined alternate leaves the sampled reference eligible for its own
+transaction. On successful publication, maintenance records the logical
+extent that carries the selected reference so a later group window can
+reuse its immutable base.
+[CPU reference pricing evidence](evidence/cpu-full-reference-pricing-2026-11-19.json)
+
 Band matches are advice only. The existing shared-base encoder independently
 checks content and accepts a publication only when its complete prospective
 compacted upper size is smaller than the old lower size. This includes shared

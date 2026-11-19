@@ -30,6 +30,7 @@ std::optional<std::vector<std::byte>> encode_native_group_xor(std::span<const st
     std::span<const std::byte> base,std::uint64_t base_id,std::uint64_t base_generation,std::size_t exclusive_limit);
 std::optional<std::vector<std::byte>> encode_native_group_sparse_xor(std::span<const std::byte> member,
     std::span<const std::byte> base,std::uint64_t base_id,std::uint64_t base_generation,std::size_t exclusive_limit);
+std::size_t price_native_group_xor(std::span<const std::byte> member,std::span<const std::byte> base);
 std::optional<std::vector<std::byte>> encode_native_group_delta(std::span<const std::byte> member,
     std::span<const std::byte> base,std::uint64_t base_id,std::uint64_t base_generation,std::size_t exclusive_limit);
 struct NativeGroupPackedCandidate {

@@ -155,7 +155,7 @@ struct NativeGroupMaintenance::Impl {
   struct StagedGroup {
     NativeFilesystemWriter::SharedBaseWork work;
     std::vector<std::uint64_t> ids;
-    NativeExtentSelection base;
+    std::optional<Digest> sampled_key;
     std::size_t member_count,search_members;
   };
   using Band=std::pair<unsigned,std::uint64_t>;
@@ -163,7 +163,6 @@ struct NativeGroupMaintenance::Impl {
   std::shared_ptr<const void> reservation;
   NativeMaintenancePolicy policy;NativeMaintenanceProgress state;
   Phase phase=Phase::idle;StoreIdentity image{};NativeExtentSelection cursor{};
-  NativeExtentSelection indexed_work_base{};
   bool first=true,stopped=false;unsigned pending_history=0;
   std::uint64_t scan_sequence=0,completed_sequence=0;
   std::uint64_t checkpoint_samples=0;
@@ -189,6 +188,8 @@ struct NativeGroupMaintenance::Impl {
   std::size_t staged_extents=0,staged_search_members=0;
   std::size_t staged_scan_extents=0;
   bool work_batched=false,batch_draining=false;
+  bool work_sampled_retry=false;
+  std::optional<Digest> work_sampled_key;
   Digest work_key{};std::size_t work_members=0;
   Digest prospective_key{};
   std::vector<std::uint64_t> work_ids;
@@ -208,6 +209,7 @@ struct NativeGroupMaintenance::Impl {
     work.reset();staged_groups.clear();staged_objects.clear();deferred_batch_objects.clear();
     staged_extents=staged_search_members=staged_scan_extents=0;
     work_batched=batch_draining=false;
+    work_sampled_retry=false;work_sampled_key.reset();
     features.clear();buckets.clear();attempted.clear();attempted_order.clear();candidate_order.clear();
     candidate_index=band_offset=0;completed_sequence=0;phase=Phase::idle;state.owned_payload_bytes=0;pending_history=0;work_ids.clear();
     representatives.clear();refresh_base.reset();extent_scan_exhausted=false;
@@ -598,8 +600,9 @@ struct NativeGroupMaintenance::Impl {
       }
     }
     XorReferenceOrder references{representative};
-    if(reusable==ids.end() && prior==ids.end() &&
-        band.first>=kCoherenceMaskedBand && band.first<kCoherenceModularBand)
+    const bool masked_reference=reusable==ids.end() && prior==ids.end() &&
+        band.first>=kCoherenceMaskedBand && band.first<kCoherenceModularBand;
+    if(masked_reference)
       references=choose_xor_reference(expected);
     std::ranges::sort(expected,{},&NativeContentToken::object);
     std::vector<NativeExtentSelection> selected;
@@ -613,22 +616,32 @@ struct NativeGroupMaintenance::Impl {
       key.insert(key.end(),content.begin(),content.end());
     }
     std::size_t choice=0;
+    work_sampled_key.reset();
+    work_sampled_retry=false;
     for(;choice<references.size() && references[choice];++choice) {
       representative=references[choice];
       for(unsigned i=0;i<8;++i)key[8+i]=static_cast<std::byte>(representative>>(8*i));
       work_key=detail::record_digest(key);
-      if(!attempted.contains(work_key))break;
+      if(attempted.contains(work_key))continue;
+      if(!choice && masked_reference && expected.size()>2) {
+        key.front()=std::byte{3};
+        const auto refined=detail::record_digest(key);
+        key.front()=std::byte{2};
+        if(attempted.contains(refined))work_sampled_retry=true;
+        else {work_sampled_key=work_key;work_key=refined;}
+      }
+      break;
     }
     if(choice==references.size() || !references[choice])return;
     // Revisit the bucket when an alternative remains. A successful group
     // removes its members before the next candidate pass.
-    if(choice+1<references.size() && references[choice+1])--candidate_index;
+    if(work_sampled_key || (choice+1<references.size() && references[choice+1]))--candidate_index;
     work_ids.clear();work_ids.reserve(expected.size());
     for(const auto& token:expected)work_ids.push_back(token.object);
     const auto base=indexed_feature(representative).token.extent;
     remember(work_key);
     work.emplace(writer.prepare_shared_base(base,selected,expected,collect_batch));
-    indexed_work_base=base;work_members=expected.size();work_batched=collect_batch;
+    work_members=expected.size();work_batched=collect_batch;
     ++state.attempted_groups;phase=Phase::preparing;
   }
   void step_indexed(NativeFilesystemWriter& writer,std::size_t maximum_members,
@@ -689,6 +702,13 @@ struct NativeGroupMaintenance::Impl {
     checkpoint_due=!checkpoint_unavailable && !first && samples &&
         (phase==Phase::idle || samples>=checkpoint_window_samples);
   }
+  bool refine_reference(NativeFilesystemWriter& writer,std::size_t maximum_members) {
+    if(!work_sampled_key)return false;
+    if(writer.stage_shared_base_search(*work,work_members-1,maximum_members))return true;
+    if(!writer.price_shared_base_reference(*work))return false;
+    ++state.cpu_reference_pairs;
+    return true;
+  }
   void step(NativeFilesystemWriter& writer,std::size_t maximum_members,std::size_t maximum_representatives,
       NativeGroupSearchOpportunity search,detail::NativeMaintenanceSource& owner) {
     const bool can_batch=search.collect_batch && writer.maintenance_indexed();
@@ -717,7 +737,8 @@ struct NativeGroupMaintenance::Impl {
         auto& next=staged_groups.front();
         work.emplace(std::move(next.work));
         for(const auto id:next.ids)staged_objects.erase(id);
-        work_ids=std::move(next.ids);indexed_work_base=next.base;
+        work_ids=std::move(next.ids);
+        work_sampled_key=std::move(next.sampled_key);work_sampled_retry=false;
         work_members=next.member_count;work_batched=true;
         staged_extents-=next.member_count;staged_search_members-=next.search_members;
         staged_groups.pop_front();
@@ -730,8 +751,9 @@ struct NativeGroupMaintenance::Impl {
         auto grant=(std::min)(search.maximum_members,maximum_members);
         if(work_batched)grant=!batch_draining && grant>staged_search_members?
             (std::min)(grant-staged_search_members,work_members-1):0;
+        if(work_sampled_retry)grant=0;
         const auto window=work->search_window();
-        const auto* reply=search.reply;
+        const auto* reply=work_sampled_retry?nullptr:search.reply;
         if(window && !search.replies.empty()) {
           const auto found=std::ranges::find(search.replies,window,&NativeSharedBaseSearchReply::window);
           if(found!=search.replies.end())reply=&*found;
@@ -741,22 +763,27 @@ struct NativeGroupMaintenance::Impl {
           if(completed && work_batched) {
             const auto searched=completed.members().size();
             staged_objects.insert(work_ids.begin(),work_ids.end());
-            staged_groups.push_back({std::move(*work),std::move(work_ids),indexed_work_base,work_members,searched});
+            staged_groups.push_back({std::move(*work),std::move(work_ids),work_sampled_key,work_members,searched});
             staged_extents+=work_members;staged_search_members+=searched;
             work.reset();phase=Phase::candidates;
             if(staged_search_members==search.maximum_members || maximum_members-staged_extents<2)emit_batch();
           } else state.search_window_ready=static_cast<bool>(completed);
-        } else if(writer.advance_shared_base(*work,{},reply))
+        } else if((reply || !refine_reference(writer,maximum_members)) && writer.advance_shared_base(*work,{},reply))
           phase=Phase::publishing;
       } else if(writer.maintenance_indexed()) {
         const auto previous_end=writer.maintenance_physical_end();
+        const auto reselected=work->progress().reference_changed;
         const auto result=writer.finish_shared_base(*work);
         if(result.applied) {
           account_group(result,previous_end);
           state.advised_members_published=add(state.advised_members_published,work->progress().selected_advice_members);
+          if(reselected)++state.reselected_reference_groups;
           for(const auto id:work_ids){features.erase(id);representatives.erase(id);}
-          refresh_base=indexed_work_base;
-        } else ++state.declined_groups;
+          refresh_base=result.reference;
+        } else {
+          if(work_sampled_key && !reselected)remember(*work_sampled_key);
+          ++state.declined_groups;
+        }
         work.reset();work_ids.clear();phase=Phase::candidates;
       } else {
         const auto before_end=writer.maintenance_physical_end();

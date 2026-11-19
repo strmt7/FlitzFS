@@ -205,6 +205,7 @@ struct NativeSharedBaseCommit {
   bool applied=false;
   std::uint64_t before_compacted_lower_bound=0,after_compacted_upper_bound=0;
   std::size_t members=0;
+  NativeExtentSelection reference{}; // Logical member carrying the published indexed base.
 };
 enum class NativeSharedBasePhase {reading_base,encoding_members,ready,declined,completed,cancelled,failed};
 struct NativeSharedBaseProgress {
@@ -212,6 +213,7 @@ struct NativeSharedBaseProgress {
   std::size_t completed_members=0,total_members=0;
   std::uint64_t owned_payload_bytes=0;
   std::size_t selected_advice_members=0;
+  bool reference_changed=false;
 };
 
 struct NativeInodeWriteCommit {
@@ -595,6 +597,7 @@ class NativeFilesystemWriter final {
   SharedBaseWork prepare_shared_base(NativeExtentSelection,std::span<const NativeExtentSelection>,
       std::span<const NativeContentToken>,bool batch=false);
   bool stage_shared_base_search(SharedBaseWork&,std::size_t maximum_members,std::size_t retained_extents);
+  bool price_shared_base_reference(SharedBaseWork&);
 
   using Recompression=ObjectStoreWriter::Rewrite;
   Recompression prepare_recompression(std::shared_ptr<StoreByteIo>,StoreIdentity,
@@ -609,7 +612,7 @@ class NativeFilesystemWriter final {
   struct Impl;
   void check_shared_base(SharedBaseWork&) const;
   bool shared_base_step(SharedBaseWork&,std::span<const NativeSharedBaseCopyRange>,
-      const NativeSharedBaseSearchReply*,std::size_t search_members,std::size_t retained_extents=0);
+      const NativeSharedBaseSearchReply*,std::size_t search_members,std::size_t retained_extents=0,bool price_reference=false);
   Impl& checked_impl() const;
   detail::NativeObjectSnapshot checked_namespace() const;
   NativePathLookup inspect_path_lookup(std::string_view path) const;
