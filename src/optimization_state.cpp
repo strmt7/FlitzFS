@@ -16,7 +16,8 @@ using Bytes=std::vector<std::byte>;
 constexpr std::size_t digest_at=kStoreCommitUnit-32,profile_at=64,benchmark_at=64+32*64;
 constexpr std::size_t scan_at=benchmark_at+kOptimizationMaxBenchmarks*32,feature_at=scan_at+64;
 constexpr auto feature_size=detail::kOptimizationGroupFeatureBytes;
-constexpr std::array slot_magic{"FLTOP001","FLTOP002","FLTOP003","FLTOP004"};
+constexpr std::size_t projection_size=8+8*kOptimizationXorProjections;
+constexpr std::array slot_magic{"FLTOP001","FLTOP002","FLTOP003","FLTOP004","FLTOP005"};
 constexpr std::size_t legacy_scan_capacity=63;
 static_assert(kOptimizationGroupRepresentatives==(digest_at-feature_at)/feature_size);
 [[noreturn]] void fail(const char* text){throw std::runtime_error(text);}
@@ -35,7 +36,15 @@ bool extent_coordinate(std::uint64_t inode,std::uint64_t block) noexcept {
 }
 bool valid_scan(const OptimizationGroupScan& scan) noexcept {
   if(scan.image==StoreIdentity{} || !scan.namespace_sequence || !extent_coordinate(scan.inode,scan.extent_index) ||
-      (scan.complete&&scan.revisit) || scan.representatives.size()>kOptimizationGroupRepresentatives)return false;
+      (scan.complete&&scan.revisit) || scan.representatives.size()>kOptimizationGroupRepresentatives ||
+      (!scan.xor_sampling && !scan.projections.empty()) ||
+      scan.projections.size()>detail::optimization_group_projection_capacity(scan.representatives.size()))return false;
+  std::size_t next_representative=0;
+  for(const auto& projection:scan.projections) {
+    if(projection.representative<next_representative ||
+        projection.representative>=scan.representatives.size())return false;
+    next_representative=projection.representative+1;
+  }
   auto previous=detail::kNativeIndexedDataObject;
   for(const auto& item:scan.representatives) {
     if(item.object<=previous || !detail::valid_optimization_group_feature(item))return false;
@@ -49,24 +58,36 @@ void encode_scan(Bytes& b,const OptimizationGroupScan& scan) {
   put(b,scan_at+24,scan.inode);
   put(b,scan_at+32,scan.extent_index);
   put(b,scan_at+40,(scan.complete?1U:0U)|(scan.revisit?2U:0U),4);
-  put(b,scan_at+44,1,4); // Aligned and shifted feature schema.
+  put(b,scan_at+44,scan.xor_sampling?2:1,4);
   put(b,scan_at+48,scan.representatives.size(),4);
+  put(b,scan_at+52,scan.projections.size(),4);
   for(std::size_t i=0;i<scan.representatives.size();++i) {
     const auto offset=feature_at+i*feature_size;
     detail::encode_optimization_group_feature(
         std::span<std::byte,feature_size>(b.data()+offset,feature_size),scan.representatives[i]);
   }
+  auto offset=feature_at+scan.representatives.size()*feature_size;
+  for(const auto& projection:scan.projections) {
+    put(b,offset,projection.representative,4);
+    for(std::size_t i=0;i<projection.signatures.size();++i)
+      put(b,offset+8+8*i,projection.signatures[i]);
+    offset+=projection_size;
+  }
 }
-std::optional<OptimizationGroupScan> decode_scan(std::span<const std::byte> b,std::size_t capacity) {
-  const auto flags=get(b,scan_at+40,4),count=get(b,scan_at+48,4);
-  if(flags>2 || get(b,scan_at+44,4)!=1 || count>capacity ||
-      !zeros(b.subspan(scan_at+52,12)))return {};
-  const auto end=feature_at+static_cast<std::size_t>(count)*feature_size;
+std::optional<OptimizationGroupScan> decode_scan(std::span<const std::byte> b,std::uint64_t version) {
+  const auto flags=get(b,scan_at+40,4),count=get(b,scan_at+48,4),projections=get(b,scan_at+52,4);
+  const bool xor_sampling=version==5;
+  const auto capacity=version==3?legacy_scan_capacity:kOptimizationGroupRepresentatives;
+  if(flags>2 || get(b,scan_at+44,4)!=(xor_sampling?2U:1U) || count>capacity ||
+      (!xor_sampling && projections) || !zeros(b.subspan(scan_at+56,8)) ||
+      projections>detail::optimization_group_projection_capacity(static_cast<std::size_t>(count)))return {};
+  const auto projection_at=feature_at+static_cast<std::size_t>(count)*feature_size;
+  const auto end=projection_at+static_cast<std::size_t>(projections)*projection_size;
   if(!zeros(b.subspan(end,digest_at-end)))return {};
   OptimizationGroupScan scan;
   std::copy_n(b.begin()+scan_at,16,scan.image.begin());
   scan.namespace_sequence=get(b,scan_at+16);scan.inode=get(b,scan_at+24);scan.extent_index=get(b,scan_at+32);
-  scan.complete=flags==1;scan.revisit=flags==2;
+  scan.complete=flags==1;scan.revisit=flags==2;scan.xor_sampling=xor_sampling;
   scan.representatives.reserve(static_cast<std::size_t>(count));
   for(std::size_t i=0;i<count;++i) {
     const auto offset=feature_at+i*feature_size;
@@ -74,6 +95,15 @@ std::optional<OptimizationGroupScan> decode_scan(std::span<const std::byte> b,st
         std::span<const std::byte,feature_size>(b.data()+offset,feature_size));
     if(!item)return {};
     scan.representatives.push_back(*item);
+  }
+  scan.projections.reserve(static_cast<std::size_t>(projections));
+  for(auto offset=projection_at;offset<end;offset+=projection_size) {
+    if(!zeros(b.subspan(offset+4,4)))return {};
+    OptimizationGroupProjection projection;
+    projection.representative=static_cast<std::uint32_t>(get(b,offset,4));
+    for(std::size_t i=0;i<projection.signatures.size();++i)
+      projection.signatures[i]=get(b,offset+8+8*i);
+    scan.projections.push_back(projection);
   }
   if(!valid_scan(scan))return {};
   return scan;
@@ -100,7 +130,8 @@ Bytes encode(const OptimizationSnapshot& snapshot,unsigned slot) {
   Bytes b(kStoreCommitUnit);
   const bool budgeted=snapshot.state.settled_input_bytes.has_value();
   const auto& scan=snapshot.state.group_scan;
-  const unsigned version=scan?(scan->representatives.size()>legacy_scan_capacity?4:3):budgeted?2:1;
+  unsigned version=budgeted?2:1;
+  if(scan)version=scan->xor_sampling?5:(scan->representatives.size()>legacy_scan_capacity?4:3);
   std::memcpy(b.data(),slot_magic[version-1],8);
   put(b,8,version,4);put(b,12,slot,4);put(b,16,snapshot.sequence);
   if(budgeted){put(b,52,1,4);put(b,56,*snapshot.state.settled_input_bytes);}
@@ -157,7 +188,7 @@ Slot decode(std::span<const std::byte> b,unsigned slot,StoreIdentity volume) {
     v.backend=static_cast<std::uint32_t>(get(b,at+20,4));v.elapsed_ns=get(b,at+24);out.state.benchmarks.push_back(v);
   }
   if(version>=3) {
-    out.state.group_scan=decode_scan(b,version==3?legacy_scan_capacity:kOptimizationGroupRepresentatives);
+    out.state.group_scan=decode_scan(b,version);
     if(!out.state.group_scan)return {SlotCode::invalid,{}};
   } else if(!zeros(b.subspan(scan_at,digest_at-scan_at)))return {SlotCode::invalid,{}};
   if(!valid(out.state))return {SlotCode::invalid,{}};
@@ -199,6 +230,10 @@ Loaded load(const StoreByteIo& io,StoreIdentity volume) {
 void contract(const StoreByteIo& io) {
   require(valid_store_io_contract(io.contract()),"optimization area needs qualified persistence/failure units");
 }
+}
+std::size_t detail::optimization_group_projection_capacity(std::size_t representatives) noexcept {
+  if(representatives>kOptimizationGroupRepresentatives)return 0;
+  return (std::min)(representatives,(digest_at-feature_at-representatives*feature_size)/projection_size);
 }
 bool detail::valid_optimization_group_feature(const OptimizationGroupFeature& feature) noexcept {
   return feature.object>kNativeIndexedDataObject && feature.object<2*kNativeIndexedDataObject &&

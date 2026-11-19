@@ -1,0 +1,307 @@
+{
+  "schema": "flitzfs-masked-xor-discovery-v1",
+  "captured_local": "2026-11-19T13:03:09+01:00",
+  "source_base": "eb852102f882027421b2ae7e295b5e503b5bd3cd",
+  "source_binding": [
+    {
+      "path": "include/flitzfs/optimization_state.hpp",
+      "git_blob": "1ad65dfe2d21feb10f30e10c975f50c4ae9afdb1"
+    },
+    {
+      "path": "src/native_maintenance.cpp",
+      "git_blob": "d7e9cc226020f7e7949912aa77f0ea0098d1c36b"
+    },
+    {
+      "path": "src/optimization_feature_wire.hpp",
+      "git_blob": "1930e744fe5e9ee801b26ceceb583f56857bf308"
+    },
+    {
+      "path": "src/optimization_state.cpp",
+      "git_blob": "94273f6c4dd80f46af5465cc357f85b3b0e878f4"
+    },
+    {
+      "path": "tests/test_native_group_maintenance.cpp",
+      "git_blob": "73590707ac2d8edd30c92879150ffe7e3a2e395e"
+    },
+    {
+      "path": "tests/test_optimization_state.cpp",
+      "git_blob": "436b3808c0921ac2275aa34306e5a5b1e2cce6ae"
+    }
+  ],
+  "semantic": {
+    "provider_version": "0.2.43",
+    "source_files": 10,
+    "actual_searches": 1,
+    "base_dirty_patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "receipt_sha256": "666cc8b85d4c851d84cd508da765de58f22fa5bbcfd40c7fe699e3f501800a29",
+    "native_response_sha256": "84d7d7dd14f57c59b549ebc2f36b5d20ab4eec738454c98b7bd4b7a26178bcfb",
+    "completed": {
+      "run": "local-run-ec50b8f243e1494888fab2fcd6f32971",
+      "receipt_sha256": "26163504a95ccb6d813c616bf610a3d7e19c23a38be201ac30d09cfe7a990d3d",
+      "log_sha256": "f79034df7af0a3c8c093283aa23961771b85b2f6c6a5d351aa2c0058a1c4f65f",
+      "exit_code": 0,
+      "memory_envelope_bytes": 1528823808,
+      "peak_job_bytes": 1140502528,
+      "cpu_percent": 15,
+      "exit_confirmed": true,
+      "tree_retired": true
+    },
+    "constrained_index_attempts": [
+      {
+        "outcome": "Index command failed with Win32 1455 near the job limit",
+        "job": {
+          "run": "local-run-7447843fc0a745c6a8e11c5efbfa45fd",
+          "receipt_sha256": "21dc07234deab912546b2d87bd13756bdb5b20ccb360017adf287a940a4dbae1",
+          "log_sha256": "79b5aea2efcad325ec52a786a2b5fb74318c9c0ff22cb9d53fe68fd284f50b3a",
+          "exit_code": 1,
+          "memory_envelope_bytes": 546308096,
+          "peak_job_bytes": 551432192,
+          "cpu_percent": 16,
+          "exit_confirmed": true,
+          "tree_retired": true
+        }
+      },
+      {
+        "outcome": "Index did not complete its chunks near the job limit",
+        "job": {
+          "run": "local-run-f08614a8f70545bebc575f4e31878971",
+          "receipt_sha256": "e28292e773299729ac142ce79b5ccb1e8859e870843150f4405b87bc878643a1",
+          "log_sha256": "342455edb79ab0e4972521c326728c16c43bc7bc4d3a8a7df29c3320a37aa179",
+          "exit_code": 1,
+          "memory_envelope_bytes": 961544192,
+          "peak_job_bytes": 981090304,
+          "cpu_percent": 15,
+          "exit_confirmed": true,
+          "tree_retired": true
+        }
+      }
+    ]
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "31eb60d8aff9a0abcb356ee1515f58657f361f044b023acbc77bb0c9ffbd5e5d",
+    "provider_entry_sha256": "e84a0e54ee07e4e13d3d2f35491f641730096a78126068f232c1f2397a467d8c",
+    "timeout_seconds": 45,
+    "robots": true,
+    "external_llm": false,
+    "native_pages": [
+      {
+        "name": "rubikfs",
+        "url": "https://www.usenix.org/conference/fast26/presentation/huang",
+        "http_status": 200,
+        "final_http_status": 200,
+        "native_success": true,
+        "markdown_bytes": 10395,
+        "markdown_sha256": "b271b38f1feb88acd780ae11d756c7f3723fecb288cfe5e7803fed9c5d93767d",
+        "capture_sha256": "588ff3231e4df2552573613622603ac6d4725f118129b24ace3790ac34488190",
+        "error": ""
+      },
+      {
+        "name": "zipllm",
+        "url": "https://www.usenix.org/conference/nsdi26/presentation/wang-zirui",
+        "http_status": 200,
+        "final_http_status": 200,
+        "native_success": true,
+        "markdown_bytes": 9804,
+        "markdown_sha256": "130eb91378604ebacf1d676184608e3efff8b2f5b0dc03b971bfd011678b2906",
+        "capture_sha256": "5f1565eebf70304530faec97a8d9e33340ee8001d9b5c48a783cd2eb9a1f1ec0",
+        "error": ""
+      }
+    ],
+    "inference": "Probe related byte streams for shared structure after masking reversible bit-plane variation."
+  },
+  "matched_size": {
+    "platform": "Physical Windows 11 AMD64 development host, CPU maintenance, memory-backed fixture",
+    "command_argument": "--profile-projected-xor",
+    "fixture": "Nine 64 KiB files. Eight variants change both middle bit planes throughout, with raw ingest and identical compacting settings.",
+    "logical_bytes": 589824,
+    "previous": {
+      "production_source": "eb852102f882027421b2ae7e295b5e503b5bd3cd",
+      "test_binding": "The same deterministic profile fixture was compiled against the prior production source before implementing masked discovery.",
+      "binary_sha256": "32571607f0ac0360e5b67cb3f7f9e6742f26febedcecec2c72df9206b44a4864",
+      "build": {
+        "run": "local-run-815dc30a8c984f5e95d5891a753213a3",
+        "receipt_sha256": "ca2f2d4d32328ee3f417877c52f466d1ae3d9bf18aebe4e1be3147149868c436",
+        "log_sha256": "0eb162ff652e9df9870740f03015643825a88eface3f54614005045ce13042e0",
+        "exit_code": 0,
+        "memory_envelope_bytes": 1280311296,
+        "peak_job_bytes": 456830976,
+        "cpu_percent": 22,
+        "exit_confirmed": true,
+        "tree_retired": true
+      },
+      "test": {
+        "run": "local-run-81c90556d5ce43e9acc50aba66aa9f75",
+        "receipt_sha256": "8fe15330eae1aa42faef0fe2708f65236f031ff002cd8057a7cf35c8fa6e26ab",
+        "log_sha256": "85eef1f36052feb3c4d116b45326e2c8dcc79f37d707a1680f31c63389c4400b",
+        "exit_code": 0,
+        "memory_envelope_bytes": 270532608,
+        "peak_job_bytes": 17498112,
+        "cpu_percent": 16,
+        "exit_confirmed": true,
+        "tree_retired": true
+      },
+      "compacted_bytes": 1335296,
+      "selected_groups": 0
+    },
+    "projected": {
+      "binary_sha256": "fddb7ce2dbeb2c0ed7fd23fd2dcdafd5a18890236fcc131b13e826fcc7270435",
+      "test": {
+        "run": "local-run-347bdad3f9784a7db088f119a0b527a9",
+        "receipt_sha256": "a95f168f92f1bb57e03b62392f16c3da7d9cf6b5514fb8a2648eb129d211b4fd",
+        "log_sha256": "6f5ed51dca91ea876b7f5f9cefdb0c577fa0d345c9148be73d4d38f8a8cab0da",
+        "exit_code": 0,
+        "memory_envelope_bytes": 329252864,
+        "peak_job_bytes": 16023552,
+        "cpu_percent": 16,
+        "exit_confirmed": true,
+        "tree_retired": true
+      },
+      "compacted_bytes": 557056,
+      "selected_groups": 1,
+      "grouped_members": 9
+    },
+    "compacted_bytes_saved": 778240,
+    "compacted_percent_reduction": 58.28,
+    "cpu_reopen_verified": true,
+    "prior_snapshot_exact": true
+  },
+  "qualification": {
+    "codec_release": {
+      "codecs": [
+        "LZ4",
+        "Zstandard"
+      ],
+      "ctest_passed": 13,
+      "build": {
+        "run": "local-run-7659cf8ae9fd4e8a9af3addfecb18d84",
+        "receipt_sha256": "6abfe108dd5bf2c94c76b827bb7b9d5f34555a57afb533226093c08468c693d9",
+        "log_sha256": "1e0c20bf72a3ff70e33a831041aaae5fc74c61a7880e4aca2e242deddcf6f477",
+        "exit_code": 0,
+        "memory_envelope_bytes": 747634688,
+        "peak_job_bytes": 421470208,
+        "cpu_percent": 16,
+        "exit_confirmed": true,
+        "tree_retired": true
+      },
+      "tests": {
+        "run": "local-run-77dfd9bafa504ba9a9103b186481e08c",
+        "receipt_sha256": "4311cf781c108603df055329ce6a489cb96b1e32f4bc4e6e83bf0acbd465d7a2",
+        "log_sha256": "f8946f2b5e2e4f389500a3513d261ae82495f8483f248772b3f29119d4542cc9",
+        "exit_code": 0,
+        "memory_envelope_bytes": 753926144,
+        "peak_job_bytes": 171655168,
+        "cpu_percent": 13,
+        "exit_confirmed": true,
+        "tree_retired": true
+      }
+    },
+    "raw_release": {
+      "ctest_passed": 13,
+      "build": {
+        "run": "local-run-27c75a6f4dea4ee089ba89a8029de533",
+        "receipt_sha256": "10a9ad3c85407ce5fd2cacc4fbadc202ad5dbe5b03a50ccee56f7c5256f62bf2",
+        "log_sha256": "78bde367592b46050373c59794dd28570614690a8dd68658ec589ee0f182b3d1",
+        "exit_code": 0,
+        "memory_envelope_bytes": 747634688,
+        "peak_job_bytes": 392663040,
+        "cpu_percent": 16,
+        "exit_confirmed": true,
+        "tree_retired": true
+      },
+      "tests": {
+        "run": "local-run-2a1ba261a6ef4ab2b32631e77d498682",
+        "receipt_sha256": "f733656464341b0d01a1b985986ec11dee64aebc6038a2916e9f2cedeefd5c07",
+        "log_sha256": "89388b268d6505ed4a837ede2d3fe97e22db19de9905882831da9db4ae3abced",
+        "exit_code": 0,
+        "memory_envelope_bytes": 753926144,
+        "peak_job_bytes": 171958272,
+        "cpu_percent": 13,
+        "exit_confirmed": true,
+        "tree_retired": true
+      }
+    },
+    "address_sanitizer": {
+      "codecs": [
+        "LZ4"
+      ],
+      "smaller_envelope": {
+        "outcome": "MSBuild ran out of memory under the initial job envelope",
+        "job": {
+          "run": "local-run-9fbd2345f6db445595a438dbb03e707d",
+          "receipt_sha256": "014c40fe5119eb4e7008a45969eeb6571b22dfbbefa8c9d5d4db4a85e9ab4074",
+          "log_sha256": "47528f3aa5ffe5c2903c08827ce996e480e9f504d439927b9bfdac048347ab0e",
+          "exit_code": 1,
+          "memory_envelope_bytes": 418381824,
+          "peak_job_bytes": 418435072,
+          "cpu_percent": 12,
+          "exit_confirmed": true,
+          "tree_retired": true
+        }
+      },
+      "configure": {
+        "run": "local-run-394cadc6f7b24d46ab19649fe9ce1fb7",
+        "receipt_sha256": "6f3bb90282962fb83e988fed2f2c579e7d92a6aafd1cf69863d76c6e759131fa",
+        "log_sha256": "a1cf49e31da02d06e9971ddbe64fa915235f97f4cbe2fd20894cbd16916b02ff",
+        "exit_code": 0,
+        "memory_envelope_bytes": 1875902464,
+        "peak_job_bytes": 26746880,
+        "cpu_percent": 14,
+        "exit_confirmed": true,
+        "tree_retired": true
+      },
+      "build": {
+        "run": "local-run-699c0d6352ac4f16a5e0fb5bfea185ad",
+        "receipt_sha256": "083424a84fba14e0aff0590d4c0a98360edf509448e1f9acb5875634fc3fcee4",
+        "log_sha256": "d13bc829a6a31f0091cb277a5f5feafe702643c7a950dd25c2b17c764501fed7",
+        "exit_code": 0,
+        "memory_envelope_bytes": 1907359744,
+        "peak_job_bytes": 601419776,
+        "cpu_percent": 14,
+        "exit_confirmed": true,
+        "tree_retired": true
+      },
+      "tests": {
+        "run": "local-run-6dcf5ece430a4c1bb04058658b9cb488",
+        "receipt_sha256": "b03e8ca6b24413ada72b4acace94800ad6c519de2e14c788e26c277029c10a50",
+        "log_sha256": "cc7aa6273eab03747c4d15ac908d55ecb25f8c2aeddff666693e86de507a8e40",
+        "exit_code": 0,
+        "memory_envelope_bytes": 2373976064,
+        "peak_job_bytes": 856039424,
+        "cpu_percent": 16,
+        "exit_confirmed": true,
+        "tree_retired": true
+      },
+      "ctest_passed": 13,
+      "staged_runtime_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed",
+      "runtime_preflight": true,
+      "staging_regression": true,
+      "winfsp_sdk_memory_tests": true
+    },
+    "advisory": {
+      "slot_versions_verified": [
+        3,
+        4,
+        5
+      ],
+      "rejects": [
+        "Oversized representative and projection counts",
+        "Repeated or out-of-range representative index",
+        "Nonzero row padding or slot tail"
+      ],
+      "torn_peer_recovers_prior": true,
+      "persistence_area_bytes": 131072,
+      "projected_restart_representatives": 126,
+      "new_samples_to_find_match": 1,
+      "verified_feature_reuses": 125,
+      "compacted_bytes_saved_after_restart": 98304,
+      "data_format_change": false
+    }
+  },
+  "limits": [
+    "Synthetic raw-ingest size comparison on one host. Heterogeneous data and access performance remain unqualified.",
+    "Each new signature masks one adjacent pair of bit positions. Candidate recall depends on the workload and retained sample coverage.",
+    "Projected keys persist in the existing advisory pair. The paged catalog uses legacy matching keys.",
+    "This evidence covers CPU maintenance and SDK callbacks. GPU routing, a mounted volume and physical power-loss behavior were outside this round."
+  ]
+}

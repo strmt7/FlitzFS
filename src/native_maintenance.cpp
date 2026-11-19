@@ -2,6 +2,7 @@
 #include "flitzfs/native_session.hpp"
 #include "native_group_codec.hpp"
 #include "native_maintenance_source.hpp"
+#include "optimization_feature_wire.hpp"
 #include "record_digest.hpp"
 #include <algorithm>
 #include <array>
@@ -18,7 +19,7 @@ constexpr unsigned positional_bands=8;
 static_assert(kOptimizationGroupBands==positional_bands+detail::kNativeGroupShiftFeatures);
 // Charge extra history for its retained entry, bucket membership, and the
 // overlapping controller, publisher and verifier copies of checkpoint rows.
-constexpr auto representative_scratch=8*sizeof(OptimizationGroupFeature);
+constexpr auto representative_scratch=8*(sizeof(OptimizationGroupFeature)+sizeof(OptimizationGroupProjection));
 static_assert(kOptimizationGroupRepresentatives>kNativeMaxDirtyExtents);
 struct GroupMemoryBudget {std::size_t members=0,representatives=0;};
 GroupMemoryBudget group_memory_budget(const detail::MaintenanceResources& resources,bool indexed) noexcept {
@@ -41,6 +42,21 @@ std::uint64_t add(std::uint64_t a,std::uint64_t b) noexcept {
 }
 std::uint64_t word(std::span<const std::byte> bytes) noexcept {
   std::uint64_t result=0;for(unsigned i=0;i<8;++i)result|=std::uint64_t(std::to_integer<unsigned>(bytes[i]))<<(8*i);return result;
+}
+OptimizationXorSignatures sample_xor_signatures(std::span<const std::byte> extent) {
+  constexpr std::size_t samples=16,sample_bytes=64;
+  constexpr auto spacing=kNativeExtentBytes/samples;
+  std::array<std::byte,samples*sample_bytes> sampled{},masked{};
+  for(std::size_t i=0;i<samples;++i)
+    std::ranges::copy(extent.subspan(i*spacing,sample_bytes),sampled.begin()+i*sample_bytes);
+  OptimizationXorSignatures signatures{};
+  for(unsigned pair=0;pair<signatures.size();++pair) {
+    const auto keep=static_cast<std::byte>(255U^(3U<<(pair*2)));
+    std::ranges::transform(sampled,masked.begin(),[keep](auto value){return value&keep;});
+    if(std::ranges::any_of(masked,[first=masked.front()](auto value){return value!=first;}))
+      signatures[pair]=word(detail::record_digest(masked));
+  }
+  return signatures;
 }
 bool usable_indexed_band(unsigned band,std::uint64_t fingerprint) {
   if(band>=positional_bands)return fingerprint!=0;
@@ -78,7 +94,9 @@ struct NativeGroupMaintenance::Impl {
   struct Feature {
     NativeContentToken token;
     Digest content{};
-    std::array<std::uint64_t,positional_bands+detail::kNativeGroupShiftFeatures> bands{};
+    std::array<std::uint64_t,kOptimizationGroupBands> bands{};
+    OptimizationXorSignatures projections{};
+    bool projected=false;
   };
   struct StagedGroup {
     NativeFilesystemWriter::SharedBaseWork work;
@@ -196,18 +214,26 @@ struct NativeGroupMaintenance::Impl {
     const auto saved=owner.restore_scan();
     if(!saved || saved->image!=image || saved->namespace_sequence>writer.maintenance_sequence())return false;
     const bool same=saved->namespace_sequence==writer.maintenance_sequence();
-    const bool complete=saved->complete && same && !new_catalog;
+    const bool complete=saved->complete && same && !new_catalog && saved->xor_sampling;
     begin_scan(writer);
     if(!saved->complete || complete) {
-      scan_revisit=saved->revisit || !same || new_catalog;
+      scan_revisit=saved->revisit || !same || new_catalog || !saved->xor_sampling;
       cursor={saved->inode,saved->extent_index};first=false;
     }
     // Same-image records can span unrelated commits. The live extent binding
     // must still match before any representative is reused or selected.
-    for(const auto& item:saved->representatives) {
+    auto projection=saved->projections.begin();
+    for(std::size_t row=0;row<saved->representatives.size();++row) {
+      const auto& item=saved->representatives[row];
       const NativeContentToken token{{item.inode,item.extent_index},item.object,item.revision,item.revision,
           item.exact_base,item.exact_base};
-      representatives.emplace(item.object,Feature{token,item.content,item.bands});
+      Feature feature{token,item.content,item.bands};
+      if(projection!=saved->projections.end() && projection->representative==row) {
+        feature.projections=projection->signatures;
+        feature.projected=true;
+        ++projection;
+      }
+      representatives.emplace(item.object,std::move(feature));
       trim_representatives(maximum_representatives);
     }
     if(complete){completed_sequence=scan_sequence;phase=Phase::idle;}
@@ -227,12 +253,27 @@ struct NativeGroupMaintenance::Impl {
       scan.inode=cursor.inode;scan.extent_index=cursor.extent_index;
       scan.revisit=scan_revisit || scan_sequence!=writer.maintenance_content_sequence();
       scan.complete=phase==Phase::idle&&!scan.revisit;
+      scan.xor_sampling=true;
       scan.representatives.reserve(representatives.size());
       for(const auto& [id,feature]:representatives) {
         const auto& token=feature.token;
         scan.representatives.push_back({token.extent.inode,token.extent.extent_index,
             id,token.revision,feature.content,feature.bands,token.exact_base});
       }
+      const auto projection_capacity=detail::optimization_group_projection_capacity(scan.representatives.size());
+      scan.projections.reserve(projection_capacity);
+      // Prefer reusable anchors when the fixed slot has limited optional space.
+      for(const bool anchor:{true,false}) {
+        std::uint32_t row=0;
+        for(const auto& [id,feature]:representatives) {
+          (void)id;
+          if(scan.projections.size()==projection_capacity)break;
+          if(feature.projected && feature.token.exact_base==anchor)
+            scan.projections.push_back({row,feature.projections});
+          ++row;
+        }
+      }
+      std::ranges::sort(scan.projections,{},&OptimizationGroupProjection::representative);
       if(owner.publish_scan(std::move(scan))) {
         ++state.checkpoints_published;
         checkpoint_samples=state.sampled_extents;
@@ -255,25 +296,33 @@ struct NativeGroupMaintenance::Impl {
     if(writer.maintenance_indexed()) {
       const auto shifted=detail::native_group_shift_features(bytes);
       std::copy(shifted.begin(),shifted.end(),feature.bands.begin()+positional_bands);
+      feature.projections=sample_xor_signatures(bytes);
+      feature.projected=true;
     }
     ++state.sampled_extents;
     return feature;
   }
   void rank_buckets(bool indexed) {
     buckets.clear();
-    for(const auto& [id,feature]:features) {
-      if(indexed && feature.token.grouped && !feature.token.exact_base)continue;
+    const auto add_bands=[&](std::uint64_t id,const Feature& feature,bool retained) {
+      const auto add_band=[&](Band band) {
+        if(!retained)buckets[band].push_back(id);
+        else if(const auto bucket=buckets.find(band);bucket!=buckets.end())bucket->second.push_back(id);
+      };
       const auto count=indexed?feature.bands.size():positional_bands;
       for(unsigned i=0;i<count;++i) {
-        if(!indexed || usable_indexed_band(i,feature.bands[i]))buckets[{i,feature.bands[i]}].push_back(id);
+        if(!indexed || usable_indexed_band(i,feature.bands[i]))add_band({i,feature.bands[i]});
       }
+      if(indexed)for(unsigned i=0;i<feature.projections.size();++i) {
+        if(feature.projections[i])add_band({static_cast<unsigned>(kOptimizationGroupBands)+i,feature.projections[i]});
+      }
+    };
+    for(const auto& [id,feature]:features) {
+      if(indexed && feature.token.grouped && !feature.token.exact_base)continue;
+      add_bands(id,feature,false);
     }
     if(indexed)for(const auto& [id,feature]:representatives) {
-      if(features.contains(id))continue;
-      for(unsigned i=0;i<feature.bands.size();++i) {
-        const auto bucket=buckets.find({i,feature.bands[i]});
-        if(bucket!=buckets.end())bucket->second.push_back(id);
-      }
+      if(!features.contains(id))add_bands(id,feature,true);
     }
     candidate_order.clear();
     for(const auto& [band,ids]:buckets)if(ids.size()>=2)candidate_order.push_back(band);
@@ -408,7 +457,7 @@ struct NativeGroupMaintenance::Impl {
         cursor=token->extent;first=false;
         if(token->object) {
           const auto known=representatives.find(token->object);
-          if(known!=representatives.end() && known->second.token.revision==token->revision &&
+          if(known!=representatives.end() && known->second.projected && known->second.token.revision==token->revision &&
               known->second.token.extent.inode==token->extent.inode &&
               known->second.token.extent.extent_index==token->extent.extent_index) {
             // Index lookups provide the revision; a verified payload sample

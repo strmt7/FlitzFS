@@ -215,7 +215,7 @@ void shifted_indexed_family(const Bytes& base,StoreCompressionOptions compressio
   std::cout<<"shifted_indexed corpus="<<corpus<<" members="<<count<<" before_bytes="<<baseline->extent()
       <<" after_bytes="<<compacted->extent()<<" minimum_compacted_saved="<<result.minimum_compacted_bytes_saved<<'\n';
 }
-void xor_indexed_family(bool require_xor) {
+void xor_indexed_family(bool require_xor,bool throughout=false) {
   constexpr unsigned count=9,unit=4096;
   const StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
   const NativeImageStorage indexed{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes};
@@ -226,10 +226,11 @@ void xor_indexed_family(bool require_xor) {
     originals[member]=base;
     if(member) {
       const auto variation=data(kNativeExtentBytes,861+member);
-      // One original band anchors normal discovery. Every later band has
-      // dense low-bit changes with no long, exact byte runs.
-      for(std::size_t i=kNativeExtentBytes/8;i<base.size();++i)
-        originals[member][i]^=variation[i]&std::byte{1};
+      // The projected case varies both middle bit planes in every band.
+      const auto start=throughout?0U:kNativeExtentBytes/8;
+      const auto mask=throughout?std::byte{0x30}:std::byte{1};
+      for(std::size_t i=start;i<base.size();++i)
+        originals[member][i]^=variation[i]&mask;
     }
     put(*f.session,"xor"+std::to_string(member),originals[member]);
   }
@@ -261,7 +262,8 @@ void xor_indexed_family(bool require_xor) {
     require(capability==5 && result.published_groups==1 && reopened.shared_base_info().members==count &&
         reopened.shared_base_info().bases==1 && compacted->extent()<baseline->extent()/2,
         "automatic indexed XOR group was absent or missed its expected size");
-  std::cout<<"indexed_xor capability="<<capability<<" members="<<reopened.shared_base_info().members
+  std::cout<<"indexed_xor throughout="<<throughout<<" capability="<<capability
+      <<" members="<<reopened.shared_base_info().members
       <<" logical_bytes="<<count*kNativeExtentBytes<<" before_bytes="<<baseline->extent()
       <<" after_bytes="<<compacted->extent()<<" groups="<<result.published_groups
       <<" accounted_savings="<<result.minimum_compacted_bytes_saved<<'\n';
@@ -524,7 +526,7 @@ void persistent_indexed_scan() {
   std::cout<<"persistent_indexed_scan total="<<count<<" resumed_samples="<<resumed_samples
       <<" checkpoint_store_bytes="<<advice->extent()<<" write_cost="<<kOptimizationAreaBytes<<'\n';
 }
-void retain_distant_indexed_candidate() {
+void retain_distant_indexed_candidate(bool projected=false) {
   constexpr auto prefix=2*kNativeMaxDirtyExtents;
   Fixture f(4096,0,true);
   auto advice=ram(4096);
@@ -534,7 +536,12 @@ void retain_distant_indexed_candidate() {
   put(*f.session,"original",family(0));
   for(std::size_t i=1;i<prefix;++i)
     put(*f.session,"unrelated-"+std::to_string(i),data(kNativeExtentBytes,static_cast<unsigned>(3000+i)));
-  put(*f.session,"distant",family(1));
+  auto distant=projected?family(0):family(1);
+  if(projected) {
+    const auto variation=data(kNativeExtentBytes,9121);
+    for(std::size_t i=0;i<distant.size();++i)distant[i]^=variation[i]&std::byte{0x30};
+  }
+  put(*f.session,"distant",distant);
   put(*f.session,"sparse-funding",Bytes(kOptimizationGroupScanInputBytes/2));
   const auto original_inode=f.session->snapshot().stat("original").inode;
   {
@@ -545,14 +552,15 @@ void retain_distant_indexed_candidate() {
       require(controller.progress().checkpoints_published==expected &&
           controller.progress().attempted_groups==0 && controller.pending(),
           "unrelated windows did not checkpoint before reaching the distant member");
-      // Retain the older format when the checkpoint fits its original capacity.
-      require(advice->stable.at(7)==static_cast<std::byte>('2'+expected),"checkpoint writer capability differs");
+      require(advice->stable.at(7)==std::byte{'5'},"checkpoint did not retain projected samples");
     }
   }
   const auto saved=read_optimization_state(*advice,id(90));
   require(saved.code==OptimizationReadCode::available && !saved.degraded && saved.state.group_scan &&
       !saved.state.group_scan->complete && saved.state.group_scan->representatives.size()==prefix &&
-      saved.state.group_scan->representatives.front().inode==original_inode,
+      saved.state.group_scan->representatives.front().inode==original_inode &&
+      saved.state.group_scan->xor_sampling && saved.state.group_scan->projections.size()==prefix &&
+      saved.state.group_scan->projections.front().representative==0,
       "extended checkpoint lost the early candidate");
   require(advice->extent()==kOptimizationAreaBytes &&
       advice->write_bytes-initial_advice_bytes==2*kOptimizationAreaBytes,
@@ -576,11 +584,11 @@ void retain_distant_indexed_candidate() {
   const auto snapshot=f.session->snapshot();
   require(snapshot.shared_base_info().members==2 && snapshot.shared_base_info().bases==1 &&
       snapshot.read("original",0,kNativeExtentBytes)==family(0) &&
-      snapshot.read("distant",0,kNativeExtentBytes)==family(1) &&
+      snapshot.read("distant",0,kNativeExtentBytes)==distant &&
       snapshot.read("unrelated-1",0,kNativeExtentBytes)==replacement,
       "distant group reopened with different contents");
   snapshot.verify_all();
-  std::cout<<"indexed_distant_match prefix_representatives="<<prefix
+  std::cout<<"indexed_distant_match projected="<<projected<<" prefix_representatives="<<prefix
       <<" samples_before_match="<<selected.sampled_extents
       <<" total_resumed_samples="<<progress.sampled_extents<<" reused_features="<<progress.reused_features
       <<" minimum_compacted_bytes_saved="<<progress.minimum_compacted_bytes_saved
@@ -957,7 +965,10 @@ void indexed_scan_checkpoint_faults() {
 }
 int main(int argc,char** argv){try{
   if(argc==2 && std::string_view(argv[1])=="--indexed-resume") {
-    persistent_indexed_scan();retain_distant_indexed_candidate();indexed_scan_checkpoint_faults();
+    persistent_indexed_scan();
+    retain_distant_indexed_candidate();
+    retain_distant_indexed_candidate(true);
+    indexed_scan_checkpoint_faults();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-coherence") {
     for(const auto scenario:{CatalogCase::available,CatalogCase::unavailable,CatalogCase::stale})
       indexed_catalog_discovery(scenario);
@@ -973,6 +984,9 @@ int main(int argc,char** argv){try{
     compact_full_indexed_catalog(CoherenceCopyOutcome::target_cut,writes_and_barriers-1);
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-xor") {
     xor_indexed_family(true);
+    xor_indexed_family(true,true);
+  } else if(argc==2 && std::string_view(argv[1])=="--profile-projected-xor") {
+    xor_indexed_family(false,true);
   } else if(argc==2 && std::string_view(argv[1])=="--profile-group-xor") {
     xor_indexed_family(false);
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-advice") {

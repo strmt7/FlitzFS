@@ -250,10 +250,10 @@ mapping, authenticated authority or autonomous learner.
 Funded discovery checkpoints preserve the profile and benchmark fields,
 budget marker and settled-input counter of capability 2. Capability 3 uses
 `FLTOP003` and allows 63 representatives. Capability 4 uses `FLTOP004` and
-can use the remaining slot space for up to 373 representatives. The writer
-uses capability 3 for smaller checkpoints. Each of the two 64 KiB slots has a
-digest covering bytes 0–65503. Both discovery capabilities use the same field
-layout.
+can use the remaining slot space for up to 373 representatives. Capability 5
+uses FLTOP005 for scans that collect masked XOR signatures. A publication
+without XOR sampling still uses capability 3 or 4 according to its row count.
+Each of the two 64 KiB slots has a digest covering bytes 0–65503.
 
 | Offset | Bytes | Meaning |
 |---:|---:|---|
@@ -261,21 +261,27 @@ layout.
 | 2640 | 8 | Observed durable namespace sequence |
 | 2648, 2656 | 8 each | Last visited inode and extent index |
 | 2664 | 4 | 0 for a continuing pass, 1 for complete, 2 for revisit after the pass |
-| 2668 | 4 | Similarity feature schema 1 |
+| 2668 | 4 | Feature schema 1 in capabilities 3 and 4, schema 2 in capability 5 |
 | 2672 | 4 | Number of retained representatives within the selected capability |
-| 2676 | 12 | Reserved zero |
+| 2676 | 4 | Number of masked-signature rows in capability 5, zero in earlier versions |
+| 2680 | 8 | Reserved zero |
 | 2688 | 168 per representative | Sparse feature records in strict data-object order |
+| After feature records | 40 per masked-signature row | 4-byte representative index, 4 zero bytes, four 8-byte signatures |
 
 Each representative stores inode, extent index, data-object ID and physical
 revision in four 8-byte fields. Its full 32-byte digest follows at offset 32,
 then twelve 8-byte band values at offset 64 and an exact-base bit at offset 160
-in an 8-byte field. All remaining bytes before the slot digest are zero.
-Readers validate the count, coordinates, flags, object domain and ordering
-before exposing the checkpoint. The current loader accepts capabilities 1–4
-and applies the original count limit to capability 3. The slot sequence and
-budget rules apply during a capability transition. An older advisory reader
-can fall back to ordinary discovery while user data remains independently
-readable.
+in an 8-byte field. Masked-signature rows use zero-based representative
+indices in strictly increasing order. Up to 302 representatives can each
+carry signatures in one slot. At higher representative counts the signature
+tail uses the remaining space, with priority for reusable anchors. The
+unused bytes before the slot digest are zero. Readers validate counts, flags,
+schema, coordinates, object domain, ordering and padding before exposing
+the checkpoint. The loader accepts capabilities 1–5 and keeps the original
+63-row limit for capability 3. Slot sequence and budget rules apply during
+a transition. The scanner revisits older checkpoints to populate signatures
+under its ordinary work allowance. Earlier readers can rebuild advice while
+reading user data independently.
 
 The indexed controller checkpoints at settled window boundaries during an
 admitted opportunity. Each publication costs 128 KiB and consumes 4 MiB of

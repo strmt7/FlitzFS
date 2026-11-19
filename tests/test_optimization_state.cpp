@@ -197,8 +197,8 @@ void extended_scan_decoding(const Bytes& acknowledged) {
   constexpr std::size_t scan_at=2624,first_feature=2688,feature_bytes=168;
   constexpr std::uint64_t data_namespace=1ULL<<61;
   Bytes legacy;
-  for(const unsigned version:{3U,4U}) {
-    const auto count=version==3?63:kOptimizationGroupRepresentatives;
+  for(const unsigned version:{3U,4U,5U}) {
+    const auto count=version==4?kOptimizationGroupRepresentatives:63;
     auto bytes=acknowledged;
     auto expected=policy();
     expected.settled_input_bytes=kOptimizationGroupScanInputBytes;
@@ -212,6 +212,10 @@ void extended_scan_decoding(const Bytes& acknowledged) {
       feature.bands[0]=i+1;feature.exact_base=i%2==0;
       scan.representatives.push_back(feature);
     }
+    scan.xor_sampling=version==5;
+    if(scan.xor_sampling)scan.projections={{0,{11,0,29,42}},
+        {static_cast<std::uint32_t>(count-1),{13,17,19,23}}};
+    const auto projection_at=first_feature+count*feature_bytes;
     for(unsigned slot=0;slot<2;++slot) {
       const auto base=slot*kStoreCommitUnit,at=base+scan_at;
       bytes.at(base+7)=static_cast<std::byte>('0'+version);
@@ -221,7 +225,8 @@ void extended_scan_decoding(const Bytes& acknowledged) {
       std::copy(scan.image.begin(),scan.image.end(),bytes.begin()+static_cast<std::ptrdiff_t>(at));
       put(bytes,at+16,scan.namespace_sequence);
       put(bytes,at+24,scan.inode);put(bytes,at+32,scan.extent_index);
-      put(bytes,at+44,1,4);put(bytes,at+48,count,4);
+      put(bytes,at+44,scan.xor_sampling?2:1,4);put(bytes,at+48,count,4);
+      put(bytes,at+52,scan.projections.size(),4);
       for(std::size_t i=0;i<count;++i) {
         const auto row=base+first_feature+i*feature_bytes;
         const auto& value=scan.representatives[i];
@@ -229,6 +234,12 @@ void extended_scan_decoding(const Bytes& acknowledged) {
         put(bytes,row+16,value.object);put(bytes,row+24,value.revision);
         bytes.at(row+32)=value.content[0];
         put(bytes,row+64,value.bands[0]);put(bytes,row+160,value.exact_base);
+      }
+      for(std::size_t i=0;i<scan.projections.size();++i) {
+        const auto row=base+projection_at+40*i;
+        put(bytes,row,scan.projections[i].representative,4);
+        for(std::size_t j=0;j<kOptimizationXorProjections;++j)
+          put(bytes,row+8+j*8,scan.projections[i].signatures[j]);
       }
       seal(bytes,slot);
     }
@@ -250,8 +261,17 @@ void extended_scan_decoding(const Bytes& acknowledged) {
       expect_state(survivor,2,prior.state);
       require(survivor.degraded,"torn extended checkpoint hid the legacy peer");
     }
+    if(scan.xor_sampling)for(unsigned defect=0;defect<4;++defect) {
+      auto malformed=bytes;
+      if(defect==0)put(malformed,scan_at+52,count+1,4);
+      if(defect==1)put(malformed,projection_at+40,0,4);
+      if(defect==2)put(malformed,projection_at+40,count,4);
+      if(defect==3)put(malformed,projection_at+4,1,4);
+      seal(malformed,0);
+      require(read(malformed).code==OptimizationReadCode::invalid,"malformed XOR checkpoint exposed advice");
+    }
     auto oversized=bytes;
-    put(oversized,scan_at+48,count+1,4);seal(oversized,0);
+    put(oversized,scan_at+48,(version==3?63:kOptimizationGroupRepresentatives)+1,4);seal(oversized,0);
     require(read(oversized).code==OptimizationReadCode::invalid,"oversized checkpoint count exposed advice");
     bytes.at(kStoreCommitUnit-33)=std::byte{1};seal(bytes,0);
     require(read(bytes).code==OptimizationReadCode::invalid,"nonzero reserved checkpoint tail exposed advice");

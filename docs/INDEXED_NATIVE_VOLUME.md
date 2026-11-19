@@ -180,10 +180,13 @@ past sparse address ranges and unlinked or pending inodes without a full
 directory or object inventory. Each sampling opportunity reads at most one
 extent and its dependency. The controller keeps fingerprints for one scan
 window and a bounded set of representatives from older windows. Eight aligned
-bands and up to four offset-independent features nominate candidates.
-Offset-independent features pair minima from distinct fingerprint buckets
-over 16-byte windows. The feature scan excludes trailing zero padding and
-zero window fingerprints. Candidate features guide selection. Exact readback
+bands, up to four offset-independent features and four masked signatures
+nominate candidates. Offset-independent features pair minima from distinct
+fingerprint buckets over 16-byte windows, skipping trailing padding and zero
+window fingerprints. The masked signatures each omit a different pair of
+adjacent bit positions across sixteen distributed 64-byte samples. This can
+find packed XOR candidates after changes throughout an extent. Constant
+projections provide no candidate key. Live revisions, byte-exact readback
 and the full packed-image bound govern publication.
 
 A candidate carries the sampled object identity and generation into group
@@ -199,12 +202,15 @@ serialized opportunities. An active group releases its source before the
 controller begins a compaction handoff. The controller admits work using
 fresh resource observations, foreground readiness and measured duty. A funded
 advisory pair retains the scan cursor and representatives across owner
-restart. The extended checkpoint fits up to 373 rows within the existing pair,
-subject to admitted memory. The scanner revalidates same-image representatives
-after an intervening edit and resamples changed extents. A persistent paged
-sparse index and measured collective AMD benefit remain open.
-[Restart validation](evidence/persistent-indexed-discovery-2026-11-18.json)
-[Automatic indexed discovery evidence](evidence/automatic-indexed-discovery-2026-11-18.json)
+restart. The extended checkpoint fits up to 373 representatives within the
+existing pair, subject to admitted memory, with a sparse tail for masked
+signatures. The scanner revalidates same-image representatives after an
+intervening edit and resamples changed extents. The paged coherence catalog
+currently uses aligned and offset-independent keys. Projected lookups
+beyond checkpoint history and measured collective AMD benefit remain open.
+[Restart validation](evidence/persistent-indexed-discovery-2026-11-18.json) ·
+[Automatic indexed discovery](evidence/automatic-indexed-discovery-2026-11-18.json) ·
+[Masked XOR discovery and restart](evidence/projected-xor-discovery-2026-11-19.json)
 
 ## Writable transactions
 

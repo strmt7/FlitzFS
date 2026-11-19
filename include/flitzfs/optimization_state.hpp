@@ -5,7 +5,8 @@ namespace flitzfs {
 // Experimental advisory state only. Never a decoding dependency or data authority.
 inline constexpr std::uint64_t kOptimizationAreaBytes=2*kStoreCommitUnit;
 inline constexpr std::size_t kOptimizationMaxProfiles=32,kOptimizationMaxBenchmarks=16;
-inline constexpr std::size_t kOptimizationGroupBands=12;
+inline constexpr std::size_t kOptimizationGroupBands=12,kOptimizationXorProjections=4;
+using OptimizationXorSignatures=std::array<std::uint64_t,kOptimizationXorProjections>;
 // Number of feature records that fit in an extended advisory slot.
 inline constexpr std::size_t kOptimizationGroupRepresentatives=373;
 inline constexpr std::uint64_t kOptimizationGroupScanInputPerWriteByte=32;
@@ -18,11 +19,17 @@ struct OptimizationGroupFeature {
   bool exact_base=false;
   bool operator==(const OptimizationGroupFeature&) const = default;
 };
+struct OptimizationGroupProjection {
+  std::uint32_t representative=0; // Row in the same checkpoint.
+  OptimizationXorSignatures signatures{};
+  bool operator==(const OptimizationGroupProjection&) const = default;
+};
 struct OptimizationGroupScan {
   StoreIdentity image{};
   std::uint64_t namespace_sequence=0,inode=0,extent_index=0;
   std::vector<OptimizationGroupFeature> representatives; // Strict object order.
-  bool complete=false,revisit=false;
+  bool complete=false,revisit=false,xor_sampling=false;
+  std::vector<OptimizationGroupProjection> projections; // Strict representative order.
   bool operator==(const OptimizationGroupScan&) const = default;
 };
 struct OptimizationProfile {

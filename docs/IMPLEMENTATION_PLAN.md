@@ -559,14 +559,17 @@ allowance before catalog mutation. The owned Windows memory path provisions
 the catalog on the first useful funded batch, retains it on a joined remount
 and reclaims discarded backing in bounded steps. A full catalog now prunes
 stale postings in a funded staged copy and releases the unselected pages.
-Production scale work still needs a persistent provider and restartable
-compaction, candidate recall measurements and total retained overhead under
-continuous changes.
+The scan window and advisory checkpoint now retain masked XOR signatures
+for candidates with changes in every aligned band. The restarted scanner
+found such a match after one new sample across 126 retained representatives.
+Extend projected lookup to the paged catalog, measure recall and retained
+overhead under continuous changes, and qualify persistent catalog compaction.
 [Restart validation](evidence/indexed-representative-retention-2026-11-19.json)
 [Paged coherence catalog](OPTIMIZATION_STATE.md#paged-coherence-catalog) ·
 [Funding validation](evidence/funded-paged-coherence-2026-11-19.json) ·
 [Windows ownership validation](evidence/windows-catalog-provisioning-2026-11-19.json) ·
-[Catalog compaction validation](evidence/windows-catalog-compaction-2026-11-19.json)
+[Catalog compaction validation](evidence/windows-catalog-compaction-2026-11-19.json) ·
+[Masked signature validation](evidence/projected-xor-discovery-2026-11-19.json)
 
 RubikFS provides evidence for evaluating similarity and access hotness
 together. MedFS shows why selective delta maintenance should account for write
@@ -715,8 +718,10 @@ unchanged band per extent. A later physical-host trial used batched AMD advice
 for all eight proposed members across two groups. CPU and AMD both compacted
 to 768 KiB with byte-exact CPU reopen. CPU settled in 49.7 seconds and AMD
 in 55.7 seconds, including idle scheduling and worker retirement. Keep CPU
-preferred for the observed workload. Profile larger heterogeneous groups on
-qualified hosts and measure approximate signatures for changes in every band.
+preferred for the observed workload. A separate nine-file fixture changed
+two middle bit planes throughout each extent. Masked discovery reduced the
+protected compacted image from 1,304 KiB to 544 KiB with exact CPU readback.
+Measure recall and full cost on heterogeneous groups and qualified hosts.
 Account for per-member semantic refusals in the recovery policy before allowing
 automatic packed XOR dispatch.
 [Packed XOR format](INDEXED_NATIVE_VOLUME.md#packed-xor-members) ·
