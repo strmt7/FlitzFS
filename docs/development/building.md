@@ -30,6 +30,11 @@ Use [the local host guide](../HOST_RAM_TESTING.md) and
 Discover available tools and size build concurrency from actual headroom;
 the example's parallelism is not a host or product assumption.
 
+Successful supervisor receipts include total user and kernel CPU time for
+the owned process tree in 100-nanosecond ticks. Those totals include fixture
+preparation and completed helpers. Elapsed time uses a separate wall clock.
+[Windows job accounting](https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-jobobject_basic_accounting_information)
+
 MSVC C++ targets explicitly enable `/EHsc`; writer leases and rollback require
 exception unwinding. Custom `CMAKE_CXX_FLAGS`, including sanitizer flags, must
 preserve that behavior. The store fails compilation when unwinding is disabled.

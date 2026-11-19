@@ -814,14 +814,22 @@ members per trial and reached 2,768,896 bytes. The previous AMD worker used
 13,836,288 bytes. The fast CPU route used 13,828,096 and 13,787,136 bytes.
 Median complete times for the wider AMD search were 2.25 and 2.28 seconds.
 The fast CPU medians were 0.28 and 0.38 seconds. The 310-member single-offset
-control kept its 4,096,000-byte result. Compare the wider search with a
-quality-matched CPU implementation and validate natural numeric cohorts
-before calibrating automatic route selection. Measure persistent signature
-yield and stored cost as part of that evaluation.
+control kept its 4,096,000-byte result.
+
+The normal CPU encoder now evaluates the same proposals. Across six matched
+pairs, CPU and AMD both produced 2,768,896-byte compacted images and verified
+all source bytes. The median complete costs were 0.49 seconds for CPU on
+both cohorts and 2.17 and 2.57 seconds for AMD. Total CPU time across each
+test's owned process tree, including preparation, had medians of 0.69
+seconds for CPU and 1.33 and 1.30 seconds for AMD. The separate 310-member
+case retained the same 4,096,000-byte image with both routes. Use measured
+CPU cost for these profiles. Qualify larger and natural numeric cohorts and
+measure persistent signature yield, stored cost and foreground interference.
 [Modular-delta format](INDEXED_NATIVE_VOLUME.md#modular-delta-members) ·
 [Size and recovery evidence](evidence/indexed-modular-delta-2026-11-19.json) ·
 [Matched AMD evidence](evidence/amd-modular-delta-2026-11-19.json) ·
-[Wider predictor evidence](evidence/amd-sampled-bias-2026-11-19.json)
+[Wider predictor evidence](evidence/amd-sampled-bias-2026-11-19.json) ·
+[Equivalent search comparison](evidence/cpu-amd-modular-parity-2026-11-19.json)
 
 The first collective AMD trial reused the authenticated uniform LZ4 worker.
 Copies from tiles that contain the same base produced a 600 KiB complete

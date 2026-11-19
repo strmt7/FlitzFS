@@ -45,13 +45,15 @@ Persistent segment reclamation under concurrent edits remains a release gate.
 Indexed maintenance can group numeric extents with a common modular bias
 and encode their signed residuals. It selects the method using the existing
 size and byte-verification rules. The AMD worker scores and packs modular
-deltas for the same CPU-readable format. Its expanded search found
-smaller images on two controlled shifted-bias workloads. The paged catalog
+deltas for the same CPU-readable format. The expanded CPU and AMD searches
+both found smaller images on two controlled shifted-bias workloads. CPU had
+lower elapsed and processor cost in the matched comparison. The paged catalog
 retains numeric discovery keys using available write credit. Qualify catalog
 yield and routing on natural numeric workloads.
 [Modular-delta members](INDEXED_NATIVE_VOLUME.md#modular-delta-members) ·
 [Matched AMD trials](evidence/amd-modular-delta-2026-11-19.json) ·
 [Wider predictor trials](evidence/amd-sampled-bias-2026-11-19.json) ·
+[Equivalent search comparison](evidence/cpu-amd-modular-parity-2026-11-19.json) ·
 [Paged numeric discovery](evidence/modular-coherence-catalog-2026-11-19.json)
 
 The indexed SDK adapter now supports controlled deferred AMD encoding.

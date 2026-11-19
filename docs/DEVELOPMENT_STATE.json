@@ -51,12 +51,13 @@
     "evidence": "docs/evidence/indexed-modular-delta-2026-11-19.json",
     "amd_worker_evidence": "docs/evidence/amd-modular-delta-2026-11-19.json",
     "amd_sampled_bias_evidence": "docs/evidence/amd-sampled-bias-2026-11-19.json",
+    "cpu_amd_parity_evidence": "docs/evidence/cpu-amd-modular-parity-2026-11-19.json",
     "paged_discovery_evidence": "docs/evidence/modular-coherence-catalog-2026-11-19.json",
     "indexed_capability": 6,
     "complete_image_pairs_bytes": [[786432, 188416], [933888, 204800]],
     "modeled_publication_cases_per_lane": 528,
     "scope": "Automatic CPU selection on controlled modular shifts of public sample bytes with independent CPU reopen. Supports four word widths and per-tile signed residuals.",
-    "next": "Measure catalog yield and complete storage cost on natural numeric cohorts. Compare the expanded AMD search with a quality-matched CPU encoder before automatic route selection."
+    "next": "Measure catalog yield and complete storage cost on natural numeric cohorts. The equal-depth tests favor CPU for both controlled profiles. Qualify additional GPU work with useful size, resource or throughput gains before automatic preference."
   },
   "native_path_lookup": {
     "source_base": "700cdb31de32b847497b02cc0e113d27482e6c85",

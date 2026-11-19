@@ -204,8 +204,15 @@ by the word width. Its first word occupies the low bit of the first byte.
 The highest advertised plane must have a set bit. A nonempty body must
 contain a residual and end at the exact tile boundary.
 
-The CPU evaluates the zero bias and the first word's bias at each supported
-width. It emits only a candidate that beats the competing private frame.
+At each word width both encoders consider the first difference, zero and
+the quartiles of sixteen staggered samples. The shared selector orders the
+differences in the signed modular interval around the first difference and
+removes duplicate biases. The CPU prices the first and zero biases before
+sampling. Additional biases require a residual body, so it can skip them
+when the competing frame is already smaller than the minimum size with a
+body. Once a residual establishes that the candidate needs a body, scoring
+stops if its tile cost reaches the exclusive size bound. The encoder emits
+only a candidate that beats that bound.
 The writer independently reconstructs every byte and applies the existing
 strict complete-image size check before COW publication. Capability 6
 readers support earlier members. Earlier capabilities refuse modular-delta
@@ -224,12 +231,9 @@ the live revision and decoded bytes during preparation.
 #### Batched AMD modular-delta advice
 
 The configured Windows owner can send several groups to one supervised
-AMD worker. For each of four word widths, the private v6 kernel considers
-the first difference, zero and the quartiles of sixteen staggered samples.
-It orders the unsigned differences in the signed modular interval around
-the first difference, then removes duplicate biases. Every distinct bias
-gets an exact cost from all residual tiles. The kernel packs the smallest
-admitted result. Its block-wide barriers and checked shared-memory requirement
+AMD worker. The private v6 kernel prices all distinct biases across the
+residual tiles and packs the smallest admitted result. Its block-wide
+barriers and checked shared-memory requirement
 apply independently of wave size. Launch size follows the qualified dispatch
 grant, device geometry and live headroom.
 [HIP programming model](https://rocm.docs.amd.com/projects/HIP/en/latest/understand/programming_model.html)
@@ -247,6 +251,7 @@ or uncompetitive candidates. A payload mismatch also fails the recovery
 ticket. Protected publication uses the same capability 6 member format.
 [AMD execution and CPU readback evidence](evidence/amd-modular-delta-2026-11-19.json)
 [Sampled-bias comparison](evidence/amd-sampled-bias-2026-11-19.json)
+[Equivalent CPU and AMD search](evidence/cpu-amd-modular-parity-2026-11-19.json)
 
 ### Automatic candidate discovery
 

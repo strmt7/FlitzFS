@@ -191,6 +191,30 @@ void modular_delta_codec() {
   require(!detail::encode_native_group_delta(data(kNativeExtentBytes,716),base,id,17,kNativeExtentBytes),
       "Unrelated input used an expanding modular member");
 }
+void sampled_modular_delta_codec() {
+  constexpr auto method=detail::NativeGroupMethod::modular_delta;
+  constexpr auto id=detail::kNativeGroupBaseBit+1;
+  constexpr std::uint64_t bulk=0xc74482fa26e3bd97ULL;
+  const auto base=family(0);
+  for(const unsigned width:{1U,2U,4U,8U}) {
+    const auto shift=std::uint64_t{1}<<(8*width-3);
+    for(const bool negative:{false,true}) {
+      auto member=base;
+      const auto sample_region_bias=negative?bulk-shift:bulk+shift;
+      for(std::size_t at=0;at<member.size();at+=width)
+        add_little_endian(std::span(member).subspan(at,width),at%4096<64?sample_region_bias:bulk);
+      const auto bits=8*width-(negative?2U:1U);
+      const auto expected=128+256+16*bits*32/width;
+      const auto frame=detail::encode_native_group_delta(member,base,id,1,expected+1);
+      require(frame && frame->size()==expected && (*frame)[104]==static_cast<std::byte>(width) &&
+          detail::decode_native_group_member(*frame,base,method)==member,
+          "CPU failed to select or reconstruct the sampled modular bias");
+      require(!detail::encode_native_group_delta(member,base,id,1,expected),
+          "Sampled modular candidate ignored the exact exclusive limit");
+    }
+  }
+  std::cout<<"sampled_modular_cpu signed_cases=8 word_widths=4 byte_exact=true\n";
+}
 void anchor_copy_advice() {
   const auto base=family(0);
   auto member=anchor_search_fixture::fragmented(base,1);
@@ -662,6 +686,7 @@ int main(int argc,char** argv){try {
   }
   if(argc==2 && std::string_view(argv[1])=="--modular-delta") {
     modular_delta_codec();
+    sampled_modular_delta_codec();
     for(const auto unit:{4096U,65536U})fault_matrix(unit,true,GroupFixture::modular_delta);
     std::cout<<"PASS: "<<checks<<" modular delta checks; "<<faults<<" injected write/barrier cases\n";
     return 0;

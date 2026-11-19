@@ -171,8 +171,11 @@ template<class Word>void store_little_endian(std::byte* data,Word value) noexcep
     for(std::size_t i=0;i<sizeof(value);++i)data[i]=static_cast<std::byte>(value>>(8*i));
   }
 }
+template<class Word>Word modular_difference(const std::byte* member,const std::byte* base) noexcept {
+  return static_cast<Word>(std::uint64_t{load_little_endian<Word>(member)}-load_little_endian<Word>(base));
+}
 template<class Word>Word zigzag_residual(const std::byte* member,const std::byte* base,std::uint64_t bias) noexcept {
-  const auto delta=static_cast<Word>(std::uint64_t{load_little_endian<Word>(member)}-load_little_endian<Word>(base)-bias);
+  const auto delta=static_cast<Word>(std::uint64_t{modular_difference<Word>(member,base)}-bias);
   const auto widened=static_cast<std::uint64_t>(delta);
   return static_cast<Word>((widened<<1)^(std::uint64_t{0}-(widened>>(8*sizeof(Word)-1))));
 }
@@ -188,7 +191,7 @@ template<class Word>void consider_delta(std::span<const std::byte> member,std::s
     DeltaChoice& best) {
   if(best.bytes<=header)return;
   constexpr auto plane_bytes=xor_tile_bytes/(8*sizeof(Word));
-  const auto first=static_cast<Word>(std::uint64_t{load_little_endian<Word>(member.data())}-load_little_endian<Word>(base.data()));
+  const auto first=modular_difference<Word>(member.data(),base.data());
   const auto consider=[&](std::uint64_t bias) {
     auto bytes=header+xor_tiles;
     for(std::size_t offset=0;offset<extent;offset+=xor_tile_bytes) {
@@ -207,6 +210,16 @@ template<class Word>void consider_delta(std::span<const std::byte> member,std::s
   };
   consider(first);
   if(first && best.bytes>header+xor_tiles)consider(0);
+  // An extra bias differs from the first word's bias and therefore needs
+  // a residual body. The existing choices already cover exact shifts.
+  if(best.bytes<=header+xor_tiles)return;
+  Word samples[anchor_match::delta_bias_samples],biases[anchor_match::delta_bias_choices];
+  for(std::uint32_t i=0;i<anchor_match::delta_bias_samples;++i) {
+    const auto offset=anchor_match::modular_bias_sample_offset(i);
+    samples[i]=modular_difference<Word>(member.data()+offset,base.data()+offset);
+  }
+  const auto count=anchor_match::modular_bias_candidates(first,samples,biases);
+  for(auto i=first?2U:1U;i<count;++i)consider(biases[i]);
 }
 template<class Word>void append_delta_tiles(std::vector<std::byte>& frame,std::span<const std::byte> member,
     std::span<const std::byte> base,std::uint64_t bias) {

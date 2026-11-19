@@ -141,8 +141,9 @@ def main() -> int:
         _fields_ = [("flags", W.DWORD), ("rate", W.DWORD)]
 
     class Accounting(C.Structure):
-        _fields_ = [("time" + str(i), C.c_longlong) for i in range(4)] + [
-            ("faults", W.DWORD), ("total", W.DWORD), ("active", W.DWORD), ("terminated", W.DWORD)]
+        _fields_ = [("user_time", C.c_longlong), ("kernel_time", C.c_longlong),
+                    ("period_user_time", C.c_longlong), ("period_kernel_time", C.c_longlong),
+                    ("faults", W.DWORD), ("total", W.DWORD), ("active", W.DWORD), ("terminated", W.DWORD)]
 
     class Startup(C.Structure):
         _fields_ = [("cb", W.DWORD), ("reserved", W.LPWSTR), ("desktop", W.LPWSTR),
@@ -315,6 +316,8 @@ def main() -> int:
                 checked(query_job(job, 1, C.byref(accounting), C.sizeof(accounting), None))
                 if accounting.active == 0:
                     report["tree_retired"] = True
+                    report["job_user_cpu_100ns"] = accounting.user_time
+                    report["job_kernel_cpu_100ns"] = accounting.kernel_time
                     break
                 if time.monotonic() >= deadline:
                     raise RuntimeError("owned process tree retirement not confirmed")
