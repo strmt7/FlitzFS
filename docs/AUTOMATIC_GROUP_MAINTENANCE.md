@@ -55,16 +55,22 @@ features for matching content after insertions and removals. The sparse inverted
 index maps matching features to candidates. Larger buckets are considered first,
 with deterministically ordered, memory-admitted member windows.
 
-For a new masked-XOR group with at least three sampled members, the scanner
-can choose a base using 512 bytes of in-memory plane fingerprints per extent.
-It samples eight complete 256-byte tiles distributed through the extent.
-Every differing plane costs the same 32 payload bytes in packed XOR.
-Sorting and counting equal plane fingerprints ranks the candidates in
-`O(n log n)` work over the admitted members. It uses the same decoded bytes
-as discovery and preserves a reusable protected anchor or previously retained
-representative when available. A declined estimate leaves the first member
-eligible while the same candidate remains in the active window.
-[Packed-XOR tile reference evidence](evidence/packed-xor-tile-reference-2026-11-19.json)
+For a new masked-XOR group with at least three sampled members, discovery
+retains the bit patterns from eight complete 256-byte tiles per extent.
+The selector compares the estimated dense and sparse body sizes. It
+prices each changed plane as a bitmap, a set-position list or a
+clear-position list and includes the tile masks. It uses the smaller
+estimated body for each peer.
+
+The selector compares every candidate to a bounded set of representative
+samples. It then checks the preliminary winner, the dense-plane candidate
+and the first member against every retained sample. Sorting equal planes
+for the dense candidate takes `O(n log n)` work. The sparse comparisons
+take `O(n)` work at the current sampling depth. Retained per-extent data
+counts against the maintenance memory budget. Existing protected anchors
+and previously retained representatives keep their priority. The earlier
+candidates remain eligible if an estimated reference declines publication.
+[Sparse reference validation](evidence/sparse-reference-cost-2026-11-19.json)
 
 Band matches are advice only. The existing shared-base encoder independently
 checks content and accepts a publication only when its complete prospective

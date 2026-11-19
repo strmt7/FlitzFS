@@ -425,6 +425,7 @@ std::optional<IndexedBatchPattern> multiwindow_pattern(std::string_view mode) {
   if(mode=="modular-shifted-bias")return IndexedBatchPattern::shifted_bias;
   if(mode=="xor-reference")return IndexedBatchPattern::xor_reference;
   if(mode=="xor-tile-reference")return IndexedBatchPattern::xor_tile_reference;
+  if(mode=="xor-sparse-reference")return IndexedBatchPattern::xor_sparse_reference;
   if(mode=="sparse-xor" || mode=="sparse-xor-device")return IndexedBatchPattern::sparse_xor;
   if(mode=="sparse-xor-all-planes" || mode=="sparse-xor-all-planes-device")return IndexedBatchPattern::sparse_xor_all_planes;
   if(mode=="collective" || mode=="collective-sparse" || mode=="collective-delta")return IndexedBatchPattern::collective;
@@ -436,8 +437,9 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   constexpr auto families=anchor_search_fixture::indexed_batch_families;
   const bool shifted_bias=pattern==IndexedBatchPattern::shifted_bias;
   const bool tile_reference=pattern==IndexedBatchPattern::xor_tile_reference;
+  const bool sparse_reference=pattern==IndexedBatchPattern::xor_sparse_reference;
   const bool all_planes=pattern==IndexedBatchPattern::sparse_xor_all_planes;
-  const bool sparse_xor=pattern==IndexedBatchPattern::sparse_xor || all_planes;
+  const bool sparse_xor=pattern==IndexedBatchPattern::sparse_xor || all_planes || sparse_reference;
   const bool collective=pattern==IndexedBatchPattern::collective;
   const bool sparse_device=options && options->output==anchor_match::BatchOutput::sparse_xor;
   const bool collective_device=options && options->output==anchor_match::BatchOutput::collective;
@@ -600,6 +602,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   const auto capability=std::to_integer<unsigned>(root[8]);
   if(sparse_xor || collective)require(capability==7,"Sparse XOR did not survive compaction");
   const auto cohort=collective?(bank.empty()?"collective-synthetic":"collective-public"):
+      sparse_reference?(bank.empty()?"xor-sparse-reference-synthetic":"xor-sparse-reference-public"):
       all_planes?(bank.empty()?"sparse-xor-all-planes-synthetic":"sparse-xor-all-planes-public"):
       sparse_xor?(bank.empty()?"sparse-xor-synthetic":"sparse-xor-public"):
       tile_reference?(bank.empty()?"xor-tile-reference-synthetic":"xor-tile-reference-public"):
@@ -648,7 +651,8 @@ int live_anchor_owner(int argc,char** argv) {
     const bool small_batch=anchor_search_fixture::small_indexed_batch(*multiwindow);
     const bool modular=*multiwindow==IndexedBatchPattern::modular_delta || *multiwindow==IndexedBatchPattern::shifted_bias ||
         mode=="collective-delta";
-    const bool sparse=mode=="sparse-xor-device" || mode=="sparse-xor-all-planes-device" || mode=="collective-sparse";
+    const bool sparse=mode=="sparse-xor-device" || mode=="sparse-xor-all-planes-device" || mode=="collective-sparse" ||
+        mode=="xor-sparse-reference";
     const auto members=small_batch?families*(anchor_search_fixture::indexed_small_extents_per_family-1):
         anchor_search_fixture::indexed_batch_members;
     const auto minimum=argc==8 || small_batch?2U:static_cast<std::uint32_t>(members);

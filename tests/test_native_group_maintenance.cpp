@@ -469,7 +469,8 @@ void xor_indexed_family(bool require_xor,bool throughout=false) {
       <<" after_bytes="<<compacted->extent()<<" groups="<<result.published_groups
       <<" accounted_savings="<<result.minimum_compacted_bytes_saved<<'\n';
 }
-void xor_reference_selection(bool tile_cost) {
+void xor_reference_selection(anchor_search_fixture::IndexedBatchPattern pattern) {
+  using Pattern=anchor_search_fixture::IndexedBatchPattern;
   constexpr unsigned count=9,unit=4096;
   const StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
   const NativeImageStorage indexed{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes};
@@ -477,7 +478,8 @@ void xor_reference_selection(bool tile_cost) {
   const auto base=data(kNativeExtentBytes,74181);
   for(unsigned i=0;i<count;++i) {
     originals[i]=base;
-    if(tile_cost)anchor_search_fixture::apply_tile_reference_variation(originals[i],i,count);
+    if(pattern==Pattern::xor_sparse_reference)anchor_search_fixture::apply_sparse_reference_variation(originals[i],i,count);
+    else if(pattern==Pattern::xor_tile_reference)anchor_search_fixture::apply_tile_reference_variation(originals[i],i,count);
     else anchor_search_fixture::apply_reference_variation(originals[i],i);
   }
   const auto run=[&](bool automatic) {
@@ -489,9 +491,7 @@ void xor_reference_selection(bool tile_cost) {
       NativeGroupMaintenance controller(*f.session);
       require(f.finish(controller).published_groups==1,"Sampled reference did not publish one group");
     }else {
-      // Apply the same encoder and publication checks with the first extent
-      // selected as the base. The previous width score also selected this
-      // member for the multi-plane fixture.
+      // Apply the same encoder and publication checks using the first extent.
       std::array<NativeExtentSelection,count> group;
       for(unsigned i=0;i<count;++i)group[i]={before.stat("r"+std::to_string(i)).inode,0};
       auto work=f.session->prepare_shared_base(group.front(),group);
@@ -516,7 +516,9 @@ void xor_reference_selection(bool tile_cost) {
   };
   const auto first=run(false),selected=run(true);
   require(selected<first,"Sampled reference did not improve the complete image");
-  std::cout<<(tile_cost?"xor_tile_reference":"xor_reference")<<" members="<<count
+  const auto label=pattern==Pattern::xor_sparse_reference?"xor_sparse_reference":
+      pattern==Pattern::xor_tile_reference?"xor_tile_reference":"xor_reference";
+  std::cout<<label<<" members="<<count
       <<" first_bytes="<<first<<" selected_bytes="<<selected
       <<" byte_exact=true\n";
 }
@@ -1469,8 +1471,9 @@ int main(int argc,char** argv){try{
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-xor") {
     xor_indexed_family(true);
     xor_indexed_family(true,true);
-    xor_reference_selection(false);
-    xor_reference_selection(true);
+    xor_reference_selection(anchor_search_fixture::IndexedBatchPattern::xor_reference);
+    xor_reference_selection(anchor_search_fixture::IndexedBatchPattern::xor_tile_reference);
+    xor_reference_selection(anchor_search_fixture::IndexedBatchPattern::xor_sparse_reference);
     xor_reference_decline_fallback();
   } else if(argc==2 && std::string_view(argv[1])=="--profile-projected-xor") {
     xor_indexed_family(false,true);

@@ -7,6 +7,7 @@
 #include "record_digest.hpp"
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <chrono>
 #include <deque>
 #include <limits>
@@ -18,7 +19,9 @@ using Digest=detail::Digest;using Phase=NativeMaintenancePhase;using Defer=Nativ
 constexpr std::uint64_t million=1000000,fixed_scratch=16ULL*kNativeExtentBytes,member_scratch=8ULL*kNativeExtentBytes;
 constexpr unsigned positional_bands=8;
 constexpr std::size_t xor_reference_tiles=8,xor_planes=8;
-using XorReferenceSample=std::array<std::uint64_t,xor_reference_tiles*xor_planes>;
+using XorReferencePlane=std::array<std::uint64_t,anchor_match::xor_plane_bytes/sizeof(std::uint64_t)>;
+using XorReferenceSample=std::array<XorReferencePlane,xor_reference_tiles*xor_planes>;
+using XorReferenceOrder=std::array<std::uint64_t,3>;
 static_assert(kOptimizationGroupBands==positional_bands+detail::kNativeGroupShiftFeatures);
 static_assert(std::tuple_size_v<detail::NativeGroupDeltaSignatures> == kCoherenceModularWidths);
 // Charge extra history for its retained entry, bucket membership, and the
@@ -68,23 +71,44 @@ OptimizationXorSignatures sample_xor_signatures(std::span<const std::byte> exten
   return signatures;
 }
 XorReferenceSample sample_xor_reference(std::span<const std::byte> extent) {
-  XorReferenceSample observations;
+  XorReferenceSample observations{};
   constexpr auto tile_bytes=anchor_match::xor_tile_bytes;
   constexpr auto spacing=kNativeExtentBytes/(tile_bytes*xor_reference_tiles);
   static_assert(kNativeExtentBytes%(tile_bytes*xor_reference_tiles)==0 && spacing%2==0);
-  std::array<std::byte,tile_bytes> plane{};
   for(std::size_t i=0;i<xor_reference_tiles;++i) {
     // Sample a complete tile in each stratum, away from the even tiles used
-    // in the discovery signature. The byte layout is irrelevant to equality.
+    // in the discovery signature.
     const auto index=i*spacing+2*((i*7)%(spacing/2))+1;
     const auto tile=extent.subspan(index*tile_bytes,tile_bytes);
-    for(unsigned bit=0;bit<xor_planes;++bit) {
-      const auto mask=static_cast<std::byte>(1U<<bit);
-      std::ranges::transform(tile,plane.begin(),[mask](auto value){return value&mask;});
-      observations[i*xor_planes+bit]=word(detail::record_digest(plane));
+    for(std::size_t segment=0;segment<anchor_match::xor_plane_bytes;++segment) {
+      const auto bytes=word(tile.subspan(segment*8,8));
+      for(unsigned bit=0;bit<xor_planes;++bit) {
+        const auto plane=anchor_match::xor_plane_bits(bytes,bit);
+        observations[i*xor_planes+bit][segment/8]|=std::uint64_t(plane)<<(8*(segment%8));
+      }
     }
   }
   return observations;
+}
+std::uint32_t sampled_xor_cost(const XorReferenceSample& member,const XorReferenceSample& base) noexcept {
+  using namespace anchor_match;
+  std::uint32_t dense=xor_reference_tiles,sparse=xor_reference_tiles;
+  for(std::size_t tile=0;tile<xor_reference_tiles;++tile) {
+    std::uint32_t active=0;
+    for(std::size_t bit=0;bit<xor_planes;++bit) {
+      const auto plane=tile*xor_planes+bit;
+      const auto& a=member[plane];const auto& b=base[plane];
+      std::uint32_t ones=0;
+      for(std::size_t w=0;w<a.size();++w)ones+=static_cast<std::uint32_t>(std::popcount(a[w]^b[w]));
+      if(!ones)continue;
+      ++active;
+      const auto descriptor=sparse_xor_descriptor(ones);
+      sparse+=descriptor==sparse_plane_dense?xor_plane_bytes:1+(descriptor&~sparse_plane_inverse);
+    }
+    dense+=active*xor_plane_bytes;
+    sparse+=active!=0; // Sparse tiles carry a second mask when any plane differs.
+  }
+  return (std::min)(dense,sparse);
 }
 bool usable_indexed_band(unsigned band,std::uint64_t fingerprint) {
   if(band>=positional_bands)return fingerprint!=0;
@@ -472,17 +496,19 @@ struct NativeGroupMaintenance::Impl {
     }
     return false;
   }
-  std::uint64_t choose_xor_reference(std::span<const NativeContentToken> group) const {
+  XorReferenceOrder choose_xor_reference(std::span<const NativeContentToken> group) const {
+    const auto original=group.front().object;
     // With two members the sampled XOR cost is the same in either direction.
-    if(group.size()<3)return group.front().object;
+    if(group.size()<3)return {original};
     std::vector<const XorReferenceSample*> samples;
     samples.reserve(group.size());
     for(const auto& member:group) {
       const auto& sample=features.at(member.object).reference_sample;
-      if(!sample)return group.front().object;
+      if(!sample)return {original};
       samples.push_back(&*sample);
     }
-    using PlaneMember=std::pair<std::uint64_t,std::size_t>;
+    if(std::ranges::all_of(samples,[&](const auto* sample){return *sample==*samples.front();}))return {original};
+    using PlaneMember=std::pair<XorReferencePlane,std::size_t>;
     std::vector<PlaneMember> ordered(samples.size());
     std::vector<std::size_t> matches(samples.size());
     for(std::size_t site=0;site<samples.front()->size();++site) {
@@ -492,7 +518,7 @@ struct NativeGroupMaintenance::Impl {
       for(std::size_t i=0;i<samples.size();++i)ordered[i]={(*samples[i])[site],i};
       std::ranges::sort(ordered,{},&PlaneMember::first);
       // A matching tile plane requires zero payload bytes in packed XOR.
-      // Members in one equal-fingerprint run save the same planes, including
+      // Members with one equal plane save the same bytes, including
       // a constant self-match. No pairwise extent matrix is needed.
       for(auto first=ordered.begin();first!=ordered.end();) {
         auto end=first+1;
@@ -502,7 +528,36 @@ struct NativeGroupMaintenance::Impl {
         first=end;
       }
     }
-    return group[static_cast<std::size_t>(std::ranges::max_element(matches)-matches.begin())].object;
+    const auto dense=static_cast<std::size_t>(std::ranges::max_element(matches)-matches.begin());
+    // The preliminary comparison uses a bounded, stratified probe set even
+    // for large groups. Verify the shortlist over every retained sample.
+    std::array<const XorReferenceSample*,xor_reference_tiles> probes{};
+    const auto count=(std::min)(probes.size(),samples.size());
+    for(std::size_t i=0;i<count;++i)probes[i]=samples[i*(samples.size()-1)/(count-1)];
+    const auto cost=[&](std::size_t candidate,std::span<const XorReferenceSample* const> peers) {
+      std::uint64_t result=0;
+      for(const auto* other:peers)result=add(result,sampled_xor_cost(*samples[candidate],*other));
+      return result;
+    };
+    const auto probe_set=std::span(probes).first(count);
+    auto preferred=dense;
+    auto sampled_best=cost(dense,probe_set);
+    for(std::size_t i=0;i<samples.size();++i) {
+      const auto value=cost(i,probe_set);
+      if(value<sampled_best){preferred=i;sampled_best=value;}
+    }
+    auto best=dense;
+    auto best_cost=cost(dense,samples);
+    for(const auto candidate:{preferred,std::size_t{0}}) {
+      if(candidate==best)continue;
+      const auto value=cost(candidate,samples);
+      if(value<best_cost){best=candidate;best_cost=value;}
+    }
+    XorReferenceOrder result{group[best].object};
+    std::size_t next=1;
+    for(const auto candidate:{group[dense].object,original})
+      if(std::ranges::find(result,candidate)==result.end())result[next++]=candidate;
+    return result;
   }
   void propose_indexed_group(NativeFilesystemWriter& writer,std::size_t maximum_members,
       std::size_t remaining_extents,bool collect_batch) {
@@ -542,34 +597,32 @@ struct NativeGroupMaintenance::Impl {
         return;
       }
     }
+    XorReferenceOrder references{representative};
     if(reusable==ids.end() && prior==ids.end() &&
         band.first>=kCoherenceMaskedBand && band.first<kCoherenceModularBand)
-      representative=choose_xor_reference(expected);
-    const auto original=expected.front().object;
+      references=choose_xor_reference(expected);
     std::ranges::sort(expected,{},&NativeContentToken::object);
     std::vector<NativeExtentSelection> selected;
     std::vector<std::byte> key;
     selected.reserve(expected.size());key.reserve(16+48*expected.size());
-    append(key,2);append(key,representative);
+    append(key,2);append(key,0);
     for(const auto& token:expected) {
       selected.push_back(token.extent);
       append(key,token.object);append(key,token.revision);
       const auto& content=indexed_feature(token.object).content;
       key.insert(key.end(),content.begin(),content.end());
     }
-    work_key=detail::record_digest(key);
-    if(representative!=original) {
-      if(attempted.contains(work_key)) {
-        representative=original;
-        for(unsigned i=0;i<8;++i)key[8+i]=static_cast<std::byte>(original>>(8*i));
-        work_key=detail::record_digest(key);
-      } else {
-        // Revisit this bucket if the estimated base declines. A successful
-        // group removes its members before the next candidate pass.
-        --candidate_index;
-      }
+    std::size_t choice=0;
+    for(;choice<references.size() && references[choice];++choice) {
+      representative=references[choice];
+      for(unsigned i=0;i<8;++i)key[8+i]=static_cast<std::byte>(representative>>(8*i));
+      work_key=detail::record_digest(key);
+      if(!attempted.contains(work_key))break;
     }
-    if(attempted.contains(work_key))return;
+    if(choice==references.size() || !references[choice])return;
+    // Revisit the bucket when an alternative remains. A successful group
+    // removes its members before the next candidate pass.
+    if(choice+1<references.size() && references[choice+1])--candidate_index;
     work_ids.clear();work_ids.reserve(expected.size());
     for(const auto& token:expected)work_ids.push_back(token.object);
     const auto base=indexed_feature(representative).token.extent;

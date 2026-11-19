@@ -329,10 +329,11 @@ find packed XOR candidates after changes throughout an extent. Constant
 projections provide no candidate key. Live revisions, byte-exact readback
 and the full packed-image bound govern publication.
 
-New masked-XOR groups can choose their immutable base using the estimated
-packed cost of differing planes across sampled tiles. CPU and AMD preparation
-use the same nominated base. The indexed format and independent CPU reader
-are unchanged. [Reference selection](AUTOMATIC_GROUP_MAINTENANCE.md#discovery-and-reuse)
+New masked-XOR groups can choose their immutable base using estimated
+dense and sparse costs on sampled tile planes. CPU and AMD preparation
+use the same nominated base. The writer independently reconstructs each
+member and compares complete compacted size before publication.
+[Reference selection](AUTOMATIC_GROUP_MAINTENANCE.md#discovery-and-reuse)
 
 A candidate carries the sampled object identity and generation into group
 preparation. An intervening selected change invalidates the candidate before

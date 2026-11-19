@@ -847,6 +847,17 @@ whole-workload evidence with enough alternative reference and codec
 search to justify startup and verification costs.
 [Mixed-codec measurements](evidence/amd-mixed-codec-selection-2026-11-19.json)
 
+Masked-XOR discovery now prices sparse lists, inverse lists and dense bitmaps
+in its reference sample. On each matched 15-file cohort, this reduced complete
+compacted size from 3,186,688 to 2,826,240 bytes with either CPU or AMD
+encoding. The previous selector and the new selector each ran three times
+per cohort and backend, and all 24 trials reopened every file on CPU.
+The new AMD replies carried 960,804 bytes, down from 1,142,564. AMD still
+supplied 100 used members per trial. CPU remained fastest on the tested
+inputs. Larger profiles should compare competing references with full-image
+costs and include naturally related data beyond the controlled cohorts.
+[Sparse-aware reference measurements](evidence/sparse-reference-cost-2026-11-19.json)
+
 The indexed owner now fills a finite worker exchange across several scan
 windows under live host and exact channel admission. In the related-data
 fixture, one real AMD exchange supplied 310 verified candidates for five

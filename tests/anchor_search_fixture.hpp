@@ -36,12 +36,14 @@ inline constexpr auto indexed_batch_members=indexed_batch_families*(kNativeMaxDi
 inline constexpr auto indexed_sample_bank_bytes=(indexed_batch_families+1)*kNativeExtentBytes;
 static_assert(kNativeMaxDirtyExtents%indexed_batch_extents_per_file==0 && indexed_batch_members>kNativeMaxExtents);
 enum class IndexedBatchPattern {
-  packed_xor,modular_delta,shifted_bias,xor_reference,xor_tile_reference,sparse_xor,sparse_xor_all_planes,collective
+  packed_xor,modular_delta,shifted_bias,xor_reference,xor_tile_reference,xor_sparse_reference,
+  sparse_xor,sparse_xor_all_planes,collective
 };
 
 inline bool small_indexed_batch(IndexedBatchPattern pattern) noexcept {
   return pattern==IndexedBatchPattern::shifted_bias || pattern==IndexedBatchPattern::xor_reference ||
-      pattern==IndexedBatchPattern::xor_tile_reference || pattern==IndexedBatchPattern::sparse_xor ||
+      pattern==IndexedBatchPattern::xor_tile_reference || pattern==IndexedBatchPattern::xor_sparse_reference ||
+      pattern==IndexedBatchPattern::sparse_xor ||
       pattern==IndexedBatchPattern::sparse_xor_all_planes || pattern==IndexedBatchPattern::collective;
 }
 
@@ -91,6 +93,26 @@ inline void apply_sparse_xor_variation(std::span<std::byte> extent,unsigned memb
   }
 }
 
+inline void apply_sparse_reference_variation(std::span<std::byte> extent,unsigned member,unsigned group_size) {
+  constexpr auto tile_bytes=anchor_match::xor_tile_bytes;
+  constexpr unsigned unchanged=64,positions=tile_bytes-unchanged;
+  const bool dense_minority=member<group_size/4;
+  for(std::size_t at=0;at<extent.size();at+=tile_bytes) {
+    const auto index=static_cast<unsigned>(at/tile_bytes);
+    auto tile=extent.subspan(at,tile_bytes);
+    // The minority shares nearly all plane patterns, but differs in one
+    // dense plane from the other members. The majority has more planes
+    // with distinct patterns and far fewer changed bits per plane.
+    if(dense_minority)for(unsigned site=unchanged;site<tile_bytes;site+=2)tile[site]^=std::byte{0x80};
+    for(unsigned bit=0;bit<(dense_minority?1U:6U);++bit) {
+      const auto first=(37*member+19*index+29*bit)%positions;
+      const auto mask=static_cast<std::byte>(1U<<bit);
+      tile[unchanged+first]^=mask;
+      tile[unchanged+(first+79)%positions]^=mask;
+    }
+  }
+}
+
 inline void apply_all_xor_planes(std::span<std::byte> extent,unsigned member) {
   if(!member)return;
   constexpr auto tile_bytes=anchor_match::xor_tile_bytes;
@@ -136,6 +158,10 @@ inline std::vector<Bytes> indexed_batch_files(std::span<const std::byte> bank={}
         }
         if(xor_tile_reference) {
           apply_tile_reference_variation(extent,static_cast<unsigned>(member),static_cast<unsigned>(extent_count));
+          continue;
+        }
+        if(pattern==IndexedBatchPattern::xor_sparse_reference) {
+          apply_sparse_reference_variation(extent,static_cast<unsigned>(member),static_cast<unsigned>(extent_count));
           continue;
         }
         if(pattern==IndexedBatchPattern::sparse_xor) {

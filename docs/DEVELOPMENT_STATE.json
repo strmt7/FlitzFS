@@ -90,6 +90,16 @@
     "scope": "One admitted AMD launch per work quantum compares sparse XOR and modular delta in shared device input. Separate verified fixtures cover both GPU choices, malformed advice fallback and protected CPU reopen.",
     "next": "Qualify larger groups with useful reference alternatives and compare complete storage size and end-to-end cost across devices before enabling automatic preference."
   },
+  "native_sparse_reference_selection": {
+    "source_base": "924c6083746327e76c9bcfbc6c6334d12fd77497",
+    "evidence": "docs/evidence/sparse-reference-cost-2026-11-19.json",
+    "physical_host_comparisons": 24,
+    "complete_image_bytes": [3186688, 2826240],
+    "used_amd_members": 100,
+    "independent_cpu_readback": true,
+    "scope": "Sampled sparse and dense body cost ranks the immutable reference before encoding. The native writer still checks the complete protected compacted size.",
+    "next": "Evaluate reference quality over naturally related files and profile adaptive depth and batch costs on the current CPU and AMD implementations."
+  },
   "native_path_lookup": {
     "source_base": "700cdb31de32b847497b02cc0e113d27482e6c85",
     "evidence": "docs/evidence/native-path-lookup-2026-11-17.json",
