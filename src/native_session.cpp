@@ -124,7 +124,7 @@ struct NativeFileSession::Impl {
         input.committed_input_bytes-*settled>=kOptimizationGroupScanInputBytes;
   }
   void adopt_coherence(IndexedCoherenceSnapshot catalog,
-      std::optional<IndexedCoherenceWriter> writer_owner={}) {
+      std::shared_ptr<IndexedCoherenceWriter> writer_owner={}) {
     if(maintenance->coherence_binding==(std::numeric_limits<std::uint64_t>::max)())
       fail(E::limit,"coherence binding sequence exhausted");
     maintenance->retire_coherence();
@@ -134,11 +134,15 @@ struct NativeFileSession::Impl {
   }
   bool publish_coherence_scan(OptimizationStateWriter& advice,const OptimizationState& state,
       std::uint64_t input) {
-    if(!maintenance || !maintenance->coherence_writer)return false;
+    if(!writer.maintenance_indexed() || !maintenance)return false;
+    const auto storage=maintenance->coherence_storage;
+    const bool creating=!maintenance->coherence_writer;
+    if(creating && !storage)return false;
     const auto settled=*state.settled_input_bytes;
     if(input<settled || input-settled<=kOptimizationGroupScanInputBytes)return false;
     const auto maximum_bytes=(input-settled-kOptimizationGroupScanInputBytes)/
         kOptimizationGroupScanInputPerWriteByte;
+    if(creating && maximum_bytes<2*kStoreCommitUnit)return false;
     const auto& features=state.group_scan->representatives;
     auto first=std::ranges::upper_bound(features,maintenance->coherence_offer_after,{},&OptimizationGroupFeature::object);
     if(first==features.end())first=features.begin();
@@ -149,18 +153,31 @@ struct NativeFileSession::Impl {
     const auto end=first+static_cast<std::ptrdiff_t>(count);
     for(auto it=first;it!=end;++it)
       if(const auto band=detail::coherence_primary_band(it->bands))postings.push_back({*band,*it});
+    if(postings.empty())return false;
     bool settled_catalog=false;
-    auto& catalog=*maintenance->coherence_writer;
+    const auto reserve=[&](std::uint64_t write_bytes) {
+      settled_catalog=advice.publish_budgeted(state,input,true,write_bytes)==OptimizationStateWriter::BudgetResult::published;
+      return settled_catalog;
+    };
     try {
-      const auto result=catalog.publish_reserved(postings,maximum_bytes,[&](std::uint64_t write_bytes) {
-        settled_catalog=advice.publish_budgeted(state,input,true,write_bytes)==OptimizationStateWriter::BudgetResult::published;
-        return settled_catalog;
-      });
-      if(result.write_bytes_upper_bound)maintenance->coherence.emplace(catalog.snapshot());
+      if(creating) {
+        auto backing=storage->reserve_();
+        if(!backing || backing==volume->head_io || backing==volume->active_io ||
+            backing==volume->candidate_io || owns_optimization_backend(backing))return false;
+        auto catalog=std::make_shared<IndexedCoherenceWriter>(IndexedCoherenceWriter::create_reserved(
+            std::move(backing),volume->volume_id,volume->active_id,storage->limits_,postings,maximum_bytes,reserve));
+        auto snapshot=catalog->snapshot();
+        adopt_coherence(std::move(snapshot),catalog);
+        storage->retained_=std::move(catalog);
+      }else {
+        auto& catalog=*maintenance->coherence_writer;
+        const auto result=catalog.publish_reserved(postings,maximum_bytes,reserve);
+        if(result.write_bytes_upper_bound)maintenance->coherence.emplace(catalog.snapshot());
+      }
       maintenance->coherence_offer_after=(end-1)->object;
     }catch(const PagedStoreCapacityError&) {
       if(advice.poisoned())throw;
-      if(catalog.poisoned())maintenance->retire_coherence();
+      if(maintenance->coherence_writer && maintenance->coherence_writer->poisoned())maintenance->retire_coherence();
     }catch(const std::exception&) {
       if(advice.poisoned())throw;
       maintenance->retire_coherence();
@@ -439,19 +456,40 @@ void NativeFileSession::bind_indexed_coherence(std::shared_ptr<StoreByteIo> back
       backing==self.volume->head_io || backing==self.volume->active_io ||
       backing==self.volume->candidate_io || self.owns_optimization_backend(backing))
     fail(E::invalid_options,"coherence catalog needs separate backing and an indexed managed session");
-  auto catalog=IndexedCoherenceSnapshot::open(std::move(backing),self.volume->volume_id,self.volume->active_id,limits);
   (void)maintenance_source();
+  if(self.maintenance->coherence_storage)fail(E::invalid_options,"coherence storage already configured");
+  auto catalog=IndexedCoherenceSnapshot::open(std::move(backing),self.volume->volume_id,self.volume->active_id,limits);
   self.adopt_coherence(std::move(catalog));
 }
 void NativeFileSession::bind_indexed_coherence_writer(IndexedCoherenceWriter writer) {
   auto& self=ready();
   if(!self.ready_scan_advice() || !self.writer.maintenance_indexed())
     fail(E::invalid_options,"writable coherence catalog needs indexed storage and funded advice");
+  (void)maintenance_source();
+  if(self.maintenance->coherence_storage)fail(E::invalid_options,"coherence storage already configured");
   auto catalog=writer.snapshot();
   if(catalog.volume()!=self.volume->volume_id || catalog.image()!=self.volume->active_id)
     fail(E::invalid_options,"writable coherence catalog identity differs");
+  self.adopt_coherence(std::move(catalog),std::make_shared<IndexedCoherenceWriter>(std::move(writer)));
+}
+void NativeFileSession::configure_indexed_coherence(std::shared_ptr<IndexedCoherenceStorage> storage) {
+  auto& self=ready();
+  if(!storage || !storage->session_.expired() || !self.writer.maintenance_indexed() ||
+      !self.volume || self.volume->pending || self.recompression)
+    fail(E::invalid_options,"coherence storage requires a quiescent managed indexed session");
   (void)maintenance_source();
-  self.adopt_coherence(std::move(catalog),std::move(writer));
+  if(self.maintenance->coherence_storage || self.maintenance->coherence)
+    fail(E::invalid_options,"coherence storage already configured");
+  if(storage->retained_) {
+    try {
+      auto catalog=storage->retained_->snapshot();
+      if(catalog.volume()==self.volume->volume_id && catalog.image()==self.volume->active_id)
+        self.adopt_coherence(std::move(catalog),storage->retained_);
+      else storage->retained_.reset();
+    }catch(const std::exception&) {storage->retained_.reset();}
+  }
+  storage->session_=self.owner;
+  self.maintenance->coherence_storage=std::move(storage);
 }
 NativeOptimizationInfo NativeFileSession::optimization_info() const noexcept {
   NativeOptimizationInfo out;

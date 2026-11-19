@@ -313,16 +313,22 @@ After ordinary window candidates are exhausted, the maintenance controller
 can look up the first eligible band of an ungrouped sample. One point lookup
 runs per admitted step. A match goes through the ordinary live extent and CPU
 publication checks. An unreadable catalog is retired from active discovery
-and the ordinary window can continue. The binding and publication APIs
-currently receive an explicitly reserved backend. Binding a fresh catalog can
-wake a settled controller, and selecting another image retires the earlier
-catalog owner.
+and the ordinary window can continue. Binding a fresh catalog can wake a
+settled controller, and selecting another image retires the earlier catalog
+owner.
 
 A managed session can take ownership of a provisioned writer. On settled
 scan windows it offers a rotating batch of retained features using the same
 primary band rule as lookup. The batch uses the existing scan quantum and
 shares the input-funded checkpoint ledger. Successful updates refresh the
-snapshot for later windows without forcing a full rescan. Automatic backing
-provisioning and space retirement in the Windows providers remain open.
+snapshot for later windows without forcing a full rescan.
+
+The owned indexed Windows memory volume now supplies a private reservation to
+that scanner. The first useful funded batch creates the catalog in one paged
+transaction with its typed root. A healthy writer lease survives a joined
+remount of the same image. A failed or superseded catalog releases its
+reservation after the last owner drops it. Reclaiming stale postings from a
+healthy catalog at capacity requires a later compaction path.
+[Windows backing](WINDOWS_MEMORY_VOLUME_FACTORY.md#automatic-coherence-catalog)
 [Write funding](OPTIMIZATION_BUDGET.md#funded-catalog-updates) ·
 [Host validation](evidence/funded-paged-coherence-2026-11-19.json)

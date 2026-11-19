@@ -542,12 +542,15 @@ reused 125 verified feature bindings and resampled the edited extent. The
 paged coherence catalog now gives an indexed session a point lookup beyond
 that checkpoint window. The managed scanner now populates a provisioned
 catalog automatically. Its journal settles the full append and root write
-allowance before catalog mutation. Remaining scale work includes automatic
-Windows backing provisioning, reclamation, candidate recall and total
-retained overhead under continuous changes.
+allowance before catalog mutation. The owned Windows memory path provisions
+the catalog on the first useful funded batch, retains it on a joined remount
+and reclaims discarded backing in bounded steps. Production scale work still
+needs a persistent provider, stale-posting compaction, candidate recall
+measurements and total retained overhead under continuous changes.
 [Restart validation](evidence/indexed-representative-retention-2026-11-19.json)
 [Paged coherence catalog](OPTIMIZATION_STATE.md#paged-coherence-catalog) ·
-[Host validation](evidence/funded-paged-coherence-2026-11-19.json)
+[Funding validation](evidence/funded-paged-coherence-2026-11-19.json) ·
+[Windows ownership validation](evidence/windows-catalog-provisioning-2026-11-19.json)
 
 RubikFS provides evidence for evaluating similarity and access hotness
 together. MedFS shows why selective delta maintenance should account for write

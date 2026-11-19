@@ -12,7 +12,7 @@ WinFspMemoryVolume::WinFspMemoryVolume(WinFspSessionApi api,NativeWriteMountPlan
   if(!valid_native_write_plan(plan))throw std::invalid_argument("Invalid memory-volume mount plan");
   if(kind_!=NativeImageKind::paged && kind_!=NativeImageKind::indexed_paged)
     throw std::invalid_argument("Memory volume needs a supported paged layout");
-  backing_=MemoryVolumeBacking::create();
+  backing_=MemoryVolumeBacking::create(kind_==NativeImageKind::indexed_paged);
   const PagedStoreLimits limits{backing_.layout.image_capacity};
   auto adapter=kind_==NativeImageKind::indexed_paged?
       WinFspNativeWritable::create_managed_indexed(backing_.head,backing_.volume_identity,
@@ -25,7 +25,7 @@ WinFspMemoryVolume::WinFspMemoryVolume(WinFspSessionApi api,NativeWriteMountPlan
 void WinFspMemoryVolume::start_controller(std::unique_ptr<WinFspNativeWritable> adapter,WinFspSessionApi api,
     NativeWriteMountPlan plan,std::optional<NativeDeferredWriteOptions> acceleration,
     std::optional<NativeAnchorSearchOptions> anchor) {
-  if(kind_==NativeImageKind::indexed_paged)adapter->configure_memory_compaction(backing_);
+  if(kind_==NativeImageKind::indexed_paged)adapter->configure_memory_maintenance(backing_);
   if(acceleration && acceleration->controller_health &&
       (!acceleration->measured_shape || acceleration->measured_shape->matches_storage(
           memory_compression,backing_.image->contract().write_failure_unit_bytes)))

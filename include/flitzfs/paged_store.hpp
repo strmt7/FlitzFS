@@ -124,7 +124,9 @@ class PagedObjectStoreWriter final {
   friend class detail::NativeObjectWriter;
   friend class IndexedCoherenceWriter;
   static PagedObjectStoreWriter create_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,
-      PagedStoreLimits,StoreCompressionOptions,bool mirrored);
+      PagedStoreLimits,StoreCompressionOptions,bool mirrored,std::span<const StoreMutation> initial={},
+      std::uint64_t maximum_write_bytes=UINT64_MAX,
+      const std::function<bool(std::uint64_t)>& reserve_writes={});
   Rewrite prepare_rebuild_replacing(std::shared_ptr<StoreByteIo>,StoreIdentity,
       StoreCompressionOptions,std::span<const std::byte> replacement,bool reencode,
       std::size_t identity_offset=40) const;

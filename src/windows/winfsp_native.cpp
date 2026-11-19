@@ -154,7 +154,7 @@ struct WinFspNativeWritable::Impl {
   std::unique_ptr<NativeDeferredWriteService> deferred;
   std::unique_ptr<NativeGroupMaintenance> groups;
   NativeMaintenancePolicy group_policy;
-  MemoryVolumeBacking* compaction=nullptr;
+  MemoryVolumeBacking* memory_backing=nullptr;
   std::uint64_t last_retirement_observation=0,last_retirement_capture=0;
   bool maintenance_cancelled=false;
   std::atomic<bool> maintenance_signal_failed{false};
@@ -205,7 +205,8 @@ struct WinFspNativeWritable::Impl {
       return WinFspMaintenanceResult{State::advanced,{Phase::deferred,reason}};
     };
     const bool reap=session.retirement_pending();
-    if(!reap && (!compaction || !compaction->compaction_pending(session)))return {State::unchanged};
+    const bool discard_catalog=memory_backing && memory_backing->coherence_retirement_pending();
+    if(!reap && !discard_catalog && (!memory_backing || !memory_backing->compaction_pending(session)))return {State::unchanged};
     if(!observed.sequence || observed.sequence<=last_retirement_observation)
       return defer(Deferral::observation);
     last_retirement_observation=observed.sequence;
@@ -223,8 +224,12 @@ struct WinFspNativeWritable::Impl {
         if(!session.reclaim_retired_inode())return {State::unchanged};
         return {State::advanced,{session.retirement_pending()?Phase::publishing:Phase::idle},true};
       }
+      if(discard_catalog) {
+        memory_backing->advance_coherence_retirement();
+        return {State::advanced,{memory_backing->coherence_retirement_pending()?Phase::preparing:Phase::idle}};
+      }
       using Step=MemoryCompactionStep;
-      switch(compaction->advance_compaction(session)) {
+      switch(memory_backing->advance_compaction(session)) {
         case Step::idle:return {State::unchanged};
         case Step::copying:return {State::advanced,{Phase::preparing}};
         case Step::ready:return {State::advanced,{Phase::publishing}};
@@ -697,8 +702,9 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_managed_impl(
     impl->groups=std::make_unique<NativeGroupMaintenance>(impl->session);
   return std::unique_ptr<WinFspNativeWritable>(new WinFspNativeWritable(std::move(impl)));
 }
-void WinFspNativeWritable::configure_memory_compaction(MemoryVolumeBacking& backing) noexcept {
-  impl_->compaction=&backing;
+void WinFspNativeWritable::configure_memory_maintenance(MemoryVolumeBacking& backing) noexcept {
+  impl_->memory_backing=&backing;
+  backing.configure_coherence(impl_->session);
 }
 bool WinFspNativeWritable::background_maintenance_pending() const {
   std::unique_lock guard(impl_->control,std::try_to_lock);
@@ -708,7 +714,8 @@ bool WinFspNativeWritable::background_maintenance_pending() const {
   if(impl_->maintenance_cancelled || requires_offline() || dispatcher_stopped() || impl_->session.poisoned())
     return false;
   return impl_->session.retirement_pending() ||
-      (impl_->compaction && impl_->compaction->compaction_pending(impl_->session)) ||
+      (impl_->memory_backing && (impl_->memory_backing->coherence_retirement_pending() ||
+      impl_->memory_backing->compaction_pending(impl_->session))) ||
       (impl_->groups && (impl_->groups->pending() ||
       (impl_->deferred && (impl_->deferred->publication_pending_locked() || impl_->deferred->stats_locked().worker_busy))));
 }
@@ -752,7 +759,7 @@ void WinFspNativeWritable::cancel_background_maintenance() {
   std::lock_guard guard(impl_->control);
   impl_->maintenance_cancelled=true;
   impl_->groups.reset();
-  if(impl_->compaction)impl_->compaction->cancel_compaction(impl_->session);
+  if(impl_->memory_backing)impl_->memory_backing->cancel_compaction(impl_->session);
 }
 WinFspMaintenanceResult WinFspNativeWritable::advance_background_maintenance(
     const NativeMaintenanceObservation& observed,std::uint64_t now,NativeGroupSearchOpportunity search) {

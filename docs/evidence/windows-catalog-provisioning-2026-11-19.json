@@ -1,0 +1,336 @@
+{
+  "schema": 1,
+  "date": "2026-11-19",
+  "source_base": "f264deb09b886d7825724def3acd5da84dbb3249",
+  "source_binding": {
+    "include/flitzfs/indexed_coherence.hpp": {
+      "sha256": "77a7777c1e74b31c65087aea62ae6cdcd61d846b6690df8c1394c1ad02f01505",
+      "git_blob": "9535f2461206fcbfd655a60b4c5e4d290e2c13b7"
+    },
+    "include/flitzfs/native_maintenance.hpp": {
+      "sha256": "525fe08d58ac532c47096bae5a322365ae4190579d7ea285934497a5359dae25",
+      "git_blob": "6a5423f71f06ea8426017b32c9eb08f0ab4d5959"
+    },
+    "include/flitzfs/native_session.hpp": {
+      "sha256": "9751e89f61689e17f4c5179fbb7ba15d15cf99e7ceb8f7f2a4dcb92c21fa65e0",
+      "git_blob": "84ee6376fa830a7f90d395eca7ea8b7cdddaf7e3"
+    },
+    "include/flitzfs/paged_store.hpp": {
+      "sha256": "250b02f9e96e47e9499675f79c21ad0ceb750200ed74d26762fa10dd2f254902",
+      "git_blob": "bc927e5363a2b3c1208f0aaea28143766e44d5c4"
+    },
+    "src/indexed_coherence.cpp": {
+      "sha256": "451c47e24de669f1242ab2b294a00842bf98bfeaba8e43df57ffa903a01bac04",
+      "git_blob": "874637a87f4092cfd03c1d725d336b34eafc3fbb"
+    },
+    "src/native_maintenance.cpp": {
+      "sha256": "d26813351bac69842101acf8d4ec3f54197706c284ddb4e3057828f99fb08557",
+      "git_blob": "38b346828082aff14c3349c6282037fabc837baf"
+    },
+    "src/native_maintenance_source.hpp": {
+      "sha256": "116463d95417ba30e30d985bb6fd63463c15b4d80630bf09befcdbed3c1f79bb",
+      "git_blob": "fab8effc98e900e534140f29f090086b07a0291f"
+    },
+    "src/native_session.cpp": {
+      "sha256": "6319a90eecca9d7d2816b04653bc3f810f369f9085f0b6d45fd101271601c4fa",
+      "git_blob": "d509a2010fa4ff3bd3410050ec3e094d6c8d9788"
+    },
+    "src/paged_store.cpp": {
+      "sha256": "2b462f77bab82531ad13222cb2925d5f0e87409969b665db85772b45d393ba9b",
+      "git_blob": "d24acae01fe0b8799586853bb8e786324bcd6210"
+    },
+    "src/windows/memory_volume_factory.cpp": {
+      "sha256": "9384dc53b11d6bdab300c5102b1e8c7b72f878c86149e0ea8bb89b3c2b1b0b32",
+      "git_blob": "92788f285e39f909793edd8f1697e9dd6af7a691"
+    },
+    "src/windows/memory_volume_factory.hpp": {
+      "sha256": "b1461f63626e152e7c6027886d9a2dca94e22d4ba3548b7b0257dd6dd7ed5604",
+      "git_blob": "75fbded5769f6f7d3c99ccadef1084177d6675d8"
+    },
+    "src/windows/winfsp_memory_volume.cpp": {
+      "sha256": "2a4e535d38acc6592b41785b5ccc924a50576f5b1a19f7995d793bd5052960ed",
+      "git_blob": "ec14426ed65e98ed3a9bc9f085deca4f80a1a57e"
+    },
+    "src/windows/winfsp_native.cpp": {
+      "sha256": "acba418bd25fe2ae11f74e7d4fe4def994563c8ee68e0426a0a557dac41d1b42",
+      "git_blob": "cd64240b1d2bbbdf885328f5796b2c663120b180"
+    },
+    "src/windows/winfsp_native.hpp": {
+      "sha256": "ca0a683d464e87dc5b18409bec495639446083394daee0b05106e32e5378d8c2",
+      "git_blob": "097525db3cd9f223cec97c0ec660d0748051ab4d"
+    },
+    "tests/test_native_group_maintenance.cpp": {
+      "sha256": "1a64a9b1b7e6642f5213482a9e30d6d86ac75192ee4feb0df91a26fb0ca6ce66",
+      "git_blob": "83adfcf42023540810e4ed1bb1d4446351db809d"
+    },
+    "tests/test_winfsp_controller.cpp": {
+      "sha256": "3a6c8278676099041b34fdf174be01a1089c4dd9c006e34523b3185db455da5b",
+      "git_blob": "85a0eff2f6c8f5a7f6b601db74cf453ca926746f"
+    }
+  },
+  "scope": "Physical Windows 11 Pro AMD64, bounded CPU and SDK fixtures. Optional catalog uses a separate storage reservation and the same funded journal. SDK lifecycle functions supplied by the fixture.",
+  "builds": {
+    "winfsp_codec": {
+      "run": "local-run-ce7db81cdbea4505847ec89e136e1fac",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "3c21623d6faaa4b6bbeee550c9f49f646c22b52259a8cb009a732ed9eab83ffa",
+      "log_sha256": "c9ee392a97aaebde6fa2738e95249f63c3e42ed59e5229e49327af28df429c34",
+      "peak_process_tree_commit_bytes": 353869824
+    },
+    "winfsp_volume_session": {
+      "run": "local-run-2b41f15dee294345ad0e601bd1eb5ccf",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "8c197763349579f2f52488080a58a79044de4797551ccaf25f21969a26a1656f",
+      "log_sha256": "a4ccc0a271e15358406ec32051330bcc1bdc6a93649d14fa83b6aeb783a172ea",
+      "peak_process_tree_commit_bytes": 260284416
+    },
+    "raw": {
+      "run": "local-run-02a4a8376a8d4bf9939e966d8ecb0e73",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "6558d89225735869d6d8b778704888bdef3e3929c2f14df0dfe29e12323e81ba",
+      "log_sha256": "58096a80a4936558cd61cb63638af1346805fddc7744c095d1f050c07e26b63e",
+      "peak_process_tree_commit_bytes": 367263744
+    },
+    "address_sanitizer": {
+      "run": "local-run-fea3fc00ffad429fb79e8117321486bf",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "970efb9cdaf262c5e7e92605168dff3cdbe2c2d63f776275bb37b77e2ec16742",
+      "log_sha256": "093217f0291884d48596de69d74c1551cd5f7ec2754f0b5a6806a68c58e90ce5",
+      "peak_process_tree_commit_bytes": 402690048
+    },
+    "windows_fixture_final": {
+      "run": "local-run-25ee0c364cc44ee19437bc2cdb7625e0",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "2b6e83a1b4a9d5e4b86d4bf769f9f6a7c3d01f34706f84e8b0ee6a55725c5cb3",
+      "log_sha256": "ff9e79586ace177f30bb87c4a0268a3b2a1ed9b5c03850529e47d3d518613f06",
+      "peak_process_tree_commit_bytes": 340164608
+    }
+  },
+  "correctness": {
+    "codec_winfsp_attachment": {
+      "run": "local-run-3a072644700a4d90a87f6ab8f7553df0",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "078d517bc962276611339e6fe127da50d07db16cad2358f6a892f09da2329e0c",
+      "log_sha256": "c56b9410473473a2634f2155f3c58961463eae511d6eafd642e2e0883511becb",
+      "peak_process_tree_commit_bytes": 106672128,
+      "entries": 21
+    },
+    "raw": {
+      "run": "local-run-1d6c1934504d4b77b2a182d536a057fd",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "f1b6977c20133f1a3038fce1b99100be535b2e9466f8bd30eed0dc7b62b2e28e",
+      "log_sha256": "884320ae6d8247e3202129bd7d5625840fc0805d2100be3974214a8ba0e4e0da",
+      "peak_process_tree_commit_bytes": 106467328,
+      "entries": 15
+    },
+    "address_sanitizer": {
+      "run": "local-run-24ddfeab6f0145c59ff6d1ada781d6b1",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "30f024625767022ebe8a3a253477e0ac369685c12b90e0518f661c57bacf19eb",
+      "log_sha256": "f767ea8a7fe734457b6821759c810387eccbbe3df256932c2910997e9d19c7a5",
+      "peak_process_tree_commit_bytes": 802758656,
+      "entries": 16
+    },
+    "address_sanitizer_runtime_preflight": true,
+    "address_sanitizer_build_warning": "C5072 in the existing local fixture configuration reports missing debug information. The instrumented tests and runtime preflight executed.",
+    "final_indexed_catalog_lifecycle": {
+      "run": "local-run-c771620d27ad446d840966e2c33e70b7",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "a6868b788d5cd41cb623d6783fb2ee55c69f3f82249c27a2a1dc45f6ee7f1839",
+      "log_sha256": "4aeba39e42207b51a546b003df9cd9337e9b636d948282f474f86e2d5e82660f",
+      "peak_process_tree_commit_bytes": 19521536,
+      "entries": 1
+    },
+    "memory_catalog": {
+      "locked_catalog_bytes": 143360,
+      "reclaimed_catalog_bytes": 143360,
+      "quanta": 1
+    },
+    "checked_cases": [
+      "Checkpoint-only input entered no catalog allocation or writes.",
+      "Initial typed root and postings used one fully charged paged checkpoint.",
+      "A cut in the first settled journal pair prevented all catalog writes.",
+      "A failed catalog initialization retained the settled charge and quiesced on unchanged input.",
+      "Remount retained the healthy catalog lease. A selected-image handoff reclaimed the old catalog, then provisioned the successor from new credit.",
+      "The read-only seal released the retained writable catalog and preserved CPU byte readback."
+    ]
+  },
+  "live_idle_scheduler": {
+    "first_trial": {
+      "run": "local-run-dd70b81e59ea454791821bbc325268d3",
+      "exit_code": 1,
+      "tree_retired": true,
+      "receipt_sha256": "76fbb7254fda1f93c55b94844e0c63f0ca0129b7b5efd5283ad674395a2e01aa",
+      "log_sha256": "26c9fd8cbf9e435c904a313404f1e02a6d27fc5f6c201d0d79dd9175c3ddfb1c",
+      "peak_process_tree_commit_bytes": 20463616
+    },
+    "diagnostic_trial": {
+      "run": "local-run-7b157a4f5f1d4d3f9960dfd0598f7013",
+      "exit_code": 1,
+      "tree_retired": true,
+      "receipt_sha256": "1ec702e69202a46b49ea76f01b79e2ec755e333bc2e2ea3e95ddd92f90203897",
+      "log_sha256": "a607a92028247b975bf85af1e9706a13e90741c1e7b1f5778e138a60f977e87f",
+      "peak_process_tree_commit_bytes": 20377600
+    },
+    "measured_outcome": "At the trial deadline the controller was enabled and deferred for CPU load. It sampled two extents and wrote zero scan checkpoints and catalog bytes. Independent native image verification and two expected file comparisons completed before the test reported the unmet live-publication criterion.",
+    "live_publication_confirmed": false
+  },
+  "navigation": {
+    "scope": "windows-catalog-routing-199890c7826c445c9b3a23b679a6ea43",
+    "receipt_sha256": "0e66e3c1c6778e881638be9e34a451365c0574ad9484dc3eb49f192c63bfcfca",
+    "native_response_sha256": "c64c642d29a6551867678ca8fae4a47f7835a81f74ef0c7107478dcee6319855",
+    "source_files": 90,
+    "version": "0.2.43",
+    "bounded_run": {
+      "run": "local-run-ec1864533ecd457287a4d31287fd8ff1",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "c0bf74313dbfbb948859a9acd1a563d1d3cc84ffd30fb30b7c57e46b50557bee",
+      "log_sha256": "c30064338640fc5924227ff4f87a27f2794bd7b79df719afe52c5529310c7253",
+      "peak_process_tree_commit_bytes": 1155440640
+    },
+    "earlier_attempts": [
+      {
+        "run": "local-run-1b20246ab76541859379d962d845385f",
+        "exit_code": 2,
+        "tree_retired": true,
+        "receipt_sha256": "91423a3da8e2ff9ad3a5811af805b85456a2d056d4bc5d5828cdbe0b4afd5455",
+        "log_sha256": "a59d9d5f46b63bd6a33a960f197e89c13f144890938b62590d6546fc407bf337",
+        "peak_process_tree_commit_bytes": 14925824
+      },
+      {
+        "run": "local-run-5a766d1079a24e2c84b9610bd97b4526",
+        "exit_code": 1,
+        "tree_retired": true,
+        "receipt_sha256": "de695f525dbd0c06b2bb1b7caaabd27cab1fb5bcfafc74a2cae8381322da22d9",
+        "log_sha256": "79b5aea2efcad325ec52a786a2b5fb74318c9c0ff22cb9d53fe68fd284f50b3a",
+        "peak_process_tree_commit_bytes": 1014210560
+      }
+    ]
+  },
+  "primary_sources": {
+    "scope": "windows-catalog-research-008fdedd60374f8ebb1ceb4e6e1cf9ea",
+    "receipt_sha256": "22da4183e5bc48c785ed33e1c835ea43c4297524d12911ffa3b09f0a4c0d2054",
+    "version": "0.9.5+flitzzip.portable2",
+    "pages": [
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc",
+        "final_http_status": 200,
+        "markdown_sha256": "a77765c7a2ba71a2e0de7f9d70fbcaf1d837187b5886414c64083950e1ad48ea",
+        "capture_sha256": "2226277f97eb739f49383e21dd5f7b8db5ddce2bf1a750b8bb18c4e3757e827b"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualfree",
+        "final_http_status": 200,
+        "markdown_sha256": "7d421457c48fb4b019a7a04602f28e87e8dfe00764e77cd5f491f3cbdeab0261",
+        "capture_sha256": "e4a689b10a0bdee9e2c1d02311ef7b9bc1d878d0d557e55401fb88a2309d3c9f"
+      }
+    ],
+    "bounded_run": {
+      "run": "local-run-7ee35a44389e4b81ba07e851a0ec0557",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "cef67cd4a18f6635645a8680e0e9a83f78886ed4113b6e388317cc37473f8f4f",
+      "log_sha256": "b40fff24557189383e1d923a4c5a2a287435e513afeea107217e1100f1b8313d",
+      "peak_process_tree_commit_bytes": 1233072128
+    },
+    "earlier_attempt": {
+      "run": "local-run-a2ac93eaeb0c4a9da629092321bc0ccf",
+      "exit_code": 1,
+      "tree_retired": true,
+      "receipt_sha256": "c6ca366f2956c09d31a8f1b8c7bda1eefc341a0a934d92fff0da78e0bc3f6e5b",
+      "log_sha256": "6ca4b266c41aba2b32f3e7cc37ae14ec9f9a148d24bad2eace7d849b85012ef4",
+      "peak_process_tree_commit_bytes": 869294080
+    }
+  },
+  "remaining": [
+    "Qualified physical storage provider and failure recovery",
+    "Stale-posting compaction for a healthy catalog that reaches its append allowance",
+    "Current-source normal live idle publication and installed AMD collective route under admitted host conditions",
+    "Representative host-only compression, scale and performance comparisons"
+  ],
+  "hardware": {
+    "foreground_amd": {
+      "build": {
+        "run": "local-run-6a5ef8ddad2e46c9865017f59b8ca8df",
+        "exit_code": 0,
+        "tree_retired": true,
+        "receipt_sha256": "084b1658b97ff42c92a139cf1bc6eb57c1a62c5d689a058bc512d6669c5f5974",
+        "log_sha256": "51d84b22f1d0b0f2c9507528d1487818e001a857a5ed2dffbbbff9440e645347",
+        "peak_process_tree_commit_bytes": 439226368
+      },
+      "run": {
+        "run": "local-run-d3505ecfba5e4d72bcbeed2f91cf5083",
+        "exit_code": 0,
+        "tree_retired": true,
+        "receipt_sha256": "c48fe4adc368ac0022c14479d44473682dceae04a20f93777797320a65cddbed",
+        "log_sha256": "a4769ce46c880ba3cc0aeba753989c07c55e509b41d633887f086c211395d7ad",
+        "peak_process_tree_commit_bytes": 130707456
+      },
+      "controller_sha256": "77b844d566608df35c90889e053f2c00a1a730bfe82810c83188af087e93f11e",
+      "worker_sha256": "d22a19b5409d9c899dda652198a5a943a623967ed361c5f792715c80fe56a707",
+      "winfsp_user_mode_sha256": "08d7389b8d030770a4de108a60a86047d5cdd00b9ecafc6dd66e957bc51c2437",
+      "runtime_basename_requested": "amdhip64_7.dll",
+      "source_bytes": 131072,
+      "independently_verified_storage_copies": 4,
+      "cpu_reopen_verified": true,
+      "worker_retired": true,
+      "host_driver_service_unchanged": true
+    },
+    "installed_amd_collective": {
+      "build": {
+        "run": "local-run-1a6965e64b1b43ca872ca30357b47b23",
+        "exit_code": 0,
+        "tree_retired": true,
+        "receipt_sha256": "d3de9685801cc4633029648bc84b229d845bb366f4c01aa60e95e1c85b71267f",
+        "log_sha256": "d6d39fc9a3c55a91e58be5a3bc7a4db84ddb6b886bc10111fb80ccbd0c934b27",
+        "peak_process_tree_commit_bytes": 399048704
+      },
+      "staging": {
+        "run": "local-run-fc0e2092bf474496aa6236aa418da4f5",
+        "exit_code": 0,
+        "tree_retired": true,
+        "receipt_sha256": "a06dbd922cf8cab69e76f3e9c0998498fc33990e6bb9f55aefc36b0295e4b2ac",
+        "log_sha256": "287d044ede15be77cf6bc9021d3adbd938f40afa3f2c26ac7eb44bf69805e0f9",
+        "peak_process_tree_commit_bytes": 5033984
+      },
+      "package_manifest_sha256": "73817fe8f2aa70b1b3923abc72e2b948de9b4dffd5079146d9a1348d7ca20c19",
+      "executed": false,
+      "reason": "Observed host CPU activity remained above the existing idle admission threshold.",
+      "idle_threshold_percent": 12.5,
+      "preflights": [
+        {
+          "sampled_at": "2026-11-19T09:17:35.2203266+01:00",
+          "cpu_busy_percent": [
+            21.88,
+            20.924,
+            24.615,
+            16.671
+          ],
+          "physical_available_bytes": 19796422656,
+          "commit_available_bytes": 54845997056
+        },
+        {
+          "sampled_at": "2026-11-19T09:19:15.7245739+01:00",
+          "cpu_busy_percent": [
+            16.119,
+            26.719,
+            24.159,
+            18.996
+          ],
+          "physical_available_bytes": 20658225152,
+          "commit_available_bytes": 54939013120
+        }
+      ]
+    }
+  }
+}

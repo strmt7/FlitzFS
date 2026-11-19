@@ -153,9 +153,16 @@ struct NativeGroupMaintenance::Impl {
     state.search_batch_ready=true;
     phase=Phase::preparing;
   }
+  NativeMaintenanceProgress progress() const noexcept {
+    auto result=state;
+    if(const auto owner=source.lock()) {
+      if(owner->coherence)result.coherence_catalog_bytes=owner->coherence->info().physical_end;
+    }else result.phase=Phase::failed;
+    return result;
+  }
   NativeMaintenanceProgress defer(Defer reason,bool release=false) noexcept {
     if(release)reset_index();state.phase=Phase::deferred;state.deferral=reason;
-    state.owned_payload_bytes=owned_payload();return state;
+    state.owned_payload_bytes=owned_payload();return progress();
   }
   void begin_scan(NativeFilesystemWriter& writer) noexcept {
     scan_sequence=writer.maintenance_content_sequence();cursor={};first=true;seen.fill(false);phase=Phase::scanning;
@@ -555,8 +562,7 @@ NativeGroupMaintenance::NativeGroupMaintenance(NativeGroupMaintenance&&) noexcep
 NativeGroupMaintenance& NativeGroupMaintenance::operator=(NativeGroupMaintenance&&) noexcept=default;
 NativeGroupMaintenance::~NativeGroupMaintenance()=default;
 NativeMaintenanceProgress NativeGroupMaintenance::progress() const noexcept {
-  if(!impl_)return {Phase::failed};auto state=impl_->state;
-  if(impl_->source.expired())state.phase=Phase::failed;return state;
+  return impl_?impl_->progress():NativeMaintenanceProgress{Phase::failed};
 }
 bool NativeGroupMaintenance::active_group() const noexcept {
   return impl_ && impl_->active_group();
@@ -607,7 +613,7 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
   p.state.search_batch_ready=false;
   const auto source=p.source.lock();
   if(p.stopped || !source || !source->writer || !source->terminal || *source->terminal || source->writer->poisoned()) {
-    p.reset_index();p.state.phase=Phase::failed;return p.state;
+    p.reset_index();p.state.phase=Phase::failed;return p.progress();
   }
   auto& writer=*source->writer;const auto image=writer.maintenance_identity();
   if(p.image!=image){p.reset_index();p.image=image;}
@@ -629,7 +635,7 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
   if(!writer.maintenance_has_candidates() ||
       (!p.active_group() && !p.checkpoint_due && !new_catalog && p.phase==Phase::idle &&
        p.completed_sequence==writer.maintenance_content_sequence())) {
-    p.state.phase=Phase::idle;p.state.deferral=Defer::none;p.state.next_opportunity_delay_ms=0;return p.state;
+    p.state.phase=Phase::idle;p.state.deferral=Defer::none;p.state.next_opportunity_delay_ms=0;return p.progress();
   }
   if(observed.foreground_pending)return p.defer(Defer::foreground);
   if(resources->cpu_busy)return p.defer(Defer::cpu);
@@ -680,6 +686,6 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
   p.state.elapsed_work_ns=add(p.state.elapsed_work_ns,used);
   p.predicted=(std::max)(used,p.predicted-p.predicted/8+used/8);
   if(used>p.tokens){p.debt=add(p.debt,used-p.tokens);p.tokens=0;}else p.tokens-=used;
-  return p.state;
+  return p.progress();
 }
 }

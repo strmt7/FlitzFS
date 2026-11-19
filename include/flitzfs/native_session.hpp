@@ -5,6 +5,7 @@
 
 namespace flitzfs {
 class IndexedCoherenceWriter;
+class IndexedCoherenceStorage;
 class NativeGroupMaintenance;
 namespace detail {struct NativeMaintenanceSource;}
 // Pure CPU ownership layer for the future Windows adapter. It never creates
@@ -244,6 +245,9 @@ class NativeFileSession final {
   // Take an exclusively provisioned writer for this volume and active image.
   // Subsequent scan publications fund its changes from the existing journal.
   void bind_indexed_coherence_writer(IndexedCoherenceWriter);
+  // Enable lazy creation and retain a healthy writer across an in-process
+  // retirement. The reservation is called only from the funded scanner.
+  void configure_indexed_coherence(std::shared_ptr<IndexedCoherenceStorage>);
   OptimizationSnapshot optimization_snapshot() const;
   NativeOptimizationInfo optimization_info() const noexcept;
   // Trusted pre-open adapter lookup for namespace/security admission. No new

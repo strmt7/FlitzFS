@@ -1,4 +1,5 @@
 #include "memory_volume_factory.hpp"
+#include "flitzfs/indexed_coherence.hpp"
 #include "flitzfs/native_session.hpp"
 #include "flitzfs/volume_head.hpp"
 #include <windows.h>
@@ -12,14 +13,19 @@ constexpr auto unit=kStoreCommitUnit;
 constexpr auto minimum_image=3*unit; // Two root slots and the aligned first object pages.
 void require(bool ok,const char* why){if(!ok)throw std::runtime_error(why);}
 }
-MemoryVolumeLayout plan_memory_volume(const MemoryVolumeObservation& m) {
+MemoryVolumeLayout plan_memory_volume(const MemoryVolumeObservation& m,bool indexed_coherence) {
   // This is a virtual reservation budget. Every committed page separately
   // consumes measured physical and commit headroom at the point of use.
   constexpr auto maximum_addressable=static_cast<std::uint64_t>((std::numeric_limits<std::int64_t>::max)());
   const auto capacity=(std::min)(usable_memory_volume_headroom(m),maximum_addressable)/unit*unit;
   constexpr auto areas=MemoryVolumeLayout::area_capacity*(NativeFileSession::max_optimization_bindings+1);
   require(capacity>=areas+2*minimum_image,"Insufficient headroom for image roots and advisory space");
-  return {capacity,(capacity-areas)/2/unit*unit};
+  const auto space=capacity-areas;
+  // Keep two full image reservations. Reserve address space for at most one
+  // advisory catalog, with the same proportion as the committed-input policy.
+  const auto advisory=space/kOptimizationGroupScanInputPerWriteByte/unit*unit;
+  const auto coherence=indexed_coherence && advisory>=minimum_image && advisory<=space-2*minimum_image?advisory:0;
+  return {capacity,(space-coherence)/2/unit*unit,coherence};
 }
 StoreIdentity fresh_volume_identity() {
   StoreIdentity id{};
@@ -28,9 +34,9 @@ StoreIdentity fresh_volume_identity() {
       std::any_of(id.begin(),id.end(),[](auto b){return b!=std::byte{};}),"Volume identity generation failed");
   return id;
 }
-MemoryVolumeBacking MemoryVolumeBacking::create() {
+MemoryVolumeBacking MemoryVolumeBacking::create(bool indexed_coherence) {
   MemoryVolumeBacking out;
-  out.layout=plan_memory_volume(observe_memory_volume_headroom());
+  out.layout=plan_memory_volume(observe_memory_volume_headroom(),indexed_coherence);
   out.volume_identity=fresh_volume_identity();out.image_identity=fresh_volume_identity();
   require(out.volume_identity!=out.image_identity,"Volume identity collision");
   out.domain=std::make_unique<MemoryVolumeDomain>(MemoryVolumeDomain::create(out.layout.domain_capacity));
@@ -38,6 +44,27 @@ MemoryVolumeBacking MemoryVolumeBacking::create() {
   out.image=out.domain->create_store(out.layout.image_capacity);
   out.advice=out.domain->create_store(MemoryVolumeLayout::area_capacity);
   out.domain->verify_resident();return out;
+}
+void MemoryVolumeBacking::configure_coherence(NativeFileSession& session) noexcept {
+  if(!layout.coherence_capacity)return;
+  try {
+    if(!coherence_storage_) {
+      coherence_storage_=std::make_shared<IndexedCoherenceStorage>(PagedStoreLimits{layout.coherence_capacity},[this] {
+        if(coherence_)return std::shared_ptr<StoreByteIo>{};
+        coherence_=domain->create_store(layout.coherence_capacity);
+        return coherence_;
+      });
+    }
+    session.configure_indexed_coherence(coherence_storage_);
+  }catch(const std::exception&) {
+    // Optional learning cannot stop an otherwise valid mount or remount.
+  }
+}
+bool MemoryVolumeBacking::coherence_retirement_pending() const noexcept {
+  return coherence_ && coherence_.use_count()==1 && MemoryVolumeDomain::cleanup_healthy();
+}
+void MemoryVolumeBacking::advance_coherence_retirement() {
+  if(coherence_retirement_pending())(void)domain->retire_store(coherence_);
 }
 std::shared_ptr<StoreByteIo> MemoryVolumeBacking::resolve_image(const StoreIdentity& selected) const {
   if(selected==image_identity)return image;
@@ -119,6 +146,7 @@ void MemoryVolumeBacking::cancel_compaction(NativeFileSession& session) noexcept
     phase_=CompactionPhase::retiring;
 }
 void MemoryVolumeBacking::release_unselected_after_join() noexcept {
+  if(coherence_ && coherence_.use_count()==1)coherence_.reset();
   if(phase_==CompactionPhase::uncertain)return;
   alternate_.reset();
   alternate_identity_={};
@@ -145,6 +173,8 @@ NativeVolumeHeadView MemoryVolumeBacking::open_owned_head(bool indexed_recovery)
 ReadOnlyProjection MemoryVolumeBacking::seal_checked(NativeVolumeHeadView checked) {
   const auto extent=resolve_image(checked.info().selection.image_identity)->extent();
   auto projection=ReadOnlyProjection::from_owned_volume(std::move(checked),extent);
+  coherence_storage_.reset();
+  if(coherence_ && coherence_.use_count()==1)coherence_.reset();
   domain->seal_read_only();
   return projection;
 }

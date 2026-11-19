@@ -50,6 +50,29 @@ while internal reservation accounting protects the staging image used by
 automatic indexed compaction.
 [Local checks](evidence/demand-locked-memory-2026-11-18.json)
 
+## Automatic coherence catalog
+
+Owned indexed volumes set aside up to one thirty-second of the available
+post-advice reservation for the coherence catalog when two viable data images
+still fit. Ordinary data keeps its two-image staging allowance. The scanner
+requests the single catalog store only when a useful sample is ready and credit
+can cover creation. The paged store preflights the required locked pages and
+the advisory journal settles the write allowance before initialization. A
+failed attempt can lose optional work while the selected data image and its
+CPU reader remain available.
+[Catalog contract](OPTIMIZATION_STATE.md#paged-coherence-catalog)
+
+The joined controller releases its reference to a healthy catalog. The
+backing retains the exact writer lease for a remount of the same image, so
+reattachment checks the typed root without an inventory scan. Read failure or
+selection of a different image detaches the obsolete catalog. The same
+background controller releases at most one object-sized span at each admitted
+opportunity and releases the address reservation after the last span. Sealing
+an independently checked read-only projection retires the advisory writer.
+The Windows provider fixture verified remount retention, reclamation,
+replacement on the successor image and sealing with exact CPU file readback.
+[Windows validation](evidence/windows-catalog-provisioning-2026-11-19.json)
+
 ## Retention and inspection
 
 `WinFspMemoryVolume` composes that backing with a legacy or indexed paged

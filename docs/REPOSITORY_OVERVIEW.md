@@ -116,7 +116,7 @@ capacity and failure evidence before replacing it.
 | Windows interface | Writable native SDK callbacks, owner ACL/time initialization, contexts, cleanup/close, metadata/security and directory operations | Current-source mounted product qualification, complete Unicode/path/Win32 behavior, caching/mapping/concurrency and deployment |
 | Application | Native helper/tray, create/save/read/optimize/discard, owned worker and GUI qualification | Explorer-facing mounted lifecycle, complete volume-management workflows and a supported installer |
 | Memory composition | Live adaptive admission beyond the old ceiling, on-demand page locking, retained backing through stop and explicit-join CPU inspection | Larger populated volumes, multiple-volume aggregate policy and broker/process-failure behavior |
-| Learning state | Protected bounded advisory profiles/benchmarks and funding/repair primitives | An autonomous persisted learner and a paged coherence catalog; these records do not implement either by themselves |
+| Learning state | Budgeted scan checkpoints and a paged coherence catalog in owned indexed memory volumes | Persistent provider, stale-posting compaction and workload outcomes for a complete autonomous learner |
 | Compatibility | Several historical native encodings and explicit capabilities remain readable | A published support window, mixed-version migration program, rollback boundaries and exact released-reader matrix |
 
 ### The important namespace bottleneck
@@ -147,11 +147,13 @@ patches for members. Its CPU decoder verifies both the base and reconstructed
 member digests. This is a useful protected cross-file baseline. It is not a
 general learned codec or a solution for arbitrary shifted/reordered data.
 
-Discovery currently uses a full-content digest and eight aligned band features
-inside the bounded native model. Features and attempted outcomes are volatile.
-They are not a persistent global coherence database. The current representation
-has one-level base dependencies; more complex representations require explicit
-dependency, access-cost and recovery designs.
+Discovery uses digests and band features. The indexed scanner extends aligned
+features with shifted samples and restores verified feature bindings from
+budgeted checkpoints. Its sparse catalog supplies point nominations outside the
+current window. Complete retained outcome policy and stale-posting reclamation
+remain open. The current representation has one-level base dependencies.
+More complex representations require explicit dependency, access-cost and
+recovery designs.
 
 Publishing a group also appends history. The maintenance counters distinguish
 hypothetical compacted savings from retained history added. A smaller live
@@ -212,7 +214,7 @@ security vulnerabilities.
 | High | Global callback serialization and synchronous publication | Foreground requests can wait for an in-flight quantum/commit. Add immutable read views, bounded concurrency and measured interference. |
 | High | Full namespace validation and full-image opening/scrubbing costs | Startup/read/maintenance work will not scale by carrying today's checks unchanged. Replace them with checked tree paths and scheduled scrubbing, without removing integrity validation. |
 | High | Current Windows name profile is ASCII and short | Many normal Windows workloads are unsupported. Implement a specified Unicode/case/path model and test ordinary clients. |
-| High | No complete persistent coherence/learner | Restart loses feature/outcome progress; no autonomous learned strategy currently closes the loop. |
+| High | Incomplete persistent learning | Indexed checkpoints retain features and scan progress. A persistent-media catalog, stale-posting reclamation and learned strategy across workloads remain open. |
 | High | Quiet-work policy remains an initial fixed policy | A 12.5% busy threshold and 1% elapsed pacing are mechanisms, not proof of optimal host adaptation or low interference. |
 | High | Driver/runtime qualification and historical retirement faults remain open | A valid signature or later clean fake-lifecycle test does not explain earlier failures or qualify a new native combination. |
 | High | Security claims exceed current mechanisms if read too broadly | Checksums are not authentication; owner ACLs are not volume encryption. No full hostile-media/parser/update assessment is established here. |

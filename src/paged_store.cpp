@@ -457,6 +457,23 @@ void pad_index(StoreByteIo& image,std::uint32_t unit,std::uint64_t end,std::uint
   zeros(image,peer_start+used,end);
 }
 struct PreparedObject {Entry entry;RecordHeader header{};Bytes payload;};
+PreparedObject prepare_object(const State& state,detail::StoreCodecEncoder& encoder,
+    const StoreMutation& mutation,PayloadAllocation& allocation,std::uint64_t& cursor) {
+  auto encoded=encoder.encode_with_lz4(mutation.bytes,mutation.lz4_candidate);
+  PreparedObject record;
+  auto& e=record.entry;
+  e={mutation.id,state.checkpoint,cursor,static_cast<std::uint32_t>(mutation.bytes.size()),
+     static_cast<std::uint32_t>(encoded.payload.size()),{}};
+  auto& h=record.header;
+  set_magic(h,data_magic);put32(h,8,1);put32(h,12,encoded.codec);
+  put64(h,16,e.id);put64(h,24,e.generation);put32(h,32,e.logical);put32(h,36,e.stored);copy(h,40,state.id);
+  if(encoded.codec!=detail::kStoreRaw)copy(h,56,encoded.decoded_digest);
+  e.digest=detail::record_digest(std::span<const std::byte>(h).first(96),encoded.payload);copy(h,96,e.digest);
+  record.payload=std::move(encoded.payload);
+  allocation.place(state,e,std::uint64_t{record_header_bytes}+e.stored,cursor);
+  if(cursor>state.limits.maximum_physical_bytes)capacity("physical capacity");
+  return record;
+}
 struct Change {std::uint64_t id;bool erase;Entry entry;};
 struct Plan {
   State next;
@@ -951,14 +968,45 @@ PagedObjectStoreWriter PagedObjectStoreWriter::create_mirrored(std::shared_ptr<S
   return create_impl(std::move(image),id,limits,options,true);
 }
 PagedObjectStoreWriter PagedObjectStoreWriter::create_impl(std::shared_ptr<StoreByteIo> image,StoreIdentity id,
-    PagedStoreLimits limits,StoreCompressionOptions options,bool mirrored) {
+    PagedStoreLimits limits,StoreCompressionOptions options,bool mirrored,std::span<const StoreMutation> initial,
+    std::uint64_t maximum_write_bytes,const std::function<bool(std::uint64_t)>& reserve_writes) {
   admit_limits(limits);if(zero(id))fail("nonzero store identity required");
+  if(initial.size()>kStoreMaxObjects)capacity("initial transaction operation budget");
   auto p=std::make_unique<Impl>(image,options);admit_contract(image->contract());
   if(image->extent())fail("new empty backend required");
   State s;s.image=image;s.limits=limits;s.id=id;s.generation=2;s.checkpoint=1;s.mirrored=mirrored;
   s.unit=(std::max)(static_cast<std::uint32_t>(page_bytes),image->contract().write_failure_unit_bytes);
-  Plan plan;plan.next=s;plan.page_start=start;plan.finish({});
-  image->admit_write(plan.next.end);zeros(*image,0,start);plan.write_pages(start);publish(plan.next);
+  auto cursor=start;
+  std::uint64_t previous=0,input=0;
+  PayloadAllocation allocation;
+  std::vector<PreparedObject> objects;objects.reserve(initial.size());
+  std::vector<Entry> entries;entries.reserve(initial.size());
+  for(const auto& mutation:initial) {
+    if(mutation.id<=previous || mutation.erase || mutation.bytes.size()>kStoreMaxObjectBytes ||
+        !mutation.lz4_candidate.empty())fail("initial transaction fields");
+    previous=mutation.id;
+    input=add(input,mutation.bytes.size());
+    if(input>kStoreMaxTransactionBytes)capacity("initial transaction input budget");
+    objects.push_back(prepare_object(s,p->encoder,mutation,allocation,cursor));
+    entries.push_back(objects.back().entry);
+  }
+  allocation.seal();
+  Plan plan;plan.next=s;plan.page_start=align(cursor,s.unit);plan.finish(plan.leaves(entries));
+  const auto write_bound=add(plan.next.end,2*page_bytes);
+  if(write_bound>maximum_write_bytes)capacity("initial transaction write budget");
+  image->admit_write(plan.next.end);
+  if(reserve_writes && !reserve_writes(write_bound))capacity("initial transaction write reservation declined");
+  zeros(*image,0,start);
+  for(const auto& record:objects)
+    write_object_record(*image,record.entry,record.header,record.payload,s.unit);
+  allocation.write_padding(*image);
+  plan.write_pages(cursor);
+  publish(plan.next);
+  if(!initial.empty()) {
+    const auto observed=load(image,limits);
+    if(!same(plan.next,observed) || observed.degraded_roots || observed.degraded_metadata)
+      fail("initial transaction checkpoint failed readback");
+  }
   p->state=std::move(plan.next);p->append_floor=p->state.end;return PagedObjectStoreWriter(std::move(p));
 }
 PagedObjectStoreWriter PagedObjectStoreWriter::resume(std::shared_ptr<StoreByteIo> image,StoreIdentity expected,
@@ -1084,16 +1132,8 @@ PagedStoreWriteResult PagedObjectStoreWriter::commit_impl(
   std::vector<PreparedObject> objects;objects.reserve(sorted.size());std::vector<Change> changes;changes.reserve(sorted.size());
   for(auto m:sorted) {
     if(m->erase) {changes.push_back({m->id,true,{}});continue;}
-    auto encoded=p.encoder.encode_with_lz4(m->bytes,m->lz4_candidate);PreparedObject record;
-    auto& e=record.entry;e={m->id,plan.next.checkpoint,cursor,static_cast<std::uint32_t>(m->bytes.size()),
-                           static_cast<std::uint32_t>(encoded.payload.size()),{}};
-    auto& h=record.header;set_magic(h,data_magic);put32(h,8,1);put32(h,12,encoded.codec);
-    put64(h,16,e.id);put64(h,24,e.generation);put32(h,32,e.logical);put32(h,36,e.stored);copy(h,40,old.id);
-    if(encoded.codec!=detail::kStoreRaw)copy(h,56,encoded.decoded_digest);
-    e.digest=detail::record_digest(std::span<const std::byte>(h).first(96),encoded.payload);copy(h,96,e.digest);
-    record.payload=std::move(encoded.payload);allocation.place(old,e,std::uint64_t{record_header_bytes}+e.stored,cursor);
-    if(cursor>old.limits.maximum_physical_bytes)capacity("physical capacity");
-    changes.push_back({m->id,false,e});objects.push_back(std::move(record));
+    auto record=prepare_object(plan.next,p.encoder,*m,allocation,cursor);
+    changes.push_back({m->id,false,record.entry});objects.push_back(std::move(record));
   }
   allocation.seal();plan.page_start=align(cursor,old.unit);
   std::vector<Ref> roots;

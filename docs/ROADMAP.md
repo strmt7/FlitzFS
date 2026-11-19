@@ -73,8 +73,11 @@ Measured elapsed work paces later opportunities; selected edits are reconciled.
 The indexed controller verified protected anchor-copy members and published a
 funded scan checkpoint through Windows SDK callbacks. Larger advisory
 checkpoints preserve distant candidates across restart and unrelated writes
-within the existing storage and write budget. Paged sparse discovery, mounted
-maintenance and useful collective AMD work remain required.
+within the existing storage and write budget. The owned Windows memory volume
+now provisions a paged sparse catalog during a funded scan, retains the exact
+writer on remount and releases discarded backing in idled steps. Stale-posting
+reclamation at scale, persistent media, mounted maintenance and useful
+collective AMD work remain required.
 [Shifted group validation](evidence/shifted-indexed-groups-2026-11-18.json) ·
 [Restart validation](evidence/indexed-representative-retention-2026-11-19.json)
 

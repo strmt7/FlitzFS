@@ -418,15 +418,21 @@ void memory_planning() {
     const auto addressable=static_cast<std::uint64_t>((std::numeric_limits<std::int64_t>::max)());
     require(layout.domain_capacity==(std::min)(usable_memory_volume_headroom(host),addressable)/65536*65536 &&
         layout.image_capacity>=3*kStoreCommitUnit && layout.image_capacity%65536==0,"adaptive factory plan bounds");
-    require(2*layout.image_capacity+(NativeFileSession::max_optimization_bindings+1)*layout.area_capacity<=layout.domain_capacity,
-        "factory omitted candidate/advisory reservations");
+    const auto indexed=plan_memory_volume(host,true);
+    const auto areas=(NativeFileSession::max_optimization_bindings+1)*layout.area_capacity;
+    require(2*layout.image_capacity+areas<=layout.domain_capacity && !layout.coherence_capacity &&
+        indexed.domain_capacity==layout.domain_capacity && indexed.coherence_capacity>=3*kStoreCommitUnit &&
+        indexed.coherence_capacity%kStoreCommitUnit==0 && indexed.image_capacity>=3*kStoreCommitUnit &&
+        2*indexed.image_capacity+areas+indexed.coherence_capacity<=indexed.domain_capacity,
+        "factory omitted candidate or optional indexed advisory reservations");
   }
   const auto roomy=plan_memory_volume({16*1024*mib,12*1024*mib,32*1024*mib,24*1024*mib});
   const auto tight=plan_memory_volume({16*1024*mib,12*1024*mib,32*1024*mib,5*1024*mib});
   const auto larger=plan_memory_volume({64*1024*mib,56*1024*mib,128*1024*mib,96*1024*mib});
   const auto minimal=plan_memory_volume({4*1024*mib,3072*mib,8*1024*mib,769*mib});
   require(tight.domain_capacity<roomy.domain_capacity && larger.domain_capacity>40*mib &&
-      larger.image_capacity>roomy.image_capacity && minimal.image_capacity==3*kStoreCommitUnit,
+      larger.image_capacity>roomy.image_capacity && minimal.image_capacity==3*kStoreCommitUnit &&
+      !plan_memory_volume({4*1024*mib,3072*mib,8*1024*mib,769*mib},true).coherence_capacity,
       "factory sizing did not use available address space and format minima");
   for(const auto& host:std::array<MemoryVolumeObservation,5>{{{}, {1024*mib,512*mib,2048*mib,1024*mib},
       {1024,1025,4096,4096},{4096,4096,1024,1025},{4*1024*mib,3072*mib,8*1024*mib,768*mib}}}) {
@@ -467,6 +473,118 @@ void memory_paged_footprint() {
            <<" selected_extent="<<selected<<" resident="<<backing.domain->usage().resident<<'\n';
 }
 
+void memory_coherence_lifecycle() {
+  auto backing=MemoryVolumeBacking::create(true);
+  const auto volume=backing.volume_identity,image=backing.image_identity;
+  const StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
+  std::optional<NativeFileSession> session(NativeFileSession::create_indexed_volume(backing.head,volume,
+      backing.image,image,{backing.layout.image_capacity},raw));
+  require(session->create_budgeted_optimization_area(backing.advice).phase==NativeOptimizationPhase::ready,
+      "indexed memory catalog needs the funded journal");
+  const auto initial=backing.domain->usage();
+  backing.configure_coherence(*session);
+  require(backing.domain->usage().stores==initial.stores && backing.domain->usage().resident==initial.resident,
+      "mount-time configuration committed optional catalog space");
+  const auto put=[&](std::string_view name,const Bytes& bytes) {
+    session->create_entry(name);
+    const auto file=session->open(name,{true,true,true});
+    session->write(file,0,bytes);
+    session->cleanup(file,false);session->close(file);
+  };
+  const auto first=data(kNativeExtentBytes,119),second=data(kNativeExtentBytes,771);
+  put("first",first);put("second",second);
+  put("input-a",Bytes(3*kOptimizationGroupScanInputBytes/4));
+  put("input-b",Bytes(3*kOptimizationGroupScanInputBytes/4));
+  put("input-c",Bytes(3*kOptimizationGroupScanInputBytes/4));
+  const auto input_resident=backing.domain->usage().resident;
+  std::uint64_t sequence=0;
+  const auto scan=[&] {
+    NativeGroupMaintenance controller(*session);
+    for(unsigned i=0;i<2000 && controller.pending();++i) {
+      NativeMaintenanceObservation o;
+      o.sequence=++sequence;o.captured_ms=1000*sequence;
+      o.physical_total=16ULL<<30;o.physical_available=12ULL<<30;
+      o.commit_limit=32ULL<<30;o.commit_available=24ULL<<30;
+      o.cpu_total_ticks=1000;o.cpu_busy_ticks=0;o.cpu_window_ms=1000;o.valid=true;
+      require(controller.advance(o,o.captured_ms).phase!=NativeMaintenancePhase::failed,"memory catalog scan failed");
+    }
+    require(!controller.pending(),"memory catalog scan failed to quiesce");
+    return controller.progress();
+  };
+  require(scan().checkpoints_published==1,"memory scanner did not fund the catalog");
+  const auto catalog=backing.domain->usage();
+  require(catalog.stores==initial.stores+1 && catalog.reserved==initial.reserved+backing.layout.coherence_capacity &&
+      catalog.resident>input_resident && !backing.coherence_retirement_pending(),
+      "funded scan did not reserve and lock the owned catalog pages");
+  backing.domain->verify_resident();
+
+  const auto saved=session->optimization_snapshot();
+  session.reset();
+  backing.release_unselected_after_join();
+  require(backing.domain->usage().resident==catalog.resident && backing.domain->usage().stores==catalog.stores,
+      "healthy catalog did not survive controller retirement");
+  auto resolve=[&](const auto& id)->std::shared_ptr<StoreByteIo> {return id==backing.image_identity?backing.image:nullptr;};
+  session.emplace(NativeFileSession::resume_closed_indexed_volume(backing.head,volume,1,resolve,raw));
+  require(session->resume_budgeted_optimization_area(backing.advice,saved.sequence).phase==NativeOptimizationPhase::ready,
+      "retained memory catalog lost its funded journal");
+  backing.configure_coherence(*session);
+  require(!scan().checkpoints_published && !backing.coherence_retirement_pending() &&
+      backing.domain->usage().stores==catalog.stores && backing.domain->usage().resident==catalog.resident,
+      "remount did not preserve the healthy catalog on unchanged input");
+
+  session->create_entry("overwritten");
+  const auto file=session->open("overwritten",{true,true,true});
+  auto revision=data(4*kNativeExtentBytes,298);
+  for(unsigned i=0;i<16 && !backing.compaction_pending(*session);++i) {
+    revision[i]^=std::byte{1};
+    session->write(file,0,revision);
+  }
+  require(backing.compaction_pending(*session),"catalog handoff fixture lacks obsolete history");
+  bool published=false;
+  for(unsigned i=0;i<2000 && !published;++i) {
+    const auto step=backing.advance_compaction(*session);
+    published=step==MemoryCompactionStep::published;
+    require(published || step==MemoryCompactionStep::copying || step==MemoryCompactionStep::ready,
+        "catalog handoff compaction failed");
+  }
+  require(published && backing.image_identity!=image && backing.coherence_retirement_pending(),
+      "selected image did not retire the old catalog");
+  const auto obsolete=backing.domain->usage();
+  unsigned quanta=0;
+  while(backing.coherence_retirement_pending()) {
+    const auto before=backing.domain->usage().resident;
+    backing.advance_coherence_retirement();
+    const auto after=backing.domain->usage().resident;
+    require(++quanta<32 && before>after && before-after<=kStoreMaxObjectBytes,
+        "catalog retirement exceeded its page quantum or failed to progress");
+  }
+  const auto reclaimed=backing.domain->usage();
+  require(reclaimed.stores+1==obsolete.stores &&
+      reclaimed.reserved+backing.layout.coherence_capacity==obsolete.reserved,
+      "catalog retirement retained its address reservation");
+  require(session->read(file,0,static_cast<std::uint32_t>(revision.size()))==revision,
+      "catalog and image retirement changed the open file");
+  session->cleanup(file,false);session->close(file);
+
+  for(unsigned i=0;i<3;++i)put("new-input-"+std::to_string(i),Bytes(3*kOptimizationGroupScanInputBytes/4));
+  const auto replacement=scan();
+  require(replacement.checkpoints_published && replacement.coherence_catalog_bytes &&
+      backing.domain->usage().stores==reclaimed.stores+1,"the successor image did not acquire a new funded catalog");
+  session.reset();
+  backing.release_unselected_after_join();
+  const auto retained=backing.domain->usage();
+  require(retained.stores==initial.stores+1,"joined successor did not retain the catalog lease");
+  auto view=backing.open_read_only();
+  view.verify_all();
+  require(view.read(L"\\first",0,kNativeExtentBytes)==first &&
+      view.read(L"\\second",0,kNativeExtentBytes)==second,"catalog retirement changed original files");
+  const auto sealed=backing.domain->usage();
+  require(sealed.stores+1==retained.stores && sealed.reserved+backing.layout.coherence_capacity==retained.reserved,
+      "read-only seal retained the writable catalog lease");
+  backing.domain->verify_resident();
+  std::cout<<"memory_coherence_catalog locked_bytes="<<(catalog.resident-input_resident)
+      <<" reclaimed_bytes="<<(obsolete.resident-reclaimed.resident)<<" reclamation_quanta="<<quanta<<'\n';
+}
 void memory_compaction_retirement() {
   auto backing=MemoryVolumeBacking::create();
   auto session=NativeFileSession::create_indexed_volume(backing.head,backing.volume_identity,
@@ -728,15 +846,17 @@ void live_memory_composition(NativeImageKind kind=NativeImageKind::paged,bool sh
     const auto layout=volume.layout();require(layout.domain_capacity>=2*layout.image_capacity &&
         layout.image_capacity>=3*kStoreCommitUnit,"memory controller used wrong backing envelope");
     callback_file(p,0,first);callback_file(p,1,second);
+    const auto unrelated=data(kNativeExtentBytes,57);
+    const auto sparse_input=3*kOptimizationGroupScanInputBytes/4;
     if(checkpoint) {
-      const Bytes sparse((kOptimizationGroupScanInputBytes-2*kNativeExtentBytes)/2);
-      callback_file(p,2,sparse);
-      callback_file(p,3,sparse);
+      callback_file(p,2,unrelated);
+      const Bytes sparse(sparse_input);
+      for(unsigned i=3;i<6;++i)callback_file(p,i,sparse);
     }
     const auto until=GetTickCount64()+(kind==NativeImageKind::indexed_paged?28000:18000);
     while(GetTickCount64()<until) {
       const auto v=volume.view();
-      if((v.maintenance.published_groups && (!checkpoint || v.maintenance.checkpoints_published)) ||
+      if((v.maintenance.published_groups && (!checkpoint || v.maintenance.coherence_catalog_bytes)) ||
           v.maintenance_disabled || v.retired)break;
       Sleep(25);
     }
@@ -747,16 +867,24 @@ void live_memory_composition(NativeImageKind kind=NativeImageKind::paged,bool sh
         "memory controller did not create managed paged storage");
     require(cpu.filesystem().read("f0",0,first.size())==first && cpu.filesystem().read("f1",0,second.size())==second,
         "memory controller lost accepted data after stop");
-    if(checkpoint)require(observed.maintenance.checkpoints_published==1 &&
-        cpu.filesystem().workload_info()==NativeWorkloadInfo{true,kOptimizationGroupScanInputBytes},
-        "live controller did not publish funded scan progress");
+
     std::cout<<"live_memory indexed="<<(kind==NativeImageKind::indexed_paged)<<" shifted="<<shifted<<" domain="<<layout.domain_capacity
         <<" image="<<layout.image_capacity<<" groups="<<observed.maintenance.published_groups
         <<" sampled="<<observed.maintenance.sampled_extents<<" attempts="<<observed.maintenance.attempted_groups
         <<" checkpoints="<<observed.maintenance.checkpoints_published
+        <<" catalog_bytes="<<observed.maintenance.coherence_catalog_bytes
         <<" phase="<<static_cast<unsigned>(observed.maintenance.phase)<<" deferral="<<static_cast<unsigned>(observed.maintenance.deferral)
         <<" compactions="<<observed.compactions<<" quanta="<<observed.maintenance_quanta
-        <<" maximum_quantum_ns="<<observed.maximum_quantum_ns<<" disabled="<<observed.maintenance_disabled<<'\n';
+        <<" maximum_quantum_ns="<<observed.maximum_quantum_ns<<" disabled="<<observed.maintenance_disabled
+        <<" host="<<static_cast<unsigned>(observed.host)
+        <<" input="<<cpu.filesystem().workload_info().committed_input_bytes<<'\n';
+    if(checkpoint) {
+      require(observed.maintenance.checkpoints_published>=1 && observed.maintenance.coherence_catalog_bytes>0 &&
+          cpu.filesystem().workload_info()==NativeWorkloadInfo{true,3*kNativeExtentBytes+3*sparse_input} &&
+          cpu.filesystem().read("f2",0,unrelated.size())==unrelated,
+          "live controller did not fund and attach a catalog during normal maintenance");
+      (void)volume.open_read_only(); // The retained catalog writer must retire before sealing.
+    }
     if(kind==NativeImageKind::paged) {
       require(cpu.filesystem().shared_base_info().enabled &&
           cpu.filesystem().workload_info()==NativeWorkloadInfo{true,2*kNativeExtentBytes},"memory controller input provenance");
@@ -1059,6 +1187,7 @@ int main(int argc,char** argv){try {
     memory_composition(NativeImageKind::indexed_paged);
     indexed_memory_composition();
     indexed_group_callback_contract();
+    memory_coherence_lifecycle();
   }else if(argc==2 && std::string_view(argv[1])=="--read-only-memory") {
     read_only_memory();
   }else if(remount) {

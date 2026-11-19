@@ -3,6 +3,7 @@
 #include "flitzfs/paged_store.hpp"
 
 namespace flitzfs {
+namespace detail {struct NativeMaintenanceSource;}
 // A nomination only. The publisher supplies a verified feature sample.
 // A consumer rechecks the selected extent binding against its live volume.
 struct IndexedCoherencePosting {
@@ -43,10 +44,33 @@ class IndexedCoherenceWriter final {
 
  private:
   friend class NativeFileSession;
+  static IndexedCoherenceWriter create_reserved(std::shared_ptr<StoreByteIo>,StoreIdentity volume,
+      StoreIdentity image,PagedStoreLimits,std::span<const IndexedCoherencePosting>,
+      std::uint64_t maximum_write_bytes,const std::function<bool(std::uint64_t)>& reserve);
   PagedStoreWriteResult publish_reserved(std::span<const IndexedCoherencePosting>,
       std::uint64_t maximum_write_bytes,const std::function<bool(std::uint64_t)>& reserve);
   IndexedCoherenceWriter(PagedObjectStoreWriter,StoreIdentity volume,StoreIdentity image);
   PagedObjectStoreWriter store_;
   StoreIdentity volume_,image_;
+};
+
+// Trusted internal storage reservation and retained writer lease. The callback
+// supplies only a newly reserved catalog backend during a funded idle scan.
+// Attach one serialized session at a time. Keep this owner across an in-process
+// remount to reuse the exact writer without a whole-catalog verification pass.
+class IndexedCoherenceStorage final {
+ public:
+  using Reserve=std::function<std::shared_ptr<StoreByteIo>()>;
+  IndexedCoherenceStorage(PagedStoreLimits,Reserve);
+  IndexedCoherenceStorage(const IndexedCoherenceStorage&)=delete;
+  IndexedCoherenceStorage& operator=(const IndexedCoherenceStorage&)=delete;
+
+ private:
+  friend class NativeFileSession;
+  friend struct detail::NativeMaintenanceSource;
+  PagedStoreLimits limits_;
+  Reserve reserve_;
+  std::shared_ptr<IndexedCoherenceWriter> retained_;
+  std::weak_ptr<const void> session_;
 };
 }

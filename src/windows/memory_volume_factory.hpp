@@ -3,14 +3,15 @@
 #include "flitzfs/projection.hpp"
 namespace flitzfs {
 class NativeFileSession;
+class IndexedCoherenceStorage;
 enum class MemoryCompactionStep {idle,copying,ready,published,retiring,pinned,failed};
 struct MemoryVolumeLayout {
-  std::uint64_t domain_capacity=0,image_capacity=0;
+  std::uint64_t domain_capacity=0,image_capacity=0,coherence_capacity=0;
   static constexpr std::uint64_t area_capacity=131072;
 };
 // Pure admission calculation for trusted observations. It does not allocate or
 // authorize a provider. The actual factory always collects fresh OS headroom.
-MemoryVolumeLayout plan_memory_volume(const MemoryVolumeObservation&);
+MemoryVolumeLayout plan_memory_volume(const MemoryVolumeObservation&,bool indexed_coherence=false);
 StoreIdentity fresh_volume_identity();
 // Move-only new backing; declaration order retains the domain until all store
 // references retire. Each store independently retains the provider lease too.
@@ -19,7 +20,12 @@ struct MemoryVolumeBacking {
   std::shared_ptr<StoreByteIo> head,image,advice;
   StoreIdentity volume_identity{},image_identity{};
   MemoryVolumeLayout layout;
-  static MemoryVolumeBacking create();
+  static MemoryVolumeBacking create(bool indexed_coherence=false);
+  // The configured backing stays at the same address until the controller
+  // retires. Only the funded scanner may request the private reservation.
+  void configure_coherence(NativeFileSession&) noexcept;
+  bool coherence_retirement_pending() const noexcept;
+  void advance_coherence_retirement();
   // Independently checks the current selected image, closes writer admission,
   // and returns a CPU projection that retains the backing lease. The owner
   // keeps its original data even if a later read-only mount fails.
@@ -39,7 +45,8 @@ struct MemoryVolumeBacking {
   ReadOnlyProjection seal_checked(NativeVolumeHeadView);
   enum class CompactionPhase {idle,copying,ready,uncertain,retiring};
   CompactionPhase phase_=CompactionPhase::idle;
-  std::shared_ptr<StoreByteIo> alternate_;
+  std::shared_ptr<StoreByteIo> alternate_,coherence_;
+  std::shared_ptr<IndexedCoherenceStorage> coherence_storage_;
   StoreIdentity alternate_identity_{};
   std::uint64_t attempted_obsolete_=0,abandoned_bytes_=0;
   void retire_alternate(bool charge_attempt);

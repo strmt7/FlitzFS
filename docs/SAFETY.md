@@ -1173,7 +1173,11 @@ and file reads remain available. Candidate publication still requires current
 extent bindings and independent CPU verification. The volume journal durably
 settles an approved catalog write before the first catalog mutation. An
 interrupted charge prevents the write. A failed catalog attempt leaves the
-charge spent and file access available. [Catalog format](OPTIMIZATION_STATE.md#paged-coherence-catalog) ·
+charge spent and file access available. The first catalog and its postings
+also require settlement before writing. The memory owner can retain a healthy
+catalog across a joined remount. It reclaims its pages only after the writer
+and lookup references retire, including after an image switch.
+[Catalog format](OPTIMIZATION_STATE.md#paged-coherence-catalog) ·
 [Funding contract](OPTIMIZATION_BUDGET.md#funded-catalog-updates)
 
 [OPTIMIZATION_BUDGET.md](OPTIMIZATION_BUDGET.md) requires verified native input,

@@ -68,6 +68,19 @@ IndexedCoherencePosting decode_posting(std::uint64_t key,std::span<const std::by
     throw std::runtime_error("invalid coherence catalog posting binding");
   return {band,*feature};
 }
+std::map<std::uint64_t,const IndexedCoherencePosting*> collect_postings(
+    std::span<const IndexedCoherencePosting> postings) {
+  if(postings.size()>kStoreMaxObjects)throw PagedStoreCapacityError("coherence catalog transaction size");
+  std::map<std::uint64_t,const IndexedCoherencePosting*> pending;
+  for(const auto& posting:postings) {
+    if(posting.band>=kOptimizationGroupBands || !detail::valid_optimization_group_feature(posting.representative) ||
+        !fingerprint_of(posting))throw std::invalid_argument("coherence catalog posting fields");
+    const auto key=posting_key(posting.band,fingerprint_of(posting));
+    const auto [position,inserted]=pending.emplace(key,&posting);
+    if(!inserted && revision_order(*position->second)<revision_order(posting))position->second=&posting;
+  }
+  return pending;
+}
 }
 IndexedCoherenceSnapshot::IndexedCoherenceSnapshot(
     PagedObjectStoreSnapshot store,StoreIdentity volume,StoreIdentity image)
@@ -98,10 +111,19 @@ IndexedCoherenceWriter::IndexedCoherenceWriter(
     :store_(std::move(store)),volume_(volume),image_(image) {}
 IndexedCoherenceWriter IndexedCoherenceWriter::create(std::shared_ptr<StoreByteIo> backing,
     StoreIdentity volume,StoreIdentity image,PagedStoreLimits limits) {
+  return create_reserved(std::move(backing),volume,image,limits,{},UINT64_MAX,{});
+}
+IndexedCoherenceWriter IndexedCoherenceWriter::create_reserved(std::shared_ptr<StoreByteIo> backing,
+    StoreIdentity volume,StoreIdentity image,PagedStoreLimits limits,std::span<const IndexedCoherencePosting> postings,
+    std::uint64_t maximum_write_bytes,const std::function<bool(std::uint64_t)>& reserve) {
   const auto root=root_record(volume,image);
-  const StoreMutation mutation{root_object,false,Bytes(root.begin(),root.end())};
-  auto store=PagedObjectStoreWriter::create(std::move(backing),volume,limits,raw_storage);
-  store.commit(std::span(&mutation,1));
+  const auto pending=collect_postings(postings);
+  std::vector<StoreMutation> mutations;
+  mutations.reserve(pending.size()+1);
+  mutations.push_back({root_object,false,Bytes(root.begin(),root.end())});
+  for(const auto& [key,posting]:pending)mutations.push_back({key,false,encode_posting(*posting)});
+  auto store=PagedObjectStoreWriter::create_impl(std::move(backing),volume,limits,raw_storage,false,
+      mutations,maximum_write_bytes,reserve);
   return IndexedCoherenceWriter(std::move(store),volume,image);
 }
 IndexedCoherenceWriter IndexedCoherenceWriter::resume(std::shared_ptr<StoreByteIo> backing,
@@ -122,15 +144,7 @@ PagedStoreWriteResult IndexedCoherenceWriter::publish(
 PagedStoreWriteResult IndexedCoherenceWriter::publish_reserved(
     std::span<const IndexedCoherencePosting> postings,std::uint64_t maximum_write_bytes,
     const std::function<bool(std::uint64_t)>& reserve) {
-  if(postings.size()>kStoreMaxObjects)throw PagedStoreCapacityError("coherence catalog transaction size");
-  std::map<std::uint64_t,const IndexedCoherencePosting*> pending;
-  for(const auto& posting:postings) {
-    if(posting.band>=kOptimizationGroupBands || !detail::valid_optimization_group_feature(posting.representative) ||
-        !fingerprint_of(posting))throw std::invalid_argument("coherence catalog posting fields");
-    const auto key=posting_key(posting.band,fingerprint_of(posting));
-    const auto [position,inserted]=pending.emplace(key,&posting);
-    if(!inserted && revision_order(*position->second)<revision_order(posting))position->second=&posting;
-  }
+  const auto pending=collect_postings(postings);
   auto previous=snapshot();
   std::vector<StoreMutation> mutations;
   mutations.reserve(pending.size());
@@ -143,5 +157,9 @@ PagedStoreWriteResult IndexedCoherenceWriter::publish_reserved(
   }
   if(mutations.empty())return {previous.info(),0};
   return store_.commit_impl(mutations,kStoreMaxObjects,kStoreMaxTransactionBytes,maximum_write_bytes,reserve);
+}
+IndexedCoherenceStorage::IndexedCoherenceStorage(PagedStoreLimits limits,Reserve reserve)
+    :limits_(limits),reserve_(std::move(reserve)) {
+  if(!limits_.maximum_physical_bytes || !reserve_)throw std::invalid_argument("coherence storage reservation");
 }
 }

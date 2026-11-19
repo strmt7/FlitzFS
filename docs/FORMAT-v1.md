@@ -17,6 +17,9 @@ observation and lifecycle state only; it changes no stored encoding or version.
 
 The opt-in [paged object store](PAGED_OBJECT_STORE.md) has a separate root/page
 encoding and reader. It does not change this container or existing native bytes.
+The [coherence catalog](OPTIMIZATION_STATE.md#paged-coherence-catalog) creates
+its typed root and first postings in one existing paged checkpoint. Catalog
+discovery, creation and retirement change no record encoding.
 The [native backend bridge](NATIVE_PAGED_BACKEND.md) explicitly connects native
 operations to it without changing namespace formats 1..7 or these chunk bytes.
 The separately opted-in [inode-record layout](INODE_RECORD_NAMESPACE.md) uses

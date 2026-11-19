@@ -698,6 +698,81 @@ void funded_indexed_catalog(CatalogFunding outcome) {
       user.read("second",0,kNativeExtentBytes)==second,"optional catalog altered acknowledged files");
   user.verify_all();
 }
+void automatic_indexed_catalog(CatalogFunding outcome) {
+  Fixture f(4096,0,true);
+  auto advice=ram(4096),backing=ram(4096);
+  require(f.session->create_budgeted_optimization_area(advice).phase==NativeOptimizationPhase::ready,
+      "automatic catalog requires the funded advisory journal");
+  unsigned reservations=0;
+  const PagedStoreLimits limits{kStoreMaxPhysicalBytes};
+  auto storage=std::make_shared<IndexedCoherenceStorage>(limits,[&] {
+    ++reservations;
+    return backing;
+  });
+  f.session->configure_indexed_coherence(storage);
+  require(!reservations && !backing->extent(),"session attachment allocated an empty catalog");
+
+  const auto first=data(kNativeExtentBytes,214),second=data(kNativeExtentBytes,624);
+  put(*f.session,"first",first);put(*f.session,"second",second);
+  put(*f.session,"base-input",Bytes(kOptimizationGroupScanInputBytes-2*kNativeExtentBytes));
+  if(outcome!=CatalogFunding::checkpoint_only) {
+    put(*f.session,"more-input-a",Bytes(3*kOptimizationGroupScanInputBytes/4));
+    put(*f.session,"more-input-b",Bytes(3*kOptimizationGroupScanInputBytes/4));
+  }
+  if(outcome==CatalogFunding::journal_failure)advice->fail_at=advice->calls+2;
+  if(outcome==CatalogFunding::catalog_failure)backing->fail_at=0;
+  {
+    NativeGroupMaintenance controller(*f.session);
+    finish_pending(f,controller);
+    require(controller.progress().checkpoints_published==(outcome==CatalogFunding::journal_failure?0U:1U),
+        "catalog creation changed checkpoint acknowledgment");
+  }
+
+  const auto journal=read_optimization_state(*image(advice->stable,4096),id(90));
+  require(journal.code==OptimizationReadCode::available && journal.state.group_scan,
+      "catalog creation left no recoverable scan checkpoint");
+  const auto settled=*journal.state.settled_input_bytes;
+  if(outcome==CatalogFunding::checkpoint_only) {
+    require(!reservations && !backing->calls && settled==kOptimizationGroupScanInputBytes,
+        "checkpoint-only credit allocated or wrote a catalog");
+  }else {
+    require(reservations==1 && settled>kOptimizationGroupScanInputBytes,
+        "a funded catalog creation failed to reserve exactly once");
+    if(outcome==CatalogFunding::available) {
+      const auto snapshot=IndexedCoherenceSnapshot::open(backing,id(90),id(1),limits);
+      require(snapshot.info().objects==3 && snapshot.info().generation==2 &&
+          settled==kOptimizationGroupScanInputBytes+backing->write_bytes*kOptimizationGroupScanInputPerWriteByte,
+          "initial catalog and postings escaped one complete charged checkpoint");
+      for(const auto& feature:journal.state.group_scan->representatives)
+        require(snapshot.find(0,feature.bands[0])==feature,"initial catalog lost a real feature");
+      reopen_indexed(f,advice,journal.sequence);
+      const auto mutations=backing->calls;
+      f.session->configure_indexed_coherence(storage);
+      NativeGroupMaintenance resumed(*f.session);
+      finish_pending(f,resumed);
+      require(reservations==1 && backing->calls==mutations &&
+          f.session->optimization_snapshot().state.settled_input_bytes==settled,
+          "retained catalog was reprovisioned or spent credit after reopen");
+    } else if(outcome==CatalogFunding::journal_failure) {
+      require(!backing->calls && !backing->extent() && journal.degraded,
+          "unverified initial settlement exposed catalog writes");
+    } else {
+      require(backing->calls==1 && !backing->extent() && !journal.degraded,
+          "an interrupted initial catalog write invalidated or replayed its paid journal");
+      reopen_indexed(f,advice,journal.sequence);
+      f.session->configure_indexed_coherence(storage);
+      NativeGroupMaintenance resumed(*f.session);
+      finish_pending(f,resumed);
+      require(reservations==1 && backing->calls==1 &&
+          f.session->optimization_snapshot().state.settled_input_bytes==settled,
+          "an interrupted initial catalog retried on unchanged evidence");
+    }
+  }
+  const auto user=f.session->snapshot();
+  require(!f.session->poisoned() && user.read("first",0,kNativeExtentBytes)==first &&
+      user.read("second",0,kNativeExtentBytes)==second,"automatic catalog creation lost acknowledged data");
+  user.verify_all();
+}
 void indexed_scan_checkpoint_faults() {
   for(const auto unit:{4096U,65536U})for(unsigned mode=0;mode<3;++mode)for(unsigned cut=0;cut<4;++cut) {
     Fixture f(4096,0,true);auto advice=ram(unit);
@@ -729,7 +804,10 @@ int main(int argc,char** argv){try{
     for(const auto scenario:{CatalogCase::available,CatalogCase::unavailable,CatalogCase::stale})
       indexed_catalog_discovery(scenario);
     for(const auto outcome:{CatalogFunding::available,CatalogFunding::checkpoint_only,
-        CatalogFunding::journal_failure,CatalogFunding::catalog_failure})funded_indexed_catalog(outcome);
+        CatalogFunding::journal_failure,CatalogFunding::catalog_failure}) {
+      funded_indexed_catalog(outcome);
+      automatic_indexed_catalog(outcome);
+    }
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-advice") {
     advised_indexed_maintenance();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-batch") {

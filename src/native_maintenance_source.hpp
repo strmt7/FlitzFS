@@ -22,10 +22,13 @@ struct NativeMaintenanceSource {
   const bool* terminal=nullptr;
   std::weak_ptr<const void> active;
   std::optional<IndexedCoherenceSnapshot> coherence;
-  std::optional<IndexedCoherenceWriter> coherence_writer;
+  std::shared_ptr<IndexedCoherenceWriter> coherence_writer;
+  std::shared_ptr<IndexedCoherenceStorage> coherence_storage;
   std::uint64_t coherence_binding=0,coherence_offer_after=0;
   void retire_coherence() noexcept {
     coherence.reset();
+    if(coherence_storage && coherence_storage->retained_==coherence_writer)
+      coherence_storage->retained_.reset();
     coherence_writer.reset();
     coherence_offer_after=0;
   }

@@ -52,6 +52,13 @@ The verified journal write and readback finish before the catalog writes begin.
 Insufficient additional credit leaves the independent catalog untouched and can
 still fund the ordinary scan checkpoint. A failed catalog write keeps the
 settlement charged across reopen.
+
+First-time creation uses the same ordering. The planner includes the paired-root
+area, typed catalog root, first useful postings, page pairs and padding in one
+transaction. It checks the byte allowance and backend capacity before settlement.
+No active catalog exists until that transaction and the typed-root read finish.
+Changing the selected native image retires the old catalog without refunding
+prior write charges.
 [Catalog lifecycle](OPTIMIZATION_STATE.md#paged-coherence-catalog) ·
 [Host validation](evidence/funded-paged-coherence-2026-11-19.json)
 
