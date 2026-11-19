@@ -138,6 +138,13 @@ requires new obsolete history at least as large as its written candidate bytes
 before staging again. The copy preserves existing object encodings and requires
 a strictly smaller verified image before switching.
 
+An indexed compression transaction can also report an append-space shortfall
+before writing. The owner considers compaction if its known obsolete history
+covers that lower bound. The observation applies to the selected image and
+generation. The owner releases tentative compression work before evaluating
+the replacement, and the existing source verification and reader-retirement
+checks govern handoff.
+
 The old mapping stays live while any CPU snapshot holds it. Its retirement
 checks pins first and securely clears and decommits at most one object-sized
 span per resource-admitted opportunity. This work shares the control lock

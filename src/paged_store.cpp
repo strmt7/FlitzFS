@@ -22,7 +22,10 @@ constexpr std::size_t branch_capacity=(digest_at-header_bytes)/ref_bytes;
 constexpr std::uint32_t maximum_height=16;
 constexpr char root_magic[]="FLTXPG01",page_magic[]="FLTXPGN1",data_magic[]="FLTXDAT1";
 [[noreturn]] void fail(const char* why) {throw std::runtime_error(std::string("FlitzFS paged store: ")+why);}
-[[noreturn]] void capacity(const char* why,bool physical_space=false) {throw PagedStoreCapacityError(why,physical_space);}
+[[noreturn]] void capacity(const char* why) {throw PagedStoreCapacityError(why);}
+void check_physical_capacity(std::uint64_t required,std::uint64_t maximum) {
+  if(required>maximum)throw PagedStoreCapacityError("physical capacity",true,required-maximum);
+}
 std::uint64_t add(std::uint64_t a,std::uint64_t b) {
   if(b>(std::numeric_limits<std::uint64_t>::max)()-a)fail("integer overflow");
   return a+b;
@@ -471,7 +474,7 @@ PreparedObject prepare_object(const State& state,detail::StoreCodecEncoder& enco
   e.digest=detail::record_digest(std::span<const std::byte>(h).first(96),encoded.payload);copy(h,96,e.digest);
   record.payload=std::move(encoded.payload);
   allocation.place(state,e,std::uint64_t{record_header_bytes}+e.stored,cursor);
-  if(cursor>state.limits.maximum_physical_bytes)capacity("physical capacity",true);
+  check_physical_capacity(cursor,state.limits.maximum_physical_bytes);
   return record;
 }
 struct Change {std::uint64_t id;bool erase;Entry entry;};
@@ -548,7 +551,7 @@ struct Plan {
       next.root=roots.front();
     }
     next.end=add(page_start,paired_bank_bytes(multiply(pages.size(),page_bytes),next.unit));
-    if(next.end>next.limits.maximum_physical_bytes)capacity("physical capacity",true);
+    check_physical_capacity(next.end,next.limits.maximum_physical_bytes);
   }
   void write_pages(std::uint64_t data_end) {
     // Initialize only padding. Each complete metadata page initializes its

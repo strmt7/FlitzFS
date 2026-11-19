@@ -86,6 +86,13 @@ struct NativeSessionStats {
 struct NativeVolumeSpace {
   std::uint64_t total_bytes=0,free_bytes=0;
   std::uint64_t obsolete_bytes=0; // Writer-lifetime lower bound, before reader pins.
+  std::uint64_t compression_shortfall_bytes=0;
+  bool reclamation_worthwhile() const noexcept {
+    if(free_bytes>total_bytes)return false;
+    const auto used=total_bytes-free_bytes;
+    return obsolete_bytes && obsolete_bytes<=used && (obsolete_bytes>=used-obsolete_bytes ||
+        obsolete_bytes>free_bytes || (compression_shortfall_bytes && obsolete_bytes>=compression_shortfall_bytes));
+  }
 };
 struct NativeVolumeRootMetadata {
   NativeBasicMetadata basic;

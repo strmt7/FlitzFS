@@ -15,7 +15,7 @@ struct NativeMaintenancePolicy {
   std::uint32_t maximum_cpu_busy_ppm=125000,work_share_ppm=10000;
 };
 enum class NativeMaintenancePhase {idle,scanning,candidates,preparing,publishing,deferred,failed};
-enum class NativeMaintenanceDeferral {none,observation,foreground,cpu,memory,duty,other_maintenance};
+enum class NativeMaintenanceDeferral {none,observation,foreground,cpu,memory,duty,other_maintenance,capacity};
 struct NativeMaintenanceProgress {
   NativeMaintenancePhase phase=NativeMaintenancePhase::idle;
   NativeMaintenanceDeferral deferral=NativeMaintenanceDeferral::none;
@@ -27,6 +27,7 @@ struct NativeMaintenanceProgress {
   std::uint64_t coherence_catalog_bytes=0; // Footprint of the attached checked advisory checkpoint.
   std::uint64_t coherence_compactions=0,coherence_discards=0,coherence_compacted_bytes_saved=0;
   std::uint64_t advised_members_published=0;
+  std::uint64_t append_shortfall_bytes=0;
   bool search_window_ready=false; // Newly staged by this opportunity.
   bool search_batch_ready=false;
 };

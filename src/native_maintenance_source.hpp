@@ -21,6 +21,14 @@ struct NativeMaintenanceSource {
   NativeFilesystemWriter* writer=nullptr;
   const bool* terminal=nullptr;
   std::weak_ptr<const void> active;
+  struct GroupAppendRefusal {
+    StoreIdentity image{};
+    std::uint64_t generation=0,shortfall_bytes=0;
+  } group_append_refusal;
+  std::uint64_t group_append_shortfall(StoreIdentity image,std::uint64_t generation) const noexcept {
+    return group_append_refusal.image==image && group_append_refusal.generation==generation?
+        group_append_refusal.shortfall_bytes:0;
+  }
   std::optional<IndexedCoherenceSnapshot> coherence;
   std::shared_ptr<IndexedCoherenceWriter> coherence_writer;
   std::shared_ptr<IndexedCoherenceStorage> coherence_storage;

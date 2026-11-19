@@ -34,10 +34,13 @@ enum class NativeFsErrorCode {
 };
 class NativeFsError final:public std::runtime_error {
  public:
-  NativeFsError(NativeFsErrorCode code,const char* message):std::runtime_error(message),code_(code){}
+  NativeFsError(NativeFsErrorCode code,const char* message,std::uint64_t append_shortfall=0)
+      :std::runtime_error(message),code_(code),append_shortfall_(append_shortfall){}
   NativeFsErrorCode code() const noexcept{return code_;}
+  std::uint64_t append_shortfall_bytes() const noexcept{return append_shortfall_;}
  private:
   NativeFsErrorCode code_;
+  std::uint64_t append_shortfall_;
 };
 // Borrowed complete LZ4 block for one final native extent. The call must remain
 // serialized and both this span and its bytes immutable until return.

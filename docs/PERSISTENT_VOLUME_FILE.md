@@ -121,6 +121,11 @@ Windows 11 fixture verified release of actual NTFS allocation, reuse of
 both image ranges and independent CPU readback after each switch.
 [Reclamation validation](evidence/windows-sparse-volume-reclamation-2026-11-19.json)
 
+The paired-range reclaimer also considers a checked append-space shortfall
+from indexed compression. The current image stays selected until the
+replacement has completed independent verification and selector publication.
+[Append-pressure validation](evidence/amd-maintenance-parity-2026-11-19.json)
+
 User-facing persistent-volume selection, in-place migration of existing
 linear volumes, steady-state segment evacuation during concurrent writes,
 persistent catalog compaction and physical storage-failure qualification

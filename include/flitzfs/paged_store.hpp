@@ -14,11 +14,14 @@ struct PagedStoreLimits {
 class PagedStoreCapacityError final:public std::runtime_error {
  public:
   using std::runtime_error::runtime_error;
-  PagedStoreCapacityError(const char* message,bool physical_space)
-      :std::runtime_error(message),physical_space_(physical_space){}
+  PagedStoreCapacityError(const char* message,bool physical_space,std::uint64_t append_shortfall=0)
+      :std::runtime_error(message),physical_space_(physical_space),append_shortfall_(append_shortfall){}
   bool physical_space_exhausted() const noexcept {return physical_space_;}
+  // Planning can stop at the first refused record. This is then a lower bound.
+  std::uint64_t append_shortfall_bytes() const noexcept {return append_shortfall_;}
  private:
   bool physical_space_=false;
+  std::uint64_t append_shortfall_=0;
 };
 struct PagedStoreInfo {
   // Stored payload total includes both copies in capability 2. Individual

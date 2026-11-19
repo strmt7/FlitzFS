@@ -113,10 +113,9 @@ bool NativeVolumeFileReclaimer::pending(const NativeFileSession& session) const 
   if(phase_==Phase::uncertain || phase_==Phase::failed || !session.idle_compaction_context_ready())return false;
   if(phase_!=Phase::idle)return true;
   const auto space=session.indexed_volume_space();
-  const auto used=space.total_bytes-space.free_bytes;
   const auto obsolete=space.obsolete_bytes;
-  if(obsolete>used || obsolete<=attempted_obsolete_ || obsolete-attempted_obsolete_<abandoned_bytes_)return false;
-  return obsolete>=used-obsolete || obsolete>space.free_bytes;
+  if(obsolete<=attempted_obsolete_ || obsolete-attempted_obsolete_<abandoned_bytes_)return false;
+  return space.reclamation_worthwhile();
 }
 
 Progress NativeVolumeFileReclaimer::retire(NativeFileSession& session) {

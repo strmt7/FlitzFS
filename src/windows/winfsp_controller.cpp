@@ -207,7 +207,8 @@ struct WinFspVolumeController::Impl {
     if(!replies.empty()) {
       anchor->settle_reply_checks();
       if(!result.retained_search && result.state!=WinFspMaintenanceState::busy &&
-          result.progress.deferral==NativeMaintenanceDeferral::none)anchor->discard_reply();
+          (result.progress.deferral==NativeMaintenanceDeferral::none ||
+           result.progress.deferral==NativeMaintenanceDeferral::capacity))anchor->discard_reply();
     } else if(!stop_requested.load(std::memory_order_acquire)) {
       auto windows=std::span<const NativeSharedBaseSearchWindow>(result.search_batch);
       if(result.search_window)windows=std::span(&result.search_window,1);

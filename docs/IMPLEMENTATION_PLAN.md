@@ -756,9 +756,24 @@ The indexed owner now fills a finite worker exchange across several scan
 windows under live host and exact channel admission. In the related-data
 fixture, one real AMD exchange supplied 310 verified candidates for five
 independent group transactions. Compacted CPU readback verified every file.
-Use the larger attainable batches to qualify heterogeneous input profiles
-against complete CPU cost, including preparation, publication, and contention.
+When a later candidate partly overlaps a staged group, the owner settles the
+batch and revisits the remaining extents in that window. A measured mixed-data
+regression fell from 23,035,904 to 8,650,752 compacted bytes after the fix,
+matching CPU. Three alternating runs per route and cohort produced equal
+compacted sizes and exact CPU readback on the physical Windows host. Median
+complete time was 1.48 seconds on CPU and 3.30 seconds with AMD assistance for
+the related cohort, and 1.37 and 3.21 seconds for mixed data. These timings
+include discovery through verified compaction and use modeled idle opportunities.
+Keep CPU preferred for these profiles and qualify other complete workloads and
+device classes before automatic routing.
+
+A physical append-space refusal now releases the uncommitted batch and pauses
+group preparation for that image generation. The verified reclaimer can
+consider the measured shortfall alongside estimated reclaimable bytes. The
+near-capacity memory fixture kept the source unchanged at refusal, verified a
+compacted replacement, resumed compression and read all 45 files byte-exactly.
 [Multiwindow maintenance evidence](evidence/amd-multiwindow-maintenance-2026-11-19.json)
+[Matched timing and capacity evidence](evidence/amd-maintenance-parity-2026-11-19.json)
 
 The first collective AMD trial reused the authenticated uniform LZ4 worker.
 Copies from tiles that contain the same base produced a 600 KiB complete

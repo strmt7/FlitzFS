@@ -149,6 +149,7 @@ struct NativeGroupMaintenance::Impl {
   }
   bool discovery_pending(const NativeFilesystemWriter& writer,const detail::NativeMaintenanceSource& owner,
       StoreIdentity image_id) const noexcept {
+    if(owner.group_append_shortfall(image_id,writer.recompression_generation()))return false;
     return active_group() || checkpoint_due || phase!=Phase::idle || (writer.maintenance_has_candidates() &&
         (image!=image_id || completed_sequence!=writer.maintenance_content_sequence() || new_coherence(owner,image_id)));
   }
@@ -188,6 +189,8 @@ struct NativeGroupMaintenance::Impl {
   NativeMaintenanceProgress progress() const noexcept {
     auto result=state;
     if(const auto owner=source.lock()) {
+      if(owner->writer)result.append_shortfall_bytes=owner->group_append_shortfall(
+          owner->writer->maintenance_identity(),owner->writer->recompression_generation());
       if(owner->coherence)result.coherence_catalog_bytes=owner->coherence->info().physical_end;
       result.coherence_compactions=owner->coherence_compactions;
       result.coherence_discards=owner->coherence_discards;
@@ -445,9 +448,21 @@ struct NativeGroupMaintenance::Impl {
       const auto found=features.find(id);
       if(id!=representative && found!=features.end() && !found->second.token.grouped)expected.push_back(found->second.token);
     }
-    if(expected.size()<2 || std::ranges::any_of(expected,[&](const auto& token) {
+    if(expected.size()<2)return;
+    if(!staged_objects.empty()) {
+      const auto staged=static_cast<std::size_t>(std::ranges::count_if(expected,[&](const auto& token) {
         return staged_objects.contains(token.object);
-    }))return;
+      }));
+      if(staged) {
+        // An already-covered candidate can be skipped. For a partial overlap,
+        // settle the waiting groups before allowing this scan window to retire.
+        if(staged<expected.size()) {
+          --candidate_index;
+          emit_batch();
+        }
+        return;
+      }
+    }
     if(expected.size()>remaining_extents) {
       --candidate_index;
       emit_batch();
@@ -746,6 +761,7 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
   const bool discovering=p.discovery_pending(writer,*source,image);
   const bool reclaiming=source->coherence_pending();
   if(!discovering && !reclaiming) {
+    if(source->group_append_shortfall(image,writer.recompression_generation()))return p.defer(Defer::capacity);
     p.state.phase=Phase::idle;p.state.deferral=Defer::none;p.state.next_opportunity_delay_ms=0;return p.progress();
   }
   if(observed.foreground_pending)return p.defer(Defer::foreground);
@@ -794,7 +810,16 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
     p.forget_pending();
     const bool was_indexed_group=writer.maintenance_indexed() && p.work.has_value();
     p.work.reset();p.state.owned_payload_bytes=p.owned_payload();
-    if(!writer.poisoned() && error.code()==NativeFsErrorCode::limit) {
+    if(!writer.poisoned() && was_indexed_group && error.code()==NativeFsErrorCode::limit &&
+        error.append_shortfall_bytes()) {
+      // This plan was refused before writes. Release the other staged groups
+      // so the existing reclaimer can act, and suppress duplicate work on
+      // this exact published image generation.
+      source->group_append_refusal={image,writer.recompression_generation(),error.append_shortfall_bytes()};
+      ++p.state.declined_groups;
+      p.reset_index();
+      p.state.phase=Phase::deferred;p.state.deferral=Defer::capacity;
+    } else if(!writer.poisoned() && error.code()==NativeFsErrorCode::limit) {
       if(was_indexed_group) {
         p.work_ids.clear();p.phase=Phase::candidates;++p.state.declined_groups;
       } else p.reset_index();

@@ -96,6 +96,11 @@ extent visits has been spent. No GPU worker waits during collection. The
 saved scan cursor pauses while tentative groups remain in memory so a
 restart can reconsider that work.
 
+When a partly covered candidate needs additional extents, the owner settles
+the already staged batch before leaving that scan window. The remaining
+extents stay eligible for CPU grouping or a later funded AMD batch. This
+preserves compression opportunities when several families share features.
+
 A foreground callback can wake the owner at entry while a GPU request is
 outstanding. Activity or lost group headroom discards the optional result and
 signals cancellation. CPU work resumes on admitted opportunities while the
@@ -136,6 +141,13 @@ byte after compaction. The protected image shrank from 41,623,552 bytes to
 11,411,456 bytes on this two-plane related-data workload. The fixture used
 actual host memory admission and GPU execution with modeled idle timing.
 [Multiwindow evidence](evidence/amd-multiwindow-maintenance-2026-11-19.json)
+
+An append-space refusal releases tentative groups and their advice. Group
+preparation pauses on that image generation, while the storage owner can
+select bounded compaction when obsolete history covers the reported
+shortfall. A changed generation or verified image handoff makes group
+preparation eligible again.
+[Capacity and matched route evidence](evidence/amd-maintenance-parity-2026-11-19.json)
 
 ## Retirement and qualification
 

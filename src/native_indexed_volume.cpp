@@ -1376,7 +1376,7 @@ NativeSharedBaseCommit IndexedSharedBasePreparation::finish(PagedObjectStoreWrit
     result.transaction.storage=native_paged_info(writer.commit(proposed));
   }catch(const PagedStoreCapacityError& error) {
     if(writer.poisoned())fail(Code::storage_failure,"indexed shared-base publication failed after admission");
-    fail(Code::limit,error.what());
+    throw NativeFsError(Code::limit,error.what(),error.append_shortfall_bytes());
   }
   current=next;
   result.transaction.sequence=next.sequence;

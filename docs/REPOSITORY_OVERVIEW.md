@@ -143,10 +143,10 @@ Authoritative source: [native limits and interfaces](../include/flitzfs/native_f
 
 ### The important compression bottleneck
 
-The current group format stores an immutable 64-KiB base and ordered literal
-patches for members. Its CPU decoder verifies both the base and reconstructed
-member digests. This is a useful protected cross-file baseline. It is not a
-general learned codec or a solution for arbitrary shifted/reordered data.
+The current group format stores an immutable 64-KiB base. Indexed members can
+use literal patches, anchor copies or packed XOR planes. CPU decoding verifies
+both the base and reconstructed member digests. Arbitrary reordering and
+learned grouping and transforms remain open.
 
 Discovery uses digests and band features. The indexed scanner extends aligned
 features with shifted samples and restores verified feature bindings from
@@ -159,11 +159,12 @@ recovery designs.
 
 Publishing a group also appends history. The maintenance counters distinguish
 hypothetical compacted savings from retained history added. A smaller live
-representation can therefore coexist with a larger current image. A foreground
-commit invalidates the existing staged rebuild even if it touched unrelated
-files. Use its protected handoff for bounded rebuilds and develop a reclaimer
-that makes incremental progress across concurrent edits. Evaluate compression
-using **total occupied bytes after safe reclamation**.
+representation can therefore coexist with a larger current image. If a group
+cannot fit, the owner releases its staged batch and considers measured append
+shortfall when scheduling a verified rebuild. A foreground commit still
+invalidates the staged rebuild even if it touched unrelated files. Develop a
+reclaimer that makes incremental progress across concurrent edits. Evaluate
+compression using **total occupied bytes after safe reclamation**.
 
 The current mirrored paged format pairs 64 KiB units on the memory provider.
 For a commit adding one small nonempty payload, it seals a paired payload bank
@@ -276,6 +277,15 @@ driver to make a probe fit a document.
 [dependency policy/history](DEPENDENCY_AUDIT.md).
 
 ## Recent executed evidence
+
+On 19 November, six paired multiwindow comparisons on the physical Windows
+host produced equal compacted sizes and byte-exact CPU readback in both routes.
+The related cohort retained 27.4% of its input image size and the mixed cohort
+retained 20.8%. CPU finished sooner in every pair when including discovery,
+publication, verified compaction and readback. A near-full model separately
+verified that background compression releases its staged input, waits for a
+changed image and resumes after verified reclamation.
+[Matched maintenance and capacity evidence](evidence/amd-maintenance-parity-2026-11-19.json)
 
 The indexed background controller now discovers related extents through checked
 ordered lookups. One 129-member group grew through five publications while

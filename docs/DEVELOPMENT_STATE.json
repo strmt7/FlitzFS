@@ -38,6 +38,7 @@
     "packed_xor_wide_transport_evidence": "docs/evidence/amd-wide-packed-xor-2026-11-19.json",
     "packed_xor_dispatch_and_profile_evidence": "docs/evidence/amd-adaptive-packed-xor-2026-11-19.json",
     "multiwindow_maintenance_evidence": "docs/evidence/amd-multiwindow-maintenance-2026-11-19.json",
+    "matched_maintenance_and_capacity_evidence": "docs/evidence/amd-maintenance-parity-2026-11-19.json",
     "masked_discovery_evidence": "docs/evidence/projected-xor-discovery-2026-11-19.json",
     "mask_fixture_previous_compacted_bytes": 1335296,
     "mask_fixture_current_compacted_bytes": 557056,

@@ -216,6 +216,105 @@ void indexed_batch_across_scan_windows() {
       <<" source extents="<<progress.sampled_extents<<" retired under memory pressure\n";
 }
 
+void indexed_batch_reclaims_append_space() {
+  require(!NativeVolumeSpace{100,25,16,0}.reclamation_worthwhile() &&
+      !NativeVolumeSpace{100,25,16,17}.reclamation_worthwhile() &&
+      NativeVolumeSpace{100,25,16,16}.reclamation_worthwhile(),
+      "Reclamation did not price the proved append-space shortfall");
+  constexpr auto members=anchor_search_fixture::indexed_batch_members;
+  constexpr auto families=anchor_search_fixture::indexed_batch_families;
+  Fixture f(kStoreCommitUnit,0,true);
+  const auto original=anchor_search_fixture::indexed_batch_files();
+  for(std::size_t i=0;i<original.size();++i)put(*f.session,"f"+std::to_string(i),original[i]);
+  const auto extent=f.image->extent();
+  const auto committed=f.image->calls;
+  NativeGroupMaintenance controller(*f.session);
+  NativeMaintenanceProgress progress;
+  for(unsigned i=0;i<2000 && !progress.search_batch_ready;++i) {
+    const auto o=f.clock.next();
+    progress=controller.advance(o,f.clock.now,{members+families,nullptr,true});
+    require(progress.phase!=Phase::failed,"Capacity fixture did not prepare");
+  }
+  require(controller.search_batch().size()==families,"Capacity fixture did not retain a complete batch");
+  for(unsigned i=0;i<2000 && progress.deferral!=Defer::capacity;++i) {
+    const auto o=f.clock.next();
+    progress=controller.advance(o,f.clock.now,{0,nullptr,true});
+    require(progress.phase!=Phase::failed,"Append refusal fenced the indexed volume");
+  }
+  require(progress.deferral==Defer::capacity && progress.append_shortfall_bytes &&
+      progress.published_groups==0 && progress.declined_groups==1 &&
+      !controller.pending() && !controller.has_retained_search() && !progress.owned_payload_bytes &&
+      f.image->extent()==extent && f.image->calls==committed,
+      "Append refusal did not release the batch before publication");
+  const auto space=f.session->indexed_volume_space();
+  require(space.compression_shortfall_bytes==progress.append_shortfall_bytes && space.reclamation_worthwhile(),
+      "The selected image did not offer bounded capacity reclamation");
+  const auto reads=f.image->read_calls;
+  for(unsigned i=0;i<4;++i) {
+    const auto o=f.clock.next();
+    require(controller.advance(o,f.clock.now,{members+families,nullptr,true}).deferral==Defer::capacity &&
+        !controller.pending(),"Unchanged capacity refusal restarted expensive preparation");
+  }
+  require(f.image->calls==committed && f.image->read_calls==reads,
+      "Paused capacity refusal read or modified the image");
+
+  auto replacement=ram(kStoreCommitUnit);
+  require(f.session->begin_idle_compaction(replacement,id(9)),"Capacity fixture could not start a protected rebuild");
+  bool ready=false;
+  for(unsigned i=0;i<4000 && !ready;++i)
+    ready=f.session->advance_recompression()==NativeFileSession::RecompressionProgress::ready;
+  require(ready && f.session->publish_idle_recompression().has_value() && f.image->calls==committed &&
+      f.session->indexed_volume_space().free_bytes>space.free_bytes &&
+      !f.session->indexed_volume_space().compression_shortfall_bytes && controller.pending(),
+      "Verified reclamation did not reopen compression on the selected copy");
+  for(unsigned i=0;i<1000 && !progress.published_groups;++i) {
+    progress=f.step(controller);
+    require(progress.phase!=Phase::failed,"Compression failed after reclaiming append space");
+  }
+  require(progress.published_groups!=0,"Compression did not resume after verified compaction");
+  const auto snapshot=f.session->snapshot();
+  snapshot.verify_all();
+  for(std::size_t i=0;i<original.size();++i)
+    require(snapshot.read("f"+std::to_string(i),0,original[i].size())==original[i],
+        "Reclamation or resumed compression changed acknowledged bytes");
+  std::cout<<"indexed capacity shortfall="<<space.compression_shortfall_bytes
+      <<" free_before="<<space.free_bytes<<" source_unchanged=true resumed=true\n";
+}
+
+void indexed_partial_overlap_preserves_candidates() {
+  const auto bank=data(anchor_search_fixture::indexed_sample_bank_bytes,4839);
+  const auto original=anchor_search_fixture::indexed_batch_files(bank);
+  const auto compare=[&](bool offer_batch) {
+    Fixture f(4096,0,true);
+    for(std::size_t i=0;i<original.size();++i)put(*f.session,"f"+std::to_string(i),original[i]);
+    NativeGroupMaintenance controller(*f.session);
+    bool emitted=false;
+    for(unsigned i=0;i<5200 && controller.pending();++i) {
+      const auto o=f.clock.next();
+      const auto grant=offer_batch && !emitted?anchor_search_fixture::indexed_batch_members:0;
+      const auto progress=controller.advance(o,f.clock.now,{grant,nullptr,offer_batch});
+      require(progress.phase!=Phase::failed && progress.deferral!=Defer::capacity,"Overlap fixture did not settle");
+      emitted=emitted || progress.search_batch_ready;
+    }
+    require(!controller.pending() && emitted==offer_batch && controller.progress().published_groups,
+        "Overlap fixture did not exercise its requested grouping path");
+    f.session.reset();
+    const auto closed=NativeVolumeHeadView::open(f.head,id(90),[&](const auto& image)->std::shared_ptr<StoreByteIo> {
+      return image==id(1)?f.image:nullptr;
+    });
+    auto compacted=ram(4096);
+    (void)NativeFilesystemWriter::compact(closed.filesystem(),compacted,id(2),{StoreCompressionMode::raw,1,false});
+    auto verified=NativeFilesystemSnapshot::open_image(compacted,{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes});
+    verified.verify_all();
+    for(std::size_t i=0;i<original.size();++i)
+      require(verified.read("f"+std::to_string(i),0,original[i].size())==original[i],"Overlap fixture changed source bytes");
+    return compacted->extent();
+  };
+  const auto cpu=compare(false),batched=compare(true);
+  require(batched<=cpu,"Staging discarded partly overlapping candidates");
+  std::cout<<"indexed overlap cpu_bytes="<<cpu<<" batched_bytes="<<batched<<'\n';
+}
+
 void shifted_indexed_family(const Bytes& base,StoreCompressionOptions compression,bool corpus) {
   constexpr unsigned count=12;
   constexpr std::uint32_t unit=4096;
@@ -1113,6 +1212,9 @@ int main(int argc,char** argv){try{
     batched_indexed_maintenance(BatchOutcome::memory_pressure);
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-multiwindow-batch") {
     indexed_batch_across_scan_windows();
+    indexed_partial_overlap_preserves_candidates();
+  } else if(argc==2 && std::string_view(argv[1])=="--indexed-batch-capacity") {
+    indexed_batch_reclaims_append_space();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed") {
     for(auto unit:{4096U,65536U})automatic_and_extension(unit,true);
     indexed_scan_windows();indexed_stale_binding_and_padding();

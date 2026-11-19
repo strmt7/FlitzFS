@@ -31,23 +31,32 @@ inline std::vector<NativeSharedBaseCopyRange> fragment_ranges(unsigned member) {
 
 inline constexpr std::size_t indexed_batch_families=5,indexed_batch_extents_per_file=7;
 inline constexpr auto indexed_batch_members=indexed_batch_families*(kNativeMaxDirtyExtents-1);
+inline constexpr auto indexed_sample_bank_bytes=(indexed_batch_families+1)*kNativeExtentBytes;
 static_assert(kNativeMaxDirtyExtents%indexed_batch_extents_per_file==0 && indexed_batch_members>kNativeMaxExtents);
 
 // Each scan window sees one disjoint family spread across several files.
-inline std::vector<Bytes> indexed_batch_files() {
+// The optional holdout bank also contributes unmodified unrelated extents.
+inline std::vector<Bytes> indexed_batch_files(std::span<const std::byte> bank={}) {
+  if(!bank.empty() && bank.size()!=indexed_sample_bank_bytes)throw std::invalid_argument("Indexed sample bank size");
   std::vector<Bytes> files;
   for(std::size_t family=0;family<indexed_batch_families;++family) {
-    const auto base=native_fixture::data(kNativeExtentBytes,static_cast<unsigned>(714+family*5731));
+    const auto generated=bank.empty()?native_fixture::data(kNativeExtentBytes,static_cast<unsigned>(714+family*5731)):Bytes{};
+    const auto base=bank.empty()?std::span<const std::byte>(generated):bank.subspan(family*kNativeExtentBytes,kNativeExtentBytes);
     for(std::size_t first=0;first<kNativeMaxDirtyExtents;first+=indexed_batch_extents_per_file) {
       Bytes file(indexed_batch_extents_per_file*kNativeExtentBytes);
       for(std::size_t block=0;block<indexed_batch_extents_per_file;++block) {
         const auto member=first+block;
         auto extent=std::span(file).subspan(block*kNativeExtentBytes,kNativeExtentBytes);
+        if(!bank.empty() && member%7==6) {
+          std::ranges::copy(bank.last(kNativeExtentBytes),extent.begin());
+          continue;
+        }
         std::ranges::copy(base,extent.begin());
         if(member) {
           const auto delta=native_fixture::data(kNativeExtentBytes,
               static_cast<unsigned>(1511+family*kNativeMaxDirtyExtents+member));
-          for(std::size_t at=0;at<extent.size();++at)extent[at]^=delta[at]&std::byte{0x30};
+          const auto mask=!bank.empty() && member%3==0?std::byte{1}:std::byte{0x30};
+          for(std::size_t at=0;at<extent.size();++at)extent[at]^=delta[at]&mask;
         }
       }
       files.push_back(std::move(file));

@@ -83,12 +83,9 @@ bool MemoryVolumeBacking::compaction_pending(const NativeFileSession& session) c
   if(phase_==CompactionPhase::uncertain || session.poisoned())return false;
   if(phase_!=CompactionPhase::idle)return session.idle_compaction_context_ready();
   const auto space=session.indexed_volume_space();
-  const auto used=space.total_bytes-space.free_bytes;
   const auto obsolete=space.obsolete_bytes;
-  if(obsolete>used || obsolete<=attempted_obsolete_ || obsolete-attempted_obsolete_<abandoned_bytes_)return false;
-  // Consider a copy when known obsolete history dominates the footprint or
-  // could free more space than the remaining append budget.
-  return (obsolete>=used-obsolete || obsolete>space.free_bytes) &&
+  if(obsolete<=attempted_obsolete_ || obsolete-attempted_obsolete_<abandoned_bytes_)return false;
+  return space.reclamation_worthwhile() &&
       session.idle_compaction_context_ready();
 }
 void MemoryVolumeBacking::retire_alternate(bool charge_attempt) {

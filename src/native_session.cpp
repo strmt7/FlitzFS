@@ -517,7 +517,9 @@ NativeVolumeSpace NativeFileSession::indexed_volume_space() const {
   if(!occupied)fail(E::terminal,"indexed writer has no append boundary");
   return {storage.maximum_physical_bytes,
       storage.maximum_physical_bytes-(std::min)(occupied,storage.maximum_physical_bytes),
-      self.writer.indexed_obsolete_bytes()};
+      self.writer.indexed_obsolete_bytes(),
+      self.maintenance?self.maintenance->group_append_shortfall(
+          self.writer.maintenance_identity(),self.writer.recompression_generation()):0};
 }
 void NativeFileSession::bind_persistent_reclamation(std::shared_ptr<detail::NativeVolumeFileReclaimer> reclaimer) {
   auto& self=ready();
@@ -894,7 +896,10 @@ void NativeFileSession::adopt_handoff(Impl& self,const NativeVolumeHeadInfo& pub
   auto& volume=*self.volume;
   volume.active_io=std::move(volume.candidate_io);
   volume.active_id=published.selection.image_identity;
-  if(self.maintenance)self.maintenance->retire_coherence();
+  if(self.maintenance) {
+    self.maintenance->retire_coherence();
+    self.maintenance->group_append_refusal={};
+  }
   volume.epoch=published.selection.epoch;
   volume.candidate_id={};
   volume.baseline.reset();
