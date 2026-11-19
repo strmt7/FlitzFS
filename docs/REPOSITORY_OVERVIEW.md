@@ -410,13 +410,17 @@ The next 18 trials exercised full-tile CPU pricing, which matched AMD's
 compacted size and completed sooner on both cohorts. CPU now performs this
 work in bounded steps during normal indexed maintenance. A separate set of
 40 public file revisions measured grouping savings on top of Zstandard
-and quantified the extra backing reads. The new grouped reader reduced
-backing reads on the first code trial. The AMD copy search ran on both
-cohorts and the writer selected no device candidates. Complete candidate
-comparisons and foreground interference measurements remain open.
+and quantified backing reads. The grouped reader reduced backing reads
+on both cohorts across rotating CPU and AMD runs. Extending verified AMD
+copy hints enabled the writer to select spans in three of four public
+revision profiles and cut the raw source image by another 8 KiB.
+Independent CPU reads matched every file in all 36 matched trials.
+CPU completed sooner on these small cold workloads. Sustained device
+throughput and foreground interference measurements remain open.
 [Full-tile reference evidence](evidence/amd-full-reference-pricing-2026-11-19.json)
 [CPU reference pricing evidence](evidence/cpu-full-reference-pricing-2026-11-19.json)
 [Public revision reads](evidence/public-revision-reads-2026-11-19.json)
+[Matched reader and AMD hint qualification](evidence/verified-device-copy-refinement-2026-11-19.json)
 
 The evidence covers specific CPU paths, modeled failures, SDK callbacks and
 helper behavior. Full current-source CTest, an actual mounted product, useful

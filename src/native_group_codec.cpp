@@ -815,16 +815,27 @@ std::optional<std::vector<std::byte>> encode_native_group_copies(std::span<const
     std::span<const NativeSharedBaseCopyRange> copies,std::size_t exclusive_limit) {
   if(member.size()!=extent || base.size()!=extent || !base_id_valid(base_id) || !generation ||
       exclusive_limit>extent)fail();
-  if(copies.empty() || exclusive_limit<=kNativeGroupCopyMinimumBytes ||
-      copies.size()>(exclusive_limit-header)/8)return {};
+  if(copies.empty() || copies.size()>extent || exclusive_limit<=kNativeGroupCopyMinimumBytes)return {};
   AnchorCopyFrame frame(member,exclusive_limit);
-  std::size_t end=0;
+  std::size_t validated_end=0,covered_end=0;
   for(const auto& copy:copies) {
-    const auto offset=copy.member_offset,source=copy.base_offset,length=copy.length;
-    if(offset<end || offset>=extent || source>=extent || !length || length>extent-offset ||
-        length>extent-source || !std::ranges::equal(member.subspan(offset,length),base.subspan(source,length)) ||
-        !frame.append_copy(offset,source,length))return {};
-    end=offset+length;
+    const std::size_t target=copy.member_offset,source=copy.base_offset,length=copy.length;
+    if(target<validated_end || target>=extent || source>=extent || !length || length>extent-target ||
+        length>extent-source || !std::ranges::equal(member.subspan(target,length),base.subspan(source,length)))return {};
+    validated_end=target+length;
+    // Validate even a seed already covered by an earlier extended copy.
+    if(validated_end<=covered_end)continue;
+    auto start=(std::max)(target,covered_end);
+    auto anchor=source+start-target;
+    while(start>covered_end && anchor && member[start-1]==base[anchor-1]) {
+      --start;
+      --anchor;
+    }
+    const auto tail=member.begin()+validated_end;
+    const auto room=(std::min)(extent-validated_end,extent-source-length);
+    const auto equal=std::mismatch(tail,tail+room,base.begin()+source+length).first;
+    covered_end=validated_end+static_cast<std::size_t>(equal-tail);
+    if(!frame.append_copy(start,anchor,covered_end-start))return {};
   }
   return frame.finish(base,base_id,generation);
 }

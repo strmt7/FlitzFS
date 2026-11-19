@@ -2,14 +2,16 @@
 #include <windows.h>
 #include <psapi.h>
 #include <algorithm>
+#include <array>
 #include <cstdint>
 #include <stdexcept>
 #include <iostream>
 #include <limits>
+#include <optional>
 namespace flitzfs::app_fixture {
 // Application qualification uses current host headroom, including sanitizer
 // overhead. This is not a GPU experiment or a product memory allocation limit.
-inline std::uint64_t additional_memory_allowance() {
+inline std::uint64_t additional_memory_allowance(std::optional<std::uint64_t> requested={},bool enforced=false) {
   constexpr std::uint64_t mib=1024ULL*1024;
   MEMORYSTATUSEX m{};m.dwLength=sizeof(m);
   if(!GlobalMemoryStatusEx(&m) || !m.ullTotalPhys || m.ullAvailPhys>m.ullTotalPhys ||
@@ -20,7 +22,11 @@ inline std::uint64_t additional_memory_allowance() {
     throw std::runtime_error("Application test memory reserve unavailable");
   // This process-level qualification envelope includes sanitizer shadow and
   // default quarantine growth, separate from the much smaller volume domain.
-  const auto allowed=(std::min)(m.ullAvailPhys-reserve,m.ullAvailPageFile-reserve)/8/mib*mib;
+  const auto headroom=(std::min)(m.ullAvailPhys-reserve,m.ullAvailPageFile-reserve);
+  // The supervisor may report its allocation through a launcher such as
+  // CTest. Keep the request within a fresh share of unreserved memory.
+  const auto available=requested?(std::min)(enforced?headroom:headroom/4,*requested):headroom/8;
+  const auto allowed=available/mib*mib;
   if(allowed<128*mib)throw std::runtime_error("Insufficient headroom for application qualification");
   return allowed;
 }
@@ -30,17 +36,49 @@ inline std::uint64_t current_private_bytes() {
       !memory.PrivateUsage)throw std::runtime_error("Application process commit telemetry unavailable");
   return memory.PrivateUsage;
 }
+inline std::optional<std::uint64_t> enclosing_memory_limit() noexcept {
+  JOBOBJECT_EXTENDED_LIMIT_INFORMATION limits{};
+  if(!QueryInformationJobObject(nullptr,JobObjectExtendedLimitInformation,&limits,sizeof(limits),nullptr) ||
+      !(limits.BasicLimitInformation.LimitFlags&JOB_OBJECT_LIMIT_JOB_MEMORY) || !limits.JobMemoryLimit)return {};
+  auto limit=static_cast<std::uint64_t>(limits.JobMemoryLimit);
+  if(limits.BasicLimitInformation.LimitFlags&JOB_OBJECT_LIMIT_PROCESS_MEMORY)
+    limit=(std::min)(limit,static_cast<std::uint64_t>(limits.ProcessMemoryLimit));
+  return limit;
+}
+inline std::optional<std::uint64_t> requested_memory_limit() noexcept {
+  BOOL assigned=FALSE;
+  if(!IsProcessInJob(GetCurrentProcess(),nullptr,&assigned) || !assigned)return {};
+  std::array<wchar_t,24> buffer{};
+  const auto length=GetEnvironmentVariableW(L"FLITZFS_VALIDATION_MEMORY_BYTES",buffer.data(),
+      static_cast<DWORD>(buffer.size()));
+  if(!length || length>=buffer.size())return {};
+  std::uint64_t bytes=0;
+  for(DWORD i=0;i<length;++i) {
+    const auto ch=buffer[i];
+    if(ch<L'0' || ch>L'9')return {};
+    const auto digit=static_cast<std::uint64_t>(ch-L'0');
+    if(bytes>((std::numeric_limits<std::uint64_t>::max)()-digit)/10)return {};
+    bytes=bytes*10+digit;
+  }
+  return bytes?std::optional<std::uint64_t>(bytes):std::nullopt;
+}
 class Budget final {
  public:
   explicit Budget(bool report_memory=true):report_memory_(report_memory) {
     // Available headroom already excludes this running process's CRT/sanitizer
     // commit. A total-process quota must include that measured baseline too.
-    const auto baseline=current_private_bytes(),additional=additional_memory_allowance();
+    const auto baseline=current_private_bytes();
+    const auto enclosing=enclosing_memory_limit();
+    const auto requested=enclosing?enclosing:requested_memory_limit();
+    std::optional<std::uint64_t> remaining;
+    if(requested)remaining=*requested>baseline?*requested-baseline:0;
+    const auto additional=additional_memory_allowance(remaining,enclosing.has_value());
     if(baseline>(std::numeric_limits<SIZE_T>::max)()-additional)
       throw std::runtime_error("Application process commit budget overflow");
     memory_=baseline+additional;job_=CreateJobObjectW(nullptr,nullptr);
     if(report_memory_)std::cout<<"Application fixture memory allowance: "<<memory_<<" bytes; existing_private="
-        <<baseline<<" additional_headroom="<<additional<<std::endl;
+        <<baseline<<" additional_headroom="<<additional<<" enclosing_job_limit="<<enclosing.value_or(0)
+        <<" requested_limit="<<requested.value_or(0)<<std::endl;
     if(!job_)throw std::runtime_error("Application test job unavailable");
     try {
       JOBOBJECT_EXTENDED_LIMIT_INFORMATION limits{};

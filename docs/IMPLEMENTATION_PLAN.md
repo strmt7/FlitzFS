@@ -884,23 +884,39 @@ The public revision fixture uses the latest five distinct blobs of each of
 eight pinned paths, split into source and documentation cohorts. The
 Zstandard-backed images decreased from 606,208 to 491,520 bytes for
 source and from 843,776 to 540,672 bytes for documentation. They contained
-exactly the original files. The AMD copy search completed one verified
-exchange for each corpus and codec profile. The writer selected zero
-device candidates. The GPU qualification needs to compare its short
-verified seeds with the longer spans chosen by the CPU rolling index.
+exactly the original files. The original AMD copy search completed one
+verified exchange for each corpus and codec profile. The writer selected
+zero suggestions from those exchanges.
 
 Indexed grouped reads now check the expected anchor generation during the
 payload lookup and reuse one verified base within the request. Validation
-of a member body runs as it is decoded. On the Zstandard source cohort,
-the first candidate run reduced whole-file backing reads from 1,240,279
-to 1,199,319 bytes and sampled 4 KiB backing reads from 3,333,720 to
-3,251,800 bytes. The test reopened and matched every file. A separate
-six-extent fixture verified one primary base read per request and recovery
-from a modeled damaged primary on a later read. Repeat timing, candidate
-documentation measurements, and foreground and mounted behavior remain
-open. Two sanitizer controller cases refused startup after available
-memory dropped below the fixture reserve.
+of a member body runs as it is decoded. In three rotating runs per route,
+the Zstandard source cohort reduced whole-file backing reads from 1,240,279
+to 1,199,319 bytes and sampled 4 KiB backing reads from 3,333,720 to 3,251,800.
+On the documentation cohort those figures dropped from 1,492,358 to
+1,410,438 and from 3,681,097 to 3,558,217 bytes. Image sizes stayed fixed
+and independent CPU reads matched every file. A separate six-extent
+fixture verified one primary base read per request and recovery from a
+modeled damaged primary on a later read. The two deferred WinFsp sanitizer
+cases passed after host headroom recovered. The app fixtures now receive
+the supervisor's budget through CTest and apply a private commit limit
+within the live host reserve.
 [Public revision and read qualification](evidence/public-revision-reads-2026-11-19.json)
+
+AMD copy suggestions now extend against the original bytes before the
+writer prices the candidate. Every supplied range is checked even if a
+different span already covers it. In 36 alternating physical-host tests,
+the writer selected AMD spans for 16 raw source, four Zstandard source
+and four raw documentation members in each respective run. The raw
+source image shrank from 868,352 to 860,160 bytes. The other three images
+kept their measured sizes. Independent CPU reads matched every file.
+CPU cold complete medians were 36–52 ms and refined AMD medians were
+1.89–1.96 s, including discovery and verified compaction. Keep CPU
+preferred at these sizes. Next, measure how larger verified exchanges
+amortize cold worker startup, profile transfer and search separately,
+and assess foreground interference before admitting the added work
+automatically. Mounted throughput remains a separate qualification.
+[Matched reader and AMD hint qualification](evidence/verified-device-copy-refinement-2026-11-19.json)
 
 The indexed owner now fills a finite worker exchange across several scan
 windows under live host and exact channel admission. In the related-data

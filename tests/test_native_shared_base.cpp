@@ -354,6 +354,29 @@ void anchor_copy_advice() {
   invalid=ranges;invalid.front().base_offset++;
   require(!detail::encode_native_group_copies(member,base,id,1,invalid,kNativeExtentBytes),"wrong advice accepted");
 
+  constexpr std::uint32_t shift=37;
+  constexpr auto join=static_cast<std::uint32_t>(kNativeExtentBytes)-shift;
+  constexpr auto two_copy_bytes=detail::kNativeGroupCopyMinimumBytes+8;
+  const auto shifted=shifted_family(1);
+  const std::array<NativeSharedBaseCopyRange,4> seeds{{
+    {11,11+shift,8},{2048,2048+shift,8},{join-64,join-64+shift,8},{join+7,7,8}
+  }};
+  const auto extended=detail::encode_native_group_copies(shifted,base,id,1,seeds,two_copy_bytes+1);
+  require(extended && extended->size()==two_copy_bytes &&
+      detail::decode_native_group_member(*extended,base,detail::NativeGroupMethod::anchor_copies)==shifted,
+      "Short seeds did not extend into two byte-exact copy spans");
+  require(!detail::encode_native_group_copies(shifted,base,id,1,seeds,two_copy_bytes),
+      "Extended copy advice bypassed the exclusive limit");
+  auto covered_invalid=seeds;
+  const auto candidates=std::span(base).first(base.size()-covered_invalid[1].length+1);
+  const auto wrong=std::ranges::find_if(candidates,[&](auto byte) {
+    return byte!=shifted[covered_invalid[1].member_offset];
+  });
+  require(wrong!=candidates.end(),"Need a mismatching byte inside the covered seed");
+  covered_invalid[1].base_offset=static_cast<std::uint32_t>(wrong-candidates.begin());
+  require(!detail::encode_native_group_copies(shifted,base,id,1,covered_invalid,kNativeExtentBytes),
+      "An extended copy hid invalid advice");
+
   uniform_lz4::Layout layout{};
   const auto total=detail::kAnchorLz4BlocksPerMember*kNativeExtentBytes;
   require(uniform_lz4::make_layout(total,kNativeExtentBytes,layout),"current anchor search layout");

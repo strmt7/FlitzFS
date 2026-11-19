@@ -207,7 +207,8 @@ def main() -> int:
     temporary = run / "tmp"
     temporary.mkdir()
     environment = dict(os.environ)
-    environment.update(TEMP=str(temporary), TMP=str(temporary), MSBUILDDISABLENODEREUSE="1")
+    environment.update(TEMP=str(temporary), TMP=str(temporary), MSBUILDDISABLENODEREUSE="1",
+                       FLITZFS_VALIDATION_MEMORY_BYTES=str(budget))
     environment_block = C.create_unicode_buffer("\0".join(
         key + "=" + value for key, value in sorted(environment.items(), key=lambda item: item[0].upper())) + "\0\0")
     job, process, attributes, initialized = None, Process(), None, False

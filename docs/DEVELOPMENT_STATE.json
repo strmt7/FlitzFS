@@ -127,15 +127,34 @@
   "native_grouped_read_efficiency": {
     "source_base": "42eb21166d5384487e4afd49cfec8abc26e8b87f",
     "evidence": "docs/evidence/public-revision-reads-2026-11-19.json",
+    "followup_evidence": "docs/evidence/verified-device-copy-refinement-2026-11-19.json",
     "public_revision_files": 40,
     "zstd_grouping_saved_percent_by_cohort": [18.919, 35.922],
     "candidate_code_whole_file_backing_bytes": [1240279, 1199319],
     "candidate_code_sampled_backing_bytes": [3333720, 3251800],
+    "candidate_docs_whole_file_backing_bytes": [1492358, 1410438],
+    "candidate_docs_sampled_backing_bytes": [3681097, 3558217],
+    "matched_followup_runs": 24,
     "amd_verified_baseline_exchanges": 4,
-    "amd_suggestions_selected": 0,
+    "amd_baseline_suggestions_selected": 0,
     "independent_cpu_readback": true,
-    "sanitizer_cases_waiting_for_host_headroom": ["bounded_winfsp_controller", "bounded_winfsp_indexed_memory"],
-    "next": "Complete matched candidate comparisons and qualify longer device-assisted copy spans against CPU output on the same public revisions."
+    "deferred_sanitizer_cases_passed": ["bounded_winfsp_controller", "bounded_winfsp_indexed_memory"],
+    "next": "Measure foreground reads during maintenance and qualify backing reads through the mounted product."
+  },
+  "native_device_copy_refinement": {
+    "source_base": "4f928a5be79f3d43653cfe75d26d946187c58259",
+    "evidence": "docs/evidence/verified-device-copy-refinement-2026-11-19.json",
+    "matched_host_runs": 36,
+    "device_members_selected_per_run": {
+      "source_raw": 16,
+      "source_zstd": 4,
+      "docs_raw": 4,
+      "docs_zstd": 0
+    },
+    "raw_source_compacted_bytes": [868352, 860160],
+    "independent_cpu_readback": true,
+    "scope": "Cold controller runs on two 20-file public-revision cohorts, two codec profiles and three routes. AMD assistance reduced raw source size and CPU completed sooner on every profile.",
+    "next": "Measure larger device exchanges and separate startup, transfer and compute costs under live resource and foreground admission."
   },
   "native_path_lookup": {
     "source_base": "700cdb31de32b847497b02cc0e113d27482e6c85",
