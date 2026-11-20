@@ -1,7 +1,7 @@
 # FlitzFS stable release execution plan
 
-Reviewed on 20 November 2026 against the source at `717011f8c414aab634d17cd4b06bcfe0da0a4d62`
-and the indexed scale and reopen work validated in this round. The [engineering programme](IMPLEMENTATION_PLAN.md)
+Reviewed on 20 November 2026 against the source at `5c55c9dd9325385f49644bbe256610b6a764b766`
+and the indexed grouped audit work validated in this round. The [engineering programme](IMPLEMENTATION_PLAN.md)
 defines the full product scope and work packages. This plan gives the order
 of execution, evidence required at each handoff, and the remaining release
 work.
@@ -235,7 +235,14 @@ dataset.
   record padding, dictionaries, model storage, protected metadata, rebuild
   work and retained copies. Verify lossless decode independently on CPU.
   Measure cold random access and read amplification with the exact selected
-  group representation.
+  group representation. The interleaved-group audit now reuses verified
+  bases within one pass and checks the stored replicas directly. Extend the
+  backing-traffic comparisons to groups that exceed the audit cache and
+  exercise recovery with pinned readers. Keep the owned session and
+  independent snapshot read measurements. On the mixed public corpus, group
+  packing lowered occupied bytes and owned-session backing reads, with higher
+  backing reads from independent snapshots.
+  [Grouped audit evidence](evidence/indexed-grouped-audit-2026-11-20.json)
 - Persist advisory observations in the protected internal area. Key them
   by representation, workload signature, format generation and relevant
   device or backend identity. Age stale observations and make poor

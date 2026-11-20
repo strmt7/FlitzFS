@@ -415,6 +415,25 @@
     "live_amd_advised_extents": 18,
     "independent_cpu_readback_files": 23
   },
+  "indexed_grouped_inventory_audit": {
+    "source_base": "5c55c9dd9325385f49644bbe256610b6a764b766",
+    "evidence": "docs/evidence/indexed-grouped-audit-2026-11-20.json",
+    "files": 16,
+    "groups": 2,
+    "baseline_read_bytes_per_audit": 1386958,
+    "candidate_read_bytes_per_audit": 467550,
+    "baseline_primary_base_reads_per_audit": 9,
+    "candidate_primary_base_reads_per_audit": 2,
+    "cache_lifetime": "One complete inventory verification",
+    "both_base_replicas_checked_independently": true,
+    "assembled_group_representative_and_size_checked": true,
+    "public_corpora_independent_cpu_readback": 2,
+    "installed_amd_advised_extents": 18,
+    "local_release_ctest_passed": 200,
+    "targeted_raw_ctest_passed": 7,
+    "targeted_asan_storage_ctest_passed": 8,
+    "asan_lz4_layout_and_runtime_preflight_passed": true
+  },
   "amd_coalesced_copy_verification": {
     "source_base": "2b95974d9af75aa763e989d4be997839fffe80ef",
     "evidence": "docs/evidence/amd-coalesced-copy-verification-2026-11-20.json",

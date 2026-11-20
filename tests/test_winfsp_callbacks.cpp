@@ -15,6 +15,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <vector>
 
@@ -165,9 +166,14 @@ void native_image_callbacks() {
 }
 } // namespace
 
-int main() {
+int main(int argc,char** argv) {
   try {
-    native_image_callbacks();
+    if(argc==2 && std::string_view(argv[1])=="--native-file") {
+      native_image_callbacks();
+      std::cout<<"PASS: file-backed native WinFsp callbacks and mapped read integrity\n";
+      return 0;
+    }
+    require(argc==1,"Invalid WinFsp callback fixture mode");
     Fixture fixture;
     const auto input = fixture.file("source.bin");
     const auto archive = fixture.file("source.flfs");

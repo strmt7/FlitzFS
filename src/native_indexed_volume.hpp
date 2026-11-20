@@ -215,8 +215,9 @@ struct IndexedSharedBaseRead {
   std::vector<std::byte> frame;
 };
 
-// One serialized writer can reuse verified base frames at its current
-// checkpoint. Independent snapshots, scrub and mutations bypass this cache.
+// A serialized writer can retain verified base frames at its current
+// checkpoint. An inventory audit uses its own cache for member decoding
+// and checks the stored copies independently.
 class IndexedSharedBaseCache final {
  public:
   bool bind(const PagedObjectStoreSnapshot&) noexcept;

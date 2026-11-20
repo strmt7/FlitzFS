@@ -1,6 +1,7 @@
 #include "flitzfs/gpu_lz4_layout.hpp"
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <iostream>
 #include <limits>
 #include <utility>
@@ -74,24 +75,31 @@ int main(){try{
   const std::array maximum{65536U};const auto last=gpu_lz4_device_layout(maximum);
   require(last.total_bytes==164168 && last.chunks[0].output_capacity==65800 &&
       last.hash_table_entries==16384 && last.scratch_bytes==32768,"Large upstream-bound checkpoint");
-  const std::array<std::uint32_t,24> boundaries{1,2,3,4,7,8,9,14,15,16,17,254,
-      255,256,257,4095,4096,4097,8191,8192,16383,16384,32768,65536};
-  unsigned admitted=0,capacity_refusals=0;
+  const std::array boundaries{1U,2U,3U,4U,7U,8U,9U,14U,15U,16U,17U,254U,
+      255U,256U,257U,4095U,4096U,4097U,8143U,8144U,8191U,8192U,8193U,
+      16319U,16320U,16383U,16384U,32768U,49022U,49023U,65536U};
+  const auto padded=[](std::uint32_t bytes){return ((bytes+7U)/8U)*8U;};
+  unsigned admitted=0,capacity_refusals=0,exact_fits=0;
   for(std::size_t count=2;count<=8;++count)for(const auto size:boundaries) {
     std::array<std::uint32_t,8> values{};std::fill_n(values.begin(),count,size);
     const auto sizes=std::span<const std::uint32_t>(values).first(count);
-    try {const auto layout=gpu_lz4_device_layout(sizes);verify(layout,sizes);++admitted;}
-    catch(const std::invalid_argument&) {
+    // Uniform batches have one aligned input and output stride per chunk.
+    // Account for both strides, four table entries, the output guard and scratch.
+    const auto output=padded(size+1U+(size+254U)/255U);
+    const auto scratch=2U*std::bit_ceil(std::min(size,16384U));
+    const auto required_bytes=count*(padded(size)+output+32U+32U+scratch);
+    if(required_bytes>262144U) {
+      rejects([&]{(void)gpu_lz4_device_layout(sizes);});
       ++capacity_refusals;
-      // Refusals must have a demonstrated aggregate or minimum device cost,
-      // independently ignoring all padding and output guards.
-      const auto input=static_cast<std::uint64_t>(size)*count;
-      const auto hash_min=static_cast<std::uint64_t>(std::min(size,16384U))*2U*count;
-      require(input>262144 || 2U*input+hash_min+32U*count>262144,
-          "Capacity refusal without necessary lower-bound exhaustion");
+    } else {
+      const auto layout=gpu_lz4_device_layout(sizes);
+      verify(layout,sizes);
+      require(layout.total_bytes==required_bytes,"Incorrect uniform batch allocation");
+      ++admitted;
+      exact_fits+=required_bytes==262144U;
     }
   }
-  require(admitted>0 && capacity_refusals>0,"Missing batch admission/refusal cases");
+  require(admitted>0 && capacity_refusals>0 && exact_fits==3,"Missing batch admission/refusal cases");
   // Changing order must retain exact chunk identity and independent partitions.
   std::array<std::uint32_t,4> mixed{1,17,254,4096};
   do {verify(gpu_lz4_device_layout(mixed),mixed);}
@@ -115,6 +123,6 @@ int main(){try{
   require(cursor==262144U,"Exhausted cursor changed after refusal");
   std::cout<<"GPU LZ4 layout checks: "<<checks<<" single_sizes_checked=65536 batches_admitted="
       <<admitted<<" capacity_refusals="<<capacity_refusals
-      <<" device_ceiling=262144 gpu_executed=false\n";
+      <<" exact_ceiling_fits="<<exact_fits<<" device_ceiling=262144 gpu_executed=false\n";
   return 0;
 }catch(const std::exception& error){std::cerr<<error.what()<<"\n";return 1;}}

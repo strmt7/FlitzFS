@@ -21,6 +21,7 @@ reservation fraction and 4 MiB image floor were replaced with measured
 headroom and storage geometry. Follow E02 for reclaiming segments under
 foreground writes and E03 for useful automatic AMD routing.
 [Current state](DEVELOPMENT_STATE.json)
+[Current release assessment and execution order](RELEASE_EXECUTION_PLAN.md)
 
 ## 1. Decisions that govern implementation
 
@@ -1202,6 +1203,19 @@ with full occupied-space accounting.
     including with runtime/GPU absent. Never make mutable learning state necessary.
 12. Add mixed-method/mixed-generation fixtures and expose only meaningful user
     status. Internal models/manifests must not appear as normal folder contents.
+13. Extend the indexed grouped audit measurements across working sets below,
+    at and beyond one audit's base-cache budget. Alternate file order and
+    group membership, verify both replicas, and record backing bytes, decode
+    work and peak scratch. Include recovery with a pinned older checkpoint,
+    a missing replica, coexisting generations and groups changed during
+    preparation. Audit state expires with the checked inventory.
+14. Use the same held-out images to measure owned-session and independent
+    snapshot reads. Record backing bytes per requested byte for small and
+    sequential reads alongside occupied bytes after verified reclamation.
+    Advance layouts that preserve the savings across practical access
+    patterns. Evaluate narrower independently seekable slices or better
+    grouping when repeated base fetches make ordinary reads too expensive.
+    [Grouped audit and live corpus evidence](evidence/indexed-grouped-audit-2026-11-20.json)
 
 ### Acceptance and failure checks
 

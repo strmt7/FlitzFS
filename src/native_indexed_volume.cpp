@@ -2418,6 +2418,7 @@ void IndexedVolumeView::verify_inventory(bool published) const {
   std::uint64_t inodes=0,extents=0,charged=0,lifetimes=0,detached=0,retiring=0;
   std::uint64_t bases=0,members=0;
   bool found_root=false;
+  IndexedSharedBaseCache checked_bases;
   store_.visit_verified_objects([&](std::uint64_t id,Bytes bytes) {
     if(id==namespace_object) {
       if(!published || bytes!=encode_root(root_))
@@ -2451,7 +2452,8 @@ void IndexedVolumeView::verify_inventory(bool published) const {
       if(bytes.size()<=extent_header)fail(Code::corrupt,"truncated indexed extent");
       const auto owner=referenced_inode(get(bytes,8),true);
       const auto block=get(bytes,16);
-      const auto decoded=decode_extent(store_,index_,root_,id,std::move(bytes),owner,block);
+      const auto decoded=decode_extent(store_,index_,root_,id,std::move(bytes),owner,block,
+          false,nullptr,&checked_bases);
       if(decoded.base)++members;
       if(index_.find(native_extent_key(owner.inode,block))!=id)
         fail(Code::corrupt,"unreferenced indexed extent");

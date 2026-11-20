@@ -1,0 +1,612 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "date": "2026-11-20",
+  "source_base": "5c55c9dd9325385f49644bbe256610b6a764b766",
+  "source_binding": {
+    "src/native_indexed_volume.cpp": {
+      "git_blob": "7bf01666c92b19f8f583135d35a6e1f2fa696d5e",
+      "sha256": "87062068309a471ca9c0953858b1cfdb682025459d78ee9501b4ca294f113243"
+    },
+    "src/native_indexed_volume.hpp": {
+      "git_blob": "7efae41c6ec778248732478534b7600b7f8b436d",
+      "sha256": "48844b720f5ed9aa4f3c4896b91bd78a8a1db86c196e66c5971d6c1952ba5b3e"
+    },
+    "tests/test_native_shared_base.cpp": {
+      "git_blob": "6f69d7afe960bc1921a2775b90ae1f9efa7df594",
+      "sha256": "e26dff5d05b54dec1e401576eee42d77c1685df00ddb7a4ac5533a043a1a8ef1"
+    },
+    "tests/test_winfsp_controller.cpp": {
+      "git_blob": "d83609ae804eb6d1bb27fa56ebf30d47336b102c",
+      "sha256": "21f23f8cbd87bebda9469fe5784e4f0c6aa92450f96e7038c716c41290a1b031"
+    },
+    "CMakeLists.txt": {
+      "git_blob": "14ac9ea15bf8323e95b2590874f6c1f31720be4a",
+      "sha256": "3542fdc2e4248137c78c4d591d024b37bf900a28fce3571e97170862c9025b14"
+    },
+    "tests/test_gpu_lz4_layout.cpp": {
+      "git_blob": "4356b591c03e465996373218f2040145a264dbe4",
+      "sha256": "695631076c13e156655a076e0e5b263dcc785c45af84d2a3177a559ea8ee70b6"
+    },
+    "tests/test_winfsp_callbacks.cpp": {
+      "git_blob": "67d59f4d3f8ce0d1620cdca63073b49c46495e7d",
+      "sha256": "a6c34d8c984f3646a0157d50ae4784d483d49a495c77701fa8c4914ba049e7c7"
+    }
+  },
+  "navigation": {
+    "commit": "5c55c9dd9325385f49644bbe256610b6a764b766",
+    "dirty_patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "inventory_sha256": "e3ae94a4df75c50c94c148079cc04e12abb78c68f34f2ebf0bc374d4f6d4525b",
+    "native_response_sha256": "e05ab0627f6e1459dd76fa8fe83895215f638f2766577fd113cda8f98147f10e",
+    "actual_searches": 1,
+    "source_files": 10
+  },
+  "scope": "Windows 11 x64 with in-memory native volumes and user-mode WinFsp callbacks. Device trials perform real AMD work. The two public workloads use modeled idle opportunities. The installed-route fixture uses live host observations. Backing counters measure requested bytes and calls.",
+  "host": {
+    "os": "Microsoft Windows 11 Pro",
+    "build": 26300,
+    "architecture": "AMD64",
+    "gpu": {
+      "Name": "AMD Radeon RX 9070 XT",
+      "DriverVersion": "32.0.32029.2010"
+    }
+  },
+  "comparison": {
+    "fixture": "Two protected eight-member groups with files interleaved by the data object allocator. The same compacted checkpoint is checked twice independently in each run.",
+    "control": "5c55c9dd9325385f49644bbe256610b6a764b766",
+    "read_cache_payload_budget_bytes": 4194304,
+    "order": [
+      "candidate",
+      "control",
+      "candidate",
+      "control"
+    ],
+    "paired_runs": [
+      {
+        "arm": "candidate",
+        "exit": 0,
+        "run": "local-run-9108f65434ae4365948a0dc00f224a47",
+        "retired": true,
+        "peak": 11558912,
+        "exe_sha": "998406f50d0a55d7eaef179291400685e73df40eb64ee7a3775c590d6f6a1fc1",
+        "log_sha": "a5c70b16bfc80c5aa62afdf147a329be35bf36c48154dabb275c61b5f7f94e19",
+        "audits": [
+          {
+            "files": 16,
+            "pass": 0,
+            "primary_anchor_reads": 2,
+            "backing_read_bytes": 467550,
+            "backing_read_calls": 379
+          },
+          {
+            "files": 16,
+            "pass": 1,
+            "primary_anchor_reads": 2,
+            "backing_read_bytes": 467550,
+            "backing_read_calls": 379
+          }
+        ],
+        "peer_fault_checked": true
+      },
+      {
+        "arm": "control",
+        "exit": 0,
+        "run": "local-run-0bce7254df16477ea3b66951663c24c3",
+        "retired": true,
+        "peak": 11517952,
+        "exe_sha": "89f7a0866e162a803cdfec938421dda4f55f49485b5bd3cc711ffa89c2b03615",
+        "log_sha": "c699f486d6eb0885ae367ff60b98c35e28276e0e173487091a6f6b18fc9e04cb",
+        "audits": [
+          {
+            "files": 16,
+            "pass": 0,
+            "primary_anchor_reads": 9,
+            "backing_read_bytes": 1386958,
+            "backing_read_calls": 631
+          },
+          {
+            "files": 16,
+            "pass": 1,
+            "primary_anchor_reads": 9,
+            "backing_read_bytes": 1386958,
+            "backing_read_calls": 631
+          }
+        ],
+        "peer_fault_checked": false
+      },
+      {
+        "arm": "candidate",
+        "exit": 0,
+        "run": "local-run-716f7a69fc2c4d98a98424c6a64da562",
+        "retired": true,
+        "peak": 11558912,
+        "exe_sha": "998406f50d0a55d7eaef179291400685e73df40eb64ee7a3775c590d6f6a1fc1",
+        "log_sha": "a5c70b16bfc80c5aa62afdf147a329be35bf36c48154dabb275c61b5f7f94e19",
+        "audits": [
+          {
+            "files": 16,
+            "pass": 0,
+            "primary_anchor_reads": 2,
+            "backing_read_bytes": 467550,
+            "backing_read_calls": 379
+          },
+          {
+            "files": 16,
+            "pass": 1,
+            "primary_anchor_reads": 2,
+            "backing_read_bytes": 467550,
+            "backing_read_calls": 379
+          }
+        ],
+        "peer_fault_checked": true
+      },
+      {
+        "arm": "control",
+        "exit": 0,
+        "run": "local-run-829d620086f54ffa9ed619fbc0175f75",
+        "retired": true,
+        "peak": 11485184,
+        "exe_sha": "89f7a0866e162a803cdfec938421dda4f55f49485b5bd3cc711ffa89c2b03615",
+        "log_sha": "c699f486d6eb0885ae367ff60b98c35e28276e0e173487091a6f6b18fc9e04cb",
+        "audits": [
+          {
+            "files": 16,
+            "pass": 0,
+            "primary_anchor_reads": 9,
+            "backing_read_bytes": 1386958,
+            "backing_read_calls": 631
+          },
+          {
+            "files": 16,
+            "pass": 1,
+            "primary_anchor_reads": 9,
+            "backing_read_bytes": 1386958,
+            "backing_read_calls": 631
+          }
+        ],
+        "peer_fault_checked": false
+      }
+    ],
+    "read_reduction_percent": 66.2895,
+    "read_call_reduction_percent": 39.9366,
+    "scope_note": "The cache applies only to member decoding within each audit. Both stored copies of bases and members are checked by the separate verified object walk."
+  },
+  "integrity": {
+    "missing_peer_detected": true,
+    "remaining_copy_read_exact": true,
+    "double_base_loss_refused": true,
+    "unverified_mutation_write_free": true,
+    "separate_audit_cache_lifetimes": true
+  },
+  "assembled_reference_regression": {
+    "baseline_receipt": {
+      "run": "local-run-2434c743c92b40d682cf8c0bbb241ba2",
+      "exit": 1,
+      "retired": true,
+      "sha": "47e4b6e4e64e994e6fa6a24dc5efd972f17eab4a7619a7a745c72fd1f0ebddc3",
+      "signals": [
+        "after 646 checks: Smaller protected section reference was not selected"
+      ]
+    },
+    "initial_candidate_suite": {
+      "run": "local-run-527df03724484346aa5fb980a7814750",
+      "exit": 8,
+      "retired": true,
+      "sha": "c0e3ff6530903d2c0ca0e2a03a87e7d21e9741153d4fd9a1ddc0f8814439097c",
+      "signals": [
+        "39: after 649 checks: Smaller protected section reference was not selected",
+        "after 649 checks: Smaller protected section reference was not selected",
+        "93% tests passed, 1 tests failed out of 15"
+      ]
+    },
+    "change_that_introduced_linked_representative": "f2f6ef2d7f18259ac80c2ebd4f90695c9cd40904",
+    "diagnosis": "The test expected an empty reference field after assembly. Assembled publication supplies a linked logical extent for later anchor rediscovery.",
+    "correct_fixture": {
+      "requires_linked_member_representative": true,
+      "baseline_occupied_bytes": 491520,
+      "assembled_occupied_bytes": 458752,
+      "modeled_interruptions": 9,
+      "previous_checkpoints": 6,
+      "complete_checkpoints": 3
+    }
+  },
+  "suites": {
+    "release": {
+      "passed": 15,
+      "run": "local-run-107b7a1116c441e88621801cd22eb8e6",
+      "exit": 0,
+      "retired": true,
+      "sha": "9d54b204c7adfd717ebf93673ea1dd323a651d3216ab142e2d2591d9a4be9e85",
+      "signals": [
+        "39: section_reference baseline=491520 grouped=458752 interruptions=9 prior=6 complete=3 independent_cpu_readback=true private_edit=true",
+        "100% tests passed out of 15"
+      ]
+    },
+    "raw": {
+      "passed": 7,
+      "run": "local-run-1c66b4e6625442488fc072d002a53d94",
+      "exit": 0,
+      "retired": true,
+      "sha": "d47c58eefcdbacfd5caafef21b1aacf129a1f30634afe6bf813f2edd31ed7e06",
+      "signals": [
+        "39: section_reference baseline=491520 grouped=458752 interruptions=9 prior=6 complete=3 independent_cpu_readback=true private_edit=true",
+        "100% tests passed out of 7"
+      ]
+    },
+    "initial_asan": {
+      "passed": 6,
+      "timed_out": 2,
+      "run": "local-run-be0f7213a23042f494d377aeff322b34",
+      "exit": 8,
+      "retired": true,
+      "sha": "f643dd4ce892b4fe8627ea42ffd741e6723fec89202bf48561f1bbb804635ab9",
+      "signals": [
+        "39: section_reference baseline=491520 grouped=458752 interruptions=9 prior=6 complete=3 independent_cpu_readback=true private_edit=true",
+        "5/8 Test  #40: bounded_native_shared_base_packed_xor ......***Timeout 120.08 sec",
+        "6/8 Test  #41: bounded_native_shared_base_modular_delta ...***Timeout 120.05 sec",
+        "75% tests passed, 2 tests failed out of 8"
+      ],
+      "per_test_seconds": 120
+    },
+    "asan_direct_retries": [
+      {
+        "case": "packed-xor",
+        "run": "local-run-0e041c3daf4e41e9b45e9c8b030a88dd",
+        "deadline_seconds": 330,
+        "elapsed_seconds": 179.76204670000152,
+        "peak_job_commit_bytes": 512749568,
+        "exit": 0,
+        "retired": true,
+        "exe_sha256": "1adbe4423cfbfb8ccd10033597ee8c15100cb764cab3191ea57a9441a08d3d64",
+        "output_sha256": "c9c2091bcb6db17530c388c2b3b7f5382590d2a31c749001068709ab2eaf3d67",
+        "signals": [
+          "shared_base_faults indexed=1 shape=2 unit=4096 cuts=85 modes=3 prior=247 complete=8",
+          "shared_base_faults indexed=1 shape=2 unit=65536 cuts=91 modes=3 prior=265 complete=8",
+          "PASS: 4774 packed XOR checks; 528 injected write/barrier cases"
+        ]
+      },
+      {
+        "case": "modular-delta",
+        "run": "local-run-1f95fccce4c147508a3453c31befe517",
+        "deadline_seconds": 330,
+        "elapsed_seconds": 188.8368599000023,
+        "peak_job_commit_bytes": 514142208,
+        "exit": 0,
+        "retired": true,
+        "exe_sha256": "1adbe4423cfbfb8ccd10033597ee8c15100cb764cab3191ea57a9441a08d3d64",
+        "output_sha256": "3fed022a0f8402b61753c7e1d64cfc21326a9428a813972c5dbdb9306a16eb1f",
+        "signals": [
+          "sampled_modular_cpu signed_cases=8 word_widths=4 byte_exact=true",
+          "shared_base_faults indexed=1 shape=3 unit=4096 cuts=79 modes=3 prior=229 complete=8",
+          "shared_base_faults indexed=1 shape=3 unit=65536 cuts=97 modes=3 prior=283 complete=8",
+          "PASS: 4836 modular delta checks; 528 injected write/barrier cases"
+        ]
+      }
+    ],
+    "asan_ctest_after_deadline_fix": {
+      "passed": 8,
+      "exit": 0,
+      "retired": true,
+      "elapsed_seconds": 320.46800000000076,
+      "peak_job_commit_bytes": 1416531968,
+      "outer_deadline_seconds": 460,
+      "packed_xor_and_modular_delta_deadline_seconds": 330,
+      "other_storage_cases_deadline_seconds": 120,
+      "run": "local-run-261b8dbac1734ca4a3cb58a332d28228",
+      "log_sha256": "ac359f0f3860008e2091cc98b4227dba6bb9679ba1ec3757ba0acb94c8bb4b22",
+      "signals": [
+        "1/8 Test #200: windows_asan_runtime_preflight .............   Passed    0.03 sec",
+        "40: PASS: 4774 packed XOR checks; 528 injected write/barrier cases",
+        "2/8 Test  #40: bounded_native_shared_base_packed_xor ......   Passed  184.37 sec",
+        "41: PASS: 4836 modular delta checks; 528 injected write/barrier cases",
+        "3/8 Test  #41: bounded_native_shared_base_modular_delta ...   Passed  197.26 sec",
+        "39: section_reference baseline=491520 grouped=458752 interruptions=9 prior=6 complete=3 independent_cpu_readback=true private_edit=true",
+        "39: PASS: 24162 native shared-base checks; 1599 injected write/barrier cases; memory CPU only",
+        "4/8 Test  #39: bounded_native_shared_bases ................   Passed   78.16 sec",
+        "42: PASS: 4781 sparse XOR checks; 528 injected write/barrier cases",
+        "5/8 Test  #42: bounded_native_shared_base_sparse_xor ......   Passed  119.79 sec",
+        "38: PASS: 16446 mirrored payload checks; 2058 injected write/barrier cases; memory CPU only",
+        "6/8 Test  #38: bounded_paged_mirrored_payloads ............   Passed   32.25 sec",
+        "50: PASS: 1554 automatic group maintenance checks; 24 injected publication cases; model resource observations; memory CPU only",
+        "7/8 Test  #50: bounded_native_indexed_group_resume ........   Passed    5.54 sec",
+        "8/8 Test  #36: bounded_native_indexed_volume ..............   Passed   16.22 sec",
+        "100% tests passed out of 8"
+      ],
+      "cmake_git_blob": "8f11c1d0e467c2e0ad331b9e69f0b8a5107e60b4"
+    },
+    "full_release_build": {
+      "run": "local-run-057d3849c65b4de4a4ce126f177427df",
+      "exit": 0,
+      "retired": true,
+      "elapsed_seconds": 103.95299999999406,
+      "peak_job_commit_bytes": 868401152,
+      "build_log_sha256": "53443b3bba6f2e6d12fe2ad562a39678c3340270ee1d281aea7fc3a3a6cdc108"
+    },
+    "first_full_release": {
+      "passed": 198,
+      "failed": 2,
+      "exit": 8,
+      "retired": true,
+      "run": "local-run-d72ade8c5fbc4e87bc6f4ba67a07866b",
+      "log_sha256": "fbbcac8f99e1e99ae900bf2dd1f65a0ee4ad2b2bea852c5ad33b4e94f4997c82",
+      "receipt_sha256": "5b2603072ae5691dae8ff6d53d3e13cde0f11985d0731e320af36a801eec7702",
+      "signals": [
+        "Capacity refusal without necessary lower-bound exhaustion",
+        "FAIL: native Windows image fixture requires an explicitly qualified fixture parent",
+        "99% tests passed, 2 tests failed out of 200"
+      ]
+    },
+    "release_discovery_fixes": {
+      "lz4_layout": {
+        "failure_observed": {
+          "run": "local-run-42cadc70a9ce45919b85ac0aacc9bc2f",
+          "log_sha256": "abbac2bb8792f3e3693eca98e356d374ef4b5a9550b5d3214ace935d1f072db1",
+          "receipt_sha256": "37d7fd484be3752e4e9cb9595383393898460eb7263c194553f5d36ec5313a9e",
+          "signals": [
+            "Unexpected capacity refusal: chunks=2 chunk_bytes=0 reason=GPU LZ4 explicit allocation cap",
+            "Capacity refusal without necessary lower-bound exhaustion"
+          ]
+        },
+        "change": "Price each uniform batch before calling the layout function, then verify exact admitted bytes or refusal. The test includes three exact-ceiling fits. Layout implementation and ceiling are unchanged.",
+        "sanitized": {
+          "run": "local-run-d1dab97dcd3a49909f67cd7f5a275ecb",
+          "passed": 2,
+          "exit": 0,
+          "retired": true,
+          "log_sha256": "a1d898f213f39001ff7c64f5b1c43b6f0b070d518dec978983fd0883c6e5efc9",
+          "signals": [
+            "1/2 Test #200: windows_asan_runtime_preflight ...   Passed    0.19 sec",
+            "16: GPU LZ4 layout checks: 1909764 single_sizes_checked=65536 batches_admitted=166 capacity_refusals=51 exact_ceiling_fits=3 device_ceiling=262144 gpu_executed=false",
+            "2/2 Test  #16: bounded_gpu_lz4_layout ...........   Passed    0.25 sec",
+            "100% tests passed out of 2"
+          ]
+        }
+      },
+      "winfsp_callbacks": {
+        "change": "Keep the catalog callbacks in the ordinary suite. Give the existing native file-backed and mapped-file checks an explicit isolated-only fixture entry.",
+        "isolated_registration": {
+          "registered": "winfsp_native_file_callback_candidate",
+          "timeout": 45,
+          "command_route": "--native-file",
+          "execution_of_file_fixture": false,
+          "configure_run": "local-run-93466248ad3a4ead803b6935bcb7d433"
+        },
+        "unqualified_parent_refusal": {
+          "guard_run": "local-run-a4cb6e5b13f74aed99a2c4522133ae01",
+          "exit": 1,
+          "retired": true,
+          "log_sha256": "78c37a161555aebc63fe088c867169aa867836e569f0511ac8f4a772ec278f46",
+          "output": "FAIL: native Windows image fixture requires an explicitly qualified fixture parent"
+        }
+      },
+      "focused_release": {
+        "passed": 2,
+        "exit": 0,
+        "retired": true,
+        "peak_job_commit_bytes": 10047488,
+        "run": "local-run-fb9f45f59b73404a8fd7f905fda020fb",
+        "log_sha256": "e03d388de4358f748a7802b04e206f1e0578a7e21966e536b8138e9b33c25efa",
+        "receipt_sha256": "fb0d91fc63e4e4451608063e36f7cab9963b8301e096a5e9666b28bc86444e7b",
+        "signals": [
+          "16: GPU LZ4 layout checks: 1909764 single_sizes_checked=65536 batches_admitted=166 capacity_refusals=51 exact_ceiling_fits=3 device_ceiling=262144 gpu_executed=false",
+          "195: PASS: native WinFsp callbacks, owner-only ACL, bounded handles, directory pagination, concurrent reads; NO mount or driver",
+          "100% tests passed out of 2"
+        ]
+      }
+    },
+    "release_rebuild_after_fixture_fixes": {
+      "run": "local-run-69fa21220e06462c91480e6e08dd9ec7",
+      "exit": 0,
+      "retired": true,
+      "log_sha256": "a86853f6465641e0e0b41c9758ed6581e1d9316b50c3fe7ffbdfe5b9c0f4dccb",
+      "receipt_sha256": "50a00dc935cc1b1d04365db4c64a9f6e99ec36c43165fe8018842b6e5206e076",
+      "peak_job_commit_bytes": 259276800
+    },
+    "full_release": {
+      "run": "local-run-237da8417efb424893af5399cf6e39d1",
+      "suites": 200,
+      "exit": 0,
+      "retired": true,
+      "elapsed_seconds": 187.26599999999598,
+      "peak_job_commit_bytes": 335130624,
+      "log_sha256": "78a192527adde9763065e66f067884f0943fb121463689f949e48dcabacd35dc",
+      "receipt_sha256": "654c55d93ceded3de08346ceacbcb00b0ae0585c95d75763bfd013454fbb1fe8",
+      "signals": [
+        "100% tests passed out of 200"
+      ]
+    }
+  },
+  "live": {
+    "package_sha256": {
+      "flitzfs_winfsp_controller_tests.exe": "5f88c3d0bf8b59f919debd764729824384e99e5312922631688af3930edf70d0",
+      "winfsp-x64.dll": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+      "amd\\qualification-manifest.json": "06c55f3e68db91317b6897c88e6aba3658bc2ddb2e8312da6fbf080a88dffe84",
+      "amd\\flitzfs_hip_worker.exe": "bca40a979dcd51660cf900e6d9b4d80472ab38e6aead2bb3437957481449211c",
+      "amd\\hip\\flitzfs_rocm_kernels.dll": "9aad995bc1b2e330a8f24f76dcc5eaa9edc8f96351c999f10712aef0be33467d"
+    },
+    "mixed": {
+      "dataset_bytes": 950495,
+      "dataset_sha256": "ffe86027aaf7145f34f11b6225fb18ee118a791f00818509cf37274261fa14b6",
+      "receipt": {
+        "arm": "mixed",
+        "exit": 0,
+        "run": "local-run-5b3b9cebe5c9449ca590207a45df516a",
+        "retired": true,
+        "peak": 102965248,
+        "sha": "ff2d369f711e64ddab95383c649d2f5a550874181a14f4d5e34d86aabd4b28a8"
+      },
+      "audit": {
+        "backing_read_bytes": 331890,
+        "backing_read_calls": 693
+      },
+      "compression": {
+        "mode": "amd",
+        "cohort": "revision-corpus",
+        "sparse_device": 0,
+        "reply_bytes": 426524,
+        "copy_suggested_ranges": 94832,
+        "copy_compared_ranges": 57200,
+        "copy_suggested_bytes": 5854742,
+        "copy_compared_bytes": 4060461,
+        "files": 36,
+        "groups": 6,
+        "advised_members": 12,
+        "capability": 9,
+        "submitted": 1,
+        "verified_batches": 1,
+        "worker_ns": 2937193800,
+        "submitted_groups": 7,
+        "verified_groups": 7,
+        "cpu_groups_before_gpu_reply": 0,
+        "foreground_cancelled": 0,
+        "submitted_queued_batches": 0,
+        "verified_queued_batches": 0,
+        "dispatches_per_wait": 0,
+        "queued_worker_wall_ns": 0,
+        "queued_kernel_wait_ns": 0,
+        "submitted_kernel_launches": 14,
+        "largest_dispatch_members": 5,
+        "empty_batches": 0,
+        "discovery_ns": 950466700,
+        "maintenance_ns": 2973824900,
+        "compact_verify_ns": 43723400,
+        "input_compacted_bytes": 655360,
+        "grouped_compacted_bytes": 319488,
+        "packed_widths": 0,
+        "packed_payload_bytes": 0,
+        "sampled_bias_members": 0,
+        "sparse_bodies": 0,
+        "delta_bodies": 0,
+        "reference_batches": 0,
+        "reselected_groups": 0,
+        "cpu_reference_pairs": 0,
+        "published_references_changed": 0,
+        "section_reference_groups": 0,
+        "packed_reference_groups": 1,
+        "prefixed_zstd_members": 4,
+        "retired": true,
+        "independent_cpu_readback": true,
+        "modeled_idle_time": true,
+        "input_blake3": "099bc2d2fbc3c710e9e6ddb9b2312aa72d021d1bd478cec33e69b077cc9ced89"
+      },
+      "independent_reads": {
+        "zstd": 10507,
+        "full_logical": 950347,
+        "full_input_backing": 1077016,
+        "full_grouped_backing": 1277518,
+        "sampled_logical": 328203,
+        "sampled_input_backing": 3096529,
+        "sampled_grouped_backing": 3688983
+      },
+      "owned_reads": {
+        "full_logical": 950347,
+        "full_input_backing": 1090048,
+        "full_grouped_backing": 979375,
+        "sampled_logical": 328203,
+        "sampled_input_backing": 3135625,
+        "sampled_grouped_backing": 2763363
+      }
+    },
+    "lucide": {
+      "dataset_bytes": 15269,
+      "dataset_sha256": "e24f2e9dbd6a4b85e0e8b44c12208772744b28a660fd96780df74cfe30555912",
+      "receipt": {
+        "arm": "lucide",
+        "exit": 0,
+        "run": "local-run-57c8247c5f23428b9ecc5fd22e26ba4a",
+        "retired": true,
+        "peak": 101257216,
+        "sha": "66d0be0aca4cacc3c7038238fdc9f6c21b889c8906c4978275c9b482af78ce6d"
+      },
+      "audit": {
+        "backing_read_bytes": 143832,
+        "backing_read_calls": 628
+      },
+      "compression": {
+        "mode": "amd",
+        "cohort": "revision-corpus",
+        "sparse_device": 0,
+        "reply_bytes": 21486,
+        "copy_suggested_ranges": 0,
+        "copy_compared_ranges": 0,
+        "copy_suggested_bytes": 0,
+        "copy_compared_bytes": 0,
+        "files": 40,
+        "groups": 1,
+        "advised_members": 0,
+        "capability": 9,
+        "submitted": 1,
+        "verified_batches": 1,
+        "worker_ns": 2587037800,
+        "submitted_groups": 1,
+        "verified_groups": 1,
+        "cpu_groups_before_gpu_reply": 0,
+        "foreground_cancelled": 0,
+        "submitted_queued_batches": 0,
+        "verified_queued_batches": 0,
+        "dispatches_per_wait": 0,
+        "queued_worker_wall_ns": 0,
+        "queued_kernel_wait_ns": 0,
+        "submitted_kernel_launches": 40,
+        "largest_dispatch_members": 12,
+        "empty_batches": 0,
+        "discovery_ns": 294330900,
+        "maintenance_ns": 2610320100,
+        "compact_verify_ns": 26463300,
+        "input_compacted_bytes": 204800,
+        "grouped_compacted_bytes": 196608,
+        "packed_widths": 0,
+        "packed_payload_bytes": 21198,
+        "sampled_bias_members": 0,
+        "sparse_bodies": 38,
+        "delta_bodies": 0,
+        "reference_batches": 1,
+        "reselected_groups": 1,
+        "cpu_reference_pairs": 0,
+        "published_references_changed": 0,
+        "section_reference_groups": 0,
+        "packed_reference_groups": 1,
+        "prefixed_zstd_members": 0,
+        "retired": true,
+        "independent_cpu_readback": true,
+        "modeled_idle_time": true,
+        "input_blake3": "4371391709ab54422f78e2cd81c7d8287b9563c90bb00d9a784bcd7c3427893a"
+      },
+      "independent_reads": {
+        "zstd": 10507,
+        "full_logical": 15105,
+        "full_input_backing": 945050,
+        "full_grouped_backing": 1021166,
+        "sampled_logical": 45315,
+        "sampled_input_backing": 2835150,
+        "sampled_grouped_backing": 3063498
+      },
+      "owned_reads": {
+        "full_logical": 15105,
+        "full_input_backing": 959370,
+        "full_grouped_backing": 970056,
+        "sampled_logical": 45315,
+        "sampled_input_backing": 2878110,
+        "sampled_grouped_backing": 2905098
+      }
+    },
+    "installed": {
+      "receipt": {
+        "arm": "installed",
+        "exit": 0,
+        "run": "local-run-88ebe33bf2a64bb596be008973e16833",
+        "retired": true,
+        "peak": 120635392,
+        "sha": "f622db369008b96768f58d2319869935bea37da68b3e4f77443f81e0f7d6960b"
+      },
+      "advised_extents": 18,
+      "verified_dispatch_groups": 1,
+      "kernel_launches": 17,
+      "files_cpu_read_exact": 23,
+      "compacted_occupied_bytes": 1048576
+    }
+  },
+  "cleanup": {
+    "task_local_flitzfs_processes_remaining": 0
+  }
+}

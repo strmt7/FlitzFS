@@ -1508,7 +1508,10 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
     if(revision)grouped_session_reads=profile_revision_session_reads(std::move(writer),*packed,originals);
   }
   const auto reopened=NativeFilesystemSnapshot::open_image(packed,{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes});
+  const auto audit_bytes_before=packed->read_bytes,audit_calls_before=packed->read_calls;
   reopened.verify_all();
+  if(revision)std::cout<<"grouped_replica_audit backing_read_bytes="<<packed->read_bytes-audit_bytes_before
+      <<" backing_read_calls="<<packed->read_calls-audit_calls_before<<'\n';
   RevisionReadProfile grouped_reads;
   if(revision)grouped_reads=profile_revision_reads(reopened,*packed,originals);
   else for(std::size_t i=0;i<originals.size();++i)

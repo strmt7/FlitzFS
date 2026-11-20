@@ -86,9 +86,9 @@ void read_grouped_extents() {
   std::cout<<"shared_base_request_cache extents="<<count<<" primary_reads=2 peer_recovery=true byte_exact=true\n";
 }
 void retained_group_anchors() {
-  constexpr unsigned family_size=3,files=2*family_size;
+  constexpr unsigned family_size=8,files=2*family_size;
   const auto content=[](unsigned i) {
-    auto bytes=data(kNativeExtentBytes,i<family_size?4321U:7890U);
+    auto bytes=data(kNativeExtentBytes,i%2?7890U:4321U);
     bytes[1203+i*19]^=std::byte{42};
     return bytes;
   };
@@ -98,9 +98,11 @@ void retained_group_anchors() {
     auto writer=fresh(source,true);
     populate(writer,files,content);
     const auto keys=selections(writer.snapshot(),files);
-    const auto members=std::span(keys);
-    for(const auto group:{members.first(family_size),members.last(family_size)})
+    for(unsigned parity=0;parity<2;++parity) {
+      std::array<NativeExtentSelection,family_size> group{};
+      for(unsigned i=0;i<family_size;++i)group[i]=keys[2*i+parity];
       require(writer.compress_shared_base(group.front(),group).applied,"retained-read fixture group did not publish");
+    }
   }
   auto writer=NativeFilesystemWriter::compact(view(source),ram,next_id(94),{StoreCompressionMode::raw,1,false});
   const auto keys=selections(writer.snapshot(),files);
@@ -121,14 +123,26 @@ void retained_group_anchors() {
   }
   require(copies.size()==2,"retained-read fixture cannot identify both anchor replicas");
   ram->corrupt_read_offset=copies.front()-base_header_bytes;
+  const auto independent=view(ram);
+  for(unsigned pass=0;pass<2;++pass) {
+    const auto read_before=ram->read_bytes,calls_before=ram->read_calls,matches_before=ram->matching_reads;
+    independent.verify_all();
+    const auto first_base_reads=ram->matching_reads-matches_before;
+    require(first_base_reads && first_base_reads<=2,
+        "grouped inventory reread an already checked shared base for another member");
+    std::cout<<"grouped_inventory files="<<files<<" pass="<<pass
+        <<" primary_anchor_reads="<<first_base_reads
+        <<" backing_read_bytes="<<ram->read_bytes-read_before
+        <<" backing_read_calls="<<ram->read_calls-calls_before<<'\n';
+  }
+  ram->matching_reads=0;
   const auto read=[&](unsigned file) {
     require(writer.read_inode(keys[file].inode,0,kNativeExtentBytes)==content(file),
         "owned retained read differs from the committed bytes");
   };
-  read(0);read(3);read(1);read(4);
+  read(0);read(1);read(2);read(3);
   require(ram->matching_reads==1,"owned reads fetched the same anchor across member requests");
 
-  const auto independent=view(ram);
   require(independent.read("f2",0,kNativeExtentBytes)==content(2) && ram->matching_reads==2,
       "independent snapshot borrowed an owned anchor");
   file_apply(writer,file_create("later"));
@@ -137,9 +151,15 @@ void retained_group_anchors() {
 
   file_apply(writer,file_create("after"));
   ram->corrupt_read_number=4;
-  read(0);read(1);
+  read(0);read(2);
   require(ram->matching_reads==5,"a degraded read supplied the next request's retained anchor");
-  for(const auto offset:copies)ram->live[offset+17]^=std::byte{1};
+  ram->live[copies.back()+17]^=std::byte{1};
+  const auto survivor=view(ram);
+  survivor.verify_all();
+  require(survivor.storage_info().degraded_checkpoint &&
+      survivor.read("f0",0,kNativeExtentBytes)==expected,
+      "audit reuse hid a damaged anchor replica or lost the verified survivor");
+  ram->live[copies.front()+17]^=std::byte{1};
   rejects([&]{view(ram).verify_all();},"verification used a retained anchor after both replicas failed");
   const auto before=ram->calls;
   const auto replacement=data(17,200);
@@ -147,7 +167,7 @@ void retained_group_anchors() {
       "a retained anchor authorized mutation after both replicas failed");
   require(writer.poisoned() && ram->calls==before,"failed group verification changed committed storage");
   std::cout<<"retained_group_reads multiple_anchors=true checkpoint_refetch=true degraded_refetch=true"
-      <<" independent_verification=true unverified_mutation_refused=true\n";
+      <<" independent_verification=true peer_loss_reported=true unverified_mutation_refused=true\n";
 }
 void anchor_copy_codec() {
   const auto base=shifted_family(0);const auto id=detail::kNativeGroupBaseBit+1;
@@ -665,10 +685,13 @@ void assembled_section_reference() {
     const auto before=sections->calls;
     const auto assembled=candidate.finish_shared_base(work);
     cuts=sections->calls-before;
-    require(assembled.applied && assembled.section_reference && !assembled.reference.inode &&
+    require(assembled.applied && assembled.section_reference &&
         assembled.before_compacted_lower_bound==member_ref.before_compacted_lower_bound &&
         assembled.after_compacted_upper_bound<member_ref.after_compacted_upper_bound,
         "Smaller protected section reference was not selected");
+    require(std::ranges::any_of(keys,[&](const auto& member) {
+      return member.inode==assembled.reference.inode && member.extent_index==assembled.reference.extent_index;
+    }),"Assembled reference did not retain a linked representative for later grouping");
     verify_family(view(sections),count,section_family);
   }
   auto first=std::make_shared<Ram>(),second=std::make_shared<Ram>();
@@ -1050,6 +1073,10 @@ void layouts(std::uint32_t unit) {
 }
 }
 int main(int argc,char** argv){try {
+  if(argc==2 && std::string_view(argv[1])=="--audit-anchor-reads") {
+    retained_group_anchors();
+    return 0;
+  }
   if(argc==2 && std::string_view(argv[1])=="--layout") {
     for(auto unit:{4096U,65536U})layouts(unit);
     return 0;

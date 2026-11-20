@@ -452,8 +452,10 @@ if(FLITZFS_BUILD_TESTS)
   add_test(NAME bounded_native_shared_base_packed_xor COMMAND flitzfs_native_shared_base_tests --packed-xor)
   add_test(NAME bounded_native_shared_base_modular_delta COMMAND flitzfs_native_shared_base_tests --modular-delta)
   add_test(NAME bounded_native_shared_base_sparse_xor COMMAND flitzfs_native_shared_base_tests --sparse-xor)
-  set_tests_properties(bounded_native_shared_bases bounded_native_shared_base_packed_xor
-    bounded_native_shared_base_modular_delta bounded_native_shared_base_sparse_xor PROPERTIES TIMEOUT 120)
+  set_tests_properties(bounded_native_shared_bases bounded_native_shared_base_sparse_xor PROPERTIES TIMEOUT 120)
+  # The two full fault matrices take longer with Windows AddressSanitizer.
+  set_tests_properties(bounded_native_shared_base_packed_xor bounded_native_shared_base_modular_delta
+    PROPERTIES TIMEOUT 330)
   add_executable(flitzfs_staged_shared_base_tests tests/test_staged_shared_base.cpp)
   target_link_libraries(flitzfs_staged_shared_base_tests PRIVATE flitzfs_core)
   add_test(NAME bounded_native_staged_shared_bases COMMAND flitzfs_staged_shared_base_tests)
@@ -1015,7 +1017,9 @@ if(FLITZFS_BUILD_WINFSP)
     add_test(NAME bounded_winfsp_session_test COMMAND flitzfs_winfsp_session_tests)
     if(FLITZFS_REGISTER_INTEGRATION_FIXTURES)
       add_test(NAME winfsp_file_backed_session_candidate COMMAND flitzfs_winfsp_session_tests --file)
-      set_tests_properties(winfsp_file_backed_session_candidate PROPERTIES TIMEOUT 45)
+      add_test(NAME winfsp_native_file_callback_candidate COMMAND flitzfs_winfsp_tests --native-file)
+      set_tests_properties(winfsp_file_backed_session_candidate winfsp_native_file_callback_candidate
+        PROPERTIES TIMEOUT 45)
     endif()
     add_test(NAME bounded_winfsp_callback_test COMMAND flitzfs_winfsp_tests)
     set_tests_properties(bounded_winfsp_callback_test bounded_winfsp_session_test PROPERTIES TIMEOUT 45)

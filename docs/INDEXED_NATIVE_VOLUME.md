@@ -174,10 +174,19 @@ one native read. Reuse requires the same healthy, mirrored store identity
 and checkpoint. Observed replica degradation or a checkpoint change clears
 the retained bases before the next reuse.
 
-Scrub, recovery and mutations verify the backing records independently.
-Physical verification can discover faults that develop while a verified
-base is retained in memory. Bases have their own protected records, so
-removing the file used as the base leaves other files readable.
+Mutations and recovery verify the backing records independently. A complete
+inventory audit can reuse decoded bases from its own bounded cache for
+member verification. Entries bind the exact base object and generation.
+The mirrored record walk reads both copies directly, including bases
+already used by members. Each audit releases its cache at exit. Bases have
+their own protected records, so removing the file used as the base leaves
+other files readable.
+
+The compacted two-group fixture interleaves 16 files. Each full audit read
+467,550 backing bytes, down from 1,386,958. Fault checks reported a damaged
+anchor peer, verified the surviving copy, and refused a write when both
+copies failed.
+[Grouped audit evidence](evidence/indexed-grouped-audit-2026-11-20.json)
 [Public revision reads and mirror recovery](evidence/public-revision-reads-2026-11-19.json) ·
 [Retained base read evidence](evidence/indexed-retained-anchor-reads-2026-11-20.json)
 
@@ -265,6 +274,8 @@ using lower sealed payload bytes to resolve alignment ties. The chosen layout
 must shrink the current image before any writes are made. An assembled base
 has its own protected records and survives removal of any member while
 other members still depend on it.
+Successful publication supplies the extent of a linked member as the
+representative for later discovery and reuse.
 [Assembly validation](evidence/indexed-section-references-2026-11-20.json)
 
 Later scans can extend the same group. The scanner uses the logical bytes of
