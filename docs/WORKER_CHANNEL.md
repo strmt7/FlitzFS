@@ -397,6 +397,24 @@ zero-growth handle baseline as the legacy suite. Those sizes are TEST fixtures,
 not product caps or assumed host specifications. Exact-source CI outcomes are
 required before qualification; no owner-PC execution is authorized by these tests.
 
+## Wider AMD copy dispatches
+
+An approved copy-search profile can admit more member extents to each
+kernel dispatch. The wide request and reply use `FLFSABQ\7` and
+`FLFSABP\2`. The queued timing record uses `FLHPB006`. The worker
+requires the typed version 11 window entry and checks its actual device
+grid and thread limits. The parent sizes each dispatch from the approved
+ceiling, the available memory and the staged group. Nested copy records
+use the existing 32-bit coordinates and independent byte checks.
+
+One worker reuses index storage, a stream and a transfer slab for all funded
+groups in its immutable request. Results remain private through complete
+worker retirement and independent CPU verification. A worker that
+refuses the wider request leaves the original inputs available to CPU
+grouping. Profiles without an approved dispatch ceiling use version 2.
+[Installed profile](AMD_RUNTIME_DISCOVERY.md#shared-base-package-profile) ·
+[Wider dispatch evidence](evidence/amd-wide-copy-dispatch-2026-11-20.json)
+
 ## AMD packed-XOR startup measurements
 
 The wide packed-XOR diagnostic supports a setup profile with the

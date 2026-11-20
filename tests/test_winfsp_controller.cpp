@@ -81,6 +81,17 @@ void anchor_launch_budget() {
   require(!limited(two_bytes - 1), "Prefix planning accepted fewer than the approved minimum members");
   require(!plan_native_anchor_launch(members, options, observed,
       observed.captured_ms + kGpuMaxBudgetAgeMs + 1, false), "Stale budget admitted a GPU batch");
+  options.output=anchor_match::BatchOutput::wide_anchors;
+  require(!plan_native_anchor_launch(members,options,observed,observed.captured_ms,false),
+      "Wide copy admitted without an approved dispatch size");
+  options.maximum_dispatch_members=12;
+  const auto widened=plan_native_anchor_launch(members,options,observed,observed.captured_ms,false);
+  require(widened && widened->batch.quantum_members==12 && widened->batch.launches<full->batch.launches &&
+      widened->capacity.request_bytes==full->capacity.request_bytes &&
+      widened->capacity.reply_bytes==full->capacity.reply_bytes,"Wide copy did not reuse the existing bounded transfer");
+  options.maximum_dispatch_members=options.maximum_members+1;
+  require(!plan_native_anchor_launch(members,options,observed,observed.captured_ms,false),
+      "Wide copy exceeded the approved batch work");
   std::cout << "anchor launch prefix: wide=4 at_budget=3 below_budget=2 below_minimum=0\n";
 }
 #endif
@@ -841,6 +852,8 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
       <<" verified_queued_batches="<<result.anchor_search.verified_queued_batches
       <<" dispatches_per_wait="<<result.anchor_search.queued_dispatches_per_wait
       <<" submitted_groups="<<result.anchor_search.submitted_groups<<" verified_groups="<<result.anchor_search.verified_groups
+      <<" submitted_kernel_launches="<<result.anchor_search.submitted_kernel_launches
+      <<" largest_dispatch_members="<<result.anchor_search.largest_dispatch_members
       <<" copy_suggested_ranges="<<result.anchor_search.copy_suggested_ranges
       <<" copy_compared_ranges="<<result.anchor_search.copy_compared_ranges
       <<" copy_suggested_bytes="<<result.anchor_search.copy_suggested_bytes
@@ -1344,6 +1357,8 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
       <<" submitted_queued_batches="<<stats.submitted_queued_batches
       <<" verified_queued_batches="<<stats.verified_queued_batches<<" dispatches_per_wait="<<stats.queued_dispatches_per_wait
       <<" queued_worker_wall_ns="<<stats.queued_worker_wall_ns<<" queued_kernel_wait_ns="<<stats.queued_kernel_wait_ns
+      <<" submitted_kernel_launches="<<stats.submitted_kernel_launches
+      <<" largest_dispatch_members="<<stats.largest_dispatch_members
       <<" empty_batches="<<stats.empty_xor_batches
       <<" discovery_ns="<<discovery_ns<<" maintenance_ns="<<maintenance_ns<<" compact_verify_ns="<<compact_verify_ns
       <<" input_compacted_bytes="<<baseline_bytes<<" grouped_compacted_bytes="<<packed->extent()
@@ -1368,15 +1383,16 @@ int live_anchor_owner(int argc,char** argv) {
   const std::string_view mode(argv[6]);
   const auto multiwindow=multiwindow_pattern(mode);
   const auto restriction=argc==9?std::string_view(argv[8]):std::string_view{};
+  const bool wide_copy=restriction=="wide-copy";
   const bool overlap_cpu=restriction=="limited-overlap";
   const bool limited_memory=restriction=="limited-memory" || overlap_cpu;
   const bool queued=mode=="queued" || mode=="queued-yield" || mode=="verified-read" || mode=="verified-edit" ||
-      restriction=="queued";
+      restriction=="queued" || wide_copy;
   const bool xor_mode=mode=="xor" || mode=="xor-wide" || mode=="xor-narrow";
   require(mode=="accept" || mode=="yield" || mode=="both" || mode=="batch" || mode=="batch-yield" || queued ||
       mode=="changed-extents" || xor_mode || multiwindow,
       "Expected an AMD ownership trial");
-  require(argc!=9 || (multiwindow && revision_corpus(*multiwindow) && (restriction=="queued" || limited_memory)),
+  require(argc!=9 || (multiwindow && revision_corpus(*multiwindow) && (restriction=="queued" || limited_memory || wide_copy)),
       "The requested comparison needs a revision corpus");
   const ProcessBudget profile{128,2000,5000,16};
   HipRouteDiscoveryRequest request;
@@ -1398,13 +1414,14 @@ int live_anchor_owner(int argc,char** argv) {
     const auto members=small_batch?families*(anchor_search_fixture::indexed_small_extents_per_family-1):
         anchor_search_fixture::indexed_batch_members;
     const auto minimum=argc>=8 || small_batch?2U:static_cast<std::uint32_t>(members);
-    const auto output=revision_corpus(*multiwindow)?anchor_match::BatchOutput::anchors:
+    const auto output=wide_copy?anchor_match::BatchOutput::wide_anchors:
+        revision_corpus(*multiwindow)?anchor_match::BatchOutput::anchors:
         mode=="xor-full-reference"?anchor_match::BatchOutput::reference_xor:
         mode=="collective"?anchor_match::BatchOutput::collective:sparse?anchor_match::BatchOutput::sparse_xor:
         modular?anchor_match::BatchOutput::modular_delta:anchor_match::BatchOutput::wide_packed_xor;
     return live_multiwindow_anchor(NativeAnchorSearchOptions{*binding.route,profile,minimum,
         static_cast<std::uint32_t>(members+families),10000,
-        output,small_batch?4U:modular?16U:0U,queued?kAnchorProfileMaxQueuedDispatches:1U},
+        output,wide_copy?12U:small_batch?4U:modular?16U:0U,queued?kAnchorProfileMaxQueuedDispatches:1U},
         argc>=8?std::filesystem::path(argv[7]):std::filesystem::path{},
         discovery_ns,*multiwindow,limited_memory,overlap_cpu);
   }

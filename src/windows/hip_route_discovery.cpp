@@ -434,7 +434,7 @@ std::optional<InstalledAnchorProfile> installed_anchor_profile() noexcept {
   using namespace installed_amd_package;
   return InstalledAnchorProfile{{anchor_worker_memory_mib,anchor_worker_cpu_rate,anchor_worker_timeout_ms,
       anchor_memory_share_divisor},anchor_minimum_members,anchor_maximum_members,anchor_duty_ppm,
-      anchor_dispatches_per_wait};
+      anchor_dispatches_per_wait,anchor_maximum_dispatch_members};
 #else
   return {};
 #endif

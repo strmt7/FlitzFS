@@ -100,6 +100,38 @@ void unaligned_copy_match_boundaries() {
   }
 }
 
+void wide_copy_batch() {
+  using Output=match::BatchOutput;
+  constexpr std::array<std::uint32_t,2> counts{7,4};
+  constexpr auto output=Output::wide_anchors;
+  const auto grant=match::device_bytes(4,output);
+  const auto plan=plan_anchor_match_batch(counts,4,grant,8,output);
+  const auto legacy=plan_anchor_match_batch(counts,4,grant,8);
+  check(plan.quantum_members==4 && plan.launches==5 && legacy.quantum_members==3 &&
+      legacy.launches==7 && plan.reply_bytes==legacy.reply_bytes,"wider copy grant changed reply geometry");
+
+  AnchorMatchBatchBuilder builder(51,plan);
+  const Bytes base(match::extent_bytes,std::byte{0x65});
+  for(std::uint32_t i=0;i<counts.size();++i)
+    builder.append(i+1,base,Bytes(counts[i]*match::extent_bytes,std::byte{0x65}));
+  const auto batch=builder.finish();
+  const auto parsed=decode_anchor_match_batch_request(batch.snapshot(),plan.request_bytes,plan.reply_bytes,
+      4,grant,plan.launches,output);
+  check(parsed.plan()==plan,"wide copy request lost its approved dispatch size");
+  rejects([&]{(void)decode_anchor_match_batch_request(batch.snapshot(),plan.request_bytes,plan.reply_bytes,
+      4,grant,plan.launches);});
+
+  std::vector<std::vector<match::u32>> records;
+  for(const auto& group:parsed.groups())records.push_back(cpu_anchor_match_records(group));
+  auto frame=encode_anchor_match_batch_reply(parsed,records);
+  const auto advice=accept_anchor_match_batch_reply(frame,parsed);
+  check(advice.size()==counts.size() && advice[0].size()==counts[0] &&
+      advice[1].size()==counts[1] && !advice[1].back().empty(),"wide copy reply omitted verified members");
+  rejects([&]{(void)decode_anchor_packed_batch_reply(frame,parsed);});
+  frame[7]=std::byte{1};
+  rejects([&]{(void)accept_anchor_match_batch_reply(frame,parsed);});
+}
+
 void unrelated() {
   const Bytes base(match::extent_bytes,std::byte{'a'}),member(match::extent_bytes,std::byte{'b'});
   const auto request=decode_anchor_match_request(encode_anchor_match_request(base,member,2));
@@ -781,6 +813,7 @@ int main() {
     unaligned_copy_match_boundaries();
     sized_sweep();
     independent_batch();
+    wide_copy_batch();
     coalesced_copy_verification();
     packed_xor_reply();
     wide_xor_reply();

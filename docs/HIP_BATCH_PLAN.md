@@ -157,6 +157,15 @@ independent CPU reader.
 [FlitzZip dictionary matcher](https://github.com/strmt7/FlitzZip/blob/11396b5/src/gpu/hip_dictionary_matcher.hip.cpp) ·
 [Matched copy-search evidence](evidence/amd-word-copy-search-2026-11-20.json)
 
+The version 11 copy window admits a larger measured dispatch within the
+same finite worker lifetime. Each group retains one index across its
+dispatches and shares the stream and slab allocation with the other groups
+in the batch. The versioned window leaves existing copy coordinates and
+the CPU decoder intact. The worker checks the actual device grid, and the
+host supplies an approved ceiling and live memory grant.
+[Wide copy protocol](WORKER_CHANNEL.md#wider-amd-copy-dispatches) ·
+[Wide copy evidence](evidence/amd-wide-copy-dispatch-2026-11-20.json)
+
 ## SDK-only compression compute candidate
 
 The [typed LZ4 compute implementation and CPU probe](HIP_LZ4_COMPUTE.md)

@@ -1,0 +1,693 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "captured_local": "2026-11-20T15:15:03+01:00",
+  "source_base": "dcd8e741f14017a69fc8db3622cb15697b9a7264",
+  "source_binding": {
+    "CMakeLists.txt": {
+      "git_blob": "754743c48b1ea50a8635d2e814faa65475ad4acc",
+      "sha256": "9e2fd12bf019c2451d89fbfd66f437ef636b5e89c5f9b795d055fdfa30017847"
+    },
+    "include/flitzfs/gpu_anchor_kernel_api.hpp": {
+      "git_blob": "2dbdc76b19c55204a01e0348114594bf2c72c6df",
+      "sha256": "f3a06ce3bff9f5036a464aca238d2974f11404d91cf8056cbd5dceb03d0d6fed"
+    },
+    "include/flitzfs/gpu_anchor_match.hpp": {
+      "git_blob": "6c7952005ca5d6d3a163c3d6571a2e458128a7b8",
+      "sha256": "228954efde14206e0bb96be9b6505042364643631c9ff87a0a3102126bf37b1b"
+    },
+    "src/gpu/decode_kernel.hip": {
+      "git_blob": "3ed7c2fbb56a4c2981b3f3c47b7744087daa8235",
+      "sha256": "3e44fc4a8d2ade5ffe13d4516526e87d4de46cc72df8e9af5356f77346feb6e0"
+    },
+    "src/native_group_anchor.cpp": {
+      "git_blob": "a892fae360e7710104f40db1dbe8c6330df19526",
+      "sha256": "35e8c685b1f3c9fef17ea6f06e6996a6012b329ee6bb45afd8cb725ab438c68f"
+    },
+    "src/windows/anchor_batch_profile.hpp": {
+      "git_blob": "e558ce6efffda3b79ddb34792a01777d9d593c2c",
+      "sha256": "bda1aea7e90bab9a0bfd13a6bdb2772358d4c9e9f73ffc6cdc8aa8b049b2314a"
+    },
+    "src/windows/hip_decode_worker.cpp": {
+      "git_blob": "ee321d9e4f3ae7be6804e6ca706a2c548c3ecd61",
+      "sha256": "7b0d76d662277a875ef67273f2a3ad55c0626e6463b9ddec80e85fd00e606129"
+    },
+    "src/windows/hip_route_discovery.cpp": {
+      "git_blob": "62f8b644acfc29241aca920fdefda032568d9dba",
+      "sha256": "63c593beb1d91ef503ddad614832db2353f6ea9adc39bbec48a95a44c63e7fcb"
+    },
+    "src/windows/hip_route_discovery.hpp": {
+      "git_blob": "a3e7d5b5c1587e539d7dcd974db80212468d92f0",
+      "sha256": "5246c54a00239fcb1449f4c6b0fa9a1e1b36a41b86600e8cf8359c2728b2b8f3"
+    },
+    "src/windows/hip_worker_main.cpp": {
+      "git_blob": "049b8aafff889f89c401f38b2d84c9f6e8c47093",
+      "sha256": "d21a8adbaf4cc84a69ae52d80daf5f9e1135f1331e5338aba6eda9abbb72753d"
+    },
+    "src/windows/native_anchor_search.cpp": {
+      "git_blob": "ea8b63eaf8a127b5886b491e3d39229bad9bdb5a",
+      "sha256": "70a8e8ddb51c9e98714fe06f07d98c7e4aa676de53b4b7be2772afd77965ead2"
+    },
+    "src/windows/native_anchor_search.hpp": {
+      "git_blob": "092902d3a1734eaa24665290a6bfc7d83ca429bf",
+      "sha256": "ef5702ea9a1934caecf1a7bfc2952a484824cde6aef101007c518ade91065046"
+    },
+    "src/windows/winfsp_controller.cpp": {
+      "git_blob": "577fb5f5eed8b5107972e5d97a086a5cc0abf21b",
+      "sha256": "cfe1c8e69921f47711af1d721cc0beb6bc8c09e351f0f606d8513034f468b11d"
+    },
+    "tests/rocm_compile/kernel_module.cpp": {
+      "git_blob": "651424123188f426b21462852211e02602ff2a93",
+      "sha256": "656cf30587e79e5643d6e32916f4683c50b5455cd3820d28d427e6cad8746ed9"
+    },
+    "tests/test_gpu_anchor_match.cpp": {
+      "git_blob": "5c1fcebcb47954b32726c92918e01f7bad0f276b",
+      "sha256": "8f25cb049b78c12640055e375fdfc89511b9cc0fff48d295c834d051d827b7bd"
+    },
+    "tests/test_winfsp_controller.cpp": {
+      "git_blob": "26763d943d5f981b213db119db4925fbc0081668",
+      "sha256": "20e45b38d5d905ce394653c1e70a7ad6e0b41f52fe5b76fe42778739bdb7d9a7"
+    },
+    "tools/ci/bind_installed_amd_package.py": {
+      "git_blob": "abb48ee17392b6a8563654873141716682e9de34",
+      "sha256": "ecd74e0502c233c0ecc126edfc50b3d32b8b84deccb199c3bcd668e31dd62eec"
+    },
+    "tools/ci/test_bind_installed_amd_package.py": {
+      "git_blob": "d6d181a85ddbe67c9aced8e6b8eeda82988c959e",
+      "sha256": "464772662a064a9716e85c18e3e9625cc71efccd9b015b115af14f030e4e2baa"
+    }
+  },
+  "kernel_source_closure": [
+    {
+      "path": "src/gpu/decode_kernel.hip",
+      "sha256": "3e44fc4a8d2ade5ffe13d4516526e87d4de46cc72df8e9af5356f77346feb6e0",
+      "bytes": 26302
+    },
+    {
+      "path": "src/gpu/decode_kernel.hpp",
+      "sha256": "57ffed94096d61d24cc5154615a1d2c4c63818602d655fb82959606314848850",
+      "bytes": 5018
+    },
+    {
+      "path": "include/flitzfs/gpu_protocol.hpp",
+      "sha256": "a0c3b5e1170b45ad788c2baebe5323712bcef450f9d4aa681317ef5c5da4e159",
+      "bytes": 895
+    },
+    {
+      "path": "include/flitzfs/gpu_kernel_api.hpp",
+      "sha256": "3099ea1f31b8d56de1d9899f4707f0c76486484f1714888690e2c4e615c7f84c",
+      "bytes": 1592
+    },
+    {
+      "path": "include/flitzfs/gpu_match_protocol.hpp",
+      "sha256": "c978606dd3339666bf3067f8d4c40cd924e390e480d88305d030e1c8b3647192",
+      "bytes": 2632
+    },
+    {
+      "path": "include/flitzfs/gpu_match_kernel_api.hpp",
+      "sha256": "dd668d84d07a28118ac51ed337e4bcf7dc80980002afe0fd097ccd4152c58b4e",
+      "bytes": 1053
+    },
+    {
+      "path": "include/flitzfs/gpu_anchor_match.hpp",
+      "sha256": "228954efde14206e0bb96be9b6505042364643631c9ff87a0a3102126bf37b1b",
+      "bytes": 9908
+    },
+    {
+      "path": "include/flitzfs/gpu_anchor_kernel_api.hpp",
+      "sha256": "f3a06ce3bff9f5036a464aca238d2974f11404d91cf8056cbd5dceb03d0d6fed",
+      "bytes": 3805
+    }
+  ],
+  "semantic_search": {
+    "provider_version": "0.2.43",
+    "source_files": 5,
+    "actual_searches": 1,
+    "native_response_sha256": "f1c1696e616e1a214de4b5ef0c157bf10a26188451fa9e0c6a089e6105671925"
+  },
+  "research": {
+    "provider": "0.9.5+flitzzip.portable2",
+    "native_pages": [
+      {
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/reference/hip_runtime_api/modules/stream_management.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 56541,
+        "markdown_sha256": "14b91173ceb541bb579d5e53773e5aa5c4f152052dd88bda6e5281e53e97e8d7",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 2.782,
+        "capture": "windows-stream-priority.native.json",
+        "capture_sha256": "fa896461c7cac8ed476a54c901a1adc0f67c8c5ad7fc7032e0b8b0b96b975a0f",
+        "name": "windows-stream-priority"
+      },
+      {
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/latest/reference/hip_runtime_api/modules/memory_management/stream_ordered_memory_allocator.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 72898,
+        "markdown_sha256": "87742420eba3ee289d20f941b552f75d3a8cd54b9ea65d3f10469ef2007e0f98",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.802,
+        "capture": "windows-allocator.native.json",
+        "capture_sha256": "8c6fe92f7040ec5820da1c5b54d2868f70ae7c3988eba15a6e25cea5739c0547",
+        "name": "windows-allocator"
+      },
+      {
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/memory_management/stream_ordered_allocator.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 53854,
+        "markdown_sha256": "41b4a70b98aa5d00344013aec6ba8a35e44da7f5ef966a35fed69b69ad26d396",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.853,
+        "capture": "windows-order.native.json",
+        "capture_sha256": "63b5bb81aad2b959c35cf962cec4652f897b12e1dea716e18a40b7d44c986a4a",
+        "name": "windows-order"
+      }
+    ],
+    "first_attempt": [
+      {
+        "name": "windows-stream-priority",
+        "failure": "native_failure",
+        "native_capture_sha256": "8b2282364cb40e04d1e8dc25fbe9730e137ee55fef7f08ceabdd7b9b9a087f25"
+      },
+      {
+        "name": "windows-allocator",
+        "failure": "timeout",
+        "native_capture_sha256": "8a8fca48c0fe8fdf00d4b1abc57598b6aef3590ef08d54e2b1daa809452c3158"
+      },
+      {
+        "name": "windows-order",
+        "failure": "native_failure",
+        "native_capture_sha256": "fdf14c19de4e98c0a9e790731b6f3db287e1427ed531438c7f343f6b4d81733c"
+      }
+    ]
+  },
+  "host": {
+    "os": "Windows 11 Pro",
+    "build": 26300,
+    "amd": "Radeon RX 9070 XT",
+    "driver": "32.0.32029.2010"
+  },
+  "device": {
+    "worker": "204427712a65191b8010991b3ab55561958c5dae652447ebc9cd08038dc6a2fb",
+    "module": "9aad995bc1b2e330a8f24f76dcc5eaa9edc8f96351c999f10712aef0be33467d",
+    "object": "065ef6bf13b7b77d3b798a85ccecc168c408c77898b2f1a81e8b0c08dcbf3a7e",
+    "runtime": "amdhip64_7.dll",
+    "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+    "compile": {
+      "run": "local-run-1e171531c59943d3851c0a28cae995a1",
+      "receipt_sha256": "46e4d451d4d137803c44c77befccc7d41a47807836c3e3def69f8a8f2068224f",
+      "log_sha256": "2e97fb20e6eb226d48cf1c7385a016509d21a1b0ea3e88ece227d69745dc8b11",
+      "peak_job_bytes": 207470592,
+      "tree_retired": true
+    },
+    "link": {
+      "run": "local-run-099782c8a1a74b7e8d36fdfa821dff5b",
+      "receipt_sha256": "fa12839cde04aace055a398ef1fc29a23289b999f7294a75b9b0e0d4f0cab0b9",
+      "log_sha256": "c834a2cf3d470a9d4bd29d873b9cb32186b58ef7d628b230f4d873faa92822ae",
+      "peak_job_bytes": 679624704,
+      "tree_retired": true
+    }
+  },
+  "checks": {
+    "release": {
+      "passed": 4,
+      "run": "local-run-7e3a07e747f943a3aecebfa4be3301a3",
+      "receipt_sha256": "4a0fe13b42ac98b33a6e7ee0b97ff7e6a4731e4345f742a98b6f637a0e3ed41c",
+      "log_sha256": "b4fa1498f07dce1aa054895a132dbc0fc120e4cfb05fa4019e0059f30e5cd2ef",
+      "peak_job_bytes": 162787328,
+      "tree_retired": true
+    },
+    "asan": {
+      "passed": 5,
+      "run": "local-run-8a1739662ce94a6e81e91203dcc2cbd3",
+      "receipt_sha256": "8d72ac0f60f691c65a1a3c1316f7788ee320a62622274fddb7704171cc3c0765",
+      "log_sha256": "b9efa9b14dedf81d901bf38a7c7a355f8632143a38836a6be54fcd4985c45be1",
+      "peak_job_bytes": 419942400,
+      "tree_retired": true
+    },
+    "raw": {
+      "passed": 3,
+      "run": "local-run-a7559be407e14c80bc7cd435f87f3157",
+      "receipt_sha256": "070b46597d658e22f1c2e19bb6bd048c69715a4c5312646ad5cb006aae3dc47f",
+      "log_sha256": "447f7503bc683a49026f66a40ce5c392d3388e28218d92cb6535794982945160",
+      "peak_job_bytes": 163172352,
+      "tree_retired": true
+    }
+  },
+  "comparison": {
+    "order_per_cohort": [
+      "legacy",
+      "wide",
+      "wide",
+      "legacy"
+    ],
+    "same_worker_and_module": true,
+    "modeled_idle_opportunities": true,
+    "cohorts": {
+      "short": {
+        "bank_sha256": "213dda8c98d5985f0c16877c8b2f7ce6d2a875c7600b58511aef1d943ac5c7ea",
+        "plaintext_blake3": "1e447b05b3653774b582b289288719e4c632436f8ef5daa5c2b884b373c93f3a",
+        "compacted_bytes_both_modes": 163840,
+        "files": 16,
+        "queued": {
+          "submissions": 6,
+          "exchange_median_ns": 2292376850,
+          "runs": [
+            {
+              "run": "local-run-b80764b5874f460e92c8a088e109f2ad",
+              "receipt_sha256": "ece800890a70b0df90936a33e2f01463b04754e424ce80ead2570cca1e41ac49",
+              "log_sha256": "3e728ef5e8240a7a83b53a87eab110b24faf882163c56944fc4880a3da0e8dd6",
+              "peak_job_bytes": 111337472,
+              "tree_retired": true,
+              "submitted_kernel_launches": 6,
+              "largest_dispatch_members": 3,
+              "copy_suggested_ranges": 60620,
+              "copy_compared_ranges": 59278,
+              "verified_groups": 1,
+              "worker_ns": 2119457300,
+              "queued_kernel_wait_ns": 1712700,
+              "queued_worker_wall_ns": 2061073900
+            },
+            {
+              "run": "local-run-7c4a0c9a3f6f4557bd621342a40e6040",
+              "receipt_sha256": "1f10ae35f2f6f6689ef7fc03127fd9f0026d09bbde83721cc32eaa2a78cf411f",
+              "log_sha256": "ffd1788a768b25a25925262fc88d311ce20752b815abf6241d5bcffbdbe05518",
+              "peak_job_bytes": 109072384,
+              "tree_retired": true,
+              "submitted_kernel_launches": 6,
+              "largest_dispatch_members": 3,
+              "copy_suggested_ranges": 60620,
+              "copy_compared_ranges": 59278,
+              "verified_groups": 1,
+              "worker_ns": 2465296400,
+              "queued_kernel_wait_ns": 2077700,
+              "queued_worker_wall_ns": 2397167600
+            }
+          ]
+        },
+        "wide-copy": {
+          "submissions": 3,
+          "exchange_median_ns": 2261948600,
+          "runs": [
+            {
+              "run": "local-run-c3d99d9edd9c40428b87cce52a7db7eb",
+              "receipt_sha256": "162035346a72e194b121d556ead4233a1a7f9e971bee080caa94e473242624ba",
+              "log_sha256": "288b9388f6f29f1035242015aca2024b339c2d0fcf141d70b36c253684511b4a",
+              "peak_job_bytes": 110616576,
+              "tree_retired": true,
+              "submitted_kernel_launches": 3,
+              "largest_dispatch_members": 12,
+              "copy_suggested_ranges": 60620,
+              "copy_compared_ranges": 59278,
+              "verified_groups": 1,
+              "worker_ns": 2499705300,
+              "queued_kernel_wait_ns": 0,
+              "queued_worker_wall_ns": 0
+            },
+            {
+              "run": "local-run-4d7a6e925e1949c2a365d0c9cad565d7",
+              "receipt_sha256": "04ceaece09edcd77dc1de5b277dd34292e832ac5efc408abd1ad79a6fd4873fb",
+              "log_sha256": "1d3e391c9f1bcf117bf326d5977f55502e132ea2d98466968329e000f5a2588f",
+              "peak_job_bytes": 109858816,
+              "tree_retired": true,
+              "submitted_kernel_launches": 3,
+              "largest_dispatch_members": 12,
+              "copy_suggested_ranges": 60620,
+              "copy_compared_ranges": 59278,
+              "verified_groups": 1,
+              "worker_ns": 2024191900,
+              "queued_kernel_wait_ns": 0,
+              "queued_worker_wall_ns": 0
+            }
+          ]
+        }
+      },
+      "lucide": {
+        "bank_sha256": "e24f2e9dbd6a4b85e0e8b44c12208772744b28a660fd96780df74cfe30555912",
+        "plaintext_blake3": "4371391709ab54422f78e2cd81c7d8287b9563c90bb00d9a784bcd7c3427893a",
+        "compacted_bytes_both_modes": 196608,
+        "files": 40,
+        "queued": {
+          "submissions": 14,
+          "exchange_median_ns": 2705365800,
+          "runs": [
+            {
+              "run": "local-run-1d0721066b1d40619da394cda88e96c1",
+              "receipt_sha256": "216aff92a2171fe292d2e75c8666fb63181bb22926340741dbf3a718f2925d94",
+              "log_sha256": "1b831d6e7901f78853c5f023a472df88acd8f3a5ba55b769eb3a72603d54d37c",
+              "peak_job_bytes": 118431744,
+              "tree_retired": true,
+              "submitted_kernel_launches": 14,
+              "largest_dispatch_members": 3,
+              "copy_suggested_ranges": 159614,
+              "copy_compared_ranges": 159055,
+              "verified_groups": 1,
+              "worker_ns": 2419917100,
+              "queued_kernel_wait_ns": 2279900,
+              "queued_worker_wall_ns": 2356830000
+            },
+            {
+              "run": "local-run-545441446acb4ddda6e422226ce8dd73",
+              "receipt_sha256": "e7eef9f5b653d7c01a2119be9d360d0ae8e68aa513586f1b4b51958bf4425d63",
+              "log_sha256": "63b67f7dabf2865de2dcb66131c5f91edd1a60b48a4283ba768c05936c613955",
+              "peak_job_bytes": 118038528,
+              "tree_retired": true,
+              "submitted_kernel_launches": 14,
+              "largest_dispatch_members": 3,
+              "copy_suggested_ranges": 159614,
+              "copy_compared_ranges": 159055,
+              "verified_groups": 1,
+              "worker_ns": 2990814500,
+              "queued_kernel_wait_ns": 2406500,
+              "queued_worker_wall_ns": 2923737900
+            }
+          ]
+        },
+        "wide-copy": {
+          "submissions": 5,
+          "exchange_median_ns": 2445138700,
+          "runs": [
+            {
+              "run": "local-run-e6e9cb5b625b4168ace49e9a34baa6fd",
+              "receipt_sha256": "17b4d5b748289ecf7d5f966e3b27af1dcb9595f616a79cdd8675e16622294d60",
+              "log_sha256": "1c5d74e44e543f819dcb39726fb748427b132b25afad8a82e5352b83e18f2663",
+              "peak_job_bytes": 118550528,
+              "tree_retired": true,
+              "submitted_kernel_launches": 5,
+              "largest_dispatch_members": 12,
+              "copy_suggested_ranges": 159614,
+              "copy_compared_ranges": 159055,
+              "verified_groups": 1,
+              "worker_ns": 2398914300,
+              "queued_kernel_wait_ns": 2419000,
+              "queued_worker_wall_ns": 2332665800
+            },
+            {
+              "run": "local-run-36a40f0f2f724b6487951b41f456014c",
+              "receipt_sha256": "560777b2fc863da496c0a4cc1b421b57a5a35924fe53b07ee245e6e90f039d5c",
+              "log_sha256": "d431c14afcb704253784ff974fb5e456145365118282429ce093bac1ffe83fef",
+              "peak_job_bytes": 118538240,
+              "tree_retired": true,
+              "submitted_kernel_launches": 5,
+              "largest_dispatch_members": 12,
+              "copy_suggested_ranges": 159614,
+              "copy_compared_ranges": 159055,
+              "verified_groups": 1,
+              "worker_ns": 2491363100,
+              "queued_kernel_wait_ns": 2481200,
+              "queued_worker_wall_ns": 2435336200
+            }
+          ]
+        }
+      },
+      "code": {
+        "bank_sha256": "a76af508156dc6984810c6f01d2736bf7bd18112d51dcc1d431b7bfdfa1e8d57",
+        "plaintext_blake3": "5f89cd7cbed6c82bc2507e844ab79cc116407492d35ec78ae4f658881dcd0c07",
+        "compacted_bytes_both_modes": 278528,
+        "files": 20,
+        "queued": {
+          "submissions": 15,
+          "exchange_median_ns": 2688065650,
+          "runs": [
+            {
+              "run": "local-run-d4a4a09803be45d0a24dbafc336a4dae",
+              "receipt_sha256": "103417bd50c4c8e327fee6b700be04d39221d6866b002b1662fde67bd8732abd",
+              "log_sha256": "56d46e0ab129836eb14bf0333caf9b85b1773eb7ae80b20ef5ba2709de09f7e0",
+              "peak_job_bytes": 115798016,
+              "tree_retired": true,
+              "submitted_kernel_launches": 15,
+              "largest_dispatch_members": 3,
+              "copy_suggested_ranges": 70430,
+              "copy_compared_ranges": 32922,
+              "verified_groups": 5,
+              "worker_ns": 2421239500,
+              "queued_kernel_wait_ns": 0,
+              "queued_worker_wall_ns": 0
+            },
+            {
+              "run": "local-run-185cebe796eb413cb1e6b97e4211f621",
+              "receipt_sha256": "8331452fe3d1940d7aa31a815d1687118918317b1cad4be9966d03d3b2d6d6a4",
+              "log_sha256": "eb2a129caa06d3b4b5b1a5e20468002a4251e7f6ab1b95bb2eb973047c3a2bdc",
+              "peak_job_bytes": 115875840,
+              "tree_retired": true,
+              "submitted_kernel_launches": 15,
+              "largest_dispatch_members": 3,
+              "copy_suggested_ranges": 70430,
+              "copy_compared_ranges": 32922,
+              "verified_groups": 5,
+              "worker_ns": 2954891800,
+              "queued_kernel_wait_ns": 0,
+              "queued_worker_wall_ns": 0
+            }
+          ]
+        },
+        "wide-copy": {
+          "submissions": 10,
+          "exchange_median_ns": 2422682650,
+          "runs": [
+            {
+              "run": "local-run-ad55b1e53c8a4a6d85ae9f9c083496a2",
+              "receipt_sha256": "3ac0d45f73d1d7fe7e652944233333316aac9cecaa0708361e3dc17b53598902",
+              "log_sha256": "13890447ecf7c9b47f2c4d4cb3b4570e5397488d191f156c13188459cc0911d5",
+              "peak_job_bytes": 115900416,
+              "tree_retired": true,
+              "submitted_kernel_launches": 10,
+              "largest_dispatch_members": 4,
+              "copy_suggested_ranges": 70430,
+              "copy_compared_ranges": 32922,
+              "verified_groups": 5,
+              "worker_ns": 2363040300,
+              "queued_kernel_wait_ns": 0,
+              "queued_worker_wall_ns": 0
+            },
+            {
+              "run": "local-run-f9fce3900fbc44ac92b54476c2b0b8be",
+              "receipt_sha256": "23db21cbbcfc01a905b8d3865959bbbe2f768e45ffaf808c45118e09951fdb3e",
+              "log_sha256": "12cabe36b51f7652a41b8f02f2d7bce2a1caf21eb318249578e2107db7546565",
+              "peak_job_bytes": 115060736,
+              "tree_retired": true,
+              "submitted_kernel_launches": 10,
+              "largest_dispatch_members": 4,
+              "copy_suggested_ranges": 70430,
+              "copy_compared_ranges": 32922,
+              "verified_groups": 5,
+              "worker_ns": 2482325000,
+              "queued_kernel_wait_ns": 0,
+              "queued_worker_wall_ns": 0
+            }
+          ]
+        }
+      }
+    }
+  },
+  "installed_route_fixture": {
+    "manifest_sha256": "05d19cb78392da02f4c97579dbd20c5a1bbfa3cbe30d3768da2d8c9b609315a2",
+    "accepted": {
+      "run": "local-run-0e43ee0209ee4b1490bc5e9b15d4f5ef",
+      "receipt_sha256": "46a8ef6c20790eed64dfe0b35d3ab26157eb843ee14427e6876fff1af00ea692",
+      "log_sha256": "93a68be6044c93880fbd32e047e1fffa3aa3544921a5e4207519cd394baeb8ac",
+      "peak_job_bytes": 104321024,
+      "tree_retired": true,
+      "mode": "accept",
+      "host": 1,
+      "quanta": 13,
+      "groups": 1,
+      "continued_steps": 40,
+      "settled_ms": 13157,
+      "maximum_quantum_ns": 20338800,
+      "declined_groups": 0,
+      "phase": 0,
+      "sampled": 11,
+      "attempted": 2,
+      "cpu_limit_ppm": 500000,
+      "submitted": 1,
+      "verified": 1,
+      "submitted_queued_batches": 0,
+      "verified_queued_batches": 0,
+      "dispatches_per_wait": 0,
+      "submitted_groups": 1,
+      "verified_groups": 1,
+      "submitted_kernel_launches": 2,
+      "largest_dispatch_members": 4,
+      "copy_suggested_ranges": 16384,
+      "copy_compared_ranges": 14301,
+      "copy_suggested_bytes": 343914,
+      "copy_compared_bytes": 245409,
+      "declined": 0,
+      "yielded": 0,
+      "integrity_failures": 0,
+      "empty_xor_batches": 0,
+      "advised_members": 4,
+      "installed_attempts": 1,
+      "metadata_queries": 1,
+      "installed_status": 0,
+      "handles_before": 138,
+      "handles_after": 319,
+      "retired": "true",
+      "cpu_readback_verified": "true",
+      "deferrals": "9,1,0,0,0,3,0,0,"
+    },
+    "stopped": {
+      "mode": "stop",
+      "host": 1,
+      "quanta": 6,
+      "groups": 0,
+      "continued_steps": 20,
+      "settled_ms": 5062,
+      "maximum_quantum_ns": 1851300,
+      "declined_groups": 0,
+      "phase": 3,
+      "sampled": 5,
+      "attempted": 1,
+      "cpu_limit_ppm": 500000,
+      "submitted": 0,
+      "verified": 0,
+      "submitted_queued_batches": 0,
+      "verified_queued_batches": 0,
+      "dispatches_per_wait": 0,
+      "submitted_groups": 0,
+      "verified_groups": 0,
+      "submitted_kernel_launches": 0,
+      "largest_dispatch_members": 0,
+      "copy_suggested_ranges": 0,
+      "copy_compared_ranges": 0,
+      "copy_suggested_bytes": 0,
+      "copy_compared_bytes": 0,
+      "declined": 0,
+      "yielded": 0,
+      "integrity_failures": 0,
+      "empty_xor_batches": 0,
+      "advised_members": 0,
+      "installed_attempts": 1,
+      "metadata_queries": 0,
+      "installed_status": 14,
+      "handles_before": 319,
+      "handles_after": 319,
+      "retired": "true",
+      "cpu_readback_verified": "true",
+      "deferrals": "3,0,0,2,0,1,0,0,"
+    },
+    "handle_check": {
+      "handles_between": 319,
+      "handles_after": 319
+    },
+    "two_groups_one_worker": {
+      "run": "local-run-d392e433728e4a88b649d95e0b9842e6",
+      "receipt_sha256": "9f7a879162ff2d3ce295ee00b1ed8e961863a7722ec6aa230cb8a299a68e81a1",
+      "log_sha256": "02803efd1e081552cc971c98a6bed2093a693d47adfdfb21286b51df4bc26672",
+      "peak_job_bytes": 118231040,
+      "tree_retired": true,
+      "mode": "batch",
+      "host": 1,
+      "quanta": 11,
+      "groups": 2,
+      "continued_steps": 39,
+      "settled_ms": 10750,
+      "maximum_quantum_ns": 16389900,
+      "declined_groups": 0,
+      "phase": 0,
+      "sampled": 8,
+      "attempted": 2,
+      "cpu_limit_ppm": 500000,
+      "submitted": 1,
+      "verified": 1,
+      "submitted_queued_batches": 0,
+      "verified_queued_batches": 0,
+      "dispatches_per_wait": 0,
+      "submitted_groups": 2,
+      "verified_groups": 2,
+      "submitted_kernel_launches": 4,
+      "largest_dispatch_members": 2,
+      "copy_suggested_ranges": 16384,
+      "copy_compared_ranges": 14288,
+      "copy_suggested_bytes": 343978,
+      "copy_compared_bytes": 245282,
+      "declined": 0,
+      "yielded": 0,
+      "integrity_failures": 0,
+      "empty_xor_batches": 0,
+      "advised_members": 4,
+      "installed_attempts": 1,
+      "metadata_queries": 1,
+      "installed_status": 0,
+      "handles_before": 138,
+      "handles_after": 319,
+      "retired": "true",
+      "cpu_readback_verified": "true",
+      "deferrals": "8,0,0,0,0,3,0,0,"
+    }
+  },
+  "legacy_worker_refusal": {
+    "run": "local-run-22ff075cd9c049cba2eebdab215293f6",
+    "receipt_sha256": "356805f3beb9bd1faaf47e2983b3d65eef4c9529b3df428cc1c82ac5f541698b",
+    "log_sha256": "86dfffd667f79c262b244ec5394c61fb4182217026da80ce3c6fe91ab0b06a01",
+    "peak_job_bytes": 50176000,
+    "tree_retired": true,
+    "mode": "amd",
+    "cohort": "revision-corpus",
+    "sparse_device": 0,
+    "reply_bytes": 0,
+    "copy_suggested_ranges": 0,
+    "copy_compared_ranges": 0,
+    "copy_suggested_bytes": 0,
+    "copy_compared_bytes": 0,
+    "files": 40,
+    "groups": 1,
+    "advised_members": 0,
+    "capability": 9,
+    "submitted": 1,
+    "verified_batches": 0,
+    "worker_ns": 46935400,
+    "submitted_groups": 1,
+    "verified_groups": 0,
+    "cpu_groups_before_gpu_reply": 0,
+    "submitted_queued_batches": 1,
+    "verified_queued_batches": 0,
+    "dispatches_per_wait": 0,
+    "queued_worker_wall_ns": 0,
+    "queued_kernel_wait_ns": 0,
+    "submitted_kernel_launches": 5,
+    "largest_dispatch_members": 12,
+    "empty_batches": 0,
+    "discovery_ns": 288659400,
+    "maintenance_ns": 57768200,
+    "compact_verify_ns": 44413100,
+    "input_compacted_bytes": 204800,
+    "grouped_compacted_bytes": 196608,
+    "packed_widths": 0,
+    "packed_payload_bytes": 0,
+    "sampled_bias_members": 0,
+    "sparse_bodies": 0,
+    "delta_bodies": 0,
+    "reference_batches": 0,
+    "reselected_groups": 0,
+    "cpu_reference_pairs": 234,
+    "published_references_changed": 0,
+    "section_reference_groups": 0,
+    "packed_reference_groups": 1,
+    "retired": "true",
+    "independent_cpu_readback": "true",
+    "modeled_idle_time": "true",
+    "input_blake3": "4371391709ab54422f78e2cd81c7d8287b9563c90bb00d9a784bcd7c3427893a"
+  },
+  "scope": [
+    "Copy dispatch count includes one index dispatch per group in the verified complete batch.",
+    "Occupied sizes include compressed or packed objects and indexed storage overhead after compaction.",
+    "The live package fixture exercised app-relative acquisition and WinFsp SDK callbacks on Windows.",
+    "Worker timing varies within these pairs. Mounted throughput and end-to-end speed benefit remain open."
+  ]
+}

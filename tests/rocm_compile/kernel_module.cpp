@@ -37,6 +37,7 @@ const flitzfs::match_detail::KernelApi* flitzfs_rocm_match_api_v1() noexcept {
 namespace flitzfs::anchor_match {
 void bind_anchor_kernels(KernelApi&) noexcept;
 void bind_anchor_window_search(WindowSearchApi&) noexcept;
+void bind_anchor_wide_search(WindowSearchApi&) noexcept;
 void bind_anchor_packed_xor_window(WindowSearchApi&) noexcept;
 void bind_anchor_wide_xor_window(WindowSearchApi&) noexcept;
 void bind_anchor_adaptive_xor_window(WindowSearchApi&) noexcept;
@@ -63,6 +64,17 @@ const flitzfs::anchor_match::WindowSearchApi* flitzfs_rocm_anchor_window_api_v2(
   static const auto api=[]() noexcept {
     WindowSearchApi value{sizeof(WindowSearchApi),window_abi_version,nullptr};
     bind_anchor_window_search(value);
+    return value;
+  }();
+  return &api;
+}
+
+extern "C" __declspec(dllexport)
+const flitzfs::anchor_match::WindowSearchApi* flitzfs_rocm_anchor_window_api_v11() noexcept {
+  using namespace flitzfs::anchor_match;
+  static const auto api=[]() noexcept {
+    WindowSearchApi value{sizeof(WindowSearchApi),wide_anchor_window_abi_version,nullptr};
+    bind_anchor_wide_search(value);
     return value;
   }();
   return &api;

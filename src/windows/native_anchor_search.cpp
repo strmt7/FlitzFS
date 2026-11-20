@@ -24,6 +24,13 @@ template<std::size_t N>std::wstring hex(const std::array<std::byte,N>& bytes) {
 }
 constexpr std::uint64_t mib=1024*1024,million=1000000;
 constexpr DWORD retirement_grace_ms=2000;
+
+bool valid_dispatch_grant(const NativeAnchorSearchOptions& options) noexcept {
+  if(options.output!=anchor_match::BatchOutput::wide_anchors)return true;
+  const auto members=options.maximum_dispatch_members;
+  return members>anchor_match::max_members && members<=options.maximum_members &&
+      members<=detail::anchor_match_batch_member_limit();
+}
 bool valid_anchor_route(const HipDiscoveredRoute& route) noexcept {
   return route.ordinal<64 && route.pins && route.pins->anchor_module_pinned() &&
       route.pins->matches(route.helper,route.identity,route.runtime_sha256,static_cast<int>(route.ordinal),route.memory);
@@ -33,7 +40,7 @@ std::optional<NativeAnchorLaunchPlan> plan_native_anchor_launch(
     std::span<const std::uint32_t> members, const NativeAnchorSearchOptions& options,
     const GpuMemorySnapshot& observed, std::uint64_t now, bool permits_reference_change) {
   const auto total = std::accumulate(members.begin(), members.end(), std::uint64_t{0});
-  if (!options.minimum_members || total < options.minimum_members ||
+  if (!options.minimum_members || !valid_dispatch_grant(options) || total < options.minimum_members ||
       total > options.maximum_members || total > detail::anchor_match_batch_member_limit() ||
       std::ranges::find(members, 0U) != members.end()) return {};
   const auto largest = *std::ranges::max_element(members);
@@ -151,7 +158,8 @@ struct NativeAnchorSearchController::Impl {
         options.minimum_members<=detail::anchor_match_batch_member_limit() &&
         (!anchor_match::compact_output(options.output) || options.maximum_dispatch_members) &&
         options.dispatches_per_wait && options.dispatches_per_wait<=kAnchorProfileMaxQueuedDispatches &&
-        (options.dispatches_per_wait==1 || options.output==anchor_match::BatchOutput::anchors) &&
+        (options.dispatches_per_wait==1 || anchor_match::copy_output(options.output)) &&
+        valid_dispatch_grant(options) &&
         options.duty_ppm && options.duty_ppm<=100000 &&
         options.worker.memory_share_divisor && valid_process_budget(options.worker);
   }
@@ -280,6 +288,8 @@ void NativeAnchorSearchController::start(std::span<const NativeSharedBaseSearchW
         plan.output==Output::modular_delta?L"--driver-anchor-modular-delta-batch":
         plan.output==Output::wide_packed_xor?L"--driver-anchor-xor-wide-batch":
         plan.output==Output::packed_xor?L"--driver-anchor-xor-batch":
+        plan.output==Output::wide_anchors?
+            (profile?L"--driver-anchor-wide-transfer-profile":L"--driver-anchor-wide-transfer-batch"):
         profile?L"--driver-anchor-transfer-batch-profile":L"--driver-anchor-transfer-batch";
     std::vector<std::wstring> arguments{command,std::to_wstring(route.ordinal),hex(route.memory.luid),
         std::to_wstring(route.memory.node_mask),hex(route.runtime_sha256),std::to_wstring(capacity.request_bytes),
@@ -296,6 +306,8 @@ void NativeAnchorSearchController::start(std::span<const NativeSharedBaseSearchW
     ++self.stats.submitted;
     if(dispatches_per_wait>1)++self.stats.submitted_queued_batches;
     self.stats.submitted_groups+=windows.size();
+    self.stats.submitted_kernel_launches+=plan.launches;
+    self.stats.largest_dispatch_members=(std::max)(self.stats.largest_dispatch_members,plan.quantum_members);
   }catch(...) {
     ++self.stats.declined;
     if(ticket) {
@@ -349,7 +361,7 @@ void NativeAnchorSearchController::observe(std::uint64_t activity,std::uint64_t 
       try {
         self.replies.reserve(self.windows.size());
         const auto output=flight.request.plan().output;
-        if(output!=anchor_match::BatchOutput::anchors) {
+        if(!anchor_match::copy_output(output)) {
           const bool reference=output==anchor_match::BatchOutput::reference_xor;
           std::vector<std::uint32_t> selected_references(reference?self.windows.size():0);
           self.packed_advice=detail::decode_anchor_packed_batch_reply(result->response,flight.request,selected_references);

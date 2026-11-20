@@ -65,15 +65,30 @@ void flitzfs_anchor_search_v1(const unsigned char* source,unsigned int members,
   output[lane]=search(source,member,table,lane%tiles);
 }
 
+namespace {
+template<unsigned abi,unsigned member_limit>
+__device__ __forceinline__
+void search_anchor_window(const unsigned char* base,const unsigned char* window,unsigned int members,
+    const flitzfs::anchor_match::Bucket* table,unsigned int* output,unsigned int version) {
+  using namespace flitzfs::anchor_match;
+  const auto lane=blockIdx.x*threads+threadIdx.x;
+  if(version!=abi || !members || members>member_limit || lane>=members*tiles ||
+      !base || !window || !table || !output) return;
+  const auto* member=window+(lane/tiles)*extent_bytes;
+  output[lane]=search(base,member,table,lane%tiles);
+}
+}
 extern "C" __global__ __attribute__((amdgpu_flat_work_group_size(64,64)))
 void flitzfs_anchor_search_window_v2(const unsigned char* base,const unsigned char* window,unsigned int members,
     const flitzfs::anchor_match::Bucket* table,unsigned int* output,unsigned int version) {
   using namespace flitzfs::anchor_match;
-  const auto lane=blockIdx.x*threads+threadIdx.x;
-  if (version!=window_abi_version || !members || members>max_members || lane>=members*tiles ||
-      !base || !window || !table || !output) return;
-  const auto* member=window+(lane/tiles)*extent_bytes;
-  output[lane]=search(base,member,table,lane%tiles);
+  search_anchor_window<window_abi_version,max_members>(base,window,members,table,output,version);
+}
+extern "C" __global__ __attribute__((amdgpu_flat_work_group_size(64,64)))
+void flitzfs_anchor_search_window_v11(const unsigned char* base,const unsigned char* window,unsigned int members,
+    const flitzfs::anchor_match::Bucket* table,unsigned int* output,unsigned int version) {
+  using namespace flitzfs::anchor_match;
+  search_anchor_window<wide_anchor_window_abi_version,wide_anchor_members>(base,window,members,table,output,version);
 }
 
 namespace {
@@ -538,6 +553,9 @@ void bind_anchor_kernels(KernelApi& api) noexcept {
 }
 void bind_anchor_window_search(WindowSearchApi& api) noexcept {
   api.search=flitzfs_anchor_search_window_v2;
+}
+void bind_anchor_wide_search(WindowSearchApi& api) noexcept {
+  api.search=flitzfs_anchor_search_window_v11;
 }
 void bind_anchor_packed_xor_window(WindowSearchApi& api) noexcept {
   api.search=flitzfs_anchor_packed_xor_v3;

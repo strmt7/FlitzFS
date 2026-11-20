@@ -23,9 +23,11 @@ inline constexpr u32 window_abi_version=2,packed_xor_window_abi_version=3,wide_x
 inline constexpr u32 adaptive_xor_window_abi_version=5,modular_delta_window_abi_version=6;
 inline constexpr u32 sparse_xor_window_abi_version=7;
 inline constexpr u32 sparse_xor_arena_abi_version=8,collective_arena_abi_version=9,reference_price_abi_version=10;
+inline constexpr u32 wide_anchor_window_abi_version=11;
 constexpr u32 window_version(BatchOutput output) noexcept {
   switch(output) {
     case BatchOutput::anchors:return window_abi_version;
+    case BatchOutput::wide_anchors:return wide_anchor_window_abi_version;
     case BatchOutput::packed_xor:return packed_xor_window_abi_version;
     case BatchOutput::wide_packed_xor:return adaptive_xor_window_abi_version;
     case BatchOutput::modular_delta:return modular_delta_window_abi_version;

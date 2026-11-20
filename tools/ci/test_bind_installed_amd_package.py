@@ -70,6 +70,7 @@ class PackageTests(unittest.TestCase):
         self.assertIn("has_uniform=false", header)
         self.assertIn("anchor_minimum_members=4U", header)
         self.assertIn("anchor_dispatches_per_wait=1U", header)
+        self.assertIn("anchor_maximum_dispatch_members=0U", header)
         self.assertEqual(files, ["qualification-manifest.json", ANCHOR_EVIDENCE, ANCHOR_WORKER,
                                 ANCHOR_MODULE, "licenses/blake3/LICENSE_CC0"])
 
@@ -103,6 +104,25 @@ class PackageTests(unittest.TestCase):
         self.assertIn("anchor_minimum_members=512U", header)
         self.assertIn("anchor_maximum_members=2048U", header)
         self.assertIn("anchor_dispatches_per_wait=4U", header)
+
+    def test_profile_can_enable_versioned_wide_copy_dispatch(self):
+        self.anchor()["maximum_dispatch_members"] = 12
+        with patch("bind_installed_amd_package.pe_function_exports",
+                   return_value={"flitzfs_rocm_anchor_window_api_v11"}):
+            header, _ = self.bind()
+        self.assertIn("anchor_maximum_dispatch_members=12U", header)
+
+    def test_profile_rejects_a_legacy_copy_module_for_wide_dispatch(self):
+        self.anchor()["maximum_dispatch_members"] = 12
+        with patch("bind_installed_amd_package.pe_function_exports",
+                   return_value={"flitzfs_rocm_anchor_window_api_v2"}):
+            with self.assertRaisesRegex(RuntimeError, "lacks its dispatch entry"):
+                self.bind()
+
+    def test_dispatch_must_fit_the_approved_batch(self):
+        self.anchor()["maximum_dispatch_members"] = 17
+        with self.assertRaisesRegex(RuntimeError, "Anchor dispatch exceeds approved batch work"):
+            self.bind()
 
     def test_profile_refuses_an_unverified_dispatch_queue(self):
         self.anchor()["dispatches_per_wait"] = 5

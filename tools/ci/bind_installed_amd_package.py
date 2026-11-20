@@ -10,6 +10,7 @@ import re
 import stat
 
 from check_portable_cpu import pe_import_names, require
+from hip_runtime_exports import pe_function_exports
 
 
 UNIFORM_WORKER = "flitzfs_hip_lz4_worker.exe"
@@ -87,12 +88,14 @@ def bind(package: Path, approved: str) -> tuple[str, list[str]]:
     def array_literal(value: bytes) -> str:
         return ", ".join(f"std::byte{{0x{byte:02x}}}" for byte in value)
 
-    def artifact(name: str, field: str, worker: bool) -> str:
+    def artifact(name: str, field: str, worker: bool, required_export: str | None = None) -> str:
         contents, digest = verified(name, (8 if worker else 128) * 1024 * 1024)
         imports, delayed = pe_import_names(contents, allow_delay=True)
         allowed = WORKER_SYSTEM_IMPORTS if worker else WORKER_SYSTEM_IMPORTS | {runtime}
         require(bool(imports) and set(imports + delayed) <= allowed
                 and (not worker or not delayed), f"Unexpected PE dependencies for {name}")
+        if required_export:
+            require(required_export in pe_function_exports(contents), "Approved wide anchor module lacks its dispatch entry")
         return f"inline constexpr std::array {field}{{{array_literal(digest)}}};\n"
 
     zero = "inline constexpr std::array<std::byte,32> {}{{}};\n"
@@ -124,10 +127,15 @@ def bind(package: Path, approved: str) -> tuple[str, list[str]]:
             "duty_ppm": integer(anchor, "duty_ppm", 1, 100000),
             "dispatches_per_wait": integer(anchor, "dispatches_per_wait", 1, 4)
             if "dispatches_per_wait" in anchor else 1,
+            "maximum_dispatch_members": integer(anchor, "maximum_dispatch_members", 4, 0xffffffff)
+            if "maximum_dispatch_members" in anchor else 0,
         }
         require(fields["minimum_members"] <= fields["maximum_members"], "Inverted anchor work range")
+        maximum_dispatch = fields["maximum_dispatch_members"]
+        require(maximum_dispatch <= fields["maximum_members"], "Anchor dispatch exceeds approved batch work")
         result += artifact(ANCHOR_WORKER, "anchor_worker_sha256", True)
-        result += artifact(ANCHOR_MODULE, "anchor_module_sha256", False)
+        dispatch_export = "flitzfs_rocm_anchor_window_api_v11" if maximum_dispatch else None
+        result += artifact(ANCHOR_MODULE, "anchor_module_sha256", False, dispatch_export)
         result += f"inline constexpr std::array anchor_runtime_sha256{{{array_literal(bytes.fromhex(runtime_digest))}}};\n"
         result += "".join(f"inline constexpr std::uint32_t anchor_{key}={value}U;\n" for key, value in fields.items())
     for record in files:

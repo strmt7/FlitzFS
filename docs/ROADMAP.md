@@ -33,6 +33,14 @@ setup dominated the paired runs. Qualify finite setup reuse and measured
 workload selection before preferring AMD for ordinary writes or idle work.
 [Matched copy-search evidence](evidence/amd-word-copy-search-2026-11-20.json)
 
+Approved AMD copy searches now put more extents in each admitted dispatch.
+The Lucide and public code trials reduced submissions from 14 to 5 and
+from 15 to 10, respectively. Their complete compacted sizes and recovered
+file bytes matched. The new worker entry stays within an explicitly funded
+batch. Further qualification should measure the remaining setup cost and
+interference across larger natural workloads.
+[Live dispatch evidence](evidence/amd-wide-copy-dispatch-2026-11-20.json)
+
 The [indexed native writer](INDEXED_NATIVE_VOLUME.md) now creates and mutates
 paged names, inodes and extents through the existing path transaction API.
 The 1,024-file Windows fixture verified byte readback, restart and simulated

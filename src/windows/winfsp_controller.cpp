@@ -368,6 +368,9 @@ struct WinFspVolumeController::Impl {
           anchor=std::make_unique<NativeAnchorSearchController>(NativeAnchorSearchOptions{
               .route=std::move(*acquisition.route),.worker=installed->worker,.minimum_members=installed->minimum_members,
               .maximum_members=installed->maximum_members,.duty_ppm=installed->duty_ppm,
+              .output=installed->maximum_dispatch_members?
+                  anchor_match::BatchOutput::wide_anchors:anchor_match::BatchOutput::anchors,
+              .maximum_dispatch_members=installed->maximum_dispatch_members,
               .dispatches_per_wait=installed->dispatches_per_wait});
         }
       }catch(...) {acquisition.status=HipDiscoveryStatus::resource_deferred;}

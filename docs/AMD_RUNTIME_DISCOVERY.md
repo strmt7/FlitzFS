@@ -33,6 +33,7 @@ allocation and release. [DXGI adapter identifiers](https://learn.microsoft.com/e
 | `worker_memory_mib`, `memory_share_divisor`, `worker_cpu_rate`, `worker_timeout_ms` | Measured fixed child allowance and resource limits. Current geometry adds actual staging and transport charges. |
 | `maximum_identity_queries`, `duty_ppm` | Input-work and worker pacing limits |
 | `dispatches_per_wait` | Optional qualified copy-search queue depth from 1 to 4. The admitted transfer must contain a full wait group at that depth. Omission selects 1. |
+| `maximum_dispatch_members` | Optional measured copy-search dispatch ceiling above three and within the approved batch size. The compute module must export the version 11 window API. Omission selects the version 2 copy-search path. |
 
 The pinned manifest authenticates the approval and its exact artifacts.
 Qualification must establish useful size or throughput benefit for the

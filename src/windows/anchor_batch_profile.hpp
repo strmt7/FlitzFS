@@ -26,7 +26,7 @@ inline AnchorBatchProfileBinding anchor_batch_profile_binding(const detail::Anch
   const auto groups=request.groups();
   const auto wide=plan.output==anchor_match::BatchOutput::wide_packed_xor;
   hip_phase_detail::require((wide || plan.output==anchor_match::BatchOutput::sparse_xor ||
-      plan.output==anchor_match::BatchOutput::anchors) &&
+      anchor_match::copy_output(plan.output)) &&
       !groups.empty() && groups.size()==plan.groups.size() &&
       transfer==detail::plan_anchor_match_transfers(plan,transfer.device_bytes) &&
       dispatches_per_wait && dispatches_per_wait<=kAnchorProfileMaxQueuedDispatches);
@@ -41,10 +41,11 @@ namespace anchor_batch_profile_detail {
 inline std::array<std::byte,8> marker(anchor_match::BatchOutput output,bool setup) {
   const auto wide=output==anchor_match::BatchOutput::wide_packed_xor;
   const auto sparse=output==anchor_match::BatchOutput::sparse_xor;
-  hip_phase_detail::require(wide || (sparse && setup) || (!setup && output==anchor_match::BatchOutput::anchors));
+  hip_phase_detail::require(wide || (sparse && setup) || (!setup && anchor_match::copy_output(output)));
   return {std::byte{'F'},std::byte{'L'},std::byte{'H'},std::byte{'P'},
       std::byte{'B'},std::byte{'0'},std::byte{'0'},
-      sparse?std::byte{'5'}:setup?std::byte{'4'}:wide?std::byte{'3'}:std::byte{'2'}};
+      sparse?std::byte{'5'}:setup?std::byte{'4'}:wide?std::byte{'3'}:
+      output==anchor_match::BatchOutput::wide_anchors?std::byte{'6'}:std::byte{'2'}};
 }
 inline constexpr auto work_at=hip_phase_detail::common_bytes;
 using Work=std::array<std::uint32_t,7>;

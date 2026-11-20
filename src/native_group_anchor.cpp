@@ -32,6 +32,7 @@ constexpr std::string_view collective_request_magic="FLFSABQ\5";
 constexpr std::string_view collective_batch_magic="FLFSACP\1",collective_group_magic="FLFSACG\1";
 constexpr std::string_view reference_request_magic="FLFSABQ\6";
 constexpr std::string_view reference_batch_magic="FLFSARP\1",reference_group_magic="FLFSARG\1";
+constexpr std::string_view wide_anchor_request_magic="FLFSABQ\7",wide_anchor_reply_magic="FLFSABP\2";
 constexpr std::uint32_t group_prefix_bytes=4;
 constexpr auto minimum_group_request=group_prefix_bytes+header_size+2*match::extent_bytes;
 constexpr auto execution=static_cast<std::uint32_t>(WorkerExecution::hip);
@@ -93,6 +94,7 @@ void check_header(std::span<const std::byte> frame,std::string_view magic,std::u
 }
 
 std::string_view batch_request_tag(match::BatchOutput output) noexcept {
+  if(output==match::BatchOutput::wide_anchors)return wide_anchor_request_magic;
   if(output==match::BatchOutput::reference_xor)return reference_request_magic;
   if(output==match::BatchOutput::collective)return collective_request_magic;
   if(output==match::BatchOutput::modular_delta)return delta_request_magic;
@@ -100,6 +102,7 @@ std::string_view batch_request_tag(match::BatchOutput output) noexcept {
   return match::wide_output(output)?wide_xor_request_magic:batch_request_magic;
 }
 std::string_view batch_reply_tag(match::BatchOutput output) noexcept {
+  if(output==match::BatchOutput::wide_anchors)return wide_anchor_reply_magic;
   if(output==match::BatchOutput::reference_xor)return reference_batch_magic;
   if(output==match::BatchOutput::collective)return collective_batch_magic;
   if(output==match::BatchOutput::sparse_xor)return sparse_batch_magic;
@@ -158,7 +161,7 @@ std::uint32_t anchor_match_members(std::span<const std::byte> source) {
 }
 
 AnchorMatchLayout anchor_match_layout(std::uint32_t members,match::BatchOutput output) {
-  require(output==match::BatchOutput::anchors || output==match::BatchOutput::packed_xor ||
+  require(match::copy_output(output) || output==match::BatchOutput::packed_xor ||
       match::wide_output(output),"unknown anchor reply layout");
   const auto member_bytes=match::reply_member_bytes(output);
   require(members && members<=maximum_members &&
@@ -588,7 +591,7 @@ Bytes encode_anchor_match_batch_reply(const AnchorMatchBatchRequest& request,
     std::span<const std::vector<match::u32>> records,std::size_t reserve_tail_bytes) {
   const auto groups=request.groups();
   const auto& plan=request.plan();
-  const bool packed=plan.output!=match::BatchOutput::anchors;
+  const bool packed=!match::copy_output(plan.output);
   const auto slot_bytes=match::reply_member_bytes(plan.output);
   const auto words_per_member=slot_bytes/record_bytes;
   const auto batch_magic=batch_reply_tag(plan.output);
@@ -726,9 +729,9 @@ template<class ReadGroup>auto read_anchor_batch_reply(std::span<const std::byte>
 
 std::vector<AnchorMatchAdvice> accept_anchor_match_batch_reply(
     std::span<const std::byte> frame,const AnchorMatchBatchRequest& request,AnchorMatchVerificationWork* work) {
-  require(request.plan().output==match::BatchOutput::anchors,"copy reply requested for a packed XOR batch");
+  require(match::copy_output(request.plan().output),"copy reply requested for a packed XOR batch");
   AnchorMatchVerificationWork measured;
-  auto accepted=read_anchor_batch_reply(frame,request,batch_reply_magic,
+  auto accepted=read_anchor_batch_reply(frame,request,batch_reply_tag(request.plan().output),
       [counters=work?&measured:nullptr](auto bytes,const auto& group,auto) {
         return read_anchor_match_reply(bytes,group,&group.source_digest,counters);
       });
@@ -738,7 +741,7 @@ std::vector<AnchorMatchAdvice> accept_anchor_match_batch_reply(
 std::vector<AnchorPackedAdvice> decode_anchor_packed_batch_reply(
     std::span<const std::byte> frame,const AnchorMatchBatchRequest& request,std::span<std::uint32_t> references) {
   const auto output=request.plan().output;
-  require(output!=match::BatchOutput::anchors,"packed reply requested for a copy batch");
+  require(!match::copy_output(output),"packed reply requested for a copy batch");
   const bool compact=match::compact_output(output);
   const auto candidates=request.plan().reference_candidates;
   require(candidates?references.size()==request.groups().size():references.empty(),"anchor reply reference count");

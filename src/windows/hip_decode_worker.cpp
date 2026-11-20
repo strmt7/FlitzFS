@@ -296,7 +296,7 @@ AnchorReadback run_hip_anchor_groups(HMODULE runtime,
     AnchorSetupTiming* setup=nullptr,anchor_match::AnchorArenaKernel arena_search=nullptr,
     anchor_match::AnchorPriceKernel price=nullptr,anchor_match::u32 reference_candidates=0) {
   namespace match=anchor_match;
-  const bool packed=mode!=match::BatchOutput::anchors;
+  const bool packed=!match::copy_output(mode);
   const bool modular=mode==match::BatchOutput::modular_delta;
   const bool reference=mode==match::BatchOutput::reference_xor;
   const bool sparse=mode==match::BatchOutput::sparse_xor || reference;
@@ -335,20 +335,22 @@ AnchorReadback run_hip_anchor_groups(HMODULE runtime,
   const auto least=initialize_device(api,ordinal,luid,node_mask,[](auto identity) {
     return verified_single_gpu_node(query_windows_gpu_topology(identity),identity);
   });
-  if(packed) {
+  if(packed || mode==match::BatchOutput::wide_anchors) {
     hipDeviceProp_t properties{};
-    hip_detail::check_hip(api.properties(&properties,ordinal),"packed group launch properties",
+    hip_detail::check_hip(api.properties(&properties,ordinal),"anchor group launch properties",
         HipWorkerStage::device_properties);
     const auto shared_bytes=collective?sizeof(match::CollectivePackingScratch):
         modular?sizeof(match::ModularDeltaScratch):sparse?sizeof(match::SparseXorScratch):0;
-    if((!modular && ((properties.warpSize!=32 && properties.warpSize!=64) || !properties.arch.hasWarpShuffle)) ||
+    const auto blocks=packed?quantum:(std::max)(quantum*match::tiles/match::threads,
+        match::extent_bytes/match::threads);
+    if((packed && !modular && ((properties.warpSize!=32 && properties.warpSize!=64) || !properties.arch.hasWarpShuffle)) ||
         properties.sharedMemPerBlock<shared_bytes ||
         (arena_search && !properties.arch.hasGlobalInt32Atomics) ||
         properties.maxThreadsPerBlock<static_cast<int>(match::threads) ||
         properties.maxThreadsDim[0]<static_cast<int>(match::threads) ||
-        properties.maxGridSize[0]<static_cast<int>(quantum))
+        properties.maxGridSize[0]<static_cast<int>(blocks))
       throw HipWorkerFailure(HipWorkerExit::unsupported_configuration,
-          "packed group device geometry unavailable",HipWorkerStage::device_properties);
+          "anchor group device geometry unavailable",HipWorkerStage::device_properties);
   }
   const auto before=sampler.sample().snapshot;
   require_hip_memory(before,luid,node_mask,GetTickCount64(),allocation,HipMemoryPoint::initialized,&before_init);

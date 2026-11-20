@@ -60,7 +60,7 @@ HipRouteDiscoveryResult discover_installed_hip_route(ProcessBudget,std::uint32_t
 struct InstalledAnchorProfile {
   ProcessBudget worker;
   std::uint32_t minimum_members=0,maximum_members=0,duty_ppm=0;
-  std::uint32_t dispatches_per_wait=1;
+  std::uint32_t dispatches_per_wait=1,maximum_dispatch_members=0;
 };
 // Pure access to the approved profile embedded by the verifier at build time.
 std::optional<InstalledAnchorProfile> installed_anchor_profile() noexcept;

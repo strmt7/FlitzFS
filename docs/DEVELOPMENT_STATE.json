@@ -23,6 +23,29 @@
     "interactive_explorer_qualified": false,
     "live_amd_verified_groups": 8
   },
+  "amd_wide_copy_dispatch": {
+    "source_base": "dcd8e741f14017a69fc8db3622cb15697b9a7264",
+    "evidence": "docs/evidence/amd-wide-copy-dispatch-2026-11-20.json",
+    "worker_window_abi": 11,
+    "verified_live_trials": 12,
+    "submissions": {
+      "short": {
+        "legacy": 6,
+        "wide": 3
+      },
+      "lucide": {
+        "legacy": 14,
+        "wide": 5
+      },
+      "code": {
+        "legacy": 15,
+        "wide": 10
+      }
+    },
+    "legacy_worker_CPU_fallback": true,
+    "app_relative_AMD_binding_verified": true,
+    "mounted_performance_qualified": false
+  },
   "amd_word_copy_search": {
     "source_base": "a8c97557a3a41784b6ca7905ef4cc5e0b25db4fa",
     "evidence": "docs/evidence/amd-word-copy-search-2026-11-20.json",

@@ -72,7 +72,13 @@ struct CollectivePackingScratch {
   SparseXorScratch sparse;
   u32 body_offset,admitted;
 };
-enum class BatchOutput : u32 {anchors,packed_xor,wide_packed_xor,modular_delta,sparse_xor,collective,reference_xor};
+enum class BatchOutput : u32 {
+  anchors,packed_xor,wide_packed_xor,modular_delta,sparse_xor,collective,reference_xor,wide_anchors
+};
+
+constexpr bool copy_output(BatchOutput output) noexcept {
+  return output==BatchOutput::anchors || output==BatchOutput::wide_anchors;
+}
 
 constexpr bool arena_output(BatchOutput output) noexcept {
   return output==BatchOutput::sparse_xor || output==BatchOutput::collective || output==BatchOutput::reference_xor;
@@ -93,19 +99,22 @@ constexpr u32 reply_member_bytes(BatchOutput output) noexcept {
   return wide_output(output)?xor_wide_slot_bytes:xor_slot_bytes;
 }
 
+struct Bucket { u32 first,second; };
+static_assert(sizeof(Bucket)==8);
+inline constexpr u32 index_bytes=buckets*sizeof(Bucket);
+inline constexpr u32 wide_anchor_members=(0xffffffffU-extent_bytes-index_bytes)/(extent_bytes+xor_slot_bytes);
+static_assert(wide_anchor_members<=0xffffffffU/tiles);
+
 constexpr u32 dispatch_member_limit(BatchOutput output) noexcept {
-  // One shared base and disjoint input/result slots must fit the 32-bit slab.
-  // The work grant and live memory and grid limits further constrain each launch.
+  // The authenticated dispatch grant, device grid and live memory further
+  // constrain these representable slab sizes.
+  if(output==BatchOutput::wide_anchors)return wide_anchor_members;
   return wide_output(output)?
       (0xffffffffU-extent_bytes)/(extent_bytes+xor_wide_slot_bytes):max_members;
 }
 
-struct Bucket { u32 first,second; };
-static_assert(sizeof(Bucket)==8);
-inline constexpr u32 index_bytes=buckets*sizeof(Bucket);
-
 constexpr u32 device_bytes(u32 members,BatchOutput output=BatchOutput::anchors) noexcept {
-  // Preserve the narrow protocol's original grant. Wide XOR needs no index.
+  // Copy searches retain the base index. Narrow XOR keeps its existing layout.
   const auto index=wide_output(output)?0U:index_bytes;
   return (members+1)*extent_bytes+index+members*reply_member_bytes(output);
 }

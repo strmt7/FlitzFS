@@ -1224,7 +1224,8 @@ if(FLITZFS_BUILD_HIP_ROUTE_PROBE OR FLITZFS_INSTALLED_AMD_PACKAGE_DIR)
     include("${package_plan}")
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
       "${CMAKE_CURRENT_SOURCE_DIR}/tools/ci/bind_installed_amd_package.py"
-      "${CMAKE_CURRENT_SOURCE_DIR}/tools/ci/check_portable_cpu.py")
+      "${CMAKE_CURRENT_SOURCE_DIR}/tools/ci/check_portable_cpu.py"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tools/ci/hip_runtime_exports.py")
     foreach(package_file IN LISTS FLITZFS_APPROVED_AMD_FILES)
       set(package_source "${FLITZFS_INSTALLED_AMD_PACKAGE_DIR}/${package_file}")
       set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${package_source}")
