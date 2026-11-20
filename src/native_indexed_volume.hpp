@@ -98,6 +98,7 @@ class IndexedSharedBasePreparation final {
   bool stage_search(std::size_t maximum_members,std::weak_ptr<const void>& owner_window,NativeSharedBaseSearchPurpose);
   NativeSharedBaseSearchWindow search_window() const noexcept;
   bool price_reference();
+  void allow_packing(bool allowed) noexcept;
   bool advance(std::span<const NativeSharedBaseCopyRange>,const NativeSharedBaseSearchReply*);
   NativeSharedBaseCommit finish(PagedObjectStoreWriter&,const PagedObjectStoreSnapshot&,IndexedVolumeRoot&);
 
@@ -106,6 +107,7 @@ class IndexedSharedBasePreparation final {
     NativeExtentSelection selected;
     std::uint64_t object=0,generation=0,previous_base=0;
     std::vector<std::byte> frame;
+    std::size_t payload_bytes=0;
     bool skipped=false,reuse_bound_base=false,advised=false;
   };
   struct SearchWindow {
@@ -128,12 +130,18 @@ class IndexedSharedBasePreparation final {
     std::vector<std::vector<std::byte>> frames;
     std::size_t frame_bytes=0;
   };
+  struct PackedReference {
+    std::vector<std::byte> base;
+    std::vector<std::vector<std::byte>> frames;
+    std::size_t sampled=0,slice_offset=0,frame_bytes=0;
+  };
   std::vector<std::byte> read_member(Member&,bool find_reusable_anchor);
   std::size_t search_slot(std::size_t position) const noexcept;
   bool can_change_reference() const noexcept;
   void change_reference(std::uint32_t member);
   bool stage_section_reference();
   bool stage_prefixed_reference();
+  bool stage_packed_reference();
   bool complete_member();
   const PagedObjectStoreSnapshot& source_;
   IndexedVolumeRoot original_;
@@ -144,6 +152,7 @@ class IndexedSharedBasePreparation final {
   std::optional<SearchWindow> search_;
   std::optional<SectionReference> section_reference_;
   std::optional<PrefixedReference> prefixed_reference_;
+  std::optional<PackedReference> packed_reference_;
   ReferencePricing pricing_;
   std::size_t base_index_=0;
   std::uint64_t reusable_anchor_=0,reusable_generation_=0;
@@ -151,7 +160,7 @@ class IndexedSharedBasePreparation final {
   std::uint32_t group_capability_=3;
   std::uint32_t reference_member_=0;
   bool allow_subset_=false,invalidated_=false,search_storage_unavailable_=false;
-  bool section_comparison_finished_=false;
+  bool packing_admitted_=false,compare_sections_=false,section_comparison_finished_=false;
 };
 struct IndexedPreparationWatch {
   std::weak_ptr<IndexedSharedBasePreparation> preparation;

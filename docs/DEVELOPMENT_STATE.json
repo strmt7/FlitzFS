@@ -23,6 +23,22 @@
     "interactive_explorer_qualified": false,
     "live_amd_verified_groups": 8
   },
+  "indexed_packed_slices": {
+    "source_base": "ed97af22436939700a891bc0ec24fa7d8f9d6bff",
+    "evidence": "docs/evidence/indexed-packed-small-extents-2026-11-20.json",
+    "native_capability": 9,
+    "record_bytes": 80,
+    "matched_cpu_runs": 16,
+    "public_files_tested": 72,
+    "lucide_compacted_bytes": {
+      "baseline": 204800,
+      "candidate": 196608
+    },
+    "modeled_publication_interruptions": 279,
+    "live_amd_verified_groups": 2,
+    "independent_cpu_readback": true,
+    "mounted_performance_qualified": false
+  },
   "indexed_scoped_read_metadata": {
     "source_base": "35c8339253bb88d1d5375a372858d5623a024685",
     "evidence": "docs/evidence/indexed-scoped-read-metadata-2026-11-20.json",

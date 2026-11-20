@@ -215,6 +215,7 @@ struct NativeSharedBaseCommit {
   std::size_t members=0;
   NativeExtentSelection reference{}; // Linked extent that bears the published shared-base reference.
   bool section_reference=false;
+  bool packed_reference=false;
   std::size_t prefixed_zstd_members=0,advised_members=0;
   std::vector<std::uint64_t> skipped_objects; // Sorted, unmodified automatic candidates.
 };
@@ -617,6 +618,7 @@ class NativeFilesystemWriter final {
   bool stage_shared_base_search(SharedBaseWork&,std::size_t maximum_members,std::size_t retained_extents,
       NativeSharedBaseSearchPurpose=NativeSharedBaseSearchPurpose::advice);
   bool price_shared_base_reference(SharedBaseWork&);
+  void allow_shared_base_packing(SharedBaseWork&,bool) noexcept;
 
   using Recompression=ObjectStoreWriter::Rewrite;
   Recompression prepare_recompression(std::shared_ptr<StoreByteIo>,StoreIdentity,

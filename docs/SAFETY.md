@@ -28,6 +28,13 @@ digest as the older shared-base methods. The CPU checks frame bounds and
 decoded bytes before the optional representation can compete for publication.
 [Prefixed Zstandard members](INDEXED_NATIVE_VOLUME.md#prefixed-zstandard-members)
 
+A packed slice binds the inode and extent, exact protected base generation,
+bounded slice range and decoded payload digest. The reverse reference keeps
+the base reachable after a member is removed. The CPU reader rejects a
+malformed binding before exposing bytes. The packed group transaction
+preserved all acknowledged files across 279 modeled publication interruptions.
+[Packed slice recovery](evidence/indexed-packed-small-extents-2026-11-20.json)
+
 Indexed readers release all query metadata on success or failure. Each later
 request verifies the backing pages it needs. A single damaged name page copy
 returns the verified survivor and records degradation. Two damaged copies

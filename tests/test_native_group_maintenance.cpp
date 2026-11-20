@@ -4,8 +4,10 @@
 #include "flitzfs/read_only_file.hpp"
 #include "../src/native_group_anchor.hpp"
 #include "../src/native_group_codec.hpp"
+#include "../src/native_name_index.hpp"
 #include "anchor_search_fixture.hpp"
 #include "native_fs_fixture.hpp"
+#include <cstring>
 #include <iostream>
 namespace {
 using namespace flitzfs;using namespace native_fixture;
@@ -216,6 +218,109 @@ void indexed_prefixed_reference() {
   std::cout<<"indexed_prefixed_members="<<progress.prefixed_zstd_members
       <<" before_compacted_bytes="<<before<<" after_compacted_bytes="<<after<<" cpu_readback=true"
       <<" cuts="<<previous+complete<<" previous="<<previous<<" complete="<<complete<<"\n";
+}
+
+void indexed_packed_short_extents() {
+  if(!store_zstd_available())return;
+  constexpr auto names=16U;
+  constexpr StoreCompressionOptions policy{StoreCompressionMode::automatic,6,true};
+  std::vector<Bytes> pieces,inputs;
+  for(unsigned i=0;i<29;++i)pieces.push_back(data(81+i*47%119,78011+i));
+  const auto common=data(304,79429);
+  for(unsigned i=0;i<names;++i) {
+    auto& member=inputs.emplace_back(common);
+    for(unsigned j=0;j<16;++j) {
+      const auto& piece=pieces[(i*3+j*(2*i+1))%pieces.size()];
+      member.insert(member.end(),piece.begin(),piece.end());
+    }
+    member.push_back(static_cast<std::byte>(i+1));
+  }
+  Fixture f(4096,0,true,policy);
+  const auto path=[](unsigned id){return "short-"+std::to_string(id);};
+  for(unsigned i=0;i<names;++i)put(*f.session,path(i),inputs[i]);
+  const auto verify=[&](const NativeFilesystemSnapshot& snapshot,unsigned first=0) {
+    snapshot.verify_all();
+    for(auto i=first;i<names;++i)
+      require(snapshot.read(path(i),0,kNativeExtentBytes)==inputs[i],"packed slice changed acknowledged bytes");
+  };
+  const auto compacted=[&](const NativeFilesystemSnapshot& source,unsigned role) {
+    auto backing=ram(4096);
+    const auto writer=NativeFilesystemWriter::compact(source,backing,id(role),policy);
+    const auto checked=writer.snapshot();
+    verify(checked);
+    return backing->extent();
+  };
+  const auto resolve=[&](const StoreIdentity& key)->std::shared_ptr<StoreByteIo>{return key==id(1)?f.image:nullptr;};
+  f.session.reset();
+  const auto before=compacted(NativeVolumeHeadView::open(f.head,id(90),resolve).filesystem(),2);
+  const auto head_before=f.head->stable, image_before=f.image->stable;
+  f.session.emplace(NativeFileSession::resume_closed_indexed_volume(f.head,id(90),1,resolve,policy));
+  std::size_t cuts=0;
+  {
+    NativeGroupMaintenance maintenance(*f.session);
+    const auto calls=f.image->calls;
+    const auto progress=f.finish(maintenance);
+    cuts=f.image->calls-calls;
+    require(progress.published_groups==1 && progress.packed_reference_groups==1,
+        "normal maintenance did not choose the packed slice candidate");
+  }
+  f.session.reset();
+  const auto reopened=NativeVolumeHeadView::open(f.head,id(90),resolve);
+  const auto& selected=reopened.filesystem();
+  const auto after=compacted(selected,3);
+  require(after<before && selected.shared_base_info().bases==1 &&
+      selected.shared_base_info().members==names,"packed short extents did not save complete image bytes");
+
+  constexpr NativeImageStorage storage{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes};
+  const auto objects=PagedObjectStoreSnapshot::open(f.image,{kStoreMaxPhysicalBytes});
+  const detail::NativeNameIndex index(objects);
+  const auto object=index.find(detail::native_extent_key(selected.stat(path(0)).inode,0));
+  require(object.has_value(),"missing packed extent binding");
+  const auto frame=objects.read(*object);
+  require(frame.size()==80 && std::memcmp(frame.data(),"FLTXPD02",8)==0,
+      "packed member retained the legacy full-extent envelope");
+  for(const auto offset:{std::size_t{24},std::size_t{32},std::size_t{40},std::size_t{44},std::size_t{48}}) {
+    auto malformed=frame;
+    malformed.at(offset)^=std::byte{0xff};
+    auto backing=image(f.image->stable,4096);
+    {
+      auto writer=PagedObjectStoreWriter::resume(backing,id(1),objects.info().generation,{kStoreMaxPhysicalBytes},policy);
+      const StoreMutation replacement{*object,false,std::move(malformed)};
+      writer.commit({&replacement,1});
+    }
+    const auto bad=NativeFilesystemSnapshot::open_image(backing,storage);
+    rejects([&]{(void)bad.read(path(0),0,kNativeExtentBytes);},"malformed packed reference returned data");
+  }
+
+  unsigned previous=0,complete=0;
+  for(unsigned mode=0;mode<3;++mode)for(std::size_t cut=0;cut<cuts;++cut) {
+    auto head=image(head_before,4096),backing=image(image_before,4096);
+    Fixture attempt(head,backing,policy);
+    NativeGroupMaintenance maintenance(*attempt.session);
+    backing->failure=mode;backing->fail_at=backing->calls+cut;
+    for(unsigned step=0;step<1200 && maintenance.pending();++step)(void)attempt.step(maintenance);
+    require(maintenance.progress().phase==Phase::failed && attempt.session->poisoned(),
+        "interrupted packed publication left a writable owner");
+    const auto recovered=NativeFilesystemSnapshot::open_image(image(backing->stable,4096),storage);
+    verify(recovered);
+    const auto members=recovered.shared_base_info().members;
+    if(!members)++previous;
+    else if(members==names)++complete;
+    else throw std::runtime_error("interrupted packed publication exposed part of a group");
+  }
+  require(previous && complete,"packed interruptions did not exercise both valid checkpoints");
+  faults+=previous+complete;
+
+  f.session.emplace(NativeFileSession::resume_closed_indexed_volume(f.head,id(90),1,resolve,policy));
+  const auto removed=f.session->open(path(0),{true,true,true});
+  f.session->set_delete(removed,true);f.session->cleanup(removed,true);f.session->close(removed);
+  const auto surviving=f.session->snapshot();
+  require(surviving.shared_base_info().bases==1 && surviving.shared_base_info().members==names-1,
+      "removing a packed member retired a still-referenced base");
+  verify(surviving,1);
+  std::cout<<"indexed_packed_slices="<<names<<" before="<<before<<" after="<<after
+      <<" cuts="<<previous+complete<<" previous="<<previous<<" complete="<<complete
+      <<" malformed_rejected=5 surviving_bytes_verified=true\n";
 }
 
 void indexed_changed_extent_discovery() {
@@ -1893,6 +1998,8 @@ int main(int argc,char** argv){try{
     indexed_section_reference_reuse();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-prefix") {
     indexed_prefixed_reference();
+  } else if(argc==2 && std::string_view(argv[1])=="--indexed-packed-short-extents") {
+    indexed_packed_short_extents();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-changes") {
     indexed_changed_extent_discovery();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-batch") {

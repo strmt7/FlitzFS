@@ -1727,6 +1727,12 @@ bool NativeFilesystemWriter::advance_shared_base(SharedBaseWork& work,std::span<
 bool NativeFilesystemWriter::price_shared_base_reference(SharedBaseWork& work) {
   return shared_base_step(work,{},nullptr,0,0,true);
 }
+void NativeFilesystemWriter::allow_shared_base_packing(SharedBaseWork& work,bool allowed) noexcept {
+  if(auto* pending=work.impl_.get();pending && pending->indexed) {
+    pending->indexed->allow_packing(allowed);
+    pending->state=pending->indexed->progress();
+  }
+}
 bool NativeFilesystemWriter::shared_base_step(SharedBaseWork& work,std::span<const NativeSharedBaseCopyRange> advice,
     const NativeSharedBaseSearchReply* reply,std::size_t search_members,std::size_t retained_extents,bool price_reference,
     NativeSharedBaseSearchPurpose purpose) {
@@ -1811,7 +1817,7 @@ NativeSharedBaseCommit NativeFilesystemWriter::finish_shared_base(SharedBaseWork
       result=impl_->mutate_indexed([&](auto& writer,const auto& source,auto& root,auto) {
         return p->indexed->finish(writer,source,root);
       });
-      if(result.section_reference) {
+      if(result.section_reference || result.packed_reference) {
         p->state.selected_advice_members=0;
         p->state.reference_changed=false;
       }

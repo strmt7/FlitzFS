@@ -7,8 +7,8 @@ image and resume a fully verified indexed image. Its path transactions update
 the checked index and changed records together. New volumes use capability 2,
 which supports file lifetimes through `NativeFileSession`. Shared-base
 publication selects capability 3 for aligned patches, 4 for anchor copies,
-5 for packed XOR planes, 6 for modular deltas, 7 for sparse XOR planes or 8
-for prefixed Zstandard.
+5 for packed XOR planes, 6 for modular deltas, 7 for sparse XOR planes,
+8 for prefixed Zstandard or 9 for packed slices.
 The managed head and writable WinFsp SDK adapter can select indexed images. The owned mounted
 provider passed an earlier indexed external-client fixture on disposable
 Windows Server 2025. Current Windows 11 client and mounted shared-base
@@ -20,14 +20,14 @@ qualification remain open.
 
 Object 1 is the little-endian native root. Capability 1 has 96 bytes.
 Capability 2 has 120 bytes and appends three lifetime counts. Capability 3
-has 136 bytes and adds the shared-base and member counts. Capabilities 4 through 8
+has 136 bytes and adds the shared-base and member counts. Capabilities 4 through 9
 keep the 136-byte root layout and permit additional group encodings. Readers
 check the capability against its exact root length.
 
 | Offset | Bytes | Value |
 | --- | --- | --- |
 | 0 | 8 | `FLTXPV01` |
-| 8 | 4 | Indexed native capability, 1 through 8 |
+| 8 | 4 | Indexed native capability, 1 through 9 |
 | 12 | 4 | Workload accounting flag, 0 or 1 |
 | 16 | 8 | Native namespace sequence |
 | 24, 32 | 8 each | Next inode ID and next extent ordinal |
@@ -157,7 +157,7 @@ uses completed directory records as progress checkpoints for this upgrade.
 
 ## Shared-base extents
 
-Capabilities 3 through 6 keep the ordinary extent frame. A grouped member has
+Capabilities 3 through 9 keep the ordinary extent frame. A delta member has
 the same 24-byte owner and logical-block header with magic `FLTXPD01`,
 followed by the existing checked [shared-base delta](SHARED_BASE_GROUPS.md#exact-member-bytes).
 A base object uses the data-object allocator and starts with `FLTXPA01`,
@@ -195,8 +195,8 @@ Explicit grouping prepares independently checked member frames one extent at
 a time from a pinned checkpoint. Foreground edits can proceed between steps.
 Publication rechecks selected indexed bindings and compares complete packed
 layouts from the checked object totals and changed lookup paths. The bound
-charges replacement data and index pages at raw size and requires a strict
-reduction. A declined candidate performs no storage writes. An existing
+charges replacement data at its encoded size and index pages at raw size.
+Publication requires a strict reduction. A declined candidate performs no storage writes. An existing
 immutable anchor can accept more members in bounded transactions without
 rewriting the group.
 
@@ -492,6 +492,46 @@ Removing a file, restoring a checkpoint or compacting the image keeps the
 base available to every surviving member. Groups can still store older
 member methods alongside prefixed members.
 [Prefixed group validation](evidence/indexed-prefixed-zstd-2026-11-20.json)
+
+### Packed slices
+
+Capability 9 adds the 80-byte `FLTXPD02` member. The base remains a protected
+`FLTXPA01` object with a 65,536-byte decoded payload. All integers are
+little-endian.
+
+| Offset | Bytes | Meaning |
+| ---: | ---: | --- |
+| 0 | 8 | Magic `FLTXPD02` |
+| 8, 16 | 8 each | Owning inode and logical extent index |
+| 24, 32 | 8 each | Base object ID and exact generation |
+| 40, 44 | 4 each | Byte offset in the base payload and positive slice length |
+| 48 | 32 | BLAKE3 of the exact decoded slice |
+
+The CPU reader checks the owner, bounds, reverse reference, protected base
+generation and slice digest before returning file bytes. The slice ends at
+its last nonzero byte and fits within the logical file size. Existing sparse
+read semantics supply any trailing zeroes. A random read of one member needs
+at most one base. It can reuse that base under the existing verified cache
+rules and verifies the member slice without reconstructing a padded extent.
+
+Idle maintenance can try packing a complete staged new group if the
+canonical payloads fit in one base and live headroom covers the additional
+candidate. A Zstandard-enabled build enables this comparison. Each preparation
+step copies one payload or validates one proposed slice against the original.
+The same candidate can compete in a CPU or AMD search window. The writer
+prices the complete compacted layout against ordinary, assembled and prefix
+variants before writing. Publication requires a strict size reduction from
+the selected image and raises the root capability in the same mirrored COW
+transaction as the base and members. The existing dependency lifetime and
+reader-retirement rules apply.
+
+The current reader supports capabilities 1 through 9. Readers capped at 8
+reject a capability 9 root. An earlier image retains its capability when opened.
+A published packed group can require that its base's paged codec
+is available on CPU. The slice framing itself uses the normal CPU digest
+and extent checks.
+[Packed slice evidence](evidence/indexed-packed-small-extents-2026-11-20.json) ·
+[EROFS shared fragments](https://docs.kernel.org/filesystems/erofs.html)
 
 ### Automatic candidate discovery
 

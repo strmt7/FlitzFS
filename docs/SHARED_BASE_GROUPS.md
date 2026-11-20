@@ -225,6 +225,16 @@ held-out OpenZFS and SQLite revisions, the ordinary candidates retained the
 same compacted size. [Prefixed Zstandard members](INDEXED_NATIVE_VOLUME.md#prefixed-zstandard-members) ·
 [Cost and readback evidence](evidence/indexed-prefixed-zstd-2026-11-20.json)
 
+On indexed volumes, a protected base can also hold several short payloads
+as verified slices. This reduced occupied size by 4.0% for 40 distinct
+Lucide SVGs and by 4.8% for the controlled short-token corpus. Two other
+public corpora retained their existing layouts. Sampled Lucide reads used
+0.9% more backing bytes with an open file session and 8.1% more through
+independent snapshots. The live AMD search and CPU-only path selected the
+same packed layouts in both winning cases.
+[Packed slice representation](INDEXED_NATIVE_VOLUME.md#packed-slices) ·
+[Paired Windows trials](evidence/indexed-packed-small-extents-2026-11-20.json)
+
 Next: fresh contention/resource admission, durable restart progress and protected
 paged coherence metadata;
 evaluate shifted/fine-grained, dictionary, multi-reference and learned candidates

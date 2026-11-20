@@ -52,6 +52,14 @@ grouping. Read and maintenance costs across more workloads remain part of
 compression qualification.
 [Prefixed group evidence](evidence/indexed-prefixed-zstd-2026-11-20.json)
 
+Indexed idle maintenance can now pack short related extents into one
+protected base when full-image accounting shows a reduction. Forty Lucide
+SVG files used 4.0% less space, with 0.9% more sampled backing traffic
+through an open file session. Two further public corpora retained their
+existing layouts. Expand natural small-file trials and measure mounted
+read throughput and latency.
+[Packed short-extent evidence](evidence/indexed-packed-small-extents-2026-11-20.json)
+
 Request-scoped index verification reduced grouped sample backing reads by
 72–73% through independent CPU snapshots and 2.6–2.7% through open-file
 sessions on two public revision sets. Complete compacted sizes matched between

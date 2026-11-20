@@ -17,14 +17,15 @@ namespace {
 using Bytes=std::vector<std::byte>;
 using Code=NativeFsErrorCode;
 constexpr std::string_view root_magic="FLTXPV01",extent_magic="FLTXPE01";
-constexpr std::string_view member_magic="FLTXPD01",base_magic="FLTXPA01";
+constexpr std::string_view member_magic="FLTXPD01",packed_member_magic="FLTXPD02",base_magic="FLTXPA01";
 constexpr std::uint64_t namespace_object=1,inode_domain=1ULL<<63;
 constexpr std::uint64_t lifetime_domain=2ULL<<61,retirement_domain=5ULL<<61;
 constexpr std::uint64_t ordinal_mask=kNativeIndexedInodeLimit-1;
 constexpr std::size_t original_root_size=96,lifetime_root_size=120,root_size=136,extent_header=24;
 constexpr std::size_t base_size=8+kNativeExtentBytes;
+constexpr std::size_t packed_slice_size=80;
 constexpr std::uint32_t anchor_copy_capability=4,packed_xor_capability=5,modular_delta_capability=6,sparse_xor_capability=7;
-constexpr std::uint32_t prefixed_zstd_capability=8;
+constexpr std::uint32_t prefixed_zstd_capability=8,packed_slice_capability=9;
 constexpr std::uint32_t directory_shape_feature=1U<<8;
 constexpr std::uint32_t directory_backfill_complete_feature=1U<<9;
 constexpr std::uint32_t namespace_features=kIndexedOrdinalNames|directory_shape_feature|directory_backfill_complete_feature;
@@ -97,7 +98,7 @@ void validate_header_fields(const IndexedVolumeRoot& root) {
       root.next_extent>kNativeIndexedInodeLimit || (!root.workload.enabled && root.workload.committed_input_bytes))
     fail(Code::corrupt,"invalid indexed root identity or allocator");
   const auto non_root=root.inodes?root.inodes-1:0;
-  if(root.format<1 || root.format>prefixed_zstd_capability || root.name_profile>kIndexedOrdinalNames ||
+  if(root.format<1 || root.format>packed_slice_capability || root.name_profile>kIndexedOrdinalNames ||
       root.active_lifetimes>non_root ||
       root.retiring_inodes>non_root-root.active_lifetimes ||
       root.detached_inodes<root.retiring_inodes ||
@@ -121,7 +122,7 @@ IndexedVolumeRoot decode_root(std::span<const std::byte> bytes) {
   root.directory_shapes=(features&directory_shape_feature)!=0;
   root.directory_backfill_complete=(features&directory_backfill_complete_feature)!=0;
   const auto expected_size=root.format==1?original_root_size:root.format==2?lifetime_root_size:root_size;
-  if(root.format<1 || root.format>prefixed_zstd_capability || bytes.size()!=expected_size)
+  if(root.format<1 || root.format>packed_slice_capability || bytes.size()!=expected_size)
     fail(Code::corrupt,"indexed native volume capability and length differ");
   if(root.format>=2) {
     root.active_lifetimes=get(bytes,96);root.detached_inodes=get(bytes,104);root.retiring_inodes=get(bytes,112);
@@ -214,6 +215,26 @@ void verify_base_frame(const Bytes& bytes) {
   if(bytes.size()!=base_size || !magic(bytes,base_magic))
     fail(Code::corrupt,"invalid indexed shared base");
 }
+struct IndexedPackedSlice {
+  std::uint64_t base,generation;
+  std::size_t offset,length;
+};
+IndexedPackedSlice read_packed_slice(std::span<const std::byte> frame) {
+  if(frame.size()!=packed_slice_size)fail(Code::corrupt,"indexed packed slice field length");
+  const IndexedPackedSlice slice{get(frame,24),get(frame,32),
+      static_cast<std::size_t>(get(frame,40,4)),static_cast<std::size_t>(get(frame,44,4))};
+  if(slice.base<=kNativeIndexedDataObject || domain(slice.base)!=kNativeIndexedDataObject || !slice.generation ||
+      !slice.length || slice.offset>=kNativeExtentBytes || slice.length>kNativeExtentBytes-slice.offset)
+    fail(Code::corrupt,"indexed packed slice identity or range");
+  return slice;
+}
+std::span<const std::byte> checked_packed_payload(std::span<const std::byte> frame,
+    const IndexedPackedSlice& slice,std::span<const std::byte> base) {
+  const auto data=base.subspan(slice.offset,slice.length);
+  if(!std::ranges::equal(record_digest(data),frame.subspan(48)))
+    fail(Code::corrupt,"indexed packed slice digest differs");
+  return data;
+}
 DecodedIndexedExtent decode_extent(const PagedObjectStoreSnapshot& source,const NativeNameIndex& index,
     const IndexedVolumeRoot& root,std::uint64_t object,Bytes bytes,const IndexedInodeInput& inode,
     std::uint64_t block,bool compare_anchor=false,IndexedSharedBaseRead* cached_base=nullptr,
@@ -224,11 +245,15 @@ DecodedIndexedExtent decode_extent(const PagedObjectStoreSnapshot& source,const 
     validate_payload(inode,block,std::span(bytes).subspan(extent_header));
     return {std::move(bytes),extent_header,0};
   }
-  if(root.format<3 || !magic(bytes,member_magic))fail(Code::corrupt,"unsupported indexed extent frame");
+  const bool packed=magic(bytes,packed_member_magic);
+  if(packed?root.format<packed_slice_capability:root.format<3 || !magic(bytes,member_magic))
+    fail(Code::corrupt,"unsupported indexed extent frame");
   const auto member=std::span<const std::byte>(bytes).subspan(extent_header);
   try {
     const auto maximum_method=available_group_method(root.format);
-    const auto reference=read_native_group_header(member,maximum_method);
+    std::optional<IndexedPackedSlice> slice;
+    if(packed)slice=read_packed_slice(bytes);
+    const auto reference=slice?NativeGroupReference{slice->base,slice->generation}:read_native_group_header(member,maximum_method);
     if(reference.base_id==object || (reference.base_id&ordinal_mask)>=root.next_extent ||
         index.find(native_group_reference_key(reference.base_id,object))!=object)
       fail(Code::corrupt,"indexed shared-base backreference is missing");
@@ -245,6 +270,13 @@ DecodedIndexedExtent decode_extent(const PagedObjectStoreSnapshot& source,const 
       anchor=&scratch;
     }
     const auto anchor_payload=std::span<const std::byte>(anchor->frame).subspan(base_magic.size());
+    if(slice) {
+      const auto data=checked_packed_payload(bytes,*slice,anchor_payload);
+      validate_payload(inode,block,data);
+      Bytes decoded(data.begin(),data.end());
+      if(retained && anchor==&scratch)retained->remember(scratch);
+      return {std::move(decoded),0,reference.base_id};
+    }
     auto decoded=decode_native_group_member(member,anchor_payload,maximum_method);
     const auto reusable=compare_anchor && std::ranges::equal(decoded,anchor_payload)?anchor->generation:0;
     while(!decoded.empty() && decoded.back()==std::byte{})decoded.pop_back();
@@ -1379,6 +1411,7 @@ std::vector<std::byte> IndexedSharedBasePreparation::read_member(Member& member,
   member.object=*object;
   member.generation=metadata->generation;
   member.previous_base=extent.base;
+  member.payload_bytes=extent.payload().size();
   if(reuse_bound_base) {
     if(!bound.object || bound.object!=extent.base || !bound.generation)
       fail(Code::invalid_operation,"indexed candidate no longer refers to a shared base");
@@ -1402,6 +1435,7 @@ NativeSharedBaseProgress IndexedSharedBasePreparation::progress() const noexcept
   result.owned_payload_bytes+=nominated_base_.size();
   if(section_reference_)result.owned_payload_bytes+=section_reference_->base.size()+section_reference_->frame_bytes;
   if(prefixed_reference_)result.owned_payload_bytes+=prefixed_reference_->frame_bytes;
+  if(packed_reference_)result.owned_payload_bytes+=packed_reference_->base.capacity()+packed_reference_->frame_bytes;
   if(search_)result.owned_payload_bytes+=search_->bytes->base.size()+
       search_->bytes->members.size()*std::uint64_t(kNativeExtentBytes);
   return result;
@@ -1491,6 +1525,11 @@ bool IndexedSharedBasePreparation::price_reference() {
   return true;
 }
 
+void IndexedSharedBasePreparation::allow_packing(bool allowed) noexcept {
+  packing_admitted_=allowed;
+  if(!allowed)packed_reference_.reset();
+}
+
 bool IndexedSharedBasePreparation::stage_section_reference() {
   try {
     if(!section_reference_)section_reference_.emplace();
@@ -1576,6 +1615,50 @@ bool IndexedSharedBasePreparation::stage_prefixed_reference() {
   }
 }
 
+bool IndexedSharedBasePreparation::stage_packed_reference() {
+  if(!packed_reference_)return false;
+  try {
+    auto& trial=*packed_reference_;
+    if(trial.sampled<members_.size()) {
+      const auto position=trial.sampled;
+      const auto& bytes=position==base_index_?search_->bytes->base:search_->bytes->members[search_slot(position)];
+      const auto length=members_[position].payload_bytes;
+      if(!position)trial.base.reserve(kNativeExtentBytes);
+      trial.base.insert(trial.base.end(),bytes.begin(),bytes.begin()+static_cast<std::ptrdiff_t>(length));
+      if(++trial.sampled==members_.size())trial.base.resize(kNativeExtentBytes);
+      return true;
+    }
+    const auto position=trial.frames.size();
+    if(position==members_.size())return false;
+    const auto& member=members_[position];
+    const auto& bytes=position==base_index_?search_->bytes->base:search_->bytes->members[search_slot(position)];
+    if(root_size+base_size+trial.frame_bytes+packed_slice_size>kStoreMaxTransactionBytes) {
+      packed_reference_.reset();
+      return false;
+    }
+    auto& record=trial.frames.emplace_back(packed_slice_size);
+    set_magic(record,packed_member_magic);
+    put(record,8,member.selected.inode);
+    put(record,16,member.selected.extent_index);
+    put(record,24,kNativeGroupBaseBit+1);
+    put(record,32,1);
+    put(record,40,trial.slice_offset,4);
+    put(record,44,member.payload_bytes,4);
+    const auto expected=std::span(bytes).first(member.payload_bytes);
+    const auto digest=record_digest(expected);
+    std::copy(digest.begin(),digest.end(),record.begin()+48);
+    const auto slice=read_packed_slice(record);
+    if(!std::ranges::equal(checked_packed_payload(record,slice,trial.base),expected))
+      fail(Code::corrupt,"indexed packed slice private CPU comparison failed");
+    trial.frame_bytes+=record.size();
+    trial.slice_offset+=member.payload_bytes;
+    return true;
+  }catch(const std::bad_alloc&) {
+    packed_reference_.reset();
+    return false;
+  }
+}
+
 bool IndexedSharedBasePreparation::advance(std::span<const NativeSharedBaseCopyRange> advice,
     const NativeSharedBaseSearchReply* reply) {
   using Phase=NativeSharedBasePhase;
@@ -1593,11 +1676,12 @@ bool IndexedSharedBasePreparation::advance(std::span<const NativeSharedBaseCopyR
   }
 
   if(progress_.completed_members==members_.size()) {
-    if(!section_comparison_finished_) {
+    if(stage_packed_reference())return false;
+    if(compare_sections_ && !section_comparison_finished_) {
       if(stage_section_reference())return false;
       section_comparison_finished_=true;
     }
-    if(stage_prefixed_reference())return false;
+    if(compare_sections_ && stage_prefixed_reference())return false;
     search_.reset();
     if(section_reference_)section_reference_->index.reset();
     progress_.phase=Phase::ready;
@@ -1740,7 +1824,7 @@ bool IndexedSharedBasePreparation::advance(std::span<const NativeSharedBaseCopyR
 bool IndexedSharedBasePreparation::complete_member() {
   using Phase=NativeSharedBasePhase;
   ++progress_.completed_members;
-  const bool complete_window=search_ && search_->purpose==NativeSharedBaseSearchPurpose::section_comparison &&
+  const bool complete_window=search_ && search_->bytes->whole_new_group &&
       search_->bytes->members.size()==search_->member_count;
   if(search_ && !complete_window && search_slot(progress_.completed_members)>=search_->bytes->members.size())
     search_.reset();
@@ -1750,8 +1834,22 @@ bool IndexedSharedBasePreparation::complete_member() {
   // Spend an additional cooperative pass only when the ordinary candidate
   // has enough residual payload for the alternative to save a failure unit.
   const auto ideal=base_.size()+members_.size()*(extent_header+kNativeGroupMemberHeaderBytes);
-  if(complete_window && progress_.owned_payload_bytes>=ideal+source_.isolation_unit() &&
-      std::ranges::none_of(members_,&Member::skipped))return false;
+  if(complete_window && std::ranges::none_of(members_,&Member::skipped)) {
+    compare_sections_=search_->purpose==NativeSharedBaseSearchPurpose::section_comparison &&
+        progress_.owned_payload_bytes>=ideal+source_.isolation_unit();
+    if(packing_admitted_) {
+      std::size_t bytes=0;
+      for(const auto& member:members_) {
+        if(!member.payload_bytes || member.payload_bytes>kNativeExtentBytes-bytes) {
+          bytes=0;
+          break;
+        }
+        bytes+=member.payload_bytes;
+      }
+      if(bytes)packed_reference_.emplace();
+    }
+    if(compare_sections_ || packed_reference_)return false;
+  }
   search_.reset();
   progress_.phase=Phase::ready;
   return true;
@@ -1841,29 +1939,34 @@ NativeSharedBaseCommit IndexedSharedBasePreparation::finish(PagedObjectStoreWrit
     if(input>kStoreMaxTransactionBytes)variant.clear();
     return variant;
   };
-  std::vector<StoreMutation> section,prefixed;
-  auto section_root=next,prefixed_root=next;
-  if(new_anchor && section_reference_ && section_reference_->frames.size()==members_.size()) {
+  std::vector<StoreMutation> section,prefixed,packed;
+  auto section_root=next,prefixed_root=next,packed_root=next;
+  const auto alternate_reference=[&](auto& trial,IndexedVolumeRoot& root,bool slices)->std::vector<StoreMutation> {
+    if(!new_anchor || !trial || trial->frames.size()!=members_.size())return {};
     try {
       std::map<std::uint64_t,Bytes> replacements;
-      auto& trial=*section_reference_;
       for(std::size_t i=0;i<members_.size();++i) {
-        auto& frame=trial.frames[i];
-        bind_native_group_member(std::span(frame).subspan(extent_header),anchor,generation,NativeGroupMethod::anchor_copies);
+        auto& frame=trial->frames[i];
+        if(slices) {
+          put(frame,24,anchor);
+          put(frame,32,generation);
+        } else bind_native_group_member(std::span(frame).subspan(extent_header),anchor,generation,NativeGroupMethod::anchor_copies);
         replacements.emplace(members_[i].object,std::move(frame));
       }
       auto& base=replacements[anchor];
       base.resize(base_size);
       set_magic(base,base_magic);
-      std::copy(trial.base.begin(),trial.base.end(),base.begin()+static_cast<std::ptrdiff_t>(base_magic.size()));
-      section_root.format=(std::max)(current.format,anchor_copy_capability);
-      replacements.emplace(namespace_object,encode_root(section_root));
+      std::copy(trial->base.begin(),trial->base.end(),base.begin()+static_cast<std::ptrdiff_t>(base_magic.size()));
+      root.format=(std::max)(current.format,slices?packed_slice_capability:anchor_copy_capability);
+      replacements.emplace(namespace_object,encode_root(root));
 
-      section=replace_records(replacements);
+      return replace_records(replacements);
     }catch(const std::bad_alloc&) {
-      section.clear();
+      return {};
     }
-  }
+  };
+  section=alternate_reference(section_reference_,section_root,false);
+  packed=alternate_reference(packed_reference_,packed_root,true);
   std::size_t prefixed_members=0,replaced_advice=0;
   if(new_anchor && prefixed_reference_ && prefixed_reference_->frames.size()==members_.size()) {
     try {
@@ -1887,7 +1990,7 @@ NativeSharedBaseCommit IndexedSharedBasePreparation::finish(PagedObjectStoreWrit
   std::size_t selected=0;
   try {
     PagedCompactedSizes sizes;
-    const std::array<std::span<const StoreMutation>,2> alternatives{section,prefixed};
+    const std::array<std::span<const StoreMutation>,3> alternatives{section,prefixed,packed};
     const auto published=writer.commit_if_compacted_smaller(proposed,namespace_object,sizes,alternatives,selected);
     result.before_compacted_lower_bound=sizes.before;
     result.after_compacted_upper_bound=sizes.after_upper;
@@ -1898,15 +2001,18 @@ NativeSharedBaseCommit IndexedSharedBasePreparation::finish(PagedObjectStoreWrit
     throw NativeFsError(Code::limit,error.what(),error.append_shortfall_bytes());
   }
   result.section_reference=selected==1;
+  result.packed_reference=selected==3;
+  const bool replaced_reference=result.section_reference || result.packed_reference;
   result.prefixed_zstd_members=selected==2?prefixed_members:0;
-  result.advised_members=result.section_reference?0:
+  result.advised_members=replaced_reference?0:
       progress_.selected_advice_members-(selected==2?replaced_advice:0);
-  if(result.section_reference)current=section_root;
+  if(result.packed_reference)current=packed_root;
+  else if(result.section_reference)current=section_root;
   else if(result.prefixed_zstd_members)current=prefixed_root;
   else current=next;
   result.transaction.sequence=current.sequence;
   auto reference_index=base_index_;
-  if(!result.section_reference && reference_member_) {
+  if(!replaced_reference && reference_member_) {
     const auto slot=static_cast<std::size_t>(reference_member_-1);
     reference_index=slot+(slot>=base_index_);
   }
