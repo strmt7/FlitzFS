@@ -95,6 +95,7 @@ struct NativeFileSession::Impl {
   std::unique_ptr<StagedRecompression> recompression;
   StoreIdentity evaluated_image{};
   std::uint64_t evaluated_generation=0;
+  bool evaluated_capacity_repair=false;
   // Destruction order retires the image writer BEFORE releasing the head owner.
   std::unique_ptr<VolumeOwner> volume;
   // Retire data/advisory writers before the head owner.
@@ -550,6 +551,9 @@ void NativeFileSession::bind_persistent_reclamation(std::shared_ptr<detail::Nati
 bool NativeFileSession::indexed_payload_repair_pending() const noexcept {
   return !poisoned() && impl_->writer.indexed_payload_repair_pending();
 }
+std::uint64_t NativeFileSession::indexed_capacity_repair_generation() const noexcept {
+  return !poisoned() && impl_->volume?impl_->writer.indexed_capacity_repair_generation():0;
+}
 PagedPayloadRepairProgress NativeFileSession::repair_indexed_payload() {
   return ready().writer.repair_indexed_payload();
 }
@@ -996,8 +1000,10 @@ bool NativeFileSession::begin_idle_compaction_impl(std::shared_ptr<StoreByteIo> 
   if(!self.volume || self.volume->head->info().selection.storage.kind!=NativeImageKind::indexed_paged)
     fail(E::invalid_options,"idle compaction requires a managed indexed image");
   const auto generation=self.writer.recompression_generation();
+  const bool capacity_repair=mode==PagedRewriteMode::reconcile_foreground &&
+      self.writer.indexed_capacity_repair_generation();
   if(!self.recompression && self.evaluated_image==self.volume->active_id &&
-      self.evaluated_generation==generation)return false;
+      self.evaluated_generation==generation && (!capacity_repair || self.evaluated_capacity_repair))return false;
   admit_replacement(self,target,next,owned_file_target);
   admit_handoff_contexts(self);
   admit_empty(target);
@@ -1006,6 +1012,7 @@ bool NativeFileSession::begin_idle_compaction_impl(std::shared_ptr<StoreByteIo> 
       Impl::StagedRecompression{std::move(target),next,std::move(rebuild),true});
   self.evaluated_image=self.volume->active_id;
   self.evaluated_generation=generation;
+  self.evaluated_capacity_repair=capacity_repair;
   return true;
 }
 
@@ -1082,10 +1089,13 @@ std::optional<NativeVolumeHeadInfo> NativeFileSession::publish_staged_recompress
   if(auto* paged=std::get_if<PagedObjectStoreWriter::Rewrite>(&self.recompression->work)) {
     if(!self.writer.paged_recompression_ready(*paged))
       fail(E::invalid_options,"staged indexed compaction has not verified current commits");
+    const auto repaired=paged->verified_capacity_repair_generation();
+    const bool permits_rotation=repaired && repaired==self.writer.indexed_capacity_repair_generation();
     auto staged=std::move(self.recompression);
     auto candidate=self.writer.finish_paged_recompression(*paged);
     auto verified=candidate.snapshot();
-    if(verified.storage_info().physical_end>=self.writer.indexed_append_floor())return std::nullopt;
+    if(verified.storage_info().physical_end>=self.writer.indexed_append_floor() && !permits_rotation)
+      return std::nullopt;
     auto baseline=self.writer.snapshot();
     begin_handoff(self,std::move(baseline),std::move(staged->target),staged->id);
     auto& volume=*self.volume;
@@ -1106,6 +1116,7 @@ std::optional<NativeVolumeHeadInfo> NativeFileSession::publish_staged_recompress
     adopt_handoff(self,published);
     self.evaluated_image=volume.active_id;
     self.evaluated_generation=self.writer.recompression_generation();
+    self.evaluated_capacity_repair=false;
     return published;
   }
   auto& flat=std::get<NativeFilesystemWriter::Recompression>(self.recompression->work);

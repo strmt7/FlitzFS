@@ -2025,6 +2025,9 @@ bool NativeFilesystemWriter::matches_recompression(const Recompression& candidat
 bool NativeFilesystemWriter::indexed_payload_repair_pending() const noexcept {
   return !poisoned() && impl_->indexed && impl_->objects.payload_repair_pending();
 }
+std::uint64_t NativeFilesystemWriter::indexed_capacity_repair_generation() const noexcept {
+  return !poisoned() && impl_->indexed?impl_->objects.capacity_repair_generation():0;
+}
 PagedPayloadRepairProgress NativeFilesystemWriter::repair_indexed_payload() {
   if(!indexed_payload_repair_pending())return PagedPayloadRepairProgress::idle;
   try{return impl_->objects.repair_payload();}

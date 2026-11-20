@@ -112,6 +112,7 @@ bool NativeVolumeFileReclaimer::pending(const NativeFileSession& session) const 
   if(phase_==Phase::retiring)return true;
   if(phase_==Phase::uncertain || phase_==Phase::failed || !session.idle_compaction_context_ready())return false;
   if(phase_!=Phase::idle)return true;
+  if(const auto repair=session.indexed_capacity_repair_generation())return repair!=attempted_repair_;
   const auto space=session.indexed_volume_space();
   const auto obsolete=space.obsolete_bytes;
   if(obsolete<=attempted_obsolete_ || obsolete-attempted_obsolete_<abandoned_bytes_)return false;
@@ -151,6 +152,7 @@ Progress NativeVolumeFileReclaimer::advance(NativeFileSession& session,const std
   if(!pending(session))return Progress::idle;
   try {
     if(phase_==Phase::idle) {
+      attempted_repair_=session.indexed_capacity_repair_generation();
       attempted_obsolete_=session.indexed_volume_space().obsolete_bytes;
       abandoned_bytes_=0;
       if(!identity || spare_.use_count()!=1 || spare_->allocation_extent())
@@ -179,6 +181,7 @@ Progress NativeVolumeFileReclaimer::advance(NativeFileSession& session,const std
     active_.swap(spare_);
     attempted_obsolete_=0;
     abandoned_bytes_=0;
+    attempted_repair_=0;
     phase_=Phase::retiring;
     return Progress::published;
   }catch(const std::exception&) {

@@ -127,6 +127,14 @@ from indexed compression. The current image stays selected until the
 replacement has completed independent verification and selector publication.
 [Append-pressure validation](evidence/amd-maintenance-parity-2026-11-19.json)
 
+A verified payload repair that cannot append to the selected range can
+stage in the unused range. The CPU verifier reconfirms the fault and
+both restored copies. The owner may select the replacement at the same
+occupied size for the exact generation with verified damage and a
+capacity refusal. The paired-range model exercises this when the
+backing rejects writes that extend the file.
+[Repair rotation validation](evidence/indexed-capacity-repair-rotation-2026-11-20.json)
+
 User-facing persistent-volume selection, in-place migration of existing
 linear volumes, steady-state segment evacuation during concurrent writes,
 persistent catalog compaction and physical storage-failure qualification

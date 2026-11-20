@@ -50,7 +50,7 @@ struct MemoryVolumeBacking {
   std::array<std::shared_ptr<StoreByteIo>,2> coherence_;
   std::shared_ptr<IndexedCoherenceStorage> coherence_storage_;
   StoreIdentity alternate_identity_{};
-  std::uint64_t attempted_obsolete_=0,abandoned_bytes_=0;
+  std::uint64_t attempted_obsolete_=0,abandoned_bytes_=0,attempted_repair_=0;
   void retire_alternate(bool charge_attempt);
 };
 }

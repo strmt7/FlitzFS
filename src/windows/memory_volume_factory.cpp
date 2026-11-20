@@ -81,12 +81,13 @@ std::shared_ptr<StoreByteIo> MemoryVolumeBacking::resolve_image(const StoreIdent
 bool MemoryVolumeBacking::compaction_pending(const NativeFileSession& session) const {
   if(phase_==CompactionPhase::retiring)return true;
   if(phase_==CompactionPhase::uncertain || session.poisoned())return false;
-  if(phase_!=CompactionPhase::idle)return session.idle_compaction_context_ready();
+  if(!session.idle_compaction_context_ready())return false;
+  if(phase_!=CompactionPhase::idle)return true;
+  if(const auto repair=session.indexed_capacity_repair_generation())return repair!=attempted_repair_;
   const auto space=session.indexed_volume_space();
   const auto obsolete=space.obsolete_bytes;
   if(obsolete<=attempted_obsolete_ || obsolete-attempted_obsolete_<abandoned_bytes_)return false;
-  return space.reclamation_worthwhile() &&
-      session.idle_compaction_context_ready();
+  return space.reclamation_worthwhile();
 }
 void MemoryVolumeBacking::retire_alternate(bool charge_attempt) {
   if(charge_attempt && alternate_)abandoned_bytes_=alternate_->extent();
@@ -104,6 +105,7 @@ MemoryCompactionStep MemoryVolumeBacking::advance_compaction(NativeFileSession& 
   }
   try {
     if(phase_==CompactionPhase::idle) {
+      attempted_repair_=session.indexed_capacity_repair_generation();
       attempted_obsolete_=session.indexed_volume_space().obsolete_bytes;
       abandoned_bytes_=0;
       alternate_identity_=fresh_volume_identity();
@@ -137,6 +139,7 @@ MemoryCompactionStep MemoryVolumeBacking::advance_compaction(NativeFileSession& 
     std::swap(image_identity,alternate_identity_);
     attempted_obsolete_=0;
     abandoned_bytes_=0;
+    attempted_repair_=0;
     retire_alternate(false);
     return MemoryCompactionStep::published;
   }catch(const std::exception&) {

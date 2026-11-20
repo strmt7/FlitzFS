@@ -340,7 +340,9 @@ owned Windows memory and modeled paired-range paths, using measured obsolete
 history and CPU verification. Private preparation uses work credit within a
 fresh CPU sample. Publication and retirement each require a fresh observation.
 Indexed compaction can preserve its private work across foreground commits by
-reconciling immutable tree checkpoints. **Missing:** segment-level evacuation,
+reconciling immutable tree checkpoints. A verified live repair can use that
+handoff to restore payload redundancy when append admission fails.
+**Missing:** segment-level evacuation,
 durable staging progress, and persistent-provider qualification.
 **Planning effort:** 5–10 person-weeks; confidence low.
 
@@ -1444,10 +1446,11 @@ qualification. It is not a final pass of extra assertions after design is frozen
    Keep source fixtures and ambiguous results; do not retry until a cause/state
    change justifies a different experiment.
 5. Extend automated verified scrub and repair. A verified live indexed
-   fallback schedules append-only repair from a surviving replica. Extend
-   it to latent replica damage, durable repair progress, startup recovery and
-   capacity-triggered rotation. Keep the current acknowledged namespace and
-   retain evidence when intact data cannot be reconstructed.
+   fallback schedules append-only repair from a surviving replica, with a
+   verified alternate-image switch when appending is blocked and a target
+   fits. Extend this to latent replica damage, durable repair progress and
+   startup recovery. Keep the current acknowledged namespace and retain
+   evidence when intact data cannot be reconstructed.
 6. Preserve independent CPU export/recovery tooling and useful diagnostics when
    normal mounting or the GPU path is unavailable. Backup/redundancy needs must
    match the claimed failure domains; same-memory copies do not survive power loss.

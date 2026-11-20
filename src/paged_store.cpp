@@ -114,6 +114,7 @@ struct PayloadRepairQueue {
   std::array<Entry,kStoreMaxObjects> records{};
   std::size_t count=0;
   std::uint64_t scan_after=0,blocked_generation=0;
+  std::optional<Entry> blocked_record;
   bool scan=false;
 
   void observe(const Entry& entry) noexcept {
@@ -334,15 +335,17 @@ Bytes read_object(const State& s,const Entry& e) {
   if(record.recovered_primary && s.payload_repairs)s.payload_repairs->observe(e);
   return bytes;
 }
-void verify_object(const State& s,const Entry& e) {
-  if(!s.mirrored){(void)read_object(s,e);return;}
-  bool valid=false;
+// True reports a verified survivor and a failed replica.
+bool verify_object(const State& s,const Entry& e) {
+  if(!s.mirrored){(void)read_object(s,e);return false;}
+  unsigned verified=0;
   for(const auto at:{e.offset,e.peer}) {
-    try{(void)decode_record(s,e,read_record_at(s,e,at));valid=true;}
+    try{(void)decode_record(s,e,read_record_at(s,e,at));++verified;}
     catch(const std::bad_alloc&){throw;}
     catch(const std::exception&){s.degraded_payloads=true;}
   }
-  if(!valid)fail("both payload copies invalid; no rollback");
+  if(!verified)fail("both payload copies invalid; no rollback");
+  return verified==1;
 }
 template<class Visitor> void walk(const State& s,const Ref& r,std::uint64_t after,Visitor& visitor,bool& done) {
   if(done || !r.count || r.last<=after)return;
@@ -818,6 +821,9 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
   PagedRewritePhase phase=PagedRewritePhase::verifying_source;
   bool reencode=true,replacement_seen=false;
   PagedRewriteMode mode;
+  std::optional<Entry> capacity_damage;
+  std::uint64_t capacity_repair_generation=0,original_root_stored=0;
+  bool repair_confirmed=false;
   struct Reconciliation {
     State source;
     Bytes root;
@@ -833,6 +839,11 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
        retention(std::move(filter)),reencode(encode),mode(rewrite_mode) {
     if(mode==PagedRewriteMode::reconcile_foreground && (retention || root.empty() || encode))
       fail("foreground reconciliation requires a lossless native identity-only rebuild");
+    if(mode==PagedRewriteMode::reconcile_foreground && writer.payload_repairs &&
+        writer.payload_repairs->blocked_generation==original.generation && writer.payload_repairs->blocked_record) {
+      capacity_damage=writer.payload_repairs->blocked_record;
+      capacity_repair_generation=original.generation;
+    }
     if(zero(id) || (id==original.id && !retention))fail("staged rebuild needs a new identity");
     if(retention && (id!=original.id || !root.empty() || encode || original.mirrored ||
         !retention->keep || !retention->charge || !retention->maximum_object_bytes ||
@@ -886,6 +897,14 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
   }
   void begin_copy(const State& current) {
     source_check(current);
+    if(capacity_damage) {
+      const auto rebound=target->encoder.encode(replacement).payload.size();
+      const auto stored=add(original.root.stored-original_root_stored,rebound);
+      const auto projected=packed_rebuild_size(build.next,original.root.count,stored);
+      check_physical_capacity(projected,build.next.limits.maximum_physical_bytes);
+      if(!repair_confirmed && projected>=source_extent)
+        capacity("staged repair found neither the reported fault nor a smaller image");
+    }
     build.next.image->admit_write(start+2*build.next.unit);
     if(retention) {
       if(!retention->charge(write_bound))return;
@@ -993,8 +1012,10 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
     if(image->contract().write_failure_unit_bytes>build.next.unit)fail("staged target contract changed");
     if(phase==PagedRewritePhase::verifying_source) {
       const bool advanced=visit_quantum(original,[&](const Entry& entry) {
-        auto bytes=read_object(original,entry);if(original.mirrored)verify_object(original,entry);
+        auto bytes=read_object(original,entry);
+        if(original.mirrored && verify_object(original,entry) && capacity_damage==entry)repair_confirmed=true;
         if(entry.id==1 && !replacement.empty()) {
+          original_root_stored=entry.stored;
           if(bytes.size()!=replacement.size() || replacement_identity_offset>bytes.size() ||
               build.next.id.size()>bytes.size()-replacement_identity_offset)
             fail("staged native root length");
@@ -1084,6 +1105,10 @@ bool PagedObjectStoreWriter::Rewrite::matches(const PagedObjectStoreWriter& writ
 }
 bool PagedObjectStoreWriter::Rewrite::ready_for(const PagedObjectStoreWriter& writer) const noexcept {
   return matches(writer) && impl_->phase==PagedRewritePhase::ready && same(impl_->original,writer.impl_->state);
+}
+std::uint64_t PagedObjectStoreWriter::Rewrite::verified_capacity_repair_generation() const noexcept {
+  return impl_ && impl_->phase==PagedRewritePhase::ready && impl_->repair_confirmed
+      ?impl_->capacity_repair_generation:0;
 }
 StoreIdentity PagedObjectStoreWriter::Rewrite::identity() const noexcept {return impl_?impl_->build.next.id:StoreIdentity{};}
 bool PagedObjectStoreWriter::Rewrite::replaces_native_root() const noexcept {return impl_ && !impl_->replacement.empty();}
@@ -1467,6 +1492,11 @@ PagedObjectStoreSnapshot PagedObjectStoreWriter::snapshot_for_indexed_read() con
 bool PagedObjectStoreWriter::payload_repair_pending() const noexcept {
   return !poisoned() && impl_->payload_repairs && impl_->payload_repairs->pending(impl_->state.generation);
 }
+std::uint64_t PagedObjectStoreWriter::capacity_repair_generation() const noexcept {
+  if(poisoned() || !impl_->payload_repairs)return 0;
+  const auto& queue=*impl_->payload_repairs;
+  return queue.blocked_record && queue.blocked_generation==impl_->state.generation?queue.blocked_generation:0;
+}
 PagedPayloadRepairProgress PagedObjectStoreWriter::repair_payload() {
   using Progress=PagedPayloadRepairProgress;
   if(!payload_repair_pending())return Progress::idle;
@@ -1475,6 +1505,7 @@ PagedPayloadRepairProgress PagedObjectStoreWriter::repair_payload() {
   auto& queue=*writer.payload_repairs;
   const auto& selected=writer.state;
   const bool queued=queue.count!=0;
+  std::optional<Entry> confirmed_damage;
   bool writing=false;
   try {
     auto source=load(selected.image,selected.limits);
@@ -1514,6 +1545,7 @@ PagedPayloadRepairProgress PagedObjectStoreWriter::repair_payload() {
     auto peer=verified_copy(record->peer);
     if(primary && peer){settle();return Progress::checked;}
     if(!primary && !peer)fail("payload repair requires an independently verified copy");
+    confirmed_damage=record;
     const auto& survivor=primary?*primary:*peer;
 
     // Use the ordinary append and COW index planner. The source digest and
@@ -1556,6 +1588,7 @@ PagedPayloadRepairProgress PagedObjectStoreWriter::repair_payload() {
   }catch(const PagedStoreCapacityError&) {
     if(writing){writer.poisoned=true;throw;}
     queue.blocked_generation=selected.generation;
+    queue.blocked_record=confirmed_damage;
     return Progress::capacity;
   }catch(const std::bad_alloc&) {
     if(writing)writer.poisoned=true;

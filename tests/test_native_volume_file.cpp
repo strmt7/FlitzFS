@@ -259,6 +259,85 @@ void reclaimed_ranges() {
       "recycled first range lost the latest acknowledged foreground data");
 }
 
+void capacity_repair_rotation() {
+  const auto run=[&](std::optional<std::size_t> cut,unsigned mode,bool transient=false) {
+    auto io=std::make_shared<SparseVolumeRam>(4096);
+    Bytes expected;
+    std::size_t operations=0;
+    {
+      auto session=NativeVolumeFile::create(io,id(90),id(91),limits,raw);
+      expected=establish_history(session);
+      require(stage_compaction(session)==Reclaim::ready && session.advance_persistent_reclamation({})==Reclaim::published,
+          "repair fixture could not pack its selected source");
+      release_inactive(session);
+      require(session.volume_info().selection.epoch==2 && !session.indexed_volume_space().obsolete_bytes &&
+          !session.persistent_reclamation_pending(),"packed source unnecessarily scheduled ordinary compaction");
+      const auto handle=session.open("payload",{true,true,true});
+      const auto pinned=session.snapshot();
+      const auto packed=pinned.storage_info().physical_end;
+      const auto& view=io->io.live;
+      constexpr std::size_t marker=40;
+      const auto start=kNativeVolumeFileImageOffset+limits.maximum_physical_bytes;
+      const auto data=std::search(view.begin()+start,view.end(),expected.begin(),expected.begin()+marker);
+      require(data!=view.end(),"repair fixture could not identify its active payload");
+      const auto offset=static_cast<std::size_t>(data-view.begin());
+      const auto peer=offset+io->io.failure_unit;
+      require(peer+marker<=view.size() &&
+          std::equal(expected.begin(),expected.begin()+marker,view.begin()+peer),"repair fixture peer differs");
+      const auto correct=view[offset];
+      io->admitted_end=io->extent();
+      io->io.live[offset]^=std::byte{1};
+      io->io.stable[offset]=io->io.live[offset];
+      const auto before=io->io.calls;
+      const auto previous_reclaims=io->range_reclaims;
+      require(session.read(handle,0,50000)==expected &&
+          session.repair_indexed_payload()==PagedPayloadRepairProgress::capacity &&
+          session.indexed_capacity_repair_generation() && session.persistent_reclamation_pending() &&
+          io->io.calls==before,"verified repair did not escalate on append refusal");
+
+      if(transient) {
+        io->io.live[offset]=io->io.stable[offset]=correct;
+        require(stage_compaction(session,94)==Reclaim::failed && io->io.calls==before &&
+            session.volume_info().selection.epoch==2,"a historical fault authorized a non-saving switch");
+        release_inactive(session);
+        require(!session.persistent_reclamation_pending(),"unchanged repair evidence retried");
+      } else {
+        require(stage_compaction(session,94)==Reclaim::ready,"equal-size repair did not verify its candidate");
+        const auto handoff_start=io->io.calls;
+        if(cut){io->io.failure=mode;io->io.fail_at=handoff_start+*cut;}
+        try {
+          const auto result=session.advance_persistent_reclamation({});
+          require(!cut && result==Reclaim::published,"repair selector did not publish the verified candidate");
+        }catch(const NativeFsError&){if(!cut)throw;}
+        operations=io->io.calls-handoff_start;
+        require(io->range_reclaims==previous_reclaims,"repair retired an old range before checking its readers");
+        if(!cut) {
+          const auto repaired=session.snapshot();
+          repaired.verify_all();
+          require(session.volume_info().selection.epoch==3 && repaired.storage_info().physical_end==packed &&
+              !repaired.storage_info().degraded_checkpoint && session.read(handle,0,50000)==expected &&
+              pinned.read("payload",0,50000)==expected && session.advance_persistent_reclamation({})==Reclaim::pinned,
+              "equal-size repair lost bytes, failed to heal, or released a pinned reader");
+        }
+      }
+    }
+    const auto reopened=NativeVolumeFile::inspect(io->replay(),id(90));
+    const auto epoch=reopened.info().selection.epoch;
+    require((cut?(epoch==2 || epoch==3):epoch==(transient?2U:3U)) &&
+        reopened.filesystem().read("payload",0,50000)==expected &&
+        reopened.filesystem().read("witness",0,1000)==witness_bytes,
+        "repair rotation interrupted acknowledged data");
+    if(epoch==3)require(!reopened.filesystem().storage_info().degraded_checkpoint,
+        "selected repair left an invalid replica");
+    return operations;
+  };
+  const auto boundaries=run({},0);
+  require(boundaries==4,"repair selector write and barrier count changed");
+  (void)run({},0,true);
+  for(unsigned mode=0;mode<3;++mode)for(std::size_t cut=0;cut<boundaries;++cut)(void)run(cut,mode);
+  std::cout<<"capacity_repair_rotation equal_size=1 transient_refused=1 selector_interruptions="<<boundaries*3<<'\n';
+}
+
 void range_publication_cuts() {
   for(const auto unit:{4096U,65536U})for(const bool reconcile:{false,true}) {
     const auto run=[&](std::optional<std::size_t> cut,unsigned mode) {
@@ -421,7 +500,7 @@ int main(int argc,char** argv){
     geometry_and_advice();
     publication_cuts();
     reclaimed_ranges();
-    range_publication_cuts();
+    capacity_repair_rotation();range_publication_cuts();
     std::cout<<"PASS: "<<checks<<" memory-backed volume-file checks\n";
     return 0;
   }catch(const std::exception& error){std::cerr<<"after "<<checks<<" checks: "<<error.what()<<'\n';return 1;}

@@ -880,6 +880,13 @@ bool NativeGroupMaintenance::pending() const noexcept {
   const auto image=writer.maintenance_identity();
   return impl_->discovery_pending(writer,*source,image) || source->coherence_pending();
 }
+void NativeGroupMaintenance::release_staged_groups() noexcept {
+  if(!active_group())return;
+  impl_->reset_index();
+  impl_->state.phase=Phase::idle;
+  impl_->state.search_window_ready=false;
+  impl_->state.search_batch_ready=false;
+}
 void NativeGroupMaintenance::cancel() noexcept {
   if(impl_){
     impl_->cancel_coherence_work();impl_->reset_index();impl_->stopped=true;

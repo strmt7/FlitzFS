@@ -164,6 +164,7 @@ class PagedObjectStoreWriter final {
   // workers do not schedule repairs on the selected writer.
   PagedObjectStoreSnapshot snapshot_for_indexed_read() const;
   bool payload_repair_pending() const noexcept;
+  std::uint64_t capacity_repair_generation() const noexcept;
   PagedPayloadRepairProgress repair_payload();
   std::uint64_t generation_for_staging() const noexcept;
   std::uint64_t physical_end_for_staging() const noexcept;
@@ -199,6 +200,7 @@ class PagedObjectStoreWriter::Rewrite final {
   ~Rewrite();
   bool matches(const PagedObjectStoreWriter&) const noexcept;
   bool ready_for(const PagedObjectStoreWriter&) const noexcept;
+  std::uint64_t verified_capacity_repair_generation() const noexcept;
   StoreIdentity identity() const noexcept;
   bool replaces_native_root() const noexcept;
   PagedRewriteProgress progress() const noexcept;

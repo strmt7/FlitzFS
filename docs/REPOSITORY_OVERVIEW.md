@@ -332,9 +332,16 @@ repair. The Windows controller restored both payload copies with the file
 open, and independent reopen matched the acknowledged bytes. A write that
 touches a recoverable record returns a retryable status before publication.
 The repair fault model recovered the acknowledged data across 360 injected
-interruptions. Proactive scrub, startup repair and capacity-triggered
-rotation remain open.
+interruptions.
 [Live repair evidence](evidence/indexed-live-payload-repair-2026-11-20.json)
+
+If a verified repair cannot append, the controller can select a verified
+alternate image. The owned memory provider restored redundancy at the same
+occupied size with zero free space in the selected image. The paired-range
+model preserved acknowledged bytes through 12 selector interruptions, and
+the Windows owner completed the switch with an open callback handle.
+Proactive scrub and automatic startup repair remain open.
+[Capacity repair evidence](evidence/indexed-capacity-repair-rotation-2026-11-20.json)
 
 The writable controller now stays available for the owner-controlled
 lifetime. Probe time budgets belong to the external test supervisor.

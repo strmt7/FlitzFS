@@ -18,6 +18,7 @@ class SparseVolumeRam final:public flitzfs::NativeVolumeRangeIo {
  public:
   Ram io;
   unsigned range_reclaims=0;
+  std::uint64_t admitted_end=UINT64_MAX;
   explicit SparseVolumeRam(std::uint32_t unit){io.failure_unit=unit;}
   std::shared_ptr<SparseVolumeRam> replay() const {
     auto recovered=std::make_shared<SparseVolumeRam>(io.failure_unit);
@@ -38,7 +39,10 @@ class SparseVolumeRam final:public flitzfs::NativeVolumeRangeIo {
   flitzfs::StoreIoContract contract() const noexcept override {return {io.failure_unit,true,true};}
   bool supports_reclaimable_ranges() const noexcept override {return true;}
   void admit_write(std::uint64_t) override {throw std::runtime_error("sparse model requires range admission");}
-  void admit_range_write(std::uint64_t projected,std::uint64_t) override {io.admit_write(projected);}
+  void admit_range_write(std::uint64_t projected,std::uint64_t) override {
+    if(projected>admitted_end)throw std::runtime_error("modeled backing cannot extend further");
+    io.admit_write(projected);
+  }
   std::uint64_t allocated_extent(std::uint64_t offset,std::uint64_t bytes) const override {
     const auto start=offset/kStoreCommitUnit;
     for(auto pos=start+bytes/kStoreCommitUnit;pos>start;--pos)

@@ -87,10 +87,28 @@ pinned readers. An indeterminate write or checkpoint fences the writer.
 If both copies fail verification, the operation refuses to publish bytes.
 A capacity refusal suspends that queue at the same storage generation.
 
+### Repair when the selected image cannot append
+
+If append admission fails after verifying a surviving copy, the Windows
+owner can stage an alternate image in its owned memory domain or the unused
+range of a paired volume. The staged verifier confirms the failed replica
+and its surviving peer against the captured checkpoint. It checks the
+candidate footprint before writing and independently decodes both new
+replicas before selection. A non-saving switch requires the same
+capacity-blocked generation at publication. If the fault no longer
+reproduces, publication still requires a smaller image.
+
+An equal-size replacement can restore redundancy with zero free bytes
+in the selected image. It still needs space for a verified second copy
+and quiet maintenance opportunities. The provider attempts it once per
+observed generation. Existing reader pins protect the old image through
+selection and until retirement.
+[Capacity repair evidence](evidence/indexed-capacity-repair-rotation-2026-11-20.json)
+
 Writable resume fully scrubs and refuses known damaged payload replicas.
 An explicit independent rebuild streams verified surviving objects into a
-new image and verifies both new copies. Proactive scheduled scrubbing,
-automatic offline repair and capacity-triggered repair rotation remain open.
+new image and verifies both new copies. Proactive scrubbing and automatic
+offline repair remain open.
 Metadata replicas retain their existing protection.
 The defined separation protects against damage to a qualified write-failure
 unit; both copies are still in one image. Common-mode errors, loss of the image/

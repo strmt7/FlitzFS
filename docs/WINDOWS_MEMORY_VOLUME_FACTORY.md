@@ -138,8 +138,15 @@ requires new obsolete history at least as large as its written candidate bytes
 before staging again. The copy preserves existing object encodings and
 reconciles acknowledged edits by comparing immutable index checkpoints.
 A foreground commit before selection keeps the same private image in
-preparation until it has caught up. Switching requires a strictly smaller
+preparation until it has caught up. Reclamation selects a strictly smaller
 image verified against the current generation.
+
+After a live payload repair confirms one surviving copy and cannot append,
+the domain can fund a verified alternate image as a repair. This path can
+restore both replicas at the same occupied size. The owner binds that
+permission to the exact capacity-blocked generation and retains the old
+mapping while a reader pins it.
+[Capacity repair](MIRRORED_PAYLOADS.md#repair-when-the-selected-image-cannot-append)
 
 An indexed compression transaction can also report an append-space shortfall
 before writing. The owner considers compaction if its known obsolete history

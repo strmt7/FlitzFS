@@ -74,6 +74,10 @@ compression preparation and uses a fresh admission before committing.
 The controller checks foreground activity, deferred response ownership and
 worker retirement before entering either transaction. The owner sleeps
 when its maintenance queues are empty.
+When a verified replica repair cannot append, the controller yields
+private group preparation to the provider's repair rotation. The normal
+resource and foreground checks still apply, and selector publication
+requires a fresh observation.
 [Mirrored payload repair](MIRRORED_PAYLOADS.md#automatic-repair-after-a-verified-read)
 [Indexed checks](evidence/indexed-owned-windows-2026-11-18.json) ·
 [Memory reclamation](WINDOWS_MEMORY_VOLUME_FACTORY.md#automatic-indexed-compaction)

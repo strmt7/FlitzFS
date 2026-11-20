@@ -221,6 +221,8 @@ class NativeFileSession final {
   // The serialized idle owner admits one verified repair. Its checkpoint
   // preserves namespace state, file contexts and logical object generations.
   bool indexed_payload_repair_pending() const noexcept;
+  // A verified failed append admission bound to the current storage checkpoint.
+  std::uint64_t indexed_capacity_repair_generation() const noexcept;
   PagedPayloadRepairProgress repair_indexed_payload();
   // One admitted idle opportunity. The identity source is invoked only when
   // starting a new image. These operations use the session's control thread.

@@ -92,6 +92,10 @@ class NativeObjectWriter final {
     const auto* paged=paged_if();
     return paged && paged->payload_repair_pending();
   }
+  std::uint64_t capacity_repair_generation() const noexcept {
+    const auto* paged=paged_if();
+    return paged?paged->capacity_repair_generation():0;
+  }
   PagedPayloadRepairProgress repair_payload() {
     auto* paged=paged_if();
     return paged?paged->repair_payload():PagedPayloadRepairProgress::idle;

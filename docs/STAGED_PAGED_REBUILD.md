@@ -118,6 +118,15 @@ leaves the selected source readable. Existing readers use the same format.
 Staging requires a second image and quiet opportunities. Persistent
 candidate recovery and segment reuse remain work for the release.
 
+The initial source pass also checks for a verified capacity-blocked
+payload repair for the captured generation. It reconfirms the single-copy
+failure and budgets the packed target, including the rebound root, before
+writing. A verified replacement may occupy the same space if the selected
+generation still carries that observation at handoff. Both target replicas
+must pass the normal verification. Foreground commits require exact
+current-generation evidence for any non-saving handoff.
+[Repair conditions](MIRRORED_PAYLOADS.md#repair-when-the-selected-image-cannot-append)
+
 ## Filtered advisory compaction
 
 The coherence catalog uses the same staged verifier and packed builder with

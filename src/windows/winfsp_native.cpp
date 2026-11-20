@@ -199,7 +199,12 @@ struct WinFspNativeWritable::Impl {
     }
     return result;
   }
-  WinFspMaintenanceResult advance_indexed_maintenance(const NativeMaintenanceObservation& observed,std::uint64_t now) {
+  bool capacity_repair_pending() const {
+    return session.indexed_capacity_repair_generation() &&
+        (memory_backing?memory_backing->compaction_pending(session):session.persistent_reclamation_pending());
+  }
+  WinFspMaintenanceResult advance_indexed_maintenance(const NativeMaintenanceObservation& observed,std::uint64_t now,
+      bool repair_rotation) {
     using State=WinFspMaintenanceState;
     using Phase=NativeMaintenancePhase;
     using Deferral=NativeMaintenanceDeferral;
@@ -266,6 +271,7 @@ struct WinFspNativeWritable::Impl {
         }
         return {State::unchanged};
       };
+      if(repair_rotation && groups)groups->release_staged_groups();
       if(persistent)return progress(session.advance_persistent_reclamation(fresh_volume_identity));
       if(memory)return progress(memory_backing->advance_compaction(session));
     }catch(...) {
@@ -837,7 +843,8 @@ WinFspMaintenanceResult WinFspNativeWritable::advance_background_maintenance(
     return {WinFspMaintenanceState::unavailable};
   }
   const bool indexed=impl_->info_policy==indexed_file_info;
-  const bool repair=indexed && impl_->session.indexed_payload_repair_pending();
+  const bool rotation=indexed && impl_->capacity_repair_pending();
+  const bool repair=indexed && (rotation || impl_->session.indexed_payload_repair_pending());
   if(observed.continued) {
     if(continuation==WinFspMaintenanceContinuation::group && !repair && !impl_->session.retirement_pending())
       return impl_->advance_groups(observed,now,search);
@@ -849,7 +856,7 @@ WinFspMaintenanceResult WinFspNativeWritable::advance_background_maintenance(
     // a compaction handoff. Detached-inode reclamation can still invalidate it.
     if(!observed.continued && !repair && !impl_->session.retirement_pending() && impl_->groups && impl_->groups->active_group())
       return impl_->advance_groups(observed,now,search);
-    auto storage=impl_->advance_indexed_maintenance(observed,now);
+    auto storage=impl_->advance_indexed_maintenance(observed,now,rotation);
     if(observed.continued || (storage.state!=WinFspMaintenanceState::unchanged &&
         (storage.progress.deferral!=NativeMaintenanceDeferral::other_maintenance || !impl_->groups || !impl_->groups->pending()))) {
       if(impl_->groups) {
