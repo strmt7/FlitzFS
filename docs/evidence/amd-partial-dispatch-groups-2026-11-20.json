@@ -1,0 +1,160 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "captured_local": "2026-11-20T18:19:45+01:00",
+  "source_base": "292a851b7a3c26559c0ce9581f3f07b6fb73461c",
+  "source_binding": {
+    "src/windows/native_anchor_search.cpp": {
+      "git_blob": "87b351cc91e746ba4d56d87d9a896e4e4ca4cd07",
+      "sha256": "2914ffbd0c6eb1d661f7e379c3eac2b0d305f6fdcc9730652fbfd4ea2ec7d87c"
+    },
+    "src/windows/native_anchor_search.hpp": {
+      "git_blob": "eb3f5e4d314d2c42ba69d3995deb3a0f69531b99",
+      "sha256": "982df6e7efbcdbf2230bbcaae231d47636f75e76212a83446e92c9c305c0d22d"
+    },
+    "tests/test_winfsp_controller.cpp": {
+      "git_blob": "e7363027a721339c36e53dc2966a736cac211c3a",
+      "sha256": "f184bc106c4d3aff35f7dc3a730d2c4dc33d85569efd67256198abe83d2855d1"
+    }
+  },
+  "navigation": {
+    "commit": "292a851b7a3c26559c0ce9581f3f07b6fb73461c",
+    "inventory_sha256": "cf92f25794f7ab9fd1f99c281fd81bcf519310445638cdc6e89df7fb427e7b63",
+    "native_response_sha256": "242964afda2a2e97b9dfde7e779628fee16a3f5d79c0d1e6dcc47a29510592c9",
+    "provider_version": "0.2.43",
+    "query": "Locate why the native shared-base search advertises queued HIP dispatches but a public mixed-file batch uses single dispatch waits. Find sizing, within-worker phase timings, adaptive evidence and bounded follow-on work.",
+    "actual_searches": 1
+  },
+  "phase_reference": "amd-anchor-stream-setup-2026-11-19.json",
+  "related_transfer_evidence": "amd-same-stream-transfers-2026-11-20.json",
+  "host": {
+    "os": "Microsoft Windows 11 Pro",
+    "build": 26300,
+    "gpu": [
+      {
+        "Name": "AMD Radeon RX 9070 XT",
+        "DriverVersion": "32.0.32029.2010"
+      }
+    ],
+    "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7"
+  },
+  "artifacts": {
+    "control_controller_sha256": "c2261241fb3527fc5ed804cac2b06c82b0293942d30f044b809e1a2a0af481f8",
+    "candidate_controller_sha256": "eccfa85af58e1eca6e61096d9697c38c6f8397e0d4d75c0bb7642f579c1fa952",
+    "user_mode_fixture_dll_sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+    "worker_sha256": "bca40a979dcd51660cf900e6d9b4d80472ab38e6aead2bb3437957481449211c",
+    "kernel_sha256": "9aad995bc1b2e330a8f24f76dcc5eaa9edc8f96351c999f10712aef0be33467d"
+  },
+  "fixture": {
+    "mixed_bank_sha256": "ffe86027aaf7145f34f11b6225fb18ee118a791f00818509cf37274261fa14b6",
+    "emitted_files_blake3": "099bc2d2fbc3c710e9e6ddb9b2312aa72d021d1bd478cec33e69b077cc9ced89",
+    "activity": "Modeled idle opportunities with live AMD compute and memory admission",
+    "requested_dispatch_limit": 4,
+    "compacted_image_bytes": 319488,
+    "verified_groups_per_run": 7,
+    "device_advised_members_published_per_run": 12,
+    "independent_byte_readback_for_every_run": true,
+    "process_retirement_for_every_run": true
+  },
+  "queue_comparison": [
+    {
+      "controller": "control",
+      "run": "local-run-c9e092616bc64693a4f688114a370fe0",
+      "worker_ns": 1541767900,
+      "maintenance_ns": 1571479000,
+      "peak_job_bytes": 103342080,
+      "dispatches_per_wait": 0,
+      "submitted_kernel_launches": 20,
+      "queued_worker_wall_ns": 0,
+      "queued_kernel_wait_ns": 0
+    },
+    {
+      "controller": "candidate",
+      "run": "local-run-e9ed30279715495087ced1034086baf6",
+      "worker_ns": 1809980500,
+      "maintenance_ns": 1839741600,
+      "peak_job_bytes": 101703680,
+      "dispatches_per_wait": 2,
+      "submitted_kernel_launches": 20,
+      "queued_worker_wall_ns": 1751132500,
+      "queued_kernel_wait_ns": 1438400
+    },
+    {
+      "controller": "candidate",
+      "run": "local-run-6fd4132064794aeda0bf6072d5690bea",
+      "worker_ns": 1488298100,
+      "maintenance_ns": 1517635500,
+      "peak_job_bytes": 103124992,
+      "dispatches_per_wait": 2,
+      "submitted_kernel_launches": 20,
+      "queued_worker_wall_ns": 1421672600,
+      "queued_kernel_wait_ns": 1350500
+    },
+    {
+      "controller": "control",
+      "run": "local-run-974efebd80654269be1e24d0e2898cd6",
+      "worker_ns": 1754647500,
+      "maintenance_ns": 1783448500,
+      "peak_job_bytes": 102400000,
+      "dispatches_per_wait": 0,
+      "submitted_kernel_launches": 20,
+      "queued_worker_wall_ns": 0,
+      "queued_kernel_wait_ns": 0
+    },
+    {
+      "controller": "control",
+      "run": "local-run-b7a8f69214bc4d269ae3bfede42a9698",
+      "worker_ns": 1502454400,
+      "maintenance_ns": 1532090100,
+      "peak_job_bytes": 102785024,
+      "dispatches_per_wait": 0,
+      "submitted_kernel_launches": 20,
+      "queued_worker_wall_ns": 0,
+      "queued_kernel_wait_ns": 0
+    },
+    {
+      "controller": "candidate",
+      "run": "local-run-01c51182bb584244af8052cb4240be94",
+      "worker_ns": 1776027000,
+      "maintenance_ns": 1806311300,
+      "peak_job_bytes": 102023168,
+      "dispatches_per_wait": 2,
+      "submitted_kernel_launches": 20,
+      "queued_worker_wall_ns": 1715644200,
+      "queued_kernel_wait_ns": 1550200
+    }
+  ],
+  "worker_timing": {
+    "control": {
+      "median_worker_ns": 1541767900,
+      "min_worker_ns": 1502454400,
+      "max_worker_ns": 1754647500
+    },
+    "candidate": {
+      "median_worker_ns": 1776027000,
+      "min_worker_ns": 1488298100,
+      "max_worker_ns": 1809980500
+    }
+  },
+  "checks": {
+    "regression_before_fix": {
+      "run": "local-run-68292e352cd94cc7af91b8a07c6cc7bd",
+      "reason": "A smaller funded wait group wasn't profiled",
+      "exit_code": 8
+    },
+    "windows_release": {
+      "run": "local-run-b18d1cee208c45f9bbf1324c45bae317",
+      "passed": 4
+    },
+    "windows_asan": {
+      "run": "local-run-4a5800bc48284cb193f3918285a2e0b8",
+      "passed": 5
+    }
+  },
+  "control_preflight": {
+    "run": "local-run-d8632c20c5cb43a1b6fb685b6b23313f",
+    "exit_code": "0xc0000135",
+    "resolution": "Copied the exact configured user-mode fixture DLL next to the private control executable. The supervised invocation logged the loader error and confirmed process exit."
+  },
+  "scope": "The queue is opt-in through the admitted route's existing configured maximum. The small mixed case qualified the two-dispatch route. Its overlapping timing ranges do not establish a speed improvement. Modeled idle opportunities and independent reopened images do not qualify mounted throughput."
+}

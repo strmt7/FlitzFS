@@ -15,7 +15,7 @@ struct NativeAnchorSearchOptions {
   std::uint32_t duty_ppm=10000;
   anchor_match::BatchOutput output=anchor_match::BatchOutput::anchors;
   std::uint32_t maximum_dispatch_members=0;
-  // Use a queued profile when the admitted slab contains its wait group.
+  // Maximum queue depth for a funded slab and profile trailer.
   std::uint32_t dispatches_per_wait=1;
 };
 

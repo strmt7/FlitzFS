@@ -21,6 +21,15 @@
     "independent_CPU_readback": true,
     "mounted_throughput_qualified": false
   },
+  "amd_partial_dispatch_groups": {
+    "source_base": "292a851b7a3c26559c0ce9581f3f07b6fb73461c",
+    "evidence": "docs/evidence/amd-partial-dispatch-groups-2026-11-20.json",
+    "configured_dispatch_limit": 4,
+    "live_profiled_dispatches_per_wait": 2,
+    "independent_CPU_readback": true,
+    "unprofiled_fallback_at_admission_edge": true,
+    "mixed_compacted_image_bytes": 319488
+  },
   "windows_stable_winfsp_22": {
     "source_base": "ad466670c22f0e95ca39a4cde353c71ad9380567",
     "evidence": "docs/evidence/windows11-stable-winfsp-2.2-2026-11-20.json",

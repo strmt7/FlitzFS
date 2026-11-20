@@ -93,14 +93,15 @@ std::optional<NativeAnchorLaunchPlan> plan_native_anchor_launch(
       if (!valid_process_budget(budget)) return {};
       std::uint32_t queued = 1;
       const auto admitted_dispatches = 1 + (transfer.members_per_transfer - 1) / batch.quantum_members;
-      if (options.dispatches_per_wait > 1 && admitted_dispatches >= options.dispatches_per_wait &&
+      const auto queue_limit = (std::min)(options.dispatches_per_wait, admitted_dispatches);
+      if (queue_limit > 1 &&
           options.worker.timeout_ms <= kAnchorSweepProfileLimitNs / million) {
         auto profiled = capacity;
         profiled.reply_bytes += kAnchorBatchProfileBytes;
         if (const auto planned = budget_for(transfer, profiled); valid_process_budget(planned)) {
           capacity = profiled;
           budget = planned;
-          queued = options.dispatches_per_wait;
+          queued = queue_limit;
         }
       }
       return NativeAnchorLaunchPlan{std::move(batch), transfer, capacity, budget, queued};

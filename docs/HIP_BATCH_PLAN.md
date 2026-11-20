@@ -183,6 +183,14 @@ of one admitted AMD request, five CPU groups published on subsequent
 modeled idle opportunities and all files reopened byte for byte.
 [Same-stream transfer evidence](evidence/amd-same-stream-transfers-2026-11-20.json)
 
+The configured queue depth is an upper bound. The route uses the number
+of dispatches that fit in the admitted slab and reserves the matching
+profile trailer only when it fits the worker budget. With the limit set
+to four, the mixed fixture verified two dispatches per wait on the AMD
+device in all three trials. Image size and exact readback matched the
+single-dispatch control. Worker timing ranges overlapped.
+[Partial queue evidence](evidence/amd-partial-dispatch-groups-2026-11-20.json)
+
 ## SDK-only compression compute candidate
 
 The [typed LZ4 compute implementation and CPU probe](HIP_LZ4_COMPUTE.md)

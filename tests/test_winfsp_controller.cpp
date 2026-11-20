@@ -82,6 +82,32 @@ void anchor_launch_budget() {
   require(!limited(two_bytes - 1), "Prefix planning accepted fewer than the approved minimum members");
   require(!plan_native_anchor_launch(members, options, observed,
       observed.captured_ms + kGpuMaxBudgetAgeMs + 1, false), "Stale budget admitted a GPU batch");
+
+  auto queued_options=options;
+  queued_options.minimum_members=1;
+  constexpr std::array one_dispatch{anchor_match::max_members};
+  constexpr std::array two_dispatches{anchor_match::max_members+1};
+  const auto unprofiled=plan_native_anchor_launch(two_dispatches,queued_options,observed,observed.captured_ms,false);
+  queued_options.dispatches_per_wait=kAnchorProfileMaxQueuedDispatches;
+  const auto one_wait=plan_native_anchor_launch(one_dispatch,queued_options,observed,observed.captured_ms,false);
+  const auto two_wait=plan_native_anchor_launch(two_dispatches,queued_options,observed,observed.captured_ms,false);
+  const auto full_wait=plan_native_anchor_launch(members,queued_options,observed,observed.captured_ms,false);
+  require(unprofiled && unprofiled->dispatches_per_wait==1 && one_wait && one_wait->dispatches_per_wait==1 &&
+      one_wait->capacity.reply_bytes==one_wait->batch.reply_bytes, "Single dispatch required an optional profile");
+  require(two_wait && two_wait->dispatches_per_wait==2 && two_wait->batch==unprofiled->batch &&
+      two_wait->transfer==unprofiled->transfer &&
+      two_wait->capacity.reply_bytes==unprofiled->capacity.reply_bytes+kAnchorBatchProfileBytes,
+      "A smaller funded wait group wasn't profiled");
+  require(full_wait && full_wait->dispatches_per_wait==kAnchorProfileMaxQueuedDispatches,
+      "Wait group exceeded the requested dispatch limit");
+  auto no_trailer=observed;
+  no_trailer.physical_available=no_trailer.commit_available=
+      required_sized_worker_headroom(unprofiled->capacity,unprofiled->worker);
+  const auto funded=plan_native_anchor_launch(two_dispatches,queued_options,no_trailer,no_trailer.captured_ms,false);
+  require(funded && funded->dispatches_per_wait==1 && funded->batch==unprofiled->batch &&
+      funded->capacity.reply_bytes==unprofiled->capacity.reply_bytes,
+      "Optional wait profile displaced a funded unprofiled batch");
+
   options.output=anchor_match::BatchOutput::wide_anchors;
   require(!plan_native_anchor_launch(members,options,observed,observed.captured_ms,false),
       "Wide copy admitted without an approved dispatch size");
