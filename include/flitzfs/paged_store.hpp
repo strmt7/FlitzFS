@@ -182,9 +182,14 @@ class PagedObjectStoreWriter final {
       PagedStoreLimits,StoreCompressionOptions,bool mirrored,std::span<const StoreMutation> initial={},
       std::uint64_t maximum_write_bytes=UINT64_MAX,
       const std::function<bool(std::uint64_t)>& reserve_writes={});
+  struct RebuildColdEncoding {
+    std::uint64_t after_generation;
+    bool (*eligible)(std::uint64_t) noexcept;
+  };
   Rewrite prepare_rebuild_replacing(std::shared_ptr<StoreByteIo>,StoreIdentity,
       StoreCompressionOptions,std::span<const std::byte> replacement,bool reencode,
-      std::size_t identity_offset=40,PagedRewriteMode=PagedRewriteMode::exact_checkpoint) const;
+      std::size_t identity_offset=40,PagedRewriteMode=PagedRewriteMode::exact_checkpoint,
+      std::optional<RebuildColdEncoding> cold={}) const;
   struct RebuildRetention {
     std::size_t maximum_object_bytes;
     std::function<bool(std::uint64_t,std::span<const std::byte>)> keep;
@@ -194,7 +199,8 @@ class PagedObjectStoreWriter final {
   Rewrite prepare_rebuild_retaining(std::shared_ptr<StoreByteIo>,StoreCompressionOptions,RebuildRetention) const;
   Rewrite prepare_rebuild_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,
       StoreCompressionOptions,std::span<const std::byte> replacement,bool reencode,
-      std::size_t identity_offset,std::optional<RebuildRetention>,PagedRewriteMode) const;
+      std::size_t identity_offset,std::optional<RebuildRetention>,PagedRewriteMode,
+      std::optional<RebuildColdEncoding> cold={}) const;
   static PagedObjectStoreWriter rebuild_replacing(const PagedObjectStoreSnapshot&,
       std::shared_ptr<StoreByteIo>,StoreIdentity,PagedStoreLimits,StoreCompressionOptions,
       std::uint64_t replacement_id,std::span<const std::byte> replacement,bool reencode,

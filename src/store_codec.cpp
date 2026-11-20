@@ -192,12 +192,13 @@ struct StoreCodecEncoder::Impl {
 #endif
   }
 #ifdef FLITZFS_STORE_HAS_ZSTD
+  ZSTD_CCtx* encoding_context() noexcept {
+    if(!context)context.reset(ZSTD_createCCtx_advanced(budget.callbacks()));
+    return context.get();
+  }
   ZSTD_CCtx* prepare_context() {
-    if(!context) {
-      context.reset(ZSTD_createCCtx_advanced(budget.callbacks()));
-      if(!context) fail("compressor memory admission");
-    }
-    auto* cctx=context.get();
+    auto* cctx=encoding_context();
+    if(!cctx)fail("compressor memory admission");
     checked(ZSTD_CCtx_reset(cctx,ZSTD_reset_session_and_parameters),"compressor reset");
     checked(ZSTD_CCtx_setParameter(cctx,ZSTD_c_compressionLevel,options.zstd_level),"compression level");
     checked(ZSTD_CCtx_setParameter(cctx,ZSTD_c_windowLog,20),"compression window");
@@ -349,6 +350,40 @@ EncodedStoreObject StoreCodecEncoder::verify_encoding(EncodedStoreObject result,
   if(!std::ranges::equal(decoded,input))fail("compression round-trip mismatch");
   result.decoded_digest=record_digest(input);
   return result;
+}
+std::optional<EncodedStoreObject> StoreCodecEncoder::try_cold_encoding(
+    std::span<const std::byte> input,std::size_t old_size) {
+#ifdef FLITZFS_STORE_HAS_ZSTD
+  // Indexed data fits one native extent and its envelope. Bound a trial to
+  // one Zstandard block, and charge the same allocator as foreground encoding.
+  constexpr std::size_t block_bytes=128U*1024U;
+  if(impl_->options.mode==StoreCompressionMode::raw || !store_zstd_available() ||
+      input.empty() || input.size()>block_bytes || old_size<=16 || old_size>input.size())return {};
+  const auto maximum=ZSTD_maxCLevel();
+  auto params=ZSTD_getCParams(maximum,input.size(),0);
+  auto bytes=ZSTD_estimateCCtxSize_usingCParams(params);
+  for(auto level=maximum;ZSTD_isError(bytes) || bytes>impl_->allocation_limit;) {
+    if(--level<=impl_->options.zstd_level)return {};
+    params=ZSTD_getCParams(level,input.size(),0);
+    bytes=ZSTD_estimateCCtxSize_usingCParams(params);
+  }
+  auto* ctx=impl_->encoding_context();
+  if(!ctx || ZSTD_isError(ZSTD_CCtx_reset(ctx,ZSTD_reset_session_and_parameters)) ||
+      ZSTD_isError(ZSTD_CCtx_setCParams(ctx,params)) ||
+      ZSTD_isError(ZSTD_CCtx_setParameter(ctx,ZSTD_c_nbWorkers,0)) ||
+      ZSTD_isError(ZSTD_CCtx_setParameter(ctx,ZSTD_c_contentSizeFlag,1)) ||
+      ZSTD_isError(ZSTD_CCtx_setParameter(ctx,ZSTD_c_checksumFlag,1)))return {};
+  try {
+    Bytes candidate(old_size-1);
+    const auto size=ZSTD_compress2(ctx,candidate.data(),candidate.size(),input.data(),input.size());
+    if(ZSTD_isError(size) || size>=old_size)return {};
+    candidate.resize(size);
+    return verify_encoding({kStoreZstd,std::move(candidate)},input);
+  }catch(const std::bad_alloc&) {return {};}
+#else
+  (void)input;(void)old_size;
+  return {};
+#endif
 }
 Bytes prepend_lz4_literals(std::span<const std::byte> prefix,std::span<const std::byte> block,
     std::size_t decoded_body_bytes) {

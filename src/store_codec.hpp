@@ -56,6 +56,7 @@ class StoreCodecEncoder final {
   EncodedStoreObject encode_with_lz4(std::span<const std::byte> input,std::span<const std::byte> candidate,
       std::uint32_t literal_prefix_bytes=0);
   EncodedStoreObject encode_with_matches(std::vector<std::byte> input,std::span<const StoreMatchProposal> matches);
+  std::optional<EncodedStoreObject> try_cold_encoding(std::span<const std::byte> input,std::size_t old_size);
   std::size_t peak_bytes() const noexcept;
  private:
   EncodedStoreObject encode_compressed(std::span<const std::byte> input,bool cpu_fast);

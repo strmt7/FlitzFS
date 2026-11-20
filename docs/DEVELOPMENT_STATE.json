@@ -23,6 +23,28 @@
     "interactive_explorer_qualified": false,
     "live_amd_verified_groups": 8
   },
+  "indexed_cold_encoding": {
+    "source_base": "2dba22ab0965510c56ac6d0db47a1d243a4f2fb2",
+    "evidence": "docs/evidence/indexed-cold-encoding-2026-11-20.json",
+    "public_complete_images": {
+      "code": [
+        811008,
+        753664
+      ],
+      "docs": [
+        991232,
+        942080
+      ],
+      "mixed": [
+        827392,
+        770048
+      ]
+    },
+    "replay_verified": true,
+    "independent_CPU_readback": true,
+    "live_session_generation_frontier": true,
+    "new_volume_capability": false
+  },
   "paired_range_reader_wake": {
     "source_base": "81e7770ce3463d2bcc4fcad40c395376a979e1cd",
     "evidence": "docs/evidence/paired-range-reader-wake-2026-11-20.json",

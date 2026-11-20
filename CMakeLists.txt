@@ -144,7 +144,9 @@ if(FLITZFS_WITH_ZSTD)
           ZSTD_customMem memory = { nullptr, nullptr, nullptr };
           ZSTD_CCtx* c = ZSTD_createCCtx_advanced(memory);
           ZSTD_DCtx* d = ZSTD_createDCtx_advanced(memory);
-          return int(ZSTD_freeCCtx(c) + ZSTD_freeDCtx(d));
+          const auto params = ZSTD_getCParams(19, 65536, 0);
+          const auto setup = ZSTD_CCtx_setCParams(c, params) + ZSTD_estimateCCtxSize_usingCParams(params);
+          return int(setup + ZSTD_freeCCtx(c) + ZSTD_freeDCtx(d));
         }" FLITZFS_STORE_ZSTD_LINKS)
       if(FLITZFS_STORE_ZSTD_LINKS)
         check_cxx_source_compiles("
@@ -622,6 +624,7 @@ if(FLITZFS_BUILD_TESTS)
   add_executable(flitzfs_native_volume_file_tests tests/test_native_volume_file.cpp)
   target_link_libraries(flitzfs_native_volume_file_tests PRIVATE flitzfs_core)
   add_test(NAME bounded_native_volume_file COMMAND flitzfs_native_volume_file_tests)
+  add_test(NAME bounded_native_cold_relocation COMMAND flitzfs_native_volume_file_tests --cold-relocation)
   set_tests_properties(bounded_native_volume_file PROPERTIES TIMEOUT 60)
   if(WIN32 AND FLITZFS_REGISTER_INTEGRATION_FIXTURES)
     add_test(NAME isolated_native_volume_file COMMAND flitzfs_native_volume_file_tests

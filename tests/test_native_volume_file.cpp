@@ -1,4 +1,5 @@
 #include "flitzfs/native_volume_file.hpp"
+#include "flitzfs/read_only_file.hpp"
 #include "native_fs_fixture.hpp"
 #include "volume_range_fixture.hpp"
 #ifdef _WIN32
@@ -37,6 +38,86 @@ void update(NativeFileSession& session,const Bytes& bytes) {
   const auto handle=session.open("payload",{true,true,false});
   session.write(handle,0,bytes);
   session.cleanup(handle,false);session.close(handle);
+}
+Bytes cold_test_payload() {
+  std::vector<Bytes> vocabulary;
+  for(unsigned i=0;i<173;++i)vocabulary.push_back(data(11+i*29%75,82003+i*37));
+  Bytes result;
+  result.reserve(24*kNativeExtentBytes);
+  for(unsigned i=0;i<24;++i) {
+    const auto choices=data(kNativeExtentBytes,180451+i*5);
+    const auto end=result.size()+kNativeExtentBytes;
+    for(std::size_t j=0;result.size()<end;++j) {
+      const auto key=std::to_integer<unsigned>(choices[j%choices.size()]);
+      const auto& part=vocabulary[key%vocabulary.size()];
+      const auto take=(std::min)(part.size(),end-result.size());
+      result.insert(result.end(),part.begin(),part.begin()+static_cast<std::ptrdiff_t>(take));
+      if(result.size()<end)result.push_back(choices[(j*47+19)%choices.size()]);
+    }
+  }
+  return result;
+}
+void cold_relocation(const Bytes& payload,bool require_reduction) {
+  if(!store_zstd_available())return;
+  const StoreCompressionOptions foreground=require_reduction?
+      StoreCompressionOptions{StoreCompressionMode::fast,3,false}:
+      StoreCompressionOptions{StoreCompressionMode::automatic,3,true};
+  const auto noise=data(2*kNativeExtentBytes,102019);
+  struct Result {std::uint64_t image,stored,read_bytes,written;};
+  const auto trial=[&](PagedRewriteMode mode,bool late_edit) {
+    auto head=empty(4096),input=empty(4096),target=empty(4096);
+    auto expected=payload;
+    const auto resolver=[&](const StoreIdentity& requested)->std::shared_ptr<StoreByteIo> {
+      return requested==id(71)?input:requested==id(72)?target:nullptr;
+    };
+    std::uint64_t before=0;
+    {
+      auto session=NativeFileSession::create_indexed_volume(head,id(70),input,id(71),limits,foreground);
+      put(session,"payload",payload);
+      put(session,"noise",noise);
+      before=input->extent();
+      require(session.begin_idle_compaction(target,id(72),mode),"cold copy admission");
+      const auto advance=[&] {
+        for(unsigned step=0;step<4000;++step) {
+          const auto progress=session.advance_recompression();
+          if(progress==NativeFileSession::RecompressionProgress::ready)return;
+          require(progress==NativeFileSession::RecompressionProgress::copying,"staged cold copy became stale");
+        }
+        throw std::runtime_error("cold copy did not settle");
+      };
+      advance();
+      if(late_edit) {
+        const auto file=session.open("payload",{true,true,false});
+        expected[0]^=std::byte{0x42};
+        session.write(file,0,{expected.data(),1});
+        session.cleanup(file,false);
+        session.close(file);
+        rejects([&]{(void)session.publish_idle_recompression();},"stale cold candidate published without replay");
+        advance();
+      }
+      require(session.publish_idle_recompression().has_value(),"cold candidate did not publish");
+      if(!late_edit)require(input->extent()==before,"cold copy changed its source backing");
+    }
+    const auto recovered=NativeVolumeHeadView::open(head,id(70),resolver);
+    const auto& view=recovered.filesystem();
+    view.verify_all();
+    const auto reads=target->read_bytes;
+    require(view.read("payload",0,static_cast<std::uint32_t>(expected.size()))==expected &&
+        view.read("noise",0,static_cast<std::uint32_t>(noise.size()))==noise,"CPU cold relocation changed acknowledged bytes");
+    return Result{target->extent(),view.storage_info().stored_payload_bytes,target->read_bytes-reads,target->write_bytes};
+  };
+  const auto copy=trial(PagedRewriteMode::exact_checkpoint,false);
+  const auto cold=trial(PagedRewriteMode::reconcile_foreground,false);
+  require(cold.image<=copy.image && cold.stored<=copy.stored,"optional encoding grew a compacted image");
+  if(require_reduction) {
+    require(cold.image<copy.image && cold.stored<copy.stored,"cold relocation did not reduce the model image");
+    (void)trial(PagedRewriteMode::reconcile_foreground,true);
+  }
+  std::cout<<"cold_relocation payload="<<payload.size()<<" copy_image="<<copy.image<<" cold_image="<<cold.image
+      <<" copy_stored="<<copy.stored<<" cold_stored="<<cold.stored
+      <<" copy_reads="<<copy.read_bytes<<" cold_reads="<<cold.read_bytes
+      <<" copy_writes="<<copy.written<<" cold_writes="<<cold.written
+      <<" independent_cpu_readback=1 replay_checked="<<(require_reduction?1:0)<<'\n';
 }
 Bytes acknowledged(std::uint32_t unit,const Bytes& original,const Bytes& witness) {
   auto io=empty(unit);
@@ -621,6 +702,18 @@ void disposable_sparse_file(const std::filesystem::path& base) {
 }
 int main(int argc,char** argv){
   try {
+    if(argc==2 && std::string_view(argv[1])=="--cold-relocation") {
+      cold_relocation(cold_test_payload(),true);
+      return 0;
+    }
+    if(argc==3 && std::string_view(argv[1])=="--cold-corpus") {
+      auto source=ReadOnlyFile::open(argv[2]);
+      require(source.size()>0 && source.size()<=2*1024*1024,"public cold fixture byte budget");
+      Bytes payload(static_cast<std::size_t>(source.size()));
+      source.read_exact_at(0,payload.data(),payload.size());
+      cold_relocation(payload,false);
+      return 0;
+    }
 #ifdef _WIN32
     if(argc==3 && std::string_view(argv[1])=="--disposable-file") {
       disposable_file(std::filesystem::path(argv[2]));

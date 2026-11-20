@@ -22,6 +22,13 @@ reader count before reclaiming allocation. A reader retained after shutdown
 can still read its held image and release it safely.
 [Paired range reader release](evidence/paired-range-reader-wake-2026-11-20.json)
 
+Relocation can reuse the decoded bytes of an indexed data object to try a
+smaller encoding. The tentative frame must round-trip on CPU. The existing
+mirrored target verification and reconciliation still precede selector
+publication. A foreground edit invalidates readiness until the candidate
+has replayed and verified the new committed version.
+[Relocation validation](evidence/indexed-cold-encoding-2026-11-20.json)
+
 Each indexed directory summary shares its atomic publication with the matching
 names and inodes. Full verification reconciles the summaries with the children
 and checks the reachable namespace against the object inventory before writer

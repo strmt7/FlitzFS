@@ -19,6 +19,13 @@ two readers kept the old image pinned. The final reader woke retirement
 once, and an independent CPU reader recovered the later write.
 [Reader release evidence](evidence/paired-range-reader-wake-2026-11-20.json)
 
+Indexed compaction now tries stronger encoding during its existing copy.
+The public-derived code, documentation and mixed inputs used 5.0–7.1%
+less space in the verified compacted image. Candidate writes and the
+backing bytes read in whole-file checks fell on those inputs. Mounted interference
+and a durable record of evaluated generations remain open.
+[Cold encoding evidence](evidence/indexed-cold-encoding-2026-11-20.json)
+
 The [repository overview](REPOSITORY_OVERVIEW.md) records the architecture
 decisions and measured baseline. The [implementation plan](IMPLEMENTATION_PLAN.md)
 defines the current work packages, dependencies and release gates. The snapshots

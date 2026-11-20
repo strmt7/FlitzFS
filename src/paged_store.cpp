@@ -793,9 +793,11 @@ struct Rebuild {
   }
 };
 PreparedObject prepare_rebuilt_object(const State& target,const Entry& source_entry,ObjectRecord source_record,
-    const Bytes& decoded,detail::StoreCodecEncoder& encoder,bool reencode) {
+    const Bytes& decoded,detail::StoreCodecEncoder& encoder,bool reencode,bool improve=false) {
   auto encoded=[&] {
     if(reencode)return encoder.encode(decoded);
+    if(improve)if(auto smaller=encoder.try_cold_encoding(decoded,source_record.payload.size()))
+      return std::move(*smaller);
     return detail::EncodedStoreObject{get32(source_record.header,12),std::move(source_record.payload),
         field<32>(source_record.header,56)};
   }();
@@ -815,13 +817,13 @@ PreparedObject prepare_rebuilt_object(const State& target,const Entry& source_en
 bool copy_rebuild_object(Rebuild& build,const State& original,const Entry& source_entry,
     detail::StoreCodecEncoder& encoder,std::uint64_t replacement_id,
     std::span<const std::byte> replacement,bool reencode,
-    const std::function<bool(std::uint64_t,std::span<const std::byte>)>* keep=nullptr) {
+    const std::function<bool(std::uint64_t,std::span<const std::byte>)>* keep=nullptr,bool improve=false) {
   auto source_record=read_record(original,source_entry);
   auto bytes=decode_record(original,source_entry,source_record);
   if(keep && !(*keep)(source_entry.id,bytes))return false;
   if(source_entry.id==replacement_id)bytes.assign(replacement.begin(),replacement.end());
   auto record=prepare_rebuilt_object(build.next,source_entry,std::move(source_record),bytes,
-      encoder,reencode || source_entry.id==replacement_id);
+      encoder,reencode || source_entry.id==replacement_id,improve);
   build.append_payload(record.entry,record.header,record.payload,bytes);
   return true;
 }
@@ -862,6 +864,7 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
   Bytes replacement;
   std::size_t replacement_identity_offset;
   std::optional<RebuildRetention> retention;
+  std::optional<RebuildColdEncoding> cold;
   struct RetainedInventory {
     std::uint64_t objects=0,logical=0,stored=0;
     Digest digest{};
@@ -888,11 +891,15 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
 
   Impl(const PagedObjectStoreWriter::Impl& writer,std::shared_ptr<StoreByteIo> output,
       StoreIdentity id,StoreCompressionOptions compression,std::span<const std::byte> root,bool encode,
-      std::size_t identity_offset,std::optional<RebuildRetention> filter,PagedRewriteMode rewrite_mode)
+      std::size_t identity_offset,std::optional<RebuildRetention> filter,PagedRewriteMode rewrite_mode,
+      std::optional<RebuildColdEncoding> cold_encoding)
       :original(writer.state),owner(writer.owner),replacement_identity_offset(identity_offset),
-       retention(std::move(filter)),reencode(encode),mode(rewrite_mode) {
+       retention(std::move(filter)),cold(cold_encoding),reencode(encode),mode(rewrite_mode) {
     if(mode==PagedRewriteMode::reconcile_foreground && (retention || root.empty() || encode))
       fail("foreground reconciliation requires a lossless native identity-only rebuild");
+    if(cold && (!cold->eligible || mode!=PagedRewriteMode::reconcile_foreground ||
+        cold->after_generation>original.generation))
+      fail("cold encoding requires a bound indexed reconciliation");
     if(mode==PagedRewriteMode::reconcile_foreground && writer.payload_repairs &&
         writer.payload_repairs->blocked_generation==original.generation && writer.payload_repairs->blocked_record) {
       capacity_damage=writer.payload_repairs->blocked_record;
@@ -1094,8 +1101,9 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
       begin_copy(current);
     } else if(phase==PagedRewritePhase::copying) {
       const bool advanced=visit_quantum(original,[&](const Entry& entry) {
+        const bool improve=cold && entry.generation>cold->after_generation && cold->eligible(entry.id);
         const auto kept=copy_rebuild_object(build,original,entry,target->encoder,replacement.empty()?0:1,
-            replacement,reencode,retention?&retention->keep:nullptr);
+            replacement,reencode,retention?&retention->keep:nullptr,improve);
         if(retention && kept)copied.include(entry);
       });
       if(!advanced) {
@@ -1186,8 +1194,8 @@ PagedObjectStoreWriter::Rewrite PagedObjectStoreWriter::prepare_rebuild(std::sha
 }
 PagedObjectStoreWriter::Rewrite PagedObjectStoreWriter::prepare_rebuild_replacing(std::shared_ptr<StoreByteIo> target,
     StoreIdentity id,StoreCompressionOptions compression,std::span<const std::byte> replacement,bool reencode,
-    std::size_t identity_offset,PagedRewriteMode mode) const {
-  return prepare_rebuild_impl(std::move(target),id,compression,replacement,reencode,identity_offset,{},mode);
+    std::size_t identity_offset,PagedRewriteMode mode,std::optional<RebuildColdEncoding> cold) const {
+  return prepare_rebuild_impl(std::move(target),id,compression,replacement,reencode,identity_offset,{},mode,cold);
 }
 PagedObjectStoreWriter::Rewrite PagedObjectStoreWriter::prepare_rebuild_retaining(std::shared_ptr<StoreByteIo> target,
     StoreCompressionOptions compression,RebuildRetention keep) const {
@@ -1197,11 +1205,12 @@ PagedObjectStoreWriter::Rewrite PagedObjectStoreWriter::prepare_rebuild_retainin
 }
 PagedObjectStoreWriter::Rewrite PagedObjectStoreWriter::prepare_rebuild_impl(std::shared_ptr<StoreByteIo> target,
     StoreIdentity id,StoreCompressionOptions compression,std::span<const std::byte> replacement,bool reencode,
-    std::size_t identity_offset,std::optional<RebuildRetention> retention,PagedRewriteMode mode) const {
+    std::size_t identity_offset,std::optional<RebuildRetention> retention,PagedRewriteMode mode,
+    std::optional<RebuildColdEncoding> cold) const {
   if(poisoned())fail("staged rebuild requires a healthy source writer");
   if(!impl_->pending_rebuild.expired())fail("source already has a staged rebuild");
   auto candidate=std::make_unique<Rewrite::Impl>(*impl_,std::move(target),id,compression,
-      replacement,reencode,identity_offset,std::move(retention),mode);
+      replacement,reencode,identity_offset,std::move(retention),mode,cold);
   impl_->pending_rebuild=candidate->reservation;return Rewrite(std::move(candidate));
 }
 PagedObjectStoreSnapshot::PagedObjectStoreSnapshot(std::unique_ptr<Impl> p) noexcept:impl_(std::move(p)){}

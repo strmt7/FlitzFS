@@ -94,6 +94,7 @@ struct NativeFileSession::Impl {
     StoreIdentity id;
     std::variant<NativeFilesystemWriter::Recompression,PagedObjectStoreWriter::Rewrite> work;
     bool idle;
+    std::uint64_t cold_source_generation=0;
 
     bool matches(const NativeFilesystemWriter& writer) const noexcept {
       if(const auto* paged=std::get_if<PagedObjectStoreWriter::Rewrite>(&work))
@@ -105,6 +106,8 @@ struct NativeFileSession::Impl {
   StoreIdentity evaluated_image{};
   std::uint64_t evaluated_generation=0;
   bool evaluated_capacity_repair=false;
+  StoreIdentity cold_encoding_image{};
+  std::uint64_t cold_encoding_through=0;
   // Destruction order retires the image writer BEFORE releasing the head owner.
   std::unique_ptr<VolumeOwner> volume;
   // Retire data/advisory writers before the head owner.
@@ -1143,9 +1146,16 @@ bool NativeFileSession::begin_idle_compaction_impl(std::shared_ptr<StoreByteIo> 
   admit_replacement(self,target,next,owned_file_target);
   admit_handoff_contexts(self);
   admit_empty(target);
-  auto rebuild=self.writer.prepare_paged_recompression(target,next,self.volume->foreground,false,mode);
+  const auto foreground=self.volume->foreground;
+  std::optional<std::uint64_t> cold_after;
+  if(mode==PagedRewriteMode::reconcile_foreground && !capacity_repair &&
+      foreground.mode!=StoreCompressionMode::raw && store_zstd_available()) {
+    cold_after=self.cold_encoding_image==self.volume->active_id && self.cold_encoding_through<=generation?
+        self.cold_encoding_through:0;
+  }
+  auto rebuild=self.writer.prepare_paged_recompression_impl(target,next,foreground,false,mode,cold_after);
   self.recompression=std::make_unique<Impl::StagedRecompression>(
-      Impl::StagedRecompression{std::move(target),next,std::move(rebuild),true});
+      Impl::StagedRecompression{std::move(target),next,std::move(rebuild),true,cold_after?generation:0});
   self.evaluated_image=self.volume->active_id;
   self.evaluated_generation=generation;
   self.evaluated_capacity_repair=capacity_repair;
@@ -1250,6 +1260,10 @@ std::optional<NativeVolumeHeadInfo> NativeFileSession::publish_staged_recompress
     }
     self.writer=std::move(candidate);
     adopt_handoff(self,published);
+    if(staged->cold_source_generation) {
+      self.cold_encoding_image=volume.active_id;
+      self.cold_encoding_through=staged->cold_source_generation;
+    }
     self.evaluated_image=volume.active_id;
     self.evaluated_generation=self.writer.recompression_generation();
     self.evaluated_capacity_repair=false;

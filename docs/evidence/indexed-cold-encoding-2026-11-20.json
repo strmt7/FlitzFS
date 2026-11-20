@@ -1,0 +1,350 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "captured_local": "2026-11-20T16:49:11+01:00",
+  "source_base": "2dba22ab0965510c56ac6d0db47a1d243a4f2fb2",
+  "source_binding": {
+    "CMakeLists.txt": {
+      "git_blob": "ac9c8ca00565bd4491dc2827807005c600cf951e",
+      "sha256": "a109344ca949261ec3fd35d226a0434b24237148ae854792ed4cf23e85217684"
+    },
+    "include/flitzfs/native_filesystem.hpp": {
+      "git_blob": "ece612493d249d73caa1ad8eb9bd8ced5b82fbbb",
+      "sha256": "13c094be0a2da2a131e94e6f141d8436e73d2b42734e4bff0773e1eb2dac636e"
+    },
+    "include/flitzfs/paged_store.hpp": {
+      "git_blob": "166e02fccce4f7e9e4004946d1b41a95df94da67",
+      "sha256": "608f975829f235b885db58b1311a9ae5d8f9e3414b14317db8de9e16259060e2"
+    },
+    "src/native_filesystem.cpp": {
+      "git_blob": "80cc20928b95667eeef9734d0ee1db8fdd872d2b",
+      "sha256": "c2f23087fe704f4250366f9c68baf5ad76549fcea7fe6a0e584ade4dbc48b97e"
+    },
+    "src/native_object_storage.hpp": {
+      "git_blob": "4becf895795e07da74616c606a1c855dc4ae7a3e",
+      "sha256": "86e6be581d109250a183b1e72a5fe10e258205934aebb76596974c49761b2469"
+    },
+    "src/native_session.cpp": {
+      "git_blob": "ac7bc8b45ef68941a49e384a47c01b3c7f5000c7",
+      "sha256": "955be1b0dba7fa5aaf391471ee357b57a5d26dfff4bc819600bb64ad54e87a3e"
+    },
+    "src/paged_store.cpp": {
+      "git_blob": "339a5ac26ea28846730a1b7f16ce3fa8cb86769d",
+      "sha256": "0a5a28f9ea67e12585c3dd5fe09ae0367ac1af62adb0a1758fbde99e9c80b37c"
+    },
+    "src/store_codec.cpp": {
+      "git_blob": "38040dae9ddad93aa6f839ed1fdbcdf2df0916a6",
+      "sha256": "89270beae3ffd4c9242f924f8259f190f9bbee6d250cc565977e90ef63d89854"
+    },
+    "src/store_codec.hpp": {
+      "git_blob": "13354d6162ba125378bd787a69b1560822597611",
+      "sha256": "6fb6e9cd065c2d5afcdf7970756b022c8ef36c8c9ec13fdef6f30c65ce80c9d4"
+    },
+    "tests/test_native_volume_file.cpp": {
+      "git_blob": "7e2826a4017f57035d44fc598f5695ff73ac7aef",
+      "sha256": "debc354af4b0f23be4dc30dab01e64a0939a6e53ec4c2fd4c66d624ba974df63"
+    }
+  },
+  "host": {
+    "os": "Windows 11 Pro",
+    "build": 26300,
+    "gpu": "AMD Radeon RX 9070 XT",
+    "driver": "32.0.32029.2010"
+  },
+  "navigation": {
+    "provider_version": "0.2.43",
+    "query": "Mechanism to choose smaller deep Zstandard stored payload once when relocating a verified indexed extent; retain sealed representation when bigger, match before after digests, and respect serialized compaction/replay contract.",
+    "native_response_sha256": "22d71f068bf423a54a1d550ca78bd5671ffb0f343519365dce7cab3ac4148c0e"
+  },
+  "first_index_deadline": "local-run-c3f803a3c79a4b2d899161a6167e24fc",
+  "research": [
+    {
+      "url": "https://meta.github.io/zstd/doc/api_manual_latest.html",
+      "status": 200,
+      "final_status": 200,
+      "success": true,
+      "markdown_bytes": 132742,
+      "markdown_sha256": "0c9fb8969be62f9ddb4554d4e220b27a645cfa554416e84fef011ba940bf9533",
+      "capture_sha256": "6ae252b97cc1b6759bd027ba6b8017856cc0b57fbbb550d7fdcccfc17be7ac04",
+      "provider": "0.9.5+flitzzip.portable2",
+      "failure": ""
+    },
+    {
+      "url": "https://github.com/meta/zstd/releases/latest",
+      "status": 302,
+      "final_status": 200,
+      "success": true,
+      "markdown_bytes": 29814,
+      "markdown_sha256": "51b94c4389a3069b736310bb885159a2b36cdd62999e6d34067c4ba9083588e0",
+      "capture_sha256": "2878d33deef2eee9df8467bb04066293ec050de0041d14896997546f19780c76",
+      "provider": "0.9.5+flitzzip.portable2",
+      "failure": ""
+    },
+    {
+      "url": "https://www.usenix.org/conference/fast26/presentation/hu",
+      "status": 200,
+      "final_status": 200,
+      "success": true,
+      "markdown_bytes": 10797,
+      "markdown_sha256": "b4ad1896bdf7202cee8804458aa47fa303df05bf61c65b22ce5063010cb255b2",
+      "capture_sha256": "0399aa2fe7e9ad980e4939e45de81fd55f080a5085753317ae6ed98933be171c",
+      "provider": "0.9.5+flitzzip.portable2",
+      "failure": ""
+    },
+    {
+      "url": "https://meta.github.io/zstd/doc/api_manual_latest.html",
+      "status": 0,
+      "final_status": 0,
+      "success": false,
+      "markdown_bytes": 0,
+      "markdown_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "capture_sha256": "5751cf78cf764cb2da3109e653697f8be6b430bc69d8232c1e5b9fbd6b14e618",
+      "provider": "0.9.5+flitzzip.portable2",
+      "failure": "native_failure"
+    },
+    {
+      "url": "https://github.com/meta/zstd/releases/latest",
+      "status": 0,
+      "final_status": 0,
+      "success": false,
+      "markdown_bytes": 0,
+      "markdown_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "capture_sha256": "e12420f61f2594dbd18eb70999643c6f5c19098ed1a7291ea55b6b9a50570296",
+      "provider": "0.9.5+flitzzip.portable2",
+      "failure": "native_failure"
+    },
+    {
+      "url": "https://www.usenix.org/conference/fast26/presentation/hu",
+      "status": 0,
+      "final_status": 0,
+      "success": false,
+      "markdown_bytes": 0,
+      "markdown_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "capture_sha256": "f32e258f9f3133cc2f2c9f583ec8d0db29268073ddd60e4dbf652123aee269f4",
+      "provider": "0.9.5+flitzzip.portable2",
+      "failure": "native_failure"
+    }
+  ],
+  "tested_zstd": "1.5.7",
+  "executables": {
+    "release": "79ef9d7a92329414e7e0cd2c0ae759392106b58ea90f5c14cc0e033800c60eff",
+    "asan": "d63c25c2ec4d661544054c6baabfd3d92e13a813ca7e6050f4adfd8a946ff092",
+    "raw": "3677014075403a425830dd9afb8a9e71aef9305915698ab2e1edce9d02de2213"
+  },
+  "test_lanes": {
+    "release": {
+      "run": "local-run-f541ec925fbb4ef8becdd8f651a92a98",
+      "count": 13,
+      "tests": [
+        "bounded_paged_object_store",
+        "bounded_native_indexed_group_resume",
+        "bounded_native_indexed_batched_prefix",
+        "bounded_native_indexed_pack_distinct_short_extents",
+        "bounded_native_indexed_group_batch",
+        "bounded_native_indexed_multiwindow_batch",
+        "bounded_native_session_invariants",
+        "bounded_native_volume_file",
+        "bounded_native_cold_relocation",
+        "bounded_winfsp_controller",
+        "bounded_winfsp_indexed_memory",
+        "bounded_winfsp_memory_remount",
+        "bounded_winfsp_volume_file"
+      ],
+      "peak_job_bytes": 179359744
+    },
+    "address_sanitizer": {
+      "run": "local-run-90b2d53bb1fa4de580cb1342f6c2ae0c",
+      "count": 7,
+      "tests": [
+        "windows_asan_runtime_preflight",
+        "bounded_native_volume_file",
+        "bounded_native_cold_relocation",
+        "windows_asan_staging_regression",
+        "bounded_winfsp_controller",
+        "bounded_winfsp_memory_remount",
+        "bounded_winfsp_volume_file"
+      ],
+      "peak_job_bytes": 662302720
+    },
+    "raw": {
+      "run": "local-run-881c04427c5d4e66a517c9ee1b32aae7",
+      "count": 4,
+      "tests": [
+        "bounded_paged_object_store",
+        "bounded_native_volume_file",
+        "bounded_winfsp_controller",
+        "bounded_winfsp_volume_file"
+      ],
+      "peak_job_bytes": 87375872
+    }
+  },
+  "public_corpora": {
+    "code": {
+      "name": "code",
+      "original_files": 20,
+      "source_sha256": "a76af508156dc6984810c6f01d2736bf7bd18112d51dcc1d431b7bfdfa1e8d57",
+      "bytes": 921886,
+      "sha256": "207833fc654288cd2ac351e5b21160440ab39e208ed6a28d0637f3eca155283a",
+      "order": "source bank order",
+      "matched_trials": [
+        {
+          "run": "local-run-6d979277bf64485fa82e95b7dc785320",
+          "payload": 921886,
+          "copy_image": 811008,
+          "cold_image": 753664,
+          "copy_stored": 659972,
+          "cold_stored": 604304,
+          "copy_reads": 349457,
+          "cold_reads": 321623,
+          "copy_writes": 819200,
+          "cold_writes": 761856,
+          "independent_cpu_readback": 1,
+          "replay_checked": 0
+        },
+        {
+          "run": "local-run-c44ad1ae41f240e8905e9aaa50c9d961",
+          "payload": 921886,
+          "copy_image": 811008,
+          "cold_image": 753664,
+          "copy_stored": 659972,
+          "cold_stored": 604304,
+          "copy_reads": 349457,
+          "cold_reads": 321623,
+          "copy_writes": 819200,
+          "cold_writes": 761856,
+          "independent_cpu_readback": 1,
+          "replay_checked": 0
+        }
+      ]
+    },
+    "docs": {
+      "name": "docs",
+      "original_files": 20,
+      "source_sha256": "03d07a3f362d552a8563d0b7f0ff58eb4a1a424c7489a999d6a969686ea78e54",
+      "bytes": 906105,
+      "sha256": "a160a4aa54cfa2b6b546807508dbc8a139f9ff4896f93371f4bd9afd0871d1f2",
+      "order": "source bank order",
+      "matched_trials": [
+        {
+          "run": "local-run-c08d3c449fe4421ca03246935a30c412",
+          "payload": 906105,
+          "copy_image": 991232,
+          "cold_image": 942080,
+          "copy_stored": 842918,
+          "cold_stored": 794588,
+          "copy_reads": 440796,
+          "cold_reads": 416631,
+          "copy_writes": 999424,
+          "cold_writes": 950272,
+          "independent_cpu_readback": 1,
+          "replay_checked": 0
+        },
+        {
+          "run": "local-run-dbb4088147674c36ba258ddacee8ab21",
+          "payload": 906105,
+          "copy_image": 991232,
+          "cold_image": 942080,
+          "copy_stored": 842918,
+          "cold_stored": 794588,
+          "copy_reads": 440796,
+          "cold_reads": 416631,
+          "copy_writes": 999424,
+          "cold_writes": 950272,
+          "independent_cpu_readback": 1,
+          "replay_checked": 0
+        }
+      ]
+    },
+    "mixed": {
+      "name": "mixed",
+      "original_files": 36,
+      "source_sha256": "ffe86027aaf7145f34f11b6225fb18ee118a791f00818509cf37274261fa14b6",
+      "bytes": 950347,
+      "sha256": "71cd91ba97593b01883d93ccddd5cf0bb28ed802b1219d83942de26b52a962ef",
+      "order": "source bank order",
+      "matched_trials": [
+        {
+          "run": "local-run-3e831c3c026a448f998fb4075428ad8e",
+          "payload": 950347,
+          "copy_image": 827392,
+          "cold_image": 770048,
+          "copy_stored": 676404,
+          "cold_stored": 618898,
+          "copy_reads": 357673,
+          "cold_reads": 328920,
+          "copy_writes": 835584,
+          "cold_writes": 778240,
+          "independent_cpu_readback": 1,
+          "replay_checked": 0
+        },
+        {
+          "run": "local-run-537b8a7e5daf47279806a525023c9380",
+          "payload": 950347,
+          "copy_image": 827392,
+          "cold_image": 770048,
+          "copy_stored": 676404,
+          "cold_stored": 618898,
+          "copy_reads": 357673,
+          "cold_reads": 328920,
+          "copy_writes": 835584,
+          "cold_writes": 778240,
+          "independent_cpu_readback": 1,
+          "replay_checked": 0
+        }
+      ]
+    }
+  },
+  "model_fast_policy": {
+    "run": "local-run-755273c79f0c49fd8ef588c62cad2396",
+    "lz4_linked": false,
+    "payload": 1572864,
+    "copy_image": 3563520,
+    "cold_image": 1032192,
+    "copy_stored": 3411684,
+    "cold_stored": 880564,
+    "copy_reads": 1727064,
+    "cold_reads": 461504,
+    "copy_writes": 3571712,
+    "cold_writes": 1040384,
+    "independent_cpu_readback": 1,
+    "replay_checked": 1
+  },
+  "initial_fixture": {
+    "run": "local-run-77d6c8e4e2054cd7a741daf4b80ef365",
+    "result": "synthetic automatic encoding did not meet the required image reduction",
+    "correction": "use fast ingestion as the deterministic replay fixture and compare automatic level 3 on public inputs"
+  },
+  "amd_smoke": {
+    "run": "local-run-163c7961722246b79ac109a97201f585",
+    "verified_batches": 1,
+    "advised_members": 12,
+    "occupied_bytes": 319488,
+    "cpu_readback": true,
+    "worker": {
+      "worker_sha256": "204427712a65191b8010991b3ab55561958c5dae652447ebc9cd08038dc6a2fb",
+      "module_sha256": "9aad995bc1b2e330a8f24f76dcc5eaa9edc8f96351c999f10712aef0be33467d",
+      "runtime_basename": "amdhip64_7.dll"
+    }
+  },
+  "live_owner": {
+    "run": "local-run-eca4a0c41604477abcc85b0f0f1160ac",
+    "mode": "--live-indexed-reconcile",
+    "outcome": "passed",
+    "measurements": {
+      "elapsed_ms": 21187,
+      "quanta": 22,
+      "continued_compaction_steps": 40,
+      "max_quantum_ns": 4526900,
+      "foreground_edits": 2,
+      "selected_epoch": 2
+    }
+  },
+  "scope": {
+    "data_frames_preserved": true,
+    "live_session_generation_frontier": true,
+    "frontier_persisted": false,
+    "mirror_verification": true,
+    "physical_power_loss": false,
+    "mounted_performance": false
+  }
+}

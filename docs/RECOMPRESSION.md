@@ -1,5 +1,35 @@
 # Verified native post-compression (experimental)
 
+## Stronger encoding during indexed relocation
+
+An ordinary indexed compaction that reconciles foreground commits can try
+stronger Zstandard parameters while copying an eligible data object. The
+copy step already decodes and verifies that object. It tries the strongest
+parameter set that fits the bounded encoder for the object's actual size,
+then retains the smaller stored payload. Each trial handles at most one
+Zstandard block and the selected representation still uses the existing
+store codec and independent CPU verifier. The foreground encoder keeps
+its configured level.
+
+Only the initial copy tries stronger encoding. Reconciliation copies
+intervening foreground records with their existing encodings. On a
+successful handoff, the live session records the last generation covered
+by that copy. A later compaction skips those generations on the selected
+image. A new session can evaluate them again. Explicit raw policy and
+compaction to restore a verified damaged copy retain the original encoding
+path.
+
+The three public-derived level 3 Zstandard inputs used 5.0–7.1% fewer
+complete image bytes than compaction that preserved their original
+encodings. Candidate writes fell by 48–56 KiB. Each comparison included
+the same incompressible file and independent byte readback. The
+fast-policy fixture used raw ingestion in this build and verified replay
+of a foreground edit made after the first candidate was ready.
+[Relocation evidence](evidence/indexed-cold-encoding-2026-11-20.json) ·
+[Zstandard parameter and allocator API](https://meta.github.io/zstd/doc/api_manual_latest.html)
+
+## Explicit recompression
+
 The explicit [paged native path](NATIVE_PAGED_MAINTENANCE.md) now supports
 new-image compaction and re-encoding, including inode and directory-index layouts.
 Its flat-only staged candidate and volume-head handoff remain separate work.
