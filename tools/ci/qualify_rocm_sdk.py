@@ -441,7 +441,7 @@ def main():
             report,"current-sdk-host-api-and-kernel-module-link")
         from_path=REPO/"tools/ci"
         sys.path.insert(0,str(from_path))
-        from check_portable_cpu import audit_binary, pe_import_names
+        from check_portable_cpu import WINDOWS_OS_IMPORTS, audit_binary, pe_import_names
         probe=build/"Release/flitzfs_rocm_header_probe.exe"
         report["probe_imports"]=audit_binary(probe.read_bytes())
         observed=run(bounds,[str(probe)],report,"header-probe-without-loading-HIP",30)
@@ -561,7 +561,7 @@ def main():
         worker_probe=build/"Release/flitzfs_hip_worker_probe.exe"
         require(worker.is_file() and 0 < worker.stat().st_size <= 32*1024*1024, "worker executable budget")
         imports, delay=pe_import_names(worker.read_bytes())
-        allowed={"kernel32.dll","advapi32.dll","bcrypt.dll","ntdll.dll","dxgi.dll","wintrust.dll"}
+        allowed = WINDOWS_OS_IMPORTS | {"dxgi.dll", "wintrust.dll"}
         require(bool(imports) and set(imports) <= allowed and not delay, "worker has eager SDK dependencies")
         report["worker"]=dict(bytes=worker.stat().st_size,sha256=digest(worker),imports=sorted(set(imports)),
             bundle=json.loads((build/"Release/hip-bundle.json").read_text(encoding="utf-8")))
@@ -898,7 +898,7 @@ def main():
         hardware_probe=build/"Release/flitzfs_hip_hardware_probe.exe"
         hardware_imports,hardware_delayed=pe_import_names(hardware_probe.read_bytes())
         require(bool(hardware_imports) and not hardware_delayed and
-            set(hardware_imports)<={"kernel32.dll","advapi32.dll","bcrypt.dll","ntdll.dll","dxgi.dll"},
+            set(hardware_imports) <= WINDOWS_OS_IMPORTS | {"dxgi.dll"},
             "diagnostic OS import policy")
         report["hardware_probe"]=dict(bytes=hardware_probe.stat().st_size,sha256=digest(hardware_probe),
             imports=dict(format="PE32+",architecture="AMD64",os_imports=sorted(set(hardware_imports)),
