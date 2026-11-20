@@ -1,6 +1,7 @@
 #include "winfsp_native.hpp"
 #include "memory_volume_factory.hpp"
 #include "../native_maintenance_source.hpp"
+#include "../native_volume_file_reclaimer.hpp"
 #include "../indexed_names.hpp"
 #include "../store_file.hpp"
 #include "../store_codec.hpp"
@@ -180,6 +181,13 @@ NativeWindowsIoOutcome success() noexcept{return {STATUS_SUCCESS,false};}
 }
 struct WinFspNativeWritable::Impl {
   struct Slot {std::uintptr_t token=0;NativeFileHandle handle;bool provisional=false,awaiting_overwrite=false;UINT32 security_access=0;};
+  struct ActivitySignal final:detail::NativeVolumeRangeWake {
+    Handle event;
+    std::atomic<bool> failed{false};
+    void signal() noexcept override {
+      if(!SetEvent(event.value))failed.store(true,std::memory_order_release);
+    }
+  };
   WinFspOriginGuard origin;
   NativeFileSession session;
   std::array<Slot,NativeFileSession::max_contexts> slots{};
@@ -190,7 +198,7 @@ struct WinFspNativeWritable::Impl {
   std::atomic<bool> anchor_pending{false};
   std::atomic<bool> offline{false};
   std::atomic<unsigned> stopped{0};
-  Handle maintenance_event;
+  std::shared_ptr<ActivitySignal> maintenance_event;
   // The service joins before the control lock, session and signal handle retire.
   std::unique_ptr<NativeDeferredWriteService> deferred;
   std::unique_ptr<NativeGroupMaintenance> groups;
@@ -198,7 +206,6 @@ struct WinFspNativeWritable::Impl {
   MemoryVolumeBacking* memory_backing=nullptr;
   std::uint64_t last_indexed_observation=0,last_indexed_capture=0;
   bool maintenance_cancelled=false,scrub_yield=false,directory_backfill_yield=false;
-  std::atomic<bool> maintenance_signal_failed{false};
   bool callbacks_bound=false;
   StoreIdentity identity{};UINT64 created=0;UINT32 serial=0;
   const NativeFileInfoAllocation info_policy;
@@ -218,8 +225,7 @@ struct WinFspNativeWritable::Impl {
     ~ForegroundCall(){owner.foreground.fetch_sub(1,std::memory_order_acq_rel);owner.signal_maintenance();}
   };
   void signal_maintenance() noexcept {
-    if(maintenance_event.value && !SetEvent(maintenance_event.value))
-      maintenance_signal_failed.store(true,std::memory_order_release);
+    if(maintenance_event)maintenance_event->signal();
   }
   WinFspMaintenanceResult advance_groups(const NativeMaintenanceObservation& observed,std::uint64_t now,
       NativeGroupSearchOpportunity search) {
@@ -919,11 +925,14 @@ bool WinFspNativeWritable::background_maintenance_pending(bool scrub_due) const 
 }
 void WinFspNativeWritable::set_maintenance_event(HANDLE event) {
   std::lock_guard guard(impl_->control);
-  if(!event || impl_->callbacks_bound || impl_->maintenance_event.value)
+  if(!event || impl_->callbacks_bound || impl_->maintenance_event)
     throw std::invalid_argument("Maintenance event requires an unbound adapter and one valid event");
-  if(!DuplicateHandle(GetCurrentProcess(),event,GetCurrentProcess(),&impl_->maintenance_event.value,
+  auto signal=std::make_shared<Impl::ActivitySignal>();
+  if(!DuplicateHandle(GetCurrentProcess(),event,GetCurrentProcess(),&signal->event.value,
       EVENT_MODIFY_STATE,FALSE,0))throw std::runtime_error("Maintenance event duplication failed");
-  if(impl_->deferred)impl_->deferred->bind_activity_event_locked(impl_->maintenance_event.value);
+  impl_->session.bind_persistent_reclamation_wake(signal);
+  impl_->maintenance_event=std::move(signal);
+  if(impl_->deferred)impl_->deferred->bind_activity_event_locked(impl_->maintenance_event->event.value);
 }
 std::optional<NativeGpuBudgetTask> WinFspNativeWritable::gpu_budget_task() const {
   if(!impl_->deferred || !impl_->deferred->budget_demand_pending())return {};
@@ -936,7 +945,7 @@ bool WinFspNativeWritable::complete_gpu_budget_task(const NativeGpuBudgetTask& t
   return impl_->deferred && impl_->deferred->accept_budget_locked(task,snapshot,now);
 }
 bool WinFspNativeWritable::maintenance_event_failed() const noexcept {
-  return impl_->maintenance_signal_failed.load(std::memory_order_acquire);
+  return impl_->maintenance_event && impl_->maintenance_event->failed.load(std::memory_order_acquire);
 }
 std::uint64_t WinFspNativeWritable::foreground_activity() const noexcept {
   return impl_->foreground_epoch.load(std::memory_order_acquire);
@@ -1075,7 +1084,7 @@ void WinFspNativeWritable::enable_deferred_writes_hosted(NativeDeferredWriteOpti
   if(!options.response_sink)options.response_sink=sdk_response;
   impl_->deferred=std::make_unique<NativeDeferredWriteService>(impl_->session,impl_->control,
       impl_->offline,std::move(options),impl_->info_policy);
-  impl_->deferred->bind_activity_event_locked(impl_->maintenance_event.value);
+  impl_->deferred->bind_activity_event_locked(impl_->maintenance_event?impl_->maintenance_event->event.value:nullptr);
 }
 void WinFspNativeWritable::publish_deferred_health_hosted(const GpuHealthEvidence& health){
   std::lock_guard guard(impl_->control);

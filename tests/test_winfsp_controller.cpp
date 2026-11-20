@@ -28,6 +28,7 @@
 #include <limits>
 #include <optional>
 #include <thread>
+#include <utility>
 namespace {
 using namespace flitzfs;using namespace native_fixture;
 unsigned checks=0;
@@ -567,6 +568,9 @@ void volume_file_idle_reclamation() {
   Provider provider;Provider::active=&provider;
   auto file=std::make_shared<SparseVolumeRam>(4096);
   auto adapter=WinFspNativeWritable::create_file_volume(file,id(90),id(1),limits,raw);
+  std::unique_ptr<void,decltype(&CloseHandle)> activity(CreateEventW(nullptr,FALSE,FALSE,nullptr),&CloseHandle);
+  require(activity!=nullptr,"paired-file activity event");
+  adapter->set_maintenance_event(activity.get());
   auto* source=adapter.get();
   WinFspNativeSession session(std::move(adapter),provider.api());
   require(session.start(plan())==STATUS_SUCCESS,"paired-file native SDK start");
@@ -602,7 +606,8 @@ void volume_file_idle_reclamation() {
   const auto before=file->occupied();
   unsigned private_steps=0,publish_boundaries=0;
   {
-    const auto retained=source->snapshot();
+    std::optional<NativeFilesystemSnapshot> retained(source->snapshot());
+    std::optional<NativeFilesystemSnapshot> second(source->snapshot());
     const auto writes=file->io.calls;
     require(step(false).progress.deferral==Deferral::foreground && file->io.calls==writes,
         "paired-file compaction ran under foreground load");
@@ -632,7 +637,36 @@ void volume_file_idle_reclamation() {
           "paired-file SDK idle compaction failed");
     }
     require(progress.compacted && private_steps && publish_boundaries==2 && !file->range_reclaims &&
-        retained.read("f0",0,50000)==expected,"paired-file publication boundaries or pinned source changed");
+        retained->read("f0",0,50000)==expected,"paired-file publication boundaries or pinned source changed");
+    const auto previous=expected;
+    expected[0]^=std::byte{0x42};
+    wchar_t name[]=L"\\f0";
+    constexpr auto open_file=FILE_NON_DIRECTORY_FILE|(1U<<24);
+    PVOID context=nullptr;FSP_FSCTL_FILE_INFO metadata{};
+    require(provider.fs.Interface->Open(&provider.fs,name,open_file,FILE_WRITE_DATA,&context,&metadata)==STATUS_SUCCESS &&
+        context,"new selected range could not open while old readers remained active");
+    ULONG written=0;
+    require(provider.fs.Interface->Write(&provider.fs,context,expected.data(),0,1,FALSE,FALSE,&written,&metadata)==STATUS_SUCCESS &&
+        written==1,"new selected range could not acknowledge a write while old readers remained active");
+    callback_cleanup_close(provider,context);
+    require(source->snapshot().read("f0",0,50000)==expected,"selected range lost its foreground edit");
+    require(WaitForSingleObject(activity.get(),0)==WAIT_OBJECT_0,"foreground activity was not signaled");
+    const auto changes=file->io.calls;
+    for(unsigned tick=0;tick<32 && session.background_maintenance_pending();++tick)(void)step(false);
+    require(!session.background_maintenance_pending() && file->io.calls==changes &&
+        second->read("f0",0,50000)==previous,"pinned range prevented the owner from settling available work");
+    const auto reads=file->io.read_calls;
+    for(unsigned tick=0;tick<64;++tick)
+      require(!session.background_maintenance_pending(),"an unchanged old pin repeatedly scheduled retirement");
+    require(file->io.read_calls==reads,"checking a pinned range performed backing reads");
+    retained.reset();
+    require(WaitForSingleObject(activity.get(),0)==WAIT_TIMEOUT && !session.background_maintenance_pending(),
+        "dropping one reader signaled retirement while another reader still pinned the range");
+    std::thread release([snapshot=std::exchange(second,std::nullopt)]() mutable {snapshot.reset();});
+    release.join();
+    require(WaitForSingleObject(activity.get(),0)==WAIT_OBJECT_0 &&
+        WaitForSingleObject(activity.get(),0)==WAIT_TIMEOUT && session.background_maintenance_pending() &&
+        file->io.calls==changes && !file->range_reclaims,"the last reader did not wake retirement exactly once");
   }
   refuse(Deferral::observation); // Even an unpinned range needs a fresh capture.
   require(!file->range_reclaims,"continued step reclaimed the old range");
@@ -641,10 +675,20 @@ void volume_file_idle_reclamation() {
   require(file->range_reclaims && file->occupied()<before,"the native idle owner did not reclaim the old range");
   session.stop();
   require(session.write_restart_ready(),"paired-file dispatcher did not retire");
+  require(WaitForSingleObject(activity.get(),0)!=WAIT_FAILED,"cannot clear the prior dispatcher activity");
   require(NativeVolumeFile::inspect(file->replay()).filesystem().read("f0",0,50000)==expected,
       "reclaimed SDK volume lost acknowledged bytes on independent CPU reopen");
+  auto reopened=WinFspNativeWritable::resume_file_volume(file->replay(),id(90),raw);
+  reopened->set_maintenance_event(activity.get());
+  std::optional<NativeFilesystemSnapshot> escaped(reopened->snapshot());
+  reopened.reset();
+  require(escaped->read("f0",0,50000)==expected,"snapshot lost its backing at owner shutdown");
+  require(WaitForSingleObject(activity.get(),0)==WAIT_TIMEOUT,"unexpected activity after owner shutdown");
+  escaped.reset();
+  require(WaitForSingleObject(activity.get(),0)==WAIT_TIMEOUT,"retired owner was signaled by an escaped reader");
   std::cout<<"paired_file_sdk_idle private_steps="<<private_steps<<" fresh_publish_boundaries="<<publish_boundaries
-      <<" published=1 prior_readers_preserved=1 reclaimed=1 cpu_reopen=1\n";
+      <<" published=1 prior_readers_preserved=1 reclaimed=1 cpu_reopen=1"
+      <<" pinned_wait_quiescent=1 foreground_write_while_pinned=1 last_reader_woke=1 release_after_owner_quiet=1\n";
 }
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
 std::array<std::byte,32> artifact_digest(std::string_view input) {

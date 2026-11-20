@@ -23,6 +23,14 @@
     "interactive_explorer_qualified": false,
     "live_amd_verified_groups": 8
   },
+  "paired_range_reader_wake": {
+    "source_base": "81e7770ce3463d2bcc4fcad40c395376a979e1cd",
+    "evidence": "docs/evidence/paired-range-reader-wake-2026-11-20.json",
+    "final_reader_signals_once": true,
+    "pinned_range_quiescent": true,
+    "foreground_write_verified_during_pin": true,
+    "independent_CPU_readback": true
+  },
   "indexed_direct_short_packing": {
     "source_base": "2640cddfd3f1e4a2e5a6aa199e2901dad59b24f9",
     "evidence": "docs/evidence/indexed-direct-short-packing-2026-11-20.json",

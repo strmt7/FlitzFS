@@ -39,6 +39,15 @@ allocated until both durable records select the new epoch and readers
 release the old backing. Each retirement opportunity rechecks the
 selector and retires up to 4 MiB from the inactive range.
 
+The Windows owner waits on its existing activity event when readers still
+pin the old range. Shared snapshots of the same image retain one backing
+pin. Releasing the final reference drops that pin before signaling the
+owner. Release performs no storage I/O. The owner still requires an admitted
+idle opportunity and rechecks both durable selector records before touching
+the inactive range. Foreground I/O can continue on the new image during
+the wait.
+[Reader release and recovery evidence](evidence/paired-range-reader-wake-2026-11-20.json)
+
 After interruption, independent CPU open follows the checked head. A
 writable reopen verifies and repairs the selected head before attempting
 to reclaim an interrupted candidate or old image. Reclamation checks

@@ -16,6 +16,12 @@ checked root totals and changed paths. Full scrubbing verifies unrelated
 records as a separate operation.
 [Packed layout and validation](evidence/packed-rebuild-accounting-2026-11-18.json)
 
+When the last reader releases an inactive file range, it only signals the
+Windows owner. The owner verifies the current selector and the remaining
+reader count before reclaiming allocation. A reader retained after shutdown
+can still read its held image and release it safely.
+[Paired range reader release](evidence/paired-range-reader-wake-2026-11-20.json)
+
 Each indexed directory summary shares its atomic publication with the matching
 names and inodes. Full verification reconciles the summaries with the children
 and checks the reachable namespace against the object inventory before writer

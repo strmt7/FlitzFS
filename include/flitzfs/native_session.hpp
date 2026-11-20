@@ -126,7 +126,10 @@ struct NativeStartupRepairImage {
 // Called only with a held, independently verified selector after append
 // repair is refused. The provider owns the target across a failed switch.
 using NativeStartupRepairProvider=std::function<NativeStartupRepairImage(const NativeVolumeHeadInfo&)>;
-namespace detail {class NativeVolumeFileReclaimer;}
+namespace detail {
+class NativeVolumeFileReclaimer;
+class NativeVolumeRangeWake;
+}
 
 class NativeFileSession final {
  public:
@@ -462,6 +465,7 @@ class NativeFileSession final {
   friend class NativeVolumeFile;
   friend class WinFspNativeWritable;
   void bind_persistent_reclamation(std::shared_ptr<detail::NativeVolumeFileReclaimer>);
+  void bind_persistent_reclamation_wake(const std::shared_ptr<detail::NativeVolumeRangeWake>&) noexcept;
   friend class detail::NativeVolumeFileReclaimer;
   bool begin_idle_compaction_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,bool owned_file_target,PagedRewriteMode);
   NativeOptimizationInfo bind_optimization_area(std::shared_ptr<StoreByteIo>,

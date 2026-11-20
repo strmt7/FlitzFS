@@ -98,6 +98,15 @@ the helper through the existing lifecycle event.
 [Indexed checks](evidence/indexed-owned-windows-2026-11-18.json) ·
 [Memory reclamation](WINDOWS_MEMORY_VOLUME_FACTORY.md#automatic-indexed-compaction)
 
+The paired file provider waits for its inactive image to become unpinned
+without scheduling retirement attempts. The last image reference wakes the
+same controller activity event used by callbacks. A weak notification
+reference allows an independent reader to outlive the controller and releases
+the controller's duplicate signal handle at shutdown. Selector checks and
+fresh resource admission still precede reclamation.
+[Persistent range ownership](PERSISTENT_VOLUME_FILE.md#paired-sparse-image-ranges) ·
+[Windows auto-reset events](https://learn.microsoft.com/en-us/windows/win32/sync/event-objects)
+
 ## AMD shared-base search
 
 A configured indexed controller can supply a qualified shared-base worker

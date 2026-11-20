@@ -3,6 +3,14 @@
 
 namespace flitzfs::detail {
 
+// The last image owner may release its pin outside the storage control thread.
+// Waking the controller performs no storage I/O.
+class NativeVolumeRangeWake {
+ public:
+  virtual ~NativeVolumeRangeWake()=default;
+  virtual void signal() noexcept=0;
+};
+
 // The two image aliases and the selector refer to one exclusive backing.
 // Engine snapshots pin the exact Region that was active when they opened.
 class NativeVolumeFileReclaimer final {
@@ -11,6 +19,7 @@ class NativeVolumeFileReclaimer final {
       std::shared_ptr<NativeVolumeFile::Region> active,
       std::shared_ptr<NativeVolumeFile::Region> spare,bool recover_spare);
   bool pending(const NativeFileSession&) const;
+  void bind_wake(const std::shared_ptr<NativeVolumeRangeWake>&) noexcept;
   NativeVolumeReclaimProgress advance(NativeFileSession&,const std::function<StoreIdentity()>&);
   void cancel(NativeFileSession&) noexcept;
   NativeStartupRepairImage startup_repair_image(const NativeVolumeHeadInfo&,const std::function<StoreIdentity()>&);

@@ -1,0 +1,154 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "captured_local": "2026-11-20T16:22:33+01:00",
+  "source_base": "81e7770ce3463d2bcc4fcad40c395376a979e1cd",
+  "source_binding": {
+    "include/flitzfs/native_session.hpp": {
+      "git_blob": "06eb3a890531a6124dedd10e37f945a08f8d11c4",
+      "sha256": "01a6903d932b64b911af51f552de636d81b9f9e4c30943317bd9f0af8a8e2c50"
+    },
+    "src/native_session.cpp": {
+      "git_blob": "15cb86856ab9fe28fe491d25e20440f29bf91f4f",
+      "sha256": "fb2afa550bf3adde5dc192512bc0a348510e2bdef7523f10db028ec648f034bc"
+    },
+    "src/native_volume_file.cpp": {
+      "git_blob": "607df45b4cd78f17f8e6869908c0460e3654e30d",
+      "sha256": "ea6db128a3e284549511b0e6c81520725df12523afc18ffaaecd4b728005bfd8"
+    },
+    "src/native_volume_file_reclaimer.hpp": {
+      "git_blob": "9d2bfdb217c109e0b0b7b667cb90658d450bbdcb",
+      "sha256": "0252d0426a2185166fbaa6c3a8647ec7a665c300e4c78cff7d553e4fdc94240d"
+    },
+    "src/windows/winfsp_native.cpp": {
+      "git_blob": "294933eefa4a442bc8c48050c1de7770f389d538",
+      "sha256": "ac4262c7dbffe0f2feb246ce511a574ebd741e3f27a1ccbbb576ddf6dedf1072"
+    },
+    "tests/test_winfsp_controller.cpp": {
+      "git_blob": "9a87f6f51d449c67c4201edb6669f2fd9e0f0005",
+      "sha256": "720d9cd6a82cb0635880f006e816a775f4ee961272944ea1d43f3eb8a144764c"
+    }
+  },
+  "host": {
+    "os": "Windows 11 Pro",
+    "build": 26300,
+    "gpu": "AMD Radeon RX 9070 XT",
+    "driver": "32.0.32029.2010"
+  },
+  "navigation": {
+    "provider_version": "0.2.43",
+    "query": "Trace the installed Windows helper startup and attach lifecycle; which user-facing path opens or exclusively creates a paired sparse persistent volume on compatible local storage, and how does it retain or close the checked file after detach?",
+    "native_response_sha256": "63b0e40a4c01497029f799e6abcf21a987f48ea7e660118c6e092ae050ce8e55"
+  },
+  "research": [
+    {
+      "url": "https://learn.microsoft.com/en-us/windows/win32/sync/event-objects",
+      "status": 200,
+      "markdown_bytes": 21291,
+      "markdown_sha256": "013c8cb2524d13a34fd791e45ed66b61e0da8d085cd870479fa057c3eea9de94",
+      "capture_sha256": "0f06fd53a66da6e8b84dd38c81021c0555a10408f170a75cb2600fd70bddb04f",
+      "provider": "0.9.5+flitzzip.portable2"
+    },
+    {
+      "url": "https://eel.is/c++draft/util.smartptr.shared.const",
+      "status": 200,
+      "markdown_bytes": 15132,
+      "markdown_sha256": "7336386292a6e514a1e050bc3d0b0a343fff8ec645aca71816e09c32df02bf5f",
+      "capture_sha256": "fa6ec3f588bbed370dc259cb2a1d89aab0f7007abcf8b90e95bfb9e831a82c80",
+      "provider": "0.9.5+flitzzip.portable2"
+    }
+  ],
+  "controller_sha256": "65c57172e9d778a645b7caeacb14797eb292dbc6738318634264ffdbd41038d5",
+  "test_lanes": {
+    "release": {
+      "run": "local-run-2e732c84a64f4e27bbfd832be4bac9be",
+      "count": 9,
+      "tests": [
+        "bounded_native_indexed_group_resume",
+        "bounded_native_indexed_pack_distinct_short_extents",
+        "bounded_native_indexed_group_batch",
+        "bounded_native_session_invariants",
+        "bounded_native_volume_file",
+        "bounded_winfsp_controller",
+        "bounded_winfsp_indexed_memory",
+        "bounded_winfsp_memory_remount",
+        "bounded_winfsp_volume_file"
+      ],
+      "peak_job_bytes": 104886272
+    },
+    "address_sanitizer": {
+      "run": "local-run-67ee0a5bbe8d4f5ab933769abf562ea5",
+      "count": 6,
+      "tests": [
+        "windows_asan_runtime_preflight",
+        "bounded_native_volume_file",
+        "windows_asan_staging_regression",
+        "bounded_winfsp_controller",
+        "bounded_winfsp_memory_remount",
+        "bounded_winfsp_volume_file"
+      ],
+      "peak_job_bytes": 663224320
+    },
+    "raw": {
+      "run": "local-run-d2abbc4a002f4067a2f32a70d46d4125",
+      "count": 3,
+      "tests": [
+        "bounded_native_volume_file",
+        "bounded_winfsp_controller",
+        "bounded_winfsp_volume_file"
+      ],
+      "peak_job_bytes": 86958080
+    }
+  },
+  "controlled_range_switch": {
+    "run": "local-run-c00531e9c0de4572b2bff9f46f282638",
+    "facts": {
+      "private_steps": "30",
+      "fresh_publish_boundaries": "2",
+      "published": "1",
+      "prior_readers_preserved": "1",
+      "reclaimed": "1",
+      "cpu_reopen": "1",
+      "pinned_wait_quiescent": "1",
+      "foreground_write_while_pinned": "1",
+      "last_reader_woke": "1",
+      "release_after_owner_quiet": "1"
+    },
+    "handles": {
+      "before": "163",
+      "after": "163"
+    },
+    "old_readers": 2,
+    "quiet_pending_checks": 64,
+    "release_signals": 1
+  },
+  "corrected_fixture": {
+    "run": "local-run-c081c301d43e4e7da45e33d79a07fd66",
+    "issue": "prior dispatcher activity was still queued",
+    "correction": "consume prior notification before checking escaped-reader shutdown"
+  },
+  "live_controller_trial": {
+    "run": "local-run-51b37e7252044df384c62785aef1540d",
+    "result": "CPU contention deferral reached fixture deadline",
+    "quanta": 35
+  },
+  "amd_smoke": {
+    "run": "local-run-eb6deba833544d1d971e88816a9d45c1",
+    "verified_batches": 1,
+    "advised_members": 12,
+    "occupied_bytes": 319488,
+    "cpu_readback": true,
+    "worker": {
+      "worker_sha256": "204427712a65191b8010991b3ab55561958c5dae652447ebc9cd08038dc6a2fb",
+      "module_sha256": "9aad995bc1b2e330a8f24f76dcc5eaa9edc8f96351c999f10712aef0be33467d",
+      "runtime_basename": "amdhip64_7.dll"
+    }
+  },
+  "scope": {
+    "sparse_allocation_model": true,
+    "live_windows_events": true,
+    "injected_win_fsp_lifecycle": true,
+    "physical_power_loss": false,
+    "mounted_performance": false
+  }
+}

@@ -13,6 +13,12 @@ retirement. User-facing selection, incremental evacuation under concurrent
 writes and actual power-failure qualification remain release work.
 [Persistent reclamation validation](evidence/windows-sparse-volume-reclamation-2026-11-19.json)
 
+Paired file retirement now wakes on the last old-image reader's release.
+The Windows fixture accepted a foreground write to the new image while
+two readers kept the old image pinned. The final reader woke retirement
+once, and an independent CPU reader recovered the later write.
+[Reader release evidence](evidence/paired-range-reader-wake-2026-11-20.json)
+
 The [repository overview](REPOSITORY_OVERVIEW.md) records the architecture
 decisions and measured baseline. The [implementation plan](IMPLEMENTATION_PLAN.md)
 defines the current work packages, dependencies and release gates. The snapshots

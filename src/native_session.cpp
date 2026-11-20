@@ -691,6 +691,10 @@ bool NativeFileSession::checkpoint_indexed_payload_scrub() {
 bool NativeFileSession::persistent_reclamation_pending() const {
   return !poisoned() && impl_->persistent_reclaimer && impl_->persistent_reclaimer->pending(*this);
 }
+void NativeFileSession::bind_persistent_reclamation_wake(
+    const std::shared_ptr<detail::NativeVolumeRangeWake>& wake) noexcept {
+  if(impl_ && impl_->persistent_reclaimer)impl_->persistent_reclaimer->bind_wake(wake);
+}
 NativeVolumeReclaimProgress NativeFileSession::advance_persistent_reclamation(
     const std::function<StoreIdentity()>& next_identity) {
   auto& self=ready();

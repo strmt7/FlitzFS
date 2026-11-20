@@ -2,6 +2,7 @@
 #include "store_file.hpp"
 #include "native_volume_file_reclaimer.hpp"
 #include <algorithm>
+#include <atomic>
 #include <limits>
 #include <utility>
 
@@ -29,6 +30,7 @@ struct NativeVolumeFile::Owner {
   const std::shared_ptr<StoreByteIo> backing;
   const bool writable;
   NativeVolumeRangeIo* ranges=nullptr;
+  std::atomic<std::weak_ptr<detail::NativeVolumeRangeWake>> reclamation_wake;
   bool leased=false;
 
   explicit Owner(std::shared_ptr<StoreByteIo> file,bool write):backing(std::move(file)),writable(write) {
@@ -60,6 +62,20 @@ struct NativeVolumeFile::Region final:StoreByteIo {
   Region(std::shared_ptr<Owner> file,std::uint64_t base,std::uint64_t limit,
       std::uint64_t initialized,bool follows_end=false)
       :owner(std::move(file)),offset(base),capacity(limit),tail(follows_end),fixed_extent(initialized){}
+  // All copies of a selected or staged image share this pin. The reclaimer
+  // retains the underlying Region separately after a selector switch.
+  static std::shared_ptr<StoreByteIo> pin_image(const std::shared_ptr<Region>& region) {
+    struct Pin {
+      explicit Pin(const std::shared_ptr<Region>& image):image(image){}
+      ~Pin() {
+        const auto file=image->owner;
+        image.reset();
+        if(const auto wake=file->reclamation_wake.load(std::memory_order_acquire).lock())wake->signal();
+      }
+      std::shared_ptr<Region> image;
+    };
+    return {std::make_shared<Pin>(region),region.get()};
+  }
   std::uint64_t extent() const override {
     if(!tail)return fixed_extent;
     const auto end=owner->backing->extent();
@@ -109,7 +125,8 @@ NativeVolumeFileReclaimer::NativeVolumeFileReclaimer(std::shared_ptr<StoreByteIo
     phase_(recover_spare?Phase::retiring:Phase::idle) {}
 
 bool NativeVolumeFileReclaimer::pending(const NativeFileSession& session) const {
-  if(phase_==Phase::retiring)return true;
+  if(phase_==Phase::retiring)
+    return spare_.use_count()==1 || active_->owner->reclamation_wake.load(std::memory_order_acquire).expired();
   if(phase_==Phase::uncertain || phase_==Phase::failed || !session.idle_compaction_context_ready())return false;
   if(phase_!=Phase::idle)return true;
   if(const auto repair=session.indexed_capacity_repair_generation())return repair!=attempted_repair_;
@@ -117,6 +134,9 @@ bool NativeVolumeFileReclaimer::pending(const NativeFileSession& session) const 
   const auto obsolete=space.obsolete_bytes;
   if(obsolete<=attempted_obsolete_ || obsolete-attempted_obsolete_<abandoned_bytes_)return false;
   return space.reclamation_worthwhile();
+}
+void NativeVolumeFileReclaimer::bind_wake(const std::shared_ptr<NativeVolumeRangeWake>& wake) noexcept {
+  active_->owner->reclamation_wake.store(wake,std::memory_order_release);
 }
 
 Progress NativeVolumeFileReclaimer::retire(const NativeVolumeHeadInfo& current) {
@@ -153,7 +173,7 @@ NativeStartupRepairImage NativeVolumeFileReclaimer::startup_repair_image(const N
     if(retire(authority)==Progress::pinned)
       fail(Error::invalid_operation,"startup repair spare range is pinned");
   }
-  return {spare_,identity()};
+  return {NativeVolumeFile::Region::pin_image(spare_),identity()};
 }
 void NativeVolumeFileReclaimer::adopt_startup_repair(const NativeVolumeSelection& original,
     const NativeVolumeSelection& repaired) {
@@ -178,7 +198,8 @@ Progress NativeVolumeFileReclaimer::advance(NativeFileSession& session,const std
       abandoned_bytes_=0;
       if(!identity || spare_.use_count()!=1 || spare_->allocation_extent())
         fail(Error::invalid_operation,"inactive volume range is unavailable");
-      if(!session.begin_idle_compaction_impl(spare_,identity(),true,PagedRewriteMode::reconcile_foreground))
+      if(!session.begin_idle_compaction_impl(NativeVolumeFile::Region::pin_image(spare_),identity(),true,
+          PagedRewriteMode::reconcile_foreground))
         return Progress::idle;
       phase_=Phase::copying;
       return Progress::copying;
@@ -243,6 +264,7 @@ NativeVolumeFile::Regions NativeVolumeFile::new_regions(std::shared_ptr<StoreByt
     regions.selection.placement=NativeVolumePlacement::paired_file_ranges;
     auto spare=std::make_shared<Region>(owner,image_offset+bytes,bytes,0);
     regions.reclaimer=std::make_shared<detail::NativeVolumeFileReclaimer>(head,image,std::move(spare),false);
+    regions.image=Region::pin_image(image);
   }
   return regions;
 }
@@ -275,6 +297,7 @@ NativeVolumeFile::Regions NativeVolumeFile::open_regions(std::shared_ptr<StoreBy
     auto spare=std::make_shared<Region>(owner,offset==image_offset?image_offset+bytes:image_offset,bytes,0);
     const auto recover_spare=spare->allocation_extent()!=0;
     regions.reclaimer=std::make_shared<detail::NativeVolumeFileReclaimer>(head,image,std::move(spare),recover_spare);
+    regions.image=Region::pin_image(image);
   } else {
     owner->pin_reader();
   }
