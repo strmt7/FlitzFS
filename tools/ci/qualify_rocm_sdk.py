@@ -480,6 +480,7 @@ def main():
         require(len(api_rows)==1 and api_rows[0]["checks"]>=40 and
             api_rows[0]["priority_cases"]==12 and api_rows[0]["priority_query_limit"]==2 and
             api_rows[0]["identity_before_selection"] is True and
+            api_rows[0]["unversioned_properties_refused"] is True and
             api_rows[0]["missing_exports_refused"]==11 and api_rows[0]["hip_runtime_loaded"] is False and
             api_rows[0]["gpu_executed"] is False and api_rows[0]["complete"] is True,
             "typed identity API evidence mismatch")

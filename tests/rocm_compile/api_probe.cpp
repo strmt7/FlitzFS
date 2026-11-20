@@ -50,6 +50,10 @@ void never_called() { throw std::runtime_error("unexpected fake runtime function
 FARPROC lookup(std::string_view name) {
   if (name == "hipInit") return std::bit_cast<FARPROC>(&fake_init);
   if (name == "hipGetDevicePropertiesR0600") return std::bit_cast<FARPROC>(&fake_properties);
+#ifdef FLITZFS_PREVIOUS_HIP_API
+  // Exercise the frozen priority check independently of the old symbol binding.
+  if (name == "hipGetDeviceProperties") return std::bit_cast<FARPROC>(&fake_properties);
+#endif
   if (name == "hipSetDevice") return std::bit_cast<FARPROC>(&fake_select);
   if (name == "hipDeviceGetStreamPriorityRange") return std::bit_cast<FARPROC>(&fake_priorities);
   require(std::find(hip_detail::runtime_symbols.begin(), hip_detail::runtime_symbols.end(), name) !=
@@ -93,6 +97,11 @@ int main(int argc,char** argv) {
         return std::string_view(name) == missing ? FARPROC{} : lookup(name);
       }); }, HipWorkerExit::runtime_unavailable, HipWorkerStage::runtime_api);
     }
+    failure([] { (void)hip_detail::bind_api([](std::string_view name) {
+      if (name == "hipGetDeviceProperties") return std::bit_cast<FARPROC>(&fake_properties);
+      if (name == "hipGetDevicePropertiesR0600") return FARPROC{};
+      return lookup(name);
+    }); }, HipWorkerExit::runtime_unavailable, HipWorkerStage::runtime_api);
     require(state.initialized == 0, "binding called the runtime");
     const auto api = hip_detail::bind_api([](const char* name) { return lookup(name); });
     require(hip_detail::initialize_device(api, 7, expected, 2) == 2, "wrong low-priority result");
@@ -215,7 +224,7 @@ int main(int argc,char** argv) {
     require(!GetModuleHandleA(FLITZFS_REQUIRED_HIP_RUNTIME_DLL_NAME), "fake test loaded HIP");
     std::cout << "HIP API CPU qualification: {\"checks\":" << checks <<
         ",\"priority_cases\":"<<priority_cases<<",\"priority_query_limit\":2"<<
-        ",\"identity_before_selection\":true,\"missing_exports_refused\":11,\"hip_runtime_loaded\":false,\"gpu_executed\":false,\"complete\":true}\n";
+        ",\"unversioned_properties_refused\":true,\"identity_before_selection\":true,\"missing_exports_refused\":11,\"hip_runtime_loaded\":false,\"gpu_executed\":false,\"complete\":true}\n";
     return 0;
   } catch (const std::exception& error) {
     std::cerr << "HIP API CPU qualification failed: " << error.what() << '\n'; return 1;

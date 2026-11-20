@@ -10,15 +10,18 @@
 #include <stdexcept>
 #include <limits>
 #include <string_view>
+#include <type_traits>
 
 namespace flitzfs::hip_detail {
-// Expand the selected SDK's versioned API macros before stringizing. The
-// function pointer type and dynamic-loader name must describe the same ABI.
+// Bind the SDK's versioned export and its device-property layout. ROCm 10.2
+// declares hipGetDeviceProperties as an inline wrapper around that export.
+static_assert(std::is_same_v<hipDeviceProp_t, hipDeviceProp_tR0600>,
+    "HIP device identity requires the SDK's R0600 layout");
 #define FLITZFS_HIP_STRING_INNER(value) #value
 #define FLITZFS_HIP_STRING(value) FLITZFS_HIP_STRING_INNER(value)
 #define FLITZFS_HIP_FUNCTIONS(X) \
   X(init, hipInit) \
-  X(properties, hipGetDeviceProperties) \
+  X(properties, hipGetDevicePropertiesR0600) \
   X(set_device, hipSetDevice) \
   X(priority_range, hipDeviceGetStreamPriorityRange) \
   X(create_stream, hipStreamCreateWithPriority) \
@@ -75,7 +78,7 @@ struct HipDeviceIdentity {
 };
 inline HipDeviceIdentity query_device_identity(const HipApi& api,int ordinal) {
   check_hip(api.init(0), "initialize", HipWorkerStage::runtime_initialize);
-  hipDeviceProp_t properties{};
+  hipDeviceProp_tR0600 properties{};
   check_hip(api.properties(&properties, ordinal), "query device properties", HipWorkerStage::device_properties);
   static_assert(sizeof(properties.luid) == 8);
   return {std::bit_cast<std::array<std::byte,8>>(std::to_array(properties.luid)),
