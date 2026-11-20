@@ -131,11 +131,28 @@ and an unchanged empty attachment does no scan work.
 [Windows owner scheduling](WINFSP_OWNED_CONTROLLER.md#content-events-and-bounded-work)
 [Source-bound scrub validation](evidence/indexed-payload-scrub-2026-11-20.json)
 
-Writable resume fully scrubs and refuses known damaged payload replicas.
-An explicit independent rebuild streams verified surviving objects into a
-new image and verifies both new copies. Persistent scan progress,
-automatic index reconstruction and automatic offline repair remain open.
-Metadata replicas retain their existing protection.
+### Repair during writable reopen
+
+Closed indexed reopen verifies the selected native checkpoint after the
+previous owning session has retired. A full CPU pass requires a verified
+copy of every payload and healthy index pages before entering the repair.
+The exclusive image writer then walks that immutable index and rechecks
+each damaged descriptor against the current checkpoint. It appends verified
+replicas using the same copy-on-write transaction as live repair.
+
+Each successful repair preserves logical object generations, acknowledged
+bytes, the namespace sequence and the selected image. The reopen checks the
+result independently before recovering any retired file contexts or allowing
+writable callbacks. An interrupted reopen can retry from the checkpoint
+selected by the normal root protocol. Independently readable source data
+stays available when append capacity is insufficient.
+
+Direct paged-store resume still requires healthy payload copies. The
+startup path requires closed indexed ownership and refuses unverified
+payloads or a damaged index. Automatic alternate-image selection on
+startup, index reconstruction and persistent scan progress remain open.
+[Startup repair validation](evidence/indexed-startup-repair-2026-11-20.json)
+
 The defined separation protects against damage to a qualified write-failure
 unit; both copies are still in one image. Common-mode errors, loss of the image/
 device, dishonest flushes, lost RAM after power-off and arbitrary future bugs

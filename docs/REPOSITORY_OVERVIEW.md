@@ -346,8 +346,16 @@ The Windows owner now checks payload replicas in idle work before a file
 is read. It advances a bounded key cursor across foreground commits,
 queues the existing verified repair when exactly one copy survives,
 and exposes an integrity warning when an object or index cannot be
-verified. Persistent scan progress and automatic startup repair remain open.
+verified. Persistent scan progress remains open.
 [Scrub validation](evidence/indexed-payload-scrub-2026-11-20.json)
+
+The closed indexed writer restores damaged payload replicas before
+attaching when the current checkpoint is verifiable and append space
+permits it. Across 534 modeled interruptions at 4 KiB and 64 KiB failure
+units, an independent CPU reopen retained the acknowledged bytes and a
+subsequent attempt restored healthy replicas. Automatic repair selection
+for a full image during startup remains open.
+[Startup repair validation](evidence/indexed-startup-repair-2026-11-20.json)
 
 The writable controller now stays available for the owner-controlled
 lifetime. Probe time budgets belong to the external test supervisor.

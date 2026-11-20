@@ -1449,8 +1449,10 @@ qualification. It is not a final pass of extra assertions after design is frozen
 5. Extend automated verified scrub and repair. A verified live indexed
    fallback or idle scrub schedules append-only repair from a surviving
    replica. A verified alternate-image switch can restore redundancy when
-   appending is blocked and a target fits. Persist scrub and repair
-   progress and add startup recovery. Keep the current acknowledged
+   appending is blocked and a target fits. Closed indexed reopen restores
+   verified replicas with an append before writable admission. Extend
+   startup to verified alternate-image selection under capacity pressure,
+   and persist scrub and repair progress. Preserve the acknowledged
    namespace and retain evidence when intact data cannot be reconstructed.
 6. Preserve independent CPU export/recovery tooling and useful diagnostics when
    normal mounting or the GPU path is unavailable. Backup/redundancy needs must

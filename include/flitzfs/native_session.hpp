@@ -210,7 +210,8 @@ class NativeFileSession final {
   // Failure remains terminal with images/contexts retained and no second attempt.
   NativeVolumeHeadInfo recover_volume();
   // Caller proves exclusive ownership and that all previous dispatcher and
-  // file contexts have retired. Finish durable indexed lifetimes before admission.
+  // file contexts have retired. Restore verified payload redundancy and finish
+  // durable indexed lifetimes before writable admission.
   static NativeFileSession resume_closed_indexed_volume(std::shared_ptr<StoreByteIo> head,
       StoreIdentity volume_identity,std::uint64_t expected_epoch,const NativeVolumeImageResolver&,
       StoreCompressionOptions foreground={},NativeDispositionPolicy=NativeDispositionPolicy::aggregate);

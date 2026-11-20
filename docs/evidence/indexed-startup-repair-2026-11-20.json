@@ -1,0 +1,182 @@
+{
+  "schema": 1,
+  "captured_local": "2026-11-20T01:51:04+01:00",
+  "source_base": "3cc9f19917255fe7caecfd0f6ca117cef030438e",
+  "base_tree": "5618d464a5142c26f7211231b5ac40e61c58bd1f",
+  "code_patch_sha256": "def83faa3aad3c8bd2fb1d0af81bd721e33f27ce11d90281aab3cde6b09efb09",
+  "source_binding": [
+    {
+      "path": "include/flitzfs/native_session.hpp",
+      "git_blob": "f5407582542f4a51b293b2b7696d9f97f1c4dc4e",
+      "worktree_sha256": "77bfdea5999d75191c23e8c247e179801cb2ef15cc7c3324f2e2aed14f7d59df"
+    },
+    {
+      "path": "include/flitzfs/paged_store.hpp",
+      "git_blob": "9290eae5370dcbf16e3b3e9c130dbe4f64e084f3",
+      "worktree_sha256": "6b8910a1df4293754d2706a0728b47b54cf6fe22ba1d061c49c562ea2db3a47b"
+    },
+    {
+      "path": "src/native_session.cpp",
+      "git_blob": "d3ad12cceffd88e74b9074b7b8e1ed0fa63cecd6",
+      "worktree_sha256": "66f43033ac3c0b553a7f9594cc3ecdf58d772cf71b969fb01de5ff7646e4c6a9"
+    },
+    {
+      "path": "src/paged_store.cpp",
+      "git_blob": "f6f71946a171d06b56721021ec648695d4f7751a",
+      "worktree_sha256": "1e518e865a577ec0584eae888eb3f04f94beea2533c4842384d4c0b9b5f03dca"
+    },
+    {
+      "path": "tests/test_mirrored_payloads.cpp",
+      "git_blob": "671097796effa358d8d0deea37762767cfd78a5c",
+      "worktree_sha256": "ba5809eb802b0d5882c9b20bcaabdfa80150c1bf4eec2013c5561720f7f7b19e"
+    },
+    {
+      "path": "tests/windows_volume_attachment_tests.cpp",
+      "git_blob": "df5d34141e5e7ee53ce6e5df8fa91fc5bb73ea87",
+      "worktree_sha256": "d69f94847b1e36b7407f3c6c50a7215b6e5a4fc3a79a999b3da96ebd7a63e776"
+    }
+  ],
+  "research": {
+    "semantic_provider": "0.2.43",
+    "semantic_receipt_sha256": "8360e8145dbd613966c561ecfe5f657ed2cf8f22b0db1c52259a2c57ec07089d",
+    "semantic_native_response_sha256": "e994232bc9018c0c650db8671b43fe01048dcf523f9067d97874d53690b3a4d8",
+    "crawl_provider": "0.9.5+flitzzip.portable2",
+    "crawl_receipt_sha256": "33ce000a304d965f783bef930963c11c42f519a2fb59e50cd7e249db53207b28",
+    "sources": [
+      {
+        "url": "https://learn.microsoft.com/en-us/windows-server/storage/refs/integrity-streams",
+        "final_http_status": 200,
+        "markdown_bytes": 21384,
+        "markdown_sha256": "8f4d67df1c72faa73d5ef3dd39fed95766300e1f12e0e70398377097f4fc3e0b",
+        "capture_sha256": "65c6937e4f3db2b164e30f932af7ccdfa0976216f5d0b031df2dbb737f7462bc"
+      },
+      {
+        "url": "https://openzfs.github.io/openzfs-docs/man/master/8/zpool-import.8.html",
+        "final_http_status": 200,
+        "markdown_bytes": 27086,
+        "markdown_sha256": "47cc5411686e27e5c6dd047bf810f7e4946afe9ec871e322bfb31cea07f2e7a7",
+        "capture_sha256": "54d0fdf63ebfd933853b56c8793d1a83672d83f6abb7b02dd8b2458c32fc3434"
+      }
+    ]
+  },
+  "validation": {
+    "windows_release_ctest_passed": 12,
+    "codec_free_explorer_addresssanitizer_ctest_passed": 11,
+    "release_details_sha256": "33832b122781488ecc1ee15b27a2eac103bb86b340615688e768ba755af585dd",
+    "sanitizer_details_sha256": "be7694fd86a5f96b1532183a0f3ac52c486cf23329ecc1f6d7dd488193adee4c",
+    "replica_repair": {
+      "fault_interruption_cases": {
+        "4096": 93,
+        "65536": 441
+      },
+      "retained_volume_selector": true,
+      "retained_acknowledged_bytes": true,
+      "retained_object_generations": true,
+      "independent_cpu_restart_after_each_cut": true,
+      "mixed_root_and_payload_damage": true,
+      "stale_epoch_double_loss_and_metadata_damage_refused_before_writes": true,
+      "full_image_append_refused": true
+    },
+    "windows_helper": {
+      "damaged_peer_in_detached_fixture": true,
+      "reattached": true,
+      "independent_cpu_readback": true,
+      "sdk_callbacks_and_injected_mount_lifecycle": true,
+      "unconfirmed_retirement_refused": true
+    },
+    "live_amd": {
+      "verified_groups": 1,
+      "cpu_readback": true,
+      "qualification_manifest_sha256": "d3b2da67b3f670b542e42097cde13cef3e2c735155093328df4d41fbf052b7d7",
+      "worker_sha256": "3bf7a176c9cae60dfc4b3c3bf3cd4f03a525bff5360dd78a18046e4cde57a91f"
+    },
+    "runs": [
+      {
+        "role": "Windows targeted recovery build",
+        "run": "local-run-02a00b34b1f14236a482150f46a71330",
+        "receipt_sha256": "3c5ef79605d6bccd2ab1cb75aca3324fc8019d2a060ac6ab4e63cb62fcb06871",
+        "output_sha256": "6db49d86d89f5a1be1fdb8fb0c2ec31b811d9a5497d4914bbcbcfea5347f74e1",
+        "elapsed_seconds": 39.138632600000165,
+        "memory_bytes": 2639265792,
+        "peak_job_bytes": 528678912,
+        "cpu_percent": 29,
+        "tree_retired": true,
+        "residual_children": 1,
+        "inherited_error_mode": 32771
+      },
+      {
+        "role": "Windows Release regression build",
+        "run": "local-run-4b182acfe6dd4d0094a8672db62e0e24",
+        "receipt_sha256": "a59101006ba11e9a3a0498804d7c5c30f4ee6abdd4125a4c974bdf77795c3b5a",
+        "output_sha256": "62c72667c9e8df96e7338a4b5122f386d2527224f622755c46215044aa78ae23",
+        "elapsed_seconds": 50.261832199999844,
+        "memory_bytes": 2178940928,
+        "peak_job_bytes": 782155776,
+        "cpu_percent": 25,
+        "tree_retired": true,
+        "residual_children": 1,
+        "inherited_error_mode": 32771
+      },
+      {
+        "role": "Windows Release regression CTest",
+        "run": "local-run-e0d99dcf66e74f4d8c1966cf2252cde4",
+        "receipt_sha256": "4cedf98dd812fb5eab8208e65c3c17c546ab3327106e075672b7dbf6652da513",
+        "output_sha256": "b960afa51c50bdf3336401fbf423f5a5aa7b3e84f31d84daf8a8fa47701582b3",
+        "elapsed_seconds": 35.52202799999941,
+        "memory_bytes": 1926234112,
+        "peak_job_bytes": 90066944,
+        "cpu_percent": 24,
+        "tree_retired": true,
+        "residual_children": 0,
+        "inherited_error_mode": 32771
+      },
+      {
+        "role": "Windows codec-free Explorer AddressSanitizer build",
+        "run": "local-run-2ff879f46a0e421c9ce98c3b843d995a",
+        "receipt_sha256": "c88ec9ba7fb01690e14fed300a2168ff5ec245e0a3b205f900f22a970e55452b",
+        "output_sha256": "1b61930c780cab4727b1b565b096aa8cb8620e54969ca035c81bbeb5ee2328b4",
+        "elapsed_seconds": 88.89753850000034,
+        "memory_bytes": 2678063104,
+        "peak_job_bytes": 824070144,
+        "cpu_percent": 29,
+        "tree_retired": true,
+        "residual_children": 1,
+        "inherited_error_mode": 32771
+      },
+      {
+        "role": "Windows codec-free Explorer AddressSanitizer CTest",
+        "run": "local-run-1c3be97308cc4513a5fff03ffdd50b47",
+        "receipt_sha256": "e5d8fa34677d96e7af706f5001f6784f5be64206d4322478842cd952e2f044e0",
+        "output_sha256": "e5bdab93019fefa6478a8a08ed3fbd219fd210e1bf88b3be6e5cec83b617e1a7",
+        "elapsed_seconds": 122.01101490000019,
+        "memory_bytes": 3223322624,
+        "peak_job_bytes": 1096478720,
+        "cpu_percent": 25,
+        "tree_retired": true,
+        "residual_children": 0,
+        "inherited_error_mode": 32771
+      },
+      {
+        "role": "Installed AMD route regression",
+        "run": "local-run-cbbf95c8f390470092bae20ace70f6f6",
+        "receipt_sha256": "4ac19477e3b5212cd994ada6efdb0866b29d8e34dae604ee42ec847061fa9a76",
+        "output_sha256": "8c3269e4fba7fa3e01ef8e10faa40007710c5cf96860b50b981a4b004885b6e1",
+        "elapsed_seconds": 40.90080820000003,
+        "memory_bytes": 1389363200,
+        "peak_job_bytes": 126115840,
+        "cpu_percent": 16,
+        "tree_retired": true,
+        "residual_children": 0,
+        "inherited_error_mode": 32771
+      }
+    ]
+  },
+  "scope": {
+    "on_disk_format_change": false,
+    "full_capacity_startup_rotation": false,
+    "index_reconstruction": false,
+    "physical_power_loss_qualified": false,
+    "mounted_windows_qualified_by_these_tests": false,
+    "full_release": false
+  }
+}

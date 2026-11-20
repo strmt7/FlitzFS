@@ -69,8 +69,9 @@ The selected epoch maps the image identity to a specific range.
 `NativeFileSession::create_indexed_volume` binds a new indexed image to its own
 head. `open_indexed_recovery` provides a checked CPU view of the selected indexed
 image including unresolved file lifetimes. Explicit closed-session resume
-requires qualified retirement of the previous owner before finishing those
-lifetimes. Ordinary head open and resume continue to enforce resolved state.
+requires qualified retirement of the previous owner. It can restore
+payload replicas from verified copies before finishing those lifetimes.
+Ordinary head open and resume continue to enforce resolved state.
 
 Indexed compaction and recompression rebuild into fresh backing with a
 different identity. The head checks that the candidate retains the native
@@ -102,9 +103,10 @@ publication requires a fully verified target. Source images remain retained.
 
 A capability-2 head owner may resume over fully CPU-readable degraded source
 data **for explicit selection of a repaired new image**. This does not grant a
-writable lease on that data. Paged writer/session resume still refuses damaged
-payload replicas; loss of both copies rejects reads. Legacy flat source-admission
-rules are unchanged. The existing owned-transition recovery can select only the
+writable lease on that data. Direct paged-store and ordinary session resume
+require healthy payload replicas. The retired indexed owner can repair
+verified payload damage before writable admission.
+The existing owned-transition recovery can select only the
 original or the verified candidate and preserves the same file contexts. Head
 damage never causes an unrelated/older-image fallback.
 

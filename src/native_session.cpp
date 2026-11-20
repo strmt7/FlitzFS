@@ -29,12 +29,11 @@ void retire(NativeFilesystemWriter& writer) noexcept {
   auto retired=std::move(writer); // Its destructor really releases the writer lease.
 }
 NativeFilesystemWriter resume_image(const std::shared_ptr<StoreByteIo>& image,
-    const NativeFilesystemSnapshot& view,StoreCompressionOptions compression,bool closed_indexed=false) {
+    const NativeFilesystemSnapshot& view,StoreCompressionOptions compression) {
   const auto storage=view.image_storage();
   if(storage.kind==NativeImageKind::paged || storage.kind==NativeImageKind::indexed_paged) {
     auto objects=PagedObjectStoreWriter::resume(image,view.identity(),view.storage_info().generation,
         {storage.maximum_physical_bytes},compression);
-    if(closed_indexed)return NativeFilesystemWriter::resume_closed_session(std::move(objects));
     return NativeFilesystemWriter::resume(std::move(objects));
   }
   if(storage.kind!=NativeImageKind::flat)fail(E::invalid_options,"unsupported writable image capability");
@@ -519,7 +518,13 @@ NativeFileSession NativeFileSession::resume_volume_impl(std::shared_ptr<StoreByt
   owner->active_id=selected.filesystem().identity();owner->epoch=epoch;
   // The qualified global provider excludes other controllers during startup.
   // Repair selected image metadata first, then acquire/repair its head owner.
-  auto repaired=resume_image(owner->active_io,selected.filesystem(),foreground,closed_indexed);
+  auto repaired=[&] {
+    const auto& source=selected.filesystem();
+    if(!closed_indexed)return resume_image(owner->active_io,source,foreground);
+    return NativeFilesystemWriter::resume_closed_session(PagedObjectStoreWriter::resume_impl(
+        owner->active_io,source.identity(),source.storage_info().generation,
+        {source.image_storage().maximum_physical_bytes},foreground,true));
+  }();
   auto checked=repaired.snapshot();retire(repaired);
   owner->head.emplace(NativeVolumeHeadWriter::resume(head,volume,epoch,checked));
   auto session=create(resume_image(owner->active_io,checked,foreground),policy);

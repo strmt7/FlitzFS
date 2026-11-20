@@ -49,6 +49,18 @@
     "automatic_startup_repair": false,
     "automatic_index_reconstruction": false
   },
+  "indexed_startup_payload_repair": {
+    "source_base": "3cc9f19917255fe7caecfd0f6ca117cef030438e",
+    "evidence": "docs/evidence/indexed-startup-repair-2026-11-20.json",
+    "verified_append_before_writable_attach": true,
+    "scenario_counts": {"4096": 93, "65536": 441},
+    "independent_cpu_restart_after_each_cut": true,
+    "live_windows_helper_detached_replica_reopen": true,
+    "stale_epoch_double_loss_and_index_damage_refused_before_writes": true,
+    "full_image_startup_rotation": false,
+    "on_disk_format_change": false,
+    "physical_power_loss_qualified": false
+  },
   "indexed_compaction_foreground_reconciliation": {
     "source_base": "c5402a2e7a1899db7ba3fa901052f6a479e034cf",
     "evidence": "docs/evidence/indexed-compaction-reconciliation-2026-11-19.json",

@@ -22,6 +22,12 @@ external file contexts. It selects independently, rejects unresolved persisted
 lifetime state, repairs only the selected image's metadata, retires that repair
 writer, repairs/acquires the head owner and resumes the selected image.
 
+The closed indexed entry point uses the same provider and epoch contract
+after confirmed dispatcher retirement. It verifies the entire selected
+checkpoint before restoring any damaged payload replicas, then reopens
+with verified protection before resolving old file contexts.
+[Closed indexed repair](MIRRORED_PAYLOADS.md#repair-during-writable-reopen)
+
 Both APIs remain custom-backend only. No ordinary-file opening/resume, mount,
 driver, process, thread or OS state change is introduced. The provider MUST
 globally exclude competing controllers and aliased storage facades, never reuse

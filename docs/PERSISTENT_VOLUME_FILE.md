@@ -80,9 +80,11 @@ Open verifies both head peers and binds the selected data to the declared layout
 and epoch. A supplied expected volume identity must match. Without that identity,
 the checked peers must belong to the same volume. The independent CPU reader
 validates the entire image and can inspect the durable state of detached
-lifetimes. A writable reopen uses the same indexed session-recovery transaction
-after the previous provider's confirmed retirement. The WinFsp bridge applies
-the existing Windows root ACL and timestamp profile.
+lifetimes. After the previous provider's confirmed retirement, a writable
+reopen can restore recoverable payload damage with a verified append
+transaction before recovering detached lifetimes. The WinFsp bridge
+validates the Windows root ACL and timestamp profile during admission.
+[Startup repair validation](evidence/indexed-startup-repair-2026-11-20.json)
 
 ## Windows helper ownership
 

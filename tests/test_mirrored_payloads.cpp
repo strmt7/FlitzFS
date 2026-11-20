@@ -282,6 +282,106 @@ void proactive_payload_scrub(std::uint32_t unit) {
            <<" latent_peer=1 double_loss_reported=1 bounded_high_water=1 degraded_index_refused=1\n";
 }
 
+void startup_payload_repair(std::uint32_t unit) {
+  const StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
+  const auto first=data(3073,737),second=data(6131,738);
+  const auto make=[&](PagedStoreLimits capacity) {
+    auto head=std::make_shared<Ram>(),store=std::make_shared<Ram>();
+    head->failure_unit=store->failure_unit=unit;
+    auto session=NativeFileSession::create_indexed_volume(head,next_id(),store,identity(),capacity,raw);
+    const auto write=[&](const char* path,const Bytes& bytes) {
+      session.create_entry(path);
+      const auto handle=session.open(path,{true,true,true});
+      session.write(handle,0,bytes);
+      session.cleanup(handle,false);session.close(handle);
+    };
+    write("first",first);write("second",second);
+    return std::pair{head,store};
+  };
+  const auto [base_head,base_store]=make(limits);
+  const auto records=locations(*base_store);
+  const auto record=[&](std::size_t bytes) {
+    const auto found=std::ranges::find(records,bytes+indexed_extent_header_bytes,&Location::stored);
+    require(found!=records.end(),"startup fixture lost a raw payload descriptor");
+    return *found;
+  };
+  const auto a=record(first.size()),b=record(second.size());
+  const auto prior=PagedObjectStoreSnapshot::open(base_store,limits).stat(a.id);
+  const auto sequence=view(base_store).sequence();
+  const auto verify_bytes=[&](const NativeFilesystemSnapshot& snapshot,bool healthy) {
+    require(snapshot.sequence()==sequence && snapshot.read("first",0,8192)==first &&
+        snapshot.read("second",0,8192)==second,"startup repair changed acknowledged bytes or namespace");
+    if(healthy)require(!snapshot.storage_info().degraded_checkpoint && !snapshot.storage_info().degraded_root,
+        "startup repair admitted degraded protection");
+  };
+  const auto inspect=[&](const auto& head,const auto& store) {
+    return NativeVolumeHeadView::open_indexed_recovery(head,next_id(),[&](const auto&){return store;});
+  };
+  const auto resume=[&](const auto& head,const auto& store,std::uint64_t epoch=1) {
+    return NativeFileSession::resume_closed_indexed_volume(head,next_id(),epoch,[&](const auto&){return store;},raw);
+  };
+
+  const auto trial=[&](std::optional<std::size_t> cut,unsigned mode,bool root_damage=false) {
+    auto head=image(base_head->stable,unit),store=image(base_store->stable,unit);
+    damage_record(*store,a.primary);damage_record(*store,b.peer);
+    if(root_damage)damage_record(*store,0);
+    const auto old=store->live;
+    const auto pinned=inspect(head,store);
+    verify_bytes(pinned.filesystem(),false);
+    if(cut){store->fail_at=*cut;store->failure=mode;}
+    bool opened=false;
+    try {
+      auto session=resume(head,store);
+      opened=true;
+      verify_bytes(session.snapshot(),true);
+      require(session.volume_info().selection.epoch==1 && session.volume_info().selection.image_identity==identity(),
+          "startup append repair changed the volume selector");
+    }catch(const std::exception&){if(!cut || opened || store->calls<=*cut)throw;}
+    require(opened==!cut,"startup repair reported success after a failed write or barrier");
+    require(!head->writes && std::equal(old.begin()+2*kStoreCommitUnit,old.end(),store->live.begin()+2*kStoreCommitUnit),
+        "startup repair overwrote a pre-existing body bank");
+    verify_bytes(pinned.filesystem(),false);
+    const auto durable=image(store->stable,unit);
+    auto replayed=image(head->stable,unit);
+    verify_bytes(inspect(replayed,durable).filesystem(),!cut);
+    if(cut) {
+      auto retried=resume(replayed,durable);
+      verify_bytes(retried.snapshot(),true);
+    }
+    const auto now=PagedObjectStoreSnapshot::open(durable,limits).stat(a.id);
+    require(now && prior && now->generation==prior->generation,"startup repair changed an object generation");
+    return store->calls;
+  };
+  const auto operations=trial({},0);
+  require(operations>4 && operations<180,"startup repair operation count escaped the fixture");
+  (void)trial({},0,true);
+  for(unsigned mode=0;mode<3;++mode)
+    for(std::size_t cut=0;cut<operations;++cut)(void)trial(cut,mode);
+
+  for(unsigned fault=0;fault<3;++fault) {
+    auto head=image(base_head->stable,unit),store=image(base_store->stable,unit);
+    damage_record(*store,a.primary);
+    if(fault==1){damage_record(*store,b.primary);damage_record(*store,b.peer);}
+    if(fault==2)damage_record(*store,get(store->live,104));
+    const auto before=store->live;
+    rejects([&]{(void)resume(head,store,fault==0?2:1);},"unsafe startup entered writable admission");
+    require(store->live==before && !store->calls && !head->calls,"refused startup reached the write path");
+  }
+  auto [tight_head,tight_store]=make({base_store->extent()});
+  require(tight_store->extent()==base_store->extent(),"startup capacity fixture was not full");
+  damage_record(*tight_store,a.primary);
+  const auto prior_writes=tight_store->writes;
+  const auto full=tight_store->live;
+  bool refused=false;
+  try{(void)resume(tight_head,tight_store);}
+  catch(const PagedStoreCapacityError&){refused=true;}
+  require(refused && tight_store->writes==prior_writes && tight_store->live==full,
+      "startup repair bypassed full-volume append admission");
+  verify_bytes(inspect(tight_head,tight_store).filesystem(),false);
+  std::cout<<"startup_payload_repair unit="<<unit<<" restored_copies=2 cuts="<<operations*3
+      <<" mixed_root=1 preflight_rejections=3 full_refused=1\n";
+}
+
 void native_recovery(unsigned layout,std::uint32_t unit) {
   auto original=std::make_shared<Ram>();original->failure_unit=unit;
   {auto writer=fresh(original,layout);writer.apply(baseline());}
@@ -391,6 +491,7 @@ int main(){try {
   forged_descriptors();native_shared_lifetime();payload_repair_rechecks();
   for(auto unit:{4096U,65536U}) {
     proactive_payload_scrub(unit);
+    startup_payload_repair(unit);
     packing_and_boundaries(unit);survivor_and_rebuild(unit);fresh_replica_readback(unit);
     append_only_payload_repair(unit);
     for(unsigned layout=0;layout<3;++layout){native_recovery(layout,unit);fault_matrix(layout,unit);}

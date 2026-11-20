@@ -183,9 +183,28 @@ void verify_backing(const WinFspVolumeFileSelection& file) {
   const auto recovered=verified.filesystem().read("retained.txt",0,4096);
   const auto expected=std::as_bytes(std::span(contents.data(),contents.size()));
   require(std::ranges::equal(recovered,expected),"Persistent helper close lost acknowledged bytes");
+  require(!verified.filesystem().storage_info().degraded_checkpoint,"Persistent helper left degraded replicas");
 }
 
-void file_lifecycle(const WinFspVolumeFileSelection& file) {
+void damage_detached_replica(const WinFspVolumeFileSelection& file) {
+  const auto& backing=std::get<std::shared_ptr<StoreByteIo>>(file.backing);
+  std::vector<std::byte> bytes(static_cast<std::size_t>(backing->extent()));
+  backing->read_exact(0,bytes);
+  const auto expected=std::as_bytes(std::span(contents.data(),contents.size()));
+  const auto first=std::search(bytes.begin()+kNativeVolumeFileImageOffset,bytes.end(),expected.begin(),expected.end());
+  require(first!=bytes.end(),"Detached fixture did not contain the raw payload");
+  const auto at=static_cast<std::size_t>(first-bytes.begin())+backing->contract().write_failure_unit_bytes;
+  require(at<=bytes.size() && expected.size()<=bytes.size()-at &&
+      std::equal(expected.begin(),expected.end(),bytes.begin()+at),"Detached fixture did not contain the peer");
+  const auto damage=bytes[at]^std::byte{1};
+  backing->write_exact(at,std::span(&damage,1));backing->flush();
+  const auto verified=NativeVolumeFile::inspect(backing,file.volume);
+  require(verified.filesystem().storage_info().degraded_checkpoint &&
+      std::ranges::equal(verified.filesystem().read("retained.txt",0,4096),expected),
+      "Detached fixture did not establish one verified surviving replica");
+}
+
+void file_lifecycle(const WinFspVolumeFileSelection& file,bool repair_on_reopen=false) {
   Provider provider;
   Provider::current=&provider;
   Window window;
@@ -216,6 +235,7 @@ void file_lifecycle(const WinFspVolumeFileSelection& file) {
     catch(const std::exception&){}
     require(!shared,"Detached helper released its exclusive backing prematurely");
   }
+  if(repair_on_reopen)damage_detached_replica(file);
   submit(VolumeCommandKind::attach);
   const auto second=wait_state(VolumeAttachmentState::attached).attachment.location;
   require(!second.empty() && second!=first,"File reattachment reused a mount target");
@@ -242,6 +262,7 @@ void file_lifecycle(const WinFspVolumeFileSelection& file) {
       "File attachment provider ownership was unbalanced");
   std::cout<<"file_attachment collision_retained=1 fresh_mount_target=1 cpu_reopen=1 "
       <<"ordinary_exit=1 joined_provider_sessions="<<provider.deleted.load()<<'\n';
+  if(repair_on_reopen)std::cout<<"file_attachment_startup_repair detached_peer=1 reopened=1 cpu_verified=1\n";
 }
 
 void uncertain_file_retirement() {
@@ -281,7 +302,7 @@ void file_lifecycle_in_memory() {
     constexpr std::uint64_t capacity=8*1024*1024;
     auto domain=MemoryVolumeDomain::create(capacity);
     file_lifecycle({domain.create_store(capacity),fresh_volume_identity(),
-        WinFspVolumeFileSelection::Create{fresh_volume_identity(),{capacity-kNativeVolumeFileImageOffset}}});
+        WinFspVolumeFileSelection::Create{fresh_volume_identity(),{capacity-kNativeVolumeFileImageOffset}}},true);
   }
   uncertain_file_retirement();
   require(MemoryVolumeDomain::cleanup_healthy(),"Volume file memory backing cleanup failed");

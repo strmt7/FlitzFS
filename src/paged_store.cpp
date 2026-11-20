@@ -1315,10 +1315,17 @@ PagedObjectStoreWriter PagedObjectStoreWriter::create_impl(std::shared_ptr<Store
 }
 PagedObjectStoreWriter PagedObjectStoreWriter::resume(std::shared_ptr<StoreByteIo> image,StoreIdentity expected,
     std::uint64_t generation,PagedStoreLimits limits,StoreCompressionOptions options) {
+  return resume_impl(std::move(image),expected,generation,limits,options,false);
+}
+PagedObjectStoreWriter PagedObjectStoreWriter::resume_impl(std::shared_ptr<StoreByteIo> image,StoreIdentity expected,
+    std::uint64_t generation,PagedStoreLimits limits,StoreCompressionOptions options,bool repair_payloads) {
   auto p=std::make_unique<Impl>(image,options);auto s=load(image,limits);admit_contract(image->contract());
   if(s.id!=expected || s.generation!=generation || image->contract().write_failure_unit_bytes>s.unit)
     fail("recovery lease/contract mismatch");
-  verify(s);if(s.degraded_metadata || s.degraded_payloads)fail("replica rebuild required before writable resume");
+  if(repair_payloads && !s.mirrored)fail("startup repair requires mirrored payloads");
+  verify(s);
+  if(s.degraded_metadata || (s.degraded_payloads && !repair_payloads))
+    fail("replica rebuild required before writable resume");
   const auto extent=image->extent();image->flush();auto observed=load(image,limits);
   if(!same(s,observed) || image->extent()!=extent)fail("recovery baseline changed");
   p->append_floor=align(extent,s.unit);
@@ -1328,7 +1335,37 @@ PagedObjectStoreWriter PagedObjectStoreWriter::resume(std::shared_ptr<StoreByteI
     s.end=p->append_floor;image->admit_write(s.end);zeros(*image,extent,s.end);publish(s);
     s=load(image,limits);verify(s);if(s.degraded_roots || s.degraded_metadata)fail("root repair verification");
   }
-  p->state=std::move(s);return PagedObjectStoreWriter(std::move(p));
+  p->state=std::move(s);
+  PagedObjectStoreWriter writer(std::move(p));
+  if(!writer.impl_->state.degraded_payloads)return writer;
+  if(!repair_payloads)fail("replica rebuild required before writable resume");
+
+  // The full source pass above refused unreadable objects before any writes.
+  // Walk its immutable index once. Each repair re-resolves the exact descriptor
+  // from the current checkpoint before writing fresh banks.
+  const auto source=writer.impl_->state;
+  auto& queue=writer.impl_->payload_repairs;
+  queue=std::make_shared<PayloadRepairQueue>();
+  auto visit=[&](const Entry& entry) {
+    if(source.degraded_metadata)fail("startup repair source index degraded");
+    if(verify_object(source,entry)) {
+      queue->observe(entry);
+      switch(writer.repair_payload()) {
+        case PagedPayloadRepairProgress::checked:
+        case PagedPayloadRepairProgress::repaired:break;
+        case PagedPayloadRepairProgress::capacity:capacity("indexed startup repair needs append space");
+        case PagedPayloadRepairProgress::idle:fail("indexed startup repair lost its observation");
+      }
+    }
+    return true;
+  };
+  bool done=false;walk(source,source.root,0,visit,done);
+  if(source.degraded_metadata)fail("startup repair source index degraded");
+  auto checked=load(image,limits);verify(checked);
+  if(!same(writer.impl_->state,checked) || checked.degraded_roots || checked.degraded_metadata || checked.degraded_payloads)
+    fail("indexed startup repair did not restore healthy copies");
+  writer.impl_->state=std::move(checked);
+  return writer;
 }
 PagedObjectStoreWriter PagedObjectStoreWriter::rebuild(const PagedObjectStoreSnapshot& source,
     std::shared_ptr<StoreByteIo> target,StoreIdentity id,PagedStoreLimits limits,StoreCompressionOptions options) {

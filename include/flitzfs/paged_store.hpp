@@ -143,6 +143,11 @@ class PagedObjectStoreWriter final {
  private:
   friend class detail::NativeObjectWriter;
   friend class IndexedCoherenceWriter;
+  friend class NativeFileSession;
+  // The indexed session has already verified the selected native checkpoint and
+  // proved retired-owner admission before enabling payload repair.
+  static PagedObjectStoreWriter resume_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,
+      std::uint64_t expected_generation,PagedStoreLimits,StoreCompressionOptions,bool repair_payloads);
   static PagedObjectStoreWriter create_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,
       PagedStoreLimits,StoreCompressionOptions,bool mirrored,std::span<const StoreMutation> initial={},
       std::uint64_t maximum_write_bytes=UINT64_MAX,
