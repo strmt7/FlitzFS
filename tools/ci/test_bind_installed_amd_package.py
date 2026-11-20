@@ -71,6 +71,7 @@ class PackageTests(unittest.TestCase):
         self.assertIn("anchor_minimum_members=4U", header)
         self.assertIn("anchor_dispatches_per_wait=1U", header)
         self.assertIn("anchor_maximum_dispatch_members=0U", header)
+        self.assertIn("anchor_reference_xor=false", header)
         self.assertEqual(files, ["qualification-manifest.json", ANCHOR_EVIDENCE, ANCHOR_WORKER,
                                 ANCHOR_MODULE, "licenses/blake3/LICENSE_CC0"])
 
@@ -118,6 +119,49 @@ class PackageTests(unittest.TestCase):
                    return_value={"flitzfs_rocm_anchor_window_api_v2"}):
             with self.assertRaisesRegex(RuntimeError, "lacks its dispatch entry"):
                 self.bind()
+
+    def test_profile_can_enable_device_reference_pricing(self):
+        self.anchor().update(search_mode="reference-xor", maximum_dispatch_members=12)
+        with patch("bind_installed_amd_package.pe_function_exports", return_value={
+            "flitzfs_rocm_anchor_match_api_v1", "flitzfs_rocm_anchor_sparse_xor_arena_api_v8",
+            "flitzfs_rocm_anchor_reference_api_v10", "flitzfs_rocm_anchor_window_api_v11",
+        }):
+            header, _ = self.bind()
+        self.assertIn("anchor_reference_xor=true", header)
+        self.assertIn("anchor_maximum_dispatch_members=12U", header)
+
+    def test_reference_profile_requires_sparse_fallback_in_the_same_module(self):
+        self.anchor().update(search_mode="reference-xor", maximum_dispatch_members=12)
+        with patch("bind_installed_amd_package.pe_function_exports", return_value={
+            "flitzfs_rocm_anchor_match_api_v1", "flitzfs_rocm_anchor_reference_api_v10",
+            "flitzfs_rocm_anchor_window_api_v11",
+        }):
+            with self.assertRaisesRegex(RuntimeError, "flitzfs_rocm_anchor_sparse_xor_arena_api_v8"):
+                self.bind()
+
+    def test_reference_profile_requires_its_copy_search_entry(self):
+        self.anchor().update(search_mode="reference-xor", maximum_dispatch_members=3)
+        with patch("bind_installed_amd_package.pe_function_exports", return_value={
+            "flitzfs_rocm_anchor_match_api_v1", "flitzfs_rocm_anchor_sparse_xor_arena_api_v8",
+            "flitzfs_rocm_anchor_reference_api_v10", "flitzfs_rocm_anchor_window_api_v11",
+        }):
+            with self.assertRaisesRegex(RuntimeError, "flitzfs_rocm_anchor_window_api_v2"):
+                self.bind()
+
+    def test_reference_profile_requires_a_measured_dispatch_grant(self):
+        self.anchor()["search_mode"] = "reference-xor"
+        with self.assertRaisesRegex(RuntimeError, "Reference search requires a dispatch grant"):
+            self.bind()
+
+    def test_reference_profile_rejects_copy_queue_settings(self):
+        self.anchor().update(search_mode="reference-xor", maximum_dispatch_members=12, dispatches_per_wait=2)
+        with self.assertRaisesRegex(RuntimeError, "Reference search requires a single dispatch per wait"):
+            self.bind()
+
+    def test_profile_rejects_an_unknown_search_mode(self):
+        self.anchor()["search_mode"] = "unqualified"
+        with self.assertRaisesRegex(RuntimeError, "Invalid anchor profile field search_mode"):
+            self.bind()
 
     def test_dispatch_must_fit_the_approved_batch(self):
         self.anchor()["maximum_dispatch_members"] = 17

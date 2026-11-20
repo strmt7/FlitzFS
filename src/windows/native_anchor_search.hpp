@@ -17,6 +17,8 @@ struct NativeAnchorSearchOptions {
   std::uint32_t maximum_dispatch_members=0;
   // Maximum queue depth for a funded slab and profile trailer.
   std::uint32_t dispatches_per_wait=1;
+  // Price alternate references only when the full batch can support them.
+  bool prefer_reference=false;
 };
 
 struct NativeAnchorSearchStats {

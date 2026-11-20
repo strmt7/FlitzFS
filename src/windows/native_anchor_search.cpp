@@ -35,31 +35,31 @@ bool valid_anchor_route(const HipDiscoveredRoute& route) noexcept {
   return route.ordinal<64 && route.pins && route.pins->anchor_module_pinned() &&
       route.pins->matches(route.helper,route.identity,route.runtime_sha256,static_cast<int>(route.ordinal),route.memory);
 }
-}
-std::optional<NativeAnchorLaunchPlan> plan_native_anchor_launch(
+std::optional<NativeAnchorLaunchPlan> plan_anchor_output(
     std::span<const std::uint32_t> members, const NativeAnchorSearchOptions& options,
-    const GpuMemorySnapshot& observed, std::uint64_t now, bool permits_reference_change) {
+    const GpuMemorySnapshot& observed, std::uint64_t now, bool permits_reference_change,
+    anchor_match::BatchOutput output, bool reference_required=false) {
   const auto total = std::accumulate(members.begin(), members.end(), std::uint64_t{0});
   if (!options.minimum_members || !valid_dispatch_grant(options) || total < options.minimum_members ||
       total > options.maximum_members || total > detail::anchor_match_batch_member_limit() ||
       std::ranges::find(members, 0U) != members.end()) return {};
   const auto largest = *std::ranges::max_element(members);
-  (void)detail::anchor_match_layout(largest, options.output);
+  (void)detail::anchor_match_layout(largest, output);
 
   const auto& identity = options.route.memory;
   std::uint32_t fit = 0, limit = largest;
   while (fit < limit) {
     const auto trial = fit + (limit - fit + 1) / 2;
     if (check_gpu_memory_budget(observed, identity.luid, identity.node_mask, now,
-        anchor_match::device_bytes(trial, options.output)) == GpuGateCode::admitted) fit = trial;
+        anchor_match::device_bytes(trial, output)) == GpuGateCode::admitted) fit = trial;
     else limit = trial - 1;
   }
-  if (!fit) return {};
+  if (!fit || (reference_required && fit != largest)) return {};
 
   using Output = anchor_match::BatchOutput;
-  const bool reference = options.output == Output::reference_xor;
-  const auto baseline = reference ? Output::sparse_xor : options.output;
-  const auto dispatch_limit = anchor_match::dispatch_member_limit(options.output);
+  const bool reference = output == Output::reference_xor;
+  const auto baseline = reference ? Output::sparse_xor : output;
+  const auto dispatch_limit = anchor_match::dispatch_member_limit(output);
   const auto qualified_limit = options.maximum_dispatch_members ? options.maximum_dispatch_members : dispatch_limit;
   const auto quantum = (std::min)({fit, dispatch_limit, qualified_limit});
   const auto available = (std::min)(observed.physical_available, observed.commit_available);
@@ -86,7 +86,8 @@ std::optional<NativeAnchorLaunchPlan> plan_native_anchor_launch(
       if (reference && fit == largest && permits_reference_change &&
           launch_grant - batch.launches >= 2 * detail::anchor_reference_pricing_launches(batch))
         batch = detail::plan_anchor_match_batch(prefix, quantum,
-            anchor_match::device_bytes(quantum, options.output), launch_grant, options.output);
+            anchor_match::device_bytes(quantum, output), launch_grant, output);
+      else if(reference_required)return {};
       const auto transfer = detail::plan_anchor_match_transfers(batch, anchor_match::device_bytes(fit, batch.output));
       WorkerChannelCapacity capacity{batch.request_bytes, batch.reply_bytes};
       auto budget = budget_for(transfer, capacity);
@@ -128,6 +129,21 @@ std::optional<NativeAnchorLaunchPlan> plan_native_anchor_launch(
   }
   return accepted;
 }
+}
+
+std::optional<NativeAnchorLaunchPlan> plan_native_anchor_launch(
+    std::span<const std::uint32_t> members, const NativeAnchorSearchOptions& options,
+    const GpuMemorySnapshot& observed, std::uint64_t now, bool permits_reference_change) {
+  if(options.prefer_reference && permits_reference_change) {
+    try {
+      if(auto reference=plan_anchor_output(members,options,observed,now,true,anchor_match::BatchOutput::reference_xor,true))
+        return reference;
+    } catch(const std::invalid_argument&) {
+      // The larger reference reply can exceed the format's admission limit.
+    }
+  }
+  return plan_anchor_output(members,options,observed,now,permits_reference_change,options.output);
+}
 
 struct NativeAnchorSearchController::Impl {
   enum class Disposition {pending,yielded,expired};
@@ -158,6 +174,8 @@ struct NativeAnchorSearchController::Impl {
     return options.minimum_members && options.minimum_members<=options.maximum_members &&
         options.minimum_members<=detail::anchor_match_batch_member_limit() &&
         (!anchor_match::compact_output(options.output) || options.maximum_dispatch_members) &&
+        (!options.prefer_reference || (anchor_match::copy_output(options.output) && options.maximum_dispatch_members &&
+            options.dispatches_per_wait==1)) &&
         options.dispatches_per_wait && options.dispatches_per_wait<=kAnchorProfileMaxQueuedDispatches &&
         (options.dispatches_per_wait==1 || anchor_match::copy_output(options.output)) &&
         valid_dispatch_grant(options) &&
@@ -257,7 +275,7 @@ void NativeAnchorSearchController::start(std::span<const NativeSharedBaseSearchW
       return;
     }
     const auto launch=plan_native_anchor_launch(counts,options,observed.snapshot,now,
-        options.output==anchor_match::BatchOutput::reference_xor &&
+        (options.prefer_reference || options.output==anchor_match::BatchOutput::reference_xor) &&
         std::ranges::all_of(windows,&NativeSharedBaseSearchWindow::permits_reference_change));
     if(!launch){defer();return;}
     if(self.sequence==(std::numeric_limits<std::uint64_t>::max)()){self.enabled=false;return;}

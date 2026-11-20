@@ -32,8 +32,17 @@ allocation and release. [DXGI adapter identifiers](https://learn.microsoft.com/e
 | `minimum_members`, `maximum_members` | Combined non-base extents across groups covered by the measured work range |
 | `worker_memory_mib`, `memory_share_divisor`, `worker_cpu_rate`, `worker_timeout_ms` | Measured fixed child allowance and resource limits. Current geometry adds actual staging and transport charges. |
 | `maximum_identity_queries`, `duty_ppm` | Input-work and worker pacing limits |
-| `dispatches_per_wait` | Optional qualified copy-search queue depth from 1 to 4. The admitted transfer must contain a full wait group at that depth. Omission selects 1. |
-| `maximum_dispatch_members` | Optional measured copy-search dispatch ceiling above three and within the approved batch size. The compute module must export the version 11 window API. Omission selects the version 2 copy-search path. |
+| `search_mode` | Optional approved mode. `copy` is the default. `reference-xor` lets the worker compare shared references and return sparse XOR candidates in the same exchange. |
+| `dispatches_per_wait` | Optional qualified copy-search queue limit from 1 to 4. Live transfer geometry can lower it. Reference search uses 1. |
+| `maximum_dispatch_members` | Measured dispatch ceiling within the approved batch size. Copy profiles with a ceiling above three bind the version 11 window API. Copy profiles without this field use version 2. Reference profiles require an explicit ceiling. |
+
+Reference profiles bind the base matching entry, the version 8 sparse arena,
+version 10 reference pricing and the copy-search entry for the approved
+dispatch width. The planner can price multiple references when their entire
+working set and additional launches fit. It can still use copy search on batches
+that do not support pricing. The native writer
+compares the resulting representation with its CPU alternatives and checks
+the reconstructed bytes before publishing.
 
 The pinned manifest authenticates the approval and its exact artifacts.
 Qualification must establish useful size or throughput benefit for the
@@ -61,6 +70,14 @@ published through CPU without a metadata or compute launch. The runtime
 digest and adapter mismatch checks refused before runtime initialization.
 The qualification profile and artifacts are bound to the tested hardware and
 workload. [Installed shared-base evidence](evidence/installed-amd-shared-base-2026-11-18.json)
+
+The relocated reference-profile fixture made one metadata query, verified
+one device reference search and published advice for 18 members. The
+package and CPU-only controls reopened all 23 files exactly and each
+produced a 1 MiB compacted image. The mixed public input used copy
+search when reference pricing could not be admitted. It kept the
+319,488-byte image from the copy control. The Lucide pairs each occupied
+196,608 bytes. [Reference and fallback evidence](evidence/amd-installed-reference-profile-2026-11-20.json)
 
 1. Validate the request and pin ordinary local directories. For an
    installed package, verify and pin both the worker and the compute module

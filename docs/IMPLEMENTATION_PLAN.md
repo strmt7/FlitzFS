@@ -506,12 +506,15 @@ stale-budget outcomes in qualification, even when CPU recovery succeeds.
    qualified route pins and coalesces acquisition demand. Installed package
    verification and alternating matched decision logic are implemented. The
    indexed Windows owner now acquires a relocatable approved shared-base route
-   on eligible background demand. Produce package profiles from representative
-   measurements, connect packaging to the mounted launcher and verify routing
-   on hosts with multiple AMD devices. Treat the observed foreground CPU
-   choice as specific to the tested request class.
+   on eligible background demand. A reference profile can price shared bases
+   and encode sparse differences in the same exchange. Copy search remains
+   available when the reference plan cannot be admitted. Produce package
+   profiles from representative measurements, connect approved packages to
+   the mounted launcher and verify routing on hosts with multiple AMD devices.
+   Treat the observed foreground CPU choice as specific to the tested request class.
    [Foreground route evidence](evidence/installed-amd-routing-2026-11-18.json) ·
-   [Installed shared-base evidence](evidence/installed-amd-shared-base-2026-11-18.json)
+   [Installed shared-base evidence](evidence/installed-amd-shared-base-2026-11-18.json) ·
+   [Installed reference-profile evidence](evidence/amd-installed-reference-profile-2026-11-20.json)
 7. Amortize setup over finite admitted work windows. The native indexed
    path can now cover several independently bounded launches in one worker
    exchange and charges the complete host footprint. Extend finite exchanges
@@ -1665,6 +1668,9 @@ Those results determine whether the remaining work is primarily implementation,
 an architectural correction or an unresolved compression research problem.
 
 ## 18. Exact release gates
+
+The [release execution plan](RELEASE_EXECUTION_PLAN.md) maps these gates to
+the current evidence, the order of implementation and the next checkpoints.
 
 | Gate | Required result |
 | --- | --- |

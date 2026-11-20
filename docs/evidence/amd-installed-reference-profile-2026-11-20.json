@@ -1,0 +1,359 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "source_base": "912e3e0d01f37b41c5435f0d6e50b4b5cb947060",
+  "source_binding": {
+    "src/windows/hip_route_discovery.cpp": {
+      "git_blob": "31996a92bdf74f6db2df25f301f00ba42301c17c",
+      "sha256": "9038ffaff75c6f89cfd057a7f4e509977be619b216b98030ffa905548dc02954"
+    },
+    "src/windows/hip_route_discovery.hpp": {
+      "git_blob": "da05bd698734b4b2bc9edcb6c0f9338dedfe452c",
+      "sha256": "1081109463f607e07097d7536b955f01add0bad4c34f1c8e0643dabf7f6f57fa"
+    },
+    "src/windows/native_anchor_search.cpp": {
+      "git_blob": "498b1b03554a788947e78824ff1c1b164e919224",
+      "sha256": "df7562d4330fd167731830390e059330997819a7019e60489b19be140f5e2fc1"
+    },
+    "src/windows/native_anchor_search.hpp": {
+      "git_blob": "e9f31764180cb9f5782084a317054fa10ae0b9a2",
+      "sha256": "8a05bbfdffb80f11bda5f4d6cbc6c8b4eb378b6238301331d29870df566de720"
+    },
+    "src/windows/winfsp_controller.cpp": {
+      "git_blob": "e71dcdc94c1722a342485e96d97b964919887b6f",
+      "sha256": "a0b0df8e03e82af20c91953377c92bf63cbded1e24b3b69de4231d6211c12a3e"
+    },
+    "tests/test_winfsp_controller.cpp": {
+      "git_blob": "33b338a23e444a6ddd243072ac0c051c2d43e0a9",
+      "sha256": "5e7e8a12c7a0246588039d4669fb5a4bbc5375935233e644bceb2bff4f1e4be7"
+    },
+    "tools/ci/bind_installed_amd_package.py": {
+      "git_blob": "b0a14536408b273307a1352392a2440346046f5a",
+      "sha256": "c4dd2d00ddf5e3fec2ee85820cc7c77d8895cc7eeca6bda0c02a1e66f7092d28"
+    },
+    "tools/ci/test_bind_installed_amd_package.py": {
+      "git_blob": "72e2ee622f189576b6423771f780d998590c729b",
+      "sha256": "5787197ddbfd92c3b27456c5fd1cae00127a4af796d8e383bc8faa2653790718"
+    }
+  },
+  "captured_local": "2026-11-20T19:15:33+01:00",
+  "public_fixture_sha256": "1f7c14b29ad4e2c30d3a8ee0f34949194e09738f65120e458de468a70a7052fb",
+  "installed_fixture_sha256": "7e470d21e8f6df17d2dca0af6979c57643c7bb4a928a8d7ff99e6032d8161487",
+  "navigation": {
+    "initial": {
+      "commit": "311bf07fdc3095e754c446f51fb289133e160d6f",
+      "provider_version": "0.2.43",
+      "inventory_sha256": "5601c02519743b99d1c9ffcd97afdf3bce9371d320e555e117e44d922f64dba4",
+      "native_response_sha256": "b74191efb870404c7be5a091e8ce78b873a3e09b77e6bb8ca64f81c4db4ba4d9",
+      "query": "Find how an idle Windows volume stages multiple native shared-base compression windows into one AMD worker launch. Locate work frontier, deadlines, ceilings, partial CPU overlap and learned sizing that could reduce repeated AMD startup across independent groups.",
+      "actual_searches": 1
+    },
+    "review": {
+      "commit": "912e3e0d01f37b41c5435f0d6e50b4b5cb947060",
+      "dirty_patch_sha256": "76039a85d0e96a16126f96e30c764906bf418c9e6fc9fcf04fa5e69d2ac2b1f1",
+      "inventory_sha256": "f26066c0dee741cae37b5c8a3dceaee152f504befd6300ccf80b0de9cb6687be",
+      "native_response_sha256": "7045b7c0516e26a30ba65681a8c64f1733056d71d1871095b3dd2cf751f7001d",
+      "provider_version": "0.2.43",
+      "actual_searches": 1
+    }
+  },
+  "host": {
+    "os": "Microsoft Windows 11 Pro",
+    "build": 26300,
+    "gpu": [
+      {
+        "Name": "AMD Radeon RX 9070 XT",
+        "DriverVersion": "32.0.32029.2010"
+      }
+    ],
+    "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+    "observed_driver": "32.0.32029.2010"
+  },
+  "installed_package": {
+    "manifest_sha256": "06c55f3e68db91317b6897c88e6aba3658bc2ddb2e8312da6fbf080a88dffe84",
+    "profile": {
+      "search_mode": "reference-xor",
+      "qualification_sha256": "5b7555fa0a6671f8b128c72e876761c9adcea8ee92efcfeddf6f92fe7eb8041e",
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "vendor_id": 4098,
+      "device_id": 30032,
+      "subsystem_id": 606344280,
+      "revision": 192,
+      "minimum_members": 4,
+      "maximum_members": 105,
+      "maximum_dispatch_members": 4,
+      "worker_memory_mib": 128,
+      "memory_share_divisor": 16,
+      "worker_cpu_rate": 2000,
+      "worker_timeout_ms": 5000,
+      "maximum_identity_queries": 4,
+      "duty_ppm": 10000
+    },
+    "worker_sha256": "bca40a979dcd51660cf900e6d9b4d80472ab38e6aead2bb3437957481449211c",
+    "matching_kernel_sha256": "9aad995bc1b2e330a8f24f76dcc5eaa9edc8f96351c999f10712aef0be33467d",
+    "app_sha256": "8f61b018a5f8ee607231e01131dbd929fc7c7060d082e408b877ea8a599877a1",
+    "staged_component_run": "local-run-ad35757bf8084d15b39e57869db52304",
+    "control_executable_copy_identical": true
+  },
+  "installed_controller_trials": [
+    {
+      "mode": "reference-xor",
+      "run": "local-run-96ec841b4b404b6987af30fa6a1388a5",
+      "peak_job_bytes": 121819136,
+      "wall_seconds": 43.925836000002164,
+      "groups": 2,
+      "advised_members": 18,
+      "submitted": 1,
+      "verified": 1,
+      "reference_batches": 1,
+      "reselected_groups": 1,
+      "installed_attempts": 1,
+      "metadata_queries": 1,
+      "installed_status": 0,
+      "cpu_readback_verified": true,
+      "settled_ms": 43750,
+      "deferrals": "8,0,0,0,0,36,0,0,",
+      "files": 23,
+      "compacted_bytes": 1048576,
+      "independent_compacted_cpu_readback": true,
+      "retired": true
+    },
+    {
+      "mode": "reference-missing",
+      "run": "local-run-84b4318bb15741e19109e673edcaea7f",
+      "peak_job_bytes": 49442816,
+      "wall_seconds": 44.58650060000218,
+      "groups": 2,
+      "advised_members": 0,
+      "submitted": 0,
+      "verified": 0,
+      "reference_batches": 0,
+      "reselected_groups": 0,
+      "installed_attempts": 1,
+      "metadata_queries": 0,
+      "installed_status": 12,
+      "cpu_readback_verified": true,
+      "settled_ms": 44453,
+      "deferrals": "5,0,0,3,0,37,0,0,",
+      "files": 23,
+      "compacted_bytes": 1048576,
+      "independent_compacted_cpu_readback": true,
+      "retired": true
+    }
+  ],
+  "benchmark_protocol": {
+    "geometry": "Same explicit worker and kernel. Both paths request up to 12 members per dispatch. The copy control can queue when admitted. The reference profile evaluates a reference plan and can use copy.",
+    "idle_opportunities": "Modeled for the public comparisons. The installed controller trials used the actual host activity collector.",
+    "corpus_provenance": "indexed-direct-short-packing-2026-11-20.json",
+    "order": [
+      "wide-copy",
+      "reference-xor",
+      "reference-xor",
+      "wide-copy",
+      "wide-copy",
+      "reference-xor"
+    ]
+  },
+  "public_comparisons": {
+    "mixed": {
+      "emitted_files_blake3": "099bc2d2fbc3c710e9e6ddb9b2312aa72d021d1bd478cec33e69b077cc9ced89",
+      "occupied_image_bytes": 319488,
+      "runs": [
+        {
+          "mode": "amd",
+          "run": "local-run-8de2c78e87f646cb87bbbb63f42f57a9",
+          "reference_batches": 0,
+          "advised_members": 12,
+          "verified_groups": 7,
+          "worker_ns": 1977683700,
+          "maintenance_ns": 2008119200,
+          "peak_job_bytes": 103071744,
+          "independent_cpu_readback": true,
+          "retired": true
+        },
+        {
+          "mode": "amd",
+          "run": "local-run-235d2c7745484a3e9a1d58b74d49d80e",
+          "reference_batches": 0,
+          "advised_members": 12,
+          "verified_groups": 7,
+          "worker_ns": 1576086100,
+          "maintenance_ns": 1613020800,
+          "peak_job_bytes": 102293504,
+          "independent_cpu_readback": true,
+          "retired": true
+        },
+        {
+          "mode": "amd",
+          "run": "local-run-419cd75ab9604a09bf63071063cd22a9",
+          "reference_batches": 0,
+          "advised_members": 12,
+          "verified_groups": 7,
+          "worker_ns": 1756269100,
+          "maintenance_ns": 1786409800,
+          "peak_job_bytes": 102543360,
+          "independent_cpu_readback": true,
+          "retired": true
+        },
+        {
+          "mode": "amd",
+          "run": "local-run-6a4ec880f0824cdeb8227422fea11246",
+          "reference_batches": 0,
+          "advised_members": 12,
+          "verified_groups": 7,
+          "worker_ns": 1683960200,
+          "maintenance_ns": 1714738700,
+          "peak_job_bytes": 102187008,
+          "independent_cpu_readback": true,
+          "retired": true
+        },
+        {
+          "mode": "amd",
+          "run": "local-run-622ab5ad9e604312b906d8bed72c435c",
+          "reference_batches": 0,
+          "advised_members": 12,
+          "verified_groups": 7,
+          "worker_ns": 1903769700,
+          "maintenance_ns": 1934567400,
+          "peak_job_bytes": 102891520,
+          "independent_cpu_readback": true,
+          "retired": true
+        },
+        {
+          "mode": "amd",
+          "run": "local-run-5dc4fcb6351b456d84ff4902d994bd08",
+          "reference_batches": 0,
+          "advised_members": 12,
+          "verified_groups": 7,
+          "worker_ns": 1913380100,
+          "maintenance_ns": 1945329800,
+          "peak_job_bytes": 102313984,
+          "independent_cpu_readback": true,
+          "retired": true
+        }
+      ]
+    },
+    "lucide": {
+      "emitted_files_blake3": "4371391709ab54422f78e2cd81c7d8287b9563c90bb00d9a784bcd7c3427893a",
+      "occupied_image_bytes": 196608,
+      "runs": [
+        {
+          "mode": "amd",
+          "run": "local-run-685689a54a9d42d4ade2b03e62819c04",
+          "reference_batches": 0,
+          "advised_members": 0,
+          "verified_groups": 1,
+          "worker_ns": 2469562100,
+          "maintenance_ns": 2487912600,
+          "peak_job_bytes": 102252544,
+          "independent_cpu_readback": true,
+          "retired": true
+        },
+        {
+          "mode": "amd",
+          "run": "local-run-d9f32c14f83a4e99885138f5bfb21d93",
+          "reference_batches": 1,
+          "advised_members": 0,
+          "verified_groups": 1,
+          "worker_ns": 2225522900,
+          "maintenance_ns": 2243299900,
+          "peak_job_bytes": 101412864,
+          "independent_cpu_readback": true,
+          "retired": true
+        },
+        {
+          "mode": "amd",
+          "run": "local-run-e1858ea9c33547fdb1ee70ccc5a648b1",
+          "reference_batches": 1,
+          "advised_members": 0,
+          "verified_groups": 1,
+          "worker_ns": 1713161000,
+          "maintenance_ns": 1730247200,
+          "peak_job_bytes": 104087552,
+          "independent_cpu_readback": true,
+          "retired": true
+        },
+        {
+          "mode": "amd",
+          "run": "local-run-6475fbe1fa904494a1457dee6cea00c0",
+          "reference_batches": 0,
+          "advised_members": 0,
+          "verified_groups": 1,
+          "worker_ns": 1606773000,
+          "maintenance_ns": 1624039500,
+          "peak_job_bytes": 103444480,
+          "independent_cpu_readback": true,
+          "retired": true
+        },
+        {
+          "mode": "amd",
+          "run": "local-run-3f8cf0d78b4b4240827a4f17b0dd88b4",
+          "reference_batches": 0,
+          "advised_members": 0,
+          "verified_groups": 1,
+          "worker_ns": 1851623900,
+          "maintenance_ns": 1870607500,
+          "peak_job_bytes": 103190528,
+          "independent_cpu_readback": true,
+          "retired": true
+        },
+        {
+          "mode": "amd",
+          "run": "local-run-9d30369ee5f74b8ca3b449ea77b8a2c0",
+          "reference_batches": 1,
+          "advised_members": 0,
+          "verified_groups": 1,
+          "worker_ns": 1927785500,
+          "maintenance_ns": 1947132900,
+          "peak_job_bytes": 102031360,
+          "independent_cpu_readback": true,
+          "retired": true
+        }
+      ]
+    }
+  },
+  "preliminary_results": {
+    "native_deferral_under_contention": {
+      "id": "local-run-1a900ec95f7449ddb83ef5924946534c",
+      "exit": 1,
+      "verified_reference_groups": 1,
+      "foreground_bytes_preserved": true,
+      "cpu_pressure_deferrals": 80,
+      "background_recompression_completed": false
+    },
+    "public_sparse_fallback_trial": {
+      "mixed_original_copy_bytes": 319488,
+      "mixed_sparse_fallback_bytes": 327680,
+      "mixed_copy_receipt": "local-run-300c695f511f477aba5d53a847045730",
+      "mixed_sparse_receipt": "local-run-f2dcc698b9bb44428eaefe36d84fe5fa"
+    },
+    "controller_regression": {
+      "run": "local-run-f68007a2704b45d19958504dad0b4cb6",
+      "exit": 1,
+      "reason": "The live launch gate checked only explicit reference output. It now includes the installed profile preference."
+    },
+    "optional_public_fixture_regression": {
+      "run": "local-run-18f82d773b634d5a8f5671217ee5ab3e",
+      "reason": "A valid copy reply has no packed body. In the comparison fixture packed validation now applies to actual packed advice."
+    }
+  },
+  "test_lanes": {
+    "profile_binder": {
+      "run": "local-run-0d43774603144639aa13034888808717",
+      "passed": 19
+    },
+    "windows_release": {
+      "run": "local-run-34259b84891e4459a9df16ae590703d3",
+      "passed": 3
+    },
+    "windows_asan": {
+      "run": "local-run-69c433decf8f446dbe6bc831de3b151d",
+      "passed": 5
+    },
+    "windows_raw": {
+      "run": "local-run-379b05cb61274c4b87f97cff8178c08b",
+      "passed": 2
+    }
+  },
+  "scope": "Real HIP and actual automatic controller acquisition on one Windows host. WinFsp controller and attachment used injected lifecycle. The installed fixture predates the public-only correction for unpacked copy advice. Production sources are identical. The public pairs and the installed control qualify their input shapes and exact CPU readback. Broader mounted throughput, device faults, physical media durability and a general reference-over-copy benefit remain open."
+}

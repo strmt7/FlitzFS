@@ -116,6 +116,20 @@ void anchor_launch_budget() {
   require(widened && widened->batch.quantum_members==12 && widened->batch.launches<full->batch.launches &&
       widened->capacity.request_bytes==full->capacity.request_bytes &&
       widened->capacity.reply_bytes==full->capacity.reply_bytes,"Wide copy did not reuse the existing bounded transfer");
+  using Output=anchor_match::BatchOutput;
+  auto reference_options=options;
+  reference_options.prefer_reference=true;
+  const auto priced=plan_native_anchor_launch(members,reference_options,observed,observed.captured_ms,true);
+  const auto retained=plan_native_anchor_launch(members,reference_options,observed,observed.captured_ms,false);
+  require(priced && priced->batch.output==Output::reference_xor && priced->batch.reference_candidates>=2,
+      "Qualified reference profile skipped a funded reference search");
+  require(retained && retained->batch==widened->batch && retained->transfer==widened->transfer,
+      "A retained base lost its approved copy route");
+  auto copy_headroom=observed;
+  copy_headroom.physical_available=copy_headroom.commit_available=required_sized_worker_headroom(widened->capacity,widened->worker);
+  const auto copy=plan_native_anchor_launch(members,reference_options,copy_headroom,copy_headroom.captured_ms,true);
+  require(copy && copy->batch==widened->batch && copy->transfer==widened->transfer,
+      "A larger reference reply displaced the funded copy batch");
   options.maximum_dispatch_members=options.maximum_members+1;
   require(!plan_native_anchor_launch(members,options,observed,observed.captured_ms,false),
       "Wide copy exceeded the approved batch work");
@@ -848,14 +862,18 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
   const bool restoring=mode=="restored";
   const bool changing=mode=="changed-extents";
   const bool device_not_ready=mode=="device-not-ready";
+  const bool missing_reference=mode=="reference-missing";
+  const bool reference=mode=="reference-xor" || missing_reference;
   const bool two_planes=mode=="xor-wide" || mode=="xor-narrow";
   const bool xor_encoding=two_planes || mode=="xor" || mode=="xor-cpu";
   const bool packed=mode=="batch" || mode=="batch-yield" || xor_encoding;
-  const unsigned files_per_group=queued?queued_anchor_members+1:installed && (packed || restoring)?3:5;
+  const unsigned files_per_group=reference?anchor_search_fixture::indexed_small_extents_per_family:
+      queued?queued_anchor_members+1:installed && (packed || restoring)?3:5;
   const unsigned groups=restoring?4:(packed || device_not_ready)?2:1;
-  const unsigned initial_files=changing?2:restoring?2*files_per_group:groups*files_per_group;
+  const unsigned seed_files=reference?2U:0U;
+  const unsigned initial_files=reference?seed_files:changing?2:restoring?2*files_per_group:groups*files_per_group;
   const bool yield=mode=="yield" || mode=="batch-yield" || mode=="queued-yield";
-  const auto count=groups*files_per_group;
+  const auto count=seed_files+groups*files_per_group;
   const auto before=handle_count();
   auto head=std::make_shared<Ram>(),image=std::make_shared<Ram>();
   if(changing)head->failure_unit=image->failure_unit=4096;
@@ -866,20 +884,26 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
       head,id(90),image,id(1),{kStoreMaxPhysicalBytes},{StoreCompressionMode::raw,1,false},{},qualification);
   std::vector<Bytes> originals;
   originals.reserve(count);
+  if(reference) {
+    const auto seed=data(kNativeExtentBytes,61571);
+    originals={seed,seed};
+    originals.back()[4096]^=std::byte{0x15};
+  }
   for(unsigned group=0;group<groups;++group) {
     const auto variant=restoring && group>=2?group-2:group;
     const auto seed=714+variant*5731+(restoring && group<2?99991:0);
     const auto base=data(kNativeExtentBytes,seed);
     for(unsigned i=0;i<files_per_group;++i) {
       auto derived=base;
-      if(i && xor_encoding) {
+      if(reference)anchor_search_fixture::apply_full_reference_variation(derived,base,i,files_per_group);
+      else if(i && xor_encoding) {
         const auto variation=data(kNativeExtentBytes,1511+group*103+i);
         const auto mask=two_planes?std::byte{0x30}:std::byte{1};
         for(std::size_t at=0;at<base.size();++at)derived[at]^=variation[at]&mask;
       } else if(i && ((restoring && group<2) || (changing && i<initial_files)))
         derived[kNativeExtentBytes/8+(i+1)*719]^=std::byte{0x67};
       else if(i)derived=anchor_search_fixture::fragmented(base,i);
-      if(!two_planes)std::copy_n(base.begin(),kNativeExtentBytes/8,derived.begin());
+      if(!reference && !two_planes)std::copy_n(base.begin(),kNativeExtentBytes/8,derived.begin());
       originals.push_back(std::move(derived));
     }
   }
@@ -899,14 +923,15 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
     }
     // Each group is staged and published across admitted idle observations.
     const auto started=GetTickCount64();
-    const auto deadline=started+(queued?85000ULL:57000ULL)*groups;
+    const auto deadline=started+(queued?85000ULL:57000ULL)*(groups+static_cast<unsigned>(reference));
     do {
       result=controller.view();
       if(result.maintenance_quanta!=last_quantum) {
         last_quantum=result.maintenance_quanta;
         ++deferrals.at(static_cast<std::size_t>(result.maintenance.deferral));
       }
-      const bool finished=changing?signalled && result.maintenance.published_groups>=2 &&
+      const bool finished=reference?signalled && result.maintenance.published_groups>=2:
+          changing?signalled && result.maintenance.published_groups>=2 &&
           result.maintenance.phase==NativeMaintenancePhase::idle:result.maintenance.published_groups>=groups;
       if(finished || result.retired || result.maintenance_disabled ||
           (mode=="stop" && result.installed_anchor_attempts))break;
@@ -915,6 +940,12 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
         require(!result.anchor_search.submitted,"Seed group unexpectedly used the AMD worker");
         visits_before_edits=visits(result.maintenance);
         for(unsigned i=initial_files;i<count;++i)replace_callback_file(provider,i,originals[i]);
+        signalled=true;
+      }
+      if(reference && !signalled && result.maintenance.published_groups==1 &&
+          result.installed_anchor_status==(missing_reference?HipDiscoveryStatus::package_unavailable:HipDiscoveryStatus::ready)) {
+        require(!result.anchor_search.submitted,"Seed group used the device reference route");
+        for(unsigned i=initial_files;i<count;++i)callback_file(provider,i,originals[i]);
         signalled=true;
       }
       if(restored && result.anchor_search.verified &&
@@ -961,7 +992,7 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
     return image;
   });
   const auto& snapshot=proved.filesystem();snapshot.verify_all();
-  const auto accepted_files=restored || (changing && signalled)?count:initial_files;
+  const auto accepted_files=restored || ((changing || reference) && signalled)?count:initial_files;
   for(unsigned i=0;i<accepted_files;++i)require(snapshot.read("f"+std::to_string(i),0,kNativeExtentBytes)==originals[i],
       "AMD controller changed accepted file bytes");
   std::cout<<"anchor_owner mode="<<mode<<" host="<<static_cast<int>(result.host)
@@ -984,6 +1015,8 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
       <<" declined="<<result.anchor_search.declined<<" yielded="<<result.anchor_search.yielded
       <<" integrity_failures="<<result.anchor_search.integrity_failures
       <<" empty_xor_batches="<<result.anchor_search.empty_xor_batches
+      <<" reference_batches="<<result.anchor_search.reference_batches
+      <<" reselected_groups="<<result.anchor_search.reselected_groups
       <<" advised_members="<<result.maintenance.advised_members_published
       <<" installed_attempts="<<result.installed_anchor_attempts
       <<" metadata_queries="<<result.installed_anchor_queries
@@ -992,6 +1025,28 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
       <<" retired=true cpu_readback_verified=true deferrals=";
   for(const auto occurrences:deferrals)std::cout<<occurrences<<',';
   std::cout<<'\n';
+  if(reference) {
+    require(signalled && result.maintenance.published_groups==2 && result.installed_anchor_attempts==1 &&
+        !result.anchor_search.integrity_failures,"Installed reference cohort did not settle");
+    if(missing_reference)
+      require(result.installed_anchor_status==HipDiscoveryStatus::package_unavailable &&
+          !result.installed_anchor_queries && !result.anchor_search.submitted && !result.maintenance.advised_members_published,
+          "Missing reference package failed independent CPU continuation");
+    else
+      require(result.installed_anchor_status==HipDiscoveryStatus::ready && result.installed_anchor_queries &&
+          result.anchor_search.submitted==1 && result.anchor_search.reference_batches==1 &&
+          result.anchor_search.reselected_groups && result.maintenance.advised_members_published,
+          "Installed owner did not use independently verified device reference advice");
+    auto compacted=std::make_shared<Ram>();compacted->failure_unit=image->failure_unit;
+    (void)NativeFilesystemWriter::compact(snapshot,compacted,id(3),{StoreCompressionMode::raw,1,false});
+    const auto reopened=NativeFilesystemSnapshot::open_image(compacted,{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes});
+    reopened.verify_all();
+    for(unsigned i=0;i<count;++i)
+      require(reopened.read("f"+std::to_string(i),0,kNativeExtentBytes)==originals[i],"Installed compacted reference changed data");
+    std::cout<<"installed_reference mode="<<mode<<" files="<<count<<" compacted_bytes="<<compacted->extent()
+        <<" exact_compacted_cpu_readback=true\n";
+    return 0;
+  }
   if(changing) {
     const auto info=snapshot.shared_base_info();
     const auto edit_visits=visits(result.maintenance)-visits_before_edits;
@@ -1233,7 +1288,8 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   const bool collective=pattern==IndexedBatchPattern::collective;
   const bool sparse_device=options && options->output==anchor_match::BatchOutput::sparse_xor;
   const bool collective_device=options && options->output==anchor_match::BatchOutput::collective;
-  const bool reference_device=options && options->output==anchor_match::BatchOutput::reference_xor;
+  const bool reference_device=options &&
+      (options->output==anchor_match::BatchOutput::reference_xor || options->prefer_reference);
   const bool dense_overflow=options && all_planes && !sparse_device;
   const bool alternate_reference=pattern==IndexedBatchPattern::xor_reference || tile_reference;
   const bool modular=shifted_bias || pattern==IndexedBatchPattern::modular_delta;
@@ -1369,7 +1425,8 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
       return false;
     },8000,"Multiwindow AMD worker did not retire");
     worker_ns+=elapsed_ns(started);
-    if(modular || alternate_reference || sparse_xor || collective)for(const auto& reply:anchor->replies()) {
+    if(modular || alternate_reference || sparse_xor || collective || reference_device)for(const auto& reply:anchor->replies()) {
+      if(revision && reply.packed_bodies.empty())continue; // Copy advice has no packed payload.
       require(reply.packed_bodies.size()==reply.window.members().size(),"Unbound packed reply");
       for(std::size_t member=0;member<reply.packed_bodies.size();++member) {
         auto body=std::span<const std::byte>(reply.packed_bodies[member]);
@@ -1429,9 +1486,9 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   if(collective_device)
     require(stats.submitted==1 && sparse_bodies && delta_bodies && stats.verified_groups==families,
         "The shared AMD exchange did not verify both codec choices");
-  if(sparse_device || reference_device)
+  if(!revision && (sparse_device || reference_device))
     require(sparse_bodies && stats.verified,"AMD sparse device advice was not independently accepted");
-  if(reference_device)
+  if(reference_device && full_reference)
     require(stats.reference_batches==1 && stats.reselected_groups==families && stats.verified_groups==families,
         "AMD full reference search did not verify each improved group");
   if(full_reference && !anchor)
@@ -1526,6 +1583,7 @@ int live_anchor_owner(int argc,char** argv) {
   const auto multiwindow=multiwindow_pattern(mode);
   const auto restriction=argc==9?std::string_view(argv[8]):std::string_view{};
   const bool wide_copy=restriction=="wide-copy";
+  const bool reference_xor=restriction=="reference-xor";
   const bool cancel_after_submit=restriction=="cancel-after-submit";
   const bool overlap_cpu=restriction=="limited-overlap";
   const bool limited_memory=restriction=="limited-memory" || overlap_cpu;
@@ -1536,7 +1594,7 @@ int live_anchor_owner(int argc,char** argv) {
       mode=="changed-extents" || xor_mode || multiwindow,
       "Expected an AMD ownership trial");
   require(argc!=9 || (multiwindow && revision_corpus(*multiwindow) &&
-      (restriction=="queued" || limited_memory || wide_copy || cancel_after_submit)),
+      (restriction=="queued" || limited_memory || wide_copy || reference_xor || cancel_after_submit)),
       "The requested comparison needs a revision corpus");
   const ProcessBudget profile{128,2000,5000,16};
   HipRouteDiscoveryRequest request;
@@ -1558,14 +1616,15 @@ int live_anchor_owner(int argc,char** argv) {
     const auto members=small_batch?families*(anchor_search_fixture::indexed_small_extents_per_family-1):
         anchor_search_fixture::indexed_batch_members;
     const auto minimum=argc>=8 || small_batch?2U:static_cast<std::uint32_t>(members);
-    const auto output=wide_copy?anchor_match::BatchOutput::wide_anchors:
+    const auto output=wide_copy || reference_xor?anchor_match::BatchOutput::wide_anchors:
         revision_corpus(*multiwindow)?anchor_match::BatchOutput::anchors:
         mode=="xor-full-reference"?anchor_match::BatchOutput::reference_xor:
         mode=="collective"?anchor_match::BatchOutput::collective:sparse?anchor_match::BatchOutput::sparse_xor:
         modular?anchor_match::BatchOutput::modular_delta:anchor_match::BatchOutput::wide_packed_xor;
     return live_multiwindow_anchor(NativeAnchorSearchOptions{*binding.route,profile,minimum,
         static_cast<std::uint32_t>(members+families),10000,
-        output,wide_copy?12U:small_batch?4U:modular?16U:0U,queued?kAnchorProfileMaxQueuedDispatches:1U},
+        output,wide_copy || reference_xor?12U:small_batch?4U:modular?16U:0U,
+        queued?kAnchorProfileMaxQueuedDispatches:1U,reference_xor},
         argc>=8?std::filesystem::path(argv[7]):std::filesystem::path{},
         discovery_ns,*multiwindow,limited_memory,overlap_cpu,cancel_after_submit);
   }
@@ -2589,7 +2648,8 @@ int main(int argc,char** argv){try {
   if(argc==3 && std::string_view(argv[1])=="--live-installed-anchor-owner") {
     const std::string_view mode(argv[2]);
     require(mode=="accept" || mode=="missing" || mode=="changed" || mode=="stop" || mode=="repeat" || mode=="batch" ||
-        mode=="restored" || mode=="queued" || mode=="verified-read" || mode=="verified-edit" || mode=="device-not-ready",
+        mode=="restored" || mode=="queued" || mode=="verified-read" || mode=="verified-edit" || mode=="device-not-ready" ||
+        mode=="reference-xor" || mode=="reference-missing",
         "Unknown installed route trial");
     if(mode=="repeat") {
       const auto accepted=run_live_anchor_owner("accept",std::nullopt);

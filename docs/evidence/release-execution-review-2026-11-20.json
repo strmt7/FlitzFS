@@ -1,0 +1,151 @@
+{
+  "schema": 1,
+  "reviewed_date": "2026-11-20",
+  "verified_repository_head": "912e3e0d01f37b41c5435f0d6e50b4b5cb947060",
+  "code_navigation": {
+    "source": {
+      "commit": "912e3e0d01f37b41c5435f0d6e50b4b5cb947060",
+      "dirty_patch_sha256": "76039a85d0e96a16126f96e30c764906bf418c9e6fc9fcf04fa5e69d2ac2b1f1",
+      "inventory_sha256": "f26066c0dee741cae37b5c8a3dceaee152f504befd6300ccf80b0de9cb6687be",
+      "native_response_sha256": "7045b7c0516e26a30ba65681a8c64f1733056d71d1871095b3dd2cf751f7001d",
+      "provider_version": "0.2.43",
+      "actual_searches": 1
+    },
+    "hits": [
+      {
+        "file_path": "src/windows/winfsp_session.hpp",
+        "start_line": 61,
+        "end_line": 69
+      },
+      {
+        "file_path": "src/windows/winfsp_memory_volume.cpp",
+        "start_line": 24,
+        "end_line": 36
+      },
+      {
+        "file_path": "src/windows/winfsp_memory_volume.cpp",
+        "start_line": 14,
+        "end_line": 23
+      },
+      {
+        "file_path": "src/windows/winfsp_native.hpp",
+        "start_line": 75,
+        "end_line": 85
+      },
+      {
+        "file_path": "src/windows/winfsp_controller.cpp",
+        "start_line": 1,
+        "end_line": 12
+      }
+    ]
+  },
+  "navigation_recovery": {
+    "original_failure": "Connection to daemon lost during indexing",
+    "restored": "Reused the verified limited source snapshot with a funded memory envelope",
+    "earlier_run_retired": true
+  },
+  "research": {
+    "provider": "Crawl4AI 0.9.5+flitzzip.portable2",
+    "robots": true,
+    "external_llm": false,
+    "pages": [
+      {
+        "name": "windows-client",
+        "url": "https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information",
+        "success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 78829,
+        "markdown_sha256": "178c13e21bda415b3e37b6c43089eb0681fb9c566fa560156158672e4b11f317",
+        "capture_sha256": "4748078f20b92e88e5fc617c16cc829430143b7fae8f5370678c545f859ff128",
+        "error": ""
+      },
+      {
+        "name": "diskspd",
+        "url": "https://github.com/microsoft/diskspd",
+        "success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 24311,
+        "markdown_sha256": "00552d5ad246ba91ccaa0a869a0ec68c63f6d6773961358cd4fe761ba7c585f7",
+        "capture_sha256": "07d6c0eaeeb6d97be849433abb66b762b54fbb0d7efc2c771ce7d00fb91ad0dc",
+        "error": ""
+      },
+      {
+        "name": "winfsp",
+        "url": "https://winfsp.dev/rel/",
+        "success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 4165,
+        "markdown_sha256": "d04c4dd89bf166c90f10057d51ebc2157b96cd3046e63f31c0aac5c2694a7220",
+        "capture_sha256": "89d8eccf61241bd823ae8709e3498f9f2c88873040a295eb18a9b061c6faced2",
+        "error": ""
+      },
+      {
+        "name": "windows-flush",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers",
+        "success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 21661,
+        "markdown_sha256": "7e281cc61b25f6a9239dbb4784e8668b021aff9bf3bd824f5363d29b3e2275c6",
+        "capture_sha256": "7c20277cf3c2d2e15ca66cc28b87ab6666402371632e870b75950e496bf74bf5",
+        "error": ""
+      }
+    ],
+    "selected_windows_general_availability": "26H2",
+    "diskspd_reported_version": "2.3",
+    "winfsp_download_page_note": "The extracted download page points to the 2.1 MSI. Version selection used the exact current official release inventory.",
+    "winfsp_latest_release": {
+      "tag": "v2.2",
+      "name": "WinFsp 2026",
+      "published_at": "2026-11-19T11:52:35Z",
+      "assets": [
+        [
+          "winfsp-2.2.26323.msi",
+          "sha256:36ce01f9eedbbe6842b7fb4bedc79d7d4f71983e8aceb6877b46a07b331c7e19"
+        ],
+        [
+          "winfsp-tests-2.2.26323.zip",
+          "sha256:17bdae984b2683f9a6e37d3b2d394c7fbd71cb9295c4b450370641648a8a0276"
+        ]
+      ],
+      "url": "https://github.com/winfsp/winfsp/releases/tag/v2.2"
+    }
+  },
+  "repository_security_evidence": {
+    "dependabot_connector_status": 400,
+    "reason": "Endpoint not available through the active connector",
+    "alert_inventory_verified": false
+  },
+  "evidence_history": {
+    "previous_head": "311bf07fdc3095e754c446f51fb289133e160d6f",
+    "rewritten_head": "2501e71b713cb59f512862f049988b59f0845923",
+    "tree": "5fe0b1a9a1184149257747ff5502c25a48bbc086",
+    "unchanged_historical_receipt_bindings": true,
+    "mapping": "commit-identity-map-2026-11-20.tsv"
+  },
+  "assessment": {
+    "release_qualified": false,
+    "open_gates": [
+      "S1",
+      "S2",
+      "S3",
+      "S4",
+      "S5",
+      "S6",
+      "S7",
+      "S8",
+      "S9",
+      "S10",
+      "S11",
+      "S12"
+    ],
+    "planning_person_weeks": [
+      60,
+      130
+    ],
+    "research_tail": "Unbounded until representative total-size and access gains are proven"
+  }
+}

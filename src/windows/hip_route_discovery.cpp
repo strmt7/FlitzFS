@@ -432,9 +432,11 @@ HipRouteDiscoveryResult discover_installed_hip_route(ProcessBudget budget,std::u
 std::optional<InstalledAnchorProfile> installed_anchor_profile() noexcept {
 #if defined(FLITZFS_BIND_INSTALLED_AMD_PACKAGE) && FLITZFS_INSTALLED_AMD_HAS_ANCHOR
   using namespace installed_amd_package;
+  using Output=anchor_match::BatchOutput;
+  const auto output=anchor_maximum_dispatch_members>anchor_match::max_members?Output::wide_anchors:Output::anchors;
   return InstalledAnchorProfile{{anchor_worker_memory_mib,anchor_worker_cpu_rate,anchor_worker_timeout_ms,
       anchor_memory_share_divisor},anchor_minimum_members,anchor_maximum_members,anchor_duty_ppm,
-      anchor_dispatches_per_wait,anchor_maximum_dispatch_members};
+      anchor_dispatches_per_wait,anchor_maximum_dispatch_members,output,anchor_reference_xor};
 #else
   return {};
 #endif

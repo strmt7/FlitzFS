@@ -12,6 +12,10 @@ Later checkpoints are recorded under recent executed evidence and in the
 
 ## Assessment
 
+The [release execution plan](RELEASE_EXECUTION_PLAN.md) binds the current
+assessment to the Windows attachment, AMD and CPU fallback evidence.
+It lists the remaining work and the verification required at each handoff.
+
 FlitzFS has a substantial experimental storage foundation and several working
 Windows integration components. It is **not close to a stable release candidate**.
 The main problem is no longer a lack of safety mechanisms or diagnostic fixtures.
@@ -234,10 +238,10 @@ security vulnerabilities.
 
 | Priority | Finding | Consequence and required response |
 | --- | --- | --- |
-| Critical | Native namespace/extents remain globally bounded and resident | Ordinary populated files and large directories hit prototype limits. Replace the access model rather than enlarging constants. |
-| Critical | No automatic reclamation closes the compression transaction | Compacted savings do not ensure smaller occupied storage. Qualify bounded handoff and implement segment-level reclamation that survives unrelated foreground commits. |
+| Critical | Indexed paths and extents still need mounted scale qualification | Measure lookup, enumeration, startup and mutation across large populated volumes. Replace prototype-sized operations using bounded indexed access. |
+| Critical | Automatic reclamation needs ordinary-client and persistent-media qualification | Staged cold compaction reduced occupied images in bounded fixtures. Prove steady-state reuse, foreground interference and recovery across concurrent commits. |
 | High | Current append-order format and failure-unit padding limit useful space | Reusing extents changes the proof of record identity and graph validity. Measure occupied bytes and writes by record class and introduce explicit reusable-allocation semantics. |
-| Critical | GPU benefit remains workload-specific | The qualified package supplies automatic indexed background copy search. Foreground routing, supported host breadth and net collective benefit still need full comparisons. |
+| Critical | GPU benefit remains workload-specific | An approved profile can use indexed copy search or shared-reference pricing. Foreground routing, supported host breadth and net collective benefit still need full comparisons. |
 | Critical | Physical durability is not qualified | `StoreIoContract` describes assumptions; RAM ordering and modeled faults do not attest to a drive's power-loss behavior. |
 | High | Global callback serialization and synchronous publication | Foreground requests can wait for an in-flight quantum/commit. Add immutable read views, bounded concurrency and measured interference. |
 | High | Full namespace validation and full-image opening/scrubbing costs | Startup/read/maintenance work will not scale by carrying today's checks unchanged. Replace them with checked tree paths and scheduled scrubbing, without removing integrity validation. |

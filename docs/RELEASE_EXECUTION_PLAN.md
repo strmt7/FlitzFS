@@ -1,325 +1,294 @@
-# Path to a stable FlitzFS release
+# FlitzFS stable release execution plan
 
-The [detailed implementation plan](IMPLEMENTATION_PLAN.md),
-[repository overview](REPOSITORY_OVERVIEW.md) and
-[current state](DEVELOPMENT_STATE.json) track the 18 November checkpoint.
-The detailed plan expands E01–E13 into implementation steps and acceptance
-gates. The earlier assessment below retains its original source and estimates.
+Reviewed on 20 November 2026 against the source at `912e3e0d01f37b41c5435f0d6e50b4b5cb947060` and the
+reference-profile work validated in this round. The [engineering programme](IMPLEMENTATION_PLAN.md)
+defines the full product scope and work packages. This plan gives the order
+of execution, evidence required at each handoff, and the remaining release
+work.
+[Previous assessment and work-package estimates](https://github.com/strmt7/FlitzFS/blob/912e3e0d01f37b41c5435f0d6e50b4b5cb947060/docs/RELEASE_EXECUTION_PLAN.md)
 
-Indexed managed storage now supports checked head selection, automatic
-staged compaction on owned memory, independent recovery and large SDK writes.
-The memory backing uses current headroom for virtual reservations and locks
-pages on demand. Disposable Windows Server 2025 runs have exercised mounted
-indexed I/O. The next Windows gates are client qualification, mounted
-interference and deployment lifecycle. Automatic useful AMD work with CPU
-recovery, held-out compression comparisons, scalable persistent reclamation
-and repair, and format migration remain on the release path. The current
-installed AMD package runs real work and passes CPU recovery. Its one-shot
-launch loses the matched small-write comparison, so useful acceleration now
-depends on finite worker reuse and stronger collective methods. A stable
-release candidate is still substantial work. The existing low-confidence
-estimate remains 60–130 person-weeks, plus unresolved compression research.
-[Indexed SDK evidence](evidence/indexed-managed-winfsp-2026-11-18.json) ·
-[Current memory and compaction evidence](evidence/indexed-background-compaction-2026-11-18.json)
+## Release assessment
 
-Assessment: 15 November 2026. Reviewed local source:
-`7c601d39c8eb5f04a02bb889840efc06eac68171`. The subsequent
-[native backend bridge](NATIVE_PAGED_BACKEND.md) and
-[inode-record persistence](INODE_RECORD_NAMESPACE.md) and
-[directory name indices](DIRECTORY_NAME_INDEX.md) and
-[native paged maintenance](NATIVE_PAGED_MAINTENANCE.md) and
-[bounded staged rebuilding](STAGED_PAGED_REBUILD.md) and
-[payload mirroring](MIRRORED_PAYLOADS.md) and
-[shared-base groups](SHARED_BASE_GROUPS.md) are traced separately; the
-paged namespace work and release gates remain open. The full product goal remains active.
-Shared-base preparation now yields by decoded extent and reconciles unrelated
-foreground commits; its final storage publication is still synchronous. This
-does not close E04/E06/E07 or reduce the uncalibrated effort estimate below.
-The [managed paged path](MANAGED_PAGED_VOLUMES.md) now integrates typed head
-selection, contexts, source-preserving repair/handoff and advisory funding.
-The [automatic group controller](AUTOMATIC_GROUP_MAINTENANCE.md) now discovers
-and extends aligned groups, reuses content hashes and suppresses repeated
-outcomes under supplied/model resource observations. It does not close E04/E07:
-live Windows observation/priority/idle scheduling, persistent paged coherence,
-wear policy and application factories remain. No remaining-effort reduction is
-claimed without measured integration velocity or held-out compression results.
-The [Windows helper](WINDOWS_BACKGROUND_MAINTENANCE.md) now integrates live
-CPU/memory observations, background resource mode, full-quantum pacing and
-automatic groups on managed paged volumes. This advances E07/E08 but does not
-close them. The [WinFsp paged bridge](WINFSP_PAGED_VOLUMES.md) now adds the
-writable factory, compatible restart and cooperative groups through actual SDK
-callbacks. The [owned controller](WINFSP_OWNED_CONTROLLER.md) now connects callback
-events, live observations/priority, pacing and joined lifecycle ownership through
-injected providers. The [shared adaptive factory](WINDOWS_MEMORY_VOLUME_FACTORY.md)
-now composes retained locked backing and post-join CPU inspection. Connect the
-explicit native provider next, then qualify external Windows clients, alongside staged reclamation,
-scalable access and useful ordinary GPU work. The helper editor does not replace Explorer.
-This plan authorizes no release, tag, package publication or product version bump.
-It is the current forward plan; older dated checkpoints retain their evidence,
-not competing instructions to repeat completed experiments.
+FlitzFS remains in development qualification. The work left is a multi-month
+engineering programme. The existing estimate of **60–130 person-weeks** is a
+planning envelope with low confidence. The compression research has a
+separate, open-ended tail. The first meaningful estimate refresh follows a
+scalable mounted test, a durable-backend recovery campaign, and a held-out
+compression comparison. The two small live AMD cohorts define specific
+workload behavior. Their timings have overlapping ranges.
+[Review and source evidence](evidence/release-execution-review-2026-11-20.json)
 
-## Current position
-
-FlitzFS is an experimental Windows filesystem/storage implementation, substantially
-short of a stable release. Its strongest implemented foundations are CPU-readable
-transactions, private staging, integrity checks, replicated checkpoint metadata,
-retained snapshots, explicit compression/rebuild primitives, Windows callback and
-application slices, bounded GPU workers and independent CPU result validation.
-
-| Area | Evidence available now | Remaining gap |
+| Area | Evidence now | Work that still determines release |
 | --- | --- | --- |
-| Scalable storage | A million populated paged objects and 1,024 named nonempty indexed files have been tested. The indexed namespace uses paged inode, name and extent lookups. | Larger populated volumes, million-file Explorer validation, persistent segment reuse and scalable indexed representation dependencies. |
-| Local qualification | [Current paged SDK callbacks and relevant core checks](evidence/paged-winfsp-2026-11-15.json) pass in raw Release and AddressSanitizer. The earlier 103-group helper/core and million-object results retain their separate exact-source evidence. | This is not full CTest/optional-codec qualification, a new real mount, current GPU execution or physical power-loss evidence. |
-| Sharing | Exact extent sharing/private updates, protected shared-base patch groups, and automatic aligned-family discovery/extension with complete-size admission. | The controller uses the bounded native model; no persistent scalable grouping, learned model, useful AMD collective path or representative size/access comparison. |
-| GPU | Relocatable installed-package acquisition and three verified AMD writes on Windows. All pairs occupied 1,835,008 bytes. | CPU took 1.21–1.60 ms and one-shot AMD took 703–1,331 ms. Finite setup reuse, useful collective compression and mounted routing remain open. |
-| Learning/background work | Persistent advice/provenance, automatic grouping, live Windows observations/resource background mode, measured complete-quantum pacing and outcome reuse exist. The owned WinFsp scheduler receives real callback events. | No complete autonomous learner, persistent scalable coherence, qualified current-source mounted executor, gradual migration or lifetime write-amplification governor. |
-| Windows product | The owned indexed provider passed external Windows Server 2025 and headless Windows 11 client mount fixtures. The signed WinFsp 2.2 trial exercised Unicode paths, renames and reattachment with external Win32 I/O. | Supported installer and rollback, interactive Explorer, long-running mounted maintenance, full client semantics and persistent provider integration. |
-| Recovery | COW checkpoints, metadata replicas, modeled failures, explicit recovery and source-preserving rebuilding exist. | General payload/dependency repair, scalable reclamation and complete backend fault qualification remain open. Historical retirement failures are not diagnosed by later successful runs. |
+| Native Windows storage | Indexed paths, inodes and extents use checked paged storage. CPU readback and modeled interruption results cover several native paths. | Complete namespace and data I/O at scale. Bound open, traversal, mutation, reclamation and recovery costs together. |
+| Mount and application | The WinFsp 2.2 guest fixture exercised mounted external Win32 clients, extended paths, Unicode and persistent identity. The application and injected attachment checks build locally. | Qualify the signed installer, interactive Explorer, system restart and ordinary workloads on the supported Windows 11 client. |
+| AMD and CPU continuity | The qualified test package discovers AMD automatically, prices a reference and produces sparse bodies in one supervised exchange. The writer publishes independently verified advice. The identical CPU-only control reopens all files exactly. | Measure useful complete-operation gains on held-out inputs. Qualify route selection and recovery across supported adapters and workload classes. |
+| Compression | Shared bases, sparse XOR, prefixed Zstandard and short-file grouping can reduce complete occupied images in particular cohorts. Copy search preserves savings when reference pricing cannot be admitted. | Establish repeatable total-size gains against strong, applicable controls, including shared metadata and retained versions. Qualify access costs for the same volume. |
+| Learning and reclamation | Advisory checkpoints, incremental candidate discovery, and staged cold recompression make progress in checked fixtures. | Prove bounded lookup and restart at production scale, persistent automatic policy changes, and steady-state reuse that reduces occupied space and unnecessary write traffic. |
+| Durability and compatibility | Checked roots, mirrored payload recovery, generation-bound references and several interrupted-write models are exercised. | Bind acknowledgement to real backend barriers and close retained-generation repair, mixed-format upgrade and independent rescue gates. |
+| Packaging and security | User-mode dependency staging and exact package binding are in place. | Validate the installed and removed product, hostile inputs, IPC access control, update and rollback, dependency evidence and recovery packaging. |
 
-The million-object experiment used 16,000,000 bytes of tiny raw payloads in a
-434,147,328-byte image. It proves a useful index-scaling step, not excellent
-compression or filesystem throughput. Reopening read 16 KiB of metadata; the
-native name/extent layer has not received that scaling benefit yet.
-[Current storage evidence](evidence/local-paged-store-2026-11-15.json),
-[hardware comparison](evidence/owned-service-comparison-d384b6c.json),
-[shared extents](SHARED_EXTENTS.md).
+[Mounted guest receipt](evidence/windows11-stable-winfsp-2.2-2026-11-20.json) ·
+[Cold compaction receipt](evidence/screened-cold-compaction-2026-11-20.json) ·
+[AMD reference-profile receipt](evidence/amd-installed-reference-profile-2026-11-20.json)
 
-The critical direction correction is integration: develop one shared engine for
-Windows files, memory-backed volumes and eventual physical backends. Avoid a
-second reduced-feature demo, more disconnected capability probes, larger flat
-constants or more unchanged LZ4 trials as substitutes for the requested product.
+## Critical path
 
-## Scope and priority contract
+1. Freeze the exact candidate and supported Windows contract for each
+   checkpoint. Bind source, dependencies, data fixtures, GPU runtime, SDK,
+   application binary and test configuration.
+2. Make one current indexed volume complete a real Windows operation sequence.
+   Use that same volume for interference, interrupted recovery and
+   compaction checks. Use the signed driver in isolated qualification first.
+3. Close scalable namespace and allocation work, then exercise large mounted
+   volumes. Make the allocator, handle lifetime and dependency transitions
+   part of the same qualification campaign.
+4. Move from isolated AMD advice and compression trials to automatic use with
+   a measurable benefit. Keep ordinary CPU operations and independent readback
+   available during every failure case.
+5. Qualify persistence, repair, migration, packaging and lifecycle against the
+   exact sources selected for the release candidate. Complete comparative
+   runs and the final soak on that candidate. The owner makes the release
+   decision.
 
-1. **Minimum complete stored size is primary.** Count payloads, shared models,
-   dictionaries/bases, indexes, restart points, protection, retained history and
-   migration space. Latency and drive wear receive practical consideration;
-   they are not equal-weight goals that routinely reject substantial size gains.
-2. **Files remain ordinary Windows files.** A group may contain one, two or
-   thousands of files. Independently indexed decode units separate group/model
-   scope from the amount a small read must recover. Names and permissions do
-   not depend on physical grouping.
-3. **All intelligence is local.** Final operation needs no online model, content
-   upload or remote inference. Local statistics, measured trials and potentially
-   locally trained models guide policy; exact decoding never depends on advice.
-4. **Everything adapts to the host and workload.** Detect capabilities and fresh
-   physical/commit/VRAM, CPU/GPU and storage contention. Learn complete costs and
-   access patterns. No owner's hardware, installed paths or experimental cap is
-   a universal product default or compression-group ceiling.
-5. **Maintenance is actually background.** Correlation, training, regrouping,
-   compression, defragmentation, repair and migration use bounded resumable work,
-   very low scheduling/I/O priority and fresh admission; promptly yield to user
-   activity. An OS priority flag or fixed timer alone is insufficient.
-6. **CPU recovery is independent.** GPU and CPU encoders may differ. Every stored
-   representation and required immutable dependency needs an available CPU
-   decoder. GPU failure selects CPU without driver waits; new GPU attempts need
-   qualified recovery evidence and confirmed retirement.
-7. **Existing data and host stability remain protected.** The host is the default
-   development/research/build/test/GUI/GPU/benchmark machine. No blanket hosted-CI
-   or VM-first requirement applies. Keep experiment backing in memory and own
-   resource/process lifetimes. Unqualified driver deployment and destabilizing
-   tests use isolation. The owner's later 15 November permission allows a
-   FlitzFS-related host driver install after exact-artifact stability and rollback
-   qualification; GPU and unrelated drivers remain untouched. No current install
-   is qualified. Do not format/repartition or risk existing user storage.
+GPU, compression research and the Windows correctness matrix can advance while
+the allocator and recovery work proceed. Mounted performance depends on both
+a qualified driver path and the scalable storage path. A changed source,
+runtime or dependency invalidates only the evidence whose inputs it changes.
+The evidence matrix records that dependency explicitly.
 
-## Concrete work and estimated remaining effort
+## 1. Candidate and platform ledger
 
-These are low-confidence engineering estimates, not measured agent velocity or
-a release date. A person-week means roughly one experienced engineer working
-full time, including design, implementation and relevant review/tests. Work
-packages overlap the existing harness IDs; they must not double-count those IDs
-as additional finished work. Research rows budget an investigation, not a promise
-that a record-beating algorithm will be discovered within that time.
+- Maintain one source manifest for each candidate. Include the exact tree,
+  dependency locks and resolved versions, compiler and SDK, WinFsp artifacts,
+  ROCm package and HIP runtime digests, supported Windows versions, and
+  applicable qualification receipts. Keep results bound to their original
+  commit IDs and use the migration map when linking them to current history.
+- Freeze a supported current Windows 11 x64 client and servicing channel for
+  each campaign. Microsoft lists 26H2 in the General Availability Channel
+  and identifies 26H1 as a separate new-device release. Test the exact client
+  and updates the product promises to support.
+  [Windows 11 release information](https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information)
+- Use the exact WinFsp artifact in correctness, installation and rollback
+  checks. The release API identifies WinFsp 2026 as v2.2 and exposes the
+  MSI and test archive digests. The download overview still links to an
+  older installer, so verify the release inventory when selecting a package.
+  [WinFsp 2026 release](https://github.com/winfsp/winfsp/releases/tag/v2.2)
+- Keep routine builds and checks local. Use a new owned fixture, current
+  resource observations, silent launches, and confirmed process retirement.
+  Place development artifacts in the scoped workspace and keep live owner-host
+  test volumes in memory. Use isolated systems for unqualified driver setup,
+  abrupt failure testing and physical backing qualification.
+- Save the selected gate list, original commands and return codes, the
+  exact mounted or injected boundary, readback digests, and any failure or
+  deferral. The checkout, package and mounted results must agree before the
+  final candidate can pass S1.
 
-| Work | Concrete deliverable | Existing packages | Person-weeks |
-| --- | --- | --- | ---: |
-| E01 | Connect paged inode/name/extent indexes to the existing native/session APIs, atomic multi-index publication, stable directory cursors and old-format migration. Qualify actual named files with data. | S01 | 6–12 |
-| E02 | Persistent allocation/reclamation, reader pins, bounded recovery traversal, protected shared dependencies and source-preserving compaction/handoff. | S01, R01 | 5–10 |
-| E03 | Automatic trusted helper/runtime discovery, finite useful AMD work amortization, keyed cost acquisition, actual Windows completion and CPU fallback. | G02, G03, A02 | 4–9 |
-| E04 | Persistent paged coherence catalog with versioned content features, incremental scanning, stale-generation rejection and resumable candidate queries. | S01, A04 | 3–7 |
-| E05 | Compare fine-grained similarity, shared dictionaries, multi-reference delta and local learned predictor/residual candidates on held-out data; choose by complete size/access results. | A04 | 6–16 |
-| E06 | Implement the selected collective representation, independent deterministic CPU decoder, AMD acceleration, indexed random access, mutation/deletion and protected dependency lifecycle. | A04, R01 | 5–12 |
-| E07 | Event-driven offline learning/controller, fresh host adaptation, cancellation/yield, persistent progress, negative-result suppression and measured write amplification. | A01, A03, L01 | 4–9 |
-| E08 | Complete the promised Windows semantics and use the same engine through Explorer/Win32, helper and tray; resolve completion/cancellation/retirement behavior. | W01, D01 | 5–10 |
-| E09 | Multi-release reader contract, frozen compatibility fixtures, mixed representations, resumable COW migration and explicit rollback boundaries. | U01 | 3–6 |
-| E10 | Supported volume lifecycle, least-privilege installer/helper, private dependency setup, signed/verified software updates, relocation and uninstall. | W01, U01 | 3–6 |
-| E11 | Independent crash/recovery oracle, corruption and malformed-input fuzzing, resource/lifecycle campaigns, current dependency/security review and repair validation. | D01, R01, Q01 | 6–12 |
-| E12 | Reproducible recognized-tool filesystem and codec comparisons, held-out real-data evaluation, CPU/GPU and maintenance-interference results. | Q01 | 3–6 |
-| E13 | Representative long-running use, failure triage, regressions, stabilization and repeat qualification of the exact candidate. | Q01 | 6–12 |
+## 2. Large indexed volumes and foreground I/O
 
-Total planning envelope: **59–127 person-weeks**, approximately 60–130. For one
-experienced engineer this is roughly 14–30 months of full-time work. A small
-experienced team with useful parallelism might reach the stable-release gate in
-roughly **6–15+ calendar months**, conditional on the compression research and
-integration succeeding. Autonomous implementation can shorten coding work; it
-does not remove review, hardware coverage, fault testing or soak time. This is
-not a promise about this agent's delivery rate.
+- Inventory every supported callback through the Windows adapter, native
+  session and paged store. Check path resolution, large directory cursors,
+  rename replacement, file lifetime after unlink, sparse ranges, EOF updates,
+  flush, and delete-on-close. Include access, sharing and error codes.
+- Make a cold open validate the root and paths it uses, with explicit scrub
+  continuation for the rest of the graph. Charge directory and extent caches
+  to the live headroom budget. Test cache eviction and pinned generations under
+  pressure.
+- Replace application-visible full scans and prototype-sized work where they
+  affect startup, enumeration, update or close. Use existing indexed cursors
+  and generation-safe read views. Split background preparation from bounded
+  publication and record the lock time of both.
+- Qualify 1,000, 16,000, 100,000 and at least one million named files, then
+  extend the largest supported configurations as backing and headroom allow.
+  Exercise deep and wide directories, unrelated updates, and several
+  memory envelopes.
+  Record bytes resident, paths/page lookups, writes, open and enumeration work,
+  and random and sequential I/O tails against the same reference contents.
+- Verify a reference model with handle and operation traces after replay.
+  S2 passes when ordinary clients complete the declared layouts and resource
+  budgets with exact contents and namespace results.
 
-An integrated development alpha might become assessable in roughly 3–5 months
-under that small-team assumption. It would still not satisfy the full release
-goal. Superior compression is an open research exit: there is no defensible
-calendar bound for beating every existing approach, and failure to beat the
-selected baselines must remain visible rather than being relabeled success.
-Re-estimate after E01 and the first held-out E05 comparison; those remove the
-largest current engineering and algorithm uncertainties.
+[Indexed volume implementation](INDEXED_NATIVE_VOLUME.md) ·
+[Windows controller](WINFSP_OWNED_CONTROLLER.md)
 
-## Dependency order and acceptance gates
+## 3. Allocation, reclamation and acknowledged data
 
-**Gate 1 — shared scalable engine.** Complete E01 first, while defining the E04
-catalog and E06 dependency manifest. Route existing native APIs to paged data
-without keeping the whole namespace or extent inventory in RAM. Preserve basic
-metadata, security, stable IDs, sparse bytes, exact sharing and open-file
-lifetime. Avoid O(number of files) path lookup and O(N²) candidate discovery.
-Test large, skewed directories, many populated files, a large populated file,
-sparse ranges, rename/delete/truncate, restart and bounded resident state.
-Use a qualification ladder of 1,000, 16,000, 100,000 and at least 1,000,000 named
-files with nonzero contents on an adequately resourced test environment, including
-a 100,000-entry directory and populated-file access beyond the resident cache.
-These are qualification targets, not product ceilings or allocations every host
-must support. Admission scales each experiment to actual available resources;
-large-address sparse/model tests are labeled separately from populated data.
-Publish exact object/file counts separately. Support explicit legacy migration;
-raising 256 or 64-MiB constants is not this gate.
+- Trace each commit from record allocation through payload and metadata writes,
+  barrier completion and root acknowledgement. Give reference records,
+  readers and repair work explicit generation ownership. Preserve the
+  previous valid graph across interrupted publication.
+- Finish incremental reclamation in the standard volume lifecycle. Select a
+  batch from measured reclaimable bytes, reserve its cost first, reconcile
+  concurrent foreground commits, and return space only after old readers and
+  references release it. Include new dictionaries and representation changes
+  in that accounting.
+- Charge occupied bytes for mirrors, metadata, free-space structures,
+  unreclaimed tails, retained roots and protected decode dependencies.
+  Measure rewrite bytes, live/retired space, recovery time and foreground
+  interference after repeated create/update/delete cycles.
+- Run full-volume, low-headroom, overlapping-reader and interrupted
+  reclaim tests. Model failures before and after every handoff. Verify the
+  same cases on each actual persistent backend in isolated qualification.
+- Verify the backing provider's write and flush semantics. Windows exposes
+  file flush as an OS boundary. Real durability depends on the complete
+  path through the storage device. Record and test the hardware and failure
+  model used for acknowledgements.
+  [Microsoft file flush contract](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers)
+- S3 and S8 pass after the ordinary background path produces verified net
+  space recovery, keeps existing acknowledged bytes through the supported
+  failures and restores repairable protected copies.
 
-**Gate 2 — one protected collective representation.** E04/E05 must lead to a
-real cross-file encoding, not just similarity scores. Start with a verifiable
-baseline/dictionary or multi-reference composition, then investigate stronger
-local learned residuals where worthwhile. Retain multiple candidates and the
-size/access frontier; do not hardcode one codec or tiny group size. Verify
-byte-exact recovery, random small reads, editing any group member, deletion of
-base-file names, regrouping interruption and all charged dependencies. GPU
-encoding may differ from CPU encoding; neither may make CPU reading impossible.
+## 4. Useful AMD work and independent CPU continuity
 
-**Gate 3 — useful ordinary Windows/GPU path.** E03/E08 connect trusted resource
-and helper discovery to the actual callback/completion path. Charge cold setup,
-transfers, verification, publication and retirement. Handle missing/incompatible
-GPU, driver/API failure, cancellation, late replies and changing load with
-immediate CPU publication and no retry storm. Compare on varied real data;
-the old slower fixed case is not a reason either to enable it automatically or
-to avoid required GPU development. D01 must have a verified resolution or a
-demonstrably corrected lifecycle mechanism covering its failure, not another
-unchanged successful trial.
+- Keep installed discovery selective and asynchronous. Verify the approved
+  helper, module, runtime and hardware identity before the first compute
+  attempt. Confirm the Windows adapter/node and current physical, commit
+  and video budget for the actual request.
+- Amortize fixed worker setup across multiple independently protected
+  groups. Collect setup, transfer, kernel, reply, CPU verification and
+  publication time. Calculate full-image savings per cohort. Use copy
+  search if the reference working set or launch budget cannot be admitted.
+  Preserve foreground responsiveness and the existing job ownership.
+- Measure automatic route selection for early ingestion and cold work
+  separately. Use the CPU reference for forecast and fallback. Compare real
+  public and controlled inputs across supported AMD classes and a CPU-only
+  client. Require actual device work and verified storage benefit before
+  issuing a qualified route profile.
+- Exercise unsupported and missing artifacts, memory and queue pressure,
+  malformed or stale advice, cancellation, changed file content, timeout
+  and runtime removal. Test device loss and high-risk driver faults on
+  isolated systems. Confirm CPU read/write continuity and bounded recovery
+  attempts from distinct evidence after retirement.
+- S4 passes when the installed application shows useful automatic AMD
+  behavior in ordinary operation and a separate CPU reader reopens every
+  admitted representation and generation.
 
-**Gate 4 — autonomous, quiet optimization.** E07 drives E04/E06/E09 from actual
-content/workload/resource events. All scan, query, training, encoding, migration
-and cleanup steps have bounded memory/work, a persisted continuation and prompt
-yield. Test sustained foreground use and changing contention, not only idle
-throughput. Measure foreground slowdown, tail latency, RAM/VRAM, CPU/GPU time,
-read/write bytes and cancellation/retirement. Calibrate interference limits on
-the supported matrix and shrink/defer work when exceeded; no fixed host specs.
-Reuse unchanged fingerprints, coalesce journal updates, suppress unchanged
-negative trials and avoid rewriting identical representations. Drive wear is
-considered through measured write amplification and scheduling, while allowing
-expensive background work when meaningful size reduction justifies it.
+[AMD route](AMD_RUNTIME_DISCOVERY.md) ·
+[Worker ownership](WORKER_CHANNEL.md) ·
+[GPU recovery policy](GPU_RECOVERY.md)
 
-**Gate 5 — durability, repair and evolution.** E02/E09/E11 define exactly which
-writes are acknowledged and which backend flush/failure assumptions apply.
-Exercise actual publication and dependency lifecycles with an independent
-last-acknowledged-byte oracle: torn/short/reordered writes, interruption at every
-barrier, metadata loss, corrupt payload/model/base, interrupted reclamation,
-repair and migration, and repeated recovery. Protection/erasure coding must
-cover the promised repair domain and count its overhead. Checksums alone cannot
-recreate destroyed payloads; no finite campaign proves survival of arbitrary
-bugs or loss of every copy. Qualify physical-provider behavior separately before
-claiming physical power-loss resilience; memory/VM tests alone do not prove it.
+## 5. Strong collective compression and autonomous learning
 
-**Gate 6 — Windows and package completeness.** E08/E10 cover the published
-capability matrix: Unicode/case rules and long paths; stable IDs; ACLs and
-inheritance; sharing/deletion/locks; notifications; timestamps/attributes;
-sparse files; streams/links/reparse behavior; cached, noncached, overlapped and
-mapped I/O; flush/cancellation and shutdown. No silent success for unsupported
-operations. Exercise ordinary applications, restart/update/uninstall and both
-backend lifecycles on the current stable Windows 11 AMD64 client. Windows Server
-and CPU-only callbacks are complementary evidence, not substitutes. Existing
-driver installations are preserved; no owner-host automatic driver replacement.
+- Extend the incremental similarity and coherence catalogs across distant
+  files and many groups. Keep catalog entries bounded and independently
+  rebuildable, with wavefront progress and eviction tied to resource
+  observations. Use sparse paged lookup with resumable candidate retrieval.
+  Index stable content and region generations so that a filename change
+  preserves the relationship. Track candidate recall across large buckets,
+  and keep measured costs and failed trials in the advisory area.
+- Use training and held-out sets chosen before the evaluation. Test close
+  revisions, unrelated files, small text, SVG, tabular and numeric data,
+  binaries, media and already compressed files. Include nonsynthetic
+  workloads and simple controls that isolate each encoding.
+- Compare the total space of candidate encodings, including references,
+  record padding, dictionaries, model storage, protected metadata, rebuild
+  work and retained copies. Verify lossless decode independently on CPU.
+  Measure cold random access and read amplification with the exact selected
+  group representation.
+- Persist advisory observations in the protected internal area. Key them
+  by representation, workload signature, format generation and relevant
+  device or backend identity. Age stale observations and make poor
+  predictions recoverable. Keep every required decoding dependency separate
+  from rebuildable learning data.
+- Use fresh idle opportunities and bounded work to choose further scans,
+  grouping, consolidation and format migration. Learn from net space
+  saved, foreground service time, memory and write cost. Stop or shrink
+  background work promptly under contention. Measure the system as it learns
+  across restart, routine edits and changing workload.
+- S5 and S6 pass after held-out complete-image savings, practical access,
+  offline learning, durable restart and low interference are demonstrated
+  together on stated hardware and workloads.
 
-**Gate 7 — independent performance and release confidence.** E11–E13 apply the
-[benchmark protocol](BENCHMARK_PROTOCOL.md), independent source/format review,
-fuzz regressions and representative soak. Plan at least 30 days of candidate
-soak and a 90-day rolling stability record across supported configurations;
-meaningful fixes restart affected lanes rather than erasing failures. Require
-no unexplained acknowledged-byte loss, unsafe repair, stranded worker/resource
-growth, reproducible severe Windows incompatibility or unresolved critical/high
-release-scope security issue. Counts and elapsed time alone do not satisfy these
-exits. The owner alone decides whether to release after reviewing the evidence.
+## 6. Windows experience, compatibility and installation
 
-## Coherence catalog and offline intelligence
+- Use the existing helper and WinFsp integration as the normal Windows path.
+  Exercise creation and clean attachment of memory volumes and controlled
+  persistent volumes. Make mount target collision, drive removal, pause,
+  unmount, helper shutdown and restart recoverable and visible in the app.
+- Run native Win32 callers and Explorer for case and Unicode semantics,
+  file attributes and access checks, long paths, replace and sharing,
+  metadata enumeration, flush, cancellation and multi-process handle behavior.
+  Exercise cached, noncached, overlapped and mapped I/O and record the tested
+  combinations. Include notifications, streams, links and reparse behavior in
+  the published compatibility contract and applicable qualification.
+- Test interrupted installer installation, repair, upgrade, removal and
+  rollback with the exact signed dependency chain. Confirm package staging
+  resolves tools and runtimes without relying on a development machine.
+  Test normal CPU operation without the AMD package and optional GPU
+  availability on supported setups.
+- Retain independent CPU readers for volumes written by at least the preceding
+  three released versions. Until those releases exist, keep the supported
+  historical fixtures and protected decoding dependencies. Reject unsupported
+  mandatory features before mutation and preserve each codec identifier's
+  meaning.
+- Verify old and new readers, mixed storage, partial migration,
+  interruption/restart, space pressure, and rollback to the supported
+  previous generation. Verify bytes and persist new dependencies before
+  publishing each migrated unit. Preserve a recovery route to exported bytes.
+  Qualify old-software downgrade separately from new-reader compatibility.
+- Close S7, S9 and S10 with actual client coverage, clean owned shutdown,
+  compatible format and update behavior, and signed installation receipts.
 
-Store a **sparse, paged similarity index**, not a dense all-file matrix, in a
-protected internal logical area of FlitzFS. This does not require another host
-partition. Associate features with stable content identities/generations and
-regions, not filename extensions alone. Combine cheap exact/fine-grained
-fingerprints with bounded candidate retrieval; later test learned local
-embeddings or multiple reference spaces where their complete benefit warrants
-the cost. Whole-file and region relationships can coexist. Persist cursors,
-feature/model versions, confidence, measured savings/access costs and failed
-trials. Large/hot candidate buckets need resumable traversal rather than a
-permanent small cap that silently excludes most files.
+## 7. Security and failure qualification
 
-The index proposes candidates; it never proves a compression ratio or authorizes
-publication. Trials must check recovered source bytes and complete size. Its
-loss or old advisory schema can trigger incremental rebuilding without blocking
-ordinary reads. Decoder-critical dictionaries/models/bases belong in protected
-immutable referenced storage, not the rebuildable advisory catalog.
+| Failure domain | Required observation on the affected path |
+| --- | --- |
+| Process exit and forced stop | Every acknowledged generation reopens exactly. User processes see predictable status. The helper, worker and supervisors retire. |
+| Interrupted writes and reclamation | Recovery chooses a complete generation and resumes within the documented failure model. Later reclamation retains references and preserves space accounting. |
+| One corrupted protected copy | Independent validation finds surviving data. Repair publishes a verified new copy and records the action. |
+| Unrecoverable corruption or missing backend | Return an explicit failure, preserve surviving material, and provide an independent recovery or export route. |
+| GPU reset or failed compute | Ignore the incomplete result. Continue with CPU and gate later attempts on authenticated evidence and verified retirement. |
+| Hostile metadata, namespace or IPC | Bound parsing, authority and resource use. Verify the package, update and app trust boundaries and close actionable findings. |
 
-Two reviewed 2026 primary papers inform the investigation. Sonic studies
-fine-grained resemblance and approximate candidate selection, including misses
-from fixed super-feature combinations. DCLC studies context-aware local learned
-representations, locality caching and multi-reference delta encoding. These are
-backup/cloud research results, not reproduced FlitzFS gains or proof of AMD
-benefit. An attempted recent CDC HTML paper returned 404 and is excluded.
-[Sonic](https://www.mdpi.com/2073-431X/15/9/607),
-[DCLC](https://link.springer.com/article/10.1007/s44443-026-01042-5).
+Re-run the targeted portable, Windows, raw-codec and sanitizer lanes on the
+exact change. Cover the native worker and package interfaces with targeted
+negative cases. For final S10, retain current advisory evidence and review
+dependencies, installer behavior, ACLs, update signing and the recovery tool.
+The official connector refused the Dependabot alerts endpoint during this
+review. Current alert clearance remains an outstanding evidence item.
 
-## Compatibility and gradual automatic migration
+## 8. Benchmarks, soak and the release decision
 
-U01 is a required release work package. The policy target is that each release
-reads volumes from **at least the preceding three released software versions**,
-with longer format support where practical. Until such releases exist, preserve
-the supported historical format fixtures and independent CPU readers. This is a
-forward engineering contract, not a claim that an updater already exists.
+- Use Microsoft's DiskSpd 2.3 as the current controlled Windows I/O
+  benchmark. Record the exact binary, arguments, caching mode, access
+  pattern, queue depth, data size, test duration and runtime configuration.
+  Pair it with the Windows semantics harness for namespace, durability and
+  identity behavior, and with separately timed real-file workflows.
+  [Microsoft DiskSpd](https://github.com/microsoft/diskspd)
+- Compare FlitzFS at ingest, after admitted idle work, and after verified
+  reclamation. Match the usable backing and test data across NTFS baseline,
+  supported NTFS compression, exFAT, and ReFS where the host and volume setup
+  provide it. Add relevant external compression controls for the space
+  frontier and record which have comparable random access.
+- Alternate repeated controls and candidates. Report absolute occupied
+  space, foreground read/write throughput and tail latency, peak CPU/GPU/RAM
+  use, process retirement, background duty, I/O amplification and wear-related
+  write totals. Reopen and check all data in each phase. Treat overlapping
+  timings and unqualified storage semantics explicitly.
+- Benchmark on qualified real hardware. Capture isolation-guest results as
+  correctness evidence. Keep the owner's development volumes in memory.
+  Use a separate qualified physical test path for a claim about persistence
+  or drive throughput.
+- Freeze the exact candidate for the final soak. Cover sustained ordinary
+  workloads, maintenance, power and recovery qualification within the
+  failure model, and alternate supported host configurations. Inspect
+  material failures and rerun affected gates. S11 and S12 require the
+  complete retained evidence and the owner's release decision.
+- Plan for the existing 30-day candidate soak and 90-day rolling stability
+  record across supported configurations. Confirm the meaningful failure
+  coverage and material fixes with the evidence from each lane.
 
-Never reuse a codec/format identifier with different semantics. Persist feature
-and minimum-reader requirements, keep frozen old images/decoders in regression
-testing, and reject unknown mandatory capabilities before mutation. Keep any
-decoder/dependency needed by a live volume or snapshot even when its software
-release ages beyond the minimum window. Test raw/optional-codec builds and GPU-
-absent recovery; an old data stream must not depend on a newly fetched model.
+## Immediate implementation order
 
-Installing software and migrating stored data are different operations. The
-new software first reads old data correctly. Its background controller can then
-migrate independently addressable units into a new version, compare exact CPU
-bytes, persist dependencies and atomically publish references. Mixed old/new
-units remain readable. Preserve the previous recoverable state until publication
-and reader retirement; checkpoint progress and resume after interruption. Apply
-the same contention/write-amplification controls as compression. Avoid whole-
-volume rewrites just because the application version changed.
+| Checkpoint | Changes to finish | Evidence needed before advancing |
+| --- | --- | --- |
+| A | Carry the installed reference route into a verified automatic Windows workload. Instrument the foreground and recovery path on the same populated image. | Matched readback, occupied bytes, route selection, startup and worker retirement. |
+| B | Advance indexed foreground semantics and incremental reclamation together. Replace any measured namespace or whole-image bottleneck with a generation-safe bounded operation. | Real client operation trace, large-population resource curves, pinned-reader and failure-cut recovery. |
+| C | Run held-out compression on active and cold files. Connect the protected learning policy to measured route and representation choices. | Complete image savings, read amplification, background interference, write cost and restart continuation. |
+| D | Qualify backend durability, gradual upgrades, system integration and package cleanup. | Independent CPU rescue, exact backend and installed-driver receipts, Windows compatibility and security review. |
+| E | Run the recognized matched benchmarks and exact-candidate final soak. | An auditable pass for S1–S12 and the owner's decision. |
 
-Backward compatibility means a newer reader accepts supported older data.
-Downgrading old software onto newly written representations is a separate
-compatibility question. Publish and test the rollback boundary rather than
-promising that old software understands new codecs. Software updates require
-verified packages, atomic replacement and recovery of interrupted installation;
-filesystem operation remains independent of network access and online models.
-
-## Immediate executable sequence
-
-1. Finish native paged inode/name/extent integration behind the existing engine
-   interfaces; add directory pagination and protect shared references. Establish
-   authoritative tests on real named-file operations before claiming scale.
-2. Implement the reserved, versioned coherence catalog and persistent scan cursor
-   alongside protected group/decode-unit manifests. Include bounded cancellation,
-   write-grant refusal before publication and no-op update suppression.
-3. Produce the first complete cross-file representation and independent CPU
-   reader, then couple meaningful finite AMD work to actual Windows operations.
-   Compare candidates on held-out real files before committing to one algorithm.
-4. Complete adaptive automatic maintenance, scalable reclamation and gradual
-   migration; resolve lifetime faults and finish the Windows capability matrix.
-5. Run the full correctness/security/fault matrix and recognized benchmarks;
-   stabilize and soak the exact candidate. Prepare an owner-reviewable report,
-   never an automatic release.
-
-The compact dependency/effort ledger is in [DEVELOPMENT_PLAN.json](DEVELOPMENT_PLAN.json).
-Source-bound review receipts are in
-[release-plan evidence](evidence/release-plan-review-2026-11-15.json).
+Use the [gate definitions](IMPLEMENTATION_PLAN.md#18-exact-release-gates)
+and the [current development state](DEVELOPMENT_STATE.json) as the checklist.
+Treat newer test receipts as evidence for their exact scope and record remaining
+work alongside them.

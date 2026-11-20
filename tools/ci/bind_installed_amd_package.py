@@ -88,14 +88,15 @@ def bind(package: Path, approved: str) -> tuple[str, list[str]]:
     def array_literal(value: bytes) -> str:
         return ", ".join(f"std::byte{{0x{byte:02x}}}" for byte in value)
 
-    def artifact(name: str, field: str, worker: bool, required_export: str | None = None) -> str:
+    def artifact(name: str, field: str, worker: bool, required_exports: tuple[str, ...] = ()) -> str:
         contents, digest = verified(name, (8 if worker else 128) * 1024 * 1024)
         imports, delayed = pe_import_names(contents, allow_delay=True)
         allowed = WORKER_SYSTEM_IMPORTS if worker else WORKER_SYSTEM_IMPORTS | {runtime}
         require(bool(imports) and set(imports + delayed) <= allowed
                 and (not worker or not delayed), f"Unexpected PE dependencies for {name}")
-        if required_export:
-            require(required_export in pe_function_exports(contents), "Approved wide anchor module lacks its dispatch entry")
+        if required_exports:
+            missing = set(required_exports) - pe_function_exports(contents)
+            require(not missing, f"Approved anchor module lacks its dispatch entry: {', '.join(sorted(missing))}")
         return f"inline constexpr std::array {field}{{{array_literal(digest)}}};\n"
 
     zero = "inline constexpr std::array<std::byte,32> {}{{}};\n"
@@ -109,6 +110,9 @@ def bind(package: Path, approved: str) -> tuple[str, list[str]]:
     if anchor is not None:
         evidence = anchor.get("qualification_sha256")
         runtime_digest = anchor.get("runtime_sha256")
+        search_mode = anchor.get("search_mode", "copy")
+        require(search_mode in ("copy", "reference-xor"), "Invalid anchor profile field search_mode")
+        reference_xor = search_mode == "reference-xor"
         require(exact_digest(evidence) and exact_digest(runtime_digest), "Anchor provenance digests are required")
         _, receipt_digest = verified(ANCHOR_EVIDENCE, 256 * 1024)
         require(receipt_digest.hex() == evidence, "Anchor qualification digest mismatch")
@@ -127,15 +131,24 @@ def bind(package: Path, approved: str) -> tuple[str, list[str]]:
             "duty_ppm": integer(anchor, "duty_ppm", 1, 100000),
             "dispatches_per_wait": integer(anchor, "dispatches_per_wait", 1, 4)
             if "dispatches_per_wait" in anchor else 1,
-            "maximum_dispatch_members": integer(anchor, "maximum_dispatch_members", 4, 0xffffffff)
+            "maximum_dispatch_members": integer(anchor, "maximum_dispatch_members", 1 if reference_xor else 4, 0xffffffff)
             if "maximum_dispatch_members" in anchor else 0,
         }
         require(fields["minimum_members"] <= fields["maximum_members"], "Inverted anchor work range")
         maximum_dispatch = fields["maximum_dispatch_members"]
         require(maximum_dispatch <= fields["maximum_members"], "Anchor dispatch exceeds approved batch work")
+        dispatch_exports = ("flitzfs_rocm_anchor_window_api_v11",) if maximum_dispatch > 3 else ()
+        if reference_xor:
+            require(maximum_dispatch != 0, "Reference search requires a dispatch grant")
+            require(fields["dispatches_per_wait"] == 1, "Reference search requires a single dispatch per wait")
+            if maximum_dispatch <= 3:
+                dispatch_exports = ("flitzfs_rocm_anchor_window_api_v2",)
+            dispatch_exports += ("flitzfs_rocm_anchor_match_api_v1",
+                                 "flitzfs_rocm_anchor_sparse_xor_arena_api_v8",
+                                 "flitzfs_rocm_anchor_reference_api_v10")
         result += artifact(ANCHOR_WORKER, "anchor_worker_sha256", True)
-        dispatch_export = "flitzfs_rocm_anchor_window_api_v11" if maximum_dispatch else None
-        result += artifact(ANCHOR_MODULE, "anchor_module_sha256", False, dispatch_export)
+        result += artifact(ANCHOR_MODULE, "anchor_module_sha256", False, dispatch_exports)
+        result += f"inline constexpr bool anchor_reference_xor={'true' if reference_xor else 'false'};\n"
         result += f"inline constexpr std::array anchor_runtime_sha256{{{array_literal(bytes.fromhex(runtime_digest))}}};\n"
         result += "".join(f"inline constexpr std::uint32_t anchor_{key}={value}U;\n" for key, value in fields.items())
     for record in files:

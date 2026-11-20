@@ -5,6 +5,7 @@
   "product": "Windows 11 AMD64 filesystem/helper/driver integration; AMD acceleration with independent CPU recovery",
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
+  "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
   "reviewed_baseline": {
     "commit": "38a4a48f005c2ea6c9a7f8cbd9d7ee07df044d70",
     "tree": "936409737d1c4a5d4aeb37fe5af48f55ba9accff",
@@ -29,6 +30,17 @@
     "independent_CPU_readback": true,
     "unprofiled_fallback_at_admission_edge": true,
     "mixed_compacted_image_bytes": 319488
+  },
+  "installed_amd_reference_profile": {
+    "source_base": "912e3e0d01f37b41c5435f0d6e50b4b5cb947060",
+    "evidence": "docs/evidence/amd-installed-reference-profile-2026-11-20.json",
+    "live_reference_batches": 1,
+    "live_device_advised_members": 18,
+    "installed_and_cpu_control_compacted_bytes": 1048576,
+    "public_mixed_copy_fallback_bytes": 319488,
+    "paired_public_runs": 12,
+    "independent_CPU_readback": true,
+    "physical_mount_qualified": false
   },
   "windows_stable_winfsp_22": {
     "source_base": "ad466670c22f0e95ca39a4cde353c71ad9380567",
