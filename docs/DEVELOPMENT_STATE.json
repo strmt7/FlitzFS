@@ -23,6 +23,23 @@
     "interactive_explorer_qualified": false,
     "live_amd_verified_groups": 8
   },
+  "amd_word_copy_search": {
+    "source_base": "a8c97557a3a41784b6ca7905ef4cc5e0b25db4fa",
+    "evidence": "docs/evidence/amd-word-copy-search-2026-11-20.json",
+    "verified_matched_hardware_trials": 16,
+    "member_extents": [
+      570,
+      1818
+    ],
+    "independent_CPU_reply_equal": true,
+    "live_foreground_CPU_fallback": true,
+    "natural_compacted_bytes_cpu_and_amd": {
+      "code": 278528,
+      "docs": 319488
+    },
+    "end_to_end_speedup_qualified": false,
+    "largest_measured_phase": "stream and slab setup"
+  },
   "indexed_packed_slices": {
     "source_base": "ed97af22436939700a891bc0ec24fa7d8f9d6bff",
     "evidence": "docs/evidence/indexed-packed-small-extents-2026-11-20.json",

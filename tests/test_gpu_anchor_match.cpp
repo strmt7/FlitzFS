@@ -3,6 +3,7 @@
 #include "anchor_search_fixture.hpp"
 #include "record_digest.hpp"
 #include <algorithm>
+#include <array>
 #include <iostream>
 #include <limits>
 #include <stdexcept>
@@ -76,6 +77,27 @@ void fragmented() {
   rejects([&]{(void)encode_anchor_match_request(base,{},1);});
   rejects([&]{(void)encode_anchor_match_request(base,members,0);});
   rejects([&]{(void)encode_anchor_match_request(std::span(base).subspan(1),members,1);});
+}
+
+void unaligned_copy_match_boundaries() {
+  std::array<match::u8,match::maximum_match+match::seed_bytes-1> base{},member{};
+  for(match::u32 i=0;i<base.size();++i)base[i]=static_cast<match::u8>(i*37+118);
+  for(match::u32 offset=0;offset<match::seed_bytes;++offset) {
+    const auto* left=base.data()+offset;
+    auto* right=member.data()+match::seed_bytes-1-offset;
+    std::copy_n(left,match::maximum_match,right);
+    match::u64 expected_seed=0;
+    for(match::u32 i=0;i<match::seed_bytes;++i)expected_seed|=match::u64{left[i]}<<(8*i);
+    check(match::seed(left,0)==expected_seed,"unaligned seed changed byte order");
+    for(match::u32 limit=match::seed_bytes;limit<=match::maximum_match;++limit) {
+      check(match::extend_match(left,right,limit)==limit,"equal match stopped before its limit");
+      for(match::u32 different=match::seed_bytes;different<limit;++different) {
+        right[different]^=128U;
+        check(match::extend_match(left,right,limit)==different,"match skipped an unequal byte");
+        right[different]^=128U;
+      }
+    }
+  }
 }
 
 void unrelated() {
@@ -756,6 +778,7 @@ int main() {
   try {
     fragmented();
     unrelated();
+    unaligned_copy_match_boundaries();
     sized_sweep();
     independent_batch();
     coalesced_copy_verification();

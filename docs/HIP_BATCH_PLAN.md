@@ -137,6 +137,26 @@ CPU matching and reply encoding still finished sooner than the complete AMD
 exchange on both cohorts. These are shared-base exchange measurements.
 [Host reply verification evidence](evidence/amd-anchor-reply-verification-2026-11-18.json)
 
+The anchor matcher reads each complete eight-byte window without an alignment
+requirement. It uses the first differing byte to end an extension and checks
+the final short tail bytewise. The limit follows both source positions, so a
+word read fits within both extents. Candidate selection and reply verification
+use the existing per-tile order and exact independently checked plaintext.
+The approach uses the same bounded word comparison technique as the FlitzZip
+GPU dictionary matcher. All 16 paired runs on the RX 9070 XT matched the
+independent CPU replies exactly. The runs used 570 or 1,818 member extents.
+Stream and slab setup remained the largest measured phase. The measured
+variation leaves a complete exchange speedup unqualified.
+
+The current CPU and AMD owners reached the same occupied sizes on the public
+code and documentation revisions. AMD advice supplied the chosen encoding
+for 16 code extents and four documentation extents. A foreground read test
+cancelled a pending exchange and verified the completed group through the
+independent CPU reader.
+[AMD performance guide](https://rocm.docs.amd.com/projects/HIP/en/latest/how-to/performance_guidelines.html) ·
+[FlitzZip dictionary matcher](https://github.com/strmt7/FlitzZip/blob/11396b5/src/gpu/hip_dictionary_matcher.hip.cpp) ·
+[Matched copy-search evidence](evidence/amd-word-copy-search-2026-11-20.json)
+
 ## SDK-only compression compute candidate
 
 The [typed LZ4 compute implementation and CPU probe](HIP_LZ4_COMPUTE.md)

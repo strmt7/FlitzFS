@@ -1,5 +1,9 @@
 #pragma once
 #include "flitzfs/gpu_protocol.hpp"
+#if !defined(__HIP_DEVICE_COMPILE__)
+#include <bit>
+#include <cstring>
+#endif
 
 #if defined(__HIP__)
 #define FLITZFS_ANCHOR_INLINE __attribute__((host, device)) inline
@@ -155,9 +159,36 @@ FLITZFS_ANCHOR_INLINE u32 modular_bias_candidates(Word first,Word (&samples)[del
 }
 
 FLITZFS_ANCHOR_INLINE u64 seed(const u8* bytes,u32 at) {
-  u64 value=0;
-  for (u32 i=0;i<seed_bytes;++i) value|=static_cast<u64>(bytes[at+i])<<(8*i);
+#if defined(__HIP_DEVICE_COMPILE__)
+  u64 value;
+  __builtin_memcpy(&value,bytes+at,sizeof(value));
   return value;
+#else
+  if constexpr(std::endian::native==std::endian::little) {
+    u64 value;
+    std::memcpy(&value,bytes+at,sizeof(value));
+    return value;
+  }
+  u64 value=0;
+  for(u32 i=0;i<seed_bytes;++i)value|=static_cast<u64>(bytes[at+i])<<(8*i);
+  return value;
+#endif
+}
+
+// Both spans have at least limit bytes and already match over the first seed.
+FLITZFS_ANCHOR_INLINE u32 extend_match(const u8* base,const u8* member,u32 limit) {
+  u32 length=seed_bytes;
+  for(;limit-length>=seed_bytes;length+=seed_bytes) {
+    const auto difference=seed(base,length)^seed(member,length);
+    if(!difference)continue;
+#if defined(__HIP_DEVICE_COMPILE__)
+    return length+static_cast<u32>(__builtin_ctzll(difference)/8);
+#else
+    return length+static_cast<u32>(std::countr_zero(difference)/8);
+#endif
+  }
+  while(length<limit && base[length]==member[length])++length;
+  return length;
 }
 FLITZFS_ANCHOR_INLINE u32 bucket(u64 key) {
   key^=key>>33;
@@ -192,8 +223,7 @@ FLITZFS_ANCHOR_INLINE u32 search(const u8* base,const u8* member,const Bucket* t
       const auto limit=available<maximum_match?available:maximum_match;
       if (limit<=best_length ||
           (best_length>=seed_bytes && base[source+best_length]!=member[at+best_length])) continue;
-      auto length=seed_bytes;
-      while (length<limit && base[source+length]==member[at+length]) ++length;
+      const auto length=extend_match(base+source,member+at,limit);
       if (length>best_length) {
         best_length=length;
         best=source|(within<<16)|(length<<20);

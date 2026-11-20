@@ -80,6 +80,13 @@ its operation deadline, and independent CPU verification covers the entire
 source before a result can reach storage.
 [Indexed advice](NATIVE_WINDOWS_LZ4_ADVICE.md#indexed-native-extents) · [Installed route and evidence](AMD_RUNTIME_DISCOVERY.md)
 
+The copy matcher reads a complete word only when both extents have room.
+Independent CPU verification still checks the suggestions against the
+original bytes. Live paired checks verified every emitted reply. A
+foreground read cancelled a pending exchange and the CPU reader recovered
+the committed group.
+[Word comparison and cancellation evidence](evidence/amd-word-copy-search-2026-11-20.json)
+
 The [indexed managed head](MANAGED_PAGED_VOLUMES.md) binds the selected image
 kind and validates the checkpoint and namespace sequence independently.
 Compaction keeps the original image available to its existing readers. The

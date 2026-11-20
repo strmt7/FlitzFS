@@ -26,6 +26,13 @@ policy. The next GPU gate is improved end-to-end cost or stored size across
 finite work windows, followed by ordinary mounted integration.
 [Installed AMD evidence](evidence/installed-amd-routing-2026-11-18.json)
 
+The AMD copy matcher compares full words within verified extent bounds.
+Sixteen live paired exchanges retained exact CPU reply parity, and a
+foreground cancellation recovered through CPU grouping. Stream and slab
+setup dominated the paired runs. Qualify finite setup reuse and measured
+workload selection before preferring AMD for ordinary writes or idle work.
+[Matched copy-search evidence](evidence/amd-word-copy-search-2026-11-20.json)
+
 The [indexed native writer](INDEXED_NATIVE_VOLUME.md) now creates and mutates
 paged names, inodes and extents through the existing path transaction API.
 The 1,024-file Windows fixture verified byte readback, restart and simulated
