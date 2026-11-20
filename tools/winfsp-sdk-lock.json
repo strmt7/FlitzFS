@@ -1,13 +1,13 @@
 {
   "schema": 1,
   "repository": "winfsp/winfsp",
-  "tag": "v2.2B5",
-  "prerelease": true,
-  "source_commit": "14d6e0280ae15e2550c44d6dbc476be51649727f",
-  "msi_name": "winfsp-2.2.26286.msi",
-  "url": "https://github.com/winfsp/winfsp/releases/download/v2.2B5/winfsp-2.2.26286.msi",
-  "bytes": 2207744,
-  "sha256": "293ffb9bcc0b625c85079fe85fa77f8fe98170aba51a02ac9c83d58f6c3b0e2f",
-  "release_url": "https://github.com/winfsp/winfsp/releases/tag/v2.2B5",
-  "policy": "Hosted development candidate: upstream security/deadlock fixes beyond latest-stable v2.1. Not owner-PC installation or production qualification."
+  "tag": "v2.2",
+  "prerelease": false,
+  "source_commit": "ada6de157df4fa99f5a866b6ac7af66918d6d838",
+  "msi_name": "winfsp-2.2.26323.msi",
+  "url": "https://github.com/winfsp/winfsp/releases/download/v2.2/winfsp-2.2.26323.msi",
+  "bytes": 2220032,
+  "sha256": "36ce01f9eedbbe6842b7fb4bedc79d7d4f71983e8aceb6877b46a07b331c7e19",
+  "release_url": "https://github.com/winfsp/winfsp/releases/tag/v2.2",
+  "policy": "Stable SDK and signed driver for development and disposable Windows qualification."
 }

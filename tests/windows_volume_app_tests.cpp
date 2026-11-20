@@ -680,15 +680,15 @@ std::wstring disposable_mount_parent() {
   require(size==32 && std::all_of(nonce,nonce+size,[](wchar_t c) {
     return (c>=L'0' && c<=L'9') || (c>=L'a' && c<=L'f');
   }),"Mounted GUI trial requires disposable guest admission");
-  wchar_t account[64]{};
-  DWORD account_size=64;
-  require(GetUserNameW(account,&account_size) && std::wstring_view(account)==L"SYSTEM",
-      "Mounted GUI trial requires the isolated guest system identity");
   wchar_t model[128]{};
   DWORD model_size=sizeof(model);
   require(RegGetValueW(HKEY_LOCAL_MACHINE,L"HARDWARE\\DESCRIPTION\\System\\BIOS",L"SystemProductName",
       RRF_RT_REG_SZ,nullptr,model,&model_size)==ERROR_SUCCESS && std::wstring_view(model)==L"Virtual Machine",
       "Mounted GUI trial requires a virtual guest");
+  DWORD container=0,container_size=sizeof(container);
+  require(RegGetValueW(HKEY_LOCAL_MACHINE,L"SYSTEM\\CurrentControlSet\\Control",L"ContainerType",RRF_RT_REG_DWORD,
+      nullptr,&container,&container_size)==ERROR_SUCCESS && container==4,
+      "Mounted GUI trial requires the disposable Windows Sandbox guest");
   const auto parent=L"C:\\FlitzFS-guest-"+std::wstring(nonce,size)+L"\\mount-parent";
   wchar_t temporary[MAX_PATH]{};
   const auto length=GetTempPath2W(static_cast<DWORD>(std::size(temporary)),temporary);
@@ -699,8 +699,8 @@ std::wstring disposable_mount_parent() {
 
 struct MountedTrialFile {
   HANDLE file;
-  MountedTrialFile(const std::filesystem::path& name,DWORD access,DWORD disposition):
-      file(CreateFileW(name.c_str(),access,FILE_SHARE_READ,nullptr,disposition,FILE_ATTRIBUTE_NORMAL,nullptr)) {
+  MountedTrialFile(const std::filesystem::path& name,DWORD access,DWORD disposition,DWORD share=FILE_SHARE_READ):
+      file(CreateFileW(name.c_str(),access,share,nullptr,disposition,FILE_ATTRIBUTE_NORMAL,nullptr)) {
     if(file==INVALID_HANDLE_VALUE)
       throw std::runtime_error("Mounted test file open failed with Windows status "+std::to_string(GetLastError()));
   }
@@ -741,34 +741,74 @@ void mounted_gui_workflow(HWND window,std::wstring_view parent,ProcessObserver& 
         GetLastError()==ERROR_FILE_NOT_FOUND;},deadline);
     require(IsWindowEnabled(GetDlgItem(window,106))==FALSE,"Detached memory lost its exit protection");
   };
+  const auto folder=L"Donn\u00e9es-"+std::wstring(174,L'x');
+  const auto moved=L"Archives-"+std::wstring(178,L'y');
+  constexpr auto original=L"R\u00e9sum\u00e9-\U0001f680.bin";
+  constexpr auto alias=L"R\u00c9SUM\u00c9-\U0001f680.BIN";
+  constexpr auto renamed=L"R\u00e9vis\u00e9-\U0001f680.bin";
+  const auto root=[](const std::wstring& mount){return L"\\\\?\\"+mount+L"\\";};
   std::vector<std::byte> expected(2*kNativeExtentBytes+137);
   for(std::size_t i=0;i<expected.size();++i)expected[i]=static_cast<std::byte>((i/64+i%29)&255U);
-  const auto verify=[&](const std::wstring& mount) {
-    MountedTrialFile file(std::filesystem::path(mount)/L"retained.bin",GENERIC_READ,OPEN_EXISTING);
+  const auto verify=[&](HANDLE file) {
     LARGE_INTEGER size{};
-    require(GetFileSizeEx(file.file,&size) && size.QuadPart==static_cast<LONGLONG>(expected.size()),
+    require(GetFileSizeEx(file,&size) && size.QuadPart==static_cast<LONGLONG>(expected.size()),
         "Mounted readback length differs");
     std::vector<std::byte> bytes(expected.size());
     DWORD read=0;
-    require(ReadFile(file.file,bytes.data(),static_cast<DWORD>(bytes.size()),&read,nullptr) &&
+    require(ReadFile(file,bytes.data(),static_cast<DWORD>(bytes.size()),&read,nullptr) &&
         read==bytes.size() && bytes==expected,"Mounted file bytes differ");
+  };
+  const auto verify_moved=[&](const std::wstring& mount) {
+    const auto path=root(mount)+moved+L"\\"+renamed;
+    WIN32_FIND_DATAW entry{};
+    const auto search=FindFirstFileW(path.c_str(),&entry);
+    require(search!=INVALID_HANDLE_VALUE,"Mounted enumeration failed after the parent move");
+    FindClose(search);
+    require(std::wstring_view(entry.cFileName)==renamed,"Mounted enumeration changed the Unicode spelling");
+    MountedTrialFile file(path,GENERIC_READ,OPEN_EXISTING);
+    verify(file.file);
   };
 
   button(107);
   wait_status(L"Memory volume attached.");
   const auto first=location();
   const auto initial_serial=serial(first);
+  const auto directory=root(first)+folder;
+  const auto path=directory+L"\\"+original;
+  require(path.size()>MAX_PATH && CreateDirectoryW(directory.c_str(),nullptr),
+      "Mounted Unicode directory or extended path setup failed");
   {
-    MountedTrialFile file(std::filesystem::path(first)/L"retained.bin",GENERIC_WRITE,CREATE_NEW);
+    MountedTrialFile file(path,GENERIC_WRITE,CREATE_NEW);
     DWORD written=0;
     require(WriteFile(file.file,expected.data(),static_cast<DWORD>(expected.size()),&written,nullptr) &&
         written==expected.size() && FlushFileBuffers(file.file),"Mounted write or flush failed");
   }
-  verify(first);
+  const auto alias_path=directory+L"\\"+alias;
+  const auto collision=CreateFileW(alias_path.c_str(),GENERIC_WRITE,0,nullptr,CREATE_NEW,FILE_ATTRIBUTE_NORMAL,nullptr);
+  const auto collision_error=GetLastError();
+  if(collision!=INVALID_HANDLE_VALUE)CloseHandle(collision);
+  require(collision==INVALID_HANDLE_VALUE && collision_error==ERROR_FILE_EXISTS,
+      "Mounted case-insensitive name admitted a second file");
+  {
+    MountedTrialFile file(alias_path,GENERIC_READ,OPEN_EXISTING,FILE_SHARE_READ|FILE_SHARE_DELETE);
+    require(MoveFileExW(path.c_str(),(directory+L"\\"+renamed).c_str(),0),
+        "Mounted rename with an open share-delete handle failed");
+    verify(file.file);
+  }
+  require(MoveFileExW(directory.c_str(),(root(first)+moved).c_str(),0),
+      "Mounted directory move failed");
+  const auto old_attributes=GetFileAttributesW(path.c_str());
+  const auto old_error=GetLastError();
+  if(old_attributes!=INVALID_FILE_ATTRIBUTES || old_error!=ERROR_PATH_NOT_FOUND)
+    throw std::runtime_error("Mounted old path returned Windows status "+std::to_string(old_error));
+  const auto missing=root(first)+moved+L"\\missing.bin";
+  require(GetFileAttributesW(missing.c_str())==INVALID_FILE_ATTRIBUTES &&
+      GetLastError()==ERROR_FILE_NOT_FOUND,"Mounted missing name under an existing parent reported the wrong status");
+  verify_moved(first);
   send(window,WM_CLOSE);
   require(IsWindow(window) && observer.wait_for_exit()==ProcessObservation::running,
       "Window close ended ownership of the mounted volume");
-  verify(first);
+  verify_moved(first);
   ShowWindow(window,SW_RESTORE);
   button(108);await_detach(first);
 
@@ -776,11 +816,12 @@ void mounted_gui_workflow(HWND window,std::wstring_view parent,ProcessObserver& 
   wait_status(L"Memory volume attached.");
   const auto second=location();
   require(second!=first && serial(second)==initial_serial,"Reattachment changed the volume identity or reused its path");
-  verify(second);
+  verify_moved(second);
   button(108);await_detach(second);
   button(105);wait_status(L"Temporary volume explicitly discarded.");
   std::cout<<"mounted_gui_roundtrip reattached=1 junction_cleanup_verified=1 "
-      <<"serial_preserved=1 window_close_retained=1 external_cpu_readback=1\n";
+      <<"serial_preserved=1 window_close_retained=1 external_cpu_readback=1 "
+      <<"unicode_names=1 extended_path=1 alias_collision=1 live_handle_rename=1 directory_move=1\n";
 }
 
 enum class GuiRuntime { ordinary,missing,altered,mounted };

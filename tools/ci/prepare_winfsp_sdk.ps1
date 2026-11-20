@@ -3,7 +3,7 @@
 # only; an explicit driver evidence request stages bytes without installing them.
 [CmdletBinding()]
 param([string]$OutputRoot,
-    [ValidateSet('Candidate','Stable')][string]$Profile = 'Candidate',
+    [ValidateSet('Stable','Candidate','Compatibility21','RetirementReference')][string]$Profile = 'Stable',
     [switch]$IncludeDriverEvidence)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -18,7 +18,11 @@ if (-not $taskSourceCommit) {
 }
 if ($taskSourceCommit -notmatch '^[0-9a-f]{40}$') { throw 'Exact source identity is required.' }
 
-$lockName = if ($Profile -eq 'Stable') { 'winfsp-stable-sdk-lock.json' } else { 'winfsp-sdk-lock.json' }
+$lockName = switch ($Profile) {
+    'Compatibility21' { 'winfsp-stable-sdk-lock.json' }
+    'RetirementReference' { 'winfsp-retirement-sdk-lock.json' }
+    default { 'winfsp-sdk-lock.json' }
+}
 $lockPath = Join-Path (Split-Path -Parent $PSScriptRoot) $lockName
 if ((Get-Item -LiteralPath $lockPath).Length -gt 16384) { throw 'WinFsp lock budget.' }
 $recipe = Get-Content -LiteralPath $lockPath -Raw | ConvertFrom-Json
@@ -89,7 +93,7 @@ $wanted = @{
     'winfsp-x64.lib' = 'lib/winfsp-x64.lib'
     'winfsp-x64.dll' = 'bin/winfsp-x64.dll'
 }
-# Component identities are verified in the selected v2.2B5 Product.wxs (source_commit in the lock). The
+# Component identities are selected from the pinned package. The
 # optional fsext library has the same basename but is NOT the public SDK library.
 $components = @{
     'winfsp.h' = 'C.winfsp.h'

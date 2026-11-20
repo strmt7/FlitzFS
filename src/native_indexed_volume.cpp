@@ -784,13 +784,18 @@ class IndexedVolumeTransaction final {
     }
   }
 
-  IndexedInodeInput resolve(std::string_view key) const {
+  IndexedInodeInput resolve(std::string_view key,
+      NativeFsError::MissingPath last=NativeFsError::MissingPath::name) const {
     auto n=node(1);
     for(std::size_t begin=0;begin<key.size();) {
       if(!n.directory)fail(Code::not_directory,"indexed path ancestor is a file");
       const auto separator=key.find('/',begin);
       const auto end=separator==std::string_view::npos?key.size():separator;
-      n=child({n.inode,std::string(key.substr(begin,end-begin))});
+      const NativeNameKey component{n.inode,std::string(key.substr(begin,end-begin))};
+      const auto id=binding(component);
+      if(!id)throw NativeFsError(separator==std::string_view::npos?last:NativeFsError::MissingPath::parent,
+          "indexed path not found");
+      n=linked_inode(component,*id);
       begin=end+1;
     }
     return n;
@@ -801,18 +806,13 @@ class IndexedVolumeTransaction final {
     return staged==names_.end()?index_.find(key):staged->second;
   }
 
-  IndexedInodeInput child(const NativeNameKey& key) const {
-    const auto id=binding(key);
-    if(!id)fail(Code::not_found,"indexed path not found");
-    return linked_inode(key,*id);
-  }
-
   NativeNameKey destination(std::string_view path,std::string& spelling) {
     const auto parsed=indexed_path_name(path);
     const auto& key=parsed.key;
     const auto slash=key.rfind('/');
     const auto start=slash==std::string::npos?0:slash+1;
-    auto parent=resolve(start?std::string_view(key).substr(0,slash):std::string_view{});
+    auto parent=resolve(start?std::string_view(key).substr(0,slash):std::string_view{},
+        NativeFsError::MissingPath::parent);
     if(!parent.directory)fail(Code::not_directory,"indexed destination parent is a file");
     if(parent.lifetime==IndexedLifetime::pending)
       fail(Code::invalid_operation,"indexed destination directory has pending delete intent");
@@ -1990,7 +1990,8 @@ IndexedInodeInput IndexedVolumeView::resolve(std::string_view path_value,std::st
     const auto separator=key.find('/',start),end=separator==std::string::npos?key.size():separator;
     const auto component=key.substr(start,end-start);
     const auto child=index_.find({current.inode,component});
-    if(!child)fail(Code::not_found,"indexed path not found");
+    if(!child)throw NativeFsError(separator==std::string::npos?NativeFsError::MissingPath::name:
+        NativeFsError::MissingPath::parent,"indexed path not found");
     auto entry=referenced_inode(*child);
     if(indexed_detached(entry.lifetime) || entry.parent!=current.inode || name_key(entry.name)!=component)
       fail(Code::corrupt,"indexed name points to a different inode");

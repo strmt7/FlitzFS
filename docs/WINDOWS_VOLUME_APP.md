@@ -78,6 +78,23 @@ remain open.
 Disposable guests are used for driver and recovery correctness. Performance
 and compression comparisons run on the physical Windows host.
 
+### Stable WinFsp 2.2 trial
+
+The signed WinFsp 2.2 driver and its matching runtime passed the expanded
+mounted workflow on Windows 11 Enterprise build 26100. Win32 clients resolved
+Unicode aliases, rejected a case-insensitive collision and used paths beyond
+`MAX_PATH`. A rename preserved bytes behind an open share-delete handle.
+The moved directory and its file retained their spelling and bytes after
+detach and reattach. A missing parent now reports `ERROR_PATH_NOT_FOUND`
+and an absent file under an existing parent reports `ERROR_FILE_NOT_FOUND`.
+
+The guest used WinFsp development registration. The official 2.2 MSI had a
+valid signature and reached software restriction policy verification in a
+separate guest. Its installer did not complete within the trial window.
+The headless guest reported no active user logon. Installer rollback and
+interactive File Explorer qualification remain open.
+[Stable 2.2 validation](evidence/windows11-stable-winfsp-2.2-2026-11-20.json)
+
 Current backing creation is shared with the WinFsp composition through the
 [adaptive memory factory](WINDOWS_MEMORY_VOLUME_FACTORY.md). The fixed capacity
 and staged Optimize descriptions below apply to the labeled historical build.

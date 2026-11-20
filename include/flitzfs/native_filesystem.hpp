@@ -35,12 +35,18 @@ enum class NativeFsErrorCode {
 enum class NativeDirectoryBackfillStep {idle,scanning,published,capacity};
 class NativeFsError final:public std::runtime_error {
  public:
+  enum class MissingPath {name,parent};
   NativeFsError(NativeFsErrorCode code,const char* message,std::uint64_t append_shortfall=0)
       :std::runtime_error(message),code_(code),append_shortfall_(append_shortfall){}
+  NativeFsError(MissingPath missing,const char* message)
+      :std::runtime_error(message),code_(NativeFsErrorCode::not_found),missing_parent_(missing==MissingPath::parent),
+       append_shortfall_(0){}
   NativeFsErrorCode code() const noexcept{return code_;}
+  bool missing_parent() const noexcept{return missing_parent_;}
   std::uint64_t append_shortfall_bytes() const noexcept{return append_shortfall_;}
  private:
   NativeFsErrorCode code_;
+  bool missing_parent_=false;
   std::uint64_t append_shortfall_;
 };
 // Borrowed complete LZ4 block for one final native extent. The call must remain

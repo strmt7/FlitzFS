@@ -1,7 +1,7 @@
 # DANGER BOUNDARY: installs the pinned WinFsp driver ONLY on disposable hosted CI.
 # Never run this script on a developer/owner PC or a self-hosted runner.
 [CmdletBinding()]
-param()
+param([ValidateSet('Stable','RetirementReference')][string]$Profile = 'Stable')
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 if ($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONMENT -ne 'github-hosted' -or
@@ -10,7 +10,8 @@ if ($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONMENT -ne 'github-hoste
 }
 if (-not $env:RUNNER_TEMP -or -not $env:FLITZFS_WINFSP_SDK) { throw 'Pinned MSI staging is missing.' }
 
-$lockPath = Join-Path $PSScriptRoot '../winfsp-sdk-lock.json'
+$lockName = if ($Profile -eq 'RetirementReference') { 'winfsp-retirement-sdk-lock.json' } else { 'winfsp-sdk-lock.json' }
+$lockPath = Join-Path (Split-Path -Parent $PSScriptRoot) $lockName
 if ((Get-Item -LiteralPath $lockPath).Length -gt 16384) { throw 'WinFsp lock budget.' }
 $recipe = Get-Content -LiteralPath $lockPath -Raw | ConvertFrom-Json
 if ($recipe.schema -ne 1 -or $recipe.repository -ne 'winfsp/winfsp' -or

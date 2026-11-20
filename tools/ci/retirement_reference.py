@@ -232,11 +232,22 @@ def prepare(control: Path, variant: str, verify: bool = False) -> None:
     _, record = canonical_source(control, "tests/gpu_probe_budget.hpp", BUDGET_BLOB)
     representations.append(dict(record, role="control-budget"))
     old_lock, old_record = canonical_source(reference, "tools/winfsp-sdk-lock.json", SDK_LOCK_BLOB)
-    current_lock, current_record = canonical_source(control, "tools/winfsp-sdk-lock.json", SDK_LOCK_BLOB)
-    if old_lock != current_lock:
-        raise ValueError("SDK identity differs")
+    sdk_lock, sdk_record = canonical_source(control, "tools/winfsp-retirement-sdk-lock.json", SDK_LOCK_BLOB)
+    if old_lock != sdk_lock:
+        raise ValueError("reference SDK identity differs")
+    sdk_root = Path(os.environ["FLITZFS_WINFSP_SDK"]).resolve(strict=True)
+    provenance_path = Path(os.environ["FLITZFS_WINFSP_PROVENANCE"])
+    if (sdk_root.name != "sdk" or provenance_path != sdk_root.parent / "sdk-provenance.json" or
+            sdk_root.parent.parent != Path(os.environ["RUNNER_TEMP"]).resolve()):
+        raise ValueError("owned reference SDK stage required")
+    provenance = read_regular(provenance_path)
+    sdk = strict_json(provenance.decode())
+    if (sdk.get("dependency") != strict_json(sdk_lock.decode()) or sdk.get("commit") != head or
+            sdk.get("profile") != "RetirementReference" or sdk.get("driver_evidence") is not True):
+        raise ValueError("reference SDK provenance differs")
     representations.extend((dict(old_record, role="historical-sdk"),
-                            dict(current_record, role="control-sdk")))
+                            dict(sdk_record, role="shared-retirement-sdk",
+                                 provenance_sha256=hashlib.sha256(provenance).hexdigest())))
     report_root = Path(os.environ["FLITZFS_RETIREMENT_REPORT_ROOT"])
     if (report_root.parent.resolve() != Path(os.environ["RUNNER_TEMP"]).resolve() or
             not re.fullmatch("flitzfs-retirement-reference-[0-9a-f]{32}", report_root.name)):

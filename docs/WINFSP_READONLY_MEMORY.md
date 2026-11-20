@@ -29,12 +29,13 @@ process. The caller selects this table explicitly. Returning the table performs
 no filesystem creation, driver control or mount. Test providers keep using the
 same interface with injected lifecycle operations.
 
-`prepare_winfsp_sdk.ps1 -Profile Stable` stages the checksum-pinned official 2.1
-user-mode SDK in a private directory. The existing candidate profile remains the
-default for the 2.2 beta. Both use read-only MSI extraction. The stable staging
-path also works in Windows PowerShell with the system HTTP and SHA-256 APIs.
+`prepare_winfsp_sdk.ps1` stages the checksum-pinned stable 2.2 SDK in a private
+directory. `-Profile Compatibility21` selects the earlier 2.1 SDK for
+compatibility checks. The frozen retirement comparison stages its 2.2B5 pin
+with `-Profile RetirementReference`. These profiles use read-only MSI extraction.
 
-The staged stable DLL matched the installed signed 2.1 DLL byte for byte. The
+In the earlier 2.1 comparison, the staged DLL matched the installed signed
+2.1 DLL byte for byte. The
 installed AMD64 driver reported the same product version and a valid Microsoft
 hardware signature. Its service was stopped. These are artifact and state
 observations. Mounted compatibility on the target Windows 11 client still

@@ -153,14 +153,16 @@ void rebuild_names(Model& model) {
     if(!model.names.emplace(std::pair{n.parent,n.key},id).second)
       fail(Code::corrupt,"duplicate native name index entry");
 }
-std::uint64_t resolve(const Model& model,std::string_view path) {
+std::uint64_t resolve(const Model& model,std::string_view path,
+    NativeFsError::MissingPath last=NativeFsError::MissingPath::name) {
   const auto key=canonical(path,true);
   std::uint64_t current=1;
   for(std::size_t start=0;start<key.size();) {
     const auto& parent=node(model,current);if(!parent.directory)fail(Code::not_directory,"native parent is a file");
     const auto slash=key.find('/',start),end=slash==std::string::npos?key.size():slash;
     const auto* found=child(model,current,std::string_view(key).substr(start,end-start));
-    if(!found)fail(Code::not_found,"native path not found");
+    if(!found)throw NativeFsError(slash==std::string::npos?last:NativeFsError::MissingPath::parent,
+        "native path not found");
     current=found->inode;start=end+1;
   }
   return current;
@@ -168,7 +170,8 @@ std::uint64_t resolve(const Model& model,std::string_view path) {
 std::pair<std::uint64_t,std::string> destination(const Model& model,std::string_view path) {
   (void)canonical(path);
   const auto slash=path.rfind('/');
-  const auto parent=resolve(model,slash==std::string_view::npos?std::string_view{}:path.substr(0,slash));
+  const auto parent=resolve(model,slash==std::string_view::npos?std::string_view{}:path.substr(0,slash),
+      NativeFsError::MissingPath::parent);
   if(!node(model,parent).directory)fail(Code::not_directory,"native parent is a file");
   if(node(model,parent).delete_pending)fail(Code::invalid_operation,"native destination parent is delete-pending");
   return {parent,std::string(slash==std::string_view::npos?path:path.substr(slash+1))};
@@ -440,7 +443,8 @@ const Node& resolve_snapshot(const detail::NativeObjectSnapshot& objects,const M
     if(verify_inodes)verify_inode(objects,model,*current);
     verify_directory(objects,model,*current);
     const auto* found=child(model,current->inode,component);
-    if(!found)fail(Code::not_found,"native indexed path not found");
+    if(!found)throw NativeFsError(slash==std::string::npos?NativeFsError::MissingPath::name:
+        NativeFsError::MissingPath::parent,"native indexed path not found");
     current=found;start=end+1;
   }
   if(verify_inodes)verify_inode(objects,model,*current);

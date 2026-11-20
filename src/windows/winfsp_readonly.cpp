@@ -37,7 +37,8 @@ template<class Function> NTSTATUS boundary(Function&& run) noexcept {
   } catch (const NativeFsError& e) {
     switch(e.code()) {
       case NativeFsErrorCode::invalid_path:return STATUS_OBJECT_NAME_INVALID;
-      case NativeFsErrorCode::not_found:return STATUS_OBJECT_NAME_NOT_FOUND;
+      case NativeFsErrorCode::not_found:
+        return e.missing_parent()?STATUS_OBJECT_PATH_NOT_FOUND:STATUS_OBJECT_NAME_NOT_FOUND;
       case NativeFsErrorCode::already_exists:return STATUS_OBJECT_NAME_COLLISION;
       case NativeFsErrorCode::not_directory:return STATUS_NOT_A_DIRECTORY;
       case NativeFsErrorCode::is_directory:return STATUS_FILE_IS_A_DIRECTORY;

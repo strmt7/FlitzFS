@@ -484,6 +484,12 @@ void indexed_callbacks(unsigned unit) {
       FALSE,FALSE,&bytes,&info)==STATUS_SUCCESS && bytes==unicode_bytes.size(),"indexed SDK tree fixture write");
   const auto member=info.IndexNumber;
   require(fs.Interface->Rename(&fs,tree,tree_name,tree_destination,FALSE)==STATUS_SUCCESS,"indexed SDK tree move");
+  wchar_t missing_name[]=L"\\directory-with-a-longer-name\\missing";
+  const auto rename_checks_writes=backing->calls;
+  require(fs.Interface->GetSecurityByName(&fs,child_name,nullptr,nullptr,nullptr)==STATUS_OBJECT_PATH_NOT_FOUND &&
+      fs.Interface->GetSecurityByName(&fs,missing_name,nullptr,nullptr,nullptr)==STATUS_OBJECT_NAME_NOT_FOUND &&
+      fs.Interface->Rename(&fs,child,child_destination,child_name,FALSE)==STATUS_OBJECT_PATH_NOT_FOUND &&
+      backing->calls==rename_checks_writes,"indexed SDK missing ancestor or file returned the wrong status");
   void* moved=nullptr;
   require(fs.Interface->Open(&fs,child_destination,open_file,FILE_ALL_ACCESS,&moved,&info)==STATUS_SUCCESS &&
       moved && info.IndexNumber==member,"indexed SDK tree move changed the member identity");

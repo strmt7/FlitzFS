@@ -26,13 +26,13 @@ compatible versions before execution; this plan neither installs nor runs them.
 [fio](https://github.com/axboe/fio/tree/fio-3.43),
 [lzbench](https://github.com/inikep/lzbench/tree/v2.4).
 
-WinFsp's current selected prerelease is v2.2B5, dated 13 October 2026; its latest
-stable-release endpoint still names v2.1. Do not call the prerelease stable or
-change an installed driver as research setup. The selected maintainer source
-documents its test tools and Windows FSX/IfsTest roles.
-[Testing strategy](https://github.com/winfsp/winfsp/blob/v2.2B5/doc/WinFsp-Testing.asciidoc).
+WinFsp published stable v2.2 on 19 November 2026. Use the checksum-pinned
+v2.2 package and the matched correctness tools for that qualification lane.
+The maintainer documents the WinFsp tests and the roles of Windows FSX and
+IfsTest. [v2.2 release](https://github.com/winfsp/winfsp/releases/tag/v2.2) ·
+[Testing strategy](https://github.com/winfsp/winfsp/blob/ada6de157df4fa99f5a866b6ac7af66918d6d838/doc/WinFsp-Testing.asciidoc).
 
-The performance guide in that recent source tag retains results from a Windows
+The performance guide reviewed at v2.2B5 retains results from a Windows
 11 21H2/WinFsp 2022 environment. Those timings are not current evidence. Its
 best-of-three aggregation and asymmetric antivirus configuration are not this
 protocol: keep distributions and equal security settings, with no owner-host

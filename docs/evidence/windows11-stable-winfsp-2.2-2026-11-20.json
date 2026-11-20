@@ -1,0 +1,468 @@
+{
+  "schema": "flitzfs-windows11-stable-winfsp-22-v1",
+  "captured_local": "2026-11-20T13:45:27+01:00",
+  "experimental": true,
+  "source_base": "ad466670c22f0e95ca39a4cde353c71ad9380567",
+  "candidate_git_blobs": {
+    "include/flitzfs/native_filesystem.hpp": "3e501bfb4890e74271040340059aec8c58ee5008",
+    "src/native_filesystem.cpp": "65c950c269b0efb0f779835bd372b4b7a3a3f4c9",
+    "src/native_indexed_volume.cpp": "247b67c3c9bae572014ad5d0ce72ee9ad2f4d282",
+    "src/windows/native_windows_boundary.hpp": "f2d4549e6dc315dc65c77602ba421c87492564a2",
+    "src/windows/winfsp_readonly.cpp": "fb5c5f368b9e9c542c805591dff346419c6e1289",
+    "tests/test_winfsp_paged.cpp": "415ab4700a5898134c4bcf9b34256afabaab72f9",
+    "tests/windows_volume_app_tests.cpp": "2ae15ad3450662731bf3a78ead50806605346d97",
+    "tools/winfsp-sdk-lock.json": "56f532cb2ab9fa51fe1ef25ac4d90e9ec1052af0",
+    "tools/winfsp-retirement-sdk-lock.json": "0025dc6f9faedc910680b268ddf8b2fe36c09fc8",
+    "tools/ci/prepare_winfsp_sdk.ps1": "c1eb987bae6267a2e51a0238e9410ef7aa732ece",
+    "tools/ci/provision_disposable_winfsp.ps1": "4fb2efeeca049010ed675562adc20174ea28d10d",
+    "tools/ci/retirement_reference.py": "2187bb689d9967d83f7a884f104fe3d2f5ac37bd",
+    ".github/workflows/retirement-reference.yml": "decbf1b841b6f558ede6b80a5896d1bc12cbf52d"
+  },
+  "winfsp": {
+    "published": "2026-11-19",
+    "release_id": 451275894,
+    "annotated_tag": "f273cc48c3ca03476a5d60134639854108e11313",
+    "lock": {
+      "schema": 1,
+      "repository": "winfsp/winfsp",
+      "tag": "v2.2",
+      "prerelease": false,
+      "source_commit": "ada6de157df4fa99f5a866b6ac7af66918d6d838",
+      "msi_name": "winfsp-2.2.26323.msi",
+      "url": "https://github.com/winfsp/winfsp/releases/download/v2.2/winfsp-2.2.26323.msi",
+      "bytes": 2220032,
+      "sha256": "36ce01f9eedbbe6842b7fb4bedc79d7d4f71983e8aceb6877b46a07b331c7e19",
+      "release_url": "https://github.com/winfsp/winfsp/releases/tag/v2.2",
+      "policy": "Stable SDK and signed driver for development and disposable Windows qualification."
+    },
+    "stage_provenance_sha256": "086e34041de22b026a78150db70013bd1e1fb3d3446aadf123aa2413ecb519a0",
+    "payloads": [
+      {
+        "path": "bin/winfsp-x64.dll",
+        "bytes": 200816,
+        "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+      },
+      {
+        "path": "include/winfsp/winfsp.h",
+        "bytes": 94418,
+        "sha256": "b8e5c3320bfb58d086ee622dd13370eb38a49e1142877c9d8af827515f916540"
+      },
+      {
+        "path": "include/winfsp/fsctl.h",
+        "bytes": 31685,
+        "sha256": "f03bbbef67430335b8f36544d62c2abfa8b3b2823ca325d8b542b5bebed832b1"
+      },
+      {
+        "path": "lib/winfsp-x64.lib",
+        "bytes": 55054,
+        "sha256": "41ee9db17da0196aed067605caa719443142f74c0fa8e7800d2acb3fabf78354"
+      },
+      {
+        "path": "driver/winfsp-x64.sys",
+        "bytes": 169672,
+        "sha256": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1"
+      }
+    ]
+  },
+  "navigation": {
+    "commit": "ad466670c22f0e95ca39a4cde353c71ad9380567",
+    "provider_version": "0.2.43",
+    "source_files": 4,
+    "actual_searches": 1,
+    "native_response_sha256": "b3126b38ed6fa62ddfb53241c2553be25e6d9a25d94f2aebdb85950738f7d0a0"
+  },
+  "research": [
+    {
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "robots": true,
+      "external_llm": false,
+      "native_pages": [
+        {
+          "name": "sandbox",
+          "url": "https://learn.microsoft.com/en-us/windows/security/application-security/application-isolation/windows-sandbox/windows-sandbox-cli",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 28628,
+          "markdown_sha256": "aa31aae597a5d2f8bfb89d9c2cb0f3c42aa3b8570979bf0a0a6453a4eb42cbf4",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 2.55,
+          "capture": "sandbox.native.json",
+          "capture_sha256": "b26837fc7fad90995fab5b5c5d56a5e9d419976f95df8e2cbc5cc126fee9b490"
+        },
+        {
+          "name": "naming",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 37194,
+          "markdown_sha256": "bd8a881c1d2aafc355b05c00a827f44701cfc8bbfe37b66784cdb6689b8582f5",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.617,
+          "capture": "naming.native.json",
+          "capture_sha256": "cc94452dd8c9f96dc91fe043095bec857787441d46a4b0384690eb656e51db09"
+        },
+        {
+          "name": "notify",
+          "url": "https://winfsp.dev/doc/WinFsp-API-winfsp.h/",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 73095,
+          "markdown_sha256": "23f2e7b26b2297a12d6e98acb7b612010c44361803cc72c3563f82571cce5837",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.683,
+          "capture": "notify.native.json",
+          "capture_sha256": "def7d78d11211e8d676ab79406cb84dd5572e4c4db0c1ecf95ff37ceb9521220"
+        }
+      ]
+    },
+    {
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "robots": true,
+      "external_llm": false,
+      "native_pages": [
+        {
+          "name": "release",
+          "url": "https://github.com/winfsp/winfsp/releases/tag/v2.2",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 13979,
+          "markdown_sha256": "ab2f6d9588a8e3f398a6a8133006355b2ebec07d379c73f610854e2016e38f41",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 1.13,
+          "capture": "release.native.json",
+          "capture_sha256": "fa93d0bd93d8db693bb0df3bbdb65a46fd66d907ca55936c29713c643455084d"
+        },
+        {
+          "name": "testing",
+          "url": "https://github.com/winfsp/winfsp/blob/ada6de157df4fa99f5a866b6ac7af66918d6d838/doc/WinFsp-Testing.asciidoc",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 21884,
+          "markdown_sha256": "cb63bef84fd078ab50e684ad45c21908b4edd5fe5816a021720eebbd856a33b1",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 1.159,
+          "capture": "testing.native.json",
+          "capture_sha256": "c6d71ddf88e339c724d152128b9ae97bb89c38124433e665e2fd56a9bdbee5b7"
+        }
+      ]
+    },
+    {
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "robots": true,
+      "external_llm": false,
+      "native_pages": [
+        {
+          "name": "status",
+          "url": "https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/596a1078-e883-4972-9bbc-49e60bebca55",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 262403,
+          "markdown_sha256": "368fa7a2993ec7d26cf2f83ed3bcda1ed0be035d5c8c8d609dc6da3ceafc024b",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 1.678,
+          "capture": "status.native.json",
+          "capture_sha256": "e1584b3013d7069d7e8312fb8130e32174f36d2f675d86274f17224143873279"
+        }
+      ]
+    }
+  ],
+  "host_driver_state_after": [
+    {
+      "Name": "WinFsp+20260516T182719Z",
+      "State": "Stopped",
+      "StartMode": "Manual"
+    }
+  ],
+  "guest_trials": [
+    {
+      "name": "stable-trial",
+      "session_id": "b0352346-9348-403a-af34-1125740eb74b",
+      "guest": {
+        "caption": "Microsoft Windows 11 Enterprise",
+        "version": "10.0.26100",
+        "build": "26100",
+        "session": 0,
+        "ram_mib": 4094,
+        "available_mib": 2943,
+        "explorer_sessions": []
+      },
+      "phase": "tray-memory",
+      "error": "Isolated mounted GUI trial returned 1",
+      "inputs_sha256": {
+        "flitzfs_volume_app_tests.exe": "71717480d7dddf044985fd9fee27c129eba39deb028e0ca3730dfb64b4bf7e76",
+        "flitzfs_volume_app.exe": "8a10fd6db6605c9223c0832491cd997dfb81a0b51d29a27d88949042ab9039f5",
+        "msvcp140_atomic_wait.dll": "8b10c6bd4c3c427ce7c8be96ef0fef0f8187bc236962be62a03caef834b37dcd",
+        "msvcp140.dll": "59d325227321d52b9a523ea401ce6787a5d59f78229a0ff3a6f124e5d3445685",
+        "vcruntime140_1.dll": "a14b4a42a2c6df04d6d53a8340816023d953406f7f3d94996c7cab30c414ff63",
+        "vcruntime140.dll": "eb1ee979bf02324712346e5bdbfc59c785388bc50d18cc2688aae4b0734915a0",
+        "winfsp-x64.dll": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+        "winfsp-x64.sys": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1"
+      },
+      "guest_receipt_sha256": "12356af4bb15561198b31c07e49d503851345e6c8043e7c82ae31091bfc753be",
+      "host_receipt_sha256": "61e9305bdf32006628e87819ad0c02f76f689a35d5d02233d8278306ed5d9eaf",
+      "runner_sha256": "5386bf673dfc9d7df74b600da1969e7a82e991630484baa4905d8b09369d39e2",
+      "guest_command_sha256": "8eb35740dac4b0979efe87d94ba21560a1049e108cca8630b1e62ab68b708e46",
+      "guest_retired": true,
+      "job": {
+        "run": "local-run-e0eb7af8c9a54b0ab400a3735ac96bb2",
+        "exit_code": 1,
+        "receipt_sha256": "915ce0b7caaaf51c3a8da46bce09f8b2af7629762cc04e6acd0b468334227fe4",
+        "output_sha256": "02df60dde88dc6593f59442bd05b7f1502a1a2d8d4305ff38b27f4512cf28112",
+        "retired": true,
+        "peak_job_bytes": 49614848
+      },
+      "existing_login": {
+        "result": -2147023584,
+        "output": "",
+        "error": "Failed to start process in Windows Sandbox environment:\r\nA specified logon session does not exist. It may already have been terminated. (0x80070520)\r\n"
+      },
+      "mounted_trial_exit_code": 1,
+      "fixture_source_blob": "c61dc4ed6a229fc998cc07f85a42620249066eb8",
+      "mount_parent_leaf_count": 0,
+      "driver_retirement_at_guest_stop": true,
+      "driver_started": true,
+      "signatures_valid": true,
+      "failed_check": "Old path did not report the expected missing-ancestor status after moving a directory."
+    },
+    {
+      "name": "stable-path-fix",
+      "session_id": "4006cfbd-7ff4-44bb-8d05-5aa8fc36cacf",
+      "guest": {
+        "caption": "Microsoft Windows 11 Enterprise",
+        "version": "10.0.26100",
+        "build": "26100",
+        "session": 0,
+        "ram_mib": 4094,
+        "available_mib": 2962,
+        "explorer_sessions": []
+      },
+      "phase": "complete",
+      "error": null,
+      "inputs_sha256": {
+        "flitzfs_volume_app_tests.exe": "62b95b0985cea17ed1f3d0f3ba92875f58d15231ae783423c30bd1ca945436e2",
+        "flitzfs_volume_app.exe": "b71d58a9097a64f056ae0d10f39fb4938b9a58e155d3fd808bfc4da161a63234",
+        "msvcp140_atomic_wait.dll": "8b10c6bd4c3c427ce7c8be96ef0fef0f8187bc236962be62a03caef834b37dcd",
+        "msvcp140.dll": "59d325227321d52b9a523ea401ce6787a5d59f78229a0ff3a6f124e5d3445685",
+        "vcruntime140_1.dll": "a14b4a42a2c6df04d6d53a8340816023d953406f7f3d94996c7cab30c414ff63",
+        "vcruntime140.dll": "eb1ee979bf02324712346e5bdbfc59c785388bc50d18cc2688aae4b0734915a0",
+        "winfsp-x64.dll": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+        "winfsp-x64.sys": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1"
+      },
+      "guest_receipt_sha256": "7fed41ca6046a71e67963ab830ab11528b3ac0f9c3f806b8914df1d5848545c7",
+      "host_receipt_sha256": "24757c2d2f4adc6514c080ad4d19d1b6936c00680e29b753b94c7aa1e84bcf06",
+      "runner_sha256": "5386bf673dfc9d7df74b600da1969e7a82e991630484baa4905d8b09369d39e2",
+      "guest_command_sha256": "8eb35740dac4b0979efe87d94ba21560a1049e108cca8630b1e62ab68b708e46",
+      "guest_retired": true,
+      "job": {
+        "run": "local-run-e6de8e78205a4e028287bd6a9e756889",
+        "exit_code": 0,
+        "receipt_sha256": "cfd8f26e7345fc9b9fee6fb76d3bfc06195d0627100f0d81445d85d11fddd160",
+        "output_sha256": "0a34ef469bf5162117b5a35790a5e2423333ea291d816723132b2d6ac6caae88",
+        "retired": true,
+        "peak_job_bytes": 45359104
+      },
+      "existing_login": {
+        "result": -2147023584,
+        "output": "",
+        "error": "Failed to start process in Windows Sandbox environment:\r\nA specified logon session does not exist. It may already have been terminated. (0x80070520)\r\n"
+      },
+      "mounted_trial_exit_code": 0,
+      "fixture_source_blob": "2ae15ad3450662731bf3a78ead50806605346d97",
+      "mount_parent_leaf_count": 0,
+      "driver_retirement_at_guest_stop": true,
+      "driver_started": true,
+      "signatures_valid": true,
+      "verified_properties": "mounted_gui_roundtrip reattached=1 junction_cleanup_verified=1 serial_preserved=1 window_close_retained=1 external_cpu_readback=1 unicode_names=1 extended_path=1 alias_collision=1 live_handle_rename=1 directory_move=1",
+      "app_checks": 71
+    },
+    {
+      "name": "stable-msi",
+      "session_id": "12eb6c36-5313-4737-85c1-55c76c97423e",
+      "guest": {
+        "caption": "Microsoft Windows 11 Enterprise",
+        "version": "10.0.26100",
+        "build": "26100",
+        "session": 0,
+        "ram_mib": 4094,
+        "available_mib": 3060,
+        "explorer_sessions": []
+      },
+      "phase": "install",
+      "error": "Guest command timed out",
+      "inputs_sha256": {
+        "flitzfs_volume_app_tests.exe": "62b95b0985cea17ed1f3d0f3ba92875f58d15231ae783423c30bd1ca945436e2",
+        "flitzfs_volume_app.exe": "b71d58a9097a64f056ae0d10f39fb4938b9a58e155d3fd808bfc4da161a63234",
+        "msvcp140_atomic_wait.dll": "8b10c6bd4c3c427ce7c8be96ef0fef0f8187bc236962be62a03caef834b37dcd",
+        "msvcp140.dll": "59d325227321d52b9a523ea401ce6787a5d59f78229a0ff3a6f124e5d3445685",
+        "vcruntime140_1.dll": "a14b4a42a2c6df04d6d53a8340816023d953406f7f3d94996c7cab30c414ff63",
+        "vcruntime140.dll": "eb1ee979bf02324712346e5bdbfc59c785388bc50d18cc2688aae4b0734915a0",
+        "winfsp-x64.dll": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+        "winfsp.msi": "36ce01f9eedbbe6842b7fb4bedc79d7d4f71983e8aceb6877b46a07b331c7e19"
+      },
+      "guest_receipt_sha256": "1752d802ab009f5871f8cf888866bf717bd1b54489f92ffaf5aeb26b2e80bd27",
+      "host_receipt_sha256": "6285d51cd9b0e97d7b9989e9a06c52bfc0d6f7d99ed9c189ee554d08d421ff36",
+      "runner_sha256": "c684ab836ccfcdb07bdefd2cb093d53bc62276c4346a3063938b10f5e073f910",
+      "guest_command_sha256": "7573399324ebd4a379659590a9820d4d0eb77516803e333894aa58870e29a1d3",
+      "guest_retired": true,
+      "job": {
+        "run": "local-run-24fcf7c4c85346888b46886656be161e",
+        "exit_code": 1,
+        "receipt_sha256": "a0010c875b7539c252ddbf5f0bee7e08779d3b2447f3b74ca9f2d43c0ebfcd61",
+        "output_sha256": "7aab7c58c269db809fa562bf496b653100cceb0e2d4977f3e1352433d2bab17c",
+        "retired": true,
+        "peak_job_bytes": 50769920
+      },
+      "package_signature": "Valid",
+      "installer_last_phase": "Software restriction policy verification",
+      "installer_completed": false,
+      "uninstall_attempted": false
+    }
+  ],
+  "host_checks": {
+    "Release": {
+      "run": "local-run-3dea0e8ab7014141af7309fdb82062ae",
+      "exit_code": 0,
+      "receipt_sha256": "e0ef100d25b3aba04087151ef536504b08fcaa998e28a767275b91a682421984",
+      "output_sha256": "4f6c6e4fbd8f7350ac5482f791640fa60d38ecf6aee5696343b473feaf827635",
+      "retired": true,
+      "peak_job_bytes": 40361984,
+      "cases": [
+        "bounded_native_indexed_volume",
+        "bounded_winfsp_controller",
+        "bounded_winfsp_memory_volume",
+        "bounded_winfsp_readonly_memory",
+        "bounded_winfsp_indexed_memory",
+        "bounded_winfsp_memory_remount",
+        "bounded_winfsp_paged_callbacks",
+        "bounded_winfsp_paged_faults-4096",
+        "bounded_winfsp_paged_faults-65536"
+      ]
+    },
+    "AddressSanitizer": {
+      "run": "local-run-73f5f2d4027f42baa02b692afb52d6e3",
+      "exit_code": 0,
+      "receipt_sha256": "8d30af5e0e5d6fa9466928b03fb47efccf7d8e966c7ef5cfab097d5b1d8b6677",
+      "output_sha256": "8960b3f3b1cbf698fbb687bba2739bd6b3f290fcef52ae638639bb43ec58e738",
+      "retired": true,
+      "peak_job_bytes": 1051095040,
+      "cases": [
+        "windows_asan_runtime_preflight",
+        "bounded_native_indexed_volume",
+        "windows_asan_staging_regression",
+        "bounded_winfsp_paged_callbacks",
+        "bounded_winfsp_paged_faults-4096",
+        "bounded_winfsp_paged_faults-65536"
+      ]
+    },
+    "Codec-free": {
+      "run": "local-run-22a327dcd9274f3d8afa21d880de66f1",
+      "exit_code": 0,
+      "receipt_sha256": "179d5cc4d715a68c412cb49ef178811c01540761d55352c0d827aeae1ac99f91",
+      "output_sha256": "2b244323a2ae8582c90634e95cafd5e07d4ee8877a7f04cf8420a6b70929a56a",
+      "retired": true,
+      "peak_job_bytes": 40079360,
+      "cases": [
+        "bounded_native_indexed_volume",
+        "bounded_winfsp_paged_callbacks",
+        "bounded_winfsp_paged_faults-4096",
+        "bounded_winfsp_paged_faults-65536"
+      ]
+    },
+    "Private desktop GUI": {
+      "run": "local-run-e33a1541b79f4a9889fb5ec56187ab56",
+      "exit_code": 0,
+      "receipt_sha256": "818bb2e9c32308a4a276d819876f6ce5bae180427d0a78c08e1db2eb6c293cf7",
+      "output_sha256": "9b7b3a65d5be1757e2ce92e2e35815d89f31c138f2914f69a6ce0513f6c710d4",
+      "retired": true,
+      "peak_job_bytes": 8323072
+    },
+    "Attachment SDK lifecycle": {
+      "run": "local-run-dbccb4a41fc04af58449127f1c98e876",
+      "exit_code": 0,
+      "receipt_sha256": "0ec9b3a52d8f6cd04789c530182aaab2278e3f9f96a65c94143480f1d963e583",
+      "output_sha256": "06f4c3555c831c7cd4960951c468203784773561e78feaa8090842cfe51e515f",
+      "retired": true,
+      "peak_job_bytes": 5574656
+    },
+    "Persistent attachment on memory backing": {
+      "run": "local-run-185ba1e6c34944b8a24a028d6ab0f283",
+      "exit_code": 0,
+      "receipt_sha256": "1b9cfafab7f12627ab4c14904d240035812264760669b20d2bc9e0054f0ed28f",
+      "output_sha256": "2550d96761040bcfcc95f1abf0cf92555a95e5684210bf04120c2236155f07ff",
+      "retired": true,
+      "peak_job_bytes": 5111808
+    },
+    "Frozen reference SDK extraction": {
+      "run": "local-run-138550bb24804ac7a74222002d9cb2b1",
+      "exit_code": 0,
+      "receipt_sha256": "c5dd6fa5486b6f120690c21c4c932b47da3460a62e6df55f05c4a4a02765f664",
+      "output_sha256": "e037512cffbe44491db65e92e440c715edd379f7e243c11eab6e21ab998ccebd",
+      "retired": true,
+      "peak_job_bytes": 73105408
+    },
+    "Pinned retirement source tests": {
+      "run": "local-run-4c7c86423c554c7083b794dce4cf83ee",
+      "exit_code": 0,
+      "receipt_sha256": "5f4045f2ff630ee1fade70c4b9b61bd8d78756ee519162bb727787396f2d7669",
+      "output_sha256": "cac4a23defcc12a3714a7befe67c7583889ac1361c2ffc5244dbc37c861227fd",
+      "retired": true,
+      "peak_job_bytes": 23617536
+    },
+    "Final WinFsp 2.2 build": {
+      "run": "local-run-90aa1bd8107e49719fe2ccf252dbf863",
+      "exit_code": 0,
+      "receipt_sha256": "ac39b86cc18cee8c3d276d4772620dc167bd5fea99d8788fb69ca3574fb02746",
+      "output_sha256": "b5b7c6b63086a53f93a7d7b77f72a87c694d50ed618b9de6b531fbb24be3079d",
+      "retired": true,
+      "peak_job_bytes": 810078208
+    }
+  },
+  "host_amd": {
+    "run": "local-run-6e1e257f12b747ba8a6a4eb8361c287c",
+    "exit_code": 0,
+    "receipt_sha256": "469bf2bce02dc834275d8322ab0b5c7c61280c53e228c88c0df5686e787cbf9a",
+    "output_sha256": "10b76d571b7ec5d678886ff992fb3beddef2b529a94355bf908ceb1d6da80f2b",
+    "retired": true,
+    "peak_job_bytes": 118321152,
+    "adapter": "AMD Radeon RX 9070 XT",
+    "input_blake3": "b185468640f8611917f3d86cdd25f31a4805fe343dc1f826be2b486f96c30f41",
+    "files": "16",
+    "verified_batches": "1",
+    "verified_groups": "8",
+    "advised_members": "20",
+    "grouped_compacted_bytes": "425984",
+    "independent_cpu_readback": "true"
+  },
+  "scope": {
+    "guest_backing": "isolated mounted memory volumes",
+    "host_mount": false,
+    "performance_trial_in_guest": false,
+    "interactive_explorer": false,
+    "standard_msi_install_and_rollback": false,
+    "physical_power_loss": false
+  }
+}
