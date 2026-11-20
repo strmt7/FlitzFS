@@ -22,15 +22,20 @@ GIB=1024**3
 HIP_RUNTIME_UNAVAILABLE=0x46530002
 HIP_INTEGRITY_FAILURE=0x46530006
 
-PROVISION_SDK = """
+STAGE_SDK = """
+import json
 from pathlib import Path
 import sys
 
-provider, lock, parent, *archive = sys.argv[1:]
+provider, lock, parent, archive, existing = sys.argv[1:]
 sys.path.insert(0, provider)
-from tools.bootstrap_rocm_sdk import provision, read_lock
+from tools.bootstrap_rocm_sdk import inspect_archive, provision, read_lock
 
-print(provision(read_lock(Path(lock)), Path(parent), Path(archive[0]) if archive else None))
+recipe = read_lock(Path(lock))
+if existing:
+    print(json.dumps(inspect_archive(Path(archive), recipe, existing=Path(existing))))
+else:
+    print(provision(recipe, Path(parent), Path(archive) if archive else None))
 """
 
 def require(ok,why):
@@ -63,6 +68,25 @@ def run(bounds,command,report,name,seconds=900,exit_code=0):
     require(result["exit_code"]==exit_code and not result["timed_out"] and not result["output_limit_exceeded"],
         "native ROCm qualification command failed: "+name)
     return result
+
+
+def check_sdk_inventory(sdk: Path, expected_members: int) -> None:
+    # The distribution includes an explicit archive root directory.
+    count = 1
+    pending = [sdk]
+    while pending:
+        with os.scandir(pending.pop()) as entries:
+            for entry in entries:
+                info = entry.stat(follow_symlinks=False)
+                require(not (getattr(info, "st_file_attributes", 0) & 0x400),
+                    "existing SDK contains a reparse point")
+                if stat.S_ISDIR(info.st_mode):
+                    pending.append(entry.path)
+                else:
+                    require(stat.S_ISREG(info.st_mode), "existing SDK contains a special entry")
+                count += 1
+                require(count <= expected_members, "existing SDK contains unpinned entries")
+    require(count == expected_members, "existing SDK inventory differs from the archive")
 
 
 def stage_sdk_compiler(provider: Path, lock: Path, destination: Path, report: dict) -> Path:
@@ -142,6 +166,8 @@ def main():
     parser.add_argument("--provider",type=Path,required=True)
     parser.add_argument("--output",type=Path,required=True)
     parser.add_argument("--archive", type=Path, help="Reuse an AMD archive after full pin and inventory validation")
+    parser.add_argument("--existing-sdk", type=Path,
+        help="Verify and reuse a staged SDK under RUNNER_TEMP with --archive")
     parser.add_argument("--hipcomp-source",type=Path,help="Optional reviewed codec checkout; offline object only")
     parser.add_argument("--hipcomp-native-sync",action="store_true")
     parser.add_argument("--hipcomp-link-candidate",action="store_true")
@@ -160,6 +186,11 @@ def main():
     temporary = Path(os.environ["RUNNER_TEMP"]).resolve(strict=True)
     root = args.output.resolve()
     provider = args.provider.absolute()
+    existing = args.existing_sdk.absolute() if args.existing_sdk is not None else None
+    if existing is not None:
+        require(args.archive is not None and existing != temporary and existing.is_relative_to(temporary) and
+            existing.is_dir() and existing.resolve(strict=True) == existing and not root.is_relative_to(existing),
+            "existing SDK requires its pinned archive and a separate physical fixture")
     require(root != temporary and root.is_relative_to(temporary) and not root.exists(),
         "qualification requires a NEW owned RUNNER_TEMP fixture")
     require(provider.is_dir() and provider.resolve(strict=True) == provider and
@@ -212,18 +243,21 @@ def main():
         bounds=load_source("flitzfs_reference_bounds",provider/"mcp/flitzzip_mcp.py")
         lock = bootstrap.read_lock(own_lock)
         report["distribution"] = lock
-        archive_args = []
-        if args.archive is not None:
-            archive = args.archive.absolute()
+        archive = args.archive.absolute() if args.archive is not None else None
+        if archive is not None:
             info = archive.lstat()
             require(stat.S_ISREG(info.st_mode) and archive.resolve(strict=True) == archive and
                 info.st_size == lock["archive_bytes"], "supplied AMD archive size or path differs from the pin")
-            archive_args.append(str(archive))
-        report["archive_supplied"] = bool(archive_args)
+        report["archive_supplied"] = archive is not None
+        report["sdk_reused"] = existing is not None
+        if existing is not None:
+            check_sdk_inventory(existing, lock["members"])
         reserve = 4 * GIB
-        needed = lock["unpacked_bytes"] + reserve
-        if not archive_args:
-            needed += lock["archive_bytes"]
+        needed = reserve
+        if existing is None:
+            needed += lock["unpacked_bytes"]
+            if archive is None:
+                needed += lock["archive_bytes"]
         free = shutil.disk_usage(root).free
         report["disk_admission"] = dict(available=free, required=needed, reserve=reserve)
         require(free >= needed, "insufficient space for the complete ROCm distribution")
@@ -246,12 +280,20 @@ def main():
         run(bounds,[sys.executable,"-B","-m","unittest","tools.test_bootstrap_rocm_sdk"],
             report,"current-reference-bootstrap-regressions",120)
         sdk_parent = root / "sdk-cache"
-        run(bounds, [sys.executable, "-I", "-B", "-c", PROVISION_SDK,
-            str(provider), str(own_lock), str(sdk_parent), *archive_args], report, "complete-sdk-bootstrap", 3600)
-        sdk=sdk_parent/"sdk"
-        identity=bootstrap.sdk_identity(sdk,lock["version"])
-        report["critical_inputs"]=identity
-        receipt = json.loads((sdk_parent / "verified-distribution.json").read_text(encoding="utf-8"))
+        stage = run(bounds, [sys.executable, "-I", "-B", "-c", STAGE_SDK,
+            str(provider), str(own_lock), str(sdk_parent),
+            str(archive) if archive is not None else "", str(existing) if existing is not None else ""],
+            report, "verify-existing-sdk" if existing is not None else "complete-sdk-bootstrap", 3600)
+        sdk = existing if existing is not None else sdk_parent / "sdk"
+        identity = bootstrap.sdk_identity(sdk, lock["version"])
+        report["critical_inputs"] = identity
+        if existing is not None:
+            inventory = json.loads(stage["stdout"])
+            require(inventory == {key: lock[key] for key in ("members", "sha256", "unpacked_bytes")},
+                "existing SDK bytes differ from the distribution inventory")
+            receipt = dict(inventory, version=lock["version"], critical_inputs=identity, reused=True)
+        else:
+            receipt = json.loads((sdk_parent / "verified-distribution.json").read_text(encoding="utf-8"))
         require(receipt["version"] == lock["version"] and receipt["sha256"] == lock["sha256"] and
             receipt["critical_inputs"] == identity, "provisioned SDK differs from the FlitzFS distribution lock")
         report["bootstrap_receipt"] = receipt

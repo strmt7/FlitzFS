@@ -62,8 +62,9 @@ identity and cleanliness before import. FlitzFS selects its own complete AMD
 distribution in `tools/rocm-sdk-lock.json` and passes that pin to the unchanged
 bootstrap API. The lane admits the extracted size plus a 4 GiB reserve and adds
 the download size when no local archive is supplied. `--archive` reuses a local
-artifact with the same SHA-256, size and inventory checks as a download. The
-same provisioned SDK supplies the headers, import library, compiler and device
+artifact with the same SHA-256, size and inventory checks as a download.
+Pair it with `--existing-sdk` to verify the full extracted tree byte-for-byte
+and reuse it within the private workspace. The provisioned SDK supplies the headers, import library, compiler and device
 inputs. The native compiler scripts are staged byte-for-byte alongside the same
 FlitzFS lock. Their hashes are checked again after compilation.
 

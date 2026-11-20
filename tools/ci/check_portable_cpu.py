@@ -55,7 +55,11 @@ def audit_binary(data):
         return {"format":"ELF64","architecture":"x86_64","dynamic_loader":False,"program_headers":count}
     require(sys.platform=="win32","unsupported portability platform")
     names, delayed = pe_import_names(data)
-    allowed={"kernel32.dll","advapi32.dll","bcrypt.dll","ntdll.dll"}
+    # Windows supplies WaitOnAddress and WakeByAddress* through this API set.
+    allowed = {
+        "kernel32.dll", "advapi32.dll", "bcrypt.dll", "ntdll.dll",
+        "api-ms-win-core-synch-l1-2-0.dll",
+    }
     require(bool(names) and set(names)<=allowed and not delayed,
             "portable PE imports a non-admitted dependency: "+repr(names))
     return {"format":"PE32+","architecture":"AMD64","os_imports":sorted(set(names)),"delay_imports":False}
