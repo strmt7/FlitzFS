@@ -10,6 +10,18 @@
     "tree": "936409737d1c4a5d4aeb37fe5af48f55ba9accff",
     "note": "Architectural review baseline. Layer and runtime evidence have separate source bindings."
   },
+  "windows_native_cpu_sampling_and_amd_resume": {
+    "source_base": "513d410d9778d7c416d63ebc71a103bd092d5723",
+    "evidence": "docs/evidence/windows-native-cpu-sampling-amd-resume-2026-11-20.json",
+    "native_scope": "Single active processor group, matching processor count",
+    "aggregate_multi_group_fallback": "PDH",
+    "signed_driver_version_verified": "32.0.32029.2010",
+    "installed_route_verified_groups": 1,
+    "amd_public_revision_grouped_bytes": 278528,
+    "amd_public_revision_cpu_grouped_bytes": 286720,
+    "independent_cpu_readback": true,
+    "mounted_windows_client_qualification": false
+  },
   "indexed_assembled_section_reference": {
     "source_base": "594e65b5e020b17f5fdfe0cbce2720b0cd369d69",
     "evidence": "docs/evidence/indexed-section-references-2026-11-20.json",

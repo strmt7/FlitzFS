@@ -40,20 +40,21 @@ every explicit operation. Automatic staged compaction/reclamation remains open.
 
 ## Trusted opportunities and resource priority
 
-`WindowsMaintenanceHost` owns one local built-in PDH query for
-`Processor Information(_Total)\% Processor Time`, added with the language-neutral
-API. This avoids silently treating `GetSystemTimes`' primary-group result as
-whole-machine load on systems with more than 64 processors. No remote counter,
-registry repair, sampling thread or external process is created.
+`WindowsMaintenanceHost` reads `GetSystemTimes` when the machine has one active
+processor group. It checks group and processor counts on both sides of each
+capture and starts a fresh rate window when that topology changes. On machines
+with multiple groups or when the native call fails, the host uses the aggregate
+language-neutral PDH processor counter.
 
-Two samples at least one second apart establish a rate. Only a successful
-counter status, finite 0–100% value, actual 1–2 second monotonic window and fresh
-physical/commit observation can reach the core. Busy ratios are normalized to
-one million units and rounded upward. The core now explicitly bounds its CPU
-observation window by policy, default 2,000 ms, separately from the default
-250-ms capture freshness. Late windows re-prime rather than reusing stale rates.
-An unavailable collector disables optional background execution without repeated
-discovery. File access stays on the CPU engine; no host counter/driver is changed.
+Two successful samples establish a 1–2 second rate window and require fresh
+physical and commit headroom. The native delta subtracts idle time from kernel
+plus user time and rejects decreasing, empty or inconsistent counters. PDH
+converts its percentage to one million units with upward rounding. The core
+separately checks the policy limit on sample duration and the freshness of the
+capture before admitting any optional work. Late windows re-prime the collector.
+[Windows system timing](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getsystemtimes) ·
+[Processor groups](https://learn.microsoft.com/windows/win32/procthread/processor-groups) ·
+[Native sampling and AMD recovery evidence](evidence/windows-native-cpu-sampling-amd-resume-2026-11-20.json)
 
 The existing single owned controller worker runs preparation outside queue
 and UI locks. One fresh CPU capture can fund several short preparation steps.

@@ -526,11 +526,13 @@ void maintenance_tests() {
       if(host.next_delay_ms())return false;
       observation=host.observe(false);return observation.valid;
     },deadline);
-    require(observation.cpu_total_ticks==1000000 && observation.cpu_busy_ticks<=1000000 &&
+    require(observation.cpu_total_ticks && observation.cpu_busy_ticks<=observation.cpu_total_ticks &&
         observation.cpu_window_ms>=1000 && observation.cpu_window_ms<=2000 &&
         observation.physical_total && observation.physical_available<=observation.physical_total &&
         observation.commit_limit && observation.commit_available<=observation.commit_limit,"Invalid live resource ratios");
-    std::cout<<"Live maintenance telemetry: busy_ppm="<<observation.cpu_busy_ticks<<" window_ms="<<observation.cpu_window_ms
+    const auto busy_ppm=1'000'000.0*static_cast<double>(observation.cpu_busy_ticks)/
+        static_cast<double>(observation.cpu_total_ticks);
+    std::cout<<"Live maintenance telemetry: busy_ppm="<<busy_ppm<<" window_ms="<<observation.cpu_window_ms
         <<" physical_available="<<observation.physical_available<<" commit_available="<<observation.commit_available<<"\n";
   }
   auto observation=NativeMaintenanceObservation{};observation.valid=true;

@@ -42,8 +42,9 @@ A deferred service's pending
 publication or outstanding response remains pending even before its content
 sequence changes, preventing a delayed CPU commit from being missed.
 
-While changed work is pending, the existing local English PDH collector and
-fresh physical/commit observation feed cooperative group opportunities. Windows
+While changed work is pending, native processor-time deltas or the aggregate
+PDH counter combine with fresh physical and commit observations to admit
+cooperative group opportunities. Windows
 current-thread background resource mode is entered outside view locks and ended
 before publishing status or stopping. The adapter still tries the callback lock
 and refuses queued/active foreground calls and deferred publication/retirement.

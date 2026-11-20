@@ -120,6 +120,16 @@ runtime still need direct qualification.
 [Device removal status](https://learn.microsoft.com/en-us/windows-hardware/drivers/install/cm-prob-will-be-removed) ·
 [Source-bound live and sanitizer evidence](evidence/windows-amd-device-readiness-2026-11-20.json)
 
+After restart, Windows reported the Radeon ready with driver 32.0.32029.2010.
+The signed driver runtime returned the same priority range in two independent
+queries. An explicit AMD batch verified all 20 public revision inputs and
+reduced the protected compacted code volume from 286,720 to 278,528 bytes.
+The staged package then acquired the freshly bound runtime through the owned
+controller, verified one batch, and recovered its files through independent
+CPU readback. Its worker retired inside the admitted process budget.
+[AMD driver release notes](https://www.amd.com/en/resources/support-articles/release-notes/RN-RAD-WIN-26-11-2.html) ·
+[Native Windows runtime evidence](evidence/windows-native-cpu-sampling-amd-resume-2026-11-20.json)
+
 ## Failure-classification research
 
 AMD distinguishes missing devices, insufficient drivers, resource exhaustion

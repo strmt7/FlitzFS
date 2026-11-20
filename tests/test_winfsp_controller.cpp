@@ -13,6 +13,7 @@
 #include "volume_range_fixture.hpp"
 #include "windows_app_budget.hpp"
 #include <bcrypt.h>
+#include <pdh.h>
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -20,6 +21,7 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <optional>
 #include <thread>
 namespace {
@@ -36,6 +38,19 @@ template<class F>void rejected(F&& run,const char* why) {
   try{run();}catch(const std::exception&){refused=true;}
   require(refused,why);
 }
+void windows_processor_windows() {
+  const auto delta=detail::windows_processor_delta;
+  const detail::WindowsProcessorTimes start{70,100,40};
+  const auto work=delta(start,{85,125,55});
+  require(work && work->total==40 && work->busy==25,"Native CPU sample did not account for kernel idle ticks");
+  const auto idle=delta(start,{95,125,40});
+  require(idle && idle->total==25 && idle->busy==0,"Native idle sample reported busy ticks");
+  const auto busy=delta(start,{70,125,50});
+  require(busy && busy->total==35 && busy->busy==35,"Native busy sample lost active ticks");
+  require(!delta(start,start) && !delta(start,{69,130,55}) && !delta(start,{70,99,55}) &&
+      !delta(start,{70,101,39}) && !delta(start,{90,119,55}),"Invalid CPU counter sequence was admitted");
+  require(!delta({0,0,0},{0,(std::numeric_limits<std::uint64_t>::max)(),1}),"Overflowing CPU sample was admitted");
+}
 void native_rng_initialization() {
   std::array<DWORD,3> observed{};const auto cold=handle_count();
   for(unsigned i=0;i<observed.size();++i) {
@@ -46,15 +61,32 @@ void native_rng_initialization() {
   std::cout<<"native_rng_handles cold="<<cold<<" first="<<observed[0]<<" second="<<observed[1]<<" third="<<observed[2]<<'\n';
   require(observed[1]==observed[2],"native RNG handle initialization did not stabilize");
 }
+void sample_native_pdh(unsigned samples) {
+  PDH_HQUERY query=nullptr;
+  PDH_HCOUNTER counter=nullptr;
+  require(PdhOpenQueryW(nullptr,0,&query)==ERROR_SUCCESS,"Native PDH test query");
+  const auto added=PdhAddEnglishCounterW(query,L"\\Processor Information(_Total)\\% Processor Time",0,&counter);
+  auto collected=added;
+  if(added==ERROR_SUCCESS)for(unsigned index=0;index<samples;++index) {
+    if(index)Sleep(1010);
+    collected=PdhCollectQueryData(query);
+    if(collected!=ERROR_SUCCESS)break;
+  }
+  const auto closed=PdhCloseQuery(query);
+  require(added==ERROR_SUCCESS && collected==ERROR_SUCCESS && closed==ERROR_SUCCESS,"Native PDH test lifecycle");
+}
+void initialize_pdh_handles() {
+  const auto cold=handle_count();
+  sample_native_pdh(1);
+  const auto first=handle_count();
+  sample_native_pdh(1);
+  const auto stable=handle_count();
+  std::cout<<"native_pdh_handles cold="<<cold<<" first="<<first<<" stable="<<stable<<'\n';
+  require(first==stable,"Repeated native PDH initialization retained handles");
+}
 void initialize_long_pdh_window() {
   const auto initial=handle_count();
-  std::thread([] {
-    WindowsMaintenanceHost host;
-    for(unsigned sample=0;sample<35;++sample) {
-      {MaintenanceThreadScope scope;host.observe(false);}
-      Sleep(1010);
-    }
-  }).join();
+  sample_native_pdh(35);
   std::cout<<"long_native_pdh_handles before="<<initial<<" after="<<handle_count()<<'\n';
 }
 template<class F>void await(F predicate,std::uint64_t milliseconds,const char* why) {
@@ -736,6 +768,7 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
   std::cout<<"anchor_owner mode="<<mode<<" host="<<static_cast<int>(result.host)
       <<" quanta="<<result.maintenance_quanta<<" groups="<<result.maintenance.published_groups
       <<" continued_steps="<<result.continued_preparation_steps<<" settled_ms="<<settled_ms
+      <<" maximum_quantum_ns="<<result.maximum_quantum_ns
       <<" declined_groups="<<result.maintenance.declined_groups<<" phase="<<static_cast<int>(result.maintenance.phase)<<" sampled="<<result.maintenance.sampled_extents
       <<" attempted="<<result.maintenance.attempted_groups<<" cpu_limit_ppm="<<qualification.maximum_cpu_busy_ppm
       <<" submitted="<<result.anchor_search.submitted<<" verified="<<result.anchor_search.verified
@@ -2253,12 +2286,12 @@ int main(int argc,char** argv){try {
     return run_live_anchor_owner(mode,std::nullopt);
   }
 #endif
-  // PDH may initialize process-wide native caches. Warm that same native path
-  // before checking ownership balance; never count its caches as our handles.
+  // Measure native process caches on a separate PDH-only path before checking
+  // that every filesystem fixture returns to the same handle baseline.
   const bool lifetime_only=argc==2 && std::string_view(argv[1])=="--owned-lifetime";
   const bool shifted_grouping=argc==2 && std::string_view(argv[1])=="--live-indexed-shifted-grouping";
   const bool checkpoint=argc==2 && std::string_view(argv[1])=="--live-indexed-checkpoint";
-  {WindowsMaintenanceHost warm;warm.observe(false);}
+  initialize_pdh_handles();
   // The system-preferred RNG initializes process-wide native handles on first
   // use. Prove native-only stabilization before measuring factory ownership.
   const bool remount=argc==2 && std::string_view(argv[1])=="--memory-remount";
@@ -2279,7 +2312,7 @@ int main(int argc,char** argv){try {
   // before the explicit long-volume mode measures controller ownership.
   if(lifetime_only || indexed_compaction)initialize_long_pdh_window();
   require(GetProcessHandleCount(GetCurrentProcess(),&before)!=FALSE,"initial handle count");
-  if(argc==1){event_ownership();lifecycle();idle_until_owner_stop(100);invalid_and_unexpected();live_opportunities();}
+  if(argc==1){windows_processor_windows();event_ownership();lifecycle();idle_until_owner_stop(100);invalid_and_unexpected();live_opportunities();}
   else if(lifetime_only)idle_until_owner_stop(31000);
   else if(argc==2 && std::string_view(argv[1])=="--memory") {
     memory_planning();memory_paged_footprint();memory_compaction_retirement();memory_capacity_repair();

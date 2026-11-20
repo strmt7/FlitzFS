@@ -4,6 +4,16 @@
 #include <memory>
 #include <optional>
 namespace flitzfs {
+namespace detail {
+struct WindowsProcessorTimes {
+  std::uint64_t idle,kernel,user;
+};
+struct WindowsProcessorDelta {
+  std::uint64_t total,busy;
+};
+std::optional<WindowsProcessorDelta> windows_processor_delta(
+    WindowsProcessorTimes before,WindowsProcessorTimes after) noexcept;
+}
 inline constexpr std::uint64_t maintenance_wall_share_ppm=10000;
 inline std::uint64_t maintenance_delay_ms(std::uint64_t elapsed_ns) noexcept {
   return elapsed_ns/maintenance_wall_share_ppm+(elapsed_ns%maintenance_wall_share_ppm!=0);
