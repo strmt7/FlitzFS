@@ -741,10 +741,10 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_file_volume(s
     std::optional<StoreIdentity> expected,StoreCompressionOptions foreground) {
   auto regions=NativeVolumeFile::open_regions(std::move(existing),true,expected);
   const auto volume=regions.selection.volume_identity;
-  const auto created=admit_windows_snapshot(
-      NativeVolumeHeadView::open_indexed_recovery(regions.head,volume,regions.resolver()).filesystem(),true);
+  UINT64 created=0;
+  const auto admit=[&](const auto& view){created=admit_windows_snapshot(view,true);};
   auto session=NativeVolumeFile::resume_regions(std::move(regions),foreground,
-      NativeDispositionPolicy::windows_global,fresh_volume_identity);
+      NativeDispositionPolicy::windows_global,fresh_volume_identity,admit);
   return from_indexed_session(std::move(session),volume,created,{});
 }
 std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_file_volume(const std::filesystem::path& path,
@@ -791,20 +791,30 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_managed_impl(
     else if(id!=selected_id)throw std::invalid_argument("restart image mapping changed");
     return selected;
   };
-  const auto view=closed_indexed?NativeVolumeHeadView::open_indexed_recovery(head,volume,pinned):
-      NativeVolumeHeadView::open(head,volume,pinned);
-  const auto epoch=view.info().selection.epoch;
-  if(expected_epoch && *expected_epoch!=epoch)throw std::invalid_argument("exact head epoch required");
-  const auto created=admit_windows_snapshot(view.filesystem(),closed_indexed);
-  const auto kind=view.filesystem().image_storage().kind;
-  const bool grouped=kind==NativeImageKind::indexed_paged || (kind==NativeImageKind::paged && view.filesystem().shared_base_info().enabled);
   constexpr auto disposition=NativeDispositionPolicy::windows_global;
-  NativeStartupRepairProvider repair_target;
-  if(memory && closed_indexed)
-    repair_target=[memory](const auto& authority){return memory->startup_repair_image(authority);};
-  auto session=closed_indexed?
-      NativeFileSession::resume_closed_indexed_volume(std::move(head),volume,epoch,pinned,foreground,disposition,repair_target):
-      NativeFileSession::resume_volume(std::move(head),volume,epoch,pinned,foreground,disposition);
+  UINT64 created=0;
+  auto kind=NativeImageKind::indexed_paged;
+  bool grouped=true;
+  auto session=[&] {
+    if(closed_indexed) {
+      if(!head)throw std::invalid_argument("missing indexed volume head");
+      const auto epoch=NativeVolumeHeadView::inspect_selector(*head,volume).selection.epoch;
+      if(expected_epoch && *expected_epoch!=epoch)throw std::invalid_argument("exact head epoch required");
+      NativeStartupRepairProvider repair_target;
+      if(memory)repair_target=[memory](const auto& authority){return memory->startup_repair_image(authority);};
+      const auto admit=[&](const auto& view){created=admit_windows_snapshot(view,true);};
+      return NativeFileSession::resume_volume_impl(std::move(head),volume,epoch,pinned,foreground,disposition,
+          true,repair_target,admit);
+    }
+    const auto view=NativeVolumeHeadView::open(head,volume,pinned);
+    const auto epoch=view.info().selection.epoch;
+    if(expected_epoch && *expected_epoch!=epoch)throw std::invalid_argument("exact head epoch required");
+    created=admit_windows_snapshot(view.filesystem());
+    kind=view.filesystem().image_storage().kind;
+    grouped=kind==NativeImageKind::indexed_paged ||
+        (kind==NativeImageKind::paged && view.filesystem().shared_base_info().enabled);
+    return NativeFileSession::resume_volume(std::move(head),volume,epoch,pinned,foreground,disposition);
+  }();
   if(memory)memory->settle_retained_selection(session.volume_info().selection.image_identity);
   if(advice)session.resume_budgeted_optimization_area(std::move(advice),advice_sequence,1);
   auto impl=std::make_unique<Impl>(std::move(session),volume,created,file_info_policy(kind));

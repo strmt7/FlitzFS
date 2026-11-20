@@ -1319,16 +1319,28 @@ PagedObjectStoreWriter PagedObjectStoreWriter::resume(std::shared_ptr<StoreByteI
   return resume_impl(std::move(image),expected,generation,limits,options,false);
 }
 PagedObjectStoreWriter PagedObjectStoreWriter::resume_impl(std::shared_ptr<StoreByteIo> image,StoreIdentity expected,
-    std::uint64_t generation,PagedStoreLimits limits,StoreCompressionOptions options,bool repair_payloads) {
+    std::uint64_t generation,PagedStoreLimits limits,StoreCompressionOptions options,bool repair_payloads,
+    const PagedObjectStoreSnapshot* verified_indexed_source) {
   auto p=std::make_unique<Impl>(image,options);auto s=load(image,limits);admit_contract(image->contract());
   if(s.id!=expected || s.generation!=generation || image->contract().write_failure_unit_bytes>s.unit)
     fail("recovery lease/contract mismatch");
   if(repair_payloads && !s.mirrored)fail("startup repair requires mirrored payloads");
-  verify(s);
+  if(verified_indexed_source) {
+    // This private path only retains a healthy indexed source through the
+    // head fence. Its owner independently verifies the complete view again.
+    if(repair_payloads || !verified_indexed_source->impl_ || s.degraded_roots || s.degraded_metadata)
+      fail("unchecked or degraded indexed reopen");
+    const auto& verified=verified_indexed_source->impl_->state;
+    if(verified.image!=image || !verified.mirrored || verified.degraded_roots ||
+        verified.degraded_metadata || verified.degraded_payloads || !same(s,verified))
+      fail("verified indexed reopen root changed");
+  }else verify(s);
   if(s.degraded_metadata || (s.degraded_payloads && !repair_payloads))
     fail("replica rebuild required before writable resume");
   const auto extent=image->extent();image->flush();auto observed=load(image,limits);
-  if(!same(s,observed) || image->extent()!=extent)fail("recovery baseline changed");
+  if(!same(s,observed) || image->extent()!=extent ||
+      (verified_indexed_source && (observed.degraded_roots || observed.degraded_metadata)))
+    fail("recovery baseline changed");
   p->append_floor=align(extent,s.unit);
   if(s.degraded_roots) {
     s.checkpoint=add(s.generation,1);s.generation=add(s.generation,2);

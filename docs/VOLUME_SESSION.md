@@ -28,6 +28,15 @@ checkpoint before restoring any damaged payload replicas, then reopens
 with verified protection before resolving old file contexts.
 [Closed indexed repair](MIRRORED_PAYLOADS.md#repair-during-writable-reopen)
 
+For a healthy selected checkpoint with resolved lifetimes, the session
+acquires the image writer from the exact verified paged root and retains
+it through head admission. Both owners stay held while the image and
+head flush. The final view must match the same typed root and paged
+checkpoint and pass full independent CPU verification before writable
+use. A newly degraded selector enters the checked repair path. Damage
+observed during a fence aborts admission before any mutation.
+[Verified reopen validation](evidence/indexed-retained-reopen-2026-11-20.json)
+
 On an append-space refusal, the owner can ask the provider for a
 distinct alternate under the verified selector. The provider retains
 the alternate across failure. The engine compares both indexed images

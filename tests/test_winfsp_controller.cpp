@@ -192,7 +192,12 @@ void volume_file_scrub_checkpoint() {
   OptimizationPayloadScrub saved;
   const auto phase=[&](bool reopen) {
     Provider provider;Provider::active=&provider;
-    WinFspNativeSession session(WinFspNativeWritable::resume_file_volume(backing,volume,raw),provider.api());
+    const auto bytes_before=backing->io.read_bytes,write_before=backing->io.write_bytes;
+    auto adapter=WinFspNativeWritable::resume_file_volume(backing,volume,raw);
+    if(!reopen)std::cout<<"paired_indexed_reopen logical_bytes="<<5ULL*1024*1024
+        <<" backing_read_bytes="<<backing->io.read_bytes-bytes_before
+        <<" backing_write_bytes="<<backing->io.write_bytes-write_before<<'\n';
+    WinFspNativeSession session(std::move(adapter),provider.api());
     require(session.start(plan())==STATUS_SUCCESS,"scrub fixture reopen did not start its SDK dispatcher");
     NativeMaintenanceObservation observed{1,1000,16ULL<<30,12ULL<<30,32ULL<<30,24ULL<<30,1000,0,1000,true,true};
     const auto advance=[&] {
@@ -233,6 +238,41 @@ void volume_file_scrub_checkpoint() {
     require(read.filesystem().read("f"+std::to_string(i),0,1024*1024)==data(1024*1024,1020+i),
         "CPU reader could not recover acknowledged SDK writes");
   std::cout<<"paired_scrub_checkpoint retired_and_resumed=1 foreground_yield=1 independent_bytes=1\n";
+}
+
+void indexed_reopen_platform_admission() {
+  constexpr PagedStoreLimits limits{8ULL*1024*1024};
+  const StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
+  auto backing=std::make_shared<Ram>();
+  backing->failure_unit=4096;
+  const auto bytes=data(3137,6287);
+  const auto volume=id(90);
+  {
+    // The portable filesystem can have files without Windows security state.
+    auto session=NativeVolumeFile::create(backing,volume,id(1),limits,raw);
+    session.create_entry("portable");
+    const auto file=session.open("portable",{true,true,true});
+    session.write(file,0,bytes);
+    session.cleanup(file,false);session.close(file);
+  }
+  const auto body=backing->live.begin()+kNativeVolumeFileImageOffset;
+  const auto primary=std::search(body,backing->live.end(),bytes.begin(),bytes.begin()+64);
+  require(primary!=backing->live.end(),"platform admission test data record missing");
+  require(std::size_t(backing->live.end()-primary)>=backing->failure_unit+64,"platform admission peer bounds");
+  const auto peer=primary+backing->failure_unit;
+  require(std::equal(bytes.begin(),bytes.begin()+64,peer),"platform admission test peer missing");
+  *peer^=std::byte{1};
+  backing->stable=backing->live;
+  const auto writes=backing->writes,barriers=backing->flushes;
+  bool refused=false;
+  try{(void)WinFspNativeWritable::resume_file_volume(backing,volume,raw);}
+  catch(const std::runtime_error&){refused=true;}
+  require(refused && backing->writes==writes && backing->flushes==barriers,
+      "invalid Windows metadata allowed repair before refusal");
+  const auto verified=NativeVolumeFile::inspect(backing,volume);
+  require(verified.filesystem().storage_info().degraded_checkpoint &&
+      verified.filesystem().read("portable",0,8192)==bytes,"platform refusal changed the independently readable source");
+  std::cout<<"paired_reopen_windows_admission before_repair=1 surviving_bytes=1\n";
 }
 
 enum class RepairFixture {foreground,rotation,scrub,startup_rotation};
@@ -2213,6 +2253,7 @@ int main(int argc,char** argv){try {
   }else if(volume_file) {
     volume_file_callbacks();
     volume_file_scrub_checkpoint();
+    indexed_reopen_platform_admission();
     volume_file_idle_reclamation();
     volume_file_payload_repair(false);
     volume_file_payload_repair(false,RepairFixture::scrub);

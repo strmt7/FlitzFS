@@ -83,7 +83,11 @@ validates the entire image and can inspect the durable state of detached
 lifetimes. After the previous provider's confirmed retirement, a writable
 reopen can restore recoverable payload damage with a verified append
 transaction before recovering detached lifetimes. The WinFsp bridge
-validates the Windows root ACL and timestamp profile during admission.
+validates Windows file information, security descriptors and creation
+time in the same verified source view before repair. Healthy attach
+keeps the same image writer leased across the barriers and checks the
+selected image and head again before exposing callbacks.
+[Verified reopen validation](evidence/indexed-retained-reopen-2026-11-20.json)
 [Startup repair validation](evidence/indexed-startup-repair-2026-11-20.json)
 
 If the selected range refuses an append repair, the Windows provider can

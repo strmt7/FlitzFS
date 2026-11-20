@@ -65,6 +65,8 @@ class NativeVolumeHeadWriter final {
   friend class NativeFileSession;
   static NativeVolumeHeadWriter resume_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,
       std::uint64_t,const NativeFilesystemSnapshot&,bool closed_indexed);
+  static std::optional<NativeVolumeHeadWriter> retain_indexed_reopen(std::shared_ptr<StoreByteIo>,
+      const NativeVolumeSelection&,const NativeFilesystemWriter&);
   NativeVolumeHeadInfo publish_compacted_impl(const NativeFilesystemSnapshot&,
       const NativeFilesystemSnapshot&,bool closed_indexed);
   // Only an owned, completed indexed rewrite can reach this path. Both image

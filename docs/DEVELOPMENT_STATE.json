@@ -89,6 +89,19 @@
     "persistent_repair_intent": false,
     "physical_power_loss_qualified": false
   },
+  "indexed_retained_reopen": {
+    "source_base": "e63ff7d8efc8b798adc9230672f1968f1c0c1582",
+    "evidence": "docs/evidence/indexed-retained-reopen-2026-11-20.json",
+    "baseline_backing_read_bytes": 165511388,
+    "candidate_backing_read_bytes": 42460278,
+    "matched_logical_input_bytes": 5242880,
+    "retained_indexed_writer_through_head_fence": true,
+    "complete_post_fence_cpu_verification": true,
+    "late_damage_and_same_generation_fork_refused": true,
+    "windows_admission_before_repair": true,
+    "live_amd_verified_groups_after_change": 1,
+    "physical_power_loss_qualified": false
+  },
   "indexed_compaction_foreground_reconciliation": {
     "source_base": "c5402a2e7a1899db7ba3fa901052f6a479e034cf",
     "evidence": "docs/evidence/indexed-compaction-reconciliation-2026-11-19.json",

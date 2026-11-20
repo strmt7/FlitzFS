@@ -284,6 +284,99 @@ void proactive_payload_scrub(std::uint32_t unit) {
            <<" latent_peer=1 double_loss_reported=1 bounded_high_water=1 degraded_index_refused=1\n";
 }
 
+void retained_indexed_reopen_fences() {
+  class FenceBacking final:public StoreByteIo {
+   public:
+    explicit FenceBacking(std::shared_ptr<Ram> backing):ram(std::move(backing)){}
+    std::shared_ptr<Ram> ram;
+    std::function<void()> on_fence;
+    bool leased() const noexcept{return has_writer();}
+    std::uint64_t extent() const override{return ram->extent();}
+    StoreIoContract contract() const noexcept override{return ram->contract();}
+    void admit_write(std::uint64_t length) override{ram->admit_write(length);}
+    void read_exact(std::uint64_t offset,std::span<std::byte> output) const override{ram->read_exact(offset,output);}
+    void write_exact(std::uint64_t offset,std::span<const std::byte> input) override{ram->write_exact(offset,input);}
+    void flush() override{ram->flush();if(on_fence)on_fence();}
+  };
+
+  constexpr StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
+  const auto head=std::make_shared<FenceBacking>(std::make_shared<Ram>());
+  auto empty=std::make_shared<Ram>();
+  empty->failure_unit=4096;
+  const auto volume=next_id();
+  {
+    auto session=NativeFileSession::create_indexed_volume(head,volume,std::make_shared<FenceBacking>(empty),identity(),limits,raw);
+    session.create_entry("data");
+  }
+  const auto selected=NativeVolumeHeadView::inspect_selector(*head,volume);
+  const auto reopen=[&](const std::shared_ptr<FenceBacking>& body) {
+    return NativeFileSession::resume_closed_indexed_volume(head,volume,selected.selection.epoch,
+        [&](const auto& which)->std::shared_ptr<StoreByteIo>{return which==identity()?body:nullptr;},raw);
+  };
+  const auto original=data(kNativeExtentBytes,10211),different=data(kNativeExtentBytes,10212);
+  const auto produce=[&](const Bytes& content) {
+    auto body=image(empty->stable,4096);
+    auto session=reopen(std::make_shared<FenceBacking>(body));
+    const auto file=session.open("data",{true,true,true});
+    session.write(file,0,content);
+    session.cleanup(file,false);session.close(file);
+    return body;
+  };
+  const auto initial=produce(original),fork=produce(different);
+  const auto snapshot=view(initial),fork_snapshot=view(fork);
+  const auto before=snapshot.storage_info(),other=fork_snapshot.storage_info();
+  require(snapshot.identity()==fork_snapshot.identity() && snapshot.sequence()==fork_snapshot.sequence() &&
+      before.generation==other.generation && before.checkpoint_generation==other.checkpoint_generation &&
+      before.physical_end==other.physical_end && initial->extent()==fork->extent() &&
+      fork_snapshot.read("data",0,kNativeExtentBytes)==different,
+      "post-fence fork fixture must share identity, counters and extent");
+  const auto inventory=locations(*initial);
+  const auto payload=std::ranges::find(inventory,original.size()+indexed_extent_header_bytes,&Location::stored);
+  require(payload!=inventory.end(),"fence test payload record missing");
+  for(unsigned fault=0;fault<3;++fault) {
+    auto body=image(initial->stable,4096);
+    auto observed=std::make_shared<FenceBacking>(body);
+    const auto head_writes=head->ram->writes;
+    unsigned barriers=0;
+    head->on_fence=[&] {
+      require(head->leased() && observed->leased(),"checked reopen lost an exclusive lease during the head fence");
+      ++barriers;
+      if(fault==2) {
+        body->live=body->stable=fork->stable;
+      }else {
+        damage_record(*body,payload->peer);
+        if(fault==1)damage_record(*body,payload->primary);
+      }
+    };
+    rejects([&]{(void)reopen(observed);},"writable reopen accepted post-fence damage or a same-generation fork");
+    head->on_fence={};
+    require(barriers==1 && !observed->leased() && !head->leased() && !body->writes &&
+        head->ram->writes==head_writes && NativeVolumeHeadView::inspect_selector(*head,volume).selection==selected.selection,
+        "failed fenced reopen changed authoritative storage or retained a lease");
+    if(!fault) {
+      {
+        auto session=reopen(observed);
+        require(session.snapshot().read("data",0,kNativeExtentBytes)==original,"qualified retry lost the surviving payload");
+      }
+      auto healed=view(body);healed.verify_all();
+      require(!healed.storage_info().degraded_checkpoint,"qualified retry did not restore both copies");
+    }
+  }
+  {
+    auto body=image(initial->stable,4096);
+    auto observed=std::make_shared<FenceBacking>(body);
+    auto session=reopen(observed);
+    require(head->leased() && observed->leased(),"healthy reopen did not retain its checked owners");
+    const auto file=session.open("data",{true,true,true});
+    session.write(file,0,different);
+    session.cleanup(file,false);session.close(file);
+    auto checked=view(body);checked.verify_all();
+    require(checked.read("data",0,kNativeExtentBytes)==different,"retained owner could not commit through reopened storage");
+  }
+  std::cout<<"retained_indexed_fences post_fence_peer_loss=1 double_loss=1 same_generation_fork=1"
+      " independent_repair_and_continued_write=1\n";
+}
+
 void durable_payload_scrub() {
   using Scan=PagedPayloadScrubState;
   const StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
@@ -702,7 +795,8 @@ void native_shared_lifetime() {
 }
 }
 int main(){try {
-  forged_descriptors();native_shared_lifetime();payload_repair_rechecks();durable_payload_scrub();
+  forged_descriptors();native_shared_lifetime();payload_repair_rechecks();
+  retained_indexed_reopen_fences();durable_payload_scrub();
   for(auto unit:{4096U,65536U}) {
     proactive_payload_scrub(unit);
     startup_payload_repair(unit);

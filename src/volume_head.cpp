@@ -285,6 +285,36 @@ NativeVolumeHeadWriter NativeVolumeHeadWriter::resume_impl(std::shared_ptr<Store
   else {p->owner.io->flush();p->check();}
   return NativeVolumeHeadWriter(std::move(p));
 }
+std::optional<NativeVolumeHeadWriter> NativeVolumeHeadWriter::retain_indexed_reopen(
+    std::shared_ptr<StoreByteIo> head,const NativeVolumeSelection& selected,const NativeFilesystemWriter& writer) {
+  auto p=std::make_unique<Impl>(std::move(head));contract(*p->owner.io);
+  const auto current=load(*p->owner.io,selected.volume_identity);
+  if(current.info.selection!=selected)fail(Code::invalid_operation,"indexed reopen selector changed");
+  if(current.info.degraded)return std::nullopt;
+
+  const auto before=writer.snapshot();
+  const auto backing=Impl::backing(before);
+  if(selected.storage.kind!=NativeImageKind::indexed_paged || backing==p->owner.io || !backing->has_writer())
+    fail(Code::invalid_operation,"indexed reopen requires a retained image owner");
+  contract(*backing);
+  admit_binding(selected,before,true,false);
+  const auto extent=backing->extent();
+  auto current_image=NativeFilesystemSnapshot::open_image(backing,selected.storage);
+  Impl::exact(before,current_image);
+  p->selected=selected;
+  p->owner.io->admit_write(kVolumeHeadBytes);
+  // Both qualified leases remain held. A flush may reveal a failure, including
+  // on file providers where the head and image share the physical handle.
+  backing->flush();
+  p->owner.io->flush();
+  p->check();
+  if(backing->extent()!=extent)fail(Code::invalid_operation,"indexed reopen extent changed");
+  auto after=NativeFilesystemSnapshot::open_image(backing,selected.storage);
+  Impl::exact(before,after);
+  bind(selected,after,true);
+  p->check();
+  return NativeVolumeHeadWriter(std::move(p));
+}
 NativeVolumeHeadInfo NativeVolumeHeadWriter::publish_compacted(
     const NativeFilesystemSnapshot& source,const NativeFilesystemSnapshot& target) {
   return publish_compacted_impl(source,target,false);

@@ -1802,6 +1802,18 @@ NativeFilesystemWriter NativeFilesystemWriter::resume_closed_session(ObjectStore
 NativeFilesystemWriter NativeFilesystemWriter::resume_closed_session(PagedObjectStoreWriter objects) {
   return resume_impl(std::move(objects),true);
 }
+NativeFilesystemWriter NativeFilesystemWriter::lease_verified_indexed_reopen(
+    const NativeFilesystemSnapshot& source,StoreCompressionOptions foreground) {
+  if(!source.impl_ || !source.impl_->indexed || source.needs_session_recovery() ||
+      source.storage_info().degraded_checkpoint)
+    fail(Code::invalid_operation,"verified indexed reopen requires resolved and healthy source");
+  const auto* paged=source.impl_->objects.paged_if();
+  auto objects=PagedObjectStoreWriter::resume_impl(source.backing_for_volume_head(),source.identity(),
+      source.storage_info().generation,paged->limits(),foreground,false,paged);
+  auto owner=std::make_unique<Impl>(std::move(objects));
+  owner->indexed=source.impl_->indexed->root();
+  return NativeFilesystemWriter(std::move(owner));
+}
 NativeFilesystemWriter NativeFilesystemWriter::resume_impl(detail::NativeObjectWriter objects,bool closed_session) {
   if(objects.poisoned())fail(Code::invalid_operation,"native admission requires a healthy recovered writer");
   try {

@@ -446,9 +446,12 @@ class NativeFileSession final {
   std::unique_ptr<Impl> impl_;
   explicit NativeFileSession(std::unique_ptr<Impl>) noexcept;
   Impl& ready() const;
+  // The Windows adapter validates platform metadata in the selected view
+  // before any repair can mutate storage.
+  using IndexedReopenAdmission = std::function<void(const NativeFilesystemSnapshot&)>;
   static NativeFileSession resume_volume_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,std::uint64_t,
       const NativeVolumeImageResolver&,StoreCompressionOptions,NativeDispositionPolicy,bool closed_indexed,
-      const NativeStartupRepairProvider& repair_target={});
+      const NativeStartupRepairProvider& repair_target={},const IndexedReopenAdmission& admission={});
   static NativeFileSession create_volume_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,
       std::shared_ptr<StoreByteIo>,StoreIdentity,NativeImageStorage,StoreCompressionOptions,
       StoreCheckpointOptions,NativeDispositionPolicy,std::optional<NativeVolumeRootMetadata>,

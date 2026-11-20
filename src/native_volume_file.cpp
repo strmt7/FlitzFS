@@ -296,13 +296,14 @@ NativeFileSession NativeVolumeFile::resume(std::shared_ptr<StoreByteIo> existing
   return resume_regions(open_regions(std::move(existing),true,expected),foreground,disposition,startup_repair_identity);
 }
 NativeFileSession NativeVolumeFile::resume_regions(Regions region,StoreCompressionOptions foreground,
-    NativeDispositionPolicy disposition,const std::function<StoreIdentity()>& startup_repair_identity) {
+    NativeDispositionPolicy disposition,const std::function<StoreIdentity()>& startup_repair_identity,
+    const NativeFileSession::IndexedReopenAdmission& admission) {
   const auto& selected=region.selection;
   NativeStartupRepairProvider target;
   if(region.reclaimer && startup_repair_identity)
     target=[&](const auto& authority){return region.reclaimer->startup_repair_image(authority,startup_repair_identity);};
-  auto session=NativeFileSession::resume_closed_indexed_volume(std::move(region.head),selected.volume_identity,
-      selected.epoch,region.resolver(),foreground,disposition,target);
+  auto session=NativeFileSession::resume_volume_impl(std::move(region.head),selected.volume_identity,
+      selected.epoch,region.resolver(),foreground,disposition,true,target,admission);
   if(region.reclaimer)region.reclaimer->adopt_startup_repair(selected,session.volume_info().selection);
   if(const auto sequence=region.advice_sequence())
     session.resume_budgeted_optimization_area(std::move(region.advice),sequence);

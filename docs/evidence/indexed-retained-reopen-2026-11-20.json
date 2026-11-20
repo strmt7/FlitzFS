@@ -1,0 +1,336 @@
+{
+  "schema": 1,
+  "captured_local": "2026-11-20T03:01:03+01:00",
+  "source_base": "e63ff7d8efc8b798adc9230672f1968f1c0c1582",
+  "base_tree": "ae814aa54b9eca09006eaeffe46481839253ddcb",
+  "code_patch_sha256": "874554198423eaa14a8f4c1c2616b451fae2bf9dc4ce93c3e0a8d83ee4cf613e",
+  "source_binding": [
+    {
+      "path": "include/flitzfs/native_filesystem.hpp",
+      "git_blob": "04a467d1ba7e4be4f9ffaf0e950c399b95844453",
+      "worktree_sha256": "89dfe16cedb39549ba150977cb815c8b6a745c0f1f41a77c5634462a3d527e40"
+    },
+    {
+      "path": "include/flitzfs/native_session.hpp",
+      "git_blob": "f5754a3599f26f6691c6ed51f3861ba9b09d874d",
+      "worktree_sha256": "5e1f3497bc1972e9b3cff4c15f19220c12727f0069f573534bb9b6620e792103"
+    },
+    {
+      "path": "include/flitzfs/native_volume_file.hpp",
+      "git_blob": "c997ebe4727d3bc48b64e58101ebb9021a9d83f0",
+      "worktree_sha256": "15f27e1c98917775de41e368899a1be217d5b75c09e4faa1722bc121fa2fcf24"
+    },
+    {
+      "path": "include/flitzfs/paged_store.hpp",
+      "git_blob": "2b67a065399d5d287deb1e5d21e7c81d60a45951",
+      "worktree_sha256": "e7c6ffcd0af7b4bcf485d514e00472917827743edc655696effee779d40ee092"
+    },
+    {
+      "path": "include/flitzfs/volume_head.hpp",
+      "git_blob": "a2797c02553008b151990e622f93907425e4f162",
+      "worktree_sha256": "c8214cebb5928b4c4a5b5f6fada10c0d780762eadc6f7a2bc6a3d4731d697a67"
+    },
+    {
+      "path": "src/native_filesystem.cpp",
+      "git_blob": "ff68c790164a39665bf7fafd436d4c713dac4b05",
+      "worktree_sha256": "3bf10d0d3d07a09d58e51f42886fc8cd5e72fa74538da2c3f407c430ad52cc41"
+    },
+    {
+      "path": "src/native_session.cpp",
+      "git_blob": "5f9d8bfcbe22b785a815962f16b9df8b2c4fad8c",
+      "worktree_sha256": "8358fefdf265e4aacec5a5ac76f9cc06b7050224fc220f0fe4bd61167871dfcb"
+    },
+    {
+      "path": "src/native_volume_file.cpp",
+      "git_blob": "f9049ba18d09ca104db9ccf1a2e9342ba18cc6b7",
+      "worktree_sha256": "f6755ebea60d09deb499cff243c0722f97b3fc7f06264b70cc26d0e544468ec2"
+    },
+    {
+      "path": "src/paged_store.cpp",
+      "git_blob": "cf7095f79666b8f2800592e8a7a8864c6b1e0bfb",
+      "worktree_sha256": "7cbb8c0f7827ea1d0c993dd0a4e9dd565a378e4754ca26abfc99b67d88a33737"
+    },
+    {
+      "path": "src/volume_head.cpp",
+      "git_blob": "e72a3bd525d51b8e6ec10ef5c1d313112974ffb3",
+      "worktree_sha256": "2e4c7e929b437ae643d28f62a22ffa0cb5dbc236a244c19c4b60bbeb8cb46de9"
+    },
+    {
+      "path": "src/windows/winfsp_native.cpp",
+      "git_blob": "ff0e53041d326aa9c464a290969dd8679de0af01",
+      "worktree_sha256": "fc44b3f8ed6bdfd235386c2a69371f67353c7dacfee29939f380052620aaffbf"
+    },
+    {
+      "path": "tests/test_mirrored_payloads.cpp",
+      "git_blob": "86f6f3ec0e95ffb6af3c709f296d7178f35cc4dc",
+      "worktree_sha256": "263907bb2af393126f62cc412e2b0c40b5658b5b9cff296fc3c72b80a0442321"
+    },
+    {
+      "path": "tests/test_winfsp_controller.cpp",
+      "git_blob": "43f83a5897a1b2afe416352dfb1eba153fbbc933",
+      "worktree_sha256": "7bca940dd252824859be13a028a1b624fd1fe0a950bba8d410aaa3aecc9448b3"
+    }
+  ],
+  "research": {
+    "semantic_provider": "0.2.43",
+    "semantic_receipt_sha256": "a1b9737b2ce7e66af8bc0ceb5033a21f0bbdf85d1e53aa28e4b2563923c2d1ba",
+    "semantic_native_response_sha256": "398248ec29bac85bbe0aa920af5599fa75c6793ac9db8273d174c6eee79108b8",
+    "crawl_provider": "0.9.5+flitzzip.portable2",
+    "crawl_receipt_sha256": "1ca0a2af56c8e1d2b586cb1dcdd740c316a364c526dbc08b56db328e4453e9e9",
+    "sources": [
+      {
+        "url": "https://btrfs.readthedocs.io/en/latest/btrfs-check.html",
+        "final_http_status": 200,
+        "markdown_bytes": 14889,
+        "markdown_sha256": "f1ac21989aee96b18ef52b64b29383cb89df001d9fa5d5c0c9ef7210c78b13c0",
+        "capture_sha256": "013585964d09be83e90642a7c53dd84cb5033c9e9b27aaa7f86723e085083c4b"
+      },
+      {
+        "url": "https://openzfs.github.io/openzfs-docs/man/master/8/zpool-import.8.html",
+        "final_http_status": 200,
+        "markdown_bytes": 27086,
+        "markdown_sha256": "47cc5411686e27e5c6dd047bf810f7e4946afe9ec871e322bfb31cea07f2e7a7",
+        "capture_sha256": "4bbc51dda322c6138683ee0959a0ac27da79cc998f1ff16f0e49e363a1efbf42"
+      }
+    ]
+  },
+  "validation": {
+    "windows_release_ctest_passed": 23,
+    "codec_free_explorer_addresssanitizer_ctest_passed": 16,
+    "release_detail_sha256": "16f76d892d355f4daa26a39b032f615d4d229a83deb5811c25c4aedb7006c259",
+    "asan_detail_sha256": "631449422831f0cfc6358c73a23f0ff84721f1ea04f46940b33ece4caa3352ea",
+    "matched_reopen": {
+      "logical_input_bytes": 5242880,
+      "baseline_backing_read_bytes": 165511388,
+      "candidate_backing_read_bytes": 42460278,
+      "backing_write_bytes_both": 0,
+      "baseline_instrumentation_sha256": "f3460c843b59fbd3411c4f3f423caa5021d4dd761d8848ee916112abaa910d7a",
+      "baseline_executable_sha256": "9b78e60021fe254f422996f86371953ec4f9a1c3be110755b3c9772652f2e954",
+      "candidate_executable_sha256": "252621656f414bf1f5a188396c20c410a9eb2b163e46639eccba2259465a1e98",
+      "baseline_detail_sha256": "406f7082522db2dd0c52f56099bfd672d75090c5591bc61e70f5f9f3ede00d78",
+      "metric_scope": "Calls into the RAM backing during healthy Windows SDK reopen. This is an I/O-work measure.",
+      "repeated_observations": [
+        {
+          "version": "baseline",
+          "backing_read_bytes": 165511388,
+          "role": "Matched WinFsp callback repeat baseline",
+          "run": "local-run-85fc6f3e18e14c3bb2748938db44ba41",
+          "receipt_sha256": "746eb8571fe6b4d5b5e0529260396b81e4ef31d7b1e124a80614397a7f195611",
+          "output_sha256": "f55287974be51b1a6f8725b7a396ddde75d77927bfbc49fb698b4b8aac04df49",
+          "elapsed_seconds": 0.562258700001621,
+          "peak_job_bytes": 57069568,
+          "memory_bytes": 771751936,
+          "cpu_percent": 20,
+          "tree_retired": true,
+          "residual_children": 0,
+          "inherited_error_mode": 32771
+        },
+        {
+          "version": "candidate",
+          "backing_read_bytes": 42460278,
+          "role": "Matched WinFsp callback repeat candidate",
+          "run": "local-run-41a1ecf2c174490f88f80af0b36bdb22",
+          "receipt_sha256": "d9a6bd85c65b64bff997ea4c911e53625b89c16a1114313145b761753fba0a09",
+          "output_sha256": "2f3dd8cd4077a294233fe7d541785559b7e1d132cd8a1419d12af1ccb0b9d4c9",
+          "elapsed_seconds": 0.4035122000004776,
+          "peak_job_bytes": 57180160,
+          "memory_bytes": 772800512,
+          "cpu_percent": 20,
+          "tree_retired": true,
+          "residual_children": 0,
+          "inherited_error_mode": 32771
+        },
+        {
+          "version": "candidate",
+          "backing_read_bytes": 42460278,
+          "role": "Matched WinFsp callback repeat candidate",
+          "run": "local-run-20582a287b4444e9b8f329b7f16d868d",
+          "receipt_sha256": "0fa732d9480877ce31877cec14ea87f4506cda29718551c77ee2c8f825c22155",
+          "output_sha256": "17711f52eb4b1363917016d6f41739dcb43c3426544adbaa834fbb13e3d65cab",
+          "elapsed_seconds": 0.41135059999942314,
+          "peak_job_bytes": 56377344,
+          "memory_bytes": 770703360,
+          "cpu_percent": 20,
+          "tree_retired": true,
+          "residual_children": 0,
+          "inherited_error_mode": 32771
+        },
+        {
+          "version": "baseline",
+          "backing_read_bytes": 165511388,
+          "role": "Matched WinFsp callback repeat baseline",
+          "run": "local-run-1e5060975adf4639a3405cc688e39b8a",
+          "receipt_sha256": "f6cfe315883bb78b7e6fd7c694e03d973ab401c0b8ae384ba2df9153e1f0e2ef",
+          "output_sha256": "66a405086ca43a529e51525e4a4750535fc23e693536fca00aefa016a21264cd",
+          "elapsed_seconds": 0.544363599999997,
+          "peak_job_bytes": 56995840,
+          "memory_bytes": 772800512,
+          "cpu_percent": 20,
+          "tree_retired": true,
+          "residual_children": 0,
+          "inherited_error_mode": 32771
+        },
+        {
+          "version": "baseline",
+          "backing_read_bytes": 165511388,
+          "role": "Matched WinFsp callback repeat baseline",
+          "run": "local-run-d6c7bf450ebd46fb801514915d8eaf03",
+          "receipt_sha256": "d0808be1e44959e1c9a8970292e3a880e7e9a43ed14cbe56e978a76b27ef941e",
+          "output_sha256": "52a65a02e91cd9170033b7eea38c293db90311b66d1c8b50369767fcda4a18f2",
+          "elapsed_seconds": 0.5250713000004907,
+          "peak_job_bytes": 57008128,
+          "memory_bytes": 781189120,
+          "cpu_percent": 20,
+          "tree_retired": true,
+          "residual_children": 0,
+          "inherited_error_mode": 32771
+        },
+        {
+          "version": "candidate",
+          "backing_read_bytes": 42460278,
+          "role": "Matched WinFsp callback repeat candidate",
+          "run": "local-run-45824d91c6fc4810a74be0c227fd69c0",
+          "receipt_sha256": "790ec4a075eacad74d58bee355f2b5d137b8d68f1a4f91cbd5a0bb49b5b4b9c1",
+          "output_sha256": "5ea72cc568bb9684dea1488a557b3edd84f4689a289863fd098cbd4f8e1629e2",
+          "elapsed_seconds": 0.44202450000011595,
+          "peak_job_bytes": 58028032,
+          "memory_bytes": 782237696,
+          "cpu_percent": 20,
+          "tree_retired": true,
+          "residual_children": 0,
+          "inherited_error_mode": 32771
+        }
+      ]
+    },
+    "retained_leases_and_final_exact_check": true,
+    "post_fence_peer_loss_and_double_loss_refused": true,
+    "same_generation_fork_refused": true,
+    "recoverable_peer_restored_on_qualified_retry": true,
+    "post_reopen_write_independently_verified": true,
+    "windows_metadata_refused_before_repair": true,
+    "existing_scrub_continuity_and_full_startup_rotation": true,
+    "live_amd_separate_regression": {
+      "manifest_sha256": "d3b2da67b3f670b542e42097cde13cef3e2c735155093328df4d41fbf052b7d7",
+      "worker_sha256": "3bf7a176c9cae60dfc4b3c3bf3cd4f03a525bff5360dd78a18046e4cde57a91f",
+      "kernels_sha256": "ff1b9b8879ffd7fefc50923535882602d0f7b69e36e9e087d081920c90b12f43",
+      "test_executable_sha256": "252621656f414bf1f5a188396c20c410a9eb2b163e46639eccba2259465a1e98",
+      "verified_groups": 1,
+      "independent_cpu_readback": true,
+      "shutdown_confirmed": true,
+      "system_runtime_sha256": "7fc6465b18ff337a80c863b6350d02d7576cfb30528f97b982a6e5723bbb9848"
+    },
+    "runs": [
+      {
+        "role": "Baseline instrumentation build",
+        "run": "local-run-e1e155d19cd84439a272ddc52df3d319",
+        "receipt_sha256": "bade5284a504a1f27e65547c19648de2e7fa41bd749df7ecef1a3d93ff6dd06c",
+        "output_sha256": "5da08a775fd1dfc3786d84abcc8888b753d23a736e342790604fd8067236adf6",
+        "elapsed_seconds": 7.496134400000301,
+        "peak_job_bytes": 429088768,
+        "memory_bytes": 1861222400,
+        "cpu_percent": 27,
+        "tree_retired": true,
+        "residual_children": 1,
+        "inherited_error_mode": 32771
+      },
+      {
+        "role": "Baseline WinFsp reopen",
+        "run": "local-run-04948e3e87f84177b3fa3aec90ae6536",
+        "receipt_sha256": "2e25321545afdb88c27ba27b570c5fc683d87dba402ede0d9fdb55041660b03f",
+        "output_sha256": "592a2ffc6d733b0938c2577d0d98c1fe341cd4db770756ce71f8b992773f9288",
+        "elapsed_seconds": 0.6509713000004922,
+        "peak_job_bytes": 61505536,
+        "memory_bytes": 1488977920,
+        "cpu_percent": 20,
+        "tree_retired": true,
+        "residual_children": 0,
+        "inherited_error_mode": 32771
+      },
+      {
+        "role": "Candidate Release build",
+        "run": "local-run-b7304e1897b94c61bb44e3715ebdaa52",
+        "receipt_sha256": "56c7bf7ff8a49f6d3be759e023ceb0205ef92997926bf18f51a2ec7d6b8c3ab8",
+        "output_sha256": "46cb978fcabcf3aa033db3cf8dd7f8c8af5e28f234da952567448572177f68a2",
+        "elapsed_seconds": 40.62422269999843,
+        "peak_job_bytes": 402436096,
+        "memory_bytes": 2027945984,
+        "cpu_percent": 28,
+        "tree_retired": true,
+        "residual_children": 0,
+        "inherited_error_mode": 32771
+      },
+      {
+        "role": "Candidate Release regression",
+        "run": "local-run-742317e78a2b4fb6b5c77e7f87faa825",
+        "receipt_sha256": "8db70f7aa37b3fdb6d4c805db74d83584f9a945bc453d5eadecc670242891836",
+        "output_sha256": "28538e2072c3df29a03f2754d44cb0ebd24bae4c7de95676da08cd1a53b96b11",
+        "elapsed_seconds": 47.659290200001124,
+        "peak_job_bytes": 95240192,
+        "memory_bytes": 2065694720,
+        "cpu_percent": 27,
+        "tree_retired": true,
+        "residual_children": 0,
+        "inherited_error_mode": 32771
+      },
+      {
+        "role": "Codec-free Windows Explorer ASan build",
+        "run": "local-run-16792dc658cc46f6bfb609a4e51aaee1",
+        "receipt_sha256": "7e8130d62b3ae8b71513888cc7d2cb93bb3c624066cd45e480ea39f3e144d1d2",
+        "output_sha256": "aa3d533575dccaa7d63ddd8536dae9e59bfa9501409710a91824c00716796010",
+        "elapsed_seconds": 62.268012599999565,
+        "peak_job_bytes": 799563776,
+        "memory_bytes": 2365587456,
+        "cpu_percent": 28,
+        "tree_retired": true,
+        "residual_children": 1,
+        "inherited_error_mode": 32771
+      },
+      {
+        "role": "Codec-free Windows Explorer ASan regression",
+        "run": "local-run-1cb7d8f4c87d4816b3eaa40531a87313",
+        "receipt_sha256": "fbad7a05b1fbe0c2db86a714a42189ff8511ab317ba77cf696143840ef8ad76f",
+        "output_sha256": "c1d0c3d1b0ff67087119693ecc7a6c4445a9ab381e0c6ee06e23769d12b10da9",
+        "elapsed_seconds": 160.76505200000065,
+        "peak_job_bytes": 1096646656,
+        "memory_bytes": 2798649344,
+        "cpu_percent": 25,
+        "tree_retired": true,
+        "residual_children": 0,
+        "inherited_error_mode": 32771
+      },
+      {
+        "role": "AMD component stage",
+        "run": "local-run-1deb0b6c29924d568fe62627f57ef1e8",
+        "receipt_sha256": "e9051c0979b805c560f10b27a59b2f6fde88da1c206b1d5563b3f30a3986183d",
+        "output_sha256": "7698822a3b687767226fc341ad6b68e05118add89a0b7bf14a93cd2c90c3d95c",
+        "elapsed_seconds": 0.06421799999952782,
+        "peak_job_bytes": 5713920,
+        "memory_bytes": 701497344,
+        "cpu_percent": 15,
+        "tree_retired": true,
+        "residual_children": 0,
+        "inherited_error_mode": 32771
+      },
+      {
+        "role": "AMD installed-path regression",
+        "run": "local-run-3d27953fde174c9cab133ff96d6639fe",
+        "receipt_sha256": "16689b1e15931774596867e271b70edc3e0fee767bd8b5e23a4c88d5c0d5d123",
+        "output_sha256": "bd4e08f6cd33c80c2b80f2feb71dd02b37c80fc473772004cb896f9cd9b8691e",
+        "elapsed_seconds": 45.571586000000025,
+        "peak_job_bytes": 125730816,
+        "memory_bytes": 1277165568,
+        "cpu_percent": 16,
+        "tree_retired": true,
+        "residual_children": 0,
+        "inherited_error_mode": 32771
+      }
+    ]
+  },
+  "scope": {
+    "data_or_selector_format_change": false,
+    "mounted_windows_qualification": false,
+    "physical_power_loss_qualification": false,
+    "comparison_uses_backing_read_counts": true,
+    "release": false
+  }
+}

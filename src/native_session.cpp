@@ -512,7 +512,7 @@ NativeFileSession NativeFileSession::resume_closed_indexed_volume(std::shared_pt
 NativeFileSession NativeFileSession::resume_volume_impl(std::shared_ptr<StoreByteIo> head,
     StoreIdentity volume,std::uint64_t epoch,const NativeVolumeImageResolver& resolver,
     StoreCompressionOptions foreground,NativeDispositionPolicy policy,bool closed_indexed,
-    const NativeStartupRepairProvider& repair_target) {
+    const NativeStartupRepairProvider& repair_target,const IndexedReopenAdmission& admission) {
   admit_policy(policy);detail::validate_store_compression(foreground);
   if(!epoch || volume==StoreIdentity{} || !head || !resolver)
     fail(E::invalid_options,"explicit volume/epoch/provider required");
@@ -528,6 +528,20 @@ NativeFileSession NativeFileSession::resume_volume_impl(std::shared_ptr<StoreByt
   if(!closed_indexed && selected.filesystem().needs_session_recovery())
     fail(E::delete_pending,"old file-context state requires qualified recovery");
   owner->active_id=selected.filesystem().identity();owner->epoch=epoch;
+  const auto& initial=selected.filesystem();
+  if(admission)admission(initial);
+  const auto attach=[&](NativeFilesystemWriter writer) {
+    auto session=create(std::move(writer),policy);
+    session.impl_->volume=std::move(owner);
+    return session;
+  };
+  if(closed_indexed && !selected.info().degraded && !initial.needs_session_recovery() &&
+      !initial.storage_info().degraded_checkpoint) {
+    auto leased=NativeFilesystemWriter::lease_verified_indexed_reopen(initial,foreground);
+    owner->head=NativeVolumeHeadWriter::retain_indexed_reopen(head,selected.info().selection,leased);
+    if(owner->head)return attach(std::move(leased));
+    // A newly degraded selector needs the ordinary checked repair path.
+  }
   // The qualified global provider excludes other controllers during startup.
   // Repair selected image metadata first, then acquire/repair its head owner.
   auto repaired=[&] {
@@ -571,14 +585,10 @@ NativeFileSession NativeFileSession::resume_volume_impl(std::shared_ptr<StoreByt
     }();
     return NativeFilesystemWriter::resume_closed_session(std::move(objects));
   }();
-  if(owner->head) {
-    auto session=create(std::move(repaired),policy);
-    session.impl_->volume=std::move(owner);return session;
-  }
+  if(owner->head)return attach(std::move(repaired));
   auto checked=repaired.snapshot();retire(repaired);
   owner->head.emplace(NativeVolumeHeadWriter::resume(head,volume,epoch,checked));
-  auto session=create(resume_image(owner->active_io,checked,foreground),policy);
-  session.impl_->volume=std::move(owner);return session;
+  return attach(resume_image(owner->active_io,checked,foreground));
 }
 NativeVolumeHeadInfo NativeFileSession::volume_info() const {
   auto& self=ready();

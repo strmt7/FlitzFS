@@ -646,6 +646,9 @@ class NativeFilesystemWriter final {
   static NativeFilesystemWriter initialize_storage(detail::NativeObjectWriter,bool inode_records=false,
       bool indexed_names=false,bool shared_bases=false);
   static NativeFilesystemWriter resume_impl(detail::NativeObjectWriter,bool closed_session);
+  // The closed session supplies its verified view and completes the head fence
+  // before the acquired writer can publish any file operation.
+  static NativeFilesystemWriter lease_verified_indexed_reopen(const NativeFilesystemSnapshot&,StoreCompressionOptions);
   explicit NativeFilesystemWriter(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;
 };

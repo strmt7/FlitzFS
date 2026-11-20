@@ -356,6 +356,14 @@ interruptions to either advisory slot. The Windows SDK lifecycle resumed
 from that prefix after closing and reopening a paired-range fixture.
 [Durable scrub validation](evidence/indexed-durable-scrub-2026-11-20.json)
 
+Healthy writable reopen retains a checked image writer through the final
+image and head barriers. The matched 5 MiB Windows paired-range fixture
+read 42,460,278 backing bytes, down from 165,511,388, with zero backing
+writes in either case. The source and the fenced image still receive
+full checks. A different paged root with equal generation, or damage to
+one or both replicas during the final barrier, aborts writable admission.
+[Verified reopen validation](evidence/indexed-retained-reopen-2026-11-20.json)
+
 The closed indexed writer restores damaged payload replicas before
 attaching when the current checkpoint is verifiable and append space
 permits it. Across 534 modeled interruptions at 4 KiB and 64 KiB failure

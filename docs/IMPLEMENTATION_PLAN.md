@@ -1452,10 +1452,12 @@ qualification. It is not a final pass of extra assertions after design is frozen
    appending is blocked and a target fits. Closed indexed reopen restores
    verified replicas before writable admission. The Windows providers
    can select a verified alternate when startup cannot append. The idle
-   scrub can resume a persisted verified prefix of the same image. Keep
-   making writable admission scale with checked index paths, persist repair
-   intent, add index reconstruction, and qualify persistence under physical
-   failure. Preserve the acknowledged namespace and retain evidence when
+   scrub can resume a persisted verified prefix of the same image.
+   Healthy writable reopen reuses its checked image writer through the
+   selector and image barriers. Further scale work must replace routine
+   whole-image passes with checked index paths and durable evidence while
+   preserving fault detection. Persist repair intent, add index
+   reconstruction, and qualify persistence under physical failure. Preserve the acknowledged namespace and retain evidence when
    intact data cannot be reconstructed.
 6. Preserve independent CPU export/recovery tooling and useful diagnostics when
    normal mounting or the GPU path is unavailable. Backup/redundancy needs must
