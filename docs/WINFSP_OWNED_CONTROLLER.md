@@ -141,6 +141,13 @@ of further extent visits has been spent. No GPU worker waits during
 collection. The saved scan cursor pauses while tentative groups remain in
 memory so a restart can reconsider that work.
 
+At launch, a fixed-output plan selects the largest affordable prefix of
+complete groups. The estimate includes child commitment, the transfer
+slab, channel mappings and copies. The qualified minimum member count
+still applies. Reply lookup uses the original source window identity.
+The remaining groups proceed through CPU preparation and publication.
+[Budget-limited AMD and CPU readback evidence](evidence/windows-adaptive-amd-launch-2026-11-20.json)
+
 A partially covered candidate or one that exceeds the remaining extent
 budget defers its intersecting candidates in the current window. Independent
 candidates can still fill the batch. If the window has deferred candidates at

@@ -1,11 +1,11 @@
-#include "native_anchor_search.hpp"
+#include "native_anchor_launch.hpp"
 #include "anchor_batch_profile.hpp"
 #include "gpu_budget.hpp"
 #include "gpu_worker_common.hpp"
-#include "../native_group_anchor.hpp"
 #include <algorithm>
 #include <dxgi.h>
 #include <limits>
+#include <numeric>
 #include <stdexcept>
 #include <utility>
 
@@ -29,6 +29,98 @@ bool valid_anchor_route(const HipDiscoveredRoute& route) noexcept {
       route.pins->matches(route.helper,route.identity,route.runtime_sha256,static_cast<int>(route.ordinal),route.memory);
 }
 }
+std::optional<NativeAnchorLaunchPlan> plan_native_anchor_launch(
+    std::span<const std::uint32_t> members, const NativeAnchorSearchOptions& options,
+    const GpuMemorySnapshot& observed, std::uint64_t now, bool permits_reference_change) {
+  const auto total = std::accumulate(members.begin(), members.end(), std::uint64_t{0});
+  if (!options.minimum_members || total < options.minimum_members ||
+      total > options.maximum_members || total > detail::anchor_match_batch_member_limit() ||
+      std::ranges::find(members, 0U) != members.end()) return {};
+  const auto largest = *std::ranges::max_element(members);
+  (void)detail::anchor_match_layout(largest, options.output);
+
+  const auto& identity = options.route.memory;
+  std::uint32_t fit = 0, limit = largest;
+  while (fit < limit) {
+    const auto trial = fit + (limit - fit + 1) / 2;
+    if (check_gpu_memory_budget(observed, identity.luid, identity.node_mask, now,
+        anchor_match::device_bytes(trial, options.output)) == GpuGateCode::admitted) fit = trial;
+    else limit = trial - 1;
+  }
+  if (!fit) return {};
+
+  using Output = anchor_match::BatchOutput;
+  const bool reference = options.output == Output::reference_xor;
+  const auto baseline = reference ? Output::sparse_xor : options.output;
+  const auto dispatch_limit = anchor_match::dispatch_member_limit(options.output);
+  const auto qualified_limit = options.maximum_dispatch_members ? options.maximum_dispatch_members : dispatch_limit;
+  const auto quantum = (std::min)({fit, dispatch_limit, qualified_limit});
+  const auto available = (std::min)(observed.physical_available, observed.commit_available);
+  const auto budget_for = [&](const detail::AnchorMatchTransferPlan& transfer, WorkerChannelCapacity channel) {
+    const auto variable = std::uint64_t(transfer.device_bytes) + 2ULL * channel.request_bytes +
+        2ULL * channel.reply_bytes;
+    constexpr auto maximum = (std::numeric_limits<std::uint64_t>::max)();
+    if (options.worker.memory_mib > (maximum - variable) / mib) return ProcessBudget{0};
+    const auto child = (std::max)(options.worker.memory_mib * mib + variable,
+        6ULL * channel.request_bytes + 4ULL * channel.reply_bytes + mib);
+    const auto budget = plan_resource_process_budget(child, observed.physical_available,
+        observed.commit_available, options.worker.memory_share_divisor, options.worker.cpu_rate,
+        options.worker.timeout_ms);
+    const auto required = required_sized_worker_headroom(channel, budget);
+    return required && required <= available ? budget : ProcessBudget{0};
+  };
+
+  const auto candidate = [&](std::span<const std::uint32_t> prefix) -> std::optional<NativeAnchorLaunchPlan> {
+    try {
+      const auto launch_grant = std::accumulate(prefix.begin(), prefix.end(),
+          static_cast<std::uint32_t>(prefix.size()));
+      auto batch = detail::plan_anchor_match_batch(prefix, quantum,
+          anchor_match::device_bytes(quantum, baseline), launch_grant, baseline);
+      if (reference && fit == largest && permits_reference_change &&
+          launch_grant - batch.launches >= 2 * detail::anchor_reference_pricing_launches(batch))
+        batch = detail::plan_anchor_match_batch(prefix, quantum,
+            anchor_match::device_bytes(quantum, options.output), launch_grant, options.output);
+      const auto transfer = detail::plan_anchor_match_transfers(batch, anchor_match::device_bytes(fit, batch.output));
+      WorkerChannelCapacity capacity{batch.request_bytes, batch.reply_bytes};
+      auto budget = budget_for(transfer, capacity);
+      if (!valid_process_budget(budget)) return {};
+      std::uint32_t queued = 1;
+      const auto admitted_dispatches = 1 + (transfer.members_per_transfer - 1) / batch.quantum_members;
+      if (options.dispatches_per_wait > 1 && admitted_dispatches >= options.dispatches_per_wait &&
+          options.worker.timeout_ms <= kAnchorSweepProfileLimitNs / million) {
+        auto profiled = capacity;
+        profiled.reply_bytes += kAnchorBatchProfileBytes;
+        if (const auto planned = budget_for(transfer, profiled); valid_process_budget(planned)) {
+          capacity = profiled;
+          budget = planned;
+          queued = options.dispatches_per_wait;
+        }
+      }
+      return NativeAnchorLaunchPlan{std::move(batch), transfer, capacity, budget, queued};
+    } catch (const std::invalid_argument&) {
+      // A prefix may fit the checked wire capacity when the staged batch does not.
+      return {};
+    }
+  };
+
+  auto accepted = candidate(members);
+  if (accepted || reference) return accepted;
+  // For a fixed output and dispatch limit, adding a group cannot reduce the
+  // base transport or transfer allocation. Profile trailers are optional.
+  std::size_t first = 0;
+  std::uint32_t eligible = 0;
+  while (eligible < options.minimum_members) eligible += members[first++];
+  auto last = members.size() - 1;
+  while (first <= last) {
+    const auto middle = first + (last - first) / 2;
+    if (auto planned = candidate(members.first(middle))) {
+      accepted = std::move(planned);
+      first = middle + 1;
+    } else last = middle - 1;
+  }
+  return accepted;
+}
+
 struct NativeAnchorSearchController::Impl {
   enum class Disposition {pending,yielded,expired};
   struct Flight {
@@ -128,19 +220,18 @@ void NativeAnchorSearchController::start(std::span<const NativeSharedBaseSearchW
   const auto& options=self.options;
   const auto grant=stage_grant(GetTickCount64(),std::size_t{detail::anchor_match_batch_member_limit()}+1);
   if(!grant || !WorkerExchangeSession::available())return;
-  std::uint32_t total=0,largest=0;
-  for(const auto& window:windows) {
-    const auto members=window.members().size();
-    if(!members || members>grant-total)return;
-    const auto count=static_cast<std::uint32_t>(members);
-    total+=count;
-    largest=(std::max)(largest,count);
-  }
-  if(total<options.minimum_members || !self.check_device())return;
   std::uint64_t ticket=0;
   try {
-    // Reject an unrepresentable group before sizing a device slab.
-    (void)detail::anchor_match_layout(largest,options.output);
+    std::vector<std::uint32_t> counts;
+    counts.reserve(windows.size());
+    std::uint32_t total=0;
+    for(const auto& window:windows) {
+      const auto members=window.members().size();
+      if(!members || members>grant-total)return;
+      const auto count=static_cast<std::uint32_t>(members);
+      total+=count;counts.push_back(count);
+    }
+    if(total<options.minimum_members || !self.check_device())return;
     const auto& route=options.route;
     const auto observed=query_windows_gpu_budget(route.memory.luid,route.memory.node_mask);
     const auto now=GetTickCount64();
@@ -155,61 +246,15 @@ void NativeAnchorSearchController::start(std::span<const NativeSharedBaseSearchW
         self.suspend(false);
       return;
     }
-    std::uint32_t fit=0,limit=largest;
-    while(fit<limit) {
-      const auto test=fit+(limit-fit+1)/2;
-      if(check_gpu_memory_budget(observed.snapshot,route.memory.luid,route.memory.node_mask,now,
-          anchor_match::device_bytes(test,options.output))==GpuGateCode::admitted)fit=test;
-      else limit=test-1;
-    }
-    if(!fit){defer();return;}
-    const auto dispatch_limit=anchor_match::dispatch_member_limit(options.output);
-    const auto grant_limit=options.maximum_dispatch_members?options.maximum_dispatch_members:dispatch_limit;
-    const auto quantum=(std::min)({fit,dispatch_limit,grant_limit});
-    std::vector<std::uint32_t> counts;
-    counts.reserve(windows.size());
-    for(const auto& window:windows)counts.push_back(static_cast<std::uint32_t>(window.members().size()));
-    using Output=anchor_match::BatchOutput;
-    const auto reference=options.output==Output::reference_xor;
-    const auto baseline=reference?Output::sparse_xor:options.output;
-    const auto launches=total+static_cast<std::uint32_t>(windows.size());
-    auto plan=detail::plan_anchor_match_batch(counts,quantum,anchor_match::device_bytes(quantum,baseline),launches,baseline);
-    if(reference && fit==largest && std::ranges::all_of(windows,&NativeSharedBaseSearchWindow::permits_reference_change) &&
-        launches-plan.launches>=2*detail::anchor_reference_pricing_launches(plan))
-      plan=detail::plan_anchor_match_batch(counts,quantum,anchor_match::device_bytes(quantum,options.output),launches,options.output);
-    const auto transfer=detail::plan_anchor_match_transfers(plan,anchor_match::device_bytes(fit,plan.output));
-    const auto admitted_dispatches=1+(transfer.members_per_transfer-1)/plan.quantum_members;
-    auto dispatches_per_wait=admitted_dispatches>=options.dispatches_per_wait &&
-        options.worker.timeout_ms<=kAnchorSweepProfileLimitNs/million?options.dispatches_per_wait:1U;
-    WorkerChannelCapacity capacity{plan.request_bytes,plan.reply_bytes};
-    constexpr auto maximum=(std::numeric_limits<std::uint64_t>::max)();
-    if(self.sequence==maximum){self.enabled=false;return;}
-    const auto available=(std::min)(observed.snapshot.physical_available,observed.snapshot.commit_available);
-    const auto budget_for=[&](WorkerChannelCapacity channel) {
-      const auto variable=std::uint64_t(transfer.device_bytes)+2ULL*channel.request_bytes+2ULL*channel.reply_bytes;
-      if(options.worker.memory_mib>(maximum-variable)/mib)return ProcessBudget{0};
-      const auto child=(std::max)(options.worker.memory_mib*mib+variable,
-          6ULL*channel.request_bytes+4ULL*channel.reply_bytes+mib);
-      const auto limits=plan_resource_process_budget(child,observed.snapshot.physical_available,
-          observed.snapshot.commit_available,options.worker.memory_share_divisor,options.worker.cpu_rate,
-          options.worker.timeout_ms);
-      const auto required=required_sized_worker_headroom(channel,limits);
-      return required && required<=available?limits:ProcessBudget{0};
-    };
-    auto budget=budget_for(capacity);
-    if(dispatches_per_wait>1) {
-      auto profiled=capacity;
-      profiled.reply_bytes+=kAnchorBatchProfileBytes;
-      if(const auto planned=budget_for(profiled);valid_process_budget(planned)) {
-        capacity=profiled;
-        budget=planned;
-      } else dispatches_per_wait=1;
-    }
-    if(!valid_process_budget(budget)) {
-      defer();return;
-    }
+    const auto launch=plan_native_anchor_launch(counts,options,observed.snapshot,now,
+        options.output==anchor_match::BatchOutput::reference_xor &&
+        std::ranges::all_of(windows,&NativeSharedBaseSearchWindow::permits_reference_change));
+    if(!launch){defer();return;}
+    if(self.sequence==(std::numeric_limits<std::uint64_t>::max)()){self.enabled=false;return;}
+    const auto& [plan,transfer,capacity,budget,dispatches_per_wait]=*launch;
+    windows=windows.first(plan.groups.size());
     const GpuHealthEvidence health{route.identity,++self.sequence,0,true,true,observed.snapshot};
-    const auto route_decision=self.recovery.consider_anchor(true,health,transfer.device_bytes,now);
+    const auto route_decision=self.recovery.consider_anchor(true,health,transfer.device_bytes,GetTickCount64());
     if(!route_decision.try_gpu()) {
       if(route_decision.reason==GpuRouteReason::configuration_blocked ||
           route_decision.reason==GpuRouteReason::device_quarantined || route_decision.reason==GpuRouteReason::exhausted)
@@ -226,6 +271,7 @@ void NativeAnchorSearchController::start(std::span<const NativeSharedBaseSearchW
         route.memory.luid,route.memory.node_mask,dispatches_per_wait);
     std::vector<NativeSharedBaseSearchWindow> retained(windows.begin(),windows.end());
     const auto begun=GetTickCount64();
+    using Output=anchor_match::BatchOutput;
     const auto command=plan.output==Output::reference_xor?L"--driver-anchor-reference-batch":
         plan.output==Output::collective?L"--driver-anchor-collective-batch":
         plan.output==Output::sparse_xor?L"--driver-anchor-sparse-xor-batch":
@@ -235,7 +281,7 @@ void NativeAnchorSearchController::start(std::span<const NativeSharedBaseSearchW
         profile?L"--driver-anchor-transfer-batch-profile":L"--driver-anchor-transfer-batch";
     std::vector<std::wstring> arguments{command,std::to_wstring(route.ordinal),hex(route.memory.luid),
         std::to_wstring(route.memory.node_mask),hex(route.runtime_sha256),std::to_wstring(capacity.request_bytes),
-        std::to_wstring(capacity.reply_bytes),std::to_wstring(quantum),std::to_wstring(plan.device_bytes),
+        std::to_wstring(capacity.reply_bytes),std::to_wstring(plan.quantum_members),std::to_wstring(plan.device_bytes),
         std::to_wstring(plan.launches),std::to_wstring(transfer.device_bytes)};
     if(profile)arguments.push_back(std::to_wstring(dispatches_per_wait));
     if(!self.check_device(ticket))return;

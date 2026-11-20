@@ -20,6 +20,10 @@
 #include <chrono>
 #include <cstring>
 #include <fstream>
+#ifdef FLITZFS_INDEXED_HIP_FIXTURE
+#include "../src/windows/native_anchor_launch.hpp"
+#include "../src/windows/gpu_budget.hpp"
+#endif
 #include <iostream>
 #include <limits>
 #include <optional>
@@ -33,6 +37,53 @@ inline constexpr auto queued_anchor_members=1+(kAnchorProfileMaxQueuedDispatches
 #endif
 DWORD handle_count() {DWORD count=0;if(!GetProcessHandleCount(GetCurrentProcess(),&count))throw std::runtime_error("handle telemetry");return count;}
 void require(bool value,const char* why){++checks;if(!value)throw std::runtime_error(why);}
+#ifdef FLITZFS_INDEXED_HIP_FIXTURE
+void anchor_launch_budget() {
+  constexpr std::uint64_t gib = 1024ULL * 1024 * 1024;
+  GpuMemorySnapshot observed;
+  observed.valid = observed.amd_hardware = true;
+  observed.luid[0] = std::byte{1};
+  observed.node_mask = 1;
+  observed.captured_ms = 100;
+  observed.dedicated_bytes = 8 * gib;
+  observed.local_budget = 6 * gib;
+  observed.nonlocal_budget = 8 * gib;
+  observed.physical_total = observed.commit_limit = 8 * gib;
+  observed.physical_available = observed.commit_available = 7 * gib;
+
+  NativeAnchorSearchOptions options;
+  options.route.memory = observed;
+  options.worker = {128, 2'000, 5'000, 16};
+  options.minimum_members = 20;
+  options.maximum_members = 128;
+  constexpr std::array<std::uint32_t,4> members{12, 24, 30, 44};
+  const auto full = plan_native_anchor_launch(members, options, observed, observed.captured_ms, false);
+  const auto three = plan_native_anchor_launch(std::span(members).first(3),
+      options, observed, observed.captured_ms, false);
+  const auto two = plan_native_anchor_launch(std::span(members).first(2),
+      options, observed, observed.captured_ms, false);
+  require(full && full->batch.groups.size() == 4 && three && three->batch.groups.size() == 3 &&
+      two && two->batch.groups.size() == 2, "Wide memory grant did not admit complete groups");
+
+  const auto three_bytes = required_sized_worker_headroom(three->capacity, three->worker);
+  const auto two_bytes = required_sized_worker_headroom(two->capacity, two->worker);
+  require(three_bytes > two_bytes && two_bytes > 0, "Group staging did not charge the complete transport");
+  const auto limited = [&](std::uint64_t available) {
+    auto snapshot = observed;
+    snapshot.physical_available = snapshot.commit_available = available;
+    return plan_native_anchor_launch(members, options, snapshot, snapshot.captured_ms, false);
+  };
+  const auto at_limit = limited(three_bytes);
+  require(at_limit && at_limit->batch == three->batch && at_limit->transfer == three->transfer,
+      "A funded prefix changed its group identities or geometry");
+  const auto below_limit = limited(three_bytes - 1);
+  require(below_limit && below_limit->batch == two->batch, "Prefix planning did not choose the largest funded batch");
+  require(!limited(two_bytes - 1), "Prefix planning accepted fewer than the approved minimum members");
+  require(!plan_native_anchor_launch(members, options, observed,
+      observed.captured_ms + kGpuMaxBudgetAgeMs + 1, false), "Stale budget admitted a GPU batch");
+  std::cout << "anchor launch prefix: wide=4 at_budget=3 below_budget=2 below_minimum=0\n";
+}
+#endif
 template<class F>void rejected(F&& run,const char* why) {
   bool refused=false;
   try{run();}catch(const std::exception&){refused=true;}
@@ -968,8 +1019,49 @@ RevisionReadProfile profile_revision_session_reads(NativeFilesystemWriter writer
   return profile;
 }
 
+void restrict_fixture_anchor_launch(std::span<const NativeSharedBaseSearchWindow> windows,
+    NativeAnchorSearchOptions& options) {
+  std::vector<std::uint32_t> members;
+  for (const auto& window : windows) members.push_back(static_cast<std::uint32_t>(window.members().size()));
+  const auto& identity = options.route.memory;
+  const auto observed = query_windows_gpu_budget(identity.luid, identity.node_mask);
+  require(windows.size() > 1 && observed.status == WindowsGpuBudgetStatus::success,
+      "Limited-memory fixture requires live headroom and several complete groups");
+  const auto& snapshot = observed.snapshot;
+  const auto available = (std::min)(snapshot.physical_available, snapshot.commit_available);
+  const auto original = options.worker.memory_share_divisor;
+  constexpr std::uint64_t mib = 1024ULL * 1024;
+  const auto upper = static_cast<std::uint32_t>((std::min)(available / (options.worker.memory_mib * mib),
+      std::uint64_t((std::numeric_limits<std::uint32_t>::max)())));
+  const auto count_for = [&](std::uint32_t divisor) {
+    options.worker.memory_share_divisor = divisor;
+    const auto planned = plan_native_anchor_launch(members, options, snapshot, snapshot.captured_ms, false);
+    return planned ? planned->batch.groups.size() : std::size_t{0};
+  };
+  require(upper > original && count_for(original) == windows.size(),
+      "Live headroom cannot fund the unrestricted fixture");
+  const auto edge_for = [&](std::size_t groups) {
+    auto low = original, high = upper;
+    while (low < high) {
+      const auto mid = low + (high - low + 1) / 2;
+      if (count_for(mid) >= groups) low = mid;
+      else high = mid - 1;
+    }
+    return low;
+  };
+  const auto full = edge_for(windows.size());
+  const auto partial = edge_for(1);
+  require(partial > full, "Live resource grant has no usable partial range");
+  const auto divisor = full + (partial - full + 1) / 2;
+  const auto expected = count_for(divisor);
+  require(expected && expected < windows.size(), "Fixture budget did not select a strict prefix");
+  std::cout << "anchor limited-memory fixture staged=" << windows.size() << " planned=" << expected
+      << " divisor=" << divisor << '\n';
+}
+
 int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
-    const std::filesystem::path& bank_path,std::uint64_t discovery_ns,IndexedBatchPattern pattern) {
+    const std::filesystem::path& bank_path,std::uint64_t discovery_ns,IndexedBatchPattern pattern,
+    bool limited_memory=false) {
   constexpr auto families=anchor_search_fixture::indexed_batch_families;
   const bool revision=revision_corpus(pattern);
   const bool shifted_bias=pattern==IndexedBatchPattern::shifted_bias;
@@ -1039,6 +1131,8 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   const auto maintenance_start=std::chrono::steady_clock::now();
   const NativeMaintenancePolicy policy;
   NativeGroupMaintenance maintenance(*session,policy);
+  auto restricted=limited_memory?options:std::nullopt;
+  std::size_t limited_groups=0;
   std::unique_ptr<NativeAnchorSearchController> anchor;
   if(options)anchor=std::make_unique<NativeAnchorSearchController>(std::move(*options));
   if(anchor && !revision && bank.empty() && !shifted_bias && !alternate_reference && !sparse_xor && !collective) {
@@ -1078,6 +1172,12 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
     if(!maintenance.has_retained_search())anchor->discard_reply();
     if(!progress.search_batch_ready)continue;
     const auto windows=maintenance.search_batch();
+    if(restricted) {
+      restrict_fixture_anchor_launch(windows,*restricted);
+      limited_groups=windows.size();
+      anchor=std::make_unique<NativeAnchorSearchController>(std::move(*restricted));
+      restricted.reset();
+    }
     const auto started=std::chrono::steady_clock::now();
     anchor->start(windows,1);
     await([&] {
@@ -1111,6 +1211,11 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   const bool retired=(!anchor || anchor->stop()) && WorkerExchangeSession::available();
   require(!maintenance.pending() && (revision || progress.published_groups) && retired && !stats.integrity_failures,
       "Large batch lost protected publication or ownership");
+  if(limited_memory)
+    require(limited_groups && stats.submitted==1 && stats.verified==1 &&
+        stats.verified_groups>0 && stats.verified_groups<limited_groups &&
+        progress.published_groups>stats.verified_groups,
+        "Limited-memory fixture did not settle AMD and CPU groups together");
   if(dense_overflow) {
     require(stats.submitted==1 && stats.empty_xor_batches==1 && !stats.verified &&
         !progress.advised_members_published,"Dense slots unexpectedly handled all active planes");
@@ -1191,6 +1296,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
       <<" files="<<originals.size()<<" groups="<<progress.published_groups<<" advised_members="<<progress.advised_members_published
       <<" capability="<<capability
       <<" submitted="<<stats.submitted<<" verified_batches="<<stats.verified<<" worker_ns="<<worker_ns
+      <<" submitted_groups="<<stats.submitted_groups<<" verified_groups="<<stats.verified_groups
       <<" submitted_queued_batches="<<stats.submitted_queued_batches
       <<" verified_queued_batches="<<stats.verified_queued_batches<<" dispatches_per_wait="<<stats.queued_dispatches_per_wait
       <<" queued_worker_wall_ns="<<stats.queued_worker_wall_ns<<" queued_kernel_wait_ns="<<stats.queued_kernel_wait_ns
@@ -1216,13 +1322,16 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
 int live_anchor_owner(int argc,char** argv) {
   const std::string_view mode(argv[6]);
   const auto multiwindow=multiwindow_pattern(mode);
-  const bool queued=mode=="queued" || mode=="queued-yield" || mode=="verified-read" || mode=="verified-edit" || argc==9;
+  const auto restriction=argc==9?std::string_view(argv[8]):std::string_view{};
+  const bool limited_memory=restriction=="limited-memory";
+  const bool queued=mode=="queued" || mode=="queued-yield" || mode=="verified-read" || mode=="verified-edit" ||
+      restriction=="queued";
   const bool xor_mode=mode=="xor" || mode=="xor-wide" || mode=="xor-narrow";
   require(mode=="accept" || mode=="yield" || mode=="both" || mode=="batch" || mode=="batch-yield" || queued ||
       xor_mode || multiwindow,
       "Expected an AMD ownership trial");
-  require(argc!=9 || (multiwindow && revision_corpus(*multiwindow) && std::string_view(argv[8])=="queued"),
-      "A queued comparison needs a revision corpus");
+  require(argc!=9 || (multiwindow && revision_corpus(*multiwindow) && (restriction=="queued" || limited_memory)),
+      "The requested comparison needs a revision corpus");
   const ProcessBudget profile{128,2000,5000,16};
   HipRouteDiscoveryRequest request;
   request.helper=argv[2];request.helper_sha256=artifact_digest(argv[3]);
@@ -1251,7 +1360,7 @@ int live_anchor_owner(int argc,char** argv) {
         static_cast<std::uint32_t>(members+families),10000,
         output,small_batch?4U:modular?16U:0U,queued?kAnchorProfileMaxQueuedDispatches:1U},
         argc>=8?std::filesystem::path(argv[7]):std::filesystem::path{},
-        discovery_ns,*multiwindow);
+        discovery_ns,*multiwindow,limited_memory);
   }
   const std::uint32_t members=queued?queued_anchor_members:(mode=="batch" || mode=="batch-yield" || xor_mode)?8:4;
   NativeAnchorSearchOptions execution{*binding.route,profile,members,members};
@@ -2257,6 +2366,7 @@ void indexed_group_callback_contract() {
 int main(int argc,char** argv){try {
   app_fixture::Budget budget;DWORD before=0,after=0;
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
+  if(argc==1)anchor_launch_budget();
   if((argc==7 || ((argc==8 || argc==9) && multiwindow_pattern(argv[6]))) &&
       std::string_view(argv[1])=="--live-anchor-owner")return live_anchor_owner(argc,argv);
   if(argc==2 || argc==3) {

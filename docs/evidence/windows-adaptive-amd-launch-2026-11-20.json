@@ -1,0 +1,173 @@
+{
+  "schema": 1,
+  "date": "2026-11-20",
+  "experimental": true,
+  "source_base": "3c18602479967bc4e1a8aee2099b978bedb085e4",
+  "tracked_code_diff_sha256": "d0c42485c94e2eb2223f6f129a184447be86c160a918efa797fd341f4e361d3b",
+  "source_files": [
+    {
+      "file": "src/windows/native_anchor_search.cpp",
+      "blob": "d2758913723b4b3a70521e93b4ae094b2b80146c",
+      "sha256": "98bb5df3ebab7c5d35bb9cde3e770dda2ed0e6b10954b020aa79a47897c0c1db"
+    },
+    {
+      "file": "src/windows/native_anchor_launch.hpp",
+      "blob": "0514c0737921855013574ca82f7abdbf79c200dc",
+      "sha256": "9f627550b66cc11e62b2c24a74d537dbc1d9dba86734f3f7cdc4d5c3d493cb42"
+    },
+    {
+      "file": "tests/test_winfsp_controller.cpp",
+      "blob": "4d4759e757d4694bb8986609e73825e50b3620ce",
+      "sha256": "3263b9ec4e9aa12b35edae8d2eeef8925611d292e1581a6cf130db0f3ed38960"
+    }
+  ],
+  "scope": "Budget-limited Windows AMD collective copy search, independent CPU publication and readback.",
+  "navigation_sha256": "01b8e77c71ca0243f87ea3996fb234ebcfc40b48f47bd74749b01ad766b942e6",
+  "controller_package": {
+    "sha256": "84099b9da288190b3a430526b22910d8e8362dcbaa28e660a59576e680ccbb4e",
+    "adapter": "AMD Radeon RX 9070 XT",
+    "driver_version": "32.0.32029.2010",
+    "worker_sha256": "3a1eddec1f5b8ad516aba4acf6ddc5a4a0ba36b4fd33d27f9b4f2aa87308609e",
+    "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+    "accepted_batches": 1,
+    "warmed_handle_count": 319,
+    "post_stop_gpu_jobs": 0
+  },
+  "functional_corpus": {
+    "cpu": {
+      "files": 20,
+      "groups": 5,
+      "advised_members": 0,
+      "submitted": 0,
+      "verified_batches": 0,
+      "submitted_groups": 0,
+      "verified_groups": 0,
+      "input_compacted_bytes": 606208,
+      "grouped_compacted_bytes": 286720,
+      "input_blake3": "5f89cd7cbed6c82bc2507e844ab79cc116407492d35ec78ae4f658881dcd0c07"
+    },
+    "full_amd": {
+      "files": 20,
+      "groups": 5,
+      "advised_members": 16,
+      "submitted": 1,
+      "verified_batches": 1,
+      "submitted_groups": 5,
+      "verified_groups": 5,
+      "input_compacted_bytes": 606208,
+      "grouped_compacted_bytes": 278528,
+      "input_blake3": "5f89cd7cbed6c82bc2507e844ab79cc116407492d35ec78ae4f658881dcd0c07"
+    },
+    "budget_limited_amd": {
+      "files": 20,
+      "groups": 5,
+      "advised_members": 4,
+      "submitted": 1,
+      "verified_batches": 1,
+      "submitted_groups": 2,
+      "verified_groups": 2,
+      "input_compacted_bytes": 606208,
+      "grouped_compacted_bytes": 286720,
+      "input_blake3": "5f89cd7cbed6c82bc2507e844ab79cc116407492d35ec78ae4f658881dcd0c07"
+    },
+    "budget_divisor": 226,
+    "staged_groups": 5,
+    "suffix_groups_published_on_cpu": 3,
+    "modeled_idle_time": true,
+    "independent_cpu_readback": true,
+    "throughput_qualification": false
+  },
+  "tests": {
+    "release": 9,
+    "raw_asan_including_runtime_preflight": 6,
+    "pure_prefix_groups": {
+      "wide": 4,
+      "exact_budget": 3,
+      "below_budget": 2,
+      "below_minimum": 0
+    }
+  },
+  "runs": [
+    {
+      "role": "Release build",
+      "run": "local-run-994d19fff9e0431ca54f2e8e449bbcad",
+      "result_sha256": "24d0c8507870fa086be66b6450200aa573adbfa405ec72a7fe98c7054918fa68",
+      "log_sha256": "c03e164117d8d1d7fa38c103ff91fe91d4c11761d307182b105ffe7aa72c4ab1",
+      "peak_job_bytes": 905838592,
+      "tree_retired": true,
+      "descendants_retired_by_supervisor": 1
+    },
+    {
+      "role": "Final fixture rebuild",
+      "run": "local-run-2e0ce1583e6a47579df1c22743fe7e25",
+      "result_sha256": "ffd68913b86adae7bf0beae69da8a8069b73777b1fad8d31402f799d283b2bfb",
+      "log_sha256": "57db56e6372d9cf4c595081a1cbb317f9cc97a28351ea075448b0c6db6e0ffe5",
+      "peak_job_bytes": 441577472,
+      "tree_retired": true,
+      "descendants_retired_by_supervisor": 1
+    },
+    {
+      "role": "Release checks",
+      "run": "local-run-e8d15c1b0ce549d1bbe2b658f23c4cd7",
+      "result_sha256": "1849103612980fe4fdfe6203c80963174972948b6f9377fbc7348f9bf4172b28",
+      "log_sha256": "ce88eff3b2b751968e3f2c1ec49d67f11861287deade795b781470f34fddcb5d",
+      "peak_job_bytes": 61284352,
+      "tree_retired": true,
+      "descendants_retired_by_supervisor": 0
+    },
+    {
+      "role": "CPU revision control",
+      "run": "local-run-80204d9dbb3c4575b1499dea4b9e2ea9",
+      "result_sha256": "8c0943eb79bdfcaffc6efbd3cd99d50f703a022dce6b5ebf43ddaa7734819d1f",
+      "log_sha256": "58c8c5eb2bfda1fa0f4ebddee885de96f6e04ffe1eb2ca3d5e14b61a629be09f",
+      "peak_job_bytes": 10678272,
+      "tree_retired": true,
+      "descendants_retired_by_supervisor": 0
+    },
+    {
+      "role": "Full AMD revision fixture",
+      "run": "local-run-7100b472c739414298d2ecff58571619",
+      "result_sha256": "e1786eca6f7a5a80225d890f0506a561777f2e782f5e087e3a23be74a75cb85d",
+      "log_sha256": "e690327369643e429ff27ef4386d2f206b3ee6bf97508d7834b5354081182c92",
+      "peak_job_bytes": 114581504,
+      "tree_retired": true,
+      "descendants_retired_by_supervisor": 0
+    },
+    {
+      "role": "Budget-limited AMD revision fixture",
+      "run": "local-run-aec4c9e56d164432a1a7f5ea198a1b15",
+      "result_sha256": "977a1d290151c5ef773a59f571b2615d7959edcbcb37d3e48120dab2f803e995",
+      "log_sha256": "20392fe87907fce0c09e1f25bee160d03dcad5636366425ce7784a23ac488043",
+      "peak_job_bytes": 112730112,
+      "tree_retired": true,
+      "descendants_retired_by_supervisor": 0
+    },
+    {
+      "role": "Configured installed AMD lifecycle",
+      "run": "local-run-96f6f71031d64e3bbd59a4944bd00c3e",
+      "result_sha256": "4c903549ed8967a73625016c22904465b7607c4619f93df14c1df2ca2a7a46a7",
+      "log_sha256": "cc2936c479b5ecd602f5c371efbac6d403740da0d1eccb4bc9aa94c37b267bf0",
+      "peak_job_bytes": 115765248,
+      "tree_retired": true,
+      "descendants_retired_by_supervisor": 0
+    },
+    {
+      "role": "Raw ASan build",
+      "run": "local-run-2fb700b9dfa54a3386a6d0c593273bc1",
+      "result_sha256": "4e255e20b1f225bbb40946b953814e10ee159bfe89d86ccac34fb6fe17b80b1c",
+      "log_sha256": "55c09b746d18b21b0882244992dd94033742d1d7d8790ef3a18765f54d7ada06",
+      "peak_job_bytes": 943878144,
+      "tree_retired": true,
+      "descendants_retired_by_supervisor": 1
+    },
+    {
+      "role": "Raw ASan checks",
+      "run": "local-run-3640f770d477420e8f9c1d54dd5cef23",
+      "result_sha256": "36387d8b67b57c323596dd0bd3287d4d2f5c87ae25adf161801a4a9d8e228a49",
+      "log_sha256": "4ecf23537e9178929140e881f759bcf8504ad7e41a96df251a878e1c4ee010e3",
+      "peak_job_bytes": 440348672,
+      "tree_retired": true,
+      "descendants_retired_by_supervisor": 0
+    }
+  ]
+}
