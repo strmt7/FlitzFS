@@ -83,6 +83,14 @@ existing layouts. Expand natural small-file trials and measure mounted
 read throughput and latency.
 [Packed short-extent evidence](evidence/indexed-packed-small-extents-2026-11-20.json)
 
+Direct idle packing now considers short extents left over after similarity
+search. The GitHub starter workflows and LLVM MLIR sets each used 8 KiB
+less in matched CPU runs. In the mixed public set, the AMD route retained
+12 advised extents and saved another 8 KiB. The mixed CPU and Lucide runs
+held their previous sizes. Larger populated volumes and mounted access
+measurements remain open.
+[Direct packing evidence](evidence/indexed-direct-short-packing-2026-11-20.json)
+
 Request-scoped index verification reduced grouped sample backing reads by
 72–73% through independent CPU snapshots and 2.6–2.7% through open-file
 sessions on two public revision sets. Complete compacted sizes matched between

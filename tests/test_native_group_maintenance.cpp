@@ -301,6 +301,109 @@ void indexed_batched_prefix() {
       <<" ordinary_after_pressure="<<limited<<" independent_cpu_readback=true\n";
 }
 
+void indexed_pack_distinct_short_extents() {
+  if(!store_zstd_available())return;
+  constexpr unsigned count=40;
+  constexpr StoreCompressionOptions policy{StoreCompressionMode::automatic,3,true};
+  std::vector<Bytes> pieces,inputs;
+  for(unsigned i=0;i<127;++i)pieces.push_back(data(12,88531+17*i));
+  for(unsigned i=0;i<count;++i) {
+    auto& member=inputs.emplace_back();
+    for(unsigned j=0;j<80;++j) {
+      const auto& piece=pieces[(i*13+j*19)%pieces.size()];
+      member.insert(member.end(),piece.begin(),piece.end());
+      const auto separator=data(5,111770+i*761+j);
+      member.insert(member.end(),separator.begin(),separator.end());
+    }
+    member.push_back(static_cast<std::byte>(i+1));
+    member.resize(member.size()+i);
+  }
+  const auto path=[](unsigned i){return "small-"+std::to_string(i);};
+  Fixture f(4096,0,true,policy);
+  for(unsigned i=0;i<count;++i)put(*f.session,path(i),inputs[i]);
+  const auto verify=[&](const NativeFilesystemSnapshot& snapshot) {
+    snapshot.verify_all();
+    for(unsigned i=0;i<count;++i)
+      require(snapshot.read(path(i),0,kNativeExtentBytes)==inputs[i],"packing changed a short file or its zero tail");
+  };
+  const auto compare=[&](const NativeFilesystemSnapshot& view,unsigned target) {
+    auto backing=ram(4096);
+    const auto compact=NativeFilesystemWriter::compact(view,backing,id(target),policy);
+    verify(compact.snapshot());
+    return backing->extent();
+  };
+  const auto resolve=[&](const StoreIdentity& key)->std::shared_ptr<StoreByteIo>{return key==id(1)?f.image:nullptr;};
+  f.session.reset();
+  const auto before=compare(NativeVolumeHeadView::open(f.head,id(90),resolve).filesystem(),2);
+  const auto head_before=f.head->stable,image_before=f.image->stable;
+  f.session.emplace(NativeFileSession::resume_closed_indexed_volume(f.head,id(90),1,resolve,policy));
+  std::size_t publication_steps=0;
+  {
+    NativeGroupMaintenance groups(*f.session);
+    const auto calls=f.image->calls;
+    const auto result=f.finish(groups);
+    publication_steps=f.image->calls-calls;
+    require(result.packed_reference_groups==1 && result.published_groups==1 &&
+        f.session->snapshot().shared_base_info().members==count,
+        "distinct short files did not share a protected packed base");
+    require(!f.step(groups).owned_payload_bytes,"finished packing retained private payloads");
+  }
+  f.session.reset();
+  const auto selected=NativeVolumeHeadView::open(f.head,id(90),resolve);
+  const auto after=compare(selected.filesystem(),3);
+  require(after<before,"packed short files did not reduce the complete image");
+
+  {
+    Fixture stale(image(head_before,4096),image(image_before,4096),policy);
+    NativeGroupMaintenance groups(*stale.session);
+    for(unsigned step=0;step<600 && !groups.progress().owned_payload_bytes;++step)(void)stale.step(groups);
+    require(groups.active_group() && groups.progress().owned_payload_bytes>0,"missing private pack preparation");
+    const auto handle=stale.session->open(path(0),{true,true,false});
+    const auto replacement=inputs[0][0]^std::byte{0x01};
+    stale.session->write(handle,0,{&replacement,1});
+    stale.session->cleanup(handle,false);
+    stale.session->close(handle);
+    const auto calls=stale.image->calls;
+    const auto rejected=stale.step(groups);
+    const auto current=stale.session->snapshot();
+    require(!groups.active_group() && !rejected.published_groups && stale.image->calls==calls &&
+        current.read(path(0),0,1)==Bytes{replacement},"stale packing work touched acknowledged data");
+    current.verify_all();
+  }
+  require(publication_steps>=2,"packed publication omitted modeled recovery boundaries");
+  unsigned previous=0,complete=0;
+  for(unsigned mode=0;mode<3;++mode)for(const auto cut:{std::size_t{0},publication_steps-1}) {
+    auto backing=image(image_before,4096);
+    Fixture interrupted(image(head_before,4096),backing,policy);
+    NativeGroupMaintenance groups(*interrupted.session);
+    backing->failure=mode;
+    backing->fail_at=backing->calls+cut;
+    for(unsigned step=0;step<2000 && groups.pending();++step)(void)interrupted.step(groups);
+    require(groups.progress().phase==Phase::failed && interrupted.session->poisoned(),
+        "interrupted direct packing left a writable owner");
+    const auto recovered=NativeFilesystemSnapshot::open_image(image(backing->stable,4096),
+        {NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes});
+    verify(recovered);
+    const auto members=recovered.shared_base_info().members;
+    if(!members)++previous;
+    else if(members==count)++complete;
+    else throw std::runtime_error("interrupted direct packing exposed a partial group");
+  }
+  require(previous && complete,"packing faults did not exercise both complete states");
+  faults+=previous+complete;
+
+  Fixture random(4096,0,true,policy);
+  for(unsigned i=0;i<16;++i)put(*random.session,path(i),data(3107,907333+i*59));
+  const auto size=random.image->extent();
+  NativeGroupMaintenance groups(*random.session);
+  const auto result=random.finish(groups);
+  require(result.attempted_groups && !result.published_groups && random.image->extent()==size,
+      "an unprofitable short-file pack wrote data");
+  std::cout<<"distinct_short_files="<<count<<" before="<<before<<" after="<<after
+      <<" previous="<<previous<<" complete="<<complete
+      <<" stale_selection_rejected=true declined_random_without_writes=true independent_cpu_readback=true\n";
+}
+
 void indexed_packed_short_extents() {
   if(!store_zstd_available())return;
   constexpr auto names=16U;
@@ -2086,6 +2189,8 @@ int main(int argc,char** argv){try{
     indexed_batched_prefix();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-packed-short-extents") {
     indexed_packed_short_extents();
+  } else if(argc==2 && std::string_view(argv[1])=="--indexed-pack-distinct-short-extents") {
+    indexed_pack_distinct_short_extents();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-changes") {
     indexed_changed_extent_discovery();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-batch") {

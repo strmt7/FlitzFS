@@ -23,6 +23,29 @@
     "interactive_explorer_qualified": false,
     "live_amd_verified_groups": 8
   },
+  "indexed_direct_short_packing": {
+    "source_base": "2640cddfd3f1e4a2e5a6aa199e2901dad59b24f9",
+    "evidence": "docs/evidence/indexed-direct-short-packing-2026-11-20.json",
+    "public_workflow_bytes": [
+      180224,
+      172032
+    ],
+    "public_mlir_bytes": [
+      212992,
+      204800
+    ],
+    "mixed_amd_bytes": [
+      327680,
+      319488
+    ],
+    "mixed_cpu_bytes": [
+      327680,
+      327680
+    ],
+    "modeled_publication_interruptions": 6,
+    "independent_CPU_readback": true,
+    "volume_capability": 9
+  },
   "indexed_staged_reference_choice": {
     "source_base": "e6528544299bef85567b9900f546c205a21c4cc8",
     "evidence": "docs/evidence/indexed-staged-reference-choice-2026-11-20.json",

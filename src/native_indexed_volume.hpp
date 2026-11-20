@@ -89,7 +89,8 @@ struct IndexedVolumeEdit {
 class IndexedSharedBasePreparation final {
  public:
   IndexedSharedBasePreparation(const PagedObjectStoreSnapshot&,IndexedVolumeRoot,
-      NativeExtentSelection,std::span<const NativeExtentSelection>,std::span<const NativeContentToken>,bool allow_subset);
+      NativeExtentSelection,std::span<const NativeExtentSelection>,std::span<const NativeContentToken>,
+      bool allow_subset,bool packed_only);
   bool watches_extent(std::uint64_t inode,std::uint64_t block) const noexcept;
   bool watches_inode(std::uint64_t inode) const noexcept;
   void invalidate() noexcept{invalidated_=true;}
@@ -142,6 +143,7 @@ class IndexedSharedBasePreparation final {
   bool stage_section_reference();
   bool stage_prefixed_reference();
   bool stage_packed_reference();
+  bool advance_packed_group();
   bool complete_member();
   const PagedObjectStoreSnapshot& source_;
   IndexedVolumeRoot original_;
@@ -162,6 +164,7 @@ class IndexedSharedBasePreparation final {
   bool allow_subset_=false,invalidated_=false,search_storage_unavailable_=false;
   bool packing_admitted_=false,staged_reference_admitted_=false,staged_reference_comparison_=false;
   bool compare_sections_=false,section_comparison_finished_=false;
+  bool packed_only_=false;
 };
 struct IndexedPreparationWatch {
   std::weak_ptr<IndexedSharedBasePreparation> preparation;

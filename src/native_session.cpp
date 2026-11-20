@@ -717,6 +717,7 @@ std::weak_ptr<detail::NativeMaintenanceSource> NativeFileSession::maintenance_so
   if(!self.maintenance) {
     auto source=std::make_shared<detail::NativeMaintenanceSource>();
     source->writer=&self.writer;source->terminal=&self.terminal;
+    source->automatic_compression=self.volume->foreground.mode==StoreCompressionMode::automatic;
     source->restore_scan=[owner=&self]()->std::optional<OptimizationGroupScan> {
       const auto* advice=owner->ready_scan_advice();
       if(!advice)return {};

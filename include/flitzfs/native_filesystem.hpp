@@ -202,6 +202,8 @@ struct NativeContentToken {
   // An unlinked or pending inode advances the indexed cursor with object zero.
   std::uint64_t object=0,revision=0,content_revision=0;
   bool grouped=false,exact_base=false; // A sampled extent can nominate its verified shared base.
+  bool packed_slice=false;
+  std::uint32_t standalone_bytes=0;
 };
 struct NativeFsCommit {
   StoreCommitInfo storage;
@@ -613,8 +615,9 @@ class NativeFilesystemWriter final {
   std::uint64_t maintenance_physical_end() const noexcept;
   bool maintenance_busy() const noexcept;
   bool maintenance_supported() const noexcept;
+  enum class SharedBaseMode { compare,pack };
   SharedBaseWork prepare_shared_base(NativeExtentSelection,std::span<const NativeExtentSelection>,
-      std::span<const NativeContentToken>,bool batch=false,bool allow_subset=false);
+      std::span<const NativeContentToken>,bool batch=false,bool allow_subset=false,SharedBaseMode=SharedBaseMode::compare);
   bool stage_shared_base_search(SharedBaseWork&,std::size_t maximum_members,std::size_t retained_extents,
       NativeSharedBaseSearchPurpose=NativeSharedBaseSearchPurpose::advice);
   bool price_shared_base_reference(SharedBaseWork&);

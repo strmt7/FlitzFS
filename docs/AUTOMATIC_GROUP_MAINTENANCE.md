@@ -30,6 +30,14 @@ releases the alternate candidates and leaves the ordinary group available.
 Device and transport admission remain the adviser's responsibility. Volumes
 without a qualified adviser use CPU preparation.
 
+With automatic Zstandard storage, a scan can also pack short payloads
+missed by similarity search into one protected decode unit. The scanner
+uses already sampled lengths and respects the remaining preparation
+budget. It keeps AMD reservations disjoint from each CPU pack and retains
+the last scan window until its AMD batch settles. A size comparison
+declines packs whose complete layout fails to save space.
+[Short-file packing](INDEXED_NATIVE_VOLUME.md#packed-slices)
+
 The mixed AMD adviser tests sparse XOR and modular delta for each staged
 member in one admitted dispatch. A batch can supply both kinds of advice.
 The writer independently decodes each proposed member and compares the

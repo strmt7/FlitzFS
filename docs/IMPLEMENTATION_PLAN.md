@@ -746,6 +746,15 @@ SDK callback have executed. Keep comparison against complete compacted
 size and measure reads under normal Windows workloads.
 [Indexed group format and evidence](INDEXED_NATIVE_VOLUME.md#shared-base-extents)
 
+The indexed scanner now tries short standalone payloads after its
+similarity and catalog candidates. It prices a protected 64 KiB pack
+against the complete compacted image. Two public sets saved 8 KiB each.
+In separate mixed AMD runs the CPU pack reduced the image alongside
+verified GPU advice. Extend the comparison to larger short-file sets and
+measure cold random reads and maintenance writes before increasing the
+scope of each packing search.
+[Direct packing comparison](evidence/indexed-direct-short-packing-2026-11-20.json)
+
 Indexed capability 4 supports anchor-copy members alongside aligned members.
 A controlled Zstandard-enabled source fixture compacted from 592 KiB to 192 KiB
 with byte-exact CPU readback, and the format promotion passed 528 modeled

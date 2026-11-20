@@ -209,6 +209,7 @@ struct DecodedIndexedExtent {
   Bytes data;
   std::size_t payload_offset=0;
   std::uint64_t base=0,reusable_anchor_generation=0;
+  bool packed_slice=false;
   std::span<const std::byte> payload() const {return std::span(data).subspan(payload_offset);}
 };
 void verify_base_frame(const Bytes& bytes) {
@@ -234,6 +235,23 @@ std::span<const std::byte> checked_packed_payload(std::span<const std::byte> fra
   if(!std::ranges::equal(record_digest(data),frame.subspan(48)))
     fail(Code::corrupt,"indexed packed slice digest differs");
   return data;
+}
+Bytes make_packed_slice(NativeExtentSelection extent,std::size_t offset,
+    std::span<const std::byte> expected,std::span<const std::byte> base) {
+  Bytes record(packed_slice_size);
+  set_magic(record,packed_member_magic);
+  put(record,8,extent.inode);
+  put(record,16,extent.extent_index);
+  put(record,24,kNativeGroupBaseBit+1);
+  put(record,32,1);
+  put(record,40,offset,4);
+  put(record,44,expected.size(),4);
+  const auto digest=record_digest(expected);
+  std::copy(digest.begin(),digest.end(),record.begin()+48);
+  const auto slice=read_packed_slice(record);
+  if(!std::ranges::equal(checked_packed_payload(record,slice,base),expected))
+    fail(Code::corrupt,"indexed packed slice private CPU comparison failed");
+  return record;
 }
 DecodedIndexedExtent decode_extent(const PagedObjectStoreSnapshot& source,const NativeNameIndex& index,
     const IndexedVolumeRoot& root,std::uint64_t object,Bytes bytes,const IndexedInodeInput& inode,
@@ -275,7 +293,7 @@ DecodedIndexedExtent decode_extent(const PagedObjectStoreSnapshot& source,const 
       validate_payload(inode,block,data);
       Bytes decoded(data.begin(),data.end());
       if(retained && anchor==&scratch)retained->remember(scratch);
-      return {std::move(decoded),0,reference.base_id};
+      return {std::move(decoded),0,reference.base_id,0,true};
     }
     auto decoded=decode_native_group_member(member,anchor_payload,maximum_method);
     const auto reusable=compare_anchor && std::ranges::equal(decoded,anchor_payload)?anchor->generation:0;
@@ -1349,8 +1367,8 @@ void check_group_root(const PagedObjectStoreSnapshot& source,const NativeNameInd
 
 IndexedSharedBasePreparation::IndexedSharedBasePreparation(const PagedObjectStoreSnapshot& source,
     IndexedVolumeRoot root,NativeExtentSelection base,std::span<const NativeExtentSelection> members,
-    std::span<const NativeContentToken> expected,bool allow_subset)
-    :source_(source),original_(root),allow_subset_(allow_subset) {
+    std::span<const NativeContentToken> expected,bool allow_subset,bool packed_only)
+    :source_(source),original_(root),allow_subset_(allow_subset),packed_only_(packed_only) {
   if(members.size()>=kStoreMaxObjects)fail(Code::limit,"indexed shared-base selection budget");
   members_.reserve(members.size()+1);
   members_.push_back(Member{base});
@@ -1447,7 +1465,7 @@ std::size_t IndexedSharedBasePreparation::search_slot(std::size_t position) cons
 
 bool IndexedSharedBasePreparation::stage_search(std::size_t maximum_members,std::weak_ptr<const void>& owner_window,
     NativeSharedBaseSearchPurpose purpose) {
-  if(progress_.phase!=NativeSharedBasePhase::encoding_members || search_storage_unavailable_)return false;
+  if(packed_only_ || progress_.phase!=NativeSharedBasePhase::encoding_members || search_storage_unavailable_)return false;
   const auto first=progress_.completed_members;
   if(!search_) {
     const auto available=members_.size()-first-(base_index_>=first);
@@ -1527,7 +1545,10 @@ bool IndexedSharedBasePreparation::price_reference() {
 
 void IndexedSharedBasePreparation::admit_variants(bool packing,bool staged_reference) noexcept {
   packing_admitted_=packing;
-  if(!packing)packed_reference_.reset();
+  if(!packing) {
+    packed_reference_.reset();
+    if(packed_only_)progress_.phase=NativeSharedBasePhase::declined;
+  }
   staged_reference_admitted_=staged_reference;
   if(!staged_reference && staged_reference_comparison_) {
     compare_sections_=false;
@@ -1643,27 +1664,42 @@ bool IndexedSharedBasePreparation::stage_packed_reference() {
       packed_reference_.reset();
       return false;
     }
-    auto& record=trial.frames.emplace_back(packed_slice_size);
-    set_magic(record,packed_member_magic);
-    put(record,8,member.selected.inode);
-    put(record,16,member.selected.extent_index);
-    put(record,24,kNativeGroupBaseBit+1);
-    put(record,32,1);
-    put(record,40,trial.slice_offset,4);
-    put(record,44,member.payload_bytes,4);
     const auto expected=std::span(bytes).first(member.payload_bytes);
-    const auto digest=record_digest(expected);
-    std::copy(digest.begin(),digest.end(),record.begin()+48);
-    const auto slice=read_packed_slice(record);
-    if(!std::ranges::equal(checked_packed_payload(record,slice,trial.base),expected))
-      fail(Code::corrupt,"indexed packed slice private CPU comparison failed");
-    trial.frame_bytes+=record.size();
-    trial.slice_offset+=member.payload_bytes;
+    trial.frames.push_back(make_packed_slice(member.selected,trial.slice_offset,expected,trial.base));
+    trial.frame_bytes+=packed_slice_size;
+    trial.slice_offset+=expected.size();
     return true;
   }catch(const std::bad_alloc&) {
     packed_reference_.reset();
     return false;
   }
+}
+
+bool IndexedSharedBasePreparation::advance_packed_group() {
+  using Phase=NativeSharedBasePhase;
+  if(progress_.phase==Phase::reading_base) {
+    index_.emplace(source_);
+    check_group_root(source_,*index_,original_);
+    packed_reference_.emplace().base.resize(kNativeExtentBytes);
+    progress_.phase=Phase::encoding_members;
+  }
+  auto& trial=*packed_reference_;
+  auto& member=members_[progress_.completed_members];
+  const auto bytes=read_member(member,false);
+  (void)check_group_storage(source_);
+  if(member.previous_base || !member.payload_bytes || member.payload_bytes>trial.base.size()-trial.slice_offset) {
+    packed_reference_.reset();
+    progress_.phase=Phase::declined;
+    return true;
+  }
+  const auto expected=std::span(bytes).first(member.payload_bytes);
+  std::ranges::copy(expected,trial.base.begin()+static_cast<std::ptrdiff_t>(trial.slice_offset));
+  trial.frames.push_back(make_packed_slice(member.selected,trial.slice_offset,expected,trial.base));
+  trial.frame_bytes+=packed_slice_size;
+  trial.slice_offset+=expected.size();
+  if(++progress_.completed_members<members_.size())return false;
+  progress_.phase=Phase::ready;
+  return true;
 }
 
 bool IndexedSharedBasePreparation::advance(std::span<const NativeSharedBaseCopyRange> advice,
@@ -1672,6 +1708,7 @@ bool IndexedSharedBasePreparation::advance(std::span<const NativeSharedBaseCopyR
   if(invalidated_)fail(Code::invalid_operation,"selected indexed shared-base content changed");
   if(progress_.phase==Phase::ready || progress_.phase==Phase::declined)return true;
   (void)check_group_storage(source_);
+  if(packed_only_)return advance_packed_group();
   if(progress_.phase==Phase::reading_base) {
     index_.emplace(source_);
     check_group_root(source_,*index_,original_);
@@ -1879,7 +1916,7 @@ NativeSharedBaseCommit IndexedSharedBasePreparation::finish(PagedObjectStoreWrit
       before.generation>(std::numeric_limits<std::uint64_t>::max)()-2)
     fail(Code::limit,"indexed shared-base generation exhausted");
   auto next=current;
-  next.format=(std::max)(current.format,group_capability_);
+  next.format=(std::max)(current.format,packed_only_?packed_slice_capability:group_capability_);
   ++next.sequence;
   auto anchor=reusable_anchor_,generation=reusable_generation_;
   const bool new_anchor=!anchor;
@@ -1902,7 +1939,9 @@ NativeSharedBaseCommit IndexedSharedBasePreparation::finish(PagedObjectStoreWrit
   std::vector<StoreMutation> records;
   std::vector<NativeNameEdit> edits;
   RetiredGroupReferences retired;
-  for(auto& member:members_) {
+  auto* direct_pack=packed_only_?&packed_reference_.value():nullptr;
+  for(std::size_t i=0;i<members_.size();++i) {
+    auto& member=members_[i];
     if(member.skipped) {
       result.skipped_objects.push_back(member.object);
       continue;
@@ -1914,10 +1953,14 @@ NativeSharedBaseCommit IndexedSharedBasePreparation::finish(PagedObjectStoreWrit
     if(inode.directory || inode.lifetime!=IndexedLifetime::linked ||
         index.find(native_extent_key(id,block))!=member.object || !metadata || metadata->generation!=member.generation)
       fail(Code::invalid_operation,"selected indexed shared-base binding changed");
-    if(member.frame.empty())continue;
-    bind_native_group_member(std::span(member.frame).subspan(extent_header),anchor,generation,
+    auto& frame=direct_pack?direct_pack->frames[i]:member.frame;
+    if(frame.empty())continue;
+    if(direct_pack) {
+      put(frame,24,anchor);
+      put(frame,32,generation);
+    }else bind_native_group_member(std::span(frame).subspan(extent_header),anchor,generation,
         available_group_method(next.format));
-    records.push_back({member.object,false,std::move(member.frame)});
+    records.push_back({member.object,false,std::move(frame)});
     if(member.previous_base)retire_group_reference(member.previous_base,member.object,next,retired,edits);
     edits.push_back({native_group_reference_key(anchor,member.object),{},member.object});
     ++next.shared_members;
@@ -1928,7 +1971,8 @@ NativeSharedBaseCommit IndexedSharedBasePreparation::finish(PagedObjectStoreWrit
   if(new_anchor) {
     Bytes frame(base_size);
     set_magic(frame,base_magic);
-    std::copy(base_.begin(),base_.end(),frame.begin()+static_cast<std::ptrdiff_t>(base_magic.size()));
+    const auto& plaintext=direct_pack?direct_pack->base:base_;
+    std::copy(plaintext.begin(),plaintext.end(),frame.begin()+static_cast<std::ptrdiff_t>(base_magic.size()));
     records.push_back({anchor,false,std::move(frame)});
   }
   remove_unreferenced_bases(index,retired,next,records);
@@ -1975,7 +2019,7 @@ NativeSharedBaseCommit IndexedSharedBasePreparation::finish(PagedObjectStoreWrit
     }
   };
   section=alternate_reference(section_reference_,section_root,false);
-  packed=alternate_reference(packed_reference_,packed_root,true);
+  if(!direct_pack)packed=alternate_reference(packed_reference_,packed_root,true);
   std::size_t prefixed_members=0,replaced_advice=0;
   if(new_anchor && prefixed_reference_ && prefixed_reference_->frames.size()==members_.size()) {
     try {
@@ -2010,7 +2054,7 @@ NativeSharedBaseCommit IndexedSharedBasePreparation::finish(PagedObjectStoreWrit
     throw NativeFsError(Code::limit,error.what(),error.append_shortfall_bytes());
   }
   result.section_reference=selected==1;
-  result.packed_reference=selected==3;
+  result.packed_reference=packed_only_ || selected==3;
   const bool replaced_reference=result.section_reference || result.packed_reference;
   result.prefixed_zstd_members=selected==2?prefixed_members:0;
   result.advised_members=replaced_reference?0:
@@ -2316,6 +2360,8 @@ Bytes IndexedVolumeView::read_content(NativeContentToken& token,bool published_r
   (void)check_group_storage(store_);
   token.grouped=extent.base!=0;
   token.exact_base=false;
+  token.packed_slice=extent.packed_slice;
+  token.standalone_bytes=token.grouped?0:static_cast<std::uint32_t>(extent.payload().size());
   if(!token.grouped)return full_extent(std::move(extent));
   // A member whose bytes equal the base still supplies its existing feature.
   // Otherwise sample the first checked reverse reference once per shared base.
@@ -2323,7 +2369,8 @@ Bytes IndexedVolumeView::read_content(NativeContentToken& token,bool published_r
     const auto witnesses=index_.list(native_group_reference_key(extent.base,token.object).parent,{},1);
     (void)check_group_storage(store_);
     if(witnesses.empty())fail(Code::corrupt,"shared base lost its indexed references");
-    if(witnesses.front().value!=token.object)return {};
+    if(witnesses.front().value!=token.object)
+      return token.packed_slice?full_extent(std::move(extent)):Bytes{};
   }
   token.exact_base=true;
   // Match the member's logical layout, then fetch its protected base for

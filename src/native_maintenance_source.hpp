@@ -25,6 +25,7 @@ struct CoherenceScanKeys {
 struct NativeMaintenanceSource {
   NativeFilesystemWriter* writer=nullptr;
   const bool* terminal=nullptr;
+  bool automatic_compression=false;
   std::weak_ptr<const void> active;
   struct GroupAppendRefusal {
     StoreIdentity image{};
