@@ -1474,11 +1474,14 @@ PagedStoreInfo PagedObjectStoreWriter::commit_native(std::span<const StoreMutati
       (std::numeric_limits<std::uint64_t>::max)()).storage;
 }
 std::optional<PagedStoreInfo> PagedObjectStoreWriter::commit_if_compacted_smaller(
-    std::span<const StoreMutation> mutations,std::uint64_t rebound_object,PagedCompactedSizes& sizes) {
-  CompactedAdmission admission{rebound_object,sizes};
+    std::span<const StoreMutation> mutations,std::uint64_t rebound_object,PagedCompactedSizes& sizes,
+    std::span<const StoreMutation> alternate,bool& selected_alternate) {
+  selected_alternate=false;
+  CompactedAdmission admission{rebound_object,sizes,alternate};
   const auto result=commit_impl(mutations,kStoreMaxObjects,kStoreMaxTransactionBytes,
       (std::numeric_limits<std::uint64_t>::max)(),{},&admission);
   if(!result.write_bytes_upper_bound)return {};
+  selected_alternate=admission.selected_alternate;
   return result.storage;
 }
 PagedStoreWriteResult PagedObjectStoreWriter::commit_impl(
@@ -1489,16 +1492,29 @@ PagedStoreWriteResult PagedObjectStoreWriter::commit_impl(
   auto& p=*impl_;const auto& old=p.state;
   if(old.degraded_payloads){p.poisoned=true;fail("payload rebuild required before further writes");}
   if(mutations.empty())fail("empty transaction");
-  if(mutations.size()>maximum_operations)capacity("transaction operation budget");
   if(old.generation>(std::numeric_limits<std::uint64_t>::max)()-2)capacity("generation exhausted");
-  std::vector<const StoreMutation*> sorted;sorted.reserve(mutations.size());std::uint64_t input=0;
-  for(const auto& m:mutations) {
-    if(!m.id || m.bytes.size()>kStoreMaxObjectBytes || m.lz4_candidate.size()>kStoreMaxObjectBytes ||
-        (m.erase && (!m.bytes.empty() || !m.lz4_candidate.empty() || m.lz4_literal_prefix_bytes)))fail("mutation fields");
-    input=add(input,m.bytes.size());if(input>maximum_input)capacity("transaction input budget");sorted.push_back(&m);
-  }
-  std::sort(sorted.begin(),sorted.end(),[](auto a,auto b){return a->id<b->id;});
-  for(std::size_t i=1;i<sorted.size();++i)if(sorted[i-1]->id==sorted[i]->id)fail("duplicate mutation id");
+  const auto ordered=[&](std::span<const StoreMutation> batch) {
+    if(batch.size()>maximum_operations)capacity("transaction operation budget");
+    std::vector<const StoreMutation*> result;
+    result.reserve(batch.size());
+    std::uint64_t input=0;
+    for(const auto& mutation:batch) {
+      if(!mutation.id || mutation.bytes.size()>kStoreMaxObjectBytes || mutation.lz4_candidate.size()>kStoreMaxObjectBytes ||
+          (mutation.erase && (!mutation.bytes.empty() || !mutation.lz4_candidate.empty() ||
+              mutation.lz4_literal_prefix_bytes)))fail("mutation fields");
+      input=add(input,mutation.bytes.size());
+      if(input>maximum_input)capacity("transaction input budget");
+      result.push_back(&mutation);
+    }
+    std::ranges::sort(result,{},&StoreMutation::id);
+    if(std::ranges::adjacent_find(result,{},&StoreMutation::id)!=result.end())fail("duplicate mutation id");
+    return result;
+  };
+  const auto sorted=ordered(mutations);
+  const auto alternate=compacted?ordered(compacted->alternate):std::vector<const StoreMutation*>{};
+  if(!alternate.empty() && !std::ranges::equal(sorted,alternate,[](const auto* first,const auto* second) {
+    return first->id==second->id && first->erase==second->erase;
+  }))fail("alternate compacted transaction changes object membership");
   // Metadata reads/I/O failures fence; caller argument/admission failures do not.
   try {
     auto actual=load(old.image,old.limits);
@@ -1517,23 +1533,53 @@ PagedStoreWriteResult PagedObjectStoreWriter::commit_impl(
   plan.next.degraded_roots=false;plan.next.degraded_metadata=false;
   auto cursor=p.append_floor;
   PayloadAllocation allocation;
-  std::vector<PreparedObject> objects;objects.reserve(sorted.size());std::vector<Change> changes;changes.reserve(sorted.size());
-  for(auto m:sorted) {
-    if(m->erase) {changes.push_back({m->id,true,{}});continue;}
-    auto record=prepare_object(plan.next,p.encoder,*m);
-    if(!compacted)place_object(plan.next,record,allocation,cursor);
-    changes.push_back({m->id,false,record.entry});objects.push_back(std::move(record));
-  }
+  struct PreparedChanges {
+    std::vector<PreparedObject> objects;
+    std::vector<Change> changes;
+    std::uint64_t stored=0;
+  };
+  const auto prepare=[&](const auto& batch) {
+    PreparedChanges result;
+    result.objects.reserve(batch.size());
+    result.changes.reserve(batch.size());
+    for(const auto* mutation:batch) {
+      if(mutation->erase) {
+        result.changes.push_back({mutation->id,true,{}});
+        continue;
+      }
+      auto record=prepare_object(plan.next,p.encoder,*mutation);
+      if(!compacted)place_object(plan.next,record,allocation,cursor);
+      else if(mutation->id!=compacted->rebound_object)result.stored=add(result.stored,record.entry.stored);
+      result.changes.push_back({mutation->id,false,record.entry});
+      result.objects.push_back(std::move(record));
+    }
+    return result;
+  };
+  auto [objects,changes,stored]=prepare(sorted);
   if(compacted) {
+    std::optional<PreparedChanges> variant;
+    if(!alternate.empty()) {
+      try{variant.emplace(prepare(alternate));}
+      catch(const std::bad_alloc&){}
+    }
     try {
       compacted->sizes=compacted_sizes_after(old,changes,compacted->rebound_object);
+      if(variant) {
+        const auto sizes=compacted_sizes_after(old,variant->changes,compacted->rebound_object);
+        if(std::pair{sizes.after_upper,variant->stored}<std::pair{compacted->sizes.after_upper,stored}) {
+          compacted->sizes=sizes;
+          compacted->selected_alternate=true;
+          objects=std::move(variant->objects);
+          changes=std::move(variant->changes);
+        }
+      }
       if(old.degraded_metadata)fail("metadata replica lost during compacted size admission");
     }catch(const std::bad_alloc&){throw;}
     catch(...){p.poisoned=true;throw;}
     if(compacted->sizes.after_upper>=compacted->sizes.before)return {flitzfs::info(old),0};
 
     // A declined group never needs append space. Use the same sealed data to
-    // lay out and write the accepted transaction.
+    // lay out and write the selected transaction.
     auto record=objects.begin();
     for(auto& change:changes)if(!change.erase) {
       place_object(plan.next,*record,allocation,cursor);

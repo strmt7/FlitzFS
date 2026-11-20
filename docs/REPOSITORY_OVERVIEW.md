@@ -430,6 +430,16 @@ next access step is to measure cold and hot read amplification in mounted
 and mixed workloads, then include those costs in candidate admission.
 [Retained base read evidence](evidence/indexed-retained-anchor-reads-2026-11-20.json)
 
+CPU maintenance can also build one protected reference from shared sections
+across the group. It verifies each reconstructed extent and compares the two
+sealed layouts before committing. The four-file fixture compacted from 491,520
+to 458,752 bytes and recovered complete checkpoints through nine modeled
+interruptions. In two paired live-host repetitions the raw-backed public code
+corpus fell from 868,352 to 860,160 bytes. The public documentation corpus and
+both outer-compressed configurations retained their previous sizes. Section
+reference pricing on AMD and discovery of existing assembled bases remain
+release work. [Assembled reference evidence](evidence/indexed-section-references-2026-11-20.json)
+
 The Windows controller collects GPU memory observations on demand. A
 relocated executable acquired the installed AMD package, and three 512 KiB
 AMD writes each verified eight candidate extents and sixteen mirrored

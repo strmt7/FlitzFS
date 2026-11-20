@@ -1169,6 +1169,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
       <<" sparse_bodies="<<sparse_bodies<<" delta_bodies="<<delta_bodies
       <<" reference_batches="<<stats.reference_batches<<" reselected_groups="<<stats.reselected_groups
       <<" cpu_reference_pairs="<<progress.cpu_reference_pairs<<" published_references_changed="<<progress.reselected_reference_groups
+      <<" section_reference_groups="<<progress.section_reference_groups
       <<" retired=true independent_cpu_readback=true modeled_idle_time=true input_blake3=";
   constexpr char digits[]="0123456789abcdef";
   for(const auto byte:detail::record_digest(file_digests)) {

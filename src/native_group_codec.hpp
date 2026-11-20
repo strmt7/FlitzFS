@@ -4,6 +4,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <map>
 #include <optional>
 #include <span>
 #include <utility>
@@ -65,7 +66,24 @@ std::array<std::uint64_t,kNativeGroupShiftFeatures> native_group_shift_features(
 using NativeGroupDeltaSignatures=std::array<std::uint64_t,4>;
 NativeGroupDeltaSignatures native_group_delta_signatures(std::span<const std::byte> extent);
 
-inline constexpr std::size_t kNativeGroupCopyMinimumBytes=136;
+// The source extents remain immutable until finish releases the section views.
+class NativeGroupSections final {
+ public:
+  void sample(std::span<const std::byte>);
+  std::vector<std::byte> finish();
+ private:
+  struct Less {
+    bool operator()(std::span<const std::byte>,std::span<const std::byte>) const noexcept;
+  };
+  struct Seen {
+    std::size_t members=0,last=0,order=0;
+  };
+  std::map<std::span<const std::byte>,Seen,Less> sections_;
+  std::size_t samples_=0;
+};
+
+inline constexpr std::size_t kNativeGroupMemberHeaderBytes=128;
+inline constexpr std::size_t kNativeGroupCopyMinimumBytes=kNativeGroupMemberHeaderBytes+8;
 inline constexpr std::size_t kNativeGroupAnchorIndexBytes=65536;
 std::optional<std::vector<std::byte>> encode_native_group_copies(std::span<const std::byte> member,
     std::span<const std::byte> base,std::uint64_t base_id,std::uint64_t generation,

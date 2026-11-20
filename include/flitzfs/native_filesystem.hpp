@@ -152,6 +152,7 @@ struct NativeSharedBaseCopyRange {
 };
 // A verified window owns only CPU-decoded bytes. It can outlive the source
 // writer, but its identity is useful for advice only while that work is active.
+enum class NativeSharedBaseSearchPurpose {advice,section_comparison};
 class NativeSharedBaseSearchWindow final {
  public:
   NativeSharedBaseSearchWindow() noexcept=default;
@@ -205,7 +206,8 @@ struct NativeSharedBaseCommit {
   bool applied=false;
   std::uint64_t before_compacted_lower_bound=0,after_compacted_upper_bound=0;
   std::size_t members=0;
-  NativeExtentSelection reference{}; // Logical member carrying the published indexed base.
+  NativeExtentSelection reference{}; // Logical member carrying the indexed base, when one exists.
+  bool section_reference=false;
   std::vector<std::uint64_t> skipped_objects; // Sorted, unmodified automatic candidates.
 };
 enum class NativeSharedBasePhase {reading_base,encoding_members,ready,declined,completed,cancelled,failed};
@@ -214,7 +216,7 @@ struct NativeSharedBaseProgress {
   std::size_t completed_members=0,total_members=0;
   std::uint64_t owned_payload_bytes=0;
   std::size_t selected_advice_members=0;
-  bool reference_changed=false;
+  bool reference_changed=false,section_comparison=false;
 };
 
 struct NativeInodeWriteCommit {
@@ -395,6 +397,7 @@ class NativeFilesystemWriter final {
   // Stage at most one member from the private indexed snapshot. The grant
   // counts non-base members. False leaves the ordinary CPU step available.
   bool stage_shared_base_search(SharedBaseWork&,std::size_t maximum_members);
+  bool stage_shared_base_search(SharedBaseWork&,std::size_t maximum_members,NativeSharedBaseSearchPurpose);
   // Advisory copies describe the next indexed member. Invalid or larger hints
   // leave the independent CPU encoder eligible for that member.
   bool advance_shared_base(SharedBaseWork&,std::span<const NativeSharedBaseCopyRange> advice={},
@@ -599,7 +602,8 @@ class NativeFilesystemWriter final {
   bool maintenance_supported() const noexcept;
   SharedBaseWork prepare_shared_base(NativeExtentSelection,std::span<const NativeExtentSelection>,
       std::span<const NativeContentToken>,bool batch=false,bool allow_subset=false);
-  bool stage_shared_base_search(SharedBaseWork&,std::size_t maximum_members,std::size_t retained_extents);
+  bool stage_shared_base_search(SharedBaseWork&,std::size_t maximum_members,std::size_t retained_extents,
+      NativeSharedBaseSearchPurpose=NativeSharedBaseSearchPurpose::advice);
   bool price_shared_base_reference(SharedBaseWork&);
 
   using Recompression=ObjectStoreWriter::Rewrite;
@@ -615,7 +619,8 @@ class NativeFilesystemWriter final {
   struct Impl;
   void check_shared_base(SharedBaseWork&) const;
   bool shared_base_step(SharedBaseWork&,std::span<const NativeSharedBaseCopyRange>,
-      const NativeSharedBaseSearchReply*,std::size_t search_members,std::size_t retained_extents=0,bool price_reference=false);
+      const NativeSharedBaseSearchReply*,std::size_t search_members,std::size_t retained_extents=0,bool price_reference=false,
+      NativeSharedBaseSearchPurpose=NativeSharedBaseSearchPurpose::advice);
   Impl& checked_impl() const;
   detail::NativeObjectSnapshot checked_namespace() const;
   NativePathLookup inspect_path_lookup(std::string_view path) const;

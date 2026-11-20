@@ -10,6 +10,18 @@
     "tree": "936409737d1c4a5d4aeb37fe5af48f55ba9accff",
     "note": "Architectural review baseline. Layer and runtime evidence have separate source bindings."
   },
+  "indexed_assembled_section_reference": {
+    "source_base": "594e65b5e020b17f5fdfe0cbce2720b0cd369d69",
+    "evidence": "docs/evidence/indexed-section-references-2026-11-20.json",
+    "selected_before_writes": true,
+    "existing_cpu_readable_frame": true,
+    "modeled_publication_interruptions": 9,
+    "raw_public_code_compacted_bytes_before": 868352,
+    "raw_public_code_compacted_bytes_after": 860160,
+    "outer_compressed_public_compacted_sizes_equal": true,
+    "on_disk_format_change": false,
+    "assembled_reference_gpu_qualified": false
+  },
   "indexed_shared_base_read_cache": {
     "source_base": "e79eb602f9d85bc3c9ef8720e2e45e9121d6f9a1",
     "evidence": "docs/evidence/indexed-retained-anchor-reads-2026-11-20.json",

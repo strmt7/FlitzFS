@@ -8,7 +8,7 @@
 #include <stdexcept>
 namespace flitzfs::detail {
 namespace {
-constexpr std::size_t extent=65536,header=128;
+constexpr std::size_t extent=65536,header=kNativeGroupMemberHeaderBytes;
 constexpr std::array<std::byte,8> aligned_magic{std::byte{'F'},std::byte{'L'},std::byte{'T'},std::byte{'X'},
     std::byte{'G'},std::byte{'M'},std::byte{'0'},std::byte{'1'}};
 constexpr auto copy_magic=[] {auto value=aligned_magic;value.back()=std::byte{'2'};return value;}();
@@ -799,6 +799,85 @@ std::array<std::uint64_t,kNativeGroupShiftFeatures> native_group_shift_features(
     if(minima[i] && next)features[i]=mix(minima[i]^std::rotl(next,29));
   }
   return features;
+}
+
+bool NativeGroupSections::Less::operator()(std::span<const std::byte> first,
+    std::span<const std::byte> second) const noexcept {
+  return std::ranges::lexicographical_compare(first,second);
+}
+
+void NativeGroupSections::sample(std::span<const std::byte> bytes) {
+  if(bytes.size()!=extent)fail();
+  constexpr auto gear=[] {
+    std::array<std::uint64_t,256> values{};
+    for(std::size_t byte=0;byte<values.size();++byte) {
+      auto value=byte+0x9e3779b97f4a7c15ULL;
+      value=(value^(value>>30))*0xbf58476d1ce4e5b9ULL;
+      value=(value^(value>>27))*0x94d049bb133111ebULL;
+      values[byte]=value^(value>>31);
+    }
+    return values;
+  }();
+  constexpr std::size_t min_section=96,max_section=512;
+  constexpr auto boundary_mask=255U;
+  auto length=bytes.size();
+  while(length && bytes[length-1]==std::byte{})--length;
+  ++samples_;
+  std::size_t start=0;
+  std::uint64_t hash=0;
+  for(std::size_t at=0;at<length;++at) {
+    hash=(hash<<1)+gear[std::to_integer<unsigned>(bytes[at])];
+    const auto size=at+1-start;
+    if(size<max_section && at+1<length && (size<min_section || (hash&boundary_mask)))continue;
+    if(size>=2*anchor_stride) {
+      auto& seen=sections_.try_emplace(bytes.subspan(start,size),Seen{0,0,sections_.size()}).first->second;
+      if(seen.last!=samples_) {
+        ++seen.members;
+        seen.last=samples_;
+      }
+    }
+    start=at+1;
+    hash=0;
+  }
+}
+
+std::vector<std::byte> NativeGroupSections::finish() {
+  using Section=decltype(sections_)::value_type;
+  std::vector<const Section*> ranked;
+  ranked.reserve(sections_.size());
+  bool shared=false;
+  for(const auto& section:sections_) {
+    ranked.push_back(&section);
+    shared=shared || section.second.members>1;
+  }
+  if(!shared) {
+    sections_.clear();
+    return {};
+  }
+  // Rank by shared bytes, then preserve source order for contiguous matches.
+  const auto reward=[](const Section* section) {
+    return (section->second.members-1)*section->first.size();
+  };
+  std::ranges::sort(ranked,[&](const Section* first,const Section* second) {
+    const auto left=reward(first),right=reward(second);
+    return left==right?first->second.order<second->second.order:left>right;
+  });
+  auto remaining=extent;
+  std::size_t kept=0;
+  for(const auto* section:ranked) {
+    if(section->first.size()>remaining)continue;
+    remaining-=section->first.size();
+    ranked[kept++]=section;
+  }
+  ranked.resize(kept);
+  std::ranges::sort(ranked,{},[](const Section* section){return section->second.order;});
+  std::vector<std::byte> result;
+  result.reserve(extent);
+  for(const auto* section:ranked)
+    result.insert(result.end(),section->first.begin(),section->first.end());
+  result.resize(extent);
+  sections_.clear();
+  return result;
 }
 
 NativeGroupAnchorIndex::NativeGroupAnchorIndex(std::span<const std::byte> base) {

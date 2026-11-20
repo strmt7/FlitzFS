@@ -65,7 +65,7 @@ class IndexedSharedBasePreparation final {
   void invalidate() noexcept{invalidated_=true;}
   bool invalidated() const noexcept{return invalidated_;}
   NativeSharedBaseProgress progress() const noexcept;
-  bool stage_search(std::size_t maximum_members,std::weak_ptr<const void>& owner_window);
+  bool stage_search(std::size_t maximum_members,std::weak_ptr<const void>& owner_window,NativeSharedBaseSearchPurpose);
   NativeSharedBaseSearchWindow search_window() const noexcept;
   bool price_reference();
   bool advance(std::span<const NativeSharedBaseCopyRange>,const NativeSharedBaseSearchReply*);
@@ -81,15 +81,24 @@ class IndexedSharedBasePreparation final {
   struct SearchWindow {
     std::shared_ptr<NativeSharedBaseSearchWindow::Payload> bytes;
     std::size_t first,member_count;
+    NativeSharedBaseSearchPurpose purpose;
   };
   struct ReferencePricing {
     std::uint32_t candidate=0,peer=0,selected=0;
     std::uint64_t total=0,best=0;
   };
+  struct SectionReference {
+    NativeGroupSections sections;
+    std::vector<std::byte> base;
+    std::optional<NativeGroupAnchorIndex> index;
+    std::vector<std::vector<std::byte>> frames;
+    std::size_t sampled=0,frame_bytes=0;
+  };
   std::vector<std::byte> read_member(Member&,bool find_reusable_anchor);
   std::size_t search_slot(std::size_t position) const noexcept;
   bool can_change_reference() const noexcept;
   void change_reference(std::uint32_t member);
+  bool stage_section_reference();
   bool complete_member();
   const PagedObjectStoreSnapshot& source_;
   IndexedVolumeRoot original_;
@@ -98,6 +107,7 @@ class IndexedSharedBasePreparation final {
   std::vector<std::byte> base_,nominated_base_;
   std::optional<NativeGroupAnchorIndex> anchor_index_;
   std::optional<SearchWindow> search_;
+  std::optional<SectionReference> section_reference_;
   ReferencePricing pricing_;
   std::size_t base_index_=0;
   std::uint64_t reusable_anchor_=0,reusable_generation_=0;

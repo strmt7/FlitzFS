@@ -1638,11 +1638,15 @@ void NativeFilesystemWriter::check_shared_base(SharedBaseWork& work) const {
   }
 }
 bool NativeFilesystemWriter::stage_shared_base_search(SharedBaseWork& work,std::size_t maximum_members) {
-  return stage_shared_base_search(work,maximum_members,0);
+  return stage_shared_base_search(work,maximum_members,NativeSharedBaseSearchPurpose::advice);
 }
 bool NativeFilesystemWriter::stage_shared_base_search(SharedBaseWork& work,std::size_t maximum_members,
-    std::size_t retained_extents) {
-  return maximum_members && shared_base_step(work,{},nullptr,maximum_members,retained_extents);
+    NativeSharedBaseSearchPurpose purpose) {
+  return stage_shared_base_search(work,maximum_members,0,purpose);
+}
+bool NativeFilesystemWriter::stage_shared_base_search(SharedBaseWork& work,std::size_t maximum_members,
+    std::size_t retained_extents,NativeSharedBaseSearchPurpose purpose) {
+  return maximum_members && shared_base_step(work,{},nullptr,maximum_members,retained_extents,false,purpose);
 }
 bool NativeFilesystemWriter::advance_shared_base(SharedBaseWork& work,std::span<const NativeSharedBaseCopyRange> advice,
     const NativeSharedBaseSearchReply* reply) {
@@ -1652,7 +1656,8 @@ bool NativeFilesystemWriter::price_shared_base_reference(SharedBaseWork& work) {
   return shared_base_step(work,{},nullptr,0,0,true);
 }
 bool NativeFilesystemWriter::shared_base_step(SharedBaseWork& work,std::span<const NativeSharedBaseCopyRange> advice,
-    const NativeSharedBaseSearchReply* reply,std::size_t search_members,std::size_t retained_extents,bool price_reference) {
+    const NativeSharedBaseSearchReply* reply,std::size_t search_members,std::size_t retained_extents,bool price_reference,
+    NativeSharedBaseSearchPurpose purpose) {
   auto* p=work.impl_.get();
   try {
     check_shared_base(work);
@@ -1679,7 +1684,8 @@ bool NativeFilesystemWriter::shared_base_step(SharedBaseWork& work,std::span<con
         if(search_members>=remaining)return false;
         owner.batch_windows.reserve(owner.batch_windows.size()+1);
       }
-      const auto staged=p->indexed->stage_search(search_members,window);
+      if(p->batched && purpose!=NativeSharedBaseSearchPurpose::advice)return false;
+      const auto staged=p->indexed->stage_search(search_members,window,purpose);
       if(new_lease && !window.expired())owner.batch_windows.push_back({window,search_members+1});
       if(staged)p->state=p->indexed->progress();
       return staged;
@@ -1733,6 +1739,10 @@ NativeSharedBaseCommit NativeFilesystemWriter::finish_shared_base(SharedBaseWork
       result=impl_->mutate_indexed([&](auto& writer,const auto& source,auto& root,auto) {
         return p->indexed->finish(writer,source,root);
       });
+      if(result.section_reference) {
+        p->state.selected_advice_members=0;
+        p->state.reference_changed=false;
+      }
       p->retire(NativeSharedBasePhase::completed);
       return result;
     }

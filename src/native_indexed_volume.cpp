@@ -1170,7 +1170,10 @@ std::vector<std::byte> IndexedSharedBasePreparation::read_member(Member& member,
 NativeSharedBaseProgress IndexedSharedBasePreparation::progress() const noexcept {
   auto result=progress_;
   result.reference_changed=reference_member_!=0;
+  result.section_comparison=section_reference_.has_value() ||
+      (search_ && search_->purpose==NativeSharedBaseSearchPurpose::section_comparison);
   result.owned_payload_bytes+=nominated_base_.size();
+  if(section_reference_)result.owned_payload_bytes+=section_reference_->base.size()+section_reference_->frame_bytes;
   if(search_)result.owned_payload_bytes+=search_->bytes->base.size()+
       search_->bytes->members.size()*std::uint64_t(kNativeExtentBytes);
   return result;
@@ -1180,20 +1183,23 @@ std::size_t IndexedSharedBasePreparation::search_slot(std::size_t position) cons
   return position-search_->first-(base_index_>=search_->first && base_index_<position);
 }
 
-bool IndexedSharedBasePreparation::stage_search(std::size_t maximum_members,std::weak_ptr<const void>& owner_window) {
+bool IndexedSharedBasePreparation::stage_search(std::size_t maximum_members,std::weak_ptr<const void>& owner_window,
+    NativeSharedBaseSearchPurpose purpose) {
   if(progress_.phase!=NativeSharedBasePhase::encoding_members || search_storage_unavailable_)return false;
   const auto first=progress_.completed_members;
   if(!search_) {
     const auto available=members_.size()-first-(base_index_>=first);
     const auto count=(std::min)(available,maximum_members);
     if(!count || !owner_window.expired())return false;
+    if(purpose==NativeSharedBaseSearchPurpose::section_comparison && (first || count!=available || count<2 || reusable_anchor_))
+      return false;
     try {
       auto bytes=std::make_shared<NativeSharedBaseSearchWindow::Payload>();
       bytes->members.reserve(count);
       bytes->base=base_;
       bytes->whole_new_group=!first && count==available && !reusable_anchor_;
       owner_window=bytes;
-      search_.emplace(SearchWindow{std::move(bytes),first,count});
+      search_.emplace(SearchWindow{std::move(bytes),first,count,purpose});
     }catch(const std::bad_alloc&){
       search_storage_unavailable_=true;
       return false;
@@ -1201,7 +1207,8 @@ bool IndexedSharedBasePreparation::stage_search(std::size_t maximum_members,std:
   }
   auto& window=*search_;
   auto& staged=window.bytes->members;
-  if(window.first!=first || maximum_members<window.member_count || staged.size()==window.member_count)return false;
+  if(window.purpose!=purpose || window.first!=first || maximum_members<window.member_count || staged.size()==window.member_count)
+    return false;
   auto next=first+staged.size();
   if(base_index_>=first && base_index_<=next)++next;
   (void)check_group_storage(source_);
@@ -1213,7 +1220,8 @@ bool IndexedSharedBasePreparation::stage_search(std::size_t maximum_members,std:
 
 NativeSharedBaseSearchWindow IndexedSharedBasePreparation::search_window() const noexcept {
   NativeSharedBaseSearchWindow window;
-  if(!invalidated_ && search_ && search_->bytes->members.size()==search_->member_count)
+  if(!invalidated_ && search_ && search_->purpose==NativeSharedBaseSearchPurpose::advice &&
+      search_->bytes->members.size()==search_->member_count)
     window.payload_=search_->bytes;
   return window;
 }
@@ -1255,6 +1263,57 @@ bool IndexedSharedBasePreparation::price_reference() {
   return true;
 }
 
+bool IndexedSharedBasePreparation::stage_section_reference() {
+  try {
+    if(!section_reference_)section_reference_.emplace();
+    auto& trial=*section_reference_;
+    if(!trial.index) {
+      if(trial.sampled<=search_->member_count) {
+        const auto& sample=trial.sampled?search_->bytes->members[trial.sampled-1]:search_->bytes->base;
+        trial.sections.sample(sample);
+        ++trial.sampled;
+        return true;
+      }
+      trial.base=trial.sections.finish();
+      if(trial.base.empty() || trial.base==base_) {
+        section_reference_.reset();
+        return false;
+      }
+      trial.frames.reserve(members_.size());
+      trial.index.emplace(trial.base);
+      return true;
+    }
+    const auto position=trial.frames.size();
+    if(position==members_.size())return false;
+
+    const auto& bytes=position==base_index_?search_->bytes->base:search_->bytes->members[search_slot(position)];
+    const auto& member=members_[position];
+    auto frame=encode_native_group_member(bytes,trial.base,kNativeGroupBaseBit+1,1);
+    if(auto copies=trial.index->encode(bytes,trial.base,kNativeGroupBaseBit+1,1,
+        frame?frame->size():kNativeExtentBytes))frame=std::move(copies);
+    if(!frame || root_size+base_size+trial.frame_bytes+extent_header+frame->size()>kStoreMaxTransactionBytes) {
+      section_reference_.reset();
+      return false;
+    }
+    if(!std::ranges::equal(decode_native_group_member(*frame,trial.base,NativeGroupMethod::anchor_copies),bytes)) {
+      section_reference_.reset();
+      return false;
+    }
+    auto& record=trial.frames.emplace_back(extent_header+frame->size());
+    set_magic(record,member_magic);
+    put(record,8,member.selected.inode);
+    put(record,16,member.selected.extent_index);
+    std::copy(frame->begin(),frame->end(),record.begin()+extent_header);
+    trial.frame_bytes+=record.size();
+    return true;
+  }catch(const std::bad_alloc&) {
+    // The independent representation remains available when optional work
+    // cannot allocate its training or encoding scratch.
+    section_reference_.reset();
+    return false;
+  }
+}
+
 bool IndexedSharedBasePreparation::advance(std::span<const NativeSharedBaseCopyRange> advice,
     const NativeSharedBaseSearchReply* reply) {
   using Phase=NativeSharedBasePhase;
@@ -1271,6 +1330,13 @@ bool IndexedSharedBasePreparation::advance(std::span<const NativeSharedBaseCopyR
     return false;
   }
 
+  if(progress_.completed_members==members_.size()) {
+    if(stage_section_reference())return false;
+    search_.reset();
+    if(section_reference_)section_reference_->index.reset();
+    progress_.phase=Phase::ready;
+    return true;
+  }
   const auto position=progress_.completed_members;
   auto& member=members_[position];
   const auto is_base=position==base_index_;
@@ -1407,12 +1473,21 @@ bool IndexedSharedBasePreparation::advance(std::span<const NativeSharedBaseCopyR
 bool IndexedSharedBasePreparation::complete_member() {
   using Phase=NativeSharedBasePhase;
   ++progress_.completed_members;
-  if(search_ && search_slot(progress_.completed_members)>=search_->bytes->members.size())search_.reset();
-  if(progress_.completed_members==members_.size()) {
-    anchor_index_.reset();
-    progress_.phase=Phase::ready;
-  }
-  return progress_.phase==Phase::ready;
+  const bool complete_window=search_ && search_->purpose==NativeSharedBaseSearchPurpose::section_comparison &&
+      search_->bytes->members.size()==search_->member_count;
+  if(search_ && !complete_window && search_slot(progress_.completed_members)>=search_->bytes->members.size())
+    search_.reset();
+  if(progress_.completed_members!=members_.size())return false;
+
+  anchor_index_.reset();
+  // Spend an additional cooperative pass only when the ordinary candidate
+  // has enough residual payload for the alternative to save a failure unit.
+  const auto ideal=base_.size()+members_.size()*(extent_header+kNativeGroupMemberHeaderBytes);
+  if(complete_window && progress_.owned_payload_bytes>=ideal+source_.isolation_unit() &&
+      std::ranges::none_of(members_,&Member::skipped))return false;
+  search_.reset();
+  progress_.phase=Phase::ready;
+  return true;
 }
 
 NativeSharedBaseCommit IndexedSharedBasePreparation::finish(PagedObjectStoreWriter& writer,
@@ -1486,10 +1561,41 @@ NativeSharedBaseCommit IndexedSharedBasePreparation::finish(PagedObjectStoreWrit
   validate_header_fields(next);
   records.push_back({namespace_object,false,encode_root(next)});
   auto proposed=NativeNameIndex::prepare_commit(source,edits,std::move(records),current.format<3);
+  std::vector<StoreMutation> alternate;
+  auto section_root=next;
+  if(new_anchor && section_reference_ && section_reference_->frames.size()==members_.size()) {
+    try {
+      std::map<std::uint64_t,Bytes> replacements;
+      auto& trial=*section_reference_;
+      for(std::size_t i=0;i<members_.size();++i) {
+        auto& frame=trial.frames[i];
+        bind_native_group_member(std::span(frame).subspan(extent_header),anchor,generation,NativeGroupMethod::anchor_copies);
+        replacements.emplace(members_[i].object,std::move(frame));
+      }
+      auto& base=replacements[anchor];
+      base.resize(base_size);
+      set_magic(base,base_magic);
+      std::copy(trial.base.begin(),trial.base.end(),base.begin()+static_cast<std::ptrdiff_t>(base_magic.size()));
+      section_root.format=(std::max)(current.format,anchor_copy_capability);
+      replacements.emplace(namespace_object,encode_root(section_root));
+
+      std::uint64_t input=0;
+      alternate.reserve(proposed.size());
+      for(const auto& mutation:proposed) {
+        const auto replacement=replacements.find(mutation.id);
+        if(replacement==replacements.end())alternate.push_back(mutation);
+        else alternate.push_back({mutation.id,false,std::move(replacement->second)});
+        input+=alternate.back().bytes.size();
+      }
+      if(input>kStoreMaxTransactionBytes)alternate.clear();
+    }catch(const std::bad_alloc&) {
+      alternate.clear();
+    }
+  }
   (void)check_group_storage(source);
   try {
     PagedCompactedSizes sizes;
-    const auto published=writer.commit_if_compacted_smaller(proposed,namespace_object,sizes);
+    const auto published=writer.commit_if_compacted_smaller(proposed,namespace_object,sizes,alternate,result.section_reference);
     result.before_compacted_lower_bound=sizes.before;
     result.after_compacted_upper_bound=sizes.after_upper;
     if(!published)return result;
@@ -1498,14 +1604,16 @@ NativeSharedBaseCommit IndexedSharedBasePreparation::finish(PagedObjectStoreWrit
     if(writer.poisoned())fail(Code::storage_failure,"indexed shared-base publication failed after admission");
     throw NativeFsError(Code::limit,error.what(),error.append_shortfall_bytes());
   }
-  current=next;
-  result.transaction.sequence=next.sequence;
-  auto reference_index=base_index_;
-  if(reference_member_) {
-    const auto slot=static_cast<std::size_t>(reference_member_-1);
-    reference_index=slot+(slot>=base_index_);
+  current=result.section_reference?section_root:next;
+  result.transaction.sequence=current.sequence;
+  if(!result.section_reference) {
+    auto reference_index=base_index_;
+    if(reference_member_) {
+      const auto slot=static_cast<std::size_t>(reference_member_-1);
+      reference_index=slot+(slot>=base_index_);
+    }
+    result.reference=members_[reference_index].selected;
   }
-  result.reference=members_[reference_index].selected;
   result.applied=true;
   return result;
 }

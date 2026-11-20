@@ -199,8 +199,13 @@ class PagedObjectStoreWriter final {
   // input for shared-base namespaces. Public admission is unchanged.
   PagedStoreInfo commit_native(std::span<const StoreMutation>,bool directory_indexes=false,bool shared_bases=false);
   std::optional<PagedStoreInfo> commit_if_compacted_smaller(std::span<const StoreMutation>,
-      std::uint64_t rebound_object,PagedCompactedSizes&);
-  struct CompactedAdmission {std::uint64_t rebound_object;PagedCompactedSizes& sizes;};
+      std::uint64_t rebound_object,PagedCompactedSizes&,std::span<const StoreMutation> alternate,bool& selected_alternate);
+  struct CompactedAdmission {
+    std::uint64_t rebound_object;
+    PagedCompactedSizes& sizes;
+    std::span<const StoreMutation> alternate;
+    bool selected_alternate=false;
+  };
   PagedStoreWriteResult commit_impl(std::span<const StoreMutation>,std::size_t maximum_operations,
       std::uint64_t maximum_input,std::uint64_t maximum_write_bytes,
       const std::function<bool(std::uint64_t)>& reserve_writes={},CompactedAdmission* compacted=nullptr);

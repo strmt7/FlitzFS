@@ -145,6 +145,25 @@ The AMD worker compressed the incoming overwrite.
 [Packed layout evidence](evidence/packed-rebuild-accounting-2026-11-18.json) ·
 [Cooperative preparation evidence](evidence/cooperative-indexed-shared-base-2026-11-18.json)
 
+### Assembled section references
+
+A CPU maintenance opportunity can retain the verified extents of one complete
+new group and try an alternate base after preparing the ordinary encoding.
+The trial requires enough residual payload to save a backing failure unit.
+It samples one extent per opportunity, finds exact shared sections at
+content-dependent boundaries, and ranks their decoded bytes by reuse across
+members. Retaining source order among the selected sections preserves
+opportunities for longer copy runs. The base and its independently decoded
+member frames use the existing capability 4 representation.
+
+The writer seals both proposals against the same live root and verifies that
+they affect the same objects. It chooses the smaller protected compacted layout,
+using lower sealed payload bytes to resolve alignment ties. The chosen layout
+must shrink the current image before any writes are made. An assembled base
+has its own protected records and can outlive every original file. Extending
+these groups across later scans will require discovery keyed to that base
+object. [Source-bound validation](evidence/indexed-section-references-2026-11-20.json)
+
 ### Packed XOR members
 
 Capability 5 admits `FLTXGM03` after the ordinary grouped extent header. Its

@@ -30,7 +30,7 @@ struct NativeMaintenanceProgress {
   std::uint64_t coherence_catalog_bytes=0; // Footprint of the attached checked advisory checkpoint.
   std::uint64_t coherence_compactions=0,coherence_discards=0,coherence_compacted_bytes_saved=0;
   std::uint64_t advised_members_published=0;
-  std::uint64_t cpu_reference_pairs=0,reselected_reference_groups=0;
+  std::uint64_t cpu_reference_pairs=0,reselected_reference_groups=0,section_reference_groups=0;
   std::uint64_t append_shortfall_bytes=0;
   bool search_window_ready=false; // Newly staged by this opportunity.
   bool search_batch_ready=false;

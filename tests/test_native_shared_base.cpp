@@ -623,6 +623,103 @@ void fault_matrix(std::uint32_t unit,bool indexed_layout=false,GroupFixture shap
       <<" unit="<<unit<<" cuts="<<cuts
       <<" modes=3 prior="<<prior<<" complete="<<complete<<'\n';
 }
+Bytes section_family(unsigned member) {
+  auto result=data(24*1024,410);
+  const auto cohort=data(16*1024,180+member/2);
+  const auto individual=data(24*1024,845+member);
+  result.insert(result.end(),cohort.begin(),cohort.end());
+  result.insert(result.end(),individual.begin(),individual.end());
+  return result;
+}
+void assembled_section_reference() {
+  constexpr unsigned count=4;
+  auto source=std::make_shared<Ram>();
+  source->failure_unit=4096;
+  {
+    auto writer=fresh(source,true);
+    populate(writer,count,section_family);
+  }
+  const auto keys=selections(view(source),count);
+  const auto resume=[](const auto& ram) {
+    const auto info=PagedObjectStoreSnapshot::open(ram,limits).info();
+    return NativeFilesystemWriter::resume(PagedObjectStoreWriter::resume(
+        ram,identity(),info.generation,limits,{StoreCompressionMode::raw,1,false}));
+  };
+  const auto prepare=[&](NativeFilesystemWriter& writer) {
+    auto work=writer.prepare_shared_base(keys.front(),keys);
+    require(!writer.advance_shared_base(work),"Section trial did not read the base");
+    while(writer.stage_shared_base_search(work,count-1,NativeSharedBaseSearchPurpose::section_comparison)){}
+    require(work.progress().section_comparison && !work.search_window(),
+        "Section trial did not retain a private CPU comparison window");
+    while(!writer.advance_shared_base(work)){}
+    return work;
+  };
+  auto single=image(source->stable,4096);
+  auto sections=image(source->stable,4096);
+  std::size_t cuts=0;
+  {
+    auto baseline=resume(single),candidate=resume(sections);
+    const auto member_ref=baseline.compress_shared_base(keys.front(),keys);
+    require(member_ref.applied && !member_ref.section_reference,"Member reference control did not publish");
+    auto work=prepare(candidate);
+    const auto before=sections->calls;
+    const auto assembled=candidate.finish_shared_base(work);
+    cuts=sections->calls-before;
+    require(assembled.applied && assembled.section_reference && !assembled.reference.inode &&
+        assembled.before_compacted_lower_bound==member_ref.before_compacted_lower_bound &&
+        assembled.after_compacted_upper_bound<member_ref.after_compacted_upper_bound,
+        "Smaller protected section reference was not selected");
+    verify_family(view(sections),count,section_family);
+  }
+  auto first=std::make_shared<Ram>(),second=std::make_shared<Ram>();
+  first->failure_unit=second->failure_unit=4096;
+  {
+    auto baseline=NativeFilesystemWriter::compact(view(single),first,next_id(93),{StoreCompressionMode::raw,1,false});
+    auto candidate=NativeFilesystemWriter::compact(view(sections),second,next_id(94),{StoreCompressionMode::raw,1,false});
+    require(second->extent()<first->extent(),"Complete protected compaction did not shrink");
+    verify_family(view(second),count,section_family);
+  }
+  require(cuts>3,"Missing section reference publication barriers");
+  unsigned prior=0,complete=0;
+  for(unsigned mode=0;mode<3;++mode)for(const auto cut:{std::size_t{0},cuts/2,cuts-1}) {
+    auto ram=image(source->stable,4096);
+    {
+      auto writer=resume(ram);
+      auto work=prepare(writer);
+      ram->failure=mode;
+      ram->fail_at=ram->calls+cut;
+      rejects([&]{writer.finish_shared_base(work);},"Interrupted section reference acknowledged");
+      require(writer.poisoned(),"Interrupted section reference left an active writer");
+    }
+    ram->live=ram->stable;
+    ram->fail_at=(std::numeric_limits<std::size_t>::max)();
+    const auto recovered=view(ram);
+    verify_family(recovered,count,section_family);
+    const auto protection=recovered.shared_base_info();
+    if(protection.members==count && protection.bases==1)++complete;
+    else {
+      require(!protection.members && !protection.bases,"Section reference recovered a partial group");
+      ++prior;
+    }
+  }
+  require(prior && complete,"Section interruption fixture did not cover both checkpoints");
+  {
+    auto writer=resume(sections);
+    file_apply(writer,file_remove("f0"));
+    file_apply(writer,file_write("f1",32768,Bytes{std::byte{21}}));
+    auto changed=section_family(1);
+    changed[32768]=std::byte{21};
+    const auto reopened=view(sections);
+    require(reopened.read("f1",0,kNativeExtentBytes)==changed &&
+        reopened.read("f2",0,kNativeExtentBytes)==section_family(2) &&
+        reopened.read("f3",0,kNativeExtentBytes)==section_family(3),
+        "Private edit or removal disturbed the assembled reference");
+    reopened.verify_all();
+  }
+  std::cout<<"section_reference baseline="<<first->extent()<<" grouped="<<second->extent()
+      <<" interruptions="<<(prior+complete)<<" prior="<<prior<<" complete="<<complete
+      <<" independent_cpu_readback=true private_edit=true\n";
+}
 void indexed_extension_and_reclamation() {
   auto ram=std::make_shared<Ram>();ram->failure_unit=4096;
   NativeSharedBaseCommit extended;
@@ -978,7 +1075,7 @@ int main(int argc,char** argv){try {
   }
   require(argc==1,"unknown shared-base test mode");
   codec();anchor_copy_codec();anchor_copy_advice();independent_and_decline();malformed_storage();indexed_extension_and_reclamation();
-  read_grouped_extents();retained_group_anchors();
+  read_grouped_extents();retained_group_anchors();assembled_section_reference();
   indexed_group_on_populated_volume();
   sealed_group_prices();
   unprofitable_group_at_capacity();
