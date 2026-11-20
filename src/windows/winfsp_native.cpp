@@ -1014,12 +1014,21 @@ WinFspMaintenanceResult WinFspNativeWritable::advance_background_maintenance(
     if(!observed.continued && storage.state==WinFspMaintenanceState::unchanged && !search.reply && search.replies.empty()) {
       const bool backfill=impl_->session.directory_backfill_pending();
       const bool group_pending=impl_->groups && impl_->groups->pending();
+      const auto offer_group=[&](WinFspMaintenanceResult result) {
+        // A CPU refusal from an optional scan did no backing I/O. Preserve
+        // its limit and check the independent budget for pending group work.
+        if(group_pending && result.progress.deferral==NativeMaintenanceDeferral::cpu)
+          return impl_->advance_groups(observed,now,search);
+        return result;
+      };
       if(scrub) {
-        if(!impl_->scrub_yield || (!group_pending && !backfill))return impl_->advance_payload_scrub(observed,now);
+        if(!impl_->scrub_yield || (!group_pending && !backfill))
+          return offer_group(impl_->advance_payload_scrub(observed,now));
         impl_->scrub_yield=false;
       }
       if(backfill) {
-        if(!impl_->directory_backfill_yield || !group_pending)return impl_->advance_directory_backfill(observed,now);
+        if(!impl_->directory_backfill_yield || !group_pending)
+          return offer_group(impl_->advance_directory_backfill(observed,now));
         impl_->directory_backfill_yield=false;
       }
     }

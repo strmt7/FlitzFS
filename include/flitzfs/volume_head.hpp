@@ -65,8 +65,9 @@ class NativeVolumeHeadWriter final {
   friend class NativeFileSession;
   static NativeVolumeHeadWriter resume_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,
       std::uint64_t,const NativeFilesystemSnapshot&,bool closed_indexed);
-  static std::optional<NativeVolumeHeadWriter> retain_indexed_reopen(std::shared_ptr<StoreByteIo>,
-      const NativeVolumeSelection&,const NativeFilesystemWriter&);
+  struct IndexedReopen;
+  static std::optional<IndexedReopen> retain_indexed_reopen(std::shared_ptr<StoreByteIo>,
+      const NativeVolumeSelection&,const NativeFilesystemSnapshot&,StoreCompressionOptions);
   NativeVolumeHeadInfo publish_compacted_impl(const NativeFilesystemSnapshot&,
       const NativeFilesystemSnapshot&,bool closed_indexed);
   // Only an owned, completed indexed rewrite can reach this path. Both image
@@ -75,5 +76,10 @@ class NativeVolumeHeadWriter final {
       const NativeFilesystemSnapshot& verified_target);
   struct Impl;explicit NativeVolumeHeadWriter(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;
+};
+
+struct NativeVolumeHeadWriter::IndexedReopen {
+  NativeVolumeHeadWriter head;
+  NativeFilesystemWriter image;
 };
 } // namespace flitzfs

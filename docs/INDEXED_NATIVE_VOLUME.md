@@ -748,3 +748,13 @@ pre-fence and post-fence audits each have their own verification state.
 Writable reopen still traverses the full inventory, so this improvement
 reduces I/O within each audit.
 [Matched Windows evidence](evidence/indexed-reopen-single-pass-audit-2026-11-20.json)
+
+On the 16,384-file fixture the verified object tree has height three.
+Lookups retain a branch at each admitted level and use four separate leaf
+slots. Each cache belongs to its checked view or query. The mirror audit
+still reads both copies directly. Full scrub read 64,978,691 backing bytes,
+down from 98,443,011 for the same layout. Writable reopen read 130,327,966
+backing bytes, down from 197,479,086, with zero backing writes. The test
+recorded image reads on each side of its image flush and checked every
+short file through the independent CPU reader.
+[Scale and recovery evidence](evidence/indexed-scale-reopen-2026-11-20.json)

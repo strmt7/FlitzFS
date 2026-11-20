@@ -602,6 +602,7 @@ class NativeFilesystemWriter final {
  private:
   friend class NativeFileSession;
   friend class NativeGroupMaintenance;
+  friend class NativeVolumeHeadWriter;
   PagedObjectStoreWriter::Rewrite prepare_paged_recompression_impl(std::shared_ptr<StoreByteIo>,
       StoreIdentity,StoreCompressionOptions,bool reencode,PagedRewriteMode,
       std::optional<std::uint64_t> cold_after_generation,
@@ -673,8 +674,8 @@ class NativeFilesystemWriter final {
   static NativeFilesystemWriter initialize_storage(detail::NativeObjectWriter,bool inode_records=false,
       bool indexed_names=false,bool shared_bases=false);
   static NativeFilesystemWriter resume_impl(detail::NativeObjectWriter,bool closed_session);
-  // The closed session supplies its verified view and completes the head fence
-  // before the acquired writer can publish any file operation.
+  // The head owner supplies a verified closed-session view and checks both
+  // leases and barriers before admitting the image writer to the session.
   static NativeFilesystemWriter lease_verified_indexed_reopen(const NativeFilesystemSnapshot&,StoreCompressionOptions);
   explicit NativeFilesystemWriter(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;

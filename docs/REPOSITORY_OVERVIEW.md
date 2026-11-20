@@ -142,6 +142,13 @@ Both startup audits still validate the complete inventory. The retained
 reader, repair, typed-corruption and post-flush failure checks passed.
 [Current indexed audit evidence](evidence/indexed-reopen-single-pass-audit-2026-11-20.json)
 
+The matched 16,384-short-file fixture used a height-three object tree. Keeping
+verified branch pages across leaf lookups reduced writable-reopen reads from
+197,479,086 to 130,327,966 bytes. Acquiring both owners before the image flush
+reduced the healthy path from three backing flushes to two. The remaining
+full inventories are still proportional to volume population.
+[Scale and ownership evidence](evidence/indexed-scale-reopen-2026-11-20.json)
+
 The indexed head and lifetimes now reach the owned Windows provider.
 The controller consumes closed-file retirement in bounded transactions.
 The next effort is physical reuse, bounded live truncation and lower

@@ -42,18 +42,49 @@ Bytes payload(unsigned index) {
   return bytes;
 }
 
-void populated_native_snapshot() {
-  constexpr unsigned files=1024,batch=32;
-  constexpr std::uint64_t sparse=3+files;
+void profile_indexed_reopen(const std::shared_ptr<Ram>& image,const NativeFilesystemSnapshot& source,unsigned files) {
+  const auto volume=identity_for(82);
+  auto head=empty();
+  {auto owner=NativeVolumeHeadWriter::create(head,volume,source);}
+  const auto read_before=image->read_bytes,calls_before=image->read_calls;
+  const auto image_fences=image->flushes,head_fences=head->flushes;
+  const auto bytes_written=image->write_bytes,head_written=head->write_bytes;
+  const auto resolve=[&](const auto& id)->std::shared_ptr<StoreByteIo> {
+    require(id==source.identity(),"scale reopen selected a different image");
+    return image;
+  };
+  const auto session=NativeFileSession::resume_closed_indexed_volume(head,volume,1,resolve,raw);
+  const auto read_after=image->read_bytes-image->read_bytes_at_flush;
+  std::cout<<"indexed_scale_reopen files="<<files
+      <<" image_pre_flush_bytes="<<image->read_bytes_at_flush-read_before
+      <<" image_post_flush_bytes="<<read_after
+      <<" image_read_calls="<<image->read_calls-calls_before
+      <<" image_flushes="<<image->flushes-image_fences
+      <<" head_flushes="<<head->flushes-head_fences
+      <<" backing_write_bytes="<<image->write_bytes-bytes_written+head->write_bytes-head_written<<'\n';
+  require(image->write_bytes==bytes_written && head->write_bytes==head_written,
+      "clean indexed reopen rewrote the image or selector");
+  const auto restored=session.snapshot();
+  require(restored.sequence()==source.sequence() &&
+      restored.read("Data/"+file(files-1),0,17)==payload(files-1),
+      "scaled writable reopen did not preserve the selected namespace and data");
+}
+
+void populated_native_snapshot(unsigned files=1024) {
+  constexpr unsigned batch=32;
+  const std::uint64_t sparse=3+files;
   constexpr auto sparse_size=(std::numeric_limits<std::uint64_t>::max)()-7;
   constexpr auto last_block=(sparse_size-1)/kNativeExtentBytes;
   auto ram=empty();
-  IndexedVolumeBuilder builder(PagedObjectStoreWriter::create_mirrored(ram,identity(),limits,raw),
-      2,sparse+1,{true,files*17});
+  if(files>1024)ram->capacity=192ULL*1024*1024;
+  const PagedStoreLimits image_limits{ram->capacity};
+  const NativeImageStorage storage{indexed.kind,ram->capacity};
+  IndexedVolumeBuilder builder(PagedObjectStoreWriter::create_mirrored(ram,identity(),image_limits,raw),
+      2,sparse+1,{true,files*17},files>1024?2:1);
   const std::array<IndexedInodeInput,2> root{{{1,0,0,1,1,true,""},
       {2,1,0,2,2,true,"Data"}}};
   builder.append(root);
-  refuses(NativeFsErrorCode::storage_failure,[&]{(void)NativeFilesystemSnapshot::open_image(ram,indexed);});
+  refuses(NativeFsErrorCode::storage_failure,[&]{(void)NativeFilesystemSnapshot::open_image(ram,storage);});
   for(unsigned first=0;first<files;first+=batch) {
     std::vector<Bytes> contents;
     std::vector<IndexedInodeInput> inodes;
@@ -72,20 +103,22 @@ void populated_native_snapshot() {
   builder.append({&large,1},sparse_extents);
   const auto published=builder.finish();
   const auto start_open=ram->read_bytes;
-  const auto view=NativeFilesystemSnapshot::open_image(ram,indexed);
+  const auto view=NativeFilesystemSnapshot::open_image(ram,storage);
   const auto open_bytes=ram->read_bytes-start_open;
-  require(view.image_storage()==indexed && view.sequence()==2 && view.identity()==identity() &&
+  require(view.image_storage()==storage && view.sequence()==2 && view.identity()==identity() &&
       view.allocation_usage().live_extents==files+3,"indexed native root counts");
   const auto start_lookup=ram->read_bytes;
   const auto last=view.stat("DATA/"+file(files-1));
   const auto lookup_bytes=ram->read_bytes-start_lookup;
   require(last.inode==files+2 && last.path=="Data/"+file(files-1) && last.logical_bytes==17,
       "indexed path did not resolve persisted data");
-  const auto start_scrub=ram->read_bytes;
+  const auto start_scrub=ram->read_bytes,scrub_calls=ram->read_calls;
   view.verify_all();
   const auto scrub_bytes=ram->read_bytes-start_scrub;
-  require(scrub_bytes<4*view.storage_info().physical_end,
-      "indexed scrub repeated object and metadata reads on the compact short-file fixture");
+  const auto scrub_reads=ram->read_calls-scrub_calls;
+  const auto audit_read_budget=files>1024?5000ULL*files:4*view.storage_info().physical_end;
+  require(scrub_bytes<audit_read_budget,
+      "indexed scrub repeated object and metadata reads on the short-file fixture");
   require(open_bytes<scrub_bytes/16 && lookup_bytes<scrub_bytes/16,"indexed volume loaded whole namespace for lookup");
   std::optional<NativeDirectoryCursor> cursor;
   unsigned seen=0;
@@ -105,7 +138,7 @@ void populated_native_snapshot() {
   require(first.next.has_value(),"missing indexed snapshot cursor");
   refuses(NativeFsErrorCode::invalid_operation,[&]{(void)published.list_inode_page(2,*first.next);});
   refuses(NativeFsErrorCode::corrupt,[&] {
-    (void)NativeFilesystemSnapshot::open_image(ram,{NativeImageKind::paged,limits.maximum_physical_bytes});
+    (void)NativeFilesystemSnapshot::open_image(ram,{NativeImageKind::paged,ram->capacity});
   });
   require(view.read_inode(sparse,127ULL*kNativeExtentBytes,17)==a &&
       view.read_inode(sparse,128ULL*kNativeExtentBytes,17)==b &&
@@ -114,23 +147,26 @@ void populated_native_snapshot() {
   auto cross=Bytes(2);
   cross.insert(cross.end(),b.begin(),b.begin()+3);
   require(view.read_inode(sparse,128ULL*kNativeExtentBytes-2,5)==cross,"indexed range across sparse blocks");
+  const auto objects=PagedObjectStoreSnapshot::open(ram,image_limits);
   std::cout<<"indexed_volume files="<<files<<" image_bytes="<<view.storage_info().physical_end
       <<" open_read_bytes="<<open_bytes<<" lookup_read_bytes="<<lookup_bytes
-      <<" scrub_read_bytes="<<scrub_bytes<<" sparse_size="<<sparse_size<<'\n';
+      <<" scrub_read_bytes="<<scrub_bytes<<" sparse_size="<<sparse_size
+      <<" scrub_read_calls="<<scrub_reads<<" object_tree_height="<<objects.info().height<<'\n';
+
+  if(files>1024)profile_indexed_reopen(ram,published,files);
 
   // Re-seal a semantically wrong owner through the ordinary object store.
   // Object integrity succeeds here, but the indexed reader must refuse it.
-  const auto objects=PagedObjectStoreSnapshot::open(ram,limits);
   const NativeNameIndex names(objects);
   const auto object=names.find(native_extent_key(3,0));
   require(object.has_value(),"indexed source extent not found");
   auto frame=objects.read(*object);frame.at(8)^=std::byte{2};
   {
-    auto writer=PagedObjectStoreWriter::resume(ram,identity(),objects.info().generation,limits,raw);
+    auto writer=PagedObjectStoreWriter::resume(ram,identity(),objects.info().generation,image_limits,raw);
     const StoreMutation wrong{*object,false,std::move(frame)};
     writer.commit({&wrong,1});
   }
-  const auto malformed=NativeFilesystemSnapshot::open_image(ram,indexed);
+  const auto malformed=NativeFilesystemSnapshot::open_image(ram,storage);
   refuses(NativeFsErrorCode::corrupt,[&]{(void)malformed.read_inode(3,0,17);});
   require(malformed.read_inode(4,0,17)==payload(1) && view.read_inode(3,0,17)==payload(0),
       "bad extent crossed ownership or changed an older root");
@@ -1423,8 +1459,14 @@ void indexed_transaction_recovery() {
 }
 }
 
-int main() {
-  try { populated_native_snapshot();migration(false);migration(true);growing_native_writer();indexed_capacity_and_metadata();indexed_stable_inode_io();indexed_session_lifetimes();indexed_detach_recovery();
+int main(int argc,char** argv) {
+  try {
+    if(argc==2 && std::string_view(argv[1])=="--scale-audit"){
+      populated_native_snapshot(16384);
+      return 0;
+    }
+    require(argc==1,"unknown indexed volume test option");
+    populated_native_snapshot();migration(false);migration(true);growing_native_writer();indexed_capacity_and_metadata();indexed_stable_inode_io();indexed_session_lifetimes();indexed_detach_recovery();
     indexed_large_retirement();indexed_head_independent_sequence();indexed_staged_rebuild();indexed_reconciled_rebuild();
     indexed_managed_handoff();indexed_managed_staged_compaction();indexed_managed_staged_faults();
     indexed_transaction_recovery();indexed_query_page_lifetime();indexed_extent_advice();

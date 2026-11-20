@@ -264,17 +264,27 @@ Node read_node(const State& s,const Ref& r) {
 class LookupPages {
  public:
   const Node& get(const State& state,const Ref& reference) {
-    for(const auto& page:pages_)
+    // The admitted tree depth bounds the retained branch path. Leaf churn
+    // cannot evict its ancestors, even when lookups alternate between keys.
+    if(reference.height) {
+      if(branches_.size()<reference.height)branches_.resize(reference.height);
+      auto& branch=branches_[reference.height-1];
+      if(!branch || branch->reference!=reference)
+        branch=Page{reference,read_node(state,reference)};
+      return branch->node;
+    }
+    for(const auto& page:leaves_)
       if(page && page->reference==reference)return page->node;
-    auto& slot=pages_[next_];
+    auto& slot=leaves_[next_leaf_];
     slot=Page{reference,read_node(state,reference)};
-    next_=(next_+1)%pages_.size();
+    next_leaf_=(next_leaf_+1)%leaves_.size();
     return slot->node;
   }
  private:
   struct Page {Ref reference;Node node;};
-  std::array<std::optional<Page>,4> pages_{};
-  std::size_t next_=0;
+  std::vector<std::optional<Page>> branches_;
+  std::array<std::optional<Page>,4> leaves_{};
+  std::size_t next_leaf_=0;
 };
 struct QueryMetadata {
   struct Record {

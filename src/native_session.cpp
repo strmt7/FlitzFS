@@ -577,9 +577,11 @@ NativeFileSession NativeFileSession::resume_volume_impl(std::shared_ptr<StoreByt
   };
   if(closed_indexed && !selected.info().degraded && !initial.needs_session_recovery() &&
       !initial.storage_info().degraded_checkpoint) {
-    auto leased=NativeFilesystemWriter::lease_verified_indexed_reopen(initial,foreground);
-    owner->head=NativeVolumeHeadWriter::retain_indexed_reopen(head,selected.info().selection,leased);
-    if(owner->head)return attach(std::move(leased));
+    auto retained=NativeVolumeHeadWriter::retain_indexed_reopen(head,selected.info().selection,initial,foreground);
+    if(retained){
+      owner->head.emplace(std::move(retained->head));
+      return attach(std::move(retained->image));
+    }
     // A newly degraded selector needs the ordinary checked repair path.
   }
   // The qualified global provider excludes other controllers during startup.

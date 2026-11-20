@@ -2591,12 +2591,14 @@ void unconfirmed_remount_refusal() {
   require(other.calls==0,"unconfirmed remount reached the provider");
 }
 
-void indexed_group_callback_contract() {
+void indexed_group_callback_contract(bool scrub_due=false) {
   Provider provider;Provider::active=&provider;
   auto head=std::make_shared<Ram>(),image=std::make_shared<Ram>();
   head->failure_unit=image->failure_unit=4096;
+  NativeMaintenancePolicy group_policy;
+  if(scrub_due)group_policy.maximum_cpu_busy_ppm=500000;
   auto adapter=WinFspNativeWritable::create_managed_indexed(head,id(90),image,id(1),
-      {kStoreMaxPhysicalBytes},{StoreCompressionMode::raw,1,false});
+      {kStoreMaxPhysicalBytes},{StoreCompressionMode::raw,1,false},{},group_policy);
   WinFspNativeSession session(std::move(adapter),provider.api());
   require(session.start(plan())==STATUS_SUCCESS && !session.background_maintenance_pending(),
       "empty indexed adapter requested a group");
@@ -2605,18 +2607,22 @@ void indexed_group_callback_contract() {
   NativeMaintenanceObservation observed;
   observed.valid=true;observed.physical_total=16ULL<<30;observed.physical_available=12ULL<<30;
   observed.commit_limit=32ULL<<30;observed.commit_available=24ULL<<30;
-  observed.cpu_total_ticks=1000;observed.cpu_busy_ticks=126;
+  observed.cpu_total_ticks=1000;observed.cpu_busy_ticks=scrub_due?501:126;
   observed.cpu_window_ms=1000;observed.sequence=1;observed.captured_ms=1000;
   const auto reads=image->read_calls,calls=image->calls;
-  const auto deferred=session.advance_background_maintenance(observed,observed.captured_ms);
+  const auto deferred=session.advance_background_maintenance(observed,observed.captured_ms,{},
+      WinFspMaintenanceContinuation::none,scrub_due);
   require(deferred.progress.deferral==NativeMaintenanceDeferral::cpu &&
       image->read_calls==reads && image->calls==calls,"busy indexed adapter did backing work");
-  observed.cpu_busy_ticks=0;
+  observed.cpu_busy_ticks=scrub_due?200:0;
   WinFspMaintenanceResult state;
   for(unsigned i=0;session.background_maintenance_pending() && i<1000;++i) {
     ++observed.sequence;observed.captured_ms+=observed.cpu_window_ms;
-    state=session.advance_background_maintenance(observed,observed.captured_ms);
+    state=session.advance_background_maintenance(observed,observed.captured_ms,{},
+        WinFspMaintenanceContinuation::none,scrub_due);
     require(state.progress.phase!=NativeMaintenancePhase::failed,"indexed adapter grouping failed");
+    require(!scrub_due || state.payload_scrub.state==PagedPayloadScrubState::idle,
+        "group admission ran scrub above its CPU limit");
   }
   require(state.progress.published_groups==1 && state.progress.minimum_compacted_bytes_saved>0 &&
       !session.background_maintenance_pending(),"indexed adapter did not settle one beneficial group");
@@ -2627,7 +2633,8 @@ void indexed_group_callback_contract() {
       volume.read("f1",0,kNativeExtentBytes)==second,"CPU reopen changed indexed callback content");
   volume.verify_all();
   std::cout<<"indexed_callback_group published="<<state.progress.published_groups
-      <<" lower_bound_savings="<<state.progress.minimum_compacted_bytes_saved<<'\n';
+      <<" lower_bound_savings="<<state.progress.minimum_compacted_bytes_saved
+      <<" scrub_due="<<scrub_due<<'\n';
 }
 }
 int main(int argc,char** argv){try {
@@ -2704,6 +2711,7 @@ int main(int argc,char** argv){try {
     memory_composition(NativeImageKind::indexed_paged);
     indexed_memory_composition();
     indexed_group_callback_contract();
+    indexed_group_callback_contract(true);
     memory_coherence_lifecycle();
   }else if(volume_file) {
     volume_file_callbacks();

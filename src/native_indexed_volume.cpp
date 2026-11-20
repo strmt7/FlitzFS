@@ -2409,7 +2409,7 @@ std::uint64_t IndexedVolumeView::verify_namespace(const IndexedInodeInput& direc
 }
 
 void IndexedVolumeView::verify_inventory(bool published) const {
-  // Related lookups share the fixed scratch cache for this audit. The
+  // Related lookups share the bounded scratch cache for this audit. The
   // verified object walk still checks both copies directly.
   const auto query=store_.scoped_query();
   index_.verify_all();

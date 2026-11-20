@@ -177,13 +177,19 @@ payloads or a damaged index.
 [Startup repair validation](evidence/indexed-startup-repair-2026-11-20.json)
 
 When both copies of the head and the whole indexed source are healthy
-and old lifetimes are resolved, the session retains one image writer.
-The paged root and its digest must match the fully checked initial view.
-After the last image and head durability barriers, the exact root and
-both copies of every record are checked again. A stale root, single-copy
-loss or double loss observed during the fence stops admission. A later
-reopen can use the ordinary repair path if valid replicas survive.
-[Verified reopen validation](evidence/indexed-retained-reopen-2026-11-20.json)
+and old lifetimes are resolved, the startup path acquires the selector
+lease, checks the expected selection, and acquires the image writer lease.
+The image writer checks the paged root and digest against the fully verified
+initial view, flushes the image, and rechecks its root and extent. The
+selector then flushes under both leases. The exact selection, image extent,
+native inventory and every payload copy are checked before either owner
+reaches the writable session.
+
+The healthy path issues one image flush and one selector flush. A changed
+extent, a same-generation fork or replica damage during either barrier stops
+admission. A later reopen can use the ordinary repair path when valid
+replicas survive.
+[Matched reopen and fence validation](evidence/indexed-scale-reopen-2026-11-20.json)
 
 If append repair runs out of space, the Windows paired-range and memory
 providers can supply an alternate image. The closed owner verifies the

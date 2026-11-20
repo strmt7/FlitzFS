@@ -1,7 +1,7 @@
 # FlitzFS stable release execution plan
 
-Reviewed on 20 November 2026 against the source at `32162677d30e0df682401e29f433d37fc14712a8`
-and the indexed inventory work validated in this round. The [engineering programme](IMPLEMENTATION_PLAN.md)
+Reviewed on 20 November 2026 against the source at `717011f8c414aab634d17cd4b06bcfe0da0a4d62`
+and the indexed scale and reopen work validated in this round. The [engineering programme](IMPLEMENTATION_PLAN.md)
 defines the full product scope and work packages. This plan gives the order
 of execution, evidence required at each handoff, and the remaining release
 work.
@@ -57,6 +57,12 @@ the allocator and recovery work proceed. Mounted performance depends on both
 a qualified driver path and the scalable storage path. A changed source,
 runtime or dependency invalidates only the evidence whose inputs it changes.
 The evidence matrix records that dependency explicitly.
+
+The Windows scheduler now checks pending compression after an optional scan
+declines under its CPU budget. The injected Windows test admits a beneficial
+group within its own budget while the due scrub stays deferred. Retain this
+case in the mixed-activity matrix with both controls and exact CPU readback.
+[Scheduling and scale evidence](evidence/indexed-scale-reopen-2026-11-20.json)
 
 ## 1. Candidate and platform ledger
 
@@ -117,15 +123,19 @@ The evidence matrix records that dependency explicitly.
 ### Next writable-resume qualification
 
 The current paired start still runs a complete CPU inventory audit on each side
-of the selector and image flushes. Reusing checked extent bytes cut the
-five-MiB fixture's backing reads from 42,381,786 to 23,036,690 with zero
-startup backing writes. The large-volume release gate still requires evidence
-at higher populations and through a mounted ordinary client.
-[Matched runs](evidence/indexed-reopen-single-pass-audit-2026-11-20.json)
+of the image and selector barriers. The healthy path now acquires both leases
+before those barriers and issues one flush to each backing interface. On the
+matched 16,384-file fixture it reduced backing reads from 197,479,086 to
+130,327,966 bytes with zero startup backing writes. The existing five-MiB
+WinFsp fixture and the larger native fixture bind separate evidence.
+The large-volume gate still requires a mounted ordinary client and a larger
+dataset.
+[Indexed scale receipt](evidence/indexed-scale-reopen-2026-11-20.json) ·
+[Five-MiB fixture](evidence/indexed-reopen-single-pass-audit-2026-11-20.json)
 
-1. Partition counted reads by selector, object-table pages, name-index pages,
-   inode/lifetime metadata, encoded payloads and dependency resolution. Record
-   the pre-fence and post-fence legs independently. Use the same populated
+1. Extend the separate pre- and post-image-barrier counters by selector,
+   object-table pages, name-index pages, inode/lifetime metadata, encoded
+   payloads and dependency resolution. Use the same populated
    volume for a clean start, a start requiring verified repair and a read-only
    rescue. Collect call counts, backing bytes, allocations and elapsed
    distributions for both loaded and idle starts.

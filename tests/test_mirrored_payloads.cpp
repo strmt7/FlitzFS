@@ -333,39 +333,58 @@ void retained_indexed_reopen_fences() {
   const auto inventory=locations(*initial);
   const auto payload=std::ranges::find(inventory,original.size()+indexed_extent_header_bytes,&Location::stored);
   require(payload!=inventory.end(),"fence test payload record missing");
-  for(unsigned fault=0;fault<3;++fault) {
+  enum class FenceFault {peer, both, forked_root, appended_tail};
+  for(bool image_fence:{true,false})for(const auto fault:{FenceFault::peer,FenceFault::both,
+      FenceFault::forked_root,FenceFault::appended_tail}) {
     auto body=image(initial->stable,4096);
     auto observed=std::make_shared<FenceBacking>(body);
     const auto head_writes=head->ram->writes;
+    auto& damaged_fence=image_fence?*observed:*head;
     unsigned barriers=0;
-    head->on_fence=[&] {
-      require(head->leased() && observed->leased(),"checked reopen lost an exclusive lease during the head fence");
+    damaged_fence.on_fence=[&] {
+      require(head->leased() && observed->leased(),"checked reopen lost an exclusive lease during a fence");
       ++barriers;
-      if(fault==2) {
+      if(fault==FenceFault::forked_root) {
         body->live=body->stable=fork->stable;
+      }else if(fault==FenceFault::appended_tail) {
+        body->stable.resize(body->stable.size()+body->failure_unit);
+        body->live=body->stable;
       }else {
         damage_record(*body,payload->peer);
-        if(fault==1)damage_record(*body,payload->primary);
+        if(fault==FenceFault::both)damage_record(*body,payload->primary);
       }
     };
-    rejects([&]{(void)reopen(observed);},"writable reopen accepted post-fence damage or a same-generation fork");
-    head->on_fence={};
-    require(barriers==1 && !observed->leased() && !head->leased() && !body->writes &&
+    rejects([&]{(void)reopen(observed);},"writable reopen accepted damage or a changed image at a fence");
+    damaged_fence.on_fence={};
+    require(barriers==1 && body->flushes==1 && !observed->leased() && !head->leased() && !body->writes &&
         head->ram->writes==head_writes && NativeVolumeHeadView::inspect_selector(*head,volume).selection==selected.selection,
         "failed fenced reopen changed authoritative storage or retained a lease");
-    if(!fault) {
+    if(fault==FenceFault::peer) {
       {
         auto session=reopen(observed);
         require(session.snapshot().read("data",0,kNativeExtentBytes)==original,"qualified retry lost the surviving payload");
       }
       auto healed=view(body);healed.verify_all();
       require(!healed.storage_info().degraded_checkpoint,"qualified retry did not restore both copies");
+    }else if(fault==FenceFault::appended_tail) {
+      require(view(body).read("data",0,kNativeExtentBytes)==original,
+          "an unexpected extent change lost the selected CPU-readable data");
     }
   }
   {
     auto body=image(initial->stable,4096);
     auto observed=std::make_shared<FenceBacking>(body);
+    const auto head_before=head->ram->flushes;
+    observed->on_fence=[&] {
+      require(head->leased() && observed->leased(),"clean image fence did not hold both owners");
+    };
+    head->on_fence=[&] {
+      require(body->flushes==1 && head->leased() && observed->leased(),"selector fenced before the single image barrier");
+    };
     auto session=reopen(observed);
+    observed->on_fence={};head->on_fence={};
+    require(body->flushes==1 && head->ram->flushes==head_before+1,
+        "healthy reopen repeated a storage barrier");
     require(head->leased() && observed->leased(),"healthy reopen did not retain its checked owners");
     const auto file=session.open("data",{true,true,true});
     session.write(file,0,different);
@@ -373,8 +392,8 @@ void retained_indexed_reopen_fences() {
     auto checked=view(body);checked.verify_all();
     require(checked.read("data",0,kNativeExtentBytes)==different,"retained owner could not commit through reopened storage");
   }
-  std::cout<<"retained_indexed_fences post_fence_peer_loss=1 double_loss=1 same_generation_fork=1"
-      " independent_repair_and_continued_write=1\n";
+  std::cout<<"retained_indexed_fences image_and_selector=1 peer_loss=1 double_loss=1 same_generation_fork=1"
+      " changed_extent=1 independent_repair_and_continued_write=1\n";
 }
 
 void durable_payload_scrub() {

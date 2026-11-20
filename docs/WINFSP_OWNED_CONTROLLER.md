@@ -81,8 +81,12 @@ when its maintenance queues are empty and the integrity pass is dormant.
 Older indexed directories gain verified summaries during fresh idle
 opportunities. The owner alternates this work with eligible compression and
 scrub work and preserves the priority of repair, retirement and active group
-preparation. Every scan or publication returns control to the owner before
-the next opportunity. [Automatic backfill](INDEXED_NATIVE_VOLUME.md#automatic-backfill)
+preparation. When an optional scrub or directory backfill declines under
+its CPU policy, pending compression can evaluate its own budget using the
+same fresh observation. The declined scan has done no backing I/O. Every
+scan or publication returns control to the owner before the next opportunity.
+[Automatic backfill](INDEXED_NATIVE_VOLUME.md#automatic-backfill) ·
+[Admission validation](evidence/indexed-scale-reopen-2026-11-20.json)
 
 When a verified replica repair cannot append, the controller yields
 private group preparation to the provider's repair rotation. The normal
