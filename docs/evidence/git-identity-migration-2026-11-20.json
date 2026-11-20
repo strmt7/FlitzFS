@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "date": "2026-11-20",
+  "empty_connector_commit": "50d227051ec62de549948313695e18930b1a1df4",
+  "original_head": "311bf07fdc3095e754c446f51fb289133e160d6f",
+  "rewritten_head": "2501e71b713cb59f512862f049988b59f0845923",
+  "tip_tree": "5fe0b1a9a1184149257747ff5502c25a48bbc086",
+  "original_root": "d9d7ea7fa71ccf56d7085d916ffdf217b0da0acf",
+  "rewritten_root": "4a0faae3cf4ae3881b1c94486b14a6cefd0a58cc",
+  "commit_count": 453,
+  "author_fields_changed": 165,
+  "committer_fields_changed": 167,
+  "obsolete_signatures_removed": 2,
+  "tree_parent_message_and_timestamp_parity": true,
+  "verified_fsck": true,
+  "worktree_files_preserved": 10,
+  "authenticated_identity": {
+    "name": "Stratos",
+    "email": "28989754+strmt7@users.noreply.github.com"
+  },
+  "connector_empty_commit_parent": "311bf07fdc3095e754c446f51fb289133e160d6f",
+  "connector_empty_commit_tree": "5fe0b1a9a1184149257747ff5502c25a48bbc086",
+  "recovery_bundle_sha256": "cf05760c223f32bb4513f447850dcd80edc95b9844caebd7b7d2ee0d5cd16682",
+  "mapping": "commit-identity-map-2026-11-20.tsv",
+  "published_lease": "311bf07fdc3095e754c446f51fb289133e160d6f",
+  "remote_main_verified_through_connector": true,
+  "preserved_archive_refs": [
+    "refs/heads/main",
+    "refs/pull/1/head"
+  ],
+  "historical_receipt_identities_preserved": true,
+  "scope": "Every commit reachable from main before the migration. Git transferred the verified commit graph under an expected-head lease. The connector supplied the identity and confirmed the published root and tip."
+}

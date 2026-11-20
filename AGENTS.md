@@ -18,7 +18,7 @@ Use live capability and resource checks when the restriction covers a real
 dependency. Keep specific protection and ownership requirements below.
 
 Use GitHub for synchronization, repository security information and checks
-that complement local validation. Push at meaningful checkpoints. Reuse
+that complement local validation. Publish at meaningful checkpoints. Reuse
 valid unchanged evidence and prioritize product integration over another
 isolated probe.
 
@@ -107,11 +107,11 @@ reclamation and useful ordinary GPU/collective operation. Keep the full goal act
 
 1. Inspect Git history/status and preserve existing changes before editing.
    Prefer an appropriate existing checkout; use a separate local checkout if
-   needed to protect another dirty working tree. Develop on main only. No
-   development branches, PRs, force-pushes or destructive resets of user work.
+   needed to protect another dirty working tree. Develop on main only. Preserve
+   other work and use the publication procedure below.
 2. Edit, review diffs, build and test locally. Validate the actual changed source;
    bind reports to commit plus dirty-diff/source digests when not yet committed.
-   Use small validated local commits and less frequent normal pushes.
+   Batch small, validated changes into meaningful publication checkpoints.
 3. Run deterministic byte-exact and malformed-input tests, raw-only controls
    and appropriate sanitizer/Windows checks. Run hardware-specific tests on the
    owner's PC within their resource and ownership envelope. Use a disposable
@@ -130,6 +130,31 @@ reclamation and useful ordinary GPU/collective operation. Keep the full goal act
    Repeat checks only after a change or unresolved failure justifies them.
 5. Do not add/bump product numbering, tags/releases, publish packages or call a
    development commit a release. The owner alone decides when to release.
+
+### GitHub publication
+
+Use the authenticated official GitHub connector to create development commits.
+Let the connector assign the author and committer. Inspect the real commit
+metadata to verify both fields before advancing the branch. When establishing
+the identity, create an empty connector commit using the exact current tree
+and parent and read back that commit. Keep credentials out of Git configuration,
+remotes, logs, and tracked files.
+
+Review the worktree, select only verified files, and record the exact remote
+parent and tree. Create blobs for the intended changes, construct the new tree
+from that base, and independently compare its paths and hashes. Create the
+commit with the connector, then verify the parent, tree, and attribution.
+Advance `main` through the connector with the expected old head and force
+disabled. Fetch and synchronize local metadata after GitHub confirms the new
+head. Preserve unrelated index entries and working files.
+
+Development branches, pull requests, and published-history rewrites require
+explicit owner authorization. Before an authorized rewrite, preserve a verified
+recovery bundle and check every tree, parent relationship, commit message, and
+timestamp. Use an expected-head lease. Report a specific connector limitation
+before choosing an exceptional publication method. Keep original commit IDs in
+historical test receipts and retain the migration map for future verification.
+[Identity migration evidence](docs/evidence/git-identity-migration-2026-11-20.json)
 
 ## Product requirements and storage invariants
 
