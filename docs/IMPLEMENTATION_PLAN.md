@@ -1220,6 +1220,12 @@ for a live-size claim. **Existing ledger:** A04, R01, G02, Q01.
 events, elapsed-work pacing, content revisions and bounded advisory journals.
 **Planning effort:** 4–9 person-weeks; confidence low.
 
+Indexed compaction now retains cold encoding coverage in the funded advice
+records. Coverage binds to the selected image and encoder policy, and
+replayed foreground writes remain eligible. This records completed work
+for step 9. Workload learning, maintenance arbitration, lifetime rewrite
+accounting and mounted interference measurement remain open.
+
 ### Implementation steps
 
 1. Define separate budgets for foreground ingestion, optional background work,

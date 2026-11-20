@@ -15,6 +15,7 @@
 #ifdef FLITZFS_STORE_HAS_ZSTD
 #define ZSTD_STATIC_LINKING_ONLY
 #include <zstd.h>
+#include <zstd_errors.h>
 static_assert(ZSTD_VERSION_NUMBER>=10504,"Zstandard 1.5.4 or newer required");
 #endif
 
@@ -351,22 +352,24 @@ EncodedStoreObject StoreCodecEncoder::verify_encoding(EncodedStoreObject result,
   result.decoded_digest=record_digest(input);
   return result;
 }
-std::optional<EncodedStoreObject> StoreCodecEncoder::try_cold_encoding(
+ColdStoreEncoding StoreCodecEncoder::try_cold_encoding(
     std::span<const std::byte> input,std::size_t old_size) {
 #ifdef FLITZFS_STORE_HAS_ZSTD
   // Indexed data fits one native extent and its envelope. Bound a trial to
   // one Zstandard block, and charge the same allocator as foreground encoding.
   constexpr std::size_t block_bytes=128U*1024U;
   if(impl_->options.mode==StoreCompressionMode::raw || !store_zstd_available() ||
-      input.empty() || input.size()>block_bytes || old_size<=16 || old_size>input.size())return {};
+      input.empty() || input.size()>block_bytes || old_size>input.size())return {};
+  if(old_size<=16)return {{},true};
   const auto maximum=ZSTD_maxCLevel();
   auto params=ZSTD_getCParams(maximum,input.size(),0);
   auto bytes=ZSTD_estimateCCtxSize_usingCParams(params);
-  for(auto level=maximum;ZSTD_isError(bytes) || bytes>impl_->allocation_limit;) {
-    if(--level<=impl_->options.zstd_level)return {};
+  for(auto level=maximum;!ZSTD_isError(bytes) && bytes>impl_->allocation_limit;) {
+    if(--level<=impl_->options.zstd_level)return {{},true};
     params=ZSTD_getCParams(level,input.size(),0);
     bytes=ZSTD_estimateCCtxSize_usingCParams(params);
   }
+  if(ZSTD_isError(bytes))return {};
   auto* ctx=impl_->encoding_context();
   if(!ctx || ZSTD_isError(ZSTD_CCtx_reset(ctx,ZSTD_reset_session_and_parameters)) ||
       ZSTD_isError(ZSTD_CCtx_setCParams(ctx,params)) ||
@@ -376,9 +379,10 @@ std::optional<EncodedStoreObject> StoreCodecEncoder::try_cold_encoding(
   try {
     Bytes candidate(old_size-1);
     const auto size=ZSTD_compress2(ctx,candidate.data(),candidate.size(),input.data(),input.size());
-    if(ZSTD_isError(size) || size>=old_size)return {};
+    if(ZSTD_isError(size))return {{},ZSTD_getErrorCode(size)==ZSTD_error_dstSize_tooSmall};
+    if(size>=old_size)return {{},true};
     candidate.resize(size);
-    return verify_encoding({kStoreZstd,std::move(candidate)},input);
+    return {verify_encoding({kStoreZstd,std::move(candidate)},input),true};
   }catch(const std::bad_alloc&) {return {};}
 #else
   (void)input;(void)old_size;

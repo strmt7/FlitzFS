@@ -265,6 +265,8 @@ class PagedObjectStoreWriter::Rewrite final {
   PagedObjectStoreWriter finish(const PagedObjectStoreWriter&);
  private:
   friend class PagedObjectStoreWriter;
+  friend class NativeFileSession;
+  std::uint64_t cold_encoding_through() const noexcept;
   struct Impl;
   explicit Rewrite(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;

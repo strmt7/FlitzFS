@@ -1,6 +1,8 @@
 #include "flitzfs/native_volume_file.hpp"
+#include "flitzfs/native_maintenance.hpp"
 #include "flitzfs/read_only_file.hpp"
 #include "native_fs_fixture.hpp"
+#include "record_digest.hpp"
 #include "volume_range_fixture.hpp"
 #ifdef _WIN32
 #define NOMINMAX
@@ -39,9 +41,9 @@ void update(NativeFileSession& session,const Bytes& bytes) {
   session.write(handle,0,bytes);
   session.cleanup(handle,false);session.close(handle);
 }
-Bytes cold_test_payload() {
+Bytes cold_test_payload(unsigned salt=0) {
   std::vector<Bytes> vocabulary;
-  for(unsigned i=0;i<173;++i)vocabulary.push_back(data(11+i*29%75,82003+i*37));
+  for(unsigned i=0;i<173;++i)vocabulary.push_back(data(11+i*29%75,82003+i*37+salt));
   Bytes result;
   result.reserve(24*kNativeExtentBytes);
   for(unsigned i=0;i<24;++i) {
@@ -281,6 +283,134 @@ void release_inactive(NativeFileSession& session) {
     require(steps<5,"unbounded retirement steps");
     require(session.advance_persistent_reclamation({})==Reclaim::retiring,"inactive range did not retire");
   }
+}
+
+void durable_cold_coverage() {
+  if(!store_zstd_available())return;
+  const StoreCompressionOptions foreground{StoreCompressionMode::fast,3,false};
+  const auto backing=std::make_shared<SparseVolumeRam>(4096);
+  const auto payload=cold_test_payload();
+  auto late=cold_test_payload(99173);
+  late.resize(kNativeExtentBytes);
+  const auto witness=data(2*kNativeExtentBytes,811);
+  const auto advice_bytes=[](const SparseVolumeRam& io) {
+    return std::span(io.io.stable).subspan(kVolumeHeadBytes,kOptimizationAreaBytes);
+  };
+  Bytes prior;
+  OptimizationColdCoverage saved;
+  {
+    auto session=NativeVolumeFile::create(backing,id(70),id(71),limits,foreground);
+    put(session,"payload",data(payload.size(),799));
+    update(session,payload);
+    put(session,"witness",witness);
+    put(session,"quiet",Bytes(kOptimizationGroupScanInputBytes/2));
+    const auto previous=advice_bytes(*backing);
+    prior.assign(previous.begin(),previous.end());
+    const auto captured=session.snapshot().storage_info().generation;
+    require(stage_compaction(session,72)==Reclaim::ready,"initial cold copy did not stage");
+    put(session,"late",late);
+    const auto replayed=session.snapshot().storage_info().generation;
+    require(replayed>captured && stage_compaction(session,72)==Reclaim::ready &&
+        session.advance_persistent_reclamation({})==Reclaim::published,"cold copy did not replay and publish");
+    const auto selection=session.volume_info().selection;
+    require(std::ranges::equal(advice_bytes(*backing),prior),"selector handoff wrote optional cold advice");
+    release_inactive(session);
+    NativeGroupMaintenance groups(session);
+    NativeMaintenanceObservation observed;
+    observed.physical_total=16ULL<<30;observed.physical_available=12ULL<<30;
+    observed.commit_limit=32ULL<<30;observed.commit_available=24ULL<<30;
+    observed.cpu_total_ticks=1000;observed.cpu_window_ms=1000;observed.valid=true;
+    for(unsigned i=0;i<1200 && !groups.progress().checkpoints_published;++i) {
+      ++observed.sequence;observed.captured_ms+=1000;
+      require(groups.advance(observed,observed.captured_ms).phase!=NativeMaintenancePhase::failed,
+          "funded group scan failed to save cold coverage");
+    }
+    const auto checkpoint=session.optimization_snapshot();
+    require(groups.progress().checkpoints_published==1 && checkpoint.sequence==2 &&
+        checkpoint.state.settled_input_bytes==kOptimizationGroupScanInputBytes &&
+        checkpoint.state.group_scan && checkpoint.state.cold_coverage &&
+        session.snapshot().shared_base_info().members==0,"cold coverage did not piggyback a funded scan");
+    saved=*checkpoint.state.cold_coverage;
+    require(saved.image==selection.image_identity && saved.selector_epoch==selection.epoch &&
+        saved.minimum_checkpoint==selection.minimum_checkpoint && saved.through_generation==captured &&
+        saved.through_generation<replayed && saved.zstd_version==store_zstd_version() &&
+        saved.foreground_level==3,"saved cold coverage included unevaluated replayed data");
+  }
+  require(advice_bytes(*backing)[7]==std::byte{'7'} &&
+      advice_bytes(*backing)[kStoreCommitUnit+7]==std::byte{'7'},"cold coverage capability was not mirrored");
+
+  // A re-signed, wider hint models an old optimizer overstating coverage.
+  // A valid matching hint can only skip compression, even for replayed bytes.
+  enum class Advice {matching,wider,wrong_image,wrong_epoch,wrong_checkpoint,wrong_codec,wrong_policy,
+      malformed,torn,mixed};
+  const auto run=[&](Advice scenario,StoreCompressionOptions options) {
+    auto copy=backing->replay();
+    auto slots=std::span(copy->io.stable).subspan(kVolumeHeadBytes,kOptimizationAreaBytes);
+    if(scenario==Advice::torn || scenario==Advice::mixed) {
+      std::ranges::copy(std::span(prior).last(kStoreCommitUnit),slots.last(kStoreCommitUnit).begin());
+      if(scenario==Advice::torn)slots[kStoreCommitUnit-1]^=std::byte{1};
+    }else if(scenario!=Advice::matching) {
+      for(unsigned i=0;i<2;++i) {
+        auto bytes=slots.subspan(i*kStoreCommitUnit,kStoreCommitUnit);
+        constexpr std::size_t cold=1904,digest_at=kStoreCommitUnit-32;
+        const auto put_field=[&](std::size_t at,std::uint64_t value,unsigned width) {
+          for(unsigned j=0;j<width;++j)bytes[cold+at+j]=static_cast<std::byte>(value>>(8*j));
+        };
+        put_field(32,saved.minimum_checkpoint-1,8);
+        if(scenario==Advice::wrong_image)bytes[cold]^=std::byte{1};
+        if(scenario==Advice::wrong_epoch)put_field(16,saved.selector_epoch+1,8);
+        if(scenario==Advice::wrong_checkpoint)put_field(24,saved.minimum_checkpoint+1,8);
+        if(scenario==Advice::wrong_codec)put_field(44,saved.zstd_version+1,4);
+        if(scenario==Advice::wrong_policy)put_field(40,saved.policy_revision+1,4);
+        if(scenario==Advice::malformed)put_field(32,saved.minimum_checkpoint,8);
+        const auto digest=detail::record_digest(bytes.first(digest_at));
+        std::ranges::copy(digest,bytes.begin()+digest_at);
+      }
+    }
+    copy->io.live=copy->io.stable;
+    const auto before=NativeVolumeFile::inspect(copy,id(70)).info().selection;
+    Bytes observed_witness=witness;
+    {
+      auto session=NativeVolumeFile::resume(copy,id(70),options);
+      require(session.volume_info().selection==before,"advisory interruption changed volume selection");
+      const auto reopened=session.optimization_snapshot();
+      if(scenario==Advice::matching)
+        require(reopened.state.cold_coverage==saved,"reopen lost the selected cold coverage");
+      if(scenario==Advice::malformed)
+        require(!reopened.state.cold_coverage,"invalid cold generation supplied progress");
+      if(scenario==Advice::torn || scenario==Advice::mixed)
+        require(session.optimization_info().phase==NativeOptimizationPhase::unavailable,
+            "unfunded reopen rewrote an interrupted advisory pair");
+      for(unsigned seed=881;seed<895 && !session.persistent_reclamation_pending();++seed) {
+        observed_witness=data(witness.size(),seed);
+        const auto file=session.open("witness",{true,true,false});
+        session.write(file,0,observed_witness);session.cleanup(file,false);session.close(file);
+      }
+      require(session.persistent_reclamation_pending(),"foreground history did not fund range rotation");
+      require(stage_compaction(session,73)==Reclaim::ready &&
+          session.advance_persistent_reclamation({})==Reclaim::published,"reopened indexed copy did not publish");
+    }
+    const auto recovered=NativeVolumeFile::inspect(copy,id(70));
+    const auto& view=recovered.filesystem();
+    view.verify_all();
+    require(view.read("payload",0,static_cast<std::uint32_t>(payload.size()))==payload &&
+        view.read("late",0,static_cast<std::uint32_t>(late.size()))==late &&
+        view.read("witness",0,static_cast<std::uint32_t>(observed_witness.size()))==observed_witness,
+        "cold hint changed independently reopened bytes");
+    return view.storage_info().stored_payload_bytes;
+  };
+  const auto matched=run(Advice::matching,foreground);
+  const auto wider=run(Advice::wider,foreground);
+  require(matched<wider,"restart ignored the cutoff or failed to reconsider replayed data");
+  for(const auto scenario:{Advice::wrong_image,Advice::wrong_epoch,Advice::wrong_checkpoint,Advice::wrong_codec,
+      Advice::wrong_policy,Advice::malformed,Advice::torn,Advice::mixed})
+    require(run(scenario,foreground)==matched,"foreign or interrupted cold hint excluded eligible data");
+  auto different_level=foreground;
+  different_level.zstd_level=foreground.zstd_level+1;
+  require(run(Advice::wider,different_level)<wider,"changed foreground level reused a prior encoder cutoff");
+  std::cout<<"cold_coverage persisted_sequence=2 captured="<<saved.through_generation
+      <<" matched_stored="<<matched<<" wider_stored="<<wider
+      <<" selected_data_independent=1 binding_mismatches=6 malformed_pairs=1 interrupted_pairs=2\n";
 }
 
 void reclaimed_ranges() {
@@ -704,6 +834,10 @@ int main(int argc,char** argv){
   try {
     if(argc==2 && std::string_view(argv[1])=="--cold-relocation") {
       cold_relocation(cold_test_payload(),true);
+      return 0;
+    }
+    if(argc==2 && std::string_view(argv[1])=="--cold-coverage") {
+      durable_cold_coverage();
       return 0;
     }
     if(argc==3 && std::string_view(argv[1])=="--cold-corpus") {

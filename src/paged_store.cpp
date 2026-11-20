@@ -793,11 +793,14 @@ struct Rebuild {
   }
 };
 PreparedObject prepare_rebuilt_object(const State& target,const Entry& source_entry,ObjectRecord source_record,
-    const Bytes& decoded,detail::StoreCodecEncoder& encoder,bool reencode,bool improve=false) {
+    const Bytes& decoded,detail::StoreCodecEncoder& encoder,bool reencode,bool* cold_evaluated=nullptr) {
   auto encoded=[&] {
     if(reencode)return encoder.encode(decoded);
-    if(improve)if(auto smaller=encoder.try_cold_encoding(decoded,source_record.payload.size()))
-      return std::move(*smaller);
+    if(cold_evaluated) {
+      auto trial=encoder.try_cold_encoding(decoded,source_record.payload.size());
+      *cold_evaluated=trial.evaluated;
+      if(trial.smaller)return std::move(*trial.smaller);
+    }
     return detail::EncodedStoreObject{get32(source_record.header,12),std::move(source_record.payload),
         field<32>(source_record.header,56)};
   }();
@@ -817,13 +820,14 @@ PreparedObject prepare_rebuilt_object(const State& target,const Entry& source_en
 bool copy_rebuild_object(Rebuild& build,const State& original,const Entry& source_entry,
     detail::StoreCodecEncoder& encoder,std::uint64_t replacement_id,
     std::span<const std::byte> replacement,bool reencode,
-    const std::function<bool(std::uint64_t,std::span<const std::byte>)>* keep=nullptr,bool improve=false) {
+    const std::function<bool(std::uint64_t,std::span<const std::byte>)>* keep=nullptr,
+    bool* cold_evaluated=nullptr) {
   auto source_record=read_record(original,source_entry);
   auto bytes=decode_record(original,source_entry,source_record);
   if(keep && !(*keep)(source_entry.id,bytes))return false;
   if(source_entry.id==replacement_id)bytes.assign(replacement.begin(),replacement.end());
   auto record=prepare_rebuilt_object(build.next,source_entry,std::move(source_record),bytes,
-      encoder,reencode || source_entry.id==replacement_id,improve);
+      encoder,reencode || source_entry.id==replacement_id,cold_evaluated);
   build.append_payload(record.entry,record.header,record.payload,bytes);
   return true;
 }
@@ -878,6 +882,7 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
   PagedRewritePhase phase=PagedRewritePhase::verifying_source;
   bool reencode=true,replacement_seen=false;
   PagedRewriteMode mode;
+  std::uint64_t cold_through=0;
   std::optional<Entry> capacity_damage;
   std::uint64_t capacity_repair_generation=0,original_root_stored=0;
   bool repair_confirmed=false;
@@ -900,6 +905,7 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
     if(cold && (!cold->eligible || mode!=PagedRewriteMode::reconcile_foreground ||
         cold->after_generation>original.generation))
       fail("cold encoding requires a bound indexed reconciliation");
+    if(cold)cold_through=original.generation;
     if(mode==PagedRewriteMode::reconcile_foreground && writer.payload_repairs &&
         writer.payload_repairs->blocked_generation==original.generation && writer.payload_repairs->blocked_record) {
       capacity_damage=writer.payload_repairs->blocked_record;
@@ -1102,8 +1108,12 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
     } else if(phase==PagedRewritePhase::copying) {
       const bool advanced=visit_quantum(original,[&](const Entry& entry) {
         const bool improve=cold && entry.generation>cold->after_generation && cold->eligible(entry.id);
+        bool evaluated=false;
         const auto kept=copy_rebuild_object(build,original,entry,target->encoder,replacement.empty()?0:1,
-            replacement,reencode,retention?&retention->keep:nullptr,improve);
+            replacement,reencode,retention?&retention->keep:nullptr,improve?&evaluated:nullptr);
+        // A failed trial leaves that generation eligible again. Replayed
+        // foreground records never advance the initial copy's coverage.
+        if(improve && !evaluated)cold_through=(std::min)(cold_through,entry.generation-1);
         if(retention && kept)copied.include(entry);
       });
       if(!advanced) {
@@ -1171,6 +1181,9 @@ bool PagedObjectStoreWriter::Rewrite::ready_for(const PagedObjectStoreWriter& wr
 std::uint64_t PagedObjectStoreWriter::Rewrite::verified_capacity_repair_generation() const noexcept {
   return impl_ && impl_->phase==PagedRewritePhase::ready && impl_->repair_confirmed
       ?impl_->capacity_repair_generation:0;
+}
+std::uint64_t PagedObjectStoreWriter::Rewrite::cold_encoding_through() const noexcept {
+  return impl_ && impl_->phase==PagedRewritePhase::ready?impl_->cold_through:0;
 }
 StoreIdentity PagedObjectStoreWriter::Rewrite::identity() const noexcept {return impl_?impl_->build.next.id:StoreIdentity{};}
 bool PagedObjectStoreWriter::Rewrite::replaces_native_root() const noexcept {return impl_ && !impl_->replacement.empty();}

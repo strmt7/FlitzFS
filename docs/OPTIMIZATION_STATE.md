@@ -95,7 +95,7 @@ before the benchmark table are zero. An absent group scan is represented by
 zeros. A present group scan retains its original feature encoding and full
 capacity, including projections.
 
-The reader supports capabilities 1 through 6. Earlier readers can continue
+The reader supports capabilities 1 through 7. Earlier readers can continue
 recovering file data independently when they decline version 6 advice.
 Only checked progress can advance the sequence without consuming new
 committed input. A mixed old and new pair must keep identical compression
@@ -103,6 +103,43 @@ profiles, benchmark history and group state if the settlement advances by
 less than the usual publication charge. Normal advice updates preserve the
 latest scrub checkpoint.
 [Mirror scrub and restart](MIRRORED_PAYLOADS.md#persistent-scan-progress)
+
+### Indexed cold compression coverage
+
+Capability 7 uses `FLTOP007` within the same mirrored reservation. It uses
+capability 6's 56-byte profile stride. The scrub field is zero when absent.
+The existing feature, projection and benchmark tables keep their capacity
+and layout. The 56-byte cold-coverage record starts at offset 1904.
+
+| Offset | Bytes | Meaning |
+|---:|---:|---|
+| 1904 | 16 | Selected image identity |
+| 1920 | 8 | Selector epoch |
+| 1928 | 8 | Minimum checkpoint from the checked selector |
+| 1936 | 8 | Highest covered source generation |
+| 1944 | 4 | Cold encoding policy revision |
+| 1948 | 4 | Runtime Zstandard version |
+| 1952 | 4 | Foreground compression level |
+| 1956 | 4 | Reserved zero |
+
+The epoch is at least 2. Coverage is positive and precedes the minimum
+checkpoint. After verified indexed compaction publishes a smaller image,
+the session remembers coverage from its initial copy. A trial that failed
+cuts coverage below the affected generation. Replayed foreground records
+remain eligible at the next compaction. The next funded discovery, scrub
+or controlled policy publication can carry the coverage in its existing
+slot writes. The selector handoff and ordinary file operations add no
+advice writes. A cold coverage change alone cannot advance the advice
+sequence.
+
+After reopening, a matching indexed selector and encoder policy let the
+session skip repeated compression trials for covered records. Compaction
+still verifies the bytes. An obsolete, damaged or unrecognized checkpoint
+can be omitted and its trials repeated. Earlier builds continue to read
+the selected user data when they encounter capability 7 advice. User
+records and their independent CPU decoders use the existing encodings.
+The checksums detect damage within the declared storage model.
+[Restart and interrupted publication evidence](evidence/indexed-cold-coverage-2026-11-20.json)
 
 ## Publication, recovery and work bounds
 

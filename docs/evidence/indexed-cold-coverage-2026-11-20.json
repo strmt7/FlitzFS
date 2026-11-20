@@ -1,0 +1,199 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "captured_local": "2026-11-20T17:09:04+01:00",
+  "source_base": "4cba190377fb9124097141b521046a0b68251679",
+  "source_binding": {
+    "CMakeLists.txt": {
+      "git_blob": "733154cb46057cf82617f774eced25a511ffcb62",
+      "sha256": "1b97f195622beb3341ab58f47e8c9ab8549c2869da4d588ff60ae846a18a695c"
+    },
+    "include/flitzfs/optimization_state.hpp": {
+      "git_blob": "565e695d202e43dab429985d149aa51699b88d86",
+      "sha256": "4a66f5196c6fffadd849c936ee0513a2ae05541ce336da932448e07613531fcb"
+    },
+    "include/flitzfs/paged_store.hpp": {
+      "git_blob": "1f9c72fef14851b5fa649bf500e5fba5cb4d82f0",
+      "sha256": "847284da3d8a23fd242245be7c7adad4c7c8f8f9036d4fef53ac301c55b1e6d1"
+    },
+    "src/native_session.cpp": {
+      "git_blob": "d70b2f680ee18b93ecd2898cfb35369e86bb9e31",
+      "sha256": "77ff3961c537afa276a88f4cd98874c9191fa8ab4ad616fcc86e3afb6656cb4e"
+    },
+    "src/optimization_state.cpp": {
+      "git_blob": "bb4dd6ccd1adcba74e0da5bd93b6bb70ef56eea1",
+      "sha256": "a6c3fcf24e80b83e6d4d59b9b57f716b598344205efe7d2b066ca1e92469a897"
+    },
+    "src/paged_store.cpp": {
+      "git_blob": "34a0a3145b798cf4b800fb580a66f98ac0f9bc5f",
+      "sha256": "a7b409f6518307f6f61e89850e4408e5328cd8ddeced31d7eafd4b8357cf3782"
+    },
+    "src/store_codec.cpp": {
+      "git_blob": "e56f0df17b18045c7b1b88525830a749392026a5",
+      "sha256": "f853a8e3b047db5e87da12f0c71f7addc4007297f5611100d5e3f126b2742bc2"
+    },
+    "src/store_codec.hpp": {
+      "git_blob": "b597480d52586e1b6c3320ce87891fac9b7d09bc",
+      "sha256": "49d298c7f19c23cf1f5e8b3761cd9a608b45e94bace611a68fde87a38b4a7031"
+    },
+    "tests/test_native_volume_file.cpp": {
+      "git_blob": "a98585bba963f26ddb5aee1a045e856df0b769d5",
+      "sha256": "125c8f675a625f19e40bc6bb2ed283455e6f507ca8201ef564947e022069a3e1"
+    },
+    "tests/test_store_codec.cpp": {
+      "git_blob": "7db5bb4f7b8839792d14d3d22ca3683dafb03bd9",
+      "sha256": "868282222c03269a107331489a1201e85495a44adb851f56bf0105803b0586c1"
+    }
+  },
+  "host": {
+    "os": "Microsoft Windows 11 Pro",
+    "build": 26300,
+    "gpu": "AMD Radeon RX 9070 XT",
+    "driver": "32.0.32029.2010"
+  },
+  "navigation": {
+    "commit": "4cba190377fb9124097141b521046a0b68251679",
+    "provider_version": "0.2.43",
+    "inventory_sha256": "373c27f1bf3107a632a55b3cbd96e77062245a80c1df19ceb5c55cc0e1036410",
+    "native_response_sha256": "0c3ba71c1068fe8c3dfed240a760ef1c9e95ec9c87190ef3e423b3918d3a10b5",
+    "query": "Persist the completed indexed cold encoding generation after selected image publication. Locate funded native advisory checkpoint writes, validated versioned records, exact source/image binding, optional fail-closed restore after interruption, and independent volume head recovery.",
+    "actual_searches": 1
+  },
+  "research": {
+    "provider": "0.9.5+flitzzip.portable2",
+    "robots": true,
+    "external_llm": false,
+    "pages": [
+      {
+        "url": "https://btrfs.readthedocs.io/en/stable/dev/dev-btrfs-design.html",
+        "success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 21658,
+        "markdown_sha256": "95166fa8e3c1986482e9793308312f8271e080eca616ff64be07ee5af8e4290e",
+        "capture_sha256": "c6dd690e94bb5bcd0a75d40a9ede9d71711d43dcec14773790891c9f37c411e4",
+        "error": ""
+      },
+      {
+        "url": "https://openzfs.github.io/openzfs-docs/man/master/7/zpool-features.7.html",
+        "success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 57404,
+        "markdown_sha256": "4d3587be650ef9979a6105e8865f989a08d73aa7fdbafcfefd020b74989ea588",
+        "capture_sha256": "c25768168e1a3beb2babf588648bf70f194626f3db3df12274db90dd3943885b",
+        "error": ""
+      }
+    ]
+  },
+  "executables_sha256": {
+    "release_volume": "ac3a738b3398e9bd557d8f2b2204310311df7aa3a4858aa564c7ce7c6972b1d6",
+    "asan_volume": "a14effc166eeb592274b33861622fda20c653727115af621167c56675b5fefb5",
+    "raw_volume": "0a7337ff4454558039536a8fd9c1bd36417c676ec0b68150f3e1c4e831ed92b2",
+    "release_winfsp_controller": "83d7970fef2c2b1630abc24dfb9d509bd225c28dc94a24a6a8f5046660d5ea7b"
+  },
+  "test_lanes": [
+    {
+      "lane": "Windows SDK Release",
+      "run": "local-run-210f442e7f8643d9b6444a99016d156f",
+      "output_sha256": "3bd4d6773c251fd372bfe8cfd11008f5967bc2f3c9adf70c17462765093726af",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 166387712,
+      "unattended_error_mode": 32771,
+      "passed": [
+        "optimization_budget_crash_model",
+        "optimization_state_crash_model",
+        "bounded_native_store_compression",
+        "bounded_paged_mirrored_payloads",
+        "bounded_native_indexed_group_maintenance",
+        "bounded_native_indexed_group_resume",
+        "bounded_native_indexed_group_coherence",
+        "bounded_native_indexed_projected_coherence",
+        "bounded_native_indexed_group_advice",
+        "bounded_native_indexed_change_discovery",
+        "bounded_native_volume_file",
+        "bounded_native_cold_relocation",
+        "bounded_native_cold_coverage",
+        "bounded_winfsp_controller",
+        "bounded_winfsp_indexed_memory",
+        "bounded_winfsp_memory_remount",
+        "bounded_winfsp_volume_file"
+      ]
+    },
+    {
+      "lane": "MSVC AddressSanitizer",
+      "run": "local-run-91606fb4e1ea466988e3f16e709c7090",
+      "output_sha256": "39b997bbed1963e9e961a25b09a946ab1c9c19561d8db5dc307a86f07c930e30",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 881471488,
+      "unattended_error_mode": 32771,
+      "passed": [
+        "windows_asan_runtime_preflight",
+        "optimization_budget_crash_model",
+        "optimization_state_crash_model",
+        "bounded_native_store_compression",
+        "bounded_paged_mirrored_payloads",
+        "bounded_native_volume_file",
+        "bounded_native_cold_relocation",
+        "bounded_native_cold_coverage",
+        "unattended_windows_launcher",
+        "windows_asan_staging_regression"
+      ]
+    },
+    {
+      "lane": "Raw-only Release",
+      "run": "local-run-9fb82a7dccc845caabd63e3c00efeb70",
+      "output_sha256": "69e9c50aa800164c6c9bc84db95e59b46d61c61ca78f01368cdb78aab1c849da",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 87437312,
+      "unattended_error_mode": 32771,
+      "passed": [
+        "optimization_budget_crash_model",
+        "optimization_state_crash_model",
+        "bounded_native_store_compression",
+        "bounded_native_volume_file"
+      ]
+    }
+  ],
+  "restart_model": {
+    "advice_wire_capability": 7,
+    "advice_slot_bytes": 65536,
+    "extra_advice_slot_writes_at_handoff": 0,
+    "existing_funding": "one automatic group scan checkpoint",
+    "persisted_sequence": 2,
+    "captured": 18,
+    "matched_stored": 906782,
+    "wider_stored": 1012288,
+    "selected_data_independent": 1,
+    "binding_mismatches": 6,
+    "malformed_pairs": 1,
+    "interrupted_pairs": 2,
+    "scope": "The wider hint deliberately marks replayed records as covered to test the cutoff. Stored byte counts compare fixture outcomes."
+  },
+  "amd_smoke": {
+    "run": "local-run-c8921bf9a99e4469a57ff6d27591f7fe",
+    "output_sha256": "179b6f675682af8ec372984dde54beff3687c5e4a35cdd4b90af9e7c83be283c",
+    "exit_code": 0,
+    "tree_retired": true,
+    "residual_children": 0,
+    "peak_job_bytes": 119689216,
+    "unattended_error_mode": 32771,
+    "cohort": "revision-corpus",
+    "verified_batches": 1,
+    "advised_members": 12,
+    "compacted_bytes": 319488,
+    "independent_cpu_readback": true,
+    "device_worker_retired": true,
+    "modeled_idle": true,
+    "worker_sha256": "204427712a65191b8010991b3ab55561958c5dae652447ebc9cd08038dc6a2fb",
+    "module_sha256": "9aad995bc1b2e330a8f24f76dcc5eaa9edc8f96351c999f10712aef0be33467d",
+    "runtime_basename": "amdhip64_7.dll"
+  },
+  "scope": "Recovery and publication used memory-backed fixtures under the modeled write and flush contract. Mounted performance, physical power cuts, durability of uncheckpointed advice and release qualification remain open."
+}

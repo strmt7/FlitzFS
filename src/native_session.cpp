@@ -94,7 +94,6 @@ struct NativeFileSession::Impl {
     StoreIdentity id;
     std::variant<NativeFilesystemWriter::Recompression,PagedObjectStoreWriter::Rewrite> work;
     bool idle;
-    std::uint64_t cold_source_generation=0;
 
     bool matches(const NativeFilesystemWriter& writer) const noexcept {
       if(const auto* paged=std::get_if<PagedObjectStoreWriter::Rewrite>(&work))
@@ -106,8 +105,7 @@ struct NativeFileSession::Impl {
   StoreIdentity evaluated_image{};
   std::uint64_t evaluated_generation=0;
   bool evaluated_capacity_repair=false;
-  StoreIdentity cold_encoding_image{};
-  std::uint64_t cold_encoding_through=0;
+  std::optional<OptimizationColdCoverage> cold_coverage;
   // Destruction order retires the image writer BEFORE releasing the head owner.
   std::unique_ptr<VolumeOwner> volume;
   // Retire data/advisory writers before the head owner.
@@ -117,6 +115,17 @@ struct NativeFileSession::Impl {
   bool budget_mode=false;
   std::shared_ptr<detail::NativeMaintenanceSource> maintenance;
   std::optional<std::uint64_t> budget_loss_input;
+  std::optional<OptimizationColdCoverage> current_cold_coverage() const noexcept {
+    if(!cold_coverage || !volume || !volume->head || volume->pending ||
+        volume->foreground.mode==StoreCompressionMode::raw)return {};
+    const auto& saved=*cold_coverage;
+    const auto selected=volume->head->info().selection;
+    if(selected.storage.kind!=NativeImageKind::indexed_paged || saved.image!=selected.image_identity ||
+        saved.selector_epoch!=selected.epoch || saved.minimum_checkpoint!=selected.minimum_checkpoint ||
+        saved.policy_revision!=detail::kIndexedColdEncodingRevision || saved.zstd_version!=store_zstd_version() ||
+        saved.foreground_level!=static_cast<std::uint32_t>(volume->foreground.zstd_level))return {};
+    return saved;
+  }
   // Current and prior areas remain unavailable as image/compaction targets.
   bool owns_optimization_backend(const std::shared_ptr<StoreByteIo>& io) const noexcept {
     if(optimization&&optimization->backing==io)return true;
@@ -194,7 +203,7 @@ struct NativeFileSession::Impl {
     if(!actual.enabled || !state.group_scan || state.group_scan->image!=volume->active_id)
       throw std::runtime_error("coherence copy has no checked current scan journal");
     try {
-      return advice->publish_budgeted(state,actual.committed_input_bytes,true,bytes)==
+      return advice->publish_budgeted(state,actual.committed_input_bytes,current_cold_coverage(),true,bytes)==
           OptimizationStateWriter::BudgetResult::published;
     }catch(...) {
       retire_failed_scan_charge(*advice,actual.committed_input_bytes);
@@ -283,7 +292,8 @@ struct NativeFileSession::Impl {
     if(postings.empty())return false;
     bool settled_catalog=false;
     const auto reserve=[&](std::uint64_t write_bytes) {
-      settled_catalog=advice.publish_budgeted(state,input,true,write_bytes)==OptimizationStateWriter::BudgetResult::published;
+      settled_catalog=advice.publish_budgeted(state,input,current_cold_coverage(),true,write_bytes)==
+          OptimizationStateWriter::BudgetResult::published;
       return settled_catalog;
     };
     try {
@@ -332,7 +342,8 @@ struct NativeFileSession::Impl {
     try {
       return publish_coherence_scan(advice,state,actual.committed_input_bytes,keys) ||
           (!coherence_reserves_credit() &&
-           advice.publish_budgeted(state,actual.committed_input_bytes,true)==OptimizationStateWriter::BudgetResult::published);
+           advice.publish_budgeted(state,actual.committed_input_bytes,current_cold_coverage(),true)==
+               OptimizationStateWriter::BudgetResult::published);
     }catch(...) {
       retire_failed_scan_charge(advice,actual.committed_input_bytes);
       throw;
@@ -678,7 +689,7 @@ bool NativeFileSession::checkpoint_indexed_payload_scrub() {
   work.verified_record_bytes=0;
   if(progress.position.image!=self.volume->active_id)return false;
   try{
-    if(!advice->publish_payload_scrub(progress))return false;
+    if(!advice->publish_payload_scrub(progress,self.current_cold_coverage()))return false;
     self.optimization->phase=NativeOptimizationPhase::ready;
     self.optimization->read_code=OptimizationReadCode::available;
     return true;
@@ -870,6 +881,7 @@ NativeOptimizationInfo NativeFileSession::bind_optimization_area(std::shared_ptr
           bound.backing,self.volume->volume_id,*settled,limit));
       else bound.writer.emplace(OptimizationStateWriter::resume_budgeted(
           bound.backing,self.volume->volume_id,sequence,*input,limit));
+      if(!create)self.cold_coverage=bound.writer->cold_coverage_checkpoint();
       bound.read_code=OptimizationReadCode::available;
       bound.phase=bound.writer->budget_repair_pending()?
           NativeOptimizationPhase::unavailable:NativeOptimizationPhase::ready;
@@ -962,7 +974,7 @@ NativeOptimizationBudgetPublication NativeFileSession::publish_budgeted_optimiza
   const auto actual=self.writer.snapshot().workload_info();
   if(!actual.enabled)fail(E::invalid_options,"native input provenance unavailable");
   OptimizationStateWriter::BudgetResult result;
-  try{result=area.writer->publish_budgeted(state,actual.committed_input_bytes);}
+  try{result=area.writer->publish_budgeted(state,actual.committed_input_bytes,self.current_cold_coverage());}
   catch(...) {
     if(area.writer->poisoned()) {
       area.phase=NativeOptimizationPhase::terminal;area.read_code=OptimizationReadCode::io_failure;
@@ -1066,6 +1078,7 @@ void NativeFileSession::adopt_handoff(Impl& self,const NativeVolumeHeadInfo& pub
   auto& volume=*self.volume;
   volume.active_io=std::move(volume.candidate_io);
   volume.active_id=published.selection.image_identity;
+  self.cold_coverage.reset();
   if(self.maintenance) {
     self.maintenance->retire_coherence();
     self.maintenance->group_append_refusal={};
@@ -1150,12 +1163,12 @@ bool NativeFileSession::begin_idle_compaction_impl(std::shared_ptr<StoreByteIo> 
   std::optional<std::uint64_t> cold_after;
   if(mode==PagedRewriteMode::reconcile_foreground && !capacity_repair &&
       foreground.mode!=StoreCompressionMode::raw && store_zstd_available()) {
-    cold_after=self.cold_encoding_image==self.volume->active_id && self.cold_encoding_through<=generation?
-        self.cold_encoding_through:0;
+    const auto saved=self.current_cold_coverage();
+    cold_after=saved?saved->through_generation:0;
   }
   auto rebuild=self.writer.prepare_paged_recompression_impl(target,next,foreground,false,mode,cold_after);
   self.recompression=std::make_unique<Impl::StagedRecompression>(
-      Impl::StagedRecompression{std::move(target),next,std::move(rebuild),true,cold_after?generation:0});
+      Impl::StagedRecompression{std::move(target),next,std::move(rebuild),true});
   self.evaluated_image=self.volume->active_id;
   self.evaluated_generation=generation;
   self.evaluated_capacity_repair=capacity_repair;
@@ -1236,6 +1249,7 @@ std::optional<NativeVolumeHeadInfo> NativeFileSession::publish_staged_recompress
     if(!self.writer.paged_recompression_ready(*paged))
       fail(E::invalid_options,"staged indexed compaction has not verified current commits");
     const auto repaired=paged->verified_capacity_repair_generation();
+    const auto cold_through=paged->cold_encoding_through();
     const bool permits_rotation=repaired && repaired==self.writer.indexed_capacity_repair_generation();
     auto staged=std::move(self.recompression);
     auto candidate=self.writer.finish_paged_recompression(*paged);
@@ -1260,9 +1274,11 @@ std::optional<NativeVolumeHeadInfo> NativeFileSession::publish_staged_recompress
     }
     self.writer=std::move(candidate);
     adopt_handoff(self,published);
-    if(staged->cold_source_generation) {
-      self.cold_encoding_image=volume.active_id;
-      self.cold_encoding_through=staged->cold_source_generation;
+    if(cold_through) {
+      const auto& selection=published.selection;
+      self.cold_coverage=OptimizationColdCoverage{selection.image_identity,selection.epoch,
+          selection.minimum_checkpoint,cold_through,detail::kIndexedColdEncodingRevision,
+          store_zstd_version(),static_cast<std::uint32_t>(volume.foreground.zstd_level)};
     }
     self.evaluated_image=volume.active_id;
     self.evaluated_generation=self.writer.recompression_generation();

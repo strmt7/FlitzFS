@@ -47,6 +47,13 @@ struct OptimizationPayloadScrub {
   std::uint64_t pass_started_utc=0; // 100-ns FILETIME ticks.
   bool operator==(const OptimizationPayloadScrub&) const = default;
 };
+// Session-owned progress. A copied OptimizationState can report this position.
+struct OptimizationColdCoverage {
+  StoreIdentity image{};
+  std::uint64_t selector_epoch=0,minimum_checkpoint=0,through_generation=0;
+  std::uint32_t policy_revision=0,zstd_version=0,foreground_level=0;
+  bool operator==(const OptimizationColdCoverage&) const = default;
+};
 struct OptimizationState {
   std::vector<OptimizationProfile> profiles; // Strict (workload_key,strategy) order.
   std::vector<OptimizationBenchmark> benchmarks; // Bounded chronological history.
@@ -54,6 +61,7 @@ struct OptimizationState {
   std::optional<std::uint64_t> settled_input_bytes;
   std::optional<OptimizationGroupScan> group_scan;
   std::optional<OptimizationPayloadScrub> payload_scrub;
+  std::optional<OptimizationColdCoverage> cold_coverage;
   bool operator==(const OptimizationState&) const = default;
 };
 enum class OptimizationReadCode { available,absent,invalid,unsupported,foreign_volume,io_failure };
@@ -99,12 +107,14 @@ class OptimizationStateWriter final {
       std::uint64_t settled_input,unsigned limit);
   static OptimizationStateWriter resume_budgeted(std::shared_ptr<StoreByteIo>,StoreIdentity,
       std::uint64_t sequence,std::uint64_t current_input,unsigned limit);
-  BudgetResult publish_budgeted(const OptimizationState&,std::uint64_t current_input,bool automatic_scan=false,
+  BudgetResult publish_budgeted(const OptimizationState&,std::uint64_t current_input,
+      std::optional<OptimizationColdCoverage>,bool automatic_scan=false,
       std::uint64_t additional_write_bytes=0);
   BudgetResult repair_budgeted(std::uint64_t current_input);
   std::optional<OptimizationPayloadScrub> payload_scrub_checkpoint() const noexcept;
+  std::optional<OptimizationColdCoverage> cold_coverage_checkpoint() const noexcept;
   // The caller must have earned fresh CPU verification credit.
-  bool publish_payload_scrub(const OptimizationPayloadScrub&);
+  bool publish_payload_scrub(const OptimizationPayloadScrub&,std::optional<OptimizationColdCoverage>);
   bool budget_repair_pending() const noexcept;
   std::optional<std::uint64_t> budget_settlement() const noexcept;
   std::optional<std::uint64_t> budget_repair_floor() const noexcept;

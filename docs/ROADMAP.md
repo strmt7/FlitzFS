@@ -23,8 +23,14 @@ Indexed compaction now tries stronger encoding during its existing copy.
 The public-derived code, documentation and mixed inputs used 5.0–7.1%
 less space in the verified compacted image. Candidate writes and the
 backing bytes read in whole-file checks fell on those inputs. Mounted interference
-and a durable record of evaluated generations remain open.
+remains open.
 [Cold encoding evidence](evidence/indexed-cold-encoding-2026-11-20.json)
+
+Cold encoding coverage now survives restart through existing funded advice
+checkpoints. The paired-volume test preserved replayed foreground writes
+and reconsidered them for compression after reopening. It also verified
+CPU readback with interrupted advice and with changed image or codec bindings.
+[Cold coverage evidence](evidence/indexed-cold-coverage-2026-11-20.json)
 
 The [repository overview](REPOSITORY_OVERVIEW.md) records the architecture
 decisions and measured baseline. The [implementation plan](IMPLEMENTATION_PLAN.md)

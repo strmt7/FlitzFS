@@ -45,6 +45,17 @@
     "live_session_generation_frontier": true,
     "new_volume_capability": false
   },
+  "indexed_cold_coverage": {
+    "source_base": "4cba190377fb9124097141b521046a0b68251679",
+    "evidence": "docs/evidence/indexed-cold-coverage-2026-11-20.json",
+    "advice_capability": 7,
+    "binds_to_selected_image_and_encoder": true,
+    "foreground_replay_stays_eligible": true,
+    "extra_advice_writes_at_handoff": 0,
+    "reopen_and_interrupted_advice_readback": true,
+    "live_amd_advised_members": 12,
+    "mounted_interference_qualified": false
+  },
   "paired_range_reader_wake": {
     "source_base": "81e7770ce3463d2bcc4fcad40c395376a979e1cd",
     "evidence": "docs/evidence/paired-range-reader-wake-2026-11-20.json",

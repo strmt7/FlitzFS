@@ -14,6 +14,8 @@ bool store_match_sequences_available() noexcept;
 inline constexpr std::size_t kStoreEncoderMemoryCap=16U*1024U*1024U;
 inline constexpr std::size_t kStoreDecoderMemoryCap=2U*1024U*1024U;
 inline constexpr std::size_t kStorePrefixEncoderMemoryCap=2U*1024U*1024U;
+// Advance when indexed cold eligibility, trials or their resource envelope change.
+inline constexpr std::uint32_t kIndexedColdEncodingRevision=1;
 bool store_prefix_frame(std::span<const std::byte>,std::size_t expected) noexcept;
 std::optional<std::vector<std::byte>> encode_store_prefix(std::span<const std::byte> input,
     std::span<const std::byte> prefix,std::size_t exclusive_limit);
@@ -31,6 +33,10 @@ struct EncodedStoreObject {
   Digest decoded_digest{};
   bool used_match_proposals=false;
   std::uint32_t match_baseline_bytes=0; // CPU baseline only when hints were selected.
+};
+struct ColdStoreEncoding {
+  std::optional<EncodedStoreObject> smaller;
+  bool evaluated=false; // A resource or codec failure has no usable result.
 };
 class StoreCodecDecoder final {
  public:
@@ -56,7 +62,7 @@ class StoreCodecEncoder final {
   EncodedStoreObject encode_with_lz4(std::span<const std::byte> input,std::span<const std::byte> candidate,
       std::uint32_t literal_prefix_bytes=0);
   EncodedStoreObject encode_with_matches(std::vector<std::byte> input,std::span<const StoreMatchProposal> matches);
-  std::optional<EncodedStoreObject> try_cold_encoding(std::span<const std::byte> input,std::size_t old_size);
+  ColdStoreEncoding try_cold_encoding(std::span<const std::byte> input,std::size_t old_size);
   std::size_t peak_bytes() const noexcept;
  private:
   EncodedStoreObject encode_compressed(std::span<const std::byte> input,bool cpu_fast);

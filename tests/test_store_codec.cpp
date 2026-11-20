@@ -121,6 +121,21 @@ void independent_lz4_record_oracle() {
   rejects([&]{(void)reader.decode(4,block,21);},"unavailable LZ4 recovery returned bytes");
 #endif
 }
+void cold_trial_outcomes() {
+  StoreCodecEncoder encoder(StoreCompressionOptions{});
+  const auto source=noise(65536);
+  const auto no_gain=encoder.try_cold_encoding(source,source.size());
+  require(no_gain.evaluated==store_zstd_available() && !no_gain.smaller,
+      "cold trial did not distinguish a full output from unavailable encoding");
+  require(!encoder.try_cold_encoding({},0).evaluated,"invalid input advanced cold accounting");
+  if(!store_zstd_available())return;
+  const auto repeated_source=repeated(65536,16384);
+  const auto smaller=encoder.try_cold_encoding(repeated_source,repeated_source.size());
+  StoreCodecDecoder decoder;
+  require(smaller.evaluated && smaller.smaller &&
+      decoder.decode(smaller.smaller->codec,smaller.smaller->payload,65536)==repeated_source,
+      "successful cold trial did not complete with exact bytes");
+}
 void malformed_and_budget() {
   StoreCodecDecoder decoder;
   for(auto codec:{4U,99U,255U})rejects([&]{(void)decoder.decode(codec,{},32);},"unknown codec admitted");
@@ -175,7 +190,7 @@ void malformed_and_budget() {
 }
 }
 int main(){
-  try{independent_lz4_record_oracle();repeated_copy_guards();policies_and_patterns();malformed_and_budget();
+  try{independent_lz4_record_oracle();repeated_copy_guards();policies_and_patterns();malformed_and_budget();cold_trial_outcomes();
     std::cout<<"PASS: "<<checks<<" native store compression checks; exact patterns, raw fallback, CPU frames and allocator caps.\n";return 0;
   }catch(const std::exception& e){std::cerr<<"store codec failure after "<<checks<<": "<<e.what()<<'\n';return 1;}
 }
