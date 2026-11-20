@@ -34,8 +34,9 @@ class NativeVolumeHeadView final {
   NativeVolumeHeadInfo info() const noexcept;
   const NativeFilesystemSnapshot& filesystem() const;
  private:
+  friend class NativeFileSession;
   static NativeVolumeHeadView open_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,
-      const NativeVolumeImageResolver&,bool indexed_recovery);
+      const NativeVolumeImageResolver&,bool indexed_recovery,const detail::IndexedReopenAdmission& admission={});
   struct Impl;explicit NativeVolumeHeadView(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;
 };

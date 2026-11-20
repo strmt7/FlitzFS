@@ -154,7 +154,7 @@ NativeVolumeHeadView NativeVolumeHeadView::open_indexed_recovery(std::shared_ptr
   return open_impl(std::move(head),volume,resolve,true);
 }
 NativeVolumeHeadView NativeVolumeHeadView::open_impl(std::shared_ptr<StoreByteIo> head,StoreIdentity volume,
-    const NativeVolumeImageResolver& resolve,bool indexed_recovery) {
+    const NativeVolumeImageResolver& resolve,bool indexed_recovery,const detail::IndexedReopenAdmission& admission) {
   if(!head||!resolve)fail(Code::invalid_operation,"missing volume head/image resolver");
   try {
     const auto selected=load(*head,volume).info;
@@ -163,7 +163,8 @@ NativeVolumeHeadView NativeVolumeHeadView::open_impl(std::shared_ptr<StoreByteIo
     auto image=resolve(selected.selection.image_identity);
     if(!image||image==head)fail(Code::corrupt,"missing or aliased selected image");
     auto view=NativeFilesystemSnapshot::open_image(std::move(image),selected.selection.storage);
-    bind(selected.selection,view,false,indexed_recovery);
+    admit_binding(selected.selection,view,false,indexed_recovery);
+    view.verify_all(admission);
     return NativeVolumeHeadView(std::make_unique<Impl>(selected,std::move(view)));
   }catch(const std::bad_alloc&){fail(Code::limit,"volume head reader allocation");}
   catch(const NativeFsError&){throw;}

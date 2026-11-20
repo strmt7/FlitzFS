@@ -1,6 +1,7 @@
 #pragma once
 #include "flitzfs/object_store.hpp"
 #include "flitzfs/paged_store.hpp"
+#include <functional>
 #include <memory>
 #include <optional>
 #include <span>
@@ -264,6 +265,12 @@ struct NativeInodeAllocationInfo {
   NativeInodeCommitInfo info;
   std::optional<std::uint64_t> reserved_bytes;
 };
+namespace detail {
+// Startup can validate platform metadata from each checked, reachable inode.
+// The decoded fields are borrowed only for the duration of the call.
+using IndexedReopenAdmission=std::function<void(const NativeInodeAllocationInfo&,
+    const std::optional<NativeSecurityDescriptor>&)>;
+}
 struct NativePathLookup {
   NativeInodeAllocationInfo state;
   std::optional<NativeSecurityDescriptor> security;
@@ -356,8 +363,10 @@ class NativeFilesystemSnapshot final {
   void verify_all() const;
  private:
   friend class NativeFilesystemWriter;
+  friend class NativeVolumeHeadView;
   friend class NativeVolumeHeadWriter;
   friend class NativeFileSession;
+  void verify_all(const detail::IndexedReopenAdmission&) const;
   std::shared_ptr<StoreByteIo> backing_for_volume_head() const;
   void verify_compacted_equivalent_for_volume_head(const NativeFilesystemSnapshot&,bool closed_indexed=false) const;
   bool has_degraded_indexed_payloads() const noexcept;

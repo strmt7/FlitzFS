@@ -1546,9 +1546,11 @@ Bytes NativeFilesystemSnapshot::read_inode(std::uint64_t inode,std::uint64_t off
   }
   return read_node(impl_->objects,impl_->model,selected_inode(impl_->model,inode),offset,bytes);
 }
-void NativeFilesystemSnapshot::verify_all() const {
+void NativeFilesystemSnapshot::verify_all() const {verify_all({});}
+void NativeFilesystemSnapshot::verify_all(const detail::IndexedReopenAdmission& admission) const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
-  if(impl_->indexed){impl_->indexed->verify_all();return;}
+  if(impl_->indexed){impl_->indexed->verify_all(admission);return;}
+  if(admission)fail(Code::invalid_operation,"indexed startup metadata requires an indexed volume");
   impl_->objects.verify_all();(void)decode(impl_->objects);
 }
 NativeFilesystemSnapshot NativeFilesystemSnapshot::create_indexed_copy(std::shared_ptr<StoreByteIo> target,

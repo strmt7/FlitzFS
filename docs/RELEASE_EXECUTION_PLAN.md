@@ -1,7 +1,7 @@
 # FlitzFS stable release execution plan
 
-Reviewed on 20 November 2026 against the source at `5c55c9dd9325385f49644bbe256610b6a764b766`
-and the indexed grouped audit work validated in this round. The [engineering programme](IMPLEMENTATION_PLAN.md)
+Reviewed on 20 November 2026 against the source at `6fb6de3fc49cd1a9e8f5539f56a48f23979dc5c5`
+and the indexed Windows startup work validated in this round. The [engineering programme](IMPLEMENTATION_PLAN.md)
 defines the full product scope and work packages. This plan gives the order
 of execution, evidence required at each handoff, and the remaining release
 work.
@@ -132,6 +132,16 @@ The large-volume gate still requires a mounted ordinary client and a larger
 dataset.
 [Indexed scale receipt](evidence/indexed-scale-reopen-2026-11-20.json) ·
 [Five-MiB fixture](evidence/indexed-reopen-single-pass-audit-2026-11-20.json)
+
+The Windows adapter now checks allocation, basic metadata and security
+from the initial audit's reachable inodes. The 4,096-file WinFsp SDK fixture
+read 34,756,618 backing bytes per startup, down from 355,798,881. It retained
+both barriers and wrote zero backing bytes during reopen. A missing
+descriptor on a reachable file still refuses startup before mirror repair.
+The independent CPU reader checked the original files and the following
+acknowledged callback write. Both complete native audits remain the next
+startup scaling target.
+[Windows indexed startup evidence](evidence/winfsp-indexed-startup-audit-2026-11-20.json)
 
 1. Extend the separate pre- and post-image-barrier counters by selector,
    object-table pages, name-index pages, inode/lifetime metadata, encoded

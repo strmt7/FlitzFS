@@ -2378,7 +2378,7 @@ Bytes IndexedVolumeView::read_content(NativeContentToken& token,bool published_r
   return full_extent(std::move(extent));
 }
 std::uint64_t IndexedVolumeView::verify_namespace(const IndexedInodeInput& directory,std::size_t path_units,
-    unsigned components) const {
+    unsigned components,const IndexedReopenAdmission& admission) const {
   IndexedDirectoryShape expected;
   std::uint64_t reachable=1;
   std::string after;
@@ -2399,7 +2399,8 @@ std::uint64_t IndexedVolumeView::verify_namespace(const IndexedInodeInput& direc
         if(!bound)fail(Code::corrupt,"indexed directory shape has an unmeasured child");
         expected.replace({},bound);
       }
-      reachable=add(reachable,child.directory?verify_namespace(child,units,components+1):1);
+      if(admission)admission(indexed_inode_allocation(child),child.security);
+      reachable=add(reachable,child.directory?verify_namespace(child,units,components+1,admission):1);
     }
     after=rows.back().key.name;
   }
@@ -2408,12 +2409,14 @@ std::uint64_t IndexedVolumeView::verify_namespace(const IndexedInodeInput& direc
   return reachable;
 }
 
-void IndexedVolumeView::verify_inventory(bool published) const {
+void IndexedVolumeView::verify_inventory(bool published,const IndexedReopenAdmission& admission) const {
   // Related lookups share the bounded scratch cache for this audit. The
   // verified object walk still checks both copies directly.
   const auto query=store_.scoped_query();
   index_.verify_all();
-  if(verify_namespace(referenced_inode(1),0,0)!=root_.inodes-root_.detached_inodes)
+  const auto root_inode=referenced_inode(1);
+  if(admission)admission(indexed_inode_allocation(root_inode),root_inode.security);
+  if(verify_namespace(root_inode,0,0,admission)!=root_.inodes-root_.detached_inodes)
     fail(Code::corrupt,"indexed namespace has unreachable inodes");
   std::uint64_t inodes=0,extents=0,charged=0,lifetimes=0,detached=0,retiring=0;
   std::uint64_t bases=0,members=0;
@@ -2466,7 +2469,7 @@ void IndexedVolumeView::verify_inventory(bool published) const {
       bases!=root_.shared_bases || members!=root_.shared_members)
     fail(Code::corrupt,"indexed volume inventory mismatch");
 }
-void IndexedVolumeView::verify_all() const {verify_inventory(true);}
+void IndexedVolumeView::verify_all(const IndexedReopenAdmission& admission) const {verify_inventory(true,admission);}
 
 void IndexedVolumeView::verify_equivalent(const IndexedVolumeView& target) const {
   auto rebound=root_;

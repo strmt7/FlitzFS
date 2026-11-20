@@ -248,16 +248,17 @@ class IndexedVolumeView final {
   std::optional<NativeContentToken> next_content(NativeExtentSelection after,bool first) const;
   std::optional<NativeContentToken> content_at(NativeExtentSelection) const;
   std::vector<std::byte> read_content(NativeContentToken&,bool published_reference) const;
-  void verify_all() const;
+  void verify_all(const IndexedReopenAdmission& admission={}) const;
   void verify_equivalent(const IndexedVolumeView& target) const;
 
  private:
   friend class IndexedVolumeBuilder;
   IndexedVolumeView(const PagedObjectStoreSnapshot&,IndexedVolumeRoot root);
   IndexedInodeInput referenced_inode(std::uint64_t id,bool allow_retiring=false) const;
-  std::uint64_t verify_namespace(const IndexedInodeInput&,std::size_t path_units,unsigned components) const;
+  std::uint64_t verify_namespace(const IndexedInodeInput&,std::size_t path_units,unsigned components,
+      const IndexedReopenAdmission&) const;
   NativeContentToken content_token(NativeExtentSelection,std::uint64_t object) const;
-  void verify_inventory(bool published) const;
+  void verify_inventory(bool published,const IndexedReopenAdmission& admission={}) const;
   std::string path(const IndexedInodeInput&) const;
   const PagedObjectStoreSnapshot& store_;
   IndexedVolumeRoot root_;

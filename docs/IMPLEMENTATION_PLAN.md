@@ -237,7 +237,14 @@ also runs the in-memory WinFsp worker cases on ordinary local SDK builds.
    driver/runtime pair before enabling ordinary provisioning. Measure the
    full CPU verification cost on large retained volumes. Keep
    earlier writable images readable and test their actual reopening.
+   Indexed WinFsp startup now validates each reachable inode's Windows
+   metadata during the initial audit. Profile the two remaining storage
+   verification passes on larger mounted fixtures. Bind any replacement
+   proof to the exact selector, image root and permitted backend mutation
+   model. Preserve refusal for corrupted payload peers and same-generation
+   replacement at either barrier, and retain an independent CPU rescue path.
    [Indexed owned path](evidence/indexed-owned-windows-2026-11-18.json) ·
+   [Windows startup evidence](evidence/winfsp-indexed-startup-audit-2026-11-20.json) ·
    [Memory backing evidence](evidence/demand-locked-memory-2026-11-18.json) ·
    [Tray attachment](WINDOWS_VOLUME_APP.md#explorer-attachment)
 2. Qualify mounted delete intent, detached I/O, final Close and restart through

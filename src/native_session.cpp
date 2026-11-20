@@ -552,7 +552,7 @@ NativeFileSession NativeFileSession::resume_closed_indexed_volume(std::shared_pt
 NativeFileSession NativeFileSession::resume_volume_impl(std::shared_ptr<StoreByteIo> head,
     StoreIdentity volume,std::uint64_t epoch,const NativeVolumeImageResolver& resolver,
     StoreCompressionOptions foreground,NativeDispositionPolicy policy,bool closed_indexed,
-    const NativeStartupRepairProvider& repair_target,const IndexedReopenAdmission& admission) {
+    const NativeStartupRepairProvider& repair_target,const detail::IndexedReopenAdmission& admission) {
   admit_policy(policy);detail::validate_store_compression(foreground);
   if(!epoch || volume==StoreIdentity{} || !head || !resolver)
     fail(E::invalid_options,"explicit volume/epoch/provider required");
@@ -561,15 +561,13 @@ NativeFileSession NativeFileSession::resume_volume_impl(std::shared_ptr<StoreByt
   const NativeVolumeImageResolver select=[&](const auto& id) {
     owner->active_io=resolver(id);return owner->active_io;
   };
-  auto selected=closed_indexed?NativeVolumeHeadView::open_indexed_recovery(head,volume,select):
-      NativeVolumeHeadView::open(head,volume,select);
+  auto selected=NativeVolumeHeadView::open_impl(head,volume,select,closed_indexed,admission);
   if(selected.info().selection.epoch!=epoch)
     fail(E::invalid_options,"stale volume session epoch");
   if(!closed_indexed && selected.filesystem().needs_session_recovery())
     fail(E::delete_pending,"old file-context state requires qualified recovery");
   owner->active_id=selected.filesystem().identity();owner->epoch=epoch;
   const auto& initial=selected.filesystem();
-  if(admission)admission(initial);
   const auto attach=[&](NativeFilesystemWriter writer) {
     auto session=create(std::move(writer),policy);
     session.impl_->volume=std::move(owner);

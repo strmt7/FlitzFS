@@ -7,7 +7,9 @@
 #include "flitzfs/native_volume_file.hpp"
 #include "flitzfs/read_only_file.hpp"
 #include "native_fs_fixture.hpp"
+#include "native_security_fixture.hpp"
 #include "../src/native_group_codec.hpp"
+#include "../src/native_indexed_volume.hpp"
 #include "../src/native_maintenance_source.hpp"
 #include "../src/record_digest.hpp"
 #include "volume_range_fixture.hpp"
@@ -384,10 +386,15 @@ void indexed_reopen_platform_admission() {
   const auto volume=id(90);
   {
     // The portable filesystem can have files without Windows security state.
-    auto session=NativeVolumeFile::create(backing,volume,id(1),limits,raw);
-    session.create_entry("portable");
+    constexpr std::uint64_t stamp=133700000000000011ULL;
+    const auto security=native_security_fixture::descriptor();
+    const NativeVolumeRootMetadata root{{stamp,stamp,stamp,stamp,FILE_ATTRIBUTE_DIRECTORY},security};
+    auto session=NativeVolumeFile::create(backing,volume,id(1),limits,raw,
+        NativeDispositionPolicy::windows_global,root);
+    session.create_entry("portable",false,{stamp,stamp,stamp,stamp,FILE_ATTRIBUTE_ARCHIVE});
     const auto file=session.open("portable",{true,true,true});
     session.write(file,0,bytes);
+    session.reserve_result(file,kNativeAllocationUnit);
     session.cleanup(file,false);session.close(file);
   }
   const auto body=backing->live.begin()+kNativeVolumeFileImageOffset;
@@ -401,13 +408,99 @@ void indexed_reopen_platform_admission() {
   const auto writes=backing->writes,barriers=backing->flushes;
   bool refused=false;
   try{(void)WinFspNativeWritable::resume_file_volume(backing,volume,raw);}
-  catch(const std::runtime_error&){refused=true;}
+  catch(const std::runtime_error& error){refused=std::string_view(error.what())=="missing restart descriptor";}
   require(refused && backing->writes==writes && backing->flushes==barriers,
       "invalid Windows metadata allowed repair before refusal");
   const auto verified=NativeVolumeFile::inspect(backing,volume);
   require(verified.filesystem().storage_info().degraded_checkpoint &&
       verified.filesystem().read("portable",0,8192)==bytes,"platform refusal changed the independently readable source");
   std::cout<<"paired_reopen_windows_admission before_repair=1 surviving_bytes=1\n";
+}
+
+std::pair<std::uint64_t,std::uint64_t> indexed_windows_reopen_profile() {
+  using detail::IndexedExtentInput;
+  using detail::IndexedInodeInput;
+  using detail::IndexedVolumeBuilder;
+  constexpr unsigned files=4096,batch=32;
+  constexpr PagedStoreLimits limits{kStoreMaxPhysicalBytes};
+  constexpr StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
+  constexpr std::uint64_t stamp=133700000000000011ULL;
+  const auto volume=id(90),image_id=id(1);
+  const auto security=native_security_fixture::descriptor();
+  const auto name=[](unsigned index){return "f"+std::to_string(100000+index);};
+  const auto payload=[](unsigned index) {
+    auto bytes=data(71,1+index);
+    bytes.back()=std::byte{0x55};
+    return bytes;
+  };
+  auto head=std::make_shared<Ram>(),body=std::make_shared<Ram>();
+  head->failure_unit=body->failure_unit=4096;
+  {
+    IndexedVolumeBuilder builder(PagedObjectStoreWriter::create_mirrored(body,image_id,limits,raw),
+        1,files+3,{true,files*71},2);
+    const NativeBasicMetadata basic{stamp,stamp,stamp,stamp,FILE_ATTRIBUTE_DIRECTORY};
+    const NativeBasicMetadata file_basic{stamp,stamp,stamp,stamp,FILE_ATTRIBUTE_ARCHIVE};
+    const std::array<IndexedInodeInput,2> directories{{
+        {1,0,0,1,1,true,"",basic,security},
+        {2,1,0,1,1,true,"Data",basic,security}}};
+    builder.append(directories);
+    for(unsigned start=0;start<files;start+=batch) {
+      std::vector<IndexedInodeInput> inodes;
+      std::vector<IndexedExtentInput> extents;
+      std::vector<Bytes> contents;
+      inodes.reserve(batch);
+      extents.reserve(batch);
+      contents.reserve(batch);
+      for(unsigned i=start;i<start+batch;++i) {
+        inodes.push_back({i+3,2,71,1,1,false,name(i),file_basic,security,kNativeAllocationUnit});
+        contents.push_back(payload(i));
+        extents.push_back({i+3,0,contents.back()});
+      }
+      builder.append(inodes,extents);
+    }
+    const auto snapshot=builder.finish();
+    const auto selected=NativeVolumeHeadWriter::create(head,volume,snapshot);
+    require(selected.info().selection.epoch==1,"profile must use the initial selector");
+  }
+  const auto resolve=[&](const auto& expected)->std::shared_ptr<StoreByteIo> {
+    return expected==image_id?body:nullptr;
+  };
+  const auto prior=body->read_bytes,read_calls=body->read_calls;
+  const auto writes=body->write_bytes+head->write_bytes,flushes=body->flushes,head_flushes=head->flushes;
+  Provider provider;Provider::active=&provider;
+  std::uint64_t pre_flush_reads=0,post_flush_reads=0;
+  {
+    WinFspNativeSession session(WinFspNativeWritable::resume_indexed_retired(head,volume,1,resolve,raw),provider.api());
+    pre_flush_reads=body->read_bytes_at_flush-prior;
+    post_flush_reads=body->read_bytes-body->read_bytes_at_flush;
+    std::cout<<"indexed_windows_reopen files="<<files<<" image_extent_bytes="<<body->extent()
+        <<" pre_image_flush_read_bytes="<<pre_flush_reads
+        <<" post_image_flush_read_bytes="<<post_flush_reads
+        <<" image_read_calls="<<body->read_calls-read_calls<<" image_flushes="<<body->flushes-flushes
+        <<" head_flushes="<<head->flushes-head_flushes<<" backing_write_bytes="<<body->write_bytes+head->write_bytes-writes<<'\n';
+    require(body->write_bytes+head->write_bytes==writes && body->flushes==flushes+1 && head->flushes==head_flushes+1,
+        "healthy Windows reopen changed backing bytes or repeated a barrier");
+    require(session.start(plan())==STATUS_SUCCESS,"reopened Windows callback provider start");
+    auto* fs=&provider.fs;
+    const auto last=name(files-1);
+    auto path=L"\\Data\\"+std::wstring(last.begin(),last.end());
+    FSP_FSCTL_FILE_INFO found{};PVOID handle=nullptr;
+    require(fs->Interface->Open(fs,path.data(),FILE_NON_DIRECTORY_FILE|(1U<<24),FILE_READ_DATA,&handle,&found)==STATUS_SUCCESS &&
+        handle && found.IndexNumber==files+2 && found.FileSize==71,"reopened Windows file metadata");
+    Bytes output(71);ULONG count=0;
+    require(fs->Interface->Read(fs,handle,output.data(),0,static_cast<ULONG>(output.size()),&count)==STATUS_SUCCESS &&
+        count==output.size() && output==payload(files-1),"reopened Windows file bytes");
+    callback_cleanup_close(provider,handle);
+    callback_file(provider,0,data(83,718));
+    session.stop();
+    require(session.write_restart_ready() && provider.fs.UserContext==nullptr,"profile left the provider active");
+  }
+  const auto cpu=NativeVolumeHeadView::open(head,volume,resolve);
+  for(unsigned i=0;i<files;++i)
+    require(cpu.filesystem().read("Data/"+name(i),0,71)==payload(i),"CPU reopen lost an original file");
+  require(cpu.filesystem().read("f0",0,83)==data(83,718),"CPU reopen lost an acknowledged Windows write");
+  std::cout<<"indexed_windows_reopen cpu_files="<<files+1<<" callback_read=1 subsequent_write=1 retired=1\n";
+  return {pre_flush_reads,post_flush_reads};
 }
 
 enum class RepairFixture {foreground,rotation,scrub,startup_rotation};
@@ -2684,6 +2777,7 @@ int main(int argc,char** argv){try {
   // use. Prove native-only stabilization before measuring factory ownership.
   const bool remount=argc==2 && std::string_view(argv[1])=="--memory-remount";
   const bool volume_file=argc==2 && std::string_view(argv[1])=="--volume-file";
+  const bool indexed_startup=argc==2 && std::string_view(argv[1])=="--indexed-startup-profile";
   const bool screened_public=argc==3 && std::string_view(argv[1])=="--screened-cold-corpus";
   const bool live_repair_rotation=argc==2 && std::string_view(argv[1])=="--live-indexed-repair-rotation";
   const bool live_payload_scrub=argc==2 && std::string_view(argv[1])=="--live-indexed-scrub";
@@ -2692,7 +2786,7 @@ int main(int argc,char** argv){try {
   const bool reconciled_compaction=argc==2 && std::string_view(argv[1])=="--live-indexed-reconcile";
   const bool indexed_compaction=reconciled_compaction || (argc==2 && std::string_view(argv[1])=="--live-indexed-compaction");
   if(lifetime_only || shifted_grouping || checkpoint || remount || volume_file || screened_public || indexed_compaction ||
-      live_payload_repair ||
+      live_payload_repair || indexed_startup ||
       (argc==2 && (std::string_view(argv[1])=="--memory" || std::string_view(argv[1])=="--memory-handles" ||
       std::string_view(argv[1])=="--read-only-memory" || std::string_view(argv[1])=="--indexed-memory" ||
       std::string_view(argv[1])=="--live-indexed-grouping")))
@@ -2716,6 +2810,11 @@ int main(int argc,char** argv){try {
     indexed_group_callback_contract();
     indexed_group_callback_contract(true);
     memory_coherence_lifecycle();
+    const auto [before_fence,after_fence]=indexed_windows_reopen_profile();
+    require(before_fence && after_fence && before_fence<=2*after_fence,
+        "Windows reopen repeated the verified namespace traversal");
+  }else if(indexed_startup) {
+    (void)indexed_windows_reopen_profile();
   }else if(volume_file) {
     volume_file_callbacks();
     volume_file_scrub_checkpoint();

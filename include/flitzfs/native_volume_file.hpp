@@ -64,7 +64,7 @@ class NativeVolumeFile final {
   static Regions new_regions(std::shared_ptr<StoreByteIo>,PagedStoreLimits);
   static Regions open_regions(std::shared_ptr<StoreByteIo>,bool writable,std::optional<StoreIdentity> expected);
   static NativeFileSession resume_regions(Regions,StoreCompressionOptions,NativeDispositionPolicy,
-      const std::function<StoreIdentity()>& startup_repair_identity,const NativeFileSession::IndexedReopenAdmission& admission={});
+      const std::function<StoreIdentity()>& startup_repair_identity,const detail::IndexedReopenAdmission& admission={});
 #ifdef _WIN32
   static std::shared_ptr<StoreByteIo> create_backing(const std::filesystem::path&,StoreIoContract,PagedStoreLimits);
   static std::shared_ptr<StoreByteIo> reopen_backing(const std::filesystem::path&,StoreIoContract);

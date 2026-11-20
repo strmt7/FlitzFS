@@ -434,6 +434,25 @@
     "targeted_asan_storage_ctest_passed": 8,
     "asan_lz4_layout_and_runtime_preflight_passed": true
   },
+  "indexed_windows_startup_audit": {
+    "source_base": "6fb6de3fc49cd1a9e8f5539f56a48f23979dc5c5",
+    "evidence": "docs/evidence/winfsp-indexed-startup-audit-2026-11-20.json",
+    "files": 4096,
+    "baseline_image_read_bytes": 355798881,
+    "candidate_image_read_bytes": 34756618,
+    "candidate_image_read_calls": 124500,
+    "backing_write_bytes_during_reopen": 0,
+    "image_barriers": 1,
+    "selector_barriers": 1,
+    "reachable_file_descriptor_refused_before_repair": true,
+    "independent_cpu_readback_files_after_write": 4097,
+    "local_release_ctest_cases": 200,
+    "corrected_release_controller_ctest_cases": 6,
+    "raw_ctest_cases": 7,
+    "asan_ctest_cases": 6,
+    "live_amd_advised_extents": 18,
+    "live_amd_independent_cpu_readback_files": 23
+  },
   "amd_coalesced_copy_verification": {
     "source_base": "2b95974d9af75aa763e989d4be997839fffe80ef",
     "evidence": "docs/evidence/amd-coalesced-copy-verification-2026-11-20.json",

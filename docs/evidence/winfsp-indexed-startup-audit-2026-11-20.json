@@ -1,0 +1,318 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "date": "2026-11-20",
+  "source_base": "6fb6de3fc49cd1a9e8f5539f56a48f23979dc5c5",
+  "source_binding": {
+    "include/flitzfs/native_filesystem.hpp": {
+      "git_blob": "e53be282a053cb274a2ff6e8558bcc38d9e9b353",
+      "sha256": "15d502eb8c8caff8b8af50b885fbaa8acc795d5497208eb9448dfd5411b752fd"
+    },
+    "include/flitzfs/native_session.hpp": {
+      "git_blob": "b9c9b0fb4cb2c699488f8fb9abfd9114e0870707",
+      "sha256": "5a4c5b427929a68432b64edb7a00b2b6ba18b0b4772ffa69f14580074ce60009"
+    },
+    "include/flitzfs/native_volume_file.hpp": {
+      "git_blob": "02233b529070c5e702d637c3fd8a8c849e71e3ad",
+      "sha256": "170e2b160805cd9dad90d0ddcdacf7ee7aee278693a9874ce1b464299a251288"
+    },
+    "include/flitzfs/volume_head.hpp": {
+      "git_blob": "5b0d1434a08e2d4cab4f1935857a951cabcd5975",
+      "sha256": "da46a0e33e7396c20409fecb5e2a3a4a14cdebe43316e3bfb2445915cab7b049"
+    },
+    "src/native_filesystem.cpp": {
+      "git_blob": "1d6b9219e9fb05ae984874a167e68317327b2eff",
+      "sha256": "e68838169d7489b6720f2b8ee7af92fb0044f1dcc21e6fdc7813a3e05b0adc66"
+    },
+    "src/native_indexed_volume.cpp": {
+      "git_blob": "58ebd0da0c93fafe733de58834e533f746e80661",
+      "sha256": "7812146194ee1507368bc7a6e3de39f7faa3834e404e5163e3da56ce2cbdea72"
+    },
+    "src/native_indexed_volume.hpp": {
+      "git_blob": "182bcb1919fd8eadd9706f2a82af7a560e7106d9",
+      "sha256": "1cd1e51e4b22d4204c48e5629da58c16f217caefa8a9a7980fd4af265bc4852a"
+    },
+    "src/native_session.cpp": {
+      "git_blob": "36588341146166eb76aef9ed77fa054891125af8",
+      "sha256": "4c4351ff9b89df29b0e01ec7afdf6705ca83b3b75116ead383e544cd1e14fb67"
+    },
+    "src/native_volume_file.cpp": {
+      "git_blob": "2196d60e575a0268586f02d4a500e8037cf65568",
+      "sha256": "19ea2c4bef0d23077d6fdab90dd4610eed7d8aa005f519bbd93bef4814f86891"
+    },
+    "src/volume_head.cpp": {
+      "git_blob": "2ebb667c951253bcc754c75a3806fe3dddfb8f5c",
+      "sha256": "09cd33551192705f46064b071958be5d73cfb4c0ad4b2f612f84ac385d54eee0"
+    },
+    "src/windows/winfsp_native.cpp": {
+      "git_blob": "5d97884ddce81ec2a82f4ce11b47fcf9aa4e08b5",
+      "sha256": "f29062f1a08ec0fde2aa4edc8d60de09d91849f25cc048f4752e2a52530c7f2c"
+    },
+    "tests/test_winfsp_controller.cpp": {
+      "git_blob": "6b42d0331ae38063e52f1285bb606a55b0b571d5",
+      "sha256": "69401f7c017e222c2da23eec6c5030b695c5ce0976b03cef145da89e1a91d1c1"
+    }
+  },
+  "scope": "Windows 11 x64 with an injected WinFsp SDK provider and in-memory backing. Startup counts requested bytes from the selected image interface. The live AMD test uses a separate installed-route fixture.",
+  "navigation": {
+    "commit": "6fb6de3fc49cd1a9e8f5539f56a48f23979dc5c5",
+    "dirty_patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "inventory_sha256": "80a1c23e6eac16c3e051d6667422de2cfde088524825e6da1cd1720583758007",
+    "actual_searches": 1,
+    "native_response_sha256": "5a4b278bca61757a015adeab0720b636322fb5bab0256a3d7588a2c68b496c0c",
+    "source_files": 7
+  },
+  "host": {
+    "os": "Microsoft Windows 11 Pro",
+    "os_build": "26300",
+    "architecture": "64-bit",
+    "msvc": "19.52.37029.0"
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "robots_checked": true,
+    "external_llm": false,
+    "run": "local-run-ab6c27c07061434cbff0891c52a90bb1",
+    "windows_information_edition": "MS-FSCC revision 60.0, published 2025-11-21",
+    "admitted_captures": [
+      {
+        "name": "descriptor",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-isvalidsecuritydescriptor",
+        "http_status": 200,
+        "expected_content": true,
+        "markdown_sha256": "b625659083933938cc6689b17c6aec6e7478dc6e9585f4c0435fe39b4967967f",
+        "capture": "descriptor.native.json",
+        "capture_sha256": "72bdff1227b7908f70bbdc503d1678b69053cbd70c6ae5e7619958a377c6c1a6"
+      },
+      {
+        "name": "fscc-edition",
+        "url": "https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/efbfe127-73ad-4140-9967-ec6500e66d5e",
+        "http_status": 200,
+        "expected_content": true,
+        "markdown_sha256": "966a0425e740f287fe0f895677c5fcd8e4f4b48f4744522457622d5f928f5062",
+        "capture": "fscc-edition.native.json",
+        "capture_sha256": "6f587cd54cf9700355539645c7e80f7f8db58e2d4d90d9a96a59b2147fc205c9"
+      },
+      {
+        "name": "file-standard",
+        "url": "https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/5afa7f66-619c-48f3-955f-68c4ece704ae",
+        "http_status": 200,
+        "expected_content": true,
+        "markdown_sha256": "f63ac2313c1a33e5977072178d9e96d1155a2bbd9bda34bba5886feeee080011",
+        "capture": "file-standard.native.json",
+        "capture_sha256": "ee9541180375f1b397c72d08f111f2c99d1cb3989ac60f50a71b4978a57de3a8"
+      }
+    ],
+    "previous_capture": {
+      "run": "local-run-59910affcf69407f801cd0e0efac790a",
+      "capture": "descriptor.native.json",
+      "http_status": 200,
+      "failure": "The first expected phrase missed a link inside the Markdown text.",
+      "capture_sha256": "6d0974958194e8077714c5243b14d687b38dfd0e8ee98b5458c816f5d7785ca2"
+    },
+    "design_use": "The existing Windows allocation and self-relative descriptor checks run against decoded live metadata. This change preserves their admission rules and stored representation."
+  },
+  "comparison": {
+    "shape": "4,096 files in one indexed directory with live allocation, basic and security metadata. Image startup is measured before opening callbacks.",
+    "matched_instrumentation": {
+      "git_blob": "a3f998076b385bce66e6271c8c19677364d00e1a",
+      "sha256": "bd92397e8b0a077d4ffd612d1a7fed52b4d9da5452350663de03bd69b9bef50a"
+    },
+    "pairs": [
+      {
+        "arm": "candidate",
+        "run": "local-run-41f32109b97248279b44db40126bd141",
+        "exit": 0,
+        "retired": true,
+        "peak": 56561664,
+        "log_sha256": "bad05bc92d1b45a9a75ce6ee0be95fd025ed8be6da413332087d43e762220726",
+        "exe_sha256": "95139051a15a91d32f3501733e86992aac8b39ab7a334a782223e284c55199e8",
+        "lines": [
+          "indexed_windows_reopen files=4096 image_extent_bytes=17170432 pre_image_flush_read_bytes=17336989 post_image_flush_read_bytes=17419629 image_read_calls=124500 image_flushes=1 head_flushes=1 backing_write_bytes=0",
+          "indexed_windows_reopen cpu_files=4097 callback_read=1 subsequent_write=1 retired=1",
+          "controller_handles before=162 after=162",
+          "PASS: 4124 owned controller checks; real local telemetry and SDK callbacks; injected lifecycle; no mount/GPU"
+        ]
+      },
+      {
+        "arm": "control-final",
+        "run": "local-run-47577b5551c941b6b5380f3d442bb730",
+        "exit": 0,
+        "retired": true,
+        "peak": 57118720,
+        "log_sha256": "29dce5862d876f3060d66350074a21cde36d9ac9aee8d50febc53ba82b0a444b",
+        "exe_sha256": "b79a5adbc52ce058aa6f50d7bfefcb270b8f48cb5baad4fd0739d5e43c41fae2",
+        "lines": [
+          "indexed_windows_reopen files=4096 image_extent_bytes=17170432 pre_image_flush_read_bytes=338379252 post_image_flush_read_bytes=17419629 image_read_calls=228613 image_flushes=1 head_flushes=1 backing_write_bytes=0",
+          "indexed_windows_reopen cpu_files=4097 callback_read=1 subsequent_write=1 retired=1",
+          "controller_handles before=156 after=156",
+          "PASS: 4124 owned controller checks; real local telemetry and SDK callbacks; injected lifecycle; no mount/GPU"
+        ]
+      },
+      {
+        "arm": "candidate",
+        "run": "local-run-afa0047a973d442aa431a1bb16902c43",
+        "exit": 0,
+        "retired": true,
+        "peak": 56934400,
+        "log_sha256": "a431eb72b0a7c79c6da34e7ece5bb63b571eca07693b86912ab64d6fc5e04c0b",
+        "exe_sha256": "95139051a15a91d32f3501733e86992aac8b39ab7a334a782223e284c55199e8",
+        "lines": [
+          "indexed_windows_reopen files=4096 image_extent_bytes=17170432 pre_image_flush_read_bytes=17336989 post_image_flush_read_bytes=17419629 image_read_calls=124500 image_flushes=1 head_flushes=1 backing_write_bytes=0",
+          "indexed_windows_reopen cpu_files=4097 callback_read=1 subsequent_write=1 retired=1",
+          "controller_handles before=156 after=156",
+          "PASS: 4124 owned controller checks; real local telemetry and SDK callbacks; injected lifecycle; no mount/GPU"
+        ]
+      },
+      {
+        "arm": "control-final",
+        "run": "local-run-f74684ff836a4baf90eafd970e961ef4",
+        "exit": 0,
+        "retired": true,
+        "peak": 56655872,
+        "log_sha256": "2214aa46663c0571f73d5d97172cc9035723df3f7b62fa399720fafa4aede785",
+        "exe_sha256": "b79a5adbc52ce058aa6f50d7bfefcb270b8f48cb5baad4fd0739d5e43c41fae2",
+        "lines": [
+          "indexed_windows_reopen files=4096 image_extent_bytes=17170432 pre_image_flush_read_bytes=338379252 post_image_flush_read_bytes=17419629 image_read_calls=228613 image_flushes=1 head_flushes=1 backing_write_bytes=0",
+          "indexed_windows_reopen cpu_files=4097 callback_read=1 subsequent_write=1 retired=1",
+          "controller_handles before=156 after=156",
+          "PASS: 4124 owned controller checks; real local telemetry and SDK callbacks; injected lifecycle; no mount/GPU"
+        ]
+      }
+    ],
+    "baseline": {
+      "files": 4096,
+      "image_extent_bytes": 17170432,
+      "pre_image_flush_read_bytes": 338379252,
+      "post_image_flush_read_bytes": 17419629,
+      "image_read_calls": 228613,
+      "image_flushes": 1,
+      "head_flushes": 1,
+      "backing_write_bytes": 0
+    },
+    "candidate": {
+      "files": 4096,
+      "image_extent_bytes": 17170432,
+      "pre_image_flush_read_bytes": 17336989,
+      "post_image_flush_read_bytes": 17419629,
+      "image_read_calls": 124500,
+      "image_flushes": 1,
+      "head_flushes": 1,
+      "backing_write_bytes": 0
+    },
+    "read_bytes_baseline": 355798881,
+    "read_bytes_candidate": 34756618,
+    "read_bytes_reduction_fraction": 0.9023138636571485,
+    "calls_reduction_fraction": 0.45541154702488484,
+    "healthy_startup_backing_write_bytes": 0,
+    "retained_complete_pre_and_post_audits": true,
+    "callback_reads_original": true,
+    "independent_cpu_readback_after_write_files": 4097
+  },
+  "qualification": {
+    "earlier_release_build": {
+      "cases": 200,
+      "run": "local-run-fac921a7f7574660a758824ed98681b5",
+      "exit": 0,
+      "retired": true,
+      "peak_job_bytes": 336048128,
+      "log_sha256": "4c0a1a494961ea7241d230ff194d23b5862a54359d328ea793c99aeb9ca62d7e",
+      "receipt_sha256": "ee984b1606d75999923e6f769ef742e37cae0a2709f2d7f2327def7a0fb75079",
+      "signals": [
+        "100% tests passed out of 200"
+      ],
+      "scope": "Product source matches the final candidate. The controller test fixture was corrected after this run."
+    },
+    "final_release_controller": {
+      "run": "local-run-e6a2731d23824d73894486afa64123b8",
+      "passed": 6,
+      "exit": 0,
+      "retired": true,
+      "peak_job_bytes": 70561792,
+      "log_sha256": "52a7faafc8f1739c8c5be6007cdc43839c3f95d95b8bdb04b86a70009a1caedf",
+      "receipt_sha256": "0b44441346e5d749d0170939524995532247db6eb68296764059082a532e441a",
+      "signals": [
+        "178: paired_reopen_windows_admission before_repair=1 surviving_bytes=1",
+        "176: indexed_windows_reopen files=4096 image_extent_bytes=17170432 pre_image_flush_read_bytes=17336989 post_image_flush_read_bytes=17419629 image_read_calls=124500 image_flushes=1 head_flushes=1 backing_write_bytes=0",
+        "176: indexed_windows_reopen cpu_files=4097 callback_read=1 subsequent_write=1 retired=1",
+        "100% tests passed out of 6"
+      ],
+      "controller_executable_sha256": "1a38ae3fa09e19e716ab88364e27ec33f84182866882113ceab7ad8e590e5da3"
+    },
+    "raw": {
+      "run": "local-run-e1ca668562b743bbba41c0a99323643e",
+      "passed": 7,
+      "exit": 0,
+      "retired": true,
+      "peak_job_bytes": 98058240,
+      "log_sha256": "6819a5fe8e36b4eb74433da58e5686d5d173bf8a3c5c54119fa54d0e63a1de8e",
+      "receipt_sha256": "7ed0580e7aafacbfaf729f0a51d8ac1a8f5f0839f733df629df65d21e8e095a2",
+      "signals": [
+        "38: retained_indexed_fences image_and_selector=1 peer_loss=1 double_loss=1 same_generation_fork=1 changed_extent=1 independent_repair_and_continued_write=1",
+        "100% tests passed out of 7"
+      ],
+      "fast_optional_codecs_enabled": false
+    },
+    "asan_initial_fixture_failure": {
+      "run": "local-run-eea19a54a3d94eccbb01db04c0f5fcc0",
+      "exit": 8,
+      "retired": true,
+      "peak_job_bytes": 1788387328,
+      "log_sha256": "940b76bd1893fe7721d1d826d93799443d082303f78a6edb4ce2b46915a373a1",
+      "receipt_sha256": "f8c42682b6c67f0548c79b4c0aaa582c717c25c52785928e1b8f79d07007a3ed",
+      "signals": [
+        "==35508==ERROR: AddressSanitizer: heap-use-after-free on address 0x1207ff7d4192 at pc 0x7ff74e2a7c97 bp 0x00a49aafb6d0 sp 0x00a49aafb6d8",
+        "SUMMARY: AddressSanitizer: heap-use-after-free src\\native_security.cpp:11 in `flitzfs::native_security_descriptor_framed'::`2'::<lambda_1>::operator()",
+        "83% tests passed, 1 tests failed out of 6"
+      ],
+      "cause": "The fixture supplied a span into a temporary security descriptor during volume creation."
+    },
+    "final_asan": {
+      "cases": 6,
+      "run": "local-run-718bbc2a52a743c397146591f6e56bf5",
+      "exit": 0,
+      "retired": true,
+      "peak_job_bytes": 1808838656,
+      "log_sha256": "0c47b1ae20235b0e4bd81808f4abd7cbf48aa9dd4bf3da1ca50ae0f2b8be805d",
+      "receipt_sha256": "5c2cbbe08d71eb485b4dcb75648fc25f728a084c8d287fd6c8f04838d8d110e4",
+      "signals": [
+        "178: paired_reopen_windows_admission before_repair=1 surviving_bytes=1",
+        "176: indexed_windows_reopen files=4096 image_extent_bytes=17170432 pre_image_flush_read_bytes=17336989 post_image_flush_read_bytes=17419629 image_read_calls=124500 image_flushes=1 head_flushes=1 backing_write_bytes=0",
+        "176: indexed_windows_reopen cpu_files=4097 callback_read=1 subsequent_write=1 retired=1",
+        "38: retained_indexed_fences image_and_selector=1 peer_loss=1 double_loss=1 same_generation_fork=1 changed_extent=1 independent_repair_and_continued_write=1",
+        "100% tests passed out of 6"
+      ]
+    },
+    "sdk_nonroot_platform_rejection_before_repair": true,
+    "independent_payload_survivor_readback": true,
+    "same_generation_forks_rejected_at_both_barriers": true,
+    "live_amd": {
+      "adapter": "AMD Radeon RX 9070 XT",
+      "driver": "32.0.32029.2010",
+      "controller_executable_sha256": "1a38ae3fa09e19e716ab88364e27ec33f84182866882113ceab7ad8e590e5da3",
+      "package_sha256": {
+        "winfsp-x64.dll": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+        "amd/qualification-manifest.json": "06c55f3e68db91317b6897c88e6aba3658bc2ddb2e8312da6fbf080a88dffe84",
+        "amd/flitzfs_hip_worker.exe": "bca40a979dcd51660cf900e6d9b4d80472ab38e6aead2bb3437957481449211c",
+        "amd/hip/flitzfs_rocm_kernels.dll": "9aad995bc1b2e330a8f24f76dcc5eaa9edc8f96351c999f10712aef0be33467d"
+      },
+      "verified_groups": 1,
+      "kernel_launches": 17,
+      "advised_extents": 18,
+      "independent_cpu_readback_files": 23,
+      "run": "local-run-4738417102fc4dec82d67397dd9aafce",
+      "exit": 0,
+      "retired": true,
+      "peak_job_bytes": 120786944,
+      "log_sha256": "75e296d45bad77d129ac73fc36ec62c1e975e729d5b61c92c6611fe01da5e544",
+      "receipt_sha256": "9392307302c68bca08e00e30f7a0627ca6650bbc5456102811873832c87d39e8",
+      "signals": [
+        "anchor_owner mode=reference-xor host=1 quanta=47 groups=2 continued_steps=134 settled_ms=46532 maximum_quantum_ns=10145600 declined_groups=0 phase=5 sampled=24 attempted=2 cpu_limit_ppm=500000 submitted=1 verified=1 submitted_queued_batches=0 verified_queued_batches=0 dispatches_per_wait=0 submitted_groups=1 verified_groups=1 submitted_kernel_launches=17 largest_dispatch_members=4 copy_suggested_ranges=0 copy_compared_ranges=0 copy_suggested_bytes=0 copy_compared_bytes=0 declined=0 yielded=0 integrity_failures=0 empty_xor_batches=0 reference_batches=1 reselected_groups=1 advised_members=18 installed_attempts=1 metadata_queries=1 installed_status=0 handles_before=137 handles_after=317 retired=true cpu_readback_verified=true deferrals=9,0,0,0,0,38,0,0,",
+        "installed_reference mode=reference-xor files=23 compacted_bytes=1048576 exact_compacted_cpu_readback=true"
+      ]
+    }
+  },
+  "cleanup": {
+    "owned_test_and_worker_processes_remaining": 0
+  }
+}

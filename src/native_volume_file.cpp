@@ -326,7 +326,7 @@ NativeFileSession NativeVolumeFile::resume(std::shared_ptr<StoreByteIo> existing
 }
 NativeFileSession NativeVolumeFile::resume_regions(Regions region,StoreCompressionOptions foreground,
     NativeDispositionPolicy disposition,const std::function<StoreIdentity()>& startup_repair_identity,
-    const NativeFileSession::IndexedReopenAdmission& admission) {
+    const detail::IndexedReopenAdmission& admission) {
   const auto& selected=region.selection;
   NativeStartupRepairProvider target;
   if(region.reclaimer && startup_repair_identity)

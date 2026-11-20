@@ -67,13 +67,17 @@ class CappedFile final:public StoreByteIo {
   }
   std::shared_ptr<StoreByteIo> file_;std::uint64_t cap_;
 };
-std::vector<std::byte> descriptor(PSECURITY_DESCRIPTOR value) {
+DWORD descriptor_bytes(PSECURITY_DESCRIPTOR value) {
   SECURITY_DESCRIPTOR_CONTROL control=0;DWORD revision=0;
   if(!value||!IsValidSecurityDescriptor(value)||!GetSecurityDescriptorControl(value,&control,&revision)||
       !(control&SE_SELF_RELATIVE))throw NativeFsError(NativeFsErrorCode::invalid_operation,"invalid relative Windows descriptor");
   const auto bytes=GetSecurityDescriptorLength(value);
   if(!bytes||bytes>kNativeMaxSecurityBytes||bytes>FSP_FSCTL_TRANSACT_RSP_BUFFER_SIZEMAX)
     throw NativeFsError(NativeFsErrorCode::limit,"descriptor transport budget");
+  return bytes;
+}
+std::vector<std::byte> descriptor(PSECURITY_DESCRIPTOR value) {
+  const auto bytes=descriptor_bytes(value);
   const auto* start=reinterpret_cast<const std::byte*>(value);return {start,start+bytes};
 }
 std::vector<std::byte> owner_security() {
@@ -91,20 +95,27 @@ std::vector<std::byte> owner_security() {
     throw std::runtime_error("owner descriptor");
   return descriptor(result.value);
 }
-UINT64 admit_windows_snapshot(const NativeFilesystemSnapshot& view,bool closed_indexed=false) {
-  if(!closed_indexed && view.needs_session_recovery())
+void admit_windows_inode(const NativeInodeAllocationInfo& state,
+    const std::optional<NativeSecurityDescriptor>& security,NativeFileInfoAllocation mode,UINT64& created) {
+  FSP_FSCTL_FILE_INFO info{};
+  if(!encode_native_file_info(state,mode,info))
+    throw NativeFsError(NativeFsErrorCode::invalid_operation,"unqualified restart FileInfo/reservation");
+  if(!security)throw NativeFsError(NativeFsErrorCode::invalid_operation,"missing restart descriptor");
+  (void)descriptor_bytes(const_cast<std::byte*>(security->data()));
+  if(state.info.inode==1) {
+    if(!info.CreationTime)throw NativeFsError(NativeFsErrorCode::invalid_operation,"missing original volume creation time");
+    created=info.CreationTime;
+  }
+}
+UINT64 admit_windows_snapshot(const NativeFilesystemSnapshot& view) {
+  if(view.needs_session_recovery())
     throw std::runtime_error("restart requires resolved old-session state");
   const auto mode=file_info_policy(view.image_storage().kind);
   UINT64 created=0;
   const auto inspect=[&](auto&& self,std::uint64_t inode,unsigned depth)->void {
     if(depth>16)throw std::runtime_error("restart namespace depth");
     const auto state=view.allocation_info(inode);
-    FSP_FSCTL_FILE_INFO info{};
-    if(!encode_native_file_info(state,mode,info))throw std::runtime_error("unqualified restart FileInfo/reservation");
-    const auto security=view.security_descriptor(inode);
-    if(!security)throw std::runtime_error("missing restart descriptor");
-    (void)descriptor(const_cast<std::byte*>(security->data()));
-    if(inode==1)created=info.CreationTime;
+    admit_windows_inode(state,view.security_descriptor(inode),mode,created);
     if(!state.info.directory)return;
     std::optional<NativeDirectoryCursor> cursor;
     do {
@@ -114,7 +125,6 @@ UINT64 admit_windows_snapshot(const NativeFilesystemSnapshot& view,bool closed_i
     }while(cursor);
   };
   inspect(inspect,1,0);
-  if(!created)throw std::runtime_error("missing original volume creation time");
   return created;
 }
 std::wstring_view bounded(PCWSTR value,std::size_t maximum=241) {
@@ -826,7 +836,9 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_file_volume(s
   auto regions=NativeVolumeFile::open_regions(std::move(existing),true,expected);
   const auto volume=regions.selection.volume_identity;
   UINT64 created=0;
-  const auto admit=[&](const auto& view){created=admit_windows_snapshot(view,true);};
+  const auto admit=[&](const auto& state,const auto& security) {
+    admit_windows_inode(state,security,indexed_file_info,created);
+  };
   auto session=NativeVolumeFile::resume_regions(std::move(regions),foreground,
       NativeDispositionPolicy::windows_global,fresh_volume_identity,admit);
   return from_indexed_session(std::move(session),volume,created,{});
@@ -886,7 +898,9 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_managed_impl(
       if(expected_epoch && *expected_epoch!=epoch)throw std::invalid_argument("exact head epoch required");
       NativeStartupRepairProvider repair_target;
       if(memory)repair_target=[memory](const auto& authority){return memory->startup_repair_image(authority);};
-      const auto admit=[&](const auto& view){created=admit_windows_snapshot(view,true);};
+      const auto admit=[&](const auto& state,const auto& security) {
+        admit_windows_inode(state,security,indexed_file_info,created);
+      };
       return NativeFileSession::resume_volume_impl(std::move(head),volume,epoch,pinned,foreground,disposition,
           true,repair_target,admit);
     }
