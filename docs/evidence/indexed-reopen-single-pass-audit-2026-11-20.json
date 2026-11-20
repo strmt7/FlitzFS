@@ -1,0 +1,306 @@
+{
+  "schema": 1,
+  "date": "2026-11-20",
+  "experimental": true,
+  "source_base": "32162677d30e0df682401e29f433d37fc14712a8",
+  "source_binding": {
+    "include/flitzfs/paged_store.hpp": {
+      "git_blob": "bc108306983699c246492489d3626d9634af6cd7",
+      "sha256": "a637a531b50eb82ceedd12a5cdf8f90ec1a28ed819b3645db48ae6acb7f09932"
+    },
+    "src/native_indexed_volume.cpp": {
+      "git_blob": "37addc0df2466cde5a38b32c3523e1352ff06f1d",
+      "sha256": "a8da296c28950abe0599067013e78b5bd16a2a157811f991af9a0af8eadccbea"
+    },
+    "src/paged_store.cpp": {
+      "git_blob": "643b97e680bf81bb990e8124fb6626f7016edd79",
+      "sha256": "e6cbe1040b98ab06cb196a4b8860465af3c0578276d017104ebb0162c4f4258c"
+    },
+    "tests/test_native_indexed_volume.cpp": {
+      "git_blob": "fe6293f22cc9e4ec35a8e9b913ce236ed0965e25",
+      "sha256": "e1deee2932bf63b650f2b904ba068ed05739e4d52f0aa3c49d378281248e0259"
+    },
+    "tools/ci/prepare_hosted_tools.py": {
+      "git_blob": "951e6620d3ebde6c418efc41c35991aeb9407326",
+      "sha256": "beb802a5d4523be60f169e8243b7d7666a45cd1e7c3e801b634a78ae472df4a6"
+    }
+  },
+  "host": {
+    "os": "Microsoft Windows 11 Pro",
+    "build": 26300,
+    "architecture": "AMD64",
+    "gpu": {
+      "Name": "AMD Radeon RX 9070 XT",
+      "DriverVersion": "32.0.32029.2010"
+    },
+    "driver_runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+    "sdk": "WinFsp 2.2.26323",
+    "sdk_dll_sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+  },
+  "scope": "Counts are native backing-interface reads and writes in owned in-memory fixtures. Windows callbacks use an injected WinFsp provider. The installed-route fixture executes real AMD work and verifies CPU readback. No mounted throughput or physical-failure qualification is inferred.",
+  "routing": {
+    "source_commit": "32162677d30e0df682401e29f433d37fc14712a8",
+    "source_patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "inventory_sha256": "f26066c0dee741cae37b5c8a3dceaee152f504befd6300ccf80b0de9cb6687be",
+    "response_sha256": "302e637a52a6d527814cb2edd874968a27b3d933076e5ef3ef622914dd5673bc",
+    "actual_queries": 1
+  },
+  "comparison": {
+    "pairing": {
+      "logical_bytes": 5242880,
+      "baseline_executable_sha256": "1f7c14b29ad4e2c30d3a8ee0f34949194e09738f65120e458de468a70a7052fb",
+      "candidate_executable_sha256": "fe2bf6a5cceb2968b473cf76bf169109acd1379c5c914ca58428e06859ef256b",
+      "read_reduction_percent": 45.6448,
+      "matched_runs": [
+        {
+          "arm": "baseline",
+          "backing_read_bytes": 42381786,
+          "backing_write_bytes": 0,
+          "run": "local-run-f18242a757194d418035846471389b77",
+          "exit_code": 0,
+          "tree_retired": true,
+          "peak_job_bytes": 57868288,
+          "output_sha256": "657ba09a6fefb8bcf679706e0438362b8a95b40b3d71c5161d094bc65662d0d8"
+        },
+        {
+          "arm": "candidate",
+          "backing_read_bytes": 23036690,
+          "backing_write_bytes": 0,
+          "run": "local-run-4bbf376359d84fe7a4bbe20dee1039d6",
+          "exit_code": 0,
+          "tree_retired": true,
+          "peak_job_bytes": 58482688,
+          "output_sha256": "0cc8640a85711c7fb1bc4ad5140c8b5df546f914998d1a2fbda8ec36c3c62d18"
+        },
+        {
+          "arm": "candidate",
+          "backing_read_bytes": 23036690,
+          "backing_write_bytes": 0,
+          "run": "local-run-b7ac406020434639b3af5883f2cbd63b",
+          "exit_code": 0,
+          "tree_retired": true,
+          "peak_job_bytes": 56512512,
+          "output_sha256": "e3c9857e2b50d0e6a8de5505f92db62ab2c6c33e76e1662057abfcc27b5199d8"
+        },
+        {
+          "arm": "baseline",
+          "backing_read_bytes": 42381786,
+          "backing_write_bytes": 0,
+          "run": "local-run-dd52708b5e5942aa9ee07e36a706c251",
+          "exit_code": 0,
+          "tree_retired": true,
+          "peak_job_bytes": 58011648,
+          "output_sha256": "21537d933b7cb02dbcba5bba8c1dd226c285a8c177454ac9da7a84b95caeb3e1"
+        },
+        {
+          "arm": "baseline",
+          "backing_read_bytes": 42381786,
+          "backing_write_bytes": 0,
+          "run": "local-run-e9c852d0d96f494e8e5320eb3755fa5d",
+          "exit_code": 0,
+          "tree_retired": true,
+          "peak_job_bytes": 57872384,
+          "output_sha256": "68c0548a6ea391327bfd23b18b0c1b7c39f695f9916c75ff104f8de28d3d9b68"
+        },
+        {
+          "arm": "candidate",
+          "backing_read_bytes": 23036690,
+          "backing_write_bytes": 0,
+          "run": "local-run-35d4bc7d40bf4e359e773fdc01d03316",
+          "exit_code": 0,
+          "tree_retired": true,
+          "peak_job_bytes": 57294848,
+          "output_sha256": "467f22c494613ffa004d51eb5078ea883a072de39cd1929d1255659d5929dfa1"
+        }
+      ]
+    },
+    "compact_indexed_scrub": {
+      "files": 1024,
+      "occupied_bytes": 3588096,
+      "open_read_bytes": 90736,
+      "lookup_read_bytes": 179292,
+      "baseline_reads": 160852631,
+      "candidate_reads": 4271192,
+      "baseline_run": {
+        "run": "local-run-d851de81af664b4086067992b3947902",
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 35250176,
+        "output_sha256": "70db53c5db27255c2d9e8d26e6e7aabda9d24cb56bd6a4820bc30aa0538328ed"
+      },
+      "candidate_run": {
+        "run": "local-run-e8539dcbb7c8416986d335f6acd2df97",
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 40452096,
+        "output_sha256": "8ea911dec3023a9d6cfcf73fbdf6c4373c31fe128243b581fdb3ab1d8463ee8e"
+      },
+      "regression_bound": "Fewer than four times the occupied bytes in this fixture"
+    },
+    "indexed_writer_scrub": {
+      "files": 1024,
+      "occupied_bytes": 3801088,
+      "path_write_read_bytes_both_arms": 202492,
+      "baseline_reads": 160435457,
+      "candidate_reads": 4268322
+    }
+  },
+  "integrity": {
+    "pre_and_post_flush_complete_audits": true,
+    "separate_bounded_query_scratch_per_audit": true,
+    "verifies_both_payload_mirrors": true,
+    "pre_dispatch_repair_and_post_flush_rejection_exercised": true,
+    "poison_and_same_generation_fork_rejected": true,
+    "checksum_valid_wrong_extent_owner_rejected": true,
+    "modeled_import_cuts": 501,
+    "modeled_writer_cuts": 231,
+    "modeled_closed_recovery_cuts": 75,
+    "modeled_reclamation_cuts": 105
+  },
+  "local_validation": {
+    "release": {
+      "passed": 31,
+      "run": "local-run-c4c7bac0659f40eda2392305e800145a",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 325136384,
+      "output_sha256": "1fb90a69e000ab81d6bbb57b0f1737ab29c47a9c5634d00c912da3111c813a37"
+    },
+    "final_indexed": {
+      "passed": 1,
+      "run": "local-run-e8539dcbb7c8416986d335f6acd2df97",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 40452096,
+      "output_sha256": "8ea911dec3023a9d6cfcf73fbdf6c4373c31fe128243b581fdb3ab1d8463ee8e"
+    },
+    "raw": {
+      "passed": 9,
+      "run": "local-run-e3ba7da7007b49e781db4d535bef628c",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 104411136,
+      "output_sha256": "b7c004ccfbd3f2bfccfbee8610f5845f34dfe7a3228e1e639cb548e88b8175d6"
+    },
+    "asan": {
+      "passed": 10,
+      "run": "local-run-d59d7e866683428f8c1ece9a76ef492b",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 913928192,
+      "output_sha256": "d09e74bc5f6ca338219278de7712ceca2059ae457585c73343d7b87fbf2d043d"
+    },
+    "tool_regressions": {
+      "passed": 7,
+      "run": "local-run-cf90f3b18cca42a498a0731ddea1cf6b",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 26791936,
+      "output_sha256": "02945e2347a6fee0ab4977e24ac061208ec2b90aae9b883b8d31c6fb855117f7"
+    },
+    "cmake_raw": {
+      "passed": 1,
+      "run": "local-run-6cc90877ffdd45f487f62ef701deceb5",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 40067072,
+      "output_sha256": "ff800e08258cee6a4e3e084a0c7c489197f8457ef902ee6480123c88a26bf804"
+    }
+  },
+  "amd_reference": {
+    "run": "local-run-3eaa00b6591440a1ad45386768cf9505",
+    "exit_code": 0,
+    "tree_retired": true,
+    "peak_job_bytes": 120938496,
+    "output_sha256": "882855939c8db7cfd17f1834a9dcdcf8ef4b0ea632148a4c2d6b27f2f21b88fa",
+    "verified_dispatch_groups": 1,
+    "kernel_launches": 17,
+    "largest_dispatch_members": 4,
+    "advised_extents": 18,
+    "files_cpu_read_after_compaction": 23,
+    "byte_exact": true,
+    "compact_image_bytes": 1048576,
+    "manifest_sha256": "06c55f3e68db91317b6897c88e6aba3658bc2ddb2e8312da6fbf080a88dffe84",
+    "worker_sha256": "bca40a979dcd51660cf900e6d9b4d80472ab38e6aead2bb3437957481449211c",
+    "kernel_module_sha256": "9aad995bc1b2e330a8f24f76dcc5eaa9edc8f96351c999f10712aef0be33467d"
+  },
+  "dependencies": {
+    "github_dependabot": {
+      "endpoint": "https://api.github.com/repos/strmt7/FlitzFS/dependabot/alerts?state=open&per_page=100",
+      "connector_response_status": 400,
+      "fallback": "Owner-authenticated GitHub CLI reading the native endpoint with pagination",
+      "status": 200,
+      "pages": 1,
+      "open_alerts": 0,
+      "complete": true,
+      "checked_utc": "2026-11-20T18:41:54.6881587Z",
+      "receipt": {
+        "run": "local-run-0d20b5cf08fd437cb06b7e52cffc8c8f",
+        "output_sha256": "3cf9d37aa063486e13bd1576c5c03c7939efa6d9754d62c6ccb75b7cbd5125bb",
+        "retired": true
+      }
+    },
+    "latest_release_urls": [
+      "https://github.com/meta/zstd/releases/tag/v1.5.7",
+      "https://github.com/lz4/lz4/releases/tag/v1.11.1",
+      "https://github.com/BLAKE3-team/BLAKE3/releases/tag/1.8.7",
+      "https://github.com/winfsp/winfsp/releases/tag/v2.2",
+      "https://github.com/Kitware/CMake/releases/tag/v4.5.1",
+      "https://github.com/llvm/llvm-project/releases/tag/llvmorg-23.1.6",
+      "https://github.com/microsoft/diskspd/releases/tag/v2.3",
+      "https://github.com/actions/checkout/releases/tag/v7.0.1",
+      "https://github.com/actions/setup-python/releases/tag/v7.1.0",
+      "https://github.com/actions/upload-artifact/releases/tag/v7.0.2"
+    ],
+    "cmake_windows": {
+      "version": "4.5.1",
+      "asset": {
+        "name": "cmake-4.5.1-windows-x86_64.zip",
+        "bytes": 56581138,
+        "sha": "sha256:bfe6eadb245dc8213e0d3feea316b520cb2aae92f5667ffd76059ba6b05c430c",
+        "url": "https://github.com/Kitware/CMake/releases/download/v4.5.1/cmake-4.5.1-windows-x86_64.zip"
+      },
+      "official_checksum_file": {
+        "name": "cmake-4.5.1-SHA-256.txt",
+        "bytes": 2015,
+        "sha": "sha256:3ee8e6c91ca39eeaf78b99008198ddde4e266f8f608ebd73fe8e92476dfeaf08",
+        "url": "https://github.com/Kitware/CMake/releases/download/v4.5.1/cmake-4.5.1-SHA-256.txt"
+      },
+      "staged": {
+        "run": "local-run-0f790e70878c4240b8979a0a6996db58",
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 46592000,
+        "output_sha256": "2547d8e90025e36341e876e61edd0fb9e8654677c5edbc6ad74c54ddc2f5e892"
+      },
+      "configure": {
+        "run": "local-run-8e0603fb0756449cadaed919c52003a3",
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 303603712,
+        "output_sha256": "dc9bf0c7d116470ce74f4ddd9690185f670288de597c01c2047e3aca7321b93a"
+      },
+      "build": {
+        "run": "local-run-6ab809f4c7734f36a8c446fad1973151",
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 702320640,
+        "output_sha256": "6acf28c0624ab8371cfe9eb8bf7d7a08c7267a07b039d9c03e899c6feb212aa6"
+      },
+      "test": {
+        "run": "local-run-6cc90877ffdd45f487f62ef701deceb5",
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 40067072,
+        "output_sha256": "ff800e08258cee6a4e3e084a0c7c489197f8457ef902ee6480123c88a26bf804"
+      }
+    },
+    "linux_verification_pins": {
+      "cmake": "4.5.0",
+      "llvm": "23.1.5",
+      "latest_cmake": "4.5.1",
+      "latest_llvm": "23.1.6",
+      "native_validation_of_new_versions_pending": true
+    }
+  }
+}

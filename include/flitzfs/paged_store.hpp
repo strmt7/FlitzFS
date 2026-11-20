@@ -5,7 +5,7 @@
 #include <stdexcept>
 
 namespace flitzfs {
-namespace detail {class IndexedSharedBasePreparation;class NativeNameIndex;}
+namespace detail {class IndexedSharedBasePreparation;class IndexedVolumeView;class NativeNameIndex;}
 // Scalable object storage for native volumes. The caller supplies an
 // exclusively owned, resource-admitted backend.
 // One control thread; do not race writers, snapshots or backing mutations.
@@ -96,7 +96,10 @@ class PagedObjectStoreSnapshot final {
   friend class PagedObjectStoreWriter;
   friend class NativeFilesystemSnapshot;
   friend class NativeFilesystemWriter;
+  friend class detail::IndexedVolumeView;
   friend class detail::NativeNameIndex;
+  // Stream decoded objects after checking all of their payload copies.
+  void visit_verified_objects(const std::function<void(std::uint64_t,std::vector<std::byte>)>&) const;
   struct Impl;
   class QueryScope {
    public:

@@ -2409,58 +2409,56 @@ std::uint64_t IndexedVolumeView::verify_namespace(const IndexedInodeInput& direc
 }
 
 void IndexedVolumeView::verify_inventory(bool published) const {
-  store_.verify_all();
+  // Related lookups share the fixed scratch cache for this audit. The
+  // verified object walk still checks both copies directly.
+  const auto query=store_.scoped_query();
   index_.verify_all();
   if(verify_namespace(referenced_inode(1),0,0)!=root_.inodes-root_.detached_inodes)
     fail(Code::corrupt,"indexed namespace has unreachable inodes");
-  std::uint64_t cursor=0,inodes=0,extents=0,charged=0,lifetimes=0,detached=0,retiring=0;
+  std::uint64_t inodes=0,extents=0,charged=0,lifetimes=0,detached=0,retiring=0;
   std::uint64_t bases=0,members=0;
   bool found_root=false;
-  for(;;) {
-    const auto records=store_.list_page(cursor,64);
-    if(records.empty())break;
-    for(const auto& record:records) {
-      if(record.id==namespace_object) {
-        if(!published || required(store_,record.id,root_size)!=encode_root(root_))
-          fail(Code::corrupt,"unexpected indexed root publication");
-        found_root=true;
-      } else if(domain(record.id)==inode_domain) {
-        const auto entry=referenced_inode(record.id&ordinal_mask,true);
-        ++inodes;charged=add(charged,reserved_extents(entry));
-        if(active_lifetime(entry.lifetime))++lifetimes;
-        if(indexed_detached(entry.lifetime))++detached;
-        if(entry.lifetime==IndexedLifetime::retiring)++retiring;
-        if(entry.directory && entry.lifetime!=IndexedLifetime::linked &&
-            !index_.list(entry.inode,{},1).empty())
-          fail(Code::corrupt,"indexed deleted directory retains children");
-      } else if(domain(record.id)==lifetime_domain || domain(record.id)==retirement_domain) {
-        const auto entry=referenced_inode(record.id&ordinal_mask,true);
-        if(root_.format<2 || marker_id(entry.inode,entry.lifetime)!=record.id)
-          fail(Code::corrupt,"unreferenced indexed lifetime marker");
-      } else if(domain(record.id)==kNativeIndexedDataObject) {
-        if(!(record.id&ordinal_mask) || (record.id&ordinal_mask)>=root_.next_extent)
-          fail(Code::corrupt,"indexed extent allocator mismatch");
-        auto bytes=required(store_,record.id,extent_header+kNativeExtentBytes);
-        if(magic(bytes,base_magic)) {
-          verify_base_frame(bytes);
-          if(root_.format<3 || !index_.group_reference_count(record.id))
-            fail(Code::corrupt,"unreferenced indexed shared base");
-          ++bases;
-          continue;
-        }
-        if(bytes.size()<=extent_header)fail(Code::corrupt,"truncated indexed extent");
-        const auto owner=referenced_inode(get(bytes,8),true);
-        const auto block=get(bytes,16);
-        const auto decoded=decode_extent(store_,index_,root_,record.id,std::move(bytes),owner,block);
-        if(decoded.base)++members;
-        if(index_.find(native_extent_key(owner.inode,block))!=record.id)
-          fail(Code::corrupt,"unreferenced indexed extent");
-        ++extents;
-        if(!owner.allocation)charged=add(charged,1);
-      } else if(domain(record.id)!=kNativeNameIndexObject)fail(Code::corrupt,"foreign indexed object domain");
-    }
-    cursor=records.back().id;
-  }
+  store_.visit_verified_objects([&](std::uint64_t id,Bytes bytes) {
+    if(id==namespace_object) {
+      if(!published || bytes!=encode_root(root_))
+        fail(Code::corrupt,"unexpected indexed root publication");
+      found_root=true;
+    } else if(domain(id)==inode_domain) {
+      const auto entry=referenced_inode(id&ordinal_mask,true);
+      ++inodes;charged=add(charged,reserved_extents(entry));
+      if(active_lifetime(entry.lifetime))++lifetimes;
+      if(indexed_detached(entry.lifetime))++detached;
+      if(entry.lifetime==IndexedLifetime::retiring)++retiring;
+      if(entry.directory && entry.lifetime!=IndexedLifetime::linked &&
+          !index_.list(entry.inode,{},1).empty())
+        fail(Code::corrupt,"indexed deleted directory retains children");
+    } else if(domain(id)==lifetime_domain || domain(id)==retirement_domain) {
+      const auto entry=referenced_inode(id&ordinal_mask,true);
+      if(root_.format<2 || marker_id(entry.inode,entry.lifetime)!=id)
+        fail(Code::corrupt,"unreferenced indexed lifetime marker");
+    } else if(domain(id)==kNativeIndexedDataObject) {
+      if(!(id&ordinal_mask) || (id&ordinal_mask)>=root_.next_extent)
+        fail(Code::corrupt,"indexed extent allocator mismatch");
+      if(bytes.size()>extent_header+kNativeExtentBytes)
+        fail(Code::storage_failure,"indexed extent exceeds its frame bound");
+      if(magic(bytes,base_magic)) {
+        verify_base_frame(bytes);
+        if(root_.format<3 || !index_.group_reference_count(id))
+          fail(Code::corrupt,"unreferenced indexed shared base");
+        ++bases;
+        return;
+      }
+      if(bytes.size()<=extent_header)fail(Code::corrupt,"truncated indexed extent");
+      const auto owner=referenced_inode(get(bytes,8),true);
+      const auto block=get(bytes,16);
+      const auto decoded=decode_extent(store_,index_,root_,id,std::move(bytes),owner,block);
+      if(decoded.base)++members;
+      if(index_.find(native_extent_key(owner.inode,block))!=id)
+        fail(Code::corrupt,"unreferenced indexed extent");
+      ++extents;
+      if(!owner.allocation)charged=add(charged,1);
+    } else if(domain(id)!=kNativeNameIndexObject)fail(Code::corrupt,"foreign indexed object domain");
+  });
   if(found_root!=published || inodes!=root_.inodes || extents!=root_.extents || charged!=root_.charged_extents ||
       lifetimes!=root_.active_lifetimes || detached!=root_.detached_inodes || retiring!=root_.retiring_inodes ||
       bases!=root_.shared_bases || members!=root_.shared_members)

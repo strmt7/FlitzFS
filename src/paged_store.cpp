@@ -370,25 +370,41 @@ Bytes decode_record(const State& s,const Entry& e,const ObjectRecord& record) {
   if(detail::record_digest(decoded)!=field<32>(h,56))fail("object decoded digest");
   return decoded;
 }
+Bytes consume_decoded_record(const State& s,const Entry& e,ObjectRecord& record) {
+  if(get32(record.header,12)==detail::kStoreRaw)return std::move(record.payload);
+  return decode_record(s,e,record);
+}
 Bytes read_object(const State& s,const Entry& e) {
   auto record=read_record(s,e);
-  auto bytes=get32(record.header,12)==detail::kStoreRaw?std::move(record.payload):decode_record(s,e,record);
+  auto bytes=consume_decoded_record(s,e,record);
   if(record.recovered_primary && s.payload_repairs)s.payload_repairs->observe(e);
   return bytes;
 }
-unsigned verify_payload_copies(const State& s,const Entry& e) {
+unsigned verify_payload_copies(const State& s,const Entry& e,Bytes* payload=nullptr) {
   unsigned verified=0;
   for(const auto at:{e.offset,e.peer}) {
-    try{(void)decode_record(s,e,read_record_at(s,e,at));++verified;}
+    try {
+      auto record=read_record_at(s,e,at);
+      auto decoded=consume_decoded_record(s,e,record);
+      if(payload && !verified) {
+        *payload=std::move(decoded);
+        if(at==e.peer && s.payload_repairs)s.payload_repairs->observe(e);
+      }
+      ++verified;
+    }
     catch(const std::bad_alloc&){throw;}
     catch(const std::exception&){s.degraded_payloads=true;}
   }
   return verified;
 }
 // True reports a verified survivor and a failed replica.
-bool verify_object(const State& s,const Entry& e) {
-  if(!s.mirrored){(void)read_object(s,e);return false;}
-  const auto verified=verify_payload_copies(s,e);
+bool verify_object(const State& s,const Entry& e,Bytes* payload=nullptr) {
+  if(!s.mirrored) {
+    auto decoded=read_object(s,e);
+    if(payload)*payload=std::move(decoded);
+    return false;
+  }
+  const auto verified=verify_payload_copies(s,e,payload);
   if(!verified)fail("both payload copies invalid; no rollback");
   return verified==1;
 }
@@ -398,9 +414,17 @@ template<class Visitor> void walk(const State& s,const Ref& r,std::uint64_t afte
   if(r.height) {for(const auto& child:n.children)walk(s,child,after,visitor,done);}
   else for(const auto& e:n.entries)if(e.id>after && !done)done=!visitor(e);
 }
-void verify(const State& s) {
+using VerifiedObjectVisitor=std::function<void(std::uint64_t,Bytes)>;
+void verify(const State& s,const VerifiedObjectVisitor* consume=nullptr) {
   (void)read_node(s,s.root);
-  auto visitor=[&](const Entry& e){verify_object(s,e);return true;};
+  auto visitor=[&](const Entry& e) {
+    if(consume) {
+      Bytes bytes;
+      verify_object(s,e,&bytes);
+      (*consume)(e.id,std::move(bytes));
+    }else verify_object(s,e);
+    return true;
+  };
   bool done=false;walk(s,s.root,0,visitor,done);
 }
 std::array<std::byte,page_bytes> root_bytes(const State& s,std::uint64_t generation) {
@@ -1422,6 +1446,10 @@ std::vector<StoreObjectInfo> PagedObjectStoreSnapshot::list_page(std::uint64_t a
   walk(impl_->state,impl_->state.root,after,visitor,done);return result;
 }
 void PagedObjectStoreSnapshot::verify_all() const {if(!impl_)fail("moved-from snapshot");verify(impl_->state);}
+void PagedObjectStoreSnapshot::visit_verified_objects(const VerifiedObjectVisitor& consume) const {
+  if(!impl_)fail("moved-from snapshot");
+  verify(impl_->state,&consume);
+}
 PagedObjectStoreWriter::PagedObjectStoreWriter(std::unique_ptr<Impl> p) noexcept:impl_(std::move(p)){}
 PagedObjectStoreWriter::PagedObjectStoreWriter(PagedObjectStoreWriter&&) noexcept=default;
 PagedObjectStoreWriter& PagedObjectStoreWriter::operator=(PagedObjectStoreWriter&&) noexcept=default;

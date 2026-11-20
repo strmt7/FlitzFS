@@ -379,6 +379,23 @@
     "live_amd_verified_groups_after_change": 1,
     "physical_power_loss_qualified": false
   },
+  "indexed_reopen_single_pass_audit": {
+    "source_base": "32162677d30e0df682401e29f433d37fc14712a8",
+    "evidence": "docs/evidence/indexed-reopen-single-pass-audit-2026-11-20.json",
+    "matched_reopen_logical_input_bytes": 5242880,
+    "baseline_backing_read_bytes": 42381786,
+    "candidate_backing_read_bytes": 23036690,
+    "candidate_backing_write_bytes": 0,
+    "baseline_indexed_scrub_read_bytes": 160852631,
+    "candidate_indexed_scrub_read_bytes": 4271192,
+    "indexed_scrub_files": 1024,
+    "full_pre_and_post_fence_audits": true,
+    "verified_payload_mirror_copies": true,
+    "amd_advised_extents": 18,
+    "amd_cpu_readback_files": 23,
+    "windows_build_cmake": "4.5.1",
+    "open_dependabot_alerts_at_capture": 0
+  },
   "amd_coalesced_copy_verification": {
     "source_base": "2b95974d9af75aa763e989d4be997839fffe80ef",
     "evidence": "docs/evidence/amd-coalesced-copy-verification-2026-11-20.json",

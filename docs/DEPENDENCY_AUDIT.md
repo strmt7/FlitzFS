@@ -9,11 +9,14 @@ check before release acceptance.
 
 ## Verified Dependabot result
 
-**Fresh check, 17 November 2026:** the authenticated GitHub REST endpoint
-successfully returned HTTP 200 with zero open alerts and complete cursor
-pagination. The review's initial unsupported `page` query returned HTTP 400;
-the corrected first-page/cursor request is retained in
-[the review receipt](evidence/repository-review-2026-11-17.json).
+On 20 November 2026, the authenticated GitHub REST endpoint returned HTTP 200
+and zero open alerts with complete cursor pagination. The connector fetch
+allowlist declined the alert endpoint, so the read used the existing
+authenticated GitHub CLI.
+[Executed dependency review](evidence/indexed-reopen-single-pass-audit-2026-11-20.json)
+
+The 17 November review and its initial unsupported `page` request are retained
+in the [historical receipt](evidence/repository-review-2026-11-17.json).
 The [current overview](REPOSITORY_OVERVIEW.md#fresh-dependency-and-alert-check)
 records fresh upstream release metadata and distinguishes selected pins from
 the older VS-bundled CMake actually used locally. Zero alerts is not a complete

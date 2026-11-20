@@ -13,7 +13,8 @@ Later checkpoints are recorded under recent executed evidence and in the
 ## Assessment
 
 The [release execution plan](RELEASE_EXECUTION_PLAN.md) binds the current
-assessment to the Windows attachment, AMD and CPU fallback evidence.
+assessment to the Windows attachment, AMD, CPU fallback and indexed audit
+evidence through 20 November 2026.
 It lists the remaining work and the verification required at each handoff.
 
 FlitzFS has a substantial experimental storage foundation and several working
@@ -133,9 +134,14 @@ Mutation staging still copies the model and compares namespace records against
 the backing. The indexed writer stages affected inodes and ranges against the
 paged object tree and publishes names, extents and counters together.
 
-A 17-byte replacement in the indexed 1,024-file fixture read 202,372 backing
-bytes. Full scrub read 291,765,432. The multipage format removes whole-namespace
-work from that mutation and leaves considerable overhead in the nested indexes.
+A 17-byte replacement in the indexed 1,024-file fixture read 202,492 backing
+bytes. It kept that read count while full scrub dropped from 160,435,457 to
+4,268,322 bytes. On a separate five-MiB paired volume, a healthy writable
+reopen read 23,036,690 bytes, down from 42,381,786, with zero backing writes.
+Both startup audits still validate the complete inventory. The retained
+reader, repair, typed-corruption and post-flush failure checks passed.
+[Current indexed audit evidence](evidence/indexed-reopen-single-pass-audit-2026-11-20.json)
+
 The indexed head and lifetimes now reach the owned Windows provider.
 The controller consumes closed-file retirement in bounded transactions.
 The next effort is physical reuse, bounded live truncation and lower
@@ -268,42 +274,37 @@ Source: [WinFsp callback table and parameters](../src/windows/winfsp_native.cpp)
 
 ## Fresh dependency and alert check
 
-Authenticated GitHub REST capture on 17 November returned **HTTP 200 and zero
-open Dependabot alerts**, with complete cursor pagination. The initial review
-request incorrectly supplied `page` and received HTTP 400; it was corrected.
-This is a current successful API check, not an inference from the old 403 or a
-claim that every C++/runtime dependency is vulnerability-free.
+Authenticated GitHub REST capture on 20 November returned **HTTP 200 and zero
+open Dependabot alerts**, with complete cursor pagination. This result covers
+the alerts visible to that repository endpoint at the capture time.
+[Dependency receipt](evidence/indexed-reopen-single-pass-audit-2026-11-20.json)
 
 | Dependency/tool | Repository selection | Fresh official result / qualification limit |
 | --- | --- | --- |
 | Zstandard | v1.5.7 pin | Still the latest stable release returned by the API |
 | LZ4 | v1.11.1 pin | Latest stable, published 10 November 2026 |
 | BLAKE3 | 1.8.7 pin | Latest stable returned by the API |
-| WinFsp | v2.2B5 development SDK | Latest available prerelease; stable endpoint still returns v2.1. This does not qualify an installed driver. |
-| ROCm Core SDK | 10.1.0 package pin | Current AMD Core documentation is 10.1.0; its HIP component is 7.16.0. Do not substitute the legacy Windows HIP SDK 7.2 documentation or equate package/component version numbers. |
-| CMake | Private staging recipe 4.5.0 | Latest stable API result is 4.5.0. It was checksum-verified and used in the new Windows codec lane. The earlier raw/ASan factory results used the Visual Studio bundle. |
+| WinFsp | Stable v2.2, build 2.2.26323 | Latest stable tag and MSI digest confirmed through GitHub. The disposable guest fixture and current user-mode SDK results have separate receipts. |
+| ROCm Core SDK | 10.2.0 package pin | The exact official Windows archive carries package build 10.2.0rc2, HIP 7.17.26434 and AMD Clang 24.0.0git. The installed runtime and driver are measured separately. |
+| CMake | Windows private staging recipe 4.5.1 | Latest stable API result and the official checksum file agree. Windows staging and a fresh indexed test build exercised the patch. |
+| Linux verification tools | CMake 4.5.0 and LLVM 23.1.5 pins | Official release inventories show CMake 4.5.1 and LLVM 23.1.6. The Linux lane still needs native verification of those artifacts. |
 | GitHub Actions | checkout 7.0.1 / setup-python 7.1.0 / upload-artifact 7.0.2 | Selected version labels match fresh stable release metadata |
 | CocoIndex Code | 0.2.43 isolated tooling | Selected version label matches the current stable API result; this is agent tooling, not a product dependency |
 | DiskSpd | Not newly installed/run | Current official release API returns v2.3; benchmark planning only |
 
-The ROCm lock records an observed `10.1.0rc3` package identity and an archive
+The ROCm lock records an observed `10.2.0rc2` package identity and an archive
 digest measured locally from AMD HTTPS, not an independently published AMD
 checksum. Preserve that distinction in release supply-chain qualification.
 Do not install or replace a GPU driver to resolve it.
 
-Client compatibility also needs an explicit distinction. The inspected host
-reported Windows 11 Pro build 26300. Microsoft's current page lists Windows 11
-26H2 build 26300.9974, while the captured ROCm 10.1 compatibility matrix lists
-Windows 11 25H2. A build-family observation is not a full servicing/driver
-qualification. Test the actual target combination and keep vendor-documented
-support separate from a locally exercised profile; do not change the OS or GPU
-driver to make a probe fit a document.
-[Windows release information](https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information),
-[ROCm compatibility matrix](https://rocm.docs.amd.com/en/docs-10.1.0/compatibility/compatibility-matrix.html).
+The inspected host reported Windows 11 Pro build 26300. The release test
+matrix must record the exact servicing and driver versions exercised and the
+vendor-supported configurations for the selected AMD package.
+[Windows release information](https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information)
 
-[AMD Core release notes](https://rocm.docs.amd.com/en/docs-10.1.0/about/release-notes.html),
-[current lock](../tools/rocm-sdk-lock.json),
-[dependency policy/history](DEPENDENCY_AUDIT.md).
+[AMD SDK qualification](evidence/windows-rocm-10.2-qualification-2026-11-20.json) ·
+[Current ROCm lock](../tools/rocm-sdk-lock.json) ·
+[Dependency audit history](DEPENDENCY_AUDIT.md)
 
 ## Recent executed evidence
 

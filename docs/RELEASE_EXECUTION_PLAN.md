@@ -1,7 +1,7 @@
 # FlitzFS stable release execution plan
 
-Reviewed on 20 November 2026 against the source at `912e3e0d01f37b41c5435f0d6e50b4b5cb947060` and the
-reference-profile work validated in this round. The [engineering programme](IMPLEMENTATION_PLAN.md)
+Reviewed on 20 November 2026 against the source at `32162677d30e0df682401e29f433d37fc14712a8`
+and the indexed inventory work validated in this round. The [engineering programme](IMPLEMENTATION_PLAN.md)
 defines the full product scope and work packages. This plan gives the order
 of execution, evidence required at each handoff, and the remaining release
 work.
@@ -30,7 +30,8 @@ workload behavior. Their timings have overlapping ranges.
 
 [Mounted guest receipt](evidence/windows11-stable-winfsp-2.2-2026-11-20.json) ·
 [Cold compaction receipt](evidence/screened-cold-compaction-2026-11-20.json) ·
-[AMD reference-profile receipt](evidence/amd-installed-reference-profile-2026-11-20.json)
+[AMD reference-profile receipt](evidence/amd-installed-reference-profile-2026-11-20.json) ·
+[Indexed inventory receipt](evidence/indexed-reopen-single-pass-audit-2026-11-20.json)
 
 ## Critical path
 
@@ -90,10 +91,12 @@ The evidence matrix records that dependency explicitly.
   session and paged store. Check path resolution, large directory cursors,
   rename replacement, file lifetime after unlink, sparse ranges, EOF updates,
   flush, and delete-on-close. Include access, sharing and error codes.
-- Make a cold open validate the root and paths it uses, with explicit scrub
-  continuation for the rest of the graph. Charge directory and extent caches
-  to the live headroom budget. Test cache eviction and pinned generations under
-  pressure.
+- Keep root and path verification on cold reads and give the remainder of the
+  graph an explicit resumable scrub. For writable resume, establish which
+  generation and dependency claims the backend can prove under its leases.
+  Preserve the full-audit path until the replacement passes the same
+  acknowledgement and recovery matrix. Charge caches to live headroom and test
+  their eviction and pinned generations under pressure.
 - Replace application-visible full scans and prototype-sized work where they
   affect startup, enumeration, update or close. Use existing indexed cursors
   and generation-safe read views. Split background preparation from bounded
@@ -110,6 +113,44 @@ The evidence matrix records that dependency explicitly.
 
 [Indexed volume implementation](INDEXED_NATIVE_VOLUME.md) ·
 [Windows controller](WINFSP_OWNED_CONTROLLER.md)
+
+### Next writable-resume qualification
+
+The current paired start still runs a complete CPU inventory audit on each side
+of the selector and image flushes. Reusing checked extent bytes cut the
+five-MiB fixture's backing reads from 42,381,786 to 23,036,690 with zero
+startup backing writes. The large-volume release gate still requires evidence
+at higher populations and through a mounted ordinary client.
+[Matched runs](evidence/indexed-reopen-single-pass-audit-2026-11-20.json)
+
+1. Partition counted reads by selector, object-table pages, name-index pages,
+   inode/lifetime metadata, encoded payloads and dependency resolution. Record
+   the pre-fence and post-fence legs independently. Use the same populated
+   volume for a clean start, a start requiring verified repair and a read-only
+   rescue. Collect call counts, backing bytes, allocations and elapsed
+   distributions for both loaded and idle starts.
+2. Define the reopened-writer invariant against a concrete selector and image
+   identity, checkpoint generation, namespace sequence, decoder dependencies
+   and in-flight lifetime state. Identify which proofs are valid under both
+   leases, which become invalid at the flush, and which require revisiting
+   stored bytes. Preserve the exact result for same-generation forks and
+   damage appearing at or after the fence.
+3. Evaluate a durable, versioned verification-progress record for bounded
+   resumable audits. Bind progress to the exact root and backend admission
+   evidence. Treat it as evidence of what was verified at that checkpoint;
+   revalidate touched pages, frame digests and dependencies on use. Test
+   torn, stale, corrupt and replayed progress plus older volumes that have no
+   such record. Keep independent CPU rescue available without advisory state.
+4. Qualify any alternative writable admission against the existing full audits
+   as an oracle. Cover healthy starts, late and double replica damage,
+   invalid native frames with valid storage digests, leaked lifetime state,
+   interrupted repair, and writes concurrent with the next scrub quantum.
+   Compare the acknowledged namespace and readback after a reopen in each arm.
+5. Repeat the retained-data checks, large-population runs and mounted client
+   operations on the selected implementation. Record foreground stalls,
+   repair amplification, pending queue growth and recovery while another
+   reader pins a generation. Keep the conservative admission path for
+   any backend or legacy format whose invariants have not been qualified.
 
 ## 3. Allocation, reclamation and acknowledged data
 

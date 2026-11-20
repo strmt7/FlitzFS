@@ -23,8 +23,8 @@ GIB=1024**3
 ARTIFACTS={
     ("cmake","linux"):("4.5.0","https://github.com/Kitware/CMake/releases/download/v4.5.0/cmake-4.5.0-linux-x86_64.tar.gz",
         67002501,"81f0d5b0960fb6adc8197030ffc827fba937640d51e73e39e0e9e40d88c66f6f"),
-    ("cmake","win32"):("4.5.0","https://github.com/Kitware/CMake/releases/download/v4.5.0/cmake-4.5.0-windows-x86_64.zip",
-        56341654,"301b1728317ccd84e984b02e366a8293735bc5ac618757d3d8f58b578f062411"),
+    ("cmake","win32"):("4.5.1","https://github.com/Kitware/CMake/releases/download/v4.5.1/cmake-4.5.1-windows-x86_64.zip",
+        56581138,"bfe6eadb245dc8213e0d3feea316b520cb2aae92f5667ffd76059ba6b05c430c"),
     ("llvm","linux"):("23.1.5","https://github.com/llvm/llvm-project/releases/download/llvmorg-23.1.5/LLVM-23.1.5-Linux-X64.tar.zst",
         1198896522,"c3107384835f788768f614db610e87fba7077f125ca950eb02a78bab0a308065"),
 }

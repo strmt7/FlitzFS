@@ -736,5 +736,15 @@ layout equivalence and enough retained source state for immediate rollback.
 
 The raw 1,024-file fixture measured 3,588,096 occupied bytes including history
 and redundancy. Open read 90,736 backing bytes and a path lookup read 179,292.
-Full scrub read 292,261,348 bytes. These counts expose the current metadata
-overhead and guide page-layout and scrub work. [Executed evidence](evidence/native-indexed-volume-2026-11-17.json)
+Full scrub now streams the verified payloads through the native checks and
+shares the bounded metadata cache for related lookups. It read 4,271,192
+backing bytes on the matched fixture, down from 160,852,631. The low-level
+walk independently checks both copies of each object. A regression check
+bounds duplicate reads on this specific compact fixture.
+
+A healthy paired writable reopen reads 23,036,690 backing bytes on the
+five-MiB fixture, down from 42,381,786, with zero backing writes. The
+pre-fence and post-fence audits each have their own verification state.
+Writable reopen still traverses the full inventory, so this improvement
+reduces I/O within each audit.
+[Matched Windows evidence](evidence/indexed-reopen-single-pass-audit-2026-11-20.json)

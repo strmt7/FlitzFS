@@ -84,6 +84,8 @@ void populated_native_snapshot() {
   const auto start_scrub=ram->read_bytes;
   view.verify_all();
   const auto scrub_bytes=ram->read_bytes-start_scrub;
+  require(scrub_bytes<4*view.storage_info().physical_end,
+      "indexed scrub repeated object and metadata reads on the compact short-file fixture");
   require(open_bytes<scrub_bytes/16 && lookup_bytes<scrub_bytes/16,"indexed volume loaded whole namespace for lookup");
   std::optional<NativeDirectoryCursor> cursor;
   unsigned seen=0;
