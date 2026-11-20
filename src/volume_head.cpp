@@ -263,6 +263,10 @@ NativeVolumeHeadWriter NativeVolumeHeadWriter::create(std::shared_ptr<StoreByteI
 }
 NativeVolumeHeadWriter NativeVolumeHeadWriter::resume(std::shared_ptr<StoreByteIo> head,
     StoreIdentity volume,std::uint64_t epoch,const NativeFilesystemSnapshot& image) {
+  return resume_impl(std::move(head),volume,epoch,image,false);
+}
+NativeVolumeHeadWriter NativeVolumeHeadWriter::resume_impl(std::shared_ptr<StoreByteIo> head,
+    StoreIdentity volume,std::uint64_t epoch,const NativeFilesystemSnapshot& image,bool closed_indexed) {
   auto p=std::make_unique<Impl>(std::move(head));contract(*p->owner.io);
   const auto current=load(*p->owner.io,volume);
   if(!epoch||epoch!=current.info.selection.epoch)fail(Code::invalid_operation,"stale volume head epoch");
@@ -272,7 +276,7 @@ NativeVolumeHeadWriter NativeVolumeHeadWriter::resume(std::shared_ptr<StoreByteI
   // A paged head may be resumed over independently CPU-readable degraded
   // data solely to select a verified repaired copy. Paged writable resume
   // still refuses lost payload replicas; no damaged source is repaired here.
-  bind(current.info.selection,image,current.info.selection.storage.kind==NativeImageKind::flat);
+  bind(current.info.selection,image,current.info.selection.storage.kind==NativeImageKind::flat,closed_indexed);
   auto before=Impl::fresh(backing,current.info.selection.storage);Impl::exact(image,before);
   backing->flush();auto after=Impl::fresh(backing,current.info.selection.storage);Impl::exact(image,after);
   p->selected=current.info.selection;p->owner.io->admit_write(kVolumeHeadBytes);
@@ -283,6 +287,10 @@ NativeVolumeHeadWriter NativeVolumeHeadWriter::resume(std::shared_ptr<StoreByteI
 }
 NativeVolumeHeadInfo NativeVolumeHeadWriter::publish_compacted(
     const NativeFilesystemSnapshot& source,const NativeFilesystemSnapshot& target) {
+  return publish_compacted_impl(source,target,false);
+}
+NativeVolumeHeadInfo NativeVolumeHeadWriter::publish_compacted_impl(
+    const NativeFilesystemSnapshot& source,const NativeFilesystemSnapshot& target,bool closed_indexed) {
   if(!impl_||impl_->poisoned)fail(Code::storage_failure,"volume head writer is terminal");
   auto& p=*impl_;const auto source_io=Impl::backing(source),target_io=Impl::backing(target);
   const auto next=p.successor(source,target);
@@ -290,7 +298,7 @@ NativeVolumeHeadInfo NativeVolumeHeadWriter::publish_compacted(
   bool mutation=false;
   try {
     p.check();contract(*source_io);contract(*target_io);p.owner.io->admit_write(kVolumeHeadBytes);
-    bind(p.selected,source,p.selected.storage.kind==NativeImageKind::flat);
+    bind(p.selected,source,p.selected.storage.kind==NativeImageKind::flat,closed_indexed);
     const auto target_info=target.storage_info();
     if(!target_info.replicated_checkpoint||target_info.degraded_checkpoint||target_info.degraded_root)
       fail(Code::invalid_operation,"compacted target needs complete replicated metadata");
@@ -298,7 +306,7 @@ NativeVolumeHeadInfo NativeVolumeHeadWriter::publish_compacted(
     Impl::exact(source,old);Impl::exact(target,candidate);
     if(candidate.storage_info().degraded_checkpoint || candidate.storage_info().degraded_root)
       fail(Code::invalid_operation,"handoff target replicas are degraded");
-    source.verify_compacted_equivalent_for_volume_head(target);
+    source.verify_compacted_equivalent_for_volume_head(target,closed_indexed);
     mutation=true;target_io->flush();auto checked=Impl::fresh(target_io,next.storage);Impl::exact(target,checked);
     if(checked.storage_info().degraded_checkpoint || checked.storage_info().degraded_root)
       fail(Code::corrupt,"handoff target lost protection after flush");

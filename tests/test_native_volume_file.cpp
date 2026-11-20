@@ -338,6 +338,146 @@ void capacity_repair_rotation() {
   std::cout<<"capacity_repair_rotation equal_size=1 transient_refused=1 selector_interruptions="<<boundaries*3<<'\n';
 }
 
+void full_startup_repair_rotation() {
+  const auto start=kNativeVolumeFileImageOffset+limits.maximum_physical_bytes;
+  const auto make=[&](std::uint32_t unit,bool retired_context) {
+    auto io=std::make_shared<SparseVolumeRam>(unit);
+    Bytes expected;
+    {
+      auto session=NativeVolumeFile::create(io,id(90),id(91),limits,raw);
+      expected=establish_history(session);
+      require(stage_compaction(session)==Reclaim::ready && session.advance_persistent_reclamation({})==Reclaim::published,
+          "startup repair fixture did not pack into its second range");
+      release_inactive(session);
+      if(retired_context) {
+        session.create_entry("orphan");
+        const auto handle=session.open("orphan",{true,true,true});
+        session.write(handle,0,data(225,612));
+        session.set_delete(handle,true);session.cleanup(handle,true);
+        require(session.snapshot().needs_session_recovery(),"startup fixture did not retain a file lifetime");
+      }
+    }
+    const auto& body=io->io.live;
+    const auto marker=std::span(expected).first(40);
+    const auto location=std::search(body.begin()+start,body.end(),marker.begin(),marker.end());
+    require(location!=body.end(),"startup repair fixture has no selected payload");
+    const auto offset=static_cast<std::size_t>(location-body.begin());
+    const auto peer=offset+unit;
+    require(peer+marker.size()<=body.size() && std::equal(marker.begin(),marker.end(),body.begin()+peer),
+        "startup repair fixture has no payload peer");
+    io->io.live[peer]^=std::byte{1};
+    io->io.stable[peer]=io->io.live[peer];
+    return std::pair{io,expected};
+  };
+  const auto [seed,expected]=make(4096,false);
+  const auto verify=[&](const NativeFilesystemSnapshot& source,const Bytes& bytes) {
+    require(source.read("payload",0,50000)==bytes && source.read("witness",0,1000)==witness_bytes,
+        "startup rotation lost acknowledged bytes");
+  };
+  unsigned advisory_failures=0;
+  const auto run=[&](std::optional<std::size_t> cut,unsigned mode) {
+    auto io=seed->replay();io->admitted_end=io->extent();
+    if(cut){io->io.fail_at=*cut;io->io.failure=mode;}
+    bool attached=false;
+    try {
+      auto session=NativeVolumeFile::resume(io,id(90),raw,NativeDispositionPolicy::aggregate,[]{return id(94);});
+      attached=true;
+      const auto selected=session.volume_info().selection;
+      require(selected.epoch==3 && selected.image_identity==id(94) && selected.parent_identity==id(93) &&
+          !session.snapshot().storage_info().degraded_checkpoint,"startup repair did not select a verified alternate");
+      verify(session.snapshot(),expected);
+      if(cut) {
+        require(io->io.calls>*cut && session.optimization_info().phase==NativeOptimizationPhase::unavailable &&
+            session.optimization_snapshot().code==OptimizationReadCode::io_failure,
+            "startup rotation accepted an interrupted authority or image operation");
+        ++advisory_failures;
+      }
+    }catch(const std::exception&){if(!cut || attached || io->io.calls<=*cut)throw;}
+    require(cut || attached,"startup rotation did not complete in the uninterrupted fixture");
+    require(!io->range_reclaims,"startup rotation reclaimed a range before publication");
+    const auto old=std::span(seed->io.stable).subspan(start);
+    const auto after=std::span(io->io.stable).subspan(start);
+    if(!std::ranges::equal(old,after)) {
+      const auto differing=std::ranges::mismatch(old,after);
+      std::cerr<<"startup source difference at "<<differing.in1-old.begin()
+          <<" old bytes="<<old.size()<<" current bytes="<<after.size()<<" mode="<<mode
+          <<" operation="<<cut.value_or(io->io.calls)<<'\n';
+    }
+    require(std::ranges::equal(old,after),"startup rotation changed the selected source range before retirement");
+    const auto operations=io->io.calls;
+    auto durable=io->replay();durable->admitted_end=durable->extent();
+    std::uint64_t observed_epoch=0;
+    {
+      const auto recovered=NativeVolumeFile::inspect(durable,id(90));
+      observed_epoch=recovered.info().selection.epoch;
+      require(observed_epoch==3 || (cut && observed_epoch==2),"startup interruption exposed an unrelated selector");
+      verify(recovered.filesystem(),expected);
+    }
+    if(cut) {
+      const auto retry_id=observed_epoch==2?id(95):id(94);
+      unsigned allocated=0;
+      auto session=NativeVolumeFile::resume(durable,id(90),raw,NativeDispositionPolicy::aggregate,[&] {
+        ++allocated;return retry_id;
+      });
+      require(session.volume_info().selection.epoch==3 && session.volume_info().selection.image_identity==retry_id &&
+          !session.snapshot().storage_info().degraded_checkpoint && allocated==(observed_epoch==2?1U:0U),
+          "startup retry did not recover the verified selection");
+      verify(session.snapshot(),expected);
+      release_inactive(session);
+    }
+    return operations;
+  };
+  const auto operations=run({},0);
+  require(operations>6 && operations<180,"startup fallback exceeded its fault fixture bounds");
+  for(unsigned mode=0;mode<3;++mode)for(std::size_t cut=0;cut<operations;++cut)(void)run(cut,mode);
+
+  {
+    auto rejected=seed->replay();rejected->admitted_end=rejected->extent();rejected->admitted_growth=0;
+    rejects([&]{(void)NativeVolumeFile::resume(rejected,id(90),raw,NativeDispositionPolicy::aggregate,[]{return id(94);});},
+        "startup repair wrote without room for its alternate");
+    require(!rejected->io.writes && !rejected->range_reclaims && rejected->io.stable==seed->io.stable,
+        "alternate admission refusal changed active or spare bytes");
+  }
+  {
+    // Measure space for the first append, then leave another damaged record.
+    // Rotation must use the newer checkpoint produced by that first repair.
+    auto partial=seed->replay(),probe=seed->replay();
+    const auto original=NativeVolumeFile::inspect(seed,id(90)).filesystem().storage_info().generation;
+    {
+      auto fit=NativeVolumeFile::resume(probe,id(90),raw);
+      require(!fit.snapshot().storage_info().degraded_checkpoint && probe->extent()>seed->extent(),
+          "startup append probe did not grow the active range");
+    }
+    auto& bytes=partial->io.live;
+    const auto witness=std::search(bytes.begin()+start,bytes.end(),witness_bytes.begin(),witness_bytes.end());
+    require(witness!=bytes.end(),"repair fixture lost its witness");
+    const auto offset=static_cast<std::size_t>(witness-bytes.begin());
+    bytes[offset]^=std::byte{1};partial->io.stable[offset]=bytes[offset];
+    partial->admitted_end=probe->extent();
+    auto repaired=NativeVolumeFile::resume(partial,id(90),raw,NativeDispositionPolicy::aggregate,[]{return id(94);});
+    require(repaired.volume_info().selection.epoch==3,"partial append repair did not rotate");
+    verify(repaired.snapshot(),expected);
+    const auto old=image(Bytes(bytes.begin()+start,bytes.end()),4096);
+    const auto retained=NativeFilesystemSnapshot::open_image(old,{NativeImageKind::indexed_paged,limits.maximum_physical_bytes});
+    retained.verify_all();
+    require(retained.storage_info().generation>original && retained.storage_info().degraded_checkpoint,
+        "startup rotation did not retain the partially repaired current source");
+    verify(retained,expected);
+  }
+
+  auto [retired,remaining]=make(65536,true);
+  retired->admitted_end=retired->extent();
+  auto session=NativeVolumeFile::resume(retired,id(90),raw,NativeDispositionPolicy::aggregate,[]{return id(94);});
+  require(session.volume_info().selection.epoch==3 && !session.snapshot().needs_session_recovery(),
+      "startup rotation did not finish a detached lifetime after selection");
+  verify(session.snapshot(),remaining);
+  rejects([&]{(void)session.open("orphan",{true,false,false});},"startup rotation restored a detached filename");
+  std::cout<<"full_startup_rotation interruptions="<<operations*3
+      <<" advisory_only_failures="<<advisory_failures
+      <<" interrupted_candidate_recovered=1 selected_source_preserved=1 retired_context_recovered=1"
+      <<" target_refusal_write_free=1 partial_append_reconciled=1\n";
+}
+
 void range_publication_cuts() {
   for(const auto unit:{4096U,65536U})for(const bool reconcile:{false,true}) {
     const auto run=[&](std::optional<std::size_t> cut,unsigned mode) {
@@ -500,7 +640,7 @@ int main(int argc,char** argv){
     geometry_and_advice();
     publication_cuts();
     reclaimed_ranges();
-    capacity_repair_rotation();range_publication_cuts();
+    capacity_repair_rotation();full_startup_repair_rotation();range_publication_cuts();
     std::cout<<"PASS: "<<checks<<" memory-backed volume-file checks\n";
     return 0;
   }catch(const std::exception& error){std::cerr<<"after "<<checks<<" checks: "<<error.what()<<'\n';return 1;}

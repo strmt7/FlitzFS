@@ -1380,6 +1380,7 @@ PagedObjectStoreWriter PagedObjectStoreWriter::rebuild_replacing(const PagedObje
   Impl::Lease source_lease(original.image);auto observed=load(original.image,original.limits);
   if(!same(original,observed))fail("rebuild source is not the current checkpoint");
   const auto source_extent=original.image->extent();
+  std::uint64_t replaced_stored=0;
   if(replacement_id) {
     const auto entry=lookup(original,replacement_id);
     if(!entry || replacement.size()!=entry->logical)fail("rebuild replacement identity/length");
@@ -1391,6 +1392,7 @@ PagedObjectStoreWriter PagedObjectStoreWriter::rebuild_replacing(const PagedObje
     copy(expected,identity_offset,id);
     if(!std::equal(expected.begin(),expected.end(),replacement.begin()))
       fail("rebuild replacement differs beyond image identity");
+    replaced_stored=entry->stored;
     verify(original);
   }
   auto p=std::make_unique<Impl>(target,options);admit_contract(target->contract());
@@ -1398,7 +1400,14 @@ PagedObjectStoreWriter PagedObjectStoreWriter::rebuild_replacing(const PagedObje
   Rebuild build;build.next.image=target;build.next.limits=limits;build.next.id=id;build.next.mirrored=original.mirrored;
   build.next.generation=add(original.generation,2);build.next.checkpoint=original.generation+1;
   build.next.unit=(std::max)(static_cast<std::uint32_t>(page_bytes),target->contract().write_failure_unit_bytes);
-  target->admit_write(start+2*build.next.unit);zeros(*target,0,start);
+  if(!reencode) {
+    const auto rebound=replacement_id?p->encoder.encode(Bytes(replacement.begin(),replacement.end())).payload.size():0;
+    const auto projected_stored=add(original.root.stored-replaced_stored,rebound);
+    const auto projected=packed_rebuild_size(build.next,original.root.count,projected_stored);
+    check_physical_capacity(projected,limits.maximum_physical_bytes);
+    target->admit_write(projected);
+  }else target->admit_write(start+2*build.next.unit);
+  zeros(*target,0,start);
   auto visitor=[&](const Entry& source_entry) {
     copy_rebuild_object(build,original,source_entry,p->encoder,replacement_id,replacement,reencode);return true;
   };

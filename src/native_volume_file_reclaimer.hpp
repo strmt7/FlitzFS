@@ -13,10 +13,12 @@ class NativeVolumeFileReclaimer final {
   bool pending(const NativeFileSession&) const;
   NativeVolumeReclaimProgress advance(NativeFileSession&,const std::function<StoreIdentity()>&);
   void cancel(NativeFileSession&) noexcept;
+  NativeStartupRepairImage startup_repair_image(const NativeVolumeHeadInfo&,const std::function<StoreIdentity()>&);
+  void adopt_startup_repair(const NativeVolumeSelection& original,const NativeVolumeSelection& repaired);
 
  private:
   enum class Phase {idle,copying,ready,retiring,uncertain,failed};
-  NativeVolumeReclaimProgress retire(NativeFileSession&);
+  NativeVolumeReclaimProgress retire(const NativeVolumeHeadInfo&);
   std::shared_ptr<StoreByteIo> head_;
   std::shared_ptr<NativeVolumeFile::Region> active_,spare_;
   Phase phase_;

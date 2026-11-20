@@ -1450,10 +1450,11 @@ qualification. It is not a final pass of extra assertions after design is frozen
    fallback or idle scrub schedules append-only repair from a surviving
    replica. A verified alternate-image switch can restore redundancy when
    appending is blocked and a target fits. Closed indexed reopen restores
-   verified replicas with an append before writable admission. Extend
-   startup to verified alternate-image selection under capacity pressure,
-   and persist scrub and repair progress. Preserve the acknowledged
-   namespace and retain evidence when intact data cannot be reconstructed.
+   verified replicas before writable admission. The Windows providers
+   can select a verified alternate when startup cannot append. Persist
+   scrub and repair progress, add index reconstruction, and qualify
+   persistence under physical failure. Preserve the acknowledged namespace
+   and retain evidence when intact data cannot be reconstructed.
 6. Preserve independent CPU export/recovery tooling and useful diagnostics when
    normal mounting or the GPU path is unavailable. Backup/redundancy needs must
    match the claimed failure domains; same-memory copies do not survive power loss.

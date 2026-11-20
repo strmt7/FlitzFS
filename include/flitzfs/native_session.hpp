@@ -119,6 +119,13 @@ struct NativeOptimizationBudgetPublication {
   NativeOptimizationInfo state;
 };
 enum class NativeVolumeReclaimProgress {idle,copying,ready,published,retiring,pinned,failed};
+struct NativeStartupRepairImage {
+  std::shared_ptr<StoreByteIo> backing;
+  StoreIdentity identity{};
+};
+// Called only with a held, independently verified selector after append
+// repair is refused. The provider owns the target across a failed switch.
+using NativeStartupRepairProvider=std::function<NativeStartupRepairImage(const NativeVolumeHeadInfo&)>;
 namespace detail {class NativeVolumeFileReclaimer;}
 
 class NativeFileSession final {
@@ -214,7 +221,8 @@ class NativeFileSession final {
   // durable indexed lifetimes before writable admission.
   static NativeFileSession resume_closed_indexed_volume(std::shared_ptr<StoreByteIo> head,
       StoreIdentity volume_identity,std::uint64_t expected_epoch,const NativeVolumeImageResolver&,
-      StoreCompressionOptions foreground={},NativeDispositionPolicy=NativeDispositionPolicy::aggregate);
+      StoreCompressionOptions foreground={},NativeDispositionPolicy=NativeDispositionPolicy::aggregate,
+      const NativeStartupRepairProvider& repair_target={});
   NativeVolumeHeadInfo volume_info() const;
   // Uses the selected writer's aligned append boundary, including
   // trailing bytes left outside the selected checkpoint after recovery.
@@ -437,7 +445,8 @@ class NativeFileSession final {
   explicit NativeFileSession(std::unique_ptr<Impl>) noexcept;
   Impl& ready() const;
   static NativeFileSession resume_volume_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,std::uint64_t,
-      const NativeVolumeImageResolver&,StoreCompressionOptions,NativeDispositionPolicy,bool closed_indexed);
+      const NativeVolumeImageResolver&,StoreCompressionOptions,NativeDispositionPolicy,bool closed_indexed,
+      const NativeStartupRepairProvider& repair_target={});
   static NativeFileSession create_volume_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,
       std::shared_ptr<StoreByteIo>,StoreIdentity,NativeImageStorage,StoreCompressionOptions,
       StoreCheckpointOptions,NativeDispositionPolicy,std::optional<NativeVolumeRootMetadata>,

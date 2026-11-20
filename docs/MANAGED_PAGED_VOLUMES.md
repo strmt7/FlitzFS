@@ -73,6 +73,12 @@ requires qualified retirement of the previous owner. It can restore
 payload replicas from verified copies before finishing those lifetimes.
 Ordinary head open and resume continue to enforce resolved state.
 
+When append space is insufficient, a qualified provider can offer an
+alternate image to the closed indexed owner. It preserves the native
+root and all lifetimes through verification and selector publication.
+Only the chosen writer then resolves the retired file contexts.
+[Full startup repair validation](evidence/indexed-full-startup-repair-2026-11-20.json)
+
 Indexed compaction and recompression rebuild into fresh backing with a
 different identity. The head checks that the candidate retains the native
 root fields, object identities and generations, and every decoded logical

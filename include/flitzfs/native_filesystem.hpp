@@ -345,7 +345,8 @@ class NativeFilesystemSnapshot final {
   friend class NativeVolumeHeadWriter;
   friend class NativeFileSession;
   std::shared_ptr<StoreByteIo> backing_for_volume_head() const;
-  void verify_compacted_equivalent_for_volume_head(const NativeFilesystemSnapshot&) const;
+  void verify_compacted_equivalent_for_volume_head(const NativeFilesystemSnapshot&,bool closed_indexed=false) const;
+  bool has_degraded_indexed_payloads() const noexcept;
   bool matches_indexed_checkpoint(const NativeFilesystemSnapshot&) const noexcept;
   std::optional<NativeContentToken> indexed_extent_token(NativeExtentSelection) const;
   struct Impl;
@@ -639,6 +640,8 @@ class NativeFilesystemWriter final {
   static NativeFilesystemWriter copy_image(const NativeFilesystemSnapshot&,
       std::shared_ptr<StoreByteIo>,StoreIdentity,StoreCompressionOptions,
       StoreCheckpointOptions,bool reencode);
+  static PagedObjectStoreWriter copy_indexed_image(const NativeFilesystemSnapshot&,
+      std::shared_ptr<StoreByteIo>,StoreIdentity,StoreCompressionOptions,bool reencode);
   static NativeFilesystemWriter initialize_storage(detail::NativeObjectWriter,bool inode_records=false,
       bool indexed_names=false,bool shared_bases=false);
   static NativeFilesystemWriter resume_impl(detail::NativeObjectWriter,bool closed_session);

@@ -77,6 +77,9 @@ class WinFspNativeWritable final {
       std::shared_ptr<StoreByteIo> head,StoreIdentity volume_identity,std::uint64_t expected_epoch,
       const NativeVolumeImageResolver&,StoreCompressionOptions foreground={},
       std::shared_ptr<StoreByteIo> advice={},std::uint64_t expected_advice_sequence=0);
+  // Reopen a privately owned memory backing after every previous callback joined.
+  static std::unique_ptr<WinFspNativeWritable> resume_memory_volume(
+      MemoryVolumeBacking&,NativeImageKind,StoreCompressionOptions foreground={});
   // Trusted low-priority controller opportunity, not a filesystem callback.
   // Try-lock/refuse foreground or deferred publication before backing access.
   // The owner may continue only the preparation kind offered by the preceding step.
@@ -143,7 +146,7 @@ class WinFspNativeWritable final {
       NativeFileSession,StoreIdentity volume,std::uint64_t created,NativeMaintenancePolicy);
   static std::unique_ptr<WinFspNativeWritable> resume_managed_impl(std::shared_ptr<StoreByteIo>,
       StoreIdentity,std::optional<std::uint64_t>,const NativeVolumeImageResolver&,StoreCompressionOptions,
-      std::shared_ptr<StoreByteIo>,std::uint64_t,bool closed_indexed);
+      std::shared_ptr<StoreByteIo>,std::uint64_t,bool closed_indexed,MemoryVolumeBacking* memory=nullptr);
   struct Impl;
   std::unique_ptr<Impl> impl_;
   explicit WinFspNativeWritable(std::unique_ptr<Impl>) noexcept;

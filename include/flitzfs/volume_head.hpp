@@ -63,6 +63,10 @@ class NativeVolumeHeadWriter final {
   bool poisoned() const noexcept;
  private:
   friend class NativeFileSession;
+  static NativeVolumeHeadWriter resume_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,
+      std::uint64_t,const NativeFilesystemSnapshot&,bool closed_indexed);
+  NativeVolumeHeadInfo publish_compacted_impl(const NativeFilesystemSnapshot&,
+      const NativeFilesystemSnapshot&,bool closed_indexed);
   // Only an owned, completed indexed rewrite can reach this path. Both image
   // writer leases remain held by the session until selection is known.
   NativeVolumeHeadInfo publish_indexed_rebuild(const NativeFilesystemSnapshot& source,

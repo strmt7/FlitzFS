@@ -353,9 +353,16 @@ The closed indexed writer restores damaged payload replicas before
 attaching when the current checkpoint is verifiable and append space
 permits it. Across 534 modeled interruptions at 4 KiB and 64 KiB failure
 units, an independent CPU reopen retained the acknowledged bytes and a
-subsequent attempt restored healthy replicas. Automatic repair selection
-for a full image during startup remains open.
+subsequent attempt restored healthy replicas.
 [Startup repair validation](evidence/indexed-startup-repair-2026-11-20.json)
+
+If the image is full during startup, the paired-range and owned Windows
+memory paths can restore redundancy in an alternate. The closed owner
+compares the native namespace and every referenced object before switching
+the selector. A subsequent reopen can recover an interrupted attempt using
+the verified selection. Old detached lifetimes resolve before writable
+callbacks start.
+[Full startup repair validation](evidence/indexed-full-startup-repair-2026-11-20.json)
 
 The writable controller now stays available for the owner-controlled
 lifetime. Probe time budgets belong to the external test supervisor.

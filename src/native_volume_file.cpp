@@ -119,10 +119,9 @@ bool NativeVolumeFileReclaimer::pending(const NativeFileSession& session) const 
   return space.reclamation_worthwhile();
 }
 
-Progress NativeVolumeFileReclaimer::retire(NativeFileSession& session) {
+Progress NativeVolumeFileReclaimer::retire(const NativeVolumeHeadInfo& current) {
   if(spare_.use_count()!=1)return Progress::pinned;
   // Revalidate both replicas immediately before changing any allocation.
-  const auto current=session.volume_info();
   const auto durable=NativeVolumeHeadView::inspect_selector(*head_,current.selection.volume_identity);
   if(current.degraded || durable.degraded || durable.selection!=current.selection ||
       durable.selection.placement!=NativeVolumePlacement::paired_file_ranges ||
@@ -144,9 +143,31 @@ Progress NativeVolumeFileReclaimer::retire(NativeFileSession& session) {
   return Progress::retiring;
 }
 
+NativeStartupRepairImage NativeVolumeFileReclaimer::startup_repair_image(const NativeVolumeHeadInfo& authority,
+    const std::function<StoreIdentity()>& identity) {
+  // The closed repair owner has verified every current byte and fenced both
+  // selector peers. Any incomplete older candidate is outside that selection.
+  if(authority.degraded || image_start(authority.selection)!=active_->offset || spare_.use_count()!=1)
+    fail(Error::invalid_operation,"startup repair spare range is unavailable");
+  while(spare_->allocation_extent()) {
+    if(retire(authority)==Progress::pinned)
+      fail(Error::invalid_operation,"startup repair spare range is pinned");
+  }
+  return {spare_,identity()};
+}
+void NativeVolumeFileReclaimer::adopt_startup_repair(const NativeVolumeSelection& original,
+    const NativeVolumeSelection& repaired) {
+  if(repaired==original)return;
+  if(repaired.epoch!=original.epoch+1 || repaired.parent_identity!=original.image_identity ||
+      repaired.placement!=NativeVolumePlacement::paired_file_ranges || image_start(repaired)!=spare_->offset)
+    fail(Error::storage_failure,"startup repair selected an unexpected range");
+  active_.swap(spare_);
+  phase_=Phase::retiring;
+}
+
 Progress NativeVolumeFileReclaimer::advance(NativeFileSession& session,const std::function<StoreIdentity()>& identity) {
   if(phase_==Phase::retiring) {
-    try{return retire(session);}
+    try{return retire(session.volume_info());}
     catch(const std::exception&){phase_=Phase::failed;return Progress::failed;}
   }
   if(!pending(session))return Progress::idle;
@@ -270,11 +291,19 @@ NativeFileSession NativeVolumeFile::create(std::shared_ptr<StoreByteIo> empty,St
   return session;
 }
 NativeFileSession NativeVolumeFile::resume(std::shared_ptr<StoreByteIo> existing,
-    std::optional<StoreIdentity> expected,StoreCompressionOptions foreground,NativeDispositionPolicy disposition) {
-  auto region=open_regions(std::move(existing),true,expected);
+    std::optional<StoreIdentity> expected,StoreCompressionOptions foreground,NativeDispositionPolicy disposition,
+    const std::function<StoreIdentity()>& startup_repair_identity) {
+  return resume_regions(open_regions(std::move(existing),true,expected),foreground,disposition,startup_repair_identity);
+}
+NativeFileSession NativeVolumeFile::resume_regions(Regions region,StoreCompressionOptions foreground,
+    NativeDispositionPolicy disposition,const std::function<StoreIdentity()>& startup_repair_identity) {
   const auto& selected=region.selection;
+  NativeStartupRepairProvider target;
+  if(region.reclaimer && startup_repair_identity)
+    target=[&](const auto& authority){return region.reclaimer->startup_repair_image(authority,startup_repair_identity);};
   auto session=NativeFileSession::resume_closed_indexed_volume(std::move(region.head),selected.volume_identity,
-      selected.epoch,region.resolver(),foreground,disposition);
+      selected.epoch,region.resolver(),foreground,disposition,target);
+  if(region.reclaimer)region.reclaimer->adopt_startup_repair(selected,session.volume_info().selection);
   if(const auto sequence=region.advice_sequence())
     session.resume_budgeted_optimization_area(std::move(region.advice),sequence);
   session.bind_persistent_reclamation(std::move(region.reclaimer));

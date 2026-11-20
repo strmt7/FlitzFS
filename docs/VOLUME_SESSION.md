@@ -28,6 +28,12 @@ checkpoint before restoring any damaged payload replicas, then reopens
 with verified protection before resolving old file contexts.
 [Closed indexed repair](MIRRORED_PAYLOADS.md#repair-during-writable-reopen)
 
+On an append-space refusal, the owner can ask the provider for a
+distinct alternate under the verified selector. The provider retains
+the alternate across failure. The engine compares both indexed images
+before the selector can change and resolves old contexts on the
+confirmed replacement.
+
 Both APIs remain custom-backend only. No ordinary-file opening/resume, mount,
 driver, process, thread or OS state change is introduced. The provider MUST
 globally exclude competing controllers and aliased storage facades, never reuse

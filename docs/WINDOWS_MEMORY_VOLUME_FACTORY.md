@@ -104,6 +104,13 @@ to `remount`. The previous dispatcher and optional workers must have confirmed
 retirement. Release outstanding inspection views before reopening the writable
 backing. Sealing remains permanent.
 
+If an indexed repair cannot append during remount, the closed owner can
+reserve an alternate store under the existing domain budget. It verifies
+that store before switching the selector and retains both mappings until
+selection is confirmed. The ordinary retirement path releases the old
+mapping after its readers retire.
+[Full startup repair validation](evidence/indexed-full-startup-repair-2026-11-20.json)
+
 The owner verifies the existing image selection and resumes the same volume
 identity, capacity and layout. Indexed restart resolves acknowledged old-session
 deletion state and uses the committed selector after an interrupted compaction.

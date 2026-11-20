@@ -1,6 +1,5 @@
 #include "winfsp_memory_volume.hpp"
 #include "winfsp_native.hpp"
-#include "flitzfs/optimization_state.hpp"
 #include <stdexcept>
 namespace flitzfs {
 namespace {
@@ -51,18 +50,7 @@ void WinFspMemoryVolume::remount(WinFspSessionApi api,NativeWriteMountPlan plan,
     throw std::runtime_error("Remount requires a retired writable memory volume");
   if(backing_.image.use_count()!=1 || (backing_.alternate_ && backing_.alternate_.use_count()!=1))
     throw std::runtime_error("Release memory-volume inspection views before remount");
-  backing_.domain->verify_resident();
-  const auto advice=read_optimization_state(*backing_.advice,backing_.volume_identity);
-  const auto advice_sequence=advice.code==OptimizationReadCode::available?advice.sequence:0;
-  StoreIdentity selected{};
-  const NativeVolumeImageResolver resolve=[&](const auto& id) {
-    auto image=backing_.resolve_image(id);
-    selected=id;
-    return image;
-  };
-  auto adapter=WinFspNativeWritable::resume_managed_impl(backing_.head,backing_.volume_identity,{},resolve,
-      memory_compression,advice_sequence?backing_.advice:nullptr,advice_sequence,kind_==NativeImageKind::indexed_paged);
-  backing_.settle_retained_selection(selected);
+  auto adapter=WinFspNativeWritable::resume_memory_volume(backing_,kind_,memory_compression);
   start_controller(std::move(adapter),api,std::move(plan),std::move(acceleration),std::move(anchor));
 }
 NativeVolumeHeadView WinFspMemoryVolume::inspect_retired() const {

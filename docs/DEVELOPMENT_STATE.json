@@ -61,6 +61,20 @@
     "on_disk_format_change": false,
     "physical_power_loss_qualified": false
   },
+  "indexed_full_startup_repair": {
+    "source_base": "b0291d71f731db3e52bedc1df6e495ac82e89308",
+    "evidence": "docs/evidence/indexed-full-startup-repair-2026-11-20.json",
+    "automatic_when_append_has_no_capacity": true,
+    "paired_range_and_owned_memory_providers": true,
+    "modeled_interruption_cases": 267,
+    "advisory_only_failures_after_healthy_selection": 3,
+    "target_preflight_before_copy": true,
+    "latest_partial_append_reconciled": true,
+    "independent_cpu_readback": true,
+    "live_amd_verified_groups_after_change": 1,
+    "on_disk_format_change": false,
+    "physical_power_loss_qualified": false
+  },
   "indexed_compaction_foreground_reconciliation": {
     "source_base": "c5402a2e7a1899db7ba3fa901052f6a479e034cf",
     "evidence": "docs/evidence/indexed-compaction-reconciliation-2026-11-19.json",

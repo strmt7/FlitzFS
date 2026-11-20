@@ -162,6 +162,24 @@ void MemoryVolumeBacking::release_unselected_after_join() noexcept {
   alternate_identity_={};
   phase_=CompactionPhase::idle;
 }
+NativeStartupRepairImage MemoryVolumeBacking::startup_repair_image(const NativeVolumeHeadInfo& authority) {
+  require(domain && image && domain->owns(*image) && !authority.degraded &&
+      authority.selection.volume_identity==volume_identity &&
+      authority.selection.placement==NativeVolumePlacement::external,"Memory startup repair needs confirmed authority");
+  // The closed owner independently verified the selected bytes and both head
+  // peers. A retained alternate from a failed attempt may now be unselected.
+  settle_retained_selection(authority.selection.image_identity);
+  require(authority.selection.image_identity==image_identity &&
+      (!alternate_ || (alternate_.use_count()==1 && domain->owns(*alternate_))),"Memory startup repair image is pinned");
+  alternate_.reset();
+  alternate_identity_={};
+  phase_=CompactionPhase::idle;
+  const auto next=fresh_volume_identity();
+  alternate_=domain->create_store(layout.image_capacity);
+  alternate_identity_=next;
+  phase_=CompactionPhase::uncertain;
+  return {alternate_,next};
+}
 void MemoryVolumeBacking::settle_retained_selection(const StoreIdentity& selected) noexcept {
   if(phase_!=CompactionPhase::uncertain)return;
   if(selected==alternate_identity_) {

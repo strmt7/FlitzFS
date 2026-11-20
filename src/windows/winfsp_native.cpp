@@ -8,6 +8,7 @@
 #include "native_windows_boundary.hpp"
 #include "flitzfs/directory_order.hpp"
 #include "flitzfs/native_volume_file.hpp"
+#include "flitzfs/optimization_state.hpp"
 #include <sddl.h>
 #include <algorithm>
 #include <array>
@@ -738,12 +739,12 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_file_volume(s
 std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_file_volume(std::shared_ptr<StoreByteIo> existing,
     std::optional<StoreIdentity> expected,StoreCompressionOptions foreground) {
   auto regions=NativeVolumeFile::open_regions(std::move(existing),true,expected);
-  const auto& selected=regions.selection;
-  const auto sequence=regions.advice_sequence();
-  auto adapter=resume_indexed_retired(std::move(regions.head),selected.volume_identity,selected.epoch,
-      regions.resolver(),foreground,sequence?std::move(regions.advice):nullptr,sequence);
-  adapter->impl_->session.bind_persistent_reclamation(std::move(regions.reclaimer));
-  return adapter;
+  const auto volume=regions.selection.volume_identity;
+  const auto created=admit_windows_snapshot(
+      NativeVolumeHeadView::open_indexed_recovery(regions.head,volume,regions.resolver()).filesystem(),true);
+  auto session=NativeVolumeFile::resume_regions(std::move(regions),foreground,
+      NativeDispositionPolicy::windows_global,fresh_volume_identity);
+  return from_indexed_session(std::move(session),volume,created,{});
 }
 std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_file_volume(const std::filesystem::path& path,
     StoreIoContract contract,StoreIdentity volume,StoreIdentity image,PagedStoreLimits limits,StoreCompressionOptions foreground) {
@@ -765,10 +766,23 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_managed_retir
     std::shared_ptr<StoreByteIo> advice,std::uint64_t advice_sequence) {
   return resume_managed_impl(std::move(head),volume,epoch,resolver,foreground,std::move(advice),advice_sequence,false);
 }
+std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_memory_volume(
+    MemoryVolumeBacking& backing,NativeImageKind kind,StoreCompressionOptions foreground) {
+  if(!backing.domain || !backing.head || !backing.image || !backing.advice ||
+      !backing.domain->owns(*backing.head) || !backing.domain->owns(*backing.image) ||
+      !backing.domain->owns(*backing.advice))
+    throw std::invalid_argument("Memory reopen requires privately owned backing");
+  backing.domain->verify_resident();
+  const auto advice=read_optimization_state(*backing.advice,backing.volume_identity);
+  const auto sequence=advice.code==OptimizationReadCode::available?advice.sequence:0;
+  const NativeVolumeImageResolver resolve=[&](const auto& identity){return backing.resolve_image(identity);};
+  return resume_managed_impl(backing.head,backing.volume_identity,{},resolve,foreground,
+      sequence?backing.advice:nullptr,sequence,kind==NativeImageKind::indexed_paged,&backing);
+}
 std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_managed_impl(
     std::shared_ptr<StoreByteIo> head,StoreIdentity volume,std::optional<std::uint64_t> expected_epoch,
     const NativeVolumeImageResolver& resolver,StoreCompressionOptions foreground,
-    std::shared_ptr<StoreByteIo> advice,std::uint64_t advice_sequence,bool closed_indexed) {
+    std::shared_ptr<StoreByteIo> advice,std::uint64_t advice_sequence,bool closed_indexed,MemoryVolumeBacking* memory) {
   if(bool(advice)!=bool(advice_sequence))throw std::invalid_argument("exact advisory sequence required");
   std::shared_ptr<StoreByteIo> selected;StoreIdentity selected_id{};
   const NativeVolumeImageResolver pinned=[&](const StoreIdentity& id){
@@ -784,9 +798,13 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_managed_impl(
   const auto kind=view.filesystem().image_storage().kind;
   const bool grouped=kind==NativeImageKind::indexed_paged || (kind==NativeImageKind::paged && view.filesystem().shared_base_info().enabled);
   constexpr auto disposition=NativeDispositionPolicy::windows_global;
+  NativeStartupRepairProvider repair_target;
+  if(memory && closed_indexed)
+    repair_target=[memory](const auto& authority){return memory->startup_repair_image(authority);};
   auto session=closed_indexed?
-      NativeFileSession::resume_closed_indexed_volume(std::move(head),volume,epoch,pinned,foreground,disposition):
+      NativeFileSession::resume_closed_indexed_volume(std::move(head),volume,epoch,pinned,foreground,disposition,repair_target):
       NativeFileSession::resume_volume(std::move(head),volume,epoch,pinned,foreground,disposition);
+  if(memory)memory->settle_retained_selection(session.volume_info().selection.image_identity);
   if(advice)session.resume_budgeted_optimization_area(std::move(advice),advice_sequence,1);
   auto impl=std::make_unique<Impl>(std::move(session),volume,created,file_info_policy(kind));
   if(grouped)

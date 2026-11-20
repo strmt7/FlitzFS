@@ -1856,11 +1856,17 @@ std::optional<NativeContentToken> NativeFilesystemSnapshot::indexed_extent_token
   if(!impl_ || !impl_->indexed)fail(Code::invalid_operation,"content binding requires an indexed snapshot");
   return impl_->indexed->content_at(extent);
 }
+bool NativeFilesystemSnapshot::has_degraded_indexed_payloads() const noexcept {
+  if(!impl_ || !impl_->indexed)return false;
+  const auto info=impl_->objects.paged_if()->info();
+  return info.mirrored_payloads && info.degraded_payloads && !info.degraded_metadata;
+}
 void NativeFilesystemSnapshot::verify_compacted_equivalent_for_volume_head(
-    const NativeFilesystemSnapshot& target) const {
+    const NativeFilesystemSnapshot& target,bool closed_indexed) const {
   if(!impl_||!target.impl_)fail(Code::invalid_operation,"moved-from handoff image");
   verify_all();target.verify_all();
-  if(needs_session_recovery()||target.needs_session_recovery())
+  if(!(closed_indexed && impl_->indexed && target.impl_->indexed) &&
+      (needs_session_recovery() || target.needs_session_recovery()))
     fail(Code::invalid_operation,"handoff requires retired resolved file contexts");
   if(impl_->indexed || target.impl_->indexed) {
     if(!impl_->indexed || !target.impl_->indexed || image_storage()!=target.image_storage())
@@ -1897,6 +1903,13 @@ NativeFilesystemWriter NativeFilesystemWriter::recompress(const NativeFilesystem
     StoreCheckpointOptions checkpoints) {
   return copy_image(source,std::move(target),id,compression,checkpoints,true);
 }
+PagedObjectStoreWriter NativeFilesystemWriter::copy_indexed_image(const NativeFilesystemSnapshot& source,
+    std::shared_ptr<StoreByteIo> target,StoreIdentity id,StoreCompressionOptions compression,bool reencode) {
+  source.verify_all();
+  const auto root=detail::rebind_indexed_volume_root(source.impl_->indexed->root(),id);
+  return detail::NativeObjectWriter::rebuild(*source.impl_->objects.paged_if(),std::move(target),
+      id,root,compression,reencode,detail::kIndexedVolumeIdentityOffset);
+}
 NativeFilesystemWriter NativeFilesystemWriter::copy_image(const NativeFilesystemSnapshot& source,
     std::shared_ptr<StoreByteIo> target,StoreIdentity id,StoreCompressionOptions compression,
     StoreCheckpointOptions checkpoints,bool reencode) {
@@ -1909,10 +1922,7 @@ NativeFilesystemWriter NativeFilesystemWriter::copy_image(const NativeFilesystem
     if(source.impl_->indexed) {
       if(checkpoints.compact_metadata)
         fail(Code::invalid_operation,"indexed isolation derives from its backing contract");
-      source.verify_all();
-      const auto root=detail::rebind_indexed_volume_root(source.impl_->indexed->root(),id);
-      return resume(detail::NativeObjectWriter::rebuild(*source.impl_->objects.paged_if(),std::move(target),
-          id,root,compression,reencode,detail::kIndexedVolumeIdentityOffset));
+      return resume(copy_indexed_image(source,std::move(target),id,compression,reencode));
     }
     auto model=decode(source.impl_->objects);model.identity=id;
     if(const auto* paged=source.impl_->objects.paged_if()) {

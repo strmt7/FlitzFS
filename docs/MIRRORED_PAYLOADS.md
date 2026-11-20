@@ -149,10 +149,20 @@ stays available when append capacity is insufficient.
 
 Direct paged-store resume still requires healthy payload copies. The
 startup path requires closed indexed ownership and refuses unverified
-payloads or a damaged index. Automatic alternate-image selection on
-startup, index reconstruction and persistent scan progress remain open.
+payloads or a damaged index.
 [Startup repair validation](evidence/indexed-startup-repair-2026-11-20.json)
 
+If append repair runs out of space, the Windows paired-range and memory
+providers can supply an alternate image. The closed owner verifies the
+latest selected checkpoint again, including repairs that already committed.
+It fences the selector, admits the packed target footprint and compares
+the complete decoded inventories before publishing the new selector.
+Detached lifetimes travel with the verified image and resolve after its
+selection. An interruption leaves the selected source or the fully
+verified replacement available to CPU recovery.
+[Full startup repair validation](evidence/indexed-full-startup-repair-2026-11-20.json)
+
+Index reconstruction and persistent scan progress remain open.
 The defined separation protects against damage to a qualified write-failure
 unit; both copies are still in one image. Common-mode errors, loss of the image/
 device, dishonest flushes, lost RAM after power-off and arbitrary future bugs

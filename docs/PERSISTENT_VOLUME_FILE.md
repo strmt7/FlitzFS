@@ -86,6 +86,15 @@ transaction before recovering detached lifetimes. The WinFsp bridge
 validates the Windows root ACL and timestamp profile during admission.
 [Startup repair validation](evidence/indexed-startup-repair-2026-11-20.json)
 
+If the selected range refuses an append repair, the Windows provider can
+rebuild it in the inactive range. Before reclaiming space left by an
+interrupted attempt, the closed owner verifies the selected image and
+checks that both head copies refer to it. Selection follows complete CPU
+comparison and the existing flush protocol. The old selected range
+remains available until retirement. A custom provider can supply its new
+image identity through the native reopen API.
+[Full startup repair validation](evidence/indexed-full-startup-repair-2026-11-20.json)
+
 ## Windows helper ownership
 
 A qualified caller supplies the backing, the expected volume identity and

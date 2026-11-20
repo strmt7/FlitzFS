@@ -169,9 +169,10 @@ void volume_file_callbacks() {
       cpu.filesystem().read("f0",0,static_cast<std::uint32_t>(payload.size()))==payload,
       "fresh CPU model reopen lost original or subsequent callback bytes");
 }
-enum class RepairFixture {foreground,rotation,scrub};
+enum class RepairFixture {foreground,rotation,scrub,startup_rotation};
 void volume_file_payload_repair(bool live,RepairFixture fixture=RepairFixture::foreground) {
-  const bool rotate=fixture==RepairFixture::rotation,scrub=fixture==RepairFixture::scrub;
+  const bool startup=fixture==RepairFixture::startup_rotation;
+  const bool rotate=startup || fixture==RepairFixture::rotation,scrub=fixture==RepairFixture::scrub;
   constexpr PagedStoreLimits limits{8ULL*1024*1024};
   const StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
   const auto original=data(rotate?12289U:2049U,814);
@@ -205,7 +206,8 @@ void volume_file_payload_repair(bool live,RepairFixture fixture=RepairFixture::f
       require(i<8 && writer.advance_persistent_reclamation({})==Reclaim::retiring,
           "repair rotation fixture retained the first range");
   }
-  auto adapter=WinFspNativeWritable::resume_file_volume(file,id(90),raw);
+  std::unique_ptr<WinFspNativeWritable> adapter;
+  if(!startup)adapter=WinFspNativeWritable::resume_file_volume(file,id(90),raw);
   if(rotate)file->admitted_end=file->extent();
   constexpr auto prefix_size=64;
   auto& body=file->io.live;
@@ -221,6 +223,7 @@ void volume_file_payload_repair(bool live,RepairFixture fixture=RepairFixture::f
   file->io.stable[damaged_offset]=body[damaged_offset];
   const auto damaged=body;
   const auto calls=file->io.calls;
+  if(startup)adapter=WinFspNativeWritable::resume_file_volume(file,id(90),raw);
 
   Provider provider;Provider::active=&provider;
   const auto open=[&] {
@@ -236,7 +239,19 @@ void volume_file_payload_repair(bool live,RepairFixture fixture=RepairFixture::f
     require(provider.fs.Interface->Read(&provider.fs,handle,bytes.data(),0,static_cast<ULONG>(bytes.size()),&count)==
         STATUS_SUCCESS && count==bytes.size() && bytes==original,"repair callback read differs");
   };
-  if(live) {
+  if(startup) {
+    const auto checked=adapter->snapshot();
+    checked.verify_all();
+    require(!checked.storage_info().degraded_checkpoint,"paired startup adapter remained degraded");
+    WinFspNativeSession session(std::move(adapter),provider.api());
+    require(session.start(plan())==STATUS_SUCCESS,"paired repair could not start writable callbacks");
+    const auto handle=open();
+    read(handle);
+    callback_cleanup_close(provider,handle);
+    session.stop();
+    require(session.write_restart_ready(),"paired startup repair did not retire");
+    std::cout<<"paired_startup_rotation peer_restored_before_dispatch=1 cpu_verified=1\n";
+  }else if(live) {
     WinFspVolumeController controller(std::move(adapter),provider.api(),plan());
     await([&]{return controller.view().state==SessionState::running || controller.view().retired;},5000,
         "repair controller startup deadline");
@@ -1447,7 +1462,7 @@ void memory_compaction_retirement() {
            <<" retirement_steps="<<retirement_steps<<'\n';
 }
 
-void memory_capacity_repair() {
+void memory_capacity_repair(bool startup=false) {
   auto backing=MemoryVolumeBacking::create();
   const auto bytes=data(2049,637);
   const StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
@@ -1455,13 +1470,16 @@ void memory_capacity_repair() {
     const auto unpacked=[&] {
       auto head=std::make_shared<Ram>(),source=std::make_shared<Ram>();
       head->failure_unit=source->failure_unit=4096;
-      auto model=NativeFileSession::create_indexed_volume(head,id(90),source,id(1),{8ULL<<20},raw);
-      model.create_entry("repair");
-      const auto handle=model.open("repair",{true,true,true});
-      model.write(handle,0,bytes);
-      model.cleanup(handle,false);
-      model.close(handle);
-      return model.snapshot();
+      auto adapter=WinFspNativeWritable::create_managed_indexed(head,id(90),source,id(1),{8ULL<<20},raw);
+      auto* engine=adapter.get();
+      Provider provider;Provider::active=&provider;
+      WinFspNativeSession model(std::move(adapter),provider.api());
+      require(model.start(plan())==STATUS_SUCCESS,"memory repair fixture seed startup");
+      callback_file(provider,0,bytes);
+      auto snapshot=engine->snapshot();
+      model.stop();
+      require(model.write_restart_ready(),"memory repair fixture seed retirement");
+      return snapshot;
     }();
     (void)NativeFilesystemWriter::compact(unpacked,backing.image,backing.image_identity,raw);
   }
@@ -1473,12 +1491,7 @@ void memory_capacity_repair() {
   const auto resolve=[&](const auto& identity)->std::shared_ptr<StoreByteIo> {
     return identity==backing.image_identity?backing.image:nullptr;
   };
-  auto session=NativeFileSession::resume_closed_indexed_volume(backing.head,backing.volume_identity,1,resolve,raw);
-  const auto handle=session.open("repair",{true,true,true});
-  require(!backing.compaction_pending(session) && !session.indexed_volume_space().free_bytes,
-      "memory repair fixture was not full and packed");
-  {
-    const auto pinned=session.snapshot();
+  const auto damage_replica=[&] {
     Bytes image(static_cast<std::size_t>(full));
     backing.image->read_exact(0,image);
     constexpr std::size_t marker=40;
@@ -1488,9 +1501,42 @@ void memory_capacity_repair() {
     const auto peer=offset+backing.image->contract().write_failure_unit_bytes;
     require(peer+marker<=image.size() && std::equal(bytes.begin(),bytes.begin()+marker,image.begin()+peer),
         "memory repair fixture has no disjoint peer");
-    const auto damage=*primary^std::byte{1};
-    backing.image->write_exact(offset,std::span(&damage,1));
+    const auto at=startup?peer:offset;
+    const auto damage=image[at]^std::byte{1};
+    backing.image->write_exact(at,std::span(&damage,1));
     backing.image->flush();
+  };
+  if(startup) {
+    const auto prior=backing.image_identity;
+    const auto stores=backing.domain->usage().stores;
+    damage_replica();
+    auto adapter=WinFspNativeWritable::resume_memory_volume(backing,NativeImageKind::indexed_paged,raw);
+    const auto selected=NativeVolumeHeadView::inspect_selector(*backing.head,backing.volume_identity).selection;
+    require(selected.epoch==2 && selected.parent_identity==prior && selected.image_identity==backing.image_identity &&
+        backing.domain->usage().stores==stores+1,"memory startup repair lost retained backing ownership");
+    {
+      const auto checked=adapter->snapshot();checked.verify_all();
+      require(checked.storage_info().physical_end==full && !checked.storage_info().degraded_checkpoint &&
+          checked.read("f0",0,4096)==bytes,"memory startup repair did not verify a same-size replacement");
+    }
+    Provider provider;Provider::active=&provider;
+    WinFspNativeSession reopened(std::move(adapter),provider.api());
+    require(reopened.start(plan())==STATUS_SUCCESS,"memory startup repair could not start writable callbacks");
+    reopened.stop();
+    require(reopened.write_restart_ready(),"memory startup repair did not retire");
+    backing.release_unselected_after_join();
+    require(backing.domain->usage().stores==stores,"memory startup repair retained a retired alternate");
+    backing.domain->verify_resident();
+    std::cout<<"memory_startup_rotation equal_size=1 retained_old_owner=1 cpu_verified=1\n";
+    return;
+  }
+  auto session=NativeFileSession::resume_closed_indexed_volume(backing.head,backing.volume_identity,1,resolve,raw);
+  const auto handle=session.open("f0",{true,true,true});
+  require(!backing.compaction_pending(session) && !session.indexed_volume_space().free_bytes,
+      "memory repair fixture was not full and packed");
+  {
+    const auto pinned=session.snapshot();
+    damage_replica();
     require(session.read(handle,0,4096)==bytes &&
         session.repair_indexed_payload()==PagedPayloadRepairProgress::capacity &&
         backing.compaction_pending(session),"full memory volume did not request replica rotation");
@@ -1504,7 +1550,7 @@ void memory_capacity_repair() {
     healed.verify_all();
     require(step==MemoryCompactionStep::published && session.volume_info().selection.epoch==2 &&
         healed.storage_info().physical_end==full && !healed.storage_info().degraded_checkpoint &&
-        session.read(handle,0,4096)==bytes && pinned.read("repair",0,4096)==bytes &&
+        session.read(handle,0,4096)==bytes && pinned.read("f0",0,4096)==bytes &&
         backing.advance_compaction(session)==MemoryCompactionStep::pinned,"full memory repair lost a selected or pinned file");
   }
   for(unsigned i=0;backing.compaction_pending(session);++i)
@@ -2088,6 +2134,7 @@ int main(int argc,char** argv){try {
   else if(lifetime_only)idle_until_owner_stop(31000);
   else if(argc==2 && std::string_view(argv[1])=="--memory") {
     memory_planning();memory_paged_footprint();memory_compaction_retirement();memory_capacity_repair();
+    memory_capacity_repair(true);
     std::cout<<"memory_handles start="<<handle_count()<<'\n';
     memory_backing_ownership();std::cout<<"memory_handles backing="<<handle_count()<<'\n';
     memory_composition();std::cout<<"memory_handles rollback="<<handle_count()<<'\n';
@@ -2102,6 +2149,7 @@ int main(int argc,char** argv){try {
     volume_file_idle_reclamation();
     volume_file_payload_repair(false);
     volume_file_payload_repair(false,RepairFixture::scrub);
+    volume_file_payload_repair(false,RepairFixture::startup_rotation);
   }else if(live_payload_repair) {
     const auto fixture=live_repair_rotation?RepairFixture::rotation:
         live_payload_scrub?RepairFixture::scrub:RepairFixture::foreground;

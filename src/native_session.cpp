@@ -495,12 +495,13 @@ NativeFileSession NativeFileSession::resume_volume(std::shared_ptr<StoreByteIo> 
 }
 NativeFileSession NativeFileSession::resume_closed_indexed_volume(std::shared_ptr<StoreByteIo> head,
     StoreIdentity volume,std::uint64_t epoch,const NativeVolumeImageResolver& resolver,
-    StoreCompressionOptions foreground,NativeDispositionPolicy policy) {
-  return resume_volume_impl(std::move(head),volume,epoch,resolver,foreground,policy,true);
+    StoreCompressionOptions foreground,NativeDispositionPolicy policy,const NativeStartupRepairProvider& repair_target) {
+  return resume_volume_impl(std::move(head),volume,epoch,resolver,foreground,policy,true,repair_target);
 }
 NativeFileSession NativeFileSession::resume_volume_impl(std::shared_ptr<StoreByteIo> head,
     StoreIdentity volume,std::uint64_t epoch,const NativeVolumeImageResolver& resolver,
-    StoreCompressionOptions foreground,NativeDispositionPolicy policy,bool closed_indexed) {
+    StoreCompressionOptions foreground,NativeDispositionPolicy policy,bool closed_indexed,
+    const NativeStartupRepairProvider& repair_target) {
   admit_policy(policy);detail::validate_store_compression(foreground);
   if(!epoch || volume==StoreIdentity{} || !head || !resolver)
     fail(E::invalid_options,"explicit volume/epoch/provider required");
@@ -521,10 +522,48 @@ NativeFileSession NativeFileSession::resume_volume_impl(std::shared_ptr<StoreByt
   auto repaired=[&] {
     const auto& source=selected.filesystem();
     if(!closed_indexed)return resume_image(owner->active_io,source,foreground);
-    return NativeFilesystemWriter::resume_closed_session(PagedObjectStoreWriter::resume_impl(
-        owner->active_io,source.identity(),source.storage_info().generation,
-        {source.image_storage().maximum_physical_bytes},foreground,true));
+    auto objects=[&] {
+      try {
+        return PagedObjectStoreWriter::resume_impl(owner->active_io,source.identity(),
+            source.storage_info().generation,{source.image_storage().maximum_physical_bytes},foreground,true);
+      }catch(const PagedStoreCapacityError&) {
+        if(!repair_target)throw;
+        // A previous append repair may already have published a newer root
+        // without changing this selector. Verify that exact current source.
+        const auto latest=NativeVolumeHeadView::open_indexed_recovery(head,volume,select);
+        if(latest.info().selection!=selected.info().selection)
+          fail(E::invalid_options,"startup repair selector changed");
+        const auto& current=latest.filesystem();
+        if(!current.has_degraded_indexed_payloads())throw;
+        if(epoch==(std::numeric_limits<std::uint64_t>::max)())
+          fail(E::invalid_options,"startup repair selector epoch exhausted");
+        auto authority=NativeVolumeHeadWriter::resume_impl(head,volume,epoch,current,true);
+        if(authority.info().selection!=latest.info().selection)
+          fail(E::invalid_options,"startup repair authority changed");
+        auto replacement=repair_target(authority.info());
+        if(replacement.identity==StoreIdentity{} || replacement.identity==volume ||
+            replacement.identity==current.identity() || replacement.identity==authority.info().selection.parent_identity ||
+            replacement.backing==head || replacement.backing==owner->active_io)
+          fail(E::invalid_options,"startup repair requires a distinct image");
+        admit_empty(replacement.backing);
+        auto candidate=[&] {
+          auto copy=NativeFilesystemWriter::copy_indexed_image(current,replacement.backing,replacement.identity,foreground,false);
+          return NativeFilesystemSnapshot::open(copy.snapshot());
+        }();
+        const auto published=authority.publish_compacted_impl(current,candidate,true);
+        owner->head.emplace(std::move(authority));
+        owner->active_io=std::move(replacement.backing);
+        owner->active_id=published.selection.image_identity;owner->epoch=published.selection.epoch;
+        return PagedObjectStoreWriter::resume(owner->active_io,owner->active_id,candidate.storage_info().generation,
+            {candidate.image_storage().maximum_physical_bytes},foreground);
+      }
+    }();
+    return NativeFilesystemWriter::resume_closed_session(std::move(objects));
   }();
+  if(owner->head) {
+    auto session=create(std::move(repaired),policy);
+    session.impl_->volume=std::move(owner);return session;
+  }
   auto checked=repaired.snapshot();retire(repaired);
   owner->head.emplace(NativeVolumeHeadWriter::resume(head,volume,epoch,checked));
   auto session=create(resume_image(owner->active_io,checked,foreground),policy);

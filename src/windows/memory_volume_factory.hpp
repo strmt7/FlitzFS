@@ -5,6 +5,8 @@
 namespace flitzfs {
 class NativeFileSession;
 class IndexedCoherenceStorage;
+struct NativeStartupRepairImage;
+struct NativeVolumeHeadInfo;
 enum class MemoryCompactionStep {idle,copying,ready,published,retiring,pinned,failed};
 struct MemoryVolumeLayout {
   std::uint64_t domain_capacity=0,image_capacity=0,coherence_capacity=0;
@@ -38,8 +40,10 @@ struct MemoryVolumeBacking {
   void cancel_compaction(NativeFileSession&) noexcept;
   // Owning controller and all of its callbacks must already have joined.
   void release_unselected_after_join() noexcept;
+  NativeStartupRepairImage startup_repair_image(const NativeVolumeHeadInfo&);
  private:
   friend class WinFspMemoryVolume;
+  friend class WinFspNativeWritable;
   std::shared_ptr<StoreByteIo> resolve_image(const StoreIdentity&) const;
   NativeVolumeHeadView open_owned_head(bool indexed_recovery=false) const;
   void settle_retained_selection(const StoreIdentity&) noexcept;
