@@ -68,6 +68,13 @@ batch. Further qualification should measure the remaining setup cost and
 interference across larger natural workloads.
 [Live dispatch evidence](evidence/amd-wide-copy-dispatch-2026-11-20.json)
 
+AMD grouping now queues transfers with its low-priority kernels on the
+same stream. Matched public fixtures used less peak host memory and
+retained their occupied sizes and exact CPU readback. Startup still
+dominates short GPU batches. Workload selection and sustained mounted
+throughput remain qualification work.
+[Same-stream transfer evidence](evidence/amd-same-stream-transfers-2026-11-20.json)
+
 The [indexed native writer](INDEXED_NATIVE_VOLUME.md) now creates and mutates
 paged names, inodes and extents through the existing path transaction API.
 The 1,024-file Windows fixture verified byte readback, restart and simulated

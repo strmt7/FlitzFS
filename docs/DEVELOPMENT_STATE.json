@@ -10,6 +10,17 @@
     "tree": "936409737d1c4a5d4aeb37fe5af48f55ba9accff",
     "note": "Architectural review baseline. Layer and runtime evidence have separate source bindings."
   },
+  "amd_same_stream_transfers": {
+    "source_base": "4185e9a6c972dc5b87c1fbf03cedb21279cbf544",
+    "evidence": "docs/evidence/amd-same-stream-transfers-2026-11-20.json",
+    "paired_live_runs": 12,
+    "mixed_median_job_bytes": [119312384, 102289408],
+    "lucide_median_job_bytes": [119787520, 102539264],
+    "mixed_median_worker_ns": [2461817300, 2186132600],
+    "cpu_groups_after_gpu_cancellation": 5,
+    "independent_CPU_readback": true,
+    "mounted_throughput_qualified": false
+  },
   "windows_stable_winfsp_22": {
     "source_base": "ad466670c22f0e95ca39a4cde353c71ad9380567",
     "evidence": "docs/evidence/windows11-stable-winfsp-2.2-2026-11-20.json",

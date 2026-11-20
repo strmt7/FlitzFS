@@ -1195,7 +1195,7 @@ void restrict_fixture_anchor_launch(std::span<const NativeSharedBaseSearchWindow
 
 int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
     const std::filesystem::path& bank_path,std::uint64_t discovery_ns,IndexedBatchPattern pattern,
-    bool limited_memory=false,bool overlap_cpu=false) {
+    bool limited_memory=false,bool overlap_cpu=false,bool cancel_after_submit=false) {
   constexpr auto families=anchor_search_fixture::indexed_batch_families;
   const bool revision=revision_corpus(pattern);
   const bool shifted_bias=pattern==IndexedBatchPattern::shifted_bias;
@@ -1275,6 +1275,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
         "Wide route used a legacy cap or ignored its funded range");
   }
   NativeMaintenanceProgress progress;
+  bool cancelled=false;
   std::uint64_t sequence=0,worker_ns=0,cpu_groups_before_gpu_reply=0;
   std::uint64_t packed_payload_bytes=0,sampled_bias_members=0;
   std::size_t sparse_bodies=0,delta_bodies=0;
@@ -1292,7 +1293,8 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
     const auto resources=detail::maintenance_resources(observation,observation.captured_ms,policy);
     require(resources.has_value(),"Cannot establish a modeled opportunity with live memory");
     const auto funded=detail::maintenance_group_member_limit(*resources,true);
-    const auto grant=anchor?anchor->stage_grant(GetTickCount64(),funded):0;
+    if(cancelled)anchor->observe(2,GetTickCount64(),true);
+    const auto grant=anchor && !cancelled?anchor->stage_grant(GetTickCount64(),funded):0;
     const auto replies=anchor?anchor->replies():std::span<const NativeSharedBaseSearchReply>{};
     progress=maintenance.advance(observation,observation.captured_ms,{grant,nullptr,anchor!=nullptr,replies});
     if(progress.phase==NativeMaintenancePhase::failed || progress.deferral==NativeMaintenanceDeferral::memory ||
@@ -1317,6 +1319,12 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
     }
     const auto started=std::chrono::steady_clock::now();
     anchor->start(windows,1);
+    if(cancel_after_submit) {
+      require(!cancelled && anchor->waiting(),"Cancellation fixture needs an outstanding GPU exchange");
+      anchor->yield_to_foreground();
+      cancelled=true;
+      continue; // Admit independent CPU work while the supervisor retires the worker.
+    }
     bool can_overlap=overlap_cpu;
     await([&] {
       anchor->observe(1,GetTickCount64(),true);
@@ -1361,6 +1369,10 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   const bool retired=(!anchor || anchor->stop()) && WorkerExchangeSession::available();
   require(!maintenance.pending() && (revision || progress.published_groups) && retired && !stats.integrity_failures,
       "Large batch lost protected publication or ownership");
+  if(cancel_after_submit)
+    require(cancelled && stats.submitted==1 && stats.yielded==1 && !stats.verified &&
+        progress.published_groups && !progress.advised_members_published,
+        "Foreground cancellation did not settle through CPU grouping");
   if(limited_memory)
     require(limited_groups && stats.submitted==1 && stats.verified==1 &&
         stats.verified_groups>0 && stats.verified_groups<limited_groups &&
@@ -1391,6 +1403,8 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   if(collective_device)
     require(stats.submitted==1 && sparse_bodies && delta_bodies && stats.verified_groups==families,
         "The shared AMD exchange did not verify both codec choices");
+  if(sparse_device || reference_device)
+    require(sparse_bodies && stats.verified,"AMD sparse device advice was not independently accepted");
   if(reference_device)
     require(stats.reference_batches==1 && stats.reselected_groups==families && stats.verified_groups==families,
         "AMD full reference search did not verify each improved group");
@@ -1403,6 +1417,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   maintenance.cancel();
   session.reset();
   const auto closed=NativeVolumeHeadView::open(head,id(90),resolve);
+  const auto grouped_root=PagedObjectStoreSnapshot::open(image,{kStoreMaxPhysicalBytes}).read(1);
   auto packed=std::make_shared<Ram>();packed->failure_unit=image->failure_unit;
   RevisionReadProfile grouped_session_reads;
   {
@@ -1420,7 +1435,9 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   require(revision || packed->extent()<baseline_bytes,"Multiwindow maintenance did not reduce complete compacted size");
   const auto root=PagedObjectStoreSnapshot::open(packed,{kStoreMaxPhysicalBytes}).read(1);
   const auto capability=std::to_integer<unsigned>(root[8]);
-  if(sparse_xor || collective)require(capability==7,"Sparse XOR did not survive compaction");
+  // Advice can compete with a denser representation. Compaction must
+  // preserve the capability that the writer actually selected.
+  require(root[8]==grouped_root[8],"Compaction changed the selected indexed capability");
   if(revision) {
     std::cout<<"revision_reads zstd="<<(compression.mode==StoreCompressionMode::automatic?store_zstd_version():0)
         <<" full_logical="<<grouped_reads.full_logical<<" full_input_backing="<<baseline_reads.full_backing
@@ -1451,6 +1468,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
       <<" submitted="<<stats.submitted<<" verified_batches="<<stats.verified<<" worker_ns="<<worker_ns
       <<" submitted_groups="<<stats.submitted_groups<<" verified_groups="<<stats.verified_groups
       <<" cpu_groups_before_gpu_reply="<<cpu_groups_before_gpu_reply
+      <<" foreground_cancelled="<<cancelled
       <<" submitted_queued_batches="<<stats.submitted_queued_batches
       <<" verified_queued_batches="<<stats.verified_queued_batches<<" dispatches_per_wait="<<stats.queued_dispatches_per_wait
       <<" queued_worker_wall_ns="<<stats.queued_worker_wall_ns<<" queued_kernel_wait_ns="<<stats.queued_kernel_wait_ns
@@ -1482,6 +1500,7 @@ int live_anchor_owner(int argc,char** argv) {
   const auto multiwindow=multiwindow_pattern(mode);
   const auto restriction=argc==9?std::string_view(argv[8]):std::string_view{};
   const bool wide_copy=restriction=="wide-copy";
+  const bool cancel_after_submit=restriction=="cancel-after-submit";
   const bool overlap_cpu=restriction=="limited-overlap";
   const bool limited_memory=restriction=="limited-memory" || overlap_cpu;
   const bool queued=mode=="queued" || mode=="queued-yield" || mode=="verified-read" || mode=="verified-edit" ||
@@ -1490,7 +1509,8 @@ int live_anchor_owner(int argc,char** argv) {
   require(mode=="accept" || mode=="yield" || mode=="both" || mode=="batch" || mode=="batch-yield" || queued ||
       mode=="changed-extents" || xor_mode || multiwindow,
       "Expected an AMD ownership trial");
-  require(argc!=9 || (multiwindow && revision_corpus(*multiwindow) && (restriction=="queued" || limited_memory || wide_copy)),
+  require(argc!=9 || (multiwindow && revision_corpus(*multiwindow) &&
+      (restriction=="queued" || limited_memory || wide_copy || cancel_after_submit)),
       "The requested comparison needs a revision corpus");
   const ProcessBudget profile{128,2000,5000,16};
   HipRouteDiscoveryRequest request;
@@ -1521,7 +1541,7 @@ int live_anchor_owner(int argc,char** argv) {
         static_cast<std::uint32_t>(members+families),10000,
         output,wide_copy?12U:small_batch?4U:modular?16U:0U,queued?kAnchorProfileMaxQueuedDispatches:1U},
         argc>=8?std::filesystem::path(argv[7]):std::filesystem::path{},
-        discovery_ns,*multiwindow,limited_memory,overlap_cpu);
+        discovery_ns,*multiwindow,limited_memory,overlap_cpu,cancel_after_submit);
   }
   const std::uint32_t members=mode=="changed-extents"?3:
       queued?queued_anchor_members:(mode=="batch" || mode=="batch-yield" || xor_mode)?8:4;

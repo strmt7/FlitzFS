@@ -166,6 +166,23 @@ host supplies an approved ceiling and live memory grant.
 [Wide copy protocol](WORKER_CHANNEL.md#wider-amd-copy-dispatches) ·
 [Wide copy evidence](evidence/amd-wide-copy-dispatch-2026-11-20.json)
 
+Shared-base transfers use the same least-priority HIP stream as clears and
+kernels. The immutable request owns queued upload bytes through completion.
+The synchronous stream readback completes the window before the worker
+decodes results, releases pageable host buffers or reuses the GPU slab.
+[AMD HIP memory management](https://rocm.docs.amd.com/projects/HIP/en/latest/reference/hip_runtime_api/modules/memory_management.html) ·
+[AMD HIP stream management](https://rocm.docs.amd.com/projects/HIP/en/latest/reference/hip_runtime_api/modules/stream_management.html)
+
+In six alternating pairs on the Windows host, the mixed and Lucide
+fixtures retained the same occupied sizes and verified bytes. Their
+median peak job commitments fell by 16.2 and 16.4 MiB. Median mixed
+worker time moved from 2.46 to 2.19 seconds. The Lucide median moved
+from 2.23 to 2.31 seconds. Timing ranges overlapped for both fixtures.
+Kernel and runtime artifacts were identical in each pair. After cancellation
+of one admitted AMD request, five CPU groups published on subsequent
+modeled idle opportunities and all files reopened byte for byte.
+[Same-stream transfer evidence](evidence/amd-same-stream-transfers-2026-11-20.json)
+
 ## SDK-only compression compute candidate
 
 The [typed LZ4 compute implementation and CPU probe](HIP_LZ4_COMPUTE.md)

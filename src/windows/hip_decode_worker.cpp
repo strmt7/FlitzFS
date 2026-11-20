@@ -232,10 +232,23 @@ namespace {
 // A pressure or launch error after submission still drains the owned stream.
 struct AnchorStreamWork {
   const DeviceResources& resources;
+  decltype(&hipMemcpyAsync) enqueue;
+  decltype(&hipMemcpyWithStream) copy;
   bool pending=false;
-  hipError_t wait() noexcept {
+  void upload(void* destination,const void* input,std::size_t bytes,const char* operation) {
+    pending=true;
+    check_hip(enqueue(destination,input,bytes,hipMemcpyHostToDevice,resources.stream),operation);
+  }
+  void download(void* destination,const void* input,std::size_t bytes,const char* operation) {
+    pending=true;
+    // Use the synchronous stream API for a caller-owned host destination.
+    check_hip(copy(destination,input,bytes,hipMemcpyDeviceToHost,resources.stream),operation);
     pending=false;
-    return resources.api.synchronize(resources.stream);
+  }
+  hipError_t wait() noexcept {
+    const auto status=resources.api.synchronize(resources.stream);
+    pending=status!=hipSuccess;
+    return status;
   }
   ~AnchorStreamWork() {if(pending)(void)wait();}
 };
@@ -273,8 +286,7 @@ anchor_match::u32 price_anchor_references(const DeviceResources& resources,Ancho
       check_memory();
       first+=count;
     }
-    check_hip(resources.api.copy(prices.data(),reinterpret_cast<void*>(output),bytes,hipMemcpyDeviceToHost),
-        "read anchor reference prices");
+    submitted.download(prices.data(),reinterpret_cast<void*>(output),bytes,"read anchor reference prices");
     constexpr u32 header=extent_bytes-sparse_xor_max_body_bytes-1;
     std::uint64_t total=0;
     for(const auto value:prices) {
@@ -332,6 +344,14 @@ AnchorReadback run_hip_anchor_groups(HMODULE runtime,
   if (!memset_address) throw HipWorkerFailure(HipWorkerExit::runtime_unavailable,
       "hipMemsetAsync",HipWorkerStage::runtime_api);
   const auto clear=std::bit_cast<decltype(&hipMemsetAsync)>(memset_address);
+  const auto transfer_address=GetProcAddress(runtime,"hipMemcpyAsync");
+  if(!transfer_address)throw HipWorkerFailure(HipWorkerExit::runtime_unavailable,
+      "hipMemcpyAsync",HipWorkerStage::runtime_api);
+  const auto transfer=std::bit_cast<decltype(&hipMemcpyAsync)>(transfer_address);
+  const auto readback_address=GetProcAddress(runtime,"hipMemcpyWithStream");
+  if(!readback_address)throw HipWorkerFailure(HipWorkerExit::runtime_unavailable,
+      "hipMemcpyWithStream",HipWorkerStage::runtime_api);
+  const auto readback=std::bit_cast<decltype(&hipMemcpyWithStream)>(readback_address);
   const auto least=initialize_device(api,ordinal,luid,node_mask,[](auto identity) {
     return verified_single_gpu_node(query_windows_gpu_topology(identity),identity);
   });
@@ -396,7 +416,9 @@ AnchorReadback run_hip_anchor_groups(HMODULE runtime,
     command.arena_arguments={&active_base,&command.input,&command.members,&output,&command.directory,
         &arena,&arena_words,&arena_version};
   }
-  AnchorStreamWork submitted{resources};
+  // Copies stay on the owned least-priority stream with clears and kernels.
+  // The private request outlives queued uploads. Host readback fences before use.
+  AnchorStreamWork submitted{resources,transfer,readback};
   const auto check_admitted_slab=[&] {
     profile.begin(HipPhase::post_admission);
     const auto after=sampler.sample().snapshot;
@@ -419,14 +441,11 @@ AnchorReadback run_hip_anchor_groups(HMODULE runtime,
       profile.begin(HipPhase::host_to_device);
       if (first) {
         const auto* input=request.source.data()+(first+1)*match::extent_bytes;
-        check_hip(api.copy(member_input,input,staged*match::extent_bytes,hipMemcpyHostToDevice),
-            "upload next anchor match window");
-        submitted.pending=true;
+        submitted.upload(member_input,input,staged*match::extent_bytes,"upload next anchor match window");
         check_hip(clear(output,255,result_bytes,resources.stream),"clear next anchor match result");
       } else {
-        check_hip(api.copy(source,request.source.data(),(1+staged)*match::extent_bytes,hipMemcpyHostToDevice),
+        submitted.upload(source,request.source.data(),(1+staged)*match::extent_bytes,
             "upload shared base and first match window");
-        submitted.pending=true;
         if(!reference)check_hip(clear(table,255,allocation-window_input,resources.stream),"clear anchor match slab");
       }
       const auto directory_words=match::sparse_xor_arena_directory_words(staged);
@@ -480,7 +499,9 @@ AnchorReadback run_hip_anchor_groups(HMODULE runtime,
               arguments,0,resources.stream),"launch anchor match window");
         }
         at+=command.members;
-        if(++queued==dispatches_per_wait || at==staged) {
+        // The following same-stream download fences the final dispatches
+        // before any result is examined or another window reuses the slab.
+        if(++queued==dispatches_per_wait && at<staged) {
           check_hip(submitted.wait(),"complete anchor match windows");
           queued=0;
         }
@@ -491,8 +512,7 @@ AnchorReadback run_hip_anchor_groups(HMODULE runtime,
         std::vector<match::u32> directory(directory_words);
         const auto directory_bytes=std::span(directory).size_bytes();
         profile.begin(HipPhase::device_to_host);
-        check_hip(api.copy(directory.data(),output,directory_bytes,hipMemcpyDeviceToHost),
-            "read anchor arena directory");
+        submitted.download(directory.data(),output,directory_bytes,"read anchor arena directory");
         profile.end(HipPhase::device_to_host);
         profile.begin(HipPhase::cpu_verification);
         const auto bodies=detail::check_anchor_arena_directory(directory,arena_words,mode);
@@ -500,7 +520,7 @@ AnchorReadback run_hip_anchor_groups(HMODULE runtime,
         std::vector<std::byte> payload(std::size_t{directory.front()}*sizeof(match::u32));
         if(!payload.empty()) {
           profile.begin(HipPhase::device_to_host);
-          check_hip(api.copy(payload.data(),arena,payload.size(),hipMemcpyDeviceToHost),"read anchor result arena");
+          submitted.download(payload.data(),arena,payload.size(),"read anchor result arena");
           profile.end(HipPhase::device_to_host);
         }
         profile.begin(HipPhase::cpu_verification);
@@ -510,7 +530,7 @@ AnchorReadback run_hip_anchor_groups(HMODULE runtime,
       } else {
         const auto window=std::span(*slots).subspan(first*words_per_member,staged*words_per_member);
         profile.begin(HipPhase::device_to_host);
-        check_hip(api.copy(window.data(),output,result_bytes,hipMemcpyDeviceToHost),"read anchor match window");
+        submitted.download(window.data(),output,result_bytes,"read anchor match window");
         profile.end(HipPhase::device_to_host);
         profile.begin(HipPhase::cpu_verification);
         require(packed || std::none_of(window.begin(),window.end(),[](auto record){return record==match::empty;}),
