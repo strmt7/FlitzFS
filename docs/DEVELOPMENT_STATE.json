@@ -129,6 +129,20 @@
     "missing_package_cpu_readback": true,
     "end_to_end_speedup_qualified": false
   },
+  "indexed_group_profitability": {
+    "source_base": "aff52fdd936aabc0a303632eb3336c140be02fb4",
+    "evidence": "docs/evidence/indexed-group-profitability-2026-11-20.json",
+    "checks_encoded_complete_size_before_append_admission": true,
+    "automatic_subset_after_complete_masked_reference_attempts": true,
+    "compacted_bytes": {
+      "code": {"previous": 491520, "current": 286720},
+      "documentation": {"previous": 540672, "current": 319488}
+    },
+    "cpu_trials_per_build_and_corpus": 2,
+    "independent_cpu_readback": true,
+    "live_amd_requalification": "Pending a healthy host adapter after an external driver update.",
+    "physical_storage_power_loss_qualified": false
+  },
   "indexed_compaction_foreground_reconciliation": {
     "source_base": "c5402a2e7a1899db7ba3fa901052f6a479e034cf",
     "evidence": "docs/evidence/indexed-compaction-reconciliation-2026-11-19.json",

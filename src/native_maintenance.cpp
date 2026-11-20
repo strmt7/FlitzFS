@@ -615,32 +615,42 @@ struct NativeGroupMaintenance::Impl {
       const auto& content=indexed_feature(token.object).content;
       key.insert(key.end(),content.begin(),content.end());
     }
+    const auto candidate_key=[&](std::byte mode,std::uint64_t anchor) {
+      key.front()=mode;
+      for(unsigned i=0;i<8;++i)key[8+i]=static_cast<std::byte>(anchor>>(8*i));
+      return detail::record_digest(key);
+    };
+    const bool compare_references=masked_reference && expected.size()>2;
+    bool allow_subset=!compare_references;
     std::size_t choice=0;
     work_sampled_key.reset();
     work_sampled_retry=false;
     for(;choice<references.size() && references[choice];++choice) {
       representative=references[choice];
-      for(unsigned i=0;i<8;++i)key[8+i]=static_cast<std::byte>(representative>>(8*i));
-      work_key=detail::record_digest(key);
+      work_key=candidate_key(std::byte{2},representative);
       if(attempted.contains(work_key))continue;
-      if(!choice && masked_reference && expected.size()>2) {
-        key.front()=std::byte{3};
-        const auto refined=detail::record_digest(key);
-        key.front()=std::byte{2};
+      if(!choice && compare_references) {
+        const auto refined=candidate_key(std::byte{3},representative);
         if(attempted.contains(refined))work_sampled_retry=true;
         else {work_sampled_key=work_key;work_key=refined;}
       }
       break;
     }
-    if(choice==references.size() || !references[choice])return;
-    // Revisit the bucket when an alternative remains. A successful group
-    // removes its members before the next candidate pass.
-    if(work_sampled_key || (choice+1<references.size() && references[choice+1]))--candidate_index;
+    if(choice==references.size() || !references[choice]) {
+      if(!compare_references)return;
+      representative=references.front();
+      work_key=candidate_key(std::byte{4},representative);
+      if(attempted.contains(work_key))return;
+      // Exhaust the full-group alternatives before retaining a subset. Use
+      // the preferred nominee for a single bounded fallback.
+      allow_subset=true;
+      work_sampled_retry=true;
+    } else if(compare_references)--candidate_index;
     work_ids.clear();work_ids.reserve(expected.size());
     for(const auto& token:expected)work_ids.push_back(token.object);
     const auto base=indexed_feature(representative).token.extent;
     remember(work_key);
-    work.emplace(writer.prepare_shared_base(base,selected,expected,collect_batch));
+    work.emplace(writer.prepare_shared_base(base,selected,expected,collect_batch,allow_subset));
     work_members=expected.size();work_batched=collect_batch;
     ++state.attempted_groups;phase=Phase::preparing;
   }
@@ -778,7 +788,11 @@ struct NativeGroupMaintenance::Impl {
           account_group(result,previous_end);
           state.advised_members_published=add(state.advised_members_published,work->progress().selected_advice_members);
           if(reselected)++state.reselected_reference_groups;
-          for(const auto id:work_ids){features.erase(id);representatives.erase(id);}
+          for(const auto id:work_ids) {
+            if(std::ranges::binary_search(result.skipped_objects,id))continue;
+            features.erase(id);
+            representatives.erase(id);
+          }
           refresh_base=result.reference;
         } else {
           if(work_sampled_key && !reselected)remember(*work_sampled_key);

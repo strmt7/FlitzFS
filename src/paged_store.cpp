@@ -492,11 +492,11 @@ void pad_index(StoreByteIo& image,std::uint32_t unit,std::uint64_t end,std::uint
 }
 struct PreparedObject {Entry entry;RecordHeader header{};Bytes payload;};
 PreparedObject prepare_object(const State& state,detail::StoreCodecEncoder& encoder,
-    const StoreMutation& mutation,PayloadAllocation& allocation,std::uint64_t& cursor) {
+    const StoreMutation& mutation) {
   auto encoded=encoder.encode_with_lz4(mutation.bytes,mutation.lz4_candidate,mutation.lz4_literal_prefix_bytes);
   PreparedObject record;
   auto& e=record.entry;
-  e={mutation.id,state.checkpoint,cursor,static_cast<std::uint32_t>(mutation.bytes.size()),
+  e={mutation.id,state.checkpoint,0,static_cast<std::uint32_t>(mutation.bytes.size()),
      static_cast<std::uint32_t>(encoded.payload.size()),{}};
   auto& h=record.header;
   set_magic(h,data_magic);put32(h,8,1);put32(h,12,encoded.codec);
@@ -504,11 +504,50 @@ PreparedObject prepare_object(const State& state,detail::StoreCodecEncoder& enco
   if(encoded.codec!=detail::kStoreRaw)copy(h,56,encoded.decoded_digest);
   e.digest=detail::record_digest(std::span<const std::byte>(h).first(96),encoded.payload);copy(h,96,e.digest);
   record.payload=std::move(encoded.payload);
-  allocation.place(state,e,std::uint64_t{record_header_bytes}+e.stored,cursor);
-  check_physical_capacity(cursor,state.limits.maximum_physical_bytes);
   return record;
 }
+void place_object(const State& state,PreparedObject& record,PayloadAllocation& allocation,std::uint64_t& cursor) {
+  allocation.place(state,record.entry,std::uint64_t{record_header_bytes}+record.entry.stored,cursor);
+  check_physical_capacity(cursor,state.limits.maximum_physical_bytes);
+}
 struct Change {std::uint64_t id;bool erase;Entry entry;};
+PagedCompactedSizes compacted_sizes_after(const State& state,std::span<const Change> changes,
+    std::uint64_t rebound_object) {
+  LookupPages scoped;
+  std::uint64_t removed=0,removed_bytes=0,inserted=0,inserted_bytes=0;
+  std::optional<Entry> rebound_before,rebound_after;
+  for(const auto& change:changes) {
+    const auto previous=lookup(state,change.id,&scoped);
+    if(previous) {
+      ++removed;
+      removed_bytes=add(removed_bytes,previous->stored);
+    } else if(change.erase)fail("compacted erase references absent object");
+    if(!change.erase) {
+      ++inserted;
+      inserted_bytes=add(inserted_bytes,change.entry.stored);
+    }
+    if(change.id==rebound_object) {
+      rebound_before=previous;
+      if(!change.erase)rebound_after=change.entry;
+    }
+  }
+  if(rebound_object && !rebound_before && !rebound_after) {
+    rebound_before=lookup(state,rebound_object,&scoped);
+    rebound_after=rebound_before;
+  }
+  if(removed>state.root.count || removed_bytes>state.root.stored ||
+      (rebound_before && rebound_before->stored>state.root.stored))
+    fail("compacted change totals exceed verified inventory");
+  // Compaction preserves the sealed payloads except for an identity-bound
+  // descriptor. Its prior size can be zero in the lower bound, and its new
+  // encoded size cannot exceed its logical length.
+  const auto before_stored=state.root.stored-(rebound_before?rebound_before->stored:0);
+  const auto after_count=add(state.root.count-removed,inserted);
+  auto after_stored=add(state.root.stored-removed_bytes,inserted_bytes);
+  if(rebound_after)after_stored=add(after_stored,rebound_after->logical-rebound_after->stored);
+  return {packed_rebuild_size(state,state.root.count,before_stored),
+          packed_rebuild_size(state,after_count,after_stored)};
+}
 struct Plan {
   State next;
   std::size_t changed_keys=kStoreMaxObjects;
@@ -1187,42 +1226,18 @@ PagedCompactedSizes PagedObjectStoreSnapshot::rebuilt_size_after(std::span<const
     std::uint64_t rebound_object) const {
   if(!impl_)fail("moved-from compacted size estimate");
   if(changes.size()>kStoreMaxObjects)fail("compacted change inventory exceeds transaction budget");
-  std::vector<const StoreMutation*> ordered;
+  std::vector<Change> ordered;
   ordered.reserve(changes.size());
   for(const auto& change:changes) {
     if(!change.id || change.bytes.size()>kStoreMaxObjectBytes || (change.erase && !change.bytes.empty()))
       fail("invalid compacted record change");
-    ordered.push_back(&change);
+    const auto size=static_cast<std::uint32_t>(change.bytes.size());
+    ordered.push_back({change.id,change.erase,{change.id,0,0,size,size}});
   }
-  std::sort(ordered.begin(),ordered.end(),[](const auto* a,const auto* b){return a->id<b->id;});
-  if(std::adjacent_find(ordered.begin(),ordered.end(),[](const auto* a,const auto* b){return a->id==b->id;})!=ordered.end())
+  std::ranges::sort(ordered,{},&Change::id);
+  if(std::ranges::adjacent_find(ordered,{},&Change::id)!=ordered.end())
     fail("duplicate compacted record change");
-
-  const auto& state=impl_->state;
-  LookupPages scoped;
-  std::uint64_t removed=0,replaced_bytes=0,inserted=0,inserted_bytes=0;
-  bool replaces_rebound=false;
-  for(const auto* change:ordered) {
-    replaces_rebound=replaces_rebound || change->id==rebound_object;
-    if(const auto previous=lookup(state,change->id,&scoped)) {
-      ++removed;
-      replaced_bytes=add(replaced_bytes,previous->stored);
-    } else if(change->erase)fail("compacted erase references absent object");
-    if(!change->erase) {
-      ++inserted;
-      inserted_bytes=add(inserted_bytes,change->bytes.size());
-    }
-  }
-  const auto rebound=rebound_object?lookup(state,rebound_object,&scoped):std::nullopt;
-  const auto before_stored=state.root.stored-(rebound?rebound->stored:0);
-  if(removed>state.root.count || replaced_bytes>state.root.stored)
-    fail("compacted change totals exceed verified inventory");
-  const auto after_count=add(state.root.count-removed,inserted);
-  auto after_stored=add(state.root.stored-replaced_bytes,inserted_bytes);
-  if(rebound && !replaces_rebound)
-    after_stored=add(after_stored,rebound->logical-rebound->stored);
-  return {packed_rebuild_size(state,state.root.count,before_stored),
-          packed_rebuild_size(state,after_count,after_stored)};
+  return compacted_sizes_after(impl_->state,ordered,rebound_object);
 }
 PagedStoreInfo PagedObjectStoreSnapshot::info() const noexcept {return impl_?flitzfs::info(impl_->state):PagedStoreInfo{};}
 std::optional<StoreObjectInfo> PagedObjectStoreSnapshot::stat(std::uint64_t id) const {
@@ -1292,8 +1307,10 @@ PagedObjectStoreWriter PagedObjectStoreWriter::create_impl(std::shared_ptr<Store
     previous=mutation.id;
     input=add(input,mutation.bytes.size());
     if(input>kStoreMaxTransactionBytes)capacity("initial transaction input budget");
-    objects.push_back(prepare_object(s,p->encoder,mutation,allocation,cursor));
-    entries.push_back(objects.back().entry);
+    auto record=prepare_object(s,p->encoder,mutation);
+    place_object(s,record,allocation,cursor);
+    entries.push_back(record.entry);
+    objects.push_back(std::move(record));
   }
   allocation.seal();
   Plan plan;plan.next=s;plan.page_start=align(cursor,s.unit);plan.finish(plan.leaves(entries));
@@ -1456,10 +1473,18 @@ PagedStoreInfo PagedObjectStoreWriter::commit_native(std::span<const StoreMutati
       kStoreMaxTransactionBytes+(shared_bases?131072U:directory_indexes?65536U:0U),
       (std::numeric_limits<std::uint64_t>::max)()).storage;
 }
+std::optional<PagedStoreInfo> PagedObjectStoreWriter::commit_if_compacted_smaller(
+    std::span<const StoreMutation> mutations,std::uint64_t rebound_object,PagedCompactedSizes& sizes) {
+  CompactedAdmission admission{rebound_object,sizes};
+  const auto result=commit_impl(mutations,kStoreMaxObjects,kStoreMaxTransactionBytes,
+      (std::numeric_limits<std::uint64_t>::max)(),{},&admission);
+  if(!result.write_bytes_upper_bound)return {};
+  return result.storage;
+}
 PagedStoreWriteResult PagedObjectStoreWriter::commit_impl(
     std::span<const StoreMutation> mutations,std::size_t maximum_operations,
     std::uint64_t maximum_input,std::uint64_t maximum_write_bytes,
-    const std::function<bool(std::uint64_t)>& reserve_writes) {
+    const std::function<bool(std::uint64_t)>& reserve_writes,CompactedAdmission* compacted) {
   if(!impl_ || impl_->poisoned)fail("writer unavailable/poisoned");
   auto& p=*impl_;const auto& old=p.state;
   if(old.degraded_payloads){p.poisoned=true;fail("payload rebuild required before further writes");}
@@ -1495,8 +1520,26 @@ PagedStoreWriteResult PagedObjectStoreWriter::commit_impl(
   std::vector<PreparedObject> objects;objects.reserve(sorted.size());std::vector<Change> changes;changes.reserve(sorted.size());
   for(auto m:sorted) {
     if(m->erase) {changes.push_back({m->id,true,{}});continue;}
-    auto record=prepare_object(plan.next,p.encoder,*m,allocation,cursor);
+    auto record=prepare_object(plan.next,p.encoder,*m);
+    if(!compacted)place_object(plan.next,record,allocation,cursor);
     changes.push_back({m->id,false,record.entry});objects.push_back(std::move(record));
+  }
+  if(compacted) {
+    try {
+      compacted->sizes=compacted_sizes_after(old,changes,compacted->rebound_object);
+      if(old.degraded_metadata)fail("metadata replica lost during compacted size admission");
+    }catch(const std::bad_alloc&){throw;}
+    catch(...){p.poisoned=true;throw;}
+    if(compacted->sizes.after_upper>=compacted->sizes.before)return {flitzfs::info(old),0};
+
+    // A declined group never needs append space. Use the same sealed data to
+    // lay out and write the accepted transaction.
+    auto record=objects.begin();
+    for(auto& change:changes)if(!change.erase) {
+      place_object(plan.next,*record,allocation,cursor);
+      change.entry=record->entry;
+      ++record;
+    }
   }
   allocation.seal();plan.page_start=align(cursor,old.unit);
   std::vector<Ref> roots;

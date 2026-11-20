@@ -5,6 +5,7 @@
 #include <stdexcept>
 
 namespace flitzfs {
+namespace detail {class IndexedSharedBasePreparation;}
 // Scalable object storage for native volumes. The caller supplies an
 // exclusively owned, resource-admitted backend.
 // One control thread; do not race writers, snapshots or backing mutations.
@@ -152,6 +153,7 @@ class PagedObjectStoreWriter final {
   friend class IndexedCoherenceWriter;
   friend class NativeFileSession;
   friend class NativeFilesystemWriter;
+  friend class detail::IndexedSharedBasePreparation;
   // The indexed session has already verified the selected native checkpoint and
   // proved retired-owner admission before enabling payload repair.
   static PagedObjectStoreWriter resume_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,
@@ -196,9 +198,12 @@ class PagedObjectStoreWriter final {
   // for the explicit indexed-name layout, or 1024 operations / 128 KiB extra
   // input for shared-base namespaces. Public admission is unchanged.
   PagedStoreInfo commit_native(std::span<const StoreMutation>,bool directory_indexes=false,bool shared_bases=false);
+  std::optional<PagedStoreInfo> commit_if_compacted_smaller(std::span<const StoreMutation>,
+      std::uint64_t rebound_object,PagedCompactedSizes&);
+  struct CompactedAdmission {std::uint64_t rebound_object;PagedCompactedSizes& sizes;};
   PagedStoreWriteResult commit_impl(std::span<const StoreMutation>,std::size_t maximum_operations,
       std::uint64_t maximum_input,std::uint64_t maximum_write_bytes,
-      const std::function<bool(std::uint64_t)>& reserve_writes={});
+      const std::function<bool(std::uint64_t)>& reserve_writes={},CompactedAdmission* compacted=nullptr);
   struct Impl;
   explicit PagedObjectStoreWriter(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;

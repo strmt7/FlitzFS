@@ -1,0 +1,316 @@
+{
+  "schema": 1,
+  "recorded_on": "2026-11-20",
+  "source_base": "aff52fdd936aabc0a303632eb3336c140be02fb4",
+  "code_patch_sha256": "b63498e73000bfc663070f56fe256765c9265f3f91acd3e53d71424045186ed4",
+  "source_binding": [
+    {
+      "path": "include/flitzfs/native_filesystem.hpp",
+      "git_blob": "43187ab9ccbfb1700c968cef0686363f1555f8da"
+    },
+    {
+      "path": "include/flitzfs/paged_store.hpp",
+      "git_blob": "72ebaaa86d002cc9fcfbcedaca68870301c3b3a5"
+    },
+    {
+      "path": "src/native_filesystem.cpp",
+      "git_blob": "14fdd6e505955df508160475a39f41e10e3b8763"
+    },
+    {
+      "path": "src/native_indexed_volume.cpp",
+      "git_blob": "fe5be34ce4068f363a36f3e86179355e2b1e2175"
+    },
+    {
+      "path": "src/native_indexed_volume.hpp",
+      "git_blob": "0b981c184247f2801fc177409be19d7e0c831700"
+    },
+    {
+      "path": "src/native_maintenance.cpp",
+      "git_blob": "a9c7269362979c36a8dc221f76cba851102ea951"
+    },
+    {
+      "path": "src/paged_store.cpp",
+      "git_blob": "5e480e67167b2720bffa64ddfce694011a88168b"
+    },
+    {
+      "path": "tests/test_native_group_maintenance.cpp",
+      "git_blob": "df640b8f9e840a93323e7d9e6f06539337b61455"
+    },
+    {
+      "path": "tests/test_native_shared_base.cpp",
+      "git_blob": "9ff154cd9f9db0e1a35c7e889c15dd2ab02f982f"
+    }
+  ],
+  "research": {
+    "correlation_and_record_sealing": {
+      "provider": "0.9.5+flitzzip.portable2",
+      "sources": [
+        {
+          "url": "https://www.usenix.org/conference/nsdi26/presentation/wang-zirui",
+          "final_http_status": 200,
+          "markdown_sha256": "130eb91378604ebacf1d676184608e3efff8b2f5b0dc03b971bfd011678b2906",
+          "capture_sha256": "46e41514b35d096639713cafe31f86b96a6d6569e95605caa6a027f7e450a61c"
+        },
+        {
+          "url": "https://facebook.github.io/zstd/doc/api_manual_latest.html",
+          "final_http_status": 200,
+          "markdown_sha256": "0c9fb8969be62f9ddb4554d4e220b27a645cfa554416e84fef011ba940bf9533",
+          "capture_sha256": "3a6061bd90ebae8e88dedfdb026748cd74749e51fcc8c52d032548256beb50b5"
+        }
+      ]
+    },
+    "windows_device_removal": {
+      "provider": "0.9.5+flitzzip.portable2",
+      "sources": [
+        {
+          "url": "https://learn.microsoft.com/en-us/windows-hardware/drivers/install/cm-prob-will-be-removed",
+          "final_http_status": 200,
+          "markdown_sha256": "d7d28d8d69a552f1b987b9119e354b3a3129f9671599aa1538f95248c4a4c454",
+          "capture_sha256": "b3b5cacdce6249d10034465a5e3aca98445874bbddd09d4772e291f7bd70f843"
+        }
+      ]
+    },
+    "semantic_source_routing": {
+      "provider": "0.2.43",
+      "receipt_sha256": "5e91552d4488f480a5cadfd1c4784ded97ab1642732d9348ec98318a8f306e0d",
+      "native_response_sha256": "eed42129876c1e029ff1c963a9b105fb3b0472afe655999f1675a0eedcb20de0"
+    }
+  },
+  "validation": {
+    "checked_suites": {
+      "Windows Release": {
+        "checks_passed": 15,
+        "details_sha256": "095cb69970923fe510fa1f2a9db7be9652cf50496426db61b086a9fed820ed44"
+      },
+      "Windows codec-free ASan": {
+        "checks_passed": 12,
+        "details_sha256": "6609361105ba646a2d882bad24c7635e3044a9842fc911205152725f1b2696b8"
+      }
+    },
+    "sealed_size_fixture": {
+      "before_bytes": 245760,
+      "after_bytes": 163840,
+      "raw_after_upper_bytes": 278528
+    },
+    "unprofitable_group_at_append_capacity_wrote_no_records": true,
+    "outlier_fixture": {
+      "independent_candidates": 1,
+      "published_members": 4,
+      "byte_exact": true
+    },
+    "injected_write_or_barrier_cases_in_standard_shared_base_test": 1599,
+    "capacity_resume_fixture_counts_admitted_work_and_checks_idle_credit_progress": true,
+    "matched_public_revision_cpu_trials": {
+      "code": {
+        "files": 20,
+        "per_build_trials": 2,
+        "input_sha256": "a76af508156dc6984810c6f01d2736bf7bd18112d51dcc1d431b7bfdfa1e8d57",
+        "previous": {
+          "input_blake3": "5f89cd7cbed6c82bc2507e844ab79cc116407492d35ec78ae4f658881dcd0c07",
+          "input_compacted_bytes": 606208,
+          "grouped_compacted_bytes": 491520,
+          "groups": 1,
+          "full_logical": 921886,
+          "full_grouped_backing": 1199319,
+          "sampled_logical": 245760,
+          "sampled_grouped_backing": 3251800
+        },
+        "current": {
+          "input_blake3": "5f89cd7cbed6c82bc2507e844ab79cc116407492d35ec78ae4f658881dcd0c07",
+          "input_compacted_bytes": 606208,
+          "grouped_compacted_bytes": 286720,
+          "groups": 5,
+          "full_logical": 921886,
+          "full_grouped_backing": 1571298,
+          "sampled_logical": 245760,
+          "sampled_grouped_backing": 4192189
+        }
+      },
+      "docs": {
+        "files": 20,
+        "per_build_trials": 2,
+        "input_sha256": "03d07a3f362d552a8563d0b7f0ff58eb4a1a424c7489a999d6a969686ea78e54",
+        "previous": {
+          "input_blake3": "024632754d73bedc236d834b4086fc4c891f265588a381f76e12cc44b007c546",
+          "input_compacted_bytes": 843776,
+          "grouped_compacted_bytes": 540672,
+          "groups": 2,
+          "full_logical": 906105,
+          "full_grouped_backing": 1410438,
+          "sampled_logical": 245760,
+          "sampled_grouped_backing": 3558217
+        },
+        "current": {
+          "input_blake3": "024632754d73bedc236d834b4086fc4c891f265588a381f76e12cc44b007c546",
+          "input_compacted_bytes": 843776,
+          "grouped_compacted_bytes": 319488,
+          "groups": 5,
+          "full_logical": 906105,
+          "full_grouped_backing": 1681635,
+          "sampled_logical": 245760,
+          "sampled_grouped_backing": 4370668
+        }
+      }
+    },
+    "corpus_manifest_sha256": "496283b2994eafc06c564ec6aa00ca2d6eddf645b82bb61da136744163c92b1c",
+    "previous_executable_sha256": "b3d28d00070f8089d40fce91d028d670d60f4d96aac5fe1ae5258df31fe6435a",
+    "candidate_executable_sha256": "a8f591cf625d500c0709599bbe18df659a8b38199e1b17f433305c19c61f989c",
+    "cpu_fallback_without_amd_package_verified": true,
+    "run_receipts": [
+      {
+        "role": "Windows Release build",
+        "run": "local-run-928a058919e14268855abcba22f362d7",
+        "receipt_sha256": "38b18030bce077227b1c168c5606dee56594c72cc9b0e285c7155aa860921e5e",
+        "output_sha256": "f98854d908348421d5cdc9c4e298ae561b3207dc1fb3364bbc748435a55e46f5",
+        "peak_job_bytes": 774553600,
+        "cpu_percent": 28,
+        "tree_retired": true
+      },
+      {
+        "role": "Windows Release final test rebuild",
+        "run": "local-run-120dca6b18594ec5a9c1528c5c9416b9",
+        "receipt_sha256": "59b5f78104543ec244f475ddf57bc050dfa1adbe6ad027d1bceb425637b16756",
+        "output_sha256": "7495d9f819456b09498a7fc23216933e931d794835061d78456e4695ce2fcbab",
+        "peak_job_bytes": 384057344,
+        "cpu_percent": 24,
+        "tree_retired": true
+      },
+      {
+        "role": "Windows Release focused suite",
+        "run": "local-run-c1768c559a2441e992210184ad005bcc",
+        "receipt_sha256": "da6d090b42f6a3c7307d86f8734818938451abb15954e371ec16b7881b18c1bb",
+        "output_sha256": "5f7ce51287b3334845228f82f2b7bd2bcc2a0a09f4773d2f54900598de2bd471",
+        "peak_job_bytes": 346128384,
+        "cpu_percent": 27,
+        "tree_retired": true
+      },
+      {
+        "role": "Windows codec-free ASan build",
+        "run": "local-run-6516674653b248de8c81b54cb2b62bca",
+        "receipt_sha256": "f0d925f3d0b7af3964a51657bdeee7f7a2e02bf25f028265638beb9480c03a33",
+        "output_sha256": "4c8009b1579626814debf6e254ad06adfef014c786d50cbfd9af58ec40a6e3f5",
+        "peak_job_bytes": 816361472,
+        "cpu_percent": 27,
+        "tree_retired": true
+      },
+      {
+        "role": "Windows codec-free ASan final test rebuild",
+        "run": "local-run-debc726edfae4e7b9bd2c88a6c1348c1",
+        "receipt_sha256": "d77ec610a17c9719eabe49f8f97f39a33136c4bb2f24526409fd548598e82be1",
+        "output_sha256": "beeb8dd273e0243aca270e313e1f8eb4cc37e3749d6258a06a51aca932aa1c8e",
+        "peak_job_bytes": 613068800,
+        "cpu_percent": 24,
+        "tree_retired": true
+      },
+      {
+        "role": "Windows codec-free ASan focused suite",
+        "run": "local-run-1e662bdcf2e44154b9751aa9e286e7b7",
+        "receipt_sha256": "d0a01ab451b0524800a8185efebd51f2337283edbc3fbdaf19002477da6ac2f5",
+        "output_sha256": "92084ac0ae77816c83bd2cff16ad80036757f4c75c92c7fffeeff8a3496773b8",
+        "peak_job_bytes": 2233888768,
+        "cpu_percent": 25,
+        "tree_retired": true
+      },
+      {
+        "role": "Live missing-package CPU fallback",
+        "run": "local-run-e7fc2ef4059b42ba971deb3f4f6adae8",
+        "receipt_sha256": "3a418603fd83fb407e0342729129a22d7fa1109b4dcde8e79867e6eb8f240da6",
+        "output_sha256": "146ba454565f2b80b5091717d86f2d52db3d4ced6404a4309e07dfe09f18fd49",
+        "peak_job_bytes": 22175744,
+        "cpu_percent": 16,
+        "tree_retired": true
+      },
+      {
+        "role": "code previous CPU",
+        "run": "local-run-901be9ee40b54cc38dc0be901ff3b6e8",
+        "receipt_sha256": "7281b96209101440639d52eab96f55d856685d9e673fd392ac8c3f97e505f8cf",
+        "output_sha256": "d7646e426b97c0719aa4d033a6bcf00bb53fc7928066f5bf6224813308d0f340",
+        "peak_job_bytes": 10555392,
+        "cpu_percent": 17,
+        "tree_retired": true
+      },
+      {
+        "role": "code current CPU",
+        "run": "local-run-241a9f60252b46e6824bbe64e593142f",
+        "receipt_sha256": "1e7ba67aac20692c3c18c3b3cff066c3879ffdbf378b3ff3cc2a3ea009b0d3fe",
+        "output_sha256": "d053dea246c0a3118514c71da050554040ffef86d595f2ab88396056da8a340a",
+        "peak_job_bytes": 10604544,
+        "cpu_percent": 17,
+        "tree_retired": true
+      },
+      {
+        "role": "docs current CPU",
+        "run": "local-run-77ce73219cae443098f86e68cf82aac5",
+        "receipt_sha256": "955a1438729142efc4c0c330ff25d9ecd79c0dbc8f1cf1c07ccbadec8da9e2d1",
+        "output_sha256": "2f187e3f0f2366f0f912fb950911aa2a172bed0177353c32231c3ff413d6e574",
+        "peak_job_bytes": 12779520,
+        "cpu_percent": 17,
+        "tree_retired": true
+      },
+      {
+        "role": "docs previous CPU",
+        "run": "local-run-597b0959bef5435c99177c4e352594a8",
+        "receipt_sha256": "b1e38c58c8138e8f3b1d92941c2e747615762d68871d547163d9d74c3adcf4e9",
+        "output_sha256": "af1ee0419688110a0dc8bad94a67c878821ffdca601609534c216e2a26342557",
+        "peak_job_bytes": 10895360,
+        "cpu_percent": 17,
+        "tree_retired": true
+      },
+      {
+        "role": "code current CPU",
+        "run": "local-run-c02d92a4b90a46a296714e601dae8aa6",
+        "receipt_sha256": "4966151546372338bc787279c122a3713a76e06f35ebf5fdb6c43417ff4ed31b",
+        "output_sha256": "c995153f9663d317b1279a4f4a278afdc3916e4ff6c9f4becf37d86b0f35494b",
+        "peak_job_bytes": 10629120,
+        "cpu_percent": 17,
+        "tree_retired": true
+      },
+      {
+        "role": "code previous CPU",
+        "run": "local-run-e1ab2be1b9644b409e9e6d15583a6d44",
+        "receipt_sha256": "5e75c7eb552db963dd336221ef1720ec30757fd5b78e0c8d6e84efe3ae332e3c",
+        "output_sha256": "70348c77be0e12a5e2dde420e4604698f7a57330679345e0f38d8bbf8a6909d7",
+        "peak_job_bytes": 10534912,
+        "cpu_percent": 17,
+        "tree_retired": true
+      },
+      {
+        "role": "docs previous CPU",
+        "run": "local-run-43037695c4a34ebcb34dbe413b756979",
+        "receipt_sha256": "99e7df364f5386dee2586e23d830b191856735960b9aef85975f088ce74558a4",
+        "output_sha256": "19e103562735ffef47cac42c034796995cb7561be20393412cb31b83379668b7",
+        "peak_job_bytes": 10514432,
+        "cpu_percent": 17,
+        "tree_retired": true
+      },
+      {
+        "role": "docs current CPU",
+        "run": "local-run-7dcd44924da84e7896c70efa6c35af74",
+        "receipt_sha256": "557946bc94aff743ebbb804a1c7781e44832bac8a48a00d1de59faf166a04ada",
+        "output_sha256": "3adc1f7e1fb64bcc28457f7ef0492d7b37e1626576098c8f1466f1a702e94346",
+        "peak_job_bytes": 12771328,
+        "cpu_percent": 17,
+        "tree_retired": true
+      }
+    ]
+  },
+  "qualification": {
+    "host_amd_device_observation": {
+      "observed_utc": "2026-11-20T02:50:02.6386775Z",
+      "adapter": "AMD Radeon RX 9070 XT",
+      "driver_version": "32.0.32029.2010",
+      "problem_code": 21,
+      "hip_runtime_version": "10.0.3686.0",
+      "hip_runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "last_qualified_hip_runtime_sha256": "7fc6465b18ff337a80c863b6350d02d7576cfb30528f97b982a6e5723bbb9848",
+      "installer_restore_event_id": 8194,
+      "installer_restore_event_utc": "2026-11-20T02:27:37.7349967Z"
+    },
+    "live_amd_requalification": "Deferred while Windows reported an adapter removal problem after the external driver update.",
+    "scope": "Windows host model and WinFsp SDK fixtures. Public read traffic and full protected image sizes are counted. Source compaction and recovery checks use disposable memory-backed volumes.",
+    "retained_read_cost_requires_workload_qualification": true,
+    "mounted_performance_qualified": false,
+    "physical_power_loss_qualified": false,
+    "on_disk_format_change": false
+  }
+}

@@ -268,9 +268,19 @@ void indexed_batch_reclaims_append_space() {
       f.session->indexed_volume_space().free_bytes>space.free_bytes &&
       !f.session->indexed_volume_space().compression_shortfall_bytes && controller.pending(),
       "Verified reclamation did not reopen compression on the selected copy");
-  for(unsigned i=0;i<1000 && !progress.published_groups;++i) {
+  // Sanitized operations can require more idle credit. Count admitted work
+  // toward the progress bound, and require each idle deferral to pay down debt.
+  for(unsigned admitted=0;admitted<1000 && !progress.published_groups;) {
+    const auto previous_delay=progress.deferral==Defer::duty?progress.next_opportunity_delay_ms:0;
     progress=f.step(controller);
     require(progress.phase!=Phase::failed,"Compression failed after reclaiming append space");
+    if(progress.deferral==Defer::duty) {
+      require(progress.next_opportunity_delay_ms &&
+          (!previous_delay || progress.next_opportunity_delay_ms<previous_delay),
+          "Idle observations did not advance the capacity resume gate");
+    } else {
+      ++admitted;
+    }
   }
   require(progress.published_groups!=0,"Compression did not resume after verified compaction");
   const auto snapshot=f.session->snapshot();
@@ -579,6 +589,51 @@ void xor_reference_decline_fallback() {
         "Reference fallback changed file contents");
   std::cout<<"xor_reference_fallback declined="<<result.declined_groups<<" groups="<<result.published_groups
       <<" byte_exact=true\n";
+}
+void indexed_group_with_outlier() {
+  constexpr unsigned related=4;
+  Fixture f(4096,0,true);
+  std::array<Bytes,related+1> originals;
+  const auto base=family(0);
+  for(unsigned i=0;i<related;++i) {
+    originals[i]=base;
+    const auto variation=data(base.size(),917+4627*i);
+    for(std::size_t at=0;at<base.size();++at)
+      originals[i][at]^=static_cast<std::byte>(std::to_integer<unsigned>(variation[at])%3);
+  }
+  auto& outlier=originals.back();
+  outlier=data(kNativeExtentBytes,435187);
+  // Match one sampled masked-XOR signature. Outside those 16 short ranges
+  // the unrelated extents have no common byte runs or complete bit planes.
+  for(std::size_t sample=0;sample<16;++sample) {
+    const auto start=sample*kNativeExtentBytes/16;
+    for(std::size_t at=start;at<start+64;++at)outlier[at]=base[at]^std::byte{3};
+  }
+  for(unsigned i=0;i<originals.size();++i)put(*f.session,"outlier-"+std::to_string(i),originals[i]);
+
+  NativeGroupMaintenance controller(*f.session);
+  bool saw_full_window=false;
+  for(unsigned tick=0;tick<1200 && !controller.progress().published_groups;++tick) {
+    const auto observation=f.clock.next();
+    const auto result=controller.advance(observation,f.clock.now,{related,nullptr});
+    require(result.phase!=Phase::failed,"outlier proposal failed");
+    if(const auto window=controller.search_window()) {
+      if(window.members().size()==related && std::ranges::any_of(window.members(),[&](const auto& member) {
+        return member==outlier;
+      }))saw_full_window=true;
+    }
+  }
+  const auto result=f.finish(controller);
+  const auto snapshot=f.session->snapshot();
+  require(saw_full_window && result.published_groups==1 && result.declined_groups>0 &&
+      result.minimum_compacted_bytes_saved>0 && snapshot.shared_base_info().members==related,
+      "strong members were lost or the outlier joined the published group");
+  snapshot.verify_all();
+  for(unsigned i=0;i<originals.size();++i)
+    require(snapshot.read("outlier-"+std::to_string(i),0,kNativeExtentBytes)==originals[i],
+        "subset publication changed file bytes");
+  std::cout<<"indexed_group_outlier members="<<snapshot.shared_base_info().members
+      <<" declined="<<result.declined_groups<<" byte_exact=true\n";
 }
 void automatic_and_extension(std::uint32_t unit,bool indexed=false) {
   Fixture f(unit,8,indexed);const auto workload=f.session->workload_info();NativeGroupMaintenance original(*f.session);
@@ -1530,6 +1585,7 @@ int main(int argc,char** argv){try{
     xor_reference_selection(anchor_search_fixture::IndexedBatchPattern::xor_sparse_reference);
     xor_reference_selection(anchor_search_fixture::IndexedBatchPattern::xor_full_reference);
     xor_reference_decline_fallback();
+    indexed_group_with_outlier();
   } else if(argc==2 && std::string_view(argv[1])=="--profile-projected-xor") {
     xor_indexed_family(false,true);
   } else if(argc==2 && std::string_view(argv[1])=="--profile-group-xor") {

@@ -202,6 +202,16 @@ compacted images stayed at 491,520 and 540,672 bytes respectively, and
 independent CPU readback verified all files.
 [Source-bound comparison](evidence/amd-coalesced-copy-verification-2026-11-20.json)
 
+Indexed grouping now charges the encoded records that would be committed.
+Automatic grouping can keep a valid subset after complete reference trials.
+In two repeated host CPU comparisons, the 20-file code revision image went
+from 480 KiB to 280 KiB and the 20-file documentation revision image went
+from 528 KiB to 312 KiB. These totals include replicated metadata and payload
+storage. Independent CPU reads matched every original. Full-corpus backing
+read bytes increased by 31.0% and 19.2% respectively. These file sets
+characterize the change without establishing a throughput result.
+[Indexed group profitability and readback evidence](evidence/indexed-group-profitability-2026-11-20.json)
+
 Wider backend qualification and useful collective gains still need complete
 operation and size measurements. CPU fallback may choose a different encoding
 and stored size. Every admitted GPU-produced representation needs an

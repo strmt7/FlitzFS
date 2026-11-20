@@ -94,10 +94,14 @@ generations and exact plaintext while rebinding only the image identity.
 
 `rebuilt_size` is a pure no-I/O streaming-layout calculation. It charges the
 128-KiB root area, record headers, both encoded streams, all tree levels and
-isolation padding in the same order as new-image rebuilding. The admission
-comparison uses a conservative before lower bound (zero root payload) and after
-upper bound (raw changed records). It retains the current isolation unit and
-protection policy. Untouched encoded streams remain unchanged during compaction.
+isolation padding in the same order as new-image rebuilding. Indexed group
+publication encodes changed records once and uses those stored lengths to
+compare complete compacted images before assigning append space. The root
+that is rebound to the new image identity contributes zero payload bytes to
+the before bound and its decoded length to the after bound. This comparison
+assumes the existing isolation unit, protection policy and a rebuild that
+preserves stored encodings. Legacy grouping uses raw lengths for its changed
+records.
 
 Publication appends history and initially **grows the selected source image**.
 Bounds describe a subsequent complete compacted image, not immediate physical
@@ -155,14 +159,22 @@ of those mappings or changes a selected inode's lifetime invalidates the work
 before its next preparation read. Unrelated commits, selected-file renames and
 writes to unselected extents of a selected file preserve the preparation.
 Indexed finalization checks the live object identity and generation of every
-member before publishing and verifies any reused anchor again.
+enrolled member before publishing and verifies any reused anchor again.
+Automatic indexed grouping can leave an unencodable candidate independent
+and retain its features for a later group. Masked-XOR discovery tries its
+complete reference alternatives before allowing one subset attempt with
+the preferred nominee. Once a candidate is skipped, changes to its extent
+can proceed without invalidating the remaining group. An explicit group
+requires a verified representation for every selected member.
 
 `finish_shared_base` reconciles the **current** bounded namespace and complete
 compacted-size bounds, then uses the existing atomic storage transaction. It
 preserves unrelated acknowledged writes, current metadata and workload accounting.
-Finalization keeps the independently checked member encoding. Live mapping
-checks, layout accounting, record readback and commit barriers remain
-synchronous. The finalization cost still needs measurement under contention.
+Finalization keeps the independently checked member encoding. An indexed
+candidate without strict complete-image savings declines before append
+admission and writes no records. Live mapping checks, record sealing, layout
+accounting, readback and commit barriers remain synchronous. Finalization
+under foreground contention still needs measurement.
 
 Cancellation/destruction releases private payloads, source ownership and the group
 reservation. Stale/foreign/incomplete attempts terminate without publication;
@@ -171,6 +183,13 @@ An expired owner reports failed work. The caller can cancel or destroy it to
 retire retained private resources. Cleanup and repeated control calls preserve
 the first completed, cancelled or failed outcome. The next integration step is
 to feed this primitive from durable indexed candidate discovery.
+
+The sealed-size regression verifies a 240 KiB to 160 KiB complete-image
+reduction that raw pricing would decline. An unrelated candidate sharing a
+masked discovery signature can remain independent while the four encodable
+members publish. The scoped evidence also covers an unprofitable candidate
+at capacity, independent CPU readback and the backing read cost on public
+revision sets. [Source-bound comparisons](evidence/indexed-group-profitability-2026-11-20.json)
 
 The [managed paged-volume path](MANAGED_PAGED_VOLUMES.md) now exposes these
 control calls through NativeFileSession with typed head selection, funded advice

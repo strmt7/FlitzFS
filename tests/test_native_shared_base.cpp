@@ -815,6 +815,75 @@ void indexed_group_on_populated_volume() {
   std::cout<<"indexed_group_accounting files="<<unrelated+group_size<<" members="<<group_size
       <<" proposal_read_bytes="<<proposal_reads<<" before="<<before->extent()<<" after="<<after->extent()<<'\n';
 }
+void sealed_group_prices() {
+  if(!store_zstd_available())return;
+  constexpr auto options=StoreCompressionOptions{StoreCompressionMode::automatic,6,true};
+  constexpr unsigned count=6;
+  auto ram=std::make_shared<Ram>();
+  ram->failure_unit=4096;
+  std::optional writer{NativeFilesystemWriter::initialize_indexed(
+      PagedObjectStoreWriter::create_mirrored(ram,identity(),limits,options))};
+  const auto repeated=[](unsigned member) {
+    const auto pattern=data(8192,615);
+    Bytes bytes(kNativeExtentBytes);
+    for(std::size_t at=0;at<bytes.size();at+=pattern.size())
+      std::ranges::copy(pattern,bytes.begin()+static_cast<std::ptrdiff_t>(at));
+    bytes[1359+member*17]^=std::byte{0x4a};
+    return bytes;
+  };
+  populate(*writer,count,repeated);
+  const auto keys=selections(writer->snapshot(),count);
+  const auto before=PagedObjectStoreSnapshot::open(ram,limits);
+  const auto original=image(ram->stable,ram->failure_unit);
+  const auto result=writer->compress_shared_base(keys.front(),keys);
+  writer.reset();
+  require(result.applied && result.members==count &&
+      result.before_compacted_lower_bound>result.after_compacted_upper_bound,
+      "profitable sealed group declined");
+
+  const auto after=PagedObjectStoreSnapshot::open(ram,limits);
+  std::vector<StoreMutation> changes;
+  for(const auto& entry:after.list_page(0,64)) {
+    const auto previous=before.stat(entry.id);
+    if(!previous || previous->generation!=entry.generation)
+      changes.push_back({entry.id,false,after.read(entry.id)});
+  }
+  for(const auto& entry:before.list_page(0,64))if(!after.stat(entry.id))changes.push_back({entry.id,true,{}});
+  const auto raw=before.rebuilt_size_after(changes,1);
+  require(raw.after_upper>=raw.before && raw.before==result.before_compacted_lower_bound,
+      "sealed-size test would also pass the raw size gate");
+
+  auto compact_before=std::make_shared<Ram>(),compact_after=std::make_shared<Ram>();
+  compact_before->failure_unit=compact_after->failure_unit=ram->failure_unit;
+  auto first=NativeFilesystemWriter::compact(view(original),compact_before,next_id(92),options);
+  auto second=NativeFilesystemWriter::compact(view(ram),compact_after,next_id(93),options);
+  require(compact_before->extent()>=result.before_compacted_lower_bound &&
+      compact_after->extent()<=result.after_compacted_upper_bound,"sealed compacted proof differs from rebuild");
+  verify_family(first.snapshot(),count,repeated);
+  verify_family(second.snapshot(),count,repeated);
+  std::cout<<"indexed_sealed_group before="<<compact_before->extent()<<" after="<<compact_after->extent()
+      <<" raw_after_upper="<<raw.after_upper<<'\n';
+}
+void unprofitable_group_at_capacity() {
+  constexpr auto options=StoreCompressionOptions{StoreCompressionMode::raw,1,false};
+  auto ram=std::make_shared<Ram>();
+  ram->failure_unit=4096;
+  const auto bytes=data(23,489);
+  {
+    auto writer=fresh(ram,true);
+    for(const auto name:{"f0","f1"})writer.apply(std::array{file_create(name),file_write(name,0,bytes)});
+  }
+  const auto previous=PagedObjectStoreSnapshot::open(ram,limits).info();
+  auto writer=NativeFilesystemWriter::resume(
+      PagedObjectStoreWriter::resume(ram,identity(),previous.generation,{previous.physical_end},options));
+  const auto keys=selections(writer.snapshot(),2);
+  const auto calls=ram->calls;
+  const auto result=writer.compress_shared_base(keys.front(),keys);
+  require(!result.applied && result.members==2 && result.before_compacted_lower_bound &&
+      result.after_compacted_upper_bound>result.before_compacted_lower_bound &&
+      ram->calls==calls && !writer.poisoned() && view(ram).read("f1",0,bytes.size())==bytes,
+      "unprofitable group consumed append capacity or changed the committed image");
+}
 void layouts(std::uint32_t unit) {
   for(bool mirrored:{false,true})for(unsigned count:{0U,55U,56U,1926U})layout_accounting(unit,mirrored,count);
 }
@@ -847,6 +916,8 @@ int main(int argc,char** argv){try {
   codec();anchor_copy_codec();anchor_copy_advice();independent_and_decline();malformed_storage();indexed_extension_and_reclamation();
   read_grouped_extents();
   indexed_group_on_populated_volume();
+  sealed_group_prices();
+  unprofitable_group_at_capacity();
   for(auto unit:{4096U,65536U}){
     for(const auto indexed_layout:{false,true}) {
       lifecycle_and_sizes(unit,indexed_layout);fault_matrix(unit,indexed_layout);

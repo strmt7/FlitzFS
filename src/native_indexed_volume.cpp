@@ -1100,8 +1100,8 @@ void check_group_root(const PagedObjectStoreSnapshot& source,const NativeNameInd
 
 IndexedSharedBasePreparation::IndexedSharedBasePreparation(const PagedObjectStoreSnapshot& source,
     IndexedVolumeRoot root,NativeExtentSelection base,std::span<const NativeExtentSelection> members,
-    std::span<const NativeContentToken> expected)
-    :source_(source),original_(root) {
+    std::span<const NativeContentToken> expected,bool allow_subset)
+    :source_(source),original_(root),allow_subset_(allow_subset) {
   if(members.size()>=kStoreMaxObjects)fail(Code::limit,"indexed shared-base selection budget");
   members_.reserve(members.size()+1);
   members_.push_back(Member{base});
@@ -1130,12 +1130,14 @@ bool IndexedSharedBasePreparation::watches_extent(std::uint64_t inode,std::uint6
   if(invalidated_)return false;
   const auto key=std::pair{inode,block};
   const auto member=std::ranges::lower_bound(members_,key,{},[](const Member& item){return extent_coordinate(item.selected);});
-  return member!=members_.end() && extent_coordinate(member->selected)==key;
+  return member!=members_.end() && extent_coordinate(member->selected)==key && !member->skipped;
 }
 bool IndexedSharedBasePreparation::watches_inode(std::uint64_t inode) const noexcept {
   if(invalidated_)return false;
-  const auto member=std::ranges::lower_bound(members_,inode,{},[](const Member& item){return item.selected.inode;});
-  return member!=members_.end() && member->selected.inode==inode;
+  auto member=std::ranges::lower_bound(members_,inode,{},[](const Member& item){return item.selected.inode;});
+  for(;member!=members_.end() && member->selected.inode==inode;++member)
+    if(!member->skipped)return true;
+  return false;
 }
 
 std::vector<std::byte> IndexedSharedBasePreparation::read_member(Member& member,bool find_reusable_anchor) {
@@ -1370,6 +1372,10 @@ bool IndexedSharedBasePreparation::advance(std::span<const NativeSharedBaseCopyR
       }
     }
     if(!encoded) {
+      if(allow_subset_) {
+        member.skipped=true;
+        return complete_member();
+      }
       anchor_index_.reset();
       search_.reset();
       progress_.phase=Phase::declined;
@@ -1393,6 +1399,11 @@ bool IndexedSharedBasePreparation::advance(std::span<const NativeSharedBaseCopyR
     std::copy(encoded->begin(),encoded->end(),member.frame.begin()+extent_header);
     progress_.owned_payload_bytes+=frame_bytes;
   }
+  return complete_member();
+}
+
+bool IndexedSharedBasePreparation::complete_member() {
+  using Phase=NativeSharedBasePhase;
   ++progress_.completed_members;
   if(search_ && search_slot(progress_.completed_members)>=search_->bytes->members.size())search_.reset();
   if(progress_.completed_members==members_.size()) {
@@ -1413,7 +1424,6 @@ NativeSharedBaseCommit IndexedSharedBasePreparation::finish(PagedObjectStoreWrit
   NativeSharedBaseCommit result;
   result.transaction.storage=native_paged_info(before);
   result.transaction.sequence=current.sequence;
-  result.members=members_.size();
   if(current.sequence==(std::numeric_limits<std::uint64_t>::max)() ||
       before.generation>(std::numeric_limits<std::uint64_t>::max)()-2)
     fail(Code::limit,"indexed shared-base generation exhausted");
@@ -1442,6 +1452,11 @@ NativeSharedBaseCommit IndexedSharedBasePreparation::finish(PagedObjectStoreWrit
   std::vector<NativeNameEdit> edits;
   RetiredGroupReferences retired;
   for(auto& member:members_) {
+    if(member.skipped) {
+      result.skipped_objects.push_back(member.object);
+      continue;
+    }
+    ++result.members;
     const auto [id,block]=member.selected;
     const auto inode=load_inode(source,current,id);
     const auto metadata=source.stat(member.object);
@@ -1457,6 +1472,7 @@ NativeSharedBaseCommit IndexedSharedBasePreparation::finish(PagedObjectStoreWrit
     ++next.shared_members;
   }
   (void)check_group_storage(source);
+  std::ranges::sort(result.skipped_objects);
   if(records.empty())return result;
   if(new_anchor) {
     Bytes frame(base_size);
@@ -1468,13 +1484,14 @@ NativeSharedBaseCommit IndexedSharedBasePreparation::finish(PagedObjectStoreWrit
   validate_header_fields(next);
   records.push_back({namespace_object,false,encode_root(next)});
   auto proposed=NativeNameIndex::prepare_commit(source,edits,std::move(records),current.format<3);
-  const auto size=source.rebuilt_size_after(proposed,namespace_object);
-  result.before_compacted_lower_bound=size.before;
-  result.after_compacted_upper_bound=size.after_upper;
   (void)check_group_storage(source);
-  if(size.after_upper>=size.before)return result;
   try {
-    result.transaction.storage=native_paged_info(writer.commit(proposed));
+    PagedCompactedSizes sizes;
+    const auto published=writer.commit_if_compacted_smaller(proposed,namespace_object,sizes);
+    result.before_compacted_lower_bound=sizes.before;
+    result.after_compacted_upper_bound=sizes.after_upper;
+    if(!published)return result;
+    result.transaction.storage=native_paged_info(*published);
   }catch(const PagedStoreCapacityError& error) {
     if(writer.poisoned())fail(Code::storage_failure,"indexed shared-base publication failed after admission");
     throw NativeFsError(Code::limit,error.what(),error.append_shortfall_bytes());

@@ -1558,7 +1558,7 @@ NativeFilesystemWriter::SharedBaseWork NativeFilesystemWriter::prepare_shared_ba
 }
 NativeFilesystemWriter::SharedBaseWork NativeFilesystemWriter::prepare_shared_base(
     NativeExtentSelection base_selection,std::span<const NativeExtentSelection> members,
-    std::span<const NativeContentToken> expected,bool batch) {
+    std::span<const NativeContentToken> expected,bool batch,bool allow_subset) {
   if(poisoned() || (!impl_->indexed && !impl_->model.shared_bases) || !impl_->objects.paged_if())
     fail(Code::invalid_operation,"shared-base work requires its explicit namespace");
   if(members.size()>kNativeMaxExtents)fail(Code::limit,"shared-base selection budget");
@@ -1571,7 +1571,7 @@ NativeFilesystemWriter::SharedBaseWork NativeFilesystemWriter::prepare_shared_ba
     p->source.emplace(impl_->objects.snapshot_for_staging(impl_->indexed.has_value()));
     if(impl_->indexed) {
       p->indexed=std::make_shared<detail::IndexedSharedBasePreparation>(
-          *p->source->paged_if(),*impl_->indexed,base_selection,members,expected);
+          *p->source->paged_if(),*impl_->indexed,base_selection,members,expected,allow_subset);
       p->state=p->indexed->progress();
     } else {
       p->decode_model.shared_bases=true;

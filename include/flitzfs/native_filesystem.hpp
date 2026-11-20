@@ -206,6 +206,7 @@ struct NativeSharedBaseCommit {
   std::uint64_t before_compacted_lower_bound=0,after_compacted_upper_bound=0;
   std::size_t members=0;
   NativeExtentSelection reference{}; // Logical member carrying the published indexed base.
+  std::vector<std::uint64_t> skipped_objects; // Sorted, unmodified automatic candidates.
 };
 enum class NativeSharedBasePhase {reading_base,encoding_members,ready,declined,completed,cancelled,failed};
 struct NativeSharedBaseProgress {
@@ -597,7 +598,7 @@ class NativeFilesystemWriter final {
   bool maintenance_busy() const noexcept;
   bool maintenance_supported() const noexcept;
   SharedBaseWork prepare_shared_base(NativeExtentSelection,std::span<const NativeExtentSelection>,
-      std::span<const NativeContentToken>,bool batch=false);
+      std::span<const NativeContentToken>,bool batch=false,bool allow_subset=false);
   bool stage_shared_base_search(SharedBaseWork&,std::size_t maximum_members,std::size_t retained_extents);
   bool price_shared_base_reference(SharedBaseWork&);
 
