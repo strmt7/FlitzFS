@@ -77,6 +77,13 @@ compression preparation and uses a fresh admission before committing.
 The controller checks foreground activity, deferred response ownership and
 worker retirement before entering either transaction. The owner sleeps
 when its maintenance queues are empty and the integrity pass is dormant.
+
+Older indexed directories gain verified summaries during fresh idle
+opportunities. The owner alternates this work with eligible compression and
+scrub work and preserves the priority of repair, retirement and active group
+preparation. Every scan or publication returns control to the owner before
+the next opportunity. [Automatic backfill](INDEXED_NATIVE_VOLUME.md#automatic-backfill)
+
 When a verified replica repair cannot append, the controller yields
 private group preparation to the provider's repair rotation. The normal
 resource and foreground checks still apply, and selector publication

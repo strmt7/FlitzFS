@@ -279,6 +279,52 @@ void resume_formats() {
   require(rejected && head->calls+image->calls==writes && head->live==head_bytes && image->live==image_bytes,
       "Windows-incompatible root was exposed or repaired before profile admission");
 }
+void indexed_backfill_opportunities() {
+  Harness h(4096);
+  h.close(h.create(L"\\old",true));
+  for(unsigned i=0;i<4;++i) {
+    const auto handle=h.create(L"\\old\\member"+std::to_wstring(i),false);
+    h.write(handle,family(i));
+    h.close(handle);
+  }
+  auto head=ram(4096),backing=ram(4096);
+  constexpr PagedStoreLimits capacity{kStoreMaxPhysicalBytes};
+  constexpr StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
+  const auto migrated=h.adapter->snapshot().create_indexed_copy(backing,id(71),capacity,raw);
+  {auto owner=NativeVolumeHeadWriter::create(head,id(70),migrated);}
+  auto adapter=WinFspNativeWritable::resume_indexed_retired(head,id(70),1,
+      [&](const StoreIdentity& key)->std::shared_ptr<StoreByteIo> {
+        require(key==id(71),"backfill selected the wrong volume image");
+        return backing;
+      },raw);
+  const auto reads=backing->read_calls,writes=backing->calls;
+  require(adapter->background_maintenance_pending() && backing->read_calls==reads,
+      "legacy directory backfill was missing or read storage during discovery");
+  Clock clock;
+  auto observation=clock.next();
+  observation.foreground_pending=true;
+  const auto deferred=adapter->advance_background_maintenance(observation,clock.now);
+  require(deferred.progress.deferral==NativeMaintenanceDeferral::foreground &&
+      backing->read_calls==reads && backing->calls==writes,"backfill bypassed foreground admission");
+  unsigned opportunities=0;
+  while(adapter->background_maintenance_pending() && ++opportunities<300) {
+    observation=clock.next();
+    require(adapter->advance_background_maintenance(observation,clock.now).state!=WinFspMaintenanceState::unavailable,
+        "indexed backfill fenced the callback adapter");
+  }
+  require(!adapter->background_maintenance_pending(),"indexed backfill did not quiesce");
+  const auto objects=PagedObjectStoreSnapshot::open(backing,capacity);
+  require((objects.read(1).at(93)&std::byte{2})!=std::byte{0},"idle opportunities did not complete directory backfill");
+  const auto after=adapter->snapshot();
+  after.verify_all();
+  require(after.shared_base_info().members==4,"directory backfill starved normal collective compression");
+  for(unsigned i=0;i<4;++i)require(after.read("old/member"+std::to_string(i),0,kNativeExtentBytes)==family(i),
+      "idle directory backfill changed grouped content");
+  const auto settled=backing->read_calls;
+  observation=clock.next();
+  require(adapter->advance_background_maintenance(observation,clock.now).state==WinFspMaintenanceState::unchanged &&
+      backing->read_calls==settled,"completed backfill retried on an unchanged volume");
+}
 struct Lifecycle {
   FSP_FILE_SYSTEM fs{};bool fail_mount=false,callback_alive=false;std::array<char,16> calls{};unsigned count=0;
   void record(char c){if(count<calls.size())calls[count++]=c;}
@@ -599,7 +645,7 @@ int main(int argc,char** argv){try {
   const std::string_view mode=argv[1];
   if(mode=="--callbacks"){
     callbacks(4096);callbacks(65536);directory_pages();selected_change();foreground_busy();
-    deferred_response_busy();resume_formats();lifecycle();indexed_callbacks(4096);indexed_callbacks(65536);
+    deferred_response_busy();resume_formats();indexed_backfill_opportunities();lifecycle();indexed_callbacks(4096);indexed_callbacks(65536);
   }
   else if(mode=="--faults-4096")publication_faults(4096);
   else if(mode=="--faults-65536")publication_faults(65536);

@@ -14,6 +14,7 @@ struct IndexedVolumeRoot {
   std::uint32_t format=1;
   std::uint32_t name_profile=0;
   bool directory_shapes=false;
+  bool directory_backfill_complete=false;
   std::uint64_t active_lifetimes=0,detached_inodes=0,retiring_inodes=0;
   std::uint64_t shared_bases=0,shared_members=0;
   bool operator==(const IndexedVolumeRoot&) const = default;
@@ -37,6 +38,16 @@ struct IndexedDirectoryShape {
   IndexedPathBound bound() const noexcept;
   void replace(std::optional<IndexedPathBound> before,std::optional<IndexedPathBound> after);
   bool operator==(const IndexedDirectoryShape&) const = default;
+};
+struct IndexedDirectoryBackfill {
+  struct Frame {
+    std::uint64_t inode,revision=0;
+    std::string after;
+    IndexedDirectoryShape shape;
+    bool ready=false;
+  };
+  std::vector<Frame> stack;
+  std::uint64_t capacity_sequence=0;
 };
 struct IndexedInodeInput {
   std::uint64_t inode=0,parent=0,size=0,born=0,modified=0;
@@ -166,6 +177,8 @@ NativeFsCommit commit_indexed_volume(PagedObjectStoreWriter&,const PagedObjectSt
     IndexedContentWatch);
 void advance_indexed_retirement(PagedObjectStoreWriter&,const PagedObjectStoreSnapshot&,
     IndexedVolumeRoot&,bool closed_session,IndexedContentWatch);
+NativeDirectoryBackfillStep advance_indexed_directory_backfill(PagedObjectStoreWriter&,
+    const PagedObjectStoreSnapshot&,IndexedVolumeRoot&,IndexedDirectoryBackfill&,IndexedContentWatch);
 NativeInodeStorageMutationCommit write_indexed_inode(PagedObjectStoreWriter&,const PagedObjectStoreSnapshot&,
     IndexedVolumeRoot&,std::uint64_t inode,std::uint64_t offset,std::span<const std::byte>,
     NativeInodeWriteOptions,const NativeAutomaticMetadata&,std::span<const NativeLz4ExtentCandidate>,

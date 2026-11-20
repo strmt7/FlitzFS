@@ -38,9 +38,9 @@ and seals retained data after dispatcher join. Indexed memory volumes now
 stage compaction from measured obsolete bytes, switch verified roots without
 rescanning the data and reclaim resident pages after their last reader retires.
 Persistent segment reclamation under concurrent edits remains a release gate.
-Tracked directories use exact bounds for moves. A resumable idle backfill
-remains to bring that behavior to older subtrees.
-[Directory summaries](INDEXED_NATIVE_VOLUME.md#directory-summaries)
+Tracked directories use exact bounds for moves. The WinFsp owner fills missing
+summaries during idle opportunities and retains completed progress across a
+restart. [Automatic backfill](INDEXED_NATIVE_VOLUME.md#automatic-backfill)
 [Compaction evidence](evidence/indexed-background-compaction-2026-11-18.json)
 [Owned indexed evidence](evidence/indexed-owned-windows-2026-11-18.json)
 [Managed indexed evidence](evidence/indexed-managed-winfsp-2026-11-18.json)

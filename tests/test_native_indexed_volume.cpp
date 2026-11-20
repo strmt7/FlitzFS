@@ -543,6 +543,95 @@ void indexed_directory_moves() {
   refuses(Error::corrupt,[&]{(void)cyclic.finish();});
 }
 
+void indexed_directory_backfill() {
+  using Step=NativeDirectoryBackfillStep;
+  using Error=NativeFsErrorCode;
+  constexpr unsigned files=130;
+  const auto contents=payload(314);
+  auto medium=empty();
+  IndexedVolumeBuilder legacy(PagedObjectStoreWriter::create_mirrored(medium,identity(),limits,raw),
+      1,files+5,{true,0},2);
+  std::vector<IndexedInodeInput> inodes{{1,0,0,1,1,true,""},{2,1,0,1,1,true,"old"},
+      {3,2,0,1,1,true,"nested"},{files+4,3,contents.size(),1,1,false,"member"}};
+  for(unsigned i=0;i<files;++i)inodes.push_back({i+4,2,0,1,1,false,file(i)});
+  const IndexedExtentInput extent{files+4,0,contents};
+  legacy.append(inodes,{&extent,1});
+  const auto before=legacy.finish();
+  auto writer=resume_writer(medium,before.storage_info().generation);
+  const auto initial_writes=medium->calls,initial_reads=medium->read_calls;
+  require(writer.directory_backfill_pending() && medium->read_calls==initial_reads,"backfill demand reads storage");
+  require(writer.advance_directory_backfill()==Step::scanning && writer.advance_directory_backfill()==Step::scanning &&
+      medium->calls==initial_writes,"backfill scan produced an incomplete publication");
+  file_apply(writer,file_rename("old/"+file(0),"old/a longer member name"));
+  Step step=Step::scanning;
+  for(unsigned i=0;i<20 && step==Step::scanning;++i)step=writer.advance_directory_backfill();
+  require(step==Step::published && writer.directory_backfill_pending(),"backfill did not publish the first child");
+  const auto durable=writer.snapshot();
+  durable.verify_all();
+
+  auto restarted=image(medium->stable,4096);
+  auto resumed=resume_writer(restarted,durable.storage_info().generation);
+  unsigned published=0,steps=0;
+  while(resumed.directory_backfill_pending() && ++steps<30) {
+    const auto progress=resumed.advance_directory_backfill();
+    require(progress==Step::scanning || progress==Step::published,"reopened backfill stopped early");
+    published+=progress==Step::published;
+  }
+  require(published==2 && !resumed.directory_backfill_pending(),"restart repeated a durable child summary");
+  const auto reads=restarted->read_calls;
+  require(resumed.advance_directory_backfill()==Step::idle && restarted->read_calls==reads,
+      "finished directory backfill performed backing reads");
+  file_apply(resumed,file_rename("old","directory-with-a-longer-prefix"));
+  const auto final=resumed.snapshot();
+  final.verify_all();
+  require(final.stat("directory-with-a-longer-prefix/a longer member name").inode==4 &&
+      final.read("directory-with-a-longer-prefix/nested/member",0,100)==contents &&
+      durable.read("old/nested/member",0,100)==contents,
+      "backfill or resumed rename changed acknowledged bytes or live identity");
+
+  auto power_source=empty();
+  IndexedVolumeBuilder root_only(PagedObjectStoreWriter::create_mirrored(power_source,identity(),limits,raw),
+      1,3,{true,0},2);
+  const std::array<IndexedInodeInput,2> small{{{1,0,0,1,1,true,""},{2,1,contents.size(),1,1,false,"data"}}};
+  const IndexedExtentInput root_extent{2,0,contents};
+  root_only.append(small,{&root_extent,1});
+  const auto selected=root_only.finish().storage_info();
+  const auto stable=power_source->stable;
+  auto good=image(stable,4096);
+  auto completed=resume_writer(good,selected.generation);
+  require(completed.advance_directory_backfill()==Step::scanning,"backfill did not prepare publication");
+  const auto before_calls=good->calls;
+  require(completed.advance_directory_backfill()==Step::published,"backfill root was not published");
+  const auto boundaries=good->calls-before_calls;
+  unsigned prior=0,committed=0;
+  for(unsigned mode=0;mode<3;++mode)for(std::size_t cut=0;cut<boundaries;++cut) {
+    auto target=image(stable,4096);
+    auto interrupted=resume_writer(target,selected.generation);
+    require(interrupted.advance_directory_backfill()==Step::scanning,"backfill fault setup");
+    target->failure=mode;target->fail_at=target->calls+cut;
+    refuses(Error::storage_failure,[&]{(void)interrupted.advance_directory_backfill();});
+    require(interrupted.poisoned(),"uncertain directory summary publication left the writer active");
+    const auto recovered=NativeFilesystemSnapshot::open_image(image(target->stable,4096),indexed);
+    recovered.verify_all();
+    require(recovered.read("data",0,100)==contents,"summary recovery lost acknowledged payload");
+    if(recovered.sequence()==1)++prior;
+    else if(recovered.sequence()==2)++committed;
+    else throw std::runtime_error("summary recovery selected a partial transaction");
+  }
+  require(prior && committed,"backfill recovery did not exercise both atomic outcomes");
+
+  auto full=image(stable,4096);
+  auto limited=NativeFilesystemWriter::resume(PagedObjectStoreWriter::resume(full,identity(),selected.generation,
+      {selected.physical_end},raw));
+  require(limited.advance_directory_backfill()==Step::scanning,"full-volume summary scan rejected");
+  const auto calls=full->calls;
+  require(limited.advance_directory_backfill()==Step::capacity && !limited.poisoned() &&
+      !limited.directory_backfill_pending() && limited.advance_directory_backfill()==Step::idle && full->calls==calls,
+      "capacity refusal repeated or touched a healthy checkpoint");
+  std::cout<<"indexed_directory_backfill restarted_publications="<<published<<" cuts="<<prior+committed
+      <<" previous="<<prior<<" committed="<<committed<<'\n';
+}
+
 void indexed_windows_names() {
   using Error=NativeFsErrorCode;
   const auto utf8=[](std::u8string_view value){return std::string(reinterpret_cast<const char*>(value.data()),value.size());};
@@ -1284,6 +1373,6 @@ int main() {
   try { populated_native_snapshot();migration(false);migration(true);growing_native_writer();indexed_capacity_and_metadata();indexed_stable_inode_io();indexed_session_lifetimes();indexed_detach_recovery();
     indexed_large_retirement();indexed_head_independent_sequence();indexed_staged_rebuild();indexed_reconciled_rebuild();
     indexed_managed_handoff();indexed_managed_staged_compaction();indexed_managed_staged_faults();
-    indexed_transaction_recovery();indexed_extent_advice();indexed_directory_moves();indexed_windows_names(); }
+    indexed_transaction_recovery();indexed_extent_advice();indexed_directory_moves();indexed_directory_backfill();indexed_windows_names(); }
   catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}
 }

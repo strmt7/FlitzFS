@@ -197,7 +197,7 @@ struct WinFspNativeWritable::Impl {
   NativeMaintenancePolicy group_policy;
   MemoryVolumeBacking* memory_backing=nullptr;
   std::uint64_t last_indexed_observation=0,last_indexed_capture=0;
-  bool maintenance_cancelled=false,scrub_yield_to_groups=false;
+  bool maintenance_cancelled=false,scrub_yield=false,directory_backfill_yield=false;
   std::atomic<bool> maintenance_signal_failed{false};
   bool callbacks_bound=false;
   StoreIdentity identity{};UINT64 created=0;UINT32 serial=0;
@@ -277,7 +277,7 @@ struct WinFspNativeWritable::Impl {
       return result;
     }
     if(!foreground.load(std::memory_order_acquire))session.checkpoint_indexed_payload_scrub();
-    scrub_yield_to_groups=true;
+    scrub_yield=true;
     if(result.payload_scrub.state==S::checked)
       result.continuation=WinFspMaintenanceContinuation::payload_scrub;
     else result.progress.phase=Phase::idle;
@@ -342,6 +342,32 @@ struct WinFspNativeWritable::Impl {
       if(memory)return progress(memory_backing->advance_compaction(session));
     }catch(...) {
       if(session.poisoned())offline.store(true,std::memory_order_release);
+      throw;
+    }
+    return {State::unchanged};
+  }
+  WinFspMaintenanceResult advance_directory_backfill(const NativeMaintenanceObservation& observed,std::uint64_t now) {
+    using State=WinFspMaintenanceState;
+    using Phase=NativeMaintenancePhase;
+    using Deferral=NativeMaintenanceDeferral;
+    using Step=NativeDirectoryBackfillStep;
+    const auto defer=[](Deferral reason) {
+      return WinFspMaintenanceResult{State::advanced,{Phase::deferred,reason}};
+    };
+    if(foreground.load(std::memory_order_acquire))return {State::busy};
+    directory_backfill_yield=true;
+    if(const auto refusal=admit_indexed_opportunity(observed,now);refusal!=Deferral::none)return defer(refusal);
+    try {
+      switch(session.advance_directory_backfill()) {
+        case Step::idle:return {State::unchanged};
+        case Step::scanning:return {State::advanced,{Phase::scanning}};
+        case Step::published:return {State::advanced,{session.directory_backfill_pending()?Phase::publishing:Phase::idle}};
+        case Step::capacity:return defer(Deferral::capacity);
+      }
+    }catch(const NativeFsError& error) {
+      if(session.poisoned())offline.store(true,std::memory_order_release);
+      else if(error.code()==NativeFsErrorCode::replica_repair_pending)return defer(Deferral::other_maintenance);
+      else if(error.code()==NativeFsErrorCode::limit)return defer(Deferral::memory);
       throw;
     }
     return {State::unchanged};
@@ -885,6 +911,7 @@ bool WinFspNativeWritable::background_maintenance_pending(bool scrub_due) const 
   return impl_->session.indexed_payload_repair_pending() ||
       (scrub_due && impl_->session.indexed_payload_scrub_eligible()) ||
       impl_->session.retirement_pending() || impl_->session.persistent_reclamation_pending() ||
+      impl_->session.directory_backfill_pending() ||
       (impl_->memory_backing && (impl_->memory_backing->coherence_retirement_pending() ||
       impl_->memory_backing->compaction_pending(impl_->session))) ||
       (impl_->groups && (impl_->groups->pending() ||
@@ -932,6 +959,7 @@ void WinFspNativeWritable::cancel_background_maintenance() {
   impl_->groups.reset();
   if(impl_->memory_backing)impl_->memory_backing->cancel_compaction(impl_->session);
   impl_->session.cancel_persistent_reclamation();
+  impl_->session.cancel_directory_backfill();
 }
 WinFspMaintenanceResult WinFspNativeWritable::advance_background_maintenance(
     const NativeMaintenanceObservation& observed,std::uint64_t now,NativeGroupSearchOpportunity search,
@@ -970,10 +998,17 @@ WinFspMaintenanceResult WinFspNativeWritable::advance_background_maintenance(
     if(!observed.continued && !repair && !impl_->session.retirement_pending() && impl_->groups && impl_->groups->active_group())
       return impl_->advance_groups(observed,now,search);
     auto storage=impl_->advance_indexed_maintenance(observed,now,rotation);
-    if(scrub && storage.state==WinFspMaintenanceState::unchanged && !search.reply && search.replies.empty()) {
-      if(!impl_->scrub_yield_to_groups || !impl_->groups || !impl_->groups->pending())
-        return impl_->advance_payload_scrub(observed,now);
-      impl_->scrub_yield_to_groups=false;
+    if(!observed.continued && storage.state==WinFspMaintenanceState::unchanged && !search.reply && search.replies.empty()) {
+      const bool backfill=impl_->session.directory_backfill_pending();
+      const bool group_pending=impl_->groups && impl_->groups->pending();
+      if(scrub) {
+        if(!impl_->scrub_yield || (!group_pending && !backfill))return impl_->advance_payload_scrub(observed,now);
+        impl_->scrub_yield=false;
+      }
+      if(backfill) {
+        if(!impl_->directory_backfill_yield || !group_pending)return impl_->advance_directory_backfill(observed,now);
+        impl_->directory_backfill_yield=false;
+      }
     }
     if(observed.continued || (storage.state!=WinFspMaintenanceState::unchanged &&
         (storage.progress.deferral!=NativeMaintenanceDeferral::other_maintenance || !impl_->groups || !impl_->groups->pending()))) {

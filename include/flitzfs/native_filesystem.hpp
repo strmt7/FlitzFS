@@ -32,6 +32,7 @@ enum class NativeFsErrorCode {
   invalid_path,not_found,already_exists,not_directory,is_directory,not_empty,
   invalid_operation,limit,corrupt,storage_failure,replica_repair_pending
 };
+enum class NativeDirectoryBackfillStep {idle,scanning,published,capacity};
 class NativeFsError final:public std::runtime_error {
  public:
   NativeFsError(NativeFsErrorCode code,const char* message,std::uint64_t append_shortfall=0)
@@ -573,6 +574,9 @@ class NativeFilesystemWriter final {
   // Returns false when there is no queued work. Old snapshots remain readable.
   bool retirement_pending() const noexcept; // Cached, with no backing I/O.
   bool reclaim_retired_inode();
+  bool directory_backfill_pending() const noexcept; // Cached, with no backing I/O.
+  NativeDirectoryBackfillStep advance_directory_backfill();
+  void cancel_directory_backfill() noexcept;
   // Single-control-thread committed view for the owning Windows engine.
   // Verify namespace against the last acknowledged model; reads privately
   // verify every touched record. These do not expose an unchecked snapshot.

@@ -34,7 +34,7 @@ accept all seven capabilities and check each against its exact length.
 | 64 | 8 | Committed input bytes |
 | 72 | 16 | Exact paged store identity |
 | 88 | 4 | Extent length 65,536 |
-| 92 | 4 | Namespace features. Bit 0 selects Windows ordinal names. Bit 8 admits directory summaries. Other bits are reserved. |
+| 92 | 4 | Namespace features. Bit 0 selects Windows ordinal names. Bit 8 admits directory summaries. Bit 9 confirms a tracked root. Other bits are reserved. |
 | 96, 104, 112 | 8 each | Capability 2 and later counts for active lifetime records, detached inodes and retired inodes |
 | 120, 128 | 8 each | Capability 3 and later shared-base and member counts |
 
@@ -127,6 +127,32 @@ rescan when adding quota accounting to an existing subvolume. FlitzFS needs
 exact counts at commit time because the path check determines whether a file
 remains reachable after a move. [CephFS quotas](https://docs.ceph.com/en/latest/cephfs/quota/) ·
 [Btrfs quota groups](https://btrfs.readthedocs.io/en/latest/Qgroups.html)
+
+### Automatic backfill
+
+The WinFsp owner fills missing summaries during low-priority opportunities.
+Each scan step reads at most 64 immediate children from the ordered index.
+When a child directory needs a summary, the scan finishes that child first.
+The scanner checks the active directory's revision before resuming a scan or
+publishing its summary. A relevant edit restarts that directory's scan.
+
+A completed summary is an atomic progress checkpoint. Reopen can use it
+directly while scanning the parent. Partial histograms and open page cursors
+live in the writer and restart after a process exit. The transaction that
+completes the root sets bit 9. Pending work then clears without a backing read.
+Before admitting a marked root, the decoder requires the root inode summary.
+Full verification still checks it against the reachable children.
+
+A capacity refusal leaves the selected image writable and suspends backfill
+for that namespace sequence. A new checkpoint or image owner can resume it.
+Uncertain publication fences the writer and follows the CPU recovery path.
+The scanner fits the existing host admission, maintenance pacing and group
+ownership. [Controller contract](WINFSP_OWNED_CONTROLLER.md) ·
+[Backfill validation](evidence/indexed-directory-backfill-2026-11-20.json)
+
+Btrfs scrub uses a saved position to resume background verification. FlitzFS
+uses completed directory records as progress checkpoints for this upgrade.
+[Btrfs scrub](https://btrfs.readthedocs.io/en/latest/btrfs-scrub.html)
 
 ## Shared-base extents
 

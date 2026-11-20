@@ -1777,6 +1777,15 @@ bool NativeFileSession::retirement_pending() const noexcept {
 bool NativeFileSession::reclaim_retired_inode() {
   return ready().writer.reclaim_retired_inode();
 }
+bool NativeFileSession::directory_backfill_pending() const noexcept {
+  return !poisoned() && impl_->writer.directory_backfill_pending();
+}
+NativeDirectoryBackfillStep NativeFileSession::advance_directory_backfill() {
+  return ready().writer.advance_directory_backfill();
+}
+void NativeFileSession::cancel_directory_backfill() noexcept {
+  if(impl_)impl_->writer.cancel_directory_backfill();
+}
 NativeFilesystemSnapshot NativeFileSession::snapshot() const {
   return ready().writer.snapshot();
 }

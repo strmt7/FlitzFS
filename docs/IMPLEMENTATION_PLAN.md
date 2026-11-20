@@ -263,11 +263,11 @@ also runs the in-memory WinFsp worker cases on ordinary local SDK builds.
    verified rollback and matched complete-size comparisons.
 5. Qualify paged enumeration, allocation, ACL queries and the Unicode path
    profile in real Windows clients. Tracked directories now validate moves
-   from transactional summaries. To backfill older directories, traverse
-   children in bounded idle batches with a durable cursor. Verify directory
-   membership before publishing each summary and resume safely after a
-   foreground edit or interruption. Measure both metadata bytes and foreground
-   interference. [Directory summaries](INDEXED_NATIVE_VOLUME.md#directory-summaries)
+   from transactional summaries. The WinFsp owner backfills older directories
+   in idle pages and retains completed summaries as checkpoints. Measure
+   backfill writes, mount interference and restart cost on wide legacy
+   directories. Carry the migration through the mounted Windows client tests.
+   [Automatic backfill](INDEXED_NATIVE_VOLUME.md#automatic-backfill)
 6. Connect the controlled indexed deferred write path to normal mounted
    workload selection. The indexed writer checks candidate content against
    the staged extent and publishes the inode and block in the verified LZ4

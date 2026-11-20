@@ -1,0 +1,225 @@
+{
+  "schema": 1,
+  "captured_local": "2026-11-20T12:26:20.7102551+01:00",
+  "source_base": "898c10a9d2158babb51a5abf66dc2ab66adc1bda",
+  "base_tree": "b5defaf12a9112dfe0de35030a96c1c4504556d0",
+  "scope": "Automatic directory summary backfill through ordinary indexed WinFsp idle work",
+  "host": {
+    "name": "Microsoft Windows 11 Pro",
+    "build": "26300",
+    "amd_adapter": [
+      {
+        "Name": "AMD Radeon RX 9070 XT",
+        "DriverVersion": "32.0.32029.2010"
+      }
+    ]
+  },
+  "source_binding": [
+    {
+      "path": "include/flitzfs/native_filesystem.hpp",
+      "git_blob": "513785cf39eff15a7d35642fb9db07d4e4bd32d7",
+      "worktree_sha256": "b16c3c04a0692b98ac3e64329b1e47737119468956a8e1cd3fde7cc628477eaf"
+    },
+    {
+      "path": "include/flitzfs/native_session.hpp",
+      "git_blob": "549f5172aa71e17ec4379a667cee78f1ade8ffaf",
+      "worktree_sha256": "b990fa406859245564d3cba90e0f7e4169c09efe496dd0d31b37e498d2ab763b"
+    },
+    {
+      "path": "src/native_filesystem.cpp",
+      "git_blob": "c3676faeab8f88253bbdd2474d47c4c43d030b03",
+      "worktree_sha256": "c1caacbbc7dde4d9039aefbfd616e2babeb89feffd87a43cb5d1faf49877d310"
+    },
+    {
+      "path": "src/native_indexed_volume.cpp",
+      "git_blob": "87aa899b125481289fbf0aaff2c14c08151ea643",
+      "worktree_sha256": "56725e4f5a5f943525d516801af90d5218ceb26a98f7218d4721909e2a31b5bd"
+    },
+    {
+      "path": "src/native_indexed_volume.hpp",
+      "git_blob": "c7f7b75f8fcd493cfdb86dc6f2fe2952759812a6",
+      "worktree_sha256": "0b4c9582000fbfcb929047b0cc6870a083caeae20c88d641dce9a7b45279b5d9"
+    },
+    {
+      "path": "src/native_session.cpp",
+      "git_blob": "c5912c2323de3df8f0c08b1eaf41536dcbe19af3",
+      "worktree_sha256": "94813dbb06833e4ed1b876ab427585b149016030048ce45b1ee46e973a9e7e08"
+    },
+    {
+      "path": "src/windows/winfsp_native.cpp",
+      "git_blob": "3e384c0e141956489d7f61811713a0483912cb7e",
+      "worktree_sha256": "4041cf9d2c9e9994210f2a97aa77ab880e295716ed71f53233014eab7a390516"
+    },
+    {
+      "path": "tests/test_native_indexed_volume.cpp",
+      "git_blob": "cf8298a56042dae08a11f4b98e10667d3b793ecc",
+      "worktree_sha256": "df51fb335cfe9b3361191f41dfc23959c1360ac75ba22c538c310afeb09ae848"
+    },
+    {
+      "path": "tests/test_winfsp_paged.cpp",
+      "git_blob": "70807e52f88b04d4de0b1e3daa95f241991d81c7",
+      "worktree_sha256": "23be543bc5a0adaa6d9cf09137d585ed7e4923871a3f39800fdb6460fb0bc99e"
+    }
+  ],
+  "navigation": {
+    "provider": "CocoIndex Code",
+    "version": "0.2.43",
+    "commit": "898c10a9d2158babb51a5abf66dc2ab66adc1bda",
+    "files": 6,
+    "searches": 1,
+    "native_response_sha256": "14efc2968bdea7f9b8ac482898c0b80e8dbe45e8835b1f5b86397c5dd1159f46"
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "robots": true,
+    "external_llm": false,
+    "native_pages": [
+      {
+        "name": "btrfs-scrub",
+        "url": "https://btrfs.readthedocs.io/en/latest/btrfs-scrub.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 21707,
+        "markdown_sha256": "ca7ff6b3c324a64e3f5f8e527f76fcb5b6759c1dad8e791898abfc44acb5c7f1",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.949,
+        "capture": "btrfs-scrub.native.json",
+        "capture_sha256": "faa34cedf7c77df441d781668762aa9836732497b6849b423d6e2bf7a29a18d6"
+      },
+      {
+        "name": "btrfs-balance",
+        "url": "https://btrfs.readthedocs.io/en/latest/btrfs-balance.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 29081,
+        "markdown_sha256": "aa6e7a67819fb9982ec6aebf6773a0b1b7383749eea524887b135e7befa43ac4",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.62,
+        "capture": "btrfs-balance.native.json",
+        "capture_sha256": "e1a3ccc72b73614bd4648b99d65c65a665c610e08eb5aa1054ccb5aaee34cf21"
+      }
+    ]
+  },
+  "core_recovery": {
+    "reopened_publications": 2,
+    "cuts": 51,
+    "previous": 43,
+    "complete": 8,
+    "acknowledged_bytes_verified": true
+  },
+  "completion_bit": 9,
+  "release_test_log_sha256": "2b34b789e0fb5d2df57bf5325fe17846dbb134dd466451422ff2e851e8ae5145",
+  "console_cases": [
+    "directory revision change after a partial page scan",
+    "retained completed child after restart",
+    "capacity refusal preserves a healthy checkpoint and suppresses repeated work",
+    "WinFsp foreground refusal before storage access",
+    "WinFsp reached quiescence after directory upgrades and CPU grouping"
+  ],
+  "amd": {
+    "profile": "changed-extents",
+    "verified_batches": 1,
+    "gpu_advised_members": 3,
+    "final_members": 5,
+    "independent_cpu_readback": true
+  },
+  "runs": [
+    {
+      "run": "local-run-b2bcb215409346229a641f2fb3f1afed",
+      "scope": "Release and Explorer helper build",
+      "tests_passed": 0,
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 644100096,
+      "memory_limit_bytes": 2179989504,
+      "cpu_percent": 21,
+      "receipt_sha256": "37593d211ba5cb0c1f6c152e5be46c991c125f95c742a648ca3b5c8540c55acb",
+      "output_sha256": "cf0e0d007ece2c06173518434d6ba2646cc4bda96409d67fcd685333a9f1946c"
+    },
+    {
+      "run": "local-run-cdddc414b0144cda82ec6e8ff9460665",
+      "scope": "Release and WinFsp SDK checks",
+      "tests_passed": 24,
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 324833280,
+      "memory_limit_bytes": 1887436800,
+      "cpu_percent": 21,
+      "receipt_sha256": "8e59cf6a883bf32f09fdafc8621ebda127081ffb0232720f0e597beb535c89ec",
+      "output_sha256": "784366863fb457e0b7babc9482eaec299966ea9d009b6fb168a15927c303ed26"
+    },
+    {
+      "run": "local-run-0a9071a9b31c48dfa1b5289e85d9713e",
+      "scope": "Raw build with staged AddressSanitizer runtime",
+      "tests_passed": 0,
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 768327680,
+      "memory_limit_bytes": 1910505472,
+      "cpu_percent": 22,
+      "receipt_sha256": "ffe04322873ef857e49bfc1754b803d9047921b8c1718635413f411e12868de2",
+      "output_sha256": "19d94f9925daf16a07bbd8bcc23ac3676f56cfdc715665d52ad387f88210dd03"
+    },
+    {
+      "run": "local-run-d3e1a48b3a0a4d5a87b18262071b0769",
+      "scope": "Raw AddressSanitizer and loader preflight",
+      "tests_passed": 10,
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 1053659136,
+      "memory_limit_bytes": 2251292672,
+      "cpu_percent": 21,
+      "receipt_sha256": "045a48bb1876035158df7c281f6c444ceae4be0173d0cc511b318940830c1a9d",
+      "output_sha256": "3f8cf5a1f90faa4840294c0bc0bcc9f8bfd52326c8615ecf386a7e4022b053de"
+    },
+    {
+      "run": "local-run-37a69635d12a4590928cbcd8c664d29b",
+      "scope": "Live AMD grouping and independent CPU readback",
+      "tests_passed": 0,
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 96956416,
+      "memory_limit_bytes": 1833959424,
+      "cpu_percent": 19,
+      "receipt_sha256": "666c795b62a37629a131d9e044f3b0d63b71bef9a678b3c87b6f385226314c90",
+      "output_sha256": "18e0e30087afa3784d83a9a658557251cba0a2e9eb383f238c2534f1122e58cb"
+    },
+    {
+      "run": "local-run-4f1c39699e1f42119bed7398058a39ea",
+      "scope": "Reviewed isolated Crawl4AI captures",
+      "tests_passed": 0,
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 1158045696,
+      "memory_limit_bytes": 1191182336,
+      "cpu_percent": 19,
+      "receipt_sha256": "fb218e1a3c59d4bf2d8d0dd8efdebf6dcc82e2b43a93c37cd9678ed7c2193dea",
+      "output_sha256": "e4a1db19a3d416e9dae9c12e2a91244d7a0af4b7182dd8e1c9a7efc492e79a98"
+    },
+    {
+      "run": "local-run-75734b54caf1445995a72b23721be181",
+      "scope": "Source-bound semantic search",
+      "tests_passed": 0,
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 1163677696,
+      "memory_limit_bytes": 2348810240,
+      "cpu_percent": 19,
+      "receipt_sha256": "a28fe4c27fb5a47029a0497cdaa21c477b87a1834cdbc276a17d5d31d3f2dd45",
+      "output_sha256": "b67c5c46760701c7797ae6cbb333492c9c82040cd6f470c9f344e791b60c29e8"
+    }
+  ],
+  "limits": [
+    "Partial directory histogram resumes within the running owner and restarts after process exit",
+    "Memory-backed SDK fixture and injected lifecycle",
+    "Driver-backed Windows client and physical power loss remain unqualified"
+  ]
+}

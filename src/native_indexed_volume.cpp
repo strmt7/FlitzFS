@@ -25,7 +25,8 @@ constexpr std::size_t original_root_size=96,lifetime_root_size=120,root_size=136
 constexpr std::size_t base_size=8+kNativeExtentBytes;
 constexpr std::uint32_t anchor_copy_capability=4,packed_xor_capability=5,modular_delta_capability=6,sparse_xor_capability=7;
 constexpr std::uint32_t directory_shape_feature=1U<<8;
-constexpr std::uint32_t namespace_features=kIndexedOrdinalNames|directory_shape_feature;
+constexpr std::uint32_t directory_backfill_complete_feature=1U<<9;
+constexpr std::uint32_t namespace_features=kIndexedOrdinalNames|directory_shape_feature|directory_backfill_complete_feature;
 constexpr NativeGroupMethod available_group_method(std::uint32_t capability) noexcept {
   if(capability>=sparse_xor_capability)return NativeGroupMethod::sparse_xor;
   if(capability>=modular_delta_capability)return NativeGroupMethod::modular_delta;
@@ -87,6 +88,8 @@ NativeIndexKind index_kind(const IndexedVolumeRoot& root) noexcept {
   return root.format>=3?NativeIndexKind::names_extents_and_references:NativeIndexKind::names_and_extents;
 }
 void validate_header_fields(const IndexedVolumeRoot& root) {
+  if(root.directory_backfill_complete && !root.directory_shapes)
+    fail(Code::corrupt,"completed indexed backfill lacks shape capability");
   if(root.identity==StoreIdentity{} || !root.sequence || root.next_inode<2 ||
       root.next_inode>kNativeIndexedInodeLimit || !root.next_extent ||
       root.next_extent>kNativeIndexedInodeLimit || (!root.workload.enabled && root.workload.committed_input_bytes))
@@ -114,6 +117,7 @@ IndexedVolumeRoot decode_root(std::span<const std::byte> bytes) {
   const auto features=static_cast<std::uint32_t>(get(bytes,92,4));
   root.name_profile=features&kIndexedOrdinalNames;
   root.directory_shapes=(features&directory_shape_feature)!=0;
+  root.directory_backfill_complete=(features&directory_backfill_complete_feature)!=0;
   const auto expected_size=root.format==1?original_root_size:root.format==2?lifetime_root_size:root_size;
   if(root.format<1 || root.format>sparse_xor_capability || bytes.size()!=expected_size)
     fail(Code::corrupt,"indexed native volume capability and length differ");
@@ -138,7 +142,8 @@ Bytes encode_root(const IndexedVolumeRoot& root) {
   put(bytes,40,root.inodes);put(bytes,48,root.extents);put(bytes,56,root.charged_extents);
   put(bytes,64,root.workload.committed_input_bytes);
   std::copy(root.identity.begin(),root.identity.end(),bytes.begin()+kIndexedVolumeIdentityOffset);
-  const auto features=root.name_profile|(root.directory_shapes?directory_shape_feature:0);
+  const auto features=root.name_profile|(root.directory_shapes?directory_shape_feature:0)|
+      (root.directory_backfill_complete?directory_backfill_complete_feature:0);
   put(bytes,88,kNativeExtentBytes,4);put(bytes,92,features,4);
   return bytes;
 }
@@ -495,11 +500,60 @@ class IndexedVolumeTransaction final {
 
   void enable_workload() noexcept {next_.workload.enabled=true;}
 
+  NativeDirectoryBackfillStep prepare_directory_backfill(IndexedDirectoryBackfill& work) {
+    using Step=NativeDirectoryBackfillStep;
+    if(before_.directory_backfill_complete)return Step::idle;
+    if(work.stack.empty())work.stack.push_back({1});
+    auto& frame=work.stack.back();
+    IndexedInodeInput directory;
+    try {directory=node(frame.inode);}
+    catch(const NativeFsError& error) {
+      if(error.code()!=Code::not_found)throw;
+      if(frame.inode==1)fail(Code::corrupt,"indexed backfill has no root directory");
+      work.stack.pop_back();
+      return Step::scanning;
+    }
+    if(indexed_detached(directory.lifetime) || (directory.shape && directory.inode!=1)) {
+      work.stack.pop_back();
+      return Step::scanning;
+    }
+    if(!directory.directory)fail(Code::corrupt,"indexed backfill inode is a regular file");
+    if(directory.shape) {
+      next_.directory_backfill_complete=true;
+      return Step::published;
+    }
+    if(frame.revision!=directory.modified)frame={directory.inode,directory.modified};
+    if(frame.ready) {
+      edit(directory.inode).shape=frame.shape;
+      next_.directory_shapes=true;
+      next_.directory_backfill_complete=directory.inode==1;
+      return Step::published;
+    }
+    constexpr std::size_t rows_per_opportunity=64;
+    const auto rows=index_.list(directory.inode,frame.after,rows_per_opportunity);
+    if(!rows.empty() && directory.lifetime!=IndexedLifetime::linked)
+      fail(Code::corrupt,"indexed backfill found children of a pending directory");
+    for(const auto& row:rows) {
+      const auto child=linked_inode(row.key,row.value);
+      const auto contribution=child_path_bound(child);
+      if(!contribution) {
+        if(work.stack.size()==kIndexedPathDepth+1)work.stack.clear(); // An ancestry may have moved.
+        else work.stack.push_back({child.inode,child.modified});
+        return Step::scanning;
+      }
+      frame.shape.replace({},contribution);
+      frame.after=row.key.name;
+    }
+    frame.ready=rows.size()<rows_per_opportunity;
+    return Step::scanning;
+  }
+
   NativeFsCommit finish(PagedObjectStoreWriter& writer,IndexedVolumeRoot& current,
       std::uint64_t advised_inode=0,std::span<const NativeLz4ExtentCandidate> candidates={}) {
     NativeFsCommit result;
     result.created_inodes=std::move(created_);
-    if(nodes_.empty() && next_.workload==before_.workload) {
+    if(nodes_.empty() && next_.workload==before_.workload &&
+        next_.directory_backfill_complete==before_.directory_backfill_complete) {
       result.storage=native_paged_info(healthy_checkpoint());result.sequence=before_.sequence;
       return result;
     }
@@ -594,7 +648,7 @@ class IndexedVolumeTransaction final {
     }catch(const NativeFsError&){throw;}
     catch(const PagedStoreCapacityError& error) {
       if(writer.poisoned())fail(Code::storage_failure,"indexed publication failed after admission");
-      fail(Code::limit,error.what());
+      throw NativeFsError(Code::limit,error.what(),error.append_shortfall_bytes());
     }catch(const std::bad_alloc&) {
       if(writer.poisoned())fail(Code::storage_failure,"indexed publication failed after admission");
       throw;
@@ -856,7 +910,10 @@ class IndexedVolumeTransaction final {
       // Importing an older subtree invalidates summaries on its new ancestry.
       while(directory->shape) {
         directory->shape.reset();
-        if(!directory->parent)return;
+        if(!directory->parent) {
+          next_.directory_backfill_complete=false;
+          return;
+        }
         directory=&edit(directory->parent);
       }
       return;
@@ -1111,7 +1168,7 @@ IndexedVolumeRoot initialize_indexed_volume(PagedObjectStoreWriter& writer) {
     fail(Code::invalid_operation,"indexed initialization requires a new mirrored store");
   IndexedVolumeRoot root;
   root.identity=snapshot.identity();root.sequence=1;root.inodes=1;root.workload.enabled=true;
-  root.format=2;root.directory_shapes=true;
+  root.format=2;root.directory_shapes=true;root.directory_backfill_complete=true;
   IndexedInodeInput directory;
   directory.inode=1;directory.born=1;directory.modified=1;directory.directory=true;
   directory.shape.emplace();
@@ -1224,6 +1281,18 @@ void advance_indexed_retirement(PagedObjectStoreWriter& writer,const PagedObject
   if(closed_session)transaction.finish_context(id);
   else transaction.reclaim(id);
   (void)transaction.finish(writer,current);
+}
+
+NativeDirectoryBackfillStep advance_indexed_directory_backfill(PagedObjectStoreWriter& writer,
+    const PagedObjectStoreSnapshot& source,IndexedVolumeRoot& current,IndexedDirectoryBackfill& work,
+    IndexedContentWatch watched) {
+  IndexedVolumeTransaction transaction(source,current,watched);
+  const auto step=transaction.prepare_directory_backfill(work);
+  if(step==NativeDirectoryBackfillStep::published) {
+    (void)transaction.finish(writer,current);
+    work.stack.pop_back();
+  }
+  return step;
 }
 
 namespace {
@@ -1822,7 +1891,9 @@ IndexedVolumeView::IndexedVolumeView(const PagedObjectStoreSnapshot& store,Index
       root_.charged_extents>(std::numeric_limits<std::size_t>::max)() ||
       index_.size()!=index_entries(root_))
     fail(Code::corrupt,"wrong indexed root capability or counts");
-  (void)referenced_inode(1);
+  const auto directory=referenced_inode(1);
+  if(root_.directory_backfill_complete && !directory.shape)
+    fail(Code::corrupt,"completed indexed backfill lacks root shape");
 }
 IndexedInodeInput IndexedVolumeView::inode(std::uint64_t id) const {
   auto input=load_inode(store_,root_,id);

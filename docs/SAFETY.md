@@ -19,7 +19,9 @@ records as a separate operation.
 Each indexed directory summary shares its atomic publication with the matching
 names and inodes. Full verification reconciles the summaries with the children
 and checks the reachable namespace against the object inventory before writer
-admission. [Directory summaries](INDEXED_NATIVE_VOLUME.md#directory-summaries)
+admission. The backfill checks the directory revision again before publication
+and retains the earlier checkpoint if preparing the update exceeds capacity.
+[Automatic backfill](INDEXED_NATIVE_VOLUME.md#automatic-backfill)
 
 The writable controller owns its session until an explicit stop, dispatcher
 termination or storage fence. Quiet volumes wait on owned events. Publication

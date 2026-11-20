@@ -1152,6 +1152,7 @@ struct NativeFilesystemWriter::Impl {
   // An allocation-free copy of the canonical root of this committed Model.
   InodeRootBytes inode_root{};
   std::optional<detail::IndexedVolumeRoot> indexed;
+  detail::IndexedDirectoryBackfill directory_backfill;
   detail::IndexedSharedBaseCache shared_base_reads;
   std::uint64_t indexed_content_sequence=1;
   detail::IndexedContentChanges indexed_changes;
@@ -2576,6 +2577,31 @@ bool NativeFilesystemWriter::reclaim_retired_inode() {
     detail::advance_indexed_retirement(writer,source,root,false,watched);
   });
   return true;
+}
+bool NativeFilesystemWriter::directory_backfill_pending() const noexcept {
+  return !poisoned() && impl_->indexed && !impl_->indexed->directory_backfill_complete &&
+      impl_->directory_backfill.capacity_sequence!=impl_->indexed->sequence;
+}
+NativeDirectoryBackfillStep NativeFilesystemWriter::advance_directory_backfill() {
+  using Step=NativeDirectoryBackfillStep;
+  auto& state=checked_impl();
+  if(!directory_backfill_pending())return Step::idle;
+  auto& work=state.directory_backfill;
+  try {
+    return state.mutate_indexed([&](auto& writer,const auto& source,auto& root,auto watched) {
+      return detail::advance_indexed_directory_backfill(writer,source,root,work,watched);
+    });
+  }catch(const NativeFsError& error) {
+    work.stack.clear();
+    if(error.code()==Code::limit && error.append_shortfall_bytes()) {
+      work.capacity_sequence=state.indexed->sequence;
+      return Step::capacity;
+    }
+    throw;
+  }
+}
+void NativeFilesystemWriter::cancel_directory_backfill() noexcept {
+  if(impl_)impl_->directory_backfill={};
 }
 std::uint64_t NativeFilesystemWriter::indexed_append_floor() const noexcept {
   if(poisoned() || !impl_->indexed)return 0;

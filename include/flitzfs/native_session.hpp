@@ -433,6 +433,9 @@ class NativeFileSession final {
   // One bounded reclaim operation for an already closed indexed inode.
   bool retirement_pending() const noexcept;
   bool reclaim_retired_inode();
+  bool directory_backfill_pending() const noexcept;
+  NativeDirectoryBackfillStep advance_directory_backfill();
+  void cancel_directory_backfill() noexcept;
   NativeFilesystemSnapshot snapshot() const;
   NativeSessionStats stats() const noexcept;
   // Cached advisory change detection only: zero for terminal/moved state.

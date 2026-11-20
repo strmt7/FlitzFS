@@ -15,7 +15,8 @@
     "evidence": "docs/evidence/indexed-directory-bounds-2026-11-20.json",
     "feature_bit": 8,
     "namespace_verification": "Root traversal with reachable inode reconciliation",
-    "existing_directory_backfill": false,
+    "existing_directory_backfill": true,
+    "backfill_evidence": "docs/evidence/indexed-directory-backfill-2026-11-20.json",
     "mounted_windows_client_qualification": false
   },
   "windows_indexed_name_profile": {
