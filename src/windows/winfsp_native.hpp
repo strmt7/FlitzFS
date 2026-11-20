@@ -130,6 +130,7 @@ class WinFspNativeWritable final {
   NativeDeferredStop stop_deferred_writes_hosted();
   void bind_callbacks(FSP_FILE_SYSTEM&,WinFspOriginQuery) noexcept;
   bool self_origin_rejected() const noexcept;
+  bool mount_names_supported() const;
   FSP_FSCTL_VOLUME_PARAMS parameters() const noexcept;
   static const FSP_FILE_SYSTEM_INTERFACE& callbacks() noexcept;
   bool requires_offline() const noexcept;

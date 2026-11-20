@@ -1,6 +1,7 @@
 #include "flitzfs/native_filesystem.hpp"
 #include "native_object_storage.hpp"
 #include "native_indexed_volume.hpp"
+#include "indexed_names.hpp"
 #include "native_name_index.hpp"
 #include "flitzfs/catalog.hpp"
 #include "flitzfs/directory_order.hpp"
@@ -483,7 +484,7 @@ bool namespace_matches(const detail::NativeObjectSnapshot& objects,const Model& 
   return true;
 }
 Node decode_inode(std::span<const std::byte> bytes, std::uint32_t format,
-    std::size_t& cursor, std::uint64_t previous) {
+    std::size_t& cursor, std::uint64_t previous,std::uint32_t name_profile=0) {
   const auto header=node_header(format);
   if(cursor>bytes.size() || bytes.size()-cursor<header)fail(Code::corrupt,"truncated native inode");
   const auto h=bytes.subspan(cursor,header);cursor+=header;
@@ -492,7 +493,8 @@ Node decode_inode(std::span<const std::byte> bytes, std::uint32_t format,
   n.directory=kind==1;n.delete_pending=(flags&1)!=0;n.unlinked=(flags&2)!=0;
   n.size=integer(h,24,8);n.born=integer(h,32,8);n.modified=integer(h,40,8);
   const auto name_bytes=integer(h,48,2),extents=integer(h,50,2);
-  if((kind!=1 && kind!=2) || n.inode<=previous || name_bytes>100 || extents>kNativeMaxExtents ||
+  const auto maximum_name=name_profile==detail::kIndexedOrdinalNames?detail::kIndexedNameBytes:100;
+  if((kind!=1 && kind!=2) || n.inode<=previous || name_bytes>maximum_name || extents>kNativeMaxExtents ||
       (flags&~std::uint64_t{31}) || (format==1 && flags) || (flags&3)==3 ||
       (format<3 && (flags&4)) || (format<4 && (flags&8)) || (format<5 && (flags&16)) ||
       (format>=5 && !(flags&16) && integer(h,96,8)) ||
@@ -514,8 +516,10 @@ Node decode_inode(std::span<const std::byte> bytes, std::uint32_t format,
     n.security=NativeSecurityDescriptor(bytes.begin()+static_cast<std::ptrdiff_t>(cursor),
         bytes.begin()+static_cast<std::ptrdiff_t>(cursor+length));cursor+=static_cast<std::size_t>(length);
   }
-  try{n.key=n.inode==1 || n.unlinked?"":component(n.name);}
-  catch(const NativeFsError&){fail(Code::corrupt,"invalid native stored component");}
+  if(n.inode!=1 && !n.unlinked) {
+    try {n.key=name_profile==detail::kIndexedOrdinalNames?detail::indexed_component_key(n.name):component(n.name);}
+    catch(const NativeFsError&){fail(Code::corrupt,"invalid native stored component");}
+  }
   std::uint64_t prior_block=0;
   for(std::uint64_t e=0;e<extents;++e) {
     if(bytes.size()-cursor<16)fail(Code::corrupt,"truncated native extent");
@@ -1030,7 +1034,8 @@ void validate_indexed_inode(const Node& n,const IndexedVolumeRoot& root) {
   } else {
     if(!n.parent || n.parent>=root.next_inode || n.parent==n.inode)
       fail(Code::corrupt,"invalid indexed inode parent");
-    (void)component(n.name);
+    if(root.name_profile)(void)indexed_component_key(n.name);
+    else (void)component(n.name);
   }
   if(n.basic)validate_basic(*n.basic,n.directory);
   if(n.security && (n.security->size()>kNativeMaxSecurityBytes || !native_security_descriptor_framed(*n.security)))
@@ -1050,7 +1055,7 @@ IndexedInodeInput decode_indexed_inode(std::span<const std::byte> bytes,std::uin
   if(bytes.size()<node_header(7) || integer(bytes,50,2))
     fail(Code::corrupt,"indexed inode has inline extents");
   std::size_t cursor=0;
-  auto node=decode_inode(bytes,7,cursor,0);
+  auto node=decode_inode(bytes,7,cursor,0,root.name_profile);
   if(cursor!=bytes.size() || node.inode!=inode)fail(Code::corrupt,"indexed inode identity or length mismatch");
   try { validate_indexed_inode(node,root); }
   catch(const NativeFsError&) { fail(Code::corrupt,"invalid indexed inode fields"); }
@@ -2197,7 +2202,9 @@ NativeInodeAllocationCommit NativeFilesystemWriter::create_inode_storage_result(
   if(!native_security_descriptor_framed(descriptor))
     fail(Code::invalid_operation,"invalid native creation security descriptor");
   try {
-    (void)canonical(path); // Bound/validate BEFORE copying caller-controlled bytes.
+    // Bound the path before copying the caller's bytes into a mutation.
+    if(impl_->indexed)(void)detail::indexed_path_name(path);
+    else (void)canonical(path);
     NativeFileMutation op;op.path=std::string(path);
     op.operation=directory?NativeFileOperation::create_directory:NativeFileOperation::create_file;
     const NativeBasicMutation basic{0,1,value};
@@ -2589,15 +2596,16 @@ NativeDirectoryRecordPage NativeFilesystemWriter::inspect_directory_page(std::ui
     std::string_view after,std::size_t maximum) const {
   auto& state=checked_impl();
   if(!maximum || maximum>1024)fail(Code::limit,"directory page budget");
+  if(state.indexed) {
+    const auto key=after.empty() || after=="." || after==".."?std::string{}:detail::indexed_component_key(after);
+    return state.read_indexed([&](const auto& view) {return view.directory_records(inode,key,maximum);});
+  }
   if(after.size()>100 || std::ranges::any_of(after,[](char c) {
       return c<0x20 || c>0x7e || c=='/' || c=='\\';
     }))fail(Code::invalid_path,"invalid native directory marker");
   // Both special entries sort before every real name.
   std::string key=after=="." || after==".."?std::string{}:std::string(after);
   std::ranges::transform(key,key.begin(),directory_ascii_lower);
-  if(state.indexed)return state.read_indexed([&](const auto& view) {
-    return view.directory_records(inode,key,maximum);
-  });
   return state.read_checked_inode(inode,[&](const auto& snapshot,const Node& directory) {
     verify_directory(snapshot,state.model,directory);
     NativeDirectoryRecordPage result;

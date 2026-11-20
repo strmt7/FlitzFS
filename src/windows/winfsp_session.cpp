@@ -105,6 +105,7 @@ NTSTATUS WinFspNativeSession::start(const NativeWriteMountPlan& plan) noexcept {
     release();state_=SessionState::failed;retire_adapter();return status;
   };
   try {
+    if(!adapter_->mount_names_supported())return fail(STATUS_NOT_SUPPORTED);
     auto directory=plan.directory;auto parameters=adapter_->parameters();
     wchar_t device[]=L"" FSP_FSCTL_DISK_DEVICE_NAME;
     state_=SessionState::starting;

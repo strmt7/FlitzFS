@@ -1304,9 +1304,11 @@ validation, deferred responses, owned controller, shared memory factory and tray
    clients, including a sustained idle hold, resume of I/O, orderly dismount
    and independent recovery after stop.
    [Controller contract](WINFSP_OWNED_CONTROLLER.md)
-7. Specify Windows name/case semantics, UTF-16/UTF-8 representation, long paths,
-   reserved names, case preservation and normalization policy. Implement them in
-   native indexes and adapters with collision/security tests.
+7. Qualify the versioned indexed name profile with Explorer and Win32 clients
+   on Windows 11. Cover case aliases, displayed spelling, both Unicode forms
+   of a visibly identical name, long-path-aware applications and reserved-name
+   rejection. Verify current and legacy images after dismount and reopen.
+   [Indexed name profiles](INDEXED_NATIVE_VOLUME.md#name-profiles)
 8. Complete share modes, delete-pending/rename/replace, allocation/EOF/sparse
    behavior, file IDs, directory cursor semantics and error/status mapping.
    Add hard links, streams, reparse points or other promised features only with

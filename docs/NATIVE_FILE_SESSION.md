@@ -174,14 +174,14 @@ remain unfinished.
 
 ## Path admission before ownership copies
 
-The context layer reuses canonical_catalog_path, whose current source checks
-the 240-byte cap before allocating. Open/create/rename validate the virtual
-path before backing lookup and before copying caller views into mutation
-strings. Root is allowed only for open. Existing unsafe-name/type rules and
-stored format/bounds remain unchanged. Regression cases include the byte
-boundary, traversal, reserved names and empty mutation paths, requiring no
-backing I/O or healthy-owner fencing. Directory enumeration also has a
-positive owned-context identity check.
+The context layer validates each virtual path against the selected image format
+before backing lookup or copying the caller's view into a mutation. The legacy
+validator checks a 240-byte path cap. Indexed volumes validate UTF-8 and use
+the on-media profile's bounds. Open and lookup accept the root. Regression
+cases exercise traversal, reserved names, empty mutation paths and each
+format's length boundary. Directory enumeration checks the identity of the
+owned context.
+[Indexed name profile](INDEXED_NATIVE_VOLUME.md#name-profiles)
 
 
 ## Real synchronized Flush addition

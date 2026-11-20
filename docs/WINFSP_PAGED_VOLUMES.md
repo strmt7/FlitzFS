@@ -25,6 +25,13 @@ dot entries precede ordinary names. Separate calls can observe intervening
 namespace changes.
 [Directory pagination evidence](evidence/native-directory-pages-2026-11-17.json)
 
+The indexed adapter converts UTF-16 requests to UTF-8 and enumerates original
+spellings as UTF-16. It reports a 255-unit maximum component length. Before
+starting the dispatcher, it compares the host's ordinal equivalences with the
+indexed profile. The check runs once per process and a mismatch blocks that
+mount. CPU inspection and recovery use the volume's stored profile.
+[Indexed name profiles](INDEXED_NATIVE_VOLUME.md#name-profiles)
+
 ## Resume and compatibility
 
 `resume_managed_retired` requires exact volume identity/head epoch, a qualified

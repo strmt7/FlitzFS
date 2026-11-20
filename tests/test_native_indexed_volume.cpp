@@ -421,11 +421,107 @@ void indexed_capacity_and_metadata() {
   const std::string long_dir(99,'d'),long_leaf(99,'f');
   const std::string old="p/"+long_dir;
   writer.apply(std::array{file_create("p",true),file_create(old,true),file_create(old+"/"+long_leaf)});
-  const auto stable=roomy->calls;
-  refuses(Error::invalid_path,[&]{file_apply(writer,file_rename("p",std::string(99,'q')));});
-  require(roomy->calls==stable && writer.inspect_path(old+"/"+long_leaf).info.logical_bytes==0,
-      "invalid directory growth changed the indexed graph");
+  const std::string longer(99,'q');
+  file_apply(writer,file_rename("p",longer));
+  const auto enlarged=longer+"/"+long_dir+"/"+long_leaf;
+  require(writer.inspect_path(enlarged).info.logical_bytes==0,
+      "directory growth lost the indexed descendant");
   writer.snapshot().verify_all();
+
+  auto tampered=image(roomy->stable,4096);
+  const auto objects=PagedObjectStoreSnapshot::open(tampered,limits);
+  auto root=objects.read(1);
+  require(root.at(92)==std::byte{1},"expanding directory rename did not promote the name profile");
+  root.at(92)=std::byte{0};
+  auto store=PagedObjectStoreWriter::resume(tampered,identity(),objects.info().generation,limits,raw);
+  const StoreMutation downgraded{1,false,std::move(root)};
+  store.commit({&downgraded,1});
+  refuses(Error::corrupt,[&]{(void)NativeFilesystemSnapshot::open_image(tampered,indexed).stat(enlarged);});
+}
+
+void indexed_windows_names() {
+  using Error=NativeFsErrorCode;
+  const auto utf8=[](std::u8string_view value){return std::string(reinterpret_cast<const char*>(value.data()),value.size());};
+  const auto read_root=[](const auto& medium){return PagedObjectStoreSnapshot::open(medium,limits).read(1);};
+  auto ram=empty();
+  auto writer=new_writer(ram);
+  file_apply(writer,file_create("Legacy"));
+  const auto previous=image(ram->stable,4096);
+  require(read_root(previous).at(92)==std::byte{0},"legacy-compatible names changed the root profile");
+
+  const auto folder=utf8(u8"Caf\u00e9 \u2c62");
+  const auto folder_alias=utf8(u8"CAF\u00c9 \u026b");
+  const auto leaf=utf8(u8"\u2c62 \u6f22 \U0001f600.txt");
+  const auto leaf_alias=utf8(u8"\u026b \u6f22 \U0001f600.TXT");
+  const auto next=utf8(u8"\u767d.txt");
+  const auto decomposed=utf8(u8"Cafe\u0301 \u2c62");
+  const auto contents=payload(256);
+  writer.apply(std::array{file_create(folder,true),file_create(folder_alias+"/"+leaf),
+      file_write(folder_alias+"/"+leaf_alias,0,contents),file_create(folder+"/"+next),file_create(decomposed)});
+  const auto directory=writer.inspect_path(folder).info.inode;
+  const auto file_id=writer.inspect_path(folder_alias+"/"+leaf_alias).info.inode;
+  require(writer.inspect_path(folder_alias+"/"+leaf_alias).info.path==folder+"/"+leaf &&
+      writer.inspect_path(decomposed).info.inode!=directory && read_root(ram).at(92)==std::byte{1},
+      "indexed Unicode aliases lost original spelling or collapsed distinct Unicode names");
+  const auto listing=writer.snapshot();
+  const auto first_page=listing.list_inode_page(directory,{},1);
+  require(first_page.entries.size()==1 && first_page.entries.front().path==folder+"/"+leaf && first_page.next,
+      "indexed first directory page changed the Unicode display name");
+  const auto page=listing.list_inode_page(directory,*first_page.next,1);
+  require(page.entries.size()==1 && page.entries.front().path==folder+"/"+next && !page.next,
+      "indexed Unicode directory cursor repeated or skipped a name");
+  writer.apply(std::array{file_rename(folder,folder_alias),file_rename(folder+"/"+leaf,folder+"/"+leaf_alias)});
+  require(writer.inspect_path(folder+"/"+leaf).info.inode==file_id &&
+      writer.inspect_path(folder+"/"+leaf).info.path==folder_alias+"/"+leaf_alias,
+      "indexed case-only rename changed identity or truncated the display name");
+
+  std::string full_name;
+  for(unsigned i=0;i<255;++i)full_name+=utf8(u8"\u6f22");
+  const auto first=full_name;
+  const auto second=first+"/"+full_name;
+  const auto third=second+"/"+full_name;
+  const auto longest=third+"/"+full_name.substr(3);
+  writer.apply(std::array{file_create(first,true),file_create(second,true),file_create(third,true),file_create(longest)});
+  std::string supplementary;
+  for(unsigned i=0;i<127;++i)supplementary+=utf8(u8"\U0001f600");
+  file_apply(writer,file_create(supplementary+"a"));
+  const auto calls=ram->calls;
+  for(const auto& invalid:std::array{std::string("\xc0\xaf"),std::string("\xed\xa0\x80"),
+        std::string("\xf4\x90\x80\x80"),std::string("a\0b",3),utf8(u8"COM\u00b9.txt"),
+        utf8(u8"LpT\u00b2 .txt"),std::string("space "),std::string("a:b"),std::string("a/../b"),
+        longest+"z",full_name+"z",supplementary+"ab"}) {
+    refuses(Error::invalid_path,[&]{file_apply(writer,file_create(invalid));});
+  }
+  refuses(Error::already_exists,[&]{file_apply(writer,file_create(folder+"/"+leaf));});
+  require(ram->calls==calls,"rejected Unicode publication modified backing storage");
+
+  auto target=empty();
+  auto candidate=writer.prepare_paged_recompression(target,identity_for(49),raw,false);
+  unsigned steps=0;
+  while(!writer.advance_paged_recompression(candidate))
+    require(++steps<1000,"indexed Unicode rebuild did not finish");
+  auto copy=writer.finish_paged_recompression(candidate);
+  const auto restored=NativeFilesystemSnapshot::open_image(target,indexed);
+  restored.verify_all();
+  require(restored.read(folder+"/"+leaf,0,100)==contents && restored.list(third).front().path==longest &&
+      read_root(target).at(92)==std::byte{1},"rebuild or CPU reopen lost the namespace profile or file bytes");
+  const auto old=NativeFilesystemSnapshot::open_image(previous,indexed);
+  old.verify_all();
+  require(old.list().size()==1 && old.list().front().path=="Legacy","legacy root lost backward compatibility");
+
+  auto frame=read_root(target);
+  frame.at(92)=std::byte{2};
+  const auto generation=restored.storage_info().generation;
+  // Re-seal an unknown profile in an independent image.
+  auto incompatible=image(target->stable,4096);
+  auto store=PagedObjectStoreWriter::resume(incompatible,restored.identity(),generation,limits,raw);
+  const StoreMutation unknown{1,false,std::move(frame)};
+  store.commit({&unknown,1});
+  refuses(Error::corrupt,[&]{(void)NativeFilesystemSnapshot::open_image(incompatible,indexed);});
+  file_apply(copy,file_remove(folder+"/"+leaf));
+  require(copy.snapshot().list(folder).size()==1 && restored.read(folder+"/"+leaf,0,100)==contents,
+      "removing an aliased name affected a stable snapshot");
+  std::cout<<"indexed_names Unicode UTF-16 limits and CPU recovery verified\n";
 }
 
 void indexed_stable_inode_io() {
@@ -1013,21 +1109,25 @@ void indexed_managed_handoff() {
       <<" head_faults="<<previous+advanced<<" previous="<<previous<<" advanced="<<advanced<<'\n';
 }
 
+constexpr auto recovered_name="targ\xc3\xa9t.bin";
+constexpr auto recovered_alias="TARG\xc3\x89T.BIN";
 void verify_recovered_batch(const NativeFilesystemSnapshot& snapshot,bool committed) {
   using Error=NativeFsErrorCode;
   require(snapshot.sequence()==(committed?3U:2U) &&
       snapshot.read("stable.bin",0,100)==data(31,18),"indexed recovery lost acknowledged stable data");
   const auto entries=snapshot.list_inode_page(1).entries;
   if(committed) {
-    require(entries.size()==2 && snapshot.read("target.bin",0,100000)==final_bytes() &&
-        snapshot.stat("target.bin").inode==3 && snapshot.allocation_usage().live_extents==3,
+    require(entries.size()==2 && snapshot.read(recovered_alias,0,100000)==final_bytes() &&
+        snapshot.stat(recovered_name).inode==3 && snapshot.allocation_usage().live_extents==3,
         "indexed recovery published a partial replacement");
+    refuses(Error::not_found,[&]{(void)snapshot.stat("target.bin");});
     refuses(Error::not_found,[&]{(void)snapshot.stat("A");});
     refuses(Error::not_found,[&]{(void)snapshot.stat("B");});
   } else {
     require(entries.size()==3 && snapshot.read("target.bin",0,100)==data(31,2) &&
         snapshot.read("A/file.bin",0,100)==data(17,1) && snapshot.stat("target.bin").inode==4 &&
         snapshot.allocation_usage().live_extents==3,"indexed recovery mixed checkpoint metadata and bytes");
+    refuses(Error::not_found,[&]{(void)snapshot.stat(recovered_name);});
   }
   snapshot.verify_all();
 }
@@ -1039,7 +1139,8 @@ void indexed_transaction_recovery() {
   const auto baseline_commit=writer.apply(baseline());
   const auto original_snapshot=writer.snapshot();
   const auto stable=original->stable;
-  const auto operations=update();
+  auto operations=update();
+  operations.push_back(file_rename("target.bin",recovered_name));
   auto success=image(stable,4096);
   std::size_t boundaries=0;
   {
@@ -1079,6 +1180,6 @@ int main() {
   try { populated_native_snapshot();migration(false);migration(true);growing_native_writer();indexed_capacity_and_metadata();indexed_stable_inode_io();indexed_session_lifetimes();indexed_detach_recovery();
     indexed_large_retirement();indexed_head_independent_sequence();indexed_staged_rebuild();indexed_reconciled_rebuild();
     indexed_managed_handoff();indexed_managed_staged_compaction();indexed_managed_staged_faults();
-    indexed_transaction_recovery();indexed_extent_advice(); }
+    indexed_transaction_recovery();indexed_extent_advice();indexed_windows_names(); }
   catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}
 }

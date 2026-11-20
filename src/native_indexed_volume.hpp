@@ -12,6 +12,7 @@ struct IndexedVolumeRoot {
   std::uint64_t inodes=0,extents=0,charged_extents=0;
   NativeWorkloadInfo workload;
   std::uint32_t format=1;
+  std::uint32_t name_profile=0;
   std::uint64_t active_lifetimes=0,detached_inodes=0,retiring_inodes=0;
   std::uint64_t shared_bases=0,shared_members=0;
   bool operator==(const IndexedVolumeRoot&) const = default;

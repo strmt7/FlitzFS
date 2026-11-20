@@ -1,0 +1,485 @@
+{
+  "schema": 1,
+  "captured_local": "2026-11-20T11:45:59.3070927+01:00",
+  "source_base": "5156f89f1a641609a4be473eb3ac88a9f97b6a30",
+  "base_tree": "9cb5bc639b5300e8693cf3e709e9ce2ad3fa0b48",
+  "scope": "Indexed store and WinFsp user-mode callbacks on Windows 11",
+  "platform": {
+    "name": "Microsoft Windows 11 Pro",
+    "build": "26300",
+    "amd_adapter": [
+      {
+        "Name": "AMD Radeon RX 9070 XT",
+        "DriverVersion": "32.0.32029.2010"
+      }
+    ]
+  },
+  "source_binding": [
+    {
+      "path": "CMakeLists.txt",
+      "git_blob": "25d964fb5fa2a7a54c6b708313fdfeb17d102fd7",
+      "worktree_sha256": "8e2456e0939a9e9d081f2ac06a09ae541e2371cdb43ffb42f1796ba1a54b415e"
+    },
+    {
+      "path": "src/indexed_names.cpp",
+      "git_blob": "013ad25861f96213ea55d48bfce0e7fb5945fb42",
+      "worktree_sha256": "41efbf790138d81d24ac18f872315e67a89389b715d321ea9536de286be417f6"
+    },
+    {
+      "path": "src/indexed_names.hpp",
+      "git_blob": "8d0b4e2f2aaef3f6cb3b9e0aced1fbb0593b4484",
+      "worktree_sha256": "99937ed2b3304b806bbe4d6a28c1b4d59837897e45de4b3e57cea1647b003ae0"
+    },
+    {
+      "path": "src/indexed_ordinal_ranges.inc",
+      "git_blob": "fda46209ed43705e0732fcefb3bcc9483a97587e",
+      "worktree_sha256": "e41268f10b538ad8c19f5ce1901e5e095da1417c7b0ce8c9e6e2aa08f8a00920"
+    },
+    {
+      "path": "src/native_filesystem.cpp",
+      "git_blob": "32c1301947aaf2a802da08cf1c3c459413710a8a",
+      "worktree_sha256": "793523477fb3350b9f61dc08b6b059e51bade9797bebe56e8ae51991277f660e"
+    },
+    {
+      "path": "src/native_indexed_volume.cpp",
+      "git_blob": "237a66908906536c55d33cb8c6d74721b0a89191",
+      "worktree_sha256": "6f0d5d1e6aeb140b2cba1b7ed736f8ce6cdf4feb96ccb251f2c014aa4cc13a27"
+    },
+    {
+      "path": "src/native_indexed_volume.hpp",
+      "git_blob": "a27682eec703acb227ea1a53ecb8b69fff7e5cc7",
+      "worktree_sha256": "1d75cb90d8a91f0c278b123d3cf6f6a0742402ce91726776b66ea60619d7849f"
+    },
+    {
+      "path": "src/native_session.cpp",
+      "git_blob": "c570ee34bc1613e289f7363f9897c77fee9c8ed9",
+      "worktree_sha256": "6f1751e88b10cbe575e014c0e3a193d3df5f482620b605d9f7c3340c01fd4f9a"
+    },
+    {
+      "path": "src/windows/winfsp_native.cpp",
+      "git_blob": "b7af998d75c44aa1f4fbe2ad7ca9e8a75bca43ea",
+      "worktree_sha256": "3638625259d8135183814ea8782d5e1fa59a0f5634cffe74e21376fe86ec37cc"
+    },
+    {
+      "path": "src/windows/winfsp_native.hpp",
+      "git_blob": "e428edde7f4c1992a4fab4cbe5f88bf899a560f2",
+      "worktree_sha256": "a9b73e64ca747b1143e7196e2edfa30523e107947d8d1ec97b609b36eb62986b"
+    },
+    {
+      "path": "src/windows/winfsp_session.cpp",
+      "git_blob": "c183922d9ce359cc9f5f50450a76db943ff26ff2",
+      "worktree_sha256": "0a711994734a8f5de1167c62b67211038c220b3b9afa741b90ea29b7d06be381"
+    },
+    {
+      "path": "tests/test_native_indexed_volume.cpp",
+      "git_blob": "9e928cc60f080bf7d21aa24da3aaa3eb06c87101",
+      "worktree_sha256": "9faf8d668e662b557017ca5c7b466f73016da3b8198146be46294d22bd89c30b"
+    },
+    {
+      "path": "tests/test_winfsp_paged.cpp",
+      "git_blob": "69642f73bc772f73a50feff9ee5ec85cf3775995",
+      "worktree_sha256": "a5080fe017f60e382a703927b5f876b66787c9fefa47b1b3342435e203bafe4d"
+    },
+    {
+      "path": "third_party/unicode-license.txt",
+      "git_blob": "56da58912807030b451a4700687d5bd02c72d6ed",
+      "worktree_sha256": "e7a93b009565cfce55919a381437ac4db883e9da2126fa28b91d12732bc53d96"
+    },
+    {
+      "path": "tools/ci/check_volume_app.py",
+      "git_blob": "3512c25c7bf5795c015588fb7aead6bd27471274",
+      "worktree_sha256": "fb742df364f1e6fa14f1f4a25eb1875f327bbce9ce2e9bc1cfc69acf4a514727"
+    }
+  ],
+  "code_navigation": {
+    "provider": "CocoIndex Code",
+    "version": "0.2.43",
+    "commit": "5156f89f1a641609a4be473eb3ac88a9f97b6a30",
+    "indexed_files": 7,
+    "native_searches": 1,
+    "response_sha256": "4e35ff71773832b5f5521985996d268bd2a0ccd96d7d23afbd09ded5773d9973"
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "robots": true,
+    "external_llm": false,
+    "native_pages": [
+      {
+        "name": "names",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 40455,
+        "markdown_sha256": "9608440bf46910dbc3b80da57b3d235d6df07134bbfeea9af8f204307301c30d",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.901,
+        "capture": "names.native.json",
+        "capture_sha256": "8dc00ea0cc81e83cf8dc18cb74b5136c196304701c41969a3ab5b37505b07463"
+      },
+      {
+        "name": "ordinal",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/stringapiset/nf-stringapiset-comparestringordinal",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 24830,
+        "markdown_sha256": "326a828be1ec59db34b9a66b698d4aa61ea96087ad6b81db76b1b0916a58b21e",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.681,
+        "capture": "ordinal.native.json",
+        "capture_sha256": "b2906fd63a8d4979fd7466e0b9d4c121cc8aafbe2f1117d83013e38ea349e1bc"
+      },
+      {
+        "name": "unicode18",
+        "url": "https://www.unicode.org/versions/Unicode18.0.0/",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 41819,
+        "markdown_sha256": "82a80777694b6c593242337dd85291bd400dff1124467ff820908c06811a0761",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.938,
+        "capture": "unicode18.native.json",
+        "capture_sha256": "f1df5a4e2a35b5e3a65715e1a98522049e95cf2aa63a0ef9e87c846f355c4230"
+      },
+      {
+        "name": "winfsp",
+        "url": "https://winfsp.dev/doc/WinFsp-API-winfsp.h/",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 73095,
+        "markdown_sha256": "23f2e7b26b2297a12d6e98acb7b612010c44361803cc72c3563f82571cce5837",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.546,
+        "capture": "winfsp.native.json",
+        "capture_sha256": "2b1bd778b9ff6b797c585d9b4b7dc7dfde7c0be7dd67e19842fa749d728ad9c2"
+      }
+    ]
+  },
+  "unicode_comparison": {
+    "url": "https://www.unicode.org/Public/18.0.0/ucd/UnicodeData.txt",
+    "bytes": 2243593,
+    "sha256": "0736451de439ae7baf1425136617da495e09ee5afbe6e394374db7009ea08950",
+    "unicode_mappings": 1525,
+    "native_nonidentity": 973,
+    "unicode_mappings_distinct_to_windows": 552,
+    "native_aliases_outside_unicode_uppercase": 0,
+    "differences_sample": [
+      [
+        "0xb5",
+        "0x39c"
+      ],
+      [
+        "0x131",
+        "0x49"
+      ],
+      [
+        "0x17f",
+        "0x53"
+      ],
+      [
+        "0x19b",
+        "0xa7dc"
+      ],
+      [
+        "0x1c5",
+        "0x1c4"
+      ],
+      [
+        "0x1c8",
+        "0x1c7"
+      ],
+      [
+        "0x1cb",
+        "0x1ca"
+      ],
+      [
+        "0x1f2",
+        "0x1f1"
+      ],
+      [
+        "0x23f",
+        "0x2c7e"
+      ],
+      [
+        "0x240",
+        "0x2c7f"
+      ],
+      [
+        "0x252",
+        "0x2c70"
+      ],
+      [
+        "0x25c",
+        "0xa7ab"
+      ],
+      [
+        "0x261",
+        "0xa7ac"
+      ],
+      [
+        "0x264",
+        "0xa7cb"
+      ],
+      [
+        "0x265",
+        "0xa78d"
+      ],
+      [
+        "0x266",
+        "0xa7aa"
+      ]
+    ],
+    "native_only_sample": [],
+    "supplementary_deseret_equal": false
+  },
+  "unicode_license_sha256": "e7a93b009565cfce55919a381437ac4db883e9da2126fa28b91d12732bc53d96",
+  "winfsp_source": {
+    "tag": "v2.2B5",
+    "url": "https://codeload.github.com/winfsp/winfsp/zip/refs/tags/v2.2B5",
+    "bytes": 5475099,
+    "sha256": "b6b53c8d6e0df573bc391ef6752a29d03a6d9f8db504c39e9033cbfeac4aa075",
+    "relevant_source": [
+      {
+        "path": "winfsp-2.2B5/src/sys/dirctl.c",
+        "line": 574,
+        "source_sha256": "7e5a76bf2711cdc919a0befa21f7153a3ac097cfa68f3ed4305e8bb52fa02bfa",
+        "text": "(FsvolDeviceExtension->VolumeParams.MaxComponentLength + 1) * sizeof(WCHAR),"
+      },
+      {
+        "path": "winfsp-2.2B5/src/sys/dirctl.c",
+        "line": 613,
+        "source_sha256": "7e5a76bf2711cdc919a0befa21f7153a3ac097cfa68f3ed4305e8bb52fa02bfa",
+        "text": "FsvolDeviceExtension->VolumeParams.MaxComponentLength * sizeof(WCHAR);"
+      },
+      {
+        "path": "winfsp-2.2B5/src/sys/dirctl.c",
+        "line": 676,
+        "source_sha256": "7e5a76bf2711cdc919a0befa21f7153a3ac097cfa68f3ed4305e8bb52fa02bfa",
+        "text": "FsvolDeviceExtension->VolumeParams.MaxComponentLength * sizeof(WCHAR) >="
+      },
+      {
+        "path": "winfsp-2.2B5/src/sys/dirctl.c",
+        "line": 716,
+        "source_sha256": "7e5a76bf2711cdc919a0befa21f7153a3ac097cfa68f3ed4305e8bb52fa02bfa",
+        "text": "!FspFileNameIsValidPattern(FileName, FsvolDeviceExtension->VolumeParams.MaxComponentLength))"
+      },
+      {
+        "path": "winfsp-2.2B5/src/sys/dirctl.c",
+        "line": 987,
+        "source_sha256": "7e5a76bf2711cdc919a0befa21f7153a3ac097cfa68f3ed4305e8bb52fa02bfa",
+        "text": "FsvolDeviceExtension->VolumeParams.MaxComponentLength * sizeof(WCHAR) >="
+      },
+      {
+        "path": "winfsp-2.2B5/src/sys/name.c",
+        "line": 24,
+        "source_sha256": "e67b8ff39542bfbedcc1c551eb96d56f7632da98a4adcc6b6719c5ff7d442835",
+        "text": "BOOLEAN FspFileNameIsValid(PUNICODE_STRING Path, ULONG MaxComponentLength,"
+      },
+      {
+        "path": "winfsp-2.2B5/src/sys/name.c",
+        "line": 26,
+        "source_sha256": "e67b8ff39542bfbedcc1c551eb96d56f7632da98a4adcc6b6719c5ff7d442835",
+        "text": "BOOLEAN FspFileNameIsValidPattern(PUNICODE_STRING Pattern, ULONG MaxComponentLength);"
+      },
+      {
+        "path": "winfsp-2.2B5/src/sys/name.c",
+        "line": 44,
+        "source_sha256": "e67b8ff39542bfbedcc1c551eb96d56f7632da98a4adcc6b6719c5ff7d442835",
+        "text": "BOOLEAN FspFileNameIsValid(PUNICODE_STRING Path, ULONG MaxComponentLength,"
+      },
+      {
+        "path": "winfsp-2.2B5/src/sys/name.c",
+        "line": 75,
+        "source_sha256": "e67b8ff39542bfbedcc1c551eb96d56f7632da98a4adcc6b6719c5ff7d442835",
+        "text": "/* path component cannot be longer than MaxComponentLength */"
+      },
+      {
+        "path": "winfsp-2.2B5/src/sys/name.c",
+        "line": 76,
+        "source_sha256": "e67b8ff39542bfbedcc1c551eb96d56f7632da98a4adcc6b6719c5ff7d442835",
+        "text": "if ((ULONG)(PathPtr - ComponentPtr) > MaxComponentLength)"
+      },
+      {
+        "path": "winfsp-2.2B5/src/sys/name.c",
+        "line": 123,
+        "source_sha256": "e67b8ff39542bfbedcc1c551eb96d56f7632da98a4adcc6b6719c5ff7d442835",
+        "text": "/* path component cannot be longer than MaxComponentLength */"
+      },
+      {
+        "path": "winfsp-2.2B5/src/sys/name.c",
+        "line": 124,
+        "source_sha256": "e67b8ff39542bfbedcc1c551eb96d56f7632da98a4adcc6b6719c5ff7d442835",
+        "text": "if ((ULONG)(PathPtr - ComponentPtr) > MaxComponentLength)"
+      },
+      {
+        "path": "winfsp-2.2B5/src/sys/name.c",
+        "line": 154,
+        "source_sha256": "e67b8ff39542bfbedcc1c551eb96d56f7632da98a4adcc6b6719c5ff7d442835",
+        "text": "BOOLEAN FspFileNameIsValidPattern(PUNICODE_STRING Path, ULONG MaxComponentLength)"
+      },
+      {
+        "path": "winfsp-2.2B5/src/sys/name.c",
+        "line": 189,
+        "source_sha256": "e67b8ff39542bfbedcc1c551eb96d56f7632da98a4adcc6b6719c5ff7d442835",
+        "text": "/* path component cannot be longer than MaxComponentLength */"
+      },
+      {
+        "path": "winfsp-2.2B5/src/sys/name.c",
+        "line": 190,
+        "source_sha256": "e67b8ff39542bfbedcc1c551eb96d56f7632da98a4adcc6b6719c5ff7d442835",
+        "text": "if ((ULONG)(PathPtr - ComponentPtr) > MaxComponentLength)"
+      },
+      {
+        "path": "winfsp-2.2B5/src/sys/volinfo.c",
+        "line": 106,
+        "source_sha256": "eee5db2365455ae728529ee0c3b5fd3d579f041b32cf6b187c2fc6e3e54c8cd5",
+        "text": "Info->MaximumComponentNameLength = FsvolDeviceExtension->VolumeParams.MaxComponentLength;"
+      }
+    ]
+  },
+  "name_profile": {
+    "legacy_ascii": 0,
+    "windows_ordinal": 1,
+    "field_offset": 92,
+    "name_units": 255,
+    "relative_path_units": 1022,
+    "depth": 16,
+    "bmp_scalars_checked": 63487,
+    "non_ascii_ranges": 133,
+    "unknown_profile_rejected": true,
+    "downgraded_overlong_path_rejected": true
+  },
+  "injected_indexed_publication": {
+    "total": 231,
+    "prior_ascii": 223,
+    "committed_unicode": 8,
+    "stable_data_verified": true
+  },
+  "amd": {
+    "profile": "changed-extents",
+    "verified_batches": 1,
+    "gpu_advised_members": 3,
+    "final_members": 5,
+    "independent_cpu_reopen": true,
+    "driver_installation": false
+  },
+  "sanitizer_runtime": {
+    "name": "clang_rt.asan_dynamic-x86_64.dll",
+    "deploy_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed",
+    "loader_preflight_passed": true
+  },
+  "runs": [
+    {
+      "scope": "Release build with WinFsp and Explorer helper",
+      "run": "local-run-dbcc129a0a8b4601b868d1954b975e48",
+      "exit_code": 0,
+      "tests_passed": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 425463808,
+      "memory_limit_bytes": 915406848,
+      "residual_children_retired": 1,
+      "seconds": 16.305,
+      "receipt_sha256": "a44351d5ace966ae76b80e68648e14f26e56ec72997d13bcf7b1d4764f1370bf",
+      "output_sha256": "2a2454996a1a05b17dc79eb04cb561ade3fed08be3553f33d92fb1568d3a127d"
+    },
+    {
+      "scope": "Windows Release regression suite",
+      "run": "local-run-7ae9cb475cf34a78a9343160d363258c",
+      "exit_code": 0,
+      "tests_passed": 22,
+      "tree_retired": true,
+      "peak_job_bytes": 326385664,
+      "memory_limit_bytes": 789577728,
+      "residual_children_retired": 0,
+      "seconds": 42.939,
+      "receipt_sha256": "f5b6da4ed7beb06b141b7f984bcf77d81c5b0b1cd875fc8f0776f2eabe5fb2ce",
+      "output_sha256": "895cd8b6cc919aeb02e5592796bde6da31b7577d56da4aa40bbb656c61773ade"
+    },
+    {
+      "scope": "Raw AddressSanitizer build with WinFsp SDK",
+      "run": "local-run-c24582bcec964e9aae0a17ad10c11cc2",
+      "exit_code": 0,
+      "tests_passed": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 638590976,
+      "memory_limit_bytes": 1055916032,
+      "residual_children_retired": 0,
+      "seconds": 13.726,
+      "receipt_sha256": "19018fa872c9ef3e981fa0ff7e7fc1d606725c16be4a2587559e33a1b25a1324",
+      "output_sha256": "31778306d92356a8bd18af5351b767f31bb7069ebd7280f67814c8ae404b12c5"
+    },
+    {
+      "scope": "Raw AddressSanitizer regression suite and loader preflight",
+      "run": "local-run-320c3b86226945cf9f800814052bc836",
+      "exit_code": 0,
+      "tests_passed": 10,
+      "tree_retired": true,
+      "peak_job_bytes": 1096466432,
+      "memory_limit_bytes": 1527775232,
+      "residual_children_retired": 0,
+      "seconds": 88.192,
+      "receipt_sha256": "e512b37f35b6f0bba46c24ef6e35cb306935fcd74f5dbbd71cbe0a9fd6884467",
+      "output_sha256": "2649bebb8d9fcdda95c7bd3ad536caa8bbf0657a53b8be4f8b1a8c6605d09bcc"
+    },
+    {
+      "scope": "Live AMD advised grouping and independent CPU readback",
+      "run": "local-run-87c659e53073452a8d4ab9429e22bf68",
+      "exit_code": 0,
+      "tests_passed": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 96481280,
+      "memory_limit_bytes": 1859125248,
+      "residual_children_retired": 0,
+      "seconds": 11.429,
+      "receipt_sha256": "178357c64d72061c2634068120ebdb0c8db8d4bbb2408a358474e0779a2170ba",
+      "output_sha256": "016d014bda7d38332372167a60f2cb86a321073ac1796c6045c92ce47d13c726"
+    },
+    {
+      "scope": "Local notice staging with exact Unicode license bytes",
+      "run": "local-run-109c013f2208494bbeb3642b3095928b",
+      "exit_code": 0,
+      "tests_passed": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 14782464,
+      "memory_limit_bytes": 1411383296,
+      "residual_children_retired": 0,
+      "seconds": 0.178,
+      "receipt_sha256": "ee28e7acae9e353f51c74eb03651bdeabaf9bbf1654fbf9ee1bee0a348dda1c9",
+      "output_sha256": "4a5ef62fe3ecd9a859edf3a8f2c4324eff5d4e0fe85f5ebe4a21819c45830a39"
+    },
+    {
+      "scope": "Earlier ASan attempt reached the 887 MiB job limit; later headroom-derived job passed",
+      "run": "local-run-e10a903876ec46cea075a2edf69adb2e",
+      "exit_code": 8,
+      "tests_passed": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 931004416,
+      "memory_limit_bytes": 930086912,
+      "residual_children_retired": 0,
+      "seconds": 7.238,
+      "receipt_sha256": "c9a237ebb8cb0bb46f5a8fc8d08a8e9f5aefebded7a7601f309e0466c5631c80",
+      "output_sha256": "87296679e7ae93f2541f8af63d11c17433f5bce59512d5bd62bfc84e79aaab5b"
+    }
+  ],
+  "scope_limits": [
+    "In-memory fixtures",
+    "WinFsp SDK callbacks and injected lifecycle",
+    "Kernel-backed Windows 11 client mount pending",
+    "Physical power loss and comparative performance outside this change"
+  ]
+}

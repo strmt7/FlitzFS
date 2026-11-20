@@ -33,7 +33,8 @@ accept all seven capabilities and check each against its exact length.
 | 40, 48, 56 | 8 each | Inode count, mapped extent count and charged extents |
 | 64 | 8 | Committed input bytes |
 | 72 | 16 | Exact paged store identity |
-| 88, 92 | 4 each | Extent length 65,536 and zero reserved field |
+| 88 | 4 | Extent length 65,536 |
+| 92 | 4 | Name profile, 0 for legacy ASCII and 1 for indexed Windows ordinal names |
 | 96, 104, 112 | 8 each | Capability 2 and later counts for active lifetime records, detached inodes and retired inodes |
 | 120, 128 | 8 each | Capability 3 and later shared-base and member counts |
 
@@ -52,6 +53,34 @@ shared-base backreferences in the same protected tree.
 | Parent inode, canonical name bytes | Child inode |
 | `(1ULL << 61) \| inode`, 8-byte big-endian block number | Data object ID |
 | `(1ULL << 61) + base ID`, 8-byte big-endian member object ID | Member object ID |
+
+### Name profiles
+
+Profile 0 keeps the earlier ASCII spelling and lowercase keys. The first
+successful transaction that needs extended names or paths selects profile 1
+in the same mirrored publication as the affected inode and index records.
+Readers before profile 1 reject the new value. Current CPU readers support both,
+and compaction carries the selected profile forward.
+
+Profile 1 stores validated UTF-8 spelling separately from each canonical key.
+Case aliases use the ordinal equivalence measured on Windows 11 build 26300.
+ASCII keeps its original lowercase keys. The remaining equivalent BMP characters
+share a pinned representative. Supplementary characters retain their code
+points. Canonically equivalent Unicode sequences can be distinct Windows names.
+Changing these equivalences requires a new profile and index migration.
+[Windows ordinal comparison](https://learn.microsoft.com/en-us/windows/win32/api/stringapiset/nf-stringapiset-comparestringordinal)
+
+Each component can occupy 255 UTF-16 code units and the relative path can
+occupy 1,022. This leaves room for the leading separator and terminator in the
+WinFsp request. The indexed namespace currently admits 16 components. It
+rejects malformed Unicode, path traversal, reserved device names, forbidden
+characters, and trailing spaces or periods.
+[Microsoft naming rules](https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file)
+
+The Windows SDK callback and CPU recovery tests exercise both profiles, display
+spelling, alias collisions, the path boundary, compaction and interrupted
+publication.
+[Name profile validation](evidence/windows-indexed-name-profile-2026-11-20.json)
 
 The inode body uses the canonical format-7 header, stored spelling and optional
 security descriptor. Extent locations live in the index. Capability 1 requires

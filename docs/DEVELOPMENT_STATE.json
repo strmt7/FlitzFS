@@ -10,6 +10,17 @@
     "tree": "936409737d1c4a5d4aeb37fe5af48f55ba9accff",
     "note": "Architectural review baseline. Layer and runtime evidence have separate source bindings."
   },
+  "windows_indexed_name_profile": {
+    "source_base": "5156f89f1a641609a4be473eb3ac88a9f97b6a30",
+    "evidence": "docs/evidence/windows-indexed-name-profile-2026-11-20.json",
+    "legacy_ascii_root_profile": 0,
+    "windows_ordinal_root_profile": 1,
+    "component_utf16_units": 255,
+    "relative_path_utf16_units": 1022,
+    "nesting_components": 16,
+    "modeled_publication_cuts": 231,
+    "mounted_windows_client_qualification": false
+  },
   "windows_native_cpu_sampling_and_amd_resume": {
     "source_base": "513d410d9778d7c416d63ebc71a103bd092d5723",
     "evidence": "docs/evidence/windows-native-cpu-sampling-amd-resume-2026-11-20.json",

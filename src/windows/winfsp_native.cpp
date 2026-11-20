@@ -1,6 +1,7 @@
 #include "winfsp_native.hpp"
 #include "memory_volume_factory.hpp"
 #include "../native_maintenance_source.hpp"
+#include "../indexed_names.hpp"
 #include "../store_file.hpp"
 #include "../store_codec.hpp"
 #include "native_cleanup.hpp"
@@ -120,10 +121,26 @@ std::wstring_view bounded(PCWSTR value,std::size_t maximum=241) {
   for(std::size_t i=0;i<=maximum;++i)if(!value[i])return {value,i};
   throw NativeFsError(NativeFsErrorCode::invalid_path,"Windows name bounds");
 }
-std::string path(PCWSTR value) {
-  auto text=bounded(value);if(!text.empty()) {
+static_assert(detail::kIndexedPathUnits+2<=FSP_FSCTL_TRANSACT_PATH_SIZEMAX/sizeof(wchar_t));
+std::string indexed_utf8(std::wstring_view text) {
+  if(text.empty())return {};
+  std::string result(text.size()*3,'\0');
+  const auto bytes=WideCharToMultiByte(CP_UTF8,WC_ERR_INVALID_CHARS,text.data(),static_cast<int>(text.size()),
+      result.data(),static_cast<int>(result.size()),nullptr,nullptr);
+  if(!bytes)throw NativeFsError(NativeFsErrorCode::invalid_path,"invalid UTF-16 name");
+  result.resize(static_cast<std::size_t>(bytes));
+  return result;
+}
+std::string path(PCWSTR value,bool indexed) {
+  auto text=bounded(value,indexed?detail::kIndexedPathUnits+1:241);
+  if(!text.empty()) {
     if(text.front()!=L'\\')throw NativeFsError(NativeFsErrorCode::invalid_path,"root-relative Windows name required");
     text.remove_prefix(1);
+  }
+  if(indexed) {
+    auto result=indexed_utf8(text);
+    std::ranges::replace(result,'\\','/');
+    return result;
   }
   std::string result;result.reserve(text.size());
   for(auto c:text) {
@@ -131,6 +148,28 @@ std::string path(PCWSTR value) {
     result.push_back(c==L'\\'?'/':static_cast<char>(c));
   }
   return result;
+}
+bool indexed_windows_names_match() {
+  const auto compare=[](wchar_t left,wchar_t right) {
+    const auto order=CompareStringOrdinal(&left,1,&right,1,TRUE);
+    if(!order)throw std::runtime_error("Windows ordinal name comparison failed");
+    return order;
+  };
+  std::vector<wchar_t> names;
+  names.reserve(0xffff-0x800);
+  for(unsigned value=1;value<=0xffff;++value) {
+    if(value>=0xd800 && value<=0xdfff)continue;
+    const auto original=static_cast<wchar_t>(value);
+    const auto canonical=static_cast<wchar_t>(detail::indexed_ordinal_key(value));
+    if(original!=canonical && compare(original,canonical)!=CSTR_EQUAL)return false;
+    names.push_back(original);
+  }
+  std::ranges::sort(names,[&](wchar_t left,wchar_t right){return compare(left,right)==CSTR_LESS_THAN;});
+  for(std::size_t i=1;i<names.size();++i)
+    if(compare(names[i-1],names[i])==CSTR_EQUAL &&
+        detail::indexed_ordinal_key(names[i-1])!=detail::indexed_ordinal_key(names[i]))return false;
+  // The measured Windows profile compares supplementary casing ordinally.
+  return CompareStringOrdinal(L"\U00010400",2,L"\U00010428",2,TRUE)==CSTR_LESS_THAN;
 }
 UINT32 attributes(UINT32 value,bool directory) {
   value&=~UINT32(FILE_ATTRIBUTE_NORMAL);
@@ -391,7 +430,7 @@ struct WinFspNativeWritable::Impl {
   static NTSTATUS security_by_name(FSP_FILE_SYSTEM* fs,PWSTR name,PUINT32 attrs,PSECURITY_DESCRIPTOR value,SIZE_T* size) noexcept {
     if(attrs)*attrs=0;
     return run(fs,[&](Impl& s) {
-      const auto found=s.session.lookup(path(name));
+      const auto found=s.session.lookup(path(name,s.info_policy==indexed_file_info));
       if(found.state.info.delete_pending)return win_detail::failure(s.session,STATUS_DELETE_PENDING);
       if(!found.state.info.basic||!found.security)return win_detail::failure(s.session,STATUS_FILE_CORRUPT_ERROR,true);
       if(attrs)*attrs=found.state.info.basic->attributes;
@@ -420,7 +459,7 @@ struct WinFspNativeWritable::Impl {
       const NativeBasicMetadata basic{stamp,stamp,stamp,stamp,attributes(attrs,directory)|(directory?0U:FILE_ATTRIBUTE_ARCHIVE)};
       NativePreparedCreateOptions initial;initial.access=grants(access);initial.basic_access=basic_grant(access);
       initial.security_access=security_grant(access);initial.initial_delete={(options&FILE_DELETE_ON_CLOSE)!=0};
-      auto made=s.session.create_prepared_storage(path(name),directory,basic,data,
+      auto made=s.session.create_prepared_storage(path(name,s.info_policy==indexed_file_info),directory,basic,data,
           directory?std::optional<std::uint64_t>{}:std::optional<std::uint64_t>{allocation},initial);
       s.install(slot,made.handle,false,access);
       if(!encode_native_file_info(made.state,s.info_policy,*info))return win_detail::failure(s.session,STATUS_IO_DEVICE_ERROR,true);
@@ -431,7 +470,9 @@ struct WinFspNativeWritable::Impl {
     if(context)*context=nullptr;if(info)*info={};if(!context||!info)return STATUS_INVALID_PARAMETER;
     const auto origin=admit_open(fs);if(!NT_SUCCESS(origin))return origin;
     return run(fs,[&](Impl& s) {
-      auto& slot=s.available();const auto relative=path(name);const auto found=s.session.lookup(relative);
+      auto& slot=s.available();
+      const auto relative=path(name,s.info_policy==indexed_file_info);
+      const auto found=s.session.lookup(relative);
       if((options&FILE_DIRECTORY_FILE)&&!found.state.info.directory)return win_detail::failure(s.session,STATUS_NOT_A_DIRECTORY);
       if((options&FILE_NON_DIRECTORY_FILE)&&found.state.info.directory)return win_detail::failure(s.session,STATUS_FILE_IS_A_DIRECTORY);
       FSP_FSCTL_FILE_INFO prepared{};
@@ -535,7 +576,7 @@ struct WinFspNativeWritable::Impl {
   }
   static NTSTATUS rename(FSP_FILE_SYSTEM* fs,PVOID context,PWSTR,PWSTR destination,BOOLEAN replace) noexcept {
     return run(fs,[&](Impl& s) {
-      auto& slot=s.adopt(context);const auto target=path(destination);
+      auto& slot=s.adopt(context);const auto target=path(destination,s.info_policy==indexed_file_info);
       if(replace)try {
         const auto found=s.session.lookup(target);
         if(found.state.info.directory&&found.state.info.inode!=s.session.info(slot.handle).info.inode)
@@ -601,17 +642,25 @@ struct WinFspNativeWritable::Impl {
       if(!current.info.directory)return win_detail::failure(s.session,STATUS_NOT_A_DIRECTORY);
       if(current.unlinked)return win_detail::failure(s.session,STATUS_DELETE_PENDING);
       std::string after;
-      if(marker)for(auto c:bounded(marker,100)) {
-        if(c<0x20||c>0x7e||c==L'\\'||c==L'/')return win_detail::failure(s.session,STATUS_OBJECT_NAME_INVALID);
-        after.push_back(static_cast<char>(c));
+      const bool indexed=s.info_policy==indexed_file_info;
+      if(marker) {
+        const auto text=bounded(marker,indexed?detail::kIndexedNameUnits:100);
+        if(indexed)after=indexed_utf8(text);
+        else for(auto c:text) {
+          if(c<0x20||c>0x7e||c==L'\\'||c==L'/')return win_detail::failure(s.session,STATUS_OBJECT_NAME_INVALID);
+          after.push_back(static_cast<char>(c));
+        }
       }
       auto append=[&](const NativeInodeAllocationInfo& state,std::string_view name) {
-        alignas(FSP_FSCTL_DIR_INFO) std::array<std::byte,sizeof(FSP_FSCTL_DIR_INFO)+200> raw{};
+        alignas(FSP_FSCTL_DIR_INFO) std::array<std::byte,
+            sizeof(FSP_FSCTL_DIR_INFO)+detail::kIndexedNameUnits*sizeof(wchar_t)> raw{};
         auto* item=reinterpret_cast<FSP_FSCTL_DIR_INFO*>(raw.data());
-        item->Size=static_cast<UINT16>(sizeof(FSP_FSCTL_DIR_INFO)+name.size()*sizeof(wchar_t));
+        const auto characters=MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,name.data(),static_cast<int>(name.size()),
+            item->FileNameBuf,static_cast<int>(detail::kIndexedNameUnits));
+        if(!characters)throw NativeFsError(NativeFsErrorCode::corrupt,"invalid stored UTF-8 directory name");
+        item->Size=static_cast<UINT16>(sizeof(FSP_FSCTL_DIR_INFO)+static_cast<std::size_t>(characters)*sizeof(wchar_t));
         if(!encode_native_file_info(state,s.info_policy,item->FileInfo))
           throw NativeFsError(NativeFsErrorCode::corrupt,"directory FileInfo prerequisites");
-        for(std::size_t i=0;i<name.size();++i)item->FileNameBuf[i]=static_cast<wchar_t>(name[i]);
         return FspFileSystemAddDirInfo(item,buffer,length,count)!=FALSE;
       };
       const auto full=[&]{return win_detail::failure(s.session,*count?STATUS_SUCCESS:STATUS_BUFFER_OVERFLOW);};
@@ -1019,9 +1068,15 @@ bool WinFspNativeWritable::dispatcher_stopped() const noexcept{return impl_->sto
 bool WinFspNativeWritable::dispatcher_stopped_unexpectedly() const noexcept{return impl_->stopped.load(std::memory_order_acquire)==2;}
 NativeSessionStats WinFspNativeWritable::stats() const{std::lock_guard guard(impl_->control);return impl_->session.stats();}
 NativeFilesystemSnapshot WinFspNativeWritable::snapshot() const{std::lock_guard guard(impl_->control);return impl_->session.snapshot();}
+bool WinFspNativeWritable::mount_names_supported() const {
+  if(impl_->info_policy!=indexed_file_info)return true;
+  static const bool supported=indexed_windows_names_match();
+  return supported;
+}
 FSP_FSCTL_VOLUME_PARAMS WinFspNativeWritable::parameters() const noexcept {
   FSP_FSCTL_VOLUME_PARAMS p{};p.Version=sizeof(p);p.SectorSize=512;p.SectorsPerAllocationUnit=8;
-  p.MaxComponentLength=100;p.VolumeCreationTime=impl_->created;p.VolumeSerialNumber=impl_->serial;p.IrpCapacity=100;
+  p.MaxComponentLength=impl_->info_policy==indexed_file_info?static_cast<UINT16>(detail::kIndexedNameUnits):100;
+  p.VolumeCreationTime=impl_->created;p.VolumeSerialNumber=impl_->serial;p.IrpCapacity=100;
   p.FileInfoTimeout=0;p.PostCleanupWhenModifiedOnly=0;p.PostDispositionWhenNecessaryOnly=0;
   p.FlushAndPurgeOnCleanup=1;p.SupportsPosixUnlinkRename=0;p.CasePreservedNames=1;p.PersistentAcls=1;
   p.UmFileContextIsUserContext2=1;p.ReadOnlyVolume=0;

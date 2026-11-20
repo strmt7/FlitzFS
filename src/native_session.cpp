@@ -1,4 +1,5 @@
 #include "flitzfs/native_session.hpp"
+#include "indexed_names.hpp"
 #include "native_maintenance_source.hpp"
 #include "native_volume_file_reclaimer.hpp"
 #include "flitzfs/catalog.hpp"
@@ -40,10 +41,13 @@ NativeFilesystemWriter resume_image(const std::shared_ptr<StoreByteIo>& image,
   return NativeFilesystemWriter::resume(ObjectStoreWriter::resume(image,view.identity(),
       view.storage_info().generation,compression));
 }
-void admit_path(std::string_view path,bool root=false) {
+void admit_path(const NativeFilesystemWriter& writer,std::string_view path,bool root=false) {
   // Reuse the pure validator, which checks the byte cap before allocating.
   // Never copy a caller's arbitrary-length view into an owned mutation first.
-  try{(void)canonical_catalog_path(path,root);}
+  try {
+    if(writer.image_kind()==NativeImageKind::indexed_paged)(void)detail::indexed_path_name(path,root);
+    else (void)canonical_catalog_path(path,root);
+  }
   catch(const std::bad_alloc&){throw;}
   catch(const std::exception&){throw NativeFsError(NativeFsErrorCode::invalid_path,"invalid native session path");}
 }
@@ -1358,7 +1362,7 @@ NativeFileHandle NativeFileSession::open_impl(std::string_view path,NativeFileAc
   for(std::size_t i=0;i<self.slots.size();++i)if(!self.slots[i].token){available=i;break;}
   if(available==self.slots.size() || self.next_token==(std::numeric_limits<std::uint64_t>::max)())
     fail(E::limit,"native file context budget exhausted");
-  admit_path(path,true);
+  admit_path(self.writer,path,true);
   const auto state=self.writer.inspect_path(path);
   if(state.delete_pending || state.unlinked || self.volatile_initial(state.info.inode))
     fail(E::delete_pending,"native name is delete-pending");
@@ -1408,7 +1412,7 @@ NativeSessionStorageCreateCommit NativeFileSession::create_impl(std::string_view
   for(std::size_t i=0;i<self.slots.size();++i)if(!self.slots[i].token){available=i;break;}
   if(available==self.slots.size() || self.next_token==(std::numeric_limits<std::uint64_t>::max)())
     fail(E::limit,"native file context budget exhausted");
-  admit_path(path);self.admit_destination(path);
+  admit_path(self.writer,path);self.admit_destination(path);
   // The session is single-control-thread. The local slot/token reservation
   // cannot race another request; do not expose/install it before publication.
   NativeSessionStorageCreateCommit result;
@@ -1426,7 +1430,7 @@ NativeSessionStorageCreateCommit NativeFileSession::create_impl(std::string_view
 }
 NativePathLookup NativeFileSession::lookup(std::string_view path) const {
   auto& self = ready();
-  admit_path(path, true);
+  admit_path(self.writer,path,true);
   auto result = self.writer.inspect_path_lookup(path);
   auto& info = result.state.info;
   info.delete_pending = self.visible_delete_pending(info.inode, info.unlinked, info.delete_pending);
@@ -1604,13 +1608,13 @@ NativeInodeAllocationCommit NativeFileSession::overwrite_impl(const NativeFileHa
   return result;
 }
 NativeFsCommit NativeFileSession::create_entry(std::string_view path,bool directory) {
-  auto& self=ready();admit_path(path);self.admit_destination(path);NativeFileMutation op;
+  auto& self=ready();admit_path(self.writer,path);self.admit_destination(path);NativeFileMutation op;
   op.operation=directory?NativeFileOperation::create_directory:NativeFileOperation::create_file;
   op.path=path;return self.writer.apply({&op,1});
 }
 NativeFsCommit NativeFileSession::create_entry(std::string_view path,bool directory,
     const NativeBasicMetadata& value) {
-  auto& self=ready();admit_path(path);self.admit_destination(path);
+  auto& self=ready();admit_path(self.writer,path);self.admit_destination(path);
   NativeFileMutation op;op.path=std::string(path);
   op.operation=directory?NativeFileOperation::create_directory:NativeFileOperation::create_file;
   const NativeBasicMutation basic{0,1,value};
@@ -1618,7 +1622,7 @@ NativeFsCommit NativeFileSession::create_entry(std::string_view path,bool direct
 }
 NativeFsCommit NativeFileSession::create_entry(std::string_view path,bool directory,
     const NativeBasicMetadata& basic,std::span<const std::byte> descriptor) {
-  auto& self=ready();admit_path(path);self.admit_destination(path);
+  auto& self=ready();admit_path(self.writer,path);self.admit_destination(path);
   if(!native_security_descriptor_framed(descriptor))
     throw NativeFsError(NativeFsErrorCode::invalid_operation,"invalid native creation security descriptor");
   NativeFileMutation op;op.path=std::string(path);
@@ -1631,7 +1635,7 @@ NativeFsCommit NativeFileSession::rename(const NativeFileHandle& handle,std::str
   const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
   if(!slot.access.erase)fail(E::access_denied,"native context has no rename access");
   if(slot.cleaned)fail(E::invalid_options,"cannot rename cleaned native context");
-  admit_path(target);self.admit_destination(target);
+  admit_path(self.writer,target);self.admit_destination(target);
   const auto source=self.state(slot);
   if(source.delete_pending || source.unlinked)fail(E::delete_pending,"cannot rename deleting native inode");
   try {

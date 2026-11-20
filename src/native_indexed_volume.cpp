@@ -1,4 +1,5 @@
 #include "native_indexed_volume.hpp"
+#include "indexed_names.hpp"
 #include "native_group_codec.hpp"
 #include "native_object_storage.hpp"
 #include "store_codec.hpp"
@@ -32,7 +33,7 @@ constexpr NativeGroupMethod available_group_method(std::uint32_t capability) noe
   return NativeGroupMethod::aligned_patches;
 }
 static_assert(kNativeIndexedDataObject==kNativeGroupBaseBit);
-constexpr std::size_t maximum_inode_bytes=104+100+kNativeMaxSecurityBytes;
+constexpr std::size_t maximum_inode_bytes=104+kIndexedNameBytes+kNativeMaxSecurityBytes;
 
 [[noreturn]] void fail(Code code,const char* message){throw NativeFsError(code,message);}
 std::uint64_t add(std::uint64_t left,std::uint64_t right) {
@@ -75,9 +76,7 @@ Bytes required(const PagedObjectStoreSnapshot& store,std::uint64_t id,std::size_
   return std::move(*bytes);
 }
 std::string name_key(std::string_view path,bool root=false) {
-  try{return canonical_catalog_path(path,root);}
-  catch(const std::bad_alloc&){throw;}
-  catch(const std::exception&){fail(Code::invalid_path,"invalid indexed native path");}
+  return indexed_path_name(path,root).key;
 }
 std::uint64_t index_entries(const IndexedVolumeRoot& root) {
   return add(add(root.inodes-1-root.detached_inodes,root.extents),root.shared_members);
@@ -91,7 +90,8 @@ void validate_header_fields(const IndexedVolumeRoot& root) {
       root.next_extent>kNativeIndexedInodeLimit || (!root.workload.enabled && root.workload.committed_input_bytes))
     fail(Code::corrupt,"invalid indexed root identity or allocator");
   const auto non_root=root.inodes?root.inodes-1:0;
-  if(root.format<1 || root.format>sparse_xor_capability || root.active_lifetimes>non_root ||
+  if(root.format<1 || root.format>sparse_xor_capability || root.name_profile>kIndexedOrdinalNames ||
+      root.active_lifetimes>non_root ||
       root.retiring_inodes>non_root-root.active_lifetimes ||
       root.detached_inodes<root.retiring_inodes ||
       root.detached_inodes-root.retiring_inodes>root.active_lifetimes ||
@@ -105,10 +105,11 @@ void validate_header_fields(const IndexedVolumeRoot& root) {
 IndexedVolumeRoot decode_root(std::span<const std::byte> bytes) {
   if((bytes.size()!=original_root_size && bytes.size()!=lifetime_root_size && bytes.size()!=root_size) ||
       !magic(bytes,root_magic) ||
-      get(bytes,12,4)>1 || get(bytes,88,4)!=kNativeExtentBytes || get(bytes,92,4))
+      get(bytes,12,4)>1 || get(bytes,88,4)!=kNativeExtentBytes || get(bytes,92,4)>kIndexedOrdinalNames)
     fail(Code::corrupt,"unsupported indexed native volume root");
   IndexedVolumeRoot root;
   root.format=static_cast<std::uint32_t>(get(bytes,8,4));
+  root.name_profile=static_cast<std::uint32_t>(get(bytes,92,4));
   const auto expected_size=root.format==1?original_root_size:root.format==2?lifetime_root_size:root_size;
   if(root.format<1 || root.format>sparse_xor_capability || bytes.size()!=expected_size)
     fail(Code::corrupt,"indexed native volume capability and length differ");
@@ -133,7 +134,7 @@ Bytes encode_root(const IndexedVolumeRoot& root) {
   put(bytes,40,root.inodes);put(bytes,48,root.extents);put(bytes,56,root.charged_extents);
   put(bytes,64,root.workload.committed_input_bytes);
   std::copy(root.identity.begin(),root.identity.end(),bytes.begin()+kIndexedVolumeIdentityOffset);
-  put(bytes,88,kNativeExtentBytes,4);
+  put(bytes,88,kNativeExtentBytes,4);put(bytes,92,root.name_profile,4);
   return bytes;
 }
 IndexedInodeInput load_inode(const PagedObjectStoreSnapshot& store,const IndexedVolumeRoot& root,std::uint64_t id) {
@@ -732,15 +733,18 @@ class IndexedVolumeTransaction final {
     return linked_inode(key,*id);
   }
 
-  NativeNameKey destination(std::string_view path,std::string& spelling) const {
-    const auto key=name_key(path);
+  NativeNameKey destination(std::string_view path,std::string& spelling) {
+    const auto parsed=indexed_path_name(path);
+    const auto& key=parsed.key;
     const auto slash=key.rfind('/');
     const auto start=slash==std::string::npos?0:slash+1;
     auto parent=resolve(start?std::string_view(key).substr(0,slash):std::string_view{});
     if(!parent.directory)fail(Code::not_directory,"indexed destination parent is a file");
     if(parent.lifetime==IndexedLifetime::pending)
       fail(Code::invalid_operation,"indexed destination directory has pending delete intent");
-    spelling=path.substr(start);
+    const auto display_slash=path.rfind('/');
+    spelling=path.substr(display_slash==std::string_view::npos?0:display_slash+1);
+    if(parsed.extended)next_.name_profile=kIndexedOrdinalNames;
     return {parent.inode,key.substr(start)};
   }
 
@@ -799,10 +803,11 @@ class IndexedVolumeTransaction final {
     }
   }
 
-  void verify_descendant_paths(std::uint64_t id,std::size_t bytes,unsigned depth) const {
+  void verify_descendant_paths(std::uint64_t id,std::size_t units,unsigned depth) {
     visit_children(id,[&](const IndexedInodeInput& child) {
-      const auto length=bytes+1+child.name.size();
-      if(length>240 || depth==16)fail(Code::invalid_path,"indexed rename exceeds descendant path bounds");
+      const auto length=units+1+indexed_utf16_length(child.name);
+      if(length>kIndexedPathUnits || depth==kIndexedPathDepth)fail(Code::invalid_path,"indexed rename exceeds descendant path bounds");
+      if(length>240)next_.name_profile=kIndexedOrdinalNames;
       if(child.directory)verify_descendant_paths(child.inode,length,depth+1);
       return true;
     });
@@ -832,8 +837,9 @@ class IndexedVolumeTransaction final {
     if(n.directory) {
       const auto source_depth=std::count(op.path.begin(),op.path.end(),'/');
       const auto target_depth=std::count(op.target.begin(),op.target.end(),'/');
-      if(op.target.size()>op.path.size() || target_depth>source_depth)
-        verify_descendant_paths(n.inode,op.target.size(),static_cast<unsigned>(target_depth+1));
+      const auto target_units=indexed_utf16_length(op.target);
+      if(target_units>indexed_utf16_length(op.path) || target_depth>source_depth)
+        verify_descendant_paths(n.inode,target_units,static_cast<unsigned>(target_depth+1));
     }
     names_[{n.parent,name_key(n.name)}]={};
     auto& entry=edit(n.inode);
@@ -1742,7 +1748,8 @@ IndexedInodeInput IndexedVolumeView::referenced_inode(std::uint64_t id,bool allo
   }
 }
 IndexedInodeInput IndexedVolumeView::resolve(std::string_view path_value,std::string* spelling) const {
-  const auto key=name_key(path_value,true);
+  const auto parsed=indexed_path_name(path_value,true);
+  const auto& key=parsed.key;
   auto current=inode(1);
   for(std::size_t start=0;start<key.size();) {
     if(!current.directory)fail(Code::not_directory,"indexed path ancestor is a file");
@@ -1760,19 +1767,26 @@ IndexedInodeInput IndexedVolumeView::resolve(std::string_view path_value,std::st
     current=std::move(entry);
     start=end+1;
   }
+  if(!root_.name_profile && parsed.utf16_units>240)
+    fail(Code::corrupt,"indexed path exceeds the selected legacy name profile");
   return current;
 }
 std::string IndexedVolumeView::path(const IndexedInodeInput& input) const {
   if(indexed_detached(input.lifetime))return {};
   std::string result=input.name;
+  const auto limit=root_.name_profile?kIndexedPathUnits:240;
+  auto units=indexed_utf16_length(result);
   auto current=input;
   for(unsigned depth=0;current.inode!=1;++depth) {
-    if(depth==16 || result.size()>240 || index_.find({current.parent,name_key(current.name)})!=current.inode)
+    if(depth==kIndexedPathDepth || units>limit || index_.find({current.parent,name_key(current.name)})!=current.inode)
       fail(Code::corrupt,"indexed inode ancestry mismatch");
     current=referenced_inode(current.parent);
     if(!current.directory || current.lifetime!=IndexedLifetime::linked)
       fail(Code::corrupt,"indexed inode has an unavailable parent");
-    if(current.inode!=1)result=current.name+"/"+result;
+    if(current.inode!=1) {
+      units+=indexed_utf16_length(current.name)+1;
+      result=current.name+"/"+result;
+    }
   }
   return result;
 }
@@ -1812,13 +1826,16 @@ IndexedDirectoryPage IndexedVolumeView::list(std::uint64_t directory,std::string
   const auto records=index_.list(directory,after,maximum);
   if(!records.empty() && parent.lifetime!=IndexedLifetime::linked)
     fail(Code::corrupt,"indexed deleted directory retains visible entries");
-  if(!records.empty() && std::count(prefix.begin(),prefix.end(),'/')>=16)
+  if(!records.empty() && static_cast<std::size_t>(std::count(prefix.begin(),prefix.end(),'/'))>=kIndexedPathDepth)
     fail(Code::corrupt,"indexed directory exceeds native path depth");
   IndexedDirectoryPage result;
   result.entries.reserve(records.size());
+  const auto prefix_units=indexed_utf16_length(prefix);
+  const auto limit=root_.name_profile?kIndexedPathUnits:240;
   for(const auto& record:records) {
     const auto child=referenced_inode(record.value);
-    if(child.parent!=directory || name_key(child.name)!=record.key.name || prefix.size()+child.name.size()>240)
+    if(child.parent!=directory || name_key(child.name)!=record.key.name ||
+        prefix_units+indexed_utf16_length(child.name)>limit)
       fail(Code::corrupt,"indexed directory entry differs from inode");
     result.entries.push_back(file_info(child,prefix+child.name));
   }

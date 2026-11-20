@@ -334,6 +334,8 @@ void indexed_callbacks(unsigned unit) {
     adapter->bind_callbacks(fs,[]()->UINT32{return 0;});
   };
   bind();
+  require(adapter->mount_names_supported() && adapter->parameters().MaxComponentLength==255,
+      "indexed SDK name profile differs from the Windows ordinal table or component bound");
   SIZE_T security_bytes=0;
   UINT32 attributes=0;
   wchar_t root[]=L"\\";
@@ -390,6 +392,42 @@ void indexed_callbacks(unsigned unit) {
       "indexed SDK free-space observation mixed logical reservations with physical occupancy");
   cleanup(handle,0);close(handle);
 
+  wchar_t unicode_name[]=L"\\\u00e9chantillon\U0001f600";
+  wchar_t unicode_alias[]=L"\\\u00c9CHANTILLON\U0001f600";
+  const auto unicode=create(unicode_name);
+  auto unicode_bytes=data(19,937);
+  require(fs.Interface->Write(&fs,unicode,unicode_bytes.data(),0,static_cast<ULONG>(unicode_bytes.size()),
+      FALSE,FALSE,&bytes,&info)==STATUS_SUCCESS && bytes==unicode_bytes.size(),"indexed SDK Unicode write");
+  const auto unicode_id=info.IndexNumber;
+  require(fs.Interface->Rename(&fs,unicode,unicode_name,unicode_alias,FALSE)==STATUS_SUCCESS,
+      "indexed SDK Unicode case-only rename");
+  cleanup(unicode,0);close(unicode);
+  std::wstring long_name=L"\\"+std::wstring(255,L'\u6f22');
+  const auto long_file=create(long_name.data());
+  cleanup(long_file,0);close(long_file);
+  void* root_context=nullptr;
+  require(fs.Interface->Open(&fs,root,(1U<<24)|FILE_DIRECTORY_FILE,FILE_ALL_ACCESS,&root_context,&info)==STATUS_SUCCESS &&
+      root_context,"indexed SDK Unicode enumeration root");
+  alignas(FSP_FSCTL_DIR_INFO) std::array<std::byte,1024> directory{};
+  require(fs.Interface->ReadDirectory(&fs,root_context,nullptr,keep+1,directory.data(),
+      static_cast<ULONG>(directory.size()),&bytes)==STATUS_SUCCESS,"indexed SDK Unicode spelling enumeration");
+  const auto* row=reinterpret_cast<const FSP_FSCTL_DIR_INFO*>(directory.data());
+  require(row->Size>=sizeof(FSP_FSCTL_DIR_INFO) && bytes>=row->Size &&
+      std::wstring_view(row->FileNameBuf,(row->Size-sizeof(FSP_FSCTL_DIR_INFO))/sizeof(wchar_t))==unicode_alias+1,
+      "indexed SDK Unicode enumeration lost the renamed spelling");
+  require(fs.Interface->ReadDirectory(&fs,root_context,nullptr,unicode_name+1,directory.data(),
+      static_cast<ULONG>(directory.size()),&bytes)==STATUS_SUCCESS,"indexed SDK Unicode directory marker");
+  require(bytes>=row->Size && row->Size==sizeof(FSP_FSCTL_DIR_INFO)+255*sizeof(wchar_t) &&
+      std::wstring_view(row->FileNameBuf,255)==std::wstring_view(long_name).substr(1),
+      "indexed SDK directory enumeration did not preserve the 255-unit name");
+  cleanup(root_context,0);close(root_context);
+  wchar_t broken[]={L'\\',static_cast<wchar_t>(0xd800),0};
+  void* malformed=nullptr;
+  const auto prior_writes=backing->calls;
+  require(fs.Interface->Create(&fs,broken,FILE_NON_DIRECTORY_FILE,FILE_ALL_ACCESS,FILE_ATTRIBUTE_NORMAL,security.data(),
+      0,&malformed,&info)==STATUS_OBJECT_NAME_INVALID && !malformed && backing->calls==prior_writes,
+      "indexed SDK accepted an unpaired surrogate");
+
   const auto detached=create(gone);
   auto doomed=data(7,932);
   require(fs.Interface->Write(&fs,detached,doomed.data(),0,static_cast<ULONG>(doomed.size()),
@@ -410,6 +448,14 @@ void indexed_callbacks(unsigned unit) {
   constexpr UINT32 open_file=(1U<<24)|FILE_NON_DIRECTORY_FILE;
   require(fs.Interface->Open(&fs,gone,open_file,FILE_ALL_ACCESS,&removed,&info)==STATUS_OBJECT_NAME_NOT_FOUND && !removed,
       "indexed SDK recovery exposed the detached name");
+  void* unicode_reopened=nullptr;
+  require(fs.Interface->Open(&fs,unicode_name,open_file,FILE_ALL_ACCESS,&unicode_reopened,&info)==STATUS_SUCCESS &&
+      unicode_reopened && info.IndexNumber==unicode_id,"indexed SDK reopen lost the Unicode alias or inode");
+  Bytes unicode_actual(unicode_bytes.size());
+  require(fs.Interface->Read(&fs,unicode_reopened,unicode_actual.data(),0,static_cast<ULONG>(unicode_actual.size()),
+      &bytes)==STATUS_SUCCESS && bytes==unicode_actual.size() && unicode_actual==unicode_bytes,
+      "indexed SDK Unicode restart changed file contents");
+  cleanup(unicode_reopened,0);close(unicode_reopened);
   handle=nullptr;
   require(fs.Interface->Open(&fs,keep,open_file,FILE_ALL_ACCESS,&handle,&info)==STATUS_SUCCESS &&
       handle && info.FileSize==eof+tail.size(),"indexed SDK reopen lost sparse EOF");
