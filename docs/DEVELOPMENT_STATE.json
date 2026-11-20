@@ -129,6 +129,19 @@
     "missing_package_cpu_readback": true,
     "end_to_end_speedup_qualified": false
   },
+  "windows_amd_device_readiness": {
+    "source_base": "fef35ba4f17045611ec9ab72ab7dc0ae8ab41cbf",
+    "evidence": "docs/evidence/windows-amd-device-readiness-2026-11-20.json",
+    "checks_configuration_manager_before_dxgi": true,
+    "requires_matching_started_pci_devnodes_for_dispatch": true,
+    "live_display_problem_code": 21,
+    "live_installed_discovery_attempts": 1,
+    "live_hip_identity_queries": 0,
+    "live_gpu_submissions": 0,
+    "live_cpu_groups": 2,
+    "live_cpu_files_verified": 10,
+    "healthy_post_update_runtime_execution_qualified": false
+  },
   "indexed_group_profitability": {
     "source_base": "aff52fdd936aabc0a303632eb3336c140be02fb4",
     "evidence": "docs/evidence/indexed-group-profitability-2026-11-20.json",

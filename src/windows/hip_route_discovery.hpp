@@ -10,11 +10,7 @@ enum class HipDiscoveryStatus {
   ready, invalid_request, runtime_unavailable, worker_untrusted,
   no_amd_adapter, ambiguous_adapter, topology_unavailable, resource_deferred,
   transport_busy, identity_unavailable, identity_mismatch, retirement_unconfirmed,
-  package_unavailable, profile_mismatch, cancelled, configuration_quarantined
-};
-struct HipAdapterHardware {
-  std::uint32_t vendor_id=0,device_id=0,subsystem_id=0,revision=0;
-  bool operator==(const HipAdapterHardware&) const noexcept=default;
+  package_unavailable, profile_mismatch, cancelled, configuration_quarantined, device_not_ready
 };
 struct HipAnchorDeviceBinding {
   HipAdapterHardware hardware;
@@ -73,7 +69,8 @@ class InstalledAnchorInputWitness final {
   ~InstalledAnchorInputWitness();
   InstalledAnchorInputWitness(const InstalledAnchorInputWitness&)=delete;
   InstalledAnchorInputWitness& operator=(const InstalledAnchorInputWitness&)=delete;
-  bool changed() const noexcept;
+  void note_device_unavailable() noexcept;
+  bool changed() noexcept;
  private:
   struct Impl;
   std::unique_ptr<Impl> impl_;

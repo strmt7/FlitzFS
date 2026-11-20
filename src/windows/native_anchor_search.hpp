@@ -51,6 +51,7 @@ class NativeAnchorSearchController final {
   // Called after the serialized writer advances one admitted step.
   void settle_reply_checks() noexcept;
   bool can_reacquire() const noexcept;
+  bool take_device_interruption() noexcept;
   bool rebind(HipDiscoveredRoute) noexcept;
   void discard_reply() noexcept;
   // Cancel unresolved work and keep fully verified, detached advice.

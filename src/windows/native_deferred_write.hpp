@@ -46,6 +46,7 @@ struct NativeGpuBudgetTask {
   std::uint64_t sequence=0,after_ms=0;
   std::array<std::byte,8> luid{};
   std::uint32_t node_mask=0;
+  std::shared_ptr<const HipRoutePins> pins;
 };
 enum class NativeDeferredStop {running,quiescent,retirement_unconfirmed};
 // Caller owns the session/control lock for this entire service lifetime.

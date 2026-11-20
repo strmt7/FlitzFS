@@ -629,11 +629,12 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
   const bool edit_after_verification=mode=="verified-edit";
   const bool queued=mode=="queued" || mode=="queued-yield" || read_after_verification || edit_after_verification;
   const bool restoring=mode=="restored";
+  const bool device_not_ready=mode=="device-not-ready";
   const bool two_planes=mode=="xor-wide" || mode=="xor-narrow";
   const bool xor_encoding=two_planes || mode=="xor" || mode=="xor-cpu";
   const bool packed=mode=="batch" || mode=="batch-yield" || xor_encoding;
   const unsigned files_per_group=queued?queued_anchor_members+1:installed && (packed || restoring)?3:5;
-  const unsigned groups=restoring?4:packed?2:1;
+  const unsigned groups=restoring?4:(packed || device_not_ready)?2:1;
   const unsigned initial_files=restoring?2*files_per_group:groups*files_per_group;
   const bool yield=mode=="yield" || mode=="batch-yield" || mode=="queued-yield";
   const auto count=groups*files_per_group;
@@ -765,10 +766,11 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
       return result.installed_anchor_status==HipDiscoveryStatus::cancelled ||
           result.installed_anchor_status==HipDiscoveryStatus::ready?0:2;
     }
-    if(mode=="missing" || mode=="changed") {
-      const auto status=mode=="missing"?HipDiscoveryStatus::package_unavailable:HipDiscoveryStatus::worker_untrusted;
+    if(mode=="missing" || mode=="changed" || device_not_ready) {
+      const auto status=device_not_ready?HipDiscoveryStatus::device_not_ready:
+          mode=="missing"?HipDiscoveryStatus::package_unavailable:HipDiscoveryStatus::worker_untrusted;
       return result.installed_anchor_status==status && !result.installed_anchor_queries && !result.anchor_search.submitted &&
-          result.maintenance.published_groups==1?0:2;
+          result.maintenance.published_groups==groups?0:2;
     }
     require(result.installed_anchor_status==HipDiscoveryStatus::ready && result.installed_anchor_queries!=0,
         "Installed package did not acquire a verified route");
@@ -2201,7 +2203,7 @@ int main(int argc,char** argv){try {
   if(argc==3 && std::string_view(argv[1])=="--live-installed-anchor-owner") {
     const std::string_view mode(argv[2]);
     require(mode=="accept" || mode=="missing" || mode=="changed" || mode=="stop" || mode=="repeat" || mode=="batch" ||
-        mode=="restored" || mode=="queued" || mode=="verified-read" || mode=="verified-edit",
+        mode=="restored" || mode=="queued" || mode=="verified-read" || mode=="verified-edit" || mode=="device-not-ready",
         "Unknown installed route trial");
     if(mode=="repeat") {
       const auto accepted=run_live_anchor_owner("accept",std::nullopt);

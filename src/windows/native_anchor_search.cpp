@@ -49,7 +49,7 @@ struct NativeAnchorSearchController::Impl {
   std::vector<NativeSharedBaseSearchReply> replies;
   NativeAnchorSearchStats stats;
   std::uint64_t activity=0,next_launch=0,sequence=0,unobserved_ticket=0,packed_ticket=0;
-  bool enabled=false,configuration_blocked=false;
+  bool enabled=false,configuration_blocked=false,device_interrupted=false;
   explicit Impl(NativeAnchorSearchOptions configured):options(std::move(configured)) {
     enabled=valid_anchor_route(options.route) && valid_profile();
   }
@@ -88,6 +88,14 @@ struct NativeAnchorSearchController::Impl {
     enabled=false;
     configuration_blocked=blocked;
     if(retired)options.route.pins.reset();
+  }
+  bool check_device(std::uint64_t ticket=0) noexcept {
+    if(options.route.pins->device_ready())return true;
+    if(ticket)(void)recovery.abandon(ticket,true);
+    device_interrupted=true;
+    suspend(false);
+    ++stats.declined;
+    return false;
   }
   void fail(std::uint64_t ticket,GpuRecoveryOutcome outcome,bool retired) noexcept {
     (void)recovery.finish(ticket,outcome,retired);
@@ -128,7 +136,7 @@ void NativeAnchorSearchController::start(std::span<const NativeSharedBaseSearchW
     total+=count;
     largest=(std::max)(largest,count);
   }
-  if(total<options.minimum_members)return;
+  if(total<options.minimum_members || !self.check_device())return;
   std::uint64_t ticket=0;
   try {
     // Reject an unrepresentable group before sizing a device slab.
@@ -230,6 +238,7 @@ void NativeAnchorSearchController::start(std::span<const NativeSharedBaseSearchW
         std::to_wstring(capacity.reply_bytes),std::to_wstring(quantum),std::to_wstring(plan.device_bytes),
         std::to_wstring(plan.launches),std::to_wstring(transfer.device_bytes)};
     if(profile)arguments.push_back(std::to_wstring(dispatches_per_wait));
+    if(!self.check_device(ticket))return;
     auto session=WorkerExchangeSession::start_sized(route.helper,arguments,
         request.snapshot(),capacity,budget,route.pins);
     self.flight.emplace(Impl::Flight{std::move(session),std::move(request),std::move(profile),ticket,begun,
@@ -390,6 +399,9 @@ bool NativeAnchorSearchController::can_reacquire() const noexcept {
   const auto& self=*impl_;
   return !self.enabled && !self.flight && !self.unobserved_ticket && self.windows.empty() &&
       self.stats.retirement_confirmed;
+}
+bool NativeAnchorSearchController::take_device_interruption() noexcept {
+  return std::exchange(impl_->device_interrupted,false);
 }
 bool NativeAnchorSearchController::rebind(HipDiscoveredRoute route) noexcept {
   auto& self=*impl_;

@@ -1,5 +1,7 @@
 #include "gpu_budget.hpp"
+#include "gpu_device_readiness.hpp"
 #include <windows.h>
+#include <cfg.h>
 #include <dxgi1_4.h>
 #include <wrl/client.h>
 #include <algorithm>
@@ -11,6 +13,61 @@
 
 namespace {
 using namespace flitzfs;
+
+void verify_display_readiness() {
+  using Status=WindowsAmdDisplayStatus;
+  const HipAdapterHardware selected{0x1002,0x7400,0x12341002,0xb0};
+  const HipAdapterHardware other{0x1002,0x7400,0x24561002,0xb0};
+  const HipAdapterHardware unrelated{0x1002,0x7400,0x12341002,0xb1};
+  WindowsAmdDisplaySnapshot snapshot;
+  const auto require=[](bool valid,const char* message) {
+    if(!valid)throw std::runtime_error(message);
+  };
+  require(snapshot.status()==Status::unavailable && snapshot.bind(selected).empty(),
+      "Incomplete display inventory granted readiness");
+  snapshot.complete=true;
+  require(snapshot.status()==Status::absent && !bound_windows_amd_displays_ready({}),
+      "Absent display inventory granted readiness");
+  snapshot.devices.push_back({L"PCI\\VEN_1002&DEV_7400&SUBSYS_12341002&REV_B0\\1",DN_STARTED,0,true});
+  snapshot.devices.push_back({L"pci\\ven_1002&dev_7400&subsys_24561002&rev_b0\\2",DN_STARTED,0,true});
+  require(snapshot.status()==Status::ready && snapshot.bind(selected).size()==1 &&
+      snapshot.bind(other).size()==1 && snapshot.status(&unrelated)==Status::absent,
+      "PCI subsystem or revision binding differed");
+  auto& original=snapshot.devices.front();
+  original.devnode_status=DN_STARTED|DN_HAS_PROBLEM;
+  original.problem_code=CM_PROB_WILL_BE_REMOVED;
+  require(snapshot.status(&selected)==Status::not_ready && snapshot.bind(selected).empty() &&
+      snapshot.status(&other)==Status::ready && snapshot.status()==Status::ready,
+      "Device removal affected the wrong adapter or granted readiness");
+  original.devnode_status=DN_STARTED|DN_WILL_BE_REMOVED;
+  original.problem_code=0;
+  require(snapshot.status(&selected)==Status::not_ready,"Removal without a problem number granted readiness");
+  original.devnode_status=0;
+  require(snapshot.status(&selected)==Status::not_ready,"A stopped device granted readiness");
+  original.devnode_status=DN_STARTED;
+  original.observed=false;
+  require(snapshot.bind(selected).empty(),"An unobserved device became a route binding");
+  original.observed=true;
+  require(snapshot.bind(selected).size()==1,"A new healthy observation did not restore readiness");
+  snapshot.devices.push_back({L"PCI\\VEN_1002&DEV_7400&SUBSYS_12341002&REV_B0\\3",
+      DN_HAS_PROBLEM,CM_PROB_WILL_BE_REMOVED,true});
+  require(snapshot.bind(selected).empty() && snapshot.bind(other).size()==1,
+      "Indistinguishable device with an unhealthy twin granted a route");
+  snapshot.devices.back().devnode_status=DN_STARTED;
+  snapshot.devices.back().problem_code=0;
+  require(snapshot.bind(selected).size()==2,"Two healthy matching devices lost their full binding");
+  std::cout<<"amd_device_readiness model=pass removal=blocked exact_pci_binding=true recovery_observation=true\n";
+}
+
+void report_display_readiness() {
+  const auto snapshot=observe_windows_amd_displays();
+  std::cout<<"amd_device_inventory complete="<<snapshot.complete<<" cards="<<snapshot.devices.size()
+      <<" state="<<static_cast<int>(snapshot.status())<<'\n';
+  for(const auto& device:snapshot.devices)
+    std::cout<<"amd_devnode observed="<<device.observed<<" ready="<<device.ready()
+        <<" problem="<<device.problem_code<<'\n';
+}
+
 std::array<std::byte,8> amd_identity() {
   Microsoft::WRL::ComPtr<IDXGIFactory1> factory;
   if(FAILED(CreateDXGIFactory1(IID_PPV_ARGS(factory.GetAddressOf()))) || !factory)
@@ -80,7 +137,12 @@ int main(int argc,char** argv){try{
     measure_amd_budget();
     return 0;
   }
+  if(argc==2 && std::string_view(argv[1])=="--describe-amd-readiness") {
+    report_display_readiness();
+    return 0;
+  }
   if(argc!=1)throw std::invalid_argument("unknown budget test mode");
+  verify_display_readiness();
   // Invalid requests are rejected before a DXGI factory or adapter is queried.
   std::array<std::byte,8> id{};
   for(auto mask:{0U,1U,3U,0xffffffffU}){

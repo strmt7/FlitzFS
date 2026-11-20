@@ -97,11 +97,12 @@ struct WinFspVolumeController::Impl {
           if(gpu && now>gpu->after_ms) {
             // CPU completion uses a different owner and can proceed while the
             // operating system supplies telemetry. Never query under the lock.
-            const auto observation=query_windows_gpu_budget(gpu->luid,gpu->node_mask);
+            const bool device_ready=!gpu->pins || gpu->pins->device_ready();
+            const auto observation=device_ready?query_windows_gpu_budget(gpu->luid,gpu->node_mask):WindowsGpuBudgetResult{};
             if(stop_requested.load(std::memory_order_acquire))break;
             const auto applied=adapter->complete_gpu_budget_task(*gpu,observation.snapshot,GetTickCount64());
             std::lock_guard lock(mutex);
-            ++current.gpu_budget_queries;
+            if(device_ready)++current.gpu_budget_queries;
             if(!applied)++current.gpu_budget_refusals;
             continue;
           }
@@ -294,7 +295,13 @@ struct WinFspVolumeController::Impl {
   }
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
   void begin_acquisition(const WinFspMaintenanceResult& result,const NativeMaintenanceObservation& observed) {
-    if(!installed || !acquisition_retired || acquisition_thread.joinable() ||
+    if(!installed)return;
+    if(anchor && anchor->take_device_interruption()) {
+      if(acquisition_inputs)acquisition_inputs->note_device_unavailable();
+      std::lock_guard lock(mutex);
+      current.installed_anchor_status=HipDiscoveryStatus::device_not_ready;
+    }
+    if(!acquisition_retired || acquisition_thread.joinable() ||
         (anchor && !anchor->can_reacquire()) || result.progress.phase!=NativeMaintenancePhase::preparing ||
         result.progress.deferral!=NativeMaintenanceDeferral::none ||
         result.group_members<2 ||
@@ -314,7 +321,7 @@ struct WinFspVolumeController::Impl {
     last_acquisition_candidate=candidate;
     acquisition_started=true;
     acquisition_inputs.reset();
-    // Keep the DXGI factory and its observations on the Windows volume owner.
+    // Keep the observed installation and topology on the Windows volume owner.
     try {acquisition_inputs=std::make_unique<InstalledAnchorInputWitness>();}
     catch(...) {}
     acquisition={};
@@ -343,6 +350,8 @@ struct WinFspVolumeController::Impl {
     if(!use_route)acquisition_thread.request_stop();
     acquisition_thread.join();
     acquisition_retired=acquisition.status!=HipDiscoveryStatus::retirement_unconfirmed;
+    if(acquisition_inputs && acquisition.status==HipDiscoveryStatus::device_not_ready)
+      acquisition_inputs->note_device_unavailable();
     if(use_route && acquisition.status==HipDiscoveryStatus::ready && acquisition.route &&
         !stop_requested.load(std::memory_order_acquire)) {
       try {

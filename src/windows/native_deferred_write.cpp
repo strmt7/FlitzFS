@@ -106,7 +106,8 @@ void NativeDeferredWriteService::request_budget_locked(std::uint64_t after_ms,bo
     return;
   }
   budget_for_completion_=completion;
-  budget_task_=NativeGpuBudgetTask{++budget_sequence_,after_ms,health_.memory.luid,health_.memory.node_mask};
+  budget_task_=NativeGpuBudgetTask{++budget_sequence_,after_ms,health_.memory.luid,health_.memory.node_mask,
+      options_.controller_route_pins};
   budget_work_.store(true,std::memory_order_release);
   signal_activity_locked();
 }
@@ -158,6 +159,12 @@ void NativeDeferredWriteService::run() noexcept{
       std::unique_lock guard(control_);
       changed_.wait(guard,[this]{return stats_.stopping||stats_.native_pending;});
       if(!stats_.native_pending){if(stats_.stopping)break;continue;}
+      if(options_.controller_route_pins && options_.allow_gpu && !force_cpu_ && !stats_.stopping) {
+        guard.unlock();
+        const auto ready=options_.controller_route_pins->device_ready();
+        guard.lock();
+        if(!ready)disable_gpu_budget_locked();
+      }
       const auto started=GetTickCount64();
       auto charged=options_.cost;
       if(!uniform_lz4::add(charged.fixed_bytes,sizeof(Request)+sizeof(FSP_FSCTL_TRANSACT_RSP)+

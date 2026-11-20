@@ -1,0 +1,250 @@
+{
+  "schema": 1,
+  "recorded_on": "2026-11-20",
+  "source_base": "fef35ba4f17045611ec9ab72ab7dc0ae8ab41cbf",
+  "code_patch_sha256": "cded7fb76f20ff6bc22285713b1df5e23cabad6bce46de74e9b277387a6ad54c",
+  "source_binding": [
+    {
+      "path": "CMakeLists.txt",
+      "git_blob": "13792b9366cbd215e990697c02535606c7ba04a6"
+    },
+    {
+      "path": "src/windows/gpu_device_readiness.cpp",
+      "git_blob": "d7eae03bf82fe9b31edb3527b01a58b56e050214"
+    },
+    {
+      "path": "src/windows/gpu_device_readiness.hpp",
+      "git_blob": "bc695d0eabf4a5b2f469f139a1bdc1e420e0820b"
+    },
+    {
+      "path": "src/windows/hip_route_binding.hpp",
+      "git_blob": "1f9cf3ab8e8602866479ad5103d200a47b00c351"
+    },
+    {
+      "path": "src/windows/hip_route_discovery.cpp",
+      "git_blob": "e4aa00a8e7f4bfb6a124dbcdb95a495d2d24e113"
+    },
+    {
+      "path": "src/windows/hip_route_discovery.hpp",
+      "git_blob": "622458f1b5ee47029e6a1f5111b4da98c21de6fd"
+    },
+    {
+      "path": "src/windows/native_anchor_search.cpp",
+      "git_blob": "b7cecc7693520fadcbb34db9c4820848b4197ad0"
+    },
+    {
+      "path": "src/windows/native_anchor_search.hpp",
+      "git_blob": "6b42aa535c3627d1dc46a09eacfabada2ddc3934"
+    },
+    {
+      "path": "src/windows/native_deferred_write.cpp",
+      "git_blob": "a5c17ca1e40143f25fcee30c332fde877014b072"
+    },
+    {
+      "path": "src/windows/native_deferred_write.hpp",
+      "git_blob": "ce0e94d04d7e879b6b25baa1db121ec4c2d81754"
+    },
+    {
+      "path": "src/windows/winfsp_controller.cpp",
+      "git_blob": "c948ab11647169b16b47275a547110d7667856b2"
+    },
+    {
+      "path": "tests/test_windows_gpu_budget.cpp",
+      "git_blob": "189c3728d6c7d77409859be897eec98d73213a74"
+    },
+    {
+      "path": "tests/test_winfsp_controller.cpp",
+      "git_blob": "3f7dd6de4decb96eb51dbe39761b775b012af52d"
+    }
+  ],
+  "research": {
+    "native_sources": [
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/cfgmgr32/nf-cfgmgr32-cm_get_devnode_status",
+        "final_http_status": 200,
+        "markdown_sha256": "1258923c4013708ac148536c4716d84e19060b86608495b2e35ed3cb1796dbff",
+        "capture_sha256": "d9f2eb7276ec37740594ff11c235c59637241080abcca91f79dc6dcc6112ba13",
+        "provider": "0.9.5+flitzzip.portable2"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/cfgmgr32/nf-cfgmgr32-cm_get_device_id_lista",
+        "final_http_status": 200,
+        "markdown_sha256": "b919626c20306977ea26ed37f7759225888895cc7d4218ac317c5d951da59355",
+        "capture_sha256": "2f9d56345665d6f553cc741c13320931367626565976e04d34344660da8e886f",
+        "provider": "0.9.5+flitzzip.portable2"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-displayconfig_adapter_name",
+        "final_http_status": 200,
+        "markdown_sha256": "ca28fe1e0068e1f4f77077b300cdaa5ca797c0f04288f4ffb3f612eacb97479c",
+        "capture_sha256": "14e7db278338f6edd1fe98d605a064226394be6d561c75dcd4dc2af0a594771f",
+        "provider": "0.9.5+flitzzip.portable2"
+      },
+      {
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/latest/reference/error_codes.html",
+        "final_http_status": 200,
+        "markdown_sha256": "54662e1eeb8413a35482b826634d0cbf9284dec30bc16d5bd63c7f517ad9ba8b",
+        "capture_sha256": "f3d8ac7f61c53e9b632d8719956d0a4fed80859cb5b61eaa30c8e0d1ae8c4bad",
+        "provider": "0.9.5+flitzzip.portable2"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows-hardware/drivers/install/identifiers-for-pci-devices",
+        "final_http_status": 200,
+        "markdown_sha256": "ef5549a2b8ac316814cae410390d0ce73469d6a43b1ed0100f0fab563e1db417",
+        "capture_sha256": "2ed61b04189f67211e8e14d63fe257c4fe275655ce97fd3c90a8ab6c3006c7f9",
+        "provider": "0.9.5+flitzzip.portable2"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows-hardware/drivers/install/cm-prob-will-be-removed",
+        "final_http_status": 200,
+        "markdown_sha256": "d7d28d8d69a552f1b987b9119e354b3a3129f9671599aa1538f95248c4a4c454",
+        "capture_sha256": "4058adf69b1864e7a10919b74ed9a5c2fb9198541f12842e337c6fc5b7d3552a",
+        "provider": "0.9.5+flitzzip.portable2"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows-hardware/drivers/install/device-instance-ids",
+        "final_http_status": 200,
+        "markdown_sha256": "b12ddc892f09b68cf3ef4283a57a135edc236839a1a7b5729777e41a54d601cd",
+        "capture_sha256": "18e691d9de09884e72f1be852f004b34fa292c9e042019e3aad23d0f061fd6da",
+        "provider": "0.9.5+flitzzip.portable2"
+      }
+    ],
+    "retained_extraction_failure": {
+      "url": "https://learn.microsoft.com/en-us/windows-hardware/drivers/install/device-instance-ids",
+      "final_http_status": 200,
+      "markdown_sha256": "b12ddc892f09b68cf3ef4283a57a135edc236839a1a7b5729777e41a54d601cd",
+      "capture_sha256": "b4fd1a704e72eb25ac0d766c3894d2d1393e160e3b3258de7262b4dd4e5e26d4",
+      "provider": "0.9.5+flitzzip.portable2",
+      "failure_category": "unexpected_content",
+      "error": ""
+    },
+    "recovery": "A linked phrase prevented the expected-content match. A distinct substantive marker admitted a fresh capture.",
+    "semantic_search": {
+      "provider": "0.2.43",
+      "receipt_sha256": "779fd641444f7623e62787b7949858cb4ace545864b3e6f75e94c91277253a7e",
+      "native_response_sha256": "9338f3ab1fda85cc38d04542eb49d0527f465b6ef7ffe1d9096b6e3e6b1e9de1"
+    }
+  },
+  "host_device_observation": {
+    "observed_at_utc": "2026-11-20T03:09:16.2491881Z",
+    "adapter": "AMD Radeon RX 9070 XT",
+    "driver_version": "32.0.32029.2010",
+    "problem_code": 21,
+    "hip_runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+    "approved_hip_runtime_sha256": "7fc6465b18ff337a80c863b6350d02d7576cfb30528f97b982a6e5723bbb9848"
+  },
+  "validation": {
+    "suites": {
+      "Windows Release": {
+        "passed": 6,
+        "detail_sha256": "ab5d7f7bf0fcc5656740a7177cebb0f870dcbfd6bd29393acf4f79e17cd0f833"
+      },
+      "Windows codec-free ASan": {
+        "passed": 8,
+        "detail_sha256": "47454c3ef553af4fb6ccfd6319ee758268a7febbb10a96640ea99fe7c98d8a0c"
+      }
+    },
+    "artifacts": {
+      "manifest_sha256": "d3b2da67b3f670b542e42097cde13cef3e2c735155093328df4d41fbf052b7d7",
+      "worker_sha256": "3bf7a176c9cae60dfc4b3c3bf3cd4f03a525bff5360dd78a18046e4cde57a91f",
+      "module_sha256": "ff1b9b8879ffd7fefc50923535882602d0f7b69e36e9e087d081920c90b12f43",
+      "tested_controller_sha256": "e2cd193900d91f6e58c0a35e2c4061a83d699f31df385212da0d49b668b1bc10"
+    },
+    "installed_package": {
+      "attempts": 1,
+      "hip_identity_queries": 0,
+      "gpu_submissions": 0,
+      "cpu_groups": 2,
+      "verified_files": 10,
+      "retired": true
+    },
+    "missing_package": {
+      "attempts": 1,
+      "hip_identity_queries": 0,
+      "gpu_submissions": 0,
+      "cpu_groups": 1,
+      "retired": true
+    },
+    "run_receipts": [
+      {
+        "role": "Windows Release build",
+        "run": "local-run-46adbc8613494fbd9c79b2098d4ddb8a",
+        "receipt_sha256": "e16211c75d031f0c21902f0cc0a0c1374aaf341a0f2c53982d0762a44f296235",
+        "log_sha256": "3fc7aecec9666c9804793327843f1f5a28c9da9c27dc1324a887b0a79489c7e0",
+        "peak_job_bytes": 471531520,
+        "tree_retired": true
+      },
+      {
+        "role": "Windows Release suite",
+        "run": "local-run-6dec66315ad340d1812a9e649959c51f",
+        "receipt_sha256": "61b54d3710a37156e04a135a62e723e7f7b2cfc8c57e27e29836d49f26da6ce2",
+        "log_sha256": "0ac75b18dc7f8cd8f8da0cda98e1dc58fc75d35b8feab22a59ee5226b157b690",
+        "peak_job_bytes": 37314560,
+        "tree_retired": true
+      },
+      {
+        "role": "Windows codec-free ASan build",
+        "run": "local-run-1f8f4ce598ad4450815131525a138827",
+        "receipt_sha256": "be95409f159bdb14d2c546c514d1fcf6435abc405b41f4b6c8d9f5d9440c0d41",
+        "log_sha256": "8a02d69aef9e2dfb67db661a643499d300d59fe87a4cf66e49fe60e54e683ed2",
+        "peak_job_bytes": 711036928,
+        "tree_retired": true
+      },
+      {
+        "role": "Windows codec-free ASan suite",
+        "run": "local-run-f6146f5db54b44279ab85b6478eacd40",
+        "receipt_sha256": "582a086279f5403ee171584f2e80be71167b9d610f59bfe542dcd138ee3ef580",
+        "log_sha256": "ad172e2ced54ecb0dcd070333ca9f1bb568538c43fdb13ada32b1818868b72cb",
+        "peak_job_bytes": 439136256,
+        "tree_retired": true
+      },
+      {
+        "role": "AMD files staged in disposable fixture",
+        "run": "local-run-c1dbe82ceb124f19a2064308595aae07",
+        "receipt_sha256": "31357674576d2bea20b49084322b1d087bdae82463bf9490f9e8bbd25d1b00b8",
+        "log_sha256": "1e783d7488bfb23f15e5bdff44bdf17710cb71c802d87af43e17cf6a89844117",
+        "peak_job_bytes": 5677056,
+        "tree_retired": true
+      },
+      {
+        "role": "Read-only Windows devnode census",
+        "run": "local-run-bd10a9dd8cc9423a848ef74c60b6ef03",
+        "receipt_sha256": "35ee067f708400010de60793216c14d13e6363471cbe8c9dbe47440e9d29b93a",
+        "log_sha256": "5c8ca752c9952d3c82bebdd26b05664911e0a1b25507db50c04065391710c282",
+        "peak_job_bytes": 2514944,
+        "tree_retired": true
+      },
+      {
+        "role": "Independent Configuration Manager cross-check",
+        "run": "local-run-c36dbb18340f4c659ba5f6beae35765d",
+        "receipt_sha256": "c3873c3b6031f3c24cc058e2c6a160c65ee9eaa2ddb0a9c79606af3082375aed",
+        "log_sha256": "0450c7a028702f1eb822cc600581ed85d63c45c622630a4c3b1a4d7a487cf59c",
+        "peak_job_bytes": 10264576,
+        "tree_retired": true
+      },
+      {
+        "role": "Installed package with unavailable AMD device",
+        "run": "local-run-8eff8284ee774bd79aeb1f28e8267aea",
+        "receipt_sha256": "16f12a802cb0c28d36fa5ae39ee3ddde91e7368a9d2ee81ea1e244f8deea40f8",
+        "log_sha256": "718b07bbfaa6c1ca775057f623bd6006f669309b35ebe02c58705a03dd0ca407",
+        "peak_job_bytes": 39305216,
+        "tree_retired": true
+      },
+      {
+        "role": "Missing-package CPU route",
+        "run": "local-run-5849e6fa8b334745ae3a820f14d30660",
+        "receipt_sha256": "7446005384f93debc2619cc1979ab6b05d2e7e97a0731b4bc51a87f4d263cff7",
+        "log_sha256": "46f76f978524db4c31b36d51ce4cb88d7196cb3b2a7eb9dfb2af468dc98decb0",
+        "peak_job_bytes": 23130112,
+        "tree_retired": true
+      }
+    ]
+  },
+  "scope": {
+    "owned_memory_volume_with_actual_sdk_callbacks": true,
+    "actual_unavailable_device_read_only": true,
+    "healthy_amd_or_post_update_gpu_compute_qualified": false,
+    "native_mount_or_power_loss_qualified": false,
+    "on_disk_format_change": false
+  }
+}

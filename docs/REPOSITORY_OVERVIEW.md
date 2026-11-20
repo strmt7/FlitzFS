@@ -212,6 +212,12 @@ read bytes increased by 31.0% and 19.2% respectively. These file sets
 characterize the change without establishing a throughput result.
 [Indexed group profitability and readback evidence](evidence/indexed-group-profitability-2026-11-20.json)
 
+The installed route now reads Windows device status before DXGI discovery and
+dispatch. On the live host, Code 21 stopped GPU launch while the owner
+compressed two groups on CPU and recovered all ten files byte for byte. The
+GPU path still needs validation with the healthy adapter and the updated
+runtime. [Device readiness evidence](evidence/windows-amd-device-readiness-2026-11-20.json)
+
 Wider backend qualification and useful collective gains still need complete
 operation and size measurements. CPU fallback may choose a different encoding
 and stored size. Every admitted GPU-produced representation needs an

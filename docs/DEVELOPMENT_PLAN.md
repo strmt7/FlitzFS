@@ -442,6 +442,7 @@ Deliverables:
 
 - Instrument process/runtime/context/module startup, transfer, kernel, comparison, native encode and retirement separately.
 - Research and compare safe amortization, bounded batching and verification strategies. A resident worker or relaxed batch cap requires a reviewed replacement lifecycle/security contract and equivalent fault containment before implementation.
+- Qualify supported signed HIP runtimes after device or runtime changes. Discover the adapter when Windows reports it ready and confirm the worker and module binding. Execute a finite byte-exact known-answer test, then compare the complete CPU and AMD operation on held-out workload shapes. Record measured suitability in the advisory optimization store under the verified runtime, adapter, module and workload identity. Invalidate the measurements when the binding changes and continue CPU operation while gathering new evidence. [Current device-removal qualification](evidence/windows-amd-device-readiness-2026-11-20.json)
 
 Validation:
 

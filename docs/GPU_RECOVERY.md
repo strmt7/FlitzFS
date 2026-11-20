@@ -89,6 +89,37 @@ in one AMD exchange. It published one additional group and declined the other.
 All twelve files passed CPU readback. The worker and controller retired.
 [Source-bound recovery evidence](evidence/amd-installed-recovery-2026-11-18.json)
 
+## Windows device readiness during driver changes
+
+Configuration Manager supplies a read-only view of the present AMD PCI display
+devices before route discovery opens DXGI. The selected PCI vendor, device,
+subsystem and revision must match the Windows instance identity. An instance
+must be started and clear of removal and problem flags. If identical PCI
+signatures prevent distinguishing devices at this stage, all matching
+instances must meet that condition. The existing DXGI LUID, topology, worker
+identity and memory checks still qualify the actual route.
+[Device instance identity](https://learn.microsoft.com/en-us/windows-hardware/drivers/install/device-instance-ids) ·
+[PCI identifiers](https://learn.microsoft.com/en-us/windows-hardware/drivers/install/identifiers-for-pci-devices) ·
+[Configuration Manager status](https://learn.microsoft.com/en-us/windows/win32/api/cfgmgr32/nf-cfgmgr32-cm_get_devnode_status)
+
+The owner rechecks the selected device instances before shared-base dispatch
+and before the separate qualified write route collects DXGI telemetry or
+starts its worker. The filesystem lock stays free during these reads. A
+blocked anchor route drops its worker binding. The owner remembers the
+interruption, and a ready observation at a new admitted group opportunity can
+trigger fresh discovery. While the device stays unavailable, changes to the
+files alone cannot trigger another attempt. A route with an unconfirmed
+worker retirement still refuses reacquisition.
+
+The RX 9070 XT reported Code 21 after an external Radeon update. The installed
+package fixture completed two CPU groups and verified all ten files. The
+controller made one discovery attempt, zero HIP identity queries and zero
+GPU submissions, then retired. The current runtime digest differs from the
+approved package profile. Healthy-device execution and recovery with the new
+runtime still need direct qualification.
+[Device removal status](https://learn.microsoft.com/en-us/windows-hardware/drivers/install/cm-prob-will-be-removed) ·
+[Source-bound live and sanitizer evidence](evidence/windows-amd-device-readiness-2026-11-20.json)
+
 ## Failure-classification research
 
 AMD distinguishes missing devices, insufficient drivers, resource exhaustion

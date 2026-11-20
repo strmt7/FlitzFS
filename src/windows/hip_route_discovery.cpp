@@ -18,6 +18,11 @@
 namespace flitzfs {
 namespace {
 using Status=HipDiscoveryStatus;
+#if defined(FLITZFS_BIND_INSTALLED_AMD_PACKAGE) && FLITZFS_INSTALLED_AMD_HAS_ANCHOR
+constexpr HipAdapterHardware installed_anchor_hardware{
+    installed_amd_package::anchor_vendor_id,installed_amd_package::anchor_device_id,
+    installed_amd_package::anchor_subsystem_id,installed_amd_package::anchor_revision};
+#endif
 template<std::size_t N>
 bool nonzero(const std::array<std::byte,N>& id) noexcept {
   return std::any_of(id.begin(),id.end(),[](std::byte b){return b!=std::byte{};});
@@ -53,9 +58,22 @@ struct DxgiAmdAdapter {
   std::array<std::byte,8> luid;
   std::uint64_t dedicated_bytes;
   HipAdapterHardware hardware;
+  std::vector<std::wstring> device_instances;
 };
 
-Status enumerate_amd_adapters(std::vector<DxgiAmdAdapter>& adapters,std::uint64_t deadline) {
+Status check_display_readiness(const WindowsAmdDisplaySnapshot& display,const HipAdapterHardware* expected) noexcept {
+  using State=WindowsAmdDisplayStatus;
+  switch(display.status(expected)) {
+    case State::ready:return Status::ready;
+    case State::not_ready:return Status::device_not_ready;
+    case State::absent:return expected && !display.devices.empty()?Status::profile_mismatch:Status::no_amd_adapter;
+    case State::unavailable:return Status::device_not_ready;
+  }
+  return Status::topology_unavailable;
+}
+
+Status enumerate_amd_adapters(std::vector<DxgiAmdAdapter>& adapters,const WindowsAmdDisplaySnapshot& display,
+    const HipAdapterHardware* expected,std::uint64_t deadline) {
   Microsoft::WRL::ComPtr<IDXGIFactory1> factory;
   if(FAILED(CreateDXGIFactory1(IID_PPV_ARGS(factory.GetAddressOf()))) || !factory)
     return Status::topology_unavailable;
@@ -67,9 +85,13 @@ Status enumerate_amd_adapters(std::vector<DxgiAmdAdapter>& adapters,std::uint64_
     DXGI_ADAPTER_DESC1 desc{};
     if(FAILED(adapter->GetDesc1(&desc)))return Status::topology_unavailable;
     if(desc.VendorId!=0x1002 || (desc.Flags&DXGI_ADAPTER_FLAG_SOFTWARE))continue;
+    const HipAdapterHardware hardware{desc.VendorId,desc.DeviceId,desc.SubSysId,desc.Revision};
+    if(expected && hardware!=*expected)continue;
     const auto luid=std::bit_cast<std::array<std::byte,8>>(desc.AdapterLuid);
-    if(nonzero(luid))adapters.push_back({luid,desc.DedicatedVideoMemory,
-        {desc.VendorId,desc.DeviceId,desc.SubSysId,desc.Revision}});
+    if(!nonzero(luid))continue;
+    auto devices=display.bind(hardware);
+    if(!devices.empty())
+      adapters.push_back({luid,desc.DedicatedVideoMemory,hardware,std::move(devices)});
   }
   return Status::resource_deferred;
 }
@@ -116,6 +138,8 @@ HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest
     return result;
   if(stop.stop_requested())return {Status::cancelled};
   if(!WorkerExchangeSession::available()){result.status=Status::transport_busy;return result;}
+  const auto* expected=request.anchor_device?&request.anchor_device->hardware:nullptr;
+  WindowsAmdDisplaySnapshot display;
   std::shared_ptr<HipRouteResources> pinned;
   try {
     auto parents = pin_worker_parent(request.helper);
@@ -136,6 +160,10 @@ HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest
         return result;
       }
     }
+    if(stop.stop_requested())return {Status::cancelled};
+    display=observe_windows_amd_displays();
+    result.status=check_display_readiness(display,expected);
+    if(result.status!=Status::ready)return result;
     pinned=std::make_shared<HipRouteResources>(std::move(parents),std::move(worker),
         std::move(module),request.runtime_basename);
   } catch(const HipWorkerFailure&) {result.status=Status::runtime_unavailable;return result;}
@@ -148,12 +176,11 @@ HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest
   const auto deadline=GetTickCount64()+request.worker.timeout_ms;
   std::vector<DxgiAmdAdapter> adapters;
   try {
-    result.status=enumerate_amd_adapters(adapters,deadline);
+    display=observe_windows_amd_displays();
+    result.status=check_display_readiness(display,expected);
     if(result.status!=Status::ready)return result;
-    if(request.anchor_device) {
-      std::erase_if(adapters,[&](const auto& adapter){return adapter.hardware!=request.anchor_device->hardware;});
-      if(adapters.empty())return {Status::profile_mismatch};
-    }
+    result.status=enumerate_amd_adapters(adapters,display,expected,deadline);
+    if(result.status!=Status::ready)return result;
     std::stable_sort(adapters.begin(),adapters.end(),[](const auto& a,const auto& b){
       return a.dedicated_bytes>b.dedicated_bytes;
     });
@@ -161,14 +188,20 @@ HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest
   // A budget-eligible DXGI adapter gives the metadata worker a budget to
   // check before runtime initialization. The HIP ordinal is matched separately.
   auto bootstrap=adapters.begin();
+  bool ready_device_seen=false;
   for(;bootstrap!=adapters.end() && GetTickCount64()<deadline;++bootstrap) {
+    if(!bound_windows_amd_displays_ready(bootstrap->device_instances))continue;
+    ready_device_seen=true;
     if(verified_single_gpu_node(query_windows_gpu_topology(bootstrap->luid),bootstrap->luid))break;
   }
   if(GetTickCount64()>=deadline){result.status=Status::resource_deferred;return result;}
-  if(bootstrap==adapters.end()){result.status=Status::topology_unavailable;return result;}
+  if(bootstrap==adapters.end())
+    return {ready_device_seen?Status::topology_unavailable:Status::device_not_ready};
   constexpr std::uint32_t node=1; // Verified single D3D node.
   for(std::uint32_t ordinal=0;ordinal<request.maximum_identity_queries;++ordinal) {
     if(stop.stop_requested())return {Status::cancelled,0,result.identity_queries};
+    if(!bound_windows_amd_displays_ready(bootstrap->device_instances))
+      return {Status::device_not_ready,0,result.identity_queries};
     const auto& luid=bootstrap->luid;
     const auto observation=query_windows_gpu_budget(luid,node);
     const auto now=GetTickCount64();
@@ -176,7 +209,11 @@ HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest
         check_gpu_memory_budget(observation.snapshot,luid,node,now,0)!=GpuGateCode::admitted) {
       result.status=Status::resource_deferred;return result;
     }
-    auto remaining=request.worker;remaining.timeout_ms=static_cast<std::uint32_t>(deadline-now);
+    if(!bound_windows_amd_displays_ready(bootstrap->device_instances))
+      return {Status::device_not_ready,0,result.identity_queries};
+    const auto dispatch_time=GetTickCount64();
+    if(dispatch_time>=deadline)return {Status::resource_deferred,0,result.identity_queries};
+    auto remaining=request.worker;remaining.timeout_ms=static_cast<std::uint32_t>(deadline-dispatch_time);
     const HipIdentityRequest identity{std::uint64_t(ordinal)+1,ordinal,node,luid};
     try {
       ++result.identity_queries;
@@ -201,6 +238,8 @@ HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest
         return candidate.luid==match.luid;
       });
       if(matching==adapters.end())continue;
+      if(!bound_windows_amd_displays_ready(matching->device_instances))
+        return {Status::device_not_ready,result.worker_exit,result.identity_queries};
       if(match.luid!=luid) {
         if(GetTickCount64()>=deadline){result.status=Status::resource_deferred;return result;}
         if(!verified_single_gpu_node(query_windows_gpu_topology(match.luid),match.luid))continue;
@@ -214,7 +253,8 @@ HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest
       const auto configuration=route_key(request.helper_sha256,runtime,module_digest,match,node);
       const auto module_pinned=pinned->module.has_value();
       auto binding=std::shared_ptr<const HipRoutePins>(new HipRoutePins(request.helper,configuration,
-          runtime,ordinal,fresh.snapshot,module_pinned && !anchor,module_pinned && anchor,std::move(pinned)));
+          runtime,ordinal,fresh.snapshot,module_pinned && !anchor,module_pinned && anchor,
+          std::move(matching->device_instances),std::move(pinned)));
       result.route.emplace(HipDiscoveredRoute{configuration,runtime,fresh.snapshot,ordinal,
           std::move(binding),request.helper,request.runtime_basename,matching->hardware});
       result.status=Status::ready;return result;
@@ -275,6 +315,7 @@ struct AnchorInputObservation {
   bool operator==(const AnchorInputObservation&) const noexcept=default;
 };
 
+#if defined(FLITZFS_BIND_INSTALLED_AMD_PACKAGE) && FLITZFS_INSTALLED_AMD_HAS_ANCHOR
 std::optional<AnchorInputObservation> observe_anchor_input(const std::filesystem::path& path) noexcept {
   if(path.empty() || !ordinary_windows_file_path(path.native()))return {};
   const auto file=CreateFileW(path.c_str(),FILE_READ_ATTRIBUTES,FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,
@@ -297,12 +338,14 @@ std::optional<AnchorInputObservation> observe_anchor_input(const std::filesystem
   return AnchorInputObservation{true,id.VolumeSerialNumber,std::bit_cast<std::array<unsigned char,16>>(id.FileId),
       standard.EndOfFile.QuadPart,basic.LastWriteTime.QuadPart,basic.ChangeTime.QuadPart};
 }
+#endif
 } // namespace
 
 struct InstalledAnchorInputWitness::Impl {
   std::array<std::filesystem::path,3> paths;
   std::array<std::optional<AnchorInputObservation>,3> before;
   Microsoft::WRL::ComPtr<IDXGIFactory1> factory;
+  bool device_unavailable=false;
 };
 InstalledAnchorInputWitness::InstalledAnchorInputWitness():impl_(std::make_unique<Impl>()) {
 #if defined(FLITZFS_BIND_INSTALLED_AMD_PACKAGE) && FLITZFS_INSTALLED_AMD_HAS_ANCHOR
@@ -316,17 +359,29 @@ InstalledAnchorInputWitness::InstalledAnchorInputWitness():impl_(std::make_uniqu
   if(length && length<system.size())
     impl_->paths[2]=std::filesystem::path(std::wstring_view(system.data(),length))/installed_amd_package::runtime_basename;
   for(std::size_t i=0;i<impl_->paths.size();++i)impl_->before[i]=observe_anchor_input(impl_->paths[i]);
-  if(FAILED(CreateDXGIFactory1(IID_PPV_ARGS(impl_->factory.GetAddressOf()))))impl_->factory.Reset();
+  impl_->device_unavailable=check_display_readiness(observe_windows_amd_displays(),&installed_anchor_hardware)!=Status::ready;
+  const bool have_package=impl_->before[0] && impl_->before[0]->present && impl_->before[1] && impl_->before[1]->present;
+  if(!impl_->device_unavailable && have_package &&
+      FAILED(CreateDXGIFactory1(IID_PPV_ARGS(impl_->factory.GetAddressOf()))))impl_->factory.Reset();
 #endif
 }
 InstalledAnchorInputWitness::~InstalledAnchorInputWitness()=default;
-bool InstalledAnchorInputWitness::changed() const noexcept {
-  if(impl_->factory && !impl_->factory->IsCurrent())return true;
+void InstalledAnchorInputWitness::note_device_unavailable() noexcept {impl_->device_unavailable=true;}
+bool InstalledAnchorInputWitness::changed() noexcept {
+#if defined(FLITZFS_BIND_INSTALLED_AMD_PACKAGE) && FLITZFS_INSTALLED_AMD_HAS_ANCHOR
+  if(check_display_readiness(observe_windows_amd_displays(),&installed_anchor_hardware)!=Status::ready) {
+    note_device_unavailable();
+    return false;
+  }
+  if(impl_->device_unavailable)return true;
   for(std::size_t i=0;i<impl_->paths.size();++i) {
     const auto current=observe_anchor_input(impl_->paths[i]);
     if(current && impl_->before[i] && *current!=*impl_->before[i])return true;
   }
+  return impl_->factory && !impl_->factory->IsCurrent();
+#else
   return false;
+#endif
 }
 
 HipRouteDiscoveryResult discover_installed_hip_route(ProcessBudget budget,std::uint32_t maximum_identity_queries) {
@@ -365,8 +420,7 @@ HipRouteDiscoveryResult discover_installed_hip_anchor_route(std::stop_token stop
   request.maximum_identity_queries=anchor_maximum_identity_queries;
   request.helper_sha256=anchor_worker_sha256;
   request.anchor_module_sha256=anchor_module_sha256;
-  request.anchor_device=HipAnchorDeviceBinding{{anchor_vendor_id,anchor_device_id,anchor_subsystem_id,anchor_revision},
-      anchor_runtime_sha256};
+  request.anchor_device=HipAnchorDeviceBinding{installed_anchor_hardware,anchor_runtime_sha256};
   return discover_application_package(std::move(request),true,stop);
 #else
   (void)stop;
