@@ -120,9 +120,27 @@ struct IndexedPreparationWatch {
   std::weak_ptr<IndexedSharedBasePreparation> preparation;
   bool changed=false;
 };
+// Advisory history owned by the serialized writer. The transaction geometry
+// bounds this memory. Losing coverage only requires an ordinary scan.
+class IndexedContentChanges final {
+ public:
+  void record(NativeExtentSelection,std::uint64_t sequence) noexcept;
+  void require_scan(std::uint64_t sequence) noexcept;
+  std::optional<std::size_t> after(std::uint64_t sequence,std::span<NativeExtentSelection>) const noexcept;
+
+ private:
+  struct Change {
+    NativeExtentSelection extent;
+    std::uint64_t sequence=0;
+  };
+  std::array<Change,kNativeMaxDirtyExtents> entries_{};
+  std::size_t used_=0;
+  std::uint64_t lost_through_=0;
+};
 struct IndexedContentWatch {
   std::uint64_t& sequence;
   std::span<IndexedPreparationWatch> preparations;
+  IndexedContentChanges& changes;
 };
 NativeFsCommit commit_indexed_volume(PagedObjectStoreWriter&,const PagedObjectStoreSnapshot&,
     IndexedVolumeRoot&,const IndexedVolumeEdit&,NativeInodeCommitInfo*,NativeInodeAllocationInfo*,

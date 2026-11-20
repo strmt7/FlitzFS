@@ -604,6 +604,14 @@ preparation. With a smaller write grant the managed scanner published
 the earlier signature families in the same reservation.
 [Numeric discovery evidence](evidence/modular-coherence-catalog-2026-11-19.json)
 
+Indexed discovery can start with the extents in a covered history of
+successful foreground writes. In a 1,034-file fixture, checking the changed
+extent and refreshing the representative took two visits. The unmatched
+and history-overflow cases exercised the ordinary scan. On the physical
+Windows host, an SDK callback fixture attached three edited extents to
+an existing group in one verified AMD batch.
+[Incremental discovery evidence](evidence/indexed-change-discovery-2026-11-20.json)
+
 RubikFS provides evidence for evaluating similarity and access hotness
 together. MedFS shows why selective delta maintenance should account for write
 traffic as well as the stored representation. FlitzFS uses its own live

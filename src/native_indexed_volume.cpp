@@ -488,7 +488,7 @@ class IndexedVolumeTransaction final {
     std::vector<StoreMutation> records;
     std::vector<NativeNameEdit> edits;
     RetiredGroupReferences retired;
-    bool content_changed=false;
+    bool content_changed=false,needs_scan=false;
     for(const auto& [key,replacement]:names_) {
       const auto expected=index_.find(key);
       if(expected!=replacement)edits.push_back({key,expected,replacement});
@@ -501,7 +501,10 @@ class IndexedVolumeTransaction final {
         watch_selection([&](const auto& preparation){return preparation.watches_extent(id,block);});
       }
       auto& changed=nodes_.at(id);
-      if(extent.base)retire_group_reference(extent.base,*extent.original,next_,retired,edits);
+      if(extent.base) {
+        needs_scan=true; // The group's representative can change.
+        retire_group_reference(extent.base,*extent.original,next_,retired,edits);
+      }
       if(extent.payload.empty()) {
         if(!extent.original)continue;
         records.push_back({*extent.original,true,{}});
@@ -536,6 +539,7 @@ class IndexedVolumeTransaction final {
       const auto phase=changed.value?changed.value->lifetime:IndexedLifetime::linked;
       if(!changed.value || phase!=changed.original_lifetime) {
         content_changed=true;
+        needs_scan=true;
         watch_selection([&](const auto& preparation){return preparation.watches_inode(id);});
       }
       if(phase!=changed.original_lifetime) {
@@ -578,7 +582,14 @@ class IndexedVolumeTransaction final {
     }catch(const std::exception&){fail(Code::storage_failure,"indexed storage commit failed");}
     result.sequence=next_.sequence;
     current=next_;
-    if(content_changed)watched_.sequence=result.sequence;
+    if(content_changed) {
+      watched_.sequence=result.sequence;
+      if(needs_scan)watched_.changes.require_scan(result.sequence);
+      else for(const auto& [key,extent]:extents_) {
+        if(extent.dirty && (extent.original || !extent.payload.empty()))
+          watched_.changes.record({key.first,key.second},result.sequence);
+      }
+    }
     for(const auto& watch:watched_.preparations) {
       if(watch.changed)
         if(const auto preparation=watch.preparation.lock())preparation->invalidate();
@@ -1014,6 +1025,44 @@ IndexedVolumeRoot initialize_indexed_volume(PagedObjectStoreWriter& writer) {
   initial.push_back({inode_domain|1,false,encode_indexed_inode(directory,root)});
   NativeNameIndex::initialize(writer,std::move(initial),NativeIndexKind::names_and_extents);
   return root;
+}
+
+void IndexedContentChanges::record(NativeExtentSelection extent,std::uint64_t sequence) noexcept {
+  const auto retained=std::span(entries_).first(used_);
+  const auto existing=std::ranges::find_if(retained,[&](const Change& change) {
+    return change.extent.inode==extent.inode && change.extent.extent_index==extent.extent_index;
+  });
+  if(existing!=retained.end()) {
+    existing->sequence=sequence;
+    return;
+  }
+  if(used_<entries_.size()) {
+    entries_[used_++]={extent,sequence};
+    return;
+  }
+  const auto oldest=std::ranges::min_element(retained,{},&Change::sequence);
+  lost_through_=(std::max)(lost_through_,oldest->sequence);
+  *oldest={extent,sequence};
+}
+
+void IndexedContentChanges::require_scan(std::uint64_t sequence) noexcept {
+  used_=0;
+  lost_through_=sequence;
+}
+
+std::optional<std::size_t> IndexedContentChanges::after(std::uint64_t sequence,
+    std::span<NativeExtentSelection> output) const noexcept {
+  if(sequence<lost_through_)return {};
+  std::size_t count=0;
+  for(const auto& change:std::span(entries_).first(used_)) {
+    if(change.sequence<=sequence)continue;
+    if(count==output.size())return {};
+    output[count++]=change.extent;
+  }
+  std::ranges::sort(output.first(count),{},[](NativeExtentSelection extent) {
+    return std::pair{extent.inode,extent.extent_index};
+  });
+  return count;
 }
 
 NativeFsCommit commit_indexed_volume(PagedObjectStoreWriter& writer,const PagedObjectStoreSnapshot& source,

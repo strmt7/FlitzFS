@@ -313,6 +313,33 @@ caller-provided allowance. Optional advice and its backing
 remain outside file-data recovery.
 [Restart and transition validation](evidence/indexed-representative-retention-2026-11-19.json)
 
+### Discovery after committed edits
+
+The indexed writer records changed extent coordinates after a successful
+commit. Repeated writes to the same extent retain one entry. The history
+holds as many distinct coordinates as one maximum native data transaction.
+Eviction marks the point before which discovery needs an ordinary scan.
+Lifetime transitions and edits to grouped extents also request a sweep
+because they can change the surviving base representative.
+
+An indexed scan with a covered change history tries those coordinates first.
+It uses the same similarity features, catalog lookups, CPU encoding and
+admitted AMD advice. A changed extent that stays ungrouped triggers the
+ordinary scan to consider other representatives. The previous recoverable
+checkpoint stays in place while the in-memory update pass is active. A
+restart recovers from that checkpoint and the current volume generation.
+
+In the 1,034-file fixture, two writes to one related extent required two
+visits to attach it to a distant group. An unmatched write and an overflowed
+history both exercised the wider scan. The independent CPU reader verified
+every file after those passes.
+[Change discovery evidence](evidence/indexed-change-discovery-2026-11-20.json)
+
+Published change tracking in Windows and Git informed the choice to consult
+recorded edits before traversing unchanged data.
+[Windows change journal](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/fsutil-usn) ·
+[Git 2.55 change monitoring](https://git-scm.com/docs/git-fsmonitor--daemon/2.55.0.html)
+
 ## Paged coherence catalog
 
 A managed indexed session can bind a read-only snapshot of a separately

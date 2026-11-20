@@ -32,6 +32,11 @@ struct Fixture {
     else session.emplace(NativeFileSession::create_paged_volume(head,id(90),image,id(1),{kStoreMaxPhysicalBytes},compression));
     for(unsigned i=0;i<count;++i)put(*session,"f"+std::to_string(i),family(i));
   }
+  Fixture(std::shared_ptr<Ram> selector,std::shared_ptr<Ram> backing):head(std::move(selector)),image(std::move(backing)) {
+    session.emplace(NativeFileSession::resume_closed_indexed_volume(head,id(90),1,
+        [&](const auto& key)->std::shared_ptr<StoreByteIo>{return key==id(1)?image:nullptr;},
+        {StoreCompressionMode::raw,1,false}));
+  }
   auto step(NativeGroupMaintenance& controller){const auto observed=clock.next();return controller.advance(observed,clock.now);}
   auto finish(NativeGroupMaintenance& controller){for(unsigned i=0;i<6000;++i){const auto result=step(controller);
     require(result.phase!=Phase::failed,"controller failed");if(result.phase==Phase::idle)return result;}throw std::runtime_error("controller did not quiesce");}
@@ -110,6 +115,90 @@ void indexed_section_reference_reuse() {
   std::cout<<"assembled_base_reuse groups="<<grouped.bases<<" members="<<grouped.members
       <<" before_compacted_bytes="<<before<<" after_compacted_bytes="<<after
       <<" removed_witness=true reopened=true independent_cpu_readback=true\n";
+}
+
+void indexed_changed_extent_discovery() {
+  constexpr unsigned unrelated=1024, originals=8, batch=32;
+  const auto independent=[](unsigned i){return data(1024,21001+73*i);};
+  const auto name=[](unsigned i){return "unrelated-"+std::to_string(i);};
+  auto head=ram(4096),image=ram(4096);
+  const auto populate=[&] {
+    auto writer=NativeFilesystemWriter::initialize_indexed(
+        PagedObjectStoreWriter::create_mirrored(image,id(1),{kStoreMaxPhysicalBytes},{StoreCompressionMode::raw,1,false}));
+    std::vector<NativeFileMutation> seed;
+    seed.reserve(batch*2);
+    const auto add=[&](const std::string& path,Bytes contents) {
+      seed.push_back(file_create(path));
+      seed.push_back(file_write(path,0,std::move(contents)));
+    };
+    for(unsigned i=0;i<originals;++i)add("f"+std::to_string(i),family(i));
+    seed.push_back(file_create("incoming"));
+    writer.apply(seed);
+    for(unsigned first=0;first<unrelated;first+=batch) {
+      seed.clear();
+      for(unsigned i=first;i<first+batch;++i)add(name(i),independent(i));
+      writer.apply(seed);
+    }
+    return writer.snapshot();
+  };
+  (void)NativeVolumeHeadWriter::create(head,id(90),populate());
+  Fixture f(head,image);
+
+  NativeGroupMaintenance controller(*f.session);
+  const auto visits=[](const auto& p){return p.sampled_extents+p.reused_features;};
+  const auto initial=f.finish(controller);
+  const auto unchanged=visits(initial);
+  const auto group=f.session->snapshot().shared_base_info();
+  require(unchanged>=unrelated && group.bases==1 && group.members==originals,
+      "initial discovery did not learn the related group and its distant neighbors");
+  const auto expected=family(originals);
+  const auto incoming=f.session->open("incoming",{true,true,false});
+  f.session->write(incoming,0,family(originals+1));
+  f.session->write(incoming,0,expected);
+  f.session->cleanup(incoming,false);
+  f.session->close(incoming);
+  const auto changed=f.finish(controller);
+  const auto work=visits(changed)-unchanged;
+  const auto attached=f.session->snapshot().shared_base_info();
+  require(changed.published_groups==initial.published_groups+1 && attached.bases==1 &&
+      attached.members==originals+1 && work>0 && work<=3,
+      "a coalesced extent change replayed the learned volume or lost its match");
+
+  const auto unmatched=data(kNativeExtentBytes,82091);
+  put(*f.session,"unmatched",unmatched);
+  const auto full=f.finish(controller);
+  const auto unmatched_visits=visits(full)-visits(changed);
+  require(unmatched_visits>=unrelated,"unmatched changed content did not get a wider scan");
+
+  // Overflow of the advisory history requires the ordinary scan. All
+  // overwritten coordinates still belong to the same authoritative volume.
+  constexpr auto edits=kNativeMaxDirtyExtents+1;
+  for(unsigned i=0;i<edits;++i) {
+    const auto edit=f.session->open(name(i),{true,true,false});
+    const std::array replacement{std::byte{37}};
+    f.session->write(edit,0,replacement);
+    f.session->cleanup(edit,false);
+    f.session->close(edit);
+  }
+  const auto overflow=f.finish(controller);
+  const auto overflow_visits=visits(overflow)-visits(full);
+  require(overflow_visits>=unrelated,"lost history suppressed a full discovery sweep");
+  f.session.reset();
+  const auto snapshot=NativeFilesystemSnapshot::open_image(image,{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes});
+  snapshot.verify_all();
+  for(unsigned i=0;i<unrelated;++i) {
+    auto bytes=independent(i);
+    if(i<edits)bytes.front()=std::byte{37};
+    require(snapshot.read(name(i),0,bytes.size())==bytes,"discovery changed an unrelated file");
+  }
+  for(unsigned i=0;i<originals;++i)
+    require(snapshot.read("f"+std::to_string(i),0,kNativeExtentBytes)==family(i),"extended group changed an original file");
+  require(snapshot.read("incoming",0,expected.size())==expected &&
+      snapshot.read("unmatched",0,unmatched.size())==unmatched,"discovery changed updated logical bytes");
+  std::cout<<"changed_extent_discovery files="<<unrelated+originals+2
+      <<" initial_visits="<<unchanged<<" matched_visits="<<work
+      <<" unmatched_visits="<<unmatched_visits<<" overflow_visits="<<overflow_visits
+      <<" coalesced=true independent_cpu_readback=true\n";
 }
 
 void advised_indexed_maintenance() {
@@ -1701,6 +1790,8 @@ int main(int argc,char** argv){try{
     advised_indexed_maintenance();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-section-reuse") {
     indexed_section_reference_reuse();
+  } else if(argc==2 && std::string_view(argv[1])=="--indexed-changes") {
+    indexed_changed_extent_discovery();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-batch") {
     batched_indexed_maintenance(BatchOutcome::accepted);
     batched_indexed_maintenance(BatchOutcome::cpu_fallback);

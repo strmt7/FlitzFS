@@ -712,17 +712,19 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
   const bool edit_after_verification=mode=="verified-edit";
   const bool queued=mode=="queued" || mode=="queued-yield" || read_after_verification || edit_after_verification;
   const bool restoring=mode=="restored";
+  const bool changing=mode=="changed-extents";
   const bool device_not_ready=mode=="device-not-ready";
   const bool two_planes=mode=="xor-wide" || mode=="xor-narrow";
   const bool xor_encoding=two_planes || mode=="xor" || mode=="xor-cpu";
   const bool packed=mode=="batch" || mode=="batch-yield" || xor_encoding;
   const unsigned files_per_group=queued?queued_anchor_members+1:installed && (packed || restoring)?3:5;
   const unsigned groups=restoring?4:(packed || device_not_ready)?2:1;
-  const unsigned initial_files=restoring?2*files_per_group:groups*files_per_group;
+  const unsigned initial_files=changing?2:restoring?2*files_per_group:groups*files_per_group;
   const bool yield=mode=="yield" || mode=="batch-yield" || mode=="queued-yield";
   const auto count=groups*files_per_group;
   const auto before=handle_count();
   auto head=std::make_shared<Ram>(),image=std::make_shared<Ram>();
+  if(changing)head->failure_unit=image->failure_unit=4096;
   Provider provider;Provider::active=&provider;
   NativeMaintenancePolicy qualification;
   qualification.maximum_cpu_busy_ppm=500000;
@@ -740,7 +742,8 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
         const auto variation=data(kNativeExtentBytes,1511+group*103+i);
         const auto mask=two_planes?std::byte{0x30}:std::byte{1};
         for(std::size_t at=0;at<base.size();++at)derived[at]^=variation[at]&mask;
-      } else if(i && restoring && group<2)derived[kNativeExtentBytes/8+(i+1)*719]^=std::byte{0x67};
+      } else if(i && ((restoring && group<2) || (changing && i<initial_files)))
+        derived[kNativeExtentBytes/8+(i+1)*719]^=std::byte{0x67};
       else if(i)derived=anchor_search_fixture::fragmented(base,i);
       if(!two_planes)std::copy_n(base.begin(),kNativeExtentBytes/8,derived.begin());
       originals.push_back(std::move(derived));
@@ -749,11 +752,13 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
   WinFspControllerView result;
   bool signalled=false,restored=false;
   std::array<unsigned,static_cast<std::size_t>(NativeMaintenanceDeferral::capacity)+1> deferrals{};
-  std::uint64_t last_quantum=0,settled_ms=0;
+  std::uint64_t last_quantum=0,settled_ms=0,visits_before_edits=0;
+  const auto visits=[](const auto& progress){return progress.sampled_extents+progress.reused_features;};
   {
     WinFspVolumeController controller(std::move(adapter),provider.api(),plan(),std::move(options));
     await([&]{return controller.view().state==SessionState::running;},5000,"AMD controller startup deadline");
     for(unsigned i=0;i<initial_files;++i)callback_file(provider,i,originals[i]);
+    if(changing)for(unsigned i=initial_files;i<count;++i)callback_file(provider,i,data(1024,44000+i));
     if(read_after_verification) {
       require(!controller.view().anchor_search.submitted,"GPU launched before baseline reads");
       foreground_read_samples(provider,1,originals[1],"before_launch");
@@ -767,8 +772,17 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
         last_quantum=result.maintenance_quanta;
         ++deferrals.at(static_cast<std::size_t>(result.maintenance.deferral));
       }
-      if(result.maintenance.published_groups>=groups || result.retired || result.maintenance_disabled ||
+      const bool finished=changing?signalled && result.maintenance.published_groups>=2 &&
+          result.maintenance.phase==NativeMaintenancePhase::idle:result.maintenance.published_groups>=groups;
+      if(finished || result.retired || result.maintenance_disabled ||
           (mode=="stop" && result.installed_anchor_attempts))break;
+      if(changing && !signalled && result.maintenance.published_groups==1 &&
+          result.maintenance.phase==NativeMaintenancePhase::idle) {
+        require(!result.anchor_search.submitted,"Seed group unexpectedly used the AMD worker");
+        visits_before_edits=visits(result.maintenance);
+        for(unsigned i=initial_files;i<count;++i)replace_callback_file(provider,i,originals[i]);
+        signalled=true;
+      }
       if(restored && result.anchor_search.verified &&
           result.maintenance.phase==NativeMaintenancePhase::idle)break;
       if(restoring && !restored && result.maintenance.phase==NativeMaintenancePhase::idle &&
@@ -813,7 +827,7 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
     return image;
   });
   const auto& snapshot=proved.filesystem();snapshot.verify_all();
-  const auto accepted_files=restored?count:initial_files;
+  const auto accepted_files=restored || (changing && signalled)?count:initial_files;
   for(unsigned i=0;i<accepted_files;++i)require(snapshot.read("f"+std::to_string(i),0,kNativeExtentBytes)==originals[i],
       "AMD controller changed accepted file bytes");
   std::cout<<"anchor_owner mode="<<mode<<" host="<<static_cast<int>(result.host)
@@ -842,6 +856,16 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
       <<" retired=true cpu_readback_verified=true deferrals=";
   for(const auto occurrences:deferrals)std::cout<<occurrences<<',';
   std::cout<<'\n';
+  if(changing) {
+    const auto info=snapshot.shared_base_info();
+    const auto edit_visits=visits(result.maintenance)-visits_before_edits;
+    std::cout<<"owner_changed_extents visits_before="<<visits_before_edits<<" edit_visits="<<edit_visits
+        <<" bases="<<info.bases<<" members="<<info.members<<" independent_cpu_readback=true\n";
+    require(signalled && result.anchor_search.submitted==1 && result.anchor_search.verified_groups==1 &&
+        result.maintenance.published_groups==2 && edit_visits<=count-initial_files+1 &&
+        info.bases==1 && info.members==count,"Live AMD incremental grouping or extent accounting differed");
+    return 0;
+  }
   if(installed) {
     require(result.installed_anchor_attempts==(restoring?2U:1U) && result.installed_anchor_status &&
         result.installed_anchor_queries<=64,"Installed route did not make the expected bounded attempt");
@@ -1349,7 +1373,7 @@ int live_anchor_owner(int argc,char** argv) {
       restriction=="queued";
   const bool xor_mode=mode=="xor" || mode=="xor-wide" || mode=="xor-narrow";
   require(mode=="accept" || mode=="yield" || mode=="both" || mode=="batch" || mode=="batch-yield" || queued ||
-      xor_mode || multiwindow,
+      mode=="changed-extents" || xor_mode || multiwindow,
       "Expected an AMD ownership trial");
   require(argc!=9 || (multiwindow && revision_corpus(*multiwindow) && (restriction=="queued" || limited_memory)),
       "The requested comparison needs a revision corpus");
@@ -1383,7 +1407,8 @@ int live_anchor_owner(int argc,char** argv) {
         argc>=8?std::filesystem::path(argv[7]):std::filesystem::path{},
         discovery_ns,*multiwindow,limited_memory,overlap_cpu);
   }
-  const std::uint32_t members=queued?queued_anchor_members:(mode=="batch" || mode=="batch-yield" || xor_mode)?8:4;
+  const std::uint32_t members=mode=="changed-extents"?3:
+      queued?queued_anchor_members:(mode=="batch" || mode=="batch-yield" || xor_mode)?8:4;
   NativeAnchorSearchOptions execution{*binding.route,profile,members,members};
   if(queued)execution.dispatches_per_wait=kAnchorProfileMaxQueuedDispatches;
   if(xor_mode)execution.output=mode=="xor-wide"?anchor_match::BatchOutput::wide_packed_xor:

@@ -593,6 +593,7 @@ class NativeFilesystemWriter final {
   bool maintenance_matches(const NativeContentToken&) const noexcept;
   std::vector<std::byte> maintenance_read(NativeContentToken&,bool published_reference=false);
   std::uint64_t maintenance_content_sequence() const noexcept;
+  std::optional<std::size_t> maintenance_changes_since(std::uint64_t,std::span<NativeExtentSelection>) const noexcept;
   bool maintenance_indexed() const noexcept;
   bool maintenance_has_candidates() const noexcept;
   std::uint64_t maintenance_sequence() const noexcept;

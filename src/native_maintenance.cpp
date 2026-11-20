@@ -170,6 +170,9 @@ struct NativeGroupMaintenance::Impl {
   std::uint64_t scan_sequence=0,completed_sequence=0;
   std::uint64_t checkpoint_samples=0;
   bool checkpoint_loaded=false,checkpoint_due=false,checkpoint_unavailable=false,scan_revisit=false;
+  std::array<NativeExtentSelection,kNativeMaxDirtyExtents> updates{};
+  std::size_t update_count=0,next_update=0;
+  bool updates_need_sweep=false;
   bool prefer_coherence=true;
   std::array<bool,kStoreMaxObjects+1> seen{};
   std::map<std::uint64_t,Feature> features;
@@ -219,6 +222,8 @@ struct NativeGroupMaintenance::Impl {
     coherence_after=coherence_binding=0;
     coherence_query=0;
     checkpoint_loaded=checkpoint_due=false;checkpoint_samples=state.sampled_extents;scan_revisit=false;
+    update_count=next_update=0;
+    updates_need_sweep=false;
   }
   void remember(const Digest& key) {
     const auto inserted=attempted.insert(key);
@@ -269,12 +274,33 @@ struct NativeGroupMaintenance::Impl {
     state.owned_payload_bytes=owned_payload();return progress();
   }
   void begin_scan(NativeFilesystemWriter& writer) noexcept {
+    update_count=next_update=0;
+    updates_need_sweep=false;
     scan_sequence=writer.maintenance_content_sequence();cursor={};first=true;seen.fill(false);phase=Phase::scanning;
     extent_scan_exhausted=false;scan_revisit=false;
   }
+  bool begin_update_scan(NativeFilesystemWriter& writer,std::uint64_t previous) noexcept {
+    const auto count=writer.maintenance_changes_since(previous,updates);
+    if(!count || !*count)return false;
+    update_count=*count;
+    next_update=0;
+    updates_need_sweep=false;
+    scan_sequence=writer.maintenance_content_sequence();
+    phase=Phase::scanning;
+    extent_scan_exhausted=false;
+    return true;
+  }
   void complete_scan(NativeFilesystemWriter& writer) noexcept {
-    if(scan_revisit || writer.maintenance_content_sequence()!=scan_sequence)begin_scan(writer);
-    else {completed_sequence=scan_sequence;phase=Phase::idle;}
+    if(!scan_revisit && !updates_need_sweep) {
+      if(writer.maintenance_content_sequence()==scan_sequence) {
+        update_count=next_update=0;
+        completed_sequence=scan_sequence;
+        phase=Phase::idle;
+        return;
+      }
+      if(begin_update_scan(writer,scan_sequence))return;
+    }
+    begin_scan(writer);
   }
   bool new_coherence(const detail::NativeMaintenanceSource& owner,StoreIdentity image_id) const noexcept {
     return owner.coherence && owner.coherence->image()==image_id && owner.coherence_binding!=coherence_binding;
@@ -313,7 +339,9 @@ struct NativeGroupMaintenance::Impl {
   }
   bool checkpoint_step(NativeFilesystemWriter& writer,const detail::NativeMaintenanceSource& owner,
       std::size_t maximum_representatives,bool new_catalog) {
-    if(checkpoint_unavailable)return false;
+    // A pending update scan is volatile. Keep the last recoverable sweep
+    // checkpoint until its candidate work has settled.
+    if(checkpoint_unavailable || update_count)return false;
     try {
       if(!checkpoint_loaded && restore_scan(writer,owner,maximum_representatives,new_catalog))return true;
       if(!checkpoint_due)return false;
@@ -667,6 +695,12 @@ struct NativeGroupMaintenance::Impl {
     work_members=expected.size();work_batched=collect_batch;
     ++state.attempted_groups;phase=Phase::preparing;
   }
+  std::optional<NativeContentToken> next_indexed_sample(NativeFilesystemWriter& writer) {
+    if(!update_count)return writer.maintenance_next(cursor,first);
+    if(next_update==update_count)return {};
+    const auto extent=updates[next_update++];
+    return writer.maintenance_token(extent).value_or(NativeContentToken{extent});
+  }
   void step_indexed(NativeFilesystemWriter& writer,std::size_t maximum_members,
       std::size_t maximum_representatives,bool collect_batch,detail::NativeMaintenanceSource& owner) {
     // The budget limits one trial and one scan window. Existing anchors can
@@ -687,10 +721,10 @@ struct NativeGroupMaintenance::Impl {
       return;
     }
     if(phase==Phase::scanning) {
-      const auto token=writer.maintenance_next(cursor,first);
+      const auto token=next_indexed_sample(writer);
       if(token) {
         if(!staged_groups.empty())++staged_scan_extents;
-        cursor=token->extent;first=false;
+        if(!update_count){cursor=token->extent;first=false;}
         if(token->object) {
           const auto known=representatives.find(token->object);
           const bool can_publish_catalog=owner.coherence_writer || owner.coherence_storage;
@@ -725,6 +759,16 @@ struct NativeGroupMaintenance::Impl {
       return;
     }
     if(query_coherence(owner,maximum_representatives))return;
+    if(update_count) {
+      // Settle submitted groups before deciding whether any updated extent
+      // still needs the ordinary sweep to find a distant candidate.
+      if(!staged_groups.empty() && !batch_draining) {
+        emit_batch();
+        return;
+      }
+      updates_need_sweep=updates_need_sweep ||
+          std::ranges::any_of(features,[](const auto& entry){return !entry.second.token.grouped;});
+    }
     retain_indexed_window(maximum_representatives);
     if(extent_scan_exhausted && !staged_groups.empty() && !batch_draining) {
       emit_batch();
@@ -852,7 +896,8 @@ struct NativeGroupMaintenance::Impl {
     }
     if(phase==Phase::idle) {
       if(completed_sequence==writer.maintenance_content_sequence())return;
-      begin_scan(writer);return;
+      if(!begin_update_scan(writer,completed_sequence))begin_scan(writer);
+      return;
     }
     if(writer.maintenance_indexed()) {
       step_indexed(writer,maximum_members,maximum_representatives,can_batch && !batch_draining,owner);

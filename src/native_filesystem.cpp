@@ -1100,6 +1100,7 @@ struct NativeFilesystemWriter::Impl {
   std::optional<detail::IndexedVolumeRoot> indexed;
   detail::IndexedSharedBaseCache shared_base_reads;
   std::uint64_t indexed_content_sequence=1;
+  detail::IndexedContentChanges indexed_changes;
   std::shared_ptr<SharedBaseOwner> shared_owner=std::make_shared<SharedBaseOwner>();
   void remember(std::span<const StoreMutation> changes,std::uint64_t generation,bool content_changed=true) noexcept {
     for(const auto& change:changes)if(change.id>=2 && change.id<=kStoreMaxObjects) {
@@ -1141,7 +1142,7 @@ struct NativeFilesystemWriter::Impl {
       auto& watched=shared_owner->indexed_work;
       for(auto& watch:watched)watch.changed=false;
       return std::forward<Commit>(commit)(*objects.paged_if(),*source.paged_if(),*indexed,
-          detail::IndexedContentWatch{indexed_content_sequence,watched});
+          detail::IndexedContentWatch{indexed_content_sequence,watched,indexed_changes});
     }catch(const std::bad_alloc&){fail(Code::limit,"indexed transaction allocation failure");}
     catch(const NativeFsError& error) {
       if(error.code()==Code::corrupt || error.code()==Code::storage_failure)poisoned=true;
@@ -1321,6 +1322,11 @@ std::vector<std::byte> NativeFilesystemWriter::maintenance_read(NativeContentTok
 std::uint64_t NativeFilesystemWriter::maintenance_content_sequence() const noexcept {
   if(poisoned())return 0;
   return impl_->indexed?impl_->indexed_content_sequence:impl_->model.sequence;
+}
+std::optional<std::size_t> NativeFilesystemWriter::maintenance_changes_since(std::uint64_t sequence,
+    std::span<NativeExtentSelection> output) const noexcept {
+  if(!maintenance_indexed() || !sequence || sequence>impl_->indexed_content_sequence)return {};
+  return impl_->indexed_changes.after(sequence,output);
 }
 bool NativeFilesystemWriter::maintenance_indexed() const noexcept{return !poisoned() && impl_->indexed.has_value();}
 bool NativeFilesystemWriter::maintenance_has_candidates() const noexcept {
