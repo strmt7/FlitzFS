@@ -1,0 +1,217 @@
+{
+  "schema": 1,
+  "captured_local": "2026-11-20T02:43:06+01:00",
+  "source_base": "5cf7a22363b9818cd4aea3de23a35abbc972f2be",
+  "base_tree": "bf12b1166b0598622dcd132b4dcad7700056f45f",
+  "code_patch_sha256": "ea5447f9b7d9de3bccf43e73bfece4dd27e3344860587d2e31d44097aba6c9dd",
+  "source_binding": [
+    {
+      "path": "include/flitzfs/native_filesystem.hpp",
+      "git_blob": "87f86f8327522c62f0b47c6d6d697446e57756a1",
+      "worktree_sha256": "d595eaa63acc5e8347d173b65d0cf5db74e2639ff8ba14e114993b49e93cf67b"
+    },
+    {
+      "path": "include/flitzfs/native_session.hpp",
+      "git_blob": "9e534b691daac7ebc567caf93ba5629d792691b3",
+      "worktree_sha256": "fbfa8232345361715692bc3f20ca21163608503b490589f112e0007a0ddbb49f"
+    },
+    {
+      "path": "include/flitzfs/optimization_state.hpp",
+      "git_blob": "b9a40a41c2faf6fb8a9f81d21e3f6bbc4f628ea2",
+      "worktree_sha256": "77442a1d1489e986733b5fd7f4732731714468112af8737ec0d5064d2ebe421d"
+    },
+    {
+      "path": "include/flitzfs/paged_store.hpp",
+      "git_blob": "6a4c9486b44b0a33ec75860e582c13f227356834",
+      "worktree_sha256": "d520e61773f23008fb043b8e0bb996487db76b32f2e52e94aacebc031856f36f"
+    },
+    {
+      "path": "src/native_filesystem.cpp",
+      "git_blob": "b7d6d02af1dbfa9bdf53fe42c2072bfa92da2304",
+      "worktree_sha256": "f2b111233b1bc735f48a1e2e34fdffcedeba63d40fb868b92838c8220b3dc3a7"
+    },
+    {
+      "path": "src/native_object_storage.hpp",
+      "git_blob": "7896e73730b7c2ac55100d1abd1317b5d5eb3459",
+      "worktree_sha256": "ea92d72599dc63bec8d252f3a4375e04e6af90cd9481029c4b17349778c7e8eb"
+    },
+    {
+      "path": "src/native_session.cpp",
+      "git_blob": "d38187b4bc17fff79f7e9c76920552cc2ffa17bb",
+      "worktree_sha256": "cb2ef1376d74846a9c281e23f560aaa83a6352a6a2b5de84f357c90a4fa530b5"
+    },
+    {
+      "path": "src/optimization_state.cpp",
+      "git_blob": "7d6100fc7274c68098357b44128aa29546e5976b",
+      "worktree_sha256": "85499fcae1db9ea1504321cbe035f465d4757e60c17c2ac0ccbe6f3d6ed5fcff"
+    },
+    {
+      "path": "src/paged_store.cpp",
+      "git_blob": "3685f062bc58d0e5d4728323b61fb65a484c106b",
+      "worktree_sha256": "649788c2f94992876f510eb5a775f3bd5dd8bc7d5d8ae0f12a8075f31672f39a"
+    },
+    {
+      "path": "src/windows/winfsp_native.cpp",
+      "git_blob": "b00522e1ea1ece925c108ce5c48efebfcb913689",
+      "worktree_sha256": "8a7d5ec4c559094ba60abb23bea8b96a0cbe6cdc1fd52e474b3f65f9ea6feffa"
+    },
+    {
+      "path": "tests/test_mirrored_payloads.cpp",
+      "git_blob": "64b93591e456242554a7b61bcb9c301b4be39e95",
+      "worktree_sha256": "e5c4a9dcfa5acc79fa00ff29f2a3a67b167eda098e57e411ce8b2c0814176a7e"
+    },
+    {
+      "path": "tests/test_winfsp_controller.cpp",
+      "git_blob": "d0b314344ff5329d78d566c9fb18f71ceee4daac",
+      "worktree_sha256": "6b5688d500f9fb1451f74ae2ff425837d67815c54a31c8523e74ff70daf83f93"
+    }
+  ],
+  "research": {
+    "semantic_provider": "0.2.43",
+    "semantic_receipt_sha256": "f6815d9e88970f14cd425b543bfa300a73c59fca0b1b7fa8c0325c8af9c525dd",
+    "semantic_native_response_sha256": "e36330b99070358d49c178639225510631234b49dfd6b6371ecbfa88ff39b601",
+    "crawl_provider": "0.9.5+flitzzip.portable2",
+    "crawl_receipt_sha256": "0ccff51755593ac8a48339d790f3680553c585d675b35bf45105ab18bc3c9921",
+    "sources": [
+      {
+        "url": "https://btrfs.readthedocs.io/en/latest/btrfs-scrub.html",
+        "final_http_status": 200,
+        "markdown_bytes": 21707,
+        "markdown_sha256": "ca7ff6b3c324a64e3f5f8e527f76fcb5b6759c1dad8e791898abfc44acb5c7f1",
+        "capture_sha256": "56c23b113e67bc8f0c0f7910ad1f8e84e9812c0c311400a1ea5e0e4a880ad07c"
+      },
+      {
+        "url": "https://openzfs.github.io/openzfs-docs/man/master/8/zpool-scrub.8.html",
+        "final_http_status": 200,
+        "markdown_bytes": 19637,
+        "markdown_sha256": "25b42227db38f308ecf27661e5999a31725ffd0869ec7723e5847c2ab2499e35",
+        "capture_sha256": "19b3726eea1e26f9e3abcbc9967d791979008a616075f8ada95bed7e3f7a14c3"
+      }
+    ]
+  },
+  "validation": {
+    "windows_release_ctest_passed": 14,
+    "codec_free_explorer_addresssanitizer_ctest_passed": 13,
+    "release_detail_sha256": "cabf10dc3bb587fa08414e1b73344d9f0fff6864b6ae3964dcd9e6b7a4a44ed4",
+    "asan_detail_sha256": "6cb5ab7a2a4567812de21420fe4f04350b8e74cb72e6d99383a699e6d2ae3598",
+    "modeled_advisory_interruptions": 12,
+    "advisory_slot_bytes": 65536,
+    "fresh_verified_record_bytes_per_attempt": 8388608,
+    "matched_resume_avoided_record_checks": 65,
+    "matched_resume_avoided_encoded_verification_bytes": 8408556,
+    "matched_scope": "Periodic scrub of an identical in-memory image after reopen. The counters exclude startup validation and measure work rather than elapsed time or physical I/O.",
+    "verified_same_image_after_foreground_commit": true,
+    "stale_unrelated_malformed_future_progress_refused": true,
+    "profile_history_full_group_table_and_settlement_preserved": true,
+    "degraded_peer_restored_by_fresh_read_funding": true,
+    "scope_of_sdk_test": "Production paired-range backing wrapper with RAM storage and injected WinFsp dispatcher. The fixture was adjusted from 64 to 24 MiB per image to fit the model's address space.",
+    "live_windows_sdk_resume_and_byte_readback": true,
+    "separate_amd_regression": {
+      "qualification_manifest_sha256": "d3b2da67b3f670b542e42097cde13cef3e2c735155093328df4d41fbf052b7d7",
+      "worker_sha256": "3bf7a176c9cae60dfc4b3c3bf3cd4f03a525bff5360dd78a18046e4cde57a91f",
+      "kernels_sha256": "ff1b9b8879ffd7fefc50923535882602d0f7b69e36e9e087d081920c90b12f43",
+      "test_executable_sha256": "ccb81cfbc7d6eb3fe1d4317b996dbbc2628b70bed9d4f769d1b312871df6c492",
+      "verified_groups": 1,
+      "independent_cpu_readback": true,
+      "shutdown_confirmed": true,
+      "system_runtime_sha256": "7fc6465b18ff337a80c863b6350d02d7576cfb30528f97b982a6e5723bbb9848"
+    },
+    "runs": [
+      {
+        "role": "Windows Release changed test build",
+        "run": "local-run-bb3456502bd7418ca0aa16c554d14568",
+        "receipt_sha256": "b0f5a44aaeff59ab30bc66297bfb10c462a8c23b87ffc9e0c927cdd42b5496ca",
+        "output_sha256": "ec1f6a705c44696be022a4448b77dbbbd793bc5300555830a84487d1ceae1dc1",
+        "elapsed_seconds": 11.203096999999616,
+        "memory_bytes": 1852833792,
+        "peak_job_bytes": 428101632,
+        "cpu_percent": 28,
+        "tree_retired": true,
+        "residual_children": 1,
+        "inherited_error_mode": 32771
+      },
+      {
+        "role": "Windows Release tests",
+        "run": "local-run-caf973508dc840dc9d34e7d1fe3c83c7",
+        "receipt_sha256": "6e3e269e0c483a632bcc3a468703effb4a0454b779dfc963a0db527dddf5d3dc",
+        "output_sha256": "e43232c1547a9a725a000044690c0484a2b7eacdfa31d233b5cd31141e2dbd6e",
+        "elapsed_seconds": 34.3718302999996,
+        "memory_bytes": 1808793600,
+        "peak_job_bytes": 113664000,
+        "cpu_percent": 25,
+        "tree_retired": true,
+        "residual_children": 0,
+        "inherited_error_mode": 32771
+      },
+      {
+        "role": "Windows codec-free Explorer ASan changed test build",
+        "run": "local-run-5c656898870943ecb0cd85a59e3bda71",
+        "receipt_sha256": "4dfadddbc47579d749ad0727e28a0dd26f22cc5ab200e53dcad88891ca4bc3d1",
+        "output_sha256": "752d942bf7c5c970735ae32a32d491ce98ec464f05e43543d5c0d8154b862a6d",
+        "elapsed_seconds": 11.252699099999518,
+        "memory_bytes": 2116026368,
+        "peak_job_bytes": 682409984,
+        "cpu_percent": 27,
+        "tree_retired": true,
+        "residual_children": 1,
+        "inherited_error_mode": 32771
+      },
+      {
+        "role": "Windows codec-free Explorer ASan tests",
+        "run": "local-run-81278a9f4f204063a4db2490fe2cfb7e",
+        "receipt_sha256": "37cd532fe21519d047d39be3b406460a71cc1a9108e66dab441ac1fe67cb7e36",
+        "output_sha256": "8b875b38fb75f236924563bc693bd532e2eb496fbc32286e7005b37d83f450d5",
+        "elapsed_seconds": 139.69384159999936,
+        "memory_bytes": 2945449984,
+        "peak_job_bytes": 1096691712,
+        "cpu_percent": 25,
+        "tree_retired": true,
+        "residual_children": 0,
+        "inherited_error_mode": 32771
+      },
+      {
+        "role": "AMD locally staged component",
+        "run": "local-run-307aae85a7b94cbbb456265a9e29b179",
+        "receipt_sha256": "056002780996868f526bf185403b4a62756179c7ac0e1e78a67496764b1a26b5",
+        "output_sha256": "ef47d7fcb18a16a80f36b180e3f795c1dd5a66d4da7ccfb7f6f102b33948d6df",
+        "elapsed_seconds": 0.12347479999971256,
+        "memory_bytes": 739246080,
+        "peak_job_bytes": 5701632,
+        "cpu_percent": 15,
+        "tree_retired": true,
+        "residual_children": 0,
+        "inherited_error_mode": 32771
+      },
+      {
+        "role": "AMD installed-path verified group",
+        "run": "local-run-4ae06948fdd143c0b6b2ad5251135df9",
+        "receipt_sha256": "0da71a4d3d295b331f17aa37c2b1e1a3a15ced9b519d175d7e52127f18a718fc",
+        "output_sha256": "35ddc1b3e35dce10b039834e2e74eb54c51a6579cebec033c6c04721c73759b9",
+        "elapsed_seconds": 39.723663799999485,
+        "memory_bytes": 1336934400,
+        "peak_job_bytes": 127209472,
+        "cpu_percent": 17,
+        "tree_retired": true,
+        "residual_children": 0,
+        "inherited_error_mode": 32771
+      }
+    ]
+  },
+  "scope": {
+    "advisory_capability": 6,
+    "reads_advisory_capabilities": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "data_or_selector_format_change": false,
+    "persistent_repair_intent": false,
+    "metadata_index_reconstruction": false,
+    "physical_power_loss_qualification": false,
+    "mounted_windows_qualification": false,
+    "release": false
+  }
+}

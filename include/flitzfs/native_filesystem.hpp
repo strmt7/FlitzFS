@@ -628,6 +628,7 @@ class NativeFilesystemWriter final {
   PagedPayloadRepairProgress repair_indexed_payload();
   bool indexed_payload_scrub_eligible() const noexcept;
   PagedPayloadScrubResult scrub_indexed_payload();
+  bool restore_indexed_payload_scrub(const PagedPayloadScrubPosition&) noexcept;
   using InodeAction=detail::NativeInodeAction;
   NativeFsCommit transact(std::span<const NativeFileMutation>,InodeAction,std::uint64_t,
       std::span<const NativeBasicMutation> basic={},

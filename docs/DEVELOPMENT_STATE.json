@@ -75,6 +75,20 @@
     "on_disk_format_change": false,
     "physical_power_loss_qualified": false
   },
+  "indexed_durable_scrub": {
+    "source_base": "5cf7a22363b9818cd4aea3de23a35abbc972f2be",
+    "evidence": "docs/evidence/indexed-durable-scrub-2026-11-20.json",
+    "advisory_capability": 6,
+    "fresh_verified_record_bytes_per_attempt": 8388608,
+    "modeled_advisory_interruptions": 12,
+    "matched_resume_avoided_record_checks": 65,
+    "matched_resume_avoided_encoded_verification_bytes": 8408556,
+    "paired_range_windows_sdk_reopen": true,
+    "cpu_readback": true,
+    "live_amd_verified_groups_after_change": 1,
+    "persistent_repair_intent": false,
+    "physical_power_loss_qualified": false
+  },
   "indexed_compaction_foreground_reconciliation": {
     "source_base": "c5402a2e7a1899db7ba3fa901052f6a479e034cf",
     "evidence": "docs/evidence/indexed-compaction-reconciliation-2026-11-19.json",

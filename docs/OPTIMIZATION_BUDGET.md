@@ -21,9 +21,12 @@ the same 128-KiB area. Bytes52..55 hold little-endian funding marker1 and bytes
 digest, sequence, identity, reserved-space and size rules remain.
 
 A pair mixing funded and unfunded records is invalid. Equal sequences must
-contain identical state. Consecutive funded sequences must advance settlement
-by at least 128 KiB. A verified backward or uncharged position, an unsupported
-peer, or a foreign peer supplies no policy. Old readers reject capability 2
+contain identical state. Consecutive funded policy sequences must advance
+settlement by at least 128 KiB. A cursor-only update can use fresh replica
+verification as funding while preserving the settled input position. An
+update with a cursor and insufficient settlement cannot change profiles,
+benchmarks or group state. A backward position, an unsupported peer, or a
+foreign peer supplies no policy. Old readers reject capability 2
 explicitly. Ordinary filesystem encodings
 and native workload capability6 do not change.
 
@@ -92,11 +95,13 @@ Repeated unchanged-input opportunities decline without candidate I/O or another
 native snapshot once the baseline is known. Failed attempts retain their areas
 and the existing alias exclusions.
 
-A degraded funded resume retains the leased owner but exposes no policy and
-writes no repair. It records a current-input repair floor, forfeits old unspent
-entitlement and requires128 KiB of new input before paired repair. Repair advances
-the record sequence and settlement, writing the observed peer first. A pending
-repair cannot be replaced to bypass its charge.
+A degraded funded resume retains the leased owner, hides policy and records a
+current-input repair floor. Paired repair can spend 128 KiB of genuinely new
+committed input. A scrub cursor update instead earns its own write budget from
+8 MiB of fresh verified records and advances settlement to at least the repair
+floor. Both paths write the surviving peer's complement first and forfeit
+prior unspent entitlement. A pending repair cannot be replaced to bypass its
+charge.
 
 Failure after advisory mutation makes that owner terminal and preserves user-data
 ownership and contexts. No work is admitted by a failed or deferred result.

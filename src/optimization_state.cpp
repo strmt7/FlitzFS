@@ -17,7 +17,11 @@ constexpr std::size_t digest_at=kStoreCommitUnit-32,profile_at=64,benchmark_at=6
 constexpr std::size_t scan_at=benchmark_at+kOptimizationMaxBenchmarks*32,feature_at=scan_at+64;
 constexpr auto feature_size=detail::kOptimizationGroupFeatureBytes;
 constexpr std::size_t projection_size=8+8*kOptimizationXorProjections;
-constexpr std::array slot_magic{"FLTOP001","FLTOP002","FLTOP003","FLTOP004","FLTOP005"};
+constexpr unsigned scrub_capability=6;
+constexpr std::size_t scrub_profile_size=56;
+constexpr std::size_t scrub_at=profile_at+kOptimizationMaxProfiles*scrub_profile_size,scrub_size=48;
+static_assert(scrub_at+scrub_size<=benchmark_at);
+constexpr std::array slot_magic{"FLTOP001","FLTOP002","FLTOP003","FLTOP004","FLTOP005","FLTOP006"};
 constexpr std::size_t legacy_scan_capacity=63;
 static_assert(kOptimizationGroupRepresentatives==(digest_at-feature_at)/feature_size);
 [[noreturn]] void fail(const char* text){throw std::runtime_error(text);}
@@ -111,6 +115,11 @@ std::optional<OptimizationGroupScan> decode_scan(std::span<const std::byte> b,st
 bool valid(const OptimizationState& state) {
   if(state.profiles.size()>kOptimizationMaxProfiles||state.benchmarks.size()>kOptimizationMaxBenchmarks)return false;
   if(state.group_scan && (!state.settled_input_bytes || !valid_scan(*state.group_scan)))return false;
+  if(const auto& scrub=state.payload_scrub) {
+    const auto& position=scrub->position;
+    if(!state.settled_input_bytes || !scrub->pass_started_utc || position.image==StoreIdentity{} ||
+        !position.generation || !position.after || position.after>=position.through)return false;
+  }
   std::pair<std::uint64_t,std::uint32_t> previous{};
   for(const auto& p:state.profiles) {
     const auto key=std::pair{p.workload_key,p.strategy};
@@ -132,13 +141,16 @@ Bytes encode(const OptimizationSnapshot& snapshot,unsigned slot) {
   const auto& scan=snapshot.state.group_scan;
   unsigned version=budgeted?2:1;
   if(scan)version=scan->xor_sampling?5:(scan->representatives.size()>legacy_scan_capacity?4:3);
+  const auto& scrub=snapshot.state.payload_scrub;
+  if(scrub)version=scrub_capability;
+  const auto profile_size=scrub?scrub_profile_size:64;
   std::memcpy(b.data(),slot_magic[version-1],8);
   put(b,8,version,4);put(b,12,slot,4);put(b,16,snapshot.sequence);
   if(budgeted){put(b,52,1,4);put(b,56,*snapshot.state.settled_input_bytes);}
   std::copy(snapshot.volume.begin(),snapshot.volume.end(),b.begin()+24);
   put(b,40,1,4);put(b,44,snapshot.state.profiles.size(),4);put(b,48,snapshot.state.benchmarks.size(),4);
   for(std::size_t i=0;i<snapshot.state.profiles.size();++i) {
-    const auto& p=snapshot.state.profiles[i];const auto at=profile_at+i*64;
+    const auto& p=snapshot.state.profiles[i];const auto at=profile_at+i*profile_size;
     put(b,at,p.workload_key);put(b,at+8,p.strategy,4);put(b,at+12,p.observations,4);
     put(b,at+16,p.logical_bytes);put(b,at+24,p.stored_bytes);put(b,at+32,p.cpu_ns);
     put(b,at+40,p.gpu_ns);put(b,at+48,p.confidence_millionths,4);
@@ -149,6 +161,12 @@ Bytes encode(const OptimizationSnapshot& snapshot,unsigned slot) {
     put(b,at+16,v.stored_bytes,4);put(b,at+20,v.backend,4);put(b,at+24,v.elapsed_ns);
   }
   if(scan)encode_scan(b,*scan);
+  if(scrub) {
+    const auto& position=scrub->position;
+    std::copy(position.image.begin(),position.image.end(),b.begin()+scrub_at);
+    put(b,scrub_at+16,position.generation);put(b,scrub_at+24,position.after);
+    put(b,scrub_at+32,position.through);put(b,scrub_at+40,scrub->pass_started_utc);
+  }
   const auto digest=detail::record_digest(std::span<const std::byte>(b).first(digest_at));
   std::copy(digest.begin(),digest.end(),b.begin()+digest_at);return b;
 }
@@ -170,14 +188,15 @@ Slot decode(std::span<const std::byte> b,unsigned slot,StoreIdentity volume) {
   if(version>=2)out.state.settled_input_bytes=get(b,56);
   out.state.profiles.reserve(static_cast<std::size_t>(profiles));
   out.state.benchmarks.reserve(static_cast<std::size_t>(benchmarks));
+  const auto profile_size=version==scrub_capability?scrub_profile_size:64;
   for(std::size_t i=0;i<kOptimizationMaxProfiles;++i) {
-    const auto at=profile_at+i*64;
-    if(i>=profiles){if(!zeros(b.subspan(at,64)))return {SlotCode::invalid,{}};continue;}
+    const auto at=profile_at+i*profile_size;
+    if(i>=profiles){if(!zeros(b.subspan(at,profile_size)))return {SlotCode::invalid,{}};continue;}
     OptimizationProfile p;p.workload_key=get(b,at);p.strategy=static_cast<std::uint32_t>(get(b,at+8,4));
     p.observations=static_cast<std::uint32_t>(get(b,at+12,4));p.logical_bytes=get(b,at+16);
     p.stored_bytes=get(b,at+24);p.cpu_ns=get(b,at+32);p.gpu_ns=get(b,at+40);
     p.confidence_millionths=static_cast<std::uint32_t>(get(b,at+48,4));
-    if(!zeros(b.subspan(at+52,12)))return {SlotCode::invalid,{}};
+    if(!zeros(b.subspan(at+52,profile_size-52)))return {SlotCode::invalid,{}};
     out.state.profiles.push_back(p);
   }
   for(std::size_t i=0;i<kOptimizationMaxBenchmarks;++i) {
@@ -187,14 +206,27 @@ Slot decode(std::span<const std::byte> b,unsigned slot,StoreIdentity volume) {
     v.logical_bytes=static_cast<std::uint32_t>(get(b,at+12,4));v.stored_bytes=static_cast<std::uint32_t>(get(b,at+16,4));
     v.backend=static_cast<std::uint32_t>(get(b,at+20,4));v.elapsed_ns=get(b,at+24);out.state.benchmarks.push_back(v);
   }
-  if(version>=3) {
+  if(version==scrub_capability) {
+    if(!zeros(b.subspan(scrub_at+scrub_size,benchmark_at-scrub_at-scrub_size)))return {SlotCode::invalid,{}};
+    auto& scrub=out.state.payload_scrub.emplace();
+    std::copy_n(b.begin()+scrub_at,16,scrub.position.image.begin());
+    scrub.position.generation=get(b,scrub_at+16);scrub.position.after=get(b,scrub_at+24);
+    scrub.position.through=get(b,scrub_at+32);scrub.pass_started_utc=get(b,scrub_at+40);
+    if(!zeros(b.subspan(scan_at,digest_at-scan_at))) {
+      out.state.group_scan=decode_scan(b,get(b,scan_at+44,4)==2?5:4);
+      if(!out.state.group_scan)return {SlotCode::invalid,{}};
+    }
+  }else if(version>=3) {
     out.state.group_scan=decode_scan(b,version);
     if(!out.state.group_scan)return {SlotCode::invalid,{}};
-  } else if(!zeros(b.subspan(scan_at,digest_at-scan_at)))return {SlotCode::invalid,{}};
+  }else if(!zeros(b.subspan(scan_at,digest_at-scan_at)))return {SlotCode::invalid,{}};
   if(!valid(out.state))return {SlotCode::invalid,{}};
   return {SlotCode::valid,std::move(out)};
 }
 OptimizationSnapshot no_state(OptimizationReadCode code) {OptimizationSnapshot out;out.code=code;return out;}
+bool same_policy(const OptimizationState& a,const OptimizationState& b) {
+  return a.profiles==b.profiles && a.benchmarks==b.benchmarks && a.group_scan==b.group_scan;
+}
 struct Loaded {OptimizationSnapshot snapshot;unsigned slot=0;};
 Loaded load(const StoreByteIo& io,StoreIdentity volume) {
   require(volume!=StoreIdentity{},"missing optimization volume identity");
@@ -221,10 +253,15 @@ Loaded load(const StoreByteIo& io,StoreIdentity volume) {
   const unsigned newer=x.sequence>y.sequence?0:1,older=1-newer;
   if(slots[newer].snapshot.sequence-slots[older].snapshot.sequence!=1)
     return {no_state(OptimizationReadCode::invalid),0};
-  const auto& fresh=slots[newer].snapshot.state.settled_input_bytes;
-  const auto& prior=slots[older].snapshot.state.settled_input_bytes;
-  if(fresh&&(*fresh<*prior||*fresh-*prior<kOptimizationAreaBytes))
-    return {no_state(OptimizationReadCode::invalid),0};
+  const auto& fresh=slots[newer].snapshot.state;
+  const auto& prior=slots[older].snapshot.state;
+  if(fresh.settled_input_bytes) {
+    const auto next=*fresh.settled_input_bytes,previous=*prior.settled_input_bytes;
+    // Read-funded verification can advance only the cursor and forfeit input credit.
+    const bool scrub_only=fresh.payload_scrub && fresh.payload_scrub!=prior.payload_scrub && same_policy(fresh,prior);
+    if(next<previous || (next-previous<kOptimizationAreaBytes && !scrub_only))
+      return {no_state(OptimizationReadCode::invalid),0};
+  }
   auto out=std::move(slots[newer].snapshot);out.degraded=true;return {std::move(out),newer};
 }
 void contract(const StoreByteIo& io) {
@@ -289,12 +326,18 @@ struct OptimizationStateWriter::Impl {
     require(current.code==OptimizationReadCode::available&&!current.degraded&&
         current.sequence==selected.sequence&&current.state==selected.state,"optimization state changed outside owner");
   }
-  void pair(const OptimizationSnapshot& next,unsigned first=0,bool automatic_scan=false) {
-    require(automatic_scan||remaining,"optimization publication allowance exhausted");
+  void check_pending_repair() const {
+    const auto current=load(*io,selected.volume);
+    require(current.snapshot.code==OptimizationReadCode::available&&current.snapshot.degraded&&
+        current.snapshot.sequence==selected.sequence&&current.snapshot.state==selected.state&&
+        1-current.slot==repair_first,"pending budget repair changed outside owner");
+  }
+  void pair(const OptimizationSnapshot& next,unsigned first=0,bool work_funded=false) {
+    require(work_funded||remaining,"optimization publication allowance exhausted");
     // Prepare both bounded records and complete admission BEFORE mutation.
     const auto a=encode(next,first),b=encode(next,1-first);
     io->admit_write(kOptimizationAreaBytes);
-    if(!automatic_scan)--remaining;
+    if(!work_funded)--remaining;
     io->write_exact(first*kStoreCommitUnit,a);io->flush();
     io->write_exact((1-first)*kStoreCommitUnit,b);io->flush();
     auto observed=load(*io,next.volume).snapshot;
@@ -396,10 +439,7 @@ OptimizationStateWriter::BudgetResult OptimizationStateWriter::repair_budgeted(s
   next.state.settled_input_bytes=settled+kOptimizationAreaBytes;
   p.io->admit_write(kOptimizationAreaBytes);
   try {
-    const auto current=load(*p.io,next.volume);
-    require(current.snapshot.code==OptimizationReadCode::available&&current.snapshot.degraded&&
-        current.snapshot.sequence==p.selected.sequence&&current.snapshot.state==p.selected.state&&
-        1-current.slot==p.repair_first,"pending budget repair changed outside owner");
+    p.check_pending_repair();
     p.pair(next,p.repair_first);p.repair_pending=false;
   }catch(...){p.poisoned=true;throw;}
   return BudgetResult::published;
@@ -413,7 +453,7 @@ OptimizationStateWriter::BudgetResult OptimizationStateWriter::publish_budgeted(
       "caller cannot change budget settlement");
   require(!automatic_scan||state.group_scan.has_value(),"automatic publication needs a scan checkpoint");
   require(automatic_scan||!additional_write_bytes,"only a scan can reserve catalog writes");
-  if(state==p.selected.state && !additional_write_bytes) {
+  if(same_policy(state,p.selected.state) && !additional_write_bytes) {
     try{p.check();}catch(...){p.poisoned=true;throw;}
     return BudgetResult::unchanged;
   }
@@ -427,9 +467,30 @@ OptimizationStateWriter::BudgetResult OptimizationStateWriter::publish_budgeted(
   OptimizationSnapshot next;next.code=OptimizationReadCode::available;next.volume=p.selected.volume;
   next.sequence=p.selected.sequence+1;next.state=state;
   next.state.settled_input_bytes=settled+cost;
+  next.state.payload_scrub=p.selected.state.payload_scrub;
   p.io->admit_write(kOptimizationAreaBytes);
   try{p.check();p.pair(next,0,automatic_scan);}catch(...){p.poisoned=true;throw;}
   return BudgetResult::published;
+}
+std::optional<OptimizationPayloadScrub> OptimizationStateWriter::payload_scrub_checkpoint() const noexcept {
+  return poisoned()?std::nullopt:impl_->selected.state.payload_scrub;
+}
+bool OptimizationStateWriter::publish_payload_scrub(const OptimizationPayloadScrub& progress) {
+  require(!poisoned()&&impl_->selected.state.settled_input_bytes,"no funded advisory owner for scrub");
+  auto& p=*impl_;
+  if(p.selected.state.payload_scrub==progress)return false;
+  require(p.selected.sequence!=(std::numeric_limits<std::uint64_t>::max)(),"optimization sequence exhausted");
+  auto next=p.selected;++next.sequence;next.degraded=false;
+  next.state.payload_scrub=progress;
+  if(p.repair_pending)next.state.settled_input_bytes=(std::max)(*next.state.settled_input_bytes,*p.repair_input_floor);
+  require(valid(next.state),"invalid payload scrub checkpoint");
+  p.io->admit_write(kOptimizationAreaBytes);
+  try {
+    if(p.repair_pending)p.check_pending_repair();else p.check();
+    p.pair(next,p.repair_pending?p.repair_first:0,true);
+    p.repair_pending=false;p.repair_input_floor.reset();
+  }catch(...){p.poisoned=true;throw;}
+  return true;
 }
 bool OptimizationStateWriter::budget_repair_pending() const noexcept {
   return impl_&&!impl_->poisoned&&impl_->repair_pending;

@@ -1,6 +1,7 @@
 #pragma once
 #include "flitzfs/object_store.hpp"
 #include <functional>
+#include <optional>
 #include <stdexcept>
 
 namespace flitzfs {
@@ -42,9 +43,15 @@ struct PagedCompactedSizes {
 };
 enum class PagedPayloadRepairProgress { idle, checked, repaired, capacity };
 enum class PagedPayloadScrubState { idle, checked, repair_queued, unverified_payload, unverified_index, complete };
+struct PagedPayloadScrubPosition {
+  StoreIdentity image{};
+  std::uint64_t generation=0,after=0,through=0;
+  bool operator==(const PagedPayloadScrubPosition&) const = default;
+};
 struct PagedPayloadScrubResult {
   PagedPayloadScrubState state=PagedPayloadScrubState::idle;
-  std::uint64_t object_id=0;
+  std::uint64_t object_id=0,verified_record_bytes=0;
+  std::optional<PagedPayloadScrubPosition> resumable;
 };
 enum class PagedRewriteMode { exact_checkpoint, reconcile_foreground };
 class IndexedCoherenceWriter;
@@ -177,6 +184,7 @@ class PagedObjectStoreWriter final {
   std::uint64_t capacity_repair_generation() const noexcept;
   PagedPayloadRepairProgress repair_payload();
   PagedPayloadScrubResult scrub_payload();
+  bool restore_payload_scrub(const PagedPayloadScrubPosition&) noexcept;
   std::uint64_t generation_for_staging() const noexcept;
   std::uint64_t physical_end_for_staging() const noexcept;
   std::uint64_t append_floor_for_staging() const noexcept;

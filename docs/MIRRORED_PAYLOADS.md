@@ -131,6 +131,30 @@ and an unchanged empty attachment does no scan work.
 [Windows owner scheduling](WINFSP_OWNED_CONTROLLER.md#content-events-and-bounded-work)
 [Source-bound scrub validation](evidence/indexed-payload-scrub-2026-11-20.json)
 
+### Persistent scan progress
+
+An admitted Windows indexed scrub can save a verified prefix in the existing
+paired advisory area. A pair of 64 KiB records is funded by 8 MiB of fresh checks
+of both encoded payload copies and their headers. The scanner accumulates
+credit only while that prefix is intact and checks for waiting foreground work
+before issuing the paired write. A payload fault leaves subsequent work in
+memory for the rest of that pass, and an index fault ends the pass. Neither can
+advance the durable cursor past the unverified record.
+
+The first admitted step after reopen can resume a saved prefix of the same
+image. The cursor must fit the current image generation and key range.
+Verification continues against the current index, so ordinary same-image
+commits preserve usable progress. An unrelated image, future generation,
+expired pass or backward clock starts a new pass. The pass start time limits
+reuse to four weeks, including across repeated restarts. Changes past the
+pass's captured end remain for the next pass.
+
+Advisory failure leaves the namespace and acknowledged bytes available.
+A restart can recover the old or new checked cursor. If one advisory peer
+survives, fresh verification can fund repair of the pair while preserving
+the foreground input settlement. Both-peer loss starts a fresh scan.
+[Durable scrub validation](evidence/indexed-durable-scrub-2026-11-20.json)
+
 ### Repair during writable reopen
 
 Closed indexed reopen verifies the selected native checkpoint after the
@@ -162,7 +186,7 @@ selection. An interruption leaves the selected source or the fully
 verified replacement available to CPU recovery.
 [Full startup repair validation](evidence/indexed-full-startup-repair-2026-11-20.json)
 
-Index reconstruction and persistent scan progress remain open.
+Index reconstruction and persistent repair intent remain open.
 The defined separation protects against damage to a qualified write-failure
 unit; both copies are still in one image. Common-mode errors, loss of the image/
 device, dishonest flushes, lost RAM after power-off and arbitrary future bugs

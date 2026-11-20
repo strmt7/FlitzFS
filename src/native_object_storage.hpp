@@ -103,6 +103,10 @@ class NativeObjectWriter final {
   PagedPayloadScrubResult scrub_payload() {
     return std::get<PagedObjectStoreWriter>(value_).scrub_payload();
   }
+  bool restore_payload_scrub(const PagedPayloadScrubPosition& position) noexcept {
+    auto* paged=paged_if();
+    return paged && paged->restore_payload_scrub(position);
+  }
   std::uint64_t generation_for_staging() const noexcept {
     return std::visit([](const auto& value){return value.generation_for_staging();},value_);
   }

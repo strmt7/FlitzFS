@@ -1,5 +1,5 @@
 #pragma once
-#include "flitzfs/object_store.hpp"
+#include "flitzfs/paged_store.hpp"
 #include <optional>
 namespace flitzfs {
 // Experimental advisory state only. Never a decoding dependency or data authority.
@@ -42,12 +42,18 @@ struct OptimizationBenchmark {
   std::uint32_t strategy=0,logical_bytes=0,stored_bytes=0,backend=0;
   bool operator==(const OptimizationBenchmark&) const = default;
 };
+struct OptimizationPayloadScrub {
+  PagedPayloadScrubPosition position;
+  std::uint64_t pass_started_utc=0; // 100-ns FILETIME ticks.
+  bool operator==(const OptimizationPayloadScrub&) const = default;
+};
 struct OptimizationState {
   std::vector<OptimizationProfile> profiles; // Strict (workload_key,strategy) order.
   std::vector<OptimizationBenchmark> benchmarks; // Bounded chronological history.
   // Controlled settled logical-input position in the funded capabilities.
   std::optional<std::uint64_t> settled_input_bytes;
   std::optional<OptimizationGroupScan> group_scan;
+  std::optional<OptimizationPayloadScrub> payload_scrub;
   bool operator==(const OptimizationState&) const = default;
 };
 enum class OptimizationReadCode { available,absent,invalid,unsupported,foreign_volume,io_failure };
@@ -96,6 +102,9 @@ class OptimizationStateWriter final {
   BudgetResult publish_budgeted(const OptimizationState&,std::uint64_t current_input,bool automatic_scan=false,
       std::uint64_t additional_write_bytes=0);
   BudgetResult repair_budgeted(std::uint64_t current_input);
+  std::optional<OptimizationPayloadScrub> payload_scrub_checkpoint() const noexcept;
+  // The caller must have earned fresh CPU verification credit.
+  bool publish_payload_scrub(const OptimizationPayloadScrub&);
   bool budget_repair_pending() const noexcept;
   std::optional<std::uint64_t> budget_settlement() const noexcept;
   std::optional<std::uint64_t> budget_repair_floor() const noexcept;

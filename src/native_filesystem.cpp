@@ -2045,6 +2045,9 @@ PagedPayloadScrubResult NativeFilesystemWriter::scrub_indexed_payload() {
   if(!indexed_payload_scrub_eligible())return {};
   return impl_->objects.scrub_payload();
 }
+bool NativeFilesystemWriter::restore_indexed_payload_scrub(const PagedPayloadScrubPosition& position) noexcept {
+  return indexed_payload_scrub_eligible() && impl_->objects.restore_payload_scrub(position);
+}
 PagedPayloadRepairProgress NativeFilesystemWriter::repair_indexed_payload() {
   if(!indexed_payload_repair_pending())return PagedPayloadRepairProgress::idle;
   try{return impl_->objects.repair_payload();}

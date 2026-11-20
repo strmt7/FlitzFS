@@ -169,6 +169,72 @@ void volume_file_callbacks() {
       cpu.filesystem().read("f0",0,static_cast<std::uint32_t>(payload.size()))==payload,
       "fresh CPU model reopen lost original or subsequent callback bytes");
 }
+void volume_file_scrub_checkpoint() {
+  using Scrub=PagedPayloadScrubState;
+  constexpr PagedStoreLimits limits{24ULL*1024*1024};
+  const StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
+  const auto volume=id(90);
+  auto backing=std::make_shared<SparseVolumeRam>(4096);
+  {
+    Provider provider;Provider::active=&provider;
+    WinFspNativeSession writer(WinFspNativeWritable::create_file_volume(backing,volume,id(1),limits,raw),provider.api());
+    require(writer.start(plan())==STATUS_SUCCESS,"scrub fixture did not start its SDK dispatcher");
+    for(unsigned i=0;i<5;++i)callback_file(provider,i,data(1024*1024,1020+i));
+    writer.stop();
+    require(writer.write_restart_ready(),"scrub fixture producer did not retire");
+  }
+  const auto advisory=[&] {
+    const auto& bytes=backing->io.stable;
+    auto area=native_fixture::image(Bytes(bytes.begin()+kVolumeHeadBytes,
+        bytes.begin()+kNativeVolumeFileImageOffset));
+    return read_optimization_state(*area,volume);
+  };
+  OptimizationPayloadScrub saved;
+  const auto phase=[&](bool reopen) {
+    Provider provider;Provider::active=&provider;
+    WinFspNativeSession session(WinFspNativeWritable::resume_file_volume(backing,volume,raw),provider.api());
+    require(session.start(plan())==STATUS_SUCCESS,"scrub fixture reopen did not start its SDK dispatcher");
+    NativeMaintenanceObservation observed{1,1000,16ULL<<30,12ULL<<30,32ULL<<30,24ULL<<30,1000,0,1000,true,true};
+    const auto advance=[&] {
+      ++observed.sequence;observed.captured_ms+=1000;
+      return session.advance_background_maintenance(observed,observed.captured_ms,{},WinFspMaintenanceContinuation::none,true);
+    };
+    const auto reads=backing->io.read_calls,writes=backing->io.write_bytes;
+    require(advance().progress.deferral==NativeMaintenanceDeferral::foreground &&
+        backing->io.read_calls==reads && backing->io.write_bytes==writes,"busy scrub reached storage");
+    observed.foreground_pending=false;
+    bool verified=false;
+    for(unsigned i=0;i<256 && !verified;++i) {
+      const auto step=advance().payload_scrub;
+      if(!step.object_id)continue;
+      require(step.state==Scrub::checked,"scrub fixture found corruption in a clean volume");
+      if(reopen) {
+        require(step.object_id>saved.position.after && step.object_id<=saved.position.through,
+            "SDK restart discarded its verified checkpoint");
+        verified=true;
+      }else if(const auto state=advisory();state.state.payload_scrub) {
+        saved=*state.state.payload_scrub;
+        require(!state.degraded && saved.position.after==step.object_id,
+            "SDK scheduler saved a different scrub cursor");
+        verified=true;
+      }
+    }
+    require(verified,"SDK scrub did not publish or resume a checkpoint");
+    session.stop();
+    require(session.write_restart_ready(),"scrub fixture did not retire before next ownership");
+  };
+  phase(false);
+  const auto cut=backing->io.write_bytes;
+  phase(true);
+  require(backing->io.write_bytes==cut,"SDK reopen rewrote the same checkpoint");
+  auto read=NativeVolumeFile::inspect(backing,volume);
+  read.filesystem().verify_all();
+  for(unsigned i=0;i<5;++i)
+    require(read.filesystem().read("f"+std::to_string(i),0,1024*1024)==data(1024*1024,1020+i),
+        "CPU reader could not recover acknowledged SDK writes");
+  std::cout<<"paired_scrub_checkpoint retired_and_resumed=1 foreground_yield=1 independent_bytes=1\n";
+}
+
 enum class RepairFixture {foreground,rotation,scrub,startup_rotation};
 void volume_file_payload_repair(bool live,RepairFixture fixture=RepairFixture::foreground) {
   const bool startup=fixture==RepairFixture::startup_rotation;
@@ -2146,6 +2212,7 @@ int main(int argc,char** argv){try {
     memory_coherence_lifecycle();
   }else if(volume_file) {
     volume_file_callbacks();
+    volume_file_scrub_checkpoint();
     volume_file_idle_reclamation();
     volume_file_payload_repair(false);
     volume_file_payload_repair(false,RepairFixture::scrub);

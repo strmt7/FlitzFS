@@ -245,6 +245,8 @@ void proactive_payload_scrub(std::uint32_t unit) {
     if(step.state==Scan::complete){finished=true;continue;}
     require(step.object_id>last && step.object_id<=high_water,"scrub lost bounded keyset progress");
     last=step.object_id;
+    if(repaired || step.object_id==degraded.id)
+      require(!step.resumable,"scrub checkpoint skipped a previously unverified replica");
     if(step.object_id==degraded.id) {
       require(step.state==Scan::repair_queued && session.indexed_payload_repair_pending(),
           "scrub missed bad peer behind a healthy primary");
@@ -280,6 +282,218 @@ void proactive_payload_scrub(std::uint32_t unit) {
       cpu.read("lost",0,8192)==lost && cpu.read("late",0,8192)==late,"independent reader did not verify the repaired checkpoint");
   std::cout<<"proactive_payload_scrub unit="<<unit
            <<" latent_peer=1 double_loss_reported=1 bounded_high_water=1 degraded_index_refused=1\n";
+}
+
+void durable_payload_scrub() {
+  using Scan=PagedPayloadScrubState;
+  const StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
+  constexpr std::uint64_t start=133'000'000'000'000'000ULL;
+  constexpr std::uint64_t required_read=64*kOptimizationAreaBytes;
+  constexpr auto volume_capacity=64ULL*1024*1024;
+  constexpr std::size_t chunk=1024*1024;
+  auto head=std::make_shared<Ram>(),ram=std::make_shared<Ram>(),advice=std::make_shared<Ram>();
+  head->failure_unit=ram->failure_unit=4096;
+  auto expected=data(5*chunk,891);
+  OptimizationSnapshot old;
+  {
+    auto session=NativeFileSession::create_indexed_volume(head,next_id(),ram,identity(),{volume_capacity},raw);
+    session.create_budgeted_optimization_area(advice,2);
+    session.create_entry("payload");
+    const auto file=session.open("payload",{true,true,true});
+    for(std::size_t at=0;at<expected.size();at+=chunk)
+      session.write(file,at,std::span<const std::byte>(expected).subspan(at,chunk));
+    session.cleanup(file,false);session.close(file);
+    auto state=session.optimization_snapshot().state;
+    for(unsigned i=1;i<=kOptimizationMaxProfiles;++i)state.profiles.push_back({i,64,32,i,0,1,1,1000000});
+    for(unsigned i=1;i<=kOptimizationMaxBenchmarks;++i)state.benchmarks.push_back({i,i,1,64,32,1});
+    auto& scan=state.group_scan.emplace();
+    scan.image=identity();scan.namespace_sequence=1;scan.inode=2;scan.xor_sampling=true;
+    for(std::size_t i=0;i<kOptimizationGroupRepresentatives;++i) {
+      OptimizationGroupFeature row;
+      row.inode=2;row.extent_index=i;row.object=(1ULL<<61)+i+1;row.revision=1;
+      scan.representatives.push_back(row);
+    }
+    scan.projections={{0,{1,2,3,4}},{1,{5,6,7,8}},{2,{9,10,11,12}}};
+    require(session.publish_budgeted_optimization_state(state).progress==NativeOptimizationBudgetProgress::published,
+        "legacy optimization fixture with full group and profile tables could not be published");
+    old=session.optimization_snapshot();
+    require(get(advice->stable,8,4)==5 && !old.state.payload_scrub,"legacy advice fixture was not capability 5");
+  }
+  const auto legacy=advice->stable;
+  const auto open=[&](const std::shared_ptr<Ram>& area) {
+    auto session=NativeFileSession::resume_closed_indexed_volume(head,next_id(),1,
+        [&](const auto& which)->std::shared_ptr<StoreByteIo>{return which==identity()?ram:nullptr;},raw);
+    const auto loaded=read_optimization_state(*area,next_id());
+    if(loaded.code==OptimizationReadCode::available)session.resume_budgeted_optimization_area(area,loaded.sequence);
+    return session;
+  };
+  const auto verify_data=[&] {
+    auto verified=NativeFilesystemSnapshot::open(PagedObjectStoreSnapshot::open(ram,{volume_capacity}));
+    verified.verify_all();
+    for(std::size_t at=0;at<expected.size();at+=chunk) {
+      const auto actual=verified.read("payload",at,chunk);
+      require(actual.size()==chunk &&
+          std::equal(actual.begin(),actual.end(),expected.begin()+static_cast<std::ptrdiff_t>(at)),
+          "advisory checkpoint changed independently decoded data");
+    }
+  };
+  const auto run_until_checkpoint=[&](NativeFileSession& session,Ram& area,bool permit) {
+    const auto before=area.calls;
+    const auto writes=ram->writes;
+    std::uint64_t scanned=0;
+    for(unsigned step=0;step<300;++step) {
+      const auto result=session.scrub_indexed_payload(start);
+      require(result.state==Scan::checked && result.resumable,"clean regression scrub ended before its funded checkpoint");
+      scanned+=result.verified_record_bytes;
+      const auto published=session.checkpoint_indexed_payload_scrub();
+      if(published || area.calls!=before) {
+        require(scanned>=required_read && published==permit && ram->writes==writes,
+            "advisory scrub used premature credit, changed authority or acknowledged a failed write");
+        return *result.resumable;
+      }
+    }
+    throw std::runtime_error("scrub checkpoint never performed its admitted publication");
+  };
+
+  OptimizationSnapshot saved;
+  {
+    auto session=open(advice);
+    const auto before=advice->write_bytes;
+    const auto position=run_until_checkpoint(session,*advice,true);
+    require(!session.checkpoint_indexed_payload_scrub(),"unchanged checkpoint repeated a write");
+    saved=session.optimization_snapshot();
+    auto combined=old.state;
+    combined.payload_scrub=OptimizationPayloadScrub{position,start};
+    require(advice->write_bytes-before==kOptimizationAreaBytes && get(advice->stable,8,4)==6 &&
+        saved.sequence==old.sequence+1 && saved.state==combined,
+        "checkpoint changed funded credit, profile history or maximal collective scan tables");
+  }
+  const auto after=advice->stable;
+  const auto records=locations(*ram);
+  const auto first=records.front().id;
+  const auto position=saved.state.payload_scrub->position;
+  const auto next=[&](std::uint64_t id) {
+    const auto current=locations(*ram);
+    const auto entry=std::ranges::find_if(current,[&](const auto& record){return record.id>id;});
+    require(entry!=current.end(),"fixture requires another record past the checkpoint");
+    return entry->id;
+  };
+  const auto count_pass=[&](const std::shared_ptr<Ram>& area) {
+    auto session=open(area);
+    std::uint64_t objects=0,bytes=0;
+    for(unsigned step=0;step<300;++step) {
+      const auto result=session.scrub_indexed_payload(start+1);
+      if(result.state==Scan::complete)return std::pair{objects,bytes};
+      require(result.state==Scan::checked && result.object_id,"comparison scrub did not check a complete record");
+      ++objects;bytes+=result.verified_record_bytes;
+    }
+    throw std::runtime_error("comparison scrub failed to terminate");
+  };
+  const auto cold=count_pass(image(legacy));
+  const auto resumed=count_pass(advice);
+  require(cold.first==records.size() && resumed.first<cold.first &&
+      resumed.second<cold.second && cold.second-resumed.second>=required_read,
+      "durable resume did not avoid the previously verified scan work");
+
+  for(unsigned mode=0;mode<3;++mode)for(unsigned cut=0;cut<4;++cut) {
+    auto interrupted=image(legacy);
+    {
+      auto session=open(interrupted);
+      interrupted->failure=mode;interrupted->fail_at=interrupted->calls+cut;
+      require(run_until_checkpoint(session,*interrupted,false)==position &&
+          session.optimization_info().phase==NativeOptimizationPhase::terminal && !session.poisoned(),
+          "failed advisory owner did not remain isolated from data ownership");
+    }
+    auto durable=image(interrupted->stable);
+    const auto loaded=read_optimization_state(*durable,next_id());
+    require(loaded.code==OptimizationReadCode::available &&
+        ((loaded.sequence==old.sequence && loaded.state==old.state) ||
+         (loaded.sequence==saved.sequence && loaded.state==saved.state)),
+        "interruption selected an invalid partial checkpoint or changed the settled input");
+    auto session=open(durable);
+    const auto check=session.scrub_indexed_payload(start+1);
+    require(check.state==Scan::checked && check.object_id==(loaded.state.payload_scrub?next(position.after):first),
+        "restart did not resume the exact selected verified progress");
+    require(session.snapshot().read("payload",expected.size()-4096,4096)==
+        Bytes(expected.end()-4096,expected.end()),"advisory interruption changed data");
+  }
+  verify_data();
+
+  auto degraded=image(legacy);
+  damage_record(*degraded,0);
+  {
+    auto session=open(degraded);
+    require(session.optimization_info().phase==NativeOptimizationPhase::unavailable,
+        "damaged funded state exposed policy before writes were earned");
+    run_until_checkpoint(session,*degraded,true);
+    const auto repaired=session.optimization_snapshot();
+    require(!repaired.degraded && repaired.state.settled_input_bytes==session.workload_info().committed_input_bytes &&
+        repaired.state.group_scan==old.state.group_scan,"read-funded repair reused forfeited input or changed collective state");
+  }
+  for(const auto reopen_utc:std::array<std::uint64_t,2>{start-1,start+28ULL*24*60*60*10'000'000}) {
+    auto session=open(advice);
+    require(session.scrub_indexed_payload(reopen_utc).object_id==first,
+        "clock rollback or expired checkpoint skipped early records");
+  }
+  // The current wire type fits the old tables and has a fixed cursor offset.
+  constexpr std::size_t scrub_at=64+32*56;
+  const auto resign=[](Ram& copy,unsigned slot) {
+    auto bytes=std::span(copy.live).subspan(slot*kStoreCommitUnit,kStoreCommitUnit);
+    const auto digest=detail::record_digest(bytes.first(kStoreCommitUnit-32));
+    std::copy(digest.begin(),digest.end(),bytes.end()-32);
+    copy.stable=copy.live;
+  };
+  for(bool wrong_image:{false,true}) {
+    auto unrelated=image(after);
+    for(unsigned slot=0;slot<2;++slot) {
+      const auto at=slot*kStoreCommitUnit+scrub_at;
+      if(wrong_image)unrelated->live.at(at)^=std::byte{1};
+      else put(unrelated->live,at+16,position.generation+1);
+      resign(*unrelated,slot);
+    }
+    auto session=open(unrelated);
+    require(session.scrub_indexed_payload(start+1).object_id==first,
+        "unrelated or future image progress skipped unverified records");
+  }
+  {
+    auto malformed=image(after);
+    for(unsigned slot=0;slot<2;++slot) {
+      put(malformed->live,slot*kStoreCommitUnit+scrub_at+32,position.after);
+      resign(*malformed,slot);
+    }
+    require(read_optimization_state(*malformed,next_id()).code==OptimizationReadCode::invalid,
+        "malformed cursor escaped wire bounds");
+    auto session=open(malformed);
+    require(session.scrub_indexed_payload(start+1).object_id==first,
+        "malformed checkpoint interfered with normal verification");
+  }
+  {
+    auto uncharged=image(after);
+    std::copy_n(legacy.begin()+kStoreCommitUnit,kStoreCommitUnit,uncharged->live.begin()+kStoreCommitUnit);
+    put(uncharged->live,64+32,2);
+    resign(*uncharged,0);
+    require(read_optimization_state(*uncharged,next_id()).code==OptimizationReadCode::invalid,
+        "cursor transition accepted an unpaid profile change");
+  }
+  {
+    auto session=open(advice);
+    const auto file=session.open("payload",{true,true,true});
+    expected[0]^=std::byte{1};
+    session.write(file,0,std::span<const std::byte>(expected).first(1));
+    session.cleanup(file,false);session.close(file);
+  }
+  {
+    auto session=open(advice);
+    const auto continued=session.scrub_indexed_payload(start+2);
+    require(continued.object_id==next(position.after) && continued.resumable &&
+        continued.resumable->generation>position.generation,
+        "foreground commit invalidated checked progress in the same image");
+  }
+  verify_data();
+  std::cout<<"durable_payload_scrub advisory_cuts=12 read_earned=1 legacy_max_tables=1 repaired_peer=1"
+      " resume_after_commit=1 wrong_image_age_and_future_refused=1 no_uncharged_policy_change=1 malformed_refused=1"
+      <<" skipped_records="<<cold.first-resumed.first<<" skipped_encoded_verification_bytes="
+      <<cold.second-resumed.second<<'\n';
 }
 
 void startup_payload_repair(std::uint32_t unit) {
@@ -488,7 +702,7 @@ void native_shared_lifetime() {
 }
 }
 int main(){try {
-  forged_descriptors();native_shared_lifetime();payload_repair_rechecks();
+  forged_descriptors();native_shared_lifetime();payload_repair_rechecks();durable_payload_scrub();
   for(auto unit:{4096U,65536U}) {
     proactive_payload_scrub(unit);
     startup_payload_repair(unit);

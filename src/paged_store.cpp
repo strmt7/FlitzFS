@@ -802,6 +802,7 @@ struct PagedObjectStoreWriter::Impl {
   mutable std::weak_ptr<const void> pending_rebuild;
   mutable std::shared_ptr<PayloadRepairQueue> payload_repairs;
   std::uint64_t scrub_after=0,scrub_through=0;
+  bool scrub_prefix_verified=true;
   Impl(std::shared_ptr<StoreByteIo> image,StoreCompressionOptions options):lease(std::move(image)),encoder(options){}
 };
 struct PagedObjectStoreWriter::Rewrite::Impl {
@@ -1548,13 +1549,22 @@ std::uint64_t PagedObjectStoreWriter::capacity_repair_generation() const noexcep
   const auto& queue=*impl_->payload_repairs;
   return queue.blocked_record && queue.blocked_generation==impl_->state.generation?queue.blocked_generation:0;
 }
+bool PagedObjectStoreWriter::restore_payload_scrub(const PagedPayloadScrubPosition& position) noexcept {
+  if(poisoned() || !impl_->state.mirrored || impl_->scrub_through || !position.generation ||
+      position.image!=impl_->state.id || position.generation>impl_->state.generation ||
+      !position.after || position.after>=position.through || position.through>impl_->state.root.last)return false;
+  impl_->scrub_after=position.after;
+  impl_->scrub_through=position.through;
+  return true;
+}
 PagedPayloadScrubResult PagedObjectStoreWriter::scrub_payload() {
   using S=PagedPayloadScrubState;
   if(poisoned() || !impl_->state.mirrored)return {};
   auto& writer=*impl_;
   const auto finish=[&](S state) {
     writer.scrub_after=writer.scrub_through=0;
-    return PagedPayloadScrubResult{state};
+    writer.scrub_prefix_verified=true;
+    return PagedPayloadScrubResult{state,0,0,{}};
   };
   const auto& selected=writer.state;
   try {
@@ -1574,7 +1584,12 @@ PagedPayloadScrubResult PagedObjectStoreWriter::scrub_payload() {
       writer.payload_repairs->observe(*record);
     }
     writer.scrub_after=record->id;
-    return {verified==2?S::checked:verified==1?S::repair_queued:S::unverified_payload,record->id};
+    if(verified!=2)writer.scrub_prefix_verified=false;
+    PagedPayloadScrubResult result{verified==2?S::checked:verified==1?S::repair_queued:S::unverified_payload,
+        record->id,verified==2?2ULL*(record_header_bytes+record->stored):0,{}};
+    if(writer.scrub_prefix_verified && writer.scrub_after<writer.scrub_through)
+      result.resumable=PagedPayloadScrubPosition{source.id,source.generation,writer.scrub_after,writer.scrub_through};
+    return result;
   }catch(const std::runtime_error&) {
     // An unreadable index prevents any safe interpretation of later entries.
     return finish(S::unverified_index);

@@ -79,6 +79,12 @@ struct NativeFileSession::Impl {
     bool budgeted=false;
   };
   static_assert(sizeof(OptimizationOwner)<=64);
+  struct ScrubWork {
+    StoreIdentity image{};
+    std::uint64_t started=0,verified_record_bytes=0;
+    bool restore_attempted=false;
+    std::optional<OptimizationPayloadScrub> checkpoint;
+  } scrub;
   struct StagedRecompression {
     std::shared_ptr<StoreByteIo> target;
     StoreIdentity id;
@@ -109,6 +115,11 @@ struct NativeFileSession::Impl {
     if(optimization&&optimization->backing==io)return true;
     for(const auto& prior:prior_optimization)if(prior&&prior->backing==io)return true;
     return false;
+  }
+  OptimizationStateWriter* scrub_advice() const noexcept {
+    if(!volume || volume->pending || recompression || !optimization || !optimization->budgeted ||
+        !optimization->writer || optimization->writer->poisoned())return nullptr;
+    return &*optimization->writer;
   }
   OptimizationStateWriter* ready_scan_advice() const noexcept {
     if(!volume || volume->pending || recompression || !optimization || !optimization->budgeted ||
@@ -604,8 +615,64 @@ PagedPayloadRepairProgress NativeFileSession::repair_indexed_payload() {
 bool NativeFileSession::indexed_payload_scrub_eligible() const noexcept {
   return !poisoned() && impl_->writer.indexed_payload_scrub_eligible();
 }
-PagedPayloadScrubResult NativeFileSession::scrub_indexed_payload() {
-  return ready().writer.scrub_indexed_payload();
+PagedPayloadScrubResult NativeFileSession::scrub_indexed_payload(std::uint64_t utc) {
+  using State=PagedPayloadScrubState;
+  constexpr auto age_limit=28ULL*24*60*60*10'000'000;
+  constexpr auto verification_cost=64*kOptimizationAreaBytes;
+  auto& self=ready();
+  auto& work=self.scrub;
+  auto* advice=self.scrub_advice();
+  const auto fresh=[utc](std::uint64_t started) {
+    return started && utc>=started && utc-started<age_limit;
+  };
+  if(utc && !work.restore_attempted) {
+    work.restore_attempted=true;
+    const auto saved=advice?advice->payload_scrub_checkpoint():std::nullopt;
+    if(saved && fresh(saved->pass_started_utc) && self.writer.restore_indexed_payload_scrub(saved->position)) {
+      work.image=saved->position.image;
+      work.started=saved->pass_started_utc;
+    }
+  }
+  auto result=self.writer.scrub_indexed_payload();
+  work.checkpoint.reset();
+  if(!utc || !result.resumable) {
+    work.verified_record_bytes=0;
+    if(result.state==State::complete || result.state==State::unverified_index)work.started=0;
+    return result;
+  }
+  const auto& position=*result.resumable;
+  if(!work.started || work.image!=position.image) {
+    work.started=utc;
+    work.image=position.image;
+    work.verified_record_bytes=0;
+  }
+  work.verified_record_bytes+=(std::min)(result.verified_record_bytes,verification_cost-work.verified_record_bytes);
+  if(advice && work.verified_record_bytes==verification_cost && fresh(work.started))
+    work.checkpoint=OptimizationPayloadScrub{position,work.started};
+  return result;
+}
+bool NativeFileSession::checkpoint_indexed_payload_scrub() {
+  auto& self=ready();
+  auto* advice=self.scrub_advice();
+  auto& work=self.scrub;
+  if(!advice || !work.checkpoint)return false;
+  const auto progress=*work.checkpoint;
+  work.checkpoint.reset();
+  work.verified_record_bytes=0;
+  if(progress.position.image!=self.volume->active_id)return false;
+  try{
+    if(!advice->publish_payload_scrub(progress))return false;
+    self.optimization->phase=NativeOptimizationPhase::ready;
+    self.optimization->read_code=OptimizationReadCode::available;
+    return true;
+  }catch(const std::exception&) {
+    if(advice->poisoned()) {
+      self.optimization->phase=NativeOptimizationPhase::terminal;
+      self.optimization->read_code=OptimizationReadCode::io_failure;
+      self.budget_loss_input.reset();
+    }
+    return false;
+  }
 }
 bool NativeFileSession::persistent_reclamation_pending() const {
   return !poisoned() && impl_->persistent_reclaimer && impl_->persistent_reclaimer->pending(*this);

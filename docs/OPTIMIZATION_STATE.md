@@ -82,6 +82,28 @@ policy even if another slot contains an older interpretable state. A bad-integri
 peer can be ignored with explicit degradation. Equal sequences must have exactly
 equal state; different valid sequences must be adjacent, selecting the higher.
 
+### Payload scrub checkpoints
+
+Capability 6 uses `FLTOP006` in the existing two-slot area. It keeps the funded
+header, benchmark table and group scan wire layouts. The profile stride becomes
+56 bytes, with four zero bytes after confidence in each row. This leaves room
+for an ordered 48-byte checkpoint at offset 1856. It contains the 16-byte
+image identity followed by four little-endian 64-bit fields for image
+generation, verified-through key, pass-end key and pass-start UTC in FILETIME
+ticks. The verified-through key must precede the pass end. The reserved bytes
+before the benchmark table are zero. An absent group scan is represented by
+zeros. A present group scan retains its original feature encoding and full
+capacity, including projections.
+
+The reader supports capabilities 1 through 6. Earlier readers can continue
+recovering file data independently when they decline version 6 advice.
+Only checked progress can advance the sequence without consuming new
+committed input. A mixed old and new pair must keep identical compression
+profiles, benchmark history and group state if the settlement advances by
+less than the usual publication charge. Normal advice updates preserve the
+latest scrub checkpoint.
+[Mirror scrub and restart](MIRRORED_PAYLOADS.md#persistent-scan-progress)
+
 ## Publication, recovery and work bounds
 
 Creation establishes the complete zeroed extent, publishes an empty sequence 1

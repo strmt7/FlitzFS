@@ -231,12 +231,13 @@ struct WinFspNativeWritable::Impl {
       result.progress.phase=Phase::deferred;
       return result;
     }
-    try{result.payload_scrub=session.scrub_indexed_payload();}
+    try{result.payload_scrub=session.scrub_indexed_payload(native_cleanup_utc());}
     catch(const std::bad_alloc&) {
       result.progress.phase=Phase::deferred;
       result.progress.deferral=Deferral::memory;
       return result;
     }
+    if(!foreground.load(std::memory_order_acquire))session.checkpoint_indexed_payload_scrub();
     scrub_yield_to_groups=true;
     if(result.payload_scrub.state==S::checked)
       result.continuation=WinFspMaintenanceContinuation::payload_scrub;

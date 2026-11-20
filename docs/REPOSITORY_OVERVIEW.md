@@ -346,8 +346,15 @@ The Windows owner now checks payload replicas in idle work before a file
 is read. It advances a bounded key cursor across foreground commits,
 queues the existing verified repair when exactly one copy survives,
 and exposes an integrity warning when an object or index cannot be
-verified. Persistent scan progress remains open.
+verified.
 [Scrub validation](evidence/indexed-payload-scrub-2026-11-20.json)
+
+The Windows scrub can save and resume a verified prefix of the selected
+image. Fresh checks fund the paired advisory write and preserve the
+compression policy budget. The restart model keeps data readable through
+interruptions to either advisory slot. The Windows SDK lifecycle resumed
+from that prefix after closing and reopening a paired-range fixture.
+[Durable scrub validation](evidence/indexed-durable-scrub-2026-11-20.json)
 
 The closed indexed writer restores damaged payload replicas before
 attaching when the current checkpoint is verifiable and append space
