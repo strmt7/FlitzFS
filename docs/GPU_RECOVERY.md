@@ -55,14 +55,11 @@ owned supervisor. CPU gate selection can proceed while the exact helper is
 still live, and cancellation/retirement remain off that selection path.
 Replacement transport admission requires both exact-child and supervisor-thread
 retirement. See WORKER_CHANNEL.md for the single-slot and failure contract.
-The explicit GpuWorkerController now connects this policy to asynchronous
-transport, CPU selection and exact retirement; see GPU_WORKER_CONTROLLER.md.
-Trusted runtime/discovery evidence and an actual HIP worker remain unfinished. Per-request gates stay
-terminal; a later qualified request creates a NEW gate, never reuses poison.
-
-Runtime loading, driver recovery evidence, hardware tests, production routing
-and measured GPU benefit remain absent. Default CLI/callback paths stay CPU-only.
-No driver cleanup can be called from CPU-fallback selection.
+The explicit GpuWorkerController connects this policy to asynchronous
+transport, CPU selection and exact retirement. Each request has a terminal
+gate. A later qualified request creates a fresh gate. CPU selection
+stays independent of driver cleanup.
+[Worker supervision](GPU_WORKER_CONTROLLER.md)
 
 ## Installed Windows routes
 
@@ -75,8 +72,16 @@ another authenticated discovery attempt.
 
 The owner checks for changed inputs when a new group reaches an admitted idle
 opportunity. A confirmed release of a previously busy worker transport can
-also permit another attempt. CPU work continues during discovery. Recovery
-retains the original policy and its quarantine history across route replacement.
+also permit another attempt. If discovery measured insufficient memory
+headroom, the owner retains the refused sample and can check again at a later
+eligible group. Recovery requires a newer admissible observation for the same
+adapter LUID, node and dedicated capacity. The current local and shared video
+memory budgets, host memory and commit all contribute to this decision.
+[DXGI process memory budget](https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/nf-dxgi1_4-idxgiadapter3-queryvideomemoryinfo) ·
+[Windows budget recovery and installed-route evidence](evidence/windows-amd-route-pressure-recovery-2026-11-20.json)
+
+CPU work continues during discovery. Recovery retains the original policy
+and its quarantine history across route replacement.
 An exact faulted configuration stays fenced. Unconfirmed worker retirement
 prevents further attempts.
 [Windows file identity](https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_id_info) ·

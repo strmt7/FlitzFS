@@ -43,7 +43,12 @@ struct HipRouteDiscoveryResult {
   HipDiscoveryStatus status=HipDiscoveryStatus::invalid_request;
   std::uint32_t worker_exit=0,identity_queries=0;
   std::optional<HipDiscoveredRoute> route;
+  std::optional<GpuMemorySnapshot> memory_pressure;
 };
+// Require a new admissible budget for the exact adapter and node that
+// previously reported insufficient headroom.
+bool recovered_hip_discovery_headroom(const GpuMemorySnapshot& denied,
+    const GpuMemorySnapshot& observed, std::uint64_t now_ms) noexcept;
 // Explicit supervised control-plane operation. The parent does not load HIP.
 // A returned binding establishes a current handoff identity, not device
 // health across boots, compression benefit or permission to launch a kernel.
@@ -70,6 +75,7 @@ class InstalledAnchorInputWitness final {
   InstalledAnchorInputWitness(const InstalledAnchorInputWitness&)=delete;
   InstalledAnchorInputWitness& operator=(const InstalledAnchorInputWitness&)=delete;
   void note_device_unavailable() noexcept;
+  void note_memory_pressure(const GpuMemorySnapshot&) noexcept;
   bool changed() noexcept;
  private:
   struct Impl;

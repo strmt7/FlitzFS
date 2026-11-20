@@ -352,6 +352,8 @@ struct WinFspVolumeController::Impl {
     acquisition_retired=acquisition.status!=HipDiscoveryStatus::retirement_unconfirmed;
     if(acquisition_inputs && acquisition.status==HipDiscoveryStatus::device_not_ready)
       acquisition_inputs->note_device_unavailable();
+    if (use_route && acquisition_inputs && acquisition.memory_pressure)
+      acquisition_inputs->note_memory_pressure(*acquisition.memory_pressure);
     if(use_route && acquisition.status==HipDiscoveryStatus::ready && acquisition.route &&
         !stop_requested.load(std::memory_order_acquire)) {
       try {

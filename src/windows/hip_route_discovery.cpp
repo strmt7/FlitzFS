@@ -95,6 +95,18 @@ Status enumerate_amd_adapters(std::vector<DxgiAmdAdapter>& adapters,const Window
   }
   return Status::resource_deferred;
 }
+bool admit_discovery_budget(HipRouteDiscoveryResult& result, const WindowsGpuBudgetResult& observation,
+    std::array<std::byte,8> luid, std::uint32_t node, std::uint64_t deadline) noexcept {
+  const auto now = GetTickCount64();
+  if (now < deadline && observation.status == WindowsGpuBudgetStatus::success) {
+    const auto code = check_gpu_memory_budget(observation.snapshot, luid, node, now, 0);
+    if (code == GpuGateCode::admitted) return true;
+    if (code == GpuGateCode::insufficient_headroom) result.memory_pressure = observation.snapshot;
+  }
+  result.status = Status::resource_deferred;
+  return false;
+}
+
 GpuConfigurationId route_key(const std::array<std::byte,32>& helper,const std::array<std::byte,32>& runtime,
     const std::array<std::byte,32>& module,const HipIdentityObservation& device,std::uint32_t node) {
   std::array<std::byte,120> key{};
@@ -204,11 +216,7 @@ HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest
       return {Status::device_not_ready,0,result.identity_queries};
     const auto& luid=bootstrap->luid;
     const auto observation=query_windows_gpu_budget(luid,node);
-    const auto now=GetTickCount64();
-    if(now>=deadline || observation.status!=WindowsGpuBudgetStatus::success ||
-        check_gpu_memory_budget(observation.snapshot,luid,node,now,0)!=GpuGateCode::admitted) {
-      result.status=Status::resource_deferred;return result;
-    }
+    if (!admit_discovery_budget(result, observation, luid, node, deadline)) return result;
     if(!bound_windows_amd_displays_ready(bootstrap->device_instances))
       return {Status::device_not_ready,0,result.identity_queries};
     const auto dispatch_time=GetTickCount64();
@@ -245,10 +253,7 @@ HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest
         if(!verified_single_gpu_node(query_windows_gpu_topology(match.luid),match.luid))continue;
       }
       const auto fresh=query_windows_gpu_budget(match.luid,node);
-      if(GetTickCount64()>=deadline || fresh.status!=WindowsGpuBudgetStatus::success ||
-          check_gpu_memory_budget(fresh.snapshot,match.luid,node,GetTickCount64(),0)!=GpuGateCode::admitted) {
-        result.status=Status::resource_deferred;return result;
-      }
+      if (!admit_discovery_budget(result, fresh, match.luid, node, deadline)) return result;
       const auto runtime=pinned->runtime.digest();
       const auto configuration=route_key(request.helper_sha256,runtime,module_digest,match,node);
       const auto module_pinned=pinned->module.has_value();
@@ -341,7 +346,22 @@ std::optional<AnchorInputObservation> observe_anchor_input(const std::filesystem
 #endif
 } // namespace
 
+bool recovered_hip_discovery_headroom(const GpuMemorySnapshot& denied,
+    const GpuMemorySnapshot& observed, std::uint64_t now_ms) noexcept {
+  return observed.captured_ms > denied.captured_ms && observed.dedicated_bytes == denied.dedicated_bytes &&
+      check_gpu_memory_budget(denied, denied.luid, denied.node_mask, denied.captured_ms, 0) ==
+          GpuGateCode::insufficient_headroom &&
+      check_gpu_memory_budget(observed, denied.luid, denied.node_mask, now_ms, 0) == GpuGateCode::admitted;
+}
+
 struct InstalledAnchorInputWitness::Impl {
+  struct MemoryPressure {
+    GpuMemorySnapshot denied;
+    WindowsGpuBudgetSampler sampler;
+    explicit MemoryPressure(const GpuMemorySnapshot& snapshot) noexcept
+        :denied(snapshot), sampler(snapshot.luid, snapshot.node_mask) {}
+  };
+  std::optional<MemoryPressure> pressure;
   std::array<std::filesystem::path,3> paths;
   std::array<std::optional<AnchorInputObservation>,3> before;
   Microsoft::WRL::ComPtr<IDXGIFactory1> factory;
@@ -367,6 +387,9 @@ InstalledAnchorInputWitness::InstalledAnchorInputWitness():impl_(std::make_uniqu
 }
 InstalledAnchorInputWitness::~InstalledAnchorInputWitness()=default;
 void InstalledAnchorInputWitness::note_device_unavailable() noexcept {impl_->device_unavailable=true;}
+void InstalledAnchorInputWitness::note_memory_pressure(const GpuMemorySnapshot& denied) noexcept {
+  impl_->pressure.emplace(denied);
+}
 bool InstalledAnchorInputWitness::changed() noexcept {
 #if defined(FLITZFS_BIND_INSTALLED_AMD_PACKAGE) && FLITZFS_INSTALLED_AMD_HAS_ANCHOR
   if(check_display_readiness(observe_windows_amd_displays(),&installed_anchor_hardware)!=Status::ready) {
@@ -378,7 +401,12 @@ bool InstalledAnchorInputWitness::changed() noexcept {
     const auto current=observe_anchor_input(impl_->paths[i]);
     if(current && impl_->before[i] && *current!=*impl_->before[i])return true;
   }
-  return impl_->factory && !impl_->factory->IsCurrent();
+  if (impl_->factory && !impl_->factory->IsCurrent()) return true;
+  if (!impl_->pressure) return false;
+  auto& pressure = *impl_->pressure;
+  const auto current = pressure.sampler.sample();
+  return current.status == WindowsGpuBudgetStatus::success &&
+      recovered_hip_discovery_headroom(pressure.denied, current.snapshot, GetTickCount64());
 #else
   return false;
 #endif

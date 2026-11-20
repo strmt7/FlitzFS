@@ -1,0 +1,200 @@
+{
+  "schema": 1,
+  "date": "2026-11-20",
+  "experimental": true,
+  "source_base": "ab6ceeb6132f7bd32b1387e726314b79fa2f9c7c",
+  "code_patch_sha256": "920d76fec176e323ecc2368b7b7cf0993ecafab4c187815d8308925a3c752308",
+  "source_files": [
+    {
+      "file": "src/windows/hip_route_discovery.cpp",
+      "blob": "f3c8d785c1bc7156f1672a450c9e2c8ed7961ce5",
+      "sha256": "3a1a20dc9475a31a0791c8d1500f83faf67246ea381ba8dc2e8961e36c0296c7"
+    },
+    {
+      "file": "src/windows/hip_route_discovery.hpp",
+      "blob": "0cd9d9346b237ca1b59ac8bbc7925ee44127da9a",
+      "sha256": "01c72b08f69fdc47262cbe34f4c0b16b1dacb7992763fc30d9f3386f383e4d02"
+    },
+    {
+      "file": "src/windows/winfsp_controller.cpp",
+      "blob": "21e66d7fa7d40d463edfefb28bf941062288592a",
+      "sha256": "9635c4b24bc435894df82ad5d1c7385ed64a0eabdd14c4c3b988d5ce060daf41"
+    },
+    {
+      "file": "tests/win_hip_route_probe.cpp",
+      "blob": "7fbd3d61db0b9630f7a8700db5810b17aa95298d",
+      "sha256": "ffaae68786cd4abfb621d4c0b81b763e8116ac0fccd2c19e15fcfbb6fd82b3e4"
+    }
+  ],
+  "scope": "Native Windows 11 installed-package controller, in-memory attachment fixtures and synthetic recovery observations.",
+  "route": {
+    "manifest_sha256": "84099b9da288190b3a430526b22910d8e8362dcbaa28e660a59576e680ccbb4e",
+    "worker_sha256": "3a1eddec1f5b8ad516aba4acf6ddc5a4a0ba36b4fd33d27f9b4f2aa87308609e",
+    "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+    "rocm": "10.2.0",
+    "installed_fixture_without_package": {
+      "groups": 1,
+      "submitted": 0,
+      "verified": 0,
+      "verified_groups": 0,
+      "installed_attempts": 1,
+      "metadata_queries": 0,
+      "installed_status": 12
+    },
+    "installed_fixture_with_package": {
+      "groups": 1,
+      "submitted": 1,
+      "verified": 1,
+      "verified_groups": 1,
+      "installed_attempts": 1,
+      "metadata_queries": 1,
+      "installed_status": 0
+    },
+    "stop_fixture": {
+      "groups": 0,
+      "submitted": 0,
+      "verified": 0,
+      "verified_groups": 0,
+      "installed_attempts": 1,
+      "metadata_queries": 0,
+      "installed_status": 14
+    },
+    "repeated_handle_count": 319,
+    "independent_cpu_readback": true,
+    "package_restored_during_cpu_operation": {
+      "groups": 4,
+      "submitted": 1,
+      "verified": 1,
+      "verified_groups": 2,
+      "installed_attempts": 2,
+      "metadata_queries": 1,
+      "installed_status": 0
+    }
+  },
+  "validation": {
+    "release_ctest": 9,
+    "raw_asan_ctest_including_runtime_preflight": 6,
+    "synthetic_budget_recovery_cases": 17,
+    "initial_ctest_selection": "The wildcard selected 15 unbuilt executables. The nine intended checks were then run explicitly."
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "pages": [
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/nf-dxgi1_4-idxgiadapter3-queryvideomemoryinfo",
+        "final_http_status": 200,
+        "markdown_sha256": "2b3dbd987e12369af2b750af214e90977a048c8f3733207e689c058e909158ff",
+        "capture_sha256": "11ed148b94db810d0ba22fa50d818ef1a4dbc84e09655c151d2964766aacc11e"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/ns-dxgi1_4-dxgi_query_video_memory_info",
+        "final_http_status": 200,
+        "markdown_sha256": "34c8adf0b4b51ad69d0085a4da289c9e62834282255d0698ff95123156642f44",
+        "capture_sha256": "c6dd1008a257c5f0270f6e1eb7267a3841a7d4b172ee1ed08684b829bfc6fc9e"
+      }
+    ],
+    "semantic_response_sha256": "928d087b67503ddc73c778322aae9f6a122d756bce97675302f1fabf34db599f"
+  },
+  "runs": [
+    {
+      "role": "Release build",
+      "run": "local-run-42c8752f07fa410a8cdca7c4bb930564",
+      "exit_code": 0,
+      "result_sha256": "b766096a6f0dc8ea1dc7c6cd3dd892ff65ffb78e25772eac4d46fe7fa545c78c",
+      "log_sha256": "4f5bb5337e0ac79d326af2a0e31202dc3cf221e9dbbc45f7bc02d8ccc143a45b",
+      "children_retired_by_supervisor": 1,
+      "peak_job_bytes": 782196736,
+      "tree_retired": true
+    },
+    {
+      "role": "Initial CTest filter with unbuilt targets",
+      "run": "local-run-49646940723b4fd09da9e3ee6ee546bb",
+      "exit_code": 8,
+      "result_sha256": "8aa4bbb5bf5022fbcb0050e17d9d41c1d06f7ae725a8117bf0357bdcbc20cc3a",
+      "log_sha256": "9f15ee919f39fe15e4f15906ba608dc3e5c1c71edb0952788d0920dafe27ec07",
+      "children_retired_by_supervisor": 0,
+      "peak_job_bytes": 62709760,
+      "tree_retired": true
+    },
+    {
+      "role": "Nine targeted Release checks",
+      "run": "local-run-8a73935d09f34c91951dd4e1498f9dea",
+      "exit_code": 0,
+      "result_sha256": "f120d48b638697c50fc161aa9f03fbdc930465efb3a50ce46c86e263db16074a",
+      "log_sha256": "7c7e2954ec3ebcb04b7c230099eaa4172cb5f1ac7a291455ea823c460cedcb14",
+      "children_retired_by_supervisor": 0,
+      "peak_job_bytes": 61980672,
+      "tree_retired": true
+    },
+    {
+      "role": "CPU fallback with package absent",
+      "run": "local-run-26b0a6881caa471d8c497fbed54739ce",
+      "exit_code": 0,
+      "result_sha256": "b2a4b4a3b4c962463d58a28fd8b52c7231a63ff28a8b06a48854783913033469",
+      "log_sha256": "228179d15809a08d5de86ec183ae58ab507c81181208a2bcbf2d2accf6c9b6c9",
+      "children_retired_by_supervisor": 0,
+      "peak_job_bytes": 17088512,
+      "tree_retired": true
+    },
+    {
+      "role": "Stage verified package beside test executable",
+      "run": "local-run-6e7dfe919029493281a4e28ce983fbaf",
+      "exit_code": 0,
+      "result_sha256": "9ab6165fbd5aa8b3319afb2a2aaa8acd4133ed40b2287e41ffd1c4c29bbfe51a",
+      "log_sha256": "df115a8a75b4704e1db3c50ebf1b4eeabe0a604917b8697ad3974da69de5f2be",
+      "children_retired_by_supervisor": 0,
+      "peak_job_bytes": 5902336,
+      "tree_retired": true
+    },
+    {
+      "role": "Ordinary installed AMD discovery, group and stop",
+      "run": "local-run-5aca53c1ded945498a24a10c37cf3beb",
+      "exit_code": 0,
+      "result_sha256": "c0178cb77e9905c59b15e219fff51169ed1938d0127313acd01289e4ea69ece3",
+      "log_sha256": "c3edde316f09558c657fd990e37fd5b81a069b61c852ae4f998b23f1723289b3",
+      "children_retired_by_supervisor": 0,
+      "peak_job_bytes": 117518336,
+      "tree_retired": true
+    },
+    {
+      "role": "Raw ASan configure with supervisor retirement",
+      "run": "local-run-ef02babb4a454bc5a122b3ae27d61d89",
+      "exit_code": 0,
+      "result_sha256": "d236265f366333bb85471b7fbe911c0b7f4c943fe1ad156ceecf2c8727c5c2bd",
+      "log_sha256": "f9c63c2e87082b61ff4d8555c576e09f6014b648e8e3e5f25549276b66ce1ed0",
+      "children_retired_by_supervisor": 1,
+      "peak_job_bytes": 294510592,
+      "tree_retired": true
+    },
+    {
+      "role": "Raw ASan build",
+      "run": "local-run-f4b52ace549e4e3e837276e8f6d7bd3e",
+      "exit_code": 0,
+      "result_sha256": "8bdba9095c7a9ea529966da9d04d5e5bd86b8c0f47a69d8137ae7f643400ff38",
+      "log_sha256": "32ed1feead62dc94281dfe6e22b3fe55b4b006e6190821e3881d259f232d3352",
+      "children_retired_by_supervisor": 1,
+      "peak_job_bytes": 844730368,
+      "tree_retired": true
+    },
+    {
+      "role": "Raw ASan tests with staged runtime",
+      "run": "local-run-2004c658a5f74d798510ce81bfd5cb59",
+      "exit_code": 0,
+      "result_sha256": "7de4af42f3217e0207ae419da1c86ba13e8c54a7a5c11ead9030364d4d856ba4",
+      "log_sha256": "e13e445b7e630885e45bc610be26a82b03b0a1bda75eec3203a5a31a2c2ad376",
+      "children_retired_by_supervisor": 0,
+      "peak_job_bytes": 440352768,
+      "tree_retired": true
+    },
+    {
+      "role": "Package restoration during CPU operation",
+      "run": "local-run-f122544be09d413c9f06fe5ffde8f576",
+      "exit_code": 0,
+      "result_sha256": "ee91469d6620a4b96d0d05cd39f56b7c39be8ebf72c8d67bb5a32be80a8cb0b7",
+      "log_sha256": "366625d284f938f4773f55e2b300e3f9192f483fce8fa53cbbbb65e62a8edfe4",
+      "children_retired_by_supervisor": 0,
+      "peak_job_bytes": 133156864,
+      "tree_retired": true
+    }
+  ]
+}

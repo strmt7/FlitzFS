@@ -101,9 +101,12 @@ acquisition once live observations admit a real group candidate. The qualified
 work range governs the combined member count at compute admission. One scoped
 control task checks the installed runtime and device while CPU work continues.
 A later admitted group can trigger a fresh attempt after a relevant input
-changes or a previously busy transport retires. Stop cancels acquisition
-and joins the task.
-[Installed AMD package](AMD_RUNTIME_DISCOVERY.md#shared-base-package-profile)
+changes, a previously busy transport retires or a fresh measurement clears
+documented memory pressure. The controller performs this check through
+its existing low-priority group scheduler. Stop cancels acquisition and
+joins the task.
+[Installed AMD package](AMD_RUNTIME_DISCOVERY.md#shared-base-package-profile) ·
+[Route recovery](GPU_RECOVERY.md#installed-windows-routes)
 
 The owner can stage several independent group windows within the same CPU
 and memory admission used for group preparation. The qualified member range

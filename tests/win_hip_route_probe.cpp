@@ -36,6 +36,63 @@ int report(const flitzfs::HipRouteDiscoveryResult& result) {
   }
   std::cout<<"}\n";return result.route?0:2;
 }
+void verify_budget_recovery() {
+  using flitzfs::GpuMemorySnapshot;
+  constexpr std::uint64_t gib = 1024ULL * 1024 * 1024;
+  GpuMemorySnapshot healthy;
+  healthy.valid = healthy.amd_hardware = true;
+  healthy.luid[0] = std::byte{1};
+  healthy.node_mask = 1;
+  healthy.captured_ms = 1'000;
+  healthy.dedicated_bytes = 8 * gib;
+  healthy.local_budget = 4 * gib;
+  healthy.nonlocal_budget = 8 * gib;
+  healthy.physical_total = 16 * gib;
+  healthy.physical_available = 8 * gib;
+  healthy.commit_limit = 32 * gib;
+  healthy.commit_available = 16 * gib;
+
+  unsigned checks = 0;
+  const auto expect = [&](const auto& denied, const auto& current, std::uint64_t now, bool allowed) {
+    if (flitzfs::recovered_hip_discovery_headroom(denied, current, now) != allowed)
+      throw std::runtime_error("Wrong discovery decision after memory pressure");
+    ++checks;
+  };
+  auto observed = healthy;
+  observed.captured_ms += 50;
+  std::array pressure{healthy, healthy, healthy, healthy};
+  pressure[0].local_usage = healthy.local_budget;
+  pressure[1].nonlocal_usage = healthy.nonlocal_budget;
+  pressure[2].physical_available = 1;
+  pressure[3].commit_available = 1;
+  for (auto denied : pressure) {
+    expect(denied, observed, observed.captured_ms, true);
+    const auto old = denied;
+    denied.captured_ms = observed.captured_ms;
+    expect(old, denied, denied.captured_ms, false);
+  }
+  const auto& denied = pressure.front();
+  expect(healthy, observed, observed.captured_ms, false);
+  expect(denied, healthy, healthy.captured_ms, false);
+  expect(denied, observed, observed.captured_ms - 1, false);
+  expect(denied, observed, observed.captured_ms + flitzfs::kGpuMaxBudgetAgeMs + 1, false);
+  auto invalid = observed;
+  invalid.luid[0] = std::byte{2};
+  expect(denied, invalid, invalid.captured_ms, false);
+  invalid = observed;
+  invalid.node_mask = 2;
+  expect(denied, invalid, invalid.captured_ms, false);
+  invalid = observed;
+  invalid.dedicated_bytes *= 2;
+  expect(denied, invalid, invalid.captured_ms, false);
+  invalid = observed;
+  invalid.valid = false;
+  expect(denied, invalid, invalid.captured_ms, false);
+  invalid = denied;
+  invalid.valid = false;
+  expect(invalid, observed, observed.captured_ms, false);
+  std::cout << "HIP discovery budget recovery cases: " << checks << '\n';
+}
 int verify_request_refusals() {
   using flitzfs::HipDiscoveryStatus;
   using flitzfs::HipRouteDiscoveryRequest;
@@ -77,6 +134,7 @@ int verify_request_refusals() {
   const auto cancelled=flitzfs::discover_system_hip_route(valid,stop.get_token());
   if(cancelled.status!=HipDiscoveryStatus::cancelled || cancelled.route || cancelled.identity_queries)
     throw std::runtime_error("Cancelled discovery opened a route");
+  verify_budget_recovery();
   std::cout << "HIP route request refusals: " << std::size(changes) << "\n";
   return 0;
 }
