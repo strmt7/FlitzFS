@@ -1,0 +1,370 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "date": "2026-11-20",
+  "source_commit": "124017d1cb31c446ae9a732ea0e6752d00b20814",
+  "scope": "Windows SDK compilation, CPU admission tests and bounded installed AMD worker trials.",
+  "distribution": {
+    "name": "therock-dist-windows-multiarch-10.2.0.tar.gz",
+    "url": "https://stable.repo.amd.com/rocm/core/tarball/therock-dist-windows-multiarch-10.2.0.tar.gz",
+    "sha256": "cac6dc4b98cd22308b3a98fb2a19015e895693b90f7a7c51cf943a228130518a",
+    "bytes": 5617984006,
+    "etag": "\"768a4bc8b11fb483f0a7bfcb550e5468-42\"",
+    "last_modified": "Wed, 18 Nov 2026 11:18:12 GMT",
+    "upstream_sha256": null,
+    "download_elapsed_seconds": 23.189,
+    "package_build": "10.2.0rc2",
+    "hip_header": "7.17.26434-2a0e6e6771",
+    "compiler": "AMD clang version 24.0.0git (https://github.com/ROCm/llvm-project.git bdc35841c97ff51400273b91d7bc05c96e19c2d9)",
+    "members": 17177,
+    "unpacked_bytes": 16333916110,
+    "critical_inputs": {
+      "share/therock/therock_manifest.json": {
+        "bytes": 3816,
+        "sha256": "18532335d09735cf88d933366ff34f3c66407914e45040fb8f4abda60ddd6175"
+      },
+      "bin/hipcc.exe": {
+        "bytes": 244688,
+        "sha256": "42384200fa9f63f6e0ba0d42517df82eaa45d2590dd94f25b80a8fa29f7a0acf"
+      },
+      "lib/amdhip64.lib": {
+        "bytes": 167142,
+        "sha256": "6b04e97b99d1e52c02f6e6d882d15360d9642704edd23b08bd6c529240de40ca"
+      },
+      "include/hip/hip_version.h": {
+        "bytes": 426,
+        "sha256": "fc60b51aae84626428a24d29fdfd0e6330774118291d5c1d6bf21ad0f087812d"
+      },
+      "lib/llvm/bin/clang.exe": {
+        "bytes": 114936784,
+        "sha256": "6a3a91754cd8de61ff7ae213bf8be447e2dcc1c7769538ac3bc32be1997678ee"
+      },
+      "lib/llvm/amdgcn/bitcode/ocml.bc": {
+        "bytes": 250308,
+        "sha256": "530b71329301b9584c7cd38608badea61606249ebb2bdd184e7a55f2e4cb0b6d"
+      }
+    }
+  },
+  "official_sources": {
+    "crawl4ai_version": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "9958cf6df0a7059ebfc1e7ee069d3894167029b17890f1ab503506a2fa3acac1",
+    "pages": [
+      {
+        "url": "https://www.amd.com/en/resources/support-articles/release-notes/RN-RAD-WIN-26-11-2.html",
+        "final_http_status": 200,
+        "markdown_bytes": 44628,
+        "markdown_sha256": "ed2227a2b187611e970d2caba3b49e908ea92a40d79efeed898e415f2f85efb3",
+        "capture_sha256": "b7edb1416910da6c6cdb1719bb2f3ca5fc8c1b2d8cdf0331336eaee69788bdd1"
+      },
+      {
+        "url": "https://rocm.docs.amd.com/en/docs-10.2.0/about/release-notes.html",
+        "final_http_status": 200,
+        "markdown_bytes": 303361,
+        "markdown_sha256": "18caaf90d5ea55c1acb99c34abb277aa89c6eada8e5300b6ffdebe356e45a728",
+        "capture_sha256": "8d349cc41dcabdc360f93223d1e9aa866edc3343bdab7abf6523e16985911b68"
+      },
+      {
+        "url": "https://rocm.docs.amd.com/en/docs-10.2.0/install/rocm.html",
+        "final_http_status": 200,
+        "markdown_bytes": 226767,
+        "markdown_sha256": "59f751df1840f5db1853aebb5e22593e505fd379bc6d0008b81ff45c77ac4133",
+        "capture_sha256": "5ccc9d8164bf9285254b921b128ac6bef465a9895d39991935d37fcab7638de1"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-apisets",
+        "final_http_status": 200,
+        "markdown_bytes": 27681,
+        "markdown_sha256": "fcd04992682a3b20628e77c92616160b2c5f76c7b06a14afc1aabe7fd917cfc9",
+        "capture_sha256": "152eea245ef620ef750ffc2737685e6388f8dd64a84babc959399e33c7eb6965"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitonaddress",
+        "final_http_status": 200,
+        "markdown_bytes": 21828,
+        "markdown_sha256": "883ef7499c92f7a2f44e9a002eeb4f200ef4914423c87361b882fbcdbf53670f",
+        "capture_sha256": "67cdb92779a6b0cef9339748156eb0c88cd3cf8a2bc4c229153cfb3359d038de"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-wakebyaddressall",
+        "final_http_status": 200,
+        "markdown_bytes": 28923,
+        "markdown_sha256": "0372221a067610ba22b139b42dd279c9c5a847c1fcc7ab046429a761b275a0f2",
+        "capture_sha256": "ff05f67ed400fc2cfb6c1acaebfc891f2bf3eeea30fbf9909a6faad1fc85b0ee"
+      }
+    ]
+  },
+  "compiler_and_worker": {
+    "verified_reference_commit": "b46acb6dd7e48e1fb2dc182210495abb6a3c013f",
+    "lock_sha256": "e1b518df1cd18c06df5ed6f23fecd4f7c8344be648af6be039cf4658cfb5e91a",
+    "qualification_sha256": "a0c96d8bf7884c6ce3e97cc1c06d678db8cab26bc22f0bdaa5e3710c99d60aea",
+    "completed_commands": 28,
+    "compiler_inputs": {
+      "compile_hip_object.ps1": {
+        "sha256": "f54fc129765bb6f51729a9867ed8f938219f4e8a0c99c0ac0fc00397cd107325",
+        "bytes": 11241
+      },
+      "hip_architecture.ps1": {
+        "sha256": "97de66ededc25c950aec74be63d5dd7143b4411e8f144d64bc9caa27b004f557",
+        "bytes": 1982
+      },
+      "rocm_toolchain.ps1": {
+        "sha256": "edf38ddc2077e7e79984750431fafd49e5a237946dd5e902a014e54ac25bdf22",
+        "bytes": 4866
+      },
+      "process_environment.ps1": {
+        "sha256": "da63fdce73adc3479ca9cda43a2f5043353ef72ac27e36f3dd04366e572ff693",
+        "bytes": 2350
+      },
+      "rocm-sdk-lock.json": {
+        "sha256": "e1b518df1cd18c06df5ed6f23fecd4f7c8344be648af6be039cf4658cfb5e91a",
+        "bytes": 821
+      }
+    },
+    "versioned_device_properties": "hipGetDevicePropertiesR0600",
+    "cpu_api_probe": {
+      "checks": 237,
+      "priority_cases": 12,
+      "priority_query_limit": 2,
+      "unversioned_properties_refused": true,
+      "identity_before_selection": true,
+      "missing_exports_refused": 11,
+      "hip_runtime_loaded": false,
+      "gpu_executed": false,
+      "complete": true
+    },
+    "priority_capability_regression": {
+      "old": {
+        "category": 1179844613,
+        "stage": "stream_priorities",
+        "priority_queries": 1,
+        "hip_runtime_loaded": false,
+        "gpu_executed": false,
+        "complete": false
+      },
+      "current": {
+        "category": 1179844611,
+        "stage": "stream_priorities",
+        "priority_queries": 2,
+        "hip_runtime_loaded": false,
+        "gpu_executed": false,
+        "complete": true
+      },
+      "complete": true
+    },
+    "warp_sync": {
+      "target": "gfx1100",
+      "header": {
+        "path": "include/hip/amd_detail/amd_warp_sync_functions.h",
+        "canonical_bytes": 37746,
+        "canonical_sha256": "93f564333e2fc52df19e4fe02b8d1930a37d627a57dc84ad22e8ed0fafa061d4",
+        "physical_sha256": "93f564333e2fc52df19e4fe02b8d1930a37d627a57dc84ad22e8ed0fafa061d4",
+        "physical_bytes": 37746,
+        "representation": "exact"
+      }
+    },
+    "reused_sdk_verified_byte_for_byte": true,
+    "windows_synchronization": {
+      "contract": "api-ms-win-core-synch-l1-2-0.dll",
+      "os_backing": "C:\\WINDOWS\\System32\\KERNELBASE.dll",
+      "functions": [
+        "WaitOnAddress",
+        "WakeByAddressAll",
+        "WakeByAddressSingle"
+      ]
+    },
+    "driver_package_sha256": "59086c818946ca29e2f12d5a9ba8c337dfabfb0fbbc06f964b580024a3f6bcc6",
+    "bundles_vendor_runtime": false
+  },
+  "optional_lz4_device_compile": {
+    "source": "03df9f7369211ee15d370817165224c73fdc9a46",
+    "control_commit": "49bd1ed65d19c82f7d9ad9dd49d3560a232fcd82",
+    "qualification_sha256": "a4cb03eda1418466d8bc468aa5bb9f88ae49e2287c305ab8e91635c68d7f3e8b",
+    "variant": "bounded-native-wave-entry",
+    "targets": [
+      "gfx1100",
+      "gfx1101",
+      "gfx1102",
+      "gfx1151",
+      "gfx1200",
+      "gfx1201"
+    ],
+    "gpu_executed": false
+  },
+  "installed_amd": {
+    "fixture_binding": {
+      "candidate_commit": "124017d1cb31c446ae9a732ea0e6752d00b20814",
+      "adapter": "AMD Radeon RX 9070 XT",
+      "driver_version": "32.0.32029.2010",
+      "signed": true,
+      "problem": 0,
+      "runtime_signer": "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+      "runtime_hash": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "runtime_file_version": "10.0.3686.0",
+      "controller_sha256": "a539449660dfd2f66d0c816efc8b17cb484e3e0ea00c675c03b9f66be5f37b08",
+      "corpus_sha256": "a76af508156dc6984810c6f01d2736bf7bd18112d51dcc1d431b7bfdfa1e8d57",
+      "worker": "3a1eddec1f5b8ad516aba4acf6ddc5a4a0ba36b4fd33d27f9b4f2aa87308609e",
+      "module": "da8f4f1adf3cb4716305a7ea89481a8e4f9c6b917e5b8d86c247fe184aa06d08",
+      "manifest_sha256": "501cd4cb5b686cbe90c21b83ad5dfac237c79a5cf966e419017e737292e58222",
+      "time_utc": "2026-11-20T08:13:09.4517569Z"
+    },
+    "controller_source": "a9369e35fed54e3636640a90e3fd002ab0a4d102",
+    "public_code_revision_cpu": {
+      "cohort": "revision-corpus",
+      "input_blake3": "5f89cd7cbed6c82bc2507e844ab79cc116407492d35ec78ae4f658881dcd0c07",
+      "files": 20,
+      "groups": 5,
+      "submitted": 0,
+      "verified_batches": 0,
+      "advised_members": 0,
+      "input_compacted_bytes": 606208,
+      "grouped_compacted_bytes": 286720
+    },
+    "public_code_revision_amd": {
+      "cohort": "revision-corpus",
+      "input_blake3": "5f89cd7cbed6c82bc2507e844ab79cc116407492d35ec78ae4f658881dcd0c07",
+      "files": 20,
+      "groups": 5,
+      "submitted": 1,
+      "verified_batches": 1,
+      "advised_members": 16,
+      "input_compacted_bytes": 606208,
+      "grouped_compacted_bytes": 278528
+    },
+    "independent_cpu_readback": true,
+    "modeled_idle_time": true,
+    "additional_compacted_bytes_saved": 8192,
+    "lifecycle_handles_before_and_after": 331,
+    "mounted": false,
+    "driver_changed": false,
+    "performance_qualified": false
+  },
+  "preserved_failures": [
+    {
+      "qualification_sha256": "b3d144f29e48c048accf57dee3e4a7cffe5f975b86748d5d535821a8f3954f19",
+      "cause": "Reference compiler selected its own ROCm 10.1 lock.",
+      "correction": "Stage the reviewed scripts alongside the FlitzFS lock."
+    },
+    {
+      "qualification_sha256": "24d149d0b6249addf832230928597c50cffd7567a26b46d233dfc10f51300554",
+      "cause": "ROCm 10.2 defines hipGetDeviceProperties as an inline wrapper.",
+      "correction": "Bind the SDK-declared versioned symbol and require its layout."
+    },
+    {
+      "qualification_sha256": "48387de6fccf88f04a6441ee17dc156c292259bbb1b0983cf24978019cb7ade4",
+      "cause": "The MSVC toolset imports the native Windows synchronization API set.",
+      "correction": "Use the documented OS import allowlist for both probe types."
+    }
+  ],
+  "runs": [
+    {
+      "role": "Verified official archive capture",
+      "run": "local-run-a75633aa556a4c25ac92dde1cb213acf",
+      "exit": 0,
+      "receipt_sha256": "d82f4c73732f914713e0b2e6214366fe8efc098f113f513bb00ca983ec629ec9",
+      "log_sha256": "f04e97499b5dd398e8b17a26e1e505d6a5f16a80f2229c265e25c6af79fec993",
+      "peak_job_bytes": 19828736,
+      "tree_retired": true,
+      "residual_children": 0
+    },
+    {
+      "role": "Unexpected archive refused before provisioning",
+      "run": "local-run-aef02ef616b4406ea42a27e05ea556b2",
+      "exit": 1,
+      "receipt_sha256": "83a984b87443e678101aba192366538211d9bd6d6a1abf218e743af71fa8a1e9",
+      "log_sha256": "36764fa4a7bb0a2b001c45dfeb53e68a32292f3ffd0067fafc2434e55438274e",
+      "peak_job_bytes": 31309824,
+      "tree_retired": true,
+      "residual_children": 0
+    },
+    {
+      "role": "First compiler pin refusal",
+      "run": "local-run-35d239f03d444007b41db2e0b4fa3454",
+      "exit": 1,
+      "receipt_sha256": "3d9329ca97295bdd76e6c23a3bc2a3965acd551adfb4bf130c97bfed02ed3f74",
+      "log_sha256": "19ecb327a8e6e8e27a5b94e8e3fdd4e472d27c682ff1804ebcc870310dc43529",
+      "peak_job_bytes": 103464960,
+      "tree_retired": true,
+      "residual_children": 0
+    },
+    {
+      "role": "Device ABI probe refusal",
+      "run": "local-run-295facb11d984529af4c76f0acb5e028",
+      "exit": 1,
+      "receipt_sha256": "2f52bc74016bac9065ce554eb005bfe67e50b6df07fb589df3a9e8d78e79a213",
+      "log_sha256": "3ac343bbec7411ba79c6fd8ab250da6855c57319c64bebd8da88f401144587a6",
+      "peak_job_bytes": 703762432,
+      "tree_retired": true,
+      "residual_children": 0
+    },
+    {
+      "role": "Windows synchronization API-set refusal",
+      "run": "local-run-925daf5dcd644fb6911acebd51efec96",
+      "exit": 1,
+      "receipt_sha256": "36e323cea2780780fb2c54beb639d6e61816c4c30432ef0bf33a9cc242c73fc6",
+      "log_sha256": "5743bf929da0c2b95ca7591788c07b7ab0cd3406ef87c4124d8c895c17e6231f",
+      "peak_job_bytes": 727146496,
+      "tree_retired": true,
+      "residual_children": 0
+    },
+    {
+      "role": "Obsolete qualification intentionally retired",
+      "run": "local-run-b592b1346ba947e0bbc873ee07d87801",
+      "exit": 4294967295,
+      "receipt_sha256": "5dc4a620a7f66dc1b2e3a28094848978eded92f3c069e5caf7f45025be1cb9f2",
+      "log_sha256": "e3095664d7303f136b27eb253e7a49c678c3147b1432d859dc5c4949cecf6868",
+      "peak_job_bytes": 59408384,
+      "tree_retired": true,
+      "residual_children": 0
+    },
+    {
+      "role": "Exact current SDK qualification",
+      "run": "local-run-360fb2912d8f4a6e962d6a3b5b889d74",
+      "exit": 0,
+      "receipt_sha256": "a8a7c61ea9e1cbf1c217cb5345de80045a7441a7b1e3e82861f07ca8360d73fe",
+      "log_sha256": "ea3bd73a47b2759c66effbc764bce0b51e70c9de27c4f5ad00cc2a4103b56b51",
+      "peak_job_bytes": 699166720,
+      "tree_retired": true,
+      "residual_children": 0
+    },
+    {
+      "role": "Optional native LZ4 offline compile",
+      "run": "local-run-1119ed7430fa474685e761b67699ad4e",
+      "exit": 0,
+      "receipt_sha256": "c3d1c9cf9a883de508d6c47fe09f2a9b3a80a5416fe895654a0dfe3cd35e114d",
+      "log_sha256": "5cd891c1ce8d66c564acc0c62412244fa79b05b7cfde5d8e044395730bf53486",
+      "peak_job_bytes": 338497536,
+      "tree_retired": true,
+      "residual_children": 0
+    },
+    {
+      "role": "Matched CPU fixture",
+      "run": "local-run-14b495c50a4f44f9a75a71eba4a13aa9",
+      "exit": 0,
+      "receipt_sha256": "38b3fec3d3a918a92fbe8aca055166ed888f794e1ad5f59a07ede5dddbaf94c5",
+      "log_sha256": "7919b547747cdaca4c96123791b83a53f0ddafec335379fd865f072e29f01e1e",
+      "peak_job_bytes": 11759616,
+      "tree_retired": true,
+      "residual_children": 0
+    },
+    {
+      "role": "AMD fixture and independent CPU recovery",
+      "run": "local-run-0705be30e3264e59ac0f7bf3d874b036",
+      "exit": 0,
+      "receipt_sha256": "4f27243ca5e578ef01f9ab446f761b85fe64c270fdd84b92dcc0db61335ba5e7",
+      "log_sha256": "28fd94df1c2c216dc3a95d7eaa6b061a371f889bad56dff69f6d557101493198",
+      "peak_job_bytes": 115609600,
+      "tree_retired": true,
+      "residual_children": 0
+    },
+    {
+      "role": "Repeated AMD owner retirement and CPU yield",
+      "run": "local-run-7d75abaa5c3c4707a494f1ed1c241967",
+      "exit": 0,
+      "receipt_sha256": "84dc001bfa6f3d14dacdf3ea548259faf8270d95b3f5aa3e1344483b24711bfa",
+      "log_sha256": "2c2c41edf010b4e49a5db2cdcd00fbce0a21156e2df07794033ad003b50c23e2",
+      "peak_job_bytes": 104554496,
+      "tree_retired": true,
+      "residual_children": 0
+    }
+  ]
+}

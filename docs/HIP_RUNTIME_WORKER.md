@@ -89,6 +89,26 @@ compiler-environment helpers and source GPU kernel. These mechanisms are build
 dependencies only; no FlitzZip archive code is linked into FlitzFS. Successful
 exact-commit results are required before claiming compile qualification.
 
+## Windows ROCm 10.2 qualification, 20 November 2026
+
+Source `124017d` passed the complete SDK qualification on Windows 11 with
+ROCm 10.2.0, HIP 7.17.26434 and AMD Clang 24.0.0git. The same pin governs
+archive verification and the staged compiler scripts. The SDK declares
+`hipGetDeviceProperties` as an inline wrapper around
+`hipGetDevicePropertiesR0600`. The worker binds that versioned export and
+requires its matching property layout. CPU-only tests verified refusal
+when the versioned export is missing and corroborated stream-priority
+queries. The optional LZ4 kernel also compiled offline for six AMD targets.
+
+The SDK-built worker executed with the installed signed driver on an RX 9070 XT.
+On a matched 20-file public-code revision fixture, CPU grouping occupied
+280 KiB and AMD-assisted grouping occupied 272 KiB. The independent CPU
+reader verified every file in both cases. A separate trial published a
+CPU result after yielding GPU work, retained 331 handles across the
+warmed repeat, and retired its process tree. Throughput qualification
+and cross-device coverage remain open.
+[Source, provenance and test evidence](evidence/windows-rocm-10.2-qualification-2026-11-20.json)
+
 ## Observed complete SDK, 9 November 2026
 
 At 35dfac90503e46b9f988b8ecfbe40f255ca9b809, hosted run 42684196735
