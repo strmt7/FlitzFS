@@ -150,11 +150,10 @@ Bytes encode_root(const IndexedVolumeRoot& root) {
   put(bytes,88,kNativeExtentBytes,4);put(bytes,92,features,4);
   return bytes;
 }
-IndexedInodeInput load_inode(const PagedObjectStoreSnapshot& store,const IndexedVolumeRoot& root,std::uint64_t id) {
-  if(!id || id>=root.next_inode)fail(Code::not_found,"indexed inode is outside the namespace");
-  const auto bytes=fetch(store,inode_domain|id,maximum_inode_bytes);
-  if(!bytes)fail(Code::not_found,"indexed inode does not exist");
-  auto inode=decode_indexed_inode(*bytes,id,root);
+IndexedInodeInput decode_inode_with_lifetime(const PagedObjectStoreSnapshot& store,const IndexedVolumeRoot& root,
+    std::uint64_t id,std::span<const std::byte> bytes) {
+  if(bytes.size()>maximum_inode_bytes)fail(Code::corrupt,"indexed inode frame exceeds its bound");
+  auto inode=decode_indexed_inode(bytes,id,root);
   if(inode.lifetime!=IndexedLifetime::linked) {
     const auto active=fetch(store,lifetime_domain|id,1);
     const auto retirement=fetch(store,retirement_domain|id,1);
@@ -168,6 +167,12 @@ IndexedInodeInput load_inode(const PagedObjectStoreSnapshot& store,const Indexed
     fail(Code::corrupt,"indexed inode and lifetime marker disagree");
   }
   return inode;
+}
+IndexedInodeInput load_inode(const PagedObjectStoreSnapshot& store,const IndexedVolumeRoot& root,std::uint64_t id) {
+  if(!id || id>=root.next_inode)fail(Code::not_found,"indexed inode is outside the namespace");
+  const auto bytes=fetch(store,inode_domain|id,maximum_inode_bytes);
+  if(!bytes)fail(Code::not_found,"indexed inode does not exist");
+  return decode_inode_with_lifetime(store,root,id,*bytes);
 }
 std::uint64_t extent_begin(const IndexedInodeInput& inode,std::uint64_t block) {
   if(inode.directory || !inode.size || block>(inode.size-1)/kNativeExtentBytes)
@@ -2422,13 +2427,14 @@ void IndexedVolumeView::verify_inventory(bool published,const IndexedReopenAdmis
   std::uint64_t bases=0,members=0;
   bool found_root=false;
   IndexedSharedBaseCache checked_bases;
+  std::optional<IndexedInodeInput> extent_owner;
   store_.visit_verified_objects([&](std::uint64_t id,Bytes bytes) {
     if(id==namespace_object) {
       if(!published || bytes!=encode_root(root_))
         fail(Code::corrupt,"unexpected indexed root publication");
       found_root=true;
     } else if(domain(id)==inode_domain) {
-      const auto entry=referenced_inode(id&ordinal_mask,true);
+      const auto entry=decode_inode_with_lifetime(store_,root_,id&ordinal_mask,bytes);
       ++inodes;charged=add(charged,reserved_extents(entry));
       if(active_lifetime(entry.lifetime))++lifetimes;
       if(indexed_detached(entry.lifetime))++detached;
@@ -2453,7 +2459,9 @@ void IndexedVolumeView::verify_inventory(bool published,const IndexedReopenAdmis
         return;
       }
       if(bytes.size()<=extent_header)fail(Code::corrupt,"truncated indexed extent");
-      const auto owner=referenced_inode(get(bytes,8),true);
+      const auto inode=get(bytes,8);
+      if(!extent_owner || extent_owner->inode!=inode)extent_owner=referenced_inode(inode,true);
+      const auto& owner=*extent_owner;
       const auto block=get(bytes,16);
       const auto decoded=decode_extent(store_,index_,root_,id,std::move(bytes),owner,block,
           false,nullptr,&checked_bases);

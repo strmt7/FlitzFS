@@ -453,6 +453,28 @@
     "live_amd_advised_extents": 18,
     "live_amd_independent_cpu_readback_files": 23
   },
+  "indexed_audit_reuse": {
+    "source_base": "63ff096c5a6ca10c42a6c864b0f833b6f9a3a16c",
+    "evidence": "docs/evidence/indexed-audit-reuse-2026-11-20.json",
+    "native_files": 16384,
+    "baseline_startup_image_read_bytes": 130327966,
+    "candidate_startup_image_read_bytes": 113630294,
+    "candidate_scrub_image_read_bytes": 56629855,
+    "windows_fixture_files": 4096,
+    "baseline_windows_startup_read_bytes": 34756618,
+    "candidate_windows_startup_read_bytes": 29995842,
+    "healthy_startup_backing_write_bytes": 0,
+    "image_and_head_barriers": 2,
+    "compressed_audit_objects": 96,
+    "compressed_audit_passes_per_run": 24,
+    "control_audit_median_ns": 194180600,
+    "candidate_audit_median_ns": 139064700,
+    "local_release_ctest_cases": 200,
+    "local_raw_ctest_cases": 8,
+    "local_asan_ctest_cases": 8,
+    "live_amd_public_independent_cpu_readback_files": 36,
+    "live_amd_installed_independent_cpu_readback_files": 23
+  },
   "amd_coalesced_copy_verification": {
     "source_base": "2b95974d9af75aa763e989d4be997839fffe80ef",
     "evidence": "docs/evidence/amd-coalesced-copy-verification-2026-11-20.json",

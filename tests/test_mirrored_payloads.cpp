@@ -1,6 +1,8 @@
 #include "native_fs_fixture.hpp"
 #include "flitzfs/native_session.hpp"
 #include "record_digest.hpp"
+#include "store_codec.hpp"
+#include <chrono>
 #include <iostream>
 #include <set>
 namespace {
@@ -812,8 +814,70 @@ void native_shared_lifetime() {
   require(writer.snapshot().read("b",0,65536)==expected_bytes,"mirrored private update differs");
   PagedObjectStoreSnapshot::open(ram,limits).verify_all();
 }
+
+void compressed_replica_verification(bool profile) {
+  const bool zstd=store_zstd_available();
+  require(!profile || zstd,"compressed audit profile requires the Zstandard build");
+  const auto pattern=data(zstd?8192U:8U,932);
+  Bytes bytes(192*1024);
+  for(std::size_t offset=0;offset<bytes.size();offset+=pattern.size())
+    std::copy(pattern.begin(),pattern.end(),bytes.begin()+static_cast<std::ptrdiff_t>(offset));
+  constexpr unsigned batch=16;
+  const unsigned objects=profile?96:1;
+  auto ram=std::make_shared<Ram>();
+  ram->failure_unit=4096;
+  {
+    auto writer=PagedObjectStoreWriter::create_mirrored(ram,identity(),limits,
+        {StoreCompressionMode::automatic,3,zstd});
+    for(unsigned first=1;first<=objects;) {
+      std::vector<StoreMutation> changes;
+      for(;first<=objects && changes.size()<batch;++first)changes.push_back({first,false,bytes});
+      writer.commit(changes);
+    }
+  }
+  const auto records=locations(*ram);
+  require(records.size()==objects,"compressed fixture object inventory");
+  for(const auto& record:records)
+    require(record.stored<bytes.size() && get(ram->live,record.primary+12,4)==
+        (zstd?detail::kStoreZstd:detail::kStorePattern),"compressed fixture used the wrong codec");
+  auto snapshot=PagedObjectStoreSnapshot::open(ram,limits);
+  const unsigned audits=profile?24:1;
+  const auto mutations=ram->calls;
+  const auto start_bytes=ram->read_bytes,start_calls=ram->read_calls;
+  const auto started=std::chrono::steady_clock::now();
+  for(unsigned pass=0;pass<audits;++pass)snapshot.verify_all();
+  const auto audit_ns=std::chrono::duration_cast<std::chrono::nanoseconds>(
+      std::chrono::steady_clock::now()-started).count();
+  const auto read_bytes=ram->read_bytes-start_bytes,read_calls=ram->read_calls-start_calls;
+  require(!snapshot.info().degraded_payloads,"healthy compressed replicas did not verify");
+  for(unsigned id=1;id<=objects;++id)require(snapshot.read(id)==bytes,"compressed CPU readback differs");
+  const auto& record=records.front();
+  require(record.primary%ram->failure_unit+128<ram->failure_unit,"compressed fixture body is not in the header stripe");
+  damage_record(*ram,record.peer+128);
+  snapshot.verify_all();
+  require(snapshot.info().degraded_payloads && snapshot.read(1)==bytes,
+      "compressed peer damage escaped notice or discarded its survivor");
+  damage_record(*ram,record.primary+128);
+  rejects([&]{snapshot.verify_all();},"compressed audit accepted two damaged copies");
+  damage_record(*ram,record.peer+128);
+  auto recovered=PagedObjectStoreSnapshot::open(ram,limits);
+  recovered.verify_all();
+  require(recovered.info().degraded_payloads && recovered.read(1)==bytes,
+      "compressed primary damage did not recover from the verified peer");
+  require(ram->calls==mutations,"replica verification mutated the fixture");
+  std::cout<<"compressed_replica_audit zstd="<<zstd<<" objects="<<objects<<" passes="<<audits
+      <<" logical_bytes_per_pass="<<objects*bytes.size()<<" backing_read_bytes="<<read_bytes
+      <<" backing_read_calls="<<read_calls<<" audit_ns="<<audit_ns
+      <<" independent_cpu_readback=1 peer_damage_detected=1 primary_damage_recovered=1 double_damage_refused=1\n";
 }
-int main(){try {
+}
+int main(int argc,char** argv){try {
+  if(argc==2 && std::string_view(argv[1])=="--compressed-audit-profile"){
+    compressed_replica_verification(true);
+    return 0;
+  }
+  require(argc==1,"unknown mirrored payload test option");
+  compressed_replica_verification(false);
   forged_descriptors();native_shared_lifetime();payload_repair_rechecks();
   retained_indexed_reopen_fences();durable_payload_scrub();
   for(auto unit:{4096U,65536U}) {

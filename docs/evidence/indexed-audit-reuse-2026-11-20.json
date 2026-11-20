@@ -1,0 +1,502 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "date": "2026-11-20",
+  "source_base": "63ff096c5a6ca10c42a6c864b0f833b6f9a3a16c",
+  "source_binding": {
+    "src/native_indexed_volume.cpp": {
+      "git_blob": "740b1cecf47ea8cc8262bb89805ddb7ffff69bd1",
+      "sha256": "fbd355f9fffcf7ab1180940ae797c191ca5c72f7ee2df6db354ca1cc8e11deb3"
+    },
+    "src/paged_store.cpp": {
+      "git_blob": "95c1b387f46d04f1823067132cd33875b28b49a3",
+      "sha256": "80231f135452f0970663c4612082c1ca8e0009c8c52c40d9c8c1a2e037a5d13b"
+    },
+    "tests/test_mirrored_payloads.cpp": {
+      "git_blob": "b6bed1d305b8f8653626ca2cb87d9cad3117c6b9",
+      "sha256": "9681598bf63031cac6abd068f888ec93ee689ed6a72bc3b4fbff00bf954d622d"
+    }
+  },
+  "scope": "Windows 11 x64. Backing counts are requested bytes and calls in memory-backed native and injected WinFsp fixtures. Timed Zstandard results cover only the fully verified audit loop on the specified fixture. The AMD runs use the installed device.",
+  "host": {
+    "os": "Microsoft Windows 11 Pro",
+    "build": "26300",
+    "architecture": "64-bit",
+    "candidate_exe_sha256": "4db8dd652d9f88e54377528967b8b20482870fdbd67afedd306d96d8753402ac",
+    "corpus_sha256": "ffe86027aaf7145f34f11b6225fb18ee118a791f00818509cf37274261fa14b6",
+    "corpus_bytes": 950495,
+    "gpu": [
+      {
+        "Name": "AMD Radeon RX 9070 XT",
+        "DriverVersion": "32.0.32029.2010"
+      }
+    ]
+  },
+  "navigation": {
+    "commit": "63ff096c5a6ca10c42a6c864b0f833b6f9a3a16c",
+    "dirty_patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "inventory_sha256": "c4b62a2b228460d2c6b9c21a9ceb2d7dc7216817a7a0d6d9a6cf456e4938d28b",
+    "native_response_sha256": "3ff29d040eff8d2808c227356eabe775118e9965cb9c04e24267e13cdc4651e4",
+    "source_files": 8,
+    "actual_searches": 1
+  },
+  "behavior": {
+    "one_independent_stored_check_for_each_copy": true,
+    "decoded_proof_shared_only_for_identical_verified_encodings": true,
+    "maximum_extra_retained_input": "One admitted encoded object record",
+    "inode_frame_reused_after_store_verification": true,
+    "retained_extent_owners": 1,
+    "independent_full_audits_per_writable_reopen": 2,
+    "staged_format_changes": false
+  },
+  "comparison": {
+    "native": {
+      "control": {
+        "scrub": {
+          "files": 16384,
+          "image_bytes": 76251136,
+          "open_read_bytes": 115336,
+          "lookup_read_bytes": 307200,
+          "scrub_read_bytes": 64978691,
+          "sparse_size": "18446744073709551608",
+          "scrub_read_calls": 248760,
+          "object_tree_height": 3
+        },
+        "reopen": {
+          "files": 16384,
+          "image_pre_flush_bytes": 65110411,
+          "image_post_flush_bytes": 65217555,
+          "image_read_calls": 497628,
+          "image_flushes": 1,
+          "head_flushes": 1,
+          "backing_write_bytes": 0,
+          "total_image_read_bytes": 130327966
+        }
+      },
+      "candidate": {
+        "scrub": {
+          "files": 16384,
+          "image_bytes": 76251136,
+          "open_read_bytes": 115336,
+          "lookup_read_bytes": 307200,
+          "scrub_read_bytes": 56629855,
+          "sparse_size": "18446744073709551608",
+          "scrub_read_calls": 213956,
+          "object_tree_height": 3
+        },
+        "reopen": {
+          "files": 16384,
+          "image_pre_flush_bytes": 56761575,
+          "image_post_flush_bytes": 56868719,
+          "image_read_calls": 428020,
+          "image_flushes": 1,
+          "head_flushes": 1,
+          "backing_write_bytes": 0,
+          "total_image_read_bytes": 113630294
+        }
+      }
+    },
+    "windows": {
+      "control": {
+        "files": 4096,
+        "image_extent_bytes": 17170432,
+        "pre_image_flush_read_bytes": 17336989,
+        "post_image_flush_read_bytes": 17419629,
+        "image_read_calls": 124500,
+        "image_flushes": 1,
+        "head_flushes": 1,
+        "backing_write_bytes": 0,
+        "total_image_read_bytes": 34756618
+      },
+      "candidate": {
+        "files": 4096,
+        "image_extent_bytes": 17170432,
+        "pre_image_flush_read_bytes": 14956601,
+        "post_image_flush_read_bytes": 15039241,
+        "image_read_calls": 106958,
+        "image_flushes": 1,
+        "head_flushes": 1,
+        "backing_write_bytes": 0,
+        "total_image_read_bytes": 29995842
+      }
+    },
+    "mirror": {
+      "control_audit_ns": [
+        193225500,
+        192909000,
+        195135700,
+        196935800
+      ],
+      "candidate_audit_ns": [
+        99128200,
+        141663100,
+        144983400,
+        136466300
+      ],
+      "control_median_ns": 194180600,
+      "candidate_median_ns": 139064700,
+      "medians_reduction_fraction": 0.2838383443042199,
+      "ranges_overlap": false
+    },
+    "paired_runs": [
+      {
+        "arm": "control",
+        "kind": "mirror",
+        "run": "local-run-abfc6f38dd674f1798283b5e21d437ff",
+        "exit": 0,
+        "retired": true,
+        "peak": 17637376,
+        "log_sha256": "faae1a03bc4c3952f77614c72cb458a65abc15748a0b9df104fe5dc5ac906a3f",
+        "exe_sha256": "e0654d9abe629e762f480a180a0001ec97c8d99f141de660b461eab82a1dc276",
+        "lines": [
+          "compressed_replica_audit zstd=1 objects=96 passes=24 logical_bytes_per_pass=18874368 backing_read_bytes=39510528 backing_read_calls=18672 audit_ns=193225500 independent_cpu_readback=1 peer_damage_detected=1 double_damage_refused=1"
+        ]
+      },
+      {
+        "arm": "candidate",
+        "kind": "mirror",
+        "run": "local-run-9fb8474dbcd942d8b5b997dddf4fc066",
+        "exit": 0,
+        "retired": true,
+        "peak": 17559552,
+        "log_sha256": "7f1181dac36c8af1a7dba65777e7c4efe9fca7de16f2f27091bddbbaea03f8ae",
+        "exe_sha256": "5003034c295bf98fc260a3a4ce98b839f149ce71b124b8671b9e63bad9e5250d",
+        "lines": [
+          "compressed_replica_audit zstd=1 objects=96 passes=24 logical_bytes_per_pass=18874368 backing_read_bytes=39510528 backing_read_calls=18672 audit_ns=99128200 independent_cpu_readback=1 peer_damage_detected=1 double_damage_refused=1"
+        ]
+      },
+      {
+        "arm": "candidate",
+        "kind": "mirror",
+        "run": "local-run-4f0b0d72a6ec41259932dbb21a3786ea",
+        "exit": 0,
+        "retired": true,
+        "peak": 17776640,
+        "log_sha256": "ca5a5378e82f56203c7bd2d07c43c7e27c4300563b13912fe129789bc9c2797f",
+        "exe_sha256": "5003034c295bf98fc260a3a4ce98b839f149ce71b124b8671b9e63bad9e5250d",
+        "lines": [
+          "compressed_replica_audit zstd=1 objects=96 passes=24 logical_bytes_per_pass=18874368 backing_read_bytes=39510528 backing_read_calls=18672 audit_ns=141663100 independent_cpu_readback=1 peer_damage_detected=1 double_damage_refused=1"
+        ]
+      },
+      {
+        "arm": "control",
+        "kind": "mirror",
+        "run": "local-run-e6529bfe9403435abe2263f742e31277",
+        "exit": 0,
+        "retired": true,
+        "peak": 17817600,
+        "log_sha256": "a484dcd0be750108f6576cd1a40a9dd8a9a55d90d9d8b4b49634529976e0c7ca",
+        "exe_sha256": "e0654d9abe629e762f480a180a0001ec97c8d99f141de660b461eab82a1dc276",
+        "lines": [
+          "compressed_replica_audit zstd=1 objects=96 passes=24 logical_bytes_per_pass=18874368 backing_read_bytes=39510528 backing_read_calls=18672 audit_ns=192909000 independent_cpu_readback=1 peer_damage_detected=1 double_damage_refused=1"
+        ]
+      },
+      {
+        "arm": "control",
+        "kind": "mirror",
+        "run": "local-run-5a4397700f2f43df88ee51dba9cbc8cf",
+        "exit": 0,
+        "retired": true,
+        "peak": 17768448,
+        "log_sha256": "016cec14adb3e89af892bfce35c7da025b1c434dbd5edabcea1503d059c5ecb2",
+        "exe_sha256": "e0654d9abe629e762f480a180a0001ec97c8d99f141de660b461eab82a1dc276",
+        "lines": [
+          "compressed_replica_audit zstd=1 objects=96 passes=24 logical_bytes_per_pass=18874368 backing_read_bytes=39510528 backing_read_calls=18672 audit_ns=195135700 independent_cpu_readback=1 peer_damage_detected=1 double_damage_refused=1"
+        ]
+      },
+      {
+        "arm": "candidate",
+        "kind": "mirror",
+        "run": "local-run-f9072244a8be421898fa8d2f2294eb42",
+        "exit": 0,
+        "retired": true,
+        "peak": 17612800,
+        "log_sha256": "a9a410cc32bba377683326107762dc446519f636a54f8d62afd73b2d9b0320d8",
+        "exe_sha256": "5003034c295bf98fc260a3a4ce98b839f149ce71b124b8671b9e63bad9e5250d",
+        "lines": [
+          "compressed_replica_audit zstd=1 objects=96 passes=24 logical_bytes_per_pass=18874368 backing_read_bytes=39510528 backing_read_calls=18672 audit_ns=144983400 independent_cpu_readback=1 peer_damage_detected=1 double_damage_refused=1"
+        ]
+      },
+      {
+        "arm": "candidate",
+        "kind": "mirror",
+        "run": "local-run-546130fa42c04be988e653d21837c05d",
+        "exit": 0,
+        "retired": true,
+        "peak": 17620992,
+        "log_sha256": "aa4b5880f9305b91e06dfc5c7368944497b91adc58a69f199628162adb831a4d",
+        "exe_sha256": "5003034c295bf98fc260a3a4ce98b839f149ce71b124b8671b9e63bad9e5250d",
+        "lines": [
+          "compressed_replica_audit zstd=1 objects=96 passes=24 logical_bytes_per_pass=18874368 backing_read_bytes=39510528 backing_read_calls=18672 audit_ns=136466300 independent_cpu_readback=1 peer_damage_detected=1 double_damage_refused=1"
+        ]
+      },
+      {
+        "arm": "control",
+        "kind": "mirror",
+        "run": "local-run-013223138b9f41d69ff9c0cdfad95143",
+        "exit": 0,
+        "retired": true,
+        "peak": 17817600,
+        "log_sha256": "8701b4082d09d19e790bed07a50778467a056b71c3fa6d085bb0d2ae301d2b98",
+        "exe_sha256": "e0654d9abe629e762f480a180a0001ec97c8d99f141de660b461eab82a1dc276",
+        "lines": [
+          "compressed_replica_audit zstd=1 objects=96 passes=24 logical_bytes_per_pass=18874368 backing_read_bytes=39510528 backing_read_calls=18672 audit_ns=196935800 independent_cpu_readback=1 peer_damage_detected=1 double_damage_refused=1"
+        ]
+      },
+      {
+        "arm": "candidate",
+        "kind": "indexed",
+        "run": "local-run-9f9906f8f46b43f68ed99f47d1f64a92",
+        "exit": 0,
+        "retired": true,
+        "peak": 249307136,
+        "log_sha256": "4ee1fbadf9d882cbe4f59cbcba53c49d3dfddf2a7132187f7d3921b22b071b85",
+        "exe_sha256": "c7301197dcb2e0460d3a792c0a29cc6a1650b40572f424490b885a9827837b30",
+        "lines": [
+          "indexed_volume files=16384 image_bytes=76251136 open_read_bytes=115336 lookup_read_bytes=307200 scrub_read_bytes=56629855 sparse_size=18446744073709551608 scrub_read_calls=213956 object_tree_height=3",
+          "indexed_scale_reopen files=16384 image_pre_flush_bytes=56761575 image_post_flush_bytes=56868719 image_read_calls=428020 image_flushes=1 head_flushes=1 backing_write_bytes=0"
+        ]
+      },
+      {
+        "arm": "candidate",
+        "kind": "windows",
+        "run": "local-run-a4979f6f526a4e578f791e0f6db1c4c8",
+        "exit": 0,
+        "retired": true,
+        "peak": 56881152,
+        "log_sha256": "cec238b3c6f0ff00e9560011ff93f90cf0dd0fd179e0a551def223f381b8d4bc",
+        "exe_sha256": "4db8dd652d9f88e54377528967b8b20482870fdbd67afedd306d96d8753402ac",
+        "lines": [
+          "indexed_windows_reopen files=4096 image_extent_bytes=17170432 pre_image_flush_read_bytes=14956601 post_image_flush_read_bytes=15039241 image_read_calls=106958 image_flushes=1 head_flushes=1 backing_write_bytes=0",
+          "indexed_windows_reopen cpu_files=4097 callback_read=1 subsequent_write=1 retired=1"
+        ]
+      },
+      {
+        "arm": "control",
+        "kind": "indexed",
+        "run": "local-run-dec5a736f045497897dede7825f41026",
+        "exit": 0,
+        "retired": true,
+        "peak": 248573952,
+        "log_sha256": "dc85719edb28b8066478ed2f96668c48e1cf175b91063e9400a7418c5dc16574",
+        "exe_sha256": "edb59f0c66e9a7db0371d7ea5c04ec175575921468ab83bd025d5b0c3e6109e5",
+        "lines": [
+          "indexed_volume files=16384 image_bytes=76251136 open_read_bytes=115336 lookup_read_bytes=307200 scrub_read_bytes=64978691 sparse_size=18446744073709551608 scrub_read_calls=248760 object_tree_height=3",
+          "indexed_scale_reopen files=16384 image_pre_flush_bytes=65110411 image_post_flush_bytes=65217555 image_read_calls=497628 image_flushes=1 head_flushes=1 backing_write_bytes=0"
+        ]
+      },
+      {
+        "arm": "control",
+        "kind": "windows",
+        "run": "local-run-b94888a6a4cc429191580b32c485e62b",
+        "exit": 0,
+        "retired": true,
+        "peak": 56594432,
+        "log_sha256": "9776b5ff2418e0eb7e3db5989fb9f4d09636989efc3f0f78569cba400bebbaf4",
+        "exe_sha256": "1a38ae3fa09e19e716ab88364e27ec33f84182866882113ceab7ad8e590e5da3",
+        "lines": [
+          "indexed_windows_reopen files=4096 image_extent_bytes=17170432 pre_image_flush_read_bytes=17336989 post_image_flush_read_bytes=17419629 image_read_calls=124500 image_flushes=1 head_flushes=1 backing_write_bytes=0",
+          "indexed_windows_reopen cpu_files=4097 callback_read=1 subsequent_write=1 retired=1"
+        ]
+      },
+      {
+        "arm": "candidate",
+        "kind": "indexed",
+        "run": "local-run-8f6f4008ab8c44938e14f026a25a691e",
+        "exit": 0,
+        "retired": true,
+        "peak": 248451072,
+        "log_sha256": "4ee1fbadf9d882cbe4f59cbcba53c49d3dfddf2a7132187f7d3921b22b071b85",
+        "exe_sha256": "c7301197dcb2e0460d3a792c0a29cc6a1650b40572f424490b885a9827837b30",
+        "lines": [
+          "indexed_volume files=16384 image_bytes=76251136 open_read_bytes=115336 lookup_read_bytes=307200 scrub_read_bytes=56629855 sparse_size=18446744073709551608 scrub_read_calls=213956 object_tree_height=3",
+          "indexed_scale_reopen files=16384 image_pre_flush_bytes=56761575 image_post_flush_bytes=56868719 image_read_calls=428020 image_flushes=1 head_flushes=1 backing_write_bytes=0"
+        ]
+      },
+      {
+        "arm": "candidate",
+        "kind": "windows",
+        "run": "local-run-3070d1fafc4c4520a93a7b18ac4d06dd",
+        "exit": 0,
+        "retired": true,
+        "peak": 56717312,
+        "log_sha256": "16ddb1b99fc879dde9ffd5115eeefa13db7cee9830f1bc7bad26433bf0cb579b",
+        "exe_sha256": "4db8dd652d9f88e54377528967b8b20482870fdbd67afedd306d96d8753402ac",
+        "lines": [
+          "indexed_windows_reopen files=4096 image_extent_bytes=17170432 pre_image_flush_read_bytes=14956601 post_image_flush_read_bytes=15039241 image_read_calls=106958 image_flushes=1 head_flushes=1 backing_write_bytes=0",
+          "indexed_windows_reopen cpu_files=4097 callback_read=1 subsequent_write=1 retired=1"
+        ]
+      },
+      {
+        "arm": "control",
+        "kind": "indexed",
+        "run": "local-run-a19e949d84d743509d71ddfcc0a8e45f",
+        "exit": 0,
+        "retired": true,
+        "peak": 248807424,
+        "log_sha256": "dc85719edb28b8066478ed2f96668c48e1cf175b91063e9400a7418c5dc16574",
+        "exe_sha256": "edb59f0c66e9a7db0371d7ea5c04ec175575921468ab83bd025d5b0c3e6109e5",
+        "lines": [
+          "indexed_volume files=16384 image_bytes=76251136 open_read_bytes=115336 lookup_read_bytes=307200 scrub_read_bytes=64978691 sparse_size=18446744073709551608 scrub_read_calls=248760 object_tree_height=3",
+          "indexed_scale_reopen files=16384 image_pre_flush_bytes=65110411 image_post_flush_bytes=65217555 image_read_calls=497628 image_flushes=1 head_flushes=1 backing_write_bytes=0"
+        ]
+      },
+      {
+        "arm": "control",
+        "kind": "windows",
+        "run": "local-run-b4676f8da0fc444e9aff63f0c1ec4ac1",
+        "exit": 0,
+        "retired": true,
+        "peak": 56877056,
+        "log_sha256": "667647f3746848681e48ded7b504aaf25f6d5538ca656fd2c5fab9d87101d53b",
+        "exe_sha256": "1a38ae3fa09e19e716ab88364e27ec33f84182866882113ceab7ad8e590e5da3",
+        "lines": [
+          "indexed_windows_reopen files=4096 image_extent_bytes=17170432 pre_image_flush_read_bytes=17336989 post_image_flush_read_bytes=17419629 image_read_calls=124500 image_flushes=1 head_flushes=1 backing_write_bytes=0",
+          "indexed_windows_reopen cpu_files=4097 callback_read=1 subsequent_write=1 retired=1"
+        ]
+      }
+    ],
+    "control_and_candidate_use_same_timed_fixture": true,
+    "healthy_startup_writes_bytes": 0,
+    "image_barriers": 1,
+    "selector_barriers": 1,
+    "windows_exact_cpu_readback_after_write_files": 4097
+  },
+  "qualification": {
+    "full_release_before_fixture_mode_correction": {
+      "run": "local-run-e98dd05848ab42cabaa53db3967d1914",
+      "exit": 0,
+      "retired": true,
+      "passed": 200,
+      "peak": 341393408,
+      "log_sha256": "2bd5e9ed41743ebf7fdda2d9459d0c29c597f7da02dfb89581aee5dc82529555",
+      "receipt_sha256": "c8229016598bb52ca5d5bc3fac8eaba10b6a64e50c2946e0f5374ac4b26f1d98",
+      "signals": [
+        "100% tests passed out of 200"
+      ]
+    },
+    "broad_asan_before_fixture_mode_correction": {
+      "run": "local-run-00577d58d243455193b54ed76aa1d87c",
+      "exit": 0,
+      "retired": true,
+      "passed": 8,
+      "peak": 942489600,
+      "log_sha256": "0ea1a5bbd55444a49fc9d058804fd69161672b28855380e0eba0e0b0805c5174",
+      "receipt_sha256": "e4ccda91ab2725e826292a7b7c34d0141b66aa97051a4d7c43825eb8a2ae332c",
+      "signals": [
+        "38: compressed_replica_audit zstd=1 objects=1 passes=1 logical_bytes_per_pass=196608 backing_read_bytes=33106 backing_read_calls=12 audit_ns=195800 independent_cpu_readback=1 peer_damage_detected=1 primary_damage_recovered=1 double_damage_refused=1",
+        "38: retained_indexed_fences image_and_selector=1 peer_loss=1 double_loss=1 same_generation_fork=1 changed_extent=1 independent_repair_and_continued_write=1",
+        "38: PASS: 16462 mirrored payload checks; 2058 injected write/barrier cases; memory CPU only",
+        "100% tests passed out of 8"
+      ]
+    },
+    "codec_fixture_history": {
+      "initial_profile_control": {
+        "mode": "--compressed-audit-profile",
+        "run": "local-run-fead25433cca405ab728ba03125ac4b5",
+        "exit": 1,
+        "retired": true,
+        "log_sha256": "6d3d6ed0f50a52c8741ddffe972317e9e9f49cfca7b82dfed2a4dc4bab30d640",
+        "exe_sha256": "5dad8705ed58d57ae2d7cd0dfc9160a355c7ad2d6398199652d3c9a1ea07fd8a",
+        "lines": [
+          "after 8 checks: compressed fixture used the wrong codec"
+        ],
+        "cause": "A 4096-byte repeat selected the built-in pattern codec. The matched Zstandard fixture uses an 8192-byte repeat and checks each stored codec tag."
+      },
+      "initial_raw_ctest": {
+        "run": "local-run-b4d1b89b4bcf4030a9bbae407a5069a9",
+        "exit": 8,
+        "retired": true,
+        "passed": 7,
+        "peak": 86994944,
+        "log_sha256": "8edce5d134989b92b40431393063be35f85fd3b482ce82bd45081b6962b09340",
+        "receipt_sha256": "0fb30c55fb37d94289219c461d09087456928cba37abc7db30b1a6b1b6a57eab",
+        "signals": [
+          "38: after 6 checks: compressed fixture used the wrong codec",
+          "after 6 checks: compressed fixture used the wrong codec"
+        ],
+        "cause": "The fixture selected raw write mode while expecting a built-in pattern record. Automatic mode enables the built-in encoder without adding Zstandard or LZ4 to this build."
+      }
+    },
+    "final_raw": {
+      "run": "local-run-9dd96cc3d5744c1fa0d5e2c38305dbd8",
+      "exit": 0,
+      "retired": true,
+      "passed": 8,
+      "peak": 87277568,
+      "log_sha256": "90a987d18a14e45ac02ab4fd1dfc809c260f25a745989c8afada1b1435136068",
+      "receipt_sha256": "4a19c1722ff52089c694363e71c42926a8d7e71be2830078f6a435a00ab56885",
+      "signals": [
+        "38: compressed_replica_audit zstd=0 objects=1 passes=1 logical_bytes_per_pass=196608 backing_read_bytes=16656 backing_read_calls=8 audit_ns=88500 independent_cpu_readback=1 peer_damage_detected=1 primary_damage_recovered=1 double_damage_refused=1",
+        "38: retained_indexed_fences image_and_selector=1 peer_loss=1 double_loss=1 same_generation_fork=1 changed_extent=1 independent_repair_and_continued_write=1",
+        "38: PASS: 16462 mirrored payload checks; 2058 injected write/barrier cases; memory CPU only",
+        "100% tests passed out of 8"
+      ]
+    },
+    "final_release_mirrored_retest": {
+      "run": "local-run-de1d984bfa90498ca87d87496c5a6b99",
+      "exit": 0,
+      "retired": true,
+      "passed": 1,
+      "peak": 43180032,
+      "log_sha256": "a002a7ca8440f8b43eca09f913219e32e7fb9a1cab53354857394bec8da12a3e",
+      "receipt_sha256": "d8f7c643e2950e8ac3bc594a948fdd61fc1668d6f2c7d3b3ba87ae1ee7aacfb2",
+      "signals": [
+        "38: compressed_replica_audit zstd=1 objects=1 passes=1 logical_bytes_per_pass=196608 backing_read_bytes=33106 backing_read_calls=12 audit_ns=143600 independent_cpu_readback=1 peer_damage_detected=1 primary_damage_recovered=1 double_damage_refused=1",
+        "38: retained_indexed_fences image_and_selector=1 peer_loss=1 double_loss=1 same_generation_fork=1 changed_extent=1 independent_repair_and_continued_write=1",
+        "38: PASS: 16462 mirrored payload checks; 2058 injected write/barrier cases; memory CPU only",
+        "100% tests passed out of 1"
+      ]
+    },
+    "final_asan_mirrored_retest": {
+      "run": "local-run-e4c879530d90474680948f39219b402f",
+      "exit": 0,
+      "retired": true,
+      "passed": 2,
+      "log_sha256": "7881aa1ddabc78d6c4b60c5752e1acde1602cfe0f410d85ea4b68a7268009b34",
+      "receipt_sha256": "a016871d9178639c4b9bdd42dd6817b908bd8661ea9ea7d996be569a2ea8bbc7",
+      "signals": [
+        "38: compressed_replica_audit zstd=1 objects=1 passes=1 logical_bytes_per_pass=196608 backing_read_bytes=33106 backing_read_calls=12 audit_ns=180500 independent_cpu_readback=1 peer_damage_detected=1 primary_damage_recovered=1 double_damage_refused=1",
+        "38: PASS: 16462 mirrored payload checks; 2058 injected write/barrier cases; memory CPU only",
+        "100% tests passed out of 2"
+      ]
+    },
+    "unchanged_production_source_since_full_release_and_broad_asan": true,
+    "fresh_reload_at_both_writable_reopen_fences": true,
+    "live_amd": [
+      {
+        "arm": "mixed",
+        "run": "local-run-fb14ed44ba4842359d1b4e54f94d62f1",
+        "exit": 0,
+        "retired": true,
+        "peak": 101347328,
+        "exit_confirmed": true,
+        "log_sha256": "36927d0a3e4405d38cf1043aad3376e1b01fbf4b7de866605056ffafc4917f28",
+        "receipt_sha256": "f4731735da33fab2f68934e85a26117f686393380edf4582da937b309caccf80",
+        "signals": [
+          "grouped_replica_audit backing_read_bytes=324656 backing_read_calls=608",
+          "revision_reads zstd=10507 full_logical=950347 full_input_backing=1077016 full_grouped_backing=1277518 sampled_logical=328203 sampled_input_backing=3096529 sampled_grouped_backing=3688983",
+          "revision_session_reads full_logical=950347 full_input_backing=1090048 full_grouped_backing=979375 sampled_logical=328203 sampled_input_backing=3135625 sampled_grouped_backing=2763363",
+          "multiwindow_trial mode=amd cohort=revision-corpus sparse_device=0 reply_bytes=426524 copy_suggested_ranges=94832 copy_compared_ranges=57200 copy_suggested_bytes=5854742 copy_compared_bytes=4060461 files=36 groups=6 advised_members=12 capability=9 submitted=1 verified_batches=1 worker_ns=3667650900 submitted_groups=7 verified_groups=7 cpu_groups_before_gpu_reply=0 foreground_cancelled=0 submitted_queued_batches=0 verified_queued_batches=0 dispatches_per_wait=0 queued_worker_wall_ns=0 queued_kernel_wait_ns=0 submitted_kernel_launches=14 largest_dispatch_members=5 empty_batches=0 discovery_ns=399687900 maintenance_ns=3703822500 compact_verify_ns=42470600 input_compacted_bytes=655360 grouped_compacted_bytes=319488 packed_widths=0 packed_payload_bytes=0 sampled_bias_members=0 sparse_bodies=0 delta_bodies=0 reference_batches=0 reselected_groups=0 cpu_reference_pairs=0 published_references_changed=0 section_reference_groups=0 packed_reference_groups=1 prefixed_zstd_members=4 retired=true independent_cpu_readback=true modeled_idle_time=true input_blake3=099bc2d2fbc3c710e9e6ddb9b2312aa72d021d1bd478cec33e69b077cc9ced89"
+        ]
+      },
+      {
+        "arm": "installed",
+        "run": "local-run-352e196a37d641139fc1ffd921e57bda",
+        "exit": 0,
+        "retired": true,
+        "peak": 121319424,
+        "exit_confirmed": true,
+        "log_sha256": "3728a700ab21fb0a9a350b407ee74fa9ff59a2a5bddd8faa51339d5d377768a4",
+        "receipt_sha256": "4c5554e9463746c9df81fa3388acbd83f1fee6a2d49aefa79085aaed6762261b",
+        "signals": [
+          "anchor_owner mode=reference-xor host=1 quanta=47 groups=2 continued_steps=126 settled_ms=46438 maximum_quantum_ns=9569200 declined_groups=0 phase=5 sampled=24 attempted=2 cpu_limit_ppm=500000 submitted=1 verified=1 submitted_queued_batches=0 verified_queued_batches=0 dispatches_per_wait=0 submitted_groups=1 verified_groups=1 submitted_kernel_launches=17 largest_dispatch_members=4 copy_suggested_ranges=0 copy_compared_ranges=0 copy_suggested_bytes=0 copy_compared_bytes=0 declined=0 yielded=0 integrity_failures=0 empty_xor_batches=0 reference_batches=1 reselected_groups=1 advised_members=18 installed_attempts=1 metadata_queries=1 installed_status=0 handles_before=131 handles_after=311 retired=true cpu_readback_verified=true deferrals=9,0,0,0,0,38,0,0,",
+          "installed_reference mode=reference-xor files=23 compacted_bytes=1048576 exact_compacted_cpu_readback=true"
+        ]
+      }
+    ]
+  },
+  "cleanup": {
+    "owned_test_and_worker_processes_remaining": 0
+  }
+}

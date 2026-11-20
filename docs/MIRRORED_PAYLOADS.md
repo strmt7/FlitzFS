@@ -61,10 +61,19 @@ image size for comparisons. Logical object/file sizes and quotas do not double.
 
 Normal reads verify the primary and try the peer only on a stored-copy failure.
 Allocation failure propagates rather than repeatedly allocating another copy.
-A successful fallback reports payload degradation. Explicit `verify_all` scrubs
-both encoded and decoded copies, including a bad peer hidden by a healthy primary.
-It retains access through one good copy; losing both refuses access, with no
-silent rollback to an older namespace or fabricated reconstruction.
+A successful fallback reports payload degradation. Explicit `verify_all` reads
+both copies and checks each stored header and digest. A compressed peer shares
+the decoded proof only after the primary has decoded successfully and the
+two verified headers and encoded bodies compare byte for byte. A remaining
+candidate is decoded on its own. The comparison retains at most one extra
+encoded record within the existing object size bound. This still detects a
+damaged peer hidden by a healthy primary and refuses access when both copies fail.
+
+In 24 full audits of a 96-object Zstandard fixture, the median of four
+matched Windows runs fell from 194.2 ms to 139.1 ms. Each run read 39,510,528
+backing bytes, and fault checks detected damage to either copy and verified
+the surviving bytes through the CPU reader.
+[Mirrored audit evidence](evidence/indexed-audit-reuse-2026-11-20.json)
 
 ### Automatic repair after a verified read
 

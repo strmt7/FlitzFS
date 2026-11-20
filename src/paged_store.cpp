@@ -392,14 +392,23 @@ Bytes read_object(const State& s,const Entry& e) {
 }
 unsigned verify_payload_copies(const State& s,const Entry& e,Bytes* payload=nullptr) {
   unsigned verified=0;
+  std::optional<ObjectRecord> decoded_primary;
   for(const auto at:{e.offset,e.peer}) {
     try {
       auto record=read_record_at(s,e,at);
+      // The peer has passed its own stored digest and header check. Matching
+      // encoded bytes share the primary's successful decoded digest check.
+      if(decoded_primary && record.header==decoded_primary->header && record.payload==decoded_primary->payload) {
+        ++verified;
+        continue;
+      }
       auto decoded=consume_decoded_record(s,e,record);
       if(payload && !verified) {
         *payload=std::move(decoded);
         if(at==e.peer && s.payload_repairs)s.payload_repairs->observe(e);
       }
+      if(at==e.offset && get32(record.header,12)!=detail::kStoreRaw)
+        decoded_primary.emplace(std::move(record));
       ++verified;
     }
     catch(const std::bad_alloc&){throw;}

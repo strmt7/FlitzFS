@@ -769,3 +769,12 @@ backing bytes, down from 197,479,086, with zero backing writes. The test
 recorded image reads on each side of its image flush and checked every
 short file through the independent CPU reader.
 [Scale and recovery evidence](evidence/indexed-scale-reopen-2026-11-20.json)
+
+The inventory check now parses an inode directly from the payload already
+verified by the mirrored object walk. The same inode lifetime check applies
+to both this path and ordinary lookup. Consecutive extents owned by the
+same inode can reuse one checked owner within this audit. The namespace walk
+still checks reachability and the object walk still checks both stored copies.
+On the 16,384-file fixture, full verification read 56,629,855 backing bytes
+and the two-barrier writable reopen read 113,630,294 bytes with zero writes.
+[Indexed audit evidence](evidence/indexed-audit-reuse-2026-11-20.json)

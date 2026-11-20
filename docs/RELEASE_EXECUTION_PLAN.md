@@ -1,7 +1,7 @@
 # FlitzFS stable release execution plan
 
-Reviewed on 20 November 2026 against the source at `6fb6de3fc49cd1a9e8f5539f56a48f23979dc5c5`
-and the indexed Windows startup work validated in this round. The [engineering programme](IMPLEMENTATION_PLAN.md)
+Reviewed on 20 November 2026 against the source at `63ff096c5a6ca10c42a6c864b0f833b6f9a3a16c`
+and the storage audit work validated in this round. The [engineering programme](IMPLEMENTATION_PLAN.md)
 defines the full product scope and work packages. This plan gives the order
 of execution, evidence required at each handoff, and the remaining release
 work.
@@ -142,6 +142,15 @@ The independent CPU reader checked the original files and the following
 acknowledged callback write. Both complete native audits remain the next
 startup scaling target.
 [Windows indexed startup evidence](evidence/winfsp-indexed-startup-audit-2026-11-20.json)
+
+The two audits now use the verified inode payloads directly and reuse the
+previous extent owner while it remains the same inode. Writable reopen
+read 113,630,294 backing bytes on the 16,384-file fixture and 29,995,842
+on the 4,096-file WinFsp fixture. Both barriers and zero startup writes
+were observed in each run. The separate compressed-object comparison
+measures the saving from a single decoded check for byte-identical
+encodings. Both stored copies still receive independent verification.
+[Storage audit evidence](evidence/indexed-audit-reuse-2026-11-20.json)
 
 1. Extend the separate pre- and post-image-barrier counters by selector,
    object-table pages, name-index pages, inode/lifetime metadata, encoded
