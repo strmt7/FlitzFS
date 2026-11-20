@@ -32,6 +32,14 @@ and reconsidered them for compression after reopening. It also verified
 CPU readback with interrupted advice and with changed image or codec bindings.
 [Cold coverage evidence](evidence/indexed-cold-coverage-2026-11-20.json)
 
+Newly written volumes can earn a cold copy from measured record savings.
+The Windows owner samples without writes and reserves the private copy
+from committed input. Candidate storage grows incrementally. The tested
+code, documentation and mixed images shrank by 39.5–45.8% including
+compaction of their metadata and append history. Independent CPU
+readback matched each input.
+[Screened cold compaction evidence](evidence/screened-cold-compaction-2026-11-20.json)
+
 The [repository overview](REPOSITORY_OVERVIEW.md) records the architecture
 decisions and measured baseline. The [implementation plan](IMPLEMENTATION_PLAN.md)
 defines the current work packages, dependencies and release gates. The snapshots

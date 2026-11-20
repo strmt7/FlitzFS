@@ -690,6 +690,59 @@ void volume_file_idle_reclamation() {
       <<" published=1 prior_readers_preserved=1 reclaimed=1 cpu_reopen=1"
       <<" pinned_wait_quiescent=1 foreground_write_while_pinned=1 last_reader_woke=1 release_after_owner_quiet=1\n";
 }
+void volume_file_screened_cold(std::span<const Bytes> fixture,StoreCompressionOptions foreground) {
+  constexpr PagedStoreLimits limits{8ULL*1024*1024};
+  Provider provider;Provider::active=&provider;
+  auto file=std::make_shared<SparseVolumeRam>(4096);
+  auto adapter=WinFspNativeWritable::create_file_volume(file,id(90),id(1),limits,foreground);
+  auto* volume=adapter.get();
+  WinFspNativeSession session(std::move(adapter),provider.api());
+  require(session.start(plan())==STATUS_SUCCESS,"screened compaction SDK start");
+  unsigned number=0;
+  for(const auto& bytes:fixture)callback_file(provider,number++,bytes);
+  const auto before=volume->snapshot().storage_info().physical_end;
+  NativeMaintenanceObservation observed{1,1000,16ULL<<30,12ULL<<30,32ULL<<30,24ULL<<30,1000,0,1000,true,true};
+  const auto step=[&] {
+    ++observed.sequence;observed.captured_ms+=1000;
+    return session.advance_background_maintenance(observed,observed.captured_ms);
+  };
+  const auto reads=file->io.read_calls,writes=file->io.write_bytes;
+  require(step().progress.deferral==NativeMaintenanceDeferral::foreground &&
+      file->io.read_calls==reads && file->io.write_bytes==writes,"idle work touched storage under foreground admission");
+  observed.foreground_pending=false;
+  WinFspMaintenanceResult progress;
+  bool saw_budget_boundary=false;
+  for(unsigned i=0;i<1800 && !progress.compacted && session.background_maintenance_pending();++i) {
+    progress=step();
+    require(!progress.compaction_failed && progress.progress.phase!=NativeMaintenancePhase::failed,
+        "ordinary SDK cold work failed");
+    if(!saw_budget_boundary && progress.progress.phase==NativeMaintenancePhase::preparing &&
+        progress.continuation==WinFspMaintenanceContinuation::none) {
+      const auto saved_writes=file->io.write_bytes;
+      ++observed.sequence;observed.continued=true;
+      const auto replay=session.advance_background_maintenance(observed,observed.captured_ms,{},
+          WinFspMaintenanceContinuation::compaction);
+      observed.continued=false;
+      require(replay.progress.deferral==NativeMaintenanceDeferral::observation && file->io.write_bytes==saved_writes,
+          "continued preparation spent the durable write allowance");
+      saw_budget_boundary=true;
+    }
+  }
+  const auto after=volume->snapshot().storage_info().physical_end;
+  require(saw_budget_boundary && progress.compacted && after<before,
+      "ordinary SDK maintenance did not shrink the append-mostly image");
+  session.stop();
+  auto reopened=NativeVolumeFile::inspect(file->replay(),id(90));
+  const auto& snapshot=reopened.filesystem();
+  snapshot.verify_all();
+  require(session.write_restart_ready(),"screened SDK controller did not retire");
+  number=0;
+  for(const auto& bytes:fixture)
+    require(snapshot.read("f"+std::to_string(number++),0,static_cast<std::uint32_t>(bytes.size()))==bytes,
+        "screened SDK independent readback failed");
+  std::cout<<"screened_cold_sdk compacted=1 foreground_yield=1 fresh_budget_boundary=1 exact_readback=1"
+      <<" old_image="<<before<<" new_image="<<after<<'\n';
+}
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
 std::array<std::byte,32> artifact_digest(std::string_view input) {
   require(input.size()==64,"Expected exact artifact digest");
@@ -2515,13 +2568,14 @@ int main(int argc,char** argv){try {
   // use. Prove native-only stabilization before measuring factory ownership.
   const bool remount=argc==2 && std::string_view(argv[1])=="--memory-remount";
   const bool volume_file=argc==2 && std::string_view(argv[1])=="--volume-file";
+  const bool screened_public=argc==3 && std::string_view(argv[1])=="--screened-cold-corpus";
   const bool live_repair_rotation=argc==2 && std::string_view(argv[1])=="--live-indexed-repair-rotation";
   const bool live_payload_scrub=argc==2 && std::string_view(argv[1])=="--live-indexed-scrub";
   const bool live_payload_repair=live_repair_rotation || live_payload_scrub ||
       (argc==2 && std::string_view(argv[1])=="--live-indexed-repair");
   const bool reconciled_compaction=argc==2 && std::string_view(argv[1])=="--live-indexed-reconcile";
   const bool indexed_compaction=reconciled_compaction || (argc==2 && std::string_view(argv[1])=="--live-indexed-compaction");
-  if(lifetime_only || shifted_grouping || checkpoint || remount || volume_file || indexed_compaction ||
+  if(lifetime_only || shifted_grouping || checkpoint || remount || volume_file || screened_public || indexed_compaction ||
       live_payload_repair ||
       (argc==2 && (std::string_view(argv[1])=="--memory" || std::string_view(argv[1])=="--memory-handles" ||
       std::string_view(argv[1])=="--read-only-memory" || std::string_view(argv[1])=="--indexed-memory" ||
@@ -2550,9 +2604,19 @@ int main(int argc,char** argv){try {
     volume_file_scrub_checkpoint();
     indexed_reopen_platform_admission();
     volume_file_idle_reclamation();
+    if(store_zstd_available()) {
+      const std::array fixture{cold_test_payload(),cold_test_payload(130011),Bytes(640*1024)};
+      volume_file_screened_cold(fixture,{StoreCompressionMode::fast,1,false});
+    }
     volume_file_payload_repair(false);
     volume_file_payload_repair(false,RepairFixture::scrub);
     volume_file_payload_repair(false,RepairFixture::startup_rotation);
+  }else if(screened_public) {
+    auto source=ReadOnlyFile::open(argv[2]);
+    require(store_zstd_available() && source.size()>0 && source.size()<=2*1024*1024,"screened corpus admission");
+    std::array fixture{Bytes(static_cast<std::size_t>(source.size()))};
+    source.read_exact_at(0,fixture[0].data(),fixture[0].size());
+    volume_file_screened_cold(fixture,{StoreCompressionMode::automatic,3,true});
   }else if(live_payload_repair) {
     const auto fixture=live_repair_rotation?RepairFixture::rotation:
         live_payload_scrub?RepairFixture::scrub:RepairFixture::foreground;

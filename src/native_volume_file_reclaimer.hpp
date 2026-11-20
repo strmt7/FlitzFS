@@ -18,9 +18,9 @@ class NativeVolumeFileReclaimer final {
   NativeVolumeFileReclaimer(std::shared_ptr<StoreByteIo> head,
       std::shared_ptr<NativeVolumeFile::Region> active,
       std::shared_ptr<NativeVolumeFile::Region> spare,bool recover_spare);
-  bool pending(const NativeFileSession&) const;
+  bool pending(const NativeFileSession&,bool allow_cold) const;
   void bind_wake(const std::shared_ptr<NativeVolumeRangeWake>&) noexcept;
-  NativeVolumeReclaimProgress advance(NativeFileSession&,const std::function<StoreIdentity()>&);
+  NativeVolumeReclaimProgress advance(NativeFileSession&,const std::function<StoreIdentity()>&,bool allow_cold);
   void cancel(NativeFileSession&) noexcept;
   NativeStartupRepairImage startup_repair_image(const NativeVolumeHeadInfo&,const std::function<StoreIdentity()>&);
   void adopt_startup_repair(const NativeVolumeSelection& original,const NativeVolumeSelection& repaired);

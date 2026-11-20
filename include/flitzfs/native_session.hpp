@@ -185,7 +185,7 @@ class NativeFileSession final {
   // Prepare a fresh image under the same serial control as foreground calls.
   // Each advance copies at most one live object. A committed source change
   // invalidates the candidate before another copy or any head publication.
-  enum class RecompressionProgress { copying,ready,stale };
+  enum class RecompressionProgress { copying,ready,stale,declined };
   void begin_recompression(std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_image,
       StoreCompressionOptions compression={},StoreCheckpointOptions checkpoints={});
   RecompressionProgress advance_recompression();
@@ -209,6 +209,9 @@ class NativeFileSession final {
   bool begin_idle_compaction(std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_image,
       PagedRewriteMode=PagedRewriteMode::exact_checkpoint);
   bool idle_compaction_context_ready() const noexcept;
+  // Cached funding and source checks. The screened copy still needs freshly
+  // admitted idle work and a durable reservation before it writes a candidate.
+  bool idle_cold_compaction_pending() const noexcept;
   // Inspect the staged phase and source token without backing I/O.
   bool idle_compaction_preparation_pending() const noexcept;
   // Requires a ready idle candidate and a separate quiet publication window.
@@ -244,8 +247,9 @@ class NativeFileSession final {
   bool checkpoint_indexed_payload_scrub();
   // One admitted idle opportunity. The identity source is invoked only when
   // starting a new image. These operations use the session's control thread.
-  bool persistent_reclamation_pending() const;
-  NativeVolumeReclaimProgress advance_persistent_reclamation(const std::function<StoreIdentity()>&);
+  bool persistent_reclamation_pending(bool allow_cold=false) const;
+  NativeVolumeReclaimProgress advance_persistent_reclamation(const std::function<StoreIdentity()>&,
+      bool allow_cold=false);
   void cancel_persistent_reclamation() noexcept;
   // Explicit managed-volume control; reject pending/staged maintenance.
   // Preserve live contexts and return cached scalars without post-commit I/O.

@@ -1226,6 +1226,12 @@ replayed foreground writes remain eligible. This records completed work
 for step 9. Workload learning, maintenance arbitration, lifetime rewrite
 accounting and mounted interference measurement remain open.
 
+Append-mostly volumes can now earn an optional cold copy through measured
+sampling. The helper funds the private copy from a durable settlement
+before it begins writing. This covers the refactoring of cold admission
+in step 5 and one write class in step 10. Larger-volume write-amplification
+measurements and adaptation of the sample policy remain qualification work.
+
 ### Implementation steps
 
 1. Define separate budgets for foreground ingestion, optional background work,

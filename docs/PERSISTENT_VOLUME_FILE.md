@@ -39,6 +39,29 @@ allocated until both durable records select the new epoch and readers
 release the old backing. Each retirement opportunity rechecks the
 selector and retires up to 4 MiB from the inactive range.
 
+After grouping, backfill and scheduled scrub work have yielded, a quiet
+volume can also qualify on compression gains. A read-only screen tries
+the cold encoder on evenly spaced live data ranks, at most one record
+per step. It uses twice the bit width of the record count as its sample
+size, up to the number of available records. Together the sampled records
+must save at least one byte per 32 compared bytes, including headers.
+Negative screens write neither the image nor the advisory area. The
+same foreground workload cannot repeatedly reopen a screen within the
+session.
+
+A positive screen still needs source verification and a fresh idle
+opportunity to reserve durable input credit. The reservation covers the
+candidate with both payload copies, root rewrites, the two selector
+records and the two advice records. Each settled input byte can fund
+up to two bytes of that write bound. Both advice records must confirm
+the charge before candidate writes begin. The attempt remains charged
+after interruption. Candidate storage grows one admitted quantum at a
+time. A later foreground commit cancels this optional
+copy. Publication requires a complete independently verified image
+with a smaller occupied extent. The ordinary reclamation path can
+still reconcile foreground writes.
+[Screened compaction evidence](evidence/screened-cold-compaction-2026-11-20.json)
+
 The Windows owner waits on its existing activity event when readers still
 pin the old range. Shared snapshots of the same image retain one backing
 pin. Releasing the final reference drops that pin before signaling the

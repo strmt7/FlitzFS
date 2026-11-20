@@ -54,7 +54,7 @@ struct PagedPayloadScrubResult {
   std::uint64_t object_id=0,verified_record_bytes=0;
   std::optional<PagedPayloadScrubPosition> resumable;
 };
-enum class PagedRewriteMode { exact_checkpoint, reconcile_foreground };
+enum class PagedRewriteMode { exact_checkpoint, reconcile_foreground, cold_compression };
 class IndexedCoherenceWriter;
 class PagedObjectStoreWriter;
 class PagedObjectStoreSnapshot final {
@@ -183,8 +183,9 @@ class PagedObjectStoreWriter final {
       std::uint64_t maximum_write_bytes=UINT64_MAX,
       const std::function<bool(std::uint64_t)>& reserve_writes={});
   struct RebuildColdEncoding {
-    std::uint64_t after_generation;
-    bool (*eligible)(std::uint64_t) noexcept;
+    std::uint64_t after_generation,first_object,past_last_object;
+    std::function<bool(std::uint64_t)> reserve_writes;
+    bool eligible(std::uint64_t id) const noexcept {return id>=first_object && id<past_last_object;}
   };
   Rewrite prepare_rebuild_replacing(std::shared_ptr<StoreByteIo>,StoreIdentity,
       StoreCompressionOptions,std::span<const std::byte> replacement,bool reencode,
@@ -240,7 +241,8 @@ class PagedObjectStoreWriter final {
   std::unique_ptr<Impl> impl_;
 };
 enum class PagedRewritePhase {verifying_source,copying,verifying_target,publishing,
-    verifying_publication,ready,failed,building_index,awaiting_charge,reconciling,verifying_reconciliation};
+    verifying_publication,ready,failed,building_index,awaiting_charge,reconciling,verifying_reconciliation,
+    screening_compression,declined};
 struct PagedRewriteProgress {
   PagedRewritePhase phase=PagedRewritePhase::failed;
   std::uint64_t objects=0,completed_in_phase=0,required_write_bytes=0;

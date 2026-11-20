@@ -604,7 +604,8 @@ class NativeFilesystemWriter final {
   friend class NativeGroupMaintenance;
   PagedObjectStoreWriter::Rewrite prepare_paged_recompression_impl(std::shared_ptr<StoreByteIo>,
       StoreIdentity,StoreCompressionOptions,bool reencode,PagedRewriteMode,
-      std::optional<std::uint64_t> cold_after_generation) const;
+      std::optional<std::uint64_t> cold_after_generation,
+      std::function<bool(std::uint64_t)> reserve_writes={}) const;
   std::optional<NativeContentToken> maintenance_next(NativeExtentSelection,bool first) const;
   std::optional<NativeContentToken> maintenance_token(NativeExtentSelection);
   bool maintenance_matches(const NativeContentToken&) const noexcept;

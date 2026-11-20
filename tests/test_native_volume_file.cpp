@@ -41,24 +41,6 @@ void update(NativeFileSession& session,const Bytes& bytes) {
   session.write(handle,0,bytes);
   session.cleanup(handle,false);session.close(handle);
 }
-Bytes cold_test_payload(unsigned salt=0) {
-  std::vector<Bytes> vocabulary;
-  for(unsigned i=0;i<173;++i)vocabulary.push_back(data(11+i*29%75,82003+i*37+salt));
-  Bytes result;
-  result.reserve(24*kNativeExtentBytes);
-  for(unsigned i=0;i<24;++i) {
-    const auto choices=data(kNativeExtentBytes,180451+i*5);
-    const auto end=result.size()+kNativeExtentBytes;
-    for(std::size_t j=0;result.size()<end;++j) {
-      const auto key=std::to_integer<unsigned>(choices[j%choices.size()]);
-      const auto& part=vocabulary[key%vocabulary.size()];
-      const auto take=(std::min)(part.size(),end-result.size());
-      result.insert(result.end(),part.begin(),part.begin()+static_cast<std::ptrdiff_t>(take));
-      if(result.size()<end)result.push_back(choices[(j*47+19)%choices.size()]);
-    }
-  }
-  return result;
-}
 void cold_relocation(const Bytes& payload,bool require_reduction) {
   if(!store_zstd_available())return;
   const StoreCompressionOptions foreground=require_reduction?
@@ -411,6 +393,98 @@ void durable_cold_coverage() {
   std::cout<<"cold_coverage persisted_sequence=2 captured="<<saved.through_generation
       <<" matched_stored="<<matched<<" wider_stored="<<wider
       <<" selected_data_independent=1 binding_mismatches=6 malformed_pairs=1 interrupted_pairs=2\n";
+}
+
+void screened_cold_compaction() {
+  if(!store_zstd_available())return;
+  const StoreCompressionOptions foreground{StoreCompressionMode::fast,1,false};
+  const auto retained=cold_test_payload();
+  const auto additional=cold_test_payload(130011);
+  const Bytes sparse(640*1024);
+  enum class Scenario {copy,noise,foreground_commit,journal_fault};
+  unsigned successful=0;
+  for(const auto scenario:{Scenario::copy,Scenario::noise,Scenario::foreground_commit,Scenario::journal_fault}) {
+    auto io=std::make_shared<SparseVolumeRam>(4096);
+    auto expected=scenario==Scenario::noise?data(retained.size(),2382):retained;
+    const auto sibling=scenario==Scenario::noise?Bytes(1024*1024):additional;
+    std::uint64_t old_size=0,old_writes=0,old_settlement=0,new_settlement=0,new_size=0;
+    {
+      auto session=NativeVolumeFile::create(io,id(70),id(71),limits,foreground);
+      put(session,"payload",expected);
+      put(session,"sibling",sibling);
+      put(session,"sparse",sparse);
+      old_size=session.snapshot().storage_info().physical_end;
+      old_writes=io->io.write_bytes;
+      old_settlement=*session.optimization_info().settled_input_bytes;
+      if(scenario==Scenario::copy)io->admitted_growth=3*kStoreCommitUnit;
+      require(!session.persistent_reclamation_pending() && session.persistent_reclamation_pending(true),
+          "append-mostly data did not qualify for a screened cold pass");
+      require(session.advance_persistent_reclamation([]{return id(72);},true)==Reclaim::copying &&
+          io->io.write_bytes==old_writes,"starting a compression screen wrote data");
+      if(scenario==Scenario::foreground_commit) {
+        expected.front()^=std::byte{1};
+        const auto file=session.open("payload",{true,true,false});
+        session.write(file,0,std::span(expected).first(1));session.cleanup(file,false);session.close(file);
+        old_writes=io->io.write_bytes;
+      }
+      if(scenario==Scenario::journal_fault)io->io.fail_at=io->io.calls+1;
+      bool charged_before_copy=false;
+      auto progress=Reclaim::copying;
+      for(unsigned step=0;step<2000 && progress==Reclaim::copying;++step) {
+        progress=session.advance_persistent_reclamation({},true);
+        if(!charged_before_copy &&
+            io->allocated_extent(kNativeVolumeFileImageOffset+limits.maximum_physical_bytes,limits.maximum_physical_bytes)) {
+          const auto funding=session.optimization_info();
+          require(funding.sequence==2 && funding.settled_input_bytes &&
+              *funding.settled_input_bytes>old_settlement,"candidate wrote before its durable budget charge");
+          charged_before_copy=true;
+        }
+      }
+      if(scenario==Scenario::copy) {
+        require(progress==Reclaim::ready && charged_before_copy &&
+            session.advance_persistent_reclamation({},true)==Reclaim::published,"funded cold candidate did not publish");
+        new_size=session.snapshot().storage_info().physical_end;
+        new_settlement=*session.optimization_info().settled_input_bytes;
+        require(new_size<old_size && io->io.write_bytes-old_writes<=2*(new_settlement-old_settlement),
+            "cold copy failed its space benefit or exceeded its charge");
+        release_inactive(session);
+        require(!session.persistent_reclamation_pending(true),"successful cold copy immediately offered another pass");
+        ++successful;
+      }else {
+        require(!charged_before_copy && session.volume_info().selection.epoch==1,
+            "refused cold candidate crossed the image boundary");
+        if(scenario==Scenario::journal_fault) {
+          require(progress==Reclaim::failed && session.optimization_info().phase==NativeOptimizationPhase::terminal,
+              "journal fault did not fence further optional writes");
+        }else {
+          require((progress==Reclaim::idle || progress==Reclaim::retiring) &&
+              io->io.write_bytes==old_writes && session.optimization_info().settled_input_bytes==old_settlement,
+              "inconclusive or stale proof wrote storage");
+          release_inactive(session);
+          require(!session.persistent_reclamation_pending(true),"unchanged funding retried a rejected screen");
+        }
+      }
+    }
+    auto replayed=io->replay();
+    {
+      const auto view=NativeVolumeFile::inspect(replayed,id(70));
+      const auto& files=view.filesystem();
+      files.verify_all();
+      require(files.read("payload",0,static_cast<std::uint32_t>(expected.size()))==expected &&
+          files.read("sibling",0,static_cast<std::uint32_t>(sibling.size()))==sibling &&
+          files.read("sparse",0,static_cast<std::uint32_t>(sparse.size()))==sparse,
+          "screened compaction changed acknowledged file bytes");
+    }
+    if(scenario==Scenario::copy) {
+      auto reopened=NativeVolumeFile::resume(replayed,id(70),foreground);
+      require(reopened.optimization_info().settled_input_bytes==new_settlement,
+          "reopening restored spent rewrite credit");
+      std::cout<<"screened_cold old_image="<<old_size<<" new_image="<<new_size
+          <<" input_charge="<<new_settlement-old_settlement<<" incremental_growth=1\n";
+    }
+  }
+  std::cout<<"screened_cold published="<<successful
+      <<" negative_screen=1 foreground_cancellation=1 journal_failure=1 exact_readback=4\n";
 }
 
 void reclaimed_ranges() {
@@ -838,6 +912,10 @@ int main(int argc,char** argv){
     }
     if(argc==2 && std::string_view(argv[1])=="--cold-coverage") {
       durable_cold_coverage();
+      return 0;
+    }
+    if(argc==2 && std::string_view(argv[1])=="--screened-cold") {
+      screened_cold_compaction();
       return 0;
     }
     if(argc==3 && std::string_view(argv[1])=="--cold-corpus") {

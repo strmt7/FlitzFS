@@ -14,6 +14,24 @@ inline Bytes data(std::size_t n,unsigned seed) {
   for(auto& b:out){x^=x<<13;x^=x>>7;x^=x<<17;b=static_cast<std::byte>(x>>21);}
   return out;
 }
+inline Bytes cold_test_payload(unsigned salt=0) {
+  std::vector<Bytes> vocabulary;
+  for(unsigned i=0;i<173;++i)vocabulary.push_back(data(11+i*29%75,82003+i*37+salt));
+  Bytes result;
+  result.reserve(24*kNativeExtentBytes);
+  for(unsigned i=0;i<24;++i) {
+    const auto choices=data(kNativeExtentBytes,180451+i*5);
+    const auto end=result.size()+kNativeExtentBytes;
+    for(std::size_t j=0;result.size()<end;++j) {
+      const auto key=std::to_integer<unsigned>(choices[j%choices.size()]);
+      const auto& part=vocabulary[key%vocabulary.size()];
+      const auto take=(std::min)(part.size(),end-result.size());
+      result.insert(result.end(),part.begin(),part.begin()+static_cast<std::ptrdiff_t>(take));
+      if(result.size()<end)result.push_back(choices[(j*47+19)%choices.size()]);
+    }
+  }
+  return result;
+}
 inline void add_little_endian(std::span<std::byte> word,std::uint64_t value) {
   for(auto& byte:word) {
     const auto sum=std::to_integer<unsigned>(byte)+static_cast<unsigned>(value&255);

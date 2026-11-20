@@ -73,7 +73,7 @@ class NativeObjectWriter final {
       std::optional<PagedObjectStoreWriter::RebuildColdEncoding> cold={}) const {
     const auto* source=paged_if();
     if(!source)throw NativeFsError(NativeFsErrorCode::invalid_operation,"staged paged rebuild needs paged storage");
-    return source->prepare_rebuild_replacing(std::move(target),id,compression,root,reencode,identity_offset,mode,cold);
+    return source->prepare_rebuild_replacing(std::move(target),id,compression,root,reencode,identity_offset,mode,std::move(cold));
   }
   const ObjectStoreWriter* flat_if() const noexcept {return std::get_if<ObjectStoreWriter>(&value_);}
   bool poisoned() const noexcept {

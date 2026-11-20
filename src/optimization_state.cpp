@@ -375,6 +375,16 @@ struct OptimizationStateWriter::Impl {
     static_assert(std::is_nothrow_move_assignable_v<OptimizationSnapshot>);
     selected=std::move(observed);
   }
+  void publish_settlement(OptimizationState state,std::uint64_t settlement,
+      std::optional<OptimizationColdCoverage> cold,bool work_funded) {
+    require(selected.sequence!=(std::numeric_limits<std::uint64_t>::max)(),"optimization sequence exhausted");
+    state.settled_input_bytes=settlement;
+    state.payload_scrub=selected.state.payload_scrub;
+    state.cold_coverage=cold;
+    OptimizationSnapshot next{OptimizationReadCode::available,selected.volume,selected.sequence+1,false,std::move(state)};
+    io->admit_write(kOptimizationAreaBytes);
+    try{check();pair(next,0,work_funded);}catch(...){poisoned=true;throw;}
+  }
 };
 OptimizationStateWriter::OptimizationStateWriter(std::unique_ptr<Impl> p) noexcept:impl_(std::move(p)){}
 OptimizationStateWriter::OptimizationStateWriter(OptimizationStateWriter&&) noexcept=default;
@@ -493,15 +503,19 @@ OptimizationStateWriter::BudgetResult OptimizationStateWriter::publish_budgeted(
       additional_write_bytes>(input-settled-base_cost)/kOptimizationGroupScanInputPerWriteByte)
     return BudgetResult::deferred;
   const auto cost=base_cost+additional_write_bytes*kOptimizationGroupScanInputPerWriteByte;
-  require(p.selected.sequence!=(std::numeric_limits<std::uint64_t>::max)(),"optimization sequence exhausted");
-  OptimizationSnapshot next;next.code=OptimizationReadCode::available;next.volume=p.selected.volume;
-  next.sequence=p.selected.sequence+1;next.state=state;
-  next.state.settled_input_bytes=settled+cost;
-  next.state.payload_scrub=p.selected.state.payload_scrub;
-  next.state.cold_coverage=cold;
-  p.io->admit_write(kOptimizationAreaBytes);
-  try{p.check();p.pair(next,0,automatic_scan);}catch(...){p.poisoned=true;throw;}
+  p.publish_settlement(state,settled+cost,cold,automatic_scan);
   return BudgetResult::published;
+}
+bool OptimizationStateWriter::reserve_cold_compaction(std::uint64_t input,std::uint64_t cost,
+    std::optional<OptimizationColdCoverage> cold) {
+  require(impl_&&!impl_->poisoned&&!impl_->repair_pending&&impl_->selected.state.settled_input_bytes,
+      "no ready budgeted writer");
+  require(cost>=kOptimizationAreaBytes,"cold compaction charge must cover its advisory publication");
+  auto& p=*impl_;
+  const auto settled=*p.selected.state.settled_input_bytes;
+  if(input<settled || input-settled<cost)return false;
+  p.publish_settlement(p.selected.state,settled+cost,cold,true);
+  return true;
 }
 std::optional<OptimizationPayloadScrub> OptimizationStateWriter::payload_scrub_checkpoint() const noexcept {
   return poisoned()?std::nullopt:impl_->selected.state.payload_scrub;

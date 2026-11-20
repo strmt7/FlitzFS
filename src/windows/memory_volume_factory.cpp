@@ -78,7 +78,7 @@ std::shared_ptr<StoreByteIo> MemoryVolumeBacking::resolve_image(const StoreIdent
       alternate_ && domain->owns(*alternate_),"Unknown selected memory image");
   return alternate_;
 }
-bool MemoryVolumeBacking::compaction_pending(const NativeFileSession& session) const {
+bool MemoryVolumeBacking::compaction_pending(const NativeFileSession& session,bool allow_cold) const {
   if(phase_==CompactionPhase::retiring)return true;
   if(phase_==CompactionPhase::uncertain || session.poisoned())return false;
   if(!session.idle_compaction_context_ready())return false;
@@ -86,15 +86,15 @@ bool MemoryVolumeBacking::compaction_pending(const NativeFileSession& session) c
   if(const auto repair=session.indexed_capacity_repair_generation())return repair!=attempted_repair_;
   const auto space=session.indexed_volume_space();
   const auto obsolete=space.obsolete_bytes;
-  if(obsolete<=attempted_obsolete_ || obsolete-attempted_obsolete_<abandoned_bytes_)return false;
-  return space.reclamation_worthwhile();
+  return (obsolete>attempted_obsolete_ && obsolete-attempted_obsolete_>=abandoned_bytes_ &&
+      space.reclamation_worthwhile()) || (allow_cold && session.idle_cold_compaction_pending());
 }
 void MemoryVolumeBacking::retire_alternate(bool charge_attempt) {
   if(charge_attempt && alternate_)abandoned_bytes_=alternate_->extent();
   phase_=alternate_?CompactionPhase::retiring:CompactionPhase::idle;
 }
-MemoryCompactionStep MemoryVolumeBacking::advance_compaction(NativeFileSession& session) {
-  if(!compaction_pending(session))return MemoryCompactionStep::idle;
+MemoryCompactionStep MemoryVolumeBacking::advance_compaction(NativeFileSession& session,bool allow_cold) {
+  if(!compaction_pending(session,allow_cold))return MemoryCompactionStep::idle;
   if(phase_==CompactionPhase::retiring) {
     switch(domain->retire_store(alternate_)) {
       case MemoryStoreRetirement::pinned:return MemoryCompactionStep::pinned;
@@ -105,12 +105,16 @@ MemoryCompactionStep MemoryVolumeBacking::advance_compaction(NativeFileSession& 
   }
   try {
     if(phase_==CompactionPhase::idle) {
-      attempted_repair_=session.indexed_capacity_repair_generation();
-      attempted_obsolete_=session.indexed_volume_space().obsolete_bytes;
-      abandoned_bytes_=0;
+      const bool reclaim=compaction_pending(session,false);
+      if(reclaim) {
+        attempted_repair_=session.indexed_capacity_repair_generation();
+        attempted_obsolete_=session.indexed_volume_space().obsolete_bytes;
+        abandoned_bytes_=0;
+      }
       alternate_identity_=fresh_volume_identity();
       alternate_=domain->create_store(layout.image_capacity);
-      if(!session.begin_idle_compaction(alternate_,alternate_identity_,PagedRewriteMode::reconcile_foreground)) {
+      if(!session.begin_idle_compaction(alternate_,alternate_identity_,
+          reclaim?PagedRewriteMode::reconcile_foreground:PagedRewriteMode::cold_compression)) {
         retire_alternate(false);
         return MemoryCompactionStep::retiring;
       }
@@ -122,6 +126,8 @@ MemoryCompactionStep MemoryVolumeBacking::advance_compaction(NativeFileSession& 
         case NativeFileSession::RecompressionProgress::copying:return MemoryCompactionStep::copying;
         case NativeFileSession::RecompressionProgress::ready:
           phase_=CompactionPhase::ready;return MemoryCompactionStep::ready;
+        case NativeFileSession::RecompressionProgress::declined:
+          retire_alternate(false);return MemoryCompactionStep::retiring;
         case NativeFileSession::RecompressionProgress::stale:
           retire_alternate(true);return MemoryCompactionStep::retiring;
       }

@@ -29,6 +29,11 @@ void admit_empty(const std::shared_ptr<StoreByteIo>& io) {
 void retire(NativeFilesystemWriter& writer) noexcept {
   auto retired=std::move(writer); // Its destructor really releases the writer lease.
 }
+std::uint64_t cold_compaction_input_cost(std::uint64_t candidate_writes) noexcept {
+  // Cover the selector, advisory pair and private copy. At most two
+  // maintenance bytes may be reserved per settled foreground input byte.
+  return candidate_writes/2+candidate_writes%2+(kVolumeHeadBytes+kOptimizationAreaBytes)/2;
+}
 NativeFilesystemWriter resume_image(const std::shared_ptr<StoreByteIo>& image,
     const NativeFilesystemSnapshot& view,StoreCompressionOptions compression) {
   const auto storage=view.image_storage();
@@ -106,6 +111,7 @@ struct NativeFileSession::Impl {
   std::uint64_t evaluated_generation=0;
   bool evaluated_capacity_repair=false;
   std::optional<OptimizationColdCoverage> cold_coverage;
+  std::uint64_t cold_screen_input_floor=0;
   // Destruction order retires the image writer BEFORE releasing the head owner.
   std::unique_ptr<VolumeOwner> volume;
   // Retire data/advisory writers before the head owner.
@@ -137,11 +143,14 @@ struct NativeFileSession::Impl {
         !optimization->writer || optimization->writer->poisoned())return nullptr;
     return &*optimization->writer;
   }
-  OptimizationStateWriter* ready_scan_advice() const noexcept {
-    if(!volume || volume->pending || recompression || !optimization || !optimization->budgeted ||
+  OptimizationStateWriter* ready_funded_advice() const noexcept {
+    if(!volume || volume->pending || !optimization || !optimization->budgeted ||
         optimization->phase!=NativeOptimizationPhase::ready || !optimization->writer ||
         optimization->writer->poisoned() || optimization->writer->budget_repair_pending())return nullptr;
     return &*optimization->writer;
+  }
+  OptimizationStateWriter* ready_scan_advice() const noexcept {
+    return recompression?nullptr:ready_funded_advice();
   }
   bool scan_advice_funded() const noexcept {
     const auto* advice=ready_scan_advice();
@@ -189,11 +198,24 @@ struct NativeFileSession::Impl {
     return settled && input>=*settled && input-*settled>=kOptimizationGroupScanInputBytes &&
         (input-*settled-kOptimizationGroupScanInputBytes)/kOptimizationGroupScanInputPerWriteByte>=progress.required_write_bytes;
   }
-  void retire_failed_scan_charge(const OptimizationStateWriter& advice,std::uint64_t input) noexcept {
+  void retire_failed_advice_charge(const OptimizationStateWriter& advice,std::uint64_t input) noexcept {
     if(!advice.poisoned())return;
     optimization->phase=NativeOptimizationPhase::terminal;
     optimization->read_code=OptimizationReadCode::io_failure;
     budget_loss_input=input;
+  }
+  bool reserve_cold_compaction(std::uint64_t bytes) {
+    auto* advice=ready_funded_advice();
+    if(!advice)return false;
+    const auto input=writer.snapshot().workload_info();
+    if(!input.enabled)return false;
+    try {
+      return advice->reserve_cold_compaction(input.committed_input_bytes,
+          cold_compaction_input_cost(bytes),current_cold_coverage());
+    }catch(...) {
+      retire_failed_advice_charge(*advice,input.committed_input_bytes);
+      throw;
+    }
   }
   bool charge_coherence_copy(std::uint64_t bytes) {
     auto* advice=ready_scan_advice();
@@ -206,7 +228,7 @@ struct NativeFileSession::Impl {
       return advice->publish_budgeted(state,actual.committed_input_bytes,current_cold_coverage(),true,bytes)==
           OptimizationStateWriter::BudgetResult::published;
     }catch(...) {
-      retire_failed_scan_charge(*advice,actual.committed_input_bytes);
+      retire_failed_advice_charge(*advice,actual.committed_input_bytes);
       throw;
     }
   }
@@ -345,7 +367,7 @@ struct NativeFileSession::Impl {
            advice.publish_budgeted(state,actual.committed_input_bytes,current_cold_coverage(),true)==
                OptimizationStateWriter::BudgetResult::published);
     }catch(...) {
-      retire_failed_scan_charge(advice,actual.committed_input_bytes);
+      retire_failed_advice_charge(advice,actual.committed_input_bytes);
       throw;
     }
   }
@@ -702,17 +724,17 @@ bool NativeFileSession::checkpoint_indexed_payload_scrub() {
     return false;
   }
 }
-bool NativeFileSession::persistent_reclamation_pending() const {
-  return !poisoned() && impl_->persistent_reclaimer && impl_->persistent_reclaimer->pending(*this);
+bool NativeFileSession::persistent_reclamation_pending(bool allow_cold) const {
+  return !poisoned() && impl_->persistent_reclaimer && impl_->persistent_reclaimer->pending(*this,allow_cold);
 }
 void NativeFileSession::bind_persistent_reclamation_wake(
     const std::shared_ptr<detail::NativeVolumeRangeWake>& wake) noexcept {
   if(impl_ && impl_->persistent_reclaimer)impl_->persistent_reclaimer->bind_wake(wake);
 }
 NativeVolumeReclaimProgress NativeFileSession::advance_persistent_reclamation(
-    const std::function<StoreIdentity()>& next_identity) {
+    const std::function<StoreIdentity()>& next_identity,bool allow_cold) {
   auto& self=ready();
-  return self.persistent_reclaimer?self.persistent_reclaimer->advance(*this,next_identity):
+  return self.persistent_reclaimer?self.persistent_reclaimer->advance(*this,next_identity,allow_cold):
       NativeVolumeReclaimProgress::idle;
 }
 void NativeFileSession::cancel_persistent_reclamation() noexcept {
@@ -1054,6 +1076,23 @@ bool NativeFileSession::idle_compaction_context_ready() const noexcept {
       impl_->volume->head->info().selection.storage.kind==NativeImageKind::indexed_paged &&
       handoff_contexts_resolved(*impl_);
 }
+bool NativeFileSession::idle_cold_compaction_pending() const noexcept {
+  if(!idle_compaction_context_ready())return false;
+  const auto& self=*impl_;
+  if(self.recompression || self.volume->foreground.mode==StoreCompressionMode::raw || !store_zstd_available() ||
+      self.writer.indexed_capacity_repair_generation() ||
+      (self.evaluated_image==self.volume->active_id &&
+       self.evaluated_generation==self.writer.recompression_generation()))return false;
+  const auto* advice=self.ready_funded_advice();
+  if(!advice)return false;
+  const auto settled=advice->budget_settlement();
+  const auto input=self.writer.workload_info();
+  const auto end=self.writer.maintenance_physical_end();
+  if(!settled || !input.enabled || !end)return false;
+  const auto floor=(std::max)(*settled,self.cold_screen_input_floor);
+  return input.committed_input_bytes>=floor &&
+      input.committed_input_bytes-floor>=cold_compaction_input_cost(end);
+}
 
 void NativeFileSession::begin_handoff(Impl& self,NativeFilesystemSnapshot baseline,
     std::shared_ptr<StoreByteIo> target,StoreIdentity next) {
@@ -1152,6 +1191,8 @@ bool NativeFileSession::begin_idle_compaction_impl(std::shared_ptr<StoreByteIo> 
   if(!self.volume || self.volume->head->info().selection.storage.kind!=NativeImageKind::indexed_paged)
     fail(E::invalid_options,"idle compaction requires a managed indexed image");
   const auto generation=self.writer.recompression_generation();
+  const bool screened=mode==PagedRewriteMode::cold_compression;
+  if(screened && !idle_cold_compaction_pending())return false;
   const bool capacity_repair=mode==PagedRewriteMode::reconcile_foreground &&
       self.writer.indexed_capacity_repair_generation();
   if(!self.recompression && self.evaluated_image==self.volume->active_id &&
@@ -1161,12 +1202,17 @@ bool NativeFileSession::begin_idle_compaction_impl(std::shared_ptr<StoreByteIo> 
   admit_empty(target);
   const auto foreground=self.volume->foreground;
   std::optional<std::uint64_t> cold_after;
-  if(mode==PagedRewriteMode::reconcile_foreground && !capacity_repair &&
+  if(mode!=PagedRewriteMode::exact_checkpoint && !capacity_repair &&
       foreground.mode!=StoreCompressionMode::raw && store_zstd_available()) {
     const auto saved=self.current_cold_coverage();
     cold_after=saved?saved->through_generation:0;
   }
-  auto rebuild=self.writer.prepare_paged_recompression_impl(target,next,foreground,false,mode,cold_after);
+  std::function<bool(std::uint64_t)> reserve;
+  if(screened) {
+    self.cold_screen_input_floor=self.writer.workload_info().committed_input_bytes;
+    reserve=[owner=&self](std::uint64_t bytes){return owner->reserve_cold_compaction(bytes);};
+  }
+  auto rebuild=self.writer.prepare_paged_recompression_impl(target,next,foreground,false,mode,cold_after,std::move(reserve));
   self.recompression=std::make_unique<Impl::StagedRecompression>(
       Impl::StagedRecompression{std::move(target),next,std::move(rebuild),true});
   self.evaluated_image=self.volume->active_id;
@@ -1183,6 +1229,7 @@ bool NativeFileSession::idle_compaction_preparation_pending() const noexcept {
   const auto phase=work->progress().phase;
   return phase==Phase::verifying_source || phase==Phase::copying || phase==Phase::building_index ||
       phase==Phase::verifying_target || phase==Phase::verifying_publication ||
+      phase==Phase::screening_compression ||
       phase==Phase::reconciling || phase==Phase::verifying_reconciliation ||
       (phase==Phase::ready && !impl_->writer.paged_recompression_ready(*work));
 }
@@ -1211,7 +1258,12 @@ NativeFileSession::RecompressionProgress NativeFileSession::advance_recompressio
     auto& work=self.recompression->work;
     if(auto* paged=std::get_if<PagedObjectStoreWriter::Rewrite>(&work)) {
       if(object_id || !matches.empty())fail(E::invalid_options,"indexed compaction preserves object encodings");
-      return self.writer.advance_paged_recompression(*paged)?RecompressionProgress::ready:RecompressionProgress::copying;
+      if(self.writer.advance_paged_recompression(*paged))return RecompressionProgress::ready;
+      if(paged->progress().phase==PagedRewritePhase::declined) {
+        self.recompression.reset();
+        return RecompressionProgress::declined;
+      }
+      return RecompressionProgress::copying;
     }
     auto& flat=std::get<NativeFilesystemWriter::Recompression>(work);
     return NativeFilesystemWriter::advance_recompression(flat,object_id,matches)?

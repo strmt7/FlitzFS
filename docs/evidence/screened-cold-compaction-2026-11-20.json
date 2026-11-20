@@ -1,0 +1,281 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "capture_local": "2026-11-20T17:39:05+01:00",
+  "source_base": "b3b8670438354555c797f7cbc639bb3cb8c5140d",
+  "source_binding": {
+    "CMakeLists.txt": {
+      "git_blob": "3d853058ef41a49f142d1a97b3e282cc87b41b31",
+      "sha256": "9b6c4c4304c480c31003a2c4bcce46bc52525eec8e3a52a60435cbd6229bae56"
+    },
+    "include/flitzfs/native_filesystem.hpp": {
+      "git_blob": "a9181a0e73bdccddbf94736c5486fbadcaa8864f",
+      "sha256": "047cf83f079ff1aaaf00a5cd1a1ef1c5b20ac72d7ba21774271db2c653b5438e"
+    },
+    "include/flitzfs/native_session.hpp": {
+      "git_blob": "a83de571598717f94df2de3f578c517b30827811",
+      "sha256": "323a22c13a8b8f1901602645e86c16e4374126f24f1bfe49bfae7b192c9ed6f2"
+    },
+    "include/flitzfs/optimization_state.hpp": {
+      "git_blob": "d38815d01c15c603dfd5955c8d431c675d99e6a1",
+      "sha256": "e9075e8a1013446117d2cab7ce179f9e0532734c2bcd3e95a6fa998d41362a2a"
+    },
+    "include/flitzfs/paged_store.hpp": {
+      "git_blob": "d6c52f69cf6756ba3d9c8c4a991f6af407e97692",
+      "sha256": "d09a90f271207a447c56a8a19a15d29a3a651237e655e61ff7f03d349d886eab"
+    },
+    "src/native_filesystem.cpp": {
+      "git_blob": "2f3c74bc11e9b65419a663ba32b13b86dccf2ac1",
+      "sha256": "2f623979f2927a1828c61333ab5afaf9b198a967648ad732d76855e8bfc19e98"
+    },
+    "src/native_object_storage.hpp": {
+      "git_blob": "fdee8dd2da372ca9a06ee4214375f7da187e80e6",
+      "sha256": "f928329e60d421b6a51b0db1d1df8bd8f1a0dcddd6b866008d621e6dd53c77dd"
+    },
+    "src/native_session.cpp": {
+      "git_blob": "623e2df1a6558fc8789b0fa9a50a305886b263ed",
+      "sha256": "80c26ee5610aecd948778e719724563094fe6aa6d0160d3a2e4fd6206e6033b3"
+    },
+    "src/native_volume_file.cpp": {
+      "git_blob": "7e720c6319d1f9728f6e5c913f19569e58d711b4",
+      "sha256": "1d3faf1f524ed9359ee4119c824ae786c82014eda5d379607b2331da31ef0d25"
+    },
+    "src/native_volume_file_reclaimer.hpp": {
+      "git_blob": "e124de7b14dec938b71f2f55af2bc89a69c75810",
+      "sha256": "f1b5cd68e10ca02217f41cdbe28d1cd70f0baa1e6e8a2798c03207b2fa5f0ab4"
+    },
+    "src/optimization_state.cpp": {
+      "git_blob": "679317ed3dd7ffbd91d7d8db8d5d90f928d9c80b",
+      "sha256": "b2504fa5aaa72fb0213f740430c317de3940c0a7772332c09222c94e4e189ad7"
+    },
+    "src/paged_store.cpp": {
+      "git_blob": "65217ef8d9d668a4fb22de177ec33aea51b75632",
+      "sha256": "6a49c5b1317ed2941562fd65fe8f9e098bb6d56641345b1532fe2c3ba570dac3"
+    },
+    "src/windows/memory_volume_factory.cpp": {
+      "git_blob": "f156526c04fda9ea715c06ea7db0cd0fec4b45bb",
+      "sha256": "67fc50306476c7df003ee5dfc9a3dda6f157f0dab5c77fcf8153f788408464b3"
+    },
+    "src/windows/memory_volume_factory.hpp": {
+      "git_blob": "51d92336f8c2d4c510eb14648ffe8744e2238ad8",
+      "sha256": "ce877c2bfbcff1958603c9d6c06dc4250b5d0e80581e55f72d56cc09362eaadb"
+    },
+    "src/windows/winfsp_native.cpp": {
+      "git_blob": "29abf8a21b8126db5e0c7df8000f11d8729caa5f",
+      "sha256": "5eec9bbf84cd231ed1eb706d02022ccf51a7d8cfb2d6bace6f036289540a1da0"
+    },
+    "tests/native_fs_fixture.hpp": {
+      "git_blob": "2a2e94fe468e66993fbcb8c3bc99ecc24d8c5c2f",
+      "sha256": "a82a4129236e3d9ba99c2ba9ca863c402126700c88facd3d9d5664d7a7ad4883"
+    },
+    "tests/test_native_volume_file.cpp": {
+      "git_blob": "3531a36b9c7ec97c2df8208177d86739849d9e64",
+      "sha256": "7ed09280045bc75d1ca84bbceb7d22eed9b2458b4c26a71497732ec9cade9d95"
+    },
+    "tests/test_winfsp_controller.cpp": {
+      "git_blob": "c26736168db811cea3d0182b8eb3425750e600ab",
+      "sha256": "596947b8b9d10974d2c9c782820ff60ba608aea79327bb06f40923dd5debe712"
+    }
+  },
+  "host": {
+    "os": "Microsoft Windows 11 Pro",
+    "build": 26300,
+    "gpu": "AMD Radeon RX 9070 XT",
+    "driver": "32.0.32029.2010"
+  },
+  "navigation": {
+    "commit": "b3b8670438354555c797f7cbc639bb3cb8c5140d",
+    "provider_version": "0.2.43",
+    "inventory_sha256": "bf9050be5aaee0e4953a1da4a7e25b8dee80e490724c73f1b99a05090f81b4ed",
+    "native_response_sha256": "f1b4950bb38746425d0f68fb97286c588fbf651e793ecf2cf822e7702f165805",
+    "query": "Find the ordinary Windows background inactivity and image-copy admission path. How can real measured indexed cold compression savings trigger a smaller verified image on quiet newly written data when obsolete history does not yet justify reclaiming the volume?",
+    "actual_searches": 1
+  },
+  "research": {
+    "provider": "0.9.5+flitzzip.portable2",
+    "robots": true,
+    "external_llm": false,
+    "pages": [
+      {
+        "url": "https://bcachefs-docs.readthedocs.io/en/latest/feat-compression.html",
+        "success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 3462,
+        "markdown_sha256": "258b23ee3fde662b15a7feb9077988f51c4eec41f9bfc84e3f82c7f19b39a6ce",
+        "capture_sha256": "db34add8ad24a7c47e8ad616b5870445762a72fc928cd83a3a57fe5ea140a3ed",
+        "error": ""
+      },
+      {
+        "url": "https://linux.googlesource.com/linux/kernel/git/torvalds/linux/%2B/e34881c84c255bc300f24d9fe685324be20da3d1/fs/btrfs/compression.c",
+        "success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 65551,
+        "markdown_sha256": "bd4a5a682744a51d4a1b1b4e30b08e2cbd2c47407c17f01418a6954353000536",
+        "capture_sha256": "bef020d8bd4c4721bde5fbcfbe5575b9d59598f1fd4e3f2e09c698b80fdfd3ba",
+        "error": ""
+      }
+    ]
+  },
+  "lanes": [
+    {
+      "lane": "Windows SDK Release",
+      "run": "local-run-11178bdf28c044538c1990a7366b0ab3",
+      "output_sha256": "77633e04c530ed96da477498dd08ec1b4456724b886b61bb31be88bfc6ee8733",
+      "exit_code": 0,
+      "peak_job_bytes": 166031360,
+      "inherited_error_mode": 32771,
+      "tree_retired": true,
+      "residual_children": 0,
+      "passed": [
+        "optimization_budget_crash_model",
+        "optimization_state_crash_model",
+        "bounded_native_store_compression",
+        "bounded_paged_object_store",
+        "bounded_paged_mirrored_payloads",
+        "bounded_native_indexed_group_maintenance",
+        "bounded_native_indexed_group_resume",
+        "bounded_native_indexed_group_coherence",
+        "bounded_native_indexed_projected_coherence",
+        "bounded_native_indexed_group_advice",
+        "bounded_native_indexed_change_discovery",
+        "bounded_native_volume_file",
+        "bounded_native_cold_relocation",
+        "bounded_native_cold_coverage",
+        "bounded_native_screened_cold",
+        "bounded_winfsp_controller",
+        "bounded_winfsp_memory_volume",
+        "bounded_winfsp_indexed_memory",
+        "bounded_winfsp_volume_file"
+      ]
+    },
+    {
+      "lane": "MSVC AddressSanitizer",
+      "run": "local-run-1840db03d853475ab5ffe59034e5cd6d",
+      "output_sha256": "1ee7c8ddb811d9d336bc69f41a81b648ede774091b0fd28901f1209cd8b82ba6",
+      "exit_code": 0,
+      "peak_job_bytes": 881332224,
+      "inherited_error_mode": 32771,
+      "tree_retired": true,
+      "residual_children": 0,
+      "passed": [
+        "windows_asan_runtime_preflight",
+        "optimization_budget_crash_model",
+        "optimization_state_crash_model",
+        "bounded_paged_object_store",
+        "bounded_paged_mirrored_payloads",
+        "bounded_native_volume_file",
+        "bounded_native_cold_relocation",
+        "bounded_native_cold_coverage",
+        "bounded_native_screened_cold",
+        "unattended_windows_launcher",
+        "windows_asan_staging_regression"
+      ]
+    },
+    {
+      "lane": "Raw-only Release",
+      "run": "local-run-21bce44d6e5e4a7086727f16a0f2b0b0",
+      "output_sha256": "b8daf4b6b8295fcfb789c91662f7f3d8e9adcccff7851d95e934974b691d275c",
+      "exit_code": 0,
+      "peak_job_bytes": 87289856,
+      "inherited_error_mode": 32771,
+      "tree_retired": true,
+      "residual_children": 0,
+      "passed": [
+        "optimization_budget_crash_model",
+        "bounded_native_store_compression",
+        "bounded_paged_object_store",
+        "bounded_native_volume_file"
+      ]
+    }
+  ],
+  "native_fixture": {
+    "old_image": 6561792,
+    "new_image": 1392640,
+    "input_charge": 3416064,
+    "incremental_growth": 1,
+    "published": 1,
+    "negative_screen": 1,
+    "foreground_cancellation": 1,
+    "journal_failure": 1,
+    "exact_readback": 4
+  },
+  "public_corpora": [
+    {
+      "name": "code",
+      "bytes": 921886,
+      "sha256": "207833fc654288cd2ac351e5b21160440ab39e208ed6a28d0637f3eca155283a",
+      "run": "local-run-d36b92a9041847e39d7b4fcdad3f00b1",
+      "output_sha256": "0a27eb1f77987880b3d9c0f620668b01182d1321dd8b4b4d2d242fa1721fb524",
+      "exit_code": 0,
+      "peak_job_bytes": 51523584,
+      "inherited_error_mode": 32771,
+      "tree_retired": true,
+      "residual_children": 0,
+      "compacted": 1,
+      "foreground_yield": 1,
+      "fresh_budget_boundary": 1,
+      "exact_readback": 1,
+      "old_image": 606208,
+      "new_image": 360448,
+      "lower_fraction": 0.40540540540540543
+    },
+    {
+      "name": "docs",
+      "bytes": 906105,
+      "sha256": "a160a4aa54cfa2b6b546807508dbc8a139f9ff4896f93371f4bd9afd0871d1f2",
+      "run": "local-run-7f8f34b8c7444eabb0a1d2c31aae1b33",
+      "output_sha256": "53df86e3f06281307e90f12aff3ebf6fdc46a6a6fd5656e1a91599c7009397ad",
+      "exit_code": 0,
+      "peak_job_bytes": 50528256,
+      "inherited_error_mode": 32771,
+      "tree_retired": true,
+      "residual_children": 0,
+      "compacted": 1,
+      "foreground_yield": 1,
+      "fresh_budget_boundary": 1,
+      "exact_readback": 1,
+      "old_image": 786432,
+      "new_image": 425984,
+      "lower_fraction": 0.4583333333333333
+    },
+    {
+      "name": "mixed",
+      "bytes": 950347,
+      "sha256": "71cd91ba97593b01883d93ccddd5cf0bb28ed802b1219d83942de26b52a962ef",
+      "run": "local-run-dbb07001babb4e219c56125df5e53e85",
+      "output_sha256": "4632a29fa14185a1c5bbdda91ce3583bad5099acbf14755ada12a4a3e43336ff",
+      "exit_code": 0,
+      "peak_job_bytes": 51101696,
+      "inherited_error_mode": 32771,
+      "tree_retired": true,
+      "residual_children": 0,
+      "compacted": 1,
+      "foreground_yield": 1,
+      "fresh_budget_boundary": 1,
+      "exact_readback": 1,
+      "old_image": 622592,
+      "new_image": 376832,
+      "lower_fraction": 0.39473684210526316
+    }
+  ],
+  "amd_smoke": {
+    "run": "local-run-6b2676ef31e646b58e475abeeccfc5c7",
+    "output_sha256": "44732fde5108af14f5e0e921b26cad696575fdc02e4fd12a5ac8c6de858389b9",
+    "exit_code": 0,
+    "peak_job_bytes": 120143872,
+    "inherited_error_mode": 32771,
+    "tree_retired": true,
+    "residual_children": 0,
+    "cohort": "revision-corpus",
+    "verified_batches": 1,
+    "advised_members": 12,
+    "independent_cpu_readback": true,
+    "compacted_bytes": 319488,
+    "worker_sha256": "204427712a65191b8010991b3ab55561958c5dae652447ebc9cd08038dc6a2fb",
+    "module_sha256": "9aad995bc1b2e330a8f24f76dcc5eaa9edc8f96351c999f10712aef0be33467d",
+    "runtime_basename": "amdhip64_7.dll"
+  },
+  "scope": "The public-derived code, documentation and mixed corpora ran through native Windows SDK callbacks, using modeled observations and memory-backed paired ranges. Complete image sizes include packed metadata and retired history. The native interruption checks model the qualified write and flush contract. The AMD run exercises the existing grouping route with a real device. Mounted throughput, physical power-loss qualification and hardware-scale wear remain open."
+}

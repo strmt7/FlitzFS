@@ -35,8 +35,8 @@ struct MemoryVolumeBacking {
   ReadOnlyProjection open_read_only();
   // Called with the same volume lock as foreground I/O. The scheduler must
   // admit each opportunity with live resource and contention observations.
-  bool compaction_pending(const NativeFileSession&) const;
-  MemoryCompactionStep advance_compaction(NativeFileSession&);
+  bool compaction_pending(const NativeFileSession&,bool allow_cold=false) const;
+  MemoryCompactionStep advance_compaction(NativeFileSession&,bool allow_cold=false);
   void cancel_compaction(NativeFileSession&) noexcept;
   // Owning controller and all of its callbacks must already have joined.
   void release_unselected_after_join() noexcept;

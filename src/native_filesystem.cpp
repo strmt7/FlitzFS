@@ -2084,7 +2084,8 @@ PagedObjectStoreWriter::Rewrite NativeFilesystemWriter::prepare_paged_recompress
 }
 PagedObjectStoreWriter::Rewrite NativeFilesystemWriter::prepare_paged_recompression_impl(
     std::shared_ptr<StoreByteIo> target,StoreIdentity id,StoreCompressionOptions compression,bool reencode,
-    PagedRewriteMode mode,std::optional<std::uint64_t> cold_after_generation) const {
+    PagedRewriteMode mode,std::optional<std::uint64_t> cold_after_generation,
+    std::function<bool(std::uint64_t)> reserve_writes) const {
   if(poisoned() || !impl_->objects.paged_if())
     fail(Code::invalid_operation,"staged paged rebuild needs a healthy paged writer");
   if(impl_->indexed) {
@@ -2095,12 +2096,10 @@ PagedObjectStoreWriter::Rewrite NativeFilesystemWriter::prepare_paged_recompress
       std::optional<PagedObjectStoreWriter::RebuildColdEncoding> cold;
       if(cold_after_generation) {
         cold.emplace(PagedObjectStoreWriter::RebuildColdEncoding{*cold_after_generation,
-            [](std::uint64_t object) noexcept {
-              return object>detail::kNativeIndexedDataObject && object<2*detail::kNativeIndexedDataObject;
-            }});
+            detail::kNativeIndexedDataObject+1,2*detail::kNativeIndexedDataObject,std::move(reserve_writes)});
       }
       return impl_->objects.prepare_paged_rebuild(std::move(target),id,root,compression,reencode,
-          detail::kIndexedVolumeIdentityOffset,mode,cold);
+          detail::kIndexedVolumeIdentityOffset,mode,std::move(cold));
     }catch(const std::bad_alloc&){fail(Code::limit,"staged indexed preparation allocation failure");}
     catch(const NativeFsError&){throw;}
     catch(const std::exception&){fail(Code::storage_failure,"staged indexed preparation failed");}

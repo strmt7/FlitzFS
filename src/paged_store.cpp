@@ -2,6 +2,7 @@
 #include "record_digest.hpp"
 #include "store_codec.hpp"
 #include <algorithm>
+#include <bit>
 #include <limits>
 #include <stdexcept>
 #include <string>
@@ -299,6 +300,38 @@ std::optional<Entry> lookup(const State& s,std::uint64_t id,LookupPages* scoped=
     r=*i;
   }
   fail("lookup depth");
+}
+std::uint64_t rank_before(const State& s,std::uint64_t id) {
+  std::uint64_t count=0;
+  auto ref=s.root;
+  while(ref.count && id>ref.first) {
+    if(id>ref.last)return add(count,ref.count);
+    const auto node=read_node(s,ref);
+    if(!ref.height) {
+      const auto first=std::ranges::lower_bound(node.entries,id,{},&Entry::id);
+      return add(count,static_cast<std::uint64_t>(first-node.entries.begin()));
+    }
+    auto child=node.children.begin();
+    for(;child!=node.children.end() && child->last<id;++child)count=add(count,child->count);
+    if(child==node.children.end())fail("compression sampling rank");
+    ref=*child;
+  }
+  return count;
+}
+Entry entry_at_rank(const State& s,std::uint64_t rank) {
+  if(rank>=s.root.count)fail("compression sampling bounds");
+  auto ref=s.root;
+  for(;;) {
+    const auto node=read_node(s,ref);
+    if(!ref.height)return node.entries.at(static_cast<std::size_t>(rank));
+    auto child=node.children.begin();
+    while(child!=node.children.end() && rank>=child->count) {
+      rank-=child->count;
+      ++child;
+    }
+    if(child==node.children.end())fail("compression sampling rank");
+    ref=*child;
+  }
 }
 using RecordHeader=std::array<std::byte,record_header_bytes>;
 struct ObjectRecord {RecordHeader header{};Bytes payload;bool recovered_primary=false;};
@@ -869,6 +902,9 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
   std::size_t replacement_identity_offset;
   std::optional<RebuildRetention> retention;
   std::optional<RebuildColdEncoding> cold;
+  struct CompressionScreen {
+    std::uint64_t start=0,count=0,samples=0,completed=0,compared=0,saved=0;
+  } screen;
   struct RetainedInventory {
     std::uint64_t objects=0,logical=0,stored=0;
     Digest digest{};
@@ -899,12 +935,15 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
       std::size_t identity_offset,std::optional<RebuildRetention> filter,PagedRewriteMode rewrite_mode,
       std::optional<RebuildColdEncoding> cold_encoding)
       :original(writer.state),owner(writer.owner),replacement_identity_offset(identity_offset),
-       retention(std::move(filter)),cold(cold_encoding),reencode(encode),mode(rewrite_mode) {
-    if(mode==PagedRewriteMode::reconcile_foreground && (retention || root.empty() || encode))
+       retention(std::move(filter)),cold(std::move(cold_encoding)),reencode(encode),mode(rewrite_mode) {
+    if(mode!=PagedRewriteMode::exact_checkpoint && (retention || root.empty() || encode))
       fail("foreground reconciliation requires a lossless native identity-only rebuild");
-    if(cold && (!cold->eligible || mode!=PagedRewriteMode::reconcile_foreground ||
-        cold->after_generation>original.generation))
+    const bool screened=mode==PagedRewriteMode::cold_compression;
+    if((screened && !cold) || (cold && (mode==PagedRewriteMode::exact_checkpoint || !cold->first_object ||
+        cold->first_object>=cold->past_last_object || cold->after_generation>original.generation ||
+        bool(cold->reserve_writes)!=screened)))
       fail("cold encoding requires a bound indexed reconciliation");
+    if(screened)phase=PagedRewritePhase::screening_compression;
     if(cold)cold_through=original.generation;
     if(mode==PagedRewriteMode::reconcile_foreground && writer.payload_repairs &&
         writer.payload_repairs->blocked_generation==original.generation && writer.payload_repairs->blocked_record) {
@@ -962,6 +1001,35 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
     walk(input,input.root,after,visitor,done);
     return completed!=before;
   }
+  void measure_compression() {
+    auto& work=screen;
+    if(!work.samples) {
+      work.start=rank_before(original,cold->first_object);
+      const auto end=rank_before(original,cold->past_last_object);
+      if(end<=work.start) {phase=PagedRewritePhase::declined;return;}
+      work.count=end-work.start;
+      work.samples=(std::min)(work.count,2*static_cast<std::uint64_t>(std::bit_width(work.count)));
+    }
+    // Divide the live data ranks into disjoint intervals and sample one
+    // record from each. All multiplication stays within the live count.
+    const auto width=work.count/work.samples,remainder=work.count%work.samples;
+    const auto extra=work.completed<remainder?1U:0U;
+    const auto begin=width*work.completed+(std::min)(work.completed,remainder);
+    const auto entry=entry_at_rank(original,work.start+begin+(width+extra)/2);
+    if(!cold->eligible(entry.id))fail("compression sample outside data range");
+    work.compared+=record_header_bytes+entry.stored;
+    if(entry.generation>cold->after_generation && entry.stored>16) {
+      const auto decoded=read_object(original,entry);
+      const auto result=target->encoder.try_cold_encoding(decoded,entry.stored);
+      if(result.smaller)work.saved+=entry.stored-result.smaller->payload.size();
+    }
+    if(++work.completed==work.samples) {
+      // Limit private full-image writes on weak samples. The proof remains
+      // advisory. Final publication requires a verified smaller image.
+      phase=work.saved>=round_up_divide(work.compared,32)?
+          PagedRewritePhase::verifying_source:PagedRewritePhase::declined;
+    }
+  }
   void begin_copy(const State& current) {
     source_check(current);
     if(capacity_damage) {
@@ -972,7 +1040,18 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
       if(!repair_confirmed && projected>=source_extent)
         capacity("staged repair found neither the reported fault nor a smaller image");
     }
-    build.next.image->admit_write(start+2*build.next.unit);
+    const auto initial_end=start+2*build.next.unit;
+    if(mode==PagedRewriteMode::cold_compression && original.end<initial_end) {
+      phase=PagedRewritePhase::declined;
+      return;
+    }
+    // Memory providers commit on admission. Admit only the first bounded
+    // growth here. Subsequent records admit their own growth.
+    build.next.image->admit_write(initial_end);
+    if(mode==PagedRewriteMode::cold_compression) {
+      if(!cold->reserve_writes(write_bound)){phase=PagedRewritePhase::declined;return;}
+      build.next.limits.maximum_physical_bytes=original.end;
+    }
     if(retention) {
       if(!retention->charge(write_bound))return;
       build.next.limits.maximum_physical_bytes=write_bound-2*page_bytes;
@@ -1077,7 +1156,9 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
     if(image->extent()!=target_extent)fail("staged target extent changed");
     admit_contract(image->contract());
     if(image->contract().write_failure_unit_bytes>build.next.unit)fail("staged target contract changed");
-    if(phase==PagedRewritePhase::verifying_source) {
+    if(phase==PagedRewritePhase::screening_compression) {
+      measure_compression();
+    } else if(phase==PagedRewritePhase::verifying_source) {
       const bool advanced=visit_quantum(original,[&](const Entry& entry) {
         auto bytes=read_object(original,entry);
         if(original.mirrored && verify_object(original,entry) && capacity_damage==entry)repair_confirmed=true;
@@ -1100,6 +1181,9 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
           if(!retained.objects || projected>=source_extent || projected>build.next.limits.maximum_physical_bytes)
             capacity("filtered copy cannot reduce occupied bytes");
           write_bound=add(projected,2*page_bytes);
+          phase=PagedRewritePhase::awaiting_charge;
+        }else if(mode==PagedRewriteMode::cold_compression) {
+          write_bound=add(original.end,2*page_bytes);
           phase=PagedRewritePhase::awaiting_charge;
         }else begin_copy(current);
       }
@@ -1208,7 +1292,7 @@ PagedObjectStoreWriter::Rewrite PagedObjectStoreWriter::prepare_rebuild(std::sha
 PagedObjectStoreWriter::Rewrite PagedObjectStoreWriter::prepare_rebuild_replacing(std::shared_ptr<StoreByteIo> target,
     StoreIdentity id,StoreCompressionOptions compression,std::span<const std::byte> replacement,bool reencode,
     std::size_t identity_offset,PagedRewriteMode mode,std::optional<RebuildColdEncoding> cold) const {
-  return prepare_rebuild_impl(std::move(target),id,compression,replacement,reencode,identity_offset,{},mode,cold);
+  return prepare_rebuild_impl(std::move(target),id,compression,replacement,reencode,identity_offset,{},mode,std::move(cold));
 }
 PagedObjectStoreWriter::Rewrite PagedObjectStoreWriter::prepare_rebuild_retaining(std::shared_ptr<StoreByteIo> target,
     StoreCompressionOptions compression,RebuildRetention keep) const {
@@ -1223,7 +1307,7 @@ PagedObjectStoreWriter::Rewrite PagedObjectStoreWriter::prepare_rebuild_impl(std
   if(poisoned())fail("staged rebuild requires a healthy source writer");
   if(!impl_->pending_rebuild.expired())fail("source already has a staged rebuild");
   auto candidate=std::make_unique<Rewrite::Impl>(*impl_,std::move(target),id,compression,
-      replacement,reencode,identity_offset,std::move(retention),mode,cold);
+      replacement,reencode,identity_offset,std::move(retention),mode,std::move(cold));
   impl_->pending_rebuild=candidate->reservation;return Rewrite(std::move(candidate));
 }
 PagedObjectStoreSnapshot::PagedObjectStoreSnapshot(std::unique_ptr<Impl> p) noexcept:impl_(std::move(p)){}

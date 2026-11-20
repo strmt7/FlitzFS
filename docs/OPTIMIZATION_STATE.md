@@ -141,6 +141,14 @@ records and their independent CPU decoders use the existing encodings.
 The checksums detect damage within the declared storage model.
 [Restart and interrupted publication evidence](evidence/indexed-cold-coverage-2026-11-20.json)
 
+The background controller also uses the funded record pair to reserve
+write credit before a compression-driven copy. It checks fresh workload
+input against the current settlement and commits the new settlement
+through both mirrors before the copy can write. This uses the existing
+wire layout and preserves the group scan and scrub progress. The same
+pair retains spent credit across reopening.
+[Compression-driven copy admission](PERSISTENT_VOLUME_FILE.md#paired-sparse-image-ranges)
+
 ## Publication, recovery and work bounds
 
 Creation establishes the complete zeroed extent, publishes an empty sequence 1

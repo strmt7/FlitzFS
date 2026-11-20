@@ -56,6 +56,22 @@
     "live_amd_advised_members": 12,
     "mounted_interference_qualified": false
   },
+  "screened_cold_compaction": {
+    "source_base": "b3b8670438354555c797f7cbc639bb3cb8c5140d",
+    "evidence": "docs/evidence/screened-cold-compaction-2026-11-20.json",
+    "published_without_prior_reclamation_trigger": true,
+    "reserved_writes_before_private_copy": true,
+    "incremental_backing_admission": true,
+    "foreground_invalidation_preserved_bytes": true,
+    "interrupted_reservation_preserved_bytes": true,
+    "public_complete_image_bytes": {
+      "code": [606208, 360448],
+      "docs": [786432, 425984],
+      "mixed": [622592, 376832]
+    },
+    "live_amd_advised_members": 12,
+    "new_volume_capability": false
+  },
   "paired_range_reader_wake": {
     "source_base": "81e7770ce3463d2bcc4fcad40c395376a979e1cd",
     "evidence": "docs/evidence/paired-range-reader-wake-2026-11-20.json",

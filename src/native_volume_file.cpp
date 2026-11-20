@@ -124,7 +124,7 @@ NativeVolumeFileReclaimer::NativeVolumeFileReclaimer(std::shared_ptr<StoreByteIo
     head_(std::move(head)),active_(std::move(active)),spare_(std::move(spare)),
     phase_(recover_spare?Phase::retiring:Phase::idle) {}
 
-bool NativeVolumeFileReclaimer::pending(const NativeFileSession& session) const {
+bool NativeVolumeFileReclaimer::pending(const NativeFileSession& session,bool allow_cold) const {
   if(phase_==Phase::retiring)
     return spare_.use_count()==1 || active_->owner->reclamation_wake.load(std::memory_order_acquire).expired();
   if(phase_==Phase::uncertain || phase_==Phase::failed || !session.idle_compaction_context_ready())return false;
@@ -132,8 +132,8 @@ bool NativeVolumeFileReclaimer::pending(const NativeFileSession& session) const 
   if(const auto repair=session.indexed_capacity_repair_generation())return repair!=attempted_repair_;
   const auto space=session.indexed_volume_space();
   const auto obsolete=space.obsolete_bytes;
-  if(obsolete<=attempted_obsolete_ || obsolete-attempted_obsolete_<abandoned_bytes_)return false;
-  return space.reclamation_worthwhile();
+  return (obsolete>attempted_obsolete_ && obsolete-attempted_obsolete_>=abandoned_bytes_ &&
+      space.reclamation_worthwhile()) || (allow_cold && session.idle_cold_compaction_pending());
 }
 void NativeVolumeFileReclaimer::bind_wake(const std::shared_ptr<NativeVolumeRangeWake>& wake) noexcept {
   active_->owner->reclamation_wake.store(wake,std::memory_order_release);
@@ -185,21 +185,25 @@ void NativeVolumeFileReclaimer::adopt_startup_repair(const NativeVolumeSelection
   phase_=Phase::retiring;
 }
 
-Progress NativeVolumeFileReclaimer::advance(NativeFileSession& session,const std::function<StoreIdentity()>& identity) {
+Progress NativeVolumeFileReclaimer::advance(NativeFileSession& session,const std::function<StoreIdentity()>& identity,
+    bool allow_cold) {
   if(phase_==Phase::retiring) {
     try{return retire(session.volume_info());}
     catch(const std::exception&){phase_=Phase::failed;return Progress::failed;}
   }
-  if(!pending(session))return Progress::idle;
+  if(!pending(session,allow_cold))return Progress::idle;
   try {
     if(phase_==Phase::idle) {
-      attempted_repair_=session.indexed_capacity_repair_generation();
-      attempted_obsolete_=session.indexed_volume_space().obsolete_bytes;
-      abandoned_bytes_=0;
+      const bool reclaim=pending(session,false);
+      if(reclaim) {
+        attempted_repair_=session.indexed_capacity_repair_generation();
+        attempted_obsolete_=session.indexed_volume_space().obsolete_bytes;
+        abandoned_bytes_=0;
+      }
       if(!identity || spare_.use_count()!=1 || spare_->allocation_extent())
         fail(Error::invalid_operation,"inactive volume range is unavailable");
       if(!session.begin_idle_compaction_impl(NativeVolumeFile::Region::pin_image(spare_),identity(),true,
-          PagedRewriteMode::reconcile_foreground))
+          reclaim?PagedRewriteMode::reconcile_foreground:PagedRewriteMode::cold_compression))
         return Progress::idle;
       phase_=Phase::copying;
       return Progress::copying;
@@ -208,6 +212,8 @@ Progress NativeVolumeFileReclaimer::advance(NativeFileSession& session,const std
       switch(session.advance_recompression()) {
         case NativeFileSession::RecompressionProgress::copying:return Progress::copying;
         case NativeFileSession::RecompressionProgress::ready:phase_=Phase::ready;return Progress::ready;
+        case NativeFileSession::RecompressionProgress::declined:
+          phase_=Phase::idle;return Progress::idle; // The screen wrote no image bytes.
         case NativeFileSession::RecompressionProgress::stale:
           abandoned_bytes_=spare_->extent();phase_=Phase::retiring;return Progress::retiring;
       }

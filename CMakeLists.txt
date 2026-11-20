@@ -628,6 +628,8 @@ if(FLITZFS_BUILD_TESTS)
   add_test(NAME bounded_native_cold_relocation COMMAND flitzfs_native_volume_file_tests --cold-relocation)
   add_test(NAME bounded_native_cold_coverage COMMAND flitzfs_native_volume_file_tests --cold-coverage)
   set_tests_properties(bounded_native_cold_coverage PROPERTIES TIMEOUT 90)
+  add_test(NAME bounded_native_screened_cold COMMAND flitzfs_native_volume_file_tests --screened-cold)
+  set_tests_properties(bounded_native_screened_cold PROPERTIES TIMEOUT 90)
   set_tests_properties(bounded_native_volume_file PROPERTIES TIMEOUT 60)
   if(WIN32 AND FLITZFS_REGISTER_INTEGRATION_FIXTURES)
     add_test(NAME isolated_native_volume_file COMMAND flitzfs_native_volume_file_tests
