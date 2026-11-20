@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Use pinned current FlitzZip SDK/bootstrap/compile mechanisms in qualified private fixtures."""
+"""Qualify the FlitzFS ROCm pin with the reviewed bootstrap and compiler tools."""
 from __future__ import annotations
 import argparse
 import hashlib
@@ -22,6 +22,17 @@ GIB=1024**3
 HIP_RUNTIME_UNAVAILABLE=0x46530002
 HIP_INTEGRITY_FAILURE=0x46530006
 
+PROVISION_SDK = """
+from pathlib import Path
+import sys
+
+provider, lock, parent, *archive = sys.argv[1:]
+sys.path.insert(0, provider)
+from tools.bootstrap_rocm_sdk import provision, read_lock
+
+print(provision(read_lock(Path(lock)), Path(parent), Path(archive[0]) if archive else None))
+"""
+
 def require(ok,why):
     if not ok:
         raise RuntimeError(why)
@@ -32,7 +43,7 @@ def digest(path):
 
 def native_git(provider,*args):
     env=os.environ.copy();env["GIT_NO_REPLACE_OBJECTS"]="1"
-    result=subprocess.run(["git","-C",str(provider),*args],check=True,capture_output=True,text=True,timeout=15,env=env)
+    result=subprocess.run(["git","--no-optional-locks","-C",str(provider),*args],check=True,capture_output=True,text=True,timeout=15,env=env)
     require(len(result.stdout)<=1024*1024,"source identity output budget")
     return result.stdout.strip()
 
@@ -112,6 +123,7 @@ def main():
     parser=argparse.ArgumentParser()
     parser.add_argument("--provider",type=Path,required=True)
     parser.add_argument("--output",type=Path,required=True)
+    parser.add_argument("--archive", type=Path, help="Reuse an AMD archive after full pin and inventory validation")
     parser.add_argument("--hipcomp-source",type=Path,help="Optional reviewed codec checkout; offline object only")
     parser.add_argument("--hipcomp-native-sync",action="store_true")
     parser.add_argument("--hipcomp-link-candidate",action="store_true")
@@ -127,15 +139,19 @@ def main():
         "private link candidate requires native-sync and original candidate gates")
     require(not args.hipcomp_native_sync or args.hipcomp_source is not None,
         "native-sync candidate requires the original pinned candidate too")
-    temporary=Path(os.environ["RUNNER_TEMP"]).resolve()
-    root=args.output.resolve();provider=args.provider.resolve(strict=True)
-    require(root!=temporary and root.is_relative_to(temporary) and not root.exists(),
+    temporary = Path(os.environ["RUNNER_TEMP"]).resolve(strict=True)
+    root = args.output.resolve()
+    provider = args.provider.absolute()
+    require(root != temporary and root.is_relative_to(temporary) and not root.exists(),
         "qualification requires a NEW owned RUNNER_TEMP fixture")
-    require(provider.is_relative_to(REPO) and provider!=REPO and
-        not provider.is_symlink() and not provider.is_junction(),"isolated reference checkout required")
-    require(native_git(provider,"rev-parse","HEAD")==SOURCE_REF,"FlitzZip mechanism source identity changed")
-    require(not native_git(provider,"status","--porcelain","--untracked-files=all"),
-        "reference checkout must be unmodified before import")
+    require(provider.is_dir() and provider.resolve(strict=True) == provider and
+        not REPO.is_relative_to(provider) and not root.is_relative_to(provider) and
+        (provider.is_relative_to(REPO) or provider.is_relative_to(temporary)),
+        "isolated physical reference checkout required")
+    require(Path(native_git(provider, "rev-parse", "--show-toplevel")).resolve(strict=True) == provider and
+        native_git(provider, "rev-parse", "HEAD") == SOURCE_REF, "reference toolchain source identity changed")
+    provider_status = ("status", "--porcelain", "--untracked-files=all", "--ignored=matching")
+    require(not native_git(provider, *provider_status), "reference checkout must be clean before import")
     require(Path(native_git(REPO,"rev-parse","--show-toplevel")).resolve()==REPO and
         native_git(REPO,"rev-parse","HEAD")==os.environ["GITHUB_SHA"],"control checkout identity")
     previous_api="tests/rocm_compile/previous_hip_api.hpp"
@@ -164,8 +180,8 @@ def main():
         cpu_lz4_source=args.cpu_lz4_source.absolute()
         source_assets(cpu_lz4_source,REPO) # Real Git/blob/physical refusal before SDK provisioning.
     own_lock=REPO/"tools/rocm-sdk-lock.json"
-    require(own_lock.read_bytes()==(provider/"tools/rocm-sdk-lock.json").read_bytes(),
-        "ROCm lock must match the reviewed complete-distribution source")
+    require(not native_git(REPO, "status", "--porcelain", "--", "tools/rocm-sdk-lock.json"),
+        "ROCm distribution lock must match the qualification commit")
     root.mkdir()
     report=dict(commit=os.environ["GITHUB_SHA"],provider_repository="strmt7/FlitzZip",
         provider_ref=SOURCE_REF,lock_sha256=digest(own_lock),commands=[],complete=False,
@@ -176,6 +192,23 @@ def main():
     try:
         bootstrap=load_source("flitzfs_reference_rocm",provider/"tools/bootstrap_rocm_sdk.py")
         bounds=load_source("flitzfs_reference_bounds",provider/"mcp/flitzzip_mcp.py")
+        lock = bootstrap.read_lock(own_lock)
+        report["distribution"] = lock
+        archive_args = []
+        if args.archive is not None:
+            archive = args.archive.absolute()
+            info = archive.lstat()
+            require(stat.S_ISREG(info.st_mode) and archive.resolve(strict=True) == archive and
+                info.st_size == lock["archive_bytes"], "supplied AMD archive size or path differs from the pin")
+            archive_args.append(str(archive))
+        report["archive_supplied"] = bool(archive_args)
+        reserve = 4 * GIB
+        needed = lock["unpacked_bytes"] + reserve
+        if not archive_args:
+            needed += lock["archive_bytes"]
+        free = shutil.disk_usage(root).free
+        report["disk_admission"] = dict(available=free, required=needed, reserve=reserve)
+        require(free >= needed, "insufficient space for the complete ROCm distribution")
         run(bounds,[sys.executable,"-B",str(REPO/"tools/ci/test_hip_runtime_exports.py")],
             report,"static-runtime-export-parser-regressions",30)
         run(bounds,[sys.executable,"-B",str(REPO/"tools/ci/test_hipcomp_candidate.py")],
@@ -192,21 +225,21 @@ def main():
                 commit="aa4647fad575d01a874aaaadcdbe8e6a40e072f5",
                 assets=stage(cpu_lz4_source,REPO,root/"cpu-lz4-source"),
                 module_loaded=False,gpu_executed=False)
-        lock=bootstrap.read_lock(own_lock)
-        report["distribution"]=lock
-        needed=lock["archive_bytes"]+lock["unpacked_bytes"]+4*GIB
-        free=shutil.disk_usage(root).free
-        report["disk_admission"]=dict(available=free,required=needed,reserve=4*GIB)
-        require(free>=needed,"insufficient space for the COMPLETE ROCm distribution; no runner cleanup or partial SDK")
         run(bounds,[sys.executable,"-B","-m","unittest","tools.test_bootstrap_rocm_sdk"],
             report,"current-reference-bootstrap-regressions",120)
-        sdk_parent=root/"sdk-cache"
-        run(bounds,[sys.executable,"-B",str(provider/"tools/bootstrap_rocm_sdk.py"),
-            "--parent",str(sdk_parent)],report,"complete-sdk-bootstrap",3600)
+        sdk_parent = root / "sdk-cache"
+        run(bounds, [sys.executable, "-I", "-B", "-c", PROVISION_SDK,
+            str(provider), str(own_lock), str(sdk_parent), *archive_args], report, "complete-sdk-bootstrap", 3600)
         sdk=sdk_parent/"sdk"
         identity=bootstrap.sdk_identity(sdk,lock["version"])
         report["critical_inputs"]=identity
-        report["bootstrap_receipt"]=json.loads((sdk_parent/"verified-distribution.json").read_text(encoding="utf-8"))
+        receipt = json.loads((sdk_parent / "verified-distribution.json").read_text(encoding="utf-8"))
+        require(receipt["version"] == lock["version"] and receipt["sha256"] == lock["sha256"] and
+            receipt["critical_inputs"] == identity, "provisioned SDK differs from the FlitzFS distribution lock")
+        report["bootstrap_receipt"] = receipt
+        manifest_path = sdk / "share/therock/therock_manifest.json"
+        manifest_version = json.loads(manifest_path.read_text(encoding="utf-8"))["rocm_package_version"]
+        require(manifest_version == lock["observed_package_version"], "ROCm component build differs from the pin")
         if hipcomp_source is not None:
             candidate=root/"hipcomp-offline"
             run(bounds,[sys.executable,"-B",str(REPO/"tools/ci/qualify_hipcomp_candidate.py"),
@@ -943,8 +976,8 @@ def main():
         actual_clang=run(bounds,[str(sdk/"lib/llvm/bin/clang.exe"),"--version"],report,"actual-AMD-compiler-version",30)
         require(lock["observed_clang_version"] in actual_clang["stdout"],
             "observed complete-SDK compiler identity differs from its lock record")
-        require(not native_git(provider,"status","--porcelain","--untracked-files=all"),
-            "reference source changed during qualification")
+        require(not native_git(provider, *provider_status), "reference source changed during qualification")
+        require(digest(own_lock) == report["lock_sha256"], "SDK lock changed during qualification")
         require(bootstrap.sdk_identity(sdk,lock["version"])==identity,
             "SDK critical inputs changed during compilation")
         if cpu_lz4_source is not None:

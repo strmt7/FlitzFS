@@ -9,9 +9,10 @@ PROBE = "tests/rocm_compile/warp_sync_probe.hip"
 PROBE_BLOB = "0705e743dcf9bec07f1e250b042edc84162d9d8c"
 PROBE_SHA256 = "59474113a2a0d5d2dde1a2a7de8b10d6a9b4de41fdd97664ce62b3cabe453201"
 HEADER = "include/hip/amd_detail/amd_warp_sync_functions.h"
-HEADER_SHA256 = "e6f8f61066b034141ad288a01b82006a0e6f0e8e9e7750ac36153b1602eedfe2"
-RUNTIME_SOURCE = "7da43026e4f2ef7600433c38c820732f7a205d22"
-HEADER_BLOB = "51d07f6e35298abba5fb9817d61cf6eb18fe5f66"
+HEADER_SHA256 = "93f564333e2fc52df19e4fe02b8d1930a37d627a57dc84ad22e8ed0fafa061d4"
+# The systems submodule pinned in the verified SDK manifest.
+RUNTIME_SOURCE = "43fa692e568e65a1fb84f2d1c74415b042839f10"
+HEADER_BLOB = "64696d9c46829ac580bdf374e45706777e3d70e0"
 
 def require(ok, why):
     if not ok:

@@ -5,7 +5,7 @@ sources and current primary-source evidence. Do not infer current behavior or
 versions from model training, a legacy GitHub latest-release pointer, search
 snippets or an unverified installation assumption.
 
-## Current reference, verified 9 November 2026
+## Reference toolchain baseline, 9 November 2026
 
 FlitzZip main was inspected at 113ca5f30655f0d373c17d1448e35ce1b69f2819.
 Its tools/rocm-sdk-lock.json selects the complete native Windows ROCm 10.1.0
@@ -34,11 +34,12 @@ a distribution is the newest compatible choice.
 
 ## Safety and remaining qualification
 
-Complete SDK provisioning and compile tests run only on fresh disposable hosted
-Windows VMs with capacity checks, no global PATH edits, no driver install and no
-GPU execution. Missing eligible SDK files trigger the verified complete-package
-bootstrap. Insufficient resources or unverifiable integrity must refuse safely,
-preserving owner data and CPU operation.
+Complete SDK provisioning and compile tests use a fresh Windows qualification
+workspace with capacity checks and a bounded process tree. Local qualification
+uses an explicit workspace with sufficient storage and current host headroom.
+The compiler lane runs without GPU execution, driver installation or global PATH
+edits. Missing SDK files trigger the verified complete-package bootstrap.
+Insufficient resources or unverifiable integrity stop the lane before execution.
 
 The runtime must remain in a separately supervised child. Adapt the current
 trusted driver loader and stream/device/resource mechanisms only after verifying
@@ -57,10 +58,13 @@ Normal filesystem paths stay CPU-only and local execution follows HOST_RAM_TESTI
 
 qualify_rocm_sdk.py uses the unchanged current reference bootstrap and native
 HIP compile helper from the pinned private checkout. It verifies reference Git
-identity/cleanliness and byte-identical whole-distribution locks before import.
-It runs the reference bootstrap regressions, admits the entire download/extracted
-size plus 4 GiB free reserve, automatically provisions the complete package,
-and uses that same SDK for headers, import library, compiler and device inputs.
+identity and cleanliness before import. FlitzFS selects its own complete AMD
+distribution in `tools/rocm-sdk-lock.json` and passes that pin to the unchanged
+bootstrap API. The lane admits the extracted size plus a 4 GiB reserve and adds
+the download size when no local archive is supplied. `--archive` reuses a local
+artifact with the same SHA-256, size and inventory checks as a download. The
+same provisioned SDK supplies the headers, import library, compiler and device
+inputs.
 
 The reference bounded command runner limits each owned tree to 2 GiB committed
 memory, below-normal priority, bounded output and explicit deadlines; its fresh
@@ -78,7 +82,7 @@ runtime identities without initializing HIP. Critical SDK hashes are compared
 again afterwards. Only JSON provenance/results are uploaded, no generated
 binary, SDK archive, driver or release package.
 
-Current-source inputs include the reference lock/bootstrap, native process runner,
+Current-source inputs include the FlitzFS lock, reference bootstrap, native process runner,
 compiler-environment helpers and source GPU kernel. These mechanisms are build
 dependencies only; no FlitzZip archive code is linked into FlitzFS. Successful
 exact-commit results are required before claiming compile qualification.

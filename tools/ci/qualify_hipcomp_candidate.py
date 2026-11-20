@@ -174,9 +174,10 @@ def main():
     manifest=REPO/"tests/rocm_compile/hipcomp_lz4_source.json"
     require(manifest.stat().st_size<=256*1024,"candidate manifest byte cap")
     value=json.loads(manifest.read_text(encoding="utf-8"))
-    from qualify_rocm_sdk import load_source,run,digest
+    from qualify_rocm_sdk import load_source,run,digest,native_git
     own_lock=REPO/"tools/rocm-sdk-lock.json"
-    require(own_lock.read_bytes()==(provider/"tools/rocm-sdk-lock.json").read_bytes(),"candidate ROCm lock differs")
+    require(not native_git(REPO, "status", "--porcelain", "--", "tools/rocm-sdk-lock.json"),
+        "candidate ROCm lock must match the control commit")
     sys.dont_write_bytecode=True;os.environ["PYTHONDONTWRITEBYTECODE"]="1"
     sys.path.insert(0,str(provider))
     bootstrap=load_source("flitzfs_candidate_bootstrap",provider/"tools/bootstrap_rocm_sdk.py")
