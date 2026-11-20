@@ -85,6 +85,70 @@ void read_grouped_extents() {
       "A separate request reused the prior request's shared base");
   std::cout<<"shared_base_request_cache extents="<<count<<" primary_reads=2 peer_recovery=true byte_exact=true\n";
 }
+void retained_group_anchors() {
+  constexpr unsigned family_size=3,files=2*family_size;
+  const auto content=[](unsigned i) {
+    auto bytes=data(kNativeExtentBytes,i<family_size?4321U:7890U);
+    bytes[1203+i*19]^=std::byte{42};
+    return bytes;
+  };
+  auto source=std::make_shared<Ram>(),ram=std::make_shared<Ram>();
+  source->failure_unit=ram->failure_unit=4096;
+  {
+    auto writer=fresh(source,true);
+    populate(writer,files,content);
+    const auto keys=selections(writer.snapshot(),files);
+    const auto members=std::span(keys);
+    for(const auto group:{members.first(family_size),members.last(family_size)})
+      require(writer.compress_shared_base(group.front(),group).applied,"retained-read fixture group did not publish");
+  }
+  auto writer=NativeFilesystemWriter::compact(view(source),ram,next_id(94),{StoreCompressionMode::raw,1,false});
+  const auto keys=selections(writer.snapshot(),files);
+  const auto expected=content(0);
+  const auto first_payload=std::span(expected).first(32);
+  constexpr auto base_header_bytes=8;
+  std::vector<std::size_t> copies;
+  auto next=ram->live.begin();
+  for(;;) {
+    auto hit=std::ranges::search(std::ranges::subrange(next,ram->live.end()),first_payload);
+    if(hit.empty())break;
+    const auto payload=static_cast<std::size_t>(hit.begin()-ram->live.begin());
+    if(payload>=base_header_bytes &&
+        std::ranges::equal(std::span(ram->live).subspan(payload-base_header_bytes,base_header_bytes),
+            std::as_bytes(std::span("FLTXPA01",std::size_t{8}))))
+      copies.push_back(payload);
+    next=hit.begin()+1;
+  }
+  require(copies.size()==2,"retained-read fixture cannot identify both anchor replicas");
+  ram->corrupt_read_offset=copies.front()-base_header_bytes;
+  const auto read=[&](unsigned file) {
+    require(writer.read_inode(keys[file].inode,0,kNativeExtentBytes)==content(file),
+        "owned retained read differs from the committed bytes");
+  };
+  read(0);read(3);read(1);read(4);
+  require(ram->matching_reads==1,"owned reads fetched the same anchor across member requests");
+
+  const auto independent=view(ram);
+  require(independent.read("f2",0,kNativeExtentBytes)==content(2) && ram->matching_reads==2,
+      "independent snapshot borrowed an owned anchor");
+  file_apply(writer,file_create("later"));
+  read(2);
+  require(ram->matching_reads==3,"owned read reused a prior checkpoint's anchor");
+
+  file_apply(writer,file_create("after"));
+  ram->corrupt_read_number=4;
+  read(0);read(1);
+  require(ram->matching_reads==5,"a degraded read supplied the next request's retained anchor");
+  for(const auto offset:copies)ram->live[offset+17]^=std::byte{1};
+  rejects([&]{view(ram).verify_all();},"verification used a retained anchor after both replicas failed");
+  const auto before=ram->calls;
+  const auto replacement=data(17,200);
+  rejects([&]{writer.write_inode(keys.front().inode,300,replacement);},
+      "a retained anchor authorized mutation after both replicas failed");
+  require(writer.poisoned() && ram->calls==before,"failed group verification changed committed storage");
+  std::cout<<"retained_group_reads multiple_anchors=true checkpoint_refetch=true degraded_refetch=true"
+      <<" independent_verification=true unverified_mutation_refused=true\n";
+}
 void anchor_copy_codec() {
   const auto base=shifted_family(0);const auto id=detail::kNativeGroupBaseBit+1;
   const detail::NativeGroupAnchorIndex index(base);
@@ -914,7 +978,7 @@ int main(int argc,char** argv){try {
   }
   require(argc==1,"unknown shared-base test mode");
   codec();anchor_copy_codec();anchor_copy_advice();independent_and_decline();malformed_storage();indexed_extension_and_reclamation();
-  read_grouped_extents();
+  read_grouped_extents();retained_group_anchors();
   indexed_group_on_populated_volume();
   sealed_group_prices();
   unprofitable_group_at_capacity();

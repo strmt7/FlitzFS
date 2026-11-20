@@ -130,6 +130,25 @@ struct IndexedDirectoryPage {
   std::vector<NativeFileInfo> entries;
   std::optional<std::string> after;
 };
+struct IndexedSharedBaseRead {
+  std::uint64_t object=0,generation=0;
+  std::vector<std::byte> frame;
+};
+
+// One serialized writer can reuse verified base frames at its current
+// checkpoint. Independent snapshots, scrub and mutations bypass this cache.
+class IndexedSharedBaseCache final {
+ public:
+  bool bind(const PagedObjectStoreSnapshot&) noexcept;
+  const IndexedSharedBaseRead* find(std::uint64_t object,std::uint64_t generation) noexcept;
+  void remember(IndexedSharedBaseRead&) noexcept;
+  void clear() noexcept;
+ private:
+  StoreIdentity image_{};
+  std::uint64_t checkpoint_=0;
+  std::vector<IndexedSharedBaseRead> frames_;
+};
+
 class IndexedVolumeView final {
  public:
   IndexedVolumeView(const PagedObjectStoreSnapshot&,std::span<const std::byte> root);
@@ -143,7 +162,8 @@ class IndexedVolumeView final {
       std::size_t maximum) const;
   IndexedDirectoryPage list(std::uint64_t directory,std::string_view after,std::size_t maximum) const;
   std::vector<NativeFileInfo> list_all(std::uint64_t directory) const;
-  std::vector<std::byte> read(const IndexedInodeInput&,std::uint64_t offset,std::uint32_t bytes) const;
+  std::vector<std::byte> read(const IndexedInodeInput&,std::uint64_t offset,std::uint32_t bytes,
+      IndexedSharedBaseCache* retained=nullptr) const;
   std::optional<NativeContentToken> next_content(NativeExtentSelection after,bool first) const;
   std::optional<NativeContentToken> content_at(NativeExtentSelection) const;
   std::vector<std::byte> read_content(NativeContentToken&) const;

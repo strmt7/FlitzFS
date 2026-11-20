@@ -888,23 +888,21 @@ struct RevisionReadProfile {
   std::uint64_t full_logical=0,full_backing=0,sampled_logical=0,sampled_backing=0;
 };
 
-RevisionReadProfile profile_revision_reads(const NativeFilesystemSnapshot& snapshot,
-    const Ram& backing,std::span<const Bytes> files) {
+template<class Read>
+RevisionReadProfile profile_revision_reads(const Ram& backing,std::span<const Bytes> files,Read&& read) {
   RevisionReadProfile result;
   auto read_start=backing.read_bytes;
   for(std::size_t i=0;i<files.size();++i) {
-    const auto path="f"+std::to_string(i);
-    require(snapshot.read(path,0,files[i].size())==files[i],"Whole revision read differs");
+    require(read(i,0,static_cast<std::uint32_t>(files[i].size()))==files[i],"Whole revision read differs");
     result.full_logical+=files[i].size();
   }
   result.full_backing=backing.read_bytes-read_start;
   read_start=backing.read_bytes;
   for(std::size_t i=0;i<files.size();++i) {
-    const auto path="f"+std::to_string(i);
     const auto count=(std::min)(files[i].size(),std::size_t{4096});
     const auto last=files[i].size()-count;
     for(const auto offset:{std::size_t{0},last/2,last}) {
-      const auto bytes=snapshot.read(path,offset,count);
+      const auto bytes=read(i,offset,static_cast<std::uint32_t>(count));
       require(std::ranges::equal(bytes,std::span(files[i]).subspan(offset,count)),
           "Sampled revision read differs");
       result.sampled_logical+=count;
@@ -912,6 +910,29 @@ RevisionReadProfile profile_revision_reads(const NativeFilesystemSnapshot& snaps
   }
   result.sampled_backing=backing.read_bytes-read_start;
   return result;
+}
+
+RevisionReadProfile profile_revision_reads(const NativeFilesystemSnapshot& snapshot,
+    const Ram& backing,std::span<const Bytes> files) {
+  return profile_revision_reads(backing,files,[&](std::size_t i,std::uint64_t offset,std::uint32_t count) {
+    return snapshot.read("f"+std::to_string(i),offset,count);
+  });
+}
+RevisionReadProfile profile_revision_session_reads(NativeFilesystemWriter writer,
+    const Ram& backing,std::span<const Bytes> files) {
+  auto session=NativeFileSession::create(std::move(writer));
+  std::vector<NativeFileHandle> handles;
+  handles.reserve(files.size());
+  for(std::size_t i=0;i<files.size();++i)
+    handles.push_back(session.open("f"+std::to_string(i),{true,false,false}));
+  const auto profile=profile_revision_reads(backing,files,[&](std::size_t i,std::uint64_t offset,std::uint32_t count) {
+    return session.read(handles[i],offset,count);
+  });
+  for(const auto& handle:handles) {
+    session.cleanup(handle,false);
+    session.close(handle);
+  }
+  return profile;
 }
 
 int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
@@ -965,12 +986,15 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   }
   const auto resolve=[&](const auto& key)->std::shared_ptr<StoreByteIo> {return key==id(1)?image:nullptr;};
   std::uint64_t baseline_bytes=0;
-  RevisionReadProfile baseline_reads;
+  RevisionReadProfile baseline_reads,baseline_session_reads;
   session.reset();
   {
     const auto closed=NativeVolumeHeadView::open(head,id(90),resolve);
     auto copy=std::make_shared<Ram>();copy->failure_unit=image->failure_unit;
-    (void)NativeFilesystemWriter::compact(closed.filesystem(),copy,id(2),compression);
+    {
+      auto writer=NativeFilesystemWriter::compact(closed.filesystem(),copy,id(2),compression);
+      if(revision)baseline_session_reads=profile_revision_session_reads(std::move(writer),*copy,originals);
+    }
     baseline_bytes=copy->extent();
     if(revision) {
       const auto reopened=NativeFilesystemSnapshot::open_image(copy,{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes});
@@ -1089,7 +1113,11 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   session.reset();
   const auto closed=NativeVolumeHeadView::open(head,id(90),resolve);
   auto packed=std::make_shared<Ram>();packed->failure_unit=image->failure_unit;
-  (void)NativeFilesystemWriter::compact(closed.filesystem(),packed,id(3),compression);
+  RevisionReadProfile grouped_session_reads;
+  {
+    auto writer=NativeFilesystemWriter::compact(closed.filesystem(),packed,id(3),compression);
+    if(revision)grouped_session_reads=profile_revision_session_reads(std::move(writer),*packed,originals);
+  }
   const auto reopened=NativeFilesystemSnapshot::open_image(packed,{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes});
   reopened.verify_all();
   RevisionReadProfile grouped_reads;
@@ -1107,6 +1135,12 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
         <<" full_logical="<<grouped_reads.full_logical<<" full_input_backing="<<baseline_reads.full_backing
         <<" full_grouped_backing="<<grouped_reads.full_backing<<" sampled_logical="<<grouped_reads.sampled_logical
         <<" sampled_input_backing="<<baseline_reads.sampled_backing<<" sampled_grouped_backing="<<grouped_reads.sampled_backing<<'\n';
+    std::cout<<"revision_session_reads full_logical="<<grouped_session_reads.full_logical
+        <<" full_input_backing="<<baseline_session_reads.full_backing
+        <<" full_grouped_backing="<<grouped_session_reads.full_backing
+        <<" sampled_logical="<<grouped_session_reads.sampled_logical
+        <<" sampled_input_backing="<<baseline_session_reads.sampled_backing
+        <<" sampled_grouped_backing="<<grouped_session_reads.sampled_backing<<'\n';
   }
   const auto cohort=revision?"revision-corpus":collective?(bank.empty()?"collective-synthetic":"collective-public"):
       full_reference?(bank.empty()?"xor-full-reference-synthetic":"xor-full-reference-public"):

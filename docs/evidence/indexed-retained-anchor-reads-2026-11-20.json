@@ -1,0 +1,347 @@
+{
+  "schema": 1,
+  "date": "2026-11-20",
+  "experimental": true,
+  "source_base": "e79eb602f9d85bc3c9ef8720e2e45e9121d6f9a1",
+  "code_patch_sha256": "70f4b9427ff50562d9ee7a7e5fa179f48e945a8f110690d667d08934afc124cb",
+  "source_binding": [
+    {
+      "path": "src/native_filesystem.cpp",
+      "git_blob": "baaefa2b37f55d89e571bdd3a51290243ada30d0",
+      "worktree_sha256": "ae3f13c20cfff911fa408261b3292cfb11812062189527ef273149d83067c655"
+    },
+    {
+      "path": "src/native_indexed_volume.cpp",
+      "git_blob": "608f7bcbac030ae136f8202d38f41f97570f173a",
+      "worktree_sha256": "f063ab910ba1c693efe0ab8f29f8926a73edf3b2c3c066441d20c51cb6cce048"
+    },
+    {
+      "path": "src/native_indexed_volume.hpp",
+      "git_blob": "9b807813aa640f12b9132dbe174e9224f47c2dff",
+      "worktree_sha256": "0e0fdc6610266197d663bb20ed23e5bff746941a270f9a47ed34339fa0902f3d"
+    },
+    {
+      "path": "tests/test_native_shared_base.cpp",
+      "git_blob": "b89a9bef58ecb234b2f68762df778b6947d63f38",
+      "worktree_sha256": "b01bed5640ce61e900777afefd7e82d838dfbd9519b7a550c2bead20315bb7d2"
+    },
+    {
+      "path": "tests/test_winfsp_controller.cpp",
+      "git_blob": "428eab2bc240278aca8b52948f84e848c009c163",
+      "worktree_sha256": "68fbca105c36927fc015f400ea6eba186825374bd52a6f44b99735632b6875be"
+    }
+  ],
+  "baseline_fixture_patch_sha256": "c8617fd63b7f8597253fa89adaa84a71cf0c9e20e536cd3dee377e5f1d8e263d",
+  "comparison_executable_sha256": {
+    "baseline": "0f30d635b6b4e3667353d6003209d7ab70d09be5ab04a42e81cf8742d329c234",
+    "candidate": "fe51500789eeea05c01d868117547a4c5e0e0ad984151b46e3e1542993c95fd8"
+  },
+  "winfsp_sdk_dll_sha256": "08d7389b8d030770a4de108a60a86047d5cdd00b9ecafc6dd66e957bc51c2437",
+  "corpus_sha256": {
+    "manifest.json": "496283b2994eafc06c564ec6aa00ca2d6eddf645b82bb61da136744163c92b1c",
+    "code.bin": "a76af508156dc6984810c6f01d2736bf7bd18112d51dcc1d431b7bfdfa1e8d57",
+    "docs.bin": "03d07a3f362d552a8563d0b7f0ff58eb4a1a424c7489a999d6a969686ea78e54"
+  },
+  "environment": "Live Windows 11 Pro build 26300 with memory backing and user-mode WinFsp SDK",
+  "scope": "Two executions per corpus and build with exact full-file and three 4 KiB reads per file. The backing provider counts bytes requested and the independently opened CPU reader verifies content. This experiment measures backing traffic in a native session. Mounted throughput, tail latency, physical-device fault recovery and AMD execution require separate qualification.",
+  "windows_suites": {
+    "Windows Release": {
+      "passed": 14,
+      "detail_log_sha256": "9234eab1b693cd41959e463588778105272d0a471e201e8e3be041789a49afd5"
+    },
+    "Windows codec-free ASan": {
+      "passed": 15,
+      "ctest_passed": [
+        "windows_asan_runtime_preflight",
+        "bounded_native_indexed_batch_capacity",
+        "bounded_native_indexed_volume",
+        "bounded_native_indexed_group_xor",
+        "bounded_paged_object_store",
+        "bounded_native_indexed_group_batch",
+        "bounded_native_shared_bases",
+        "bounded_winfsp_controller",
+        "bounded_native_indexed_group_advice",
+        "bounded_winfsp_session_test",
+        "bounded_winfsp_indexed_memory",
+        "bounded_native_indexed_group_maintenance"
+      ],
+      "ctest_detail_log_sha256": "28c8cc6c4248a2666ba6eba9ed43bc3806d351a7432d0818432ca3d5ff41cb83",
+      "initial_ctest_timeout": {
+        "run": "local-run-4e4ef9c9491b4128b04e3c3481723a3e",
+        "receipt_sha256": "e520f50adb2eff43b98a7c00182707bf9872ab9a2461e6f3a7e97add52b54021",
+        "log_sha256": "c4aa4ef2700bb307caeb64971dc63bbd36e64e30dedf3e9dbec30c0add6708f4",
+        "test_timeouts": [
+          "bounded_native_shared_base_packed_xor",
+          "bounded_native_shared_base_modular_delta"
+        ],
+        "outer_deadline_interrupted": "bounded_native_shared_base_sparse_xor",
+        "tree_retired": true
+      },
+      "separate_bounded_fault_runs": [
+        {
+          "mode": "--packed-xor",
+          "exit_code": 0,
+          "elapsed_seconds": 190.308,
+          "output": "shared_base_faults indexed=1 shape=2 unit=4096 cuts=85 modes=3 prior=247 complete=8\r\nshared_base_faults indexed=1 shape=2 unit=65536 cuts=91 modes=3 prior=265 complete=8\r\nPASS: 4774 packed XOR checks; 528 injected write/barrier cases"
+        },
+        {
+          "mode": "--modular-delta",
+          "exit_code": 0,
+          "elapsed_seconds": 210.788,
+          "output": "sampled_modular_cpu signed_cases=8 word_widths=4 byte_exact=true\r\nshared_base_faults indexed=1 shape=3 unit=4096 cuts=79 modes=3 prior=229 complete=8\r\nshared_base_faults indexed=1 shape=3 unit=65536 cuts=97 modes=3 prior=283 complete=8\r\nPASS: 4836 modular delta checks; 528 injected write/barrier cases"
+        },
+        {
+          "mode": "--sparse-xor",
+          "exit_code": 0,
+          "elapsed_seconds": 138.003,
+          "output": "sparse_xor_codec dense_bytes=576 sparse_bytes=489 sparse_only_bytes=4736 malformed_cases=11 byte_exact=true\r\nshared_base_faults indexed=1 shape=4 unit=4096 cuts=79 modes=3 prior=229 complete=8\r\nshared_base_faults indexed=1 shape=4 unit=65536 cuts=97 modes=3 prior=283 complete=8\r\nPASS: 4781 sparse XOR checks; 528 injected write/barrier cases"
+        }
+      ],
+      "asan_test_executable_sha256": "58e352bb1b66962ed66f5b8ae360dba9dfc5980e9e16bee216264ea8610be3cc",
+      "asan_runtime_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed"
+    }
+  },
+  "results": {
+    "code": {
+      "compacted_bytes": {
+        "input_compacted_bytes": 606208,
+        "grouped_compacted_bytes": 286720
+      },
+      "input_blake3": "5f89cd7cbed6c82bc2507e844ab79cc116407492d35ec78ae4f658881dcd0c07",
+      "independent_snapshot_bytes_both_builds": {
+        "zstd": 10507,
+        "full_logical": 921886,
+        "full_input_backing": 1109361,
+        "full_grouped_backing": 1571298,
+        "sampled_logical": 245760,
+        "sampled_input_backing": 3070684,
+        "sampled_grouped_backing": 4192189
+      },
+      "session_bytes": {
+        "baseline": {
+          "full_logical": 921886,
+          "full_input_backing": 411741,
+          "full_grouped_backing": 461938,
+          "sampled_logical": 245760,
+          "sampled_input_backing": 1100704,
+          "sampled_grouped_backing": 1232749
+        },
+        "candidate": {
+          "full_logical": 921886,
+          "full_input_backing": 411741,
+          "full_grouped_backing": 268462,
+          "sampled_logical": 245760,
+          "sampled_input_backing": 1100704,
+          "sampled_grouped_backing": 644749
+        }
+      },
+      "grouped_session_backing_savings_percent": {
+        "full_grouped_backing": 41.88,
+        "sampled_grouped_backing": 47.7
+      }
+    },
+    "docs": {
+      "compacted_bytes": {
+        "input_compacted_bytes": 843776,
+        "grouped_compacted_bytes": 319488
+      },
+      "input_blake3": "024632754d73bedc236d834b4086fc4c891f265588a381f76e12cc44b007c546",
+      "independent_snapshot_bytes_both_builds": {
+        "zstd": 10507,
+        "full_logical": 906105,
+        "full_input_backing": 1230464,
+        "full_grouped_backing": 1681635,
+        "sampled_logical": 245760,
+        "sampled_input_backing": 3285014,
+        "sampled_grouped_backing": 4370668
+      },
+      "session_bytes": {
+        "baseline": {
+          "full_logical": 906105,
+          "full_input_backing": 532904,
+          "full_grouped_backing": 572355,
+          "sampled_logical": 245760,
+          "sampled_input_backing": 1315214,
+          "sampled_grouped_backing": 1411468
+        },
+        "candidate": {
+          "full_logical": 906105,
+          "full_input_backing": 532904,
+          "full_grouped_backing": 287231,
+          "sampled_logical": 245760,
+          "sampled_input_backing": 1315214,
+          "sampled_grouped_backing": 631373
+        }
+      },
+      "grouped_session_backing_savings_percent": {
+        "full_grouped_backing": 49.82,
+        "sampled_grouped_backing": 55.27
+      }
+    }
+  },
+  "routing": {
+    "version": "0.2.43",
+    "receipt_sha256": "d1e3883a5f0ce7f013aa6e54a843267f049fb07ebaee577d1175fdb5180be6c8",
+    "native_response_sha256": "e85adb37d900c117d90b869872bae4085d06faea08caaf61dff13097a4f9797f"
+  },
+  "source_review": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "f078466158eed7dd24bb843a5a6f002e98f19fb302a3ca5b16d2478e561a4c51",
+    "pages": [
+      {
+        "url": "https://www.usenix.org/conference/fast26/presentation/huang",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 10395,
+        "markdown_sha256": "b271b38f1feb88acd780ae11d756c7f3723fecb288cfe5e7803fed9c5d93767d",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.982,
+        "capture": "rubikfs.native.json",
+        "capture_sha256": "495ef89c3e79074aee100f0128a3705238840d141198e1cd83e62299db991131",
+        "name": "rubikfs"
+      },
+      {
+        "url": "https://openzfs.github.io/openzfs-docs/Basic%20Concepts/Copy-on-write.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 10621,
+        "markdown_sha256": "0d61956e9f3f6184d85a19373b9ea4f12a02f321aea4bf58bdf3d987b3f4f0fa",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.783,
+        "capture": "openzfs-cow.native.json",
+        "capture_sha256": "169d3d9b37b8336d1ac88e351a53df88d89eef79b85d92d8f68131c547db0a7f",
+        "name": "openzfs-cow"
+      },
+      {
+        "url": "https://openzfs.github.io/openzfs-docs/Basic%20Concepts/Operations/Scrub%20and%20Resilver.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 9934,
+        "markdown_sha256": "614643fc6c4d9297939d91e4e80f743dcfb0f80fa0208539e503491bf168e82f",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.618,
+        "capture": "openzfs-scrub.native.json",
+        "capture_sha256": "fde774d18999be9982574d7b6c21e19360a6bd0b80c4b2470eacca0cf38d0aa6",
+        "name": "openzfs-scrub"
+      }
+    ]
+  },
+  "run_receipts": [
+    {
+      "role": "Frozen baseline build",
+      "run": "local-run-f84f473023b74350b805bd0dbeee7edc",
+      "receipt_sha256": "c4ec6bfda1e9c3b31a6dac67e50037d65935d985c5698809d7bcabe8cc8cee3d",
+      "log_sha256": "f8db7a84faf694ce85db0c3a1f7ede49ecd09a10d91c244d55435371b9643010",
+      "peak_job_bytes": 433225728,
+      "tree_retired": true
+    },
+    {
+      "role": "Windows Release build",
+      "run": "local-run-bf51b2438eef4733ab61292ef0782523",
+      "receipt_sha256": "b2d1c777157cf5cfb0ab1d64e44a979f8f811a7d6dd334218bff7e4dfef14c87",
+      "log_sha256": "b6384d4a94c95d1720fb6cf4e7ffaba41dfb22c19f08bfd8e2a960cf159b51da",
+      "peak_job_bytes": 433762304,
+      "tree_retired": true
+    },
+    {
+      "role": "Windows Release suite",
+      "run": "local-run-6efbee0ae22145699361beb2face8a52",
+      "receipt_sha256": "d04e832bdce1e7de7111a26de5276381261b944eddabe6b96b75c70760d918ca",
+      "log_sha256": "3e5eb1eb09e704f3e661cfe08e31cce4cc4bf1fabc8e2503bfe5b22d4a735984",
+      "peak_job_bytes": 344973312,
+      "tree_retired": true
+    },
+    {
+      "role": "Windows codec-free ASan build",
+      "run": "local-run-3e86699682b841789b2bb1fa532bca66",
+      "receipt_sha256": "980b6671d6b8d681e3d2615d4a8f4ef8d311f381f930c15031a5cbb9c6b21fcb",
+      "log_sha256": "21b482db4125e8f4c2d2768978206ddaddde64f6b30a1e2dfa06faa194b37598",
+      "peak_job_bytes": 710217728,
+      "tree_retired": true
+    },
+    {
+      "role": "ASan direct fault matrices",
+      "run": "local-run-9fc2e97e03c34713bee5bdc8ae5497b3",
+      "receipt_sha256": "d6358c1f96afe431f781ed0970e7984ad4581e820c616cb0d928e1bb86774f59",
+      "log_sha256": "74268eac1bf1a89f36511402fd530e5efeb15a3e79c13d84e300730e257035a7",
+      "peak_job_bytes": 1556910080,
+      "tree_retired": true
+    },
+    {
+      "role": "baseline code repeat 1",
+      "run": "local-run-adc45cdb6e7c445c90837137d0eb3d37",
+      "receipt_sha256": "519acdfa841d0664bbb0d4d40e5cadda4978fbc76a1c78e5a1b4c5ac7da186fb",
+      "log_sha256": "6ca67d37cfe50d215d967c908b50d5e64f52ed8c5a5249ca8467dd65d6c34f57",
+      "peak_job_bytes": 10661888,
+      "tree_retired": true
+    },
+    {
+      "role": "baseline code repeat 2",
+      "run": "local-run-8f5175850ef2490fb0a72d9852b9e0b1",
+      "receipt_sha256": "c08a07b263c973bc72c0ae619729aae805aa93a9da0833ab0387e0a53dff59ae",
+      "log_sha256": "a2a693936095f99a91b11420351bfb32f2e9a3ce5c0dbdd39429c36f93782cc9",
+      "peak_job_bytes": 10608640,
+      "tree_retired": true
+    },
+    {
+      "role": "candidate code repeat 1",
+      "run": "local-run-a315bcf108b746948e862abe0eda4594",
+      "receipt_sha256": "00ffa052641e7fa000a1b5e89a968b76954eb681026609b2ca480216a763431a",
+      "log_sha256": "71510f5d13544f266cc6a0893d73477a69a1676e73de32fdd19501342477cb6d",
+      "peak_job_bytes": 10633216,
+      "tree_retired": true
+    },
+    {
+      "role": "candidate code repeat 2",
+      "run": "local-run-90758d8b6662416688ada85e89bf4d81",
+      "receipt_sha256": "c5b5c0fc3fc20a2f596c6b1182153089d368c001b50c63df6054a003776dad2c",
+      "log_sha256": "569d01afc887dff8181c60cde75d7c4f561f26a4c053c19c11e2bf5ecdeb9939",
+      "peak_job_bytes": 10399744,
+      "tree_retired": true
+    },
+    {
+      "role": "baseline docs repeat 1",
+      "run": "local-run-b06c95c795e94bc2b5e6ab1d322a4465",
+      "receipt_sha256": "2b13412792fc9dbf6226ed40d756d90636fdd06e16b31c66829b6fec7b0ad97d",
+      "log_sha256": "ea3744e874a2681af556cc73e300934d9a71c998d1b40612345985ff3ffc8d95",
+      "peak_job_bytes": 12914688,
+      "tree_retired": true
+    },
+    {
+      "role": "baseline docs repeat 2",
+      "run": "local-run-a25aea39e3694d309a668ba7adc86392",
+      "receipt_sha256": "043394f4ffe286861d13955d73bb77187c4ae75f3df23bc03ba1201623b7fdd0",
+      "log_sha256": "0eac5048c7552294e22b82d44505ea257adceb7b177f62a7c0f13b1c3627acfe",
+      "peak_job_bytes": 12943360,
+      "tree_retired": true
+    },
+    {
+      "role": "candidate docs repeat 1",
+      "run": "local-run-0a4ee4e908d146569a52a27c770ea2d0",
+      "receipt_sha256": "78743fcd9ecf98ea58b8913cbd2e15184bb7e21813060c707d4fcf5937601c87",
+      "log_sha256": "81bcfc28c308eab322026d888ed2ae1383e797c44d2a42876db2d0e60a15df15",
+      "peak_job_bytes": 13037568,
+      "tree_retired": true
+    },
+    {
+      "role": "candidate docs repeat 2",
+      "run": "local-run-25ecfb67254a425ca963b428931adf3c",
+      "receipt_sha256": "f550a011e5141bb86e88c973313315c78214159f1ab162a4cbdee17d6d867c52",
+      "log_sha256": "aa04c454479eea6cb9b3e7ee8499c2f206b0f3f369a8bb257f2aec5434ffb7e7",
+      "peak_job_bytes": 12783616,
+      "tree_retired": true
+    }
+  ]
+}

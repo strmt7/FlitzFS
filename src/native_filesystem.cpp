@@ -1098,6 +1098,7 @@ struct NativeFilesystemWriter::Impl {
   // An allocation-free copy of the canonical root of this committed Model.
   InodeRootBytes inode_root{};
   std::optional<detail::IndexedVolumeRoot> indexed;
+  detail::IndexedSharedBaseCache shared_base_reads;
   std::uint64_t indexed_content_sequence=1;
   std::shared_ptr<SharedBaseOwner> shared_owner=std::make_shared<SharedBaseOwner>();
   void remember(std::span<const StoreMutation> changes,std::uint64_t generation,bool content_changed=true) noexcept {
@@ -1118,11 +1119,20 @@ struct NativeFilesystemWriter::Impl {
       const detail::IndexedVolumeView view(*snapshot.paged_if(),bytes);
       if(view.root()!=*indexed)fail(Code::corrupt,"indexed writer root differs from backing");
       return std::forward<Read>(read)(view);
-    }catch(const std::bad_alloc&){fail(Code::limit,"indexed namespace query allocation failure");}
-    catch(const NativeFsError& error) {
-      if(error.code()==Code::corrupt || error.code()==Code::storage_failure)poisoned=true;
+    }catch(const std::bad_alloc&){
+      shared_base_reads.clear();
+      fail(Code::limit,"indexed namespace query allocation failure");
+    }catch(const NativeFsError& error) {
+      if(error.code()==Code::corrupt || error.code()==Code::storage_failure) {
+        shared_base_reads.clear();
+        poisoned=true;
+      }
       throw;
-    }catch(const std::exception&){poisoned=true;fail(Code::storage_failure,"indexed namespace query failed");}
+    }catch(const std::exception&){
+      shared_base_reads.clear();
+      poisoned=true;
+      fail(Code::storage_failure,"indexed namespace query failed");
+    }
   }
   template<class Commit>
   auto mutate_indexed(Commit&& commit) {
@@ -2590,7 +2600,7 @@ Bytes NativeFilesystemWriter::read_inode(std::uint64_t inode,std::uint64_t offse
   auto& state=checked_impl();
   if(bytes>kNativeMaxReadBytes)fail(Code::limit,"native read request budget");
   if(state.indexed)return state.read_indexed([&](const auto& view) {
-    return view.read(view.inode(inode),offset,bytes);
+    return view.read(view.inode(inode),offset,bytes,&state.shared_base_reads);
   });
   return state.read_checked_inode(inode,[&](const auto& snapshot,const Node& n) {
     return read_node(snapshot,state.model,n,offset,bytes);

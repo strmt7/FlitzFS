@@ -202,10 +202,15 @@ selected Windows raw/AddressSanitizer suites, modeled interruptions, malformed
 dependencies, retained snapshots, bank loss and complete-image measurements.
 [Indexed preparation evidence](evidence/cooperative-indexed-shared-base-2026-11-18.json)
 records selected-extent invalidation, interleaved foreground edits, scoped
-memory I/O measurements and interruptions at publication.
-Fixtures are synthetic related aligned extents and unrelated/dense rejection
-cases. They establish neither representative compression ratios nor throughput,
-latency, GPU benefit, mounted safety or superiority over other filesystems.
+memory I/O measurements and interruptions at publication. Those fixtures use
+synthetic aligned extents and unrelated or dense rejection cases.
+
+Two public revision corpora exercised open-file reads on the live Windows host
+across identical compacted layouts. Retaining verified base frames cut backing
+bytes by 42–50% for full-file reads and 48–55% for 4 KiB samples. Separate CPU
+snapshots verified the bytes again from backing storage. The measurements cover
+backing traffic in the native session, with mounted throughput and latency
+remaining open. [Retained base read evidence](evidence/indexed-retained-anchor-reads-2026-11-20.json)
 
 The subsequent [staged-work validation](evidence/staged-shared-base-2026-11-15.json)
 qualifies the cooperative API, foreground reconciliation, stale/owner/cancel

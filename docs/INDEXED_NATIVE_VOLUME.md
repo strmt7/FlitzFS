@@ -73,16 +73,21 @@ followed by 65,536 immutable bytes. Both records use mirrored storage.
 The member binds the base object ID, generation and decoded digests.
 The index must also contain that exact base/member pair.
 
-An indexed read checks each member's index binding and loads its verified
-base through one lookup of the expected generation. It can reuse the base
-for later extents with that same identity and generation in this request.
-The decoder validates the member payload while reconstructing it. It checks
-the base digest, decoded digest and file bounds before returning the
-requested range. A new read verifies the base again. The full scrub checks
-every member, referenced anchor and the index and volume totals. Bases are
-separate from visible files, so removing the file used as the base leaves
-other files readable.
-[Public revision reads and mirror recovery](evidence/public-revision-reads-2026-11-19.json)
+An indexed read checks each member's index binding and the expected base
+generation. It validates the base digest, decoded digest and file bounds
+before returning the requested range. Independent snapshots can reuse a
+verified base within one request. Serialized reads through an owned native
+file session can retain several verified bases within the memory budget of
+one native read. Reuse requires the same healthy, mirrored store identity
+and checkpoint. Observed replica degradation or a checkpoint change clears
+the retained bases before the next reuse.
+
+Scrub, recovery and mutations verify the backing records independently.
+Physical verification can discover faults that develop while a verified
+base is retained in memory. Bases have their own protected records, so
+removing the file used as the base leaves other files readable.
+[Public revision reads and mirror recovery](evidence/public-revision-reads-2026-11-19.json) ·
+[Retained base read evidence](evidence/indexed-retained-anchor-reads-2026-11-20.json)
 
 Explicit grouping prepares independently checked member frames one extent at
 a time from a pinned checkpoint. Foreground edits can proceed between steps.

@@ -201,13 +201,10 @@ void verify_base_frame(const Bytes& bytes) {
   if(bytes.size()!=base_size || !magic(bytes,base_magic))
     fail(Code::corrupt,"invalid indexed shared base");
 }
-struct IndexedSharedBaseRead {
-  std::uint64_t object=0,generation=0;
-  Bytes frame;
-};
 DecodedIndexedExtent decode_extent(const PagedObjectStoreSnapshot& source,const NativeNameIndex& index,
     const IndexedVolumeRoot& root,std::uint64_t object,Bytes bytes,const IndexedInodeInput& inode,
-    std::uint64_t block,bool compare_anchor=false,IndexedSharedBaseRead* cached_base=nullptr) {
+    std::uint64_t block,bool compare_anchor=false,IndexedSharedBaseRead* cached_base=nullptr,
+    IndexedSharedBaseCache* retained=nullptr) {
   if(bytes.size()<=extent_header || get(bytes,8)!=inode.inode || get(bytes,16)!=block)
     fail(Code::corrupt,"indexed extent owner or logical offset mismatch");
   if(magic(bytes,extent_magic)) {
@@ -223,18 +220,23 @@ DecodedIndexedExtent decode_extent(const PagedObjectStoreSnapshot& source,const 
         index.find(native_group_reference_key(reference.base_id,object))!=object)
       fail(Code::corrupt,"indexed shared-base backreference is missing");
     IndexedSharedBaseRead local_base;
-    auto& anchor=cached_base?*cached_base:local_base;
-    if(anchor.object!=reference.base_id || anchor.generation!=reference.base_generation) {
-      auto frame=fetch(source,reference.base_id,base_size,reference.base_generation);
-      if(!frame)fail(Code::corrupt,"indexed shared-base generation mismatch");
-      verify_base_frame(*frame);
-      anchor={reference.base_id,reference.base_generation,std::move(*frame)};
+    auto& scratch=cached_base?*cached_base:local_base;
+    const auto* anchor=retained?retained->find(reference.base_id,reference.base_generation):nullptr;
+    if(!anchor) {
+      if(scratch.object!=reference.base_id || scratch.generation!=reference.base_generation) {
+        auto frame=fetch(source,reference.base_id,base_size,reference.base_generation);
+        if(!frame)fail(Code::corrupt,"indexed shared-base generation mismatch");
+        verify_base_frame(*frame);
+        scratch={reference.base_id,reference.base_generation,std::move(*frame)};
+      }
+      anchor=&scratch;
     }
-    const auto anchor_payload=std::span<const std::byte>(anchor.frame).subspan(base_magic.size());
+    const auto anchor_payload=std::span<const std::byte>(anchor->frame).subspan(base_magic.size());
     auto decoded=decode_native_group_member(member,anchor_payload,maximum_method);
-    const auto reusable=compare_anchor && std::ranges::equal(decoded,anchor_payload)?anchor.generation:0;
+    const auto reusable=compare_anchor && std::ranges::equal(decoded,anchor_payload)?anchor->generation:0;
     while(!decoded.empty() && decoded.back()==std::byte{})decoded.pop_back();
     validate_payload(inode,block,decoded);
+    if(retained && anchor==&scratch)retained->remember(scratch);
     return {std::move(decoded),0,reference.base_id,reusable};
   }catch(const std::bad_alloc&){throw;}
   catch(const NativeFsError&){throw;}
@@ -1668,11 +1670,57 @@ std::vector<NativeFileInfo> IndexedVolumeView::list_all(std::uint64_t directory)
   }while(after);
   return entries;
 }
-Bytes IndexedVolumeView::read(const IndexedInodeInput& selected,std::uint64_t offset,std::uint32_t bytes) const {
+bool IndexedSharedBaseCache::bind(const PagedObjectStoreSnapshot& source) noexcept {
+  const auto info=source.info();
+  if(!info.mirrored_payloads || info.degraded_roots || info.degraded_metadata || info.degraded_payloads) {
+    clear();
+    return false;
+  }
+  const auto image=source.identity();
+  if(checkpoint_!=info.generation || image_!=image) {
+    clear();
+    checkpoint_=info.generation;
+    image_=image;
+  }
+  return true;
+}
+
+const IndexedSharedBaseRead* IndexedSharedBaseCache::find(std::uint64_t object,std::uint64_t generation) noexcept {
+  const auto hit=std::ranges::find_if(frames_,[&](const auto& entry) {
+    return entry.object==object && entry.generation==generation;
+  });
+  if(hit==frames_.end())return nullptr;
+  std::rotate(hit,hit+1,frames_.end());
+  return &frames_.back();
+}
+
+void IndexedSharedBaseCache::remember(IndexedSharedBaseRead& entry) noexcept {
+  // Retained storage fits the existing memory envelope of one native read.
+  // Cache allocation failure leaves the request-local verified frame usable.
+  constexpr auto capacity=kNativeMaxReadBytes/(base_size+sizeof(IndexedSharedBaseRead));
+  if(frames_.size()==capacity) {
+    std::rotate(frames_.begin(),frames_.begin()+1,frames_.end());
+    frames_.back()=std::move(entry);
+  } else {
+    try{frames_.push_back(std::move(entry));}
+    catch(const std::bad_alloc&){clear();return;}
+  }
+  entry={};
+}
+
+void IndexedSharedBaseCache::clear() noexcept {
+  std::vector<IndexedSharedBaseRead>{}.swap(frames_);
+  image_={};
+  checkpoint_=0;
+}
+
+Bytes IndexedVolumeView::read(const IndexedInodeInput& selected,std::uint64_t offset,std::uint32_t bytes,
+    IndexedSharedBaseCache* retained) const {
   if(selected.lifetime==IndexedLifetime::retiring)fail(Code::not_found,"indexed inode is retired");
   if(selected.directory)fail(Code::is_directory,"cannot read indexed directory");
   if(bytes>kNativeMaxReadBytes)fail(Code::limit,"indexed read budget");
   if(!bytes || offset>=selected.size)return {};
+  if(retained && !retained->bind(store_))retained=nullptr;
   const auto count=(std::min)(std::uint64_t(bytes),selected.size-offset);
   const auto end=offset+count,first=offset/kNativeExtentBytes,last=(end-1)/kNativeExtentBytes;
   const auto start=native_extent_key(selected.inode,first?first-1:0);
@@ -1686,13 +1734,14 @@ Bytes IndexedVolumeView::read(const IndexedInodeInput& selected,std::uint64_t of
     if((entry.value&ordinal_mask)>=root_.next_extent)
       fail(Code::corrupt,"indexed extent reference exceeds allocator");
     const auto extent=decode_extent(store_,index_,root_,entry.value,
-        required(store_,entry.value,extent_header+kNativeExtentBytes),selected,block,false,&cached_base);
+        required(store_,entry.value,extent_header+kNativeExtentBytes),selected,block,false,&cached_base,retained);
     const auto data=extent.payload();
     const auto begin=block*kNativeExtentBytes;
     const auto from=(std::max)(begin,offset),to=(std::min)(end,begin+data.size());
     if(from<to)std::copy_n(data.begin()+static_cast<std::ptrdiff_t>(from-begin),
         static_cast<std::size_t>(to-from),output.begin()+static_cast<std::ptrdiff_t>(from-offset));
   }
+  if(retained)(void)retained->bind(store_);
   return output;
 }
 NativeContentToken IndexedVolumeView::content_token(NativeExtentSelection extent,std::uint64_t object) const {

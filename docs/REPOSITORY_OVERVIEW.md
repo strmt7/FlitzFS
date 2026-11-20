@@ -420,6 +420,16 @@ equal occupied bytes. The current foreground comparison selects CPU.
 Scalable automatic candidate selection and preparation remain open.
 [Indexed shared-base evidence](evidence/indexed-shared-base-2026-11-18.json)
 
+Owned native sessions can now reuse verified shared bases across reads of an
+unchanged checkpoint. The live Windows comparison used two public revision
+corpora with identical baseline and candidate image sizes. Full-file backing
+traffic fell from 461,938 to 268,462 bytes for code and from 572,355 to
+287,231 bytes for documentation. Independently opened CPU snapshots read the
+same backing bytes across both builds and recovered all file contents. The
+next access step is to measure cold and hot read amplification in mounted
+and mixed workloads, then include those costs in candidate admission.
+[Retained base read evidence](evidence/indexed-retained-anchor-reads-2026-11-20.json)
+
 The Windows controller collects GPU memory observations on demand. A
 relocated executable acquired the installed AMD package, and three 512 KiB
 AMD writes each verified eight candidate extents and sixteen mirrored
