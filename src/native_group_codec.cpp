@@ -1,4 +1,5 @@
 #include "native_group_codec.hpp"
+#include "store_codec.hpp"
 #include "flitzfs/gpu_anchor_match.hpp"
 #include <algorithm>
 #include <array>
@@ -15,7 +16,8 @@ constexpr auto copy_magic=[] {auto value=aligned_magic;value.back()=std::byte{'2
 constexpr auto xor_magic=[] {auto value=aligned_magic;value.back()=std::byte{'3'};return value;}();
 constexpr auto delta_magic=[] {auto value=aligned_magic;value.back()=std::byte{'4'};return value;}();
 constexpr auto sparse_xor_magic=[] {auto value=aligned_magic;value.back()=std::byte{'5'};return value;}();
-constexpr std::array member_magics{aligned_magic,copy_magic,xor_magic,delta_magic,sparse_xor_magic};
+constexpr auto prefixed_zstd_magic=[] {auto value=aligned_magic;value.back()=std::byte{'6'};return value;}();
+constexpr std::array member_magics{aligned_magic,copy_magic,xor_magic,delta_magic,sparse_xor_magic,prefixed_zstd_magic};
 constexpr std::size_t xor_tile_bytes=256,xor_plane_bytes=xor_tile_bytes/8,xor_tiles=extent/xor_tile_bytes;
 using anchor_match::sparse_plane_max;
 using anchor_match::sparse_plane_inverse;
@@ -478,6 +480,7 @@ NativeGroupReference read_native_group_header(std::span<const std::byte> bytes,N
   std::copy_n(bytes.begin()+32,32,ref.base_digest.begin());std::copy_n(bytes.begin()+64,32,ref.decoded_digest.begin());
   ref.member_bytes=static_cast<std::uint32_t>(bytes.size());ref.method=method;
   if((method==NativeGroupMethod::packed_xor || method==NativeGroupMethod::sparse_xor) && get(bytes,96,4)!=xor_tiles)fail();
+  if(method==NativeGroupMethod::prefixed_zstd && get(bytes,96,4))fail();
   return ref;
 }
 NativeGroupReference parse_native_group_member(std::span<const std::byte> bytes,NativeGroupMethod maximum_method) {
@@ -496,6 +499,9 @@ NativeGroupReference parse_native_group_member(std::span<const std::byte> bytes,
     case NativeGroupMethod::sparse_xor:
       sparse_xor_planes(bytes.subspan(header),[](auto,auto,auto){},[](auto,auto,auto,auto){});
       break;
+    case NativeGroupMethod::prefixed_zstd:
+      if(!store_prefix_frame(bytes.subspan(header),extent))fail();
+      break;
   }
   return ref;
 }
@@ -505,7 +511,9 @@ std::vector<std::byte> decode_native_group_member(std::span<const std::byte> byt
   if(base.size()!=extent || record_digest(base)!=ref.base_digest)fail();
   std::vector<std::byte> result;
   const auto literal=[&](auto offset,auto input){std::copy(input.begin(),input.end(),result.begin()+offset);};
-  if(ref.method==NativeGroupMethod::anchor_copies) {
+  if(ref.method==NativeGroupMethod::prefixed_zstd) {
+    result=decode_store_prefix(bytes.subspan(header),base);
+  } else if(ref.method==NativeGroupMethod::anchor_copies) {
     result.resize(extent);
     spans(bytes,[&](auto output,auto source,auto length){
       std::copy_n(base.begin()+source,length,result.begin()+output);
@@ -525,6 +533,18 @@ void bind_native_group_member(std::span<std::byte> member,std::uint64_t base_id,
   (void)member_method(member,maximum_method);
   put(member,16,base_id,8);
   put(member,24,generation,8);
+}
+std::optional<std::vector<std::byte>> encode_native_group_prefix(std::span<const std::byte> member,
+    std::span<const std::byte> base,std::uint64_t base_id,std::uint64_t generation,std::size_t exclusive_limit) {
+  if(member.size()!=extent || base.size()!=extent || !base_id_valid(base_id) || !generation)fail();
+  exclusive_limit=(std::min)(exclusive_limit,extent);
+  if(exclusive_limit<=header)return {};
+  const auto payload=encode_store_prefix(member,base,exclusive_limit-header);
+  if(!payload)return {};
+  std::vector<std::byte> frame(header+payload->size());
+  write_header(frame,NativeGroupMethod::prefixed_zstd,member,base,base_id,generation,0);
+  std::copy(payload->begin(),payload->end(),frame.begin()+header);
+  return frame;
 }
 std::optional<std::vector<std::byte>> encode_native_group_member(std::span<const std::byte> member,
     std::span<const std::byte> base,std::uint64_t base_id,std::uint64_t generation) {

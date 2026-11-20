@@ -209,6 +209,7 @@ struct NativeSharedBaseCommit {
   std::size_t members=0;
   NativeExtentSelection reference{}; // Linked extent that bears the published shared-base reference.
   bool section_reference=false;
+  std::size_t prefixed_zstd_members=0,advised_members=0;
   std::vector<std::uint64_t> skipped_objects; // Sorted, unmodified automatic candidates.
 };
 enum class NativeSharedBasePhase {reading_base,encoding_members,ready,declined,completed,cancelled,failed};

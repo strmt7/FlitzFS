@@ -23,6 +23,11 @@ admission. The backfill checks the directory revision again before publication
 and retains the earlier checkpoint if preparing the update exceeds capacity.
 [Automatic backfill](INDEXED_NATIVE_VOLUME.md#automatic-backfill)
 
+A prefixed Zstandard member binds the same protected base identity and byte
+digest as the older shared-base methods. The CPU checks frame bounds and
+decoded bytes before the optional representation can compete for publication.
+[Prefixed Zstandard members](INDEXED_NATIVE_VOLUME.md#prefixed-zstandard-members)
+
 The writable controller owns its session until an explicit stop, dispatcher
 termination or storage fence. Quiet volumes wait on owned events. Publication
 and retirement by the deferred service wake that owner. Separately supervised

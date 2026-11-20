@@ -218,13 +218,12 @@ guards, private budget refusal and interruption recovery separately from the
 original representation. The 255-member case exercises the current native
 frontend boundary; it is not a million-file or permanent group-limit result.
 
-Current primary-source review of
-[Zstandard's dictionary contract](https://github.com/meta/zstd/blob/dev/lib/zstd.h)
-confirmed the need for identical immutable decoding dependencies. The API receipt
-retains the exact file blob identity, source and digest behind this moving link. This
-implementation does not call a Zstandard dictionary API or claim a novel patch
-algorithm. Failed old-repository API reads and the canonical `meta/zstd` redirect
-are retained in the evidence, rather than counted as successful source review.
+Indexed groups can use the protected base as a raw Zstandard prefix. The
+CPU verifies each candidate before the complete compacted size comparison.
+The prefix candidate saved space on the short-match fixture. On the twelve
+held-out OpenZFS and SQLite revisions, the ordinary candidates retained the
+same compacted size. [Prefixed Zstandard members](INDEXED_NATIVE_VOLUME.md#prefixed-zstandard-members) ·
+[Cost and readback evidence](evidence/indexed-prefixed-zstd-2026-11-20.json)
 
 Next: fresh contention/resource admission, durable restart progress and protected
 paged coherence metadata;

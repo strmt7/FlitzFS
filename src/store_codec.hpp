@@ -2,6 +2,7 @@
 #include "flitzfs/object_store.hpp"
 #include "record_digest.hpp"
 #include <memory>
+#include <optional>
 #include <span>
 #include <vector>
 namespace flitzfs::detail {
@@ -12,6 +13,12 @@ inline constexpr std::size_t kStoreMaxMatchProposals=4096;
 bool store_match_sequences_available() noexcept;
 inline constexpr std::size_t kStoreEncoderMemoryCap=16U*1024U*1024U;
 inline constexpr std::size_t kStoreDecoderMemoryCap=2U*1024U*1024U;
+inline constexpr std::size_t kStorePrefixEncoderMemoryCap=2U*1024U*1024U;
+bool store_prefix_frame(std::span<const std::byte>,std::size_t expected) noexcept;
+std::optional<std::vector<std::byte>> encode_store_prefix(std::span<const std::byte> input,
+    std::span<const std::byte> prefix,std::size_t exclusive_limit);
+std::vector<std::byte> decode_store_prefix(std::span<const std::byte> input,
+    std::span<const std::byte> prefix);
 void validate_store_compression(StoreCompressionOptions options);
 bool store_codec_framing(std::uint32_t codec,std::uint32_t logical,std::uint32_t stored) noexcept;
 // Prefix a standalone LZ4 block whose entire decoded suffix was checked.

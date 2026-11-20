@@ -45,6 +45,13 @@ restart. [Automatic backfill](INDEXED_NATIVE_VOLUME.md#automatic-backfill)
 [Owned indexed evidence](evidence/indexed-owned-windows-2026-11-18.json)
 [Managed indexed evidence](evidence/indexed-managed-winfsp-2026-11-18.json)
 
+Indexed groups can reuse a protected base as a Zstandard prefix. The short-match
+fixture fell from 606,208 to 450,560 occupied bytes across matched builds. On
+held-out OpenZFS and SQLite revisions, both builds retained 483,328 bytes after
+grouping. Read and maintenance costs across more workloads remain part of
+compression qualification.
+[Prefixed group evidence](evidence/indexed-prefixed-zstd-2026-11-20.json)
+
 Indexed maintenance can group numeric extents with a common modular bias
 and encode their signed residuals. It selects the method using the existing
 size and byte-verification rules. The AMD worker scores and packs modular

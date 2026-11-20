@@ -1475,13 +1475,13 @@ PagedStoreInfo PagedObjectStoreWriter::commit_native(std::span<const StoreMutati
 }
 std::optional<PagedStoreInfo> PagedObjectStoreWriter::commit_if_compacted_smaller(
     std::span<const StoreMutation> mutations,std::uint64_t rebound_object,PagedCompactedSizes& sizes,
-    std::span<const StoreMutation> alternate,bool& selected_alternate) {
-  selected_alternate=false;
-  CompactedAdmission admission{rebound_object,sizes,alternate};
+    std::span<const std::span<const StoreMutation>> alternatives,std::size_t& selected) {
+  selected=0;
+  CompactedAdmission admission{rebound_object,sizes,alternatives};
   const auto result=commit_impl(mutations,kStoreMaxObjects,kStoreMaxTransactionBytes,
       (std::numeric_limits<std::uint64_t>::max)(),{},&admission);
   if(!result.write_bytes_upper_bound)return {};
-  selected_alternate=admission.selected_alternate;
+  selected=admission.selected;
   return result.storage;
 }
 PagedStoreWriteResult PagedObjectStoreWriter::commit_impl(
@@ -1511,10 +1511,14 @@ PagedStoreWriteResult PagedObjectStoreWriter::commit_impl(
     return result;
   };
   const auto sorted=ordered(mutations);
-  const auto alternate=compacted?ordered(compacted->alternate):std::vector<const StoreMutation*>{};
-  if(!alternate.empty() && !std::ranges::equal(sorted,alternate,[](const auto* first,const auto* second) {
-    return first->id==second->id && first->erase==second->erase;
-  }))fail("alternate compacted transaction changes object membership");
+  std::vector<std::vector<const StoreMutation*>> alternatives;
+  if(compacted)for(const auto batch:compacted->alternatives) {
+    auto alternate=ordered(batch);
+    if(!alternate.empty() && !std::ranges::equal(sorted,alternate,[](const auto* first,const auto* second) {
+      return first->id==second->id && first->erase==second->erase;
+    }))fail("alternate compacted transaction changes object membership");
+    alternatives.push_back(std::move(alternate));
+  }
   // Metadata reads/I/O failures fence; caller argument/admission failures do not.
   try {
     auto actual=load(old.image,old.limits);
@@ -1557,18 +1561,18 @@ PagedStoreWriteResult PagedObjectStoreWriter::commit_impl(
   };
   auto [objects,changes,stored]=prepare(sorted);
   if(compacted) {
-    std::optional<PreparedChanges> variant;
-    if(!alternate.empty()) {
-      try{variant.emplace(prepare(alternate));}
-      catch(const std::bad_alloc&){}
-    }
     try {
       compacted->sizes=compacted_sizes_after(old,changes,compacted->rebound_object);
-      if(variant) {
+      for(std::size_t i=0;i<alternatives.size();++i) {
+        if(alternatives[i].empty())continue;
+        std::optional<PreparedChanges> variant;
+        try{variant.emplace(prepare(alternatives[i]));}
+        catch(const std::bad_alloc&){continue;}
         const auto sizes=compacted_sizes_after(old,variant->changes,compacted->rebound_object);
         if(std::pair{sizes.after_upper,variant->stored}<std::pair{compacted->sizes.after_upper,stored}) {
           compacted->sizes=sizes;
-          compacted->selected_alternate=true;
+          compacted->selected=i+1;
+          stored=variant->stored;
           objects=std::move(variant->objects);
           changes=std::move(variant->changes);
         }

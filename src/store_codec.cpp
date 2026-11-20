@@ -97,6 +97,60 @@ void validate_store_compression(StoreCompressionOptions options) {
       (options.require_zstd && (options.mode!=StoreCompressionMode::automatic || !store_zstd_available())))
     fail("invalid policy or required bounded Zstandard unavailable");
 }
+bool store_prefix_frame(std::span<const std::byte> payload,std::size_t expected) noexcept {
+#ifdef FLITZFS_STORE_HAS_ZSTD
+  if(!native_zstd_frame(payload) || !expected || expected>kStoreMaxMatchInputBytes || payload.size()>=expected)return false;
+  ZSTD_frameHeader frame{};
+  if(ZSTD_getFrameHeader(&frame,payload.data(),payload.size())!=0 || frame.frameContentSize!=expected ||
+      frame.dictID || !frame.checksumFlag || frame.windowSize>2*expected)return false;
+  return ZSTD_findFrameCompressedSize(payload.data(),payload.size())==payload.size();
+#else
+  (void)payload;(void)expected;
+  return false;
+#endif
+}
+std::optional<std::vector<std::byte>> encode_store_prefix(std::span<const std::byte> input,
+    std::span<const std::byte> prefix,std::size_t exclusive_limit) {
+#ifdef FLITZFS_STORE_HAS_ZSTD
+  if(input.empty() || input.size()!=prefix.size() || input.size()>kStoreMaxMatchInputBytes ||
+      exclusive_limit<=1 || exclusive_limit>input.size())return {};
+  Budget budget{kStorePrefixEncoderMemoryCap};
+  std::unique_ptr<ZSTD_CCtx,decltype(&ZSTD_freeCCtx)> context(
+      ZSTD_createCCtx_advanced(budget.callbacks()),&ZSTD_freeCCtx);
+  if(!context ||
+      ZSTD_isError(ZSTD_CCtx_setParameter(context.get(),ZSTD_c_compressionLevel,3)) ||
+      ZSTD_isError(ZSTD_CCtx_setParameter(context.get(),ZSTD_c_windowLog,17)) ||
+      ZSTD_isError(ZSTD_CCtx_setParameter(context.get(),ZSTD_c_checksumFlag,1)) ||
+      ZSTD_isError(ZSTD_CCtx_refPrefix(context.get(),prefix.data(),prefix.size())))return {};
+  Bytes payload(exclusive_limit-1);
+  const auto bytes=ZSTD_compress2(context.get(),payload.data(),payload.size(),input.data(),input.size());
+  if(ZSTD_isError(bytes) || !bytes || bytes>=exclusive_limit)return {};
+  payload.resize(bytes);
+  if(!store_prefix_frame(payload,input.size()))return {};
+  return payload;
+#else
+  (void)input;(void)prefix;(void)exclusive_limit;
+  return {};
+#endif
+}
+std::vector<std::byte> decode_store_prefix(std::span<const std::byte> input,
+    std::span<const std::byte> prefix) {
+#ifdef FLITZFS_STORE_HAS_ZSTD
+  if(!store_prefix_frame(input,prefix.size()))fail("invalid prefixed Zstandard frame");
+  Budget budget{kStoreDecoderMemoryCap};
+  std::unique_ptr<ZSTD_DCtx,decltype(&ZSTD_freeDCtx)> context(
+      ZSTD_createDCtx_advanced(budget.callbacks()),&ZSTD_freeDCtx);
+  if(!context)fail("prefixed Zstandard decoder memory admission");
+  checked(ZSTD_DCtx_refPrefix(context.get(),prefix.data(),prefix.size()),"Zstandard prefix binding");
+  Bytes output(prefix.size());
+  const auto bytes=ZSTD_decompressDCtx(context.get(),output.data(),output.size(),input.data(),input.size());
+  if(ZSTD_isError(bytes) || bytes!=output.size())fail("prefixed Zstandard decoding failed");
+  return output;
+#else
+  (void)input;(void)prefix;
+  fail("prefixed Zstandard recovery unavailable");
+#endif
+}
 bool store_codec_framing(std::uint32_t codec,std::uint32_t logical,std::uint32_t stored) noexcept {
   if(logical>kStoreMaxObjectBytes || stored>logical) return false;
   switch(codec) {

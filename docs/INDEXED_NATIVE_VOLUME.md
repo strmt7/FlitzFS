@@ -7,7 +7,8 @@ image and resume a fully verified indexed image. Its path transactions update
 the checked index and changed records together. New volumes use capability 2,
 which supports file lifetimes through `NativeFileSession`. Shared-base
 publication selects capability 3 for aligned patches, 4 for anchor copies,
-5 for packed XOR planes, 6 for modular deltas or 7 for sparse XOR planes.
+5 for packed XOR planes, 6 for modular deltas, 7 for sparse XOR planes or 8
+for prefixed Zstandard.
 The managed head and writable WinFsp SDK adapter can select indexed images. The owned mounted
 provider passed an earlier indexed external-client fixture on disposable
 Windows Server 2025. Current Windows 11 client and mounted shared-base
@@ -19,14 +20,14 @@ qualification remain open.
 
 Object 1 is the little-endian native root. Capability 1 has 96 bytes.
 Capability 2 has 120 bytes and appends three lifetime counts. Capability 3
-has 136 bytes and adds the shared-base and member counts. Capabilities 4 through 7
+has 136 bytes and adds the shared-base and member counts. Capabilities 4 through 8
 keep the 136-byte root layout and permit additional group encodings. Readers
-accept all seven capabilities and check each against its exact length.
+check the capability against its exact root length.
 
 | Offset | Bytes | Value |
 | --- | --- | --- |
 | 0 | 8 | `FLTXPV01` |
-| 8 | 4 | Indexed native capability, 1 through 7 |
+| 8 | 4 | Indexed native capability, 1 through 8 |
 | 12 | 4 | Workload accounting flag, 0 or 1 |
 | 16 | 8 | Native namespace sequence |
 | 24, 32 | 8 each | Next inode ID and next extent ordinal |
@@ -455,6 +456,32 @@ batch. CPU verification binds each winning candidate to the same owned
 base and member bytes. A protected sparse result uses capability 7 and a
 modular result uses its existing capability 6 representation.
 [Mixed worker protocol](WORKER_CHANNEL.md#mixed-codec-batch)
+
+### Prefixed Zstandard members
+
+Capability 8 admits the `FLTXGM06` group member frame. It retains the 128-byte
+member header, exact base object and generation, base digest and decoded digest.
+The count field at offset 96 is zero. Its body is one checksummed Zstandard frame
+for exactly 65,536 bytes. The shared base acts as the raw prefix. The decoder
+requires the matching base, rejects trailing bytes and dictionary IDs, bounds
+the declared window to 131,072 bytes and verifies the decoded member digest.
+The CPU reader for these members requires the linked Zstandard codec.
+[Zstandard prefix API](https://facebook.github.io/zstd/doc/api_manual_latest.html)
+
+When an eligible complete group leaves enough residual data for a different
+representation to matter, idle preparation can try prefix encoding one
+member at a time. Candidates that reduce the member frame size are decoded
+independently and compared with the original bytes. The complete transaction
+then compares the ordinary reference, the assembled reference and the prefix
+variant under the actual store codec. It orders them by the complete compacted
+size bound, followed by stored payload bytes on ties. Publication uses the
+existing membership, source-generation and mirrored commit checks.
+
+The new member uses the existing shared dependency and reverse reference.
+Removing a file, restoring a checkpoint or compacting the image keeps the
+base available to every surviving member. Groups can still store older
+member methods alongside prefixed members.
+[Prefixed group validation](evidence/indexed-prefixed-zstd-2026-11-20.json)
 
 ### Automatic candidate discovery
 

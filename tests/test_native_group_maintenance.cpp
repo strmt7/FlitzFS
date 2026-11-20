@@ -32,10 +32,12 @@ struct Fixture {
     else session.emplace(NativeFileSession::create_paged_volume(head,id(90),image,id(1),{kStoreMaxPhysicalBytes},compression));
     for(unsigned i=0;i<count;++i)put(*session,"f"+std::to_string(i),family(i));
   }
-  Fixture(std::shared_ptr<Ram> selector,std::shared_ptr<Ram> backing):head(std::move(selector)),image(std::move(backing)) {
+  Fixture(std::shared_ptr<Ram> selector,std::shared_ptr<Ram> backing,
+      StoreCompressionOptions compression={StoreCompressionMode::raw,1,false})
+      :head(std::move(selector)),image(std::move(backing)) {
     session.emplace(NativeFileSession::resume_closed_indexed_volume(head,id(90),1,
         [&](const auto& key)->std::shared_ptr<StoreByteIo>{return key==id(1)?image:nullptr;},
-        {StoreCompressionMode::raw,1,false}));
+        compression));
   }
   auto step(NativeGroupMaintenance& controller){const auto observed=clock.next();return controller.advance(observed,clock.now);}
   auto finish(NativeGroupMaintenance& controller){for(unsigned i=0;i<6000;++i){const auto result=step(controller);
@@ -115,6 +117,105 @@ void indexed_section_reference_reuse() {
   std::cout<<"assembled_base_reuse groups="<<grouped.bases<<" members="<<grouped.members
       <<" before_compacted_bytes="<<before<<" after_compacted_bytes="<<after
       <<" removed_witness=true reopened=true independent_cpu_readback=true\n";
+}
+
+void indexed_prefixed_reference() {
+  using Method=detail::NativeGroupMethod;
+  constexpr unsigned count=6;
+  constexpr std::size_t region=kNativeExtentBytes/4,token_bytes=8,tokens=2*region/token_bytes;
+  const auto base=data(kNativeExtentBytes,3819);
+  std::vector<Bytes> originals{base};
+  for(unsigned member=1;member<count;++member) {
+    auto& bytes=originals.emplace_back(base);
+    for(std::size_t token=0;token<tokens;++token) {
+      const auto source=(token*(2*member+7)+19*member)%tokens;
+      std::copy_n(base.begin()+region+source*token_bytes,token_bytes,bytes.begin()+region+token*token_bytes);
+    }
+  }
+  const auto frame=detail::encode_native_group_prefix(originals[1],base,detail::kNativeGroupBaseBit+1,1,kNativeExtentBytes);
+  if(!store_zstd_available()) {
+    require(!frame,"codec-free build encoded a Zstandard prefix");
+    return;
+  }
+  require(frame && detail::decode_native_group_member(*frame,base,Method::prefixed_zstd)==originals[1],
+      "prefixed member did not round-trip");
+  rejects([&]{(void)detail::decode_native_group_member(*frame,base,Method::sparse_xor);},"old wire profile accepted a prefixed member");
+  rejects([&]{(void)detail::decode_native_group_member(*frame,originals[2],Method::prefixed_zstd);},"incorrect prefix identity was accepted");
+  auto damaged=*frame;
+  damaged.back()^=std::byte{1};
+  rejects([&]{(void)detail::decode_native_group_member(damaged,base,Method::prefixed_zstd);},"damaged prefixed member was returned");
+  auto padded=*frame;
+  padded.push_back(std::byte{0});
+  const auto payload=padded.size()-detail::kNativeGroupMemberHeaderBytes;
+  for(unsigned i=0;i<4;++i)padded[100+i]=static_cast<std::byte>(payload>>(8*i));
+  rejects([&]{(void)detail::parse_native_group_member(padded,Method::prefixed_zstd);},"prefixed member accepted trailing bytes");
+
+  constexpr StoreCompressionOptions policy{StoreCompressionMode::automatic,3,true};
+  Fixture f(4096,0,true,policy);
+  for(unsigned i=0;i<count;++i)put(*f.session,"f"+std::to_string(i),originals[i]);
+  const auto verify=[&](const NativeFilesystemSnapshot& snapshot) {
+    snapshot.verify_all();
+    for(unsigned i=0;i<count;++i)
+      require(snapshot.read("f"+std::to_string(i),0,kNativeExtentBytes)==originals[i],"prefixed group changed an acknowledged extent");
+  };
+  const auto compacted=[&](const auto& source,unsigned number) {
+    auto image=ram(4096);
+    (void)NativeFilesystemWriter::compact(source,image,id(number),policy);
+    const auto verified=NativeFilesystemSnapshot::open_image(image,{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes});
+    verified.verify_all();
+    return image->extent();
+  };
+  const auto resolve=[&](const StoreIdentity& key)->std::shared_ptr<StoreByteIo>{return key==id(1)?f.image:nullptr;};
+  f.session.reset();
+  const auto before=compacted(NativeVolumeHeadView::open(f.head,id(90),resolve).filesystem(),2);
+  const auto head_bytes=f.head->stable,image_bytes=f.image->stable;
+  f.session.emplace(NativeFileSession::resume_closed_indexed_volume(f.head,id(90),1,resolve,policy));
+  NativeGroupMaintenance maintenance(*f.session);
+  const auto calls=f.image->calls;
+  const auto progress=f.finish(maintenance);
+  const auto operations=f.image->calls-calls;
+  maintenance.cancel();
+  f.session.reset();
+  const auto reopened=NativeVolumeHeadView::open(f.head,id(90),resolve);
+  const auto& selected=reopened.filesystem();
+  verify(selected);
+  const auto after=compacted(selected,3);
+  require(progress.prefixed_zstd_members>0 && progress.published_groups==1 &&
+      selected.shared_base_info().members==count && after<before,
+      "normal grouped preparation did not select the smaller prefixed candidate");
+
+  unsigned previous=0,complete=0;
+  for(unsigned mode=0;mode<3;++mode)for(std::size_t cut=0;cut<operations;++cut) {
+    auto head=image(head_bytes,4096),backing=image(image_bytes,4096);
+    Fixture attempt(head,backing,policy);
+    NativeGroupMaintenance pending(*attempt.session);
+    backing->failure=mode;backing->fail_at=backing->calls+cut;
+    for(unsigned step=0;step<1000 && pending.pending();++step)(void)attempt.step(pending);
+    require(pending.progress().phase==Phase::failed && attempt.session->poisoned(),
+        "interrupted prefixed publication left a writable owner");
+    const auto recovered=NativeFilesystemSnapshot::open_image(image(backing->stable,4096),
+        {NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes});
+    verify(recovered);
+    const auto members=recovered.shared_base_info().members;
+    if(members==0)++previous;
+    else if(members==count)++complete;
+    else throw std::runtime_error("interrupted prefix transaction exposed an incomplete group");
+  }
+  require(previous && complete,"prefixed publication did not exercise both atomic outcomes");
+  faults+=previous+complete;
+
+  f.session.emplace(NativeFileSession::resume_closed_indexed_volume(f.head,id(90),1,resolve,policy));
+  const auto witness=f.session->open("f0",{true,true,true});
+  f.session->set_delete(witness,true);f.session->cleanup(witness,true);f.session->close(witness);
+  const auto surviving=f.session->snapshot();
+  surviving.verify_all();
+  require(surviving.shared_base_info().bases==1 && surviving.shared_base_info().members==count-1,
+      "removing a file released a still-referenced Zstandard prefix");
+  for(unsigned i=1;i<count;++i)
+    require(surviving.read("f"+std::to_string(i),0,kNativeExtentBytes)==originals[i],"prefixed survivor changed");
+  std::cout<<"indexed_prefixed_members="<<progress.prefixed_zstd_members
+      <<" before_compacted_bytes="<<before<<" after_compacted_bytes="<<after<<" cpu_readback=true"
+      <<" cuts="<<previous+complete<<" previous="<<previous<<" complete="<<complete<<"\n";
 }
 
 void indexed_changed_extent_discovery() {
@@ -1790,6 +1891,8 @@ int main(int argc,char** argv){try{
     advised_indexed_maintenance();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-section-reuse") {
     indexed_section_reference_reuse();
+  } else if(argc==2 && std::string_view(argv[1])=="--indexed-prefix") {
+    indexed_prefixed_reference();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-changes") {
     indexed_changed_extent_discovery();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-batch") {

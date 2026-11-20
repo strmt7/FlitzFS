@@ -5,6 +5,7 @@
 #include "native_maintenance_source.hpp"
 #include "optimization_feature_wire.hpp"
 #include "record_digest.hpp"
+#include "store_codec.hpp"
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -31,12 +32,14 @@ constexpr auto representative_scratch=8*(sizeof(OptimizationGroupFeature)+sizeof
 static_assert(kOptimizationGroupRepresentatives>kNativeMaxDirtyExtents);
 struct GroupMemoryBudget {std::size_t members=0,representatives=0;};
 GroupMemoryBudget group_memory_budget(const detail::MaintenanceResources& resources,bool indexed,bool sections=false) noexcept {
-  const auto scratch=fixed_scratch+(indexed?detail::kNativeGroupAnchorIndexBytes:0);
+  const bool prefixed=sections && store_zstd_available();
+  const auto scratch=fixed_scratch+(indexed?detail::kNativeGroupAnchorIndexBytes:0)+
+      (prefixed?(std::max)(detail::kStorePrefixEncoderMemoryCap,detail::kStoreDecoderMemoryCap):0);
   if(resources.memory_allowance<=scratch)return {};
   const auto available=resources.memory_allowance-scratch;
   // An indexed group can retain both sealed candidates and one section table
   // while the independently budgeted foreground continues.
-  const auto member_bytes=member_scratch+(sections?4*kNativeExtentBytes:0);
+  const auto member_bytes=member_scratch+(sections?4*kNativeExtentBytes:0)+(prefixed?2*kNativeExtentBytes:0);
   if(available<2*member_bytes)return {};
   const auto extra=indexed?(std::min)(std::uint64_t{kOptimizationGroupRepresentatives-kNativeMaxDirtyExtents},
       (available-2*member_bytes)/representative_scratch):0;
@@ -858,7 +861,8 @@ struct NativeGroupMaintenance::Impl {
         const auto result=writer.finish_shared_base(*work);
         if(result.applied) {
           account_group(result,previous_end);
-          state.advised_members_published=add(state.advised_members_published,work->progress().selected_advice_members);
+          state.advised_members_published=add(state.advised_members_published,result.advised_members);
+          state.prefixed_zstd_members=add(state.prefixed_zstd_members,result.prefixed_zstd_members);
           if(result.section_reference)++state.section_reference_groups;
           else if(reselected)++state.reselected_reference_groups;
           for(const auto id:work_ids) {

@@ -1,0 +1,667 @@
+{
+  "schema": 1,
+  "captured_local": "2026-11-20T12:54:08.9643634+01:00",
+  "source_base": "8f1b5505ef64ea7a07e6b5dcfe1a01c871012bf6",
+  "base_tree": "014162463da710c65c98c7d7899167a72ffe31a0",
+  "scope": "Protected Zstandard prefixes compete on complete compacted indexed group cost",
+  "host": {
+    "name": "Microsoft Windows 11 Pro",
+    "build": "26300",
+    "amd_adapter": [
+      {
+        "Name": "AMD Radeon RX 9070 XT",
+        "DriverVersion": "32.0.32029.2010"
+      }
+    ]
+  },
+  "source_binding": [
+    {
+      "path": "CMakeLists.txt",
+      "git_blob": "39dc37b113228503c604090c98ed92e72d126c6d",
+      "worktree_sha256": "8eea2afd1582c30e44bece762dd17421de0476c63ef6e2ea6d20400924f5d2f3"
+    },
+    {
+      "path": "include/flitzfs/native_filesystem.hpp",
+      "git_blob": "ff72b852fae93ef1eb2043ae87bbdceccb2a002f",
+      "worktree_sha256": "5079a6fe31fddb6cb1f9208c5230cb50a035d60c2b00251a418e091931ba56d0"
+    },
+    {
+      "path": "include/flitzfs/native_maintenance.hpp",
+      "git_blob": "7e7740c8d184730aad798a8833965281951b9559",
+      "worktree_sha256": "6d8a9a7581743a2999b4f8f64aff19b7a6e7ea7fd2c0fe02f11fe4ebc5408e24"
+    },
+    {
+      "path": "include/flitzfs/paged_store.hpp",
+      "git_blob": "b509237b80de84a164b17a7f40f76624bd6be201",
+      "worktree_sha256": "e1defdc00a2ac30f82b23111dbe2717667250de72ce76799620fc02b4fefee73"
+    },
+    {
+      "path": "src/native_group_codec.cpp",
+      "git_blob": "074ce0e09d458d31f8359a87259b39318920a7ea",
+      "worktree_sha256": "7b12088eded4d40ab904c9455c2ac014646fa821cc31ad05f16acb8543062e19"
+    },
+    {
+      "path": "src/native_group_codec.hpp",
+      "git_blob": "70f7ed241ea501d2f5d3546aca7748def11af32a",
+      "worktree_sha256": "aff519ee75e713aed7db3cf58f1d2be7ed4883cb64c2b94da47956ffe78942cd"
+    },
+    {
+      "path": "src/native_indexed_volume.cpp",
+      "git_blob": "ff2683a9091b5bd0ee7758aefd61712e40da6c2e",
+      "worktree_sha256": "8df4bda15ea897fc6bb5028d22a35cffeab5efa6f73757cc61249be70246a049"
+    },
+    {
+      "path": "src/native_indexed_volume.hpp",
+      "git_blob": "d9f215017ff008732fdec1f1f03b209c79ba53ea",
+      "worktree_sha256": "288145db7b2c1c2649b0c48e24deb410218bc69a08a0e57ecf5989978d4d2aa9"
+    },
+    {
+      "path": "src/native_maintenance.cpp",
+      "git_blob": "c356ebf33465c461bb8f32689d64343f8fa0a3c2",
+      "worktree_sha256": "1cec5128e824c3e5f35275f7ce15c22daa9be0bb1fbeb38000d74848bbf87861"
+    },
+    {
+      "path": "src/paged_store.cpp",
+      "git_blob": "8c0fab5d72b38d8add42c386545ab7135aac437c",
+      "worktree_sha256": "1737cd0c7f96d0d3d2c5952ff7d968e9c597b36033ba972f6bc957a8ded2cf72"
+    },
+    {
+      "path": "src/store_codec.cpp",
+      "git_blob": "26d145551094ba990d9bad20865ea0ea8e71c8b6",
+      "worktree_sha256": "209095b8f41406795115865f7453de744f8982ad0592762797a435c16df232f9"
+    },
+    {
+      "path": "src/store_codec.hpp",
+      "git_blob": "871d953c892ecdce79a9779dad10d3a8469f2aec",
+      "worktree_sha256": "740630ee17b305028bb3a1777b61ed3690e007cb05472640b142b080e517799b"
+    },
+    {
+      "path": "tests/test_native_group_maintenance.cpp",
+      "git_blob": "412327ca5aac90af818b7b6987c509f215eab1a4",
+      "worktree_sha256": "1b518e8a55ec34f8b4d9ff5798580e7fad068bd9673a7c2375b64483aa8a43e6"
+    }
+  ],
+  "navigation": {
+    "provider": "CocoIndex Code",
+    "version": "0.2.43",
+    "commit": "8f1b5505ef64ea7a07e6b5dcfe1a01c871012bf6",
+    "files": 8,
+    "searches": 1,
+    "native_response_sha256": "4b84a77c97ad94204b2d759e0be2668df76001735965a061b579dffbcc192265"
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "robots": true,
+    "external_llm": false,
+    "native_pages": [
+      {
+        "name": "fast26",
+        "url": "https://www.usenix.org/conference/fast26/presentation/huang",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 10395,
+        "markdown_sha256": "b271b38f1feb88acd780ae11d756c7f3723fecb288cfe5e7803fed9c5d93767d",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.928,
+        "capture": "fast26.native.json",
+        "capture_sha256": "3a0e1d5095913579aae295d0fb6fa247db1ddb6ce1a5f5931fa315503a18b51d"
+      },
+      {
+        "name": "erofs",
+        "url": "https://erofs.docs.kernel.org/en/latest/design.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 9948,
+        "markdown_sha256": "3bf9e0080f6c3ca997bcbb08b42bdbad3a1bfc9a02fb33224d35276abf6ccfc4",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.182,
+        "capture": "erofs.native.json",
+        "capture_sha256": "fd5852edd6da3b1453230e31f10d748b300ef9a6bbb084bdd5a094405cd14d3c"
+      },
+      {
+        "name": "zstd",
+        "url": "https://facebook.github.io/zstd/doc/api_manual_latest.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 132742,
+        "markdown_sha256": "0c9fb8969be62f9ddb4554d4e220b27a645cfa554416e84fef011ba940bf9533",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.738,
+        "capture": "zstd.native.json",
+        "capture_sha256": "38ef5b9372e8401f9359e8b37fe16526bbd8b5b18d2a5771ae2ece0ace73c747"
+      }
+    ]
+  },
+  "indexed_capability": 8,
+  "group_frame_version": 6,
+  "qualification": {
+    "prefixed_members": 5,
+    "stored_independent": 933888,
+    "stored_grouped": 450560,
+    "publication_cuts": 369,
+    "previous": 361,
+    "complete": 8,
+    "checked_bad_prefix": true,
+    "checked_trailing_bytes": true,
+    "retained_after_file_removal": true,
+    "release_log_sha256": "63ad7c65be9833269406d3941835ae2a645a0d97e4576f557c2a55a57efb2ec5",
+    "sanitizer_log_sha256": "88df23dc4e50480fda67e78ca86bb10d74d5bd7314b6a69923b41dde4a7f943d"
+  },
+  "paired_trials": {
+    "sdk_store_zstd": 10507,
+    "order": "baseline candidate candidate baseline",
+    "baseline_binary_sha256": "9a874087f241c995ed90755dd7ba68d9a2f6e48ea9568ce23711a10f2b764a2f",
+    "candidate_binary_sha256": "46bc940600f2dec7918385ea729ddcdb18108c6ecda15cf659ed5cf9b8d2e2fe",
+    "held_out_corpus": {
+      "count": 12,
+      "bytes": 1907179,
+      "sha256": "939562d6317f8d704e0df7cd38ecfcc604687bfa44e9ec7aa221ffc58685c81e",
+      "first_trials_use_unchanged_bytes": true,
+      "source_records": [
+        {
+          "repository": "openzfs/zfs",
+          "path": "module/zfs/dmu.c",
+          "revision": "3f94b20317e5f297e18edbeb442130af2c766b29",
+          "url": "https://raw.githubusercontent.com/openzfs/zfs/3f94b20317e5f297e18edbeb442130af2c766b29/module/zfs/dmu.c",
+          "status": 200,
+          "date": "2026-10-21T17:17:10Z",
+          "sha256": "a361c06ee271663b326f6d79d2840ce858130ebd51a52b41b63407004dd81543",
+          "bytes": 87102,
+          "listing_sha256": "904a16f589e4c6ce633f8920b9c5dc4c3ea73f0df20e458571ecfc01b9678ea6"
+        },
+        {
+          "repository": "openzfs/zfs",
+          "path": "module/zfs/dmu.c",
+          "revision": "c97a5a4c23a3ca2ac8e03290a59de89ed89ebef9",
+          "url": "https://raw.githubusercontent.com/openzfs/zfs/c97a5a4c23a3ca2ac8e03290a59de89ed89ebef9/module/zfs/dmu.c",
+          "status": 200,
+          "date": "2026-10-21T20:25:38Z",
+          "sha256": "a58c4a8c0c62b124816e362ab10acae24cdf73f2439623b0859e4f4f57747e76",
+          "bytes": 87437,
+          "listing_sha256": "904a16f589e4c6ce633f8920b9c5dc4c3ea73f0df20e458571ecfc01b9678ea6"
+        },
+        {
+          "repository": "openzfs/zfs",
+          "path": "module/zfs/dmu.c",
+          "revision": "c0688a2754c31d4ad89b3999f1ba0863601d47e0",
+          "url": "https://raw.githubusercontent.com/openzfs/zfs/c0688a2754c31d4ad89b3999f1ba0863601d47e0/module/zfs/dmu.c",
+          "status": 200,
+          "date": "2026-10-22T16:53:51Z",
+          "sha256": "1dacf69979e598b56307a1d9a0bab10503a72c687ac4840341cf2758399d95b5",
+          "bytes": 89838,
+          "listing_sha256": "904a16f589e4c6ce633f8920b9c5dc4c3ea73f0df20e458571ecfc01b9678ea6"
+        },
+        {
+          "repository": "openzfs/zfs",
+          "path": "module/zfs/dmu.c",
+          "revision": "816804dfdddd4d2159d8370c99cd4db09e39f9b2",
+          "url": "https://raw.githubusercontent.com/openzfs/zfs/816804dfdddd4d2159d8370c99cd4db09e39f9b2/module/zfs/dmu.c",
+          "status": 200,
+          "date": "2026-11-04T17:52:25Z",
+          "sha256": "88e0cc4f51dff1fdd305d42bb23bb625d5988f0da93c682328ffcb15ebba5fa6",
+          "bytes": 89883,
+          "listing_sha256": "904a16f589e4c6ce633f8920b9c5dc4c3ea73f0df20e458571ecfc01b9678ea6"
+        },
+        {
+          "repository": "openzfs/zfs",
+          "path": "module/zfs/zio.c",
+          "revision": "7704a886e2b9f4deb1e323cea6e63ba02e2200c5",
+          "url": "https://raw.githubusercontent.com/openzfs/zfs/7704a886e2b9f4deb1e323cea6e63ba02e2200c5/module/zfs/zio.c",
+          "status": 200,
+          "date": "2026-11-10T06:12:20Z",
+          "sha256": "b97ab227238b6f03a911121b2bd0417deb1ace156dd1614de1953b08d5b04efd",
+          "bytes": 203664,
+          "listing_sha256": "5304922067aebb69e9415aac6c32127dad71c44aad52317a0b0a76c0daa49d9e"
+        },
+        {
+          "repository": "openzfs/zfs",
+          "path": "module/zfs/zio.c",
+          "revision": "f765c2d2b6f7f5504563d5a664d7e74999b21b40",
+          "url": "https://raw.githubusercontent.com/openzfs/zfs/f765c2d2b6f7f5504563d5a664d7e74999b21b40/module/zfs/zio.c",
+          "status": 200,
+          "date": "2026-11-11T19:54:13Z",
+          "sha256": "7e29af671ba7bd1617d23e67b8353f7177caa2bca070912c9f53f1e8fb1f9313",
+          "bytes": 204230,
+          "listing_sha256": "5304922067aebb69e9415aac6c32127dad71c44aad52317a0b0a76c0daa49d9e"
+        },
+        {
+          "repository": "openzfs/zfs",
+          "path": "module/zfs/zio.c",
+          "revision": "9ac6648a22fa003f6e7adc7bc8eac16e7a59362f",
+          "url": "https://raw.githubusercontent.com/openzfs/zfs/9ac6648a22fa003f6e7adc7bc8eac16e7a59362f/module/zfs/zio.c",
+          "status": 200,
+          "date": "2026-11-11T20:13:18Z",
+          "sha256": "cf2886e95ae0301668c434889e7e010e1828acb3fba87c7a3c21c746c81ca1c1",
+          "bytes": 204249,
+          "listing_sha256": "5304922067aebb69e9415aac6c32127dad71c44aad52317a0b0a76c0daa49d9e"
+        },
+        {
+          "repository": "openzfs/zfs",
+          "path": "module/zfs/zio.c",
+          "revision": "7e5f2cd3b0373106d65d289a2495854ab9831e9f",
+          "url": "https://raw.githubusercontent.com/openzfs/zfs/7e5f2cd3b0373106d65d289a2495854ab9831e9f/module/zfs/zio.c",
+          "status": 200,
+          "date": "2026-11-13T18:11:24Z",
+          "sha256": "be31510828342e582cdc11c93ed51d175c177e3d10b7ffe7d285ad1d5876e32d",
+          "bytes": 204271,
+          "listing_sha256": "5304922067aebb69e9415aac6c32127dad71c44aad52317a0b0a76c0daa49d9e"
+        },
+        {
+          "repository": "sqlite/sqlite",
+          "path": "src/wal.c",
+          "revision": "dd986a5c51cd38167a99c5a5eec90ade6e84c3c0",
+          "url": "https://raw.githubusercontent.com/sqlite/sqlite/dd986a5c51cd38167a99c5a5eec90ade6e84c3c0/src/wal.c",
+          "status": 200,
+          "date": "2026-09-03T18:26:53Z",
+          "sha256": "11ab3050c715b8d4b05f20c9030ea96ed70475080ba62fe3f60e441ac765eb47",
+          "bytes": 183813,
+          "listing_sha256": "99172bc833e4928cebfd677d1110fa89d3703fcda481c6901384f116d0ff4747"
+        },
+        {
+          "repository": "sqlite/sqlite",
+          "path": "src/wal.c",
+          "revision": "ac1dd97f22d9bd50252588f43297181a400f8783",
+          "url": "https://raw.githubusercontent.com/sqlite/sqlite/ac1dd97f22d9bd50252588f43297181a400f8783/src/wal.c",
+          "status": 200,
+          "date": "2026-10-23T09:34:42Z",
+          "sha256": "d182077093e9f79e15237f35dc2cb240e12245332f35ad5d8feb30092cf3adfa",
+          "bytes": 183861,
+          "listing_sha256": "99172bc833e4928cebfd677d1110fa89d3703fcda481c6901384f116d0ff4747"
+        },
+        {
+          "repository": "sqlite/sqlite",
+          "path": "src/wal.c",
+          "revision": "196f6a9389c2dd1c1b4d350deb5fac2873c77003",
+          "url": "https://raw.githubusercontent.com/sqlite/sqlite/196f6a9389c2dd1c1b4d350deb5fac2873c77003/src/wal.c",
+          "status": 200,
+          "date": "2026-10-23T17:24:48Z",
+          "sha256": "37d3684aefcae7366c355eb6d03e22088d15984855dffb4eac062303d28e3c32",
+          "bytes": 184248,
+          "listing_sha256": "99172bc833e4928cebfd677d1110fa89d3703fcda481c6901384f116d0ff4747"
+        },
+        {
+          "repository": "sqlite/sqlite",
+          "path": "src/wal.c",
+          "revision": "9a9446f3b088bf3b8215311fbbdcc60a46045bed",
+          "url": "https://raw.githubusercontent.com/sqlite/sqlite/9a9446f3b088bf3b8215311fbbdcc60a46045bed/src/wal.c",
+          "status": 200,
+          "date": "2026-10-23T18:14:43Z",
+          "sha256": "0be881c2ab9f2ff8edc1d450b271a2680af9544f9ab7b57fda231359fa1d5683",
+          "bytes": 184531,
+          "listing_sha256": "99172bc833e4928cebfd677d1110fa89d3703fcda481c6901384f116d0ff4747"
+        }
+      ]
+    },
+    "held_out_runs": [
+      {
+        "run": "local-run-c933840d21464007b9f595b0a0678c2b",
+        "scope": "baseline",
+        "tests_passed": 0,
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 14426112,
+        "memory_limit_bytes": 1191182336,
+        "cpu_percent": 20,
+        "receipt_sha256": "feb9a59948a443b5ef82da9f233ba0f20c445ebb4835b60ad8fdf6895e99f48e",
+        "output_sha256": "4b2d27a2071596025e594da53bfcab3f408d33bb22ee45b7484fc91a1b979c91",
+        "mode": "cpu",
+        "files": 12,
+        "groups": 9,
+        "advised_members": 0,
+        "capability": 4,
+        "verified_batches": 0,
+        "verified_groups": 0,
+        "input_bytes": 1277952,
+        "occupied_bytes": 483328,
+        "input_blake3": "340003df0ee1362d3edf6be85446e96a25670b3ecbc21ef4ed8c13935a6946e8"
+      },
+      {
+        "run": "local-run-7c46a84777a84255a5d4fcac7f5d43ce",
+        "scope": "candidate",
+        "tests_passed": 0,
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 14184448,
+        "memory_limit_bytes": 1190133760,
+        "cpu_percent": 20,
+        "receipt_sha256": "5f39efdbbe9eb5a9346803e5f888974c38392cabf015cb396e80f570b0ea462b",
+        "output_sha256": "a0da5a603e3a6ede8fff286e2009c25d4dd0b98f67db8d9a9b36f360474ef6e0",
+        "mode": "cpu",
+        "files": 12,
+        "groups": 9,
+        "advised_members": 0,
+        "capability": 4,
+        "verified_batches": 0,
+        "verified_groups": 0,
+        "input_bytes": 1277952,
+        "occupied_bytes": 483328,
+        "input_blake3": "340003df0ee1362d3edf6be85446e96a25670b3ecbc21ef4ed8c13935a6946e8"
+      },
+      {
+        "run": "local-run-56d2118a3e9341c787b75d74422f4ec3",
+        "scope": "candidate",
+        "tests_passed": 0,
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 14344192,
+        "memory_limit_bytes": 1199570944,
+        "cpu_percent": 20,
+        "receipt_sha256": "522e2a738f2ced72585d2a2c22e9d482becc6cb1b1040f24ecccf78f638832c0",
+        "output_sha256": "d7b749185a676f711a7d22d0f943550ed8a24a478fb875918befc2c3f8d3c3bd",
+        "mode": "cpu",
+        "files": 12,
+        "groups": 9,
+        "advised_members": 0,
+        "capability": 4,
+        "verified_batches": 0,
+        "verified_groups": 0,
+        "input_bytes": 1277952,
+        "occupied_bytes": 483328,
+        "input_blake3": "340003df0ee1362d3edf6be85446e96a25670b3ecbc21ef4ed8c13935a6946e8"
+      },
+      {
+        "run": "local-run-4218ade0064843ea94a314ca724a8b04",
+        "scope": "baseline",
+        "tests_passed": 0,
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 14139392,
+        "memory_limit_bytes": 1199570944,
+        "cpu_percent": 20,
+        "receipt_sha256": "2437e9b817847721c3eddcb047ee5ae54118c30ca35701d8be54d423516f33bf",
+        "output_sha256": "8f0ce60fe9aa639582fc71f84e6c20dd04ba3dbb02ec32c19f060e59ebc226e9",
+        "mode": "cpu",
+        "files": 12,
+        "groups": 9,
+        "advised_members": 0,
+        "capability": 4,
+        "verified_batches": 0,
+        "verified_groups": 0,
+        "input_bytes": 1277952,
+        "occupied_bytes": 483328,
+        "input_blake3": "340003df0ee1362d3edf6be85446e96a25670b3ecbc21ef4ed8c13935a6946e8"
+      },
+      {
+        "run": "local-run-544a95f4256847a59ec92b2fc65369de",
+        "scope": "candidate with live AMD",
+        "tests_passed": 0,
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 120807424,
+        "memory_limit_bytes": 2086666240,
+        "cpu_percent": 19,
+        "receipt_sha256": "482e1e46b929e245650cdb0b33b9548a3dfc437a41f44e4b842eb73695d3979e",
+        "output_sha256": "3f4315233f2787329e220b43bb487b40018b017ba076dd2aa353722d8e71b044",
+        "mode": "amd",
+        "files": 12,
+        "groups": 9,
+        "advised_members": 20,
+        "capability": 4,
+        "verified_batches": 1,
+        "verified_groups": 9,
+        "input_bytes": 1277952,
+        "occupied_bytes": 483328,
+        "input_blake3": "340003df0ee1362d3edf6be85446e96a25670b3ecbc21ef4ed8c13935a6946e8"
+      }
+    ],
+    "constructed_corpus": {
+      "sha256": "31689de880c57942d523b518624cca16f3f677406d4a11e1fb09e94ffec2e397",
+      "bytes": 393244,
+      "count": 6
+    },
+    "constructed_runs": [
+      {
+        "run": "local-run-62a037e6aac841febeaf401e3c01eb43",
+        "scope": "baseline",
+        "tests_passed": 0,
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 12619776,
+        "memory_limit_bytes": 2430599168,
+        "cpu_percent": 20,
+        "receipt_sha256": "814319e164505f836bb27e4b6c01a68e4cd4660807349419e8debd46e6bcb76d",
+        "output_sha256": "61006ff655a22b88220e70cbd442310c3d93af560a75b784d00e205f7e16ee43",
+        "mode": "cpu",
+        "files": 6,
+        "groups": 1,
+        "advised_members": 0,
+        "capability": 3,
+        "verified_batches": 0,
+        "verified_groups": 0,
+        "input_bytes": 933888,
+        "occupied_bytes": 606208,
+        "input_blake3": "b360bb62a3950f96d36784b40c7b69d3d61f16d273ecb7b32b8d65f80e556ca1"
+      },
+      {
+        "run": "local-run-722748091d7b4855a1d1c152893e6cb8",
+        "scope": "candidate",
+        "tests_passed": 0,
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 11137024,
+        "memory_limit_bytes": 2429550592,
+        "cpu_percent": 20,
+        "receipt_sha256": "57b3136fb42cf4215214cb1e952eff03c257744d6ae498a6b13a7daf37c3a91b",
+        "output_sha256": "74ecac54997f3d58cba93d3a41dab1898e2ed50771223ea4d9eb19aea98a8fcf",
+        "mode": "cpu",
+        "files": 6,
+        "groups": 1,
+        "advised_members": 0,
+        "capability": 8,
+        "verified_batches": 0,
+        "verified_groups": 0,
+        "input_bytes": 933888,
+        "occupied_bytes": 450560,
+        "input_blake3": "b360bb62a3950f96d36784b40c7b69d3d61f16d273ecb7b32b8d65f80e556ca1"
+      },
+      {
+        "run": "local-run-1a1120bbd44c4289a7a0b0bb762c12a9",
+        "scope": "candidate",
+        "tests_passed": 0,
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 11124736,
+        "memory_limit_bytes": 2426404864,
+        "cpu_percent": 20,
+        "receipt_sha256": "43c525be43db782c6057786083ed54538f4f38617f18d172a205db8152823146",
+        "output_sha256": "9e67f9ff32b7d88026c989f5dc71f8f326e188117496752b38482e9593f76e7f",
+        "mode": "cpu",
+        "files": 6,
+        "groups": 1,
+        "advised_members": 0,
+        "capability": 8,
+        "verified_batches": 0,
+        "verified_groups": 0,
+        "input_bytes": 933888,
+        "occupied_bytes": 450560,
+        "input_blake3": "b360bb62a3950f96d36784b40c7b69d3d61f16d273ecb7b32b8d65f80e556ca1"
+      },
+      {
+        "run": "local-run-c62566a035374b8cbad3cc4dea971ef0",
+        "scope": "baseline",
+        "tests_passed": 0,
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 12861440,
+        "memory_limit_bytes": 2428502016,
+        "cpu_percent": 20,
+        "receipt_sha256": "7ee5305cd9666f2a0263b0a68c3de55ff0a21c1554f1a3532cc8cb7dabda039b",
+        "output_sha256": "870cda92c6a48f3a426ac7f315ebd9735fa95eb8fe06df80c5c798665c199762",
+        "mode": "cpu",
+        "files": 6,
+        "groups": 1,
+        "advised_members": 0,
+        "capability": 3,
+        "verified_batches": 0,
+        "verified_groups": 0,
+        "input_bytes": 933888,
+        "occupied_bytes": 606208,
+        "input_blake3": "b360bb62a3950f96d36784b40c7b69d3d61f16d273ecb7b32b8d65f80e556ca1"
+      }
+    ]
+  },
+  "runs": [
+    {
+      "run": "local-run-b7f56a1d3dca4c73a19f6f242ed5d2ce",
+      "scope": "Windows Release and Explorer helper build",
+      "tests_passed": 0,
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 589389824,
+      "memory_limit_bytes": 1136656384,
+      "cpu_percent": 21,
+      "receipt_sha256": "4e72b24af1291b0ec2386f50607e39c6bf7c30de926fa5ddfb9eb2162b441b82",
+      "output_sha256": "bddb7c8a1c5a952f76436b983cfad3a6eae0c59192d8529f64b3e391108fc6ee"
+    },
+    {
+      "run": "local-run-213204ceab4f44768ae9d919f425a62a",
+      "scope": "Windows Release and WinFsp SDK checks",
+      "tests_passed": 25,
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 324431872,
+      "memory_limit_bytes": 974127104,
+      "cpu_percent": 21,
+      "receipt_sha256": "9a5e6eab29f3639f9bbde37006014a0c362af8ec7ce90a3f25456be8f3cf9a54",
+      "output_sha256": "912905525ae9e823180f27075654716b7ce35d41e38238e6789d6b010b53de0c"
+    },
+    {
+      "run": "local-run-75bb2acca9fb4b9cbfef3f8ee518c29b",
+      "scope": "Zstandard-enabled AddressSanitizer build",
+      "tests_passed": 0,
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 716652544,
+      "memory_limit_bytes": 1288699904,
+      "cpu_percent": 20,
+      "receipt_sha256": "ce93b9e55cfedcab36ca16c07df485716eb2c426a4190e2a03047a8c95dcb5db",
+      "output_sha256": "d1efb1d43838826020ad2651a88e4b2f9866f93d1da1dd5d1a2533fa79da24ec"
+    },
+    {
+      "run": "local-run-fcb2fa309f074950a2ffc1a2ec1e2935",
+      "scope": "AddressSanitizer and loader preflight with prefixed members",
+      "tests_passed": 11,
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 1090297856,
+      "memory_limit_bytes": 3341811712,
+      "cpu_percent": 20,
+      "receipt_sha256": "50933122f6373752107e7091df5544703f17c9461df682ac9685678128c74118",
+      "output_sha256": "1a3eaf46cd596e0aefce3c0a8d8380ebebaefb8109380f6dc8aa33feb2b72608"
+    },
+    {
+      "run": "local-run-ff079642872542f785ee80b4b70884db",
+      "scope": "Codec-free build",
+      "tests_passed": 0,
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 701300736,
+      "memory_limit_bytes": 2275409920,
+      "cpu_percent": 20,
+      "receipt_sha256": "c7c41c0377d51571bbb0d6921e7048a33d3430b9073200feb3c68f152b5d9c72",
+      "output_sha256": "1bf73d3781ad1be804a038ca7b19e8bef7ccd75d299735286b2faf3e52e469bd"
+    },
+    {
+      "run": "local-run-7ada967cc7934fbdaed1407d21d0a81d",
+      "scope": "Codec-free compatibility tests",
+      "tests_passed": 4,
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 59117568,
+      "memory_limit_bytes": 2273312768,
+      "cpu_percent": 19,
+      "receipt_sha256": "6ca6db99b99cc583ecc70a4786f981875f2c8be3673216c6852156bd393dd21e",
+      "output_sha256": "f2ddfda8ac4cfebe8fa8cf8e12c941c78296475a8c41e319a14072e6cc207577"
+    },
+    {
+      "run": "local-run-e31084bf06504436b0e4ee1c886d4e27",
+      "scope": "Exact public revision byte capture",
+      "tests_passed": 0,
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 21520384,
+      "memory_limit_bytes": 2082471936,
+      "cpu_percent": 16,
+      "receipt_sha256": "a4e3ae2e2a432648a926d4dc404bf5946d8459432972fb05db55f8c91cf5ec77",
+      "output_sha256": "0b0137c1e53756aebc9895708a1f91f4e43088e89c172da5282b72d146834fc8"
+    },
+    {
+      "run": "local-run-da873b6fd27748ba83ba04749ba0cc88",
+      "scope": "Constructed short-match corpus preparation",
+      "tests_passed": 0,
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 11333632,
+      "memory_limit_bytes": 2003828736,
+      "cpu_percent": 14,
+      "receipt_sha256": "4f9dcd37af5d854bf459412064375f3f32cb9c91c732ed81ef5d37fbf1b1813e",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "run": "local-run-81cff9f2171844bca2ee1f2fb6332a29",
+      "scope": "Reviewed isolated Crawl4AI captures",
+      "tests_passed": 0,
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 1178980352,
+      "memory_limit_bytes": 2468347904,
+      "cpu_percent": 20,
+      "receipt_sha256": "3887d0e63f7578b7dcc20b98ca794368ddc24b6a3ab7a0c3d37b9599bd576aff",
+      "output_sha256": "ca0cff93c01eaa6e6ca3a10a072fac2e9769c4c8c111e953d90ff4056ea3bc9a"
+    },
+    {
+      "run": "local-run-37f559f0cd694add8c1b4b10a5456d9d",
+      "scope": "Source-bound semantic search",
+      "tests_passed": 0,
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 1107226624,
+      "memory_limit_bytes": 2326790144,
+      "cpu_percent": 20,
+      "receipt_sha256": "2edaff04a2bb35b4d1bccb64106cfae20fbec2867bf2b7074853c4eda6cfb79c",
+      "output_sha256": "ca177208bc353162dbc6e3283abc1dfd4433c3ca59deb5fd6eef7856b850f970"
+    },
+    {
+      "run": "local-run-e962493c2db64e6cb8964626947af708",
+      "scope": "Initial compilation caught the misplaced counter in an if/else chain",
+      "tests_passed": 0,
+      "exit_code": 1,
+      "tree_retired": true,
+      "peak_job_bytes": 695189504,
+      "memory_limit_bytes": 2452619264,
+      "cpu_percent": 23,
+      "receipt_sha256": "16e7d1da95c67c911240895c2d5ce96aa71df19d913fece27436bc63af50c38a",
+      "output_sha256": "27d9173bc6fd6e46d59eb63cc77e23d09a4f458c9a9d7054ac2102bd0f3d08ff"
+    },
+    {
+      "run": "local-run-06b714db09604bc4b916337653f8bdc9",
+      "scope": "Initial fixture attempted compaction before its writer retired",
+      "tests_passed": 0,
+      "exit_code": 8,
+      "tree_retired": true,
+      "peak_job_bytes": 14622720,
+      "memory_limit_bytes": 1135607808,
+      "cpu_percent": 22,
+      "receipt_sha256": "c8486866099d3a5898f1caee025fa65bfba2afd63cd8375336d04455fdd15f55",
+      "output_sha256": "f2b2463b0fdc67934e25ce62967e8cf52760b74e1514c3033cad2b02493edd82"
+    }
+  ],
+  "limits": [
+    "CPU reference encoding under modeled idle intervals",
+    "Real AMD advice in existing group path",
+    "Complete packed-image and independently reopened byte comparisons",
+    "Windows driver and physical-storage durability remain unqualified"
+  ]
+}
