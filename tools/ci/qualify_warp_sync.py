@@ -91,7 +91,7 @@ def dependency_header(data: bytes, header: Path) -> bool:
     return False
 
 
-def qualify(bounds, provider: Path, sdk: Path, root: Path, repo: Path, report: dict):
+def qualify(bounds, compiler: Path, sdk: Path, root: Path, repo: Path, report: dict):
     from qualify_rocm_sdk import run, digest, native_git
     from qualify_hipcomp_candidate import inspect_offload_targets
     result = dict(experimental=True, complete=False, synthetic_target="gfx1100",
@@ -124,7 +124,7 @@ def qualify(bounds, provider: Path, sdk: Path, root: Path, repo: Path, report: d
     obj = staging / "warp_sync.obj"
     deps = staging / "warp_sync.obj.d"
     run(bounds, ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
-                 str(provider / "tools/compile_hip_object.ps1"), "-Source", str(entry),
+                 str(compiler), "-Source", str(entry),
                  "-Output", str(obj), "-DependencyFile", str(deps), "-RepoRoot", str(inputs),
                  "-HipPath", str(sdk), "-Arch", "gfx1100"], result, "warp-sync-API-device-compilation", 900)
     for name, path, limit in (("object", obj, 16 * 1024 * 1024),

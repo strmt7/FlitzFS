@@ -64,7 +64,8 @@ bootstrap API. The lane admits the extracted size plus a 4 GiB reserve and adds
 the download size when no local archive is supplied. `--archive` reuses a local
 artifact with the same SHA-256, size and inventory checks as a download. The
 same provisioned SDK supplies the headers, import library, compiler and device
-inputs.
+inputs. The native compiler scripts are staged byte-for-byte alongside the same
+FlitzFS lock. Their hashes are checked again after compilation.
 
 The reference bounded command runner limits each owned tree to 2 GiB committed
 memory, below-normal priority, bounded output and explicit deadlines; its fresh

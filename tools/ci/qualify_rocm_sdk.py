@@ -65,6 +65,24 @@ def run(bounds,command,report,name,seconds=900,exit_code=0):
     return result
 
 
+def stage_sdk_compiler(provider: Path, lock: Path, destination: Path, report: dict) -> Path:
+    from qualify_warp_sync import regular
+
+    scripts = ("compile_hip_object.ps1", "hip_architecture.ps1",
+               "rocm_toolchain.ps1", "process_environment.ps1")
+    destination.mkdir()
+    inputs = [(provider / "tools" / name, provider) for name in scripts]
+    inputs.append((lock, REPO))
+    records = {}
+    for source, root in inputs:
+        data = regular(source, root, 128 * 1024)
+        with (destination / source.name).open("xb") as target:
+            target.write(data)
+        records[source.name] = {"sha256": hashlib.sha256(data).hexdigest(), "bytes": len(data)}
+    report["compiler_inputs"] = records
+    return destination / scripts[0]
+
+
 def inspect_private_runtime(sdk,build,bundle):
     """Read PE bytes and license metadata only; never load the AMD runtime."""
     records=bundle["files"]
@@ -251,7 +269,8 @@ def main():
                 not report["hipcomp_offline"]["module_loaded"],"candidate offline scope")
 
         from qualify_warp_sync import qualify as qualify_warp_sync
-        qualify_warp_sync(bounds,provider,sdk,root,REPO,report)
+        compiler = stage_sdk_compiler(provider, own_lock, root / "compiler-tools", report)
+        qualify_warp_sync(bounds, compiler, sdk, root, REPO, report)
         require(report["warp_sync_probe"]["complete"] and
             not report["warp_sync_probe"]["object_loaded"] and
             not report["warp_sync_probe"]["object_linked"] and
@@ -327,7 +346,7 @@ def main():
             report["kernel_inputs"].append(dict(path=original,sha256=digest(source),bytes=len(data)))
         obj=root/"flitzfs_rocm_decode.obj"
         run(bounds,["powershell.exe","-NoProfile","-ExecutionPolicy","Bypass","-File",
-            str(provider/"tools/compile_hip_object.ps1"),"-Source",str(inputs/"src/gpu/decode_kernel.hip"),
+            str(compiler),"-Source",str(inputs/"src/gpu/decode_kernel.hip"),
             "-Output",str(obj),"-DependencyFile",str(obj)+".d","-RepoRoot",str(inputs),
             "-HipPath",str(sdk),"-Arch","release"],report,"current-sdk-device-compilation",900)
         require(obj.is_file() and 0<obj.stat().st_size<=16*1024*1024,"HIP object output budget")
@@ -978,6 +997,9 @@ def main():
             "observed complete-SDK compiler identity differs from its lock record")
         require(not native_git(provider, *provider_status), "reference source changed during qualification")
         require(digest(own_lock) == report["lock_sha256"], "SDK lock changed during qualification")
+        for name, record in report["compiler_inputs"].items():
+            require(digest(compiler.parent / name) == record["sha256"],
+                "staged compiler input changed during qualification: " + name)
         require(bootstrap.sdk_identity(sdk,lock["version"])==identity,
             "SDK critical inputs changed during compilation")
         if cpu_lz4_source is not None:

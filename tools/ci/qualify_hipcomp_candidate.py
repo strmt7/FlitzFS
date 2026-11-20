@@ -174,7 +174,7 @@ def main():
     manifest=REPO/"tests/rocm_compile/hipcomp_lz4_source.json"
     require(manifest.stat().st_size<=256*1024,"candidate manifest byte cap")
     value=json.loads(manifest.read_text(encoding="utf-8"))
-    from qualify_rocm_sdk import load_source,run,digest,native_git
+    from qualify_rocm_sdk import load_source, run, digest, native_git, stage_sdk_compiler
     own_lock=REPO/"tools/rocm-sdk-lock.json"
     require(not native_git(REPO, "status", "--porcelain", "--", "tools/rocm-sdk-lock.json"),
         "candidate ROCm lock must match the control commit")
@@ -189,10 +189,11 @@ def main():
         module_loaded=False,linked_into_product=False,upstream_build_scripts_executed=False,object_inspected=False)
     output.mkdir()
     try:
+        compiler = stage_sdk_compiler(provider, own_lock, output / "compiler-tools", report)
         targets=["gfx1100"]
         if args.runtime_targets:
             selection=run(bounds,["powershell.exe","-NoProfile","-ExecutionPolicy","Bypass","-File",
-                str(provider/"tools/hip_architecture.ps1"),"-Architecture","release"],
+                str(compiler.with_name("hip_architecture.ps1")),"-Architecture","release"],
                 report,"pinned-provider-runtime-target-set",30)
             selected=selection["stdout"].strip()
             require(not selection["output_truncated"] and not selection["stderr"].strip() and
@@ -241,7 +242,7 @@ def main():
                     "native-sync staged input differs")
         object_path=output/"hipcomp_lz4.obj";dependency=output/"hipcomp_lz4.obj.d"
         run(bounds,["powershell.exe","-NoProfile","-ExecutionPolicy","Bypass","-File",
-            str(provider/"tools/compile_hip_object.ps1"),"-Source",str(entry),"-Output",str(object_path),
+            str(compiler),"-Source",str(entry),"-Output",str(object_path),
             "-DependencyFile",str(dependency),"-RepoRoot",str(source_copy),"-HipPath",str(sdk),"-Arch",",".join(targets)],
             report,"hipcomp-LZ4-offline-translation-unit",900)
         require(object_path.is_file() and 0<object_path.stat().st_size<=16*MIB and
@@ -304,6 +305,11 @@ def main():
                     "bounded entry actual source/header dependencies")
             report["physical_inputs_unchanged"]=True
         verify_checkout(source,SOURCE_COMMIT);verify_checkout(provider,MECHANISM_COMMIT)
+        require(digest(own_lock) == report["compiler_inputs"][own_lock.name]["sha256"],
+            "candidate SDK lock changed during qualification")
+        for name, record in report["compiler_inputs"].items():
+            require(digest(compiler.parent / name) == record["sha256"],
+                "staged candidate compiler input changed: " + name)
         require(digest(object_path)==report["object"]["sha256"] and
             digest(dependency)==report["dependencies"]["sha256"],"candidate inspection changed compiler outputs")
         if args.native_sync:
