@@ -1525,9 +1525,16 @@ bool IndexedSharedBasePreparation::price_reference() {
   return true;
 }
 
-void IndexedSharedBasePreparation::allow_packing(bool allowed) noexcept {
-  packing_admitted_=allowed;
-  if(!allowed)packed_reference_.reset();
+void IndexedSharedBasePreparation::admit_variants(bool packing,bool staged_reference) noexcept {
+  packing_admitted_=packing;
+  if(!packing)packed_reference_.reset();
+  staged_reference_admitted_=staged_reference;
+  if(!staged_reference && staged_reference_comparison_) {
+    compare_sections_=false;
+    staged_reference_comparison_=false;
+    section_reference_.reset();
+    prefixed_reference_.reset();
+  }
 }
 
 bool IndexedSharedBasePreparation::stage_section_reference() {
@@ -1835,8 +1842,10 @@ bool IndexedSharedBasePreparation::complete_member() {
   // has enough residual payload for the alternative to save a failure unit.
   const auto ideal=base_.size()+members_.size()*(extent_header+kNativeGroupMemberHeaderBytes);
   if(complete_window && std::ranges::none_of(members_,&Member::skipped)) {
-    compare_sections_=search_->purpose==NativeSharedBaseSearchPurpose::section_comparison &&
+    const bool reserved=search_->purpose==NativeSharedBaseSearchPurpose::section_comparison;
+    compare_sections_=(reserved || staged_reference_admitted_) &&
         progress_.owned_payload_bytes>=ideal+source_.isolation_unit();
+    staged_reference_comparison_=compare_sections_ && !reserved;
     if(packing_admitted_) {
       std::size_t bytes=0;
       for(const auto& member:members_) {

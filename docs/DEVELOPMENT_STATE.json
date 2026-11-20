@@ -23,6 +23,22 @@
     "interactive_explorer_qualified": false,
     "live_amd_verified_groups": 8
   },
+  "indexed_staged_reference_choice": {
+    "source_base": "e6528544299bef85567b9900f546c205a21c4cc8",
+    "evidence": "docs/evidence/indexed-staged-reference-choice-2026-11-20.json",
+    "live_amd_matched_runs": 20,
+    "short_match_compacted_bytes": [
+      606208,
+      450560
+    ],
+    "raw_outer_public_code_compacted_bytes": [
+      860160,
+      851968
+    ],
+    "optional_pressure_cpu_fallback": true,
+    "independent_CPU_readback": true,
+    "new_volume_capability": false
+  },
   "amd_wide_copy_dispatch": {
     "source_base": "dcd8e741f14017a69fc8db3622cb15697b9a7264",
     "evidence": "docs/evidence/amd-wide-copy-dispatch-2026-11-20.json",

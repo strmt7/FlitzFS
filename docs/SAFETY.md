@@ -28,6 +28,12 @@ digest as the older shared-base methods. The CPU checks frame bounds and
 decoded bytes before the optional representation can compete for publication.
 [Prefixed Zstandard members](INDEXED_NATIVE_VOLUME.md#prefixed-zstandard-members)
 
+A staged CPU alternative borrows the same verified window as the AMD adviser.
+Losing the extra scratch grant releases private candidate frames. The regular
+revision checks and independently verified ordinary encoding still govern
+publication.
+[Staged reference and pressure validation](evidence/indexed-staged-reference-choice-2026-11-20.json)
+
 A packed slice binds the inode and extent, exact protected base generation,
 bounded slice range and decoded payload digest. The reverse reference keeps
 the base reachable after a member is removed. The CPU reader rejects a

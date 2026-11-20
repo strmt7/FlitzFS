@@ -67,6 +67,14 @@ grouping. Read and maintenance costs across more workloads remain part of
 compression qualification.
 [Prefixed group evidence](evidence/indexed-prefixed-zstd-2026-11-20.json)
 
+Complete AMD search windows now admit the same protected section and
+prefix alternatives when idle memory can fund them. The short-match
+fixture fell from 606,208 to 450,560 occupied bytes through the AMD route,
+matching the CPU-only result. Public code with raw outer storage saved
+8,192 bytes. The public compressed code, documentation and Lucide sets
+retained their existing compacted sizes.
+[Staged group comparison](evidence/indexed-staged-reference-choice-2026-11-20.json)
+
 Indexed idle maintenance can now pack short related extents into one
 protected base when full-image accounting shows a reduction. Forty Lucide
 SVG files used 4.0% less space, with 0.9% more sampled backing traffic

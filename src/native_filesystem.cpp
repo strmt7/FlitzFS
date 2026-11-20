@@ -1727,9 +1727,9 @@ bool NativeFilesystemWriter::advance_shared_base(SharedBaseWork& work,std::span<
 bool NativeFilesystemWriter::price_shared_base_reference(SharedBaseWork& work) {
   return shared_base_step(work,{},nullptr,0,0,true);
 }
-void NativeFilesystemWriter::allow_shared_base_packing(SharedBaseWork& work,bool allowed) noexcept {
+void NativeFilesystemWriter::admit_shared_base_variants(SharedBaseWork& work,bool packing,bool staged_reference) noexcept {
   if(auto* pending=work.impl_.get();pending && pending->indexed) {
-    pending->indexed->allow_packing(allowed);
+    pending->indexed->admit_variants(packing,staged_reference);
     pending->state=pending->indexed->progress();
   }
 }

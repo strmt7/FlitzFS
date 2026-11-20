@@ -4,6 +4,7 @@
 #include "flitzfs/read_only_file.hpp"
 #include "../src/native_group_anchor.hpp"
 #include "../src/native_group_codec.hpp"
+#include "../src/native_maintenance_source.hpp"
 #include "../src/native_name_index.hpp"
 #include "anchor_search_fixture.hpp"
 #include "native_fs_fixture.hpp"
@@ -121,19 +122,26 @@ void indexed_section_reference_reuse() {
       <<" removed_witness=true reopened=true independent_cpu_readback=true\n";
 }
 
-void indexed_prefixed_reference() {
-  using Method=detail::NativeGroupMethod;
-  constexpr unsigned count=6;
+constexpr unsigned prefix_family_count=6;
+std::vector<Bytes> prefix_family() {
   constexpr std::size_t region=kNativeExtentBytes/4,token_bytes=8,tokens=2*region/token_bytes;
   const auto base=data(kNativeExtentBytes,3819);
   std::vector<Bytes> originals{base};
-  for(unsigned member=1;member<count;++member) {
+  for(unsigned member=1;member<prefix_family_count;++member) {
     auto& bytes=originals.emplace_back(base);
     for(std::size_t token=0;token<tokens;++token) {
       const auto source=(token*(2*member+7)+19*member)%tokens;
       std::copy_n(base.begin()+region+source*token_bytes,token_bytes,bytes.begin()+region+token*token_bytes);
     }
   }
+  return originals;
+}
+
+void indexed_prefixed_reference() {
+  using Method=detail::NativeGroupMethod;
+  constexpr auto count=prefix_family_count;
+  const auto originals=prefix_family();
+  const auto& base=originals.front();
   const auto frame=detail::encode_native_group_prefix(originals[1],base,detail::kNativeGroupBaseBit+1,1,kNativeExtentBytes);
   if(!store_zstd_available()) {
     require(!frame,"codec-free build encoded a Zstandard prefix");
@@ -218,6 +226,79 @@ void indexed_prefixed_reference() {
   std::cout<<"indexed_prefixed_members="<<progress.prefixed_zstd_members
       <<" before_compacted_bytes="<<before<<" after_compacted_bytes="<<after<<" cpu_readback=true"
       <<" cuts="<<previous+complete<<" previous="<<previous<<" complete="<<complete<<"\n";
+}
+
+void indexed_batched_prefix() {
+  if(!store_zstd_available())return;
+  constexpr auto count=prefix_family_count;
+  constexpr StoreCompressionOptions compression{StoreCompressionMode::automatic,3,true};
+  constexpr NativeMaintenancePolicy admission{};
+  const auto originals=prefix_family();
+  const auto name=[](unsigned file){return "f"+std::to_string(file);};
+
+  // Find enough memory for the ordinary group before taking away the
+  // additional reference and prefix scratch.
+  std::uint64_t lower=0,upper=kStoreMaxTransactionBytes*16ULL;
+  while(lower<upper) {
+    const auto middle=lower+(upper-lower)/2;
+    if(detail::maintenance_group_member_limit({middle,false},true)>=count)upper=middle;
+    else lower=middle+1;
+  }
+  require(detail::maintenance_group_member_limit({lower,false},true)>=count,"ordinary group allowance");
+
+  const auto trial=[&](bool advice,bool pressure) {
+    Fixture f(4096,0,true,compression);
+    for(unsigned file=0;file<count;++file)put(*f.session,name(file),originals[file]);
+    NativeGroupMaintenance maintenance(*f.session,admission);
+    NativeMaintenanceProgress progress;
+    for(unsigned tick=0;tick<800 && !progress.search_batch_ready;++tick) {
+      const auto observed=f.clock.next();
+      progress=maintenance.advance(observed,f.clock.now,{count-1,nullptr,true});
+      require(progress.phase!=Phase::failed && !progress.published_groups,"prepared group published early");
+    }
+    const auto windows=maintenance.search_batch();
+    require(windows.size()==1 && windows.front().members().size()==count-1,"missing complete advisory window");
+    const std::array sizes{count-1};
+    const auto plan=detail::plan_anchor_match_batch(sizes,anchor_match::max_members,
+        anchor_match::device_bytes(anchor_match::max_members),count);
+    detail::AnchorMatchBatchBuilder builder(42,plan);
+    builder.append(1,windows.front());
+    const auto batch=builder.finish();
+    auto copies=detail::verify_anchor_match_records(batch.groups().front(),
+        detail::cpu_anchor_match_records(batch.groups().front()));
+    const NativeSharedBaseSearchReply reply{windows.front(),copies};
+
+    unsigned preparing=0;
+    bool pressure_observed=false;
+    const auto barriers=f.image->calls;
+    for(unsigned tick=0;tick<800 && progress.phase!=Phase::idle;++tick) {
+      auto observed=f.clock.next();
+      if(pressure && preparing>=count+2) {
+        if(!pressure_observed)
+          require(f.image->calls==barriers,"optional comparison wrote before it had a final proposal");
+        pressure_observed=true;
+        observed.physical_available=observed.physical_total/16+lower*admission.memory_share_divisor;
+      }
+      progress=maintenance.advance(observed,f.clock.now,{0,advice?&reply:nullptr,true});
+      require(progress.phase!=Phase::failed && progress.deferral!=Defer::memory,"ordinary staged group lost its grant");
+      if(progress.phase==Phase::preparing && progress.deferral==Defer::none)++preparing;
+    }
+    require(progress.phase==Phase::idle && progress.published_groups==1 &&
+        (!pressure || (pressure_observed && !progress.prefixed_zstd_members)) &&
+        (pressure || progress.prefixed_zstd_members>0),"staged reference selection or grant withdrawal failed");
+    f.session.reset();
+    const auto source=NativeFilesystemSnapshot::open_image(f.image,{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes});
+    auto compact=ram(4096);
+    const auto rebuilt=NativeFilesystemWriter::compact(source,compact,id(4),compression).snapshot();
+    rebuilt.verify_all();
+    for(unsigned file=0;file<count;++file)
+      require(rebuilt.read(name(file),0,kNativeExtentBytes)==originals[file],"staged alternative changed file bytes");
+    return compact->extent();
+  };
+  const auto advised=trial(true,false),fallback=trial(false,false),limited=trial(true,true);
+  require(advised==fallback && advised<limited,"staged prefix did not save space over the ordinary admitted route");
+  std::cout<<"staged_prefix_advised="<<advised<<" staged_prefix_cpu="<<fallback
+      <<" ordinary_after_pressure="<<limited<<" independent_cpu_readback=true\n";
 }
 
 void indexed_packed_short_extents() {
@@ -556,8 +637,11 @@ void batched_indexed_maintenance(BatchOutcome outcome) {
   }
   require(progress.published_groups==expected && !controller.active_group() && !controller.has_retained_search() &&
       progress.owned_payload_bytes==0,"staged batch did not publish and retire its independent groups");
-  require(progress.advised_members_published==members*(changed?1:supplied.size()),
-      "batch published advice for the wrong revision or group");
+  const auto eligible_advice=members*(changed?1:supplied.size());
+  const auto replaced_by_cpu=members*progress.section_reference_groups+progress.prefixed_zstd_members;
+  require(progress.advised_members_published<=eligible_advice &&
+      eligible_advice-progress.advised_members_published<=replaced_by_cpu,
+      "batch advice fell outside its live windows or lacked a competing CPU representation");
   const auto snapshot=f.session->snapshot();
   require(snapshot.shared_base_info().bases==expected,"staged groups lost independent bases");
   snapshot.verify_all();
@@ -1998,6 +2082,8 @@ int main(int argc,char** argv){try{
     indexed_section_reference_reuse();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-prefix") {
     indexed_prefixed_reference();
+  } else if(argc==2 && std::string_view(argv[1])=="--indexed-batched-prefix") {
+    indexed_batched_prefix();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-packed-short-extents") {
     indexed_packed_short_extents();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-changes") {

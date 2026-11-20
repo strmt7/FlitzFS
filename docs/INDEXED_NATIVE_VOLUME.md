@@ -249,9 +249,10 @@ The AMD worker compressed the incoming overwrite.
 
 ### Assembled section references
 
-A CPU maintenance opportunity can retain the verified extents of one complete
-new group and try an alternate base after preparing the ordinary encoding.
-The trial requires enough residual payload to save a backing failure unit.
+An admitted complete new group can retain its verified extents and try an
+alternate base after preparing the ordinary encoding. An AMD search can
+supply the same immutable input window. The trial requires enough residual
+payload to save a backing failure unit.
 It samples one extent per opportunity, finds exact shared sections at
 content-dependent boundaries, and ranks their decoded bytes by reuse across
 members. Retaining source order among the selected sections preserves
@@ -492,6 +493,15 @@ Removing a file, restoring a checkpoint or compacting the image keeps the
 base available to every surviving member. Groups can still store older
 member methods alongside prefixed members.
 [Prefixed group validation](evidence/indexed-prefixed-zstd-2026-11-20.json)
+
+An already staged AMD group can compare section assembly and prefixed
+Zstandard using its verified window. The live scratch grant includes any
+simultaneous packed-slice candidate and retained scan state. The ordinary
+batch and discovery grants still cover the work while optional candidates
+compete. If that additional grant contracts, maintenance drops the private
+alternate and can publish the verified ordinary group. The complete layout
+comparison includes backing pages and the existing mirrored publication.
+[Staged alternative validation](evidence/indexed-staged-reference-choice-2026-11-20.json)
 
 ### Packed slices
 

@@ -21,7 +21,12 @@ any window still held by a consumer.
 Each group keeps its own prepared source and revision checks. Advice is matched
 by immutable source-window identity. An edit invalidates the affected selection,
 and the other groups can still publish through their independent transactions.
-CPU preparation can consume the staged bytes when advice is unavailable.
+CPU preparation consumes the staged bytes after an adviser returns or
+when advice is unavailable. A complete new group can try the existing
+assembled reference and Zstandard prefix methods from the same window
+when its live scratch budget can fund them. The verified result with
+the smallest complete compacted layout wins. A lost optional grant
+releases the alternate candidates and leaves the ordinary group available.
 Device and transport admission remain the adviser's responsibility. Volumes
 without a qualified adviser use CPU preparation.
 

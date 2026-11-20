@@ -618,7 +618,7 @@ class NativeFilesystemWriter final {
   bool stage_shared_base_search(SharedBaseWork&,std::size_t maximum_members,std::size_t retained_extents,
       NativeSharedBaseSearchPurpose=NativeSharedBaseSearchPurpose::advice);
   bool price_shared_base_reference(SharedBaseWork&);
-  void allow_shared_base_packing(SharedBaseWork&,bool) noexcept;
+  void admit_shared_base_variants(SharedBaseWork&,bool packing,bool staged_reference) noexcept;
 
   using Recompression=ObjectStoreWriter::Rewrite;
   Recompression prepare_recompression(std::shared_ptr<StoreByteIo>,StoreIdentity,

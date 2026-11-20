@@ -795,7 +795,8 @@ struct NativeGroupMaintenance::Impl {
     return true;
   }
   void step(NativeFilesystemWriter& writer,std::size_t maximum_members,std::size_t maximum_representatives,
-      NativeGroupSearchOpportunity search,detail::NativeMaintenanceSource& owner,bool sections,bool packing) {
+      NativeGroupSearchOpportunity search,detail::NativeMaintenanceSource& owner,
+      bool sections,bool packing,bool staged_reference) {
     const bool can_batch=search.collect_batch && writer.maintenance_indexed();
     const bool collect_batch=can_batch && search.maximum_members;
     if(!staged_groups.empty() && !batch_draining) {
@@ -834,7 +835,7 @@ struct NativeGroupMaintenance::Impl {
       }
     }
     if(work) {
-      writer.allow_shared_base_packing(*work,packing);
+      writer.admit_shared_base_variants(*work,packing,work_batched && staged_reference);
       if(phase==Phase::preparing) {
         auto grant=(std::min)(search.maximum_members,maximum_members);
         if(work_batched)grant=!batch_draining && grant>staged_search_members?
@@ -1034,8 +1035,9 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
   p.last_capture=observed.captured_ms;
   const bool indexed=writer.maintenance_indexed();
   auto budget=group_memory_budget(*resources,indexed);
-  const bool retained_sections=p.work && p.work->progress().section_comparison;
-  const bool offer_sections=indexed && !search.maximum_members && !search.collect_batch && !search.reply &&
+  const bool batched_work=p.work && p.work_batched;
+  const bool retained_sections=p.work && !batched_work && p.work->progress().section_comparison;
+  const bool offer_sections=indexed && !batched_work && !search.maximum_members && !search.collect_batch && !search.reply &&
       search.replies.empty() && p.staged_groups.empty();
   bool sections=false;
   if(retained_sections || offer_sections) {
@@ -1051,11 +1053,14 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
     if(p.phase!=Phase::idle)return p.defer(Defer::memory,true);
     p.trim_representatives(maximum_representatives);
   }
-  bool packing=false;
-  if(indexed && store_zstd_available()) {
-    const auto extra=group_memory_budget(*resources,indexed,sections,true);
-    packing=p.group_members()<=extra.members && p.representatives.size()<=extra.representatives;
-  }
+  const auto fits=[&](const GroupMemoryBudget& extra) {
+    return p.group_members()<=extra.members && p.representatives.size()<=extra.representatives;
+  };
+  const bool packing=indexed && store_zstd_available() && fits(group_memory_budget(*resources,indexed,sections,true));
+  // Fund optional trials on the live staged group without reducing the
+  // ordinary scan or batch grant. Account for a simultaneous packed proposal.
+  const bool staged_reference=indexed && p.active_group() &&
+      fits(group_memory_budget(*resources,indexed,true,packing));
   const bool new_catalog=p.new_coherence(*source,image);
   if(!writer.maintenance_has_candidates())p.reset_index();
   const bool discovering=p.discovery_pending(writer,*source,image);
@@ -1105,7 +1110,7 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
       // restartable. The tentative group windows only exist in this process.
       if(!indexed || observed.continued || p.active_group() ||
           !p.checkpoint_step(writer,*source,maximum_representatives,new_catalog))
-        p.step(writer,maximum_members,maximum_representatives,search,*source,sections,packing);
+        p.step(writer,maximum_members,maximum_representatives,search,*source,sections,packing,staged_reference);
       if(p.checkpoint_due && !source->scan_funded())p.checkpoint_due=false;
       p.prefer_coherence=true;
       p.state.phase=p.phase;
