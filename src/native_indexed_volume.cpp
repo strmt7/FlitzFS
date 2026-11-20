@@ -3,7 +3,6 @@
 #include "native_group_codec.hpp"
 #include "native_object_storage.hpp"
 #include "store_codec.hpp"
-#include "flitzfs/catalog.hpp"
 #include "flitzfs/gpu_anchor_match.hpp"
 #include <algorithm>
 #include <bit>
@@ -25,6 +24,8 @@ constexpr std::uint64_t ordinal_mask=kNativeIndexedInodeLimit-1;
 constexpr std::size_t original_root_size=96,lifetime_root_size=120,root_size=136,extent_header=24;
 constexpr std::size_t base_size=8+kNativeExtentBytes;
 constexpr std::uint32_t anchor_copy_capability=4,packed_xor_capability=5,modular_delta_capability=6,sparse_xor_capability=7;
+constexpr std::uint32_t directory_shape_feature=1U<<8;
+constexpr std::uint32_t namespace_features=kIndexedOrdinalNames|directory_shape_feature;
 constexpr NativeGroupMethod available_group_method(std::uint32_t capability) noexcept {
   if(capability>=sparse_xor_capability)return NativeGroupMethod::sparse_xor;
   if(capability>=modular_delta_capability)return NativeGroupMethod::modular_delta;
@@ -33,7 +34,8 @@ constexpr NativeGroupMethod available_group_method(std::uint32_t capability) noe
   return NativeGroupMethod::aligned_patches;
 }
 static_assert(kNativeIndexedDataObject==kNativeGroupBaseBit);
-constexpr std::size_t maximum_inode_bytes=104+kIndexedNameBytes+kNativeMaxSecurityBytes;
+constexpr std::size_t maximum_inode_bytes=104+kIndexedNameBytes+kNativeMaxSecurityBytes+
+    kIndexedShapeHeaderBytes+kIndexedShapeBucketBytes*(kIndexedPathUnits+kIndexedPathDepth);
 
 [[noreturn]] void fail(Code code,const char* message){throw NativeFsError(code,message);}
 std::uint64_t add(std::uint64_t left,std::uint64_t right) {
@@ -105,11 +107,13 @@ void validate_header_fields(const IndexedVolumeRoot& root) {
 IndexedVolumeRoot decode_root(std::span<const std::byte> bytes) {
   if((bytes.size()!=original_root_size && bytes.size()!=lifetime_root_size && bytes.size()!=root_size) ||
       !magic(bytes,root_magic) ||
-      get(bytes,12,4)>1 || get(bytes,88,4)!=kNativeExtentBytes || get(bytes,92,4)>kIndexedOrdinalNames)
+      get(bytes,12,4)>1 || get(bytes,88,4)!=kNativeExtentBytes || (get(bytes,92,4)&~std::uint64_t(namespace_features)))
     fail(Code::corrupt,"unsupported indexed native volume root");
   IndexedVolumeRoot root;
   root.format=static_cast<std::uint32_t>(get(bytes,8,4));
-  root.name_profile=static_cast<std::uint32_t>(get(bytes,92,4));
+  const auto features=static_cast<std::uint32_t>(get(bytes,92,4));
+  root.name_profile=features&kIndexedOrdinalNames;
+  root.directory_shapes=(features&directory_shape_feature)!=0;
   const auto expected_size=root.format==1?original_root_size:root.format==2?lifetime_root_size:root_size;
   if(root.format<1 || root.format>sparse_xor_capability || bytes.size()!=expected_size)
     fail(Code::corrupt,"indexed native volume capability and length differ");
@@ -134,7 +138,8 @@ Bytes encode_root(const IndexedVolumeRoot& root) {
   put(bytes,40,root.inodes);put(bytes,48,root.extents);put(bytes,56,root.charged_extents);
   put(bytes,64,root.workload.committed_input_bytes);
   std::copy(root.identity.begin(),root.identity.end(),bytes.begin()+kIndexedVolumeIdentityOffset);
-  put(bytes,88,kNativeExtentBytes,4);put(bytes,92,root.name_profile,4);
+  const auto features=root.name_profile|(root.directory_shapes?directory_shape_feature:0);
+  put(bytes,88,kNativeExtentBytes,4);put(bytes,92,features,4);
   return bytes;
 }
 IndexedInodeInput load_inode(const PagedObjectStoreSnapshot& store,const IndexedVolumeRoot& root,std::uint64_t id) {
@@ -290,6 +295,19 @@ void subtract(std::uint64_t& count,std::uint64_t removed=1) {
 // Leave record slots for adjacent index pages, the checked inode and roots.
 // This limits one retirement transaction, independent of total file size.
 constexpr std::size_t retirement_quantum=kStoreMaxObjects/4;
+
+IndexedPathBound child_path_bound(std::string_view name,IndexedPathBound suffix) {
+  const auto units=indexed_utf16_length(name)+(suffix.units?1+suffix.units:0);
+  const auto components=1+suffix.components;
+  if(!units || units>kIndexedPathUnits || components>static_cast<int>(kIndexedPathDepth))
+    fail(Code::corrupt,"indexed child exceeds directory shape bounds");
+  return {static_cast<std::uint16_t>(units),static_cast<std::uint16_t>(components)};
+}
+
+std::optional<IndexedPathBound> child_path_bound(const IndexedInodeInput& inode) {
+  if(inode.directory && !inode.shape)return {};
+  return child_path_bound(inode.name,inode.shape?inode.shape->bound():IndexedPathBound{});
+}
 
 class IndexedVolumeTransaction final {
  public:
@@ -783,7 +801,11 @@ class IndexedVolumeTransaction final {
       fail(Code::limit,"indexed inode allocation budget");
     const auto id=next_.next_inode++;
     IndexedInodeInput n{id,key.parent,0,next_.sequence,next_.sequence,directory,std::move(spelling),{},{},{}};
-    (void)edit(key.parent);
+    if(directory) {
+      n.shape.emplace();
+      next_.directory_shapes=true;
+    }
+    change_child(key.parent,nullptr,&n);
     nodes_.emplace(id,InodeEdit{std::move(n),{},{},0});
     names_[std::move(key)]=id;
     created_.push_back(id);
@@ -806,11 +828,48 @@ class IndexedVolumeTransaction final {
   void verify_descendant_paths(std::uint64_t id,std::size_t units,unsigned depth) {
     visit_children(id,[&](const IndexedInodeInput& child) {
       const auto length=units+1+indexed_utf16_length(child.name);
-      if(length>kIndexedPathUnits || depth==kIndexedPathDepth)fail(Code::invalid_path,"indexed rename exceeds descendant path bounds");
-      if(length>240)next_.name_profile=kIndexedOrdinalNames;
-      if(child.directory)verify_descendant_paths(child.inode,length,depth+1);
+      validate_move_bounds(length,depth+1);
+      if(child.shape)check_directory_move(*child.shape,length,depth+1);
+      else if(child.directory)verify_descendant_paths(child.inode,length,depth+1);
       return true;
     });
+  }
+
+  void validate_move_bounds(std::size_t units,unsigned components) {
+    if(units>kIndexedPathUnits || components>kIndexedPathDepth)
+      fail(Code::invalid_path,"indexed rename exceeds descendant path bounds");
+    if(units>240)next_.name_profile=kIndexedOrdinalNames;
+  }
+
+  void check_directory_move(const IndexedDirectoryShape& shape,std::size_t units,unsigned components) {
+    const auto suffix=shape.bound();
+    if(suffix.units)validate_move_bounds(units+1+suffix.units,components+suffix.components);
+  }
+
+  void change_child(std::uint64_t parent,const IndexedInodeInput* removed,const IndexedInodeInput* added) {
+    auto* directory=&edit(parent);
+    if(!directory->shape)return;
+    auto before=removed?child_path_bound(*removed):std::nullopt;
+    auto after=added?child_path_bound(*added):std::nullopt;
+    if(removed && !before)fail(Code::corrupt,"indexed measured directory contains an unmeasured child");
+    if(added && !after) {
+      // Importing an older subtree invalidates summaries on its new ancestry.
+      while(directory->shape) {
+        directory->shape.reset();
+        if(!directory->parent)return;
+        directory=&edit(directory->parent);
+      }
+      return;
+    }
+    while(directory->shape && before!=after) {
+      const auto old_bound=directory->shape->bound();
+      directory->shape->replace(before,after);
+      const auto new_bound=directory->shape->bound();
+      if(old_bound==new_bound || !directory->parent)return;
+      before=child_path_bound(directory->name,old_bound);
+      after=child_path_bound(directory->name,new_bound);
+      directory=&edit(directory->parent);
+    }
   }
 
   void move(const IndexedInodeInput& n,const NativeFileMutation& op) {
@@ -838,14 +897,19 @@ class IndexedVolumeTransaction final {
       const auto source_depth=std::count(op.path.begin(),op.path.end(),'/');
       const auto target_depth=std::count(op.target.begin(),op.target.end(),'/');
       const auto target_units=indexed_utf16_length(op.target);
-      if(target_units>indexed_utf16_length(op.path) || target_depth>source_depth)
-        verify_descendant_paths(n.inode,target_units,static_cast<unsigned>(target_depth+1));
+      const auto target_components=static_cast<unsigned>(target_depth+1);
+      if(n.shape)check_directory_move(*n.shape,target_units,target_components);
+      else if(target_units>indexed_utf16_length(op.path) || target_depth>source_depth)
+        verify_descendant_paths(n.inode,target_units,target_components);
     }
     names_[{n.parent,name_key(n.name)}]={};
     auto& entry=edit(n.inode);
     entry.parent=key.parent;entry.name=std::move(spelling);
-    (void)edit(n.parent);
-    (void)edit(key.parent);
+    if(n.parent==key.parent)change_child(key.parent,&n,&entry);
+    else {
+      change_child(n.parent,&n,nullptr);
+      change_child(key.parent,nullptr,&entry);
+    }
     names_[std::move(key)]=n.inode;
   }
 
@@ -860,7 +924,7 @@ class IndexedVolumeTransaction final {
   void remove_visible_name(const IndexedInodeInput& n) {
     if(n.parent) {
       names_[{n.parent,name_key(n.name)}]={};
-      (void)edit(n.parent);
+      change_child(n.parent,&n,nullptr);
     }
   }
 
@@ -1016,6 +1080,30 @@ class IndexedVolumeTransaction final {
 
 } // namespace
 
+IndexedPathBound IndexedDirectoryShape::bound() const noexcept {
+  if(units.empty())return {};
+  return {units.back().bound,components.back().bound};
+}
+
+void IndexedDirectoryShape::replace(std::optional<IndexedPathBound> before,std::optional<IndexedPathBound> after) {
+  const auto replace_bucket=[](auto& axis,std::uint16_t removed,std::uint16_t added) {
+    if(removed==added)return;
+    if(removed) {
+      const auto at=std::ranges::lower_bound(axis,removed,{},&Bucket::bound);
+      if(at==axis.end() || at->bound!=removed)fail(Code::corrupt,"indexed directory shape is missing a child bucket");
+      if(!--at->children)axis.erase(at);
+    }
+    if(added) {
+      const auto at=std::ranges::lower_bound(axis,added,{},&Bucket::bound);
+      if(at==axis.end() || at->bound!=added)axis.insert(at,{added,1});
+      else if(at->children==ordinal_mask)fail(Code::limit,"indexed directory shape child count exhausted");
+      else ++at->children;
+    }
+  };
+  replace_bucket(units,before?before->units:0,after?after->units:0);
+  replace_bucket(components,before?before->components:0,after?after->components:0);
+}
+
 IndexedVolumeRoot initialize_indexed_volume(PagedObjectStoreWriter& writer) {
   const auto snapshot=writer.snapshot();
   if(writer.poisoned() || snapshot.info().generation!=2 || !snapshot.info().mirrored_payloads ||
@@ -1023,9 +1111,10 @@ IndexedVolumeRoot initialize_indexed_volume(PagedObjectStoreWriter& writer) {
     fail(Code::invalid_operation,"indexed initialization requires a new mirrored store");
   IndexedVolumeRoot root;
   root.identity=snapshot.identity();root.sequence=1;root.inodes=1;root.workload.enabled=true;
-  root.format=2;
+  root.format=2;root.directory_shapes=true;
   IndexedInodeInput directory;
   directory.inode=1;directory.born=1;directory.modified=1;directory.directory=true;
+  directory.shape.emplace();
   std::vector<StoreMutation> initial;
   initial.push_back({namespace_object,false,encode_root(root)});
   initial.push_back({inode_domain|1,false,encode_indexed_inode(directory,root)});
@@ -1980,9 +2069,42 @@ Bytes IndexedVolumeView::read_content(NativeContentToken& token,bool published_r
   // encoding. The assembled base can place shared sections at other offsets.
   return full_extent(std::move(extent));
 }
+std::uint64_t IndexedVolumeView::verify_namespace(const IndexedInodeInput& directory,std::size_t path_units,
+    unsigned components) const {
+  IndexedDirectoryShape expected;
+  std::uint64_t reachable=1;
+  std::string after;
+  const auto limit=root_.name_profile?kIndexedPathUnits:240;
+  for(;;) {
+    const auto rows=index_.list(directory.inode,after,64);
+    if(rows.empty())break;
+    if(directory.lifetime!=IndexedLifetime::linked || components==kIndexedPathDepth)
+      fail(Code::corrupt,"indexed directory contains unreachable children");
+    for(const auto& row:rows) {
+      const auto child=referenced_inode(row.value);
+      if(indexed_detached(child.lifetime) || child.parent!=directory.inode || name_key(child.name)!=row.key.name)
+        fail(Code::corrupt,"indexed namespace child differs from its name binding");
+      const auto units=path_units+(components?1:0)+indexed_utf16_length(child.name);
+      if(units>limit)fail(Code::corrupt,"indexed namespace path exceeds its profile");
+      if(directory.shape) {
+        const auto bound=child_path_bound(child);
+        if(!bound)fail(Code::corrupt,"indexed directory shape has an unmeasured child");
+        expected.replace({},bound);
+      }
+      reachable=add(reachable,child.directory?verify_namespace(child,units,components+1):1);
+    }
+    after=rows.back().key.name;
+  }
+  if(directory.shape && expected!=*directory.shape)
+    fail(Code::corrupt,"indexed directory shape differs from its children");
+  return reachable;
+}
+
 void IndexedVolumeView::verify_inventory(bool published) const {
   store_.verify_all();
   index_.verify_all();
+  if(verify_namespace(referenced_inode(1),0,0)!=root_.inodes-root_.detached_inodes)
+    fail(Code::corrupt,"indexed namespace has unreachable inodes");
   std::uint64_t cursor=0,inodes=0,extents=0,charged=0,lifetimes=0,detached=0,retiring=0;
   std::uint64_t bases=0,members=0;
   bool found_root=false;
@@ -1996,7 +2118,6 @@ void IndexedVolumeView::verify_inventory(bool published) const {
         found_root=true;
       } else if(domain(record.id)==inode_domain) {
         const auto entry=referenced_inode(record.id&ordinal_mask,true);
-        (void)path(entry);
         ++inodes;charged=add(charged,reserved_extents(entry));
         if(active_lifetime(entry.lifetime))++lifetimes;
         if(indexed_detached(entry.lifetime))++detached;

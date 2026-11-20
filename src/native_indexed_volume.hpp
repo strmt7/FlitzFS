@@ -13,6 +13,7 @@ struct IndexedVolumeRoot {
   NativeWorkloadInfo workload;
   std::uint32_t format=1;
   std::uint32_t name_profile=0;
+  bool directory_shapes=false;
   std::uint64_t active_lifetimes=0,detached_inodes=0,retiring_inodes=0;
   std::uint64_t shared_bases=0,shared_members=0;
   bool operator==(const IndexedVolumeRoot&) const = default;
@@ -21,6 +22,22 @@ enum class IndexedLifetime : std::uint8_t { linked, pending, detached, retiring 
 constexpr bool indexed_detached(IndexedLifetime state) noexcept {
   return state==IndexedLifetime::detached || state==IndexedLifetime::retiring;
 }
+struct IndexedPathBound {
+  std::uint16_t units=0,components=0;
+  bool operator==(const IndexedPathBound&) const = default;
+};
+inline constexpr std::size_t kIndexedShapeHeaderBytes=4,kIndexedShapeBucketBytes=10;
+struct IndexedDirectoryShape {
+  struct Bucket {
+    std::uint16_t bound;
+    std::uint64_t children;
+    bool operator==(const Bucket&) const = default;
+  };
+  std::vector<Bucket> units,components;
+  IndexedPathBound bound() const noexcept;
+  void replace(std::optional<IndexedPathBound> before,std::optional<IndexedPathBound> after);
+  bool operator==(const IndexedDirectoryShape&) const = default;
+};
 struct IndexedInodeInput {
   std::uint64_t inode=0,parent=0,size=0,born=0,modified=0;
   bool directory=false;
@@ -29,6 +46,7 @@ struct IndexedInodeInput {
   std::optional<NativeSecurityDescriptor> security;
   std::optional<std::uint64_t> allocation;
   IndexedLifetime lifetime=IndexedLifetime::linked;
+  std::optional<IndexedDirectoryShape> shape;
 };
 // The indexed format uses the existing canonical inode frame with zero
 // inline extents. Extent locations live in the ordered index.
@@ -203,6 +221,7 @@ class IndexedVolumeView final {
   friend class IndexedVolumeBuilder;
   IndexedVolumeView(const PagedObjectStoreSnapshot&,IndexedVolumeRoot root);
   IndexedInodeInput referenced_inode(std::uint64_t id,bool allow_retiring=false) const;
+  std::uint64_t verify_namespace(const IndexedInodeInput&,std::size_t path_units,unsigned components) const;
   NativeContentToken content_token(NativeExtentSelection,std::uint64_t object) const;
   void verify_inventory(bool published) const;
   std::string path(const IndexedInodeInput&) const;

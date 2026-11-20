@@ -344,10 +344,11 @@ void indexed_callbacks(unsigned unit) {
   Bytes security(security_bytes);
   require(fs.Interface->GetSecurityByName(&fs,root,&attributes,security.data(),&security_bytes)==STATUS_SUCCESS,
       "indexed SDK root descriptor");
-  const auto create=[&](PWSTR path) {
+  const auto create=[&](PWSTR path,bool directory=false) {
     void* context=nullptr;
     FSP_FSCTL_FILE_INFO output{};
-    require(fs.Interface->Create(&fs,path,FILE_NON_DIRECTORY_FILE,FILE_ALL_ACCESS,FILE_ATTRIBUTE_NORMAL,
+    require(fs.Interface->Create(&fs,path,directory?FILE_DIRECTORY_FILE:FILE_NON_DIRECTORY_FILE,
+        FILE_ALL_ACCESS,directory?FILE_ATTRIBUTE_DIRECTORY:FILE_ATTRIBUTE_NORMAL,
         security.data(),0,&context,&output)==STATUS_SUCCESS && context && output.IndexNumber,
         "indexed SDK creation");
     return context;
@@ -370,6 +371,7 @@ void indexed_callbacks(unsigned unit) {
   auto initial=data(2U*1024*1024+17,917);
   ULONG bytes=0;
   FSP_FSCTL_FILE_INFO info{};
+  constexpr UINT32 open_file=(1U<<24)|FILE_NON_DIRECTORY_FILE;
   require(fs.Interface->Write(&fs,handle,initial.data(),0,static_cast<ULONG>(initial.size()),
       FALSE,FALSE,&bytes,&info)==STATUS_SUCCESS && bytes==initial.size() &&
       info.FileSize==initial.size(),"indexed SDK multi-megabyte write");
@@ -428,6 +430,24 @@ void indexed_callbacks(unsigned unit) {
       0,&malformed,&info)==STATUS_OBJECT_NAME_INVALID && !malformed && backing->calls==prior_writes,
       "indexed SDK accepted an unpaired surrogate");
 
+  wchar_t tree_name[]=L"\\tree",tree_destination[]=L"\\directory-with-a-longer-name";
+  wchar_t child_name[]=L"\\tree\\member",child_destination[]=L"\\directory-with-a-longer-name\\member";
+  const auto tree=create(tree_name,true);
+  const auto child=create(child_name);
+  require(fs.Interface->Write(&fs,child,unicode_bytes.data(),0,static_cast<ULONG>(unicode_bytes.size()),
+      FALSE,FALSE,&bytes,&info)==STATUS_SUCCESS && bytes==unicode_bytes.size(),"indexed SDK tree fixture write");
+  const auto member=info.IndexNumber;
+  require(fs.Interface->Rename(&fs,tree,tree_name,tree_destination,FALSE)==STATUS_SUCCESS,"indexed SDK tree move");
+  void* moved=nullptr;
+  require(fs.Interface->Open(&fs,child_destination,open_file,FILE_ALL_ACCESS,&moved,&info)==STATUS_SUCCESS &&
+      moved && info.IndexNumber==member,"indexed SDK tree move changed the member identity");
+  Bytes same(unicode_bytes.size());
+  require(fs.Interface->Read(&fs,child,same.data(),0,static_cast<ULONG>(same.size()),&bytes)==STATUS_SUCCESS &&
+      bytes==same.size() && same==unicode_bytes,"indexed SDK tree move changed data behind an existing handle");
+  cleanup(moved,0);close(moved);
+  cleanup(child,0);close(child);
+  cleanup(tree,0);close(tree);
+
   const auto detached=create(gone);
   auto doomed=data(7,932);
   require(fs.Interface->Write(&fs,detached,doomed.data(),0,static_cast<ULONG>(doomed.size()),
@@ -445,7 +465,6 @@ void indexed_callbacks(unsigned unit) {
   require(!adapter->snapshot().needs_session_recovery() && pinned.read_inode(gone_id,0,100)==doomed,
       "indexed SDK restart lost immutable snapshot data or retained a dead context");
   void* removed=nullptr;
-  constexpr UINT32 open_file=(1U<<24)|FILE_NON_DIRECTORY_FILE;
   require(fs.Interface->Open(&fs,gone,open_file,FILE_ALL_ACCESS,&removed,&info)==STATUS_OBJECT_NAME_NOT_FOUND && !removed,
       "indexed SDK recovery exposed the detached name");
   void* unicode_reopened=nullptr;

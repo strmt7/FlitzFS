@@ -1041,6 +1041,42 @@ void validate_indexed_inode(const Node& n,const IndexedVolumeRoot& root) {
   if(n.security && (n.security->size()>kNativeMaxSecurityBytes || !native_security_descriptor_framed(*n.security)))
     fail(Code::corrupt,"invalid indexed inode security");
 }
+void append_directory_shape(Bytes& bytes,const IndexedDirectoryShape& shape) {
+  const auto start=bytes.size();
+  bytes.resize(start+kIndexedShapeHeaderBytes+kIndexedShapeBucketBytes*(shape.units.size()+shape.components.size()));
+  put(bytes,start,shape.units.size(),2);put(bytes,start+2,shape.components.size(),2);
+  auto at=start+kIndexedShapeHeaderBytes;
+  for(const auto* axis:{&shape.units,&shape.components})for(const auto& bucket:*axis) {
+    put(bytes,at,bucket.bound,2);put(bytes,at+2,bucket.children,8);
+    at+=kIndexedShapeBucketBytes;
+  }
+}
+
+IndexedDirectoryShape decode_directory_shape(std::span<const std::byte> bytes,const IndexedVolumeRoot& root) {
+  if(bytes.size()<kIndexedShapeHeaderBytes)fail(Code::corrupt,"truncated indexed directory shape");
+  const auto units=integer(bytes,0,2),components=integer(bytes,2,2);
+  if(units>kIndexedPathUnits || components>kIndexedPathDepth ||
+      bytes.size()!=kIndexedShapeHeaderBytes+(units+components)*kIndexedShapeBucketBytes)
+    fail(Code::corrupt,"invalid indexed directory shape length");
+  IndexedDirectoryShape result;
+  auto at=kIndexedShapeHeaderBytes;
+  const auto read_axis=[&](auto& axis,std::uint64_t count,std::size_t maximum) {
+    axis.reserve(static_cast<std::size_t>(count));
+    std::uint64_t total=0,previous=0;
+    for(std::uint64_t i=0;i<count;++i,at+=kIndexedShapeBucketBytes) {
+      const auto bound=integer(bytes,at,2),children=integer(bytes,at+2,8);
+      if(bound<=previous || bound>maximum || !children || children>=root.next_inode-total)
+        fail(Code::corrupt,"invalid indexed directory shape bucket");
+      axis.push_back({static_cast<std::uint16_t>(bound),children});
+      total+=children;previous=bound;
+    }
+    return total;
+  };
+  const auto total_units=read_axis(result.units,units,kIndexedPathUnits);
+  if(total_units!=read_axis(result.components,components,kIndexedPathDepth))
+    fail(Code::corrupt,"indexed directory shape totals differ");
+  return result;
+}
 }
 Bytes encode_indexed_inode(const IndexedInodeInput& input,const IndexedVolumeRoot& root) {
   Node n;
@@ -1048,7 +1084,13 @@ Bytes encode_indexed_inode(const IndexedInodeInput& input,const IndexedVolumeRoo
   n.directory=input.directory;n.name=input.name;n.basic=input.basic;n.security=input.security;n.allocation=input.allocation;
   n.delete_pending=input.lifetime==IndexedLifetime::pending;n.unlinked=indexed_detached(input.lifetime);
   validate_indexed_inode(n,root);
-  return inode_frame(n,7);
+  auto bytes=inode_frame(n,7);
+  if(input.shape) {
+    if(!root.directory_shapes || !n.directory || (input.lifetime!=IndexedLifetime::linked && input.shape->bound().components))
+      fail(Code::corrupt,"indexed directory shape outside linked directory");
+    append_directory_shape(bytes,*input.shape);
+  }
+  return bytes;
 }
 IndexedInodeInput decode_indexed_inode(std::span<const std::byte> bytes,std::uint64_t inode,
     const IndexedVolumeRoot& root) {
@@ -1056,13 +1098,20 @@ IndexedInodeInput decode_indexed_inode(std::span<const std::byte> bytes,std::uin
     fail(Code::corrupt,"indexed inode has inline extents");
   std::size_t cursor=0;
   auto node=decode_inode(bytes,7,cursor,0,root.name_profile);
-  if(cursor!=bytes.size() || node.inode!=inode)fail(Code::corrupt,"indexed inode identity or length mismatch");
+  if(node.inode!=inode)fail(Code::corrupt,"indexed inode identity mismatch");
   try { validate_indexed_inode(node,root); }
   catch(const NativeFsError&) { fail(Code::corrupt,"invalid indexed inode fields"); }
+  std::optional<IndexedDirectoryShape> shape;
+  if(cursor!=bytes.size()) {
+    if(!root.directory_shapes || !node.directory)fail(Code::corrupt,"unexpected indexed inode extension");
+    shape=decode_directory_shape(bytes.subspan(cursor),root);
+    if((node.delete_pending || node.unlinked) && shape->bound().components)
+      fail(Code::corrupt,"indexed deleted directory shape has children");
+  }
   return {node.inode,node.parent,node.size,node.born,node.modified,node.directory,std::move(node.name),
       node.basic,std::move(node.security),node.allocation,
       node.delete_pending?IndexedLifetime::pending:
-          node.unlinked?IndexedLifetime::detached:IndexedLifetime::linked};
+          node.unlinked?IndexedLifetime::detached:IndexedLifetime::linked,std::move(shape)};
 }
 }
 

@@ -16,6 +16,11 @@ checked root totals and changed paths. Full scrubbing verifies unrelated
 records as a separate operation.
 [Packed layout and validation](evidence/packed-rebuild-accounting-2026-11-18.json)
 
+Each indexed directory summary shares its atomic publication with the matching
+names and inodes. Full verification reconciles the summaries with the children
+and checks the reachable namespace against the object inventory before writer
+admission. [Directory summaries](INDEXED_NATIVE_VOLUME.md#directory-summaries)
+
 The writable controller owns its session until an explicit stop, dispatcher
 termination or storage fence. Quiet volumes wait on owned events. Publication
 and retirement by the deferred service wake that owner. Separately supervised

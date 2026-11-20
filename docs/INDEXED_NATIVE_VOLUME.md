@@ -34,7 +34,7 @@ accept all seven capabilities and check each against its exact length.
 | 64 | 8 | Committed input bytes |
 | 72 | 16 | Exact paged store identity |
 | 88 | 4 | Extent length 65,536 |
-| 92 | 4 | Name profile, 0 for legacy ASCII and 1 for indexed Windows ordinal names |
+| 92 | 4 | Namespace features. Bit 0 selects Windows ordinal names. Bit 8 admits directory summaries. Other bits are reserved. |
 | 96, 104, 112 | 8 each | Capability 2 and later counts for active lifetime records, detached inodes and retired inodes |
 | 120, 128 | 8 each | Capability 3 and later shared-base and member counts |
 
@@ -91,6 +91,42 @@ remainder is a nonempty byte prefix of that extent with trailing zero bytes
 omitted. Readers check the owner, range and frame before copying. Missing
 extents and omitted tails read as zeros. Data objects retain the paged store's
 independent CPU decoders and mirrored-payload verification.
+
+### Directory summaries
+
+New indexed directories carry exact maximum descendant path lengths and
+component counts. Each axis is a histogram of the bounds contributed by
+immediate child inodes. Counts preserve maxima when any number of children
+share the longest or deepest path. Only changes to a directory's maximum have
+to propagate to its parent.
+
+Bit 8 of the namespace feature field admits an optional suffix on a directory
+inode. The suffix follows the name and security descriptor. It begins with
+two little-endian 16-bit bucket counts, followed by the length buckets and then
+the component-count buckets. A bucket stores a little-endian 16-bit bound and
+a 64-bit child count. Bounds appear in ascending order with positive counts.
+Lengths count UTF-16 units including internal separators, starting immediately
+below the directory. Empty tracked directories have two zero bucket counts.
+The two axes have the same total number of children.
+
+An indexed transaction publishes changes to the histograms with the name and
+inode records. At move time, the writer adds the proposed prefix to the stored
+maxima. Older directory records without a summary use a checked traversal.
+Moving an older subtree into a tracked ancestor clears the affected summaries
+in the same transaction. Older readers reject the feature bit. Existing images
+with the bit clear remain readable.
+
+Full verification visits the name tree from the root in pages. It checks
+parent and name bindings, actual path bounds and each present histogram. The
+number of reachable inodes must match the linked inventory. Independent CPU
+reopen and compaction preserve the same verified namespace.
+[Directory move and recovery evidence](evidence/indexed-directory-bounds-2026-11-20.json)
+
+CephFS permits quota counters to lag actual writes. Btrfs documents a full
+rescan when adding quota accounting to an existing subvolume. FlitzFS needs
+exact counts at commit time because the path check determines whether a file
+remains reachable after a move. [CephFS quotas](https://docs.ceph.com/en/latest/cephfs/quota/) ·
+[Btrfs quota groups](https://btrfs.readthedocs.io/en/latest/Qgroups.html)
 
 ## Shared-base extents
 
@@ -470,10 +506,9 @@ independent recovery.
 The indexed layout uses 61-bit inode and extent IDs and admits path batches
 against the paged transaction's working budget for owned input and affected
 records. Shrinking a live file can still exceed one transaction. Large file
-deletion uses the retirement protocol below. Expanding
-directory moves currently scan the subtree in pages. Per-directory summary
-metadata or revised path representation must remove that foreground cost before
-large production mounts.
+deletion uses the retirement protocol below. Tracked directory moves validate
+descendant bounds from their inode summaries. Older untracked subtrees can
+still require a paged traversal.
 
 Stable-inode writes and truncation also use this transaction. Append chooses
 the current EOF under the writer's control. A constrained write clips its

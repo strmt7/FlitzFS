@@ -261,10 +261,13 @@ also runs the in-memory WinFsp worker cases on ordinary local SDK builds.
    Measure copying and final selection interference at scale. Preserve
    collective dependencies through an explicit versioned migration with
    verified rollback and matched complete-size comparisons.
-5. Use real checked page ranges in WinFsp callbacks, including large directory
-   enumeration, allocation and ACL queries. Add long-path and Unicode behavior
-   against the selected Windows contract. Replace foreground subtree scans with
-   bounded validation. Run SDK, mounted Windows and recovery suites separately.
+5. Qualify paged enumeration, allocation, ACL queries and the Unicode path
+   profile in real Windows clients. Tracked directories now validate moves
+   from transactional summaries. To backfill older directories, traverse
+   children in bounded idle batches with a durable cursor. Verify directory
+   membership before publishing each summary and resume safely after a
+   foreground edit or interruption. Measure both metadata bytes and foreground
+   interference. [Directory summaries](INDEXED_NATIVE_VOLUME.md#directory-summaries)
 6. Connect the controlled indexed deferred write path to normal mounted
    workload selection. The indexed writer checks candidate content against
    the staged extent and publishes the inode and block in the verified LZ4

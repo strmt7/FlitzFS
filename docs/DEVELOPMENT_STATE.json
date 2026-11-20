@@ -10,6 +10,14 @@
     "tree": "936409737d1c4a5d4aeb37fe5af48f55ba9accff",
     "note": "Architectural review baseline. Layer and runtime evidence have separate source bindings."
   },
+  "indexed_directory_bounds": {
+    "source_base": "adcc8ad40eb232bbaddbddbab101891ffd7d41e0",
+    "evidence": "docs/evidence/indexed-directory-bounds-2026-11-20.json",
+    "feature_bit": 8,
+    "namespace_verification": "Root traversal with reachable inode reconciliation",
+    "existing_directory_backfill": false,
+    "mounted_windows_client_qualification": false
+  },
   "windows_indexed_name_profile": {
     "source_base": "5156f89f1a641609a4be473eb3ac88a9f97b6a30",
     "evidence": "docs/evidence/windows-indexed-name-profile-2026-11-20.json",

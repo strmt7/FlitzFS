@@ -439,6 +439,110 @@ void indexed_capacity_and_metadata() {
   refuses(Error::corrupt,[&]{(void)NativeFilesystemSnapshot::open_image(tampered,indexed).stat(enlarged);});
 }
 
+void indexed_directory_moves() {
+  using Error=NativeFsErrorCode;
+  constexpr unsigned files=384,batch=32;
+  const std::string expanded="directory-with-a-longer-name";
+  const auto contents=payload(101);
+  const auto from_path=[](unsigned i){return "tree/branch/"+file(i);};
+  auto old_medium=empty(),medium=empty();
+  IndexedVolumeBuilder legacy(PagedObjectStoreWriter::create_mirrored(old_medium,identity(),limits,raw),
+      1,files+4,{true,0},2);
+  const std::array<IndexedInodeInput,3> dirs{{{1,0,0,1,1,true,""},{2,1,0,1,1,true,"tree"},
+      {3,2,0,1,1,true,"branch"}}};
+  legacy.append(dirs);
+  auto modern=new_writer(medium);
+  modern.apply(std::array{file_create("tree",true),file_create("tree/branch",true)});
+  for(unsigned first=0;first<files;first+=batch) {
+    std::vector<IndexedInodeInput> inodes;
+    std::vector<NativeFileMutation> create;
+    for(unsigned i=first;i<first+batch;++i) {
+      inodes.push_back({i+4,3,i?0:contents.size(),1,1,false,file(i)});
+      create.push_back(file_create(from_path(i)));
+    }
+    if(!first) {
+      const IndexedExtentInput extent{4,0,contents};
+      legacy.append(inodes,{&extent,1});
+      create.push_back(file_write(from_path(0),0,contents));
+    } else legacy.append(inodes);
+    modern.apply(create);
+  }
+  const auto legacy_view=legacy.finish();
+  auto old=resume_writer(old_medium,legacy_view.storage_info().generation);
+  const auto measure=[&](auto& writer,const auto& backing) {
+    const auto reads=backing->read_calls,bytes=backing->read_bytes;
+    file_apply(writer,file_rename("tree",expanded));
+    const auto cost=std::pair{backing->read_calls-reads,backing->read_bytes-bytes};
+    const auto view=writer.snapshot();
+    require(view.stat(expanded+"/branch/"+file(0)).inode==4 &&
+        view.read(expanded+"/branch/"+file(0),0,100)==contents,"indexed subtree move changed identity or bytes");
+    view.verify_all();
+    return cost;
+  };
+  const auto prior_cost=measure(old,old_medium);
+  const auto current_cost=measure(modern,medium);
+  std::cout<<"indexed_directory_move descendants="<<files+1<<" old_read_calls="<<prior_cost.first
+      <<" new_read_calls="<<current_cost.first<<" old_read_bytes="<<prior_cost.second
+      <<" new_read_bytes="<<current_cost.second<<'\n';
+  require(current_cost.first*4<prior_cost.first && current_cost.second*2<prior_cost.second,
+      "indexed measured directory move did not reduce descendant reads");
+
+  // Moving an older subtree into a measured one invalidates its dependent bounds.
+  old.apply(std::array{file_create("holder",true),file_create("holder/nested",true),
+      file_rename(expanded,"holder/nested/tree-with-a-longer-name-than-before")});
+  auto mixed=old.snapshot();
+  mixed.verify_all();
+  require(mixed.read("holder/nested/tree-with-a-longer-name-than-before/branch/"+file(0),0,100)==contents,
+      "indexed mixed-format move lost old subtree data");
+
+  const auto dir1=expanded+"/"+std::string(255,'x');
+  const auto dir2=dir1+"/"+std::string(255,'y');
+  const auto dir3=dir2+"/"+std::string(255,'z');
+  const auto leaf_units=1022-dir3.size()-1;
+  const auto left=dir3+"/"+std::string(leaf_units,'a');
+  const auto right=dir3+"/"+std::string(leaf_units,'b');
+  modern.apply(std::array{file_create(dir1,true),file_create(dir2,true),file_create(dir3,true),
+      file_create(left),file_create(right)});
+  const auto grows=[&] {file_apply(modern,file_rename(expanded,expanded+"x"));};
+  const auto reject_growth=[&] {
+    const auto writes=medium->calls;
+    refuses(Error::invalid_path,grows);
+    require(medium->calls==writes && !modern.poisoned(),"indexed summary overflow reached publication");
+  };
+  reject_growth();
+  file_apply(modern,file_remove(left));
+  reject_growth();
+  file_apply(modern,file_remove(right));
+  grows();
+  std::string deep="deep";
+  file_apply(modern,file_create(deep,true));
+  for(unsigned i=1;i<16;++i) {
+    deep+="/d";
+    file_apply(modern,file_create(deep,true));
+  }
+  refuses(Error::invalid_path,[&]{file_apply(modern,file_rename("deep",expanded+"x/deep"));});
+  modern.snapshot().verify_all();
+
+  auto tampered=image(medium->stable,4096);
+  const auto objects=PagedObjectStoreSnapshot::open(tampered,limits);
+  const IndexedVolumeView view(objects,objects.read(1));
+  auto root=view.inode(1);
+  root.shape->replace({},IndexedPathBound{1,1});
+  auto store=PagedObjectStoreWriter::resume(tampered,identity(),objects.info().generation,limits,raw);
+  const StoreMutation forged{(1ULL<<63)|1,false,encode_indexed_inode(root,view.root())};
+  store.commit({&forged,1});
+  const auto bad=NativeFilesystemSnapshot::open_image(tampered,indexed);
+  refuses(Error::corrupt,[&]{bad.verify_all();});
+
+  auto unreachable=empty();
+  IndexedVolumeBuilder cyclic(PagedObjectStoreWriter::create_mirrored(unreachable,identity(),limits,raw),
+      1,4,{true,0},2);
+  const std::array<IndexedInodeInput,3> island{{{1,0,0,1,1,true,""},{2,3,0,1,1,true,"left"},
+      {3,2,0,1,1,true,"right"}}};
+  cyclic.append(island);
+  refuses(Error::corrupt,[&]{(void)cyclic.finish();});
+}
+
 void indexed_windows_names() {
   using Error=NativeFsErrorCode;
   const auto utf8=[](std::u8string_view value){return std::string(reinterpret_cast<const char*>(value.data()),value.size());};
@@ -1180,6 +1284,6 @@ int main() {
   try { populated_native_snapshot();migration(false);migration(true);growing_native_writer();indexed_capacity_and_metadata();indexed_stable_inode_io();indexed_session_lifetimes();indexed_detach_recovery();
     indexed_large_retirement();indexed_head_independent_sequence();indexed_staged_rebuild();indexed_reconciled_rebuild();
     indexed_managed_handoff();indexed_managed_staged_compaction();indexed_managed_staged_faults();
-    indexed_transaction_recovery();indexed_extent_advice();indexed_windows_names(); }
+    indexed_transaction_recovery();indexed_extent_advice();indexed_directory_moves();indexed_windows_names(); }
   catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}
 }

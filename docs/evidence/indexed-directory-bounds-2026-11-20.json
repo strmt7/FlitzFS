@@ -1,0 +1,256 @@
+{
+  "schema": 1,
+  "captured_local": "2026-11-20T12:08:14.9422285+01:00",
+  "source_base": "adcc8ad40eb232bbaddbddbab101891ffd7d41e0",
+  "base_tree": "a2adbb29ab50bf8e75a81be10183d3d2865e5d23",
+  "scope": "Indexed Windows filesystem directory moves, full namespace verification and compatibility",
+  "host": {
+    "name": "Microsoft Windows 11 Pro",
+    "build": "26300",
+    "amd_adapter": [
+      {
+        "Name": "AMD Radeon RX 9070 XT",
+        "DriverVersion": "32.0.32029.2010"
+      }
+    ]
+  },
+  "source_binding": [
+    {
+      "path": "src/native_filesystem.cpp",
+      "git_blob": "fa5f876e8ecca36c54569d5e2f61b3755adac893",
+      "worktree_sha256": "ce808e2fa8bb26231897d1779ec3c024f8bd7729b51d5a8d0fd9089b0dc30947"
+    },
+    {
+      "path": "src/native_indexed_volume.cpp",
+      "git_blob": "d0042cdba503477caab1d89461e05732d5bce753",
+      "worktree_sha256": "82f4268235c62b99fea2de3d3d652d460d59f43ce877ea69fdb1710a3d7d638b"
+    },
+    {
+      "path": "src/native_indexed_volume.hpp",
+      "git_blob": "8b56ea45475bc54a54231aaafb8cc1ab0299a626",
+      "worktree_sha256": "287ce5bedb1ae0d2dca77a237c4ce06c81ff0bb6389a76fd286fca71fc5b8f81"
+    },
+    {
+      "path": "tests/test_native_indexed_volume.cpp",
+      "git_blob": "7f8f6cf5bc66791586da790487f2c2ec0830935f",
+      "worktree_sha256": "3741cb6fcf9e1752f95b15458b2a8eb362883cb741c88244ecd4ddd3981e7f1e"
+    },
+    {
+      "path": "tests/test_winfsp_paged.cpp",
+      "git_blob": "4bf06a8f3836ad879ac3224720e9860b1b3001bd",
+      "worktree_sha256": "a8ea8edb7e0f1f0db39dae641bdc49915eaaed8dbf78e8a9b175c9c9f22152f7"
+    }
+  ],
+  "navigation": {
+    "provider": "CocoIndex Code",
+    "version": "0.2.43",
+    "commit": "adcc8ad40eb232bbaddbddbab101891ffd7d41e0",
+    "files": 6,
+    "searches": 1,
+    "native_response_sha256": "7c047106b361186af50912c912bca603b89a685994f8164b73eda55f5ec1e740"
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "robots": true,
+    "external_llm": false,
+    "native_pages": [
+      {
+        "name": "ceph-quota",
+        "url": "https://docs.ceph.com/en/latest/cephfs/quota/",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 12623,
+        "markdown_sha256": "861d7bcd499572e5c56c8325f5c9d9296c2190b82b3fde5200552c2ad4b8662b",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.23,
+        "capture": "ceph-quota.native.json",
+        "capture_sha256": "a2f06931400a9b07fc58caa6e76216924a697b3f14236a3a67ecf27d18064491"
+      },
+      {
+        "name": "ceph-dirfrags",
+        "url": "https://docs.ceph.com/en/latest/cephfs/dirfrags/",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 9644,
+        "markdown_sha256": "59c336884cd5e369cf8a09cf3cd05695877e29fca375399932d5f87fdf43f9a1",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.551,
+        "capture": "ceph-dirfrags.native.json",
+        "capture_sha256": "6da88e41ea739117c00ce1d5410ff6890d43308bf46d9c86c27eed5c5bcaa50c"
+      },
+      {
+        "name": "btrfs-groups",
+        "url": "https://btrfs.readthedocs.io/en/latest/Qgroups.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 18126,
+        "markdown_sha256": "48ab2696dcffd851f077e052c80d92783dd0ddc55b6138937668d348c22cc2cc",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.598,
+        "capture": "btrfs-groups.native.json",
+        "capture_sha256": "5a2e0c5478cfe49957f8a1da1b51fb6ea615b789e292c4604a441232e753969a"
+      }
+    ]
+  },
+  "rename_io": {
+    "descendants": 385,
+    "legacy_read_calls": 965,
+    "tracked_read_calls": 94,
+    "legacy_read_bytes": 413042,
+    "tracked_read_bytes": 146791
+  },
+  "rename_scope": "Release fixtures with identical visible namespaces and separate legacy and tracked publication histories",
+  "verification_io": {
+    "baseline": {
+      "files": 1024,
+      "image_bytes": 3792896,
+      "single_write_read_bytes": 202444,
+      "full_scrub_read_bytes": 291765504
+    },
+    "candidate": {
+      "files": 1024,
+      "image_bytes": 3801088,
+      "single_write_read_bytes": 202492,
+      "full_scrub_read_bytes": 160435457
+    },
+    "baseline_log_sha256": "25b2be979dc08c6e6a7067a344b934d21a27a614418321ba76ded4e77d875e18",
+    "candidate_log_sha256": "ba68e845bd38a418c1f266ed73d4cb11474b6dd4512b6980504a9393484b3f9c"
+  },
+  "publication_faults": {
+    "cuts": 231,
+    "previous": 223,
+    "committed": 8
+  },
+  "checks": [
+    "equal longest-path ties",
+    "overlong and excessively deep moves refuse before writes",
+    "legacy and mixed-format moves",
+    "corrupt summary rejected",
+    "unreachable cycle rejected",
+    "live WinFsp SDK open handles retain the moved member data and identity",
+    "CPU reopen and verified compaction"
+  ],
+  "amd": {
+    "profile": "changed-extents",
+    "verified_batches": 1,
+    "gpu_advised_members": 3,
+    "final_members": 5,
+    "independent_cpu_readback": true
+  },
+  "runs": [
+    {
+      "run": "local-run-567e5f349cec49e9b5b382ef8662b25a",
+      "scope": "Release and Explorer build",
+      "exit": 0,
+      "tests_passed": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 659865600,
+      "memory_limit_bytes": 2186280960,
+      "cpu_percent": 21,
+      "receipt_sha256": "fad660f4ab8e4198eb01b234a3d3c1fc683270b30ab3e1730a6425fbbd3f39be",
+      "output_sha256": "11cf51a4297350a0db7b0cfeb87b3e7907cbfca8188d0a7543ec66742e4d4ffa"
+    },
+    {
+      "run": "local-run-1d45744f23384357bc59fa2592786ef3",
+      "scope": "Release and WinFsp SDK suite",
+      "exit": 0,
+      "tests_passed": 24,
+      "tree_retired": true,
+      "peak_job_bytes": 325894144,
+      "memory_limit_bytes": 1913651200,
+      "cpu_percent": 21,
+      "receipt_sha256": "2260cf392d689fc3c3fa53ef69796eea38b3d1dc520d5e2627f3fa90a80d60a5",
+      "output_sha256": "0b55e54123c6e3871b4b3cec139faf2d2d3a87c459043a8b65fd72b671c5c9d6"
+    },
+    {
+      "run": "local-run-f3cf407a24f04440999c2fd7b570b354",
+      "scope": "Raw build with staged AddressSanitizer runtime",
+      "exit": 0,
+      "tests_passed": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 767741952,
+      "memory_limit_bytes": 1911554048,
+      "cpu_percent": 22,
+      "receipt_sha256": "aaa9a85431d24aa0ab9feda2976c4588e51232b6377247f816cd9ccb78d05399",
+      "output_sha256": "90d1328a24655cf6ad0ec96f561eb2c45acdc6242521098f694c2a67e00832a1"
+    },
+    {
+      "run": "local-run-6aadf90408ad4b8faaac215c517a9962",
+      "scope": "Raw AddressSanitizer suite and loader preflight",
+      "exit": 0,
+      "tests_passed": 10,
+      "tree_retired": true,
+      "peak_job_bytes": 1053474816,
+      "memory_limit_bytes": 2340421632,
+      "cpu_percent": 21,
+      "receipt_sha256": "bcea644d923004fe408902d4f5be08511b06f370382e69187239b8df0aadbb49",
+      "output_sha256": "e0afde556e6917035a28e03d21f6f9cdcaaf6b3f88bbb03c11131634100a3c90"
+    },
+    {
+      "run": "local-run-845a9594a97b4522b25a34d0b8394147",
+      "scope": "Live AMD grouping and CPU readback",
+      "exit": 0,
+      "tests_passed": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 95576064,
+      "memory_limit_bytes": 1896873984,
+      "cpu_percent": 19,
+      "receipt_sha256": "8af180116f3a8c9b1c1b24f57acdee6d9b29285ce81863b4216f40ba9dc190d0",
+      "output_sha256": "06ceea20c8e3905dc2eb7455879b0ebf9c983c699c65a862b068e2f67d990290"
+    },
+    {
+      "run": "local-run-b3ceecf538924d48be54d34290086050",
+      "scope": "Earlier exploratory check required fourfold reduction for both backing read counters",
+      "exit": 8,
+      "tests_passed": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 40464384,
+      "memory_limit_bytes": 2543845376,
+      "cpu_percent": 22,
+      "receipt_sha256": "2025cacf6840528ba9b586ffeb1f1b83447ec661561e7de93b758952d16a48bc",
+      "output_sha256": "dd0c188b8a2f36758ec1ae666993abff93dd190ac8487566886b669b72a64ef1"
+    },
+    {
+      "run": "local-run-70656cddae684b5cb36a70af5576f620",
+      "scope": "Reviewed isolated Crawl4AI captures",
+      "exit": 0,
+      "tests_passed": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 1162510336,
+      "memory_limit_bytes": 1220542464,
+      "cpu_percent": 20,
+      "receipt_sha256": "64309b6d256c2b0da2a5da731972cbac4afb83c7c971b260b826112cf7731b4f",
+      "output_sha256": "98072214ded664e92e0c0457da7e1ffca908a911a78f27c3004e1eca1eca3c23"
+    },
+    {
+      "run": "local-run-b2e546dc9ac44b3095a93972b93ea52a",
+      "scope": "Current-source semantic search",
+      "exit": 0,
+      "tests_passed": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 1164111872,
+      "memory_limit_bytes": 1141899264,
+      "cpu_percent": 19,
+      "receipt_sha256": "0312a217f3d41539a09399e0f35c4484445fc7208acb4ece5a6214296469eb9a",
+      "output_sha256": "264696b9ab160466860340b7907bf7d90e383266c86a926c94e121e403ac8fc0"
+    }
+  ],
+  "limits": [
+    "Windows user-mode SDK callbacks and injected mount lifecycle",
+    "In-memory fixture backing",
+    "Read counts and byte counters, without timing or filesystem comparisons",
+    "Old directory summary backfill remains pending"
+  ]
+}
