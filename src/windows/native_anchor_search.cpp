@@ -128,6 +128,7 @@ struct NativeAnchorSearchController::Impl {
     detail::AnchorMatchBatchRequest request;
     std::optional<AnchorBatchProfileBinding> profile;
     std::uint64_t ticket,started,deadline;
+    bool partial_batch=false;
     Disposition disposition=Disposition::pending;
     bool supervisor_exited=false;
   };
@@ -252,6 +253,7 @@ void NativeAnchorSearchController::start(std::span<const NativeSharedBaseSearchW
     if(!launch){defer();return;}
     if(self.sequence==(std::numeric_limits<std::uint64_t>::max)()){self.enabled=false;return;}
     const auto& [plan,transfer,capacity,budget,dispatches_per_wait]=*launch;
+    const bool partial_batch=plan.groups.size()<windows.size();
     windows=windows.first(plan.groups.size());
     const GpuHealthEvidence health{route.identity,++self.sequence,0,true,true,observed.snapshot};
     const auto route_decision=self.recovery.consider_anchor(true,health,transfer.device_bytes,GetTickCount64());
@@ -288,7 +290,7 @@ void NativeAnchorSearchController::start(std::span<const NativeSharedBaseSearchW
     auto session=WorkerExchangeSession::start_sized(route.helper,arguments,
         request.snapshot(),capacity,budget,route.pins);
     self.flight.emplace(Impl::Flight{std::move(session),std::move(request),std::move(profile),ticket,begun,
-        begun+budget.timeout_ms});
+        begun+budget.timeout_ms,partial_batch});
     self.activity=activity;
     self.windows=std::move(retained);
     ++self.stats.submitted;
@@ -412,6 +414,10 @@ void NativeAnchorSearchController::observe(std::uint64_t activity,std::uint64_t 
 }
 bool NativeAnchorSearchController::waiting() const noexcept {
   return impl_->flight && !impl_->flight->supervisor_exited && impl_->flight->disposition==Impl::Disposition::pending;
+}
+std::span<const NativeSharedBaseSearchWindow> NativeAnchorSearchController::pending_prefix() const noexcept {
+  if(!waiting() || !impl_->flight->partial_batch)return {};
+  return impl_->windows;
 }
 std::uint64_t NativeAnchorSearchController::deadline() const noexcept {
   return waiting()?impl_->flight->deadline:0;

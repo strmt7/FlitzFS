@@ -1077,6 +1077,15 @@ ordinary routing with prompt yielding and independent CPU progress.
 [Coalesced transfer comparison](evidence/amd-anchor-transfers-2026-11-18.json)
 [Shared request snapshot comparison](evidence/amd-anchor-snapshot-2026-11-18.json)
 
+A partially admitted AMD batch now leaves its unsubmitted groups eligible
+for CPU maintenance during the exchange. Three paired public-code trials
+each processed two groups on AMD and three on CPU. In the overlapping
+schedule the CPU completed all three before AMD reply verification. Both
+schedules reopened all 20 files exactly and occupied 280 KiB. Times moved
+in both directions across pairs. Evaluate larger admitted groups and
+foreground contention before assigning a throughput benefit.
+[Split scheduling evidence](evidence/windows-amd-cpu-overlap-2026-11-20.json)
+
 The producer now appends each admitted group directly to the final snapshot
 and provides verified views from that construction. Release and
 AddressSanitizer fixtures compared the views with independent wire parsing.

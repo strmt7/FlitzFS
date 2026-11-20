@@ -113,8 +113,8 @@ and memory admission used for group preparation. The qualified member range
 applies to their total work. The owner checks device headroom, sizes the
 complete immutable request and starts one coalesced worker outside the
 callback lock. The worker reuses its runtime, stream and device allocation
-across groups. CPU telemetry continues while storage preparation awaits the
-optional reply. The owner holds the session that owns the exact supervisor
+across groups. CPU telemetry continues while the submitted groups await the
+reply. The owner holds the session that owns the exact supervisor
 handle while waiting alongside the stop and activity events.
 [Windows wait contract](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitformultipleobjects)
 
@@ -145,8 +145,12 @@ At launch, a fixed-output plan selects the largest affordable prefix of
 complete groups. The estimate includes child commitment, the transfer
 slab, channel mappings and copies. The qualified minimum member count
 still applies. Reply lookup uses the original source window identity.
-The remaining groups proceed through CPU preparation and publication.
+The CPU can prepare and publish unsubmitted groups while AMD executes. Each
+step still requires idle credit and fresh headroom, and publication requires
+a fresh CPU observation. The submitted prefix stays reserved by immutable
+window identity until the reply settles or the exchange is cancelled.
 [Budget-limited AMD and CPU readback evidence](evidence/windows-adaptive-amd-launch-2026-11-20.json)
+· [CPU progress during a live AMD exchange](evidence/windows-amd-cpu-overlap-2026-11-20.json)
 
 A partially covered candidate or one that exceeds the remaining extent
 budget defers its intersecting candidates in the current window. Independent

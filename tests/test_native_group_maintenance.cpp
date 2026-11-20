@@ -88,7 +88,7 @@ void advised_indexed_maintenance() {
     require(snapshot.read("f"+std::to_string(i),0,kNativeExtentBytes)==original[i],
         "automatic search advice changed committed bytes");
 }
-enum class BatchOutcome {accepted,cpu_fallback,changed_source,memory_pressure};
+enum class BatchOutcome {accepted,cpu_fallback,changed_source,memory_pressure,overlap_success,overlap_fallback};
 void batched_indexed_maintenance(BatchOutcome outcome) {
   constexpr unsigned members=4,files=members+1,cohorts=2;
   Fixture f(4096,0,true);
@@ -150,8 +150,33 @@ void batched_indexed_maintenance(BatchOutcome outcome) {
         !controller.active_group() && !controller.has_retained_search(),
         "batch kept preparations after losing its memory grant");
   }
+  const bool overlaps=outcome==BatchOutcome::overlap_success || outcome==BatchOutcome::overlap_fallback;
+  if(overlaps) {
+    const auto staged=std::span<const NativeSharedBaseSearchWindow>{windows};
+    const auto prefix=staged.first(1);
+    const auto unchanged=[&](std::span<const NativeSharedBaseSearchWindow> submitted,bool foreground_busy,Defer expected) {
+      auto observed=f.clock.next();
+      observed.foreground_pending=foreground_busy;
+      const auto writes=f.image->calls, reads=f.image->read_calls;
+      require(controller.advance(observed,f.clock.now,{0,nullptr,true,{},submitted}).deferral==expected &&
+          f.image->calls==writes && f.image->read_calls==reads,"pending adviser changed a protected group");
+    };
+    unchanged(staged.last(1),false,Defer::other_maintenance);
+    unchanged(staged,false,Defer::other_maintenance);
+    unchanged(prefix,true,Defer::foreground);
+    for(unsigned tick=0;tick<800 && !progress.published_groups;++tick) {
+      const auto observed=f.clock.next();
+      progress=controller.advance(observed,f.clock.now,{0,nullptr,true,{},prefix});
+      require(progress.phase!=Phase::failed,"CPU suffix failed while the adviser was pending");
+    }
+    require(progress.published_groups==1 && !progress.advised_members_published &&
+        controller.active_group_members()==files && controller.has_retained_search(),
+        "unsubmitted work did not finish independently of the adviser");
+    unchanged(prefix,false,Defer::other_maintenance);
+  }
   const bool accepts=outcome==BatchOutcome::accepted || changed;
-  const auto supplied=accepts?std::span<const NativeSharedBaseSearchReply>{replies}:
+  const auto all_replies=std::span<const NativeSharedBaseSearchReply>{replies};
+  const auto supplied=accepts?all_replies:outcome==BatchOutcome::overlap_success?all_replies.last(1):
       std::span<const NativeSharedBaseSearchReply>{};
   const auto expected=changed?1U:cohorts;
   for(unsigned tick=0;tick<800;++tick) {
@@ -162,7 +187,7 @@ void batched_indexed_maintenance(BatchOutcome outcome) {
   }
   require(progress.published_groups==expected && !controller.active_group() && !controller.has_retained_search() &&
       progress.owned_payload_bytes==0,"staged batch did not publish and retire its independent groups");
-  require(progress.advised_members_published==(supplied.empty()?0:members*expected),
+  require(progress.advised_members_published==members*(changed?1:supplied.size()),
       "batch published advice for the wrong revision or group");
   const auto snapshot=f.session->snapshot();
   require(snapshot.shared_base_info().bases==expected,"staged groups lost independent bases");
@@ -1605,6 +1630,8 @@ int main(int argc,char** argv){try{
     batched_indexed_maintenance(BatchOutcome::cpu_fallback);
     batched_indexed_maintenance(BatchOutcome::changed_source);
     batched_indexed_maintenance(BatchOutcome::memory_pressure);
+    batched_indexed_maintenance(BatchOutcome::overlap_success);
+    batched_indexed_maintenance(BatchOutcome::overlap_fallback);
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-multiwindow-batch") {
     indexed_batch_across_scan_windows();
     indexed_partial_overlap_preserves_candidates();

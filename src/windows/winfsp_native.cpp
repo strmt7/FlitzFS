@@ -900,6 +900,12 @@ WinFspMaintenanceResult WinFspNativeWritable::advance_background_maintenance(
   const bool indexed=impl_->info_policy==indexed_file_info;
   const bool rotation=indexed && impl_->capacity_repair_pending();
   const bool repair=indexed && (rotation || impl_->session.indexed_payload_repair_pending());
+  if(!search.pending_prefix.empty()) {
+    if(!indexed || repair || impl_->session.retirement_pending() || !impl_->groups || !impl_->groups->active_group() ||
+        (observed.continued && continuation!=WinFspMaintenanceContinuation::group))
+      return {WinFspMaintenanceState::busy};
+    return impl_->advance_groups(observed,now,search);
+  }
   const bool scrub=scrub_due && indexed && impl_->session.indexed_payload_scrub_eligible();
   if(observed.continued) {
     if(continuation==WinFspMaintenanceContinuation::payload_scrub && scrub && !repair && !impl_->session.retirement_pending())

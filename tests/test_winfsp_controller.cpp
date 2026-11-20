@@ -1061,7 +1061,7 @@ void restrict_fixture_anchor_launch(std::span<const NativeSharedBaseSearchWindow
 
 int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
     const std::filesystem::path& bank_path,std::uint64_t discovery_ns,IndexedBatchPattern pattern,
-    bool limited_memory=false) {
+    bool limited_memory=false,bool overlap_cpu=false) {
   constexpr auto families=anchor_search_fixture::indexed_batch_families;
   const bool revision=revision_corpus(pattern);
   const bool shifted_bias=pattern==IndexedBatchPattern::shifted_bias;
@@ -1141,17 +1141,20 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
         "Wide route used a legacy cap or ignored its funded range");
   }
   NativeMaintenanceProgress progress;
-  std::uint64_t sequence=0,worker_ns=0;
+  std::uint64_t sequence=0,worker_ns=0,cpu_groups_before_gpu_reply=0;
   std::uint64_t packed_payload_bytes=0,sampled_bias_members=0;
   std::size_t sparse_bodies=0,delta_bodies=0;
   unsigned packed_widths=0;
-  for(unsigned i=0;i<5200 && maintenance.pending();++i) {
+  const auto next_observation=[&] {
     MEMORYSTATUSEX host{};host.dwLength=sizeof(host);
     require(GlobalMemoryStatusEx(&host)!=0,"Cannot confirm current memory headroom");
     // Model idle time to exercise the larger batch quickly. HIP admission and
     // the physical and commit observations still use the real host.
-    NativeMaintenanceObservation observation{++sequence,1000*sequence,host.ullTotalPhys,host.ullAvailPhys,
+    return NativeMaintenanceObservation{++sequence,1000*sequence,host.ullTotalPhys,host.ullAvailPhys,
         host.ullTotalPageFile,host.ullAvailPageFile,1000,0,1000,true,false};
+  };
+  for(unsigned i=0;i<5200 && maintenance.pending();++i) {
+    const auto observation=next_observation();
     const auto resources=detail::maintenance_resources(observation,observation.captured_ms,policy);
     require(resources.has_value(),"Cannot establish a modeled opportunity with live memory");
     const auto funded=detail::maintenance_group_member_limit(*resources,true);
@@ -1163,8 +1166,8 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
       std::cerr<<"multiwindow refusal phase="<<static_cast<unsigned>(progress.phase)
           <<" deferral="<<static_cast<unsigned>(progress.deferral)<<" sampled="<<progress.sampled_extents
           <<" published="<<progress.published_groups<<" declined="<<progress.declined_groups
-          <<" image_bytes="<<image->extent()<<" physical_available="<<host.ullAvailPhys
-          <<" commit_available="<<host.ullAvailPageFile<<'\n';
+          <<" image_bytes="<<image->extent()<<" physical_available="<<observation.physical_available
+          <<" commit_available="<<observation.commit_available<<'\n';
     require(progress.phase!=NativeMaintenancePhase::failed && progress.deferral!=NativeMaintenanceDeferral::memory &&
         progress.deferral!=NativeMaintenanceDeferral::capacity,"Large batch preparation or publication failed");
     if(!anchor)continue;
@@ -1180,9 +1183,22 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
     }
     const auto started=std::chrono::steady_clock::now();
     anchor->start(windows,1);
+    bool can_overlap=overlap_cpu;
     await([&] {
       anchor->observe(1,GetTickCount64(),true);
-      return !anchor->waiting();
+      if(!anchor->waiting())return true;
+      if(can_overlap) {
+        const auto pending=anchor->pending_prefix();
+        require(!pending.empty(),"The overlap trial needs a partially admitted AMD batch");
+        const auto observation=next_observation();
+        const auto published=progress.published_groups;
+        progress=maintenance.advance(observation,observation.captured_ms,{0,nullptr,true,{},pending});
+        require(progress.phase!=NativeMaintenancePhase::failed && progress.deferral!=NativeMaintenanceDeferral::memory &&
+            progress.deferral!=NativeMaintenanceDeferral::capacity,"Unsubmitted CPU group failed to advance");
+        cpu_groups_before_gpu_reply+=progress.published_groups-published;
+        can_overlap=progress.deferral!=NativeMaintenanceDeferral::other_maintenance;
+      }
+      return false;
     },8000,"Multiwindow AMD worker did not retire");
     worker_ns+=elapsed_ns(started);
     if(modular || alternate_reference || sparse_xor || collective)for(const auto& reply:anchor->replies()) {
@@ -1216,6 +1232,9 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
         stats.verified_groups>0 && stats.verified_groups<limited_groups &&
         progress.published_groups>stats.verified_groups,
         "Limited-memory fixture did not settle AMD and CPU groups together");
+  if(overlap_cpu)
+    require(cpu_groups_before_gpu_reply && cpu_groups_before_gpu_reply<=limited_groups-stats.verified_groups,
+        "The overlap trial did not publish unsubmitted groups before AMD verification");
   if(dense_overflow) {
     require(stats.submitted==1 && stats.empty_xor_batches==1 && !stats.verified &&
         !progress.advised_members_published,"Dense slots unexpectedly handled all active planes");
@@ -1297,6 +1316,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
       <<" capability="<<capability
       <<" submitted="<<stats.submitted<<" verified_batches="<<stats.verified<<" worker_ns="<<worker_ns
       <<" submitted_groups="<<stats.submitted_groups<<" verified_groups="<<stats.verified_groups
+      <<" cpu_groups_before_gpu_reply="<<cpu_groups_before_gpu_reply
       <<" submitted_queued_batches="<<stats.submitted_queued_batches
       <<" verified_queued_batches="<<stats.verified_queued_batches<<" dispatches_per_wait="<<stats.queued_dispatches_per_wait
       <<" queued_worker_wall_ns="<<stats.queued_worker_wall_ns<<" queued_kernel_wait_ns="<<stats.queued_kernel_wait_ns
@@ -1323,7 +1343,8 @@ int live_anchor_owner(int argc,char** argv) {
   const std::string_view mode(argv[6]);
   const auto multiwindow=multiwindow_pattern(mode);
   const auto restriction=argc==9?std::string_view(argv[8]):std::string_view{};
-  const bool limited_memory=restriction=="limited-memory";
+  const bool overlap_cpu=restriction=="limited-overlap";
+  const bool limited_memory=restriction=="limited-memory" || overlap_cpu;
   const bool queued=mode=="queued" || mode=="queued-yield" || mode=="verified-read" || mode=="verified-edit" ||
       restriction=="queued";
   const bool xor_mode=mode=="xor" || mode=="xor-wide" || mode=="xor-narrow";
@@ -1360,7 +1381,7 @@ int live_anchor_owner(int argc,char** argv) {
         static_cast<std::uint32_t>(members+families),10000,
         output,small_batch?4U:modular?16U:0U,queued?kAnchorProfileMaxQueuedDispatches:1U},
         argc>=8?std::filesystem::path(argv[7]):std::filesystem::path{},
-        discovery_ns,*multiwindow,limited_memory);
+        discovery_ns,*multiwindow,limited_memory,overlap_cpu);
   }
   const std::uint32_t members=queued?queued_anchor_members:(mode=="batch" || mode=="batch-yield" || xor_mode)?8:4;
   NativeAnchorSearchOptions execution{*binding.route,profile,members,members};

@@ -45,6 +45,7 @@ class NativeAnchorSearchController final {
   // Input validation only runs on an admitted idle opportunity.
   void observe(std::uint64_t activity,std::uint64_t now,bool collect=false) noexcept;
   bool waiting() const noexcept;
+  std::span<const NativeSharedBaseSearchWindow> pending_prefix() const noexcept;
   std::uint64_t deadline() const noexcept;
   void* wake_handle() const noexcept;
   std::span<const NativeSharedBaseSearchReply> replies() const noexcept;

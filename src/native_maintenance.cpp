@@ -232,6 +232,14 @@ struct NativeGroupMaintenance::Impl {
   }
   bool active_group() const noexcept{return work.has_value() || !staged_groups.empty();}
   std::size_t group_members() const noexcept{return staged_extents+(work?work_members:0);}
+  bool can_advance_cpu_suffix(std::span<const NativeSharedBaseSearchWindow> prefix) const noexcept {
+    // Launches hold an immutable leading segment. Draining from the tail
+    // preserves its positions until the adviser returns or is cancelled.
+    return batch_draining && staged_groups.size()>=prefix.size() &&
+        staged_groups.front().work.search_window()==prefix.front() &&
+        staged_groups[prefix.size()-1].work.search_window()==prefix.back() &&
+        (work || staged_groups.size()>prefix.size());
+  }
   std::uint64_t owned_payload() const noexcept {
     auto bytes=work?work->progress().owned_payload_bytes:0;
     for(const auto& group:staged_groups)bytes=add(bytes,group.work.progress().owned_payload_bytes);
@@ -752,14 +760,16 @@ struct NativeGroupMaintenance::Impl {
         rank_buckets(true);
         return;
       } else {
-        auto& next=staged_groups.front();
+        const bool cpu_suffix=!search.pending_prefix.empty();
+        auto& next=cpu_suffix?staged_groups.back():staged_groups.front();
         work.emplace(std::move(next.work));
         for(const auto id:next.ids)staged_objects.erase(id);
         work_ids=std::move(next.ids);
         work_sampled_key=std::move(next.sampled_key);work_sampled_retry=false;
         work_members=next.member_count;work_batched=true;
         staged_extents-=next.member_count;staged_search_members-=next.search_members;
-        staged_groups.pop_front();
+        if(cpu_suffix)staged_groups.pop_back();
+        else staged_groups.pop_front();
         if(staged_groups.empty())staged_scan_extents=0;
         phase=Phase::preparing;
       }
@@ -988,6 +998,8 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
   }
   if(observed.foreground_pending)return p.defer(Defer::foreground);
   if(resources->cpu_busy)return p.defer(Defer::cpu);
+  if(!search.pending_prefix.empty() && (search.maximum_members || search.reply || !search.replies.empty() ||
+      !p.can_advance_cpu_suffix(search.pending_prefix)))return p.defer(Defer::other_maintenance);
   if(!p.active_group() && writer.maintenance_busy())return p.defer(Defer::other_maintenance);
   const bool service_coherence=reclaiming && !p.active_group() && (p.prefer_coherence || !discovering);
   if(observed.continued && (p.phase==Phase::publishing || service_coherence ||

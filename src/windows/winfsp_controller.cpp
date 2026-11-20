@@ -173,7 +173,8 @@ struct WinFspVolumeController::Impl {
                 continuation=result.continuation;
                 if(disabled || continuation==WinFspMaintenanceContinuation::none ||
                     !can_continue_preparation(result.progress) || interrupted() ||
-                    (anchor && anchor->waiting()) || (gpu && GetTickCount64()>gpu->after_ms))break;
+                    (anchor && anchor->waiting() && anchor->pending_prefix().empty()) ||
+                    (gpu && GetTickCount64()>gpu->after_ms))break;
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
                 if(acquisition_thread.joinable())break;
 #endif
@@ -266,9 +267,12 @@ struct WinFspVolumeController::Impl {
     else if(foreground)anchor->yield_to_foreground();
     const bool idle=admitted && !foreground;
     anchor->observe(epoch,now,idle);
-    // Preserve PDH sampling while the worker runs. The storage step can wait
-    // for advice without allowing the host observation window to expire.
-    if(anchor->waiting())return {WinFspMaintenanceState::busy};
+    if(anchor->waiting()) {
+      const auto prefix=anchor->pending_prefix();
+      if(prefix.empty())return {WinFspMaintenanceState::busy};
+      return session->advance_background_maintenance(observed,GetTickCount64(),{0,nullptr,true,{},prefix},
+          continuation,scrub_due);
+    }
     const auto replies=anchor->replies();
     auto result=session->advance_background_maintenance(observed,GetTickCount64(),
         {idle?anchor->stage_grant(now,funded_extents):0,nullptr,true,replies},continuation,scrub_due);
