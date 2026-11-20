@@ -94,8 +94,8 @@ class WinFspNativeSession final {
       StoreCompressionOptions candidate={});
   HostedIdleMaintenanceResult idle_recompression_hosted(HostedIdleMaintenanceAction);
   WinFspMaintenanceResult advance_background_maintenance(const NativeMaintenanceObservation&,std::uint64_t now_ms,
-      NativeGroupSearchOpportunity={},WinFspMaintenanceContinuation={});
-  bool background_maintenance_pending() const;
+      NativeGroupSearchOpportunity={},WinFspMaintenanceContinuation={},bool scrub_due=false);
+  bool background_maintenance_pending(bool scrub_due=false) const;
   void cancel_background_maintenance();
   void stop() noexcept;
   SessionState state() const noexcept{return state_;}

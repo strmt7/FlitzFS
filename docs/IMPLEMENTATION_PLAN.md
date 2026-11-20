@@ -307,8 +307,9 @@ also runs the in-memory WinFsp worker cases on ordinary local SDK builds.
 10. Store and validate cached counters for usage/status. Prepare fallible result
     data before publication; do not add post-acknowledgement I/O/allocation.
 11. Replace per-read global validation with checked lookup paths and verified
-    payload access. Add an explicit incremental scrubber for untouched pages;
-    do not achieve speed by dropping integrity checks.
+    payload access. The Windows owner checks untouched payload replicas
+    incrementally on populated indexed attachments. Persist the scan cursor
+    and qualify recovery from damaged index pages.
 12. Add a streaming legacy-to-new-layout migration into a new target and verify
     data, namespace and required opaque metadata before COW selection.
 
@@ -1446,11 +1447,11 @@ qualification. It is not a final pass of extra assertions after design is frozen
    Keep source fixtures and ambiguous results; do not retry until a cause/state
    change justifies a different experiment.
 5. Extend automated verified scrub and repair. A verified live indexed
-   fallback schedules append-only repair from a surviving replica, with a
-   verified alternate-image switch when appending is blocked and a target
-   fits. Extend this to latent replica damage, durable repair progress and
-   startup recovery. Keep the current acknowledged namespace and retain
-   evidence when intact data cannot be reconstructed.
+   fallback or idle scrub schedules append-only repair from a surviving
+   replica. A verified alternate-image switch can restore redundancy when
+   appending is blocked and a target fits. Persist scrub and repair
+   progress and add startup recovery. Keep the current acknowledged
+   namespace and retain evidence when intact data cannot be reconstructed.
 6. Preserve independent CPU export/recovery tooling and useful diagnostics when
    normal mounting or the GPU path is unavailable. Backup/redundancy needs must
    match the claimed failure domains; same-memory copies do not survive power loss.

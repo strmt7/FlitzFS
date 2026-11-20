@@ -72,10 +72,12 @@ struct WinFspVolumeController::Impl {
       }
       if(NT_SUCCESS(started) && status_changed.value)SetEvent(status_changed.value);
       if(NT_SUCCESS(started)) {
-        // No query is opened until changed content actually needs an opportunity.
+        // Age can make a scan due. Live resource observations admit each step.
         WindowsMaintenanceHost host;
         constexpr auto maximum_finite_wait=std::uint64_t{INFINITE-1};
-        std::uint64_t next=0;
+        constexpr auto scrub_day_ms=24ULL*60*60*1000;
+        std::uint64_t next=0,next_scrub=0;
+        bool scrub_pass_faulted=false;
         while(!stop_requested.load(std::memory_order_acquire)) {
           if(session->requires_offline() || session->dispatcher_stopped())break;
           if(!disabled && adapter->maintenance_event_failed()) {
@@ -103,11 +105,13 @@ struct WinFspVolumeController::Impl {
             if(!applied)++current.gpu_budget_refusals;
             continue;
           }
-          const bool pending=!disabled && session->background_maintenance_pending();
+          const bool scrub_due=now>=next_scrub;
+          const bool pending=!disabled && session->background_maintenance_pending(scrub_due);
           if(anchor && !pending)anchor->cancel();
           const bool awaiting_anchor=anchor && anchor->waiting();
           if(!pending || now<next) {
             auto delay=pending?(std::min)(next-now,maximum_finite_wait):std::uint64_t{INFINITE};
+            if(!disabled && !scrub_due)delay=(std::min)({delay,next_scrub-now,maximum_finite_wait});
             if(gpu)delay=(std::min)({delay,gpu->after_ms-now+1,maximum_finite_wait});
             if(awaiting_anchor) {
               const auto due=anchor->deadline();
@@ -123,6 +127,9 @@ struct WinFspVolumeController::Impl {
           }
           const auto begin=std::chrono::steady_clock::now();
           WinFspMaintenanceResult result;
+          using Scrub=PagedPayloadScrubState;
+          std::uint64_t scrub_checks=0,scrub_passes=0,scrub_faults=0;
+          PagedPayloadScrubResult last_scrub_fault;
           std::uint64_t continued=0,continued_compaction=0;
           MaintenanceThreadScope priority;
           if(!priority.active())disabled=true;
@@ -138,9 +145,23 @@ struct WinFspVolumeController::Impl {
               for(;;) {
                 if(residency && observed.valid)residency->verify_working_set();
                 if(observed.continued && interrupted())break;
-                auto step=advance(observed,continuation);
+                auto step=advance(observed,continuation,scrub_due);
                 if(observed.continued && step.state==WinFspMaintenanceState::busy)break;
                 result=std::move(step);
+                const auto scrub=result.payload_scrub;
+                if(scrub.object_id)++scrub_checks;
+                if(scrub.state==Scrub::unverified_payload || scrub.state==Scrub::unverified_index) {
+                  ++scrub_faults;
+                  last_scrub_fault=scrub;
+                  scrub_pass_faulted=true;
+                }
+                if(scrub.state==Scrub::repair_queued)scrub_pass_faulted=true;
+                if(scrub.state==Scrub::complete || scrub.state==Scrub::unverified_index) {
+                  if(scrub.state==Scrub::complete)++scrub_passes;
+                  next_scrub=GetTickCount64()+scrub_day_ms*(scrub_pass_faulted?1:28);
+                  scrub_pass_faulted=false;
+                }
+                if(result.payload_repaired && !scrub_due)next_scrub=0;
                 if(result.state==WinFspMaintenanceState::unavailable ||
                     result.progress.phase==NativeMaintenancePhase::failed)disabled=true;
                 if(observed.continued && result.state==WinFspMaintenanceState::advanced &&
@@ -172,6 +193,7 @@ struct WinFspVolumeController::Impl {
           const auto duty_ms=maintenance_delay_ms(used);
           const auto delay=(std::max)({std::uint64_t(1),host.next_delay_ms(),result.progress.next_opportunity_delay_ms,duty_ms});
           next=GetTickCount64()+(std::min)(delay,maximum_finite_wait);
+          bool notify_integrity_fault=false;
           {
             std::lock_guard lock(mutex);current.host=host.status();current.maintenance_disabled=disabled;
             if(result.state==WinFspMaintenanceState::advanced || result.state==WinFspMaintenanceState::unchanged)
@@ -181,12 +203,20 @@ struct WinFspVolumeController::Impl {
             current.continued_compaction_steps+=continued_compaction;
             if(result.reclaimed)++current.reclamation_quanta;
             if(result.payload_repaired)++current.payload_repairs;
+            current.payload_scrub_checks+=scrub_checks;
+            current.payload_scrub_passes+=scrub_passes;
+            if(scrub_faults) {
+              notify_integrity_fault=current.payload_scrub_faults==0;
+              current.payload_scrub_faults+=scrub_faults;
+              current.last_payload_scrub_fault=last_scrub_fault;
+            }
             if(result.compacted)++current.compactions;
             if(result.compaction_failed)++current.compaction_failures;
             if(anchor)current.anchor_search=anchor->stats();
             current.maintenance_elapsed_ns+=used;
             current.maximum_quantum_ns=(std::max)(current.maximum_quantum_ns,used);
           }
+          if(notify_integrity_fault && status_changed.value)SetEvent(status_changed.value);
         }
       }
     }catch(...){disabled=true;failed=true;}
@@ -211,18 +241,19 @@ struct WinFspVolumeController::Impl {
     if(status_changed.value)SetEvent(status_changed.value);
   }
   WinFspMaintenanceResult advance(const NativeMaintenanceObservation& observed,
-      WinFspMaintenanceContinuation continuation) {
+      WinFspMaintenanceContinuation continuation,bool scrub_due) {
     const auto now=GetTickCount64();
-    if(continuation==WinFspMaintenanceContinuation::compaction)
-      return session->advance_background_maintenance(observed,now,{},continuation);
+    if(continuation==WinFspMaintenanceContinuation::compaction ||
+        continuation==WinFspMaintenanceContinuation::payload_scrub)
+      return session->advance_background_maintenance(observed,now,{},continuation,scrub_due);
     if(!anchor) {
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
       const bool may_acquire=installed && acquisition_retired;
-      auto result=session->advance_background_maintenance(observed,now,{0,nullptr,may_acquire},continuation);
+      auto result=session->advance_background_maintenance(observed,now,{0,nullptr,may_acquire},continuation,scrub_due);
       begin_acquisition(result,observed);
       return result;
 #else
-      return session->advance_background_maintenance(observed,now,{},continuation);
+      return session->advance_background_maintenance(observed,now,{},continuation,scrub_due);
 #endif
     }
     const auto epoch=adapter->foreground_activity();
@@ -239,7 +270,7 @@ struct WinFspVolumeController::Impl {
     if(anchor->waiting())return {WinFspMaintenanceState::busy};
     const auto replies=anchor->replies();
     auto result=session->advance_background_maintenance(observed,GetTickCount64(),
-        {idle?anchor->stage_grant(now,funded_extents):0,nullptr,true,replies},continuation);
+        {idle?anchor->stage_grant(now,funded_extents):0,nullptr,true,replies},continuation,scrub_due);
     if(!replies.empty()) {
       anchor->settle_reply_checks();
       if(!result.retained_search && result.state!=WinFspMaintenanceState::busy &&

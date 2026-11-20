@@ -37,7 +37,8 @@ state and queued work after waking. This covers asynchronous storage failures
 even if a foreground callback has already returned. The owner checks the
 cached namespace sequence before collecting telemetry.
 [Windows event behavior](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-setevent) Read-only activity on a
-completed unchanged volume does not sample or scan. A deferred service's pending
+completed unchanged volume does not sample before its next integrity pass is due.
+A deferred service's pending
 publication or outstanding response remains pending even before its content
 sequence changes, preventing a delayed CPU commit from being missed.
 
@@ -49,7 +50,8 @@ and refuses queued/active foreground calls and deferred publication/retirement.
 Collector, priority, optional-controller and event failures disable optional work;
 they never enable a GPU path or reinterpret unknown headroom as idle capacity.
 
-The owner can continue group or indexed compaction preparation inside one
+The owner can continue group preparation, indexed compaction preparation or
+read-only replica verification inside one
 fresh CPU sample. It releases the callback lock between steps, refreshes memory
 headroom, and checks foreground activity and stop before each continuation.
 Each continuation stays with the preparation that received the opportunity.
@@ -73,11 +75,17 @@ foreground activity event wakes the owner. Repair takes priority over
 compression preparation and uses a fresh admission before committing.
 The controller checks foreground activity, deferred response ownership and
 worker retirement before entering either transaction. The owner sleeps
-when its maintenance queues are empty.
+when its maintenance queues are empty and the integrity pass is dormant.
 When a verified replica repair cannot append, the controller yields
 private group preparation to the provider's repair rotation. The normal
 resource and foreground checks still apply, and selector publication
 requires a fresh observation.
+On a populated indexed volume, scrub checks take turns with eligible group
+work and use the remainder of a current CPU window only after an intact
+record. Repair, reclamation and already admitted GPU work keep their
+existing ownership boundaries. The integrity pass leaves the callback
+lock between records. Its first unverified object or index notifies
+the helper through the existing lifecycle event.
 [Mirrored payload repair](MIRRORED_PAYLOADS.md#automatic-repair-after-a-verified-read)
 [Indexed checks](evidence/indexed-owned-windows-2026-11-18.json) ·
 [Memory reclamation](WINDOWS_MEMORY_VOLUME_FACTORY.md#automatic-indexed-compaction)

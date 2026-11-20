@@ -10,6 +10,7 @@ struct VolumeAttachmentView {
   std::wstring location;
   std::int32_t status=0;
   bool persistent=false;
+  bool integrity_warning=false;
   bool operator==(const VolumeAttachmentView&) const = default;
   bool retained() const noexcept {
     return state!=VolumeAttachmentState::unavailable && state!=VolumeAttachmentState::empty;

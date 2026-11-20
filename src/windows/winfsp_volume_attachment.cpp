@@ -74,6 +74,7 @@ class WinFspVolumeAttachment final:public VolumeAttachment {
     if(status.state==SessionState::running) {
       if(state_.state!=VolumeAttachmentState::attached)
         set_state(VolumeAttachmentState::attached,target_->path);
+      state_.integrity_warning=status.payload_scrub_faults!=0;
     } else if(status.state==SessionState::failed || status.state==SessionState::stopped || status.retired) {
       retire();
     }
@@ -140,6 +141,7 @@ class WinFspVolumeAttachment final:public VolumeAttachment {
     } else {
       set_state(VolumeAttachmentState::blocked,{},status);
     }
+    state_.integrity_warning=final.payload_scrub_faults!=0;
   }
 
   WinFspSessionApi (*load_api_)();

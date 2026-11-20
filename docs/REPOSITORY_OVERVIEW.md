@@ -340,8 +340,14 @@ alternate image. The owned memory provider restored redundancy at the same
 occupied size with zero free space in the selected image. The paired-range
 model preserved acknowledged bytes through 12 selector interruptions, and
 the Windows owner completed the switch with an open callback handle.
-Proactive scrub and automatic startup repair remain open.
 [Capacity repair evidence](evidence/indexed-capacity-repair-rotation-2026-11-20.json)
+
+The Windows owner now checks payload replicas in idle work before a file
+is read. It advances a bounded key cursor across foreground commits,
+queues the existing verified repair when exactly one copy survives,
+and exposes an integrity warning when an object or index cannot be
+verified. Persistent scan progress and automatic startup repair remain open.
+[Scrub validation](evidence/indexed-payload-scrub-2026-11-20.json)
 
 The writable controller now stays available for the owner-controlled
 lifetime. Probe time budgets belong to the external test supervisor.

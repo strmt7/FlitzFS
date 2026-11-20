@@ -335,15 +335,19 @@ Bytes read_object(const State& s,const Entry& e) {
   if(record.recovered_primary && s.payload_repairs)s.payload_repairs->observe(e);
   return bytes;
 }
-// True reports a verified survivor and a failed replica.
-bool verify_object(const State& s,const Entry& e) {
-  if(!s.mirrored){(void)read_object(s,e);return false;}
+unsigned verify_payload_copies(const State& s,const Entry& e) {
   unsigned verified=0;
   for(const auto at:{e.offset,e.peer}) {
     try{(void)decode_record(s,e,read_record_at(s,e,at));++verified;}
     catch(const std::bad_alloc&){throw;}
     catch(const std::exception&){s.degraded_payloads=true;}
   }
+  return verified;
+}
+// True reports a verified survivor and a failed replica.
+bool verify_object(const State& s,const Entry& e) {
+  if(!s.mirrored){(void)read_object(s,e);return false;}
+  const auto verified=verify_payload_copies(s,e);
   if(!verified)fail("both payload copies invalid; no rollback");
   return verified==1;
 }
@@ -797,6 +801,7 @@ struct PagedObjectStoreWriter::Impl {
   std::shared_ptr<const void> owner=std::make_shared<const unsigned char>(0);
   mutable std::weak_ptr<const void> pending_rebuild;
   mutable std::shared_ptr<PayloadRepairQueue> payload_repairs;
+  std::uint64_t scrub_after=0,scrub_through=0;
   Impl(std::shared_ptr<StoreByteIo> image,StoreCompressionOptions options):lease(std::move(image)),encoder(options){}
 };
 struct PagedObjectStoreWriter::Rewrite::Impl {
@@ -1496,6 +1501,38 @@ std::uint64_t PagedObjectStoreWriter::capacity_repair_generation() const noexcep
   if(poisoned() || !impl_->payload_repairs)return 0;
   const auto& queue=*impl_->payload_repairs;
   return queue.blocked_record && queue.blocked_generation==impl_->state.generation?queue.blocked_generation:0;
+}
+PagedPayloadScrubResult PagedObjectStoreWriter::scrub_payload() {
+  using S=PagedPayloadScrubState;
+  if(poisoned() || !impl_->state.mirrored)return {};
+  auto& writer=*impl_;
+  const auto finish=[&](S state) {
+    writer.scrub_after=writer.scrub_through=0;
+    return PagedPayloadScrubResult{state};
+  };
+  const auto& selected=writer.state;
+  try {
+    auto source=load(selected.image,selected.limits);
+    if(!same(selected,source) || source.degraded_roots || source.degraded_metadata)
+      return finish(S::unverified_index);
+    if(!writer.scrub_through)writer.scrub_through=source.root.last;
+    std::optional<Entry> record;
+    auto first=[&](const Entry& entry){record=entry;return false;};
+    bool done=false;
+    walk(source,source.root,writer.scrub_after,first,done);
+    if(source.degraded_metadata)return finish(S::unverified_index);
+    if(!record || record->id>writer.scrub_through)return finish(S::complete);
+    const auto verified=verify_payload_copies(source,*record);
+    if(verified==1) {
+      if(!writer.payload_repairs)writer.payload_repairs=std::make_shared<PayloadRepairQueue>();
+      writer.payload_repairs->observe(*record);
+    }
+    writer.scrub_after=record->id;
+    return {verified==2?S::checked:verified==1?S::repair_queued:S::unverified_payload,record->id};
+  }catch(const std::runtime_error&) {
+    // An unreadable index prevents any safe interpretation of later entries.
+    return finish(S::unverified_index);
+  }
 }
 PagedPayloadRepairProgress PagedObjectStoreWriter::repair_payload() {
   using Progress=PagedPayloadRepairProgress;

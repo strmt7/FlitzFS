@@ -557,6 +557,12 @@ std::uint64_t NativeFileSession::indexed_capacity_repair_generation() const noex
 PagedPayloadRepairProgress NativeFileSession::repair_indexed_payload() {
   return ready().writer.repair_indexed_payload();
 }
+bool NativeFileSession::indexed_payload_scrub_eligible() const noexcept {
+  return !poisoned() && impl_->writer.indexed_payload_scrub_eligible();
+}
+PagedPayloadScrubResult NativeFileSession::scrub_indexed_payload() {
+  return ready().writer.scrub_indexed_payload();
+}
 bool NativeFileSession::persistent_reclamation_pending() const {
   return !poisoned() && impl_->persistent_reclaimer && impl_->persistent_reclaimer->pending(*this);
 }

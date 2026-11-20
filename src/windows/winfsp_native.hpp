@@ -22,7 +22,7 @@ struct HostedIdleMaintenanceResult {
   NativeVolumeHeadInfo head{};
 };
 enum class WinFspMaintenanceState {busy,unavailable,unchanged,advanced};
-enum class WinFspMaintenanceContinuation {none,group,compaction};
+enum class WinFspMaintenanceContinuation {none,group,compaction,payload_scrub};
 struct WinFspMaintenanceResult {
   WinFspMaintenanceState state=WinFspMaintenanceState::unavailable;
   NativeMaintenanceProgress progress;
@@ -33,6 +33,7 @@ struct WinFspMaintenanceResult {
   bool retained_search=false;
   WinFspMaintenanceContinuation continuation=WinFspMaintenanceContinuation::none;
   bool payload_repaired=false;
+  PagedPayloadScrubResult payload_scrub;
 };
 class WinFspNativeWritable final {
  public:
@@ -80,8 +81,9 @@ class WinFspNativeWritable final {
   // Try-lock/refuse foreground or deferred publication before backing access.
   // The owner may continue only the preparation kind offered by the preceding step.
   WinFspMaintenanceResult advance_background_maintenance(const NativeMaintenanceObservation&,std::uint64_t now_ms,
-      NativeGroupSearchOpportunity={},WinFspMaintenanceContinuation=WinFspMaintenanceContinuation::none);
-  bool background_maintenance_pending() const;
+      NativeGroupSearchOpportunity={},WinFspMaintenanceContinuation=WinFspMaintenanceContinuation::none,
+      bool scrub_due=false);
+  bool background_maintenance_pending(bool scrub_due=false) const;
   void cancel_background_maintenance();
   // Before callback binding only. Duplicate a same-process event with signal
   // rights, without inheritance. The caller retains its own wait handle.

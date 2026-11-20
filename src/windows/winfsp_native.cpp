@@ -157,7 +157,7 @@ struct WinFspNativeWritable::Impl {
   NativeMaintenancePolicy group_policy;
   MemoryVolumeBacking* memory_backing=nullptr;
   std::uint64_t last_indexed_observation=0,last_indexed_capture=0;
-  bool maintenance_cancelled=false;
+  bool maintenance_cancelled=false,scrub_yield_to_groups=false;
   std::atomic<bool> maintenance_signal_failed{false};
   bool callbacks_bound=false;
   StoreIdentity identity{};UINT64 created=0;UINT32 serial=0;
@@ -203,6 +203,45 @@ struct WinFspNativeWritable::Impl {
     return session.indexed_capacity_repair_generation() &&
         (memory_backing?memory_backing->compaction_pending(session):session.persistent_reclamation_pending());
   }
+  NativeMaintenanceDeferral admit_indexed_opportunity(const NativeMaintenanceObservation& observed,std::uint64_t now) {
+    using Deferral=NativeMaintenanceDeferral;
+    if(!observed.sequence || observed.sequence<=last_indexed_observation)return Deferral::observation;
+    last_indexed_observation=observed.sequence;
+    const auto resources=detail::maintenance_resources(observed,now,{});
+    const bool admitted_capture=observed.continued
+        ?last_indexed_capture && observed.captured_ms==last_indexed_capture
+        :observed.captured_ms>last_indexed_capture;
+    if(!resources || !admitted_capture)return Deferral::observation;
+    last_indexed_capture=observed.captured_ms;
+    if(observed.foreground_pending)return Deferral::foreground;
+    if(resources->cpu_busy)return Deferral::cpu;
+    constexpr auto transaction_scratch=8ULL*kStoreMaxTransactionBytes;
+    return resources->memory_allowance<transaction_scratch?Deferral::memory:Deferral::none;
+  }
+  WinFspMaintenanceResult advance_payload_scrub(const NativeMaintenanceObservation& observed,std::uint64_t now) {
+    using S=PagedPayloadScrubState;
+    using Phase=NativeMaintenancePhase;
+    using Deferral=NativeMaintenanceDeferral;
+    auto progress=groups?groups->progress():NativeMaintenanceProgress{};
+    progress.phase=Phase::preparing;
+    progress.deferral=admit_indexed_opportunity(observed,now);
+    WinFspMaintenanceResult result{WinFspMaintenanceState::advanced,progress};
+    if(progress.deferral!=Deferral::none) {
+      result.progress.phase=Phase::deferred;
+      return result;
+    }
+    try{result.payload_scrub=session.scrub_indexed_payload();}
+    catch(const std::bad_alloc&) {
+      result.progress.phase=Phase::deferred;
+      result.progress.deferral=Deferral::memory;
+      return result;
+    }
+    scrub_yield_to_groups=true;
+    if(result.payload_scrub.state==S::checked)
+      result.continuation=WinFspMaintenanceContinuation::payload_scrub;
+    else result.progress.phase=Phase::idle;
+    return result;
+  }
   WinFspMaintenanceResult advance_indexed_maintenance(const NativeMaintenanceObservation& observed,std::uint64_t now,
       bool repair_rotation) {
     using State=WinFspMaintenanceState;
@@ -219,21 +258,7 @@ struct WinFspNativeWritable::Impl {
     const bool persistent=session.persistent_reclamation_pending();
     const bool memory=memory_backing && memory_backing->compaction_pending(session);
     if(!repair && !reap && !discard_catalog && !persistent && !memory)return {State::unchanged};
-    if(!observed.sequence || observed.sequence<=last_indexed_observation)
-      return defer(Deferral::observation);
-    last_indexed_observation=observed.sequence;
-    const auto resources=detail::maintenance_resources(observed,now,{});
-    const bool admitted_capture=observed.continued
-        ?last_indexed_capture && observed.captured_ms==last_indexed_capture
-        :observed.captured_ms>last_indexed_capture;
-    if(!resources || !admitted_capture)return defer(Deferral::observation);
-    last_indexed_capture=observed.captured_ms;
-    if(observed.foreground_pending)return defer(Deferral::foreground);
-    if(resources->cpu_busy)return defer(Deferral::cpu);
-    // Fund prefix verification, decoded pages, COW edit/encoding scratch and
-    // allocation planning before advancing indexed maintenance.
-    constexpr auto transaction_scratch=8ULL*kStoreMaxTransactionBytes;
-    if(resources->memory_allowance<transaction_scratch)return defer(Deferral::memory);
+    if(const auto refusal=admit_indexed_opportunity(observed,now);refusal!=Deferral::none)return defer(refusal);
     try {
       if(repair) {
         const auto repaired=session.repair_indexed_payload();
@@ -772,7 +797,7 @@ void WinFspNativeWritable::configure_memory_maintenance(MemoryVolumeBacking& bac
   impl_->memory_backing=&backing;
   backing.configure_coherence(impl_->session);
 }
-bool WinFspNativeWritable::background_maintenance_pending() const {
+bool WinFspNativeWritable::background_maintenance_pending(bool scrub_due) const {
   std::unique_lock guard(impl_->control,std::try_to_lock);
   // A busy control is not proof of quiescence. This cached query performs no
   // storage I/O and also sees publications by the deferred service thread.
@@ -780,6 +805,7 @@ bool WinFspNativeWritable::background_maintenance_pending() const {
   if(impl_->maintenance_cancelled || requires_offline() || dispatcher_stopped() || impl_->session.poisoned())
     return false;
   return impl_->session.indexed_payload_repair_pending() ||
+      (scrub_due && impl_->session.indexed_payload_scrub_eligible()) ||
       impl_->session.retirement_pending() || impl_->session.persistent_reclamation_pending() ||
       (impl_->memory_backing && (impl_->memory_backing->coherence_retirement_pending() ||
       impl_->memory_backing->compaction_pending(impl_->session))) ||
@@ -831,7 +857,7 @@ void WinFspNativeWritable::cancel_background_maintenance() {
 }
 WinFspMaintenanceResult WinFspNativeWritable::advance_background_maintenance(
     const NativeMaintenanceObservation& observed,std::uint64_t now,NativeGroupSearchOpportunity search,
-    WinFspMaintenanceContinuation continuation) {
+    WinFspMaintenanceContinuation continuation,bool scrub_due) {
   std::unique_lock guard(impl_->control,std::try_to_lock);
   if(!guard || impl_->foreground.load(std::memory_order_acquire)!=0 ||
       (impl_->deferred&&(impl_->deferred->publication_pending_locked() || impl_->deferred->stats_locked().worker_busy)))
@@ -845,7 +871,10 @@ WinFspMaintenanceResult WinFspNativeWritable::advance_background_maintenance(
   const bool indexed=impl_->info_policy==indexed_file_info;
   const bool rotation=indexed && impl_->capacity_repair_pending();
   const bool repair=indexed && (rotation || impl_->session.indexed_payload_repair_pending());
+  const bool scrub=scrub_due && indexed && impl_->session.indexed_payload_scrub_eligible();
   if(observed.continued) {
+    if(continuation==WinFspMaintenanceContinuation::payload_scrub && scrub && !repair && !impl_->session.retirement_pending())
+      return impl_->advance_payload_scrub(observed,now);
     if(continuation==WinFspMaintenanceContinuation::group && !repair && !impl_->session.retirement_pending())
       return impl_->advance_groups(observed,now,search);
     if(continuation!=WinFspMaintenanceContinuation::compaction || !indexed)
@@ -857,6 +886,11 @@ WinFspMaintenanceResult WinFspNativeWritable::advance_background_maintenance(
     if(!observed.continued && !repair && !impl_->session.retirement_pending() && impl_->groups && impl_->groups->active_group())
       return impl_->advance_groups(observed,now,search);
     auto storage=impl_->advance_indexed_maintenance(observed,now,rotation);
+    if(scrub && storage.state==WinFspMaintenanceState::unchanged && !search.reply && search.replies.empty()) {
+      if(!impl_->scrub_yield_to_groups || !impl_->groups || !impl_->groups->pending())
+        return impl_->advance_payload_scrub(observed,now);
+      impl_->scrub_yield_to_groups=false;
+    }
     if(observed.continued || (storage.state!=WinFspMaintenanceState::unchanged &&
         (storage.progress.deferral!=NativeMaintenanceDeferral::other_maintenance || !impl_->groups || !impl_->groups->pending()))) {
       if(impl_->groups) {

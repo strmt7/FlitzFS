@@ -169,7 +169,9 @@ void volume_file_callbacks() {
       cpu.filesystem().read("f0",0,static_cast<std::uint32_t>(payload.size()))==payload,
       "fresh CPU model reopen lost original or subsequent callback bytes");
 }
-void volume_file_payload_repair(bool live,bool rotate=false) {
+enum class RepairFixture {foreground,rotation,scrub};
+void volume_file_payload_repair(bool live,RepairFixture fixture=RepairFixture::foreground) {
+  const bool rotate=fixture==RepairFixture::rotation,scrub=fixture==RepairFixture::scrub;
   constexpr PagedStoreLimits limits{8ULL*1024*1024};
   const StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
   const auto original=data(rotate?12289U:2049U,814);
@@ -214,8 +216,9 @@ void volume_file_payload_repair(bool live,bool rotate=false) {
   const auto peer=at+file->io.failure_unit;
   require(peer+prefix_size<=body.size() &&
       std::equal(original.begin(),original.begin()+prefix_size,body.begin()+peer),"repair fixture did not identify the peer");
-  body[at]^=std::byte{1};
-  file->io.stable[at]=body[at];
+  const auto damaged_offset=scrub?peer:at;
+  body[damaged_offset]^=std::byte{1};
+  file->io.stable[damaged_offset]=body[damaged_offset];
   const auto damaged=body;
   const auto calls=file->io.calls;
 
@@ -239,11 +242,23 @@ void volume_file_payload_repair(bool live,bool rotate=false) {
         "repair controller startup deadline");
     require(controller.view().state==SessionState::running,"repair controller startup");
     const auto handle=open();
-    read(handle);
+    if(!scrub)read(handle);
     const auto start=GetTickCount64();
-    await([&]{const auto view=controller.view();
-      return (rotate?view.compactions:view.payload_repairs) || view.retired || view.maintenance_disabled;
-    },35000,"live payload repair deadline");
+    try {
+      await([&]{const auto view=controller.view();
+        const bool repaired=rotate?view.compactions!=0:view.payload_repairs!=0;
+        return (repaired && (!scrub || view.payload_scrub_passes)) || view.retired || view.maintenance_disabled;
+      },35000,"live payload repair deadline");
+    }catch(...) {
+      const auto view=controller.view();
+      std::cerr<<"repair owner quanta="<<view.maintenance_quanta<<" host="<<static_cast<unsigned>(view.host)
+          <<" phase="<<static_cast<unsigned>(view.maintenance.phase)
+          <<" deferral="<<static_cast<unsigned>(view.maintenance.deferral)
+          <<" checks="<<view.payload_scrub_checks<<" passes="<<view.payload_scrub_passes
+          <<" faults="<<view.payload_scrub_faults<<" repairs="<<view.payload_repairs
+          <<" rotations="<<view.compactions<<'\n';
+      throw;
+    }
     read(handle);
     callback_cleanup_close(provider,handle);
     controller.stop_and_join();
@@ -251,8 +266,49 @@ void volume_file_payload_repair(bool live,bool rotate=false) {
     require(status.payload_repairs==(rotate?0U:1U) && status.compactions==(rotate?1U:0U) &&
         status.retired && !status.offline && !status.maintenance_disabled,
         "live repair did not publish its verified replacement and retire");
+    if(scrub)require(status.payload_scrub_passes==1 && status.payload_scrub_checks && !status.payload_scrub_faults,
+        "latent repair did not finish its background scan");
     std::cout<<"live_payload_repair elapsed_ms="<<GetTickCount64()-start<<" repairs="<<status.payload_repairs
         <<" rotations="<<status.compactions<<" max_quantum_ns="<<status.maximum_quantum_ns<<'\n';
+    if(scrub)std::cout<<"live_payload_scrub peer_before_read=1 checks="<<status.payload_scrub_checks
+        <<" passes="<<status.payload_scrub_passes<<" faults="<<status.payload_scrub_faults<<'\n';
+  }else if(scrub) {
+    WinFspNativeSession session(std::move(adapter),provider.api());
+    require(session.start(plan())==STATUS_SUCCESS,"modeled scrub controller startup");
+    const auto handle=open();
+    NativeMaintenanceObservation sample{1,1000,16ULL<<30,12ULL<<30,32ULL<<30,24ULL<<30,1000,0,1000,true,true};
+    const auto advance=[&] {
+      ++sample.sequence;sample.captured_ms+=1000;
+      return session.advance_background_maintenance(sample,sample.captured_ms,{},WinFspMaintenanceContinuation::none,true);
+    };
+    const auto reads=file->io.read_calls;
+    using Deferral=NativeMaintenanceDeferral;
+    require(advance().progress.deferral==Deferral::foreground,"scrub started during foreground access");
+    sample.foreground_pending=false;
+    sample.cpu_busy_ticks=sample.cpu_total_ticks;
+    require(advance().progress.deferral==Deferral::cpu,"scrub started without idle CPU");
+    sample.cpu_busy_ticks=0;
+    const auto physical=sample.physical_available;
+    sample.physical_available=1;
+    require(advance().progress.deferral==Deferral::memory && file->io.read_calls==reads && file->io.calls==calls,
+        "denied scrub opportunities reached the backing");
+    sample.physical_available=physical;
+    bool discovered=false,repaired=false;
+    for(unsigned i=0;i<40 && !repaired;++i) {
+      const auto before=file->io.calls;
+      const auto step=advance();
+      if(step.payload_scrub.state==PagedPayloadScrubState::repair_queued) {
+        require(file->io.calls==before && !step.payload_repaired,"scrub wrote during a verification opportunity");
+        discovered=true;
+      }
+      repaired=step.payload_repaired;
+    }
+    require(discovered && repaired,"modeled scrub did not restore the latent peer before reading");
+    read(handle);
+    callback_cleanup_close(provider,handle);
+    session.stop();
+    require(session.write_restart_ready(),"modeled scrub controller did not retire");
+    std::cout<<"modeled_payload_scrub foreground_cpu_memory_yield=1 peer_before_read=1\n";
   }else {
     WinFspNativeSession session(std::move(adapter),provider.api());
     require(session.start(plan())==STATUS_SUCCESS,"modeled repair controller startup");
@@ -2013,7 +2069,9 @@ int main(int argc,char** argv){try {
   const bool remount=argc==2 && std::string_view(argv[1])=="--memory-remount";
   const bool volume_file=argc==2 && std::string_view(argv[1])=="--volume-file";
   const bool live_repair_rotation=argc==2 && std::string_view(argv[1])=="--live-indexed-repair-rotation";
-  const bool live_payload_repair=live_repair_rotation || (argc==2 && std::string_view(argv[1])=="--live-indexed-repair");
+  const bool live_payload_scrub=argc==2 && std::string_view(argv[1])=="--live-indexed-scrub";
+  const bool live_payload_repair=live_repair_rotation || live_payload_scrub ||
+      (argc==2 && std::string_view(argv[1])=="--live-indexed-repair");
   const bool reconciled_compaction=argc==2 && std::string_view(argv[1])=="--live-indexed-reconcile";
   const bool indexed_compaction=reconciled_compaction || (argc==2 && std::string_view(argv[1])=="--live-indexed-compaction");
   if(lifetime_only || shifted_grouping || checkpoint || remount || volume_file || indexed_compaction ||
@@ -2043,8 +2101,11 @@ int main(int argc,char** argv){try {
     volume_file_callbacks();
     volume_file_idle_reclamation();
     volume_file_payload_repair(false);
+    volume_file_payload_repair(false,RepairFixture::scrub);
   }else if(live_payload_repair) {
-    volume_file_payload_repair(true,live_repair_rotation);
+    const auto fixture=live_repair_rotation?RepairFixture::rotation:
+        live_payload_scrub?RepairFixture::scrub:RepairFixture::foreground;
+    volume_file_payload_repair(true,fixture);
   }else if(argc==2 && std::string_view(argv[1])=="--read-only-memory") {
     read_only_memory();
   }else if(remount) {

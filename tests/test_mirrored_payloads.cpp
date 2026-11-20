@@ -206,6 +206,82 @@ void payload_repair_rechecks() {
   require(session.poisoned() && ram->calls==calls,"unrecoverable record caused extra writes");
 }
 
+void proactive_payload_scrub(std::uint32_t unit) {
+  using Scan=PagedPayloadScrubState;
+  auto head=std::make_shared<Ram>(),ram=std::make_shared<Ram>();
+  head->failure_unit=ram->failure_unit=unit;
+  auto session=NativeFileSession::create_indexed_volume(head,next_id(),ram,identity(),limits,{StoreCompressionMode::raw,1,false});
+  require(!session.indexed_payload_scrub_eligible(),"empty volume queued a scrub");
+  const auto add_file=[&](const char* path,const Bytes& bytes) {
+    session.create_entry(path);
+    const auto handle=session.open(path,{true,true,true});
+    session.write(handle,0,bytes);
+    session.cleanup(handle,false);session.close(handle);
+  };
+  const auto surviving=data(3073,832),lost=data(4097,833),late=data(5191,834);
+  add_file("surviving",surviving);add_file("lost",lost);
+  const auto high_water=locations(*ram).back().id;
+  const auto first=session.scrub_indexed_payload();
+  require(first.state==Scan::checked && first.object_id,"scrub could not start its current key range");
+  add_file("late",late);
+  const auto entries=locations(*ram);
+  const auto record=[&](std::size_t bytes) {
+    const auto found=std::ranges::find(entries,bytes+indexed_extent_header_bytes,&Location::stored);
+    require(found!=entries.end(),"scrub fixture lost its payload descriptor");
+    return *found;
+  };
+  const auto degraded=record(surviving.size()),unverified=record(lost.size());
+  const auto later_inode=entries.back().id;
+  require(later_inode>high_water,"foreground append did not extend the key range");
+  damage_record(*ram,degraded.peer);
+  damage_record(*ram,unverified.primary);damage_record(*ram,unverified.peer);
+  const auto head_calls=head->calls;
+  auto last=first.object_id;
+  bool repaired=false,reported=false,finished=false;
+  for(unsigned i=0;i<64 && !finished;++i) {
+    const auto calls=ram->calls;
+    const auto step=session.scrub_indexed_payload();
+    require(ram->calls==calls && head->calls==head_calls && !session.poisoned(),"scrub mutated or fenced live storage");
+    if(step.state==Scan::complete){finished=true;continue;}
+    require(step.object_id>last && step.object_id<=high_water,"scrub lost bounded keyset progress");
+    last=step.object_id;
+    if(step.object_id==degraded.id) {
+      require(step.state==Scan::repair_queued && session.indexed_payload_repair_pending(),
+          "scrub missed bad peer behind a healthy primary");
+      require(session.repair_indexed_payload()==PagedPayloadRepairProgress::repaired,
+          "verified scrub observation did not use the existing repair transaction");
+      repaired=true;
+    } else if(step.object_id==unverified.id) {
+      require(step.state==Scan::unverified_payload && !session.indexed_payload_repair_pending(),
+          "scrub offered to repair a record with no verified source");
+      reported=true;
+    } else require(step.state==Scan::checked,"scrub misclassified an intact record");
+  }
+  require(finished && repaired && reported && session.snapshot().read("surviving",0,8192)==surviving &&
+      session.snapshot().read("late",0,8192)==late,"scrub skipped a fault or lost unrelated bytes");
+
+  damage_record(*ram,unverified.primary);damage_record(*ram,unverified.peer);
+  const auto index=get(ram->live,104);
+  damage_record(*ram,index);
+  const auto calls=ram->calls;
+  const auto metadata=session.scrub_indexed_payload();
+  require(metadata.state==Scan::unverified_index && !metadata.object_id && ram->calls==calls &&
+      !session.indexed_payload_repair_pending(),"scrub trusted a degraded index or wrote through it");
+  damage_record(*ram,index);
+  bool checked_later=false;
+  for(unsigned i=0;i<64;++i) {
+    const auto step=session.scrub_indexed_payload();
+    if(step.state==Scan::complete)break;
+    require(step.state==Scan::checked,"restored fixture failed a fresh bounded pass");
+    checked_later|=step.object_id==later_inode;
+  }
+  const auto cpu=view(ram);cpu.verify_all();
+  require(checked_later && !cpu.storage_info().degraded_checkpoint && cpu.read("surviving",0,8192)==surviving &&
+      cpu.read("lost",0,8192)==lost && cpu.read("late",0,8192)==late,"independent reader did not verify the repaired checkpoint");
+  std::cout<<"proactive_payload_scrub unit="<<unit
+           <<" latent_peer=1 double_loss_reported=1 bounded_high_water=1 degraded_index_refused=1\n";
+}
+
 void native_recovery(unsigned layout,std::uint32_t unit) {
   auto original=std::make_shared<Ram>();original->failure_unit=unit;
   {auto writer=fresh(original,layout);writer.apply(baseline());}
@@ -314,6 +390,7 @@ void native_shared_lifetime() {
 int main(){try {
   forged_descriptors();native_shared_lifetime();payload_repair_rechecks();
   for(auto unit:{4096U,65536U}) {
+    proactive_payload_scrub(unit);
     packing_and_boundaries(unit);survivor_and_rebuild(unit);fresh_replica_readback(unit);
     append_only_payload_repair(unit);
     for(unsigned layout=0;layout<3;++layout){native_recovery(layout,unit);fault_matrix(layout,unit);}

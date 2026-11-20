@@ -105,10 +105,36 @@ observed generation. Existing reader pins protect the old image through
 selection and until retirement.
 [Capacity repair evidence](evidence/indexed-capacity-repair-rotation-2026-11-20.json)
 
+### Automatic integrity scan
+
+On a populated indexed attachment the Windows owner also inspects replicas
+that foreground reads have never needed. It checks both stored and decoded
+copies of one object per admitted step, using the CPU and checked index
+paths. The scan advances by key to the end captured at the start of the
+pass. It reads the current checkpoint and holds no old image between
+steps. A foreground commit can supersede a record or add keys beyond the
+captured end. A later pass covers that range.
+
+The scan queues repair only after decoding a surviving copy. A later
+opportunity revalidates the descriptor before the usual append repair or
+alternate-image handoff. An object with zero verified copies leaves its
+bytes untouched and reports an integrity fault. An unverified index ends
+the pass before it can offer repair from that index. The helper shows an
+integrity warning for either observation.
+
+Verification and repair use the Windows owner's foreground, CPU, memory
+and worker-retirement checks. Scan age wakes the owner when a pass is due.
+Clean passes schedule their next check after four weeks. A pass that saw
+a fault revisits after one day, and a newly completed live repair can make
+it due sooner. Each step still needs a resource-admitted opportunity,
+and an unchanged empty attachment does no scan work.
+[Windows owner scheduling](WINFSP_OWNED_CONTROLLER.md#content-events-and-bounded-work)
+[Source-bound scrub validation](evidence/indexed-payload-scrub-2026-11-20.json)
+
 Writable resume fully scrubs and refuses known damaged payload replicas.
 An explicit independent rebuild streams verified surviving objects into a
-new image and verifies both new copies. Proactive scrubbing and automatic
-offline repair remain open.
+new image and verifies both new copies. Persistent scan progress,
+automatic index reconstruction and automatic offline repair remain open.
 Metadata replicas retain their existing protection.
 The defined separation protects against damage to a qualified write-failure
 unit; both copies are still in one image. Common-mode errors, loss of the image/

@@ -41,6 +41,11 @@ struct PagedCompactedSizes {
   std::uint64_t before=0,after_upper=0;
 };
 enum class PagedPayloadRepairProgress { idle, checked, repaired, capacity };
+enum class PagedPayloadScrubState { idle, checked, repair_queued, unverified_payload, unverified_index, complete };
+struct PagedPayloadScrubResult {
+  PagedPayloadScrubState state=PagedPayloadScrubState::idle;
+  std::uint64_t object_id=0;
+};
 enum class PagedRewriteMode { exact_checkpoint, reconcile_foreground };
 class IndexedCoherenceWriter;
 class PagedObjectStoreWriter;
@@ -166,6 +171,7 @@ class PagedObjectStoreWriter final {
   bool payload_repair_pending() const noexcept;
   std::uint64_t capacity_repair_generation() const noexcept;
   PagedPayloadRepairProgress repair_payload();
+  PagedPayloadScrubResult scrub_payload();
   std::uint64_t generation_for_staging() const noexcept;
   std::uint64_t physical_end_for_staging() const noexcept;
   std::uint64_t append_floor_for_staging() const noexcept;

@@ -2028,6 +2028,13 @@ bool NativeFilesystemWriter::indexed_payload_repair_pending() const noexcept {
 std::uint64_t NativeFilesystemWriter::indexed_capacity_repair_generation() const noexcept {
   return !poisoned() && impl_->indexed?impl_->objects.capacity_repair_generation():0;
 }
+bool NativeFilesystemWriter::indexed_payload_scrub_eligible() const noexcept {
+  return !poisoned() && impl_->indexed && (impl_->indexed->inodes>1 || impl_->indexed->extents);
+}
+PagedPayloadScrubResult NativeFilesystemWriter::scrub_indexed_payload() {
+  if(!indexed_payload_scrub_eligible())return {};
+  return impl_->objects.scrub_payload();
+}
 PagedPayloadRepairProgress NativeFilesystemWriter::repair_indexed_payload() {
   if(!indexed_payload_repair_pending())return PagedPayloadRepairProgress::idle;
   try{return impl_->objects.repair_payload();}

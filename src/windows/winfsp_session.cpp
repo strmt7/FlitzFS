@@ -142,14 +142,14 @@ HostedIdleMaintenanceResult WinFspNativeSession::idle_recompression_hosted(Hoste
 }
 WinFspMaintenanceResult WinFspNativeSession::advance_background_maintenance(
     const NativeMaintenanceObservation& observed,std::uint64_t now,NativeGroupSearchOpportunity search,
-    WinFspMaintenanceContinuation continuation) {
+    WinFspMaintenanceContinuation continuation,bool scrub_due) {
   if(state_!=SessionState::running||!adapter_||requires_offline()||dispatcher_stopped())
     throw std::runtime_error("session is unavailable for background maintenance");
-  return adapter_->advance_background_maintenance(observed,now,search,continuation);
+  return adapter_->advance_background_maintenance(observed,now,search,continuation,scrub_due);
 }
-bool WinFspNativeSession::background_maintenance_pending() const {
+bool WinFspNativeSession::background_maintenance_pending(bool scrub_due) const {
   return state_==SessionState::running && adapter_ && !requires_offline() && !dispatcher_stopped() &&
-      adapter_->background_maintenance_pending();
+      adapter_->background_maintenance_pending(scrub_due);
 }
 void WinFspNativeSession::cancel_background_maintenance() {
   if(adapter_)adapter_->cancel_background_maintenance();

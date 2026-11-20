@@ -625,6 +625,8 @@ class NativeFilesystemWriter final {
   bool indexed_payload_repair_pending() const noexcept;
   std::uint64_t indexed_capacity_repair_generation() const noexcept;
   PagedPayloadRepairProgress repair_indexed_payload();
+  bool indexed_payload_scrub_eligible() const noexcept;
+  PagedPayloadScrubResult scrub_indexed_payload();
   using InodeAction=detail::NativeInodeAction;
   NativeFsCommit transact(std::span<const NativeFileMutation>,InodeAction,std::uint64_t,
       std::span<const NativeBasicMutation> basic={},

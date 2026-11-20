@@ -35,6 +35,20 @@
     "proactive_scrub": false,
     "physical_storage_power_loss_qualified": false
   },
+  "indexed_payload_scrub": {
+    "source_base": "29d525146d711c78617a9bff0496d8d4baf0bd57",
+    "evidence": "docs/evidence/indexed-payload-scrub-2026-11-20.json",
+    "bounded_cursor_across_foreground_commits": true,
+    "foreground_cpu_memory_deferrals_modeled": true,
+    "write_failure_units_tested": [4096, 65536],
+    "live_windows_sdk_passes": 1,
+    "live_untouched_peer_restored_before_read": true,
+    "live_cpu_busy_trial_deferred_scrub": true,
+    "on_disk_format_change": false,
+    "persistent_cursor": false,
+    "automatic_startup_repair": false,
+    "automatic_index_reconstruction": false
+  },
   "indexed_compaction_foreground_reconciliation": {
     "source_base": "c5402a2e7a1899db7ba3fa901052f6a479e034cf",
     "evidence": "docs/evidence/indexed-compaction-reconciliation-2026-11-19.json",

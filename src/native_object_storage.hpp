@@ -100,6 +100,9 @@ class NativeObjectWriter final {
     auto* paged=paged_if();
     return paged?paged->repair_payload():PagedPayloadRepairProgress::idle;
   }
+  PagedPayloadScrubResult scrub_payload() {
+    return std::get<PagedObjectStoreWriter>(value_).scrub_payload();
+  }
   std::uint64_t generation_for_staging() const noexcept {
     return std::visit([](const auto& value){return value.generation_for_staging();},value_);
   }

@@ -162,7 +162,8 @@ struct App {
         L" | Image/head/advice bytes: "+std::to_wstring(v.volume.physical_bytes)+
         L" | Locked RAM: "+std::to_wstring(v.volume.resident)+L"/"+std::to_wstring(v.volume.capacity);
     SetWindowTextW(summary,summary_text.c_str());
-    const auto message=wide(v.message)+(v.busy?L"\r\nWorking...":L"");
+    auto message=wide(v.message)+(v.busy?L"\r\nWorking...":L"");
+    if(v.attachment.integrity_warning)message=L"Integrity warning. Some volume data could not be verified.\r\n"+message;
     SetWindowTextW(status,message.c_str());
     if(v.stopped && quitting) {remove_tray();DestroyWindow(window);}
   }
