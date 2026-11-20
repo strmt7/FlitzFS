@@ -742,6 +742,10 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
       <<" verified_queued_batches="<<result.anchor_search.verified_queued_batches
       <<" dispatches_per_wait="<<result.anchor_search.queued_dispatches_per_wait
       <<" submitted_groups="<<result.anchor_search.submitted_groups<<" verified_groups="<<result.anchor_search.verified_groups
+      <<" copy_suggested_ranges="<<result.anchor_search.copy_suggested_ranges
+      <<" copy_compared_ranges="<<result.anchor_search.copy_compared_ranges
+      <<" copy_suggested_bytes="<<result.anchor_search.copy_suggested_bytes
+      <<" copy_compared_bytes="<<result.anchor_search.copy_compared_bytes
       <<" declined="<<result.anchor_search.declined<<" yielded="<<result.anchor_search.yielded
       <<" integrity_failures="<<result.anchor_search.integrity_failures
       <<" empty_xor_batches="<<result.anchor_search.empty_xor_batches
@@ -1113,6 +1117,8 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
       modular?(bank.empty()?"modular-synthetic":"modular-public"):(bank.empty()?"related":"mixed");
   std::cout<<"multiwindow_trial mode="<<(anchor?"amd":"cpu")<<" cohort="<<cohort
       <<" sparse_device="<<sparse_device<<" reply_bytes="<<stats.reply_bytes
+      <<" copy_suggested_ranges="<<stats.copy_suggested_ranges<<" copy_compared_ranges="<<stats.copy_compared_ranges
+      <<" copy_suggested_bytes="<<stats.copy_suggested_bytes<<" copy_compared_bytes="<<stats.copy_compared_bytes
       <<" files="<<originals.size()<<" groups="<<progress.published_groups<<" advised_members="<<progress.advised_members_published
       <<" capability="<<capability
       <<" submitted="<<stats.submitted<<" verified_batches="<<stats.verified<<" worker_ns="<<worker_ns

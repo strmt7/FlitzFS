@@ -323,13 +323,18 @@ void NativeAnchorSearchController::observe(std::uint64_t activity,std::uint64_t 
             phase=decode_anchor_batch_profile(wire.last(kAnchorBatchProfileBytes),*flight.profile);
             wire=wire.first(wire.size()-kAnchorBatchProfileBytes);
           }
-          self.advice=detail::accept_anchor_match_batch_reply(wire,flight.request);
+          detail::AnchorMatchVerificationWork verification;
+          self.advice=detail::accept_anchor_match_batch_reply(wire,flight.request,&verification);
           if(self.advice.size()!=self.windows.size())throw std::invalid_argument("Incomplete verified anchor batch");
           for(std::size_t i=0;i<self.windows.size();++i)
             self.replies.push_back({self.windows[i],self.advice[i],{}});
           (void)self.recovery.finish(flight.ticket,GpuRecoveryOutcome::accepted,true);
           ++self.stats.verified;
           self.stats.verified_groups+=self.windows.size();
+          self.stats.copy_suggested_ranges=verification.suggested_ranges;
+          self.stats.copy_compared_ranges=verification.compared_ranges;
+          self.stats.copy_suggested_bytes=verification.suggested_bytes;
+          self.stats.copy_compared_bytes=verification.compared_bytes;
           if(phase) {
             ++self.stats.verified_queued_batches;
             self.stats.queued_dispatches_per_wait=flight.profile->dispatches_per_wait;

@@ -241,24 +241,24 @@ std::vector<match::u32> cpu_anchor_match_records(const AnchorMatchSource& reques
 namespace {
 template<typename ReadRecord>
 void check_records(const AnchorMatchSource& request,std::uint32_t members,ReadRecord read_record,
-    AnchorMatchAdvice* advice) {
+    AnchorMatchAdvice* advice,AnchorMatchVerificationWork* work=nullptr) {
   if (advice) advice->resize(members);
   for (match::u32 index=0;index<members;++index) {
     const auto* member=request.source.data()+(index+1)*match::extent_bytes;
     auto* const ranges=advice?&(*advice)[index]:nullptr;
     match::u32 end=0;
-    for (match::u32 tile=0;tile<match::tiles;++tile) {
-      const auto word=read_record(index*match::tiles+tile);
-      if (!word) continue;
-      auto length=word>>20;
-      auto target=tile*match::tile_bytes+((word>>16)&15);
-      auto source=word&65535;
-      require(length>=match::seed_bytes && length<=match::maximum_match &&
-          length<=match::extent_bytes-target && length<=match::extent_bytes-source,
-          "anchor match range outside extent");
+    NativeSharedBaseCopyRange pending{};
+    const auto verify_run=[&] {
+      if (!pending.length) return;
+      auto [target,source,length]=pending;
       require(std::memcmp(request.source.data()+source,member+target,length)==0,
           "anchor match suggestion differs from original bytes");
-      if (!ranges || target+length<=end) continue;
+      if (work) {
+        ++work->compared_ranges;
+        work->compared_bytes+=length;
+      }
+      // Also verify advice that would be clipped or omitted from the output.
+      if (!ranges || target+length<=end) return;
       if (target<end) {
         const auto overlap=end-target;
         target=end;
@@ -269,19 +269,44 @@ void check_records(const AnchorMatchSource& request,std::uint32_t members,ReadRe
         ranges->back().length+=length;
       else ranges->push_back({target,source,length});
       end=target+length;
+    };
+    for (match::u32 tile=0;tile<match::tiles;++tile) {
+      const auto word=read_record(index*match::tiles+tile);
+      if (!word) continue;
+      const auto length=word>>20;
+      const auto target=tile*match::tile_bytes+((word>>16)&15);
+      const auto source=word&65535;
+      require(length>=match::seed_bytes && length<=match::maximum_match &&
+          length<=match::extent_bytes-target && length<=match::extent_bytes-source,
+          "anchor match range outside extent");
+      if (work) {
+        ++work->suggested_ranges;
+        work->suggested_bytes+=length;
+      }
+      // Contiguous or overlapping matches with the same displacement
+      // describe one byte comparison. A different mapping needs its own.
+      if (pending.length && target>=pending.member_offset &&
+          target<=pending.member_offset+pending.length &&
+          source==pending.base_offset+(target-pending.member_offset)) {
+        pending.length=(std::max)(pending.length,target-pending.member_offset+length);
+      } else {
+        verify_run();
+        pending={target,source,length};
+      }
     }
+    verify_run();
   }
 }
 
 void check_records(const AnchorMatchSource& request,std::span<const match::u32> records,
-    AnchorMatchAdvice* advice) {
+    AnchorMatchAdvice* advice,AnchorMatchVerificationWork* work=nullptr) {
   const auto members=anchor_match_members(request.source);
   require(records.size()==members*match::tiles,"anchor match record count");
-  check_records(request,members,[records](std::uint32_t index){return records[index];},advice);
+  check_records(request,members,[records](std::uint32_t index){return records[index];},advice,work);
 }
 
 AnchorMatchAdvice read_anchor_match_reply(std::span<const std::byte> frame,const AnchorMatchSource& request,
-    const Digest* bound_digest) {
+    const Digest* bound_digest,AnchorMatchVerificationWork* work=nullptr) {
   check_header(frame,reply_magic,execution);
   const auto members=anchor_match_members(request.source);
   const auto count=members*match::tiles;
@@ -302,16 +327,18 @@ AnchorMatchAdvice read_anchor_match_reply(std::span<const std::byte> frame,const
     }
   };
   AnchorMatchAdvice advice;
-  check_records(request,members,read_record,&advice);
+  check_records(request,members,read_record,&advice,work);
   return advice;
 }
 
 } // namespace
 
 AnchorMatchAdvice verify_anchor_match_records(const AnchorMatchSource& request,
-    std::span<const match::u32> records) {
+    std::span<const match::u32> records,AnchorMatchVerificationWork* work) {
   AnchorMatchAdvice advice;
-  check_records(request,records,&advice);
+  AnchorMatchVerificationWork measured;
+  check_records(request,records,&advice,work?&measured:nullptr);
+  if (work) *work=measured;
   return advice;
 }
 
@@ -698,12 +725,15 @@ template<class ReadGroup>auto read_anchor_batch_reply(std::span<const std::byte>
 }
 
 std::vector<AnchorMatchAdvice> accept_anchor_match_batch_reply(
-    std::span<const std::byte> frame,const AnchorMatchBatchRequest& request) {
+    std::span<const std::byte> frame,const AnchorMatchBatchRequest& request,AnchorMatchVerificationWork* work) {
   require(request.plan().output==match::BatchOutput::anchors,"copy reply requested for a packed XOR batch");
-  return read_anchor_batch_reply(frame,request,batch_reply_magic,
-      [](auto bytes,const auto& group,auto) {
-        return read_anchor_match_reply(bytes,group,&group.source_digest);
+  AnchorMatchVerificationWork measured;
+  auto accepted=read_anchor_batch_reply(frame,request,batch_reply_magic,
+      [counters=work?&measured:nullptr](auto bytes,const auto& group,auto) {
+        return read_anchor_match_reply(bytes,group,&group.source_digest,counters);
       });
+  if (work) *work=measured;
+  return accepted;
 }
 std::vector<AnchorPackedAdvice> decode_anchor_packed_batch_reply(
     std::span<const std::byte> frame,const AnchorMatchBatchRequest& request,std::span<std::uint32_t> references) {

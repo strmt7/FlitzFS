@@ -34,6 +34,11 @@ struct AnchorMatchRequest {
 using AnchorMatchAdvice=std::vector<std::vector<NativeSharedBaseCopyRange>>;
 using AnchorPackedAdvice=std::vector<std::vector<std::byte>>;
 
+struct AnchorMatchVerificationWork {
+  std::uint64_t suggested_ranges=0,compared_ranges=0;
+  std::uint64_t suggested_bytes=0,compared_bytes=0;
+};
+
 struct AnchorMatchBatchPlan {
   std::vector<AnchorMatchSweepPlan> groups;
   std::uint32_t request_bytes,reply_bytes,quantum_members,device_bytes,launches;
@@ -88,7 +93,8 @@ std::vector<std::byte> encode_anchor_match_request(std::span<const std::byte> ba
 AnchorMatchRequest decode_anchor_match_request(std::span<const std::byte> frame,
     std::optional<AnchorMatchLayout> admitted={});
 std::vector<anchor_match::u32> cpu_anchor_match_records(const AnchorMatchSource&);
-AnchorMatchAdvice verify_anchor_match_records(const AnchorMatchSource&,std::span<const anchor_match::u32>);
+AnchorMatchAdvice verify_anchor_match_records(const AnchorMatchSource&,std::span<const anchor_match::u32>,
+    AnchorMatchVerificationWork* work=nullptr);
 std::vector<std::byte> encode_anchor_match_reply(const AnchorMatchSource&,
     std::span<const anchor_match::u32>,std::size_t reserve_tail_bytes=0);
 AnchorMatchAdvice accept_anchor_match_reply(std::span<const std::byte> frame,const AnchorMatchSource&);
@@ -141,7 +147,7 @@ std::vector<std::byte> encode_anchor_arena_batch_reply(const AnchorMatchBatchReq
     std::span<const AnchorPackedAdvice>,std::size_t reserve_tail_bytes=0,
     std::span<const std::uint32_t> reference_members={});
 std::vector<AnchorMatchAdvice> accept_anchor_match_batch_reply(
-    std::span<const std::byte> frame,const AnchorMatchBatchRequest&);
+    std::span<const std::byte> frame,const AnchorMatchBatchRequest&,AnchorMatchVerificationWork* work=nullptr);
 // These bodies are owned, bound to the request and structurally checked.
 // The native indexed writer independently proves each candidate's decoded bytes.
 std::vector<AnchorPackedAdvice> decode_anchor_packed_batch_reply(

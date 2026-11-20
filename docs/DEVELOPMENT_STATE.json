@@ -102,6 +102,33 @@
     "live_amd_verified_groups_after_change": 1,
     "physical_power_loss_qualified": false
   },
+  "amd_coalesced_copy_verification": {
+    "source_base": "2b95974d9af75aa763e989d4be997839fffe80ef",
+    "evidence": "docs/evidence/amd-coalesced-copy-verification-2026-11-20.json",
+    "matched_public_revisions": {
+      "code": {
+        "compacted_bytes": 491520,
+        "input_blake3": "5f89cd7cbed6c82bc2507e844ab79cc116407492d35ec78ae4f658881dcd0c07",
+        "payload_sha256": "a76af508156dc6984810c6f01d2736bf7bd18112d51dcc1d431b7bfdfa1e8d57",
+        "copy_suggested_ranges": 70430,
+        "copy_compared_ranges": 32922,
+        "copy_suggested_bytes": 4302765,
+        "copy_compared_bytes": 2513357
+      },
+      "docs": {
+        "compacted_bytes": 540672,
+        "input_blake3": "024632754d73bedc236d834b4086fc4c891f265588a381f76e12cc44b007c546",
+        "payload_sha256": "03d07a3f362d552a8563d0b7f0ff58eb4a1a424c7489a999d6a969686ea78e54",
+        "copy_suggested_ranges": 68419,
+        "copy_compared_ranges": 24605,
+        "copy_suggested_bytes": 4331495,
+        "copy_compared_bytes": 2231344
+      }
+    },
+    "installed_gpu_verified": true,
+    "missing_package_cpu_readback": true,
+    "end_to_end_speedup_qualified": false
+  },
   "indexed_compaction_foreground_reconciliation": {
     "source_base": "c5402a2e7a1899db7ba3fa901052f6a479e034cf",
     "evidence": "docs/evidence/indexed-compaction-reconciliation-2026-11-19.json",

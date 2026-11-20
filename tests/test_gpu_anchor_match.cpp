@@ -97,6 +97,58 @@ void unrelated() {
   rejects([&]{(void)verify_anchor_match_records(identical.view(),records);});
 }
 
+void coalesced_copy_verification() {
+  Bytes base(match::extent_bytes);
+  for(std::size_t i=0;i<base.size();++i)base[i]=static_cast<std::byte>(i%251);
+  std::copy_n(base.begin()+16,16,base.begin()+2048);
+  auto request=[](const Bytes& anchor,const Bytes& member) {
+    return decode_anchor_match_request(encode_anchor_match_request(anchor,member,65));
+  };
+  const auto word=[](match::u32 source,match::u32 length){return (length<<20)|source;};
+  const auto same=request(base,base);
+  std::vector<match::u32> records(match::tiles);
+  for(match::u32 i=0;i<match::tiles;++i) {
+    const auto offset=i*match::tile_bytes;
+    records[i]=word(offset,(std::min)(match::extent_bytes-offset,match::maximum_match));
+  }
+  AnchorMatchVerificationWork work;
+  const auto merged=verify_anchor_match_records(same.view(),records,&work);
+  const auto claims=work.suggested_bytes;
+  check(merged.size()==1 && merged.front().size()==1 &&
+      merged[0][0].member_offset==0 && merged[0][0].base_offset==0 && merged[0][0].length==match::extent_bytes,
+      "coalesced proof changed the normalized whole-extent advice");
+  check(work.suggested_ranges==match::tiles && work.compared_ranges==1 &&
+      claims>match::extent_bytes && work.compared_bytes==match::extent_bytes,"dense advice repeated byte comparisons");
+
+  auto member=base;
+  member.back()^=std::byte{1};
+  const auto late=request(base,member);
+  rejects([&]{(void)verify_anchor_match_records(late.view(),records,&work);});
+  check(work.compared_ranges==1 && work.suggested_bytes==claims,"failed verification exposed partial work");
+
+  std::ranges::fill(records,0);
+  records[0]=word(0,64);
+  records[1]=word(2048,16);
+  records[2]=word(32,64);
+  const auto clipped=verify_anchor_match_records(same.view(),records,&work);
+  check(clipped[0].size()==1 && clipped[0][0].length==96 && work.compared_ranges==3 &&
+      work.compared_bytes==144,"covered different displacement was not independently verified");
+  records[1]=word(2049,16);
+  rejects([&]{(void)verify_anchor_match_records(same.view(),records);});
+
+  std::ranges::fill(records,0);
+  member=base;member[64]^=std::byte{1};
+  const auto gap=request(base,member);
+  records[0]=word(0,64);records[5]=word(80,32);
+  const auto disjoint=verify_anchor_match_records(gap.view(),records,&work);
+  check(disjoint[0].size()==2 && disjoint[0][1].member_offset==80 && work.compared_ranges==2 &&
+      work.compared_bytes==96,"copy proof read or bridged the intervening gap");
+
+  std::cout<<"coalesced_copy dense_suggested_ranges="<<match::tiles<<" dense_compared_ranges=1"
+      <<" dense_suggested_bytes="<<claims<<" dense_compared_bytes="<<match::extent_bytes
+      <<" clipped_different_mapping_checked=1 bad_suffix_refused=1 gaps_preserved=1\n";
+}
+
 void sized_sweep() {
   constexpr std::uint32_t count=7;
   const auto plan=plan_anchor_match_sweep(count,match::max_members,match::device_bytes(3),3);
@@ -262,8 +314,15 @@ void independent_batch() {
       "batch serialization changed the nested reply bytes");
   Bytes unaligned_reply(1,std::byte{0});
   unaligned_reply.insert(unaligned_reply.end(),reply.begin(),reply.end());
-  const auto advice=accept_anchor_match_batch_reply(std::span(unaligned_reply).subspan(1),batch);
+  AnchorMatchVerificationWork work;
+  const auto advice=accept_anchor_match_batch_reply(std::span(unaligned_reply).subspan(1),batch,&work);
   check(advice.size()==counts.size() && reply.size()==plan.reply_bytes,"batch did not return all results");
+  std::uint64_t suggested_ranges=0,suggested_bytes=0;
+  for(const auto& group:records)
+    for(const auto record:group)if(record) {++suggested_ranges;suggested_bytes+=record>>20;}
+  check(work.suggested_ranges==suggested_ranges && work.suggested_bytes==suggested_bytes &&
+      work.compared_ranges<=suggested_ranges && work.compared_bytes<=suggested_bytes,
+      "batch verification work did not bind all nested replies");
   for(std::size_t i=0;i<counts.size();++i) {
     check(advice[i].size()==counts[i] && std::ranges::all_of(advice[i],[](const auto& ranges){return !ranges.empty();}),
         "batch did not bind coverage to each independent group");
@@ -273,7 +332,9 @@ void independent_batch() {
   rejects([&]{(void)accept_anchor_match_batch_reply(corrupt,batch);});
   corrupt=reply;
   std::fill_n(corrupt.end()-sizeof(match::u32),sizeof(match::u32),std::byte{0xff});
-  rejects([&]{(void)accept_anchor_match_batch_reply(corrupt,batch);});
+  work={};
+  rejects([&]{(void)accept_anchor_match_batch_reply(corrupt,batch,&work);});
+  check(!work.compared_ranges && !work.compared_bytes,"partially accepted batch published verification work");
   rejects([&]{(void)accept_anchor_match_batch_reply(std::span(reply).first(reply.size()-1),batch);});
   records.back().front()=match::empty;
   rejects([&]{(void)encode_anchor_match_batch_reply(batch,records);});
@@ -697,6 +758,7 @@ int main() {
     unrelated();
     sized_sweep();
     independent_batch();
+    coalesced_copy_verification();
     packed_xor_reply();
     wide_xor_reply();
     modular_delta_reply();

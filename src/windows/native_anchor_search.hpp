@@ -27,6 +27,8 @@ struct NativeAnchorSearchStats {
   std::uint64_t reference_batches=0,reselected_groups=0;
   std::uint64_t submitted_queued_batches=0,verified_queued_batches=0,queued_worker_wall_ns=0,queued_kernel_wait_ns=0;
   std::uint32_t queued_dispatches_per_wait=0;
+  // Work for the most recent independently verified copy batch.
+  std::uint64_t copy_suggested_ranges=0,copy_compared_ranges=0,copy_suggested_bytes=0,copy_compared_bytes=0;
 };
 
 // One serialized owner, outside the filesystem control lock. The transport

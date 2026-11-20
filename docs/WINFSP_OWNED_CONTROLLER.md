@@ -120,9 +120,14 @@ when a slab contains a full wait group and the existing phase record fits
 in the reply budget. Other exchanges use one dispatch per wait, including
 those with a worker deadline beyond the phase record's duration range.
 The worker checks live device headroom between dispatches. After confirmed
-retirement the controller verifies the record's request digest and geometry. CPU
-validation of every returned copy range still precedes use of the reply.
-[Shared-base package profile](AMD_RUNTIME_DISCOVERY.md#shared-base-package-profile)
+retirement the controller verifies the record's request digest and geometry. CPU validation of every returned copy range still precedes use of the reply.
+The verifier combines contiguous or overlapping suggestions only when they
+describe the same source-to-target displacement in the same member. It checks
+every resulting run against the immutable request. A different displacement
+gets its own comparison even when the normalized advice would omit it. The
+reply format and the CPU encoding alternatives remain compatible.
+[Shared-base package profile](AMD_RUNTIME_DISCOVERY.md#shared-base-package-profile) ·
+[Verification work and full readback](evidence/amd-coalesced-copy-verification-2026-11-20.json)
 
 An indexed batch can span several scan windows. The aggregate preparation
 budget follows current physical and commit headroom and the qualified worker

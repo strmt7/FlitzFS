@@ -1,0 +1,440 @@
+{
+  "schema": 1,
+  "recorded_local": "2026-11-20T03:17:33+01:00",
+  "source_base": "2b95974d9af75aa763e989d4be997839fffe80ef",
+  "base_tree": "26d8e964e672466e272eb587bcaf9613165a77f6",
+  "code_patch_sha256": "ac951641f93281e88e996adb10047355a1022d4442907f9c818d02c9fe0ab052",
+  "source_binding": [
+    {
+      "path": "src/native_group_anchor.cpp",
+      "git_blob": "835f95837189d7808eae602ceae5f64c7ce91c22",
+      "worktree_sha256": "8bef441feed3593289fe9bb6c54ed3d4131ec5c96f3f78021da641ce94c1798b"
+    },
+    {
+      "path": "src/native_group_anchor.hpp",
+      "git_blob": "c69ca5b9185eb860a90e41ff5d495277715e258c",
+      "worktree_sha256": "8d8d456024732dee94c4918f2f99e0a4bbcba73085a59f14c8c0283341e059d8"
+    },
+    {
+      "path": "src/windows/native_anchor_search.cpp",
+      "git_blob": "dc9eb8cf945eb50a521502d4b344b89fae2565b1",
+      "worktree_sha256": "f986e2e507558f9adedfe5522637c07e27e0c80ba6aa593b136557082c593a12"
+    },
+    {
+      "path": "src/windows/native_anchor_search.hpp",
+      "git_blob": "350ab5b2ee7b4b691989a0e53ee140c1582b0a30",
+      "worktree_sha256": "af3073a2218c2fec2d0548a9cc8fb1ce17f1d31108537f55ff7dd10ba9906123"
+    },
+    {
+      "path": "tests/test_gpu_anchor_match.cpp",
+      "git_blob": "b14c61f2a4825eaf59f73415292e3a3702a77f54",
+      "worktree_sha256": "3eb2d0cae894108fab23db29b58d6f8477048a91024f2e80b7bf717cb0fa750d"
+    },
+    {
+      "path": "tests/test_winfsp_controller.cpp",
+      "git_blob": "0754d85081701df37204070eca8272cf9f936140",
+      "worktree_sha256": "f59bc47aadc69754db66d66104b7904786f75be3f49727bec71ce12689765b04"
+    }
+  ],
+  "research": {
+    "semantic_provider": "0.2.43",
+    "semantic_receipt_sha256": "9ca4fd7f4479745b875a32854f64b31469455ea9c2d430961aae3e93534ede1c",
+    "semantic_native_response_sha256": "d42ba6fc83e3e5b462931ca44c3221146d85325f3d9a22a0972b84dfeab0ac54",
+    "sources": [
+      {
+        "url": "https://www.usenix.org/conference/fast26/presentation/huang",
+        "final_http_status": 200,
+        "markdown_sha256": "b271b38f1feb88acd780ae11d756c7f3723fecb288cfe5e7803fed9c5d93767d",
+        "markdown_bytes": 10395,
+        "capture_sha256": "1d1b93e44a0ec53c9f91bfa3c18c7d206471ce6dcdb136aadae7cbe04e49b885",
+        "provider_version": "0.9.5+flitzzip.portable2",
+        "receipt_sha256": "49c6d913185652922b096c2df96f11a68f234e926d9fdbc9fc408a1dbd7760a6"
+      },
+      {
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/latest/how-to/performance_guidelines.html",
+        "final_http_status": 200,
+        "markdown_sha256": "d0610dac2affd053902212db38e383b4dab8f868be0349ef33c1b7aad7758fb1",
+        "markdown_bytes": 50307,
+        "capture_sha256": "edde2a7748a8f362f09fc8876aa14dd03e7e19a09a9ab3002470d2d8c3a14587",
+        "provider_version": "0.9.5+flitzzip.portable2",
+        "receipt_sha256": "ecb8ce7be6ad307d9fa0bf8207ef718a8804445ccaaf43d09c4dab5c6c19ec7c"
+      }
+    ],
+    "retained_failures": [
+      {
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/latest/how-to/performance_guidelines.html",
+        "final_http_status": 0,
+        "markdown_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "markdown_bytes": 0,
+        "capture_sha256": "7ac966a4281b92c7ea18360fa0784ec74b4a75bd23bae735bbd28205add785c4",
+        "provider_version": "0.9.5+flitzzip.portable2",
+        "receipt_sha256": "49c6d913185652922b096c2df96f11a68f234e926d9fdbc9fc408a1dbd7760a6",
+        "diagnosis": "Playwright closed the page context. Fresh isolated context succeeded."
+      }
+    ]
+  },
+  "validation": {
+    "windows_release_ctest_passed": 7,
+    "codec_free_explorer_addresssanitizer_ctest_passed": 8,
+    "release_detail_sha256": "be0ea734317bcb68f2e43d1619c66fa25baf3eb546be052b4e8970d6aa27bc98",
+    "asan_detail_sha256": "8d2cc59b090a222848f2fc0d32ffa00c16e9d86eb2a570b4f779293b9e9b8e7d",
+    "dense_verification": {
+      "dense_suggested_ranges": "4096",
+      "dense_compared_ranges": "1",
+      "dense_suggested_bytes": "262048",
+      "dense_compared_bytes": "65536",
+      "clipped_different_mapping_checked": "1",
+      "bad_suffix_refused": "1",
+      "gaps_preserved": "1"
+    },
+    "pinned_corpus_manifest_sha256": "496283b2994eafc06c564ec6aa00ca2d6eddf645b82bb61da136744163c92b1c",
+    "matched_public_revisions": {
+      "code": {
+        "compacted_bytes": 491520,
+        "input_blake3": "5f89cd7cbed6c82bc2507e844ab79cc116407492d35ec78ae4f658881dcd0c07",
+        "payload_sha256": "a76af508156dc6984810c6f01d2736bf7bd18112d51dcc1d431b7bfdfa1e8d57",
+        "copy_suggested_ranges": 70430,
+        "copy_compared_ranges": 32922,
+        "copy_suggested_bytes": 4302765,
+        "copy_compared_bytes": 2513357
+      },
+      "docs": {
+        "compacted_bytes": 540672,
+        "input_blake3": "024632754d73bedc236d834b4086fc4c891f265588a381f76e12cc44b007c546",
+        "payload_sha256": "03d07a3f362d552a8563d0b7f0ff58eb4a1a424c7489a999d6a969686ea78e54",
+        "copy_suggested_ranges": 68419,
+        "copy_compared_ranges": 24605,
+        "copy_suggested_bytes": 4331495,
+        "copy_compared_bytes": 2231344
+      }
+    },
+    "trials": {
+      "code": [
+        {
+          "build": "baseline",
+          "mode": "amd",
+          "input_blake3": "5f89cd7cbed6c82bc2507e844ab79cc116407492d35ec78ae4f658881dcd0c07",
+          "files": 20,
+          "groups": 1,
+          "advised_members": 4,
+          "verified_batches": 1,
+          "grouped_compacted_bytes": 491520,
+          "cpu_comparison_work": null,
+          "role": "baseline code amd",
+          "run": "local-run-33d95a77802544f086a462a571a70356",
+          "receipt_sha256": "32a84ffbfac144f4a68bc1cb4dfa02c784e9e04ea71d54be4e0e86fbac3f5486",
+          "output_sha256": "504bde2e59502cc71200699fc36af90c524e03c8e74add37dc5b042f21fac780",
+          "elapsed_seconds": 2.894274399999631,
+          "memory_bytes": 934281216,
+          "peak_job_bytes": 113475584,
+          "cpu_percent": 18,
+          "tree_retired": true
+        },
+        {
+          "build": "candidate",
+          "mode": "amd",
+          "input_blake3": "5f89cd7cbed6c82bc2507e844ab79cc116407492d35ec78ae4f658881dcd0c07",
+          "files": 20,
+          "groups": 1,
+          "advised_members": 4,
+          "verified_batches": 1,
+          "grouped_compacted_bytes": 491520,
+          "cpu_comparison_work": {
+            "copy_suggested_ranges": 70430,
+            "copy_compared_ranges": 32922,
+            "copy_suggested_bytes": 4302765,
+            "copy_compared_bytes": 2513357
+          },
+          "role": "candidate code amd",
+          "run": "local-run-ffd1ba040ae94790b388a1084dfd6e1b",
+          "receipt_sha256": "f8c03aaa256148c95dd17347b130938c6f85c3efe792352b4f755a916a727595",
+          "output_sha256": "a655de375898f361b006ee3e1ecfe799d21e29909b011b570a76247c5fb86518",
+          "elapsed_seconds": 2.1487078000009205,
+          "memory_bytes": 913309696,
+          "peak_job_bytes": 113606656,
+          "cpu_percent": 18,
+          "tree_retired": true
+        },
+        {
+          "build": "candidate",
+          "mode": "amd",
+          "input_blake3": "5f89cd7cbed6c82bc2507e844ab79cc116407492d35ec78ae4f658881dcd0c07",
+          "files": 20,
+          "groups": 1,
+          "advised_members": 4,
+          "verified_batches": 1,
+          "grouped_compacted_bytes": 491520,
+          "cpu_comparison_work": {
+            "copy_suggested_ranges": 70430,
+            "copy_compared_ranges": 32922,
+            "copy_suggested_bytes": 4302765,
+            "copy_compared_bytes": 2513357
+          },
+          "role": "candidate code amd",
+          "run": "local-run-aa7d8fe85c2940cdac06b0b249b83a99",
+          "receipt_sha256": "1d52d232268605130aa67019541a44153ea04ffc99297921f77f89a382ba5032",
+          "output_sha256": "02b32a51350b094ca46577ee874b54150b8d7abb406c01f52e3e9de8e3fc89ab",
+          "elapsed_seconds": 2.09401859999889,
+          "memory_bytes": 922746880,
+          "peak_job_bytes": 112812032,
+          "cpu_percent": 18,
+          "tree_retired": true
+        },
+        {
+          "build": "baseline",
+          "mode": "amd",
+          "input_blake3": "5f89cd7cbed6c82bc2507e844ab79cc116407492d35ec78ae4f658881dcd0c07",
+          "files": 20,
+          "groups": 1,
+          "advised_members": 4,
+          "verified_batches": 1,
+          "grouped_compacted_bytes": 491520,
+          "cpu_comparison_work": null,
+          "role": "baseline code amd",
+          "run": "local-run-a039974052854e3aae624915712546c5",
+          "receipt_sha256": "be5d5fb882b49e448e4df1c1b1f9a3b21e76280a5ea415a3dcc8f363a5fadbb0",
+          "output_sha256": "4e3eaef8a4bb1e62a2b12f55cf24d1dc302a7c429b101f5f24386c0b1399ba7c",
+          "elapsed_seconds": 2.5107281999989937,
+          "memory_bytes": 920649728,
+          "peak_job_bytes": 112906240,
+          "cpu_percent": 18,
+          "tree_retired": true
+        },
+        {
+          "build": "candidate",
+          "mode": "cpu",
+          "input_blake3": "5f89cd7cbed6c82bc2507e844ab79cc116407492d35ec78ae4f658881dcd0c07",
+          "files": 20,
+          "groups": 1,
+          "advised_members": 0,
+          "verified_batches": 0,
+          "grouped_compacted_bytes": 491520,
+          "cpu_comparison_work": null,
+          "role": "candidate code cpu",
+          "run": "local-run-2eeb091f9ebc4164ae826587864b4097",
+          "receipt_sha256": "bc53d71d741d8d5e6b03c71698006d90f92370dafd54caa23dc3bc4708b66602",
+          "output_sha256": "c4cbe4e65fb1d53bd27094a5e6e2d723187f71c8413adc8ea985aa45d138db73",
+          "elapsed_seconds": 0.1818122000004223,
+          "memory_bytes": 859832320,
+          "peak_job_bytes": 10678272,
+          "cpu_percent": 17,
+          "tree_retired": true
+        }
+      ],
+      "docs": [
+        {
+          "build": "candidate",
+          "mode": "amd",
+          "input_blake3": "024632754d73bedc236d834b4086fc4c891f265588a381f76e12cc44b007c546",
+          "files": 20,
+          "groups": 2,
+          "advised_members": 0,
+          "verified_batches": 1,
+          "grouped_compacted_bytes": 540672,
+          "cpu_comparison_work": {
+            "copy_suggested_ranges": 68419,
+            "copy_compared_ranges": 24605,
+            "copy_suggested_bytes": 4331495,
+            "copy_compared_bytes": 2231344
+          },
+          "role": "candidate docs amd",
+          "run": "local-run-40b2f28700554161af689b270cb1afcb",
+          "receipt_sha256": "f1ee5de4bdf75d8514acf638f0152f78423a3bd4a8d2164589676478c68adbde",
+          "output_sha256": "6df92bd8cda36557248fc249122ebf37c543c5586a434b1ca1c0d0cb2da74725",
+          "elapsed_seconds": 2.1147507000005135,
+          "memory_bytes": 895483904,
+          "peak_job_bytes": 113000448,
+          "cpu_percent": 18,
+          "tree_retired": true
+        },
+        {
+          "build": "baseline",
+          "mode": "amd",
+          "input_blake3": "024632754d73bedc236d834b4086fc4c891f265588a381f76e12cc44b007c546",
+          "files": 20,
+          "groups": 2,
+          "advised_members": 0,
+          "verified_batches": 1,
+          "grouped_compacted_bytes": 540672,
+          "cpu_comparison_work": null,
+          "role": "baseline docs amd",
+          "run": "local-run-e90da7cf361a4c38b93908525fcfa356",
+          "receipt_sha256": "6eb7dc8473d361ee73a9f234b384881012d75b0981b11359af336e8cfb4e3a70",
+          "output_sha256": "788a9ef261bbe514388e55305e50afccbf9748b4797170479e58f64ad45765a6",
+          "elapsed_seconds": 2.4824157000002742,
+          "memory_bytes": 919601152,
+          "peak_job_bytes": 113594368,
+          "cpu_percent": 18,
+          "tree_retired": true
+        },
+        {
+          "build": "baseline",
+          "mode": "amd",
+          "input_blake3": "024632754d73bedc236d834b4086fc4c891f265588a381f76e12cc44b007c546",
+          "files": 20,
+          "groups": 2,
+          "advised_members": 0,
+          "verified_batches": 1,
+          "grouped_compacted_bytes": 540672,
+          "cpu_comparison_work": null,
+          "role": "baseline docs amd",
+          "run": "local-run-64b401767b5f4c84b3390098e86904de",
+          "receipt_sha256": "3d9ada4eb265923fea39e29c9b445cd7caf1381a46fef0ffe28090ca2b3b1c3e",
+          "output_sha256": "d4a8083162b474991cc8d3bef920958dc68a7d8a3b4a79abb5a77a716be70372",
+          "elapsed_seconds": 2.217857700001332,
+          "memory_bytes": 915406848,
+          "peak_job_bytes": 112979968,
+          "cpu_percent": 18,
+          "tree_retired": true
+        },
+        {
+          "build": "candidate",
+          "mode": "amd",
+          "input_blake3": "024632754d73bedc236d834b4086fc4c891f265588a381f76e12cc44b007c546",
+          "files": 20,
+          "groups": 2,
+          "advised_members": 0,
+          "verified_batches": 1,
+          "grouped_compacted_bytes": 540672,
+          "cpu_comparison_work": {
+            "copy_suggested_ranges": 68419,
+            "copy_compared_ranges": 24605,
+            "copy_suggested_bytes": 4331495,
+            "copy_compared_bytes": 2231344
+          },
+          "role": "candidate docs amd",
+          "run": "local-run-34d1d84dd3fb44ec8d375562e3ef719a",
+          "receipt_sha256": "da121c29ec5e6c8d1b67ff1738eb0db0905d4d9ea7e66b22977bf08fec21fa0c",
+          "output_sha256": "537b781acce55e8fe2fc90e0adeea532e2bb9766374079c92c6c632d25693d34",
+          "elapsed_seconds": 2.0957350000007864,
+          "memory_bytes": 914358272,
+          "peak_job_bytes": 112529408,
+          "cpu_percent": 18,
+          "tree_retired": true
+        },
+        {
+          "build": "candidate",
+          "mode": "cpu",
+          "input_blake3": "024632754d73bedc236d834b4086fc4c891f265588a381f76e12cc44b007c546",
+          "files": 20,
+          "groups": 2,
+          "advised_members": 0,
+          "verified_batches": 0,
+          "grouped_compacted_bytes": 540672,
+          "cpu_comparison_work": null,
+          "role": "candidate docs cpu",
+          "run": "local-run-5c2d16a551f348bca69e58efc6e3a85c",
+          "receipt_sha256": "be8bd1fb832bd39ee26f251a3ca865190d775f8995cac5ca51559e77dcad57c3",
+          "output_sha256": "6409ba3ffd04393ac085d864512925abdecdc1b4bec119e6372c528a24487ee9",
+          "elapsed_seconds": 0.1874774999996589,
+          "memory_bytes": 861929472,
+          "peak_job_bytes": 10514432,
+          "cpu_percent": 17,
+          "tree_retired": true
+        }
+      ]
+    },
+    "installed_verified_copy_work": {
+      "copy_suggested_ranges": 40960,
+      "copy_compared_ranges": 35754,
+      "copy_suggested_bytes": 859807,
+      "copy_compared_bytes": 613567
+    },
+    "automatic_missing_package_cpu_fallback": true,
+    "runs": [
+      {
+        "role": "Release build",
+        "run": "local-run-daa0069115fd43528b8d664a6a39781e",
+        "receipt_sha256": "273cf413abe140b41270e088fe9ad3883855e90b4b850bdbb27c4e34191882de",
+        "output_sha256": "ba5c11a7b21cc8a12ecd70e6773d15542d200c95a8b215d61d197673d0e4d284",
+        "elapsed_seconds": 28.516627099999823,
+        "memory_bytes": 1732247552,
+        "peak_job_bytes": 407289856,
+        "cpu_percent": 28,
+        "tree_retired": true
+      },
+      {
+        "role": "Release CTest",
+        "run": "local-run-1f5654051c4b4677bc239a22f841bb63",
+        "receipt_sha256": "a6564e6085ad12b365abb87897d8fbaabdefe61c377769f3966fc7894be4c6b5",
+        "output_sha256": "523d4919624fac5f6d62aec38cee7c3529f86425ad90104a18afcfdb867aa4aa",
+        "elapsed_seconds": 16.33135030000085,
+        "memory_bytes": 1611661312,
+        "peak_job_bytes": 57925632,
+        "cpu_percent": 27,
+        "tree_retired": true
+      },
+      {
+        "role": "RelWithDebInfo build",
+        "run": "local-run-0212618b74e14bd693de286eefba72da",
+        "receipt_sha256": "cdedf8d7c95714a73a0c0c57f10273a2927e8e3a4cffcbee7504e9940f00bb40",
+        "output_sha256": "2449ca7e783cea332034a0519fe767931f91fc4c0fcb02137b098095cda9f725",
+        "elapsed_seconds": 32.82512979999956,
+        "memory_bytes": 2310012928,
+        "peak_job_bytes": 709861376,
+        "cpu_percent": 28,
+        "tree_retired": true
+      },
+      {
+        "role": "RelWithDebInfo CTest",
+        "run": "local-run-2358ff08dd9c4c5397ab42570b3e298e",
+        "receipt_sha256": "de6eb98d1ac0649ffabc446884ce2cd955049621bba1bc470ac0b2cb396f6521",
+        "output_sha256": "6709fb1548c40d504ecffe7462390afcb0658516a3427fb94128e85a2ba8696f",
+        "elapsed_seconds": 116.53822600000058,
+        "memory_bytes": 2627731456,
+        "peak_job_bytes": 1147817984,
+        "cpu_percent": 26,
+        "tree_retired": true
+      },
+      {
+        "role": "Staged AMD package",
+        "run": "local-run-c6afdffd85a5482dbee3b5709aa8b2d8",
+        "receipt_sha256": "32bdb6fe67fe89a9788d5b96d460b430dbccd28f561a942c3a17b6bf961ca3f1",
+        "output_sha256": "e870db89ddbda2778f5855ef79b3fb327ce46e5b18873183b71c789a5ecccf5c",
+        "elapsed_seconds": 0.059116100001119776,
+        "memory_bytes": 652214272,
+        "peak_job_bytes": 5681152,
+        "cpu_percent": 16,
+        "tree_retired": true
+      },
+      {
+        "role": "Live installed AMD route",
+        "run": "local-run-f045401117974254b2476a728edfaa50",
+        "receipt_sha256": "c9e1b6b2a44034e1f5d839aca1003169573cc3a345a891066efda4871e48ce61",
+        "output_sha256": "40c0d096ab3c9659a89e1ca267feabe259689ab630ac21243ee2635d01bfc28b",
+        "elapsed_seconds": 63.37143409999953,
+        "memory_bytes": 1254096896,
+        "peak_job_bytes": 127070208,
+        "cpu_percent": 16,
+        "tree_retired": true
+      },
+      {
+        "role": "Live missing-package CPU route",
+        "run": "local-run-f0f0a74399e64c548029589f66d57ac5",
+        "receipt_sha256": "4c8d76fc0958c86a60df41d6ebf53a41bcb1108854db74c495910bc2399d0662",
+        "output_sha256": "f10e77c4fd54df38fa0036e8e29a4c38913b913447eff1ccd60e0b83ebd3f29a",
+        "elapsed_seconds": 35.97430159999931,
+        "memory_bytes": 1330642944,
+        "peak_job_bytes": 21729280,
+        "cpu_percent": 16,
+        "tree_retired": true
+      }
+    ]
+  },
+  "artifacts": {
+    "baseline_executable_sha256": "252621656f414bf1f5a188396c20c410a9eb2b163e46639eccba2259465a1e98",
+    "candidate_executable_sha256": "b3d28d00070f8089d40fce91d028d670d60f4d96aac5fe1ae5258df31fe6435a",
+    "worker_sha256": "3bf7a176c9cae60dfc4b3c3bf3cd4f03a525bff5360dd78a18046e4cde57a91f",
+    "kernels_sha256": "ff1b9b8879ffd7fefc50923535882602d0f7b69e36e9e087d081920c90b12f43",
+    "qualification_manifest_sha256": "d3b2da67b3f670b542e42097cde13cef3e2c735155093328df4d41fbf052b7d7",
+    "installed_runtime_sha256": "7fc6465b18ff337a80c863b6350d02d7576cfb30528f97b982a6e5723bbb9848"
+  },
+  "scope": {
+    "metric": "Number and length of successful independent CPU comparisons in the accepted copy reply. The old verifier checked each suggested range.",
+    "compacted_size_and_independent_cpu_readback": true,
+    "disk_or_worker_wire_format_change": false,
+    "end_to_end_speedup_qualified": false,
+    "mounted_windows_qualification": false,
+    "release": false
+  }
+}

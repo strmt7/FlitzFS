@@ -183,10 +183,11 @@ Source: [group encoder/decoder](../src/native_group_codec.cpp),
 
 ### The important GPU bottleneck
 
-The explicit native deferred service already supports CPU selection and a single
-response while separately tracking later worker retirement. That mechanism
-should be reused, not rebuilt. Normal product factories do not configure it
-automatically, and its health/cost/binding inputs still need product acquisition.
+A qualified installed package can route indexed background copy search
+to AMD when current resources admit a group. The native deferred write
+service also has CPU selection and separately tracked retirement.
+Automatic foreground acceleration still needs current route, health and
+complete-operation cost evidence.
 
 The last matched six-request observation at `d384b6c` used 1 MiB per trial:
 CPU median 24.2311 ms, GPU median 513.918 ms, and identical 1,310,720-byte images.
@@ -194,10 +195,17 @@ It demonstrated actual GPU work and CPU recovery; it demonstrated no speed or
 complete-size advantage in that case. It was unmounted and is not a benchmark
 of today's paged factory, a different corpus or every AMD GPU.
 
-GPU work remains required. The next objective is a useful automatic route and
-more valuable collective work, with complete-operation cost and size accounting.
-CPU fallback may encode differently and produce a different size; every admitted
-GPU-produced representation still needs an independent CPU decoder.
+CPU verification now combines overlapping AMD copy suggestions that have
+the same mapping. On the matched public code and documentation cohorts
+it compared 41.6% and 48.5% fewer bytes in the accepted replies. The
+compacted images stayed at 491,520 and 540,672 bytes respectively, and
+independent CPU readback verified all files.
+[Source-bound comparison](evidence/amd-coalesced-copy-verification-2026-11-20.json)
+
+Wider backend qualification and useful collective gains still need complete
+operation and size measurements. CPU fallback may choose a different encoding
+and stored size. Every admitted GPU-produced representation needs an
+independent CPU decoder.
 
 Source: [deferred service](../src/windows/native_deferred_write.cpp),
 [controlled native writes](../src/windows/native_uniform_write.cpp),
@@ -213,7 +221,7 @@ security vulnerabilities.
 | Critical | Native namespace/extents remain globally bounded and resident | Ordinary populated files and large directories hit prototype limits. Replace the access model rather than enlarging constants. |
 | Critical | No automatic reclamation closes the compression transaction | Compacted savings do not ensure smaller occupied storage. Qualify bounded handoff and implement segment-level reclamation that survives unrelated foreground commits. |
 | High | Current append-order format and failure-unit padding limit useful space | Reusing extents changes the proof of record identity and graph validity. Measure occupied bytes and writes by record class and introduce explicit reusable-allocation semantics. |
-| Critical | Ordinary GPU use and benefit remain absent | Explicit requests are not the requested product. Add automatic qualified discovery/calibration/routing and a beneficial collective backend. |
+| Critical | GPU benefit remains workload-specific | The qualified package supplies automatic indexed background copy search. Foreground routing, supported host breadth and net collective benefit still need full comparisons. |
 | Critical | Physical durability is not qualified | `StoreIoContract` describes assumptions; RAM ordering and modeled faults do not attest to a drive's power-loss behavior. |
 | High | Global callback serialization and synchronous publication | Foreground requests can wait for an in-flight quantum/commit. Add immutable read views, bounded concurrency and measured interference. |
 | High | Full namespace validation and full-image opening/scrubbing costs | Startup/read/maintenance work will not scale by carrying today's checks unchanged. Replace them with checked tree paths and scheduled scrubbing, without removing integrity validation. |
