@@ -1,0 +1,750 @@
+{
+  "schema": "flitzfs-indexed-scoped-read-metadata-v1",
+  "captured_local": "2026-11-20T13:16:21+01:00",
+  "experimental": true,
+  "source_binding": {
+    "base": "35c8339253bb88d1d5375a372858d5623a024685",
+    "candidate_git_blobs": {
+      "include/flitzfs/paged_store.hpp": "e1057293b57cc3484e144f535d733f1af3bf976d",
+      "src/native_filesystem.cpp": "406752c4e2f5be5cec9a4484ddc21a91d1f4d210",
+      "src/native_name_index.cpp": "5106cd50175d079ef85080a6bf78726483e6cd77",
+      "src/native_name_index.hpp": "5ead09468af0bbe0ecdf1972054ed559aa180940",
+      "src/paged_store.cpp": "dc4e29f79e1aa5cb87e7a230255270b99c4b6be5",
+      "tests/test_native_indexed_volume.cpp": "0a765b8c523592ab942f5e46a0488b2e37dbc1aa"
+    }
+  },
+  "host": {
+    "os": "Windows 11 x64",
+    "build": 26300,
+    "adapter": "AMD Radeon RX 9070 XT",
+    "driver": "32.0.32029.2010"
+  },
+  "navigation": {
+    "commit": "35c8339253bb88d1d5375a372858d5623a024685",
+    "provider_version": "0.2.43",
+    "source_files": 8,
+    "actual_searches": 1,
+    "inventory_sha256": "3c8da99ace50c47e21a8d2f5f556335cd9d5af7bff3b6cdc48b24200999d7439",
+    "native_response_sha256": "03690a8e95dfb38f826708c916dbc346269a10faacbdc460434d5213685ae511"
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "robots": true,
+    "external_llm": false,
+    "native_pages": [
+      {
+        "name": "verity",
+        "url": "https://docs.kernel.org/filesystems/fsverity.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 49958,
+        "markdown_sha256": "d1b22ae0fd7cb4a0689c5aafbb62320d9abbb5e11fa48e9849d64cf5ad8436f1",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.6,
+        "capture": "verity.native.json",
+        "capture_sha256": "df90f859aee404ac50f0b5a7cd3e9821599c981f142a3c5fe7cf30a4b280da92"
+      },
+      {
+        "name": "scrub",
+        "url": "https://btrfs.readthedocs.io/en/latest/btrfs-scrub.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 21707,
+        "markdown_sha256": "ca7ff6b3c324a64e3f5f8e527f76fcb5b6759c1dad8e791898abfc44acb5c7f1",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.941,
+        "capture": "scrub.native.json",
+        "capture_sha256": "7d46020e3116f28d09f3a81a42f8aa0313d4f151c53f280fd904be5355d8ac78"
+      }
+    ]
+  },
+  "scope": {
+    "backing": "owned memory image fixtures",
+    "source_change": "request-scoped reuse of verified paged index nodes and ordered name page bytes",
+    "readback": "independent CPU path checks full file and sampled bytes",
+    "column_order": [
+      "baseline",
+      "candidate"
+    ],
+    "sample": "4 KiB from start, middle, and tail of each revision",
+    "on_disk_change": false,
+    "os_cache_throughput": false,
+    "physical_power_loss": false,
+    "mounted_performance": false
+  },
+  "tests": {
+    "windows_release_sdk": {
+      "count": 27,
+      "regression_passed": true,
+      "case_names": [
+        "bounded_native_filesystem",
+        "bounded_paged_object_store",
+        "bounded_native_name_index",
+        "bounded_native_indexed_volume",
+        "bounded_native_automatic_group_maintenance",
+        "bounded_native_indexed_group_maintenance",
+        "bounded_native_indexed_group_xor",
+        "bounded_native_indexed_group_modular_delta",
+        "bounded_native_indexed_group_resume",
+        "bounded_native_indexed_group_coherence",
+        "bounded_native_indexed_projected_coherence",
+        "bounded_native_indexed_group_advice",
+        "bounded_native_indexed_section_reuse",
+        "bounded_native_indexed_prefixed_group",
+        "bounded_native_indexed_change_discovery",
+        "bounded_native_indexed_group_batch",
+        "bounded_native_indexed_multiwindow_batch",
+        "bounded_native_indexed_batch_capacity",
+        "bounded_native_session_invariants",
+        "bounded_winfsp_controller",
+        "bounded_winfsp_memory_volume",
+        "bounded_winfsp_readonly_memory",
+        "bounded_winfsp_indexed_memory",
+        "bounded_winfsp_memory_remount",
+        "bounded_winfsp_paged_callbacks",
+        "bounded_winfsp_paged_faults-4096",
+        "bounded_winfsp_paged_faults-65536"
+      ]
+    },
+    "windows_address_sanitizer": {
+      "count": 13,
+      "regression_passed": true,
+      "case_names": [
+        "windows_asan_runtime_preflight",
+        "bounded_native_filesystem",
+        "bounded_paged_object_store",
+        "bounded_native_name_index",
+        "bounded_native_indexed_volume",
+        "bounded_native_indexed_group_advice",
+        "bounded_native_indexed_section_reuse",
+        "bounded_native_indexed_prefixed_group",
+        "bounded_native_session_invariants",
+        "windows_asan_staging_regression",
+        "bounded_winfsp_paged_callbacks",
+        "bounded_winfsp_paged_faults-4096",
+        "bounded_winfsp_paged_faults-65536"
+      ]
+    },
+    "windows_codec_free": {
+      "count": 5,
+      "regression_passed": true,
+      "case_names": [
+        "bounded_paged_object_store",
+        "bounded_native_name_index",
+        "bounded_native_indexed_volume",
+        "bounded_native_indexed_section_reuse",
+        "bounded_native_indexed_prefixed_group"
+      ]
+    }
+  },
+  "paired_cpu": [
+    {
+      "corpus": "new",
+      "files": 16,
+      "bank_sha256": "357796732394b2eebb2ec6caab7eb264f1c500a67ba95540b6f325abf2ecf8a5",
+      "input_blake3": "b185468640f8611917f3d86cdd25f31a4805fe343dc1f826be2b486f96c30f41",
+      "size_bytes": {
+        "input_compacted_bytes": 1064960,
+        "grouped_compacted_bytes": 425984,
+        "capability": 4
+      },
+      "files_and_provenance": [
+        {
+          "repository": "git/git",
+          "path": "read-cache.c",
+          "revision": "1cf98cb4d9e10af557750a8177c38957ccc07686",
+          "url": "https://raw.githubusercontent.com/git/git/1cf98cb4d9e10af557750a8177c38957ccc07686/read-cache.c",
+          "status": 200,
+          "date": "2026-11-09T21:00:06Z",
+          "sha256": "bb7ae77275da7b6ddd825c3ede157a32b60455ca5c11a4cf0d41d307b815a681",
+          "bytes": 115062,
+          "listing_sha256": "6cbd615a5552ab46ba849cd7e793cacf4d9a274ea1aabaaafc9536920a33ff50"
+        },
+        {
+          "repository": "git/git",
+          "path": "read-cache.c",
+          "revision": "0fd8e230f72facf64b132d7c80949a4f6334640d",
+          "url": "https://raw.githubusercontent.com/git/git/0fd8e230f72facf64b132d7c80949a4f6334640d/read-cache.c",
+          "status": 200,
+          "date": "2026-11-09T22:50:55Z",
+          "sha256": "b56741b224680f23803f76401264523021b8e38b370917f6167adfc18a068b69",
+          "bytes": 116211,
+          "listing_sha256": "6cbd615a5552ab46ba849cd7e793cacf4d9a274ea1aabaaafc9536920a33ff50"
+        },
+        {
+          "repository": "git/git",
+          "path": "read-cache.c",
+          "revision": "1891de46f79dc444a47db1c87bd0c8c76b5463f2",
+          "url": "https://raw.githubusercontent.com/git/git/1891de46f79dc444a47db1c87bd0c8c76b5463f2/read-cache.c",
+          "status": 200,
+          "date": "2026-11-09T22:55:34Z",
+          "sha256": "7c82b146b616cea44560bc8b912ee85236ee597ecdcaca15541f5435f2d7fe8e",
+          "bytes": 116555,
+          "listing_sha256": "6cbd615a5552ab46ba849cd7e793cacf4d9a274ea1aabaaafc9536920a33ff50"
+        },
+        {
+          "repository": "git/git",
+          "path": "read-cache.c",
+          "revision": "772c5c7caffa7e2ed97ed1db57c0b9c095d949d8",
+          "url": "https://raw.githubusercontent.com/git/git/772c5c7caffa7e2ed97ed1db57c0b9c095d949d8/read-cache.c",
+          "status": 200,
+          "date": "2026-11-19T17:11:33Z",
+          "sha256": "55d60302c57f62d00df2b1f702c8d58f54a40472140576e5ba74a48247632b16",
+          "bytes": 117153,
+          "listing_sha256": "6cbd615a5552ab46ba849cd7e793cacf4d9a274ea1aabaaafc9536920a33ff50"
+        },
+        {
+          "repository": "git/git",
+          "path": "builtin/pack-objects.c",
+          "revision": "cbfd4cb86f78054a0b824b86f058240c162612e0",
+          "url": "https://raw.githubusercontent.com/git/git/cbfd4cb86f78054a0b824b86f058240c162612e0/builtin/pack-objects.c",
+          "status": 200,
+          "date": "2026-10-08T14:31:19Z",
+          "sha256": "6445138b5d76b0e5f9109999aeecc9f3cde444106d628f3a4d5aaa743c88e6d0",
+          "bytes": 153598,
+          "listing_sha256": "de9ccfbf71e471845fc92a5c594adbaabccc7742dfc3406535c4ff3d3054a9b5"
+        },
+        {
+          "repository": "git/git",
+          "path": "builtin/pack-objects.c",
+          "revision": "87c2c94614ababf4493716a14bbdbf1c58765cd5",
+          "url": "https://raw.githubusercontent.com/git/git/87c2c94614ababf4493716a14bbdbf1c58765cd5/builtin/pack-objects.c",
+          "status": 200,
+          "date": "2026-11-01T22:16:13Z",
+          "sha256": "f8d64b983b0165a8d5bef8dc11a5f10b2e4bcace211892c4159eb0fcad3ebb16",
+          "bytes": 153904,
+          "listing_sha256": "de9ccfbf71e471845fc92a5c594adbaabccc7742dfc3406535c4ff3d3054a9b5"
+        },
+        {
+          "repository": "git/git",
+          "path": "builtin/pack-objects.c",
+          "revision": "3e4b508eb75ec6f52370ff15b2664a669e3a0334",
+          "url": "https://raw.githubusercontent.com/git/git/3e4b508eb75ec6f52370ff15b2664a669e3a0334/builtin/pack-objects.c",
+          "status": 200,
+          "date": "2026-11-12T18:42:07Z",
+          "sha256": "046054f0530cffcbbab0c5b8e14abe9d0a9e549cdc7d99929a18c8ef752f4d7a",
+          "bytes": 153572,
+          "listing_sha256": "de9ccfbf71e471845fc92a5c594adbaabccc7742dfc3406535c4ff3d3054a9b5"
+        },
+        {
+          "repository": "git/git",
+          "path": "builtin/pack-objects.c",
+          "revision": "fe7f01b1481f8a9c2fc6823db8d5753227bc19e6",
+          "url": "https://raw.githubusercontent.com/git/git/fe7f01b1481f8a9c2fc6823db8d5753227bc19e6/builtin/pack-objects.c",
+          "status": 200,
+          "date": "2026-11-15T22:52:16Z",
+          "sha256": "e4891a19c97587ecc5e16661808f9d10507c3f6b8e249e3b6cb73b23a24d5567",
+          "bytes": 155161,
+          "listing_sha256": "de9ccfbf71e471845fc92a5c594adbaabccc7742dfc3406535c4ff3d3054a9b5"
+        },
+        {
+          "repository": "postgres/postgres",
+          "path": "src/backend/storage/smgr/md.c",
+          "revision": "1f8c504e3086cf70a1538038b63b045de5df6a9b",
+          "url": "https://raw.githubusercontent.com/postgres/postgres/1f8c504e3086cf70a1538038b63b045de5df6a9b/src/backend/storage/smgr/md.c",
+          "status": 200,
+          "date": "2026-07-15T09:00:39Z",
+          "sha256": "7436b973583f6b5437c1937e6d6aa0ee602e4dbb7c73e3ad408f254ab6ad167a",
+          "bytes": 63219,
+          "listing_sha256": "887e2c165a8578882f08a6ad37dafeae58dadb84ef53f0974307b0d2a7ed27df"
+        },
+        {
+          "repository": "postgres/postgres",
+          "path": "src/backend/storage/smgr/md.c",
+          "revision": "51c43a5dbd86ad8461544e54c00bd9f487abfacd",
+          "url": "https://raw.githubusercontent.com/postgres/postgres/51c43a5dbd86ad8461544e54c00bd9f487abfacd/src/backend/storage/smgr/md.c",
+          "status": 200,
+          "date": "2026-08-17T07:15:45Z",
+          "sha256": "e8ed10e819b299c374ecb086e583fe70b2942c107681e7b75ec72ee2a8775f15",
+          "bytes": 63207,
+          "listing_sha256": "887e2c165a8578882f08a6ad37dafeae58dadb84ef53f0974307b0d2a7ed27df"
+        },
+        {
+          "repository": "postgres/postgres",
+          "path": "src/backend/storage/smgr/md.c",
+          "revision": "2906f0d5d7e2d3289f41b98115836c0bc15ab43e",
+          "url": "https://raw.githubusercontent.com/postgres/postgres/2906f0d5d7e2d3289f41b98115836c0bc15ab43e/src/backend/storage/smgr/md.c",
+          "status": 200,
+          "date": "2026-10-07T12:33:14Z",
+          "sha256": "c895c115cf41253c98e87e6164df6892788447aef7fa38ce325cf23c0cf74af0",
+          "bytes": 63218,
+          "listing_sha256": "887e2c165a8578882f08a6ad37dafeae58dadb84ef53f0974307b0d2a7ed27df"
+        },
+        {
+          "repository": "postgres/postgres",
+          "path": "src/backend/storage/smgr/md.c",
+          "revision": "ffe95d9281635bbdbfd17370256b6ca096c04427",
+          "url": "https://raw.githubusercontent.com/postgres/postgres/ffe95d9281635bbdbfd17370256b6ca096c04427/src/backend/storage/smgr/md.c",
+          "status": 200,
+          "date": "2026-11-18T12:51:32Z",
+          "sha256": "5b6d9999753981454cdbdd814c9d5dca059c4412a66efb63196b4f2b2beaa6f7",
+          "bytes": 63182,
+          "listing_sha256": "887e2c165a8578882f08a6ad37dafeae58dadb84ef53f0974307b0d2a7ed27df"
+        },
+        {
+          "repository": "postgres/postgres",
+          "path": "src/backend/access/transam/xlogreader.c",
+          "revision": "412848dac37f2e4455e1505f83f0af0f3d28a67d",
+          "url": "https://raw.githubusercontent.com/postgres/postgres/412848dac37f2e4455e1505f83f0af0f3d28a67d/src/backend/access/transam/xlogreader.c",
+          "status": 200,
+          "date": "2026-10-09T04:59:55Z",
+          "sha256": "50f437aa973e6b7e97222e1d4eb7a00e2d8e6a2dc5db6c85bcff562e33180d7e",
+          "bytes": 66256,
+          "listing_sha256": "b257f890030811817c617755782ce1a986ffe7a912d9e3abfba0d905a31bb8ca"
+        },
+        {
+          "repository": "postgres/postgres",
+          "path": "src/backend/access/transam/xlogreader.c",
+          "revision": "2246c04e7b99519010cd47be636273a5700b0b0d",
+          "url": "https://raw.githubusercontent.com/postgres/postgres/2246c04e7b99519010cd47be636273a5700b0b0d/src/backend/access/transam/xlogreader.c",
+          "status": 200,
+          "date": "2026-10-14T06:14:30Z",
+          "sha256": "c78a40971e5c13cee5e8f86dc698c3078d2c37fa130f5a3603af85a185282ab7",
+          "bytes": 66256,
+          "listing_sha256": "b257f890030811817c617755782ce1a986ffe7a912d9e3abfba0d905a31bb8ca"
+        },
+        {
+          "repository": "postgres/postgres",
+          "path": "src/backend/access/transam/xlogreader.c",
+          "revision": "01b3d24c41629c577ca172f3077ec7bfc2ca9bf3",
+          "url": "https://raw.githubusercontent.com/postgres/postgres/01b3d24c41629c577ca172f3077ec7bfc2ca9bf3/src/backend/access/transam/xlogreader.c",
+          "status": 200,
+          "date": "2026-11-03T01:49:40Z",
+          "sha256": "6f4ea6dbfbc36ac5398e16e435d76e6ad584d26673765a0ae46182f7ab77d4b0",
+          "bytes": 66116,
+          "listing_sha256": "b257f890030811817c617755782ce1a986ffe7a912d9e3abfba0d905a31bb8ca"
+        },
+        {
+          "repository": "postgres/postgres",
+          "path": "src/backend/access/transam/xlogreader.c",
+          "revision": "6a146d297503b271f4cff6cdf8eaf8f80bbd26a6",
+          "url": "https://raw.githubusercontent.com/postgres/postgres/6a146d297503b271f4cff6cdf8eaf8f80bbd26a6/src/backend/access/transam/xlogreader.c",
+          "status": 200,
+          "date": "2026-11-04T02:16:44Z",
+          "sha256": "9ba394c79e29ae25fe622221740054e1fa117d61b91ba54b8183c91ed90766d4",
+          "bytes": 66138,
+          "listing_sha256": "b257f890030811817c617755782ce1a986ffe7a912d9e3abfba0d905a31bb8ca"
+        }
+      ],
+      "runs": [
+        {
+          "arm": "baseline",
+          "run": "local-run-9b4db6b13a1549c9b108c82d33ce8fe2",
+          "binary_sha256": "46bc940600f2dec7918385ea729ddcdb18108c6ecda15cf659ed5cf9b8d2e2fe"
+        },
+        {
+          "arm": "candidate",
+          "run": "local-run-4c623ac316f54b43b5933fb0a35670dc",
+          "binary_sha256": "2292b14c9719ee2a4f58ce3891d38d73f5588b7d97950dd5f1d9c397b0216d40"
+        },
+        {
+          "arm": "candidate",
+          "run": "local-run-536b2c29e607487e89f06f1db72c41a8",
+          "binary_sha256": "2292b14c9719ee2a4f58ce3891d38d73f5588b7d97950dd5f1d9c397b0216d40"
+        },
+        {
+          "arm": "baseline",
+          "run": "local-run-40956fafdccc4e6e9cc337b9f0cc2660",
+          "binary_sha256": "46bc940600f2dec7918385ea729ddcdb18108c6ecda15cf659ed5cf9b8d2e2fe"
+        }
+      ],
+      "snapshot": {
+        "full_logical": [
+          1598808,
+          1598808
+        ],
+        "full_input_backing": [
+          1262722,
+          600466
+        ],
+        "full_grouped_backing": [
+          3001880,
+          781564
+        ],
+        "sampled_logical": [
+          196608,
+          196608
+        ],
+        "sampled_input_backing": [
+          2874561,
+          1248241
+        ],
+        "sampled_grouped_backing": [
+          6509943,
+          1769879
+        ]
+      },
+      "session": {
+        "full_logical": [
+          1598808,
+          1598808
+        ],
+        "full_input_backing": [
+          606258,
+          606258
+        ],
+        "full_grouped_backing": [
+          461397,
+          445577
+        ],
+        "sampled_logical": [
+          196608,
+          196608
+        ],
+        "sampled_input_backing": [
+          1265617,
+          1265617
+        ],
+        "sampled_grouped_backing": [
+          998395,
+          971275
+        ]
+      }
+    },
+    {
+      "corpus": "existing",
+      "files": 12,
+      "bank_sha256": "939562d6317f8d704e0df7cd38ecfcc604687bfa44e9ec7aa221ffc58685c81e",
+      "input_blake3": "340003df0ee1362d3edf6be85446e96a25670b3ecbc21ef4ed8c13935a6946e8",
+      "size_bytes": {
+        "input_compacted_bytes": 1277952,
+        "grouped_compacted_bytes": 483328,
+        "capability": 4
+      },
+      "provenance": "docs/evidence/indexed-prefixed-zstd-2026-11-20.json",
+      "runs": [
+        {
+          "arm": "baseline",
+          "run": "local-run-e07cab194a804f108b651879ed6ffa08",
+          "binary_sha256": "46bc940600f2dec7918385ea729ddcdb18108c6ecda15cf659ed5cf9b8d2e2fe"
+        },
+        {
+          "arm": "candidate",
+          "run": "local-run-295b8149de624754bbcb5a9c9fc3cf69",
+          "binary_sha256": "2292b14c9719ee2a4f58ce3891d38d73f5588b7d97950dd5f1d9c397b0216d40"
+        },
+        {
+          "arm": "candidate",
+          "run": "local-run-771197aa402b42fda0d11a6f2e9ade11",
+          "binary_sha256": "2292b14c9719ee2a4f58ce3891d38d73f5588b7d97950dd5f1d9c397b0216d40"
+        },
+        {
+          "arm": "baseline",
+          "run": "local-run-4bc8f1ab0821450f8b6ac750cb1716e8",
+          "binary_sha256": "46bc940600f2dec7918385ea729ddcdb18108c6ecda15cf659ed5cf9b8d2e2fe"
+        }
+      ],
+      "snapshot": {
+        "full_logical": [
+          1907127,
+          1907127
+        ],
+        "full_input_backing": [
+          1267172,
+          672380
+        ],
+        "full_grouped_backing": [
+          3176538,
+          838314
+        ],
+        "sampled_logical": [
+          147456,
+          147456
+        ],
+        "sampled_input_backing": [
+          2076870,
+          882318
+        ],
+        "sampled_grouped_backing": [
+          4781025,
+          1347417
+        ]
+      },
+      "session": {
+        "full_logical": [
+          1907127,
+          1907127
+        ],
+        "full_input_backing": [
+          676724,
+          676724
+        ],
+        "full_grouped_backing": [
+          439461,
+          418401
+        ],
+        "sampled_logical": [
+          147456,
+          147456
+        ],
+        "sampled_input_backing": [
+          895350,
+          895350
+        ],
+        "sampled_grouped_backing": [
+          821441,
+          800381
+        ]
+      }
+    }
+  ],
+  "amd": {
+    "run": "local-run-2fffcf42f4ea4f95b93162fccd9a7cb1",
+    "worker_sha256": "3a1eddec1f5b8ad516aba4acf6ddc5a4a0ba36b4fd33d27f9b4f2aa87308609e",
+    "module_sha256": "da8f4f1adf3cb4716305a7ea89481a8e4f9c6b917e5b8d86c247fe184aa06d08",
+    "system_binding": "amdhip64_7.dll",
+    "mode": "amd",
+    "cohort": "revision-corpus",
+    "sparse_device": 0,
+    "reply_bytes": 393824,
+    "copy_suggested_ranges": 98186,
+    "copy_compared_ranges": 32201,
+    "copy_suggested_bytes": 6069130,
+    "copy_compared_bytes": 2908739,
+    "files": 16,
+    "groups": 7,
+    "advised_members": 20,
+    "capability": 4,
+    "submitted": 1,
+    "verified_batches": 1,
+    "worker_ns": 1587666500,
+    "submitted_groups": 8,
+    "verified_groups": 8,
+    "cpu_groups_before_gpu_reply": 0,
+    "submitted_queued_batches": 0,
+    "verified_queued_batches": 0,
+    "dispatches_per_wait": 0,
+    "queued_worker_wall_ns": 0,
+    "queued_kernel_wait_ns": 0,
+    "empty_batches": 0,
+    "discovery_ns": 414444200,
+    "maintenance_ns": 1610963900,
+    "compact_verify_ns": 43608200,
+    "input_compacted_bytes": 1064960,
+    "grouped_compacted_bytes": 425984,
+    "packed_widths": 0,
+    "packed_payload_bytes": 0,
+    "sampled_bias_members": 0,
+    "sparse_bodies": 0,
+    "delta_bodies": 0,
+    "reference_batches": 0,
+    "reselected_groups": 0,
+    "cpu_reference_pairs": 0,
+    "published_references_changed": 0,
+    "section_reference_groups": 0,
+    "retired": "true",
+    "independent_cpu_readback": "true",
+    "modeled_idle_time": "true",
+    "input_blake3": "b185468640f8611917f3d86cdd25f31a4805fe343dc1f826be2b486f96c30f41"
+  },
+  "jobs": {
+    "local-run-de6e7664acfa4b9198cf1ceb4519ff70": {
+      "scope": "semantic navigation",
+      "exit_code": 0,
+      "tree_retired": true,
+      "memory_limit_bytes": 5749342208,
+      "peak_job_bytes": 1218007040,
+      "cpu_percent": 20,
+      "receipt_sha256": "a954404c6fce2bfdbfce2a0cdfd0ce87782caf0d7fa039fb4aaaaf2dfe2e5012",
+      "output_sha256": "255c86978d0b9fef6d69ca0392387fe64ae800bf2df39ba06ef7986a0cac73fc"
+    },
+    "local-run-7aaf710c8b44496b8b53b9cd96a24e49": {
+      "scope": "public corpus capture",
+      "exit_code": 0,
+      "tree_retired": true,
+      "memory_limit_bytes": 8684306432,
+      "peak_job_bytes": 20754432,
+      "cpu_percent": 7,
+      "receipt_sha256": "bd8c65f94bf31fc09aa8bb0fee0a2b26bbfa1083914fe217444f6131224c6425",
+      "output_sha256": "d1e560898429590fb6880801fe257357ff4d0028ddb84813244451d571f41ffc"
+    },
+    "local-run-a179fb0c49ad4227a86a41f154245e3c": {
+      "scope": "baseline read pilot",
+      "exit_code": 0,
+      "tree_retired": true,
+      "memory_limit_bytes": 4292870144,
+      "peak_job_bytes": 13975552,
+      "cpu_percent": 18,
+      "receipt_sha256": "cb90c43ae7ebdd1f9626ecb5b4bed5edb2dff2d4ba88fd6701a1d44ccc4bbb6e",
+      "output_sha256": "c316b899b6d9e60222f451ce8090453122141f02cec2fc7e8c444c620f907ccf"
+    },
+    "local-run-9ec3ce7ed1a043ad8cf77ba6fa43d79b": {
+      "scope": "primary source capture",
+      "exit_code": 0,
+      "tree_retired": true,
+      "memory_limit_bytes": 2127560704,
+      "peak_job_bytes": 1142153216,
+      "cpu_percent": 15,
+      "receipt_sha256": "2b44792b296931902eec2ea835a0a949cad9d0eda49ad330c8c3b773566b3bf3",
+      "output_sha256": "3f339896bf814e270caff9e8357ec710e174021048f9023073cf82aadad3f41d"
+    },
+    "local-run-fc071c1d73a94f89abc1648232dff9f5": {
+      "scope": "Release build and Windows helper",
+      "exit_code": 0,
+      "tree_retired": true,
+      "memory_limit_bytes": 1910505472,
+      "peak_job_bytes": 793600000,
+      "cpu_percent": 26,
+      "receipt_sha256": "17b4a08396f5e0c643e0dbf264d79e6ed3623806a53cd341107603ee58f45bea",
+      "output_sha256": "ce332aef2bb9f4bd78cad1c6a54ff04fb99d805b7530aeaa84d271045fdc669c"
+    },
+    "local-run-697be3069fc845f0918709ddf7324e9f": {
+      "scope": "AddressSanitizer build and runtime staging",
+      "exit_code": 0,
+      "tree_retired": true,
+      "memory_limit_bytes": 2136997888,
+      "peak_job_bytes": 700325888,
+      "cpu_percent": 22,
+      "receipt_sha256": "30f40d43d6e24fcd33329b051bb320c2657bdffcad302a0c3f9c413fffd200d0",
+      "output_sha256": "da2b6db929375ec4f8379179794fbb58c594be4b5c85bcda9c8daf29b2072dc1"
+    },
+    "local-run-c899066296804b5ca99580f416ba5ec9": {
+      "scope": "codec-free build",
+      "exit_code": 0,
+      "tree_retired": true,
+      "memory_limit_bytes": 878706688,
+      "peak_job_bytes": 689238016,
+      "cpu_percent": 18,
+      "receipt_sha256": "1540d6a3408205a0fa31af26958a9ebfb3a3fea339637f1252374cc56bbb531d",
+      "output_sha256": "71c92b3577cdb45ffaf03dcc75d2e62e2b5db15f29bacabd1bc50ae813ee6b40"
+    },
+    "local-run-9c58ae5d8392466584eae2e714d05823": {
+      "scope": "initial fixture expected the wrong scrub exception type",
+      "exit_code": 8,
+      "tree_retired": true,
+      "memory_limit_bytes": 1229979648,
+      "peak_job_bytes": 40488960,
+      "cpu_percent": 18,
+      "receipt_sha256": "7033aeb3cd247193b0e753e2973d2b5dbe34b9660aa1b34efb252f7f940b8fac",
+      "output_sha256": "b9fd8fc9fd332bd7a976c7dc64e21559725f98c4861f112f02e7b54348572a64"
+    },
+    "local-run-090f5287c82048e08678fb044567b436": {
+      "scope": "windows_release_sdk",
+      "exit_code": 0,
+      "tree_retired": true,
+      "memory_limit_bytes": 1904214016,
+      "peak_job_bytes": 325431296,
+      "cpu_percent": 24,
+      "receipt_sha256": "c5c62597b0cfe714f9ad8dd87d3ab322adab25ed2417738528127ce976089ee9",
+      "output_sha256": "67843d2256936104f8692dac69c992add810d054ce92c364c233c9c864face2a"
+    },
+    "local-run-6a4118f8dafe46308a3226106797b3fa": {
+      "scope": "windows_address_sanitizer",
+      "exit_code": 0,
+      "tree_retired": true,
+      "memory_limit_bytes": 2443182080,
+      "peak_job_bytes": 1051123712,
+      "cpu_percent": 23,
+      "receipt_sha256": "643cc4afd124fe3285782c9ab27afd443f1649e5ad36d4a467a3ce85f6d152bc",
+      "output_sha256": "76dbefdddf3b064544422e563ed78f5ed0eb836bfa89222e0b2618738125996e"
+    },
+    "local-run-ecb0d3292434416fb3786c037023a7b4": {
+      "scope": "windows_codec_free",
+      "exit_code": 0,
+      "tree_retired": true,
+      "memory_limit_bytes": 774897664,
+      "peak_job_bytes": 59719680,
+      "cpu_percent": 22,
+      "receipt_sha256": "8e8a6c5f431122cbf60f1f2c5d8352c3cd163066bab87e901588149d57d6afe9",
+      "output_sha256": "d8dde54d51409b97e7d2bf1062771f7e7245a1463d7103885d4cb11159ec410f"
+    },
+    "local-run-9b4db6b13a1549c9b108c82d33ce8fe2": {
+      "scope": "new baseline CPU comparison",
+      "exit_code": 0,
+      "tree_retired": true,
+      "memory_limit_bytes": 437256192,
+      "peak_job_bytes": 13557760,
+      "cpu_percent": 20,
+      "receipt_sha256": "e0c87424076dc0777e899787137160e9762e04847099c3dcb4c171ac194cebd0",
+      "output_sha256": "a861ba0d099877feae546d540afe4298891cc0f2ca37d223e3725cbb5e4f00b6"
+    },
+    "local-run-4c623ac316f54b43b5933fb0a35670dc": {
+      "scope": "new candidate CPU comparison",
+      "exit_code": 0,
+      "tree_retired": true,
+      "memory_limit_bytes": 430964736,
+      "peak_job_bytes": 13950976,
+      "cpu_percent": 20,
+      "receipt_sha256": "5f8803a612fb18881699be557f317131e7938a179c5d0d5dd144f5be4fac2321",
+      "output_sha256": "1a10a3bb1d09ca2a366b366983ff4374c50c69446435bb4d6408c2c5e7bf7635"
+    },
+    "local-run-536b2c29e607487e89f06f1db72c41a8": {
+      "scope": "new candidate CPU comparison",
+      "exit_code": 0,
+      "tree_retired": true,
+      "memory_limit_bytes": 432013312,
+      "peak_job_bytes": 14049280,
+      "cpu_percent": 20,
+      "receipt_sha256": "b15ac87876055e6356160e806de538d6b514ce51d9a2d7e01e835580fea8a4bd",
+      "output_sha256": "882cf4b6668a1bb399ce3d227e668c0c684cd55b9a8e08aad5e9557f5975f915"
+    },
+    "local-run-40956fafdccc4e6e9cc337b9f0cc2660": {
+      "scope": "new baseline CPU comparison",
+      "exit_code": 0,
+      "tree_retired": true,
+      "memory_limit_bytes": 430964736,
+      "peak_job_bytes": 14053376,
+      "cpu_percent": 20,
+      "receipt_sha256": "18ea94d574a76527818db4a442658ef311eab775219d721133a0bad7f0ecc999",
+      "output_sha256": "65053142dcc4194f7fb441dd02aef4cad18edd78a658c7864b1c73987a870e80"
+    },
+    "local-run-e07cab194a804f108b651879ed6ffa08": {
+      "scope": "existing baseline CPU comparison",
+      "exit_code": 0,
+      "tree_retired": true,
+      "memory_limit_bytes": 426770432,
+      "peak_job_bytes": 14348288,
+      "cpu_percent": 20,
+      "receipt_sha256": "67f4858d3ea034ff486c11746631e02ccebdc9e6c8423e5b4fad5cb3246f8094",
+      "output_sha256": "bf24e8418df76a7e57b96cf358fba35923b892e669aa4e80a5bbfdd30929e2f8"
+    },
+    "local-run-295b8149de624754bbcb5a9c9fc3cf69": {
+      "scope": "existing candidate CPU comparison",
+      "exit_code": 0,
+      "tree_retired": true,
+      "memory_limit_bytes": 428867584,
+      "peak_job_bytes": 14286848,
+      "cpu_percent": 20,
+      "receipt_sha256": "810b544a4863ed07b5249e86aab84ac8bde2d8a083fea88c7a8bd2233b59ac00",
+      "output_sha256": "fabe4a268b8aae511b2eafacbf3b48d86fdfd5b315ea2ae7ee7bed4820c53e5c"
+    },
+    "local-run-771197aa402b42fda0d11a6f2e9ade11": {
+      "scope": "existing candidate CPU comparison",
+      "exit_code": 0,
+      "tree_retired": true,
+      "memory_limit_bytes": 426770432,
+      "peak_job_bytes": 14204928,
+      "cpu_percent": 20,
+      "receipt_sha256": "1c982bd2ffa353892f4ddc54c5380ff474cc1899c8180690f1cc0fc2a5a66f30",
+      "output_sha256": "ae0f41e1fc2ea8cf4e2c844754fd7381f36d87339a5625fda67d835a170634f7"
+    },
+    "local-run-4bc8f1ab0821450f8b6ac750cb1716e8": {
+      "scope": "existing baseline CPU comparison",
+      "exit_code": 0,
+      "tree_retired": true,
+      "memory_limit_bytes": 425721856,
+      "peak_job_bytes": 14036992,
+      "cpu_percent": 20,
+      "receipt_sha256": "13ab3c1ca36284e4c2e752c476476048259ddc20d2eb770371dbddc0fd3c3970",
+      "output_sha256": "81db41ae252a1fcd7bd37fe6ee3afa74938747b66632c22d90f999cc227a2127"
+    },
+    "local-run-2fffcf42f4ea4f95b93162fccd9a7cb1": {
+      "scope": "live AMD and independent CPU recovery on the new corpus",
+      "exit_code": 0,
+      "tree_retired": true,
+      "memory_limit_bytes": 787480576,
+      "peak_job_bytes": 117698560,
+      "cpu_percent": 24,
+      "receipt_sha256": "be15d2b116c608459b5020a1d47b8293e19eb4fc5b478cc2c51619fae1a2bbbc",
+      "output_sha256": "165ed4c0a6cc1ecbf82e49ae69883172c3d19a09a14fa376d0601b33e75dd31b"
+    }
+  }
+}

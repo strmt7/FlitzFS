@@ -10,6 +10,19 @@
     "tree": "936409737d1c4a5d4aeb37fe5af48f55ba9accff",
     "note": "Architectural review baseline. Layer and runtime evidence have separate source bindings."
   },
+  "indexed_scoped_read_metadata": {
+    "source_base": "35c8339253bb88d1d5375a372858d5623a024685",
+    "evidence": "docs/evidence/indexed-scoped-read-metadata-2026-11-20.json",
+    "indexed_wire_change": false,
+    "new_public_revision_files": 16,
+    "public_revision_files_tested": 28,
+    "matched_cpu_runs": 8,
+    "snapshot_sampled_backing_bytes": {"baseline": [6509943, 4781025], "candidate": [1769879, 1347417]},
+    "session_sampled_backing_bytes": {"baseline": [998395, 821441], "candidate": [971275, 800381]},
+    "grouped_compacted_bytes_both_builds": [425984, 483328],
+    "single_replica_recovery_and_dual_replica_refusal": true,
+    "live_amd_verified_groups": 8
+  },
   "indexed_prefixed_zstd": {
     "source_base": "8f1b5505ef64ea7a07e6b5dcfe1a01c871012bf6",
     "evidence": "docs/evidence/indexed-prefixed-zstd-2026-11-20.json",

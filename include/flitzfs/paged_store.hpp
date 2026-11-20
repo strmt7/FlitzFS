@@ -5,7 +5,7 @@
 #include <stdexcept>
 
 namespace flitzfs {
-namespace detail {class IndexedSharedBasePreparation;}
+namespace detail {class IndexedSharedBasePreparation;class NativeNameIndex;}
 // Scalable object storage for native volumes. The caller supplies an
 // exclusively owned, resource-admitted backend.
 // One control thread; do not race writers, snapshots or backing mutations.
@@ -95,11 +95,30 @@ class PagedObjectStoreSnapshot final {
  private:
   friend class PagedObjectStoreWriter;
   friend class NativeFilesystemSnapshot;
+  friend class NativeFilesystemWriter;
+  friend class detail::NativeNameIndex;
+  struct Impl;
+  class QueryScope {
+   public:
+    QueryScope(const QueryScope&)=delete;
+    QueryScope& operator=(const QueryScope&)=delete;
+    ~QueryScope();
+   private:
+    friend class PagedObjectStoreSnapshot;
+    explicit QueryScope(Impl&) noexcept;
+    Impl* owner_=nullptr;
+    bool owns_lookup_pages_=false;
+  };
+  // A serialized namespace query may revisit verified metadata. Discard the
+  // scratch before another query can run, including on an exception.
+  QueryScope scoped_query() const noexcept;
+  // Consume the span before requesting another metadata object.
+  std::span<const std::byte> read_query_metadata(std::uint64_t,std::size_t,
+      std::vector<std::byte>& uncached) const;
   std::shared_ptr<StoreByteIo> backing_for_volume_head() const;
   bool same_checkpoint(const PagedObjectStoreSnapshot&) const noexcept;
   std::optional<std::vector<std::byte>> read_matching(std::uint64_t id,std::size_t maximum_decoded_bytes,
       std::optional<std::uint64_t> expected_generation) const;
-  struct Impl;
   explicit PagedObjectStoreSnapshot(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;
 };

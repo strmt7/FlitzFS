@@ -28,6 +28,12 @@ digest as the older shared-base methods. The CPU checks frame bounds and
 decoded bytes before the optional representation can compete for publication.
 [Prefixed Zstandard members](INDEXED_NATIVE_VOLUME.md#prefixed-zstandard-members)
 
+Indexed readers release all query metadata on success or failure. Each later
+request verifies the backing pages it needs. A single damaged name page copy
+returns the verified survivor and records degradation. Two damaged copies
+fail the read. Scrub independently verifies the backing copies.
+[Scoped read evidence](evidence/indexed-scoped-read-metadata-2026-11-20.json)
+
 The writable controller owns its session until an explicit stop, dispatcher
 termination or storage fence. Quiet volumes wait on owned events. Publication
 and retirement by the deferred service wake that owner. Separately supervised

@@ -275,6 +275,14 @@ class LookupPages {
   std::array<std::optional<Page>,4> pages_{};
   std::size_t next_=0;
 };
+struct QueryMetadata {
+  struct Record {
+    std::uint64_t id=0;
+    Bytes bytes;
+  };
+  std::array<Record,4> records{};
+  std::size_t next=0;
+};
 std::optional<Entry> lookup(const State& s,std::uint64_t id,LookupPages* scoped=nullptr) {
   if(!id || !s.root.count || id<s.root.first || id>s.root.last)return {};
   auto r=s.root;
@@ -823,6 +831,7 @@ bool copy_rebuild_object(Rebuild& build,const State& original,const Entry& sourc
 struct PagedObjectStoreSnapshot::Impl {
   State state;
   std::optional<LookupPages> lookup_pages;
+  std::optional<QueryMetadata> query_metadata;
 };
 struct PagedObjectStoreWriter::Impl {
   // Nested lease shares the parent's friendship, as in the flat writer.
@@ -1199,6 +1208,21 @@ PagedObjectStoreSnapshot::PagedObjectStoreSnapshot(std::unique_ptr<Impl> p) noex
 PagedObjectStoreSnapshot::PagedObjectStoreSnapshot(PagedObjectStoreSnapshot&&) noexcept=default;
 PagedObjectStoreSnapshot& PagedObjectStoreSnapshot::operator=(PagedObjectStoreSnapshot&&) noexcept=default;
 PagedObjectStoreSnapshot::~PagedObjectStoreSnapshot()=default;
+PagedObjectStoreSnapshot::QueryScope::QueryScope(Impl& impl) noexcept {
+  if(impl.query_metadata)return;
+  owner_=&impl;
+  owns_lookup_pages_=!impl.lookup_pages;
+  if(owns_lookup_pages_)impl.lookup_pages.emplace();
+  impl.query_metadata.emplace();
+}
+PagedObjectStoreSnapshot::QueryScope::~QueryScope() {
+  if(!owner_)return;
+  owner_->query_metadata.reset();
+  if(owns_lookup_pages_)owner_->lookup_pages.reset();
+}
+PagedObjectStoreSnapshot::QueryScope PagedObjectStoreSnapshot::scoped_query() const noexcept {
+  return QueryScope(*impl_);
+}
 PagedObjectStoreSnapshot PagedObjectStoreSnapshot::open(std::shared_ptr<StoreByteIo> image,PagedStoreLimits limits) {
   auto p=std::make_unique<Impl>();p->state=load(std::move(image),limits);return PagedObjectStoreSnapshot(std::move(p));
 }
@@ -1252,6 +1276,23 @@ Bytes PagedObjectStoreSnapshot::read(std::uint64_t id,std::size_t maximum_decode
   auto bytes=read_if_present(id,maximum_decoded_bytes);
   if(!bytes)fail("missing object");
   return std::move(*bytes);
+}
+std::span<const std::byte> PagedObjectStoreSnapshot::read_query_metadata(std::uint64_t id,
+    std::size_t maximum_decoded_bytes,Bytes& uncached) const {
+  if(!impl_ || !impl_->query_metadata || maximum_decoded_bytes>page_bytes) {
+    uncached=read(id,maximum_decoded_bytes);
+    return uncached;
+  }
+  auto& query=*impl_->query_metadata;
+  for(const auto& entry:query.records) {
+    if(!entry.id || entry.id!=id)continue;
+    if(entry.bytes.size()>maximum_decoded_bytes)fail("object exceeds decoded read budget");
+    return entry.bytes;
+  }
+  auto& entry=query.records[query.next];
+  entry={id,read(id,maximum_decoded_bytes)};
+  query.next=(query.next+1)%query.records.size();
+  return entry.bytes;
 }
 std::optional<Bytes> PagedObjectStoreSnapshot::read_if_present(std::uint64_t id,std::size_t maximum_decoded_bytes) const {
   return read_matching(id,maximum_decoded_bytes,std::nullopt);

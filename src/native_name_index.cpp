@@ -92,10 +92,13 @@ std::uint64_t add_count(std::uint64_t a, std::uint64_t b) {
     fail(Error::corrupt, "name index entry count overflow");
   return a + b;
 }
-Bytes fetch(const PagedObjectStoreSnapshot& store, std::uint64_t id, std::size_t limit) {
-  try { return store.read(id,limit); }
+template<class Read> auto verify_object(const Read& read) {
+  try { return read(); }
   catch (const std::bad_alloc&) { throw; }
   catch (const std::exception&) { fail(Error::storage_failure, "name index object verification failed"); }
+}
+Bytes fetch(const PagedObjectStoreSnapshot& store, std::uint64_t id, std::size_t limit) {
+  return verify_object([&]{return store.read(id,limit);});
 }
 void protected_store(const PagedObjectStoreSnapshot& store) {
   if (!store.info().mirrored_payloads)
@@ -171,10 +174,11 @@ void check_reference(const Page& page, const Reference& reference) {
       (reference.upper && page.rows.back().key != *reference.upper))
     fail(Error::corrupt, "name index page does not match parent");
 }
-Page read_page(const PagedObjectStoreSnapshot& store, const NativeNameIndexRoot& root,
-    const Reference& reference) {
+template<class Read>
+Page read_page(const NativeNameIndexRoot& root, const Reference& reference, const Read& read) {
   if (!page_object(reference.id, root.next_page)) fail(Error::corrupt, "invalid name index page reference");
-  const auto bytes = fetch(store, reference.id, page_bytes);
+  Bytes scratch;
+  const auto bytes = read(reference.id,scratch);
   if (bytes.size() < header_bytes || bytes.size() > page_bytes || !magic(bytes, page_magic) ||
       get(bytes,8,4) != 1 || get(bytes,20,4) || get(bytes,24,8) != reference.id ||
       get(bytes,12,4) != reference.height || get(bytes,32,8) != reference.entries)
@@ -205,6 +209,13 @@ Page read_page(const PagedObjectStoreSnapshot& store, const NativeNameIndexRoot&
   check_reference(page, reference);
   return page;
 }
+Page read_page(const PagedObjectStoreSnapshot& store, const NativeNameIndexRoot& root,
+    const Reference& reference) {
+  return read_page(root,reference,[&](auto id,Bytes& scratch) -> std::span<const std::byte> {
+    scratch=fetch(store,id,page_bytes);
+    return scratch;
+  });
+}
 Bytes encode_page(const Page& page) {
   const auto size = encoded_size(page);
   if (page.rows.empty() || size > page_bytes) fail(Error::limit, "name index page capacity");
@@ -233,16 +244,17 @@ std::size_t lower_slot(const Page& page, const NativeNameKey& key) {
       [](const Row& row,const NativeNameKey& value){ return row.key < value; });
   return static_cast<std::size_t>(found-page.rows.begin());
 }
-bool list_range(const PagedObjectStoreSnapshot& store, const NativeNameIndexRoot& root,
+template<class Read>
+bool list_range(const NativeNameIndexRoot& root,
     const Reference& reference, const NativeNameKey& after, std::uint64_t last_parent,std::size_t maximum,
-    std::vector<NativeNameEntry>& output) {
-  const auto page = read_page(store, root, reference);
+    std::vector<NativeNameEntry>& output,const Read& read) {
+  const auto page = read_page(root,reference,read);
   const auto first = std::upper_bound(page.rows.begin(),page.rows.end(),after,
       [](const NativeNameKey& key,const Row& row){ return key < row.key; });
   for (auto it = first; it != page.rows.end(); ++it) {
     if (page.height) {
       const auto child = child_reference(page,reference,static_cast<std::size_t>(it-page.rows.begin()));
-      if (!list_range(store,root,child,after,last_parent,maximum,output)) return false;
+      if (!list_range(root,child,after,last_parent,maximum,output,read)) return false;
     } else {
       if (it->key.parent > last_parent) return false;
       output.push_back({it->key,it->value});
@@ -443,12 +455,15 @@ std::uint64_t native_extent_block(std::string_view key) {
 
 NativeNameIndex::NativeNameIndex(const PagedObjectStoreSnapshot& store)
     : store_(store), root_(read_root(store)) {}
+std::span<const std::byte> NativeNameIndex::query_page(std::uint64_t id,Bytes& scratch) const {
+  return verify_object([&]{return store_.read_query_metadata(id,page_bytes,scratch);});
+}
 
 std::optional<std::uint64_t> NativeNameIndex::find(const NativeNameKey& key) const {
   if (!key_valid(root_.kind,key)) fail(Error::invalid_path, "invalid name index lookup key");
   auto reference=root_reference(root_);
   while (reference.id) {
-    const auto page=read_page(store_,root_,reference);
+    const auto page=read_page(root_,reference,[this](auto id,Bytes& scratch){return query_page(id,scratch);});
     const auto index=lower_slot(page,key);
     if (index==page.rows.size()) return {};
     if (!page.height) return page.rows[index].key==key ? std::optional(page.rows[index].value) : std::nullopt;
@@ -467,7 +482,8 @@ std::vector<NativeNameEntry> NativeNameIndex::list(std::uint64_t parent, std::st
   std::vector<NativeNameEntry> output;
   if (root_.page) {
     output.reserve(maximum);
-    (void)list_range(store_,root_,root_reference(root_),key,parent,maximum,output);
+    (void)list_range(root_,root_reference(root_),key,parent,maximum,output,
+        [this](auto id,Bytes& scratch){return query_page(id,scratch);});
   }
   return output;
 }
@@ -479,7 +495,8 @@ std::optional<NativeNameEntry> NativeNameIndex::next_extent(const std::optional<
   if(!root_.page)return {};
   std::vector<NativeNameEntry> result;
   const auto first=after.value_or(NativeNameKey{kNativeIndexedInodeLimit,{}});
-  (void)list_range(store_,root_,root_reference(root_),first,reference_domain-1,1,result);
+  (void)list_range(root_,root_reference(root_),first,reference_domain-1,1,result,
+      [this](auto id,Bytes& scratch){return query_page(id,scratch);});
   if(result.empty())return {};
   return std::move(result.front());
 }

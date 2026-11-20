@@ -1171,6 +1171,7 @@ struct NativeFilesystemWriter::Impl {
   auto read_indexed(Read&& read) {
     try {
       const auto snapshot=objects.snapshot_for_indexed_read();
+      const auto query=snapshot.paged_if()->scoped_query();
       const auto bytes=object_bytes(snapshot,kNamespaceObject,kMetadataCap);
       const detail::IndexedVolumeView view(*snapshot.paged_if(),bytes);
       if(view.root()!=*indexed)fail(Code::corrupt,"indexed writer root differs from backing");
@@ -1526,13 +1527,19 @@ NativeDirectoryPage NativeFilesystemSnapshot::list_inode_page(std::uint64_t dire
 Bytes NativeFilesystemSnapshot::read(std::string_view path,std::uint64_t offset,std::uint32_t bytes) const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
   if(bytes>kNativeMaxReadBytes)fail(Code::limit,"native read request budget");
-  if(impl_->indexed)return impl_->indexed->read(impl_->indexed->resolve(path),offset,bytes);
+  if(impl_->indexed) {
+    const auto query=impl_->objects.paged_if()->scoped_query();
+    return impl_->indexed->read(impl_->indexed->resolve(path),offset,bytes);
+  }
   return read_node(impl_->objects,impl_->model,resolve_snapshot(impl_->objects,impl_->model,path),offset,bytes);
 }
 Bytes NativeFilesystemSnapshot::read_inode(std::uint64_t inode,std::uint64_t offset,std::uint32_t bytes) const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
   if(bytes>kNativeMaxReadBytes)fail(Code::limit,"native read request budget");
-  if(impl_->indexed)return impl_->indexed->read(impl_->indexed->inode(inode),offset,bytes);
+  if(impl_->indexed) {
+    const auto query=impl_->objects.paged_if()->scoped_query();
+    return impl_->indexed->read(impl_->indexed->inode(inode),offset,bytes);
+  }
   return read_node(impl_->objects,impl_->model,selected_inode(impl_->model,inode),offset,bytes);
 }
 void NativeFilesystemSnapshot::verify_all() const {

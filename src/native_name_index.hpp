@@ -69,6 +69,7 @@ class NativeNameIndex final {
       std::span<const NativeNameEdit>,std::vector<StoreMutation>,bool promote_references=false);
 
  private:
+  std::span<const std::byte> query_page(std::uint64_t,std::vector<std::byte>& scratch) const;
   std::uint64_t count_parent(std::uint64_t parent) const;
   const PagedObjectStoreSnapshot& store_;
   NativeNameIndexRoot root_;

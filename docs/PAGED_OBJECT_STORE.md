@@ -40,8 +40,10 @@ signal, with no new wire fields. [Provider contract](WINDOWS_MEMORY_VOLUME_FACTO
 There is no whole-inventory vector or volume-sized in-memory key map. A lookup
 visits a root-to-leaf path; pagination prunes key ranges and returns at most
 4,096 entries. Full CPU verification streams one object at a time. Tree height
-is bounded at 16 for malformed-input/depth admission. No unbounded page cache
-is introduced; a bounded cache and background scrub quanta remain future work.
+is bounded at 16 for malformed-input/depth admission. Indexed range reads can
+reuse up to four verified lookup nodes during a single request. The ordered
+index also reuses checked page bytes within that scope.
+[Indexed read verification](INDEXED_NATIVE_VOLUME.md#shared-base-extents)
 
 The original native paged frontend uses the bounded namespace/extent model
 with 256 nodes and 255 extents. The [indexed native frontend](INDEXED_NATIVE_VOLUME.md)

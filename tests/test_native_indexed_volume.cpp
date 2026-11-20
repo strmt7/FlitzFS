@@ -248,6 +248,58 @@ NativeFilesystemWriter resume_writer(const std::shared_ptr<Ram>& ram,std::uint64
       PagedObjectStoreWriter::resume(ram,identity(),generation,limits,raw));
 }
 
+void indexed_query_page_lifetime() {
+  auto backing=empty();
+  auto writer=new_writer(backing);
+  const auto base=data(kNativeExtentBytes,2067);
+  auto expected=base;
+  expected.insert(expected.end(),base.begin(),base.end());
+  expected[kNativeExtentBytes+721]^=std::byte{17};
+  const auto created=writer.apply(std::array{file_create("D",true),file_create("D/E",true),
+      file_create("D/E/file"),file_write("D/E/file",0,expected),
+      file_create("D/E/peer"),file_write("D/E/peer",0,base)});
+  const auto file=created.created_inodes.at(2),peer=created.created_inodes.at(3);
+  const std::array<NativeExtentSelection,3> group{{{file,0},{file,1},{peer,0}}};
+  require(writer.compress_shared_base(group.front(),group).members==group.size(),
+      "scoped query fixture must read shared-base references");
+
+  const auto snapshot=writer.snapshot();
+  const auto index=PagedObjectStoreSnapshot::open(backing,limits);
+  const auto descriptor=index.read(kNativeNameIndexObject,40);
+  std::uint64_t page=0;
+  for(unsigned i=0;i<8;++i)page|=std::to_integer<std::uint64_t>(descriptor[16+i])<<(8*i);
+  const auto frame=index.read(page,4096);
+  const auto prefix=std::span(frame).first(40);
+  auto& bytes=backing->live;
+  const auto primary=std::ranges::search(bytes,prefix).begin();
+  require(primary!=bytes.end(),"scoped query fixture did not locate its name page");
+  const auto start=static_cast<std::size_t>(primary-bytes.begin());
+  const auto replica=start+backing->failure_unit;
+  require(replica+prefix.size()<=bytes.size() &&
+      std::ranges::equal(std::span(bytes).subspan(replica,prefix.size()),prefix),
+      "scoped query fixture did not locate the second name page");
+  backing->corrupt_read_offset=start;
+  constexpr auto length=static_cast<std::uint32_t>(2*kNativeExtentBytes);
+  require(snapshot.read("D/E/file",0,length)==expected && backing->matching_reads==1,
+      "independent read should verify the name page once across path and grouped extents");
+  require(writer.read_inode(file,0,length)==expected && backing->matching_reads==2,
+      "foreground read should verify the name page once across grouped extents");
+
+  refuses(NativeFsErrorCode::not_found,[&]{(void)snapshot.read("D/E/missing",0,1);});
+  require(backing->matching_reads==3,"a later query reused a previously verified page");
+  bytes[start]^=std::byte{1};
+  require(snapshot.read("D/E/file",0,length)==expected && snapshot.storage_info().degraded_checkpoint,
+      "cache survived a failed query or hid a single damaged name page");
+  bytes[replica]^=std::byte{1};
+  refuses(NativeFsErrorCode::storage_failure,[&]{(void)snapshot.read("D/E/file",0,length);});
+  bool scrub_refused=false;
+  try {snapshot.verify_all();}
+  catch(const std::runtime_error&) {scrub_refused=true;}
+  require(scrub_refused,"independent scrub accepted two damaged name page copies");
+  std::cout<<"indexed_query_pages verified_once=true cache_released_after_error=true"
+      <<" survivor_verified=true both_copies_rejected=true\n";
+}
+
 void indexed_extent_advice() {
   constexpr std::uint64_t block=1ULL<<20,offset=block*kNativeExtentBytes;
   constexpr std::uint32_t header_bytes=24;
@@ -1373,6 +1425,7 @@ int main() {
   try { populated_native_snapshot();migration(false);migration(true);growing_native_writer();indexed_capacity_and_metadata();indexed_stable_inode_io();indexed_session_lifetimes();indexed_detach_recovery();
     indexed_large_retirement();indexed_head_independent_sequence();indexed_staged_rebuild();indexed_reconciled_rebuild();
     indexed_managed_handoff();indexed_managed_staged_compaction();indexed_managed_staged_faults();
-    indexed_transaction_recovery();indexed_extent_advice();indexed_directory_moves();indexed_directory_backfill();indexed_windows_names(); }
+    indexed_transaction_recovery();indexed_query_page_lifetime();indexed_extent_advice();
+    indexed_directory_moves();indexed_directory_backfill();indexed_windows_names(); }
   catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}
 }

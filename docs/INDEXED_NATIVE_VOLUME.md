@@ -181,6 +181,16 @@ removing the file used as the base leaves other files readable.
 [Public revision reads and mirror recovery](evidence/public-revision-reads-2026-11-19.json) ·
 [Retained base read evidence](evidence/indexed-retained-anchor-reads-2026-11-20.json)
 
+Indexed range reads through independent snapshots and the native file session
+reuse verified paged lookup nodes and ordered-index records within each
+request. The ordered index can keep four checked records of up to 4 KiB each
+and validates each parent binding again when it parses a reused record.
+The query releases this scratch on return or error. File and group member
+checksums, first-access backing checks and verified-survivor reads follow the
+same paths on each request. Scrub and recovery read backing independently.
+This changes no stored bytes or required capabilities.
+[Scoped read evidence](evidence/indexed-scoped-read-metadata-2026-11-20.json)
+
 Explicit grouping prepares independently checked member frames one extent at
 a time from a pinned checkpoint. Foreground edits can proceed between steps.
 Publication rechecks selected indexed bindings and compares complete packed

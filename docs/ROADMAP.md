@@ -52,6 +52,12 @@ grouping. Read and maintenance costs across more workloads remain part of
 compression qualification.
 [Prefixed group evidence](evidence/indexed-prefixed-zstd-2026-11-20.json)
 
+Request-scoped index verification reduced grouped sample backing reads by
+72–73% through independent CPU snapshots and 2.6–2.7% through open-file
+sessions on two public revision sets. Complete compacted sizes matched between
+builds. Mounted read throughput and latency remain to be measured.
+[Scoped read evidence](evidence/indexed-scoped-read-metadata-2026-11-20.json)
+
 Indexed maintenance can group numeric extents with a common modular bias
 and encode their signed residuals. It selects the method using the existing
 size and byte-verification rules. The AMD worker scores and packs modular
