@@ -1310,8 +1310,8 @@ bool NativeFilesystemWriter::maintenance_matches(const NativeContentToken& token
   const auto extent=found->second.extents.find(token.extent.extent_index);
   return extent!=found->second.extents.end() && extent->second==token.object;
 }
-std::vector<std::byte> NativeFilesystemWriter::maintenance_read(NativeContentToken& token) {
-  if(maintenance_indexed())return impl_->read_indexed([&](const auto& view){return view.read_content(token);});
+std::vector<std::byte> NativeFilesystemWriter::maintenance_read(NativeContentToken& token,bool published_reference) {
+  if(maintenance_indexed())return impl_->read_indexed([&](const auto& view){return view.read_content(token,published_reference);});
   if(!maintenance_matches(token))fail(Code::invalid_operation,"stale content sample");
   try{auto source=checked_namespace();return extent_bytes(source,impl_->model,token.object);}
   catch(const std::bad_alloc&){fail(Code::limit,"content sample allocation failure");}

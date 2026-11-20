@@ -76,7 +76,7 @@ class IndexedSharedBasePreparation final {
     NativeExtentSelection selected;
     std::uint64_t object=0,generation=0,previous_base=0;
     std::vector<std::byte> frame;
-    bool skipped=false;
+    bool skipped=false,reuse_bound_base=false;
   };
   struct SearchWindow {
     std::shared_ptr<NativeSharedBaseSearchWindow::Payload> bytes;
@@ -176,7 +176,7 @@ class IndexedVolumeView final {
       IndexedSharedBaseCache* retained=nullptr) const;
   std::optional<NativeContentToken> next_content(NativeExtentSelection after,bool first) const;
   std::optional<NativeContentToken> content_at(NativeExtentSelection) const;
-  std::vector<std::byte> read_content(NativeContentToken&) const;
+  std::vector<std::byte> read_content(NativeContentToken&,bool published_reference) const;
   void verify_all() const;
   void verify_equivalent(const IndexedVolumeView& target) const;
 

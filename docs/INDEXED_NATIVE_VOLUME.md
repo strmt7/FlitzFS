@@ -160,9 +160,29 @@ The writer seals both proposals against the same live root and verifies that
 they affect the same objects. It chooses the smaller protected compacted layout,
 using lower sealed payload bytes to resolve alignment ties. The chosen layout
 must shrink the current image before any writes are made. An assembled base
-has its own protected records and can outlive every original file. Extending
-these groups across later scans will require discovery keyed to that base
-object. [Source-bound validation](evidence/indexed-section-references-2026-11-20.json)
+has its own protected records and survives removal of any member while
+other members still depend on it.
+[Assembly validation](evidence/indexed-section-references-2026-11-20.json)
+
+Later scans can extend the same group. The scanner uses the logical bytes of
+a representative member to find related extents. It can nominate the
+published representative immediately or use the indexed reverse references
+after reopening and reclaiming a deleted member. Preparation then verifies
+the current member, its indexed reference and its base generation. Encoding
+uses the protected base bytes. Each new dependent still passes the existing
+compacted-size comparison before publication.
+
+In the 4 KiB failure-unit fixture, an extension after reopening reduced the
+complete compacted image from 520 KiB to 392 KiB. All nine remaining files
+reopened byte-for-byte through the independent CPU reader. The same native
+build also verified live AMD results on the public source and documentation
+revision corpora.
+[Reuse and readback evidence](evidence/indexed-assembled-base-reuse-2026-11-20.json)
+
+Recent work on resemblance grouping and shifted content informed the choice to
+keep similarity sampling separate from stored byte layout.
+[RubikFS at FAST ’26](https://www.usenix.org/conference/fast26/presentation/huang) ·
+[ParaSync at FAST ’26](https://www.usenix.org/conference/fast26/presentation/zhang-zhihao-parasync)
 
 ### Packed XOR members
 

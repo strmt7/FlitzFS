@@ -38,6 +38,80 @@ struct Fixture {
   void verify(unsigned count){const auto snapshot=session->snapshot();for(unsigned i=0;i<count;++i)
     require(snapshot.read("f"+std::to_string(i),0,kNativeExtentBytes)==family(i),"automatic grouping changed bytes");snapshot.verify_all();}
 };
+
+void indexed_section_reference_reuse() {
+  constexpr unsigned count=8;
+  constexpr auto section=kNativeExtentBytes/count;
+  const StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
+  Fixture f(4096,0,true,raw);
+  const auto common=data(kNativeExtentBytes,10609);
+  std::vector<Bytes> originals;
+  originals.reserve(count);
+  for(unsigned i=0;i<count;++i) {
+    auto bytes=common;
+    const auto replacement=data(section,1777+181*i);
+    std::ranges::copy(replacement,bytes.begin()+i*section);
+    put(*f.session,"f"+std::to_string(i),bytes);
+    originals.push_back(std::move(bytes));
+  }
+  auto added=common;
+  added[555]^=std::byte{0x25};
+  {
+    NativeGroupMaintenance controller(*f.session);
+    const auto initial=f.finish(controller);
+    const auto grouped=f.session->snapshot().shared_base_info();
+    require(initial.section_reference_groups==1 && grouped.bases==1 && grouped.members==count,
+        "expected a protected assembled base for the initial related files");
+    put(*f.session,"first-extension",common);
+    const auto extended=f.finish(controller);
+    const auto live=f.session->snapshot().shared_base_info();
+    require(extended.published_groups==initial.published_groups+1 && live.bases==1 && live.members==count+1,
+        "running scan failed to extend its assembled base");
+  }
+  const auto removed=f.session->open("f0",{true,true,true});
+  f.session->set_delete(removed,true);
+  f.session->cleanup(removed,true);
+  f.session->close(removed);
+  for(unsigned tick=0;tick<32 && f.session->retirement_pending();++tick)
+    (void)f.session->reclaim_retired_inode();
+  require(!f.session->retirement_pending(),"retired witness remained in the test index");
+  const auto resolver=[&](const auto& key)->std::shared_ptr<StoreByteIo>{return key==id(1)?f.image:nullptr;};
+  f.session.reset();
+  f.session.emplace(NativeFileSession::resume_closed_indexed_volume(f.head,id(90),1,resolver,raw));
+  put(*f.session,"reopened-extension",added);
+  const auto footprint=[&](const NativeFilesystemSnapshot& source,unsigned target) {
+    auto copy=ram(4096);
+    (void)NativeFilesystemWriter::compact(source,copy,id(target),raw);
+    const auto reopened=NativeFilesystemSnapshot::open_image(copy,{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes});
+    reopened.verify_all();
+    return copy->extent();
+  };
+  f.session.reset();
+  const auto before=footprint(NativeVolumeHeadView::open(f.head,id(90),resolver).filesystem(),2);
+  f.session.emplace(NativeFileSession::resume_closed_indexed_volume(f.head,id(90),1,resolver,raw));
+  NativeMaintenanceProgress extended;
+  {
+    NativeGroupMaintenance resumed(*f.session);
+    extended=f.finish(resumed);
+  }
+  f.session.reset();
+  const auto verified=NativeVolumeHeadView::open(f.head,id(90),resolver);
+  const auto& snapshot=verified.filesystem();
+  snapshot.verify_all();
+  const auto grouped=snapshot.shared_base_info();
+  require(extended.published_groups==1 && !extended.section_reference_groups &&
+      grouped.bases==1 && grouped.members==count+1,"restart did not reuse the protected base through a surviving file");
+  for(unsigned i=1;i<count;++i)
+    require(snapshot.read("f"+std::to_string(i),0,kNativeExtentBytes)==originals[i],"related file changed after reuse");
+  require(snapshot.read("first-extension",0,kNativeExtentBytes)==common &&
+      snapshot.read("reopened-extension",0,kNativeExtentBytes)==added,"added file changed after reuse");
+  const auto after=footprint(snapshot,3);
+  require(after<before,"reusing an assembled base did not save occupied bytes");
+  std::cout<<"assembled_base_reuse groups="<<grouped.bases<<" members="<<grouped.members
+      <<" before_compacted_bytes="<<before<<" after_compacted_bytes="<<after
+      <<" removed_witness=true reopened=true independent_cpu_readback=true\n";
+}
+
 void advised_indexed_maintenance() {
   constexpr unsigned count=5,band_bytes=kNativeExtentBytes/8;
   Fixture f(4096,0,true);
@@ -1625,6 +1699,8 @@ int main(int argc,char** argv){try{
     modular_delta_indexed_family(bytes,{StoreCompressionMode::automatic,6,true},false);
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-advice") {
     advised_indexed_maintenance();
+  } else if(argc==2 && std::string_view(argv[1])=="--indexed-section-reuse") {
+    indexed_section_reference_reuse();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-batch") {
     batched_indexed_maintenance(BatchOutcome::accepted);
     batched_indexed_maintenance(BatchOutcome::cpu_fallback);

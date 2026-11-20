@@ -194,7 +194,7 @@ struct NativeContentToken {
   NativeExtentSelection extent;
   // An unlinked or pending inode advances the indexed cursor with object zero.
   std::uint64_t object=0,revision=0,content_revision=0;
-  bool grouped=false,exact_base=false;
+  bool grouped=false,exact_base=false; // A sampled extent can nominate its verified shared base.
 };
 struct NativeFsCommit {
   StoreCommitInfo storage;
@@ -206,7 +206,7 @@ struct NativeSharedBaseCommit {
   bool applied=false;
   std::uint64_t before_compacted_lower_bound=0,after_compacted_upper_bound=0;
   std::size_t members=0;
-  NativeExtentSelection reference{}; // Logical member carrying the indexed base, when one exists.
+  NativeExtentSelection reference{}; // Linked extent that bears the published shared-base reference.
   bool section_reference=false;
   std::vector<std::uint64_t> skipped_objects; // Sorted, unmodified automatic candidates.
 };
@@ -591,7 +591,7 @@ class NativeFilesystemWriter final {
   std::optional<NativeContentToken> maintenance_next(NativeExtentSelection,bool first) const;
   std::optional<NativeContentToken> maintenance_token(NativeExtentSelection);
   bool maintenance_matches(const NativeContentToken&) const noexcept;
-  std::vector<std::byte> maintenance_read(NativeContentToken&);
+  std::vector<std::byte> maintenance_read(NativeContentToken&,bool published_reference=false);
   std::uint64_t maintenance_content_sequence() const noexcept;
   bool maintenance_indexed() const noexcept;
   bool maintenance_has_candidates() const noexcept;

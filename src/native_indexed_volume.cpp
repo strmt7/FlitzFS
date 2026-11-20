@@ -1122,6 +1122,7 @@ IndexedSharedBasePreparation::IndexedSharedBasePreparation(const PagedObjectStor
       if(found==members_.end() || coordinate(*found)!=key || found->object || !binding.object || !binding.revision)
         fail(Code::invalid_operation,"invalid indexed candidate binding");
       found->object=binding.object;found->generation=binding.revision;
+      found->reuse_bound_base=binding.exact_base;
     }
   }
   progress_.total_members=members_.size();
@@ -1155,11 +1156,22 @@ std::vector<std::byte> IndexedSharedBasePreparation::read_member(Member& member,
   if(!metadata)fail(Code::corrupt,"indexed selected extent record is missing");
   if(member.generation && metadata->generation!=member.generation)
     fail(Code::invalid_operation,"indexed candidate generation changed");
+  const bool reuse_bound_base=find_reusable_anchor && member.reuse_bound_base;
+  IndexedSharedBaseRead bound;
   auto extent=decode_extent(source_,*index_,original_,*object,
-      required(source_,*object,kNativeExtentBytes+extent_header),inode,block,find_reusable_anchor);
+      required(source_,*object,kNativeExtentBytes+extent_header),inode,block,
+      find_reusable_anchor && !reuse_bound_base,reuse_bound_base?&bound:nullptr);
   member.object=*object;
   member.generation=metadata->generation;
   member.previous_base=extent.base;
+  if(reuse_bound_base) {
+    if(!bound.object || bound.object!=extent.base || !bound.generation)
+      fail(Code::invalid_operation,"indexed candidate no longer refers to a shared base");
+    reusable_anchor_=bound.object;
+    reusable_generation_=bound.generation;
+    bound.frame.erase(bound.frame.begin(),bound.frame.begin()+static_cast<std::ptrdiff_t>(base_magic.size()));
+    return std::move(bound.frame);
+  }
   if(extent.reusable_anchor_generation) {
     reusable_anchor_=extent.base;
     reusable_generation_=extent.reusable_anchor_generation;
@@ -1606,14 +1618,12 @@ NativeSharedBaseCommit IndexedSharedBasePreparation::finish(PagedObjectStoreWrit
   }
   current=result.section_reference?section_root:next;
   result.transaction.sequence=current.sequence;
-  if(!result.section_reference) {
-    auto reference_index=base_index_;
-    if(reference_member_) {
-      const auto slot=static_cast<std::size_t>(reference_member_-1);
-      reference_index=slot+(slot>=base_index_);
-    }
-    result.reference=members_[reference_index].selected;
+  auto reference_index=base_index_;
+  if(!result.section_reference && reference_member_) {
+    const auto slot=static_cast<std::size_t>(reference_member_-1);
+    reference_index=slot+(slot>=base_index_);
   }
+  result.reference=members_[reference_index].selected;
   result.applied=true;
   return result;
 }
@@ -1880,16 +1890,28 @@ std::optional<NativeContentToken> IndexedVolumeView::content_at(NativeExtentSele
   (void)check_group_storage(store_);
   return token;
 }
-Bytes IndexedVolumeView::read_content(NativeContentToken& token) const {
+Bytes IndexedVolumeView::read_content(NativeContentToken& token,bool published_reference) const {
   const auto current=content_at(token.extent);
   if(!token.object || !current || current->object!=token.object || current->revision!=token.revision)
     fail(Code::invalid_operation,"stale indexed content sample");
   auto extent=decode_extent(store_,index_,root_,token.object,
       required(store_,token.object,extent_header+kNativeExtentBytes),
-      referenced_inode(token.extent.inode),token.extent.extent_index,true);
+      referenced_inode(token.extent.inode),token.extent.extent_index,!published_reference);
   (void)check_group_storage(store_);
   token.grouped=extent.base!=0;
-  token.exact_base=extent.reusable_anchor_generation!=0;
+  token.exact_base=false;
+  if(!token.grouped)return full_extent(std::move(extent));
+  // A member whose bytes equal the base still supplies its existing feature.
+  // Otherwise sample the first checked reverse reference once per shared base.
+  if(!published_reference && !extent.reusable_anchor_generation) {
+    const auto witnesses=index_.list(native_group_reference_key(extent.base,token.object).parent,{},1);
+    (void)check_group_storage(store_);
+    if(witnesses.empty())fail(Code::corrupt,"shared base lost its indexed references");
+    if(witnesses.front().value!=token.object)return {};
+  }
+  token.exact_base=true;
+  // Match the member's logical layout, then fetch its protected base for
+  // encoding. The assembled base can place shared sections at other offsets.
   return full_extent(std::move(extent));
 }
 void IndexedVolumeView::verify_inventory(bool published) const {

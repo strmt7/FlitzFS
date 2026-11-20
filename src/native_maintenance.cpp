@@ -364,10 +364,13 @@ struct NativeGroupMaintenance::Impl {
       return false;
     }
   }
-  Feature measure(NativeFilesystemWriter& writer,NativeContentToken token) {
-    const auto bytes=writer.maintenance_read(token);
+  Feature measure(NativeFilesystemWriter& writer,NativeContentToken token,bool published_reference=false) {
+    const auto bytes=writer.maintenance_read(token,published_reference);
     Feature feature;
-    feature.token=token;feature.content=detail::record_digest(bytes);
+    feature.token=token;
+    ++state.sampled_extents;
+    if(bytes.empty())return feature;
+    feature.content=detail::record_digest(bytes);
     constexpr auto width=kNativeExtentBytes/positional_bands;
     for(unsigned i=0;i<positional_bands;++i)
       feature.bands[i]=word(detail::record_digest(std::span<const std::byte>(bytes).subspan(i*width,width)));
@@ -380,7 +383,6 @@ struct NativeGroupMaintenance::Impl {
       if(std::ranges::any_of(feature.projections,[](auto signature){return signature!=0;}))
         feature.reference_sample=sample_xor_reference(bytes);
     }
-    ++state.sampled_extents;
     return feature;
   }
   void rank_buckets(bool indexed) {
@@ -676,7 +678,7 @@ struct NativeGroupMaintenance::Impl {
       if(selected.inode) {
         const auto token=writer.maintenance_token(selected);
         if(token && token->object) {
-          auto feature=measure(writer,*token);
+          auto feature=measure(writer,*token,true);
           if(feature.token.exact_base)representatives.insert_or_assign(token->object,std::move(feature));
         }
       }
@@ -700,7 +702,15 @@ struct NativeGroupMaintenance::Impl {
             // also carries the representation's learned group role.
             features.insert_or_assign(token->object,known->second);
             ++state.reused_features;
-          } else features.insert_or_assign(token->object,measure(writer,*token));
+          } else {
+            auto feature=measure(writer,*token);
+            if(!feature.token.grouped || feature.token.exact_base)
+              features.insert_or_assign(token->object,std::move(feature));
+            else {
+              features.erase(token->object);
+              representatives.erase(token->object);
+            }
+          }
         }
         if(features.size()>=maximum)rank_buckets(true);
       } else {extent_scan_exhausted=true;rank_buckets(true);}
