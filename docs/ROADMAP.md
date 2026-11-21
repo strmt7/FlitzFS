@@ -19,6 +19,12 @@ two readers kept the old image pinned. The final reader woke retirement
 once, and an independent CPU reader recovered the later write.
 [Reader release evidence](evidence/paired-range-reader-wake-2026-11-20.json)
 
+An indexed volume with reclaimable history can now start automatic paired
+reclamation after restart. The two geometry models retained the previous
+reader and recovered the exact acknowledged data after releasing its range.
+Carry the same restart and pin sequence into the integrated Windows workload.
+[Reopen and reclamation evidence](evidence/reopened-reclamation-2026-11-21.json)
+
 Indexed compaction now tries stronger encoding during its existing copy.
 The public-derived code, documentation and mixed inputs used 5.0–7.1%
 less space in the verified compacted image. Candidate writes and the

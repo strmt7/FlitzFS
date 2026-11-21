@@ -263,7 +263,9 @@ Reclaim stage_compaction(NativeFileSession& session,unsigned next=93) {
 void release_inactive(NativeFileSession& session) {
   for(unsigned steps=0;session.persistent_reclamation_pending();++steps) {
     require(steps<5,"unbounded retirement steps");
-    require(session.advance_persistent_reclamation({})==Reclaim::retiring,"inactive range did not retire");
+    const auto step=session.advance_persistent_reclamation({});
+    if(step==Reclaim::idle)break;
+    require(step==Reclaim::retiring,"inactive range did not retire");
   }
 }
 
@@ -271,7 +273,9 @@ void durable_cold_coverage() {
   if(!store_zstd_available())return;
   const StoreCompressionOptions foreground{StoreCompressionMode::fast,3,false};
   const auto backing=std::make_shared<SparseVolumeRam>(4096);
-  const auto payload=cold_test_payload();
+  // Keep per-extent redundancy while giving each extent its own vocabulary.
+  // The real scan should save its cursor without grouping the coverage inputs.
+  const auto payload=cold_test_payload(0,7717);
   auto late=cold_test_payload(99173);
   late.resize(kNativeExtentBytes);
   const auto witness=data(2*kNativeExtentBytes,811);
@@ -308,10 +312,12 @@ void durable_cold_coverage() {
           "funded group scan failed to save cold coverage");
     }
     const auto checkpoint=session.optimization_snapshot();
-    require(groups.progress().checkpoints_published==1 && checkpoint.sequence==2 &&
-        checkpoint.state.settled_input_bytes==kOptimizationGroupScanInputBytes &&
-        checkpoint.state.group_scan && checkpoint.state.cold_coverage &&
-        session.snapshot().shared_base_info().members==0,"cold coverage did not piggyback a funded scan");
+    require(groups.progress().checkpoints_published==1,"group scan did not publish its funded checkpoint");
+    require(checkpoint.sequence==2 && checkpoint.state.settled_input_bytes==kOptimizationGroupScanInputBytes,
+        "group scan checkpoint did not account for the expected input credit");
+    require(checkpoint.state.group_scan.has_value(),"funded checkpoint did not save the group scan cursor");
+    require(checkpoint.state.cold_coverage.has_value(),"funded checkpoint did not save cold coverage");
+    require(!session.snapshot().shared_base_info().members,"group scan unexpectedly rewrote the cold coverage fixture");
     saved=*checkpoint.state.cold_coverage;
     require(saved.image==selection.image_identity && saved.selector_epoch==selection.epoch &&
         saved.minimum_checkpoint==selection.minimum_checkpoint && saved.through_generation==captured &&
@@ -542,6 +548,70 @@ void reclaimed_ranges() {
   }
   require(NativeVolumeFile::inspect(stable).filesystem().read("payload",0,50000)==expected,
       "recycled first range lost the latest acknowledged foreground data");
+}
+
+void reclamation_after_reopen() {
+  for(const auto unit:{4096U,65536U}) {
+    auto io=std::make_shared<SparseVolumeRam>(unit);
+    auto expected=data(12289,810);
+    std::uint64_t original_extent=0;
+    {
+      auto session=NativeVolumeFile::create(io,id(90),id(91),limits,raw);
+      put(session,"payload",expected);
+      put(session,"witness",witness_bytes);
+      for(unsigned revision=0;revision<12;++revision) {
+        expected=data(expected.size(),811+revision);
+        update(session,expected);
+      }
+      require(session.persistent_reclamation_pending(),"known history could not qualify before reopen");
+      original_extent=session.snapshot().storage_info().physical_end;
+    }
+    const auto occupied=io->occupied();
+    io=io->replay();
+    std::uint64_t lower_bound=0,replacement_extent=0;
+    {
+      auto session=NativeVolumeFile::resume(io,id(90),raw);
+      const auto reads=io->io.read_calls,writes=io->io.writes;
+      const auto space=session.indexed_volume_space();
+      lower_bound=space.obsolete_bytes;
+      const auto pending=session.persistent_reclamation_pending();
+      std::cout<<"reopened_reclamation unit="<<unit<<" original_extent="<<original_extent
+          <<" lower_bound="<<lower_bound<<" pending="<<pending<<'\n';
+      require(pending && space.reclamation_worthwhile() && session.volume_info().selection.epoch==1 &&
+          session.advance_persistent_reclamation({})==Reclaim::idle && session.persistent_reclamation_pending() &&
+          io->io.read_calls==reads && io->io.writes==writes,
+          "reopened history failed to qualify for reclamation without more I/O");
+      {
+        const auto old=session.snapshot();
+        require(stage_compaction(session)==Reclaim::ready &&
+            session.advance_persistent_reclamation({})==Reclaim::published,
+            "reopened history was not compacted");
+        replacement_extent=session.snapshot().storage_info().physical_end;
+        require(replacement_extent<original_extent && lower_bound<=original_extent-replacement_extent,
+            "reopened reclaimable span exceeded the observed reduction");
+        require(session.advance_persistent_reclamation({})==Reclaim::pinned && !io->range_reclaims &&
+            old.read("payload",0,50000)==expected && old.read("witness",0,1000)==witness_bytes,
+            "reopen reclamation retired a pinned generation");
+      }
+      release_inactive(session);
+      require(io->occupied()<occupied && session.volume_info().selection.epoch==2,
+          "reopen reclamation failed to release the old allocation");
+    }
+    const auto settled=io->replay();
+    {
+      const auto selected=NativeVolumeFile::inspect(settled,id(90));
+      selected.filesystem().verify_all();
+      require(selected.filesystem().read("payload",0,50000)==expected &&
+          selected.filesystem().read("witness",0,1000)==witness_bytes,
+          "reclaimed image lost acknowledged data on independent CPU reopen");
+    }
+    auto session=NativeVolumeFile::resume(settled,id(90),raw);
+    require(!session.indexed_volume_space().obsolete_bytes && !session.persistent_reclamation_pending(),
+        "reopen scheduled another compaction of the settled image");
+    std::cout<<"reopened_reclamation_verified unit="<<unit<<" replacement_extent="<<replacement_extent
+        <<" occupied_before="<<occupied<<" occupied_after="<<io->occupied()
+        <<" exact_cpu_readback=1 pin_blocks_retirement=1 settled_idle=1\n";
+  }
 }
 
 void capacity_repair_rotation() {
@@ -804,7 +874,11 @@ void range_publication_cuts() {
       {
         auto recovery=NativeVolumeFile::resume(stable,{},raw);
         release_inactive(recovery);
-        require(!recovery.volume_info().degraded && recovery.snapshot().read("payload",0,50000)==expected,
+        const auto recovered=recovery.volume_info();
+        const auto inactive=kNativeVolumeFileImageOffset+
+            (recovered.selection.epoch%2?limits.maximum_physical_bytes:0);
+        require(!recovered.degraded && !stable->allocated_extent(inactive,limits.maximum_physical_bytes) &&
+            recovery.snapshot().read("payload",0,50000)==expected,
             "interrupted range retirement did not finish after independent reopen");
       }
       return boundaries;
@@ -918,6 +992,10 @@ int main(int argc,char** argv){
       screened_cold_compaction();
       return 0;
     }
+    if(argc==2 && std::string_view(argv[1])=="--reopened-reclamation") {
+      reclamation_after_reopen();
+      return 0;
+    }
     if(argc==3 && std::string_view(argv[1])=="--cold-corpus") {
       auto source=ReadOnlyFile::open(argv[2]);
       require(source.size()>0 && source.size()<=2*1024*1024,"public cold fixture byte budget");
@@ -945,6 +1023,7 @@ int main(int argc,char** argv){
     geometry_and_advice();
     publication_cuts();
     reclaimed_ranges();
+    reclamation_after_reopen();
     capacity_repair_rotation();full_startup_repair_rotation();range_publication_cuts();
     std::cout<<"PASS: "<<checks<<" memory-backed volume-file checks\n";
     return 0;

@@ -1,0 +1,150 @@
+{
+  "schema": 1,
+  "date": "2026-11-21",
+  "source": {
+    "base": "227c82d498fefedc2ad1b3cfe240968690bcd90e",
+    "base_tree": "7c33e789bdaed07b6fdd7cea468c5e12ce0c3039",
+    "diff_sha256": "933b233c40d7eace79e8a6466e703692c60e79ef54082630aabfaaa86c415e3a",
+    "git_blobs": {
+      "include/flitzfs/native_session.hpp": "9816d2b1dc2dc9ffe8b5365079c42fe484ceba47",
+      "include/flitzfs/paged_store.hpp": "b4e135fcbe184b5bb88ef1fd2f0f38461785ea7e",
+      "src/native_filesystem.cpp": "ededa4e0e17768a59e17f341ef76b50c9139645f",
+      "src/native_indexed_volume.cpp": "bfbc808afdeaeb854b5ab8adf78e22ab85838869",
+      "src/native_indexed_volume.hpp": "9de9057d2288da18d0ba25cf83b8c5ad42661c1c",
+      "src/native_volume_file.cpp": "0e9938e7446342f6962adfdc3816d5f751def39c",
+      "src/paged_store.cpp": "4f72dfcb90d78f1bfe6045ccf325537d3fbfbbfe",
+      "tests/native_fs_fixture.hpp": "a3c9d1f444748924e3a4692d133ad187021ffa79",
+      "tests/test_native_volume_file.cpp": "072d30d53cae2613f9f59e910bdb22121122ae82"
+    }
+  },
+  "scope": "Memory-backed indexed paired-range model with selective raw, dual-codec and AddressSanitizer tests",
+  "controls": {
+    "old_writer": {
+      "run": "local-run-761039811fcd4c57b228d492b13a40bb",
+      "exit": 1,
+      "seconds": 0.844,
+      "peak_process_tree_bytes": 7553024,
+      "all_processes_retired": true,
+      "result_sha256": "c52919d1f884153ee7f5a7e478103ff437caee149858a25e480bb6c271f2c8b6",
+      "output_sha256": "10ac939580e1b27830e4121d3303df2308391cbf5d7869447edf72c1ba81bf73",
+      "observed": "after 2 checks: reopened history failed to qualify for reclamation without more I/O",
+      "frozen_executable_sha256": "968c40c54a5088d14105552896739342e1f42d3f005ff367d0f25ff93e131fd5"
+    },
+    "first_revision": {
+      "run": "local-run-a1f11738c24e4c6eba587c64ebe6bbf8",
+      "exit": 8,
+      "seconds": 4.719,
+      "peak_process_tree_bytes": 87134208,
+      "all_processes_retired": true,
+      "result_sha256": "8f46b31191ad9e7a3110bbc65d5ec2ca8d6a39e6dc77c7e54dbdaf01fe75e03f",
+      "output_sha256": "7204241a01a6db4e7202847a80006095cbc766f5721c8adafb4e6566df5ae931",
+      "observed": "The first revision exposed a distinction between retiring a range and retaining newly eligible work."
+    }
+  },
+  "restart_cases": {
+    "4096": {
+      "original_extent": 737280,
+      "lower_bound": 565248,
+      "pending": 1,
+      "replacement_extent": 172032,
+      "occupied_before": 1048576,
+      "occupied_after": 458752,
+      "exact_cpu_readback": 1,
+      "pin_blocks_retirement": 1,
+      "settled_idle": 1
+    },
+    "65536": {
+      "original_extent": 4718592,
+      "lower_bound": 4325376,
+      "pending": 1,
+      "replacement_extent": 393216,
+      "occupied_before": 4980736,
+      "occupied_after": 655360,
+      "exact_cpu_readback": 1,
+      "pin_blocks_retirement": 1,
+      "settled_idle": 1
+    }
+  },
+  "results": {
+    "geometry": {
+      "run": "local-run-1a986b3cdccf4fbd96a1d48de353ea31",
+      "exit": 0,
+      "seconds": 0.093,
+      "peak_process_tree_bytes": 43282432,
+      "all_processes_retired": true,
+      "result_sha256": "8c3bef9e814f868b056df4f87fd36e68c8d4ecc5848f1a9280563b96d9dd43ad",
+      "output_sha256": "bc761f6707f7d7be13789ed563da504215cbda62266d794409224b57d3f9c0bd"
+    },
+    "raw_interruption_matrix": {
+      "run": "local-run-7ab13d4136f7486e8c49df3223853bd6",
+      "exit": 0,
+      "seconds": 12.484,
+      "peak_process_tree_bytes": 87400448,
+      "all_processes_retired": true,
+      "result_sha256": "87a4ab54d0f609f9fe9ca6466334d74ace6a0326f3a5a7825b20baa92bdc4eed",
+      "output_sha256": "94d73a2ae95d7045d022b7b7b03ab0f41d169d30a2b0cda29879789c64e497f8",
+      "ctest_passed": 1,
+      "optional_codecs": false
+    },
+    "sanitizer": {
+      "run": "local-run-5c1837ba1f3747cc9a0609d4e7be121c",
+      "exit": 0,
+      "seconds": 28.203,
+      "peak_process_tree_bytes": 515833856,
+      "all_processes_retired": true,
+      "result_sha256": "64c390dbdfcd7d74f80c9fd110e1cddbe3f7a02840dd939d682126a84d9721a7",
+      "output_sha256": "0f096041010a8feeb8f083fcb22171fd0677f1e7ea5b6c836b7cf2d83ccd5560",
+      "ctest_passed": 3,
+      "codecs": [
+        "Zstandard",
+        "LZ4"
+      ],
+      "runtime_preflight": "windows_asan_runtime_preflight"
+    }
+  },
+  "eligibility_io_counters_unchanged": true,
+  "retirement_requires_verified_selector_and_unpinned_old_range": true,
+  "new_identity_required_to_begin_private_copy": true,
+  "physical_media_or_power_loss_qualified": false,
+  "research": {
+    "capture_set": "reclamation-sources",
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "robots": true,
+    "external_llm": false,
+    "receipt_sha256": "fcde0733cd1ab14d83b9ff196db91a0de431a414724a3665d3c361140cf294a6",
+    "native_pages": [
+      {
+        "name": "fast-26-discard",
+        "url": "https://www.usenix.org/conference/fast26/presentation/bian",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 10640,
+        "markdown_sha256": "a6c829e9ea85521b0c10477e058e38d8377753aa4e8875c24a9f658b0dbf43ef",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.317,
+        "capture": "fast-26-discard.native.json",
+        "capture_sha256": "13d11fc6bade9f952805c0512b8cb082f4b3270e6221d5a0679f1509b6653f58"
+      },
+      {
+        "name": "windows-sparse-retirement",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_zero_data",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 61945,
+        "markdown_sha256": "c3ec21654a142945c577e399e50070b7b22f9cf7b09aad1d842e2b25c68f16bc",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.175,
+        "capture": "windows-sparse-retirement.native.json",
+        "capture_sha256": "9f09d0efafe00790d9af9aaac1d28e0c26406927bb1a8ecc22b66d42305fc8ea"
+      }
+    ]
+  }
+}

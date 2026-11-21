@@ -13,10 +13,11 @@ def main():
     dependency=root/".ci-deps/crash-zstd-build"
     build=root/"build-store-crash"
     arch=["-A","x64"] if os.name=="nt" else []
+    build_options=["--","/nr:false"] if os.name=="nt" else []
     run(["cmake","-S",str(source/"build/cmake"),"-B",str(dependency),*arch,
          "-DCMAKE_BUILD_TYPE=Release","-DZSTD_BUILD_PROGRAMS=OFF","-DZSTD_BUILD_TESTS=OFF",
          "-DZSTD_BUILD_SHARED=OFF","-DZSTD_BUILD_STATIC=ON","-DZSTD_MULTITHREAD_SUPPORT=OFF"])
-    run(["cmake","--build",str(dependency),"--config","Release","--target","libzstd_static","--parallel","2"],120)
+    run(["cmake","--build",str(dependency),"--config","Release","--target","libzstd_static","--parallel","2",*build_options],120)
     name="zstd_static.lib" if os.name=="nt" else "libzstd.a"
     libraries=list(dependency.rglob(name))
     if len(libraries)!=1:
@@ -26,7 +27,10 @@ def main():
          "-DFLITZFS_WITH_LZ4=OFF","-DFLITZFS_REQUIRE_ZSTD=ON",
          "-DFLITZFS_ZSTD_INCLUDE="+str(source/"lib"),
          "-DFLITZFS_ZSTD_LIBRARY="+str(libraries[0])])
-    run(["cmake","--build",str(build),"--config","Release","--target","flitzfs_store_crash_probe","--parallel","2"],120)
+    # The cold Windows core build timed out at 120 seconds on the hosted runner.
+    # Compilation and the fault actor have independent time budgets.
+    build_seconds=300 if os.name=="nt" else 120
+    run(["cmake","--build",str(build),"--config","Release","--target","flitzfs_store_crash_probe","--parallel","2",*build_options],build_seconds)
 
 if __name__=="__main__":
     main()

@@ -11,6 +11,25 @@
     "tree": "936409737d1c4a5d4aeb37fe5af48f55ba9accff",
     "note": "Architectural review baseline. Layer and runtime evidence have separate source bindings."
   },
+  "release_reconciliation": {
+    "reviewed_commit": "227c82d498fefedc2ad1b3cfe240968690bcd90e",
+    "reviewed_tree": "7c33e789bdaed07b6fdd7cea468c5e12ce0c3039",
+    "evidence": "docs/evidence/release-reconciliation-2026-11-21.json",
+    "next_integrated_path": "Windows 11 helper and WinFsp attachment through populated indexed I/O, automatic AMD selection and independent CPU reopen",
+    "release_qualified": false
+  },
+  "indexed_reclamation_after_reopen": {
+    "source_base": "227c82d498fefedc2ad1b3cfe240968690bcd90e",
+    "evidence": "docs/evidence/reopened-reclamation-2026-11-21.json",
+    "reclaimable_committed_bytes": {"4096": 565248, "65536": 4325376},
+    "range_allocation_bytes_before_and_after": {
+      "4096": [1048576, 458752],
+      "65536": [4980736, 655360]
+    },
+    "spare_retirement_waited_for_reader": true,
+    "independent_cpu_reopen": true,
+    "physical_media_qualified": false
+  },
   "indexed_directory_query": {
     "source_base": "2af1093c9cfb3fc2fc67d289c309a5350f92f880",
     "evidence": "docs/evidence/indexed-directory-query-2026-11-21.json",

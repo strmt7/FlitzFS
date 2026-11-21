@@ -1,0 +1,656 @@
+{
+  "schema": 1,
+  "date": "2026-11-21",
+  "source": {
+    "base": "227c82d498fefedc2ad1b3cfe240968690bcd90e",
+    "base_tree": "7c33e789bdaed07b6fdd7cea468c5e12ce0c3039",
+    "diff_sha256": "0a8ad600375d141c94cd9a0f92ed74fd6c08284e4a1dbf71999a6bdc89ee4f58",
+    "git_blobs": {
+      "include/flitzfs/native_session.hpp": "9816d2b1dc2dc9ffe8b5365079c42fe484ceba47",
+      "include/flitzfs/paged_store.hpp": "b4e135fcbe184b5bb88ef1fd2f0f38461785ea7e",
+      "src/native_filesystem.cpp": "ededa4e0e17768a59e17f341ef76b50c9139645f",
+      "src/native_indexed_volume.cpp": "bfbc808afdeaeb854b5ab8adf78e22ab85838869",
+      "src/native_indexed_volume.hpp": "9de9057d2288da18d0ba25cf83b8c5ad42661c1c",
+      "src/native_volume_file.cpp": "0e9938e7446342f6962adfdc3816d5f751def39c",
+      "src/paged_store.cpp": "4f72dfcb90d78f1bfe6045ccf325537d3fbfbbfe",
+      "tests/native_fs_fixture.hpp": "a3c9d1f444748924e3a4692d133ad187021ffa79",
+      "tests/test_native_volume_file.cpp": "072d30d53cae2613f9f59e910bdb22121122ae82",
+      ".github/workflows/ci.yml": "c71f0bd679b95a7451b8f7934e009a7597144fa1",
+      ".github/workflows/volume-app.yml": "b3abd5864811169de175f059283b6f97952620c7",
+      "tools/ci/build_store_crash_probe.py": "721d9b472c0d72d11f409acabc010186e891c2d1",
+      "tools/ci/qualify_lz4_store_baseline.py": "a1e0526de91e6156d5605507e4dc5ee133589bc5"
+    }
+  },
+  "baseline_inventory": [
+    [
+      {
+        "Area": ".github",
+        "Files": 19,
+        "Bytes": 128486
+      },
+      {
+        "Area": "cmake",
+        "Files": 2,
+        "Bytes": 6868
+      },
+      {
+        "Area": "docs",
+        "Files": 452,
+        "Bytes": 7543133
+      },
+      {
+        "Area": "evidence",
+        "Files": 2,
+        "Bytes": 16049
+      },
+      {
+        "Area": "include",
+        "Files": 40,
+        "Bytes": 206030
+      },
+      {
+        "Area": "resources",
+        "Files": 7,
+        "Bytes": 974685
+      },
+      {
+        "Area": "root",
+        "Files": 6,
+        "Bytes": 151521
+      },
+      {
+        "Area": "src",
+        "Files": 150,
+        "Bytes": 1758768
+      },
+      {
+        "Area": "tests",
+        "Files": 146,
+        "Bytes": 2736794
+      },
+      {
+        "Area": "third_party",
+        "Files": 19,
+        "Bytes": 527470
+      },
+      {
+        "Area": "tools",
+        "Files": 63,
+        "Bytes": 648477
+      }
+    ],
+    {
+      "Files": 906,
+      "Bytes": 14698281
+    }
+  ],
+  "analysis_scope": "Tracked tree inventory and targeted live inspection of storage, Windows, AMD, packaging and test boundaries",
+  "source_routing": {
+    "commit": "227c82d498fefedc2ad1b3cfe240968690bcd90e",
+    "dirty_patch_sha256": "9d42ffb59ea81306638d4dbcaa633b8258c434ca681c2b26600d15ffd2a92fea",
+    "source_files": 31,
+    "source_bytes": 821235,
+    "inventory_sha256": "cafbf06d7f973b3207cb31b80f6dd3c8ecdd17b49531c12526b66fed32fea248",
+    "provider_version": "0.2.43",
+    "native_response_sha256": "655da94d11f9a6787a7cb0ae6996be4cf2a313533f7f8c00d65ce5f6d0fad229",
+    "actual_searches": 1,
+    "cpu_only": true,
+    "offline_model": true,
+    "receipt_sha256": "6753ca936bba57c9d850a0144ead99bf88d4fdd9c5a2f5f612de0cc5881bd72b",
+    "run": {
+      "run": "local-run-34cfd37f439f4d5689798e656db15ba3",
+      "exit": 0,
+      "seconds": 81.312,
+      "peak_process_tree_bytes": 1223524352,
+      "all_processes_retired": true,
+      "result_sha256": "c7d303c11389e555f765476dc5c0d3a9b6fc5c874cb2a80c668ac8a3e6e93bc8",
+      "output_sha256": "41a75f1feef3c47a9443503b3432de6d05ca0ff91ab047b52dd3d08622ca4ccc"
+    }
+  },
+  "separate_dirty_checkout": {
+    "base": "d6bb574afe21a3b5185c268df2eda9bdbd02f5e1",
+    "preserved": true
+  },
+  "flitzzip_reference_main": "11396b5123505a4a1959173e1db2d0858c10dd6d",
+  "official_source_checks": {
+    "native_crawl": [
+      {
+        "capture_set": "release-sources",
+        "provider_version": "0.9.5+flitzzip.portable2",
+        "robots": true,
+        "external_llm": false,
+        "receipt_sha256": "26c1624cda943334c93a8a50dc24b8a89eb9b84b4e8933be12e8e48bf6479de1",
+        "native_pages": [
+          {
+            "name": "windows-client",
+            "url": "https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information",
+            "success": true,
+            "native_success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "markdown_bytes": 78583,
+            "markdown_sha256": "2faae088806a31e9fb4957a073081fb98ba56f0b12a7541b87233f5d5d9ccbec",
+            "expected_content": true,
+            "failure_category": "",
+            "error": "",
+            "seconds": 1.268,
+            "capture": "windows-client.native.json",
+            "capture_sha256": "fce0cf52b84326b2b9094ed18dde247f7cba39febcd42326e3f2eaa523517570"
+          },
+          {
+            "name": "amd-windows-release",
+            "url": "https://rocm.docs.amd.com/projects/install-on-windows/en/latest/about/releasenotes.html",
+            "success": true,
+            "native_success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "markdown_bytes": 8475,
+            "markdown_sha256": "d024e28cf80b387e10361fecf1c1ca965c94b4788fab2ba6864922352f949f06",
+            "expected_content": true,
+            "failure_category": "",
+            "error": "",
+            "seconds": 0.794,
+            "capture": "amd-windows-release.native.json",
+            "capture_sha256": "95ac5f1cf3ffb68ffebeb5969cfc3fe0693d4f771c2d1779198401f3bc1d0db7"
+          },
+          {
+            "name": "amd-application-deployment",
+            "url": "https://rocm.docs.amd.com/projects/install-on-windows/en/latest/conceptual/deployment-guidelines.html",
+            "success": false,
+            "native_success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "markdown_bytes": 7311,
+            "markdown_sha256": "663d8856b2fda2c047f256d17be6c92454dff0f8433132de5514d129df0aa705",
+            "expected_content": false,
+            "failure_category": "unexpected_content",
+            "error": "",
+            "seconds": 1.078,
+            "capture": "amd-application-deployment.native.json",
+            "capture_sha256": "68655472f0079069c10e973de86f841bc8b60cf5eeecdd818c592770e20a3bf1"
+          },
+          {
+            "name": "amd-windows-versioning",
+            "url": "https://rocm.docs.amd.com/projects/install-on-windows/en/docs-7.2/about/release-versioning.html",
+            "success": true,
+            "native_success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "markdown_bytes": 11126,
+            "markdown_sha256": "002561ed7d876dbdfce136d502e1f6c7108d970c02acd4be07865f3935cab780",
+            "expected_content": true,
+            "failure_category": "",
+            "error": "",
+            "seconds": 2.541,
+            "capture": "amd-windows-versioning.native.json",
+            "capture_sha256": "8dbd6f7cdb642196f8021a1729aa15ca34f99c30034d676e51729d4af9fc7513"
+          },
+          {
+            "name": "windows-hlk",
+            "url": "https://learn.microsoft.com/en-us/windows-hardware/test/hlk/",
+            "success": true,
+            "native_success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "markdown_bytes": 24918,
+            "markdown_sha256": "b723abe06a26c7fc04d3cb8cc0ddd0d7ede8e134ca6495d6f4ef245c10052a11",
+            "expected_content": true,
+            "failure_category": "",
+            "error": "",
+            "seconds": 0.579,
+            "capture": "windows-hlk.native.json",
+            "capture_sha256": "92e49efefcce9389536ea0ca40fd405d211b6d3bf9cdaf7e23f7da066676f0d1"
+          }
+        ]
+      },
+      {
+        "capture_set": "reconciled-sources",
+        "provider_version": "0.9.5+flitzzip.portable2",
+        "robots": true,
+        "external_llm": false,
+        "receipt_sha256": "b1a12b3b07ab21e1571ad28a6041d8b4f02ad6a298c62e65756f6258f590d02a",
+        "native_pages": [
+          {
+            "name": "amd-application-deployment",
+            "url": "https://rocm.docs.amd.com/projects/install-on-windows/en/latest/conceptual/deployment-guidelines.html",
+            "success": true,
+            "native_success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "markdown_bytes": 7311,
+            "markdown_sha256": "663d8856b2fda2c047f256d17be6c92454dff0f8433132de5514d129df0aa705",
+            "expected_content": true,
+            "failure_category": "",
+            "error": "",
+            "seconds": 0.629,
+            "capture": "amd-application-deployment.native.json",
+            "capture_sha256": "ebcd65ad3fa5c01f681ef76248d6a76e69dbbc8e8f8b846df6f7627ccd55d32e"
+          },
+          {
+            "name": "rocm-current",
+            "url": "https://rocm.docs.amd.com/en/latest/about/release-notes.html",
+            "success": true,
+            "native_success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "markdown_bytes": 299356,
+            "markdown_sha256": "897b856230f70f796f1da419487e97c1c2c452a554c21637d0ad6b99b654ea8c",
+            "expected_content": true,
+            "failure_category": "",
+            "error": "",
+            "seconds": 1.155,
+            "capture": "rocm-current.native.json",
+            "capture_sha256": "44f7108c43ee759f40c22a7058be22c33039dabbe84bd65cf0a15afd91ed5595"
+          },
+          {
+            "name": "rocm-development",
+            "url": "https://rocm.docs.amd.com/en/develop/about/release-notes.html",
+            "success": true,
+            "native_success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "markdown_bytes": 304760,
+            "markdown_sha256": "8569dc7928aeb13770ecfc643f687efb9dac19522dc4ea8cbdccd4dd89eca5c9",
+            "expected_content": true,
+            "failure_category": "",
+            "error": "",
+            "seconds": 1.099,
+            "capture": "rocm-development.native.json",
+            "capture_sha256": "46f36938b8dc56297f983f3fc724962b3a76ac7ed4f8eadf57d2478ed1df14d7"
+          },
+          {
+            "name": "hip-installation",
+            "url": "https://rocm.docs.amd.com/projects/HIP/en/latest/install/install.html",
+            "success": true,
+            "native_success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "markdown_bytes": 24762,
+            "markdown_sha256": "dec5b27a557095355f8faa438a5f1a01b1b1132133590213961851c2312f4f51",
+            "expected_content": true,
+            "failure_category": "",
+            "error": "",
+            "seconds": 0.779,
+            "capture": "hip-installation.native.json",
+            "capture_sha256": "4a3cbbf921477d92bc211beb46011b225f0610b4e60b1a5e8bc72cb0abcac9f2"
+          },
+          {
+            "name": "therock-release-distribution",
+            "url": "https://github.com/ROCm/TheRock/blob/main/RELEASES.md",
+            "success": false,
+            "native_success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "markdown_bytes": 47766,
+            "markdown_sha256": "14fb36558b69efd36e016e89c84694ea7b92c44c43be26c7600ed92b8fb697b6",
+            "expected_content": false,
+            "failure_category": "unexpected_content",
+            "error": "",
+            "seconds": 1.185,
+            "capture": "therock-release-distribution.native.json",
+            "capture_sha256": "01097ab08f0b3edd06015a95d23d4b9172c0bec7c366fa75455c669312eadc2e"
+          }
+        ]
+      },
+      {
+        "capture_set": "distribution-sources",
+        "provider_version": "0.9.5+flitzzip.portable2",
+        "robots": true,
+        "external_llm": false,
+        "receipt_sha256": "af9c8770cab516ea2465d5dadcd01bd0756b973971f14a1327cc7012177426ba",
+        "native_pages": [
+          {
+            "name": "therock-release-distribution",
+            "url": "https://github.com/ROCm/TheRock/blob/main/RELEASES.md",
+            "success": true,
+            "native_success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "markdown_bytes": 47766,
+            "markdown_sha256": "14fb36558b69efd36e016e89c84694ea7b92c44c43be26c7600ed92b8fb697b6",
+            "expected_content": true,
+            "failure_category": "",
+            "error": "",
+            "seconds": 1.467,
+            "capture": "therock-release-distribution.native.json",
+            "capture_sha256": "ce12e20b0f3a8d5d64921500e5b13b1ed76ef9bf650e124cb554b1dab6a5850d"
+          },
+          {
+            "name": "core-installation",
+            "url": "https://rocm.docs.amd.com/en/docs-10.2.0/install/rocm.html",
+            "success": true,
+            "native_success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "markdown_bytes": 226767,
+            "markdown_sha256": "59f751df1840f5db1853aebb5e22593e505fd379bc6d0008b81ff45c77ac4133",
+            "expected_content": true,
+            "failure_category": "",
+            "error": "",
+            "seconds": 2.884,
+            "capture": "core-installation.native.json",
+            "capture_sha256": "6f2d142f7d843a984704c4834274a1b0cb32647d9c6443beaccc402c3c4e123a"
+          }
+        ]
+      }
+    ],
+    "stable_release_api": {
+      "Zstandard": [
+        "v1.5.7",
+        "2025-02-19T21:50:11Z",
+        "https://github.com/meta/zstd/releases/tag/v1.5.7"
+      ],
+      "LZ4": [
+        "v1.11.1",
+        "2026-11-10T05:49:08Z",
+        "https://github.com/lz4/lz4/releases/tag/v1.11.1"
+      ],
+      "BLAKE3": [
+        "1.8.7",
+        "2026-08-20T09:06:20Z",
+        "https://github.com/BLAKE3-team/BLAKE3/releases/tag/1.8.7"
+      ],
+      "CMake": [
+        "v4.5.1",
+        "2026-11-19T16:16:22Z",
+        "https://github.com/Kitware/CMake/releases/tag/v4.5.1"
+      ],
+      "LLVM": [
+        "llvmorg-23.1.6",
+        "2026-11-17T16:32:45Z",
+        "https://github.com/llvm/llvm-project/releases/tag/llvmorg-23.1.6"
+      ],
+      "WinFsp": {
+        "tag": "v2.2",
+        "published_on": "2026-11-19T11:52:35Z",
+        "url": "https://github.com/winfsp/winfsp/releases/tag/v2.2",
+        "assets": [
+          {
+            "name": "winfsp-2.2.26323.msi",
+            "digest": "sha256:36ce01f9eedbbe6842b7fb4bedc79d7d4f71983e8aceb6877b46a07b331c7e19"
+          },
+          {
+            "name": "winfsp-tests-2.2.26323.zip",
+            "digest": "sha256:17bdae984b2683f9a6e37d3b2d394c7fbd71cb9295c4b450370641648a8a0276"
+          }
+        ]
+      },
+      "DiskSpd": {
+        "tag": "v2.3",
+        "published_on": "2026-09-04T00:05:38Z",
+        "url": "https://github.com/microsoft/diskspd/releases/tag/v2.3",
+        "assets": [
+          {
+            "name": "DiskSpd.ZIP",
+            "digest": "sha256:18609981e8b04b4f645f1fd182ad0541615fe71722de36a9a933c54f747218a3"
+          }
+        ]
+      }
+    }
+  },
+  "dependabot": {
+    "checked_utc": "2026-11-21T09:18:11.8444540Z",
+    "state": "open",
+    "open_alerts": 0,
+    "pages": 1,
+    "source": "owner-authenticated paginated GitHub REST read",
+    "connector": "Endpoint rejected by the connector allowlist"
+  },
+  "baseline_hosted_runs": [
+    {
+      "id": 44885748086,
+      "name": "Commit-bound source evidence",
+      "state": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/strmt7/FlitzFS/actions/runs/44885748086"
+    },
+    {
+      "id": 44885748097,
+      "name": "Native compressed-store RAM comparison",
+      "state": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/strmt7/FlitzFS/actions/runs/44885748097"
+    },
+    {
+      "id": 44885748154,
+      "name": "Native store process-interruption recovery",
+      "state": "completed",
+      "conclusion": "failure",
+      "url": "https://github.com/strmt7/FlitzFS/actions/runs/44885748154",
+      "failure": "Windows bounded recovery probe compilation exceeded its old deadline. Linux recovery completed."
+    },
+    {
+      "id": 44885748102,
+      "name": "Bounded locked-RAM host-probe qualification",
+      "state": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/strmt7/FlitzFS/actions/runs/44885748102"
+    },
+    {
+      "id": 44885748092,
+      "name": "Experimental Windows volume application qualification",
+      "state": "completed",
+      "conclusion": "failure",
+      "url": "https://github.com/strmt7/FlitzFS/actions/runs/44885748092",
+      "failure": "Stale notice count rejected a complete portable package inventory."
+    },
+    {
+      "id": 44885748138,
+      "name": "Windows runtime digest and same-source RAM comparison",
+      "state": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/strmt7/FlitzFS/actions/runs/44885748138"
+    },
+    {
+      "id": 44885748116,
+      "name": "Compact root-3 Windows process-interruption recovery",
+      "state": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/strmt7/FlitzFS/actions/runs/44885748116"
+    },
+    {
+      "id": 44885748124,
+      "name": "Native Windows metadata process-interruption recovery",
+      "state": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/strmt7/FlitzFS/actions/runs/44885748124"
+    },
+    {
+      "id": 44885748155,
+      "name": "Isolated semantic source routing",
+      "state": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/strmt7/FlitzFS/actions/runs/44885748155"
+    },
+    {
+      "id": 44885748231,
+      "name": "Pinned compression-mechanism reference checks",
+      "state": "completed",
+      "conclusion": "failure",
+      "url": "https://github.com/strmt7/FlitzFS/actions/runs/44885748231",
+      "failure": "Dual-codec bounded_native_cold_coverage fixture also published a group."
+    },
+    {
+      "id": 44885748085,
+      "name": "Relocated self-contained CPU qualification",
+      "state": "completed",
+      "conclusion": "failure",
+      "url": "https://github.com/strmt7/FlitzFS/actions/runs/44885748085",
+      "failure": "Both dual-codec portable jobs hit the cold coverage fixture assertion."
+    },
+    {
+      "id": 44885748127,
+      "name": "Safe CPU and native callback checks",
+      "state": "completed",
+      "conclusion": "failure",
+      "url": "https://github.com/strmt7/FlitzFS/actions/runs/44885748127",
+      "failure": "Cold coverage fixture failed in sanitizer and native callback jobs. The Linux codec job compiled a later oracle against the immutable old ABI. Mount jobs were skipped."
+    }
+  ],
+  "qualification": {
+    "windows_dual_codec_full": {
+      "run": "local-run-f31dd8ccdf334af3b13580e436b58b14",
+      "exit": 0,
+      "seconds": 307.625,
+      "peak_process_tree_bytes": 325242880,
+      "all_processes_retired": true,
+      "result_sha256": "dbc81cab9c79cd9b82b8c69ce50e2813dc8ce9595352042614f9743ce567a5ba",
+      "output_sha256": "59f484dd5551165a7a7cb05117130f84ee5296f8383d9685b27f08d4cbfbaeda",
+      "ctest_passed": 198,
+      "codecs": [
+        "Zstandard",
+        "LZ4"
+      ],
+      "winfsp_user_mode_dll_sha256": "94323b3de265c66a9b5428ee054313b9b14f179571201dfbaf5e7f15ba4918e3"
+    },
+    "reopen_and_interruption": "reopened-reclamation-2026-11-21.json",
+    "dual_codec_coverage_regression": {
+      "before": {
+        "run": "local-run-ae239b319a6d469882b1e164177893de",
+        "exit": 1,
+        "seconds": 0.375,
+        "peak_process_tree_bytes": 38346752,
+        "all_processes_retired": true,
+        "result_sha256": "50daf3ee01169ab451067c97b57b0c0a185db0f9eada106a2b579d95a390a702",
+        "output_sha256": "12ffab8a6d431cdcc392b973239d3f21ae7b7b83e58761a738f58877f9b99849",
+        "observed": "after 64 checks: group scan unexpectedly rewrote the cold coverage fixture"
+      },
+      "after": {
+        "run": "local-run-09a7d8cb3efd4709b7f52afd5efa9e15",
+        "exit": 0,
+        "seconds": 2.656,
+        "peak_process_tree_bytes": 66527232,
+        "all_processes_retired": true,
+        "result_sha256": "df6a3e34b1c27a827d205d0d12b7542491f29ce0056ac75c26e7c13b8e715df8",
+        "output_sha256": "91683ea4062520e403b11ee2d258e2a7adb1d5c7627e2ed56926a0248f90f243",
+        "observed": {
+          "persisted_sequence": "2",
+          "captured": "18",
+          "matched_stored": "904884",
+          "wider_stored": "908068",
+          "selected_data_independent": "1",
+          "binding_mismatches": "6",
+          "malformed_pairs": "1",
+          "interrupted_pairs": "2"
+        }
+      }
+    },
+    "immutable_lz4_store_oracle": {
+      "historical_core": {
+        "run": "local-run-bdee744ba5f44455b34d71a30539915f",
+        "exit": 1,
+        "seconds": 0.125,
+        "peak_process_tree_bytes": 2232320,
+        "all_processes_retired": true,
+        "result_sha256": "c3b1bbbab8ed67f2ec9ab1e65e082e812a3e1c80933c78ca48b2845db4103e36",
+        "output_sha256": "7d0df7ed885038f2b80dbc6f50f9cee4ed67a9f61419d42c9b2b36b165cc4704",
+        "observed": "store codec failure after 1: FlitzFS store codec: unknown codec or invalid stored/logical extent",
+        "baseline": "5da33dcae667d23e68a54f70e109b1920a341518",
+        "oracle_revision": "5dbcfd29adb610a4778cdf8046f69f2097f3054a",
+        "oracle_sha256": "9073764b0460eb2985201fd16d444fed6b703baa5057905832d60d34092537a2"
+      },
+      "current_core_tests": {
+        "run": "local-run-96e55e394efc4861bb23fe6cf44f6d17",
+        "exit": 0,
+        "seconds": 0.157,
+        "peak_process_tree_bytes": 7479296,
+        "all_processes_retired": true,
+        "result_sha256": "43064b8eee5ba9e726015a2b400ec42a76f044d966f76e00c32860cdf2d84459",
+        "output_sha256": "bd82bd42d12cdc1a2ec6e174fd69684dea71694bbf44aa1113d0fdf3e3579616"
+      }
+    },
+    "portable_notices": {
+      "before": {
+        "run": "local-run-0c8a360c54cc4a19af2cb0bd5fe6cda5",
+        "exit": 0,
+        "seconds": 0.344,
+        "peak_process_tree_bytes": 48365568,
+        "all_processes_retired": true,
+        "result_sha256": "6ea3791ad280f4f84e22f2713b67a6e2cfc1442dbcf8349f0664b3445d1c013b",
+        "output_sha256": "e129a0db32b9a97bc357889642f5241261cd19979a514a37e58e057df91295f0"
+      },
+      "after": {
+        "run": "local-run-00cf3223f2734806a4dfdf35434be649",
+        "exit": 0,
+        "seconds": 0.359,
+        "peak_process_tree_bytes": 14905344,
+        "all_processes_retired": true,
+        "result_sha256": "014a907e24546fe60f3074cd6f5bc30a648d1648d4c926f0b8544d860c784499",
+        "output_sha256": "d0dd21457937103cec743d26138c42ce166c55dcb7c28f20b8b5668fcb1bd42e"
+      },
+      "verified": {
+        "stage": "after",
+        "receipt_sha256": "488394a621a9a4afebc48fde6941a7ecf77017584c51567e80bc91af886ebbe3",
+        "names": [
+          "BLAKE3-LICENSE-Apache2.txt",
+          "BLAKE3-LICENSE-CC0.txt",
+          "BLAKE3-LICENSE-LLVM.txt",
+          "FlitzFS-LICENSE.txt",
+          "LZ4-LICENSE.txt",
+          "SOURCE.txt",
+          "Unicode-LICENSE.txt",
+          "Zstandard-LICENSE.txt"
+        ]
+      }
+    },
+    "hosted_interruption_build_budget": {
+      "baseline_log": "Windows build exceeded 120 seconds before the interruption actor ran.",
+      "windows_compile_timeout_seconds": 300,
+      "post_change_hosted_result": "Requires exact-source run"
+    },
+    "amd": {
+      "run": "local-run-7abcf9aaca9c4f25a1104f2fba3b5e04",
+      "exit": 0,
+      "seconds": 4.094,
+      "peak_process_tree_bytes": 101621760,
+      "all_processes_retired": true,
+      "result_sha256": "fb3710865e07114fcc3eaa016bb0eda79edf950cf2672fdbdeeaa918c4d8a6ee",
+      "output_sha256": "3ac4f7e187c799d093edcad93c76c10d37de77fa2017c257ff7bd7faee7b34e5",
+      "observed": {
+        "mode": "amd",
+        "cohort": "revision-corpus",
+        "files": "36",
+        "advised_members": "12",
+        "verified_groups": "7",
+        "submitted_kernel_launches": "14",
+        "input_compacted_bytes": "655360",
+        "grouped_compacted_bytes": "319488",
+        "input_blake3": "099bc2d2fbc3c710e9e6ddb9b2312aa72d021d1bd478cec33e69b077cc9ced89",
+        "independent_cpu_readback": "true",
+        "retired": "true"
+      },
+      "fixture_files": [
+        {
+          "File": "winfsp-x64.dll",
+          "Sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+        },
+        {
+          "File": "amd/flitzfs_hip_worker.exe",
+          "Sha256": "bca40a979dcd51660cf900e6d9b4d80472ab38e6aead2bb3437957481449211c"
+        },
+        {
+          "File": "amd/qualification-manifest.json",
+          "Sha256": "06c55f3e68db91317b6897c88e6aba3658bc2ddb2e8312da6fbf080a88dffe84"
+        },
+        {
+          "File": "amd/hip/flitzfs_rocm_kernels.dll",
+          "Sha256": "9aad995bc1b2e330a8f24f76dcc5eaa9edc8f96351c999f10712aef0be33467d"
+        },
+        {
+          "File": "flitzfs_winfsp_controller_tests.exe",
+          "Sha256": "659516d951fed91018311d28b9de1a072f2e6981cf4a5a420133f592560db2c0"
+        }
+      ],
+      "public_derived_input_sha256": "ffe86027aaf7145f34f11b6225fb18ee118a791f00818509cf37274261fa14b6",
+      "scope": "Live Windows controller and AMD worker, memory-backed bytes and modeled idle time"
+    }
+  },
+  "qualification_open": [
+    "Signed installed Windows 11 Explorer lifecycle for both providers",
+    "Populated mounted scale and measured foreground interference",
+    "Backend-specific physical durability, repair and CPU rescue",
+    "Held-out collective compression and AMD complete-operation comparisons",
+    "Offline learning, format upgrade and security gates at release scope",
+    "Exact-candidate soak and owner decision"
+  ]
+}

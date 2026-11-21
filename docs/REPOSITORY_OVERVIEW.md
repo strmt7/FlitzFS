@@ -1,13 +1,15 @@
 # FlitzFS repository overview
 
 Updated on **21 November 2026** against
-[`76e9e17f0954998ee05b16d4f05c8aed9ea3d233`](https://github.com/strmt7/FlitzFS/commit/76e9e17f0954998ee05b16d4f05c8aed9ea3d233)
-and the collective packing changes in this round. The current evidence covers
-source inspection, Windows builds and tests, and live AMD controller fixtures.
-Mounted, security and persistence results each have their own scope and inputs.
-The [detailed implementation plan](IMPLEMENTATION_PLAN.md) is the forward plan.
+[`227c82d498fefedc2ad1b3cfe240968690bcd90e`](https://github.com/strmt7/FlitzFS/commit/227c82d498fefedc2ad1b3cfe240968690bcd90e)
+and the restart reclamation and qualification changes. The review checked the
+tracked inventory, routed source inspection through the Windows, storage and
+worker boundaries, checked the hosted workflows on the baseline, and ran
+the changed paths on Windows. The [release execution plan](RELEASE_EXECUTION_PLAN.md)
+maps the remaining work to specific gates and the
+[detailed implementation plan](IMPLEMENTATION_PLAN.md).
 [Original architecture review](evidence/repository-review-2026-11-17.json) ·
-[Current verification](evidence/indexed-uneven-short-packing-2026-11-21.json)
+[Reconciliation evidence](evidence/release-reconciliation-2026-11-21.json)
 Later checkpoints are recorded under recent executed evidence and in the
 [development state ledger](DEVELOPMENT_STATE.json).
 
@@ -18,18 +20,17 @@ assessment to the Windows attachment, AMD, CPU fallback and indexed audit
 evidence through 21 November 2026.
 It lists the remaining work and the verification required at each handoff.
 
-FlitzFS has a substantial experimental storage foundation and several working
-Windows integration components. It is **not close to a stable release candidate**.
-The main problem is no longer a lack of safety mechanisms or diagnostic fixtures.
-It is the gap between those mechanisms and a complete, scalable, automatically
-optimized filesystem that ordinary Windows applications can use.
+FlitzFS is in **development qualification**. Its indexed engine and Windows
+integration can serve writable workloads, and its controller has exercised
+real AMD collective work. Release depends on carrying these paths through the
+same installed Windows client, at scale, with backend-specific recovery,
+independent CPU reads, and controlled size and performance results.
 
 Keep the shared CPU-readable engine, copy-on-write publication, protected
 decoding dependencies, WinFsp integration and isolated GPU execution. Replace
 the assumptions that make current production paths depend on small volumes,
-append ordering, full-image copies and a supplied GPU routing decision. The
-next milestones must exercise complete application operations and account for
-all occupied bytes.
+append ordering and full-image copies. Carry automatic GPU admission through
+the supported client workflows and account for all occupied bytes.
 
 There is no evidence yet that FlitzFS beats modern filesystems or the strongest
 applicable compression methods on representative held-out data. That remains a
@@ -38,9 +39,9 @@ release, tag, publication or product-version change is authorized by this review
 
 ## What is in the repository
 
-The reviewed Git tree contains 904 tracked files and 14,650,909 bytes of
+The baseline Git tree contains 906 tracked files and 14,698,281 bytes of
 tracked content. The `src/` and `include/` directories contain 190 tracked
-files and 1,962,894 bytes. Each receipt identifies the scope of its own review.
+files and 1,964,798 bytes. Each receipt identifies its inspection or test scope.
 
 | Area | Inventory | Responsibility |
 | --- | ---: | --- |
@@ -48,13 +49,33 @@ files and 1,962,894 bytes. Each receipt identifies the scope of its own review.
 | `include/` | 40 files | Public core, session, storage, resource and recovery interfaces |
 | `tests/` | 146 files | Model, malformed-input, failure, SDK, process, application and qualification fixtures |
 | `tools/` | 63 files | Dependency staging, provenance, resource containment and qualification |
-| `docs/` | 450 files | Contracts, plans, historical results and source-bound evidence |
+| `docs/` | 452 files | Contracts, plans, historical results and source-bound evidence |
 | `.github/` | 19 files | Complementary build, analysis and experimental workflows |
 | `third_party/` | 19 files | Pinned BLAKE3 sources, licensing and provenance |
-| Repository root | 17 files | Build entry points, contributor instructions, README and licensing |
+| `cmake/`, `evidence/`, `resources/`, and top-level files | 17 files | Build support, historical evidence, branding, README and licensing |
 
 Use the build-specific executed counts in the
-[current verification receipt](evidence/indexed-uneven-short-packing-2026-11-21.json).
+[reconciliation evidence](evidence/release-reconciliation-2026-11-21.json).
+
+## Reconciliation
+
+The active checkout and GitHub `main` agreed on the reviewed commit. The
+separate older checkout contained divergent code, documentation and assets.
+It was compared by path and left intact. Only the active checkout supplies
+this round's changes. The other checkout's files have their own provenance.
+
+Five hosted workflows failed on the reviewed commit. A dual-codec cold
+coverage fixture accounted for five failed test jobs. It verified its
+checkpoint before rejecting unrelated grouping of shared test data. The
+Linux history test also compiled the current oracle against an older core
+with a different API. The remaining failures occurred during portable notice
+validation and a Windows interruption-probe build. Follow the
+[reconciliation receipt](evidence/release-reconciliation-2026-11-21.json)
+for the original run IDs, corrections and current validation scope.
+
+The current FlitzZip developer guide and repository instructions were checked
+for connector publication, dependency staging and evidence conventions.
+FlitzFS uses its own indexed storage, format and volume lifecycle.
 
 ## Current architecture
 
@@ -72,17 +93,21 @@ flowchart TD
   VM --> B[Shared adaptive locked-memory factory]
   WC --> B
   S --> G[CPU shared-base group maintenance]
-  D[Explicit deferred GPU write service] -. admitted candidates .-> S
+  D[Supervised AMD advice and deferred writes] -. verified CPU candidates .-> S
   R[Independent CPU reader] --> H
   H --> P
 ```
 
 The indexed WinFsp composition owns its memory backing and one controller
 through creation, callback service, retirement, compaction and CPU inspection.
-Local SDK tests exercise lifecycle and resource decisions. An earlier linked
-provider checkpoint also passed external mounted I/O on Windows Server 2025.
-GPU-enabled indexed writes have used the AMD device in a controlled callback
-fixture. Automatic dispatch and mounted performance remain open.
+The production helper selects this memory attachment. The ordinary-file
+attachment exists behind a separate factory and needs a supported create,
+inspect and reopen workflow. Isolated mounted clients and actual AMD
+controller runs have their own receipts. Their integration on the installed
+release candidate remains open.
+[Helper factory](../src/windows/volume_app_winfsp.cpp) ·
+[File attachment factory](../src/windows/winfsp_volume_attachment.cpp) ·
+[Mounted evidence](evidence/windows11-stable-winfsp-2.2-2026-11-20.json)
 
 The diagnostic CLI operates on experimental image/container formats. It is not
 the final user-facing mount, creation or management interface. Historical ZIP
@@ -113,16 +138,16 @@ capacity and failure evidence before replacing it.
 | Component | Implemented and supported by evidence | Material remaining gap |
 | --- | --- | --- |
 | Object storage | Flat and paged stores, checked COW transactions, replicated metadata, streaming rebuild and bounded indexed selector publication | Durable segment allocation, reclamation under concurrent writes and backend qualification |
-| Native namespace | Indexed path and handle transactions, typed head selection, mounted Server 2025 fixture, scheduled retirement and staged memory compaction | Windows 11 client semantics, large live truncation and automatic indexed collective work |
+| Native namespace | Indexed path and handle transactions, typed head selection, mounted guest evidence, scheduled retirement and staged compaction | Full Windows 11 client semantics and interference measurements during large live mutations |
 | Populated capacity | Million-object paged inventory and 1,024 named nonempty indexed files. The indexed writer bypasses the older fixed namespace and extent model. | Larger populated external-client runs, root/open recovery budgets and scalable collective indexing |
 | Compression | Optional CPU Zstd/LZ4, exact sharing and independently readable indexed shared-base literal-patch members | Stronger shifted/multi-reference/type-aware/learned collective representations and representative complete-size results |
-| Background work | Aligned-family discovery in the legacy engine, live Windows admission and bounded automatic indexed memory reclamation | Scalable persistent features, restartable learning, workload-driven codec selection and a lifetime write governor |
+| Background work | Incremental indexed similarity discovery, live Windows admission, advisory checkpointing and automatic paired-range reclamation | Persistent scale, workload-driven codec selection and a measured policy for background writes |
 | CPU recovery | Independent parsers/decoders, typed-head validation, surviving-copy reads and source-preserving repair/rebuild primitives | Full backend failure qualification, repair after wider dependency damage and production recovery orchestration |
-| GPU | Bounded AMD execution through the indexed WinFsp SDK callback, exact mirrored output and independent CPU reopen | Automatic selection and measurable benefit in mounted workloads, plus stronger collective GPU work |
+| GPU | Automatic installed-runtime admission exercised in a controlled WinFsp owner, verified AMD collective proposals and independent CPU reopen | Automatic foreground and collective selection on the installed client, recovery across supported adapters and measurable net benefit |
 | Windows interface | Writable native SDK callbacks, owner ACL/time initialization, contexts, cleanup/close, metadata/security and directory operations | Current-source mounted product qualification, complete Unicode/path/Win32 behavior, caching/mapping/concurrency and deployment |
 | Application | Native helper/tray, create/save/read/optimize/discard, owned worker and GUI qualification | Explorer-facing mounted lifecycle, complete volume-management workflows and a supported installer |
 | Memory composition | Live adaptive admission beyond the old ceiling, on-demand page locking, retained backing through stop and explicit-join CPU inspection | Larger populated volumes, multiple-volume aggregate policy and broker/process-failure behavior |
-| Indexed volume files | Exclusive create and verified reopen, persistent head and advice, CPU inspection, WinFsp callbacks and verified paired-range reclamation | User-facing selection, incremental reclamation during concurrent edits and actual media durability qualification |
+| Indexed volume files | Exclusive create and verified reopen, persistent head and advice, CPU inspection, a WinFsp attachment factory and verified restart eligibility for paired-range reclamation | User-facing selection, incremental reclamation during concurrent edits and actual media durability qualification |
 | Learning state | Budgeted scan checkpoints, a paged coherence catalog and stale-posting compaction in owned indexed memory volumes | Persistent provider, large-scale validation and workload outcomes for a complete autonomous learner |
 | Compatibility | Several historical native encodings and explicit capabilities remain readable | A published support window, mixed-version migration program, rollback boundaries and exact released-reader matrix |
 

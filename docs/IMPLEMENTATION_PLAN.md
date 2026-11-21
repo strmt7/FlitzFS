@@ -1,6 +1,6 @@
 # FlitzFS detailed implementation plan
 
-**17 November 2026 — baseline `38a4a48f005c2ea6c9a7f8cbd9d7ee07df044d70`.**
+**21 November 2026 — reconciled baseline `227c82d498fefedc2ad1b3cfe240968690bcd90e`.**
 
 Read the [current repository overview](REPOSITORY_OVERVIEW.md) first. This plan
 extends the existing E01–E13 release work breakdown and maps it to the active
@@ -13,13 +13,14 @@ collective lossless compression and autonomous low-impact learning/maintenance.
 The owner alone decides when to release. This plan creates no release, tag,
 package publication or product-version change.
 
-The 18 November checkpoints extend the baseline with indexed head selection,
-WinFsp SDK access, and on-demand locking in the shared memory provider.
-The owned indexed memory path now measures obsolete records, stages compaction
-automatically and releases unpinned backing in bounded quanta. The fixed
-reservation fraction and 4 MiB image floor were replaced with measured
-headroom and storage geometry. Follow E02 for reclaiming segments under
-foreground writes and E03 for useful automatic AMD routing.
+The current indexed path retains verified roots, an on-demand memory
+provider, independently readable collective encodings and bounded scheduled
+work. Restart reclamation uses verified object totals and respects retained
+readers. The helper selects the memory provider today. The existing file
+attachment, external Windows workflow, and real AMD controller route are
+the next integration boundary. Follow E02 for reclaiming segments during
+foreground writes, E03 for AMD and independent CPU continuity, and E08 for the
+mounted lifecycle. The execution plan gives the ordered exit evidence.
 [Current state](DEVELOPMENT_STATE.json)
 [Current release assessment and execution order](RELEASE_EXECUTION_PLAN.md)
 

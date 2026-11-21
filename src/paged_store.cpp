@@ -2004,6 +2004,17 @@ std::uint64_t PagedObjectStoreWriter::physical_end_for_staging() const noexcept 
 std::uint64_t PagedObjectStoreWriter::obsolete_bytes() const noexcept {
   return poisoned()?0:impl_->obsolete_bytes;
 }
+
+std::uint64_t PagedObjectStoreWriter::compaction_savings_lower_bound(std::uint64_t extra_stored_bytes) const noexcept {
+  if(poisoned())return 0;
+  const auto& state=impl_->state;
+  try {
+    const auto packed=packed_rebuild_size(state,state.root.count,add(state.root.stored,extra_stored_bytes));
+    return state.end>packed?state.end-packed:0;
+  }catch(const std::exception&) {
+    return 0; // Arithmetic outside the admitted packed layout cannot justify a rewrite.
+  }
+}
 std::uint64_t PagedObjectStoreWriter::append_floor_for_staging() const noexcept {
   return poisoned()?0:impl_->append_floor;
 }

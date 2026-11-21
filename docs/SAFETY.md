@@ -1224,6 +1224,12 @@ both ranges when publication is uncertain. Windows API and guest checks
 exercise allocation and reopen correctness. Physical failure isolation and
 durability remain separate qualification requirements.
 
+Restart eligibility uses verified committed object counts, stored bytes and
+layout geometry. Eligibility leaves the backing read and write counters
+stable in the paired-range tests. Publishing and retiring a range still
+require selector verification, sufficient space, and reader retirement.
+[Reopen and reclamation evidence](evidence/reopened-reclamation-2026-11-21.json)
+
 ## Persistent write provenance
 
 The optional [workload counter](WORKLOAD_ACCOUNTING.md) grants no optimization

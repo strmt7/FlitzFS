@@ -81,6 +81,16 @@ jobs:
           ref: 5da33dcae667d23e68a54f70e109b1920a341518
           path: .ci-deps/lz4-store-baseline
           persist-credentials: false
+      - name: Check out the matching native LZ4 regression oracle
+        if: runner.os == 'Linux' && matrix.zstd == 'ON'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: strmt7/FlitzFS
+          ref: 5dbcfd29adb610a4778cdf8046f69f2097f3054a
+          path: .ci-deps/lz4-store-oracle
+          sparse-checkout: /tests/test_store_codec.cpp
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
       - name: Configure minimal build
         if: matrix.zstd == 'OFF'
         run: cmake -S . -B build -DFLITZFS_REGISTER_INTEGRATION_FIXTURES=ON -DFLITZFS_PORTABLE_CPU=ON -DFLITZFS_WITH_ZSTD=${{ matrix.zstd }} -DFLITZFS_REQUIRE_ZSTD=${{ matrix.zstd }} -DFLITZFS_WITH_LZ4=${{ matrix.zstd }} -DFLITZFS_REQUIRE_LZ4=${{ matrix.zstd }} -DCMAKE_BUILD_TYPE=Release

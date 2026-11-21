@@ -14,12 +14,16 @@ inline Bytes data(std::size_t n,unsigned seed) {
   for(auto& b:out){x^=x<<13;x^=x>>7;x^=x<<17;b=static_cast<std::byte>(x>>21);}
   return out;
 }
-inline Bytes cold_test_payload(unsigned salt=0) {
-  std::vector<Bytes> vocabulary;
-  for(unsigned i=0;i<173;++i)vocabulary.push_back(data(11+i*29%75,82003+i*37+salt));
+inline Bytes cold_test_payload(unsigned salt=0,unsigned extent_salt_stride=0) {
+  std::vector<Bytes> vocabulary(173);
   Bytes result;
   result.reserve(24*kNativeExtentBytes);
   for(unsigned i=0;i<24;++i) {
+    if(!i || extent_salt_stride) {
+      const auto extent_salt=salt+i*extent_salt_stride;
+      for(unsigned word=0;word<vocabulary.size();++word)
+        vocabulary[word]=data(11+word*29%75,82003+word*37+extent_salt);
+    }
     const auto choices=data(kNativeExtentBytes,180451+i*5);
     const auto end=result.size()+kNativeExtentBytes;
     for(std::size_t j=0;result.size()<end;++j) {

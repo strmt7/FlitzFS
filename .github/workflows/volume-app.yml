@@ -67,9 +67,15 @@ jobs:
           receipt_path = Path(os.environ["FLITZFS_APP_RECEIPT"])
           receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
           directory = Path(os.environ["FLITZFS_APP_NOTICES"])
-          assert len(receipt["notices"]) == 7
+          expected = {
+              "FlitzFS-LICENSE.txt", "BLAKE3-LICENSE-Apache2.txt",
+              "BLAKE3-LICENSE-LLVM.txt", "BLAKE3-LICENSE-CC0.txt",
+              "Unicode-LICENSE.txt", "Zstandard-LICENSE.txt", "LZ4-LICENSE.txt", "SOURCE.txt",
+          }
+          assert len(receipt["notices"]) == len(expected)
+          assert {r["file"] for r in receipt["notices"]} == expected
           before = {p.name: p.read_bytes() for p in directory.iterdir()}
-          assert set(before) == {r["file"] for r in receipt["notices"]}
+          assert set(before) == expected
           for row in receipt["notices"]:
               data = before[row["file"]]
               assert len(data) == row["bytes"] and hashlib.sha256(data).hexdigest() == row["sha256"]
@@ -85,7 +91,7 @@ jobs:
               raise RuntimeError("Existing notice directory was accepted")
           assert before == {p.name: p.read_bytes() for p in directory.iterdir()}
           assert receipt_path.read_bytes() == old_receipt
-          print("Verified seven byte-exact notices/source records; existing output rejected without mutation")
+          print(f"Verified {len(expected)} notice and source files and preserved the existing output")
       - name: Exercise provider, real volume and controller ownership
         run: ./build-portable/Release/flitzfs_volume_app_tests.exe --model
       - name: Exercise native GUI file workflow and verified process retirement

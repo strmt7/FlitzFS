@@ -6,6 +6,7 @@
 namespace flitzfs::detail {
 
 inline constexpr std::size_t kIndexedVolumeIdentityOffset=72;
+inline constexpr std::size_t kIndexedVolumeRootMaximumBytes=136;
 struct IndexedVolumeRoot {
   StoreIdentity identity{};
   std::uint64_t sequence=0,next_inode=2,next_extent=1;

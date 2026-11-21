@@ -221,6 +221,7 @@ class PagedObjectStoreWriter final {
   std::uint64_t generation_for_staging() const noexcept;
   std::uint64_t physical_end_for_staging() const noexcept;
   std::uint64_t append_floor_for_staging() const noexcept;
+  std::uint64_t compaction_savings_lower_bound(std::uint64_t extra_stored_bytes) const noexcept;
   // Native inode records consume their own metadata entries. Keep public
   // transactions at 256 operations. The native adapter admits 512 operations
   // with 4 MiB input, or 768 operations and 64 KiB extra directory-index input

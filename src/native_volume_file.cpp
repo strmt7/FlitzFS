@@ -191,6 +191,7 @@ Progress NativeVolumeFileReclaimer::advance(NativeFileSession& session,const std
     try{return retire(session.volume_info());}
     catch(const std::exception&){phase_=Phase::failed;return Progress::failed;}
   }
+  if(phase_==Phase::idle && !identity)return Progress::idle;
   if(!pending(session,allow_cold))return Progress::idle;
   try {
     if(phase_==Phase::idle) {
@@ -200,7 +201,7 @@ Progress NativeVolumeFileReclaimer::advance(NativeFileSession& session,const std
         attempted_obsolete_=session.indexed_volume_space().obsolete_bytes;
         abandoned_bytes_=0;
       }
-      if(!identity || spare_.use_count()!=1 || spare_->allocation_extent())
+      if(spare_.use_count()!=1 || spare_->allocation_extent())
         fail(Error::invalid_operation,"inactive volume range is unavailable");
       if(!session.begin_idle_compaction_impl(NativeVolumeFile::Region::pin_image(spare_),identity(),true,
           reclaim?PagedRewriteMode::reconcile_foreground:PagedRewriteMode::cold_compression))

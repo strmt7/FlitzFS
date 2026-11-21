@@ -21,7 +21,7 @@ constexpr std::string_view member_magic="FLTXPD01",packed_member_magic="FLTXPD02
 constexpr std::uint64_t namespace_object=1,inode_domain=1ULL<<63;
 constexpr std::uint64_t lifetime_domain=2ULL<<61,retirement_domain=5ULL<<61;
 constexpr std::uint64_t ordinal_mask=kNativeIndexedInodeLimit-1;
-constexpr std::size_t original_root_size=96,lifetime_root_size=120,root_size=136,extent_header=24;
+constexpr std::size_t original_root_size=96,lifetime_root_size=120,root_size=kIndexedVolumeRootMaximumBytes,extent_header=24;
 constexpr std::size_t base_size=8+kNativeExtentBytes;
 constexpr std::size_t packed_slice_size=80;
 constexpr std::uint32_t anchor_copy_capability=4,packed_xor_capability=5,modular_delta_capability=6,sparse_xor_capability=7;

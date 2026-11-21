@@ -9,6 +9,8 @@ import subprocess
 import tempfile
 
 BASELINE="5da33dcae667d23e68a54f70e109b1920a341518"
+ORACLE="5dbcfd29adb610a4778cdf8046f69f2097f3054a"
+ORACLE_SHA256="9073764b0460eb2985201fd16d444fed6b703baa5057905832d60d34092537a2"
 ROOT=Path(__file__).resolve().parents[2]
 
 def run(argv,seconds):
@@ -27,8 +29,15 @@ def main():
         raise RuntimeError("baseline source is not pristine")
     cache=ROOT/".ci-deps/linux-codecs/codec-cache.cmake"
     if not cache.is_file():raise RuntimeError("source-pinned native codecs required")
-    oracle=ROOT/"tests/test_store_codec.cpp"
-    if not oracle.is_file() or oracle.stat().st_size>65536:raise RuntimeError("bounded oracle source required")
+    # The current suite exercises newer encoder APIs absent from the baseline.
+    oracle_checkout=ROOT/".ci-deps/lz4-store-oracle"
+    if run(["git","-C",oracle_checkout,"rev-parse","HEAD"],15).stdout.strip()!=ORACLE:
+        raise RuntimeError("immutable LZ4 baseline oracle revision mismatch")
+    oracle=oracle_checkout/"tests/test_store_codec.cpp"
+    if not oracle.is_file() or oracle.stat().st_size>65536:
+        raise RuntimeError("bounded oracle source required")
+    if hashlib.sha256(oracle.read_bytes()).hexdigest()!=ORACLE_SHA256:
+        raise RuntimeError("immutable LZ4 baseline oracle content mismatch")
     temporary=Path(os.environ["RUNNER_TEMP"]).resolve(strict=True)
     with tempfile.TemporaryDirectory(prefix="flitzfs-lz4-store-baseline-",dir=temporary) as directory:
         fixture=Path(directory)
@@ -53,7 +62,7 @@ def main():
         if result.returncode!=1 or result.stdout.strip() or result.stderr.strip()!=expected:
             raise RuntimeError("baseline did not reproduce the exact missing-decoder behavior: "+result.stderr[-1000:])
         receipt=dict(experimental=True,baseline=BASELINE,head=os.environ["GITHUB_SHA"],
-            oracle_sha256=hashlib.sha256(oracle.read_bytes()).hexdigest(),
+            oracle_revision=ORACLE,oracle_sha256=ORACLE_SHA256,
             baseline_exit=result.returncode,baseline_stderr=result.stderr.strip(),
             independent_library_oracle_passed=True,missing_native_decoder_reproduced=True,gpu_executed=False)
         destination=temporary/("flitzfs-lz4-store-baseline-"+os.environ["GITHUB_SHA"]+".json")

@@ -2180,7 +2180,11 @@ PagedPayloadRepairProgress NativeFilesystemWriter::repair_indexed_payload() {
 }
 std::uint64_t NativeFilesystemWriter::indexed_obsolete_bytes() const noexcept {
   if(poisoned() || !impl_->indexed)return 0;
-  return impl_->objects.paged_if()->obsolete_bytes();
+  const auto& store=*impl_->objects.paged_if();
+  // The verified aggregate survives reopen. Allow the replacement namespace
+  // body at its full decoded size, even though the current body is counted too.
+  const auto retained=store.compaction_savings_lower_bound(detail::kIndexedVolumeRootMaximumBytes);
+  return (std::max)(store.obsolete_bytes(),retained);
 }
 
 bool NativeFilesystemWriter::matches_paged_recompression(

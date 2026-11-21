@@ -85,7 +85,7 @@ struct NativeSessionStats {
 // Trusted startup metadata for a NEW root, published together before its head.
 struct NativeVolumeSpace {
   std::uint64_t total_bytes=0,free_bytes=0;
-  std::uint64_t obsolete_bytes=0; // Writer-lifetime lower bound, before reader pins.
+  std::uint64_t obsolete_bytes=0; // Conservative estimate from committed history, before reader pins.
   std::uint64_t compression_shortfall_bytes=0;
   bool reclamation_worthwhile() const noexcept {
     if(free_bytes>total_bytes)return false;

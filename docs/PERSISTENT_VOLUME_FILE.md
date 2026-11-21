@@ -39,6 +39,17 @@ allocated until both durable records select the new epoch and readers
 release the old backing. Each retirement opportunity rechecks the
 selector and retires up to 4 MiB from the inactive range.
 
+After a restart, the verified object-tree totals also provide a conservative
+estimate of reclaimable committed space. The estimate compares the selected
+image extent with an upper bound for the packed image, including mirrored
+records, index pages, padding and rebinding the namespace root. The
+controller can qualify a rewrite from prior history on its next admitted
+idle opportunity without new foreground writes. It measures the actual
+replacement and checks retained readers before any retirement.
+An advance without a new image identity can finish existing work and leave
+eligible new compaction pending.
+[Reopen and reclamation evidence](evidence/reopened-reclamation-2026-11-21.json)
+
 After grouping, backfill and scheduled scrub work have yielded, a quiet
 volume can also qualify on compression gains. A read-only screen tries
 the cold encoder on evenly spaced live data ranks, at most one record
