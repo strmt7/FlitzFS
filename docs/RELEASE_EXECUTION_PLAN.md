@@ -1,7 +1,7 @@
 # FlitzFS stable release execution plan
 
-Reviewed on 20 November 2026 against the source at `63ff096c5a6ca10c42a6c864b0f833b6f9a3a16c`
-and the storage audit work validated in this round. The [engineering programme](IMPLEMENTATION_PLAN.md)
+Reviewed on 21 November 2026 against the source at `76e9e17f0954998ee05b16d4f05c8aed9ea3d233`
+and the collective packing work validated in this round. The [implementation plan](IMPLEMENTATION_PLAN.md)
 defines the full product scope and work packages. This plan gives the order
 of execution, evidence required at each handoff, and the remaining release
 work.
@@ -12,10 +12,9 @@ work.
 FlitzFS remains in development qualification. The work left is a multi-month
 engineering programme. The existing estimate of **60–130 person-weeks** is a
 planning envelope with low confidence. The compression research has a
-separate, open-ended tail. The first meaningful estimate refresh follows a
-scalable mounted test, a durable-backend recovery campaign, and a held-out
-compression comparison. The two small live AMD cohorts define specific
-workload behavior. Their timings have overlapping ranges.
+separate, open-ended tail. Update the estimate after a large mounted run,
+an isolated persistent-backend recovery campaign, and a held-out compression
+comparison. The current benefits apply to the sampled images and workloads.
 [Review and source evidence](evidence/release-execution-review-2026-11-20.json)
 
 | Area | Evidence now | Work that still determines release |
@@ -23,7 +22,7 @@ workload behavior. Their timings have overlapping ranges.
 | Native Windows storage | Indexed paths, inodes and extents use checked paged storage. CPU readback and modeled interruption results cover several native paths. | Complete namespace and data I/O at scale. Bound open, traversal, mutation, reclamation and recovery costs together. |
 | Mount and application | The WinFsp 2.2 guest fixture exercised mounted external Win32 clients, extended paths, Unicode and persistent identity. The application and injected attachment checks build locally. | Qualify the signed installer, interactive Explorer, system restart and ordinary workloads on the supported Windows 11 client. |
 | AMD and CPU continuity | The qualified test package discovers AMD automatically, prices a reference and produces sparse bodies in one supervised exchange. The writer publishes independently verified advice. The identical CPU-only control reopens all files exactly. | Measure useful complete-operation gains on held-out inputs. Qualify route selection and recovery across supported adapters and workload classes. |
-| Compression | Shared bases, sparse XOR, prefixed Zstandard and short-file grouping can reduce complete occupied images in particular cohorts. Copy search preserves savings when reference pricing cannot be admitted. | Establish repeatable total-size gains against strong, applicable controls, including shared metadata and retained versions. Qualify access costs for the same volume. |
+| Compression | Shared bases, sparse XOR, prefixed Zstandard and short-file grouping can reduce complete occupied images. On the mixed-length fixture, looking ahead to a fitting extent reduced the settled image from 827,392 to 786,432 bytes. | Establish repeatable total-size gains against strong, applicable controls, including shared metadata and retained versions. Qualify access costs for the same volume. |
 | Learning and reclamation | Advisory checkpoints, incremental candidate discovery, and staged cold recompression make progress in checked fixtures. | Prove bounded lookup and restart at production scale, persistent automatic policy changes, and steady-state reuse that reduces occupied space and unnecessary write traffic. |
 | Durability and compatibility | Checked roots, mirrored payload recovery, generation-bound references and several interrupted-write models are exercised. | Bind acknowledgement to real backend barriers and close retained-generation repair, mixed-format upgrade and independent rescue gates. |
 | Packaging and security | User-mode dependency staging and exact package binding are in place. | Validate the installed and removed product, hostile inputs, IPC access control, update and rollback, dependency evidence and recovery packaging. |
@@ -31,7 +30,8 @@ workload behavior. Their timings have overlapping ranges.
 [Mounted guest receipt](evidence/windows11-stable-winfsp-2.2-2026-11-20.json) ·
 [Cold compaction receipt](evidence/screened-cold-compaction-2026-11-20.json) ·
 [AMD reference-profile receipt](evidence/amd-installed-reference-profile-2026-11-20.json) ·
-[Indexed inventory receipt](evidence/indexed-reopen-single-pass-audit-2026-11-20.json)
+[Indexed inventory receipt](evidence/indexed-reopen-single-pass-audit-2026-11-20.json) ·
+[Collective packing and current AMD receipt](evidence/indexed-uneven-short-packing-2026-11-21.json)
 
 ## Critical path
 
@@ -267,6 +267,13 @@ encodings. Both stored copies still receive independent verification.
   device or backend identity. Age stale observations and make poor
   predictions recoverable. Keep every required decoding dependency separate
   from rebuildable learning data.
+- Follow the fitting-extent change with trials across multiple discovery
+  windows. For each size and similarity cohort, record candidate recall,
+  attempts and refusals, settled bytes saved, temporary bytes written, and
+  reads needed for small ranges. Compare current ordering, size-aware
+  candidate lookup and measured similarity ranking on the same images. Keep
+  candidate lookup paged and bounded. Qualify a larger grouping envelope only
+  once its range reader and dependency retirement pass the same checks.
 - Use fresh idle opportunities and bounded work to choose further scans,
   grouping, consolidation and format migration. Learn from net space
   saved, foreground service time, memory and write cost. Stop or shrink
@@ -321,8 +328,10 @@ Re-run the targeted portable, Windows, raw-codec and sanitizer lanes on the
 exact change. Cover the native worker and package interfaces with targeted
 negative cases. For final S10, retain current advisory evidence and review
 dependencies, installer behavior, ACLs, update signing and the recovery tool.
-The official connector refused the Dependabot alerts endpoint during this
-review. Current alert clearance remains an outstanding evidence item.
+The connector refused the Dependabot URL. An authenticated paginated REST
+read returned zero open alerts on 21 November. Refresh that read for the exact
+release candidate and retain the published advisory and artifact inventories.
+[Current dependency receipt](evidence/indexed-uneven-short-packing-2026-11-21.json)
 
 ## 8. Benchmarks, soak and the release decision
 
@@ -364,6 +373,48 @@ review. Current alert clearance remains an outstanding evidence item.
 | C | Run held-out compression on active and cold files. Connect the protected learning policy to measured route and representation choices. | Complete image savings, read amplification, background interference, write cost and restart continuation. |
 | D | Qualify backend durability, gradual upgrades, system integration and package cleanup. | Independent CPU rescue, exact backend and installed-driver receipts, Windows compatibility and security review. |
 | E | Run the recognized matched benchmarks and exact-candidate final soak. | An auditable pass for S1–S12 and the owner's decision. |
+
+### Next integrated qualification
+
+1. Prepare one disposable indexed volume and a deterministic external Win32
+   operation trace. Use the same populated image for create, overwrite,
+   handle-sharing tests, rename, flush, unmount, and reopening. Record returned
+   status, generation, expected bytes and observed bytes at each flush. Begin
+   at a population supported by the existing mounted harness and repeat as
+   indexed allocation and lookup scale. Keep the separate CPU reader and an
+   ordinary client reader in the test.
+2. Break resume and enumeration costs down by object-index pages, name-index
+   pages, inode and lifetime records, and payload and dependency reads. Mark
+   the proof boundary at each barrier. Use cold, warm, concurrent-reader, and
+   verified-repair runs with the same image. Advance the bounded writable-resume
+   design in section 2 only when amended-generation and post-barrier damage
+   checks agree with the full-audit control.
+3. Run create, edit, delete and cold regroup cycles while a reader pins an
+   earlier generation. Report live, protected and reclaimable ranges and each
+   operation's actual bytes written. Release the reader and confirm that the
+   new reader sees the latest acknowledged bytes and that the returned ranges
+   are reusable. Repeat with an interrupted publication and one damaged copy.
+   Once the model passes, repeat under the actual persistent backing provider
+   in isolation to establish its acknowledgement and repair contract.
+4. Feed the same mounted request trace with qualified AMD, CPU only and AMD
+   withdrawal after submission. Add real revision clusters with variable
+   lengths and dissimilar controls. Record verified work, transfer and kernel
+   duration, publication decisions, independent CPU readback, and the approved
+   process-tree retirement after each batch. Recheck active handles, committed
+   memory and worker ownership across repeated cycles after warm-up. Keep
+   process exit and long-lived resource use as separate measurements.
+5. Freeze a held-out file set before tuning. Compare ingest, idle recompression
+   and reclaimed size for each volume, including protected copies and retained
+   generations. Use the same files to measure random ranges, ordinary open and
+   directory enumeration, CPU and GPU duty, and writes attributable to
+   maintenance. Run the Windows I/O matrix on qualified live hardware and
+   collect comparable controls under the same storage and cache conditions.
+6. Freeze the signed package for compatibility, update, restore and removal
+   testing. Carry an older created volume through interrupted migration, a
+   fresh mount by the upgraded reader, CPU-only export, and supported rollback.
+   Record source and installer identity, owned process and driver state before
+   and after testing, and exact filesystem readback. Repeat affected lanes
+   after changes and track passive stability on the exact final candidate.
 
 Use the [gate definitions](IMPLEMENTATION_PLAN.md#18-exact-release-gates)
 and the [current development state](DEVELOPMENT_STATE.json) as the checklist.

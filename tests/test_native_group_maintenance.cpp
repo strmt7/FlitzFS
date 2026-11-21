@@ -301,6 +301,71 @@ void indexed_batched_prefix() {
       <<" ordinary_after_pressure="<<limited<<" independent_cpu_readback=true\n";
 }
 
+void indexed_uneven_short_packs(bool regression) {
+  if(!store_zstd_available())return;
+  constexpr unsigned pairs=6,count=2*pairs;
+  constexpr std::size_t phrases=256,phrase_bytes=72;
+  constexpr StoreCompressionOptions policy{StoreCompressionMode::automatic,3,true};
+  constexpr NativeImageStorage storage{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes};
+  std::array<Bytes,count> inputs;
+  const auto path=[](unsigned i){return "uneven-"+std::to_string(i);};
+  Fixture f(4096,0,true,policy);
+  for(unsigned i=0;i<count;++i) {
+    const bool small=i>=pairs;
+    const auto dictionary=data(phrases*phrase_bytes,20151+29*(i%pairs));
+    auto& bytes=inputs[i];
+    bytes=data((small?24:40)*1024,185311+307*i);
+    for(std::size_t slot=0;slot<phrases;++slot) {
+      const auto phrase=small?((627*slot+154)&(phrases-1)):slot;
+      const auto from=dictionary.begin()+static_cast<std::ptrdiff_t>(phrase*phrase_bytes);
+      const auto into=bytes.begin()+static_cast<std::ptrdiff_t>(slot*(bytes.size()/phrases)+3);
+      std::copy_n(from,phrase_bytes,into);
+    }
+    bytes.back()=std::byte{0x67};
+    put(*f.session,path(i),bytes);
+  }
+  const auto verify=[&](const NativeFilesystemSnapshot& snapshot) {
+    snapshot.verify_all();
+    for(unsigned i=0;i<count;++i)
+      require(snapshot.read(path(i),0,kNativeExtentBytes)==inputs[i],"uneven short packing changed file contents");
+  };
+  const auto compact=[&](const NativeFilesystemSnapshot& snapshot,unsigned target) {
+    auto backing=ram(4096);
+    {
+      const auto writer=NativeFilesystemWriter::compact(snapshot,backing,id(target),policy);
+      require(writer.snapshot().identity()==id(target),"uneven short packing used an unexpected image");
+    }
+    verify(NativeFilesystemSnapshot::open_image(backing,storage));
+    return backing->extent();
+  };
+  f.session.reset();
+  const auto pinned=NativeFilesystemSnapshot::open_image(f.image,storage);
+  const auto before=compact(pinned,2);
+  const auto resolve=[&](const StoreIdentity& key)->std::shared_ptr<StoreByteIo>{return key==id(1)?f.image:nullptr;};
+  f.session.emplace(NativeFileSession::resume_closed_indexed_volume(f.head,id(90),1,resolve,policy));
+  NativeMaintenanceProgress outcome;
+  {
+    NativeGroupMaintenance groups(*f.session);
+    outcome=f.finish(groups);
+    const auto idle_reads=f.image->read_calls,idle_writes=f.image->writes;
+    const auto idle=f.step(groups);
+    require(idle.phase==Phase::idle && !idle.owned_payload_bytes &&
+        idle_reads==f.image->read_calls && idle_writes==f.image->writes,
+        "a settled uneven packing window did more backing work");
+    verify(pinned);
+  }
+  f.session.reset();
+  const auto current=NativeFilesystemSnapshot::open_image(f.image,storage);
+  const auto info=current.shared_base_info();
+  const auto after=compact(current,3);
+  std::cout<<"uneven_short_packing files="<<count<<" before_compacted="<<before
+      <<" after_compacted="<<after<<" protected_bases="<<info.bases<<" protected_members="<<info.members
+      <<" packed_groups="<<outcome.packed_reference_groups<<" attempts="<<outcome.attempted_groups
+      <<" published="<<outcome.published_groups<<" independent_cpu_readback=1 pinned_readback=1 idle_io=0\n";
+  if(regression)require(after<before && info.members==count && info.bases==pairs &&
+      outcome.packed_reference_groups>=2,"packing did not match the later short files to the earlier long files");
+}
+
 void indexed_pack_distinct_short_extents() {
   if(!store_zstd_available())return;
   constexpr unsigned count=40;
@@ -2191,6 +2256,9 @@ int main(int argc,char** argv){try{
     indexed_packed_short_extents();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-pack-distinct-short-extents") {
     indexed_pack_distinct_short_extents();
+    indexed_uneven_short_packs(true);
+  } else if(argc==2 && std::string_view(argv[1])=="--profile-uneven-short-packs") {
+    indexed_uneven_short_packs(false);
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-changes") {
     indexed_changed_extent_discovery();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-batch") {

@@ -160,7 +160,7 @@ struct NativeGroupMaintenance::Impl {
     std::array<std::uint64_t,kOptimizationGroupBands> bands{};
     OptimizationXorSignatures projections{};
     detail::NativeGroupDeltaSignatures deltas{};
-    bool projected=false,deltas_sampled=false,measured=false;
+    bool projected=false,deltas_sampled=false,measured=false,packing_assigned=false;
     std::optional<XorReferenceSample> reference_sample;
   };
   struct StagedGroup {
@@ -475,7 +475,8 @@ struct NativeGroupMaintenance::Impl {
     }
   }
   void retain_indexed_window(std::size_t maximum) {
-    for(const auto& [id,feature]:features) {
+    for(auto& [id,feature]:features) {
+      feature.packing_assigned=false;
       if(indexed_member_candidate(feature.token) || feature.token.exact_base)
         representatives.insert_or_assign(id,feature);
       else representatives.erase(id);
@@ -708,22 +709,28 @@ struct NativeGroupMaintenance::Impl {
     ++state.attempted_groups;phase=Phase::preparing;
   }
   bool propose_packed_group(NativeFilesystemWriter& writer,std::size_t maximum_members) {
-    auto next=features.upper_bound(packing_after);
-    if(next==features.end())return false;
+    const auto eligible=[this](const Feature& feature) {
+      const auto& token=feature.token;
+      return !feature.packing_assigned && token.standalone_bytes &&
+          token.standalone_bytes<kNativeExtentBytes && !staged_objects.contains(token.object);
+    };
+    auto seed=features.upper_bound(packing_after);
+    while(seed!=features.end() && !eligible(seed->second))++seed;
+    if(seed==features.end())return false;
+    // Advance only to the seed so a larger skipped extent can start the
+    // next group. Selected members are tried once in this admitted window.
+    packing_after=seed->first;
     std::vector<NativeContentToken> expected;
     auto remaining=kNativeExtentBytes;
-    while(next!=features.end() && expected.size()<maximum_members) {
-      const auto& token=next->second.token;
-      const auto bytes=token.standalone_bytes;
-      if(bytes && bytes<kNativeExtentBytes && !staged_objects.contains(token.object)) {
-        if(bytes>remaining)break;
-        expected.push_back(token);
-        remaining-=bytes;
-      }
-      packing_after=next->first;
-      ++next;
+    for(auto next=seed;next!=features.end() && remaining && expected.size()<maximum_members;++next) {
+      auto& feature=next->second;
+      const auto bytes=feature.token.standalone_bytes;
+      if(bytes>remaining || !eligible(feature))continue;
+      expected.push_back(feature.token);
+      feature.packing_assigned=true;
+      remaining-=bytes;
     }
-    if(expected.size()<2)return next!=features.end();
+    if(expected.size()<2)return true;
     std::vector<std::byte> key;
     key.reserve(8+16*expected.size());
     append(key,5);
@@ -732,7 +739,7 @@ struct NativeGroupMaintenance::Impl {
       append(key,token.revision);
     }
     work_key=detail::record_digest(key);
-    if(attempted.contains(work_key))return next!=features.end();
+    if(attempted.contains(work_key))return true;
     std::vector<NativeExtentSelection> selected;
     selected.reserve(expected.size());
     work_ids.clear();

@@ -1224,6 +1224,27 @@ with full occupied-space accounting.
     grouping when repeated base fetches make ordinary reads too expensive.
     [Grouped audit and live corpus evidence](evidence/indexed-grouped-audit-2026-11-20.json)
 
+    - Extend bounded fitting-extent selection across admitted windows. Start
+      with mixed payload sizes and real revision families. Compare an
+      object-order control, size-filtered lookup, and size-filtered lookup
+      ranked by measured similarity. Record candidate recall, CPU, resident
+      memory and backing traffic. Retain the complete-image size check and
+      the case in which an early extent cannot fit but a later one can.
+      [Current packing evidence](evidence/indexed-uneven-short-packing-2026-11-21.json)
+    - Report group costs and one-member read work. Account for the base,
+      reverse references, padding, protection, pending reclamation and any
+      pinned older copies. Choose trial sizes from these observations.
+      Exercise false predictions, write pressure, changes during preparation
+      and restored advisory state. Bind trial outcomes to the exact content
+      and method before using them to avoid repeated work.
+    - Prototype larger immutable manifests over independently readable
+      segments. Qualify the CPU range path and its dependency work first.
+      Compare shared dictionaries, reference bodies and simple standalone
+      compression against the same complete layouts. Interrupt publication
+      and retirement with pinned readers, stale members and loss of one
+      copy. Require observed end-to-end GPU benefit and immediate CPU
+      continuity during failures.
+
 ### Acceptance and failure checks
 
 - Real related groups of 1, 2, many and eventually thousands of files work within

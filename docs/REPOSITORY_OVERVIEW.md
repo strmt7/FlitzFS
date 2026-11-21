@@ -1,12 +1,13 @@
 # FlitzFS repository overview
 
-Reviewed on **17 November 2026** at
-[`38a4a48f005c2ea6c9a7f8cbd9d7ee07df044d70`](https://github.com/strmt7/FlitzFS/commit/38a4a48f005c2ea6c9a7f8cbd9d7ee07df044d70).
-This is a repository-wide architectural and delivery review, not an exhaustive
-security audit or a new full-suite, mounted-filesystem or GPU qualification.
+Updated on **21 November 2026** against
+[`76e9e17f0954998ee05b16d4f05c8aed9ea3d233`](https://github.com/strmt7/FlitzFS/commit/76e9e17f0954998ee05b16d4f05c8aed9ea3d233)
+and the collective packing changes in this round. The current evidence covers
+source inspection, Windows builds and tests, and live AMD controller fixtures.
+Mounted, security and persistence results each have their own scope and inputs.
 The [detailed implementation plan](IMPLEMENTATION_PLAN.md) is the forward plan.
-[Review receipts](evidence/repository-review-2026-11-17.json) bind inventories,
-semantic searches, inspected sources, current research and API captures.
+[Original architecture review](evidence/repository-review-2026-11-17.json) ·
+[Current verification](evidence/indexed-uneven-short-packing-2026-11-21.json)
 Later checkpoints are recorded under recent executed evidence and in the
 [development state ledger](DEVELOPMENT_STATE.json).
 
@@ -14,7 +15,7 @@ Later checkpoints are recorded under recent executed evidence and in the
 
 The [release execution plan](RELEASE_EXECUTION_PLAN.md) binds the current
 assessment to the Windows attachment, AMD, CPU fallback and indexed audit
-evidence through 20 November 2026.
+evidence through 21 November 2026.
 It lists the remaining work and the verification required at each handoff.
 
 FlitzFS has a substantial experimental storage foundation and several working
@@ -37,24 +38,23 @@ release, tag, publication or product-version change is authorized by this review
 
 ## What is in the repository
 
-The clean reviewed checkout contains 697 tracked files, about 9.65 MB in total.
-The `src/` and `include/` semantic inventory contains 152 code files, about
-1.13 MB. These are inventory measurements, not measures of completion.
+The reviewed Git tree contains 904 tracked files and 14,650,909 bytes of
+tracked content. The `src/` and `include/` directories contain 190 tracked
+files and 1,962,894 bytes. Each receipt identifies the scope of its own review.
 
 | Area | Inventory | Responsibility |
 | --- | ---: | --- |
-| `src/` | 117 files | Storage, native filesystem, codecs, Windows adapters, controllers and workers |
-| `include/` | 36 files | Public core, session, storage, resource and recovery interfaces |
-| `tests/` | 138 files | Model, malformed-input, failure, SDK, process, application and qualification fixtures |
-| `tools/` | 57 files | Dependency staging, provenance, resource containment and qualification |
-| `docs/` | 297 files | Contracts, plans, historical results and source-bound evidence |
+| `src/` | 150 files | Storage, native filesystem, codecs, Windows adapters, controllers and workers |
+| `include/` | 40 files | Public core, session, storage, resource and recovery interfaces |
+| `tests/` | 146 files | Model, malformed-input, failure, SDK, process, application and qualification fixtures |
+| `tools/` | 63 files | Dependency staging, provenance, resource containment and qualification |
+| `docs/` | 450 files | Contracts, plans, historical results and source-bound evidence |
 | `.github/` | 19 files | Complementary build, analysis and experimental workflows |
-| `third_party/` | 18 files | Pinned BLAKE3 sources, licensing and provenance |
+| `third_party/` | 19 files | Pinned BLAKE3 sources, licensing and provenance |
+| Repository root | 17 files | Build entry points, contributor instructions, README and licensing |
 
-The current raw/ASan SDK build configurations each register **153 CTest entries**.
-Only inventory enumeration was performed for that count; it is not a statement
-that all 153 were executed in this review. Recent executed checks are described
-separately below.
+Use the build-specific executed counts in the
+[current verification receipt](evidence/indexed-uneven-short-packing-2026-11-21.json).
 
 ## Current architecture
 
@@ -281,10 +281,10 @@ Source: [WinFsp callback table and parameters](../src/windows/winfsp_native.cpp)
 
 ## Fresh dependency and alert check
 
-Authenticated GitHub REST capture on 20 November returned **HTTP 200 and zero
-open Dependabot alerts**, with complete cursor pagination. This result covers
-the alerts visible to that repository endpoint at the capture time.
-[Dependency receipt](evidence/indexed-reopen-single-pass-audit-2026-11-20.json)
+The authenticated GitHub REST endpoint returned **zero open Dependabot alerts**
+on 21 November across one complete page. The connector rejects this endpoint.
+The read used the repository's existing GitHub CLI authentication.
+[Current dependency receipt](evidence/indexed-uneven-short-packing-2026-11-21.json)
 
 | Dependency/tool | Repository selection | Fresh official result / qualification limit |
 | --- | --- | --- |

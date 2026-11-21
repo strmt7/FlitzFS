@@ -548,17 +548,21 @@ reader-retirement rules apply.
 
 In automatic compression mode, the indexed scanner also tries short
 standalone payloads left in its current window after similarity and catalog
-lookup. In object order it assembles a base within the same 64 KiB decode
-limit, using one checked source extent per idle opportunity. Each slice
-uses its canonical length and preserves the file's logical zero tail. Work
-reserved for an AMD batch keeps its own source bindings. The controller
-settles the batch before closing that scan window.
+lookup. It starts in object order and looks ahead within the admitted window
+for payloads that fit in the remaining space. A skipped extent can seed the
+next group. Each selected extent belongs to at most one direct packing trial
+in that window. The trial reads one checked source extent per idle opportunity
+and retains the 64 KiB decode limit. Each slice uses its canonical length and
+preserves the file's logical zero tail. Work reserved for an AMD batch keeps
+its own source bindings. The controller settles the batch before closing that
+scan window.
 
 Direct packing uses the existing compacted-size comparison and transaction.
 It renews the memory grant during preparation and checks the selected
 revisions before publication. A later scan can consider each packed slice
 for a stronger similarity match, with the same size and revision checks.
-[Direct packing evidence](evidence/indexed-direct-short-packing-2026-11-20.json)
+[Direct packing evidence](evidence/indexed-direct-short-packing-2026-11-20.json) ·
+[Uneven short-extent evidence](evidence/indexed-uneven-short-packing-2026-11-21.json)
 
 The current reader supports capabilities 1 through 9. Readers capped at 8
 reject a capability 9 root. An earlier image retains its capability when opened.

@@ -1,6 +1,6 @@
 {
   "schema": 2,
-  "updated": "2026-11-20",
+  "updated": "2026-11-21",
   "goal_status": "active",
   "product": "Windows 11 AMD64 filesystem/helper/driver integration; AMD acceleration with independent CPU recovery",
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
@@ -10,6 +10,17 @@
     "commit": "38a4a48f005c2ea6c9a7f8cbd9d7ee07df044d70",
     "tree": "936409737d1c4a5d4aeb37fe5af48f55ba9accff",
     "note": "Architectural review baseline. Layer and runtime evidence have separate source bindings."
+  },
+  "indexed_uneven_short_packing": {
+    "source_base": "76e9e17f0954998ee05b16d4f05c8aed9ea3d233",
+    "evidence": "docs/evidence/indexed-uneven-short-packing-2026-11-21.json",
+    "completed_image_bytes": {"control": 827392, "lookahead": 786432},
+    "matched_synthetic_runs": 4,
+    "live_mixed_verified_amd_groups": 7,
+    "live_mixed_compacted_image_bytes": 319488,
+    "mixed_image_size_changed": false,
+    "cpu_without_amd_package_exact_files": 23,
+    "mounted_performance_and_media_durability_qualified": false
   },
   "amd_same_stream_transfers": {
     "source_base": "4185e9a6c972dc5b87c1fbf03cedb21279cbf544",

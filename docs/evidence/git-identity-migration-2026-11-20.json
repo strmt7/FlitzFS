@@ -29,5 +29,19 @@
     "refs/pull/1/head"
   ],
   "historical_receipt_identities_preserved": true,
-  "scope": "Every commit reachable from main before the migration. Git transferred the verified commit graph under an expected-head lease. The connector supplied the identity and confirmed the published root and tip."
+  "scope": "Every commit reachable from main before the migration. Git transferred the verified commit graph under an expected-head lease. The connector supplied the identity and confirmed the published root and tip.",
+  "follow_up_check": {
+    "empty_connector_commit": "3a78494bafd0ee873dc8944892524509fe73533f",
+    "parent_and_checked_main": "76e9e17f0954998ee05b16d4f05c8aed9ea3d233",
+    "unchanged_tree": "2efdfebede87e797cfbe2f3c0b26f003fec3415f",
+    "author_and_committer_match_authenticated_identity": true,
+    "reachable_commits_checked": 460,
+    "identity_mismatches": 0,
+    "migration_pairs_compared_against_archive": 453,
+    "tree_parent_message_and_timestamp_parity": true,
+    "mapping_sha256": "5f92f9369befa8ab82e5ff14b4ac7420b933ef6fb641a08e23a5ad5ce8b94481",
+    "bundle_verified_again": true,
+    "probe_linked_from_a_branch": false,
+    "new_ref_update_needed": false
+  }
 }
