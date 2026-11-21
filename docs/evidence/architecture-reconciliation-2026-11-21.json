@@ -1,0 +1,814 @@
+{
+  "schema": "flitzfs-architecture-reconciliation-v1",
+  "date": "2026-11-21",
+  "reviewed_commit": "df5be9b5b9d0bc05ac565eb2da8454ac76bed3d2",
+  "reviewed_tree": "a9bab22082849332c28a085f0eb154aaacb15538",
+  "release_qualified": false,
+  "review_scope": "All tracked bytes were inventoried and first-party source classified. Manual checks followed product and tooling boundaries. Historical test records retain their original source and backing scope.",
+  "source_inventory": {
+    "revision": "df5be9b5b9d0bc05ac565eb2da8454ac76bed3d2",
+    "tree": "a9bab22082849332c28a085f0eb154aaacb15538",
+    "paths": 933,
+    "blobs_read": 933,
+    "groups": {
+      "Repository workflows": {
+        "tracked_paths": 19,
+        "bytes": 129279,
+        "text_lines": 2508,
+        "first_party_source_paths": 19,
+        "first_party_source_lines": 2508,
+        "acknowledgement_and_recovery": 26,
+        "platform_or_instance": 116,
+        "declared_assumption": 16,
+        "resource_and_integer_bounds": 1,
+        "feature_and_compatibility": 3
+      },
+      "Repository root": {
+        "tracked_paths": 6,
+        "bytes": 153232,
+        "text_lines": 2451,
+        "first_party_source_paths": 2,
+        "first_party_source_lines": 1666,
+        "platform_or_instance": 94,
+        "acknowledgement_and_recovery": 29,
+        "declared_assumption": 23,
+        "feature_and_compatibility": 6,
+        "resource_and_integer_bounds": 7,
+        "ownership_and_concurrency": 3
+      },
+      "CMake support": {
+        "tracked_paths": 2,
+        "bytes": 6868,
+        "text_lines": 174,
+        "first_party_source_paths": 2,
+        "first_party_source_lines": 174
+      },
+      "Developer documentation": {
+        "tracked_paths": 166,
+        "bytes": 2379291,
+        "text_lines": 38984
+      },
+      "Historical development evidence": {
+        "tracked_paths": 311,
+        "bytes": 5553542,
+        "text_lines": 131190
+      },
+      "Root evidence": {
+        "tracked_paths": 2,
+        "bytes": 16049,
+        "text_lines": 624
+      },
+      "Public interfaces": {
+        "tracked_paths": 41,
+        "bytes": 213281,
+        "text_lines": 4049,
+        "first_party_source_paths": 41,
+        "first_party_source_lines": 4049,
+        "ownership_and_concurrency": 29,
+        "platform_or_instance": 90,
+        "declared_assumption": 59,
+        "resource_and_integer_bounds": 60,
+        "acknowledgement_and_recovery": 89,
+        "feature_and_compatibility": 19
+      },
+      "Product resources": {
+        "tracked_paths": 7,
+        "bytes": 974685,
+        "text_lines": 101,
+        "non_text": 3
+      },
+      "Portable storage and filesystem": {
+        "tracked_paths": 59,
+        "bytes": 1113381,
+        "text_lines": 21628,
+        "first_party_source_paths": 58,
+        "first_party_source_lines": 21490,
+        "ownership_and_concurrency": 38,
+        "resource_and_integer_bounds": 369,
+        "platform_or_instance": 109,
+        "declared_assumption": 47,
+        "feature_and_compatibility": 133,
+        "acknowledgement_and_recovery": 484
+      },
+      "Device sources": {
+        "tracked_paths": 2,
+        "bytes": 30620,
+        "text_lines": 700,
+        "first_party_source_paths": 2,
+        "first_party_source_lines": 700,
+        "platform_or_instance": 8,
+        "resource_and_integer_bounds": 5,
+        "declared_assumption": 1
+      },
+      "Windows integration": {
+        "tracked_paths": 90,
+        "bytes": 689351,
+        "text_lines": 13098,
+        "first_party_source_paths": 89,
+        "first_party_source_lines": 13084,
+        "resource_and_integer_bounds": 290,
+        "feature_and_compatibility": 46,
+        "platform_or_instance": 407,
+        "ownership_and_concurrency": 164,
+        "declared_assumption": 53,
+        "acknowledgement_and_recovery": 93
+      },
+      "Portable and Windows tests": {
+        "tracked_paths": 124,
+        "bytes": 2606259,
+        "text_lines": 42976,
+        "first_party_source_paths": 121,
+        "first_party_source_lines": 42918,
+        "resource_and_integer_bounds": 545,
+        "platform_or_instance": 755,
+        "acknowledgement_and_recovery": 1486,
+        "ownership_and_concurrency": 163,
+        "feature_and_compatibility": 292,
+        "declared_assumption": 193
+      },
+      "Selected SDK and device fixtures": {
+        "tracked_paths": 22,
+        "bytes": 292724,
+        "text_lines": 5285,
+        "first_party_source_paths": 21,
+        "first_party_source_lines": 4555,
+        "platform_or_instance": 126,
+        "declared_assumption": 13,
+        "acknowledgement_and_recovery": 31,
+        "feature_and_compatibility": 7,
+        "resource_and_integer_bounds": 135,
+        "ownership_and_concurrency": 9
+      },
+      "Vendored sources and notices": {
+        "tracked_paths": 19,
+        "bytes": 527470,
+        "text_lines": 14195
+      },
+      "Qualification and dependency tools": {
+        "tracked_paths": 55,
+        "bytes": 608130,
+        "text_lines": 10335,
+        "first_party_source_paths": 55,
+        "first_party_source_lines": 10335,
+        "platform_or_instance": 343,
+        "declared_assumption": 51,
+        "resource_and_integer_bounds": 113,
+        "acknowledgement_and_recovery": 317,
+        "feature_and_compatibility": 47,
+        "ownership_and_concurrency": 19
+      },
+      "Owner-host developer tools": {
+        "tracked_paths": 4,
+        "bytes": 38732,
+        "text_lines": 789,
+        "first_party_source_paths": 4,
+        "first_party_source_lines": 789,
+        "declared_assumption": 3,
+        "resource_and_integer_bounds": 10,
+        "platform_or_instance": 8,
+        "acknowledgement_and_recovery": 3,
+        "feature_and_compatibility": 1,
+        "ownership_and_concurrency": 4
+      },
+      "Other build, package and lock inputs": {
+        "tracked_paths": 4,
+        "bytes": 2589,
+        "text_lines": 54
+      }
+    },
+    "assumption_lines": 7290,
+    "parsed": {
+      ".json": 323,
+      ".py": 55
+    },
+    "parse_errors": [],
+    "inventory_sha256": "389958570c6614e305c909e87d288f4715b9a47f0c40f2e204bee6f11af49db4",
+    "assumption_lines_sha256": "98e72509070abce4f41d7b136e5486bb8798022fb0b52d5e1afd6dc1c04ba663",
+    "first_party_source_paths": 414,
+    "first_party_source_lines": 102268,
+    "powershell_files_parsed": 4
+  },
+  "navigation": {
+    "commit": "df5be9b5b9d0bc05ac565eb2da8454ac76bed3d2",
+    "source_files": 39,
+    "source_bytes": 1091545,
+    "provider_version": "0.2.43",
+    "inventory_sha256": "a3f7f5954d7af851e39c138f15c75d39f6afe8a64f4a1dbe9f1eeb5c82dccd09",
+    "native_response_sha256": "d7da4907d0050d04ac6c82a456d9c959689a4d7ed6e4f6ade9c8cca4d0bc4296",
+    "dirty_patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "actual_searches": 1
+  },
+  "navigation_receipt_sha256": "ae35cbe12050e4c7bb26a8481bf54b5a0a140522a27668a617471ef23634816d",
+  "research": {
+    "primary": {
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "robots_checked": true,
+      "provider_source_identity": {
+        "tools/crawl4ai_tool.py": "e84a0e54ee07e4e13d3d2f35491f641730096a78126068f232c1f2397a467d8c",
+        "tools/crawl4ai_research.py": "ec3cb7a98eceed8fef08f3af806d6eaed35656bd76ca0ee8853d273f790337a5",
+        "tools/requirements/crawl4ai.txt": "6a42b0ff5ff6c63c843c6329ce823b819fd4f6f068e68d1836ab6dbec96e8f2f",
+        "tools/crawl4ai_sites.json": "e8869cb0488d78762a90aea6ecf2c3616bb89f0c89a8800cc512c613a750dc86",
+        "tools/nltk_distribution.py": "19eb3007c226b1a13e1ad0daa79cbd8a7bf6d082a20bf386e36ac060d0000919",
+        "tools/python_wheel.py": "c3c9a62454cb377203abce32154bec07cbf805bc7420cc89386c1c18370b301a",
+        "tools/test_nltk_model_security.py": "8aab7e2a704af875992ecae9137cdf5e5ff6935a4dd49e6751c54b2629a7280b",
+        "tools/requirements/python-build.txt": "9b280d724fda87773ba33a2654362adad84c68c4f79394adc07ff2e0293ca498",
+        "tools/crawl4ai_source_build.py": "5c27c4693fa0880a8db399825f637b694616963fc11f708afed33fa5b2e38b48",
+        "tools/crawl4ai_download_opener.py": "d5fd20b5545fd64c93a06b3ef07732f1c2da7e09ee6cda80662475007db52538",
+        "tools/test_crawl4ai_downloads.py": "ae4cf54c351a9da2de49caeb96306f384bb6a8f487318eabc69db4132d658619",
+        "third_party/upstream/nltk/3.10.4/distribution.json": "3241a8670f12e205525fc096572ed1969c063f77e13cffd70eff5eb656fbe1b0",
+        "nltk_upstream_wheel": "e46d89e59ef949270e3b19ab097da8dbb09350e05cb5a746ff92f6ccf6e8ce90",
+        "crawl4ai_source_build": "7da6376934254d9ad1de9e016a4509dae32c47559955889424435fcbbc7419f5"
+      },
+      "receipt_sha256": "991c8a6591404e0669bfa498fe924fed2fdd01f619dd737612999dd3be46087f",
+      "pages": [
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "expected_content": true,
+          "markdown_bytes": 78583,
+          "markdown_sha256": "2faae088806a31e9fb4957a073081fb98ba56f0b12a7541b87233f5d5d9ccbec",
+          "capture_sha256": "00a9e7da7592bd925833c63ae9f44af3df3f12fe93e79014c468325da2cde02d",
+          "error": ""
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "expected_content": true,
+          "markdown_bytes": 36207,
+          "markdown_sha256": "116ffcd5a6feba3539c3f668a2c969aa2e38b8f3663a704a7654e7b2a7954e4c",
+          "capture_sha256": "8d59bd8b2822e7cb7059c22297fe3a0d9c7bc65ce918f7eb1180cc84c69b92ee",
+          "error": ""
+        },
+        {
+          "url": "https://www.usenix.org/conference/fast26/presentation/huang",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "expected_content": true,
+          "markdown_bytes": 10395,
+          "markdown_sha256": "b271b38f1feb88acd780ae11d756c7f3723fecb288cfe5e7803fed9c5d93767d",
+          "capture_sha256": "1aabf21dc7156c0cc551af13331384da4ca7b9be5033c65f0d5667a21712c5f4",
+          "error": ""
+        },
+        {
+          "url": "https://www.usenix.org/conference/fast26/presentation/gupta",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "expected_content": true,
+          "markdown_bytes": 10661,
+          "markdown_sha256": "080bf5e8ff9457bdf7155f0ff8cf24d819c037f6a5cf35f4c56d8cdf4fc08a60",
+          "capture_sha256": "07f7bfb9118d203811a05d59de3e4028e640ce49dd2f075dd29b8d2a911f352e",
+          "error": ""
+        },
+        {
+          "url": "https://www.usenix.org/conference/osdi25/presentation/pan",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "expected_content": true,
+          "markdown_bytes": 9853,
+          "markdown_sha256": "8f61c2a60b2fbcf9b165e89fa334e9a8f03dd99856f92a9d031633f3e59b9a7e",
+          "capture_sha256": "282f8dc08a3200b529509d883b514cdd1f0c8cb7c9e0c17ade42bba0b65fdda5",
+          "error": ""
+        },
+        {
+          "url": "https://erofs.docs.kernel.org/en/latest/design.html",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "expected_content": true,
+          "markdown_bytes": 9948,
+          "markdown_sha256": "3bf9e0080f6c3ca997bcbb08b42bdbad3a1bfc9a02fb33224d35276abf6ccfc4",
+          "capture_sha256": "00422c8b33c78cfa49113a183843cb40d06772acb7c020855d37ecb3df91e2be",
+          "error": ""
+        },
+        {
+          "url": "https://github.com/microsoft/diskspd/wiki/Customizing-tests",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "expected_content": true,
+          "markdown_bytes": 41893,
+          "markdown_sha256": "7bf595c65d67c2f803700ef8660d0c8f2f6a9989bcfda4a9500a1e4c552ae94a",
+          "capture_sha256": "3a2d0f7b4f6f2f259501d7bf878f5f11592aaf71931588245f0fb35172fbeddd",
+          "error": ""
+        },
+        {
+          "url": "https://btrfs.readthedocs.io/en/latest/Compression.html",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "expected_content": true,
+          "markdown_bytes": 14564,
+          "markdown_sha256": "1f48a6e838aff24614db599c8da2d44393476cce0b73af926e4704f2d088eac4",
+          "capture_sha256": "3d5ed2a161c0b653a01a746449e3e9036e36b82dcde781e38825715e6e1ace16",
+          "error": ""
+        },
+        {
+          "url": "https://github.com/meta/zstd/blob/dev/programs/README.md",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "expected_content": true,
+          "markdown_bytes": 30562,
+          "markdown_sha256": "56db644fe92ecbc8df7317443998537e69b85440e9bc92cb3388dcc05990cc9b",
+          "capture_sha256": "fa02e173812b415c84d1f154498d1e6281bba7f5c74e2cc0bacb5ac824f055be",
+          "error": ""
+        }
+      ]
+    },
+    "supplement": {
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "robots_checked": true,
+      "provider_source_identity": {
+        "tools/crawl4ai_tool.py": "e84a0e54ee07e4e13d3d2f35491f641730096a78126068f232c1f2397a467d8c",
+        "tools/crawl4ai_research.py": "ec3cb7a98eceed8fef08f3af806d6eaed35656bd76ca0ee8853d273f790337a5",
+        "tools/requirements/crawl4ai.txt": "6a42b0ff5ff6c63c843c6329ce823b819fd4f6f068e68d1836ab6dbec96e8f2f",
+        "tools/crawl4ai_sites.json": "e8869cb0488d78762a90aea6ecf2c3616bb89f0c89a8800cc512c613a750dc86",
+        "tools/nltk_distribution.py": "19eb3007c226b1a13e1ad0daa79cbd8a7bf6d082a20bf386e36ac060d0000919",
+        "tools/python_wheel.py": "c3c9a62454cb377203abce32154bec07cbf805bc7420cc89386c1c18370b301a",
+        "tools/test_nltk_model_security.py": "8aab7e2a704af875992ecae9137cdf5e5ff6935a4dd49e6751c54b2629a7280b",
+        "tools/requirements/python-build.txt": "9b280d724fda87773ba33a2654362adad84c68c4f79394adc07ff2e0293ca498",
+        "tools/crawl4ai_source_build.py": "5c27c4693fa0880a8db399825f637b694616963fc11f708afed33fa5b2e38b48",
+        "tools/crawl4ai_download_opener.py": "d5fd20b5545fd64c93a06b3ef07732f1c2da7e09ee6cda80662475007db52538",
+        "tools/test_crawl4ai_downloads.py": "ae4cf54c351a9da2de49caeb96306f384bb6a8f487318eabc69db4132d658619",
+        "third_party/upstream/nltk/3.10.4/distribution.json": "3241a8670f12e205525fc096572ed1969c063f77e13cffd70eff5eb656fbe1b0",
+        "nltk_upstream_wheel": "e46d89e59ef949270e3b19ab097da8dbb09350e05cb5a746ff92f6ccf6e8ce90",
+        "crawl4ai_source_build": "7da6376934254d9ad1de9e016a4509dae32c47559955889424435fcbbc7419f5"
+      },
+      "receipt_sha256": "04f0d5eb3aaa20db800eb42ba0b357726c8441ffdc704001fc095c3bec19971e",
+      "pages": [
+        {
+          "url": "https://winfsp.dev/doc/WinFsp-Design/",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "expected_content": true,
+          "markdown_bytes": 15982,
+          "markdown_sha256": "155b76c1f41a65d63558341f8ccf135549ef8d5de8eb786e043c6e7726590dc8",
+          "capture_sha256": "e83c313db6c2944e90d27229479fec69166f0889d9776d05e45ef66800fc8afa",
+          "error": ""
+        },
+        {
+          "url": "https://winfsp.dev/doc/WinFsp-Service-Architecture/",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "expected_content": true,
+          "markdown_bytes": 7452,
+          "markdown_sha256": "d2fba7930b33e746f93757e33e1aa341406aeb74cf1e929a40acec8671171167",
+          "capture_sha256": "cf58b264d43c0ba9415137f44daf13f0ce70a0cca5be2407e23e14aaa35ac93e",
+          "error": ""
+        },
+        {
+          "url": "https://github.com/winfsp/winfsp/releases/tag/v2.2",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "expected_content": true,
+          "markdown_bytes": 14028,
+          "markdown_sha256": "f618cfa43354a9f4aeff36a258943846993660726c17269ef6f02f7719aaa886",
+          "capture_sha256": "2bfc4543b6d92e4683852528723931b0b106ede4a90e9cf49f4188927402a1d9",
+          "error": ""
+        },
+        {
+          "url": "https://rocm.docs.amd.com/en/develop/about/release-notes.html",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "expected_content": true,
+          "markdown_bytes": 300084,
+          "markdown_sha256": "0afbd9eea5273facf6ab4f5534535b24d72d9461ab24f375936e830069c2cba4",
+          "capture_sha256": "910e15caa2738a8627b1043c4248acdc34ef5c9f4de712f75216efc11dc170e7",
+          "error": ""
+        },
+        {
+          "url": "https://github.com/microsoft/diskspd/releases/tag/v2.3",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "expected_content": true,
+          "markdown_bytes": 10890,
+          "markdown_sha256": "eeb9b62171e288479521b4b40ed1cc6cce292b18b155e44762c8f59b64d05cb2",
+          "capture_sha256": "d36eb3373739be80a36c00ef5b942d2e0852f35855f20bf12384d9f0cc1b4128",
+          "error": ""
+        },
+        {
+          "url": "https://www.usenix.org/conference/osdi25/presentation/cui",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "expected_content": true,
+          "markdown_bytes": 10567,
+          "markdown_sha256": "e7a4ce40ce6e46564e695765295749e5d60911e98398d0f6458036d7347caa7f",
+          "capture_sha256": "845a337e5b4ba58f3e64a3a087b3899163736fa13c848db9122403d83d014e6c",
+          "error": ""
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows-server/storage/refs/refs-overview",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "expected_content": true,
+          "markdown_bytes": 28162,
+          "markdown_sha256": "983ca48dc74602d70aa156e9fb0add269dfefe0f77e36ede90d3265b4856c6b6",
+          "capture_sha256": "043109702b5abfdb905e61336583c87cce89f553447b1cf7023c26238adca2f1",
+          "error": ""
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-flushviewoffile",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "expected_content": true,
+          "markdown_bytes": 30306,
+          "markdown_sha256": "cbae2e37207a0bc6af58d74708b53da23378a9f8da9423c2a42f8fda8696c94f",
+          "capture_sha256": "c996fd6fb67369bb6c12debd2b3e3781171150ca062e8666acbf38fc99f90567",
+          "error": ""
+        },
+        {
+          "url": "https://github.com/facebook/zstd/blob/dev/doc/zstd_compression_format.md",
+          "http_status": 301,
+          "final_http_status": 200,
+          "success": true,
+          "expected_content": true,
+          "markdown_bytes": 87977,
+          "markdown_sha256": "7f1640f4ccdeec030e64b7251335054a4b3bf3fd5be5fbe4f32704e94c337fde",
+          "capture_sha256": "bbb6b24cbc4cc467afe41de93cdd5e26176441ea31a10fa8a8422a1c5ed5ef16",
+          "error": ""
+        }
+      ]
+    },
+    "original_papers": {
+      "rubikfs": {
+        "url": "https://www.usenix.org/system/files/fast26-huang.pdf",
+        "status": 200,
+        "bytes": 1049760,
+        "sha256": "223941d786238df1888b79f925ea94a98c524f234d9077397e1d0f5a70a0c187"
+      },
+      "integrity": {
+        "url": "https://www.usenix.org/system/files/fast26-gupta.pdf",
+        "status": 200,
+        "bytes": 1787001,
+        "sha256": "c300a5410dd7062391167bbfa801ba84751a177842819e83f81ff6d03cb5a1fe"
+      },
+      "wofs": {
+        "url": "https://www.usenix.org/system/files/osdi25-pan.pdf",
+        "status": 200,
+        "bytes": 2297126,
+        "sha256": "e634c69a2dea6c8fb541e00807cf871201985f2e73b98080d485cc22af8cceab"
+      },
+      "f2fs": {
+        "url": "https://www.usenix.org/system/files/osdi25-cui.pdf",
+        "status": 200,
+        "bytes": 2147079,
+        "sha256": "e82c7db33b50e2c67f3f362047950aff977b037c0806bfcec61d9c1e05199b38"
+      }
+    },
+    "paper_extraction": {
+      "extractor": "pypdf-7.1.1-py3-none-any.whl",
+      "extractor_sha256": "04c5680d4b4cfa04ab505b09393fc949860c34a4dad6565284d11a2f5c3ce8b1",
+      "papers": {
+        "f2fs": {
+          "pages": 18,
+          "text_bytes": 89254,
+          "text_sha256": "c6fd3afce50eea8ab6d43c172be095b421298e13d626041250a758b0ac6335a6"
+        },
+        "integrity": {
+          "pages": 16,
+          "text_bytes": 63945,
+          "text_sha256": "575723d311056eeb6e22c8a4bf92579e07f580051fc5d57507a65c339e382f2d"
+        },
+        "rubikfs": {
+          "pages": 18,
+          "text_bytes": 92759,
+          "text_sha256": "088222e6aa20f396d66b9628af0b53be08f6241cb9730b5b736268f57387a02b"
+        },
+        "wofs": {
+          "pages": 21,
+          "text_bytes": 105467,
+          "text_sha256": "e5533f514354da14cc5a14d0981d8b43d4b3466baf86a495e162f894ca4b1784"
+        }
+      }
+    }
+  },
+  "checked_contracts": {
+    "windows_mount_and_callback_order": {
+      "src/windows/volume_app.cpp": "b5585156fd27091e58cdca94ef315733197d31ab",
+      "src/windows/volume_controller.cpp": "84edb910754f9ddbc2eb71a021e8c6764124d8be",
+      "src/windows/winfsp_volume_attachment.cpp": "482d65a7bfad9d13783c7bf349d9c53730aae380",
+      "src/windows/winfsp_session.cpp": "c183922d9ce359cc9f5f50450a76db943ff26ff2",
+      "src/windows/winfsp_native.cpp": "63d6a9f9fd92535d7260db9eed18392cf953568a",
+      "src/windows/native_deferred_write.cpp": "b68bb7f972c7a39748c86f1af0154fec07c8e45d"
+    },
+    "checked_durability_and_allocator": {
+      "src/native_session.cpp": "7a496d8459120f9e9a791206a5f458052008f54a",
+      "src/native_indexed_volume.cpp": "d9d60775e8d30b2f09522be35d02f1daf98c29b3",
+      "src/paged_store.cpp": "a5e00b2457781f2b0612cb4d8653c80a0a2b2848",
+      "src/volume_head.cpp": "e19a5783366b1627ca6f2a5c37198dbd5af15a54",
+      "src/native_volume_file.cpp": "1fc29e6574a4ef5ee896c6220993fe227eaae71d",
+      "src/store_file.cpp": "6f70d181fe0a042f33be21a5b950eee670625be1"
+    },
+    "independent_read_and_compression": {
+      "src/cli.cpp": "588a6ec55cab28cf6f26400a2529f47c9d3dd85a",
+      "src/container.cpp": "36a1b2d9bd915b540fb4399663705c83c990c894",
+      "src/native_indexed_volume.cpp": "d9d60775e8d30b2f09522be35d02f1daf98c29b3",
+      "src/native_group_codec.hpp": "70f7ed241ea501d2f5d3546aca7748def11af32a",
+      "src/store_codec.cpp": "e56f0df17b18045c7b1b88525830a749392026a5"
+    },
+    "background_and_acceleration": {
+      "src/windows/winfsp_controller.cpp": "1ee65682c435ec3f545d1440f0762c6eac9f9a74",
+      "src/indexed_coherence.cpp": "8c95ab1b7ab600013d2705276691d5d42f65f4a9",
+      "src/optimization_state.cpp": "8596df7d9b80ca7076106751955ac59fdaada1a6",
+      "src/native_maintenance.cpp": "eea4514fd5c762e7ebf4c9114b4663632e91c545",
+      "src/windows/hip_route_discovery.cpp": "31996a92bdf74f6db2df25f301f00ba42301c17c",
+      "src/windows/hip_worker_budget.hpp": "e0000260d248f1a6316be592c477ceb543c9e86a",
+      "src/gpu_recovery.cpp": "d9c1920befdbf2c4f8fd725dd37405f8aeec9950"
+    },
+    "build_recovery_and_evidence": {
+      "CMakeLists.txt": "90583f77eca7068559ccf7cd48a513a173a73773",
+      "cmake/WindowsAsanRuntime.cmake": "9d44b0a1bcb21618245861127a5ae9647ac59012",
+      "src/windows/worker_exchange.cpp": "bdb8720646d8633c4fdf42ce5af40f0c521f39fb",
+      "tools/dev/windows_run.py": "73dc7edd90b8dbe582b25655d1b529c7701b65dd"
+    }
+  },
+  "documentation_validation": {
+    "reviewed_source": "df5be9b5b9d0bc05ac565eb2da8454ac76bed3d2",
+    "files": {
+      "AGENTS.md": "dfc6b41c741861820d65cb1ce6ff510ffbf0cb78c008b46a576eab1b22395921",
+      "docs/ARCHITECTURE.md": "ac8ea3700fe1ed0e159d3e460b157dc21ddbab21c364ba11f79ab67d53dc3c90",
+      "docs/BENCHMARK_PROTOCOL.md": "1eef453f46377bf789819ad0798f1fcfe44e8481337b4cb5464c016fbd9c06f6",
+      "docs/DEVELOPMENT_PLAN.json": "9d4a0c5dcb41da9d12402435ef1f3b0b80336bcc7ff0a8e3ed2d9e7ab067bdd2",
+      "docs/DEVELOPMENT_PLAN.md": "773d1029218726f232b60dce849331120ff5cf09147d9e676c01716577196219",
+      "docs/DEVELOPMENT_STATE.json": "e6842efae28c046390ed4af74d59b33ac5a2e8c2c9467102f5545637f5d7bd48",
+      "docs/IMPLEMENTATION_PLAN.md": "dcde4745241faa7eb6491c948f0fd363562542a4da615646ae95129fc101bc2e",
+      "docs/RELEASE_EXECUTION_PLAN.md": "5333043fef266fc61b8fdcc401ae08064bc4fa460ac3f62002a7072512589ff4",
+      "docs/RELEASE_READINESS.md": "66e078e0094bea19a09a0b2a8fd2a6b9d0dd3353e7b6cb3477f020b3659ad580",
+      "docs/REPOSITORY_OVERVIEW.md": "597365616b803062e91903f470b34d783976eb309b376f58c145626ec84552b2",
+      "docs/WINDOWS_ARCHITECTURE.md": "de5313778b6e642092b0d9410dcbd568e644f16d7e54f3a13a8a62dac45a79cb",
+      "docs/architecture/CURRENT.md": "2d4f3a952ef1b6d55ae7cb383475c908042d321ad6dae76227fcd637a85d67d0",
+      "docs/architecture/REVIEW.md": "c3f83909179a2f51e48958d591922bec350f75a551fdc76e13889390de872e7e",
+      "docs/architecture/TARGET.md": "679994c56713f9c904b48b8f729e5da06e5cbb236ca28474d5bd82647fe7586c",
+      "docs/development/README.md": "c55575573dd0bdf639e85357f27df46d6156f666b39d15df5cfb5fc70918ca79",
+      "docs/development/documentation.md": "02d5ecc0e4ce13e2f5d5553c4d63b029d2f359c019af3b0c07c69f4ba255d827"
+    },
+    "document_relative_links_checked": 122,
+    "anchors_checked": 59,
+    "unique_link_targets": 44,
+    "work_packages": 13,
+    "implementation_steps": 156,
+    "release_gates": 12,
+    "root_readme_unchanged": true,
+    "errors": [],
+    "receipt_sha256": "be047926944a3d54eae261133664f95fb762e66cbf0efd52553db29f6ee5ed87",
+    "mermaid_version": "12.3.0",
+    "mermaid_bundle_sha256": "336df803d87a38b70a01e736e666c8f7601d2ce42f5e47c8fafe5d721074b9a3",
+    "browser": "158.0.8127.18",
+    "rendered_diagrams": [
+      {
+        "type": "flowchart-v2",
+        "viewBox": "4 4 875.703125 1447",
+        "elements": 194,
+        "tag": "svg",
+        "source": "CURRENT.md",
+        "diagram": 1,
+        "svg_sha256": "8c46f6b8cb804678526440da6a10eb2dac5c6c209466634819ce6f73f315719b",
+        "source_sha256": "6e7b0d66192353c3fad8a7eaee650869f8ccfa2ba140e31c12d0da57bad5f3f4"
+      },
+      {
+        "type": "stateDiagram",
+        "viewBox": "4 4 1052.432373046875 926",
+        "elements": 133,
+        "tag": "svg",
+        "source": "CURRENT.md",
+        "diagram": 2,
+        "svg_sha256": "bc6524df4ba7cfa35d5f62948ba0368235b28fdbc5504ad89bdcac77b9b48f5e",
+        "source_sha256": "3ebd4a465116c6b4c489a70259204353533cd238a17f16c3ff8339811d58efba"
+      },
+      {
+        "type": "sequence",
+        "viewBox": "-50 -10 1854.5 1299",
+        "elements": 155,
+        "tag": "svg",
+        "source": "CURRENT.md",
+        "diagram": 3,
+        "svg_sha256": "6f1dd028e33e7d2496f3459480a31fb6899e846884292539e06f0758078bd9b7",
+        "source_sha256": "bad13f6c9e2c439583762fd2575fdd649f3137c131cf2a70b6aac1af971d8638"
+      },
+      {
+        "type": "flowchart-v2",
+        "viewBox": "4 4 1180.109375 568.5",
+        "elements": 162,
+        "tag": "svg",
+        "source": "CURRENT.md",
+        "diagram": 4,
+        "svg_sha256": "5e3433cafd573d458d230352f28a8051f0bb3a70a086a650e9b11d9e6a57282d",
+        "source_sha256": "fc66bd658b40b2f675488a2a67d9eff6c47fec233291e6282b42542c75272053"
+      },
+      {
+        "type": "sequence",
+        "viewBox": "-50 -10 1048.5 949",
+        "elements": 104,
+        "tag": "svg",
+        "source": "CURRENT.md",
+        "diagram": 5,
+        "svg_sha256": "38de6fe930aa16cfa32137b2653db1ee337ce275f113f6896897a4196393a975",
+        "source_sha256": "c731252a8d4c4ba9e9d271aa07773b489a3ffb9534fe4935305a8fce10b94934"
+      },
+      {
+        "type": "flowchart-v2",
+        "viewBox": "4 4 697.9921875 1542",
+        "elements": 190,
+        "tag": "svg",
+        "source": "CURRENT.md",
+        "diagram": 6,
+        "svg_sha256": "14e8f9d9dcf47db8a0f51d5bf9cdca903439f0c924c894fe6042102b8d45d75d",
+        "source_sha256": "d4419df6dfd3afeb031c3c7b6bd6e0f35fe63cc7644e1f6fd855f1331e29765a"
+      },
+      {
+        "type": "flowchart-v2",
+        "viewBox": "4 4 769.65625 1524",
+        "elements": 160,
+        "tag": "svg",
+        "source": "CURRENT.md",
+        "diagram": 7,
+        "svg_sha256": "3d608ba30405fc5b6b709abf1c662fd5db12586eea3481e59ff2f84ad4469ce0",
+        "source_sha256": "faae0287b8a1335cf9b798420bc606e42aefa6bcb5f3cedb7251c88d5a4d9f6e"
+      },
+      {
+        "type": "flowchart-v2",
+        "viewBox": "4 4 667.203125 1844",
+        "elements": 181,
+        "tag": "svg",
+        "source": "CURRENT.md",
+        "diagram": 8,
+        "svg_sha256": "dd90b95c62cbc65f1ef4e1f596e16c7af6f2c51e694279e1dc01d5e772e84dce",
+        "source_sha256": "22c6d1c3f8f799f3229089fd9dda9c872a76e12702a5e0359f64929cb8a1c6c5"
+      },
+      {
+        "type": "flowchart-v2",
+        "viewBox": "4 4 1426.53125 391.5",
+        "elements": 151,
+        "tag": "svg",
+        "source": "CURRENT.md",
+        "diagram": 9,
+        "svg_sha256": "b0ed2efcb2eca586ee3d1ad03f512b4c47d25ec55592a62fab9e6ffeef8b5e52",
+        "source_sha256": "6b65b060da865322453548bcc7e7b26a9932a92e59006013da0f184bd3873778"
+      },
+      {
+        "type": "flowchart-v2",
+        "viewBox": "4 4 744 704",
+        "elements": 102,
+        "tag": "svg",
+        "source": "CURRENT.md",
+        "diagram": 10,
+        "svg_sha256": "69972404aea4efb54fa481a90203a9aee36ebcd4248104e0740c243818505d12",
+        "source_sha256": "8958e1600f0494051d4ec3dc54fcd8ab316132176815873d4ab8e526f566ec4b"
+      },
+      {
+        "type": "flowchart-v2",
+        "viewBox": "4 4 687.9614868164062 1235",
+        "elements": 157,
+        "tag": "svg",
+        "source": "TARGET.md",
+        "diagram": 1,
+        "svg_sha256": "09ffb23a08e0989393547cebacdc64778abe8202903f4c41b4a990e5a5cbfebe",
+        "source_sha256": "6744d0ab8c6fd6ad727bcb976f337ff405f89d80b99e67fb98f0b570e2a3b05b"
+      },
+      {
+        "type": "sequence",
+        "viewBox": "-50 -10 1132 796",
+        "elements": 102,
+        "tag": "svg",
+        "source": "TARGET.md",
+        "diagram": 2,
+        "svg_sha256": "713cb590c2c0e581bef8a8bb873a9dbe8df996300e03ae40486bcac3a58c2e45",
+        "source_sha256": "5a5debc5f58111a0b4243eadb83ab610a1fcad8206660db745fbd9912f3b5594"
+      },
+      {
+        "type": "stateDiagram",
+        "viewBox": "4 4 744.6666870117188 990",
+        "elements": 141,
+        "tag": "svg",
+        "source": "TARGET.md",
+        "diagram": 3,
+        "svg_sha256": "96d475bf99bfca5efe0007ebf776bb921c8862ab29217f0d068e9e82dbbc5398",
+        "source_sha256": "68787d93eadd149f6a06c6ea50604b0577e7f24a63f51d4ff54d59e78a6cb5a2"
+      },
+      {
+        "type": "flowchart-v2",
+        "viewBox": "4 4 367.453125 1688",
+        "elements": 148,
+        "tag": "svg",
+        "source": "TARGET.md",
+        "diagram": 4,
+        "svg_sha256": "d1e21dcedcc2c94c90d7b671a12da7a3ee727c5484e7d12d32aa2b3f4bc6ed6c",
+        "source_sha256": "53ee66b35da5e229ce3f17f0fa2d8967f7b368a36caf941f59c9847bad859b9c"
+      }
+    ],
+    "render_receipt_sha256": "83c7b8f800fb8e025dc599afb350178855e5dd96721e12c9d3bd79f888ac1831",
+    "duplicate_keys_before": {
+      "json_files": 325,
+      "duplicate_fields": {
+        "docs/DEVELOPMENT_STATE.json": [
+          {
+            "key": "release_execution_plan",
+            "equal_values": false,
+            "old_type": "str",
+            "new_type": "str"
+          }
+        ]
+      }
+    },
+    "duplicate_keys_after": {
+      "json_files": 325,
+      "duplicate_fields": {}
+    },
+    "observed_package_steps": {
+      "E01": 12,
+      "E02": 12,
+      "E03": 12,
+      "E04": 11,
+      "E05": 12,
+      "E06": 14,
+      "E07": 13,
+      "E08": 15,
+      "E09": 10,
+      "E10": 11,
+      "E11": 14,
+      "E12": 12,
+      "E13": 8
+    },
+    "observed_step_total": 156
+  },
+  "related_hardware_evidence": "docs/evidence/amd-fresh-completion-observation-2026-11-21.json",
+  "related_hardware_source_hashes_match": true,
+  "process_receipts": {
+    "inventory": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 4.76600000000326,
+      "output_sha256": "098264a133f55d7236d9b4cccf1da225193254d32cb27693ba406f79c17f2be3"
+    },
+    "navigation": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 94.0940000000046,
+      "output_sha256": "cf3eabf1ed68d963248535462275fd49939d7f69fa84d9c25bd1cc598c47e1e2"
+    },
+    "primary": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 10.921999999998661,
+      "output_sha256": "c5672ac63d8abc971f3f761904693e21c12cae27a46e379499aded3dac8d9701"
+    },
+    "supplement": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 10.484000000004016,
+      "output_sha256": "a02d4b54be0f316fae3bb69d34f168ddc44aed95de2d031325581f07b5e7f97d"
+    },
+    "papers": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 4.546999999998661,
+      "output_sha256": "930a82da36d0bab1050e897974de7a8abb756c04042679622843238c1fab1f6e"
+    },
+    "paper_text": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 3.889999999999418,
+      "output_sha256": "0ca27f8b14c20d774ba0f9ac660629acf4bbb645bc75f1774323b5e980cddd85"
+    },
+    "mermaid_bundle": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 0.7350000000005821,
+      "output_sha256": "3144f2271a3ee26d84f9eec22da3d3734ad613f99c37d80c361befbf50de86b0"
+    },
+    "first_diagrams": {
+      "exit_code": 1,
+      "tree_retired": true,
+      "elapsed_seconds": 2.1710000000020955,
+      "output_sha256": "f3e80318bd5923c91d569b1e02dfa58bb8a84325621d8973cf60f313e0ea657a"
+    },
+    "diagrams": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 2.139999999999418,
+      "output_sha256": "296c6f93cec3e8911efb2baf6cc3ebb1cddb4d75b583c6e5c41bee91bce67655"
+    },
+    "documentation": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 0.4530000000013388,
+      "output_sha256": "2ee6082c19311e8c231762ee681848c178da851daa415949ad43493d6b370663"
+    }
+  },
+  "retained_validation_failure": "Initial diagram parsing rejected a sequence punctuation token. XML validation also rejected HTML line-break labels. The diagrams were changed and rendered again. Strict JSON validation found and corrected a duplicate state reference. The written step count also exposed two omitted E06 steps in the index, which were reconciled."
+}

@@ -10,6 +10,7 @@
 | docs/README.md | Task-based documentation entry point |
 | docs/users/ | User workflows, feature limits and troubleshooting |
 | docs/development/ | Build, test, contribution and authoring procedures |
+| docs/architecture/ | Source-bound system diagrams, architecture review and proposed design |
 | docs/reference/README.md | Navigation to canonical component contracts |
 | docs/research/README.md | Design investigations, separate from implemented behavior |
 | docs/validation/README.md | Readiness, performance claims and evidence interpretation |

@@ -1,4 +1,8 @@
-# Architecture: implemented layers and remaining gates
+# Earlier architecture checkpoints
+
+The [current architecture diagrams](architecture/CURRENT.md) and
+[revised architecture](architecture/TARGET.md) describe the active Windows
+product paths. The original notes below retain their historical scope.
 
 ## Implemented in 0.2
 

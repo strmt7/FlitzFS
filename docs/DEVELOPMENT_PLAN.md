@@ -1,7 +1,8 @@
 # FlitzFS development execution plan
 
-Use the current [repository overview](REPOSITORY_OVERVIEW.md) and
-[implementation plan](IMPLEMENTATION_PLAN.md). The [execution index](DEVELOPMENT_PLAN.json)
+Use the [revised architecture](architecture/TARGET.md),
+[repository overview](REPOSITORY_OVERVIEW.md) and
+[ordered implementation checkpoints](IMPLEMENTATION_PLAN.md#3-execution-order-and-dependencies). The [execution index](DEVELOPMENT_PLAN.json)
 maps the work packages to the existing ledger, dependencies and release gates.
 The [benchmark protocol](BENCHMARK_PROTOCOL.md) defines comparative evidence.
 The dated checkpoints below retain their original scope.

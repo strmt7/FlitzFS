@@ -6,6 +6,12 @@ tests fill explicit gaps; they do not replace an available standard workload.
 All host execution follows current local-development authorization and protects
 existing data, driver/system state, resources and owned-process retirement.
 
+The [revised architecture](architecture/TARGET.md#8-compare-the-whole-product)
+adds independent complete-size and operation-order qualification. DiskSpd 2.3
+changes default core placement and I/O buffer separation. Use the same version
+and explicit affinity, cache and data controls across paired trials.
+[DiskSpd 2.3 release notes](https://github.com/microsoft/diskspd/releases/tag/v2.3)
+
 ## Tools and roles
 
 | Tool | Role | Important scope |

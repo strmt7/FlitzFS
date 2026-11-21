@@ -1,0 +1,324 @@
+# Revised FlitzFS architecture
+
+The [current architecture](CURRENT.md) and [repository review](REVIEW.md) describe
+the source at df5be9b5b9d0. This document specifies the proposed boundaries for
+the Windows 11 x64 product. Each change has an implementation and acceptance
+sequence in the [development plan](../IMPLEMENTATION_PLAN.md#3-execution-order-and-dependencies).
+
+## 1. Separate volume ownership from presentation and acceleration
+
+Use the existing WinFsp native interface for Explorer and Win32. Give an
+independently supervised volume engine the exclusive backing lease, Windows
+callback contexts, CPU recovery, resource reservations and authority to publish.
+The tray submits commands and observes progress through a small versioned
+controller interface. It can reconnect to a live engine and display the
+difference between detached, recovering, write-fenced and unavailable.
+
+Build a private, foreground-started engine first. Test UI restart, orderly stop,
+session teardown and a crash of each process in isolation. WinFsp's launcher
+and service integration are deployment options to qualify against the required
+user/logon scope. A deployed mode must account for its owned processes and
+registrations on uninstall. The installed WinFsp driver and AMD driver are
+separate dependencies. [WinFsp architecture](https://winfsp.dev/doc/WinFsp-Design/) ·
+[WinFsp service architecture](https://winfsp.dev/doc/WinFsp-Service-Architecture/)
+
+```mermaid
+flowchart TD
+    Client["Explorer and Win32 clients"] <--> FSD["WinFsp driver / dispatcher"]
+    Tray["FlitzFS tray"] <--> Control["Versioned lifecycle and status interface"]
+    Control --> Engine
+    FSD <--> Engine
+    subgraph VolumeEngine["Owned volume engine instance"]
+        Engine["Handle and operation ordering"]
+        Engine --> Reader["Verified CPU snapshot / range reads"]
+        Engine --> Commit["Single publication owner"]
+        Policy["Workload and resource policy"] --> Engine
+        Commit --> Reader
+    end
+    Commit --> Provider["Qualified memory or persistent image backing"]
+    Reader --> Provider
+    Policy -. "bounded candidate request" .-> AMD["Optional verified AMD worker"]
+    AMD -. "advice and observed cost" .-> Policy
+    Rescue["Standalone CPU recovery and export"] --> Provider
+```
+
+Memory and durable image providers share the operation and format contracts.
+Each advertises capacity, flush and isolation semantics actually supplied by its
+backing. An image stored on a physical drive can provide an Explorer volume.
+Direct block-device provisioning requires its own provider, geometry, ownership
+and qualification. The image-based contract cannot confer block-device support.
+
+## 2. Make operation ordering and acknowledgement observable
+
+Preserve the current serial commit owner until metrics identify the cost of
+staging, lock holding, barriers and response delivery. Give each accepted
+operation a captured context identity, touched range, mutation assumptions and
+acknowledgement outcome. Under the owner, pin the actual selected image and
+record versions. Prepare optional compression or metadata candidates outside the
+publication lock. Before writing, compare the generation-bound context and
+operation preconditions. Re-read append EOF, constrained geometry, deletion
+and allocation as appropriate. CPU selection can proceed when the optional
+GPU service is busy, uncertain or being retired.
+
+Initially keep one accepted pending write. Add disjoint-range batching or group
+commit only once ordering tests show preserved append, EOF, rename, cleanup,
+close, Write and Flush semantics. Record a response attempt separately from
+a client's observed success. Cached and mapped client paths get explicit
+tests with acknowledged application operations and their actual barriers.
+[Official WinFsp native release](https://github.com/winfsp/winfsp/releases/tag/v2.2)
+· [Windows file flush](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers)
+· [Windows mapped-view flush](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-flushviewoffile)
+
+```mermaid
+sequenceDiagram
+    participant U as Windows client
+    participant E as Volume engine
+    participant A as Optional CPU or AMD candidate preparation
+    participant S as Durable image
+    U->>E: Operation and handle
+    E->>E: Pin authority and capture preconditions
+    E->>A: Owned immutable work, if useful
+    A-->>E: Candidate or refusal
+    E->>E: Select CPU when needed and revalidate operation
+    E->>S: Write new data, dependencies and amended index paths
+    E->>S: Complete provider data barrier
+    E->>S: Publish checked new checkpoint and complete barrier
+    E->>E: Expose committed generation
+    E-->>U: Complete status and actual byte count
+    Note over E,S: Reader leases and recovery roots protect earlier reachable storage
+```
+
+The versioned transaction contract must specify which roots are required to
+acknowledge a change. Preserve the current paired publication barriers until
+a new format and dependency model pass the same interruption oracle. A lost
+response can coexist with a complete and durable transaction. After recovery,
+an acknowledged mutation must be present within the supported failure model.
+An uncertain mutation can appear only in one allowed, internally complete
+state. The native owner must fence uncertain publication and reopen through the
+verified CPU authority. [Ordered recovery research](https://www.usenix.org/conference/osdi25/presentation/cui)
+
+## 3. Make reopen and reclamation scale incrementally
+
+Keep the existing append-layout readers and write ordering checks. Introduce
+a distinct feature capability for reused ranges. Extend the proposed transaction
+root with checked allocation summaries, record/digest identities, per-allocation
+incarnations and a durable retirement ledger. A read pins the referenced root,
+image or range generation. The reclaim transaction proves that the range is
+unreachable from active, retained recovery and pinned-reader authorities before
+it becomes allocatable. Recovery validates the old/new allocation owners and
+prevents reuse if ownership is uncertain. Changing a range allocation must
+change its incarnation. A stale offset alone conveys no access.
+
+Qualify three mechanisms separately before combining them:
+
+1. Mount admission with generation-bound validation. Keep the complete CPU
+   inventory audit as reference. Derive a fast path from checked root summaries,
+   bounded dirty-range records and the current ownership contract. Check pages
+   and payloads on access, run a resumable whole-volume audit and keep explicit
+   full verification for recovery. Unknown coverage forces the verified
+   recovery path. Measure startup work and the time to discover off-path damage.
+2. Same-layout segment repair or evacuation. Copy only proven live objects,
+   compare generations before publication and retire storage under existing
+   reader and object pins. Measure host and provider bytes written, allocator
+   metadata and live bytes moved. Retain the staged image rebuild as fallback.
+3. Reusable allocation. Publish old-to-new ownership in the same transaction
+   as the new references. Model interrupted allocation, pending release,
+   competing readers and recovery at each barrier before allowing a new writer
+   to allocate the range.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Current
+    Current --> Candidate: Reserve disjoint ranges and capture versions
+    Candidate --> Current: Decline or cancel before publication
+    Candidate --> Published: Verify bytes, publish new references and flush
+    Published --> Retained: Track old references until release is proved
+    Retained --> Reclaimable: No retained root, reader, owner or worker can refer
+    Reclaimable --> Reused: Record new durable allocation incarnation
+    Published --> Reopen: Interrupted or uncertain publication
+    Retained --> Reopen: Interrupted or uncertain retirement
+    Reopen --> Current: CPU verifies selected authority and allocation ownership
+```
+
+Track accounting at each layer. Logical user bytes, encoded live records,
+redundancy/index bytes, retired history, provider-allocated bytes and peak
+temporary reservations answer distinct questions. Use the measured total
+provider cost for release comparisons. The current read rules use append order
+as an integrity invariant. A new allocator must preserve equivalent guarantees
+under its compatible format contract. [Current paged reference checks](../../src/paged_store.cpp#L255)
+· [write-once recovery study](https://www.usenix.org/conference/osdi25/presentation/pan)
+
+## 4. Optimize complete size with bounded random access
+
+Write data quickly using the best observed fitting raw, LZ4, Zstd or
+verified AMD path for its class and current host. Schedule stronger collective
+work after evidence of useful similarity, durable-state stability and available
+background capacity. A logical group can hold one file or thousands. A small
+read resolves a separately indexed restart frame and a bounded set of immutable
+dependencies. A large logical group never forces a whole-group decode.
+
+Use a sparse catalog keyed by content sketches and versioned extent or fragment
+tokens. Try rolling or content-defined chunking for candidates whose alignment
+moves. Compare against the current indexed band and projection scheme and exact
+sharing. Let paged postings return bounded candidates. Preserve a persistent
+cursor across runs and different samples from highly populated buckets.
+Validate selected versions and byte identity on the authoritative image.
+Measure candidate recall and rejected work against an exhaustive oracle on
+controlled small sets, then test skewed, changing and real million-entry
+namespaces without making a square similarity matrix.
+
+```mermaid
+flowchart TD
+    Ingest["Fast native ingestion"] --> Stable["Stable file or extent versions"]
+    Stable --> Sample["Sample across content and access history"]
+    Sample --> Sparse["Paged sketches, representatives and bounded postings"]
+    Sparse --> Nominate["Nominate region membership and reference choices"]
+    Nominate --> Trial["Try independent codecs, exact sharing, deltas or dictionaries"]
+    Trial --> Verify["CPU verify bytes, dependencies and restart bounds"]
+    Verify --> Compare["Compare full settled size and measured access / write cost"]
+    Compare -->|Better and eligible| Publish["Publish COW frames, group descriptors and required models"]
+    Compare -->|No useful change| Memo["Record measured outcome for this content and policy"]
+    Publish --> Range["Resolve one requested range through bounded frames and bases"]
+    Memo --> Sample
+```
+
+A concrete first challenger is **similar fragments with multiple independent
+references**. Measure same-position, shifted and content-defined samples.
+Cluster a bounded batch by estimated shared bytes and access behavior. Choose
+one or more compact immutable reference/dictionary objects for the region.
+Each member chooses standalone compression, a direct reference plus residual,
+or a small independently decodable frame shared by short objects. Compare
+complete bytes against current protected shared bases and independent Zstd or
+LZ4. Charge every model, index, publication, mirror and retained reference.
+Keep direct-dependency decoding initially. Treat any deeper dependency design
+as a new format with an explicit peak-work proof. The prototype remains
+replaceable if another family demonstrates better held-out results.
+[RubikFS similarity and hotness study](https://www.usenix.org/conference/fast26/presentation/huang)
+· [EROFS compressed clusters](https://erofs.docs.kernel.org/en/latest/design.html)
+· [Btrfs compression units](https://btrfs.readthedocs.io/en/latest/Compression.html)
+· [Zstandard dictionary training](https://github.com/facebook/zstd/blob/dev/programs/README.md)
+
+Additional candidates include reversible type-aware transforms, trained
+dictionaries and fixed-point learned entropy models with independent frames.
+Fit locally on bounded samples and test held-out versions or unrelated groups.
+Publish a learned representation only after its complete cost, peak resident
+state, write amplification and cold/random access series pass. Store the exact
+required tables/model with versioned, mirrored decode dependencies. Native
+codecs and the recovery package decode on CPU independently of learning, GPU,
+runtime installation and online access. Required model bytes are accounted for
+even when amortized across many members.
+
+## 5. Share measured resource and rewrite budgets
+
+Use a host resource coordinator to assign separate foreground reserves and
+background allowances across open volumes, CPU work, memory/commit, device
+memory, device quanta and storage write cost. Size allowances from observed
+demand and latency. Charge sampling,
+verification, durable writes, canceled work and GPU setup. Lower host priority
+where supported, split work into bounded quanta and yield before scheduling
+another quantum when I/O arrives or headroom falls. Keep generation-bound
+progress so a restarted volume can resume the last confirmed work.
+
+Persist advisory baselines, candidate outcomes, sampled access class, cursors,
+debits and schema version in the reserved area. Evidence of content,
+configuration or workload change can fund another attempt. Use timing to pace
+funded work, including health and integrity periodicity, with event-driven
+wakeups. Rebuild damaged or incompatible advice without changing the selected
+data. Prefer audit and repair when integrity evidence requires it. Give
+migration, compaction and codec trials separate quotas. Observe the impact of
+their combination before enabling their defaults.
+
+Record deadlines from admission through result selection and retirement.
+Windows submission priority is only one signal. ROCm documents limits on HIP
+stream priority, so use work size, finite process lifetime, cancellation
+between units and fresh headroom to enforce the host policy.
+[AMD HIP stream management](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/reference/hip_runtime_api/modules/stream_management.html)
+· [Windows video-memory observations](https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/nf-dxgi1_4-idxgiadapter3-queryvideomemoryinfo)
+
+## 6. Qualify distinct AMD roles on complete work
+
+Use the same route identity and health model for each role but bind
+cost and admission evidence by role. Record the ROCm distribution, HIP headers,
+loaded runtime hash and ABI, worker/module identities, adapter LUID and node,
+representative input shape, workload, device memory and recovery generation.
+
+- **Fast ingestion.** Connect the installed package discovery and calibrated
+  ordinary write route. Offer work only for measured shapes where full
+  transfer, validation and commit cost earns capacity. Compare a paired
+  CPU route, with immediate CPU selection under refusal and concurrent I/O.
+- **Collective search and compression.** Use the installed anchor/reference
+  path and finite batches to test additional profitable candidates per idle
+  opportunity. Include occupied size, search recall, host interference and
+  write debit in the decision. The CPU owner verifies candidates independently.
+- **Recovery and optional reads.** Keep recovery entirely CPU. Qualify GPU
+  range acceleration separately if complete read cost improves after integrity
+  validation. The identical volume and range remain available from the CPU
+  decoder when the device cannot execute.
+- **Packaging.** Bind each role's dependencies explicitly. Qualify the optional
+  package in a private stop-confirmed process using the target installed
+  runtime. Build and link isolated role controls to detect cross-role symbol
+  dependencies early. Link shared verified routines explicitly for each role.
+
+Discovery runs only for qualified work and changed evidence. Resource pressure
+uses a fresh observation. Device, runtime or integrity failures require a
+suitable requalification signal and confirmed retirement before reuse. An
+unready or unavailable route leaves the CPU path available while the owner
+records the reason. Use repeated matched mounted runs and live hardware
+observations before enrolling each accelerated role by default.
+[AMD ROCm Core release notes](https://rocm.docs.amd.com/en/develop/about/release-notes.html)
+· [current controlled and live GPU results](../evidence/amd-fresh-completion-observation-2026-11-21.json)
+
+## 7. Format compatibility, repair and upgrade
+
+Commit a matrix of supported historical format capabilities, including earliest
+and latest readable versions, enabled read and write features and recovery
+requirements. Retain the existing target of reading images from at least three
+preceding software releases once those releases exist. Ship a standalone CPU
+reader with every codec needed by supported images. Each supported new reader must read the selected prior fixtures and
+export their verified bytes, names, metadata and dependency information.
+An older reader may read a compatible pinned view only while that compatibility
+is supported and verified. Unknown required capabilities must fail before
+mutation.
+
+For an upgrade, record the intended source and feature set and the resumable
+migration cursor. Read both admitted representations while building the new
+one. CPU-audit the candidate, publish the capability and root together, confirm
+recovery from both sides of every barrier, then retire previous data only under
+the same retention proof as ordinary writes. If the user needs an older
+compatible representation after new features are committed, provide a
+validated export or rollback route with an explicit account of later writes.
+
+Use a backend-specific failure model. Single-copy damage may allow verified
+peer recovery. Storage that loses every copy requires an independently verified
+restore source. Probe write ordering, torn commits, lost flushes, uncertain
+system calls, stale selectors or allocator state, model corruption, concurrent
+pins and repair interruption. Measure on isolated persistent backings for any
+claim about power loss, write ordering or media failure. An in-memory fixture
+can establish logical state transitions and precise oracles.
+[End-to-end integrity research](https://www.usenix.org/conference/fast26/presentation/gupta)
+· [Microsoft resilient filesystem repair model](https://learn.microsoft.com/en-us/windows-server/storage/refs/refs-overview)
+
+## 8. Compare the whole product
+
+Define native-client workloads before optimizing. Use exact candidate
+manifests and Windows build, driver, backing, CPU/GPU/resource and cache
+evidence. Use DiskSpd for I/O shapes, Win32/Explorer fixtures for names,
+metadata/cached writes and lifecycle, and paired corpus runs for size and
+recompression. Keep NTFS with compression off and on as Windows controls where
+the same fixture can support them. Use Btrfs, EROFS or other relevant filesystems
+only for the corresponding capability and with disclosed OS, read/write and
+backing differences. Include strong per-file and grouped codec controls,
+with 7-Zip or Zstd settings and costs pinned. Measure hardware read/write
+performance on the real host. Use disposable guests for correctness and isolation.
+
+Cover mixed real files, similar versions, already compressed/encrypted content,
+small files, concurrent churn and cold random reads. Freeze training and
+held-out cohorts before selection. Report all cohorts and resource refusals, with
+baseline/setup/settled provider bytes, peak work, write amplification,
+throughput, tail read and write time, host responsiveness and time to settle.
+Alternate matched trials, preserve raw observations and independently read back
+every result. Practical access and low host impact are feasibility conditions.
+Choose the smallest qualified complete image within them.
+[Microsoft DiskSpd 2.3](https://github.com/microsoft/diskspd/releases/tag/v2.3)
+· [DiskSpd test controls](https://github.com/microsoft/diskspd/wiki/Customizing-tests)
+· [FlitzFS benchmark protocol](../BENCHMARK_PROTOCOL.md)

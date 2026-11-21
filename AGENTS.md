@@ -99,7 +99,7 @@ unrelated drivers; qualified FlitzFS driver deployment follows the condition abo
 
 For forward product work, use docs/REPOSITORY_OVERVIEW.md and the scoped steps
 in docs/IMPLEMENTATION_PLAN.md. The execution_programme in
-docs/DEVELOPMENT_PLAN.json indexes the 154 steps and their completion dependencies;
+docs/DEVELOPMENT_PLAN.json indexes the numbered steps and their completion dependencies;
 read the relevant step/component, not every historical checkpoint on every turn.
 Do not mistake a completed foundation/fixture for a closed product requirement.
 Prioritize complete native Windows paths, scalable native metadata, automatic

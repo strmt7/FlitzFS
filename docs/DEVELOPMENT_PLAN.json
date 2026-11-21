@@ -3,15 +3,19 @@
   "updated": "2026-11-22",
   "forward_work_rule": "Use current_release_sequence for integration order, and execution_programme and the implementation plan for package dependencies and exits. Historical checkpoints describe completed or partial evidence.",
   "current_release_sequence": {
-    "reviewed_commit": "148d728d36d2fdb8e3cd0ee2a5874c7548799b54",
-    "reviewed_tree": "d311b7e800feb8b4a8aceac4061b54ead5d90d0a",
+    "reviewed_commit": "df5be9b5b9d0bc05ac565eb2da8454ac76bed3d2",
+    "reviewed_tree": "a9bab22082849332c28a085f0eb154aaacb15538",
     "assessment": "docs/REPOSITORY_OVERVIEW.md",
-    "ordered_work": "docs/RELEASE_EXECUTION_PLAN.md#next-integrated-qualification",
+    "architecture_diagrams": "docs/architecture/CURRENT.md",
+    "source_review": "docs/architecture/REVIEW.md",
+    "revised_architecture": "docs/architecture/TARGET.md",
+    "ordered_work": "docs/IMPLEMENTATION_PLAN.md#3-execution-order-and-dependencies",
     "package_contract": "docs/IMPLEMENTATION_PLAN.md",
     "gate_ledger": "docs/RELEASE_EXECUTION_PLAN.md#current-gate-ledger",
-    "evidence": "docs/evidence/release-reconciliation-indexed-handle-2026-11-22.json",
+    "evidence": "docs/evidence/architecture-reconciliation-2026-11-21.json",
     "latest_recovery_evidence": "docs/evidence/windows11-inflight-publication-cuts-2026-11-21.json",
-    "next": "Extend mounted publication cuts from the verified in-flight write to EOF shrink, rename and a separate image switch. Keep independent CPU readback, pending client responses, fresh writable continuation and occupied-byte accounting in that trace.",
+    "latest_amd_evidence": "docs/evidence/amd-fresh-completion-observation-2026-11-21.json",
+    "next": "Extend populated mounted cuts to EOF shrink, rename and the outer image switch. Then qualify an installed foreground AMD offer in ordinary writes with matched CPU and refused-device cases, independent readback and controlled retirement.",
     "release_qualified": false
   },
   "baseline": {
@@ -2084,7 +2088,7 @@
     "status": "Repository-wide architectural and delivery review. Active implementation continues.",
     "last_shared_factory_evidence": "docs/evidence/memory-volume-factory-2026-11-17.json",
     "release": false,
-    "step_count": 154,
+    "step_count": 156,
     "release_gates": [
       "S1",
       "S2",
@@ -2180,7 +2184,7 @@
       {
         "id": "E06",
         "title": "Protected collective representation in ordinary storage",
-        "steps": 12,
+        "steps": 14,
         "completion_dependencies": [
           "E01",
           "E02",
@@ -2342,6 +2346,7 @@
         ]
       }
     ],
+    "superseding_checkpoint_order": "docs/IMPLEMENTATION_PLAN.md#3-execution-order-and-dependencies",
     "first_slices": [
       {
         "steps": [

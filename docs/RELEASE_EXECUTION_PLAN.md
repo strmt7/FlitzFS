@@ -1,13 +1,15 @@
 # FlitzFS stable release execution plan
 
-Reconciled against `148d728d36d2fdb8e3cd0ee2a5874c7548799b54`, including the
-populated Windows post-flush recovery results and the measured handle metadata
-change. The [implementation plan](IMPLEMENTATION_PLAN.md) defines the product
-scope and work packages. This plan orders implementation and qualification
-and gives the evidence required at each handoff.
+Reconciled against `df5be9b5b9d0bc05ac565eb2da8454ac76bed3d2`.
+The [repository review](architecture/REVIEW.md) describes current evidence
+and the [revised architecture](architecture/TARGET.md) specifies designated
+product boundaries. The [implementation plan](IMPLEMENTATION_PLAN.md) owns
+the ordered engineering checkpoints. This document defines the release
+qualification evidence for each checkpoint.
 
 [Current repository overview](REPOSITORY_OVERVIEW.md) ·
-[Reconciliation evidence](evidence/release-reconciliation-indexed-handle-2026-11-22.json)
+[Architecture evidence](evidence/architecture-reconciliation-2026-11-21.json) ·
+[Latest real hardware and SDK evidence](evidence/amd-fresh-completion-observation-2026-11-21.json)
 
 ## Release assessment
 
@@ -81,34 +83,22 @@ artifact and the observation needed before the related work can advance.
 
 ## Critical path
 
-1. Freeze the exact candidate and supported Windows contract for each
-   checkpoint. Bind source, dependencies, data fixtures, GPU runtime, SDK,
-   application binary and test configuration.
-2. Make one current indexed volume complete a real Windows operation sequence.
-   Use that same volume for interference, interrupted recovery and
-   compaction checks. Use the signed driver in isolated qualification first.
-3. Close scalable namespace and allocation work, then exercise large mounted
-   volumes. Make the allocator, handle lifetime and dependency transitions
-   part of the same qualification campaign.
-4. Move from isolated AMD advice and compression trials to automatic use with
-   a measurable benefit. Keep ordinary CPU operations and independent readback
-   available during every failure case.
-5. Qualify persistence, repair, migration, packaging and lifecycle against the
-   exact sources selected for the release candidate. Complete comparative
-   runs and the final soak on that candidate. The owner makes the release
-   decision.
+Use the [ordered engineering checkpoints](IMPLEMENTATION_PLAN.md#3-execution-order-and-dependencies).
+The same source-bound installed Windows path must support native client
+semantics, indexed publication, independently readable data and useful
+automatic AMD work. The execution evidence below sets each gate's exit.
+Independent corpus, process ownership, allocator and failure-model work can
+begin before the integrated path closes.
 
-GPU, compression research and the Windows correctness matrix can advance while
-the allocator and recovery work proceed. Mounted performance depends on both
-a qualified driver path and the scalable storage path. A changed source,
-runtime or dependency invalidates only the evidence whose inputs it changes.
-The evidence matrix records that dependency explicitly.
+The pending-write fixture established in-flight Write cuts. Extend them to
+EOF shrink, rename and image switch with the same independent CPU oracle.
+Instrument eligibility and response ordering before introducing additional
+pending writes. Then use the ordinary client trace for scale, maintenance
+interference and comparative AMD qualification.
 
-The Windows scheduler now checks pending compression after an optional scan
-declines under its CPU budget. The injected Windows test admits a beneficial
-group within its own budget while the due scrub stays deferred. Retain this
-case in the mixed-activity matrix with both controls and exact CPU readback.
-[Scheduling and scale evidence](evidence/indexed-scale-reopen-2026-11-20.json)
+The Windows scheduler can service eligible group work after a scan declines
+under its CPU budget. Retain the test with a due but deferred scrub as a
+mixed-activity control. [Scheduling and scale evidence](evidence/indexed-scale-reopen-2026-11-20.json)
 
 ## 1. Candidate and platform ledger
 
@@ -532,13 +522,10 @@ advisory and artifact inventories.
 
 ## Immediate implementation order
 
-| Checkpoint | Changes to finish | Evidence needed before advancing |
-| --- | --- | --- |
-| A | Carry the installed reference route into a verified automatic Windows workload. Instrument the foreground and recovery path on the same populated image. | Matched readback, occupied bytes, route selection, startup and worker retirement. |
-| B | Advance indexed foreground semantics and incremental reclamation together. Replace any measured namespace or whole-image bottleneck with a generation-safe bounded operation. | Real client operation trace, large-population resource curves, pinned-reader and failure-cut recovery. |
-| C | Run held-out compression on active and cold files. Connect the protected learning policy to measured route and representation choices. | Complete image savings, read amplification, background interference, write cost and restart continuation. |
-| D | Qualify backend durability, gradual upgrades, system integration and package cleanup. | Independent CPU rescue, exact backend and installed-driver receipts, Windows compatibility and security review. |
-| E | Run the recognized matched benchmarks and exact-candidate final soak. | An auditable pass for S1–S12 and the owner's decision. |
+The [five implementation checkpoints](IMPLEMENTATION_PLAN.md#3-execution-order-and-dependencies)
+set the order. The following receipts address the release gates and
+are reusable only when their source, runtime and configuration inputs still
+apply.
 
 ### Execution checkpoints
 
@@ -548,7 +535,7 @@ advisory and artifact inventories.
 | 2. Install and use one Windows volume | Extend the mounted Win32 results for both backings to a signed installation and interactive Explorer. Carry both through create, reopen, duplicate attach refusal, detach, restart and uninstall on the target Windows client. | Trace from installed helper through interactive Explorer and byte-exact CPU reopen for each provider. S7 |
 | 3. Scale the same workflow | Instrument verified root, inode, page and dependency I/O, then choose the largest measured bottleneck. Preserve generation-scoped checks and incremental scrub. Repeat under cold, warm, concurrent and low-headroom conditions using named populated files up to the supported scale. | Access, memory and write curves, stable Windows results, old-reader and latest-writer assertions. S2 |
 | 4. Prove reclamation and recovery together | Drive overwrite/delete churn until space is scarce, publish a smaller checked replacement, then release the old reader. Extend to incremental evacuation where whole images repeatedly lose to concurrent writes. Reconcile ownership of live ranges, protected dependencies, readers and pending repairs at every commit. | Returned occupied bytes, bounded write costs and no loss of acknowledged hashes across a backend-specific failure matrix. S3, S8 |
-| 5. Use AMD on the same volume | Run normal writes and idle collective work with device selection driven by current runtime, headroom, workload and grants. Cover missing device, device loss, pressure and verified retirement. A new attempt needs changed qualifying evidence and ownership confirmation. | End-to-end AMD and CPU pairs with exact data, useful work and measured tradeoffs. S4 |
+| 5. Use AMD on the same volume | Exercise a qualified installed foreground offer and automatic collective work with current runtime, headroom and workload. Trace pressure, device loss, stale evidence, CPU selection, publication and verified retirement. Match AMD, CPU and refused-device client traces. | End-to-end CPU-readback results and complete-cost observations for each automatically enabled role. S4 |
 | 6. Improve compression and learn offline | Freeze tuning and held-out families early. Extend the sparse candidate index and revision reuse. Price exact deduplication, independent compression, dictionaries, reference groups and new methods by complete stored size. Retain the best verified representation and learn from admitted idle results. | Held-out total-size/access curves, bounded discovery at scale, restartable policy, corruption isolation and measured background/wear impact. S5, S6 |
 | 7. Freeze formats and installation | Enumerate decoder requirements and maintain real older-reader fixtures. Trial versioned mixed representations and incremental COW migration with CPU export. Exercise package integrity, app/worker ACLs, signed driver/runtime combinations, user-data preservation, update and clean removal. | Supported compatibility matrix, manifest and SBOM, closed security findings, signed installation and rescue receipts. S8–S10 |
 | 8. Compare and soak | Freeze the qualified package and comparable Windows backing. Alternate DiskSpd and file/metadata workflows on real hardware, with complete size and recovery accounting. Run the declared soak across supported configurations and requalify affected lanes after material changes. | Complete reproducible results, all gate evidence, stability record and owner decision. S11, S12 |

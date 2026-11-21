@@ -1,5 +1,10 @@
 # Windows app, filesystem engine and driver architecture
 
+For the current app, driver and backing composition, see the
+[current architecture diagrams](architecture/CURRENT.md). The
+[revised architecture](architecture/TARGET.md) has the active deployment
+and process ownership design. This document retains the 9 November review.
+
 Research date: 9 November 2026. Windows-only AMD64 product, latest stable
 Windows 11. This records current evidence and engineering decisions; it is not
 a claim that the app, writable volume or live HIP worker is complete.

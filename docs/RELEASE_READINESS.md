@@ -7,9 +7,9 @@ strong held-out compression, installed Explorer behavior and compatibility.
 The owner alone makes the release decision.
 
 Use the [current gate ledger](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
-for status and acceptance. The [repository overview](REPOSITORY_OVERVIEW.md)
-records the source and evidence, and the
-[154-step implementation plan](IMPLEMENTATION_PLAN.md) gives the work packages.
+for status and acceptance. The [architecture review](architecture/REVIEW.md)
+records current source evidence and release risks, and the
+[detailed implementation plan](IMPLEMENTATION_PLAN.md) gives the work packages.
 
 The release plan estimates **60–130 person-weeks** at low confidence.
 Re-estimate after mounted scale, physical recovery and the first held-out

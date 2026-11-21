@@ -1,18 +1,17 @@
 # FlitzFS repository overview
 
-Reconciled against the **915-file** tree at
-`148d728d36d2fdb8e3cd0ee2a5874c7548799b54` and the accompanying handle metadata
-change. The review mapped current Windows attachment, metadata, allocation,
-recovery, AMD, background maintenance and package paths to their qualification
-evidence. The [release execution plan](RELEASE_EXECUTION_PLAN.md) identifies the
-next artifact for each gate. The [detailed implementation plan](IMPLEMENTATION_PLAN.md)
-defines the implementation and acceptance steps.
+Reconciled against the **933-file** tree at
+`df5be9b5b9d0bc05ac565eb2da8454ac76bed3d2`. The review maps the actual
+Windows attachment, authority, allocation, recovery, AMD, maintenance and
+package paths to source and qualification. The [current architecture](architecture/CURRENT.md)
+shows the flows, and the [source review](architecture/REVIEW.md) records
+which assumptions still need evidence. Use the [revised architecture](architecture/TARGET.md),
+[detailed implementation plan](IMPLEMENTATION_PLAN.md) and
+[release execution plan](RELEASE_EXECUTION_PLAN.md) for forward work.
 
-[Original architecture review](evidence/repository-review-2026-11-17.json) ·
-[Current reconciliation evidence](evidence/release-reconciliation-indexed-handle-2026-11-22.json) ·
-[Reviewed commit](https://github.com/strmt7/FlitzFS/commit/148d728d36d2fdb8e3cd0ee2a5874c7548799b54)
-Later checkpoints are recorded under recent executed evidence and in the
-[development state ledger](DEVELOPMENT_STATE.json).
+[Current architecture evidence](evidence/architecture-reconciliation-2026-11-21.json) ·
+[Previous handle and recovery reconciliation](evidence/release-reconciliation-indexed-handle-2026-11-22.json) ·
+[Development state ledger](DEVELOPMENT_STATE.json)
 
 ## Assessment
 
@@ -103,62 +102,19 @@ backing bytes across 64 queries, with zero writes in both builds.
 
 ## Current architecture
 
-```mermaid
-flowchart TD
-  GUI[Experimental helper and tray] --> VM[VolumeModel]
-  WC[WinFspMemoryVolume composition] --> CT[Owned WinFsp controller]
-  CT --> SDK[Writable WinFsp callbacks]
-  VM --> S[NativeFileSession]
-  SDK --> S
-  S --> N[Native filesystem writer and snapshots]
-  N --> P[Paged or legacy flat object storage]
-  S --> H[Typed volume head]
-  S --> A[Reserved advisory state]
-  VM --> B[Shared adaptive locked-memory factory]
-  WC --> B
-  S --> G[CPU shared-base group maintenance]
-  D[Supervised AMD advice and deferred writes] -. verified CPU candidates .-> S
-  R[Independent CPU reader] --> H
-  H --> P
-```
+The [current diagrams](architecture/CURRENT.md) cover Windows process
+boundaries, attach/retire, foreground writes, protected storage, CPU reads,
+recovery, scheduled grouping, GPU validation and evidence. The experimental
+helper owns the writable adapter in-process, while the optional AMD worker
+executes independently. The qualified Explorer build attaches memory or
+ordinary NTFS image backing through the same WinFsp owner. The CPU CLI exposes
+the legacy single-stream and catalog diagnostics.
 
-The indexed WinFsp composition owns its memory backing and one controller
-through creation, callback service, retirement, compaction and CPU inspection.
-The helper can select memory backing or a volume file through the qualified
-Explorer build. Both use the same owned controller. File selection includes
-exclusive new-file creation, checked reopen and explicit close after
-detachment. Both providers passed mounted Win32 operations in a signed
-WinFsp guest. Persistent activation also passed duplicate-create refusal and
-reopen in a fresh process. Interactive Explorer, supported installation,
-physical recovery and AMD through the mounted path remain to be qualified.
-[Helper factory](../src/windows/volume_app_winfsp.cpp) ·
-[File attachment factory](../src/windows/winfsp_volume_attachment.cpp) ·
-[Mounted evidence](evidence/windows11-stable-winfsp-2.2-2026-11-20.json)
-[Mounted helper qualification](evidence/windows11-mounted-volume-activation-2026-11-21.json)
-
-The diagnostic CLI operates on experimental image/container formats. It is not
-the final user-facing mount, creation or management interface. Historical ZIP
-compatibility work was retired; it is not a product requirement or a proposed
-filesystem format.
-
-## Architecture decisions after reconsideration
-
-| Boundary | Decision for the successor | Reason and first proof |
-| --- | --- | --- |
-| Windows namespace | Keep WinFsp and one engine behind Explorer, Win32 and the helper. Prototype the supported installed driver/runtime binding before considering a custom driver. | The SDK callbacks already cover substantial behavior. Measure the bridge with a memory reference and qualify the actual mounted lifecycle before attributing latency to the driver. |
-| Authority and formats | Keep CPU-readable immutable roots and current readers. Introduce a separately negotiated capability for new indexes and reusable allocation rather than reinterpret old references. | The current child and payload ordering checks rely on append offsets. New readers need explicit generation, lifetime and range proofs before recycling them. |
-| Metadata | Replace whole-model authority with ordered directory and extent pages, stable inode identities and a small per-transaction overlay. | An object index keyed by integers alone does not supply ordered parent/name and inode/range access. Prove bounded point and range costs with real populated files. |
-| Space and repair | Use verified full-image rebuild for bounded migration, recovery and initial handoff. Design incremental segment evacuation for steady operation. | A full copy requires another image and any current foreground commit invalidates it. Sustained low-rate writes must still allow useful reclamation. |
-| Data protection | Retain independent verification and recovery, compare record packing and redundancy layouts under equivalent failure assumptions. | With a 64 KiB failure unit, even a single small mirrored payload and its metadata can allocate at least 256 KiB before other costs. Compaction alone cannot turn that transaction geometry into high small-file efficiency. |
-| Foreground and GPU | Keep CPU completion independent. Use measured automatic dispatch and compare accelerator roles at complete-operation cost. | Kernel throughput alone cannot overcome transfers, setup, verification and publication. Some GPU work may earn its budget through a smaller settled volume. |
-| Strong compression | Keep shared-base coding as a control. Compete with bounded multi-reference, dictionary, reversible transform and learned candidates across content families. | The winning method can depend on data, protection cost and retrieval work. A versioned CPU decoder and held-out complete-size results decide adoption. |
-| Learning and scheduling | Separate advisory models/coherence from required decoding objects. Replace prototype thresholds with measured yielding, budgeted exploration and persistent sparse progress. | The volume stays readable after advice loss. Background compute and writes need demonstrated useful savings and measured foreground impact. |
-| Physical storage and upgrades | Keep the operation contract shared. Qualify each provider and explicit format migration, including interrupted upgrade and rollback. | A RAM volume and an append-only file model have different failure domains. Recovery must refer to a specified acknowledged state. |
-| Tooling, tests and docs | Keep reproducible private dependencies, meaningful independent oracles and immutable historical evidence. Consolidate current decisions in this review, the plan and its index. | Many old checkpoints still describe earlier scopes. They inform regressions and research without imposing obsolete host restrictions or closing current product gates. |
-
-The protected metadata path is worth preserving as a design pattern. Different
-storage geometry, shorter publication paths or less redundancy require separate
-capacity and failure evidence before replacing it.
+The [target architecture](architecture/TARGET.md) keeps WinFsp and CPU-readable
+verified transactions. It adds an independent volume owner, generation-bound
+admission, incremental reuse, sparse collective optimization and measured
+roles for AMD work. The [source review](architecture/REVIEW.md#findings-by-subsystem)
+connects each change to verified source behavior and open proof.
 
 ## Implemented behavior and practical limits
 
@@ -167,7 +123,7 @@ capacity and failure evidence before replacing it.
 | Object storage | Flat and paged stores, checked COW transactions, replicated metadata, streaming rebuild and bounded indexed selector publication | Durable segment allocation, reclamation under concurrent writes and backend qualification |
 | Native namespace | Indexed path and handle transactions, typed head selection, mounted guest evidence, scheduled retirement and staged compaction | Full Windows 11 client semantics and interference measurements during large live mutations |
 | Populated capacity | Million-object paged inventory, 16,384 populated files in the native reopen fixture, and 4,096 in the Windows SDK startup fixture | Comparable mounted scale curves for large directories, population, I/O and recovery |
-| Compression | Optional CPU Zstd/LZ4, exact sharing and independently readable indexed shared-base literal-patch members | Stronger shifted/multi-reference/type-aware/learned collective representations and representative complete-size results |
+| Compression | Optional CPU Zstd/LZ4, exact sharing, packed slices and independently readable indexed shared-base methods including copy, residual and prefixed frames | Stronger multireference and independent model candidates with representative held-out complete-size results |
 | Background work | Incremental indexed similarity discovery, live Windows admission, advisory checkpointing and automatic paired-range reclamation | Persistent scale, workload-driven codec selection and a measured policy for background writes |
 | CPU recovery | Independent parsers/decoders, typed-head validation, surviving-copy reads and source-preserving repair/rebuild primitives | Full backend failure qualification, repair after wider dependency damage and production recovery orchestration |
 | GPU | Automatic installed-runtime admission exercised in a controlled WinFsp owner, verified AMD collective proposals and independent CPU reopen | Automatic foreground and collective selection on the installed client, recovery across supported adapters and measurable net benefit |

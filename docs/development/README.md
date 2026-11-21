@@ -7,6 +7,7 @@ affected component. [End-user documentation](../README.md) is separate.
 | --- | --- |
 | Set up and build | [Building and testing](building.md), [host independence](../HOST_INDEPENDENCE.md) |
 | Choose checks and interpret results | [Validation](../validation/README.md), [validation details](../VALIDATION.md) |
+| Understand architecture | [Current diagrams](../architecture/CURRENT.md), [source review](../architecture/REVIEW.md), [revised architecture](../architecture/TARGET.md) |
 | Plan implementation | [Current repository overview](../REPOSITORY_OVERVIEW.md), [detailed implementation plan](../IMPLEMENTATION_PLAN.md), [execution ledger](../DEVELOPMENT_PLAN.json), [current state](../DEVELOPMENT_STATE.json) |
 | Change the storage format or recovery | [Storage references](../reference/README.md#storage-and-recovery) |
 | Compact or re-encode a paged native image | [Paged maintenance](../NATIVE_PAGED_MAINTENANCE.md), [bounded staging](../STAGED_PAGED_REBUILD.md) |

@@ -6,6 +6,27 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "architecture_reconciliation": {
+    "reviewed_commit": "df5be9b5b9d0bc05ac565eb2da8454ac76bed3d2",
+    "reviewed_tree": "a9bab22082849332c28a085f0eb154aaacb15538",
+    "tracked_files": 933,
+    "architecture_diagrams": "docs/architecture/CURRENT.md",
+    "revised_architecture": "docs/architecture/TARGET.md",
+    "source_review": "docs/architecture/REVIEW.md",
+    "implementation_order": "docs/IMPLEMENTATION_PLAN.md#3-execution-order-and-dependencies",
+    "evidence": "docs/evidence/architecture-reconciliation-2026-11-21.json"
+  },
+  "amd_fresh_completion": {
+    "source": "df5be9b5b9d0bc05ac565eb2da8454ac76bed3d2",
+    "evidence": "docs/evidence/amd-fresh-completion-observation-2026-11-21.json",
+    "windows_tests": 203,
+    "sdk_checks": 3710,
+    "sdk_scenarios": 85,
+    "live_matched_pairs": 3,
+    "independent_cpu_verified_extents": 16,
+    "matched_mirrored_records": 32,
+    "ordinary_mounted_foreground_qualified": false
+  },
   "indexed_coherence_reclamation": {
     "reviewed_commit": "76f4d3689e6a1061502e022934ba34d51a1bcd8f",
     "measured_on": "2026-11-21",
@@ -2471,7 +2492,7 @@
     "local_is_primary": true,
     "blanket_hosted_or_VM_first_gate": false
   },
-  "release_execution_plan": "docs/IMPLEMENTATION_PLAN.md",
+  "implementation_plan": "docs/IMPLEMENTATION_PLAN.md",
   "benchmark_protocol": "docs/BENCHMARK_PROTOCOL.md",
   "release_effort_estimate": {
     "planning_only": true,
