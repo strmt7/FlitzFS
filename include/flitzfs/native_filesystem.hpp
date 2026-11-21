@@ -655,8 +655,9 @@ class NativeFilesystemWriter final {
   Impl& checked_impl() const;
   detail::NativeObjectSnapshot checked_namespace() const;
   NativePathLookup inspect_path_lookup(std::string_view path) const;
-  NativeDirectoryRecordPage inspect_directory_page(std::uint64_t directory,
-      std::string_view after,std::size_t maximum) const;
+  std::optional<NativeDirectoryRecordPage> inspect_directory_page(std::uint64_t directory,
+      std::string_view after,std::size_t maximum,
+      const std::function<bool(const NativeInodeState&)>& admit) const;
   bool supports_file_contexts() const noexcept;
   std::uint64_t indexed_append_floor() const noexcept;
   std::uint64_t indexed_obsolete_bytes() const noexcept;

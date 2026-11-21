@@ -239,8 +239,8 @@ class IndexedVolumeView final {
   IndexedInodeInput resolve(std::string_view path,std::string* spelling=nullptr) const;
   NativeInodeState state(std::string_view path) const;
   NativeInodeState state_inode(std::uint64_t id) const;
-  NativeDirectoryRecordPage directory_records(std::uint64_t directory,std::string_view after,
-      std::size_t maximum) const;
+  std::optional<NativeDirectoryRecordPage> directory_records(std::uint64_t directory,std::string_view after,
+      std::size_t maximum,const std::function<bool(const NativeInodeState&)>& admit) const;
   IndexedDirectoryPage list(std::uint64_t directory,std::string_view after,std::size_t maximum) const;
   std::vector<NativeFileInfo> list_all(std::uint64_t directory) const;
   std::vector<std::byte> read(const IndexedInodeInput&,std::uint64_t offset,std::uint32_t bytes,

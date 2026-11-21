@@ -1,0 +1,367 @@
+{
+  "schema": 1,
+  "date": "2026-11-21",
+  "source": {
+    "base": "2af1093c9cfb3fc2fc67d289c309a5350f92f880",
+    "test_scope_patch_sha256": "72f293d5266ff50b4f160ec65136c161bc43d6cad52f6358ec21741262acc288",
+    "changed_paths": {
+      "include/flitzfs/native_filesystem.hpp": "4bf6ce16bdfc9cd4209cf22e219968cee1be5fc5e2b1efc9bab51106c87deb65",
+      "src/native_filesystem.cpp": "cbd8f39d3515938aca18b623bf5897cd34624c76bb31fcf684107dd0b2ce41aa",
+      "src/native_indexed_volume.cpp": "cc08f8ae937c6edb2d5554671a87ed6ed03bd90da0685b35484844cc7be7ee82",
+      "src/native_indexed_volume.hpp": "c228f7c7440e2bd817c49a3bed995cf5b3fcd11c72ed17625e71e79baa6bb457",
+      "src/native_name_index.cpp": "c116fd7c3c3dbf1d67f2da8ab024868ec66901f9e8053e853040b1f78d800c19",
+      "src/native_name_index.hpp": "4354b47905611f578902599f263a211073c383824cd905b93b82af6dd91c4fad",
+      "src/native_session.cpp": "74a049f938b9aa6d9b84d7eee061f0ef96aacaa44c27a5d4039975f4096bd451",
+      "tests/test_winfsp_paged.cpp": "e5f067f7b8066f1ff175fd2d44342210c0c0b6aed1d8d452e1258b9377638cc9",
+      "tools/ci/check_volume_app.py": "b21346356f2b98131622d48972dcec2bcd84838210afc818e123189d12aca9a9"
+    }
+  },
+  "directory": {
+    "windows_client_build": 26300,
+    "winfsp_sdk_version": "2.2.26323.ada6de1",
+    "sdk_dll_sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+    "setup": "385-child indexed directory at 4096-byte isolation units, exact SDK calls over owned memory",
+    "checks": "Kept exclusive continuation, case-insensitive markers, dot entries, exact name, inode and size, and no neighbour leakage.",
+    "narrow_bytes_saved_percent": 25.96,
+    "wide_bytes_saved_percent": 24.77,
+    "control_exe_sha256": "c47396ea3cd117549b75c796102cec594740737e2e4666e2eec94e5e4d15b722",
+    "candidate_exe_sha256": "36e8acb5ed2d0e9e494f609f06ea8427ccd13099dbb312e4d31ea14f17c358bd",
+    "runs": [
+      {
+        "arm": "control",
+        "entries": 385,
+        "complete_backing_bytes": 27261323,
+        "wide_backing_bytes": 965711,
+        "writes": 0,
+        "run": "local-run-73ca6cd8021743cb9cdc6d072537eac9",
+        "exit_code": 0,
+        "tree_retired": true,
+        "elapsed_seconds": 0.422,
+        "peak_job_bytes": 53338112,
+        "receipt_sha256": "9e3b51412d94e2b3cb3b96322720b1255b6fe39482a3309bc7c801eac1f4a35c",
+        "output_sha256": "e7857a27588e43d43b4904c0165cb09a30dfb1ed3a336a97268bddc7223146bb"
+      },
+      {
+        "arm": "candidate",
+        "entries": 385,
+        "complete_backing_bytes": 20183683,
+        "wide_backing_bytes": 726507,
+        "writes": 0,
+        "run": "local-run-00e3d5f320304cf69563eee3a684edde",
+        "exit_code": 0,
+        "tree_retired": true,
+        "elapsed_seconds": 0.484,
+        "peak_job_bytes": 52588544,
+        "receipt_sha256": "850b76fdae8d0158613a9b53279b5cc80f764c372745403cc4b69c094ade3ad5",
+        "output_sha256": "b3534717846cebceeaea20bd84f8df369d11a902cf1579421bea159b16ad102b"
+      },
+      {
+        "arm": "candidate",
+        "entries": 385,
+        "complete_backing_bytes": 20183683,
+        "wide_backing_bytes": 726507,
+        "writes": 0,
+        "run": "local-run-d6d55f82f3a04d9d82c9dcf9f5d525df",
+        "exit_code": 0,
+        "tree_retired": true,
+        "elapsed_seconds": 0.437,
+        "peak_job_bytes": 53874688,
+        "receipt_sha256": "3cfb51cb2941dcdee08f992530c6b5fc0ae79f05189bf875ef879bd7a2b028d8",
+        "output_sha256": "96d2a0b435f076815211cce7eb2803766d0069e347d92be9a71d5963b8c1423b"
+      },
+      {
+        "arm": "control",
+        "entries": 385,
+        "complete_backing_bytes": 27261323,
+        "wide_backing_bytes": 965711,
+        "writes": 0,
+        "run": "local-run-dd8bfb3fbc7e40c6bbb25928661da14f",
+        "exit_code": 0,
+        "tree_retired": true,
+        "elapsed_seconds": 0.469,
+        "peak_job_bytes": 53309440,
+        "receipt_sha256": "a2b0a1d2b94fae1c4d4088382914a9a79e2237ff508b26b256b8202e71f6c34b",
+        "output_sha256": "b1ef6efbcc2ecd94b56b33d5d8da00c8dda0ffc80fc3bf3dd88c635816fa7352"
+      }
+    ],
+    "mounted_throughput_qualified": false
+  },
+  "tests": {
+    "windows_release": {
+      "run": "local-run-1f3231df44a54e64952466f65c936b0d",
+      "exit_code": 8,
+      "tree_retired": true,
+      "elapsed_seconds": 179.766,
+      "peak_job_bytes": 336719872,
+      "receipt_sha256": "829d8e255aea4f256f16509dda316b4d90e97b6a15de381b90122336a8738be4",
+      "output_sha256": "d1bab81b17721e2caac0571b1a8465bfc9c8b286055431f13df1f91d8d93c67e",
+      "passed": 199,
+      "total": 200,
+      "ctest_timeout": "bounded_lz4_worker_decoder_staging"
+    },
+    "initial_ctest_retry": {
+      "run": "local-run-7296a093a10740c2a8e3885d7156b1ec",
+      "exit_code": 8,
+      "tree_retired": true,
+      "elapsed_seconds": 46.812,
+      "peak_job_bytes": 37785600,
+      "receipt_sha256": "aa00347aaaede30047dedae6bbe4f06be3a2f8790da5ea78a6a7158d81a9e660",
+      "output_sha256": "c4205ff2e7ebf86b06773f7e3d0d7f44dd5390dd21fa4354f96d43baf37cdd65"
+    },
+    "lz4_direct_eleven_passed": {
+      "run": "local-run-fb54fbe9c3fa45ecbe7bb2c3aeddcfbf",
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 23.719,
+      "peak_job_bytes": 33390592,
+      "receipt_sha256": "15101dd7eddde2e667e637fd857d6cd40ff45e48ae09601cd6ce24018ccc14f6",
+      "output_sha256": "31f86269b451569f9ba64702d433056013dc36526c81caaf3099066307e6d38c"
+    },
+    "lz4_later_ctest_retry": {
+      "run": "local-run-6858275ae143418d8d16d6b4e83a7cd8",
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 22.781,
+      "peak_job_bytes": 38047744,
+      "receipt_sha256": "9ce6bbeeadadd5740f0d4fcd8a508ecc5cc6c80e568a1b9d4f2957c66553769f",
+      "output_sha256": "a565ae7285cc64bdf1c04baf330ed46c4e0bfaa49783b9fe7a9810936ce661c6",
+      "passed": 1
+    },
+    "raw_only": {
+      "run": "local-run-5a0cfac93d514b31a4a2bc32b4ff6db9",
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 7.062,
+      "peak_job_bytes": 40128512,
+      "receipt_sha256": "e5962363fb9bd22dda20c64f669909cba2711a20d068469ca6c2c9170dd67cf3",
+      "output_sha256": "013ee2f0a7ff4d93da691dcfa8a71ccf7285e5f1df44b35eada3eb18adc4f19a",
+      "passed": 5
+    },
+    "address_sanitizer_ctest": {
+      "run": "local-run-a9672eb0b7024980b6525c00feb32b70",
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 1.312,
+      "peak_job_bytes": 406384640,
+      "receipt_sha256": "3472758db0a30474da7a054e020173bb6ad0a955fa574e891a4f1d394d09e3db",
+      "output_sha256": "91cccdcf1f440ac4c7fe77070a705aa2098e86619dd243477668a94fcacdec24",
+      "passed": 2
+    },
+    "address_sanitizer_directory": {
+      "run": "local-run-6f15ca27205849789fec4e897049307a",
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 1.344,
+      "peak_job_bytes": 309137408,
+      "receipt_sha256": "ad3a9cdd87ccbb74a63eac934a23f0ce2c2595340d795139017cf5e00f04182a",
+      "output_sha256": "fda47c8ba4f560b6aef9d83d6a2437388faf1f08f0db5a5066ef01b413549f43",
+      "checks": 4637,
+      "exe_sha256": "88221abf07a9545cf59522d94949f49300c7620f2196dbc26bd7232f14d3a1af"
+    },
+    "cmake_used": "4.5.0 (existing local compiler and SDK configuration)"
+  },
+  "windows_import_audit": {
+    "previous_hosted_run": 44883445347,
+    "previous_job": 136783525713,
+    "signed_windows_system_pdh_dll_sha256": "222c1bfbe2a5f3f86c0357f177919541c06bccc1558343775d0ed18eed48c1cc",
+    "raw_portable_binaries_before": {
+      "run": "local-run-4060179612604999975d8e5c8758500a",
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 0.484,
+      "peak_job_bytes": 15777792,
+      "receipt_sha256": "66094e0d77d6ed066e436ae9587fdef5f5c7b66e20d1499c7910c723f7fad48d",
+      "output_sha256": "46c95c06b355e50bd949842675bbe9680ba761017a7956e2338084e51b44e20f",
+      "entries": [
+        {
+          "role": "application",
+          "imports": [
+            "shell32.dll",
+            "user32.dll",
+            "gdi32.dll",
+            "bcrypt.dll",
+            "pdh.dll",
+            "kernel32.dll"
+          ],
+          "rejected": "Non-admitted application dependency: ['shell32.dll', 'user32.dll', 'gdi32.dll', 'bcrypt.dll', 'pdh.dll', 'kernel32.dll']"
+        },
+        {
+          "role": "harness",
+          "imports": [
+            "user32.dll",
+            "bcrypt.dll",
+            "pdh.dll",
+            "kernel32.dll",
+            "advapi32.dll"
+          ],
+          "rejected": "Non-admitted application dependency: ['user32.dll', 'bcrypt.dll', 'pdh.dll', 'kernel32.dll', 'advapi32.dll']"
+        }
+      ]
+    },
+    "same_binaries_after": {
+      "run": "local-run-6173f54da40046b59d477f838de8d312",
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 0.406,
+      "peak_job_bytes": 19968000,
+      "receipt_sha256": "a3f0e689e7b0a930587be1187789914aa56570070263536ffcc744014e48e1e6",
+      "output_sha256": "8fced3c4aaf55e5f804b990f07f21bda4137499d08cb5bfd1f013dbdec04bfdd",
+      "entries": [
+        {
+          "role": "application",
+          "imports": [
+            "shell32.dll",
+            "user32.dll",
+            "gdi32.dll",
+            "bcrypt.dll",
+            "pdh.dll",
+            "kernel32.dll"
+          ],
+          "admitted": {
+            "role": "application",
+            "format": "PE32+",
+            "architecture": "AMD64",
+            "bytes": 1143808,
+            "sha256": "905077b9be7a4f144b9f0b1f82fcf0ba3a6b2ed0fcbada2a8b32a21b21b76c54",
+            "os_imports": [
+              "bcrypt.dll",
+              "gdi32.dll",
+              "kernel32.dll",
+              "pdh.dll",
+              "shell32.dll",
+              "user32.dll"
+            ],
+            "delay_imports": false,
+            "aslr": true,
+            "high_entropy_va": true,
+            "nx": true
+          },
+          "with_unsupported_import_rejected": true
+        },
+        {
+          "role": "harness",
+          "imports": [
+            "user32.dll",
+            "bcrypt.dll",
+            "pdh.dll",
+            "kernel32.dll",
+            "advapi32.dll"
+          ],
+          "admitted": {
+            "role": "harness",
+            "format": "PE32+",
+            "architecture": "AMD64",
+            "bytes": 1384960,
+            "sha256": "4369d63cf78ccdea3ba5500329f027fb0a9b2c4bed149c8ea321d10365958bdb",
+            "os_imports": [
+              "advapi32.dll",
+              "bcrypt.dll",
+              "kernel32.dll",
+              "pdh.dll",
+              "user32.dll"
+            ],
+            "delay_imports": false,
+            "aslr": true,
+            "high_entropy_va": true,
+            "nx": true
+          },
+          "with_unsupported_import_rejected": true
+        }
+      ]
+    },
+    "portable_volume_model": {
+      "run": "local-run-96911b9aa1214106b959c0224eaad095",
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 0.953,
+      "peak_job_bytes": 10326016,
+      "receipt_sha256": "ac492a4513c48bcafb0acf74c6b62a31d8000197fa58506356121c4a44a1b930",
+      "output_sha256": "1e4fad984d39d37df895c168f164b25aca264d4d323781b1a16486087b62ca37",
+      "checks": 841
+    },
+    "scope": "Actual standalone Windows application and harness built with both optional codecs disabled."
+  },
+  "amd_public_corpus": {
+    "fixture": {
+      "run": "local-run-0e0ff7d2ad1b439ebaea9109a3f0af20",
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 3.672,
+      "peak_job_bytes": 101629952,
+      "receipt_sha256": "b305e6f4b0dbfb0493e4294b582792e7f3aaa0195de7370f9a6f6b63b5e60b0f",
+      "output_sha256": "3cd35f9f49a2b6e02322010547b04b3e28982cf06e787d460b28bce3d886bb99"
+    },
+    "controller_sha256": "676f84904abf7939cb98cd29b5cfa70781ff4de47c011ec1ed32e70979bca517",
+    "input_sha256": "ffe86027aaf7145f34f11b6225fb18ee118a791f00818509cf37274261fa14b6",
+    "files": 36,
+    "kernel_launches": 14,
+    "verified_groups": 7,
+    "advised_members": 12,
+    "compacted_bytes": 319488,
+    "independent_cpu_readback": true
+  },
+  "previous_hosted_recovery": {
+    "run": 44883445382,
+    "job": 136783525711,
+    "outcome": "The CMake build reached its 120-second deadline. The root-3 recovery test did not start."
+  },
+  "navigation": {
+    "files": 7,
+    "actual_searches": 1,
+    "result_sha256": "f078d23d53bbcc80489d252f9cb153ffb79b646feef47fb2129ddb20b66d043c",
+    "source_inventory_sha256": "436e936655d606ba18723ff3ff7546cff235984447602359dc708263d86e378a"
+  },
+  "web_sources": [
+    {
+      "name": "winfsp-read-directory",
+      "url": "https://winfsp.dev/doc/WinFsp-API-winfsp.h/",
+      "success": true,
+      "native_success": true,
+      "http_status": 200,
+      "final_http_status": 200,
+      "markdown_bytes": 73095,
+      "markdown_sha256": "23f2e7b26b2297a12d6e98acb7b612010c44361803cc72c3563f82571cce5837",
+      "expected_content": true,
+      "failure_category": "",
+      "error": "",
+      "seconds": 1.1,
+      "capture": "winfsp-read-directory.native.json",
+      "capture_sha256": "a9b11d2948cae5ff10af829169c95267f97bab2afba73ae21f6bb178970a064a",
+      "provider_version": "0.9.5+flitzzip.portable2"
+    },
+    {
+      "name": "windows-query-directory",
+      "url": "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntquerydirectoryfileex",
+      "success": true,
+      "native_success": true,
+      "http_status": 200,
+      "final_http_status": 200,
+      "markdown_bytes": 48202,
+      "markdown_sha256": "47d4995e8e52c1433dae88acaa694a4a95c1bb8363b2534abdf472cb893c3890",
+      "expected_content": true,
+      "failure_category": "",
+      "error": "",
+      "seconds": 1.586,
+      "capture": "windows-query-directory.native.json",
+      "capture_sha256": "d40b0f364be646a24e17f38bc51e9baf5eb7028ec323aee45153c72af6e9aa01",
+      "provider_version": "0.9.5+flitzzip.portable2"
+    },
+    {
+      "name": "windows-pdh-open-query",
+      "url": "https://learn.microsoft.com/en-us/windows/win32/api/pdh/nf-pdh-pdhopenqueryw",
+      "success": true,
+      "native_success": true,
+      "http_status": 200,
+      "final_http_status": 200,
+      "markdown_bytes": 19118,
+      "markdown_sha256": "a4ee6afa014a6eb71b2179e4db1f99bb75fedd63c0b7dab06e36e03739dc3689",
+      "expected_content": true,
+      "failure_category": "",
+      "error": "",
+      "seconds": 1.225,
+      "capture": "windows-pdh-open-query.native.json",
+      "capture_sha256": "9f4b5435a61864f4444a0e00e15df4bb9b2213bb346fc3143b0d6b912dd631ca",
+      "provider_version": "0.9.5+flitzzip.portable2"
+    }
+  ]
+}

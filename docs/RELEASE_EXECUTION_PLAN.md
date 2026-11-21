@@ -1,7 +1,7 @@
 # FlitzFS stable release execution plan
 
-Reviewed on 21 November 2026 against the source at `76e9e17f0954998ee05b16d4f05c8aed9ea3d233`
-and the collective packing work validated in this round. The [implementation plan](IMPLEMENTATION_PLAN.md)
+Reviewed on 21 November 2026 against the source at `2af1093c9cfb3fc2fc67d289c309a5350f92f880`
+and the indexed directory work validated in this round. The [implementation plan](IMPLEMENTATION_PLAN.md)
 defines the full product scope and work packages. This plan gives the order
 of execution, evidence required at each handoff, and the remaining release
 work.
@@ -119,6 +119,15 @@ case in the mixed-activity matrix with both controls and exact CPU readback.
 
 [Indexed volume implementation](INDEXED_NATIVE_VOLUME.md) ·
 [Windows controller](WINFSP_OWNED_CONTROLLER.md)
+
+Reusing one checked view per indexed directory page reduced backing reads
+from 27,261,323 to 20,183,683 bytes for 385 names read through single-entry
+SDK buffers. A wide buffer reduced reads from 965,711 to 726,507 bytes in
+the same directory. Both paths returned the expected names, inode IDs,
+logical sizes, and termination markers. Add these cases to the large
+mounted client trace and retain the mixed-size buffer cases when measuring
+read throughput and contention.
+[Directory query evidence](evidence/indexed-directory-query-2026-11-21.json)
 
 ### Next writable-resume qualification
 

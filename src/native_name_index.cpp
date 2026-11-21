@@ -473,7 +473,7 @@ std::optional<std::uint64_t> NativeNameIndex::find(const NativeNameKey& key) con
 }
 
 std::vector<NativeNameEntry> NativeNameIndex::list(std::uint64_t parent, std::string_view after,
-    std::size_t maximum) const {
+    std::size_t maximum,bool* more) const {
   if (!parent_valid(root_.kind,parent) || after.size()>maximum_name_bytes)
     fail(Error::invalid_path, "invalid name index enumeration key");
   const NativeNameKey key{parent,std::string(after)};
@@ -481,9 +481,14 @@ std::vector<NativeNameEntry> NativeNameIndex::list(std::uint64_t parent, std::st
   if (!maximum || maximum>1024) fail(Error::limit, "name index enumeration page budget");
   std::vector<NativeNameEntry> output;
   if (root_.page) {
-    output.reserve(maximum);
-    (void)list_range(root_,root_reference(root_),key,parent,maximum,output,
+    const auto count=maximum+(more?1:0);
+    output.reserve(count);
+    (void)list_range(root_,root_reference(root_),key,parent,count,output,
         [this](auto id,Bytes& scratch){return query_page(id,scratch);});
+  }
+  if(more) {
+    *more=output.size()>maximum;
+    if(*more)output.pop_back();
   }
   return output;
 }

@@ -59,6 +59,13 @@ current driver/API sources before important implementation changes.
 
 ## Qualification
 
+The portable volume application and its harness use the Windows Performance
+Data Helper system library for CPU-load observations. Their import audit
+admits `pdh.dll` explicitly and checks the other imports, PE subsystem, ASLR
+and NX on the same binaries.
+[Microsoft PDH requirements](https://learn.microsoft.com/en-us/windows/win32/api/pdh/nf-pdh-pdhopenqueryw) ·
+[Import audit evidence](evidence/indexed-directory-query-2026-11-21.json)
+
 Existing non-Windows CPU and sanitizer jobs are implementation analysis only.
 They do not create or promise a second OS product. Existing Windows Server CI
 provides native build/API/lifecycle evidence only; actual latest Windows 11 client

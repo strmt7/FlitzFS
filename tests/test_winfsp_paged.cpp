@@ -43,7 +43,7 @@ struct Harness {
   std::shared_ptr<BlockingIo> image_io;
   Bytes security;Clock clock;
   explicit Harness(unsigned unit,const Bytes* previous=nullptr,const Bytes* old_head=nullptr,const Bytes* old_advice=nullptr,
-      const NativeDeferredWriteOptions* deferred=nullptr):
+      const NativeDeferredWriteOptions* deferred=nullptr,bool indexed=false):
       head(ram(unit)),image(ram(unit)),advice(ram(unit)) {
     image_io=std::make_shared<BlockingIo>(image);
     if(previous) {
@@ -51,7 +51,9 @@ struct Harness {
       adapter=WinFspNativeWritable::resume_managed_retired(head,id(90),1,[&](const auto& key)->std::shared_ptr<StoreByteIo>{
           if(key!=id(1))throw std::runtime_error("fixture image identity");return image_io;},
           {StoreCompressionMode::raw,1,false},advice,1);
-    } else adapter=WinFspNativeWritable::create_managed_paged(head,id(90),image_io,id(1),
+    } else if(indexed)adapter=WinFspNativeWritable::create_managed_indexed(head,id(90),image_io,id(1),
+        {kStoreMaxPhysicalBytes},{StoreCompressionMode::raw,1,false},advice);
+    else adapter=WinFspNativeWritable::create_managed_paged(head,id(90),image_io,id(1),
         {kStoreMaxPhysicalBytes},{StoreCompressionMode::raw,1,false},advice);
     if(deferred)adapter->enable_deferred_writes_hosted(*deferred);
     fs.Version=static_cast<UINT16>(sizeof(fs));fs.UmFileContextIsUserContext2=TRUE;
@@ -121,23 +123,29 @@ void callbacks(unsigned unit) {
   std::cout<<"paged_callbacks unit="<<unit<<" members=5 groups="<<result.progress.published_groups<<" input="
       <<snapshot.workload_info().committed_input_bytes<<"\n";
 }
-void directory_pages() {
-  Harness h(4096);
+void directory_pages(bool indexed=false) {
+  Harness h(4096,nullptr,nullptr,nullptr,nullptr,indexed);
+  const unsigned children=indexed?384:38;
+  const ULONG wide_buffer=indexed?64*1024:8192;
   const auto folder=h.create(L"\\Folder",true);
   const auto early=h.create(L"\\Folder\\(first)",false);
   const auto payload=data(23,719);
   h.write(early,payload);
   h.close(early);
-  for(unsigned i=100;i<138;++i)
+  for(unsigned i=100;i<100+children;++i)
     h.close(h.create(L"\\Folder\\Item-"+std::to_wstring(i),false));
+  if(indexed) {
+    h.close(h.create(L"\\Neighbour",true));
+    h.close(h.create(L"\\Neighbour\\Excluded",false));
+  }
   const auto reference=h.adapter->snapshot().list("Folder");
-  require(reference.size()==39,"owned directory test fixture");
+  require(reference.size()==children+1,"owned directory test fixture");
   const auto writes=h.image->writes;
 
   struct Row {std::wstring name;std::uint64_t inode,size;};
   struct Page {std::vector<Row> rows;std::uint64_t backing_bytes=0;bool eof=false;};
   const auto page=[&](PWSTR marker,ULONG capacity) {
-    alignas(FSP_FSCTL_DIR_INFO) std::array<std::byte,8192> output{};
+    alignas(FSP_FSCTL_DIR_INFO) std::array<std::byte,64*1024> output{};
     require(capacity<=output.size(),"owned directory output capacity");
     ULONG count=0;
     const auto before=h.image->read_bytes;
@@ -158,7 +166,7 @@ void directory_pages() {
     }
     return result;
   };
-  const auto all=page(nullptr,8192);
+  const auto all=page(nullptr,wide_buffer);
   require(all.eof && all.rows.size()==reference.size()+2 && all.rows[0].name==L"." && all.rows[1].name==L"..",
       "multi-page enumeration lost dot entries or completion");
   for(std::size_t i=0;i<reference.size();++i) {
@@ -174,15 +182,36 @@ void directory_pages() {
   require(one.rows.size()==1 && one.rows[0].name==L"(first)" &&
       one.rows[0].size==payload.size() && !one.eof,"exclusive dot-dot continuation");
   auto marker=one.rows[0].name;
-  const auto remainder=page(marker.data(),8192);
-  require(remainder.eof && remainder.rows.size()==38 && remainder.rows.front().name==L"Item-100",
+  const auto remainder=page(marker.data(),wide_buffer);
+  require(remainder.eof && remainder.rows.size()==children && remainder.rows.front().name==L"Item-100",
       "short output continuation repeated or skipped a child");
   std::wstring folded=L"iTeM-115";
-  const auto after=page(folded.data(),8192);
-  require(after.eof && after.rows.size()==22 && after.rows.front().name==L"Item-116",
+  const auto after=page(folded.data(),wide_buffer);
+  require(after.eof && after.rows.size()==children-16 && after.rows.front().name==L"Item-116",
       "case-insensitive marker is not exclusive");
   require(one.backing_bytes<all.backing_bytes && h.image->writes==writes,
       "short enumeration scanned all entries or changed backing");
+  if(indexed) {
+    auto narrow_marker=dotdot;
+    const auto following=static_cast<ULONG>(sizeof(FSP_FSCTL_DIR_INFO)+24);
+    std::uint64_t backing_bytes=0;
+    for(std::size_t i=0;i<reference.size();++i) {
+      const auto batch=page(narrow_marker.data(),following);
+      require(batch.rows.size()==1 &&
+          batch.rows[0].name==(i?L"Item-"+std::to_wstring(99+i):L"(first)") &&
+          batch.rows[0].inode==reference[i].inode &&
+          batch.rows[0].size==reference[i].logical_bytes && (i+1==reference.size() || !batch.eof),
+          "indexed narrow directory buffer repeated or skipped a checked child");
+      narrow_marker=batch.rows[0].name;
+      backing_bytes+=batch.backing_bytes;
+    }
+    const auto end=page(narrow_marker.data(),following);
+    require(end.rows.empty() && end.eof && h.image->writes==writes,
+        "indexed end marker returned a neighbour or changed storage");
+    backing_bytes+=end.backing_bytes;
+    std::cout<<"indexed_narrow_directory entries="<<reference.size()<<" complete_backing_bytes="<<backing_bytes
+        <<" wide_backing_bytes="<<all.backing_bytes<<" writes=0\n";
+  }
   h.close(folder);
   std::cout<<"directory_read entries="<<reference.size()<<" short_result_bytes="<<one.backing_bytes
       <<" complete_result_bytes="<<all.backing_bytes<<'\n';
@@ -650,11 +679,12 @@ int main(int argc,char** argv){try {
   if(argc!=2)throw std::runtime_error("Explicit callback/fault mode required");
   const std::string_view mode=argv[1];
   if(mode=="--callbacks"){
-    callbacks(4096);callbacks(65536);directory_pages();selected_change();foreground_busy();
+    callbacks(4096);callbacks(65536);directory_pages();directory_pages(true);selected_change();foreground_busy();
     deferred_response_busy();resume_formats();indexed_backfill_opportunities();lifecycle();indexed_callbacks(4096);indexed_callbacks(65536);
   }
   else if(mode=="--faults-4096")publication_faults(4096);
   else if(mode=="--faults-65536")publication_faults(65536);
+  else if(mode=="--profile-indexed-directory")directory_pages(true);
   else throw std::runtime_error("Unknown callback qualification mode");
   std::cout<<"PASS: "<<checks<<" paged WinFsp SDK checks; "<<faults<<" injected group failures; modeled CPU observations; memory only, no mount/driver/GPU\n";return 0;
 }catch(const std::exception& error){std::cerr<<"after "<<checks<<" checks: "<<error.what()<<'\n';return 1;}}

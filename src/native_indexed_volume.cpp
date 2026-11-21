@@ -2199,14 +2199,18 @@ NativeInodeState IndexedVolumeView::state_inode(std::uint64_t id) const {
   return {file_info(selected,path(selected)),selected.lifetime==IndexedLifetime::pending,
       indexed_detached(selected.lifetime)};
 }
-NativeDirectoryRecordPage IndexedVolumeView::directory_records(std::uint64_t directory,std::string_view after,
-    std::size_t maximum) const {
+std::optional<NativeDirectoryRecordPage> IndexedVolumeView::directory_records(std::uint64_t directory,std::string_view after,
+    std::size_t maximum,const std::function<bool(const NativeInodeState&)>& admit) const {
   const auto parent=inode(directory);
+  // Resolve the owned handle and its ancestry in the same view as the page.
+  if(!admit({file_info(parent,path(parent)),parent.lifetime==IndexedLifetime::pending,indexed_detached(parent.lifetime)}))
+    return {};
+  const auto key=after.empty() || after=="." || after==".."?std::string{}:indexed_component_key(after);
   if(!parent.directory)fail(Code::not_directory,"indexed enumeration of a file");
-  const auto rows=index_.list(directory,after,maximum);
+  NativeDirectoryRecordPage result;
+  const auto rows=index_.list(directory,key,maximum,&result.more);
   if(!rows.empty() && parent.lifetime!=IndexedLifetime::linked)
     fail(Code::corrupt,"indexed deleted directory retains visible entries");
-  NativeDirectoryRecordPage result;
   result.entries.reserve(rows.size());
   for(const auto& row:rows) {
     auto n=referenced_inode(row.value);
@@ -2214,7 +2218,6 @@ NativeDirectoryRecordPage IndexedVolumeView::directory_records(std::uint64_t dir
       fail(Code::corrupt,"indexed directory entry differs from inode");
     result.entries.push_back({std::move(n.name),indexed_inode_allocation(n)});
   }
-  result.more=rows.size()==maximum && !index_.list(directory,rows.back().key.name,1).empty();
   return result;
 }
 IndexedDirectoryPage IndexedVolumeView::list(std::uint64_t directory,std::string_view after,std::size_t maximum) const {
@@ -2222,7 +2225,8 @@ IndexedDirectoryPage IndexedVolumeView::list(std::uint64_t directory,std::string
   if(!parent.directory)fail(Code::not_directory,"indexed enumeration of a file");
   auto prefix=path(parent);
   if(!prefix.empty())prefix.push_back('/');
-  const auto records=index_.list(directory,after,maximum);
+  bool more=false;
+  const auto records=index_.list(directory,after,maximum,&more);
   if(!records.empty() && parent.lifetime!=IndexedLifetime::linked)
     fail(Code::corrupt,"indexed deleted directory retains visible entries");
   if(!records.empty() && static_cast<std::size_t>(std::count(prefix.begin(),prefix.end(),'/'))>=kIndexedPathDepth)
@@ -2238,8 +2242,7 @@ IndexedDirectoryPage IndexedVolumeView::list(std::uint64_t directory,std::string
       fail(Code::corrupt,"indexed directory entry differs from inode");
     result.entries.push_back(file_info(child,prefix+child.name));
   }
-  if(records.size()==maximum && !index_.list(directory,records.back().key.name,1).empty())
-    result.after=records.back().key.name;
+  if(more)result.after=records.back().key.name;
   return result;
 }
 std::vector<NativeFileInfo> IndexedVolumeView::list_all(std::uint64_t directory) const {

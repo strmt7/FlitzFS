@@ -2698,21 +2698,26 @@ std::vector<NativeFileInfo> NativeFilesystemWriter::inspect_directory(std::uint6
     return list_node(state.model,n,state.model.inode_records?&snapshot:nullptr);
   });
 }
-NativeDirectoryRecordPage NativeFilesystemWriter::inspect_directory_page(std::uint64_t inode,
-    std::string_view after,std::size_t maximum) const {
+std::optional<NativeDirectoryRecordPage> NativeFilesystemWriter::inspect_directory_page(std::uint64_t inode,
+    std::string_view after,std::size_t maximum,const std::function<bool(const NativeInodeState&)>& admit) const {
   auto& state=checked_impl();
-  if(!maximum || maximum>1024)fail(Code::limit,"directory page budget");
-  if(state.indexed) {
-    const auto key=after.empty() || after=="." || after==".."?std::string{}:detail::indexed_component_key(after);
-    return state.read_indexed([&](const auto& view) {return view.directory_records(inode,key,maximum);});
-  }
-  if(after.size()>100 || std::ranges::any_of(after,[](char c) {
-      return c<0x20 || c>0x7e || c=='/' || c=='\\';
-    }))fail(Code::invalid_path,"invalid native directory marker");
-  // Both special entries sort before every real name.
-  std::string key=after=="." || after==".."?std::string{}:std::string(after);
-  std::ranges::transform(key,key.begin(),directory_ascii_lower);
-  return state.read_checked_inode(inode,[&](const auto& snapshot,const Node& directory) {
+  const auto check=[&](const NativeInodeState& directory) {
+    if(!admit(directory))return false;
+    if(!maximum || maximum>1024)fail(Code::limit,"directory page budget");
+    return true;
+  };
+  if(state.indexed)return state.read_indexed([&](const auto& view) {
+    return view.directory_records(inode,after,maximum,check);
+  });
+  return state.read_checked_inode(inode,[&](const auto& snapshot,const Node& directory)->std::optional<NativeDirectoryRecordPage> {
+    verify_path_ancestors(snapshot,state.model,directory);
+    if(!check({file_info(state.model,directory),directory.delete_pending,directory.unlinked}))return {};
+    if(after.size()>100 || std::ranges::any_of(after,[](char c) {
+        return c<0x20 || c>0x7e || c=='/' || c=='\\';
+      }))fail(Code::invalid_path,"invalid native directory marker");
+    // Both special entries sort before every real name.
+    std::string key=after=="." || after==".."?std::string{}:std::string(after);
+    std::ranges::transform(key,key.begin(),directory_ascii_lower);
     verify_directory(snapshot,state.model,directory);
     NativeDirectoryRecordPage result;
     result.entries.reserve(maximum);

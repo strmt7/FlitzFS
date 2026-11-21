@@ -13,7 +13,8 @@ def audit_volume_binary(data, role):
     require(role in ("application", "harness"), "Unknown application binary role")
     require(0 < len(data) <= 32*1024*1024, "Application executable size cap")
     names, delayed = pe_import_names(data)
-    base = {"kernel32.dll", "advapi32.dll", "bcrypt.dll", "ntdll.dll", "user32.dll"}
+    # Both volume programs link the Windows CPU-load collector through volume_app_core.
+    base = {"kernel32.dll", "advapi32.dll", "bcrypt.dll", "ntdll.dll", "pdh.dll", "user32.dll"}
     allowed = base | ({"shell32.dll", "gdi32.dll"} if role == "application" else set())
     require(bool(names) and set(names) <= allowed and not delayed,
             "Non-admitted application dependency: " + repr(names))

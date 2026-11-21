@@ -25,6 +25,12 @@ dot entries precede ordinary names. Separate calls can observe intervening
 namespace changes.
 [Directory pagination evidence](evidence/native-directory-pages-2026-11-17.json)
 
+An indexed batch verifies the open directory, its ancestry, the session's
+delete intent and the returned child records in one store view. The bounded
+name traversal checks one extra key in that view to determine continuation.
+Only the entries in the requested page need their child inodes loaded.
+[Indexed directory evidence](evidence/indexed-directory-query-2026-11-21.json)
+
 The indexed adapter converts UTF-16 requests to UTF-8 and enumerates original
 spellings as UTF-16. It reports a 255-unit maximum component length. Before
 starting the dispatcher, it compares the host's ordinal equivalences with the

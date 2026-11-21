@@ -433,25 +433,33 @@ struct NativeFileSession::Impl {
   void clear_latch(std::uint64_t inode) noexcept {
     for(std::size_t i=0;i<latched.size();++i)if(latched[i]==inode){latched[i]=0;latch_flags[i]=0;}
   }
-  bool visible_delete_pending(std::uint64_t inode, bool unlinked, bool persisted) {
-    if (unlinked) return persisted;
-    if (persisted != intent(inode)) {
-      terminal = true;
-      fail(E::terminal, "native context/delete-intent ownership diverged");
-    }
-    return persisted || volatile_initial(inode);
+  bool delete_intent_matches(std::uint64_t inode,bool unlinked,bool persisted) const noexcept {
+    return unlinked || persisted==intent(inode);
   }
-  NativeInodeState state(const Slot& slot) {
+  [[noreturn]] void lost_delete_intent() {
+    terminal=true;
+    fail(E::terminal,"native context/delete-intent ownership diverged");
+  }
+  bool visible_delete_pending(std::uint64_t inode, bool unlinked, bool persisted) {
+    if(!delete_intent_matches(inode,unlinked,persisted))lost_delete_intent();
+    return persisted || (!unlinked && volatile_initial(inode));
+  }
+  template<class Query> auto inspect_owned_inode(Query&& query) {
     try {
-      auto result=writer.inspect_inode(slot.inode);
-      result.delete_pending = visible_delete_pending(slot.inode, result.unlinked, result.delete_pending);
-      return result;
+      return std::forward<Query>(query)();
     }catch(const NativeFsError& error) {
       if(error.code()==NativeFsErrorCode::not_found) {
         terminal=true;fail(E::terminal,"owned native inode disappeared");
       }
       throw;
     }
+  }
+  NativeInodeState state(const Slot& slot) {
+    return inspect_owned_inode([&] {
+      auto result=writer.inspect_inode(slot.inode);
+      result.delete_pending=visible_delete_pending(slot.inode,result.unlinked,result.delete_pending);
+      return result;
+    });
   }
 };
 NativeFileSession::NativeFileSession(std::unique_ptr<Impl> impl) noexcept:impl_(std::move(impl)){}
@@ -1562,13 +1570,17 @@ NativeDirectoryRecordPage NativeFileSession::list_page(const NativeFileHandle& h
     std::string_view after,std::size_t maximum) const {
   const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
   if(!slot.access.read)fail(E::access_denied,"native context has no list access");
-  (void)self.state(slot);
-  auto page=self.writer.inspect_directory_page(slot.inode,after,maximum);
-  for(auto& entry:page.entries) {
+  auto page=self.inspect_owned_inode([&] {
+    return self.writer.inspect_directory_page(slot.inode,after,maximum,[&](const auto& directory) {
+      return self.delete_intent_matches(slot.inode,directory.unlinked,directory.delete_pending);
+    });
+  });
+  if(!page)self.lost_delete_intent();
+  for(auto& entry:page->entries) {
     auto& info=entry.state.info;
     info.delete_pending=self.visible_delete_pending(info.inode,info.unlinked,info.delete_pending);
   }
-  return page;
+  return std::move(*page);
 }
 std::vector<std::byte> NativeFileSession::read(const NativeFileHandle& handle,
     std::uint64_t offset,std::uint32_t bytes) const {
