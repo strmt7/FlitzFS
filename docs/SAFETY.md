@@ -1217,6 +1217,12 @@ image validation refuses writable admission. The checked CPU inspection
 does not mutate the file. Geometry checks constrain the supplied contract,
 which still needs independent qualification on the actual storage stack.
 
+The file-selection build uses the qualified NTFS range contract. The selected
+parent remains pinned through exclusive file acquisition, and the backing
+rechecks filesystem capabilities before and after open. The helper checks the
+volume identity on the same exclusive handle it uses for recovery.
+[Helper file selection](evidence/helper-file-selection-2026-11-21.json)
+
 The paired sparse provider additionally requires an isolated reclamation
 contract. It waits for both checked head replicas and retirement of the
 old image's readers before issuing an aligned range operation. It keeps

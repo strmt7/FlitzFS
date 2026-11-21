@@ -6,8 +6,8 @@ FlitzFS has no public release or supported installer yet. It targets Windows 11
 x64 and is not ready for everyday files or valuable data.
 
 The current Windows application is an experimental editor and volume controller.
-It does not yet create an Explorer drive or provide physical-disk setup.
-Developers can obtain experimental builds using the
+The Explorer variant attaches through a temporary folder. Developers can obtain
+experimental builds using the
 [build guide](../development/building.md).
 
 ## Experimental application workflow
@@ -28,6 +28,15 @@ exit controls to retire it.
 The editor currently handles bounded text input. General file import, complete
 Explorer integration, automatic GPU routing and unattended optimization are
 still under development.
+
+## Volume files in a qualified build
+
+An Explorer build with qualified persistent backing offers **New volume file**
+and **Open volume file**. Choose an unused filename to create a volume, or
+select an existing FlitzFS volume to reopen it. **Open in Explorer** opens
+the attached volume. Use **Detach and retain** before **Close volume file**.
+Closing releases the volume file for a later open.
+[Qualified backing and attachment behavior](../WINDOWS_VOLUME_APP.md#persistent-volume-files)
 
 For implementation and qualification details, see the
 [application contract](../WINDOWS_VOLUME_APP.md).

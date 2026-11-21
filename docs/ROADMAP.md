@@ -13,6 +13,12 @@ retirement. User-facing selection, incremental evacuation under concurrent
 writes and actual power-failure qualification remain release work.
 [Persistent reclamation validation](evidence/windows-sparse-volume-reclamation-2026-11-19.json)
 
+The qualified Explorer build accepts explicit create and open requests for
+volume files. A disposable Windows guest preserved the selected file through
+a duplicate-create refusal and reopened the acknowledged data on CPU. The
+next mounted trial uses these same requests through the installed client.
+[Helper file selection](evidence/helper-file-selection-2026-11-21.json)
+
 Paired file retirement now wakes on the last old-image reader's release.
 The Windows fixture accepted a foreground write to the new image while
 two readers kept the old image pinned. The final reader woke retirement

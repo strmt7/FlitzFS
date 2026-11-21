@@ -20,10 +20,11 @@ void require(bool condition,const char* message) {
 struct Provider {
   FSP_FILE_SYSTEM filesystem{};
   std::atomic<unsigned> started{0},stopped{0},unmounted{0},deleted{0};
-  std::atomic<bool> collision{true},confirm_retirement{true};
+  std::atomic<bool> collision{true},confirm_retirement{true},reject_preflight{false};
   static Provider* current;
 
   static NTSTATUS preflight(PWSTR,PWSTR path) {
+    if(current->reject_preflight)return STATUS_ACCESS_DENIED;
     if(!valid_mount_directory(path))return STATUS_INVALID_PARAMETER;
     return GetFileAttributesW(path)==INVALID_FILE_ATTRIBUTES && GetLastError()==ERROR_FILE_NOT_FOUND?
         STATUS_SUCCESS:STATUS_OBJECT_NAME_COLLISION;
@@ -121,7 +122,9 @@ VolumeControllerView await(VolumeController& controller,Predicate predicate) {
   for(;;) {
     const auto view=controller.view();
     if(predicate(view))return view;
-    require(!view.stopped && GetTickCount64()<deadline,"Attachment controller did not publish expected state");
+    if(view.stopped || GetTickCount64()>=deadline)
+      throw std::runtime_error("Attachment controller did not publish expected state. Last state "+
+          std::to_string(static_cast<int>(view.attachment.state))+". "+view.message);
     Sleep(5);
   }
 }
@@ -297,6 +300,85 @@ void uncertain_file_retirement() {
   std::cout<<"file_attachment unconfirmed_retirement_refused=1 acknowledged_bytes_retained=1\n";
 }
 
+void selected_file_lifecycle() {
+  constexpr std::uint64_t capacity=8*1024*1024;
+  auto domain=std::optional{MemoryVolumeDomain::create(capacity)};
+  auto backing=domain->create_store(capacity);
+  const auto identity=fresh_volume_identity();
+  const WinFspVolumeFileSelection::Create creation{fresh_volume_identity(),
+      {capacity-kNativeVolumeFileImageOffset}};
+  const std::filesystem::path path=L"selected.flfs";
+  Provider provider;
+  Provider::current=&provider;
+  Window window;
+  VolumeController controller(window.handle,make_winfsp_memory_attachment(Provider::load),
+      [&](const VolumeFileRequest& request) {
+        require(request.path==path,"File choice changed before reaching the worker");
+        const bool create=request.action==VolumeFileAction::create_new;
+        return make_winfsp_volume_file_attachment(Provider::load,
+            {backing,create?identity:StoreIdentity{},create?std::optional{creation}:std::nullopt});
+      });
+  const auto state=[&](VolumeAttachmentState expected) {
+    return await(controller,[&](const auto& view){return view.idle() && view.attachment.state==expected;});
+  };
+  const auto select=[&](VolumeFileAction action) {
+    return controller.submit({VolumeCommandKind::attach_file,{},{},VolumeFileRequest{action,path}});
+  };
+  const auto submit=[&](VolumeCommandKind kind) {
+    require(controller.submit({kind,{},{}}),"Selected backing command refused");
+  };
+  require(state(VolumeAttachmentState::empty).can_select_file(),"Empty app cannot select a file");
+  require(!controller.submit({VolumeCommandKind::attach_file,{},{}}),"Missing selection was admitted");
+  require(select(VolumeFileAction::open_existing),"Empty file validation was not queued");
+  require(state(VolumeAttachmentState::empty).can_select_file() && !backing->extent() && provider.started==0,
+      "Invalid file could change backing bytes or take attachment ownership");
+
+  provider.reject_preflight=true;
+  require(select(VolumeFileAction::create_new),"New selection could not be queued");
+  require(state(VolumeAttachmentState::empty).can_select_file() && !backing->extent() && provider.started==0,
+      "Preflight refusal modified the file before the mount was checked");
+
+  provider.reject_preflight=false;
+  require(select(VolumeFileAction::create_new),"Selected file creation was not queued");
+  const auto failed=state(VolumeAttachmentState::detached);
+  require(failed.attachment.persistent && failed.attachment.status==STATUS_OBJECT_NAME_COLLISION &&
+      !select(VolumeFileAction::open_existing),"Mount collision lost or replaced the selected file");
+  provider.collision=false;
+  submit(VolumeCommandKind::attach);
+  require(state(VolumeAttachmentState::attached).attachment.persistent,"Retry changed to the memory provider");
+  make_file(provider);
+  submit(VolumeCommandKind::detach);
+  state(VolumeAttachmentState::detached);
+  submit(VolumeCommandKind::discard);
+  require(state(VolumeAttachmentState::empty).can_select_file(),"Close did not release the file selection");
+  verify_backing({backing,identity,std::nullopt});
+
+  require(select(VolumeFileAction::open_existing),"Existing file could not be selected again");
+  require(state(VolumeAttachmentState::attached).attachment.persistent,"Checked image identity did not reopen");
+  verify_file(provider);
+  submit(VolumeCommandKind::detach);
+  state(VolumeAttachmentState::detached);
+  submit(VolumeCommandKind::discard);
+  state(VolumeAttachmentState::empty);
+  verify_backing({backing,identity,std::nullopt});
+  // Retire the fixture's own domain before testing the ordinary memory route.
+  backing.reset();
+  domain.reset();
+  submit(VolumeCommandKind::attach);
+  require(!state(VolumeAttachmentState::attached).attachment.persistent,
+      "Memory attach reopened an explicitly closed file");
+  submit(VolumeCommandKind::detach);
+  state(VolumeAttachmentState::detached);
+  submit(VolumeCommandKind::discard);
+  state(VolumeAttachmentState::empty);
+  require(controller.stop(false),"Empty application refused to exit");
+  await(controller,[](const auto& view){return view.stopped;});
+  require(provider.started==4 && provider.stopped==4 && provider.unmounted==3 && provider.deleted==4,
+      "Selected attachment leaked a provider session");
+  std::cout<<"selected_volume_file validated_open=1 preflight_before_writes=1 "
+      <<"cpu_reopen=1 memory_after_close=1 joined_provider_sessions="<<provider.deleted.load()<<'\n';
+}
+
 void file_lifecycle_in_memory() {
   {
     constexpr std::uint64_t capacity=8*1024*1024;
@@ -305,6 +387,7 @@ void file_lifecycle_in_memory() {
         WinFspVolumeFileSelection::Create{fresh_volume_identity(),{capacity-kNativeVolumeFileImageOffset}}},true);
   }
   uncertain_file_retirement();
+  selected_file_lifecycle();
   require(MemoryVolumeDomain::cleanup_healthy(),"Volume file memory backing cleanup failed");
 }
 
@@ -315,6 +398,46 @@ void disposable_file_lifecycle(const std::filesystem::path& base) {
   const auto path=directory/"attached.flfs";
   file_lifecycle({WinFspVolumeFileSelection::WindowsFile{path,{65536,true}},
       fresh_volume_identity(),WinFspVolumeFileSelection::Create{fresh_volume_identity(),{8*1024*1024}}});
+#ifdef FLITZFS_EXPLORER_FILE_BACKING
+  const auto selected_path=directory/"selected.flfs";
+  Provider provider;
+  Provider::current=&provider;
+  provider.collision=false;
+  Window window;
+  VolumeController controller(window.handle,make_winfsp_memory_attachment(Provider::load),
+      [](const auto& request){return make_volume_app_file_attachment(request,Provider::load);});
+  const auto state=[&](VolumeAttachmentState expected) {
+    return await(controller,[&](const auto& view){return view.idle() && view.attachment.state==expected;});
+  };
+  const auto select=[&](VolumeFileAction action) {
+    require(controller.submit({VolumeCommandKind::attach_file,{},{},VolumeFileRequest{action,selected_path}}),
+        "Cannot queue the disposable file selection");
+  };
+  const auto release=[&]{
+    require(controller.submit({VolumeCommandKind::detach,{},{}}),"Cannot detach the selected file");
+    state(VolumeAttachmentState::detached);
+    require(controller.submit({VolumeCommandKind::discard,{},{}}),"Cannot close the selected file");
+    state(VolumeAttachmentState::empty);
+  };
+  select(VolumeFileAction::create_new);
+  require(state(VolumeAttachmentState::attached).attachment.backing_path==selected_path.native(),
+      "Selected backing label differs");
+  make_file(provider);
+  release();
+  const auto identity=NativeVolumeFile::inspect(selected_path).info().selection.volume_identity;
+  select(VolumeFileAction::create_new);
+  require(state(VolumeAttachmentState::empty).can_select_file() && provider.started==1,
+      "Exclusive creation consumed an existing volume");
+  select(VolumeFileAction::open_existing);
+  state(VolumeAttachmentState::attached);
+  verify_file(provider);
+  release();
+  require(controller.stop(false),"Closed persistent controller refused to exit");
+  await(controller,[](const auto& view){return view.stopped;});
+  verify_backing({WinFspVolumeFileSelection::WindowsFile{selected_path,{65536,true,true}},identity,std::nullopt});
+  require(provider.started==2 && provider.deleted==2,"Selected file provider did not retire");
+  std::cout<<"disposable_file_selection exclusive_create=1 existing_bytes_retained=1 cpu_reopen=1\n";
+#endif
 }
 }
 

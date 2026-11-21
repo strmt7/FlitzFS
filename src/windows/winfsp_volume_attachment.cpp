@@ -46,8 +46,8 @@ class WinFspVolumeAttachment final:public VolumeAttachment {
   explicit WinFspVolumeAttachment(WinFspSessionApi (*load_api)(),
       std::optional<WinFspVolumeFileSelection> file={}):load_api_(load_api),selection_(std::move(file)) {
     if(!load_api_)throw std::invalid_argument("Missing WinFsp runtime selector");
-    if(selection_ && selection_->volume==StoreIdentity{})
-      throw std::invalid_argument("Missing checked volume file identity");
+    if(selection_ && selection_->create && selection_->volume==StoreIdentity{})
+      throw std::invalid_argument("Missing new volume file identity");
     set_state(VolumeAttachmentState::empty);
   }
   bool retains_volume() const noexcept override {return bool(memory_) || bool(file_);}
@@ -60,7 +60,16 @@ class WinFspVolumeAttachment final:public VolumeAttachment {
     NativeWriteMountPlan plan{target->path,true,true};
     if(!api.complete() || !valid_native_write_plan(plan))
       throw std::runtime_error("The selected Windows attachment provider is incomplete");
-    if(selection_)start_file(api,std::move(plan),state_changed);
+    if(selection_) {
+      // A failed preflight must leave the requested backing untouched. The
+      // session rechecks the mount point immediately before using it.
+      wchar_t device[]=L"" FSP_FSCTL_DISK_DEVICE_NAME;
+      const auto status=api.preflight(device,plan.directory.data());
+      if(!NT_SUCCESS(status))
+        throw std::runtime_error("WinFsp could not prepare the volume attachment. Windows status "+
+            std::to_string(status));
+      start_file(api,std::move(plan),state_changed);
+    }
     else if(memory_)memory_->remount(api,std::move(plan));
     else memory_=std::make_unique<WinFspMemoryVolume>(api,std::move(plan),NativeImageKind::indexed_paged,
         std::nullopt,std::nullopt,state_changed);
@@ -98,19 +107,30 @@ class WinFspVolumeAttachment final:public VolumeAttachment {
  private:
   void set_state(VolumeAttachmentState state,std::wstring location={},std::int32_t status=0) {
     state_={state,std::move(location),status,selection_.has_value()};
+    if(file_)
+      if(const auto* path=std::get_if<WinFspVolumeFileSelection::WindowsFile>(&selection_->backing))
+        state_.backing_path=path->path.native();
   }
 
   void start_file(WinFspSessionApi api,NativeWriteMountPlan plan,HANDLE state_changed) {
     auto& selection=*selection_;
     if(!file_) {
+      std::shared_ptr<StoreByteIo> backing;
       if(const auto* path=std::get_if<WinFspVolumeFileSelection::WindowsFile>(&selection.backing)) {
-        file_=selection.create?
+        const auto parents=pin_volume_path_parents(path->path.native());
+        backing=selection.create?
             NativeVolumeFile::create_backing(path->path,path->qualification,selection.create->limits):
             NativeVolumeFile::reopen_backing(path->path,path->qualification);
       } else {
-        file_=std::get<std::shared_ptr<StoreByteIo>>(selection.backing);
+        backing=std::get<std::shared_ptr<StoreByteIo>>(selection.backing);
       }
-      if(!file_)throw std::invalid_argument("Missing qualified volume file backing");
+      if(!backing)throw std::invalid_argument("Missing qualified volume file backing");
+      if(!selection.create) {
+        const auto expected=selection.volume==StoreIdentity{}?std::nullopt:std::optional{selection.volume};
+        const auto checked=NativeVolumeFile::inspect(backing,expected);
+        selection.volume=checked.info().selection.volume_identity;
+      }
+      file_=std::move(backing);
     }
     // The exclusive backing remains owned even if initializing the image or
     // starting the dispatcher fails. A subsequent attach only checks/reopens it.

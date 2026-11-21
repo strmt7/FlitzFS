@@ -11,6 +11,17 @@
     "tree": "936409737d1c4a5d4aeb37fe5af48f55ba9accff",
     "note": "Architectural review baseline. Layer and runtime evidence have separate source bindings."
   },
+  "helper_file_selection": {
+    "source_base": "00de0a6035206ac1389908f352b9208451a72faa",
+    "evidence": "docs/evidence/helper-file-selection-2026-11-21.json",
+    "build_option": "FLITZFS_EXPLORER_FILE_BACKING",
+    "windows_guest_build": 26100,
+    "windows_host_build": 26300,
+    "exclusive_create_and_checked_reopen": true,
+    "cpu_reopen_after_duplicate_create_refusal": true,
+    "guest_dispatcher": "injected WinFsp operations",
+    "next_qualification": "Installed Windows 11 Explorer lifecycle, actual backing failure model, and ordinary AMD and CPU fallback on the file provider"
+  },
   "release_reconciliation": {
     "reviewed_commit": "227c82d498fefedc2ad1b3cfe240968690bcd90e",
     "reviewed_tree": "7c33e789bdaed07b6fdd7cea468c5e12ce0c3039",

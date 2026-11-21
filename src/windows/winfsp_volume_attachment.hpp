@@ -18,7 +18,8 @@ struct WinFspVolumeFileSelection {
     StoreIdentity image;
     PagedStoreLimits limits;
   };
-  // The caller supplies the verified volume identity and a qualified backing.
+  // The caller supplies a qualified backing. An existing file can select its
+  // identity from its checked head while its exclusive lease is held.
   // Create is consumed once an exclusive backing has been acquired.
   std::variant<std::shared_ptr<StoreByteIo>,WindowsFile> backing;
   StoreIdentity volume;

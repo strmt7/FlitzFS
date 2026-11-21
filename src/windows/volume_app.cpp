@@ -3,6 +3,10 @@
 #include "volume_app_winfsp.hpp"
 #endif
 #include <shellapi.h>
+#ifdef FLITZFS_EXPLORER_FILE_BACKING
+#include <shobjidl.h>
+#include <wrl/client.h>
+#endif
 #include <algorithm>
 #include <array>
 #include <cwchar>
@@ -17,6 +21,43 @@ constexpr UINT tray_message=WM_APP+42;
 constexpr int create_id=101,save_id=102,read_id=103,optimize_id=104,discard_id=105,exit_id=106;
 constexpr int attach_id=107,detach_id=108,explorer_id=109;
 constexpr int files_id=110,name_id=111,text_id=112,status_id=113,show_id=114;
+constexpr int new_volume_file_id=115,open_volume_file_id=116;
+#ifdef FLITZFS_EXPLORER_FILE_BACKING
+std::optional<VolumeFileRequest> pick_volume_file(HWND window,VolumeFileAction action) {
+  const bool create=action==VolumeFileAction::create_new;
+  if(FAILED(CoInitializeEx(nullptr,COINIT_APARTMENTTHREADED|COINIT_DISABLE_OLE1DDE)))
+    throw std::runtime_error("The Windows file chooser could not initialize");
+  struct Apartment {
+    ~Apartment(){CoUninitialize();}
+  } apartment;
+  Microsoft::WRL::ComPtr<IFileDialog> dialog;
+  const auto& chooser=create?__uuidof(FileSaveDialog):__uuidof(FileOpenDialog);
+  if(FAILED(CoCreateInstance(chooser,nullptr,CLSCTX_INPROC_SERVER,IID_PPV_ARGS(dialog.GetAddressOf()))))
+    throw std::runtime_error("The Windows file chooser is unavailable");
+  FILEOPENDIALOGOPTIONS options{};
+  const COMDLG_FILTERSPEC types[]={{L"FlitzFS volume files",L"*.flfs"},{L"All files",L"*.*"}};
+  if(FAILED(dialog->GetOptions(&options)))throw std::runtime_error("Cannot read file chooser options");
+  options|=FOS_FORCEFILESYSTEM|FOS_PATHMUSTEXIST|FOS_NOCHANGEDIR|FOS_NODEREFERENCELINKS|FOS_DONTADDTORECENT;
+  if(create)options=(options|FOS_NOREADONLYRETURN)&~FOS_OVERWRITEPROMPT;
+  else options|=FOS_FILEMUSTEXIST;
+  if(FAILED(dialog->SetOptions(options)) ||
+      FAILED(dialog->SetTitle(create?L"Create a new FlitzFS volume file":L"Open a FlitzFS volume file")) ||
+      FAILED(dialog->SetFileTypes(static_cast<UINT>(std::size(types)),types)) ||
+      (create && FAILED(dialog->SetDefaultExtension(L"flfs"))))
+    throw std::runtime_error("Cannot prepare the volume file chooser");
+  const auto result=dialog->Show(window);
+  if(result==HRESULT_FROM_WIN32(ERROR_CANCELLED))return std::nullopt;
+  if(FAILED(result))throw std::runtime_error("The Windows file chooser failed");
+  Microsoft::WRL::ComPtr<IShellItem> item;
+  if(FAILED(dialog->GetResult(item.GetAddressOf())) || !item)
+    throw std::runtime_error("Select a local filesystem path");
+  PWSTR name=nullptr;
+  const auto name_result=item->GetDisplayName(SIGDN_FILESYSPATH,&name);
+  const std::unique_ptr<wchar_t,decltype(&CoTaskMemFree)> selected(name,&CoTaskMemFree);
+  if(FAILED(name_result) || !selected || !*selected)throw std::runtime_error("Select a local filesystem path");
+  return VolumeFileRequest{action,std::filesystem::path(selected.get())};
+}
+#endif
 std::wstring wide(std::string_view text) {
   if(text.empty())return {};
   const auto n=MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,text.data(),
@@ -43,7 +84,7 @@ std::string utf8(HWND control,std::size_t limit) {
 }
 struct App {
   HWND window=nullptr,heading=nullptr,summary=nullptr,status=nullptr,files=nullptr,name=nullptr,text=nullptr;
-  std::array<HWND,9> buttons{};
+  std::array<HWND,11> buttons{};
   std::unique_ptr<VolumeController> controller;
   NOTIFYICONDATAW tray{};bool tray_added=false,quitting=false;
   UINT taskbar_created=0;
@@ -88,11 +129,17 @@ struct App {
     buttons[4]=control(L"BUTTON",L"Discard temporary volume",WS_TABSTOP,discard_id);
     buttons[5]=control(L"BUTTON",L"Exit",WS_TABSTOP,exit_id);
     std::unique_ptr<VolumeAttachment> attachment;
+    VolumeController::FileAttachmentFactory file_factory;
 #ifdef FLITZFS_BUILD_EXPLORER_APP
     buttons[6]=control(L"BUTTON",L"Attach memory volume",WS_TABSTOP,attach_id);
     buttons[7]=control(L"BUTTON",L"Detach and retain",WS_TABSTOP,detach_id);
     buttons[8]=control(L"BUTTON",L"Open in Explorer",WS_TABSTOP,explorer_id);
     attachment=make_volume_app_attachment();
+#endif
+#ifdef FLITZFS_EXPLORER_FILE_BACKING
+    buttons[9]=control(L"BUTTON",L"New volume file...",WS_TABSTOP,new_volume_file_id);
+    buttons[10]=control(L"BUTTON",L"Open volume file...",WS_TABSTOP,open_volume_file_id);
+    file_factory=[](const auto& request){return make_volume_app_file_attachment(request);};
 #endif
     files=control(L"LISTBOX",L"Volume files",WS_TABSTOP|WS_BORDER|LBS_NOTIFY|WS_VSCROLL,files_id);
     name=control(L"EDIT",L"note.txt",WS_TABSTOP|WS_BORDER|ES_AUTOHSCROLL,name_id);
@@ -102,7 +149,7 @@ struct App {
     status=control(L"STATIC",L"No volume. Create a memory volume to begin.",SS_LEFT,status_id);
     taskbar_created=RegisterWindowMessageW(L"TaskbarCreated");
     if(!taskbar_created)throw std::runtime_error("Tray restart notification unavailable");
-    add_tray();controller=std::make_unique<VolumeController>(window,std::move(attachment));layout();refresh();
+    add_tray();controller=std::make_unique<VolumeController>(window,std::move(attachment),std::move(file_factory));layout();refresh();
   }
   void layout() noexcept {
     RECT r{};GetClientRect(window,&r);
@@ -115,7 +162,7 @@ struct App {
     const int button_width=(std::max)(1,(usable-2*gap)/3);
     for(int i=0;i<static_cast<int>(buttons.size());++i)if(const auto button=buttons[static_cast<std::size_t>(i)])
       MoveWindow(button,p+(i%3)*(button_width+gap),d(94)+(i/3)*(row+gap),button_width,row,TRUE);
-    const int top=d(buttons[6]?224:184),body=(std::max)(d(60),h-top-d(88));
+    const int top=d(buttons[9]?264:(buttons[6]?224:184)),body=(std::max)(d(60),h-top-d(88));
     MoveWindow(files,p,top,left,body,TRUE);
     MoveWindow(name,p+left+gap,top,(std::max)(1,usable-left-gap),row,TRUE);
     MoveWindow(text,p+left+gap,top+row+gap,(std::max)(1,usable-left-gap),
@@ -137,6 +184,13 @@ struct App {
           (state==VolumeAttachmentState::empty || state==VolumeAttachmentState::detached));
       EnableWindow(buttons[7],idle&&state==VolumeAttachmentState::attached);
       EnableWindow(buttons[8],idle&&state==VolumeAttachmentState::attached);
+      const auto attach_label=state==VolumeAttachmentState::detached?
+          (v.attachment.persistent?L"Reattach volume file":L"Reattach memory volume"):L"Attach memory volume";
+      SetWindowTextW(buttons[6],attach_label);
+      if(buttons[9]) {
+        EnableWindow(buttons[9],v.can_select_file());
+        EnableWindow(buttons[10],v.can_select_file());
+      }
       for(const auto editor:{files,name,text})ShowWindow(editor,v.attachment.retained()?SW_HIDE:SW_SHOW);
     }
     if(v.content_generation!=rendered) {
@@ -150,9 +204,10 @@ struct App {
     std::wstring summary_text=L"Experimental memory workspace";
     if(state==VolumeAttachmentState::attached) {
       summary_text=v.attachment.persistent?L"Attached volume file\r\n":L"Attached temporary volume\r\n";
-      summary_text+=v.attachment.location;
+      summary_text+=v.attachment.backing_path.empty()?v.attachment.location:v.attachment.backing_path;
     } else if(v.attachment.retained()) {
       summary_text=v.attachment.persistent?L"Persistent volume file retained":L"Temporary volume retained in memory";
+      if(!v.attachment.backing_path.empty())summary_text+=L"\r\n"+v.attachment.backing_path;
     }
     if(v.volume.ready)summary_text+=v.volume.optimization.phase==NativeOptimizationPhase::ready?
         L" | Optimization state: ready":L" | Optimization state: unavailable";
@@ -202,6 +257,14 @@ struct App {
       case optimize_id:cmd.kind=VolumeCommandKind::optimize;break;
       case discard_id:cmd.kind=VolumeCommandKind::discard;break;
       case attach_id:cmd.kind=VolumeCommandKind::attach;break;
+#ifdef FLITZFS_EXPLORER_FILE_BACKING
+      case new_volume_file_id:
+      case open_volume_file_id:
+        if(!controller->view().can_select_file())return;
+        cmd.file=pick_volume_file(window,id==new_volume_file_id?VolumeFileAction::create_new:VolumeFileAction::open_existing);
+        if(!cmd.file)return;
+        cmd.kind=VolumeCommandKind::attach_file;break;
+#endif
       case detach_id:cmd.kind=VolumeCommandKind::detach;break;
       default:return;
     }
@@ -215,11 +278,18 @@ struct App {
       AppendMenuW(menu,MF_STRING,show_id,L"Show FlitzFS");
       const auto v=controller->view();
       if(buttons[6]) {
-        AppendMenuW(menu,MF_STRING|(IsWindowEnabled(buttons[6])?0:MF_GRAYED),attach_id,L"Attach memory volume");
+        const auto attach_label=v.attachment.state==VolumeAttachmentState::detached?
+            (v.attachment.persistent?L"Reattach volume file":L"Reattach memory volume"):L"Attach memory volume";
+        AppendMenuW(menu,MF_STRING|(IsWindowEnabled(buttons[6])?0:MF_GRAYED),attach_id,attach_label);
+        if(buttons[9]) {
+          const auto flags=MF_STRING|(v.can_select_file()?0:MF_GRAYED);
+          AppendMenuW(menu,flags,new_volume_file_id,L"New volume file...");
+          AppendMenuW(menu,flags,open_volume_file_id,L"Open volume file...");
+        }
         AppendMenuW(menu,MF_STRING|(IsWindowEnabled(buttons[8])?0:MF_GRAYED),explorer_id,L"Open in Explorer");
         AppendMenuW(menu,MF_STRING|(IsWindowEnabled(buttons[7])?0:MF_GRAYED),detach_id,L"Detach and retain");
       }
-      AppendMenuW(menu,MF_STRING|((v.has_volume()||v.busy)?MF_GRAYED:0),exit_id,L"Exit");
+      AppendMenuW(menu,MF_STRING|((v.can_exit_without_discard()&&(v.idle()||v.stopped))?0:MF_GRAYED),exit_id,L"Exit");
       POINT p{};GetCursorPos(&p);SetForegroundWindow(window);
       const auto selected=TrackPopupMenu(menu,TPM_RETURNCMD|TPM_RIGHTBUTTON,p.x,p.y,0,window,nullptr);
       DestroyMenu(menu);if(selected)command(static_cast<int>(selected));

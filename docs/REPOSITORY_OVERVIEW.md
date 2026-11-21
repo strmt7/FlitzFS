@@ -100,14 +100,15 @@ flowchart TD
 
 The indexed WinFsp composition owns its memory backing and one controller
 through creation, callback service, retirement, compaction and CPU inspection.
-The production helper selects this memory attachment. The ordinary-file
-attachment exists behind a separate factory and needs a supported create,
-inspect and reopen workflow. Isolated mounted clients and actual AMD
-controller runs have their own receipts. Their integration on the installed
-release candidate remains open.
+The helper can select memory backing or a volume file through the qualified
+Explorer build. Both use the same owned controller. File selection includes
+exclusive new-file creation, checked reopen and explicit close after
+detachment. The installed client must still qualify both providers with
+the signed driver, recovery and real AMD operation.
 [Helper factory](../src/windows/volume_app_winfsp.cpp) ·
 [File attachment factory](../src/windows/winfsp_volume_attachment.cpp) ·
 [Mounted evidence](evidence/windows11-stable-winfsp-2.2-2026-11-20.json)
+[Helper file selection](evidence/helper-file-selection-2026-11-21.json)
 
 The diagnostic CLI operates on experimental image/container formats. It is not
 the final user-facing mount, creation or management interface. Historical ZIP

@@ -219,6 +219,7 @@ class Output final:public NativeVolumeRangeIo {
       if(!capacity_ || capacity_>maximum_windows_file_bytes || !valid_store_io_contract(c))
         fail("invalid persistent-file qualification");
       pin_volume_directory(parent_pin_,p);
+      if(c.isolated_range_reclamation)validate_sparse_storage(parent_pin_.handle,parent);
     }
     std::error_code ec;const auto space=std::filesystem::space(parent,ec);
     const auto required=kReserve+(volume_file_?0:kStoreMaxPhysicalBytes);
@@ -244,9 +245,9 @@ class Output final:public NativeVolumeRangeIo {
         sparse_=(attr.FileAttributes&FILE_ATTRIBUTE_SPARSE_FILE)!=0;
         if(sparse_ && !c.isolated_range_reclamation)
           fail("sparse volume file needs an isolated range contract");
-        if(sparse_ || (!reopen && c.isolated_range_reclamation)) {
+        if(c.isolated_range_reclamation) {
           validate_sparse_storage(handle_,parent);
-          if(!sparse_) {
+          if(!reopen && !sparse_) {
             DWORD returned=0;
             if(!DeviceIoControl(handle_,FSCTL_SET_SPARSE,nullptr,0,nullptr,0,&returned,nullptr) ||
                 !GetFileInformationByHandleEx(handle_,FileAttributeTagInfo,&attr,sizeof(attr)) ||

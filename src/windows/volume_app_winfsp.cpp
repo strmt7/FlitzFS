@@ -1,6 +1,11 @@
 #include "volume_app_winfsp.hpp"
 #include "volume_directory_pin.hpp"
 #include "flitzfs/read_only_file.hpp"
+#ifdef FLITZFS_EXPLORER_FILE_BACKING
+#include "memory_volume_factory.hpp"
+#include "flitzfs/native_volume_file.hpp"
+#include <algorithm>
+#endif
 #include <bcrypt.h>
 #include <delayimp.h>
 #include <array>
@@ -86,4 +91,37 @@ WinFspSessionApi load_volume_app_winfsp() {
 std::unique_ptr<VolumeAttachment> make_volume_app_attachment() {
   return make_winfsp_memory_attachment(load_volume_app_winfsp);
 }
+
+#ifdef FLITZFS_EXPLORER_FILE_BACKING
+std::unique_ptr<VolumeAttachment> make_volume_app_file_attachment(const VolumeFileRequest& request,
+    WinFspSessionApi (*load_api)()) {
+  auto path=request.path;
+  path.make_preferred();
+  if(!path.is_absolute() || path!=path.lexically_normal() || !ordinary_windows_file_path(path.native()))
+    throw std::invalid_argument("Choose an ordinary local volume file");
+
+  // The qualified build supplies the NTFS flush and range-isolation contract.
+  // The backing still checks the actual path, geometry and available space.
+  constexpr StoreIoContract contract{static_cast<std::uint32_t>(kStoreCommitUnit),true,true};
+  WinFspVolumeFileSelection selection{WinFspVolumeFileSelection::WindowsFile{path,contract},{},std::nullopt};
+  if(request.action==VolumeFileAction::create_new) {
+    const auto parents=pin_volume_path_parents(path.native());
+    std::error_code error;
+    const auto free=std::filesystem::space(path.parent_path(),error).available;
+    if(error || free==static_cast<std::uintmax_t>(-1) || free<=kNativeVolumeFileImageOffset)
+      throw std::runtime_error("Cannot reserve a volume on the selected backing");
+    const auto extent=(std::min)(static_cast<std::uint64_t>(free),
+        static_cast<std::uint64_t>((std::numeric_limits<std::int64_t>::max)()));
+    const auto range=(extent-kNativeVolumeFileImageOffset)/2;
+    const auto capacity=range-range%kStoreCommitUnit;
+    if(capacity<kVolumeHeadBytes+2*kStoreCommitUnit)
+      throw std::runtime_error("The target is too small for an indexed volume");
+    selection.volume=fresh_volume_identity();
+    selection.create=WinFspVolumeFileSelection::Create{fresh_volume_identity(),{capacity}};
+  } else if(request.action!=VolumeFileAction::open_existing) {
+    throw std::invalid_argument("Choose how to open the volume file");
+  }
+  return make_winfsp_volume_file_attachment(load_api,std::move(selection));
+}
+#endif
 }

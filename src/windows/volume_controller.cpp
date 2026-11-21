@@ -25,10 +25,13 @@ VolumeController::WakeEvent::WakeEvent():value(CreateEventW(nullptr,FALSE,FALSE,
   if(!value)throw std::runtime_error("Volume controller event creation failed");
 }
 VolumeController::WakeEvent::~WakeEvent(){CloseHandle(value);}
-VolumeController::VolumeController(HWND window,std::unique_ptr<VolumeAttachment> attachment):
-    window_(window),attachment_(std::move(attachment)) {
+VolumeController::VolumeController(HWND window,std::unique_ptr<VolumeAttachment> attachment,
+    FileAttachmentFactory make_file):
+    window_(window),attachment_(std::move(attachment)),make_file_attachment_(std::move(make_file)) {
   if(!window)throw std::runtime_error("Controller requires an owned window");
+  if(make_file_attachment_ && !attachment_)throw std::invalid_argument("File selection requires an attachment controller");
   if(attachment_)view_.attachment.state=VolumeAttachmentState::empty;
+  view_.file_selection_available=bool(make_file_attachment_);
   worker_=std::thread([this]{run();});
 }
 VolumeController::~VolumeController() {
@@ -42,9 +45,14 @@ VolumeController::~VolumeController() {
 bool VolumeController::submit(VolumeCommand command) {
   if(command.kind==VolumeCommandKind::stop || command.name.size()>127 ||
       command.text.size()>VolumeModel::text_limit)return false;
+  if((command.kind==VolumeCommandKind::attach_file)!=command.file.has_value())return false;
+  if(command.file && (command.file->path.empty() || command.file->path.native().size()>=32768 ||
+      (command.file->action!=VolumeFileAction::create_new && command.file->action!=VolumeFileAction::open_existing)))
+    return false;
   std::lock_guard lock(mutex_);
   if(view_.busy || stop_requested_ || view_.stopped || command_)return false;
   const auto state=view_.attachment.state;
+  if(command.kind==VolumeCommandKind::attach_file && !view_.can_select_file())return false;
   if(command.kind==VolumeCommandKind::attach &&
       (view_.volume.ready || (state!=VolumeAttachmentState::empty && state!=VolumeAttachmentState::detached)))return false;
   if(command.kind==VolumeCommandKind::detach && state!=VolumeAttachmentState::attached)return false;
@@ -53,6 +61,9 @@ bool VolumeController::submit(VolumeCommand command) {
       (command.kind!=VolumeCommandKind::discard || state!=VolumeAttachmentState::detached))return false;
   if(!SetEvent(wake_.value))return false;
   command_=std::move(command);view_.busy=true;view_.text.reset();foreground_pending_=true;return true;
+}
+VolumeAttachment* VolumeController::active_attachment() const noexcept {
+  return selected_file_?selected_file_.get():attachment_.get();
 }
 bool VolumeController::stop(bool discard) {
   std::lock_guard lock(mutex_);
@@ -76,8 +87,9 @@ void VolumeController::notify() noexcept {
   }
 }
 void VolumeController::refresh_attachment() {
-  if(!attachment_)return;
-  auto attachment=attachment_->refresh();
+  const auto backend=active_attachment();
+  if(!backend)return;
+  auto attachment=backend->refresh();
   std::lock_guard lock(mutex_);
   if(attachment!=view_.attachment) {
     auto message=attachment_message(attachment);
@@ -174,26 +186,39 @@ void VolumeController::run() noexcept {
               break;
             case VolumeCommandKind::attach:
               if(model.ready())throw std::runtime_error("Close the preview volume before attaching");
-              attachment_->attach(wake_.value);
+              active_attachment()->attach(wake_.value);
+              break;
+            case VolumeCommandKind::attach_file:
+              selected_file_=make_file_attachment_(*command->file);
+              if(!selected_file_)throw std::runtime_error("Cannot prepare the selected volume file");
+              try {
+                selected_file_->attach(wake_.value);
+              } catch(...) {
+                if(!selected_file_->retains_volume())selected_file_.reset();
+                throw;
+              }
               break;
             case VolumeCommandKind::detach:
-              attachment_->detach();
+              active_attachment()->detach();
               break;
-            case VolumeCommandKind::discard:
-              if(attachment_ && attachment_->retains_volume()) {
-                const bool persistent=attachment_->refresh().persistent;
-                attachment_->discard();
+            case VolumeCommandKind::discard: {
+              const auto backend=active_attachment();
+              if(backend && backend->retains_volume()) {
+                const bool persistent=backend->refresh().persistent;
+                backend->discard();
+                selected_file_.reset();
                 message=persistent?"Volume file closed.":"Temporary volume explicitly discarded.";
               } else {
                 model.discard();
                 message="Temporary volume explicitly discarded.";
               }
               break;
+            }
             case VolumeCommandKind::stop:throw std::runtime_error("Invalid queued stop");
           }
         } catch(const std::exception& e){message=std::string("Operation failed: ")+e.what();}
-        if(attachment_) {
-          attachment=attachment_->refresh();
+        if(const auto backend=active_attachment()) {
+          attachment=backend->refresh();
           if(message.empty())message=attachment_message(attachment);
         }
         try{volume=model.view();}
@@ -209,17 +234,18 @@ void VolumeController::run() noexcept {
         }
       }
     } // All engine owners and allocations retire before stopped is exposed.
-    if(attachment_) {
-      if(attachment_->refresh().state==VolumeAttachmentState::detached)attachment_->discard();
-      attachment_.reset();
-    }
+    if(const auto backend=active_attachment();backend && backend->refresh().state==VolumeAttachmentState::detached)
+      backend->discard();
+    selected_file_.reset();
+    attachment_.reset();
     std::lock_guard lock(mutex_);
     view_.volume={};view_.attachment={};view_.stopped=true;view_.busy=false;++view_.generation;++view_.content_generation;
     view_.message=MemoryVolumeDomain::cleanup_healthy()?"Controller retired.":"Controller retired; memory cleanup failed.";
     notify();
   } catch(...) {
     std::lock_guard lock(mutex_);view_.volume={};view_.stopped=true;view_.busy=false;
-    if(attachment_ && attachment_->retains_volume())view_.attachment={VolumeAttachmentState::blocked};
+    if(const auto backend=active_attachment();backend && backend->retains_volume())
+      view_.attachment.state=VolumeAttachmentState::blocked;
     view_.message="Controller terminated after an internal failure.";notify();
   }
 }

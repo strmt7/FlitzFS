@@ -16,9 +16,10 @@ package publication or product-version change.
 The current indexed path retains verified roots, an on-demand memory
 provider, independently readable collective encodings and bounded scheduled
 work. Restart reclamation uses verified object totals and respects retained
-readers. The helper selects the memory provider today. The existing file
-attachment, external Windows workflow, and real AMD controller route are
-the next integration boundary. Follow E02 for reclaiming segments during
+readers. The helper selects memory or qualified file backing through the
+shared attachment controller. The next integration boundary is the complete
+installed Windows workflow with both providers, and real AMD work in that
+workflow. Follow E02 for reclaiming segments during
 foreground writes, E03 for AMD and independent CPU continuity, and E08 for the
 mounted lifecycle. The execution plan gives the ordered exit evidence.
 [Current state](DEVELOPMENT_STATE.json)

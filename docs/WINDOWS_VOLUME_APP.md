@@ -1,9 +1,9 @@
 # Experimental Windows volume application
 
 The helper supports the temporary editor and an experimental Explorer
-attachment. Both use the adaptive RAM factory. The Explorer variant opens
-an indexed writable volume with the shared WinFsp controller, CPU recovery,
-and installed AMD acquisition when a qualified package admits the work.
+attachment. Temporary volumes use the adaptive memory factory. The Explorer
+variant uses the shared WinFsp controller, CPU recovery, and installed AMD
+acquisition when a qualified package admits the work.
 [Memory factory](WINDOWS_MEMORY_VOLUME_FACTORY.md) ·
 [Windows background maintenance](WINDOWS_BACKGROUND_MAINTENANCE.md)
 
@@ -33,13 +33,29 @@ after attach, detach and reattach. GUI tests exercise the actual executable
 with absent and altered dependencies. Interactive File Explorer integration
 requires separate qualification.
 
-The controller also accepts a qualified persistent-file selection. It retains
-the exclusive handle through detach and failed startup, and releases it on
-Close volume file or ordinary exit after detachment. The current app
-entry point selects memory volumes. A persistent-volume picker and
-qualified backing selection remain future integration work.
+### Persistent volume files
+
+The Explorer build with `FLITZFS_EXPLORER_FILE_BACKING=ON` exposes **New volume
+file** and **Open volume file** in the window and tray. The option selects
+a local NTFS contract for 64 KiB failure units, flushes and isolated sparse
+ranges. Enable it for storage independently qualified against that contract.
+File attributes and sector geometry are admission inputs.
+
+The Windows picker runs on the UI thread. The selected path and the create
+or open action move to the existing attachment worker. Before acquiring a
+backing, the worker checks the WinFsp mount location. Creation atomically
+requires a new file, and the capacity follows available space and paired
+range geometry. Reopen checks the volume identity on the same exclusive
+handle before writable recovery. The window identifies the selected file,
+while **Open in Explorer** opens the current temporary mount location.
+
+Detach retains the exclusive handle. **Reattach volume file** uses that
+handle, and **Close volume file** releases it after confirmed retirement.
+Exit can close a detached file. The next attachment then uses an explicit
+file choice or the memory provider.
+[Windows picker options](https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/ne-shobjidl_core-_fileopendialogoptions) ·
 [File attachment contract](PERSISTENT_VOLUME_FILE.md#windows-helper-ownership) ·
-[File attachment validation](evidence/windows-volume-file-attachment-2026-11-19.json)
+[File selection validation](evidence/helper-file-selection-2026-11-21.json)
 [Current attachment evidence](evidence/windows-tray-attachment-2026-11-18.json)
 
 ### Initial Windows 11 driver trial

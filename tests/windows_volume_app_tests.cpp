@@ -824,7 +824,7 @@ void mounted_gui_workflow(HWND window,std::wstring_view parent,ProcessObserver& 
       <<"unicode_names=1 extended_path=1 alias_collision=1 live_handle_rename=1 directory_move=1\n";
 }
 
-enum class GuiRuntime { ordinary,missing,altered,mounted };
+enum class GuiRuntime { ordinary,missing,altered,mounted,qualified_file_controls };
 void gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budget,GuiRuntime runtime) {
   const bool mounted=runtime==GuiRuntime::mounted;
   const auto mount_parent=mounted?disposable_mount_parent():std::wstring{};
@@ -893,7 +893,12 @@ void gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budge
     if(mounted) {
       mounted_gui_workflow(window,mount_parent,*observer,button,wait_status,deadline);
     } else {
-      if(runtime!=GuiRuntime::ordinary) {
+      const bool qualified_file_controls=runtime==GuiRuntime::qualified_file_controls;
+      const auto new_file=GetDlgItem(window,115),open_file=GetDlgItem(window,116);
+      if(qualified_file_controls)
+        require(new_file && open_file && IsWindowEnabled(new_file) && IsWindowEnabled(open_file),
+            "Qualified file controls are unavailable in the empty app");
+      if(runtime==GuiRuntime::missing || runtime==GuiRuntime::altered) {
         require(IsWindowEnabled(GetDlgItem(window,107))!=FALSE,"Attach control unavailable");
         button(107);
         wait_status(runtime==GuiRuntime::missing?L"WinFsp runtime is unavailable beside FlitzFS":
@@ -905,6 +910,9 @@ void gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budge
             <<" preview_available=1\n";
       }
       button(101);wait_status(L"Memory volume created");
+      if(qualified_file_controls)
+        require(!IsWindowEnabled(new_file) && !IsWindowEnabled(open_file),
+            "An existing preview allowed another backing selection");
       const auto summary=GetDlgItem(window,121);
       require(summary&&text(summary).find(L"Optimization state: ready")!=std::wstring::npos,
           "GUI optimization-state diagnostic missing");
@@ -932,6 +940,11 @@ void gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budge
       until([&]{return IsWindowEnabled(GetDlgItem(window,105))!=FALSE;},deadline);
       require(text(status).find(L"Operation failed:")==std::wstring::npos,"GUI optimization failure");
       button(105);wait_status(L"Temporary volume explicitly discarded.");
+      if(qualified_file_controls) {
+        require(IsWindowEnabled(new_file) && IsWindowEnabled(open_file),
+            "Closing the preview did not restore file selection");
+        std::cout<<"gui_file_controls selectable_when_empty=1 refused_while_owned=1 restored_on_close=1\n";
+      }
     }
     // Exit may destroy the button/window before a synchronous BM_CLICK reply.
     // Admit the click to its actual queue, then require exact process retirement.
@@ -966,6 +979,7 @@ int wmain(int argc,wchar_t** argv) {
       const std::wstring_view mode=argv[1];
       const auto app=std::filesystem::path(argv[2]);
       if(mode==L"--gui")gui_tests(app,budget,GuiRuntime::ordinary);
+      else if(mode==L"--gui-qualified-file-controls")gui_tests(app,budget,GuiRuntime::qualified_file_controls);
       else if(mode==L"--gui-missing-winfsp")gui_tests(app,budget,GuiRuntime::missing);
       else if(mode==L"--gui-altered-winfsp")gui_tests(app,budget,GuiRuntime::altered);
       else if(mode==L"--gui-mounted-sandbox")gui_tests(app,budget,GuiRuntime::mounted);

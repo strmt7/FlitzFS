@@ -1,9 +1,16 @@
 #pragma once
 #include <windows.h>
 #include <cstdint>
+#include <filesystem>
 #include <string>
 
 namespace flitzfs {
+enum class VolumeFileAction { create_new, open_existing };
+struct VolumeFileRequest {
+  VolumeFileAction action;
+  std::filesystem::path path;
+};
+
 enum class VolumeAttachmentState { unavailable, empty, starting, attached, detached, blocked };
 struct VolumeAttachmentView {
   VolumeAttachmentState state=VolumeAttachmentState::unavailable;
@@ -11,6 +18,7 @@ struct VolumeAttachmentView {
   std::int32_t status=0;
   bool persistent=false;
   bool integrity_warning=false;
+  std::wstring backing_path;
   bool operator==(const VolumeAttachmentView&) const = default;
   bool retained() const noexcept {
     return state!=VolumeAttachmentState::unavailable && state!=VolumeAttachmentState::empty;

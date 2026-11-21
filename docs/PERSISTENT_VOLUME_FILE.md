@@ -147,9 +147,14 @@ image identity through the native reopen API.
 
 ## Windows helper ownership
 
-A qualified caller supplies the backing, the expected volume identity and
-optional creation geometry to the same attachment worker that manages memory
-volumes. It acquires the file exclusively before asking WinFsp to attach.
+A qualified caller supplies the backing and creation geometry to the same
+attachment worker that manages memory volumes. The Explorer helper can
+request a new file or open an existing one. It preflights the mount location,
+pins the backing's ancestors during acquisition, and verifies the existing
+volume's identity on the exclusive handle before writable recovery. A
+supplied expected identity must match. The NTFS sparse profile checks the
+pinned parent and the file handle, including linear images reopened under
+that profile.
 A mount failure keeps the backing open for recovery. Reattachment uses the
 retained file handle and verifies the selected volume before starting a new
 dispatcher. Creation is requested once per acquired backing.
@@ -159,6 +164,7 @@ An uncertain retirement keeps the attachment blocked. Closing a detached
 volume file releases its handle and preserves the file. Ordinary app exit
 can close a detached file without a discard confirmation. A fresh helper can
 reopen the file by its checked identity.
+[Helper controls and qualification](WINDOWS_VOLUME_APP.md#persistent-volume-files) ·
 [WinFsp dispatcher and mount API](https://winfsp.dev/doc/WinFsp-API-winfsp.h/)
 
 ## Validation and remaining integration
