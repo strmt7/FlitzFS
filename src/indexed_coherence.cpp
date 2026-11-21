@@ -22,7 +22,7 @@ constexpr std::uint64_t alternate_domain=1ULL<<62,domain_mask=3ULL<<62,slot_mask
 static_assert(feature_role_offset==feature_identity_bytes+word_bytes*kOptimizationGroupBands);
 static_assert(projected_posting_bytes<posting_bytes);
 constexpr auto raw_storage=StoreCompressionOptions{StoreCompressionMode::raw,1,false};
-using Root=std::array<std::byte,32>;
+constexpr std::size_t legacy_root_bytes=32,identified_root_bytes=56;
 using Bytes=std::vector<std::byte>;
 
 void signature(std::span<std::byte> bytes,std::string_view magic) {
@@ -41,14 +41,22 @@ struct CatalogFormat {
   std::uint8_t schema=1,band_schema=1;
   bool operator==(const CatalogFormat&) const=default;
 };
-Root root_record(StoreIdentity volume,StoreIdentity image,CatalogFormat format) {
+StoreIdentity catalog_identity(StoreIdentity volume,StoreIdentity image,StoreIdentity backing) {
   if(volume==StoreIdentity{} || image==StoreIdentity{} || image==volume)
     throw std::invalid_argument("coherence catalog identities");
-  Root bytes{};
+  if(backing==volume || backing==image)throw std::invalid_argument("coherence backing identity");
+  return backing==StoreIdentity{}?volume:backing;
+}
+Bytes root_record(StoreIdentity volume,StoreIdentity image,CatalogFormat format,bool identified) {
+  Bytes bytes(identified?identified_root_bytes:legacy_root_bytes);
   signature(bytes,root_signatures[format.schema-1]);
   std::ranges::copy(image,bytes.begin()+8);
   bytes[24]=static_cast<std::byte>(format.schema);
   if(format.schema==alternate_schema)bytes[25]=static_cast<std::byte>(format.band_schema);
+  if(identified) {
+    signature(std::span(bytes).subspan(legacy_root_bytes),"FLTZCB01");
+    std::ranges::copy(volume,bytes.begin()+legacy_root_bytes+8);
+  }
   return bytes;
 }
 std::uint64_t posting_key(std::uint32_t band,std::uint64_t fingerprint) noexcept {
@@ -198,7 +206,7 @@ PostingPlan plan_postings(std::span<const IndexedCoherencePosting> postings,
 }
 template<class Publish>
 auto publish_plan(PostingPlan plan,StoreIdentity volume,StoreIdentity image,CatalogFormat previous,
-    bool creating,const std::function<bool(std::uint64_t)>& reserve,Publish&& publish) {
+    bool creating,bool identified,const std::function<bool(std::uint64_t)>& reserve,Publish&& publish) {
   const CatalogFormat primary{previous.schema==alternate_schema?alternate_schema:plan.band_schema,plan.band_schema};
   const CatalogFormat extended{alternate_schema,plan.band_schema};
   const auto needs_root=[&](CatalogFormat format){return creating || format!=previous;};
@@ -209,10 +217,7 @@ auto publish_plan(PostingPlan plan,StoreIdentity volume,StoreIdentity image,Cata
   };
   const auto attempt=[&](CatalogFormat format,bool alternates) {
     auto mutations=plan.primary;
-    if(needs_root(format)) {
-      const auto root=root_record(volume,image,format);
-      mutations.push_back({root_object,false,Bytes(root.begin(),root.end())});
-    }
+    if(needs_root(format))mutations.push_back({root_object,false,root_record(volume,image,format,identified)});
     if(alternates) {
       const auto count=(std::min)(plan.alternates.size(),kStoreMaxObjects-mutations.size());
       mutations.insert(mutations.end(),plan.alternates.begin(),plan.alternates.begin()+count);
@@ -232,20 +237,23 @@ auto publish_plan(PostingPlan plan,StoreIdentity volume,StoreIdentity image,Cata
 }
 }
 IndexedCoherenceSnapshot::IndexedCoherenceSnapshot(
-    PagedObjectStoreSnapshot store,StoreIdentity volume,StoreIdentity image)
-    :store_(std::move(store)),image_(image) {
-  if(store_.identity()!=volume)throw std::runtime_error("foreign coherence catalog volume");
-  const auto record=store_.read(root_object,Root{}.size());
-  if(record.size()!=Root{}.size())throw std::runtime_error("invalid coherence catalog root size");
+    PagedObjectStoreSnapshot store,StoreIdentity volume,StoreIdentity image,StoreIdentity backing)
+    :store_(std::move(store)),volume_(volume),image_(image),backing_(backing) {
+  if(store_.identity()!=catalog_identity(volume,image,backing))
+    throw std::runtime_error("foreign coherence catalog backing");
+  const bool identified=backing!=StoreIdentity{};
+  const auto size=identified?identified_root_bytes:legacy_root_bytes;
+  const auto record=store_.read(root_object,size);
+  if(record.size()!=size)throw std::runtime_error("invalid coherence catalog root size");
   schema_=std::to_integer<std::uint8_t>(record[24]);
   band_schema_=schema_==alternate_schema?std::to_integer<std::uint8_t>(record[25]):schema_;
   if(!schema_ || schema_>root_signatures.size() || !band_schema_ || band_schema_>=alternate_schema ||
-      !std::ranges::equal(root_record(volume,image,{schema_,band_schema_}),record))
+      root_record(volume,image,{schema_,band_schema_},identified)!=record)
     throw std::runtime_error("foreign or unsupported coherence catalog root");
 }
 IndexedCoherenceSnapshot IndexedCoherenceSnapshot::open(std::shared_ptr<StoreByteIo> backing,
-    StoreIdentity volume,StoreIdentity image,PagedStoreLimits limits) {
-  return IndexedCoherenceSnapshot(PagedObjectStoreSnapshot::open_impl(std::move(backing),limits,true),volume,image);
+    StoreIdentity volume,StoreIdentity image,PagedStoreLimits limits,StoreIdentity identity) {
+  return IndexedCoherenceSnapshot(PagedObjectStoreSnapshot::open_impl(std::move(backing),limits,true),volume,image,identity);
 }
 std::optional<OptimizationGroupFeature> IndexedCoherenceSnapshot::find(
     std::uint32_t band,std::uint64_t fingerprint) const {
@@ -271,21 +279,24 @@ std::optional<IndexedCoherenceAlternate> IndexedCoherenceSnapshot::next_alternat
 }
 
 IndexedCoherenceWriter::IndexedCoherenceWriter(
-    PagedObjectStoreWriter store,StoreIdentity volume,StoreIdentity image)
-    :store_(std::move(store)),volume_(volume),image_(image) {}
+    PagedObjectStoreWriter store,StoreIdentity volume,StoreIdentity image,StoreIdentity backing)
+    :store_(std::move(store)),volume_(volume),image_(image),backing_(backing) {}
 IndexedCoherenceWriter IndexedCoherenceWriter::create(std::shared_ptr<StoreByteIo> backing,
     StoreIdentity volume,StoreIdentity image,PagedStoreLimits limits) {
   return create_reserved(std::move(backing),volume,image,limits,{},UINT64_MAX,{});
 }
 IndexedCoherenceWriter IndexedCoherenceWriter::create_reserved(std::shared_ptr<StoreByteIo> backing,
     StoreIdentity volume,StoreIdentity image,PagedStoreLimits limits,std::span<const IndexedCoherencePosting> postings,
-    std::uint64_t maximum_write_bytes,const std::function<bool(std::uint64_t)>& reserve) {
-  auto store=publish_plan(plan_postings(postings,nullptr,{}),volume,image,{},true,reserve,
+    std::uint64_t maximum_write_bytes,const std::function<bool(std::uint64_t)>& reserve,StoreIdentity identity) {
+  const auto namespace_id=catalog_identity(volume,image,identity);
+  auto store=publish_plan(plan_postings(postings,nullptr,{}),volume,image,{},true,identity!=StoreIdentity{},reserve,
       [&](std::span<const StoreMutation> mutations,const auto& charge) {
-        return PagedObjectStoreWriter::create_impl(backing,volume,limits,raw_storage,false,
+        return PagedObjectStoreWriter::create_impl(backing,namespace_id,limits,raw_storage,false,
             mutations,maximum_write_bytes,charge,true);
       });
-  return IndexedCoherenceWriter(std::move(store),volume,image);
+  IndexedCoherenceWriter writer(std::move(store),volume,image,identity);
+  if(identity!=StoreIdentity{})writer.snapshot().store_.verify_all();
+  return writer;
 }
 IndexedCoherenceWriter IndexedCoherenceWriter::resume(std::shared_ptr<StoreByteIo> backing,
     StoreIdentity volume,StoreIdentity image,std::uint64_t expected_generation,PagedStoreLimits limits) {
@@ -294,9 +305,14 @@ IndexedCoherenceWriter IndexedCoherenceWriter::resume(std::shared_ptr<StoreByteI
   auto store=PagedObjectStoreWriter::resume(std::move(backing),volume,expected_generation,limits,raw_storage);
   return IndexedCoherenceWriter(std::move(store),volume,image);
 }
+IndexedCoherenceWriter IndexedCoherenceWriter::resume_selected(const IndexedCoherenceSnapshot& observed) {
+  if(observed.backing_==StoreIdentity{})throw std::invalid_argument("catalog selection has no backing identity");
+  return IndexedCoherenceWriter(PagedObjectStoreWriter::resume_advisory(observed.store_,raw_storage),
+      observed.volume_,observed.image_,observed.backing_);
+}
 IndexedCoherenceSnapshot IndexedCoherenceWriter::snapshot() const {
   if(store_.poisoned())throw std::runtime_error("coherence catalog writer unavailable");
-  return IndexedCoherenceSnapshot(store_.snapshot_impl(true),volume_,image_);
+  return IndexedCoherenceSnapshot(store_.snapshot_impl(true),volume_,image_,backing_);
 }
 PagedStoreWriteResult IndexedCoherenceWriter::publish(
     std::span<const IndexedCoherencePosting> postings,std::uint64_t maximum_write_bytes) {
@@ -309,17 +325,22 @@ PagedStoreWriteResult IndexedCoherenceWriter::publish_reserved(
   const CatalogFormat format{previous.schema_,previous.band_schema_};
   auto plan=plan_postings(postings,&previous.store_,format);
   if(plan.primary.empty())return {previous.info(),0};
-  return publish_plan(std::move(plan),volume_,image_,format,false,reserve,
+  return publish_plan(std::move(plan),volume_,image_,format,false,backing_!=StoreIdentity{},reserve,
       [&](std::span<const StoreMutation> mutations,const auto& charge) {
         return store_.commit_impl(mutations,kStoreMaxObjects,kStoreMaxTransactionBytes,maximum_write_bytes,charge);
       });
 }
 PagedObjectStoreWriter::Rewrite IndexedCoherenceWriter::prepare_compaction(std::shared_ptr<StoreByteIo> target,
-    std::function<bool(const OptimizationGroupFeature&)> keep,std::function<bool(std::uint64_t)> charge) const {
+    std::function<bool(const OptimizationGroupFeature&)> keep,std::function<bool(std::uint64_t)> charge,
+    StoreIdentity replacement_backing) const {
   const auto current=snapshot();
+  const bool identified=backing_!=StoreIdentity{};
+  if(identified!=(replacement_backing!=StoreIdentity{}) || (identified && backing_==replacement_backing))
+    throw std::invalid_argument("coherence compaction backing identity");
+  const auto namespace_id=catalog_identity(volume_,image_,replacement_backing);
   const CatalogFormat format{current.schema_,current.band_schema_};
-  const auto root=root_record(volume_,image_,format);
-  return store_.prepare_rebuild_retaining(std::move(target),raw_storage,{posting_bytes,
+  const auto root=root_record(volume_,image_,format,identified);
+  return store_.prepare_rebuild_retaining(std::move(target),namespace_id,raw_storage,{posting_bytes,
       [root,format,keep=std::move(keep)](std::uint64_t key,std::span<const std::byte> bytes) {
         if(key!=root_object)return keep(decode_posting(key,bytes,format).representative);
         if(!std::ranges::equal(root,bytes))throw std::runtime_error("coherence compaction root differs");
@@ -327,13 +348,19 @@ PagedObjectStoreWriter::Rewrite IndexedCoherenceWriter::prepare_compaction(std::
       },std::move(charge)});
 }
 IndexedCoherenceStorage::IndexedCoherenceStorage(PagedStoreLimits limits,Reserve reserve)
-    :limits_(limits),reserve_(std::move(reserve)) {
-  if(!limits_.maximum_physical_bytes || !reserve_)throw std::invalid_argument("coherence storage reservation");
+    :limits_(limits) {
+  if(!limits_.maximum_physical_bytes || !reserve)throw std::invalid_argument("coherence storage reservation");
+  reserve_=[reserve=std::move(reserve)] {return Reservation{{},reserve()};};
 }
 IndexedCoherenceStorage::IndexedCoherenceStorage(PagedStoreLimits limits,Reserve reserve,IndexedCoherenceWriter recovered)
     :IndexedCoherenceStorage(limits,std::move(reserve)) {
   if(recovered.poisoned() || recovered.store_.snapshot().limits().maximum_physical_bytes!=limits_.maximum_physical_bytes)
     throw std::invalid_argument("recovered coherence catalog disagrees with its reservation");
   retained_=std::make_shared<IndexedCoherenceWriter>(std::move(recovered));
+}
+IndexedCoherenceStorage::IndexedCoherenceStorage(PagedStoreLimits limits,ReserveIdentified reserve,Resolve resolve)
+    :limits_(limits),reserve_(std::move(reserve)),resolve_(std::move(resolve)) {
+  if(!limits_.maximum_physical_bytes || !reserve_ || !resolve_)
+    throw std::invalid_argument("identified coherence storage reservation and resolver");
 }
 }

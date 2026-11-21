@@ -186,6 +186,9 @@ class PagedObjectStoreWriter final {
   static PagedObjectStoreWriter resume_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,
       std::uint64_t expected_generation,PagedStoreLimits,StoreCompressionOptions,bool repair_payloads,
       const PagedObjectStoreSnapshot* verified_indexed_source=nullptr);
+  // Advisory compact metadata only. Fence the checked root without repairing
+  // it. Descendant pages and objects are checked as they are used.
+  static PagedObjectStoreWriter resume_advisory(const PagedObjectStoreSnapshot&,StoreCompressionOptions);
   static PagedObjectStoreWriter create_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,
       PagedStoreLimits,StoreCompressionOptions,bool mirrored,std::span<const StoreMutation> initial={},
       std::uint64_t maximum_write_bytes=UINT64_MAX,
@@ -204,8 +207,9 @@ class PagedObjectStoreWriter final {
     std::function<bool(std::uint64_t,std::span<const std::byte>)> keep;
     std::function<bool(std::uint64_t)> charge;
   };
-  // Private same-identity rotation of an advisory catalog on distinct backing.
-  Rewrite prepare_rebuild_retaining(std::shared_ptr<StoreByteIo>,StoreCompressionOptions,RebuildRetention) const;
+  // Private filtered rotation of an advisory catalog on distinct backing.
+  Rewrite prepare_rebuild_retaining(std::shared_ptr<StoreByteIo>,StoreIdentity,
+      StoreCompressionOptions,RebuildRetention) const;
   Rewrite prepare_rebuild_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,
       StoreCompressionOptions,std::span<const std::byte> replacement,bool reencode,
       std::size_t identity_offset,std::optional<RebuildRetention>,PagedRewriteMode,

@@ -362,8 +362,8 @@ multiple sessions and measure actual allocated bytes and write costs.
   construction trial hit its 64 MiB backing allowance during appends.
   Compare write amplification under sorted and interleaved ingestion,
   compaction debt, total occupied bytes and read traffic on the same input.
-  Test retained-reader overlap and restart on the persistent catalog provider
-  before increasing the scan envelope.
+  Qualify retained-reader overlap and restart with the managed physical-file
+  catalog provider before increasing the scan envelope.
   [Sparse catalog evidence](evidence/indexed-coherence-range-reads-2026-11-21.json)
 - Compact index pages and coalesced sibling writes reduced the interleaved
   16,384-fingerprint build from 121.8 MiB to 67.3 MiB. Backing writes fell
@@ -378,6 +378,15 @@ multiple sessions and measure actual allocated bytes and write costs.
   real data, using measured persistent-media read and write costs to choose
   between dense packed pages and compact update pages.
   [Reclamation evidence](evidence/indexed-coherence-reclamation-2026-11-21.json)
+- The paired advisory journal now selects an identified catalog backing
+  after its replacement has been checked. Independent Windows RAM fixtures
+  cover restart before the first selector write, after the first barrier,
+  after the final barrier and with the resolver returning the wrong complete
+  catalog. The next integration needs stable catalog reservations and
+  recovery of their ID-to-range mapping within the managed volume, plus
+  retirement checks across failed selection and pinned readers.
+  [Catalog selection format](OPTIMIZATION_STATE.md#identified-catalog-selection) ·
+  [Windows restart evidence](evidence/identified-coherence-selection-2026-11-21.json)
 - Use training and held-out sets chosen before the evaluation. Test close
   revisions, unrelated files, small text, SVG, tabular and numeric data,
   binaries, media and already compressed files. Include nonsynthetic

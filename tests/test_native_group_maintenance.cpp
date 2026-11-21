@@ -2487,8 +2487,9 @@ void automatic_indexed_catalog(CatalogFunding outcome) {
   user.verify_all();
 }
 enum class CoherenceCopyOutcome {completed,charge_cut,target_cut};
+enum class CatalogSelectionCase {lease_only,selected,before_selection,after_first_barrier,after_selection};
 std::size_t compact_full_indexed_catalog(CoherenceCopyOutcome outcome,std::size_t target_cut=0,
-    bool alternate_fixture=false) {
+    bool alternate_fixture=false,CatalogSelectionCase selection_case=CatalogSelectionCase::lease_only) {
   Fixture f(4096,0,true);
   auto advice=ram(4096);
   require(f.session->create_budgeted_optimization_area(advice).phase==NativeOptimizationPhase::ready,
@@ -2496,11 +2497,20 @@ std::size_t compact_full_indexed_catalog(CoherenceCopyOutcome outcome,std::size_
   // The backing holds exactly one incremental page rewrite after creation.
   // This is fixture pressure; Windows uses a headroom-derived layout.
   const PagedStoreLimits limits{39*4096};
+  const bool identified=selection_case!=CatalogSelectionCase::lease_only;
+  const bool selection_failed=identified && selection_case!=CatalogSelectionCase::selected;
+  const auto first_identity=identified?id(40):StoreIdentity{};
+  const auto second_identity=identified?id(41):StoreIdentity{};
   std::vector<std::shared_ptr<Ram>> backings;
-  auto owner=std::make_shared<IndexedCoherenceStorage>(limits,[&]() -> std::shared_ptr<StoreByteIo> {
+  const auto reserve=[&]() -> std::shared_ptr<StoreByteIo> {
     if(backings.size()==2)throw std::runtime_error("unexpected catalog reservation");
     return backings.emplace_back(ram(4096));
-  });
+  };
+  auto owner=identified?std::make_shared<IndexedCoherenceStorage>(limits,[&] {
+    const auto identity=backings.empty()?first_identity:second_identity;
+    return IndexedCoherenceStorage::Reservation{identity,reserve()};
+  },[](StoreIdentity)->std::shared_ptr<StoreByteIo> {return {};})
+      :std::make_shared<IndexedCoherenceStorage>(limits,reserve);
   f.session->configure_indexed_coherence(owner);
   const auto stable=data(kNativeExtentBytes,1207);
   auto old=data(kNativeExtentBytes,373);
@@ -2527,11 +2537,22 @@ std::size_t compact_full_indexed_catalog(CoherenceCopyOutcome outcome,std::size_
     const auto opened=f.session->open("edited",{true,true,false});
     f.session->write(opened,0,bytes);f.session->cleanup(opened,false);f.session->close(opened);
   };
+  const auto earn_selection=[&] {
+    if(identified)for(unsigned i=0;i<2;++i)
+      put(*f.session,"credit-"+std::to_string(funding++),Bytes(kOptimizationGroupScanInputBytes/2));
+  };
   earn(3);
+  earn_selection();
   NativeGroupMaintenance controller(*f.session);
   finish_pending(f,controller);
   require(backings.size()==1 && controller.progress().coherence_catalog_bytes>0,"fixture failed to create initial catalog");
   const auto data_view=f.session->snapshot();
+  if(identified) {
+    const auto initial=IndexedCoherenceSnapshot::open(backings.front(),id(90),id(1),limits,first_identity);
+    require(f.session->optimization_snapshot().state.catalog_selection==
+        OptimizationCatalogSelection{id(1),first_identity,initial.info().generation},
+        "first catalog lacks a durable backing identity");
+  }
   const auto first_scan=*f.session->optimization_snapshot().state.group_scan;
   const auto find_feature=[&](std::string_view name) {
     const auto inode=data_view.stat(name).inode;
@@ -2557,6 +2578,8 @@ std::size_t compact_full_indexed_catalog(CoherenceCopyOutcome outcome,std::size_
   const auto full=active->extent();
   const auto before=f.session->optimization_snapshot();
   require(backings.size()==1 && full==limits.maximum_physical_bytes,"fixture did not fill the selected catalog");
+  if(identified)require(before.state.catalog_selection && before.state.catalog_selection->backing==first_identity,
+      "append changed the selected backing");
 
   const auto latest=data(kNativeExtentBytes,27992);
   edit(latest);
@@ -2574,14 +2597,24 @@ std::size_t compact_full_indexed_catalog(CoherenceCopyOutcome outcome,std::size_
 
   if(outcome==CoherenceCopyOutcome::charge_cut)advice->fail_at=advice->calls+2;
   if(outcome==CoherenceCopyOutcome::target_cut)candidate->fail_at=target_cut;
+  if(selection_failed) {
+    // The copy charge writes a full two-slot pair first. Cut the separate
+    // selection pair before its first write, after its first barrier or
+    // after its final barrier reported completion to the backing.
+    const auto selection_start=advice->calls+4;
+    advice->fail_at=selection_start+(selection_case==CatalogSelectionCase::before_selection?0:
+        (selection_case==CatalogSelectionCase::after_first_barrier?1:3));
+    if(selection_case!=CatalogSelectionCase::before_selection)advice->failure=1;
+  }
   const auto unrelated=data(kNativeExtentBytes,69923);
   put(*f.session,"other",unrelated);
   earn(2); // While the planner pins the previous, immutable file checkpoint.
+  earn_selection();
   finish_pending(f,controller);
   const auto progress=controller.progress();
   const auto copy_calls=candidate->calls;
   require(backings.size()==2 && active->calls==old_writes,"compaction modified the old catalog or restarted on unrelated input");
-  const auto original=IndexedCoherenceSnapshot::open(active,id(90),id(1),limits);
+  const auto original=IndexedCoherenceSnapshot::open(active,id(90),id(1),limits,first_identity);
   constexpr auto numeric_band=kCoherenceModularBand+2;
   const auto keep_numeric=detail::native_group_delta_signatures(stable)[2];
   const auto stale_numeric=detail::native_group_delta_signatures(old)[2];
@@ -2600,28 +2633,100 @@ std::size_t compact_full_indexed_catalog(CoherenceCopyOutcome outcome,std::size_
   require(settled.code==OptimizationReadCode::available &&
       *settled.state.settled_input_bytes>*before.state.settled_input_bytes,"copy did not settle its write budget");
   if(outcome==CoherenceCopyOutcome::completed) {
-    const auto replacement=IndexedCoherenceSnapshot::open(candidate,id(90),id(1),limits);
+    const auto replacement=IndexedCoherenceSnapshot::open(candidate,id(90),id(1),limits,second_identity);
     const bool stale_masked_removed=alternate_fixture?
         replacement.has_alternates() && !replacement.next_alternate(masked_band,keep_key):
         !replacement.find(masked_band,stale_key);
-    require(progress.coherence_compactions==1 && !progress.coherence_discards &&
-        progress.coherence_compacted_bytes_saved==full-replacement.info().physical_end &&
-        replacement.info().objects==2+kOptimizationXorProjections+kCoherenceModularWidths &&
+    require(replacement.info().objects==2+kOptimizationXorProjections+kCoherenceModularWidths &&
         replacement.find(0,keep.bands[0])==keep && replacement.find(numeric_band,keep_numeric)==projected_keep &&
         !replacement.find(numeric_band,stale_numeric) &&
         replacement.find(masked_band,keep_key)==projected_keep && !replacement.find(0,stale.bands[0]) &&
         stale_masked_removed,"compaction kept stale postings or lost a current representative");
+    if(selection_failed) {
+      require(!progress.coherence_compactions && progress.coherence_discards==1 &&
+          progress.coherence_catalog_bytes==full && f.session->optimization_info().phase==NativeOptimizationPhase::terminal,
+          "an uncertain selector publication displaced the live catalog");
+    }else {
+      require(progress.coherence_compactions==1 && !progress.coherence_discards &&
+          progress.coherence_compacted_bytes_saved==full-replacement.info().physical_end,
+          "verified replacement did not switch the live catalog");
+    }
     if(alternate_fixture)std::cout<<"coherence_alternate_rotation old_bytes="<<full
         <<" new_bytes="<<replacement.info().physical_end<<" stale_alternate_removed=1 live_primary_preserved=1\n";
+    const bool selected_replacement=identified && selection_case!=CatalogSelectionCase::before_selection;
+    const auto selection_cost=selected_replacement?kOptimizationGroupScanInputBytes:0;
     require(*settled.state.settled_input_bytes-*before.state.settled_input_bytes==
-        kOptimizationGroupScanInputBytes+candidate->write_bytes*kOptimizationGroupScanInputPerWriteByte,
+        kOptimizationGroupScanInputBytes+selection_cost+candidate->write_bytes*kOptimizationGroupScanInputPerWriteByte,
         "candidate grew beyond the durable write charge");
-    put(*f.session,"after-copy",data(kNativeExtentBytes,40552));
-    earn(2);
-    finish_pending(f,controller);
-    const auto newer=IndexedCoherenceSnapshot::open(candidate,id(90),id(1),limits);
-    require(newer.info().generation>replacement.info().generation &&
-        newer.find(0,keep.bands[0])==keep,"the compacted catalog did not admit a new write");
+    if(identified) {
+      require(settled.state.catalog_selection==(selected_replacement?
+          std::optional(OptimizationCatalogSelection{id(1),second_identity,replacement.info().generation}):
+          before.state.catalog_selection),"power-cut journal chose the wrong catalog");
+      require(settled.degraded==(selection_case==CatalogSelectionCase::after_first_barrier),
+          "selector did not preserve the expected paired-slot state");
+      const auto restart=[&](bool misdirect) {
+        Fixture restarted(image(f.head->stable,4096),image(f.image->stable,4096));
+        auto recovered_advice=image(advice->stable,4096);
+        const auto rebound=restarted.session->resume_budgeted_optimization_area(recovered_advice,settled.sequence);
+        require(rebound.repair_pending==settled.degraded &&
+            rebound.phase==(settled.degraded?NativeOptimizationPhase::unavailable:NativeOptimizationPhase::ready),
+            "restart could not reopen the selected advice");
+        std::vector<StoreIdentity> resolved;
+        const auto prior=image(active->stable,4096),next=image(candidate->stable,4096);
+        std::size_t new_reservations=0;
+        auto storage=std::make_shared<IndexedCoherenceStorage>(limits,[&] {
+          ++new_reservations;
+          return IndexedCoherenceStorage::Reservation{};
+        },[&](StoreIdentity identity)->std::shared_ptr<StoreByteIo> {
+          resolved.push_back(identity);
+          return (identity==second_identity)!=misdirect?next:prior;
+        });
+        restarted.session->configure_indexed_coherence(storage);
+        require(resolved.empty(),"configuring the catalog performed synchronous recovery I/O");
+        NativeGroupMaintenance reopened(*restarted.session);
+        if(rebound.repair_pending) {
+          for(unsigned i=0;i<4;++i)restarted.step(reopened);
+          require(resolved.empty(),"catalog opened from advice awaiting funded repair");
+          put(*restarted.session,"repair-credit",Bytes(kOptimizationAreaBytes));
+          require(restarted.session->repair_budgeted_optimization_area().state.phase==NativeOptimizationPhase::ready,
+              "fresh input did not repair a split selector pair");
+        }
+        for(unsigned i=0;i<50 && resolved.empty();++i)restarted.step(reopened);
+        const auto catalog_bytes=(selected_replacement?next:prior)->extent();
+        require(resolved==std::vector<StoreIdentity>{settled.state.catalog_selection->backing} &&
+            reopened.progress().coherence_catalog_bytes==(misdirect?0:catalog_bytes) && !new_reservations,
+            "fresh session did not resolve only the durably selected backing");
+        require(!prior->writes && !next->writes,"restart rewrote a catalog before fresh work");
+        const auto reopened_data=restarted.session->snapshot();
+        require(reopened_data.read("keep",0,kNativeExtentBytes)==stable &&
+            reopened_data.read("edited",0,kNativeExtentBytes)==latest &&
+            reopened_data.read("other",0,kNativeExtentBytes)==unrelated,"restart changed acknowledged files");
+        reopened_data.verify_all();
+        if(selection_case==CatalogSelectionCase::after_selection) {
+          const auto after=data(kNativeExtentBytes,40552);
+          put(*restarted.session,"after-restart",after);
+          put(*restarted.session,"fresh-credit-a",Bytes(3*kOptimizationGroupScanInputBytes/4));
+          put(*restarted.session,"fresh-credit-b",Bytes(3*kOptimizationGroupScanInputBytes/4));
+          finish_pending(restarted,reopened);
+          const auto continued=IndexedCoherenceSnapshot::open(next,id(90),id(1),limits,second_identity);
+          require(continued.info().generation>replacement.info().generation && !prior->writes &&
+              restarted.session->optimization_snapshot().state.catalog_selection==settled.state.catalog_selection &&
+              continued.find(0,keep.bands[0])==keep &&
+              restarted.session->snapshot().read("after-restart",0,kNativeExtentBytes)==after,
+              "reopened catalog could not publish fresh advice without changing its selection");
+        }
+      };
+      restart(false);
+      if(selection_case==CatalogSelectionCase::before_selection)restart(true);
+    }
+    if(!selection_failed) {
+      put(*f.session,"after-copy",data(kNativeExtentBytes,40552));
+      earn(2);
+      finish_pending(f,controller);
+      const auto newer=IndexedCoherenceSnapshot::open(candidate,id(90),id(1),limits,second_identity);
+      require(newer.info().generation>replacement.info().generation &&
+          newer.find(0,keep.bands[0])==keep,"the compacted catalog did not admit a new write");
+    }
   }else {
     require(!progress.coherence_compactions && progress.coherence_discards==1 &&
         progress.coherence_catalog_bytes==full,"interrupted copy displaced the checked old catalog");
@@ -2903,6 +3008,9 @@ int main(int argc,char** argv){try{
     compact_full_indexed_catalog(CoherenceCopyOutcome::charge_cut);
     compact_full_indexed_catalog(CoherenceCopyOutcome::target_cut);
     compact_full_indexed_catalog(CoherenceCopyOutcome::target_cut,writes_and_barriers-1);
+    for(const auto selection:{CatalogSelectionCase::selected,CatalogSelectionCase::before_selection,
+        CatalogSelectionCase::after_first_barrier,CatalogSelectionCase::after_selection})
+      compact_full_indexed_catalog(CoherenceCopyOutcome::completed,0,false,selection);
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-xor") {
     xor_indexed_family(true);
     xor_indexed_family(true,true);

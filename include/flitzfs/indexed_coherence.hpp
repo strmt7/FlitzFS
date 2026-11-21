@@ -23,12 +23,12 @@ struct IndexedCoherenceAlternate {
   std::optional<OptimizationGroupFeature> representative;
 };
 
-// Independent advisory backing for one native image. The volume ID binds
-// the paged store and the typed root binds the contributing image ID.
+// Independent advisory backing for one native image. Identified catalogs bind
+// the paged store to a backing ID and the typed root to its volume and image.
 class IndexedCoherenceSnapshot final {
  public:
   static IndexedCoherenceSnapshot open(std::shared_ptr<StoreByteIo>,
-      StoreIdentity volume,StoreIdentity image,PagedStoreLimits);
+      StoreIdentity volume,StoreIdentity image,PagedStoreLimits,StoreIdentity backing={});
   std::optional<OptimizationGroupFeature> find(std::uint32_t band,std::uint64_t fingerprint) const;
   // A cursor is valid for the same snapshot, band and fingerprint. A hash
   // collision advances it without returning a nomination.
@@ -38,14 +38,15 @@ class IndexedCoherenceSnapshot final {
   bool has_modular_keys() const noexcept {return band_schema_>=3;}
   bool has_alternates() const noexcept {return schema_>=4;}
   PagedStoreInfo info() const noexcept {return store_.info();}
-  StoreIdentity volume() const noexcept {return store_.identity();}
+  StoreIdentity volume() const noexcept {return volume_;}
   StoreIdentity image() const noexcept {return image_;}
+  StoreIdentity backing_identity() const noexcept {return backing_;}
 
  private:
   friend class IndexedCoherenceWriter;
-  IndexedCoherenceSnapshot(PagedObjectStoreSnapshot,StoreIdentity volume,StoreIdentity image);
+  IndexedCoherenceSnapshot(PagedObjectStoreSnapshot,StoreIdentity volume,StoreIdentity image,StoreIdentity backing);
   PagedObjectStoreSnapshot store_;
-  StoreIdentity image_;
+  StoreIdentity volume_,image_,backing_;
   std::uint8_t schema_=1,band_schema_=1;
 };
 
@@ -67,21 +68,24 @@ class IndexedCoherenceWriter final {
   friend class IndexedCoherenceStorage;
   static IndexedCoherenceWriter create_reserved(std::shared_ptr<StoreByteIo>,StoreIdentity volume,
       StoreIdentity image,PagedStoreLimits,std::span<const IndexedCoherencePosting>,
-      std::uint64_t maximum_write_bytes,const std::function<bool(std::uint64_t)>& reserve);
+      std::uint64_t maximum_write_bytes,const std::function<bool(std::uint64_t)>& reserve,
+      StoreIdentity backing={});
+  static IndexedCoherenceWriter resume_selected(const IndexedCoherenceSnapshot&);
   PagedStoreWriteResult publish_reserved(std::span<const IndexedCoherencePosting>,
       std::uint64_t maximum_write_bytes,const std::function<bool(std::uint64_t)>& reserve);
   // Prepare a filtered copy on separate backing. The original stays selected
   // through complete staged verification and the funded write reservation.
   PagedObjectStoreWriter::Rewrite prepare_compaction(std::shared_ptr<StoreByteIo>,
       std::function<bool(const OptimizationGroupFeature&)>,
-      std::function<bool(std::uint64_t)>) const;
+      std::function<bool(std::uint64_t)>,StoreIdentity replacement_backing) const;
   bool advance_compaction(PagedObjectStoreWriter::Rewrite& work) const {return work.advance(store_);}
   IndexedCoherenceWriter finish_compaction(PagedObjectStoreWriter::Rewrite& work) const {
-    return IndexedCoherenceWriter(work.finish(store_),volume_,image_);
+    const auto backing=backing_==StoreIdentity{}?StoreIdentity{}:work.identity();
+    return IndexedCoherenceWriter(work.finish(store_),volume_,image_,backing);
   }
-  IndexedCoherenceWriter(PagedObjectStoreWriter,StoreIdentity volume,StoreIdentity image);
+  IndexedCoherenceWriter(PagedObjectStoreWriter,StoreIdentity volume,StoreIdentity image,StoreIdentity backing={});
   PagedObjectStoreWriter store_;
-  StoreIdentity volume_,image_;
+  StoreIdentity volume_,image_,backing_;
 };
 
 // Trusted internal storage reservation and retained writer lease. The callback
@@ -94,6 +98,16 @@ class IndexedCoherenceStorage final {
   IndexedCoherenceStorage(PagedStoreLimits,Reserve);
   // Adopt an independently reopened writer and a provider for future copies.
   IndexedCoherenceStorage(PagedStoreLimits,Reserve,IndexedCoherenceWriter recovered);
+  struct Reservation {
+    StoreIdentity identity{};
+    std::shared_ptr<StoreByteIo> backing;
+  };
+  using ReserveIdentified=std::function<Reservation()>;
+  using Resolve=std::function<std::shared_ptr<StoreByteIo>(StoreIdentity)>;
+  // A fresh nonaliasing reservation with a never-reused ID. The provider keeps
+  // the mapping across restart and preserves backings through uncertain
+  // selection outcomes and until all readers release their pins.
+  IndexedCoherenceStorage(PagedStoreLimits,ReserveIdentified,Resolve);
   IndexedCoherenceStorage(const IndexedCoherenceStorage&)=delete;
   IndexedCoherenceStorage& operator=(const IndexedCoherenceStorage&)=delete;
 
@@ -101,7 +115,8 @@ class IndexedCoherenceStorage final {
   friend class NativeFileSession;
   friend struct detail::NativeMaintenanceSource;
   PagedStoreLimits limits_;
-  Reserve reserve_;
+  ReserveIdentified reserve_;
+  Resolve resolve_;
   std::shared_ptr<IndexedCoherenceWriter> retained_;
   std::weak_ptr<const void> session_;
 };

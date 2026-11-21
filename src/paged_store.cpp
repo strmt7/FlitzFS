@@ -1072,7 +1072,7 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
       capacity_repair_generation=original.generation;
     }
     if(zero(id) || (id==original.id && !retention))fail("staged rebuild needs a new identity");
-    if(retention && (id!=original.id || !root.empty() || encode || original.mirrored ||
+    if(retention && (!root.empty() || encode || original.mirrored ||
         !retention->keep || !retention->charge || !retention->maximum_object_bytes ||
         retention->maximum_object_bytes>page_bytes))
       fail("filtered rebuild requires bounded advisory records and a charge");
@@ -1441,9 +1441,9 @@ PagedObjectStoreWriter::Rewrite PagedObjectStoreWriter::prepare_rebuild_replacin
   return prepare_rebuild_impl(std::move(target),id,compression,replacement,reencode,identity_offset,{},mode,std::move(cold));
 }
 PagedObjectStoreWriter::Rewrite PagedObjectStoreWriter::prepare_rebuild_retaining(std::shared_ptr<StoreByteIo> target,
-    StoreCompressionOptions compression,RebuildRetention keep) const {
+    StoreIdentity id,StoreCompressionOptions compression,RebuildRetention keep) const {
   if(poisoned())fail("filtered rebuild requires a healthy source writer");
-  return prepare_rebuild_impl(std::move(target),impl_->state.id,compression,{},false,0,std::move(keep),
+  return prepare_rebuild_impl(std::move(target),id,compression,{},false,0,std::move(keep),
       PagedRewriteMode::exact_checkpoint);
 }
 PagedObjectStoreWriter::Rewrite PagedObjectStoreWriter::prepare_rebuild_impl(std::shared_ptr<StoreByteIo> target,
@@ -1667,6 +1667,25 @@ PagedObjectStoreWriter PagedObjectStoreWriter::create_impl(std::shared_ptr<Store
 PagedObjectStoreWriter PagedObjectStoreWriter::resume(std::shared_ptr<StoreByteIo> image,StoreIdentity expected,
     std::uint64_t generation,PagedStoreLimits limits,StoreCompressionOptions options) {
   return resume_impl(std::move(image),expected,generation,limits,options,false);
+}
+PagedObjectStoreWriter PagedObjectStoreWriter::resume_advisory(const PagedObjectStoreSnapshot& observed,
+    StoreCompressionOptions options) {
+  if(!observed.impl_)fail("moved-from advisory snapshot");
+  const auto& prior=observed.impl_->state;
+  if(prior.mirrored || prior.metadata_bytes!=compact_metadata_bytes || prior.degraded_roots ||
+      prior.degraded_metadata)fail("advisory reopen requires healthy compact roots");
+  auto p=std::make_unique<Impl>(prior.image,options);
+  const auto contract=prior.image->contract();
+  admit_contract(contract);
+  if(contract.write_failure_unit_bytes>prior.unit)fail("advisory reopen contract changed");
+  const auto extent=prior.image->extent();
+  prior.image->flush();
+  auto current=load(prior.image,prior.limits);
+  if(!same(prior,current) || current.degraded_roots || current.degraded_metadata ||
+      prior.image->extent()!=extent)fail("advisory reopen checkpoint changed");
+  p->append_floor=align(extent,current.unit);
+  p->state=std::move(current);
+  return PagedObjectStoreWriter(std::move(p));
 }
 PagedObjectStoreWriter PagedObjectStoreWriter::resume_impl(std::shared_ptr<StoreByteIo> image,StoreIdentity expected,
     std::uint64_t generation,PagedStoreLimits limits,StoreCompressionOptions options,bool repair_payloads,

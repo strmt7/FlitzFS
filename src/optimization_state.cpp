@@ -17,12 +17,13 @@ constexpr std::size_t digest_at=kStoreCommitUnit-32,profile_at=64,benchmark_at=6
 constexpr std::size_t scan_at=benchmark_at+kOptimizationMaxBenchmarks*32,feature_at=scan_at+64;
 constexpr auto feature_size=detail::kOptimizationGroupFeatureBytes;
 constexpr std::size_t projection_size=8+8*kOptimizationXorProjections;
-constexpr unsigned scrub_capability=6,cold_coverage_capability=7;
+constexpr unsigned scrub_capability=6,cold_coverage_capability=7,catalog_capability=8;
 constexpr std::size_t scrub_profile_size=56;
 constexpr std::size_t scrub_at=profile_at+kOptimizationMaxProfiles*scrub_profile_size,scrub_size=48;
 constexpr std::size_t cold_at=scrub_at+scrub_size,cold_size=56;
-static_assert(cold_at+cold_size<=benchmark_at);
-constexpr std::array slot_magic{"FLTOP001","FLTOP002","FLTOP003","FLTOP004","FLTOP005","FLTOP006","FLTOP007"};
+constexpr std::size_t catalog_at=cold_at+cold_size,catalog_size=48;
+static_assert(catalog_at+catalog_size<=benchmark_at);
+constexpr std::array slot_magic{"FLTOP001","FLTOP002","FLTOP003","FLTOP004","FLTOP005","FLTOP006","FLTOP007","FLTOP008"};
 constexpr std::size_t legacy_scan_capacity=63;
 static_assert(kOptimizationGroupRepresentatives==(digest_at-feature_at)/feature_size);
 [[noreturn]] void fail(const char* text){throw std::runtime_error(text);}
@@ -127,6 +128,10 @@ bool valid(const OptimizationState& state) {
         !cold->policy_revision || !cold->zstd_version || !cold->foreground_level || cold->foreground_level>9)
       return false;
   }
+  if(const auto& catalog=state.catalog_selection) {
+    if(!state.settled_input_bytes || catalog->image==StoreIdentity{} || catalog->backing==StoreIdentity{} ||
+        catalog->image==catalog->backing || !catalog->minimum_generation)return false;
+  }
   std::pair<std::uint64_t,std::uint32_t> previous{};
   for(const auto& p:state.profiles) {
     const auto key=std::pair{p.workload_key,p.strategy};
@@ -150,8 +155,10 @@ Bytes encode(const OptimizationSnapshot& snapshot,unsigned slot) {
   if(scan)version=scan->xor_sampling?5:(scan->representatives.size()>legacy_scan_capacity?4:3);
   const auto& scrub=snapshot.state.payload_scrub;
   const auto& cold=snapshot.state.cold_coverage;
+  const auto& catalog=snapshot.state.catalog_selection;
   if(scrub)version=scrub_capability;
   if(cold)version=cold_coverage_capability;
+  if(catalog)version=catalog_capability;
   const auto profile_size=version>=scrub_capability?scrub_profile_size:64;
   std::memcpy(b.data(),slot_magic[version-1],8);
   put(b,8,version,4);put(b,12,slot,4);put(b,16,snapshot.sequence);
@@ -181,6 +188,12 @@ Bytes encode(const OptimizationSnapshot& snapshot,unsigned slot) {
     put(b,cold_at+16,cold->selector_epoch);put(b,cold_at+24,cold->minimum_checkpoint);
     put(b,cold_at+32,cold->through_generation);put(b,cold_at+40,cold->policy_revision,4);
     put(b,cold_at+44,cold->zstd_version,4);put(b,cold_at+48,cold->foreground_level,4);
+  }
+  if(catalog) {
+    require(catalog->image!=snapshot.volume && catalog->backing!=snapshot.volume,"invalid catalog selection identity");
+    std::copy(catalog->image.begin(),catalog->image.end(),b.begin()+catalog_at);
+    std::copy(catalog->backing.begin(),catalog->backing.end(),b.begin()+catalog_at+16);
+    put(b,catalog_at+32,catalog->minimum_generation);
   }
   const auto digest=detail::record_digest(std::span<const std::byte>(b).first(digest_at));
   std::copy(digest.begin(),digest.end(),b.begin()+digest_at);return b;
@@ -222,7 +235,8 @@ Slot decode(std::span<const std::byte> b,unsigned slot,StoreIdentity volume) {
     v.backend=static_cast<std::uint32_t>(get(b,at+20,4));v.elapsed_ns=get(b,at+24);out.state.benchmarks.push_back(v);
   }
   if(version>=scrub_capability) {
-    const auto tail=version==cold_coverage_capability?cold_at+cold_size:cold_at;
+    const auto tail=version==catalog_capability?catalog_at+catalog_size:
+        (version==cold_coverage_capability?catalog_at:cold_at);
     if(!zeros(b.subspan(tail,benchmark_at-tail)))return {SlotCode::invalid,{}};
     if(version==scrub_capability || !zeros(b.subspan(scrub_at,scrub_size))) {
       auto& scrub=out.state.payload_scrub.emplace();
@@ -230,7 +244,8 @@ Slot decode(std::span<const std::byte> b,unsigned slot,StoreIdentity volume) {
       scrub.position.generation=get(b,scrub_at+16);scrub.position.after=get(b,scrub_at+24);
       scrub.position.through=get(b,scrub_at+32);scrub.pass_started_utc=get(b,scrub_at+40);
     }
-    if(version==cold_coverage_capability) {
+    if(version==cold_coverage_capability ||
+        (version==catalog_capability && !zeros(b.subspan(cold_at,cold_size)))) {
       if(!zeros(b.subspan(cold_at+52,4)))return {SlotCode::invalid,{}};
       auto& cold=out.state.cold_coverage.emplace();
       std::copy_n(b.begin()+cold_at,16,cold.image.begin());
@@ -239,6 +254,14 @@ Slot decode(std::span<const std::byte> b,unsigned slot,StoreIdentity volume) {
       cold.policy_revision=static_cast<std::uint32_t>(get(b,cold_at+40,4));
       cold.zstd_version=static_cast<std::uint32_t>(get(b,cold_at+44,4));
       cold.foreground_level=static_cast<std::uint32_t>(get(b,cold_at+48,4));
+    }
+    if(version==catalog_capability) {
+      if(!zeros(b.subspan(catalog_at+40,8)))return {SlotCode::invalid,{}};
+      auto& catalog=out.state.catalog_selection.emplace();
+      std::copy_n(b.begin()+catalog_at,16,catalog.image.begin());
+      std::copy_n(b.begin()+catalog_at+16,16,catalog.backing.begin());
+      catalog.minimum_generation=get(b,catalog_at+32);
+      if(catalog.image==volume || catalog.backing==volume)return {SlotCode::invalid,{}};
     }
     if(!zeros(b.subspan(scan_at,digest_at-scan_at))) {
       out.state.group_scan=decode_scan(b,get(b,scan_at+44,4)==2?5:4);
@@ -254,7 +277,8 @@ Slot decode(std::span<const std::byte> b,unsigned slot,StoreIdentity volume) {
 OptimizationSnapshot no_state(OptimizationReadCode code) {OptimizationSnapshot out;out.code=code;return out;}
 // Session-owned cursors may accompany a funded publication of this policy.
 bool same_policy(const OptimizationState& a,const OptimizationState& b) {
-  return a.profiles==b.profiles && a.benchmarks==b.benchmarks && a.group_scan==b.group_scan;
+  return a.profiles==b.profiles && a.benchmarks==b.benchmarks && a.group_scan==b.group_scan &&
+      a.catalog_selection==b.catalog_selection;
 }
 struct Loaded {OptimizationSnapshot snapshot;unsigned slot=0;};
 Loaded load(const StoreByteIo& io,StoreIdentity volume) {
@@ -289,6 +313,9 @@ Loaded load(const StoreByteIo& io,StoreIdentity volume) {
     // Fresh scrub verification may advance the cursors and forfeit input credit.
     const bool scrub_only=fresh.payload_scrub && fresh.payload_scrub!=prior.payload_scrub && same_policy(fresh,prior);
     if(next<previous || (next-previous<kOptimizationAreaBytes && !scrub_only))
+      return {no_state(OptimizationReadCode::invalid),0};
+    if(fresh.catalog_selection!=prior.catalog_selection &&
+        (!fresh.catalog_selection || next-previous<kOptimizationGroupScanInputBytes))
       return {no_state(OptimizationReadCode::invalid),0};
   }
   auto out=std::move(slots[newer].snapshot);out.degraded=true;return {std::move(out),newer};
@@ -484,11 +511,12 @@ OptimizationStateWriter::BudgetResult OptimizationStateWriter::repair_budgeted(s
   return BudgetResult::published;
 }
 OptimizationStateWriter::BudgetResult OptimizationStateWriter::publish_budgeted(
-    const OptimizationState& state,std::uint64_t input,std::optional<OptimizationColdCoverage> cold,
+    OptimizationState state,std::uint64_t input,std::optional<OptimizationColdCoverage> cold,
     bool automatic_scan,std::uint64_t additional_write_bytes) {
   require(impl_&&!impl_->poisoned&&!impl_->repair_pending&&impl_->selected.state.settled_input_bytes,
       "no ready budgeted writer");
   auto& p=*impl_;
+  state.catalog_selection=p.selected.state.catalog_selection;
   require(valid(state)&&state.settled_input_bytes==p.selected.state.settled_input_bytes,
       "caller cannot change budget settlement");
   require(!automatic_scan||state.group_scan.has_value(),"automatic publication needs a scan checkpoint");
@@ -503,7 +531,7 @@ OptimizationStateWriter::BudgetResult OptimizationStateWriter::publish_budgeted(
       additional_write_bytes>(input-settled-base_cost)/kOptimizationGroupScanInputPerWriteByte)
     return BudgetResult::deferred;
   const auto cost=base_cost+additional_write_bytes*kOptimizationGroupScanInputPerWriteByte;
-  p.publish_settlement(state,settled+cost,cold,automatic_scan);
+  p.publish_settlement(std::move(state),settled+cost,cold,automatic_scan);
   return BudgetResult::published;
 }
 bool OptimizationStateWriter::reserve_rewrite(std::uint64_t input,std::uint64_t cost,
@@ -516,6 +544,25 @@ bool OptimizationStateWriter::reserve_rewrite(std::uint64_t input,std::uint64_t 
   if(input<settled || input-settled<cost)return false;
   p.publish_settlement(p.selected.state,settled+cost,cold,true);
   return true;
+}
+bool OptimizationStateWriter::select_catalog(OptimizationCatalogSelection selection,std::uint64_t input,
+    std::optional<OptimizationColdCoverage> cold) {
+  require(impl_&&!impl_->poisoned&&!impl_->repair_pending&&impl_->selected.state.settled_input_bytes,
+      "no ready budgeted writer");
+  auto& p=*impl_;
+  const auto settled=*p.selected.state.settled_input_bytes;
+  if(input<settled || input-settled<kOptimizationGroupScanInputBytes)return false;
+  auto state=p.selected.state;
+  require(!state.catalog_selection || state.catalog_selection->backing!=selection.backing,
+      "catalog selection needs a new backing identity");
+  state.catalog_selection=selection;
+  require(valid(state) && selection.image!=p.selected.volume && selection.backing!=p.selected.volume,
+      "invalid catalog selection");
+  p.publish_settlement(std::move(state),settled+kOptimizationGroupScanInputBytes,cold,true);
+  return true;
+}
+std::optional<OptimizationCatalogSelection> OptimizationStateWriter::catalog_selection() const noexcept {
+  return poisoned() || impl_->repair_pending?std::nullopt:impl_->selected.state.catalog_selection;
 }
 std::optional<OptimizationPayloadScrub> OptimizationStateWriter::payload_scrub_checkpoint() const noexcept {
   return poisoned()?std::nullopt:impl_->selected.state.payload_scrub;

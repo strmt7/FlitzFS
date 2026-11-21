@@ -54,6 +54,12 @@ struct OptimizationColdCoverage {
   std::uint32_t policy_revision=0,zstd_version=0,foreground_level=0;
   bool operator==(const OptimizationColdCoverage&) const = default;
 };
+// Session-owned choice of a catalog backing. The catalog remains advisory.
+struct OptimizationCatalogSelection {
+  StoreIdentity image{},backing{};
+  std::uint64_t minimum_generation=0;
+  bool operator==(const OptimizationCatalogSelection&) const = default;
+};
 struct OptimizationState {
   std::vector<OptimizationProfile> profiles; // Strict (workload_key,strategy) order.
   std::vector<OptimizationBenchmark> benchmarks; // Bounded chronological history.
@@ -62,6 +68,7 @@ struct OptimizationState {
   std::optional<OptimizationGroupScan> group_scan;
   std::optional<OptimizationPayloadScrub> payload_scrub;
   std::optional<OptimizationColdCoverage> cold_coverage;
+  std::optional<OptimizationCatalogSelection> catalog_selection;
   bool operator==(const OptimizationState&) const = default;
 };
 enum class OptimizationReadCode { available,absent,invalid,unsupported,foreign_volume,io_failure };
@@ -107,11 +114,14 @@ class OptimizationStateWriter final {
       std::uint64_t settled_input,unsigned limit);
   static OptimizationStateWriter resume_budgeted(std::shared_ptr<StoreByteIo>,StoreIdentity,
       std::uint64_t sequence,std::uint64_t current_input,unsigned limit);
-  BudgetResult publish_budgeted(const OptimizationState&,std::uint64_t current_input,
+  BudgetResult publish_budgeted(OptimizationState,std::uint64_t current_input,
       std::optional<OptimizationColdCoverage>,bool automatic_scan=false,
       std::uint64_t additional_write_bytes=0);
   bool reserve_rewrite(std::uint64_t current_input,std::uint64_t cost,
       std::optional<OptimizationColdCoverage>);
+  bool select_catalog(OptimizationCatalogSelection,std::uint64_t current_input,
+      std::optional<OptimizationColdCoverage>);
+  std::optional<OptimizationCatalogSelection> catalog_selection() const noexcept;
   BudgetResult repair_budgeted(std::uint64_t current_input);
   std::optional<OptimizationPayloadScrub> payload_scrub_checkpoint() const noexcept;
   std::optional<OptimizationColdCoverage> cold_coverage_checkpoint() const noexcept;

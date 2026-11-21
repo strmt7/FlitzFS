@@ -72,6 +72,15 @@ recorded scan state and uses the selected catalog's image binding when the
 journal has yet to record its first scan. An insufficient balance
 leaves the candidate empty and quiescent. A paid interrupted copy preserves
 the old selected catalog and keeps the charge spent.
+
+For an identified provider, creation and rotation also need 4 MiB of
+unsettled input for the separate selection pair. The planner includes that
+cost before writing the candidate. Once the typed catalog is independently
+verified, the journal settles the selection and reads back both slots
+before the session adopts the new backing. A failed selection keeps the
+old catalog active in the running session. Restart uses the checked journal
+generation, which can select the new backing if its selection reached the
+persistent view. Ordinary appends keep their existing charge.
 [Catalog lifecycle](OPTIMIZATION_STATE.md#paged-coherence-catalog) ·
 [Host validation](evidence/funded-paged-coherence-2026-11-19.json)
 

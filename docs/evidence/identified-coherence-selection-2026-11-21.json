@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "base_commit": "9820cc426ecfedfa01dbeeb289b36a93c74c1f02",
+  "candidate_code_patch_sha256": "4b48bb7ee4c99609843953262eb015a3ff895d1b57bd0b32f8102632849a9852",
+  "candidate_source_blobs": {
+    "include/flitzfs/indexed_coherence.hpp": "6f37f91509c64ad21189f0d5a248609d87f2605e",
+    "include/flitzfs/native_session.hpp": "68b456fa4bcc0094eebcfd2fab76cf9bcd05f322",
+    "include/flitzfs/optimization_state.hpp": "6afa1b59f27655b98e2c85e7386fc19ce92e65a1",
+    "include/flitzfs/paged_store.hpp": "0a57b1cfda06fa917ee034428d5749d840027146",
+    "src/indexed_coherence.cpp": "8c95ab1b7ab600013d2705276691d5d42f65f4a9",
+    "src/native_session.cpp": "2bb59457239811c33a98442140db6a5d6fc5f765",
+    "src/optimization_state.cpp": "8596df7d9b80ca7076106751955ac59fdaada1a6",
+    "src/paged_store.cpp": "a5e00b2457781f2b0612cb4d8653c80a0a2b2848",
+    "tests/test_native_group_maintenance.cpp": "9a459474e23300b636a9dd483b0db83b918bb23d"
+  },
+  "storage_failure_model": "independent synthetic Windows memory fixtures with modeled durable flushes",
+  "selector_checks": {
+    "before_first_write": "old catalog on restart, with complete replacement present",
+    "after_first_flush": "new catalog after funded advice repair",
+    "after_final_flush": "old catalog in running session, new catalog on restart",
+    "completed": "new catalog both in the running session and on restart",
+    "resolver_misdirection": "wrong backing refused with file contents preserved",
+    "subsequent_publication": "reopened writer appended paid advice without changing selection",
+    "independent_cpu_file_readback": true
+  },
+  "windows_release": {
+    "exit_code": 0,
+    "log_sha256": "ac4e8ff2b632a23d6594048a4045e23ca99c450f7ebdef51049bd957983e1da7",
+    "peak_process_tree_bytes": 325558272,
+    "tree_retired": true,
+    "passed_tests": 202
+  },
+  "windows_raw": {
+    "exit_code": 0,
+    "log_sha256": "3bb62dacff128cbc0458ca4bc13c7ea02d37caefac5397899ed25647229a8a61",
+    "peak_process_tree_bytes": 104632320,
+    "tree_retired": true,
+    "passed_tests": 2
+  },
+  "windows_address_sanitizer": {
+    "exit_code": 0,
+    "log_sha256": "6c5c0ed8f18a7e85875c3ac6b9b66031bb1fb9051b9892b0bbec31b2b36af085",
+    "peak_process_tree_bytes": 629760000,
+    "tree_retired": true,
+    "passed_tests": 3,
+    "runtime_preflight": true
+  },
+  "amd_retired_reply": {
+    "exit_code": 0,
+    "log_sha256": "af67c53ee9eb9e3e76eccfc1feb5dc6ae01d4e0d4ca03e536715e36ab8d2d223",
+    "peak_process_tree_bytes": 154693632,
+    "tree_retired": true,
+    "kernel_launches": 85,
+    "controller_sha256": "9cafcdbdc273d7532c83587c26c3e1bf1088762ebedbd64d484d040b6297caa9",
+    "admitted_manifest_sha256": "06c55f3e68db91317b6897c88e6aba3658bc2ddb2e8312da6fbf080a88dffe84"
+  },
+  "remaining_qualification": [
+    "Managed physical-file catalog ranges and retirement",
+    "Physical storage power interruption and full mounted release qualification"
+  ]
+}

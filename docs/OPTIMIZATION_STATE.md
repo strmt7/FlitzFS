@@ -95,7 +95,7 @@ before the benchmark table are zero. An absent group scan is represented by
 zeros. A present group scan retains its original feature encoding and full
 capacity, including projections.
 
-The reader supports capabilities 1 through 7. Earlier readers can continue
+The reader supports capabilities 1 through 8. Earlier readers can continue
 recovering file data independently when they decline version 6 advice.
 Only checked progress can advance the sequence without consuming new
 committed input. A mixed old and new pair must keep identical compression
@@ -148,6 +148,42 @@ through both mirrors before the copy can write. This uses the existing
 wire layout and preserves the group scan and scrub progress. The same
 pair retains spent credit across reopening.
 [Compression-driven copy admission](PERSISTENT_VOLUME_FILE.md#paired-sparse-image-ranges)
+
+### Identified catalog selection
+
+Capability 8 uses `FLTOP008` in the same paired area. The existing feature,
+projection, profile, benchmark, scrub and cold-coverage fields keep their
+layout. The new record occupies bytes 1960–2007 in each slot.
+
+| Offset | Bytes | Meaning |
+|---:|---:|---|
+| 1960 | 16 | Contributing native image identity |
+| 1976 | 16 | Selected catalog backing identity |
+| 1992 | 8 | Minimum verified paged generation, little-endian |
+| 2000 | 8 | Reserved zero |
+
+Both identities are nonzero and distinct from each other and the volume
+identity. A mixed pair that changes selection must settle a full catalog
+selection charge. Ordinary policy, scan and scrub updates preserve the
+selection. Earlier advice remains readable and the native file-data wire
+format is unchanged.
+
+An identified catalog uses its backing identity in the paged store. Its
+typed root extends the 32-byte catalog record with `FLTZCB01` and the
+16-byte volume identity. The provider reserves a fresh backend and a
+never-reused ID. It preserves the mapping across reopen, through an uncertain
+selection and until retired readers release their pins.
+
+Initial creation and rotation write and independently check the new catalog
+before the paired journal selects it. Appends retain the same backing ID.
+An admitted maintenance opportunity after reopening resolves only the ID
+from the verified journal for the current image. It checks the typed root,
+backing ID and generation floor. Reopening a healthy compact paged root
+requires bounded root I/O and a fence. Descendant pages and posting payloads
+are checked when accessed. Failed catalog recovery leaves file access
+available and the scanner can build fresh advice from newly earned credit.
+The managed physical-file provider and its reservation retirement remain
+separate integration work.
 
 ## Publication, recovery and work bounds
 
@@ -507,10 +543,10 @@ smaller copy. It proceeds only when the replacement is smaller and can spend
 the necessary credit. A rebuilt journal can fund the copy using its checked
 input account before its first scan checkpoint. The old catalog remains
 readable during all phases and stays allocated while a reader still owns it.
-The rebuilt store
-keeps the same volume and image identity and advances its checkpoint
-generation. A completed independent verification allows the owner to select
-the replacement and release the old writer. Sampling and reclamation share
+The rebuilt store keeps the same volume and image identity and advances its
+checkpoint generation. An identified replacement also gets a fresh backing
+identity. The journal selects it after an independently verified copy,
+before the session releases the old writer. Sampling and reclamation share
 the same idle admission and alternate when both have pending work. A refused
 or failed copy waits for new committed input proportional to the old
 catalog's footprint before another attempt.
