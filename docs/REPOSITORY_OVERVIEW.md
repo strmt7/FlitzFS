@@ -1,15 +1,14 @@
 # FlitzFS repository overview
 
 Updated on **21 November 2026** against
-[`227c82d498fefedc2ad1b3cfe240968690bcd90e`](https://github.com/strmt7/FlitzFS/commit/227c82d498fefedc2ad1b3cfe240968690bcd90e)
-and the restart reclamation and qualification changes. The review checked the
-tracked inventory, routed source inspection through the Windows, storage and
-worker boundaries, checked the hosted workflows on the baseline, and ran
-the changed paths on Windows. The [release execution plan](RELEASE_EXECUTION_PLAN.md)
+[`4203079a7529a565ebf17247a191f0ea3776c143`](https://github.com/strmt7/FlitzFS/commit/4203079a7529a565ebf17247a191f0ea3776c143)
+and the Windows volume-file reopen change. The review inventoried the tracked
+tree and traced the ordinary Windows attachment, allocation, recovery, AMD
+worker, maintenance policy and packaging paths. The [release execution plan](RELEASE_EXECUTION_PLAN.md)
 maps the remaining work to specific gates and the
 [detailed implementation plan](IMPLEMENTATION_PLAN.md).
 [Original architecture review](evidence/repository-review-2026-11-17.json) ·
-[Reconciliation evidence](evidence/release-reconciliation-2026-11-21.json)
+[Current reconciliation evidence](evidence/release-reconciliation-attachment-2026-11-21.json)
 Later checkpoints are recorded under recent executed evidence and in the
 [development state ledger](DEVELOPMENT_STATE.json).
 
@@ -39,9 +38,9 @@ release, tag, publication or product-version change is authorized by this review
 
 ## What is in the repository
 
-The baseline Git tree contains 906 tracked files and 14,698,281 bytes of
+The baseline Git tree contains 912 tracked files and 14,859,196 bytes of
 tracked content. The `src/` and `include/` directories contain 190 tracked
-files and 1,964,798 bytes. Each receipt identifies its inspection or test scope.
+files and 1,978,610 bytes. Each receipt identifies its inspection or test scope.
 
 | Area | Inventory | Responsibility |
 | --- | ---: | --- |
@@ -49,22 +48,21 @@ files and 1,964,798 bytes. Each receipt identifies its inspection or test scope.
 | `include/` | 40 files | Public core, session, storage, resource and recovery interfaces |
 | `tests/` | 146 files | Model, malformed-input, failure, SDK, process, application and qualification fixtures |
 | `tools/` | 63 files | Dependency staging, provenance, resource containment and qualification |
-| `docs/` | 452 files | Contracts, plans, historical results and source-bound evidence |
+| `docs/` | 458 files | Contracts, plans, historical results and source-bound evidence |
 | `.github/` | 19 files | Complementary build, analysis and experimental workflows |
 | `third_party/` | 19 files | Pinned BLAKE3 sources, licensing and provenance |
 | `cmake/`, `evidence/`, `resources/`, and top-level files | 17 files | Build support, historical evidence, branding, README and licensing |
 
 Use the build-specific executed counts in the
-[reconciliation evidence](evidence/release-reconciliation-2026-11-21.json).
+[current reconciliation evidence](evidence/release-reconciliation-attachment-2026-11-21.json).
 
 ## Reconciliation
 
 The active checkout and GitHub `main` agreed on the reviewed commit. The
-separate older checkout contained divergent code, documentation and assets.
-It was compared by path and left intact. Only the active checkout supplies
-this round's changes. The other checkout's files have their own provenance.
+older checkout was on `d6bb574` with 25 entries in Git status. The development
+change uses the active checkout and its source-bound builds.
 
-Five hosted workflows failed on the reviewed commit. A dual-codec cold
+Five hosted workflows failed on the earlier `227c82d` baseline. A dual-codec cold
 coverage fixture accounted for five failed test jobs. It verified its
 checkpoint before rejecting unrelated grouping of shared test data. The
 Linux history test also compiled the current oracle against an older core
@@ -72,6 +70,25 @@ with a different API. The remaining failures occurred during portable notice
 validation and a Windows interruption-probe build. Follow the
 [reconciliation receipt](evidence/release-reconciliation-2026-11-21.json)
 for the original run IDs, corrections and current validation scope.
+
+On `4203079`, GitHub reported 12 successful workflows, one failed application
+workflow and one cancelled native matrix. The application's portable harness
+imports an exact Windows synchronization API set already admitted in the
+portable CPU audit. The GUI audit now uses that shared Windows import list
+and adds its own role-specific dependencies. The native matrix reported
+successful Linux CPU jobs, with its sanitizer job cancelled.
+[Application workflow](https://github.com/strmt7/FlitzFS/actions/runs/44900112256) ·
+[Native matrix](https://github.com/strmt7/FlitzFS/actions/runs/44900112207) ·
+[Microsoft Windows API sets](https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-apisets)
+
+FlitzZip's current developer guide separates build, runtime qualification,
+coverage, comparative results and package evidence. Its native build receipt
+and device measurement tools describe reusable mechanisms for verifying a
+Windows toolchain, inspecting the exact HIP binary and pairing real device
+execution with independent verification. FlitzFS applies the same evidence
+boundaries to its volume, WinFsp and storage contracts.
+[FlitzZip developer guide](https://github.com/strmt7/FlitzZip/blob/11396b5123505a4a1959173e1db2d0858c10dd6d/docs/development/README.md) ·
+[Device measurement](https://github.com/strmt7/FlitzZip/blob/11396b5123505a4a1959173e1db2d0858c10dd6d/docs/development/hip-device-coverage.md)
 
 The current FlitzZip developer guide and repository instructions were checked
 for connector publication, dependency staging and evidence conventions.
@@ -142,16 +159,16 @@ capacity and failure evidence before replacing it.
 | --- | --- | --- |
 | Object storage | Flat and paged stores, checked COW transactions, replicated metadata, streaming rebuild and bounded indexed selector publication | Durable segment allocation, reclamation under concurrent writes and backend qualification |
 | Native namespace | Indexed path and handle transactions, typed head selection, mounted guest evidence, scheduled retirement and staged compaction | Full Windows 11 client semantics and interference measurements during large live mutations |
-| Populated capacity | Million-object paged inventory and 1,024 named nonempty indexed files. The indexed writer bypasses the older fixed namespace and extent model. | Larger populated external-client runs, root/open recovery budgets and scalable collective indexing |
+| Populated capacity | Million-object paged inventory, 16,384 populated files in the native reopen fixture, and 4,096 in the Windows SDK startup fixture | Comparable mounted scale curves for large directories, population, I/O and recovery |
 | Compression | Optional CPU Zstd/LZ4, exact sharing and independently readable indexed shared-base literal-patch members | Stronger shifted/multi-reference/type-aware/learned collective representations and representative complete-size results |
 | Background work | Incremental indexed similarity discovery, live Windows admission, advisory checkpointing and automatic paired-range reclamation | Persistent scale, workload-driven codec selection and a measured policy for background writes |
 | CPU recovery | Independent parsers/decoders, typed-head validation, surviving-copy reads and source-preserving repair/rebuild primitives | Full backend failure qualification, repair after wider dependency damage and production recovery orchestration |
 | GPU | Automatic installed-runtime admission exercised in a controlled WinFsp owner, verified AMD collective proposals and independent CPU reopen | Automatic foreground and collective selection on the installed client, recovery across supported adapters and measurable net benefit |
 | Windows interface | Writable native SDK callbacks, owner ACL/time initialization, contexts, cleanup/close, metadata/security and directory operations | Current-source mounted product qualification, complete Unicode/path/Win32 behavior, caching/mapping/concurrency and deployment |
-| Application | Native helper/tray, create/save/read/optimize/discard, owned worker and GUI qualification | Explorer-facing mounted lifecycle, complete volume-management workflows and a supported installer |
+| Application | Native helper/tray, owned worker, volume selection and two mounted workflows with external Win32 callers in a signed-driver guest | Interactive Explorer on the target client, complete volume management and a supported installer |
 | Memory composition | Live adaptive admission beyond the old ceiling, on-demand page locking, retained backing through stop and explicit-join CPU inspection | Larger populated volumes, multiple-volume aggregate policy and broker/process-failure behavior |
-| Indexed volume files | Exclusive create and verified reopen, persistent head and advice, CPU inspection, a WinFsp attachment factory and verified restart eligibility for paired-range reclamation | User-facing selection, incremental reclamation during concurrent edits and actual media durability qualification |
-| Learning state | Budgeted scan checkpoints, a paged coherence catalog and stale-posting compaction in owned indexed memory volumes | Persistent provider, large-scale validation and workload outcomes for a complete autonomous learner |
+| Indexed volume files | Exclusive create and audited reopen from the helper, persistent head and advice, independent CPU inspection and paired-range reclamation eligibility after reopen | Incremental reclamation during concurrent edits and actual media durability qualification |
+| Learning state | Budgeted scan checkpoints, a paged coherence catalog and stale-posting compaction in owned indexed memory volumes | Full paged catalog on the persistent provider, higher candidate recall and observed adaptive policy wins across restart and workload change |
 | Compatibility | Several historical native encodings and explicit capabilities remain readable | A published support window, mixed-version migration program, rollback boundaries and exact released-reader matrix |
 
 ### The important namespace bottleneck
@@ -176,6 +193,14 @@ verified branch pages across leaf lookups reduced writable-reopen reads from
 reduced the healthy path from three backing flushes to two. The remaining
 full inventories are still proportional to volume population.
 [Scale and ownership evidence](evidence/indexed-scale-reopen-2026-11-20.json)
+
+The helper's existing-file open now joins the native writable audit during
+exclusive acquisition. In the matched in-memory attachment fixture, backing
+reads fell from 1,644,441 to 1,304,248 bytes with three flushes and zero
+writes in each run. Within the revised run, helper and direct adapter reads
+matched exactly. Remaining startup work includes the selected-image inventory
+checks on both sides of the image barrier.
+[Attachment and reconciliation evidence](evidence/release-reconciliation-attachment-2026-11-21.json)
 
 The indexed head and lifetimes now reach the owned Windows provider.
 The controller consumes closed-file retirement in bounded transactions.
@@ -300,7 +325,7 @@ security vulnerabilities.
 | High | Global callback serialization and synchronous publication | Foreground requests can wait for an in-flight quantum/commit. Add immutable read views, bounded concurrency and measured interference. |
 | High | Full namespace validation and full-image opening/scrubbing costs | Startup/read/maintenance work will not scale by carrying today's checks unchanged. Replace them with checked tree paths and scheduled scrubbing, without removing integrity validation. |
 | High | Indexed Windows names still need mounted client qualification | The versioned Unicode profile and WinFsp callbacks support case-preserving names and longer paths. The WinFsp owner fills missing directory summaries when idle. Exercise Explorer and native applications on the current Windows 11 client and measure backfill interference on wide directories. [Automatic backfill](INDEXED_NATIVE_VOLUME.md#automatic-backfill) |
-| High | Incomplete persistent learning | Indexed checkpoints retain features and scan progress. A persistent-media catalog, scale qualification and learned strategy across workloads remain open. |
+| High | Candidate recall and persistent learning | The paged coherence lookup returns one representative for a band/fingerprint. Measure recall against controlled exact-family labels, then qualify bounded additional postings and persistent-provider reuse. |
 | High | Quiet-work policy remains an initial fixed policy | A 12.5% busy threshold and 1% elapsed pacing are mechanisms, not proof of optimal host adaptation or low interference. |
 | High | Driver/runtime qualification and historical retirement faults remain open | A valid signature or later clean fake-lifecycle test does not explain earlier failures or qualify a new native combination. |
 | High | Security claims exceed current mechanisms if read too broadly | Checksums are not authentication; owner ACLs are not volume encryption. No full hostile-media/parser/update assessment is established here. |
@@ -323,9 +348,10 @@ Source: [WinFsp callback table and parameters](../src/windows/winfsp_native.cpp)
 ## Fresh dependency and alert check
 
 The authenticated GitHub REST endpoint returned **zero open Dependabot alerts**
-on 21 November across one complete page. The connector rejects this endpoint.
-The read used the repository's existing GitHub CLI authentication.
-[Current dependency receipt](evidence/indexed-uneven-short-packing-2026-11-21.json)
+on 21 November at 11:51 UTC across one complete page. The read used the
+repository's existing GitHub CLI authentication after the connector rejected
+that endpoint.
+[Current dependency receipt](evidence/release-reconciliation-attachment-2026-11-21.json)
 
 | Dependency/tool | Repository selection | Fresh official result / qualification limit |
 | --- | --- | --- |
@@ -340,10 +366,12 @@ The read used the repository's existing GitHub CLI authentication.
 | CocoIndex Code | 0.2.43 isolated tooling | Selected version label matches the current stable API result; this is agent tooling, not a product dependency |
 | DiskSpd | Not newly installed/run | Current official release API returns v2.3; benchmark planning only |
 
-The ROCm lock records an observed `10.2.0rc2` package identity and an archive
-digest measured locally from AMD HTTPS, not an independently published AMD
-checksum. Preserve that distinction in release supply-chain qualification.
-Do not install or replace a GPU driver to resolve it.
+AMD's 10.2.0 release notes list HIP 7.17.0 and Windows 11 25H2. The package
+lock separately records the Windows archive's `10.2.0rc2` build marker,
+HIP 7.17.26434 and the SHA-256 measured from the official download. The
+release supply-chain review needs the exact signed artifacts and runtime,
+driver and OS profiles for each supported configuration.
+[AMD ROCm Core SDK 10.2.0 release notes](https://rocm.docs.amd.com/en/docs-10.2.0/about/release-notes.html)
 
 The inspected host reported Windows 11 Pro build 26300. The release test
 matrix must record the exact servicing and driver versions exercised and the

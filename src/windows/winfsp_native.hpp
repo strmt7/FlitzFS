@@ -4,6 +4,7 @@
 #include "winfsp_origin.hpp"
 #include "flitzfs/native_maintenance.hpp"
 #include <filesystem>
+#include <functional>
 #include <memory>
 namespace flitzfs {
 struct MemoryVolumeBacking;
@@ -62,7 +63,8 @@ class WinFspNativeWritable final {
   static std::unique_ptr<WinFspNativeWritable> create_file_volume(std::shared_ptr<StoreByteIo> empty,
       StoreIdentity volume,StoreIdentity image,PagedStoreLimits,StoreCompressionOptions foreground={});
   static std::unique_ptr<WinFspNativeWritable> resume_file_volume(std::shared_ptr<StoreByteIo> existing,
-      std::optional<StoreIdentity> expected_volume=std::nullopt,StoreCompressionOptions foreground={});
+      std::optional<StoreIdentity> expected_volume=std::nullopt,StoreCompressionOptions foreground={},
+      const std::function<void(StoreIdentity)>& retain_verified={});
   static std::unique_ptr<WinFspNativeWritable> create_file_volume(const std::filesystem::path&,StoreIoContract,
       StoreIdentity volume,StoreIdentity image,PagedStoreLimits,StoreCompressionOptions foreground={});
   static std::unique_ptr<WinFspNativeWritable> resume_file_volume(const std::filesystem::path&,StoreIoContract,

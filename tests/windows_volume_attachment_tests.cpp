@@ -3,6 +3,8 @@
 #include "volume_app_winfsp.hpp"
 #include "windows_app_budget.hpp"
 #include "flitzfs/native_volume_file.hpp"
+#include "volume_range_fixture.hpp"
+#include "winfsp_native.hpp"
 #include <chrono>
 #include <algorithm>
 #include <atomic>
@@ -302,8 +304,8 @@ void uncertain_file_retirement() {
 
 void selected_file_lifecycle() {
   constexpr std::uint64_t capacity=8*1024*1024;
-  auto domain=std::optional{MemoryVolumeDomain::create(capacity)};
-  auto backing=domain->create_store(capacity);
+  auto backing=std::make_shared<native_fixture::SparseVolumeRam>(4096);
+  backing->io.capacity=2*capacity-kNativeVolumeFileImageOffset;
   const auto identity=fresh_volume_identity();
   const WinFspVolumeFileSelection::Create creation{fresh_volume_identity(),
       {capacity-kNativeVolumeFileImageOffset}};
@@ -353,7 +355,53 @@ void selected_file_lifecycle() {
   require(state(VolumeAttachmentState::empty).can_select_file(),"Close did not release the file selection");
   verify_backing({backing,identity,std::nullopt});
 
+  // A checked selector cannot grant ownership while the image is invalid.
+  auto invalid=backing->replay();
+  std::fill_n(invalid->io.live.begin()+kNativeVolumeFileImageOffset,kVolumeHeadBytes,std::byte{});
+  auto refused=make_winfsp_volume_file_attachment(Provider::load,{invalid,identity,std::nullopt});
+  bool invalid_rejected=false;
+  try {refused->attach(nullptr);}
+  catch(const NativeFsError&) {invalid_rejected=true;}
+  require(invalid_rejected && !refused->retains_volume() && invalid->io.calls==0 && provider.started==2,
+      "Invalid selected image was retained or touched");
+
+  // Once the CPU audit succeeds, a failed write fence must still retain the selection.
+  auto failed_open=make_winfsp_volume_file_attachment(Provider::load,{backing,{},std::nullopt});
+  backing->io.fail_at=backing->io.calls;
+  const auto unchanged=backing->io.write_bytes;
+  bool fence_rejected=false;
+  try {failed_open->attach(nullptr);}
+  catch(const std::exception&) {fence_rejected=true;}
+  require(fence_rejected && failed_open->retains_volume() && provider.started==2 &&
+      backing->io.calls==backing->io.fail_at+1 && backing->io.write_bytes==unchanged &&
+      failed_open->refresh().state==VolumeAttachmentState::detached,
+      "Failed write fence lost validated volume ownership");
+  failed_open->discard();
+
+  constexpr StoreCompressionOptions foreground{StoreCompressionMode::automatic,3,false};
+  const auto direct_start=backing->io.read_bytes;
+  const auto direct_barrier_start=backing->io.flushes;
+  WinFspNativeWritable::resume_file_volume(backing,identity,foreground).reset();
+  const auto direct_reads=backing->io.read_bytes-direct_start;
+  const auto direct_barriers=backing->io.flushes-direct_barrier_start;
+  const auto selected_start=backing->io.read_bytes;
+  const auto writes=backing->io.write_bytes;
+  const auto barriers=backing->io.flushes;
+  provider.collision=true;
   require(select(VolumeFileAction::open_existing),"Existing file could not be selected again");
+  const auto reopened=state(VolumeAttachmentState::detached);
+  require(reopened.attachment.status==STATUS_OBJECT_NAME_COLLISION && reopened.attachment.persistent,
+      "Failed first mount of an existing volume did not retain the selection");
+  const auto selected_reads=backing->io.read_bytes-selected_start;
+  std::cout<<"selected_file_reopen adapter_read_bytes="<<direct_reads<<" helper_read_bytes="<<selected_reads
+      <<" startup_flushes="<<backing->io.flushes-barriers<<" startup_write_bytes="<<backing->io.write_bytes-writes
+      <<std::endl;
+  require(direct_reads && selected_reads==direct_reads && direct_barriers>=2 &&
+      backing->io.flushes==barriers+direct_barriers &&
+      backing->io.write_bytes==writes,"Helper reopened with a repeated audit, missing fence, or startup write");
+
+  provider.collision=false;
+  submit(VolumeCommandKind::attach);
   require(state(VolumeAttachmentState::attached).attachment.persistent,"Checked image identity did not reopen");
   verify_file(provider);
   submit(VolumeCommandKind::detach);
@@ -361,9 +409,6 @@ void selected_file_lifecycle() {
   submit(VolumeCommandKind::discard);
   state(VolumeAttachmentState::empty);
   verify_backing({backing,identity,std::nullopt});
-  // Retire the fixture's own domain before testing the ordinary memory route.
-  backing.reset();
-  domain.reset();
   submit(VolumeCommandKind::attach);
   require(!state(VolumeAttachmentState::attached).attachment.persistent,
       "Memory attach reopened an explicitly closed file");
@@ -373,7 +418,7 @@ void selected_file_lifecycle() {
   state(VolumeAttachmentState::empty);
   require(controller.stop(false),"Empty application refused to exit");
   await(controller,[](const auto& view){return view.stopped;});
-  require(provider.started==4 && provider.stopped==4 && provider.unmounted==3 && provider.deleted==4,
+  require(provider.started==5 && provider.stopped==5 && provider.unmounted==3 && provider.deleted==5,
       "Selected attachment leaked a provider session");
   std::cout<<"selected_volume_file validated_open=1 preflight_before_writes=1 "
       <<"cpu_reopen=1 memory_after_close=1 joined_provider_sessions="<<provider.deleted.load()<<'\n';

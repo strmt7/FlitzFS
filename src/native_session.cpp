@@ -560,7 +560,8 @@ NativeFileSession NativeFileSession::resume_closed_indexed_volume(std::shared_pt
 NativeFileSession NativeFileSession::resume_volume_impl(std::shared_ptr<StoreByteIo> head,
     StoreIdentity volume,std::uint64_t epoch,const NativeVolumeImageResolver& resolver,
     StoreCompressionOptions foreground,NativeDispositionPolicy policy,bool closed_indexed,
-    const NativeStartupRepairProvider& repair_target,const detail::IndexedReopenAdmission& admission) {
+    const NativeStartupRepairProvider& repair_target,const detail::IndexedReopenAdmission& admission,
+    const std::function<void(StoreIdentity)>& retain_verified) {
   admit_policy(policy);detail::validate_store_compression(foreground);
   if(!epoch || volume==StoreIdentity{} || !head || !resolver)
     fail(E::invalid_options,"explicit volume/epoch/provider required");
@@ -574,6 +575,9 @@ NativeFileSession NativeFileSession::resume_volume_impl(std::shared_ptr<StoreByt
     fail(E::invalid_options,"stale volume session epoch");
   if(!closed_indexed && selected.filesystem().needs_session_recovery())
     fail(E::delete_pending,"old file-context state requires qualified recovery");
+  // A file attachment can retain the checked backing before either writer
+  // fence or a repair. The audit alone does not grant a writable session.
+  if(retain_verified)retain_verified(volume);
   owner->active_id=selected.filesystem().identity();owner->epoch=epoch;
   const auto& initial=selected.filesystem();
   const auto attach=[&](NativeFilesystemWriter writer) {

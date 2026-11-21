@@ -457,10 +457,11 @@ class NativeFileSession final {
   explicit NativeFileSession(std::unique_ptr<Impl>) noexcept;
   Impl& ready() const;
   // Platform metadata is validated during the selected namespace audit,
-  // before any repair can mutate storage.
+  // before retaining a verified volume or allowing repair to mutate storage.
   static NativeFileSession resume_volume_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,std::uint64_t,
       const NativeVolumeImageResolver&,StoreCompressionOptions,NativeDispositionPolicy,bool closed_indexed,
-      const NativeStartupRepairProvider& repair_target={},const detail::IndexedReopenAdmission& admission={});
+      const NativeStartupRepairProvider& repair_target={},const detail::IndexedReopenAdmission& admission={},
+      const std::function<void(StoreIdentity)>& retain_verified={});
   static NativeFileSession create_volume_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,
       std::shared_ptr<StoreByteIo>,StoreIdentity,NativeImageStorage,StoreCompressionOptions,
       StoreCheckpointOptions,NativeDispositionPolicy,std::optional<NativeVolumeRootMetadata>,

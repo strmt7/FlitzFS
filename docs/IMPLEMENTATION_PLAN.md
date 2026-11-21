@@ -1,6 +1,6 @@
 # FlitzFS detailed implementation plan
 
-**21 November 2026 — reconciled baseline `227c82d498fefedc2ad1b3cfe240968690bcd90e`.**
+**21 November 2026 — reconciled baseline `4203079a7529a565ebf17247a191f0ea3776c143`.**
 
 Read the [current repository overview](REPOSITORY_OVERVIEW.md) first. This plan
 extends the existing E01–E13 release work breakdown and maps it to the active
@@ -17,9 +17,11 @@ The current indexed path retains verified roots, an on-demand memory
 provider, independently readable collective encodings and bounded scheduled
 work. Restart reclamation uses verified object totals and respects retained
 readers. The helper selects memory or qualified file backing through the
-shared attachment controller. The next integration boundary is the complete
-installed Windows workflow with both providers, and real AMD work in that
-workflow. Follow E02 for reclaiming segments during
+shared attachment controller. The existing-file open uses the native
+writable audit to validate ownership before entering repair or the writer
+fences. Extend the signed-driver guest workflow to populated volumes and
+bring the same operation trace to the installed Windows client for Explorer
+and AMD qualification. Follow E02 for reclaiming segments during
 foreground writes, E03 for AMD and independent CPU continuity, and E08 for the
 mounted lifecycle. The execution plan gives the ordered exit evidence.
 [Current state](DEVELOPMENT_STATE.json)
@@ -240,13 +242,17 @@ also runs the in-memory WinFsp worker cases on ordinary local SDK builds.
    full CPU verification cost on large retained volumes. Keep
    earlier writable images readable and test their actual reopening.
    Indexed WinFsp startup now validates each reachable inode's Windows
-   metadata during the initial audit. Profile the two remaining storage
-   verification passes on larger mounted fixtures. Bind any replacement
-   proof to the exact selector, image root and permitted backend mutation
-   model. Preserve refusal for corrupted payload peers and same-generation
-   replacement at either barrier, and retain an independent CPU rescue path.
+   metadata during the initial audit and uses that same result to retain
+   the selected backing. Profile the two remaining storage verification
+   passes on larger mounted fixtures. Account for selectors, object and
+   directory pages, inode records, payloads and dependencies separately.
+   Bind any replacement proof to the exact selector, checkpoint, namespace
+   sequence and permitted backend mutation model. Preserve refusal for
+   corrupted payload peers and same-generation replacement at either barrier,
+   and retain an independent CPU rescue path.
    [Indexed owned path](evidence/indexed-owned-windows-2026-11-18.json) ·
    [Windows startup evidence](evidence/winfsp-indexed-startup-audit-2026-11-20.json) ·
+   [Helper attachment audit](evidence/release-reconciliation-attachment-2026-11-21.json) ·
    [Memory backing evidence](evidence/demand-locked-memory-2026-11-18.json) ·
    [Tray attachment](WINDOWS_VOLUME_APP.md#explorer-attachment)
 2. Qualify mounted delete intent, detached I/O, final Close and restart through
@@ -495,6 +501,11 @@ stale-budget outcomes in qualification, even when CPU recovery succeeds.
 1. Build a trusted configuration identity from OS/architecture, adapter LUID/node,
    driver/runtime/module/compiler identities and decoder/method versions.
    Preserve the ROCm Core/package versus HIP component version distinction.
+   Capture the actual runtime queried by the worker and bind profiles to the
+   exact signed package and device. AMD's published ROCm Core 10.2.0 support
+   table lists Windows 11 25H2 and the component table lists HIP 7.17.0.
+   Qualify support on the target Windows 11 servicing channel separately.
+   [AMD ROCm 10.2.0 release notes](https://rocm.docs.amd.com/en/docs-10.2.0/about/release-notes.html)
 2. Discover compatible user-mode runtimes safely from supported installations,
    private packages and explicit configuration. Pin opened artifacts, validate
    provenance and avoid ambiguous DLL/PATH search. Do not replace the GPU driver.
@@ -521,6 +532,10 @@ stale-budget outcomes in qualification, even when CPU recovery succeeds.
    available when the reference plan cannot be admitted. Produce package
    profiles from representative measurements, connect approved packages to
    the mounted launcher and verify routing on hosts with multiple AMD devices.
+   Evaluate foreground completion and automatic cold compression independently.
+   For the first mounted comparison, keep request trace, allocation policy,
+   cache preparation and byte verification fixed across admitted AMD,
+   CPU-only and refused-AMD trials.
    Treat the observed foreground CPU choice as specific to the tested request class.
    [Foreground route evidence](evidence/installed-amd-routing-2026-11-18.json) ·
    [Installed shared-base evidence](evidence/installed-amd-shared-base-2026-11-18.json) ·
@@ -650,8 +665,13 @@ generation checks and packed-size proof when selecting a candidate.
    worthwhile. Evaluate content-defined and shift-tolerant features alongside
    the current aligned baseline; do not index every byte indiscriminately.
 4. Implement bounded sparse candidate queries using appropriate locality/hash
-   indexes and small approximate-neighbor sets. A dense million-by-million
-   32-bit matrix would cost roughly 4 TB before other state; it is not the design.
+   indexes and small approximate-neighbor sets. Extend the current single
+   representative for a band/fingerprint with additional size-filtered
+   candidates only when measured recall improves. Record the candidates
+   examined, feature bytes written, query reads, recalled relevant pairs
+   and settled-byte benefit. Bind the persistent index to the recovered
+   image and resume scans from a verified checkpoint when the hints are
+   stale or incomplete.
 5. Version features and postings by content generation. Reject stale selections
    at preparation/publication and invalidate only affected content.
 6. Persist scan watermarks and fairness so constant foreground churn cannot
@@ -1489,6 +1509,10 @@ source-pinned tools, helper/tray and module verification.
 3. Provision missing user-mode tools/runtime pieces into a private verified
    location where needed. Verify exact archives, selection, signatures/provenance,
    disk reserves and atomic installation; retain rollback and partial-failure evidence.
+   Reuse the same verified artifact discovery, exact executable identity and
+   side-by-side runtime checks where their contracts apply to FlitzFS.
+   [FlitzZip build receipts](https://github.com/strmt7/FlitzZip/blob/11396b5123505a4a1959173e1db2d0858c10dd6d/tools/native_build_receipt.py) ·
+   [FlitzZip runtime packaging](https://github.com/strmt7/FlitzZip/blob/11396b5123505a4a1959173e1db2d0858c10dd6d/tools/package_runtime.ps1)
 4. Separate driver setup from ordinary private packages. Never replace/reconfigure
    the GPU driver. A needed filesystem-driver install must satisfy the owner's
    stability and artifact/client/rollback qualification, without assuming a
@@ -1500,10 +1524,11 @@ source-pinned tools, helper/tray and module verification.
    memory and persistent providers. The [indexed volume-file provider](PERSISTENT_VOLUME_FILE.md)
    now has exclusive creation, checked reopen, independent CPU inspection and
    a WinFsp callback entry point. The helper's attachment worker now owns a
-   qualified file through mount failure, detach, reopen and exit. Add the
-   user-facing selection and safe provisioning path against the qualified
-   storage provider. Generation replacement and media qualification remain
-   open. A direct block-volume provider needs its own design and tests.
+   qualified file through mount failure, detach, reopen and exit. User-facing
+   selection is exercised in the mounted guest. Qualify the installed
+   Explorer lifecycle, available-space accounting and temporary ownership
+   under helper and system interruption. A direct block-volume provider needs
+   its own design and tests.
 7. Build any direct-volume provisioning/format support only under explicit product
    design and isolated disposable-device tests. Development never formats or writes
    raw owner devices, and this plan is not permission to do so.

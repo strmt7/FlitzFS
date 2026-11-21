@@ -832,7 +832,8 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_file_volume(s
   return from_indexed_session(std::move(session),volume,stamp,{});
 }
 std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_file_volume(std::shared_ptr<StoreByteIo> existing,
-    std::optional<StoreIdentity> expected,StoreCompressionOptions foreground) {
+    std::optional<StoreIdentity> expected,StoreCompressionOptions foreground,
+    const std::function<void(StoreIdentity)>& retain_verified) {
   auto regions=NativeVolumeFile::open_regions(std::move(existing),true,expected);
   const auto volume=regions.selection.volume_identity;
   UINT64 created=0;
@@ -840,7 +841,7 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_file_volume(s
     admit_windows_inode(state,security,indexed_file_info,created);
   };
   auto session=NativeVolumeFile::resume_regions(std::move(regions),foreground,
-      NativeDispositionPolicy::windows_global,fresh_volume_identity,admit);
+      NativeDispositionPolicy::windows_global,fresh_volume_identity,admit,retain_verified);
   return from_indexed_session(std::move(session),volume,created,{});
 }
 std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_file_volume(const std::filesystem::path& path,

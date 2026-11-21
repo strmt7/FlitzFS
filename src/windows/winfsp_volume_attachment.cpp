@@ -114,7 +114,11 @@ class WinFspVolumeAttachment final:public VolumeAttachment {
 
   void start_file(WinFspSessionApi api,NativeWriteMountPlan plan,HANDLE state_changed) {
     auto& selection=*selection_;
-    if(!file_) {
+    constexpr StoreCompressionOptions foreground{StoreCompressionMode::automatic,3,false};
+    std::unique_ptr<WinFspNativeWritable> adapter;
+    if(file_) {
+      adapter=WinFspNativeWritable::resume_file_volume(file_,selection.volume,foreground);
+    } else {
       std::shared_ptr<StoreByteIo> backing;
       if(const auto* path=std::get_if<WinFspVolumeFileSelection::WindowsFile>(&selection.backing)) {
         const auto parents=pin_volume_path_parents(path->path.native());
@@ -125,21 +129,23 @@ class WinFspVolumeAttachment final:public VolumeAttachment {
         backing=std::get<std::shared_ptr<StoreByteIo>>(selection.backing);
       }
       if(!backing)throw std::invalid_argument("Missing qualified volume file backing");
-      if(!selection.create) {
+      // Keep the exclusive backing if initialization, a write fence, or the
+      // dispatcher fails. An existing file first needs the native image audit.
+      const auto retain_backing=[&](StoreIdentity volume) {
+        selection.volume=volume;
+        file_=backing;
+        set_state(VolumeAttachmentState::detached);
+      };
+      if(selection.create) {
+        retain_backing(selection.volume);
+        const auto initial=std::exchange(selection.create,std::nullopt);
+        adapter=WinFspNativeWritable::create_file_volume(file_,selection.volume,
+            initial->image,initial->limits,foreground);
+      } else {
         const auto expected=selection.volume==StoreIdentity{}?std::nullopt:std::optional{selection.volume};
-        const auto checked=NativeVolumeFile::inspect(backing,expected);
-        selection.volume=checked.info().selection.volume_identity;
+        adapter=WinFspNativeWritable::resume_file_volume(backing,expected,foreground,retain_backing);
       }
-      file_=std::move(backing);
     }
-    // The exclusive backing remains owned even if initializing the image or
-    // starting the dispatcher fails. A subsequent attach only checks/reopens it.
-    set_state(VolumeAttachmentState::detached);
-    const auto initial=std::exchange(selection.create,std::nullopt);
-    constexpr StoreCompressionOptions foreground{StoreCompressionMode::automatic,3,false};
-    auto adapter=initial?WinFspNativeWritable::create_file_volume(file_,selection.volume,
-        initial->image,initial->limits,foreground):
-        WinFspNativeWritable::resume_file_volume(file_,selection.volume,foreground);
     file_controller_=std::make_unique<WinFspVolumeController>(std::move(adapter),api,std::move(plan),
         std::nullopt,state_changed);
   }

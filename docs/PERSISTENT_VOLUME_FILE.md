@@ -150,14 +150,17 @@ image identity through the native reopen API.
 A qualified caller supplies the backing and creation geometry to the same
 attachment worker that manages memory volumes. The Explorer helper can
 request a new file or open an existing one. It preflights the mount location,
-pins the backing's ancestors during acquisition, and verifies the existing
-volume's identity on the exclusive handle before writable recovery. A
-supplied expected identity must match. The NTFS sparse profile checks the
-pinned parent and the file handle, including linear images reopened under
-that profile.
-A mount failure keeps the backing open for recovery. Reattachment uses the
-retained file handle and verifies the selected volume before starting a new
-dispatcher. Creation is requested once per acquired backing.
+pins the backing's ancestors during acquisition, and acquires the exclusive
+handle. The native startup audit verifies the selected image and Windows
+metadata on that handle. The helper retains it after the audit and before
+the write fences or repair. A supplied expected identity must match.
+The NTFS sparse profile checks the pinned parent and the file handle,
+including linear images reopened under that profile.
+A fence, repair, or mount failure after the audit keeps the checked backing
+open for recovery. Reattachment uses the retained file handle and verifies
+the selected volume before starting a new dispatcher. Creation is requested
+once per acquired backing.
+[Checked open and failure evidence](evidence/release-reconciliation-attachment-2026-11-21.json)
 
 Detach joins the dispatcher and worker before permitting another attach.
 An uncertain retirement keeps the attachment blocked. Closing a detached

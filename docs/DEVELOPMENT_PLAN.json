@@ -1,7 +1,16 @@
 {
   "schema": 1,
-  "updated": "2026-11-17",
-  "forward_work_rule": "Use execution_programme and the implementation plan for current tasks and exits. Historical checkpoints describe completed or partial evidence.",
+  "updated": "2026-11-21",
+  "forward_work_rule": "Use current_release_sequence for integration order, and execution_programme and the implementation plan for package dependencies and exits. Historical checkpoints describe completed or partial evidence.",
+  "current_release_sequence": {
+    "reviewed_commit": "4203079a7529a565ebf17247a191f0ea3776c143",
+    "assessment": "docs/REPOSITORY_OVERVIEW.md",
+    "ordered_work": "docs/RELEASE_EXECUTION_PLAN.md#next-integrated-qualification",
+    "package_contract": "docs/IMPLEMENTATION_PLAN.md",
+    "evidence": "docs/evidence/release-reconciliation-attachment-2026-11-21.json",
+    "next": "Extend the signed-driver Windows volume workflow to a populated external-client trace with per-fence I/O counters, acknowledged hashes and independent CPU reopen. Use the same trace for allocation churn and automatic AMD routing.",
+    "release_qualified": false
+  },
   "baseline": {
     "commit": "f4928c2d2510cacb55da664a0338c8592194d9a0",
     "tree": "0ab1b0f5955aaf3090f8fd5d741a6ac13dab62b4"

@@ -6,7 +6,7 @@ import json
 import os
 from pathlib import Path
 import sys
-from check_portable_cpu import pe_import_names, number, require
+from check_portable_cpu import WINDOWS_OS_IMPORTS, number, pe_import_names, require
 
 def audit_volume_binary(data, role):
     require(sys.platform == "win32", "Volume application audit requires Windows")
@@ -14,7 +14,7 @@ def audit_volume_binary(data, role):
     require(0 < len(data) <= 32*1024*1024, "Application executable size cap")
     names, delayed = pe_import_names(data)
     # Both volume programs link the Windows CPU-load collector through volume_app_core.
-    base = {"kernel32.dll", "advapi32.dll", "bcrypt.dll", "ntdll.dll", "pdh.dll", "user32.dll"}
+    base = WINDOWS_OS_IMPORTS | {"pdh.dll", "user32.dll"}
     allowed = base | ({"shell32.dll", "gdi32.dll"} if role == "application" else set())
     require(bool(names) and set(names) <= allowed and not delayed,
             "Non-admitted application dependency: " + repr(names))

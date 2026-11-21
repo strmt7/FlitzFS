@@ -6,6 +6,25 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "current_attachment_reconciliation": {
+    "reviewed_commit": "4203079a7529a565ebf17247a191f0ea3776c143",
+    "reviewed_tree": "89ae3dd3146f19e012bdc6504dba29fee12ab587",
+    "evidence": "docs/evidence/release-reconciliation-attachment-2026-11-21.json",
+    "helper_startup_read_bytes_before_after": [1644441, 1304248],
+    "helper_startup_flushes_before_after": [3, 3],
+    "helper_startup_write_bytes_before_after": [0, 0],
+    "image_and_windows_metadata_verified_before_retention": true,
+    "validated_handle_retained_on_fence_or_mount_failure": true,
+    "windows_tests": {"release": 201, "asan_dual_codec": 4, "raw": 3, "portable_app_model_checks": 841},
+    "signed_win_fsp_guest": {"memory_checks": 73, "file_checks": 126, "guest_retired": true},
+    "matched_controller": {
+      "files_cpu_verified": 36,
+      "amd_kernel_launches": 14,
+      "settled_bytes_cpu_and_amd": [327680, 319488],
+      "mounted": false
+    },
+    "release_qualified": false
+  },
   "reviewed_baseline": {
     "commit": "38a4a48f005c2ea6c9a7f8cbd9d7ee07df044d70",
     "tree": "936409737d1c4a5d4aeb37fe5af48f55ba9accff",

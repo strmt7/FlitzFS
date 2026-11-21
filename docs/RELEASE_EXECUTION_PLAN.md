@@ -1,12 +1,12 @@
 # FlitzFS stable release execution plan
 
-Reviewed on 21 November 2026 against the source at `227c82d498fefedc2ad1b3cfe240968690bcd90e`
-and the restart reclamation work validated in this round. The [implementation plan](IMPLEMENTATION_PLAN.md)
+Reviewed on 21 November 2026 against the source at `4203079a7529a565ebf17247a191f0ea3776c143`
+and the Windows volume-file reopen change. The [implementation plan](IMPLEMENTATION_PLAN.md)
 defines the full product scope and work packages. This plan gives the order
 of execution, evidence required at each handoff, and the remaining release
 work.
 [Current repository overview](REPOSITORY_OVERVIEW.md) ·
-[Reconciliation evidence](evidence/release-reconciliation-2026-11-21.json)
+[Reconciliation evidence](evidence/release-reconciliation-attachment-2026-11-21.json)
 
 ## Release assessment
 
@@ -19,9 +19,9 @@ fixtures today. Bring them together before counting a gate as complete.
 | Area | Evidence now | Work that still determines release |
 | --- | --- | --- |
 | Native Windows storage | Indexed paths, inodes and extents use checked paged storage. CPU readback and modeled interruption results cover several native paths. | Complete namespace and data I/O at scale. Bound open, traversal, mutation, reclamation and recovery costs together. |
-| Mount and application | One signed WinFsp 2.2 guest ran mounted external Win32 workflows on both backings. The file-backed volume retained identity and bytes through duplicate-create refusal and fresh-process reopening. | Qualify interactive Explorer, the signed installer lifecycle, physical backing recovery and mounted AMD operation. |
-| AMD and CPU continuity | The current Windows controller completed 14 AMD kernel launches and verified seven groups. Independent CPU reads recovered all 36 files on both the AMD result and a matched CPU-only run. | Measure useful complete-operation gains on held-out inputs. Qualify automatic route selection and recovery across supported adapters and workload classes. |
-| Compression | Shared bases, sparse XOR, prefixed Zstandard and short-file grouping can reduce complete occupied images. On the mixed-length fixture, looking ahead to a fitting extent reduced the settled image from 827,392 to 786,432 bytes. | Establish repeatable total-size gains against strong, applicable controls, including shared metadata and retained versions. Qualify access costs for the same volume. |
+| Mount and application | Signed WinFsp 2.2 guest testing covers both backings, with duplicate-create refusal and byte-exact fresh-process reopen. The helper now shares the native startup verification pass. | Qualify interactive Explorer, the signed installer lifecycle, physical backing recovery and mounted AMD operation. |
+| AMD and CPU continuity | A matched live Windows controller trial executed 14 AMD kernel launches and selected 12 advised members. The settled image used 319,488 bytes on the AMD route and 327,680 on CPU. Both passed independent CPU verification of all 36 files. | Measure complete-operation gains on held-out inputs. Qualify foreground compression, automatic route selection and recovery across supported adapters and workload classes. |
+| Compression | Shared bases, sparse XOR, prefixed Zstandard and short-file grouping can reduce complete occupied images. A later cross-window change saved 16 KiB in a controlled case, with equal sizes in the tested public cohorts. | Establish repeatable total-size gains against strong applicable controls, including shared metadata and retained versions. Qualify access costs for the same volume. |
 | Learning and reclamation | Advisory checkpoints, incremental candidate discovery, and staged cold recompression work in checked fixtures. Verified committed totals now make history eligible after reopen. | Prove bounded lookup and restart at production scale, persistent automatic policy changes, and steady-state reuse that reduces occupied space and unnecessary write traffic. |
 | Durability and compatibility | Checked roots, mirrored payload recovery, generation-bound references and several interrupted-write models are exercised. | Bind acknowledgement to real backend barriers and close retained-generation repair, mixed-format upgrade and independent rescue gates. |
 | Packaging and security | User-mode dependency staging and exact package binding are in place. | Validate the installed and removed product, hostile inputs, IPC access control, update and rollback, dependency evidence and recovery packaging. |
@@ -32,7 +32,7 @@ fixtures today. Bring them together before counting a gate as complete.
 [Cold compaction receipt](evidence/screened-cold-compaction-2026-11-20.json) ·
 [AMD reference-profile receipt](evidence/amd-installed-reference-profile-2026-11-20.json) ·
 [Indexed inventory receipt](evidence/indexed-reopen-single-pass-audit-2026-11-20.json) ·
-[Collective packing and current AMD receipt](evidence/indexed-uneven-short-packing-2026-11-21.json)
+[Latest collective packing and AMD receipt](evidence/indexed-cross-window-packing-2026-11-21.json)
 
 ### Remaining engineering effort
 
@@ -98,6 +98,12 @@ case in the mixed-activity matrix with both controls and exact CPU readback.
   and identifies 26H1 as a separate new-device release. Test the exact client
   and updates the product promises to support.
   [Windows 11 release information](https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information)
+- Track the Windows release, AMD driver, ROCm package and loaded HIP runtime
+  as separate inputs. AMD's 10.2.0 support table names Windows 11 25H2 and its
+  component table lists HIP 7.17.0. Exercise the current 26H2 client explicitly
+  for the product's AMD qualification. Record the package build marker and
+  actual runtime query alongside support documents and CPU continuity results.
+  [AMD ROCm 10.2.0 release notes](https://rocm.docs.amd.com/en/docs-10.2.0/about/release-notes.html)
 - Use the exact WinFsp artifact in correctness, installation and rollback
   checks. The release API identifies WinFsp 2026 as v2.2 and exposes the
   MSI and test archive digests. The download overview still links to an
@@ -196,6 +202,15 @@ were observed in each run. The separate compressed-object comparison
 measures the saving from a single decoded check for byte-identical
 encodings. Both stored copies still receive independent verification.
 [Storage audit evidence](evidence/indexed-audit-reuse-2026-11-20.json)
+
+The ordinary helper now retains an existing backing after the initial
+indexed and Windows metadata audit. This removes the separate read-only image
+inspection. The focused startup control measured 1,644,441 backing bytes
+before and 1,304,248 after, with the same three flushes and zero writes.
+The test covers rejection of a corrupt selected image and handle retention
+after a failed fence or mount. The native verification passes around the image
+barrier still determine the scaling curve.
+[Current attachment startup evidence](evidence/release-reconciliation-attachment-2026-11-21.json)
 
 1. Extend the separate pre- and post-image-barrier counters by selector,
    object-table pages, name-index pages, inode/lifetime metadata, encoded
@@ -389,9 +404,9 @@ exact change. Cover the native worker and package interfaces with targeted
 negative cases. For final S10, retain current advisory evidence and review
 dependencies, installer behavior, ACLs, update signing and the recovery tool.
 The connector refused the Dependabot URL. An authenticated paginated REST
-read returned zero open alerts on 21 November. Refresh that read for the exact
+read returned zero open alerts on 21 November at 11:51 UTC. Refresh that read for the exact
 release candidate and retain the published advisory and artifact inventories.
-[Current dependency receipt](evidence/indexed-uneven-short-packing-2026-11-21.json)
+[Current dependency receipt](evidence/release-reconciliation-attachment-2026-11-21.json)
 
 ## 8. Benchmarks, soak and the release decision
 
@@ -449,45 +464,81 @@ release candidate and retain the published advisory and artifact inventories.
 
 ### Next integrated qualification
 
-1. Prepare one disposable indexed volume and a deterministic external Win32
-   operation trace. Use the same populated image for create, overwrite,
-   handle-sharing tests, rename, flush, unmount, and reopening. Record returned
-   status, generation, expected bytes and observed bytes at each flush. Begin
-   at a population supported by the existing mounted harness and repeat as
-   indexed allocation and lookup scale. Keep the separate CPU reader and an
-   ordinary client reader in the test.
-2. Break resume and enumeration costs down by object-index pages, name-index
-   pages, inode and lifetime records, and payload and dependency reads. Mark
-   the proof boundary at each barrier. Use cold, warm, concurrent-reader, and
-   verified-repair runs with the same image. Advance the bounded writable-resume
-   design in section 2 only when amended-generation and post-barrier damage
-   checks agree with the full-audit control.
-3. Run create, edit, delete and cold regroup cycles while a reader pins an
-   earlier generation. Report live, protected and reclaimable ranges and each
-   operation's actual bytes written. Release the reader and confirm that the
-   new reader sees the latest acknowledged bytes and that the returned ranges
-   are reusable. Repeat with an interrupted publication and one damaged copy.
-   Once the model passes, repeat under the actual persistent backing provider
-   in isolation to establish its acknowledgement and repair contract.
-4. Feed the same mounted request trace with qualified AMD, CPU only and AMD
-   withdrawal after submission. Add real revision clusters with variable
-   lengths and dissimilar controls. Record verified work, transfer and kernel
-   duration, publication decisions, independent CPU readback, and the approved
-   process-tree retirement after each batch. Recheck active handles, committed
-   memory and worker ownership across repeated cycles after warm-up. Keep
-   process exit and long-lived resource use as separate measurements.
-5. Freeze a held-out file set before tuning. Compare ingest, idle recompression
-   and reclaimed size for each volume, including protected copies and retained
-   generations. Use the same files to measure random ranges, ordinary open and
-   directory enumeration, CPU and GPU duty, and writes attributable to
-   maintenance. Run the Windows I/O matrix on qualified live hardware and
-   collect comparable controls under the same storage and cache conditions.
-6. Freeze the signed package for compatibility, update, restore and removal
-   testing. Carry an older created volume through interrupted migration, a
-   fresh mount by the upgraded reader, CPU-only export, and supported rollback.
-   Record source and installer identity, owned process and driver state before
-   and after testing, and exact filesystem readback. Repeat affected lanes
-   after changes and track passive stability on the exact final candidate.
+1. **Extend the external Win32 trace in `windows_volume_app_tests.cpp`.**
+   Use the same populated volume for create, overwrite, share modes, mapped
+   and ordinary I/O, rename, flush, detach and fresh-process reopen. Keep
+   the operation seed, expected status, committed generation and acknowledged
+   content hashes in the trace. Feed independently captured expected bytes
+   to both an ordinary client reader and the CPU recovery reader. Record
+   filesystem, driver and application identities in the receipt. Use both
+   existing guest workflows for correctness and interactive Explorer on
+   a qualified live client for the shell workflow.
+2. **Measure the scaling bottleneck on that trace.** Count calls and bytes
+   for selector, object-index and name-index pages, inodes and lifetimes,
+   content frames and protected dependencies. Observe entry, image fence,
+   selector fence and callback publication separately. Start with 1,024 and
+   16,384 populated files, then test larger populations up to the supported
+   scale on adequately resourced clients. Include wide and deep directories,
+   cold and warm caches, retained readers and recoverable damage. Compare
+   bounded writable admission to the complete audit oracle using
+   same-generation substitutions and corruption at either fence. Land the
+   alternative only when both arms agree on acknowledged bytes and rejection.
+3. **Advance allocation using measured steady-state cost.** Use the current
+   paired-range handoff as the recovery and equivalence control. Compare
+   incremental evacuation and reusable segment accounting on create, edit,
+   delete and regroup churn. Track ownership through current, prior and
+   in-flight generations, including shared bases and active readers. Make
+   the next reclamation step resumable and reserve its physical write cost
+   against live headroom. Reuse a range only after every generation that can
+   address it retires. Require a falling or stable occupied-byte curve at
+   stable live content, bounded work per quantum and exact acknowledged
+   readback across interrupted publication on each supported backend.
+4. **Bring both AMD roles into the same Windows client.** Use the worker and
+   installed admission path for the existing collective route. Bind the
+   foreground deferred-write path to actual eligible writes after verifying
+   CPU completion semantics. Alternate AMD-present, CPU-only and rejected
+   device routes on matched data. Record transfer, kernel, validation,
+   publication and backlog separately. Inject a retired worker failure and
+   a stale reply on a copied fixture. Continue normal reads and writes on CPU
+   and verify only fresh evidence and confirmed retirement admit reacquisition.
+   Cover discrete AMD, supported unified-memory and CPU-only hosts through
+   the qualification matrix. Require a reproducible gain in throughput
+   or settled bytes on qualifying workloads and a bounded foreground cost.
+5. **Build persistent candidate discovery and stronger compression together.**
+   Freeze training and held-out corpora before tuning. Measure recall against
+   labeled revision families and dissimilar controls. Extend the paged
+   band/fingerprint lookup to bounded postings ranked with size and content
+   evidence. Bind to stable inode/extent generations, expire stale postings
+   and verify restart with the advisory area partially written or absent.
+   Evaluate protected deduplication, trained shared dictionaries, delta
+   encoding, reversible transforms and a bounded learned candidate against
+   the current shared-base representation. Qualify groups of varying
+   membership with independent range decoding and preserve measured
+   byte-exact access after base loss and repair.
+6. **Close the measured resource and durability loops.** Record changes to
+   foreground queues, CPU and GPU duty, memory headroom, wear-related bytes,
+   saved bytes and stable progress across sessions. Fit advice to the
+   device and workload evidence and cap exploration by live admission.
+   Exercise a foreground burst during scan, model update, regroup, scrub,
+   reclamation and format migration. Verify that every task yields at
+   documented boundaries while useful work makes progress when admitted.
+   Run the interruption matrix per provider and use separate qualified
+   physical hardware for loss-of-power and device-cache behavior.
+7. **Qualify installation and gradual migration.** Apply verified package and
+   toolchain identity before any setup operation. Use the FlitzZip native build
+   and runtime receipt approach for the staged user-mode dependencies. On the
+   exact signed FlitzFS package, exercise clean install, interrupted repair,
+   rollback, removal and repeated shutdown. Carry supported older volumes
+   through a mixed-capability state, interruption, resumed migration and
+   CPU-only export. Prove that a down-level writer is refused before it can
+   mutate a volume with required capabilities it cannot preserve.
+8. **Freeze the measurement and stabilization candidate.** Use DiskSpd with
+   matched caching, access patterns and controls. Pair it with real-file
+   copy, replace, open, enumerate and recovery checks, and record both
+   complete image bytes and occupied bytes at every phase. Treat physical
+   throughput and in-memory operation as distinct measurement profiles.
+   Preserve independent readback, exact dependency provenance, applicable
+   security review, all raw measurements and sustained stability evidence.
 
 Use the [gate definitions](IMPLEMENTATION_PLAN.md#18-exact-release-gates)
 and the [current development state](DEVELOPMENT_STATE.json) as the checklist.
