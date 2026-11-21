@@ -1,0 +1,192 @@
+{
+  "schema": 1,
+  "base_commit": "ae0a5b5777dc9d3c55bed9ec18cf99d54c40e6c2",
+  "candidate_code_patch_sha256": "7f2929b92088ec744cf26b0fc74cb150528b1732c81986cf452c7cc34dc9578e",
+  "candidate_source_blobs": {
+    "src/windows/native_anchor_search.cpp": "e90c5d930c52f0e3ecae81b98e66b118adffa641",
+    "src/windows/native_anchor_search.hpp": "2aa21f1fa86b82014af41a04e49c304524286d19",
+    "src/windows/winfsp_controller.cpp": "d85772904b4667b67bb7711bb4e569bc5e033554",
+    "tests/test_winfsp_controller.cpp": "1a7f3e4675cc39981104ba2b935e8e45e78e5321"
+  },
+  "navigation": {
+    "provider_version": "0.2.43",
+    "native_response_sha256": "739fbc0ebda7c69153f1c6188f6a120c3725a5854ad3eaae1a656b0e2c0a1a71"
+  },
+  "microsoft_sources": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "pages": [
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitforsingleobject",
+        "http_status": 200,
+        "markdown_sha256": "6deccd861eee49fc4f531e354958bd15423cd9a2df2dff46297c29a430238f40",
+        "capture_sha256": "9026e1845def129e033b1cbe5f5eee3f6a8a0a3f55817aefe7eb6842070988ad"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getexitcodethread",
+        "http_status": 200,
+        "markdown_sha256": "8d0e523c6ded8ba423e281a9e2e6ee415ae2644f418bba6967ade81653d6b23b",
+        "capture_sha256": "a50dff06cb0bc78a7074a116b529032c258ea3676c1c23c387355fbaa927091e"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadpriority",
+        "http_status": 200,
+        "markdown_sha256": "4f535a0b9a9f909b21bfa37d7b66735c7c6d47d13f2ba0217574c2587183c9f3",
+        "capture_sha256": "3e660ec9ad49eb4bfb790197439acbbfcefa1fa2a4afb22edfdf1885be38d965"
+      }
+    ],
+    "first_thread_exit_capture": "HTTP 200; initial expected-text marker mismatch. Confirmed recapture used the API's STILL_ACTIVE marker."
+  },
+  "hardware": {
+    "windows_build": 26300,
+    "adapter": "AMD Radeon RX 9070 XT",
+    "driver": "32.0.32029.2010",
+    "runtime": "amdhip64_7.dll",
+    "approved_runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7"
+  },
+  "artifacts": {
+    "controller_sha256": "999597f83c85a541414850f8b028aaa0c27b042491f14af07f2055ada077d1e2",
+    "baseline_controller_sha256": "449b4073418fae903f52f43ae73aefe4d3d97718eebba2830088407d3475882b",
+    "installed_package_manifest_sha256": "06c55f3e68db91317b6897c88e6aba3658bc2ddb2e8312da6fbf080a88dffe84",
+    "installed_worker_sha256": "bca40a979dcd51660cf900e6d9b4d80472ab38e6aead2bb3437957481449211c",
+    "installed_module_sha256": "9aad995bc1b2e330a8f24f76dcc5eaa9edc8f96351c999f10712aef0be33467d"
+  },
+  "baseline": {
+    "log_sha256": "c82ea0d2292f7cb5252035db5f85f1c73fda239760ac9b50a284881355f22c8a",
+    "exit_code": 1,
+    "peak_committed_bytes": 154918912,
+    "retired": true,
+    "retained_groups_after_foreground_read": 0,
+    "worker_and_supervisor_retired_before_read": true
+  },
+  "foreground_read": {
+    "files": 15,
+    "groups": 5,
+    "advised_members": 90,
+    "submitted": 1,
+    "verified_batches": 1,
+    "submitted_kernel_launches": 85,
+    "published_references_changed": 5,
+    "input_compacted_bytes": 13975552,
+    "grouped_compacted_bytes": 2760704,
+    "input_blake3": "7bd4ab0f425cfcd97f6d91458e1e23acbf98c1f227f3fe6ed9c0f846ba44be11",
+    "foreground_cancelled": false,
+    "independent_cpu_readback": true,
+    "log_sha256": "f7efc24032727e4684af74ace22a3fdf1882d8d915d69ca93ef196fd779358a1",
+    "exit_code": 0,
+    "peak_committed_bytes": 155217920,
+    "retired": true,
+    "groups_preserved_before_idle": 5,
+    "verified_before_idle": 0
+  },
+  "selected_extent_edit": {
+    "files": 15,
+    "groups": 5,
+    "advised_members": 72,
+    "submitted": 1,
+    "verified_batches": 0,
+    "submitted_kernel_launches": 85,
+    "published_references_changed": 4,
+    "input_compacted_bytes": 13975552,
+    "grouped_compacted_bytes": 4874240,
+    "input_blake3": "7bd4ab0f425cfcd97f6d91458e1e23acbf98c1f227f3fe6ed9c0f846ba44be11",
+    "foreground_cancelled": false,
+    "independent_cpu_readback": true,
+    "log_sha256": "48f781f5e2f75e4dce06a2a8cff606aa0f678ab8da8d0027c7dfb2b25354d4d0",
+    "exit_code": 0,
+    "peak_committed_bytes": 155033600,
+    "retired": true,
+    "packed_advice_staged_at_write": true,
+    "recovered_edited_extent": true
+  },
+  "active_worker_cancellation": {
+    "files": 36,
+    "groups": 5,
+    "advised_members": 0,
+    "submitted": 1,
+    "verified_batches": 0,
+    "submitted_kernel_launches": 20,
+    "published_references_changed": 0,
+    "input_compacted_bytes": 655360,
+    "grouped_compacted_bytes": 327680,
+    "input_blake3": "099bc2d2fbc3c710e9e6ddb9b2312aa72d021d1bd478cec33e69b077cc9ced89",
+    "foreground_cancelled": true,
+    "independent_cpu_readback": true,
+    "log_sha256": "0a385955ab819e8d2cc87870c966329b57169cf9664bf18ee235d356ca88fd80",
+    "exit_code": 0,
+    "peak_committed_bytes": 50393088,
+    "retired": true
+  },
+  "matched_cpu_reference": {
+    "files": 15,
+    "groups": 5,
+    "advised_members": 0,
+    "submitted": 0,
+    "verified_batches": 0,
+    "submitted_kernel_launches": 0,
+    "published_references_changed": 5,
+    "input_compacted_bytes": 13975552,
+    "grouped_compacted_bytes": 2760704,
+    "input_blake3": "7bd4ab0f425cfcd97f6d91458e1e23acbf98c1f227f3fe6ed9c0f846ba44be11",
+    "foreground_cancelled": false,
+    "independent_cpu_readback": true,
+    "log_sha256": "6500c30a5afe96ac4ab253f73b04991340b4380e2988f2b7de8d21f954603ad1",
+    "exit_code": 0,
+    "peak_committed_bytes": 80076800,
+    "retired": true
+  },
+  "installed_controller": {
+    "groups": 2,
+    "submitted": 1,
+    "metadata_queries": 1,
+    "installed_attempts": 1,
+    "submitted_kernel_launches": 17,
+    "advised_members": 18,
+    "files": 23,
+    "compacted_bytes": 1048576,
+    "independent_cpu_readback": true,
+    "log_sha256": "77fa454bcc49190a73825715c97a90e5b8c0b58328675be13303d96fc2c1294c",
+    "exit_code": 0,
+    "peak_committed_bytes": 120860672,
+    "retired": true
+  },
+  "missing_package_controller": {
+    "groups": 2,
+    "submitted": 0,
+    "metadata_queries": 0,
+    "installed_attempts": 1,
+    "submitted_kernel_launches": 0,
+    "advised_members": 0,
+    "files": 23,
+    "compacted_bytes": 1048576,
+    "independent_cpu_readback": true,
+    "log_sha256": "0931d6acb70e25f14bb033bfc1ec588ff3a8126ce376abc5ef98c95ad8f2f294",
+    "exit_code": 0,
+    "peak_committed_bytes": 49422336,
+    "retired": true
+  },
+  "windows_ctest": {
+    "release": {
+      "groups": 202,
+      "log_sha256": "08fb9699f233305f699e458f5bd3a71fd3dc9d208e65ac283ce1b1cd0fed80a2",
+      "exit_code": 0,
+      "peak_committed_bytes": 332226560,
+      "retired": true
+    },
+    "raw": {
+      "groups": 6,
+      "log_sha256": "63e6a8c125465fb845fe067f860a14c725b76d981571cefaba7b7c9f54848e8a",
+      "exit_code": 0,
+      "peak_committed_bytes": 63049728,
+      "retired": true
+    },
+    "address_sanitizer_including_runtime_preflight": {
+      "groups": 7,
+      "log_sha256": "c56815e347fff7aee0446c24e2d4cd33d3b5537014717edb9f1e366a23af0281",
+      "exit_code": 0,
+      "peak_committed_bytes": 901042176,
+      "retired": true
+    }
+  },
+  "scope": "Physical Windows host and actual package-bound AMD compute. Multiwindow fixtures use native sessions and modeled idle time. Installed-controller pair uses injected SDK lifecycle and actual host telemetry.",
+  "coverage_limits": "These are correctness and occupied-size results. Explorer-mounted AMD and a throughput improvement remain to qualify. Submitted launch counts describe the admitted plan, including cases cancelled before verification."
+}

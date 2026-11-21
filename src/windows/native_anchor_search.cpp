@@ -192,10 +192,15 @@ struct NativeAnchorSearchController::Impl {
   void yield(Disposition disposition) noexcept {
     discard();
     if(!flight || flight->disposition!=Disposition::pending)return;
-    flight->disposition=disposition;
-    (void)flight->session.request_cancel();
     if(disposition==Disposition::yielded)++stats.yielded;
     else ++stats.declined;
+    if(flight->supervisor_exited) {
+      (void)recovery.abandon(flight->ticket,true);
+      flight.reset();
+      return;
+    }
+    flight->disposition=disposition;
+    (void)flight->session.request_cancel();
   }
   void pace(std::uint64_t now,std::uint64_t started) noexcept {
     constexpr auto maximum=(std::numeric_limits<std::uint64_t>::max)();
@@ -334,22 +339,22 @@ void NativeAnchorSearchController::start(std::span<const NativeSharedBaseSearchW
     }
   }
 }
-void NativeAnchorSearchController::observe(std::uint64_t activity,std::uint64_t now,bool collect) noexcept {
+void NativeAnchorSearchController::observe(std::uint64_t activity,std::uint64_t now,
+    NativeAnchorOpportunity opportunity) noexcept {
   auto& self=*impl_;
   if(self.unobserved_ticket && WorkerExchangeSession::available()) {
     (void)self.recovery.confirm_quiescent(self.unobserved_ticket);
     self.unobserved_ticket=0;
   }
-  if(activity!=self.activity) {
-    self.activity=activity;
-    yield_to_foreground();
-  }
+  const auto previous_activity=std::exchange(self.activity,activity);
+  const bool foreground=activity!=previous_activity || opportunity==NativeAnchorOpportunity::foreground;
   if(!self.flight)return;
   auto& flight=*self.flight;
   if(!flight.supervisor_exited) {
     const auto state=WaitForSingleObject(flight.session.supervisor_wait_handle(),0);
     if(state==WAIT_TIMEOUT) {
-      if(now>=flight.deadline)self.yield(Impl::Disposition::expired);
+      if(foreground)self.yield(Impl::Disposition::yielded);
+      else if(now>=flight.deadline)self.yield(Impl::Disposition::expired);
       return;
     }
     if(state!=WAIT_OBJECT_0 || !flight.session.retirement_confirmed()) {
@@ -374,7 +379,7 @@ void NativeAnchorSearchController::observe(std::uint64_t activity,std::uint64_t 
       self.discard();
       ++self.stats.declined;
     } else {
-      if(!collect)return;
+      if(opportunity!=NativeAnchorOpportunity::idle || foreground)return;
       try {
         self.replies.reserve(self.windows.size());
         const auto output=flight.request.plan().output;
@@ -445,7 +450,7 @@ bool NativeAnchorSearchController::waiting() const noexcept {
   return impl_->flight && !impl_->flight->supervisor_exited && impl_->flight->disposition==Impl::Disposition::pending;
 }
 std::span<const NativeSharedBaseSearchWindow> NativeAnchorSearchController::pending_prefix() const noexcept {
-  if(!waiting())return {};
+  if(!impl_->flight || impl_->flight->disposition!=Impl::Disposition::pending)return {};
   return impl_->windows;
 }
 std::uint64_t NativeAnchorSearchController::deadline() const noexcept {
@@ -494,10 +499,6 @@ bool NativeAnchorSearchController::rebind(HipDiscoveredRoute route) noexcept {
   return true;
 }
 void NativeAnchorSearchController::discard_reply() noexcept {impl_->discard();}
-void NativeAnchorSearchController::yield_to_foreground() noexcept {
-  auto& self=*impl_;
-  if(self.flight || self.packed_ticket)self.yield(Impl::Disposition::yielded);
-}
 void NativeAnchorSearchController::cancel() noexcept {impl_->yield(Impl::Disposition::yielded);}
 bool NativeAnchorSearchController::stop() noexcept {
   auto& self=*impl_;

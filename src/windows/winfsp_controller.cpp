@@ -89,8 +89,8 @@ struct WinFspVolumeController::Impl {
 #endif
           if(anchor) {
             if(disabled)anchor->cancel();
-            else if(adapter->foreground_pending())anchor->yield_to_foreground();
-            anchor->observe(adapter->foreground_activity(),now);
+            anchor->observe(adapter->foreground_activity(),now,adapter->foreground_pending()?
+                NativeAnchorOpportunity::foreground:NativeAnchorOpportunity::poll);
             adapter->signal_foreground_for_anchor(anchor->waiting());
           }
           const auto gpu=adapter->gpu_budget_task();
@@ -261,14 +261,13 @@ struct WinFspVolumeController::Impl {
     const auto resources=detail::maintenance_resources(observed,now,adapter->group_maintenance_policy());
     const auto funded_extents=resources?detail::maintenance_group_member_limit(*resources,true):0;
     const bool admitted=resources && !resources->cpu_busy && anchor->fits_group_budget(funded_extents);
-    const bool foreground=adapter->foreground_pending();
+    const bool foreground=adapter->foreground_pending() || adapter->foreground_activity()!=epoch;
     if(!admitted)anchor->cancel();
-    else if(foreground)anchor->yield_to_foreground();
     const bool idle=admitted && !foreground;
-    anchor->observe(epoch,now,idle);
-    if(anchor->waiting()) {
-      const auto prefix=anchor->pending_prefix();
-      if(prefix.empty())return {WinFspMaintenanceState::busy};
+    const auto opportunity=idle?NativeAnchorOpportunity::idle:
+        foreground?NativeAnchorOpportunity::foreground:NativeAnchorOpportunity::poll;
+    anchor->observe(epoch,now,opportunity);
+    if(const auto prefix=anchor->pending_prefix();!prefix.empty()) {
       return session->advance_background_maintenance(observed,GetTickCount64(),{0,nullptr,true,{},prefix},
           continuation,scrub_due);
     }

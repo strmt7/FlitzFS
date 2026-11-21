@@ -45,6 +45,16 @@
     "modeled_writable_continuation_cases_per_build": 8,
     "follow_up": "See windows_mounted_inflight_publication for the earlier mounted write boundaries."
   },
+  "amd_retired_replies": {
+    "reviewed_commit": "ae0a5b5777dc9d3c55bed9ec18cf99d54c40e6c2",
+    "evidence": "docs/evidence/amd-retired-replies-2026-11-22.json",
+    "pending_groups_preserved_after_read": 5,
+    "advised_members_read_and_edit": [90, 72],
+    "independent_cpu_readback_files_each": 15,
+    "active_cancellation_cpu_readback_files": 36,
+    "read_and_matched_cpu_compacted_bytes": [2760704, 2760704],
+    "follow_up": "Qualify foreground LZ4 and collective compression on the same mounted application and measure useful end-to-end gains."
+  },
   "indexed_flush_root_reuse": {
     "reviewed_commit": "bb75934f5b02b39b62580aa8160f244c9295caf2",
     "evidence": "docs/evidence/indexed-flush-root-reuse-2026-11-22.json",

@@ -1389,10 +1389,12 @@ void restrict_fixture_anchor_launch(std::span<const NativeSharedBaseSearchWindow
 }
 
 enum class BatchOverlapTrial {normal,partial,full_wait,full_advance};
+enum class BatchForegroundTrial {normal,cancel_active,read_after_retirement,edit_after_retirement};
 
 int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
     const std::filesystem::path& bank_path,std::uint64_t discovery_ns,IndexedBatchPattern pattern,
-    bool limited_memory=false,BatchOverlapTrial overlap=BatchOverlapTrial::normal,bool cancel_after_submit=false) {
+    bool limited_memory=false,BatchOverlapTrial overlap=BatchOverlapTrial::normal,
+    BatchForegroundTrial foreground=BatchForegroundTrial::normal) {
   constexpr auto families=anchor_search_fixture::indexed_batch_families;
   const bool revision=revision_corpus(pattern);
   const bool shifted_bias=pattern==IndexedBatchPattern::shifted_bias;
@@ -1429,7 +1431,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
     require(bool(input.read(reinterpret_cast<char*>(bank.data()),static_cast<std::streamsize>(bank.size()))) &&
         input.peek()==std::char_traits<char>::eof(),"Public sample bank changed");
   }
-  const auto originals=revision?read_revision_corpus(bank_path):anchor_search_fixture::indexed_batch_files(bank,pattern);
+  auto originals=revision?read_revision_corpus(bank_path):anchor_search_fixture::indexed_batch_files(bank,pattern);
   std::vector<std::byte> file_digests;
   file_digests.reserve(32*originals.size());
   for(std::size_t i=0;i<originals.size();++i) {
@@ -1479,7 +1481,10 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
         "Wide route used a legacy cap or ignored its funded range");
   }
   NativeMaintenanceProgress progress;
-  bool cancelled=false;
+  bool cancelled=false,retired_reply_retained=false;
+  const bool edit_after_retirement=foreground==BatchForegroundTrial::edit_after_retirement;
+  const bool intervene_after_retirement=edit_after_retirement || foreground==BatchForegroundTrial::read_after_retirement;
+  std::uint64_t activity=1;
   std::uint64_t sequence=0,worker_ns=0,cpu_groups_before_gpu_reply=0,fully_submitted=0;
   std::uint64_t packed_payload_bytes=0,sampled_bias_members=0;
   std::size_t sparse_bodies=0,delta_bodies=0;
@@ -1497,7 +1502,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
     const auto resources=detail::maintenance_resources(observation,observation.captured_ms,policy);
     require(resources.has_value(),"Cannot establish a modeled opportunity with live memory");
     const auto funded=detail::maintenance_group_member_limit(*resources,true);
-    if(cancelled)anchor->observe(2,GetTickCount64(),true);
+    if(cancelled)anchor->observe(activity,GetTickCount64());
     const auto grant=anchor && !cancelled?anchor->stage_grant(GetTickCount64(),funded):0;
     const auto replies=anchor?anchor->replies():std::span<const NativeSharedBaseSearchReply>{};
     progress=maintenance.advance(observation,observation.captured_ms,{grant,nullptr,anchor!=nullptr,replies});
@@ -1522,22 +1527,58 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
       restricted.reset();
     }
     const auto started=std::chrono::steady_clock::now();
-    anchor->start(windows,1);
+    anchor->start(windows,activity);
     if(full_trial) {
       const auto pending=anchor->pending_prefix();
       require(std::ranges::equal(pending,windows) && !pending.empty(),
           "The comparison needs a completely admitted GPU batch");
       ++fully_submitted;
     }
-    if(cancel_after_submit) {
+    if(foreground==BatchForegroundTrial::cancel_active) {
       require(!cancelled && anchor->waiting(),"Cancellation fixture needs an outstanding GPU exchange");
-      anchor->yield_to_foreground();
+      anchor->observe(++activity,GetTickCount64(),NativeAnchorOpportunity::foreground);
       cancelled=true;
       continue; // Admit independent CPU work while the supervisor retires the worker.
     }
+    if(intervene_after_retirement && !retired_reply_retained) {
+      const auto terminal=anchor->wake_handle();
+      require(terminal && WaitForSingleObject(terminal,8000)==WAIT_OBJECT_0 && WorkerExchangeSession::available(),
+          "The retired reply fixture needs confirmed worker and supervisor exit");
+      const auto reader=session->open("f0",{true,false,false});
+      require(session->read(reader,0,originals.front().size())==originals.front(),
+          "Retired reply interfered with foreground CPU read");
+      session->cleanup(reader,false);session->close(reader);
+      anchor->observe(++activity,GetTickCount64());
+      const auto reserved=anchor->pending_prefix();
+      const bool retained=!reserved.empty() && std::ranges::equal(reserved,windows);
+      std::cout<<"retired_reply_trial retained="<<retained<<" pending_groups="<<reserved.size()
+          <<" verified_before_idle="<<anchor->stats().verified
+          <<" replies_before_idle="<<anchor->replies().size()<<std::endl;
+      require(retained && !anchor->waiting() && anchor->replies().empty() && !anchor->stats().verified,
+          "Foreground read discarded or prematurely collected the retired AMD reply");
+      retired_reply_retained=true;
+      if(edit_after_retirement) {
+        anchor->observe(activity,GetTickCount64(),NativeAnchorOpportunity::idle);
+        require(!anchor->replies().empty() && !anchor->replies().front().packed_bodies.empty() &&
+            !anchor->stats().verified,"The edit fixture needs collected, unverified packed advice");
+        const auto selected=std::span(originals.front()).first(kNativeExtentBytes);
+        require(std::ranges::any_of(windows,[&](const auto& window) {
+          return std::ranges::equal(window.base(),selected) ||
+              std::ranges::any_of(window.members(),[&](const auto& member){return std::ranges::equal(member,selected);});
+        }),"The edit must change a member of the retired batch");
+        originals.front()[0]^=std::byte{0x27};
+        const auto writer=session->open("f0",{true,true,false});
+        session->write(writer,0,selected.first(1));
+        session->cleanup(writer,false);session->close(writer);
+        anchor->observe(++activity,GetTickCount64(),NativeAnchorOpportunity::foreground);
+        require(!anchor->replies().empty() && !anchor->stats().verified,
+            "Foreground edit dropped the entire retired batch or admitted unverified bytes");
+        std::cout<<"retired_reply_edit selected_extent_changed=1 packed_reply_retained=1\n";
+      }
+    }
     bool can_overlap=overlap==BatchOverlapTrial::partial || overlap==BatchOverlapTrial::full_advance;
     await([&] {
-      anchor->observe(1,GetTickCount64(),true);
+      anchor->observe(activity,GetTickCount64(),NativeAnchorOpportunity::idle);
       if(!anchor->waiting())return true;
       if(can_overlap) {
         const auto pending=anchor->pending_prefix();
@@ -1580,10 +1621,17 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   const bool retired=(!anchor || anchor->stop()) && WorkerExchangeSession::available();
   require(!maintenance.pending() && (revision || progress.published_groups) && retired && !stats.integrity_failures,
       "Large batch lost protected publication or ownership");
-  if(cancel_after_submit)
+  if(foreground==BatchForegroundTrial::cancel_active)
     require(cancelled && stats.submitted==1 && stats.yielded==1 && !stats.verified &&
         progress.published_groups && !progress.advised_members_published,
         "Foreground cancellation did not settle through CPU grouping");
+  if(foreground==BatchForegroundTrial::read_after_retirement)
+    require(retired_reply_retained && stats.verified && !stats.yielded && progress.advised_members_published,
+        "Idle continuation failed to publish the preserved AMD advice");
+  if(edit_after_retirement)
+    require(retired_reply_retained && stats.submitted==1 && stats.reference_batches==1 &&
+        progress.reselected_reference_groups+1==families && progress.advised_members_published,
+        "The retired edit fixture used stale advice or lost advice for unchanged groups");
   if(limited_memory)
     require(limited_groups && stats.submitted==1 && stats.verified==1 &&
         stats.verified_groups>0 && stats.verified_groups<limited_groups &&
@@ -1604,10 +1652,10 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
         <<" empty="<<stats.empty_xor_batches<<" published="<<progress.advised_members_published<<'\n';
     require(stats.submitted && (stats.verified || stats.empty_xor_batches || packed_payload_bytes),
         "Shifted-bias comparison lacked a completed AMD exchange");
-  } else if(anchor && !revision) {
+  } else if(anchor && !revision && !edit_after_retirement) {
     require(stats.verified && progress.advised_members_published,"Large batch lost verified advice");
   }
-  if(anchor && !revision && bank.empty() && !modular && !dense_overflow && !collective)
+  if(anchor && !revision && bank.empty() && !modular && !dense_overflow && !collective && !edit_after_retirement)
     require(stats.submitted==1 && stats.verified_groups==families &&
         (tile_reference || sparse_xor || progress.advised_members_published==members),
         "Related AMD work did not fill one verified multiwindow batch");
@@ -1618,9 +1666,9 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   if(collective_device)
     require(stats.submitted==1 && sparse_bodies && delta_bodies && stats.verified_groups==families,
         "The shared AMD exchange did not verify both codec choices");
-  if(!revision && (sparse_device || reference_device))
+  if(!revision && (sparse_device || reference_device) && !edit_after_retirement)
     require(sparse_bodies && stats.verified,"AMD sparse device advice was not independently accepted");
-  if(reference_device && full_reference)
+  if(reference_device && full_reference && !edit_after_retirement)
     require(stats.reference_batches==1 && stats.reselected_groups==families && stats.verified_groups==families,
         "AMD full reference search did not verify each improved group");
   if(full_reference && !anchor)
@@ -1714,6 +1762,21 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   return 0;
 }
 
+int live_installed_retired_reply(BatchForegroundTrial foreground) {
+  const auto profile=installed_anchor_profile();
+  require(profile && profile->prefer_reference,"The retired reply fixture needs an installed reference profile");
+  const auto begun=std::chrono::steady_clock::now();
+  auto binding=discover_installed_hip_anchor_route();
+  require(binding.status==HipDiscoveryStatus::ready && binding.route,"Installed AMD route is unavailable");
+  const auto discovery_ns=elapsed_ns(begun);
+  return live_multiwindow_anchor(NativeAnchorSearchOptions{
+      .route=std::move(*binding.route),.worker=profile->worker,.minimum_members=profile->minimum_members,
+      .maximum_members=profile->maximum_members,.duty_ppm=profile->duty_ppm,.output=profile->output,
+      .maximum_dispatch_members=profile->maximum_dispatch_members,.dispatches_per_wait=profile->dispatches_per_wait,
+      .prefer_reference=profile->prefer_reference}, {},discovery_ns,IndexedBatchPattern::xor_full_reference,
+      false,BatchOverlapTrial::normal,foreground);
+}
+
 int live_anchor_owner(int argc,char** argv) {
   const std::string_view mode(argv[6]);
   const auto multiwindow=multiwindow_pattern(mode);
@@ -1766,7 +1829,8 @@ int live_anchor_owner(int argc,char** argv) {
         output,wide_copy || reference_xor?12U:small_batch?4U:modular?16U:0U,
         queued?kAnchorProfileMaxQueuedDispatches:1U,reference_xor},
         argc>=8?std::filesystem::path(argv[7]):std::filesystem::path{},
-        discovery_ns,*multiwindow,limited_memory,overlap,cancel_after_submit);
+        discovery_ns,*multiwindow,limited_memory,overlap,
+        cancel_after_submit?BatchForegroundTrial::cancel_active:BatchForegroundTrial::normal);
   }
   const std::uint32_t members=mode=="changed-extents"?3:
       queued?queued_anchor_members:(mode=="batch" || mode=="batch-yield" || xor_mode)?8:4;
@@ -2781,6 +2845,10 @@ int main(int argc,char** argv){try {
   app_fixture::Budget budget;DWORD before=0,after=0;
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
   if(argc==1)anchor_launch_budget();
+  if(argc==2 && std::string_view(argv[1])=="--live-installed-retired-reply")
+    return live_installed_retired_reply(BatchForegroundTrial::read_after_retirement);
+  if(argc==2 && std::string_view(argv[1])=="--live-installed-retired-edit")
+    return live_installed_retired_reply(BatchForegroundTrial::edit_after_retirement);
   if((argc==7 || ((argc==8 || argc==9) && multiwindow_pattern(argv[6]))) &&
       std::string_view(argv[1])=="--live-anchor-owner")return live_anchor_owner(argc,argv);
   if(argc==2 || argc==3) {

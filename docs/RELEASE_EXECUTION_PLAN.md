@@ -318,6 +318,12 @@ multiple sessions and measure actual allocated bytes and write costs.
   and recovered all 23 files on CPU, with identical 1 MiB compacted images.
   Use this pair as a device-execution and fallback control in the mounted
   qualification. [Current controller evidence](evidence/release-reconciliation-indexed-handle-2026-11-22.json)
+- A completed AMD exchange now keeps its group reservation through foreground
+  activity until a funded idle step can verify it. The installed-route trial
+  published 90 advised members after a CPU read. A selected edit left advice
+  usable for the other four groups, and all 15 files passed independent CPU
+  readback. The read trial and its matched CPU control each settled at
+  2,760,704 bytes. [Retired reply evidence](evidence/amd-retired-replies-2026-11-22.json)
 - Measure automatic route selection for early ingestion and cold work
   separately. Use the CPU reference for forecast and fallback. Compare real
   public and controlled inputs across supported AMD classes and a CPU-only

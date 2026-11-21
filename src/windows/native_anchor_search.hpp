@@ -34,6 +34,8 @@ struct NativeAnchorSearchStats {
   std::uint64_t copy_suggested_ranges=0,copy_compared_ranges=0,copy_suggested_bytes=0,copy_compared_bytes=0;
 };
 
+enum class NativeAnchorOpportunity {poll,foreground,idle};
+
 // One serialized owner, outside the filesystem control lock. The transport
 // retains its own route pins and observes exact worker and supervisor exit.
 class NativeAnchorSearchController final {
@@ -45,9 +47,11 @@ class NativeAnchorSearchController final {
   std::size_t stage_grant(std::uint64_t now,std::size_t funded_extents) const noexcept;
   bool fits_group_budget(std::size_t admitted_members) const noexcept;
   void start(std::span<const NativeSharedBaseSearchWindow>,std::uint64_t activity) noexcept;
-  // Input validation only runs on an admitted idle opportunity.
-  void observe(std::uint64_t activity,std::uint64_t now,bool collect=false) noexcept;
+  // Validate reply bytes only on an admitted idle opportunity.
+  void observe(std::uint64_t activity,std::uint64_t now,
+      NativeAnchorOpportunity opportunity=NativeAnchorOpportunity::poll) noexcept;
   bool waiting() const noexcept;
+  // Reserve both executing work and retired replies awaiting validation.
   std::span<const NativeSharedBaseSearchWindow> pending_prefix() const noexcept;
   std::uint64_t deadline() const noexcept;
   void* wake_handle() const noexcept;
@@ -58,8 +62,6 @@ class NativeAnchorSearchController final {
   bool take_device_interruption() noexcept;
   bool rebind(HipDiscoveredRoute) noexcept;
   void discard_reply() noexcept;
-  // Cancel unresolved work and keep fully verified, detached advice.
-  void yield_to_foreground() noexcept;
   void cancel() noexcept;
   bool stop() noexcept;
   NativeAnchorSearchStats stats() const noexcept;

@@ -184,24 +184,33 @@ CPU grouping or a later funded AMD batch. Deferred identifiers are advisory,
 bounded by the resident discovery window and retained representatives, and
 release with the staged batch.
 
-A foreground callback can wake the owner at entry while a GPU request is
-outstanding. Foreground activity cancels unresolved exchanges and releases
-packed replies with pending CPU checks. CPU work resumes on admitted
-opportunities while the supervisor retains the cancelled worker and its
-resources until retirement. A foreground yield carries no device-fault
-conclusion. Late results cannot reenter group preparation.
+A foreground callback can wake the owner while a GPU request is outstanding.
+The owner checks the exact supervisor and worker retirement before deciding
+whether to cancel. If the exchange is still executing, it requests cancellation
+and releases the group reservation. The supervisor owns that worker until
+retirement, and CPU work can resume while it retires. A foreground yield
+carries no device-fault conclusion.
 
-A reply that has fully verified and detached from its worker stays available
-across foreground operations. It remains bound to the original immutable
-window, and a selected-content edit invalidates the prepared group before
-publication. Resource refusal, cancelled maintenance and exhausted work still
-release the reply. Runtime and integrity failures retain their recovery
-classification. Transient pressure retries require fresh qualified
-observations and exact retirement. Elapsed worker time separately paces later
-GPU launches. Reply verification runs during idle opportunities. Every group
-publishes through the same revision, CPU byte comparison and packed-size checks.
+A successful retired reply remains reserved with its original immutable
+windows. Polling and foreground activity can observe completion. Collection
+and CPU comparison require a later admitted idle opportunity. Packed advice
+can stay staged while its members receive independent CPU checks. A selected
+content edit invalidates the affected group before publication. Other groups
+can use advice approved against their own revisions and bytes. Current
+resource refusal, cancelled maintenance and exhausted work release the reply.
+Runtime and integrity failures follow the route's recovery policy. Elapsed
+worker time paces later launches.
+[Windows wait contract](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitforsingleobject) ·
 [Windows thread priorities](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadpriority) ·
 [Worker ownership](WORKER_CHANNEL.md#asynchronous-sessions-and-independent-cpu-completion)
+
+On the installed AMD route, a foreground read after confirmed worker exit
+left five groups reserved for a later idle check. The new check published
+advice for 90 members. When the fixture edited a selected extent, four other
+groups used the retained advice and the independent CPU reader recovered all
+15 files, including the edit. Active-exchange cancellation also completed
+through CPU grouping.
+[Retired AMD reply validation](evidence/amd-retired-replies-2026-11-22.json)
 
 The live SDK fixture exercised two controller lifetimes with five files each.
 The first published four AMD-advised members. A foreground callback in the
