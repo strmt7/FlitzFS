@@ -39,7 +39,8 @@ struct NativeMaintenanceProgress {
 // An optional, separately admitted adviser can stage source incrementally.
 // A batch grant counts the aggregate non-base members across staged groups.
 // Supply results by immutable window identity. While an adviser holds a
-// submitted prefix of a staged batch, only its unsubmitted groups can advance.
+// submitted prefix, unsubmitted groups and disjoint discovered candidates
+// can advance on CPU within the same resource grant.
 // An empty result with no pending prefix uses CPU preparation.
 struct NativeGroupSearchOpportunity {
   std::size_t maximum_members=0;

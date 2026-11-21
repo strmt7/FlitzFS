@@ -527,7 +527,9 @@ stale-budget outcomes in qualification, even when CPU recovery succeeds.
    [Installed reference-profile evidence](evidence/amd-installed-reference-profile-2026-11-20.json)
 7. Amortize setup over finite admitted work windows. The native indexed
    path can now cover several independently bounded launches in one worker
-   exchange and charges the complete host footprint. Extend finite exchanges
+   exchange and charges the complete host footprint. CPU work can publish
+   independent groups from the current discovery window while the entire
+   staged batch runs on AMD. Extend finite exchanges
    to collective work across files. Bind each job to a source revision,
    verify every decoded byte before publication, and retire the helper when
    admitted work drains or foreground demand rises. Compare complete occupied
@@ -537,6 +539,7 @@ stale-budget outcomes in qualification, even when CPU recovery succeeds.
    that lacks a natural base. Use protected, independently readable references
    and record search cost as part of the complete comparison.
    [Finite exchange evidence](evidence/finite-amd-exchange-2026-11-18.json) ·
+   [Full-batch CPU overlap evidence](evidence/windows-amd-full-batch-overlap-2026-11-21.json) ·
    [Sonic similarity study](https://www.mdpi.com/2073-431X/15/9/607) ·
    [ZipLLM delta study](https://www.usenix.org/conference/nsdi26/presentation/wang-zirui)
 8. Preserve immutable owned input and independent CPU selection. CPU completion

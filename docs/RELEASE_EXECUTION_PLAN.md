@@ -272,6 +272,10 @@ multiple sessions and measure actual allocated bytes and write costs.
   publication time. Calculate full-image savings per cohort. Use copy
   search if the reference working set or launch budget cannot be admitted.
   Preserve foreground responsiveness and the existing job ownership.
+  In the current host trials, five existing disjoint groups published on
+  CPU before each full AMD batch returned. The matched wait controls
+  published zero during that interval. Complete size matched and timing
+  ranges overlapped. [Overlap evidence](evidence/windows-amd-full-batch-overlap-2026-11-21.json)
 - Measure automatic route selection for early ingestion and cold work
   separately. Use the CPU reference for forecast and fallback. Compare real
   public and controlled inputs across supported AMD classes and a CPU-only

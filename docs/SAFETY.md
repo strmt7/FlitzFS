@@ -196,6 +196,13 @@ before I/O. Final publication remains synchronous, not an automatic background
 task or a wall-clock bound. Known
 loss of both base copies rejects exposure; no arbitrary-failure guarantee follows.
 
+CPU work during a pending AMD exchange proves that the submitted source
+windows still occupy their exact reserved positions. It excludes their extents
+from new CPU candidates and preserves live headroom, foreground checks and
+the separate publication admission. The scan checkpoint waits until the
+pending groups are settled.
+[Overlapping maintenance qualification](evidence/windows-amd-full-batch-overlap-2026-11-21.json)
+
 [Mirrored paged payloads](MIRRORED_PAYLOADS.md) optionally isolate two record
 streams into separate qualified units, check both during scrub and repair only
 into a new image. Default capability-1 images still have single-copy payloads.

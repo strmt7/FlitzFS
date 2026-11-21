@@ -2,6 +2,12 @@
 
 ## Current local development
 
+Background CPU preparation can continue on disjoint discovered groups while
+a full batch runs on AMD. Current host trials verified the overlap and CPU
+readback. Complete-operation throughput and mounted AMD qualification remain
+release work.
+[Full-batch overlap evidence](evidence/windows-amd-full-batch-overlap-2026-11-21.json)
+
 The [indexed volume-file provider](PERSISTENT_VOLUME_FILE.md) retains the
 head, indexed data and funded advice together. It supports exclusive
 creation, CPU inspection and checked writable reopening through the WinFsp

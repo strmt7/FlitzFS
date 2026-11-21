@@ -1367,9 +1367,11 @@ void restrict_fixture_anchor_launch(std::span<const NativeSharedBaseSearchWindow
       << " divisor=" << divisor << '\n';
 }
 
+enum class BatchOverlapTrial {normal,partial,full_wait,full_advance};
+
 int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
     const std::filesystem::path& bank_path,std::uint64_t discovery_ns,IndexedBatchPattern pattern,
-    bool limited_memory=false,bool overlap_cpu=false,bool cancel_after_submit=false) {
+    bool limited_memory=false,BatchOverlapTrial overlap=BatchOverlapTrial::normal,bool cancel_after_submit=false) {
   constexpr auto families=anchor_search_fixture::indexed_batch_families;
   const bool revision=revision_corpus(pattern);
   const bool shifted_bias=pattern==IndexedBatchPattern::shifted_bias;
@@ -1442,6 +1444,12 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   NativeGroupMaintenance maintenance(*session,policy);
   auto restricted=limited_memory?options:std::nullopt;
   std::size_t limited_groups=0;
+  const bool full_trial=overlap==BatchOverlapTrial::full_wait || overlap==BatchOverlapTrial::full_advance;
+  if(full_trial) {
+    require(options && revision,"Full overlap fixture needs an AMD revision workload");
+    // Fund a small complete GPU batch while leaving other discovered groups.
+    options->maximum_members=4;
+  }
   std::unique_ptr<NativeAnchorSearchController> anchor;
   if(options)anchor=std::make_unique<NativeAnchorSearchController>(std::move(*options));
   if(anchor && !revision && bank.empty() && !shifted_bias && !alternate_reference && !sparse_xor && !collective) {
@@ -1451,7 +1459,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   }
   NativeMaintenanceProgress progress;
   bool cancelled=false;
-  std::uint64_t sequence=0,worker_ns=0,cpu_groups_before_gpu_reply=0;
+  std::uint64_t sequence=0,worker_ns=0,cpu_groups_before_gpu_reply=0,fully_submitted=0;
   std::uint64_t packed_payload_bytes=0,sampled_bias_members=0;
   std::size_t sparse_bodies=0,delta_bodies=0;
   unsigned packed_widths=0;
@@ -1494,19 +1502,25 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
     }
     const auto started=std::chrono::steady_clock::now();
     anchor->start(windows,1);
+    if(full_trial) {
+      const auto pending=anchor->pending_prefix();
+      require(std::ranges::equal(pending,windows) && !pending.empty(),
+          "The comparison needs a completely admitted GPU batch");
+      ++fully_submitted;
+    }
     if(cancel_after_submit) {
       require(!cancelled && anchor->waiting(),"Cancellation fixture needs an outstanding GPU exchange");
       anchor->yield_to_foreground();
       cancelled=true;
       continue; // Admit independent CPU work while the supervisor retires the worker.
     }
-    bool can_overlap=overlap_cpu;
+    bool can_overlap=overlap==BatchOverlapTrial::partial || overlap==BatchOverlapTrial::full_advance;
     await([&] {
       anchor->observe(1,GetTickCount64(),true);
       if(!anchor->waiting())return true;
       if(can_overlap) {
         const auto pending=anchor->pending_prefix();
-        require(!pending.empty(),"The overlap trial needs a partially admitted AMD batch");
+        require(!pending.empty(),"The overlap trial lost its pending AMD reservation");
         const auto observation=next_observation();
         const auto published=progress.published_groups;
         progress=maintenance.advance(observation,observation.captured_ms,{0,nullptr,true,{},pending});
@@ -1554,9 +1568,13 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
         stats.verified_groups>0 && stats.verified_groups<limited_groups &&
         progress.published_groups>stats.verified_groups,
         "Limited-memory fixture did not settle AMD and CPU groups together");
-  if(overlap_cpu)
+  if(overlap==BatchOverlapTrial::partial)
     require(cpu_groups_before_gpu_reply && cpu_groups_before_gpu_reply<=limited_groups-stats.verified_groups,
         "The overlap trial did not publish unsubmitted groups before AMD verification");
+  if(full_trial)
+    require(fully_submitted && stats.verified==fully_submitted &&
+        (cpu_groups_before_gpu_reply>0)==(overlap==BatchOverlapTrial::full_advance),
+        "The completely reserved AMD batch did not produce the expected CPU overlap");
   if(dense_overflow) {
     require(stats.submitted==1 && stats.empty_xor_batches==1 && !stats.verified &&
         !progress.advised_members_published,"Dense slots unexpectedly handled all active planes");
@@ -1647,6 +1665,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
       <<" submitted="<<stats.submitted<<" verified_batches="<<stats.verified<<" worker_ns="<<worker_ns
       <<" submitted_groups="<<stats.submitted_groups<<" verified_groups="<<stats.verified_groups
       <<" cpu_groups_before_gpu_reply="<<cpu_groups_before_gpu_reply
+      <<" fully_submitted_batches="<<fully_submitted
       <<" foreground_cancelled="<<cancelled
       <<" submitted_queued_batches="<<stats.submitted_queued_batches
       <<" verified_queued_batches="<<stats.verified_queued_batches<<" dispatches_per_wait="<<stats.queued_dispatches_per_wait
@@ -1681,8 +1700,11 @@ int live_anchor_owner(int argc,char** argv) {
   const bool wide_copy=restriction=="wide-copy";
   const bool reference_xor=restriction=="reference-xor";
   const bool cancel_after_submit=restriction=="cancel-after-submit";
-  const bool overlap_cpu=restriction=="limited-overlap";
-  const bool limited_memory=restriction=="limited-memory" || overlap_cpu;
+  auto overlap=BatchOverlapTrial::normal;
+  if(restriction=="limited-overlap")overlap=BatchOverlapTrial::partial;
+  if(restriction=="full-overlap")overlap=BatchOverlapTrial::full_advance;
+  if(restriction=="full-wait")overlap=BatchOverlapTrial::full_wait;
+  const bool limited_memory=restriction=="limited-memory" || overlap==BatchOverlapTrial::partial;
   const bool queued=mode=="queued" || mode=="queued-yield" || mode=="verified-read" || mode=="verified-edit" ||
       restriction=="queued" || wide_copy;
   const bool xor_mode=mode=="xor" || mode=="xor-wide" || mode=="xor-narrow";
@@ -1690,7 +1712,8 @@ int live_anchor_owner(int argc,char** argv) {
       mode=="changed-extents" || xor_mode || multiwindow,
       "Expected an AMD ownership trial");
   require(argc!=9 || (multiwindow && revision_corpus(*multiwindow) &&
-      (restriction=="queued" || limited_memory || wide_copy || reference_xor || cancel_after_submit)),
+      (restriction=="queued" || limited_memory || wide_copy || reference_xor ||
+          cancel_after_submit || overlap!=BatchOverlapTrial::normal)),
       "The requested comparison needs a revision corpus");
   const ProcessBudget profile{128,2000,5000,16};
   HipRouteDiscoveryRequest request;
@@ -1722,7 +1745,7 @@ int live_anchor_owner(int argc,char** argv) {
         output,wide_copy || reference_xor?12U:small_batch?4U:modular?16U:0U,
         queued?kAnchorProfileMaxQueuedDispatches:1U,reference_xor},
         argc>=8?std::filesystem::path(argv[7]):std::filesystem::path{},
-        discovery_ns,*multiwindow,limited_memory,overlap_cpu,cancel_after_submit);
+        discovery_ns,*multiwindow,limited_memory,overlap,cancel_after_submit);
   }
   const std::uint32_t members=mode=="changed-extents"?3:
       queued?queued_anchor_members:(mode=="batch" || mode=="batch-yield" || xor_mode)?8:4;

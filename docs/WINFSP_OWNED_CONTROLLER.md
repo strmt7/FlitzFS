@@ -165,12 +165,15 @@ At launch, a fixed-output plan selects the largest affordable prefix of
 complete groups. The estimate includes child commitment, the transfer
 slab, channel mappings and copies. The qualified minimum member count
 still applies. Reply lookup uses the original source window identity.
-The CPU can prepare and publish unsubmitted groups while AMD executes. Each
-step still requires idle credit and fresh headroom, and publication requires
-a fresh CPU observation. The submitted prefix stays reserved by immutable
-window identity until the reply settles or the exchange is cancelled.
+The CPU can prepare and publish unsubmitted groups while AMD executes. Once
+the staged suffix is exhausted, disjoint candidates already ranked in the
+current discovery window can also advance, including when AMD reserved the
+entire staged batch. The owner checks every reserved window's identity and
+charges the remaining CPU work against the same memory grant and idle credit.
+Publication requires a fresh CPU observation. The discovery window, deferred
+intersections and durable scan cursor wait for the reservation to settle.
 [Budget-limited AMD and CPU readback evidence](evidence/windows-adaptive-amd-launch-2026-11-20.json)
-· [CPU progress during a live AMD exchange](evidence/windows-amd-cpu-overlap-2026-11-20.json)
+· [CPU progress with a full live AMD batch](evidence/windows-amd-full-batch-overlap-2026-11-21.json)
 
 A partially covered candidate or one that exceeds the remaining extent
 budget defers its intersecting candidates in the current window. Independent

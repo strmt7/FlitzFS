@@ -246,13 +246,15 @@ struct NativeGroupMaintenance::Impl {
   }
   bool active_group() const noexcept{return work.has_value() || !staged_groups.empty();}
   std::size_t group_members() const noexcept{return staged_extents+(work?work_members:0);}
-  bool can_advance_cpu_suffix(std::span<const NativeSharedBaseSearchWindow> prefix) const noexcept {
-    // Launches hold an immutable leading segment. Draining from the tail
-    // preserves its positions until the adviser returns or is cancelled.
-    return batch_draining && staged_groups.size()>=prefix.size() &&
-        staged_groups.front().work.search_window()==prefix.front() &&
-        staged_groups[prefix.size()-1].work.search_window()==prefix.back() &&
-        (work || staged_groups.size()>prefix.size());
+  bool can_advance_pending_cpu(std::span<const NativeSharedBaseSearchWindow> prefix,
+      std::size_t maximum_members) const noexcept {
+    // The adviser reserves this exact leading segment until it settles.
+    if(!batch_draining || staged_groups.size()<prefix.size() ||
+        !std::equal(prefix.begin(),prefix.end(),staged_groups.begin(),[](const auto& window,const auto& group) {
+          return window==group.work.search_window();
+        }))return false;
+    return work || staged_groups.size()>prefix.size() ||
+        (maximum_members-staged_extents>=2 && (refresh_base || candidate_index<candidate_order.size()));
   }
   std::uint64_t owned_payload() const noexcept {
     auto bytes=work?work->progress().owned_payload_bytes:0;
@@ -704,7 +706,8 @@ struct NativeGroupMaintenance::Impl {
     for(const auto& token:expected)work_ids.push_back(token.object);
     const auto base=indexed_feature(representative).token.extent;
     remember(work_key);
-    work.emplace(writer.prepare_shared_base(base,selected,expected,collect_batch,allow_subset));
+    work.emplace(writer.prepare_shared_base(base,selected,expected,
+        collect_batch || !staged_groups.empty(),allow_subset));
     work_members=expected.size();work_batched=collect_batch;
     ++state.attempted_groups;phase=Phase::preparing;
   }
@@ -882,6 +885,13 @@ struct NativeGroupMaintenance::Impl {
         return;
       } else {
         const bool cpu_suffix=!search.pending_prefix.empty();
+        if(cpu_suffix && staged_groups.size()==search.pending_prefix.size()) {
+          // Use only the current ranking while an adviser owns the batch.
+          // Keep the scan window and its deferred intersections for settlement.
+          propose_indexed_group(writer,(std::min)(maximum_members,kNativeMaxDirtyExtents),
+              maximum_members-staged_extents,false);
+          return;
+        }
         auto& next=cpu_suffix?staged_groups.back():staged_groups.front();
         work.emplace(std::move(next.work));
         for(const auto id:next.ids)staged_objects.erase(id);
@@ -1134,7 +1144,7 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
   if(observed.foreground_pending)return p.defer(Defer::foreground);
   if(resources->cpu_busy)return p.defer(Defer::cpu);
   if(!search.pending_prefix.empty() && (search.maximum_members || search.reply || !search.replies.empty() ||
-      !p.can_advance_cpu_suffix(search.pending_prefix)))return p.defer(Defer::other_maintenance);
+      !p.can_advance_pending_cpu(search.pending_prefix,maximum_members)))return p.defer(Defer::other_maintenance);
   if(!p.active_group() && writer.maintenance_busy())return p.defer(Defer::other_maintenance);
   const bool service_coherence=reclaiming && !p.active_group() && (p.prefer_coherence || !discovering);
   if(observed.continued && (p.phase==Phase::publishing || service_coherence ||

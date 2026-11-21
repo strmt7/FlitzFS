@@ -706,9 +706,13 @@ void advised_indexed_maintenance() {
     require(snapshot.read("f"+std::to_string(i),0,kNativeExtentBytes)==original[i],
         "automatic search advice changed committed bytes");
 }
-enum class BatchOutcome {accepted,cpu_fallback,changed_source,memory_pressure,overlap_success,overlap_fallback};
+enum class BatchOutcome {accepted,cpu_fallback,changed_source,memory_pressure,
+  overlap_success,overlap_fallback,full_overlap_success,full_overlap_fallback};
 void batched_indexed_maintenance(BatchOutcome outcome) {
-  constexpr unsigned members=4,files=members+1,cohorts=2;
+  constexpr unsigned members=4,files=members+1;
+  const bool full_overlap=outcome==BatchOutcome::full_overlap_success ||
+      outcome==BatchOutcome::full_overlap_fallback;
+  const unsigned cohorts=full_overlap?3:2,staged_count=full_overlap?1:cohorts;
   Fixture f(4096,0,true);
   std::vector<Bytes> originals;
   for(unsigned cohort=0;cohort<cohorts;++cohort) {
@@ -724,29 +728,29 @@ void batched_indexed_maintenance(BatchOutcome outcome) {
   NativeMaintenanceProgress progress;
   for(unsigned tick=0;tick<800;++tick) {
     const auto observed=f.clock.next();
-    progress=controller.advance(observed,f.clock.now,{cohorts*members,nullptr,true});
+    progress=controller.advance(observed,f.clock.now,{staged_count*members,nullptr,true});
     require(progress.phase!=Phase::failed && !progress.published_groups,"batch published before receiving advice");
     if(progress.search_batch_ready)break;
   }
   const auto windows=controller.search_batch();
-  require(windows.size()==cohorts && controller.active_group_members()==originals.size(),
+  require(windows.size()==staged_count && controller.active_group_members()==staged_count*files,
       "independent indexed candidates did not fill the admitted batch");
   const auto selection=f.session->snapshot().stat("f0").inode;
   rejects([&]{(void)f.session->prepare_shared_base({selection,0},{});},
       "exclusive writer work entered an active maintenance batch");
 
-  const std::array counts{members,members};
+  const std::vector<std::uint32_t> counts(staged_count,members);
   const auto quantum=anchor_match::max_members;
-  const auto plan=detail::plan_anchor_match_batch(counts,quantum,anchor_match::device_bytes(quantum),cohorts*files);
+  const auto plan=detail::plan_anchor_match_batch(counts,quantum,anchor_match::device_bytes(quantum),staged_count*files);
   detail::AnchorMatchBatchBuilder builder(1,plan);
   for(std::size_t i=0;i<windows.size();++i)builder.append(i+1,windows[i]);
   const auto request=builder.finish();
-  std::array<detail::AnchorMatchAdvice,cohorts> hints;
-  std::array<NativeSharedBaseSearchReply,cohorts> replies;
+  std::vector<detail::AnchorMatchAdvice> hints(staged_count);
+  std::vector<NativeSharedBaseSearchReply> replies(staged_count);
   for(std::size_t i=0;i<windows.size();++i) {
     const auto& group=request.groups()[i];
     hints[i]=detail::verify_anchor_match_records(group,detail::cpu_anchor_match_records(group));
-    replies[cohorts-1-i]={windows[i],hints[i]};
+    replies[staged_count-1-i]={windows[i],hints[i]};
   }
   const bool changed=outcome==BatchOutcome::changed_source;
   if(changed) {
@@ -768,7 +772,8 @@ void batched_indexed_maintenance(BatchOutcome outcome) {
         !controller.active_group() && !controller.has_retained_search(),
         "batch kept preparations after losing its memory grant");
   }
-  const bool overlaps=outcome==BatchOutcome::overlap_success || outcome==BatchOutcome::overlap_fallback;
+  const bool overlaps=full_overlap || outcome==BatchOutcome::overlap_success ||
+      outcome==BatchOutcome::overlap_fallback;
   if(overlaps) {
     const auto staged=std::span<const NativeSharedBaseSearchWindow>{windows};
     const auto prefix=staged.first(1);
@@ -779,22 +784,33 @@ void batched_indexed_maintenance(BatchOutcome outcome) {
       require(controller.advance(observed,f.clock.now,{0,nullptr,true,{},submitted}).deferral==expected &&
           f.image->calls==writes && f.image->read_calls==reads,"pending adviser changed a protected group");
     };
-    unchanged(staged.last(1),false,Defer::other_maintenance);
-    unchanged(staged,false,Defer::other_maintenance);
+    if(!full_overlap)unchanged(staged.last(1),false,Defer::other_maintenance);
     unchanged(prefix,true,Defer::foreground);
-    for(unsigned tick=0;tick<800 && !progress.published_groups;++tick) {
+    const auto expected_cpu=cohorts-1;
+    for(unsigned tick=0;tick<800 && progress.published_groups<expected_cpu;++tick) {
       const auto observed=f.clock.next();
       progress=controller.advance(observed,f.clock.now,{0,nullptr,true,{},prefix});
-      require(progress.phase!=Phase::failed,"CPU suffix failed while the adviser was pending");
+      require(progress.phase!=Phase::failed && !progress.search_batch_ready &&
+          !progress.checkpoints_published,"Independent CPU batching overlapped the pending adviser");
     }
-    require(progress.published_groups==1 && !progress.advised_members_published &&
+    require(progress.published_groups==expected_cpu && !progress.advised_members_published &&
         controller.active_group_members()==files && controller.has_retained_search(),
-        "unsubmitted work did not finish independently of the adviser");
-    unchanged(prefix,false,Defer::other_maintenance);
+        full_overlap?"a fully reserved batch blocked disjoint CPU groups":
+            "unsubmitted work did not finish independently of the adviser");
+    for(unsigned tick=0;tick<300;++tick) {
+      const auto observed=f.clock.next();
+      progress=controller.advance(observed,f.clock.now,{0,nullptr,true,{},prefix});
+      require(progress.published_groups==expected_cpu && !progress.search_batch_ready &&
+          controller.active_group_members()==files && controller.has_retained_search(),
+          "the pending adviser lost its reserved group");
+      if(progress.deferral==Defer::other_maintenance)break;
+    }
+    require(progress.deferral==Defer::other_maintenance,"disjoint CPU work did not park at the reservation");
   }
   const bool accepts=outcome==BatchOutcome::accepted || changed;
   const auto all_replies=std::span<const NativeSharedBaseSearchReply>{replies};
-  const auto supplied=accepts?all_replies:outcome==BatchOutcome::overlap_success?all_replies.last(1):
+  const auto supplied=accepts?all_replies:
+      (outcome==BatchOutcome::overlap_success || outcome==BatchOutcome::full_overlap_success)?all_replies.last(1):
       std::span<const NativeSharedBaseSearchReply>{};
   const auto expected=changed?1U:cohorts;
   for(unsigned tick=0;tick<800;++tick) {
@@ -2268,6 +2284,8 @@ int main(int argc,char** argv){try{
     batched_indexed_maintenance(BatchOutcome::memory_pressure);
     batched_indexed_maintenance(BatchOutcome::overlap_success);
     batched_indexed_maintenance(BatchOutcome::overlap_fallback);
+    batched_indexed_maintenance(BatchOutcome::full_overlap_success);
+    batched_indexed_maintenance(BatchOutcome::full_overlap_fallback);
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-multiwindow-batch") {
     indexed_batch_across_scan_windows();
     indexed_partial_overlap_preserves_candidates();

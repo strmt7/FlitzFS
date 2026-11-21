@@ -11,6 +11,18 @@
     "tree": "936409737d1c4a5d4aeb37fe5af48f55ba9accff",
     "note": "Architectural review baseline. Layer and runtime evidence have separate source bindings."
   },
+  "amd_full_batch_overlap": {
+    "source_base": "e17b240dc7af463d7086fbe8f6941ca90a84d2e7",
+    "evidence": "docs/evidence/windows-amd-full-batch-overlap-2026-11-21.json",
+    "matched_live_pairs": 3,
+    "cpu_groups_while_full_amd_batch_pending": [5, 5, 5],
+    "cpu_groups_while_waiting_control": [0, 0, 0],
+    "compacted_bytes_in_all_pairs": 327680,
+    "installed_advised_members": 18,
+    "missing_package_gpu_launches": 0,
+    "independent_cpu_readback": true,
+    "complete_operation_speedup_qualified": false
+  },
   "mounted_volume_activation": {
     "source_base": "ce7e629784b65daf24f803d5f46f4fdad74f8e4b",
     "evidence": "docs/evidence/windows11-mounted-volume-activation-2026-11-21.json",

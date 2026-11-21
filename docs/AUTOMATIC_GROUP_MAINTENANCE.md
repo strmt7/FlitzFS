@@ -21,6 +21,9 @@ any window still held by a consumer.
 Each group keeps its own prepared source and revision checks. Advice is matched
 by immutable source-window identity. An edit invalidates the affected selection,
 and the other groups can still publish through their independent transactions.
+While a submitted batch is pending, CPU work can also use independent
+candidates from the current ranking after the unsubmitted suffix has drained.
+Candidates intersecting the submitted batch stay deferred until it settles.
 CPU preparation consumes the staged bytes after an adviser returns or
 when advice is unavailable. A complete new group can try the existing
 assembled reference and Zstandard prefix methods from the same window

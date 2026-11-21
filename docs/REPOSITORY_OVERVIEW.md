@@ -259,9 +259,15 @@ characterize the change without establishing a throughput result.
 
 The installed route now reads Windows device status before DXGI discovery and
 dispatch. On the live host, Code 21 stopped GPU launch while the owner
-compressed two groups on CPU and recovered all ten files byte for byte. The
-GPU path still needs validation with the healthy adapter and the updated
-runtime. [Device readiness evidence](evidence/windows-amd-device-readiness-2026-11-20.json)
+compressed two groups on CPU and recovered all ten files byte for byte.
+[Device readiness evidence](evidence/windows-amd-device-readiness-2026-11-20.json)
+
+Current matched trials advanced independent CPU candidates during three
+fully submitted AMD batches. Each overlap trial published five groups before
+the device reply. The paired images retained the same total size and byte-exact
+CPU readback. The installed-profile trial independently selected AMD advice
+for 18 members, and the missing-package trial completed through CPU.
+[Current AMD and CPU scheduling evidence](evidence/windows-amd-full-batch-overlap-2026-11-21.json)
 
 Wider backend qualification and useful collective gains still need complete
 operation and size measurements. CPU fallback may choose a different encoding

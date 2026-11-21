@@ -173,7 +173,6 @@ struct WinFspVolumeController::Impl {
                 continuation=result.continuation;
                 if(disabled || continuation==WinFspMaintenanceContinuation::none ||
                     !can_continue_preparation(result.progress) || interrupted() ||
-                    (anchor && anchor->waiting() && anchor->pending_prefix().empty()) ||
                     (gpu && GetTickCount64()>gpu->after_ms))break;
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
                 if(acquisition_thread.joinable())break;
