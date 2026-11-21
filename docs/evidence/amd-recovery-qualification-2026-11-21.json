@@ -1,0 +1,110 @@
+{
+  "schema": 1,
+  "base_commit": "cbc8e38e6786852b0b434dffa7c5cef227f32a60",
+  "candidate_code_patch_sha256": "3f6817fec62ca363d3e147bf912da2c2b632578f1d4af9c3941c2c5d2f28dbb5",
+  "candidate_source_blobs": {
+    "src/windows/native_anchor_search.cpp": "c093dd5bdc034dc6766a4143f146c5de6e8b735e",
+    "src/windows/native_anchor_search.hpp": "986d6aa02af217a121ddd5b173095d7a8f71dcf5",
+    "src/windows/winfsp_controller.cpp": "a73bb5589db6e76543d30628cb8a5fb5ce1091ef",
+    "src/windows/worker_exchange.cpp": "bdb8720646d8633c4fdf42ce5af40f0c521f39fb",
+    "src/windows/worker_exchange.hpp": "d4b081b74dbac006068172f16a539074287cdf7c",
+    "tests/test_winfsp_controller.cpp": "011ca8b99ddee923482cd76afbc5a42f08d9e65e"
+  },
+  "installed_fixture_hashes": {
+    "flitzfs_winfsp_controller_tests.exe": "c98ae368b92f62860b8917e61fcf9f694216f763fe1d2c0317e2f32c13a7dc44",
+    "winfsp-x64.dll": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+    "amd/qualification-manifest.json": "06c55f3e68db91317b6897c88e6aba3658bc2ddb2e8312da6fbf080a88dffe84",
+    "amd/flitzfs_hip_worker.exe": "bca40a979dcd51660cf900e6d9b4d80472ab38e6aead2bb3437957481449211c",
+    "amd/hip/flitzfs_rocm_kernels.dll": "9aad995bc1b2e330a8f24f76dcc5eaa9edc8f96351c999f10712aef0be33467d",
+    "amd/shared-base-qualification.json": "5b7555fa0a6671f8b128c72e876761c9adcea8ee92efcfeddf6f92fe7eb8041e"
+  },
+  "live_deadline_and_cpu_continuity": {
+    "exit_code": 0,
+    "supervisor_cpu_percent": 19,
+    "peak_process_tree_bytes": 141033472,
+    "tree_retired": true,
+    "log_sha256": "c66900eeaa667194ecd77a358c8b820584513ac4c6821963d34e6d028610384a",
+    "worker_timeout_ms": 1250,
+    "transport_status": 2,
+    "worker_exit_code": 1460,
+    "worker_elapsed_ms": 1250,
+    "retirement_ms": 1297,
+    "publication_observed": 0,
+    "submitted_groups": 5,
+    "submitted_launches": 85,
+    "cpu_groups": 5,
+    "independently_verified_files": 15,
+    "same_configuration_readmitted": true,
+    "discovery_alone_refused": true,
+    "one_workload_attempt": true,
+    "modeled_idle_time": true,
+    "compacted_image_bytes": 2760704,
+    "input_blake3": "7bd4ab0f425cfcd97f6d91458e1e23acbf98c1f227f3fe6ed9c0f846ba44be11"
+  },
+  "live_independent_computation": {
+    "exit_code": 0,
+    "supervisor_cpu_percent": 17,
+    "peak_process_tree_bytes": 86687744,
+    "tree_retired": true,
+    "log_sha256": "018d8f73136c03d6fc12c5b94298f29180233fcd71e0aaf8cd869da799216fe5",
+    "byte_exact_cpu_oracle": true,
+    "different_configuration_refused": true,
+    "prelaunch_cancellation_checked": true
+  },
+  "normal_installed_controller": {
+    "exit_code": 0,
+    "supervisor_cpu_percent": 20,
+    "peak_process_tree_bytes": 121077760,
+    "tree_retired": true,
+    "log_sha256": "d41d1379f5b1083c2f78dab8ff7b23d6665215b21d1362d6038660c82f255c7b",
+    "submitted_kernel_launches": 17,
+    "verified_groups": 1,
+    "advised_members": 18,
+    "independently_verified_files": 23,
+    "compacted_image_bytes": 1048576
+  },
+  "windows_release": {
+    "exit_code": 0,
+    "supervisor_cpu_percent": 25,
+    "peak_process_tree_bytes": 337518592,
+    "tree_retired": true,
+    "log_sha256": "4a806bcaaf1282ac944b66d6cb600534f6320ad6c33dfb916d44729ef5960764",
+    "passed_tests": 203
+  },
+  "windows_raw": {
+    "exit_code": 0,
+    "supervisor_cpu_percent": 20,
+    "peak_process_tree_bytes": 368611328,
+    "tree_retired": true,
+    "log_sha256": "1de7c84e8af6879ce1e47ce7786753e8a9cd9beb1204df7d1e41921c7c0283a8",
+    "passed_tests": 204
+  },
+  "windows_address_sanitizer": {
+    "exit_code": 0,
+    "supervisor_cpu_percent": 20,
+    "peak_process_tree_bytes": 418635776,
+    "tree_retired": true,
+    "log_sha256": "9938e61c23ee4bda14023235e7e6ec7f3840defd4522884b1edc5150ef6ab767",
+    "passed_tests": 5,
+    "runtime_preflight": true
+  },
+  "exploratory_budget_checks_with_earlier_fixture": {
+    "discovery_cpu_12": {
+      "exit_code": 1,
+      "supervisor_cpu_percent": 12,
+      "peak_process_tree_bytes": 50323456,
+      "tree_retired": true,
+      "log_sha256": "90b9a9c3404c59acbd065ed19d18ffb8f32e4321226e41178a968995bb0bb3bd",
+      "initial_route_unavailable": true
+    },
+    "discovery_cpu_13": {
+      "exit_code": 1,
+      "supervisor_cpu_percent": 13,
+      "peak_process_tree_bytes": 50401280,
+      "tree_retired": true,
+      "log_sha256": "a9c4e201c4308c1d2f6afa49247b18f002e0dfa31b3f0c9a0aa903b946e05264",
+      "initial_route_unavailable": true
+    }
+  },
+  "scope": "Live Windows AMD worker and memory-backed controller fixtures. The timeout fixture uses a shortened process deadline on an otherwise healthy device, follows the CPU fallback and verifies readmission of the same route. Driver reset, mounted foreground AMD use and performance qualification remain open."
+}

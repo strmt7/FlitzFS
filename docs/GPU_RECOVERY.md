@@ -80,12 +80,39 @@ memory budgets, host memory and commit all contribute to this decision.
 [DXGI process memory budget](https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/nf-dxgi1_4-idxgiadapter3-queryvideomemoryinfo) ·
 [Windows budget recovery and installed-route evidence](evidence/windows-amd-route-pressure-recovery-2026-11-20.json)
 
-CPU work continues during discovery. Recovery retains the original policy
-and its quarantine history across route replacement.
-An exact faulted configuration stays fenced. Unconfirmed worker retirement
+CPU work continues while the owner discovers or qualifies an installed
+route. Recovery retains the original policy and its quarantine history
+across route replacement. Runtime, configuration and integrity failures
+keep the affected configuration fenced. Unconfirmed worker retirement
 prevents further attempts.
 [Windows file identity](https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_id_info) ·
 [DXGI topology invalidation](https://learn.microsoft.com/en-us/windows/win32/api/dxgi/nf-dxgi-idxgifactory1-iscurrent)
+
+After a confirmed deadline, one newer group at a fresh, funded idle
+opportunity can trigger recovery. The owner can also respond to changed
+installation, device readiness, topology or recovered memory evidence.
+The workload-driven attempt stays spent until a normal GPU job passes
+independent verification. This limits repeated probes during a failure
+streak while leaving the CPU work queue available.
+
+To reopen the same device configuration after a device fault, the owner
+discovers the route and verifies a separate computation. A worker processes
+one synthetic 64 KiB base and one revision. The parent compares the complete
+response to an independently computed CPU result and confirms both worker
+and supervisor retirement. The proof belongs to the exact fault and newly
+pinned route.
+Before resuming ordinary work, the owner also checks device readiness and
+honors foreground activity, fresh resource observations and existing duty
+pacing.
+
+On the Windows AMD host, a shortened fixture deadline expired after 1,250 ms.
+The CPU completed all five groups, and an independent reader verified all
+15 files byte for byte. Authenticated discovery alone left the route fenced.
+The separate verified computation re-admitted the same route after retirement.
+The normal installed controller also selected an AMD reference group and
+passed independent readback of its 23-file fixture. Driver-reset recovery and
+the mounted foreground compression path remain to qualify.
+[Windows AMD recovery qualification](evidence/amd-recovery-qualification-2026-11-21.json)
 
 The live Windows SDK fixture published two CPU groups during one missing-package
 attempt. Restoring the approved inputs inside that fixture permitted one more

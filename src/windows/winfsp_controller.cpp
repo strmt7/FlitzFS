@@ -42,10 +42,11 @@ struct WinFspVolumeController::Impl {
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
   std::optional<InstalledAnchorProfile> installed;
   HipRouteDiscoveryResult acquisition;
+  std::optional<NativeAnchorRecoveryProof> acquisition_proof;
   std::unique_ptr<InstalledAnchorInputWitness> acquisition_inputs;
-  std::uint64_t last_acquisition_candidate=0;
+  std::uint64_t last_acquisition_candidate=0,last_anchor_candidate=0,qualification_activity=0;
   std::atomic<bool> acquisition_finished{false};
-  bool acquisition_started=false,acquisition_retired=true;
+  bool acquisition_started=false,acquisition_retired=true,qualifying_device=false;
   std::jthread acquisition_thread;
 #endif
   std::thread worker;
@@ -63,6 +64,12 @@ struct WinFspVolumeController::Impl {
   }
   ~Impl(){request_stop();if(worker.joinable())worker.join();}
   void request_stop() noexcept {stop_requested.store(true,std::memory_order_release);SetEvent(stop.value);}
+  bool waiting_for_accelerator() const noexcept {
+#ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
+    if(qualifying_device)return true;
+#endif
+    return anchor && anchor->waiting();
+  }
   void run() noexcept {
     bool disabled=false,failed=false;NTSTATUS started=STATUS_CANCELLED;
     try {
@@ -85,13 +92,16 @@ struct WinFspVolumeController::Impl {
           }
           const auto now=GetTickCount64();
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
+          if(qualifying_device && acquisition_thread.joinable() &&
+              (adapter->foreground_pending() || adapter->foreground_activity()!=qualification_activity))
+            acquisition_thread.request_stop();
           settle_acquisition(true);
 #endif
           if(anchor) {
             if(disabled)anchor->cancel();
             anchor->observe(adapter->foreground_activity(),now,adapter->foreground_pending()?
                 NativeAnchorOpportunity::foreground:NativeAnchorOpportunity::poll);
-            adapter->signal_foreground_for_anchor(anchor->waiting());
+            adapter->signal_foreground_for_anchor(waiting_for_accelerator());
           }
           const auto gpu=adapter->gpu_budget_task();
           if(gpu && now>gpu->after_ms) {
@@ -284,10 +294,14 @@ struct WinFspVolumeController::Impl {
       if(result.search_window)windows=std::span(&result.search_window,1);
       if(!windows.empty()) {
         adapter->signal_foreground_for_anchor(true);
-        if(!adapter->foreground_pending() && adapter->foreground_activity()==epoch)
+        if(!adapter->foreground_pending() && adapter->foreground_activity()==epoch) {
           anchor->start(windows,epoch);
+#ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
+          if(anchor->waiting())last_anchor_candidate=result.progress.attempted_groups;
+#endif
+        }
         anchor->observe(adapter->foreground_activity(),GetTickCount64());
-        adapter->signal_foreground_for_anchor(anchor->waiting());
+        adapter->signal_foreground_for_anchor(waiting_for_accelerator());
       }
     }
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
@@ -314,10 +328,14 @@ struct WinFspVolumeController::Impl {
     if(!valid_process_budget(plan_resource_process_budget(budget.memory_mib*mib,observed.physical_available,
         observed.commit_available,budget.memory_share_divisor,budget.cpu_rate,budget.timeout_ms)))return;
     const auto candidate=result.progress.attempted_groups;
+    const auto target=anchor?anchor->recovery_target():std::nullopt;
     if(acquisition_started) {
       if(candidate==last_acquisition_candidate)return;
       last_acquisition_candidate=candidate;
-      if(acquisition.status!=HipDiscoveryStatus::transport_busy &&
+      const auto resources=target && candidate>last_anchor_candidate && !observed.continued?detail::maintenance_resources(
+          observed,GetTickCount64(),adapter->group_maintenance_policy()):std::nullopt;
+      const bool deadline_check=resources && !resources->cpu_busy && anchor->take_deadline_recovery();
+      if(!deadline_check && acquisition.status!=HipDiscoveryStatus::transport_busy &&
           (!acquisition_inputs || !acquisition_inputs->changed()))return;
     }
     last_acquisition_candidate=candidate;
@@ -327,18 +345,30 @@ struct WinFspVolumeController::Impl {
     try {acquisition_inputs=std::make_unique<InstalledAnchorInputWitness>();}
     catch(...) {}
     acquisition={};
+    acquisition_proof.reset();
+    qualifying_device=target.has_value();
+    qualification_activity=adapter->foreground_activity();
+    if(qualifying_device)adapter->signal_foreground_for_anchor(true);
     acquisition_finished.store(false,std::memory_order_relaxed);
     try {
-      acquisition_thread=std::jthread([this](std::stop_token stop) noexcept {
+      acquisition_thread=std::jthread([this,target,budget](std::stop_token stop) noexcept {
         try {
           MaintenanceThreadScope priority;
           acquisition=priority.active()?discover_installed_hip_anchor_route(stop):
               HipRouteDiscoveryResult{HipDiscoveryStatus::resource_deferred};
+          if(target && acquisition.status==HipDiscoveryStatus::ready && acquisition.route &&
+              acquisition.route->identity==target->identity) {
+            auto checked=qualify_native_anchor_recovery(*target,*acquisition.route,budget,stop);
+            acquisition.status=checked.status;
+            acquisition_proof=std::move(checked.proof);
+          }
         }catch(...) {acquisition={HipDiscoveryStatus::resource_deferred};}
         acquisition_finished.store(true,std::memory_order_release);
         SetEvent(activity.value);
       });
     }catch(...) {
+      qualifying_device=false;
+      adapter->signal_foreground_for_anchor(waiting_for_accelerator());
       acquisition.status=HipDiscoveryStatus::resource_deferred;
       std::lock_guard lock(mutex);
       current.installed_anchor_status=acquisition.status;
@@ -351,6 +381,11 @@ struct WinFspVolumeController::Impl {
     if(use_route && !acquisition_finished.load(std::memory_order_acquire))return;
     if(!use_route)acquisition_thread.request_stop();
     acquisition_thread.join();
+    if(qualifying_device && (adapter->foreground_pending() || adapter->foreground_activity()!=qualification_activity)) {
+      use_route=false;
+      if(acquisition.status==HipDiscoveryStatus::ready)acquisition.status=HipDiscoveryStatus::cancelled;
+    }
+    qualifying_device=false;
     acquisition_retired=acquisition.status!=HipDiscoveryStatus::retirement_unconfirmed;
     if(acquisition_inputs && acquisition.status==HipDiscoveryStatus::device_not_ready)
       acquisition_inputs->note_device_unavailable();
@@ -360,7 +395,7 @@ struct WinFspVolumeController::Impl {
         !stop_requested.load(std::memory_order_acquire)) {
       try {
         if(anchor) {
-          if(!anchor->rebind(std::move(*acquisition.route)))
+          if(!anchor->rebind(std::move(*acquisition.route),acquisition_proof?&*acquisition_proof:nullptr))
             acquisition.status=HipDiscoveryStatus::configuration_quarantined;
         } else {
           anchor=std::make_unique<NativeAnchorSearchController>(NativeAnchorSearchOptions{
@@ -373,6 +408,7 @@ struct WinFspVolumeController::Impl {
         }
       }catch(...) {acquisition.status=HipDiscoveryStatus::resource_deferred;}
     }
+    acquisition_proof.reset();
     acquisition.route.reset();
     std::lock_guard lock(mutex);
     current.installed_anchor_status=acquisition.status;

@@ -2,6 +2,8 @@
 #include "flitzfs/native_filesystem.hpp"
 #include "flitzfs/gpu_anchor_match.hpp"
 #include "hip_route_discovery.hpp"
+#include <stop_token>
+#include <utility>
 
 namespace flitzfs {
 enum class WorkerExchangeCode;
@@ -45,6 +47,37 @@ struct NativeAnchorSearchStats {
 
 enum class NativeAnchorOpportunity {poll,foreground,idle};
 
+struct NativeAnchorRecoveryTarget {
+  GpuConfigurationId identity{};
+  std::uint64_t incident=0;
+  bool operator==(const NativeAnchorRecoveryTarget&) const = default;
+};
+struct NativeAnchorRecoveryCheck;
+// A CPU-verified computation on the newly pinned route for a specific
+// retired fault. Discovery or another route cannot manufacture this proof.
+class NativeAnchorRecoveryProof final {
+ public:
+  NativeAnchorRecoveryProof(NativeAnchorRecoveryProof&&) noexcept=default;
+  NativeAnchorRecoveryProof& operator=(NativeAnchorRecoveryProof&&) noexcept=default;
+  NativeAnchorRecoveryProof(const NativeAnchorRecoveryProof&)=delete;
+  NativeAnchorRecoveryProof& operator=(const NativeAnchorRecoveryProof&)=delete;
+ private:
+  friend class NativeAnchorSearchController;
+  friend NativeAnchorRecoveryCheck qualify_native_anchor_recovery(NativeAnchorRecoveryTarget,
+      const HipDiscoveredRoute&,ProcessBudget,std::stop_token) noexcept;
+  NativeAnchorRecoveryProof(NativeAnchorRecoveryTarget target,std::shared_ptr<const HipRoutePins> pins)
+      :target_(target),pins_(std::move(pins)) {}
+  NativeAnchorRecoveryTarget target_;
+  std::shared_ptr<const HipRoutePins> pins_;
+};
+struct NativeAnchorRecoveryCheck {
+  HipDiscoveryStatus status=HipDiscoveryStatus::configuration_quarantined;
+  std::optional<NativeAnchorRecoveryProof> proof;
+};
+// Run outside the filesystem and controller locks after fresh discovery.
+NativeAnchorRecoveryCheck qualify_native_anchor_recovery(NativeAnchorRecoveryTarget,
+    const HipDiscoveredRoute&,ProcessBudget,std::stop_token={}) noexcept;
+
 // One serialized owner, outside the filesystem control lock. The transport
 // retains its own route pins and observes exact worker and supervisor exit.
 class NativeAnchorSearchController final {
@@ -69,7 +102,9 @@ class NativeAnchorSearchController final {
   void settle_reply_checks() noexcept;
   bool can_reacquire() const noexcept;
   bool take_device_interruption() noexcept;
-  bool rebind(HipDiscoveredRoute) noexcept;
+  std::optional<NativeAnchorRecoveryTarget> recovery_target() const noexcept;
+  bool take_deadline_recovery() noexcept;
+  bool rebind(HipDiscoveredRoute,const NativeAnchorRecoveryProof* =nullptr) noexcept;
   void discard_reply() noexcept;
   void cancel() noexcept;
   bool stop() noexcept;

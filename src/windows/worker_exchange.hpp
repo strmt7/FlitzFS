@@ -53,6 +53,12 @@ class WorkerExchangeSession final {
       const std::vector<std::wstring>& arguments, SharedWorkerRequest request,
       WorkerChannelCapacity capacity, ProcessBudget budget,
       std::shared_ptr<const void> pinned_route={});
+  // For a separate qualifying thread. Stops through the owned supervisor
+  // and returns bytes only after exact worker and supervisor retirement.
+  static WorkerExchangeResult run_sized(const std::filesystem::path& helper,
+      const std::vector<std::wstring>& arguments, SharedWorkerRequest request,
+      WorkerChannelCapacity capacity, ProcessBudget budget,std::stop_token,
+      std::shared_ptr<const void> pinned_route={});
   ~WorkerExchangeSession();
   WorkerExchangeSession(WorkerExchangeSession&&) noexcept;
   WorkerExchangeSession& operator=(WorkerExchangeSession&&) noexcept;

@@ -437,6 +437,26 @@ WorkerExchangeResult run_worker_exchange(const std::filesystem::path& helper,
   return session.wait_result();
 }
 
+WorkerExchangeResult WorkerExchangeSession::run_sized(const std::filesystem::path& helper,
+    const std::vector<std::wstring>& arguments,SharedWorkerRequest request,
+    WorkerChannelCapacity capacity,ProcessBudget budget,std::stop_token stop,
+    std::shared_ptr<const void> pinned_route) {
+  if(stop.stop_requested()){
+    WorkerExchangeResult refused;
+    refused.code=WorkerExchangeCode::cancelled;
+    refused.process.cancelled=true;
+    return refused;
+  }
+  auto session=start_sized(helper,arguments,std::move(request),capacity,budget,std::move(pinned_route));
+  std::stop_callback cancel(stop,[&]() noexcept {(void)session.request_cancel();});
+  auto result=session.wait_result();
+  if(!session.retirement_confirmed() && result.code!=WorkerExchangeCode::exit_unconfirmed) {
+    result.code=WorkerExchangeCode::supervisor_exit_unconfirmed;
+    result.response.clear();
+  }
+  return result;
+}
+
 struct WorkerChannel::Impl {
   ChannelProfile profile;
   Mapping input,output;

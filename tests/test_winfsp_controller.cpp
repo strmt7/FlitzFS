@@ -1413,7 +1413,7 @@ void restrict_fixture_anchor_launch(std::span<const NativeSharedBaseSearchWindow
 }
 
 enum class BatchOverlapTrial {normal,partial,full_wait,full_advance};
-enum class BatchForegroundTrial {normal,cancel_active,read_after_retirement,edit_after_retirement,read_or_cpu};
+enum class BatchForegroundTrial {normal,cancel_active,read_after_retirement,edit_after_retirement,read_or_cpu,recover_after_deadline};
 
 int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
     const std::filesystem::path& bank_path,std::uint64_t discovery_ns,IndexedBatchPattern pattern,
@@ -1507,8 +1507,10 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   }
   NativeMaintenanceProgress progress;
   bool cancelled=false,retired_reply_retained=false,deadline_fallback=false;
+  bool recovery_rebound=false;
   const bool edit_after_retirement=foreground==BatchForegroundTrial::edit_after_retirement;
-  const bool allow_cpu=foreground==BatchForegroundTrial::read_or_cpu;
+  const bool recover_after_deadline=foreground==BatchForegroundTrial::recover_after_deadline;
+  const bool allow_cpu=foreground==BatchForegroundTrial::read_or_cpu || recover_after_deadline;
   const bool intervene_after_retirement=edit_after_retirement || allow_cpu ||
       foreground==BatchForegroundTrial::read_after_retirement;
   std::uint64_t activity=1;
@@ -1673,6 +1675,33 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
         "CPU grouping failed to complete the workload after a retired GPU deadline");
     std::cout<<"deadline_fallback cpu_groups="<<progress.published_groups<<"\n";
   }
+  if(recover_after_deadline && deadline_fallback) {
+    const auto target=anchor->recovery_target();
+    require(target && anchor->take_deadline_recovery() && !anchor->take_deadline_recovery() &&
+        WorkerExchangeSession::available(),"A retired deadline did not authorize exactly one qualification");
+    const auto profile=installed_anchor_profile();
+    require(profile.has_value(),"Deadline recovery requires an installed profile");
+    auto binding=discover_installed_hip_anchor_route();
+    auto check_status=binding.status;
+    if(binding.status==HipDiscoveryStatus::ready && binding.route && binding.route->identity==target->identity) {
+      require(!anchor->rebind(*binding.route),"Discovery alone reopened the expired configuration");
+      const auto checked=qualify_native_anchor_recovery(*target,*binding.route,profile->worker);
+      check_status=checked.status;
+      if(checked.proof) {
+        require(checked.status==HipDiscoveryStatus::ready && anchor->rebind(std::move(*binding.route),&*checked.proof) &&
+            !anchor->recovery_target() && !anchor->take_deadline_recovery() &&
+            anchor->stage_grant(UINT64_MAX,std::size_t{detail::anchor_match_batch_member_limit()}+1),
+            "Independent device verification could not reopen the same configuration");
+        recovery_rebound=true;
+      }else {
+        require(!anchor->rebind(std::move(*binding.route)) && anchor->recovery_target()==target,
+            "Failed recovery verification changed the quarantine");
+      }
+    }
+    require(WorkerExchangeSession::available(),"Deadline qualification did not retire");
+    std::cout<<"deadline_recovery rebound="<<recovery_rebound<<" check_status="<<static_cast<unsigned>(check_status)
+        <<" one_attempt=1 retired=1\n";
+  }
   if(edit_after_retirement)
     require(retired_reply_retained && stats.submitted==1 && stats.reference_batches==1 &&
         progress.reselected_reference_groups+1==families && progress.advised_members_published,
@@ -1813,6 +1842,8 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
     std::cout<<digits[value>>4]<<digits[value&15];
   }
   std::cout<<'\n';
+  if(recover_after_deadline)
+    require(deadline_fallback && recovery_rebound,"The deadline fixture did not recover the original AMD route");
   return 0;
 }
 
@@ -1823,12 +1854,43 @@ int live_installed_retired_reply(BatchForegroundTrial foreground,bool adaptive=f
   auto binding=discover_installed_hip_anchor_route();
   require(binding.status==HipDiscoveryStatus::ready && binding.route,"Installed AMD route is unavailable");
   const auto discovery_ns=elapsed_ns(begun);
+  auto budget=profile->worker;
+  if(foreground==BatchForegroundTrial::recover_after_deadline) {
+    // Exercise a real process deadline with a healthy device and untouched
+    // driver. Discovery and the recovery worker use the installed budget.
+    budget.timeout_ms=(std::max)(1U,budget.timeout_ms/4);
+    std::cout<<"deadline_fixture worker_timeout_ms="<<budget.timeout_ms<<'\n';
+  }
   return live_multiwindow_anchor(NativeAnchorSearchOptions{
-      .route=std::move(*binding.route),.worker=profile->worker,.minimum_members=profile->minimum_members,
+      .route=std::move(*binding.route),.worker=budget,.minimum_members=profile->minimum_members,
       .maximum_members=profile->maximum_members,.duty_ppm=profile->duty_ppm,.output=profile->output,
       .maximum_dispatch_members=profile->maximum_dispatch_members,.dispatches_per_wait=profile->dispatches_per_wait,
       .prefer_reference=profile->prefer_reference}, {},discovery_ns,IndexedBatchPattern::xor_full_reference,
       false,BatchOverlapTrial::normal,foreground,adaptive);
+}
+
+int live_installed_recovery_check() {
+  using Status=HipDiscoveryStatus;
+  const auto profile=installed_anchor_profile();
+  require(profile.has_value(),"Recovery check requires an installed AMD profile");
+  auto binding=discover_installed_hip_anchor_route();
+  require(binding.status==Status::ready && binding.route,"Recovery check could not bind the installed AMD route");
+  const NativeAnchorRecoveryTarget target{binding.route->identity,1};
+  auto other=target;
+  other.identity[0]^=std::byte{1};
+  const auto refused=qualify_native_anchor_recovery(other,*binding.route,profile->worker);
+  require(refused.status==Status::configuration_quarantined && !refused.proof &&
+      WorkerExchangeSession::available(),"Another configuration could enter the recovery check");
+  std::stop_source stop;
+  stop.request_stop();
+  const auto cancelled=qualify_native_anchor_recovery(target,*binding.route,profile->worker,stop.get_token());
+  require(cancelled.status==Status::cancelled && !cancelled.proof &&
+      WorkerExchangeSession::available(),"A cancelled recovery check launched a worker");
+  const auto checked=qualify_native_anchor_recovery(target,*binding.route,profile->worker);
+  require(checked.status==Status::ready && checked.proof && WorkerExchangeSession::available(),
+      "Installed route did not produce an independently verified recovery proof");
+  std::cout<<"installed_recovery_check cpu_oracle=exact route_identity_checked=1 retired=1\n";
+  return 0;
 }
 
 int live_anchor_owner(int argc,char** argv) {
@@ -2907,6 +2969,10 @@ int main(int argc,char** argv){try {
     return live_installed_retired_reply(BatchForegroundTrial::read_or_cpu);
   if(argc==2 && std::string_view(argv[1])=="--live-installed-adaptive-or-cpu")
     return live_installed_retired_reply(BatchForegroundTrial::read_or_cpu,true);
+  if(argc==2 && std::string_view(argv[1])=="--live-installed-recovery-check")
+    return live_installed_recovery_check();
+  if(argc==2 && std::string_view(argv[1])=="--live-installed-deadline-recovery")
+    return live_installed_retired_reply(BatchForegroundTrial::recover_after_deadline);
   if(argc==2 && std::string_view(argv[1])=="--live-installed-retired-edit")
     return live_installed_retired_reply(BatchForegroundTrial::edit_after_retirement);
   if((argc==7 || ((argc==8 || argc==9) && multiwindow_pattern(argv[6]))) &&
