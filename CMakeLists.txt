@@ -117,6 +117,7 @@ target_include_directories(flitzfs_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/inclu
 target_sources(flitzfs_core PRIVATE src/paged_store.cpp src/native_name_index.cpp src/native_indexed_volume.cpp src/indexed_names.cpp)
 target_sources(flitzfs_core PRIVATE src/native_maintenance.cpp)
 target_sources(flitzfs_core PRIVATE src/native_group_lz4.cpp src/native_group_anchor.cpp)
+target_sources(flitzfs_core PRIVATE src/uniform_lz4_batch.cpp)
 target_compile_features(flitzfs_core PUBLIC cxx_std_20)
 target_include_directories(flitzfs_core PRIVATE third_party/blake3/c)
 target_link_libraries(flitzfs_core PRIVATE flitzfs_blake3)

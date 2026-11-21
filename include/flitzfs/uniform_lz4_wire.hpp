@@ -20,6 +20,7 @@ bool valid_uniform_lz4_limits(const UniformLz4Limits&) noexcept;
 class PreparedUniformLz4 final {
  public:
   static PreparedUniformLz4 prepare(UniformLz4Bytes,const UniformLz4Limits&);
+  static PreparedUniformLz4 prepare_owned(std::vector<std::byte>,const UniformLz4Limits&);
   PreparedUniformLz4(const PreparedUniformLz4&)=delete;
   PreparedUniformLz4& operator=(const PreparedUniformLz4&)=delete;
   PreparedUniformLz4(PreparedUniformLz4&&) noexcept;
@@ -32,6 +33,7 @@ class PreparedUniformLz4 final {
   const std::array<std::byte,32>& digest() const noexcept{return digest_;}
  private:
   PreparedUniformLz4()=default;
+  PreparedUniformLz4(const UniformLz4Limits&,std::size_t input_bytes);
   void swap(PreparedUniformLz4&) noexcept;
   uniform_lz4::Layout layout_{};
   UniformLz4Limits limits_{};

@@ -12,9 +12,11 @@
 // build too. Its execution remains in the separate runtime qualification gate.
 #include "rocm_compile/deferred_native_fixture.hpp"
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
+#include "gpu_budget.hpp"
 #include "hip_route_discovery.hpp"
 #include "native_name_index.hpp"
 #include "flitzfs/read_only_file.hpp"
+#include "flitzfs/uniform_lz4_batch.hpp"
 #endif
 #include <array>
 #include <atomic>
@@ -621,6 +623,11 @@ void check_indexed_retirement() {
       WorkerExchangeSession::available(),"indexed backing or worker did not retire");
 }
 constexpr std::uint32_t fixture_quantum_chunks=2,fixture_sweep_chunks=16;
+GpuLz4ResidentCost diagnostic_uniform_cost(const HipDiscoveredRoute& route) {
+  return {.fixed_bytes=256ULL<<20,.input_copies=6,.slab_copies=2,.output_copies=3,.per_chunk_bytes=64,
+      .configuration=route.identity,.profiled_chunk_bytes=kNativeExtentBytes,.maximum_grid_x=fixture_quantum_chunks,
+      .kernel_ns_per_chunk=10000000,.qualified_kernel_quantum_ns=fixture_quantum_chunks*10000000ULL,.qualified=true};
+}
 NativeAmdWriteSample indexed_trial(const HipDiscoveredRoute* route,bool sweep,
     const std::vector<std::byte>& expected,bool expect_uniform_advice,
     bool prove_owned_input=false,NativeAmdWriteShape* shape=nullptr,bool grouped=false,bool late_activation=false) {
@@ -667,13 +674,7 @@ NativeAmdWriteSample indexed_trial(const HipDiscoveredRoute* route,bool sweep,
   options.binding.runtime_sha256=route->runtime_sha256;
   options.binding.capture_advice_receipt=true;
   options.budget=diagnostic_worker_budget;options.deadline_ms=options.budget.timeout_ms;
-  auto& cost=options.cost;
-  cost.configuration=route->identity;cost.fixed_bytes=256ULL<<20;
-  cost.input_copies=6;cost.slab_copies=2;cost.output_copies=3;cost.per_chunk_bytes=64;
-  cost.profiled_chunk_bytes=kNativeExtentBytes;cost.kernel_ns_per_chunk=10000000;
-  cost.maximum_grid_x=quantum_chunks;
-  cost.qualified_kernel_quantum_ns=quantum_chunks*cost.kernel_ns_per_chunk;
-  cost.qualified=true;
+  const auto& cost=options.cost=diagnostic_uniform_cost(*route);
   options.window={16,cost.qualified_kernel_quantum_ns};
   if(sweep) {
     uniform_lz4::Layout quantum{};
@@ -861,10 +862,110 @@ int installed_late_foreground() {
       "live foreground route did not settle the AMD write");
   return 0;
 }
+struct RecordedSweepBatch {
+  std::vector<VerifiedUniformLz4Batch> results;
+  std::uint64_t elapsed_ns=0,child_ms=0;
+  std::uint32_t launches=0;
+};
+RecordedSweepBatch run_sweep_batch(const HipDiscoveredRoute& route,
+    std::span<const UniformLz4BatchInput> requests,bool grouped,std::uint64_t& sequence) {
+  constexpr auto width=kNativeExtentBytes;
+  uniform_lz4::Layout quantum{};
+  check(uniform_lz4::make_layout(fixture_quantum_chunks*width,width,quantum),"batch diagnostic quantum");
+  const NativeUniformSweepGrant grant{fixture_quantum_chunks,quantum.total_bytes};
+  const auto cost=diagnostic_uniform_cost(route);
+  const GpuLz4WindowPolicy policy{16,cost.qualified_kernel_quantum_ns};
+  const NativeUniformWorkerBinding binding{.helper=route.helper,.configuration=route.identity,
+      .ordinal=static_cast<int>(route.ordinal),.runtime_sha256=route.runtime_sha256,.sweep=grant};
+  WindowsGpuBudgetSampler budget(route.memory.luid,route.memory.node_mask);
+  RecordedSweepBatch measured;
+  const auto start=std::chrono::steady_clock::now();
+  while(!requests.empty()){
+    const auto work=grouped?requests:requests.first(1);
+    check(route.pins->device_ready() && WorkerExchangeSession::available(),"batch route unavailable");
+    const auto observed=budget.sample();
+    check(observed.status==WindowsGpuBudgetStatus::success,"batch budget observation failed");
+    const GpuHealthEvidence evidence{route.identity,++sequence,0,true,true,observed.snapshot};
+    const auto planned=plan_uniform_lz4_batch(work,width,evidence,GetTickCount64(),cost,policy,grant,
+        diagnostic_worker_budget.timeout_ms);
+    check(planned.requests==work.size(),"budget did not cover the matched complete requests");
+    const auto prepared=PreparedUniformLz4Batch::prepare(work,planned);
+    const NativeUniformSweepGrant admitted{planned.window.quantum.chunks,planned.window.quantum.total_bytes};
+    const auto dispatch=prepare_native_uniform_dispatch(binding,evidence,prepared.source(),WorkerExecution::hip,&admitted);
+    const auto& limits=prepared.source().limits();
+    const auto frame=std::make_shared<const WorkerRequestSnapshot>(encode_uniform_lz4_request(prepared.source(),sequence));
+    const auto result=WorkerExchangeSession::run_sized(binding.helper,dispatch.arguments,frame,
+        {limits.request_bytes,limits.reply_bytes},diagnostic_worker_budget,{},route.pins);
+    const auto retired=WorkerExchangeSession::available();
+    if(result.code!=WorkerExchangeCode::completed || !result.process.exit_confirmed || !retired)
+      std::cerr<<"sweep_batch_worker_failure grouped="<<grouped<<" sequence="<<sequence
+          <<" requests="<<work.size()<<" code="<<static_cast<unsigned>(result.code)
+          <<" worker_exit="<<result.process.exit_code<<" worker_ms="<<result.process.elapsed_ms
+          <<" exit_confirmed="<<result.process.exit_confirmed<<" retired="<<retired<<'\n';
+    check(result.code==WorkerExchangeCode::completed && result.process.exit_confirmed && retired,
+        "batch worker did not successfully retire");
+    auto verified=VerifiedUniformLz4Batch::accept(result.response,prepared,sequence,WorkerExecution::hip);
+    const auto completed=budget.sample();
+    check(completed.status==WindowsGpuBudgetStatus::success &&
+        completed.snapshot.captured_ms>observed.snapshot.captured_ms &&
+        check_gpu_memory_budget(completed.snapshot,route.memory.luid,route.memory.node_mask,GetTickCount64(),
+            dispatch.device_peak_bytes)==GpuGateCode::admitted,"batch completion budget failed");
+    measured.results.push_back(std::move(verified));
+    measured.launches+=dispatch.windows;
+    measured.child_ms+=result.process.elapsed_ms;
+    requests=requests.subspan(work.size());
+  }
+  measured.elapsed_ns=static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
+      std::chrono::steady_clock::now()-start).count());
+  return measured;
+}
+int compare_installed_sweep_batch(const std::filesystem::path& corpus){
+  gpu_probe_fixture::Budget controller_budget;
+  const auto input=ReadOnlyFile::open(corpus);
+  constexpr auto width=kNativeExtentBytes;
+  check(input.size()==fixture_sweep_chunks*width,"sweep batch corpus must match the full fixture");
+  std::vector<std::byte> source(static_cast<std::size_t>(input.size()));
+  input.read_exact_at(0,source.data(),source.size());
+  const auto bytes=std::span<const std::byte>(source);
+  const std::array requests{UniformLz4BatchInput{20,bytes.first(4*width)},UniformLz4BatchInput{21,bytes.subspan(4*width,6*width)},
+      UniformLz4BatchInput{24,bytes.subspan(10*width)}};
+  const auto discovery=discover_installed_hip_route(diagnostic_worker_budget,4);
+  const auto& route=require_indexed_route(discovery);
+  check(route.pins->uniform_module_pinned(),"sweep batch requires a pinned compute module");
+  std::uint64_t sequence=0;
+  for(unsigned pair=0;pair<3;++pair){
+    const bool batch_first=pair%2!=0;
+    RecordedSweepBatch separate,batch;
+    if(batch_first)batch=run_sweep_batch(route,requests,true,sequence);
+    separate=run_sweep_batch(route,requests,false,sequence);
+    if(!batch_first)batch=run_sweep_batch(route,requests,true,sequence);
+    check(batch.results.size()==1 && separate.results.size()==requests.size() &&
+        batch.launches==separate.launches && batch.results.front().size()==requests.size(),
+        "batched candidate count or physical launches changed");
+    std::size_t compressed=0;
+    for(std::size_t i=0;i<requests.size();++i) {
+      const auto a=separate.results.at(i).reply(0),b=batch.results.front().reply(i);
+      check(a.request_id==requests[i].request_id && b.request_id==a.request_id &&
+          std::ranges::equal(a.sizes,b.sizes) && std::ranges::equal(a.payload,b.payload),
+          "batch changed the exact verified bytes for an independent request");
+      compressed+=b.payload.size();
+    }
+    std::cout<<"sweep_request_batch pair="<<pair+1<<" batch_first="<<batch_first<<" members="<<requests.size()
+        <<" gpu_launches="<<batch.launches<<" separate_workers="<<separate.results.size()
+        <<" batch_workers="<<batch.results.size()<<" separate_ns="<<separate.elapsed_ns<<" batch_ns="<<batch.elapsed_ns
+        <<" separate_child_ms="<<separate.child_ms<<" batch_child_ms="<<batch.child_ms
+        <<" compressed_bytes="<<compressed<<" cpu_verified=1 identical_payload=1 retired=1\n";
+  }
+  check(!GetModuleHandleW(route.runtime_basename.c_str()) && WorkerExchangeSession::available(),
+      "batch parent loaded the HIP runtime or retained a worker");
+  std::cout<<"sweep_request_batch_peak parent_commit="<<controller_budget.peak_commit()<<'\n';
+  return 0;
+}
 #endif
 }
 int wmain(int argc,wchar_t** argv){try{
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
+  if(argc==3 && std::wstring_view(argv[1])==L"--compare-installed-amd-sweep-batch")return compare_installed_sweep_batch(argv[2]);
   if(argc==2 && std::wstring_view(argv[1])==L"--live-installed-late-foreground")return installed_late_foreground();
   if(argc==2 && std::wstring_view(argv[1])==L"--compare-installed-amd")return compare_installed_amd();
   if(argc==2 && std::wstring_view(argv[1])==L"--compare-installed-amd-grouped")

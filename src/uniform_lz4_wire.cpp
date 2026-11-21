@@ -106,11 +106,19 @@ PreparedUniformLz4& PreparedUniformLz4::operator=(PreparedUniformLz4&& other) no
 bool PreparedUniformLz4::ready() const noexcept{
   return !source_.empty() && source_.size()==layout_.input_bytes && uniform_lz4::valid_layout(layout_,limits_.device_bytes);
 }
+PreparedUniformLz4::PreparedUniformLz4(const UniformLz4Limits& limits,std::size_t bytes):limits_(limits){
+  if(!valid_uniform_lz4_limits(limits) || bytes!=limits.input_bytes ||
+      !uniform_lz4::make_layout(bytes,limits.chunk_bytes,layout_))invalid("uniform LZ4 source not admitted");
+}
 PreparedUniformLz4 PreparedUniformLz4::prepare(UniformLz4Bytes input,const UniformLz4Limits& limits){
-  if(!valid_uniform_lz4_limits(limits) || input.size()!=limits.input_bytes)invalid("uniform LZ4 source not admitted");
-  PreparedUniformLz4 batch;batch.limits_=limits;
-  if(!uniform_lz4::make_layout(input.size(),limits.chunk_bytes,batch.layout_))invalid("uniform LZ4 layout refused");
-  batch.source_.assign(input.begin(),input.end());batch.digest_=detail::record_digest(shape(batch.layout_),batch.source_);
+  PreparedUniformLz4 batch(limits,input.size());
+  batch.source_.assign(input.begin(),input.end());
+  batch.digest_=detail::record_digest(shape(batch.layout_),batch.source_);
+  return batch;
+}
+PreparedUniformLz4 PreparedUniformLz4::prepare_owned(Bytes input,const UniformLz4Limits& limits){
+  PreparedUniformLz4 batch(limits,input.size());
+  batch.source_=std::move(input);batch.digest_=detail::record_digest(shape(batch.layout_),batch.source_);
   return batch;
 }
 UniformLz4Bytes PreparedUniformLz4::input(std::uint32_t i) const{

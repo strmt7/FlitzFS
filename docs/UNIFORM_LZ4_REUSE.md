@@ -40,6 +40,34 @@ The same stream executes one quantum at a time. Full stream synchronization prec
 
 After all quanta, the complete combined source/result passes CPU verification and explicit stream/slab retirement must succeed. Module retirement, successful exact child/supervisor exit and independent parent verification remain required before acceptance. Any quantum, memory, guard, allocation or cleanup failure discards the private prefix and grants no retry. Cleanup failure overrides prior candidate success. CPU selection remains independent of driver cleanup in the unchanged asynchronous controller; this explicit diagnostic remains synchronous.
 
+## Independent requests in one sweep
+
+Several ready requests can share one ordinary uniform LZ4 worker exchange.
+The parent chooses a complete prefix under current host memory, device memory
+and elapsed work limits. Input ownership and the original request boundaries
+stay in the parent. Only the final member may end with a partial chunk.
+The worker uses the existing wire format and creates one stream and slab for
+the admitted set. The parent verifies the complete reply and every decoded
+chunk after confirmed worker retirement, then exposes each independently
+identified payload. The shared payload and per-request views avoid a second
+copy when separating the results.
+
+AMD's ROCm 10.2 stream reference specifies synchronization before reuse and
+explicit stream destruction. It also marks stream priority disabled. The
+resource envelope uses bounded quanta and deadlines, independent of driver
+priority scheduling.
+[HIP stream management](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/reference/hip_runtime_api/modules/stream_management.html)
+
+The live Windows comparison split 1 MiB of public source bytes into three
+requests. In three alternating pairs, separate AMD exchanges took 2.97–3.78 s
+and grouped exchanges took 1.43–1.54 s. The median fell from 3.55 s to 1.44 s.
+Both paths used eight kernel launches and produced the same 467,755 payload
+bytes. Every member passed independent CPU verification, and all workers
+retired. A more constrained run refused a stale post-compute memory sample
+and returned no accepted candidates. The productive workload budget still
+needs qualification against complete filesystem operations on CPU.
+[Windows AMD batching evidence](evidence/amd-uniform-request-batching-2026-11-21.json)
+
 ## Qualification requirements
 
 Portable wire tests compare initialization of dirty reused storage against canonical uploads and reject wrong extents while preserving outer guards. Selected-SDK CPU tests require exactly one initialization, stream creation, allocation and retirement across complete and partial sweeps; property/attribute/priority queries must remain bounded. They cover wave selection, a device grid that fits only the quantum, one-byte input, next-quantum resource refusal, second-quantum wait failure, corrupt active output and unused tail, null/misaligned resources and final cleanup failure. No partial candidate may escape.

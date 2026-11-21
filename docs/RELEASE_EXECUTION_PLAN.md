@@ -334,6 +334,12 @@ multiple sessions and measure actual allocated bytes and write costs.
   Compare warm and cold starts on mounted workloads and qualify recovery
   with fresh device evidence after an actual runtime interruption.
   [Measured batch evidence](evidence/amd-measured-batch-sizing-2026-11-21.json)
+- The uniform LZ4 parent can group complete independent requests into one
+  supervised AMD sweep. A live three-request comparison reduced median AMD
+  time from 3.55 s to 1.44 s and kept the encoded bytes identical. A constrained
+  trial refused stale memory telemetry at completion. Measure the sustained
+  complete-operation benefit against CPU before enrolling this workload.
+  [Independent request batching](evidence/amd-uniform-request-batching-2026-11-21.json)
 - Measure automatic route selection for early ingestion and cold work
   separately. Use the CPU reference for forecast and fallback. Compare real
   public and controlled inputs across supported AMD classes and a CPU-only
@@ -633,8 +639,10 @@ allocation pressure on both sides of the barrier, and independent CPU readback.
 4. **Bring both AMD roles into the same Windows client.** Use the worker and
    installed admission path for the existing collective route. Supply the
    running foreground controller with a profile earned from matched complete
-   writes. Compare bounded reuse of runtime setup against the current finite
-   exchange before enrolling a new foreground workload. Alternate AMD-present,
+   writes. Feed the verified batch path from already ready requests and charge
+   startup, host copies, validation and publication before comparing end-to-end
+   results against CPU. Exercise stale budget samples during long batches.
+   Alternate AMD-present,
    CPU-only and rejected-device routes on matched data. Record transfer, kernel, validation,
    publication and backlog separately. Start the mounted failure matrix with
    the verified deadline fixture. Confirm the owner takes a fresh group as
