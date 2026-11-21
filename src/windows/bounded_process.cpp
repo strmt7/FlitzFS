@@ -112,11 +112,13 @@ ProcessResult run_bounded_process(const std::filesystem::path& executable,
   BOOL assigned = FALSE;
   if (!IsProcessInJob(child, job.value, &assigned) || !assigned)
     failed("creation-time job verification", ERROR_ACCESS_DENIED);
+  const auto started=GetTickCount64();
   if (ResumeThread(thread.value) == static_cast<DWORD>(-1)) failed("bounded child resume");
   ProcessResult result;
   result.process_id = process.dwProcessId;
   const HANDLE waits[] = {child, static_cast<HANDLE>(observer->stop_)};
   auto wait = WaitForMultipleObjects(2, waits, FALSE, budget.timeout_ms);
+  result.elapsed_ms=GetTickCount64()-started;
   if (wait == WAIT_TIMEOUT || wait == WAIT_OBJECT_0 + 1) {
     result.timed_out = wait == WAIT_TIMEOUT;
     result.cancelled = !result.timed_out;

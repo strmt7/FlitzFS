@@ -38,7 +38,7 @@ bool valid_anchor_route(const HipDiscoveredRoute& route) noexcept {
 std::optional<NativeAnchorLaunchPlan> plan_anchor_output(
     std::span<const std::uint32_t> members, const NativeAnchorSearchOptions& options,
     const GpuMemorySnapshot& observed, std::uint64_t now, bool permits_reference_change,
-    anchor_match::BatchOutput output, bool reference_required=false) {
+    anchor_match::BatchOutput output,std::optional<std::uint32_t> launch_limit,bool reference_required=false) {
   const auto total = std::accumulate(members.begin(), members.end(), std::uint64_t{0});
   if (!options.minimum_members || !valid_dispatch_grant(options) || total < options.minimum_members ||
       total > options.maximum_members || total > detail::anchor_match_batch_member_limit() ||
@@ -79,8 +79,11 @@ std::optional<NativeAnchorLaunchPlan> plan_anchor_output(
 
   const auto candidate = [&](std::span<const std::uint32_t> prefix) -> std::optional<NativeAnchorLaunchPlan> {
     try {
-      const auto launch_grant = std::accumulate(prefix.begin(), prefix.end(),
-          static_cast<std::uint32_t>(prefix.size()));
+      // Keep the learned grant constant during prefix search so adding a
+      // group cannot make a previously infeasible reference plan fit.
+      const auto launch_grant=launch_limit?
+          (std::min)(static_cast<std::uint32_t>(total+members.size()),*launch_limit):
+          std::accumulate(prefix.begin(),prefix.end(),static_cast<std::uint32_t>(prefix.size()));
       auto batch = detail::plan_anchor_match_batch(prefix, quantum,
           anchor_match::device_bytes(quantum, baseline), launch_grant, baseline);
       if (reference && fit == largest && permits_reference_change &&
@@ -113,7 +116,7 @@ std::optional<NativeAnchorLaunchPlan> plan_anchor_output(
   };
 
   auto accepted = candidate(members);
-  if (accepted || reference) return accepted;
+  if (accepted || (reference && !launch_limit)) return accepted;
   // For a fixed output and dispatch limit, adding a group cannot reduce the
   // base transport or transfer allocation. Profile trailers are optional.
   std::size_t first = 0;
@@ -133,20 +136,41 @@ std::optional<NativeAnchorLaunchPlan> plan_anchor_output(
 
 std::optional<NativeAnchorLaunchPlan> plan_native_anchor_launch(
     std::span<const std::uint32_t> members, const NativeAnchorSearchOptions& options,
-    const GpuMemorySnapshot& observed, std::uint64_t now, bool permits_reference_change) {
+    const GpuMemorySnapshot& observed, std::uint64_t now, bool permits_reference_change,
+    std::optional<std::uint32_t> launch_limit) {
   if(options.prefer_reference && permits_reference_change) {
     try {
-      if(auto reference=plan_anchor_output(members,options,observed,now,true,anchor_match::BatchOutput::reference_xor,true))
+      if(auto reference=plan_anchor_output(members,options,observed,now,true,anchor_match::BatchOutput::reference_xor,
+          launch_limit,true))
         return reference;
     } catch(const std::invalid_argument&) {
       // The larger reference reply can exceed the format's admission limit.
     }
   }
-  return plan_anchor_output(members,options,observed,now,permits_reference_change,options.output);
+  return plan_anchor_output(members,options,observed,now,permits_reference_change,options.output,launch_limit);
+}
+
+void NativeAnchorBatchTiming::record_verified(std::uint64_t elapsed_ms,std::uint32_t launches) noexcept {
+  if(!elapsed_ms || !launches)return;
+  // Job durations are normally bounded in seconds. Cap the conversion even
+  // if the supervisor did not regain a CPU promptly after the child exited.
+  const auto microseconds=(std::min)(elapsed_ms,std::uint64_t{UINT32_MAX})*1000;
+  const auto cost=(microseconds+launches-1)/launches;
+  microseconds_per_launch_=(std::max)(cost,microseconds_per_launch_-microseconds_per_launch_/8);
+}
+std::optional<std::uint32_t> NativeAnchorBatchTiming::launch_limit(std::uint32_t hard_timeout_ms) const noexcept {
+  if(!microseconds_per_launch_)return {};
+  // Leave one third of the hard deadline for contention and variability.
+  const auto available=std::uint64_t(hard_timeout_ms)*1000*2/3;
+  return static_cast<std::uint32_t>((std::min)(available/microseconds_per_launch_,std::uint64_t{UINT32_MAX}));
 }
 
 struct NativeAnchorSearchController::Impl {
   enum class Disposition {pending,yielded,expired};
+  struct TimingSample {
+    std::uint64_t elapsed_ms;
+    std::uint32_t launches;
+  };
   struct Flight {
     WorkerExchangeSession session;
     detail::AnchorMatchBatchRequest request;
@@ -164,6 +188,8 @@ struct NativeAnchorSearchController::Impl {
   std::vector<std::vector<NativePackedGroupCheck>> packed_checks;
   std::vector<NativeSharedBaseSearchReply> replies;
   NativeAnchorSearchStats stats;
+  NativeAnchorBatchTiming timing;
+  std::optional<TimingSample> packed_timing;
   std::uint64_t activity=0,next_launch=0,sequence=0,unobserved_ticket=0,packed_ticket=0;
   bool enabled=false,configuration_blocked=false,device_interrupted=false;
   explicit Impl(NativeAnchorSearchOptions configured):options(std::move(configured)) {
@@ -183,6 +209,7 @@ struct NativeAnchorSearchController::Impl {
   }
   void discard() noexcept {
     if(packed_ticket)(void)recovery.abandon(std::exchange(packed_ticket,0),true);
+    packed_timing.reset();
     replies.clear();
     windows.clear();
     std::vector<detail::AnchorMatchAdvice>{}.swap(advice);
@@ -226,17 +253,26 @@ struct NativeAnchorSearchController::Impl {
     if(outcome==GpuRecoveryOutcome::integrity_failure)++stats.integrity_failures;
     if(outcome!=GpuRecoveryOutcome::temporary_pressure)suspend(true,retired);
   }
+  void learn(TimingSample observed) noexcept {
+    if(!options.adaptive_batch_sizing || !observed.elapsed_ms || !observed.launches)return;
+    timing.record_verified(observed.elapsed_ms,observed.launches);
+    ++stats.verified_timing_samples;
+  }
 };
 NativeAnchorSearchController::NativeAnchorSearchController(NativeAnchorSearchOptions options)
     :impl_(std::make_unique<Impl>(std::move(options))) {}
 NativeAnchorSearchController::~NativeAnchorSearchController(){impl_->yield(Impl::Disposition::yielded);}
 std::size_t NativeAnchorSearchController::stage_grant(std::uint64_t now,std::size_t funded_extents) const noexcept {
   const auto& self=*impl_;
+  const auto& options=self.options;
   if(!self.enabled || self.flight || !self.windows.empty() || self.unobserved_ticket ||
       now<self.next_launch || funded_extents<2)return 0;
-  const auto grant=(std::min)({funded_extents-1,static_cast<std::size_t>(self.options.maximum_members),
+  if(options.adaptive_batch_sizing && self.timing.launch_limit(options.worker.timeout_ms)==0)return 0;
+  // Staging needs the full group to change its shared reference. Limit
+  // complete groups and launches when starting the worker.
+  const auto grant=(std::min)({funded_extents-1,static_cast<std::size_t>(options.maximum_members),
       static_cast<std::size_t>(detail::anchor_match_batch_member_limit())});
-  return grant>=self.options.minimum_members?grant:0;
+  return grant>=options.minimum_members?grant:0;
 }
 bool NativeAnchorSearchController::fits_group_budget(std::size_t admitted_members) const noexcept {
   if(admitted_members<2)return false;
@@ -257,13 +293,17 @@ void NativeAnchorSearchController::start(std::span<const NativeSharedBaseSearchW
     std::vector<std::uint32_t> counts;
     counts.reserve(windows.size());
     std::uint32_t total=0;
+    const auto launch_limit=options.adaptive_batch_sizing?self.timing.launch_limit(options.worker.timeout_ms):std::nullopt;
     for(const auto& window:windows) {
       const auto members=window.members().size();
-      if(!members || members>grant-total)return;
+      if(!members)return;
+      if(members>grant-total)break;
       const auto count=static_cast<std::uint32_t>(members);
       total+=count;counts.push_back(count);
+      if(options.adaptive_batch_sizing && !launch_limit && total>=options.minimum_members)break;
     }
     if(total<options.minimum_members || !self.check_device())return;
+    windows=windows.first(counts.size());
     const auto& route=options.route;
     const auto observed=query_windows_gpu_budget(route.memory.luid,route.memory.node_mask);
     const auto now=GetTickCount64();
@@ -280,7 +320,7 @@ void NativeAnchorSearchController::start(std::span<const NativeSharedBaseSearchW
     }
     const auto launch=plan_native_anchor_launch(counts,options,observed.snapshot,now,
         (options.prefer_reference || options.output==anchor_match::BatchOutput::reference_xor) &&
-        std::ranges::all_of(windows,&NativeSharedBaseSearchWindow::permits_reference_change));
+        std::ranges::all_of(windows,&NativeSharedBaseSearchWindow::permits_reference_change),launch_limit);
     if(!launch){defer();return;}
     if(self.sequence==(std::numeric_limits<std::uint64_t>::max)()){self.enabled=false;return;}
     const auto& [plan,transfer,capacity,budget,dispatches_per_wait]=*launch;
@@ -366,6 +406,12 @@ void NativeAnchorSearchController::observe(std::uint64_t activity,std::uint64_t 
     }
     self.pace(now,flight.started);
     flight.supervisor_exited=true;
+    self.stats.last_retirement_elapsed_ms=now>=flight.started?now-flight.started:0;
+    const auto* result=flight.session.try_result();
+    self.stats.last_exchange=result?std::optional(result->code):std::nullopt;
+    self.stats.last_worker_exit_code=result?result->process.exit_code:0;
+    self.stats.last_worker_elapsed_ms=result?result->process.elapsed_ms:0;
+    self.stats.last_publication_observed=result && result->publication_observed;
   }
   if(flight.disposition==Impl::Disposition::yielded) {
     (void)self.recovery.abandon(flight.ticket,true);
@@ -381,6 +427,7 @@ void NativeAnchorSearchController::observe(std::uint64_t activity,std::uint64_t 
     } else {
       if(opportunity!=NativeAnchorOpportunity::idle || foreground)return;
       try {
+        const Impl::TimingSample timing{result->process.elapsed_ms,flight.request.plan().launches};
         self.replies.reserve(self.windows.size());
         const auto output=flight.request.plan().output;
         if(!anchor_match::copy_output(output)) {
@@ -406,6 +453,7 @@ void NativeAnchorSearchController::observe(std::uint64_t activity,std::uint64_t 
           // Retirement is proven, but the recovery ticket still awaits the
           // byte verdicts from the exact members consuming this reply.
           self.packed_ticket=flight.ticket;
+          self.packed_timing=timing;
         } else {
           auto wire=std::span<const std::byte>(result->response);
           std::optional<HipPhaseTrace> phase;
@@ -419,7 +467,7 @@ void NativeAnchorSearchController::observe(std::uint64_t activity,std::uint64_t 
           if(self.advice.size()!=self.windows.size())throw std::invalid_argument("Incomplete verified anchor batch");
           for(std::size_t i=0;i<self.windows.size();++i)
             self.replies.push_back({self.windows[i],self.advice[i],{}});
-          (void)self.recovery.finish(flight.ticket,GpuRecoveryOutcome::accepted,true);
+          if(self.recovery.finish(flight.ticket,GpuRecoveryOutcome::accepted,true))self.learn(timing);
           ++self.stats.verified;
           self.stats.verified_groups+=self.windows.size();
           self.stats.copy_suggested_ranges=verification.suggested_ranges;
@@ -468,10 +516,12 @@ void NativeAnchorSearchController::settle_reply_checks() noexcept {
   const auto check=detail::inspect_anchor_packed_checks(self.replies);
   if(check.status==detail::AnchorPackedBatchStatus::pending)return;
   const auto ticket=std::exchange(self.packed_ticket,0);
+  const auto timing=std::exchange(self.packed_timing,std::nullopt);
   if(check.status==detail::AnchorPackedBatchStatus::verified &&
       self.recovery.finish(ticket,GpuRecoveryOutcome::accepted,true)) {
     ++self.stats.verified;
     self.stats.verified_groups+=check.verified_groups;
+    if(timing)self.learn(*timing);
     return;
   }
   if(check.status==detail::AnchorPackedBatchStatus::empty) {
@@ -494,6 +544,7 @@ bool NativeAnchorSearchController::rebind(HipDiscoveredRoute route) noexcept {
   if(!can_reacquire() || !self.valid_profile() || !valid_anchor_route(route) ||
       (self.configuration_blocked && route.identity==self.options.route.identity))return false;
   self.options.route=std::move(route);
+  self.timing=NativeAnchorBatchTiming{};
   self.configuration_blocked=false;
   self.enabled=true;
   return true;
@@ -516,6 +567,7 @@ bool NativeAnchorSearchController::stop() noexcept {
 NativeAnchorSearchStats NativeAnchorSearchController::stats() const noexcept {
   auto state=impl_->stats;
   state.retirement_confirmed=state.retirement_confirmed && !impl_->flight && !impl_->unobserved_ticket;
+  state.learned_launch_limit=impl_->timing.launch_limit(impl_->options.worker.timeout_ms);
   return state;
 }
 }

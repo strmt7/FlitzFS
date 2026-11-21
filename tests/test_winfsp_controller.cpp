@@ -132,6 +132,30 @@ void anchor_launch_budget() {
   const auto copy=plan_native_anchor_launch(members,reference_options,copy_headroom,copy_headroom.captured_ms,true);
   require(copy && copy->batch==widened->batch && copy->transfer==widened->transfer,
       "A larger reference reply displaced the funded copy batch");
+  NativeAnchorBatchTiming timing;
+  const auto timeout=reference_options.worker.timeout_ms;
+  require(!timing.launch_limit(timeout),"An unobserved route claimed a timing budget");
+  reference_options.output=Output::anchors;
+  reference_options.maximum_dispatch_members=4;
+  constexpr std::array<std::uint32_t,5> families{18,18,18,18,18};
+  const auto reference_full=plan_native_anchor_launch(families,reference_options,observed,observed.captured_ms,true);
+  require(reference_full && reference_full->batch.groups.size()==families.size() &&
+      reference_full->batch.output==Output::reference_xor,"Timing fixture did not offer the full reference batch");
+  timing.record_verified(4000,reference_full->batch.launches);
+  const auto margin=timing.launch_limit(timeout);
+  const auto prefix=plan_native_anchor_launch(families,reference_options,observed,observed.captured_ms,true,margin);
+  require(margin && prefix && prefix->batch.output==Output::reference_xor &&
+      prefix->batch.groups.size()<families.size() && prefix->batch.launches<=*margin &&
+      prefix->batch.reference_candidates>=2 && prefix->worker.timeout_ms==timeout,
+      "A measured launch bound failed to reserve a deadline margin for a whole reference prefix");
+  timing.record_verified(3000,17);
+  const auto slow=timing.launch_limit(timeout);
+  require(slow && *slow<*margin,"Slower verified work failed to shrink the launch grant");
+  timing.record_verified(100,17);
+  const auto recovered=timing.launch_limit(timeout);
+  require(recovered && *recovered>=*slow && *recovered<*margin &&
+      !plan_native_anchor_launch(families,reference_options,observed,observed.captured_ms,true,0),
+      "One fast sample bypassed the bound or zero paid work admitted a launch");
   options.maximum_dispatch_members=options.maximum_members+1;
   require(!plan_native_anchor_launch(members,options,observed,observed.captured_ms,false),
       "Wide copy exceeded the approved batch work");
@@ -1389,12 +1413,12 @@ void restrict_fixture_anchor_launch(std::span<const NativeSharedBaseSearchWindow
 }
 
 enum class BatchOverlapTrial {normal,partial,full_wait,full_advance};
-enum class BatchForegroundTrial {normal,cancel_active,read_after_retirement,edit_after_retirement};
+enum class BatchForegroundTrial {normal,cancel_active,read_after_retirement,edit_after_retirement,read_or_cpu};
 
 int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
     const std::filesystem::path& bank_path,std::uint64_t discovery_ns,IndexedBatchPattern pattern,
     bool limited_memory=false,BatchOverlapTrial overlap=BatchOverlapTrial::normal,
-    BatchForegroundTrial foreground=BatchForegroundTrial::normal) {
+    BatchForegroundTrial foreground=BatchForegroundTrial::normal,bool adaptive=false) {
   constexpr auto families=anchor_search_fixture::indexed_batch_families;
   const bool revision=revision_corpus(pattern);
   const bool shifted_bias=pattern==IndexedBatchPattern::shifted_bias;
@@ -1465,6 +1489,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   const auto maintenance_start=std::chrono::steady_clock::now();
   const NativeMaintenancePolicy policy;
   NativeGroupMaintenance maintenance(*session,policy);
+  if(options)options->adaptive_batch_sizing=adaptive;
   auto restricted=limited_memory?options:std::nullopt;
   std::size_t limited_groups=0;
   const bool full_trial=overlap==BatchOverlapTrial::full_wait || overlap==BatchOverlapTrial::full_advance;
@@ -1475,15 +1500,17 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   }
   std::unique_ptr<NativeAnchorSearchController> anchor;
   if(options)anchor=std::make_unique<NativeAnchorSearchController>(std::move(*options));
-  if(anchor && !revision && bank.empty() && !shifted_bias && !alternate_reference && !sparse_xor && !collective) {
+  if(anchor && !adaptive && !revision && bank.empty() && !shifted_bias && !alternate_reference && !sparse_xor && !collective) {
     const auto now=GetTickCount64();
     require(!anchor->stage_grant(now,members) && anchor->stage_grant(now,members+families+1)==members+families,
         "Wide route used a legacy cap or ignored its funded range");
   }
   NativeMaintenanceProgress progress;
-  bool cancelled=false,retired_reply_retained=false;
+  bool cancelled=false,retired_reply_retained=false,deadline_fallback=false;
   const bool edit_after_retirement=foreground==BatchForegroundTrial::edit_after_retirement;
-  const bool intervene_after_retirement=edit_after_retirement || foreground==BatchForegroundTrial::read_after_retirement;
+  const bool allow_cpu=foreground==BatchForegroundTrial::read_or_cpu;
+  const bool intervene_after_retirement=edit_after_retirement || allow_cpu ||
+      foreground==BatchForegroundTrial::read_after_retirement;
   std::uint64_t activity=1;
   std::uint64_t sequence=0,worker_ns=0,cpu_groups_before_gpu_reply=0,fully_submitted=0;
   std::uint64_t packed_payload_bytes=0,sampled_bias_members=0;
@@ -1540,7 +1567,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
       cancelled=true;
       continue; // Admit independent CPU work while the supervisor retires the worker.
     }
-    if(intervene_after_retirement && !retired_reply_retained) {
+    if(intervene_after_retirement && !retired_reply_retained && !deadline_fallback) {
       const auto terminal=anchor->wake_handle();
       require(terminal && WaitForSingleObject(terminal,8000)==WAIT_OBJECT_0 && WorkerExchangeSession::available(),
           "The retired reply fixture needs confirmed worker and supervisor exit");
@@ -1550,13 +1577,24 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
       session->cleanup(reader,false);session->close(reader);
       anchor->observe(++activity,GetTickCount64());
       const auto reserved=anchor->pending_prefix();
-      const bool retained=!reserved.empty() && std::ranges::equal(reserved,windows);
+      const auto expected=std::span(windows).first(adaptive?1:windows.size());
+      const bool retained=!reserved.empty() && std::ranges::equal(reserved,expected);
+      const auto observed=anchor->stats();
       std::cout<<"retired_reply_trial retained="<<retained<<" pending_groups="<<reserved.size()
-          <<" verified_before_idle="<<anchor->stats().verified
+          <<" verified_before_idle="<<observed.verified
+          <<" transport_status="<<(observed.last_exchange?static_cast<int>(*observed.last_exchange):-1)
+          <<" worker_exit_code="<<observed.last_worker_exit_code
+          <<" worker_elapsed_ms="<<observed.last_worker_elapsed_ms
+          <<" submitted_groups="<<observed.submitted_groups
+          <<" submitted_launches="<<observed.submitted_kernel_launches
+          <<" retirement_ms="<<observed.last_retirement_elapsed_ms
+          <<" publication_observed="<<observed.last_publication_observed
           <<" replies_before_idle="<<anchor->replies().size()<<std::endl;
-      require(retained && !anchor->waiting() && anchor->replies().empty() && !anchor->stats().verified,
+      deadline_fallback=allow_cpu && !retained && observed.last_exchange==WorkerExchangeCode::timed_out;
+      require((retained || (deadline_fallback && reserved.empty())) && !anchor->waiting() &&
+          anchor->replies().empty() && !observed.verified,
           "Foreground read discarded or prematurely collected the retired AMD reply");
-      retired_reply_retained=true;
+      retired_reply_retained=retained;
       if(edit_after_retirement) {
         anchor->observe(activity,GetTickCount64(),NativeAnchorOpportunity::idle);
         require(!anchor->replies().empty() && !anchor->replies().front().packed_bodies.empty() &&
@@ -1595,7 +1633,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
     },8000,"Multiwindow AMD worker did not retire");
     worker_ns+=elapsed_ns(started);
     if(modular || alternate_reference || sparse_xor || collective || reference_device)for(const auto& reply:anchor->replies()) {
-      if(revision && reply.packed_bodies.empty())continue; // Copy advice has no packed payload.
+      if((revision || adaptive) && reply.packed_bodies.empty())continue; // Copy advice has no packed payload.
       require(reply.packed_bodies.size()==reply.window.members().size(),"Unbound packed reply");
       for(std::size_t member=0;member<reply.packed_bodies.size();++member) {
         auto body=std::span<const std::byte>(reply.packed_bodies[member]);
@@ -1626,8 +1664,15 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
         progress.published_groups && !progress.advised_members_published,
         "Foreground cancellation did not settle through CPU grouping");
   if(foreground==BatchForegroundTrial::read_after_retirement)
-    require(retired_reply_retained && stats.verified && !stats.yielded && progress.advised_members_published,
+    require(retired_reply_retained && stats.verified && !stats.yielded &&
+        (adaptive || progress.advised_members_published),
         "Idle continuation failed to publish the preserved AMD advice");
+  if(deadline_fallback) {
+    require(stats.submitted==1 && !stats.verified && !stats.verified_timing_samples &&
+        !progress.advised_members_published && progress.published_groups==families,
+        "CPU grouping failed to complete the workload after a retired GPU deadline");
+    std::cout<<"deadline_fallback cpu_groups="<<progress.published_groups<<"\n";
+  }
   if(edit_after_retirement)
     require(retired_reply_retained && stats.submitted==1 && stats.reference_batches==1 &&
         progress.reselected_reference_groups+1==families && progress.advised_members_published,
@@ -1652,13 +1697,22 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
         <<" empty="<<stats.empty_xor_batches<<" published="<<progress.advised_members_published<<'\n';
     require(stats.submitted && (stats.verified || stats.empty_xor_batches || packed_payload_bytes),
         "Shifted-bias comparison lacked a completed AMD exchange");
-  } else if(anchor && !revision && !edit_after_retirement) {
+  } else if(anchor && !adaptive && !revision && !edit_after_retirement && !deadline_fallback) {
     require(stats.verified && progress.advised_members_published,"Large batch lost verified advice");
   }
-  if(anchor && !revision && bank.empty() && !modular && !dense_overflow && !collective && !edit_after_retirement)
+  if(anchor && !adaptive && !deadline_fallback && !revision && bank.empty() && !modular && !dense_overflow &&
+      !collective && !edit_after_retirement)
     require(stats.submitted==1 && stats.verified_groups==families &&
         (tile_reference || sparse_xor || progress.advised_members_published==members),
         "Related AMD work did not fill one verified multiwindow batch");
+  if(adaptive && !deadline_fallback) {
+    require(stats.submitted==1 && stats.verified_groups==1 && stats.verified_timing_samples==1 &&
+        stats.learned_launch_limit && progress.published_groups>=families,
+        "The first measured AMD batch failed to leave the other complete groups on the CPU");
+    std::cout<<"adaptive_batch measured_samples="<<stats.verified_timing_samples
+        <<" learned_launch_limit="<<*stats.learned_launch_limit<<" cpu_groups="
+        <<progress.published_groups-stats.verified_groups<<'\n';
+  }
   if(tile_reference || sparse_xor)
     require(progress.published_groups==families,"Packed XOR did not group the complete cohort");
   if(anchor && modular && !shifted_bias)
@@ -1666,9 +1720,9 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   if(collective_device)
     require(stats.submitted==1 && sparse_bodies && delta_bodies && stats.verified_groups==families,
         "The shared AMD exchange did not verify both codec choices");
-  if(!revision && (sparse_device || reference_device) && !edit_after_retirement)
+  if(!revision && (sparse_device || reference_device) && !edit_after_retirement && !deadline_fallback && !adaptive)
     require(sparse_bodies && stats.verified,"AMD sparse device advice was not independently accepted");
-  if(reference_device && full_reference && !edit_after_retirement)
+  if(reference_device && full_reference && !edit_after_retirement && !deadline_fallback && !adaptive)
     require(stats.reference_batches==1 && stats.reselected_groups==families && stats.verified_groups==families,
         "AMD full reference search did not verify each improved group");
   if(full_reference && !anchor)
@@ -1762,7 +1816,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   return 0;
 }
 
-int live_installed_retired_reply(BatchForegroundTrial foreground) {
+int live_installed_retired_reply(BatchForegroundTrial foreground,bool adaptive=false) {
   const auto profile=installed_anchor_profile();
   require(profile && profile->prefer_reference,"The retired reply fixture needs an installed reference profile");
   const auto begun=std::chrono::steady_clock::now();
@@ -1774,7 +1828,7 @@ int live_installed_retired_reply(BatchForegroundTrial foreground) {
       .maximum_members=profile->maximum_members,.duty_ppm=profile->duty_ppm,.output=profile->output,
       .maximum_dispatch_members=profile->maximum_dispatch_members,.dispatches_per_wait=profile->dispatches_per_wait,
       .prefer_reference=profile->prefer_reference}, {},discovery_ns,IndexedBatchPattern::xor_full_reference,
-      false,BatchOverlapTrial::normal,foreground);
+      false,BatchOverlapTrial::normal,foreground,adaptive);
 }
 
 int live_anchor_owner(int argc,char** argv) {
@@ -2847,6 +2901,12 @@ int main(int argc,char** argv){try {
   if(argc==1)anchor_launch_budget();
   if(argc==2 && std::string_view(argv[1])=="--live-installed-retired-reply")
     return live_installed_retired_reply(BatchForegroundTrial::read_after_retirement);
+  if(argc==2 && std::string_view(argv[1])=="--live-installed-adaptive-reply")
+    return live_installed_retired_reply(BatchForegroundTrial::read_after_retirement,true);
+  if(argc==2 && std::string_view(argv[1])=="--live-installed-retired-reply-or-cpu")
+    return live_installed_retired_reply(BatchForegroundTrial::read_or_cpu);
+  if(argc==2 && std::string_view(argv[1])=="--live-installed-adaptive-or-cpu")
+    return live_installed_retired_reply(BatchForegroundTrial::read_or_cpu,true);
   if(argc==2 && std::string_view(argv[1])=="--live-installed-retired-edit")
     return live_installed_retired_reply(BatchForegroundTrial::edit_after_retirement);
   if((argc==7 || ((argc==8 || argc==9) && multiwindow_pattern(argv[6]))) &&

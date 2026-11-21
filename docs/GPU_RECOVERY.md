@@ -196,3 +196,29 @@ remaining advice before another GPU launch. A correct body that loses the
 size comparison counts as verified. A batch with only empty slots, or one
 abandoned before all checks, can continue on CPU without recording GPU success.
 [Validation evidence](evidence/amd-packed-xor-verdicts-2026-11-19.json)
+
+## Measured AMD batch sizing
+
+The Windows anchor scheduler starts a newly bound route with the shortest
+prefix of complete search groups that meets the package minimum. This keeps
+whole-group reference selection available during calibration. A verified
+job contributes its measured worker elapsed time and exact kernel-launch
+count. The estimator reserves one third of the hard deadline and admits
+complete groups within the resulting launch allowance. A slower verified
+sample reduces the allowance immediately. Faster samples lower the estimated
+cost gradually. The existing memory, device, retirement, and duty checks
+still govern each request.
+
+The supervisor measures the child from resume through the process wait.
+The model uses successful completion followed by independent byte
+verification. Foreground observation of a retired reply can retain the
+batch while verification waits for an admitted idle opportunity. The
+unsubmitted groups can continue on CPU. A timed-out worker supplies no
+reply or timing sample and continues through the existing CPU fallback
+and device recovery policy.
+
+The measurement is local to an active route and starts fresh on rebind.
+Windows applies limits from the parent jobs in a process's job hierarchy.
+Treat guarded CPU-contention trials as correctness evidence for the tested
+envelope. [Microsoft Job Objects](https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects) ·
+[Windows AMD batch evidence](evidence/amd-measured-batch-sizing-2026-11-21.json)

@@ -35,6 +35,7 @@ struct ProcessResult {
   bool cancelled = false;
   bool exit_confirmed = false;
   std::size_t peak_committed_bytes = 0;
+  std::uint64_t elapsed_ms = 0;
 };
 // Run one trusted CPU helper inside a Windows Job Object. Creation-time job
 // assignment closes the create-then-assign orphan window. No handle inheritance,

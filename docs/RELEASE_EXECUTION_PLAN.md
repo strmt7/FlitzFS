@@ -324,6 +324,14 @@ multiple sessions and measure actual allocated bytes and write costs.
   usable for the other four groups, and all 15 files passed independent CPU
   readback. The read trial and its matched CPU control each settled at
   2,760,704 bytes. [Retired reply evidence](evidence/amd-retired-replies-2026-11-22.json)
+- The installed anchor scheduler starts with complete groups and learns
+  its launch allowance from independently verified exchanges. In a
+  constrained Windows trial, the worker reached its hard deadline before
+  publication and all five groups completed on CPU. The normal installed
+  route verified a device-selected reference and recovered all 23 files.
+  Compare warm and cold starts on mounted workloads and qualify recovery
+  with fresh device evidence after an actual runtime interruption.
+  [Measured batch evidence](evidence/amd-measured-batch-sizing-2026-11-21.json)
 - Measure automatic route selection for early ingestion and cold work
   separately. Use the CPU reference for forecast and fallback. Compare real
   public and controlled inputs across supported AMD classes and a CPU-only

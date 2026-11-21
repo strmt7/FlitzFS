@@ -4,6 +4,7 @@
 #include "hip_route_discovery.hpp"
 
 namespace flitzfs {
+enum class WorkerExchangeCode;
 
 // Supplied by an independently qualified package and workload profile.
 // The memory field is the measured fixed child allowance. Each launch also
@@ -19,6 +20,8 @@ struct NativeAnchorSearchOptions {
   std::uint32_t dispatches_per_wait=1;
   // Price alternate references only when the full batch can support them.
   bool prefer_reference=false;
+  // Fixed sizing is reserved for explicit hardware comparisons.
+  bool adaptive_batch_sizing=true;
 };
 
 struct NativeAnchorSearchStats {
@@ -32,6 +35,12 @@ struct NativeAnchorSearchStats {
   std::uint32_t queued_dispatches_per_wait=0,largest_dispatch_members=0;
   // Work for the most recent independently verified copy batch.
   std::uint64_t copy_suggested_ranges=0,copy_compared_ranges=0,copy_suggested_bytes=0,copy_compared_bytes=0;
+  std::optional<WorkerExchangeCode> last_exchange;
+  std::uint32_t last_worker_exit_code=0;
+  std::uint64_t last_retirement_elapsed_ms=0;
+  std::uint64_t last_worker_elapsed_ms=0,verified_timing_samples=0;
+  std::optional<std::uint32_t> learned_launch_limit;
+  bool last_publication_observed=false;
 };
 
 enum class NativeAnchorOpportunity {poll,foreground,idle};
