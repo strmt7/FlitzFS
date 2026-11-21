@@ -1,0 +1,334 @@
+{
+  "schema": 1,
+  "base_commit": "279be25d80d5826276c3e2491b46ad0fadaea8b4",
+  "base_tree": "d32aff1ca3ea7a6cdc72a54caa95406c5f02a186",
+  "candidate_code_patch_sha256": "625e9ff716346eeb48f7be116795ef19fca74aa274a26699938b5efe21548f20",
+  "candidate_source_blobs": {
+    "include/flitzfs/paged_store.hpp": "c737ae7723ce2b4918c4a6465649d4cca057ab44",
+    "src/indexed_coherence.cpp": "b7afa6ddc6c5f98e7118cfa21ce329892717dd5f",
+    "src/paged_store.cpp": "12022287ba346b81373b3e0d45c208da6e0b06aa",
+    "tests/test_native_group_maintenance.cpp": "532fe55f8c252d4703527683ab1fee9daa8d5075"
+  },
+  "navigation": {
+    "provider_version": "0.2.43",
+    "source_files": 5,
+    "actual_searches": 1,
+    "native_response_sha256": "7f9b23f84a854bae60c85a4da21a6a38191b17ad04d79e5288e38e9cdaa2bea8"
+  },
+  "research": {
+    "provider": "0.9.5+flitzzip.portable2",
+    "pages": [
+      {
+        "name": "rubik",
+        "url": "https://www.usenix.org/conference/fast26/presentation/huang",
+        "success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "failure_category": "",
+        "markdown_bytes": 10395,
+        "markdown_sha256": "b271b38f1feb88acd780ae11d756c7f3723fecb288cfe5e7803fed9c5d93767d",
+        "capture_sha256": "4f213be3c1505ff5bbd523f2ff3b6c73f92f23def4f7ec40743a9760685a2e0f"
+      },
+      {
+        "name": "compaction",
+        "url": "https://rocksdb.org/blog/2026/06/20/fifo-kv-ratio-compaction.html",
+        "success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "failure_category": "",
+        "markdown_bytes": 18737,
+        "markdown_sha256": "978a635c89f7e1d673ffc0837076d0fcc43296f60f45cb72785de8d8013bf8d4",
+        "capture_sha256": "e66031347f5b59e133c6ec67ace258aa7b3c41d658bba9e656d132aa26a27a14"
+      },
+      {
+        "name": "small-keys",
+        "url": "https://dl.acm.org/doi/10.1145/3778171",
+        "success": false,
+        "http_status": null,
+        "final_http_status": null,
+        "failure_category": "timeout",
+        "markdown_bytes": null,
+        "markdown_sha256": null,
+        "capture_sha256": "8aeaa3d4d400e5313adffd22742604726ef19054d13973cc858b3c8c2496e55a"
+      },
+      {
+        "name": "sqlite-format",
+        "url": "https://www.sqlite.org/fileformat.html",
+        "success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "failure_category": "",
+        "markdown_bytes": 94592,
+        "markdown_sha256": "14d7c665e199f70c4eb6cf4735053828a31a363fcb917a08617ea1fc5759bc92",
+        "capture_sha256": "5807d948855b735875c363b1e38af0404695679f344d3e93a0940307230a115c"
+      },
+      {
+        "name": "sqlite-pragma",
+        "url": "https://www.sqlite.org/pragma.html#pragma_page_size",
+        "success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "failure_category": "",
+        "markdown_bytes": 109971,
+        "markdown_sha256": "6aecb68449dbd759a3f04631c17264c375dd7f05eb6807c02a777066ad765283",
+        "capture_sha256": "315ae367f7d79f16f85025c1ee432a7c41a6b0bfb9cf9bfc2ced08e00faff981"
+      }
+    ],
+    "first_geometry_provider_attempt": {
+      "log_sha256": "c72b3655bb1001c100b02145e4a410433cb5a29e96feb389518b526fefbd9dda",
+      "exit_code": 1,
+      "peak_job_bytes": 916578304,
+      "process_tree_retired": true
+    }
+  },
+  "interleaved_catalog_build": {
+    "scope": "Synthetic keys and independently reopened rows. Catalog size and actual backing writes include padding and both commit records. Reads count both bank replicas. The independently constructed legacy control adds one bootstrap transaction.",
+    "baseline": {
+      "objects": 20481,
+      "height": 2,
+      "catalog_bytes": 127717376,
+      "catalog_write_bytes": 128774144,
+      "fingerprints": 16384,
+      "missing_queries": 28672,
+      "miss_page_reads": 113574,
+      "miss_read_bytes": 465199104,
+      "checked_positive_ranges": 4096,
+      "positive_read_bytes": 202784768,
+      "log_sha256": "148323adc2cdba110acf4c8438a40ec53912cda3930ed6c2376273bd66fbee27",
+      "exit_code": 0,
+      "peak_job_bytes": 422703104,
+      "process_tree_retired": true
+    },
+    "compact_width_only": {
+      "objects": 20481,
+      "height": 5,
+      "metadata_page_bytes": 1024,
+      "catalog_bytes": 81514496,
+      "catalog_write_bytes": 82571264,
+      "fingerprints": 16384,
+      "missing_queries": 28672,
+      "miss_page_reads": 279652,
+      "miss_read_bytes": 286363648,
+      "checked_positive_ranges": 4096,
+      "positive_read_bytes": 127184896,
+      "log_sha256": "56758465e91b410be99e44419c3f9c9716a303756dfa5cb4fef6b874e89e4400",
+      "exit_code": 0,
+      "peak_job_bytes": 281669632,
+      "process_tree_retired": true
+    },
+    "compact_leaf_runs": {
+      "objects": 20481,
+      "height": 4,
+      "metadata_page_bytes": 1024,
+      "catalog_bytes": 74977280,
+      "catalog_write_bytes": 76034048,
+      "fingerprints": 16384,
+      "missing_queries": 28672,
+      "miss_page_reads": 222784,
+      "miss_read_bytes": 228130816,
+      "checked_positive_ranges": 4096,
+      "positive_read_bytes": 102117376,
+      "log_sha256": "43f0be5009f69dd30c45d0495e31b8cc6f02231e9887f22acdde25f654b9b04d",
+      "exit_code": 0,
+      "peak_job_bytes": 296390656,
+      "process_tree_retired": true
+    },
+    "candidate": {
+      "objects": 20481,
+      "height": 4,
+      "metadata_page_bytes": 1024,
+      "catalog_bytes": 70545408,
+      "catalog_write_bytes": 71602176,
+      "fingerprints": 16384,
+      "missing_queries": 28672,
+      "miss_page_reads": 222798,
+      "miss_read_bytes": 228145152,
+      "checked_positive_ranges": 4096,
+      "positive_read_bytes": 102113280,
+      "log_sha256": "aaf6cbdc0a554dcae6823d10f9df0fd169afe8864e9c2b031a0758423bb52356",
+      "exit_code": 0,
+      "peak_job_bytes": 290230272,
+      "process_tree_retired": true
+    },
+    "legacy_control": {
+      "objects": 20481,
+      "height": 2,
+      "metadata_page_bytes": 4096,
+      "catalog_bytes": 127725568,
+      "catalog_write_bytes": 128790528,
+      "fingerprints": 16384,
+      "missing_queries": 28672,
+      "miss_page_reads": 113574,
+      "miss_read_bytes": 465199104,
+      "checked_positive_ranges": 4096,
+      "positive_read_bytes": 202784768,
+      "log_sha256": "a77e01f892905b9d81d16d0abe0a7a8de369bfbcd4ede36bbc444c9b43514085",
+      "exit_code": 0,
+      "peak_job_bytes": 429875200,
+      "process_tree_retired": true
+    },
+    "first_larger_fixture": {
+      "outcome": "RAM backing refused further writes at its original 64 MiB allocation",
+      "log_sha256": "13d29d0e7004cfe3a3c222e1c5bc3a97ee99dc38443557bf1b0321f5ed1710b1",
+      "exit_code": 1,
+      "peak_job_bytes": 225251328,
+      "process_tree_retired": true
+    },
+    "original_fixture_allowance_bytes": 67108864
+  },
+  "packed_catalog": {
+    "legacy_control": {
+      "objects": 20481,
+      "height": 2,
+      "metadata_page_bytes": 4096,
+      "catalog_bytes": 9326592,
+      "write_bytes": 9334784,
+      "all_bindings_rechecked": true
+    },
+    "candidate": {
+      "objects": 20481,
+      "height": 4,
+      "metadata_page_bytes": 1024,
+      "catalog_bytes": 9859072,
+      "write_bytes": 9867264,
+      "all_bindings_rechecked": true
+    }
+  },
+  "modeled_publication_cuts": [
+    {
+      "failure_unit_bytes": 4096,
+      "old_checkpoints": 568,
+      "new_checkpoints": 8
+    },
+    {
+      "failure_unit_bytes": 65536,
+      "old_checkpoints": 664,
+      "new_checkpoints": 8
+    }
+  ],
+  "automatic_catalog_compaction": {
+    "old_bytes": 159744,
+    "new_bytes": 143360,
+    "stale_alternate_removed": 1,
+    "live_primary_preserved": 1
+  },
+  "windows_host_build": 26300,
+  "windows_matrix": {
+    "release": {
+      "passed_groups": 202,
+      "log_sha256": "f11395ddbbdb9b7fb153252d3a23af59e60f19b1b29f514e0bec4f38181c26ea",
+      "exit_code": 0,
+      "peak_job_bytes": 336904192,
+      "process_tree_retired": true
+    },
+    "raw_focused": {
+      "passed_groups": 4,
+      "log_sha256": "39397d9dad64069fcd1ec374baacc18c4f0731932deeaa4bcae3beccce83d9bf",
+      "exit_code": 0,
+      "peak_job_bytes": 166064128,
+      "process_tree_retired": true
+    },
+    "asan_focused_including_runtime_preflight": {
+      "passed_groups": 5,
+      "log_sha256": "c2de17b729e3be1cee17bdbcb6bfbd1e5df3b309d44ab83c7a99816a00bdf84c",
+      "exit_code": 0,
+      "peak_job_bytes": 784457728,
+      "process_tree_retired": true
+    }
+  },
+  "public_cpu_callback_controls": {
+    "scope": "Fixed corpus comparisons of file images and backing-read counters",
+    "prior_controller_sha256": "4c526e83f9e0ed47b69c9d74a5e1a8bdf6eeabde300ba8232e2d048cea009d2b",
+    "candidate_controller_sha256": "153666a62c2882c10f465ffa5c96bb47f4e9cd08b49897d5277bff64b901585e",
+    "cohorts": [
+      {
+        "repository": "actions/starter-workflows",
+        "source_commit": "e3c451d60f119b71caebf13c98ac45da6e15b4b7",
+        "bank_sha256": "948c0362d2329885fa23ef0f63b08451bd50d453250dd7ded0e38a428967e843",
+        "input_blake3": "e615cc2b37d918065eb20a43fdee472d5ff911aef624127dfd7a354fb0711913",
+        "files": 16,
+        "groups": 1,
+        "input_compacted_bytes": 180224,
+        "grouped_compacted_bytes": 172032,
+        "independent_cpu_readback": true,
+        "before": {
+          "log_sha256": "e0ff166cf4847a9d2e3be8322b16d02c5e66bdb3aac0a522d9df5766e75c7742",
+          "exit_code": 0,
+          "peak_job_bytes": 8675328,
+          "process_tree_retired": true
+        },
+        "after": {
+          "log_sha256": "e471855abb25769a5116956d6e90a8b351b47cf0fb79a31537c209c74c3fac31",
+          "exit_code": 0,
+          "peak_job_bytes": 8687616,
+          "process_tree_retired": true
+        }
+      },
+      {
+        "repository": "lucide-icons/lucide",
+        "source_commit": "d79f7054831776702c2f0e6b795069750f0a4f28",
+        "bank_sha256": "e24f2e9dbd6a4b85e0e8b44c12208772744b28a660fd96780df74cfe30555912",
+        "input_blake3": "4371391709ab54422f78e2cd81c7d8287b9563c90bb00d9a784bcd7c3427893a",
+        "files": 40,
+        "groups": 1,
+        "input_compacted_bytes": 204800,
+        "grouped_compacted_bytes": 196608,
+        "independent_cpu_readback": true,
+        "before": {
+          "log_sha256": "4b2f63179fd2173d28e0c48cdd38f7160ed136f5a19f448c4a67ca9c3e0958ce",
+          "exit_code": 0,
+          "peak_job_bytes": 12566528,
+          "process_tree_retired": true
+        },
+        "after": {
+          "log_sha256": "d23d68f221e59600db108047a59c8baf56b9d1a61fd0a5ab2d901d29844dd06d",
+          "exit_code": 0,
+          "peak_job_bytes": 12427264,
+          "process_tree_retired": true
+        }
+      },
+      {
+        "repository": "llvm/llvm-project",
+        "source_commit": "9ac5159b3c46929ba4e42e876b05e95199ba3b74",
+        "bank_sha256": "2f2d61010173890092f2160b7e08bbfe1156a749ef31918e9951f23b40a7c8f7",
+        "input_blake3": "1477d4bd9db5040b77ff418b4dabcec8638228bf120eed36b61618c77a64fc19",
+        "files": 16,
+        "groups": 1,
+        "input_compacted_bytes": 212992,
+        "grouped_compacted_bytes": 204800,
+        "independent_cpu_readback": true,
+        "before": {
+          "log_sha256": "6d3f6a668a8e14e67b8dff0236a1b9a0e3eee604f04d220aaaab12f647b5c594",
+          "exit_code": 0,
+          "peak_job_bytes": 8798208,
+          "process_tree_retired": true
+        },
+        "after": {
+          "log_sha256": "e529075fac7ed3340a3f5d6528f9eef1897a3afcd1d36cd0127158c8ae64bfe4",
+          "exit_code": 0,
+          "peak_job_bytes": 9469952,
+          "process_tree_retired": true
+        }
+      }
+    ]
+  },
+  "live_amd_callback_regression": {
+    "files": 15,
+    "groups": 5,
+    "advised_members": 90,
+    "submitted_kernel_launches": 85,
+    "verified_batches": 1,
+    "independent_cpu_readback": true,
+    "mounted": false,
+    "package_manifest_sha256": "06c55f3e68db91317b6897c88e6aba3658bc2ddb2e8312da6fbf080a88dffe84",
+    "log_sha256": "a9e22408b7c4020b81bda66e2026d15f5ce80f46a1395a09ab9ec668517affff",
+    "exit_code": 0,
+    "peak_job_bytes": 155799552,
+    "process_tree_retired": true
+  },
+  "open_qualification": [
+    "Automatic reclamation within the original large reservation and backing-space cost of retaining the old catalog.",
+    "Packed metadata space and extra positional read calls on persistent media.",
+    "End-to-end mounted AMD and physical power-loss qualification."
+  ]
+}

@@ -34,6 +34,7 @@ struct PagedStoreInfo {
   std::uint32_t height=0;
   bool degraded_roots=false,degraded_metadata=false;
   bool mirrored_payloads=false,degraded_payloads=false;
+  std::uint32_t metadata_page_bytes=0;
 };
 struct PagedStoreWriteResult {
   PagedStoreInfo storage;
@@ -188,7 +189,7 @@ class PagedObjectStoreWriter final {
   static PagedObjectStoreWriter create_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,
       PagedStoreLimits,StoreCompressionOptions,bool mirrored,std::span<const StoreMutation> initial={},
       std::uint64_t maximum_write_bytes=UINT64_MAX,
-      const std::function<bool(std::uint64_t)>& reserve_writes={});
+      const std::function<bool(std::uint64_t)>& reserve_writes={},bool compact_metadata=false);
   struct RebuildColdEncoding {
     std::uint64_t after_generation,first_object,past_last_object;
     std::function<bool(std::uint64_t)> reserve_writes;

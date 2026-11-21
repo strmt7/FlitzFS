@@ -6,6 +6,16 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "indexed_coherence_compact_pages": {
+    "reviewed_commit": "279be25d80d5826276c3e2491b46ad0fadaea8b4",
+    "measured_on": "2026-11-21",
+    "evidence": "docs/evidence/indexed-coherence-compact-pages-2026-11-21.json",
+    "fingerprints": 16384,
+    "legacy_and_compact_append_writes_bytes": [128774144, 71602176],
+    "legacy_and_compact_append_footprint_bytes": [127717376, 70545408],
+    "legacy_and_compact_packed_footprint_bytes": [9326592, 9859072],
+    "follow_up": "Qualify space reclamation within the original reservation and compare dense packing with the small-page update path on the persistent provider."
+  },
   "indexed_coherence_range_reads": {
     "reviewed_commit": "6b75f3af19b124bedf585a1096f609e561c65b7b",
     "measured_on": "2026-11-21",

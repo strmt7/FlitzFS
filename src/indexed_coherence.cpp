@@ -283,7 +283,7 @@ IndexedCoherenceWriter IndexedCoherenceWriter::create_reserved(std::shared_ptr<S
   auto store=publish_plan(plan_postings(postings,nullptr,{}),volume,image,{},true,reserve,
       [&](std::span<const StoreMutation> mutations,const auto& charge) {
         return PagedObjectStoreWriter::create_impl(backing,volume,limits,raw_storage,false,
-            mutations,maximum_write_bytes,charge);
+            mutations,maximum_write_bytes,charge,true);
       });
   return IndexedCoherenceWriter(std::move(store),volume,image);
 }

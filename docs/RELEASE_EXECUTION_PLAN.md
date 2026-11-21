@@ -365,6 +365,14 @@ multiple sessions and measure actual allocated bytes and write costs.
   Test retained-reader overlap and restart on the persistent catalog provider
   before increasing the scan envelope.
   [Sparse catalog evidence](evidence/indexed-coherence-range-reads-2026-11-21.json)
+- Compact index pages and coalesced sibling writes reduced the interleaved
+  16,384-fingerprint build from 121.8 MiB to 67.3 MiB. Backing writes fell
+  from 122.8 MiB to 68.3 MiB. The compacted catalog uses 520 KiB more than the
+  packed 4 KiB control. Miss traffic is lower in bytes and higher in read calls.
+  Price a dense compacted layout alongside a small-page update path using
+  total space, retained readers, write cost and real storage access. Run
+  automatic compaction under the original reservation before widening it.
+  [Compact catalog evidence](evidence/indexed-coherence-compact-pages-2026-11-21.json)
 - Use training and held-out sets chosen before the evaluation. Test close
   revisions, unrelated files, small text, SVG, tabular and numeric data,
   binaries, media and already compressed files. Include nonsynthetic

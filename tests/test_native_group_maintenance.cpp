@@ -2028,50 +2028,89 @@ void indexed_catalog_alternate_publication() {
       !view.next_alternate(0,fingerprint+1),"sparse alternate lookup missed its paged range");
   rejects([&]{(void)view.next_alternate(0,fingerprint+1,cursor);},"foreign alternate cursor accepted");
 
-  auto previous_backing=ram(4096);
-  auto previous=make_writer(previous_backing);
   const auto first=std::span(postings).first(1);
-  previous.publish(first,UINT64_MAX);
-  const auto generation=previous.snapshot().info().generation;
-  const auto durable=previous_backing->stable;
-  const auto publisher=[&](const auto& target) {
-    return IndexedCoherenceWriter::resume(target,id(90),id(1),generation,limits);
-  };
-  auto exact=image(durable,4096);
-  auto promotion=publisher(exact);
-  const auto promotion_start=exact->calls;
-  promotion.publish(latest,UINT64_MAX);
-  const auto promotion_calls=exact->calls-promotion_start;
-  require(promotion_calls>=3,"catalog promotion fixture missed publication barriers");
-  std::size_t old_survives=0,new_survives=0;
-  for(const unsigned failure:{0U,1U})for(std::size_t cut=0;cut<promotion_calls;++cut) {
-    auto crash=image(durable,4096);
-    auto trial=publisher(crash);
-    crash->fail_at=crash->calls+cut;crash->failure=failure;
-    rejects([&]{trial.publish(latest,UINT64_MAX);},"catalog promotion ignored the publication cut");
-    const auto recovered=IndexedCoherenceSnapshot::open(image(crash->stable,4096),id(90),id(1),limits);
-    const auto alternate=recovered.next_alternate(0,fingerprint);
-    if(recovered.has_alternates()) {
-      require(recovered.find(0,fingerprint)==latest.front().representative &&
-          alternate && alternate->representative==first.front().representative,
-          "new catalog root exposed an incomplete upgrade");
-      ++new_survives;
-    }else {
-      require(recovered.find(0,fingerprint)==first.front().representative && !alternate,
-          "previous catalog root exposed alternate data");
-      ++old_survives;
+  std::vector<IndexedCoherencePosting> initial{first.front()},changed{latest.front()},
+      prior_bindings{first.front()};
+  for(unsigned i=1;i<=144;++i) {
+    auto old=postings[i%postings.size()];
+    old.representative.inode=1024+i;
+    old.representative.object=detail::kNativeIndexedDataObject+1024+i;
+    old.representative.revision=1024+i;
+    old.representative.bands[0]=fingerprint+2*i;
+    initial.push_back(old);
+    if(i%4==0) {
+      prior_bindings.push_back(old);
+      old.representative.inode+=1024;
+      old.representative.object+=1024;
+      old.representative.revision+=1024;
+      changed.push_back(old);
     }
   }
-  require(old_survives && new_survives,"catalog fault matrix missed either complete checkpoint");
+  for(const auto unit:{4096U,65536U}) {
+    auto previous_backing=ram(unit);
+    auto previous=make_writer(previous_backing);
+    const auto source=previous.publish(initial,UINT64_MAX).storage;
+    require(source.height>=2,"catalog interruption fixture did not span multiple branch levels");
+    const auto durable=previous_backing->stable;
+    const auto publisher=[&](const auto& target) {
+      return IndexedCoherenceWriter::resume(target,id(90),id(1),source.generation,limits);
+    };
+    auto exact=image(durable,unit);
+    auto promotion=publisher(exact);
+    const auto promotion_start=exact->calls;
+    promotion.publish(changed,UINT64_MAX);
+    const auto promotion_calls=exact->calls-promotion_start;
+    require(promotion_calls>=3,"catalog promotion fixture missed publication barriers");
+    std::size_t old_survives=0,new_survives=0;
+    for(const unsigned failure:{0U,1U,2U})for(std::size_t cut=0;cut<promotion_calls;++cut) {
+      auto crash=image(durable,unit);
+      auto trial=publisher(crash);
+      crash->fail_at=crash->calls+cut;crash->failure=failure;
+      rejects([&]{trial.publish(changed,UINT64_MAX);},"catalog promotion ignored the publication cut");
+      const auto recovered=IndexedCoherenceSnapshot::open(image(crash->stable,unit),id(90),id(1),limits);
+      const bool updated=recovered.has_alternates();
+      const auto& expected=updated?changed:prior_bindings;
+      require(recovered.info().metadata_page_bytes==1024 && recovered.info().height>=2 &&
+          recovered.find(0,initial[1].representative.bands[0])==initial[1].representative,
+          "recovered catalog lost unchanged geometry or bindings");
+      for(std::size_t i=0;i<expected.size();++i) {
+        const auto key=expected[i].representative.bands[0];
+        const auto alternate=recovered.next_alternate(0,key);
+        require(recovered.find(0,key)==expected[i].representative &&
+            (updated?(alternate && alternate->representative==prior_bindings[i].representative):!alternate),
+            "catalog root exposed a partial batch across changed pages");
+      }
+      if(updated)++new_survives;
+      else ++old_survives;
+    }
+    require(old_survives && new_survives,"catalog fault matrix missed either complete checkpoint");
+    std::cout<<"coherence_metadata_cuts failure_unit_bytes="<<unit<<" old_checkpoints="<<old_survives
+        <<" new_checkpoints="<<new_survives<<'\n';
+  }
   std::cout<<"coherence_alternate_publication offered="<<postings.size()<<" retained_alternates="<<locations.size()
-      <<" primary_write_bound="<<primary_budget<<" full_write_bound="<<full.write_bytes_upper_bound
-      <<" old_checkpoints="<<old_survives<<" new_checkpoints="<<new_survives<<'\n';
+      <<" primary_write_bound="<<primary_budget<<" full_write_bound="<<full.write_bytes_upper_bound<<'\n';
 }
-void indexed_catalog_sparse_range_reads() {
-  constexpr unsigned fingerprint_count=4096, groups_per_batch=128;
+IndexedCoherenceWriter legacy_coherence_catalog(const std::shared_ptr<Ram>& backing,PagedStoreLimits limits) {
+  Bytes typed_root(32);
+  const std::string_view signature="FLTZCOR1";
+  const auto marker=std::as_bytes(std::span(signature));
+  std::ranges::copy(marker,typed_root.begin());
+  const auto image_id=id(1);
+  std::ranges::copy(image_id,typed_root.begin()+8);
+  typed_root[24]=std::byte{1};
+  const auto generation=[&] {
+    auto writer=PagedObjectStoreWriter::create(backing,id(90),limits,{StoreCompressionMode::raw,1,false});
+    const StoreMutation root{1,false,std::move(typed_root)};
+    return writer.commit(std::span(&root,1)).generation;
+  }();
+  return IndexedCoherenceWriter::resume(backing,id(90),image_id,generation,limits);
+}
+void indexed_catalog_sparse_range_reads(unsigned fingerprint_count=4096,
+    PagedStoreLimits limits={64*1024*1024},bool legacy=false) {
+  constexpr unsigned groups_per_batch=128;
   constexpr std::uint64_t fingerprint_base=0xd49bd1a5de10aceeULL;
-  constexpr PagedStoreLimits limits{64*1024*1024};
   const auto backing=ram(4096);
+  backing->capacity=limits.maximum_physical_bytes;
   const auto feature=[](unsigned group,bool latest) {
     const auto index=group*2+static_cast<unsigned>(latest);
     OptimizationGroupFeature member{2+index,0,detail::kNativeIndexedDataObject+1+index,1+index,
@@ -2080,7 +2119,8 @@ void indexed_catalog_sparse_range_reads() {
     return member;
   };
   {
-    auto writer=IndexedCoherenceWriter::create(backing,id(90),id(1),limits);
+    auto writer=legacy?legacy_coherence_catalog(backing,limits):
+        IndexedCoherenceWriter::create(backing,id(90),id(1),limits);
     std::optional<IndexedCoherenceSnapshot> earlier;
     std::vector<IndexedCoherencePosting> postings;
     postings.reserve(2*groups_per_batch);
@@ -2090,7 +2130,10 @@ void indexed_catalog_sparse_range_reads() {
         if(group%4==0)postings.push_back({0,feature(group,false)});
         postings.push_back({0,feature(group,true)});
       }
-      (void)writer.publish(postings,UINT64_MAX);
+      const auto before=backing->write_bytes;
+      const auto update=writer.publish(postings,UINT64_MAX);
+      require(update.write_bytes_upper_bound==backing->write_bytes-before,
+          "catalog charge did not account for every byte written");
       if(!start)earlier.emplace(writer.snapshot());
     }
     const auto last_group=fingerprint_count-4;
@@ -2107,11 +2150,12 @@ void indexed_catalog_sparse_range_reads() {
   const auto view=IndexedCoherenceSnapshot::open(persisted,id(90),id(1),limits);
   const auto info=view.info();
   require(view.has_alternates() && info.height>=2 &&
-      info.objects==1+fingerprint_count+fingerprint_count/4,"catalog fixture did not span multiple branch pages");
+      info.objects==1+fingerprint_count+fingerprint_count/4 && info.metadata_page_bytes==(legacy?4096U:1024U),
+      "catalog fixture did not reopen the expected geometry");
 
   const auto initial_reads=persisted->read_calls;
   const auto initial_bytes=persisted->read_bytes;
-  constexpr auto missing_queries=fingerprint_count+3*fingerprint_count/4;
+  const auto missing_queries=fingerprint_count+3*fingerprint_count/4;
   for(unsigned group=0;group<fingerprint_count;++group) {
     const auto key=fingerprint_base+2*group;
     require(!view.next_alternate(0,key+1),"unpopulated prefix resolved to a neighboring posting");
@@ -2129,12 +2173,35 @@ void indexed_catalog_sparse_range_reads() {
   }
   const auto positive_bytes=persisted->read_bytes-positive_start;
   std::cout<<"coherence_sparse_ranges objects="<<info.objects<<" height="<<info.height
-      <<" catalog_bytes="<<info.physical_end<<" missing_queries="<<missing_queries
+      <<" metadata_page_bytes="<<info.metadata_page_bytes
+      <<" catalog_bytes="<<info.physical_end<<" catalog_write_bytes="<<backing->write_bytes
+      <<" fingerprints="<<fingerprint_count<<" missing_queries="<<missing_queries
       <<" miss_page_reads="<<miss_reads<<" miss_read_bytes="<<miss_bytes
       <<" checked_positive_ranges="<<fingerprint_count/4<<" positive_read_bytes="<<positive_bytes<<'\n';
   const auto descendant_reads=2*static_cast<std::uint64_t>(missing_queries)*info.height;
-  require(!persisted->writes && miss_bytes==miss_reads*4096 && miss_reads<descendant_reads,
+  require(!persisted->writes && miss_bytes==miss_reads*info.metadata_page_bytes && miss_reads<descendant_reads,
       "empty alternate ranges reread the verified root or followed unrelated leaves");
+
+  if(fingerprint_count>4096) {
+    auto target=ram(4096);
+    const auto source=PagedObjectStoreSnapshot::open(persisted,limits);
+    const auto packed=PagedObjectStoreWriter::rebuild(source,target,id(91),limits,{StoreCompressionMode::raw,1,false});
+    const auto checked=IndexedCoherenceSnapshot::open(target,id(91),id(1),limits);
+    require(checked.info().objects==info.objects && checked.info().metadata_page_bytes==info.metadata_page_bytes &&
+        checked.info().physical_end==target->extent() && !packed.poisoned(),
+        "catalog packing changed the index inventory or geometry");
+    for(unsigned group=0;group<fingerprint_count;++group) {
+      const auto key=fingerprint_base+2*group;
+      require(checked.find(0,key)==feature(group,true),"packed catalog lost its latest binding");
+      if(group%4==0) {
+        const auto alternate=checked.next_alternate(0,key);
+        require(alternate && alternate->representative==feature(group,false),"packed catalog lost its older binding");
+      }
+    }
+    std::cout<<"coherence_packed_catalog objects="<<checked.info().objects
+        <<" height="<<checked.info().height<<" metadata_page_bytes="<<checked.info().metadata_page_bytes
+        <<" catalog_bytes="<<target->extent()<<" write_bytes="<<target->write_bytes<<'\n';
+  }
 }
 enum class ModularCatalogCase {available,masked_only,stale};
 void indexed_modular_catalog_discovery(ModularCatalogCase scenario) {
@@ -2579,6 +2646,10 @@ int main(int argc,char** argv){try{
     compact_full_indexed_catalog(CoherenceCopyOutcome::completed,0,true);
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-coherence-ranges") {
     indexed_catalog_sparse_range_reads();
+  } else if(argc==2 && std::string_view(argv[1])=="--profile-coherence-ingestion") {
+    indexed_catalog_sparse_range_reads(16384,{256*1024*1024});
+  } else if(argc==2 && std::string_view(argv[1])=="--profile-coherence-ingestion-legacy") {
+    indexed_catalog_sparse_range_reads(16384,{256*1024*1024},true);
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-projected-coherence") {
     for(const auto scenario:{ModularCatalogCase::available,ModularCatalogCase::masked_only,ModularCatalogCase::stale})
       indexed_modular_catalog_discovery(scenario);

@@ -134,7 +134,7 @@ records begin at 131,072. Root magic is `FLTXPG01`, capability field 1:
 | 8, 12 | 4 each | Capability, parity slot |
 | 16, 24, 32 | 8 each | Publication generation, checkpoint generation, sealed end |
 | 40 | 16 | Image identity |
-| 56, 60 | 4 each | Metadata isolation unit, page size (4,096) |
+| 56, 60 | 4 each | Metadata isolation unit, index page size |
 | 64 | 112 | Root-page reference |
 | 176 | 3,888 | Zero |
 | 4,064 | 32 | Digest of preceding root bytes |
@@ -152,6 +152,31 @@ lengths (uint32), stored-record digest (32 bytes). Branches contain references.
 Unused bytes are zero. Object records use the existing 128-byte `FLTXDAT1`
 header and independent CPU raw/zero/pattern/optional Zstd/LZ4 codec contracts.
 
+### Compact coherence catalog pages
+
+New coherence catalogs have 1,024-byte index pages under capability 1.
+Existing 4,096-byte catalogs keep their geometry when reopened, appended or
+rebuilt. The standalone store and file-data images create 4,096-byte index
+pages. Both catalog geometries use 4,096-byte commit records, with offset 60
+identifying the index page size. Both intact commit records must agree on it.
+
+The compact tree uses the same page header, leaf descriptors and full digest.
+Each 88-byte branch reference contains first key, last key, object count,
+decoded bytes, stored bytes, primary offset and generation, in that order, as
+seven uint64 values. Bytes 56–87 hold the full page digest. The reader derives
+the peer offset from the primary offset plus the isolation unit and the child
+height from the parent height minus one. The root-page reference in the
+commit record retains its 112-byte layout. The reader verifies the resulting
+references and the complete metadata checksums.
+
+During a compact-tree update, consecutive siblings that already need
+replacement contribute their entries or child references to one run. The
+writer splits the run into pages before assigning its addresses. Unaffected
+siblings retain their original checked references. Work is bounded by the
+admitted transaction and one sibling run at each depth. A commit seals its
+new banks before replacing the root pair, which keeps old snapshots readable.
+[Measured catalog costs](evidence/indexed-coherence-compact-pages-2026-11-21.json)
+
 ## Publication and recovery
 
 The qualified backend failure unit must be a supported power of two in
@@ -163,8 +188,8 @@ Metadata copies occupy different isolation units. For a unit larger than a page,
 the allocator packs pages into a primary unit and their peers into the following
 unit. A transaction seals both units; later writes never reuse acknowledged
 padding. This avoids spending two entire large failure units per page during
-ordinary path updates. Streaming rebuild currently seals a pair per completed
-page; improving this packing is open work and must include complete-size costs.
+ordinary path updates. Streaming rebuild packs consecutive pages into the same
+paired banks and seals the suffix when its target tree is complete.
 Page writes initialize only alignment gaps and the unused suffix of the final
 replica banks with zeros. Complete page buffers initialize their own ranges.
 This avoids duplicate backing writes without changing page placement, the on-image

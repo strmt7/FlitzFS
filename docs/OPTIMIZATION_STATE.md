@@ -398,6 +398,12 @@ In schema 4, byte 25 records the highest admitted primary schema, from 1 to
 promotion share one funded copy-on-write transaction. The catalog can be
 rebuilt independently of the file-data image, which retains its existing format.
 
+New catalog backings use 1 KiB index pages within the existing paired failure
+units. The catalog snapshot selects the page geometry from its verified
+commit record. Existing 4 KiB catalogs remain independently readable and
+writable. The two geometries share the typed posting and root schemas above.
+[Compact page format](PAGED_OBJECT_STORE.md#compact-coherence-catalog-pages)
+
 The first 16 bytes of each posting contain the signature at offset 0, the
 band ordinal at byte 8, and seven reserved zero bytes.
 
