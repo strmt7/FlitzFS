@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "base_commit": "7f2c688728a8c9e37fc555ceeecd8f3b7761ac9f",
+  "candidate_code_patch_sha256": "274af4c3ef7812773016d8a840ecce41a3b1d7fe7ca1a705efb73df1c5663aad",
+  "candidate_source_blobs": {
+    "CMakeLists.txt": "ba9d66e9f4920dad4a9f598d23f50f3a53c160a6",
+    "include/flitzfs/native_session.hpp": "fd0bbf3b5e329398fbf98d1285e0af068dfc1249",
+    "include/flitzfs/native_volume_file.hpp": "680fbd5f9b2c4660cbba3eaab8b0674be588fabb",
+    "include/flitzfs/volume_head.hpp": "a24dcd3ffa3ca98d20dadf519d0ad9d816fdf80e",
+    "src/native_session.cpp": "9845950dc945ebb0eac382b3652cd0fbf0c58462",
+    "src/native_volume_file.cpp": "1fc29e6574a4ef5ee896c6220993fe227eaae71d",
+    "src/native_volume_file_reclaimer.hpp": "7f1ee2ff4c33fe7162dfe8a34a3a08976c4ebfc7",
+    "src/volume_head.cpp": "e19a5783366b1627ca6f2a5c37198dbd5af15a54",
+    "tests/test_native_volume_file.cpp": "fbfd39e4fc125a2e7568b503c0c7d2b92bea3dfa"
+  },
+  "model": "Windows in-memory sparse volume model with independent stable bytes and allocation map",
+  "managed_catalog_fixture": {
+    "exit_code": 0,
+    "peak_process_tree_bytes": 317886464,
+    "tree_retired": true,
+    "log_sha256": "e9ce9c5ed9d647d0130362b6c80e89af5c9b258b9a940374886e509b11172f9b",
+    "prior_catalog_bytes": 507904,
+    "replacement_catalog_bytes": 143360,
+    "checks": {
+      "preselection_reopen": true,
+      "postselection_reopen": true,
+      "staged_pin_preserved": true,
+      "torn_selector_repair": true,
+      "reused_slot": true,
+      "independent_data_rotation": true
+    }
+  },
+  "windows_release": {
+    "exit_code": 0,
+    "peak_process_tree_bytes": 404279296,
+    "tree_retired": true,
+    "log_sha256": "fba6a5310de62b367188c1a1ab37386b46fc974dcd472030d3234894c31f5a3a",
+    "passed_tests": 203
+  },
+  "windows_raw": {
+    "exit_code": 0,
+    "peak_process_tree_bytes": 317149184,
+    "tree_retired": true,
+    "log_sha256": "44ef2d959a1fb92bf2c9fa782eda73931f808f42b0c02c7eea1b794dde5a45b3",
+    "passed_tests": 2
+  },
+  "windows_address_sanitizer": {
+    "exit_code": 0,
+    "peak_process_tree_bytes": 754204672,
+    "tree_retired": true,
+    "log_sha256": "efc1f0da15bff71a5ddf781680e0549aaad741502755b89c2a4d76385e56e62c",
+    "passed_tests": 3,
+    "runtime_preflight": true
+  },
+  "amd_live_regression": {
+    "exit_code": 0,
+    "peak_process_tree_bytes": 156594176,
+    "tree_retired": true,
+    "log_sha256": "b698a6edd5a3bd88b89c3f2ce8872fda2d67c8cb23121c382e7ab182724a2193",
+    "kernel_launches": 85,
+    "independent_cpu_readback": true
+  },
+  "amd_concurrent_attempt": {
+    "exit_code": 1,
+    "peak_process_tree_bytes": 156438528,
+    "tree_retired": true,
+    "log_sha256": "f68577bff80e9ab84fac94c4c8cce694d03062cdc426ae647da73deaefd0b7e9",
+    "observation": "GPU reply-retention assertion failed after byte-exact foreground CPU read"
+  },
+  "remaining_qualification": [
+    "Native sparse allocation and interruption on disposable Windows storage",
+    "Real mounted workload impact and populated-volume steady-state reclamation"
+  ]
+}

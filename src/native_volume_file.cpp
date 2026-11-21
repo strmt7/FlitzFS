@@ -1,7 +1,9 @@
 #include "flitzfs/native_volume_file.hpp"
+#include "flitzfs/indexed_coherence.hpp"
 #include "store_file.hpp"
 #include "native_volume_file_reclaimer.hpp"
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <limits>
 #include <utility>
@@ -17,10 +19,23 @@ void check_image_capacity(std::uint64_t bytes,Error code) {
   if(bytes<kVolumeHeadBytes || bytes>maximum_file_bytes-image_offset)
     fail(code,"invalid indexed volume-file capacity");
 }
-std::uint64_t paired_file_limit(std::uint64_t bytes,Error code) {
+struct PairedFileGeometry {
+  std::uint64_t images_end,catalog_capacity,file_end;
+};
+PairedFileGeometry paired_file_geometry(std::uint64_t bytes,bool catalog,Error code) {
   if(bytes<kVolumeHeadBytes || bytes%kStoreCommitUnit || bytes>(maximum_file_bytes-image_offset)/2)
     fail(code,"invalid paired image range capacity");
-  return image_offset+2*bytes;
+  const auto images_end=image_offset+2*bytes;
+  // Capability 5 derives these offsets from the image capacity. Its
+  // divisor is independent of the tunable advisory write budget.
+  constexpr std::uint64_t catalog_capacity_divisor=32;
+  const auto available=(std::min)(bytes/catalog_capacity_divisor,(maximum_file_bytes-images_end)/2);
+  const auto aligned=available-available%kStoreCommitUnit;
+  // Two root slots, one initial and one incremental allocation. Each
+  // allocation includes a payload unit and a pair of metadata units.
+  constexpr auto minimum=8*kStoreCommitUnit;
+  const auto capacity=catalog && aligned>=minimum?aligned:0;
+  return {images_end,capacity,images_end+2*capacity};
 }
 std::uint64_t image_start(const NativeVolumeSelection& selected) noexcept {
   return image_offset+((selected.epoch%2==0)?selected.storage.maximum_physical_bytes:0);
@@ -62,7 +77,7 @@ struct NativeVolumeFile::Region final:StoreByteIo {
   Region(std::shared_ptr<Owner> file,std::uint64_t base,std::uint64_t limit,
       std::uint64_t initialized,bool follows_end=false)
       :owner(std::move(file)),offset(base),capacity(limit),tail(follows_end),fixed_extent(initialized){}
-  // All copies of a selected or staged image share this pin. The reclaimer
+  // All copies of a selected or staged region share this pin. The reclaimer
   // retains the underlying Region separately after a selector switch.
   static std::shared_ptr<StoreByteIo> pin_image(const std::shared_ptr<Region>& region) {
     struct Pin {
@@ -112,19 +127,111 @@ struct NativeVolumeFile::Region final:StoreByteIo {
     if(end>capacity || end%kStoreCommitUnit)fail(Error::storage_failure,"invalid volume allocation bound");
     return end;
   }
+  void reclaim_tail() {
+    const auto before=allocation_extent();
+    if(!before){fixed_extent=0;return;}
+    constexpr std::uint64_t quantum=4*1024*1024;
+    const auto start=(before-1)/quantum*quantum;
+    owner->ranges->reclaim_range(offset+start,before-start);
+    flush();
+    fixed_extent=allocation_extent();
+    if(fixed_extent>=before)fail(Error::storage_failure,"volume range allocation did not decrease");
+  }
  protected:
   bool allows_writer() const noexcept override {return owner->writable;}
+};
+
+struct NativeVolumeFile::CatalogRanges {
+  struct Slot {
+    std::shared_ptr<Region> range;
+    bool needs_review=false;
+  };
+  const std::shared_ptr<StoreByteIo> advice;
+  const StoreIdentity volume;
+  std::array<Slot,2> slots;
+  std::uint64_t retirement_failure_sequence=0;
+
+  CatalogRanges(const std::shared_ptr<Owner>& owner,std::shared_ptr<StoreByteIo> area,StoreIdentity volume_id,
+      PairedFileGeometry geometry,std::uint64_t visible_end):advice(std::move(area)),volume(volume_id) {
+    for(std::size_t i=0;i<slots.size();++i) {
+      const auto offset=geometry.images_end+i*geometry.catalog_capacity;
+      slots[i]={std::make_shared<Region>(owner,offset,geometry.catalog_capacity,0),visible_end>offset};
+    }
+  }
+  static std::size_t slot_of(StoreIdentity identity) noexcept {
+    return std::to_integer<unsigned>(identity.back())&1u;
+  }
+  std::optional<std::size_t> available(const std::optional<OptimizationCatalogSelection>& selected,
+      bool needs_review) const noexcept {
+    for(std::size_t i=0;i<slots.size();++i)
+      if((!selected || slot_of(selected->backing)!=i) &&
+          slots[i].needs_review==needs_review && slots[i].range.use_count()==1)return i;
+    return {};
+  }
+  OptimizationSnapshot authority() const {return read_optimization_state(*advice,volume);}
+  static bool paired(const OptimizationSnapshot& state) noexcept {
+    return state.code==OptimizationReadCode::available && !state.degraded && state.state.settled_input_bytes;
+  }
+  IndexedCoherenceStorage::Reservation reserve() {
+    const auto state=authority();
+    if(!paired(state) || state.sequence>(std::numeric_limits<std::uint64_t>::max)()-2)return {};
+    const auto selected=state.state.catalog_selection;
+    const auto open=available(selected,false);
+    if(!open)return {};
+    // The first catalog write follows a paid journal publication. A
+    // materialized ID therefore cannot be reused at the same sequence.
+    auto identity=volume;
+    for(unsigned i=0;i<8;++i)identity[i]=static_cast<std::byte>(state.sequence>>(i*8));
+    identity.back()=(identity.back()&std::byte{0xfe})|static_cast<std::byte>(*open);
+    if(identity==volume || (selected && identity==selected->image))identity[8]^=std::byte{0x80};
+    auto& slot=slots[*open];
+    auto pin=Region::pin_image(slot.range);
+    slot.needs_review=true;
+    return {identity,std::move(pin)};
+  }
+  std::shared_ptr<StoreByteIo> resolve(StoreIdentity identity) {
+    auto& slot=slots[slot_of(identity)];
+    if(slot.range.use_count()!=1)return {};
+    slot.range->fixed_extent=slot.range->allocation_extent();
+    return Region::pin_image(slot.range);
+  }
+  bool pending(std::uint64_t sequence,const std::optional<OptimizationCatalogSelection>& selected) const noexcept {
+    return sequence && sequence!=retirement_failure_sequence && available(selected,true).has_value();
+  }
+  NativeVolumeReclaimProgress retire(std::uint64_t sequence,const std::optional<OptimizationCatalogSelection>& selected) {
+    const auto inactive=available(selected,true);
+    if(!inactive)return NativeVolumeReclaimProgress::idle;
+    try {
+      const auto state=authority();
+      if(!paired(state) || state.sequence!=sequence || state.state.catalog_selection!=selected)
+        fail(Error::corrupt,"unconfirmed catalog selection prevents range reclamation");
+      auto& slot=slots[*inactive];
+      slot.range->reclaim_tail();
+      slot.needs_review=slot.range->fixed_extent!=0;
+      return NativeVolumeReclaimProgress::retiring;
+    }catch(const std::exception&) {
+      retirement_failure_sequence=sequence;
+      return NativeVolumeReclaimProgress::failed;
+    }
+  }
 };
 
 namespace detail {
 using Progress=NativeVolumeReclaimProgress;
 NativeVolumeFileReclaimer::NativeVolumeFileReclaimer(std::shared_ptr<StoreByteIo> head,
     std::shared_ptr<NativeVolumeFile::Region> active,std::shared_ptr<NativeVolumeFile::Region> spare,
-    bool recover_spare):
-    head_(std::move(head)),active_(std::move(active)),spare_(std::move(spare)),
+    bool recover_spare,std::shared_ptr<NativeVolumeFile::CatalogRanges> catalog):
+    head_(std::move(head)),active_(std::move(active)),spare_(std::move(spare)),catalog_(std::move(catalog)),
     phase_(recover_spare?Phase::retiring:Phase::idle) {}
 
 bool NativeVolumeFileReclaimer::pending(const NativeFileSession& session,bool allow_cold) const {
+  if(image_work_pending(session,allow_cold))return true;
+  if(!catalog_)return false;
+  std::optional<OptimizationCatalogSelection> selected;
+  const auto sequence=session.catalog_retirement_selection(selected);
+  return catalog_->pending(sequence,selected);
+}
+bool NativeVolumeFileReclaimer::image_work_pending(const NativeFileSession& session,bool allow_cold) const {
   if(phase_==Phase::retiring)
     return spare_.use_count()==1 || active_->owner->reclamation_wake.load(std::memory_order_acquire).expired();
   if(phase_==Phase::uncertain || phase_==Phase::failed || !session.idle_compaction_context_ready())return false;
@@ -144,21 +251,11 @@ Progress NativeVolumeFileReclaimer::retire(const NativeVolumeHeadInfo& current) 
   // Revalidate both replicas immediately before changing any allocation.
   const auto durable=NativeVolumeHeadView::inspect_selector(*head_,current.selection.volume_identity);
   if(current.degraded || durable.degraded || durable.selection!=current.selection ||
-      durable.selection.placement!=NativeVolumePlacement::paired_file_ranges ||
+      !paired_volume_file(durable.selection.placement) ||
       image_start(durable.selection)!=active_->offset || active_->offset==spare_->offset)
     fail(Error::corrupt,"unconfirmed volume selection prevents range reclamation");
   auto& range=*spare_;
-  const auto before=range.allocation_extent();
-  if(before) {
-    constexpr std::uint64_t quantum=4*1024*1024;
-    const auto start=(before-1)/quantum*quantum;
-    range.owner->ranges->reclaim_range(range.offset+start,before-start);
-    range.flush();
-    range.fixed_extent=range.allocation_extent();
-    if(range.fixed_extent>=before)fail(Error::storage_failure,"volume range allocation did not decrease");
-  } else {
-    range.fixed_extent=0;
-  }
+  range.reclaim_tail();
   if(!range.fixed_extent)phase_=Phase::idle;
   return Progress::retiring;
 }
@@ -179,7 +276,8 @@ void NativeVolumeFileReclaimer::adopt_startup_repair(const NativeVolumeSelection
     const NativeVolumeSelection& repaired) {
   if(repaired==original)return;
   if(repaired.epoch!=original.epoch+1 || repaired.parent_identity!=original.image_identity ||
-      repaired.placement!=NativeVolumePlacement::paired_file_ranges || image_start(repaired)!=spare_->offset)
+      !paired_volume_file(repaired.placement) || repaired.placement!=original.placement ||
+      image_start(repaired)!=spare_->offset)
     fail(Error::storage_failure,"startup repair selected an unexpected range");
   active_.swap(spare_);
   phase_=Phase::retiring;
@@ -187,15 +285,22 @@ void NativeVolumeFileReclaimer::adopt_startup_repair(const NativeVolumeSelection
 
 Progress NativeVolumeFileReclaimer::advance(NativeFileSession& session,const std::function<StoreIdentity()>& identity,
     bool allow_cold) {
+  const bool image_pending=image_work_pending(session,allow_cold);
+  if(catalog_ && (!image_pending || (phase_==Phase::idle && !identity) ||
+      (phase_==Phase::retiring && spare_.use_count()!=1))) {
+    std::optional<OptimizationCatalogSelection> selected;
+    const auto sequence=session.catalog_retirement_selection(selected);
+    if(catalog_->pending(sequence,selected))return catalog_->retire(sequence,selected);
+  }
   if(phase_==Phase::retiring) {
     try{return retire(session.volume_info());}
     catch(const std::exception&){phase_=Phase::failed;return Progress::failed;}
   }
   if(phase_==Phase::idle && !identity)return Progress::idle;
-  if(!pending(session,allow_cold))return Progress::idle;
+  if(!image_pending)return Progress::idle;
   try {
     if(phase_==Phase::idle) {
-      const bool reclaim=pending(session,false);
+      const bool reclaim=image_work_pending(session,false);
       if(reclaim) {
         attempted_repair_=session.indexed_capacity_repair_generation();
         attempted_obsolete_=session.indexed_volume_space().obsolete_bytes;
@@ -257,7 +362,19 @@ std::uint64_t NativeVolumeFile::Regions::advice_sequence() const {
   const auto observed=read_optimization_state(*advice,selection.volume_identity);
   return observed.code==OptimizationReadCode::available && observed.state.settled_input_bytes?observed.sequence:0;
 }
-NativeVolumeFile::Regions NativeVolumeFile::new_regions(std::shared_ptr<StoreByteIo> file,PagedStoreLimits limits) {
+void NativeVolumeFile::Regions::configure_catalog(NativeFileSession& session) const noexcept {
+  if(!reclaimer || !reclaimer->catalog_)return;
+  try {
+    const auto& catalog=reclaimer->catalog_;
+    session.configure_indexed_coherence(std::make_shared<IndexedCoherenceStorage>(
+        PagedStoreLimits{catalog->slots.front().range->capacity},
+        [catalog]{return catalog->reserve();},[catalog](StoreIdentity id){return catalog->resolve(id);}));
+  }catch(const std::exception&) {
+    // Optional learning must leave the selected file data available.
+  }
+}
+NativeVolumeFile::Regions NativeVolumeFile::new_regions(std::shared_ptr<StoreByteIo> file,
+    StoreIdentity volume,PagedStoreLimits limits) {
   check_image_capacity(limits.maximum_physical_bytes,Error::invalid_operation);
   auto owner=std::make_shared<Owner>(std::move(file),true);
   if(owner->backing->extent())fail(Error::invalid_operation,"volume-file creation requires empty backing");
@@ -267,10 +384,13 @@ NativeVolumeFile::Regions NativeVolumeFile::new_regions(std::shared_ptr<StoreByt
   auto image=std::make_shared<Region>(owner,image_offset,bytes,0,!owner->ranges);
   Regions regions{head,image,advice,{},{}};
   if(owner->ranges) {
-    (void)paired_file_limit(bytes,Error::invalid_operation);
-    regions.selection.placement=NativeVolumePlacement::paired_file_ranges;
+    const auto geometry=paired_file_geometry(bytes,true,Error::invalid_operation);
+    auto catalog=geometry.catalog_capacity?
+        std::make_shared<CatalogRanges>(owner,advice,volume,geometry,0):nullptr;
+    regions.selection.placement=catalog?NativeVolumePlacement::paired_file_catalog_ranges:
+        NativeVolumePlacement::paired_file_ranges;
     auto spare=std::make_shared<Region>(owner,image_offset+bytes,bytes,0);
-    regions.reclaimer=std::make_shared<detail::NativeVolumeFileReclaimer>(head,image,std::move(spare),false);
+    regions.reclaimer=std::make_shared<detail::NativeVolumeFileReclaimer>(head,image,std::move(spare),false,std::move(catalog));
     regions.image=Region::pin_image(image);
   }
   return regions;
@@ -293,8 +413,11 @@ NativeVolumeFile::Regions NativeVolumeFile::open_regions(std::shared_ptr<StoreBy
       fail(Error::corrupt,"invalid linear volume-file extent or selection");
     return {std::move(head),std::make_shared<Region>(owner,image_offset,bytes,0,true),std::move(advice),selected,{}};
   }
-  if(end>paired_file_limit(bytes,Error::corrupt) || (writable && !owner->ranges))
-    fail(Error::invalid_operation,"paired volume file requires a qualified range provider");
+  const bool has_catalog=selected.placement==NativeVolumePlacement::paired_file_catalog_ranges;
+  const auto geometry=paired_file_geometry(bytes,has_catalog,Error::corrupt);
+  if(end>geometry.file_end || (has_catalog && !geometry.catalog_capacity))
+    fail(Error::corrupt,"volume file exceeds its paired range geometry");
+  if(writable && !owner->ranges)fail(Error::invalid_operation,"paired volume file requires a qualified range provider");
   const auto offset=image_start(selected);
   const auto visible=end>offset?(std::min)(bytes,end-offset):0;
   auto image=std::make_shared<Region>(owner,offset,bytes,visible);
@@ -303,7 +426,10 @@ NativeVolumeFile::Regions NativeVolumeFile::open_regions(std::shared_ptr<StoreBy
     image->fixed_extent=image->allocation_extent();
     auto spare=std::make_shared<Region>(owner,offset==image_offset?image_offset+bytes:image_offset,bytes,0);
     const auto recover_spare=spare->allocation_extent()!=0;
-    regions.reclaimer=std::make_shared<detail::NativeVolumeFileReclaimer>(head,image,std::move(spare),recover_spare);
+    auto catalog=has_catalog?
+        std::make_shared<CatalogRanges>(owner,advice,selected.volume_identity,geometry,end):nullptr;
+    regions.reclaimer=std::make_shared<detail::NativeVolumeFileReclaimer>(head,image,std::move(spare),recover_spare,
+        std::move(catalog));
     regions.image=Region::pin_image(image);
   } else {
     owner->pin_reader();
@@ -313,10 +439,11 @@ NativeVolumeFile::Regions NativeVolumeFile::open_regions(std::shared_ptr<StoreBy
 NativeFileSession NativeVolumeFile::create(std::shared_ptr<StoreByteIo> empty,StoreIdentity volume,
     StoreIdentity image,PagedStoreLimits limits,StoreCompressionOptions foreground,
     NativeDispositionPolicy disposition,std::optional<NativeVolumeRootMetadata> root) {
-  auto region=new_regions(std::move(empty),limits);
+  auto region=new_regions(std::move(empty),volume,limits);
   auto session=NativeFileSession::create_indexed_volume(std::move(region.head),volume,std::move(region.image),
       image,limits,foreground,disposition,std::move(root),region.selection.placement);
   session.create_budgeted_optimization_area(std::move(region.advice));
+  region.configure_catalog(session);
   session.bind_persistent_reclamation(std::move(region.reclaimer));
   return session;
 }
@@ -337,6 +464,7 @@ NativeFileSession NativeVolumeFile::resume_regions(Regions region,StoreCompressi
   if(region.reclaimer)region.reclaimer->adopt_startup_repair(selected,session.volume_info().selection);
   if(const auto sequence=region.advice_sequence())
     session.resume_budgeted_optimization_area(std::move(region.advice),sequence);
+  region.configure_catalog(session);
   session.bind_persistent_reclamation(std::move(region.reclaimer));
   return session;
 }
@@ -350,7 +478,8 @@ std::shared_ptr<StoreByteIo> NativeVolumeFile::create_backing(const std::filesys
     PagedStoreLimits limits) {
   check_image_capacity(limits.maximum_physical_bytes,Error::invalid_operation);
   const auto bytes=limits.maximum_physical_bytes;
-  const auto limit=contract.isolated_range_reclamation?paired_file_limit(bytes,Error::invalid_operation):image_offset+bytes;
+  const auto limit=contract.isolated_range_reclamation?
+      paired_file_geometry(bytes,true,Error::invalid_operation).file_end:image_offset+bytes;
   return detail::new_volume_file(path,contract,limit);
 }
 std::shared_ptr<StoreByteIo> NativeVolumeFile::reopen_backing(const std::filesystem::path& path,StoreIoContract contract) {

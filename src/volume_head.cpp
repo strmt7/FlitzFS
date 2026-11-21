@@ -12,7 +12,7 @@ using Code=NativeFsErrorCode;
 [[noreturn]] void fail(Code code,const char* message){throw NativeFsError(code,message);}
 constexpr std::size_t digest_at=kStoreCommitUnit-32;
 constexpr char magic[]="FLTVH001";
-constexpr auto paired_file_capability=4U;
+constexpr auto paired_file_capability=4U,paired_catalog_capability=5U;
 void put(Bytes& b,std::size_t at,std::uint64_t v,unsigned n=8) {
   for(unsigned i=0;i<n;++i)b[at+i]=static_cast<std::byte>(v>>(8*i));
 }
@@ -24,7 +24,7 @@ bool zero(StoreIdentity id){return id==StoreIdentity{};}
 void valid(const NativeVolumeSelection& s,Code code) {
   const bool indexed=s.storage.kind==NativeImageKind::indexed_paged;
   if(s.placement!=NativeVolumePlacement::external &&
-      (s.placement!=NativeVolumePlacement::paired_file_ranges || !indexed ||
+      (!paired_volume_file(s.placement) || !indexed ||
        s.storage.maximum_physical_bytes%kStoreCommitUnit))
     fail(code,"invalid volume image placement");
   if(!((s.storage.kind==NativeImageKind::flat && !s.storage.maximum_physical_bytes) ||
@@ -48,7 +48,8 @@ void contract(const StoreByteIo& io) {
 Bytes encoded(const NativeVolumeSelection& s,unsigned slot) {
   valid(s,Code::invalid_operation);Bytes b(kStoreCommitUnit);
   const auto kind=static_cast<std::uint32_t>(s.storage.kind);
-  const auto capability=s.placement==NativeVolumePlacement::paired_file_ranges?paired_file_capability:kind+1;
+  const auto capability=s.placement==NativeVolumePlacement::paired_file_catalog_ranges?paired_catalog_capability:
+      (s.placement==NativeVolumePlacement::paired_file_ranges?paired_file_capability:kind+1);
   std::memcpy(b.data(),magic,8);put(b,8,capability,4);put(b,12,slot,4);put(b,16,s.epoch);
   std::copy(s.volume_identity.begin(),s.volume_identity.end(),b.begin()+24);
   std::copy(s.image_identity.begin(),s.image_identity.end(),b.begin()+40);
@@ -64,9 +65,9 @@ std::optional<NativeVolumeSelection> decoded(std::span<const std::byte> b,unsign
   if(!std::equal(digest.begin(),digest.end(),b.begin()+digest_at))return {};
   // Intact unsupported/contradictory metadata is NEVER an excuse to roll back.
   const auto capability=get(b,8,4);
-  const bool paired=capability==paired_file_capability;
+  const bool paired=capability>=paired_file_capability;
   const auto kind=paired?static_cast<std::uint64_t>(NativeImageKind::indexed_paged):capability-1;
-  if(std::memcmp(b.data(),magic,8)||capability<1||capability>paired_file_capability||get(b,12,4)!=slot||
+  if(std::memcmp(b.data(),magic,8)||capability<1||capability>paired_catalog_capability||get(b,12,4)!=slot||
       (capability>1 && (get(b,96,4)!=kind || get(b,100,4)!=0)) ||
       !std::all_of(b.begin()+(capability>1?112:96),b.begin()+digest_at,[](auto x){return x==std::byte{};}))
     fail(Code::corrupt,"intact volume head framing unsupported");
@@ -75,7 +76,8 @@ std::optional<NativeVolumeSelection> decoded(std::span<const std::byte> b,unsign
   std::copy_n(b.begin()+56,16,s.parent_identity.begin());
   s.minimum_checkpoint=get(b,72);s.namespace_sequence=get(b,80);s.parent_checkpoint=get(b,88);
   if(capability>1)s.storage={static_cast<NativeImageKind>(kind),get(b,104)};
-  if(paired)s.placement=NativeVolumePlacement::paired_file_ranges;
+  if(paired)s.placement=capability==paired_catalog_capability?NativeVolumePlacement::paired_file_catalog_ranges:
+      NativeVolumePlacement::paired_file_ranges;
   valid(s,Code::corrupt);
   if(expected && s.volume_identity!=*expected)fail(Code::corrupt,"volume head identity mismatch");
   return s;

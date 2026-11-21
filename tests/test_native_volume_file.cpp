@@ -1,4 +1,5 @@
 #include "flitzfs/native_volume_file.hpp"
+#include "flitzfs/indexed_coherence.hpp"
 #include "flitzfs/native_maintenance.hpp"
 #include "flitzfs/read_only_file.hpp"
 #include "native_fs_fixture.hpp"
@@ -578,6 +579,161 @@ void screened_cold_compaction() {
       <<" negative_screen=1 foreground_cancellation=1 journal_failure=1 exact_readback=4\n";
 }
 
+void managed_catalog_ranges() {
+  constexpr PagedStoreLimits data_range{16ULL*1024*1024};
+  constexpr auto catalog_bytes=data_range.maximum_physical_bytes/32;
+  constexpr auto catalog_base=kNativeVolumeFileImageOffset+2*data_range.maximum_physical_bytes;
+  constexpr PagedStoreLimits catalog_limit{catalog_bytes};
+  const auto volume=id(90),native_image=id(91);
+  const auto witness=data(kNativeExtentBytes,27377);
+  auto current=data(kNativeExtentBytes,32393);
+  Bytes first_switch_payload;
+  auto io=std::make_shared<SparseVolumeRam>(4096);
+  std::shared_ptr<SparseVolumeRam> before,after;
+  OptimizationCatalogSelection old_selection,new_selection;
+  std::uint64_t old_bytes=0,new_bytes=0;
+  NativeMaintenanceObservation observed;
+  observed.physical_total=16ULL<<30;observed.physical_available=12ULL<<30;
+  observed.commit_limit=32ULL<<30;observed.commit_available=24ULL<<30;
+  observed.cpu_total_ticks=1000;observed.cpu_window_ms=1000;observed.valid=true;
+  const auto step=[&](NativeGroupMaintenance& groups) {
+    ++observed.sequence;observed.captured_ms+=1000;
+    require(groups.advance(observed,observed.captured_ms).phase!=NativeMaintenancePhase::failed,
+        "managed catalog maintenance failed");
+  };
+  const auto extent=[](const SparseVolumeRam& backing,unsigned slot) {
+    return backing.allocated_extent(catalog_base+slot*catalog_bytes,catalog_bytes);
+  };
+  const auto stable_catalog=[&](const SparseVolumeRam& backing,unsigned slot) -> std::optional<IndexedCoherenceSnapshot> {
+    const auto offset=catalog_base+slot*catalog_bytes;
+    const auto end=(std::min)(offset+extent(backing,slot),std::uint64_t(backing.io.stable.size()));
+    if(end<=offset)return {};
+    const auto stable=std::span(backing.io.stable).subspan(static_cast<std::size_t>(offset),
+        static_cast<std::size_t>(end-offset));
+    auto bytes=image(Bytes(stable.begin(),stable.end()),4096);
+    try {
+      const auto checked=PagedObjectStoreSnapshot::open(bytes,catalog_limit);
+      if(checked.info().degraded_roots || checked.info().degraded_metadata)return {};
+      checked.verify_all();
+      return IndexedCoherenceSnapshot::open(bytes,volume,native_image,catalog_limit,checked.identity());
+    }catch(const std::exception&) {return {};}
+  };
+  const auto verify_files=[&](const NativeFilesystemSnapshot& snapshot,const Bytes& expected) {
+    snapshot.verify_all();
+    require(snapshot.read("payload",0,kNativeExtentBytes)==expected &&
+        snapshot.read("witness",0,kNativeExtentBytes)==witness,"catalog management changed acknowledged files");
+  };
+  {
+    auto session=NativeVolumeFile::create(io,volume,native_image,data_range,raw);
+    require(session.volume_info().selection.placement==NativeVolumePlacement::paired_file_catalog_ranges,
+        "qualified managed backing did not reserve paired catalog ranges");
+    put(session,"payload",current);
+    put(session,"witness",witness);
+    unsigned earned=0;
+    const Bytes zero_credit(3*kOptimizationGroupScanInputBytes/4);
+    const auto earn=[&](unsigned count) {
+      for(unsigned i=0;i<count;++i)put(session,"catalog-credit-"+std::to_string(earned++),zero_credit);
+    };
+    earn(5);
+    NativeGroupMaintenance groups(session);
+    for(unsigned i=0;i<1200 && groups.pending();++i)step(groups);
+    const auto initial=session.optimization_snapshot().state.catalog_selection;
+    require(initial && extent(*io,0) && !extent(*io,1),"managed scanner did not create its first catalog in the reservation");
+    old_selection=*initial;
+    const auto initial_catalog=stable_catalog(*io,0);
+    require(initial_catalog && initial_catalog->backing_identity()==old_selection.backing &&
+        initial_catalog->info().generation>=old_selection.minimum_generation,
+        "first selection and independently read reserved catalog differ");
+    unsigned revision=0;
+    const auto rotate=[&](const OptimizationCatalogSelection& prior,bool capture_cut) {
+      for(unsigned edit=0;edit<50;++edit) {
+        current=data(kNativeExtentBytes,41011+revision++);update(session,current);earn(3);
+        for(unsigned i=0;i<1200 && groups.pending();++i) {
+          step(groups);
+          const auto selected=session.optimization_snapshot().state.catalog_selection;
+          require(selected.has_value(),"catalog selection vanished during append or rotation");
+          if(selected->backing!=prior.backing)return *selected;
+          if(capture_cut && !before && extent(*io,1) && stable_catalog(*io,1)) {
+            const auto count=io->range_reclaims;
+            require(session.advance_persistent_reclamation({})==Reclaim::idle && io->range_reclaims==count,
+                "reclamation touched an unselected candidate with a live copy pin");
+            before=io->replay();
+          }
+        }
+      }
+      throw std::runtime_error("catalog rotation never published a replacement");
+    };
+    new_selection=rotate(old_selection,true);
+    first_switch_payload=current;
+    require(before && extent(*io,0) && extent(*io,1),
+        "normal maintenance never reached a complete reserved replacement and selector switch");
+    require(groups.progress().coherence_compactions==1 && !io->range_reclaims,
+        "catalog switch unexpectedly reclaimed backing within the publication");
+    auto old_catalog=stable_catalog(*before,0),new_catalog=stable_catalog(*io,1);
+    require(old_catalog && new_catalog && old_catalog->backing_identity()==old_selection.backing &&
+        new_catalog->backing_identity()==new_selection.backing &&
+        new_catalog->info().physical_end<old_catalog->info().physical_end,
+        "the two durable selections do not name different checked catalog ranges");
+    old_bytes=old_catalog->info().physical_end;new_bytes=new_catalog->info().physical_end;
+    after=io->replay();
+    const auto occupied=io->occupied();
+    require(session.advance_persistent_reclamation({})==Reclaim::retiring && !extent(*io,0) &&
+        extent(*io,1) && io->occupied()<occupied && session.volume_info().selection.epoch==1,
+        "old catalog range was not reclaimed independently of the filesystem image");
+    verify_files(session.snapshot(),current);
+    const auto reused=rotate(new_selection,false);
+    const auto reused_catalog=stable_catalog(*io,0);
+    require(reused.backing!=old_selection.backing && reused_catalog &&
+        reused_catalog->backing_identity()==reused.backing && groups.progress().coherence_compactions==2,
+        "a released range was not reused with a fresh durable backing ID");
+    require(session.advance_persistent_reclamation({})==Reclaim::retiring && !extent(*io,1) && extent(*io,0),
+        "the previous replacement could not be retired after reuse");
+    const auto retained_catalog_bytes=extent(*io,0);
+    require(stage_compaction(session,92)==Reclaim::ready &&
+        session.advance_persistent_reclamation({})==Reclaim::published && session.volume_info().selection.epoch==2,
+        "catalog reservations interfered with a data image switch");
+    release_inactive(session);
+    require(extent(*io,0)==retained_catalog_bytes && !extent(*io,1) &&
+        !io->allocated_extent(kNativeVolumeFileImageOffset,data_range.maximum_physical_bytes),
+        "data image retirement changed a separately reserved catalog range");
+    verify_files(session.snapshot(),current);
+  }
+  const auto verify_recovery=[&](const std::shared_ptr<SparseVolumeRam>& reopened,
+      const OptimizationCatalogSelection& selection,unsigned slot,std::uint64_t bytes,bool torn) {
+    auto session=NativeVolumeFile::resume(reopened,volume,raw);
+    if(torn) {
+      require(session.optimization_info().repair_pending && session.advance_persistent_reclamation({})==Reclaim::idle &&
+          extent(*reopened,0) && extent(*reopened,1),"degraded advice authorized catalog retirement");
+      verify_files(session.snapshot(),first_switch_payload);
+      put(session,"catalog-repair-credit",Bytes(kOptimizationAreaBytes));
+      require(session.repair_budgeted_optimization_area().state.phase==NativeOptimizationPhase::ready,
+          "fresh input did not repair the catalog selector pair");
+    }
+    require(session.optimization_snapshot().state.catalog_selection==selection && extent(*reopened,1-slot),
+        "independent reopen discarded an occupied catalog before worker admission");
+    NativeGroupMaintenance groups(session);
+    for(unsigned i=0;i<40 && !groups.progress().coherence_catalog_bytes;++i)step(groups);
+    require(groups.progress().coherence_catalog_bytes==bytes && !reopened->range_reclaims,
+        "restart did not recover the exact committed catalog");
+    require(session.advance_persistent_reclamation({})==Reclaim::retiring && !extent(*reopened,1-slot) &&
+        extent(*reopened,slot),"restart reclaimed the wrong catalog reservation");
+    verify_files(session.snapshot(),first_switch_payload);
+  };
+  {
+    const auto damaged=before->replay();
+    const auto at=kVolumeHeadBytes+kStoreCommitUnit-1;
+    damaged->io.stable[at]^=std::byte{1};damaged->io.live[at]^=std::byte{1};
+    verify_recovery(damaged,old_selection,0,old_bytes,true);
+  }
+  verify_recovery(before,old_selection,0,old_bytes,false);
+  verify_recovery(after,new_selection,1,new_bytes,false);
+  auto cpu=image(after->io.stable,4096);
+  verify_files(NativeVolumeFile::inspect(cpu,volume).filesystem(),first_switch_payload);
+  std::cout<<"managed_catalog_ranges old_bytes="<<old_bytes<<" new_bytes="<<new_bytes
+      <<" preselection_reopen=1 postselection_reopen=1 staged_pin_preserved=1 torn_selector_repair=1 reused_slot=1"
+      <<" independent_data_rotation=1\n";
+}
+
 void reclaimed_ranges() {
   auto io=std::make_shared<SparseVolumeRam>(4096);
   Bytes expected;
@@ -1108,6 +1264,11 @@ int main(int argc,char** argv){
 #else
     (void)argv;
 #endif
+    if(argc==2 && std::string_view(argv[1])=="--catalog-ranges") {
+      managed_catalog_ranges();
+      std::cout<<"PASS: "<<checks<<" managed catalog range checks\n";
+      return 0;
+    }
     require(argc==1,"unexpected volume file fixture mode");
     retired_and_reopened();
     geometry_and_advice();

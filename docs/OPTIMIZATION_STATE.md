@@ -182,8 +182,9 @@ backing ID and generation floor. Reopening a healthy compact paged root
 requires bounded root I/O and a fence. Descendant pages and posting payloads
 are checked when accessed. Failed catalog recovery leaves file access
 available and the scanner can build fresh advice from newly earned credit.
-The managed physical-file provider and its reservation retirement remain
-separate integration work.
+A qualified managed file with reserved catalog ranges supplies and
+reclaims the catalog backing during normal idle maintenance.
+[Managed catalog ranges](PERSISTENT_VOLUME_FILE.md#reserved-coherence-catalog-ranges)
 
 ## Publication, recovery and work bounds
 

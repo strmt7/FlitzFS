@@ -44,12 +44,41 @@ Sandbox fixture. Physical power-loss qualification remains a separate gate.
 
 ### Paired sparse image ranges
 
-A qualified range provider can create a capability-4 volume with two
-aligned image ranges of the same declared capacity. The head and advice
+A qualified range provider can create a paired volume with two aligned
+image ranges of the same declared capacity. Capability 4 contains the
+image pair. Capability 5 adds reserved catalog ranges. The head and advice
 retain the positions above. If the image capacity is C, the first image
 range begins at 256 KiB, and the second begins at 256 KiB + C. Odd epochs
 select the first range and even epochs select the second. The indexed
 object and file record encodings are shared by both layouts.
+
+### Reserved coherence catalog ranges
+
+When a new paired volume has room for a catalog, the head records capability
+5. The two catalog ranges follow the two image ranges. Each is sized to
+one thirty-second of C, rounded down to 64 KiB and limited by the remaining
+file address space. The minimum includes two roots and room for an initial
+and an incremental allocation at the largest supported failure unit.
+The ranges remain sparse until the funded scanner writes them. New readers
+also support capability 4 and the linear layout.
+
+The saved backing identity identifies the slot through its last byte's low
+bit. The first eight bytes carry the advisory journal sequence checked when
+the range was reserved. A paid journal publication advances that sequence
+before any candidate writes. The catalog and its typed root verify the full
+backing, volume and image identities on reopen.
+
+The inactive range remains allocated while a staged writer or a reader
+pins it. Retirement takes a separate idle opportunity. It checks that both
+advice slots carry the cached sequence and selection, then reclaims at most
+4 MiB from a single unselected catalog range. A failed retirement waits for
+fresh verified journal activity. A journal awaiting repair permits file
+I/O and holds both catalog ranges. The independent CPU data reader opens
+the selected filesystem using its authoritative head and image.
+[Catalog selector](OPTIMIZATION_STATE.md#identified-catalog-selection) ·
+[Managed range validation](evidence/managed-coherence-catalog-ranges-2026-11-21.json)
+
+### Data image compaction and retirement
 
 The WinFsp maintenance owner stages a candidate when measured obsolete
 history justifies the copy and the host admits idle work. It verifies the
@@ -228,7 +257,7 @@ capacity refusal. The paired-range model exercises this when the
 backing rejects writes that extend the file.
 [Repair rotation validation](evidence/indexed-capacity-repair-rotation-2026-11-20.json)
 
-User-facing persistent-volume selection, in-place migration of existing
-linear volumes, steady-state segment evacuation during concurrent writes,
-persistent catalog compaction and physical storage-failure qualification
-remain release gates.
+User-facing persistent-volume selection, migration of existing linear and
+capability-4 volumes, steady-state segment evacuation during concurrent
+writes, persistent catalog qualification at production scales and physical
+storage-failure qualification remain release gates.

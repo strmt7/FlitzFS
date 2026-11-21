@@ -642,6 +642,9 @@ if(FLITZFS_BUILD_TESTS)
   target_include_directories(flitzfs_native_volume_file_tests PRIVATE src)
   target_link_libraries(flitzfs_native_volume_file_tests PRIVATE flitzfs_core)
   add_test(NAME bounded_native_volume_file COMMAND flitzfs_native_volume_file_tests)
+  add_test(NAME bounded_native_volume_file_catalog_ranges
+    COMMAND flitzfs_native_volume_file_tests --catalog-ranges)
+  set_tests_properties(bounded_native_volume_file_catalog_ranges PROPERTIES TIMEOUT 75)
   add_test(NAME bounded_native_volume_file_overwrite_rename_cuts
     COMMAND flitzfs_native_volume_file_tests --overwrite-rename-cuts)
   set_tests_properties(bounded_native_volume_file_overwrite_rename_cuts PROPERTIES TIMEOUT 90)

@@ -54,14 +54,16 @@ class NativeVolumeFile final {
   friend class detail::NativeVolumeFileReclaimer;
   struct Owner;
   struct Region;
+  struct CatalogRanges;
   struct Regions {
     std::shared_ptr<StoreByteIo> head,image,advice;
     NativeVolumeSelection selection;
     std::shared_ptr<detail::NativeVolumeFileReclaimer> reclaimer;
     NativeVolumeImageResolver resolver() const;
     std::uint64_t advice_sequence() const;
+    void configure_catalog(NativeFileSession&) const noexcept;
   };
-  static Regions new_regions(std::shared_ptr<StoreByteIo>,PagedStoreLimits);
+  static Regions new_regions(std::shared_ptr<StoreByteIo>,StoreIdentity,PagedStoreLimits);
   static Regions open_regions(std::shared_ptr<StoreByteIo>,bool writable,std::optional<StoreIdentity> expected);
   static NativeFileSession resume_regions(Regions,StoreCompressionOptions,NativeDispositionPolicy,
       const std::function<StoreIdentity()>& startup_repair_identity,const detail::IndexedReopenAdmission& admission={},

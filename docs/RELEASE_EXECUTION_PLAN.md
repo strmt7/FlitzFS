@@ -382,11 +382,16 @@ multiple sessions and measure actual allocated bytes and write costs.
   after its replacement has been checked. Independent Windows RAM fixtures
   cover restart before the first selector write, after the first barrier,
   after the final barrier and with the resolver returning the wrong complete
-  catalog. The next integration needs stable catalog reservations and
-  recovery of their ID-to-range mapping within the managed volume, plus
-  retirement checks across failed selection and pinned readers.
+  catalog. New qualified managed files supply two sparse reservations.
+  The model exercises reopening on both sides of the selector commit,
+  waiting through one torn advice slot, deferring retirement under a live
+  pin, and reusing a released range with a fresh identity. Qualify repeated
+  rotation on populated volumes under native Windows allocation and
+  interruption on disposable storage. Measure catalog writes and foreground
+  response with the mounted helper active.
   [Catalog selection format](OPTIMIZATION_STATE.md#identified-catalog-selection) ·
-  [Windows restart evidence](evidence/identified-coherence-selection-2026-11-21.json)
+  [Windows restart evidence](evidence/identified-coherence-selection-2026-11-21.json) ·
+  [Managed range validation](evidence/managed-coherence-catalog-ranges-2026-11-21.json)
 - Use training and held-out sets chosen before the evaluation. Test close
   revisions, unrelated files, small text, SVG, tabular and numeric data,
   binaries, media and already compressed files. Include nonsynthetic

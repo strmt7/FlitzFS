@@ -4,7 +4,11 @@
 namespace flitzfs {
 // Experimental custom-backend control record. No path/mount/worker/deletion API.
 inline constexpr std::uint64_t kVolumeHeadBytes=2*kStoreCommitUnit;
-enum class NativeVolumePlacement {external, paired_file_ranges};
+enum class NativeVolumePlacement {external, paired_file_ranges, paired_file_catalog_ranges};
+constexpr bool paired_volume_file(NativeVolumePlacement placement) noexcept {
+  return placement==NativeVolumePlacement::paired_file_ranges ||
+      placement==NativeVolumePlacement::paired_file_catalog_ranges;
+}
 struct NativeVolumeSelection {
   StoreIdentity volume_identity{},image_identity{},parent_identity{};
   std::uint64_t epoch=0,minimum_checkpoint=0,namespace_sequence=0,parent_checkpoint=0;

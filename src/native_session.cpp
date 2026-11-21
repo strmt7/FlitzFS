@@ -821,6 +821,14 @@ bool NativeFileSession::checkpoint_indexed_payload_scrub() {
 bool NativeFileSession::persistent_reclamation_pending(bool allow_cold) const {
   return !poisoned() && impl_->persistent_reclaimer && impl_->persistent_reclaimer->pending(*this,allow_cold);
 }
+std::uint64_t NativeFileSession::catalog_retirement_selection(
+    std::optional<OptimizationCatalogSelection>& selected) const noexcept {
+  if(poisoned())return 0;
+  const auto* advice=impl_->ready_scan_advice();
+  if(!advice)return 0;
+  selected=advice->catalog_selection();
+  return advice->sequence();
+}
 void NativeFileSession::bind_persistent_reclamation_wake(
     const std::shared_ptr<detail::NativeVolumeRangeWake>& wake) noexcept {
   if(impl_ && impl_->persistent_reclaimer)impl_->persistent_reclaimer->bind_wake(wake);

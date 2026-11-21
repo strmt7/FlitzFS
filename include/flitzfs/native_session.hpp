@@ -472,6 +472,7 @@ class NativeFileSession final {
   void bind_persistent_reclamation(std::shared_ptr<detail::NativeVolumeFileReclaimer>);
   void bind_persistent_reclamation_wake(const std::shared_ptr<detail::NativeVolumeRangeWake>&) noexcept;
   friend class detail::NativeVolumeFileReclaimer;
+  std::uint64_t catalog_retirement_selection(std::optional<OptimizationCatalogSelection>&) const noexcept;
   bool begin_idle_compaction_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,bool owned_file_target,PagedRewriteMode);
   NativeOptimizationInfo bind_optimization_area(std::shared_ptr<StoreByteIo>,
       std::uint64_t,unsigned,bool create,bool rebuild,bool budgeted=false);
