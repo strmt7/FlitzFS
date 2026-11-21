@@ -2170,22 +2170,26 @@ IndexedInodeInput IndexedVolumeView::resolve(std::string_view path_value,std::st
     fail(Code::corrupt,"indexed path exceeds the selected legacy name profile");
   return current;
 }
-std::string IndexedVolumeView::path(const IndexedInodeInput& input) const {
+std::string IndexedVolumeView::path(const IndexedInodeInput& input,bool include_spelling) const {
   if(indexed_detached(input.lifetime))return {};
-  std::string result=input.name;
+  std::string result;
+  if(include_spelling)result=input.name;
   const auto limit=root_.name_profile?kIndexedPathUnits:240;
-  auto units=indexed_utf16_length(result);
-  auto current=input;
-  for(unsigned depth=0;current.inode!=1;++depth) {
-    if(depth==kIndexedPathDepth || units>limit || index_.find({current.parent,name_key(current.name)})!=current.inode)
+  auto units=indexed_utf16_length(input.name);
+  auto current=&input;
+  IndexedInodeInput parent;
+  for(unsigned depth=0;current->inode!=1;++depth) {
+    if(depth==kIndexedPathDepth || units>limit ||
+        index_.find({current->parent,name_key(current->name)})!=current->inode)
       fail(Code::corrupt,"indexed inode ancestry mismatch");
-    current=referenced_inode(current.parent);
-    if(!current.directory || current.lifetime!=IndexedLifetime::linked)
+    parent=referenced_inode(current->parent);
+    if(!parent.directory || parent.lifetime!=IndexedLifetime::linked)
       fail(Code::corrupt,"indexed inode has an unavailable parent");
-    if(current.inode!=1) {
-      units+=indexed_utf16_length(current.name)+1;
-      result=current.name+"/"+result;
+    if(parent.inode!=1) {
+      units+=indexed_utf16_length(parent.name)+1;
+      if(include_spelling)result=parent.name+"/"+result;
     }
+    current=&parent;
   }
   return result;
 }
@@ -2198,6 +2202,11 @@ NativeInodeState IndexedVolumeView::state_inode(std::uint64_t id) const {
   const auto selected=inode(id);
   return {file_info(selected,path(selected)),selected.lifetime==IndexedLifetime::pending,
       indexed_detached(selected.lifetime)};
+}
+NativeInodeAllocationInfo IndexedVolumeView::allocation_inode(std::uint64_t id,bool verify_ancestry) const {
+  const auto selected=inode(id);
+  if(verify_ancestry)(void)path(selected,false);
+  return indexed_inode_allocation(selected);
 }
 std::optional<NativeDirectoryRecordPage> IndexedVolumeView::directory_records(std::uint64_t directory,std::string_view after,
     std::size_t maximum,const std::function<bool(const NativeInodeState&)>& admit) const {

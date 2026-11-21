@@ -1,14 +1,16 @@
 {
   "schema": 1,
-  "updated": "2026-11-21",
+  "updated": "2026-11-22",
   "forward_work_rule": "Use current_release_sequence for integration order, and execution_programme and the implementation plan for package dependencies and exits. Historical checkpoints describe completed or partial evidence.",
   "current_release_sequence": {
-    "reviewed_commit": "4203079a7529a565ebf17247a191f0ea3776c143",
+    "reviewed_commit": "148d728d36d2fdb8e3cd0ee2a5874c7548799b54",
+    "reviewed_tree": "d311b7e800feb8b4a8aceac4061b54ead5d90d0a",
     "assessment": "docs/REPOSITORY_OVERVIEW.md",
     "ordered_work": "docs/RELEASE_EXECUTION_PLAN.md#next-integrated-qualification",
     "package_contract": "docs/IMPLEMENTATION_PLAN.md",
-    "evidence": "docs/evidence/release-reconciliation-attachment-2026-11-21.json",
-    "next": "Extend the signed-driver Windows volume workflow to a populated external-client trace with per-fence I/O counters, acknowledged hashes and independent CPU reopen. Use the same trace for allocation churn and automatic AMD routing.",
+    "gate_ledger": "docs/RELEASE_EXECUTION_PLAN.md#current-gate-ledger",
+    "evidence": "docs/evidence/release-reconciliation-indexed-handle-2026-11-22.json",
+    "next": "Extend the populated mounted trace through acknowledged overwrite and rename, then through controlled cuts at the image and selector barriers. Verify each allowed generation independently on CPU and continue on a fresh writable mount. Carry the same trace into scale, reclamation and mounted AMD continuity checks.",
     "release_qualified": false
   },
   "baseline": {

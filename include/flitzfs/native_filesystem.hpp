@@ -615,6 +615,7 @@ class NativeFilesystemWriter final {
   friend class NativeFileSession;
   friend class NativeGroupMaintenance;
   friend class NativeVolumeHeadWriter;
+  NativeInodeAllocationInfo inspect_allocation(std::uint64_t inode,bool verify_ancestry) const;
   PagedObjectStoreWriter::Rewrite prepare_paged_recompression_impl(std::shared_ptr<StoreByteIo>,
       StoreIdentity,StoreCompressionOptions,bool reencode,PagedRewriteMode,
       std::optional<std::uint64_t> cold_after_generation,

@@ -461,6 +461,14 @@ struct NativeFileSession::Impl {
       return result;
     });
   }
+  NativeInodeAllocationInfo allocation(const Slot& slot) {
+    return inspect_owned_inode([&] {
+      auto result=writer.inspect_allocation(slot.inode,true);
+      auto& info=result.info;
+      info.delete_pending=visible_delete_pending(slot.inode,info.unlinked,info.delete_pending);
+      return result;
+    });
+  }
 };
 NativeFileSession::NativeFileSession(std::unique_ptr<Impl> impl) noexcept:impl_(std::move(impl)){}
 NativeFileSession::~NativeFileSession()=default;
@@ -1540,7 +1548,7 @@ NativeInodeState NativeFileSession::info(const NativeFileHandle& handle) const {
 }
 std::optional<NativeBasicMetadata> NativeFileSession::basic_metadata(const NativeFileHandle& handle) const {
   const auto index=slot_for(handle,true);auto& self=ready();const auto& slot=self.slots[index];
-  (void)self.state(slot);return self.writer.inspect_basic_metadata(slot.inode);
+  return self.allocation(slot).info.basic;
 }
 NativeFsCommit NativeFileSession::set_basic_metadata(const NativeFileHandle& handle,
     const NativeBasicMetadata& value) {
@@ -1626,15 +1634,14 @@ NativeInodeMutationCommit NativeFileSession::truncate_result(const NativeFileHan
 }
 NativeInodeAllocationInfo NativeFileSession::allocation_info(const NativeFileHandle& handle) const {
   const auto index=slot_for(handle,true);auto& self=ready();const auto& slot=self.slots[index];
-  const auto state=self.state(slot);auto result=self.writer.inspect_allocation(slot.inode);
-  result.info.delete_pending=state.delete_pending;return result;
+  return self.allocation(slot);
 }
 NativeInodeAllocationInfo NativeFileSession::mutation_info(const NativeFileHandle& handle) const {
   const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
   if(!slot.access.write)fail(E::access_denied,"native context has no data mutation access");
-  const auto state=self.state(slot);
-  if(state.info.directory)throw NativeFsError(NativeFsErrorCode::is_directory,"native data mutation requires a file");
-  auto result=self.writer.inspect_allocation(slot.inode);result.info.delete_pending=state.delete_pending;return result;
+  auto result=self.allocation(slot);
+  if(result.info.directory)throw NativeFsError(NativeFsErrorCode::is_directory,"native data mutation requires a file");
+  return result;
 }
 NativeAllocationUsage NativeFileSession::allocation_usage() const {return ready().writer.inspect_allocation_usage();}
 NativeInodeAllocationCommit NativeFileSession::reserve_result(const NativeFileHandle& handle,
@@ -1797,7 +1804,7 @@ void NativeFileSession::cleanup_event(const NativeFileHandle& handle,bool delete
   const bool initial=slot.initial_delete || self.volatile_initial(slot.inode);
   if((delete_file || initial) && self.provisional_inode(slot.inode))
     fail(E::sharing_violation,"cannot arm deletion with a provisional open");
-  const auto state=self.state(slot);
+  const auto state=self.allocation(slot).info;
   if(delete_file && !initial && !state.delete_pending && !state.unlinked) {
     self.terminal=true;fail(E::terminal,"Cleanup deletion has no authorized intent");
   }
@@ -1824,7 +1831,7 @@ void NativeFileSession::cleanup_event(const NativeFileHandle& handle,bool delete
     auto applied=event;
     if(!delete_file && event.minimum_access_interval &&
         effect.set_access_time && !effect.set_archive && !effect.set_write_time && !effect.set_change_time) {
-      if(const auto basic=self.writer.inspect_basic_metadata(slot.inode)) {
+      if(const auto& basic=state.basic) {
         const auto previous=basic->last_access_time;
         if(effect.utc_time<=previous || effect.utc_time-previous<event.minimum_access_interval)
           applied.metadata={};

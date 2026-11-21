@@ -482,6 +482,27 @@ std::pair<std::uint64_t,std::uint64_t> indexed_windows_reopen_profile() {
         "healthy Windows reopen changed backing bytes or repeated a barrier");
     require(session.start(plan())==STATUS_SUCCESS,"reopened Windows callback provider start");
     auto* fs=&provider.fs;
+    constexpr unsigned samples=64;
+    std::uint64_t query_bytes=0,query_calls=0;
+    for(unsigned i=0;i<files;i+=files/samples) {
+      const auto filename=name(i);
+      auto query_path=L"\\Data\\"+std::wstring(filename.begin(),filename.end());
+      PVOID context=nullptr;FSP_FSCTL_FILE_INFO opened{},metadata{};
+      require(fs->Interface->Open(fs,query_path.data(),FILE_NON_DIRECTORY_FILE|(1U<<24),FILE_READ_DATA,
+          &context,&opened)==STATUS_SUCCESS && context,"metadata profile file open");
+      const auto bytes=body->read_bytes,calls=body->read_calls;
+      const auto before_write=body->write_bytes+head->write_bytes;
+      require(fs->Interface->GetFileInfo(fs,context,&metadata)==STATUS_SUCCESS &&
+          metadata.IndexNumber==i+3 && metadata.FileSize==71 && metadata.AllocationSize==kNativeAllocationUnit &&
+          metadata.FileAttributes==FILE_ATTRIBUTE_ARCHIVE && metadata.CreationTime==stamp &&
+          metadata.LastAccessTime==stamp && metadata.LastWriteTime==stamp && metadata.ChangeTime==stamp,
+          "indexed GetFileInfo changed verified metadata");
+      query_bytes+=body->read_bytes-bytes;query_calls+=body->read_calls-calls;
+      require(body->write_bytes+head->write_bytes==before_write,"file metadata query wrote backing bytes");
+      callback_cleanup_close(provider,context);
+    }
+    std::cout<<"indexed_windows_get_file_info files="<<files<<" queries="<<samples
+        <<" backing_read_bytes="<<query_bytes<<" backing_read_calls="<<query_calls<<" backing_write_bytes=0\n";
     const auto last=name(files-1);
     auto path=L"\\Data\\"+std::wstring(last.begin(),last.end());
     FSP_FSCTL_FILE_INFO found{};PVOID handle=nullptr;

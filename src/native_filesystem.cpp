@@ -2583,11 +2583,15 @@ NativeInodeAllocationCommit NativeFilesystemWriter::reserve_inode_result(std::ui
   return result;
 }
 NativeInodeAllocationInfo NativeFilesystemWriter::inspect_allocation(std::uint64_t inode) const {
+  return inspect_allocation(inode,false);
+}
+NativeInodeAllocationInfo NativeFilesystemWriter::inspect_allocation(std::uint64_t inode,bool verify_ancestry) const {
   auto& state=checked_impl();
   if(state.indexed)return state.read_indexed([&](const auto& view) {
-    return detail::indexed_inode_allocation(view.inode(inode));
+    return view.allocation_inode(inode,verify_ancestry);
   });
-  return state.read_checked_inode(inode,[](const auto&,const Node& n) {
+  return state.read_checked_inode(inode,[&](const auto& snapshot,const Node& n) {
+    if(verify_ancestry)verify_path_ancestors(snapshot,state.model,n);
     return NativeInodeAllocationInfo{commit_info(n),n.allocation};
   });
 }

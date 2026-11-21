@@ -240,6 +240,7 @@ class IndexedVolumeView final {
   IndexedInodeInput resolve(std::string_view path,std::string* spelling=nullptr) const;
   NativeInodeState state(std::string_view path) const;
   NativeInodeState state_inode(std::uint64_t id) const;
+  NativeInodeAllocationInfo allocation_inode(std::uint64_t id,bool verify_ancestry) const;
   std::optional<NativeDirectoryRecordPage> directory_records(std::uint64_t directory,std::string_view after,
       std::size_t maximum,const std::function<bool(const NativeInodeState&)>& admit) const;
   IndexedDirectoryPage list(std::uint64_t directory,std::string_view after,std::size_t maximum) const;
@@ -260,7 +261,7 @@ class IndexedVolumeView final {
       const IndexedReopenAdmission&) const;
   NativeContentToken content_token(NativeExtentSelection,std::uint64_t object) const;
   void verify_inventory(bool published,const IndexedReopenAdmission& admission={}) const;
-  std::string path(const IndexedInodeInput&) const;
+  std::string path(const IndexedInodeInput&,bool include_spelling=true) const;
   const PagedObjectStoreSnapshot& store_;
   IndexedVolumeRoot root_;
   NativeNameIndex index_;

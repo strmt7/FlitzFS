@@ -1,6 +1,6 @@
 # FlitzFS detailed implementation plan
 
-**21 November 2026 — reconciled baseline `4203079a7529a565ebf17247a191f0ea3776c143`.**
+**Reconciled baseline `148d728d36d2fdb8e3cd0ee2a5874c7548799b54`.**
 
 Read the [current repository overview](REPOSITORY_OVERVIEW.md) first. This plan
 extends the existing E01–E13 release work breakdown and maps it to the active
@@ -19,11 +19,18 @@ work. Restart reclamation uses verified object totals and respects retained
 readers. The helper selects memory or qualified file backing through the
 shared attachment controller. The existing-file open uses the native
 writable audit to validate ownership before entering repair or the writer
-fences. Extend the signed-driver guest workflow to populated volumes and
-bring the same operation trace to the installed Windows client for Explorer
-and AMD qualification. Follow E02 for reclaiming segments during
-foreground writes, E03 for AMD and independent CPU continuity, and E08 for the
-mounted lifecycle. The execution plan gives the ordered exit evidence.
+fences. The populated signed-driver workflow now covers post-flush termination,
+independent CPU readback and a fresh writable mount. The handle metadata path
+reuses the verified inode and retains ancestry and deletion checks.
+
+Extend the mounted trace through overwrite, acknowledgement and rename, then
+replay it across publication cuts. Use that trace in E01 for scaling, E02 for
+reclamation during foreground writes, E03 for AMD and independent CPU continuity,
+and E08 for the installed Explorer lifecycle. E04–E06 use the present
+one-representative coherence and shared-base selection as controls for
+held-out size and access trials. Use their measured savings and write costs
+to calibrate E07. The [current gate ledger](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
+identifies the next acceptance artifact for each package.
 [Current state](DEVELOPMENT_STATE.json)
 [Current release assessment and execution order](RELEASE_EXECUTION_PLAN.md)
 
@@ -1739,9 +1746,10 @@ This is a low-confidence work estimate, not a deadline, a completion percentage
 or an assertion about this agent's coding speed. Do not convert it mechanically
 into calendar time or lower it because another fixture passed. Re-estimate after:
 
-- a bounded scalable native engine with populated-file measurements;
-- the first held-out collective comparison including access/protection costs;
-- the real assembled Windows path with lifecycle and interference evidence.
+- A bounded scalable native engine with populated-file measurements.
+- The first held-out collective comparison including access and protection costs.
+- The installed Windows path with lifecycle and interference evidence.
+- The first real persistent-backend interruption and repair campaign.
 
 Those results determine whether the remaining work is primarily implementation,
 an architectural correction or an unresolved compression research problem.

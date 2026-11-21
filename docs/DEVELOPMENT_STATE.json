@@ -1,11 +1,36 @@
 {
   "schema": 2,
-  "updated": "2026-11-21",
+  "updated": "2026-11-22",
   "goal_status": "active",
   "product": "Windows 11 AMD64 filesystem/helper/driver integration; AMD acceleration with independent CPU recovery",
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "current_reconciliation": {
+    "reviewed_commit": "148d728d36d2fdb8e3cd0ee2a5874c7548799b54",
+    "reviewed_tree": "d311b7e800feb8b4a8aceac4061b54ead5d90d0a",
+    "evidence": "docs/evidence/release-reconciliation-indexed-handle-2026-11-22.json",
+    "gate_ledger": "docs/RELEASE_EXECUTION_PLAN.md#current-gate-ledger",
+    "handle_metadata": {
+      "populated_files": 4096,
+      "queries": 64,
+      "backing_reads_before_after": [4698, 3048],
+      "backing_bytes_before_after": [12419980, 7717324],
+      "backing_write_bytes": 0,
+      "cpu_readback_files": 4097
+    },
+    "windows_tests": {"release": 201, "asan_including_runtime_preflight": 7, "raw": 6, "app_model_checks": 841},
+    "signed_winfsp_guest_recovery_trials_on_candidate": 1,
+    "installed_amd_controller": {
+      "kernel_launches_cpu_and_amd": [0, 17],
+      "compacted_bytes_cpu_and_amd": [1048576, 1048576],
+      "independent_cpu_readback_files_each": 23,
+      "mounted": false
+    },
+    "dependabot_open_alerts": 0,
+    "release_qualified": false,
+    "next": "Extend the populated mounted recovery trace through acknowledged overwrite and rename, then cover earlier image and selector publication cuts."
+  },
   "windows_mounted_post_flush_recovery": {
     "reviewed_commit": "fc388e7d7731e0b14e6059e6412b4d5e82398b4c",
     "evidence": "docs/evidence/windows11-mounted-post-flush-recovery-2026-11-21.json",
@@ -25,7 +50,7 @@
     "fresh_read_access_timestamps_changed_before_after": [1024, 0],
     "mounted_overwrite_mapping_and_reopen": true,
     "independent_cpu_readback": true,
-    "next_check": "Interrupt the populated helper after a confirmed external flush; prove independent recovery and fresh-process attachment on the same backing."
+    "follow_up": "See windows_mounted_post_flush_recovery for the completed interruption and fresh-process attachment checks."
   },
   "current_attachment_reconciliation": {
     "reviewed_commit": "4203079a7529a565ebf17247a191f0ea3776c143",

@@ -1,20 +1,22 @@
-# Release readiness checkpoint — 15 November 2026
+# Release readiness
 
-FlitzFS remains an experimental filesystem/storage prototype, substantially short
-of a release candidate. The owner alone decides when to release. No release,
-tag, package publication or version change is authorized.
+FlitzFS is in development qualification. Its current Windows app, indexed
+storage and AMD route have source-bound development evidence. The open gates
+cover large mounted volumes, real backend failures, useful mounted AMD work,
+strong held-out compression, installed Explorer behavior and compatibility.
+The owner alone makes the release decision.
 
-The fresh [repository overview](REPOSITORY_OVERVIEW.md) and
-[154-step implementation plan](IMPLEMENTATION_PLAN.md) are the current
-17 November review at `38a4a48`. They distinguish reusable foundations from
-missing product components; the full product goal remains active.
+Use the [current gate ledger](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
+for status and acceptance. The [repository overview](REPOSITORY_OVERVIEW.md)
+records the source and evidence, and the
+[154-step implementation plan](IMPLEMENTATION_PLAN.md) gives the work packages.
 
-[The current release execution plan](RELEASE_EXECUTION_PLAN.md) breaks the
-remaining work into thirteen concrete packages, about 60–130 person-weeks of
-low-confidence planning effort. It includes multi-release compatibility,
-offline coherence, genuinely background maintenance and recognized benchmarks.
-The research exit and exact release date remain unproved; no completion
-percentage follows from code size, assertion counts or a million object keys.
+The release plan estimates **60–130 person-weeks** at low confidence.
+Re-estimate after mounted scale, physical recovery and the first held-out
+compression comparison. The research needed for the compression target
+has no defensible end date yet.
+
+## Historical checkpoint of 15 November 2026
 
 This assessment separates implemented mechanisms, executed qualification and
 unmet product goals. A passing fixture or large assertion count is not a

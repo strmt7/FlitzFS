@@ -1,23 +1,20 @@
 # FlitzFS repository overview
 
-Updated on **21 November 2026** against
-[`4203079a7529a565ebf17247a191f0ea3776c143`](https://github.com/strmt7/FlitzFS/commit/4203079a7529a565ebf17247a191f0ea3776c143)
-and the Windows volume-file reopen change. The review inventoried the tracked
-tree and traced the ordinary Windows attachment, allocation, recovery, AMD
-worker, maintenance policy and packaging paths. The [release execution plan](RELEASE_EXECUTION_PLAN.md)
-maps the remaining work to specific gates and the
-[detailed implementation plan](IMPLEMENTATION_PLAN.md).
+Reconciled against the **915-file** tree at
+`148d728d36d2fdb8e3cd0ee2a5874c7548799b54` and the accompanying handle metadata
+change. The review mapped current Windows attachment, metadata, allocation,
+recovery, AMD, background maintenance and package paths to their qualification
+evidence. The [release execution plan](RELEASE_EXECUTION_PLAN.md) identifies the
+next artifact for each gate. The [detailed implementation plan](IMPLEMENTATION_PLAN.md)
+defines the implementation and acceptance steps.
+
 [Original architecture review](evidence/repository-review-2026-11-17.json) ·
-[Current reconciliation evidence](evidence/release-reconciliation-attachment-2026-11-21.json)
+[Current reconciliation evidence](evidence/release-reconciliation-indexed-handle-2026-11-22.json) ·
+[Reviewed commit](https://github.com/strmt7/FlitzFS/commit/148d728d36d2fdb8e3cd0ee2a5874c7548799b54)
 Later checkpoints are recorded under recent executed evidence and in the
 [development state ledger](DEVELOPMENT_STATE.json).
 
 ## Assessment
-
-The [release execution plan](RELEASE_EXECUTION_PLAN.md) binds the current
-assessment to the Windows attachment, AMD, CPU fallback and indexed audit
-evidence through 21 November 2026.
-It lists the remaining work and the verification required at each handoff.
 
 FlitzFS is in **development qualification**. Its indexed engine and Windows
 integration can serve writable workloads, and its controller has exercised
@@ -38,9 +35,9 @@ release, tag, publication or product-version change is authorized by this review
 
 ## What is in the repository
 
-The baseline Git tree contains 912 tracked files and 14,859,196 bytes of
+The baseline Git tree contains 915 tracked files and 14,954,593 bytes of
 tracked content. The `src/` and `include/` directories contain 190 tracked
-files and 1,978,610 bytes. Each receipt identifies its inspection or test scope.
+files and 1,980,075 bytes. Each receipt identifies its inspection or test scope.
 
 | Area | Inventory | Responsibility |
 | --- | ---: | --- |
@@ -48,19 +45,19 @@ files and 1,978,610 bytes. Each receipt identifies its inspection or test scope.
 | `include/` | 40 files | Public core, session, storage, resource and recovery interfaces |
 | `tests/` | 146 files | Model, malformed-input, failure, SDK, process, application and qualification fixtures |
 | `tools/` | 63 files | Dependency staging, provenance, resource containment and qualification |
-| `docs/` | 458 files | Contracts, plans, historical results and source-bound evidence |
+| `docs/` | 461 files | Contracts, plans, historical results and source-bound evidence |
 | `.github/` | 19 files | Complementary build, analysis and experimental workflows |
 | `third_party/` | 19 files | Pinned BLAKE3 sources, licensing and provenance |
 | `cmake/`, `evidence/`, `resources/`, and top-level files | 17 files | Build support, historical evidence, branding, README and licensing |
 
-Use the build-specific executed counts in the
-[current reconciliation evidence](evidence/release-reconciliation-attachment-2026-11-21.json).
+Use the [current reconciliation evidence](evidence/release-reconciliation-indexed-handle-2026-11-22.json)
+for the exact build and executed results.
 
 ## Reconciliation
 
-The active checkout and GitHub `main` agreed on the reviewed commit. The
-older checkout was on `d6bb574` with 25 entries in Git status. The development
-change uses the active checkout and its source-bound builds.
+The active checkout and GitHub `main` agreed on the reviewed parent. The
+original checkout remains on `d6bb574` with earlier working changes. Use the
+active checkout and its source-bound builds for this change.
 
 Five hosted workflows failed on the earlier `227c82d` baseline. A dual-codec cold
 coverage fixture accounted for five failed test jobs. It verified its
@@ -93,6 +90,16 @@ boundaries to its volume, WinFsp and storage contracts.
 The current FlitzZip developer guide and repository instructions were checked
 for connector publication, dependency staging and evidence conventions.
 FlitzFS uses its own indexed storage, format and volume lifecycle.
+
+The populated Windows file-backed trial recovered the external client's
+flushed write after helper termination. The CPU reader verified all 1,024
+original files before the fresh helper mounted the same volume and flushed
+another write. Handle metadata queries now reuse the verified inode after
+checking the same ancestry and deletion state. The 4,096-file controller
+fixture recorded 4,698 to 3,048 backing reads and 12,419,980 to 7,717,324
+backing bytes across 64 queries, with zero writes in both builds.
+[Mounted recovery](evidence/windows11-mounted-post-flush-recovery-2026-11-21.json) ·
+[Handle metadata and exact test scope](evidence/release-reconciliation-indexed-handle-2026-11-22.json)
 
 ## Current architecture
 
@@ -347,11 +354,11 @@ Source: [WinFsp callback table and parameters](../src/windows/winfsp_native.cpp)
 
 ## Fresh dependency and alert check
 
-The authenticated GitHub REST endpoint returned **zero open Dependabot alerts**
-on 21 November at 11:51 UTC across one complete page. The read used the
-repository's existing GitHub CLI authentication after the connector rejected
-that endpoint.
-[Current dependency receipt](evidence/release-reconciliation-attachment-2026-11-21.json)
+The authenticated GitHub REST endpoint returned **zero open Dependabot
+alerts** in this reconciliation. The connector rejected the alert endpoint.
+The release checks confirmed the current Zstandard, LZ4, BLAKE3, WinFsp,
+CMake, LLVM, fio and DiskSpd stable tags.
+[Current dependency receipt](evidence/release-reconciliation-indexed-handle-2026-11-22.json)
 
 | Dependency/tool | Repository selection | Fresh official result / qualification limit |
 | --- | --- | --- |
@@ -373,9 +380,10 @@ release supply-chain review needs the exact signed artifacts and runtime,
 driver and OS profiles for each supported configuration.
 [AMD ROCm Core SDK 10.2.0 release notes](https://rocm.docs.amd.com/en/docs-10.2.0/about/release-notes.html)
 
-The inspected host reported Windows 11 Pro build 26300. The release test
-matrix must record the exact servicing and driver versions exercised and the
-vendor-supported configurations for the selected AMD package.
+The inspected host reported Windows 11 Pro 26H2 build 26300.10075. Microsoft
+lists that build in the General Availability Channel. AMD's Core SDK 10.2.0
+release notes list Windows 11 25H2. Treat vendor coverage and observed
+FlitzFS behavior on 26H2 as separate qualification inputs.
 [Windows release information](https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information)
 
 [AMD SDK qualification](evidence/windows-rocm-10.2-qualification-2026-11-20.json) ·
@@ -697,10 +705,9 @@ It must be recalibrated after the scalable native engine, real mounted path and
 first held-out collective comparison. The small recent integration slices do
 not justify calling a release imminent or silently lowering the exit criteria.
 
-The immediate direction is to connect and qualify the real Windows path and
-design the next storage capability around both paged native metadata and
-incremental safe allocation. A bounded staged handoff and occupied-byte
-instrumentation supply early evidence. GPU cost acquisition and stronger
-collective-compression experiments proceed alongside that work. A setup or qualification problem in one track must not
-freeze independent progress in the others. The [implementation plan](IMPLEMENTATION_PLAN.md)
-specifies concrete steps, dependencies, acceptance evidence and stop conditions.
+Extend the populated Windows recovery trace to acknowledged overwrite and
+rename, then use it across publication cuts and churn. Follow with bounded
+writable admission, safe segment reuse and useful mounted AMD operation.
+Advance sparse coherence and held-out compression selection alongside that
+work. The [current gate ledger](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
+gives the deliverable and acceptance evidence for each track.
