@@ -1,0 +1,167 @@
+{
+  "schema": 1,
+  "base_commit": "2d8ba6ce2a00edd6a6b207ebff5b514a8d17314b",
+  "base_tree": "95ed71624f213eeb784397444b44d026ea891489",
+  "candidate_code_patch_sha256": "27236f5cd29bad865b9a3412abfe9cac84fadfcec89595e06108d99265b37a6d",
+  "candidate_source_blobs": {
+    "CMakeLists.txt": "5107ef89efc023e62a6ef98296f685a7d50da9de",
+    "include/flitzfs/indexed_coherence.hpp": "08f71fc403f07e54314705030576133a50b60e72",
+    "include/flitzfs/paged_store.hpp": "bb84053d90f6d7b6d999b438b0e34e7c25bde666",
+    "src/indexed_coherence.cpp": "6e3a4131218b66e6f6c89d89347ba2e2d95f7ec3",
+    "src/native_maintenance.cpp": "eea4514fd5c762e7ebf4c9114b4663632e91c545",
+    "src/paged_store.cpp": "ae1643fdb38b0a640eed744ea2acb222c8c68aa6",
+    "tests/test_native_group_maintenance.cpp": "b0b00e9046ff80367e9b156b7d94b7b489bafa3f"
+  },
+  "navigation": {
+    "provider_version": "0.2.43",
+    "source_files": 5,
+    "inventory_sha256": "fe619a590da62f8c5bc02da51011c5b5f0b3259c3b0d2b93e7ba694a0c3f6e11",
+    "native_response_sha256": "a5f0d150b3dacea041735f0b0f805152ccc153082e3adc70f8ba113f7406a8c0"
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "pages": [
+      {
+        "url": "https://www.mdpi.com/2073-431X/15/9/607",
+        "http_status": 200,
+        "markdown_bytes": 97912,
+        "markdown_sha256": "a1d136fb3ce89f619895c3a6f3867c608c3f9b10964b8040fd338f77e8d9e146",
+        "capture_sha256": "4ed4be881aba971457b879309290be922094af37ae189b17f5012fe1b080ccaf"
+      },
+      {
+        "url": "https://www.mdpi.com/2079-9292/15/20/4712",
+        "http_status": 200,
+        "markdown_bytes": 87191,
+        "markdown_sha256": "d879ff09701232d40d157f32c92757a4f9129f7226d81b48c0ba090267178fe6",
+        "capture_sha256": "6ccec06e33815e07adaebce59392dab9be4f1853c89ba6175c8e99802307a4e7"
+      }
+    ]
+  },
+  "comparative_fixture": {
+    "scope": "Same synthetic 13-file workload and superseding edit; in-memory image, selector and catalog.",
+    "baseline": {
+      "catalog_arms": [
+        {
+          "seeded_history": 0,
+          "groups": 0,
+          "image_bytes": 1859584,
+          "catalog_bytes": 155648,
+          "selector_bytes": 131072,
+          "lookups": 13,
+          "catalog_write_bound": 20480,
+          "files": 13,
+          "exact_cpu_readback": 1
+        },
+        {
+          "seeded_history": 1,
+          "groups": 0,
+          "image_bytes": 1859584,
+          "catalog_bytes": 167936,
+          "selector_bytes": 131072,
+          "lookups": 13,
+          "catalog_write_bound": 40960,
+          "files": 13,
+          "exact_cpu_readback": 1
+        }
+      ],
+      "log_sha256": "4362f157700df056f6df04b539c4791bf31696ebf6c5ae162cdd74ea4df3846a",
+      "exit_code": 8,
+      "peak_job_bytes": 25210880,
+      "process_tree_retired": true
+    },
+    "candidate": {
+      "catalog_arms": [
+        {
+          "seeded_history": 0,
+          "groups": 0,
+          "image_bytes": 1859584,
+          "catalog_bytes": 155648,
+          "selector_bytes": 131072,
+          "lookups": 13,
+          "catalog_write_bound": 20480,
+          "files": 13,
+          "exact_cpu_readback": 1
+        },
+        {
+          "seeded_history": 1,
+          "groups": 1,
+          "image_bytes": 1728512,
+          "catalog_bytes": 167936,
+          "selector_bytes": 131072,
+          "lookups": 27,
+          "catalog_write_bound": 40960,
+          "files": 13,
+          "exact_cpu_readback": 1
+        }
+      ],
+      "log_sha256": "07d986fcb56178352db990ba2b93a2f6b6fa1ce45bcb065e4de7f78aeebdf086",
+      "exit_code": 0,
+      "peak_job_bytes": 28905472,
+      "process_tree_retired": true
+    },
+    "control_and_alternate_complete_bytes": [
+      2146304,
+      2027520
+    ],
+    "net_bytes_saved": 118784
+  },
+  "funded_publication_and_fault_model": {
+    "offered": 96,
+    "retained_alternates": 78,
+    "primary_write_bound": 20480,
+    "full_write_bound": 61440,
+    "old_checkpoints": 23,
+    "new_checkpoints": 5
+  },
+  "automatic_catalog_compaction": {
+    "old_bytes": 159744,
+    "new_bytes": 143360,
+    "stale_alternate_removed": 1,
+    "live_primary_preserved": 1
+  },
+  "windows_host_build": 26300,
+  "windows_test_groups": {
+    "release_zstd_lz4": {
+      "passed_groups": 201,
+      "log_sha256": "5b066caa31d19c8fd0da98ef345ac1cb7db924f34b4dc56052af094a842e16b3",
+      "exit_code": 0,
+      "peak_job_bytes": 335499264,
+      "process_tree_retired": true
+    },
+    "raw_focused": {
+      "passed_groups": 3,
+      "log_sha256": "7b72cc5572409defd69661d7bf34451261cc55ff0904b8db6d5160f68d87461b",
+      "exit_code": 0,
+      "peak_job_bytes": 166199296,
+      "process_tree_retired": true
+    },
+    "asan_focused_including_runtime_preflight": {
+      "passed_groups": 4,
+      "log_sha256": "ce3181af2a3953913f89e341ed94002b73b05e0cee56e0e6ebf45506fb613baa",
+      "exit_code": 0,
+      "peak_job_bytes": 790863872,
+      "process_tree_retired": true
+    }
+  },
+  "installed_amd_callback_regression": {
+    "files": 15,
+    "groups": 5,
+    "advised_members": 90,
+    "verified_batches": 1,
+    "submitted_kernel_launches": 85,
+    "grouped_compacted_bytes": 2760704,
+    "independent_cpu_readback": true,
+    "mounted": false,
+    "controller_sha256": "4d922b774d3669def2d9be50e4ff028eadbdf53da513b7ea89d1afd71bdd88d7",
+    "package_manifest_sha256": "06c55f3e68db91317b6897c88e6aba3658bc2ddb2e8312da6fbf080a88dffe84",
+    "log_sha256": "d95fd005d44f262a07675898f21fbc40d07c514a29f860790276a7c11d0cd136",
+    "exit_code": 0,
+    "peak_job_bytes": 155942912,
+    "process_tree_retired": true
+  },
+  "open_qualification": [
+    "Held-out public workloads and dense catalogs at scale, including recall, lookup cost and net stored bytes.",
+    "Persistent provider lifecycle and production mounted AMD throughput with equivalent data and semantics.",
+    "Physical-media power-loss behavior."
+  ]
+}

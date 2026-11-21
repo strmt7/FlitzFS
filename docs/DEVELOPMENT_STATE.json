@@ -6,6 +6,16 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "indexed_coherence_alternates": {
+    "reviewed_commit": "2d8ba6ce2a00edd6a6b207ebff5b514a8d17314b",
+    "measured_on": "2026-11-21",
+    "evidence": "docs/evidence/indexed-coherence-alternates-2026-11-21.json",
+    "control_and_alternate_complete_bytes": [2146304, 2027520],
+    "control_and_alternate_lookups": [13, 27],
+    "independent_cpu_readback_files_each": 13,
+    "modeled_catalog_publication_cuts_per_build": 28,
+    "follow_up": "Measure recall, space and search cost across held-out workloads at scale, and qualify restart on the persistent provider."
+  },
   "current_reconciliation": {
     "reviewed_commit": "148d728d36d2fdb8e3cd0ee2a5874c7548799b54",
     "reviewed_tree": "d311b7e800feb8b4a8aceac4061b54ead5d90d0a",

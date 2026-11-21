@@ -96,6 +96,7 @@ class PagedObjectStoreSnapshot final {
   friend class PagedObjectStoreWriter;
   friend class NativeFilesystemSnapshot;
   friend class NativeFilesystemWriter;
+  friend class IndexedCoherenceSnapshot;
   friend class detail::IndexedVolumeView;
   friend class detail::NativeNameIndex;
   // Stream decoded objects after checking all of their payload copies.
@@ -122,6 +123,8 @@ class PagedObjectStoreSnapshot final {
   bool same_checkpoint(const PagedObjectStoreSnapshot&) const noexcept;
   std::optional<std::vector<std::byte>> read_matching(std::uint64_t id,std::size_t maximum_decoded_bytes,
       std::optional<std::uint64_t> expected_generation) const;
+  std::optional<std::pair<std::uint64_t,std::vector<std::byte>>> read_first_after(std::uint64_t after,
+      std::uint64_t last,std::size_t maximum_decoded_bytes) const;
   explicit PagedObjectStoreSnapshot(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;
 };

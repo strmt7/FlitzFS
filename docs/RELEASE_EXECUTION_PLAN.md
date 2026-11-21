@@ -345,12 +345,16 @@ multiple sessions and measure actual allocated bytes and write costs.
 ## 5. Strong collective compression and autonomous learning
 
 - Extend the incremental similarity and coherence catalogs across distant
-  files and many groups. Keep catalog entries bounded and independently
-  rebuildable, with wavefront progress and eviction tied to resource
-  observations. Use sparse paged lookup with resumable candidate retrieval.
-  Index stable content and region generations so that a filename change
-  preserves the relationship. Track candidate recall across large buckets,
-  and keep measured costs and failed trials in the advisory area.
+  files and many groups. The paged catalog now retains funded alternate
+  nominations and can resume within a matching bucket. One controlled
+  13-file workload recovered a live match after the newest nomination became
+  stale, saving 116 KiB of combined image, selector and catalog space. The
+  lookup count grew from 13 to 27. Test recall, space, write cost and time to
+  find useful candidates across larger and denser buckets. Compare sparse
+  slot order with size-aware ranking before widening the search. Keep the
+  catalog independently rebuildable, and tie scan progress and eviction to
+  observed resources. Keep measured costs and failed trials in the advisory area.
+  [Displaced nomination evidence](evidence/indexed-coherence-alternates-2026-11-21.json)
 - Use training and held-out sets chosen before the evaluation. Test close
   revisions, unrelated files, small text, SVG, tabular and numeric data,
   binaries, media and already compressed files. Include nonsynthetic

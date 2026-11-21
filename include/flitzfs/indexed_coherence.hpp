@@ -18,6 +18,11 @@ struct IndexedCoherencePosting {
   std::uint64_t projected_fingerprint=0;
 };
 
+struct IndexedCoherenceAlternate {
+  std::uint64_t cursor=0;
+  std::optional<OptimizationGroupFeature> representative;
+};
+
 // Independent advisory backing for one native image. The volume ID binds
 // the paged store and the typed root binds the contributing image ID.
 class IndexedCoherenceSnapshot final {
@@ -25,8 +30,13 @@ class IndexedCoherenceSnapshot final {
   static IndexedCoherenceSnapshot open(std::shared_ptr<StoreByteIo>,
       StoreIdentity volume,StoreIdentity image,PagedStoreLimits);
   std::optional<OptimizationGroupFeature> find(std::uint32_t band,std::uint64_t fingerprint) const;
-  bool has_projected_keys() const noexcept {return schema_>=2;}
-  bool has_modular_keys() const noexcept {return schema_>=3;}
+  // A cursor is valid for the same snapshot, band and fingerprint. A hash
+  // collision advances it without returning a nomination.
+  std::optional<IndexedCoherenceAlternate> next_alternate(std::uint32_t band,
+      std::uint64_t fingerprint,std::uint64_t after=0) const;
+  bool has_projected_keys() const noexcept {return band_schema_>=2;}
+  bool has_modular_keys() const noexcept {return band_schema_>=3;}
+  bool has_alternates() const noexcept {return schema_>=4;}
   PagedStoreInfo info() const noexcept {return store_.info();}
   StoreIdentity volume() const noexcept {return store_.identity();}
   StoreIdentity image() const noexcept {return image_;}
@@ -36,7 +46,7 @@ class IndexedCoherenceSnapshot final {
   IndexedCoherenceSnapshot(PagedObjectStoreSnapshot,StoreIdentity volume,StoreIdentity image);
   PagedObjectStoreSnapshot store_;
   StoreIdentity image_;
-  std::uint8_t schema_=1;
+  std::uint8_t schema_=1,band_schema_=1;
 };
 
 class IndexedCoherenceWriter final {
@@ -46,8 +56,8 @@ class IndexedCoherenceWriter final {
       StoreIdentity volume,StoreIdentity image,PagedStoreLimits);
   static IndexedCoherenceWriter resume(std::shared_ptr<StoreByteIo>,
       StoreIdentity volume,StoreIdentity image,std::uint64_t expected_generation,PagedStoreLimits);
-  // A single lookup key retains the latest observed binding. Replaying older
-  // samples or exact duplicates consumes no write budget.
+  // Keep the latest observed binding and fund distinct alternate extents
+  // within the same publication. Older replays and exact duplicates cost zero.
   PagedStoreWriteResult publish(std::span<const IndexedCoherencePosting>,std::uint64_t maximum_write_bytes);
   IndexedCoherenceSnapshot snapshot() const;
   bool poisoned() const noexcept {return store_.poisoned();}

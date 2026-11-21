@@ -195,6 +195,8 @@ struct NativeGroupMaintenance::Impl {
   std::uint64_t coherence_after=0,coherence_binding=0;
   std::uint64_t packing_after=0;
   unsigned coherence_query=0;
+  struct CoherenceAlternateProbe {Band key;std::uint64_t generation,after=0;};
+  std::optional<CoherenceAlternateProbe> coherence_alternate;
   std::set<Digest> attempted;std::deque<Digest> attempted_order;
   std::optional<NativeFilesystemWriter::SharedBaseWork> work;
   std::deque<StagedGroup> staged_groups;
@@ -229,7 +231,7 @@ struct NativeGroupMaintenance::Impl {
     candidate_index=band_offset=0;completed_sequence=0;phase=Phase::idle;state.owned_payload_bytes=0;pending_history=0;work_ids.clear();
     representatives.clear();refresh_base.reset();extent_scan_exhausted=false;
     coherence_after=coherence_binding=0;
-    coherence_query=0;packing_after=0;
+    coherence_query=0;coherence_alternate.reset();packing_after=0;
     checkpoint_loaded=checkpoint_due=false;checkpoint_samples=state.sampled_extents;scan_revisit=false;
     update_count=next_update=0;
     updates_need_sweep=false;
@@ -485,7 +487,7 @@ struct NativeGroupMaintenance::Impl {
     }
     trim_representatives(maximum);
     features.clear();buckets.clear();candidate_order.clear();
-    coherence_after=0;coherence_query=0;packing_after=0;
+    coherence_after=0;coherence_query=0;coherence_alternate.reset();packing_after=0;
   }
   void accept_coherence_candidate(const OptimizationGroupFeature& hit,Band key,
       std::size_t maximum_representatives) {
@@ -526,12 +528,15 @@ struct NativeGroupMaintenance::Impl {
     constexpr auto modular_query=1+kOptimizationXorProjections;
     const auto queries=catalog->has_modular_keys()?modular_query+kCoherenceModularWidths:
         catalog->has_projected_keys()?modular_query:1;
-    for(auto sample=features.lower_bound(coherence_after);sample!=features.end();++sample,coherence_query=0) {
+    const auto generation=catalog->info().generation;
+    for(auto sample=features.lower_bound(coherence_after);sample!=features.end();++sample) {
       const auto& feature=sample->second;
-      coherence_after=sample->first;
+      if(coherence_after!=sample->first) {
+        coherence_after=sample->first;coherence_query=0;coherence_alternate.reset();
+      }
       if(!indexed_member_candidate(feature.token))continue;
       while(coherence_query<queries) {
-        const auto query=coherence_query++;
+        const auto query=coherence_query;
         Band key{};
         if(query==0) {
           if(const auto band=detail::coherence_primary_band(feature.bands))key={*band,feature.bands[*band]};
@@ -542,13 +547,26 @@ struct NativeGroupMaintenance::Impl {
           const auto index=query-modular_query;
           key={kCoherenceModularBand+static_cast<unsigned>(index),feature.deltas[index]};
         }
-        if(!key.second)continue;
+        if(!key.second){++coherence_query;coherence_alternate.reset();continue;}
+        if(coherence_alternate && (coherence_alternate->key!=key || coherence_alternate->generation!=generation))
+          coherence_alternate.reset();
         std::optional<OptimizationGroupFeature> hit;
         ++state.coherence_lookups;
-        try{hit=catalog->find(key.first,key.second);}
+        try {
+          if(coherence_alternate) {
+            if(auto next=catalog->next_alternate(key.first,key.second,coherence_alternate->after)) {
+              coherence_alternate->after=next->cursor;
+              hit=std::move(next->representative);
+            }else {coherence_alternate.reset();++coherence_query;}
+          }else {
+            hit=catalog->find(key.first,key.second);
+            if(catalog->has_alternates())coherence_alternate=CoherenceAlternateProbe{key,generation};
+            else ++coherence_query;
+          }
+        }
         catch(const std::exception&){owner.retire_coherence();++state.coherence_failures;return true;}
         if(hit)accept_coherence_candidate(*hit,key,maximum_representatives);
-        return true; // One point lookup in an admitted opportunity.
+        return true; // One checked lookup in an admitted opportunity.
       }
     }
     return false;
@@ -1200,6 +1218,7 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
         p.coherence_binding=source->coherence_binding;
         p.coherence_after=0;
         p.coherence_query=0;
+        p.coherence_alternate.reset();
         p.completed_sequence=0;
         if(p.phase!=Phase::idle)p.scan_revisit=true;
       }

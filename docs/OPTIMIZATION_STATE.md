@@ -390,12 +390,13 @@ recorded edits before traversing unchanged data.
 A managed indexed session can bind a read-only snapshot of a separately
 reserved catalog. The paged store identity binds the volume. A typed object
 at key 1 binds the selected image and feature schema. Its 32-byte record has
-`FLTZCOR1`, `FLTZCOR2` or `FLTZCOR3` at offset 0, the 16-byte image identity
-at offset 8, and the matching schema at byte 24. Bytes 25–31 are reserved
-zero. Each schema admits the preceding posting types. A newly admitted
-posting and any required root promotion share one funded copy-on-write
-transaction. The catalog is rebuildable advice. The file-data image uses its
-own format capability when opened independently.
+`FLTZCOR1` through `FLTZCOR4` at offset 0, the 16-byte image identity at
+offset 8, and the matching schema at byte 24. In schema 1–3, bytes 25–31
+are zero and the schema determines which primary posting types are readable.
+In schema 4, byte 25 records the highest admitted primary schema, from 1 to
+3, and bytes 26–31 are zero. A newly admitted posting and any required root
+promotion share one funded copy-on-write transaction. The catalog can be
+rebuilt independently of the file-data image, which retains its existing format.
 
 The first 16 bytes of each posting contain the signature at offset 0, the
 band ordinal at byte 8, and seven reserved zero bytes.
@@ -405,31 +406,51 @@ band ordinal at byte 8, and seven reserved zero bytes.
 | `FLTZCOE1` | 0–11 | 184 | Original 168-byte representative |
 | `FLTZCOE2` | 12–15 | 96 | Four 8-byte extent binding fields, 32-byte content digest, 8-byte role, 8-byte masked signature |
 | `FLTZCOE3` | 16–19 | 96 | Same extent binding, digest and role, followed by a modular signature for 1, 2, 4 or 8 byte words |
+| `FLTZCOE4` | 0–19, as admitted at root byte 25 | 184 for 0–11, otherwise 96 | Alternate nomination with its band's existing body |
 
 Each compact row stores its own signature. Its decoded representative
-provides the extent binding and role with an empty legacy band array. The
-high bit of each object key identifies a posting. Its other bits come from
-the first eight BLAKE3 digest bytes over the one-byte band and eight-byte
-little-endian fingerprint, interpreted as a little-endian word. Lookup
-checks the typed row, its key, and the full requested band and fingerprint.
-A collision can replace an advisory nomination. Publication requires its own
-validation of the selected live extents and their complete encoded size.
+provides the extent binding and role with an empty legacy band array. A
+primary key has its high bit set. Its remaining bits come from the first
+eight BLAKE3 digest bytes of the one-byte band and eight-byte little-endian
+fingerprint, interpreted as a little-endian word. Alternate keys have high
+bits `01`, followed by bits 61 through 8 of that same word and one slot
+byte. The slot is the first BLAKE3 digest byte of the little-endian inode
+and extent index, each encoded in eight bytes. A slot holds the highest
+observed (revision, object ID) it has received. The 256 possible slots per
+prefix bound dense ranges. A collision can replace a nomination. Every
+lookup checks the typed record, its derived key and the exact requested band
+and fingerprint before returning its nomination.
 
 The writer batches postings under an explicit maximum write-byte allowance.
-It retains the latest observed physical revision and uses object ID to break
-ties. Exact replays and older observations consume no write allowance. The
-allowance includes appended objects, index pages, padding and both root writes.
-The read path checks one paged lookup path without loading the whole catalog.
+It retains the latest observed physical revision at the primary key, with
+object ID breaking ties. Advancing that observation can preserve the displaced
+extent and recent distinct extents from the same offered batch in alternate
+slots. When the expanded plan exceeds geometric capacity or its byte allowance
+before reservation, the writer can publish the primary rows alone. The selected
+transaction reserves its full charge once and includes appended objects, index
+pages, padding and both root writes. Exact replays and older observations
+consume no write allowance.
 [Paginated object storage](PAGED_OBJECT_STORE.md#memory-and-capacity)
 
 After ordinary window candidates are exhausted, the maintenance controller
-can look up the primary band, up to four masked signatures in schema 2 or
-later, and up to four modular signatures in schema 3. The controller advances
-one point lookup per admitted step for ungrouped samples and skips missing
-signatures. A result goes through the ordinary live
-extent and CPU publication checks. An unreadable catalog is retired and the
-ordinary window can continue. A fresh catalog can wake a settled controller.
-Selecting another image retires the earlier catalog owner.
+can look up the primary band, up to four masked signatures and up to four
+modular signatures, according to the catalog's admitted band types. The
+controller advances one checked primary or alternate lookup per admitted step
+for ungrouped samples. For an alternate, it resumes at the next existing object
+key in the bounded range, reads at most one posting body and retains the cursor
+only for the same band, fingerprint and catalog generation. Every nomination
+goes through the ordinary live extent and independent CPU publication checks.
+An unreadable catalog is retired and the ordinary window can continue. A fresh
+catalog can wake a settled controller. Selecting another image retires the
+earlier catalog owner.
+
+Recent delta-compression and backup studies evaluate keeping multiple
+nominations or revisiting earlier candidates to improve matches. FlitzFS
+uses sparse slots so lookup can advance by one candidate per idle opportunity
+and counts the catalog in its net-space comparison.
+[Similarity detection evaluation](https://www.mdpi.com/2073-431X/15/9/607) ·
+[Cross-version backup evaluation](https://www.mdpi.com/2079-9292/15/20/4712)
+[Displaced nomination validation](evidence/indexed-coherence-alternates-2026-11-21.json)
 
 A managed session can take ownership of a provisioned writer. On settled
 scan windows it offers a rotating batch of retained features using the same
@@ -455,8 +476,9 @@ reservation after the last owner drops it.
 A physical-space refusal schedules a bounded compaction. The planner validates
 the typed root and walks the source catalog in key order. It checks each
 posting's inode, extent, object and physical revision against one pinned
-native snapshot. The snapshot stays valid across unrelated writes. Only
-matched postings enter the packed copy, along with the typed root. A posting
+native snapshot, independently for every primary and alternate row. The
+snapshot stays valid across unrelated writes. Only matched postings enter
+the packed copy, along with the typed root. A posting
 can become stale after planning, and the lookup consumer still checks the
 current file before using it.
 

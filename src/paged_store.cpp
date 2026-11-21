@@ -1461,6 +1461,22 @@ std::optional<Bytes> PagedObjectStoreSnapshot::read_matching(std::uint64_t id,st
   if(e->logical>maximum_decoded_bytes)fail("object exceeds decoded read budget");
   return read_object(impl_->state,*e);
 }
+std::optional<std::pair<std::uint64_t,Bytes>> PagedObjectStoreSnapshot::read_first_after(
+    std::uint64_t after,std::uint64_t last,std::size_t maximum_decoded_bytes) const {
+  if(!impl_)fail("moved-from snapshot");
+  if(after>=last)return {};
+  std::optional<std::pair<std::uint64_t,Bytes>> result;
+  bool done=false;
+  auto visit=[&](const Entry& entry) {
+    if(entry.id<=last) {
+      if(entry.logical>maximum_decoded_bytes)fail("object exceeds decoded read budget");
+      result.emplace(entry.id,read_object(impl_->state,entry));
+    }
+    return false;
+  };
+  walk(impl_->state,impl_->state.root,after,visit,done);
+  return result;
+}
 std::vector<StoreObjectInfo> PagedObjectStoreSnapshot::list_page(std::uint64_t after,std::size_t limit) const {
   if(!impl_)fail("moved-from snapshot");if(!limit || limit>4096)fail("pagination budget");
   std::vector<StoreObjectInfo> result;result.reserve(limit);bool done=false;
