@@ -151,6 +151,24 @@ sequence by 1,028 in the control. Both counts were zero in the revised run.
 The payload digest matched in every mounted and independent CPU pass.
 [Populated mount and access-time evidence](evidence/windows11-populated-mount-access-time-2026-11-21.json)
 
+### Recovery after an acknowledged flush
+
+The disposable guest mode `--gui-mounted-flush-recovery-sandbox` extends the
+populated volume test. An external client writes and flushes a new
+131,209-byte file, then requests termination of the exact supervised helper.
+The client keeps the file handle open until helper exit and supervisor
+retirement are confirmed. The test checks that the old mount is absent after
+the client releases the handle.
+
+Independent CPU inspection verifies the original 1,024 files and the
+acknowledged write before a fresh helper attaches the same backing. The new
+mount verifies the directory and acknowledged file and flushes a second,
+65,709-byte file. After normal detach and exit, the CPU reader verifies both
+writes and the recovered checkpoint. Two Windows 11 build 26100 guests with
+signed WinFsp 2.2.26323 passed this sequence. Physical power-loss and
+interrupted device writes have separate release gates.
+[Mounted interruption evidence](evidence/windows11-mounted-post-flush-recovery-2026-11-21.json)
+
 Current backing creation is shared with the WinFsp composition through the
 [adaptive memory factory](WINDOWS_MEMORY_VOLUME_FACTORY.md). The fixed capacity
 and staged Optimize descriptions below apply to the labeled historical build.

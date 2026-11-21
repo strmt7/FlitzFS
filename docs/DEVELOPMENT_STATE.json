@@ -6,6 +6,17 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "windows_mounted_post_flush_recovery": {
+    "reviewed_commit": "fc388e7d7731e0b14e6059e6412b4d5e82398b4c",
+    "evidence": "docs/evidence/windows11-mounted-post-flush-recovery-2026-11-21.json",
+    "independent_guest_trials": 2,
+    "original_population_files": 1024,
+    "acknowledged_bytes_recovered": 131209,
+    "continuation_bytes_verified": 65709,
+    "external_handle_held_through_confirmed_termination": true,
+    "fresh_writable_helper_and_cpu_readback": true,
+    "next_check": "Exercise earlier publication cuts and acknowledged overwrite and namespace changes on the populated backing."
+  },
   "windows_populated_volume": {
     "reviewed_commit": "502fb283c8bf44fbbfcb871e24f1bc46907ae0ec",
     "evidence": "docs/evidence/windows11-populated-mount-access-time-2026-11-21.json",

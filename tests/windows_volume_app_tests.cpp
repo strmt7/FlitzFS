@@ -707,17 +707,26 @@ struct MountedTrialFile {
     if(file==INVALID_HANDLE_VALUE)
       throw std::runtime_error("Mounted test file open failed with Windows status "+std::to_string(GetLastError()));
   }
-  ~MountedTrialFile(){CloseHandle(file);}
+  ~MountedTrialFile(){if(file!=INVALID_HANDLE_VALUE)CloseHandle(file);}
+  bool close() noexcept {
+    if(!CloseHandle(file))return false;
+    file=INVALID_HANDLE_VALUE;
+    return true;
+  }
   MountedTrialFile(const MountedTrialFile&)=delete;
   MountedTrialFile& operator=(const MountedTrialFile&)=delete;
 };
 
+enum class MountedRecoveryPhase {none,interrupt,resume};
 struct MountedFileActivation {
   std::filesystem::path path;
   VolumeFileAction action=VolumeFileAction::create_new;
   std::optional<DWORD> serial;
   bool expect_create_conflict=false;
   bool populated=false;
+  MountedRecoveryPhase recovery=MountedRecoveryPhase::none;
+  std::wstring interrupted_mount;
+  std::shared_ptr<ProcessObserver> interrupted_owner;
 };
 
 constexpr std::size_t mounted_trace_files=1024;
@@ -761,15 +770,20 @@ detail::Digest verify_mounted_trace(Reader read) {
   return detail::record_digest(std::as_bytes(std::span(digests)));
 }
 
-void print_mounted_trace_digest(const char* phase,const detail::Digest& digest) {
+std::string hex_mounted_digest(const detail::Digest& digest) {
   constexpr char hex[]="0123456789abcdef";
-  std::cout<<"mounted_population phase="<<phase<<" seed="<<mounted_trace_seed
-      <<" files="<<mounted_trace_files<<" blake3=";
+  std::string text;
+  text.reserve(2*digest.size());
   for(const auto b:digest) {
     const auto value=std::to_integer<unsigned>(b);
-    std::cout<<hex[value>>4]<<hex[value&15U];
+    text.push_back(hex[value>>4]);text.push_back(hex[value&15U]);
   }
-  std::cout<<'\n';
+  return text;
+}
+
+void print_mounted_trace_digest(const char* phase,const detail::Digest& digest) {
+  std::cout<<"mounted_population phase="<<phase<<" seed="<<mounted_trace_seed
+      <<" files="<<mounted_trace_files<<" blake3="<<hex_mounted_digest(digest)<<'\n';
 }
 
 void write_mounted_trace(const std::wstring& directory) {
@@ -872,9 +886,45 @@ std::vector<std::byte> mounted_client_bytes() {
   return bytes;
 }
 
+constexpr std::string_view interrupted_file_name="acknowledged-before-exit.bin";
+constexpr std::string_view resumed_file_name="written-after-recovery.bin";
+
+std::vector<std::byte> mounted_recovery_bytes(bool continuation) {
+  auto bytes=mounted_client_bytes();
+  bytes.front()^=std::byte{0xd4};
+  bytes[kNativeExtentBytes+53]^=std::byte{0x8b};
+  if(continuation) {
+    bytes.resize(kNativeExtentBytes+173);
+    bytes.back()^=std::byte{0x6c};
+  }
+  return bytes;
+}
+
+void write_mounted_bytes(HANDLE file,const std::vector<std::byte>& bytes) {
+  DWORD written=0;
+  require(WriteFile(file,bytes.data(),static_cast<DWORD>(bytes.size()),&written,nullptr) &&
+      written==bytes.size() && FlushFileBuffers(file),"Mounted write or flush failed");
+}
+
+void verify_mounted_bytes(HANDLE file,const std::vector<std::byte>& expected) {
+  LARGE_INTEGER size{};
+  require(GetFileSizeEx(file,&size) && size.QuadPart==static_cast<LONGLONG>(expected.size()),
+      "Mounted readback length differs");
+  std::vector<std::byte> bytes(expected.size());
+  DWORD read=0;
+  require(ReadFile(file,bytes.data(),static_cast<DWORD>(bytes.size()),&read,nullptr) &&
+      read==bytes.size() && bytes==expected,"Mounted file bytes differ");
+}
+
+void print_mounted_recovery(const char* phase,std::string_view name,const std::vector<std::byte>& bytes) {
+  std::cout<<"mounted_flush_recovery phase="<<phase<<" file="<<name<<" bytes="<<bytes.size()
+      <<" blake3="<<hex_mounted_digest(detail::record_digest(bytes))<<'\n';
+}
+
 template<class Button,class Status>
 void mounted_gui_workflow(HWND window,std::wstring_view parent,ProcessObserver& observer,
-    Button button,Status wait_status,std::uint64_t deadline,MountedFileActivation* activation) {
+    Button button,Status wait_status,std::uint64_t deadline,MountedFileActivation* activation,
+    std::optional<MountedTrialFile>& interruption_client) {
   const std::wstring volume=activation?L"Volume file":L"Memory volume";
   const auto closed=activation?L"Volume file closed.":L"Temporary volume explicitly discarded.";
   const auto location=[&] {
@@ -919,15 +969,6 @@ void mounted_gui_workflow(HWND window,std::wstring_view parent,ProcessObserver& 
   constexpr auto renamed=mounted_renamed_file;
   const auto root=[](const std::wstring& mount){return L"\\\\?\\"+mount+L"\\";};
   const auto expected=mounted_client_bytes();
-  const auto verify=[&](HANDLE file) {
-    LARGE_INTEGER size{};
-    require(GetFileSizeEx(file,&size) && size.QuadPart==static_cast<LONGLONG>(expected.size()),
-        "Mounted readback length differs");
-    std::vector<std::byte> bytes(expected.size());
-    DWORD read=0;
-    require(ReadFile(file,bytes.data(),static_cast<DWORD>(bytes.size()),&read,nullptr) &&
-        read==bytes.size() && bytes==expected,"Mounted file bytes differ");
-  };
   const auto verify_moved=[&](const std::wstring& mount) {
     const auto path=root(mount)+moved+L"\\"+renamed;
     WIN32_FIND_DATAW entry{};
@@ -936,7 +977,7 @@ void mounted_gui_workflow(HWND window,std::wstring_view parent,ProcessObserver& 
     FindClose(search);
     require(std::wstring_view(entry.cFileName)==renamed,"Mounted enumeration changed the Unicode spelling");
     MountedTrialFile file(path,GENERIC_READ,OPEN_EXISTING);
-    verify(file.file);
+    verify_mounted_bytes(file.file,expected);
   };
 
   if(!activation)button(107);
@@ -946,8 +987,40 @@ void mounted_gui_workflow(HWND window,std::wstring_view parent,ProcessObserver& 
   if(activation && activation->action==VolumeFileAction::open_existing) {
     require(activation->serial==initial_serial,"A fresh process opened a different volume");
     verify_moved(first);
+    const auto recovery_path=[&](std::string_view name) {
+      return root(first)+std::wstring(name.begin(),name.end());
+    };
+    if(activation->recovery==MountedRecoveryPhase::interrupt) {
+      require(activation->populated && !activation->interrupted_owner &&
+          observer.process_id()!=GetCurrentProcessId(),"Invalid interruption actors");
+      activation->interrupted_mount=first;
+      interruption_client.emplace(recovery_path(interrupted_file_name),GENERIC_WRITE,CREATE_NEW);
+      const auto bytes=mounted_recovery_bytes(false);
+      write_mounted_bytes(interruption_client->file,bytes);
+      require(observer.wait_for_exit()==ProcessObservation::running && observer.request_stop(),
+          "Mounted writer could not be interrupted after acknowledged flush");
+      print_mounted_recovery("acknowledged_flush",interrupted_file_name,bytes);
+      return;
+    }
     if(activation->populated)
-      verify_mounted_population(root(first)+mounted_trace_directory,"fresh_process");
+      verify_mounted_population(root(first)+mounted_trace_directory,
+          activation->recovery==MountedRecoveryPhase::resume?"recovered_process":"fresh_process");
+    if(activation->recovery==MountedRecoveryPhase::resume) {
+      const auto& owner=activation->interrupted_owner;
+      require(owner && owner->wait_for_exit()==ProcessObservation::exited &&
+          observer.process_id()!=owner->process_id() && first!=activation->interrupted_mount,
+          "Recovered attachment does not have a fresh process and mount");
+      {
+        MountedTrialFile file(recovery_path(interrupted_file_name),GENERIC_READ,OPEN_EXISTING);
+        const auto bytes=mounted_recovery_bytes(false);
+        verify_mounted_bytes(file.file,bytes);
+        print_mounted_recovery("remounted_ack",interrupted_file_name,bytes);
+      }
+      MountedTrialFile file(recovery_path(resumed_file_name),GENERIC_WRITE,CREATE_NEW);
+      const auto bytes=mounted_recovery_bytes(true);
+      write_mounted_bytes(file.file,bytes);
+      print_mounted_recovery("continuation_flush",resumed_file_name,bytes);
+    }
     button(108);await_detach(first);
     button(105);wait_status(closed);
     return;
@@ -959,9 +1032,7 @@ void mounted_gui_workflow(HWND window,std::wstring_view parent,ProcessObserver& 
       "Mounted Unicode directory or extended path setup failed");
   {
     MountedTrialFile file(path,GENERIC_WRITE,CREATE_NEW);
-    DWORD written=0;
-    require(WriteFile(file.file,expected.data(),static_cast<DWORD>(expected.size()),&written,nullptr) &&
-        written==expected.size() && FlushFileBuffers(file.file),"Mounted write or flush failed");
+    write_mounted_bytes(file.file,expected);
   }
   const auto alias_path=directory+L"\\"+alias;
   const auto collision=CreateFileW(alias_path.c_str(),GENERIC_WRITE,0,nullptr,CREATE_NEW,FILE_ATTRIBUTE_NORMAL,nullptr);
@@ -973,7 +1044,7 @@ void mounted_gui_workflow(HWND window,std::wstring_view parent,ProcessObserver& 
     MountedTrialFile file(alias_path,GENERIC_READ,OPEN_EXISTING,FILE_SHARE_READ|FILE_SHARE_DELETE);
     require(MoveFileExW(path.c_str(),(directory+L"\\"+renamed).c_str(),0),
         "Mounted rename with an open share-delete handle failed");
-    verify(file.file);
+    verify_mounted_bytes(file.file,expected);
   }
   require(MoveFileExW(directory.c_str(),(root(first)+moved).c_str(),0),
       "Mounted directory move failed");
@@ -1040,6 +1111,7 @@ void gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budge
   std::thread supervisor([&]{try{result=run_bounded_process(app,arguments,ProcessBudget{child_memory_mib,2000,timeout_ms,16},observer);}
       catch(...){failure=std::current_exception();supervisor_failed.store(true,std::memory_order_release);}});
   std::exception_ptr test_failure;
+  std::optional<MountedTrialFile> interruption_client;
   try {
     const auto deadline=GetTickCount64()+(mounted?34000:20000);
     HWND window=nullptr;
@@ -1088,7 +1160,7 @@ void gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budge
       require(!IsWindowEnabled(GetDlgItem(window,108)) && IsWindowEnabled(GetDlgItem(window,116)),
           "Refused creation retained an attachment or disabled file selection");
     } else if(mounted) {
-      mounted_gui_workflow(window,mount_parent,*observer,button,wait_status,deadline,activation);
+      mounted_gui_workflow(window,mount_parent,*observer,button,wait_status,deadline,activation,interruption_client);
     } else {
       const bool qualified_file_controls=runtime==GuiRuntime::qualified_file_controls;
       const auto new_file=GetDlgItem(window,115),open_file=GetDlgItem(window,116);
@@ -1143,13 +1215,14 @@ void gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budge
         std::cout<<"gui_file_controls selectable_when_empty=1 refused_while_owned=1 restored_on_close=1\n";
       }
     }
-    // Exit may destroy the button/window before a synchronous BM_CLICK reply.
-    // Admit the click to its actual queue, then require exact process retirement.
-    std::cout<<"GUI command: 106 (asynchronous exit)\n";
-    const auto exit_button=GetDlgItem(window,106);
-    require(exit_button && IsWindowEnabled(exit_button) &&
-        PostMessageW(exit_button,BM_CLICK,0,0)!=FALSE,"GUI exit command admission");
-    until([&]{return observer->wait_for_exit()==ProcessObservation::exited;},deadline);
+    if(!interruption_client) {
+      // Exit can destroy the button before a synchronous BM_CLICK reply.
+      std::cout<<"GUI command: 106 (asynchronous exit)\n";
+      const auto exit_button=GetDlgItem(window,106);
+      require(exit_button && IsWindowEnabled(exit_button) &&
+          PostMessageW(exit_button,BM_CLICK,0,0)!=FALSE,"GUI exit command admission");
+      until([&]{return observer->wait_for_exit()==ProcessObservation::exited;},deadline);
+    }
   } catch(...) {test_failure=std::current_exception();observer->request_stop();}
   supervisor.join();
   if(failure)std::rethrow_exception(failure);
@@ -1159,11 +1232,28 @@ void gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budge
         <<" timed_out="<<result.timed_out<<'\n';
     std::rethrow_exception(test_failure);
   }
+  if(interruption_client) {
+    require(activation && activation->recovery==MountedRecoveryPhase::interrupt &&
+        result.process_id==observer->process_id() && observer->wait_for_exit()==ProcessObservation::exited &&
+        result.cancelled && !result.timed_out && result.exit_code==ERROR_CANCELLED,
+        "Acknowledged writer did not retire through the requested job termination");
+    require(interruption_client->close(),"External mounted handle retirement failed");
+    interruption_client.reset();
+    until([&] {
+      return GetFileAttributesW(activation->interrupted_mount.c_str())==INVALID_FILE_ATTRIBUTES &&
+          GetLastError()==ERROR_FILE_NOT_FOUND;
+    },GetTickCount64()+2000,"Interrupted helper left its owned mount location");
+    activation->interrupted_owner=observer;
+    std::cout<<"mounted_flush_recovery phase=interrupted_exit pid="<<result.process_id
+        <<" exit_code="<<result.exit_code<<" client_held_through_exit=1 old_mount_removed=1\n";
+    return;
+  }
   require(!result.timed_out && !result.cancelled && result.exit_code==0,"GUI child did not retire cleanly");
   if(!mounted)std::cout<<"GUI child peak commit: "<<result.peak_committed_bytes<<" bytes\n";
 }
 
-void mounted_file_gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budget,bool populated) {
+void mounted_file_gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budget,
+    bool populated,bool interrupt) {
   const auto parent=std::filesystem::path(disposable_mount_parent()).parent_path();
   MountedFileActivation activation{parent/L"Volume \u00e9preuve.flfs"};
   activation.populated=populated;
@@ -1205,6 +1295,21 @@ void mounted_file_gui_tests(const std::filesystem::path& app,const app_fixture::
       print_mounted_trace_digest("independent_cpu",digest);
       if(read_only_pass)
         require(access_updates==0,"Recently recorded access times changed on a read-only pass");
+      if(activation.recovery!=MountedRecoveryPhase::none) {
+        require(sequence_delta>0,"Mounted recovery did not advance its acknowledged checkpoint");
+        const auto acknowledged=mounted_recovery_bytes(false);
+        const auto bytes=view.filesystem().read(interrupted_file_name,0,static_cast<std::uint32_t>(acknowledged.size()+1));
+        require(bytes==acknowledged,"Independent recovery lost the acknowledged write");
+        const auto resumed=activation.recovery==MountedRecoveryPhase::resume;
+        print_mounted_recovery(resumed?"independent_after_continuation":"independent_after_exit",
+            interrupted_file_name,bytes);
+        if(resumed) {
+          const auto continuation=mounted_recovery_bytes(true);
+          const auto written=view.filesystem().read(resumed_file_name,0,static_cast<std::uint32_t>(continuation.size()+1));
+          require(written==continuation,"Independent recovery lost the continuation write");
+          print_mounted_recovery("independent_after_continuation",resumed_file_name,written);
+        }
+      }
     }
     return view.info().selection.volume_identity;
   };
@@ -1217,6 +1322,16 @@ void mounted_file_gui_tests(const std::filesystem::path& app,const app_fixture::
   activation.action=VolumeFileAction::open_existing;
   gui_tests(app,budget,GuiRuntime::mounted,&activation);
   verify(identity,true);
+  if(interrupt) {
+    activation.recovery=MountedRecoveryPhase::interrupt;
+    gui_tests(app,budget,GuiRuntime::mounted,&activation);
+    verify(identity);
+    activation.recovery=MountedRecoveryPhase::resume;
+    gui_tests(app,budget,GuiRuntime::mounted,&activation);
+    verify(identity);
+    std::cout<<"mounted_flush_recovery populated=1024 confirmed_exit=1 "
+        <<"fresh_writable_mount=1 independent_continuation=1\n";
+  }
   std::cout<<"mounted_file_activation exclusive_create=1 identity_preserved=1 "
       <<"fresh_process_reopen=1 independent_cpu_readback=1\n";
 }
@@ -1224,7 +1339,8 @@ void mounted_file_gui_tests(const std::filesystem::path& app,const app_fixture::
 int wmain(int argc,wchar_t** argv) {
   try {
     const auto mode=argc>1?std::wstring_view(argv[1]):std::wstring_view{};
-    const bool populated=mode==L"--gui-mounted-populated-file-sandbox";
+    const bool interrupt=mode==L"--gui-mounted-flush-recovery-sandbox";
+    const bool populated=mode==L"--gui-mounted-populated-file-sandbox" || interrupt;
     const bool mounted=argc==3 && (mode==L"--gui-mounted-sandbox" || mode==L"--gui-mounted-file-sandbox" || populated);
     app_fixture::Budget budget(!mounted);
     if(argc==2 && std::wstring_view(argv[1])==L"--model") {
@@ -1239,7 +1355,7 @@ int wmain(int argc,wchar_t** argv) {
       else if(mode==L"--gui-missing-winfsp")gui_tests(app,budget,GuiRuntime::missing);
       else if(mode==L"--gui-altered-winfsp")gui_tests(app,budget,GuiRuntime::altered);
       else if(mode==L"--gui-mounted-sandbox")gui_tests(app,budget,GuiRuntime::mounted);
-      else if(mode==L"--gui-mounted-file-sandbox" || populated)mounted_file_gui_tests(app,budget,populated);
+      else if(mode==L"--gui-mounted-file-sandbox" || populated)mounted_file_gui_tests(app,budget,populated,interrupt);
       else throw std::runtime_error("Unknown GUI qualification mode");
     } else throw std::runtime_error("Explicit model, maintenance or GUI qualification mode required");
     std::cout<<"Windows volume application checks: "<<checks

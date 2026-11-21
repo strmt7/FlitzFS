@@ -472,15 +472,21 @@ automatic access-only timestamps removed that traffic while independent
 CPU recovery verified the same payload digest.
 [Mounted trace evidence](evidence/windows11-populated-mount-access-time-2026-11-21.json)
 
-1. **Extend the external Win32 trace in `windows_volume_app_tests.cpp`.**
-   Retain the current populated fixture and use it for an interruption
-   after a confirmed external flush, before normal helper shutdown. Reopen
-   the same backing in a fresh process and verify its namespace, acknowledged
-   hashes and recovered checkpoint both through the mount and on CPU.
-   Record the operation seed, expected status, filesystem, driver and
-   application identities in each receipt. Use guest runs for mount and
-   interruption correctness, and interactive Explorer on a qualified live
-   client for the shell workflow.
+The populated fixture now passes post-flush process interruption with the
+external client handle open. The independent CPU reader recovered all
+original files and the acknowledged write. A fresh writable mount of the
+same backing flushed a continuation that also passed independent readback.
+Both independent guest runs retired their old mount and helper.
+[Post-flush recovery evidence](evidence/windows11-mounted-post-flush-recovery-2026-11-21.json)
+
+1. **Extend mounted recovery in `windows_volume_app_tests.cpp`.**
+   Use the populated fixture for an acknowledged overwrite and namespace
+   change, then move the cut earlier to a defined publication boundary.
+   Bind the old and new CPU checkpoints to the last acknowledged bytes and
+   verify that a fresh helper can continue through the recovered mount.
+   Record the operation seed, cut, filesystem, driver and application
+   identities in each receipt. Keep physical backend failure tests and
+   interactive Explorer qualification on their respective test systems.
 2. **Measure the scaling bottleneck on that trace.** Count calls and bytes
    for selector, object-index and name-index pages, inodes and lifetimes,
    content frames and protected dependencies. Observe entry, image fence,
