@@ -369,10 +369,15 @@ multiple sessions and measure actual allocated bytes and write costs.
   16,384-fingerprint build from 121.8 MiB to 67.3 MiB. Backing writes fell
   from 122.8 MiB to 68.3 MiB. The compacted catalog uses 520 KiB more than the
   packed 4 KiB control. Miss traffic is lower in bytes and higher in read calls.
-  Price a dense compacted layout alongside a small-page update path using
-  total space, retained readers, write cost and real storage access. Run
-  automatic compaction under the original reservation before widening it.
   [Compact catalog evidence](evidence/indexed-coherence-compact-pages-2026-11-21.json)
+- Under the 64 MiB catalog reservation, the normal maintenance path
+  compacted and retained 15,748 primary and 3,937 alternate nominations.
+  The selected replacement occupied 8.6 MiB, and the next scan appended
+  to it. The old and new backings occupied 73.0 MiB together while the old
+  reader was pinned. Exercise repeated compactions and edits with uneven
+  real data, using measured persistent-media read and write costs to choose
+  between dense packed pages and compact update pages.
+  [Reclamation evidence](evidence/indexed-coherence-reclamation-2026-11-21.json)
 - Use training and held-out sets chosen before the evaluation. Test close
   revisions, unrelated files, small text, SVG, tabular and numeric data,
   binaries, media and already compressed files. Include nonsynthetic

@@ -210,7 +210,7 @@ struct NativeFileSession::Impl {
     const auto input=writer.snapshot().workload_info();
     if(!input.enabled)return false;
     try {
-      return advice->reserve_cold_compaction(input.committed_input_bytes,
+      return advice->reserve_rewrite(input.committed_input_bytes,
           cold_compaction_input_cost(bytes),current_cold_coverage());
     }catch(...) {
       retire_failed_advice_charge(*advice,input.committed_input_bytes);
@@ -221,12 +221,14 @@ struct NativeFileSession::Impl {
     auto* advice=ready_scan_advice();
     if(!advice)return false;
     const auto actual=writer.snapshot().workload_info();
-    const auto state=advice->snapshot().state;
-    if(!actual.enabled || !state.group_scan || state.group_scan->image!=volume->active_id)
-      throw std::runtime_error("coherence copy has no checked current scan journal");
+    if(!actual.enabled || !maintenance->coherence || maintenance->coherence->image()!=volume->active_id)
+      throw std::runtime_error("coherence copy has no checked current image");
+    if(actual.committed_input_bytes<kOptimizationGroupScanInputBytes ||
+        bytes>(actual.committed_input_bytes-kOptimizationGroupScanInputBytes)/kOptimizationGroupScanInputPerWriteByte)
+      return false;
+    const auto cost=kOptimizationGroupScanInputBytes+bytes*kOptimizationGroupScanInputPerWriteByte;
     try {
-      return advice->publish_budgeted(state,actual.committed_input_bytes,current_cold_coverage(),true,bytes)==
-          OptimizationStateWriter::BudgetResult::published;
+      return advice->reserve_rewrite(actual.committed_input_bytes,cost,current_cold_coverage());
     }catch(...) {
       retire_failed_advice_charge(*advice,actual.committed_input_bytes);
       throw;

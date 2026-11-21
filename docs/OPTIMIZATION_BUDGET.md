@@ -64,10 +64,12 @@ Changing the selected native image retires the old catalog without refunding
 prior write charges.
 
 A full catalog can reserve a separate packed replacement. The read-only
-planning pass calculates its complete footprint. The scan journal settles
+planning pass calculates its complete footprint. The advisory journal settles
 4 MiB for the journal pair and 32 input bytes per byte of candidate write
 allowance before the candidate's first write. The copy limits its extent to
-the charged plan, which includes both root writes. An insufficient balance
+the charged plan, which includes both root writes. The charge preserves any
+recorded scan state and uses the selected catalog's image binding when the
+journal has yet to record its first scan. An insufficient balance
 leaves the candidate empty and quiescent. A paid interrupted copy preserves
 the old selected catalog and keeps the charge spent.
 [Catalog lifecycle](OPTIMIZATION_STATE.md#paged-coherence-catalog) ·

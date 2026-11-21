@@ -1,0 +1,217 @@
+{
+  "schema": 1,
+  "base_commit": "76f4d3689e6a1061502e022934ba34d51a1bcd8f",
+  "base_tree": "7393f172dce2801dc2fb78090e053ee06a5018a7",
+  "candidate_code_patch_sha256": "2f740c85a9463860707fedb8fc46aea078d9c9760df49055b8ce0c9603ede46d",
+  "candidate_source_blobs": {
+    "include/flitzfs/indexed_coherence.hpp": "ca27a92f18bf4e25396336b0ef2275d1b95852b5",
+    "include/flitzfs/optimization_state.hpp": "6b1df9b7ed07b753386f21beacf7dd174d512582",
+    "src/indexed_coherence.cpp": "6f625f7bfd85087cbacd80a183308eb855cc353b",
+    "src/native_session.cpp": "af6e525fce0f22d5b7abb4df8d9fe25150190efd",
+    "src/optimization_state.cpp": "99391baa579682bdb2c279a298222a1954b93e39",
+    "src/paged_store.cpp": "8701e8a9baeaebdaa0999e624bec84b335d477f7",
+    "tests/test_native_group_maintenance.cpp": "79755517e6bd5912a3fc633ddbb48278afba62d0"
+  },
+  "navigation": {
+    "provider_version": "0.2.43",
+    "source_files": 5,
+    "actual_searches": 1,
+    "native_response_sha256": "9d17577e62788e9486a78744cbdabe81bfbd20c07f8ed9331583a7f69f99cb2b"
+  },
+  "research": {
+    "provider": "0.9.5+flitzzip.portable2",
+    "pages": [
+      {
+        "url": "https://www.usenix.org/conference/fast26/presentation/bian",
+        "final_http_status": 200,
+        "markdown_sha256": "a6c829e9ea85521b0c10477e058e38d8377753aa4e8875c24a9f658b0dbf43ef",
+        "capture_sha256": "85c4c51fd293ace7d6eebb83e7f05c6b4f6be7398b8162617c75b70b2c4a415a"
+      },
+      {
+        "url": "https://rocksdb.org/blog/2026/06/20/fifo-kv-ratio-compaction.html",
+        "final_http_status": 200,
+        "markdown_sha256": "978a635c89f7e1d673ffc0837076d0fcc43296f60f45cb72785de8d8013bf8d4",
+        "capture_sha256": "585bdc4b0d40885b0dbd763cb8e8a03a5ed0ba5e25adf82bcb15e22cf344f2e5"
+      },
+      {
+        "url": "https://rocksdb.org/blog/2026/06/20/blob-direct-write-partitioned-blob-files.html",
+        "final_http_status": 200,
+        "markdown_sha256": "336ec65b2bae31b42ad95e3d9ebbe8588bbb1e9c0387b8adf43e427d3bc7dd5d",
+        "capture_sha256": "c55cbcb99e40c691ab196101540d4e374e4681e9b5a9795887a8a39a59f170db"
+      }
+    ]
+  },
+  "metadata_only_pressure": {
+    "baseline": {
+      "required": 155648,
+      "limit": 147456,
+      "physical": 0,
+      "shortfall": 0,
+      "exit_code": 1,
+      "log_sha256": "cacf7210ebb80481e6f4a46be1f47266daaefaeff3afccf25817608fdcd88d27",
+      "peak_job_bytes": 3215360,
+      "process_tree_retired": true
+    },
+    "candidate": {
+      "required": 155648,
+      "limit": 147456,
+      "physical": 1,
+      "shortfall": 8192,
+      "exit_code": 0,
+      "log_sha256": "36e64ea834f3c0b630a02d0657f101f16ac785834ea40958cc18440fdd1ee911",
+      "peak_job_bytes": 3178496,
+      "process_tree_retired": true
+    }
+  },
+  "automatic_reclamation": {
+    "scope": "Synthetic fingerprint inventory tied to two live extent revisions. A recovered writer and empty advisory journal exercise the normal maintenance controller. Combined bytes count the two catalog backings. Opportunities model resource observations.",
+    "per_catalog_reservation_bytes": 67108864,
+    "primary": 15748,
+    "alternates": 3937,
+    "source_bytes": 67096576,
+    "packed_bytes": 8970240,
+    "resumed_bytes": 9412608,
+    "retained_reader_combined_bytes": 76509184,
+    "compact_page_projection_bytes": 9486336,
+    "copy_writes": 8978432,
+    "copy_calls": 40068,
+    "opportunities": 16087,
+    "maximum_step_read_bytes": 590144,
+    "maximum_step_write_bytes": 450560,
+    "input_credit_bytes": 376176640,
+    "source_released": 1,
+    "foreground_yield": 1,
+    "exact_cpu_readback": 1,
+    "exit_code": 0,
+    "log_sha256": "769b849ffa402546d6d61ff6ea3f559acc7c57e059332e44b15db93d2274fff9",
+    "peak_job_bytes": 239431680,
+    "process_tree_retired": true
+  },
+  "injected_final_flush_failure": {
+    "scope": "The replacement's last flush persists its complete bytes, then reports failure. The normal controller retains the old selection and keeps the input charge spent.",
+    "cut": 40067,
+    "source_bytes": 67096576,
+    "unpublished_bytes": 8970240,
+    "copy_writes": 8978432,
+    "old_catalog_selected": 1,
+    "exact_cpu_readback": 1,
+    "exit_code": 0,
+    "log_sha256": "e9861e6a380cd9bd0d790c8dcaf7744e3cf7f85b817cf37064b936a92898edf3",
+    "peak_job_bytes": 236167168,
+    "process_tree_retired": true
+  },
+  "windows_host_build": 26300,
+  "windows_matrix": {
+    "release": {
+      "passed_groups": 202,
+      "exit_code": 0,
+      "log_sha256": "fd4593de8cf7bdb5d984a4a90f431813c441c6f3181c2809cd7b1392cb23d80d",
+      "peak_job_bytes": 335855616,
+      "process_tree_retired": true
+    },
+    "raw_focused": {
+      "passed_groups": 4,
+      "exit_code": 0,
+      "log_sha256": "6a27f9b6e835a3015930dc5867150ab5ccba0644357f5e011111c80fda35a49c",
+      "peak_job_bytes": 166293504,
+      "process_tree_retired": true
+    },
+    "asan_including_runtime_preflight": {
+      "passed_groups": 5,
+      "exit_code": 0,
+      "log_sha256": "d953bb86c8c4a0d7d65b79c1182dd861e660c91d5f07a8e758a5b2ac2c6d3b26",
+      "peak_job_bytes": 784539648,
+      "process_tree_retired": true
+    }
+  },
+  "public_cpu_callback_controls": {
+    "cohorts": [
+      {
+        "repository": "actions/starter-workflows",
+        "source_commit": "e3c451d60f119b71caebf13c98ac45da6e15b4b7",
+        "bank_sha256": "948c0362d2329885fa23ef0f63b08451bd50d453250dd7ded0e38a428967e843",
+        "files": 16,
+        "groups": 1,
+        "input_compacted_bytes": 180224,
+        "grouped_compacted_bytes": 172032,
+        "independent_cpu_readback": true,
+        "previous": {
+          "exit_code": 0,
+          "log_sha256": "e471855abb25769a5116956d6e90a8b351b47cf0fb79a31537c209c74c3fac31",
+          "peak_job_bytes": 8687616,
+          "process_tree_retired": true
+        },
+        "current": {
+          "exit_code": 0,
+          "log_sha256": "d717cf60dbb3dbc231fb87efcddb23ca58166f87eb5983ca45d101cf9f84f174",
+          "peak_job_bytes": 8699904,
+          "process_tree_retired": true
+        }
+      },
+      {
+        "repository": "lucide-icons/lucide",
+        "source_commit": "d79f7054831776702c2f0e6b795069750f0a4f28",
+        "bank_sha256": "e24f2e9dbd6a4b85e0e8b44c12208772744b28a660fd96780df74cfe30555912",
+        "files": 40,
+        "groups": 1,
+        "input_compacted_bytes": 204800,
+        "grouped_compacted_bytes": 196608,
+        "independent_cpu_readback": true,
+        "previous": {
+          "exit_code": 0,
+          "log_sha256": "d23d68f221e59600db108047a59c8baf56b9d1a61fd0a5ab2d901d29844dd06d",
+          "peak_job_bytes": 12427264,
+          "process_tree_retired": true
+        },
+        "current": {
+          "exit_code": 0,
+          "log_sha256": "4dad050a9ea5340e3c3ccad2733307f0dc18c14df8a56a9544ed230cc8396935",
+          "peak_job_bytes": 12705792,
+          "process_tree_retired": true
+        }
+      },
+      {
+        "repository": "llvm/llvm-project",
+        "source_commit": "9ac5159b3c46929ba4e42e876b05e95199ba3b74",
+        "bank_sha256": "2f2d61010173890092f2160b7e08bbfe1156a749ef31918e9951f23b40a7c8f7",
+        "files": 16,
+        "groups": 1,
+        "input_compacted_bytes": 212992,
+        "grouped_compacted_bytes": 204800,
+        "independent_cpu_readback": true,
+        "previous": {
+          "exit_code": 0,
+          "log_sha256": "e529075fac7ed3340a3f5d6528f9eef1897a3afcd1d36cd0127158c8ae64bfe4",
+          "peak_job_bytes": 9469952,
+          "process_tree_retired": true
+        },
+        "current": {
+          "exit_code": 0,
+          "log_sha256": "1e0d9ea4a8af8cc61cfc17fd230e570619f42f1b25110d89a31ff21f57d95aab",
+          "peak_job_bytes": 9474048,
+          "process_tree_retired": true
+        }
+      }
+    ],
+    "controller_sha256": "c907e238704f0da03b79f991dc6fc3fed39ee552079a3b7c9f7e98c44bb8ef4f"
+  },
+  "live_amd_callback_regression": {
+    "files": 15,
+    "groups": 5,
+    "advised_members": 90,
+    "submitted_kernel_launches": 85,
+    "verified_batches": 1,
+    "independent_cpu_readback": true,
+    "mounted": false,
+    "package_manifest_sha256": "06c55f3e68db91317b6897c88e6aba3658bc2ddb2e8312da6fbf080a88dffe84",
+    "exit_code": 0,
+    "log_sha256": "021b4d586f86c9d44bdaae324efec8199d3bb886de2ca3a3dc0fb3dca71947d1",
+    "peak_job_bytes": 155693056,
+    "process_tree_retired": true
+  },
+  "open_qualification": [
+    "Persistent-provider selection and physical power-loss restart.",
+    "Repeated compactions and measured interference on large mixed workloads.",
+    "End-to-end mounted AMD performance."
+  ]
+}

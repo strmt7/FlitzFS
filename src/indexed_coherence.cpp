@@ -330,4 +330,10 @@ IndexedCoherenceStorage::IndexedCoherenceStorage(PagedStoreLimits limits,Reserve
     :limits_(limits),reserve_(std::move(reserve)) {
   if(!limits_.maximum_physical_bytes || !reserve_)throw std::invalid_argument("coherence storage reservation");
 }
+IndexedCoherenceStorage::IndexedCoherenceStorage(PagedStoreLimits limits,Reserve reserve,IndexedCoherenceWriter recovered)
+    :IndexedCoherenceStorage(limits,std::move(reserve)) {
+  if(recovered.poisoned() || recovered.store_.snapshot().limits().maximum_physical_bytes!=limits_.maximum_physical_bytes)
+    throw std::invalid_argument("recovered coherence catalog disagrees with its reservation");
+  retained_=std::make_shared<IndexedCoherenceWriter>(std::move(recovered));
+}
 }

@@ -506,11 +506,11 @@ OptimizationStateWriter::BudgetResult OptimizationStateWriter::publish_budgeted(
   p.publish_settlement(state,settled+cost,cold,automatic_scan);
   return BudgetResult::published;
 }
-bool OptimizationStateWriter::reserve_cold_compaction(std::uint64_t input,std::uint64_t cost,
+bool OptimizationStateWriter::reserve_rewrite(std::uint64_t input,std::uint64_t cost,
     std::optional<OptimizationColdCoverage> cold) {
   require(impl_&&!impl_->poisoned&&!impl_->repair_pending&&impl_->selected.state.settled_input_bytes,
       "no ready budgeted writer");
-  require(cost>=kOptimizationAreaBytes,"cold compaction charge must cover its advisory publication");
+  require(cost>=kOptimizationAreaBytes,"rewrite charge must cover its advisory publication");
   auto& p=*impl_;
   const auto settled=*p.selected.state.settled_input_bytes;
   if(input<settled || input-settled<cost)return false;

@@ -159,6 +159,8 @@ Existing 4,096-byte catalogs keep their geometry when reopened, appended or
 rebuilt. The standalone store and file-data images create 4,096-byte index
 pages. Both catalog geometries use 4,096-byte commit records, with offset 60
 identifying the index page size. Both intact commit records must agree on it.
+Filtered compaction of a compact catalog can choose a denser 4,096-byte
+replacement using its measured retained inventory.
 
 The compact tree uses the same page header, leaf descriptors and full digest.
 Each 88-byte branch reference contains first key, last key, object count,

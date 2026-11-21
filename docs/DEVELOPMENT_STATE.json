@@ -6,6 +6,15 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "indexed_coherence_reclamation": {
+    "reviewed_commit": "76f4d3689e6a1061502e022934ba34d51a1bcd8f",
+    "measured_on": "2026-11-21",
+    "evidence": "docs/evidence/indexed-coherence-reclamation-2026-11-21.json",
+    "recovered_primary_and_alternate_rows": [15748, 3937],
+    "source_packed_and_resumed_bytes": [67096576, 8970240, 9412608],
+    "coexisting_catalog_bytes_with_old_reader": 76509184,
+    "follow_up": "Measure repeated rotations and geometry decisions on mixed workloads and qualify persistent-provider restart."
+  },
   "indexed_coherence_compact_pages": {
     "reviewed_commit": "279be25d80d5826276c3e2491b46ad0fadaea8b4",
     "measured_on": "2026-11-21",

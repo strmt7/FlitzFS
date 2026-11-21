@@ -110,7 +110,7 @@ class OptimizationStateWriter final {
   BudgetResult publish_budgeted(const OptimizationState&,std::uint64_t current_input,
       std::optional<OptimizationColdCoverage>,bool automatic_scan=false,
       std::uint64_t additional_write_bytes=0);
-  bool reserve_cold_compaction(std::uint64_t current_input,std::uint64_t cost,
+  bool reserve_rewrite(std::uint64_t current_input,std::uint64_t cost,
       std::optional<OptimizationColdCoverage>);
   BudgetResult repair_budgeted(std::uint64_t current_input);
   std::optional<OptimizationPayloadScrub> payload_scrub_checkpoint() const noexcept;

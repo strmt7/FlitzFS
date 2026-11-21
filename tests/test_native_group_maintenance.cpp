@@ -1969,6 +1969,32 @@ void indexed_catalog_displaced_candidate() {
           latest_only.image_bytes+latest_only.catalog_bytes+latest_only.selector_bytes,
       "the displaced live match did not reduce the occupied volume and catalog");
 }
+void indexed_catalog_metadata_space_refusal() {
+  OptimizationGroupFeature feature{2,0,detail::kNativeIndexedDataObject+1,1,
+      detail::record_digest(data(32,48317))};
+  feature.bands[0]=0xf29b267913c004eaULL;
+  const IndexedCoherencePosting posting{0,feature};
+  const auto control=ram(4096);
+  auto original=IndexedCoherenceWriter::create(control,id(90),id(1),{kStoreMaxPhysicalBytes});
+  const auto before=control->extent();
+  const auto required=original.publish(std::span(&posting,1),UINT64_MAX).storage.physical_end;
+  const PagedStoreLimits limits{before+4096}; // Space for the payload before allocating its paired pages.
+  const auto target=ram(4096);
+  auto constrained=IndexedCoherenceWriter::create(target,id(90),id(1),limits);
+  const auto writes=target->calls;
+  const auto state=target->stable;
+  bool refused=false;
+  try {(void)constrained.publish(std::span(&posting,1),UINT64_MAX);}
+  catch(const PagedStoreCapacityError& error) {
+    refused=true;
+    std::cout<<"coherence_metadata_capacity required="<<required<<" limit="<<limits.maximum_physical_bytes
+        <<" physical="<<error.physical_space_exhausted()<<" shortfall="<<error.append_shortfall_bytes()<<'\n';
+    require(error.physical_space_exhausted() && error.append_shortfall_bytes()==required-limits.maximum_physical_bytes,
+        "paged metadata capacity did not report the full append shortfall");
+  }
+  require(refused && target->calls==writes && target->stable==state && !constrained.poisoned(),
+      "metadata space refusal modified or fenced the old catalog");
+}
 void indexed_catalog_alternate_publication() {
   constexpr PagedStoreLimits limits{1024*1024};
   constexpr std::uint64_t fingerprint=0x910fc628acc971a1;
@@ -2610,6 +2636,207 @@ std::size_t compact_full_indexed_catalog(CoherenceCopyOutcome outcome,std::size_
   view.verify_all();
   return copy_calls;
 }
+void indexed_catalog_reclamation_at_scale(std::optional<std::size_t> final_flush_cut={}) {
+  constexpr PagedStoreLimits limits{64*1024*1024};
+  constexpr unsigned offered_keys=16384;
+  constexpr std::uint64_t fingerprint_base=0xd49bd1a5de10aceeULL;
+  Fixture f(4096,0,true);
+  auto advice=ram(4096);
+  require(f.session->create_budgeted_optimization_area(advice).phase==NativeOptimizationPhase::ready,
+      "large catalog requires an admitted budget area");
+  const auto left=data(kNativeExtentBytes,12107),right=data(kNativeExtentBytes,97001);
+  put(*f.session,"left",left);
+  put(*f.session,"right",right);
+  const auto feature=[&](std::string_view path,const Bytes& expected) {
+    const auto pages=PagedObjectStoreSnapshot::open(f.image,limits);
+    const detail::IndexedVolumeView view(pages,pages.read(1));
+    const auto inode=view.resolve(path).inode;
+    auto token=view.content_at({inode,0});
+    require(token && view.read_content(*token,false)==expected,"seeded extent is absent or different");
+    return OptimizationGroupFeature{inode,0,token->object,token->revision,detail::record_digest(expected)};
+  };
+  const auto older=feature("left",left),newer=feature("right",right);
+  require(older.revision<newer.revision,"fixture needs displaced live nominations");
+  auto active=ram(4096);
+  const std::weak_ptr<Ram> retired=active;
+  auto row=[&](unsigned index,bool newest) {
+    auto sample=newest?newer:older;
+    sample.bands[0]=fingerprint_base+2*index;
+    return IndexedCoherencePosting{0,sample};
+  };
+  unsigned seeded_keys=0;
+  {
+    auto seed=IndexedCoherenceWriter::create(active,id(90),id(1),limits);
+    std::vector<IndexedCoherencePosting> postings;
+    postings.reserve(160);
+    for(unsigned width=128;seeded_keys<offered_keys;) {
+      const auto count=(std::min)(width,offered_keys-seeded_keys);
+      postings.clear();
+      for(unsigned i=seeded_keys;i<seeded_keys+count;++i) {
+        if(i%4==0)postings.push_back(row(i,false));
+        postings.push_back(row(i,true));
+      }
+      try {
+        (void)seed.publish(postings,UINT64_MAX);
+        seeded_keys+=count;
+      }catch(const PagedStoreCapacityError& error) {
+        require(error.physical_space_exhausted() && !seed.poisoned(),"catalog seeding did not reach a clean space refusal");
+        if(width==1)break;
+        width/=2;
+      }
+    }
+  }
+  auto pinned=std::optional(IndexedCoherenceSnapshot::open(active,id(90),id(1),limits));
+  const auto old=pinned->info();
+  require(seeded_keys>=offered_keys/2 && seeded_keys<offered_keys &&
+      old.objects>seeded_keys && old.physical_end<=limits.maximum_physical_bytes,
+      "large catalog did not exercise append pressure with live alternates");
+  const auto compact_bound=[&] {
+    const auto pages=PagedObjectStoreSnapshot::open(active,limits);
+    std::vector<StoreObjectInfo> records;
+    for(std::uint64_t after=0;;) {
+      const auto page=pages.list_page(after,4096);
+      if(page.empty())break;
+      records.insert(records.end(),page.begin(),page.end());
+      after=page.back().id;
+    }
+    return pages.rebuilt_size(records)+8192; // Both commit records are written again.
+  }();
+  std::shared_ptr<Ram> replacement;
+  auto storage=std::make_shared<IndexedCoherenceStorage>(limits,[&]() -> std::shared_ptr<StoreByteIo> {
+    require(!replacement,"large catalog repeatedly reserved a replacement");
+    return replacement=ram(4096);
+  },IndexedCoherenceWriter::resume(active,id(90),id(1),old.generation,limits));
+  f.session->configure_indexed_coherence(storage);
+  const auto writes_before=active->write_bytes;
+
+  const Bytes zeros(1024*1024);
+  f.session->create_entry("credit");
+  const auto credit_handle=f.session->open("credit",{true,true,false});
+  std::uint64_t credited=0;
+  const auto fund=[&](std::uint64_t bytes) {
+    while(bytes) {
+      const auto count=static_cast<std::size_t>((std::min)(bytes,std::uint64_t{zeros.size()}));
+      f.session->write(credit_handle,credited,std::span(zeros).first(count));
+      credited+=count;
+      bytes-=count;
+    }
+  };
+  fund(kOptimizationGroupScanInputBytes+zeros.size());
+  NativeGroupMaintenance controller(*f.session);
+  std::uint64_t opportunities=0,maximum_step_read=0,maximum_step_write=0;
+  bool foreground_checked=false;
+  const auto advance=[&] {
+    require(++opportunities<120000,"large catalog did not settle within the modeled opportunities");
+    const auto read=active->read_bytes+(replacement?replacement->read_bytes:0);
+    const auto written=active->write_bytes+(replacement?replacement->write_bytes:0);
+    const auto progress=f.step(controller);
+    require(progress.phase!=Phase::failed,"large catalog maintenance failed");
+    maximum_step_read=(std::max)(maximum_step_read,active->read_bytes+(replacement?replacement->read_bytes:0)-read);
+    maximum_step_write=(std::max)(maximum_step_write,active->write_bytes+(replacement?replacement->write_bytes:0)-written);
+    if(replacement && !foreground_checked) {
+      const auto traffic=active->read_bytes+active->write_bytes+replacement->read_bytes+replacement->write_bytes;
+      auto foreground=f.clock.next();
+      foreground.foreground_pending=true;
+      const auto deferred=controller.advance(foreground,f.clock.now);
+      require(deferred.deferral==Defer::foreground &&
+          traffic==active->read_bytes+active->write_bytes+replacement->read_bytes+replacement->write_bytes,
+          "catalog copy performed I/O during foreground admission");
+      foreground_checked=true;
+    }
+  };
+  while(controller.pending())advance();
+  const auto unfunded=f.session->optimization_snapshot();
+  require(replacement && !replacement->extent() && !replacement->write_bytes && foreground_checked &&
+      !unfunded.state.group_scan && active->write_bytes==writes_before,
+      "space refusal failed to wait for credit on the untouched old catalog");
+  const auto waiting_reads=active->read_bytes;
+  for(unsigned i=0;i<8;++i)f.step(controller);
+  require(!controller.pending() && active->read_bytes==waiting_reads && !replacement->calls,
+      "unfunded catalog copy continued polling its backings");
+  fund((compact_bound+2*1024*1024)*kOptimizationGroupScanInputPerWriteByte);
+  f.session->cleanup(credit_handle,false);
+  f.session->close(credit_handle);
+  const auto verify_files=[&] {
+    const auto source=NativeVolumeHeadView::open(f.head,id(90),
+        [&](const auto& key)->std::shared_ptr<StoreByteIo>{return key==id(1)?f.image:nullptr;});
+    const auto& independent=source.filesystem();
+    independent.verify_all();
+    require(independent.read("left",0,kNativeExtentBytes)==left &&
+        independent.read("right",0,kNativeExtentBytes)==right && independent.stat("credit").logical_bytes==credited,
+        "catalog reclamation affected acknowledged file bytes");
+    for(std::uint64_t at=0;at<credited;at+=zeros.size()) {
+      const auto count=static_cast<std::uint32_t>((std::min)(credited-at,std::uint64_t{zeros.size()}));
+      require(std::ranges::equal(independent.read("credit",at,count),std::span(zeros).first(count)),
+          "catalog reclamation changed sparse file contents");
+    }
+  };
+  if(final_flush_cut) {
+    replacement->fail_at=*final_flush_cut;
+    replacement->failure=1;
+  }
+  while(controller.pending() && !controller.progress().coherence_compactions &&
+      !controller.progress().coherence_discards)advance();
+  const auto rotation=controller.progress();
+  const auto packed=IndexedCoherenceSnapshot::open(replacement,id(90),id(1),limits);
+  const auto packed_info=packed.info();
+  const auto charged=f.session->optimization_snapshot();
+  const auto copy_writes=replacement->write_bytes;
+  require(packed_info.objects==old.objects && packed_info.metadata_page_bytes==4096 &&
+      packed_info.physical_end<compact_bound-8192 && active->write_bytes==writes_before &&
+      !charged.state.group_scan &&
+      *charged.state.settled_input_bytes-*unfunded.state.settled_input_bytes==
+          kOptimizationGroupScanInputBytes+copy_writes*kOptimizationGroupScanInputPerWriteByte,
+      "large copy failed to retain every row, choose the smaller layout or settle its exact charge");
+  if(final_flush_cut) {
+    require(!rotation.coherence_compactions && rotation.coherence_discards==1 &&
+        rotation.coherence_catalog_bytes==old.physical_end && replacement->calls==*final_flush_cut+1 &&
+        pinned->find(0,fingerprint_base)==row(0,true).representative,
+        "interrupted replacement displaced the selected catalog");
+    verify_files();
+    std::cout<<"coherence_scale_cut cut="<<*final_flush_cut<<" source_bytes="<<old.physical_end
+        <<" unpublished_bytes="<<packed_info.physical_end<<" copy_writes="<<copy_writes
+        <<" old_catalog_selected=1 exact_cpu_readback=1\n";
+    return;
+  }
+  require(rotation.coherence_compactions==1 && !rotation.coherence_discards,
+      "verified catalog copy was not selected");
+  const auto copy_calls=replacement->calls;
+  while(controller.pending())advance();
+  const auto resumed=IndexedCoherenceSnapshot::open(replacement,id(90),id(1),limits);
+  const auto scan=f.session->optimization_snapshot().state.group_scan;
+  require(scan && resumed.info().generation>packed_info.generation &&
+      resumed.info().objects>old.objects,"the ordinary scan did not append after reclamation");
+  std::uint64_t checked_alternates=0;
+  for(unsigned i=0;i<seeded_keys;++i) {
+    const auto key=fingerprint_base+2*i;
+    const auto expected=row(i,true).representative;
+    require(pinned->find(0,key)==expected && packed.find(0,key)==expected && resumed.find(0,key)==expected,
+        "rotation or resumed append lost a live primary nomination");
+    const auto alt=pinned->next_alternate(0,key);
+    const auto next=resumed.next_alternate(0,key);
+    require(bool(next)==bool(alt) && (!alt || next->representative==alt->representative),
+        "rotation lost a live alternate nomination");
+    checked_alternates+=bool(alt);
+  }
+  require(old.objects==1+seeded_keys+checked_alternates &&
+      active->write_bytes==writes_before && active->extent()==old.physical_end,
+      "the pinned source changed or its inventory was incompletely checked");
+  const auto combined=active->extent()+replacement->extent();
+  active.reset();
+  require(!retired.expired(),"old catalog did not remain owned by its reader");
+  pinned.reset();
+  require(retired.expired(),"retired catalog backing outlived its final reader");
+  verify_files();
+  std::cout<<"coherence_scale_reclaimed primary="<<seeded_keys<<" alternates="<<checked_alternates
+      <<" source_bytes="<<old.physical_end<<" packed_bytes="<<packed_info.physical_end
+      <<" resumed_bytes="<<resumed.info().physical_end<<" retained_reader_combined_bytes="<<combined
+      <<" compact_page_projection_bytes="<<compact_bound-8192
+      <<" copy_writes="<<copy_writes<<" copy_calls="<<copy_calls<<" opportunities="<<opportunities
+      <<" maximum_step_read_bytes="<<maximum_step_read<<" maximum_step_write_bytes="<<maximum_step_write
+      <<" input_credit_bytes="<<credited<<" source_released=1 foreground_yield=1 exact_cpu_readback=1\n";
+}
+
 void indexed_scan_checkpoint_faults() {
   for(const auto unit:{4096U,65536U})for(unsigned mode=0;mode<3;++mode)for(unsigned cut=0;cut<4;++cut) {
     Fixture f(4096,0,true);auto advice=ram(unit);
@@ -2641,15 +2868,22 @@ int main(int argc,char** argv){try{
     retain_distant_indexed_candidate(true);
     indexed_scan_checkpoint_faults();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-displaced-coherence") {
+    indexed_catalog_metadata_space_refusal();
     indexed_catalog_displaced_candidate();
     indexed_catalog_alternate_publication();
     compact_full_indexed_catalog(CoherenceCopyOutcome::completed,0,true);
+  } else if(argc==2 && std::string_view(argv[1])=="--indexed-coherence-capacity") {
+    indexed_catalog_metadata_space_refusal();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-coherence-ranges") {
     indexed_catalog_sparse_range_reads();
   } else if(argc==2 && std::string_view(argv[1])=="--profile-coherence-ingestion") {
     indexed_catalog_sparse_range_reads(16384,{256*1024*1024});
   } else if(argc==2 && std::string_view(argv[1])=="--profile-coherence-ingestion-legacy") {
     indexed_catalog_sparse_range_reads(16384,{256*1024*1024},true);
+  } else if(argc==2 && std::string_view(argv[1])=="--profile-coherence-reclamation") {
+    indexed_catalog_reclamation_at_scale();
+  } else if(argc==3 && std::string_view(argv[1])=="--profile-coherence-reclamation-cut") {
+    indexed_catalog_reclamation_at_scale(std::stoul(argv[2]));
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-projected-coherence") {
     for(const auto scenario:{ModularCatalogCase::available,ModularCatalogCase::masked_only,ModularCatalogCase::stale})
       indexed_modular_catalog_discovery(scenario);

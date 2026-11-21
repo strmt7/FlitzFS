@@ -131,10 +131,14 @@ current-generation evidence for any non-saving handoff.
 
 The coherence catalog uses the same staged verifier and packed builder with
 a filter over byte-bounded posting records. Each read pass visits at most a
-quarter of a leaf per opportunity. The planner records the count, lengths
+quarter of a leaf per opportunity. Each filtered pass keeps its current
+path and checked leaf across opportunities. Target comparison also keeps
+a bounded cache of checked source paths. Both are discarded before another
+verification pass. The planner records the count, lengths
 and digest of the selected inventory, then requires the same selection during
-the copy. It reserves write credit for a strictly smaller packed target
-before writing and caps the target extent at the planned footprint. The
+the copy. On compact-page sources it prices both index page sizes from the
+retained inventory. It reserves write credit for the smaller qualifying
+packed target before writing and caps the target extent at that footprint. The
 candidate's typed root preserves the catalog identity. The ordinary data
 rewrite still uses a new image identity.
 [Coherence catalog](OPTIMIZATION_STATE.md#compaction-at-the-append-limit)

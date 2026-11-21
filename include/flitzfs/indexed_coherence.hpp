@@ -64,6 +64,7 @@ class IndexedCoherenceWriter final {
 
  private:
   friend class NativeFileSession;
+  friend class IndexedCoherenceStorage;
   static IndexedCoherenceWriter create_reserved(std::shared_ptr<StoreByteIo>,StoreIdentity volume,
       StoreIdentity image,PagedStoreLimits,std::span<const IndexedCoherencePosting>,
       std::uint64_t maximum_write_bytes,const std::function<bool(std::uint64_t)>& reserve);
@@ -91,6 +92,8 @@ class IndexedCoherenceStorage final {
  public:
   using Reserve=std::function<std::shared_ptr<StoreByteIo>()>;
   IndexedCoherenceStorage(PagedStoreLimits,Reserve);
+  // Adopt an independently reopened writer and a provider for future copies.
+  IndexedCoherenceStorage(PagedStoreLimits,Reserve,IndexedCoherenceWriter recovered);
   IndexedCoherenceStorage(const IndexedCoherenceStorage&)=delete;
   IndexedCoherenceStorage& operator=(const IndexedCoherenceStorage&)=delete;
 

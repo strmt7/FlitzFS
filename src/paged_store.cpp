@@ -580,7 +580,6 @@ PreparedPage prepare_page(const State& state,const Node& node,std::uint32_t heig
   ref.generation=state.checkpoint;
   ref.primary=stream_position(page_start,multiply(ordinal,state.metadata_bytes),state.unit);
   ref.peer=add(ref.primary,state.unit);
-  if(add(ref.peer,state.metadata_bytes)>state.limits.maximum_physical_bytes)capacity("physical capacity");
   auto& bytes=page.bytes;
   set_magic(bytes,page_magic);
   put32(bytes,8,state.mirrored?2:1);
@@ -778,6 +777,7 @@ struct Plan {
       next.root=roots.front();
     }
     next.end=add(page_start,paired_bank_bytes(multiply(pages.size(),next.metadata_bytes),next.unit));
+    // The complete paired layout supplies the shortfall for reclamation.
     check_physical_capacity(next.end,next.limits.maximum_physical_bytes);
   }
   void write_pages(std::uint64_t data_end) {
@@ -788,30 +788,30 @@ struct Plan {
     for(const auto& page:pages)write_page(next,page);
   }
 };
-// Merge immutable versions of the same tree by key. An identical reference
-// skips its subtree. Each frontier retains only the remaining siblings on its
-// current path and one decoded leaf.
-struct TreeDifference {
-  struct Side {
-    std::vector<Ref> pending;
-    std::vector<Entry> entries;
+// Keep the remaining siblings on one current path and one checked leaf.
+struct TreeFrontier {
+  std::vector<Ref> pending;
+  std::vector<Entry> entries;
 
-    bool present() const noexcept {return !entries.empty() || !pending.empty();}
-    std::uint64_t first() const noexcept {return entries.empty()?pending.back().first:entries.back().id;}
-    void open(const State& state) {
-      auto node=read_node(state,pending.back());
-      pending.pop_back();
-      pending.insert(pending.end(),node.children.rbegin(),node.children.rend());
-      entries=std::move(node.entries);
-      std::ranges::reverse(entries);
-    }
-    Entry take() noexcept {auto entry=entries.back();entries.pop_back();return entry;}
-  };
+  bool present() const noexcept {return !entries.empty() || !pending.empty();}
+  std::uint64_t first() const noexcept {return entries.empty()?pending.back().first:entries.back().id;}
+  void open(const State& state) {
+    auto node=read_node(state,pending.back());
+    pending.pop_back();
+    pending.insert(pending.end(),node.children.rbegin(),node.children.rend());
+    entries=std::move(node.entries);
+    std::ranges::reverse(entries);
+  }
+  Entry take() noexcept {auto entry=entries.back();entries.pop_back();return entry;}
+};
+// Merge immutable versions of the same tree by key. An identical reference
+// skips its subtree.
+struct TreeDifference {
   struct Edit {
     std::uint64_t id;
     std::optional<Entry> source;
   };
-  Side prior,current;
+  TreeFrontier prior,current;
 
   TreeDifference(const Ref& before,const Ref& after):prior{{before},{}},current{{after},{}} {}
   bool done() const noexcept {return !prior.present() && !current.present();}
@@ -1020,6 +1020,8 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
   Bytes replacement;
   std::size_t replacement_identity_offset;
   std::optional<RebuildRetention> retention;
+  std::optional<TreeFrontier> filtered_frontier;
+  std::optional<LookupPages> filtered_source_pages;
   std::optional<RebuildColdEncoding> cold;
   struct CompressionScreen {
     std::uint64_t start=0,count=0,samples=0,completed=0,compared=0,saved=0;
@@ -1101,7 +1103,11 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
         current.mirrored==original.mirrored &&
         current.end>=original.end && current.generation>original.generation;
   }
-  void reset(PagedRewritePhase next) noexcept {phase=next;after=completed=logical=stored=0;}
+  void reset(PagedRewritePhase next) noexcept {
+    phase=next;after=completed=logical=stored=0;
+    filtered_frontier.reset();
+    filtered_source_pages.reset();
+  }
   void count(const Entry& entry) {
     after=entry.id;completed=add(completed,1);logical=add(logical,entry.logical);stored=add(stored,entry.stored);
   }
@@ -1118,8 +1124,17 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
       count(entry);
       return --remaining!=0;
     };
-    bool done=false;
-    walk(input,input.root,after,visitor,done);
+    if(retention) {
+      if(!filtered_frontier)filtered_frontier.emplace(TreeFrontier{{input.root},{}});
+      auto& frontier=*filtered_frontier;
+      while(remaining && frontier.present()) {
+        if(frontier.entries.empty())frontier.open(input);
+        else visitor(frontier.take());
+      }
+    }else {
+      bool done=false;
+      walk(input,input.root,after,visitor,done);
+    }
     return completed!=before;
   }
   void measure_compression() {
@@ -1298,7 +1313,16 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
         totals(original);
         if(!replacement.empty() && !replacement_seen)fail("staged native root missing");
         if(retention) {
-          const auto projected=packed_rebuild_size(build.next,retained.objects,retained.stored);
+          auto projected=packed_rebuild_size(build.next,retained.objects,retained.stored);
+          if(build.next.metadata_bytes==compact_metadata_bytes) {
+            auto dense=build.next;
+            dense.metadata_bytes=page_bytes;
+            const auto size=packed_rebuild_size(dense,retained.objects,retained.stored);
+            if(size<projected) {
+              build.next.metadata_bytes=dense.metadata_bytes;
+              projected=size;
+            }
+          }
           if(!retained.objects || projected>=source_extent || projected>build.next.limits.maximum_physical_bytes)
             capacity("filtered copy cannot reduce occupied bytes");
           write_bound=add(projected,2*page_bytes);
@@ -1343,8 +1367,9 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
         reset(PagedRewritePhase::verifying_target);
       }
     } else if(phase==PagedRewritePhase::verifying_target || phase==PagedRewritePhase::verifying_publication) {
+      if(retention && !filtered_source_pages)filtered_source_pages.emplace();
       if(!visit_quantum(build.next,[&](const Entry& entry){
-        const auto source=lookup(original,entry.id);
+        const auto source=lookup(original,entry.id,filtered_source_pages?&*filtered_source_pages:nullptr);
         if(!source)fail("staged target object differs");
         compare(original,*source,entry,replacement);
       })) {
