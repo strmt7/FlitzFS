@@ -127,6 +127,30 @@ CPU inspection verified the backing between processes. Both workflows
 removed their mount points before the guest was disposed.
 [Mounted volume-file activation](evidence/windows11-mounted-volume-activation-2026-11-21.json)
 
+### Populated volume and access timestamps
+
+The disposable guest harness's `--gui-mounted-populated-file-sandbox` mode
+creates and flushes 1,024 files in one directory. It checks a refused
+conflicting open, an overwrite that shrinks a file, a writable mapping across
+two native extents, and a rename with a retained handle. The Windows reader
+checks the directory inventory, file lengths and contents before detach,
+after reattach and in a fresh helper. Independent CPU inspection verifies
+the same bytes and records the recovered checkpoint and namespace sequence.
+
+The writable Windows adapter coalesces automatic access-only timestamps.
+It persists the current access time on Cleanup when it is at least one hour
+newer than the stored value. Explicit timestamp changes, allocation trims,
+deletion and Cleanup that requests write, change or archive metadata retain
+their existing commit behavior.
+[WinFsp Cleanup contract](https://winfsp.dev/doc/WinFsp-API-winfsp.h/) ·
+[Windows file times](https://learn.microsoft.com/en-us/windows/win32/sysinfo/file-times)
+
+On Windows 11 build 26100 with signed WinFsp 2.2.26323, the fresh
+read-only helper changed 1,024 access timestamps and advanced the namespace
+sequence by 1,028 in the control. Both counts were zero in the revised run.
+The payload digest matched in every mounted and independent CPU pass.
+[Populated mount and access-time evidence](evidence/windows11-populated-mount-access-time-2026-11-21.json)
+
 Current backing creation is shared with the WinFsp composition through the
 [adaptive memory factory](WINDOWS_MEMORY_VOLUME_FACTORY.md). The fixed capacity
 and staged Optimize descriptions below apply to the labeled historical build.

@@ -3,6 +3,7 @@
 #include "windows_app_budget.hpp"
 #include "flitzfs/native_volume_file.hpp"
 #include "flitzfs/read_only_file.hpp"
+#include "../src/record_digest.hpp"
 #include <windows.h>
 #include <bcrypt.h>
 #include <pdh.h>
@@ -13,6 +14,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <new>
+#include <set>
 #include <string>
 #include <exception>
 #include <iostream>
@@ -715,7 +717,151 @@ struct MountedFileActivation {
   VolumeFileAction action=VolumeFileAction::create_new;
   std::optional<DWORD> serial;
   bool expect_create_conflict=false;
+  bool populated=false;
 };
+
+constexpr std::size_t mounted_trace_files=1024;
+constexpr std::size_t mapped_trace_file=0,overwritten_trace_file=64,renamed_trace_file=13;
+constexpr auto mounted_trace_directory=L"Population";
+constexpr auto mounted_trace_seed=0x19e5ce9bU;
+
+std::string mounted_trace_name(std::size_t i,bool edited) {
+  if(edited && i==renamed_trace_file)return "retained-rename.bin";
+  return "entry-"+std::to_string(i)+".bin";
+}
+
+std::wstring mounted_trace_path(const std::wstring& directory,std::size_t i,bool edited=false) {
+  const auto name=mounted_trace_name(i,edited);
+  return directory+L"\\"+std::wstring(name.begin(),name.end());
+}
+
+std::vector<std::byte> mounted_trace_bytes(std::size_t i,bool edited) {
+  const auto size=i%64==0?kNativeExtentBytes+79:271+i%389;
+  std::vector<std::byte> bytes(edited && i==overwritten_trace_file?93:size);
+  auto state=mounted_trace_seed^static_cast<std::uint32_t>(i);
+  for(auto& value:bytes) {
+    state=state*1664525U+1013904223U;
+    value=static_cast<std::byte>(state>>24);
+  }
+  if(edited && i==overwritten_trace_file)bytes.front()^=std::byte{0xc3};
+  if(edited && i==mapped_trace_file)
+    std::fill_n(bytes.begin()+kNativeExtentBytes-23,64,std::byte{0x6d});
+  return bytes;
+}
+
+template<class Reader>
+detail::Digest verify_mounted_trace(Reader read) {
+  std::array<detail::Digest,mounted_trace_files> digests{};
+  for(std::size_t i=0;i<digests.size();++i) {
+    const auto expected=mounted_trace_bytes(i,true);
+    const auto actual=read(i,static_cast<DWORD>(expected.size()));
+    require(actual==expected,"Populated mount file payload differs");
+    digests[i]=detail::record_digest(actual);
+  }
+  return detail::record_digest(std::as_bytes(std::span(digests)));
+}
+
+void print_mounted_trace_digest(const char* phase,const detail::Digest& digest) {
+  constexpr char hex[]="0123456789abcdef";
+  std::cout<<"mounted_population phase="<<phase<<" seed="<<mounted_trace_seed
+      <<" files="<<mounted_trace_files<<" blake3=";
+  for(const auto b:digest) {
+    const auto value=std::to_integer<unsigned>(b);
+    std::cout<<hex[value>>4]<<hex[value&15U];
+  }
+  std::cout<<'\n';
+}
+
+void write_mounted_trace(const std::wstring& directory) {
+  require(CreateDirectoryW(directory.c_str(),nullptr)!=FALSE,"Populated directory creation failed");
+  for(std::size_t i=0;i<mounted_trace_files;++i) {
+    const auto bytes=mounted_trace_bytes(i,false);
+    MountedTrialFile file(mounted_trace_path(directory,i),GENERIC_WRITE,CREATE_NEW);
+    DWORD written=0;
+    require(WriteFile(file.file,bytes.data(),static_cast<DWORD>(bytes.size()),&written,nullptr) &&
+        written==bytes.size() && FlushFileBuffers(file.file),"Populated create write or flush failed");
+  }
+  std::cout<<"mounted_population phase=seed_flushed files="<<mounted_trace_files<<std::endl;
+  {
+    const auto path=mounted_trace_path(directory,overwritten_trace_file);
+    {
+      MountedTrialFile reader(path,GENERIC_READ,OPEN_EXISTING,FILE_SHARE_READ);
+      const auto conflict=CreateFileW(path.c_str(),GENERIC_WRITE,FILE_SHARE_READ,nullptr,OPEN_EXISTING,0,nullptr);
+      const auto error=GetLastError();
+      if(conflict!=INVALID_HANDLE_VALUE)CloseHandle(conflict);
+      require(conflict==INVALID_HANDLE_VALUE && error==ERROR_SHARING_VIOLATION,
+          "Populated conflicting write returned the wrong sharing status");
+    }
+    MountedTrialFile replacement(path,GENERIC_WRITE,CREATE_ALWAYS);
+    const auto bytes=mounted_trace_bytes(overwritten_trace_file,true);
+    DWORD written=0;
+    require(WriteFile(replacement.file,bytes.data(),static_cast<DWORD>(bytes.size()),&written,nullptr) &&
+        written==bytes.size() && FlushFileBuffers(replacement.file),"Populated overwrite or flush failed");
+  }
+  {
+    MountedTrialFile file(mounted_trace_path(directory,mapped_trace_file),
+        GENERIC_READ|GENERIC_WRITE,OPEN_EXISTING);
+    struct Mapping {
+      HANDLE section=nullptr;
+      std::byte* view=nullptr;
+      ~Mapping(){if(view)UnmapViewOfFile(view);if(section)CloseHandle(section);}
+    } mapping;
+    mapping.section=CreateFileMappingW(file.file,nullptr,PAGE_READWRITE,0,0,nullptr);
+    require(mapping.section!=nullptr,"Mounted writable section creation failed");
+    mapping.view=static_cast<std::byte*>(MapViewOfFile(mapping.section,FILE_MAP_WRITE,0,0,0));
+    require(mapping.view!=nullptr,"Mounted writable view mapping failed");
+    constexpr auto offset=kNativeExtentBytes-23;
+    std::fill_n(mapping.view+offset,64,std::byte{0x6d});
+    require(FlushViewOfFile(mapping.view+offset,64)!=FALSE,"Mounted dirty view flush failed");
+    require(FlushFileBuffers(file.file)!=FALSE,"Mounted file flush after dirty view failed");
+  }
+  const auto old_path=mounted_trace_path(directory,renamed_trace_file);
+  const auto new_path=mounted_trace_path(directory,renamed_trace_file,true);
+  constexpr DWORD share=FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE;
+  MountedTrialFile retained(old_path,GENERIC_READ,OPEN_EXISTING,share);
+  require(MoveFileExW(old_path.c_str(),new_path.c_str(),0)!=FALSE,
+      "Populated rename with retained handle failed");
+  MountedTrialFile renamed(new_path,GENERIC_READ|GENERIC_WRITE,OPEN_EXISTING,share);
+  BY_HANDLE_FILE_INFORMATION prior{},after{};
+  require(GetFileInformationByHandle(retained.file,&prior) && GetFileInformationByHandle(renamed.file,&after) &&
+      (prior.nFileIndexHigh || prior.nFileIndexLow) &&
+      prior.dwVolumeSerialNumber==after.dwVolumeSerialNumber &&
+      prior.nFileIndexHigh==after.nFileIndexHigh && prior.nFileIndexLow==after.nFileIndexLow,
+      "Populated rename changed the retained file identity");
+  require(FlushFileBuffers(renamed.file)!=FALSE,"Populated renamed file flush failed");
+  std::cout<<"mounted_population phase=mutations_flushed denied_share_status="<<ERROR_SHARING_VIOLATION
+      <<" overwrite=1 mapped_extents=2 retained_identity=1\n";
+}
+
+void verify_mounted_population(const std::wstring& directory,const char* phase) {
+  std::set<std::wstring> remaining;
+  for(std::size_t i=0;i<mounted_trace_files;++i) {
+    const auto name=mounted_trace_name(i,true);
+    remaining.emplace(name.begin(),name.end());
+  }
+  WIN32_FIND_DATAW entry{};
+  struct Search {
+    HANDLE handle;
+    ~Search(){if(handle!=INVALID_HANDLE_VALUE)FindClose(handle);}
+  } search{FindFirstFileW((directory+L"\\*").c_str(),&entry)};
+  require(search.handle!=INVALID_HANDLE_VALUE,"Populated enumeration did not start");
+  do {
+    const std::wstring_view name(entry.cFileName);
+    if(name!=L"." && name!=L"..")
+      require(remaining.erase(entry.cFileName)==1,"Populated enumeration returned an unexpected or duplicate name");
+  } while(FindNextFileW(search.handle,&entry));
+  require(GetLastError()==ERROR_NO_MORE_FILES && remaining.empty(),"Populated enumeration missed file names");
+  const auto digest=verify_mounted_trace([&](std::size_t i,DWORD length) {
+    MountedTrialFile file(mounted_trace_path(directory,i,true),GENERIC_READ,OPEN_EXISTING);
+    LARGE_INTEGER size{};
+    require(GetFileSizeEx(file.file,&size) && size.QuadPart==length,"Populated file length differs");
+    std::vector<std::byte> bytes(length);
+    DWORD read=0;
+    require(ReadFile(file.file,bytes.data(),length,&read,nullptr) && read==length,"Populated file read failed");
+    return bytes;
+  });
+  print_mounted_trace_digest(phase,digest);
+}
 
 const std::wstring mounted_moved_directory=L"Archives-"+std::wstring(178,L'y');
 constexpr auto mounted_renamed_file=L"R\u00e9vis\u00e9-\U0001f680.bin";
@@ -800,6 +946,8 @@ void mounted_gui_workflow(HWND window,std::wstring_view parent,ProcessObserver& 
   if(activation && activation->action==VolumeFileAction::open_existing) {
     require(activation->serial==initial_serial,"A fresh process opened a different volume");
     verify_moved(first);
+    if(activation->populated)
+      verify_mounted_population(root(first)+mounted_trace_directory,"fresh_process");
     button(108);await_detach(first);
     button(105);wait_status(closed);
     return;
@@ -837,6 +985,11 @@ void mounted_gui_workflow(HWND window,std::wstring_view parent,ProcessObserver& 
   require(GetFileAttributesW(missing.c_str())==INVALID_FILE_ATTRIBUTES &&
       GetLastError()==ERROR_FILE_NOT_FOUND,"Mounted missing name under an existing parent reported the wrong status");
   verify_moved(first);
+  if(activation && activation->populated) {
+    const auto population=root(first)+mounted_trace_directory;
+    write_mounted_trace(population);
+    verify_mounted_population(population,"before_detach");
+  }
   send(window,WM_CLOSE);
   require(IsWindow(window) && observer.wait_for_exit()==ProcessObservation::running,
       "Window close ended ownership of the mounted volume");
@@ -849,6 +1002,8 @@ void mounted_gui_workflow(HWND window,std::wstring_view parent,ProcessObserver& 
   const auto second=location();
   require(second!=first && serial(second)==initial_serial,"Reattachment changed the volume identity or reused its path");
   verify_moved(second);
+  if(activation && activation->populated)
+    verify_mounted_population(root(second)+mounted_trace_directory,"reattached");
   button(108);await_detach(second);
   button(105);wait_status(closed);
   std::cout<<"mounted_gui_roundtrip reattached=1 junction_cleanup_verified=1 "
@@ -1008,18 +1163,49 @@ void gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budge
   if(!mounted)std::cout<<"GUI child peak commit: "<<result.peak_committed_bytes<<" bytes\n";
 }
 
-void mounted_file_gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budget) {
+void mounted_file_gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budget,bool populated) {
   const auto parent=std::filesystem::path(disposable_mount_parent()).parent_path();
   MountedFileActivation activation{parent/L"Volume \u00e9preuve.flfs"};
+  activation.populated=populated;
   require(GetFileAttributesW(activation.path.c_str())==INVALID_FILE_ATTRIBUTES &&
       GetLastError()==ERROR_FILE_NOT_FOUND,"Mounted volume-file fixture already exists");
   const auto raw_name=(std::filesystem::path(mounted_moved_directory)/mounted_renamed_file).generic_u8string();
   const std::string name(reinterpret_cast<const char*>(raw_name.data()),raw_name.size());
   const auto expected=mounted_client_bytes();
-  const auto verify=[&](std::optional<StoreIdentity> identity) {
+  std::uint64_t last_epoch=0,last_checkpoint=0,last_namespace=0;
+  std::array<std::uint64_t,mounted_trace_files> last_access{};
+  const auto verify=[&](std::optional<StoreIdentity> identity,bool read_only_pass=false) {
     const auto view=NativeVolumeFile::inspect(activation.path,identity);
-    require(view.filesystem().read(name,0,expected.size())==expected,
+    require(view.filesystem().read(name,0,static_cast<std::uint32_t>(expected.size()))==expected,
         "Independent CPU inspection recovered different file bytes");
+    if(populated) {
+      const auto epoch=view.info().selection.epoch;
+      const auto checkpoint=view.filesystem().storage_info().generation;
+      const auto sequence=view.filesystem().sequence();
+      require(sequence>=last_namespace &&
+          (epoch>last_epoch || (epoch==last_epoch && checkpoint>=last_checkpoint)),
+          "Recovered populated checkpoint went backwards");
+      const auto sequence_delta=last_namespace?sequence-last_namespace:0;
+      const auto retain_access=last_epoch!=0;
+      last_epoch=epoch;last_checkpoint=checkpoint;last_namespace=sequence;
+      std::size_t access_updates=0;
+      const auto digest=verify_mounted_trace([&](std::size_t i,DWORD length) {
+        const auto path="Population/"+mounted_trace_name(i,true);
+        const auto info=view.filesystem().stat(path);
+        const auto basic=view.filesystem().basic_metadata(info.inode);
+        require(info.logical_bytes==length && basic.has_value(),"Independent CPU file metadata differs");
+        const auto observed=basic->last_access_time;
+        if(retain_access && observed!=last_access[i])++access_updates;
+        last_access[i]=observed;
+        return view.filesystem().read(path,0,length);
+      });
+      std::cout<<"mounted_population checkpoint="<<checkpoint<<" epoch="<<epoch
+          <<" namespace_sequence="<<sequence<<" namespace_delta="<<sequence_delta
+          <<" access_times_changed="<<access_updates<<'\n';
+      print_mounted_trace_digest("independent_cpu",digest);
+      if(read_only_pass)
+        require(access_updates==0,"Recently recorded access times changed on a read-only pass");
+    }
     return view.info().selection.volume_identity;
   };
   gui_tests(app,budget,GuiRuntime::mounted,&activation);
@@ -1030,7 +1216,7 @@ void mounted_file_gui_tests(const std::filesystem::path& app,const app_fixture::
   activation.expect_create_conflict=false;
   activation.action=VolumeFileAction::open_existing;
   gui_tests(app,budget,GuiRuntime::mounted,&activation);
-  verify(identity);
+  verify(identity,true);
   std::cout<<"mounted_file_activation exclusive_create=1 identity_preserved=1 "
       <<"fresh_process_reopen=1 independent_cpu_readback=1\n";
 }
@@ -1038,7 +1224,8 @@ void mounted_file_gui_tests(const std::filesystem::path& app,const app_fixture::
 int wmain(int argc,wchar_t** argv) {
   try {
     const auto mode=argc>1?std::wstring_view(argv[1]):std::wstring_view{};
-    const bool mounted=argc==3 && (mode==L"--gui-mounted-sandbox" || mode==L"--gui-mounted-file-sandbox");
+    const bool populated=mode==L"--gui-mounted-populated-file-sandbox";
+    const bool mounted=argc==3 && (mode==L"--gui-mounted-sandbox" || mode==L"--gui-mounted-file-sandbox" || populated);
     app_fixture::Budget budget(!mounted);
     if(argc==2 && std::wstring_view(argv[1])==L"--model") {
       native_initialization();
@@ -1052,7 +1239,7 @@ int wmain(int argc,wchar_t** argv) {
       else if(mode==L"--gui-missing-winfsp")gui_tests(app,budget,GuiRuntime::missing);
       else if(mode==L"--gui-altered-winfsp")gui_tests(app,budget,GuiRuntime::altered);
       else if(mode==L"--gui-mounted-sandbox")gui_tests(app,budget,GuiRuntime::mounted);
-      else if(mode==L"--gui-mounted-file-sandbox")mounted_file_gui_tests(app,budget);
+      else if(mode==L"--gui-mounted-file-sandbox" || populated)mounted_file_gui_tests(app,budget,populated);
       else throw std::runtime_error("Unknown GUI qualification mode");
     } else throw std::runtime_error("Explicit model, maintenance or GUI qualification mode required");
     std::cout<<"Windows volume application checks: "<<checks

@@ -6,14 +6,14 @@ std::uint64_t native_cleanup_utc() noexcept {
   return (std::uint64_t(value.dwHighDateTime)<<32)|value.dwLowDateTime;
 }
 namespace {
+constexpr std::uint64_t access_time_interval=60ULL*60*10'000'000;
 NativeCleanupOutcome dispatch_cleanup(NativeFileSession& session,const NativeFileHandle& handle,
-    ULONG flags,NativeCleanupClock clock,bool allow_trim) noexcept {
+    ULONG flags,NativeCleanupClock clock,bool allow_trim,std::uint64_t minimum_access_interval) noexcept {
   const ULONG supported=FspCleanupDelete|FspCleanupSetArchiveBit|
       FspCleanupSetLastAccessTime|FspCleanupSetLastWriteTime|FspCleanupSetChangeTime|
       (allow_trim?FspCleanupSetAllocationSize:0);
-  // The selected FSD requests trim only without delete-pending. Reject an
-  // impossible combined flag before clock/I/O; old entry point still rejects
-  // every allocation flag. Neither entry point is wired into a writable table.
+  // The FSD requests trim only without deletion. Validate flags before
+  // sampling a clock or touching storage.
   if((flags&~supported) || ((flags&FspCleanupDelete) && (flags&FspCleanupSetAllocationSize))) {
     session.fence();return NativeCleanupOutcome::fenced_unsupported;
   }
@@ -31,7 +31,7 @@ NativeCleanupOutcome dispatch_cleanup(NativeFileSession& session,const NativeFil
   }
   try {
     session.cleanup_event(handle,(flags&FspCleanupDelete)!=0,
-        {effect,(flags&FspCleanupSetAllocationSize)!=0});
+        {effect,(flags&FspCleanupSetAllocationSize)!=0,minimum_access_interval});
     return NativeCleanupOutcome::applied;
   }catch(...) {
     session.fence();return NativeCleanupOutcome::fenced_engine;
@@ -40,10 +40,10 @@ NativeCleanupOutcome dispatch_cleanup(NativeFileSession& session,const NativeFil
 }
 NativeCleanupOutcome dispatch_native_cleanup(NativeFileSession& session,const NativeFileHandle& handle,
     ULONG flags,NativeCleanupClock clock) noexcept {
-  return dispatch_cleanup(session,handle,flags,clock,false);
+  return dispatch_cleanup(session,handle,flags,clock,false,0);
 }
 NativeCleanupOutcome dispatch_native_allocated_cleanup(NativeFileSession& session,const NativeFileHandle& handle,
     ULONG flags,NativeCleanupClock clock) noexcept {
-  return dispatch_cleanup(session,handle,flags,clock,true);
+  return dispatch_cleanup(session,handle,flags,clock,true,access_time_interval);
 }
 }

@@ -6,6 +6,16 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "windows_populated_volume": {
+    "reviewed_commit": "502fb283c8bf44fbbfcb871e24f1bc46907ae0ec",
+    "evidence": "docs/evidence/windows11-populated-mount-access-time-2026-11-21.json",
+    "files": 1024,
+    "fresh_read_namespace_updates_before_after": [1028, 0],
+    "fresh_read_access_timestamps_changed_before_after": [1024, 0],
+    "mounted_overwrite_mapping_and_reopen": true,
+    "independent_cpu_readback": true,
+    "next_check": "Interrupt the populated helper after a confirmed external flush; prove independent recovery and fresh-process attachment on the same backing."
+  },
   "current_attachment_reconciliation": {
     "reviewed_commit": "4203079a7529a565ebf17247a191f0ea3776c143",
     "reviewed_tree": "89ae3dd3146f19e012bdc6504dba29fee12ab587",

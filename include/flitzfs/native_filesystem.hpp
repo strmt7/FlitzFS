@@ -117,6 +117,9 @@ using NativeAutomaticMetadata=NativeCleanupMetadata;
 struct NativeCleanupEvent {
   NativeCleanupMetadata metadata;
   bool trim_allocation=false;
+  // Minimum change for an automatic access-only timestamp update, in UTC
+  // 100-nanosecond ticks. Zero requests the original exact-time behavior.
+  std::uint64_t minimum_access_interval=0;
 };
 
 // Trusted overwrite event policy: explicit canonical request attributes and

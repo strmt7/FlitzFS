@@ -464,15 +464,23 @@ release candidate and retain the published advisory and artifact inventories.
 
 ### Next integrated qualification
 
+The first populated external-client trace passed on a signed WinFsp 2.2
+guest. It exercised a 1,024-file directory, mapped and ordinary writes,
+sharing, retained-handle rename and fresh-process reopening. The control's
+fresh read-only pass produced 1,028 namespace updates. Coalescing recent
+automatic access-only timestamps removed that traffic while independent
+CPU recovery verified the same payload digest.
+[Mounted trace evidence](evidence/windows11-populated-mount-access-time-2026-11-21.json)
+
 1. **Extend the external Win32 trace in `windows_volume_app_tests.cpp`.**
-   Use the same populated volume for create, overwrite, share modes, mapped
-   and ordinary I/O, rename, flush, detach and fresh-process reopen. Keep
-   the operation seed, expected status, committed generation and acknowledged
-   content hashes in the trace. Feed independently captured expected bytes
-   to both an ordinary client reader and the CPU recovery reader. Record
-   filesystem, driver and application identities in the receipt. Use both
-   existing guest workflows for correctness and interactive Explorer on
-   a qualified live client for the shell workflow.
+   Retain the current populated fixture and use it for an interruption
+   after a confirmed external flush, before normal helper shutdown. Reopen
+   the same backing in a fresh process and verify its namespace, acknowledged
+   hashes and recovered checkpoint both through the mount and on CPU.
+   Record the operation seed, expected status, filesystem, driver and
+   application identities in each receipt. Use guest runs for mount and
+   interruption correctness, and interactive Explorer on a qualified live
+   client for the shell workflow.
 2. **Measure the scaling bottleneck on that trace.** Count calls and bytes
    for selector, object-index and name-index pages, inodes and lifetimes,
    content frames and protected dependencies. Observe entry, image fence,

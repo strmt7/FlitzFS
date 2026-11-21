@@ -116,6 +116,53 @@ void run(StoreCompressionMode mode,Kind kind) {
   require(weak.expired(),"allocated SDK fixture retained backing ownership after destruction");
   ++backend_retired;++cases;
 }
+
+void access_time_policy() {
+  constexpr std::uint64_t hour=60ULL*60*10'000'000;
+  constexpr auto access=FspCleanupSetLastAccessTime;
+  struct Case {std::uint64_t previous;ULONG flags;bool update_access;};
+  const Case choices[]{
+    {stamp-1,access,false},
+    {stamp-hour,access,true},
+    {stamp+1,access,false},
+    {stamp-1,access|FspCleanupSetAllocationSize,false},
+    {stamp-1,access|FspCleanupSetLastWriteTime,true},
+  };
+  for(const auto& choice:choices) {
+    auto ram=std::make_shared<Ram>();
+    auto writer=NativeFilesystemWriter::initialize(ObjectStoreWriter::create(ram,identity(),{StoreCompressionMode::raw,1,false}));
+    const auto content=data(7001,91);
+    const NativeFileMutation changes[]{file_create("target"),file_write("target",0,content)};
+    const NativeBasicMutation initial{0,1,{11,stamp,33,44,2U}};
+    writer.apply_with_metadata(changes,{&initial,1},{});
+    writer.reserve_inode_result(2,131072);
+    auto session=NativeFileSession::create(std::move(writer));
+    const auto handle=session.open("target",{true,false,false},NativeOpenKind::file,{true});
+    NativeBasicMetadata expected{11,choice.previous,33,44,2U};
+    session.set_basic_metadata(handle,expected);
+    require(session.basic_metadata(handle)==expected,"Explicit access timestamp was not recorded exactly");
+    const auto trim=(choice.flags&FspCleanupSetAllocationSize)!=0;
+    if(choice.update_access)expected.last_access_time=stamp;
+    if(choice.flags&FspCleanupSetLastWriteTime)expected.last_write_time=stamp;
+    clock_calls=0;
+    const auto before=ram->calls;
+    require(dispatch(session,handle,false,choice.flags).cleanup==NativeCleanupOutcome::applied &&
+        session.basic_metadata(handle)==expected && session.read(handle,0,10000)==content,
+        "Coalesced Windows Cleanup changed data or the wrong timestamps");
+    require((ram->calls>before)==(choice.update_access||trim) &&
+        session.allocation_info(handle).reserved_bytes==(trim?8192U:131072U),
+        "Access-only Cleanup wrote a recent timestamp or lost the required trim");
+    const auto after=ram->calls;
+    require(dispatch(session,handle,false,choice.flags).cleanup==NativeCleanupOutcome::applied &&
+        ram->calls==after && session.basic_metadata(handle)==expected,
+        "Duplicate access-only Cleanup changed its first result");
+    require(dispatch(session,handle,true).close==NativeCloseOutcome::retired && !session.stats().contexts,
+        "Coalesced access-time fixture did not retire the context");
+    const auto saved=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open(image(ram->stable)));
+    require(saved.basic_metadata(2)==expected && saved.read("target",0,10000)==content,
+        "Coalesced access-time checkpoint did not reopen exactly");
+  }
+}
 }
 int main(){try {
   DWORD initial=0,final=0;
@@ -124,6 +171,7 @@ int main(){try {
     for(const auto mode:{StoreCompressionMode::raw,StoreCompressionMode::automatic})
       for(const auto kind:{Kind::trim,Kind::trim_only,Kind::duplicate,Kind::directory,
           Kind::untracked,Kind::failed,Kind::impossible})run(mode,kind);
+  access_time_policy();
   require(GetProcessHandleCount(GetCurrentProcess(),&final)!=FALSE && initial==final,
       "allocated SDK repeated lifecycle leaked OS handles");
   require(cases==28 && backend_retired==cases,"allocated SDK lifecycle cases omitted");

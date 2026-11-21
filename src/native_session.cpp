@@ -1821,8 +1821,17 @@ void NativeFileSession::cleanup_event(const NativeFileHandle& handle,bool delete
       else self.latch_flags[latch]=static_cast<std::uint8_t>(self.latch_flags[latch]&~Impl::kVolatile);
     } else self.clear_latch(slot.inode);
   } else {
-    if(effect.any() || event.trim_allocation)
-      self.writer.cleanup_inode_storage_result(slot.inode,delete_file,false,event);
+    auto applied=event;
+    if(!delete_file && event.minimum_access_interval &&
+        effect.set_access_time && !effect.set_archive && !effect.set_write_time && !effect.set_change_time) {
+      if(const auto basic=self.writer.inspect_basic_metadata(slot.inode)) {
+        const auto previous=basic->last_access_time;
+        if(effect.utc_time<=previous || effect.utc_time-previous<event.minimum_access_interval)
+          applied.metadata={};
+      }
+    }
+    if(applied.metadata.any() || applied.trim_allocation)
+      self.writer.cleanup_inode_storage_result(slot.inode,delete_file,false,applied);
     else if(delete_file)self.writer.unlink_inode(slot.inode);
     if(delete_file)self.clear_latch(slot.inode);
     else if(latch!=self.latched.size()) {
