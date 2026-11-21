@@ -21,6 +21,27 @@ limits. File creation commits only the bytes used by initialization.
 Creation publishes the image before the paired selector. Missing or
 damaged advice leaves the data image usable.
 
+### Mounted publication and process recovery
+
+An ordinary indexed write flushes the appended image data, then writes and
+flushes each of the two paged roots. The mounted publication probe pauses
+an 8 KiB Windows write at three observed boundaries. The client still holds
+its handle and `GetOverlappedResult` reports a pending request when the
+supervisor terminates the writer. The client then receives
+`ERROR_OPERATION_ABORTED`.
+
+| Boundary reached | Independent CPU recovery in both guest trials |
+| --- | --- |
+| Before the appended data flush | Previous file bytes and inode |
+| After the first paged root flush | Complete replacement bytes and the same inode |
+| After the second paged root flush | Complete replacement bytes and the same inode |
+
+Each case preserved the separately acknowledged witness and continued writing
+after a fresh writable mount. The optional `flitzfs_write_probe`
+`--run-publication-cuts` mode runs these checks in the disposable Windows
+Sandbox fixture. Physical power-loss qualification remains a separate gate.
+[Mounted publication evidence](evidence/windows11-inflight-publication-cuts-2026-11-21.json)
+
 ### Paired sparse image ranges
 
 A qualified range provider can create a capability-4 volume with two

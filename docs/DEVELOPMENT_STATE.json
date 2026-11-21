@@ -43,7 +43,19 @@
     "modeled_publication_failure_cases_per_build": 1242,
     "modeled_failure_unit_bytes": [4096, 65536],
     "modeled_writable_continuation_cases_per_build": 8,
-    "next": "Exercise earlier paged-image publication boundaries through the real mounted acknowledgement path. Qualify selector cuts during a separate image switch."
+    "follow_up": "See windows_mounted_inflight_publication for the earlier mounted write boundaries."
+  },
+  "windows_mounted_inflight_publication": {
+    "reviewed_commit": "8a3ba4472e76a1af19d851bb7687e3d485521d9f",
+    "evidence": "docs/evidence/windows11-inflight-publication-cuts-2026-11-21.json",
+    "independent_guest_trials": 2,
+    "boundaries_each": 3,
+    "client_write_bytes": 8192,
+    "client_request_pending_at_cut": true,
+    "client_completion_after_exit": "ERROR_OPERATION_ABORTED",
+    "expected_checkpoint_by_boundary": ["previous", "next", "next"],
+    "independent_cpu_readback_and_writable_continuation": true,
+    "next": "Exercise EOF shrink, rename and selector publication during a separate image switch. Carry these checks into the populated-volume trace."
   },
   "windows_mounted_post_flush_recovery": {
     "reviewed_commit": "fc388e7d7731e0b14e6059e6412b4d5e82398b4c",

@@ -71,7 +71,7 @@ artifact and the observation needed before the related work can advance.
 | S5 · E04–E06 | Freeze the mixed held-out corpus and collect complete-image accounting for independent codecs, shared dictionaries, delta and multi-reference candidates and the existing shared-base control. | Net space gains survive protection, retained generations and reclamation costs. Independent restart units give practical cold random reads. Size and access results include all cohorts and losses. |
 | S6 · E07 | Drive the persistent advisory catalog and policy from observed savings, live resource pressure and workload changes in the mounted lifecycle. | Corrupt or absent advice is rebuildable. Foreground bursts preempt the next quantum. Recovery, migration, learning, compaction and scan progress resume independently with measured write cost. |
 | S7 · E08 | Extend the signed WinFsp fixture to an interactive Windows 11 26H2 x64 client and the published Explorer and Win32 compatibility matrix. | Both supported backings cover create, attach, metadata, copy, sharing, mapped I/O, detach and fresh-process recovery. Scoped app, service, mount and worker ownership is verified through failure and removal. |
-| S8 · E02, E11 | Extend the mounted post-acknowledgement overwrite and rename trace to controlled earlier image publication cuts. Exercise image-selection changes separately and qualify the persistent backend on dedicated disposable hardware. | Each cut resolves to an allowed complete generation. Acknowledged bytes and namespaces survive the declared failure domain. A single protected-copy loss repairs with byte-exact independent recovery. |
+| S8 · E02, E11 | Use the verified mounted write cuts as a control. Add mounted EOF shrink, rename and image-selection cuts, then qualify the persistent backend on dedicated disposable hardware. | Each cut resolves to an allowed complete generation. Acknowledged bytes and namespaces survive the declared failure domain. A single protected-copy loss repairs with byte-exact independent recovery. |
 | S9 · E09 | Add a capability and reader matrix for historical fixtures and mixed old/new representations. Exercise bounded, resumable format migration under regular writes and space pressure. | Supported history opens on CPU. Old writers refuse unsupported mandatory features before mutation. Upgrade interruption, compatible rollback and CPU-only export recover the promised data. |
 | S10 · E10–E11 | Stage a signed Windows package and CPU recovery tool with owned installation, repair, removal and rollback. Review the parser, broker, update and dependency trust boundaries. | Every artifact is attributable. The supported install paths work on a clean client. Defensive negative tests and independent review close actionable issues for the exact packaged source. |
 | S11 · E12 | Collect repeated matched DiskSpd and file-workflow results on real hardware, with filesystem and compression controls. | Publishable raw results include complete occupied bytes, CPU/GPU utilization, write amplification, foreground tails and independent recovery for every phase. |
@@ -524,17 +524,24 @@ The byte-I/O failure model replays all 1,242 write and barrier cuts across
 representatives of all four complete states.
 [Overwrite and rename recovery evidence](evidence/windows11-overwrite-rename-recovery-2026-11-22.json)
 
-1. **Qualify earlier acknowledgement boundaries on the mounted path.**
-   Carry the existing ordinary write, EOF shrink and rename replay into a
-   test-only backing provider for the signed-driver fixture. Match each
-   operation to the payload barrier and the two paged image root barriers.
-   Hold the helper at a confirmed boundary around those barriers and before
-   the Win32 response. Verify the last acknowledged operation and the
-   allowed complete next state with the independent CPU reader. Exercise
-   the outer selector during an actual image switch such as reclamation.
-   Observe mapped writes with a view flush followed by a file flush.
-   Bind each outcome to the operation, boundary, storage geometry and
-   exact binaries. The physical failure campaign uses dedicated backing.
+Two signed-driver guest trials also cut an in-flight Windows write before the
+payload flush, after the first paged root flush, and after the second. All six
+client requests were pending at the cut and completed with
+`ERROR_OPERATION_ABORTED`. Independent CPU recovery found the previous
+complete file before the payload flush and the complete replacement after
+either root flush. Each case remounted writable and verified a continuation.
+[In-flight write evidence](evidence/windows11-inflight-publication-cuts-2026-11-21.json)
+
+1. **Extend earlier mounted cuts to metadata and image switches.**
+   Use the in-flight write control to instrument the ordinary EOF shrink and
+   rename callbacks. Hold each at a confirmed boundary before the Win32
+   response and verify the last acknowledged state and the allowed complete
+   next state with the CPU reader. Exercise the outer selector during a real
+   image switch such as reclamation and check retired-range ownership.
+   Observe mapped writes with a view flush followed by a file flush. Extend
+   the trace to populated directories and bind each outcome to the exact
+   client operation, boundary, storage geometry and binaries. The physical
+   failure campaign uses dedicated backing.
    [Mapped flushing contract](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-flushviewoffile)
 2. **Measure the scaling bottleneck on that trace.** Count calls and bytes
    for selector, object-index and name-index pages, inodes and lifetimes,

@@ -10,8 +10,8 @@
     "package_contract": "docs/IMPLEMENTATION_PLAN.md",
     "gate_ledger": "docs/RELEASE_EXECUTION_PLAN.md#current-gate-ledger",
     "evidence": "docs/evidence/release-reconciliation-indexed-handle-2026-11-22.json",
-    "latest_recovery_evidence": "docs/evidence/windows11-overwrite-rename-recovery-2026-11-22.json",
-    "next": "Carry the modeled overwrite, EOF shrink and rename cuts through the mounted acknowledgement path with a test-owned backing. Trace paged image root barriers for ordinary mutations and the outer selector for actual image switches. Verify each allowed generation independently on CPU and continue on a fresh writable mount.",
+    "latest_recovery_evidence": "docs/evidence/windows11-inflight-publication-cuts-2026-11-21.json",
+    "next": "Extend mounted publication cuts from the verified in-flight write to EOF shrink, rename and a separate image switch. Keep independent CPU readback, pending client responses, fresh writable continuation and occupied-byte accounting in that trace.",
     "release_qualified": false
   },
   "baseline": {
