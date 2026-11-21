@@ -176,10 +176,12 @@ with injected lifecycle operations. The optional real file-handle test uses
 a newly created disposable fixture and belongs to a separately qualified
 Windows test environment. [Validation record](evidence/windows-volume-file-recovery-2026-11-19.json)
 
-The helper tests exercise failed attachment, joined detach, independent CPU
-readback, a fresh mount target and ordinary exit. The Windows 11 guest also
-exercises the exclusive file handle and reopen after close. These helper
-checks use injected WinFsp lifecycle operations.
+The injected lifecycle tests exercise failed attachment, joined detach,
+independent CPU readback, a fresh mount target and ordinary exit. A separate
+Windows 11 guest with the signed WinFsp 2.2 driver exercised ordinary Win32
+writes and flushes to the mounted NTFS-backed volume. It verified exclusive
+creation, fresh-process reopen and independent CPU readback.
+[Mounted file activation](evidence/windows11-mounted-volume-activation-2026-11-21.json)
 [Helper validation](evidence/windows-volume-file-attachment-2026-11-19.json)
 
 The paired-range model covers interrupted replay, head publication and

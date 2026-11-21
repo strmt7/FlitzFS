@@ -9,15 +9,15 @@ adapter. Model and SDK tests exercise recovery after interruption. The
 helper's qualified file attachment keeps the exclusive handle during detach
 and can exit after a clean join. The paired sparse provider can publish
 a smaller verified image and release the old allocation after reader
-retirement. User-facing selection, incremental evacuation under concurrent
-writes and actual power-failure qualification remain release work.
+retirement. Interactive Explorer qualification, incremental evacuation under
+concurrent writes and physical power-failure qualification remain release work.
 [Persistent reclamation validation](evidence/windows-sparse-volume-reclamation-2026-11-19.json)
 
 The qualified Explorer build accepts explicit create and open requests for
-volume files. A disposable Windows guest preserved the selected file through
-a duplicate-create refusal and reopened the acknowledged data on CPU. The
-next mounted trial uses these same requests through the installed client.
-[Helper file selection](evidence/helper-file-selection-2026-11-21.json)
+volume files. The signed WinFsp guest exercised both backings, refused a
+duplicate create, and reopened the persistent volume in a fresh helper
+process. The CPU inspector recovered the bytes after clean retirement.
+[Mounted volume-file validation](evidence/windows11-mounted-volume-activation-2026-11-21.json)
 
 Paired file retirement now wakes on the last old-image reader's release.
 The Windows fixture accepted a foreground write to the new image while

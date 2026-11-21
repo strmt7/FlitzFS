@@ -1,0 +1,206 @@
+{
+  "schema": "flitzfs-mounted-volume-activation-v1",
+  "date": "2026-11-21",
+  "experimental": true,
+  "source": {
+    "base": "ce7e629784b65daf24f803d5f46f4fdad74f8e4b",
+    "tree": "2fd7d5c4e1808dfa425e60ef86e5baca9e31b5ec",
+    "patch_sha256": "f08a16daded939cd18823509a22f245e7bd0be25db05b755c3f4b34d9c55b3cc",
+    "git_blobs": {
+      "src/windows/volume_app.cpp": "b5585156fd27091e58cdca94ef315733197d31ab",
+      "tests/windows_volume_app_tests.cpp": "0a5b123798d6613036a5ec07c30d4c79cc0fbd57"
+    }
+  },
+  "navigation": {
+    "commit": "ce7e629784b65daf24f803d5f46f4fdad74f8e4b",
+    "source_files": 14,
+    "source_bytes": 181114,
+    "provider_version": "0.2.43",
+    "actual_searches": 1,
+    "native_response_sha256": "86be3ce54ff0b4d90d94afb9a289eb87cc5a88c5053c19992b8e3835ab14d095",
+    "dirty_patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "receipt_sha256": "d54d4af640d9b6a6c3f3d108ff861921e0b9f56864495df0634f6ec898aad2d5"
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "source_identity": {
+      "tools/crawl4ai_tool.py": "e84a0e54ee07e4e13d3d2f35491f641730096a78126068f232c1f2397a467d8c",
+      "tools/crawl4ai_research.py": "ec3cb7a98eceed8fef08f3af806d6eaed35656bd76ca0ee8853d273f790337a5",
+      "tools/requirements/crawl4ai.txt": "6a42b0ff5ff6c63c843c6329ce823b819fd4f6f068e68d1836ab6dbec96e8f2f",
+      "tools/crawl4ai_sites.json": "e8869cb0488d78762a90aea6ecf2c3616bb89f0c89a8800cc512c613a750dc86",
+      "tools/nltk_distribution.py": "19eb3007c226b1a13e1ad0daa79cbd8a7bf6d082a20bf386e36ac060d0000919",
+      "tools/python_wheel.py": "c3c9a62454cb377203abce32154bec07cbf805bc7420cc89386c1c18370b301a",
+      "tools/test_nltk_model_security.py": "8aab7e2a704af875992ecae9137cdf5e5ff6935a4dd49e6751c54b2629a7280b",
+      "tools/requirements/python-build.txt": "9b280d724fda87773ba33a2654362adad84c68c4f79394adc07ff2e0293ca498",
+      "tools/crawl4ai_source_build.py": "5c27c4693fa0880a8db399825f637b694616963fc11f708afed33fa5b2e38b48",
+      "tools/crawl4ai_download_opener.py": "d5fd20b5545fd64c93a06b3ef07732f1c2da7e09ee6cda80662475007db52538",
+      "tools/test_crawl4ai_downloads.py": "ae4cf54c351a9da2de49caeb96306f384bb6a8f487318eabc69db4132d658619",
+      "third_party/upstream/nltk/3.10.4/distribution.json": "3241a8670f12e205525fc096572ed1969c063f77e13cffd70eff5eb656fbe1b0",
+      "nltk_upstream_wheel": "e46d89e59ef949270e3b19ab097da8dbb09350e05cb5a746ff92f6ccf6e8ce90",
+      "crawl4ai_source_build": "7da6376934254d9ad1de9e016a4509dae32c47559955889424435fcbbc7419f5"
+    },
+    "unchanged_source": true,
+    "native_pages": [
+      {
+        "name": "windows-argv",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-commandlinetoargvw",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 34949,
+        "markdown_sha256": "7a641c3876f19ee3280ce90b9eb92a826c0b1c52996987d346deb1c7ea9f9df0",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.853,
+        "capture": "windows-argv.native.json",
+        "capture_sha256": "cc6a2a921bfe6b335d0307bb06bf05aac459b91b1a752218dd2e4ce14d929bab"
+      },
+      {
+        "name": "command-line",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/processenv/nf-processenv-getcommandlinew",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 19117,
+        "markdown_sha256": "611dfb677c9474a06f47a5950fe07d6e85505da00bf476144f58977174e747c7",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.606,
+        "capture": "command-line.native.json",
+        "capture_sha256": "3e929ff761844a70bec0881e8eddcf76a3b34197d6403cd37977fb35cd24ad6c"
+      }
+    ],
+    "external_llm": false,
+    "robots": true,
+    "timeout_seconds": 45,
+    "receipt_sha256": "1f376f55e91682ae8ae002c206404f0555a3746fd642573f85761fc34f3e079e"
+  },
+  "validation": {
+    "signed_driver_guest": {
+      "run": "local-run-1bcc88fe567f403d9dad61e290a09306",
+      "exit": 0,
+      "tree_retired": true,
+      "result_sha256": "d37982478dbb01249ef929c4f359dbe0a041404b62f43ef8876fd54b9adecbf1",
+      "output_sha256": "62afdc245add59954409b2debce976d67b92ce38bb6e5099d85ba98b492606ff",
+      "windows": {
+        "caption": "Microsoft Windows 11 Enterprise",
+        "version": "10.0.26100",
+        "build": "26100",
+        "session": 0,
+        "ram_mib": 4094,
+        "available_mib": 3059,
+        "explorer_sessions": []
+      },
+      "signed_trial_assets": {
+        "winfsp-x64.sys": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+        "winfsp-x64.dll": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+        "msvcp140.dll": "59d325227321d52b9a523ea401ce6787a5d59f78229a0ff3a6f124e5d3445685",
+        "msvcp140_atomic_wait.dll": "8b10c6bd4c3c427ce7c8be96ef0fef0f8187bc236962be62a03caef834b37dcd",
+        "vcruntime140.dll": "eb1ee979bf02324712346e5bdbfc59c785388bc50d18cc2688aae4b0734915a0",
+        "vcruntime140_1.dll": "a14b4a42a2c6df04d6d53a8340816023d953406f7f3d94996c7cab30c414ff63",
+        "flitzfs_volume_app.exe": "d1651d4eb47a07fcd87a06e77f96e53697a9a56bafcbe1cd1d0ad0d3716ca96a",
+        "flitzfs_volume_app_tests.exe": "c0e6f592c7b3fb10a83052fb814732c75ee95a580e76eff10ffc8e24c72c46c0"
+      },
+      "winfsp": "2.2.26323",
+      "sandbox_memory_mib": 4096,
+      "vgpu": false,
+      "network": false,
+      "mount_parent_entries_after": 0,
+      "guest_retired": true,
+      "guest_receipt_sha256": "f091d4e88e6128b88132f9dcfff71c5b09a8c34d62c33164d4b4de355c5ce6d2",
+      "guest_runner_sha256": "f7a89158220c9e8076cc42854081be67c82eb10613d10b5de0b77b0d8ff33306",
+      "guest_script_sha256": "bdcfb4116db2fc356a00871561172baa873a54e7e16fc67bf52a0a94fce7b993",
+      "sandbox_receipt_sha256": "16575405725da1f4108a0755240256332dd67e1b59370b9a3dc849155efd2a0d",
+      "deployment": "WinFsp development registration",
+      "dependency_signatures_valid": 6,
+      "memory": {
+        "checks": 74,
+        "exit": 0,
+        "confirmed_exit": true,
+        "proof": "mounted_gui_roundtrip reattached=1 junction_cleanup_verified=1 serial_preserved=1 window_close_retained=1 external_cpu_readback=1 unicode_names=1 extended_path=1 alias_collision=1 live_handle_rename=1 directory_move=1",
+        "stdout_sha256": "4c762f80f522ef74949dc8fbae4a8a2a7be47a862947b385d4b5100330d81435"
+      },
+      "persistent": {
+        "checks": 127,
+        "exit": 0,
+        "confirmed_exit": true,
+        "proof": "mounted_file_activation exclusive_create=1 identity_preserved=1 fresh_process_reopen=1 independent_cpu_readback=1",
+        "stdout_sha256": "5d8db3b02d24008d16947377df3cc8ed878f59d1c1d7db35088fb30325138aa3"
+      },
+      "live_driver_stop_exit": 5,
+      "unregistration_exit": 0,
+      "driver_retired_by_guest_shutdown": true
+    },
+    "release_helper_build": {
+      "run": "local-run-3a8584c138a1443eb65ce41e18ff0ed4",
+      "exit": 0,
+      "tree_retired": true,
+      "result_sha256": "acb8f7a482a5b1e047392a5eb47b74a5a4c1ad9c26abaabe9fa59dbe66b038f5",
+      "output_sha256": "d419a2ce790db7a2219b6621656e72b5c337ab43419de23e55955561a2fe2eb7"
+    },
+    "private_desktop_gui": {
+      "run": "local-run-3d8b3133bb5f4ee5840156a9dd813dd4",
+      "exit": 0,
+      "tree_retired": true,
+      "result_sha256": "24e95fe5f429cff32bf4aa1978a55e8e1f1c4912bcd504391ad86e652c099743",
+      "output_sha256": "4753fc1520b25ab9e6841dcdfeb10cc2a8bb0af28695d5e2b3fb0fa96bc2c190",
+      "application_checks": 37
+    },
+    "malformed_launch": {
+      "run": "local-run-58c3d6e473cc41a49b6452930fe00492",
+      "exit": 2,
+      "tree_retired": true,
+      "result_sha256": "5626e53111f3d4def892b87e19a831dbc413461703b7cab0c5406b31a29465ee",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "portable_preview": {
+      "run": "local-run-dd867933273d470ea0529ee310910286",
+      "exit": 0,
+      "tree_retired": true,
+      "result_sha256": "46842747e7a78ef11e9f1d7105919bfb053990bb45aade3ea3de2713e188793a",
+      "output_sha256": "745012d8e49bde9583c813507a85ad104ebeb11ac76e0bedffccc49a6586c6b6",
+      "application_checks": 841
+    },
+    "address_sanitizer_gui": {
+      "run": "local-run-c7f4f79079eb4f0e90a31f6e415c5189",
+      "exit": 0,
+      "tree_retired": true,
+      "result_sha256": "294670d94970dce8e5da91ffc210707cb685c8dfa008be29c941b9d046926cc6",
+      "output_sha256": "12a6d08de94c655d0b0312423e6759297ef85e07ad30a7416e37ee03da15cff9",
+      "application_checks": 39
+    },
+    "address_sanitizer_attachments": {
+      "run": "local-run-c637e62292f649128d390d8981e5adcc",
+      "exit": 0,
+      "tree_retired": true,
+      "result_sha256": "f3d23ac500b61f0a0f5026c0b43bea6b37f582c0da78fa796acd2d00c0a3e958",
+      "output_sha256": "ac32a2b925c7636a0353f9425bd5c28f46658984fd38e7c7c49663649488825f"
+    },
+    "raw_attachments": {
+      "run": "local-run-b2cdd3d5e71c4da48d55eaef92fc326a",
+      "exit": 0,
+      "tree_retired": true,
+      "result_sha256": "c4cc46f4e71e37b819c36384e70800483f2f0cc7d4b7abaf3ab6037225076325",
+      "output_sha256": "50382b03b64ef0bc8aeeeb537182f976f5216f3884ccc797dce4bc8fddcafbf9"
+    },
+    "raw_model": {
+      "run": "local-run-7e41d5abd1444ccd8f440c1782ad4000",
+      "exit": 0,
+      "tree_retired": true,
+      "result_sha256": "41a5956c30be0c792e6d4f183be18891e8714bc856226abe640a776b420e6e58",
+      "output_sha256": "f063fd3cbf9a8c223dd67d14e2cd3d8efd96d305846d52af0c4ede390b63b5e6",
+      "application_checks": 841
+    },
+    "raw_build_config_sha256": "74269c1203526dcd4dd620206203ef46901c6ed5422dc33729c4efb060fa269c"
+  },
+  "remaining": [
+    "Interactive Explorer and file-picker workflow on a signed installed package",
+    "Supported installation, upgrade, built-in driver retirement and rollback",
+    "Mounted AMD selection and independent CPU fallback on real hardware",
+    "Physical power-loss recovery and mounted I/O at scale"
+  ]
+}

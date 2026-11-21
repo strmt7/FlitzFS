@@ -11,6 +11,18 @@
     "tree": "936409737d1c4a5d4aeb37fe5af48f55ba9accff",
     "note": "Architectural review baseline. Layer and runtime evidence have separate source bindings."
   },
+  "mounted_volume_activation": {
+    "source_base": "ce7e629784b65daf24f803d5f46f4fdad74f8e4b",
+    "evidence": "docs/evidence/windows11-mounted-volume-activation-2026-11-21.json",
+    "windows_guest_build": 26100,
+    "winfsp": "2.2.26323",
+    "memory_mounted_checks": 74,
+    "file_mounted_checks": 127,
+    "duplicate_create_refused": true,
+    "fresh_process_reopen": true,
+    "independent_cpu_readback": true,
+    "remaining": "Interactive Explorer and supported deployment, physical recovery, and mounted AMD continuity"
+  },
   "helper_file_selection": {
     "source_base": "00de0a6035206ac1389908f352b9208451a72faa",
     "evidence": "docs/evidence/helper-file-selection-2026-11-21.json",

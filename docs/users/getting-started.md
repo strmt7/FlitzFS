@@ -36,6 +36,10 @@ and **Open volume file**. Choose an unused filename to create a volume, or
 select an existing FlitzFS volume to reopen it. **Open in Explorer** opens
 the attached volume. Use **Detach and retain** before **Close volume file**.
 Closing releases the volume file for a later open.
+
+For a shortcut or command-line launch, give the qualified helper
+`--create-volume-file` or `--open-volume-file` followed by one absolute
+path. Quote the path if it contains spaces.
 [Qualified backing and attachment behavior](../WINDOWS_VOLUME_APP.md#persistent-volume-files)
 
 For implementation and qualification details, see the

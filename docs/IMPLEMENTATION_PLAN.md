@@ -1349,6 +1349,12 @@ Supported install and rollback, driver retirement and interactive Explorer
 qualification remain open. [Sealed memory path](WINFSP_READONLY_MEMORY.md) ·
 [Windows 11 mounted evidence](evidence/windows11-sandbox-memory-mount-2026-11-18.json)
 
+The signed stable 2.2 pair also passed the same helper's memory and
+persistent workflows in an offline guest. The persistent path handled
+explicit launch, external Win32 writes, detach, exclusive-create refusal
+and verified reopen in a fresh process.
+[Mounted activation evidence](evidence/windows11-mounted-volume-activation-2026-11-21.json)
+
 **Reuse:** actual native SDK callbacks, Windows-global disposition, ACL/time
 validation, deferred responses, owned controller, shared memory factory and tray.
 **Planning effort:** 5–10 person-weeks; confidence low.

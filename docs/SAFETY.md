@@ -1221,7 +1221,10 @@ The file-selection build uses the qualified NTFS range contract. The selected
 parent remains pinned through exclusive file acquisition, and the backing
 rechecks filesystem capabilities before and after open. The helper checks the
 volume identity on the same exclusive handle it uses for recovery.
-[Helper file selection](evidence/helper-file-selection-2026-11-21.json)
+Explicit launch actions obey those same checks. In the signed-driver guest,
+duplicate creation was refused and independent CPU inspection verified the
+existing contents after the mounted helper exited.
+[Mounted file activation](evidence/windows11-mounted-volume-activation-2026-11-21.json)
 
 The paired sparse provider additionally requires an isolated reclamation
 contract. It waits for both checked head replicas and retirement of the

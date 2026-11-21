@@ -103,12 +103,14 @@ through creation, callback service, retirement, compaction and CPU inspection.
 The helper can select memory backing or a volume file through the qualified
 Explorer build. Both use the same owned controller. File selection includes
 exclusive new-file creation, checked reopen and explicit close after
-detachment. The installed client must still qualify both providers with
-the signed driver, recovery and real AMD operation.
+detachment. Both providers passed mounted Win32 operations in a signed
+WinFsp guest. Persistent activation also passed duplicate-create refusal and
+reopen in a fresh process. Interactive Explorer, supported installation,
+physical recovery and AMD through the mounted path remain to be qualified.
 [Helper factory](../src/windows/volume_app_winfsp.cpp) ·
 [File attachment factory](../src/windows/winfsp_volume_attachment.cpp) ·
 [Mounted evidence](evidence/windows11-stable-winfsp-2.2-2026-11-20.json)
-[Helper file selection](evidence/helper-file-selection-2026-11-21.json)
+[Mounted helper qualification](evidence/windows11-mounted-volume-activation-2026-11-21.json)
 
 The diagnostic CLI operates on experimental image/container formats. It is not
 the final user-facing mount, creation or management interface. Historical ZIP

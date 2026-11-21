@@ -23,6 +23,20 @@ constexpr int attach_id=107,detach_id=108,explorer_id=109;
 constexpr int files_id=110,name_id=111,text_id=112,status_id=113,show_id=114;
 constexpr int new_volume_file_id=115,open_volume_file_id=116;
 #ifdef FLITZFS_EXPLORER_FILE_BACKING
+VolumeFileRequest startup_volume_file() {
+  int count=0;
+  std::unique_ptr<wchar_t*,decltype(&LocalFree)> arguments(
+      CommandLineToArgvW(GetCommandLineW(),&count),&LocalFree);
+  if(!arguments || count!=3 || !*arguments.get()[2])
+    throw std::invalid_argument("Expected a volume-file action and one path");
+  const auto action=std::wstring_view(arguments.get()[1]);
+  if(action==L"--create-volume-file")
+    return {VolumeFileAction::create_new,arguments.get()[2]};
+  if(action==L"--open-volume-file")
+    return {VolumeFileAction::open_existing,arguments.get()[2]};
+  throw std::invalid_argument("Unknown volume-file action");
+}
+
 std::optional<VolumeFileRequest> pick_volume_file(HWND window,VolumeFileAction action) {
   const bool create=action==VolumeFileAction::create_new;
   if(FAILED(CoInitializeEx(nullptr,COINIT_APARTMENTTHREADED|COINIT_DISABLE_OLE1DDE)))
@@ -149,7 +163,10 @@ struct App {
     status=control(L"STATIC",L"No volume. Create a memory volume to begin.",SS_LEFT,status_id);
     taskbar_created=RegisterWindowMessageW(L"TaskbarCreated");
     if(!taskbar_created)throw std::runtime_error("Tray restart notification unavailable");
-    add_tray();controller=std::make_unique<VolumeController>(window,std::move(attachment),std::move(file_factory));layout();refresh();
+    add_tray();
+    controller=std::make_unique<VolumeController>(window,std::move(attachment),std::move(file_factory));
+    layout();
+    refresh();
   }
   void layout() noexcept {
     RECT r{};GetClientRect(window,&r);
@@ -157,12 +174,13 @@ struct App {
     auto d=[dpi](int n){return MulDiv(n,dpi?dpi:96,96);};
     const int w=r.right,h=r.bottom,p=d(16),gap=d(8),row=d(32);
     const int usable=(std::max)(1,w-2*p),left=(std::min)(d(260),usable/3);
+    const int backing_line=buttons[9]?d(20):0;
     MoveWindow(heading,p,p,usable,d(28),TRUE);
-    MoveWindow(summary,p,p+d(30),usable,d(44),TRUE);
+    MoveWindow(summary,p,p+d(30),usable,d(44)+backing_line,TRUE);
     const int button_width=(std::max)(1,(usable-2*gap)/3);
     for(int i=0;i<static_cast<int>(buttons.size());++i)if(const auto button=buttons[static_cast<std::size_t>(i)])
-      MoveWindow(button,p+(i%3)*(button_width+gap),d(94)+(i/3)*(row+gap),button_width,row,TRUE);
-    const int top=d(buttons[9]?264:(buttons[6]?224:184)),body=(std::max)(d(60),h-top-d(88));
+      MoveWindow(button,p+(i%3)*(button_width+gap),d(94)+backing_line+(i/3)*(row+gap),button_width,row,TRUE);
+    const int top=d(buttons[9]?264:(buttons[6]?224:184))+backing_line,body=(std::max)(d(60),h-top-d(88));
     MoveWindow(files,p,top,left,body,TRUE);
     MoveWindow(name,p+left+gap,top,(std::max)(1,usable-left-gap),row,TRUE);
     MoveWindow(text,p+left+gap,top+row+gap,(std::max)(1,usable-left-gap),
@@ -204,7 +222,8 @@ struct App {
     std::wstring summary_text=L"Experimental memory workspace";
     if(state==VolumeAttachmentState::attached) {
       summary_text=v.attachment.persistent?L"Attached volume file\r\n":L"Attached temporary volume\r\n";
-      summary_text+=v.attachment.backing_path.empty()?v.attachment.location:v.attachment.backing_path;
+      summary_text+=v.attachment.location;
+      if(!v.attachment.backing_path.empty())summary_text+=L"\r\nBacking file: "+v.attachment.backing_path;
     } else if(v.attachment.retained()) {
       summary_text=v.attachment.persistent?L"Persistent volume file retained":L"Temporary volume retained in memory";
       if(!v.attachment.backing_path.empty())summary_text+=L"\r\n"+v.attachment.backing_path;
@@ -347,8 +366,15 @@ LRESULT CALLBACK procedure(HWND window,UINT message,WPARAM w,LPARAM l) {
 }
 }
 int WINAPI wWinMain(HINSTANCE instance,HINSTANCE,PWSTR command_line,int) {
-  // No unattended mode, autostart registration, elevation or dependency installer.
+#ifdef FLITZFS_EXPLORER_FILE_BACKING
+  std::optional<VolumeFileRequest> startup_file;
+  if(command_line && *command_line) {
+    try {startup_file=startup_volume_file();}
+    catch (...) {return 2;}
+  }
+#else
   if(command_line && *command_line)return 2;
+#endif
   App app;WNDCLASSW type{};type.lpfnWndProc=procedure;type.hInstance=instance;
   type.lpszClassName=L"FlitzFS.VolumeApp.Experimental";type.hCursor=LoadCursorW(nullptr,IDC_ARROW);
   type.hbrBackground=reinterpret_cast<HBRUSH>(COLOR_WINDOW+1);
@@ -357,6 +383,17 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE,PWSTR command_line,int) {
       WS_OVERLAPPEDWINDOW,CW_USEDEFAULT,CW_USEDEFAULT,1000,680,nullptr,nullptr,instance,&app);
   if(!window)return 4;
   ShowWindow(window,SW_SHOW);UpdateWindow(window);
+#ifdef FLITZFS_EXPLORER_FILE_BACKING
+  if(startup_file) {
+    try {
+      if(!app.controller->submit({VolumeCommandKind::attach_file,{},{},std::move(startup_file)}))
+        throw std::runtime_error("Cannot queue the volume-file action");
+      app.refresh();
+    } catch (...) {
+      SetWindowTextW(app.status,L"Could not submit the volume file action.");
+    }
+  }
+#endif
   MSG message{};int result=0;
   while((result=GetMessageW(&message,nullptr,0,0))>0) {
     if(!IsDialogMessageW(window,&message)){TranslateMessage(&message);DispatchMessageW(&message);}

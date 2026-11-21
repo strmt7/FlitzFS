@@ -46,8 +46,15 @@ or open action move to the existing attachment worker. Before acquiring a
 backing, the worker checks the WinFsp mount location. Creation atomically
 requires a new file, and the capacity follows available space and paired
 range geometry. Reopen checks the volume identity on the same exclusive
-handle before writable recovery. The window identifies the selected file,
-while **Open in Explorer** opens the current temporary mount location.
+handle before writable recovery. The window shows the selected file and
+its mount location. **Open in Explorer** opens that location.
+
+The same build accepts `--create-volume-file` or `--open-volume-file` with
+one absolute path at launch. Quote paths containing spaces. The helper
+opens its window and submits the explicit action through the same worker
+and backing checks used by the picker. Creation still requires an unused
+path. These arguments can be passed from a shortcut or another application.
+[Windows command-line parsing](https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-commandlinetoargvw)
 
 Detach retains the exclusive handle. **Reattach volume file** uses that
 handle, and **Close volume file** releases it after confirmed retirement.
@@ -110,6 +117,15 @@ separate guest. Its installer did not complete within the trial window.
 The headless guest reported no active user logon. Installer rollback and
 interactive File Explorer qualification remain open.
 [Stable 2.2 validation](evidence/windows11-stable-winfsp-2.2-2026-11-20.json)
+
+The current helper passed both backing workflows with that signed driver
+and matching DLL in an offline Windows 11 Sandbox. A native client wrote,
+flushed and moved files on the mounted file-backed volume. The helper
+detached and closed it, refused a second create at the same path, and
+reopened it in a fresh process with the same serial and bytes. Independent
+CPU inspection verified the backing between processes. Both workflows
+removed their mount points before the guest was disposed.
+[Mounted volume-file activation](evidence/windows11-mounted-volume-activation-2026-11-21.json)
 
 Current backing creation is shared with the WinFsp composition through the
 [adaptive memory factory](WINDOWS_MEMORY_VOLUME_FACTORY.md). The fixed capacity

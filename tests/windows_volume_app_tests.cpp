@@ -1,6 +1,7 @@
 #include "volume_controller.hpp"
 #include "bounded_process.hpp"
 #include "windows_app_budget.hpp"
+#include "flitzfs/native_volume_file.hpp"
 #include "flitzfs/read_only_file.hpp"
 #include <windows.h>
 #include <bcrypt.h>
@@ -709,14 +710,37 @@ struct MountedTrialFile {
   MountedTrialFile& operator=(const MountedTrialFile&)=delete;
 };
 
+struct MountedFileActivation {
+  std::filesystem::path path;
+  VolumeFileAction action=VolumeFileAction::create_new;
+  std::optional<DWORD> serial;
+  bool expect_create_conflict=false;
+};
+
+const std::wstring mounted_moved_directory=L"Archives-"+std::wstring(178,L'y');
+constexpr auto mounted_renamed_file=L"R\u00e9vis\u00e9-\U0001f680.bin";
+
+std::vector<std::byte> mounted_client_bytes() {
+  std::vector<std::byte> bytes(2*kNativeExtentBytes+137);
+  for(std::size_t i=0;i<bytes.size();++i)bytes[i]=static_cast<std::byte>((i/64+i%29)&255U);
+  return bytes;
+}
+
 template<class Button,class Status>
 void mounted_gui_workflow(HWND window,std::wstring_view parent,ProcessObserver& observer,
-    Button button,Status wait_status,std::uint64_t deadline) {
+    Button button,Status wait_status,std::uint64_t deadline,MountedFileActivation* activation) {
+  const std::wstring volume=activation?L"Volume file":L"Memory volume";
+  const auto closed=activation?L"Volume file closed.":L"Temporary volume explicitly discarded.";
   const auto location=[&] {
     const auto display=text(GetDlgItem(window,121));
-    constexpr std::wstring_view heading=L"Attached temporary volume\r\n";
+    const std::wstring_view heading=activation?L"Attached volume file\r\n":L"Attached temporary volume\r\n";
     require(display.starts_with(heading),"Attached GUI did not publish a mount location");
     auto target=display.substr(heading.size());
+    if(activation) {
+      const std::wstring expected=L"\r\nBacking file: "+activation->path.native();
+      require(target.ends_with(expected),"Attached GUI did not identify its selected backing");
+      target.resize(target.size()-expected.size());
+    }
     const auto prefix=std::wstring(parent)+L"\\FlitzFS-";
     require(target.starts_with(prefix) && target.size()==prefix.size()+32 &&
         std::all_of(target.begin()+static_cast<std::ptrdiff_t>(prefix.size()),target.end(),[](wchar_t c) {
@@ -736,19 +760,19 @@ void mounted_gui_workflow(HWND window,std::wstring_view parent,ProcessObserver& 
     return serial_number;
   };
   const auto await_detach=[&](const std::wstring& mount) {
-    wait_status(L"Memory volume detached and retained.");
+    wait_status(volume+L" detached and retained.");
     until([&]{return GetFileAttributesW(mount.c_str())==INVALID_FILE_ATTRIBUTES &&
         GetLastError()==ERROR_FILE_NOT_FOUND;},deadline);
-    require(IsWindowEnabled(GetDlgItem(window,106))==FALSE,"Detached memory lost its exit protection");
+    require((IsWindowEnabled(GetDlgItem(window,106))!=FALSE)==(activation!=nullptr),
+        "Detached volume exit protection differs");
   };
   const auto folder=L"Donn\u00e9es-"+std::wstring(174,L'x');
-  const auto moved=L"Archives-"+std::wstring(178,L'y');
+  const auto& moved=mounted_moved_directory;
   constexpr auto original=L"R\u00e9sum\u00e9-\U0001f680.bin";
   constexpr auto alias=L"R\u00c9SUM\u00c9-\U0001f680.BIN";
-  constexpr auto renamed=L"R\u00e9vis\u00e9-\U0001f680.bin";
+  constexpr auto renamed=mounted_renamed_file;
   const auto root=[](const std::wstring& mount){return L"\\\\?\\"+mount+L"\\";};
-  std::vector<std::byte> expected(2*kNativeExtentBytes+137);
-  for(std::size_t i=0;i<expected.size();++i)expected[i]=static_cast<std::byte>((i/64+i%29)&255U);
+  const auto expected=mounted_client_bytes();
   const auto verify=[&](HANDLE file) {
     LARGE_INTEGER size{};
     require(GetFileSizeEx(file,&size) && size.QuadPart==static_cast<LONGLONG>(expected.size()),
@@ -769,10 +793,18 @@ void mounted_gui_workflow(HWND window,std::wstring_view parent,ProcessObserver& 
     verify(file.file);
   };
 
-  button(107);
-  wait_status(L"Memory volume attached.");
+  if(!activation)button(107);
+  wait_status(volume+L" attached.");
   const auto first=location();
   const auto initial_serial=serial(first);
+  if(activation && activation->action==VolumeFileAction::open_existing) {
+    require(activation->serial==initial_serial,"A fresh process opened a different volume");
+    verify_moved(first);
+    button(108);await_detach(first);
+    button(105);wait_status(closed);
+    return;
+  }
+  if(activation)activation->serial=initial_serial;
   const auto directory=root(first)+folder;
   const auto path=directory+L"\\"+original;
   require(path.size()>MAX_PATH && CreateDirectoryW(directory.c_str(),nullptr),
@@ -813,19 +845,20 @@ void mounted_gui_workflow(HWND window,std::wstring_view parent,ProcessObserver& 
   button(108);await_detach(first);
 
   button(107);
-  wait_status(L"Memory volume attached.");
+  wait_status(volume+L" attached.");
   const auto second=location();
   require(second!=first && serial(second)==initial_serial,"Reattachment changed the volume identity or reused its path");
   verify_moved(second);
   button(108);await_detach(second);
-  button(105);wait_status(L"Temporary volume explicitly discarded.");
+  button(105);wait_status(closed);
   std::cout<<"mounted_gui_roundtrip reattached=1 junction_cleanup_verified=1 "
       <<"serial_preserved=1 window_close_retained=1 external_cpu_readback=1 "
       <<"unicode_names=1 extended_path=1 alias_collision=1 live_handle_rename=1 directory_move=1\n";
 }
 
 enum class GuiRuntime { ordinary,missing,altered,mounted,qualified_file_controls };
-void gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budget,GuiRuntime runtime) {
+void gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budget,GuiRuntime runtime,
+    MountedFileActivation* activation=nullptr) {
   const bool mounted=runtime==GuiRuntime::mounted;
   const auto mount_parent=mounted?disposable_mount_parent():std::wstring{};
   auto sdk=app.parent_path()/L"winfsp-x64.dll";
@@ -846,7 +879,10 @@ void gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budge
   std::atomic<bool> supervisor_failed{false};
   const auto child_memory_mib=budget.child_memory_mib(mounted?64:128);
   const std::uint32_t timeout_ms=mounted?39000:25000;
-  std::thread supervisor([&]{try{result=run_bounded_process(app,{},ProcessBudget{child_memory_mib,2000,timeout_ms,16},observer);}
+  std::vector<std::wstring> arguments;
+  if(activation)arguments={activation->action==VolumeFileAction::create_new?
+      L"--create-volume-file":L"--open-volume-file",activation->path.native()};
+  std::thread supervisor([&]{try{result=run_bounded_process(app,arguments,ProcessBudget{child_memory_mib,2000,timeout_ms,16},observer);}
       catch(...){failure=std::current_exception();supervisor_failed.store(true,std::memory_order_release);}});
   std::exception_ptr test_failure;
   try {
@@ -866,6 +902,8 @@ void gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budge
         const auto current=text(status);
         if(current.find(expected)!=std::wstring::npos)return true;
         if(mounted && (current.starts_with(L"Operation failed:") || current.starts_with(L"Attachment failed.") ||
+            current.starts_with(L"Could not submit the volume file action.") ||
+            current.find(L"retained after attachment failure.")!=std::wstring::npos ||
             current.starts_with(L"Attachment retirement could not be confirmed."))){
           std::wcerr<<current<<L'\n';
           throw std::runtime_error("Mounted application reported a lifecycle failure");
@@ -883,15 +921,19 @@ void gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budge
       const auto action=GetDlgItem(window,mounted?107:101);
       const bool enabled=action && IsWindowEnabled(action)!=FALSE;
       // The disposable guest exercises the controls on a headless desktop.
-      const bool ready=(mounted || visible) && editors && status_control && enabled;
+      const bool ready=(mounted || visible) && editors && status_control && (activation || enabled);
       if(!ready && GetTickCount64()>=deadline)
         std::cerr<<"GUI readiness visible="<<visible<<" editors="<<editors<<" status="<<status_control
             <<" action="<<(action!=nullptr)<<" enabled="<<enabled<<'\n';
       return ready;
     },deadline,"Application window did not expose enabled controls");
     status=GetDlgItem(window,113);require(status!=nullptr,"Ready status control missing");
-    if(mounted) {
-      mounted_gui_workflow(window,mount_parent,*observer,button,wait_status,deadline);
+    if(activation && activation->expect_create_conflict) {
+      wait_status(L"Operation failed: FlitzFS store file: exclusive creation failed");
+      require(!IsWindowEnabled(GetDlgItem(window,108)) && IsWindowEnabled(GetDlgItem(window,116)),
+          "Refused creation retained an attachment or disabled file selection");
+    } else if(mounted) {
+      mounted_gui_workflow(window,mount_parent,*observer,button,wait_status,deadline,activation);
     } else {
       const bool qualified_file_controls=runtime==GuiRuntime::qualified_file_controls;
       const auto new_file=GetDlgItem(window,115),open_file=GetDlgItem(window,116);
@@ -965,10 +1007,38 @@ void gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budge
   require(!result.timed_out && !result.cancelled && result.exit_code==0,"GUI child did not retire cleanly");
   if(!mounted)std::cout<<"GUI child peak commit: "<<result.peak_committed_bytes<<" bytes\n";
 }
+
+void mounted_file_gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budget) {
+  const auto parent=std::filesystem::path(disposable_mount_parent()).parent_path();
+  MountedFileActivation activation{parent/L"Volume \u00e9preuve.flfs"};
+  require(GetFileAttributesW(activation.path.c_str())==INVALID_FILE_ATTRIBUTES &&
+      GetLastError()==ERROR_FILE_NOT_FOUND,"Mounted volume-file fixture already exists");
+  const auto raw_name=(std::filesystem::path(mounted_moved_directory)/mounted_renamed_file).generic_u8string();
+  const std::string name(reinterpret_cast<const char*>(raw_name.data()),raw_name.size());
+  const auto expected=mounted_client_bytes();
+  const auto verify=[&](std::optional<StoreIdentity> identity) {
+    const auto view=NativeVolumeFile::inspect(activation.path,identity);
+    require(view.filesystem().read(name,0,expected.size())==expected,
+        "Independent CPU inspection recovered different file bytes");
+    return view.info().selection.volume_identity;
+  };
+  gui_tests(app,budget,GuiRuntime::mounted,&activation);
+  const auto identity=verify(std::nullopt);
+  activation.expect_create_conflict=true;
+  gui_tests(app,budget,GuiRuntime::mounted,&activation);
+  verify(identity);
+  activation.expect_create_conflict=false;
+  activation.action=VolumeFileAction::open_existing;
+  gui_tests(app,budget,GuiRuntime::mounted,&activation);
+  verify(identity);
+  std::cout<<"mounted_file_activation exclusive_create=1 identity_preserved=1 "
+      <<"fresh_process_reopen=1 independent_cpu_readback=1\n";
+}
 }
 int wmain(int argc,wchar_t** argv) {
   try {
-    const bool mounted=argc==3 && std::wstring_view(argv[1])==L"--gui-mounted-sandbox";
+    const auto mode=argc>1?std::wstring_view(argv[1]):std::wstring_view{};
+    const bool mounted=argc==3 && (mode==L"--gui-mounted-sandbox" || mode==L"--gui-mounted-file-sandbox");
     app_fixture::Budget budget(!mounted);
     if(argc==2 && std::wstring_view(argv[1])==L"--model") {
       native_initialization();
@@ -976,13 +1046,13 @@ int wmain(int argc,wchar_t** argv) {
     }
     else if(argc==2 && std::wstring_view(argv[1])==L"--maintenance")maintenance_tests();
     else if(argc==3) {
-      const std::wstring_view mode=argv[1];
       const auto app=std::filesystem::path(argv[2]);
       if(mode==L"--gui")gui_tests(app,budget,GuiRuntime::ordinary);
       else if(mode==L"--gui-qualified-file-controls")gui_tests(app,budget,GuiRuntime::qualified_file_controls);
       else if(mode==L"--gui-missing-winfsp")gui_tests(app,budget,GuiRuntime::missing);
       else if(mode==L"--gui-altered-winfsp")gui_tests(app,budget,GuiRuntime::altered);
       else if(mode==L"--gui-mounted-sandbox")gui_tests(app,budget,GuiRuntime::mounted);
+      else if(mode==L"--gui-mounted-file-sandbox")mounted_file_gui_tests(app,budget);
       else throw std::runtime_error("Unknown GUI qualification mode");
     } else throw std::runtime_error("Explicit model, maintenance or GUI qualification mode required");
     std::cout<<"Windows volume application checks: "<<checks
