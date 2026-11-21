@@ -59,11 +59,17 @@ UniformLz4Candidates with_uniform_device(HMODULE runtime,int ordinal,std::array<
   const auto attributes=std::bit_cast<hip_detail::Lz4Attributes>(entry);
   WindowsGpuBudgetSampler sampler(luid,node_mask);
   GpuMemorySnapshot baseline{};const auto bytes=device_bytes;
+  const auto read_memory=[&]{return sampler.sample().snapshot;};
+  const auto monotonic=[] {return GetTickCount64();};
   const auto memory=[&](HipMemoryPoint point){
-    const auto current=sampler.sample().snapshot;
+    if(point==HipMemoryPoint::completed) {
+      require_fresh_hip_completion(read_memory,monotonic,luid,node_mask,bytes,baseline);
+      return;
+    }
+    const auto current=read_memory();
     if(point==HipMemoryPoint::pre_initialize){
-      require_hip_memory(current,luid,node_mask,GetTickCount64(),bytes,point);baseline=current;
-    }else require_hip_memory(current,luid,node_mask,GetTickCount64(),bytes,point,&baseline);
+      require_hip_memory(current,luid,node_mask,monotonic(),bytes,point);baseline=current;
+    }else require_hip_memory(current,luid,node_mask,monotonic(),bytes,point,&baseline);
   };
   WindowsGpuTopologyProbe topology(luid);
   const auto single_node=[&](auto identity){

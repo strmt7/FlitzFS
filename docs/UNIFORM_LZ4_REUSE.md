@@ -68,6 +68,27 @@ and returned no accepted candidates. The productive workload budget still
 needs qualification against complete filesystem operations on CPU.
 [Windows AMD batching evidence](evidence/amd-uniform-request-batching-2026-11-21.json)
 
+### Completing work after a stale observation
+
+The worker can replace an aged completion sample once after each CPU-verified
+quantum. The first sample must pass the identity, headroom and memory-growth
+checks against the original baseline. The replacement must start at or after
+the refusal was detected and pass the same checks with a fresh timestamp.
+An invalid sample, real pressure or a second stale observation fails the
+exchange. The existing process deadline and independent CPU result still
+govern the parent. The replacement query uses the same bound DXGI sampler.
+[DXGI video memory information](https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/nf-dxgi1_4-idxgiadapter3-queryvideomemoryinfo)
+
+Controlled selected-SDK tests verified unchanged launch counts after a
+successful replacement and complete retirement with no returned candidate
+after two stale observations. The rebuilt ROCm 10.2 worker completed three
+matched public-input pairs within the 23% parent CPU envelope where the
+earlier worker returned a stale completion refusal. A separate indexed write
+verified 16 extents and 32 mirrored records on the same packaged worker.
+The hardware trial exercised the complete workflow. The controlled fixture
+identified the exact replacement branch.
+[Completion observation evidence](evidence/amd-fresh-completion-observation-2026-11-21.json)
+
 ## Qualification requirements
 
 Portable wire tests compare initialization of dirty reused storage against canonical uploads and reject wrong extents while preserving outer guards. Selected-SDK CPU tests require exactly one initialization, stream creation, allocation and retirement across complete and partial sweeps; property/attribute/priority queries must remain bounded. They cover wave selection, a device grid that fits only the quantum, one-byte input, next-quantum resource refusal, second-quantum wait failure, corrupt active output and unused tail, null/misaligned resources and final cleanup failure. No partial candidate may escape.

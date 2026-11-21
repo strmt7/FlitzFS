@@ -50,7 +50,7 @@ struct State {
   bool reuse=false,null_stream=false;
   std::uint64_t allocation_bytes=0,source_offset=0;
   std::size_t allocated_size=0;
-  unsigned waits=0;uniform_lz4::Layout current_plan{};
+  unsigned waits=0,completion_samples=0;uniform_lz4::Layout current_plan{};
   void* allocation=nullptr;
   explicit State(const UniformLz4Request& input,unsigned wave=32):source(input),arena((input.batch.layout().total_bytes+7)/8+1) {
     std::copy(identity.begin(),identity.end(),reinterpret_cast<std::byte*>(properties.luid));
@@ -244,16 +244,32 @@ UniformLz4Candidates reused_compute(State& state,UniformLz4ComputeGrant grant={}
         point==HipMemoryPoint::initialized?"reuse-admit":"reuse-complete");
     if(point==HipMemoryPoint::initialized && ++initialized==4 && state.fault=="reuse-memory-next")
       throw HipWorkerFailure(HipWorkerExit::temporary_pressure,"next quantum pressure",HipWorkerStage::execution);
-    auto current=baseline();current.captured_ms=++tick;
-    if(state.allocated)current.local_usage+=state.allocation_bytes;
     const auto before=baseline();
+    bool first=true;
+    const auto sample=[&] {
+      auto current=before;current.captured_ms=++tick;
+      if(state.allocated)current.local_usage+=state.allocation_bytes;
+      if(point==HipMemoryPoint::completed) {
+        ++state.completion_samples;
+        if(state.waits==2 && ((first && state.fault=="reuse-completion-refresh") ||
+            state.fault=="reuse-completion-stale"))tick+=kGpuMaxBudgetAgeMs+1;
+      }
+      first=false;
+      return current;
+    };
+    if(point==HipMemoryPoint::completed) {
+      require_fresh_hip_completion(sample,[&]{return tick;},identity,1,state.allocation_bytes,before);
+      return;
+    }
+    const auto current=sample();
     require_hip_memory(current,identity,1,tick,state.allocation_bytes,point,
         point==HipMemoryPoint::pre_initialize?nullptr:&before);
   };
   return execute_uniform_lz4_reused_sweep(api,&attributes,kernels,state.source,coverage,grant,initialize,memory,trace);
 }
-void reused_success(const UniformLz4Request& source,unsigned wave){
+void reused_success(const UniformLz4Request& source,unsigned wave,bool delayed_completion=false){
   ++scenarios;++successes;State state(source,wave);state.properties.maxGridSize[0]=2;
+  if(delayed_completion)state.fault="reuse-completion-refresh";
   const auto c=reused_compute(state);verify_uniform_lz4_candidates(source.batch,c);
   const auto count=[&](const char* name){return std::count(state.calls.begin(),state.calls.end(),name);};
   const auto windows=(source.batch.layout().chunks+1)/2;
@@ -264,6 +280,7 @@ void reused_success(const UniformLz4Request& source,unsigned wave){
       count("readback")==windows && count("reuse-complete")==windows && state.property_queries==2 &&
       state.priority_queries==2 && state.source_offset==source.batch.plaintext().size() &&
       !state.allocated && !state.stream_live,"reused sweep incomplete coverage/admission/retirement");
+  require(state.completion_samples==windows+delayed_completion,"reused completion sampled beyond its evidence");
 }
 void reused_refused(State& state,HipWorkerExit code,UniformLz4ComputeGrant grant={}){
   ++scenarios;++refusals;UniformLz4Candidates escaped;
@@ -273,6 +290,8 @@ void reused_refused(State& state,HipWorkerExit code,UniformLz4ComputeGrant grant
       "reused failure exposed partial output or resources");
   if(state.fault=="reuse-wait-second")require(state.waits==2,"reused wait failure retried");
   if(state.fault=="reuse-memory-next")require(state.waits==1,"reused pressure submitted next quantum");
+  if(state.fault=="reuse-completion-stale")
+    require(state.waits==2 && state.completion_samples==3,"stale completion resubmitted or kept polling");
   if(state.fault=="reuse-unused-tail")require(state.waits==(state.source.batch.layout().chunks+1)/2,
       "unused-tail refusal did not reach partial final quantum");
 }
@@ -333,6 +352,8 @@ int wmain(int argc,wchar_t** argv){try{
   }else{
     success(source,32);success(source,64);success(request(1),32);
     reused_success(source,32);reused_success(source,64);reused_success(request(16U*65536),32);reused_success(request(1),32);
+    reused_success(source,32,true);
+    {State state(source);state.fault="reuse-completion-stale";reused_refused(state,HipWorkerExit::temporary_pressure);}
     {
       ++scenarios;++successes;State state(source);UniformLz4SweepTrace trace;
       const auto candidate=reused_compute(state,{},&trace);

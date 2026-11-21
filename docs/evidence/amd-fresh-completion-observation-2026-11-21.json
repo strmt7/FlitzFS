@@ -1,0 +1,177 @@
+{
+  "schema": 1,
+  "base_commit": "0524bec3478dc4bbcb4d2cc6d7893422d5a6dd08",
+  "source_blobs": {
+    "src/windows/hip_worker_budget.hpp": "e0000260d248f1a6316be592c477ceb543c9e86a",
+    "src/windows/hip_uniform_lz4_compute.cpp": "ce47cd57cb594d76a9359f0ddba63978dda77dbc",
+    "tests/test_hip_worker_budget.cpp": "9937995c9d6194ae40ca88ac063d4dba25d80295",
+    "tests/rocm_compile/uniform_lz4_compute_probe.cpp": "c21c16a80b05b64da0759a23a8150f0714318121"
+  },
+  "artifacts": {
+    "amd/qualification-manifest.json": "6271b6a21dd5141d6ae231d25454400484b51ee961893f9e5e99954ec7b103af",
+    "amd/flitzfs_hip_lz4_worker.exe": "2ac5e28d7e57e5adfeee01f317a61ed38966656f94d8d057f1be6323e954b73c",
+    "amd/hip-uniform-lz4/flitzfs_rocm_uniform_lz4_candidate.dll": "a26a55a9a78c137099bedf6442c3f3ca3881079eeae8c153331b5eb7dbd515aa",
+    "flitzfs_native_deferred_write_sdk_tests.exe": "8b15d222b6a48e67edf538e9a3c9c38ac68c7a2c1409a2665bfdf91104af657e",
+    "winfsp-x64.dll": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+  },
+  "sdk_header": {
+    "exit_code": 0,
+    "cpu_limit_percent": 14,
+    "tree_retired": true,
+    "peak_process_tree_bytes": 2088960,
+    "children_at_parent_exit": 0,
+    "result_sha256": "8ae9197315a0e170400d89b3962ac71622b3d1bfb9bfbc41be9497da28454af4",
+    "log_sha256": "57cd3f8b33a21988dacbee59fb5007d7ef98078e359647133cb8bf3656b96b11",
+    "distribution": "10.2.0",
+    "hip_headers": "7.17.26434-2a0e6e6771",
+    "runtime_basename": "amdhip64_7.dll"
+  },
+  "selected_sdk_controlled_probe": {
+    "exit_code": 0,
+    "cpu_limit_percent": 17,
+    "tree_retired": true,
+    "peak_process_tree_bytes": 16322560,
+    "children_at_parent_exit": 0,
+    "result_sha256": "74127234b96e41efa317a24db24db3c0a4eeb589b44b2d7f80d362c0a95e8845",
+    "log_sha256": "b90a45715067d8aa3f47da6d9080bc72b4dcfd0a1984e364b352a90a908958e7",
+    "checks": 3710,
+    "scenarios": 85,
+    "successes": 11,
+    "refusals": 74,
+    "decoder_available": true,
+    "guarded_exit_confirmed": true,
+    "hip_runtime_loaded": false,
+    "gpu_executed": false,
+    "complete": true
+  },
+  "initial_link_refusal": {
+    "exit_code": 1,
+    "cpu_limit_percent": 23,
+    "tree_retired": true,
+    "peak_process_tree_bytes": 256905216,
+    "children_at_parent_exit": 1,
+    "result_sha256": "3805a42c880fd46cab88503619d7d4c2fee9f1fb29450c0a65802b2acacd09e4",
+    "log_sha256": "d9c037b8c75f531d419ee96c0b25d71981775a3563db8873c7558a0abbd46f9a",
+    "reason": "Earlier companion kernel object lacked the current anchor entry. The successful build verified all eight live companion inputs against the selected object receipt."
+  },
+  "dxgi_contract": {
+    "url": "https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/nf-dxgi1_4-idxgiadapter3-queryvideomemoryinfo",
+    "capture_sha256": "ae42a1bc106e882ebd69ceba3be73655361744bf115d135ebdd54a4e2482aef7",
+    "markdown_sha256": "16518804a721267999be6db4ee938612d66471e0b16f1e8d82da1194235aeb89",
+    "provider_version": "0.9.5+flitzzip.portable2"
+  },
+  "live_matched_batches": {
+    "exit_code": 0,
+    "cpu_limit_percent": 23,
+    "tree_retired": true,
+    "peak_process_tree_bytes": 114716672,
+    "children_at_parent_exit": 0,
+    "result_sha256": "f83a722b2d92ac687e7ce63f93526ded0c3f9bfee65bc827723f6ba79e853f42",
+    "log_sha256": "121bb1837cb2656d7e0652832e4b3f469ef89ecc5a69944687fd738962b1961e",
+    "pairs": [
+      {
+        "pair": 1,
+        "batch_first": 0,
+        "members": 3,
+        "gpu_launches": 8,
+        "separate_workers": 3,
+        "batch_workers": 1,
+        "separate_ns": 5602460500,
+        "batch_ns": 1854254500,
+        "separate_child_ms": 5577,
+        "batch_child_ms": 1844,
+        "compressed_bytes": 467755,
+        "cpu_verified": 1,
+        "identical_payload": 1,
+        "retired": 1
+      },
+      {
+        "pair": 2,
+        "batch_first": 1,
+        "members": 3,
+        "gpu_launches": 8,
+        "separate_workers": 3,
+        "batch_workers": 1,
+        "separate_ns": 4322505600,
+        "batch_ns": 2261576200,
+        "separate_child_ms": 4313,
+        "batch_child_ms": 2265,
+        "compressed_bytes": 467755,
+        "cpu_verified": 1,
+        "identical_payload": 1,
+        "retired": 1
+      },
+      {
+        "pair": 3,
+        "batch_first": 0,
+        "members": 3,
+        "gpu_launches": 8,
+        "separate_workers": 3,
+        "batch_workers": 1,
+        "separate_ns": 3986504000,
+        "batch_ns": 1923595800,
+        "separate_child_ms": 3970,
+        "batch_child_ms": 1922,
+        "compressed_bytes": 467755,
+        "cpu_verified": 1,
+        "identical_payload": 1,
+        "retired": 1
+      }
+    ],
+    "exact_replacement_count_observed": false,
+    "same_parent_cpu_envelope_as_prior_refusal": true
+  },
+  "live_indexed_write": {
+    "exit_code": 0,
+    "cpu_limit_percent": 30,
+    "tree_retired": true,
+    "peak_process_tree_bytes": 138334208,
+    "children_at_parent_exit": 0,
+    "result_sha256": "8fcb6a1de2ff5d8102cc4f30bb74b1c203ae6dd76d4f8007e36413cd52861e22",
+    "log_sha256": "95a1c4cccc1950303ec61817d6065391f15bba9085ce5dadf4ef417fa0b8c55f",
+    "independent_cpu_recovery": true,
+    "verified_extents": 16,
+    "matched_mirrored_records": 32
+  },
+  "predicate_unit": {
+    "exit_code": 0,
+    "cpu_limit_percent": 14,
+    "tree_retired": true,
+    "peak_process_tree_bytes": 2199552,
+    "children_at_parent_exit": 0,
+    "result_sha256": "a1aefd02b5eabff1865ef64760180c34d03cd04ccbe36d2b06acc8d67ac1dd31",
+    "log_sha256": "0ce07f5d12e772f6a2dec4b5b2c6df985bb797b6ed6e6d26d6087921634865a4",
+    "memory_predicate_checks": 241
+  },
+  "windows_release": {
+    "exit_code": 0,
+    "cpu_limit_percent": 24,
+    "tree_retired": true,
+    "peak_process_tree_bytes": 334667776,
+    "children_at_parent_exit": 0,
+    "result_sha256": "ef025a836db3a6418173e63ee59b83c1e9ab3934ea2fdc974dda334a18f5ebe0",
+    "log_sha256": "442d7286968a2c7886feb860886bac7767b41dba052da017dbe6a6e47b3706b0",
+    "passed_tests": 203
+  },
+  "raw_focused": {
+    "exit_code": 0,
+    "cpu_limit_percent": 15,
+    "tree_retired": true,
+    "peak_process_tree_bytes": 8314880,
+    "children_at_parent_exit": 0,
+    "result_sha256": "54df9f984b8644e6c88deb5f27d7d0d671964732f7f096113551ca445f507570",
+    "log_sha256": "920c3eda734ffb93838d2358f015032e2a8267f42b9e4d0e0a740b8d9603cec1",
+    "passed_tests": 1
+  },
+  "asan_focused": {
+    "exit_code": 0,
+    "cpu_limit_percent": 15,
+    "tree_retired": true,
+    "peak_process_tree_bytes": 61706240,
+    "children_at_parent_exit": 0,
+    "result_sha256": "e90d1af012cc2eb56a4dd1867c3b47f46befb77fa827db73fbcea0ec27dbe3fd",
+    "log_sha256": "0bb40a72d3cd3f48e3ec1a3be14c1b9f2955bde3b4fa5accdd4fbebe2c1f404e",
+    "passed_tests": 2
+  },
+  "scope": "The SDK probe forces the stale condition at a completed quantum and counts samples and launches. The live hardware checks use the rebuilt worker and actual resource observations. They verify the complete batch and write paths. They do not instrument the replacement count."
+}

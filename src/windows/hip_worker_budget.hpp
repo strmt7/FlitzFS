@@ -46,4 +46,29 @@ inline void require_hip_memory(const GpuMemorySnapshot& snapshot,std::array<std:
       HipWorkerExit::temporary_pressure:HipWorkerExit::device_fault;
   throw HipWorkerFailure(category,"HIP memory envelope refused",stage);
 }
+
+// Call after CPU verification of completed device work. The first observation
+// can be superseded only when age alone prevented admission. A replacement
+// must actually start after detecting the stale sample and preserve the
+// original device and memory transition. The owning job still bounds time.
+template<class Sample,class Clock>
+void require_fresh_hip_completion(Sample&& sample,Clock&& clock,std::array<std::byte,8> luid,
+    std::uint32_t mask,std::uint64_t device_bytes,const GpuMemorySnapshot& baseline) {
+  constexpr auto point=HipMemoryPoint::completed;
+  const auto observed=sample();
+  const auto observed_at=clock();
+  if(observed_at<observed.captured_ms || observed_at-observed.captured_ms<=kGpuMaxBudgetAgeMs) {
+    require_hip_memory(observed,luid,mask,observed_at,device_bytes,point,&baseline);
+    return;
+  }
+
+  // Evaluate all other predicates to qualify the replacement query.
+  require_hip_memory(observed,luid,mask,observed.captured_ms,device_bytes,point,&baseline);
+  const auto renewed=sample();
+  const auto renewed_at=clock();
+  require_hip_memory(renewed,luid,mask,renewed_at,device_bytes,point,&baseline);
+  if(renewed.captured_ms<observed_at || renewed_at<observed_at)
+    throw HipWorkerFailure(HipWorkerExit::temporary_pressure,"HIP completion observation did not advance",
+        HipWorkerStage::completed_stale_budget);
+}
 }
