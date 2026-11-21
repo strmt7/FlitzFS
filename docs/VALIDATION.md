@@ -1050,3 +1050,24 @@ artifacts and scope. The [initial compilation failure](evidence/owned-deferred-7
 remains recorded. No owner binary, mount, driver, GUI or GPU operation ran this
 round. Actual GPU completion through this service, automatic costs/routing and
 comparative benefit remain unqualified.
+
+## Indexed flush root reuse
+
+Both object-tree root replicas receive a fresh backing read on each side of
+the barrier. The native namespace check shares the verified pages within that
+phase. Four Windows memory fixtures exercised leaf and branch roots in raw and
+automatic modes. Each flush saved 16,384 bytes and four reads, entered exactly
+one barrier, and preserved the same sequence, generation and stored bytes.
+Independent CPU reads recovered both files when one root replica was damaged.
+Allocation pressure during namespace verification was retryable before the
+barrier and fenced the writer afterward.
+
+All 200 dual-codec Windows CTest groups passed. Six raw-only groups and seven
+AddressSanitizer groups passed, including the runtime preflight. In a signed
+WinFsp Windows Sandbox, all three write-publication cuts recovered the expected
+checkpoint and accepted another write. The locked-RAM handoff also passed with
+an actual client flush, independent CPU readback, zero outstanding contexts and
+zero locked bytes. The first RAM trials reached storage cleanup and failed to
+emit a receipt because the guest launcher lacked the source identifier. The
+probe now checks that binding before starting a child.
+[Indexed flush source and execution evidence](evidence/indexed-flush-root-reuse-2026-11-22.json)

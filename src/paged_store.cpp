@@ -453,7 +453,7 @@ std::array<std::byte,page_bytes> root_bytes(const State& s,std::uint64_t generat
   put32(b,60,page_bytes);encode_ref(b,64,s.root);
   copy(b,digest_at,detail::record_digest(std::span<const std::byte>(b).first(digest_at)));return b;
 }
-State load(std::shared_ptr<StoreByteIo> image,PagedStoreLimits limits) {
+State load(std::shared_ptr<StoreByteIo> image,PagedStoreLimits limits,LookupPages* query_pages=nullptr) {
   admit_limits(limits);if(!image)fail("missing backend");
   const auto extent=image->extent();
   if(extent<start+2*page_bytes || extent>limits.maximum_physical_bytes)fail("physical capacity/truncation");
@@ -485,7 +485,10 @@ State load(std::shared_ptr<StoreByteIo> image,PagedStoreLimits limits) {
     paired=other->checkpoint==s.checkpoint && other->root==s.root && other->end==s.end;
     if(s.generation!=s.checkpoint && !paired)fail("conflicting intact root pair");
   }
-  s.degraded_roots=!paired;(void)read_node(s,s.root);return s;
+  s.degraded_roots=!paired;
+  if(query_pages)(void)query_pages->get(s,s.root);
+  else (void)read_node(s,s.root);
+  return s;
 }
 bool same(const State& a,const State& b) {
   return a.id==b.id && a.mirrored==b.mirrored && a.generation==b.generation && a.checkpoint==b.checkpoint &&
@@ -2019,17 +2022,32 @@ std::uint64_t PagedObjectStoreWriter::append_floor_for_staging() const noexcept 
   return poisoned()?0:impl_->append_floor;
 }
 PagedStoreInfo PagedObjectStoreWriter::flush_checkpoint() {
+  return flush_checkpoint_verified({});
+}
+PagedStoreInfo PagedObjectStoreWriter::flush_checkpoint_verified(
+    const std::function<void(const PagedObjectStoreSnapshot&)>& verify_namespace) {
   if(poisoned())fail("flush requires a healthy writer");
   auto& p=*impl_;const auto& old=p.state;bool barrier_entered=false;
   try {
     const auto extent=old.image->extent();
     if(extent<old.end || extent>old.limits.maximum_physical_bytes)fail("flush extent bounds");
-    auto check=[&] {
-      admit_contract(old.image->contract());
-      if(old.image->contract().write_failure_unit_bytes>old.unit)fail("flush failure unit changed");
-      const auto actual=load(old.image,old.limits);
-      if(!same(actual,old) || actual.degraded_roots || actual.degraded_metadata || old.image->extent()!=extent)
+    const auto check_checkpoint=[&](LookupPages* pages) {
+      const auto contract=old.image->contract();
+      admit_contract(contract);
+      if(contract.write_failure_unit_bytes>old.unit)fail("flush failure unit changed");
+      const auto actual=load(old.image,old.limits,pages);
+      if(!same(actual,old) || actual.degraded_roots || actual.degraded_metadata)
         fail("flush checkpoint changed/degraded; independent recovery required");
+    };
+    const auto check=[&] {
+      if(verify_namespace) {
+        const auto snapshot=snapshot_for_indexed_read();
+        // Seed this snapshot with the root just verified from both replicas.
+        // Exact checkpoint equality admits reuse only for this phase.
+        check_checkpoint(&*snapshot.impl_->lookup_pages);
+        verify_namespace(snapshot);
+      } else check_checkpoint(nullptr);
+      if(old.image->extent()!=extent)fail("flush backing extent changed; independent recovery required");
     };
     check();const auto result=flitzfs::info(old);
     barrier_entered=true;old.image->flush();check();return result;

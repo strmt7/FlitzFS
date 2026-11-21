@@ -50,6 +50,7 @@ class Observed final:public StoreByteIo {
   std::size_t extent_failure=(std::numeric_limits<std::size_t>::max)();
   bool allocation_failure=false,after=false,post_allocation=false;
   std::function<void()> at_barrier,after_barrier;
+  std::function<void(std::uint64_t,std::size_t,bool)> on_read;
   StoreIoContract contract() const noexcept override{return ram->contract();}
   std::uint64_t extent() const override {
     if(extents++==extent_failure)throw std::runtime_error("injected extent observation failure");
@@ -62,6 +63,7 @@ class Observed final:public StoreByteIo {
       throw std::runtime_error("injected metadata observation failure");
     }
     ram->read_exact(at,out);
+    if(on_read)on_read(at,out.size(),after);
   }
   void write_exact(std::uint64_t at,std::span<const std::byte> bytes) override{ram->write_exact(at,bytes);}
   void flush() override {
@@ -72,7 +74,7 @@ class Observed final:public StoreByteIo {
   void observe() {
     reads=extents=barriers=0;after=false;
     read_failure=extent_failure=(std::numeric_limits<std::size_t>::max)();
-    allocation_failure=post_allocation=false;at_barrier={};after_barrier={};
+    allocation_failure=post_allocation=false;at_barrier={};after_barrier={};on_read={};
   }
 };
 ObjectStoreWriter generic(std::shared_ptr<Observed> io,StoreCompressionMode mode,bool replicated) {
@@ -86,6 +88,85 @@ NativeFileSession native(std::shared_ptr<Observed> io,StoreCompressionMode mode)
   const std::array<NativeFileMutation,4> setup{{file_create("f"),file_write("f",0,data(73,173)),
       file_create("keep"),file_write("keep",0,data(91,174))}};
   writer.apply(setup);return NativeFileSession::create(std::move(writer));
+}
+constexpr PagedStoreLimits indexed_limits{8U*1024*1024};
+NativeFilesystemWriter indexed(const std::shared_ptr<Observed>& io,StoreCompressionMode mode,bool branch) {
+  io->ram->failure_unit=4096;
+  io->ram->capacity=indexed_limits.maximum_physical_bytes;
+  auto writer=NativeFilesystemWriter::initialize_indexed(
+      PagedObjectStoreWriter::create_mirrored(io,identity(),indexed_limits,{mode,6,false}));
+  auto setup=std::vector{file_create("f"),file_write("f",0,data(73,173)),
+      file_create("keep"),file_write("keep",0,data(91,174))};
+  if(branch)for(unsigned i=0;i<56;++i)setup.push_back(file_create("entry-"+std::to_string(i)));
+  writer.apply(setup);
+  return writer;
+}
+std::size_t indexed_root_slot(const Ram& ram) {
+  return get(ram.live,16)>get(ram.live,kStoreCommitUnit+16)?0:kStoreCommitUnit;
+}
+bool indexed_flush_io(StoreCompressionMode mode,bool branch) {
+  auto io=std::make_shared<Observed>();auto writer=indexed(io,mode,branch);
+  const auto previous=writer.snapshot();const auto bytes=io->ram->stable;
+  const auto offset=indexed_root_slot(*io->ram);
+  const auto height=get(bytes,offset+128,4);
+  require((height!=0)==branch,"indexed flush fixture has an unexpected tree shape");
+  const std::array pages{get(bytes,offset+104),get(bytes,offset+112)};
+  std::array<unsigned,2> before{},after{};
+  const auto read_bytes=io->ram->read_bytes,read_calls=io->ram->read_calls,writes=io->ram->writes;
+  io->observe();
+  io->on_read=[&](std::uint64_t at,std::size_t count,bool flushed) {
+    if(count!=4096)return;
+    for(std::size_t i=0;i<pages.size();++i)if(pages[i]==at)++(flushed?after:before)[i];
+  };
+  const auto result=writer.flush();
+  require(same(result.storage,previous.storage_info()) && result.sequence==previous.sequence() &&
+      !writer.poisoned() && io->barriers==1 && io->ram->writes==writes &&
+      io->ram->stable==bytes && io->ram->live==bytes,"indexed flush changed acknowledged data or metadata");
+  std::cout<<"Indexed flush I/O: {\"mode\":\""<<(mode==StoreCompressionMode::raw?"raw":"automatic")
+      <<"\",\"height\":"<<height<<",\"calls\":"<<io->ram->read_calls-read_calls
+      <<",\"bytes\":"<<io->ram->read_bytes-read_bytes
+      <<",\"root_reads_before\":["<<before[0]<<','<<before[1]
+      <<"],\"root_reads_after\":["<<after[0]<<','<<after[1]<<"]}\n";
+  return before==std::array{1U,1U} && after==before;
+}
+void indexed_flush_damage(StoreCompressionMode mode,bool during_barrier) {
+  auto io=std::make_shared<Observed>();auto writer=indexed(io,mode,true);
+  const auto offset=indexed_root_slot(*io->ram);
+  const auto damaged=get(io->ram->live,offset+(during_barrier?112:104));
+  const auto damage=[&] {
+    io->ram->live.at(static_cast<std::size_t>(damaged))^=std::byte{1};
+    io->ram->stable.at(static_cast<std::size_t>(damaged))^=std::byte{1};
+  };
+  const auto writes=io->ram->writes;io->observe();
+  if(during_barrier)io->after_barrier=damage;else damage();
+  rejects_fs([&]{writer.flush();},NativeFsErrorCode::storage_failure,"indexed flush accepted a damaged root page");
+  require(writer.poisoned() && io->barriers==(during_barrier?1U:0U) && io->ram->writes==writes,
+      "indexed flush failed to fence damage at its observed phase");
+  const auto observed=io->reads;
+  rejects_fs([&]{writer.flush();},NativeFsErrorCode::storage_failure,"fenced indexed writer flushed again");
+  require(io->reads==observed,"fenced indexed writer reached the backing");
+  const auto recovered=NativeFilesystemSnapshot::open(
+      PagedObjectStoreSnapshot::open(image(io->ram->stable,4096),indexed_limits));
+  require(recovered.read("f",0,73)==data(73,173) && recovered.read("keep",0,91)==data(91,174),
+      "independent CPU reader failed to recover acknowledged files through the surviving peer");
+}
+void indexed_flush_allocation(StoreCompressionMode mode,bool after_barrier) {
+  auto io=std::make_shared<Observed>();auto writer=indexed(io,mode,false);
+  const auto bytes=io->ram->stable;
+  io->observe();
+  // Metadata pages are read in 4 KiB units. Fail the native record read
+  // after the tree has been admitted in the selected phase.
+  io->on_read=[&](std::uint64_t,std::size_t count,bool flushed) {
+    if(count<4096 && flushed==after_barrier)throw std::bad_alloc();
+  };
+  const auto code=after_barrier?NativeFsErrorCode::storage_failure:NativeFsErrorCode::limit;
+  rejects_fs([&]{writer.flush();},code,"indexed flush allocation failure returned the wrong status");
+  require(writer.poisoned()==after_barrier && io->barriers==(after_barrier?1U:0U) &&
+      io->ram->stable==bytes,"indexed flush allocation failure handled the publication phase incorrectly");
+  if(!after_barrier) {
+    io->observe();writer.flush();
+    require(!writer.poisoned() && io->barriers==1,"indexed flush could not retry preflight allocation pressure");
+  }
 }
 void unchanged_barrier(StoreCompressionMode mode,bool replicated) {
   auto io=std::make_shared<Observed>();auto writer=generic(io,mode,replicated);
@@ -243,11 +324,18 @@ int main(){try {
     require(result.generation==0 && result.objects==0 && io->barriers==1 && io->ram->live==bytes,
         "empty generation-zero checkpoint could not flush unchanged");
   }
+  bool root_reads_once_per_phase=true;
   for(auto mode:{StoreCompressionMode::raw,StoreCompressionMode::automatic}) {
     unchanged_barrier(mode,false);unchanged_barrier(mode,true);native_lifetimes(mode);
     for(unsigned failure=0;failure<3;++failure)barrier_failure(mode,failure);
     observation_failures(mode);degradation_and_during_barrier(mode);allocation_and_tails(mode);
+    for(const bool branch:{false,true}) {
+      if(!indexed_flush_io(mode,branch))root_reads_once_per_phase=false;
+      indexed_flush_damage(mode,branch);
+      indexed_flush_allocation(mode,branch);
+    }
   }
+  require(root_reads_once_per_phase,"indexed flush reread its verified root within a barrier phase");
   std::cout<<"Native flush evidence: {\"schema\":1,\"checks\":"<<checks
       <<",\"complete\":true}\n";
   return 0;

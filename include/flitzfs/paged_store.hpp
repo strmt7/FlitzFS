@@ -213,6 +213,9 @@ class PagedObjectStoreWriter final {
   // Borrowed by serialized indexed queries. Independent snapshots and staged
   // workers do not schedule repairs on the selected writer.
   PagedObjectStoreSnapshot snapshot_for_indexed_read() const;
+  // Validate the native namespace against the freshly checked tree on each
+  // side of the barrier. The borrowed snapshot and its cache end there.
+  PagedStoreInfo flush_checkpoint_verified(const std::function<void(const PagedObjectStoreSnapshot&)>&);
   bool payload_repair_pending() const noexcept;
   std::uint64_t capacity_repair_generation() const noexcept;
   PagedPayloadRepairProgress repair_payload();

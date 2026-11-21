@@ -45,6 +45,16 @@
     "modeled_writable_continuation_cases_per_build": 8,
     "follow_up": "See windows_mounted_inflight_publication for the earlier mounted write boundaries."
   },
+  "indexed_flush_root_reuse": {
+    "reviewed_commit": "bb75934f5b02b39b62580aa8160f244c9295caf2",
+    "evidence": "docs/evidence/indexed-flush-root-reuse-2026-11-22.json",
+    "backing_reads_saved_per_flush": 4,
+    "backing_bytes_saved_per_flush": 16384,
+    "windows_tests": {"release": 200, "raw": 6, "asan_including_runtime_preflight": 7},
+    "mounted_guest_file_cuts": 3,
+    "mounted_guest_locked_ram_handoff": true,
+    "follow_up": "Measure the complete Windows handle and volume flush paths on the same populated trace. Keep the startup admission and AMD qualification gates open."
+  },
   "windows_mounted_inflight_publication": {
     "reviewed_commit": "8a3ba4472e76a1af19d851bb7687e3d485521d9f",
     "evidence": "docs/evidence/windows11-inflight-publication-cuts-2026-11-21.json",

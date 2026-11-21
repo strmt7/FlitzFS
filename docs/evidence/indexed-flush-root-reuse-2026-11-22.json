@@ -1,0 +1,248 @@
+{
+  "schema": 1,
+  "base_commit": "bb75934f5b02b39b62580aa8160f244c9295caf2",
+  "candidate_patch_sha256": "4e42fbd918830f8fecd8454e3d3062c670ee0117df408018e938ced9ec6b444e",
+  "candidate_source_blobs": {
+    "src/paged_store.cpp": "08b80592416c1221e1339c02adbf95e7a3338f25",
+    "include/flitzfs/paged_store.hpp": "c41a03e1a06cfeb196ce3898d083af8243299350",
+    "src/native_filesystem.cpp": "de145ad539ec108ae457435c029499c0ee02c1bc",
+    "tests/test_native_flush.cpp": "7ce83d8b4c6dce3156c859e2001eba1e39e6f2fe",
+    "tests/winfsp_write_probe.cpp": "a8b29e2f7fbfac56453d73f21dd2659b7040c823"
+  },
+  "measurement_order": [
+    "baseline",
+    "candidate"
+  ],
+  "measurement_scope": "Deterministic StoreByteIo read counters on physical Windows host, synthetic memory backend. No timing comparison.",
+  "flush_measurements": [
+    {
+      "mode": "raw",
+      "height": 0,
+      "backing_reads": [
+        24,
+        20
+      ],
+      "backing_bytes": [
+        50516,
+        34132
+      ],
+      "root_replica_reads_each_phase": [
+        [
+          2,
+          2
+        ],
+        [
+          1,
+          1
+        ]
+      ]
+    },
+    {
+      "mode": "raw",
+      "height": 1,
+      "backing_reads": [
+        28,
+        24
+      ],
+      "backing_bytes": [
+        66940,
+        50556
+      ],
+      "root_replica_reads_each_phase": [
+        [
+          2,
+          2
+        ],
+        [
+          1,
+          1
+        ]
+      ]
+    },
+    {
+      "mode": "automatic",
+      "height": 0,
+      "backing_reads": [
+        24,
+        20
+      ],
+      "backing_bytes": [
+        50202,
+        33818
+      ],
+      "root_replica_reads_each_phase": [
+        [
+          2,
+          2
+        ],
+        [
+          1,
+          1
+        ]
+      ]
+    },
+    {
+      "mode": "automatic",
+      "height": 1,
+      "backing_reads": [
+        28,
+        24
+      ],
+      "backing_bytes": [
+        66626,
+        50242
+      ],
+      "root_replica_reads_each_phase": [
+        [
+          2,
+          2
+        ],
+        [
+          1,
+          1
+        ]
+      ]
+    }
+  ],
+  "baseline": {
+    "configuration": "MSVC Debug, Zstandard and LZ4",
+    "exit": 8,
+    "log_sha256": "d38e2e1916eb4e012f0fc097641974a88872697beb3172ef0163788cbdbd70b6",
+    "peak_job_bytes": 14577664
+  },
+  "regression": {
+    "configuration": "MSVC Release, Zstandard and LZ4",
+    "exit": 0,
+    "log_sha256": "5d05a8c4568ce65b09a65bce6fcf0b1c25d3e676966b821104af0ccc22677ce0",
+    "peak_job_bytes": 13389824,
+    "checks": 310,
+    "fault_cases": {
+      "root_replica_damage": 4,
+      "namespace_read_allocation": 4
+    },
+    "post_barrier_failure_fenced": true,
+    "cpu_recovered_both_files_through_peer": true
+  },
+  "windows_tests": {
+    "release": {
+      "groups": 200,
+      "configuration": "MSVC Release, Zstandard and LZ4",
+      "exit": 0,
+      "log_sha256": "382b7c83a199136c406ef2c82f8b2a6b6bbd260a5f3e461a99f91bf49b2eb2ed",
+      "peak_job_bytes": 478052352
+    },
+    "raw": {
+      "groups": 6,
+      "configuration": "MSVC Release, raw only",
+      "exit": 0,
+      "log_sha256": "514072bc24d5967f74c31a01ec35ce90663f8e8a199ff6ea9a86cef02d02e616",
+      "peak_job_bytes": 87158784
+    },
+    "asan": {
+      "groups": 7,
+      "configuration": "MSVC RelWithDebInfo, AddressSanitizer and both codecs",
+      "exit": 0,
+      "log_sha256": "0114dd2fa286a2cfd06ef5a50ad11d3c12b18bac63142b48adc37c11be18beba",
+      "peak_job_bytes": 935809024,
+      "runtime_preflight": true
+    }
+  },
+  "mounted_guest": {
+    "scope": "Windows 11 Sandbox, signed WinFsp, functional checks",
+    "windows_build": "26100",
+    "receipt_sha256": "f4582242c6a346b81bc324ec3414d7a3076307b91cbc2199e2fe3f6613ab7d07",
+    "staged_probe_sha256": "3f51608709dfb6c64182f74ef0c228caa79e5f25d3d3d6cf87483b00c360d89c",
+    "staged_driver_sha256": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+    "probe_patch_sha256": "5357591c800644083d9bf0ae39452caf514731514ef30703d8091e437aabfdfd",
+    "source_binding": "The probe's commit field is the checkout base. The manifest binds the built files and patch.",
+    "file_backing": "Guest-private disposable synthetic image",
+    "noncached_client_error_at_cut": 995,
+    "file_publication_cuts": [
+      {
+        "boundary": "before-payload-flush",
+        "recovered": "previous",
+        "cpu_readback": true,
+        "writable_continuation": true
+      },
+      {
+        "boundary": "after-first-root",
+        "recovered": "next",
+        "cpu_readback": true,
+        "writable_continuation": true
+      },
+      {
+        "boundary": "after-second-root",
+        "recovered": "next",
+        "cpu_readback": true,
+        "writable_continuation": true
+      }
+    ],
+    "locked_ram_handoff": {
+      "user_bytes": 65609,
+      "cpu_verified": true,
+      "client_flush_callback_observed": true,
+      "unmounted": true,
+      "locked_after": 0,
+      "contexts": 0,
+      "stale_candidate_rejected": true,
+      "recovered_capacity_failure": true
+    },
+    "sandbox_retired": true,
+    "earlier_receipt_failures": [
+      {
+        "receipt_sha256": "432dd6d6905cc887aa4afcf941c7cf3ca06b95ff9789aa8c2984dc11fa41f7dc",
+        "exit": 65537,
+        "diagnostic": "writable stage=1 RAM exact source/supervisor retirement"
+      },
+      {
+        "receipt_sha256": "8ec576d959a96d9a36463a8890a5e4a12fa7001f034b86f5d9aab532b2c5561b",
+        "exit": 65537,
+        "diagnostic": "writable stage=1 RAM exact source/supervisor exit=5177345 stage=79 detail=1 confirmed=1 timed_out=0 cancelled=0 retired=1 peak_commit=20733952"
+      },
+      {
+        "receipt_sha256": "aab493d4e230ed233b6986bec6a0dfc2be3ba4ee651b78e1725f88746c959999",
+        "exit": 65537,
+        "diagnostic": "writable stage=1 RAM exact source/supervisor exit=5308417 stage=81 detail=1 confirmed=1 timed_out=0 cancelled=0 retired=1 peak_commit=20701184"
+      }
+    ],
+    "earlier_failure_cause": "The guest launcher omitted GITHUB_SHA. Diagnostic stages separated clean RAM teardown from receipt construction."
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "native_pages": [
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtuallock",
+        "http_status": 200,
+        "markdown_sha256": "9b354fb71fa8f7ce4ac1c82d842d2020dc31f8db6a49a7a990316bff9c3c2c98",
+        "capture_sha256": "bc9c920b71d43f45534d83e21af857bca57385a8fc56d7fc9ba6df36a018db16"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualunlock",
+        "http_status": 200,
+        "markdown_sha256": "672e99d81f88ad4f3edb25d75afe01f61d8bd67eb29e84cb1b1d59f3fd0d81ac",
+        "capture_sha256": "b6e9a25b71e0a0e0f686e6380315f45f27d04ecd6297c976f1e9d39a732ce87c"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualfree",
+        "http_status": 200,
+        "markdown_sha256": "482adef62203d0cbb345359727e107a18e019737e816747e9d3dc8f8c3d55bdf",
+        "capture_sha256": "c119a62ecac9abbfc2b2e26e91b7279dd381be8a9a007cccda05579b85221447"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualquery",
+        "http_status": 200,
+        "markdown_sha256": "2d34f0f3e2627e36df35a4a43f4fbea78e3352f6a7f3268d9dca4aaf7cf281bf",
+        "capture_sha256": "40399ecc7f3f2121e6beea5f59b88de90dcc93bb202011cb8eaed0e8bfc37646"
+      }
+    ],
+    "scope": "Checked the Windows memory API contract while diagnosing the guest receipt failure."
+  },
+  "navigation": {
+    "provider_version": "0.2.43",
+    "actual_searches": 1,
+    "source_inventory_sha256": "1833a1a733ac6e4a5507546c8e4116a47ac34d85e2fe21f01d802f0dc80c9d17",
+    "native_response_sha256": "d4a52599330e06d7ec2fc8eaabbbd6b94dff569f40d8a42f630a02795f2c341a",
+    "first_attempt": "Daemon connection lost under the first bounded run; scoped retry completed."
+  },
+  "scope_limits": "Power-loss media, GPU acceleration, interactive Explorer and release benchmarks remain separate qualification."
+}

@@ -532,6 +532,13 @@ complete file before the payload flush and the complete replacement after
 either root flush. Each case remounted writable and verified a continuation.
 [In-flight write evidence](evidence/windows11-inflight-publication-cuts-2026-11-21.json)
 
+Indexed flush now reads each object-tree root replica once per barrier phase.
+The native namespace check reuses those verified pages only within that phase.
+Leaf and branch fixtures removed four reads and 16 KiB per flush, including
+with automatic compression. The tests exercised a late replica failure,
+allocation pressure on both sides of the barrier, and independent CPU readback.
+[Indexed flush evidence](evidence/indexed-flush-root-reuse-2026-11-22.json)
+
 1. **Extend earlier mounted cuts to metadata and image switches.**
    Use the in-flight write control to instrument the ordinary EOF shrink and
    rename callbacks. Hold each at a confirmed boundary before the Win32
@@ -546,7 +553,10 @@ either root flush. Each case remounted writable and verified a continuation.
 2. **Measure the scaling bottleneck on that trace.** Count calls and bytes
    for selector, object-index and name-index pages, inodes and lifetimes,
    content frames and protected dependencies. Observe entry, image fence,
-   selector fence and callback publication separately. Start with 1,024 and
+   selector fence and callback publication separately. Compare handle and
+   volume flush, and measure the inode check before the barrier separately.
+   Use the single read of each object-tree root replica per phase as a
+   regression control. Start with 1,024 and
    16,384 populated files, then test larger populations up to the supported
    scale on adequately resourced clients. Include wide and deep directories,
    cold and warm caches, retained readers and recoverable damage. Compare

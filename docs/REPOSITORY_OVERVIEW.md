@@ -392,6 +392,13 @@ FlitzFS behavior on 26H2 as separate qualification inputs.
 
 ## Recent executed evidence
 
+Indexed flush shares the verified object-tree root between storage and
+namespace validation within each barrier phase. Four Windows memory fixtures
+read 16 KiB less per flush. A root replica that failed during the barrier
+still fenced the writer, and the independent CPU reader recovered both files.
+The complete writable-reopen audits remain in the startup path.
+[Indexed flush evidence](evidence/indexed-flush-root-reuse-2026-11-22.json)
+
 On 19 November, six paired multiwindow comparisons on the physical Windows
 host produced equal compacted sizes and byte-exact CPU readback in both routes.
 The related cohort retained 27.4% of its input image size and the mixed cohort

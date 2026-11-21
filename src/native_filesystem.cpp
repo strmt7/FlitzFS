@@ -1171,14 +1171,18 @@ struct NativeFilesystemWriter::Impl {
     if(model.inode_records)inode_root=inode_root_bytes(model);
   }
   explicit Impl(detail::NativeObjectWriter writer):objects(std::move(writer)) {}
+  detail::IndexedVolumeView checked_indexed_view(const PagedObjectStoreSnapshot& snapshot) const {
+    const auto bytes=snapshot.read(kNamespaceObject,kMetadataCap);
+    const detail::IndexedVolumeView view(snapshot,bytes);
+    if(view.root()!=*indexed)fail(Code::corrupt,"indexed writer root differs from backing");
+    return view;
+  }
   template<class Read>
   auto read_indexed(Read&& read) {
     try {
       const auto snapshot=objects.snapshot_for_indexed_read();
       const auto query=snapshot.paged_if()->scoped_query();
-      const auto bytes=object_bytes(snapshot,kNamespaceObject,kMetadataCap);
-      const detail::IndexedVolumeView view(*snapshot.paged_if(),bytes);
-      if(view.root()!=*indexed)fail(Code::corrupt,"indexed writer root differs from backing");
+      const auto view=checked_indexed_view(*snapshot.paged_if());
       return std::forward<Read>(read)(view);
     }catch(const std::bad_alloc&){
       shared_base_reads.clear();
@@ -2753,15 +2757,25 @@ NativeFsCommit NativeFilesystemWriter::flush() {
   if(poisoned())fail(Code::storage_failure,"native writer is terminal");
   bool completed=false;
   try {
-    const auto verify=[&] {
-      if(impl_->indexed)impl_->read_indexed([](const auto&) {});
-      else (void)checked_namespace();
-    };
-    verify();
     NativeFsCommit result;
-    result.sequence=impl_->indexed?impl_->indexed->sequence:impl_->model.sequence;
+    if(impl_->indexed) {
+      result.sequence=impl_->indexed->sequence;
+      const auto verify=[&](const PagedObjectStoreSnapshot& snapshot) {
+        const auto query=snapshot.scoped_query();
+        (void)impl_->checked_indexed_view(snapshot);
+      };
+      try {
+        result.storage=detail::native_paged_info(impl_->objects.paged_if()->flush_checkpoint_verified(verify));
+      }catch(...) {
+        impl_->shared_base_reads.clear();
+        throw;
+      }
+      return result;
+    }
+    (void)checked_namespace();
+    result.sequence=impl_->model.sequence;
     result.storage=impl_->objects.flush_checkpoint();completed=true;
-    verify();
+    (void)checked_namespace();
     return result;
   }catch(const std::bad_alloc&) {
     if(completed || impl_->objects.poisoned()) {

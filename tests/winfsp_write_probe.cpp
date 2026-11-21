@@ -641,13 +641,15 @@ void ram_handoff_probe(std::wstring_view token,std::uint32_t client) {
       require(channel.complete()&&channel.copy_rounds()==copy_steps,"RAM source protocol completion");
       auto final=original;const std::vector<std::byte> tail(73,std::byte{0x3d});
       final.insert(final.end(),tail.begin(),tail.end());
+      stage=75;
       finish_session(session,mount);
+      stage=76;
       const auto deferred=session.deferred_write_stats();
       require(deferred.queued>0&&deferred.completed==deferred.queued&&
           deferred.response_attempts==deferred.queued&&deferred.thread_exited&&deferred.retirement_confirmed&&
           !deferred.native_pending&&!deferred.worker_busy&&!deferred.disabled&&
           !deferred.worker_submitted&&!deferred.advised,"RAM deferred CPU write lifecycle");
-      stage=75;
+      stage=77;
       auto selected=flitzfs::NativeVolumeHeadView::open(head,volume_id,
           [&](const auto& id)->std::shared_ptr<flitzfs::StoreByteIo>{
             require(id==target_id,"RAM CPU reader selected wrong image");
@@ -665,10 +667,14 @@ void ram_handoff_probe(std::wstring_view token,std::uint32_t client) {
       target->verify();
       head->verify();
     }
+    stage=78;
     working.restore();
   }
-  require(locked_ram_fixture::locked_bytes.load()==0&&locked_ram_fixture::cleanup_ok.load(),
-      "RAM mounted storage cleanup");
+  stage=79;
+  require(locked_ram_fixture::locked_bytes.load()==0,"RAM mounted storage retained locked bytes");
+  stage=80;
+  require(locked_ram_fixture::cleanup_ok.load(),"RAM mounted storage release failed");
+  stage=81;
   std::ostringstream report;
   report<<"{\"schema\":1,\"phase\":\"ram-handoff\",\"commit\":\""<<commit()
       <<"\",\"source_process\":"<<GetCurrentProcessId()<<",\"volume_serial\":"<<serial
@@ -920,8 +926,14 @@ struct ExternalRam {
     }
     require(client.finished&&channel.copy_rounds()>0,"RAM client did not close before completion");
     result=child->result();
-    require(result.process_id==child->process_id()&&result.exit_confirmed&&!result.timed_out&&
-        !result.cancelled&&result.exit_code==0&&child->retirement_confirmed(),"RAM exact source/supervisor retirement");
+    if(result.process_id!=child->process_id()||!result.exit_confirmed||result.timed_out||
+        result.cancelled||result.exit_code||!child->retirement_confirmed()) {
+      throw std::runtime_error("RAM exact source/supervisor exit="+std::to_string(result.exit_code)+
+          " stage="+std::to_string(result.exit_code>>16U)+" detail="+std::to_string(result.exit_code&0xffffU)+
+          " confirmed="+std::to_string(result.exit_confirmed)+" timed_out="+std::to_string(result.timed_out)+
+          " cancelled="+std::to_string(result.cancelled)+" retired="+std::to_string(child->retirement_confirmed())+
+          " peak_commit="+std::to_string(result.peak_committed_bytes));
+    }
     require(source_fixture::cleanup_ok.load(),"RAM client protocol cleanup");
     std::cout<<"ram_client source="<<child->process_id()<<" client="<<GetCurrentProcessId()
         <<" copy_reads="<<channel.copy_rounds()<<" exit_confirmed="<<result.exit_confirmed<<"\n";
@@ -1364,6 +1376,7 @@ int wmain(int argc,wchar_t** argv) {try {
   }
   require(argc==2&&(mode==L"--run-disposable-ci"||mode==L"--run-mutations-ci"||
       mode==L"--run-delete-ci"||mode==L"--run-crash-ci"||mode==L"--run-restart-ci"||mode==L"--run-crash-restart-ci"||mode==L"--run-ram-handoff-ci"),"unknown writable probe mode");
+  (void)commit(); // Report-producing modes require the source binding before starting a child.
   const source_fixture::ControllerBudget controller_budget;
   wchar_t path[512]{};const auto n=GetModuleFileNameW(nullptr,path,512);require(n&&n<512,"probe executable identity");
   const fs::path executable(std::wstring(path,n));
