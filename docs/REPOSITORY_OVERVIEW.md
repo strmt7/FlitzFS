@@ -221,6 +221,13 @@ A smaller failure unit requires backend evidence, especially on persistent
 storage. Child/page ordering also forbids simply substituting arbitrary free
 offsets into the existing format.
 
+The packer can now match an otherwise stranded short extent with a fitting
+retained representative. It saved 16 KiB on a controlled boundary case.
+The public docs and source comparisons retained the same occupied sizes
+and backing read counts.
+Representative workload gains still need measurement.
+[Current cross-window evidence](evidence/indexed-cross-window-packing-2026-11-21.json)
+
 Source: [group encoder/decoder](../src/native_group_codec.cpp),
 [automatic discovery](../src/native_maintenance.cpp),
 [shared-base contract](SHARED_BASE_GROUPS.md),

@@ -1,0 +1,533 @@
+{
+  "schema": "flitzfs-indexed-cross-window-packing-v1",
+  "date": "2026-11-21",
+  "source": {
+    "base": "4ed3e08c12e314bce6fdb8620358cb1c541d3d68",
+    "base_tree": "4ddba10a53fc05937d43b643974cb0eb93651845",
+    "patch_sha256": "a86be74f54a54bb1ec08df945af466f4576ab3c25dbb47b1f991d535206b6373",
+    "git_blobs": {
+      "CMakeLists.txt": "228f435b30a1a57d50771b69a971d56185a58aeb",
+      "src/native_maintenance.cpp": "70c9f2196417147a5d6fb00f513b80818a3064f2",
+      "tests/test_native_group_maintenance.cpp": "7f5e9d861131d234a7a99ff546d29796dcdf1d27",
+      "tools/ci/qualify_rocm_sdk.py": "05c0d38b103dccaeec25e8365111c81f01cd5716",
+      "tools/ci/test_lz4_worker_decoder.py": "8988a7763a492f3b636f00df09f9a5f0522ba62e"
+    }
+  },
+  "navigation": {
+    "commit": "4ed3e08c12e314bce6fdb8620358cb1c541d3d68",
+    "source_files": 10,
+    "source_bytes": 637684,
+    "provider_version": "0.2.43",
+    "actual_searches": 1,
+    "native_response_sha256": "41b8c77061840cd346527ac88d98bd3bdb5750395c66446d9dc20fdad68398dd",
+    "dirty_patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "receipt_sha256": "5254d9c9fb902f5e6f06e2e2a94ba16357b829c9532e9092227a35002161ce5c"
+  },
+  "research": [
+    {
+      "provider": "0.9.5+flitzzip.portable2",
+      "run_receipt_sha256": "d2533bc9a802b82a5faf6ddbce3ecda04a6cac1c3c2c96fc521d0cbdbfffad8c",
+      "name": "bin-capacity",
+      "url": "https://developers.google.com/optimization/pack/bin_packing",
+      "success": true,
+      "native_success": true,
+      "http_status": 200,
+      "final_http_status": 200,
+      "markdown_bytes": 40001,
+      "markdown_sha256": "a2ae032b0f20d4ffe7b56c66e4cb846d58245fd0689dead0a4f3d32d87de9c16",
+      "expected_content": true,
+      "failure_category": "",
+      "error": "",
+      "seconds": 1.574,
+      "capture": "bin-capacity.native.json",
+      "capture_sha256": "bc7a53608a50bffd257f12b1471ddfdf0a8f6ee7a4e64d6f828f8911745253d6"
+    },
+    {
+      "provider": "0.9.5+flitzzip.portable2",
+      "run_receipt_sha256": "d2533bc9a802b82a5faf6ddbce3ecda04a6cac1c3c2c96fc521d0cbdbfffad8c",
+      "name": "zstd-bounds",
+      "url": "https://facebook.github.io/zstd/zstd_manual.html",
+      "success": false,
+      "native_success": true,
+      "http_status": 404,
+      "final_http_status": 404,
+      "markdown_bytes": 114362,
+      "markdown_sha256": "4e94030b3fa508fbf6763d706e6393fbdb583e1088c630035ef752384691c362",
+      "expected_content": true,
+      "failure_category": "http_error",
+      "error": "",
+      "seconds": 0.806,
+      "capture": "zstd-bounds.native.json",
+      "capture_sha256": "7adb2b33adfaec325a0e1b3e2e6e9ae3037bbd4ebc30cac30d7789ae420d0fed"
+    },
+    {
+      "provider": "0.9.5+flitzzip.portable2",
+      "run_receipt_sha256": "c0d163b6f8f39dcd2a2c4fa4729097812ba09fec8b1798d3417319f7b8ac6450",
+      "name": "zstd-bounds",
+      "url": "https://github.com/facebook/zstd/blob/v1.5.7/doc/zstd_compression_format.md",
+      "success": true,
+      "native_success": true,
+      "http_status": 301,
+      "final_http_status": 200,
+      "markdown_bytes": 88016,
+      "markdown_sha256": "6b62fd14dcdd70535b40cdb595ca5bd8f49847b4401d8d169507faea3571b985",
+      "expected_content": true,
+      "failure_category": "",
+      "error": "",
+      "seconds": 1.797,
+      "capture": "zstd-bounds.native.json",
+      "capture_sha256": "4de7fa9418b9ed3e0a40aeb9924cb3814bfd10484db84336f5b167243a3c955c"
+    },
+    {
+      "provider": "0.9.5+flitzzip.portable2",
+      "run_receipt_sha256": "2acf3dda2899b313424c6b911904dcea9767f4421e12f7c5500974a5e192e298",
+      "name": "git-long-paths",
+      "url": "https://github.com/git-for-windows/git-for-windows.github.io/blob/main/content/faq.md",
+      "success": false,
+      "native_success": false,
+      "http_status": 403,
+      "final_http_status": 403,
+      "markdown_bytes": 0,
+      "markdown_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "expected_content": false,
+      "failure_category": "robots_denied",
+      "error": "Access denied by robots.txt",
+      "seconds": 0.035,
+      "capture": "git-long-paths.native.json",
+      "capture_sha256": "f3d03571143e83175f1cf213688924d8891f21444a6d10ac8d4036270712c50a"
+    },
+    {
+      "provider": "0.9.5+flitzzip.portable2",
+      "run_receipt_sha256": "8cf6b65815fbb54a5e224877b55b07430da10813aa884d1c6a4198f383fec3b8",
+      "name": "git-long-paths",
+      "url": "https://gitforwindows.org/faq.html",
+      "success": true,
+      "native_success": true,
+      "http_status": 200,
+      "final_http_status": 200,
+      "markdown_bytes": 15639,
+      "markdown_sha256": "da82b8a6581879ce0c23b4584c9b5fa3e768913e0ee92e9ca85c28b67264ed13",
+      "expected_content": true,
+      "failure_category": "",
+      "error": "",
+      "seconds": 1.824,
+      "capture": "git-long-paths.native.json",
+      "capture_sha256": "0c4b21c50fbb8eef71dfee3485ba2a80f19414fbf2ce7106b853f5467ff86496"
+    }
+  ],
+  "controlled_boundary_case": {
+    "before": {
+      "files": "64",
+      "stale_partner": "0",
+      "before_compacted": "8470528",
+      "after_compacted": "8470528",
+      "packed_groups": "0",
+      "attempts": "0",
+      "independent_cpu_readback": "1",
+      "pinned_readback": "1",
+      "idle_io": "0"
+    },
+    "after": {
+      "files": "64",
+      "stale_partner": "0",
+      "before_compacted": "8470528",
+      "after_compacted": "8454144",
+      "packed_groups": "1",
+      "attempts": "1",
+      "independent_cpu_readback": "1",
+      "pinned_readback": "1",
+      "idle_io": "0"
+    },
+    "replaced_partner": {
+      "files": "64",
+      "stale_partner": "1",
+      "before_compacted": "8470528",
+      "after_compacted": "8519680",
+      "packed_groups": "0",
+      "attempts": "0",
+      "independent_cpu_readback": "1",
+      "pinned_readback": "1",
+      "idle_io": "0"
+    },
+    "baseline_run": {
+      "run": "local-run-8e4b6a15a6ec4b9e97c7b02e99f21414",
+      "exit_code": 1,
+      "tree_retired": true,
+      "peak_job_bytes": 64700416,
+      "result_sha256": "ef619f62a404f771142294abf51f5ecf71c11499ad4e7b981b197c0d63ddb1ae",
+      "output_sha256": "74b708a4aeff804d96fb14247e92a092bc967912f54b74887486a98c91af42fe"
+    },
+    "candidate_run": {
+      "run": "local-run-56c34c6cd2da486fb2bce538cd40b33f",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 66306048,
+      "result_sha256": "b2c55f2d8c443bb263d1e5fa3caf7dec1dc8029e64b419f7ead19b75b3467f0b",
+      "output_sha256": "c591fa36da5097ff72de34223bfe601c01b3bcce9d381a9a26f8a21172dc17ca"
+    },
+    "occupied_bytes_saved": 16384
+  },
+  "public_inputs": {
+    "source": "4ed3e08c12e314bce6fdb8620358cb1c541d3d68",
+    "selection": "First 64 regular files within 512 to 65536 bytes in Git tree order, using docs root and recursive src",
+    "manifest_sha256": "c96da21da62cc7339527567fd77cd9fe273e4468c957594f6f215e2fa9d9eb43",
+    "initial_inventory_refusal": {
+      "run": "local-run-dc8f6e7ca60b41d3a06fe0454893a8dd",
+      "exit_code": 1,
+      "tree_retired": true,
+      "peak_job_bytes": 17031168,
+      "result_sha256": "9fc329809c393c32fb1bb157905c3070afd6accd917b7177060d4103ccc5f4cc",
+      "output_sha256": "6ccfc53915eec314931b0962b31341f11597267e85a3af5d9a5094f56c050ca9"
+    },
+    "corpora": {
+      "public-docs": {
+        "bytes": 640248,
+        "sha256": "a047b466fe2829d93ec465e00ff7b370db20992cb980a4b23ce5c66ac24d8fc3"
+      },
+      "public-source": {
+        "bytes": 632341,
+        "sha256": "fb723eddf98f788dccaf5fb0185aacfdf81ddbe40bfce71c23af571b66c0629e"
+      }
+    },
+    "mixed_sha256": "ffe86027aaf7145f34f11b6225fb18ee118a791f00818509cf37274261fa14b6"
+  },
+  "public_trials": {
+    "public-docs": {
+      "baseline": {
+        "run": "local-run-ec30626596ad4482b447f168900acd60",
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 18460672,
+        "result_sha256": "2332c21b5e3eeb67f70578569427db8b756d474a610f80c726fa750d3e67a490",
+        "output_sha256": "989c10c10f6d3240cce2534909fc15e12bba29348182ef617ecde7afc524b3b0",
+        "files": 64,
+        "groups": 3,
+        "advised_members": 0,
+        "verified_groups": 0,
+        "submitted_kernel_launches": 0,
+        "input_compacted_bytes": 753664,
+        "grouped_compacted_bytes": 729088,
+        "packed_reference_groups": 3,
+        "mode": "cpu",
+        "input_blake3": "cdb74ec0e9ed54ebd97dc5d69e10616582936adc962541bc74877e0e0cba38f7",
+        "independent_cpu_readback": true,
+        "modeled_idle_time": true,
+        "snapshot_read_bytes": {
+          "full_logical": 639988,
+          "full_input_backing": 2025741,
+          "full_grouped_backing": 2598974,
+          "sampled_logical": 766041,
+          "sampled_input_backing": 6077223,
+          "sampled_grouped_backing": 7796922
+        },
+        "session_read_bytes": {
+          "full_logical": 639988,
+          "full_input_backing": 2130701,
+          "full_grouped_backing": 2151381,
+          "sampled_logical": 766041,
+          "sampled_input_backing": 6392103,
+          "sampled_grouped_backing": 6237636
+        }
+      },
+      "candidate": {
+        "run": "local-run-69dd0046d9294c8791c96bf6dd1cd7b4",
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 18739200,
+        "result_sha256": "3289f4ec3ad6169e82c4732b626b9a3eec8d57dc3c8bcc547e6dbdf40a304815",
+        "output_sha256": "c09ac764d793cc73ef82a78e272a61a5933137f87a375ce563ded6ab285f2d8b",
+        "files": 64,
+        "groups": 3,
+        "advised_members": 0,
+        "verified_groups": 0,
+        "submitted_kernel_launches": 0,
+        "input_compacted_bytes": 753664,
+        "grouped_compacted_bytes": 729088,
+        "packed_reference_groups": 3,
+        "mode": "cpu",
+        "input_blake3": "cdb74ec0e9ed54ebd97dc5d69e10616582936adc962541bc74877e0e0cba38f7",
+        "independent_cpu_readback": true,
+        "modeled_idle_time": true,
+        "snapshot_read_bytes": {
+          "full_logical": 639988,
+          "full_input_backing": 2025741,
+          "full_grouped_backing": 2598974,
+          "sampled_logical": 766041,
+          "sampled_input_backing": 6077223,
+          "sampled_grouped_backing": 7796922
+        },
+        "session_read_bytes": {
+          "full_logical": 639988,
+          "full_input_backing": 2130701,
+          "full_grouped_backing": 2151381,
+          "sampled_logical": 766041,
+          "sampled_input_backing": 6392103,
+          "sampled_grouped_backing": 6237636
+        }
+      }
+    },
+    "public-source": {
+      "candidate": {
+        "run": "local-run-1aaad8f977ae474e895c728e15f4f9db",
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 19832832,
+        "result_sha256": "7b8737acc84eb41472a3a4936b09a353e771830e935d1067f016d8073a4d5fc8",
+        "output_sha256": "9dafedb096602fc4041dcda4420c7132443425794b6f43beccb3a035a0725ae5",
+        "files": 64,
+        "groups": 1,
+        "advised_members": 0,
+        "verified_groups": 0,
+        "submitted_kernel_launches": 0,
+        "input_compacted_bytes": 557056,
+        "grouped_compacted_bytes": 548864,
+        "packed_reference_groups": 1,
+        "mode": "cpu",
+        "input_blake3": "9d2578f3c806be0c25a37dfb3a72d75fd811f42974b46b5b7f2ba8a36a6cfd99",
+        "independent_cpu_readback": true,
+        "modeled_idle_time": true,
+        "snapshot_read_bytes": {
+          "full_logical": 632081,
+          "full_input_backing": 1926250,
+          "full_grouped_backing": 2078008,
+          "sampled_logical": 635613,
+          "sampled_input_backing": 5778750,
+          "sampled_grouped_backing": 6234024
+        },
+        "session_read_bytes": {
+          "full_logical": 632081,
+          "full_input_backing": 2031210,
+          "full_grouped_backing": 2040408,
+          "sampled_logical": 635613,
+          "sampled_input_backing": 6093630,
+          "sampled_grouped_backing": 6067500
+        }
+      },
+      "baseline": {
+        "run": "local-run-4db9ac3c938d4ff9baacd9ffe10f06ee",
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 20017152,
+        "result_sha256": "1c9ae2b62f02f8724e7180ed453b80a8be4f2fa9d0defcf6fe3a151a6af45f4d",
+        "output_sha256": "5c573eb56343467562ce4e501ce2399aae0d4b6840b5bd111409c4b4b197d02a",
+        "files": 64,
+        "groups": 1,
+        "advised_members": 0,
+        "verified_groups": 0,
+        "submitted_kernel_launches": 0,
+        "input_compacted_bytes": 557056,
+        "grouped_compacted_bytes": 548864,
+        "packed_reference_groups": 1,
+        "mode": "cpu",
+        "input_blake3": "9d2578f3c806be0c25a37dfb3a72d75fd811f42974b46b5b7f2ba8a36a6cfd99",
+        "independent_cpu_readback": true,
+        "modeled_idle_time": true,
+        "snapshot_read_bytes": {
+          "full_logical": 632081,
+          "full_input_backing": 1926250,
+          "full_grouped_backing": 2078008,
+          "sampled_logical": 635613,
+          "sampled_input_backing": 5778750,
+          "sampled_grouped_backing": 6234024
+        },
+        "session_read_bytes": {
+          "full_logical": 632081,
+          "full_input_backing": 2031210,
+          "full_grouped_backing": 2040408,
+          "sampled_logical": 635613,
+          "sampled_input_backing": 6093630,
+          "sampled_grouped_backing": 6067500
+        }
+      }
+    },
+    "mixed-amd": {
+      "baseline": {
+        "run": "local-run-2a2edd6f12fe466fb65500e3d8aa9c6f",
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 102694912,
+        "result_sha256": "eb2aef2824ed8050e4a49ac619030d6cf560c93822deff1410a27b98a4c49da9",
+        "output_sha256": "4368da4cb6091416fd15fa04e1ce9eccef8753f98f9d22b1016158ba1d229f2c",
+        "files": 36,
+        "groups": 6,
+        "advised_members": 12,
+        "verified_groups": 7,
+        "submitted_kernel_launches": 14,
+        "input_compacted_bytes": 655360,
+        "grouped_compacted_bytes": 319488,
+        "packed_reference_groups": 1,
+        "mode": "amd",
+        "input_blake3": "099bc2d2fbc3c710e9e6ddb9b2312aa72d021d1bd478cec33e69b077cc9ced89",
+        "independent_cpu_readback": true,
+        "modeled_idle_time": true,
+        "snapshot_read_bytes": {
+          "full_logical": 950347,
+          "full_input_backing": 1077016,
+          "full_grouped_backing": 1277518,
+          "sampled_logical": 328203,
+          "sampled_input_backing": 3096529,
+          "sampled_grouped_backing": 3688983
+        },
+        "session_read_bytes": {
+          "full_logical": 950347,
+          "full_input_backing": 1090048,
+          "full_grouped_backing": 979375,
+          "sampled_logical": 328203,
+          "sampled_input_backing": 3135625,
+          "sampled_grouped_backing": 2763363
+        }
+      },
+      "candidate": {
+        "run": "local-run-4f7fc2f06de842e59f4a576164bfe3ba",
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 102240256,
+        "result_sha256": "0d76949b0d399a139ec9089972a8c9538bd7742db837a4ddfd322a6a000ea0fd",
+        "output_sha256": "950356fbbc4a0cd6f5ca0798c9ef5fdf517e7f0734757285714f9d92b119de5e",
+        "files": 36,
+        "groups": 6,
+        "advised_members": 12,
+        "verified_groups": 7,
+        "submitted_kernel_launches": 14,
+        "input_compacted_bytes": 655360,
+        "grouped_compacted_bytes": 319488,
+        "packed_reference_groups": 1,
+        "mode": "amd",
+        "input_blake3": "099bc2d2fbc3c710e9e6ddb9b2312aa72d021d1bd478cec33e69b077cc9ced89",
+        "independent_cpu_readback": true,
+        "modeled_idle_time": true,
+        "snapshot_read_bytes": {
+          "full_logical": 950347,
+          "full_input_backing": 1077016,
+          "full_grouped_backing": 1277518,
+          "sampled_logical": 328203,
+          "sampled_input_backing": 3096529,
+          "sampled_grouped_backing": 3688983
+        },
+        "session_read_bytes": {
+          "full_logical": 950347,
+          "full_input_backing": 1090048,
+          "full_grouped_backing": 979375,
+          "sampled_logical": 328203,
+          "sampled_input_backing": 3135625,
+          "sampled_grouped_backing": 2763363
+        }
+      }
+    }
+  },
+  "suite_results": {
+    "windows_release": {
+      "run": "local-run-98032e50d6134c9691b9df06f29ed0cc",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 326340608,
+      "result_sha256": "3993145ec962c668d793546c5df0794f50c8803ca4c56128ff0b7d8ea7357f77",
+      "output_sha256": "0d66f4a394ec120a90b302efe1c356df37f34e195589981974eb90989f653ea6",
+      "passed": 201,
+      "codecs": {
+        "zstd": true,
+        "lz4": false
+      }
+    },
+    "asan": {
+      "run": "local-run-7096cca1aa4e44adad66c9add58a7b1e",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 615206912,
+      "result_sha256": "d67e891de727b20a49df1f901ae0674a6fb127d5ff6c274c1707448526badc98",
+      "output_sha256": "7f7151696be642aa449883b1d8490effa3cadd6ddd368e945a2b2ba212efdc05",
+      "passed": 4,
+      "codecs": {
+        "zstd": true,
+        "lz4": true
+      }
+    },
+    "raw_only": {
+      "run": "local-run-993b987a911c444ba0ee2a804e3337ce",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 178151424,
+      "result_sha256": "960ceedebf81bb1a33e88097aae07930e90e4fcbb347a9fc0b26d1e57ac3801d",
+      "output_sha256": "70b61e9483e45a627b14d7ff635097f33e2bdf30e13bdbec8672c68b5d0c719e",
+      "passed": 2,
+      "codecs": {
+        "zstd": false,
+        "lz4": false
+      }
+    }
+  },
+  "qualification_git_long_paths": {
+    "initial_release_suite": {
+      "run": "local-run-e958542ceb45456abda9a93a5e51dba2",
+      "exit_code": 8,
+      "tree_retired": true,
+      "peak_job_bytes": 326320128,
+      "result_sha256": "92319d63025ac56dbcffd400ad02d1369fadc8afa2ddd3729a098613c8fa031b",
+      "output_sha256": "44797520189bdab41d3e72bc7db2e6ec86ad57a071b498fd5f59370cfc686087"
+    },
+    "fixture_only_correction": {
+      "run": "local-run-9064fb2474444b89acab911c3737aa4d",
+      "exit_code": 8,
+      "tree_retired": true,
+      "peak_job_bytes": 37367808,
+      "result_sha256": "706730ce8943e298f19e624d108fdeccfc8b2c29be17f0616fc28b10c601e693",
+      "output_sha256": "79d890c83080f6f0e0794ce08c7c980995a3b92dd4d2469101eacc0e54bd8a8e"
+    },
+    "corrected_staging": {
+      "run": "local-run-6a35ef5378a94f3b9cd41bb93a5b34dc",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 38223872,
+      "result_sha256": "0a1f7abd5c68e6d4c950dbbbf7fae8e8202f4fd6ff01977ac86c081cb8513107",
+      "output_sha256": "ea7eca40febfbe7c8283cbf5cb9122fddbb4ddbf3aaf5dbdb8fa5d01e8e4eaca"
+    },
+    "command_probes": {
+      "write": {
+        "run": "local-run-aa0c7d0736c44db1ace0168ed16699e6",
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 15044608,
+        "result_sha256": "3241536f7371a8859fa3ae03c09ba2cf705a9fbe5c9b7457b13873fb8e9ebc6c",
+        "output_sha256": "ff840015dcccdc59ff1544a487402834a6bb493e97a83d0e36488663c6ff1b7e",
+        "observation": {
+          "repo_characters": 205,
+          "before_exit": 128,
+          "before_stderr": "error: unable to write file .git/objects/b8/c5f146aeafd8fdce83ea0d2a1b50c95f6b30c0: Filename too long\nerror: LICENSE: failed to insert into database\nerror: unable to index file 'LICENSE'\nfatal: adding files failed\n",
+          "after_exit": 0,
+          "after_stderr": ""
+        }
+      },
+      "read": {
+        "run": "local-run-5df2b791d7e743a7b1843a82f1bbacc6",
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 14245888,
+        "result_sha256": "ee9d173441e0da8be8f997231b966db174c08eb084553accfb5b2f042cd1297b",
+        "output_sha256": "c21479dc91528871f8de0bea4b8875cd0097f282b3e57588c02cf9674ff8d126",
+        "observation": {
+          "repo_characters": 205,
+          "before_exit": 128,
+          "before_stderr": "error: unable to open loose object 952870414c096e6e9a0bbef048fe3f69b972cbb2: Filename too long\nerror: unable to open loose object 952870414c096e6e9a0bbef048fe3f69b972cbb2: Filename too long\nerror: unable to open loose object 952870414c096e6e9a0bbef048fe3f69b972cbb2: Filename too long\nfatal: loose object 952870414c096e6e9a0bbef048fe3f69b972cbb2 (stored in .git/objects/95/2870414c096e6e9a0bbef048fe3f69b972cbb2) is corrupt\n",
+          "after_exit": 0
+        }
+      }
+    }
+  },
+  "host": {
+    "windows_build": 26300,
+    "amd_adapter": "AMD Radeon RX 9070 XT",
+    "amd_driver": "32.0.32029.2010",
+    "controller_sha256": {
+      "baseline": "79aa9aef1f845aa89a38d155706883a5731238e666c16f3b0653dfb844104502",
+      "candidate": "c2b8a37e168f935491964b73897662c14deb0030ccaa84b142577125a7b56ebf"
+    },
+    "worker_sha256": "bca40a979dcd51660cf900e6d9b4d80472ab38e6aead2bb3437957481449211c",
+    "module_sha256": "9aad995bc1b2e330a8f24f76dcc5eaa9edc8f96351c999f10712aef0be33467d",
+    "mounted": false
+  },
+  "scope": [
+    "Existing packed-slice wire format and CPU verification",
+    "No throughput comparison",
+    "Retained sizes apply to measured representatives in the running scan"
+  ]
+}

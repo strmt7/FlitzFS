@@ -324,13 +324,16 @@ multiple sessions and measure actual allocated bytes and write costs.
   device or backend identity. Age stale observations and make poor
   predictions recoverable. Keep every required decoding dependency separate
   from rebuildable learning data.
-- Follow the fitting-extent change with trials across multiple discovery
-  windows. For each size and similarity cohort, record candidate recall,
+- Extend the verified cross-window pairing to size-filtered, similarity-ranked
+  trial candidates. The initial retained-partner lookup saved 16 KiB in the
+  controlled case and retained the baseline sizes on two public cohorts.
+  For each size and similarity cohort, record candidate recall,
   attempts and refusals, settled bytes saved, temporary bytes written, and
   reads needed for small ranges. Compare current ordering, size-aware
   candidate lookup and measured similarity ranking on the same images. Keep
   candidate lookup paged and bounded. Qualify a larger grouping envelope only
   once its range reader and dependency retirement pass the same checks.
+  [Cross-window packing evidence](evidence/indexed-cross-window-packing-2026-11-21.json)
 - Use fresh idle opportunities and bounded work to choose further scans,
   grouping, consolidation and format migration. Learn from net space
   saved, foreground service time, memory and write cost. Stop or shrink

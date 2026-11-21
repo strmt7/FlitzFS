@@ -38,7 +38,9 @@ missed by similarity search into one protected decode unit. The scanner
 uses already sampled lengths and respects the remaining preparation
 budget. It keeps AMD reservations disjoint from each CPU pack and retains
 the last scan window until its AMD batch settles. A size comparison
-declines packs whose complete layout fails to save space.
+declines packs whose complete layout fails to save space. A short seed
+without a local partner can use a measured standalone candidate retained
+from an earlier window after checking its current binding.
 [Short-file packing](INDEXED_NATIVE_VOLUME.md#packed-slices)
 
 The mixed AMD adviser tests sparse XOR and modular delta for each staged

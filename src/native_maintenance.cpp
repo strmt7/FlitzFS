@@ -720,9 +720,6 @@ struct NativeGroupMaintenance::Impl {
     auto seed=features.upper_bound(packing_after);
     while(seed!=features.end() && !eligible(seed->second))++seed;
     if(seed==features.end())return false;
-    // Advance only to the seed so a larger skipped extent can start the
-    // next group. Selected members are tried once in this admitted window.
-    packing_after=seed->first;
     std::vector<NativeContentToken> expected;
     auto remaining=kNativeExtentBytes;
     for(auto next=seed;next!=features.end() && remaining && expected.size()<maximum_members;++next) {
@@ -733,6 +730,34 @@ struct NativeGroupMaintenance::Impl {
       feature.packing_assigned=true;
       remaining-=bytes;
     }
+    if(expected.size()==1) {
+      // A singleton can share a base with a short standalone extent from
+      // an earlier window. Its retained size only ranks the candidates.
+      auto partner=representatives.end();
+      std::uint32_t largest=0;
+      for(auto it=representatives.begin();it!=representatives.end();++it) {
+        const auto& feature=it->second;
+        const auto bytes=feature.token.standalone_bytes;
+        if(bytes<=largest || bytes>remaining || features.contains(it->first) ||
+            deferred_batch_objects.contains(it->first) || !eligible(feature))continue;
+        partner=it;
+        largest=bytes;
+      }
+      if(partner!=representatives.end()) {
+        const auto& token=partner->second.token;
+        const auto live=writer.maintenance_token(token.extent);
+        if(!live || live->object!=token.object || live->revision!=token.revision) {
+          representatives.erase(partner);
+          seed->second.packing_assigned=false;
+          return true;
+        }
+        expected.push_back(token);
+        std::ranges::sort(expected,{},&NativeContentToken::object);
+      }
+    }
+    // Advance only to the seed so a larger skipped extent can start the
+    // next group. Current members are tried once in this admitted window.
+    packing_after=seed->first;
     if(expected.size()<2)return true;
     std::vector<std::byte> key;
     key.reserve(8+16*expected.size());

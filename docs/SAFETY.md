@@ -203,6 +203,12 @@ the separate publication admission. The scan checkpoint waits until the
 pending groups are settled.
 [Overlapping maintenance qualification](evidence/windows-amd-full-batch-overlap-2026-11-21.json)
 
+Short-file packing checks a retained candidate's live object and revision
+before it prepares a protected pack. Replacement between scan windows caused
+the candidate to be dropped. Both the pinned and current snapshots passed
+independent CPU readback.
+[Cross-window packing qualification](evidence/indexed-cross-window-packing-2026-11-21.json)
+
 [Mirrored paged payloads](MIRRORED_PAYLOADS.md) optionally isolate two record
 streams into separate qualified units, check both during scrub and repair only
 into a new image. Default capability-1 images still have single-copy payloads.

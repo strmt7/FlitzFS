@@ -11,6 +11,16 @@
     "tree": "936409737d1c4a5d4aeb37fe5af48f55ba9accff",
     "note": "Architectural review baseline. Layer and runtime evidence have separate source bindings."
   },
+  "indexed_cross_window_packing": {
+    "source_base": "4ed3e08c12e314bce6fdb8620358cb1c541d3d68",
+    "evidence": "docs/evidence/indexed-cross-window-packing-2026-11-21.json",
+    "controlled_compacted_bytes_before_and_after": [8470528, 8454144],
+    "public_docs_compacted_bytes_both_builds": 729088,
+    "public_source_compacted_bytes_both_builds": 548864,
+    "live_amd_compacted_bytes_both_builds": 319488,
+    "stale_binding_rejected": true,
+    "independent_cpu_readback": true
+  },
   "amd_full_batch_overlap": {
     "source_base": "e17b240dc7af463d7086fbe8f6941ca90a84d2e7",
     "evidence": "docs/evidence/windows-amd-full-batch-overlap-2026-11-21.json",

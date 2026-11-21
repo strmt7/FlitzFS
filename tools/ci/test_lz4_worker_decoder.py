@@ -43,7 +43,8 @@ class DecoderStaging(unittest.TestCase):
         env = os.environ.copy()
         env.update(GIT_NO_REPLACE_OBJECTS="1", GIT_CONFIG_NOSYSTEM="1",
                    GIT_CONFIG_GLOBAL=os.devnull)
-        result = subprocess.run(["git", "-c", "core.hooksPath=" + str(self.control / "no-hooks"),
+        result = subprocess.run(["git", "-c", "core.longpaths=true",
+                                 "-c", "core.hooksPath=" + str(self.control / "no-hooks"),
                                  "-C", str(self.source), *args], check=True, capture_output=True,
                                 text=True, timeout=10, env=env)
         self.assertLessEqual(len(result.stdout) + len(result.stderr), 8192)

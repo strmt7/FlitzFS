@@ -1229,13 +1229,14 @@ with full occupied-space accounting.
     grouping when repeated base fetches make ordinary reads too expensive.
     [Grouped audit and live corpus evidence](evidence/indexed-grouped-audit-2026-11-20.json)
 
-    - Extend bounded fitting-extent selection across admitted windows. Start
-      with mixed payload sizes and real revision families. Compare an
+    - The packer can recover an unmatched seed using a live-checked retained
+      size from an earlier window. Extend trial selection using
+      mixed payload sizes and real revision families. Compare an
       object-order control, size-filtered lookup, and size-filtered lookup
       ranked by measured similarity. Record candidate recall, CPU, resident
       memory and backing traffic. Retain the complete-image size check and
       the case in which an early extent cannot fit but a later one can.
-      [Current packing evidence](evidence/indexed-uneven-short-packing-2026-11-21.json)
+      [Current packing evidence](evidence/indexed-cross-window-packing-2026-11-21.json)
     - Report group costs and one-member read work. Account for the base,
       reverse references, padding, protection, pending reclamation and any
       pinned older copies. Choose trial sizes from these observations.

@@ -301,28 +301,32 @@ void indexed_batched_prefix() {
       <<" ordinary_after_pressure="<<limited<<" independent_cpu_readback=true\n";
 }
 
+Bytes uneven_short_pack_file(unsigned i,unsigned pairs) {
+  constexpr std::size_t phrases=256,phrase_bytes=72;
+  const bool small=i>=pairs;
+  const auto dictionary=data(phrases*phrase_bytes,20151+29*(i%pairs));
+  auto bytes=data((small?24:40)*1024,185311+307*i);
+  for(std::size_t slot=0;slot<phrases;++slot) {
+    const auto phrase=small?((627*slot+154)&(phrases-1)):slot;
+    const auto from=dictionary.begin()+static_cast<std::ptrdiff_t>(phrase*phrase_bytes);
+    const auto into=bytes.begin()+static_cast<std::ptrdiff_t>(slot*(bytes.size()/phrases)+3);
+    std::copy_n(from,phrase_bytes,into);
+  }
+  bytes.back()=std::byte{0x67};
+  return bytes;
+}
+
 void indexed_uneven_short_packs(bool regression) {
   if(!store_zstd_available())return;
   constexpr unsigned pairs=6,count=2*pairs;
-  constexpr std::size_t phrases=256,phrase_bytes=72;
   constexpr StoreCompressionOptions policy{StoreCompressionMode::automatic,3,true};
   constexpr NativeImageStorage storage{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes};
   std::array<Bytes,count> inputs;
   const auto path=[](unsigned i){return "uneven-"+std::to_string(i);};
   Fixture f(4096,0,true,policy);
   for(unsigned i=0;i<count;++i) {
-    const bool small=i>=pairs;
-    const auto dictionary=data(phrases*phrase_bytes,20151+29*(i%pairs));
-    auto& bytes=inputs[i];
-    bytes=data((small?24:40)*1024,185311+307*i);
-    for(std::size_t slot=0;slot<phrases;++slot) {
-      const auto phrase=small?((627*slot+154)&(phrases-1)):slot;
-      const auto from=dictionary.begin()+static_cast<std::ptrdiff_t>(phrase*phrase_bytes);
-      const auto into=bytes.begin()+static_cast<std::ptrdiff_t>(slot*(bytes.size()/phrases)+3);
-      std::copy_n(from,phrase_bytes,into);
-    }
-    bytes.back()=std::byte{0x67};
-    put(*f.session,path(i),bytes);
+    inputs[i]=uneven_short_pack_file(i,pairs);
+    put(*f.session,path(i),inputs[i]);
   }
   const auto verify=[&](const NativeFilesystemSnapshot& snapshot) {
     snapshot.verify_all();
@@ -364,6 +368,80 @@ void indexed_uneven_short_packs(bool regression) {
       <<" published="<<outcome.published_groups<<" independent_cpu_readback=1 pinned_readback=1 idle_io=0\n";
   if(regression)require(after<before && info.members==count && info.bases==pairs &&
       outcome.packed_reference_groups>=2,"packing did not match the later short files to the earlier long files");
+}
+
+void indexed_cross_window_pack(bool replace_retained) {
+  if(!store_zstd_available())return;
+  constexpr auto count=kNativeMaxDirtyExtents+1;
+  constexpr StoreCompressionOptions policy{StoreCompressionMode::automatic,3,true};
+  constexpr NativeImageStorage storage{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes};
+  const auto path=[](std::size_t i){return "cross-window-"+std::to_string(i);};
+  Fixture f(4096,0,true,policy);
+  std::vector<Bytes> originals;
+  originals.reserve(count);
+  for(std::size_t i=0;i<count;++i) {
+    auto bytes=i==0?uneven_short_pack_file(0,1):
+        i+1==count?uneven_short_pack_file(1,1):data(kNativeExtentBytes,33109+83*i);
+    bytes.back()=std::byte{0x67};
+    put(*f.session,path(i),bytes);
+    originals.push_back(std::move(bytes));
+  }
+  f.session.reset();
+  const auto pinned=NativeFilesystemSnapshot::open_image(f.image,storage);
+  const auto replacement=data(kNativeExtentBytes,194117);
+  const auto verify=[&](const NativeFilesystemSnapshot& snapshot,bool replaced) {
+    snapshot.verify_all();
+    for(std::size_t i=0;i<count;++i) {
+      const auto& expected=replaced && !i?replacement:originals[i];
+      require(snapshot.read(path(i),0,kNativeExtentBytes)==expected,"cross-window packing changed file bytes");
+    }
+  };
+  const auto occupied=[&](const NativeFilesystemSnapshot& snapshot,unsigned target,bool replaced) {
+    auto backing=ram(4096);
+    {
+      const auto writer=NativeFilesystemWriter::compact(snapshot,backing,id(target),policy);
+    }
+    verify(NativeFilesystemSnapshot::open_image(backing,storage),replaced);
+    return backing->extent();
+  };
+  const auto before=occupied(pinned,2,false);
+  const auto resolve=[&](const auto& key)->std::shared_ptr<StoreByteIo>{return key==id(1)?f.image:nullptr;};
+  f.session.emplace(NativeFileSession::resume_closed_indexed_volume(f.head,id(90),1,resolve,policy));
+  NativeMaintenanceProgress settled;
+  {
+    NativeGroupMaintenance groups(*f.session);
+    for(unsigned tick=0;tick<600;++tick) {
+      settled=f.step(groups);
+      require(settled.phase!=Phase::failed && !settled.published_groups,
+          "the first window published a group before the partner was discovered");
+      if(settled.sampled_extents==kNativeMaxDirtyExtents && settled.phase==Phase::scanning)break;
+    }
+    require(settled.sampled_extents==kNativeMaxDirtyExtents && settled.phase==Phase::scanning,
+        "the packing fixture did not cross a retained scan window");
+    if(replace_retained) {
+      const auto handle=f.session->open(path(0),{true,true,false});
+      f.session->write(handle,0,replacement);
+      f.session->cleanup(handle,false);
+      f.session->close(handle);
+    }
+    settled=f.finish(groups);
+    const auto reads=f.image->read_calls,writes=f.image->writes;
+    require(f.step(groups).phase==Phase::idle && f.image->read_calls==reads && f.image->writes==writes,
+        "the settled cross-window scan did more backing work");
+  }
+  f.session.reset();
+  verify(pinned,false);
+  const auto current=NativeFilesystemSnapshot::open_image(f.image,storage);
+  const auto after=occupied(current,3,replace_retained);
+  std::cout<<"cross_window_packing files="<<count<<" stale_partner="<<replace_retained
+      <<" before_compacted="<<before<<" after_compacted="<<after
+      <<" packed_groups="<<settled.packed_reference_groups<<" attempts="<<settled.attempted_groups
+      <<" independent_cpu_readback=1 pinned_readback=1 idle_io=0\n";
+  if(replace_retained)
+    require(!settled.packed_reference_groups,"stale retained length was used to publish a pack");
+  else
+    require(settled.packed_reference_groups==1 && current.shared_base_info().members==2 && after<before,
+        "short files in separate scan windows did not share a smaller protected base");
 }
 
 void indexed_pack_distinct_short_extents() {
@@ -2273,6 +2351,9 @@ int main(int argc,char** argv){try{
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-pack-distinct-short-extents") {
     indexed_pack_distinct_short_extents();
     indexed_uneven_short_packs(true);
+  } else if(argc==2 && std::string_view(argv[1])=="--indexed-cross-window-pack") {
+    indexed_cross_window_pack(false);
+    indexed_cross_window_pack(true);
   } else if(argc==2 && std::string_view(argv[1])=="--profile-uneven-short-packs") {
     indexed_uneven_short_packs(false);
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-changes") {

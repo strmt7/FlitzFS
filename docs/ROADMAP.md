@@ -143,6 +143,12 @@ held their previous sizes. Larger populated volumes and mounted access
 measurements remain open.
 [Direct packing evidence](evidence/indexed-direct-short-packing-2026-11-20.json)
 
+A short extent without a partner can reuse verified metadata from an
+earlier scan window. The controlled 64-file image saved 16 KiB after
+compaction. Both 64-file public controls retained their prior occupied
+sizes, and the live AMD control retained its advice and CPU readback.
+[Cross-window packing evidence](evidence/indexed-cross-window-packing-2026-11-21.json)
+
 Request-scoped index verification reduced grouped sample backing reads by
 72–73% through independent CPU snapshots and 2.6–2.7% through open-file
 sessions on two public revision sets. Complete compacted sizes matched between

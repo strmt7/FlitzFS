@@ -557,12 +557,20 @@ preserves the file's logical zero tail. Work reserved for an AMD batch keeps
 its own source bindings. The controller settles the batch before closing that
 scan window.
 
+When a seed has no partner in the current window, the scanner tries the
+largest fitting standalone payload among its retained, measured
+representatives. The retained size ranks candidates. The writer checks
+the live object and revision before preparing the selected pack, and
+drops stale metadata before trying again. This lookup uses the existing
+representative budget and the same protected base and slice records.
+
 Direct packing uses the existing compacted-size comparison and transaction.
 It renews the memory grant during preparation and checks the selected
 revisions before publication. A later scan can consider each packed slice
 for a stronger similarity match, with the same size and revision checks.
 [Direct packing evidence](evidence/indexed-direct-short-packing-2026-11-20.json) ·
-[Uneven short-extent evidence](evidence/indexed-uneven-short-packing-2026-11-21.json)
+[Uneven short-extent evidence](evidence/indexed-uneven-short-packing-2026-11-21.json) ·
+[Cross-window packing evidence](evidence/indexed-cross-window-packing-2026-11-21.json)
 
 The current reader supports capabilities 1 through 9. Readers capped at 8
 reject a capability 9 root. An earlier image retains its capability when opened.

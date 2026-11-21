@@ -48,7 +48,9 @@ def digest(path):
 
 def native_git(provider,*args):
     env=os.environ.copy();env["GIT_NO_REPLACE_OBJECTS"]="1"
-    result=subprocess.run(["git","--no-optional-locks","-C",str(provider),*args],check=True,capture_output=True,text=True,timeout=15,env=env)
+    result=subprocess.run(
+        ["git","-c","core.longpaths=true","--no-optional-locks","-C",str(provider),*args],
+        check=True,capture_output=True,text=True,timeout=15,env=env)
     require(len(result.stdout)<=1024*1024,"source identity output budget")
     return result.stdout.strip()
 
