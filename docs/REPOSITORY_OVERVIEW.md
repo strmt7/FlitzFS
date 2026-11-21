@@ -319,7 +319,7 @@ The read used the repository's existing GitHub CLI authentication.
 | WinFsp | Stable v2.2, build 2.2.26323 | Latest stable tag and MSI digest confirmed through GitHub. The disposable guest fixture and current user-mode SDK results have separate receipts. |
 | ROCm Core SDK | 10.2.0 package pin | The exact official Windows archive carries package build 10.2.0rc2, HIP 7.17.26434 and AMD Clang 24.0.0git. The installed runtime and driver are measured separately. |
 | CMake | Windows private staging recipe 4.5.1 | Latest stable API result and the official checksum file agree. Windows staging and a fresh indexed test build exercised the patch. |
-| Linux verification tools | CMake 4.5.0 and LLVM 23.1.5 pins | Official release inventories show CMake 4.5.1 and LLVM 23.1.6. The Linux lane still needs native verification of those artifacts. |
+| Linux verification tools | CMake 4.5.1 and LLVM 23.1.6 pins | Both archive sizes and digests match their official release inventories. The Linux lane records unpacking and executable verification. |
 | GitHub Actions | checkout 7.0.1 / setup-python 7.1.0 / upload-artifact 7.0.2 | Selected version labels match fresh stable release metadata |
 | CocoIndex Code | 0.2.43 isolated tooling | Selected version label matches the current stable API result; this is agent tooling, not a product dependency |
 | DiskSpd | Not newly installed/run | Current official release API returns v2.3; benchmark planning only |

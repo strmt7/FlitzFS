@@ -7,6 +7,18 @@ system packages/drivers and other applications; no blanket off-host rule applies
 The dated alert/dependency observations below are historical and require a fresh
 check before release acceptance.
 
+## 21 November 2026 Linux tool refresh
+
+The official inventory check refused staged CMake 4.5.0 and LLVM 23.1.5
+because the current Linux releases were newer. The provisioner now pins
+CMake 4.5.1 and LLVM 23.1.6 to their published asset sizes and SHA-256 digests.
+The CMake digest also matches Kitware's checksum file. The Windows run passed
+six provisioning regressions on Python 3.15. The Linux-only extraction
+test and actual Linux package execution belong to the native audit job.
+[Inventory failure](https://github.com/strmt7/FlitzFS/actions/runs/44890338822) ·
+[CMake 4.5.1](https://github.com/Kitware/CMake/releases/tag/v4.5.1) ·
+[LLVM 23.1.6](https://github.com/llvm/llvm-project/releases/tag/llvmorg-23.1.6)
+
 ## Verified Dependabot result
 
 On 20 November 2026, the authenticated GitHub REST endpoint returned HTTP 200
