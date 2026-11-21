@@ -1,0 +1,232 @@
+{
+  "schema": 1,
+  "base_commit": "6b75f3af19b124bedf585a1096f609e561c65b7b",
+  "base_tree": "864c99f668d7e7cb478e866ef9d2f8368582b3f4",
+  "candidate_code_patch_sha256": "c44105082488f420322cab72b493f81991816d955f7eb14d5ed322a96b7d6245",
+  "candidate_source_blobs": {
+    "CMakeLists.txt": "c2267aa16f5c8c9f8557ca2bcac8b2ed86a3f319",
+    "include/flitzfs/paged_store.hpp": "7e24d69f2989b84909cb2ab66b5af01f17b47719",
+    "src/indexed_coherence.cpp": "4bf657a5112620c4b3b2f518d3b109f5fa896797",
+    "src/paged_store.cpp": "43bd01f59f46f48c0330d33260b90dab57ff2cc2",
+    "tests/test_native_group_maintenance.cpp": "7b12fe2c15fc75c4aa9b6d6a44fb9071e49a0c2a"
+  },
+  "navigation": {
+    "source_files": 5,
+    "provider_version": "0.2.43",
+    "actual_searches": 1,
+    "native_response_sha256": "05810d543ae4aad938763326392767c47fe6f7dd17e5ab2cbab6deff7067318e",
+    "first_probe": {
+      "log_sha256": "7e027233db1affdf7f2c899db5724aef8c7d4a6182a4d9defb5a3629d5b59d92",
+      "exit_code": 1,
+      "peak_job_bytes": 1044029440,
+      "process_tree_retired": true
+    }
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "pages": [
+      {
+        "name": "aker",
+        "url": "https://www.microsoft.com/en-us/research/publication/aker-density-aware-approximate-caching-for-vector-search-extended-version/",
+        "success": false,
+        "http_status": 404,
+        "final_http_status": 404,
+        "markdown_sha256": "d53b2b35bad46c0a5c0fb8ae120fe1325401f2757435435a60ed9cc031106ba2",
+        "capture_sha256": "dfa0b75ad0f8d20728e3e931d7e20b3e9d5bc173201f619cfe1b0b19be8a1baa",
+        "failure_category": "http_error"
+      },
+      {
+        "name": "dclc",
+        "url": "https://link.springer.com/article/10.1007/s44443-026-01042-5",
+        "success": true,
+        "http_status": 303,
+        "final_http_status": 200,
+        "markdown_sha256": "8f8c87332df658363c2a05b50217d945bcbe3c0160579b8a580c96c1ad45c10a",
+        "capture_sha256": "0a2aa6f5034dceefa69b1d22209ee52bf8a51e8f303978485cdd02c4591df193",
+        "failure_category": ""
+      },
+      {
+        "name": "laann",
+        "url": "https://arxiv.org/abs/2606.02784",
+        "success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_sha256": "d3996310b18a1953208841c53f14a6ae3e50de384d96d62d40c48b0c00341cc4",
+        "capture_sha256": "73d25ac726c07649b9e55faaf9318b498e296834ec2465a6c79ae42e9b3e7269",
+        "failure_category": ""
+      }
+    ]
+  },
+  "catalog_trace": {
+    "scope": "Synthetic index; identical query keys and stored geometry, distinct retained views before and after publication in the candidate. Bytes count backing reads including both replicas.",
+    "baseline": {
+      "objects": 5121,
+      "height": 2,
+      "catalog_bytes": 16584704,
+      "missing_queries": 7168,
+      "miss_page_reads": 43008,
+      "miss_read_bytes": 176160768,
+      "checked_positive_ranges": 1024,
+      "positive_read_bytes": 76038144,
+      "log_sha256": "76495c8ff10f3524e8f36d27121a65d51f0590a3c07938dc4bb3cbdbed85d46e",
+      "exit_code": 8,
+      "peak_job_bytes": 64241664,
+      "process_tree_retired": true
+    },
+    "range_pruning_only": {
+      "objects": 5121,
+      "height": 2,
+      "catalog_bytes": 16584704,
+      "missing_queries": 7168,
+      "miss_page_reads": 42648,
+      "miss_read_bytes": 174686208,
+      "checked_positive_ranges": 1024,
+      "positive_read_bytes": 75841536,
+      "log_sha256": "d69276dd6549e9602d1e04e21633763e026f95eece5ab29b860f3c0d8f3d4a64",
+      "exit_code": 0,
+      "peak_job_bytes": 166117376,
+      "process_tree_retired": true
+    },
+    "retained_root_and_range_pruning": {
+      "objects": 5121,
+      "height": 2,
+      "catalog_bytes": 16584704,
+      "missing_queries": 7168,
+      "miss_page_reads": 28312,
+      "miss_read_bytes": 115965952,
+      "checked_positive_ranges": 1024,
+      "positive_read_bytes": 50708480,
+      "log_sha256": "00f4cc735ce64ac4e07eee02c63693d1ad67cafda09167cce0880b995ef46073",
+      "exit_code": 0,
+      "peak_job_bytes": 166445056,
+      "process_tree_retired": true
+    },
+    "initial_construction_limit": {
+      "fingerprints_targeted": 16384,
+      "trial_backing_bytes": 67108864,
+      "outcome": "append capacity refused",
+      "log_sha256": "42ee39749fbc3b16043b72f38cd5cc03b1c7a2ab8febac6f1a5f773850d0fc9c",
+      "exit_code": 8,
+      "peak_job_bytes": 229171200,
+      "process_tree_retired": true
+    }
+  },
+  "windows_host_build": 26300,
+  "windows_matrix": {
+    "release": {
+      "passed_groups": 202,
+      "log_sha256": "ffb6c37f418d01e9d5505644097a669924cbf9dbeb1cef52b39a3d4445e5c1e8",
+      "exit_code": 0,
+      "peak_job_bytes": 337563648,
+      "process_tree_retired": true
+    },
+    "raw": {
+      "passed_groups": 4,
+      "log_sha256": "999fc640cf821787e20cbf0e6e2e175dbfda986d030d896a2aaf9ac2e3006752",
+      "exit_code": 0,
+      "peak_job_bytes": 166219776,
+      "process_tree_retired": true
+    },
+    "asan_including_runtime_preflight": {
+      "passed_groups": 5,
+      "log_sha256": "d66ea71fbf2152bc361f46a4d12735f6fa4b4fe2912a9a6fc4092cf136a593ab",
+      "exit_code": 0,
+      "peak_job_bytes": 785424384,
+      "process_tree_retired": true
+    }
+  },
+  "external_corpus_regressions": {
+    "scope": "WinFsp callback composition CPU control; equal footprints, whole and sampled backing-read counts, and independent CPU verification in both builds. The isolated catalog trace above measures lookup savings.",
+    "baseline_controller_sha256": "4d922b774d3669def2d9be50e4ff028eadbdf53da513b7ea89d1afd71bdd88d7",
+    "candidate_controller_sha256": "4c526e83f9e0ed47b69c9d74a5e1a8bdf6eeabde300ba8232e2d048cea009d2b",
+    "cohorts": [
+      {
+        "repository": "actions/starter-workflows",
+        "source_commit": "e3c451d60f119b71caebf13c98ac45da6e15b4b7",
+        "bank_sha256": "948c0362d2329885fa23ef0f63b08451bd50d453250dd7ded0e38a428967e843",
+        "input_blake3": "e615cc2b37d918065eb20a43fdee472d5ff911aef624127dfd7a354fb0711913",
+        "independent_cpu_readback": true,
+        "files": 16,
+        "groups": 1,
+        "input_compacted_bytes": 180224,
+        "grouped_compacted_bytes": 172032,
+        "baseline": {
+          "log_sha256": "67228ef974ad241e0fa06e548d3c3231a4c88fe238b9658e6f9fb9f04796af48",
+          "exit_code": 0,
+          "peak_job_bytes": 8421376,
+          "process_tree_retired": true
+        },
+        "candidate": {
+          "log_sha256": "e0ff166cf4847a9d2e3be8322b16d02c5e66bdb3aac0a522d9df5766e75c7742",
+          "exit_code": 0,
+          "peak_job_bytes": 8675328,
+          "process_tree_retired": true
+        }
+      },
+      {
+        "repository": "lucide-icons/lucide",
+        "source_commit": "d79f7054831776702c2f0e6b795069750f0a4f28",
+        "bank_sha256": "e24f2e9dbd6a4b85e0e8b44c12208772744b28a660fd96780df74cfe30555912",
+        "input_blake3": "4371391709ab54422f78e2cd81c7d8287b9563c90bb00d9a784bcd7c3427893a",
+        "independent_cpu_readback": true,
+        "files": 40,
+        "groups": 1,
+        "input_compacted_bytes": 204800,
+        "grouped_compacted_bytes": 196608,
+        "baseline": {
+          "log_sha256": "81ca8f48a9d240abe2995c2555214b86684f019c4bf9640218b6904d919df3bb",
+          "exit_code": 0,
+          "peak_job_bytes": 12558336,
+          "process_tree_retired": true
+        },
+        "candidate": {
+          "log_sha256": "4b2f63179fd2173d28e0c48cdd38f7160ed136f5a19f448c4a67ca9c3e0958ce",
+          "exit_code": 0,
+          "peak_job_bytes": 12566528,
+          "process_tree_retired": true
+        }
+      },
+      {
+        "repository": "llvm/llvm-project",
+        "source_commit": "9ac5159b3c46929ba4e42e876b05e95199ba3b74",
+        "bank_sha256": "2f2d61010173890092f2160b7e08bbfe1156a749ef31918e9951f23b40a7c8f7",
+        "input_blake3": "1477d4bd9db5040b77ff418b4dabcec8638228bf120eed36b61618c77a64fc19",
+        "independent_cpu_readback": true,
+        "files": 16,
+        "groups": 1,
+        "input_compacted_bytes": 212992,
+        "grouped_compacted_bytes": 204800,
+        "baseline": {
+          "log_sha256": "414388a81a84925b655b976a79de1d0aadb1be257fa9059649bfd80556418ca1",
+          "exit_code": 0,
+          "peak_job_bytes": 9469952,
+          "process_tree_retired": true
+        },
+        "candidate": {
+          "log_sha256": "6d3f6a668a8e14e67b8dff0236a1b9a0e3eee604f04d220aaaab12f647b5c594",
+          "exit_code": 0,
+          "peak_job_bytes": 8798208,
+          "process_tree_retired": true
+        }
+      }
+    ]
+  },
+  "live_amd_callback_regression": {
+    "files": 15,
+    "groups": 5,
+    "advised_members": 90,
+    "submitted_kernel_launches": 85,
+    "verified_batches": 1,
+    "independent_cpu_readback": true,
+    "mounted": false,
+    "package_manifest_sha256": "06c55f3e68db91317b6897c88e6aba3658bc2ddb2e8312da6fbf080a88dffe84",
+    "log_sha256": "1a384db551411197d35162556ed8f1ce4df8ca18069a2c496dd9c6e4e02f7c06",
+    "exit_code": 0,
+    "peak_job_bytes": 156909568,
+    "process_tree_retired": true
+  },
+  "open_qualification": [
+    "Catalog build amplification, candidate recall and compaction under larger public workloads and many interleaved groups.",
+    "Persistent lifecycle, real power-loss durability and mounted AMD performance."
+  ]
+}

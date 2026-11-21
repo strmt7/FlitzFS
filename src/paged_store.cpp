@@ -294,12 +294,18 @@ struct QueryMetadata {
   std::array<Record,4> records{};
   std::size_t next=0;
 };
-std::optional<Entry> lookup(const State& s,std::uint64_t id,LookupPages* scoped=nullptr) {
+const Node& lookup_node(const State& state,const Ref& reference,Node& temporary,
+    LookupPages* scoped,const Node* retained_root) {
+  if(retained_root && reference.height==state.root.height)return *retained_root;
+  return scoped?scoped->get(state,reference):(temporary=read_node(state,reference));
+}
+std::optional<Entry> lookup(const State& s,std::uint64_t id,LookupPages* scoped=nullptr,
+    const Node* retained_root=nullptr) {
   if(!id || !s.root.count || id<s.root.first || id>s.root.last)return {};
   auto r=s.root;
   for(std::uint32_t depth=0;depth<=maximum_height;++depth) {
     Node temporary;
-    const auto& n=scoped?scoped->get(s,r):(temporary=read_node(s,r));
+    const auto& n=lookup_node(s,r,temporary,scoped,retained_root);
     if(!r.height) {
       const auto i=std::lower_bound(n.entries.begin(),n.entries.end(),id,[](const auto& e,auto key){return e.id<key;});
       if(i!=n.entries.end() && i->id==id)return *i;
@@ -453,7 +459,8 @@ std::array<std::byte,page_bytes> root_bytes(const State& s,std::uint64_t generat
   put32(b,60,page_bytes);encode_ref(b,64,s.root);
   copy(b,digest_at,detail::record_digest(std::span<const std::byte>(b).first(digest_at)));return b;
 }
-State load(std::shared_ptr<StoreByteIo> image,PagedStoreLimits limits,LookupPages* query_pages=nullptr) {
+State load(std::shared_ptr<StoreByteIo> image,PagedStoreLimits limits,LookupPages* query_pages=nullptr,
+    Node* retain_tree_root=nullptr) {
   admit_limits(limits);if(!image)fail("missing backend");
   const auto extent=image->extent();
   if(extent<start+2*page_bytes || extent>limits.maximum_physical_bytes)fail("physical capacity/truncation");
@@ -487,7 +494,10 @@ State load(std::shared_ptr<StoreByteIo> image,PagedStoreLimits limits,LookupPage
   }
   s.degraded_roots=!paired;
   if(query_pages)(void)query_pages->get(s,s.root);
-  else (void)read_node(s,s.root);
+  else {
+    auto root=read_node(s,s.root);
+    if(retain_tree_root)*retain_tree_root=std::move(root);
+  }
   return s;
 }
 bool same(const State& a,const State& b) {
@@ -915,6 +925,9 @@ bool copy_rebuild_object(Rebuild& build,const State& original,const Entry& sourc
 
 struct PagedObjectStoreSnapshot::Impl {
   State state;
+  // Checked descriptors for this snapshot's immutable root. Payload reads,
+  // publication and recovery continue to verify their own backing bytes.
+  std::optional<Node> retained_root;
   std::optional<LookupPages> lookup_pages;
   std::optional<QueryMetadata> query_metadata;
 };
@@ -1376,7 +1389,14 @@ PagedObjectStoreSnapshot::QueryScope PagedObjectStoreSnapshot::scoped_query() co
   return QueryScope(*impl_);
 }
 PagedObjectStoreSnapshot PagedObjectStoreSnapshot::open(std::shared_ptr<StoreByteIo> image,PagedStoreLimits limits) {
-  auto p=std::make_unique<Impl>();p->state=load(std::move(image),limits);return PagedObjectStoreSnapshot(std::move(p));
+  return open_impl(std::move(image),limits,false);
+}
+PagedObjectStoreSnapshot PagedObjectStoreSnapshot::open_impl(std::shared_ptr<StoreByteIo> image,
+    PagedStoreLimits limits,bool retain_tree_root) {
+  auto p=std::make_unique<Impl>();
+  auto* root=retain_tree_root?&p->retained_root.emplace():nullptr;
+  p->state=load(std::move(image),limits,nullptr,root);
+  return PagedObjectStoreSnapshot(std::move(p));
 }
 StoreIdentity PagedObjectStoreSnapshot::identity() const noexcept {return impl_?impl_->state.id:StoreIdentity{};}
 std::shared_ptr<StoreByteIo> PagedObjectStoreSnapshot::backing_for_volume_head() const {
@@ -1456,7 +1476,8 @@ std::optional<Bytes> PagedObjectStoreSnapshot::read_if_generation(std::uint64_t 
 std::optional<Bytes> PagedObjectStoreSnapshot::read_matching(std::uint64_t id,std::size_t maximum_decoded_bytes,
     std::optional<std::uint64_t> expected_generation) const {
   if(!impl_)fail("moved-from snapshot");
-  auto e=lookup(impl_->state,id,impl_->lookup_pages?&*impl_->lookup_pages:nullptr);
+  auto e=lookup(impl_->state,id,impl_->lookup_pages?&*impl_->lookup_pages:nullptr,
+      impl_->retained_root?&*impl_->retained_root:nullptr);
   if(!e || (expected_generation && e->generation!=*expected_generation))return {};
   if(e->logical>maximum_decoded_bytes)fail("object exceeds decoded read budget");
   return read_object(impl_->state,*e);
@@ -1465,17 +1486,25 @@ std::optional<std::pair<std::uint64_t,Bytes>> PagedObjectStoreSnapshot::read_fir
     std::uint64_t after,std::uint64_t last,std::size_t maximum_decoded_bytes) const {
   if(!impl_)fail("moved-from snapshot");
   if(after>=last)return {};
-  std::optional<std::pair<std::uint64_t,Bytes>> result;
-  bool done=false;
-  auto visit=[&](const Entry& entry) {
-    if(entry.id<=last) {
-      if(entry.logical>maximum_decoded_bytes)fail("object exceeds decoded read budget");
-      result.emplace(entry.id,read_object(impl_->state,entry));
+  const auto& state=impl_->state;
+  const auto* root=impl_->retained_root?&*impl_->retained_root:nullptr;
+  auto reference=state.root;
+  while(reference.count && reference.last>after && reference.first<=last) {
+    Node temporary;
+    const auto& node=lookup_node(state,reference,temporary,nullptr,root);
+    if(!reference.height) {
+      const auto entry=std::ranges::upper_bound(node.entries,after,{},&Entry::id);
+      if(entry==node.entries.end() || entry->id>last)return {};
+      if(entry->logical>maximum_decoded_bytes)fail("object exceeds decoded read budget");
+      return std::pair{entry->id,read_object(state,*entry)};
     }
-    return false;
-  };
-  walk(impl_->state,impl_->state.root,after,visit,done);
-  return result;
+    // This child contains the first possible successor. Its checked last
+    // key is above after, so every later child starts beyond that successor.
+    const auto child=std::ranges::upper_bound(node.children,after,{},&Ref::last);
+    if(child==node.children.end())return {};
+    reference=*child;
+  }
+  return {};
 }
 std::vector<StoreObjectInfo> PagedObjectStoreSnapshot::list_page(std::uint64_t after,std::size_t limit) const {
   if(!impl_)fail("moved-from snapshot");if(!limit || limit>4096)fail("pagination budget");
@@ -1837,9 +1866,14 @@ PagedStoreWriteResult PagedObjectStoreWriter::commit_impl(
   return {flitzfs::info(p.state),write_bound};
 }
 PagedObjectStoreSnapshot PagedObjectStoreWriter::snapshot() const {
+  return snapshot_impl(false);
+}
+PagedObjectStoreSnapshot PagedObjectStoreWriter::snapshot_impl(bool retain_tree_root) const {
   if(!impl_)fail("moved-from writer");auto p=std::make_unique<PagedObjectStoreSnapshot::Impl>();
   p->state=impl_->state;if(impl_->poisoned)p->state.degraded_roots=true;
-  (void)read_node(p->state,p->state.root);return PagedObjectStoreSnapshot(std::move(p));
+  auto root=read_node(p->state,p->state.root);
+  if(retain_tree_root)p->retained_root.emplace(std::move(root));
+  return PagedObjectStoreSnapshot(std::move(p));
 }
 PagedObjectStoreSnapshot PagedObjectStoreWriter::snapshot_for_staging(bool query_cache) const {
   if(!impl_ || impl_->poisoned)fail("staging requires a healthy writer");

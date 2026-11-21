@@ -444,6 +444,15 @@ An unreadable catalog is retired and the ordinary window can continue. A fresh
 catalog can wake a settled controller. Selecting another image retires the
 earlier catalog owner.
 
+The catalog snapshot retains the parsed descriptors from its verified tree
+root. Point lookups and successor lookups reuse that one page for the lifetime
+of the selected checkpoint. A successor follows the first child whose verified
+last key is above the cursor. When that child's first key exceeds the range,
+the search ends before reading it. The remaining tree pages and posting body
+are checked when read. Opening another checkpoint, writer publication,
+compaction verification and recovery read the backing independently.
+[Sparse catalog evidence](evidence/indexed-coherence-range-reads-2026-11-21.json)
+
 Recent delta-compression and backup studies evaluate keeping multiple
 nominations or revisiting earlier candidates to improve matches. FlitzFS
 uses sparse slots so lookup can advance by one candidate per idle opportunity

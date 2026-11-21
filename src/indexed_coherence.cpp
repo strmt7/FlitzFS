@@ -245,7 +245,7 @@ IndexedCoherenceSnapshot::IndexedCoherenceSnapshot(
 }
 IndexedCoherenceSnapshot IndexedCoherenceSnapshot::open(std::shared_ptr<StoreByteIo> backing,
     StoreIdentity volume,StoreIdentity image,PagedStoreLimits limits) {
-  return IndexedCoherenceSnapshot(PagedObjectStoreSnapshot::open(std::move(backing),limits),volume,image);
+  return IndexedCoherenceSnapshot(PagedObjectStoreSnapshot::open_impl(std::move(backing),limits,true),volume,image);
 }
 std::optional<OptimizationGroupFeature> IndexedCoherenceSnapshot::find(
     std::uint32_t band,std::uint64_t fingerprint) const {
@@ -296,7 +296,7 @@ IndexedCoherenceWriter IndexedCoherenceWriter::resume(std::shared_ptr<StoreByteI
 }
 IndexedCoherenceSnapshot IndexedCoherenceWriter::snapshot() const {
   if(store_.poisoned())throw std::runtime_error("coherence catalog writer unavailable");
-  return IndexedCoherenceSnapshot(store_.snapshot(),volume_,image_);
+  return IndexedCoherenceSnapshot(store_.snapshot_impl(true),volume_,image_);
 }
 PagedStoreWriteResult IndexedCoherenceWriter::publish(
     std::span<const IndexedCoherencePosting> postings,std::uint64_t maximum_write_bytes) {

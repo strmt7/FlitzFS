@@ -355,6 +355,16 @@ multiple sessions and measure actual allocated bytes and write costs.
   catalog independently rebuildable, and tie scan progress and eviction to
   observed resources. Keep measured costs and failed trials in the advisory area.
   [Displaced nomination evidence](evidence/indexed-coherence-alternates-2026-11-21.json)
+- In the 5,121-record catalog trace, reusing the verified root and pruning
+  empty key ranges reduced metadata traffic for 7,168 misses from 168 MiB to
+  110.6 MiB. All 1,024 positive ranges resolved and older snapshots retained
+  their own records across publication. A separate 16,384-fingerprint
+  construction trial hit its 64 MiB backing allowance during appends.
+  Compare write amplification under sorted and interleaved ingestion,
+  compaction debt, total occupied bytes and read traffic on the same input.
+  Test retained-reader overlap and restart on the persistent catalog provider
+  before increasing the scan envelope.
+  [Sparse catalog evidence](evidence/indexed-coherence-range-reads-2026-11-21.json)
 - Use training and held-out sets chosen before the evaluation. Test close
   revisions, unrelated files, small text, SVG, tabular and numeric data,
   binaries, media and already compressed files. Include nonsynthetic

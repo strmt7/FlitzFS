@@ -6,6 +6,16 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "indexed_coherence_range_reads": {
+    "reviewed_commit": "6b75f3af19b124bedf585a1096f609e561c65b7b",
+    "measured_on": "2026-11-21",
+    "evidence": "docs/evidence/indexed-coherence-range-reads-2026-11-21.json",
+    "catalog_objects": 5121,
+    "missing_queries": 7168,
+    "baseline_and_candidate_read_bytes": [176160768, 115965952],
+    "verified_present_ranges": 1024,
+    "follow_up": "Measure append write amplification and compaction debt under larger mixed workloads before raising the scan envelope."
+  },
   "indexed_coherence_alternates": {
     "reviewed_commit": "2d8ba6ce2a00edd6a6b207ebff5b514a8d17314b",
     "measured_on": "2026-11-21",

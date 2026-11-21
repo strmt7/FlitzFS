@@ -125,6 +125,7 @@ class PagedObjectStoreSnapshot final {
       std::optional<std::uint64_t> expected_generation) const;
   std::optional<std::pair<std::uint64_t,std::vector<std::byte>>> read_first_after(std::uint64_t after,
       std::uint64_t last,std::size_t maximum_decoded_bytes) const;
+  static PagedObjectStoreSnapshot open_impl(std::shared_ptr<StoreByteIo>,PagedStoreLimits,bool retain_tree_root);
   explicit PagedObjectStoreSnapshot(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;
 };
@@ -212,6 +213,7 @@ class PagedObjectStoreWriter final {
       std::shared_ptr<StoreByteIo>,StoreIdentity,PagedStoreLimits,StoreCompressionOptions,
       std::uint64_t replacement_id,std::span<const std::byte> replacement,bool reencode,
       std::size_t identity_offset=40);
+  PagedObjectStoreSnapshot snapshot_impl(bool retain_tree_root) const;
   PagedObjectStoreSnapshot snapshot_for_staging(bool query_cache=false) const;
   // Borrowed by serialized indexed queries. Independent snapshots and staged
   // workers do not schedule repairs on the selected writer.

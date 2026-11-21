@@ -2067,6 +2067,75 @@ void indexed_catalog_alternate_publication() {
       <<" primary_write_bound="<<primary_budget<<" full_write_bound="<<full.write_bytes_upper_bound
       <<" old_checkpoints="<<old_survives<<" new_checkpoints="<<new_survives<<'\n';
 }
+void indexed_catalog_sparse_range_reads() {
+  constexpr unsigned fingerprint_count=4096, groups_per_batch=128;
+  constexpr std::uint64_t fingerprint_base=0xd49bd1a5de10aceeULL;
+  constexpr PagedStoreLimits limits{64*1024*1024};
+  const auto backing=ram(4096);
+  const auto feature=[](unsigned group,bool latest) {
+    const auto index=group*2+static_cast<unsigned>(latest);
+    OptimizationGroupFeature member{2+index,0,detail::kNativeIndexedDataObject+1+index,1+index,
+        detail::record_digest(data(32,98347+index))};
+    member.bands[0]=fingerprint_base+2*group;
+    return member;
+  };
+  {
+    auto writer=IndexedCoherenceWriter::create(backing,id(90),id(1),limits);
+    std::optional<IndexedCoherenceSnapshot> earlier;
+    std::vector<IndexedCoherencePosting> postings;
+    postings.reserve(2*groups_per_batch);
+    for(unsigned start=0;start<fingerprint_count;start+=groups_per_batch) {
+      postings.clear();
+      for(unsigned group=start;group<start+groups_per_batch;++group) {
+        if(group%4==0)postings.push_back({0,feature(group,false)});
+        postings.push_back({0,feature(group,true)});
+      }
+      (void)writer.publish(postings,UINT64_MAX);
+      if(!start)earlier.emplace(writer.snapshot());
+    }
+    const auto last_group=fingerprint_count-4;
+    const auto later=writer.snapshot();
+    const auto oldest=earlier->next_alternate(0,fingerprint_base);
+    const auto key=fingerprint_base+2*last_group;
+    const auto added=later.next_alternate(0,key);
+    require(earlier->info().generation<later.info().generation && oldest &&
+        oldest->representative==feature(0,false) && !earlier->next_alternate(0,key) &&
+        added && added->representative==feature(last_group,false),
+        "catalog snapshots reused a tree root across checkpoints");
+  }
+  auto persisted=image(std::move(backing->stable),4096);
+  const auto view=IndexedCoherenceSnapshot::open(persisted,id(90),id(1),limits);
+  const auto info=view.info();
+  require(view.has_alternates() && info.height>=2 &&
+      info.objects==1+fingerprint_count+fingerprint_count/4,"catalog fixture did not span multiple branch pages");
+
+  const auto initial_reads=persisted->read_calls;
+  const auto initial_bytes=persisted->read_bytes;
+  constexpr auto missing_queries=fingerprint_count+3*fingerprint_count/4;
+  for(unsigned group=0;group<fingerprint_count;++group) {
+    const auto key=fingerprint_base+2*group;
+    require(!view.next_alternate(0,key+1),"unpopulated prefix resolved to a neighboring posting");
+    if(group%4)require(!view.next_alternate(0,key),"primary-only prefix resolved to an alternate");
+  }
+  const auto miss_reads=persisted->read_calls-initial_reads;
+  const auto miss_bytes=persisted->read_bytes-initial_bytes;
+  const auto positive_start=persisted->read_bytes;
+  for(unsigned group=0;group<fingerprint_count;group+=4) {
+    const auto key=fingerprint_base+2*group;
+    const auto first=view.next_alternate(0,key);
+    require(first && first->representative==feature(group,false) &&
+        view.find(0,key)==feature(group,true) && !view.next_alternate(0,key,first->cursor),
+        "range lookup lost a positive binding or escaped its prefix");
+  }
+  const auto positive_bytes=persisted->read_bytes-positive_start;
+  std::cout<<"coherence_sparse_ranges objects="<<info.objects<<" height="<<info.height
+      <<" catalog_bytes="<<info.physical_end<<" missing_queries="<<missing_queries
+      <<" miss_page_reads="<<miss_reads<<" miss_read_bytes="<<miss_bytes
+      <<" checked_positive_ranges="<<fingerprint_count/4<<" positive_read_bytes="<<positive_bytes<<'\n';
+  const auto descendant_reads=2*static_cast<std::uint64_t>(missing_queries)*info.height;
+  require(!persisted->writes && miss_bytes==miss_reads*4096 && miss_reads<descendant_reads,
+      "empty alternate ranges reread the verified root or followed unrelated leaves");
+}
 enum class ModularCatalogCase {available,masked_only,stale};
 void indexed_modular_catalog_discovery(ModularCatalogCase scenario) {
   Fixture f(4096,0,true);
@@ -2508,6 +2577,8 @@ int main(int argc,char** argv){try{
     indexed_catalog_displaced_candidate();
     indexed_catalog_alternate_publication();
     compact_full_indexed_catalog(CoherenceCopyOutcome::completed,0,true);
+  } else if(argc==2 && std::string_view(argv[1])=="--indexed-coherence-ranges") {
+    indexed_catalog_sparse_range_reads();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-projected-coherence") {
     for(const auto scenario:{ModularCatalogCase::available,ModularCatalogCase::masked_only,ModularCatalogCase::stale})
       indexed_modular_catalog_discovery(scenario);

@@ -484,6 +484,9 @@ if(FLITZFS_BUILD_TESTS)
   add_test(NAME bounded_native_indexed_displaced_coherence
     COMMAND flitzfs_native_group_maintenance_tests --indexed-displaced-coherence)
   set_tests_properties(bounded_native_indexed_displaced_coherence PROPERTIES TIMEOUT 40)
+  add_test(NAME bounded_native_indexed_coherence_ranges
+    COMMAND flitzfs_native_group_maintenance_tests --indexed-coherence-ranges)
+  set_tests_properties(bounded_native_indexed_coherence_ranges PROPERTIES TIMEOUT 40)
   add_test(NAME bounded_native_indexed_projected_coherence COMMAND flitzfs_native_group_maintenance_tests --indexed-projected-coherence)
   set_tests_properties(bounded_native_indexed_projected_coherence PROPERTIES TIMEOUT 100)
   add_test(NAME bounded_native_indexed_group_advice COMMAND flitzfs_native_group_maintenance_tests --indexed-advice)
