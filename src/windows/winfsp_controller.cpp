@@ -34,6 +34,7 @@ struct WinFspVolumeController::Impl {
   std::atomic<bool> stop_requested{false};
   mutable std::mutex mutex;
   WinFspControllerView current;
+  std::optional<NativeDeferredWriteOptions> foreground_offer;
   std::unique_ptr<WinFspNativeSession> session;
   WinFspNativeWritable* adapter=nullptr; // Valid only until session.stop().
   NativeWriteMountPlan plan;
@@ -64,6 +65,15 @@ struct WinFspVolumeController::Impl {
   }
   ~Impl(){request_stop();if(worker.joinable())worker.join();}
   void request_stop() noexcept {stop_requested.store(true,std::memory_order_release);SetEvent(stop.value);}
+  void apply_foreground_offer() {
+    std::lock_guard lock(mutex);
+    if(!foreground_offer || stop_requested.load(std::memory_order_acquire))return;
+    const auto result=adapter->activate_qualified_deferred_writes(*foreground_offer);
+    if(result==NativeDeferredActivation::busy)return;
+    current.foreground_activation=result;
+    foreground_offer.reset();
+    if(status_changed.value)SetEvent(status_changed.value);
+  }
   bool waiting_for_accelerator() const noexcept {
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
     if(qualifying_device)return true;
@@ -103,6 +113,7 @@ struct WinFspVolumeController::Impl {
                 NativeAnchorOpportunity::foreground:NativeAnchorOpportunity::poll);
             adapter->signal_foreground_for_anchor(waiting_for_accelerator());
           }
+          apply_foreground_offer();
           const auto gpu=adapter->gpu_budget_task();
           if(gpu && now>gpu->after_ms) {
             // CPU completion uses a different owner and can proceed while the
@@ -246,6 +257,10 @@ struct WinFspVolumeController::Impl {
     std::lock_guard lock(mutex);current.state=session->state();current.start_status=started;
     current.offline=session->requires_offline();
     current.write_restart_ready=anchor_retired && session->write_restart_ready();
+    if(foreground_offer) {
+      foreground_offer.reset();
+      current.foreground_activation=NativeDeferredActivation::refused;
+    }
     current.controller_failed=failed || !anchor_retired;
     if(anchor)current.anchor_search=anchor->stats();
     current.maintenance_disabled=disabled;current.retired=anchor_retired;
@@ -425,6 +440,19 @@ WinFspVolumeController::WinFspVolumeController(std::unique_ptr<WinFspNativeWrita
     std::optional<NativeAnchorSearchOptions> anchor,HANDLE state_changed):
     impl_(std::make_unique<Impl>(std::move(adapter),api,std::move(plan),&memory,std::move(anchor),state_changed)){}
 void WinFspVolumeController::request_stop() noexcept {impl_->request_stop();}
+bool WinFspVolumeController::offer_qualified_foreground_route(NativeDeferredWriteOptions options) {
+  auto& self=*impl_;
+  std::lock_guard lock(self.mutex);
+  if(self.current.state!=SessionState::running || self.stop_requested.load(std::memory_order_acquire) ||
+      self.foreground_offer || self.current.foreground_activation==NativeDeferredActivation::active)return false;
+  self.foreground_offer.emplace(std::move(options));
+  if(!SetEvent(self.activity.value)) {
+    self.foreground_offer.reset();
+    return false;
+  }
+  self.current.foreground_activation=NativeDeferredActivation::busy;
+  return true;
+}
 void WinFspVolumeController::stop_and_join() noexcept {
   impl_->request_stop();if(impl_->worker.joinable())impl_->worker.join();
 }

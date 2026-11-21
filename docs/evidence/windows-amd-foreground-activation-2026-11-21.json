@@ -1,0 +1,133 @@
+{
+  "schema": 1,
+  "base_commit": "05899c9fbfdb8b60495be688e93b26bf8259fc33",
+  "candidate_code_patch_sha256": "350bff0e8423fa967a9f50ee07b6292245a3704f6fab2d3c2d26e9ec3bc38757",
+  "candidate_source_blobs": {
+    "include/flitzfs/native_session.hpp": "646fe6bca92e0fadcefdb50999da26e73eb8b46f",
+    "src/native_session.cpp": "7a496d8459120f9e9a791206a5f458052008f54a",
+    "src/windows/native_deferred_write.cpp": "b68bb7f972c7a39748c86f1af0154fec07c8e45d",
+    "src/windows/native_deferred_write.hpp": "7734bd2ddd691804f4a3668fb685987a422a932c",
+    "src/windows/winfsp_controller.cpp": "1ee65682c435ec3f545d1440f0762c6eac9f9a74",
+    "src/windows/winfsp_controller.hpp": "8e177d303eee8ad7871181535542790df5c84852",
+    "src/windows/winfsp_native.cpp": "63d6a9f9fd92535d7260db9eed18392cf953568a",
+    "src/windows/winfsp_native.hpp": "42b680ace6bb54ca6c5d8eedb4a45e659fb725ec",
+    "tests/test_native_deferred_write_sdk.cpp": "ca1b7f37b96e8a7f7c6107f684b1d7e89b494b2f"
+  },
+  "winfsp_native_contract": {
+    "transport": "GitHub contents API",
+    "tag": "v2.2",
+    "published": "2026-11-19T11:52:35Z",
+    "commit": "ada6de157df4fa99f5a866b6ac7af66918d6d838",
+    "files": {
+      "inc/winfsp/winfsp.h": {
+        "url": "https://api.github.com/repos/winfsp/winfsp/contents/inc/winfsp/winfsp.h?ref=ada6de157df4fa99f5a866b6ac7af66918d6d838",
+        "git_blob": "0bfa8a25d8d33e893c52df49bdfc9bafafcbbb5b",
+        "sha256": "b8e5c3320bfb58d086ee622dd13370eb38a49e1142877c9d8af827515f916540"
+      },
+      "src/dll/fs.c": {
+        "url": "https://api.github.com/repos/winfsp/winfsp/contents/src/dll/fs.c?ref=ada6de157df4fa99f5a866b6ac7af66918d6d838",
+        "git_blob": "8dfd46f82b57978689cd6f50ddbbe151bcc838d8",
+        "sha256": "17df7498863300861292b82cbdfe718206ced33d835a1f95f965fa93dbdbffe9"
+      }
+    }
+  },
+  "staged_fixture": {
+    "amd/qualification-manifest.json": "682b6abd8e31e60832a9a05b941d10e357eb3212f65ddbd0be3957d31f45897a",
+    "amd/flitzfs_hip_lz4_worker.exe": "d22a19b5409d9c899dda652198a5a943a623967ed361c5f792715c80fe56a707",
+    "amd/hip-uniform-lz4/flitzfs_rocm_uniform_lz4_candidate.dll": "774129467f778a71a78f40486ef4bba3eb7f49ae5885fd89ca6a24ca18ac7994",
+    "amd/LICENSE": "6f1e622c82a380075843bb084a7ec3b1f1d12a4a02526d75e78b0924a860aa75",
+    "amd/licenses/winfsp/License.txt": "68ae2fa9d8e6110ebdc9a236beecf118e279f8a26530daf09c9e682c231f7879",
+    "amd/licenses/blake3/LICENSE_A2": "3da8137480af96e14b27ac9474c6a76a0102596493e5ab075ba98c7ffc64d552",
+    "amd/licenses/blake3/LICENSE_A2LLVM": "b944109ea368e9bf114cb87a21a7ccf11edb6621fe0bd8357ae51dced0afbbb3",
+    "amd/licenses/blake3/LICENSE_CC0": "f4e7f373b9b996950337e8d41a4a2939c2d90b7725e9baf3d5084a22717ad328",
+    "amd/licenses/lz4/LICENSE": "8b58c446121a109ccf32edc094bba3010a3d85e4ee3702950db55e4d3e87736c",
+    "amd/licenses/lz4/LICENSE-repository": "4bc9c403f6b679cc076dee210e0e21c27b4e8f6d3fb43d85364c76657bfaaac5",
+    "amd/licenses/hipcomp/LICENSE": "74e309b2672c84f53290161efaa80b59c068ddaca84842cb5e02f1d34eae29ef",
+    "amd/licenses/hipcomp/CMakeLists.txt": "19c5e33cf8f3c4f3a01236d4fa1869d7f7497c84e07bb6b0ee98628692b550e7",
+    "flitzfs_native_deferred_write_sdk_tests.exe": "20ad80079d1dc74323018fea96274bb306f67a625b91cbef0a0e1901fa460825",
+    "winfsp-x64.dll": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+  },
+  "foreground_amd_callback": {
+    "cpu_limit_percent": 20,
+    "peak_process_tree_bytes": 137555968,
+    "tree_retired": true,
+    "result_sha256": "280699182c25f0425a55ff2bb3f550a09c71cee9c7b204d81e9d360cf7d8600a",
+    "log_sha256": "790fa42c8b07baad1dd3d3352cd4742f6d53d8f1f7e0e26419e3aa67816602a7",
+    "first_cpu_write_verified": true,
+    "mismatched_policy_refused": true,
+    "duplicate_offer_refused": true,
+    "activated_on_running_controller": true,
+    "independently_verified_extents": 16,
+    "matched_mirrored_records": 32,
+    "source_bytes": 1048576,
+    "worker_payload_bytes": 135344,
+    "device_peak_bytes": 328288,
+    "controller_budget_samples": 2,
+    "completed_index_image_bytes": 2621440,
+    "response_ns": 2835096600
+  },
+  "public_source_matched_callbacks": {
+    "cpu_limit_percent": 23,
+    "peak_process_tree_bytes": 138465280,
+    "tree_retired": true,
+    "result_sha256": "c53f242e04a88f855daa63ca4f016a14bfff4ccd71de14a181b92f76d439a6c5",
+    "log_sha256": "b8c3db5b51de6dc408bd8bf8b22e9019620293eb7da9d3393b8f1faaa770571a",
+    "matched_trials": [
+      {
+        "amd_first": 0,
+        "cpu_ns": 4679000,
+        "amd_ns": 3415403400,
+        "cpu_image_bytes": 3145728,
+        "amd_image_bytes": 3276800
+      },
+      {
+        "amd_first": 1,
+        "cpu_ns": 4374700,
+        "amd_ns": 2305085300,
+        "cpu_image_bytes": 3145728,
+        "amd_image_bytes": 3276800
+      },
+      {
+        "amd_first": 0,
+        "cpu_ns": 4845300,
+        "amd_ns": 2231989500,
+        "cpu_image_bytes": 3145728,
+        "amd_image_bytes": 3276800
+      }
+    ],
+    "source": {
+      "source_commit": "ac1547aca7cf1cd7071b43393ca61ca61848b34c",
+      "bytes": 1048576,
+      "sha256": "5efc5c798295069e2151fdd2eaf06366dc0aa2e92a93ccf178ae3f5cfb309792",
+      "tracked_source_files": 128
+    },
+    "independent_cpu_readback": true,
+    "selected": "cpu"
+  },
+  "windows_release": {
+    "cpu_limit_percent": 25,
+    "peak_process_tree_bytes": 343162880,
+    "tree_retired": true,
+    "result_sha256": "95e11cd9b151cdadc1073fdb0b63d82e7a4b8dc422767493e473794a001a6888",
+    "log_sha256": "0c655a6638134e32a0663b93794988e874cebd7784b819564d69b66e7c151247",
+    "passed_tests": 203
+  },
+  "windows_raw": {
+    "cpu_limit_percent": 20,
+    "peak_process_tree_bytes": 342241280,
+    "tree_retired": true,
+    "result_sha256": "176147090482abe9fafd89857f2c8046a61cbbcd59883eb0ca51e3b8f0ba14cc",
+    "log_sha256": "97e6cf874a2c818d2d7755fcd9b77db735d337c17e7fefa82cca0f9bde3c9629",
+    "passed_tests": 204
+  },
+  "windows_address_sanitizer": {
+    "cpu_limit_percent": 20,
+    "peak_process_tree_bytes": 417366016,
+    "tree_retired": true,
+    "result_sha256": "13e77ea56803d4410757fce70f0f2f70bc91e2d7255716a6d8f530934985a0e0",
+    "log_sha256": "5110f81a4deb0a457051d9f67ccfeeb0f9a4f943a5133cfa7b690d4b2daf469a",
+    "passed_tests": 3,
+    "runtime_preflight": true
+  },
+  "scope": "Windows 11 user-mode callback fixture with WinFsp 2.2 and an actual pinned AMD worker. Its image uses owned memory. The activation trial uses diagnostic costs during other local build activity. The public-source comparison is an isolated measured callback fixture. Automatic workload enrollment, mounted I/O and representative product performance remain open."
+}

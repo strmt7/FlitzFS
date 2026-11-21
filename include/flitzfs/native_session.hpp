@@ -444,6 +444,7 @@ class NativeFileSession final {
   bool directory_backfill_pending() const noexcept;
   NativeDirectoryBackfillStep advance_directory_backfill();
   void cancel_directory_backfill() noexcept;
+  bool matches_managed_foreground(StoreCompressionOptions,std::uint32_t failure_unit) const noexcept;
   NativeFilesystemSnapshot snapshot() const;
   NativeSessionStats stats() const noexcept;
   // Cached advisory change detection only: zero for terminal/moved state.

@@ -11,6 +11,17 @@ namespace {
 void increment(std::uint64_t& n) noexcept{if(n!=(std::numeric_limits<std::uint64_t>::max)())++n;}
 
 }
+bool NativeDeferredWriteOptions::matches_controller_route() const noexcept {
+  if(!controller_health)return false;
+  const auto& health=*controller_health;
+  const auto& memory=health.memory;
+  const auto gate=check_gpu_memory_budget(memory,memory.luid,memory.node_mask,memory.captured_ms,0);
+  return health.compatible && health.sequence && health.configuration==binding.configuration &&
+      gate!=GpuGateCode::invalid_budget && (expected==WorkerExecution::cpu_semantics ||
+      (controller_route_pins && (!measured_shape || controller_route_pins->uniform_module_pinned()) &&
+       controller_route_pins->matches(binding.helper,binding.configuration,binding.runtime_sha256,
+           binding.ordinal,memory)));
+}
 NativeDeferredWriteService::NativeDeferredWriteService(NativeFileSession& session,std::mutex& control,
     std::atomic<bool>& offline,NativeDeferredWriteOptions options,NativeFileInfoAllocation info_policy)
     :session_(session),control_(control),offline_(offline),options_(std::move(options)),info_policy_(info_policy){
@@ -22,14 +33,7 @@ NativeDeferredWriteService::NativeDeferredWriteService(NativeFileSession& sessio
     throw std::invalid_argument("deferred transport callbacks are required");
   if(options_.controller_health) {
     health_=*options_.controller_health;
-    const auto& memory=health_.memory;
-    const auto gate=check_gpu_memory_budget(memory,memory.luid,memory.node_mask,memory.captured_ms,0);
-    const auto& binding=options_.binding;
-    const auto& pins=options_.controller_route_pins;
-    budget_disabled_=!health_.compatible || !health_.sequence || health_.configuration!=binding.configuration ||
-        gate==GpuGateCode::invalid_budget || (options_.expected==WorkerExecution::hip &&
-        (!pins || (options_.measured_shape && !pins->uniform_module_pinned()) ||
-        !pins->matches(binding.helper,binding.configuration,binding.runtime_sha256,binding.ordinal,memory)));
+    budget_disabled_=!options_.matches_controller_route();
   }
   thread_=std::thread([this]{run();});
 }

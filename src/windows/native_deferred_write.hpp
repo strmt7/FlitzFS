@@ -36,6 +36,7 @@ struct NativeDeferredWriteOptions {
   std::optional<NativeAmdWriteShape> measured_shape;
   NativeWriteHintQuery hint_query=nullptr; // required by the control service
   NativeWriteResponseSink response_sink=nullptr; // required; the adapter supplies SDK defaults
+  bool matches_controller_route() const noexcept;
 };
 struct NativeDeferredWriteStats {
   std::uint64_t queued=0,completed=0,cpu_forced=0,worker_submitted=0,advised=0,response_attempts=0;
@@ -49,6 +50,7 @@ struct NativeGpuBudgetTask {
   std::shared_ptr<const HipRoutePins> pins;
 };
 enum class NativeDeferredStop {running,quiescent,retirement_unconfirmed};
+enum class NativeDeferredActivation {busy,refused,active};
 // Caller owns the session/control lock for this entire service lifetime.
 // Enqueue/drain/stats/publication require that lock. The single owned thread
 // alone accesses the GPU coordinator. No callback waits for GPU teardown.

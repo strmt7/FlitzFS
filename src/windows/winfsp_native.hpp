@@ -126,6 +126,9 @@ class WinFspNativeWritable final {
   // Explicit hosted opt-in, before binding/mounting. The helper must be
   // independently qualified outside this volume; default factories stay CPU.
   void enable_deferred_writes_hosted(NativeDeferredWriteOptions);
+  // The running volume owner may adopt a qualified route after mount.
+  // Runtime discovery and cost qualification finish before this call.
+  NativeDeferredActivation activate_qualified_deferred_writes(NativeDeferredWriteOptions&) noexcept;
   void publish_deferred_health_hosted(const GpuHealthEvidence&);
   NativeDeferredWriteStats deferred_write_stats() const;
   std::optional<NativeUniformWriteResult> deferred_write_receipt() const;

@@ -21,7 +21,7 @@ fixtures today. Bring them together before counting a gate as complete.
 | --- | --- | --- |
 | Native Windows storage | Checked paged paths, inodes and extents serve writable callbacks. Reusing the verified inode reduced backing bytes by 38% in the 4,096-file handle query fixture. The full existing-volume audit remains on the reopen path. | Bound open, traversal, mutation, reclamation and recovery costs together. Qualify them on large mounted namespaces. |
 | Mount and application | Signed WinFsp 2.2 guest testing covers both backings. Two populated file-backed trials recovered all 1,024 original files and a flushed write after helper termination. A fresh writable helper then flushed another write and passed independent CPU recovery. | Qualify interactive Explorer on the current client, the signed installer lifecycle, earlier publication cuts, physical backing recovery and mounted AMD operation. |
-| AMD and CPU continuity | A matched live Windows controller trial executed 14 AMD kernel launches and selected 12 advised members. The settled image used 319,488 bytes on the AMD route and 327,680 on CPU. Both passed independent CPU verification of all 36 files. A separate deadline fixture read back all 15 files after CPU completion and re-admitted the same adapter after a verified recovery computation. | Measure complete-operation gains on held-out inputs. Qualify mounted foreground compression, driver-reset recovery and automatic route selection across supported adapters and workload classes. |
+| AMD and CPU continuity | A matched live Windows controller trial executed 14 AMD kernel launches and selected 12 advised members. The settled image used 319,488 bytes on the AMD route and 327,680 on CPU. Both passed independent CPU verification of all 36 files. A deadline fixture recovered all 15 files on CPU and re-admitted the same adapter. A running controller also adopted a foreground AMD route and recovered the accelerated write and earlier CPU data. | Measure complete-operation gains on held-out inputs. Qualify mounted foreground compression, driver-reset recovery and automatic route selection across supported adapters and workload classes. |
 | Compression | Shared bases, sparse XOR, prefixed Zstandard and short-file grouping can reduce complete occupied images. A later cross-window change saved 16 KiB in a controlled case, with equal sizes in the tested public cohorts. | Establish repeatable total-size gains against strong applicable controls, including shared metadata and retained versions. Qualify access costs for the same volume. |
 | Learning and reclamation | Advisory checkpoints, incremental candidate discovery, and staged cold recompression work in checked fixtures. Verified committed totals now make history eligible after reopen. | Prove bounded lookup and restart at production scale, persistent automatic policy changes, and steady-state reuse that reduces occupied space and unnecessary write traffic. |
 | Durability and compatibility | Checked roots, mirrored payload recovery, generation-bound references and several interrupted-write models are exercised. | Bind acknowledgement to real backend barriers and close retained-generation repair, mixed-format upgrade and independent rescue gates. |
@@ -34,6 +34,7 @@ fixtures today. Bring them together before counting a gate as complete.
 [Cold compaction receipt](evidence/screened-cold-compaction-2026-11-20.json) ·
 [AMD reference-profile receipt](evidence/amd-installed-reference-profile-2026-11-20.json) ·
 [AMD deadline recovery receipt](evidence/amd-recovery-qualification-2026-11-21.json) ·
+[Foreground AMD route activation](evidence/windows-amd-foreground-activation-2026-11-21.json) ·
 [Indexed inventory receipt](evidence/indexed-reopen-single-pass-audit-2026-11-20.json) ·
 [Latest collective packing and AMD receipt](evidence/indexed-cross-window-packing-2026-11-21.json)
 
@@ -630,10 +631,11 @@ allocation pressure on both sides of the barrier, and independent CPU readback.
    stable live content, bounded work per quantum and exact acknowledged
    readback across interrupted publication on each supported backend.
 4. **Bring both AMD roles into the same Windows client.** Use the worker and
-   installed admission path for the existing collective route. Bind the
-   foreground deferred-write path to actual eligible writes after verifying
-   CPU completion semantics. Alternate AMD-present, CPU-only and rejected
-   device routes on matched data. Record transfer, kernel, validation,
+   installed admission path for the existing collective route. Supply the
+   running foreground controller with a profile earned from matched complete
+   writes. Compare bounded reuse of runtime setup against the current finite
+   exchange before enrolling a new foreground workload. Alternate AMD-present,
+   CPU-only and rejected-device routes on matched data. Record transfer, kernel, validation,
    publication and backlog separately. Start the mounted failure matrix with
    the verified deadline fixture. Confirm the owner takes a fresh group as
    its next recovery opportunity, CPU operations complete during the check,

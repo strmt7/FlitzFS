@@ -9,6 +9,7 @@
 #include "native_close.hpp"
 #include "native_windows_boundary.hpp"
 #include "flitzfs/directory_order.hpp"
+#include "flitzfs/gpu_lz4_verify.hpp"
 #include "flitzfs/native_volume_file.hpp"
 #include "flitzfs/optimization_state.hpp"
 #include <sddl.h>
@@ -211,12 +212,14 @@ struct WinFspNativeWritable::Impl {
   std::shared_ptr<ActivitySignal> maintenance_event;
   // The service joins before the control lock, session and signal handle retire.
   std::unique_ptr<NativeDeferredWriteService> deferred;
+  std::atomic<bool> deferred_installed{false};
+  bool deferred_admission_closed=false;
   std::unique_ptr<NativeGroupMaintenance> groups;
   NativeMaintenancePolicy group_policy;
   MemoryVolumeBacking* memory_backing=nullptr;
   std::uint64_t last_indexed_observation=0,last_indexed_capture=0;
   bool maintenance_cancelled=false,scrub_yield=false,directory_backfill_yield=false;
-  bool callbacks_bound=false;
+  std::atomic<bool> callbacks_bound{false};
   StoreIdentity identity{};UINT64 created=0;UINT32 serial=0;
   const NativeFileInfoAllocation info_policy;
   Impl(NativeFileSession s,StoreIdentity id,UINT64 stamp,NativeFileInfoAllocation mode=legacy_file_info)
@@ -236,6 +239,14 @@ struct WinFspNativeWritable::Impl {
   };
   void signal_maintenance() noexcept {
     if(maintenance_event)maintenance_event->signal();
+  }
+  void install_deferred_locked(NativeDeferredWriteOptions options) {
+    if(!options.hint_query)options.hint_query=sdk_hint;
+    if(!options.response_sink)options.response_sink=sdk_response;
+    deferred=std::make_unique<NativeDeferredWriteService>(session,control,offline,
+        std::move(options),info_policy);
+    deferred->bind_activity_event_locked(maintenance_event?maintenance_event->event.value:nullptr);
+    deferred_installed.store(true,std::memory_order_release);
   }
   WinFspMaintenanceResult advance_groups(const NativeMaintenanceObservation& observed,std::uint64_t now,
       NativeGroupSearchOpportunity search) {
@@ -954,7 +965,8 @@ void WinFspNativeWritable::set_maintenance_event(HANDLE event) {
   if(impl_->deferred)impl_->deferred->bind_activity_event_locked(impl_->maintenance_event->event.value);
 }
 std::optional<NativeGpuBudgetTask> WinFspNativeWritable::gpu_budget_task() const {
-  if(!impl_->deferred || !impl_->deferred->budget_demand_pending())return {};
+  if(!impl_->deferred_installed.load(std::memory_order_acquire) ||
+      !impl_->deferred->budget_demand_pending())return {};
   std::lock_guard guard(impl_->control);
   return impl_->deferred->budget_task_locked();
 }
@@ -1107,13 +1119,34 @@ HostedIdleMaintenanceResult WinFspNativeWritable::idle_recompression_hosted(Host
 }
 void WinFspNativeWritable::enable_deferred_writes_hosted(NativeDeferredWriteOptions options){
   std::lock_guard guard(impl_->control);
-  if(impl_->callbacks_bound||impl_->deferred||impl_->foreground.load(std::memory_order_acquire))
+  if(impl_->callbacks_bound || impl_->deferred || impl_->deferred_admission_closed ||
+      impl_->foreground.load(std::memory_order_acquire))
     throw std::runtime_error("deferred writes require an unbound, unconfigured adapter");
-  if(!options.hint_query)options.hint_query=sdk_hint;
-  if(!options.response_sink)options.response_sink=sdk_response;
-  impl_->deferred=std::make_unique<NativeDeferredWriteService>(impl_->session,impl_->control,
-      impl_->offline,std::move(options),impl_->info_policy);
-  impl_->deferred->bind_activity_event_locked(impl_->maintenance_event?impl_->maintenance_event->event.value:nullptr);
+  impl_->install_deferred_locked(std::move(options));
+}
+NativeDeferredActivation WinFspNativeWritable::activate_qualified_deferred_writes(
+    NativeDeferredWriteOptions& options) noexcept {
+  using Result=NativeDeferredActivation;
+  try {
+    std::unique_lock guard(impl_->control,std::try_to_lock);
+    if(!guard || impl_->foreground.load(std::memory_order_acquire))return Result::busy;
+    if(!impl_->callbacks_bound || !impl_->maintenance_event || maintenance_event_failed() ||
+        impl_->deferred || impl_->deferred_admission_closed || requires_offline() || dispatcher_stopped() ||
+        !options.measured_shape || !options.allow_gpu || !options.workload_qualified ||
+        !options.helper_independent || options.expected!=WorkerExecution::hip || !options.cost.qualified ||
+        !options.matches_controller_route() || !valid_process_budget(options.budget) ||
+        !options.deadline_ms || options.deadline_ms>options.budget.timeout_ms ||
+        !gpu_lz4_cpu_verification_available())return Result::refused;
+    const auto& shape=*options.measured_shape;
+    const auto& health=*options.controller_health;
+    if(impl_->info_policy!=indexed_file_info || shape.input_bytes<kNativeExtentBytes ||
+        shape.input_bytes%kNativeExtentBytes || shape.input_bytes>native_windows_write_limit(impl_->info_policy) ||
+        !impl_->session.matches_managed_foreground(shape.foreground,shape.isolation_unit) ||
+        !health.supervisor_quiescent || options.cost.configuration!=health.configuration ||
+        options.cost.recovery_generation!=health.recovery_generation)return Result::refused;
+    impl_->install_deferred_locked(std::move(options));
+    return Result::active;
+  }catch(...) {return Result::refused;}
 }
 void WinFspNativeWritable::publish_deferred_health_hosted(const GpuHealthEvidence& health){
   std::lock_guard guard(impl_->control);
@@ -1130,10 +1163,17 @@ std::optional<NativeUniformWriteResult> WinFspNativeWritable::deferred_write_rec
 }
 NativeDeferredStop WinFspNativeWritable::stop_deferred_writes_hosted(){
   // Owned-resource cleanup must not depend on mutable environment flags.
-  return impl_->deferred?impl_->deferred->stop():NativeDeferredStop::quiescent;
+  NativeDeferredWriteService* service;
+  {
+    std::lock_guard guard(impl_->control);
+    impl_->deferred_admission_closed=true;
+    service=impl_->deferred.get();
+  }
+  return service?service->stop():NativeDeferredStop::quiescent;
 }
 void WinFspNativeWritable::bind_callbacks(FSP_FILE_SYSTEM& fs,WinFspOriginQuery query) noexcept{
-  impl_->origin.bind(query);impl_->callbacks_bound=true;fs.UserContext=impl_.get();
+  impl_->origin.bind(query);fs.UserContext=impl_.get();
+  impl_->callbacks_bound.store(true,std::memory_order_release);
 }
 bool WinFspNativeWritable::self_origin_rejected() const noexcept{return impl_->origin.self_rejected();}
 bool WinFspNativeWritable::requires_offline() const noexcept{return impl_->offline.load(std::memory_order_acquire);}

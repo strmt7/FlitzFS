@@ -16,6 +16,7 @@ struct WinFspControllerView {
   std::uint64_t maintenance_elapsed_ns=0,maximum_quantum_ns=0;
   std::uint64_t gpu_budget_queries=0,gpu_budget_refusals=0;
   NativeAnchorSearchStats anchor_search;
+  std::optional<NativeDeferredActivation> foreground_activation;
   std::optional<HipDiscoveryStatus> installed_anchor_status;
   std::uint32_t installed_anchor_attempts=0,installed_anchor_queries=0;
   bool maintenance_disabled=false,retired=false,offline=false,controller_failed=false,write_restart_ready=false;
@@ -38,6 +39,9 @@ class WinFspVolumeController final {
   ~WinFspVolumeController();
   WinFspVolumeController(const WinFspVolumeController&)=delete;
   WinFspVolumeController& operator=(const WinFspVolumeController&)=delete;
+  // An independent control-plane owner supplies the measured, acquired route.
+  // The volume owner applies it at a quiescent foreground boundary.
+  bool offer_qualified_foreground_route(NativeDeferredWriteOptions);
   void request_stop() noexcept;
   void stop_and_join() noexcept;
   WinFspControllerView view() const;

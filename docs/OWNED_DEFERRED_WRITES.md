@@ -131,8 +131,35 @@ must remain independently CPU-readable.
 GPU admission also requires an explicit trusted assertion that the helper and
 its dependencies are independently available outside this volume. This flag is
 not learning state or proof of automatic dependency validation. Configuration
-and helper paths are immutable during service lifetime. Automatic trustworthy
-helper/cost acquisition and ordinary GPU activation remain unfinished.
+and helper paths are immutable during service lifetime.
+
+## Activating a route on a running volume
+
+The Windows volume controller can receive an independently acquired foreground
+route while callbacks are already serving CPU requests. It applies the offer
+at a quiet foreground boundary. The reported outcome stays pending while a
+callback owns the volume, and callback completion wakes the owner. The adapter
+requires an indexed managed volume, a pinned uniform worker and runtime, a
+matching measured write size and storage policy, and an independent CPU
+decoder. It binds the existing budget event before admitting the first
+deferred write. Shutdown closes admission and retains ownership of the
+service until its publication and worker retirement settle.
+
+The live SDK callback fixture wrote a marker on CPU, rejected an offer with a
+different codec policy and applied the matching offer without remounting. An
+aligned 1 MiB write used the AMD worker. The independent CPU reader verified
+all sixteen extents, the retained prior state and the marker. The worker
+bodies matched all 32 mirrored records for the accelerated write. The
+activation test used explicit diagnostic costs.
+
+A separate matched fixture wrote 1 MiB of public FlitzFS source bytes in
+three alternating pairs. CPU callbacks took 4.37–4.85 ms and occupied
+3,145,728 bytes per image. The finite AMD callbacks took 2.23–3.42 s and
+occupied 3,276,800 bytes. Every arm passed independent CPU readback.
+The measured workload selects CPU. Automatic workload qualification and
+mounted operation remain to qualify.
+[Windows foreground activation evidence](evidence/windows-amd-foreground-activation-2026-11-21.json) ·
+[WinFsp 2.2 response contract](https://github.com/winfsp/winfsp/blob/ada6de157df4fa99f5a866b6ac7af66918d6d838/inc/winfsp/winfsp.h#L1220)
 
 Shutdown first selects CPU completion, sends the single response, cancels and
 observes worker retirement, then joins the owned control thread before stopping

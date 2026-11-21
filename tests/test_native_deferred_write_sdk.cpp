@@ -296,6 +296,30 @@ struct Harness {
   }
 };
 Harness* Harness::provider=nullptr;
+void refused_foreground_offer() {
+  Harness h(std::nullopt,true,true);
+  const auto target=h.create(L"\\target");
+  auto first=native_fixture::data(701,19),second=native_fixture::data(659,23);
+  ULONG count=0;FSP_FSCTL_FILE_INFO info{};
+  const auto write=[&](auto& data,UINT64 offset){
+    check(h.fs.Interface->Write(&h.fs,target,data.data(),offset,static_cast<ULONG>(data.size()),FALSE,FALSE,
+        &count,&info)==STATUS_SUCCESS && count==data.size(),"qualified-route refusal changed CPU write");
+  };
+  write(first,0);
+  check(h.controller->offer_qualified_foreground_route({}),"running owner did not receive route offer");
+  eventually([&]{return h.controller->view().foreground_activation==NativeDeferredActivation::refused;},
+      "unqualified route was not refused");
+  write(second,first.size());
+  h.close(target);
+  h.controller->stop_and_join();
+  check(h.controller->view().write_restart_ready && !h.controller->offer_qualified_foreground_route({}),
+      "retired controller accepted an offered route");
+  first.insert(first.end(),second.begin(),second.end());
+  const auto recovered=NativeFilesystemSnapshot::open_image(h.image,{NativeImageKind::indexed_paged,h.capacity});
+  recovered.verify_all();
+  check(recovered.read("target",0,static_cast<std::uint32_t>(first.size()))==first && h.collector.count==0,
+      "unqualified route changed acknowledged data or used a deferred response");
+}
 void native_amd_write_preference() {
   using Preference=NativeAmdWritePreference;
   GpuConfigurationId configuration{};configuration[0]=std::byte{12};
@@ -599,7 +623,7 @@ void check_indexed_retirement() {
 constexpr std::uint32_t fixture_quantum_chunks=2,fixture_sweep_chunks=16;
 NativeAmdWriteSample indexed_trial(const HipDiscoveredRoute* route,bool sweep,
     const std::vector<std::byte>& expected,bool expect_uniform_advice,
-    bool prove_owned_input=false,NativeAmdWriteShape* shape=nullptr,bool grouped=false) {
+    bool prove_owned_input=false,NativeAmdWriteShape* shape=nullptr,bool grouped=false,bool late_activation=false) {
   constexpr auto quantum_chunks=fixture_quantum_chunks;
   check(!expected.empty() && expected.size()%kNativeExtentBytes==0,"incomplete comparison extent");
   const auto chunks=static_cast<std::uint32_t>(expected.size()/kNativeExtentBytes);
@@ -662,9 +686,30 @@ NativeAmdWriteSample indexed_trial(const HipDiscoveredRoute* route,bool sweep,
   options.controller_route_pins=route->pins;
   NativeAmdWriteSample sample;
   {
-    Harness h(options,true,true,grouped);
+    Harness h(late_activation?std::nullopt:std::optional{options},true,true,grouped);
     const auto target=grouped?h.open(L"\\target"):h.create(L"\\target");
     const auto prior=h.adapter->snapshot();
+    const auto marker=native_fixture::data(71,492);
+    if(late_activation) {
+      auto before=h.create(L"\\before-route");
+      auto bytes=marker;
+      ULONG written=0;FSP_FSCTL_FILE_INFO before_info{};
+      check(h.fs.Interface->Write(&h.fs,before,bytes.data(),0,static_cast<ULONG>(bytes.size()),FALSE,FALSE,
+          &written,&before_info)==STATUS_SUCCESS && written==bytes.size(),"first write waited for the AMD route");
+      h.close(before);
+      options.measured_shape=NativeAmdWriteShape{static_cast<std::uint32_t>(source.size()),
+          h.image->contract().write_failure_unit_bytes,fixture_compression};
+      auto mismatch=options;
+      ++mismatch.measured_shape->foreground.zstd_level;
+      check(h.controller->offer_qualified_foreground_route(std::move(mismatch)),
+          "running controller did not queue the incompatible measurement");
+      eventually([&]{return h.controller->view().foreground_activation==NativeDeferredActivation::refused;},
+          "different foreground policy activated a measured route");
+      check(h.controller->offer_qualified_foreground_route(options),"running controller did not queue its AMD route");
+      eventually([&]{return h.controller->view().foreground_activation==NativeDeferredActivation::active;},
+          "running controller did not activate its AMD route");
+      check(!h.controller->offer_qualified_foreground_route(options),"owner allowed a second live write service");
+    }
     eventually([&]{return GetTickCount64()-route->memory.captured_ms>kGpuMaxBudgetAgeMs;},
         "initial probe should expire before testing on-demand collection");
     if(shape)check(shape->matches_storage(fixture_compression,h.image->contract().write_failure_unit_bytes) &&
@@ -713,6 +758,12 @@ NativeAmdWriteSample indexed_trial(const HipDiscoveredRoute* route,bool sweep,
     std::cout<<'\n';
     h.close(target);
     indexed_oracle(h,prior,expected,grouped);
+    if(late_activation) {
+      const auto reopened=NativeFilesystemSnapshot::open_image(h.image,{NativeImageKind::indexed_paged,h.capacity});
+      check(reopened.read("before-route",0,static_cast<std::uint32_t>(marker.size()))==marker,
+          "live route activation changed the first CPU write");
+      std::cout<<"live_foreground_activation cpu_before=exact shape_refused=1 activated=1\n";
+    }
     if(stats.advised)
       eventually([&]{return h.controller->view().gpu_budget_queries==2;},
           "verified GPU completion did not request a fresh budget");
@@ -800,10 +851,21 @@ int compare_installed_amd(const std::filesystem::path& corpus={},bool grouped=fa
       <<" parent_peak_commit="<<controller_budget.peak_commit()<<'\n';
   return 0;
 }
+int installed_late_foreground() {
+  gpu_probe_fixture::Budget controller_budget;
+  const auto discovery=discover_installed_hip_route(diagnostic_worker_budget,4);
+  const auto& route=require_indexed_route(discovery);
+  check(route.pins->uniform_module_pinned(),"live foreground route has no pinned uniform compute module");
+  const auto sample=indexed_trial(&route,true,indexed_source(fixture_sweep_chunks),true,true,nullptr,false,true);
+  check(sample.amd_used && sample.cpu_readback_verified && sample.retirement_confirmed,
+      "live foreground route did not settle the AMD write");
+  return 0;
+}
 #endif
 }
 int wmain(int argc,wchar_t** argv){try{
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
+  if(argc==2 && std::wstring_view(argv[1])==L"--live-installed-late-foreground")return installed_late_foreground();
   if(argc==2 && std::wstring_view(argv[1])==L"--compare-installed-amd")return compare_installed_amd();
   if(argc==2 && std::wstring_view(argv[1])==L"--compare-installed-amd-grouped")
     return compare_installed_amd({},true);
@@ -837,6 +899,7 @@ int wmain(int argc,wchar_t** argv){try{
   transport_required();
   for(bool fault:{false,true})deferred_activity_notification(fault);
   native_amd_write_preference();
+  refused_foreground_offer();
   budget_demand(worker);
   completion_budget_refusal(worker);
   for(const auto indexed : {false,true})for(unsigned kind=0;kind<4;++kind){
