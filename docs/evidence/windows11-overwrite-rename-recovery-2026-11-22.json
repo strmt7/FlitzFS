@@ -1,0 +1,555 @@
+{
+  "schema": "flitzfs-windows-overwrite-rename-recovery-v1",
+  "review_date": "2026-11-22",
+  "observed_at_utc": "2026-11-21T13:47:04.9210059Z",
+  "experimental": true,
+  "release_qualified": false,
+  "source": {
+    "base": "1c5f1704cfc565714a65bfd81975f933f3b9b0bc",
+    "tree": "bcfb339c88b8ffb666cd7c24ca2eec269a9f4c94",
+    "patch_sha256": "0b34cf2216bfcb81ca6aadcff8d3a826ef3d65e3186b1a4a1a19c75cda236632",
+    "git_blobs": {
+      "CMakeLists.txt": "2fd87bda180d5ac53b6286b33a7bdcf9562a7c20",
+      "tests/test_native_volume_file.cpp": "308a2e77619c08c91b0911704cdfd864bf321e94",
+      "tests/windows_volume_app_tests.cpp": "ca002e09fd5aea6bc4edc3b3032b04b993c7197b"
+    }
+  },
+  "semantic_navigation": {
+    "receipt_sha256": "f194ba6acbc683538d2565361de780625e5267665865d630fd8ecc1c6b54aad0",
+    "source_files": 8,
+    "provider": "0.2.43",
+    "native_response_sha256": "d9a4f9b265e9c0bd413457de5edec4bd7e8468b89a868e7e7db4575379990a95"
+  },
+  "current_sources": [
+    {
+      "receipt_sha256": "d18f058f2541c018c38f8cdc399223771b56219808ed79763fc5ad164eff7af8",
+      "provider": "0.9.5+flitzzip.portable2",
+      "pages": [
+        {
+          "name": "windows-file-rename",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_rename_info",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 37123,
+          "markdown_sha256": "710d9e840b19847aa80b694c4dbdd78e8cbf1a16f122e69871fa9b210b7db187",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 1.319,
+          "capture": "windows-file-rename.native.json",
+          "capture_sha256": "f786b0222166c08f4efcee0ce888199e053f256efc2b8d3df7bd5b2b4004fb4a"
+        },
+        {
+          "name": "windows-file-id",
+          "url": "https://learn.microsoft.com/en-us/windows/desktop/api/winbase/ns-winbase-file_id_info",
+          "success": true,
+          "native_success": true,
+          "http_status": 301,
+          "final_http_status": 200,
+          "markdown_bytes": 36331,
+          "markdown_sha256": "b7a2b2c18242991092e6b001fa2d29cc4e19a41255e871c40544c7e9b76e2873",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.961,
+          "capture": "windows-file-id.native.json",
+          "capture_sha256": "fc8f25bbc3e74b9e8e1f169563f1ccaae777fa2ea3614fd84fbec6a8fa5bc743"
+        },
+        {
+          "name": "winfsp-rename-flush",
+          "url": "https://winfsp.dev/doc/WinFsp-API-winfsp.h/",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 73095,
+          "markdown_sha256": "23f2e7b26b2297a12d6e98acb7b612010c44361803cc72c3563f82571cce5837",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.605,
+          "capture": "winfsp-rename-flush.native.json",
+          "capture_sha256": "1d05c60e7065203f77beada0c0799019f1a27222ba44107f9c9700217e5b0d09"
+        },
+        {
+          "name": "windows-file-flush",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 36207,
+          "markdown_sha256": "116ffcd5a6feba3539c3f668a2c969aa2e38b8f3663a704a7654e7b2a7954e4c",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.845,
+          "capture": "windows-file-flush.native.json",
+          "capture_sha256": "2b88733f86df856185ef05d2d5adf6b22dea6812c316d1ca4556dc4073f86182"
+        }
+      ]
+    },
+    {
+      "receipt_sha256": "efa5b30bd560a7c5b92863bcfc15f99097cb0a295bd1ce9671b7320af5a8494b",
+      "provider": "0.9.5+flitzzip.portable2",
+      "pages": [
+        {
+          "name": "win32-move",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-movefileexw",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 21757,
+          "markdown_sha256": "44a6413a1397572581ea41aedc966edd7b55557ca8b0c89d8dff1b6d0f8d15fc",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 1.396,
+          "capture": "win32-move.native.json",
+          "capture_sha256": "62a26c94ad68b7604ac533b9f15a5ec07d943899543edc53dca349cbd7f16567"
+        },
+        {
+          "name": "win32-handle-identity",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/ns-fileapi-by_handle_file_information",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 37385,
+          "markdown_sha256": "663020f066d7e372b8846f6691d36e763a0347c678d8b675229f193567d40b30",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 2.67,
+          "capture": "win32-handle-identity.native.json",
+          "capture_sha256": "d8fd928fde9e6244171cf4c8332b573b77829be36f6f4ac3320a85ff7b23002e"
+        },
+        {
+          "name": "win32-set-eof",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-setendoffile",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 35778,
+          "markdown_sha256": "d6742cfb151617e8231e745985b1fccb1ba5331a42da24c64df0ceab8cf95ad9",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 2.511,
+          "capture": "win32-set-eof.native.json",
+          "capture_sha256": "64ea11cb3bd9194f5f773ac7a88cce998166749613f8b178daf11973d3c71642"
+        }
+      ]
+    }
+  ],
+  "mounted": {
+    "winfsp": "2.2.26323",
+    "app_fixture_build": {
+      "run": "local-run-008db6ddb4fd483994ae7f239ed536de",
+      "receipt_sha256": "97844f7745aafcd389bd985446e2a4b8332a1e2629d2a7b5569588f052f49405",
+      "output_sha256": "bab97c964bc7b9e79f8bf0251c39345d45739e8a38c025a8b720eb727c93bb8d",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 399007744,
+      "error_mode": 32771
+    },
+    "input_sha256": {
+      "winfsp-x64.sys": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+      "winfsp-x64.dll": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+      "msvcp140.dll": "59d325227321d52b9a523ea401ce6787a5d59f78229a0ff3a6f124e5d3445685",
+      "msvcp140_atomic_wait.dll": "8b10c6bd4c3c427ce7c8be96ef0fef0f8187bc236962be62a03caef834b37dcd",
+      "vcruntime140.dll": "eb1ee979bf02324712346e5bdbfc59c785388bc50d18cc2688aae4b0734915a0",
+      "vcruntime140_1.dll": "a14b4a42a2c6df04d6d53a8340816023d953406f7f3d94996c7cab30c414ff63",
+      "flitzfs_volume_app.exe": "2369d4f8c65a4232beef9525b169583a50d9b19a3435b4ad1f62c0ac5484a8f8",
+      "flitzfs_volume_app_tests.exe": "81a99600ef80e4a256f8c7ae0e221b97192a68939cda582d2586e99b5932805a"
+    },
+    "overwrite_rename_trials": [
+      {
+        "process": {
+          "run": "local-run-2f3b0bfe175241888591891a2655ee39",
+          "receipt_sha256": "3e1bcdfbd983f52b0dcce6dca6753a1295fb539a4fe5fd707fb96305457a2897",
+          "output_sha256": "f438d9f47b5a191df4359c797d51ef885f8c909204c5d1dcdf82465eab2a1f42",
+          "exit_code": 0,
+          "tree_retired": true,
+          "peak_job_bytes": 47652864,
+          "error_mode": 32771
+        },
+        "guest_caption": "Microsoft Windows 11 Enterprise",
+        "guest_build": "26100",
+        "guest_command_exit": 0,
+        "guest_retired": true,
+        "guest_report_sha256": "410c609225cf50261b33fe8ed9c65e2ebb4a307fd8a4a495fc1accd44c52d2f8",
+        "sandbox_receipt_sha256": "ac833bfa391220bb9b7298e152e591a3ac266afa31e95acab09df2c0fdacc5a0",
+        "signed_inputs": 6,
+        "population": {
+          "phase": "independent_cpu",
+          "seed": "434491035",
+          "files": "1024",
+          "blake3": "24b7b9b2afa3ee9c8043d757ccb4229c4321e8af5352b9800d6a599b8b70faa4"
+        },
+        "acknowledgement": {
+          "phase": "rename_flushed",
+          "file": "recovered-overwrite.bin",
+          "bytes": "66533",
+          "blake3": "c7be5a08573cc7cbc05b0ec51ad570f4495f37747e352a2dc76fa3b6d19336a1"
+        },
+        "continuation": {
+          "phase": "continuation_flush",
+          "file": "written-after-recovery.bin",
+          "bytes": "65709",
+          "blake3": "525ed6f52f40d0ea4858c922d4915844f619998acf997ee4d9a6fada333dd79b"
+        },
+        "client_held_through_exit": true,
+        "old_mount_removed": true,
+        "original": {
+          "phase": "independent_before_overwrite",
+          "file": "existing-file",
+          "bytes": "131209",
+          "blake3": "c90acb3c96dc2186fd71263cbe7a3b3e5bf2e2ec71702b55e19947217b2b8f76"
+        },
+        "original_identity": {
+          "phase": "original",
+          "inode": "3",
+          "creation_time": "134397419023773642"
+        },
+        "cpu_identities": [
+          {
+            "phase": "independent_cpu",
+            "inode": "3",
+            "creation_time": "134397419023773642",
+            "old_name_absent": "1",
+            "creation_time_preserved": "1"
+          },
+          {
+            "phase": "independent_cpu",
+            "inode": "3",
+            "creation_time": "134397419023773642",
+            "old_name_absent": "1",
+            "creation_time_preserved": "1"
+          }
+        ],
+        "eof_preserved": true,
+        "old_path_absent": true,
+        "checks": 27963
+      },
+      {
+        "process": {
+          "run": "local-run-d6eec2f07a0a460cb928ff5ed4345b75",
+          "receipt_sha256": "65bb204137d29cb793cf32a629acf2b1961f695fe2e2be0a715e8e17aebb4812",
+          "output_sha256": "ae8367274700287531c24fd2632c79e6e6d63dbd2958071c47f2e997c9874f97",
+          "exit_code": 0,
+          "tree_retired": true,
+          "peak_job_bytes": 48357376,
+          "error_mode": 32771
+        },
+        "guest_caption": "Microsoft Windows 11 Enterprise",
+        "guest_build": "26100",
+        "guest_command_exit": 0,
+        "guest_retired": true,
+        "guest_report_sha256": "b70253618a8b1bcdd581e695a4bb68cbc323ec0f08b2306de6e54babe6c1e18d",
+        "sandbox_receipt_sha256": "48dd160c63c8a426715cfdf45dd89d899868c369fb180dbd5c2211236b8d2b28",
+        "signed_inputs": 6,
+        "population": {
+          "phase": "independent_cpu",
+          "seed": "434491035",
+          "files": "1024",
+          "blake3": "24b7b9b2afa3ee9c8043d757ccb4229c4321e8af5352b9800d6a599b8b70faa4"
+        },
+        "acknowledgement": {
+          "phase": "rename_flushed",
+          "file": "recovered-overwrite.bin",
+          "bytes": "66533",
+          "blake3": "c7be5a08573cc7cbc05b0ec51ad570f4495f37747e352a2dc76fa3b6d19336a1"
+        },
+        "continuation": {
+          "phase": "continuation_flush",
+          "file": "written-after-recovery.bin",
+          "bytes": "65709",
+          "blake3": "525ed6f52f40d0ea4858c922d4915844f619998acf997ee4d9a6fada333dd79b"
+        },
+        "client_held_through_exit": true,
+        "old_mount_removed": true,
+        "original": {
+          "phase": "independent_before_overwrite",
+          "file": "existing-file",
+          "bytes": "131209",
+          "blake3": "c90acb3c96dc2186fd71263cbe7a3b3e5bf2e2ec71702b55e19947217b2b8f76"
+        },
+        "original_identity": {
+          "phase": "original",
+          "inode": "3",
+          "creation_time": "134397421612999054"
+        },
+        "cpu_identities": [
+          {
+            "phase": "independent_cpu",
+            "inode": "3",
+            "creation_time": "134397421612999054",
+            "old_name_absent": "1",
+            "creation_time_preserved": "1"
+          },
+          {
+            "phase": "independent_cpu",
+            "inode": "3",
+            "creation_time": "134397421612999054",
+            "old_name_absent": "1",
+            "creation_time_preserved": "1"
+          }
+        ],
+        "eof_preserved": true,
+        "old_path_absent": true,
+        "checks": 27980
+      }
+    ],
+    "new_file_control": {
+      "process": {
+        "run": "local-run-db4d2a5203e74e0b93fe995b68ca0ae5",
+        "receipt_sha256": "47dc2124a31cc86235915202a5cd677da5581058d157146670693f9cc82a59fc",
+        "output_sha256": "ffea771475e38f8fdfc7dcde6c24d728f0ac2899cebc75a795b68ab321de89df",
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 45780992,
+        "error_mode": 32771
+      },
+      "guest_caption": "Microsoft Windows 11 Enterprise",
+      "guest_build": "26100",
+      "guest_command_exit": 0,
+      "guest_retired": true,
+      "guest_report_sha256": "149ccd462573fea873de36b28f8a1e591306fe8cf0ac968e0a2de956c530e419",
+      "sandbox_receipt_sha256": "7e7e87174adab303ded7d58af91ebbd6881860ed65e4d3599afaf686efeb8907",
+      "signed_inputs": 6,
+      "population": {
+        "phase": "independent_cpu",
+        "seed": "434491035",
+        "files": "1024",
+        "blake3": "24b7b9b2afa3ee9c8043d757ccb4229c4321e8af5352b9800d6a599b8b70faa4"
+      },
+      "acknowledgement": {
+        "phase": "acknowledged_flush",
+        "file": "acknowledged-before-exit.bin",
+        "bytes": "131209",
+        "blake3": "80eb1844fb1b696fa7d75e381be1f4fba40d5cfe722a5953eb0d8df809812977"
+      },
+      "continuation": {
+        "phase": "continuation_flush",
+        "file": "written-after-recovery.bin",
+        "bytes": "65709",
+        "blake3": "525ed6f52f40d0ea4858c922d4915844f619998acf997ee4d9a6fada333dd79b"
+      },
+      "client_held_through_exit": true,
+      "old_mount_removed": true,
+      "checks": 27952
+    },
+    "scope": "Signed Windows guest, retained external writer and confirmed helper termination after the flush."
+  },
+  "modeled_publication": {
+    "configurations": {
+      "Release": {
+        "build": {
+          "run": "local-run-b38cc97efd8e498c9957e35ef4d3e668",
+          "receipt_sha256": "42963c791b8728e8ad901923b2160541d607fa2e012d6174e1476e5512bd141b",
+          "output_sha256": "bd25ff52e94f6d7fd02670c54811d992965f5741f2f141fea6ca24f002d0bff0",
+          "exit_code": 0,
+          "tree_retired": true,
+          "peak_job_bytes": 318857216,
+          "error_mode": 32771
+        },
+        "test": {
+          "run": "local-run-c03b63d7e246442388cebc9ae793c3a5",
+          "receipt_sha256": "690b65460a90296e9ababcf31ce5afe6605228d41d94fd8a0713b7a6dd4eae47",
+          "output_sha256": "bc244c10ea0099e477bf82d7434f734af34cb0f9efcc75cda3df0f3287f739d0",
+          "exit_code": 0,
+          "tree_retired": true,
+          "peak_job_bytes": 87113728,
+          "error_mode": 32771
+        },
+        "executable_sha256": "46f6158a902060e70c12848e0f45107eed2b2541d7b50810f31b9168705b96a8",
+        "matrix": [
+          {
+            "unit_bytes": 4096,
+            "boundaries": 147,
+            "failure_modes": 3,
+            "cases": 441,
+            "complete_states": [
+              259,
+              87,
+              87,
+              8
+            ],
+            "writable_continuations": 4
+          },
+          {
+            "unit_bytes": 65536,
+            "boundaries": 267,
+            "failure_modes": 3,
+            "cases": 801,
+            "complete_states": [
+              259,
+              267,
+              267,
+              8
+            ],
+            "writable_continuations": 4
+          }
+        ],
+        "ctest_items": 2
+      },
+      "Asan": {
+        "build": {
+          "run": "local-run-dc475bdfb7744407bb94d62fcb8b33eb",
+          "receipt_sha256": "4ea0c7e9c8a7a32a125efccce3186aea70f93534e499abd8a4353b0c7e55808a",
+          "output_sha256": "0e619bd99570796d557cf54a9ed191daddd95c6d01ca163fc36a17f18ab70646",
+          "exit_code": 0,
+          "tree_retired": true,
+          "peak_job_bytes": 542523392,
+          "error_mode": 32771
+        },
+        "test": {
+          "run": "local-run-d536f8a0f2e44c679ae0a854e3aa596c",
+          "receipt_sha256": "f5eaf51c6cc69697f0a60d04e022f4aa5f697b57c23ebe0cafa4034d1687b8b3",
+          "output_sha256": "c93a362ab1ca7e8e2355f9394bcfbcb908228eadbe8d3c98d6f15e37e768ed20",
+          "exit_code": 0,
+          "tree_retired": true,
+          "peak_job_bytes": 515706880,
+          "error_mode": 32771
+        },
+        "executable_sha256": "efe6f744a46201f3a2b4809f701ba1d35f24d1fd37ad2e536ad2327f2b02a152",
+        "matrix": [
+          {
+            "unit_bytes": 4096,
+            "boundaries": 147,
+            "failure_modes": 3,
+            "cases": 441,
+            "complete_states": [
+              259,
+              87,
+              87,
+              8
+            ],
+            "writable_continuations": 4
+          },
+          {
+            "unit_bytes": 65536,
+            "boundaries": 267,
+            "failure_modes": 3,
+            "cases": 801,
+            "complete_states": [
+              259,
+              267,
+              267,
+              8
+            ],
+            "writable_continuations": 4
+          }
+        ],
+        "ctest_items": 3
+      },
+      "Raw": {
+        "build": {
+          "run": "local-run-294b8c7f713940a48671b153a413115e",
+          "receipt_sha256": "e4b56969cda192648e63f258812ad3b822a7db433fe8ffcc3484eb138b0e186b",
+          "output_sha256": "c98ae6306c9f4fada2d53e4b7cc39bd2a454136d4a2e87296380ae9bad27d154",
+          "exit_code": 0,
+          "tree_retired": true,
+          "peak_job_bytes": 315170816,
+          "error_mode": 32771
+        },
+        "test": {
+          "run": "local-run-0a7908c7eb0e4d348b78362760d2fe97",
+          "receipt_sha256": "9f7340298bcd32c903d66f092f2b5a85f8b5271b449801a0b581c84afc461d18",
+          "output_sha256": "67e2864556455e141cdd297b4f2ef4c8153bf7d9383adb93cfbb2998e68573b4",
+          "exit_code": 0,
+          "tree_retired": true,
+          "peak_job_bytes": 87236608,
+          "error_mode": 32771
+        },
+        "executable_sha256": "30dcb62771f32a64fa4af2a0905745f4a5f8b408dd45f61a4d80f48074169e39",
+        "matrix": [
+          {
+            "unit_bytes": 4096,
+            "boundaries": 147,
+            "failure_modes": 3,
+            "cases": 441,
+            "complete_states": [
+              259,
+              87,
+              87,
+              8
+            ],
+            "writable_continuations": 4
+          },
+          {
+            "unit_bytes": 65536,
+            "boundaries": 267,
+            "failure_modes": 3,
+            "cases": 801,
+            "complete_states": [
+              259,
+              267,
+              267,
+              8
+            ],
+            "writable_continuations": 4
+          }
+        ],
+        "ctest_items": 2
+      }
+    },
+    "operations": [
+      "Overwriting the prefix",
+      "Shortening the file",
+      "Renaming the same inode"
+    ],
+    "recovery_states": [
+      "Original",
+      "Overwritten prefix with old tail",
+      "Shortened",
+      "Renamed"
+    ],
+    "assertions": [
+      "Every acknowledged call survived",
+      "At most one unacknowledged call became durable",
+      "The witness, volume selector and advisory area survived",
+      "Independent CPU reads verified each state"
+    ]
+  },
+  "additional_checks": {
+    "application_model": {
+      "run": "local-run-08158178e56e4764bca2a746a9da0847",
+      "receipt_sha256": "8d58a7b119bcb125de87655dca794004b262f23e08716ff97afc5396effc2071",
+      "output_sha256": "f0a02ce55bdb667e5bf9906cff0feba4dabfa2a283dcc083b19af0f978d06347",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 16080896,
+      "error_mode": 32771,
+      "checks": 841
+    },
+    "native_controls": {
+      "run": "local-run-73b30ae9c6cd46c1905128288b1081dc",
+      "receipt_sha256": "5fee975e86557e143309b96e9563057e306ab07afe106bac1ac62060aafc67c8",
+      "output_sha256": "555105cbcdde399698d93500c15f94f159207135055cecf1d3889dbc3a4bdabd",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 87552000,
+      "error_mode": 32771,
+      "ctest_items": 6
+    }
+  },
+  "host": {
+    "version": "26H2",
+    "build": "26300.10075",
+    "owned_processes_remaining": 0,
+    "winfsp_driver_states": [
+      "Stopped"
+    ]
+  },
+  "remaining": [
+    "Earlier cuts through mounted callback responses",
+    "Mounted selector cuts during a real image replacement",
+    "Physical power-loss qualification per persistent provider"
+  ]
+}

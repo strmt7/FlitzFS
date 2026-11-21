@@ -23,10 +23,12 @@ fences. The populated signed-driver workflow now covers post-flush termination,
 independent CPU readback and a fresh writable mount. The handle metadata path
 reuses the verified inode and retains ancestry and deletion checks.
 
-Extend the mounted trace through overwrite, acknowledgement and rename, then
-replay it across publication cuts. Use that trace in E01 for scaling, E02 for
-reclamation during foreground writes, E03 for AMD and independent CPU continuity,
-and E08 for the installed Explorer lifecycle. E04–E06 use the present
+The mounted trace now covers a flushed overwrite, EOF shrink and rename.
+Replay the modeled image publication cuts through the mounted callback
+and exercise the outer selector during an image switch. Use that trace in
+E01 for scaling, E02 for reclamation during foreground writes, E03 for
+AMD and independent CPU continuity, and E08 for the installed Explorer
+lifecycle. E04–E06 use the present
 one-representative coherence and shared-base selection as controls for
 held-out size and access trials. Use their measured savings and write costs
 to calibrate E07. The [current gate ledger](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)

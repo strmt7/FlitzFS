@@ -718,6 +718,7 @@ struct MountedTrialFile {
 };
 
 enum class MountedRecoveryPhase {none,interrupt,resume};
+enum class MountedRecoveryOperation {create_file,overwrite_and_rename};
 struct MountedFileActivation {
   std::filesystem::path path;
   VolumeFileAction action=VolumeFileAction::create_new;
@@ -725,6 +726,8 @@ struct MountedFileActivation {
   bool expect_create_conflict=false;
   bool populated=false;
   MountedRecoveryPhase recovery=MountedRecoveryPhase::none;
+  MountedRecoveryOperation interruption=MountedRecoveryOperation::create_file;
+  std::uint64_t original_inode=0,original_creation_time=0;
   std::wstring interrupted_mount;
   std::shared_ptr<ProcessObserver> interrupted_owner;
 };
@@ -879,6 +882,7 @@ void verify_mounted_population(const std::wstring& directory,const char* phase) 
 
 const std::wstring mounted_moved_directory=L"Archives-"+std::wstring(178,L'y');
 constexpr auto mounted_renamed_file=L"R\u00e9vis\u00e9-\U0001f680.bin";
+constexpr auto mounted_recovered_file=L"recovered-overwrite.bin";
 
 std::vector<std::byte> mounted_client_bytes() {
   std::vector<std::byte> bytes(2*kNativeExtentBytes+137);
@@ -900,10 +904,19 @@ std::vector<std::byte> mounted_recovery_bytes(bool continuation) {
   return bytes;
 }
 
-void write_mounted_bytes(HANDLE file,const std::vector<std::byte>& bytes) {
+std::vector<std::byte> mounted_overwrite_bytes() {
+  auto bytes=mounted_recovery_bytes(false);
+  bytes.resize(kNativeExtentBytes+997);
+  bytes.back()^=std::byte{0xfb};
+  return bytes;
+}
+
+void write_mounted_bytes(HANDLE file,const std::vector<std::byte>& bytes,bool truncate=false) {
   DWORD written=0;
   require(WriteFile(file,bytes.data(),static_cast<DWORD>(bytes.size()),&written,nullptr) &&
-      written==bytes.size() && FlushFileBuffers(file),"Mounted write or flush failed");
+      written==bytes.size(),"Mounted write failed");
+  if(truncate)require(SetEndOfFile(file),"Mounted overwrite could not set the new EOF");
+  require(FlushFileBuffers(file),"Mounted file flush failed");
 }
 
 void verify_mounted_bytes(HANDLE file,const std::vector<std::byte>& expected) {
@@ -919,6 +932,34 @@ void verify_mounted_bytes(HANDLE file,const std::vector<std::byte>& expected) {
 void print_mounted_recovery(const char* phase,std::string_view name,const std::vector<std::byte>& bytes) {
   std::cout<<"mounted_flush_recovery phase="<<phase<<" file="<<name<<" bytes="<<bytes.size()
       <<" blake3="<<hex_mounted_digest(detail::record_digest(bytes))<<'\n';
+}
+
+std::uint64_t mounted_file_index(HANDLE file) {
+  BY_HANDLE_FILE_INFORMATION info{};
+  require(GetFileInformationByHandle(file,&info),"Mounted file index query failed");
+  return (static_cast<std::uint64_t>(info.nFileIndexHigh)<<32)|info.nFileIndexLow;
+}
+
+void overwrite_and_rename_mounted(const std::wstring& directory,std::uint64_t inode,
+    std::optional<MountedTrialFile>& writer) {
+  const auto source=directory+mounted_renamed_file;
+  const auto destination=directory+mounted_recovered_file;
+  constexpr auto share=FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE;
+  writer.emplace(source,GENERIC_WRITE|FILE_READ_ATTRIBUTES,OPEN_EXISTING,share);
+  require(inode && mounted_file_index(writer->file)==inode,"Mounted overwrite selected a different inode");
+  const auto bytes=mounted_overwrite_bytes();
+  write_mounted_bytes(writer->file,bytes,true);
+  print_mounted_recovery("overwrite_flushed","existing-file",bytes);
+  require(MoveFileExW(source.c_str(),destination.c_str(),0),"Mounted overwrite rename failed");
+  require(FlushFileBuffers(writer->file),"Mounted rename flush failed");
+  require(GetFileAttributesW(source.c_str())==INVALID_FILE_ATTRIBUTES && GetLastError()==ERROR_FILE_NOT_FOUND,
+      "Mounted overwrite rename retained its old pathname");
+  MountedTrialFile renamed(destination,GENERIC_READ,OPEN_EXISTING,share);
+  require(mounted_file_index(renamed.file)==inode && mounted_file_index(writer->file)==inode,
+      "Mounted overwrite rename changed file identity");
+  verify_mounted_bytes(renamed.file,bytes);
+  print_mounted_recovery("rename_flushed",std::filesystem::path(mounted_recovered_file).string(),bytes);
+  std::cout<<"mounted_overwrite_rename phase=acknowledged inode="<<inode<<" old_name_absent=1\n";
 }
 
 template<class Button,class Status>
@@ -969,15 +1010,26 @@ void mounted_gui_workflow(HWND window,std::wstring_view parent,ProcessObserver& 
   constexpr auto renamed=mounted_renamed_file;
   const auto root=[](const std::wstring& mount){return L"\\\\?\\"+mount+L"\\";};
   const auto expected=mounted_client_bytes();
-  const auto verify_moved=[&](const std::wstring& mount) {
-    const auto path=root(mount)+moved+L"\\"+renamed;
+  const auto verify_moved=[&](const std::wstring& mount,bool recovered=false) {
+    const auto directory=root(mount)+moved+L"\\";
+    const auto leaf=recovered?mounted_recovered_file:renamed;
+    const auto path=directory+leaf;
     WIN32_FIND_DATAW entry{};
     const auto search=FindFirstFileW(path.c_str(),&entry);
     require(search!=INVALID_HANDLE_VALUE,"Mounted enumeration failed after the parent move");
     FindClose(search);
-    require(std::wstring_view(entry.cFileName)==renamed,"Mounted enumeration changed the Unicode spelling");
+    require(std::wstring_view(entry.cFileName)==leaf,"Mounted enumeration changed the filename spelling");
     MountedTrialFile file(path,GENERIC_READ,OPEN_EXISTING);
-    verify_mounted_bytes(file.file,expected);
+    if(recovered) {
+      require(activation && mounted_file_index(file.file)==activation->original_inode,
+          "Recovered mounted file index differs");
+      const auto source=directory+renamed;
+      require(GetFileAttributesW(source.c_str())==INVALID_FILE_ATTRIBUTES && GetLastError()==ERROR_FILE_NOT_FOUND,
+          "Recovered mount exposed the old pathname");
+      const auto bytes=mounted_overwrite_bytes();
+      verify_mounted_bytes(file.file,bytes);
+      print_mounted_recovery("remounted_ack",std::filesystem::path(leaf).string(),bytes);
+    } else verify_mounted_bytes(file.file,expected);
   };
 
   if(!activation)button(107);
@@ -986,7 +1038,8 @@ void mounted_gui_workflow(HWND window,std::wstring_view parent,ProcessObserver& 
   const auto initial_serial=serial(first);
   if(activation && activation->action==VolumeFileAction::open_existing) {
     require(activation->serial==initial_serial,"A fresh process opened a different volume");
-    verify_moved(first);
+    const bool overwrite=activation->interruption==MountedRecoveryOperation::overwrite_and_rename;
+    verify_moved(first,overwrite && activation->recovery==MountedRecoveryPhase::resume);
     const auto recovery_path=[&](std::string_view name) {
       return root(first)+std::wstring(name.begin(),name.end());
     };
@@ -994,12 +1047,16 @@ void mounted_gui_workflow(HWND window,std::wstring_view parent,ProcessObserver& 
       require(activation->populated && !activation->interrupted_owner &&
           observer.process_id()!=GetCurrentProcessId(),"Invalid interruption actors");
       activation->interrupted_mount=first;
-      interruption_client.emplace(recovery_path(interrupted_file_name),GENERIC_WRITE,CREATE_NEW);
-      const auto bytes=mounted_recovery_bytes(false);
-      write_mounted_bytes(interruption_client->file,bytes);
+      if(overwrite) {
+        overwrite_and_rename_mounted(root(first)+moved+L"\\",activation->original_inode,interruption_client);
+      } else {
+        interruption_client.emplace(recovery_path(interrupted_file_name),GENERIC_WRITE,CREATE_NEW);
+        const auto bytes=mounted_recovery_bytes(false);
+        write_mounted_bytes(interruption_client->file,bytes);
+        print_mounted_recovery("acknowledged_flush",interrupted_file_name,bytes);
+      }
       require(observer.wait_for_exit()==ProcessObservation::running && observer.request_stop(),
           "Mounted writer could not be interrupted after acknowledged flush");
-      print_mounted_recovery("acknowledged_flush",interrupted_file_name,bytes);
       return;
     }
     if(activation->populated)
@@ -1010,7 +1067,7 @@ void mounted_gui_workflow(HWND window,std::wstring_view parent,ProcessObserver& 
       require(owner && owner->wait_for_exit()==ProcessObservation::exited &&
           observer.process_id()!=owner->process_id() && first!=activation->interrupted_mount,
           "Recovered attachment does not have a fresh process and mount");
-      {
+      if(!overwrite) {
         MountedTrialFile file(recovery_path(interrupted_file_name),GENERIC_READ,OPEN_EXISTING);
         const auto bytes=mounted_recovery_bytes(false);
         verify_mounted_bytes(file.file,bytes);
@@ -1253,21 +1310,57 @@ void gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budge
 }
 
 void mounted_file_gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budget,
-    bool populated,bool interrupt) {
+    bool populated,std::optional<MountedRecoveryOperation> interruption) {
   const auto parent=std::filesystem::path(disposable_mount_parent()).parent_path();
   MountedFileActivation activation{parent/L"Volume \u00e9preuve.flfs"};
   activation.populated=populated;
+  if(interruption)activation.interruption=*interruption;
   require(GetFileAttributesW(activation.path.c_str())==INVALID_FILE_ATTRIBUTES &&
       GetLastError()==ERROR_FILE_NOT_FOUND,"Mounted volume-file fixture already exists");
-  const auto raw_name=(std::filesystem::path(mounted_moved_directory)/mounted_renamed_file).generic_u8string();
-  const std::string name(reinterpret_cast<const char*>(raw_name.data()),raw_name.size());
+  const auto native_path=[](const wchar_t* leaf) {
+    const auto bytes=(std::filesystem::path(mounted_moved_directory)/leaf).generic_u8string();
+    return std::string(reinterpret_cast<const char*>(bytes.data()),bytes.size());
+  };
+  const auto original_name=native_path(mounted_renamed_file);
+  const auto recovered_name=native_path(mounted_recovered_file);
+  const bool overwrite=activation.interruption==MountedRecoveryOperation::overwrite_and_rename;
   const auto expected=mounted_client_bytes();
+  const auto overwritten=overwrite?mounted_overwrite_bytes():std::vector<std::byte>{};
   std::uint64_t last_epoch=0,last_checkpoint=0,last_namespace=0;
   std::array<std::uint64_t,mounted_trace_files> last_access{};
   const auto verify=[&](std::optional<StoreIdentity> identity,bool read_only_pass=false) {
     const auto view=NativeVolumeFile::inspect(activation.path,identity);
-    require(view.filesystem().read(name,0,static_cast<std::uint32_t>(expected.size()))==expected,
-        "Independent CPU inspection recovered different file bytes");
+    const bool recovered=overwrite && activation.recovery!=MountedRecoveryPhase::none;
+    const auto& name=recovered?recovered_name:original_name;
+    const auto& content=recovered?overwritten:expected;
+    const auto observed_bytes=view.filesystem().read(name,0,static_cast<std::uint32_t>(content.size()+1));
+    require(observed_bytes==content,"Independent CPU inspection recovered different file bytes");
+    if(overwrite) {
+      const auto info=view.filesystem().stat(name);
+      const auto basic=view.filesystem().basic_metadata(info.inode);
+      require(info.inode && info.logical_bytes==content.size() && basic,"Independent overwrite metadata differs");
+      if(!activation.original_inode) {
+        require(!recovered,"Independent overwrite verification lacks the original inode");
+        activation.original_inode=info.inode;
+        activation.original_creation_time=basic->creation_time;
+        print_mounted_recovery("independent_before_overwrite","existing-file",observed_bytes);
+        std::cout<<"mounted_overwrite_rename phase=original inode="<<info.inode
+            <<" creation_time="<<basic->creation_time<<'\n';
+      }
+      require(info.inode==activation.original_inode && basic->creation_time==activation.original_creation_time,
+          "Independent overwrite verification found a different inode or creation time");
+      if(recovered) {
+        bool absent=false;
+        try{(void)view.filesystem().stat(original_name);}
+        catch(const NativeFsError& error){
+          if(error.code()!=NativeFsErrorCode::not_found || error.missing_parent())throw;
+          absent=true;
+        }
+        require(absent,"Independent CPU inspection found the old pathname after rename");
+        std::cout<<"mounted_overwrite_rename phase=independent_cpu inode="<<info.inode
+            <<" creation_time="<<basic->creation_time<<" old_name_absent=1 creation_time_preserved=1\n";
+      }
+    }
     if(populated) {
       const auto epoch=view.info().selection.epoch;
       const auto checkpoint=view.filesystem().storage_info().generation;
@@ -1297,12 +1390,16 @@ void mounted_file_gui_tests(const std::filesystem::path& app,const app_fixture::
         require(access_updates==0,"Recently recorded access times changed on a read-only pass");
       if(activation.recovery!=MountedRecoveryPhase::none) {
         require(sequence_delta>0,"Mounted recovery did not advance its acknowledged checkpoint");
-        const auto acknowledged=mounted_recovery_bytes(false);
-        const auto bytes=view.filesystem().read(interrupted_file_name,0,static_cast<std::uint32_t>(acknowledged.size()+1));
-        require(bytes==acknowledged,"Independent recovery lost the acknowledged write");
         const auto resumed=activation.recovery==MountedRecoveryPhase::resume;
-        print_mounted_recovery(resumed?"independent_after_continuation":"independent_after_exit",
-            interrupted_file_name,bytes);
+        const auto phase=resumed?"independent_after_continuation":"independent_after_exit";
+        if(overwrite) {
+          print_mounted_recovery(phase,std::filesystem::path(mounted_recovered_file).string(),observed_bytes);
+        } else {
+          const auto acknowledged=mounted_recovery_bytes(false);
+          const auto bytes=view.filesystem().read(interrupted_file_name,0,static_cast<std::uint32_t>(acknowledged.size()+1));
+          require(bytes==acknowledged,"Independent recovery lost the acknowledged write");
+          print_mounted_recovery(phase,interrupted_file_name,bytes);
+        }
         if(resumed) {
           const auto continuation=mounted_recovery_bytes(true);
           const auto written=view.filesystem().read(resumed_file_name,0,static_cast<std::uint32_t>(continuation.size()+1));
@@ -1322,7 +1419,7 @@ void mounted_file_gui_tests(const std::filesystem::path& app,const app_fixture::
   activation.action=VolumeFileAction::open_existing;
   gui_tests(app,budget,GuiRuntime::mounted,&activation);
   verify(identity,true);
-  if(interrupt) {
+  if(interruption) {
     activation.recovery=MountedRecoveryPhase::interrupt;
     gui_tests(app,budget,GuiRuntime::mounted,&activation);
     verify(identity);
@@ -1331,6 +1428,7 @@ void mounted_file_gui_tests(const std::filesystem::path& app,const app_fixture::
     verify(identity);
     std::cout<<"mounted_flush_recovery populated=1024 confirmed_exit=1 "
         <<"fresh_writable_mount=1 independent_continuation=1\n";
+    if(overwrite)std::cout<<"mounted_overwrite_rename recovered=1 same_inode=1 old_name_absent=1\n";
   }
   std::cout<<"mounted_file_activation exclusive_create=1 identity_preserved=1 "
       <<"fresh_process_reopen=1 independent_cpu_readback=1\n";
@@ -1339,8 +1437,10 @@ void mounted_file_gui_tests(const std::filesystem::path& app,const app_fixture::
 int wmain(int argc,wchar_t** argv) {
   try {
     const auto mode=argc>1?std::wstring_view(argv[1]):std::wstring_view{};
-    const bool interrupt=mode==L"--gui-mounted-flush-recovery-sandbox";
-    const bool populated=mode==L"--gui-mounted-populated-file-sandbox" || interrupt;
+    std::optional<MountedRecoveryOperation> interruption;
+    if(mode==L"--gui-mounted-flush-recovery-sandbox")interruption=MountedRecoveryOperation::create_file;
+    if(mode==L"--gui-mounted-overwrite-recovery-sandbox")interruption=MountedRecoveryOperation::overwrite_and_rename;
+    const bool populated=mode==L"--gui-mounted-populated-file-sandbox" || interruption.has_value();
     const bool mounted=argc==3 && (mode==L"--gui-mounted-sandbox" || mode==L"--gui-mounted-file-sandbox" || populated);
     app_fixture::Budget budget(!mounted);
     if(argc==2 && std::wstring_view(argv[1])==L"--model") {
@@ -1355,7 +1455,7 @@ int wmain(int argc,wchar_t** argv) {
       else if(mode==L"--gui-missing-winfsp")gui_tests(app,budget,GuiRuntime::missing);
       else if(mode==L"--gui-altered-winfsp")gui_tests(app,budget,GuiRuntime::altered);
       else if(mode==L"--gui-mounted-sandbox")gui_tests(app,budget,GuiRuntime::mounted);
-      else if(mode==L"--gui-mounted-file-sandbox" || populated)mounted_file_gui_tests(app,budget,populated,interrupt);
+      else if(mode==L"--gui-mounted-file-sandbox" || populated)mounted_file_gui_tests(app,budget,populated,interruption);
       else throw std::runtime_error("Unknown GUI qualification mode");
     } else throw std::runtime_error("Explicit model, maintenance or GUI qualification mode required");
     std::cout<<"Windows volume application checks: "<<checks

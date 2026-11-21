@@ -71,7 +71,7 @@ artifact and the observation needed before the related work can advance.
 | S5 · E04–E06 | Freeze the mixed held-out corpus and collect complete-image accounting for independent codecs, shared dictionaries, delta and multi-reference candidates and the existing shared-base control. | Net space gains survive protection, retained generations and reclamation costs. Independent restart units give practical cold random reads. Size and access results include all cohorts and losses. |
 | S6 · E07 | Drive the persistent advisory catalog and policy from observed savings, live resource pressure and workload changes in the mounted lifecycle. | Corrupt or absent advice is rebuildable. Foreground bursts preempt the next quantum. Recovery, migration, learning, compaction and scan progress resume independently with measured write cost. |
 | S7 · E08 | Extend the signed WinFsp fixture to an interactive Windows 11 26H2 x64 client and the published Explorer and Win32 compatibility matrix. | Both supported backings cover create, attach, metadata, copy, sharing, mapped I/O, detach and fresh-process recovery. Scoped app, service, mount and worker ownership is verified through failure and removal. |
-| S8 · E02, E11 | Drive acknowledged overwrite, rename and checkpoint changes through the mounted failure matrix. Run the actual persistent-backend campaign on dedicated disposable hardware. | Each cut resolves to an allowed complete generation. Acknowledged bytes and namespaces survive the declared failure domain. A single protected-copy loss repairs with byte-exact independent recovery. |
+| S8 · E02, E11 | Extend the mounted post-acknowledgement overwrite and rename trace to controlled earlier image publication cuts. Exercise image-selection changes separately and qualify the persistent backend on dedicated disposable hardware. | Each cut resolves to an allowed complete generation. Acknowledged bytes and namespaces survive the declared failure domain. A single protected-copy loss repairs with byte-exact independent recovery. |
 | S9 · E09 | Add a capability and reader matrix for historical fixtures and mixed old/new representations. Exercise bounded, resumable format migration under regular writes and space pressure. | Supported history opens on CPU. Old writers refuse unsupported mandatory features before mutation. Upgrade interruption, compatible rollback and CPU-only export recover the promised data. |
 | S10 · E10–E11 | Stage a signed Windows package and CPU recovery tool with owned installation, repair, removal and rollback. Review the parser, broker, update and dependency trust boundaries. | Every artifact is attributable. The supported install paths work on a clean client. Defensive negative tests and independent review close actionable issues for the exact packaged source. |
 | S11 · E12 | Collect repeated matched DiskSpd and file-workflow results on real hardware, with filesystem and compression controls. | Publishable raw results include complete occupied bytes, CPU/GPU utilization, write amplification, foreground tails and independent recovery for every phase. |
@@ -513,20 +513,28 @@ The change reuses the same inode for basic metadata and automatic Cleanup.
 Use these query results as a regression control for the large mounted trace.
 [Handle metadata evidence](evidence/release-reconciliation-indexed-handle-2026-11-22.json)
 
-1. **Extend mounted recovery in `windows_volume_app_tests.cpp`.**
-   Use an existing file with distinguishable old and new byte patterns.
-   Record its inode, pathname, basic metadata and two content digests.
-   Overwrite and flush it through an external handle. Rename it, flush through
-   the current client contract, and retain the handle through helper
-   termination. Check the old and new path states, acknowledged bytes and
-   complete original population with the CPU reader before a fresh writable
-   mount. Continue with a known write and read it back independently.
-   Add controlled cuts before the image barrier, between image and selector
-   barriers, and after selector durability before response. Hold each at a
-   confirmed boundary and record the allowed complete-generation outcomes.
-   Observe mapped writes separately with a view flush followed by a file
-   flush. Retain failed trials and bind the seed, operation, cut and exact
-   binaries. Use a separate dedicated backing for physical failure tests.
+The populated trace now verifies a flushed overwrite from 131,209 to 66,533
+bytes and a second rename before helper termination. The retained writer and
+the new pathname resolved to the same inode. A separate CPU reader recovered
+the new name, EOF, creation time and bytes along with the 1,024 neighboring
+files. A fresh writable mount flushed a 65,709-byte continuation that passed
+independent CPU readback. The original create-and-flush case also passed.
+The byte-I/O failure model replays all 1,242 write and barrier cuts across
+4 KiB and 64 KiB failure units. For each unit it reopens and writes from
+representatives of all four complete states.
+[Overwrite and rename recovery evidence](evidence/windows11-overwrite-rename-recovery-2026-11-22.json)
+
+1. **Qualify earlier acknowledgement boundaries on the mounted path.**
+   Carry the existing ordinary write, EOF shrink and rename replay into a
+   test-only backing provider for the signed-driver fixture. Match each
+   operation to the payload barrier and the two paged image root barriers.
+   Hold the helper at a confirmed boundary around those barriers and before
+   the Win32 response. Verify the last acknowledged operation and the
+   allowed complete next state with the independent CPU reader. Exercise
+   the outer selector during an actual image switch such as reclamation.
+   Observe mapped writes with a view flush followed by a file flush.
+   Bind each outcome to the operation, boundary, storage geometry and
+   exact binaries. The physical failure campaign uses dedicated backing.
    [Mapped flushing contract](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-flushviewoffile)
 2. **Measure the scaling bottleneck on that trace.** Count calls and bytes
    for selector, object-index and name-index pages, inodes and lifetimes,

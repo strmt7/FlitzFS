@@ -705,9 +705,11 @@ It must be recalibrated after the scalable native engine, real mounted path and
 first held-out collective comparison. The small recent integration slices do
 not justify calling a release imminent or silently lowering the exit criteria.
 
-Extend the populated Windows recovery trace to acknowledged overwrite and
-rename, then use it across publication cuts and churn. Follow with bounded
-writable admission, safe segment reuse and useful mounted AMD operation.
-Advance sparse coherence and held-out compression selection alongside that
-work. The [current gate ledger](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
-gives the deliverable and acceptance evidence for each track.
+The populated Windows trace now covers acknowledged overwrite, EOF shrink and
+rename through helper termination and fresh writable attachment. The next
+checkpoint carries the paged image publication cuts into mounted recovery
+and uses separate selector cuts during image replacement. Follow with
+bounded writable admission, safe segment reuse and useful mounted AMD
+operation. Advance sparse coherence and held-out compression selection
+alongside that work. [Recovery evidence](evidence/windows11-overwrite-rename-recovery-2026-11-22.json) ·
+[Current gate ledger](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)

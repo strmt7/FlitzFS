@@ -239,6 +239,91 @@ void publication_cuts() {
     std::cout<<"volume_file_cuts unit="<<unit<<" transaction_boundaries="<<cuts<<" modes=3\n";
   }
 }
+
+void overwrite_and_rename_publication_cuts() {
+  const auto original=data(2*kNativeExtentBytes+137,751);
+  const auto shortened=data(kNativeExtentBytes+997,752),witness=data(377,753);
+  auto written=original;
+  std::copy(shortened.begin(),shortened.end(),written.begin());
+  const std::array<Bytes,4> contents{original,std::move(written),shortened,shortened};
+  const auto continuation=data(907,754);
+  for(const auto unit:{4096U,65536U}) {
+    const auto baseline=acknowledged(unit,original,witness);
+    const auto before=NativeVolumeFile::inspect(image(baseline,unit),id(70));
+    const auto sequence=before.filesystem().sequence();
+    const auto inode=before.filesystem().stat("payload").inode;
+    std::array<std::size_t,4> recovered_states{};
+    std::array<bool,4> continued{};
+    const auto trial=[&](std::optional<std::size_t> cut,unsigned failure) {
+      auto backing=image(baseline,unit);
+      std::size_t boundaries=0,completed=0;
+      {
+        auto session=NativeVolumeFile::resume(backing,id(70),raw);
+        const auto handle=session.open("payload",{true,true,true});
+        const auto start=backing->calls;
+        if(cut){backing->failure=failure;backing->fail_at=start+*cut;}
+        try {
+          session.write(handle,0,shortened);
+          ++completed;
+          session.truncate(handle,shortened.size());
+          ++completed;
+          session.rename(handle,"renamed");
+          ++completed;
+        }catch(const NativeFsError& error) {
+          if(!cut || error.code()!=NativeFsErrorCode::storage_failure)throw;
+          require(session.poisoned() && backing->calls==start+*cut+1,
+              "Overwrite or rename continued issuing writes after its backing failure");
+        }
+        boundaries=backing->calls-start;
+        require(cut?completed<3:completed==3,"Overwrite or rename acknowledgement differed from the fault schedule");
+      }
+      const auto recovered=NativeVolumeFile::inspect(image(backing->stable,unit),id(70));
+      const auto& snapshot=recovered.filesystem();
+      const auto recovered_sequence=snapshot.sequence();
+      require(recovered_sequence>=sequence && recovered_sequence-sequence<contents.size(),
+          "Overwrite or rename recovered an unrelated sequence");
+      const auto state=static_cast<std::size_t>(recovered_sequence-sequence);
+      require(state>=completed && state<=completed+(cut?1U:0U),
+          "Overwrite or rename lost an acknowledged call or exposed a later call");
+      const std::string_view path=state==3?"renamed":"payload";
+      const auto info=snapshot.stat(path);
+      require(info.inode==inode && info.logical_bytes==contents[state].size() && snapshot.list().size()==2 &&
+          snapshot.read(path,0,static_cast<std::uint32_t>(original.size()+1))==contents[state] &&
+          snapshot.read("witness",0,1000)==witness,
+          "Overwrite or rename recovery mixed names, inode identities, EOF or payload bytes");
+      require(recovered.info().selection==before.info().selection && !recovered.info().degraded &&
+          std::equal(baseline.begin(),baseline.begin()+kNativeVolumeFileImageOffset,backing->stable.begin()),
+          "Ordinary overwrite or rename changed the volume selector or adjacent advisory state");
+      if(cut)++recovered_states[state];
+      if(!continued[state]) {
+        auto reopened=image(backing->stable,unit);
+        {
+          auto session=NativeVolumeFile::resume(reopened,id(70),raw);
+          put(session,"continuation",continuation);
+          session.flush();
+        }
+        const auto verified=NativeVolumeFile::inspect(image(reopened->stable,unit),id(70));
+        const auto& next=verified.filesystem();
+        require(next.list().size()==3 && next.stat(path).inode==inode && next.read("witness",0,1000)==witness &&
+            next.read("continuation",0,1000)==continuation &&
+            next.read(path,0,static_cast<std::uint32_t>(original.size()+1))==contents[state],
+            "Writable continuation failed after overwrite or rename recovery");
+        continued[state]=true;
+      }
+      return boundaries;
+    };
+    const auto boundaries=trial(std::nullopt,0);
+    require(boundaries>9 && boundaries<=320,"Unbounded overwrite and rename cut matrix");
+    for(unsigned failure=0;failure<3;++failure)
+      for(std::size_t cut=0;cut<boundaries;++cut)(void)trial(cut,failure);
+    require(std::ranges::all_of(recovered_states,[](auto count){return count>0;}),
+        "Overwrite and rename cuts did not exercise every complete state");
+    std::cout<<"volume_file_overwrite_rename_cuts unit="<<unit<<" boundaries="<<boundaries
+        <<" failure_modes=3 states="<<recovered_states[0]<<','<<recovered_states[1]<<','
+        <<recovered_states[2]<<','<<recovered_states[3]<<" writable_continuations=4\n";
+  }
+}
+
 using Reclaim=NativeVolumeReclaimProgress;
 const auto witness_bytes=data(613,678);
 Bytes establish_history(NativeFileSession& session) {
@@ -980,6 +1065,11 @@ void disposable_sparse_file(const std::filesystem::path& base) {
 }
 int main(int argc,char** argv){
   try {
+    if(argc==2 && std::string_view(argv[1])=="--overwrite-rename-cuts") {
+      overwrite_and_rename_publication_cuts();
+      std::cout<<"PASS: "<<checks<<" overwrite and rename recovery checks\n";
+      return 0;
+    }
     if(argc==2 && std::string_view(argv[1])=="--cold-relocation") {
       cold_relocation(cold_test_payload(),true);
       return 0;

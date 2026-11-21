@@ -29,7 +29,21 @@
     },
     "dependabot_open_alerts": 0,
     "release_qualified": false,
-    "next": "Extend the populated mounted recovery trace through acknowledged overwrite and rename, then cover earlier image and selector publication cuts."
+    "follow_up": "See windows_mounted_overwrite_rename for the mounted overwrite and rename trials and the native publication fault matrix."
+  },
+  "windows_mounted_overwrite_rename": {
+    "reviewed_commit": "1c5f1704cfc565714a65bfd81975f933f3b9b0bc",
+    "evidence": "docs/evidence/windows11-overwrite-rename-recovery-2026-11-22.json",
+    "independent_overwrite_guest_trials": 2,
+    "new_file_control_guest_trials": 1,
+    "population_files": 1024,
+    "original_and_overwritten_bytes": [131209, 66533],
+    "same_inode_creation_time_and_new_name": true,
+    "continuation_bytes": 65709,
+    "modeled_publication_failure_cases_per_build": 1242,
+    "modeled_failure_unit_bytes": [4096, 65536],
+    "modeled_writable_continuation_cases_per_build": 8,
+    "next": "Exercise earlier paged-image publication boundaries through the real mounted acknowledgement path. Qualify selector cuts during a separate image switch."
   },
   "windows_mounted_post_flush_recovery": {
     "reviewed_commit": "fc388e7d7731e0b14e6059e6412b4d5e82398b4c",
