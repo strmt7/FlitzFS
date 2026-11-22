@@ -1,0 +1,148 @@
+{
+  "schema": "flitzfs-windows-backing-lifetime-v1",
+  "date": "2026-11-22",
+  "source": {
+    "base": "7fa8e24e5cef06ce0f6a078f6f5af70a727818bb",
+    "blobs": {
+      "src/store_file.cpp": "8442fa174404b94921ca8b3976cfc4634d8f639b",
+      "src/windows/positioned_file_io.hpp": "8d5e626c8e55ce0cea5f843f312a671ce11c07a7",
+      "src/windows/volume_file_lifetime.hpp": "3b3ab9bf3e19745e17bdaa99bc3f91a0e5afe533",
+      "tests/test_native_volume_file.cpp": "3fc984e770c137fdb39cb6313e5d1538aa12ee73"
+    }
+  },
+  "scope": {
+    "platform": "Windows development host",
+    "lifetime_input": "Win32 result injection shared by the demand and capture paths",
+    "positioned_retirement": "an overlapped named pipe read cancelled and retired before reuse",
+    "persistent_data_device_exercised": false,
+    "mounted_physical_removal": false,
+    "physical_power_loss": false
+  },
+  "semantic_search": {
+    "actual_searches": 1,
+    "provider_version": "0.2.43",
+    "receipt_sha256": "d98c996807db97f01f950d3778e4c9cc4fa90120dcd1fd54b9d23df301a996ef",
+    "response_sha256": "1f75e8fe4178789e279f212108df682903c802ab9596cb5a71880568f4f2cc5b"
+  },
+  "primary_sources": [
+    {
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "receipt_sha256": "4258fe540e88eb18c0adc3f7423d4fa9436d9f193360d312866d09841655a04e",
+      "pages": [
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/client-management/client-tools/change-default-removal-policy-external-storage-media",
+          "http_status": 200,
+          "markdown_bytes": 23769,
+          "markdown_sha256": "ae88fed0e7e3ab8fef1e88b3d16117d5f2a23abd6de8d536f7c201b4f761755a",
+          "capture_sha256": "680c001addd655d3eb601af8dffb845d48da5f62621a6b1888c1c56abe298e32"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows-hardware/drivers/storage/querying-for-the-write-cache-property",
+          "http_status": 200,
+          "markdown_bytes": 22967,
+          "markdown_sha256": "4493d5977eaa497bbd81dc961bd318a70818b50b7e50011e616a4bc6fff77f83",
+          "capture_sha256": "17599945883c9f2306df31900a46592ca074cd72e0706c4f862665667a550c4d"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ns-winioctl-storage_hotplug_info",
+          "http_status": 200,
+          "markdown_bytes": 30478,
+          "markdown_sha256": "87577d79b34ade11e65ec2d45fa7d7c14fbbe1209e999ac8ff9c1ef8b629cf2a",
+          "capture_sha256": "c66b95d353e24413a8d224b05cdea914dfe2feeb9f8e545a6b0c92f546a1ed5f"
+        },
+        {
+          "url": "https://nvmexpress.org/SPECIFICATIONS/",
+          "http_status": 200,
+          "markdown_bytes": 5877,
+          "markdown_sha256": "dfea2d4070c2273e6da69fc09b1f49348e777b474fe6899461fd63001ca8b531",
+          "capture_sha256": "37dc35279127c742d8fed8f083199b7574d878ac4f5775244ad562864587cc96"
+        }
+      ]
+    },
+    {
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "receipt_sha256": "dcd6f3c3efad53e3ef7be1ed23d4dc3b682a990ce242c83b5ba63009b56d2dc1",
+      "pages": [
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/debug/system-error-codes--1000-1299-",
+          "http_status": 200,
+          "markdown_bytes": 45877,
+          "markdown_sha256": "86ad78dad20ead2305c53c1d043ce4e17244a9fc7a69d359d9157ca078d4eee8",
+          "capture_sha256": "5ac035d7f5f3362b3652c1b9c310e64061f874c90cd8b6003e506e082c5ee50e"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/debug/system-error-codes--0-499-",
+          "http_status": 200,
+          "markdown_bytes": 42419,
+          "markdown_sha256": "d6ef71f95172a45ed8e0d1ebc84e4d0e9839dcd3653bdad79eba32aa7c08aff2",
+          "capture_sha256": "5a6b2db8b56fdbf919ddd1198eaa727a8376e167c9ef24de1463f2da1b6dd43f"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/18d8fbe8-a967-4f1c-ae50-99ca8e491d2d",
+          "http_status": 200,
+          "markdown_bytes": 340211,
+          "markdown_sha256": "69dfe8767d8a0aa7fdca298d8c1027a9f1557e351e2932b4d87e47afa9c99625",
+          "capture_sha256": "286d656383f9f781cf9e79fad8aff813e042bd9aff4f246e0438fa66d3eed468"
+        }
+      ]
+    }
+  ],
+  "tests": {
+    "windows_build": {
+      "log_sha256": "cab17fbe7883f53d592ae3b849d72f23c5d0f08b7efe419089155c92210752a6",
+      "peak_job_bytes": 647020544,
+      "tree_retired": true,
+      "exit_code": 0
+    },
+    "windows": {
+      "log_sha256": "5d9b4ddc494cd9d835d083177a6230a98004b41f3e86eb3cd627a6e9fcb9982a",
+      "peak_job_bytes": 334110720,
+      "tree_retired": true,
+      "exit_code": 0,
+      "passed": 211
+    },
+    "raw_build": {
+      "log_sha256": "d799ec223ddc523ecb2aaa1bf5c7b88458d65d8faa1dabd3ab3849b6f91e3652",
+      "peak_job_bytes": 394674176,
+      "tree_retired": true,
+      "exit_code": 0
+    },
+    "raw": {
+      "log_sha256": "f7521aabb8e31a4b01b1d508a2bad1c8f91101d5eee594154bbf26e1fcf757c7",
+      "peak_job_bytes": 100081664,
+      "tree_retired": true,
+      "exit_code": 0,
+      "passed": 10
+    },
+    "asan_build": {
+      "log_sha256": "edcac0445c222a1245d895ee8fcf8000d4d683a369bbf2d35616e68e37c137c3",
+      "peak_job_bytes": 714752000,
+      "tree_retired": true,
+      "exit_code": 0
+    },
+    "asan": {
+      "log_sha256": "8711526bd03a08437609db125a7a96c715b614adcc8fd52c2f364f7f5fa9c679",
+      "peak_job_bytes": 569745408,
+      "tree_retired": true,
+      "exit_code": 0,
+      "passed": 11
+    },
+    "positioned": {
+      "log_sha256": "9cdeacc19ac874780c04a0ec651d225cf418f0a54c68c3ffecd3034307bab846",
+      "peak_job_bytes": 2420736,
+      "tree_retired": true,
+      "exit_code": 0
+    },
+    "positioned_asan": {
+      "log_sha256": "9cdeacc19ac874780c04a0ec651d225cf418f0a54c68c3ffecd3034307bab846",
+      "peak_job_bytes": 56451072,
+      "tree_retired": true,
+      "exit_code": 0
+    }
+  },
+  "open_qualification": [
+    "native loss codes during actual removal",
+    "same-volume automatic reattachment",
+    "persistent flush durability and dense reuse by media and filesystem"
+  ]
+}

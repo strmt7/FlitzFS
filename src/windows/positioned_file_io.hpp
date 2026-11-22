@@ -27,7 +27,7 @@ class PositionedFileIo final {
     auto operation=at(offset);
     const auto issued=ReadFile(file,buffer,bytes,nullptr,&operation);
     const auto result=complete(file,operation,issued?ERROR_SUCCESS:GetLastError(),0,capture);
-    if(capture && capture->interrupted())return {ERROR_OPERATION_ABORTED,0};
+    if(result.error==ERROR_SUCCESS && capture && capture->interrupted())return {ERROR_OPERATION_ABORTED,0};
     return result;
   }
 
@@ -80,7 +80,7 @@ class PositionedFileIo final {
         }
         continue;
       }
-      return cancelled?PositionedFileIoResult{ERROR_OPERATION_ABORTED,0}:
+      return cancelled && done?PositionedFileIoResult{ERROR_OPERATION_ABORTED,0}:
           PositionedFileIoResult{error,transferred};
     }
   }

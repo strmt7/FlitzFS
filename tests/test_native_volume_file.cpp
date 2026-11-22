@@ -8,6 +8,7 @@
 #ifdef _WIN32
 #define NOMINMAX
 #include "windows/positioned_file_io.hpp"
+#include "windows/volume_file_lifetime.hpp"
 #include "native_lz4_capture.hpp"
 #include "native_lz4_fixture.hpp"
 #include "store_codec.hpp"
@@ -1136,6 +1137,37 @@ void range_publication_cuts() {
 }
 
 #ifdef _WIN32
+void volume_file_lifetime() {
+  detail::VolumeFileLifetime healthy;
+  for(const DWORD status:{ERROR_NOT_READY,ERROR_BUS_RESET,ERROR_DISK_FULL,
+      ERROR_OPERATION_ABORTED,ERROR_IO_DEVICE}) {
+    healthy.check(status);
+    require(healthy.current(),"A transient request result retired the backing volume");
+  }
+  const auto observed=[](const detail::VolumeFileLifetime& lifetime,DWORD status) {
+    try {
+      lifetime.check(status);
+    }catch(const std::system_error& error) {
+      require(error.code().category()==std::system_category(),"Backing loss lost its Win32 error category");
+      return static_cast<DWORD>(error.code().value());
+    }
+    return static_cast<DWORD>(ERROR_SUCCESS);
+  };
+  constexpr DWORD loss[]={ERROR_DEV_NOT_EXIST,ERROR_DEVICE_NOT_CONNECTED,
+      ERROR_FILE_INVALID,ERROR_MEDIA_CHANGED,ERROR_NO_MEDIA_IN_DRIVE};
+  for(const DWORD status:loss) {
+    detail::VolumeFileLifetime attachment;
+    auto capture=std::async(std::launch::async,[&]{return observed(attachment,status);});
+    const auto error=capture.get();
+    require(error==status && !attachment.current(),"Capture did not retire its backing volume");
+    require(observed(attachment,ERROR_SUCCESS)==status,"Later success reopened a lost backing volume");
+    require(observed(attachment,ERROR_FILE_INVALID)==status,"A later error replaced the first media failure");
+    require(detail::VolumeFileLifetime{}.current(),"A fresh attachment inherited a previous handle's error");
+  }
+  std::cout<<"windows_backing_lifetime terminal_statuses=5 transient_statuses=5 shared_capture_fence=1"
+      <<" first_error_retained=1 fresh_attachment_independent=1\n";
+}
+
 void positioned_request_retirement() {
   struct PipeHandle {
     HANDLE value;
@@ -1387,6 +1419,7 @@ int main(int argc,char** argv){
     }
 #ifdef _WIN32
     if(argc==2 && std::string_view(argv[1])=="--positioned-request") {
+      volume_file_lifetime();
       positioned_request_retirement();
       return 0;
     }

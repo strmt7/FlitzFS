@@ -22,10 +22,13 @@ coexistence from 137,506,816 to 111,828,992 bytes, including the prior source.
 The native session can now prepare the folded workspace, protected base
 and writable tail incrementally. Each advance yields after its bounded
 work, including individual ordered flushes. The full AIT fixture preserved
-the staged footprint and exact CPU readback. Ownership and admission are
-still explicit at the caller.
+the staged footprint and exact CPU readback. A managed external indexed
+session can select the prepared pair while retaining its open handles.
+Preparation and selection still need enrollment in the backing allocator
+and mounted maintenance owner.
 [Cooperative preparation](../SEALED_INDEXED_IMAGE.md#cooperative-preparation) ·
-[Verification](../evidence/cooperative-hybrid-preparation-2026-11-22.json)
+[Verification](../evidence/cooperative-hybrid-preparation-2026-11-22.json) ·
+[Live selection verification](../evidence/live-hybrid-selection-2026-11-22.json)
 
 Extend discovery and storage selection in this order.
 
@@ -255,11 +258,11 @@ independent CPU reopen.
 
 | Provider | Signals and tailored decisions |
 | --- | --- |
-| RAM backing | Identify the provider at attach. Resize work against physical and commit headroom. Use observed memory bandwidth to limit copies and caches. |
-| NVMe | Use queue depth where it improves foreground reads or writes. Coalesce low-priority writes and yield when request tails rise. |
-| SATA SSD | Learn queue and flush bounds for the actual device. Shorten write bursts during sustained slowdown and account for reclamation writes. |
+| RAM backing | Identify the provider at attach. Resize work against physical and commit headroom. Use observed memory bandwidth to limit copies and caches. Track the peak when the current image and staged replacement coexist. |
+| NVMe | Measure the queue depth where throughput improves without excess tail latency. Coalesce low-priority writes within the commit order. Track sustained write and flush latency as well as short bursts. |
+| SATA SSD | Learn queue and flush bounds for the actual device. Shorten write bursts during sustained slowdown and account for reclamation writes. Test sparse reuse separately from device discard. |
 | HDD | Use reported seek penalty and random versus sequential observations. Group nearby reads and writes while preserving publication order. Favor sequential passes in idle windows. |
-| USB storage and memory cards | Keep transport, seek behavior and removal independent. Shorten work when measured stalls warrant it. Stop work when the backing disappears. |
+| USB storage and memory cards | Keep transport, seek behavior and removal independent. Measure latency and sparse or dense reuse on the actual outer filesystem. Charge optional rewrites against their confirmed space savings. Test both cache policies where the device supports them. |
 | Unclassified backing | Start from the qualified provider contract and conservative concurrency. Change one dimension at a time as ordinary I/O supplies evidence. |
 
 An externally created RAM disk needs its own volatile lifetime contract. A
@@ -269,8 +272,28 @@ Windows removable write-caching behavior follows the active removal policy.
 FlitzFS should observe behavior through the attached provider and keep its
 own commit barriers and detach sequence on every device.
 [Microsoft Windows removal policies](https://learn.microsoft.com/en-us/windows/client-management/client-tools/change-default-removal-policy-external-storage-media) ·
+[Windows media and device hotplug fields](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ns-winioctl-storage_hotplug_info) ·
+[Current NVM Express specifications](https://nvmexpress.org/SPECIFICATIONS/) ·
 [Microsoft NVMe storage queries](https://learn.microsoft.com/en-us/windows/win32/fileio/working-with-nvme-devices) ·
 [Microsoft file flush contract](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers)
+
+### Backing loss during I/O
+
+The Windows file provider marks the current backing unavailable when an
+I/O result reports device loss, missing media, a media change or an
+invalidated file on an externally changed volume. The first such result
+persists for the lifetime of the opened file and is shared with concurrent
+captures. The provider refuses new backing requests and writer acquisition.
+Operations already issued retain their buffers until Windows confirms
+completion. Cancellation, a bus reset and other request errors follow
+the existing operation failure path. An uncertain publication still
+requires checked CPU recovery. A new handle goes through the selected
+volume GUID, file and image checks before it can serve the filesystem again.
+[Windows handle and device errors](https://learn.microsoft.com/en-us/windows/win32/debug/system-error-codes--0-499-) ·
+[Windows media and disconnection errors](https://learn.microsoft.com/en-us/windows/win32/debug/system-error-codes--1000-1299-) ·
+[Backing lifetime verification](../evidence/windows-backing-lifetime-2026-11-22.json)
+
+### Admission from observed backing cost
 
 The mounted controller now measures reads, writes, barriers and selected
 control operations on the backing during each maintenance step. The memory
@@ -321,10 +344,16 @@ Continue the backing-dependent work in this order.
    real devices when authorized. Keep reported transport, outer filesystem,
    allocation, recovery scope and observed performance in each result.
    Include USB flash and removable SSD cases under the Windows removal policy
-   in effect. Exercise a partial write, flush failure and failed retirement
-   before attach with the same volume identity. Repeat the matched DiskSpd
-   and file workflow on actual devices with the same cache settings,
-   recording plain and compressed NTFS results where the comparison fits.
+   in effect. Exercise loss before and during reads, write and flush boundaries
+   and failed retirement. Have the Windows helper retire the dispatcher and
+   wait for a matching availability event. Check both the backing volume GUID
+   and the FlitzFS volume identity before automatically reopening and verifying
+   the acknowledged bytes independently. Try attaching a different device at
+   the former drive letter and verify refusal. Repeat the matched DiskSpd and file
+   workflow on actual devices with the same cache settings, recording plain
+   and compressed NTFS results where the comparison fits. Compare occupied
+   bytes, rewrite traffic, tail latency and time to regain useful capacity.
+   Record physical wear telemetry only when the device exposes it.
 
 ### Dense backing
 
