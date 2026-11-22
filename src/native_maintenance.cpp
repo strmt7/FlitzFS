@@ -27,8 +27,10 @@ static_assert(kOptimizationGroupBands==positional_bands+detail::kNativeGroupShif
 static_assert(std::tuple_size_v<detail::NativeGroupDeltaSignatures> == kCoherenceModularWidths);
 // Charge extra history for its retained entry, bucket membership, and the
 // overlapping controller, publisher and verifier copies of checkpoint rows.
+constexpr auto packing_index_scratch=sizeof(detail::NativePackingSketch)+128+
+    std::tuple_size_v<detail::NativePackingSketch>*sizeof(std::pair<std::pair<unsigned,std::uint64_t>,std::uint64_t>);
 constexpr auto representative_scratch=8*(sizeof(OptimizationGroupFeature)+sizeof(OptimizationGroupProjection)+
-    sizeof(detail::CoherenceScanKeys)+sizeof(std::optional<XorReferenceSample>));
+    sizeof(detail::CoherenceScanKeys)+sizeof(std::optional<XorReferenceSample>))+packing_index_scratch;
 static_assert(kOptimizationGroupRepresentatives>kNativeMaxDirtyExtents);
 struct GroupMemoryBudget {std::size_t members=0,representatives=0;};
 GroupMemoryBudget group_memory_budget(const detail::MaintenanceResources& resources,bool indexed,
@@ -160,6 +162,7 @@ struct NativeGroupMaintenance::Impl {
     std::array<std::uint64_t,kOptimizationGroupBands> bands{};
     OptimizationXorSignatures projections{};
     detail::NativeGroupDeltaSignatures deltas{};
+    detail::NativePackingSketch packing{};
     bool projected=false,deltas_sampled=false,measured=false,packing_assigned=false;
     std::optional<XorReferenceSample> reference_sample;
   };
@@ -194,6 +197,11 @@ struct NativeGroupMaintenance::Impl {
   std::size_t candidate_index=0,band_offset=0;
   std::uint64_t coherence_after=0,coherence_binding=0;
   std::uint64_t packing_after=0;
+  struct PackingWindow {
+    std::vector<std::pair<Band,std::uint64_t>> postings;
+    std::vector<std::pair<std::uint32_t,std::uint64_t>> prior_sizes;
+  };
+  std::optional<PackingWindow> packing_window;
   unsigned coherence_query=0;
   struct CoherenceAlternateProbe {Band key;std::uint64_t generation,after=0;};
   std::optional<CoherenceAlternateProbe> coherence_alternate;
@@ -231,7 +239,7 @@ struct NativeGroupMaintenance::Impl {
     candidate_index=band_offset=0;completed_sequence=0;phase=Phase::idle;state.owned_payload_bytes=0;pending_history=0;work_ids.clear();
     representatives.clear();refresh_base.reset();extent_scan_exhausted=false;
     coherence_after=coherence_binding=0;
-    coherence_query=0;coherence_alternate.reset();packing_after=0;
+    coherence_query=0;coherence_alternate.reset();packing_after=0;packing_window.reset();
     checkpoint_loaded=checkpoint_due=false;checkpoint_samples=state.sampled_extents;scan_revisit=false;
     update_count=next_update=0;
     updates_need_sweep=false;
@@ -417,7 +425,9 @@ struct NativeGroupMaintenance::Impl {
     for(unsigned i=0;i<positional_bands;++i)
       feature.bands[i]=word(detail::record_digest(std::span<const std::byte>(bytes).subspan(i*width,width)));
     if(writer.maintenance_indexed()) {
-      const auto shifted=detail::native_group_shift_features(bytes);
+      const auto short_payload=feature.token.standalone_bytes &&
+          feature.token.standalone_bytes<kNativeExtentBytes && store_zstd_available();
+      const auto shifted=detail::native_group_shift_features(bytes,short_payload?&feature.packing:nullptr);
       std::copy(shifted.begin(),shifted.end(),feature.bands.begin()+positional_bands);
       feature.projections=sample_xor_signatures(bytes);
       feature.deltas=detail::native_group_delta_signatures(bytes);
@@ -487,7 +497,7 @@ struct NativeGroupMaintenance::Impl {
     }
     trim_representatives(maximum);
     features.clear();buckets.clear();candidate_order.clear();
-    coherence_after=0;coherence_query=0;coherence_alternate.reset();packing_after=0;
+    coherence_after=0;coherence_query=0;coherence_alternate.reset();packing_after=0;packing_window.reset();
   }
   void accept_coherence_candidate(const OptimizationGroupFeature& hit,Band key,
       std::size_t maximum_representatives) {
@@ -729,6 +739,65 @@ struct NativeGroupMaintenance::Impl {
     work_members=expected.size();work_batched=collect_batch;
     ++state.attempted_groups;phase=Phase::preparing;
   }
+  const PackingWindow& pack_index() {
+    if(packing_window)return *packing_window;
+    PackingWindow window;
+    window.postings.reserve(representatives.size()*std::tuple_size_v<detail::NativePackingSketch>);
+    window.prior_sizes.reserve(representatives.size());
+    for(const auto& [id,feature]:representatives) {
+      const auto bytes=feature.token.standalone_bytes;
+      if(features.contains(id) || !bytes || bytes>=kNativeExtentBytes)continue;
+      window.prior_sizes.emplace_back(bytes,id);
+      for(unsigned i=0;i<feature.packing.size();++i)
+        if(feature.packing[i])window.postings.emplace_back(Band{i,feature.packing[i]},id);
+    }
+    std::ranges::sort(window.postings);
+    std::ranges::sort(window.prior_sizes,[](auto a,auto b){return a.first==b.first?a.second>b.second:a.first<b.first;});
+    return packing_window.emplace(std::move(window));
+  }
+
+  const Feature* choose_packing_partner(const Feature& seed,std::uint32_t remaining,bool& similar) {
+    const auto& index=pack_index();
+    const auto candidate=[&](std::uint64_t object) -> const Feature* {
+      const auto found=representatives.find(object);
+      if(found==representatives.end() || features.contains(object) || staged_objects.contains(object) ||
+          deferred_batch_objects.contains(object))return nullptr;
+      const auto& feature=found->second;
+      const auto size=feature.token.standalone_bytes;
+      return !feature.packing_assigned && size && size<=remaining?&feature:nullptr;
+    };
+    const auto& sketch=seed.packing;
+    std::map<std::uint64_t,unsigned> hits;
+    for(unsigned i=0;i<sketch.size();++i) {
+      if(!sketch[i])continue;
+      const Band key{i,sketch[i]};
+      auto posting=std::lower_bound(index.postings.begin(),index.postings.end(),key,
+          [](const auto& row,const Band& value){return row.first<value;});
+      for(;posting!=index.postings.end() && posting->first==key;++posting) {
+        ++state.packing_postings_examined;
+        ++hits[posting->second];
+      }
+    }
+    const Feature* partner=nullptr;
+    unsigned best=0;
+    for(const auto& [object,count]:hits) {
+      const auto* matched=candidate(object);
+      if(matched && (!partner || count>best || (count==best &&
+          matched->token.standalone_bytes>partner->token.standalone_bytes))) {
+        partner=matched;
+        best=count;
+      }
+    }
+    similar=partner!=nullptr;
+    if(partner)return partner;
+    auto prior=std::upper_bound(index.prior_sizes.begin(),index.prior_sizes.end(),remaining,
+        [](auto value,const auto& row){return value<row.first;});
+    while(prior!=index.prior_sizes.begin()) {
+      if(const auto* fit=candidate((--prior)->second))return fit;
+    }
+    return nullptr;
+  }
+
   bool propose_packed_group(NativeFilesystemWriter& writer,std::size_t maximum_members) {
     const auto eligible=[this](const Feature& feature) {
       const auto& token=feature.token;
@@ -748,24 +817,15 @@ struct NativeGroupMaintenance::Impl {
       feature.packing_assigned=true;
       remaining-=bytes;
     }
+    bool similar=false;
     if(expected.size()==1) {
-      // A singleton can share a base with a short standalone extent from
-      // an earlier window. Its retained size only ranks the candidates.
-      auto partner=representatives.end();
-      std::uint32_t largest=0;
-      for(auto it=representatives.begin();it!=representatives.end();++it) {
-        const auto& feature=it->second;
-        const auto bytes=feature.token.standalone_bytes;
-        if(bytes<=largest || bytes>remaining || features.contains(it->first) ||
-            deferred_batch_objects.contains(it->first) || !eligible(feature))continue;
-        partner=it;
-        largest=bytes;
-      }
-      if(partner!=representatives.end()) {
-        const auto& token=partner->second.token;
+      // Preserve fitting groups in the current window. Only a stranded seed
+      // compares relatives among the earlier, memory-funded representatives.
+      if(const auto* partner=choose_packing_partner(seed->second,remaining,similar)) {
+        const auto& token=partner->token;
         const auto live=writer.maintenance_token(token.extent);
         if(!live || live->object!=token.object || live->revision!=token.revision) {
-          representatives.erase(partner);
+          representatives.erase(token.object);
           seed->second.packing_assigned=false;
           return true;
         }
@@ -797,6 +857,7 @@ struct NativeGroupMaintenance::Impl {
     work.emplace(writer.prepare_shared_base(selected.front(),selected,expected,!staged_groups.empty(),false,
         NativeFilesystemWriter::SharedBaseMode::pack));
     remember(work_key);
+    if(similar)++state.packing_similar_partners;
     work_members=selected.size();
     work_batched=false;
     work_sampled_retry=false;

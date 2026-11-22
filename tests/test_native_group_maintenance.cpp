@@ -373,6 +373,131 @@ void indexed_uneven_short_packs(bool regression) {
       outcome.packed_reference_groups>=2,"packing did not match the later short files to the earlier long files");
 }
 
+
+void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expected_members=0) {
+  if(!store_zstd_available())return;
+  constexpr StoreCompressionOptions policy{StoreCompressionMode::automatic,3,true};
+  constexpr NativeImageStorage storage{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes};
+  const auto name=[](std::size_t i){return "pack-profile-"+std::to_string(i);};
+  Fixture f(4096,0,true,policy);
+  for(std::size_t i=0;i<inputs.size();++i)put(*f.session,name(i),inputs[i]);
+
+  const auto verify=[&](const NativeFilesystemSnapshot& snapshot) {
+    snapshot.verify_all();
+    for(std::size_t i=0;i<inputs.size();++i)
+      require(snapshot.read(name(i),0,kNativeExtentBytes)==inputs[i],"similarity packing changed file bytes");
+  };
+  const auto settled_image=[&](const NativeFilesystemSnapshot& source,unsigned target) {
+    auto backing=ram(4096);
+    {
+      const auto compacted=NativeFilesystemWriter::compact(source,backing,id(target),policy);
+    }
+    const auto reader=NativeFilesystemSnapshot::open_image(backing,storage);
+    const auto read_start=backing->read_bytes;
+    for(std::size_t i=0;i<inputs.size();++i) {
+      const auto length=(std::min)(std::size_t{128},inputs[i].size());
+      const auto offset=(inputs[i].size()-length)/2;
+      require(reader.read(name(i),offset,length)==Bytes(inputs[i].begin()+offset,inputs[i].begin()+offset+length),
+          "short CPU range changed after packing");
+    }
+    const auto small_reads=backing->read_bytes-read_start;
+    verify(reader);
+    return std::pair{backing->extent(),small_reads};
+  };
+
+  f.session.reset();
+  const auto prior=NativeFilesystemSnapshot::open_image(f.image,storage);
+  const auto before=settled_image(prior,2);
+  const auto resolve=[&](const StoreIdentity& key)->std::shared_ptr<StoreByteIo>{return key==id(1)?f.image:nullptr;};
+  f.session.emplace(NativeFileSession::resume_closed_indexed_volume(f.head,id(90),1,resolve,policy));
+  NativeMaintenanceProgress outcome;
+  const auto before_reads=f.image->read_bytes,before_writes=f.image->write_bytes;
+  {
+    NativeGroupMaintenance groups(*f.session);
+    outcome=f.finish(groups);
+    const auto reads=f.image->read_calls,writes=f.image->writes;
+    require(f.step(groups).phase==Phase::idle && f.image->read_calls==reads && f.image->writes==writes,
+        "completed similarity packing did more backing I/O");
+  }
+  const auto maintenance_reads=f.image->read_bytes-before_reads,maintenance_writes=f.image->write_bytes-before_writes;
+  f.session.reset();
+  verify(prior);
+  const auto current=NativeFilesystemSnapshot::open_image(f.image,storage);
+  const auto after=settled_image(current,3);
+  const auto members=current.shared_base_info().members;
+  std::cout<<"similarity_packing files="<<inputs.size()<<" before_compacted="<<before.first
+      <<" after_compacted="<<after.first<<" before_range_read_bytes="<<before.second
+      <<" after_range_read_bytes="<<after.second<<" maintenance_read_bytes="<<maintenance_reads
+      <<" maintenance_write_bytes="<<maintenance_writes<<" work_ns="<<outcome.elapsed_work_ns
+      <<" packed_groups="<<outcome.packed_reference_groups<<" attempts="<<outcome.attempted_groups
+      <<" members="<<members<<" cpu_exact=1 retained_snapshot_exact=1 idle_io=0\n";
+  if(expected_members) {
+    require(after.first<before.first && members==expected_members && outcome.packed_reference_groups,
+        "similarity ranking missed the fitting short-file families");
+    require(outcome.packing_similar_partners==1 && outcome.packing_postings_examined &&
+        outcome.packing_postings_examined<=2*std::tuple_size_v<detail::NativePackingSketch>,
+        "singleton ranking did more than its sparse retained-family lookups");
+  }
+}
+
+void profile_shuffled_short_packs() {
+  constexpr unsigned pairs=6;
+  std::array<Bytes,2*pairs> inputs;
+  for(unsigned i=0;i<pairs;++i) {
+    inputs[i]=uneven_short_pack_file(i,pairs);
+    inputs[pairs+i]=uneven_short_pack_file(pairs+(i+2)%pairs,pairs);
+  }
+  profile_similarity_packing(inputs);
+}
+
+
+void profile_cross_window_short_families(bool regression=false) {
+  constexpr auto files=kNativeMaxDirtyExtents+1;
+  auto related=uneven_short_pack_file(1,1);
+  related.resize(23*1024);
+  related.back()=std::byte{0x67};
+  auto query=uneven_short_pack_file(0,1);
+  std::vector<Bytes> inputs;
+  inputs.reserve(files);
+  inputs.push_back(std::move(related));
+  inputs.push_back(data(24*1024,33211)); // The size-only lookup prefers this unrelated extent.
+  for(std::size_t i=2;i+1<files;++i) {
+    auto& payload=inputs.emplace_back(data(kNativeExtentBytes,947320+17*i));
+    payload.back()=std::byte{0x86};
+  }
+  inputs.push_back(std::move(query));
+  profile_similarity_packing(inputs,regression?2:0);
+}
+
+void profile_public_short_packs(const std::filesystem::path& filename) {
+  if(!store_zstd_available())return;
+  const auto source=ReadOnlyFile::open(filename);
+  require(source.size()>4 && source.size()<=4*1024*1024,"public pack corpus size");
+  const auto read_count=[&](std::uint64_t offset) {
+    std::array<std::byte,4> raw{};
+    source.read_exact_at(offset,raw.data(),raw.size());
+    std::uint32_t value=0;
+    for(unsigned i=0;i<raw.size();++i)value|=std::to_integer<std::uint32_t>(raw[i])<<(i*8);
+    return value;
+  };
+  const auto files=read_count(0);
+  require(files>1 && files<=192,"public pack corpus file count");
+  std::uint64_t offset=4;
+  std::vector<Bytes> inputs;
+  inputs.reserve(files);
+  for(std::uint64_t i=0;i<files;++i) {
+    require(offset+4<=source.size(),"truncated public pack corpus");
+    const auto size=read_count(offset);
+    offset+=4;
+    require(size && size<kNativeExtentBytes && size<=source.size()-offset,"public pack corpus file extent");
+    auto& bytes=inputs.emplace_back(static_cast<std::size_t>(size));
+    source.read_exact_at(offset,bytes.data(),bytes.size());
+    offset+=size;
+  }
+  require(offset==source.size(),"public pack corpus has trailing bytes");
+  profile_similarity_packing(inputs);
+}
+
 void indexed_cross_window_pack(bool replace_retained) {
   if(!store_zstd_available())return;
   constexpr auto count=kNativeMaxDirtyExtents+1;
@@ -3045,6 +3170,13 @@ int main(int argc,char** argv){try{
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-pack-distinct-short-extents") {
     indexed_pack_distinct_short_extents();
     indexed_uneven_short_packs(true);
+    if(store_zstd_available())profile_cross_window_short_families(true);
+  } else if(argc==2 && std::string_view(argv[1])=="--profile-shuffled-short-packs") {
+    profile_shuffled_short_packs();
+  } else if(argc==2 && std::string_view(argv[1])=="--profile-cross-window-short-families") {
+    profile_cross_window_short_families();
+  } else if(argc==3 && std::string_view(argv[1])=="--profile-public-short-packs") {
+    profile_public_short_packs(argv[2]);
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-cross-window-pack") {
     indexed_cross_window_pack(false);
     indexed_cross_window_pack(true);

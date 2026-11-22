@@ -557,12 +557,20 @@ preserves the file's logical zero tail. Work reserved for an AMD batch keeps
 its own source bindings. The controller settles the batch before closing that
 scan window.
 
-When a seed has no partner in the current window, the scanner tries the
-largest fitting standalone payload among its retained, measured
-representatives. The retained size ranks candidates. The writer checks
-the live object and revision before preparing the selected pack, and
-drops stale metadata before trying again. This lookup uses the existing
-representative budget and the same protected base and slice records.
+When a seed has no fitting partner in the current window, the scanner looks
+up retained representatives by rolling fingerprint and checks whether their
+payloads fit. It builds sorted postings once on demand for the admitted
+window. Fingerprints come from the existing rolling scan and fold into the
+same coarse features used by catalog discovery. An exact-key lookup examines
+matching postings. The count of shared fingerprints ranks fitting candidates,
+with larger payloads preferred on ties. A size lookup supplies the largest
+fitting payload when there is no fingerprint match.
+
+The packer checks the chosen object's live revision before preparing the
+group, drops stale nominations and verifies the selected bytes before
+publication. The postings use the existing representative budget and leave
+scope with the scan window. No additional catalog bytes or decoding
+dependencies are needed. [Retained similarity and read-cost comparison](evidence/indexed-retained-packing-similarity-2026-11-22.json)
 
 Direct packing uses the existing compacted-size comparison and transaction.
 It renews the memory grant during preparation and checks the selected

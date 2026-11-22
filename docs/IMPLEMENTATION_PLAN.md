@@ -426,9 +426,11 @@ also runs the in-memory WinFsp worker cases on ordinary local SDK builds.
 
 ### Acceptance and failure checks
 
-- Exercise 1,000, 16,000, 100,000 and at least 1,000,000 **named nonempty files**,
-  a 100,000-entry directory and populated-file reads beyond cache capacity.
-  Counts/sizes adapt to safe test headroom; an unexecuted larger rung stays open.
+- Run the [native scale ladder](RELEASE_EXECUTION_PLAN.md#2-large-indexed-volumes-and-foreground-io)
+  with named nonempty files and mixed directory layouts. Include a
+  100,000-entry directory and populated reads beyond cache capacity. Mark
+  each capacity rung with the backing, resource budget and fixture actually
+  exercised.
 - Include small/large/skewed directories, long names, large populated and sparse
   files, overwrites, rename/delete/truncate and restart. Record object counts
   separately from file counts.
@@ -1347,14 +1349,14 @@ with full occupied-space accounting.
     grouping when repeated base fetches make ordinary reads too expensive.
     [Grouped audit and live corpus evidence](evidence/indexed-grouped-audit-2026-11-20.json)
 
-    - The packer can recover an unmatched seed using a live-checked retained
-      size from an earlier window. Extend trial selection using
-      mixed payload sizes and real revision families. Compare an
-      object-order control, size-filtered lookup, and size-filtered lookup
-      ranked by measured similarity. Record candidate recall, CPU, resident
-      memory and backing traffic. Retain the complete-image size check and
-      the case in which an early extent cannot fit but a later one can.
-      [Current packing evidence](evidence/indexed-cross-window-packing-2026-11-21.json)
+    - The packer uses size and similarity to find a retained partner when
+      the current window has none. Extend evaluation to paged postings with
+      mixed payload sizes, larger revision families and changing content.
+      Compare object order, size-filtered lookup and similarity ranking with
+      the same inputs. Record candidate recall, CPU, resident memory and
+      backing traffic. Price groups and displaced files together before
+      changing the selection of already fitting in-window groups.
+      [Retained similarity evidence](evidence/indexed-retained-packing-similarity-2026-11-22.json)
     - Report group costs and one-member read work. Account for the base,
       reverse references, padding, protection, pending reclamation and any
       pinned older copies. Choose trial sizes from these observations.
@@ -1739,8 +1741,10 @@ exact readback and resource/process containment. **Planning effort:** 3–6 pers
 ### Implementation steps
 
 1. Recheck current tool versions and pin source/binaries. Use Microsoft DiskSpd
-   for file I/O, appropriate native Windows fio workloads where supported,
-   WinFsp tests/FSX for semantics and lzbench or strong codec controls for codec work.
+   and the repeatable Windows file-tree workflows in the
+   [release benchmark protocol](RELEASE_EXECUTION_PLAN.md#8-benchmarks-soak-and-the-release-decision).
+   Use WinFsp tests/FSX for semantics and lzbench or strong codec controls for
+   codec work.
 2. Keep custom tests for properties those tools do not supply: group discovery,
    total bytes/dependencies, CPU/GPU failure, migration and acknowledged-write recovery.
 3. Build exact real-corpus manifests with source/license/digests, training/held-out
@@ -1749,9 +1753,10 @@ exact readback and resource/process containment. **Planning effort:** 3–6 pers
 4. Cover text/source/logs, structured data, binaries, media, documents/containers,
    numeric/model families and mixed unrelated data. Bound downloaded/local storage
    and do not execute untrusted corpus binaries.
-5. Compare NTFS uncompressed/compressed and supported ReFS configurations, plus
-   suitable other filesystem/image controls in isolated environments. Do not
-   format owner storage or claim a cross-OS throughput comparison is matched.
+5. Use NTFS on the current Windows 11 build as the primary control, both with
+   defaults and with supported compression. Include supported ReFS and other
+   filesystem controls on qualified comparable backings. Preserve the operating
+   system, volume, capacity, corpus and workload configuration in each receipt.
 6. Use an in-memory WinFsp reference where useful to separate bridge overhead
    from FlitzFS costs. Keep real filesystem, image-size and archive/codec-only
    comparisons in explicitly different result panels.

@@ -69,7 +69,7 @@ artifact and the observation needed before the related work can advance.
 | Gate and work package | Next implementation or qualification artifact | Required evidence |
 | --- | --- | --- |
 | S1 · E10–E11 | Generate a candidate manifest from the CMake configurations, private dependency locks, staged toolchain and actual app, worker and SDK binaries. | Source, runtime and package hashes match the tested artifacts. Each applicable test lane identifies the exact candidate or the unchanged inputs it covers. |
-| S2 · E01 | Extend the WinFsp populated client trace and add read, write and lock accounting at name lookup, inode read, publication and reopen. Exercise deep and wide layouts from 1,024 through 1 million files. | Replay agrees with a reference namespace and independent CPU bytes. Profiling identifies the actual scaling term for each operation and bounded resident state at the claimed capacity. |
+| S2 · E01 | Extend the WinFsp populated client trace and add read, write and lock accounting at name lookup, inode read, publication and reopen. Exercise deep and wide layouts from one through 30 million files in stages. | Replay agrees with a reference namespace and independent CPU bytes. Profiling identifies the actual scaling term for each operation and bounded resident state at the claimed capacity. |
 | S3 · E02 | Use the existing whole-image rebuild as a control for bounded segment evacuation and reusable allocation in the paged store. Persist reader and retained-root ownership across handoffs. | Repeated mounted churn settles at stable or falling occupied bytes. Old readers and checked dependencies remain readable across cancellation and interrupted retirement. |
 | S4 · E03 | Qualify the installed AMD route for foreground eligible writes and cold shared-base work on the same mounted app build. Compare with a matched CPU lane and an unavailable-device lane. | Device counters prove useful submitted work. End-to-end cost or settled size improves on qualifying data, while missing or failed devices leave CPU operations and every stored representation readable. |
 | S5 · E04–E06 | Freeze the mixed held-out corpus and collect complete-image accounting for independent codecs, shared dictionaries, delta and multi-reference candidates and the existing shared-base control. | Net space gains survive protection, retained generations and reclamation costs. Independent restart units give practical cold random reads. Size and access results include all cohorts and losses. |
@@ -163,12 +163,16 @@ mixed-activity control. [Scheduling and scale evidence](evidence/indexed-scale-r
   affect startup, enumeration, update or close. Use existing indexed cursors
   and generation-safe read views. Split background preparation from bounded
   publication and record the lock time of both.
-- Qualify 1,000, 16,000, 100,000 and at least one million named files, then
-  extend the largest supported configurations as backing and headroom allow.
-  Exercise deep and wide directories, unrelated updates, and several
-  memory envelopes.
-  Record bytes resident, paths/page lookups, writes, open and enumeration work,
+- Qualify volumes with one file, 1,000, 16,000, 100,000, one million,
+  ten million and thirty million named files. Vary depth, directory width,
+  allocation density and memory headroom independently. Include empty and
+  byte-sized files, files near extent/compression boundaries, ordinary media
+  and documents, multi-gigabyte files and sparse files above 4 GiB. Use mixed
+  workloads so tiny files and large streams compete for the same caches.
+  Record bytes resident, pages visited, writes, open and enumeration work,
   and random and sequential I/O tails against the same reference contents.
+  Distinguish indexed key count from a populated, usable Windows namespace.
+  Run each step on a backing and host that have verified capacity.
 - Verify a reference model with handle and operation traces after replay.
   S2 passes when ordinary clients complete the declared layouts and resource
   budgets with exact contents and namespace results.
@@ -436,16 +440,19 @@ multiple sessions and measure actual allocated bytes and write costs.
   device or backend identity. Age stale observations and make poor
   predictions recoverable. Keep every required decoding dependency separate
   from rebuildable learning data.
-- Extend the verified cross-window pairing to size-filtered, similarity-ranked
-  trial candidates. The initial retained-partner lookup saved 16 KiB in the
-  controlled case and retained the baseline sizes on two public cohorts.
-  For each size and similarity cohort, record candidate recall,
-  attempts and refusals, settled bytes saved, temporary bytes written, and
-  reads needed for small ranges. Compare current ordering, size-aware
-  candidate lookup and measured similarity ranking on the same images. Keep
-  candidate lookup paged and bounded. Qualify a larger grouping envelope only
-  once its range reader and dependency retirement pass the same checks.
-  [Cross-window packing evidence](evidence/indexed-cross-window-packing-2026-11-21.json)
+- Retained similarity lookup recovered one missed group in a controlled
+  cross-window workload and saved 24 KiB after compaction. The three other
+  workloads held their prior compacted sizes, including two public corpora.
+  Keep this ranking for short extents with no fitting in-window partner.
+  An earlier version that also reranked the current window enlarged the
+  public revision image by 8 KiB. Compare joint group alternatives by
+  verified occupied bytes, including the space required by displaced files,
+  before applying wider reranking. Measure shortlist recall, maintenance
+  reads and writes, and small-read amplification across larger populations.
+  Carry useful lookup into the paged advisory catalog and retain the bounded
+  in-memory window for active preparation. Expand the grouping envelope
+  together with CPU range reads and dependency retirement.
+  [Retained similarity comparison](evidence/indexed-retained-packing-similarity-2026-11-22.json)
 - Use fresh idle opportunities and bounded work to choose further scans,
   grouping, consolidation and format migration. Learn from net space
   saved, foreground service time, memory and write cost. Stop or shrink
@@ -509,16 +516,34 @@ advisory and artifact inventories.
 ## 8. Benchmarks, soak and the release decision
 
 - Use Microsoft's DiskSpd 2.3 as the current controlled Windows I/O
-  benchmark. Record the exact binary, arguments, caching mode, access
-  pattern, queue depth, data size, test duration and runtime configuration.
-  Pair it with the Windows semantics harness for namespace, durability and
-  identity behavior, and with separately timed real-file workflows.
+  benchmark. Retain the exact binary, XML profile and results, cache mode,
+  queue depth, duration, fixture data and platform topology. Run the common
+  buffered and unbuffered profiles only where both filesystems can honor
+  equivalent semantics. Report provider-specific acceleration such as
+  NTFS BypassIO as a separately labeled result.
   [Microsoft DiskSpd](https://github.com/microsoft/diskspd)
+- Pair DiskSpd with a repeatable file tree. Time Robocopy from a fixed source
+  to a new destination, with fixed thread and retry settings and recorded
+  metadata choices. Time Explorer enumeration and small file opens, then
+  replay directory creation, renames, updates and deletion in the fixture.
+  Use a pinned source checkout and a normal incremental build for a mixed
+  read/write workflow. Reopen the volume and verify content and namespace
+  after each workload. Measure foreground tails during background packing.
+  [Microsoft Robocopy](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/robocopy)
 - Compare FlitzFS at ingest, after admitted idle work, and after verified
-  reclamation. Match the usable backing and test data across NTFS baseline,
-  supported NTFS compression, exFAT, and ReFS where the host and volume setup
-  provide it. Add relevant external compression controls for the space
-  frontier and record which have comparable random access.
+  reclamation. Use NTFS on the same current Windows 11 build as the primary
+  control, with both native defaults and supported NTFS compression.
+  Capture the Windows build, NTFS volume information, allocation units, and
+  enabled cache and compression settings. Match backing, usable capacity
+  and corpus. Include exFAT and ReFS where available, and use offline codec
+  controls for the compression frontier.
+  [Microsoft NTFS volume queries](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/fsutil-fsinfo)
+- Where a licensed UL PCMark 10 Data Drive fixture fits the available resource
+  and protection envelope, retain its standard trace results as another
+  workload. UL reports about 15 GB of writes at default settings. Fund the
+  published workload before running it and reserve the storage-consistency
+  test for separate endurance qualification.
+  [UL PCMark 10 storage workloads](https://support.benchmarks.ul.com/support/solutions/articles/44002171443)
 - Alternate repeated controls and candidates. Report absolute occupied
   space, foreground read/write throughput and tail latency, peak CPU/GPU/RAM
   use, process retirement, background duty, I/O amplification and wear-related

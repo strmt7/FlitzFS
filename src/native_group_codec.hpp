@@ -64,7 +64,9 @@ void bind_native_group_member(std::span<std::byte>,std::uint64_t base_id,std::ui
 
 // Content evidence for a sparse search. A zero entry contributes no posting.
 inline constexpr std::size_t kNativeGroupShiftFeatures=4;
-std::array<std::uint64_t,kNativeGroupShiftFeatures> native_group_shift_features(std::span<const std::byte>) noexcept;
+using NativePackingSketch=std::array<std::uint64_t,16>;
+std::array<std::uint64_t,kNativeGroupShiftFeatures> native_group_shift_features(
+    std::span<const std::byte>,NativePackingSketch* packing=nullptr) noexcept;
 using NativeGroupDeltaSignatures=std::array<std::uint64_t,4>;
 NativeGroupDeltaSignatures native_group_delta_signatures(std::span<const std::byte> extent);
 

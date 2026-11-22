@@ -16,6 +16,16 @@
     "implementation_order": "docs/IMPLEMENTATION_PLAN.md#3-execution-order-and-dependencies",
     "evidence": "docs/evidence/architecture-reconciliation-2026-11-21.json"
   },
+
+  "retained_short_packing_similarity": {
+    "evidence": "docs/evidence/indexed-retained-packing-similarity-2026-11-22.json",
+    "paired_workloads": 4,
+    "paired_trials_per_workload": 3,
+    "cross_window_compacted_bytes": {"size_only": 8388608, "similarity_ranked": 8364032},
+    "public_corpora_with_equal_size": 2,
+    "scope": "stranded_short_extent_partner_lookup",
+    "native_mounted_benchmark_qualified": false
+  },
   "amd_prepared_sweep": {
     "evidence": "docs/evidence/amd-prepared-sweep-2026-11-22.json",
     "installed_pinned_module_executed": true,

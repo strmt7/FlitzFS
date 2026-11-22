@@ -796,21 +796,35 @@ NativeGroupPackedCandidate check_native_group_sparse_xor_body(std::span<const st
   return {std::move(frame),Check::verified,NativeGroupMethod::sparse_xor};
 }
 
-std::array<std::uint64_t,kNativeGroupShiftFeatures> native_group_shift_features(std::span<const std::byte> bytes) noexcept {
+std::array<std::uint64_t,kNativeGroupShiftFeatures> native_group_shift_features(
+    std::span<const std::byte> bytes,NativePackingSketch* packing) noexcept {
+  if(packing)packing->fill(0);
   while(!bytes.empty() && bytes.back()==std::byte{})bytes=bytes.first(bytes.size()-1);
-  std::array<std::uint64_t,kNativeGroupShiftFeatures> features{};
+  std::array<std::uint64_t,kNativeGroupShiftFeatures> features{},minima{};
   if(bytes.size()<window_bytes)return features;
-  std::array<std::uint64_t,kNativeGroupShiftFeatures> minima{};
+  const auto bins=packing?std::span<std::uint64_t>(*packing):std::span<std::uint64_t>(minima);
+  static_assert(std::has_single_bit(kNativeGroupShiftFeatures) && std::has_single_bit(std::tuple_size_v<NativePackingSketch>));
+  const auto mask=bins.size()-1;
   auto rolling=fingerprint(bytes.first(window_bytes));
   const auto last=bytes.size()-window_bytes;
   for(std::size_t offset=0;;++offset) {
     if(rolling) {
       const auto value=mix(rolling);
-      auto& minimum=minima[value%minima.size()];
+      auto& minimum=bins[value&mask];
       if(!minimum || value<minimum)minimum=value;
     }
     if(offset==last)break;
     rolling=roll(rolling,bytes[offset],bytes[offset+window_bytes]);
+  }
+  if(packing) {
+    // Folding the finer bins preserves the existing persisted feature values.
+    static_assert(std::tuple_size_v<NativePackingSketch>%kNativeGroupShiftFeatures==0);
+    for(std::size_t i=0;i<packing->size();++i) {
+      const auto value=(*packing)[i];
+      auto& coarse=minima[i%minima.size()];
+      if(value && (!coarse || value<coarse))coarse=value;
+    }
+    if(std::ranges::count_if(*packing,[](auto hint){return hint!=0;})<2)packing->fill(0);
   }
   // Require two distinct buckets so identical padding or one repeated word
   // cannot create an offset-independent candidate by itself.
