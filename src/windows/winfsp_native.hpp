@@ -91,7 +91,8 @@ class WinFspNativeWritable final {
   static std::unique_ptr<WinFspNativeWritable> resume_indexed_retired(
       std::shared_ptr<StoreByteIo> head,StoreIdentity volume_identity,std::uint64_t expected_epoch,
       const NativeVolumeImageResolver&,StoreCompressionOptions foreground={},
-      std::shared_ptr<StoreByteIo> advice={},std::uint64_t expected_advice_sequence=0);
+      std::shared_ptr<StoreByteIo> advice={},std::uint64_t expected_advice_sequence=0,
+      NativeMaintenancePolicy group_policy={});
   // Qualified exact head epoch/resolver after actual previous-owner retirement.
   // Retains supported flat/paged representations and stored root metadata/ACLs.
   static std::unique_ptr<WinFspNativeWritable> resume_managed_retired(
@@ -195,7 +196,8 @@ class WinFspNativeWritable final {
       NativeFileSession,StoreIdentity volume,std::uint64_t created,NativeMaintenancePolicy);
   static std::unique_ptr<WinFspNativeWritable> resume_managed_impl(std::shared_ptr<StoreByteIo>,
       StoreIdentity,std::optional<std::uint64_t>,const NativeVolumeImageResolver&,StoreCompressionOptions,
-      std::shared_ptr<StoreByteIo>,std::uint64_t,bool closed_indexed,MemoryVolumeBacking* memory=nullptr);
+      std::shared_ptr<StoreByteIo>,std::uint64_t,bool closed_indexed,MemoryVolumeBacking* memory=nullptr,
+      NativeMaintenancePolicy group_policy={});
   struct Impl;
   std::unique_ptr<Impl> impl_;
   explicit WinFspNativeWritable(std::unique_ptr<Impl>) noexcept;

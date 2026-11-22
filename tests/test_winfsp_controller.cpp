@@ -10,6 +10,7 @@
 #include "../src/windows/hip_worker_exit.hpp"
 #include "native_fs_fixture.hpp"
 #include "native_lz4_fixture.hpp"
+#include "paused_capture_backing.hpp"
 #include "native_corpus_fixture.hpp"
 #include "native_security_fixture.hpp"
 #include "../src/native_group_codec.hpp"
@@ -370,6 +371,71 @@ class DelayedLookaheadBacking final:public StoreByteIo {
   const DWORD foreground_=GetCurrentThreadId();
   mutable std::atomic<bool> delay_idle_{false},delay_demand_{false};
 };
+std::shared_ptr<NativeHybridBacking> select_capture_hybrid(NativeFileSession& session,MemoryVolumeDomain& domain,
+    std::shared_ptr<StoreByteIo> base,StoreIdentity next,std::uint64_t capacity,StoreCompressionOptions compression) {
+  auto workspace=domain.create_store(capacity/2);
+  auto tail=domain.create_store(capacity);
+  auto work=NativeHybridBacking::prepare(session,workspace,std::move(base),tail,next,capacity,capacity,compression);
+  for(unsigned step=0;!work.advance(session);++step)
+    require(step<8192,"capture fixture could not prepare a sealed image");
+  std::shared_ptr<NativeHybridBacking> image;
+  require(work.publish(session,image) && image->concurrent_reads_supported(),
+      "capture fixture could not select its concurrent sealed image");
+  return image;
+}
+
+void capture_during_hybrid_tail_write() {
+  constexpr std::uint64_t capacity=8ULL*1024*1024;
+  constexpr StoreCompressionOptions fast{StoreCompressionMode::fast,1,false};
+  auto domain=MemoryVolumeDomain::create(3*capacity+kVolumeHeadBytes);
+  auto head=domain.create_store(kVolumeHeadBytes),source=domain.create_store(capacity);
+  auto base=std::make_shared<test::PausedCaptureBacking>(domain.create_store(capacity/2));
+  auto session=NativeFileSession::create_indexed_volume(head,id(90),source,id(1),{capacity},fast);
+  session.create_entry("visible");
+  const auto file=session.open("visible",{true,true,false});
+  const auto original=native_lz4_fixture::source();
+  auto body=data(2*kStoreMaxObjectBytes,157);
+  std::ranges::copy(original,body.begin());
+  for(std::size_t at=0;at<body.size();at+=kStoreMaxObjectBytes)
+    session.write(file,at,std::span(body).subspan(at,kStoreMaxObjectBytes));
+  auto image=select_capture_hybrid(session,domain,base,id(2),capacity,fast);
+  image->verify_backing();
+  auto lease=session.lease_native_lz4_capture(file,0,kNativeExtentBytes);
+  require(lease!=nullptr,"sealed image did not expose the normal LZ4 capture lease");
+  std::atomic<bool> interrupt{false};
+  auto capture=std::async(std::launch::async,[&]{
+    return lease->capture_range(kNativeExtentBytes,2*kNativeExtentBytes,[&]{return interrupt.load();});
+  });
+  require(base->wait_until_held(),"LZ4 capture did not reach the sealed base");
+  require(session.read(file,0,kNativeExtentBytes)==original,"held capture impeded exact foreground read");
+  auto edited=original;
+  edited.back()^=std::byte{0xa9};
+  session.write(file,0,edited);
+  require(session.read(file,0,kNativeExtentBytes)==edited &&
+      capture.wait_for(std::chrono::seconds(0))==std::future_status::timeout,
+      "held capture impeded publication to the tail");
+  interrupt=true;
+  base->release();
+  require(capture.get().empty() && base->capture_reads()==1 && !image->backing_degraded(),
+      "cancelled capture retried the base or marked a healthy image degraded");
+  detail::StoreCodecDecoder cpu;
+  const auto exact=[&](const detail::NativeLz4CaptureLease& from,const Bytes& expected) {
+    detail::NativeLz4CapturedFrame frame;
+    require(from.capture(frame) && frame.key().image==id(2),"sealed capture did not bind its selected identity");
+    const auto decoded=cpu.decode(detail::kStoreLz4,frame.encoded(),frame.key().decoded_bytes);
+    require(decoded.size()>=expected.size() && std::ranges::equal(std::span(decoded).last(expected.size()),expected),
+        "captured version did not independently decode on CPU");
+    return frame.key();
+  };
+  const auto latest=session.lease_native_lz4_capture(file,0,kNativeExtentBytes);
+  require(latest!=nullptr && exact(*lease,original)!=exact(*latest,edited),
+      "old and new sealed captures used the same frame identity");
+  session.cleanup(file,false);
+  session.close(file);
+  std::cout<<"hybrid_lz4_capture held_base=1 foreground_tail_write=1 cancellation_backing_calls=1"
+      <<" healthy_after_cancel=1 old_and_new_cpu_exact=1\n";
+}
+
 void read_capture_pins_selected_image() {
   constexpr std::uint64_t capacity=8ULL*1024*1024;
   constexpr StoreCompressionOptions fast{StoreCompressionMode::fast,1,false};
@@ -527,7 +593,7 @@ void live_read_ahead_admission() {
       <<" demand_samples="<<recovered.read_ahead_demand_samples
       <<" slow_demand_kept_limit=1 timer_only_retries=0 demand_recovered=1 exact_cpu_fallback=1 owner_retired=1\n";
 }
-int live_amd_read_ahead(char** argv,bool refuse) {
+int live_amd_read_ahead(char** argv,bool refuse,bool sealed=false) {
   require(store_lz4_available(),"owned AMD read-ahead requires a qualified CPU LZ4 decoder");
   const auto number=[](std::string_view value) {
     std::uint32_t result=0;
@@ -561,28 +627,60 @@ int live_amd_read_ahead(char** argv,bool refuse) {
   constexpr std::uint64_t extent=kNativeExtentBytes,image_capacity=8ULL*1024*1024;
   constexpr std::size_t window=2*extent;
   constexpr StoreCompressionOptions fast{StoreCompressionMode::fast,1,false};
-  auto domain=MemoryVolumeDomain::create(image_capacity+kVolumeHeadBytes);
+  auto domain=MemoryVolumeDomain::create((sealed?3:1)*image_capacity+kVolumeHeadBytes);
   auto head=domain.create_store(kVolumeHeadBytes);
   auto image=domain.create_store(image_capacity);
   NativeMaintenancePolicy qualification;
   qualification.maximum_cpu_busy_ppm=500'000;
   auto adapter=WinFspNativeWritable::create_managed_indexed(
       head,id(90),image,id(1),{image_capacity},fast,{},qualification);
-  auto* route=adapter.get();
-  Provider provider;
-  Provider::active=&provider;
-  WinFspVolumeController owner(std::move(adapter),provider.api(),plan(),domain,{},nullptr,std::move(profile));
-  await([&]{return owner.view().state==SessionState::running;},5000,"AMD read controller startup");
-  require(!owner.view().amd_read.configuration_refused,"AMD read package did not verify");
   Bytes file(3*window);
   for(std::size_t i=0;i<2;++i) {
     const auto motif=data(extent/8,917+static_cast<unsigned>(i));
     for(std::size_t at=0;at<extent;at+=motif.size())
       std::ranges::copy(motif,file.begin()+static_cast<std::ptrdiff_t>(2*window+i*extent+at));
   }
-  callback_file(provider,0,file,static_cast<ULONG>(extent));
-  await([&]{return owner.view().payload_scrub_passes && !route->background_maintenance_pending();},
-      12000,"AMD read fixture initial maintenance did not quiesce");
+  Provider provider;
+  Provider::active=&provider;
+  std::shared_ptr<NativeHybridBacking> selected;
+  if(sealed) {
+    {
+      WinFspNativeSession seed(std::move(adapter),provider.api());
+      require(seed.start(plan())==STATUS_SUCCESS,"sealed AMD source callbacks did not start");
+      callback_file(provider,0,file,static_cast<ULONG>(extent));
+      callback_file(provider,1,data(kStoreMaxObjectBytes,227),static_cast<ULONG>(extent));
+      seed.stop();
+      require(seed.write_restart_ready(),"sealed AMD source owner did not retire");
+    }
+    {
+      auto builder=NativeFileSession::resume_closed_indexed_volume(head,id(90),1,
+          [&](const StoreIdentity& choice){return choice==id(1)?image:nullptr;},fast,
+          NativeDispositionPolicy::windows_global);
+      selected=select_capture_hybrid(builder,domain,domain.create_store(image_capacity/2),
+          id(2),image_capacity,fast);
+    }
+    adapter=WinFspNativeWritable::resume_indexed_retired(head,id(90),2,
+        [&](const StoreIdentity& choice){return choice==id(2)?selected:nullptr;},fast,{},0,qualification);
+  }
+  auto* route=adapter.get();
+  WinFspVolumeController owner(std::move(adapter),provider.api(),plan(),domain,{},nullptr,std::move(profile));
+  await([&]{return owner.view().state==SessionState::running;},5000,"AMD read controller startup");
+  require(!owner.view().amd_read.configuration_refused,"AMD read package did not verify");
+  if(!sealed)callback_file(provider,0,file,static_cast<ULONG>(extent));
+  try {
+    await([&]{return owner.view().payload_scrub_passes && !route->background_maintenance_pending();},
+        12000,"AMD read fixture initial maintenance did not quiesce");
+  }catch(...) {
+    const auto state=owner.view();
+    std::cerr<<"AMD read startup sealed="<<sealed<<" host="<<static_cast<unsigned>(state.host)
+        <<" quanta="<<state.maintenance_quanta<<" scrub_checks="<<state.payload_scrub_checks
+        <<" scrub_passes="<<state.payload_scrub_passes<<" scrub_faults="<<state.payload_scrub_faults
+        <<" phase="<<static_cast<unsigned>(state.maintenance.phase)
+        <<" deferral="<<static_cast<unsigned>(state.maintenance.deferral)
+        <<" attempted="<<state.maintenance.attempted_groups<<" disabled="<<state.maintenance_disabled
+        <<" failed="<<state.controller_failed<<" offline="<<state.offline<<'\n';
+    throw;
+  }
   PVOID context=nullptr;
   FSP_FSCTL_FILE_INFO info{};
   wchar_t name[]=L"\\f0";
@@ -647,7 +745,7 @@ int live_amd_read_ahead(char** argv,bool refuse) {
       provider.fs.UserContext==nullptr,"owned AMD read controller did not retire");
   if(!refuse)require(state.amd_read.submitted==3 && state.amd_read.superseded==2 &&
       state.amd_read.published==1,"stop did not cancel the last AMD read flight");
-  std::cout<<"winfsp_owned_amd_read refusal="<<(refuse?1:0)<<" submitted="<<state.amd_read.submitted
+  std::cout<<"winfsp_owned_amd_read sealed="<<(sealed?1:0)<<" refusal="<<(refuse?1:0)<<" submitted="<<state.amd_read.submitted
       <<" published="<<state.amd_read.published<<" verified_frames="<<state.amd_read.verified_frames
       <<" superseded="<<state.amd_read.superseded<<" failures="<<state.amd_read.failures
       <<" worker_exit="<<state.amd_read.last_worker_exit_code<<" budget_queries="<<state.amd_read.budget_queries
@@ -3657,6 +3755,8 @@ int main(int argc,char** argv){try {
     const std::string_view command(argv[1]);
     if(command=="--live-amd-read-ahead" || command=="--live-amd-read-refusal")
       return live_amd_read_ahead(argv,command=="--live-amd-read-refusal");
+    if(command=="--live-amd-sealed-read-ahead" || command=="--live-amd-sealed-read-refusal")
+      return live_amd_read_ahead(argv,command=="--live-amd-sealed-read-refusal",true);
   }
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
   if(profile_installed_read || (argc==2 && std::string_view(argv[1])=="--live-installed-native-read"))
@@ -3751,6 +3851,7 @@ int main(int argc,char** argv){try {
   }else if(argc==2 && std::string_view(argv[1])=="--indexed-memory") {
     memory_composition(NativeImageKind::indexed_paged);
     indexed_memory_composition();
+    if(store_lz4_available())capture_during_hybrid_tail_write();
     indexed_group_callback_contract();
     indexed_group_callback_contract(true);
     memory_coherence_lifecycle();

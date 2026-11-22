@@ -38,6 +38,7 @@ class NativeHybridBacking final : public StoreByteIo {
   void admit_write(std::uint64_t) override;
   void flush() override;
   StoreIoContract contract() const noexcept override;
+  bool concurrent_reads_supported() const noexcept override;
   bool backing_degraded() const noexcept override;
   void verify_backing() const override;
 

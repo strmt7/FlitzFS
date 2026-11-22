@@ -4,6 +4,7 @@
 #include "flitzfs/native_hybrid_backing.hpp"
 #include "protected_stripe_image.hpp"
 #include "folded_checkpoint.hpp"
+#include "paused_capture_backing.hpp"
 #include <chrono>
 #include <iostream>
 #include <numeric>
@@ -62,6 +63,34 @@ void damage(Ram& io,std::uint64_t offset,std::uint64_t unit) {
   const auto bytes=std::span(io.live).subspan(offset,unit);
   for(auto& b:bytes)b^=std::byte{0xa3};
 }
+void concurrent_protected_reads() {
+  constexpr auto unit=4096U;
+  const auto expected=data(4*unit,327);
+  auto source=image(expected,unit),sealed=empty(unit);
+  (void)ProtectedStripeImage::seal(source,sealed,id(2),limits.maximum_physical_bytes);
+  auto stopped=std::make_shared<test::PausedCaptureBacking>(sealed,prefix);
+  const auto view=ProtectedStripeImage::open(stopped,limits.maximum_physical_bytes);
+  auto capture=std::async(std::launch::async,[&] {
+    const std::function<bool()> running;
+    const detail::StoreCaptureReadScope scope(running);
+    Bytes bytes(unit);
+    view->read_exact(0,bytes);
+    return bytes;
+  });
+  require(stopped->wait_until_held(),"protected capture did not reach its I/O hold");
+  view->verify_all();
+  require(capture.wait_for(std::chrono::seconds(0))==std::future_status::timeout,
+      "protected cache held verification behind slow capture I/O");
+  stopped->release();
+  require(std::ranges::equal(capture.get(),std::span(expected).first(unit)),"held capture changed checked bytes");
+  const auto before=stopped->reads();
+  Bytes demand(unit);
+  view->read_exact(0,demand);
+  require(stopped->reads()>before && !view->degraded() && std::ranges::equal(demand,std::span(expected).first(unit)),
+      "an older capture repopulated the audited cache or changed demand bytes");
+  std::cout<<"concurrent_protected_read audit_while_held=1 old_cache_insert_refused=1 exact=1\n";
+}
+
 void native_stripes(std::uint32_t unit) {
   const std::array files{data(91'677,752),data(76'205,918),Bytes(65'521)};
   auto backing=make_indexed(files,unit,raw);
@@ -892,6 +921,7 @@ int main(int argc,char** argv) {
       return 0;
     }
     require(argc==1,"invalid protected image fixture options");
+    concurrent_protected_reads();
     for(auto unit:{4096U,65536U})native_stripes(unit);
     interrupted_seal();
   }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}

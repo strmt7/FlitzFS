@@ -203,7 +203,10 @@ reopened the edited file from the selected base and tail.
 
 Automatic maintenance still needs a resolver that retains both raw stores
 with the selected hybrid, accounts for them during remount and shutdown,
-and keeps the independent read-ahead route available after selection.
+and preserves active capture ownership during the switch. The independently
+reopened selected hybrid already supports both verified AMD read-ahead
+and CPU fallback.
+[Sealed capture verification](NATIVE_AMD_LZ4_READ.md#selected-sealed-images)
 
 ## Executed scope and remaining work
 

@@ -1,0 +1,192 @@
+{
+  "schema": "flitzfs-sealed-amd-read-captures-v1",
+  "date": "2026-11-23",
+  "source": {
+    "base": "5834f789d0910e28979c7d7aef0102ee40faa695",
+    "blobs": {
+      "include/flitzfs/native_hybrid_backing.hpp": "a26c96f44e4e72a562b0498e05e4336f5d401e3b",
+      "src/native_hybrid_backing.cpp": "787096512f225a92812d2368a694760f5c667fbd",
+      "src/paged_store.cpp": "33913506a3be4b90bb410dc8a0c07b3fbcd7526a",
+      "src/protected_stripe_image.cpp": "b581e22d219830702071af6e76f16c965d807320",
+      "src/protected_stripe_image.hpp": "acc845b98236163ebf97cf73684bd6d5d268480c",
+      "src/store_file.cpp": "98eaabb1ca2d75399c5f9ccc548923f4b2571e78",
+      "src/store_read_scope.hpp": "eb860f6a70e8732d4d7ca67b1d019bff8c9fbcf9",
+      "src/windows/winfsp_native.cpp": "f1997464a84ef85ce528a0b517af560a671fd96c",
+      "src/windows/winfsp_native.hpp": "62d3973426ae21416d8176ffa87fbac694d09f9e",
+      "tests/paused_capture_backing.hpp": "16e9db338e0e3e68f69eb3e864056dad3ea858da",
+      "tests/test_protected_indexed_image.cpp": "f806465581e22e750dd8f8783f1e2ee8594e717b",
+      "tests/test_winfsp_controller.cpp": "fae117451ee3a2b0fbf47247fb89e143caa79622"
+    }
+  },
+  "scope": {
+    "backend": "Windows locked memory",
+    "callback_provider": "WinFsp SDK callbacks with controlled lifecycle operations",
+    "selected_image": "verified sealed base and writable tail, reopened at the selected epoch",
+    "performance_measurement": false,
+    "physical_volume_mount": false,
+    "initial_automatic_sealing": false
+  },
+  "cache_and_audit": {
+    "audit_while_held": 1,
+    "old_cache_insert_refused": 1,
+    "exact": 1
+  },
+  "leased_capture": {
+    "held_base": 1,
+    "foreground_tail_write": 1,
+    "cancellation_backing_calls": 1,
+    "healthy_after_cancel": 1,
+    "old_and_new_cpu_exact": 1
+  },
+  "amd": {
+    "adapter": {
+      "Name": "AMD Radeon RX 9070 XT",
+      "DriverVersion": "32.0.32029.2010"
+    },
+    "package": {
+      "worker_sha256": "984e99c1cf14f61ed1d0aadeafe96325148c8b66d5efc8f0fe96e2863dd008d2",
+      "module_sha256": "d5c46512c13866c134762a473edcf9360f93c28e8b7d7c703c7f9deeef3300f6",
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "qualification_sha256": "ebfd7d06e053d916ecbf5b410f60b071c970c07bbb1c7921239f71ce10c81285"
+    },
+    "decoded_and_consumed": {
+      "sealed": 1,
+      "refusal": 0,
+      "submitted": 3,
+      "published": 1,
+      "verified_frames": 2,
+      "superseded": 2,
+      "failures": 0,
+      "worker_exit": 1223,
+      "budget_queries": 3,
+      "exact_cpu_fallback": 1,
+      "child_and_owner_retired": 1,
+      "stopped_pending": 1,
+      "checks": 247
+    },
+    "refusal": {
+      "sealed": 1,
+      "refusal": 1,
+      "submitted": 1,
+      "published": 0,
+      "verified_frames": 0,
+      "superseded": 0,
+      "failures": 1,
+      "worker_exit": 1179845891,
+      "budget_queries": 1,
+      "exact_cpu_fallback": 1,
+      "child_and_owner_retired": 1,
+      "stopped_pending": 0,
+      "checks": 244
+    }
+  },
+  "startup_qualification": {
+    "initial_result": "default resumed fixture reached one scrub pass and deferred waiting for CPU headroom",
+    "initial_test_log_sha256": "35937f6502ec77e1c39c9796b928fa281abfb2173ddcd7e3fb9424bf1076e62b",
+    "mirrored_and_sealed_fixture_maximum_cpu_busy_ppm": 500000
+  },
+  "tests": {
+    "standard_build": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 969224192,
+      "log_sha256": "5e23d6d7ac9ae4349292f83498adac75b433a49e0a56ff27259f4a40c1a6fd36"
+    },
+    "standard": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 334962688,
+      "log_sha256": "b840545500be9e17ad07e813385f6a27148c2f2c07cc8066d52b48b5e5dd59a8",
+      "passed": 211
+    },
+    "raw_build": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 470409216,
+      "log_sha256": "236afc6bf03184a5ca811c5745bf7433ee09b8e3649c5f2a8bf36744f2cd3cc7"
+    },
+    "raw": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 95289344,
+      "log_sha256": "1154363713d9e8f20540e4313f4df306aafa750cf21c3626ba92dd393a90d8a1",
+      "passed": 12
+    },
+    "asan_build": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 700440576,
+      "log_sha256": "79163ab14097f7c0e7353fa694475651416a9c0163988bbd634213ed728cc36a"
+    },
+    "asan": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 848515072,
+      "log_sha256": "7e9a21c1acebb8c3e879ee084c42a07c84ea060f5086d19362e85396d9f4038f",
+      "passed": 13
+    },
+    "lz4_build": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 374071296,
+      "log_sha256": "b6efa275d4cdce0cd7bf3feb3f59ee8a29106180f34b3ccfdc0747473b78fd3e"
+    },
+    "cache": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 22847488,
+      "log_sha256": "73af34636c1b2b2d14858e3ca633882f5b576d717aa5c47296d9583eab42a04c"
+    },
+    "capture": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 56963072,
+      "log_sha256": "6127e27224d4a4db69f68b4b55dfa82e607e1c43a8f98f1f1325ad4575b12ab7"
+    },
+    "amd": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 96305152,
+      "log_sha256": "ab67cb1db5c643027415e6ee75f8d2c657c4a111940045b464729cf6f675c536"
+    },
+    "refusal": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 24530944,
+      "log_sha256": "8411571c18b105b47d48e678c5a9c108290b9a1c73afaa8f633586643c8165b5"
+    }
+  },
+  "source_navigation": {
+    "provider_version": "0.2.43",
+    "actual_searches": 1,
+    "receipt_sha256": "a7cd56c31cbaf525582859cb010a2d76dda887a78c92f58a49e996e5fdd545ee",
+    "response_sha256": "d7aab7e8bf8589ec2b90efa1f260ad6e2f03586d03400955f7bda91a0c3ac6e7"
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "f51f264b5775f191d56b6f8a1d5ac8892b9d90e450901bc5c8e570b0bf74ee3a",
+    "pages": [
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadpriority",
+        "http_status": 200,
+        "markdown_bytes": 45634,
+        "markdown_sha256": "4f535a0b9a9f909b21bfa37d7b66735c7c6d47d13f2ba0217574c2587183c9f3",
+        "capture_sha256": "35a3bcfb915a969798703c2929410f6815729762bbfe6c1ed8a532b2ab2eaee0"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/ioapiset/nf-ioapiset-cancelioex",
+        "http_status": 200,
+        "markdown_bytes": 24641,
+        "markdown_sha256": "4c2a6031d95d70a5f6425015d21563e72784cc250c1fefc822324da03c4c5ee4",
+        "capture_sha256": "05a283ae7a1e993def6b76d9ba03b4486397e1ef994d98e8f3afe1ab1bb125e2"
+      },
+      {
+        "url": "https://rocm.docs.amd.com/en/docs-10.2.0/about/release-notes.html",
+        "http_status": 200,
+        "markdown_bytes": 308596,
+        "markdown_sha256": "65dc225b07c55d48d922e0ed3c5a7f692b8de4bc523b4b33a2733cf2c2ff34ea",
+        "capture_sha256": "b70ddcfd7705e5ac6f328255b9d8fc6bb6926d6345ded26347ea71481cf63e78"
+      }
+    ]
+  }
+}

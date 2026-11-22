@@ -1,8 +1,14 @@
 #pragma once
+#include <exception>
 #include <functional>
 #include <utility>
 
 namespace flitzfs::detail {
+
+class StoreCaptureInterrupted final : public std::exception {
+ public:
+  const char* what() const noexcept override {return "Store capture interrupted";}
+};
 
 // A capture owns this scope for one query on its private snapshot.
 // Ordinary demand and publication stay on their existing I/O path.
@@ -15,6 +21,9 @@ class StoreCaptureReadScope final {
   StoreCaptureReadScope& operator=(const StoreCaptureReadScope&)=delete;
 
   static const StoreCaptureReadScope* current() noexcept {return active_;}
+  static void require_active() {
+    if(active_ && active_->interrupted())throw StoreCaptureInterrupted{};
+  }
   bool interrupted() const noexcept {
     try{return interrupted_ && interrupted_();}
     catch(...){return true;}

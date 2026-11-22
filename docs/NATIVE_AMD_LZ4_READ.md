@@ -350,6 +350,25 @@ baseline continued, and the refused profile made no second budget query or
 launch. These checks used fixed admitted test windows.
 [Owned Radeon read verification](evidence/owned-amd-read-ahead-2026-11-22.json)
 
+### Selected sealed images
+
+The ordinary indexed capture lease can read through a protected immutable
+base and a writable tail. Both component providers must support concurrent
+reads. Foreground writes can advance the selected checkpoint while a
+capture still owns the previous immutable records. Frame delivery verifies
+its exact read key and decoded bytes through the existing CPU path.
+[Sealed read ownership](SEALED_INDEXED_IMAGE.md#reads-during-capture-and-tail-writes)
+
+The Windows controller fixture selects a sealed image, retires the
+preparation session and reopens it through the checked indexed adapter.
+On the Radeon RX 9070 XT, the worker decoded two frames from the sealed
+image and SDK callbacks consumed both verified results. Two later flights
+were superseded by foreground demand and shutdown. The worker refusal
+fixture continued serving the expected bytes on CPU and used CPU
+preparation for the next eligible window. Both variants used the same
+explicit maintenance admission policy as the mirrored fixture.
+[Sealed AMD read verification](evidence/sealed-amd-read-captures-2026-11-23.json)
+
 ### Installed decoder selection
 
 The Windows helper can accept an approved `native_lz4_read_profile` in the

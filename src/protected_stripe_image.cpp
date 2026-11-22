@@ -1,4 +1,5 @@
 #include "protected_stripe_image.hpp"
+#include "store_read_scope.hpp"
 #include <algorithm>
 #include <bit>
 #include <limits>
@@ -67,9 +68,15 @@ Layout make_layout(StoreIdentity id,std::uint64_t logical,std::uint64_t unit,std
   return layout;
 }
 
+void read_backing(const StoreByteIo& io,std::uint64_t offset,std::span<std::byte> bytes) {
+  StoreCaptureReadScope::require_active();
+  io.read_exact(offset,bytes);
+  StoreCaptureReadScope::require_active();
+}
 bool read_copy(const StoreByteIo& io,std::uint64_t offset,std::span<std::byte> bytes) {
-  try {io.read_exact(offset,bytes);return true;}
+  try {read_backing(io,offset,bytes);return true;}
   catch(const std::bad_alloc&){throw;}
+  catch(const StoreCaptureInterrupted&){throw;}
   catch(const std::exception&){return false;}
 }
 std::array<std::byte,root_bytes> make_root(const Layout& layout) {
@@ -136,10 +143,10 @@ bool check_data(std::span<const std::byte> bytes,std::span<const std::byte> desc
 }
 bool read_descriptor(const StoreByteIo& io,const Stripe& stripe,std::span<std::byte> descriptor,Bytes& scratch) {
   if(read_copy(io,stripe.descriptor_at(),descriptor) && valid_descriptor(descriptor,stripe))return false;
-  io.read_exact(stripe.parity_at(),descriptor);
+  read_backing(io,stripe.parity_at(),descriptor);
   scratch.resize(stripe.layout.unit);
   for(std::uint64_t i=0;i<stripe.count();++i) {
-    io.read_exact(stripe.data_at(i),scratch);
+    read_backing(io,stripe.data_at(i),scratch);
     merge_xor(descriptor,scratch);
   }
   if(!valid_descriptor(descriptor,stripe))fail("unrecoverable protected stripe descriptor");
@@ -147,11 +154,11 @@ bool read_descriptor(const StoreByteIo& io,const Stripe& stripe,std::span<std::b
 }
 void recover_data(const StoreByteIo& io,const Stripe& stripe,std::uint64_t missing,
     std::span<const std::byte> descriptor,std::span<std::byte> bytes,std::span<std::byte> scratch) {
-  io.read_exact(stripe.parity_at(),bytes);
+  read_backing(io,stripe.parity_at(),bytes);
   merge_xor(bytes,descriptor);
   for(std::uint64_t i=0;i<stripe.count();++i) {
     if(i==missing)continue;
-    io.read_exact(stripe.data_at(i),scratch);
+    read_backing(io,stripe.data_at(i),scratch);
     if(!check_data(scratch,descriptor,i))fail("more than one protected data unit is unavailable");
     merge_xor(bytes,scratch);
   }
@@ -338,54 +345,74 @@ std::shared_ptr<ProtectedStripeImage> ProtectedStripeImage::seal(std::shared_ptr
   while(!build.advance()) {}
   return build.finish();
 }
-const ProtectedStripeImage::Checksums& ProtectedStripeImage::stripe_checksums(std::uint64_t index) const {
-  const auto hit=std::ranges::find(checked_,index,&CheckedStripe::stripe);
-  if(hit!=checked_.end()) {
-    std::rotate(checked_.begin(),hit,hit+1);
-    return checked_.front().checksums;
+Digest ProtectedStripeImage::data_checksum(std::uint64_t index,std::uint64_t slot,
+    std::uint64_t cache_generation) const {
+  {
+    std::lock_guard lock(cache_mutex_);
+    const auto hit=std::ranges::find(checked_,index,&CheckedStripe::stripe);
+    if(cache_generation==cache_generation_ && hit!=checked_.end()) {
+      std::rotate(checked_.begin(),hit,hit+1);
+      return checked_.front().checksums[slot];
+    }
   }
 
   const Stripe stripe{layout_,index};
   Bytes descriptor(layout_.unit),scratch;
-  if(read_descriptor(*backing_,stripe,descriptor,scratch))degraded_=true;
+  if(read_descriptor(*backing_,stripe,descriptor,scratch))degraded_.store(true,std::memory_order_release);
   CheckedStripe loaded{index};
   for(std::uint64_t i=0;i<stripe.count();++i)loaded.checksums[i]=data_digest(descriptor,i);
-  std::move_backward(checked_.begin(),checked_.end()-1,checked_.end());
-  checked_.front()=loaded;
-  return checked_.front().checksums;
-}
-const Bytes& ProtectedStripeImage::checked_block(std::uint64_t block) const {
-  const auto hit=std::ranges::find(blocks_,block,&CheckedBlock::ordinal);
-  if(hit!=blocks_.end()) {
-    std::rotate(blocks_.begin(),hit,hit+1);
-    return blocks_.front().bytes;
+  {
+    std::lock_guard lock(cache_mutex_);
+    if(cache_generation==cache_generation_ && std::ranges::find(checked_,index,&CheckedStripe::stripe)==checked_.end()) {
+      std::move_backward(checked_.begin(),checked_.end()-1,checked_.end());
+      checked_.front()=loaded;
+    }
   }
+  return loaded.checksums[slot];
+}
+void ProtectedStripeImage::read_block(std::uint64_t block,std::size_t first,std::span<std::byte> output) const {
+  StoreCaptureReadScope::require_active();
+  std::uint64_t generation;
+  {
+    std::lock_guard lock(cache_mutex_);
+    const auto hit=std::ranges::find(blocks_,block,&CheckedBlock::ordinal);
+    if(hit!=blocks_.end()) {
+      std::ranges::copy(std::span(hit->bytes).subspan(first,output.size()),output.begin());
+      std::rotate(blocks_.begin(),hit,hit+1);
+      return;
+    }
+    generation=cache_generation_;
+  }
+
   const Stripe stripe{layout_,block/stripe_data_units};
   const auto slot=block%stripe_data_units;
-  const auto expected=stripe_checksums(stripe.index)[slot];
-  auto& victim=blocks_.back();
-  victim.ordinal=UINT64_MAX;
-  auto& data=victim.bytes;
-  data.resize(layout_.unit);
+  const auto expected=data_checksum(stripe.index,slot,generation);
+  Bytes data(layout_.unit);
   if(!read_copy(*backing_,stripe.data_at(slot),data) || record_digest(data)!=expected) {
     Bytes descriptor(layout_.unit),scratch(layout_.unit);
     (void)read_descriptor(*backing_,stripe,descriptor,scratch);
     if(data_digest(descriptor,slot)!=expected)fail("protected stripe descriptor changed");
     recover_data(*backing_,stripe,slot,descriptor,data,scratch);
-    degraded_=true;
+    degraded_.store(true,std::memory_order_release);
   }
-  victim.ordinal=block;
-  std::rotate(blocks_.begin(),blocks_.end()-1,blocks_.end());
-  return blocks_.front().bytes;
+  std::ranges::copy(std::span(data).subspan(first,output.size()),output.begin());
+  {
+    std::lock_guard lock(cache_mutex_);
+    if(generation==cache_generation_ && std::ranges::find(blocks_,block,&CheckedBlock::ordinal)==blocks_.end()) {
+      auto& victim=blocks_.back();
+      victim.bytes.swap(data);
+      victim.ordinal=block;
+      std::rotate(blocks_.begin(),blocks_.end()-1,blocks_.end());
+    }
+  }
 }
 
 void ProtectedStripeImage::read_exact(std::uint64_t offset,std::span<std::byte> output) const {
   if(offset>extent() || output.size()>extent()-offset)fail("protected image read outside logical bounds");
   while(!output.empty()) {
-    const auto& data=checked_block(offset/layout_.unit);
     const auto first=offset%layout_.unit;
     const auto length=(std::min<std::uint64_t>)(output.size(),layout_.unit-first);
-    std::ranges::copy(std::span(data).subspan(first,length),output.begin());
+    read_block(offset/layout_.unit,first,output.first(length));
     output=output.subspan(length);
     offset+=length;
   }
@@ -393,15 +420,19 @@ void ProtectedStripeImage::read_exact(std::uint64_t offset,std::span<std::byte> 
 void ProtectedStripeImage::verify_stripes() const {
   StripeBuffers buffers(layout_.unit);
   for(std::uint64_t n=0;n<stripes(layout_);++n) {
-    if(verify_stripe(*backing_,{layout_,n},buffers,nullptr))degraded_=true;
+    if(verify_stripe(*backing_,{layout_,n},buffers,nullptr))degraded_.store(true,std::memory_order_release);
   }
 }
 void ProtectedStripeImage::verify_all() const {
-  checked_.fill({});
-  for(auto& block:blocks_)block.ordinal=UINT64_MAX;
+  {
+    std::lock_guard lock(cache_mutex_);
+    ++cache_generation_;
+    checked_.fill({});
+    for(auto& block:blocks_)block.ordinal=UINT64_MAX;
+  }
   const auto [checked,damaged]=load_roots(*backing_,physical_limit_);
   if(checked!=layout_)fail("protected image roots changed");
-  if(damaged)degraded_=true;
+  if(damaged)degraded_.store(true,std::memory_order_release);
   verify_stripes();
 }
 void ProtectedStripeImage::write_exact(std::uint64_t,std::span<const std::byte>) {fail("protected image is immutable");}

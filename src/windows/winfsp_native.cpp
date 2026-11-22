@@ -986,8 +986,9 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_file_volume(c
 std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_indexed_retired(
     std::shared_ptr<StoreByteIo> head,StoreIdentity volume,std::uint64_t epoch,
     const NativeVolumeImageResolver& resolver,StoreCompressionOptions foreground,
-    std::shared_ptr<StoreByteIo> advice,std::uint64_t advice_sequence) {
-  return resume_managed_impl(std::move(head),volume,epoch,resolver,foreground,std::move(advice),advice_sequence,true);
+    std::shared_ptr<StoreByteIo> advice,std::uint64_t advice_sequence,NativeMaintenancePolicy group_policy) {
+  return resume_managed_impl(std::move(head),volume,epoch,resolver,foreground,std::move(advice),advice_sequence,true,
+      nullptr,group_policy);
 }
 std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_managed_retired(
     std::shared_ptr<StoreByteIo> head,StoreIdentity volume,std::uint64_t epoch,
@@ -1011,7 +1012,8 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_memory_volume
 std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_managed_impl(
     std::shared_ptr<StoreByteIo> head,StoreIdentity volume,std::optional<std::uint64_t> expected_epoch,
     const NativeVolumeImageResolver& resolver,StoreCompressionOptions foreground,
-    std::shared_ptr<StoreByteIo> advice,std::uint64_t advice_sequence,bool closed_indexed,MemoryVolumeBacking* memory) {
+    std::shared_ptr<StoreByteIo> advice,std::uint64_t advice_sequence,bool closed_indexed,MemoryVolumeBacking* memory,
+    NativeMaintenancePolicy group_policy) {
   if(bool(advice)!=bool(advice_sequence))throw std::invalid_argument("exact advisory sequence required");
   std::shared_ptr<StoreByteIo> selected;StoreIdentity selected_id{};
   const NativeVolumeImageResolver pinned=[&](const StoreIdentity& id){
@@ -1048,8 +1050,10 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_managed_impl(
   if(memory)memory->settle_retained_selection(session.volume_info().selection.image_identity);
   if(advice)session.resume_budgeted_optimization_area(std::move(advice),advice_sequence,1);
   auto impl=std::make_unique<Impl>(std::move(session),volume,created,file_info_policy(kind));
-  if(grouped)
-    impl->groups=std::make_unique<NativeGroupMaintenance>(impl->session);
+  if(grouped) {
+    impl->group_policy=group_policy;
+    impl->groups=std::make_unique<NativeGroupMaintenance>(impl->session,group_policy);
+  }
   return std::unique_ptr<WinFspNativeWritable>(new WinFspNativeWritable(std::move(impl)));
 }
 void WinFspNativeWritable::configure_memory_maintenance(MemoryVolumeBacking& backing) noexcept {

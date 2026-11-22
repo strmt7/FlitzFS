@@ -240,6 +240,7 @@ class Output final:public NativeVolumeRangeIo {
       const auto bytes=static_cast<DWORD>((std::min)(out.size(),std::size_t{0x7ffff000}));
       const auto result=request.read(handle_,at,out.data(),bytes,capture);
       volume_lifetime_.check(result.error);
+      if(capture && result.error==ERROR_OPERATION_ABORTED)throw StoreCaptureInterrupted{};
       if(result.error!=ERROR_SUCCESS || !result.bytes || result.bytes>bytes)fail("short/failed backing read");
       at+=result.bytes;
       out=out.subspan(result.bytes);
@@ -486,8 +487,11 @@ class Output final:public NativeVolumeRangeIo {
     if(volume_file_ && capture) {
       volume_lifetime_.check();
       std::unique_lock access(capture_mutex_,std::try_to_lock);
-      if(!access)fail("another capture owns the positioned read event");
-      if(!capture_io_)capture_io_.emplace();
+      if(!access)throw StoreCaptureInterrupted{};
+      if(!capture_io_) {
+        try{capture_io_.emplace();}
+        catch(const std::runtime_error&){throw StoreCaptureInterrupted{};}
+      }
       read_positioned(at,out,published_extent_.load(std::memory_order_acquire),*capture_io_,capture);
       return;
     }

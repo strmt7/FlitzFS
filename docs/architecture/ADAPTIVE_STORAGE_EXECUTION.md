@@ -53,10 +53,13 @@ Extend discovery and storage selection in this order.
    reader. Verify that rollback and snapshots still reach their original
    content before reclaiming either physical extent.
 4. Measure the footprint after real reclamation and the common small-read
-   trace. Make checked base reads safe to capture while the live owner
-   appends to the tail. Verify that the AMD read-ahead producer can still
-   capture exact frames and fall back to CPU after selection. Keep the detached
-   CPU restore path available for old supported representations.
+   trace. The checked base and writable tail now support concurrent captures.
+   The reopened Windows fixture verified AMD read-ahead and CPU fallback
+   through a selected sealed image. Carry that capture ownership through
+   automatic selection with existing callbacks and qualify the end-to-end
+   read latency during the handoff. Keep the detached CPU restore path
+   available for old supported representations.
+   [Sealed read verification](../NATIVE_AMD_LZ4_READ.md#selected-sealed-images)
 
 ReFS moves cold contents through bounded containers. OpenZFS accounts for
 space retained by snapshots during rewrites. FlitzFS's current whole-image

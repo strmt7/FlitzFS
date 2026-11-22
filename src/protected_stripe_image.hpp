@@ -2,6 +2,8 @@
 
 #include "flitzfs/object_store.hpp"
 #include "record_digest.hpp"
+#include <atomic>
+#include <mutex>
 
 namespace flitzfs::detail {
 
@@ -28,7 +30,8 @@ class ProtectedStripeImage final:public StoreByteIo {
   std::uint64_t extent() const override {return layout_.logical_bytes;}
   std::uint64_t occupied() const noexcept {return layout_.physical_bytes;}
   StoreIdentity identity() const noexcept {return layout_.identity;}
-  bool degraded() const noexcept {return degraded_;}
+  bool degraded() const noexcept {return degraded_.load(std::memory_order_acquire);}
+  bool concurrent_reads_supported() const noexcept override {return backing_->concurrent_reads_supported();}
   void read_exact(std::uint64_t,std::span<std::byte>) const override;
   void verify_all() const;
   StoreIoContract contract() const noexcept override {return {};}
@@ -41,8 +44,8 @@ class ProtectedStripeImage final:public StoreByteIo {
   ProtectedStripeImage(std::shared_ptr<StoreByteIo>,ProtectedStripeLayout,std::uint64_t,bool);
   void verify_stripes() const;
   using Checksums=std::array<Digest,kProtectedStripeDataUnits>;
-  const Checksums& stripe_checksums(std::uint64_t stripe) const;
-  const std::vector<std::byte>& checked_block(std::uint64_t block) const;
+  Digest data_checksum(std::uint64_t stripe,std::uint64_t slot,std::uint64_t cache_generation) const;
+  void read_block(std::uint64_t block,std::size_t first,std::span<std::byte> output) const;
   bool allows_writer() const noexcept override {return false;}
   std::shared_ptr<StoreByteIo> backing_;
   ProtectedStripeLayout layout_;
@@ -59,7 +62,10 @@ class ProtectedStripeImage final:public StoreByteIo {
     std::vector<std::byte> bytes;
   };
   mutable std::array<CheckedBlock,4> blocks_{};
-  mutable bool degraded_=false;
+  // Only bounded copies and ownership changes run under the cache lock.
+  mutable std::mutex cache_mutex_;
+  mutable std::uint64_t cache_generation_=0;
+  mutable std::atomic<bool> degraded_{false};
 };
 
 // A caller advances one stripe or publication step per opportunity.

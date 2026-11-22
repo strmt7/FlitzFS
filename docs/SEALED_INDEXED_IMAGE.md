@@ -246,6 +246,26 @@ Data Compression Challenge*.
 [Btrfs balance](https://btrfs.readthedocs.io/en/stable/Balance.html) ·
 [OpenZFS scrub and resilver](https://openzfs.github.io/openzfs-docs/Basic%20Concepts/Operations/Scrub%20and%20Resilver.html)
 
+### Reads during capture and tail writes
+
+A hybrid can issue the existing leased snapshot reads when the sealed base
+and writable tail both support concurrent reads. The lease holds the
+selected image and immutable indexed records while ordinary file I/O
+continues. Read-ahead keeps its existing checkpoint and content checks.
+
+The sealed reader keeps four checked descriptor entries and four checked
+data units. Cache lookups and publication run under a short lock. Backing
+reads, digest checks and parity reconstruction run outside it. An explicit
+audit clears the caches and prevents older in-flight reads from inserting
+their results after that clear. Observed damage is recorded across readers.
+
+Capture cancellation stops at a checked read boundary or after an issued
+Windows request retires. That result ends capture without a parity retry or
+a damage report. A real stripe failure still follows the CPU recovery path.
+[Sealed AMD read verification](evidence/sealed-amd-read-captures-2026-11-23.json) ·
+[Microsoft thread resource priority](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadpriority) ·
+[Windows cancellation and request lifetime](https://learn.microsoft.com/en-us/windows/win32/api/ioapiset/nf-ioapiset-cancelioex)
+
 ## Verification on Windows
 
 The test creates and reopens real indexed images on instrumented memory

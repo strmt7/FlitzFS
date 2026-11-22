@@ -4,6 +4,7 @@
 #include "protected_stripe_image.hpp"
 #include "native_lz4_decode_wire.hpp"
 #include "store_codec.hpp"
+#include "store_read_scope.hpp"
 #include <algorithm>
 #include <bit>
 #include <limits>
@@ -265,6 +266,7 @@ Node read_node(const State& s,const Ref& r) {
   auto read=[&](std::uint64_t at,std::span<std::byte> bytes) {
     try{s.image->read_exact(at,bytes);}
     catch(const std::bad_alloc&){throw;}
+    catch(const detail::StoreCaptureInterrupted&){throw;}
     catch(const std::exception&){return false;}
     return field<32>(bytes,signature)==r.digest &&
         detail::record_digest(bytes.first(signature))==r.digest;
@@ -426,6 +428,7 @@ ObjectRecord read_record_at(const State& s,const Entry& e,std::uint64_t offset) 
 ObjectRecord read_record(const State& s,const Entry& e) {
   try{return read_record_at(s,e,e.offset);}
   catch(const std::bad_alloc&){throw;}
+  catch(const detail::StoreCaptureInterrupted&){throw;}
   catch(const std::exception&) {
     if(!s.mirrored)throw;
     s.degraded_payloads=true;
@@ -546,6 +549,7 @@ State load(std::shared_ptr<StoreByteIo> image,PagedStoreLimits limits,LookupPage
     std::array<std::byte,page_bytes> b{};
     try{image->read_exact(slot*kStoreCommitUnit,b);}
     catch(const std::bad_alloc&){throw;}
+    catch(const detail::StoreCaptureInterrupted&){throw;}
     catch(const std::exception&){return {};}
     if(field<32>(b,digest_at)!=detail::record_digest(std::span<const std::byte>(b).first(digest_at)))return {};
     State s;s.image=image;s.limits=limits;s.id=field<16>(b,40);s.generation=get64(b,16);

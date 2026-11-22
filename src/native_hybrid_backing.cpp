@@ -2,6 +2,7 @@
 #include "flitzfs/native_session.hpp"
 #include "folded_checkpoint.hpp"
 #include "protected_stripe_image.hpp"
+#include "store_read_scope.hpp"
 #include <algorithm>
 #include <bit>
 #include <limits>
@@ -220,7 +221,7 @@ struct NativeHybridBacking::Impl {
   std::shared_ptr<ProtectedStripeImage> base;
   const std::uint64_t physical_limit;
   Binding binding;
-  mutable bool degraded=false;
+  mutable std::atomic<bool> degraded{false};
 };
 
 NativeHybridBacking::NativeHybridBacking(std::unique_ptr<Impl> state) noexcept:impl_(std::move(state)) {}
@@ -240,7 +241,7 @@ std::shared_ptr<NativeHybridBacking> NativeHybridBacking::open(std::shared_ptr<S
     fail("hybrid tail failure unit exceeds the indexed geometry");
   state->base=state->open_bound_base(binding);
   state->binding=binding;
-  state->degraded=degraded;
+  state->degraded.store(degraded,std::memory_order_relaxed);
   (void)state->tail_extent();
   return std::shared_ptr<NativeHybridBacking>(new NativeHybridBacking(std::move(state)));
 }
@@ -474,6 +475,7 @@ std::uint64_t NativeHybridBacking::extent() const {
   return impl_->binding.base_end+(impl_->tail_extent()-tail_start);
 }
 void NativeHybridBacking::read_exact(std::uint64_t at,std::span<std::byte> output) const {
+  detail::StoreCaptureReadScope::require_active();
   const auto& state=*impl_;
   const auto& binding=state.binding;
   if(at>binding.virtual_limit || output.size()>binding.virtual_limit-at)fail("hybrid read bounds");
@@ -488,7 +490,8 @@ void NativeHybridBacking::read_exact(std::uint64_t at,std::span<std::byte> outpu
     const auto folded=detail::folded_mirror_offset(at,binding.unit);
     try {state.base->read_exact(folded,output.first(count));}
     catch(const std::bad_alloc&){throw;}
-    catch(const std::exception&){state.degraded=true;throw;}
+    catch(const detail::StoreCaptureInterrupted&){throw;}
+    catch(const std::exception&){state.degraded.store(true,std::memory_order_release);throw;}
     output=output.subspan(count);
     at+=count;
   }
@@ -529,8 +532,11 @@ StoreIoContract NativeHybridBacking::contract() const noexcept {
     return {};
   return {tail.write_failure_unit_bytes,true,false};
 }
+bool NativeHybridBacking::concurrent_reads_supported() const noexcept {
+  return impl_->base->concurrent_reads_supported() && impl_->tail.io->concurrent_reads_supported();
+}
 bool NativeHybridBacking::backing_degraded() const noexcept {
-  return impl_->degraded || impl_->base->degraded() ||
+  return impl_->degraded.load(std::memory_order_acquire) || impl_->base->degraded() ||
       impl_->base_owner.io->backing_degraded() || impl_->tail.io->backing_degraded();
 }
 bool NativeHybridBacking::allows_writer() const noexcept {
@@ -548,12 +554,13 @@ void NativeHybridBacking::verify_backing() const {
   try {
     const auto [observed,degraded]=load_binding(*state.tail.io);
     if(observed!=state.binding)fail("hybrid backing binding changed");
-    if(degraded)state.degraded=true;
+    if(degraded)state.degraded.store(true,std::memory_order_release);
     (void)state.tail_extent();
     state.base->verify_all();
     if(root_binding(*state.base)!=state.binding.frozen_roots)fail("hybrid frozen roots changed");
   }catch(const std::bad_alloc&){throw;}
-  catch(const std::exception&){state.degraded=true;throw;}
+  catch(const detail::StoreCaptureInterrupted&){throw;}
+  catch(const std::exception&){state.degraded.store(true,std::memory_order_release);throw;}
 }
 
 } // namespace flitzfs
