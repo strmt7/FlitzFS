@@ -1601,11 +1601,11 @@ bool PagedObjectStoreWriter::Rewrite::advance(const PagedObjectStoreWriter& writ
 PagedObjectStoreWriter PagedObjectStoreWriter::Rewrite::finish(const PagedObjectStoreWriter& writer) {
   if(!matches(writer)) {impl_.reset();fail("staged rebuild source owner/generation is stale");}
   if(!ready_for(writer))fail("staged rebuild has not verified the current source");
-  if(impl_->build.folded)fail("folded workspace cannot become a writable store");
+  if(impl_->folded_admission)fail("folded workspace cannot become a writable store");
   auto candidate=std::move(impl_);return PagedObjectStoreWriter(std::move(candidate->target));
 }
 void PagedObjectStoreWriter::Rewrite::verify_folded_source(const PagedObjectStoreWriter& writer) const {
-  if(!ready_for(writer) || !impl_->build.folded)fail("folded workspace source checkpoint changed");
+  if(!ready_for(writer) || !impl_->folded_admission)fail("folded workspace source checkpoint changed");
   impl_->source_check(writer.impl_->state);
 }
 detail::FoldedCheckpoint PagedObjectStoreWriter::Rewrite::release_folded_workspace(const PagedObjectStoreWriter& writer) {
@@ -1613,6 +1613,8 @@ detail::FoldedCheckpoint PagedObjectStoreWriter::Rewrite::release_folded_workspa
   if(!impl_->target)fail("folded workspace has been released");
   const auto checked=folded_checkpoint(impl_->build.next);
   impl_->target.reset();
+  impl_->build.folded=nullptr;
+  impl_->build.next.image.reset();
   return checked;
 }
 

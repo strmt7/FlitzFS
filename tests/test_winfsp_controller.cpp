@@ -5,6 +5,7 @@
 #include "anchor_search_fixture.hpp"
 #include "flitzfs/paged_store.hpp"
 #include "flitzfs/native_volume_file.hpp"
+#include "flitzfs/native_hybrid_backing.hpp"
 #include "flitzfs/read_only_file.hpp"
 #include "../src/windows/hip_worker_exit.hpp"
 #include "native_fs_fixture.hpp"
@@ -2867,6 +2868,95 @@ void memory_coherence_lifecycle() {
   std::cout<<"memory_coherence_catalog locked_bytes="<<(catalog.resident-input_resident)
       <<" reclaimed_bytes="<<(obsolete.resident-reclaimed.resident)<<" reclamation_quanta="<<quanta<<'\n';
 }
+void memory_hybrid_placement() {
+  using Phase=NativeHybridBacking::BuildPhase;
+  constexpr auto image_limit=8ULL<<20;
+  constexpr auto workspace_reservation=4ULL<<20;
+  constexpr auto selector_reservation=2*kStoreCommitUnit;
+  constexpr StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
+  auto domain=MemoryVolumeDomain::create(2*image_limit+selector_reservation);
+  auto head=domain.create_store(selector_reservation),source=domain.create_store(image_limit);
+  auto workspace=domain.create_store(workspace_reservation);
+  const auto volume=fresh_volume_identity(),previous=fresh_volume_identity(),replacement=fresh_volume_identity();
+  auto contents=data(2'860'912,311);
+  std::shared_ptr<StoreByteIo> base,tail;
+  std::shared_ptr<NativeHybridBacking> selected;
+  std::uint64_t base_reserved=0,tail_reserved=0,peak=0,old_bytes=0,new_bytes=0;
+  unsigned workspace_steps=0,retirement_steps=0;
+  {
+    auto session=NativeFileSession::create_indexed_volume(head,volume,source,previous,{image_limit},raw);
+    session.create_entry("visible");
+    const auto file=session.open("visible",{true,true,false});
+    for(std::size_t at=0;at<contents.size();at+=kStoreMaxObjectBytes)
+      session.write(file,at,std::span<const std::byte>(contents).subspan(at,
+          (std::min)(std::size_t{kStoreMaxObjectBytes},contents.size()-at)));
+    old_bytes=source->extent();
+    std::optional<NativeFilesystemSnapshot> pinned(session.snapshot());
+    auto work=NativeHybridBacking::prepare(session,workspace,source->contract(),replacement,image_limit,image_limit,raw);
+    const auto advance=[&](Phase phase) {
+      for(unsigned steps=0;work.phase()!=phase;++steps) {
+        require(steps<8192,"owned hybrid preparation did not yield or reach the requested phase");
+        (void)work.advance(session);
+        peak=(std::max)(peak,domain.usage().resident);
+      }
+    };
+    advance(Phase::awaiting_base);
+    base_reserved=work.required_store_bytes();
+    base=domain.create_store(base_reserved);
+    work.provide_store(session,base);
+    advance(Phase::awaiting_tail);
+    tail_reserved=work.required_store_bytes();
+    require(base_reserved+tail_reserved<=image_limit &&
+        domain.usage().reserved+tail_reserved>domain.usage().capacity,
+        "fixture does not require release of private staging before tail placement");
+    while(workspace) {
+      const auto bytes=domain.usage().resident;
+      require(domain.retire_store(workspace)!=MemoryStoreRetirement::pinned &&
+          bytes-domain.usage().resident<=kStoreMaxObjectBytes && ++workspace_steps<16,
+          "checked workspace did not release in bounded quanta");
+    }
+    tail=domain.create_store(tail_reserved);
+    work.provide_store(session,tail);
+    advance(Phase::ready);
+    require(work.publish(session,selected),"allocator-backed image was not selected");
+    new_bytes=selected->occupied();
+    require(new_bytes<old_bytes && session.volume_info().selection.image_identity==replacement &&
+        session.read(file,0,static_cast<std::uint32_t>(contents.size()))==contents &&
+        domain.retire_store(source)==MemoryStoreRetirement::pinned,
+        "owned hybrid mismatched an open file or discarded a pinned image");
+    const auto patch=data(2117,519);
+    const auto offset=kNativeExtentBytes-13;
+    session.write(file,offset,patch);
+    require(pinned->read("visible",offset,patch.size())!=patch &&
+        session.read(file,offset,static_cast<std::uint32_t>(patch.size()))==patch && base->extent()==base_reserved,
+        "tail write modified retained bytes or changed the base");
+    std::ranges::copy(patch,contents.begin()+offset);
+    pinned.reset();
+    while(source) {
+      const auto bytes=domain.usage().resident;
+      require(domain.retire_store(source)!=MemoryStoreRetirement::pinned &&
+          bytes-domain.usage().resident<=kStoreMaxObjectBytes && ++retirement_steps<16,
+          "old owned mirror did not retire in bounded quanta");
+    }
+    domain.verify_resident();
+    session.cleanup(file,false);
+    session.close(file);
+  }
+  selected.reset();
+  auto opened=NativeHybridBacking::open(base,tail,replacement,image_limit,image_limit);
+  auto checked=NativeVolumeHeadView::open(head,volume,[&](const StoreIdentity& chosen) {
+    return chosen==replacement?opened:nullptr;
+  });
+  require(checked.info().selection.epoch==2 &&
+      checked.filesystem().read("visible",0,contents.size())==contents &&
+      domain.usage().stores==3,"independent CPU reopen lost data or retained a staged store");
+  domain.verify_resident();
+  std::cout<<"owned_hybrid_placement old_bytes="<<old_bytes<<" new_bytes="<<new_bytes
+      <<" base_reserved="<<base_reserved<<" tail_reserved="<<tail_reserved<<" peak_resident="<<peak
+      <<" workspace_steps="<<workspace_steps<<" retirement_steps="<<retirement_steps
+      <<" source_pinned=1 open_handle=1 cpu_reopen=1\n";
+}
+
 void memory_compaction_retirement() {
   auto backing=MemoryVolumeBacking::create();
   auto session=NativeFileSession::create_indexed_volume(backing.head,backing.volume_identity,
@@ -3652,7 +3742,7 @@ int main(int argc,char** argv){try {
   else if(lifetime_only)idle_until_owner_stop(31000);
   else if(read_ahead)live_read_ahead_admission();
   else if(argc==2 && std::string_view(argv[1])=="--memory") {
-    memory_planning();memory_paged_footprint();memory_compaction_retirement();memory_capacity_repair();
+    memory_planning();memory_paged_footprint();memory_hybrid_placement();memory_compaction_retirement();memory_capacity_repair();
     memory_capacity_repair(true);
     std::cout<<"memory_handles start="<<handle_count()<<'\n';
     memory_backing_ownership();std::cout<<"memory_handles backing="<<handle_count()<<'\n';

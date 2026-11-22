@@ -14,13 +14,18 @@ class NativeHybridBacking final : public StoreByteIo {
       std::shared_ptr<StoreByteIo> empty_workspace,std::shared_ptr<StoreByteIo> empty_base,
       std::shared_ptr<StoreByteIo> empty_tail,StoreIdentity new_image,std::uint64_t physical_limit,
       StoreCompressionOptions={});
-  enum class BuildPhase { workspace, sealing, binding, ready, stopped };
+  enum class BuildPhase { workspace, sealing, binding, ready, stopped, awaiting_base, awaiting_tail };
   class Build;
   // Resources cover the new candidate and its workspace. The caller retains
   // the selected image and admits each advance on its serialized opportunity.
   static Build prepare(const NativeFileSession& source,std::shared_ptr<StoreByteIo> empty_workspace,
       std::shared_ptr<StoreByteIo> empty_base,std::shared_ptr<StoreByteIo> empty_tail,StoreIdentity new_image,
       std::uint64_t candidate_limit,std::uint64_t staging_limit,StoreCompressionOptions={});
+  // Allow an allocator to reserve an exact base and release the workspace
+  // before reserving the writable tail. The source stays pinned throughout.
+  static Build prepare(const NativeFileSession& source,std::shared_ptr<StoreByteIo> empty_workspace,
+      StoreIoContract base_contract,StoreIdentity new_image,std::uint64_t candidate_limit,
+      std::uint64_t staging_limit,StoreCompressionOptions={});
   static std::shared_ptr<NativeHybridBacking> open(std::shared_ptr<StoreByteIo> base,
       std::shared_ptr<StoreByteIo> tail,StoreIdentity expected_image,std::uint64_t virtual_limit,
       std::uint64_t physical_limit);
@@ -54,6 +59,10 @@ class NativeHybridBacking::Build final {
   ~Build();
   BuildPhase phase() const noexcept;
   bool advance(const NativeFileSession&);
+  // Returns zero unless a store is requested. Reserve the reported bytes for
+  // the exact base or the full admissible writable tail.
+  std::uint64_t required_store_bytes() const noexcept;
+  void provide_store(const NativeFileSession&,std::shared_ptr<StoreByteIo>);
   std::shared_ptr<NativeHybridBacking> finish(const NativeFileSession&);
   // Select a smaller verified image on the same serialized session. The
   // caller retains the source and its physical mapping, and owns the new

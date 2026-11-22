@@ -494,6 +494,58 @@ void interrupted_hybrid_binding() {
       <<" intact_prior=1 rejected_growth_no_target_writes=1\n";
 }
 
+void deferred_hybrid_placement() {
+  using Phase=NativeHybridBacking::BuildPhase;
+  constexpr auto unit=4096U;
+  const std::array files{data(847'389,94)};
+  auto source=make_indexed(files,unit,raw),head=empty(unit);
+  {const auto writer=NativeVolumeHeadWriter::create(head,id(9),NativeFilesystemSnapshot::open_image(source,ordinary_storage));}
+  auto session=NativeFileSession::resume_closed_indexed_volume(head,id(9),1,
+      [&](const auto& identity){return identity==id(1)?source:nullptr;},raw);
+  const auto old=head->stable;
+  const auto make_work=[&](const auto& workspace) {
+    return NativeHybridBacking::prepare(session,workspace,StoreIoContract{unit,true},id(2),
+        limits.maximum_physical_bytes,limits.maximum_physical_bytes,raw);
+  };
+  const auto advance_to=[&](auto& work,Phase phase) {
+    for(unsigned i=0;work.phase()!=phase;++i)
+      require(i<8192 && !work.advance(session),"deferred hybrid skipped a store request");
+  };
+  {
+    auto scratch=empty(unit),wrong=empty(65536);
+    auto work=make_work(scratch);
+    advance_to(work,Phase::awaiting_base);
+    rejects([&]{work.provide_store(session,wrong);},"deferred base accepted different geometry");
+    require(work.phase()==Phase::stopped && !wrong->writes && head->stable==old,
+        "base refusal wrote to the target or selector");
+  }
+
+  auto scratch=empty(unit),base=empty(unit),tail=empty(unit);
+  auto work=make_work(scratch);
+  advance_to(work,Phase::awaiting_base);
+  const auto base_bytes=work.required_store_bytes();
+  require(base_bytes && scratch.use_count()==2 && !work.advance(session) &&
+      work.phase()==Phase::awaiting_base && !base->writes,
+      "waiting for an exact base changed the candidate");
+  work.provide_store(session,base);
+  advance_to(work,Phase::awaiting_tail);
+  const auto tail_bytes=work.required_store_bytes();
+  require(base->extent()==base_bytes && scratch.use_count()==1 && tail_bytes>=tail_prologue &&
+      base_bytes+tail_bytes<=limits.maximum_physical_bytes && !tail->writes,
+      "completed seal did not release its workspace or price the writable tail");
+  scratch.reset();
+  auto file=session.open(path(0),{true,true,false});
+  const auto edited=data(139,71);
+  session.write(file,20,edited);
+  rejects([&]{work.provide_store(session,tail);},"deferred tail accepted a stale source checkpoint");
+  require(work.phase()==Phase::stopped && !tail->writes && head->stable==old &&
+      session.read(file,20,edited.size())==edited,"stale placement changed selection or lost the edit");
+  session.cleanup(file,false);
+  session.close(file);
+  std::cout<<"deferred_hybrid_placement base_bytes="<<base_bytes<<" tail_reservation="<<tail_bytes
+      <<" workspace_released=1 invalid_contract_refused=1 stale_refused=1\n";
+}
+
 void cooperative_hybrid() {
   using Phase=NativeHybridBacking::BuildPhase;
   constexpr auto unit=4096U;
@@ -834,6 +886,7 @@ int main(int argc,char** argv) {
     if(argc==2 && std::string_view(argv[1])=="--hybrid") {
       for(const auto unit:{4096U,65536U})hybrid_faults(unit);
       interrupted_hybrid_binding();
+      deferred_hybrid_placement();
       cooperative_hybrid();
       for(const auto unit:{4096U,65536U})live_hybrid_selection_faults(unit);
       return 0;

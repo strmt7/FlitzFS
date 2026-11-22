@@ -165,16 +165,18 @@ qualification work.
 ### Cooperative preparation
 
 A managed external indexed session can prepare the same base and tail while
-its selected image continues serving files. The caller provides three
-private backings and two budgets, one for the candidate and one for the
-candidate plus its workspace. The selector and retained source stay under
-the caller's separate ownership and allocation accounting.
+its selected image continues serving files. The caller sets budgets for the
+candidate and for preparation. It can reserve all three private backings at
+the start or let the build request the base and tail when their sizes are
+known. The same caller accounts for the selector and retained source.
 
 ```mermaid
 stateDiagram-v2
     [*] --> FoldedWorkspace
-    FoldedWorkspace --> ParityBase: checked workspace roots
-    ParityBase --> TailBinding: verified stripes and base roots
+    FoldedWorkspace --> BasePlacement: checked workspace roots
+    BasePlacement --> ParityBase: exact base reservation
+    ParityBase --> TailPlacement: verified stripes and base roots
+    TailPlacement --> TailBinding: workspace released before tail reservation
     TailBinding --> Ready: ordered tail barriers and CPU reopen
     Ready --> [*]: exact source check and return candidate
     Ready --> Selector: prepared writer lease and binding check
@@ -194,6 +196,11 @@ parity base and tail each issue at most one ordered flush per advance. The
 candidate reopens through the independent CPU reader after the final tail
 binding. The source must still match its exact in-memory checkpoint on each
 advance and its checked backing checkpoint when the candidate leaves.
+A staged allocator can use `required_store_bytes` to reserve the exact
+parity image after the workspace check and the maximum usable tail after
+the base check. Sealing releases the build's last workspace pin before
+it requests the tail. Returning a store requires a distinct empty backing
+with the admitted geometry and the same source checkpoint.
 A foreground commit, unavailable backing or cancelled caller releases the
 private work. The owner can return the checked candidate for detached use or
 publish it on the same managed indexed session with

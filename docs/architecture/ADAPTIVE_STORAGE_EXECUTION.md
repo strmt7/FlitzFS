@@ -24,11 +24,14 @@ and writable tail incrementally. Each advance yields after its bounded
 work, including individual ordered flushes. The full AIT fixture preserved
 the staged footprint and exact CPU readback. A managed external indexed
 session can select the prepared pair while retaining its open handles.
-Preparation and selection still need enrollment in the backing allocator
-and mounted maintenance owner.
+The Windows allocator fixture now reserves the exact base, decommits the
+workspace, and reserves the full usable tail under the same domain budget.
+It independently reopens the selected image after bounded retirement of the
+pinned mirror. The mounted maintenance owner still needs to own that sequence.
 [Cooperative preparation](../SEALED_INDEXED_IMAGE.md#cooperative-preparation) ·
 [Verification](../evidence/cooperative-hybrid-preparation-2026-11-22.json) ·
-[Live selection verification](../evidence/live-hybrid-selection-2026-11-22.json)
+[Live selection verification](../evidence/live-hybrid-selection-2026-11-22.json) ·
+[Deferred placement verification](../evidence/deferred-hybrid-placement-2026-11-22.json)
 
 Extend discovery and storage selection in this order.
 
@@ -36,6 +39,10 @@ Extend discovery and storage selection in this order.
    Let live resource evidence fund the source, candidate, dependencies and
    workspace together. Measure foreground interference, read amplification
    and the actual footprint before enrolling an ordinary storage provider.
+   Derive the workspace reservation from available domain capacity and the
+   seal's source and parity geometry. Give publication and retirement their
+   own fresh opportunities. Keep existing reclamation available when
+   preparation cannot fit or the source changes.
 2. Bind base and tail placement to the indexed volume allocator and resolver.
    Verify the frozen generation and exact content at selection, and preserve
    the source on stale work, cancellation or unavailable backing. Compare
@@ -46,9 +53,18 @@ Extend discovery and storage selection in this order.
    reader. Verify that rollback and snapshots still reach their original
    content before reclaiming either physical extent.
 4. Measure the footprint after real reclamation and the common small-read
-   trace. Improve descriptor and range locality before enrolling sealed regions
-   for hot reads. Keep the detached CPU restore path available for old
-   supported representations.
+   trace. Make checked base reads safe to capture while the live owner
+   appends to the tail. Verify that the AMD read-ahead producer can still
+   capture exact frames and fall back to CPU after selection. Keep the detached
+   CPU restore path available for old supported representations.
+
+ReFS moves cold contents through bounded containers. OpenZFS accounts for
+space retained by snapshots during rewrites. FlitzFS's current whole-image
+preparation holds the old generation alongside the verified candidate, so
+the allocator must charge both until the selector settles and the last
+reader releases the old mapping.
+[ReFS tiering and destage](https://learn.microsoft.com/en-us/windows-server/storage/refs/refs-registry-values) ·
+[OpenZFS rewrite](https://openzfs.github.io/openzfs-docs/man/v2.4/8/zfs-rewrite.8.html)
 
 ## 2. Learn which collective work is worth doing
 

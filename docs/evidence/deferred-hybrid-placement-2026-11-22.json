@@ -1,0 +1,157 @@
+{
+  "schema": "flitzfs-deferred-hybrid-placement-v1",
+  "date": "2026-11-22",
+  "source": {
+    "base": "aba97e62e424f500c968ddcd4ba404b15b54848c",
+    "blobs": {
+      "include/flitzfs/native_hybrid_backing.hpp": "5b775c66e1e87b48a429b7954da7656a895b3a2e",
+      "src/native_hybrid_backing.cpp": "2a16fe18d73e175d5f78bf4dca495b6feec52375",
+      "src/paged_store.cpp": "ea74e241b1292399c62b85e9be81223e6c53b305",
+      "tests/test_protected_indexed_image.cpp": "d6473ef968d81af8e10f499e1ada15742763155b",
+      "tests/test_winfsp_controller.cpp": "e72c6dabf9edf32ee527786d96e984b5fdaef337"
+    }
+  },
+  "scope": "Development Windows host with locked memory for placement, in-memory AIT live selection and a separate AMD prefix extension run on the same build",
+  "windows_memory_allocator": {
+    "old_bytes": 5955584,
+    "new_bytes": 4153344,
+    "base_reserved": 3891200,
+    "tail_reserved": 2768896,
+    "peak_resident": 12984320,
+    "workspace_steps": 3,
+    "retirement_steps": 6,
+    "domain_capacity_bytes": 16908288,
+    "peak_reservation_bytes": 16605184,
+    "all_upfront_reservation_bytes": 19374080,
+    "old_reader_retained": true,
+    "open_handle_preserved": true,
+    "exact_cpu_reopen": true
+  },
+  "ait_dcc_A_P": {
+    "files": 16,
+    "quanta": 4071,
+    "retained_source_bytes": 53231616,
+    "selector_bytes": 131072,
+    "workspace_bytes": 25808896,
+    "hybrid_bytes": 32657408,
+    "staged_total_bytes": 111828992,
+    "selection_read_bytes": 464446,
+    "mirrored_address_bytes": 51486720,
+    "exact_cpu_reopen": true,
+    "corpus_sha256": "baf1e7283ab49cc5b6c14e77e302637e4f17d84d1603af0fd9f3a62645d6ce1c"
+  },
+  "amd_controller": {
+    "groups": 2,
+    "submissions": 1,
+    "verified": 1,
+    "files": 6,
+    "reused_prefixes": 3,
+    "independent_cpu_readback": true,
+    "worker_sha256": "bca40a979dcd51660cf900e6d9b4d80472ab38e6aead2bb3437957481449211c",
+    "module_sha256": "9aad995bc1b2e330a8f24f76dcc5eaa9edc8f96351c999f10712aef0be33467d"
+  },
+  "semantic": {
+    "provider_version": "0.2.43",
+    "actual_searches": 1,
+    "receipt_sha256": "bd0d1b7fbbbfe4aad79d875ed3c6f4ae7f6af2b47de75b5e346f9a5c8ea8759a",
+    "response_sha256": "dde65edfbede11f406a1003842edb30ff63b4683474784ebb816c64f08db9b24"
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "a0417e0cf007286a28365ca9ad787e56763d09a5282991ccf02ccf5ce157af20",
+    "pages": [
+      {
+        "url": "https://learn.microsoft.com/en-us/windows-server/storage/refs/refs-registry-values",
+        "http_status": 200,
+        "markdown_bytes": 48430,
+        "markdown_sha256": "a2527156e69b89ed0ce6717e56c549dc006fc01d94dbe06e9d09b304e9384e03",
+        "capture_sha256": "2fcb8522f43b5d8b15d8263d8b928b83e4dd65d9c25f558e05cd838f22673e81"
+      },
+      {
+        "url": "https://openzfs.github.io/openzfs-docs/man/v2.4/8/zfs-rewrite.8.html",
+        "http_status": 200,
+        "markdown_bytes": 15227,
+        "markdown_sha256": "a9f5414e13489a4e3e48f37a9745c9469a268c7efbb4f1922cd22b9df87181a3",
+        "capture_sha256": "45f8a7c0e09e51e748c09489d8463e6a9e87fa2fb5739e47cd2d0206043355f5"
+      },
+      {
+        "url": "https://openzfs.github.io/openzfs-docs/Basic%20Concepts/Copy-on-write.html",
+        "http_status": 200,
+        "markdown_bytes": 10621,
+        "markdown_sha256": "0d61956e9f3f6184d85a19373b9ea4f12a02f321aea4bf58bdf3d987b3f4f0fa",
+        "capture_sha256": "4d34295c407f74e2510fc1fbbef8de28992ff07722f931e3e1940f2b55319e42"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/apps/develop/performance/disk-memory",
+        "http_status": 200,
+        "markdown_bytes": 37181,
+        "markdown_sha256": "1ce87de3e40afc05f135cd599b1409b0e4c59a97a8680b2aca4740fec2572343",
+        "capture_sha256": "956336e26849cb3ee903f60a4b250b6da0cf23bbb6791f1549a1fb8551bab4a6"
+      }
+    ]
+  },
+  "tests": {
+    "standard_build": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 646389760,
+      "log_sha256": "7abdd74390993eafa857df9eccef941b411049de062fe248d1e7b752ec467796"
+    },
+    "standard": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 328339456,
+      "log_sha256": "4ede85ce462beb0a262abb1665f7ad4ace21f2a80601bdb8234709863d519c25",
+      "passed": 211
+    },
+    "raw_build": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 449732608,
+      "log_sha256": "853968c00f14a8a107f597668738854cf50949362d349e8078f75fef84479651"
+    },
+    "raw": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 95334400,
+      "log_sha256": "cc9a19d91378e7c536c68eb058a0c2d1b32bd21142d18d6b66907112c78be171",
+      "passed": 11
+    },
+    "asan_build": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 703815680,
+      "log_sha256": "2b541dea72e14d507c7e20ea81aad053c1d464d541fdfe23ddbcd1aa78bd1046"
+    },
+    "asan": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 568008704,
+      "log_sha256": "3cc3f5ac7139c3017335ab30016fc8863c2a939388d60d2760fac60995b42f5c",
+      "passed": 12
+    },
+    "windows_allocator": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 23973888,
+      "log_sha256": "becde98def24895dfa16c11183db8f331d18d2fbb653fcfc87e4d1a3138377ce"
+    },
+    "public": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 372973568,
+      "log_sha256": "1044e7f4381a710d8619c21342751c4a51cde5cf39c2232daf63033c2b3a44f8"
+    },
+    "amd": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 82620416,
+      "log_sha256": "1a9d0bad6c76ecf56bf7896efac58b956e1bb08f76b6e81ebac63999f448c7f4"
+    }
+  },
+  "remaining": [
+    "automatic Windows sealed scheduling and retained component ownership",
+    "AMD capture against the selected sealed image",
+    "persistent range placement"
+  ]
+}

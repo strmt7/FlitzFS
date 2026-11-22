@@ -180,6 +180,31 @@ with callbacks. A failed selector keeps both mappings for independent
 post-join inspection. Join releases any known unselected image that was still
 staging or retiring. [Managed handoff contract](MANAGED_PAGED_VOLUMES.md#indexed-images)
 
+### Allocating a prepared sealed image
+
+The managed native session can request each replacement store separately.
+It checks the folded workspace before requesting the exact base capacity,
+then checks the sealed base before giving up its workspace pin. The caller
+decommits the workspace through the existing bounded retirement path.
+It can then reserve the writable tail through the full indexed capacity,
+with the current image still present. The tail binds to the exact base and
+source checkpoint before the selector can change.
+[Sealed preparation](SEALED_INDEXED_IMAGE.md#cooperative-preparation)
+
+On the Windows development host, reserving the workspace, base and full
+tail together would have exceeded the fixture's reservation. Deferred
+placement used the same domain budget. It reduced active image bytes
+from 5,955,584 to 4,153,344 and peaked at 12,984,320 committed and locked
+bytes across the staging stores and the selector. It released the workspace
+in three steps and retired the old mirror in six after its reader released
+the snapshot. An open file remained usable and an independent CPU reader
+reopened the edited file from the selected base and tail.
+[Allocator and survival evidence](evidence/deferred-hybrid-placement-2026-11-22.json)
+
+Automatic maintenance still needs a resolver that retains both raw stores
+with the selected hybrid, accounts for them during remount and shutdown,
+and keeps the independent read-ahead route available after selection.
+
 ## Executed scope and remaining work
 
 [Indexed compaction and allocation evidence](evidence/indexed-background-compaction-2026-11-18.json)
