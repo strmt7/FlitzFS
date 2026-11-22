@@ -57,6 +57,10 @@ GpuRouteDecision GpuRecoveryPolicy::consider_anchor(bool worthwhile,const GpuHea
     std::uint64_t device_bytes,std::uint64_t now) noexcept {
   return consider_work(true,worthwhile,evidence,device_bytes!=0,device_bytes,now);
 }
+GpuRouteDecision GpuRecoveryPolicy::consider_native_lz4_read(bool worthwhile,const GpuHealthEvidence& evidence,
+    std::uint64_t device_bytes,std::uint64_t now) noexcept {
+  return consider_work(true,worthwhile,evidence,device_bytes!=0,device_bytes,now);
+}
 GpuRouteDecision GpuRecoveryPolicy::consider_work(bool consent,bool worthwhile,
     const GpuHealthEvidence& e,bool has_work,std::uint64_t device_bytes,std::uint64_t now) noexcept {
   if(!consent) return {GpuRouteReason::disabled};

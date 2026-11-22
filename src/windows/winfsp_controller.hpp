@@ -1,5 +1,6 @@
 #pragma once
 #include "native_anchor_search.hpp"
+#include "native_lz4_read_worker.hpp"
 #include "winfsp_session.hpp"
 #include "maintenance_host.hpp"
 #include "maintenance_backing.hpp"
@@ -19,6 +20,7 @@ struct WinFspControllerView {
   std::uint64_t read_ahead_prepared=0,read_ahead_backing_refusals=0,read_ahead_demand_samples=0;
   std::uint64_t gpu_budget_queries=0,gpu_budget_refusals=0;
   NativeAnchorSearchStats anchor_search;
+  NativeLz4ReadWorkerStats amd_read;
   std::optional<NativeDeferredActivation> foreground_activation;
   std::optional<HipDiscoveryStatus> installed_anchor_status;
   std::uint32_t installed_anchor_attempts=0,installed_anchor_queries=0;
@@ -34,11 +36,13 @@ struct WinFspControllerView {
 class WinFspVolumeController final {
  public:
   WinFspVolumeController(std::unique_ptr<WinFspNativeWritable>,WinFspSessionApi,NativeWriteMountPlan,
-      std::optional<NativeAnchorSearchOptions> anchor={},HANDLE state_changed=nullptr);
+      std::optional<NativeAnchorSearchOptions> anchor={},HANDLE state_changed=nullptr,
+      std::optional<NativeLz4ReadWorkerProfile> read_worker={});
   // Qualified memory composition: domain must outlive the controller's joined
   // worker. Allocation and retirement share the callback's control lock.
   WinFspVolumeController(std::unique_ptr<WinFspNativeWritable>,WinFspSessionApi,NativeWriteMountPlan,MemoryVolumeDomain&,
-      std::optional<NativeAnchorSearchOptions> anchor={},HANDLE state_changed=nullptr);
+      std::optional<NativeAnchorSearchOptions> anchor={},HANDLE state_changed=nullptr,
+      std::optional<NativeLz4ReadWorkerProfile> read_worker={});
   ~WinFspVolumeController();
   WinFspVolumeController(const WinFspVolumeController&)=delete;
   WinFspVolumeController& operator=(const WinFspVolumeController&)=delete;

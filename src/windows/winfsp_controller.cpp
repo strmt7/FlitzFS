@@ -40,6 +40,7 @@ struct WinFspVolumeController::Impl {
   NativeWriteMountPlan plan;
   MemoryVolumeDomain* residency=nullptr;
   std::unique_ptr<NativeAnchorSearchController> anchor;
+  std::unique_ptr<NativeLz4ReadWorker> read_worker;
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
   std::optional<InstalledAnchorProfile> installed;
   HipRouteDiscoveryResult acquisition;
@@ -52,9 +53,17 @@ struct WinFspVolumeController::Impl {
 #endif
   std::thread worker;
   Impl(std::unique_ptr<WinFspNativeWritable> source,WinFspSessionApi api,NativeWriteMountPlan p,
-      MemoryVolumeDomain* memory,std::optional<NativeAnchorSearchOptions> acceleration,HANDLE notification):
+      MemoryVolumeDomain* memory,std::optional<NativeAnchorSearchOptions> acceleration,HANDLE notification,
+      std::optional<NativeLz4ReadWorkerProfile> read_profile):
       status_changed(notification),plan(std::move(p)),residency(memory) {
     if(!source || !valid_native_write_plan(plan))throw std::invalid_argument("Invalid controller source or mount plan");
+    if(read_profile) {
+      try {
+        if(source->enable_native_lz4_read_ahead())
+          read_worker=std::make_unique<NativeLz4ReadWorker>(std::move(*read_profile));
+        else current.amd_read.configuration_refused=true;
+      }catch(...) {current.amd_read.configuration_refused=true;}
+    }
     source->set_maintenance_event(activity.value);adapter=source.get();
     session=std::make_unique<WinFspNativeSession>(std::move(source),api);
     if(acceleration)anchor=std::make_unique<NativeAnchorSearchController>(std::move(*acceleration));
@@ -116,6 +125,11 @@ struct WinFspVolumeController::Impl {
                 NativeAnchorOpportunity::foreground:NativeAnchorOpportunity::poll);
             adapter->signal_foreground_for_anchor(waiting_for_accelerator());
           }
+          if(read_worker) {
+            read_worker->observe(*adapter,disabled);
+            std::lock_guard lock(mutex);
+            current.amd_read=read_worker->stats();
+          }
           apply_foreground_offer();
           const auto gpu=adapter->gpu_budget_task();
           if(gpu && now>gpu->after_ms) {
@@ -131,7 +145,8 @@ struct WinFspVolumeController::Impl {
             continue;
           }
           const bool scrub_due=now>=next_scrub;
-          const bool pending=!disabled && session->background_maintenance_pending(scrub_due);
+          const bool pending=!disabled && (session->background_maintenance_pending(scrub_due) ||
+              (read_worker && read_worker->ready_to_verify()));
           if(anchor && !pending)anchor->cancel();
           const bool awaiting_anchor=anchor && anchor->waiting();
           if(!pending || now<next) {
@@ -142,8 +157,10 @@ struct WinFspVolumeController::Impl {
               const auto due=anchor->deadline();
               delay=(std::min)(delay,due>now?due-now:std::uint64_t{0});
             }
-            HANDLE events[]={stop.value,activity.value,anchor?anchor->wake_handle():nullptr};
-            const auto count=events[2]?3UL:2UL;
+            HANDLE events[4]={stop.value,activity.value};
+            DWORD count=2;
+            if(anchor)if(const auto event=anchor->wake_handle())events[count++]=event;
+            if(read_worker)if(const auto event=read_worker->wake_handle())events[count++]=event;
             const auto waited=WaitForMultipleObjects(count,events,FALSE,static_cast<DWORD>(delay));
             if(waited==WAIT_OBJECT_0)break;
             if(waited!=WAIT_TIMEOUT && (waited<WAIT_OBJECT_0+1 || waited>=WAIT_OBJECT_0+count))
@@ -177,8 +194,12 @@ struct WinFspVolumeController::Impl {
                 auto step=[&] {
                   const detail::MaintenanceBackingScope measure(backing_use);
                   auto step=advance(observed,continuation,scrub_due);
-                  const auto demand_sample=!observed.continued && step.state==WinFspMaintenanceState::unchanged &&
-                      !interrupted()?adapter->take_native_lz4_read_ahead_sample(epoch):std::nullopt;
+                  if(!observed.continued && read_worker && !interrupted())
+                    read_ahead_prepared=read_worker->verify_and_publish(
+                        *adapter,observed,GetTickCount64(),stop_requested);
+                  const auto demand_sample=!read_ahead_prepared && !observed.continued &&
+                      step.state==WinFspMaintenanceState::unchanged && !interrupted()?
+                      adapter->take_native_lz4_read_ahead_sample(epoch):std::nullopt;
                   if(demand_sample) {
                     read_ahead_timing.observe(*demand_sample);
                     read_ahead_demand_sampled=*demand_sample!=0;
@@ -186,10 +207,12 @@ struct WinFspVolumeController::Impl {
                         read_ahead_timing.predicted_ns(),&read_ahead_backing_refused);
                     if(allowance && !interrupted()) {
                       const auto before=backing_use.elapsed_ns();
-                      read_ahead_prepared=adapter->advance_native_lz4_read_ahead(
-                          *allowance,GetTickCount64(),epoch,&stop_requested);
+                      auto work=adapter->capture_native_lz4_read_ahead(*allowance,GetTickCount64(),epoch,stop_requested);
+                      const bool submitted=read_worker && work && read_worker->start(*work,*allowance,stop_requested);
+                      if(work && !submitted)
+                        read_ahead_prepared=adapter->prepare_captured_native_lz4_read(*work,stop_requested);
                       read_ahead_timing.observe(backing_use.elapsed_ns()-before);
-                      if(!read_ahead_prepared)adapter->discard_native_lz4_read_ahead(epoch);
+                      if(!submitted && !read_ahead_prepared)adapter->discard_native_lz4_read_ahead(epoch);
                     } else if(read_ahead_backing_refused)adapter->discard_native_lz4_read_ahead(epoch,true);
                   }
                   return step;
@@ -265,6 +288,7 @@ struct WinFspVolumeController::Impl {
             if(result.compacted)++current.compactions;
             if(result.compaction_failed)++current.compaction_failures;
             if(anchor)current.anchor_search=anchor->stats();
+            if(read_worker)current.amd_read=read_worker->stats();
             current.maintenance_elapsed_ns+=used;
             current.maximum_quantum_ns=(std::max)(current.maximum_quantum_ns,used);
             current.backing_limited_continuations+=backing_limited;
@@ -280,10 +304,12 @@ struct WinFspVolumeController::Impl {
     // Normal priority, no view lock, and no independent maintenance thread while
     // the deferred service/dispatcher are joined. Never publish retirement early.
     if(anchor)anchor->cancel();
+    if(read_worker)read_worker->observe(*adapter,true);
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
     settle_acquisition(false);
 #endif
     session->stop();adapter=nullptr;
+    const bool read_retired=!read_worker || read_worker->stop();
     bool anchor_retired=!anchor || anchor->stop();
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
     anchor_retired=anchor_retired && acquisition_retired;
@@ -291,14 +317,18 @@ struct WinFspVolumeController::Impl {
 #endif
     std::lock_guard lock(mutex);current.state=session->state();current.start_status=started;
     current.offline=session->requires_offline();
-    current.write_restart_ready=anchor_retired && session->write_restart_ready();
+    current.write_restart_ready=anchor_retired && read_retired && session->write_restart_ready();
     if(foreground_offer) {
       foreground_offer.reset();
       current.foreground_activation=NativeDeferredActivation::refused;
     }
-    current.controller_failed=failed || !anchor_retired;
+    current.controller_failed=failed || !anchor_retired || !read_retired;
     if(anchor)current.anchor_search=anchor->stats();
-    current.maintenance_disabled=disabled;current.retired=anchor_retired;
+    if(read_worker) {
+      current.amd_read=read_worker->stats();
+      read_worker.reset();
+    }
+    current.maintenance_disabled=disabled;current.retired=anchor_retired && read_retired;
     if(status_changed.value)SetEvent(status_changed.value);
   }
   WinFspMaintenanceResult advance(const NativeMaintenanceObservation& observed,
@@ -467,13 +497,17 @@ struct WinFspVolumeController::Impl {
 #endif
 };
 WinFspVolumeController::WinFspVolumeController(std::unique_ptr<WinFspNativeWritable> adapter,
-    WinFspSessionApi api,NativeWriteMountPlan plan,std::optional<NativeAnchorSearchOptions> anchor,HANDLE state_changed):
-    impl_(std::make_unique<Impl>(std::move(adapter),api,std::move(plan),nullptr,std::move(anchor),state_changed)){}
+    WinFspSessionApi api,NativeWriteMountPlan plan,std::optional<NativeAnchorSearchOptions> anchor,HANDLE state_changed,
+    std::optional<NativeLz4ReadWorkerProfile> read_worker):
+    impl_(std::make_unique<Impl>(std::move(adapter),api,std::move(plan),nullptr,std::move(anchor),state_changed,
+        std::move(read_worker))){}
 WinFspVolumeController::~WinFspVolumeController()=default;
 WinFspVolumeController::WinFspVolumeController(std::unique_ptr<WinFspNativeWritable> adapter,
     WinFspSessionApi api,NativeWriteMountPlan plan,MemoryVolumeDomain& memory,
-    std::optional<NativeAnchorSearchOptions> anchor,HANDLE state_changed):
-    impl_(std::make_unique<Impl>(std::move(adapter),api,std::move(plan),&memory,std::move(anchor),state_changed)){}
+    std::optional<NativeAnchorSearchOptions> anchor,HANDLE state_changed,
+    std::optional<NativeLz4ReadWorkerProfile> read_worker):
+    impl_(std::make_unique<Impl>(std::move(adapter),api,std::move(plan),&memory,std::move(anchor),state_changed,
+        std::move(read_worker))){}
 void WinFspVolumeController::request_stop() noexcept {impl_->request_stop();}
 bool WinFspVolumeController::offer_qualified_foreground_route(NativeDeferredWriteOptions options) {
   auto& self=*impl_;

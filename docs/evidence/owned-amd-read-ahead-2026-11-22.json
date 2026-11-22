@@ -1,0 +1,208 @@
+{
+  "schema": "flitzfs-owned-amd-read-ahead-v1",
+  "date": "2026-11-22",
+  "source": {
+    "base": "472486996c8f9f6300cfa7cab86df082183ef57e",
+    "blobs": {
+      "src/windows/winfsp_native.hpp": "6d6c443ecbbf069e4ce0a115a3599ac8e7bf83d0",
+      "src/windows/winfsp_native.cpp": "aebd6770248eeeeea8b39eb8b2a1d1275703677f",
+      "src/native_lz4_decode.hpp": "ec24d0b40090947dfd35e2b8c64dbc15708d1e74",
+      "src/native_lz4_decode.cpp": "e8e2e17ec9cd5d9097edbfe56cb474676fd8003b",
+      "include/flitzfs/gpu_recovery.hpp": "493e7ea5ae041197d17450a728ae42f350af8dd2",
+      "CMakeLists.txt": "604ee7299f554243cd1c5c4c23d6dcbf9854a904",
+      "src/gpu_recovery.cpp": "204cbf0dc3a49e2ded897df74572e368d0264150",
+      "src/windows/winfsp_controller.hpp": "05af37cffb1c2720b48463097f35af2ec5c867ab",
+      "src/windows/winfsp_controller.cpp": "0e64b3923e940ad016be09325f10ad7f038dc285",
+      "tests/test_winfsp_controller.cpp": "2aab294e37f15ab1b7070079c15a4809e6692626",
+      "src/windows/native_lz4_read_worker.hpp": "929946f1d88f9c22b8a2d440f1bc8d6b19be3218",
+      "src/windows/native_lz4_read_worker.cpp": "9f815f8ea39250e84e818a5bf329bda80e7ae6ee"
+    },
+    "new_sources": [
+      "src/windows/native_lz4_read_worker.cpp",
+      "src/windows/native_lz4_read_worker.hpp"
+    ],
+    "patch_sha256": "7de6c2c1e3d12de9f1ba50aa1337d852fb0f434ae22b11ef57eb70e222bb3d61"
+  },
+  "scope": {
+    "windows_build": "10.0.26300",
+    "backing": "locked memory",
+    "callbacks": "WinFsp SDK and injected dispatcher lifecycle",
+    "mounted": false,
+    "default_gpu_read_enrollment": false,
+    "performance_benchmark": false
+  },
+  "amd": {
+    "adapter": "AMD Radeon RX 9070 XT",
+    "driver": "32.0.32029.2010",
+    "architecture": "gfx1201",
+    "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+    "worker_sha256": "a691a4fb6f35becd1cee43452d5da24be4c08141cfd42e13a226272a0a962758",
+    "module_sha256": "d5c46512c13866c134762a473edcf9360f93c28e8b7d7c703c7f9deeef3300f6",
+    "device_objects_sha256": {
+      "decode": "b817696fea0bd04dc01e7c894be4a032186d8c088a172459c62368b4104cbd6e",
+      "companion": "8d3c796e9360e0a6c8b6166b72149b7d0fa96341ebe0c027435ce7c55a3532bd"
+    },
+    "verified_route": {
+      "refusal": 0,
+      "submitted": 3,
+      "published": 1,
+      "verified_frames": 2,
+      "superseded": 2,
+      "failures": 0,
+      "worker_exit": 1223,
+      "budget_queries": 3,
+      "exact_cpu_fallback": 1,
+      "child_and_owner_retired": 1,
+      "stopped_pending": 1,
+      "checks": 37
+    },
+    "incompatible_configuration": {
+      "refusal": 1,
+      "submitted": 1,
+      "published": 0,
+      "verified_frames": 0,
+      "superseded": 0,
+      "failures": 1,
+      "worker_exit": 1179845891,
+      "budget_queries": 1,
+      "exact_cpu_fallback": 1,
+      "child_and_owner_retired": 1,
+      "stopped_pending": 0,
+      "checks": 34
+    }
+  },
+  "cpu_read_ahead": {
+    "prepared": 3,
+    "exact_hits": 3,
+    "backing_refused": 7,
+    "refused_backing_calls": 0,
+    "modeled_stall_ns": 46059701,
+    "demand_samples": 7,
+    "slow_demand_kept_limit": 1,
+    "timer_only_retries": 0,
+    "demand_recovered": 1,
+    "exact_cpu_fallback": 1,
+    "owner_retired": 1
+  },
+  "tests": {
+    "windows": {
+      "exit_code": 0,
+      "residual_children": 0,
+      "tree_retired": true,
+      "inherited_error_mode": 32771,
+      "peak_job_bytes": 337526784,
+      "supervisor_sha256": "fd5c1551195c4736c21511adcf6e17d0eed00418f10b2320722a910e5f436ac7",
+      "output_sha256": "3c47e8d582e1454b07001ce0faf2d315b33afce042234b6e610b3ef1d74b8887",
+      "ctest_passed": 211
+    },
+    "raw": {
+      "exit_code": 0,
+      "residual_children": 0,
+      "tree_retired": true,
+      "inherited_error_mode": 32771,
+      "peak_job_bytes": 66809856,
+      "supervisor_sha256": "cea013f9fb3f500d80a5f0861403e4ef9ac03773e69f85562a9460398f885868",
+      "output_sha256": "d75629c81628a1ad8317e5ea4424719633f76bae142f5b17d96e4f3236fe14b9",
+      "ctest_passed": 5
+    },
+    "asan": {
+      "exit_code": 0,
+      "residual_children": 0,
+      "tree_retired": true,
+      "inherited_error_mode": 32771,
+      "peak_job_bytes": 579371008,
+      "supervisor_sha256": "02c51c385d9ccd2054b2d249b4df3089fa6c87e4c3812f1e78794e3c7727c990",
+      "output_sha256": "231267c6e87fd1c87d7e884087d2e7dedf0700d43973c84d8b6fadcc77b32282",
+      "ctest_passed": 6
+    },
+    "pinned": {
+      "exit_code": 0,
+      "residual_children": 0,
+      "tree_retired": true,
+      "inherited_error_mode": 32771,
+      "peak_job_bytes": 62410752,
+      "supervisor_sha256": "460d21bc39a34b868f9c72804fa52fdfe5b7d14903ee3a9f3f74c36c891fdd5c",
+      "output_sha256": "20427056c7181a7e8cce285be94d7799e33eb357d0645a333a538a01980c5322",
+      "ctest_passed": 4
+    },
+    "installed_transport": {
+      "exit_code": 0,
+      "residual_children": 0,
+      "tree_retired": true,
+      "inherited_error_mode": 32771,
+      "peak_job_bytes": 22392832,
+      "supervisor_sha256": "4406bf9810e28b190506f5a6a97549d7d3de6a7ffbb3e31e7af574e6549ec06c",
+      "output_sha256": "f23782a3d8eddefada8ca545ea3127a1e7d5d78b89f2245f503e1b8070395fae",
+      "ctest_passed": 2
+    },
+    "amd_read": {
+      "exit_code": 0,
+      "residual_children": 0,
+      "tree_retired": true,
+      "inherited_error_mode": 32771,
+      "peak_job_bytes": 91918336,
+      "supervisor_sha256": "b69323bd645f4b8836ae080fa449fa31df3d162a9cf24d4ca689b00cedde246a",
+      "output_sha256": "3f83b4bcf14278485fbcf3c9cd58ce0e6a5a9a116cae9ecc76f56f41f6add736"
+    },
+    "amd_refused": {
+      "exit_code": 0,
+      "residual_children": 0,
+      "tree_retired": true,
+      "inherited_error_mode": 32771,
+      "peak_job_bytes": 20267008,
+      "supervisor_sha256": "5c877f53a9620249366ed7bf3be18d0c658a3724ce9c68f263d79c9ac27612ab",
+      "output_sha256": "38bc67c6e2fd6e758e33d1f655a4997d9e8b5041f56153364e681ba9f3cac40c"
+    },
+    "cpu_owner": {
+      "exit_code": 0,
+      "residual_children": 0,
+      "tree_retired": true,
+      "inherited_error_mode": 32771,
+      "peak_job_bytes": 10702848,
+      "supervisor_sha256": "32f30e08ef251a6a10112e5d1c804a1897189f4a91ff60294df5cfb270f6a278",
+      "output_sha256": "797feabd5aec50defad0f1e69229398b121a94f37c493cdba6655f08932cf4af"
+    }
+  },
+  "routing": {
+    "receipt_sha256": "361222ba2e6577c75542936e97bb8a7d5badffcccc20d39a65cc55b314731364",
+    "native_stdout_sha256": "3f945d360fa1b4b2c892eefce83b48d67547370f993618bd496c783bda0baf10"
+  },
+  "research": {
+    "receipt_sha256": "82f95ca93ac81e24e40eab53fdfcdd6bb4a4196c9a3c24dcef3b56e693f06787",
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "pages": [
+      {
+        "name": "windows-job-retirement",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 30070,
+        "markdown_sha256": "62c6c1389ff2be0e71007f8f3abdca978dfefa31c39eb5c83052262aa53ed63e",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.821,
+        "capture": "windows-job-retirement.native.json",
+        "capture_sha256": "a4d9ffdf35b63d34e1e094615828235bfa5fa4dc844308297e8f0167d92f2024"
+      },
+      {
+        "name": "amd-hip-amortization",
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/latest/how-to/performance_guidelines.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 50307,
+        "markdown_sha256": "d0610dac2affd053902212db38e383b4dab8f868be0349ef33c1b7aad7758fb1",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.13,
+        "capture": "amd-hip-amortization.native.json",
+        "capture_sha256": "67b1aea469d27adcf74f93d8479aa6536c0ac8c29b44f2f934aea479b2757f74"
+      }
+    ]
+  }
+}

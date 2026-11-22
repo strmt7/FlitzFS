@@ -21,6 +21,12 @@ view and request stop while the owner performs storage work.
 External owner calls must be serialized, and joining from dispatcher/callback
 threads is forbidden.
 
+An independently qualified AMD read profile also permits the same owner to
+supervise one speculative decode batch. Ordinary callbacks retrieve verified
+ready bytes or perform their usual CPU read. The owner releases the package
+when the volume stops.
+[AMD read-ahead ownership](NATIVE_AMD_LZ4_READ.md#amd-read-ahead-in-the-volume-controller)
+
 ## Content events and bounded work
 
 Before binding callbacks, the adapter duplicates a same-process event handle

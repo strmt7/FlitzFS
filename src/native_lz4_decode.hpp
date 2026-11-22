@@ -15,6 +15,8 @@ struct NativeLz4DecodedFrame {
   NativeLz4ReadKey key;
   std::vector<std::byte> bytes;
 };
+native_lz4_decode::Layout native_lz4_layout(std::uint32_t frames,std::uint32_t largest_encoded,
+    std::uint32_t largest_decoded) noexcept;
 
 class NativeLz4DecodeBatch final {
  public:

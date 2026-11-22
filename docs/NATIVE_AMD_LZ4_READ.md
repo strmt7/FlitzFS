@@ -3,9 +3,10 @@
 The optional AMD compute path decodes standard LZ4 records from indexed
 FlitzFS writes. It uses the existing record format and CPU decoder. The
 device result can flow through `NativeFileSession::read` after the indexed
-store verifies the full frame digest. The private qualification probe runs the decoder in an isolated Windows
-worker. The WinFsp SDK callback can consume the same type of ready result.
-Installed helper scheduling and mounted performance remain open.
+store verifies the full frame digest. The decoder runs in an isolated Windows worker. The WinFsp volume controller
+can now own the worker and deliver its verified result through ordinary
+callbacks when supplied an independently qualified read profile. Automatic
+installed-package enrollment and mounted performance remain open.
 
 ## Input, device execution and recovery
 
@@ -314,6 +315,40 @@ reads. The worker still spent about 1.39 s preparing and 39.5 ms from
 submission through verification and retirement. Read-ahead remains
 opt-in pending workload and device qualification.
 [Metadata reuse verification](evidence/prepared-read-metadata-2026-11-22.json)
+
+### AMD read-ahead in the volume controller
+
+A qualified read profile binds the exact helper, device module and signed HIP
+runtime, adapter identity, dispatch shape and worker allowance. The volume
+controller checks and pins the package before it enables the optional lane.
+Its idle owner captures the proposed extent range, sizes one dispatch from
+the actual frames and obtains fresh Windows device and host memory evidence.
+The existing sized worker channel owns the immutable request and enforces the
+child's memory, CPU and deadline. This path starts with a complete request
+so it can submit immediately. [Windows job lifetime](https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects) ·
+[AMD HIP batching guidance](https://rocm.docs.amd.com/projects/HIP/en/latest/how-to/performance_guidelines.html)
+
+Foreground demand continues through the independent reader. Foreground
+activity can supersede the captured epoch. The controller then signals
+cancellation and rejects the late result. A returned batch needs confirmed
+child and supervisor retirement, current resource admission and a matching
+callback epoch. The foreground store verifies its checkpoint, typed extent
+and decoded digest before using the frame. The mount owner also checks
+worker retirement when it stops. A refused device configuration uses CPU
+for the remainder of that attachment. Temporary pressure uses the shared
+GPU recovery policy and requires fresh observations.
+[Worker ownership](WORKER_CHANNEL.md#resource-sized-transport) ·
+[GPU recovery](GPU_RECOVERY.md)
+
+The live Windows SDK fixture consumed both frames of a Radeon batch
+byte-for-byte through ordinary callbacks. A foreground read served exact
+data on CPU while the second batch was pending and the owner retired that
+batch as superseded. Controller stop retired a third pending batch. A
+separate mismatched architecture profile exercised the worker's
+compatibility refusal. Normal CPU reads and the CPU read-ahead
+baseline continued, and the refused profile made no second budget query or
+launch. These checks used fixed admitted test windows.
+[Owned Radeon read verification](evidence/owned-amd-read-ahead-2026-11-22.json)
 
 [Windows memory reservation and commit](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc) ·
 [Windows page retirement](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualfree)

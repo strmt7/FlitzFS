@@ -6,6 +6,7 @@
 #include "flitzfs/paged_store.hpp"
 #include "flitzfs/native_volume_file.hpp"
 #include "flitzfs/read_only_file.hpp"
+#include "../src/windows/hip_worker_exit.hpp"
 #include "native_fs_fixture.hpp"
 #include "native_lz4_fixture.hpp"
 #include "native_corpus_fixture.hpp"
@@ -24,6 +25,7 @@
 #include <array>
 #include <atomic>
 #include <chrono>
+#include <charconv>
 #include <cstring>
 #include <fstream>
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
@@ -523,6 +525,133 @@ void live_read_ahead_admission() {
       <<" modeled_stall_ns="<<slow_sample.elapsed_ns()-fast_sample.elapsed_ns()
       <<" demand_samples="<<recovered.read_ahead_demand_samples
       <<" slow_demand_kept_limit=1 timer_only_retries=0 demand_recovered=1 exact_cpu_fallback=1 owner_retired=1\n";
+}
+int live_amd_read_ahead(char** argv,bool refuse) {
+  require(store_lz4_available(),"owned AMD read-ahead requires a qualified CPU LZ4 decoder");
+  const auto number=[](std::string_view value) {
+    std::uint32_t result=0;
+    const auto parsed=std::from_chars(value.data(),value.data()+value.size(),result);
+    require(parsed.ec==std::errc{} && parsed.ptr==value.data()+value.size(),"invalid AMD read fixture number");
+    return result;
+  };
+  const auto wide=[](std::string_view value){return std::wstring(value.begin(),value.end());};
+  const std::string_view raw_luid(argv[7]);
+  require(raw_luid.size()==16,"invalid AMD read fixture LUID");
+  const auto digit=[](char value) {
+    if(value>='0' && value<='9')return unsigned(value-'0');
+    if(value>='a' && value<='f')return unsigned(value-'a'+10);
+    throw std::invalid_argument("invalid AMD read fixture LUID digit");
+  };
+  NativeLz4ReadWorkerProfile profile;
+  profile.helper=argv[2];
+  profile.helper_sha256=argv[3];
+  profile.runtime_name=wide(argv[4]);
+  profile.runtime_sha256=argv[5];
+  profile.module_sha256=argv[6];
+  for(std::size_t i=0;i<profile.luid.size();++i)
+    profile.luid[i]=static_cast<std::byte>(16*digit(raw_luid[2*i])+digit(raw_luid[2*i+1]));
+  profile.architecture=refuse?L"gfx0":wide(argv[8]);
+  profile.ordinal=number(argv[9]);
+  profile.wave_mask=number(argv[10]);
+  profile.node_mask=1;
+  profile.worker={160,1200,14000,16};
+  profile.minimum_frames=profile.maximum_frames=2;
+  profile.maximum_slab_bytes=256U*1024U;
+  constexpr std::uint64_t extent=kNativeExtentBytes,image_capacity=8ULL*1024*1024;
+  constexpr std::size_t window=2*extent;
+  constexpr StoreCompressionOptions fast{StoreCompressionMode::fast,1,false};
+  auto domain=MemoryVolumeDomain::create(image_capacity+kVolumeHeadBytes);
+  auto head=domain.create_store(kVolumeHeadBytes);
+  auto image=domain.create_store(image_capacity);
+  NativeMaintenancePolicy qualification;
+  qualification.maximum_cpu_busy_ppm=500'000;
+  auto adapter=WinFspNativeWritable::create_managed_indexed(
+      head,id(90),image,id(1),{image_capacity},fast,{},qualification);
+  auto* route=adapter.get();
+  Provider provider;
+  Provider::active=&provider;
+  WinFspVolumeController owner(std::move(adapter),provider.api(),plan(),domain,{},nullptr,std::move(profile));
+  await([&]{return owner.view().state==SessionState::running;},5000,"AMD read controller startup");
+  require(!owner.view().amd_read.configuration_refused,"AMD read package did not verify");
+  Bytes file(3*window);
+  for(std::size_t i=0;i<2;++i) {
+    const auto motif=data(extent/8,917+static_cast<unsigned>(i));
+    for(std::size_t at=0;at<extent;at+=motif.size())
+      std::ranges::copy(motif,file.begin()+static_cast<std::ptrdiff_t>(2*window+i*extent+at));
+  }
+  callback_file(provider,0,file,static_cast<ULONG>(extent));
+  await([&]{return owner.view().payload_scrub_passes && !route->background_maintenance_pending();},
+      12000,"AMD read fixture initial maintenance did not quiesce");
+  PVOID context=nullptr;
+  FSP_FSCTL_FILE_INFO info{};
+  wchar_t name[]=L"\\f0";
+  auto* fs=&provider.fs;
+  require(fs->Interface->Open(fs,name,FILE_NON_DIRECTORY_FILE|(1U<<24),FILE_READ_DATA,&context,&info)==STATUS_SUCCESS &&
+      context && info.FileSize==file.size(),"AMD read fixture opened the wrong file");
+  const auto demand=[&](unsigned index) {
+    Bytes output(window);
+    ULONG moved=0;
+    require(fs->Interface->Read(fs,context,output.data(),index*window,static_cast<ULONG>(output.size()),&moved)==
+        STATUS_SUCCESS && moved==output.size() &&
+        std::equal(output.begin(),output.end(),file.begin()+static_cast<std::ptrdiff_t>(index*window)),
+        "AMD read fixture callback bytes differed");
+  };
+  const auto train=[&]{demand(0);demand(1);};
+  train();
+  if(refuse) {
+    await([&]{return owner.view().amd_read.failures!=0;},15000,"unsupported AMD worker did not retire");
+    const auto outcome=owner.view().amd_read;
+    require(outcome.submitted==1 && outcome.published==0 && outcome.retirement_confirmed &&
+        outcome.configuration_refused && hip_worker_exit_category(outcome.last_worker_exit_code)==
+            static_cast<std::uint32_t>(HipWorkerExit::unsupported_configuration),
+        "AMD read refusal did not fence the qualified child");
+    demand(2);
+    require(route->native_lz4_read_ahead_hits()==0,"worker refusal left GPU-ready data");
+    train();
+    await([&]{return owner.view().read_ahead_prepared==1;},12000,"worker refusal did not preserve CPU preparation");
+    demand(2);
+    const auto recovered=owner.view().amd_read;
+    require(route->native_lz4_read_ahead_hits()==2 && recovered.submitted==1 &&
+        recovered.budget_queries==outcome.budget_queries,
+        "a refused worker was probed again or its CPU successor was lost");
+  }else {
+    await([&]{
+      const auto result=owner.view().amd_read;
+      return result.published || result.failures;
+    },15000,"real AMD read worker did not finish");
+    const auto complete=owner.view().amd_read;
+    if(complete.failures)std::cerr<<"AMD read worker exit="<<complete.last_worker_exit_code<<'\n';
+    require(complete.submitted==1 && complete.published==1 && complete.verified_frames==2 &&
+        complete.retirement_confirmed && !complete.failures,"real AMD result was not published by the controller");
+    demand(2);
+    require(route->native_lz4_read_ahead_hits()==2,"ordinary callbacks did not consume both GPU frames");
+    train();
+    await([&]{return owner.view().amd_read.submitted==2 && owner.view().amd_read.pending;},
+        12000,"second AMD window never entered its supervised flight");
+    demand(2);
+    await([&]{
+      const auto state=owner.view().amd_read;
+      return state.superseded==1 && state.retirement_confirmed;
+    },8000,"CPU read did not retire the superseded AMD window");
+    require(route->native_lz4_read_ahead_hits()==2 && owner.view().amd_read.published==1,
+        "superseded GPU frames reached the ordinary path");
+    train();
+    await([&]{return owner.view().amd_read.submitted==3 && owner.view().amd_read.pending;},
+        12000,"AMD read fixture did not start the stop-time flight");
+  }
+  if(refuse)callback_cleanup_close(provider,context);
+  owner.stop_and_join();
+  const auto state=owner.view();
+  require(state.retired && state.amd_read.retirement_confirmed && !state.controller_failed &&
+      provider.fs.UserContext==nullptr,"owned AMD read controller did not retire");
+  if(!refuse)require(state.amd_read.submitted==3 && state.amd_read.superseded==2 &&
+      state.amd_read.published==1,"stop did not cancel the last AMD read flight");
+  std::cout<<"winfsp_owned_amd_read refusal="<<(refuse?1:0)<<" submitted="<<state.amd_read.submitted
+      <<" published="<<state.amd_read.published<<" verified_frames="<<state.amd_read.verified_frames
+      <<" superseded="<<state.amd_read.superseded<<" failures="<<state.amd_read.failures
+      <<" worker_exit="<<state.amd_read.last_worker_exit_code<<" budget_queries="<<state.amd_read.budget_queries
+      <<" exact_cpu_fallback=1 child_and_owner_retired=1 stopped_pending="<<(refuse?0:1)<<" checks="<<checks<<'\n';
+  return 0;
 }
 void volume_file_callbacks() {
   constexpr PagedStoreLimits limits{8ULL*1024*1024};
@@ -3276,6 +3405,11 @@ void indexed_group_callback_contract(bool scrub_due=false) {
 }
 int main(int argc,char** argv){try {
   app_fixture::Budget budget;DWORD before=0,after=0;
+  if(argc==11) {
+    const std::string_view command(argv[1]);
+    if(command=="--live-amd-read-ahead" || command=="--live-amd-read-refusal")
+      return live_amd_read_ahead(argv,command=="--live-amd-read-refusal");
+  }
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
   if(argc==1)anchor_launch_budget();
   if(argc==2 && std::string_view(argv[1])=="--live-installed-retired-reply")

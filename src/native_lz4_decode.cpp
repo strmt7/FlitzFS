@@ -20,6 +20,11 @@ Record descriptor(std::span<const std::byte> data,std::size_t index) noexcept {
 }
 }
 
+native_lz4_decode::Layout native_lz4_layout(std::uint32_t frames,std::uint32_t largest_encoded,
+    std::uint32_t largest_decoded) noexcept {
+  return {frames,aligned(largest_encoded),aligned(largest_decoded)+alignment,version};
+}
+
 NativeLz4DecodeBatch NativeLz4DecodeBatch::prepare(std::span<const NativeLz4DecodeSource> entries,
     NativeLz4DecodeGrant grant) {
   if(!store_lz4_available() || entries.empty() || entries.size()>grant.maximum_frames)
@@ -36,7 +41,7 @@ NativeLz4DecodeBatch NativeLz4DecodeBatch::prepare(std::span<const NativeLz4Deco
     logical=(std::max)(logical,key.decoded_bytes);
   }
   NativeLz4DecodeBatch batch;
-  batch.layout_={static_cast<u32>(entries.size()),aligned(stored),aligned(logical)+alignment,version};
+  batch.layout_=native_lz4_layout(static_cast<u32>(entries.size()),stored,logical);
   const auto bytes=output_at(batch.layout_,batch.layout_.chunks);
   if(bytes>grant.maximum_slab_bytes || bytes>(std::numeric_limits<std::size_t>::max)() ||
       !valid_layout(batch.layout_,bytes))fail("native LZ4 decode slab admission");

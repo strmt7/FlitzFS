@@ -1,4 +1,5 @@
 #pragma once
+#include "../native_lz4_read.hpp"
 #include "native_file_info.hpp"
 #include "native_deferred_write.hpp"
 #include "winfsp_origin.hpp"
@@ -9,6 +10,15 @@
 #include <memory>
 namespace flitzfs {
 namespace detail {class NativeLz4ReadyReads;}
+class WinFspNativeWritable;
+struct WinFspReadAheadWork {
+  const WinFspNativeWritable* owner=nullptr;
+  std::uintptr_t token=0;
+  std::uint64_t offset=0,foreground_epoch=0;
+  std::uint32_t bytes=0;
+  std::vector<detail::NativeLz4CapturedFrame> frames;
+  std::shared_ptr<detail::PagedReadMetadata> metadata;
+};
 struct MemoryVolumeBacking;
 // Experimental real writable adapter; qualify backing, runtime and containment.
 // Historical _hosted names remain for ABI/report compatibility, not location.
@@ -151,6 +161,11 @@ class WinFspNativeWritable final {
   std::optional<std::uint64_t> take_native_lz4_read_ahead_sample(std::uint64_t foreground_epoch) noexcept;
   bool advance_native_lz4_read_ahead(const NativeMaintenanceObservation&,std::uint64_t now_ms,
       std::uint64_t foreground_epoch,const std::atomic<bool>* stop_requested=nullptr) noexcept;
+  std::optional<WinFspReadAheadWork> capture_native_lz4_read_ahead(const NativeMaintenanceObservation&,
+      std::uint64_t now_ms,std::uint64_t foreground_epoch,const std::atomic<bool>& stop_requested) noexcept;
+  bool publish_native_lz4_read_ahead(WinFspReadAheadWork&,std::unique_ptr<detail::NativeLz4ReadyReads>,
+      const std::atomic<bool>& stop_requested) noexcept;
+  bool prepare_captured_native_lz4_read(WinFspReadAheadWork&,const std::atomic<bool>& stop_requested) noexcept;
   // After a measured backing refusal, the matching CPU demand may refresh cost.
   void discard_native_lz4_read_ahead(std::uint64_t foreground_epoch,bool measure_demand=false) noexcept;
   std::uint64_t native_lz4_read_ahead_hits() const;

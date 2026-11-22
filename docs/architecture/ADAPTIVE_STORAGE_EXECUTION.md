@@ -140,8 +140,8 @@ keys that result to the verified image, object generation, decoded length
 and decoded digest, and the CPU checks the complete result before file-range
 projection. A missing or rejected result decodes the same checked record on
 CPU. The decoder hook runs on the existing serialized read path and returns
-without waiting. The mounted AMD producer and its matched measurements are
-still open. The pinned LZ4 Release and AddressSanitizer runs each checked
+without waiting. The owned Windows controller now has a qualified AMD read-ahead producer.
+Mounted AMD measurements remain open. The pinned LZ4 Release and AddressSanitizer runs each checked
 one accepted ready result and three rejected replies, with exact CPU
 fallback on the same stored records.
 [Windows verification](../evidence/pinned-provider-indexed-lz4-read-2026-11-22.json)
