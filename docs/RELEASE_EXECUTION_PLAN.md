@@ -330,6 +330,13 @@ multiple sessions and measure actual allocated bytes and write costs.
   trial refused stale memory telemetry at completion. Measure the sustained
   complete-operation benefit against CPU before enrolling this workload.
   [Independent request batching](evidence/amd-uniform-request-batching-2026-11-21.json)
+- Foreground GPU preparation now releases the filesystem lock before encoding
+  the worker request. The supervisor takes the immutable frame by move and
+  retains its route pins. On the matched public-source trace the worker
+  accounted for 97% or more of AMD response time. Keep that workload on CPU.
+  Measure a finite readiness episode and the actual arrival of independent
+  eligible requests before adopting any foreground warm-up policy.
+  [Foreground worker evidence](evidence/windows-amd-foreground-worker-boundary-2026-11-22.json)
 - Measure automatic route selection for early ingestion and cold work
   separately. Use the CPU reference for forecast and fallback. Compare real
   public and controlled inputs across supported AMD classes and a CPU-only
@@ -639,7 +646,9 @@ reuse in both directions after the retention checks completed.
    running foreground controller with a profile earned from matched complete
    writes. Feed the verified batch path from already ready requests and charge
    startup, host copies, validation and publication before comparing end-to-end
-   results against CPU. Exercise stale budget samples during long batches.
+   results against CPU. Measure a bounded startup episode ahead of an eligible
+   burst with CPU service during readiness and confirmed retirement when the
+   burst ends. Exercise stale budget samples during long batches.
    Alternate AMD-present,
    CPU-only and rejected-device routes on matched data. Record transfer, kernel, validation,
    publication and backlog separately. Start the mounted failure matrix with

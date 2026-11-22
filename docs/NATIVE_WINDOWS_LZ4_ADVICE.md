@@ -45,6 +45,24 @@ attempt refused stale completion telemetry, retired its worker and completed
 with byte-exact CPU recovery. CPU remains the preferred write path for these
 workloads. [Physical-host evidence](evidence/native-lz4-advice-acceptance-2026-11-19.json)
 
+## Foreground worker preparation and ownership
+
+The mounted service binds the native handle, write geometry and owned source
+under the publication lock. GPU preparation then runs with an immutable
+health snapshot outside that lock. A competing callback can ask for CPU
+publication before worker dispatch. Only the checked native transaction can
+advance publication. The worker transport takes the serialized frame by move
+and retains the installed route pins through supervisor retirement.
+
+On the Windows host, the controlled SDK path reopened 16 advised extents
+and checked 32 mirrored records. Three alternating matched public-source
+trials consumed 4.81–4.90 ms on CPU and 1.59–2.90 s on AMD. The supervised
+AMD child accounted for most of the response time. The CPU and AMD indexed
+images were 3 and 3.125 MiB respectively. The observed workload continues to
+prefer CPU. The regular installed mount and continuous device-loss recovery
+remain separate qualification gates.
+[Worker ownership and comparison evidence](evidence/windows-amd-foreground-worker-boundary-2026-11-22.json)
+
 ## Original source contract
 
 The native GitHub release inventory was checked on 14 November 2026. The newest

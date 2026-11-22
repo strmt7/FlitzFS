@@ -12,6 +12,7 @@ struct UniformLz4WorkerOutcome {
   GpuGateCode gate=GpuGateCode::wrong_state;
   std::optional<WorkerExchangeCode> exchange;
   std::optional<std::uint32_t> exit_code;
+  std::uint64_t process_elapsed_ms=0,process_peak_commit_bytes=0;
 };
 // Single control thread. Persistent policy, one retiring worker and at most
 // one replacement CPU source of no greater size. Caller admits preparation
@@ -27,7 +28,7 @@ class UniformLz4WorkerController final {
       const std::vector<std::wstring>&,bool consent,bool worthwhile,
       const GpuHealthEvidence&,std::uint64_t now_ms,const GpuLz4ResidentCost&,
       GpuLz4WindowPolicy,ProcessBudget,std::uint32_t deadline_ms,
-      std::optional<GpuLz4SweepGrant> sweep=std::nullopt);
+      std::optional<GpuLz4SweepGrant> sweep=std::nullopt,std::shared_ptr<const void> pinned_route={});
   // Verification and acceptance are separate polls. The acceptance poll MUST
   // bring a newer time/snapshot after potentially substantial CPU validation.
   GpuWorkerState poll(const GpuMemorySnapshot&,std::uint64_t now_ms) noexcept;

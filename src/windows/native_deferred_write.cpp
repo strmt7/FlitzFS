@@ -96,7 +96,7 @@ void NativeDeferredWriteService::disable_gpu_budget_locked() noexcept {
   budget_task_.reset();
   budget_work_.store(false,std::memory_order_release);
   budget_disabled_=true;
-  force_cpu_=force_cpu_ || stats_.native_pending;
+  if(stats_.native_pending)force_cpu_=true;
   changed_.notify_all();
 }
 void NativeDeferredWriteService::signal_activity_locked() noexcept {
@@ -174,10 +174,21 @@ void NativeDeferredWriteService::run() noexcept{
       if(!uniform_lz4::add(charged.fixed_bytes,sizeof(Request)+sizeof(FSP_FSCTL_TRANSACT_RSP)+
           2*sizeof(NativeUniformWriteResult),charged.fixed_bytes))charged.qualified=false;
       const bool consent=options_.allow_gpu&&options_.helper_independent&&!force_cpu_&&!stats_.stopping;
-      const auto admission=operation.begin(request_->handle,request_->bytes,request_->offset,
-          request_->append,request_->constrained,{},info_policy_,
-          options_.binding,consent,options_.workload_qualified,health_,started,charged,options_.window,
-          options_.budget,options_.deadline_ms,&request_->bytes);
+      NativeUniformWriteStart admission;
+      ControlledNativeUniformWrite::SourceGeometry geometry;
+      admission.admission=operation.bind_source(request_->handle,request_->bytes,request_->offset,
+          request_->append,request_->constrained,{},info_policy_,options_.binding.capture_advice_receipt,
+          &request_->bytes,geometry);
+      if(NT_SUCCESS(admission.admission.status)) {
+        const auto observed=health_;
+        // A competing callback can ask for CPU publication during preparation.
+        // The source stays owned while the native publication gate stays closed.
+        guard.unlock();
+        operation.start_advice(admission,geometry,options_.binding,consent,options_.workload_qualified,
+            observed,started,charged,options_.window,options_.budget,options_.deadline_ms,&force_cpu_,
+            options_.controller_route_pins);
+        guard.lock();
+      }
       if(admission.worker.decision.submitted)increment(stats_.worker_submitted);
       else if(controller_collects_budget()) {
         const auto reason=admission.worker.decision.route.reason;

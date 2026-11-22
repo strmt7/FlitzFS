@@ -100,7 +100,7 @@ class NativeDeferredWriteService final {
   std::unique_ptr<Request> request_;
   NativeDeferredWriteStats stats_;
   std::optional<NativeUniformWriteResult> completion_;
-  bool force_cpu_=false;
+  std::atomic_bool force_cpu_{false};
   std::thread thread_;
 };
 }

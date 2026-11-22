@@ -3,6 +3,7 @@
 #include "uniform_lz4_worker_controller.hpp"
 #include "flitzfs/uniform_lz4_sweep.hpp"
 #include <array>
+#include <atomic>
 #include <optional>
 namespace flitzfs {
 // Admission and immutable copying shared with the deferred callback owner.
@@ -80,6 +81,17 @@ class ControlledNativeUniformWrite final {
   bool try_retire() noexcept;
   std::uint32_t process_id() const noexcept{return controller_.process_id();}
  private:
+  friend class NativeDeferredWriteService;
+  struct SourceGeometry {std::uint64_t position=0,accepted=0;};
+  NativeWindowsIoOutcome bind_source(const NativeFileHandle&,std::span<const std::byte>,UINT64,
+      bool append,bool constrained,const NativeAutomaticMetadata&,NativeFileInfoAllocation,
+      bool capture_advice,std::vector<std::byte>* transferable_source,SourceGeometry&) noexcept;
+  // Only coordinator-owned source and snapshots enter this stage. The live
+  // session and callback state are accessed again at publication.
+  void start_advice(NativeUniformWriteStart&,SourceGeometry,const NativeUniformWorkerBinding&,
+      bool consent,bool worthwhile,const GpuHealthEvidence&,std::uint64_t,const GpuLz4ResidentCost&,
+      GpuLz4WindowPolicy,ProcessBudget,std::uint32_t,const std::atomic_bool* force_cpu=nullptr,
+      std::shared_ptr<const void> pinned_route={}) noexcept;
   NativeFileSession& session_;
   WorkerExecution expected_;
   UniformLz4WorkerController controller_;

@@ -16,6 +16,17 @@
     "implementation_order": "docs/IMPLEMENTATION_PLAN.md#3-execution-order-and-dependencies",
     "evidence": "docs/evidence/architecture-reconciliation-2026-11-21.json"
   },
+  "amd_foreground_worker_boundary": {
+    "evidence": "docs/evidence/windows-amd-foreground-worker-boundary-2026-11-22.json",
+    "prepared_outside_filesystem_lock": true,
+    "immutable_serialized_frame_transferred_by_move": true,
+    "route_pins_owned_through_supervisor_retirement": true,
+    "independently_verified_amd_extents": 16,
+    "matched_mirrored_records": 32,
+    "same_public_input_alternating_pairs": 3,
+    "matched_route_preference": "cpu",
+    "ordinary_mounted_foreground_qualified": false
+  },
   "amd_fresh_completion": {
     "source": "df5be9b5b9d0bc05ac565eb2da8454ac76bed3d2",
     "evidence": "docs/evidence/amd-fresh-completion-observation-2026-11-21.json",

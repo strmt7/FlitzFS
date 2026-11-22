@@ -155,9 +155,12 @@ S1–S12 release gates remain in use.
 - Wire qualified foreground offers from the installed owner to an ordinary
   deferred callback. Separate role-specific package inputs and verify the
   app can run without the optional worker. Reuse the existing background
-  anchor and controlled finite uniform work as reference routes. Preserve the
-  complete CPU path through cold start, stale observations, lost runtime,
-  pressure, cancellation and confirmed retirement.
+  anchor and controlled finite uniform work as reference routes. Current
+  matched writes spend most of the AMD response inside the cold worker. Test
+  a finite readiness episode funded by real eligible backlog, with exact
+  retirement and CPU service before readiness. Preserve the complete CPU
+  path through stale observations, lost runtime, pressure and cancellation.
+  [Foreground worker evidence](evidence/windows-amd-foreground-worker-boundary-2026-11-22.json)
 - Run matching client workloads using the supported Windows paths. Include
   append, overlapping writes, Flush, truncate, rename, Cleanup and Close.
   Compare alternate order across CPU and eligible AMD trials on the live

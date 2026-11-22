@@ -752,6 +752,8 @@ NativeAmdWriteSample indexed_trial(const HipDiscoveredRoute* route,bool sweep,
         <<" candidates="<<(receipt?receipt->candidate_count:0)<<" response_ns="<<ns;
     if(receipt) {
       std::cout<<" gate="<<static_cast<unsigned>(receipt->worker.gate);
+      std::cout<<" worker_ms="<<receipt->worker.process_elapsed_ms
+          <<" worker_peak_commit="<<receipt->worker.process_peak_commit_bytes;
       if(receipt->worker.exchange)
         std::cout<<" exchange="<<static_cast<unsigned>(*receipt->worker.exchange);
       if(receipt->worker.exit_code)std::cout<<" worker_exit="<<*receipt->worker.exit_code;

@@ -7,6 +7,7 @@
 #include <new>
 #include <stdexcept>
 #include <type_traits>
+#include <utility>
 namespace flitzfs {
 namespace {
 void admit_source_copy(std::size_t bytes){
@@ -71,18 +72,29 @@ NativeUniformWriteStart ControlledNativeUniformWrite::begin(const NativeFileHand
     const NativeUniformWorkerBinding& binding,bool consent,bool worthwhile,
     const GpuHealthEvidence& evidence,std::uint64_t now,const GpuLz4ResidentCost& cost,
     GpuLz4WindowPolicy window,ProcessBudget budget,std::uint32_t deadline,
-    std::vector<std::byte>* transferable_source) noexcept{
+    std::vector<std::byte>* transferable_source) noexcept {
   NativeUniformWriteStart start;
-  if(pending_){start.admission=win_detail::failure(session_,STATUS_INVALID_DEVICE_STATE);return start;}
+  SourceGeometry geometry;
+  start.admission=bind_source(handle,bytes,offset,append,constrained,effect,mode,
+      binding.capture_advice_receipt,transferable_source,geometry);
+  if(NT_SUCCESS(start.admission.status))
+    start_advice(start,geometry,binding,consent,worthwhile,evidence,now,cost,window,budget,deadline);
+  return start;
+}
+NativeWindowsIoOutcome ControlledNativeUniformWrite::bind_source(const NativeFileHandle& handle,
+    std::span<const std::byte> bytes,UINT64 offset,bool append,bool constrained,
+    const NativeAutomaticMetadata& effect,NativeFileInfoAllocation mode,bool capture_advice,
+    std::vector<std::byte>* transferable_source,SourceGeometry& geometry) noexcept {
+  if(pending_)return win_detail::failure(session_,STATUS_INVALID_DEVICE_STATE);
   completed_=false;result_={};
   const auto write_limit=native_windows_write_limit(mode);
   if(!write_limit || bytes.size()>write_limit || (!bytes.empty() && !bytes.data()) ||
       append!=(offset==UINT64_MAX) || !native_cleanup_metadata_valid(effect) ||
       (transferable_source && (transferable_source->size()!=bytes.size() ||
-          transferable_source->data()!=bytes.data()))){
-    start.admission=win_detail::failure(session_,STATUS_INVALID_PARAMETER);return start;
-  }
-  start.admission=win_detail::boundary(session_,[&]{
+          transferable_source->data()!=bytes.data())))
+    return win_detail::failure(session_,STATUS_INVALID_PARAMETER);
+
+  return win_detail::boundary(session_,[&] {
     const auto before=session_.mutation_info(handle);FSP_FSCTL_FILE_INFO prepared{};
     if(!encode_native_file_info(before,mode,prepared))return win_detail::failure(session_,STATUS_INVALID_DEVICE_STATE);
     auto copied=transferable_source?std::vector<std::byte>{}:own_native_uniform_source(bytes,mode);
@@ -90,56 +102,67 @@ NativeUniformWriteStart ControlledNativeUniformWrite::begin(const NativeFileHand
     const auto position=append?before.info.logical_bytes:offset;
     auto accepted=std::uint64_t(owned.size());
     if(constrained)accepted=position>=before.info.logical_bytes?0:(std::min)(accepted,before.info.logical_bytes-position);
-    start.worker.decision.route.reason=consent?GpuRouteReason::unqualified:GpuRouteReason::disabled;
-    std::uint64_t first=0;
-    // GPU advice covers every complete interior extent that the CURRENT
-    // resource/time plan admits. Prefix/tail and other bytes retain CPU encoding.
-    const auto maximum=native_windows_eof_limit(mode);
-    if(consent && worthwhile && position<=maximum && accepted<=maximum-position){
-      const auto gap=(kNativeExtentBytes-position%kNativeExtentBytes)%kNativeExtentBytes;
-      if(gap<=accepted){
-        const auto eligible=(accepted-gap)/kNativeExtentBytes*kNativeExtentBytes;
-        if(eligible){
-          try{
-            auto charged=cost;
-            if(!uniform_lz4::add(charged.fixed_bytes,owned.size()+sizeof(NativeUniformWriteResult)+
-                  63*sizeof(NativeLz4ExtentCandidate),charged.fixed_bytes))
-              throw std::invalid_argument("native uniform source accounting overflow");
-            const auto plan=binding.sweep?plan_gpu_lz4_sweep_window(eligible,kNativeExtentBytes,evidence,now,
-                charged,window,*binding.sweep,deadline):
-                plan_gpu_lz4_window(eligible,kNativeExtentBytes,evidence,now,charged,window);
-            if(binding.sweep && plan.code==GpuGateCode::invalid_budget){
-              start.worker.decision.route.reason=GpuRouteReason::bad_evidence;
-              start.worker.decision.gate=plan.code;
-            }
-            if(plan.code==GpuGateCode::admitted && plan.layout.input_bytes%kNativeExtentBytes==0){
-              const auto l=uniform_lz4_limits(plan.layout);
-              auto batch=PreparedUniformLz4::prepare(std::span<const std::byte>(owned).subspan(
-                  static_cast<std::size_t>(gap),static_cast<std::size_t>(l.input_bytes)),l);
-              std::optional<GpuLz4SweepGrant> sweep;
-              if(binding.sweep)sweep=GpuLz4SweepGrant{plan.quantum.chunks,plan.quantum.total_bytes};
-              const auto dispatch=prepare_native_uniform_dispatch(binding,evidence,batch,expected_,
-                  sweep?&*sweep:nullptr);
-              start.worker=controller_.begin(std::move(batch),binding.helper,dispatch.arguments,consent,worthwhile,
-                  evidence,now,charged,window,budget,deadline,sweep);
-              first=(position+gap)/kNativeExtentBytes;
-              start.eligible_bytes=static_cast<std::uint32_t>(plan.layout.input_bytes);
-              start.quantum_chunks=dispatch.quantum_chunks;start.planned_windows=dispatch.windows;
-              start.device_peak_bytes=dispatch.device_peak_bytes;start.reused=dispatch.reused;
-            }
-          }catch(const std::bad_alloc&){start.worker.decision.route.reason=GpuRouteReason::memory_pressure;}
-          catch(...){start.worker.decision.route.reason=GpuRouteReason::bad_evidence;}
-        }
-      }
-    }
-    // No fallible operation after possible worker launch. GPU preparation
-    // failures never fence the healthy storage session or acknowledge a write.
-    source_.swap(owned);handle_=handle;effect_=effect;mode_=mode;offset_=offset;first_extent_=first;
-    append_=append;constrained_=constrained;submitted_=start.worker.decision.submitted;
-    capture_advice_=binding.capture_advice_receipt;
-    pending_=true;completed_=false;result_={};return NativeWindowsIoOutcome{STATUS_SUCCESS,false};
+
+    geometry={position,accepted};
+    source_.swap(owned);handle_=handle;effect_=effect;mode_=mode;offset_=offset;first_extent_=0;
+    append_=append;constrained_=constrained;submitted_=false;capture_advice_=capture_advice;
+    pending_=true;
+    return NativeWindowsIoOutcome{STATUS_SUCCESS,false};
   });
-  return start;
+}
+void ControlledNativeUniformWrite::start_advice(NativeUniformWriteStart& start,SourceGeometry geometry,
+    const NativeUniformWorkerBinding& binding,bool consent,bool worthwhile,
+    const GpuHealthEvidence& evidence,std::uint64_t now,const GpuLz4ResidentCost& cost,
+    GpuLz4WindowPolicy window,ProcessBudget budget,std::uint32_t deadline,
+    const std::atomic_bool* force_cpu,std::shared_ptr<const void> pinned_route) noexcept {
+  const auto yielding=[force_cpu] {return force_cpu && force_cpu->load(std::memory_order_acquire);};
+  if(!consent || yielding()) {
+    start.worker.decision.route.reason=GpuRouteReason::disabled;
+    return;
+  }
+  start.worker.decision.route.reason=GpuRouteReason::unqualified;
+  if(!worthwhile)return;
+  const auto [position,accepted]=geometry;
+  const auto maximum=native_windows_eof_limit(mode_);
+  if(position>maximum || accepted>maximum-position)return;
+
+  // Advice covers complete interior extents only. Prefix and tail retain CPU encoding.
+  const auto gap=(kNativeExtentBytes-position%kNativeExtentBytes)%kNativeExtentBytes;
+  if(gap>accepted)return;
+  const auto eligible=(accepted-gap)/kNativeExtentBytes*kNativeExtentBytes;
+  if(!eligible)return;
+  try {
+    auto charged=cost;
+    if(!uniform_lz4::add(charged.fixed_bytes,source_.size()+sizeof(NativeUniformWriteResult)+
+          63*sizeof(NativeLz4ExtentCandidate),charged.fixed_bytes))
+      throw std::invalid_argument("native uniform source accounting overflow");
+    const auto plan=binding.sweep?plan_gpu_lz4_sweep_window(eligible,kNativeExtentBytes,evidence,now,
+        charged,window,*binding.sweep,deadline):
+        plan_gpu_lz4_window(eligible,kNativeExtentBytes,evidence,now,charged,window);
+    if(binding.sweep && plan.code==GpuGateCode::invalid_budget) {
+      start.worker.decision.route.reason=GpuRouteReason::bad_evidence;
+      start.worker.decision.gate=plan.code;
+    }
+    if(plan.code!=GpuGateCode::admitted || plan.layout.input_bytes%kNativeExtentBytes)return;
+    const auto limits=uniform_lz4_limits(plan.layout);
+    auto batch=PreparedUniformLz4::prepare(std::span<const std::byte>(source_).subspan(
+        static_cast<std::size_t>(gap),static_cast<std::size_t>(limits.input_bytes)),limits);
+    std::optional<GpuLz4SweepGrant> sweep;
+    if(binding.sweep)sweep=GpuLz4SweepGrant{plan.quantum.chunks,plan.quantum.total_bytes};
+    const auto dispatch=prepare_native_uniform_dispatch(binding,evidence,batch,expected_,sweep?&*sweep:nullptr);
+    if(yielding())return;
+    start.worker=controller_.begin(std::move(batch),binding.helper,dispatch.arguments,consent,worthwhile,
+        evidence,now,charged,window,budget,deadline,sweep,std::move(pinned_route));
+    first_extent_=(position+gap)/kNativeExtentBytes;
+    start.eligible_bytes=static_cast<std::uint32_t>(plan.layout.input_bytes);
+    start.quantum_chunks=dispatch.quantum_chunks;start.planned_windows=dispatch.windows;
+    start.device_peak_bytes=dispatch.device_peak_bytes;start.reused=dispatch.reused;
+    submitted_=start.worker.decision.submitted;
+  }catch(const std::bad_alloc&) {
+    start.worker.decision.route.reason=GpuRouteReason::memory_pressure;
+  }catch(...) {
+    start.worker.decision.route.reason=GpuRouteReason::bad_evidence;
+  }
 }
 bool ControlledNativeUniformWrite::try_retire() noexcept {
   if(!controller_.try_retire())return false;

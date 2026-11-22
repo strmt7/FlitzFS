@@ -43,7 +43,7 @@ UniformLz4WorkerStart UniformLz4WorkerController::begin(PreparedUniformLz4&& inp
     const std::filesystem::path& helper,const std::vector<std::wstring>& arguments,
     bool consent,bool worthwhile,const GpuHealthEvidence& evidence,std::uint64_t now,
     const GpuLz4ResidentCost& cost,GpuLz4WindowPolicy window,ProcessBudget budget,std::uint32_t deadline,
-    std::optional<GpuLz4SweepGrant> sweep){
+    std::optional<GpuLz4SweepGrant> sweep,std::shared_ptr<const void> pinned_route){
   if(state_==GpuWorkerState::waiting || (ticket_ && pending_ &&
       input.plaintext().size()>pending_->plaintext().size()))
     return {{{GpuRouteReason::worker_busy},GpuGateCode::wrong_state,false},false};
@@ -96,9 +96,9 @@ UniformLz4WorkerStart UniformLz4WorkerController::begin(PreparedUniformLz4&& inp
       select_cpu(GpuRecoveryOutcome::unsupported_configuration,GpuGateCode::invalid_budget);
       return {{route,last_gate_,false},true};
     }
-    const auto frame=encode_uniform_lz4_request(*pending_,generation_);
-    session_.emplace(WorkerExchangeSession::start_sized(helper,arguments,frame,
-        {static_cast<std::size_t>(l.request_bytes),static_cast<std::size_t>(l.reply_bytes)},budget));
+    auto frame=std::make_shared<const WorkerRequestSnapshot>(encode_uniform_lz4_request(*pending_,generation_));
+    session_.emplace(WorkerExchangeSession::start_sized(helper,arguments,std::move(frame),
+        {static_cast<std::size_t>(l.request_bytes),static_cast<std::size_t>(l.reply_bytes)},budget,std::move(pinned_route)));
     state_=GpuWorkerState::waiting;last_gate_=GpuGateCode::admitted;
     return {{route,last_gate_,true},true};
   }catch(...){
@@ -177,6 +177,8 @@ UniformLz4WorkerOutcome UniformLz4WorkerController::outcome() const noexcept {
   outcome.gate=last_gate_;
   if(const auto* result=session_?session_->try_result():nullptr) {
     outcome.exchange=result->code;
+    outcome.process_elapsed_ms=result->process.elapsed_ms;
+    outcome.process_peak_commit_bytes=result->process.peak_committed_bytes;
     if(result->process.exit_confirmed)outcome.exit_code=result->process.exit_code;
   }
   return outcome;
