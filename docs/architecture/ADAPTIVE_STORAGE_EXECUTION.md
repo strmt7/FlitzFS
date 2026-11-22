@@ -278,14 +278,15 @@ Continue the backing-dependent work in this order.
    range reclamation, device TRIM and qualified flush behavior independent.
    Reacquire advisory properties on a fresh attach. Label missing or
    ambiguous evidence as unknown.
-2. Qualify positioned reads, cancellation and exact request retirement before
-   permitting speculative capture on file-backed volumes. Separate kernel
-   request count, provider bytes and actual device service in the trace.
-   Select the next quantum from the observed cost on this attachment and
-   current headroom. Test nearby physical range grouping on seek-sensitive
+2. Use the positioned file provider for bounded opt-in capture. The Windows
+   guest verified independent foreground access and pinned range retirement.
+   Qualify it on persistent devices before automatic admission, separating kernel
+   request count, provider bytes and device service in the trace. Select the
+   next quantum from the observed cost on this attachment and current headroom. Test nearby physical range grouping on seek-sensitive
    devices, and increase read concurrency on queued devices only where the
    measured foreground tail permits it. Coalesce eligible writes within the
    existing commit order.
+   [Positioned file I/O](../PERSISTENT_VOLUME_FILE.md#positioned-windows-file-io)
 3. Charge backing write attempts, retained generations and temporary space to
    each optimization. Keep recovered space and estimated device wear distinct
    from application bytes. Size reduction remains the goal. Repeatedly rewriting

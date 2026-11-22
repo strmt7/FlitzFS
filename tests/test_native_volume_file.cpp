@@ -7,7 +7,12 @@
 #include "volume_range_fixture.hpp"
 #ifdef _WIN32
 #define NOMINMAX
-#include <windows.h>
+#include "windows/positioned_file_io.hpp"
+#include "native_lz4_capture.hpp"
+#include "native_lz4_fixture.hpp"
+#include "store_codec.hpp"
+#include <future>
+#include <thread>
 #endif
 #include <chrono>
 #include <iostream>
@@ -1131,6 +1136,50 @@ void range_publication_cuts() {
 }
 
 #ifdef _WIN32
+void positioned_request_retirement() {
+  struct PipeHandle {
+    HANDLE value;
+    ~PipeHandle(){if(value!=INVALID_HANDLE_VALUE)CloseHandle(value);}
+  };
+  const auto name=L"\\\\.\\pipe\\flitzfs-positioned-"+std::to_wstring(GetCurrentProcessId())+L"-"+
+      std::to_wstring(std::chrono::steady_clock::now().time_since_epoch().count());
+  const PipeHandle server{CreateNamedPipeW(name.c_str(),PIPE_ACCESS_INBOUND|FILE_FLAG_OVERLAPPED|
+      FILE_FLAG_FIRST_PIPE_INSTANCE,PIPE_TYPE_BYTE|PIPE_READMODE_BYTE|PIPE_WAIT|PIPE_REJECT_REMOTE_CLIENTS,
+      1,0,4096,0,nullptr)};
+  require(server.value!=INVALID_HANDLE_VALUE,"create disposable positioned request pipe");
+  const PipeHandle client{CreateFileW(name.c_str(),GENERIC_WRITE,0,nullptr,OPEN_EXISTING,0,nullptr)};
+  require(client.value!=INVALID_HANDLE_VALUE,"open disposable positioned request pipe");
+  OVERLAPPED connection{};
+  if(!ConnectNamedPipe(server.value,&connection)) {
+    const auto status=GetLastError();
+    DWORD transferred=0;
+    require(status==ERROR_PIPE_CONNECTED || (status==ERROR_IO_PENDING &&
+        GetOverlappedResult(server.value,&connection,&transferred,TRUE)),"positioned request pipe connection");
+  }
+
+  const detail::PositionedFileIo request;
+  std::array<std::byte,8> received{};
+  auto cancelled_buffer=received;
+  unsigned observations=0;
+  const std::function<bool()> cancel=[&]{return ++observations>=3;};
+  {
+    const detail::StoreCaptureReadScope capture(cancel);
+    const auto cancelled=request.read(server.value,0,cancelled_buffer.data(),
+        static_cast<DWORD>(cancelled_buffer.size()),&capture);
+    require(cancelled.error==ERROR_OPERATION_ABORTED && !cancelled.bytes && observations>=3,
+        "a pending positioned request did not retire on cancellation");
+  }
+  const std::array pattern{std::byte{11},std::byte{22},std::byte{33},std::byte{44},
+      std::byte{55},std::byte{66},std::byte{77},std::byte{88}};
+  DWORD written=0;
+  require(WriteFile(client.value,pattern.data(),static_cast<DWORD>(pattern.size()),&written,nullptr) &&
+      written==pattern.size(),"fill pipe after retired request");
+  const auto next=request.read(server.value,0,received.data(),static_cast<DWORD>(received.size()));
+  require(next.error==ERROR_SUCCESS && next.bytes==pattern.size() && received==pattern &&
+      cancelled_buffer==std::array<std::byte,8>{},"retired request retained its buffer or consumed later bytes");
+  std::cout<<"windows_positioned_request pending_cancelled=1 event_reused=1 retired_buffer_unchanged=1\n";
+}
+
 void disposable_file(const std::filesystem::path& base) {
   // Only the explicit integration fixture takes this path. Retain its new,
   // uniquely owned directory and files for disposal by that environment.
@@ -1217,6 +1266,88 @@ void disposable_sparse_file(const std::filesystem::path& base) {
   }
   std::cout<<"windows_sparse_reclamation both_slots_reused=1 independent_cpu_reopen=1 allocation_released=1\n";
 }
+
+void disposable_positioned_file(const std::filesystem::path& base) {
+  require(store_lz4_available(),"positioned file qualification needs the CPU LZ4 codec");
+  const auto ticks=std::chrono::steady_clock::now().time_since_epoch().count();
+  const auto root=std::filesystem::canonical(base)/("flitzfs-positioned-volume-"+std::to_string(ticks));
+  require(std::filesystem::create_directory(root),"could not create the positioned file fixture");
+  const auto path=root/"positioned.flfs";
+  constexpr StoreIoContract isolated{65536,true,true};
+  constexpr StoreCompressionOptions fast{StoreCompressionMode::fast,1,false};
+  constexpr auto extent=kNativeExtentBytes;
+  constexpr auto frame_bytes=extent+detail::kIndexedExtentHeaderBytes;
+  auto old=native_lz4_fixture::source();
+  const auto tail=native_lz4_fixture::source();
+  old.insert(old.end(),tail.begin(),tail.end()-37);
+  auto latest=old;
+  latest.front()^=std::byte{7};
+  using Frames=std::vector<detail::NativeLz4CapturedFrame>;
+  const auto verify=[&](const Frames& frames) {
+    require(frames.size()==2,"positioned capture did not collect both checked extents");
+    detail::StoreCodecDecoder decoder;
+    std::size_t matched=0;
+    for(const auto& frame:frames) {
+      const auto record=decoder.decode(detail::kStoreLz4,frame.encoded(),frame.key().decoded_bytes);
+      const auto count=(std::min)(std::size_t(extent),old.size()-matched);
+      require(record.size()==detail::kIndexedExtentHeaderBytes+count &&
+          std::equal(record.begin()+detail::kIndexedExtentHeaderBytes,record.end(),old.begin()+matched),
+          "pinned capture returned a different committed extent");
+      matched+=count;
+    }
+    require(matched==old.size(),"positioned capture did not cover the file");
+  };
+  {
+    auto session=NativeVolumeFile::create(path,isolated,id(90),id(91),limits,fast);
+    put(session,"payload",old);
+    for(unsigned revision=0;revision<12;++revision) {
+      old[1]=static_cast<std::byte>(revision);
+      update(session,old);
+    }
+    latest[1]=old[1];
+    const auto file=session.open("payload",{true,true,false});
+    const auto bytes=static_cast<std::uint32_t>(old.size());
+    auto lease=session.lease_native_lz4_capture(file,0,frame_bytes);
+    require(bool(lease),"positioned file could not pin its checked namespace");
+
+    Frames frames;
+    std::promise<void> entered,release;
+    auto entered_future=entered.get_future();
+    auto release_future=release.get_future();
+    std::jthread worker([&] {
+      unsigned observations=0;
+      frames=lease->capture_range(bytes,4*frame_bytes,[&] {
+        if(++observations!=2)return false;
+        entered.set_value();
+        return release_future.wait_for(std::chrono::seconds(5))!=std::future_status::ready;
+      });
+    });
+    require(entered_future.wait_for(std::chrono::seconds(5))==std::future_status::ready,
+        "positioned capture did not reach its first request");
+    require(session.read(file,0,bytes)==old,"foreground read lost the original bytes during capture");
+    (void)session.write(file,0,latest);
+    require(session.read(file,0,bytes)==latest,"foreground write was not visible during capture");
+    release.set_value();
+    worker.join();
+    verify(frames);
+    session.cleanup(file,false);
+    session.close(file);
+
+    require(stage_compaction(session,92)==Reclaim::ready &&
+        session.advance_persistent_reclamation({})==Reclaim::published,"positioned volume did not publish its replacement");
+    require(session.advance_persistent_reclamation({})==Reclaim::pinned,"lease did not protect the inactive file range");
+    verify(lease->capture_range(bytes,4*frame_bytes));
+    lease.reset();
+    release_inactive(session);
+  }
+  const auto view=NativeVolumeFile::inspect(path,id(90));
+  view.filesystem().verify_all();
+  require(view.info().selection.epoch==2 &&
+      view.filesystem().read("payload",0,static_cast<std::uint32_t>(latest.size()))==latest,
+      "independent reopen lost the foreground update after positioned capture");
+  std::cout<<"windows_positioned_volume foreground_exact_while_capture_held=1 retained_extent_frames=2"
+      <<" inactive_range_pinned=1 retired_after_release=1 independent_cpu_reopen=1\n";
+}
 #endif
 }
 int main(int argc,char** argv){
@@ -1251,6 +1382,15 @@ int main(int argc,char** argv){
       return 0;
     }
 #ifdef _WIN32
+    if(argc==2 && std::string_view(argv[1])=="--positioned-request") {
+      positioned_request_retirement();
+      return 0;
+    }
+    if(argc==3 && std::string_view(argv[1])=="--disposable-positioned-file") {
+      disposable_positioned_file(std::filesystem::path(argv[2]));
+      std::cout<<"PASS: "<<checks<<" isolated Windows positioned volume checks\n";
+      return 0;
+    }
     if(argc==3 && std::string_view(argv[1])=="--disposable-file") {
       disposable_file(std::filesystem::path(argv[2]));
       std::cout<<"PASS: "<<checks<<" isolated Windows file-handle checks\n";

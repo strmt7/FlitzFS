@@ -246,8 +246,11 @@ The capture owns its query cache and decoder. It carries a strong reference
 to the actual image until the encoded frame is owned by the caller. The
 backing must support concurrent extent and exact-read operations. The
 Windows memory backing serializes byte copies and decommits only after
-other owners release the image. The physical file provider
-still needs independently qualified positioned reads and retirement.
+other owners release the image. The Windows volume-file provider uses
+positioned reads with a separate completion event for capture. The same
+backing pin protects the selected range until an in-flight request retires.
+The opt-in route still needs full-path measurements on persistent devices.
+[Positioned volume-file I/O](PERSISTENT_VOLUME_FILE.md#positioned-windows-file-io)
 
 A new foreground operation during capture prevents the older result from
 being published. With a test capture held at its first backing read, the

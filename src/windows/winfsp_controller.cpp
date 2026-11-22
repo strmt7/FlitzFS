@@ -186,7 +186,8 @@ struct WinFspVolumeController::Impl {
                         read_ahead_timing.predicted_ns(),&read_ahead_backing_refused);
                     if(allowance && !interrupted()) {
                       const auto before=backing_use.elapsed_ns();
-                      read_ahead_prepared=adapter->advance_native_lz4_read_ahead(*allowance,GetTickCount64(),epoch);
+                      read_ahead_prepared=adapter->advance_native_lz4_read_ahead(
+                          *allowance,GetTickCount64(),epoch,&stop_requested);
                       read_ahead_timing.observe(backing_use.elapsed_ns()-before);
                       if(!read_ahead_prepared)adapter->discard_native_lz4_read_ahead(epoch);
                     } else if(read_ahead_backing_refused)adapter->discard_native_lz4_read_ahead(epoch,true);

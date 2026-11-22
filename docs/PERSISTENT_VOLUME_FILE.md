@@ -195,6 +195,37 @@ remains available until retirement. A custom provider can supply its new
 image identity through the native reopen API.
 [Full startup repair validation](evidence/indexed-full-startup-repair-2026-11-20.json)
 
+## Positioned Windows file I/O
+
+The writable provider uses explicit offsets on its exclusive Windows handle.
+Ordinary reads, writes and sparse controls share one completion event under
+the serialized file owner. The owner confirms completion before proceeding,
+and retains the established data, root and selector flush order.
+
+An optional capture uses the same handle with a separate completion event.
+It checks the last published file extent and the bounds of its pinned region.
+Its owner can continue foreground reads, appends and publication. When
+foreground activity supersedes the capture, or the controller stops, a pending
+capture requests cancellation for that operation and waits for its terminal
+result before releasing its buffer and image pin. Cancellation completion
+depends on the Windows storage stack. A cancelled capture leaves ordinary
+reads available through the existing checked CPU path.
+[Windows positioned read contract](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-readfile) ·
+[Windows positioned writes](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-writefile) ·
+[Windows control completion](https://learn.microsoft.com/en-us/windows/win32/api/ioapiset/nf-ioapiset-deviceiocontrol) ·
+[Request cancellation](https://learn.microsoft.com/en-us/windows/win32/api/ioapiset/nf-ioapiset-cancelioex) ·
+[Request retirement](https://learn.microsoft.com/en-us/windows/win32/api/ioapiset/nf-ioapiset-getoverlappedresultex)
+
+The Windows 11 guest verified linear reopen, reuse of both sparse ranges, and
+independent CPU readback after a foreground write during a held capture. The
+held lease protected the former range across publication, and releasing the
+lease allowed retirement. A local overlapped request fixture verified
+cancellation of a pending read and reuse of the completion event. The mounted
+guest also recovered at the data flush and both root flush boundaries with
+positioned I/O, then verified a new write after reopen. Persistent device
+performance and physical interruption remain separate qualification.
+[Positioned file verification](evidence/positioned-volume-io-2026-11-22.json)
+
 ## Windows helper ownership
 
 A qualified caller supplies the backing and creation geometry to the same

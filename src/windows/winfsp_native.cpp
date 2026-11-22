@@ -1338,7 +1338,8 @@ std::optional<std::uint64_t> WinFspNativeWritable::take_native_lz4_read_ahead_sa
   return {};
 }
 bool WinFspNativeWritable::advance_native_lz4_read_ahead(
-    const NativeMaintenanceObservation& observed,std::uint64_t now,std::uint64_t epoch) noexcept {
+    const NativeMaintenanceObservation& observed,std::uint64_t now,std::uint64_t epoch,
+    const std::atomic<bool>* stop_requested) noexcept {
   try {
     const auto resources=detail::maintenance_resources(observed,now,impl_->group_policy);
     constexpr auto frame_bytes=kNativeExtentBytes+detail::kIndexedExtentHeaderBytes;
@@ -1367,7 +1368,11 @@ bool WinFspNativeWritable::advance_native_lz4_read_ahead(
       if(slot.provisional || slot.awaiting_overwrite)return false;
       lease=impl_->session.lease_native_lz4_capture(slot.handle,target.offset,frame_bytes);
     }
-    const auto interrupted=[&]{return foreground_pending() || foreground_activity()!=epoch;};
+    const auto interrupted=[&]{
+      return foreground_pending() || foreground_activity()!=epoch ||
+          impl_->stopped.load(std::memory_order_acquire) || impl_->offline.load(std::memory_order_acquire) ||
+          (stop_requested && stop_requested->load(std::memory_order_acquire));
+    };
     if(!lease || interrupted())return false;
     const auto frame_grant=static_cast<std::size_t>(target.bytes/kNativeExtentBytes)*2*frame_bytes;
     const auto captured=lease->capture_range(target.bytes,frame_grant,interrupted);
@@ -1375,7 +1380,7 @@ bool WinFspNativeWritable::advance_native_lz4_read_ahead(
     if(captured.empty() || interrupted())return false;
     auto ready=detail::NativeLz4ReadyReads::decode_captured(captured,interrupted);
     std::unique_lock guard(impl_->control,std::try_to_lock);
-    if(!ready || !guard || !impl_->may_prepare_read() || foreground_activity()!=epoch ||
+    if(!ready || !guard || !impl_->may_prepare_read() || interrupted() ||
         (impl_->native_lz4_reads && impl_->native_lz4_reads->pending()))return false;
     impl_->prepared_read={target,std::move(ready)};
     return true;

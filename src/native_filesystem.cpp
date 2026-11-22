@@ -2,6 +2,7 @@
 #include "native_object_storage.hpp"
 #include "native_indexed_volume.hpp"
 #include "native_lz4_capture.hpp"
+#include "store_read_scope.hpp"
 #include "indexed_names.hpp"
 #include "native_name_index.hpp"
 #include "flitzfs/catalog.hpp"
@@ -2862,6 +2863,8 @@ std::unique_ptr<detail::NativeLz4CaptureLease> NativeFilesystemWriter::lease_nat
 bool detail::NativeLz4CaptureLease::capture(NativeLz4CapturedFrame& out) const {
   out={};
   try {
+    const std::function<bool()> no_interrupt;
+    const StoreCaptureReadScope capture(no_interrupt);
     const auto query=snapshot_.scoped_query();
     const auto view=verify_indexed_root(snapshot_,root_);
     return view.capture_native_lz4(view.inode(inode_),offset_,maximum_encoded_,out);
@@ -2871,7 +2874,8 @@ std::vector<detail::NativeLz4CapturedFrame> detail::NativeLz4CaptureLease::captu
     std::uint32_t bytes,std::size_t maximum_frame_bytes,const std::function<bool()>& interrupted) const {
   if(!bytes || bytes>kNativeMaxReadBytes || offset_%kNativeExtentBytes || !maximum_frame_bytes)return {};
   try {
-    if(interrupted && interrupted())return {};
+    const StoreCaptureReadScope capture(interrupted);
+    if(capture.interrupted())return {};
     const auto query=snapshot_.scoped_query();
     const auto view=verify_indexed_root(snapshot_,root_);
     return view.capture_native_lz4_range(view.inode(inode_),offset_,bytes,maximum_encoded_,

@@ -72,7 +72,7 @@ struct NativeVolumeFile::Region final:StoreByteIo {
   const std::shared_ptr<Owner> owner;
   const std::uint64_t offset,capacity;
   const bool tail;
-  std::uint64_t fixed_extent;
+  std::atomic<std::uint64_t> fixed_extent;
 
   Region(std::shared_ptr<Owner> file,std::uint64_t base,std::uint64_t limit,
       std::uint64_t initialized,bool follows_end=false)
@@ -92,7 +92,7 @@ struct NativeVolumeFile::Region final:StoreByteIo {
     return {std::make_shared<Pin>(region),region.get()};
   }
   std::uint64_t extent() const override {
-    if(!tail)return fixed_extent;
+    if(!tail)return fixed_extent.load(std::memory_order_acquire);
     const auto end=owner->backing->extent();
     if(end>offset+capacity)fail(Error::corrupt,"volume file exceeds its image extent limit");
     return end<=offset?0:end-offset;
@@ -107,7 +107,8 @@ struct NativeVolumeFile::Region final:StoreByteIo {
     if(at>capacity || bytes.size()>capacity-at)fail(Error::limit,"volume-file write exceeds its region");
     if(bytes.empty())return;
     owner->backing->write_exact(offset+at,bytes);
-    if(!tail)fixed_extent=(std::max)(fixed_extent,at+static_cast<std::uint64_t>(bytes.size()));
+    if(!tail)fixed_extent.store((std::max)(fixed_extent.load(std::memory_order_relaxed),
+        at+static_cast<std::uint64_t>(bytes.size())),std::memory_order_release);
   }
   void admit_write(std::uint64_t projected) override {
     if(!owner->writable)fail(Error::invalid_operation,"read-only volume file");
@@ -122,6 +123,9 @@ struct NativeVolumeFile::Region final:StoreByteIo {
     owner->backing->flush();
   }
   StoreIoContract contract() const noexcept override {return owner->backing->contract();}
+  bool concurrent_reads_supported() const noexcept override {
+    return owner->backing->concurrent_reads_supported();
+  }
   std::uint64_t allocation_extent() const {
     const auto end=owner->ranges->allocated_extent(offset,capacity);
     if(end>capacity || end%kStoreCommitUnit)fail(Error::storage_failure,"invalid volume allocation bound");
@@ -129,13 +133,14 @@ struct NativeVolumeFile::Region final:StoreByteIo {
   }
   void reclaim_tail() {
     const auto before=allocation_extent();
-    if(!before){fixed_extent=0;return;}
+    if(!before){fixed_extent.store(0,std::memory_order_release);return;}
     constexpr std::uint64_t quantum=4*1024*1024;
     const auto start=(before-1)/quantum*quantum;
     owner->ranges->reclaim_range(offset+start,before-start);
     flush();
-    fixed_extent=allocation_extent();
-    if(fixed_extent>=before)fail(Error::storage_failure,"volume range allocation did not decrease");
+    const auto after=allocation_extent();
+    fixed_extent.store(after,std::memory_order_release);
+    if(after>=before)fail(Error::storage_failure,"volume range allocation did not decrease");
   }
  protected:
   bool allows_writer() const noexcept override {return owner->writable;}
@@ -192,7 +197,7 @@ struct NativeVolumeFile::CatalogRanges {
   std::shared_ptr<StoreByteIo> resolve(StoreIdentity identity) {
     auto& slot=slots[slot_of(identity)];
     if(slot.range.use_count()!=1)return {};
-    slot.range->fixed_extent=slot.range->allocation_extent();
+    slot.range->fixed_extent.store(slot.range->allocation_extent(),std::memory_order_release);
     return Region::pin_image(slot.range);
   }
   bool pending(std::uint64_t sequence,const std::optional<OptimizationCatalogSelection>& selected) const noexcept {
@@ -207,7 +212,7 @@ struct NativeVolumeFile::CatalogRanges {
         fail(Error::corrupt,"unconfirmed catalog selection prevents range reclamation");
       auto& slot=slots[*inactive];
       slot.range->reclaim_tail();
-      slot.needs_review=slot.range->fixed_extent!=0;
+      slot.needs_review=slot.range->extent()!=0;
       return NativeVolumeReclaimProgress::retiring;
     }catch(const std::exception&) {
       retirement_failure_sequence=sequence;
@@ -256,7 +261,7 @@ Progress NativeVolumeFileReclaimer::retire(const NativeVolumeHeadInfo& current) 
     fail(Error::corrupt,"unconfirmed volume selection prevents range reclamation");
   auto& range=*spare_;
   range.reclaim_tail();
-  if(!range.fixed_extent)phase_=Phase::idle;
+  if(!range.extent())phase_=Phase::idle;
   return Progress::retiring;
 }
 
@@ -423,7 +428,7 @@ NativeVolumeFile::Regions NativeVolumeFile::open_regions(std::shared_ptr<StoreBy
   auto image=std::make_shared<Region>(owner,offset,bytes,visible);
   Regions regions{head,image,advice,selected,{}};
   if(writable) {
-    image->fixed_extent=image->allocation_extent();
+    image->fixed_extent.store(image->allocation_extent(),std::memory_order_release);
     auto spare=std::make_shared<Region>(owner,offset==image_offset?image_offset+bytes:image_offset,bytes,0);
     const auto recover_spare=spare->allocation_extent()!=0;
     auto catalog=has_catalog?

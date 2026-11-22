@@ -670,6 +670,11 @@ if(FLITZFS_BUILD_TESTS)
   add_test(NAME bounded_native_screened_cold COMMAND flitzfs_native_volume_file_tests --screened-cold)
   set_tests_properties(bounded_native_screened_cold PROPERTIES TIMEOUT 90)
   set_tests_properties(bounded_native_volume_file PROPERTIES TIMEOUT 60)
+  if(WIN32)
+    add_test(NAME bounded_windows_positioned_request
+      COMMAND flitzfs_native_volume_file_tests --positioned-request)
+    set_tests_properties(bounded_windows_positioned_request PROPERTIES TIMEOUT 10)
+  endif()
   if(WIN32 AND FLITZFS_REGISTER_INTEGRATION_FIXTURES)
     add_test(NAME isolated_native_volume_file COMMAND flitzfs_native_volume_file_tests
       --disposable-file "${CMAKE_CURRENT_BINARY_DIR}")
@@ -677,6 +682,11 @@ if(FLITZFS_BUILD_TESTS)
     add_test(NAME isolated_native_sparse_volume_file COMMAND flitzfs_native_volume_file_tests
       --disposable-sparse-file "${CMAKE_CURRENT_BINARY_DIR}")
     set_tests_properties(isolated_native_sparse_volume_file PROPERTIES TIMEOUT 60)
+    if(FLITZFS_WITH_LZ4 AND FLITZFS_LZ4_INCLUDE AND FLITZFS_LZ4_LIBRARY)
+      add_test(NAME isolated_native_positioned_volume_file COMMAND flitzfs_native_volume_file_tests
+        --disposable-positioned-file "${CMAKE_CURRENT_BINARY_DIR}")
+      set_tests_properties(isolated_native_positioned_volume_file PROPERTIES TIMEOUT 45)
+    endif()
   endif()
   add_executable(flitzfs_native_security_tests tests/test_native_security.cpp)
   target_include_directories(flitzfs_native_security_tests PRIVATE src)

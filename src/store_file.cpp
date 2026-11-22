@@ -4,6 +4,7 @@
 #include "flitzfs/windows_path.hpp"
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cerrno>
 #include <cstdlib>
 #include <fstream>
@@ -17,7 +18,7 @@
 #ifdef _WIN32
 #include "windows/maintenance_backing.hpp"
 #define NOMINMAX
-#include <windows.h>
+#include "windows/positioned_file_io.hpp"
 #include <winioctl.h>
 #else
 #include <fcntl.h>
@@ -194,6 +195,10 @@ class Output final:public NativeVolumeRangeIo {
   std::uint64_t admitted_extent_=0;
   PinnedDirectory parent_pin_;
   HANDLE handle_=INVALID_HANDLE_VALUE;
+  std::optional<PositionedFileIo> demand_io_;
+  mutable std::mutex capture_mutex_;
+  mutable std::optional<PositionedFileIo> capture_io_;
+  mutable std::atomic<std::uint64_t> published_extent_{0};
 #ifdef FLITZFS_OBSERVE_VOLUME_PUBLICATION
   std::shared_ptr<VolumeFileObserver> volume_observer_;
 #endif
@@ -202,18 +207,31 @@ class Output final:public NativeVolumeRangeIo {
     FILE_ALLOCATED_RANGE_BUFFER query{},range{};
     query.FileOffset.QuadPart=static_cast<LONGLONG>(begin);
     query.Length.QuadPart=static_cast<LONGLONG>(end-begin);
-    DWORD returned=0;
-    if(!DeviceIoControl(handle_,FSCTL_QUERY_ALLOCATED_RANGES,&query,sizeof(query),&range,sizeof(range),&returned,nullptr) &&
-        (GetLastError()!=ERROR_MORE_DATA || returned!=sizeof(range)))
+    const auto control=demand_io_->control(handle_,FSCTL_QUERY_ALLOCATED_RANGES,
+        &query,sizeof(query),&range,sizeof(range));
+    if(control.error!=ERROR_SUCCESS && (control.error!=ERROR_MORE_DATA || control.bytes!=sizeof(range)))
       fail("cannot independently query sparse allocations");
-    if(!returned){observed.complete();return false;}
-    if(returned!=sizeof(range) || range.FileOffset.QuadPart<0 || range.Length.QuadPart<=0)
+    if(!control.bytes){observed.complete();return false;}
+    if(control.bytes!=sizeof(range) || range.FileOffset.QuadPart<0 || range.Length.QuadPart<=0)
       fail("invalid sparse allocation range");
     const auto at=static_cast<std::uint64_t>(range.FileOffset.QuadPart);
     const auto length=static_cast<std::uint64_t>(range.Length.QuadPart);
     if(at>=end || (at<begin && length<=begin-at))fail("sparse allocation range does not intersect query");
     observed.complete();
     return true;
+  }
+  void read_positioned(std::uint64_t at,std::span<std::byte> out,std::uint64_t extent,
+      const PositionedFileIo& request,const StoreCaptureReadScope* capture=nullptr) const {
+    if(at>extent || out.size()>extent-at)fail("read outside backing extent");
+    MaintenanceBackingCall observed(MaintenanceBackingOperation::read,out.size(),!out.empty());
+    while(!out.empty()) {
+      const auto bytes=static_cast<DWORD>((std::min)(out.size(),std::size_t{0x7ffff000}));
+      const auto result=request.read(handle_,at,out.data(),bytes,capture);
+      if(result.error!=ERROR_SUCCESS || !result.bytes || result.bytes>bytes)fail("short/failed backing read");
+      at+=result.bytes;
+      out=out.subspan(result.bytes);
+    }
+    observed.complete();
   }
   void admit_windows_growth(std::uint64_t projected,std::uint64_t growth) {
     if(projected<extent_ || projected>capacity_ || growth>capacity_)fail("projected extent outside budget");
@@ -240,6 +258,7 @@ class Output final:public NativeVolumeRangeIo {
     if(!GetFileSizeEx(handle_,&size) || size.QuadPart<0 ||
         static_cast<std::uint64_t>(size.QuadPart)>capacity_) fail("cannot qualify current file extent");
     extent_=static_cast<std::uint64_t>(size.QuadPart);
+    if(volume_file_)published_extent_.store(extent_,std::memory_order_release);
     observed.complete();
 #else
     struct stat st{};
@@ -266,13 +285,14 @@ class Output final:public NativeVolumeRangeIo {
       pin_volume_directory(parent_pin_,p);
       admit_volume_space(parent_pin_.volume_root,0);
       if(c.isolated_range_reclamation)validate_sparse_storage(parent_pin_.handle,parent_pin_.volume_root);
+      demand_io_.emplace();
     }else {
       std::error_code ec;const auto space=std::filesystem::space(parent,ec);
       if(ec || space.available==static_cast<std::uintmax_t>(-1) || space.available<kReserve+kStoreMaxPhysicalBytes)
         fail("insufficient verified disk reserve");
     }
-    handle_=CreateFileW(p.c_str(),GENERIC_READ|GENERIC_WRITE,0,nullptr,reopen?OPEN_EXISTING:CREATE_NEW,
-                        FILE_ATTRIBUTE_NORMAL|FILE_FLAG_OPEN_REPARSE_POINT,nullptr);
+    const auto flags=FILE_ATTRIBUTE_NORMAL|FILE_FLAG_OPEN_REPARSE_POINT|(volume_file_?FILE_FLAG_OVERLAPPED:0);
+    handle_=CreateFileW(p.c_str(),GENERIC_READ|GENERIC_WRITE,0,nullptr,reopen?OPEN_EXISTING:CREATE_NEW,flags,nullptr);
     if(handle_==INVALID_HANDLE_VALUE) fail("exclusive creation failed");
     try {
       FILE_ATTRIBUTE_TAG_INFO attr{};FILE_STANDARD_INFO info{};LARGE_INTEGER size{};
@@ -296,8 +316,7 @@ class Output final:public NativeVolumeRangeIo {
         if(c.isolated_range_reclamation) {
           validate_sparse_storage(handle_,parent_pin_.volume_root);
           if(!reopen && !sparse_) {
-            DWORD returned=0;
-            if(!DeviceIoControl(handle_,FSCTL_SET_SPARSE,nullptr,0,nullptr,0,&returned,nullptr) ||
+            if(demand_io_->control(handle_,FSCTL_SET_SPARSE,nullptr,0).error!=ERROR_SUCCESS ||
                 !GetFileInformationByHandleEx(handle_,FileAttributeTagInfo,&attr,sizeof(attr)) ||
                 !(attr.FileAttributes&FILE_ATTRIBUTE_SPARSE_FILE))
               fail("cannot create the qualified sparse volume backing");
@@ -306,6 +325,7 @@ class Output final:public NativeVolumeRangeIo {
         }
       }
       extent_=admitted_extent_=static_cast<std::uint64_t>(size.QuadPart);
+      if(volume_file_)published_extent_.store(extent_,std::memory_order_release);
     }catch(...) {CloseHandle(handle_);handle_=INVALID_HANDLE_VALUE;throw;}
 #else
     parent_=::open(parent.c_str(),O_RDONLY|O_DIRECTORY|O_CLOEXEC|O_NOFOLLOW);
@@ -342,6 +362,13 @@ class Output final:public NativeVolumeRangeIo {
   }
 #endif
   StoreIoContract contract() const noexcept override { return contract_; }
+  bool concurrent_reads_supported() const noexcept override {
+#ifdef _WIN32
+    return volume_file_;
+#else
+    return false;
+#endif
+  }
   bool supports_reclaimable_ranges() const noexcept override {
 #ifdef _WIN32
     return sparse_;
@@ -393,23 +420,42 @@ class Output final:public NativeVolumeRangeIo {
     FILE_ZERO_DATA_INFORMATION request{};
     request.FileOffset.QuadPart=static_cast<LONGLONG>(offset);
     request.BeyondFinalZero.QuadPart=static_cast<LONGLONG>((std::min)(offset+bytes,extent_));
-    DWORD returned=0;
     MaintenanceBackingCall observed(MaintenanceBackingOperation::control);
-    if(!DeviceIoControl(handle_,FSCTL_SET_ZERO_DATA,&request,sizeof(request),nullptr,0,&returned,nullptr))
+    if(demand_io_->control(handle_,FSCTL_SET_ZERO_DATA,&request,sizeof(request)).error!=ERROR_SUCCESS)
       fail("sparse range retirement failed");
     observed.complete();
 #else
     (void)offset;(void)bytes;fail("range reclamation requires Windows");
 #endif
   }
-  std::uint64_t extent() const override { std::lock_guard lock(mutex_);refresh_extent();return extent_; }
-  void read_exact(std::uint64_t at,std::span<std::byte> out) const override {
+  std::uint64_t extent() const override {
+#ifdef _WIN32
+    if(volume_file_ && StoreCaptureReadScope::current())return published_extent_.load(std::memory_order_acquire);
+#endif
     std::lock_guard lock(mutex_);
     refresh_extent();
-    if(at>extent_ || out.size()>extent_-at) fail("read outside backing extent");
+    return extent_;
+  }
+  void read_exact(std::uint64_t at,std::span<std::byte> out) const override {
 #ifdef _WIN32
-    MaintenanceBackingCall observed(MaintenanceBackingOperation::read,out.size(),volume_file_ && !out.empty());
+    const auto* capture=StoreCaptureReadScope::current();
+    if(volume_file_ && capture) {
+      std::unique_lock access(capture_mutex_,std::try_to_lock);
+      if(!access)fail("another capture owns the positioned read event");
+      if(!capture_io_)capture_io_.emplace();
+      read_positioned(at,out,published_extent_.load(std::memory_order_acquire),*capture_io_,capture);
+      return;
+    }
 #endif
+    std::lock_guard lock(mutex_);
+    refresh_extent();
+#ifdef _WIN32
+    if(volume_file_) {
+      read_positioned(at,out,extent_,*demand_io_);
+      return;
+    }
+#endif
+    if(at>extent_ || out.size()>extent_-at) fail("read outside backing extent");
     std::size_t done=0;
     while(done<out.size()) {
 #ifdef _WIN32
@@ -425,9 +471,6 @@ class Output final:public NativeVolumeRangeIo {
 #endif
       done+=static_cast<std::size_t>(n);
     }
-#ifdef _WIN32
-    observed.complete();
-#endif
   }
   void write_exact(std::uint64_t at,std::span<const std::byte> bytes) override {
     std::lock_guard lock(mutex_);
@@ -443,11 +486,17 @@ class Output final:public NativeVolumeRangeIo {
     std::size_t done=0;
     while(done<bytes.size()) {
 #ifdef _WIN32
-      LARGE_INTEGER pos{};pos.QuadPart=static_cast<LONGLONG>(at+done);
-      if(!SetFilePointerEx(handle_,pos,nullptr,FILE_BEGIN)) fail("seek failed");
       DWORD n=0;
       const auto request=static_cast<DWORD>((std::min)(bytes.size()-done,std::size_t{0x7ffff000}));
-      if(!WriteFile(handle_,bytes.data()+done,request,&n,nullptr) || !n) fail("short/failed backing write");
+      if(volume_file_) {
+        const auto result=demand_io_->write(handle_,at+done,bytes.data()+done,request);
+        if(result.error!=ERROR_SUCCESS || !result.bytes || result.bytes>request)fail("short/failed backing write");
+        n=result.bytes;
+      } else {
+        LARGE_INTEGER pos{};pos.QuadPart=static_cast<LONGLONG>(at+done);
+        if(!SetFilePointerEx(handle_,pos,nullptr,FILE_BEGIN)) fail("seek failed");
+        if(!WriteFile(handle_,bytes.data()+done,request,&n,nullptr) || !n)fail("short/failed backing write");
+      }
 #else
       const auto n=::pwrite(fd_,bytes.data()+done,bytes.size()-done,static_cast<off_t>(at+done));
       if(n<0 && errno==EINTR) continue;
@@ -457,6 +506,7 @@ class Output final:public NativeVolumeRangeIo {
       extent_=(std::max)(extent_,at+done);
     }
 #ifdef _WIN32
+    if(volume_file_)published_extent_.store(extent_,std::memory_order_release);
     observed.complete();
 #endif
   }
