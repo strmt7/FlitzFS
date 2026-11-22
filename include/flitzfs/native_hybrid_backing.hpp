@@ -37,6 +37,8 @@ class NativeHybridBacking final : public StoreByteIo {
   void verify_backing() const override;
 
  private:
+  friend class NativeFileSession;
+  void verify_prepared_binding() const;
   struct Impl;
   explicit NativeHybridBacking(std::unique_ptr<Impl>) noexcept;
   bool allows_writer() const noexcept override;
@@ -53,6 +55,12 @@ class NativeHybridBacking::Build final {
   BuildPhase phase() const noexcept;
   bool advance(const NativeFileSession&);
   std::shared_ptr<NativeHybridBacking> finish(const NativeFileSession&);
+  // Select a smaller verified image on the same serialized session. The
+  // caller retains the source and its physical mapping, and owns the new
+  // base/tail mapping before calling. This sets an empty replacement slot
+  // before selector mutation. An uncertain handoff keeps both images for
+  // recovery. A declined candidate leaves the slot empty.
+  bool publish(NativeFileSession&,std::shared_ptr<NativeHybridBacking>& replacement);
   void cancel() noexcept;
  private:
   friend class NativeHybridBacking;

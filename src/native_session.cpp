@@ -4,6 +4,7 @@
 #include "native_maintenance_source.hpp"
 #include "native_volume_file_reclaimer.hpp"
 #include "flitzfs/catalog.hpp"
+#include "flitzfs/native_hybrid_backing.hpp"
 #include "store_codec.hpp"
 #include <algorithm>
 #include <optional>
@@ -30,6 +31,11 @@ void admit_empty(const std::shared_ptr<StoreByteIo>& io) {
 void retire(NativeFilesystemWriter& writer) noexcept {
   auto retired=std::move(writer); // Its destructor really releases the writer lease.
 }
+std::uint64_t occupied_indexed_image(const StoreByteIo& backing,std::uint64_t ordinary_extent) {
+  const auto* hybrid=dynamic_cast<const NativeHybridBacking*>(&backing);
+  return hybrid?hybrid->occupied():ordinary_extent;
+}
+
 std::uint64_t cold_compaction_input_cost(std::uint64_t candidate_writes) noexcept {
   // Cover the selector, advisory pair and private copy. At most two
   // maintenance bytes may be reserved per settled foreground input byte.
@@ -1241,6 +1247,28 @@ NativeVolumeHeadInfo NativeFileSession::finish_handoff(Impl& self) {
   return published;
 }
 
+NativeVolumeHeadInfo NativeFileSession::publish_indexed_handoff(Impl& self,NativeFilesystemWriter candidate,
+    const NativeFilesystemSnapshot& verified,std::shared_ptr<StoreByteIo> target) {
+  begin_handoff(self,self.writer.snapshot(),std::move(target),verified.identity());
+  auto& volume=*self.volume;
+  NativeVolumeHeadInfo published;
+  try {
+    published=volume.head->publish_indexed_rebuild(*volume.baseline,verified);
+  }catch(...) {
+    if(!volume.head->poisoned()) {
+      volume.baseline.reset();
+      volume.candidate_io.reset();
+      volume.candidate_id={};
+      volume.pending=false;
+      self.terminal=false;
+    }
+    throw;
+  }
+  self.writer=std::move(candidate);
+  adopt_handoff(self,published);
+  return published;
+}
+
 void NativeFileSession::adopt_handoff(Impl& self,const NativeVolumeHeadInfo& published) noexcept {
   auto& volume=*self.volume;
   volume.active_io=std::move(volume.candidate_io);
@@ -1434,26 +1462,11 @@ std::optional<NativeVolumeHeadInfo> NativeFileSession::publish_staged_recompress
     auto staged=std::move(self.recompression);
     auto candidate=self.writer.finish_paged_recompression(*paged);
     auto verified=candidate.snapshot();
-    if(verified.storage_info().physical_end>=self.writer.indexed_append_floor() && !permits_rotation)
+    if(!permits_rotation && verified.storage_info().physical_end>=
+        occupied_indexed_image(*self.volume->active_io,self.writer.indexed_append_floor()))
       return std::nullopt;
-    auto baseline=self.writer.snapshot();
-    begin_handoff(self,std::move(baseline),std::move(staged->target),staged->id);
+    const auto published=publish_indexed_handoff(self,std::move(candidate),verified,std::move(staged->target));
     auto& volume=*self.volume;
-    NativeVolumeHeadInfo published;
-    try {
-      published=volume.head->publish_indexed_rebuild(*volume.baseline,verified);
-    }catch(...) {
-      if(!volume.head->poisoned()) {
-        volume.baseline.reset();
-        volume.candidate_io.reset();
-        volume.candidate_id={};
-        volume.pending=false;
-        self.terminal=false;
-      }
-      throw;
-    }
-    self.writer=std::move(candidate);
-    adopt_handoff(self,published);
     if(cold_through) {
       const auto& selection=published.selection;
       self.cold_coverage=OptimizationColdCoverage{selection.image_identity,selection.epoch,
@@ -1525,6 +1538,19 @@ const NativeFilesystemWriter& NativeFileSession::hybrid_source() const {
     fail(E::invalid_options,"hybrid staging requires a managed external indexed session");
   admit_handoff_contexts(self);
   return self.writer;
+}
+
+bool NativeFileSession::publish_hybrid_replacement(const std::shared_ptr<NativeHybridBacking>& target,
+    const NativeFilesystemSnapshot& verified) {
+  auto& self=ready();
+  admit_replacement(self,target,verified.identity());
+  const auto& volume=*self.volume;
+  const auto selected_size=occupied_indexed_image(*volume.active_io,volume.active_io->extent());
+  if(target->occupied()>=selected_size)return false;
+  auto candidate=NativeFilesystemWriter::lease_verified_indexed_reopen(verified,volume.foreground);
+  target->verify_prepared_binding();
+  (void)publish_indexed_handoff(self,std::move(candidate),verified,target);
+  return true;
 }
 
 NativeFileSession::Impl& NativeFileSession::ready() const {

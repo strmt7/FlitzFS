@@ -7,6 +7,7 @@ namespace flitzfs {
 class IndexedCoherenceWriter;
 class IndexedCoherenceStorage;
 class NativeGroupMaintenance;
+class NativeHybridBacking;
 namespace detail {struct NativeMaintenanceSource;}
 // Pure CPU ownership layer for the future Windows adapter. It never creates
 // a driver, dispatcher, mount, worker or thread. One control thread is required.
@@ -465,6 +466,7 @@ class NativeFileSession final {
   friend class NativeGroupMaintenance;
   friend class NativeHybridBacking;
   const NativeFilesystemWriter& hybrid_source() const;
+  bool publish_hybrid_replacement(const std::shared_ptr<NativeHybridBacking>&,const NativeFilesystemSnapshot&);
   std::weak_ptr<detail::NativeMaintenanceSource> maintenance_source();
   struct Impl;
   std::unique_ptr<Impl> impl_;
@@ -495,6 +497,8 @@ class NativeFileSession final {
   static void admit_handoff_contexts(const Impl&);
   static void begin_handoff(Impl&,NativeFilesystemSnapshot,std::shared_ptr<StoreByteIo>,StoreIdentity);
   static NativeVolumeHeadInfo finish_handoff(Impl&);
+  static NativeVolumeHeadInfo publish_indexed_handoff(Impl&,NativeFilesystemWriter,
+      const NativeFilesystemSnapshot&,std::shared_ptr<StoreByteIo>);
   static void adopt_handoff(Impl&,const NativeVolumeHeadInfo&) noexcept;
   bool stage_recompression(std::shared_ptr<StoreByteIo>,StoreIdentity,StoreCompressionOptions,
       StoreCheckpointOptions,bool idle);

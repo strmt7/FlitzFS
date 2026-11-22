@@ -207,6 +207,13 @@ struct NativeHybridBacking::Impl {
   std::uint64_t tail_offset(std::uint64_t at) const noexcept {
     return tail_start+(at-binding.base_end);
   }
+  std::shared_ptr<ProtectedStripeImage> open_bound_base(const Binding& expected) const {
+    auto checked=ProtectedStripeImage::open(base_owner.io,physical_limit-tail_start);
+    if(checked->identity()!=expected.identity || checked->extent()!=expected.folded_extent() ||
+        checked->occupied()!=expected.base_occupied || root_binding(*checked)!=expected.frozen_roots)
+      fail("hybrid base does not match the checked binding");
+    return checked;
+  }
 
   const bool writable_tail;
   Lease base_owner,tail;
@@ -231,11 +238,7 @@ std::shared_ptr<NativeHybridBacking> NativeHybridBacking::open(std::shared_ptr<S
   check_geometry(binding);
   if(state->writable_tail && state->tail.io->contract().write_failure_unit_bytes>binding.unit)
     fail("hybrid tail failure unit exceeds the indexed geometry");
-  state->base=ProtectedStripeImage::open(state->base_owner.io,physical_limit-tail_start);
-  if(state->base->identity()!=expected || state->base->extent()!=binding.folded_extent() ||
-      state->base->occupied()!=binding.base_occupied ||
-      root_binding(*state->base)!=binding.frozen_roots)
-    fail("hybrid base does not match the checked binding");
+  state->base=state->open_bound_base(binding);
   state->binding=binding;
   state->degraded=degraded;
   (void)state->tail_extent();
@@ -306,10 +309,11 @@ struct NativeHybridBacking::Build::Impl {
         if(!bootstrap.advance(*tail,*sealed,binding))return false;
         tail_owner.reset();
         auto reopened=NativeHybridBacking::open(base,tail,identity,binding.virtual_limit,candidate_limit);
-        const auto checked=NativeFilesystemSnapshot::open_image(reopened,storage);
+        auto checked=NativeFilesystemSnapshot::open_image(reopened,storage);
         if(!reopened->allows_writer() || checked.storage_info().degraded_checkpoint ||
             checked.storage_info().generation!=generation)
           fail("hybrid checkpoint did not verify after binding");
+        verified.emplace(std::move(checked));
         result=std::move(reopened);
         phase=BuildPhase::ready;
         break;
@@ -335,6 +339,7 @@ struct NativeHybridBacking::Build::Impl {
   std::optional<NativeHybridBacking::Impl::Lease> tail_owner;
   TailBootstrap bootstrap;
   std::shared_ptr<NativeHybridBacking> result;
+  std::optional<NativeFilesystemSnapshot> verified;
 };
 
 NativeHybridBacking::Build NativeHybridBacking::prepare(const NativeFileSession& session,
@@ -342,6 +347,8 @@ NativeHybridBacking::Build NativeHybridBacking::prepare(const NativeFileSession&
     StoreIdentity identity,std::uint64_t candidate_limit,std::uint64_t staging_limit,
     StoreCompressionOptions compression) {
   const auto& writer=session.hybrid_source();
+  const auto& owner=session.ready();
+  for(const auto* target:{&workspace,&base,&tail})session.admit_replacement(owner,*target,identity);
   const auto source=writer.snapshot();
   const auto storage=source.image_storage();
   check_limits(identity,storage.maximum_physical_bytes,candidate_limit);
@@ -377,6 +384,23 @@ std::shared_ptr<NativeHybridBacking> NativeHybridBacking::Build::finish(const Na
     cancel();
     return result;
   }catch(...){cancel();throw;}
+}
+bool NativeHybridBacking::Build::publish(NativeFileSession& session,
+    std::shared_ptr<NativeHybridBacking>& replacement) {
+  if(phase()!=BuildPhase::ready || replacement)fail("live hybrid selection needs ready work and an empty replacement slot");
+  try {
+    session.hybrid_source().verify_folded_recompression_source(impl_->rewrite);
+    auto checked=std::move(*impl_->verified);
+    replacement=std::move(impl_->result);
+    cancel();
+    if(session.publish_hybrid_replacement(replacement,checked))return true;
+    replacement.reset();
+    return false;
+  }catch(...) {
+    cancel();
+    if(!session.poisoned())replacement.reset();
+    throw;
+  }
 }
 void NativeHybridBacking::Build::cancel() noexcept {impl_.reset();}
 
@@ -448,6 +472,13 @@ bool NativeHybridBacking::backing_degraded() const noexcept {
 }
 bool NativeHybridBacking::allows_writer() const noexcept {
   return !backing_degraded() && valid_store_io_contract(contract());
+}
+void NativeHybridBacking::verify_prepared_binding() const {
+  const auto& state=*impl_;
+  const auto [observed,degraded]=load_binding(*state.tail.io);
+  if(degraded || observed!=state.binding || state.tail_extent()!=tail_start ||
+      state.open_bound_base(observed)->degraded())
+    fail("prepared hybrid binding changed before selection");
 }
 void NativeHybridBacking::verify_backing() const {
   auto& state=*impl_;

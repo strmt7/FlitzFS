@@ -497,7 +497,7 @@ void interrupted_hybrid_binding() {
 void cooperative_hybrid() {
   using Phase=NativeHybridBacking::BuildPhase;
   constexpr auto unit=4096U;
-  const std::array files{data(713'821,810),data(263'482,183)};
+  const std::array files{data(1'913'821,810),data(1'063'482,183)};
   auto source=make_indexed(files,unit,raw),head=empty(unit);
   const auto original=NativeFilesystemSnapshot::open_image(source,ordinary_storage);
   {const auto authority=NativeVolumeHeadWriter::create(head,id(9),original);}
@@ -530,26 +530,61 @@ void cooperative_hybrid() {
     require(work.phase()==Phase::workspace && !workspace->writes && !base->writes && !tail->writes,
         "prepare wrote into its private workspace");
     rejects([&]{(void)work.finish(session);},"unfinished preparation escaped");
+    rejects([&]{(void)work.publish(session,candidate);},"unfinished preparation selected its candidate");
+    require(!candidate && head->stable==selected,"unready publication changed ownership");
     require(!work.advance(session),"workspace finished before traversing even one object");
     const auto expected=std::span(files[0]).subspan(kNativeExtentBytes-31,257);
     require(std::ranges::equal(session.read(handle,kNativeExtentBytes-31,expected.size()),expected),
         "ordinary read failed while hybrid preparation was paused");
     advance_hybrid(work,session,*workspace,*base,*tail,source->extent(),progress);
     require(work.advance(session),"completed preparation lost readiness");
-    candidate=work.finish(session);
-    require(work.phase()==Phase::stopped && candidate->occupied()==base->extent()+tail->extent() &&
-        source->writes==source_writes && head->stable==selected,"preparation changed the selected image");
+    require(source->writes==source_writes && head->stable==selected,"preparation changed the selected image");
+    const auto head_calls=head->calls;
+    require(work.publish(session,candidate),"the smaller prepared hybrid was declined");
+    const auto selection=session.volume_info().selection;
+    require(work.phase()==Phase::stopped && candidate && candidate->occupied()==base->extent()+tail->extent() &&
+        source->writes==source_writes && head->calls==head_calls+4 &&
+        selection.epoch==2 && selection.image_identity==id(2) && selection.parent_identity==id(1),
+        "the live hybrid did not publish one ordered selector pair");
+    require(std::ranges::equal(session.read(handle,kNativeExtentBytes-31,expected.size()),expected),
+        "the existing handle lost its file on live selection");
+
+    auto another_workspace=empty(unit),another_base=empty(65536),another_tail=empty(unit);
+    auto duplicate=NativeHybridBacking::prepare(session,another_workspace,another_base,another_tail,id(3),
+        limits.maximum_physical_bytes,limits.maximum_physical_bytes,raw);
+    CooperativeProgress duplicate_progress;
+    advance_hybrid(duplicate,session,*another_workspace,*another_base,*another_tail,candidate->extent(),duplicate_progress);
+    std::shared_ptr<NativeHybridBacking> unselected;
+    const auto unchanged=head->stable;
+    require(!duplicate.publish(session,unselected) && !unselected && head->stable==unchanged,
+        "an equally sized hybrid displaced the selected image");
+
+    const auto patch=data(3988,209);
+    const auto frozen_writes=base->writes;
+    require(session.write(handle,kNativeExtentBytes-31,patch).bytes==patch.size() &&
+        session.read(handle,kNativeExtentBytes-31,patch.size())==patch && base->writes==frozen_writes,
+        "the still-open handle did not write the selected tail");
+
+    auto mirror=empty(unit);
+    require(session.begin_idle_compaction(mirror,id(4)),"could not evaluate the mirrored replacement");
+    auto rewrite_progress=NativeFileSession::RecompressionProgress::copying;
+    for(unsigned steps=0;rewrite_progress==NativeFileSession::RecompressionProgress::copying && steps<10000;++steps)
+      rewrite_progress=session.advance_recompression();
+    std::cout<<"live_hybrid_physical_choice status="<<static_cast<unsigned>(rewrite_progress)
+        <<" selected_physical_bytes="<<candidate->occupied()<<" selected_logical_extent="<<candidate->extent()
+        <<" mirror_bytes="<<mirror->extent()<<'\n';
+    require(rewrite_progress==NativeFileSession::RecompressionProgress::ready && mirror->extent()<candidate->extent() &&
+        mirror->extent()>candidate->occupied(),"physical comparison fixture lacks a larger mirrored candidate");
+    require(!session.publish_idle_recompression() && head->stable==unchanged,
+        "a smaller virtual extent displaced a smaller physical hybrid");
+    verify(original,files);
     session.cleanup(handle,false);
     session.close(handle);
+
+    auto patched=files;
+    std::ranges::copy(patch,patched[0].begin()+kNativeExtentBytes-31);
+    verify(NativeFilesystemSnapshot::open_image(candidate,ordinary_storage),patched);
   }
-  const auto image=NativeFilesystemSnapshot::open_image(candidate,ordinary_storage);
-  verify(image,files);
-  const auto selection=[&] {
-    auto current=NativeVolumeHeadWriter::resume(head,id(9),1,original);
-    return current.publish_compacted(original,image);
-  }();
-  require(selection.selection.epoch==2 && selection.selection.image_identity==id(2),
-      "the completed prepared backing failed verified selection");
 
   auto stale_head=empty(unit);
   {const auto authority=NativeVolumeHeadWriter::create(stale_head,id(9),original);}
@@ -597,18 +632,84 @@ void cooperative_hybrid() {
     const auto replacement=data(257,915);
     require(session.write(handle,kNativeExtentBytes-31,replacement).bytes==replacement.size(),
         "foreground mutation after the candidate was ready failed");
-    rejects([&]{(void)work.finish(session);},"a ready candidate escaped after its checkpoint changed");
-    require(work.phase()==Phase::stopped && stale_head->stable==stale_selection &&
+    std::shared_ptr<NativeHybridBacking> rejected;
+    rejects([&]{(void)work.publish(session,rejected);},"a ready candidate escaped after its checkpoint changed");
+    require(work.phase()==Phase::stopped && !rejected && stale_head->stable==stale_selection &&
         session.read(handle,kNativeExtentBytes-31,replacement.size())==replacement,
         "stale completion invalidated selected foreground data");
+
+    staged=empty(unit);cold=empty(unit);mutable_tail=empty(unit);
+    work=NativeHybridBacking::prepare(session,staged,cold,mutable_tail,id(3),
+        limits.maximum_physical_bytes,limits.maximum_physical_bytes,raw);
+    CooperativeProgress binding;
+    advance_hybrid(work,session,*staged,*cold,*mutable_tail,source->extent(),binding);
+    damage(*mutable_tail,0,unit);
+    rejects([&]{(void)work.publish(session,rejected);},"a changed binding reached the volume selector");
+    require(work.phase()==Phase::stopped && !rejected && !session.poisoned() && stale_head->stable==stale_selection &&
+        session.read(handle,kNativeExtentBytes-31,replacement.size())==replacement,
+        "detached binding damage fenced or changed the selected image");
   }
   std::cout<<"cooperative_hybrid quanta="<<progress.quanta<<" seal_write_steps="<<progress.seal_write_steps
       <<" max_seal_write_bytes="<<progress.max_seal_write<<" binding_flush_steps="<<progress.binding_flush_steps
       <<" max_binding_write_bytes="<<progress.max_binding_write
-      <<" mixed_failure_units=1 exact_cpu_readback=1 stale_refusals=2 staging_refusals=1 lost_contract_refusals=1\n";
+      <<" mixed_failure_units=1 exact_cpu_readback=1 live_selection=1 retained_handle=1"
+      <<" stale_refusals=2 staging_refusals=1 lost_contract_refusals=1 binding_refusals=1 growth_refusals=2\n";
 }
 
-void profile_cooperative(const std::filesystem::path& corpus) {
+void live_hybrid_selection_faults(std::uint32_t unit) {
+  constexpr unsigned selector_steps=4;
+  const std::array files{data(713'821,810),data(263'482,183)};
+  const auto original=make_indexed(files,unit,raw);
+  const auto at=kNativeExtentBytes-31;
+  const auto expected=std::span(files[0]).subspan(at,257);
+  unsigned previous=0,replacement=0;
+  for(unsigned mode=0;mode<3;++mode)for(unsigned cut=0;cut<selector_steps;++cut) {
+    auto source=image(original->stable,unit),head=empty(unit);
+    {const auto authority=NativeVolumeHeadWriter::create(head,id(9),
+        NativeFilesystemSnapshot::open_image(source,ordinary_storage));}
+    const auto source_image=[&](const StoreIdentity& value)->std::shared_ptr<StoreByteIo>{
+      return value==id(1)?source:nullptr;
+    };
+    auto session=NativeFileSession::resume_closed_indexed_volume(head,id(9),1,source_image,raw);
+    auto handle=session.open(path(0),{true,true,false});
+    auto workspace=empty(unit),base=empty(65536),tail=empty(unit);
+    auto work=NativeHybridBacking::prepare(session,workspace,base,tail,id(2),
+        limits.maximum_physical_bytes,limits.maximum_physical_bytes,raw);
+    CooperativeProgress progress;
+    advance_hybrid(work,session,*workspace,*base,*tail,source->extent(),progress);
+    head->failure=mode;
+    head->fail_at=head->calls+cut;
+    std::shared_ptr<NativeHybridBacking> retained;
+    rejects([&]{(void)work.publish(session,retained);},"interrupted selector returned success");
+    require(session.poisoned() && retained,"uncertain publication released its owned candidate");
+    rejects([&]{(void)session.read(handle,at,expected.size());},"an uncertain session exposed an open handle");
+
+    auto stable_source=image(source->stable,unit);
+    auto stable_candidate=reopen_hybrid(image(base->stable,65536),image(tail->stable,unit));
+    auto restart=NativeVolumeHeadView::open(image(head->stable,unit),id(9),
+        [&](const StoreIdentity& value)->std::shared_ptr<StoreByteIo>{
+          if(value==id(1))return stable_source;
+          return value==id(2)?stable_candidate:nullptr;
+        });
+    verify(restart.filesystem(),files);
+    if(restart.info().selection.image_identity==id(1))++previous;
+    else if(restart.info().selection.image_identity==id(2))++replacement;
+    else fail("selector chose unrelated backing");
+
+    head->fail_at=(std::numeric_limits<std::size_t>::max)();
+    const auto restored=session.recover_volume().selection;
+    require((restored.image_identity==id(1) || restored.image_identity==id(2)) &&
+        std::ranges::equal(session.read(handle,at,expected.size()),expected),
+        "selector recovery lost the existing file context");
+    session.cleanup(handle,false);
+    session.close(handle);
+  }
+  require(previous && replacement,"live selector cuts missed one durable outcome");
+  std::cout<<"live_hybrid_selector unit="<<unit<<" cuts="<<previous+replacement<<" previous="<<previous
+      <<" replacement="<<replacement<<" exact_reopen=1 retained_handle=1\n";
+}
+
+void profile_cooperative(const std::filesystem::path& corpus,bool publish_live=false) {
   require(store_zstd_available(),"cooperative corpus profile requires Zstandard");
   constexpr auto unit=4096U;
   constexpr StoreCompressionOptions policy{StoreCompressionMode::automatic,3,true};
@@ -622,11 +723,34 @@ void profile_cooperative(const std::filesystem::path& corpus) {
       [&](const StoreIdentity& value)->std::shared_ptr<StoreByteIo>{return value==id(1)?source:nullptr;},policy);
   auto work=NativeHybridBacking::prepare(session,workspace,base,tail,id(2),
       limits.maximum_physical_bytes,limits.maximum_physical_bytes,policy);
+  const auto handle=publish_live?session.open(path(0),{true,true,false}):NativeFileHandle{};
   CooperativeProgress progress;
   advance_hybrid(work,session,*workspace,*base,*tail,source->extent(),progress);
-  const auto candidate=work.finish(session);
-  verify(NativeFilesystemSnapshot::open_image(candidate,ordinary_storage),files);
-  require(head->stable==selected,"cooperative profile changed the selector");
+  const auto read_bytes=[&]{return head->read_bytes+source->read_bytes+workspace->read_bytes+base->read_bytes+tail->read_bytes;};
+  std::shared_ptr<NativeHybridBacking> candidate;
+  const auto read_before=read_bytes(),writes_before=head->calls;
+  if(publish_live)require(work.publish(session,candidate),"public hybrid was not selected");
+  else candidate=work.finish(session);
+  const auto selection_reads=read_bytes()-read_before;
+  const auto selector_operations=head->calls-writes_before;
+  if(publish_live) {
+    const auto chosen=session.volume_info().selection;
+    const auto expected=std::span(files[0]).subspan(kNativeExtentBytes-31,257);
+    require(chosen.image_identity==id(2) && chosen.parent_identity==id(1) && chosen.epoch==2 &&
+        selector_operations==4 && std::ranges::equal(session.read(handle,kNativeExtentBytes-31,expected.size()),expected),
+        "public live selector did not preserve the open file context");
+    session.cleanup(handle,false);
+    session.close(handle);
+    const auto restarted=reopen_hybrid(image(base->stable,unit),image(tail->stable,unit));
+    const auto checked=NativeVolumeHeadView::open(image(head->stable,unit),id(9),
+        [&](const StoreIdentity& value)->std::shared_ptr<StoreByteIo>{
+          return value==id(2)?restarted:nullptr;
+        });
+    verify(checked.filesystem(),files);
+  } else {
+    require(head->stable==selected,"cooperative profile changed the selector");
+    verify(NativeFilesystemSnapshot::open_image(candidate,ordinary_storage),files);
+  }
   std::cout<<"cooperative_profile files="<<files.size()<<" quanta="<<progress.quanta
       <<" retained_source_bytes="<<source->extent()<<" selector_bytes="<<head->extent()
       <<" workspace_bytes="<<workspace->extent()<<" hybrid_bytes="<<candidate->occupied()
@@ -634,7 +758,10 @@ void profile_cooperative(const std::filesystem::path& corpus) {
       <<" max_workspace_write_bytes="<<progress.max_workspace_write
       <<" max_seal_write_bytes="<<progress.max_seal_write<<" binding_flush_steps="<<progress.binding_flush_steps
       <<" max_binding_write_bytes="<<progress.max_binding_write
-      <<" exact_cpu_readback=1 selection_unchanged=1\n";
+      <<" exact_cpu_readback=1 selection_unchanged="<<!publish_live;
+  if(publish_live)std::cout<<" live_selection=1 retained_handle=1 selection_read_bytes="<<selection_reads
+      <<" selector_operations="<<selector_operations<<" mirrored_address_bytes="<<candidate->extent();
+  std::cout<<'\n';
 }
 
 void profile_hybrid(const std::filesystem::path& corpus,bool mirror_first) {
@@ -703,10 +830,12 @@ int main(int argc,char** argv) {
     if(argc==3 && std::string_view(argv[1])=="--profile-hybrid"){profile_hybrid(argv[2],false);return 0;}
     if(argc==3 && std::string_view(argv[1])=="--profile-hybrid-mirror-first"){profile_hybrid(argv[2],true);return 0;}
     if(argc==3 && std::string_view(argv[1])=="--profile-cooperative"){profile_cooperative(argv[2]);return 0;}
+    if(argc==3 && std::string_view(argv[1])=="--profile-live-hybrid"){profile_cooperative(argv[2],true);return 0;}
     if(argc==2 && std::string_view(argv[1])=="--hybrid") {
       for(const auto unit:{4096U,65536U})hybrid_faults(unit);
       interrupted_hybrid_binding();
       cooperative_hybrid();
+      for(const auto unit:{4096U,65536U})live_hybrid_selection_faults(unit);
       return 0;
     }
     require(argc==1,"invalid protected image fixture options");

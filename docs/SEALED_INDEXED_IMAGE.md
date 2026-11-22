@@ -177,6 +177,10 @@ stateDiagram-v2
     ParityBase --> TailBinding: verified stripes and base roots
     TailBinding --> Ready: ordered tail barriers and CPU reopen
     Ready --> [*]: exact source check and return candidate
+    Ready --> Selector: prepared writer lease and binding check
+    Selector --> Selected: both selector copies durable
+    Selector --> Recovery: uncertain selector publication
+    Recovery --> Selected: checked retained image
     FoldedWorkspace --> Stopped: cancel or failed check
     ParityBase --> Stopped: cancel or failed check
     TailBinding --> Stopped: cancel or failed check
@@ -191,11 +195,24 @@ candidate reopens through the independent CPU reader after the final tail
 binding. The source must still match its exact in-memory checkpoint on each
 advance and its checked backing checkpoint when the candidate leaves.
 A foreground commit, unavailable backing or cancelled caller releases the
-private work. Selection remains with the source until explicit verified
-publication through the volume selector. A partial workspace or candidate
-is retained as private caller-owned data. This state machine runs within a
-single process. Automatic WinFsp scheduling and persistent range placement
+private work. The owner can return the checked candidate for detached use or
+publish it on the same managed indexed session with
+`NativeHybridBacking::Build::publish`. The caller registers the source and
+base/tail mappings and retains their storage. The live path claims the exact
+prepared indexed writer, rechecks the two tail binding records and the
+sealed roots, and publishes the existing two-slot selector. Uncertain
+publication retains both images for exact recovery. Ordinary open file
+contexts stay bound to the same inodes across the switch. Provisional and
+deletion-pending contexts defer selection.
+
+Selection compares occupied bytes of both the active and prepared images.
+An ordinary mirrored compaction also uses the occupied size of a selected
+hybrid. Verified capacity repair can still admit a rotation. The caller
+accounts for staging space and pinned generations until their actual
+retirement. Automatic WinFsp enrollment and persistent range placement
 remain open.
+[Windows write barriers](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers) ·
+[ReFS parity rotation](https://learn.microsoft.com/en-us/windows-server/storage/refs/mirror-accelerated-parity)
 
 The full 16-file AIT 2026 fixture reopened byte for byte after 4,071 advances.
 It kept the same 111,828,992-byte staged footprint as the earlier detached
@@ -203,7 +220,22 @@ build. The mixed 4 KiB and 64 KiB fixture completed verified selection and
 refused stale work both during sealing and after completion. It also stopped
 before the next tail write when the backing contract became unavailable, and
 refused insufficient staging capacity before writing any candidate bytes.
-[Cooperative preparation receipt](evidence/cooperative-hybrid-preparation-2026-11-22.json) ·
+[Cooperative preparation receipt](evidence/cooperative-hybrid-preparation-2026-11-22.json)
+
+The live test on AIT DCC 2026 files A–P selected a 32,657,408-byte base and
+tail over the mirrored 51,486,720-byte address space. Preparation coexisted
+with the source and retained 111,828,992 bytes across both images, the
+selector and workspace. Once ready, the switch read 464,446 backing bytes
+and issued two selector writes and two barriers. The same open handle
+continued reading. An independent CPU reopen from the retained bytes checked
+all 16 files. The model also recovered both selector outcomes in 24
+write and flush fault cases across 4 KiB and 64 KiB failure units.
+The tests exercise a live native session with memory backings.
+
+The public input is described in *The 2026 Algorithmic Information Theory
+Data Compression Challenge*.
+[AIT DCC dataset](https://aitdcc.github.io/dataset.html) ·
+[Live selection and fault evidence](evidence/live-hybrid-selection-2026-11-22.json) ·
 [Btrfs balance](https://btrfs.readthedocs.io/en/stable/Balance.html) ·
 [OpenZFS scrub and resilver](https://openzfs.github.io/openzfs-docs/Basic%20Concepts/Operations/Scrub%20and%20Resilver.html)
 

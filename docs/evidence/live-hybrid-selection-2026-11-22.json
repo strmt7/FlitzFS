@@ -1,0 +1,320 @@
+{
+  "schema": "flitzfs-live-hybrid-selection-v1",
+  "date": "2026-11-22",
+  "source": {
+    "base": "e1bbf4549ae38f3b3c03b1b5bbfaa34cb4a6aede",
+    "blobs": {
+      "include/flitzfs/native_hybrid_backing.hpp": "bf4e3ea7fb32834f5be8d16fddddd6f4a4555e95",
+      "include/flitzfs/native_session.hpp": "3d4ddb0c73667e23370668e7859db92fa5161a46",
+      "src/native_hybrid_backing.cpp": "3e38c8821ae3d2e50d083520605c1053ca9b7b81",
+      "src/native_session.cpp": "4bdeedd37bfbea2dd5384b402960f0d642644e48",
+      "tests/test_protected_indexed_image.cpp": "c118c37581dafe4bb626c3f8496a32be5a3c3531"
+    },
+    "patch_sha256": "a0d0d9d133270d6354221ce53602491f543d95a184d6eb6d2eebb3862b9059fe"
+  },
+  "scope": {
+    "platform": "10.0.26300",
+    "test_backing": "in-process memory",
+    "mounted": false,
+    "hardware_fault_tested": false,
+    "selectable_provider": "managed external indexed"
+  },
+  "corpus": {
+    "name": "AIT DCC 2026 files A-P",
+    "title": "The 2026 Algorithmic Information Theory Data Compression Challenge",
+    "fixture_sha256": "baf1e7283ab49cc5b6c14e77e302637e4f17d84d1603af0fd9f3a62645d6ce1c",
+    "fixture_bytes": 38289387,
+    "url": "https://aitdcc.github.io/dataset.html"
+  },
+  "artifacts": {
+    "protected_image_tests_sha256": "b5db1dc2be85669c30f8f7fd9f9859d7152ae17bf8d56c78b9f74fb272a151a5",
+    "winfsp_controller_tests_sha256": "08a612e3caa549a199d6e8f8f59f99e70fb50a2cf3016ba162683608f80a445b"
+  },
+  "live_and_detached_profiles": {
+    "detached": {
+      "receipt_sha256": "0a8c6258e1a2e159277b0c5e5086321f15c7311d71d737dde05fe6c0156460ec",
+      "output_sha256": "a3eb565b5aa632d091861faa1f3f53ab0c772c6fa31c55a9f6319cee4cf470e7",
+      "tree_retired": true,
+      "peak_job_bytes": 307515392,
+      "exit_code": 0,
+      "output": {
+        "files": 16,
+        "quanta": 4071,
+        "retained_source_bytes": 53231616,
+        "selector_bytes": 131072,
+        "workspace_bytes": 25808896,
+        "hybrid_bytes": 32657408,
+        "staged_total_bytes": 111828992,
+        "max_workspace_write_bytes": 131072,
+        "max_seal_write_bytes": 131072,
+        "binding_flush_steps": 3,
+        "max_binding_write_bytes": 262144,
+        "exact_cpu_readback": 1,
+        "selection_unchanged": 1
+      }
+    },
+    "live": {
+      "receipt_sha256": "367be2e3041ee4ddfb8312ae8499e126d6e937632a8b242e6ce6534f8e7ff611",
+      "output_sha256": "1044e7f4381a710d8619c21342751c4a51cde5cf39c2232daf63033c2b3a44f8",
+      "tree_retired": true,
+      "peak_job_bytes": 373248000,
+      "exit_code": 0,
+      "output": {
+        "files": 16,
+        "quanta": 4071,
+        "retained_source_bytes": 53231616,
+        "selector_bytes": 131072,
+        "workspace_bytes": 25808896,
+        "hybrid_bytes": 32657408,
+        "staged_total_bytes": 111828992,
+        "max_workspace_write_bytes": 131072,
+        "max_seal_write_bytes": 131072,
+        "binding_flush_steps": 3,
+        "max_binding_write_bytes": 262144,
+        "exact_cpu_readback": 1,
+        "selection_unchanged": 0,
+        "live_selection": 1,
+        "retained_handle": 1,
+        "selection_read_bytes": 464446,
+        "selector_operations": 4,
+        "mirrored_address_bytes": 51486720
+      }
+    }
+  },
+  "selector_faults": [
+    {
+      "unit": 4096,
+      "cuts": 12,
+      "previous": 4,
+      "replacement": 8,
+      "exact_reopen": 1,
+      "retained_handle": 1
+    },
+    {
+      "unit": 65536,
+      "cuts": 12,
+      "previous": 4,
+      "replacement": 8,
+      "exact_reopen": 1,
+      "retained_handle": 1
+    }
+  ],
+  "selection_cases": {
+    "quanta": 243,
+    "seal_write_steps": 9,
+    "max_seal_write_bytes": 655360,
+    "binding_flush_steps": 3,
+    "max_binding_write_bytes": 262144,
+    "mixed_failure_units": 1,
+    "exact_cpu_readback": 1,
+    "live_selection": 1,
+    "retained_handle": 1,
+    "stale_refusals": 2,
+    "staging_refusals": 1,
+    "lost_contract_refusals": 1,
+    "binding_refusals": 1,
+    "growth_refusals": 2
+  },
+  "physical_size_check": {
+    "status": 1,
+    "selected_physical_bytes": 4603904,
+    "selected_logical_extent": 6397952,
+    "mirror_bytes": 6119424
+  },
+  "early_geometry_case": {
+    "receipt_sha256": "d089b14c98804944fec3788727e2d3be8cee5df07f10e5c2b0f3f69722e2a005",
+    "output_sha256": "66a7bdee6f9104412b119326d535bab40e45aae9bda5f7a99e9498037bce6e86",
+    "tree_retired": true,
+    "peak_job_bytes": 67342336,
+    "exit_code": 1,
+    "output": {
+      "status": 1,
+      "selected_physical_bytes": 2244608,
+      "selected_logical_extent": 2383872,
+      "mirror_bytes": 2105344
+    }
+  },
+  "windows_test_transcript_sha256": "81acb07cc279260d127ebbe0800d26c92716f9925952f17d91a51e741d917a14",
+  "amd_regression": {
+    "receipt_sha256": "c7273e026c9ad7f9665ab6a84dc6f9c5b43ad339908c4192df0e0943baf65854",
+    "output_sha256": "6d2c5eb5ea79e556d79d877b9288b15b3814482722584de1c3585e61d5b15757",
+    "tree_retired": true,
+    "peak_job_bytes": 82239488,
+    "exit_code": 0,
+    "owner": {
+      "mode": "prefix-extension",
+      "host": 1,
+      "quanta": 12,
+      "groups": 2,
+      "continued_steps": 38,
+      "settled_ms": 11125,
+      "maximum_quantum_ns": 4735400,
+      "declined_groups": 0,
+      "phase": 0,
+      "sampled": 8,
+      "attempted": 2,
+      "cpu_limit_ppm": 500000,
+      "submitted": 1,
+      "verified": 1,
+      "submitted_queued_batches": 0,
+      "verified_queued_batches": 0,
+      "dispatches_per_wait": 0,
+      "submitted_groups": 1,
+      "verified_groups": 1,
+      "submitted_kernel_launches": 2,
+      "largest_dispatch_members": 3,
+      "copy_suggested_ranges": 12230,
+      "copy_compared_ranges": 6083,
+      "copy_suggested_bytes": 441394,
+      "copy_compared_bytes": 146992,
+      "declined": 0,
+      "yielded": 0,
+      "integrity_failures": 0,
+      "empty_xor_batches": 0,
+      "reference_batches": 0,
+      "reselected_groups": 0,
+      "advised_members": 0,
+      "installed_attempts": 0,
+      "metadata_queries": 0,
+      "installed_status": "-1",
+      "handles_before": 323,
+      "handles_after": 324,
+      "retired": "true",
+      "cpu_readback_verified": "true",
+      "deferrals": "7,0,0,0,0,5,0,0,"
+    },
+    "result": {
+      "groups": 2,
+      "submissions": 1,
+      "verified": 1,
+      "bases": 1,
+      "files": 6,
+      "reused_prefixes": 3,
+      "independent_cpu_readback": "true"
+    },
+    "worker_sha256": "bca40a979dcd51660cf900e6d9b4d80472ab38e6aead2bb3437957481449211c",
+    "module_sha256": "9aad995bc1b2e330a8f24f76dcc5eaa9edc8f96351c999f10712aef0be33467d",
+    "hardware": "AMD Radeon RX 9070 XT",
+    "scope": "ordinary Windows controller regression"
+  },
+  "test_runs": {
+    "focused_build": {
+      "receipt_sha256": "32d16f7481a8dcf54a3d3d4e2f76eccd65501f88388c9962c18eee3c089e06a4",
+      "output_sha256": "7bbe846cc662a5d7d46045cfb1f8a6b2b52866efd8556b6c6a16111a611e0ebc",
+      "tree_retired": true,
+      "peak_job_bytes": 363696128,
+      "exit_code": 0
+    },
+    "focused": {
+      "receipt_sha256": "c683981e9af2652cbd2c671d7c1da4d5e9337550aaef58412ee6b9fc21c5d4ef",
+      "output_sha256": "6eb2e7d176423e063a13671318e8f4dd39331ffea54d52dfe382e7f4e7784cb7",
+      "tree_retired": true,
+      "peak_job_bytes": 84168704,
+      "exit_code": 0,
+      "passed": 2
+    },
+    "standard_build": {
+      "receipt_sha256": "7f1218fd56b99510e6656aaeefae16223af0cd7cfb123ae34101e22a6c69e716",
+      "output_sha256": "6081ae36a7e237a89bf3838e00fe8ba96d49d81392a647fb03a356487e9d211e",
+      "tree_retired": true,
+      "peak_job_bytes": 980062208,
+      "exit_code": 0
+    },
+    "standard": {
+      "receipt_sha256": "86cd1b238661fa48a0ebd56ef02eba9081b6988e088ba29067ed31197b1db578",
+      "output_sha256": "2a963c648b33df1636becf64d027bafca4ff200e035bf0424fc6d26ca34048d9",
+      "tree_retired": true,
+      "peak_job_bytes": 336490496,
+      "exit_code": 0,
+      "passed": 211
+    },
+    "raw_build": {
+      "receipt_sha256": "33c38572cf3c9a8eaaf85943e2d21d91e92ca3ab87fc1a07507ee855738376a0",
+      "output_sha256": "4a1f849ada0eaf006c32b6dd1a59a8608f670150a2a24b0d78f5e8b478041e05",
+      "tree_retired": true,
+      "peak_job_bytes": 612257792,
+      "exit_code": 0
+    },
+    "raw": {
+      "receipt_sha256": "0c19f719187f5ea37b6f8ab59b99f111da05b1a60bbeba7118f5af946f6c6406",
+      "output_sha256": "66b4ada9e43f42b76020631bfbf591fbd722503f76cd0e3f175b96ee3160e0a7",
+      "tree_retired": true,
+      "peak_job_bytes": 100380672,
+      "exit_code": 0,
+      "passed": 9
+    },
+    "asan_build": {
+      "receipt_sha256": "c2ea890e5fb878ee7ece3ab92d0a2a3218c71f2798489593e9a059647495e848",
+      "output_sha256": "3d7b9986cfb216d92c40b8db2ff02275e281103742ad1ee686dcb403526d04ad",
+      "tree_retired": true,
+      "peak_job_bytes": 733560832,
+      "exit_code": 0
+    },
+    "asan": {
+      "receipt_sha256": "d1762adf68460d7588218aba5d6ef1cfea0e2b6b2e0ca1bc2bbb804f7ee2d7a9",
+      "output_sha256": "050794baff2e497aae6127171d09a0c13f43fc63c7881110e7cb6e86b417e8e4",
+      "tree_retired": true,
+      "peak_job_bytes": 569679872,
+      "exit_code": 0,
+      "passed": 10
+    }
+  },
+  "research": {
+    "receipt_sha256": "b09389e9fd23ebe7ff1741bddba00353cadd4ea4a198633ee9132851b26341bc",
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "native_pages": [
+      {
+        "name": "refs-parity",
+        "url": "https://learn.microsoft.com/en-us/windows-server/storage/refs/mirror-accelerated-parity",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 28132,
+        "markdown_sha256": "e81ce02033c527cdd1d5eabb0205848982d017168b3c35c383674063f7ba8287",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.166,
+        "capture": "refs-parity.native.json",
+        "capture_sha256": "9a015a218ee417c4ad7dab0220ebcdaa2ea096f2dc754492c0d543ad2c3226bf"
+      },
+      {
+        "name": "btrfs-balance",
+        "url": "https://btrfs.readthedocs.io/en/stable/Balance.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 19828,
+        "markdown_sha256": "4314867e8e0953e41de2e7dd9d0a3ae617736c63415ccd9250f9ef1918279f0e",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.912,
+        "capture": "btrfs-balance.native.json",
+        "capture_sha256": "981e6b2704314fcb52bc99b61ee9842c5a0d0f0315e5368a778f4160e78bd550"
+      },
+      {
+        "name": "windows-flush",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 36207,
+        "markdown_sha256": "116ffcd5a6feba3539c3f668a2c969aa2e38b8f3663a704a7654e7b2a7954e4c",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.659,
+        "capture": "windows-flush.native.json",
+        "capture_sha256": "06c6f2b1e1463d52a488377cea914aeb0565750299518d234f4e62a3bd8da371"
+      }
+    ]
+  },
+  "routing": {
+    "receipt_sha256": "6ec20cc73e2ff86fb73ccd6399457ca830d1c76a8327885ea55c7de5dd671fa0",
+    "native_response_sha256": "85611dc50ec7f1aad9aadc75cda1b1a41ba1e2cbb0d7cf0ec6bf5edad9c4edef"
+  }
+}
