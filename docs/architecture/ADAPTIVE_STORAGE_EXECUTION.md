@@ -14,9 +14,10 @@ can now expose an ordinary indexed address space through the native volume
 selector. The base folds checked identical mirror units and protects them
 with parity. New writes keep the existing mirrored copy-on-write path. The
 complete AIT corpus used 36.5% fewer active bytes, including the selector in
-both layouts. The byte savings held through the same small write. The current
-build stages a full mirrored workspace. The reported peak also includes the
-prior source. [Writable backing verification](../evidence/native-hybrid-backing-2026-11-22.json)
+both layouts. The byte savings held through the same small write. Direct
+folding stages one copy of each paired unit. It cut complete AIT staging
+coexistence from 137,506,816 to 111,828,992 bytes, including the prior source.
+[Folded staging verification](../evidence/folded-hybrid-workspace-2026-11-22.json)
 
 Extend discovery and storage selection in this order.
 

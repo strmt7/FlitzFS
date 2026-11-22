@@ -83,13 +83,13 @@ ownership. See the [storage execution plan](architecture/ADAPTIVE_STORAGE_EXECUT
 ## A sealed base with a writable tail
 
 `NativeHybridBacking` exposes the ordinary mirrored indexed address space over
-an immutable base and a separate writable tail. The detached builder first
-creates an ordinary compacted mirror with a new image identity. It compares
-all bytes of each adjacent mirror pair, including metadata and padding. The
-sealed stream keeps the original 131,072-byte root area, followed by one unit
-from each equal pair. Either virtual unit of that pair reads the same verified
-unit in the sealed stream. The external volume selector still names one
-indexed image. Its resolver supplies the bound base and tail as one backing.
+an immutable base and a separate writable tail. The detached builder plans
+the compacted mirror with a new identity and writes one physical copy of each
+payload and index unit to the workspace. A read-only view presents the mirrored
+offsets for exact CPU checks before sealing. The workspace keeps the complete
+131,072-byte root area. Its byte extent is that root area plus half of the
+remaining mirrored extent. The sealed stream uses the same mapping, and the
+volume selector resolves the bound base and tail as one indexed image.
 
 The tail starts with two independently flushed 128-byte binding records at
 offsets 0 and 65,536. Both records describe the same immutable layout.
@@ -132,28 +132,34 @@ The standard native volume selector and file-session entry points delivered
 and independently reopened a cross-extent write. Both layouts use the same
 encoded data and the same selector space. The table counts that selector in
 the active footprint. The staging column also includes the old image and the
-full mirrored workspace held during the current build.
+folded workspace held during the current build.
 
 | AIT 2026 split | Active compacted mirror | Active base and tail | Staging coexistence |
 | --- | ---: | ---: | ---: |
-| A–H | 16,130,048 bytes | 10,612,736 bytes | 43,249,664 bytes |
-| I–P | 35,766,272 bytes | 22,880,256 bytes | 95,199,232 bytes |
-| A–P | 51,617,792 bytes | 32,788,480 bytes | 137,506,816 bytes |
+| A–H | 16,130,048 bytes | 10,612,736 bytes | 35,315,712 bytes |
+| I–P | 35,766,272 bytes | 22,880,256 bytes | 77,447,168 bytes |
+| A–P | 51,617,792 bytes | 32,788,480 bytes | 111,828,992 bytes |
 
-The full corpus saved 18,829,312 bytes, or 36.5% of the active mirror. The
-matched write added 180,224 bytes to each layout and left the base untouched.
+The full corpus saved 18,829,312 bytes, or 36.5% of the active mirror. Folding
+directly reduced the workspace from 51,486,720 to 25,808,896 bytes and saved
+25,677,824 bytes while the source, workspace and candidate coexisted. The
+matched write added 180,224 bytes to each layout and left the base intact.
 On the A–P small-read trace, checked data reuse cut the new layout's backing
 traffic from 37,457,920 bytes to 22,532,096 bytes. The mirror read 19,058,592
 bytes. These are matched process-local Windows traces with both read orders.
 
 The 4 KiB and 64 KiB failure-unit fixtures replayed 534 tail write and flush
 cuts. All reopened the complete old or new bytes. Another 21 binding cuts
-preserved the source. Recovery also checked one lost cold or binding unit,
-rejection after two lost units in one cold stripe, read-only rescue, and a
-same-ID base with different frozen roots. Background enrollment, incremental
+preserved the source. Nine injected failures during workspace construction
+also preserved the source and reached no base or tail writes. The 4 KiB and
+64 KiB trials compared each folded unit with both slots of a separately built
+mirror and verified exact capacity admission. Recovery checked one lost cold
+or binding unit, rejection after two lost units in one cold stripe, read-only
+rescue, and a same-ID base with different frozen roots. Background enrollment, incremental
 construction, persistent range placement and mounted performance remain
 separate qualification work.
-[Writable backing receipt](evidence/native-hybrid-backing-2026-11-22.json) ·
+[Folded staging receipt](evidence/folded-hybrid-workspace-2026-11-22.json) ·
+[Original writable backing receipt](evidence/native-hybrid-backing-2026-11-22.json) ·
 [AIT 2026 dataset](https://aitdcc.github.io/dataset.html)
 
 ## Verification on Windows

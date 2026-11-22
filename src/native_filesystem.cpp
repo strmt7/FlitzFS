@@ -1583,6 +1583,16 @@ void NativeFilesystemSnapshot::recheck_verified_indexed_mirrors(const NativeFile
     fail(Code::invalid_operation,"indexed reopen checkpoint differs from its native audit");
   impl_->objects.paged_if()->recheck_verified_mirrors(*audited.impl_->objects.paged_if());
 }
+detail::FoldedCheckpoint NativeFilesystemSnapshot::build_folded_workspace(std::shared_ptr<StoreByteIo> target,
+    StoreIdentity id,StoreCompressionOptions compression) const {
+  if(!impl_ || !impl_->indexed || impl_->sealed || needs_session_recovery())
+    fail(Code::invalid_operation,"folded workspace requires a closed mirrored indexed source");
+  verify_all();
+  const auto root=detail::rebind_indexed_volume_root(impl_->indexed->root(),id);
+  return detail::NativeObjectWriter::folded_workspace(*impl_->objects.paged_if(),std::move(target),id,root,
+      compression,detail::kIndexedVolumeIdentityOffset);
+}
+
 NativeFilesystemSnapshot NativeFilesystemSnapshot::create_sealed_indexed_copy(
     std::shared_ptr<StoreByteIo> workspace,std::shared_ptr<StoreByteIo> target,StoreIdentity id,
     std::uint64_t maximum,StoreCompressionOptions options) const {

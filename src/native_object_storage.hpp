@@ -1,6 +1,7 @@
 #pragma once
 #include "flitzfs/native_filesystem.hpp"
 #include "flitzfs/paged_store.hpp"
+#include "folded_checkpoint.hpp"
 #include <variant>
 
 namespace flitzfs::detail {
@@ -67,6 +68,11 @@ class NativeObjectWriter final {
       StoreCompressionOptions compression,std::size_t identity_offset) {
     return PagedObjectStoreWriter::rebuild_replacing(source,std::move(target),id,source.limits(),
         compression,1,root,false,identity_offset,PagedObjectStoreWriter::RebuildPayloads::sealed_workspace);
+  }
+  static FoldedCheckpoint folded_workspace(const PagedObjectStoreSnapshot& source,
+      std::shared_ptr<StoreByteIo> target,StoreIdentity id,std::span<const std::byte> root,
+      StoreCompressionOptions compression,std::size_t identity_offset) {
+    return PagedObjectStoreWriter::rebuild_folded(source,std::move(target),id,compression,root,identity_offset);
   }
   static PagedObjectStoreWriter recover_sealed(const PagedObjectStoreSnapshot& source,
       std::shared_ptr<StoreByteIo> target,StoreIdentity id,PagedStoreLimits limits,std::span<const std::byte> root,

@@ -376,6 +376,9 @@ class NativeFilesystemSnapshot final {
   friend class NativeVolumeHeadView;
   friend class NativeVolumeHeadWriter;
   friend class NativeFileSession;
+  friend class NativeHybridBacking;
+  detail::FoldedCheckpoint build_folded_workspace(std::shared_ptr<StoreByteIo>,StoreIdentity,
+      StoreCompressionOptions) const;
   void verify_all(const detail::IndexedReopenAdmission&) const;
   void recheck_verified_indexed_mirrors(const NativeFilesystemSnapshot& audited) const;
   std::shared_ptr<StoreByteIo> backing_for_volume_head() const;

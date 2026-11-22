@@ -3,6 +3,7 @@
 #include "flitzfs/native_session.hpp"
 #include "flitzfs/native_hybrid_backing.hpp"
 #include "protected_stripe_image.hpp"
+#include "folded_checkpoint.hpp"
 #include <chrono>
 #include <iostream>
 #include <numeric>
@@ -276,9 +277,37 @@ void hybrid_faults(std::uint32_t unit) {
   const auto frozen=f.base->stable;
   const auto initial_tail=f.tail->stable;
   const auto selected_head=f.head->stable;
-  require(f.tail->extent()==tail_prologue && f.hybrid->extent()==f.workspace->extent() &&
-      f.hybrid->occupied()==f.base->extent()+f.tail->extent() && f.hybrid->occupied()<f.workspace->extent(),
-      "hybrid allocation does not account for both files");
+  require(f.tail->extent()==tail_prologue && detail::folded_mirror_extent(f.hybrid->extent())==f.workspace->extent() &&
+      f.hybrid->occupied()==f.base->extent()+f.tail->extent() && f.hybrid->occupied()<f.hybrid->extent(),
+      "hybrid allocation does not account for both files and the folded workspace");
+  const auto original=NativeFilesystemSnapshot::open_image(f.source,ordinary_storage);
+  auto mirror=empty(unit);
+  {const auto writer=NativeFilesystemWriter::compact(original,mirror,id(2),raw);}
+  require(f.hybrid->extent()==mirror->extent(),"fold changed the mirrored address space");
+  require(std::ranges::equal(std::span(mirror->stable).first(prefix),std::span(f.workspace->stable).first(prefix)),
+      "folded workspace changed the root area");
+  for(std::uint64_t at=prefix;at<mirror->extent();at+=2*unit) {
+    const auto expected=std::span(mirror->stable).subspan(at,unit);
+    const auto actual=std::span(f.workspace->stable).subspan(detail::folded_mirror_offset(at,unit),unit);
+    require(std::ranges::equal(expected,actual) &&
+        std::ranges::equal(expected,std::span(mirror->stable).subspan(at+unit,unit)),
+        "folded workspace changed a payload or index unit");
+  }
+  rejects([&]{(void)NativeFilesystemSnapshot::open_image(f.workspace,ordinary_storage);},
+      "folded workspace opened as a standalone native image");
+  auto limited=empty(unit),limited_base=empty(unit),limited_tail=empty(unit);
+  limited->capacity=f.workspace->extent();
+  const auto fitted=NativeHybridBacking::create(original,limited,limited_base,limited_tail,id(2),
+      limits.maximum_physical_bytes,raw);
+  verify(NativeFilesystemSnapshot::open_image(fitted,ordinary_storage),files);
+  require(limited->extent()==limited->capacity && limited->extent()<mirror->extent(),
+      "builder required a mirrored-sized workspace");
+  auto short_workspace=empty(unit),short_base=empty(unit),short_tail=empty(unit);
+  short_workspace->capacity=limited->capacity-1;
+  rejects([&]{(void)NativeHybridBacking::create(original,short_workspace,short_base,short_tail,id(2),
+      limits.maximum_physical_bytes,raw);},"insufficient folded workspace was accepted");
+  require(!short_workspace->writes && !short_base->writes && !short_tail->writes,
+      "folded capacity refusal attempted writes");
   const auto prior=NativeFilesystemSnapshot::open_image(f.hybrid,ordinary_storage);
   verify(prior,files);
   rejects([&]{(void)reopen_hybrid(f.base,f.tail);},"used a second hybrid owner");
@@ -361,7 +390,8 @@ void hybrid_faults(std::uint32_t unit) {
       "same image ID with different frozen roots supplied a base");
   require(!same_id_different_base->writes && !untouched_tail->writes,"failed hybrid identity check attempted writes");
   std::cout<<"hybrid_tail_cuts unit="<<unit<<" attempted="<<3*calls<<" old_exact="<<old_count
-      <<" new_exact="<<new_count<<" base_unchanged=1 read_only_rescue=1 recovered_to_mirror=1\n";
+      <<" new_exact="<<new_count<<" base_unchanged=1 read_only_rescue=1 recovered_to_mirror=1"
+      <<" exact_fold_verified=1 folded_capacity_admitted=1\n";
 }
 
 void interrupted_hybrid_binding() {
@@ -370,6 +400,21 @@ void interrupted_hybrid_binding() {
   HybridFixture fixture(files,unit,raw);
   const auto original=NativeFilesystemSnapshot::open_image(fixture.source,ordinary_storage);
   const auto original_bytes=fixture.source->stable;
+  const auto scratch_calls=fixture.workspace->calls;
+  require(scratch_calls>4,"folded workspace had no staged writes");
+  unsigned scratch_cuts=0;
+  for(unsigned failure=0;failure<3;++failure)
+    for(const auto cut:{std::size_t{0},scratch_calls/2,scratch_calls-1}) {
+      auto workspace=empty(unit),base=empty(unit),tail=empty(unit);
+      workspace->failure=failure;
+      workspace->fail_at=cut;
+      rejects([&]{(void)NativeHybridBacking::create(original,workspace,base,tail,id(3),
+          limits.maximum_physical_bytes,raw);},"failed workspace reached sealing");
+      require(!base->writes && !tail->writes && fixture.source->live==original_bytes &&
+          fixture.source->stable==original_bytes,"failed folded workspace affected selected or sealed data");
+      ++scratch_cuts;
+    }
+  std::cout<<"folded_workspace_cuts attempted="<<scratch_cuts<<" prior_intact=1 no_sealed_writes=1\n";
   const auto calls=fixture.bootstrap_calls;
   require(calls==7,"hybrid mapping publication call count changed");
   unsigned incomplete=0,complete=0;
@@ -408,7 +453,12 @@ void profile_hybrid(const std::filesystem::path& corpus,bool mirror_first) {
   constexpr StoreCompressionOptions policy{StoreCompressionMode::automatic,3,true};
   const auto files=read_packed_corpus(corpus,true);
   HybridFixture f(files,unit,policy);
-  const auto reference=NativeFilesystemSnapshot::open_image(f.workspace,ordinary_storage);
+  auto mirrored=empty(unit);
+  {
+    const auto original=NativeFilesystemSnapshot::open_image(f.source,ordinary_storage);
+    const auto built=NativeFilesystemWriter::compact(original,mirrored,id(2),policy);
+  }
+  const auto reference=NativeFilesystemSnapshot::open_image(mirrored,ordinary_storage);
   const auto mapped=NativeFilesystemSnapshot::open_image(f.hybrid,ordinary_storage);
   const auto hybrid_reads=[&] {
     const auto before=f.tail->read_bytes;
@@ -418,17 +468,18 @@ void profile_hybrid(const std::filesystem::path& corpus,bool mirror_first) {
   };
   Reads reference_reads,mapped_reads;
   if(mirror_first) {
-    reference_reads=measure_reads(reference,*f.workspace,files);
+    reference_reads=measure_reads(reference,*mirrored,files);
     mapped_reads=hybrid_reads();
   }else {
     mapped_reads=hybrid_reads();
-    reference_reads=measure_reads(reference,*f.workspace,files);
+    reference_reads=measure_reads(reference,*mirrored,files);
   }
   verify(reference,files);
   verify(mapped,files);
-  const auto mirror=f.workspace->extent(),combined=f.hybrid->occupied(),frozen=f.base->extent();
-  const auto retained=f.source->extent(),selector=f.head->extent();
-  const auto staged_total=retained+selector+mirror+combined;
+  const auto mirror=mirrored->extent(),combined=f.hybrid->occupied(),frozen=f.base->extent();
+  const auto retained=f.source->extent(),selector=f.head->extent(),workspace=f.workspace->extent();
+  const auto staged_total=retained+selector+workspace+combined;
+  require(workspace==detail::folded_mirror_extent(mirror),"profile workspace did not fold the mirror");
   auto reference_head=empty(unit);
   {
     const auto source=NativeFilesystemSnapshot::open_image(f.source,ordinary_storage);
@@ -440,16 +491,16 @@ void profile_hybrid(const std::filesystem::path& corpus,bool mirror_first) {
   const auto patch=data(3'988,193);
   std::ranges::copy(patch,expected[0].begin()+kNativeExtentBytes-31);
   const auto frozen_writes=f.base->writes;
-  (void)apply_hybrid_patch(reference_head,f.workspace,*f.workspace,patch,policy);
+  (void)apply_hybrid_patch(reference_head,mirrored,*mirrored,patch,policy);
   (void)apply_hybrid_patch(f.head,f.hybrid,*f.tail,patch,policy);
   const auto reopened=reopen_hybrid(image(f.base->stable,unit),image(f.tail->stable,unit));
   verify(NativeFilesystemSnapshot::open_image(reopened,ordinary_storage),expected);
-  verify(NativeFilesystemSnapshot::open_image(f.workspace,ordinary_storage),expected);
+  verify(NativeFilesystemSnapshot::open_image(mirrored,ordinary_storage),expected);
   require(f.base->extent()==frozen && f.base->writes==frozen_writes,"public data patch wrote a cold region");
   std::cout<<"hybrid_profile files="<<files.size()<<" mirror_bytes="<<mirror
-      <<" hybrid_bytes="<<combined<<" cold_bytes="<<frozen<<" mirror_after_write="<<f.workspace->extent()
+      <<" hybrid_bytes="<<combined<<" cold_bytes="<<frozen<<" mirror_after_write="<<mirrored->extent()
       <<" hybrid_after_write="<<reopened->occupied()<<" selector_bytes="<<selector
-      <<" retained_source_bytes="<<retained<<" staged_total_bytes="<<staged_total
+      <<" retained_source_bytes="<<retained<<" workspace_bytes="<<workspace<<" staged_total_bytes="<<staged_total
       <<" mirror_first="<<mirror_first<<" mirror_range_read_bytes="<<reference_reads.backing_bytes
       <<" hybrid_range_read_bytes="<<mapped_reads.backing_bytes
       <<" mirror_range_ns="<<reference_reads.elapsed_ns<<" hybrid_range_ns="<<mapped_reads.elapsed_ns

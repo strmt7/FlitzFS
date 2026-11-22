@@ -6,6 +6,7 @@
 
 namespace flitzfs {
 namespace detail {
+struct FoldedCheckpoint;
 class IndexedSharedBasePreparation;
 class IndexedVolumeView;
 class NativeNameIndex;
@@ -230,6 +231,9 @@ class PagedObjectStoreWriter final {
       std::shared_ptr<StoreByteIo>,StoreIdentity,PagedStoreLimits,StoreCompressionOptions,
       std::uint64_t replacement_id,std::span<const std::byte> replacement,bool reencode,
       std::size_t identity_offset=40,RebuildPayloads=RebuildPayloads::preserve);
+  static detail::FoldedCheckpoint rebuild_folded(const PagedObjectStoreSnapshot&,
+      std::shared_ptr<StoreByteIo>,StoreIdentity,StoreCompressionOptions,
+      std::span<const std::byte> rebound_root,std::size_t identity_offset);
   PagedObjectStoreSnapshot snapshot_impl(bool retain_tree_root) const;
   PagedObjectStoreSnapshot snapshot_for_staging(bool query_cache=false) const;
   // Borrowed by serialized indexed queries. Independent snapshots and staged

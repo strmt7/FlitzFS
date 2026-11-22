@@ -1,5 +1,6 @@
 #include "flitzfs/paged_store.hpp"
 #include "record_digest.hpp"
+#include "folded_checkpoint.hpp"
 #include "protected_stripe_image.hpp"
 #include "native_lz4_read.hpp"
 #include "store_codec.hpp"
@@ -553,10 +554,11 @@ void zeros(StoreByteIo& io,std::uint64_t at,std::uint64_t end) {
   while(at<end) {const auto size=static_cast<std::size_t>((std::min)(end-at,std::uint64_t(page_bytes)));
     io.write_exact(at,std::span<const std::byte>(b).first(size));at+=size;}
 }
-void publish_roots(const State& s) {
-  s.image->write_exact(s.checkpoint%2*kStoreCommitUnit,root_bytes(s,s.checkpoint));s.image->flush();
-  s.image->write_exact((s.checkpoint+1)%2*kStoreCommitUnit,root_bytes(s,s.checkpoint+1));s.image->flush();
+void publish_roots(const State& s,StoreByteIo& output) {
+  output.write_exact(s.checkpoint%2*kStoreCommitUnit,root_bytes(s,s.checkpoint));output.flush();
+  output.write_exact((s.checkpoint+1)%2*kStoreCommitUnit,root_bytes(s,s.checkpoint+1));output.flush();
 }
+void publish_roots(const State& s) {publish_roots(s,*s.image);}
 void publish(const State& s) {s.image->flush();publish_roots(s);}
 // Pack logical record streams across paired isolation units. Every primary
 // chunk occupies an even unit and its peer the following odd unit. Padding is sealed before metadata;
@@ -580,8 +582,19 @@ struct PayloadAllocation {
     if(used){bank=next-used;unit=s.unit;cursor=add(bank,2ULL*unit);}
     else {unit=0;cursor=next;}
   }
-  void write_padding(StoreByteIo& image) {
-    for(const auto& [begin,end]:padding)zeros(image,begin,end);padding.clear();
+  void write_padding(StoreByteIo& image,std::uint32_t folded_unit=0) {
+    for(const auto& [begin,end]:padding) {
+      if(!folded_unit)zeros(image,begin,end);
+      else {
+        if(begin<start || end-begin>folded_unit-begin%folded_unit)
+          fail("invalid folded payload padding");
+        if((begin/folded_unit)%2==0) {
+          const auto first=detail::folded_mirror_offset(begin,folded_unit);
+          zeros(image,first,first+(end-begin));
+        }
+      }
+    }
+    padding.clear();
   }
 };
 void write_object_record(StoreByteIo& image,const Entry& e,std::span<const std::byte> header,
@@ -626,14 +639,17 @@ void write_page(const State& state,const PreparedPage& page) {
   state.image->write_exact(page.ref.primary,bytes);
   state.image->write_exact(page.ref.peer,bytes);
 }
-void pad_index(const State& state,std::uint64_t pages) {
+void pad_index(const State& state,std::uint64_t pages,StoreByteIo* folded=nullptr) {
   const auto unit=state.unit;
   const auto used=(pages%(unit/state.metadata_bytes))*state.metadata_bytes;
   if(!used)return;
   const auto peer_start=state.end-unit;
   const auto primary_start=peer_start-unit;
-  zeros(*state.image,primary_start+used,peer_start);
-  zeros(*state.image,peer_start+used,state.end);
+  if(folded)zeros(*folded,detail::folded_mirror_offset(primary_start+used,unit),detail::folded_mirror_extent(state.end));
+  else {
+    zeros(*state.image,primary_start+used,peer_start);
+    zeros(*state.image,peer_start+used,state.end);
+  }
 }
 struct PreparedObject {Entry entry;RecordHeader header{};Bytes payload;};
 PreparedObject prepare_object(const State& state,detail::StoreCodecEncoder& encoder,
@@ -861,8 +877,46 @@ struct TreeDifference {
 // Bulk construction keeps one unfinished leaf plus <=35 child references per
 // level. Completed pages stream directly to the unpublished target. It does not
 // retain a page plan or object inventory proportional to the source volume.
+class FoldedRebuildView final : public StoreByteIo {
+ public:
+  FoldedRebuildView(std::shared_ptr<StoreByteIo> workspace,std::uint32_t unit,std::uint64_t limit)
+      :workspace_(std::move(workspace)),unit_(unit),limit_(limit) {}
+  std::uint64_t extent() const override {
+    const auto physical=workspace_->extent();
+    if(physical<start || physical>detail::folded_mirror_extent(limit_))fail("folded workspace extent");
+    return start+2*(physical-start);
+  }
+  void read_exact(std::uint64_t at,std::span<std::byte> output) const override {
+    if(at>limit_ || output.size()>limit_-at)fail("folded workspace read bounds");
+    if(at<start && !output.empty()) {
+      const auto count=(std::min<std::uint64_t>)(output.size(),start-at);
+      workspace_->read_exact(at,output.first(count));
+      output=output.subspan(count);
+      at+=count;
+    }
+    while(!output.empty()) {
+      const auto count=(std::min<std::uint64_t>)(output.size(),unit_-at%unit_);
+      workspace_->read_exact(detail::folded_mirror_offset(at,unit_),output.first(count));
+      output=output.subspan(count);
+      at+=count;
+    }
+  }
+  StoreIoContract contract() const noexcept override {return {};}
+  void write_exact(std::uint64_t,std::span<const std::byte>) override {fail("read-only folded workspace view");}
+  void admit_write(std::uint64_t) override {fail("read-only folded workspace view");}
+  void flush() override {fail("read-only folded workspace view");}
+ private:
+  bool allows_writer() const noexcept override {return false;}
+  std::shared_ptr<StoreByteIo> workspace_;
+  const std::uint32_t unit_;
+  const std::uint64_t limit_;
+};
+
 struct Rebuild {
   State next;
+  // The folded output is private workspace. The ordinary indexed reader
+  // sees only its checked, read-only virtual mapping.
+  StoreByteIo* folded=nullptr;
   std::uint64_t payload_cursor=start,index_start=0,index_cursor=start,pages=0;
   PayloadAllocation allocation;
   // Bind the index pass to the headers generated and verified during copy.
@@ -871,25 +925,39 @@ struct Rebuild {
   Node leaf;
   std::array<Node,maximum_height+1> levels;
 
+  void admit_target(std::uint64_t end) {
+    if(folded)folded->admit_write(detail::folded_mirror_extent(end));
+    else next.image->admit_write(end);
+  }
+  void write_padding() {
+    if(folded)allocation.write_padding(*folded,next.unit);
+    else allocation.write_padding(*next.image);
+  }
   void append_payload(Entry& entry,const RecordHeader& header,std::span<const std::byte> encoded,
       const Bytes& decoded) {
     allocation.place(next,entry,std::uint64_t{record_header_bytes}+entry.stored,payload_cursor);
     if(payload_cursor>next.limits.maximum_physical_bytes)capacity("rebuild capacity");
-    next.image->admit_write(payload_cursor);
-    allocation.write_padding(*next.image);
-    write_object_record(*next.image,entry,header,encoded,next.unit);
+    admit_target(payload_cursor);
+    write_padding();
+    if(folded) {
+      const auto offset=detail::folded_mirror_offset(entry.offset,next.unit);
+      folded->write_exact(offset,header);
+      if(!encoded.empty())folded->write_exact(offset+header.size(),encoded);
+    }else write_object_record(*next.image,entry,header,encoded,next.unit);
     if(read_object(next,entry)!=decoded)fail("rebuild CPU comparison");
-    if(next.mirrored)verify_object(next,entry);
+    if(next.mirrored && !folded)verify_object(next,entry);
     if(next.degraded_payloads)fail("rebuild produced degraded payload replicas");
     written_headers=detail::record_digest(written_headers,header);
   }
   void finish_payloads() {
     index_start=align(payload_cursor,next.unit);
     if(index_start>next.limits.maximum_physical_bytes)capacity("rebuild capacity");
-    next.image->admit_write(index_start);
+    admit_target(index_start);
     allocation.seal();
-    allocation.write_padding(*next.image);
-    zeros(*next.image,payload_cursor,index_start);
+    write_padding();
+    if(folded) {
+      if(payload_cursor!=index_start)fail("folded payload alignment changed");
+    }else zeros(*next.image,payload_cursor,index_start);
   }
   Entry index_record() {
     const auto unit=next.mirrored?next.unit:0;
@@ -927,8 +995,10 @@ struct Rebuild {
     const auto next_pages=add(pages,1);
     const auto end=add(index_start,paired_bank_bytes(multiply(next_pages,next.metadata_bytes),next.unit));
     if(end>next.limits.maximum_physical_bytes)capacity("rebuild capacity");
-    next.image->admit_write(end);
-    write_page(next,page);
+    admit_target(end);
+    if(folded)folded->write_exact(detail::folded_mirror_offset(page.ref.primary,next.unit),
+        std::span<const std::byte>(page.bytes).first(next.metadata_bytes));
+    else write_page(next,page);
     pages=next_pages;
     next.end=end;
     return page.ref;
@@ -959,7 +1029,7 @@ struct Rebuild {
     next.root=finish_tree();
     if(next.end!=packed_rebuild_size(next,next.root.count,next.root.stored))
       fail("rebuild packed size differs from index totals");
-    pad_index(next,pages);
+    pad_index(next,pages,folded);
   }
 };
 PreparedObject prepare_rebuilt_object(const State& target,const Entry& source_entry,ObjectRecord source_record,
@@ -1800,22 +1870,10 @@ PagedObjectStoreWriter PagedObjectStoreWriter::rebuild(const PagedObjectStoreSna
     std::shared_ptr<StoreByteIo> target,StoreIdentity id,PagedStoreLimits limits,StoreCompressionOptions options) {
   return rebuild_replacing(source,std::move(target),id,limits,options,0,{},true);
 }
-PagedObjectStoreWriter PagedObjectStoreWriter::rebuild_replacing(const PagedObjectStoreSnapshot& source,
-    std::shared_ptr<StoreByteIo> target,StoreIdentity id,PagedStoreLimits limits,StoreCompressionOptions options,
-    std::uint64_t replacement_id,std::span<const std::byte> replacement,bool reencode,std::size_t identity_offset,
-    RebuildPayloads protection) {
-  if(!source.impl_)fail("moved-from rebuild source");admit_limits(limits);
-  const auto& original=source.impl_->state;
-  const bool workspace=protection==RebuildPayloads::sealed_workspace;
-  const bool recovering=protection==RebuildPayloads::mirrored_recovery;
-  if(workspace && (!original.mirrored || !replacement_id || reencode))
-    fail("sealed workspace requires a mirrored identity-only source");
-  if(recovering!=source.impl_->sealed_payloads || (recovering && !replacement_id))
-    fail("rebuild requires an explicit sealed recovery source");
-  if(zero(id) || id==original.id)fail("rebuild requires a new nonzero identity");
-  // Rebuild reads the source under an exclusive lease. A read-only or
-  // degraded source can supply bytes to a new target after verification.
-  Impl::Lease source_lease(original.image,true);
+namespace {
+State rebuild_checkpoint(const State& original,const std::shared_ptr<StoreByteIo>& target,StoreIdentity id,
+    PagedStoreLimits limits,detail::StoreCodecEncoder& encoder,std::uint64_t replacement_id,
+    std::span<const std::byte> replacement,bool reencode,std::size_t identity_offset,bool mirrored,bool folded) {
   auto observed=load(original.image,original.limits);
   if(!same(original,observed))fail("rebuild source is not the current checkpoint");
   const auto source_extent=original.image->extent();
@@ -1823,8 +1881,8 @@ PagedObjectStoreWriter PagedObjectStoreWriter::rebuild_replacing(const PagedObje
   if(replacement_id) {
     const auto entry=lookup(original,replacement_id);
     if(!entry || replacement.size()!=entry->logical)fail("rebuild replacement identity/length");
-    // Native rebinding changes only the fixed identity field; reject a stale
-    // caller's metadata before creating any target records.
+    // Native rebinding changes only the fixed identity field. Validate the
+    // current metadata before any target writes.
     auto expected=read_object(original,*entry);
     if(identity_offset>expected.size() || id.size()>expected.size()-identity_offset)
       fail("rebuild replacement framing");
@@ -1834,23 +1892,31 @@ PagedObjectStoreWriter PagedObjectStoreWriter::rebuild_replacing(const PagedObje
     replaced_stored=entry->stored;
     verify(original);
   }
-  auto p=std::make_unique<Impl>(target,options);admit_contract(target->contract());
+  admit_contract(target->contract());
   if(target->extent())fail("rebuild requires an empty target");
-  Rebuild build;build.next.image=target;build.next.limits=limits;build.next.id=id;
-  build.next.mirrored=recovering || (original.mirrored && !workspace);
+  Rebuild build;
+  build.next.limits=limits;
+  build.next.id=id;
+  build.next.mirrored=mirrored;
   build.next.metadata_bytes=original.metadata_bytes;
-  build.next.generation=add(original.generation,2);build.next.checkpoint=original.generation+1;
+  build.next.generation=add(original.generation,2);
+  build.next.checkpoint=original.generation+1;
   build.next.unit=(std::max)(static_cast<std::uint32_t>(page_bytes),target->contract().write_failure_unit_bytes);
+  if(folded) {
+    build.folded=target.get();
+    build.next.image=std::make_shared<FoldedRebuildView>(target,build.next.unit,limits.maximum_physical_bytes);
+  }else build.next.image=target;
   if(!reencode) {
-    const auto rebound=replacement_id?p->encoder.encode(Bytes(replacement.begin(),replacement.end())).payload.size():0;
+    const auto rebound=replacement_id?encoder.encode(Bytes(replacement.begin(),replacement.end())).payload.size():0;
     const auto projected_stored=add(original.root.stored-replaced_stored,rebound);
     const auto projected=packed_rebuild_size(build.next,original.root.count,projected_stored);
     check_physical_capacity(projected,limits.maximum_physical_bytes);
-    target->admit_write(projected);
-  }else target->admit_write(start+2*build.next.unit);
+    build.admit_target(projected);
+  }else build.admit_target(start+2*build.next.unit);
   zeros(*target,0,start);
   auto visitor=[&](const Entry& source_entry) {
-    copy_rebuild_object(build,original,source_entry,p->encoder,replacement_id,replacement,reencode);return true;
+    copy_rebuild_object(build,original,source_entry,encoder,replacement_id,replacement,reencode);
+    return true;
   };
   bool done=false;
   (void)read_node(original,original.root);
@@ -1860,17 +1926,62 @@ PagedObjectStoreWriter PagedObjectStoreWriter::rebuild_replacing(const PagedObje
   build.finish();
   if(build.next.root.count!=original.root.count || build.next.root.logical!=original.root.logical)
     fail("rebuild inventory mismatch");
-  target->flush();verify(build.next);
-  if(build.next.degraded_metadata || build.next.degraded_payloads)fail("rebuild produced degraded target replicas");
+  if(folded && target->extent()!=detail::folded_mirror_extent(build.next.end))
+    fail("folded workspace length differs from the indexed checkpoint");
+  target->flush();
+  verify(build.next);
+  if(build.next.degraded_metadata || build.next.degraded_payloads)fail("rebuild produced degraded target");
   if(replacement_id)verify(original);
   if(!same(original,load(original.image,original.limits)) || original.image->extent()!=source_extent)
     fail("rebuild source changed before publication");
-  publish_roots(build.next);
-  auto published=load(target,limits);verify(published);
+  publish_roots(build.next,*target);
+  auto published=load(build.next.image,limits);
+  verify(published);
   if(!same(build.next,published) || published.degraded_roots || published.degraded_metadata || published.degraded_payloads)
     fail("rebuild published checkpoint failed independent verification");
-  p->state=std::move(published);p->append_floor=p->state.end;
+  return published;
+}
+} // namespace
+
+PagedObjectStoreWriter PagedObjectStoreWriter::rebuild_replacing(const PagedObjectStoreSnapshot& source,
+    std::shared_ptr<StoreByteIo> target,StoreIdentity id,PagedStoreLimits limits,StoreCompressionOptions options,
+    std::uint64_t replacement_id,std::span<const std::byte> replacement,bool reencode,std::size_t identity_offset,
+    RebuildPayloads protection) {
+  if(!source.impl_)fail("moved-from rebuild source");
+  admit_limits(limits);
+  const auto& original=source.impl_->state;
+  const bool workspace=protection==RebuildPayloads::sealed_workspace;
+  const bool recovering=protection==RebuildPayloads::mirrored_recovery;
+  if(workspace && (!original.mirrored || !replacement_id || reencode))
+    fail("sealed workspace requires a mirrored identity-only source");
+  if(recovering!=source.impl_->sealed_payloads || (recovering && !replacement_id))
+    fail("rebuild requires an explicit sealed recovery source");
+  if(zero(id) || id==original.id)fail("rebuild requires a new nonzero identity");
+  // Allow exact reconstruction to a fresh target even if the source can
+  // only provide an exclusive read lease.
+  Impl::Lease source_lease(original.image,true);
+  auto p=std::make_unique<Impl>(target,options);
+  p->state=rebuild_checkpoint(original,target,id,limits,p->encoder,replacement_id,replacement,
+      reencode,identity_offset,recovering || (original.mirrored && !workspace),false);
+  p->append_floor=p->state.end;
   return PagedObjectStoreWriter(std::move(p));
+}
+
+detail::FoldedCheckpoint PagedObjectStoreWriter::rebuild_folded(const PagedObjectStoreSnapshot& source,
+    std::shared_ptr<StoreByteIo> target,StoreIdentity id,StoreCompressionOptions compression,
+    std::span<const std::byte> rebound_root,std::size_t identity_offset) {
+  if(!source.impl_ || source.impl_->sealed_payloads || !source.impl_->state.mirrored ||
+      zero(id) || id==source.impl_->state.id || rebound_root.empty())
+    fail("folded workspace requires fresh identity and a checked mirrored source");
+  const auto& original=source.impl_->state;
+  admit_limits(original.limits);
+  Impl::Lease source_lease(original.image,true),target_lease(target);
+  detail::StoreCodecEncoder encoder(compression);
+  const auto state=rebuild_checkpoint(original,target,id,original.limits,encoder,1,rebound_root,
+      false,identity_offset,true,true);
+  const auto even=root_bytes(state,state.generation%2?state.checkpoint:state.generation);
+  const auto odd=root_bytes(state,state.generation%2?state.generation:state.checkpoint);
+  return {state.end,state.generation,state.unit,detail::record_digest(even,odd)};
 }
 PagedStoreInfo PagedObjectStoreWriter::commit(std::span<const StoreMutation> mutations) {
   return commit_with_write_budget(mutations,(std::numeric_limits<std::uint64_t>::max)()).storage;

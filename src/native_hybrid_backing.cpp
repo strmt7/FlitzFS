@@ -1,4 +1,5 @@
 #include "flitzfs/native_hybrid_backing.hpp"
+#include "folded_checkpoint.hpp"
 #include "protected_stripe_image.hpp"
 #include <algorithm>
 #include <bit>
@@ -14,7 +15,7 @@ namespace {
 using detail::Digest;
 using detail::ProtectedStripeImage;
 using Bytes=std::vector<std::byte>;
-constexpr std::uint64_t roots=2*kStoreCommitUnit,tail_start=2*roots;
+constexpr std::uint64_t roots=detail::kFoldedMirrorRoots,tail_start=2*roots;
 constexpr std::size_t root_size=detail::kPagedStoreCheckpointWriteBytes/2;
 constexpr std::uint64_t maximum_io=static_cast<std::uint64_t>((std::numeric_limits<std::int64_t>::max)());
 constexpr std::string_view binding_magic="FLTXHB01";
@@ -29,7 +30,7 @@ struct Binding {
   std::uint64_t virtual_limit=0;
   bool operator==(const Binding&) const=default;
 
-  std::uint64_t folded_extent() const noexcept {return roots+(base_end-roots)/2;}
+  std::uint64_t folded_extent() const noexcept {return detail::folded_mirror_extent(base_end);}
 };
 
 std::uint64_t get64(std::span<const std::byte> bytes,std::size_t offset) noexcept {
@@ -95,45 +96,6 @@ Digest root_binding(const StoreByteIo& source) {
   return detail::record_digest(first,second);
 }
 
-// Read the closed workspace as one copy of each equal pair. Validate the
-// bytes being dropped, including padding and metadata alongside payloads.
-class FoldedMirror final : public StoreByteIo {
- public:
-  FoldedMirror(const StoreByteIo& source,const Binding& binding)
-      :source_(source),size_(binding.folded_extent()),unit_(binding.unit),peer_(unit_) {}
-  std::uint64_t extent() const override {return size_;}
-  void read_exact(std::uint64_t offset,std::span<std::byte> output) const override {
-    if(offset>size_ || output.size()>size_-offset)fail("folded mirror read bounds");
-    if(offset<roots && !output.empty()) {
-      const auto count=(std::min<std::uint64_t>)(output.size(),roots-offset);
-      source_.read_exact(offset,output.first(count));
-      output=output.subspan(count);
-      offset+=count;
-    }
-    while(!output.empty()) {
-      const auto relative=offset-roots;
-      const auto within=relative%unit_;
-      const auto first=roots+2*(relative-within)+within;
-      const auto count=(std::min<std::uint64_t>)(output.size(),unit_-within);
-      const auto other=std::span(peer_).first(count);
-      source_.read_exact(first,output.first(count));
-      source_.read_exact(first+unit_,other);
-      if(!std::ranges::equal(output.first(count),other))fail("compacted mirror pairs differ");
-      output=output.subspan(count);
-      offset+=count;
-    }
-  }
-  StoreIoContract contract() const noexcept override {return {};}
-  void write_exact(std::uint64_t,std::span<const std::byte>) override {fail("immutable folded mirror");}
-  void admit_write(std::uint64_t) override {fail("immutable folded mirror");}
-  void flush() override {fail("immutable folded mirror");}
-
- private:
-  bool allows_writer() const noexcept override {return false;}
-  const StoreByteIo& source_;
-  const std::uint64_t size_,unit_;
-  mutable Bytes peer_;
-};
 } // namespace
 
 struct NativeHybridBacking::Impl {
@@ -210,30 +172,26 @@ std::shared_ptr<NativeHybridBacking> NativeHybridBacking::create(const NativeFil
     fail("hybrid creation needs a closed indexed source and three qualified empty backings");
   const auto unit=(std::max<std::uint64_t>)(root_size,workspace->contract().write_failure_unit_bytes);
   if(tail->contract().write_failure_unit_bytes>unit)fail("hybrid tail needs the compacted mirror's failure unit");
-  {
-    const auto prepared=NativeFilesystemWriter::compact(source,workspace,identity,compression);
-  }
-  const Impl::Lease workspace_owner(workspace,false);
-  const auto packed=NativeFilesystemSnapshot::open_image(workspace,source_storage);
-  if(packed.identity()!=identity || packed.storage_info().physical_end!=workspace->extent())
-    fail("hybrid workspace checkpoint differs");
-  Binding binding{unit,workspace->extent(),0,identity,root_binding(*workspace),source_storage.maximum_physical_bytes};
+  const auto packed=source.build_folded_workspace(workspace,identity,compression);
+  Binding binding{packed.unit,packed.virtual_end,0,identity,packed.roots,source_storage.maximum_physical_bytes};
   check_geometry(binding);
+  if(binding.unit!=unit || binding.folded_extent()!=workspace->extent())
+    fail("hybrid folded workspace checkpoint differs");
   binding.base_occupied=ProtectedStripeImage::projected_occupied(identity,binding.folded_extent(),
       base->contract().write_failure_unit_bytes,physical_limit-tail_start);
   if(binding.base_occupied+tail_start>=binding.base_end)
     fail("hybrid base and tail do not reduce the protected footprint");
 
-  const auto folded=std::make_shared<FoldedMirror>(*workspace,binding);
-  const auto sealed=ProtectedStripeImage::seal(folded,base,identity,physical_limit-tail_start);
-  if(sealed->occupied()!=binding.base_occupied)fail("hybrid base footprint changed");
+  const auto sealed=ProtectedStripeImage::seal(workspace,base,identity,physical_limit-tail_start);
+  if(sealed->occupied()!=binding.base_occupied || root_binding(*sealed)!=binding.frozen_roots)
+    fail("hybrid checked base differs from the staged checkpoint");
   {
     const Impl::Lease tail_owner(tail,true);
     if(tail->extent())fail("hybrid tail is no longer empty");
     tail->admit_write(tail_start);
     Bytes bytes(roots);
     tail->write_exact(0,bytes);
-    workspace->read_exact(0,bytes);
+    sealed->read_exact(0,bytes);
     tail->write_exact(roots,bytes);
     tail->flush();
     Bytes copied(roots);
@@ -249,7 +207,7 @@ std::shared_ptr<NativeHybridBacking> NativeHybridBacking::create(const NativeFil
   auto checked=NativeFilesystemSnapshot::open_image(result,source_storage);
   checked.verify_all();
   if(result->backing_degraded() || checked.storage_info().degraded_checkpoint ||
-      checked.storage_info().generation!=packed.storage_info().generation)
+      checked.storage_info().generation!=packed.generation)
     fail("hybrid checkpoint did not verify after publication");
   return result;
 }
@@ -271,10 +229,8 @@ void NativeHybridBacking::read_exact(std::uint64_t at,std::span<std::byte> outpu
     at+=count;
   }
   while(!output.empty() && at<binding.base_end) {
-    const auto relative=at-roots;
-    const auto within=relative%binding.unit;
-    const auto count=(std::min<std::uint64_t>)(output.size(),binding.unit-within);
-    const auto folded=roots+(relative/(2*binding.unit))*binding.unit+within;
+    const auto count=(std::min<std::uint64_t>)(output.size(),binding.unit-at%binding.unit);
+    const auto folded=detail::folded_mirror_offset(at,binding.unit);
     try {state.base->read_exact(folded,output.first(count));}
     catch(const std::bad_alloc&){throw;}
     catch(const std::exception&){state.degraded=true;throw;}
