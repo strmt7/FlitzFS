@@ -96,8 +96,53 @@ before a write. The callback fixture also passed under AddressSanitizer.
 | AIT A prefix | 2.018 s | 0.248 ms |
 
 These single observations include concurrent build activity. The exchange
-covers child setup, device work, transport, verification and retirement. The
-next qualification should reuse the existing prepared exchange lifecycle,
-measure how often anticipatory batches finish before demand, and compare
-complete costs for sustained ordinary Windows reads.
+covers child setup, device work, transport, verification and retirement.
 [Isolated-worker verification](evidence/native-amd-lz4-ipc-2026-11-22.json)
+
+## Prepared native reads
+
+The indexed session can capture one owned encoded LZ4 record for a readable
+file handle and an offset. It verifies the selected namespace, object bounds
+and stored digest without decoding the payload. The caller sets the encoded
+byte grant. Holes, unsupported records, insufficient grants and damaged
+primary records skip capture. Ordinary reads still handle mirror recovery.
+The ready key binds the image, object, generation, decoded length and digest.
+A foreground write can invalidate a capture immediately through that key.
+
+The prepared worker uses the existing one-request sized exchange. The child
+verifies the runtime, adapter, memory grant and device module, then creates
+its stream and reserves the admitted slab before signalling readiness. It
+accepts a single exact-size request for the prepared channel. Each dispatch
+still checks live memory and the entire completion. The parent waits for
+both the child and supervisor to retire before accepting decoded bytes.
+An unused ready worker can discard the lease and release its resources
+without dispatching. CPU demand reads proceed while setup is pending.
+
+### Windows host measurements
+
+Two alternating cold and prepared pairs ran for synthetic extents and the
+131,035-byte prefix of AIT file A on a Radeon RX 9070 XT. Each run captured
+two records and decoded them in two dispatches. These are rounded
+process-local timings from the instrumented memory-backed fixture.
+
+| Workload | Cold exchange | Prepared startup | After prepared submission | Frame capture | Paired CPU reads |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Synthetic | 657–721 ms | 613–655 ms | 34–36 ms | 36–40 µs | 117–136 µs |
+| AIT A prefix | 654–854 ms | 654–791 ms | 37–45 ms | 70–75 µs | 163–297 µs |
+
+Startup includes transport and preparation through the observed ready
+signal. After-submission time includes the request, GPU work, verification
+and exact retirement. Every successful trial delivered both byte-exact decoded
+frames through the native indexed reader. The prepared route reserved 256 KiB
+of device slab space for this fixture. A discarded ready worker published
+nothing, and a wrong module digest refused before HIP work. Both cases
+retained exact CPU readback.
+
+The measured two-frame reads favor CPU. Automatic admission needs the
+completion rate before demand, total startup and resident resource costs,
+and paired end-to-end timings for larger sequential windows. Batching
+transfers and retaining allocations across admitted work can amortize fixed
+costs. Evaluate those changes on the same production read path.
+[Prepared native read verification](evidence/prepared-amd-lz4-reads-2026-11-22.json) ·
+[AMD HIP performance guidance](https://rocm.docs.amd.com/projects/HIP/en/latest/how-to/performance_guidelines.html) ·
+[AMD asynchronous execution](https://rocm.docs.amd.com/projects/HIP/en/latest/how-to/hip_runtime_api/asynchronous.html)

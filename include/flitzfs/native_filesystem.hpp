@@ -618,6 +618,8 @@ class NativeFilesystemWriter final {
   std::vector<NativeFileInfo> inspect_directory(std::uint64_t inode) const;
   std::vector<std::byte> read_inode(std::uint64_t inode,
       std::uint64_t offset,std::uint32_t bytes,detail::NativeLz4ReadRoute* route=nullptr) const;
+  bool capture_native_lz4(std::uint64_t inode,std::uint64_t offset,std::size_t maximum_encoded,
+      detail::NativeLz4CapturedFrame&) const;
   // Real shared-image barrier; pre/post namespace verification, no publication.
   NativeFsCommit flush();
   NativeFilesystemSnapshot snapshot() const;

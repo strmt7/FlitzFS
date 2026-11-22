@@ -48,24 +48,12 @@ std::filesystem::path module_path(HMODULE module) {
   return path;
 }
 
-struct CapturedFrame {
-  NativeLz4ReadKey key;
-  Bytes encoded;
-};
 class ReadRoute final:public NativeLz4ReadRoute {
  public:
-  std::array<CapturedFrame,2> captured;
   std::unique_ptr<NativeLz4ReadyReads> ready;
-  std::size_t count=0,hits=0,rejected=0;
-  bool collecting=true;
+  std::size_t hits=0,rejected=0;
   std::optional<Bytes> try_ready(const NativeLz4ReadKey& key,std::span<const std::byte> encoded) noexcept override {
-    if(collecting && count<captured.size()) {
-      try {
-        captured[count]={key,{encoded.begin(),encoded.end()}};
-        ++count;
-      }catch(const std::exception&) {}
-    }
-    if(!collecting && ready) {
+    if(ready) {
       auto result=ready->try_ready(key,encoded);
       if(result)++hits;
       return result;
@@ -75,9 +63,13 @@ class ReadRoute final:public NativeLz4ReadRoute {
   void reject(const NativeLz4ReadKey& key) noexcept override{++rejected;if(ready)ready->reject(key);}
 };
 
+enum class Trial {cold,prepared,discard_prepared,refuse_module,refuse_prepared_module};
+
 void run(std::wstring_view runtime_name,std::wstring_view runtime_sha,std::wstring_view module_sha,
     std::wstring_view adapter,std::wstring_view architecture,std::wstring_view ordinal_text,
-    const std::optional<std::filesystem::path>& corpus,bool refuse_module) {
+    const std::optional<std::filesystem::path>& corpus,Trial trial) {
+  const bool prepared=trial==Trial::prepared || trial==Trial::discard_prepared || trial==Trial::refuse_prepared_module;
+  const bool refuse_module=trial==Trial::refuse_module || trial==Trial::refuse_prepared_module;
   require(store_lz4_available(),"native LZ4 CPU reference unavailable");
   require(ordinal_text.size()==1 && ordinal_text[0]>=L'0' && ordinal_text[0]<=L'9',"invalid HIP ordinal");
   const int ordinal=ordinal_text[0]-L'0';
@@ -115,13 +107,16 @@ void run(std::wstring_view runtime_name,std::wstring_view runtime_sha,std::wstri
   const auto first_size=static_cast<std::uint32_t>(first.size());
   const auto second_size=static_cast<std::uint32_t>(second.size());
   ReadRoute route;
-  require(session.read(reader,0,first_size,&route)==first &&
-      session.read(reader,kNativeExtentBytes,second_size,&route)==second &&
-      route.count==2,"independent CPU native reads or frame capture differ");
-  route.collecting=false;
+  std::array<NativeLz4CapturedFrame,2> captured;
+  using Clock=std::chrono::steady_clock;
+  const auto capture_begin=Clock::now();
+  require(session.capture_native_lz4(reader,0,kNativeExtentBytes,captured[0]) &&
+      session.capture_native_lz4(reader,kNativeExtentBytes,kNativeExtentBytes,captured[1]),
+      "native read-ahead did not return both current encoded frames");
+  const auto capture_ns=std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now()-capture_begin).count();
   const std::array sources{
-      NativeLz4DecodeSource{route.captured[0].key,route.captured[0].encoded},
-      NativeLz4DecodeSource{route.captured[1].key,route.captured[1].encoded}};
+      NativeLz4DecodeSource{captured[0].key,captured[0].encoded},
+      NativeLz4DecodeSource{captured[1].key,captured[1].encoded}};
   constexpr NativeLz4DecodeGrant grant{2,256U*1024U};
   const auto exchange=NativeLz4ReadExchange::prepare(sources,detail::next_gpu_request_id(),grant);
   const WorkerChannelCapacity capacity{exchange.request()->bytes().size(),exchange.reply_capacity()};
@@ -131,7 +126,8 @@ void run(std::wstring_view runtime_name,std::wstring_view runtime_sha,std::wstri
 
   WindowsGpuBudgetSampler gpu(luid,1);
   const auto available=gpu.sample().snapshot;
-  require(check_gpu_memory_budget(available,luid,1,GetTickCount64(),peak)==GpuGateCode::admitted,
+  const auto device_reserve=prepared?grant.maximum_slab_bytes:peak;
+  require(check_gpu_memory_budget(available,luid,1,GetTickCount64(),device_reserve)==GpuGateCode::admitted,
       "current AMD GPU budget refused the probe");
   const hip_detail::VerifiedSystemModule system(runtime_name,ascii(runtime_sha));
   const auto native=module_path(nullptr).parent_path()/"flitzfs_rocm_native_lz4_decode.dll";
@@ -148,19 +144,47 @@ void run(std::wstring_view runtime_name,std::wstring_view runtime_sha,std::wstri
   require(valid_worker_channel_capacity(capacity,child),"native LZ4 worker channel refused");
   std::wstring worker_module_sha(module_sha);
   if(refuse_module)worker_module_sha.front()=worker_module_sha.front()==L'0'?L'1':L'0';
-  const std::vector<std::wstring> arguments{L"--driver-native-lz4-read-adapter",std::to_wstring(ordinal),
+  const std::vector<std::wstring> arguments{prepared?L"--driver-native-lz4-prepared-read-adapter":
+      L"--driver-native-lz4-read-adapter",std::to_wstring(ordinal),
       std::wstring(adapter),L"1",std::wstring(runtime_sha),std::move(worker_module_sha),std::wstring(architecture),
       std::to_wstring(wave_mask),std::to_wstring(capacity.request_bytes),std::to_wstring(capacity.reply_bytes),
       std::to_wstring(grant.maximum_frames),std::to_wstring(grant.maximum_slab_bytes),L"1"};
   const auto executable=native.parent_path()/"flitzfs_native_lz4_read_worker.exe";
-  const auto started=std::chrono::steady_clock::now();
-  auto work=WorkerExchangeSession::start_sized(executable,arguments,exchange.request(),capacity,child);
+  const auto started=Clock::now();
+  auto work=prepared?WorkerExchangeSession::start_prepared_sized(executable,arguments,capacity,child):
+      WorkerExchangeSession::start_sized(executable,arguments,exchange.request(),capacity,child);
   require(session.read(reader,0,first_size,&route)==first && route.hits==0,
       "pending worker prevented immediate CPU file read");
   const auto done=static_cast<HANDLE>(work.supervisor_wait_handle());
-  require(done && WaitForSingleObject(done,child.timeout_ms+2500)==WAIT_OBJECT_0 && work.retirement_confirmed(),
+  require(done!=nullptr,"native LZ4 worker has no retirement handle");
+  auto submitted=started;
+  std::int64_t ready_ns=0;
+  if(prepared && !refuse_module) {
+    const auto deadline=GetTickCount64()+child.timeout_ms;
+    while(!work.wait_prepared()) {
+      require(GetTickCount64()<deadline && WaitForSingleObject(done,10)==WAIT_TIMEOUT,
+          "native LZ4 worker did not become prepared");
+    }
+    require(!work.try_result(),"prepared readiness exposed a result before submission");
+    submitted=Clock::now();
+    ready_ns=std::chrono::duration_cast<std::chrono::nanoseconds>(submitted-started).count();
+    if(trial==Trial::discard_prepared)require(work.request_cancel(),"native LZ4 prepared discard signal");
+    else require(work.submit_prepared(exchange.request()),"native LZ4 prepared submit");
+  }
+  require(WaitForSingleObject(done,child.timeout_ms+2500)==WAIT_OBJECT_0 && work.retirement_confirmed(),
       "native LZ4 child retirement unconfirmed");
   const auto* result=work.try_result();
+  if(trial==Trial::discard_prepared) {
+    require(result && result->code==WorkerExchangeCode::cancelled && result->process.exit_confirmed &&
+        result->process.exit_code==0 && !result->publication_observed && result->response.empty(),
+        "unused prepared decoder did not retire without publication");
+    require(session.read(reader,0,first_size,&route)==first &&
+        session.read(reader,kNativeExtentBytes,second_size,&route)==second && route.hits==0,
+        "native CPU reads changed after prepared discard");
+    std::cout<<"native_lz4_prepared_discard {\"ready_ns\":"<<ready_ns
+        <<",\"gpu_kernel_launched\":false,\"exact_child_retired\":true,\"cpu_fallback_exact\":true}\n";
+    return;
+  }
   if(refuse_module) {
     require(result && result->code==WorkerExchangeCode::worker_failed && result->process.exit_confirmed &&
         result->process.exit_code==static_cast<std::uint32_t>(HipWorkerExit::integrity_failure) &&
@@ -169,7 +193,8 @@ void run(std::wstring_view runtime_name,std::wstring_view runtime_sha,std::wstri
         session.read(reader,kNativeExtentBytes,second_size,&route)==second && route.hits==0,
         "indexed reads changed after worker refusal");
     std::cout<<"native_lz4_refusal {\"worker_refused_module\":true,\"gpu_launched\":false,"
-        "\"exact_child_retired\":true,\"cpu_fallback_exact\":true}\n";
+        "\"exact_child_retired\":true,\"cpu_fallback_exact\":true,\"prepared\":"
+        <<(prepared?"true":"false")<<"}\n";
     return;
   }
   if(!result || result->code!=WorkerExchangeCode::completed || !result->process.exit_confirmed) {
@@ -178,8 +203,9 @@ void run(std::wstring_view runtime_name,std::wstring_view runtime_sha,std::wstri
     throw std::runtime_error("native LZ4 worker did not complete");
   }
   route.ready=exchange.accept(result->response,WorkerExecution::hip);
-  const auto exchange_ns=std::chrono::duration_cast<std::chrono::nanoseconds>(
-      std::chrono::steady_clock::now()-started).count();
+  const auto ended=Clock::now();
+  const auto exchange_ns=std::chrono::duration_cast<std::chrono::nanoseconds>(ended-started).count();
+  const auto after_submit_ns=std::chrono::duration_cast<std::chrono::nanoseconds>(ended-submitted).count();
   require(session.read(reader,0,first_size,&route)==first &&
       session.read(reader,kNativeExtentBytes,second_size,&route)==second &&
       route.hits==2 && !route.rejected,"verified AMD bytes did not reach both native file reads");
@@ -192,17 +218,30 @@ void run(std::wstring_view runtime_name,std::wstring_view runtime_sha,std::wstri
       <<",\"second_decoded_bytes\":"<<sources[1].key.decoded_bytes
       <<",\"exact_child_retired\":true,\"pending_cpu_read_exact\":true"
       <<",\"kernel_launches\":2,\"reused_device_slab_bytes\":"<<peak
-      <<",\"exchange_ns\":"<<exchange_ns
+      <<",\"exchange_ns\":"<<exchange_ns<<",\"device_reserved_bytes\":"<<device_reserve
+      <<",\"prepared\":"<<(prepared?"true":"false")<<",\"ready_ns\":"<<ready_ns
+      <<",\"after_submit_ns\":"<<after_submit_ns<<",\"capture_ns\":"<<capture_ns
       <<",\"cpu_session_read_ns\":"<<cpu_ns<<",\"public_corpus\":"<<(corpus?"true":"false")<<"}\n";
 }
 }
 
 int wmain(int argc,wchar_t** argv) {
   try {
-    require(argc==7 || argc==8,"expected runtime name and hash, module hash, LUID, architecture and HIP ordinal");
-    const bool refuse_module=argc==8 && std::wstring_view(argv[7])==L"--refuse-native-module";
-    const auto corpus=argc==8 && !refuse_module?std::optional{std::filesystem::path(argv[7])}:std::nullopt;
-    run(argv[1],argv[2],argv[3],argv[4],argv[5],argv[6],corpus,refuse_module);
+    require(argc>=7 && argc<=9,"expected runtime name and hash, module hash, LUID, architecture and HIP ordinal");
+    auto trial=Trial::cold;
+    int input=7;
+    if(argc>input) {
+      const std::wstring_view mode=argv[input];
+      if(mode==L"--prepared-native-read")trial=Trial::prepared;
+      else if(mode==L"--discard-prepared-read")trial=Trial::discard_prepared;
+      else if(mode==L"--refuse-native-module")trial=Trial::refuse_module;
+      else if(mode==L"--refuse-prepared-native-module")trial=Trial::refuse_prepared_module;
+      else require(!mode.starts_with(L"--"),"unknown native LZ4 trial mode");
+      if(trial!=Trial::cold)++input;
+    }
+    require(argc<=input+1,"unexpected native LZ4 input");
+    const auto corpus=argc==input+1?std::optional{std::filesystem::path(argv[input])}:std::nullopt;
+    run(argv[1],argv[2],argv[3],argv[4],argv[5],argv[6],corpus,trial);
   }catch(const flitzfs::HipWorkerFailure& failure) {
     std::cerr<<failure.what()<<" (stage "<<static_cast<unsigned>(failure.stage)<<")\n";
     return 2;

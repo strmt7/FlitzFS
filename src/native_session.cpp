@@ -1715,6 +1715,12 @@ std::vector<std::byte> NativeFileSession::read(const NativeFileHandle& handle,
   if(!slot.access.read)fail(E::access_denied,"native context has no read access");
   return self.writer.read_inode(slot.inode,offset,bytes,route);
 }
+bool NativeFileSession::capture_native_lz4(const NativeFileHandle& handle,std::uint64_t offset,
+    std::size_t maximum_encoded,detail::NativeLz4CapturedFrame& out) const {
+  const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
+  if(!slot.access.read)fail(E::access_denied,"native context has no read access");
+  return self.writer.capture_native_lz4(slot.inode,offset,maximum_encoded,out);
+}
 NativeInodeWriteCommit NativeFileSession::write(const NativeFileHandle& handle,
     std::uint64_t offset,std::span<const std::byte> bytes,NativeInodeWriteOptions options) {
   const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];

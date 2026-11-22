@@ -376,6 +376,10 @@ class NativeFileSession final {
       std::size_t maximum) const;
   std::vector<std::byte> read(const NativeFileHandle&,std::uint64_t offset,std::uint32_t bytes,
       detail::NativeLz4ReadRoute* route=nullptr) const;
+  // Advisory read-ahead captures one encoded frame without decoding its payload.
+  // Call under the owning control context. The caller sets its byte grant.
+  bool capture_native_lz4(const NativeFileHandle&,std::uint64_t offset,std::size_t maximum_encoded,
+      detail::NativeLz4CapturedFrame&) const;
   NativeInodeWriteCommit write(const NativeFileHandle&,std::uint64_t offset,
       std::span<const std::byte>,NativeInodeWriteOptions options={});
   NativeFsCommit truncate(const NativeFileHandle&,std::uint64_t bytes);

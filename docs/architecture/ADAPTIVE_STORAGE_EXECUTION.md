@@ -164,6 +164,15 @@ hit rate before changing the ordinary mount's default route.
 [Pinned AMD LZ4 decoder](https://github.com/ROCm/hipCOMP-core/blob/03df9f7369211ee15d370817165224c73fdc9a46/src/LZ4Kernels.cuh#L921) ·
 [LZ4 block format](https://github.com/lz4/lz4/blob/dev/doc/lz4_Block_format.md)
 
+The prepared native LZ4 worker now separates setup from submission and
+exact retirement. An indexed file handle can supply an owned encoded frame
+without decompressing its payload. On Radeon RX 9070 XT, the two-frame
+prepared path took 34–45 ms from submission through verification and
+retirement. Paired CPU reads took 117–297 µs. Use these measurements to keep
+small demand reads on CPU and price the full cost of a larger speculative
+window before scheduling it automatically.
+[Prepared native read qualification](../NATIVE_AMD_LZ4_READ.md#prepared-native-reads)
+
 Use [GPU recovery](../GPU_RECOVERY.md) for immediate CPU continuity and
 evidence-driven retry admission. A declined, failed or late reply never
 authorizes stored data or changes the selected version. Bind measurements to

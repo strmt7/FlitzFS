@@ -1717,6 +1717,24 @@ std::optional<Bytes> PagedObjectStoreSnapshot::read_matching(std::uint64_t id,st
   if(e->logical>maximum_decoded_bytes)fail("object exceeds decoded read budget");
   return read_object(impl_->state,*e,route);
 }
+bool PagedObjectStoreSnapshot::capture_native_lz4(std::uint64_t object,std::size_t maximum_decoded,
+    std::size_t maximum_encoded,detail::NativeLz4CapturedFrame& out) const {
+  if(!impl_ || !maximum_encoded || !store_lz4_available())return false;
+  const auto& state=impl_->state;
+  if(state.degraded_roots || state.degraded_metadata || state.degraded_payloads || state.image->backing_degraded())
+    return false;
+  const auto entry=lookup(state,object,impl_->lookup_pages?&*impl_->lookup_pages:nullptr,
+      impl_->retained_root?&*impl_->retained_root:nullptr);
+  if(!entry || entry->logical>maximum_decoded || entry->stored>maximum_encoded || entry->stored>=entry->logical)
+    return false;
+  // Do not schedule recovery I/O on a speculative read. Normal demand still
+  // owns mirror recovery, and the worker verifies the encoded block again.
+  auto record=read_record_at(state,*entry,entry->offset);
+  if(get32(record.header,12)!=detail::kStoreLz4 || state.degraded_metadata || state.image->backing_degraded())
+    return false;
+  out={{state.id,entry->id,entry->generation,entry->logical,field<32>(record.header,56)},std::move(record.payload)};
+  return true;
+}
 std::optional<std::pair<std::uint64_t,Bytes>> PagedObjectStoreSnapshot::read_first_after(
     std::uint64_t after,std::uint64_t last,std::size_t maximum_decoded_bytes) const {
   if(!impl_)fail("moved-from snapshot");

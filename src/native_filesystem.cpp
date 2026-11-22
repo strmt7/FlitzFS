@@ -1,6 +1,7 @@
 #include "flitzfs/native_filesystem.hpp"
 #include "native_object_storage.hpp"
 #include "native_indexed_volume.hpp"
+#include "native_lz4_read.hpp"
 #include "indexed_names.hpp"
 #include "native_name_index.hpp"
 #include "flitzfs/catalog.hpp"
@@ -1181,12 +1182,16 @@ struct NativeFilesystemWriter::Impl {
     return view;
   }
   template<class Read>
+  auto inspect_indexed(Read&& read) {
+    const auto snapshot=objects.snapshot_for_indexed_read();
+    const auto query=snapshot.paged_if()->scoped_query();
+    const auto view=checked_indexed_view(*snapshot.paged_if());
+    return std::forward<Read>(read)(view);
+  }
+  template<class Read>
   auto read_indexed(Read&& read) {
     try {
-      const auto snapshot=objects.snapshot_for_indexed_read();
-      const auto query=snapshot.paged_if()->scoped_query();
-      const auto view=checked_indexed_view(*snapshot.paged_if());
-      return std::forward<Read>(read)(view);
+      return inspect_indexed(std::forward<Read>(read));
     }catch(const std::bad_alloc&){
       shared_base_reads.clear();
       fail(Code::limit,"indexed namespace query allocation failure");
@@ -2836,6 +2841,18 @@ Bytes NativeFilesystemWriter::read_inode(std::uint64_t inode,std::uint64_t offse
   return state.read_checked_inode(inode,[&](const auto& snapshot,const Node& n) {
     return read_node(snapshot,state.model,n,offset,bytes);
   });
+}
+bool NativeFilesystemWriter::capture_native_lz4(std::uint64_t inode,std::uint64_t offset,
+    std::size_t maximum_encoded,detail::NativeLz4CapturedFrame& out) const {
+  out={};
+  if(poisoned() || !impl_->indexed || !maximum_encoded || !store_lz4_available())return false;
+  // A refused speculative query leaves the ordinary demand path to apply
+  // its recovery and fencing rules using the current checkpoint.
+  try {
+    return impl_->inspect_indexed([&](const auto& view) {
+      return view.capture_native_lz4(view.inode(inode),offset,maximum_encoded,out);
+    });
+  }catch(const std::exception&){return false;}
 }
 NativeFsCommit NativeFilesystemWriter::flush() {
   if(poisoned())fail(Code::storage_failure,"native writer is terminal");

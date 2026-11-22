@@ -2345,6 +2345,13 @@ Bytes IndexedVolumeView::read(const IndexedInodeInput& selected,std::uint64_t of
   if(retained)(void)retained->bind(store_);
   return output;
 }
+bool IndexedVolumeView::capture_native_lz4(const IndexedInodeInput& selected,std::uint64_t offset,
+    std::size_t maximum_encoded,NativeLz4CapturedFrame& out) const {
+  if(selected.directory || selected.lifetime!=IndexedLifetime::linked || offset>=selected.size)return false;
+  const auto object=index_.find(native_extent_key(selected.inode,offset/kNativeExtentBytes));
+  if(!object || (*object&ordinal_mask)>=root_.next_extent)return false;
+  return store_.capture_native_lz4(*object,extent_header+kNativeExtentBytes,maximum_encoded,out);
+}
 NativeContentToken IndexedVolumeView::content_token(NativeExtentSelection extent,std::uint64_t object) const {
   const auto selected=referenced_inode(extent.inode,true);
   if(selected.lifetime!=IndexedLifetime::linked)return {extent};

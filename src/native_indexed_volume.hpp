@@ -247,6 +247,8 @@ class IndexedVolumeView final {
   std::vector<NativeFileInfo> list_all(std::uint64_t directory) const;
   std::vector<std::byte> read(const IndexedInodeInput&,std::uint64_t offset,std::uint32_t bytes,
       IndexedSharedBaseCache* retained=nullptr,NativeLz4ReadRoute* route=nullptr) const;
+  bool capture_native_lz4(const IndexedInodeInput&,std::uint64_t offset,std::size_t maximum_encoded,
+      NativeLz4CapturedFrame&) const;
   std::optional<NativeContentToken> next_content(NativeExtentSelection after,bool first) const;
   std::optional<NativeContentToken> content_at(NativeExtentSelection) const;
   std::vector<std::byte> read_content(NativeContentToken&,bool published_reference) const;

@@ -1,5 +1,9 @@
 #include "native_lz4_decode_wire.hpp"
 #include "store_codec.hpp"
+#include "native_fs_fixture.hpp"
+#include "native_lz4_fixture.hpp"
+#include "flitzfs/native_session.hpp"
+#include <iterator>
 #include <array>
 #include <cstring>
 #include <iostream>
@@ -19,6 +23,76 @@ template<class Action> void refused(Action&& action,const char* message) {
   try {action();}
   catch(const std::invalid_argument&) {return;}
   throw std::runtime_error(message);
+}
+
+void capture_from_indexed_session() {
+  const auto io=std::make_shared<native_fixture::Ram>();
+  const auto identity=native_fixture::identity();
+  auto writer=NativeFilesystemWriter::initialize_indexed(
+      PagedObjectStoreWriter::create_mirrored(io,identity,{4U*1024U*1024U},{StoreCompressionMode::fast,1,false}));
+  auto session=NativeFileSession::create(std::move(writer));
+  session.create_entry("read-ahead");
+  const auto handle=session.open("read-ahead",{true,true,false});
+  auto expected=native_lz4_fixture::source();
+  if(store_lz4_available()){
+    const auto alternate=native_lz4_fixture::alternative_block(expected);
+    const NativeLz4ExtentCandidate offered{0,alternate};
+    (void)session.write_storage_with_lz4_result(handle,0,expected,{&offered,1});
+  }else (void)session.write(handle,0,expected);
+  NativeLz4CapturedFrame captured;
+  const auto acquired=session.capture_native_lz4(handle,0,kNativeExtentBytes,captured);
+  require(acquired==store_lz4_available(),"CPU LZ4 availability and native frame capture differ");
+  if(!acquired) {
+    require(captured.encoded.empty() && session.read(handle,0,expected.size())==expected,
+        "CPU fallback lost its raw-only file");
+    std::cout<<"native_lz4_capture raw_fallback_exact=1\n";
+    return;
+  }
+  require(captured.key.image==identity && captured.key.decoded_bytes>expected.size() &&
+      captured.encoded.size()>1,"read-ahead did not return one complete indexed LZ4 record");
+  const auto preserved=captured;
+  const auto writes=io->writes;
+  require(!session.capture_native_lz4(handle,0,preserved.encoded.size()-1,captured) && captured.encoded.empty() &&
+      !session.capture_native_lz4(handle,kNativeExtentBytes,kNativeExtentBytes,captured) && io->writes==writes,
+      "budget or EOF allowed a read-ahead frame");
+  const Bytes post_gap{std::byte{0x63}};
+  (void)session.write(handle,2*kNativeExtentBytes,post_gap);
+  require(!session.capture_native_lz4(handle,kNativeExtentBytes,kNativeExtentBytes,captured),
+      "read-ahead crossed a sparse hole");
+
+  StoreCodecDecoder decoder;
+  const auto decoded=decoder.decode(kStoreLz4,preserved.encoded,preserved.key.decoded_bytes);
+  const NativeLz4DecodeSource source{preserved.key,preserved.encoded};
+  const auto exchange=NativeLz4ReadExchange::prepare({&source,1},153,{1,256U*1024U});
+  const auto request=decode_native_lz4_request(exchange.request()->bytes(),{1,256U*1024U},1);
+  const NativeLz4DecodedFrame output{source.key,decoded};
+  const auto reply=encode_native_lz4_reply(request,{&output,1},WorkerExecution::cpu_semantics);
+  auto ready=exchange.accept(reply,WorkerExecution::cpu_semantics);
+  require(session.read(handle,0,expected.size(),ready.get())==expected && ready->consumed()==1,
+      "the captured frame did not feed the normal CPU-checked file read");
+
+  ready=exchange.accept(reply,WorkerExecution::cpu_semantics);
+  expected[29]^=std::byte{1};
+  (void)session.write(handle,29,std::span(expected).subspan(29,1));
+  require(session.read(handle,0,expected.size(),ready.get())==expected && !ready->consumed(),
+      "a prepared frame from before a write reached a changed file");
+  require(session.capture_native_lz4(handle,0,kNativeExtentBytes,captured) && captured.key!=preserved.key,
+      "the new file extent did not get a fresh capture identity");
+
+  // Search the owned synthetic backing for each of the two encoded copies.
+  // Only the first copy is damaged, so ordinary demand can use its peer.
+  const auto prefix=std::span(captured.encoded).first((std::min)(captured.encoded.size(),std::size_t{4096}));
+  const auto primary=std::search(io->live.begin(),io->live.end(),prefix.begin(),prefix.end());
+  require(primary!=io->live.end() &&
+      std::search(std::next(primary),io->live.end(),prefix.begin(),prefix.end())!=io->live.end(),
+      "could not locate two copies of the fixture frame");
+  *primary^=std::byte{1};
+  const auto before=io->writes;
+  require(!session.capture_native_lz4(handle,0,kNativeExtentBytes,captured) && captured.encoded.empty() &&
+      !session.poisoned() && io->writes==before,"speculation admitted damage or changed writable state");
+  require(session.read(handle,0,expected.size())==expected,"ordinary CPU mirror read lost bytes after capture refused");
+  std::cout<<"native_lz4_capture owned=1 exact=1 old_key_missed=1 sparse_hole_refused=1 budget_refused=1"
+      <<" bad_primary_skipped=1 cpu_recovery_exact=1\n";
 }
 
 void exercise() {
@@ -107,6 +181,6 @@ void exercise() {
 }
 
 int main() {
-  try {exercise();}
+  try {exercise();capture_from_indexed_session();}
   catch(const std::exception& error) {std::cerr<<error.what()<<'\n';return 1;}
 }

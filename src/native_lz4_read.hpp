@@ -12,6 +12,13 @@ struct NativeLz4ReadKey {
   auto operator<=>(const NativeLz4ReadKey&) const=default;
 };
 
+// Stored bytes verified against their checkpoint. A deferred consumer must
+// still bind its result to the complete key and verify the decoded digest.
+struct NativeLz4CapturedFrame {
+  NativeLz4ReadKey key;
+  std::vector<std::byte> encoded;
+};
+
 // An advisory route for an owned result from an exact native LZ4 frame.
 // Calls run on the serialized reader. Return immediately when no result is
 // ready. Any deferred work must own a copy of its input before this call

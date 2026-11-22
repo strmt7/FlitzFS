@@ -259,7 +259,8 @@ int worker(int argc, wchar_t** argv) {
   const bool anchor_batch=mode==L"--driver-anchor-batch" || anchor_transfer;
   const bool anchor_profile=mode==L"--driver-anchor-sweep-profile";
   const bool anchor_sweep=mode==L"--driver-anchor-sweep" || anchor_profile;
-  const bool native_read=mode==L"--driver-native-lz4-read-adapter";
+  const bool native_prepared=mode==L"--driver-native-lz4-prepared-read-adapter";
+  const bool native_read=native_prepared || mode==L"--driver-native-lz4-read-adapter";
   require_hip_worker_job(anchor_batch || anchor_sweep || native_read);
   // Compiler discovery must not leak into an application runtime. This changes
   // only this disposable child; the launching process remains untouched.
@@ -283,7 +284,8 @@ int worker(int argc, wchar_t** argv) {
 
 #ifdef FLITZFS_HIP_NATIVE_LZ4_READ_FIXTURE
   if(native_read) {
-    require(argc==16 && std::wstring_view(argv[14])==L"--worker-channel",
+    require(argc==(native_prepared?17:16) && std::wstring_view(argv[14])==
+        (native_prepared?kPreparedWorkerChannelArgument:std::wstring_view(L"--worker-channel")),
         Exit::invalid_request,"explicit native LZ4 read channel and bounded grant required");
     const auto ordinal=decimal(argv[2],63);
     const auto luid=parse_luid(argv[3]);
@@ -300,16 +302,28 @@ int worker(int argc, wchar_t** argv) {
     const WorkerChannelCapacity capacity{decimal(argv[9],message_limit),decimal(argv[10],message_limit)};
     const detail::NativeLz4DecodeGrant grant{decimal(argv[11],message_limit),wide_decimal(argv[12])};
     const auto per_batch=decimal(argv[13],message_limit);
-    auto channel=WorkerChannel::open_sized(argv[15],capacity);
-    detail::NativeLz4WireRequest request;
-    {
+    require(per_batch && grant.maximum_frames && grant.maximum_slab_bytes,Exit::invalid_request,
+        "empty native LZ4 read grant");
+    const auto max_dispatch=(std::min)(grant.maximum_frames,per_batch);
+    // A dispatch can only hold max_dispatch frames of the supported store size.
+    // Charge the entire reserved slab before initialization and after readiness.
+    constexpr auto max_frame_slab=2ULL*kStoreMaxObjectBytes+3*native_lz4_decode::alignment+
+        sizeof(native_lz4_decode::Record);
+    const auto reserve=(std::min<std::uint64_t>)(grant.maximum_slab_bytes,max_dispatch*max_frame_slab);
+    require(reserve<=(std::numeric_limits<std::size_t>::max)(),Exit::invalid_request,"native LZ4 slab address limit");
+    auto channel=native_prepared?WorkerChannel::open_prepared_sized(argv[15],capacity,
+        decimal(argv[16],(std::numeric_limits<std::uint32_t>::max)())):
+        WorkerChannel::open_sized(argv[15],capacity);
+    std::optional<detail::NativeLz4WireRequest> request;
+    const auto decode=[&] {
       const auto owned=channel.take_request_snapshot();
       require(owned && owned->bytes().size()==capacity.request_bytes,Exit::invalid_request,
           "native LZ4 request mapping length differs");
-      try {request=detail::decode_native_lz4_request(owned->bytes(),grant,per_batch);}
+      try {request.emplace(detail::decode_native_lz4_request(owned->bytes(),grant,per_batch));}
       catch(const std::invalid_argument&) {throw HipWorkerFailure(Exit::invalid_request,"invalid native LZ4 read frame");}
-    }
-    require(request.reply_bytes==capacity.reply_bytes,Exit::invalid_request,"native LZ4 reply mapping length differs");
+      require(request->reply_bytes==capacity.reply_bytes,Exit::invalid_request,"native LZ4 reply mapping length differs");
+    };
+    if(!native_prepared)decode();
 
     const hip_detail::VerifiedSystemModule installed(hip_bundle::runtime,expected_runtime);
     const auto parent=module_path(nullptr).parent_path();
@@ -329,8 +343,8 @@ int worker(int argc, wchar_t** argv) {
     require(matches_sha256(file,expected_kernel),Exit::integrity_failure,"native LZ4 device module identity");
     require(!GetModuleHandleW(kernel_name) && !GetModuleHandleW(hip_bundle::runtime),
         Exit::integrity_failure,"native LZ4 helper inherited an unexpected module");
-    std::uint64_t peak=0;
-    for(const auto& batch:request.batches)peak=(std::max)(peak,std::uint64_t(batch.upload().size()));
+    std::uint64_t peak=native_prepared?reserve:0;
+    if(request)for(const auto& batch:request->batches)peak=(std::max)(peak,std::uint64_t(batch.upload().size()));
     const auto budget=query_windows_gpu_budget(luid,node);
     require_hip_memory(budget.snapshot,luid,node,GetTickCount64(),peak,HipMemoryPoint::pre_initialize);
     require(SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_SYSTEM32)!=0,
@@ -345,9 +359,22 @@ int worker(int argc, wchar_t** argv) {
     const auto* api=entry();
     require(api && native_lz4_decode::compatible(*api),Exit::unsupported_configuration,
         "incompatible native LZ4 read table",HipWorkerStage::kernel_table);
-    const auto frames=run_hip_native_lz4_decode_in_worker(runtime.get(),*api,static_cast<int>(ordinal),
-        luid,node,request.batches,grant,{&coverage,1});
-    const auto reply=detail::encode_native_lz4_reply(request,frames,WorkerExecution::hip);
+    const auto receive=[&]() -> std::span<const detail::NativeLz4DecodeBatch> {
+      if(!channel.receive_prepared())return {};
+      decode();
+      return request->batches;
+    };
+    const auto frames=native_prepared?
+        run_hip_native_lz4_prepared_decode_in_worker(runtime.get(),*api,static_cast<int>(ordinal),
+            luid,node,grant,max_dispatch,static_cast<std::size_t>(reserve),{&coverage,1},receive):
+        run_hip_native_lz4_decode_in_worker(runtime.get(),*api,static_cast<int>(ordinal),
+            luid,node,request->batches,grant,{&coverage,1});
+    if(!request) {
+      kernel.close();
+      runtime.close();
+      return 0;
+    }
+    const auto reply=detail::encode_native_lz4_reply(*request,frames,WorkerExecution::hip);
     kernel.close();
     runtime.close();
     channel.publish(reply);

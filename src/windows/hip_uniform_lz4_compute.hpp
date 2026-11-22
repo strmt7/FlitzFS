@@ -126,6 +126,11 @@ std::vector<detail::NativeLz4DecodedFrame> run_hip_native_lz4_decode_in_worker(H
     const native_lz4_decode::KernelApi&,int ordinal,std::array<std::byte,8> luid,
     std::uint32_t node_mask,std::span<const detail::NativeLz4DecodeBatch>,
     detail::NativeLz4DecodeGrant,std::span<const hip_detail::Lz4KernelCoverage>);
+std::vector<detail::NativeLz4DecodedFrame> run_hip_native_lz4_prepared_decode_in_worker(HMODULE,
+    const native_lz4_decode::KernelApi&,int ordinal,std::array<std::byte,8> luid,std::uint32_t node_mask,
+    detail::NativeLz4DecodeGrant,std::uint32_t maximum_chunks,std::size_t device_bytes,
+    std::span<const hip_detail::Lz4KernelCoverage>,
+    const std::function<std::span<const detail::NativeLz4DecodeBatch>()>& receive);
 UniformLz4Candidates run_hip_uniform_lz4_in_worker(HMODULE runtime,
     const uniform_lz4::KernelApi&,int ordinal,std::array<std::byte,8> luid,
     std::uint32_t node_mask,const UniformLz4Request&,hip_detail::UniformLz4ComputeGrant,
