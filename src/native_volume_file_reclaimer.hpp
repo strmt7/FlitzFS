@@ -20,6 +20,7 @@ class NativeVolumeFileReclaimer final {
       std::shared_ptr<NativeVolumeFile::Region> spare,bool recover_spare,
       std::shared_ptr<NativeVolumeFile::CatalogRanges> catalog);
   bool pending(const NativeFileSession&,bool allow_cold) const;
+  bool cold_target_available() const noexcept {return phase_==Phase::idle && spare_.use_count()==1;}
   void bind_wake(const std::shared_ptr<NativeVolumeRangeWake>&) noexcept;
   NativeVolumeReclaimProgress advance(NativeFileSession&,const std::function<StoreIdentity()>&,bool allow_cold);
   void cancel(NativeFileSession&) noexcept;

@@ -10,6 +10,7 @@
 #include "../src/record_digest.hpp"
 #include "anchor_search_fixture.hpp"
 #include "native_fs_fixture.hpp"
+#include "native_corpus_fixture.hpp"
 #include <cstring>
 #include <iostream>
 #include <set>
@@ -492,32 +493,7 @@ void profile_public_packs(const std::filesystem::path& filename,bool complete_fi
     require(!complete_files,"complete-file packing profile requires Zstandard");
     return;
   }
-  const auto source=ReadOnlyFile::open(filename);
-  const auto input_limit=complete_files?48ULL*1024*1024:4ULL*1024*1024;
-  const auto file_limit=complete_files?kNativeMaxReadBytes:kNativeExtentBytes-1;
-  require(source.size()>4 && source.size()<=input_limit,"public pack corpus size");
-  const auto read_count=[&](std::uint64_t offset) {
-    std::array<std::byte,4> raw{};
-    source.read_exact_at(offset,raw.data(),raw.size());
-    std::uint32_t value=0;
-    for(unsigned i=0;i<raw.size();++i)value|=std::to_integer<std::uint32_t>(raw[i])<<(i*8);
-    return value;
-  };
-  const auto files=read_count(0);
-  require(files>1 && files<=192,"public pack corpus file count");
-  std::uint64_t offset=4;
-  std::vector<Bytes> inputs;
-  inputs.reserve(files);
-  for(std::uint64_t i=0;i<files;++i) {
-    require(offset+4<=source.size(),"truncated public pack corpus");
-    const auto size=read_count(offset);
-    offset+=4;
-    require(size && size<=file_limit && size<=source.size()-offset,"public pack corpus file extent");
-    auto& bytes=inputs.emplace_back(static_cast<std::size_t>(size));
-    source.read_exact_at(offset,bytes.data(),bytes.size());
-    offset+=size;
-  }
-  require(offset==source.size(),"public pack corpus has trailing bytes");
+  const auto inputs=read_packed_corpus(filename,complete_files);
   profile_similarity_packing(inputs);
 }
 

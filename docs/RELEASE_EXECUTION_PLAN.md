@@ -547,9 +547,12 @@ advisory and artifact inventories.
   verified mirrored image size and collective compression on complete CPython
   revisions. Continue with ordinary cold recompression and account for the
   persistent catalog and all maintained copies before claiming a size win.
-  Attribute occupied bytes to encoded data, protection copies, alignment and
-  metadata. Evaluate larger independently readable compression units on A–H,
-  then freeze the selected policy for I–P and report its small-read cost.
+  The paired Windows cold test saved 557,056 bytes beyond compaction on A–H.
+  The read-only screens for I–P and A–P declined a rewrite. Standalone 256 KiB
+  and 1 MiB blocks brought small gains on I–P. Measure complete image size,
+  allocation and small-range access before choosing a native unit size.
+  Evaluate protection overhead against the same isolated-failure recovery
+  model before selecting a denser representation.
   [Public workloads and evidence](BENCHMARK_PROTOCOL.md#public-compression-workloads)
 - Use Microsoft's DiskSpd 2.3 as the current controlled Windows I/O
   benchmark. Retain the exact binary, XML profile and results, cache mode,

@@ -934,6 +934,7 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_managed_impl(
 }
 void WinFspNativeWritable::configure_memory_maintenance(MemoryVolumeBacking& backing) noexcept {
   impl_->memory_backing=&backing;
+  impl_->session.bind_memory_idle_compaction();
   backing.configure_coherence(impl_->session);
 }
 bool WinFspNativeWritable::background_maintenance_pending(bool scrub_due) const {

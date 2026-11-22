@@ -194,6 +194,41 @@ I/O measurements remain a separate test with equivalent cache, allocation and
 backing settings.
 [Measured runs and source receipts](evidence/aitdcc2026-compression-baseline-2026-11-22.json)
 
+### Idle cold compression and unit size
+
+Run the same staged fixtures through the WinFsp SDK controller test with
+`--screened-cold-packed <fixture>` to exercise automatic cold recompression.
+
+The Windows callback fixture uses the ordinary idle controller with a paired
+memory provider. Its compact-only reference for A–P
+used 51,486,720 bytes in the image. About 51.09 MB were stored mirrored
+payload records, including encoded metadata objects. About 0.40 MB covered
+the rest of the image. The selector, advisory area and catalog occupy their
+own ranges.
+
+When cold work could keep its write allowance, the training split's selected
+image used 15,441,920 bytes, against 15,998,976 bytes for compaction alone.
+The held-out and complete corpora received a read-only cold screen and kept
+their previous image. All cases passed independent CPU readback. The receipt
+records catalog writes, simultaneous old and new allocation, and zeroing done
+by the memory retirement model.
+[Cold rewrite and allocation evidence](evidence/aitdcc2026-cold-rewrite-2026-11-22.json)
+
+Standalone lzbench 2.4 with Zstandard 19 used these amounts on the same input
+files. Each column uses independent blocks of the stated maximum size.
+
+| Input | 64 KiB | 256 KiB | 1 MiB |
+| --- | ---: | ---: | ---: |
+| A–H training | 7,604,575 | 7,492,766 | 7,395,790 |
+| I–P held out | 17,357,411 | 17,194,158 | 17,060,974 |
+
+The 256 KiB and 1 MiB blocks cut held-out codec bytes by 0.94% and 1.71%.
+Before adopting either size, compare whole selected images and small-range
+read costs with equivalent protection. Current research on compressed file
+layouts also treats grouping and read amplification as coupled decisions.
+[FAST 2026 RubikFS](https://www.usenix.org/conference/fast26/presentation/huang) ·
+[EROFS compression design](https://erofs.docs.kernel.org/en/latest/design.html)
+
 ## Measurements and anti-bias rules
 
 1. Pin source, binary/tool/runtime hashes, parameters, seeds, corpus, Windows

@@ -7,6 +7,7 @@
 #include "flitzfs/native_volume_file.hpp"
 #include "flitzfs/read_only_file.hpp"
 #include "native_fs_fixture.hpp"
+#include "native_corpus_fixture.hpp"
 #include "native_security_fixture.hpp"
 #include "../src/native_group_codec.hpp"
 #include "../src/native_indexed_volume.hpp"
@@ -272,7 +273,7 @@ void callback_cleanup_close(Provider& p,PVOID context) {
   request.Req.Close.UserContext2=reinterpret_cast<UINT64>(context);
   require(FspFileSystemOpClose(&p.fs,&request,&response)==STATUS_SUCCESS,"controller SDK Close");
 }
-void callback_file(Provider& p,unsigned n,const Bytes& bytes) {
+void callback_file(Provider& p,unsigned n,const Bytes& bytes,std::size_t quantum=kNativeMaxReadBytes) {
   const auto* table=p.fs.Interface;SIZE_T security_size=0;UINT32 attributes=0;
   require(table->GetSecurityByName(&p.fs,const_cast<PWSTR>(L"\\"),&attributes,nullptr,&security_size)==STATUS_BUFFER_OVERFLOW,
       "controller root security size");Bytes security(security_size);
@@ -281,9 +282,13 @@ void callback_file(Provider& p,unsigned n,const Bytes& bytes) {
   auto name=L"\\f"+std::to_wstring(n);PVOID context=nullptr;FSP_FSCTL_FILE_INFO info{};
   require(table->Create(&p.fs,name.data(),FILE_NON_DIRECTORY_FILE,FILE_ALL_ACCESS,FILE_ATTRIBUTE_NORMAL,
       security.data(),0,&context,&info)==STATUS_SUCCESS,"controller SDK Create");
-  ULONG count=0;require(table->Write(&p.fs,context,const_cast<std::byte*>(bytes.data()),0,static_cast<ULONG>(bytes.size()),
-      FALSE,FALSE,&count,&info)==STATUS_SUCCESS && count==bytes.size(),"controller SDK Write");
-  Bytes out(bytes.size());count=0;require(table->Read(&p.fs,context,out.data(),0,static_cast<ULONG>(out.size()),&count)==STATUS_SUCCESS &&
+  for(std::size_t offset=0;offset<bytes.size();offset+=quantum) {
+    const auto length=static_cast<ULONG>((std::min)(quantum,bytes.size()-offset));
+    ULONG count=0;
+    require(table->Write(&p.fs,context,const_cast<std::byte*>(bytes.data()+offset),offset,length,
+        FALSE,FALSE,&count,&info)==STATUS_SUCCESS && count==length,"controller SDK Write");
+  }
+  Bytes out(bytes.size());ULONG count=0;require(table->Read(&p.fs,context,out.data(),0,static_cast<ULONG>(out.size()),&count)==STATUS_SUCCESS &&
       count==out.size() && out==bytes,"controller SDK byte readback");
   callback_cleanup_close(p,context);
 }
@@ -868,30 +873,68 @@ void volume_file_idle_reclamation() {
       <<" published=1 prior_readers_preserved=1 reclaimed=1 cpu_reopen=1"
       <<" pinned_wait_quiescent=1 foreground_write_while_pinned=1 last_reader_woke=1 release_after_owner_quiet=1\n";
 }
-void volume_file_screened_cold(std::span<const Bytes> fixture,StoreCompressionOptions foreground) {
-  constexpr PagedStoreLimits limits{8ULL*1024*1024};
+enum class ColdFixtureMode { basic, public_corpus, shared_budget };
+void volume_file_screened_cold(std::span<const Bytes> fixture,StoreCompressionOptions foreground,
+    ColdFixtureMode mode=ColdFixtureMode::basic) {
+  const bool profile=mode!=ColdFixtureMode::basic;
+  std::uint64_t input_bytes=0;
+  for(const auto& file:fixture)input_bytes+=file.size();
+  const auto aligned=(input_bytes+kStoreCommitUnit-1)/kStoreCommitUnit*kStoreCommitUnit;
+  const PagedStoreLimits limits{8ULL*1024*1024+(profile?2*aligned:0)};
   Provider provider;Provider::active=&provider;
-  auto file=std::make_shared<SparseVolumeRam>(4096);
+  const auto capacity=profile?kNativeVolumeFileImageOffset+3*limits.maximum_physical_bytes:kStoreMaxPhysicalBytes;
+  auto file=std::make_shared<SparseVolumeRam>(4096,capacity);
   auto adapter=WinFspNativeWritable::create_file_volume(file,id(90),id(1),limits,foreground);
   auto* volume=adapter.get();
   WinFspNativeSession session(std::move(adapter),provider.api());
   require(session.start(plan())==STATUS_SUCCESS,"screened compaction SDK start");
   unsigned number=0;
-  for(const auto& bytes:fixture)callback_file(provider,number++,bytes);
-  const auto before=volume->snapshot().storage_info().physical_end;
+  for(const auto& bytes:fixture)callback_file(provider,number++,bytes,profile?1024*1024:kNativeMaxReadBytes);
+  const auto original=volume->snapshot().storage_info();
+  auto ordinary=original;
+  if(profile) {
+    auto control=std::make_shared<Ram>();
+    control->failure_unit=4096;
+    control->capacity=limits.maximum_physical_bytes;
+    // This new fixture has not started maintenance. Its first image starts
+    // immediately after the selector and advice ranges. Give the synchronous
+    // compactor an independent backing with its own available writer lease.
+    constexpr auto start=kNativeVolumeFileImageOffset;
+    require(file->io.stable.size()>=start && original.physical_end<=file->io.stable.size()-start,
+        "cold profile source image bounds");
+    const auto bytes=std::span(file->io.stable).subspan(start,original.physical_end);
+    auto source_image=std::make_shared<Ram>();
+    source_image->failure_unit=4096;
+    source_image->capacity=limits.maximum_physical_bytes;
+    source_image->live.assign(bytes.begin(),bytes.end());
+    const auto source=NativeFilesystemSnapshot::open_image(source_image,
+        {NativeImageKind::indexed_paged,limits.maximum_physical_bytes});
+    auto writer=NativeFilesystemWriter::compact(source,control,id(61),foreground);
+    ordinary=writer.snapshot().storage_info();
+  }
+  const auto occupied_before=file->occupied();
+  auto peak_occupied=occupied_before;
   NativeMaintenanceObservation observed{1,1000,16ULL<<30,12ULL<<30,32ULL<<30,24ULL<<30,1000,0,1000,true,true};
   const auto step=[&] {
     ++observed.sequence;observed.captured_ms+=1000;
     return session.advance_background_maintenance(observed,observed.captured_ms);
   };
   const auto reads=file->io.read_calls,writes=file->io.write_bytes;
+  const auto read_bytes=file->io.read_bytes;
   require(step().progress.deferral==NativeMaintenanceDeferral::foreground &&
       file->io.read_calls==reads && file->io.write_bytes==writes,"idle work touched storage under foreground admission");
   observed.foreground_pending=false;
   WinFspMaintenanceResult progress;
-  bool saw_budget_boundary=false;
-  for(unsigned i=0;i<1800 && !progress.compacted && session.background_maintenance_pending();++i) {
+  bool saw_budget_boundary=false,published=false;
+  unsigned steps=0,compaction_quanta=0;
+  std::uint64_t groups_published=0;
+  const auto started=std::chrono::steady_clock::now();
+  for(;steps<(profile?12'000U:1800U) && (profile || !published) && session.background_maintenance_pending();++steps) {
     progress=step();
+    published=published || progress.compacted;
+    if(progress.continuation==WinFspMaintenanceContinuation::compaction)++compaction_quanta;
+    groups_published=(std::max)(groups_published,progress.progress.published_groups);
+    peak_occupied=(std::max)(peak_occupied,file->occupied());
     require(!progress.compaction_failed && progress.progress.phase!=NativeMaintenancePhase::failed,
         "ordinary SDK cold work failed");
     if(!saw_budget_boundary && progress.progress.phase==NativeMaintenancePhase::preparing &&
@@ -906,9 +949,31 @@ void volume_file_screened_cold(std::span<const Bytes> fixture,StoreCompressionOp
       saw_budget_boundary=true;
     }
   }
-  const auto after=volume->snapshot().storage_info().physical_end;
-  require(saw_budget_boundary && progress.compacted && after<before,
-      "ordinary SDK maintenance did not shrink the append-mostly image");
+  const auto elapsed=std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now()-started).count();
+  const auto after=volume->snapshot().storage_info();
+  if(profile) {
+    require(!session.background_maintenance_pending(),"public cold profile did not settle");
+    require(after.stored_payload_bytes<=after.physical_end && ordinary.stored_payload_bytes<=ordinary.physical_end,
+        "invalid payload accounting");
+    std::cout<<"cold_profile logical_bytes="<<input_bytes<<" files="<<fixture.size()
+        <<" original_image="<<original.physical_end<<" retained_compacted_image="<<ordinary.physical_end
+        <<" retained_payload_bytes="<<ordinary.stored_payload_bytes<<" retained_container_bytes="
+        <<ordinary.physical_end-ordinary.stored_payload_bytes
+        <<" selected_image="<<after.physical_end<<" selected_payload_bytes="<<after.stored_payload_bytes
+        <<" selected_container_bytes="<<after.physical_end-after.stored_payload_bytes
+        <<" fixed_metadata_range="<<kNativeVolumeFileImageOffset<<" occupied_before="<<occupied_before
+        <<" occupied_peak="<<peak_occupied<<" occupied_after="<<file->occupied()
+        <<" optimization_read_bytes="<<file->io.read_bytes-read_bytes<<" optimization_writes="<<file->io.write_bytes-writes
+        <<" reclaim_model_writes="<<file->reclaimed_model_write_bytes
+        <<" steps="<<steps<<" compaction_quanta="<<compaction_quanta<<" group_publications="<<groups_published
+        <<" maintenance_ns="<<elapsed<<" compacted="<<published<<" fresh_budget_boundary="<<saw_budget_boundary<<'\n';
+  } else {
+    require(saw_budget_boundary && published && after.physical_end<original.physical_end,
+        "ordinary SDK maintenance did not shrink the append-mostly image");
+  }
+  if(mode==ColdFixtureMode::shared_budget)
+    require(published && saw_budget_boundary && after.stored_payload_bytes<ordinary.stored_payload_bytes,
+        "advisory discovery consumed the cold rewrite budget");
   session.stop();
   auto reopened=NativeVolumeFile::inspect(file->replay(),id(90));
   const auto& snapshot=reopened.filesystem();
@@ -918,8 +983,8 @@ void volume_file_screened_cold(std::span<const Bytes> fixture,StoreCompressionOp
   for(const auto& bytes:fixture)
     require(snapshot.read("f"+std::to_string(number++),0,static_cast<std::uint32_t>(bytes.size()))==bytes,
         "screened SDK independent readback failed");
-  std::cout<<"screened_cold_sdk compacted=1 foreground_yield=1 fresh_budget_boundary=1 exact_readback=1"
-      <<" old_image="<<before<<" new_image="<<after<<'\n';
+  std::cout<<"screened_cold_sdk compacted="<<published<<" foreground_yield=1 fresh_budget_boundary="
+      <<saw_budget_boundary<<" exact_readback=1 old_image="<<original.physical_end<<" new_image="<<after.physical_end<<'\n';
 }
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
 std::array<std::byte,32> artifact_digest(std::string_view input) {
@@ -3017,13 +3082,14 @@ int main(int argc,char** argv){try {
   const bool volume_file=argc==2 && std::string_view(argv[1])=="--volume-file";
   const bool indexed_startup=argc==2 && std::string_view(argv[1])=="--indexed-startup-profile";
   const bool screened_public=argc==3 && std::string_view(argv[1])=="--screened-cold-corpus";
+  const bool screened_packed=argc==3 && std::string_view(argv[1])=="--screened-cold-packed";
   const bool live_repair_rotation=argc==2 && std::string_view(argv[1])=="--live-indexed-repair-rotation";
   const bool live_payload_scrub=argc==2 && std::string_view(argv[1])=="--live-indexed-scrub";
   const bool live_payload_repair=live_repair_rotation || live_payload_scrub ||
       (argc==2 && std::string_view(argv[1])=="--live-indexed-repair");
   const bool reconciled_compaction=argc==2 && std::string_view(argv[1])=="--live-indexed-reconcile";
   const bool indexed_compaction=reconciled_compaction || (argc==2 && std::string_view(argv[1])=="--live-indexed-compaction");
-  if(lifetime_only || shifted_grouping || checkpoint || remount || volume_file || screened_public || indexed_compaction ||
+  if(lifetime_only || shifted_grouping || checkpoint || remount || volume_file || screened_public || screened_packed || indexed_compaction ||
       live_payload_repair || indexed_startup ||
       (argc==2 && (std::string_view(argv[1])=="--memory" || std::string_view(argv[1])=="--memory-handles" ||
       std::string_view(argv[1])=="--read-only-memory" || std::string_view(argv[1])=="--indexed-memory" ||
@@ -3061,6 +3127,12 @@ int main(int argc,char** argv){try {
     if(store_zstd_available()) {
       const std::array fixture{cold_test_payload(),cold_test_payload(130011),Bytes(640*1024)};
       volume_file_screened_cold(fixture,{StoreCompressionMode::fast,1,false});
+      std::array<Bytes,9> varied;
+      for(unsigned i=0;i+1<varied.size();++i)varied[i]=cold_test_payload(130011*i,997);
+      // A sparse write supplies acknowledged input without a second large
+      // payload. The cold candidate is affordable before the scan charge.
+      varied.back().resize(3*1024*1024);
+      volume_file_screened_cold(varied,{StoreCompressionMode::fast,1,false},ColdFixtureMode::shared_budget);
     }
     volume_file_payload_repair(false);
     volume_file_payload_repair(false,RepairFixture::scrub);
@@ -3071,6 +3143,10 @@ int main(int argc,char** argv){try {
     std::array fixture{Bytes(static_cast<std::size_t>(source.size()))};
     source.read_exact_at(0,fixture[0].data(),fixture[0].size());
     volume_file_screened_cold(fixture,{StoreCompressionMode::automatic,3,true});
+  }else if(screened_packed) {
+    require(store_zstd_available(),"screened packed corpus requires Zstandard");
+    const auto fixture=read_packed_corpus(argv[2],true);
+    volume_file_screened_cold(fixture,{StoreCompressionMode::automatic,3,true},ColdFixtureMode::public_corpus);
   }else if(live_payload_repair) {
     const auto fixture=live_repair_rotation?RepairFixture::rotation:
         live_payload_scrub?RepairFixture::scrub:RepairFixture::foreground;

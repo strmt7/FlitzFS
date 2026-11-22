@@ -5,7 +5,12 @@
 #include <stdexcept>
 
 namespace flitzfs {
-namespace detail {class IndexedSharedBasePreparation;class IndexedVolumeView;class NativeNameIndex;}
+namespace detail {
+class IndexedSharedBasePreparation;
+class IndexedVolumeView;
+class NativeNameIndex;
+inline constexpr std::uint64_t kPagedStoreCheckpointWriteBytes=8192;
+}
 // Scalable object storage for native volumes. The caller supplies an
 // exclusively owned, resource-admitted backend.
 // One control thread; do not race writers, snapshots or backing mutations.

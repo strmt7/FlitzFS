@@ -17,7 +17,8 @@ namespace {
 using Bytes=std::vector<std::byte>;
 using detail::Digest;
 constexpr std::uint64_t start=2*kStoreCommitUnit;
-constexpr std::size_t page_bytes=4096,header_bytes=64,ref_bytes=112,record_header_bytes=128;
+constexpr std::size_t page_bytes=detail::kPagedStoreCheckpointWriteBytes/2,
+    header_bytes=64,ref_bytes=112,record_header_bytes=128;
 constexpr std::uint32_t compact_metadata_bytes=1024;
 constexpr std::size_t compact_ref_bytes=88;
 constexpr std::size_t digest_at=page_bytes-32;
@@ -1336,7 +1337,7 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
           write_bound=add(projected,2*page_bytes);
           phase=PagedRewritePhase::awaiting_charge;
         }else if(mode==PagedRewriteMode::cold_compression) {
-          write_bound=add(original.end,2*page_bytes);
+          write_bound=add(original.end,detail::kPagedStoreCheckpointWriteBytes);
           phase=PagedRewritePhase::awaiting_charge;
         }else begin_copy(current);
       }

@@ -471,6 +471,7 @@ class NativeFileSession final {
   friend class NativeVolumeFile;
   friend class WinFspNativeWritable;
   void bind_persistent_reclamation(std::shared_ptr<detail::NativeVolumeFileReclaimer>);
+  void bind_memory_idle_compaction() noexcept;
   void bind_persistent_reclamation_wake(const std::shared_ptr<detail::NativeVolumeRangeWake>&) noexcept;
   friend class detail::NativeVolumeFileReclaimer;
   std::uint64_t catalog_retirement_selection(std::optional<OptimizationCatalogSelection>&) const noexcept;

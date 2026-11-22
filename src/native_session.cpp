@@ -153,13 +153,30 @@ struct NativeFileSession::Impl {
   OptimizationStateWriter* ready_scan_advice() const noexcept {
     return recompression?nullptr:ready_funded_advice();
   }
+  std::uint64_t cold_compaction_cost() const noexcept {
+    if(!volume || !volume->head || volume->pending || recompression || !writer.maintenance_indexed() ||
+        volume->foreground.mode==StoreCompressionMode::raw || !store_zstd_available() ||
+        !NativeFileSession::handoff_contexts_resolved(*this) || writer.indexed_capacity_repair_generation() ||
+        (evaluated_image==volume->active_id && evaluated_generation==writer.recompression_generation()))return 0;
+    const auto end=writer.maintenance_physical_end();
+    return end?cold_compaction_input_cost(end+detail::kPagedStoreCheckpointWriteBytes):0;
+  }
+  std::uint64_t scan_input_ceiling(std::uint64_t input,std::uint64_t settled) const noexcept {
+    if(!memory_idle_compaction && !(persistent_reclaimer && persistent_reclaimer->cold_target_available()))
+      return input;
+    const auto cost=cold_compaction_cost();
+    const auto floor=(std::max)(settled,cold_screen_input_floor);
+    // Lookups and grouping can proceed in memory. Leave a complete admission
+    // for cold compression before spending the same credit on advisory writes.
+    return input>=floor && input-floor>=cost?input-cost:input;
+  }
   bool scan_advice_funded() const noexcept {
     const auto* advice=ready_scan_advice();
     if(!advice)return false;
     const auto settled=advice->budget_settlement();
     const auto input=writer.workload_info();
-    return settled && input.enabled && input.committed_input_bytes>=*settled &&
-        input.committed_input_bytes-*settled>=kOptimizationGroupScanInputBytes;
+    if(!settled || !input.enabled || input.committed_input_bytes<*settled)return false;
+    return scan_input_ceiling(input.committed_input_bytes,*settled)-*settled>=kOptimizationGroupScanInputBytes;
   }
   void adopt_coherence(IndexedCoherenceSnapshot catalog,
       std::shared_ptr<IndexedCoherenceWriter> writer_owner={}) {
@@ -238,10 +255,11 @@ struct NativeFileSession::Impl {
     if(!maintenance->coherence_rewrite)return scan_advice_funded();
     const auto progress=maintenance->coherence_rewrite->progress();
     if(progress.phase!=PagedRewritePhase::awaiting_charge)return true;
-    const auto input=writer.workload_info().committed_input_bytes;
     const auto settled=advice->budget_settlement();
+    if(!settled)return false;
+    const auto input=scan_input_ceiling(writer.workload_info().committed_input_bytes,*settled);
     const auto overhead=kOptimizationGroupScanInputBytes+coherence_selection_cost();
-    return settled && input>=*settled && input-*settled>=overhead &&
+    return input>=*settled && input-*settled>=overhead &&
         (input-*settled-overhead)/kOptimizationGroupScanInputPerWriteByte>=progress.required_write_bytes;
   }
   void retire_failed_advice_charge(const OptimizationStateWriter& advice,std::uint64_t input) noexcept {
@@ -270,13 +288,14 @@ struct NativeFileSession::Impl {
     if(!actual.enabled || !maintenance->coherence || maintenance->coherence->image()!=volume->active_id)
       throw std::runtime_error("coherence copy has no checked current image");
     const auto settled=advice->budget_settlement();
+    if(!settled)return false;
+    const auto input=scan_input_ceiling(actual.committed_input_bytes,*settled);
     const auto overhead=kOptimizationGroupScanInputBytes+coherence_selection_cost();
-    if(!settled || actual.committed_input_bytes<*settled || actual.committed_input_bytes-*settled<overhead ||
-        bytes>(actual.committed_input_bytes-*settled-overhead)/kOptimizationGroupScanInputPerWriteByte)
-      return false;
+    if(input<*settled || input-*settled<overhead ||
+        bytes>(input-*settled-overhead)/kOptimizationGroupScanInputPerWriteByte)return false;
     const auto cost=kOptimizationGroupScanInputBytes+bytes*kOptimizationGroupScanInputPerWriteByte;
     try {
-      return advice->reserve_rewrite(actual.committed_input_bytes,cost,current_cold_coverage());
+      return advice->reserve_rewrite(input,cost,current_cold_coverage());
     }catch(...) {
       retire_failed_advice_charge(*advice,actual.committed_input_bytes);
       throw;
@@ -286,9 +305,11 @@ struct NativeFileSession::Impl {
     if(published.backing_identity()==StoreIdentity{})return true;
     auto* advice=ready_scan_advice();
     if(!advice)return false;
+    const auto settled=advice->budget_settlement();
+    if(!settled)return false;
     try {
       return advice->select_catalog({published.image(),published.backing_identity(),published.info().generation},
-          input,current_cold_coverage());
+          scan_input_ceiling(input,*settled),current_cold_coverage());
     }catch(...) {
       retire_failed_advice_charge(*advice,input);
       throw;
@@ -346,9 +367,10 @@ struct NativeFileSession::Impl {
     if(creating && (!storage || coherence_restore_pending ||
         maintenance->coherence_binding==(std::numeric_limits<std::uint64_t>::max)()))return false;
     const auto settled=*state.settled_input_bytes;
+    const auto spendable=scan_input_ceiling(input,settled);
     const auto overhead=kOptimizationGroupScanInputBytes+(creating?coherence_selection_cost():0);
-    if(input<settled || input-settled<=overhead)return false;
-    const auto maximum_bytes=(input-settled-overhead)/kOptimizationGroupScanInputPerWriteByte;
+    if(spendable<settled || spendable-settled<=overhead)return false;
+    const auto maximum_bytes=(spendable-settled-overhead)/kOptimizationGroupScanInputPerWriteByte;
     if(creating && maximum_bytes<2*kStoreCommitUnit)return false;
     const auto& features=state.group_scan->representatives;
     auto first=std::ranges::upper_bound(features,maintenance->coherence_offer_after,{},&OptimizationGroupFeature::object);
@@ -386,7 +408,7 @@ struct NativeFileSession::Impl {
     if(postings.empty())return false;
     bool settled_catalog=false;
     const auto reserve=[&](std::uint64_t write_bytes) {
-      settled_catalog=advice.publish_budgeted(state,input,current_cold_coverage(),true,write_bytes)==
+      settled_catalog=advice.publish_budgeted(state,spendable,current_cold_coverage(),true,write_bytes)==
           OptimizationStateWriter::BudgetResult::published;
       return settled_catalog;
     };
@@ -435,10 +457,11 @@ struct NativeFileSession::Impl {
     if(!actual.enabled)return false;
     auto state=advice.snapshot().state;
     state.group_scan=std::move(scan);
+    const auto spendable=scan_input_ceiling(actual.committed_input_bytes,*state.settled_input_bytes);
     try {
       return publish_coherence_scan(advice,state,actual.committed_input_bytes,keys) ||
           (!coherence_reserves_credit() &&
-           advice.publish_budgeted(state,actual.committed_input_bytes,current_cold_coverage(),true)==
+           advice.publish_budgeted(state,spendable,current_cold_coverage(),true)==
                OptimizationStateWriter::BudgetResult::published);
     }catch(...) {
       retire_failed_advice_charge(advice,actual.committed_input_bytes);
@@ -447,7 +470,7 @@ struct NativeFileSession::Impl {
   }
   NativeFilesystemWriter writer;
   std::shared_ptr<detail::NativeVolumeFileReclaimer> persistent_reclaimer;
-  bool volume_file_bound=false;
+  bool volume_file_bound=false,memory_idle_compaction=false;
   std::shared_ptr<const void> owner=std::make_shared<const int>(0);
   std::array<Slot,max_contexts> slots{};
   std::array<std::uint64_t,kNativeMaxNodes> latched{};
@@ -746,6 +769,9 @@ void NativeFileSession::bind_persistent_reclamation(std::shared_ptr<detail::Nati
   auto& self=ready();
   self.volume_file_bound=true;
   self.persistent_reclaimer=std::move(reclaimer);
+}
+void NativeFileSession::bind_memory_idle_compaction() noexcept {
+  impl_->memory_idle_compaction=true;
 }
 bool NativeFileSession::indexed_payload_repair_pending() const noexcept {
   return !poisoned() && impl_->writer.indexed_payload_repair_pending();
@@ -1183,21 +1209,16 @@ bool NativeFileSession::idle_compaction_context_ready() const noexcept {
       handoff_contexts_resolved(*impl_);
 }
 bool NativeFileSession::idle_cold_compaction_pending() const noexcept {
-  if(!idle_compaction_context_ready())return false;
+  if(poisoned())return false;
   const auto& self=*impl_;
-  if(self.recompression || self.volume->foreground.mode==StoreCompressionMode::raw || !store_zstd_available() ||
-      self.writer.indexed_capacity_repair_generation() ||
-      (self.evaluated_image==self.volume->active_id &&
-       self.evaluated_generation==self.writer.recompression_generation()))return false;
+  const auto cost=self.cold_compaction_cost();
   const auto* advice=self.ready_funded_advice();
-  if(!advice)return false;
+  if(!cost || !advice)return false;
   const auto settled=advice->budget_settlement();
   const auto input=self.writer.workload_info();
-  const auto end=self.writer.maintenance_physical_end();
-  if(!settled || !input.enabled || !end)return false;
+  if(!settled || !input.enabled)return false;
   const auto floor=(std::max)(*settled,self.cold_screen_input_floor);
-  return input.committed_input_bytes>=floor &&
-      input.committed_input_bytes-floor>=cold_compaction_input_cost(end);
+  return input.committed_input_bytes>=floor && input.committed_input_bytes-floor>=cost;
 }
 
 void NativeFileSession::begin_handoff(Impl& self,NativeFilesystemSnapshot baseline,

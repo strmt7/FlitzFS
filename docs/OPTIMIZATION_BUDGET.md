@@ -44,6 +44,23 @@ costs under an experimental one-to-one input policy, not optimal compression
 policy, physical flash-wear measurements or a hardware guarantee. Future mapping
 and image/work costs require separate admission.
 
+### Cold rewrite admission
+
+When a managed indexed image has enough committed input to fund a cold rewrite,
+optional advice leaves that amount available until the image has had its cold
+screen. The calculation covers the selected image's verified physical end,
+the pair of candidate checkpoint writes, and publication of the selector and
+advice. The decision uses the current image generation, available replacement
+path and unsettled input. Live resource checks and the normal low-priority
+scheduler still control when to run the screen.
+
+The group controller continues looking for useful representations. Its
+checkpoint, catalog creation, replacement and selection can spend the remaining
+credit. A checkpoint waiting for funds stays in memory without scheduling idle
+work on its own. A declined screen or changed image lets the controller
+recalculate the allocation. The journal continues to record each actual charge
+before the corresponding writes.
+
 ### Funded catalog updates
 
 An indexed scan uses 4 MiB of unsettled input for its paired checkpoint. If its

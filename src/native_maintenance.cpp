@@ -227,7 +227,8 @@ struct NativeGroupMaintenance::Impl {
   bool discovery_pending(const NativeFilesystemWriter& writer,const detail::NativeMaintenanceSource& owner,
       StoreIdentity image_id) const noexcept {
     if(owner.group_append_shortfall(image_id,writer.recompression_generation()))return false;
-    return active_group() || checkpoint_due || phase!=Phase::idle || (writer.maintenance_has_candidates() &&
+    return active_group() || (checkpoint_due && owner.scan_funded()) || phase!=Phase::idle ||
+        (writer.maintenance_has_candidates() &&
         (image!=image_id || completed_sequence!=writer.maintenance_content_sequence() || new_coherence(owner,image_id)));
   }
   void reset_index() noexcept {
@@ -365,9 +366,8 @@ struct NativeGroupMaintenance::Impl {
     if(checkpoint_unavailable || update_count)return false;
     try {
       if(!checkpoint_loaded && restore_scan(writer,owner,maximum_representatives,new_catalog))return true;
-      if(!checkpoint_due)return false;
+      if(!checkpoint_due || !owner.scan_funded())return false;
       checkpoint_due=false;
-      if(!owner.scan_funded())return false;
       OptimizationGroupScan scan;
       scan.image=image;scan.namespace_sequence=writer.maintenance_sequence();
       scan.inode=cursor.inode;scan.extent_index=cursor.extent_index;
@@ -1252,7 +1252,7 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
   if(!p.active_group() && writer.maintenance_busy())return p.defer(Defer::other_maintenance);
   const bool service_coherence=reclaiming && !p.active_group() && (p.prefer_coherence || !discovering);
   if(observed.continued && (p.phase==Phase::publishing || service_coherence ||
-      (indexed && !p.active_group() && p.checkpoint_due)))return p.defer(Defer::observation);
+      (indexed && !p.active_group() && p.checkpoint_due && source->scan_funded())))return p.defer(Defer::observation);
   // Credit only fresh idle observation intervals. Time paces pending work; it
   // never discovers a candidate or overrides contention/integrity evidence.
   const auto elapsed_ns=elapsed>(std::numeric_limits<std::uint64_t>::max)()/million?
@@ -1288,7 +1288,6 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
       if(!indexed || observed.continued || p.active_group() ||
           !p.checkpoint_step(writer,*source,maximum_representatives,new_catalog))
         p.step(writer,maximum_members,maximum_representatives,search,*source,sections,packing_members,staged_reference);
-      if(p.checkpoint_due && !source->scan_funded())p.checkpoint_due=false;
       p.prefer_coherence=true;
       p.state.phase=p.phase;
     }
