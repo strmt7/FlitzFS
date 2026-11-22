@@ -10,7 +10,7 @@
 #include <vector>
 
 namespace flitzfs {
-namespace detail {class NativeObjectWriter;}
+namespace detail {class NativeObjectWriter;class NativeLz4ReadRoute;}
 // Experimental immutable-object transaction core. No filesystem/GPU/driver routing.
 using StoreIdentity = std::array<std::byte,16>;
 inline constexpr std::uint64_t kStoreMaxPhysicalBytes=64ULL*1024*1024;

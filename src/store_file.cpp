@@ -75,27 +75,57 @@ void path_policy(const std::filesystem::path& p) {
 constexpr auto maximum_windows_file_bytes=static_cast<std::uint64_t>((std::numeric_limits<LONGLONG>::max)());
 struct PinnedDirectory {
   HANDLE handle=INVALID_HANDLE_VALUE;
+  std::wstring volume_root;
   PinnedDirectory()=default;
   PinnedDirectory(const PinnedDirectory&)=delete;
   PinnedDirectory& operator=(const PinnedDirectory&)=delete;
   ~PinnedDirectory(){if(handle!=INVALID_HANDLE_VALUE)CloseHandle(handle);}
 };
-void require_opened_path(HANDLE handle,std::filesystem::path path) {
-  path.make_preferred();
-  const auto expected=L"\\\\?\\"+path.native();
-  const auto flags=FILE_NAME_NORMALIZED|VOLUME_NAME_DOS;
+std::wstring opened_path(HANDLE handle,DWORD volume_name) {
+  const auto flags=FILE_NAME_NORMALIZED|volume_name;
   const auto required=GetFinalPathNameByHandleW(handle,nullptr,0,flags);
   if(!required || required>32768)fail("cannot resolve the opened volume-file path");
   std::wstring actual(required,L'\0');
   const auto length=GetFinalPathNameByHandleW(handle,actual.data(),required,flags);
-  if(!length || length>=required || CompareStringOrdinal(actual.data(),static_cast<int>(length),
-      expected.data(),static_cast<int>(expected.size()),TRUE)!=CSTR_EQUAL)
+  if(!length || length>=required)fail("cannot resolve the opened volume-file path");
+  actual.resize(length);
+  return actual;
+}
+bool same_windows_path(std::wstring_view left,std::wstring_view right) noexcept {
+  return CompareStringOrdinal(left.data(),static_cast<int>(left.size()),
+      right.data(),static_cast<int>(right.size()),TRUE)==CSTR_EQUAL;
+}
+void require_opened_path(HANDLE handle,std::filesystem::path path) {
+  path.make_preferred();
+  if(!same_windows_path(opened_path(handle,VOLUME_NAME_DOS),L"\\\\?\\"+path.native()))
     fail("the opened volume-file path is redirected");
+}
+std::wstring opened_volume_root(HANDLE handle) {
+  const auto actual=opened_path(handle,VOLUME_NAME_GUID);
+  const std::wstring_view prefix=L"\\\\?\\Volume{";
+  const auto end=actual.find(L'\\',prefix.size());
+  if(!actual.starts_with(prefix) || end==std::wstring::npos || end<=prefix.size() || actual[end-1]!=L'}')
+    fail("cannot identify the opened local volume");
+  return actual.substr(0,end+1);
+}
+bool local_volume_drive(UINT type) noexcept {
+  return type==DRIVE_FIXED || type==DRIVE_REMOVABLE;
+}
+void admit_volume_space(const std::wstring& volume,std::uint64_t growth) {
+  ULARGE_INTEGER available{},capacity{};
+  if(!GetDiskFreeSpaceExW(volume.c_str(),&available,&capacity,nullptr) ||
+      !capacity.QuadPart || available.QuadPart>capacity.QuadPart)
+    fail("cannot verify space on the opened volume");
+  // Small removable media need a reserve related to their capacity. Protect
+  // larger volumes with the same reserve used by the file adapter.
+  const auto reserve=(std::min)(kReserve,capacity.QuadPart/16+(capacity.QuadPart%16!=0));
+  if(available.QuadPart<reserve || growth>available.QuadPart-reserve)
+    fail("insufficient verified volume reserve");
 }
 void pin_volume_directory(PinnedDirectory& pinned,std::filesystem::path file) {
   file.make_preferred();
-  if(!file.is_absolute() || file!=file.lexically_normal() || GetDriveTypeW(file.root_path().c_str())!=DRIVE_FIXED)
-    fail("volume file requires a normalized absolute local path");
+  if(!file.is_absolute() || file!=file.lexically_normal() || !local_volume_drive(GetDriveTypeW(file.root_path().c_str())))
+    fail("volume file requires an absolute path on a local fixed or removable drive");
   const auto path=file.parent_path();
   pinned.handle=CreateFileW(path.c_str(),FILE_READ_ATTRIBUTES,FILE_SHARE_READ|FILE_SHARE_WRITE,
       nullptr,OPEN_EXISTING,FILE_FLAG_BACKUP_SEMANTICS|FILE_FLAG_OPEN_REPARSE_POINT,nullptr);
@@ -104,7 +134,10 @@ void pin_volume_directory(PinnedDirectory& pinned,std::filesystem::path file) {
       !GetFileInformationByHandleEx(pinned.handle,FileAttributeTagInfo,&info,sizeof(info)) ||
       !(info.FileAttributes&FILE_ATTRIBUTE_DIRECTORY) || (info.FileAttributes&FILE_ATTRIBUTE_REPARSE_POINT))
     fail("cannot pin the volume-file directory");
-  if(path!=path.root_path())require_opened_path(pinned.handle,path);
+  require_opened_path(pinned.handle,path);
+  pinned.volume_root=opened_volume_root(pinned.handle);
+  if(!local_volume_drive(GetDriveTypeW(pinned.volume_root.c_str())))
+    fail("the opened parent has no supported local volume");
 }
 void validate_volume_storage(HANDLE file,StoreIoContract qualified) {
   FILE_STORAGE_INFO disk{};
@@ -117,16 +150,14 @@ void validate_volume_storage(HANDLE file,StoreIoContract qualified) {
       fail("live storage geometry exceeds the qualified failure unit");
   }
 }
-void validate_sparse_storage(HANDLE file,const std::filesystem::path& parent) {
+void validate_sparse_storage(HANDLE file,const std::wstring& volume) {
   wchar_t filesystem[32]{};
   DWORD flags=0;
   if(!GetVolumeInformationByHandleW(file,nullptr,0,nullptr,nullptr,&flags,filesystem,static_cast<DWORD>(std::size(filesystem))) ||
       std::wstring_view(filesystem)!=L"NTFS" || !(flags&FILE_SUPPORTS_SPARSE_FILES))
     fail("isolated file ranges need qualified NTFS sparse storage");
-  std::wstring root(32768,L'\0');
   DWORD sectors=0,sector_bytes=0,free_clusters=0,total_clusters=0;
-  if(!GetVolumePathNameW(parent.c_str(),root.data(),static_cast<DWORD>(root.size())) ||
-      !GetDiskFreeSpaceW(root.c_str(),&sectors,&sector_bytes,&free_clusters,&total_clusters))
+  if(!GetDiskFreeSpaceW(volume.c_str(),&sectors,&sector_bytes,&free_clusters,&total_clusters))
     fail("cannot verify sparse file allocation granularity");
   const auto bytes=static_cast<std::uint64_t>(sectors)*sector_bytes;
   if(!bytes || bytes>kStoreCommitUnit || kStoreCommitUnit%bytes)
@@ -184,9 +215,12 @@ class Output final:public NativeVolumeRangeIo {
   void admit_windows_growth(std::uint64_t projected,std::uint64_t growth) {
     if(projected<extent_ || projected>capacity_ || growth>capacity_)fail("projected extent outside budget");
     memory_headroom();
-    std::error_code ec;const auto free=std::filesystem::space(parent_path_,ec);
-    if(ec || free.available==static_cast<std::uintmax_t>(-1) || free.available<kReserve || growth>free.available-kReserve)
-      fail("insufficient verified disk reserve");
+    if(volume_file_)admit_volume_space(parent_pin_.volume_root,growth);
+    else {
+      std::error_code ec;const auto free=std::filesystem::space(parent_path_,ec);
+      if(ec || free.available==static_cast<std::uintmax_t>(-1) || free.available<kReserve || growth>free.available-kReserve)
+        fail("insufficient verified disk reserve");
+    }
     admitted_extent_=projected;
   }
 #else
@@ -222,12 +256,13 @@ class Output final:public NativeVolumeRangeIo {
       if(!capacity_ || capacity_>maximum_windows_file_bytes || !valid_store_io_contract(c))
         fail("invalid persistent-file qualification");
       pin_volume_directory(parent_pin_,p);
-      if(c.isolated_range_reclamation)validate_sparse_storage(parent_pin_.handle,parent);
+      admit_volume_space(parent_pin_.volume_root,0);
+      if(c.isolated_range_reclamation)validate_sparse_storage(parent_pin_.handle,parent_pin_.volume_root);
+    }else {
+      std::error_code ec;const auto space=std::filesystem::space(parent,ec);
+      if(ec || space.available==static_cast<std::uintmax_t>(-1) || space.available<kReserve+kStoreMaxPhysicalBytes)
+        fail("insufficient verified disk reserve");
     }
-    std::error_code ec;const auto space=std::filesystem::space(parent,ec);
-    const auto required=kReserve+(volume_file_?0:kStoreMaxPhysicalBytes);
-    if(ec || space.available==static_cast<std::uintmax_t>(-1) || space.available<required)
-      fail("insufficient verified disk reserve");
     handle_=CreateFileW(p.c_str(),GENERIC_READ|GENERIC_WRITE,0,nullptr,reopen?OPEN_EXISTING:CREATE_NEW,
                         FILE_ATTRIBUTE_NORMAL|FILE_FLAG_OPEN_REPARSE_POINT,nullptr);
     if(handle_==INVALID_HANDLE_VALUE) fail("exclusive creation failed");
@@ -244,12 +279,14 @@ class Output final:public NativeVolumeRangeIo {
         if(attr.FileAttributes&(FILE_ATTRIBUTE_COMPRESSED|FILE_ATTRIBUTE_ENCRYPTED))
           fail("volume-file storage requires ordinary caching semantics");
         require_opened_path(handle_,p);
+        if(!same_windows_path(opened_volume_root(handle_),parent_pin_.volume_root))
+          fail("volume file does not belong to the opened parent volume");
         validate_volume_storage(handle_,c);
         sparse_=(attr.FileAttributes&FILE_ATTRIBUTE_SPARSE_FILE)!=0;
         if(sparse_ && !c.isolated_range_reclamation)
           fail("sparse volume file needs an isolated range contract");
         if(c.isolated_range_reclamation) {
-          validate_sparse_storage(handle_,parent);
+          validate_sparse_storage(handle_,parent_pin_.volume_root);
           if(!reopen && !sparse_) {
             DWORD returned=0;
             if(!DeviceIoControl(handle_,FSCTL_SET_SPARSE,nullptr,0,nullptr,0,&returned,nullptr) ||

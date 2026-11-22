@@ -1,6 +1,7 @@
 #include "flitzfs/paged_store.hpp"
 #include "record_digest.hpp"
 #include "protected_stripe_image.hpp"
+#include "native_lz4_read.hpp"
 #include "store_codec.hpp"
 #include <algorithm>
 #include <bit>
@@ -412,8 +413,17 @@ Bytes consume_decoded_record(const State& s,const Entry& e,ObjectRecord& record)
   if(get32(record.header,12)==detail::kStoreRaw)return std::move(record.payload);
   return decode_record(s,e,record);
 }
-Bytes read_object(const State& s,const Entry& e) {
+Bytes read_object(const State& s,const Entry& e,detail::NativeLz4ReadRoute* route=nullptr) {
   auto record=read_record(s,e);
+  if(route && !record.recovered_primary && !s.degraded_payloads &&
+      get32(record.header,12)==detail::kStoreLz4 && store_lz4_available()) {
+    const detail::NativeLz4ReadKey key{s.id,e.id,e.generation,e.logical,field<32>(record.header,56)};
+    if(auto candidate=route->try_ready(key,record.payload)) {
+      if(candidate->size()==e.logical && detail::record_digest(*candidate)==key.decoded_digest)
+        return std::move(*candidate);
+      route->reject(key);
+    }
+  }
   auto bytes=consume_decoded_record(s,e,record);
   if(record.recovered_primary && s.payload_repairs)s.payload_repairs->observe(e);
   return bytes;
@@ -1585,13 +1595,13 @@ std::optional<Bytes> PagedObjectStoreSnapshot::read_if_generation(std::uint64_t 
   return read_matching(id,maximum_decoded_bytes,generation);
 }
 std::optional<Bytes> PagedObjectStoreSnapshot::read_matching(std::uint64_t id,std::size_t maximum_decoded_bytes,
-    std::optional<std::uint64_t> expected_generation) const {
+    std::optional<std::uint64_t> expected_generation,detail::NativeLz4ReadRoute* route) const {
   if(!impl_)fail("moved-from snapshot");
   auto e=lookup(impl_->state,id,impl_->lookup_pages?&*impl_->lookup_pages:nullptr,
       impl_->retained_root?&*impl_->retained_root:nullptr);
   if(!e || (expected_generation && e->generation!=*expected_generation))return {};
   if(e->logical>maximum_decoded_bytes)fail("object exceeds decoded read budget");
-  return read_object(impl_->state,*e);
+  return read_object(impl_->state,*e,route);
 }
 std::optional<std::pair<std::uint64_t,Bytes>> PagedObjectStoreSnapshot::read_first_after(
     std::uint64_t after,std::uint64_t last,std::size_t maximum_decoded_bytes) const {

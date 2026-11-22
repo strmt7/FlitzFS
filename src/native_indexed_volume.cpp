@@ -2310,7 +2310,7 @@ void IndexedSharedBaseCache::clear() noexcept {
 }
 
 Bytes IndexedVolumeView::read(const IndexedInodeInput& selected,std::uint64_t offset,std::uint32_t bytes,
-    IndexedSharedBaseCache* retained) const {
+    IndexedSharedBaseCache* retained,NativeLz4ReadRoute* route) const {
   if(selected.lifetime==IndexedLifetime::retiring)fail(Code::not_found,"indexed inode is retired");
   if(selected.directory)fail(Code::is_directory,"cannot read indexed directory");
   if(bytes>kNativeMaxReadBytes)fail(Code::limit,"indexed read budget");
@@ -2328,8 +2328,14 @@ Bytes IndexedVolumeView::read(const IndexedInodeInput& selected,std::uint64_t of
     if(block>last)break;
     if((entry.value&ordinal_mask)>=root_.next_extent)
       fail(Code::corrupt,"indexed extent reference exceeds allocator");
-    const auto extent=decode_extent(store_,index_,root_,entry.value,
-        required(store_,entry.value,extent_header+kNativeExtentBytes),selected,block,false,&cached_base,retained);
+    std::optional<Bytes> record;
+    try {
+      record=store_.read_matching(entry.value,extent_header+kNativeExtentBytes,std::nullopt,route);
+    }catch(const std::bad_alloc&){throw;}
+    catch(const std::exception&){fail(Code::storage_failure,"indexed object integrity or read failure");}
+    if(!record)fail(Code::corrupt,"indexed object reference missing");
+    const auto extent=decode_extent(store_,index_,root_,entry.value,std::move(*record),
+        selected,block,false,&cached_base,retained);
     const auto data=extent.payload();
     const auto begin=block*kNativeExtentBytes;
     const auto from=(std::max)(begin,offset),to=(std::min)(end,begin+data.size());

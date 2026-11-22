@@ -1702,10 +1702,10 @@ NativeDirectoryRecordPage NativeFileSession::list_page(const NativeFileHandle& h
   return std::move(*page);
 }
 std::vector<std::byte> NativeFileSession::read(const NativeFileHandle& handle,
-    std::uint64_t offset,std::uint32_t bytes) const {
+    std::uint64_t offset,std::uint32_t bytes,detail::NativeLz4ReadRoute* route) const {
   const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
   if(!slot.access.read)fail(E::access_denied,"native context has no read access");
-  return self.writer.read_inode(slot.inode,offset,bytes);
+  return self.writer.read_inode(slot.inode,offset,bytes,route);
 }
 NativeInodeWriteCommit NativeFileSession::write(const NativeFileHandle& handle,
     std::uint64_t offset,std::span<const std::byte> bytes,NativeInodeWriteOptions options) {

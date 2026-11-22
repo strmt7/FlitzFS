@@ -134,7 +134,7 @@ class PagedObjectStoreSnapshot final {
   std::shared_ptr<StoreByteIo> backing_for_volume_head() const;
   bool same_checkpoint(const PagedObjectStoreSnapshot&) const noexcept;
   std::optional<std::vector<std::byte>> read_matching(std::uint64_t id,std::size_t maximum_decoded_bytes,
-      std::optional<std::uint64_t> expected_generation) const;
+      std::optional<std::uint64_t> expected_generation,detail::NativeLz4ReadRoute* route=nullptr) const;
   std::optional<std::pair<std::uint64_t,std::vector<std::byte>>> read_first_after(std::uint64_t after,
       std::uint64_t last,std::size_t maximum_decoded_bytes) const;
   static PagedObjectStoreSnapshot open_impl(std::shared_ptr<StoreByteIo>,PagedStoreLimits,bool retain_tree_root);

@@ -105,6 +105,30 @@ runtime and module identities independently, along with the adapter and role.
   CPU decoding. Track time to data and memory movement for isolated small reads
   and multi-frame requests.
 
+The indexed session read path can now consume a ready native LZ4 result. It
+keys that result to the verified image, object generation, decoded length
+and decoded digest, and the CPU checks the complete result before file-range
+projection. A missing or rejected result decodes the same checked record on
+CPU. The decoder hook runs on the existing serialized read path and returns
+without waiting. The mounted AMD producer and its matched measurements are
+still open. The pinned LZ4 Release and AddressSanitizer runs each checked
+one accepted ready result and three rejected replies, with exact CPU
+fallback on the same stored records.
+[Windows verification](../evidence/pinned-provider-indexed-lz4-read-2026-11-22.json)
+
+Use the LZ4 decoder in the pinned AMD source as the first device candidate.
+The older decode worker supports different block kinds and a 65,536-byte
+decoded block limit. A full indexed extent includes a 24-byte header
+in addition to its 65,536 data bytes. Give native LZ4 decode its own
+resource-sized batch contract. Validate total lengths, sequence boundaries,
+copy distances, final literals and alignment before input reaches the device.
+Qualify both wave widths where available, with the same stored frames decoded
+through the independent CPU library. Measure the complete read path before
+automatic admission. A prepared producer can retain one admitted batch and
+offer ready results for exact keys while foreground reads continue on CPU.
+[Pinned AMD LZ4 decoder](https://github.com/ROCm/hipCOMP-core/blob/03df9f7369211ee15d370817165224c73fdc9a46/src/LZ4Kernels.cuh#L921) ·
+[LZ4 block format](https://github.com/lz4/lz4/blob/dev/doc/lz4_Block_format.md)
+
 Use [GPU recovery](../GPU_RECOVERY.md) for immediate CPU continuity and
 evidence-driven retry admission. A declined, failed or late reply never
 authorizes stored data or changes the selected version. Bind measurements to
@@ -124,6 +148,20 @@ behavior. Confirm current observed latency and throughput with bounded work on
 the owned target. Device names and geometry alone cannot establish durability.
 [Windows storage property queries](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-ioctl_storage_query_property) ·
 [Windows access alignment descriptor](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ns-winioctl-storage_access_alignment_descriptor)
+
+The Windows file provider now admits qualified local fixed and removable
+volumes. It requires the opened parent and backing file to resolve to the
+same volume GUID. Free-space checks and allocation geometry use that GUID
+so a changed drive letter cannot supply evidence for the old volume. The
+space reserve is one sixteenth of caller-visible capacity, rounded up and
+capped at 1 GiB. Existing geometry and explicit flush requirements still
+govern writes. Sparse range reclamation uses the qualified NTFS path. The
+read-only Windows probe confirmed the GUID and DOS path for the development
+drive root and its test directory. Removable media and physical persistence
+still require device tests.
+[Windows final paths by handle](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfinalpathnamebyhandlew) ·
+[Caller-visible free space](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getdiskfreespaceexw) ·
+[Windows drive types](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getdrivetypew)
 
 | Provider | Signals and tailored decisions | Qualification |
 | --- | --- | --- |

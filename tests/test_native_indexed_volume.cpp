@@ -1,6 +1,8 @@
 #include "native_indexed_volume.hpp"
 #include "native_fs_fixture.hpp"
 #include "native_lz4_fixture.hpp"
+#include "native_lz4_read.hpp"
+#include <utility>
 #include "native_security_fixture.hpp"
 #include "flitzfs/native_session.hpp"
 #include "flitzfs/volume_head.hpp"
@@ -415,6 +417,78 @@ void indexed_extent_advice() {
   require(run(partial,{&valid,1},fast)==run(partial,{},fast),"full extent advice overrode a partial indexed extent");
   std::cout<<"indexed_lz4_advice decoder="<<store_lz4_available()<<" offset="<<offset
       <<" CPU_payload="<<baseline.first<<" advised_payload="<<advised.first<<'\n';
+}
+void indexed_extent_read_route() {
+  constexpr StoreCompressionOptions fast{StoreCompressionMode::fast,1,false};
+  auto ram=empty();
+  auto writer=NativeFilesystemWriter::initialize_indexed(
+      PagedObjectStoreWriter::create_mirrored(ram,identity(),limits,fast));
+  const auto created=file_create("read-target");
+  writer.apply({&created,1});
+  auto session=NativeFileSession::create(std::move(writer));
+  const auto reader=session.open("read-target",{true,true,true});
+  const auto plain=native_lz4_fixture::source();
+  const auto encoded=native_lz4_fixture::alternative_block(plain);
+  const NativeLz4ExtentCandidate hint{1,encoded};
+  const auto offset=kNativeExtentBytes;
+  (void)session.write_storage_with_lz4_result(reader,offset,plain,{&hint,1});
+
+  struct ReadyRoute final:detail::NativeLz4ReadRoute {
+    std::optional<Bytes> ready;
+    detail::NativeLz4ReadKey key{};
+    std::size_t offers=0,rejections=0,encoded_bytes=0;
+    std::optional<Bytes> try_ready(const detail::NativeLz4ReadKey& offered,
+        std::span<const std::byte> bytes) noexcept override {
+      key=offered;
+      ++offers;
+      encoded_bytes=bytes.size();
+      return std::exchange(ready,std::nullopt);
+    }
+    void reject(const detail::NativeLz4ReadKey& rejected) noexcept override {
+      if(rejected==key)++rejections;
+    }
+  } route;
+
+  require(session.read(reader,0,8,&route)==Bytes(8) && route.offers==0,
+      "sparse reads offered backing bytes");
+  require(session.read(reader,offset,static_cast<std::uint32_t>(plain.size()),&route)==plain,
+      "unavailable route changed the CPU read");
+  if(!store_lz4_available()) {
+    require(route.offers==0,"codec-free recovery offered LZ4");
+    return;
+  }
+
+  const auto store=PagedObjectStoreSnapshot::open(ram,limits);
+  const auto frame=store.read(kNativeIndexedDataObject|1);
+  require(route.offers==1 && route.key.image==identity() && route.key.object==(kNativeIndexedDataObject|1) &&
+      route.key.generation>0 && route.key.decoded_bytes==frame.size() &&
+      route.key.decoded_digest==detail::record_digest(frame) && route.encoded_bytes==encoded.size()+24,
+      "wrong exact native LZ4 frame binding");
+  const auto before=route.key;
+  route.ready=frame;
+  require(session.read(reader,offset-3,7,&route)==Bytes({std::byte{},std::byte{},std::byte{},
+      plain[0],plain[1],plain[2],plain[3]}) && route.offers==2 && route.rejections==0,
+      "correct ready frame or sparse-bounded range failed");
+
+  route.ready=Bytes(1);
+  require(session.read(reader,offset,1,&route)==Bytes{plain[0]} && route.rejections==1,
+      "short completion changed CPU fallback");
+  route.ready=frame;
+  route.ready->back()^=std::byte{1};
+  require(session.read(reader,offset,1,&route)==Bytes{plain[0]} && route.rejections==2,
+      "wrong bytes outside the requested range bypassed decoded verification");
+
+  const std::byte after=plain.front()^std::byte{1};
+  (void)session.write(reader,offset,{&after,1});
+  route.ready=frame;
+  require(session.read(reader,offset,1,&route)==Bytes{after} && route.rejections==3 && route.key!=before,
+      "late frame from the old object generation changed the current file");
+  const auto offers=route.offers;
+  require(session.read(reader,offset+plain.size(),1,&route).empty() && route.offers==offers,
+      "end of file offered a decode");
+  session.snapshot().verify_all();
+  std::cout<<"indexed_ready_read offers="<<route.offers<<" rejected="<<route.rejections
+      <<" CPU_fallback_exact=1\n";
 }
 void growing_native_writer() {
   using Error=NativeFsErrorCode;
@@ -1611,7 +1685,7 @@ int main(int argc,char** argv) {
     populated_native_snapshot();migration(false);migration(true);growing_native_writer();indexed_capacity_and_metadata();indexed_stable_inode_io();indexed_session_lifetimes();indexed_detach_recovery();
     indexed_large_retirement();indexed_head_independent_sequence();indexed_staged_rebuild();indexed_reconciled_rebuild();
     indexed_managed_handoff();indexed_managed_staged_compaction();indexed_managed_staged_faults();
-    indexed_transaction_recovery();indexed_query_page_lifetime();indexed_extent_advice();
+    indexed_transaction_recovery();indexed_query_page_lifetime();indexed_extent_advice();indexed_extent_read_route();
     indexed_directory_moves();indexed_directory_backfill();indexed_windows_names(); }
   catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}
 }

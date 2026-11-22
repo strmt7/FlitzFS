@@ -374,7 +374,8 @@ class NativeFileSession final {
   // exclusive in the current generation, so a later call may observe edits.
   NativeDirectoryRecordPage list_page(const NativeFileHandle&,std::string_view after,
       std::size_t maximum) const;
-  std::vector<std::byte> read(const NativeFileHandle&,std::uint64_t offset,std::uint32_t bytes) const;
+  std::vector<std::byte> read(const NativeFileHandle&,std::uint64_t offset,std::uint32_t bytes,
+      detail::NativeLz4ReadRoute* route=nullptr) const;
   NativeInodeWriteCommit write(const NativeFileHandle&,std::uint64_t offset,
       std::span<const std::byte>,NativeInodeWriteOptions options={});
   NativeFsCommit truncate(const NativeFileHandle&,std::uint64_t bytes);

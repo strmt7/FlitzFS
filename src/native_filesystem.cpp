@@ -2792,11 +2792,12 @@ std::optional<NativeDirectoryRecordPage> NativeFilesystemWriter::inspect_directo
     return result;
   });
 }
-Bytes NativeFilesystemWriter::read_inode(std::uint64_t inode,std::uint64_t offset,std::uint32_t bytes) const {
+Bytes NativeFilesystemWriter::read_inode(std::uint64_t inode,std::uint64_t offset,std::uint32_t bytes,
+    detail::NativeLz4ReadRoute* route) const {
   auto& state=checked_impl();
   if(bytes>kNativeMaxReadBytes)fail(Code::limit,"native read request budget");
   if(state.indexed)return state.read_indexed([&](const auto& view) {
-    return view.read(view.inode(inode),offset,bytes,&state.shared_base_reads);
+    return view.read(view.inode(inode),offset,bytes,&state.shared_base_reads,route);
   });
   return state.read_checked_inode(inode,[&](const auto& snapshot,const Node& n) {
     return read_node(snapshot,state.model,n,offset,bytes);
