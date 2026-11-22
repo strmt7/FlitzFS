@@ -590,16 +590,22 @@ AMD work on groups where savings amortize worker initialization. Include
 stale-budget outcomes in qualification, even when CPU recovery succeeds.
 [Acceptance and paired write evidence](evidence/native-lz4-advice-acceptance-2026-11-19.json)
 
-The installed native LZ4 read role now acquires the approved decoder from
-the normal volume controller on a cadence-eligible demand. The relocated
-Windows fixture returned two hardware-decoded frames through ordinary
-callbacks. Its complete preparation took 5.438 seconds, so the observed
-cost kept a subsequent 1.5-second-gap window on CPU. Separate supervised
-worker cost from host pacing in the next measurements. Compare larger
-eligible windows to the CPU on the same checkpoint and count delivered
-bytes, abandoned candidates, and foreground interference before admitting
-a shipping profile.
-[Installed native read evidence](evidence/installed-native-amd-read-2026-11-22.json)
+The installed native LZ4 read role acquires the approved decoder from the
+volume controller on a cadence-eligible demand. In Windows SDK callbacks it
+returned two hardware-decoded frames. The earlier 5.438-second turnaround
+included the fixture's additional CPU cap. A separate control held the
+binaries fixed across the two cap settings. Its supervisor-only trials
+completed at 1.000 and 1.016 seconds. Cold worker traces place most of the
+remaining cost in HIP device initialization. Device-side guard fills avoid 131,136 upload bytes per
+two-frame batch. These samples leave a speed advantage unqualified.
+[Installed native read evidence](evidence/installed-native-amd-read-2026-11-22.json) ·
+[Host transfer and lifecycle evidence](evidence/native-amd-read-lifecycle-2026-11-22.json)
+
+Compare larger, finite prepared windows against CPU on the same checkpoint
+with the same supervisor limits. Include initialization, device fills,
+launches, readback, independent verification and confirmed retirement in the
+cost. Measure delivered bytes, abandoned candidates and foreground tail
+latency before admitting a production profile.
 
 ### Implementation steps
 

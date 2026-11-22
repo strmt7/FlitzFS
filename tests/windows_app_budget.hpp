@@ -62,9 +62,29 @@ inline std::optional<std::uint64_t> requested_memory_limit() noexcept {
   }
   return bytes?std::optional<std::uint64_t>(bytes):std::nullopt;
 }
+// A timing fixture may rely on a verified supervisor CPU ceiling to avoid
+// multiplying it by a second fixture-only cap. The new local job still
+// enforces the same memory, process-count, priority and CPU-time limits.
+inline DWORD supervised_cpu_rate() noexcept {
+  JOBOBJECT_EXTENDED_LIMIT_INFORMATION job{};
+  JOBOBJECT_CPU_RATE_CONTROL_INFORMATION rate{};
+  constexpr DWORD required=JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE | JOB_OBJECT_LIMIT_ACTIVE_PROCESS |
+      JOB_OBJECT_LIMIT_PROCESS_MEMORY | JOB_OBJECT_LIMIT_JOB_MEMORY | JOB_OBJECT_LIMIT_PRIORITY_CLASS;
+  if(!QueryInformationJobObject(nullptr,JobObjectExtendedLimitInformation,&job,sizeof(job),nullptr) ||
+      !QueryInformationJobObject(nullptr,JobObjectCpuRateControlInformation,&rate,sizeof(rate),nullptr) ||
+      (job.BasicLimitInformation.LimitFlags&required)!=required ||
+      (job.BasicLimitInformation.LimitFlags&(JOB_OBJECT_LIMIT_BREAKAWAY_OK | JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK)) ||
+      job.BasicLimitInformation.PriorityClass!=BELOW_NORMAL_PRIORITY_CLASS ||
+      rate.ControlFlags!=(JOB_OBJECT_CPU_RATE_CONTROL_ENABLE | JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP) ||
+      !rate.CpuRate || rate.CpuRate>2000)return 0;
+  return rate.CpuRate;
+}
 class Budget final {
  public:
-  explicit Budget(bool report_memory=true):report_memory_(report_memory) {
+  explicit Budget(bool report_memory=true,bool use_supervisor_cpu_cap=false):report_memory_(report_memory) {
+    const auto existing_cpu=use_supervisor_cpu_cap?supervised_cpu_rate():0;
+    if(use_supervisor_cpu_cap && !existing_cpu)
+      throw std::runtime_error("Timing requires a verified supervisor CPU cap of at most 20 percent");
     // Available headroom already excludes this running process's CRT/sanitizer
     // commit. A total-process quota must include that measured baseline too.
     const auto baseline=current_private_bytes();
@@ -78,7 +98,8 @@ class Budget final {
     memory_=baseline+additional;job_=CreateJobObjectW(nullptr,nullptr);
     if(report_memory_)std::cout<<"Application fixture memory allowance: "<<memory_<<" bytes; existing_private="
         <<baseline<<" additional_headroom="<<additional<<" enclosing_job_limit="<<enclosing.value_or(0)
-        <<" requested_limit="<<requested.value_or(0)<<std::endl;
+        <<" requested_limit="<<requested.value_or(0)
+        <<" fixture_cpu_rate="<<(existing_cpu?0:2000)<<" supervisor_cpu_rate="<<existing_cpu<<std::endl;
     if(!job_)throw std::runtime_error("Application test job unavailable");
     try {
       JOBOBJECT_EXTENDED_LIMIT_INFORMATION limits{};
@@ -92,7 +113,7 @@ class Budget final {
         throw std::runtime_error("Application test memory/job admission failed");
       JOBOBJECT_CPU_RATE_CONTROL_INFORMATION cpu{};
       cpu.ControlFlags=JOB_OBJECT_CPU_RATE_CONTROL_ENABLE|JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP;cpu.CpuRate=2000;
-      if(!SetInformationJobObject(job_,JobObjectCpuRateControlInformation,&cpu,sizeof(cpu)) ||
+      if((!existing_cpu && !SetInformationJobObject(job_,JobObjectCpuRateControlInformation,&cpu,sizeof(cpu))) ||
           !AssignProcessToJobObject(job_,GetCurrentProcess()))throw std::runtime_error("Application test CPU/job admission failed");
     }catch(...){CloseHandle(job_);job_=nullptr;throw;}
   }

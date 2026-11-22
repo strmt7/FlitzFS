@@ -388,6 +388,46 @@ tested fixture. Matched, representative mounted-workload measurements
 still determine whether to ship a profile for this class.
 [Installed read verification](evidence/installed-native-amd-read-2026-11-22.json)
 
+
+### Host transfer and startup costs
+
+The worker uploads descriptors and encoded bytes. When the verified HIP
+runtime exports `hipMemsetAsync`, it initializes the output and guard
+bank on the same stream as the decoder. Runtimes without that export
+receive the initialized bank from existing host scratch. Both routes
+reserve the full device slab and check all completion descriptors,
+output digests and guard bytes before the result can leave the worker.
+[AMD HIP memory operations](https://rocm.docs.amd.com/projects/HIP/en/latest/reference/hip_runtime_api/modules/memory_management.html)
+
+The Windows RX 9070 XT probe alternated host and device guard initialization
+on the same worker build. Each result contained the same two verified
+frames. CPU reads returned exact bytes during the exchange and after
+verification. The public sample used the first 131,035 bytes of AIT
+DCC 2026 file A.
+
+| Input | Host-fill upload | Device-fill upload | Readback |
+|---|---:|---:|---:|
+| Synthetic | 148,160 B | 17,024 B | 131,168 B |
+| AIT DCC 2026 file A prefix | 257,088 B | 125,952 B | 131,168 B |
+
+Cold exchanges overlapped across the two routes at 0.767 to 0.990 seconds.
+Device initialization took 0.599 to 0.771 seconds. The prepared worker
+completed in 50.9 ms after submission, following 906.2 ms of setup. CPU
+session reads of the matched cold inputs took 170 to 266 µs. Transfer
+reduction is proven here. The measurements leave GPU speed benefit for
+small reads unqualified.
+
+A separate SDK callback control reran the prior decoder with the same
+binaries and the same in-process memory backing. The fixture-only 20%
+CPU cap multiplied the verified supervisor cap of 19%. With only the
+supervisor cap and the same worker limits, the two runs took 1.000 and
+1.016 seconds through publication. With both caps, one run took 5.562
+seconds and another deferred at device budget admission. Compare larger
+prepared batches against complete CPU cost with matched supervisor and
+worker limits. Keep exact CPU validation and confirmed worker exit.
+[Windows nested CPU limits](https://learn.microsoft.com/en-us/windows/desktop/api/winnt/ns-winnt-jobobject_cpu_rate_control_information) ·
+[Transfer and lifecycle verification](evidence/native-amd-read-lifecycle-2026-11-22.json)
+
 [Windows memory reservation and commit](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc) ·
 [Windows page retirement](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualfree)
 [Windows cached read-ahead](https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ccschedulereadaheadex) ·

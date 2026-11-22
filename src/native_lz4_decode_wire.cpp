@@ -143,7 +143,7 @@ NativeLz4WireRequest decode_native_lz4_request(View bytes,NativeLz4DecodeGrant g
     cursor+=static_cast<std::size_t>(encoded);
     if(frames.size()==maximum_frames_per_batch || i+1==count){
       auto batch=NativeLz4DecodeBatch::prepare(frames,{maximum_frames_per_batch,room});
-      room-=batch.upload().size();
+      room-=batch.slab_bytes();
       request.batches.push_back(std::move(batch));
       frames.clear();
     }

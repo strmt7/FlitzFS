@@ -3537,14 +3537,15 @@ void indexed_group_callback_contract(bool scrub_due=false) {
 }
 }
 int main(int argc,char** argv){try {
-  app_fixture::Budget budget;DWORD before=0,after=0;
+  const bool profile_installed_read=argc==2 && std::string_view(argv[1])=="--profile-installed-native-read";
+  app_fixture::Budget budget(true,profile_installed_read);DWORD before=0,after=0;
   if(argc==11) {
     const std::string_view command(argv[1]);
     if(command=="--live-amd-read-ahead" || command=="--live-amd-read-refusal")
       return live_amd_read_ahead(argv,command=="--live-amd-read-refusal");
   }
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
-  if(argc==2 && std::string_view(argv[1])=="--live-installed-native-read")
+  if(profile_installed_read || (argc==2 && std::string_view(argv[1])=="--live-installed-native-read"))
     return live_installed_native_read(false);
   if(argc==2 && std::string_view(argv[1])=="--live-installed-native-read-missing")
     return live_installed_native_read(true);

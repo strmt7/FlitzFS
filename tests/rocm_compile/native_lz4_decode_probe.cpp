@@ -4,6 +4,8 @@
 #include "gpu_request_id.hpp"
 #include "flitzfs/gpu_batch.hpp"
 #include "hip_module_verification.hpp"
+#include "hip_phase_profile.hpp"
+#include "record_digest.hpp"
 #include "gpu_budget.hpp"
 #include "../native_fs_fixture.hpp"
 #include "../native_lz4_fixture.hpp"
@@ -49,12 +51,16 @@ std::filesystem::path module_path(HMODULE module) {
   return path;
 }
 
-enum class Trial {cold,prepared,discard_prepared,refuse_module,refuse_prepared_module};
+enum class Trial {cold,prepared,profile_cold,profile_prepared,profile_host_guard,discard_prepared,
+    refuse_module,refuse_prepared_module};
 
 void run(std::wstring_view runtime_name,std::wstring_view runtime_sha,std::wstring_view module_sha,
     std::wstring_view adapter,std::wstring_view architecture,std::wstring_view ordinal_text,
     const std::optional<std::filesystem::path>& corpus,Trial trial) {
-  const bool prepared=trial==Trial::prepared || trial==Trial::discard_prepared || trial==Trial::refuse_prepared_module;
+  const bool host_guard=trial==Trial::profile_host_guard;
+  const bool profiling=host_guard || trial==Trial::profile_cold || trial==Trial::profile_prepared;
+  const bool prepared=trial==Trial::prepared || trial==Trial::profile_prepared ||
+      trial==Trial::discard_prepared || trial==Trial::refuse_prepared_module;
   const bool refuse_module=trial==Trial::refuse_module || trial==Trial::refuse_prepared_module;
   require(store_lz4_available(),"native LZ4 CPU reference unavailable");
   require(ordinal_text.size()==1 && ordinal_text[0]>=L'0' && ordinal_text[0]<=L'9',"invalid HIP ordinal");
@@ -109,11 +115,13 @@ void run(std::wstring_view runtime_name,std::wstring_view runtime_sha,std::wstri
       NativeLz4DecodeSource{captured[0].key(),captured[0].encoded()},
       NativeLz4DecodeSource{captured[1].key(),captured[1].encoded()}};
   constexpr NativeLz4DecodeGrant grant{2,256U*1024U};
-  const auto exchange=NativeLz4ReadExchange::prepare_captured(captured,detail::next_gpu_request_id(),grant);
-  const WorkerChannelCapacity capacity{exchange.request()->bytes().size(),exchange.reply_capacity()};
+  const auto id=detail::next_gpu_request_id();
+  const auto exchange=NativeLz4ReadExchange::prepare_captured(captured,id,grant);
+  const WorkerChannelCapacity capacity{exchange.request()->bytes().size(),
+      exchange.reply_capacity()+(profiling?native_read_trace_bytes:0)};
   const auto first_batch=NativeLz4DecodeBatch::prepare({&sources[0],1},grant);
   const auto second_batch=NativeLz4DecodeBatch::prepare({&sources[1],1},grant);
-  const auto peak=(std::max)(first_batch.upload().size(),second_batch.upload().size());
+  const auto peak=(std::max)(first_batch.slab_bytes(),second_batch.slab_bytes());
 
   WindowsGpuBudgetSampler gpu(luid,1);
   const auto available=gpu.sample().snapshot;
@@ -137,8 +145,10 @@ void run(std::wstring_view runtime_name,std::wstring_view runtime_sha,std::wstri
   require(valid_worker_channel_capacity(capacity,child),"native LZ4 worker channel refused");
   std::wstring worker_module_sha(module_sha);
   if(refuse_module)worker_module_sha.front()=worker_module_sha.front()==L'0'?L'1':L'0';
-  const std::vector<std::wstring> arguments{prepared?L"--driver-native-lz4-prepared-read-adapter":
-      L"--driver-native-lz4-read-adapter",std::to_wstring(ordinal),
+  const auto* command=host_guard?L"--profile-native-lz4-host-guard-adapter":profiling?
+      (prepared?L"--profile-native-lz4-prepared-read-adapter":L"--profile-native-lz4-read-adapter"):
+      (prepared?L"--driver-native-lz4-prepared-read-adapter":L"--driver-native-lz4-read-adapter");
+  const std::vector<std::wstring> arguments{command,std::to_wstring(ordinal),
       std::wstring(adapter),L"1",std::wstring(runtime_sha),std::move(worker_module_sha),std::wstring(architecture),
       std::to_wstring(wave_mask),std::to_wstring(capacity.request_bytes),std::to_wstring(capacity.reply_bytes),
       std::to_wstring(grant.maximum_frames),std::to_wstring(grant.maximum_slab_bytes),L"1"};
@@ -192,7 +202,23 @@ void run(std::wstring_view runtime_name,std::wstring_view runtime_sha,std::wstri
         <<static_cast<unsigned>(result->code)<<'\n';
     throw std::runtime_error("native LZ4 worker did not complete");
   }
-  auto ready=exchange.accept(result->response,WorkerExecution::hip);
+  const auto response=std::span(result->response);
+  require(response.size()==capacity.reply_bytes,"native decode reply capacity differs");
+  std::optional<NativeReadTrace> trace;
+  if(profiling) {
+    const HipProfileBinding expected{id,static_cast<std::uint32_t>(ordinal),1,
+        static_cast<std::uint32_t>(capacity.request_bytes),static_cast<std::uint32_t>(sources.size()),
+        luid,record_digest(exchange.request()->bytes())};
+    trace=decode_native_read_trace(response.last(native_read_trace_bytes),expected);
+    const auto slab=first_batch.slab_bytes()+second_batch.slab_bytes();
+    const auto output=slab-first_batch.upload_prefix().size()-second_batch.upload_prefix().size();
+    const auto descriptors=input_at(first_batch.layout(),0)+input_at(second_batch.layout(),0);
+    require(trace->transfer.upload_bytes<=slab && trace->transfer.device_guard_bytes==slab-trace->transfer.upload_bytes &&
+        (trace->transfer.device_guard_bytes==0 || trace->transfer.device_guard_bytes==output) &&
+        (!host_guard || trace->transfer.device_guard_bytes==0) && trace->transfer.readback_bytes==descriptors+output,
+        "native decode transfer accounting differs");
+  }
+  auto ready=exchange.accept(response.first(exchange.reply_capacity()),WorkerExecution::hip);
   ready->keep_metadata(std::move(metadata));
   const auto ended=Clock::now();
   const auto exchange_ns=std::chrono::duration_cast<std::chrono::nanoseconds>(ended-started).count();
@@ -222,7 +248,19 @@ void run(std::wstring_view runtime_name,std::wstring_view runtime_sha,std::wstri
       <<",\"cpu_backing_bytes\":"<<cpu_backing<<",\"ready_backing_bytes\":"<<ready_backing
       <<",\"capture_backing_bytes\":"<<capture_backing<<",\"prepared_backing_bytes\":"<<capture_backing+ready_backing
       <<",\"indexed_hits\":"<<ready->indexed_consumed()
-      <<",\"public_corpus\":"<<(corpus?"true":"false")<<"}\n";
+      <<",\"public_corpus\":"<<(corpus?"true":"false")
+      <<",\"child_elapsed_ms\":"<<result->process.elapsed_ms;
+  if(trace) {
+    std::cout<<",\"child_trace_ns\":"<<trace->timing.total_wall_ns
+        <<",\"upload_bytes\":"<<trace->transfer.upload_bytes<<",\"readback_bytes\":"<<trace->transfer.readback_bytes
+        <<",\"device_guard_bytes\":"<<trace->transfer.device_guard_bytes<<",\"phases_ns\":{";
+    for(std::size_t i=0;i<hip_phase_names.size();++i) {
+      if(i)std::cout<<',';
+      std::cout<<'"'<<hip_phase_names[i]<<"\":"<<trace->timing.wall_ns[i];
+    }
+    std::cout<<'}';
+  }
+  std::cout<<"}\n";
 }
 }
 
@@ -234,6 +272,9 @@ int wmain(int argc,wchar_t** argv) {
     if(argc>input) {
       const std::wstring_view mode=argv[input];
       if(mode==L"--prepared-native-read")trial=Trial::prepared;
+      else if(mode==L"--profile-cold-native-read")trial=Trial::profile_cold;
+      else if(mode==L"--profile-prepared-native-read")trial=Trial::profile_prepared;
+      else if(mode==L"--profile-host-guard-native-read")trial=Trial::profile_host_guard;
       else if(mode==L"--discard-prepared-read")trial=Trial::discard_prepared;
       else if(mode==L"--refuse-native-module")trial=Trial::refuse_module;
       else if(mode==L"--refuse-prepared-native-module")trial=Trial::refuse_prepared_module;

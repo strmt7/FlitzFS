@@ -176,8 +176,11 @@ void exercise() {
   refused([&]{(void)NativeLz4DecodeBatch::prepare(frames,{1,4096});},"overgrant batch allocated");
   const auto batch=NativeLz4DecodeBatch::prepare(frames,{2,4096});
   const auto layout=batch.layout();
-  const auto upload=batch.upload();
-  Bytes completed(upload.begin(),upload.end());
+  const auto upload=batch.upload_prefix();
+  require(upload.size()==output_at(layout,0) && upload.size()<batch.slab_bytes(),
+      "native LZ4 upload retained the output bank");
+  Bytes completed(batch.slab_bytes(),kNativeLz4DecodeGuard);
+  std::ranges::copy(upload,completed.begin());
   for(u32 i=0;i<layout.chunks;++i) {
     const Record result{static_cast<u32>(encoded.size()),decoded,decoded,0};
     std::memcpy(completed.data()+i*sizeof(Record),&result,sizeof(result));

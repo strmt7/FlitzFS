@@ -123,6 +123,26 @@ void wire_cases() {
   rejects([&]{accept_match_worker_reply(frame,search,p.binding.request_id,WorkerExecution::cpu_semantics);});
 }
 
+void native_read_profile_cases() {
+  auto identity=binding();
+  identity.lanes=2;
+  const HipPhaseProfile profile{identity,complete(),WorkerExecution::hip};
+  const NativeReadTransferTrace traffic{120,480,456};
+  const auto bytes=encode_native_read_trace(profile,traffic);
+  const auto decoded=decode_native_read_trace(bytes,identity);
+  require(decoded.timing.wall_ns==profile.trace.wall_ns && decoded.transfer.upload_bytes==120 &&
+      decoded.transfer.readback_bytes==480 && decoded.transfer.device_guard_bytes==456,"native trace roundtrip");
+  auto different=identity;
+  ++different.lanes;
+  rejects([&]{(void)decode_native_read_trace(bytes,different);});
+  auto malformed=bytes;
+  malformed.back()=std::byte{1};
+  rejects([&]{(void)decode_native_read_trace(malformed,identity);});
+  rejects([&]{(void)encode_native_read_trace(profile,{120,480,481});});
+  const HipPhaseProfile cpu{identity,profile.trace,WorkerExecution::cpu_semantics};
+  rejects([&]{(void)encode_native_read_trace(cpu,traffic);});
+}
+
 void anchor_profile_cases() {
   time_value=0;calls=0;throwing=false;constant=false;
   HipPhaseTrace trace;
@@ -258,7 +278,7 @@ void anchor_batch_profile_cases() {
 }
 }
 int main(){try{
-  recorder_cases();wire_cases();anchor_profile_cases();anchor_batch_profile_cases();
+  recorder_cases();wire_cases();native_read_profile_cases();anchor_profile_cases();anchor_batch_profile_cases();
   std::cout<<"HIP phase profile checks: "<<checks<<"; CPU clock/wire semantics only, gpu_executed=false\n";
   return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<"\n";return 1;}}

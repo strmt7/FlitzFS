@@ -8,7 +8,6 @@
 namespace flitzfs::detail {
 namespace {
 using namespace native_lz4_decode;
-constexpr std::byte guard{0xa5};
 [[noreturn]] void fail(const char* why) { throw std::invalid_argument(why); }
 u32 aligned(u32 bytes) noexcept {
   return (bytes+alignment-1)&~(alignment-1);
@@ -45,31 +44,31 @@ NativeLz4DecodeBatch NativeLz4DecodeBatch::prepare(std::span<const NativeLz4Deco
   const auto bytes=output_at(batch.layout_,batch.layout_.chunks);
   if(bytes>grant.maximum_slab_bytes || bytes>(std::numeric_limits<std::size_t>::max)() ||
       !valid_layout(batch.layout_,bytes))fail("native LZ4 decode slab admission");
-  batch.upload_.assign(static_cast<std::size_t>(bytes),guard);
+  batch.prefix_.assign(static_cast<std::size_t>(output_at(batch.layout_,0)),kNativeLz4DecodeGuard);
   batch.keys_.reserve(entries.size());
   for(u32 index=0;index<batch.layout_.chunks;++index) {
     const auto& entry=entries[index];
     const Record shape{static_cast<u32>(entry.encoded.size()),entry.key.decoded_bytes,0,pending};
-    std::memcpy(batch.upload_.data()+std::size_t(index)*sizeof(shape),&shape,sizeof(shape));
-    std::ranges::copy(entry.encoded,batch.upload_.begin()+static_cast<std::ptrdiff_t>(input_at(batch.layout_,index)));
+    std::memcpy(batch.prefix_.data()+std::size_t(index)*sizeof(shape),&shape,sizeof(shape));
+    std::ranges::copy(entry.encoded,batch.prefix_.begin()+static_cast<std::ptrdiff_t>(input_at(batch.layout_,index)));
     batch.keys_.push_back(entry.key);
   }
   return batch;
 }
 
 std::vector<NativeLz4DecodedFrame> NativeLz4DecodeBatch::verify(std::span<const std::byte> slab) const {
-  if(slab.size()!=upload_.size() || !valid_layout(layout_,slab.size()))
+  if(slab.size()!=slab_bytes() || !valid_layout(layout_,slab.size()))
     fail("native LZ4 readback extent");
   std::vector<NativeLz4DecodedFrame> frames;
   frames.reserve(keys_.size());
   for(u32 index=0;index<layout_.chunks;++index) {
-    const auto result=descriptor(slab,index),expected=descriptor(upload_,index);
+    const auto result=descriptor(slab,index),expected=descriptor(prefix_,index);
     if(result.input_bytes!=expected.input_bytes || result.output_bytes!=expected.output_bytes ||
         result.actual_bytes!=expected.output_bytes || result.status)
       fail("native LZ4 readback descriptor");
     const auto out=slab.subspan(static_cast<std::size_t>(output_at(layout_,index)),layout_.output_stride);
     const auto data=out.first(expected.output_bytes);
-    if(!std::ranges::all_of(out.subspan(data.size()),[](auto b){return b==guard;}) ||
+    if(!std::ranges::all_of(out.subspan(data.size()),[](auto b){return b==kNativeLz4DecodeGuard;}) ||
         record_digest(data)!=keys_[index].decoded_digest)
       fail("native LZ4 readback guard or digest");
     frames.push_back({keys_[index],{data.begin(),data.end()}});

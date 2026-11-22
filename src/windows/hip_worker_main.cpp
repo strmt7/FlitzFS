@@ -259,8 +259,12 @@ int worker(int argc, wchar_t** argv) {
   const bool anchor_batch=mode==L"--driver-anchor-batch" || anchor_transfer;
   const bool anchor_profile=mode==L"--driver-anchor-sweep-profile";
   const bool anchor_sweep=mode==L"--driver-anchor-sweep" || anchor_profile;
-  const bool native_prepared=mode==L"--driver-native-lz4-prepared-read-adapter";
-  const bool native_read=native_prepared || mode==L"--driver-native-lz4-read-adapter";
+  const bool native_host_guard=mode==L"--profile-native-lz4-host-guard-adapter";
+  const bool native_recording=native_host_guard || mode==L"--profile-native-lz4-read-adapter" ||
+      mode==L"--profile-native-lz4-prepared-read-adapter";
+  const bool native_prepared=mode==L"--driver-native-lz4-prepared-read-adapter" ||
+      mode==L"--profile-native-lz4-prepared-read-adapter";
+  const bool native_read=native_prepared || native_recording || mode==L"--driver-native-lz4-read-adapter";
   const bool sized_identity=mode==L"--inspect-system-adapter-sized";
   require_hip_worker_job(anchor_batch || anchor_sweep || native_read || sized_identity);
   // Compiler discovery must not leak into an application runtime. This changes
@@ -285,6 +289,10 @@ int worker(int argc, wchar_t** argv) {
 
 #ifdef FLITZFS_HIP_NATIVE_LZ4_READ_FIXTURE
   if(native_read) {
+    HipPhaseProfile measurement;
+    NativeReadTransferTrace transfer;
+    HipPhaseRecorder trace(native_recording?&measurement.trace:nullptr,hip_phase_detail::clock_ns,
+        HipPhaseOrder::accumulate,native_read_trace_limit_ns);
     require(argc==(native_prepared?17:16) && std::wstring_view(argv[14])==
         (native_prepared?kPreparedWorkerChannelArgument:std::wstring_view(L"--worker-channel")),
         Exit::invalid_request,"explicit native LZ4 read channel and bounded grant required");
@@ -317,15 +325,20 @@ int worker(int argc, wchar_t** argv) {
         WorkerChannel::open_sized(argv[15],capacity);
     std::optional<detail::NativeLz4WireRequest> request;
     const auto decode=[&] {
+      trace.begin(HipPhase::request_decode);
       const auto owned=channel.take_request_snapshot();
       require(owned && owned->bytes().size()==capacity.request_bytes,Exit::invalid_request,
           "native LZ4 request mapping length differs");
       try {request.emplace(detail::decode_native_lz4_request(owned->bytes(),grant,per_batch));}
       catch(const std::invalid_argument&) {throw HipWorkerFailure(Exit::invalid_request,"invalid native LZ4 read frame");}
-      require(request->reply_bytes==capacity.reply_bytes,Exit::invalid_request,"native LZ4 reply mapping length differs");
+      const auto trailer=native_recording?native_read_trace_bytes:0;
+      require(request->reply_bytes<=capacity.reply_bytes && capacity.reply_bytes-request->reply_bytes==trailer,
+          Exit::invalid_request,"native LZ4 reply mapping length differs");
+      trace.end(HipPhase::request_decode);
     };
     if(!native_prepared)decode();
 
+    trace.begin(HipPhase::bundle_verify);
     const hip_detail::VerifiedSystemModule installed(hip_bundle::runtime,expected_runtime);
     const auto parent=module_path(nullptr).parent_path();
     std::vector<DirectoryPin> pins;
@@ -344,40 +357,61 @@ int worker(int argc, wchar_t** argv) {
     require(matches_sha256(file,expected_kernel),Exit::integrity_failure,"native LZ4 device module identity");
     require(!GetModuleHandleW(kernel_name) && !GetModuleHandleW(hip_bundle::runtime),
         Exit::integrity_failure,"native LZ4 helper inherited an unexpected module");
+    trace.end(HipPhase::bundle_verify);
+    trace.begin(HipPhase::adapter_admit);
     std::uint64_t peak=native_prepared?reserve:0;
-    if(request)for(const auto& batch:request->batches)peak=(std::max)(peak,std::uint64_t(batch.upload().size()));
+    if(request)for(const auto& batch:request->batches)peak=(std::max)(peak,std::uint64_t(batch.slab_bytes()));
     const auto budget=query_windows_gpu_budget(luid,node);
     require_hip_memory(budget.snapshot,luid,node,GetTickCount64(),peak,HipMemoryPoint::pre_initialize);
     require(SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_SYSTEM32)!=0,
         Exit::runtime_unavailable,"restrict native LZ4 DLL lookup");
+    trace.end(HipPhase::adapter_admit);
+    trace.begin(HipPhase::modules_load);
     Module runtime(installed.path(),HipWorkerStage::runtime_load);
     Module kernel(path,HipWorkerStage::kernel_load);
     require(GetModuleHandleW(hip_bundle::runtime)==runtime.get(),Exit::integrity_failure,
         "native LZ4 runtime identity changed");
+    trace.end(HipPhase::modules_load);
+    trace.begin(HipPhase::entry_bind);
     const auto address=GetProcAddress(kernel.get(),"flitzfs_native_lz4_decode_api");
     require(address!=nullptr,Exit::unsupported_configuration,"native LZ4 API entry unavailable",HipWorkerStage::kernel_entry);
     const auto entry=std::bit_cast<native_lz4_decode::KernelApiEntry>(address);
     const auto* api=entry();
     require(api && native_lz4_decode::compatible(*api),Exit::unsupported_configuration,
         "incompatible native LZ4 read table",HipWorkerStage::kernel_table);
+    trace.end(HipPhase::entry_bind);
     const auto receive=[&]() -> std::span<const detail::NativeLz4DecodeBatch> {
       if(!channel.receive_prepared())return {};
       decode();
       return request->batches;
     };
+    auto* const timing=native_recording?&trace:nullptr;
+    auto* const traffic=native_recording?&transfer:nullptr;
     const auto frames=native_prepared?
         run_hip_native_lz4_prepared_decode_in_worker(runtime.get(),*api,static_cast<int>(ordinal),
-            luid,node,grant,max_dispatch,static_cast<std::size_t>(reserve),{&coverage,1},receive):
+            luid,node,grant,max_dispatch,static_cast<std::size_t>(reserve),{&coverage,1},receive,timing,traffic):
         run_hip_native_lz4_decode_in_worker(runtime.get(),*api,static_cast<int>(ordinal),
-            luid,node,request->batches,grant,{&coverage,1});
+            luid,node,request->batches,grant,{&coverage,1},timing,traffic,!native_host_guard);
     if(!request) {
       kernel.close();
       runtime.close();
       return 0;
     }
-    const auto reply=detail::encode_native_lz4_reply(*request,frames,WorkerExecution::hip);
+    trace.begin(HipPhase::reply_encode);
+    auto reply=detail::encode_native_lz4_reply(*request,frames,WorkerExecution::hip);
+    trace.end(HipPhase::reply_encode);
+    trace.begin(HipPhase::modules_release);
     kernel.close();
     runtime.close();
+    trace.end(HipPhase::modules_release);
+    if(native_recording) {
+      trace.finish();
+      measurement.binding={request->id,ordinal,node,static_cast<std::uint32_t>(capacity.request_bytes),
+          static_cast<std::uint32_t>(request->keys.size()),luid,request->request_digest};
+      measurement.execution=WorkerExecution::hip;
+      const auto metadata=encode_native_read_trace(measurement,transfer);
+      reply.insert(reply.end(),metadata.begin(),metadata.end());
+    }
     channel.publish(reply);
     return 0;
   }

@@ -111,7 +111,7 @@ NativeLz4SequenceSize native_lz4_sequence_size(std::span<const detail::NativeLz4
   NativeLz4SequenceSize size;
   for(const auto& batch:batches) {
     const auto layout=batch.layout();
-    const auto bytes=batch.upload().size();
+    const auto bytes=batch.slab_bytes();
     lz4_require(native_lz4_decode::valid_layout(layout,bytes) &&
         layout.chunks<=grant.maximum_frames-size.frames && bytes<=room,
         HipWorkerExit::invalid_request,"native LZ4 decode sequence exceeds its grant");
@@ -127,18 +127,26 @@ template<class Receive>
 std::vector<detail::NativeLz4DecodedFrame> execute_native_lz4_decode(HMODULE runtime,
     const native_lz4_decode::KernelApi& kernel,int ordinal,std::array<std::byte,8> luid,std::uint32_t node_mask,
     std::span<const hip_detail::Lz4KernelCoverage> targets,detail::NativeLz4DecodeGrant grant,
-    std::uint32_t maximum_chunks,std::size_t device_bytes,Receive&& receive) {
+    std::uint32_t maximum_chunks,std::size_t device_bytes,Receive&& receive,HipPhaseRecorder* profile,
+    NativeReadTransferTrace* traffic,bool allow_device_guard) {
   using namespace hip_detail;
   lz4_require(native_lz4_decode::compatible(kernel) && maximum_chunks && maximum_chunks<=grant.maximum_frames &&
       device_bytes && device_bytes<=grant.maximum_slab_bytes,
       HipWorkerExit::invalid_request,"invalid native LZ4 decode dispatch admission");
+  const auto memset_address=allow_device_guard?GetProcAddress(runtime,"hipMemsetAsync"):nullptr;
+  const auto set_device_guard=std::bit_cast<decltype(&hipMemsetAsync)>(memset_address);
+  const auto begin=[&](HipPhase phase){if(profile)profile->begin(phase);};
+  const auto end=[&](HipPhase phase){if(profile)profile->end(phase);};
   return with_uniform_device(runtime,ordinal,luid,node_mask,targets,maximum_chunks,device_bytes,
       [&](const auto& api,auto attributes,auto,auto&& initialize,auto&& memory) {
+        begin(HipPhase::device_initialize);
         memory(HipMemoryPoint::pre_initialize);
         const auto device=initialize();
         const auto selected=device.wave==32?kernel.wave32:kernel.wave64;
         check_lz4_attributes(attributes,selected,device);
+        end(HipPhase::device_initialize);
 
+        begin(HipPhase::stream_allocate);
         DeviceResources resources(api);
         try {
           check_hip(api.create_stream(&resources.stream,hipStreamNonBlocking,device.priority),
@@ -151,6 +159,7 @@ std::vector<detail::NativeLz4DecodedFrame> execute_native_lz4_decode(HMODULE run
               device_bytes<=~std::uintptr_t{0}-address,HipWorkerExit::device_fault,
               "invalid native LZ4 decode slab address",HipWorkerStage::execution);
           auto* slab=static_cast<native_lz4_decode::u8*>(resources.buffers[0]);
+          end(HipPhase::stream_allocate);
 
           const auto batches=receive();
           if(batches.empty()) {
@@ -165,35 +174,64 @@ std::vector<detail::NativeLz4DecodedFrame> execute_native_lz4_decode(HMODULE run
           verified.reserve(actual.frames);
           for(const auto& batch:batches) {
             memory(HipMemoryPoint::initialized);
-            const auto upload=batch.upload();
+            const auto prefix=batch.upload_prefix();
+            const auto slab_bytes=batch.slab_bytes();
+            const auto output_begin=prefix.size();
+            const auto output_bytes=slab_bytes-output_begin;
             auto layout=batch.layout();
-            auto bytes=static_cast<native_lz4_decode::u64>(upload.size());
-            check_hip(api.copy(slab,upload.data(),upload.size(),hipMemcpyHostToDevice),
-                "upload native LZ4 decode slab",HipWorkerStage::execution);
-            void* arguments[]{&slab,&bytes,&layout};
+            auto allocation=static_cast<native_lz4_decode::u64>(slab_bytes);
+            begin(HipPhase::host_to_device);
+            if(set_device_guard) {
+              check_hip(api.copy(slab,prefix.data(),prefix.size(),hipMemcpyHostToDevice),
+                  "upload native LZ4 descriptors and input",HipWorkerStage::execution);
+              // The decode kernel runs on this stream after its output bank is filled.
+              check_hip(set_device_guard(slab+output_begin,std::to_integer<int>(detail::kNativeLz4DecodeGuard),
+                  output_bytes,resources.stream),"initialize native LZ4 output guards",HipWorkerStage::execution);
+            } else {
+              std::ranges::copy(prefix,readback.begin());
+              std::ranges::fill(std::span(readback).subspan(output_begin,output_bytes),detail::kNativeLz4DecodeGuard);
+              check_hip(api.copy(slab,readback.data(),slab_bytes,hipMemcpyHostToDevice),
+                  "upload native LZ4 decode slab",HipWorkerStage::execution);
+            }
+            if(traffic) {
+              traffic->upload_bytes+=set_device_guard?prefix.size():slab_bytes;
+              if(set_device_guard)traffic->device_guard_bytes+=output_bytes;
+            }
+            end(HipPhase::host_to_device);
+            void* arguments[]{&slab,&allocation,&layout};
+            begin(HipPhase::kernel_wait);
             check_hip(api.launch(reinterpret_cast<const void*>(selected),dim3(layout.chunks),
                 dim3(device.wave),arguments,0,resources.stream),
                 "submit native LZ4 decode kernel",HipWorkerStage::execution);
             check_hip(api.synchronize(resources.stream),"complete native LZ4 decode kernel",HipWorkerStage::execution);
+            end(HipPhase::kernel_wait);
+            begin(HipPhase::device_to_host);
             const auto descriptor_bytes=static_cast<std::size_t>(native_lz4_decode::input_at(layout,0));
-            const auto output_begin=static_cast<std::size_t>(native_lz4_decode::output_at(layout,0));
             // Read back the descriptor and decoded banks. The immutable input
             // bank has no role in CPU output verification.
             check_hip(api.copy(readback.data(),slab,descriptor_bytes,hipMemcpyDeviceToHost),
                 "read native LZ4 completion descriptors",HipWorkerStage::execution);
-            check_hip(api.copy(readback.data()+output_begin,slab+output_begin,upload.size()-output_begin,
+            check_hip(api.copy(readback.data()+output_begin,slab+output_begin,output_bytes,
                 hipMemcpyDeviceToHost),"read native LZ4 decoded bytes",HipWorkerStage::execution);
+            if(traffic)traffic->readback_bytes+=descriptor_bytes+output_bytes;
+            end(HipPhase::device_to_host);
+            begin(HipPhase::cpu_verification);
             try {
-              auto result=batch.verify(std::span(readback).first(upload.size()));
+              auto result=batch.verify(std::span(readback).first(slab_bytes));
               verified.insert(verified.end(),std::make_move_iterator(result.begin()),
                   std::make_move_iterator(result.end()));
             }catch(const std::invalid_argument&) {
               throw HipWorkerFailure(HipWorkerExit::integrity_failure,
                   "native LZ4 output failed complete CPU verification",HipWorkerStage::execution);
             }
+            end(HipPhase::cpu_verification);
+            begin(HipPhase::post_admission);
             memory(HipMemoryPoint::completed);
+            end(HipPhase::post_admission);
           }
+          begin(HipPhase::resources_release);
           check_hip(resources.release_all(),"retire native LZ4 compute resources",HipWorkerStage::execution);
+          end(HipPhase::resources_release);
           return verified;
         }catch(...) {
           const auto failure=std::current_exception();
@@ -208,21 +246,23 @@ std::vector<detail::NativeLz4DecodedFrame> execute_native_lz4_decode(HMODULE run
 std::vector<detail::NativeLz4DecodedFrame> run_hip_native_lz4_decode_in_worker(HMODULE runtime,
     const native_lz4_decode::KernelApi& kernel,int ordinal,std::array<std::byte,8> luid,
     std::uint32_t node_mask,std::span<const detail::NativeLz4DecodeBatch> batches,
-    detail::NativeLz4DecodeGrant grant,std::span<const hip_detail::Lz4KernelCoverage> targets) {
+    detail::NativeLz4DecodeGrant grant,std::span<const hip_detail::Lz4KernelCoverage> targets,HipPhaseRecorder* profile,
+    NativeReadTransferTrace* traffic,bool allow_device_guard) {
   const auto plan=native_lz4_sequence_size(batches,grant);
   return execute_native_lz4_decode(runtime,kernel,ordinal,luid,node_mask,targets,grant,
-      plan.maximum_chunks,plan.peak_bytes,[&] {return batches;});
+      plan.maximum_chunks,plan.peak_bytes,[&] {return batches;},profile,traffic,allow_device_guard);
 }
 
 std::vector<detail::NativeLz4DecodedFrame> run_hip_native_lz4_prepared_decode_in_worker(HMODULE runtime,
     const native_lz4_decode::KernelApi& kernel,int ordinal,std::array<std::byte,8> luid,std::uint32_t node_mask,
     detail::NativeLz4DecodeGrant grant,std::uint32_t maximum_chunks,std::size_t device_bytes,
     std::span<const hip_detail::Lz4KernelCoverage> targets,
-    const std::function<std::span<const detail::NativeLz4DecodeBatch>()>& receive) {
+    const std::function<std::span<const detail::NativeLz4DecodeBatch>()>& receive,HipPhaseRecorder* profile,
+    NativeReadTransferTrace* traffic) {
   hip_detail::lz4_require(static_cast<bool>(receive),HipWorkerExit::invalid_request,
       "native LZ4 prepared decoder requires an owned input");
   return execute_native_lz4_decode(runtime,kernel,ordinal,luid,node_mask,targets,grant,
-      maximum_chunks,device_bytes,receive);
+      maximum_chunks,device_bytes,receive,profile,traffic,true);
 }
 
 UniformLz4Candidates run_hip_uniform_lz4_in_worker(HMODULE runtime,

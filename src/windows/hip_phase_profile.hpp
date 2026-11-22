@@ -175,5 +175,42 @@ inline HipPhaseProfile decode_hip_phase_profile(std::span<const std::byte> f,
   require(std::all_of(f.begin()+common_bytes,f.end(),[](auto x){return x==std::byte{};}));
   return p;
 }
+inline constexpr auto native_read_trace_bytes=sizeof(hip_phase_detail::Frame);
+inline constexpr std::uint64_t native_read_trace_limit_ns=40'000'000'000ULL;
+namespace hip_phase_detail {
+inline constexpr std::array native_read_magic{
+    std::byte{'F'},std::byte{'L'},std::byte{'N'},std::byte{'R'},
+    std::byte{'P'},std::byte{'0'},std::byte{'0'},std::byte{'1'}};
+}
+struct NativeReadTransferTrace {
+  std::uint64_t upload_bytes=0,readback_bytes=0,device_guard_bytes=0;
+};
+struct NativeReadTrace {
+  HipPhaseTrace timing;
+  NativeReadTransferTrace transfer;
+};
+inline hip_phase_detail::Frame encode_native_read_trace(const HipPhaseProfile& profile,
+    const NativeReadTransferTrace& transfer) {
+  using namespace hip_phase_detail;
+  identity_valid(profile.binding);
+  require(profile.execution==WorkerExecution::hip && profile.binding.input_bytes && profile.binding.lanes &&
+      transfer.upload_bytes && transfer.readback_bytes && transfer.device_guard_bytes<=transfer.readback_bytes);
+  auto frame=encode_common(profile,native_read_magic,native_read_trace_limit_ns);
+  put(frame,common_bytes,transfer.upload_bytes);
+  put(frame,common_bytes+8,transfer.readback_bytes);
+  put(frame,common_bytes+16,transfer.device_guard_bytes);
+  return frame;
+}
+inline NativeReadTrace decode_native_read_trace(std::span<const std::byte> bytes,const HipProfileBinding& expected) {
+  using namespace hip_phase_detail;
+  identity_valid(expected);
+  require(expected.input_bytes && expected.lanes);
+  const auto profile=decode_common(bytes,expected,WorkerExecution::hip,native_read_magic,native_read_trace_limit_ns);
+  const NativeReadTransferTrace transfer{get(bytes,common_bytes),get(bytes,common_bytes+8),get(bytes,common_bytes+16)};
+  require(transfer.upload_bytes && transfer.readback_bytes && transfer.device_guard_bytes<=transfer.readback_bytes &&
+      std::all_of(bytes.begin()+common_bytes+24,bytes.end(),[](auto b){return b==std::byte{};}));
+  return {profile.trace,transfer};
+}
+static_assert(hip_phase_detail::common_bytes+24<=native_read_trace_bytes);
 static_assert(sizeof(hip_phase_detail::Frame)<=kWorkerReplyLimit);
 } // namespace flitzfs
