@@ -19,6 +19,7 @@
 #include <stdexcept>
 #include <string_view>
 #include <system_error>
+#include <thread>
 #include <utility>
 #include <vector>
 namespace {
@@ -1073,11 +1074,18 @@ void require_cut_guest() {
 }
 
 enum class PublicationCut {before_payload_flush,after_first_root,after_second_root};
+enum class PublicationOperation {write,shrink,rename};
 constexpr std::array cut_points{PublicationCut::before_payload_flush,PublicationCut::after_first_root,
     PublicationCut::after_second_root};
 constexpr std::array<std::wstring_view,3> cut_names{L"before-payload-flush",L"after-first-root",L"after-second-root"};
+constexpr std::array<std::wstring_view,3> operation_names{L"write",L"eof-shrink",L"rename"};
 constexpr auto cut_bytes=8192U;
-constexpr flitzfs::PagedStoreLimits cut_limits{8ULL*1024*1024};
+constexpr auto cut_shrunk_bytes=3751U;
+constexpr unsigned cut_neighbors=32;
+constexpr flitzfs::PagedStoreLimits cut_write_limits{8ULL*1024*1024};
+// Create, write and cleanup each leave append history in the isolated fixture.
+constexpr flitzfs::PagedStoreLimits cut_metadata_limits{
+    cut_write_limits.maximum_physical_bytes+cut_neighbors*16*flitzfs::kStoreCommitUnit};
 constexpr flitzfs::StoreIoContract cut_contract{static_cast<std::uint32_t>(flitzfs::kStoreCommitUnit),true};
 constexpr flitzfs::StoreCompressionOptions cut_compression{flitzfs::StoreCompressionMode::raw,1,false};
 std::vector<std::byte> cut_data(unsigned salt) {
@@ -1093,9 +1101,9 @@ flitzfs::StoreIdentity cut_volume_identity(DWORD owner) {
 
 class PublicationIo final:public flitzfs::StoreByteIo {
  public:
-  PublicationIo(std::shared_ptr<flitzfs::StoreByteIo> backing,PublicationCut cut,
+  PublicationIo(std::shared_ptr<flitzfs::StoreByteIo> backing,PublicationCut cut,PublicationOperation operation,
       const source_fixture::Events& protocol):
-      backing_(std::move(backing)),cut_(cut),protocol_(protocol),replacement_(cut_data(119)) {}
+      backing_(std::move(backing)),cut_(cut),operation_(operation),protocol_(protocol),replacement_(cut_data(119)) {}
   std::uint64_t extent() const override{return backing_->extent();}
   flitzfs::StoreIoContract contract() const noexcept override{return backing_->contract();}
   void admit_write(std::uint64_t end) override{backing_->admit_write(end);}
@@ -1129,9 +1137,11 @@ class PublicationIo final:public flitzfs::StoreByteIo {
     if((cut_==PublicationCut::after_first_root && roots_==1) ||
         (cut_==PublicationCut::after_second_root && roots_==2))park();
   }
-  bool matches(PVOID data,UINT64 offset,ULONG length) const noexcept {
-    return offset==0 && length==replacement_.size() && data &&
-        WaitForSingleObject(protocol_.get(source_fixture::Phase::written),0)==WAIT_OBJECT_0 &&
+  bool armed_for(PublicationOperation operation) const noexcept {
+    return operation==operation_ && WaitForSingleObject(protocol_.get(source_fixture::Phase::written),0)==WAIT_OBJECT_0;
+  }
+  bool matches_write(PVOID data,UINT64 offset,ULONG length) const noexcept {
+    return armed_for(PublicationOperation::write) && offset==0 && length==replacement_.size() && data &&
         std::equal(replacement_.begin(),replacement_.end(),static_cast<const std::byte*>(data));
   }
   bool claim() noexcept{return !claimed_.exchange(true,std::memory_order_acq_rel);}
@@ -1143,7 +1153,8 @@ class PublicationIo final:public flitzfs::StoreByteIo {
     throw std::runtime_error("Supervisor did not retire the paused publication");
   }
   std::shared_ptr<flitzfs::StoreByteIo> backing_;
-  PublicationCut cut_;
+  const PublicationCut cut_;
+  const PublicationOperation operation_;
   const source_fixture::Events& protocol_;
   const std::vector<std::byte> replacement_;
   std::atomic<bool> claimed_{false};
@@ -1153,39 +1164,64 @@ thread_local PublicationIo* PublicationIo::active=nullptr;
 PublicationIo* cut_backing=nullptr;
 const FSP_FILE_SYSTEM_INTERFACE* cut_original=nullptr;
 FSP_FILE_SYSTEM_INTERFACE cut_callbacks{};
-NTSTATUS cut_write(FSP_FILE_SYSTEM* fs,PVOID context,PVOID buffer,UINT64 offset,ULONG length,
-    BOOLEAN append,BOOLEAN constrained,PULONG written,FSP_FSCTL_FILE_INFO* info) noexcept {
-  if(cut_backing->matches(buffer,offset,length)) {
-    if(!cut_backing->claim())return STATUS_INVALID_DEVICE_STATE;
-    PublicationIo::active=cut_backing;
-  }
-  const auto status=cut_original->Write(fs,context,buffer,offset,length,append,constrained,written,info);
+template<class Invoke>
+NTSTATUS publication_callback(bool matches,Invoke&& invoke) noexcept {
+  if(!matches)return invoke();
+  if(!cut_backing->claim())return STATUS_INVALID_DEVICE_STATE;
+  PublicationIo::active=cut_backing;
+  const auto status=invoke();
   PublicationIo::active=nullptr;
   return status;
 }
+NTSTATUS cut_write(FSP_FILE_SYSTEM* fs,PVOID context,PVOID buffer,UINT64 offset,ULONG length,
+    BOOLEAN append,BOOLEAN constrained,PULONG written,FSP_FSCTL_FILE_INFO* info) noexcept {
+  return publication_callback(cut_backing->matches_write(buffer,offset,length),[&] {
+    return cut_original->Write(fs,context,buffer,offset,length,append,constrained,written,info);
+  });
+}
+NTSTATUS cut_shrink(FSP_FILE_SYSTEM* fs,PVOID context,UINT64 size,BOOLEAN allocation,
+    FSP_FSCTL_FILE_INFO* info) noexcept {
+  const bool matches=cut_backing->armed_for(PublicationOperation::shrink) && !allocation && size==cut_shrunk_bytes;
+  return publication_callback(matches,[&] {return cut_original->SetFileSize(fs,context,size,allocation,info);});
+}
+NTSTATUS cut_rename(FSP_FILE_SYSTEM* fs,PVOID context,PWSTR path,PWSTR destination,BOOLEAN replace) noexcept {
+  // WinFsp can supply a normalized source name and a caller-spelled destination.
+  const bool matches=cut_backing->armed_for(PublicationOperation::rename) && path && destination &&
+      CompareStringOrdinal(path,-1,L"\\payload.bin",-1,TRUE)==CSTR_EQUAL &&
+      CompareStringOrdinal(destination,-1,L"\\renamed.bin",-1,TRUE)==CSTR_EQUAL;
+  return publication_callback(matches,[&] {return cut_original->Rename(fs,context,path,destination,replace);});
+}
 NTSTATUS create_cut_filesystem(PWSTR device,const FSP_FSCTL_VOLUME_PARAMS* params,
     const FSP_FILE_SYSTEM_INTERFACE* callbacks,FSP_FILE_SYSTEM** output) noexcept {
-  if(!cut_backing || cut_original || !callbacks || !callbacks->Write)return STATUS_INVALID_PARAMETER;
-  cut_original=callbacks;cut_callbacks=*callbacks;cut_callbacks.Write=cut_write;
+  if(!cut_backing || cut_original || !callbacks || !callbacks->Write || !callbacks->SetFileSize || !callbacks->Rename)
+    return STATUS_INVALID_PARAMETER;
+  cut_original=callbacks;
+  cut_callbacks=*callbacks;
+  cut_callbacks.Write=cut_write;
+  cut_callbacks.SetFileSize=cut_shrink;
+  cut_callbacks.Rename=cut_rename;
   return FspFileSystemCreate(device,params,&cut_callbacks,output);
 }
-void publication_source(std::wstring_view token,PublicationCut cut) {
+void publication_source(std::wstring_view token,PublicationCut cut,PublicationOperation operation) {
   require_probe_job();stage=70;
   source_fixture::Events protocol(false,std::wstring(token));
   Fixture fixture;
   const auto mount=fixture.root/L"mount",path=fixture.root/L"inflight.flfs";
+  const auto limits=operation==PublicationOperation::write?cut_write_limits:cut_metadata_limits;
   auto provider=flitzfs::detail::new_volume_file(path,cut_contract,
-      flitzfs::kNativeVolumeFileImageOffset+cut_limits.maximum_physical_bytes);
-  auto backing=std::make_shared<PublicationIo>(std::move(provider),cut,protocol);
+      flitzfs::kNativeVolumeFileImageOffset+limits.maximum_physical_bytes);
+  auto backing=std::make_shared<PublicationIo>(std::move(provider),cut,operation,protocol);
   const auto volume=cut_volume_identity(GetCurrentProcessId());
   auto image=volume;image.back()^=std::byte{1};
   cut_backing=backing.get();
   auto api=flitzfs::linked_winfsp_session_api();api.create=create_cut_filesystem;
   flitzfs::WinFspNativeSession session(flitzfs::WinFspNativeWritable::create_file_volume(
-      backing,volume,image,cut_limits,cut_compression),api);
+      backing,volume,image,limits,cut_compression),api);
   require(session.start({mount.native(),true,true})==STATUS_SUCCESS,"Publication-cut source mount");
   protocol.signal(source_fixture::Phase::ready);
-  protocol.wait_written();
+  if(operation==PublicationOperation::write)protocol.wait_written();
+  else require(WaitForSingleObject(protocol.get(source_fixture::Phase::written),15000)==WAIT_OBJECT_0,
+      "Mounted metadata population exceeded its preparation deadline");
   Sleep(20000);
   throw std::runtime_error("Publication-cut source was not retired");
 }
@@ -1202,6 +1238,11 @@ void publication_resumer(std::wstring_view token,DWORD source) {
   protocol.signal(source_fixture::Phase::ready);
   protocol.wait_written();
   finish_session(session,mount);
+}
+std::uint64_t mounted_cut_inode(HANDLE file) {
+  BY_HANDLE_FILE_INFORMATION info{};
+  checked(GetFileInformationByHandle(file,&info),"Inspect pending publication inode");
+  return (static_cast<std::uint64_t>(info.nFileIndexHigh)<<32)|info.nFileIndexLow;
 }
 class PendingMountedWrite final {
  public:
@@ -1224,11 +1265,7 @@ class PendingMountedWrite final {
     if(!GetOverlappedResult(file_.value,&operation_,&transferred,FALSE) && GetLastError()==ERROR_IO_INCOMPLETE)
       std::terminate(); // The kernel still owns the request and buffer. Keep both until process exit.
   }
-  std::uint64_t inode() const {
-    BY_HANDLE_FILE_INFORMATION info{};
-    checked(GetFileInformationByHandle(file_.value,&info),"Inspect pending publication inode");
-    return (static_cast<std::uint64_t>(info.nFileIndexHigh)<<32)|info.nFileIndexLow;
-  }
+  std::uint64_t inode() const {return mounted_cut_inode(file_.value);}
   void submit() {
     const auto accepted=WriteFile(file_.value,bytes_.data(),static_cast<DWORD>(bytes_.size()),nullptr,&operation_);
     pending_=!accepted && GetLastError()==ERROR_IO_PENDING;
@@ -1255,59 +1292,168 @@ class PendingMountedWrite final {
   alignas(4096) std::array<std::byte,cut_bytes> bytes_{};
   bool pending_=false;
 };
-void seed_cut_file(const fs::path& path,unsigned salt) {
+// The ordinary metadata APIs are synchronous. Keep their thread and exact
+// handle alive until completion or until the fixture process is retired.
+class PendingMountedMetadata final {
+ public:
+  PendingMountedMetadata(const fs::path& path,PublicationOperation operation):
+      path_(path),destination_(path.parent_path()/L"renamed.bin"),operation_(operation),
+      file_(CreateFileW(path.c_str(),GENERIC_WRITE|DELETE|FILE_READ_ATTRIBUTES,
+          FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,nullptr,OPEN_EXISTING,FILE_FLAG_WRITE_THROUGH,nullptr)) {
+    checked(file_.value!=INVALID_HANDLE_VALUE,"Open existing file for pending metadata publication");
+  }
+  ~PendingMountedMetadata() {
+    if(!thread_.joinable())return;
+    (void)CancelSynchronousIo(thread_.native_handle());
+    if(WaitForSingleObject(thread_.native_handle(),5000)!=WAIT_OBJECT_0)std::terminate();
+    thread_.join();
+  }
+  std::uint64_t inode() const {return mounted_cut_inode(file_.value);}
+  void submit() {
+    thread_=std::thread([this] {
+      FILE_END_OF_FILE_INFO eof{};
+      eof.EndOfFile.QuadPart=cut_shrunk_bytes;
+      const BOOL success=operation_==PublicationOperation::shrink?
+          SetFileInformationByHandle(file_.value,FileEndOfFileInfo,&eof,sizeof(eof)):
+          MoveFileExW(path_.c_str(),destination_.c_str(),0);
+      result_=success?ERROR_SUCCESS:GetLastError();
+      responded_.store(true,std::memory_order_release);
+    });
+  }
+  void await_cut(source_fixture::Child& source,source_fixture::Events& protocol) {
+    const HANDLE waits[]{protocol.get(source_fixture::Phase::ack),thread_.native_handle(),source.result_event()};
+    const auto wait=WaitForMultipleObjects(static_cast<DWORD>(std::size(waits)),waits,FALSE,5000);
+    if(wait==WAIT_OBJECT_0) {
+      require(!responded_.load(std::memory_order_acquire),"Windows replied before the metadata publication cut");
+      return;
+    }
+    if(wait==WAIT_OBJECT_0+1) {
+      thread_.join();
+      throw std::runtime_error("Windows completed the metadata operation before a publication cut, status="+
+          std::to_string(result_));
+    }
+    if(wait==WAIT_TIMEOUT)source.request_cancel();
+    if(wait==WAIT_TIMEOUT || wait==WAIT_OBJECT_0+2) {
+      const auto ended=source.result();
+      throw std::runtime_error("Metadata source did not reach the publication cut, wait="+std::to_string(wait)+
+          " exit="+std::to_string(ended.exit_code)+" confirmed="+std::to_string(ended.exit_confirmed));
+    }
+    checked(FALSE,"Metadata publication wait");
+  }
+  DWORD retire_after_owner() {
+    require(WaitForSingleObject(thread_.native_handle(),5000)==WAIT_OBJECT_0,
+        "Metadata operation did not complete after owner retirement");
+    thread_.join();
+    require(responded_.load(std::memory_order_acquire) && result_!=ERROR_SUCCESS,
+        "Interrupted metadata operation was acknowledged");
+    checked(file_.close(),"Close interrupted metadata handle");
+    return result_;
+  }
+ private:
+  const fs::path path_,destination_;
+  const PublicationOperation operation_;
+  source_fixture::Handle file_;
+  std::thread thread_;
+  std::atomic<bool> responded_{false};
+  DWORD result_=ERROR_SUCCESS;
+};
+void seed_cut_file(const fs::path& path,const std::vector<std::byte>& bytes) {
   Handle file(CreateFileW(path.c_str(),GENERIC_WRITE,FILE_SHARE_READ,nullptr,CREATE_NEW,FILE_ATTRIBUTE_NORMAL,nullptr));
-  checked(file.value!=INVALID_HANDLE_VALUE,"Create new publication fixture file");
-  write_bytes(file.value,cut_data(salt));
+  if(file.value==INVALID_HANDLE_VALUE) {
+    const auto error=GetLastError();
+    std::wcerr<<L"publication_fixture_create_failed name="<<path.filename().native()<<L" error="<<error<<L'\n';
+    throw std::system_error(static_cast<int>(error),std::system_category(),"Create new publication fixture file");
+  }
+  write_bytes(file.value,bytes);
 }
-void run_publication_cut(const fs::path& executable,PublicationCut point) {
+std::string cut_neighbor_name(unsigned index) {return "neighbor-"+std::to_string(index)+".bin";}
+std::vector<std::byte> cut_neighbor_data(unsigned index) {
+  auto bytes=cut_data(151+index);
+  bytes.resize(257+index*11);
+  return bytes;
+}
+void run_publication_cut(const fs::path& executable,PublicationCut point,PublicationOperation operation) {
   stage=72;
   const auto name=cut_names[static_cast<std::size_t>(point)];
+  const auto operation_name=operation_names[static_cast<std::size_t>(operation)];
+  const bool metadata=operation!=PublicationOperation::write;
   source_fixture::Events protocol(true);
   constexpr flitzfs::ProcessBudget budget{128,2000,30000};
-  std::optional<PendingMountedWrite> pending; // The owner retires before cancellation can release this buffer.
-  source_fixture::Child source(executable,{L"--publication-cut-source",protocol.token(),std::wstring(name)},budget);
+  // On exception the source supervisor retires before either client's buffer or handle can be released.
+  std::optional<PendingMountedWrite> pending_write;
+  std::optional<PendingMountedMetadata> pending_metadata;
+  source_fixture::Child source(executable,{L"--publication-cut-source",protocol.token(),std::wstring(name),
+      std::wstring(operation_name)},budget);
   source.await(protocol,source_fixture::Phase::ready);
   const auto source_id=source.process_id();
   require(source_id && source_id!=GetCurrentProcessId(),"Publication owner and client alias");
   Fixture fixture(source_id);
   const auto mount=fixture.root/L"mount",path=fixture.root/L"inflight.flfs";
   mounted_identity(mount);
-  seed_cut_file(mount/L"payload.bin",7);
-  seed_cut_file(mount/L"witness.bin",29);
-  pending.emplace(mount/L"payload.bin");
-  const auto inode=pending->inode();require(inode!=0,"Publication trial lacked a stable file index");
+  seed_cut_file(mount/L"payload.bin",cut_data(7));
+  seed_cut_file(mount/L"witness.bin",cut_data(29));
+  if(metadata) {
+    const auto folder=mount/L"population";
+    checked(CreateDirectoryW(folder.c_str(),nullptr),"Create mounted population directory");
+    for(unsigned i=0;i<cut_neighbors;++i)seed_cut_file(folder/cut_neighbor_name(i),cut_neighbor_data(i));
+    pending_metadata.emplace(mount/L"payload.bin",operation);
+  } else pending_write.emplace(mount/L"payload.bin");
+  const auto inode=metadata?pending_metadata->inode():pending_write->inode();
+  require(inode!=0,"Publication trial lacked a stable file index");
   protocol.signal(source_fixture::Phase::written);
-  pending->submit();
-  source.await(protocol,source_fixture::Phase::ack);
-  pending->verify_pending();
+  if(metadata)pending_metadata->submit();
+  else pending_write->submit();
+  if(metadata)pending_metadata->await_cut(source,protocol);
+  else {
+    source.await(protocol,source_fixture::Phase::ack);
+    pending_write->verify_pending();
+  }
   require(source.request_cancel(),"Publication source cancellation was not admitted");
   const auto retired=source.result();
   require(retired.process_id==source_id && retired.cancelled && !retired.timed_out && retired.exit_confirmed &&
       retired.exit_code==ERROR_CANCELLED && source.retirement_confirmed(),"Publication source retirement unconfirmed");
-  const auto error=pending->retire_after_owner();
-  pending.reset();
+  const auto error=metadata?pending_metadata->retire_after_owner():pending_write->retire_after_owner();
+  pending_metadata.reset();
+  pending_write.reset();
   require_removed(mount);
   const bool expects_new=point!=PublicationCut::before_payload_flush;
-  const auto expected=cut_data(expects_new?119:7);
+  const bool renamed=expects_new && operation==PublicationOperation::rename;
+  const std::string name_on_disk=renamed?"renamed.bin":"payload.bin";
+  auto expected=cut_data(expects_new && operation==PublicationOperation::write?119:7);
+  if(expects_new && operation==PublicationOperation::shrink)expected.resize(cut_shrunk_bytes);
   const auto verify=[&](bool continued) {
     const auto view=flitzfs::NativeVolumeFile::inspect(path,cut_volume_identity(source_id));
     const auto& snapshot=view.filesystem();snapshot.verify_all();
-    require(snapshot.stat("payload.bin").inode==inode && snapshot.list().size()==(continued?3U:2U) &&
-        snapshot.read("payload.bin",0,cut_bytes+1)==expected && snapshot.read("witness.bin",0,cut_bytes+1)==cut_data(29),
+    const auto target=snapshot.stat(name_on_disk);
+    const auto entries=snapshot.list();
+    require(target.inode==inode && target.logical_bytes==expected.size() && !target.directory &&
+        entries.size()==2U+static_cast<unsigned>(metadata)+static_cast<unsigned>(continued) &&
+        snapshot.read(name_on_disk,0,cut_bytes+1)==expected &&
+        snapshot.read("witness.bin",0,cut_bytes+1)==cut_data(29),
         "Independent CPU recovery did not select the complete expected checkpoint");
+    const std::string_view absent=renamed?"payload.bin":"renamed.bin";
+    require(std::ranges::any_of(entries,[&](const auto& entry){return entry.path==name_on_disk;}) &&
+        std::ranges::none_of(entries,[&](const auto& entry){return entry.path==absent;}),
+        "Recovered directory does not contain exactly the expected target spelling");
+    if(metadata) {
+      require(snapshot.list("population").size()==cut_neighbors,"Independently recovered population size differs");
+      for(unsigned i=0;i<cut_neighbors;++i)
+        require(snapshot.read("population/"+cut_neighbor_name(i),0,cut_bytes+1)==cut_neighbor_data(i),
+            "A neighboring acknowledged file changed");
+    }
     if(continued)require(snapshot.read("continuation.bin",0,cut_bytes+1)==cut_data(61),
         "Independent CPU readback of the fresh mounted write differs");
     return snapshot.storage_info().generation;
   };
   const auto recovered=verify(false);
+  const auto recovered_extent=fs::file_size(path);
   source_fixture::Events continuation(true);
   source_fixture::Child resumer(executable,{L"--publication-cut-resumer",continuation.token(),std::to_wstring(source_id)},budget);
   resumer.await(continuation,source_fixture::Phase::ready);
   const auto next=fixture.root/L"resume-mount";
   mounted_identity(next);
-  require(read_all(next/L"payload.bin",expected.size())==expected,"Fresh mount read different recovered bytes");
-  seed_cut_file(next/L"continuation.bin",61);
+  require(read_all(next/name_on_disk,expected.size())==expected,"Fresh mount read different recovered bytes");
+  seed_cut_file(next/L"continuation.bin",cut_data(61));
   continuation.signal(source_fixture::Phase::written);
   const auto ended=resumer.result();
   require(ended.process_id && ended.process_id!=source_id && ended.exit_code==0 && ended.exit_confirmed &&
@@ -1317,7 +1463,9 @@ void run_publication_cut(const fs::path& executable,PublicationCut point) {
   require(continued>recovered,"Writable continuation did not advance the image");
   std::wcout<<L"mounted_publication_cut boundary="<<name<<L" pending_before_exit=1 client_error="<<error
       <<L" recovered="<<(expects_new?L"next":L"previous")<<L" generation="<<recovered
-      <<L" continuation_generation="<<continued<<L" cpu_readback=1 retired=1\n";
+      <<L" continuation_generation="<<continued<<L" cpu_readback=1 retired=1 operation="<<operation_name
+      <<L" neighbors="<<(metadata?cut_neighbors:0)<<L" recovered_extent="<<recovered_extent
+      <<L" continued_extent="<<fs::file_size(path)<<L'\n';
 }
 
 } // namespace
@@ -1325,22 +1473,29 @@ int wmain(int argc,wchar_t** argv) {try {
   require_hosted_opt_in();require(argc>=2&&argc<=5,"explicit writable probe mode required");
   const std::wstring_view mode(argv[1]);
   if(mode==L"--publication-cut-source") {
-    require_cut_guest();require(argc==4,"Publication-cut source arguments");
-    const auto found=std::ranges::find(cut_names,std::wstring_view(argv[3]));
-    require(found!=cut_names.end(),"Unknown publication-cut boundary");
-    publication_source(argv[2],cut_points[static_cast<std::size_t>(found-cut_names.begin())]);return 0;
+    require_cut_guest();require(argc==5,"Publication-cut source arguments");
+    const auto cut=std::ranges::find(cut_names,std::wstring_view(argv[3]));
+    const auto operation=std::ranges::find(operation_names,std::wstring_view(argv[4]));
+    require(cut!=cut_names.end() && operation!=operation_names.end(),"Unknown publication-cut operation or boundary");
+    publication_source(argv[2],cut_points[static_cast<std::size_t>(cut-cut_names.begin())],
+        static_cast<PublicationOperation>(operation-operation_names.begin()));return 0;
   }
   if(mode==L"--publication-cut-resumer") {
     require_cut_guest();require(argc==4,"Publication-cut resumer arguments");
     publication_resumer(argv[2],process_number(argv[3]));return 0;
   }
-  if(mode==L"--run-publication-cuts") {
+  if(mode==L"--run-publication-cuts" || mode==L"--run-metadata-publication-cuts") {
     require_cut_guest();require(argc==2,"Publication-cut controller arguments");
     const source_fixture::ControllerBudget controller_budget;
     wchar_t path[512]{};const auto n=GetModuleFileNameW(nullptr,path,512);
     require(n&&n<512,"Publication-cut executable identity");
     const fs::path executable(std::wstring(path,n));
-    for(const auto point:cut_points)run_publication_cut(executable,point);
+    if(mode==L"--run-publication-cuts") {
+      for(const auto point:cut_points)run_publication_cut(executable,point,PublicationOperation::write);
+    } else {
+      for(const auto operation:{PublicationOperation::shrink,PublicationOperation::rename})
+        for(const auto point:cut_points)run_publication_cut(executable,point,operation);
+    }
     require(source_fixture::cleanup_ok.load()&&!source_fixture::source_busy.load(),"Publication-cut final cleanup");
     return 0;
   }

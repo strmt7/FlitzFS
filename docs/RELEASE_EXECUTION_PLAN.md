@@ -75,7 +75,7 @@ artifact and the observation needed before the related work can advance.
 | S5 · E04–E06 | Freeze the mixed held-out corpus and collect complete-image accounting for independent codecs, shared dictionaries, delta and multi-reference candidates and the existing shared-base control. | Net space gains survive protection, retained generations and reclamation costs. Independent restart units give practical cold random reads. Size and access results include all cohorts and losses. |
 | S6 · E07 | Drive the persistent advisory catalog and policy from observed savings, live resource pressure and workload changes in the mounted lifecycle. | Corrupt or absent advice is rebuildable. Foreground bursts preempt the next quantum. Recovery, migration, learning, compaction and scan progress resume independently with measured write cost. |
 | S7 · E08 | Extend the signed WinFsp fixture to an interactive Windows 11 26H2 x64 client and the published Explorer and Win32 compatibility matrix. | Both supported backings cover create, attach, metadata, copy, sharing, mapped I/O, detach and fresh-process recovery. Scoped app, service, mount and worker ownership is verified through failure and removal. |
-| S8 · E02, E11 | Use the verified mounted write cuts as a control. Add mounted EOF shrink, rename and image-selection cuts, then qualify the persistent backend on dedicated disposable hardware. | Each cut resolves to an allowed complete generation. Acknowledged bytes and namespaces survive the declared failure domain. A single protected-copy loss repairs with byte-exact independent recovery. |
+| S8 · E02, E11 | Use the verified mounted Write, EOF shrink and rename cuts as controls. Add mounted image-selection cuts, then qualify the persistent backend on dedicated disposable hardware. | Each cut resolves to an allowed complete generation. Acknowledged bytes and namespaces survive the declared failure domain. A single protected-copy loss repairs with byte-exact independent recovery. |
 | S9 · E09 | Add a capability and reader matrix for historical fixtures and mixed old/new representations. Exercise bounded, resumable format migration under regular writes and space pressure. | Supported history opens on CPU. Old writers refuse unsupported mandatory features before mutation. Upgrade interruption, compatible rollback and CPU-only export recover the promised data. |
 | S10 · E10–E11 | Stage a signed Windows package and CPU recovery tool with owned installation, repair, removal and rollback. Review the parser, broker, update and dependency trust boundaries. | Every artifact is attributable. The supported install paths work on a clean client. Defensive negative tests and independent review close actionable issues for the exact packaged source. |
 | S11 · E12 | Collect repeated matched DiskSpd and file-workflow results on real hardware, with filesystem and compression controls. | Publishable raw results include complete occupied bytes, CPU/GPU utilization, write amplification, foreground tails and independent recovery for every phase. |
@@ -90,8 +90,8 @@ automatic AMD work. The execution evidence below sets each gate's exit.
 Independent corpus, process ownership, allocator and failure-model work can
 begin before the integrated path closes.
 
-The pending-write fixture established in-flight Write cuts. Extend them to
-EOF shrink, rename and image switch with the same independent CPU oracle.
+The signed-driver fixture now covers in-flight Write, EOF shrink and rename.
+Extend the independent CPU oracle to the outer selector during an image switch.
 Instrument eligibility and response ordering before introducing additional
 pending writes. Then use the ordinary client trace for scale, maintenance
 interference and comparative AMD qualification.
@@ -589,12 +589,17 @@ with automatic compression. The tests exercised a late replica failure,
 allocation pressure on both sides of the barrier, and independent CPU readback.
 [Indexed flush evidence](evidence/indexed-flush-root-reuse-2026-11-22.json)
 
-1. **Extend earlier mounted cuts to metadata and image switches.**
-   Use the in-flight write control to instrument the ordinary EOF shrink and
-   rename callbacks. Hold each at a confirmed boundary before the Win32
-   response and verify the last acknowledged state and the allowed complete
-   next state with the CPU reader. Exercise the outer selector during a real
-   image switch such as reclamation and check retired-range ownership.
+Ordinary EOF shrink and rename now pass all three inner image cuts in two
+fresh WinFsp 2.2 Windows 11 guests. Each fixture preserves 32 acknowledged
+neighbors, an independent witness, the target inode and the expected namespace.
+The fresh mounted writer flushes a continuation, which the CPU reader checks
+again. The original three in-flight Write controls also pass on the same build.
+[Mounted metadata evidence](evidence/windows11-mounted-metadata-publication-cuts-2026-11-22.json)
+
+1. **Exercise the outer selector during a mounted image switch.**
+   Use an admitted reclamation handoff and hold it at each durable selector
+   boundary. Reopen the selected image with the CPU reader, confirm the
+   acknowledged bytes and check retired-range ownership.
    Observe mapped writes with a view flush followed by a file flush. Extend
    the trace to populated directories and bind each outcome to the exact
    client operation, boundary, storage geometry and binaries. The physical

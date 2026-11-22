@@ -13,9 +13,9 @@
     "package_contract": "docs/IMPLEMENTATION_PLAN.md",
     "gate_ledger": "docs/RELEASE_EXECUTION_PLAN.md#current-gate-ledger",
     "evidence": "docs/evidence/architecture-reconciliation-2026-11-21.json",
-    "latest_recovery_evidence": "docs/evidence/windows11-inflight-publication-cuts-2026-11-21.json",
+    "latest_recovery_evidence": "docs/evidence/windows11-mounted-metadata-publication-cuts-2026-11-22.json",
     "latest_amd_evidence": "docs/evidence/amd-fresh-completion-observation-2026-11-21.json",
-    "next": "Extend populated mounted cuts to EOF shrink, rename and the outer image switch. Then qualify an installed foreground AMD offer in ordinary writes with matched CPU and refused-device cases, independent readback and controlled retirement.",
+    "next": "Extend the mounted Write, EOF shrink and rename controls to an outer image switch. Then qualify an installed foreground AMD offer in ordinary writes with matched CPU and refused-device cases, independent readback and controlled retirement.",
     "release_qualified": false
   },
   "baseline": {

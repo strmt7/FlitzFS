@@ -269,3 +269,22 @@ CPU-only event/supervisor tests run without WinFsp creation/mounting. New mounte
 qualification is still required on disposable hosted Windows; no owner-PC
 execution, driver operation or conclusion about the historical root cause
 follows from source changes or a green unrelated run.
+
+## Mounted EOF shrink and rename publication cuts
+
+The private Windows Sandbox fixture issues ordinary Win32 EOF shrink and rename
+from a client thread outside the filesystem owner. It checks that Windows has
+not replied at the observed backing barrier, stops that exact owner, then joins
+the client thread. The test uses the verified WinFsp callback and indexed
+store paths. The rename matcher handles the normalized source name returned
+by WinFsp, while the independent CPU reader checks the persisted destination
+spelling and stable inode.
+
+Two signed WinFsp 2.2 Windows 11 build 26100 guests each recovered the old
+result before the payload flush and the new result after either image-root
+flush. Each case checked all 32 neighbors, one separate witness and a fresh
+mounted continuation. The same build passed all three original pending Write
+cuts. The initial 16 MiB metadata fixture reached its append capacity during
+population. The corrected guest fixture reserves history in proportion to the
+number of declared neighbors. Every trial used private test data.
+[Mounted metadata evidence](evidence/windows11-mounted-metadata-publication-cuts-2026-11-22.json)

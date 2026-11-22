@@ -125,6 +125,17 @@
     "mounted_guest_locked_ram_handoff": true,
     "follow_up": "Measure the complete Windows handle and volume flush paths on the same populated trace. Keep the startup admission and AMD qualification gates open."
   },
+  "windows_mounted_metadata_publication": {
+    "evidence": "docs/evidence/windows11-mounted-metadata-publication-cuts-2026-11-22.json",
+    "windows_guest_build": "26100",
+    "winfsp": "2.2.26323",
+    "metadata_operations": ["eof-shrink", "rename"],
+    "verified_metadata_cuts": 12,
+    "same_build_write_controls": 3,
+    "acknowledged_neighbor_files_per_metadata_case": 32,
+    "independent_cpu_readback_and_writable_continuation": true,
+    "follow_up": "Cut the outer volume selector during a mounted image switch and verify retired-range ownership."
+  },
   "windows_mounted_inflight_publication": {
     "reviewed_commit": "8a3ba4472e76a1af19d851bb7687e3d485521d9f",
     "evidence": "docs/evidence/windows11-inflight-publication-cuts-2026-11-21.json",
