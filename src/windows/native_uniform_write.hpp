@@ -8,6 +8,7 @@
 namespace flitzfs {
 // Admission and immutable copying shared with the deferred callback owner.
 std::vector<std::byte> own_native_uniform_source(std::span<const std::byte>,NativeFileInfoAllocation);
+GpuLz4ResidentCost charge_native_uniform_source(GpuLz4ResidentCost,std::uint64_t owned_bytes) noexcept;
 using NativeUniformSweepGrant=GpuLz4SweepGrant;
 struct NativeUniformWorkerBinding {
   std::filesystem::path helper;
@@ -90,8 +91,8 @@ class ControlledNativeUniformWrite final {
   // session and callback state are accessed again at publication.
   void start_advice(NativeUniformWriteStart&,SourceGeometry,const NativeUniformWorkerBinding&,
       bool consent,bool worthwhile,const GpuHealthEvidence&,std::uint64_t,const GpuLz4ResidentCost&,
-      GpuLz4WindowPolicy,ProcessBudget,std::uint32_t,const std::atomic_bool* force_cpu=nullptr,
-      std::shared_ptr<const void> pinned_route={}) noexcept;
+      GpuLz4WindowPolicy,ProcessBudget,std::uint32_t,bool require_full_window=false,
+      const std::atomic_bool* force_cpu=nullptr,std::shared_ptr<const void> pinned_route={}) noexcept;
   NativeFileSession& session_;
   WorkerExecution expected_;
   UniformLz4WorkerController controller_;

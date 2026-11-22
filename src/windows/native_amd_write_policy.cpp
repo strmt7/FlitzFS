@@ -63,6 +63,8 @@ std::optional<NativeDeferredWriteOptions> qualify_native_amd_writes(const HipDis
   result.budget=budget;
   result.deadline_ms=deadline;
   result.allow_gpu=result.workload_qualified=result.helper_independent=true;
+  if(!NativeDeferredWriteService::measured_write_funded(result,*result.controller_health,route.memory.captured_ms))
+    return std::nullopt;
   return result;
 }
 }

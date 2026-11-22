@@ -41,6 +41,27 @@ NativeDeferredWriteService::~NativeDeferredWriteService(){
   {std::lock_guard guard(control_);stats_.stopping=true;force_cpu_=true;changed_.notify_all();}
   if(thread_.joinable())thread_.join();
 }
+GpuLz4ResidentCost NativeDeferredWriteService::charge_request(GpuLz4ResidentCost cost) noexcept {
+  if(!uniform_lz4::add(cost.fixed_bytes,sizeof(Request)+sizeof(FSP_FSCTL_TRANSACT_RSP)+
+        2*sizeof(NativeUniformWriteResult),cost.fixed_bytes))cost.qualified=false;
+  return cost;
+}
+bool NativeDeferredWriteService::measured_write_funded(const NativeDeferredWriteOptions& options,
+    const GpuHealthEvidence& evidence,std::uint64_t now) noexcept {
+  if(!options.measured_shape || !valid_process_budget(options.budget) ||
+      !options.deadline_ms || options.deadline_ms>options.budget.timeout_ms)return false;
+  const auto bytes=options.measured_shape->input_bytes;
+  if(!bytes || bytes%kNativeExtentBytes)return false;
+  const auto cost=charge_native_uniform_source(charge_request(options.cost),bytes);
+  const auto& sweep=options.binding.sweep;
+  const auto plan=sweep?plan_gpu_lz4_sweep_window(bytes,kNativeExtentBytes,evidence,now,
+      cost,options.window,*sweep,options.deadline_ms):
+      plan_gpu_lz4_window(bytes,kNativeExtentBytes,evidence,now,cost,options.window);
+  UniformLz4Limits limits;
+  return plan.code==GpuGateCode::admitted && plan.layout.input_bytes==bytes &&
+      try_uniform_lz4_limits(plan.layout,limits) &&
+      uniform_worker_host_budget_covers(limits,options.budget,plan.host_peak_bytes);
+}
 bool NativeDeferredWriteService::enqueue_locked(FSP_FILE_SYSTEM* fs,const NativeFileHandle& handle,
     std::span<const std::byte> bytes,UINT64 offset,bool append,bool constrained){
   if(!fs||stats_.stopping||stats_.disabled||stats_.worker_busy||stats_.native_pending||bytes.empty()||
@@ -53,7 +74,9 @@ bool NativeDeferredWriteService::enqueue_locked(FSP_FILE_SYSTEM* fs,const Native
         options_.deadline_ms>options_.budget.timeout_ms || bytes.size()<kNativeExtentBytes ||
         (controller_collects_budget() && (!activity_event_ || budget_disabled_)))return false;
     if(const auto& shape=options_.measured_shape) {
-      if(append || constrained || offset%kNativeExtentBytes || bytes.size()!=shape->input_bytes)return false;
+      const auto maximum=native_windows_eof_limit(info_policy_);
+      if(append || constrained || offset%kNativeExtentBytes || bytes.size()!=shape->input_bytes ||
+          offset>maximum || bytes.size()>maximum-offset)return false;
     }
     const auto now=GetTickCount64();
     const auto gate=check_gpu_memory_budget(health_.memory,health_.memory.luid,health_.memory.node_mask,now,0);
@@ -63,6 +86,8 @@ bool NativeDeferredWriteService::enqueue_locked(FSP_FILE_SYSTEM* fs,const Native
         request_budget_locked(health_.memory.captured_ms,false);
       return false;
     }
+    if(options_.measured_shape && (!measured_write_funded(options_,health_,now) ||
+        !WorkerExchangeSession::available()))return false;
   }
   UINT64 hint=0;
   if(!options_.hint_query(hint))return false;
@@ -170,9 +195,7 @@ void NativeDeferredWriteService::run() noexcept{
         if(!ready)disable_gpu_budget_locked();
       }
       const auto started=GetTickCount64();
-      auto charged=options_.cost;
-      if(!uniform_lz4::add(charged.fixed_bytes,sizeof(Request)+sizeof(FSP_FSCTL_TRANSACT_RSP)+
-          2*sizeof(NativeUniformWriteResult),charged.fixed_bytes))charged.qualified=false;
+      const auto charged=charge_request(options_.cost);
       const bool consent=options_.allow_gpu&&options_.helper_independent&&!force_cpu_&&!stats_.stopping;
       NativeUniformWriteStart admission;
       ControlledNativeUniformWrite::SourceGeometry geometry;
@@ -185,8 +208,8 @@ void NativeDeferredWriteService::run() noexcept{
         // The source stays owned while the native publication gate stays closed.
         guard.unlock();
         operation.start_advice(admission,geometry,options_.binding,consent,options_.workload_qualified,
-            observed,started,charged,options_.window,options_.budget,options_.deadline_ms,&force_cpu_,
-            options_.controller_route_pins);
+            observed,started,charged,options_.window,options_.budget,options_.deadline_ms,
+            options_.measured_shape.has_value(),&force_cpu_,options_.controller_route_pins);
         guard.lock();
       }
       if(admission.worker.decision.submitted)increment(stats_.worker_submitted);

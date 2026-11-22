@@ -33,6 +33,13 @@ std::vector<std::byte> own_native_uniform_source(std::span<const std::byte> byte
   admit_source_copy(bytes.size());
   return bytes.empty()?std::vector<std::byte>{}:std::vector<std::byte>(bytes.begin(),bytes.end());
 }
+GpuLz4ResidentCost charge_native_uniform_source(GpuLz4ResidentCost cost,std::uint64_t bytes) noexcept {
+  constexpr auto overhead=sizeof(NativeUniformWriteResult)+63*sizeof(NativeLz4ExtentCandidate);
+  std::uint64_t owned=0;
+  if(!uniform_lz4::add(bytes,overhead,owned) || !uniform_lz4::add(cost.fixed_bytes,owned,cost.fixed_bytes))
+    cost.qualified=false;
+  return cost;
+}
 NativeUniformDispatch prepare_native_uniform_dispatch(const NativeUniformWorkerBinding& binding,
     const GpuHealthEvidence& evidence,const PreparedUniformLz4& batch,WorkerExecution expected,
     const GpuLz4SweepGrant* admitted_sweep){
@@ -113,7 +120,7 @@ NativeWindowsIoOutcome ControlledNativeUniformWrite::bind_source(const NativeFil
 void ControlledNativeUniformWrite::start_advice(NativeUniformWriteStart& start,SourceGeometry geometry,
     const NativeUniformWorkerBinding& binding,bool consent,bool worthwhile,
     const GpuHealthEvidence& evidence,std::uint64_t now,const GpuLz4ResidentCost& cost,
-    GpuLz4WindowPolicy window,ProcessBudget budget,std::uint32_t deadline,
+    GpuLz4WindowPolicy window,ProcessBudget budget,std::uint32_t deadline,bool require_full_window,
     const std::atomic_bool* force_cpu,std::shared_ptr<const void> pinned_route) noexcept {
   const auto yielding=[force_cpu] {return force_cpu && force_cpu->load(std::memory_order_acquire);};
   if(!consent || yielding()) {
@@ -132,10 +139,7 @@ void ControlledNativeUniformWrite::start_advice(NativeUniformWriteStart& start,S
   const auto eligible=(accepted-gap)/kNativeExtentBytes*kNativeExtentBytes;
   if(!eligible)return;
   try {
-    auto charged=cost;
-    if(!uniform_lz4::add(charged.fixed_bytes,source_.size()+sizeof(NativeUniformWriteResult)+
-          63*sizeof(NativeLz4ExtentCandidate),charged.fixed_bytes))
-      throw std::invalid_argument("native uniform source accounting overflow");
+    const auto charged=charge_native_uniform_source(cost,source_.size());
     const auto plan=binding.sweep?plan_gpu_lz4_sweep_window(eligible,kNativeExtentBytes,evidence,now,
         charged,window,*binding.sweep,deadline):
         plan_gpu_lz4_window(eligible,kNativeExtentBytes,evidence,now,charged,window);
@@ -143,7 +147,8 @@ void ControlledNativeUniformWrite::start_advice(NativeUniformWriteStart& start,S
       start.worker.decision.route.reason=GpuRouteReason::bad_evidence;
       start.worker.decision.gate=plan.code;
     }
-    if(plan.code!=GpuGateCode::admitted || plan.layout.input_bytes%kNativeExtentBytes)return;
+    if(plan.code!=GpuGateCode::admitted || plan.layout.input_bytes%kNativeExtentBytes ||
+        (require_full_window && plan.layout.input_bytes!=source_.size()))return;
     const auto limits=uniform_lz4_limits(plan.layout);
     auto batch=PreparedUniformLz4::prepare(std::span<const std::byte>(source_).subspan(
         static_cast<std::size_t>(gap),static_cast<std::size_t>(limits.input_bytes)),limits);

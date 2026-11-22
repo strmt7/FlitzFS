@@ -1,0 +1,208 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "release_qualified": false,
+  "observed_at_utc": "2026-11-22T09:28:13.424166+00:00",
+  "base_commit": "359a20687ccc8e42f9cf89ef12a37c0acf6ef464",
+  "candidate_source_blobs": {
+    "src/windows/uniform_lz4_worker_controller.hpp": "e9e4570c6dfbc0b5dc96ed482a424e514a3a6c0c",
+    "src/windows/uniform_lz4_worker_controller.cpp": "0ca8af213bd8188added955b1457a7fe89892224",
+    "src/windows/native_uniform_write.hpp": "c7e0c350f12a092eb03a02f40c5d303963cdfaeb",
+    "src/windows/native_uniform_write.cpp": "40916f2ff96805f935cf32dfaaa9d41527b59ef2",
+    "src/windows/native_deferred_write.hpp": "56e9dadf24a4885c260fb92c4b98fc9a797ee398",
+    "src/windows/native_deferred_write.cpp": "e7ca624984767f4c70a45a52988c1abcb21483a8",
+    "src/windows/native_amd_write_policy.cpp": "9995f8d87bf315dc5ab4a322b28a8d0c1f25ee67",
+    "src/windows/winfsp_native.cpp": "484e039a388c308c9179b5d6d4f3568be82e0854",
+    "tests/test_native_deferred_write_sdk.cpp": "024ce1b868bf269057cc1969a93cd47968a9aada"
+  },
+  "candidate_code_patch_sha256": "fe828dbae0a775a1adff86ef849c1a22c6df14c44b77580db6f88eeae051bf46",
+  "windows_checks": {
+    "release": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 37285888,
+      "cpu_percent": 20,
+      "result_sha256": "6241a2e06b77ce5038ca0f47054a684ec5e39f738a9973f782fa322292d02f17",
+      "log_sha256": "850944fe01f82bfb4530e9d0b5c520076d0ab4ac7a0c4e3deb2f146a9705068b",
+      "build": {
+        "exit_code": 0,
+        "tree_retired": true,
+        "residual_children": 1,
+        "peak_job_bytes": 396111872,
+        "cpu_percent": 22,
+        "result_sha256": "447e5e6b6b205602ecee2b8fd000525c80ba5e6bdd7ff36387877033110f67f0",
+        "log_sha256": "f785b6d2e0a782432a6d0b80231a3b4eeb4d30116722e47ad265fba9be5d26b2"
+      },
+      "passed": [
+        "owned_native_deferred_write_sdk",
+        "controlled_native_uniform_write_sdk",
+        "bounded_windows_worker_exchange",
+        "bounded_windows_volume_attachment",
+        "bounded_windows_volume_file_attachment"
+      ]
+    },
+    "asan": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 403722240,
+      "cpu_percent": 20,
+      "result_sha256": "d1b53ab8f5c1606343a0cb3e45049b1b43b2a3a5442bd5d41ec533a5f743911c",
+      "log_sha256": "f98562cb48847b6d8eb5298cdfbf84cd1d7c88f90c7fdcec67907e1976789e78",
+      "build": {
+        "exit_code": 0,
+        "tree_retired": true,
+        "residual_children": 1,
+        "peak_job_bytes": 856674304,
+        "cpu_percent": 22,
+        "result_sha256": "8946c2fe48ec751c9334eabcc777db5b86166517f478ed386a0df9f984dba3b5",
+        "log_sha256": "6f2e1cea3db958edc22247d6f5219a6dc298ec7fe2d53d6b1f14dbdd29dbf2ca"
+      },
+      "passed": [
+        "windows_asan_runtime_preflight",
+        "owned_native_deferred_write_sdk",
+        "controlled_native_uniform_write_sdk"
+      ]
+    },
+    "raw": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 33353728,
+      "cpu_percent": 20,
+      "result_sha256": "810d041bd888b137d6e81c7e17629e1adbab7302ea28299baf0cefefdc80ecc7",
+      "log_sha256": "e6bb0778999b046b26bec376205bbe63db24a97275b9def3cf9ae835f4ec7dcc",
+      "build": {
+        "exit_code": 0,
+        "tree_retired": true,
+        "residual_children": 1,
+        "peak_job_bytes": 677097472,
+        "cpu_percent": 22,
+        "result_sha256": "1a8f8985ac308ec0ea036f5dd84ae5e1c8af9633de2b42eb6373db96cefb3431",
+        "log_sha256": "c7a8e7d887715e56c148e3dab5c83f181dd85e758795401f18130f5fd8299f48"
+      },
+      "passed": [
+        "owned_native_deferred_write_sdk",
+        "controlled_native_uniform_write_sdk"
+      ]
+    }
+  },
+  "asan_runtime_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed",
+  "real_amd_sdk": {
+    "exit_code": 0,
+    "tree_retired": true,
+    "residual_children": 0,
+    "peak_job_bytes": 137043968,
+    "cpu_percent": 30,
+    "result_sha256": "1b76e4bc123d0bc3beb62a195ea6edd21d9a14f032b9214dc48f9b1e77286b59",
+    "log_sha256": "21027faf0183198ddcfe9d788628c3c34aae3026885640ad533c9332966a741d",
+    "artifacts": {
+      "amd/qualification-manifest.json": "6271b6a21dd5141d6ae231d25454400484b51ee961893f9e5e99954ec7b103af",
+      "amd/flitzfs_hip_lz4_worker.exe": "2ac5e28d7e57e5adfeee01f317a61ed38966656f94d8d057f1be6323e954b73c",
+      "amd/hip-uniform-lz4/flitzfs_rocm_uniform_lz4_candidate.dll": "a26a55a9a78c137099bedf6442c3f3ca3881079eeae8c153331b5eb7dbd515aa",
+      "flitzfs_native_deferred_write_sdk_tests.exe": "a6adb5ba3e5d0320cdc0df34dabf2824d6efe4fe3951c53b4a31031ae1c68b25",
+      "winfsp-x64.dll": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+    },
+    "independent_cpu_readback": true,
+    "incompatible_profile_refused": true,
+    "partial_profile_refused": true,
+    "outcome": {
+      "submitted": 1,
+      "advised": 1,
+      "forced": 0,
+      "retired": 1,
+      "candidates": 16,
+      "response_ns": 1981814600,
+      "gate": 1,
+      "worker_ms": 1968,
+      "worker_peak_commit": 95416320,
+      "exchange": 0,
+      "worker_exit": 0
+    },
+    "write": {
+      "sweep": 1,
+      "quantum_chunks": 2,
+      "source_bytes": 1048576,
+      "offset": 33554432,
+      "worker_payload_bytes": 135344,
+      "matched_copies": 32,
+      "image_bytes": 2621440,
+      "response_ns": 1981814600
+    }
+  },
+  "mounted_helper_at_base": {
+    "source": "359a20687ccc8e42f9cf89ef12a37c0acf6ef464",
+    "build": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 163827712,
+      "cpu_percent": 20,
+      "result_sha256": "e8cb9d888cabc42cd5accf3a1980ce68dd23c60ffce8fdad374ac12d917b7009",
+      "log_sha256": "35499b60ea8ae8a1d20f03b852bcee2504efff88b786c6de07c3cc5d248c6714"
+    },
+    "process": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 45342720,
+      "cpu_percent": 19,
+      "result_sha256": "ca5c92db8886cb80fb374a70fce0891952f1ebdc186c396ee44e9b6ec5f2833f",
+      "log_sha256": "6aead8e4cfd2f430d5edd0afac4fe320e7bf9703b18255194c3f8abe7f531a09"
+    },
+    "provisional_older_runner_refused": {
+      "exit_code": 1,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 10428416,
+      "cpu_percent": 14,
+      "result_sha256": "b8068ab4733f9cfd71d47facb3e85b4a672a2b16c70542af9509edddf66f44e7",
+      "log_sha256": "43578c1496b8c342285add702918501f0d73a7fa128936a84cb460dbac4708d9"
+    },
+    "guest_report_sha256": "c8743babd0e25fe4037d6f607a0112b45b603fd28c043851eccbc44d1e12f82c",
+    "input_manifest_sha256": "cedb14cfb73a238cc0c9ca2b2285bc63c5a99ff20656ec9a1ac0f92fad1c9936",
+    "artifacts": {
+      "flitzfs_volume_app_tests.exe": "605966dc497bc7c1bbb54a949675d9c343867abe4a0f14f7bd280eb952097739",
+      "flitzfs_volume_app.exe": "878b5b25b257e2c67f38d7338e86d4bafdb39cc48c9cbe9b045ffbc2c1d143ef",
+      "msvcp140_atomic_wait.dll": "8b10c6bd4c3c427ce7c8be96ef0fef0f8187bc236962be62a03caef834b37dcd",
+      "msvcp140.dll": "59d325227321d52b9a523ea401ce6787a5d59f78229a0ff3a6f124e5d3445685",
+      "vcruntime140_1.dll": "a14b4a42a2c6df04d6d53a8340816023d953406f7f3d94996c7cab30c414ff63",
+      "vcruntime140.dll": "eb1ee979bf02324712346e5bdbfc59c785388bc50d18cc2688aae4b0734915a0",
+      "winfsp-x64.dll": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+      "winfsp-x64.sys": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1"
+    },
+    "optional_amd_package_absent": true,
+    "guest_disposed": true,
+    "network": false,
+    "vgpu": false,
+    "guest_build": "26100",
+    "interactive_explorer": false,
+    "checks": {
+      "memory": {
+        "checks": 76,
+        "observed": "mounted_gui_roundtrip",
+        "confirmed_exit": true
+      },
+      "file": {
+        "checks": 132,
+        "observed": "mounted_file_activation exclusive_create=1 identity_preserved=1 fresh_process_reopen=1 independent_cpu_readback=1",
+        "confirmed_exit": true
+      }
+    },
+    "mount_locations_after": 0
+  },
+  "host": {
+    "file_system_driver_states": [
+      {
+        "Name": "WinFsp+20260516T182719Z",
+        "State": "Stopped"
+      }
+    ],
+    "scoped_processes_after": 0
+  },
+  "scope": {
+    "ordinary_mounted_foreground_AMD_qualified": false,
+    "physical_power_loss_qualified": false
+  }
+}

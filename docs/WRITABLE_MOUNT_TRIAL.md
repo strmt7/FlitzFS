@@ -329,3 +329,15 @@ same build. Concurrent cached writes and the mapped target's subsequent
 file flush still need cut coverage.
 [Mapped publication evidence](evidence/windows11-mounted-mapped-publication-cuts-2026-11-22.json) ·
 [Windows mapped flush contract](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-flushviewoffile)
+
+## Current helper with the optional AMD package absent
+
+The signed WinFsp guest ran both mounted helper workflows on the source at
+the base of the measured-window change. The memory-volume trial passed 76
+checks, including retained volume state across a window close and detach.
+The file-volume trial passed 132 checks, including exclusive creation,
+reattachment, identity preservation and fresh-process CPU reopen. Both
+verified Unicode paths, live-handle rename and a directory move. The guest
+disposed of its registered driver and the test left no mount points.
+Interactive Explorer on the target Windows client remains open.
+[Helper lifecycle evidence](evidence/windows-amd-full-measured-window-2026-11-22.json)

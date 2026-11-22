@@ -1143,7 +1143,9 @@ NativeDeferredActivation WinFspNativeWritable::activate_qualified_deferred_write
         shape.input_bytes%kNativeExtentBytes || shape.input_bytes>native_windows_write_limit(impl_->info_policy) ||
         !impl_->session.matches_managed_foreground(shape.foreground,shape.isolation_unit) ||
         !health.supervisor_quiescent || options.cost.configuration!=health.configuration ||
-        options.cost.recovery_generation!=health.recovery_generation)return Result::refused;
+        options.cost.recovery_generation!=health.recovery_generation ||
+        !NativeDeferredWriteService::measured_write_funded(options,health,health.memory.captured_ms))
+      return Result::refused;
     impl_->install_deferred_locked(std::move(options));
     return Result::active;
   }catch(...) {return Result::refused;}

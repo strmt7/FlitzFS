@@ -61,6 +61,9 @@ class NativeDeferredWriteService final {
   ~NativeDeferredWriteService();
   NativeDeferredWriteService(const NativeDeferredWriteService&)=delete;
   NativeDeferredWriteService& operator=(const NativeDeferredWriteService&)=delete;
+  // This allocation-free check binds the whole measured operation to current resources.
+  static bool measured_write_funded(const NativeDeferredWriteOptions&,const GpuHealthEvidence&,
+      std::uint64_t now) noexcept;
   bool enqueue_locked(FSP_FILE_SYSTEM*,const NativeFileHandle&,std::span<const std::byte>,
       UINT64 offset,bool append,bool constrained);
   void drain_locked(std::unique_lock<std::mutex>&);
@@ -86,6 +89,7 @@ class NativeDeferredWriteService final {
     NativeFileHandle handle;std::vector<std::byte> bytes;
     UINT64 offset=0;bool append=false,constrained=false;
   };
+  static GpuLz4ResidentCost charge_request(GpuLz4ResidentCost) noexcept;
   void run() noexcept;
   NativeFileSession& session_;std::mutex& control_;std::atomic<bool>& offline_;
   const NativeDeferredWriteOptions options_;

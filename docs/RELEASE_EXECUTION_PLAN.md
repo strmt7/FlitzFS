@@ -337,6 +337,10 @@ multiple sessions and measure actual allocated bytes and write costs.
   Measure a finite readiness episode and the actual arrival of independent
   eligible requests before adopting any foreground warm-up policy.
   [Foreground worker evidence](evidence/windows-amd-foreground-worker-boundary-2026-11-22.json)
+- The measured foreground route now verifies that the exact write fits the
+  live work and host budget before deferring. A controlled AMD run refused a
+  partial offer, adopted a funded sweep and recovered its complete bytes.
+  [Complete measured-window evidence](evidence/windows-amd-full-measured-window-2026-11-22.json)
 - Measure automatic route selection for early ingestion and cold work
   separately. Use the CPU reference for forecast and fallback. Compare real
   public and controlled inputs across supported AMD classes and a CPU-only

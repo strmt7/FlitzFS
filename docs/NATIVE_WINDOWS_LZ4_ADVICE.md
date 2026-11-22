@@ -63,6 +63,16 @@ prefer CPU. The regular installed mount and continuous device-loss recovery
 remain separate qualification gates.
 [Worker ownership and comparison evidence](evidence/windows-amd-foreground-worker-boundary-2026-11-22.json)
 
+A route measured for a full aligned write now requires funding for that complete
+input, including the child process and parent buffers. The planner still sizes
+and reuses smaller device windows within a funded sweep. An observation that
+covers only part of the measured input leaves the ordinary write on CPU
+before copying or deferring the caller's buffer. The route also requires an
+available supervisor at admission. The installed AMD fixture refused partial
+funding and then executed a funded 1 MiB write. Independent CPU recovery checked
+16 advised extents and their 32 mirrored records.
+[Complete measured-window evidence](evidence/windows-amd-full-measured-window-2026-11-22.json)
+
 ## Original source contract
 
 The native GitHub release inventory was checked on 14 November 2026. The newest

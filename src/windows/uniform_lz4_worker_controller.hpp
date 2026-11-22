@@ -14,6 +14,9 @@ struct UniformLz4WorkerOutcome {
   std::optional<std::uint32_t> exit_code;
   std::uint64_t process_elapsed_ms=0,process_peak_commit_bytes=0;
 };
+// Includes the child process bound and all parent request, reply and validation buffers.
+bool uniform_worker_host_budget_covers(const UniformLz4Limits&,ProcessBudget,
+    std::uint64_t admitted_peak) noexcept;
 // Single control thread. Persistent policy, one retiring worker and at most
 // one replacement CPU source of no greater size. Caller admits preparation
 // before allocating source. No normal operation starts this controller yet.

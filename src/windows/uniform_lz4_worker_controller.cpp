@@ -7,11 +7,10 @@
 #include <stdexcept>
 #include <utility>
 namespace flitzfs {
-namespace {
-bool complete_host_accounting(const PreparedUniformLz4& batch,ProcessBudget budget,
-    std::uint64_t admitted_peak) noexcept{
+bool uniform_worker_host_budget_covers(const UniformLz4Limits& limits,ProcessBudget budget,
+    std::uint64_t admitted_peak) noexcept {
   if(!valid_process_budget(budget))return false;
-  const auto& limits=batch.limits();std::uint64_t required=0,part=0;
+  std::uint64_t required=0,part=0;
   const auto charge=[&](std::uint64_t bytes,std::uint64_t copies){
     return uniform_lz4::multiply(bytes,copies,part) && uniform_lz4::add(required,part,required);
   };
@@ -22,7 +21,6 @@ bool complete_host_accounting(const PreparedUniformLz4& batch,ProcessBudget budg
   return charge(budget.memory_mib,1024*1024) && charge(limits.request_bytes,6) &&
       charge(limits.reply_bytes,3) && charge(limits.chunks,12) &&
       charge(4ULL*1024*1024+65536+sizeof(std::uint64_t),1) && required<=admitted_peak;
-}
 }
 UniformLz4WorkerController::UniformLz4WorkerController(WorkerExecution e):expected_(e){
   if(e!=WorkerExecution::hip && e!=WorkerExecution::cpu_semantics)
@@ -68,7 +66,7 @@ UniformLz4WorkerStart UniformLz4WorkerController::begin(PreparedUniformLz4&& inp
       plan.layout.total_bytes!=current_->layout().total_bytes ||
       (sweep && (plan.quantum.chunks!=sweep->maximum_chunks ||
           plan.quantum.total_bytes!=sweep->maximum_device_bytes)) ||
-      !complete_host_accounting(*current_,budget,plan.host_peak_bytes)){
+      !uniform_worker_host_budget_covers(current_->limits(),budget,plan.host_peak_bytes)){
     last_gate_=plan.code==GpuGateCode::admitted?GpuGateCode::invalid_budget:plan.code;
     return {{{GpuRouteReason::unqualified},last_gate_,false},true};
   }

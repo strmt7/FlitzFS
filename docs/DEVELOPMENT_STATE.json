@@ -16,6 +16,16 @@
     "implementation_order": "docs/IMPLEMENTATION_PLAN.md#3-execution-order-and-dependencies",
     "evidence": "docs/evidence/architecture-reconciliation-2026-11-21.json"
   },
+  "amd_complete_measured_window": {
+    "evidence": "docs/evidence/windows-amd-full-measured-window-2026-11-22.json",
+    "partial_geometry_uses_synchronous_cpu": true,
+    "funded_input_bytes": 1048576,
+    "independently_verified_amd_extents": 16,
+    "matched_mirrored_records": 32,
+    "mounted_helper_checks_at_test_base": {"memory": 76, "file": 132},
+    "interactive_explorer_qualified": false,
+    "ordinary_mounted_foreground_qualified": false
+  },
   "amd_foreground_worker_boundary": {
     "evidence": "docs/evidence/windows-amd-foreground-worker-boundary-2026-11-22.json",
     "prepared_outside_filesystem_lock": true,

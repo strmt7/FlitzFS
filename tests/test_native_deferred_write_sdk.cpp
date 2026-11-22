@@ -390,6 +390,34 @@ void budget_demand(const std::filesystem::path& worker) {
       "unavailable adapter retried or did not preserve CPU bytes");
   h.close(target);
 }
+void partial_measured_window_uses_cpu(const std::filesystem::path& worker) {
+  if(!gpu_lz4_cpu_verification_available())return;
+  auto settings=options(worker,1);
+  settings.controller_health=health();
+  settings.binding.sweep.reset();
+  settings.cost.maximum_grid_x=1;
+  auto bytes=native_lz4_fixture::source();
+  const auto block=bytes;
+  bytes.insert(bytes.end(),block.begin(),block.end());
+  settings.measured_shape=NativeAmdWriteShape{static_cast<std::uint32_t>(bytes.size()),
+      static_cast<std::uint32_t>(kStoreCommitUnit),fixture_compression};
+  const auto& sample=*settings.controller_health;
+  const auto partial=plan_gpu_lz4_window(bytes.size(),kNativeExtentBytes,sample,sample.memory.captured_ms,
+      settings.cost,settings.window);
+  check(partial.code==GpuGateCode::admitted && partial.layout.input_bytes==kNativeExtentBytes &&
+      !NativeDeferredWriteService::measured_write_funded(settings,sample,sample.memory.captured_ms),
+      "partial coverage was mistaken for the measured workload");
+  Harness h(settings,true);
+  const auto target=h.create(L"\\target");
+  ULONG count=0;
+  FSP_FSCTL_FILE_INFO info{};
+  check(h.fs.Interface->Write(&h.fs,target,bytes.data(),0,static_cast<ULONG>(bytes.size()),
+      FALSE,FALSE,&count,&info)==STATUS_SUCCESS && count==bytes.size(),
+      "partially funded measured write was deferred");
+  check(!h.adapter->deferred_write_stats().queued && !h.adapter->gpu_budget_task() &&
+      h.adapter->snapshot().read("target",0,count)==bytes,"measured-write fallback lost source bytes");
+  h.close(target);
+}
 void completion_budget_refusal(const std::filesystem::path& worker) {
   if(!gpu_lz4_cpu_verification_available())return;
   auto settings=options(worker,1);
@@ -706,6 +734,12 @@ NativeAmdWriteSample indexed_trial(const HipDiscoveredRoute* route,bool sweep,
           "running controller did not queue the incompatible measurement");
       eventually([&]{return h.controller->view().foreground_activation==NativeDeferredActivation::refused;},
           "different foreground policy activated a measured route");
+      auto partial=options;
+      partial.binding.sweep.reset();
+      check(h.controller->offer_qualified_foreground_route(std::move(partial)),
+          "running controller did not receive partial device funding");
+      eventually([&]{return h.controller->view().foreground_activation==NativeDeferredActivation::refused;},
+          "partial device funding activated an exact measured route");
       check(h.controller->offer_qualified_foreground_route(options),"running controller did not queue its AMD route");
       eventually([&]{return h.controller->view().foreground_activation==NativeDeferredActivation::active;},
           "running controller did not activate its AMD route");
@@ -765,7 +799,7 @@ NativeAmdWriteSample indexed_trial(const HipDiscoveredRoute* route,bool sweep,
       const auto reopened=NativeFilesystemSnapshot::open_image(h.image,{NativeImageKind::indexed_paged,h.capacity});
       check(reopened.read("before-route",0,static_cast<std::uint32_t>(marker.size()))==marker,
           "live route activation changed the first CPU write");
-      std::cout<<"live_foreground_activation cpu_before=exact shape_refused=1 activated=1\n";
+      std::cout<<"live_foreground_activation cpu_before=exact shape_refused=1 activated=1 partial_refused=1\n";
     }
     if(stats.advised)
       eventually([&]{return h.controller->view().gpu_budget_queries==2;},
@@ -1004,6 +1038,7 @@ int wmain(int argc,wchar_t** argv){try{
   native_amd_write_preference();
   refused_foreground_offer();
   budget_demand(worker);
+  partial_measured_window_uses_cpu(worker);
   completion_budget_refusal(worker);
   for(const auto indexed : {false,true})for(unsigned kind=0;kind<4;++kind){
     run(worker,kind,indexed);
