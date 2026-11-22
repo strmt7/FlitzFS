@@ -45,7 +45,13 @@ struct WinFspVolumeController::Impl {
   std::optional<InstalledAnchorProfile> installed;
   HipRouteDiscoveryResult acquisition;
   std::optional<NativeAnchorRecoveryProof> acquisition_proof;
-  std::unique_ptr<InstalledAnchorInputWitness> acquisition_inputs;
+  std::unique_ptr<InstalledHipInputWitness> acquisition_inputs;
+  std::optional<InstalledNativeReadProfile> installed_read;
+  HipRouteDiscoveryResult read_acquisition;
+  std::unique_ptr<InstalledHipInputWitness> read_inputs;
+  std::unique_ptr<NativeLz4ReadWorker> acquired_read_worker;
+  std::uint64_t next_read_evidence_ms=0;
+  bool read_acquisition_started=false,acquiring_read=false;
   std::uint64_t last_acquisition_candidate=0,last_anchor_candidate=0,qualification_activity=0;
   std::atomic<bool> acquisition_finished{false};
   bool acquisition_started=false,acquisition_retired=true,qualifying_device=false;
@@ -64,6 +70,12 @@ struct WinFspVolumeController::Impl {
         else current.amd_read.configuration_refused=true;
       }catch(...) {current.amd_read.configuration_refused=true;}
     }
+#ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
+    else {
+      installed_read=installed_native_read_profile();
+      if(installed_read && !source->enable_native_lz4_read_ahead())installed_read.reset();
+    }
+#endif
     source->set_maintenance_event(activity.value);adapter=source.get();
     session=std::make_unique<WinFspNativeSession>(std::move(source),api);
     if(acceleration)anchor=std::make_unique<NativeAnchorSearchController>(std::move(*acceleration));
@@ -208,6 +220,9 @@ struct WinFspVolumeController::Impl {
                     if(allowance && !interrupted()) {
                       const auto before=backing_use.elapsed_ns();
                       auto work=adapter->capture_native_lz4_read_ahead(*allowance,GetTickCount64(),epoch,stop_requested);
+#ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
+                      if(work && !read_worker)begin_read_acquisition(*work,*allowance);
+#endif
                       const bool submitted=read_worker && work && read_worker->start(*work,*allowance,stop_requested);
                       if(work && !submitted)
                         read_ahead_prepared=adapter->prepare_captured_native_lz4_read(*work,stop_requested);
@@ -314,6 +329,7 @@ struct WinFspVolumeController::Impl {
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
     anchor_retired=anchor_retired && acquisition_retired;
     acquisition_inputs.reset();
+    read_inputs.reset();
 #endif
     std::lock_guard lock(mutex);current.state=session->state();current.start_status=started;
     current.offline=session->requires_offline();
@@ -390,6 +406,94 @@ struct WinFspVolumeController::Impl {
     return result;
   }
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
+  void begin_read_acquisition(const WinFspReadAheadWork& work,const NativeMaintenanceObservation& observed) {
+    if(!installed_read || !acquisition_retired || acquisition_thread.joinable() ||
+        stop_requested.load(std::memory_order_acquire) || adapter->foreground_pending() ||
+        !WorkerExchangeSession::available())return;
+    const auto now=GetTickCount64();
+    const auto refused=[&](std::uint64_t WinFspControllerView::* count) {
+      std::lock_guard lock(mutex);
+      ++(current.*count);
+    };
+    if(work.frames.size()<installed_read->minimum_frames) {
+      refused(&WinFspControllerView::installed_read_shape_refusals);
+      return;
+    }
+    if(!work.has_read_lead(installed_read->minimum_lead_ms,now)) {
+      refused(&WinFspControllerView::installed_read_lead_refusals);
+      return;
+    }
+    const auto& budget=installed_read->worker;
+    if(!valid_process_budget(plan_resource_process_budget(budget.memory_mib*1024ULL*1024,observed.physical_available,
+        observed.commit_available,budget.memory_share_divisor,budget.cpu_rate,budget.timeout_ms))) {
+      refused(&WinFspControllerView::installed_read_resource_refusals);
+      return;
+    }
+    if(read_acquisition_started && read_acquisition.status!=HipDiscoveryStatus::transport_busy) {
+      if(now<next_read_evidence_ms || !read_inputs)return;
+      // A sampled input must change. The interval bounds metadata checks.
+      next_read_evidence_ms=now+budget.timeout_ms;
+      if(!read_inputs->changed())return;
+    }
+    if(stop_requested.load(std::memory_order_acquire) || adapter->foreground_pending() ||
+        adapter->foreground_activity()!=work.foreground_epoch)return;
+    read_acquisition_started=true;
+    next_read_evidence_ms=now+budget.timeout_ms;
+    read_acquisition={};
+    acquiring_read=true;
+    acquisition_finished.store(false,std::memory_order_relaxed);
+    try {
+      acquisition_thread=std::jthread([this](std::stop_token stop) noexcept {
+        try {
+          MaintenanceThreadScope priority;
+          if(priority.active()) {
+            read_inputs=std::make_unique<InstalledHipInputWitness>(HipRouteRole::native_lz4_read);
+            read_acquisition=discover_installed_hip_native_read_route(stop);
+            if(read_acquisition.status==HipDiscoveryStatus::ready && read_acquisition.route && !stop.stop_requested()) {
+              auto profile=bind_installed_native_read(*read_acquisition.route);
+              if(profile)acquired_read_worker=std::make_unique<NativeLz4ReadWorker>(std::move(*profile));
+              else read_acquisition.status=HipDiscoveryStatus::profile_mismatch;
+            }
+            if(!priority.finish()) {
+              acquired_read_worker.reset();
+              if(read_acquisition.status==HipDiscoveryStatus::ready)read_acquisition.status=HipDiscoveryStatus::resource_deferred;
+            }
+          }else read_acquisition.status=HipDiscoveryStatus::resource_deferred;
+        }catch(...) {
+          acquired_read_worker.reset();
+          read_acquisition.status=HipDiscoveryStatus::resource_deferred;
+        }
+        acquisition_finished.store(true,std::memory_order_release);
+        SetEvent(activity.value);
+      });
+    }catch(...) {
+      acquiring_read=false;
+      read_acquisition.status=HipDiscoveryStatus::resource_deferred;
+      std::lock_guard lock(mutex);
+      current.installed_read_status=read_acquisition.status;
+    }
+    std::lock_guard lock(mutex);
+    ++current.installed_read_attempts;
+  }
+  void settle_read_acquisition(bool use_route) {
+    acquiring_read=false;
+    acquisition_retired=read_acquisition.status!=HipDiscoveryStatus::retirement_unconfirmed;
+    if(read_inputs && read_acquisition.status==HipDiscoveryStatus::device_not_ready)read_inputs->note_device_unavailable();
+    if(read_inputs && read_acquisition.memory_pressure)read_inputs->note_memory_pressure(*read_acquisition.memory_pressure);
+    if(read_acquisition.status==HipDiscoveryStatus::ready) {
+      if(use_route && acquired_read_worker && !stop_requested.load(std::memory_order_acquire)) {
+        read_worker=std::move(acquired_read_worker);
+        read_inputs.reset();
+      }else read_acquisition.status=HipDiscoveryStatus::cancelled;
+    }
+    acquired_read_worker.reset();
+    read_acquisition.route.reset();
+    std::lock_guard lock(mutex);
+    current.installed_read_status=read_acquisition.status;
+    current.installed_read_queries=read_acquisition.identity_queries;
+    current.installed_read_worker_exit=read_acquisition.worker_exit;
+    if(status_changed.value)SetEvent(status_changed.value);
+  }
   void begin_acquisition(const WinFspMaintenanceResult& result,const NativeMaintenanceObservation& observed) {
     if(!installed)return;
     if(anchor && anchor->take_device_interruption()) {
@@ -422,7 +526,7 @@ struct WinFspVolumeController::Impl {
     acquisition_started=true;
     acquisition_inputs.reset();
     // Keep the observed installation and topology on the Windows volume owner.
-    try {acquisition_inputs=std::make_unique<InstalledAnchorInputWitness>();}
+    try {acquisition_inputs=std::make_unique<InstalledHipInputWitness>();}
     catch(...) {}
     acquisition={};
     acquisition_proof.reset();
@@ -461,6 +565,7 @@ struct WinFspVolumeController::Impl {
     if(use_route && !acquisition_finished.load(std::memory_order_acquire))return;
     if(!use_route)acquisition_thread.request_stop();
     acquisition_thread.join();
+    if(acquiring_read){settle_read_acquisition(use_route);return;}
     if(qualifying_device && (adapter->foreground_pending() || adapter->foreground_activity()!=qualification_activity)) {
       use_route=false;
       if(acquisition.status==HipDiscoveryStatus::ready)acquisition.status=HipDiscoveryStatus::cancelled;

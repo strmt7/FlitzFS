@@ -194,7 +194,10 @@ UINT32 attributes(UINT32 value,bool directory) {
 NativeWindowsIoOutcome success() noexcept{return {STATUS_SUCCESS,false};}
 }
 struct WinFspNativeWritable::Impl {
-  struct ReadHistory {std::uint64_t end=0;std::uint32_t bytes=0;};
+  struct ReadHistory {
+    std::uint64_t end=0,completed_ms=0,idle_before_ms=0;
+    std::uint32_t bytes=0;
+  };
   struct Slot {
     std::uintptr_t token=0;
     NativeFileHandle handle;
@@ -206,6 +209,7 @@ struct WinFspNativeWritable::Impl {
     std::uintptr_t token=0;
     std::uint64_t offset=0;
     std::uint32_t bytes=0;
+    std::uint64_t created_ms=0,observed_lead_ms=0;
     bool overlaps(std::uint64_t start,std::uint32_t length) const noexcept {
       return length && (start<=offset?offset-start<length:start-offset<bytes);
     }
@@ -534,7 +538,10 @@ struct WinFspNativeWritable::Impl {
     const auto previous=std::exchange(slot.last_read,ReadHistory{});
     read_ahead.reset();
     auto prepared=std::exchange(prepared_read,PreparedRead{});
+    const auto start_ms=GetTickCount64();
     const bool adjacent=previous.bytes && previous.end==offset;
+    const auto idle=adjacent && previous.bytes==length && previous.completed_ms && start_ms>previous.completed_ms?
+        start_ms-previous.completed_ms:0;
     const bool has_prepared=adjacent && prepared.result && prepared.target.token==slot.token;
     const auto prior_hits=has_prepared?prepared.result->consumed():0;
     auto* ready=native_lz4_reads.get();
@@ -546,7 +553,8 @@ struct WinFspNativeWritable::Impl {
     const auto maximum=(std::numeric_limits<std::uint64_t>::max)();
     if(!length || bytes.size()!=length || offset>maximum-length)return bytes;
     const auto end=offset+length;
-    slot.last_read={end,length};
+    const auto completed_ms=GetTickCount64();
+    slot.last_read={end,completed_ms,idle,length};
     if(has_prepared && prepared.result->pending() &&
         (end<=prepared.target.offset || end-prepared.target.offset<prepared.target.bytes)) {
       prepared_read=std::move(prepared);
@@ -557,7 +565,8 @@ struct WinFspNativeWritable::Impl {
       const auto remaining=length-gap;
       const auto frames=(remaining+kNativeExtentBytes-1)/kNativeExtentBytes;
       const auto window=static_cast<std::uint32_t>(frames*kNativeExtentBytes);
-      if(window<=maximum-end-gap)read_ahead=ReadAhead{slot.token,end+gap,window};
+      if(window<=maximum-end-gap)read_ahead=ReadAhead{slot.token,end+gap,window,completed_ms,
+          (std::min)(idle,previous.idle_before_ms)};
     }
     return bytes;
   }
@@ -1385,6 +1394,8 @@ std::optional<WinFspReadAheadWork> WinFspNativeWritable::capture_native_lz4_read
     if(!lease || interrupted())return {};
     const auto frame_grant=static_cast<std::size_t>(target.bytes/kNativeExtentBytes)*2*frame_bytes;
     WinFspReadAheadWork work{this,target.token,target.offset,epoch,target.bytes};
+    work.hint_created_ms=target.created_ms;
+    work.observed_lead_ms=target.observed_lead_ms;
     work.frames=lease->capture_range(target.bytes,frame_grant,interrupted,&work.metadata);
     if(work.frames.empty() || interrupted())return {};
     return work;

@@ -653,6 +653,139 @@ int live_amd_read_ahead(char** argv,bool refuse) {
       <<" exact_cpu_fallback=1 child_and_owner_retired=1 stopped_pending="<<(refuse?0:1)<<" checks="<<checks<<'\n';
   return 0;
 }
+#ifdef FLITZFS_INDEXED_HIP_FIXTURE
+int live_installed_native_read(bool missing) {
+  const auto qualified=installed_native_read_profile();
+  require(qualified && qualified->minimum_frames==2 && qualified->maximum_frames==2 && store_lz4_available(),
+      "The installed native-read fixture requires a two-frame AMD package");
+  constexpr std::uint64_t extent=kNativeExtentBytes,capacity=8ULL*1024*1024;
+  constexpr std::size_t window=2*extent;
+  auto domain=MemoryVolumeDomain::create(capacity+kVolumeHeadBytes);
+  auto head=domain.create_store(kVolumeHeadBytes);
+  auto image=domain.create_store(capacity);
+  NativeMaintenancePolicy policy;
+  policy.maximum_cpu_busy_ppm=500'000;
+  auto source=WinFspNativeWritable::create_managed_indexed(head,id(90),image,id(1),{capacity},
+      {StoreCompressionMode::fast,1,false},{},policy);
+  auto* adapter=source.get();
+  Provider provider;
+  Provider::active=&provider;
+  WinFspVolumeController owner(std::move(source),provider.api(),plan(),domain);
+  await([&]{return owner.view().state==SessionState::running;},5000,"Installed read controller startup");
+  auto bytes=data(4*window,1937);
+  for(std::size_t i=0;i<2;++i) {
+    const auto motif=data(extent/8,917+static_cast<unsigned>(i));
+    for(std::size_t pos=0;pos<extent;pos+=motif.size())
+      std::ranges::copy(motif,bytes.begin()+static_cast<std::ptrdiff_t>(3*window+i*extent+pos));
+  }
+  callback_file(provider,0,bytes,window);
+  try {
+    await([&]{return owner.view().payload_scrub_passes && !adapter->background_maintenance_pending();},
+        18000,"Installed read initial maintenance did not quiesce");
+  }catch(...) {
+    const auto setup=owner.view();
+    std::cerr<<"installed_read_setup quanta="<<setup.maintenance_quanta<<" scrub_passes="<<setup.payload_scrub_passes
+        <<" phase="<<static_cast<int>(setup.maintenance.phase)<<" deferral="<<static_cast<int>(setup.maintenance.deferral)
+        <<" unavailable="<<setup.maintenance_disabled<<" host="<<static_cast<int>(setup.host)<<'\n';
+    throw;
+  }
+  PVOID context=nullptr;
+  FSP_FSCTL_FILE_INFO info{};
+  wchar_t name[]=L"\\f0";
+  auto* fs=&provider.fs;
+  require(fs->Interface->Open(fs,name,FILE_NON_DIRECTORY_FILE|(1U<<24),FILE_READ_DATA,&context,&info)==STATUS_SUCCESS &&
+      context && info.FileSize==bytes.size(),"Installed read opened a different file");
+  const auto demand=[&](unsigned index) {
+    Bytes found(window);
+    ULONG moved=0;
+    require(fs->Interface->Read(fs,context,found.data(),index*window,static_cast<ULONG>(found.size()),&moved)==
+        STATUS_SUCCESS && moved==found.size() &&
+        std::equal(found.begin(),found.end(),bytes.begin()+static_cast<std::ptrdiff_t>(index*window)),
+        "Installed read bytes differ");
+  };
+  const auto prepare=[&](DWORD gap) {
+    demand(0);
+    if(gap)Sleep(gap);
+    demand(1);
+    if(gap)Sleep(gap);
+    const auto before=owner.view().read_ahead_prepared;
+    demand(2);
+    return before;
+  };
+  const auto cpu_turn=[&](DWORD gap) {
+    const auto prior=prepare(gap);
+    await([&]{return owner.view().read_ahead_prepared>prior;},12000,"Installed route did not prepare CPU frames");
+    const auto hits=adapter->native_lz4_read_ahead_hits();
+    demand(3);
+    require(adapter->native_lz4_read_ahead_hits()==hits+2,"CPU preparation did not supply the two requested frames");
+  };
+  cpu_turn(0);
+  require(owner.view().installed_read_attempts==0 && owner.view().installed_read_lead_refusals &&
+      !owner.view().amd_read.submitted,"Unqualified read cadence touched the AMD package");
+  constexpr DWORD paced_gap=1500;
+  require(qualified->minimum_lead_ms<paced_gap,"The fixture gap does not cover the approved lead");
+  const auto initial=prepare(paced_gap);
+  try {
+    await([&]{return owner.view().installed_read_status.has_value();},20000,"Installed read acquisition did not retire");
+  }catch(...) {
+    const auto state=owner.view();
+    std::cerr<<"installed_read_admission attempts="<<state.installed_read_attempts
+        <<" shape_refusals="<<state.installed_read_shape_refusals<<" lead_refusals="<<state.installed_read_lead_refusals
+        <<" resource_refusals="<<state.installed_read_resource_refusals
+        <<" cpu_hits="<<adapter->native_lz4_read_ahead_hits()<<'\n';
+    throw;
+  }
+  const auto acquired=owner.view();
+  const auto expected=missing?HipDiscoveryStatus::package_unavailable:HipDiscoveryStatus::ready;
+  if(acquired.installed_read_status!=expected)
+    std::cerr<<"installed_read_identity status="<<static_cast<int>(*acquired.installed_read_status)
+        <<" queries="<<acquired.installed_read_queries<<" exit="<<acquired.installed_read_worker_exit<<'\n';
+  require(acquired.installed_read_attempts==1 && acquired.installed_read_status==expected,
+      "Installed read package selection was unexpected");
+  require(missing?acquired.installed_read_queries==0:acquired.installed_read_queries>0,
+      "Incorrect installed identity query count");
+  bool learned_cpu=false;
+  await([&]{return owner.view().read_ahead_prepared>initial;},12000,"Acquisition did not preserve CPU read-ahead");
+  demand(3);
+  if(missing) {
+    Sleep(qualified->worker.timeout_ms);
+    cpu_turn(paced_gap);
+    require(owner.view().installed_read_attempts==1 && !owner.view().amd_read.submitted,
+        "Unchanged missing package was retried after its evidence interval");
+  }else {
+    cpu_turn(0);
+    require(owner.view().amd_read.lead_refusals && !owner.view().amd_read.budget_queries && !owner.view().amd_read.submitted,
+        "A short read interval reached the installed GPU budget or worker");
+    const auto hits=adapter->native_lz4_read_ahead_hits();
+    prepare(paced_gap);
+    await([&]{return owner.view().amd_read.published || owner.view().amd_read.failures;},18000,
+        "Installed native decoder did not finish");
+    require(owner.view().amd_read.published==1 && owner.view().amd_read.verified_frames==2 &&
+        owner.view().amd_read.retirement_confirmed,"Installed route did not publish verified GPU frames");
+    demand(3);
+    require(adapter->native_lz4_read_ahead_hits()==hits+2,"Callbacks did not consume the installed AMD result");
+    const auto completed=owner.view().amd_read;
+    if(completed.last_turnaround_ms>2*std::uint64_t{paced_gap}) {
+      cpu_turn(paced_gap);
+      const auto observed=owner.view().amd_read;
+      require(observed.submitted==completed.submitted && observed.budget_queries==completed.budget_queries &&
+          observed.lead_refusals>completed.lead_refusals,"The measured turnaround did not keep a later read on CPU");
+      learned_cpu=true;
+    }
+  }
+  callback_cleanup_close(provider,context);
+  owner.stop_and_join();
+  const auto last=owner.view();
+  require(last.retired && last.amd_read.retirement_confirmed && !last.controller_failed &&
+      provider.fs.UserContext==nullptr,"Installed read controller did not retire");
+  std::cout<<"installed_native_read missing="<<missing<<" acquisitions="<<last.installed_read_attempts
+      <<" identity_queries="<<last.installed_read_queries<<" gpu_submitted="<<last.amd_read.submitted
+      <<" gpu_verified="<<last.amd_read.verified_frames<<" lead_refusals="<<last.amd_read.lead_refusals
+      <<" worker_ms="<<last.amd_read.last_worker_elapsed_ms<<" turnaround_ms="<<last.amd_read.last_turnaround_ms
+      <<" learned_cpu="<<learned_cpu<<" byte_exact=1 retired=1\n";
+  return 0;
+}
+#endif
 void volume_file_callbacks() {
   constexpr PagedStoreLimits limits{8ULL*1024*1024};
   constexpr StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
@@ -3411,6 +3544,10 @@ int main(int argc,char** argv){try {
       return live_amd_read_ahead(argv,command=="--live-amd-read-refusal");
   }
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
+  if(argc==2 && std::string_view(argv[1])=="--live-installed-native-read")
+    return live_installed_native_read(false);
+  if(argc==2 && std::string_view(argv[1])=="--live-installed-native-read-missing")
+    return live_installed_native_read(true);
   if(argc==1)anchor_launch_budget();
   if(argc==2 && std::string_view(argv[1])=="--live-installed-retired-reply")
     return live_installed_retired_reply(BatchForegroundTrial::read_after_retirement);

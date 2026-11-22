@@ -350,6 +350,44 @@ baseline continued, and the refused profile made no second budget query or
 launch. These checks used fixed admitted test windows.
 [Owned Radeon read verification](evidence/owned-amd-read-ahead-2026-11-22.json)
 
+### Installed decoder selection
+
+The Windows helper can accept an approved `native_lz4_read_profile` in the
+same AMD manifest as compression and shared-base search. The decoder worker
+and its module are colocated under `amd/native-lz4-read` next to the installed
+application. The package verifier binds their hashes, the expected export,
+the exact HIP runtime, the PCI hardware identity, architecture and wave
+coverage, and the measured frame, memory and lead-time allowances. The
+package must supply a digest-bound qualification record.
+[Installed runtime discovery](AMD_RUNTIME_DISCOVERY.md#installed-native-read-role)
+
+The volume owner learns lead time from the shorter of the two most recent
+intervals between adjacent, equal-size reads on the same handle. It subtracts
+time already spent since the hint and requires the profile's minimum before
+requesting device identity. The controller acquires the package on its owned
+background thread and lets the current read window use the CPU path. A later
+window with enough retained lead and live resources can use the verified GPU.
+Dispatch also accounts for the latest completed GPU turnaround from
+submission through publication. The closed CPU reader still handles
+ordinary demand and independently validates any prepared result.
+[AMD batching guidance](https://rocm.docs.amd.com/projects/HIP/en/latest/how-to/performance_guidelines.html)
+
+A short interval stays on CPU without querying DXGI or launching the
+decoder. After an acquisition refusal, a later eligible workload can
+recheck installation, device readiness and budget evidence at a bounded
+cadence. Changed evidence can admit a new acquisition. After a decoder
+configuration refusal, that attachment keeps serving CPU reads.
+
+The physical Windows callback fixture acquired the installed RX 9070 XT
+with one identity query and consumed two verified frames. The supervised
+worker exchange took 4.406 seconds, and the time from submission through
+publication was 5.438 seconds. A subsequent window with 1.5-second read
+intervals used CPU without another budget query or GPU launch. This
+qualifies installed routing and the timing-based CPU decision for the
+tested fixture. Matched, representative mounted-workload measurements
+still determine whether to ship a profile for this class.
+[Installed read verification](evidence/installed-native-amd-read-2026-11-22.json)
+
 [Windows memory reservation and commit](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc) ·
 [Windows page retirement](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualfree)
 [Windows cached read-ahead](https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ccschedulereadaheadex) ·

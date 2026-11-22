@@ -18,6 +18,10 @@ UNIFORM_MODULE = "hip-uniform-lz4/flitzfs_rocm_uniform_lz4_candidate.dll"
 ANCHOR_WORKER = "flitzfs_hip_worker.exe"
 ANCHOR_MODULE = "hip/flitzfs_rocm_kernels.dll"
 ANCHOR_EVIDENCE = "shared-base-qualification.json"
+READ_WORKER = "native-lz4-read/flitzfs_native_lz4_read_worker.exe"
+READ_MODULE = "native-lz4-read/flitzfs_rocm_native_lz4_decode.dll"
+READ_EVIDENCE = "native-lz4-read-qualification.json"
+GPU_ARCHITECTURE = re.compile(r"gfx[a-z0-9]{1,29}\Z")
 LICENSE_PATH = re.compile(r"(?:LICENSE|licenses(?:/[A-Za-z0-9][A-Za-z0-9._-]*)+)\Z")
 SHA256 = re.compile(r"[a-f0-9]{64}\Z")
 HIP_RUNTIME = re.compile(r"amdhip64(?:_[1-9][0-9]{0,2})?\.dll\Z")
@@ -44,7 +48,7 @@ def exact_digest(value: object) -> bool:
 
 def integer(profile: dict, key: str, minimum: int, maximum: int) -> int:
     value = profile.get(key)
-    require(type(value) is int and minimum <= value <= maximum, f"Invalid anchor profile field {key}")
+    require(type(value) is int and minimum <= value <= maximum, f"Invalid AMD profile field {key}")
     return value
 
 
@@ -65,7 +69,10 @@ def bind(package: Path, approved: str) -> tuple[str, list[str]]:
             "Package does not identify the installed AMD runtime contract")
     uniform = data.get("uniform_runtime_packaged") is True
     anchor = data.get("shared_base_profile")
-    require(("shared_base_profile" not in data or isinstance(anchor, dict)) and (uniform or anchor is not None),
+    read = data.get("native_lz4_read_profile")
+    require(("shared_base_profile" not in data or isinstance(anchor, dict))
+            and ("native_lz4_read_profile" not in data or isinstance(read, dict))
+            and (uniform or anchor is not None or read is not None),
             "Package must identify at least one approved AMD route")
     files = data["files"]
     require(isinstance(files, list) and 0 < len(files) <= 64, "Package inventory out of bounds")
@@ -96,12 +103,13 @@ def bind(package: Path, approved: str) -> tuple[str, list[str]]:
                 and (not worker or not delayed), f"Unexpected PE dependencies for {name}")
         if required_exports:
             missing = set(required_exports) - pe_function_exports(contents)
-            require(not missing, f"Approved anchor module lacks its dispatch entry: {', '.join(sorted(missing))}")
+            require(not missing, f"Approved module lacks its dispatch entry: {', '.join(sorted(missing))}")
         return f"inline constexpr std::array {field}{{{array_literal(digest)}}};\n"
 
     zero = "inline constexpr std::array<std::byte,32> {}{{}};\n"
     result = ("#pragma once\n#include <array>\n#include <cstddef>\n#include <cstdint>\n"
               f"#define FLITZFS_INSTALLED_AMD_HAS_ANCHOR {int(anchor is not None)}\n"
+              f"#define FLITZFS_INSTALLED_AMD_HAS_NATIVE_READ {int(read is not None)}\n"
               "namespace flitzfs::installed_amd_package {\n"
               f'inline constexpr wchar_t runtime_basename[]=L"{runtime}";\n'
               f"inline constexpr bool has_uniform={'true' if uniform else 'false'};\n")
@@ -151,6 +159,38 @@ def bind(package: Path, approved: str) -> tuple[str, list[str]]:
         result += f"inline constexpr bool anchor_reference_xor={'true' if reference_xor else 'false'};\n"
         result += f"inline constexpr std::array anchor_runtime_sha256{{{array_literal(bytes.fromhex(runtime_digest))}}};\n"
         result += "".join(f"inline constexpr std::uint32_t anchor_{key}={value}U;\n" for key, value in fields.items())
+    if read is not None:
+        evidence = read.get("qualification_sha256")
+        runtime_digest = read.get("runtime_sha256")
+        architecture = read.get("architecture")
+        require(exact_digest(evidence) and exact_digest(runtime_digest), "Read provenance digests are required")
+        require(isinstance(architecture, str) and GPU_ARCHITECTURE.fullmatch(architecture) is not None,
+                "Invalid native LZ4 read architecture")
+        _, receipt_digest = verified(READ_EVIDENCE, 256 * 1024)
+        require(receipt_digest.hex() == evidence, "Read qualification digest mismatch")
+        fields = {
+            "vendor_id": integer(read, "vendor_id", 0x1002, 0x1002),
+            "device_id": integer(read, "device_id", 1, 0xffff),
+            "subsystem_id": integer(read, "subsystem_id", 0, 0xffffffff),
+            "revision": integer(read, "revision", 0, 0xff),
+            "minimum_frames": integer(read, "minimum_frames", 1, 0x7fffffff),
+            "maximum_frames": integer(read, "maximum_frames", 1, 0x7fffffff),
+            "worker_memory_mib": integer(read, "worker_memory_mib", 64, 0xffffffff),
+            "memory_share_divisor": integer(read, "memory_share_divisor", 16, 0xffffffff),
+            "worker_cpu_rate": integer(read, "worker_cpu_rate", 100, 2000),
+            "worker_timeout_ms": integer(read, "worker_timeout_ms", 1, 40000),
+            "maximum_identity_queries": integer(read, "maximum_identity_queries", 1, 64),
+            "wave_mask": integer(read, "wave_mask", 1, 3),
+            "minimum_lead_ms": integer(read, "minimum_lead_ms", 1, 0xffffffff),
+        }
+        require(fields["minimum_frames"] <= fields["maximum_frames"], "Inverted native LZ4 read frame grant")
+        slab_bytes = integer(read, "maximum_slab_bytes", 1, fields["worker_memory_mib"] * 1024 * 1024)
+        result += artifact(READ_WORKER, "read_worker_sha256", True)
+        result += artifact(READ_MODULE, "read_module_sha256", False, ("flitzfs_native_lz4_decode_api",))
+        result += f'inline constexpr wchar_t read_architecture[]=L"{architecture}";\n'
+        result += f"inline constexpr std::uint64_t read_maximum_slab_bytes={slab_bytes}ULL;\n"
+        result += f"inline constexpr std::array read_runtime_sha256{{{array_literal(bytes.fromhex(runtime_digest))}}};\n"
+        result += "".join(f"inline constexpr std::uint32_t read_{key}={value}U;\n" for key, value in fields.items())
     for record in files:
         name = record["path"]
         if isinstance(name, str) and LICENSE_PATH.fullmatch(name):

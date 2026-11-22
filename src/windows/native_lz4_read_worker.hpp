@@ -24,11 +24,13 @@ struct NativeLz4ReadWorkerProfile {
   ProcessBudget worker;
   std::uint32_t minimum_frames=0,maximum_frames=0;
   std::uint64_t maximum_slab_bytes=0;
+  std::uint32_t minimum_lead_ms=0;
 };
 
 struct NativeLz4ReadWorkerStats {
   std::uint64_t submitted=0,published=0,superseded=0,failures=0,declined=0;
   std::uint64_t submitted_frames=0,verified_frames=0,budget_queries=0,last_worker_elapsed_ms=0;
+  std::uint64_t last_turnaround_ms=0,lead_refusals=0;
   std::uint32_t last_worker_exit_code=0;
   bool pending=false,configuration_refused=false,retirement_confirmed=true;
 };

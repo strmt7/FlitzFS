@@ -23,6 +23,32 @@ constexpr HipAdapterHardware installed_anchor_hardware{
     installed_amd_package::anchor_vendor_id,installed_amd_package::anchor_device_id,
     installed_amd_package::anchor_subsystem_id,installed_amd_package::anchor_revision};
 #endif
+#if defined(FLITZFS_BIND_INSTALLED_AMD_PACKAGE) && FLITZFS_INSTALLED_AMD_HAS_NATIVE_READ
+constexpr HipAdapterHardware installed_read_hardware{
+    installed_amd_package::read_vendor_id,installed_amd_package::read_device_id,
+    installed_amd_package::read_subsystem_id,installed_amd_package::read_revision};
+#endif
+struct RouteFiles {
+  const wchar_t* worker_directory;
+  const wchar_t* worker;
+  const wchar_t* module_directory;
+  const wchar_t* module;
+};
+constexpr RouteFiles route_files(HipRouteRole role) noexcept {
+  switch(role) {
+    case HipRouteRole::anchor:
+      return {nullptr,L"flitzfs_hip_worker.exe",L"hip",L"flitzfs_rocm_kernels.dll"};
+    case HipRouteRole::native_lz4_read:
+      return {L"native-lz4-read",L"flitzfs_native_lz4_read_worker.exe",nullptr,L"flitzfs_rocm_native_lz4_decode.dll"};
+    default:
+      return {nullptr,L"flitzfs_hip_lz4_worker.exe",L"hip-uniform-lz4",L"flitzfs_rocm_uniform_lz4_candidate.dll"};
+  }
+}
+std::filesystem::path route_module(const std::filesystem::path& worker,RouteFiles files) {
+  auto parent=worker.parent_path();
+  if(files.module_directory)parent/=files.module_directory;
+  return parent/files.module;
+}
 template<std::size_t N>
 bool nonzero(const std::array<std::byte,N>& id) noexcept {
   return std::any_of(id.begin(),id.end(),[](std::byte b){return b!=std::byte{};});
@@ -138,19 +164,24 @@ struct HipRouteResources {
 HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest& request,std::stop_token stop) {
   HipRouteDiscoveryResult result;
   const bool anchor=nonzero(request.anchor_module_sha256);
-  const auto* helper_name=anchor?L"flitzfs_hip_worker.exe":L"flitzfs_hip_lz4_worker.exe";
-  const auto& module_digest=anchor?request.anchor_module_sha256:request.uniform_module_sha256;
+  const bool read=nonzero(request.native_read_module_sha256);
+  const auto role=read?HipRouteRole::native_lz4_read:anchor?HipRouteRole::anchor:HipRouteRole::uniform;
+  const auto files=route_files(role);
+  const auto& module_digest=read?request.native_read_module_sha256:
+      anchor?request.anchor_module_sha256:request.uniform_module_sha256;
   if(!request.helper.is_absolute() || !ordinary_windows_file_path(request.helper.native()) ||
-      request.helper.filename()!=helper_name || (anchor && nonzero(request.uniform_module_sha256)) ||
-      !nonzero(request.helper_sha256) ||
-      (request.anchor_device && (!anchor || request.anchor_device->hardware.vendor_id!=0x1002 ||
-          !request.anchor_device->hardware.device_id || !nonzero(request.anchor_device->runtime_sha256))) ||
+      request.helper.filename()!=files.worker || (anchor && read) ||
+      ((anchor || read) && nonzero(request.uniform_module_sha256)) ||
+      !nonzero(request.helper_sha256) || (read && !request.qualified_device) ||
+      (request.qualified_device && (role==HipRouteRole::uniform ||
+          request.qualified_device->hardware.vendor_id!=0x1002 ||
+          !request.qualified_device->hardware.device_id || !nonzero(request.qualified_device->runtime_sha256))) ||
       !hip_runtime_name(request.runtime_basename) || !valid_process_budget(request.worker) ||
       !request.maximum_identity_queries || request.maximum_identity_queries>64)
     return result;
   if(stop.stop_requested())return {Status::cancelled};
   if(!WorkerExchangeSession::available()){result.status=Status::transport_busy;return result;}
-  const auto* expected=request.anchor_device?&request.anchor_device->hardware:nullptr;
+  const auto* expected=request.qualified_device?&request.qualified_device->hardware:nullptr;
   WindowsAmdDisplaySnapshot display;
   std::shared_ptr<HipRouteResources> pinned;
   try {
@@ -163,9 +194,9 @@ HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest
     }
     std::optional<ReadOnlyFile> module;
     if(nonzero(module_digest)) {
-      const auto directory=request.helper.parent_path()/(anchor?L"hip":L"hip-uniform-lz4");
-      parents.emplace_back(directory);
-      module.emplace(ReadOnlyFile::open(directory/(anchor?L"flitzfs_rocm_kernels.dll":L"flitzfs_rocm_uniform_lz4_candidate.dll")));
+      const auto path=route_module(request.helper,files);
+      if(files.module_directory)parents.emplace_back(path.parent_path());
+      module.emplace(ReadOnlyFile::open(path));
       if(!module->size() || module->size()>128ULL*1024*1024 ||
           hip_detail::sha256_file(*module)!=module_digest) {
         result.status=Status::worker_untrusted;
@@ -182,7 +213,7 @@ HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest
     catch(const std::bad_alloc&) {result.status=Status::resource_deferred;return result;}
     catch(const std::exception&) {result.status=Status::worker_untrusted;return result;}
   if(stop.stop_requested())return {Status::cancelled};
-  if(request.anchor_device && pinned->runtime.digest()!=request.anchor_device->runtime_sha256)
+  if(request.qualified_device && pinned->runtime.digest()!=request.qualified_device->runtime_sha256)
     return {Status::profile_mismatch};
 
   const auto deadline=GetTickCount64()+request.worker.timeout_ms;
@@ -225,8 +256,9 @@ HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest
     const HipIdentityRequest identity{std::uint64_t(ordinal)+1,ordinal,node,luid};
     try {
       ++result.identity_queries;
+      const auto command=read?L"--inspect-system-adapter-sized":L"--inspect-system-adapter";
       const auto exchange=run_worker_exchange(request.helper,
-          {L"--inspect-system-adapter",std::to_wstring(ordinal),hex(luid),hex(pinned->runtime.digest())},
+          {command,std::to_wstring(ordinal),hex(luid),hex(pinned->runtime.digest())},
           encode_hip_identity_request(identity),remaining,stop,pinned);
       result.worker_exit=exchange.process.exit_code;
       if(exchange.code==WorkerExchangeCode::exit_unconfirmed ||
@@ -258,7 +290,7 @@ HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest
       const auto configuration=route_key(request.helper_sha256,runtime,module_digest,match,node);
       const auto module_pinned=pinned->module.has_value();
       auto binding=std::shared_ptr<const HipRoutePins>(new HipRoutePins(request.helper,configuration,
-          runtime,ordinal,fresh.snapshot,module_pinned && !anchor,module_pinned && anchor,
+          runtime,ordinal,fresh.snapshot,role,module_pinned,
           std::move(matching->device_instances),std::move(pinned)));
       result.route.emplace(HipDiscoveredRoute{configuration,runtime,fresh.snapshot,ordinal,
           std::move(binding),request.helper,request.runtime_basename,matching->hardware});
@@ -281,20 +313,20 @@ std::filesystem::path application_amd_directory() {
   return std::filesystem::path(std::wstring_view(path.data(),length)).parent_path()/L"amd";
 }
 
-std::filesystem::path package_worker(const std::filesystem::path& directory,bool anchor) {
-  return directory/(anchor?L"flitzfs_hip_worker.exe":L"flitzfs_hip_lz4_worker.exe");
-}
-std::filesystem::path package_module(const std::filesystem::path& directory,bool anchor) {
-  return directory/(anchor?L"hip/flitzfs_rocm_kernels.dll":L"hip-uniform-lz4/flitzfs_rocm_uniform_lz4_candidate.dll");
+std::filesystem::path package_worker(std::filesystem::path directory,HipRouteRole role) {
+  const auto files=route_files(role);
+  if(files.worker_directory)directory/=files.worker_directory;
+  return directory/files.worker;
 }
 
-HipRouteDiscoveryResult discover_application_package(HipRouteDiscoveryRequest request,bool anchor,std::stop_token stop) {
+HipRouteDiscoveryResult discover_application_package(HipRouteDiscoveryRequest request,HipRouteRole role,
+    std::stop_token stop) {
   if(stop.stop_requested())return {Status::cancelled};
   try {
     const auto directory=application_amd_directory();
     if(directory.empty())return {Status::package_unavailable};
-    request.helper=package_worker(directory,anchor);
-    const auto module=package_module(directory,anchor);
+    request.helper=package_worker(directory,role);
+    const auto module=route_module(request.helper,route_files(role));
     const std::filesystem::path* files[]{&request.helper,&module};
     for(const auto* path:files) {
       if(GetFileAttributesW(path->c_str())==INVALID_FILE_ATTRIBUTES) {
@@ -312,22 +344,32 @@ HipRouteDiscoveryResult discover_application_package(HipRouteDiscoveryRequest re
 #endif
 
 namespace {
-struct AnchorInputObservation {
+struct InstalledInputObservation {
   bool present=false;
   std::uint64_t volume=0;
   std::array<unsigned char,16> file_id{};
   std::int64_t bytes=0,write_time=0,change_time=0;
-  bool operator==(const AnchorInputObservation&) const noexcept=default;
+  bool operator==(const InstalledInputObservation&) const noexcept=default;
 };
 
-#if defined(FLITZFS_BIND_INSTALLED_AMD_PACKAGE) && FLITZFS_INSTALLED_AMD_HAS_ANCHOR
-std::optional<AnchorInputObservation> observe_anchor_input(const std::filesystem::path& path) noexcept {
+#ifdef FLITZFS_BIND_INSTALLED_AMD_PACKAGE
+std::optional<HipAdapterHardware> installed_hardware(HipRouteRole role) noexcept {
+#if FLITZFS_INSTALLED_AMD_HAS_ANCHOR
+  if(role==HipRouteRole::anchor)return installed_anchor_hardware;
+#endif
+#if FLITZFS_INSTALLED_AMD_HAS_NATIVE_READ
+  if(role==HipRouteRole::native_lz4_read)return installed_read_hardware;
+#endif
+  (void)role;
+  return {};
+}
+std::optional<InstalledInputObservation> observe_installed_input(const std::filesystem::path& path) noexcept {
   if(path.empty() || !ordinary_windows_file_path(path.native()))return {};
   const auto file=CreateFileW(path.c_str(),FILE_READ_ATTRIBUTES,FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,
       nullptr,OPEN_EXISTING,FILE_FLAG_OPEN_REPARSE_POINT,nullptr);
   if(file==INVALID_HANDLE_VALUE) {
     const auto error=GetLastError();
-    if(error==ERROR_FILE_NOT_FOUND || error==ERROR_PATH_NOT_FOUND)return AnchorInputObservation{};
+    if(error==ERROR_FILE_NOT_FOUND || error==ERROR_PATH_NOT_FOUND)return InstalledInputObservation{};
     return {};
   }
   FILE_ID_INFO id{};
@@ -340,7 +382,7 @@ std::optional<AnchorInputObservation> observe_anchor_input(const std::filesystem
       GetFileInformationByHandleEx(file,FileStandardInfo,&standard,sizeof(standard));
   CloseHandle(file);
   if(!valid)return {};
-  return AnchorInputObservation{true,id.VolumeSerialNumber,std::bit_cast<std::array<unsigned char,16>>(id.FileId),
+  return InstalledInputObservation{true,id.VolumeSerialNumber,std::bit_cast<std::array<unsigned char,16>>(id.FileId),
       standard.EndOfFile.QuadPart,basic.LastWriteTime.QuadPart,basic.ChangeTime.QuadPart};
 }
 #endif
@@ -354,7 +396,7 @@ bool recovered_hip_discovery_headroom(const GpuMemorySnapshot& denied,
       check_gpu_memory_budget(observed, denied.luid, denied.node_mask, now_ms, 0) == GpuGateCode::admitted;
 }
 
-struct InstalledAnchorInputWitness::Impl {
+struct InstalledHipInputWitness::Impl {
   struct MemoryPressure {
     GpuMemorySnapshot denied;
     WindowsGpuBudgetSampler sampler;
@@ -363,42 +405,48 @@ struct InstalledAnchorInputWitness::Impl {
   };
   std::optional<MemoryPressure> pressure;
   std::array<std::filesystem::path,3> paths;
-  std::array<std::optional<AnchorInputObservation>,3> before;
+  std::array<std::optional<InstalledInputObservation>,3> before;
+  std::optional<HipAdapterHardware> hardware;
   Microsoft::WRL::ComPtr<IDXGIFactory1> factory;
   bool device_unavailable=false;
 };
-InstalledAnchorInputWitness::InstalledAnchorInputWitness():impl_(std::make_unique<Impl>()) {
-#if defined(FLITZFS_BIND_INSTALLED_AMD_PACKAGE) && FLITZFS_INSTALLED_AMD_HAS_ANCHOR
+InstalledHipInputWitness::InstalledHipInputWitness(HipRouteRole role):impl_(std::make_unique<Impl>()) {
+#ifdef FLITZFS_BIND_INSTALLED_AMD_PACKAGE
+  impl_->hardware=installed_hardware(role);
+  if(!impl_->hardware)return;
   const auto directory=application_amd_directory();
   if(!directory.empty()) {
-    impl_->paths[0]=package_worker(directory,true);
-    impl_->paths[1]=package_module(directory,true);
+    impl_->paths[0]=package_worker(directory,role);
+    impl_->paths[1]=route_module(impl_->paths[0],route_files(role));
   }
   std::array<wchar_t,32768> system{};
   const auto length=GetSystemDirectoryW(system.data(),static_cast<UINT>(system.size()));
   if(length && length<system.size())
     impl_->paths[2]=std::filesystem::path(std::wstring_view(system.data(),length))/installed_amd_package::runtime_basename;
-  for(std::size_t i=0;i<impl_->paths.size();++i)impl_->before[i]=observe_anchor_input(impl_->paths[i]);
-  impl_->device_unavailable=check_display_readiness(observe_windows_amd_displays(),&installed_anchor_hardware)!=Status::ready;
+  for(std::size_t i=0;i<impl_->paths.size();++i)impl_->before[i]=observe_installed_input(impl_->paths[i]);
+  impl_->device_unavailable=check_display_readiness(observe_windows_amd_displays(),&*impl_->hardware)!=Status::ready;
   const bool have_package=impl_->before[0] && impl_->before[0]->present && impl_->before[1] && impl_->before[1]->present;
   if(!impl_->device_unavailable && have_package &&
       FAILED(CreateDXGIFactory1(IID_PPV_ARGS(impl_->factory.GetAddressOf()))))impl_->factory.Reset();
+#else
+  (void)role;
 #endif
 }
-InstalledAnchorInputWitness::~InstalledAnchorInputWitness()=default;
-void InstalledAnchorInputWitness::note_device_unavailable() noexcept {impl_->device_unavailable=true;}
-void InstalledAnchorInputWitness::note_memory_pressure(const GpuMemorySnapshot& denied) noexcept {
+InstalledHipInputWitness::~InstalledHipInputWitness()=default;
+void InstalledHipInputWitness::note_device_unavailable() noexcept {impl_->device_unavailable=true;}
+void InstalledHipInputWitness::note_memory_pressure(const GpuMemorySnapshot& denied) noexcept {
   impl_->pressure.emplace(denied);
 }
-bool InstalledAnchorInputWitness::changed() noexcept {
-#if defined(FLITZFS_BIND_INSTALLED_AMD_PACKAGE) && FLITZFS_INSTALLED_AMD_HAS_ANCHOR
-  if(check_display_readiness(observe_windows_amd_displays(),&installed_anchor_hardware)!=Status::ready) {
+bool InstalledHipInputWitness::changed() noexcept {
+#ifdef FLITZFS_BIND_INSTALLED_AMD_PACKAGE
+  if(!impl_->hardware)return false;
+  if(check_display_readiness(observe_windows_amd_displays(),&*impl_->hardware)!=Status::ready) {
     note_device_unavailable();
     return false;
   }
   if(impl_->device_unavailable)return true;
   for(std::size_t i=0;i<impl_->paths.size();++i) {
-    const auto current=observe_anchor_input(impl_->paths[i]);
+    const auto current=observe_installed_input(impl_->paths[i]);
     if(current && impl_->before[i] && *current!=*impl_->before[i])return true;
   }
   if (impl_->factory && !impl_->factory->IsCurrent()) return true;
@@ -421,7 +469,7 @@ HipRouteDiscoveryResult discover_installed_hip_route(ProcessBudget budget,std::u
   request.uniform_module_sha256=installed_amd_package::uniform_module_sha256;
   request.worker=budget;
   request.maximum_identity_queries=maximum_identity_queries;
-  return discover_application_package(std::move(request),false,{});
+  return discover_application_package(std::move(request),HipRouteRole::uniform,{});
 #else
   (void)budget;
   (void)maximum_identity_queries;
@@ -450,11 +498,60 @@ HipRouteDiscoveryResult discover_installed_hip_anchor_route(std::stop_token stop
   request.maximum_identity_queries=anchor_maximum_identity_queries;
   request.helper_sha256=anchor_worker_sha256;
   request.anchor_module_sha256=anchor_module_sha256;
-  request.anchor_device=HipAnchorDeviceBinding{installed_anchor_hardware,anchor_runtime_sha256};
-  return discover_application_package(std::move(request),true,stop);
+  request.qualified_device=HipQualifiedDeviceBinding{installed_anchor_hardware,anchor_runtime_sha256};
+  return discover_application_package(std::move(request),HipRouteRole::anchor,stop);
 #else
   (void)stop;
   return {Status::package_unavailable};
+#endif
+}
+
+std::optional<InstalledNativeReadProfile> installed_native_read_profile() noexcept {
+#if defined(FLITZFS_BIND_INSTALLED_AMD_PACKAGE) && FLITZFS_INSTALLED_AMD_HAS_NATIVE_READ
+  using namespace installed_amd_package;
+  return InstalledNativeReadProfile{{read_worker_memory_mib,read_worker_cpu_rate,read_worker_timeout_ms,
+      read_memory_share_divisor},read_minimum_frames,read_maximum_frames,read_minimum_lead_ms,read_maximum_slab_bytes};
+#else
+  return {};
+#endif
+}
+
+HipRouteDiscoveryResult discover_installed_hip_native_read_route(std::stop_token stop) {
+#if defined(FLITZFS_BIND_INSTALLED_AMD_PACKAGE) && FLITZFS_INSTALLED_AMD_HAS_NATIVE_READ
+  using namespace installed_amd_package;
+  HipRouteDiscoveryRequest request;
+  request.worker=installed_native_read_profile()->worker;
+  request.maximum_identity_queries=read_maximum_identity_queries;
+  request.helper_sha256=read_worker_sha256;
+  request.native_read_module_sha256=read_module_sha256;
+  request.qualified_device=HipQualifiedDeviceBinding{installed_read_hardware,read_runtime_sha256};
+  return discover_application_package(std::move(request),HipRouteRole::native_lz4_read,stop);
+#else
+  (void)stop;
+  return {Status::package_unavailable};
+#endif
+}
+
+std::optional<NativeLz4ReadWorkerProfile> bind_installed_native_read(const HipDiscoveredRoute& route) {
+#if defined(FLITZFS_BIND_INSTALLED_AMD_PACKAGE) && FLITZFS_INSTALLED_AMD_HAS_NATIVE_READ
+  using namespace installed_amd_package;
+  if(!route.pins || !route.pins->native_read_module_pinned() ||
+      route.hardware!=installed_read_hardware || route.runtime_sha256!=read_runtime_sha256 ||
+      route.runtime_basename!=runtime_basename ||
+      !route.pins->matches(route.helper,route.identity,route.runtime_sha256,static_cast<int>(route.ordinal),route.memory))
+    return {};
+  const auto ascii_hex=[](const auto& hash) {
+    const auto value=hex(hash);
+    return std::string(value.begin(),value.end());
+  };
+  const auto p=*installed_native_read_profile();
+  return NativeLz4ReadWorkerProfile{route.helper,route.runtime_basename,read_architecture,
+      ascii_hex(read_worker_sha256),ascii_hex(read_runtime_sha256),ascii_hex(read_module_sha256),
+      route.memory.luid,route.memory.node_mask,route.ordinal,read_wave_mask,p.worker,
+      p.minimum_frames,p.maximum_frames,p.maximum_slab_bytes,p.minimum_lead_ms};
+#else
+  (void)route;
+  return {};
 #endif
 }
 }

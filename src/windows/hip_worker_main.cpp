@@ -261,7 +261,8 @@ int worker(int argc, wchar_t** argv) {
   const bool anchor_sweep=mode==L"--driver-anchor-sweep" || anchor_profile;
   const bool native_prepared=mode==L"--driver-native-lz4-prepared-read-adapter";
   const bool native_read=native_prepared || mode==L"--driver-native-lz4-read-adapter";
-  require_hip_worker_job(anchor_batch || anchor_sweep || native_read);
+  const bool sized_identity=mode==L"--inspect-system-adapter-sized";
+  require_hip_worker_job(anchor_batch || anchor_sweep || native_read || sized_identity);
   // Compiler discovery must not leak into an application runtime. This changes
   // only this disposable child; the launching process remains untouched.
   require(_wputenv_s(L"LLVM_PATH", L"") == 0,
@@ -561,7 +562,7 @@ int worker(int argc, wchar_t** argv) {
     const hip_detail::VerifiedSystemModule verified(hip_bundle::runtime, runtime_digest(argv[2]));
     return 0;
   }
-  if (argc == 7 && std::wstring_view(argv[1]) == L"--inspect-system-adapter") {
+  if (argc == 7 && (mode==L"--inspect-system-adapter" || sized_identity)) {
     require(std::wstring_view(argv[5]) == L"--worker-channel",
         Exit::invalid_request,"identity metadata channel required");
     const auto ordinal=decimal(argv[2],63);

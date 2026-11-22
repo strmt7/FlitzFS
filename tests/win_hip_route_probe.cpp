@@ -117,7 +117,7 @@ int verify_request_refusals() {
   const auto timeout = [](auto& request) { request.worker.timeout_ms = 0; };
   const auto empty = [](auto& request) { request.maximum_identity_queries = 0; };
   const auto oversized = [](auto& request) { request.maximum_identity_queries = 65; };
-  const auto wrong_qualifier = [](auto& request) {request.anchor_device.emplace();};
+  const auto wrong_qualifier = [](auto& request) {request.qualified_device.emplace();};
   const auto conflicting_modules = [](auto& request) {
     request.helper.replace_filename(L"flitzfs_hip_worker.exe");
     request.uniform_module_sha256.fill(std::byte{1});request.anchor_module_sha256.fill(std::byte{1});
@@ -169,11 +169,11 @@ int wmain(int argc,wchar_t** argv) {
     request.helper_sha256=digest_field(argv[3]);
     if(anchor)request.anchor_module_sha256=digest_field(argv[4]);
     if(wrong_runtime || wrong_device) {
-      flitzfs::HipAnchorDeviceBinding unqualified;
+      flitzfs::HipQualifiedDeviceBinding unqualified;
       unqualified.hardware={0x1002,0xffff,0,0};
       if(wrong_runtime)unqualified.runtime_sha256.fill(std::byte{0xff});
       else unqualified.runtime_sha256=digest_field(argv[6]);
-      request.anchor_device=unqualified;
+      request.qualified_device=unqualified;
     }
     request.worker={128,2000,5000};request.maximum_identity_queries=4;
     const auto result=flitzfs::discover_system_hip_route(request);

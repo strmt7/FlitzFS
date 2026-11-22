@@ -18,6 +18,13 @@ struct WinFspReadAheadWork {
   std::uint32_t bytes=0;
   std::vector<detail::NativeLz4CapturedFrame> frames;
   std::shared_ptr<detail::PagedReadMetadata> metadata;
+  std::uint64_t hint_created_ms=0,observed_lead_ms=0;
+  bool has_read_lead(std::uint64_t required_ms,std::uint64_t now_ms) const noexcept {
+    if(!required_ms)return true;
+    if(!hint_created_ms || now_ms<hint_created_ms)return false;
+    const auto spent=now_ms-hint_created_ms;
+    return spent<observed_lead_ms && required_ms<=observed_lead_ms-spent;
+  }
 };
 struct MemoryVolumeBacking;
 // Experimental real writable adapter; qualify backing, runtime and containment.

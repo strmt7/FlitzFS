@@ -1,5 +1,6 @@
 #pragma once
 #include "hip_route_binding.hpp"
+#include "native_lz4_read_worker.hpp"
 #include "flitzfs/gpu_anchor_match.hpp"
 #include "flitzfs/process_budget.hpp"
 #include <filesystem>
@@ -13,7 +14,7 @@ enum class HipDiscoveryStatus {
   transport_busy, identity_unavailable, identity_mismatch, retirement_unconfirmed,
   package_unavailable, profile_mismatch, cancelled, configuration_quarantined, device_not_ready
 };
-struct HipAnchorDeviceBinding {
+struct HipQualifiedDeviceBinding {
   HipAdapterHardware hardware;
   std::array<std::byte,32> runtime_sha256{};
 };
@@ -27,7 +28,8 @@ struct HipRouteDiscoveryRequest {
   std::uint32_t maximum_identity_queries=0;
   std::array<std::byte,32> uniform_module_sha256{}; // Set by the installed package.
   std::array<std::byte,32> anchor_module_sha256{}; // Shared-base worker package, exclusive of uniform.
-  std::optional<HipAnchorDeviceBinding> anchor_device;
+  std::optional<HipQualifiedDeviceBinding> qualified_device;
+  std::array<std::byte,32> native_read_module_sha256{};
 };
 struct HipDiscoveredRoute {
   GpuConfigurationId identity{};
@@ -69,14 +71,23 @@ struct InstalledAnchorProfile {
 std::optional<InstalledAnchorProfile> installed_anchor_profile() noexcept;
 HipRouteDiscoveryResult discover_installed_hip_anchor_route(std::stop_token={});
 
+struct InstalledNativeReadProfile {
+  ProcessBudget worker;
+  std::uint32_t minimum_frames=0,maximum_frames=0,minimum_lead_ms=0;
+  std::uint64_t maximum_slab_bytes=0;
+};
+std::optional<InstalledNativeReadProfile> installed_native_read_profile() noexcept;
+HipRouteDiscoveryResult discover_installed_hip_native_read_route(std::stop_token={});
+std::optional<NativeLz4ReadWorkerProfile> bind_installed_native_read(const HipDiscoveredRoute&);
+
 // A demand-sampled observation from immediately before an installed route
 // attempt. A change permits verification of the inputs, not GPU execution.
-class InstalledAnchorInputWitness final {
+class InstalledHipInputWitness final {
  public:
-  InstalledAnchorInputWitness();
-  ~InstalledAnchorInputWitness();
-  InstalledAnchorInputWitness(const InstalledAnchorInputWitness&)=delete;
-  InstalledAnchorInputWitness& operator=(const InstalledAnchorInputWitness&)=delete;
+  explicit InstalledHipInputWitness(HipRouteRole=HipRouteRole::anchor);
+  ~InstalledHipInputWitness();
+  InstalledHipInputWitness(const InstalledHipInputWitness&)=delete;
+  InstalledHipInputWitness& operator=(const InstalledHipInputWitness&)=delete;
   void note_device_unavailable() noexcept;
   void note_memory_pressure(const GpuMemorySnapshot&) noexcept;
   bool changed() noexcept;

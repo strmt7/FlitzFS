@@ -147,6 +147,23 @@ selected CPU for this workload. Broader corpora, longer work windows and
 mounted operation need separate measurements.
 [Package, build and execution evidence](evidence/installed-amd-routing-2026-11-18.json)
 
+## Installed native read role
+
+The optional native read role uses the common AMD manifest approval and
+per-artifact checks. The decoder module must export
+`flitzfs_native_lz4_decode_api`, and its worker must use the system runtime
+contract. A supervised metadata exchange matches the installed HIP device's
+Windows LUID and node against eligible DXGI observations. A successful
+metadata result pins the exact artifacts and is only a prerequisite for
+the controller's workload and resource checks. Runtime hashes and
+PCI hardware identities come from the approved profile. The native
+read metadata command validates the adaptive job allowance before
+querying HIP. The legacy identity command retains its existing job
+contract.
+[Native read scheduling](NATIVE_AMD_LZ4_READ.md#installed-decoder-selection) ·
+[AMD Windows device identity](https://rocm.docs.amd.com/projects/HIP/en/latest/reference/hip_runtime_api/modules/initialization_and_version.html) ·
+[DXGI process memory budget](https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/nf-dxgi1_4-idxgiadapter3-queryvideomemoryinfo)
+
 ## Indexed write on 18 November 2026
 
 The controlled indexed WinFsp SDK callback used one fresh AMD adapter

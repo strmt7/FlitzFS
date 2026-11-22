@@ -8,7 +8,8 @@ import unittest
 from unittest.mock import patch
 
 from bind_installed_amd_package import (
-    ANCHOR_EVIDENCE, ANCHOR_MODULE, ANCHOR_WORKER, UNIFORM_MODULE, UNIFORM_WORKER, bind,
+    ANCHOR_EVIDENCE, ANCHOR_MODULE, ANCHOR_WORKER, READ_EVIDENCE, READ_MODULE, READ_WORKER,
+    UNIFORM_MODULE, UNIFORM_WORKER, bind,
 )
 
 
@@ -49,6 +50,18 @@ class PackageTests(unittest.TestCase):
         self.manifest["shared_base_profile"] = profile
         return profile
 
+    def native_read(self):
+        for name in (READ_WORKER, READ_MODULE):
+            self.file(name)
+        profile = dict(qualification_sha256=self.file(READ_EVIDENCE), runtime_sha256="cd" * 32,
+                       vendor_id=0x1002, device_id=0x7550, subsystem_id=1, revision=0,
+                       minimum_frames=2, maximum_frames=12, worker_memory_mib=160,
+                       memory_share_divisor=16, worker_cpu_rate=1200, worker_timeout_ms=14000,
+                       maximum_identity_queries=4, architecture="gfx1201", wave_mask=1,
+                       maximum_slab_bytes=1024 * 1024, minimum_lead_ms=120)
+        self.manifest["native_lz4_read_profile"] = profile
+        return profile
+
     def bind(self, trusted=None):
         payload = json.dumps(self.manifest).encode("ascii")
         with (self.root / "qualification-manifest.json").open("xb") as output:
@@ -83,6 +96,34 @@ class PackageTests(unittest.TestCase):
         self.assertIn("FLITZFS_INSTALLED_AMD_HAS_ANCHOR 1", header)
         self.assertEqual(set(files), {"qualification-manifest.json", UNIFORM_WORKER, UNIFORM_MODULE,
                                      ANCHOR_WORKER, ANCHOR_MODULE, ANCHOR_EVIDENCE})
+
+    def test_native_read_package_stages_the_separate_decoder_role(self):
+        self.native_read()
+        self.file("unqualified.dll")
+        with patch("bind_installed_amd_package.pe_function_exports",
+                   return_value={"flitzfs_native_lz4_decode_api"}):
+            header, files = self.bind()
+        self.assertIn("FLITZFS_INSTALLED_AMD_HAS_NATIVE_READ 1", header)
+        self.assertIn("has_uniform=false", header)
+        self.assertIn('read_architecture[]=L"gfx1201"', header)
+        self.assertIn("read_minimum_lead_ms=120U", header)
+        self.assertEqual(files, ["qualification-manifest.json", READ_EVIDENCE, READ_WORKER, READ_MODULE])
+
+    def test_native_read_requires_verified_dispatch(self):
+        self.native_read()
+        with patch("bind_installed_amd_package.pe_function_exports", return_value=set()):
+            with self.assertRaisesRegex(RuntimeError, "flitzfs_native_lz4_decode_api"):
+                self.bind()
+
+    def test_native_read_requires_a_measured_lead_grant(self):
+        self.native_read()["minimum_lead_ms"] = 0
+        with self.assertRaisesRegex(RuntimeError, "minimum_lead_ms"):
+            self.bind()
+
+    def test_native_read_rejects_mismatched_provenance(self):
+        self.native_read()["qualification_sha256"] = "ef" * 32
+        with self.assertRaisesRegex(RuntimeError, "Read qualification digest mismatch"):
+            self.bind()
 
     def test_manifest_approval_is_required(self):
         self.anchor()
@@ -170,7 +211,7 @@ class PackageTests(unittest.TestCase):
 
     def test_profile_refuses_an_unverified_dispatch_queue(self):
         self.anchor()["dispatches_per_wait"] = 5
-        with self.assertRaisesRegex(RuntimeError, "Invalid anchor profile field dispatches_per_wait"):
+        with self.assertRaisesRegex(RuntimeError, "Invalid AMD profile field dispatches_per_wait"):
             self.bind()
 
     def test_install_plan_cannot_alias_windows_paths(self):

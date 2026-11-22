@@ -93,7 +93,7 @@ struct NativeLz4ReadWorker::Impl {
     detail::NativeLz4ReadExchange request;
     WorkerExchangeSession child;
     WinFspReadAheadWork work;
-    std::uint64_t ticket;
+    std::uint64_t ticket,submitted_at;
     std::uint32_t frames;
     bool superseded=false;
   };
@@ -150,6 +150,15 @@ bool NativeLz4ReadWorker::start(WinFspReadAheadWork& work,const NativeMaintenanc
       !work.owner || stop_requested.load(std::memory_order_acquire) || !WorkerExchangeSession::available())
     return false;
   const auto& profile=s.profile;
+  const auto enough_lead=[&](std::uint64_t now) {
+    if(!profile.minimum_lead_ms)return true;
+    const auto required=(std::max)(std::uint64_t{profile.minimum_lead_ms},s.status.last_turnaround_ms);
+    if(work.has_read_lead(required,now))return true;
+    ++s.status.lead_refusals;
+    ++s.status.declined;
+    return false;
+  };
+  if(!enough_lead(GetTickCount64()))return false;
   try {
     std::uint32_t frames=0,encoded=0,decoded=0;
     std::uint64_t slab=0;
@@ -181,15 +190,17 @@ bool NativeLz4ReadWorker::start(WinFspReadAheadWork& work,const NativeMaintenanc
       hex(profile.luid),std::to_wstring(profile.node_mask),wide(profile.runtime_sha256),wide(profile.module_sha256),
       profile.architecture,std::to_wstring(profile.wave_mask),std::to_wstring(capacity.request_bytes),
       std::to_wstring(capacity.reply_bytes),std::to_wstring(frames),std::to_wstring(slab),std::to_wstring(frames)};
+    const auto submitted_at=GetTickCount64();
+    if(!enough_lead(submitted_at))return false;
     const auto decision=s.policy.consider_native_lz4_read(true,
         {s.configuration,++s.sequence,0,sample.status==WindowsGpuBudgetStatus::success,true,memory},
-        slab,GetTickCount64());
+        slab,submitted_at);
     if(!decision.try_gpu()) {++s.status.declined;return false;}
     try {
       auto child=WorkerExchangeSession::start_sized(profile.helper,arguments,exchange.request(),capacity,
           budget,s.package);
       work.frames.clear();
-      s.flight.emplace(Impl::Flight{std::move(exchange),std::move(child),std::move(work),decision.ticket,frames});
+      s.flight.emplace(Impl::Flight{std::move(exchange),std::move(child),std::move(work),decision.ticket,submitted_at,frames});
       ++s.status.submitted;
       s.status.submitted_frames+=frames;
       return true;
@@ -238,6 +249,7 @@ bool NativeLz4ReadWorker::verify_and_publish(WinFspNativeWritable& adapter,
     published=adapter.publish_native_lz4_read_ahead(f.work,std::move(ready),stopped);
     if(published) {
       ++s.status.published;
+      s.status.last_turnaround_ms=GetTickCount64()-f.submitted_at;
       (void)s.policy.finish(f.ticket,GpuRecoveryOutcome::accepted,true);
     }else {
       ++s.status.superseded;
