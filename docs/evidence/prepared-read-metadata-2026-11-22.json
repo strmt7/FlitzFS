@@ -1,0 +1,263 @@
+{
+  "schema": "flitzfs-prepared-read-metadata-v1",
+  "date": "2026-11-22",
+  "source": {
+    "base": "3dc3e31519139b773a71a382c8b9e167085b01a3",
+    "blobs": {
+      "include/flitzfs/paged_store.hpp": "c2af9c7fac34d969cd8dbbc4807dfb8bc9e562c9",
+      "src/paged_store.cpp": "ea2f14241f06f80913dba9f208f2d1bfc1c6681e",
+      "src/native_lz4_capture.hpp": "d61e6c17a17532477c082eb7844f0cf12eadddac",
+      "src/native_lz4_read.hpp": "3704537388fbf46d788a0fdcc3c061a2cd8efa3f",
+      "src/native_lz4_decode_wire.hpp": "9b105786d84333290f6c5632dfd74a26e191cf75",
+      "src/native_filesystem.cpp": "0ccb0cfe3490a3a864c43f65e63edfdf02481e6c",
+      "src/windows/winfsp_native.cpp": "e14323fd6c92f3285c90bb372233858b9069ee21",
+      "tests/test_winfsp_paged.cpp": "9dfe14482db41960a9d023e13399775f9218c0f9",
+      "tests/test_native_volume_file.cpp": "32668d11c5871084ed69b61d24ac34832aef033d",
+      "tests/rocm_compile/native_lz4_decode_probe.cpp": "f5227e86d595c2584a76a590272f525ff877d9a1"
+    },
+    "tracked_patch_sha256": "badd2697cee7a847b4b4bbb87ec8915b8ecbd18151075ecbe547aec94f3464a7"
+  },
+  "scope": {
+    "host_windows_build": "10.0.26300",
+    "host_backing": "memory",
+    "host_mount": false,
+    "physical_device_performance": false,
+    "mounted_amd": false
+  },
+  "single_extent": {
+    "ready_hit": 1,
+    "pressure_refused": 1,
+    "backing_discard": 1,
+    "foreground_superseded": 1,
+    "exact_cpu_feedback": 1,
+    "unrelated_reads_ignored": 1,
+    "ready_read_ignored": 1,
+    "single_use_sample": 1,
+    "foreground_read_write_before_release": 1,
+    "changed_bytes_exact": 1,
+    "capture_backing_bytes": 17887,
+    "ready_backing_bytes": 863,
+    "ordinary_backing_bytes": 17887,
+    "total_prepared_bytes": 18750
+  },
+  "four_extent_batch": {
+    "frames": 4,
+    "partial_grant_frames": 1,
+    "exact": 1,
+    "second_handle_cpu": 1,
+    "revised_backing_bytes": 53146,
+    "degraded_backing_bytes": 53138,
+    "capture_independent_bytes": 71852,
+    "capture_shared_bytes": 43781,
+    "ordinary_backing_bytes": 53138,
+    "ready_backing_bytes": 1728,
+    "total_prepared_bytes": 45509
+  },
+  "owned_controller": {
+    "prepared": 3,
+    "exact_hits": 3,
+    "backing_refused": 7,
+    "refused_backing_calls": 0,
+    "modeled_stall_ns": 46313601,
+    "demand_samples": 7,
+    "slow_demand_kept_limit": 1,
+    "timer_only_retries": 0,
+    "demand_recovered": 1,
+    "exact_cpu_fallback": 1,
+    "owner_retired": 1,
+    "handles": {
+      "before": 156,
+      "after": 156
+    }
+  },
+  "amd": {
+    "adapter": "AMD Radeon RX 9070 XT",
+    "driver": "32.0.32029.2010",
+    "hip_runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+    "executables_sha256": {
+      "probe": "8c205ecbacc83daff29e44b875eb4b4d11961bbd7ab07759af5cbeaed5498704",
+      "worker": "2f5daa70e434e5f82e4312283b54d5d588609f22106b24d9232689cbc3a193a6",
+      "module": "d5c46512c13866c134762a473edcf9360f93c28e8b7d7c703c7f9deeef3300f6"
+    },
+    "device_objects_sha256": {
+      "decode": "b817696fea0bd04dc01e7c894be4a032186d8c088a172459c62368b4104cbd6e",
+      "companion": "8d3c796e9360e0a6c8b6166b72149b7d0fa96341ebe0c027435ce7c55a3532bd"
+    },
+    "result": {
+      "architecture": "gfx1201",
+      "frames": 2,
+      "gpu_launched": true,
+      "bytes_exact": true,
+      "cpu_fallback_exact": true,
+      "first_decoded_bytes": 65560,
+      "second_decoded_bytes": 65523,
+      "exact_child_retired": true,
+      "pending_cpu_read_exact": true,
+      "kernel_launches": 2,
+      "reused_device_slab_bytes": 74096,
+      "exchange_ns": 1431639200,
+      "device_reserved_bytes": 262144,
+      "prepared": true,
+      "ready_ns": 1392105000,
+      "after_submit_ns": 39534200,
+      "capture_ns": 37000,
+      "leased_frames": 2,
+      "capture_batches": 1,
+      "cpu_session_read_ns": 182200,
+      "ready_session_read_ns": 80100,
+      "cpu_backing_bytes": 35393,
+      "ready_backing_bytes": 1380,
+      "capture_backing_bytes": 26309,
+      "prepared_backing_bytes": 27689,
+      "indexed_hits": 2,
+      "public_corpus": false
+    },
+    "module_refusal": {
+      "worker_refused_module": true,
+      "gpu_launched": false,
+      "exact_child_retired": true,
+      "cpu_fallback_exact": true,
+      "prepared": true
+    }
+  },
+  "file_guest": {
+    "windows": {
+      "caption": "Microsoft Windows 11 Enterprise",
+      "version": "10.0.26100",
+      "build": "26100"
+    },
+    "driver_count": 0,
+    "sandbox_retired": true,
+    "verification": {
+      "foreground_exact_while_capture_held": 1,
+      "retained_extent_frames": 2,
+      "inactive_range_pinned": 1,
+      "retired_after_release": 1,
+      "independent_cpu_reopen": 1,
+      "metadata_did_not_pin": 1
+    },
+    "binary_sha256": "ed733d695113fd231e370f3c67e49ca8b123df8a1fa1d3dea298eb643875bbb9",
+    "receipt_sha256": "a9f922563d69935b20187501ed4a68f575f82baf943efb536e2a42439f0bc2f1",
+    "sandbox_receipt_sha256": "ad277881d0177ccb15ec4b87f6135a2c7b8aca5130962d95aa593c7fca2e2226"
+  },
+  "tests": {
+    "windows": {
+      "exit_code": 0,
+      "residual_children": 0,
+      "tree_retired": true,
+      "inherited_error_mode": 32771,
+      "peak_job_bytes": 361775104,
+      "supervisor_sha256": "0cf7ad887a11bdf77ec04267042b0b703de3a45db5020e1de982ba87b0f2a2d3",
+      "stdout_sha256": "ed2867db692ecd3d33dc1f15a9d9dbb0dc63d7c1f8b5d8f5551df3c678f4582f",
+      "ctest_passed": 211
+    },
+    "raw": {
+      "exit_code": 0,
+      "residual_children": 0,
+      "tree_retired": true,
+      "inherited_error_mode": 32771,
+      "peak_job_bytes": 93728768,
+      "supervisor_sha256": "a15293923f5469d2a4b1a446b215cbd2ba4db6982aa5cfad93195e74e802653b",
+      "stdout_sha256": "5e7d7af16bf5d251c20d046d3538afffb0210093ffc871697a493d9743cafa1a",
+      "ctest_passed": 5
+    },
+    "asan": {
+      "exit_code": 0,
+      "residual_children": 0,
+      "tree_retired": true,
+      "inherited_error_mode": 32771,
+      "peak_job_bytes": 579354624,
+      "supervisor_sha256": "aff06a059b422dede11ef07308bce3f84042d1d56ddead82bc2bd258d88aa601",
+      "stdout_sha256": "08726371512f094c6140437795caf67f64ba10b2ab79fd7cbef8f8d975cf3486",
+      "ctest_passed": 6
+    },
+    "pinned": {
+      "exit_code": 0,
+      "residual_children": 0,
+      "tree_retired": true,
+      "inherited_error_mode": 32771,
+      "peak_job_bytes": 88027136,
+      "supervisor_sha256": "f6a67fb678ea166b0a27c8759e5b112ea97731156cc7d546529e7c346d08ffa4",
+      "stdout_sha256": "76c5f180cdaff85d5cd180589477aa799f2afcd2182d21c0efe3a6bae499bc24",
+      "ctest_passed": 5
+    },
+    "controller": {
+      "exit_code": 0,
+      "residual_children": 0,
+      "tree_retired": true,
+      "inherited_error_mode": 32771,
+      "peak_job_bytes": 10661888,
+      "supervisor_sha256": "e574b409c1dca79e6ede2f85ccc7ded7c741e518b6019da33eff588b42f64793",
+      "stdout_sha256": "9a5128fab977a2705f3fd81c3866b062e40c6cdf48f08bf2522929c9b1bb3da7"
+    },
+    "device": {
+      "exit_code": 0,
+      "residual_children": 0,
+      "tree_retired": true,
+      "inherited_error_mode": 32771,
+      "peak_job_bytes": 91430912,
+      "supervisor_sha256": "9a6f05a39e1a30030941ccf3ee87e424b149b581fcbc32b65b788688414a2291",
+      "stdout_sha256": "3bb9056180089f62c00e725babe349f88ee95bff8110585179df601ed34bd51e"
+    },
+    "device_refusal": {
+      "exit_code": 0,
+      "residual_children": 0,
+      "tree_retired": true,
+      "inherited_error_mode": 32771,
+      "peak_job_bytes": 11919360,
+      "supervisor_sha256": "2c51f363bf7a3bc095f002c15afd5c1938f9a1b0ed57535ad98e053076fe5b94",
+      "stdout_sha256": "bb05d746c531531d4801114003d3e875972d02f918042e62c2f3d45abc34d9b8"
+    },
+    "file_guest": {
+      "exit_code": 0,
+      "residual_children": 0,
+      "tree_retired": true,
+      "inherited_error_mode": 32771,
+      "peak_job_bytes": 46411776,
+      "supervisor_sha256": "454a1cf44b572ccdd13b6080817a98dd0ad4e36414435056613d1e99f4126140",
+      "stdout_sha256": "a7a4ba39b5ab26368551f4009842d04acbbafbd35e601af39b7abf59fc848546"
+    }
+  },
+  "routing": {
+    "receipt_sha256": "d1fe311bb4d1f5c0062c70a8e1438f79ba33e635a43735b79c1396ebceaac1fd",
+    "native_response_sha256": "04254b2116ab0bf9bb020768290e6b9a35b5888455cd75151ab34a88e80008ed"
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "f5e7b844a42dacd295f35ec0a4cfd91c469723a83738f647157a1253669b8e8b",
+    "pages": [
+      {
+        "name": "btrfs-metadata",
+        "url": "https://btrfs.readthedocs.io/en/stable/dev/dev-btrfs-design.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 21658,
+        "markdown_sha256": "95166fa8e3c1986482e9793308312f8271e080eca616ff64be07ee5af8e4290e",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.058,
+        "capture": "btrfs-metadata.native.json",
+        "capture_sha256": "0b109606c62d3a3d3513a079d5ef18f9adaae5cd8f1b82754f34dbce73678d4a"
+      },
+      {
+        "name": "linux-cache-coherency",
+        "url": "https://docs.kernel.org/6.18/filesystems/caching/netfs-api.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 39765,
+        "markdown_sha256": "144980f08c2b712d465a95d81c0f7166cd88c63e53db493b705220a7c4586593",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.518,
+        "capture": "linux-cache-coherency.native.json",
+        "capture_sha256": "12083a5a5271b12c365f21179b091c3372fb0bb442582d479afebdc8f55731e9"
+      }
+    ]
+  }
+}

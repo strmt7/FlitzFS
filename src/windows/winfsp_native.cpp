@@ -1375,13 +1375,15 @@ bool WinFspNativeWritable::advance_native_lz4_read_ahead(
     };
     if(!lease || interrupted())return false;
     const auto frame_grant=static_cast<std::size_t>(target.bytes/kNativeExtentBytes)*2*frame_bytes;
-    const auto captured=lease->capture_range(target.bytes,frame_grant,interrupted);
+    std::shared_ptr<detail::PagedReadMetadata> metadata;
+    const auto captured=lease->capture_range(target.bytes,frame_grant,interrupted,&metadata);
     lease.reset();
     if(captured.empty() || interrupted())return false;
     auto ready=detail::NativeLz4ReadyReads::decode_captured(captured,interrupted);
     std::unique_lock guard(impl_->control,std::try_to_lock);
     if(!ready || !guard || !impl_->may_prepare_read() || interrupted() ||
         (impl_->native_lz4_reads && impl_->native_lz4_reads->pending()))return false;
+    ready->keep_metadata(std::move(metadata));
     impl_->prepared_read={target,std::move(ready)};
     return true;
   }catch(...) {return false;}

@@ -95,12 +95,15 @@ void run(std::wstring_view runtime_name,std::wstring_view runtime_sha,std::wstri
   const auto second_size=static_cast<std::uint32_t>(second.size());
   using Clock=std::chrono::steady_clock;
   const auto capture_begin=Clock::now();
+  const auto capture_backing_begin=backing->read_bytes;
   auto lease=session.lease_native_lz4_capture(reader,0,kNativeExtentBytes);
   require(bool(lease),"native read-ahead could not pin selected frames");
   constexpr auto frame_bytes=kNativeExtentBytes+detail::kIndexedExtentHeaderBytes;
-  const auto captured=lease->capture_range(2*kNativeExtentBytes,4*frame_bytes);
+  std::shared_ptr<detail::PagedReadMetadata> metadata;
+  const auto captured=lease->capture_range(2*kNativeExtentBytes,4*frame_bytes,{},&metadata);
   lease.reset();
-  require(captured.size()==2,"native read-ahead did not capture both selected frames");
+  require(captured.size()==2 && metadata,"native read-ahead did not capture both selected frames and metadata");
+  const auto capture_backing=backing->read_bytes-capture_backing_begin;
   const auto capture_ns=std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now()-capture_begin).count();
   const std::array sources{
       NativeLz4DecodeSource{captured[0].key(),captured[0].encoded()},
@@ -190,6 +193,7 @@ void run(std::wstring_view runtime_name,std::wstring_view runtime_sha,std::wstri
     throw std::runtime_error("native LZ4 worker did not complete");
   }
   auto ready=exchange.accept(result->response,WorkerExecution::hip);
+  ready->keep_metadata(std::move(metadata));
   const auto ended=Clock::now();
   const auto exchange_ns=std::chrono::duration_cast<std::chrono::nanoseconds>(ended-started).count();
   const auto after_submit_ns=std::chrono::duration_cast<std::chrono::nanoseconds>(ended-submitted).count();
@@ -216,6 +220,7 @@ void run(std::wstring_view runtime_name,std::wstring_view runtime_sha,std::wstri
       <<",\"after_submit_ns\":"<<after_submit_ns<<",\"capture_ns\":"<<capture_ns<<",\"leased_frames\":2,\"capture_batches\":1"
       <<",\"cpu_session_read_ns\":"<<cpu_ns<<",\"ready_session_read_ns\":"<<ready_read_ns
       <<",\"cpu_backing_bytes\":"<<cpu_backing<<",\"ready_backing_bytes\":"<<ready_backing
+      <<",\"capture_backing_bytes\":"<<capture_backing<<",\"prepared_backing_bytes\":"<<capture_backing+ready_backing
       <<",\"indexed_hits\":"<<ready->indexed_consumed()
       <<",\"public_corpus\":"<<(corpus?"true":"false")<<"}\n";
 }

@@ -2,6 +2,7 @@
 #include "native_object_storage.hpp"
 #include "native_indexed_volume.hpp"
 #include "native_lz4_capture.hpp"
+#include "native_lz4_decode_wire.hpp"
 #include "store_read_scope.hpp"
 #include "indexed_names.hpp"
 #include "native_name_index.hpp"
@@ -1187,16 +1188,16 @@ struct NativeFilesystemWriter::Impl {
     return verify_indexed_root(snapshot,*indexed);
   }
   template<class Read>
-  auto inspect_indexed(Read&& read) {
+  auto inspect_indexed(Read&& read,detail::PagedReadMetadata* metadata=nullptr) {
     const auto snapshot=objects.snapshot_for_indexed_read();
-    const auto query=snapshot.paged_if()->scoped_query();
+    const auto query=snapshot.paged_if()->scoped_query(metadata);
     const auto view=checked_indexed_view(*snapshot.paged_if());
     return std::forward<Read>(read)(view);
   }
   template<class Read>
-  auto read_indexed(Read&& read) {
+  auto read_indexed(Read&& read,detail::PagedReadMetadata* metadata=nullptr) {
     try {
-      return inspect_indexed(std::forward<Read>(read));
+      return inspect_indexed(std::forward<Read>(read),metadata);
     }catch(const std::bad_alloc&){
       shared_base_reads.clear();
       fail(Code::limit,"indexed namespace query allocation failure");
@@ -2840,9 +2841,12 @@ Bytes NativeFilesystemWriter::read_inode(std::uint64_t inode,std::uint64_t offse
     detail::NativeLz4ReadRoute* route) const {
   auto& state=checked_impl();
   if(bytes>kNativeMaxReadBytes)fail(Code::limit,"native read request budget");
-  if(state.indexed)return state.read_indexed([&](const auto& view) {
-    return view.read(view.inode(inode),offset,bytes,&state.shared_base_reads,route);
-  });
+  if(state.indexed) {
+    auto* ready=dynamic_cast<detail::NativeLz4ReadyReads*>(route);
+    return state.read_indexed([&](const auto& view) {
+      return view.read(view.inode(inode),offset,bytes,&state.shared_base_reads,route);
+    },ready?ready->query_metadata():nullptr);
+  }
   return state.read_checked_inode(inode,[&](const auto& snapshot,const Node& n) {
     return read_node(snapshot,state.model,n,offset,bytes);
   });
@@ -2871,15 +2875,19 @@ bool detail::NativeLz4CaptureLease::capture(NativeLz4CapturedFrame& out) const {
   }catch(const std::exception&){return false;}
 }
 std::vector<detail::NativeLz4CapturedFrame> detail::NativeLz4CaptureLease::capture_range(
-    std::uint32_t bytes,std::size_t maximum_frame_bytes,const std::function<bool()>& interrupted) const {
+    std::uint32_t bytes,std::size_t maximum_frame_bytes,const std::function<bool()>& interrupted,
+    std::shared_ptr<PagedReadMetadata>* metadata) const {
+  if(metadata)metadata->reset();
   if(!bytes || bytes>kNativeMaxReadBytes || offset_%kNativeExtentBytes || !maximum_frame_bytes)return {};
   try {
     const StoreCaptureReadScope capture(interrupted);
     if(capture.interrupted())return {};
     const auto query=snapshot_.scoped_query();
     const auto view=verify_indexed_root(snapshot_,root_);
-    return view.capture_native_lz4_range(view.inode(inode_),offset_,bytes,maximum_encoded_,
+    auto frames=view.capture_native_lz4_range(view.inode(inode_),offset_,bytes,maximum_encoded_,
         maximum_frame_bytes,interrupted);
+    if(metadata && !frames.empty())*metadata=snapshot_.take_query_metadata();
+    return frames;
   }catch(const std::exception&){return {};}
 }
 bool NativeFilesystemWriter::capture_native_lz4(std::uint64_t inode,std::uint64_t offset,

@@ -280,6 +280,41 @@ These are scoped callback and worker measurements. Automatic admission
 needs full-path results for its attached provider, including preparation,
 unused work and foreground interference.
 [Batched capture verification](evidence/batched-lz4-capture-2026-11-22.json)
+
+### Reusing the verified metadata
+
+Capture can move its checked object lookup pages and decoded name-index
+metadata into the ready window. The foreground query borrows that memory
+only for the same backing owner and full committed checkpoint, including
+the data generation, checkpoint generation and root reference. The
+namespace root and inode checks still run on the active snapshot, as do
+typed extent and decoded-byte verification. The memory is advisory. It
+holds a weak reference to the backing and leaves the old range free to
+retire once the capture lease ends. A different checkpoint, reported
+backing damage or pending payload repair discards the retained metadata.
+[Copy-on-write tree reference generations](https://btrfs.readthedocs.io/en/stable/dev/dev-btrfs-design.html) ·
+[Cache coherency data](https://docs.kernel.org/6.18/filesystems/caching/netfs-api.html)
+
+| Windows SDK fixture | Ordinary backing bytes | Capture backing bytes | Prepared demand bytes | Complete prepared bytes |
+| --- | ---: | ---: | ---: | ---: |
+| One extent | 17,887 | 17,887 | 863 | 18,750 |
+| Four extents served by two calls | 53,138 | 43,781 | 1,728 | 45,509 |
+
+The four-extent window used 14.4% fewer backing bytes end to end. The
+single-extent window still used 4.8% more. A write through another handle
+forced both original demand calls to use the current checkpoint. A
+reported backing fault restored the ordinary backing traffic, and the
+disposable file-backed fixture retired its old range with cached metadata
+still retained.
+
+The Radeon RX 9070 XT supplied both frames through the same metadata
+handoff in the isolated worker fixture. Capture and demand together
+requested 27,689 backing bytes, compared with 35,393 for its matched CPU
+reads. The worker still spent about 1.39 s preparing and 39.5 ms from
+submission through verification and retirement. Read-ahead remains
+opt-in pending workload and device qualification.
+[Metadata reuse verification](evidence/prepared-read-metadata-2026-11-22.json)
+
 [Windows memory reservation and commit](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc) ·
 [Windows page retirement](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualfree)
 [Windows cached read-ahead](https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ccschedulereadaheadex) ·

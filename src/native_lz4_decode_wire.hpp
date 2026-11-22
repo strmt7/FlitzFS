@@ -2,6 +2,7 @@
 #include "native_lz4_decode.hpp"
 #include "flitzfs/worker_wire.hpp"
 #include <functional>
+#include <utility>
 
 namespace flitzfs::detail {
 struct NativeLz4WireRequest {
@@ -21,6 +22,8 @@ class NativeLz4ReadyReads final:public NativeLz4ReadRoute {
   static std::unique_ptr<NativeLz4ReadyReads> decode_captured(
       std::span<const NativeLz4CapturedFrame>,const std::function<bool()>& interrupted={});
   bool pending() const noexcept{return !rejected_ && consumed_<frames_.size();}
+  void keep_metadata(std::shared_ptr<PagedReadMetadata> metadata) noexcept {metadata_=std::move(metadata);}
+  PagedReadMetadata* query_metadata() noexcept {return pending()?metadata_.get():nullptr;}
   std::size_t consumed() const noexcept{return rejected_?0:consumed_;}
   std::size_t indexed_consumed() const noexcept{return rejected_?0:indexed_consumed_;}
  private:
@@ -35,6 +38,7 @@ class NativeLz4ReadyReads final:public NativeLz4ReadRoute {
       std::uint64_t generation,std::uint32_t size,const Digest& stored_digest) noexcept;
   std::vector<std::byte> consume(Frame&) noexcept;
   std::vector<Frame> frames_;
+  std::shared_ptr<PagedReadMetadata> metadata_;
   std::size_t consumed_=0,indexed_consumed_=0;
   bool rejected_=false;
 };

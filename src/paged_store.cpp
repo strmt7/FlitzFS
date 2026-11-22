@@ -185,6 +185,24 @@ struct State {
 bool healthy_lz4_index(const State& s) noexcept {
   return !s.degraded_roots && !s.degraded_metadata && !s.degraded_payloads && !s.image->backing_degraded();
 }
+struct CheckpointKey {
+  StoreIdentity identity;
+  Ref root;
+  std::uint64_t generation,checkpoint,end;
+  std::uint32_t unit,metadata_bytes;
+  bool mirrored;
+
+  explicit CheckpointKey(const State& s) noexcept:
+      identity(s.id),root(s.root),generation(s.generation),checkpoint(s.checkpoint),end(s.end),
+      unit(s.unit),metadata_bytes(s.metadata_bytes),mirrored(s.mirrored) {}
+  bool matches(const State& s) const noexcept {
+    return identity==s.id && mirrored==s.mirrored && generation==s.generation && checkpoint==s.checkpoint &&
+        end==s.end && unit==s.unit && metadata_bytes==s.metadata_bytes && root==s.root;
+  }
+};
+bool can_reuse_query(const State& s) noexcept {
+  return healthy_lz4_index(s) && (!s.payload_repairs || !s.payload_repairs->pending(s.generation));
+}
 std::size_t metadata_digest_at(const State& s) {return s.metadata_bytes-Digest{}.size();}
 std::size_t branch_entry_bytes(const State& s) {
   return s.metadata_bytes==compact_metadata_bytes?compact_ref_bytes:ref_bytes;
@@ -564,8 +582,7 @@ State load(std::shared_ptr<StoreByteIo> image,PagedStoreLimits limits,LookupPage
   return s;
 }
 bool same(const State& a,const State& b) {
-  return a.id==b.id && a.mirrored==b.mirrored && a.generation==b.generation && a.checkpoint==b.checkpoint &&
-      a.end==b.end && a.unit==b.unit && a.metadata_bytes==b.metadata_bytes && a.root==b.root;
+  return CheckpointKey(a).matches(b);
 }
 void zeros(StoreByteIo& io,std::uint64_t at,std::uint64_t end) {
   std::array<std::byte,page_bytes> b{};
@@ -1096,6 +1113,25 @@ bool copy_rebuild_object(Rebuild& build,const State& original,const Entry& sourc
 
 } // namespace
 
+class detail::PagedReadMetadata final {
+ public:
+  explicit PagedReadMetadata(const State& state) noexcept:backing_(state.image),key_(state) {}
+  bool matches(const State& state) const noexcept {
+    const auto backing=backing_.lock();
+    return backing && backing==state.image && !backing.owner_before(state.image) &&
+        !state.image.owner_before(backing) && key_.matches(state) && can_reuse_query(state);
+  }
+  void discard() noexcept {
+    pages.reset();
+    records.reset();
+  }
+  std::optional<LookupPages> pages;
+  std::optional<QueryMetadata> records;
+
+ private:
+  std::weak_ptr<StoreByteIo> backing_;
+  CheckpointKey key_;
+};
 struct PagedObjectStoreSnapshot::Impl {
   State state;
   bool sealed_payloads=false;
@@ -1609,20 +1645,42 @@ PagedObjectStoreSnapshot::PagedObjectStoreSnapshot(std::unique_ptr<Impl> p) noex
 PagedObjectStoreSnapshot::PagedObjectStoreSnapshot(PagedObjectStoreSnapshot&&) noexcept=default;
 PagedObjectStoreSnapshot& PagedObjectStoreSnapshot::operator=(PagedObjectStoreSnapshot&&) noexcept=default;
 PagedObjectStoreSnapshot::~PagedObjectStoreSnapshot()=default;
-PagedObjectStoreSnapshot::QueryScope::QueryScope(Impl& impl) noexcept {
+PagedObjectStoreSnapshot::QueryScope::QueryScope(Impl& impl,detail::PagedReadMetadata* offered) noexcept {
   if(impl.query_metadata)return;
   owner_=&impl;
   owns_lookup_pages_=!impl.lookup_pages;
-  if(owns_lookup_pages_)impl.lookup_pages.emplace();
-  impl.query_metadata.emplace();
+  if(offered) {
+    if(offered->pages && offered->records && offered->matches(impl.state)) {
+      reusable_=offered;
+      impl.lookup_pages.swap(offered->pages);
+      impl.query_metadata.swap(offered->records);
+    }else offered->discard();
+  }
+  if(!impl.lookup_pages)impl.lookup_pages.emplace();
+  if(!impl.query_metadata)impl.query_metadata.emplace();
 }
 PagedObjectStoreSnapshot::QueryScope::~QueryScope() {
   if(!owner_)return;
+  if(reusable_) {
+    if(can_reuse_query(owner_->state)) {
+      owner_->lookup_pages.swap(reusable_->pages);
+      owner_->query_metadata.swap(reusable_->records);
+    }else reusable_->discard();
+  }
   owner_->query_metadata.reset();
   if(owns_lookup_pages_)owner_->lookup_pages.reset();
 }
-PagedObjectStoreSnapshot::QueryScope PagedObjectStoreSnapshot::scoped_query() const noexcept {
-  return QueryScope(*impl_);
+PagedObjectStoreSnapshot::QueryScope PagedObjectStoreSnapshot::scoped_query(detail::PagedReadMetadata* reusable) const noexcept {
+  return QueryScope(*impl_,reusable);
+}
+std::shared_ptr<detail::PagedReadMetadata> PagedObjectStoreSnapshot::take_query_metadata() const noexcept {
+  if(!impl_->lookup_pages || !impl_->query_metadata || !can_reuse_query(impl_->state))return {};
+  try {
+    auto result=std::make_shared<detail::PagedReadMetadata>(impl_->state);
+    result->pages.swap(impl_->lookup_pages);
+    result->records.swap(impl_->query_metadata);
+    return result;
+  }catch(const std::bad_alloc&){return {};}
 }
 PagedObjectStoreSnapshot PagedObjectStoreSnapshot::open(std::shared_ptr<StoreByteIo> image,PagedStoreLimits limits) {
   return open_impl(std::move(image),limits,false);

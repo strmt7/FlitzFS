@@ -1336,8 +1336,12 @@ void disposable_positioned_file(const std::filesystem::path& base) {
     require(stage_compaction(session,92)==Reclaim::ready &&
         session.advance_persistent_reclamation({})==Reclaim::published,"positioned volume did not publish its replacement");
     require(session.advance_persistent_reclamation({})==Reclaim::pinned,"lease did not protect the inactive file range");
-    verify(lease->capture_range(bytes,4*frame_bytes));
+    std::shared_ptr<detail::PagedReadMetadata> retained_metadata;
+    verify(lease->capture_range(bytes,4*frame_bytes,{},&retained_metadata));
+    require(bool(retained_metadata),"captured file did not retain checked query metadata");
     lease.reset();
+    require(session.advance_persistent_reclamation({})==Reclaim::retiring,
+        "checked metadata improperly owned the retired backing");
     release_inactive(session);
   }
   const auto view=NativeVolumeFile::inspect(path,id(90));
@@ -1346,7 +1350,7 @@ void disposable_positioned_file(const std::filesystem::path& base) {
       view.filesystem().read("payload",0,static_cast<std::uint32_t>(latest.size()))==latest,
       "independent reopen lost the foreground update after positioned capture");
   std::cout<<"windows_positioned_volume foreground_exact_while_capture_held=1 retained_extent_frames=2"
-      <<" inactive_range_pinned=1 retired_after_release=1 independent_cpu_reopen=1\n";
+      <<" inactive_range_pinned=1 retired_after_release=1 independent_cpu_reopen=1 metadata_did_not_pin=1\n";
 }
 #endif
 }

@@ -186,9 +186,12 @@ reads and clips it to the available scratch and frame budget. The checked
 memory-backed capture shares a paged query across the admitted extents while
 ordinary callbacks continue. Verified demand can refresh the backing cost
 after a refusal. Capturing four extents together reduced preparation I/O by
-39% against four independent captures. The full prepared route requested
-18% more bytes than demand alone in the callback fixture. Automatic
-enrollment depends on full-path results and bounded foreground interference.
+39% against four independent captures. Foreground reads now reuse the
+checked metadata for the exact same storage checkpoint. With that reuse,
+the complete four-extent fixture requested 14.4% fewer backing bytes than
+ordinary reads. The complete one-extent path requested 4.8% more. Automatic
+enrollment depends on full-path measurements and bounded foreground
+interference for each workload.
 [Sequential read-ahead qualification](../NATIVE_AMD_LZ4_READ.md#qualifying-sequential-read-ahead)
 
 Use [GPU recovery](../GPU_RECOVERY.md) for immediate CPU continuity and

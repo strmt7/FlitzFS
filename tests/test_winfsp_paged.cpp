@@ -30,6 +30,8 @@ class BlockingIo final:public ConcurrentRam {
   using ConcurrentRam::ConcurrentRam;
   mutable std::mutex mutex;mutable std::condition_variable changed;
   mutable std::atomic<bool> armed{false};mutable bool entered=false,released=false,expired=false;
+  std::atomic<bool> reported_damage{false};
+  bool backing_degraded() const noexcept override {return reported_damage.load(std::memory_order_relaxed);}
   void read_exact(std::uint64_t n,std::span<std::byte> bytes) const override {
     if(armed.exchange(false)) {
       std::unique_lock lock(mutex);
@@ -263,6 +265,11 @@ void batched_read_ahead() {
   };
   const auto context=h.create(45);
   h.write(context,file);
+  std::wstring name=L"\\f45";
+  PVOID alternate=nullptr;
+  FSP_FSCTL_FILE_INFO info{};
+  require(h.fs.Interface->Open(&h.fs,name.data(),FILE_NON_DIRECTORY_FILE|(1U<<24),FILE_ALL_ACCESS,
+      &alternate,&info)==STATUS_SUCCESS && alternate,"second SDK handle could not reopen the batch file");
   const auto writes=h.image->write_bytes;
   const auto left=part(first,2),right=part(first+2,2);
   auto before=h.image->read_bytes;
@@ -295,8 +302,8 @@ void batched_read_ahead() {
       "first demand lost remaining batch or offered overlapping work");
   h.read(context,right,(first+2)*extent);
   const auto prepared=h.image->read_bytes-before;
-  require(h.adapter->native_lz4_read_ahead_hits()==frames && shared<independent && prepared<ordinary,
-      "speculation did not reuse the pinned range or deliver all frames");
+  require(h.adapter->native_lz4_read_ahead_hits()==frames && shared<independent && shared+prepared<ordinary,
+      "the complete prepared path did not reuse the captured metadata and frames");
 
   train();
   auto limited=h.clock.next();
@@ -309,8 +316,36 @@ void batched_read_ahead() {
   h.read(context,right,(first+2)*extent);
   require(h.adapter->native_lz4_read_ahead_hits()==frames+1 && h.image->write_bytes==writes,
       "read-ahead exceeded its partial grant or wrote backing data");
+
+  train();
+  const auto degraded=h.clock.next();
+  require(h.adapter->advance_native_lz4_read_ahead(degraded,h.clock.now,h.adapter->foreground_activity()),
+      "batch could not prepare before the backing reported damage");
+  before=h.image->read_bytes;
+  h.image_io->reported_damage=true;
+  h.read(context,left,first*extent);
+  h.read(context,right,(first+2)*extent);
+  h.image_io->reported_damage=false;
+  const auto degraded_backing=h.image->read_bytes-before;
+  require(degraded_backing==ordinary,"reported damage did not restore the ordinary backing verification");
+
+  train();
+  const auto hits_before_write=h.adapter->native_lz4_read_ahead_hits();
+  const auto revised=h.clock.next();
+  require(h.adapter->advance_native_lz4_read_ahead(revised,h.clock.now,h.adapter->foreground_activity()),
+      "batch could not prepare the pre-overwrite range");
+  for(std::uint32_t i=0;i<frames;++i)file[(first+i)*extent]^=std::byte{0x7f};
+  h.write(alternate,file);
+  before=h.image->read_bytes;
+  h.read(context,part(first,2),first*extent);
+  h.read(context,part(first+2,2),(first+2)*extent);
+  const auto revised_backing=h.image->read_bytes-before;
+  require(h.adapter->native_lz4_read_ahead_hits()==hits_before_write && revised_backing>prepared,
+      "a second handle advanced the checkpoint but the old batch still supplied bytes");
+  h.close(alternate);
   h.close(context);
-  std::cout<<"winfsp_batched_lz4 frames="<<frames<<" partial_grant_frames=1 exact=1"
+  std::cout<<"winfsp_batched_lz4 frames="<<frames<<" partial_grant_frames=1 exact=1 second_handle_cpu=1"
+      <<" revised_backing_bytes="<<revised_backing<<" degraded_backing_bytes="<<degraded_backing
       <<" capture_independent_bytes="<<independent<<" capture_shared_bytes="<<shared
       <<" ordinary_backing_bytes="<<ordinary<<" ready_backing_bytes="<<prepared
       <<" total_prepared_bytes="<<shared+prepared<<'\n';

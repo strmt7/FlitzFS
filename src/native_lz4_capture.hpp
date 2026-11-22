@@ -11,7 +11,7 @@ class NativeLz4CaptureLease final {
   bool capture(NativeLz4CapturedFrame&) const;
   // The grant covers encoded and decoded frame bytes together.
   std::vector<NativeLz4CapturedFrame> capture_range(std::uint32_t bytes,std::size_t maximum_frame_bytes,
-      const std::function<bool()>& interrupted={}) const;
+      const std::function<bool()>& interrupted={},std::shared_ptr<PagedReadMetadata>* metadata=nullptr) const;
 
  private:
   friend class ::flitzfs::NativeFilesystemWriter;

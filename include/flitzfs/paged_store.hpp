@@ -11,6 +11,7 @@ class IndexedSharedBasePreparation;
 class IndexedVolumeView;
 class NativeLz4CaptureLease;
 class NativeNameIndex;
+class PagedReadMetadata;
 inline constexpr std::uint64_t kPagedStoreCheckpointWriteBytes=8192;
 }
 // Scalable object storage for native volumes. The caller supplies an
@@ -124,13 +125,15 @@ class PagedObjectStoreSnapshot final {
     ~QueryScope();
    private:
     friend class PagedObjectStoreSnapshot;
-    explicit QueryScope(Impl&) noexcept;
+    QueryScope(Impl&,detail::PagedReadMetadata*) noexcept;
     Impl* owner_=nullptr;
+    detail::PagedReadMetadata* reusable_=nullptr;
     bool owns_lookup_pages_=false;
   };
-  // A serialized namespace query may revisit verified metadata. Discard the
-  // scratch before another query can run, including on an exception.
-  QueryScope scoped_query() const noexcept;
+  // Query scratch can follow a verified read-ahead window on the exact same
+  // committed backing. Each active query owns it exclusively.
+  QueryScope scoped_query(detail::PagedReadMetadata* reusable=nullptr) const noexcept;
+  std::shared_ptr<detail::PagedReadMetadata> take_query_metadata() const noexcept;
   // Consume the span before requesting another metadata object.
   std::span<const std::byte> read_query_metadata(std::uint64_t,std::size_t,
       std::vector<std::byte>& uncached) const;
