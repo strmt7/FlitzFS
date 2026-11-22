@@ -116,16 +116,17 @@ one accepted ready result and three rejected replies, with exact CPU
 fallback on the same stored records.
 [Windows verification](../evidence/pinned-provider-indexed-lz4-read-2026-11-22.json)
 
-Use the LZ4 decoder in the pinned AMD source as the first device candidate.
-The older decode worker supports different block kinds and a 65,536-byte
-decoded block limit. A full indexed extent includes a 24-byte header
+The private [native AMD LZ4 decoder](../NATIVE_AMD_LZ4_READ.md) now passes
+byte-exact synthetic and public-data reads on the development adapter. The
+older GPU decoder supports different block kinds and a 65,536-byte block limit. A full indexed extent includes a 24-byte header
 in addition to its 65,536 data bytes. Give native LZ4 decode its own
 resource-sized batch contract. Validate total lengths, sequence boundaries,
 copy distances, final literals and alignment before input reaches the device.
 Qualify both wave widths where available, with the same stored frames decoded
 through the independent CPU library. Measure the complete read path before
-automatic admission. A prepared producer can retain one admitted batch and
-offer ready results for exact keys while foreground reads continue on CPU.
+automatic admission. Next, qualify a prepared process that can offer ready results for exact keys
+while foreground reads continue on CPU. Measure the complete lifetime cost
+and short-read hit rate before changing the ordinary mount's default route.
 [Pinned AMD LZ4 decoder](https://github.com/ROCm/hipCOMP-core/blob/03df9f7369211ee15d370817165224c73fdc9a46/src/LZ4Kernels.cuh#L921) ·
 [LZ4 block format](https://github.com/lz4/lz4/blob/dev/doc/lz4_Block_format.md)
 

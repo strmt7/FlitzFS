@@ -2,6 +2,7 @@
 #include "gpu_budget.hpp"
 #include "gpu_topology.hpp"
 #include "flitzfs/process_budget.hpp"
+#include <iterator>
 namespace flitzfs {
 namespace {
 void require_uniform_job(){
@@ -31,7 +32,7 @@ void require_uniform_job(){
 }
 namespace {
 template<class Compute>
-UniformLz4Candidates with_uniform_device(HMODULE runtime,int ordinal,std::array<std::byte,8> luid,std::uint32_t node_mask,
+auto with_uniform_device(HMODULE runtime,int ordinal,std::array<std::byte,8> luid,std::uint32_t node_mask,
     std::span<const hip_detail::Lz4KernelCoverage> targets,std::uint32_t maximum_chunks,
     std::uint64_t device_bytes,Compute&& compute){
   require_uniform_job();
@@ -95,6 +96,90 @@ UniformLz4Candidates with_uniform_device(HMODULE runtime,int ordinal,std::array<
   return compute(api,attributes,all,initialize,memory);
 }
 }
+
+std::vector<detail::NativeLz4DecodedFrame> run_hip_native_lz4_decode_in_worker(HMODULE runtime,
+    const native_lz4_decode::KernelApi& kernel,int ordinal,std::array<std::byte,8> luid,
+    std::uint32_t node_mask,std::span<const detail::NativeLz4DecodeBatch> batches,
+    detail::NativeLz4DecodeGrant grant,std::span<const hip_detail::Lz4KernelCoverage> targets) {
+  using namespace hip_detail;
+  lz4_require(native_lz4_decode::compatible(kernel) && !batches.empty(),
+      HipWorkerExit::invalid_request,"invalid native LZ4 kernel table or empty dispatch sequence");
+  auto room=grant.maximum_slab_bytes;
+  std::uint32_t frames=0,maximum_chunks=0;
+  std::size_t maximum_bytes=0;
+  for(const auto& batch:batches) {
+    const auto layout=batch.layout();
+    const auto bytes=batch.upload().size();
+    lz4_require(native_lz4_decode::valid_layout(layout,bytes) &&
+        layout.chunks<=grant.maximum_frames-frames && bytes<=room,
+        HipWorkerExit::invalid_request,"native LZ4 decode sequence exceeds its grant");
+    room-=bytes;frames+=layout.chunks;
+    maximum_chunks=(std::max)(maximum_chunks,layout.chunks);
+    maximum_bytes=(std::max)(maximum_bytes,bytes);
+  }
+  return with_uniform_device(runtime,ordinal,luid,node_mask,targets,maximum_chunks,maximum_bytes,
+      [&](const auto& api,auto attributes,auto,auto&& initialize,auto&& memory) {
+        std::vector<std::byte> readback(maximum_bytes);
+        std::vector<detail::NativeLz4DecodedFrame> verified;
+        verified.reserve(frames);
+        memory(HipMemoryPoint::pre_initialize);
+        const auto device=initialize();
+        const auto selected=device.wave==32?kernel.wave32:kernel.wave64;
+        check_lz4_attributes(attributes,selected,device);
+
+        DeviceResources resources(api);
+        try {
+          check_hip(api.create_stream(&resources.stream,hipStreamNonBlocking,device.priority),
+              "create native LZ4 decode stream",HipWorkerStage::stream_create);
+          memory(HipMemoryPoint::initialized);
+          check_hip(api.allocate(&resources.buffers[0],maximum_bytes),
+              "allocate native LZ4 decode slab",HipWorkerStage::execution);
+          const auto address=reinterpret_cast<std::uintptr_t>(resources.buffers[0]);
+          lz4_require(address && !(address&(native_lz4_decode::alignment-1)) &&
+              maximum_bytes<=~std::uintptr_t{0}-address,HipWorkerExit::device_fault,
+              "invalid native LZ4 decode slab address",HipWorkerStage::execution);
+          auto* slab=static_cast<native_lz4_decode::u8*>(resources.buffers[0]);
+          for(const auto& batch:batches) {
+            memory(HipMemoryPoint::initialized);
+            const auto upload=batch.upload();
+            auto layout=batch.layout();
+            auto bytes=static_cast<native_lz4_decode::u64>(upload.size());
+            check_hip(api.copy(slab,upload.data(),upload.size(),hipMemcpyHostToDevice),
+                "upload native LZ4 decode slab",HipWorkerStage::execution);
+            void* arguments[]{&slab,&bytes,&layout};
+            check_hip(api.launch(reinterpret_cast<const void*>(selected),dim3(layout.chunks),
+                dim3(device.wave),arguments,0,resources.stream),
+                "submit native LZ4 decode kernel",HipWorkerStage::execution);
+            check_hip(api.synchronize(resources.stream),"complete native LZ4 decode kernel",HipWorkerStage::execution);
+            const auto descriptor_bytes=static_cast<std::size_t>(native_lz4_decode::input_at(layout,0));
+            const auto output_begin=static_cast<std::size_t>(native_lz4_decode::output_at(layout,0));
+            // Read back the descriptor and decoded banks. The immutable input
+            // bank has no role in CPU output verification.
+            check_hip(api.copy(readback.data(),slab,descriptor_bytes,hipMemcpyDeviceToHost),
+                "read native LZ4 completion descriptors",HipWorkerStage::execution);
+            check_hip(api.copy(readback.data()+output_begin,slab+output_begin,upload.size()-output_begin,
+                hipMemcpyDeviceToHost),"read native LZ4 decoded bytes",HipWorkerStage::execution);
+            try {
+              auto result=batch.verify(std::span(readback).first(upload.size()));
+              verified.insert(verified.end(),std::make_move_iterator(result.begin()),
+                  std::make_move_iterator(result.end()));
+            }catch(const std::invalid_argument&) {
+              throw HipWorkerFailure(HipWorkerExit::integrity_failure,
+                  "native LZ4 output failed complete CPU verification",HipWorkerStage::execution);
+            }
+            memory(HipMemoryPoint::completed);
+          }
+          check_hip(resources.release_all(),"retire native LZ4 compute resources",HipWorkerStage::execution);
+          return verified;
+        }catch(...) {
+          const auto failure=std::current_exception();
+          lz4_require(resources.release_all()==hipSuccess && !resources.retirement_failed,
+              HipWorkerExit::device_fault,"native LZ4 failure retirement unconfirmed",HipWorkerStage::execution);
+          std::rethrow_exception(failure);
+        }
+      });
+}
+
 UniformLz4Candidates run_hip_uniform_lz4_in_worker(HMODULE runtime,
     const uniform_lz4::KernelApi& kernel,int ordinal,std::array<std::byte,8> luid,
     std::uint32_t node_mask,const UniformLz4Request& request,hip_detail::UniformLz4ComputeGrant grant,

@@ -5,6 +5,8 @@
 #include "hipcomp_uniform_lz4_api.hpp"
 #include "hip_phase_profile.hpp"
 #include "uniform_lz4_sweep_trace.hpp"
+#include "../gpu/native_lz4_decode_api.hpp"
+#include "../native_lz4_decode.hpp"
 namespace flitzfs::hip_detail {
 // A configuration-qualified maximum kernel quantum expressed as work, not a
 // universal input cap. A trusted caller must obtain this from its admitted
@@ -120,6 +122,10 @@ UniformLz4Candidates execute_uniform_lz4_compute(const HipApi& api,Lz4Attributes
 }
 
 namespace flitzfs {
+std::vector<detail::NativeLz4DecodedFrame> run_hip_native_lz4_decode_in_worker(HMODULE,
+    const native_lz4_decode::KernelApi&,int ordinal,std::array<std::byte,8> luid,
+    std::uint32_t node_mask,std::span<const detail::NativeLz4DecodeBatch>,
+    detail::NativeLz4DecodeGrant,std::span<const hip_detail::Lz4KernelCoverage>);
 UniformLz4Candidates run_hip_uniform_lz4_in_worker(HMODULE runtime,
     const uniform_lz4::KernelApi&,int ordinal,std::array<std::byte,8> luid,
     std::uint32_t node_mask,const UniformLz4Request&,hip_detail::UniformLz4ComputeGrant,

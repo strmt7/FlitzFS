@@ -5,6 +5,8 @@ if(NOT WIN32 OR NOT MSVC OR NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
 endif()
 set(FLITZFS_ROCM_SDK "" CACHE PATH "Explicit complete verified ROCm distribution")
 set(FLITZFS_ROCM_KERNEL_OBJECT "" CACHE FILEPATH "Current SDK-compiled native kernel object")
+set(FLITZFS_ROCM_NATIVE_LZ4_READ_OBJECT "" CACHE FILEPATH
+  "Explicit private SDK-compiled native LZ4 decode object")
 set(FLITZFS_ROCM_SCRATCH_ROOT "$ENV{RUNNER_TEMP}" CACHE PATH "Existing private qualification workspace")
 set(worker_workspace_argument)
 if(FLITZFS_ROCM_SCRATCH_ROOT)
@@ -107,8 +109,9 @@ endif()
 # Optional decoder is source-pinned and static; no system package discovery.
 set(FLITZFS_ROCM_LZ4_CPU_SOURCE "" CACHE PATH "Qualified staged CPU LZ4 source")
 if(FLITZFS_ROCM_LZ4_CPU_SOURCE)
-  if(NOT FLITZFS_ROCM_LZ4_OBJECT OR NOT FLITZFS_ROCM_LZ4_SOURCE)
-    message(FATAL_ERROR "CPU LZ4 qualification requires the separate typed-module link fixture")
+  if((NOT FLITZFS_ROCM_LZ4_OBJECT OR NOT FLITZFS_ROCM_LZ4_SOURCE) AND
+      NOT FLITZFS_ROCM_NATIVE_LZ4_READ_OBJECT)
+    message(FATAL_ERROR "CPU LZ4 qualification requires a typed compression or decode module")
   endif()
   set(cpu_lz4_names lz4.c lz4.h LICENSE LICENSE-repository)
   set(cpu_lz4_sizes 126490 44407 1311 646)
@@ -285,6 +288,29 @@ if(FLITZFS_ROCM_LZ4_RUNTIME_FIXTURE)
   target_link_libraries(flitzfs_lz4_runtime_probe PRIVATE flitzfs_worker_exchange flitzfs_gpu_budget flitzfs_core)
   target_link_libraries(flitzfs_lz4_runtime_probe PRIVATE flitzfs_native_write_control)
   target_compile_options(flitzfs_lz4_runtime_probe PRIVATE /W4 /permissive-)
+endif()
+
+if(FLITZFS_ROCM_NATIVE_LZ4_READ_OBJECT)
+  if(NOT EXISTS "${FLITZFS_ROCM_NATIVE_LZ4_READ_OBJECT}" OR NOT FLITZFS_REQUIRE_LZ4)
+    message(FATAL_ERROR "The native read qualification needs its private device object and independent LZ4")
+  endif()
+  set_source_files_properties("${FLITZFS_ROCM_NATIVE_LZ4_READ_OBJECT}"
+    PROPERTIES EXTERNAL_OBJECT TRUE GENERATED TRUE)
+  add_library(flitzfs_rocm_native_lz4_decode SHARED "${FLITZFS_ROCM_NATIVE_LZ4_READ_OBJECT}"
+    native_lz4_decode_module.cpp)
+  target_compile_features(flitzfs_rocm_native_lz4_decode PRIVATE cxx_std_20)
+  target_include_directories(flitzfs_rocm_native_lz4_decode PRIVATE "${flitzfs_root}/src/gpu")
+  target_link_libraries(flitzfs_rocm_native_lz4_decode PRIVATE "${FLITZFS_ROCM_SDK}/lib/amdhip64.lib")
+
+  add_executable(flitzfs_native_lz4_decode_probe native_lz4_decode_probe.cpp
+    "${flitzfs_root}/src/windows/hip_uniform_lz4_compute.cpp"
+    "${flitzfs_root}/src/windows/hip_module_verification.cpp")
+  add_dependencies(flitzfs_native_lz4_decode_probe flitzfs_rocm_native_lz4_decode)
+  target_compile_features(flitzfs_native_lz4_decode_probe PRIVATE cxx_std_20)
+  target_include_directories(flitzfs_native_lz4_decode_probe PRIVATE "${flitzfs_root}/src"
+    "${flitzfs_root}/include/flitzfs" "${CMAKE_CURRENT_SOURCE_DIR}")
+  target_link_libraries(flitzfs_native_lz4_decode_probe PRIVATE flitzfs_hip_compute_common flitzfs_core bcrypt wintrust)
+  target_compile_options(flitzfs_native_lz4_decode_probe PRIVATE /W4 /permissive-)
 endif()
 
 include("${flitzfs_root}/cmake/WindowsAsanRuntime.cmake")
