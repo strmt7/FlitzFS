@@ -516,3 +516,55 @@ verifying the copy ranges against the immutable request. A malformed
 record follows the existing integrity-failure path.
 [Owned controller](WINFSP_OWNED_CONTROLLER.md#amd-shared-base-search) ·
 [AMD performance guidance](https://rocm.docs.amd.com/projects/HIP/en/latest/how-to/performance_guidelines.html)
+
+## One-request prepared exchange
+
+The prepared sized exchange uses channel control version 3. The parent creates
+two fixed-capacity mappings and two initially unsignalled manual-reset events.
+The child opens the request mapping read-only. It signals readiness after the
+setup delegated by its adapter. The parent can then supply the exact-size
+immutable snapshot once. Both modes share the same process-wide lease and
+creation-time job. Readiness can be observed independently of the existing
+success and retirement boundary.
+
+The worker copies the request into private storage before decoding it. The
+parent still verifies its immutable input and reply extent after exact child
+exit. The caller independently verifies decoded bytes before accepting the
+result. If the ready lease is no longer useful, the parent can send a discard
+marker before supplying data. The child retires its resources and exits without
+publishing. Cancellation during setup or submitted work keeps the existing
+bounded stop path. Fresh admission requires the exact child and supervisor to
+retire. No background worker is created by ordinary filesystem operations.
+
+```mermaid
+sequenceDiagram
+    participant P as Scoped caller
+    participant S as Exchange supervisor
+    participant W as AMD worker
+    participant D as Radeon device
+    P->>S: Reserve channel geometry and process lease
+    S->>W: Start in the bounded job
+    W->>D: Admit device, create stream and allocate slab
+    W-->>P: Signal ready
+    alt Request remains admissible
+        P->>W: Supply immutable frame
+        loop Serial admitted quanta
+            W->>D: Check live budget, launch and synchronize
+            D-->>W: Return candidate for CPU validation
+        end
+        W->>D: Release resources
+        W->>S: Publish once and exit
+        S-->>P: Return reply after exact exit
+        P->>P: Independently verify bytes
+    else Ready lease is unused
+        P->>W: Signal discard
+        W->>D: Release resources
+        W-->>S: Exit without publishing
+    end
+```
+
+A readiness wait duplicates the event handle and observes the exact supervisor
+as well. This keeps the waiter valid while the supervisor releases its channel
+handles. [Microsoft event creation](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-createeventw) ·
+[Microsoft wait semantics](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitformultipleobjects) ·
+[Microsoft mapping access](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-mapviewoffile)

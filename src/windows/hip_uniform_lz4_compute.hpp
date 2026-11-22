@@ -1,6 +1,7 @@
 #pragma once
 #include "hip_lz4_compute.hpp"
-#include "flitzfs/uniform_lz4_wire.hpp"
+#include "flitzfs/uniform_lz4_sweep.hpp"
+#include <functional>
 #include "hipcomp_uniform_lz4_api.hpp"
 #include "hip_phase_profile.hpp"
 #include "uniform_lz4_sweep_trace.hpp"
@@ -127,5 +128,9 @@ UniformLz4Candidates run_hip_uniform_lz4_sweep_in_worker(HMODULE runtime,
     const uniform_lz4::KernelApi&,int ordinal,std::array<std::byte,8> luid,
     std::uint32_t node_mask,const UniformLz4Request&,hip_detail::UniformLz4ComputeGrant,
     std::span<const hip_detail::Lz4KernelCoverage>,UniformLz4SweepTrace* trace=nullptr);
+UniformLz4Candidates run_hip_uniform_lz4_prepared_sweep_in_worker(HMODULE runtime,
+    const uniform_lz4::KernelApi&,int ordinal,std::array<std::byte,8> luid,
+    std::uint32_t node_mask,const UniformLz4SweepPlan&,std::span<const hip_detail::Lz4KernelCoverage>,
+    const std::function<const UniformLz4Request*()>& receive);
 
 }

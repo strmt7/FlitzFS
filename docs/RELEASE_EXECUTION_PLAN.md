@@ -341,6 +341,12 @@ multiple sessions and measure actual allocated bytes and write costs.
   live work and host budget before deferring. A controlled AMD run refused a
   partial offer, adopted a funded sweep and recovered its complete bytes.
   [Complete measured-window evidence](evidence/windows-amd-full-measured-window-2026-11-22.json)
+- A one-request preparation lease now reaches actual AMD readiness before input
+  delivery. On three matched 1 MiB public requests it cut the median response
+  after submission from 1.79 s to 545 ms. Charging setup, the prepared median
+  was 1.30 s. One unused preparation retired with no reply. Keep this workload
+  on its existing CPU route until an end-to-end comparison earns a new decision.
+  [Prepared sweep evidence](evidence/amd-prepared-sweep-2026-11-22.json)
 - Measure automatic route selection for early ingestion and cold work
   separately. Use the CPU reference for forecast and fallback. Compare real
   public and controlled inputs across supported AMD classes and a CPU-only
@@ -657,9 +663,12 @@ flushed a continuation after remount. The interrupted caller was still in
    running foreground controller with a profile earned from matched complete
    writes. Feed the verified batch path from already ready requests and charge
    startup, host copies, validation and publication before comparing end-to-end
-   results against CPU. Measure a bounded startup episode ahead of an eligible
-   burst with CPU service during readiness and confirmed retirement when the
-   burst ends. Exercise stale budget samples during long batches.
+   results against CPU. Use the prepared exchange only for a measured episode
+   tied to eligible queued work. Keep serving CPU work while setup runs. Charge
+   ready-but-unused episodes, abandon a stale lease on a workload or resource
+   change, and verify retirement before reacquisition. Compare time to verified
+   completion, host activity, occupied bytes and foreground tails with an
+   immediate AMD batch and CPU. Exercise stale budget samples during long batches.
    Alternate AMD-present,
    CPU-only and rejected-device routes on matched data. Record transfer, kernel, validation,
    publication and backlog separately. Start the mounted failure matrix with

@@ -21,6 +21,12 @@ real AMD collective work. Release depends on carrying these paths through the
 same installed Windows client, at scale, with backend-specific recovery,
 independent CPU reads, and controlled size and performance results.
 
+The bounded AMD preparation path moves device setup ahead of one request.
+Three real AMD pairs returned identical compressed bytes and passed independent
+CPU verification. The new timing measures how much setup can be moved outside
+the response window. Automatic foreground eligibility and benefit against CPU
+still need matched full writes. [Prepared AMD evidence](evidence/amd-prepared-sweep-2026-11-22.json)
+
 Keep the shared CPU-readable engine, copy-on-write publication, protected
 decoding dependencies, WinFsp integration and isolated GPU execution. Replace
 the assumptions that make current production paths depend on small volumes,

@@ -16,6 +16,17 @@
     "implementation_order": "docs/IMPLEMENTATION_PLAN.md#3-execution-order-and-dependencies",
     "evidence": "docs/evidence/architecture-reconciliation-2026-11-21.json"
   },
+  "amd_prepared_sweep": {
+    "evidence": "docs/evidence/amd-prepared-sweep-2026-11-22.json",
+    "installed_pinned_module_executed": true,
+    "matched_pairs": 3,
+    "input_bytes": 1048576,
+    "verified_encoded_payload_bytes": 467755,
+    "median_submission_to_verified_ns": {"immediate": 1789884000, "prepared": 545449400},
+    "median_full_exchange_ns": {"immediate": 1790587900, "prepared": 1301415400},
+    "unused_lease_retired_without_reply": true,
+    "automatic_foreground_enrolled": false
+  },
   "amd_complete_measured_window": {
     "evidence": "docs/evidence/windows-amd-full-measured-window-2026-11-22.json",
     "partial_geometry_uses_synchronous_cpu": true,

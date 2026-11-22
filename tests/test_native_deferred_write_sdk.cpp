@@ -898,13 +898,21 @@ int installed_late_foreground() {
       "live foreground route did not settle the AMD write");
   return 0;
 }
+enum class SweepLaunch {immediate,prepared,discard};
 struct RecordedSweepBatch {
   std::vector<VerifiedUniformLz4Batch> results;
-  std::uint64_t elapsed_ns=0,child_ms=0;
+  std::uint64_t elapsed_ns=0,child_ms=0,ready_ns=0,request_to_verified_ns=0;
   std::uint32_t launches=0;
+  bool discarded=false;
 };
+std::uint64_t elapsed_ns(std::chrono::steady_clock::time_point start) {
+  return static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
+      std::chrono::steady_clock::now()-start).count());
+}
 RecordedSweepBatch run_sweep_batch(const HipDiscoveredRoute& route,
-    std::span<const UniformLz4BatchInput> requests,bool grouped,std::uint64_t& sequence) {
+    std::span<const UniformLz4BatchInput> requests,bool grouped,std::uint64_t& sequence,
+    SweepLaunch launch=SweepLaunch::immediate) {
+  check(grouped || launch==SweepLaunch::immediate,"prepared sweep must use one complete exchange");
   constexpr auto width=kNativeExtentBytes;
   uniform_lz4::Layout quantum{};
   check(uniform_lz4::make_layout(fixture_quantum_chunks*width,width,quantum),"batch diagnostic quantum");
@@ -927,11 +935,52 @@ RecordedSweepBatch run_sweep_batch(const HipDiscoveredRoute& route,
     check(planned.requests==work.size(),"budget did not cover the matched complete requests");
     const auto prepared=PreparedUniformLz4Batch::prepare(work,planned);
     const NativeUniformSweepGrant admitted{planned.window.quantum.chunks,planned.window.quantum.total_bytes};
-    const auto dispatch=prepare_native_uniform_dispatch(binding,evidence,prepared.source(),WorkerExecution::hip,&admitted);
+    auto dispatch=prepare_native_uniform_dispatch(binding,evidence,prepared.source(),WorkerExecution::hip,&admitted);
     const auto& limits=prepared.source().limits();
-    const auto frame=std::make_shared<const WorkerRequestSnapshot>(encode_uniform_lz4_request(prepared.source(),sequence));
-    const auto result=WorkerExchangeSession::run_sized(binding.helper,dispatch.arguments,frame,
-        {limits.request_bytes,limits.reply_bytes},diagnostic_worker_budget,{},route.pins);
+    const WorkerChannelCapacity channel{limits.request_bytes,limits.reply_bytes};
+    const auto frame=[&] {
+      return std::make_shared<const WorkerRequestSnapshot>(encode_uniform_lz4_request(prepared.source(),sequence));
+    };
+    WorkerExchangeResult result;
+    auto submitted=std::chrono::steady_clock::now();
+    if(launch==SweepLaunch::immediate) {
+      result=WorkerExchangeSession::run_sized(binding.helper,dispatch.arguments,frame(),
+          channel,diagnostic_worker_budget,{},route.pins);
+    } else {
+      dispatch.arguments.front()=L"--driver-uniform-lz4-prepared-adapter";
+      const auto setup=std::chrono::steady_clock::now();
+      auto worker=WorkerExchangeSession::start_prepared_sized(binding.helper,dispatch.arguments,
+          channel,diagnostic_worker_budget,route.pins);
+      if(!worker.wait_prepared(diagnostic_worker_budget.timeout_ms)) {
+        const auto* failure=worker.try_result();
+        std::cerr<<"prepared_sweep_unavailable route="<<(failure?static_cast<unsigned>(failure->code):999)
+            <<" worker_exit="<<(failure?failure->process.exit_code:0)<<'\n';
+        check(false,"prepared device did not become ready");
+      }
+      measured.ready_ns=elapsed_ns(setup);
+      check(!worker.try_result(),"readiness exposed a reply");
+      submitted=std::chrono::steady_clock::now();
+      if(launch==SweepLaunch::discard)check(worker.request_cancel(),"unable to discard prepared sweep");
+      else {
+        const auto fresh=budget.sample();
+        check(fresh.status==WindowsGpuBudgetStatus::success &&
+            check_gpu_memory_budget(fresh.snapshot,route.memory.luid,route.memory.node_mask,GetTickCount64(),
+                dispatch.device_peak_bytes)==GpuGateCode::admitted,"prepared dispatch budget failed");
+        check(worker.submit_prepared(frame()),"unable to supply the prepared device request");
+      }
+      check(WaitForSingleObject(worker.supervisor_wait_handle(),diagnostic_worker_budget.timeout_ms)==WAIT_OBJECT_0 &&
+          worker.retirement_confirmed() && worker.try_result(),"prepared sweep retirement unconfirmed");
+      result=*worker.try_result();
+      if(launch==SweepLaunch::discard) {
+        check(result.code==WorkerExchangeCode::cancelled && result.process.exit_confirmed && result.process.exit_code==0 &&
+            !result.publication_observed && result.response.empty() && WorkerExchangeSession::available(),
+            "unused device preparation did not retire without publishing");
+        measured.discarded=true;
+        measured.child_ms=result.process.elapsed_ms;
+        measured.elapsed_ns=elapsed_ns(start);
+        return measured;
+      }
+    }
     const auto retired=WorkerExchangeSession::available();
     if(result.code!=WorkerExchangeCode::completed || !result.process.exit_confirmed || !retired)
       std::cerr<<"sweep_batch_worker_failure grouped="<<grouped<<" sequence="<<sequence
@@ -946,14 +995,48 @@ RecordedSweepBatch run_sweep_batch(const HipDiscoveredRoute& route,
         completed.snapshot.captured_ms>observed.snapshot.captured_ms &&
         check_gpu_memory_budget(completed.snapshot,route.memory.luid,route.memory.node_mask,GetTickCount64(),
             dispatch.device_peak_bytes)==GpuGateCode::admitted,"batch completion budget failed");
+    measured.request_to_verified_ns+=elapsed_ns(submitted);
     measured.results.push_back(std::move(verified));
     measured.launches+=dispatch.windows;
     measured.child_ms+=result.process.elapsed_ms;
     requests=requests.subspan(work.size());
   }
-  measured.elapsed_ns=static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
-      std::chrono::steady_clock::now()-start).count());
+  measured.elapsed_ns=elapsed_ns(start);
   return measured;
+}
+int compare_installed_prepared_sweep(const std::filesystem::path& corpus) {
+  gpu_probe_fixture::Budget controller_budget;
+  const auto file=ReadOnlyFile::open(corpus);
+  check(file.size()==fixture_sweep_chunks*kNativeExtentBytes,"prepared sweep corpus must match the full fixture");
+  std::vector<std::byte> source(static_cast<std::size_t>(file.size()));
+  file.read_exact_at(0,source.data(),source.size());
+  const std::array requests{UniformLz4BatchInput{1,source}};
+  const auto discovery=discover_installed_hip_route(diagnostic_worker_budget,4);
+  const auto& route=require_indexed_route(discovery);
+  check(route.pins->uniform_module_pinned(),"prepared sweep requires a pinned compute module");
+  std::uint64_t sequence=0;
+  for(unsigned pair=0;pair<3;++pair) {
+    const bool prepared_first=pair%2!=0;
+    RecordedSweepBatch immediate,prepared;
+    if(prepared_first)prepared=run_sweep_batch(route,requests,true,sequence,SweepLaunch::prepared);
+    immediate=run_sweep_batch(route,requests,true,sequence);
+    if(!prepared_first)prepared=run_sweep_batch(route,requests,true,sequence,SweepLaunch::prepared);
+    const auto a=immediate.results.at(0).reply(0),b=prepared.results.at(0).reply(0);
+    check(immediate.launches==prepared.launches && std::ranges::equal(a.sizes,b.sizes) &&
+        std::ranges::equal(a.payload,b.payload),"prepared route changed verified compressed bytes");
+    std::cout<<"prepared_sweep_pair pair="<<pair+1<<" prepared_first="<<prepared_first
+        <<" immediate_ns="<<immediate.elapsed_ns<<" prepared_ns="<<prepared.elapsed_ns
+        <<" ready_ns="<<prepared.ready_ns<<" request_to_verified_ns="<<prepared.request_to_verified_ns
+        <<" immediate_request_to_verified_ns="<<immediate.request_to_verified_ns
+        <<" launches="<<prepared.launches<<" encoded_bytes="<<b.payload.size()
+        <<" identical_payload=1 independent_cpu_verified=1 retired=1\n";
+  }
+  const auto discarded=run_sweep_batch(route,requests,true,sequence,SweepLaunch::discard);
+  check(discarded.discarded && !discarded.launches && !GetModuleHandleW(route.runtime_basename.c_str()) &&
+      WorkerExchangeSession::available(),"prepared discard loaded the parent runtime or retained a worker");
+  std::cout<<"prepared_sweep_discard ready_ns="<<discarded.ready_ns<<" elapsed_ns="<<discarded.elapsed_ns
+      <<" worker_ms="<<discarded.child_ms<<" published=0 retired=1 parent_commit="<<controller_budget.peak_commit()<<'\n';
+  return 0;
 }
 int compare_installed_sweep_batch(const std::filesystem::path& corpus){
   gpu_probe_fixture::Budget controller_budget;
@@ -1002,6 +1085,7 @@ int compare_installed_sweep_batch(const std::filesystem::path& corpus){
 int wmain(int argc,wchar_t** argv){try{
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
   if(argc==3 && std::wstring_view(argv[1])==L"--compare-installed-amd-sweep-batch")return compare_installed_sweep_batch(argv[2]);
+  if(argc==3 && std::wstring_view(argv[1])==L"--compare-installed-amd-prepared")return compare_installed_prepared_sweep(argv[2]);
   if(argc==2 && std::wstring_view(argv[1])==L"--live-installed-late-foreground")return installed_late_foreground();
   if(argc==2 && std::wstring_view(argv[1])==L"--compare-installed-amd")return compare_installed_amd();
   if(argc==2 && std::wstring_view(argv[1])==L"--compare-installed-amd-grouped")

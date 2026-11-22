@@ -29,13 +29,17 @@ inline uniform_lz4::Layout uniform_lz4_sweep_quantum(const uniform_lz4::Layout& 
   }
   return quantum;
 }
+inline UniformLz4SweepPlan plan_uniform_lz4_sweep(const uniform_lz4::Layout& layout,
+    std::uint32_t maximum_chunks,std::uint64_t maximum_device_bytes) {
+  const auto quantum=uniform_lz4_sweep_quantum(layout,maximum_chunks,maximum_device_bytes);
+  if(!quantum.chunks)throw std::invalid_argument("uniform sweep cannot admit one quantum");
+  return {uniform_lz4_limits(layout),quantum.chunks,1+(layout.chunks-1)/quantum.chunks,quantum.total_bytes};
+}
 inline UniformLz4SweepPlan plan_uniform_lz4_sweep(const PreparedUniformLz4& source,
-    std::uint32_t maximum_chunks,std::uint64_t maximum_device_bytes){
+    std::uint32_t maximum_chunks,std::uint64_t maximum_device_bytes) {
   if(!source.ready() || !maximum_chunks || !maximum_device_bytes)
     throw std::invalid_argument("invalid uniform sweep grant");
-  const auto quantum=uniform_lz4_sweep_quantum(source.layout(),maximum_chunks,maximum_device_bytes);
-  if(!quantum.chunks)throw std::invalid_argument("uniform sweep cannot admit one quantum");
-  return {source.limits(),quantum.chunks,1+(source.layout().chunks-1)/quantum.chunks,quantum.total_bytes};
+  return plan_uniform_lz4_sweep(source.layout(),maximum_chunks,maximum_device_bytes);
 }
 // Callback completes ONE quantum before another begins, returning independently
 // verifiable candidates. It must synchronize device work before returning. A

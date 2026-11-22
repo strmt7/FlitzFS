@@ -137,3 +137,35 @@ One separately admitted owner trial then completed the 1,048,576-byte synthetic 
 Exchange wall time was 626,486,100 ns. This mode has no phase profile. Both CPU/GPU complete fixture images occupied 1,114,112 bytes; payload differences against the manually constructed CPU advice are not an optimized CPU-compressor comparison. This single aligned hardware case establishes no comparative speed, whole-image gain, larger-group cost bound or physical-power-loss qualification. The original `847423f` abnormal exit remains retained and causally unproven.
 
 [Exact source, artifacts, raw results and cleanup evidence](evidence/uniform-reuse-d33efd6.json) is retained. Do not repeat the unchanged trial. Ordinary callbacks remain CPU-only. Repeated configuration/recovery keyed complete-cost measurements, varied real data, automatic resource policy, controlled Windows routing and minimum-total-size collective compression remain required.
+
+## Prepared AMD sweep on 22 November 2026
+
+The adapter can initialize the selected AMD device, create a nonblocking stream
+and allocate one slab before it takes a request. The geometry comes from the
+admitted request and reply capacities. Current memory is rechecked at submission
+and every quantum. One request consumes the lease. Normal completion or an unused
+discard releases the resources, and an accepted reply still requires independent
+CPU verification. The frame and filesystem codecs retain their existing layouts.
+[Worker channel](WORKER_CHANNEL.md#one-request-prepared-exchange) ·
+[ROCm 10.2 initialization](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/reference/hip_runtime_api/modules/initialization_and_version.html) ·
+[ROCm 10.2 stream management](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/reference/hip_runtime_api/modules/stream_management.html)
+
+Three alternating pairs on an RX 9070 XT used the same 1 MiB public source
+sample, eight launches per exchange and the same pinned module. Every exchange
+returned 467,755 encoded payload bytes, identical across the two modes.
+Times are rounded to the nearest millisecond.
+
+| Pair | First mode | Immediate total | Prepared total | Time to ready | Prepared submission to verification |
+| --- | --- | ---: | ---: | ---: | ---: |
+| 1 | Immediate | 2,134 ms | 1,301 ms | 755 ms | 545 ms |
+| 2 | Prepared | 1,791 ms | 1,589 ms | 1,009 ms | 579 ms |
+| 3 | Immediate | 1,347 ms | 1,227 ms | 1,003 ms | 223 ms |
+
+The total times charge setup. The time to ready covers the worker's setup. The last
+column starts after readiness and covers input framing and delivery, GPU work,
+retirement and CPU verification. A separate discard completed in 978 ms with
+zero published bytes and confirmed retirement. The ordinary controlled cold
+path also recovered a 1 MiB write and its prior data with independent CPU reads.
+This finite fixture selected neither a production warm-up policy nor a
+CPU-versus-AMD crossover. Keep the earlier CPU decision for the matched public
+write. [Source-bound result and cleanup evidence](evidence/amd-prepared-sweep-2026-11-22.json)

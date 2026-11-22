@@ -119,4 +119,13 @@ UniformLz4Candidates run_hip_uniform_lz4_sweep_in_worker(HMODULE runtime,
         return hip_detail::execute_uniform_lz4_reused_sweep(api,attributes,kernel,request,coverage,grant,initialize,memory,trace);
       });
 }
+UniformLz4Candidates run_hip_uniform_lz4_prepared_sweep_in_worker(HMODULE runtime,
+    const uniform_lz4::KernelApi& kernel,int ordinal,std::array<std::byte,8> luid,
+    std::uint32_t node_mask,const UniformLz4SweepPlan& plan,std::span<const hip_detail::Lz4KernelCoverage> targets,
+    const std::function<const UniformLz4Request*()>& receive) {
+  return with_uniform_device(runtime,ordinal,luid,node_mask,targets,plan.quantum_chunks,plan.device_peak_bytes,
+      [&](const auto& api,auto attributes,auto coverage,auto&& initialize,auto&& memory) {
+        return hip_detail::execute_uniform_lz4_sweep_plan(api,attributes,kernel,plan,coverage,receive,initialize,memory);
+      });
+}
 }

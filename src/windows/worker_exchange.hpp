@@ -13,6 +13,7 @@ namespace flitzfs {
 struct WorkerChannelCapacity {
   std::size_t request_bytes=0,reply_bytes=0;
 };
+inline constexpr std::wstring_view kPreparedWorkerChannelArgument=L"--prepared-worker-channel";
 bool valid_worker_channel_capacity(WorkerChannelCapacity,ProcessBudget) noexcept;
 // Minimum available physical and commit bytes at sized channel admission.
 // A caller can check this before allocating its input. Zero means invalid.
@@ -53,6 +54,13 @@ class WorkerExchangeSession final {
       const std::vector<std::wstring>& arguments, SharedWorkerRequest request,
       WorkerChannelCapacity capacity, ProcessBudget budget,
       std::shared_ptr<const void> pinned_route={});
+  // Starts one bounded child with a fixed frame size and no request contents.
+  // Only the single controlling owner may wait for readiness or provide the frame.
+  static WorkerExchangeSession start_prepared_sized(const std::filesystem::path& helper,
+      const std::vector<std::wstring>& arguments, WorkerChannelCapacity capacity, ProcessBudget budget,
+      std::shared_ptr<const void> pinned_route={});
+  bool wait_prepared(std::uint32_t milliseconds=0) const noexcept;
+  bool submit_prepared(SharedWorkerRequest) noexcept;
   // For a separate qualifying thread. Stops through the owned supervisor
   // and returns bytes only after exact worker and supervisor retirement.
   static WorkerExchangeResult run_sized(const std::filesystem::path& helper,
@@ -83,7 +91,7 @@ class WorkerExchangeSession final {
   static WorkerExchangeSession start_impl(const std::filesystem::path&,
       const std::vector<std::wstring>&,std::span<const std::byte>,
       WorkerChannelCapacity,ProcessBudget,bool sized,SharedWorkerRequest snapshot={},
-      std::shared_ptr<const void> pinned_route={});
+      std::shared_ptr<const void> pinned_route={},bool prepared=false);
   struct Impl;
   explicit WorkerExchangeSession(std::unique_ptr<Impl>) noexcept;
   WorkerExchangeResult wait_result(); // Legacy synchronous adapter only.
@@ -104,6 +112,11 @@ class WorkerChannel final {
   // Requires an already enforced bounded single-process Job Object; it never
   // infers arbitrary allocation sizes from writable shared metadata.
   static WorkerChannel open_sized(std::wstring_view token,WorkerChannelCapacity);
+  static WorkerChannel open_prepared_sized(std::wstring_view token,WorkerChannelCapacity,
+      std::uint32_t timeout_ms);
+  // The child signals readiness only after its own setup succeeds. It then
+  // waits once for the full frame and copies it into its private buffer.
+  bool receive_prepared();
   ~WorkerChannel();
   WorkerChannel(WorkerChannel&&) noexcept;
   WorkerChannel& operator=(WorkerChannel&&) noexcept;

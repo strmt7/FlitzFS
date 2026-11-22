@@ -155,6 +155,24 @@ int sized_child(std::wstring_view mode,std::wstring_view token) {
   rejects([&]{channel.publish(output);});
   return mode==L"sized-fail-after"?17:0;
 }
+constexpr WorkerChannelCapacity prepared_capacity{128U*1024+37,64U*1024+71};
+int prepared_child(std::wstring_view mode,std::wstring_view token,std::uint32_t timeout) {
+  check_job();
+  auto channel=WorkerChannel::open_prepared_sized(token,prepared_capacity,timeout);
+  check(channel.request().empty(),"prepared child received bytes before readiness");
+  if(mode==L"prepared-fail-before")return 17;
+  std::array<std::byte,kWorkerHeaderBytes> premature{};
+  rejects([&]{channel.publish(premature);});
+  if(!channel.receive_prepared())return 0;
+  rejects([&]{(void)channel.receive_prepared();});
+  const auto snapshot=channel.take_request_snapshot();
+  const auto input=snapshot->bytes();
+  check(input.size()==prepared_capacity.request_bytes && channel.request().empty(),"prepared source was not privately transferred");
+  Bytes output(prepared_capacity.reply_bytes);
+  std::copy_n(input.rbegin(),output.size(),output.begin());
+  channel.publish(output);
+  return mode==L"prepared-fail-after"?17:0;
+}
 int child(std::wstring_view mode,std::wstring_view token) {
   if(mode.starts_with(L"uniform-")){
     check_job();auto limits=uniform_fixture_limits();
@@ -1260,6 +1278,54 @@ void sized_transactions(const std::filesystem::path& executable) {
   std::cout<<"Sized channel: request="<<sized_capacity.request_bytes<<" reply="
       <<sized_capacity.reply_bytes<<" cpu_semantics_only=true gpu_executed=false\n";
 }
+void prepared_transactions(const std::filesystem::path& executable) {
+  ProcessBudget budget;budget.timeout_ms=4000;
+  Bytes source(prepared_capacity.request_bytes);
+  for(std::size_t i=0;i<source.size();++i)source[i]=static_cast<std::byte>((i*19+i/53)%256);
+  const auto frame=std::make_shared<const WorkerRequestSnapshot>(source);
+  const auto short_frame=std::make_shared<const WorkerRequestSnapshot>(std::span(source).first(source.size()-1));
+  for(const auto* mode:{L"prepared-ok",L"prepared-fail-before",L"prepared-fail-after",L"prepared-cancel"}) {
+    auto session=WorkerExchangeSession::start_prepared_sized(executable,{mode},prepared_capacity,budget);
+    check(!WorkerExchangeSession::available(),"prepared worker did not own the exclusive lease");
+    const std::wstring_view variant(mode);
+    if(variant==L"prepared-fail-before") {
+      check(!session.wait_prepared(2500) && !session.submit_prepared(frame),"failed setup admitted a request");
+    } else {
+      check(session.wait_prepared(2500) && !session.try_result(),"prepared child did not wait with an empty channel");
+      check(!session.submit_prepared(short_frame),"prepared child admitted partial geometry");
+      if(variant==L"prepared-cancel")
+        check(session.request_cancel() && session.request_cancel() && !session.submit_prepared(frame),
+            "cancelled readiness stayed eligible");
+      else
+        check(session.submit_prepared(frame) && !session.submit_prepared(frame),"prepared worker violated one-shot submission");
+    }
+    check(WaitForSingleObject(session.supervisor_wait_handle(),5000)==WAIT_OBJECT_0 &&
+        session.retirement_confirmed() && WorkerExchangeSession::available(),"prepared worker did not retire exactly");
+    const auto* result=session.try_result();
+    check(result && !session.failure() && result->process.exit_confirmed,"prepared result did not identify exact child exit");
+    if(variant==L"prepared-ok")
+      check(result->code==WorkerExchangeCode::completed && result->response.size()==prepared_capacity.reply_bytes &&
+          std::equal(result->response.begin(),result->response.end(),source.rbegin()),"prepared byte exchange failed");
+    else
+      check(result->code==(variant==L"prepared-cancel"?WorkerExchangeCode::cancelled:WorkerExchangeCode::worker_failed) &&
+          result->response.empty(),"unsuccessful prepared child exposed a reply");
+    if(variant==L"prepared-cancel")
+      check(result->process.exit_code==0 && !result->publication_observed,"unused readiness did not retire cooperatively");
+    check_closed(*result);
+    for(const auto* suffix:{L".ready",L".supplied"}) {
+      const auto name=L"Local\\FlitzFS.worker."+result->channel_token+suffix;
+      const auto event=OpenEventW(SYNCHRONIZE,FALSE,name.c_str());
+      if(event)CloseHandle(event);
+      check(!event,"prepared worker event remained after retirement");
+    }
+  }
+  {
+    auto session=WorkerExchangeSession::start_prepared_sized(executable,{L"prepared-ok"},prepared_capacity,budget);
+    check(session.wait_prepared(2500),"abandoned prepared child did not become ready");
+  }
+  eventually([&]{return WorkerExchangeSession::available();},3000,"abandoned readiness retained a worker");
+  std::cout<<"Prepared exchange: empty startup, exact one-shot frame, CPU semantics, cancellation and retirement passed\n";
+}
 void asynchronous_fallback(const std::filesystem::path& executable) {
   std::array<std::byte,8> luid{};luid[0]=std::byte{1};
   GpuResultGate gate(mixed(),luid,1);
@@ -1325,6 +1391,8 @@ void abandoned_session(const std::filesystem::path& executable,const std::vector
 int wmain(int argc,wchar_t** argv){try{
   if(argc==2 && std::wstring_view(argv[1])==L"--native-error-resource-probe")return native_error_resources();
   if(argc==4 && std::wstring_view(argv[2])==L"--worker-channel")return child(argv[1],argv[3]);
+  if(argc==5 && std::wstring_view(argv[2])==kPreparedWorkerChannelArgument)
+    return prepared_child(argv[1],argv[3],static_cast<std::uint32_t>(std::stoul(argv[4])));
   check(argc==1,"unexpected worker test arguments");
   const auto executable=self();const auto batch=mixed();const auto request=encode_worker_request(batch,221);
   // Warm the full success path, including validation/copying and object-lifetime
@@ -1418,6 +1486,7 @@ int wmain(int argc,wchar_t** argv){try{
   uniform_transactions(executable);observe(L"uniform-transport");
   coordinated_uniform_requests(executable);observe(L"uniform-controller");
   sized_transactions(executable);observe(L"sized-transport");
+  prepared_transactions(executable);observe(L"prepared-transport");
   asynchronous_fallback(executable);
   observe(L"async-fallback");
   abandoned_session(executable,request);

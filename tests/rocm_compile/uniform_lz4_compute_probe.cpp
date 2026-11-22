@@ -226,7 +226,8 @@ UniformLz4Candidates compute(State& state,Lz4KernelCoverage covered=coverage,Uni
   }
   return result;
 }
-UniformLz4Candidates reused_compute(State& state,UniformLz4ComputeGrant grant={},UniformLz4SweepTrace* trace=nullptr){
+UniformLz4Candidates reused_compute(State& state,UniformLz4ComputeGrant grant={},UniformLz4SweepTrace* trace=nullptr,
+    bool prepared=false){
   Activate owner(state);state.reuse=true;
   uniform_lz4::Layout quantum{};require(uniform_lz4::make_layout(2U*65536,65536,quantum),"reused fixture peak");
   if(!grant.maximum_chunks && !grant.maximum_device_bytes)grant={2,quantum.total_bytes,65536};
@@ -265,6 +266,15 @@ UniformLz4Candidates reused_compute(State& state,UniformLz4ComputeGrant grant={}
     require_hip_memory(current,identity,1,tick,state.allocation_bytes,point,
         point==HipMemoryPoint::pre_initialize?nullptr:&before);
   };
+  if(prepared) {
+    auto shape=admitted;
+    if(state.fault=="prepared-insufficient-slab")shape.device_peak_bytes=1;
+    const auto receive=[&]() -> const UniformLz4Request* {
+      require(state.allocated && state.stream_live && !state.waits,"prepared handoff preceded setup or followed launch");
+      return state.fault=="prepared-discard"?nullptr:&state.source;
+    };
+    return execute_uniform_lz4_sweep_plan(api,&attributes,kernels,shape,coverage,receive,initialize,memory,trace);
+  }
   return execute_uniform_lz4_reused_sweep(api,&attributes,kernels,state.source,coverage,grant,initialize,memory,trace);
 }
 void reused_success(const UniformLz4Request& source,unsigned wave,bool delayed_completion=false){
@@ -353,6 +363,22 @@ int wmain(int argc,wchar_t** argv){try{
     success(source,32);success(source,64);success(request(1),32);
     reused_success(source,32);reused_success(source,64);reused_success(request(16U*65536),32);reused_success(request(1),32);
     reused_success(source,32,true);
+    {
+      ++scenarios;++successes;State state(source);state.fault="prepared-discard";UniformLz4SweepTrace trace;
+      const auto result=reused_compute(state,{},&trace,true);
+      require(result.payload.empty() && result.sizes.empty() && !state.allocated && !state.stream_live &&
+          !state.waits && !trace.finished && !trace.completed_windows,"discarded prepared sweep performed or retained work");
+    }
+    {
+      ++scenarios;++refusals;State state(source);state.fault="prepared-insufficient-slab";
+      try {
+        (void)reused_compute(state,{},nullptr,true);
+        throw std::runtime_error("prepared sweep admitted a noncanonical slab");
+      }catch(const HipWorkerFailure& failure) {
+        require(failure.code==HipWorkerExit::invalid_request && state.calls.empty(),
+            "invalid prepared sweep reached runtime or lost its error class");
+      }
+    }
     {State state(source);state.fault="reuse-completion-stale";reused_refused(state,HipWorkerExit::temporary_pressure);}
     {
       ++scenarios;++successes;State state(source);UniformLz4SweepTrace trace;
