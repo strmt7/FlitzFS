@@ -338,6 +338,109 @@ void callback_file(Provider& p,unsigned n,const Bytes& bytes,std::size_t quantum
       count==out.size() && out==bytes,"controller SDK byte readback");
   callback_cleanup_close(p,context);
 }
+// Adds a single measured provider stall on the maintenance thread.
+class DelayedLookaheadBacking final:public StoreByteIo {
+ public:
+  explicit DelayedLookaheadBacking(std::shared_ptr<StoreByteIo> bytes):bytes_(std::move(bytes)) {}
+  std::uint64_t extent() const override{return bytes_->extent();}
+  StoreIoContract contract() const noexcept override{return bytes_->contract();}
+  void admit_write(std::uint64_t bytes) override{bytes_->admit_write(bytes);}
+  void write_exact(std::uint64_t offset,std::span<const std::byte> bytes) override{bytes_->write_exact(offset,bytes);}
+  void flush() override{bytes_->flush();}
+  void read_exact(std::uint64_t offset,std::span<std::byte> bytes) const override {
+    if(GetCurrentThreadId()!=foreground_ && delay_.exchange(false)) {
+      detail::MaintenanceBackingCall wait(detail::MaintenanceBackingOperation::control);
+      std::this_thread::sleep_for(std::chrono::milliseconds(45));
+      wait.complete();
+    }
+    bytes_->read_exact(offset,bytes);
+  }
+  void delay_next_idle_read() noexcept{delay_=true;}
+ private:
+  std::shared_ptr<StoreByteIo> bytes_;
+  const DWORD foreground_=GetCurrentThreadId();
+  mutable std::atomic<bool> delay_{false};
+};
+void live_read_ahead_admission() {
+  require(store_lz4_available(),"live read-ahead requires the pinned LZ4 decoder");
+  constexpr std::uint64_t extent=kNativeExtentBytes,image_capacity=8ULL*1024*1024;
+  constexpr StoreCompressionOptions fast{StoreCompressionMode::fast,1,false};
+  auto domain=MemoryVolumeDomain::create(image_capacity+kVolumeHeadBytes);
+  auto head=domain.create_store(kVolumeHeadBytes);
+  auto image=std::make_shared<DelayedLookaheadBacking>(domain.create_store(image_capacity));
+  NativeMaintenancePolicy qualification;
+  qualification.maximum_cpu_busy_ppm=500'000;
+  auto adapter=WinFspNativeWritable::create_managed_indexed(head,id(90),image,id(1),{image_capacity},fast,{},qualification);
+  require(adapter->enable_native_lz4_read_ahead(),"read-ahead controller could not enable the checked route");
+  auto* route=adapter.get();
+  Provider provider;
+  Provider::active=&provider;
+  WinFspVolumeController controller(std::move(adapter),provider.api(),plan(),domain);
+  await([&]{return controller.view().state==SessionState::running;},5000,"read-ahead controller startup deadline");
+
+  std::array<Bytes,3> frames{Bytes(extent),Bytes(extent),Bytes(extent)};
+  // Two logical holes establish sequential access. The trailing stored extent
+  // isolates read-ahead from discovery of cross-file compression candidates.
+  const auto motif=data(extent/8,917);
+  for(std::size_t offset=0;offset<extent;offset+=motif.size())
+    std::ranges::copy(motif,frames.back().begin()+static_cast<std::ptrdiff_t>(offset));
+  Bytes file;
+  for(const auto& frame:frames)file.insert(file.end(),frame.begin(),frame.end());
+  callback_file(provider,0,file,kNativeExtentBytes);
+  await([&]{return controller.view().payload_scrub_passes>0 && !route->background_maintenance_pending();},
+      12000,"initial maintenance never returned idle credit");
+  auto* fs=&provider.fs;
+  wchar_t name[]=L"\\f0";
+  PVOID context=nullptr;
+  FSP_FSCTL_FILE_INFO info{};
+  constexpr auto open_file=FILE_NON_DIRECTORY_FILE|(1U<<24);
+  require(fs->Interface->Open(fs,name,open_file,FILE_READ_DATA,&context,&info)==STATUS_SUCCESS &&
+      context && info.FileSize==file.size(),"read-ahead controller opened wrong content");
+  const auto demand=[&](std::size_t i) {
+    Bytes output(extent);
+    ULONG count=0;
+    require(fs->Interface->Read(fs,context,output.data(),i*extent,static_cast<ULONG>(output.size()),&count)==
+        STATUS_SUCCESS && count==output.size() && output==frames[i],"controller demand bytes differ");
+  };
+  demand(0);demand(1);
+  try {
+    await([&]{return controller.view().read_ahead_prepared==1;},12000,"fast backing did not prepare the next frame");
+  }catch(...) {
+    const auto state=controller.view();
+    std::cerr<<"read-ahead admission status host="<<static_cast<unsigned>(state.host)
+        <<" phase="<<static_cast<unsigned>(state.maintenance.phase)
+        <<" deferral="<<static_cast<unsigned>(state.maintenance.deferral)
+        <<" pending="<<route->native_lz4_read_ahead_pending()<<" quanta="<<state.maintenance_quanta
+        <<" backing_refusals="<<state.read_ahead_backing_refusals<<'\n';
+    throw;
+  }
+  const auto fast_sample=controller.view().maintenance_backing;
+  demand(2);
+  require(route->native_lz4_read_ahead_hits()==1,"controller did not deliver the prepared frame");
+  // Replace the next forecast with a new run over the same backing and arm
+  // one slow call before its target becomes eligible.
+  demand(0);
+  image->delay_next_idle_read();
+  demand(1);
+  await([&]{return controller.view().read_ahead_prepared==2;},12000,"slow sample did not complete its admitted frame");
+  const auto slow_sample=controller.view().maintenance_backing;
+  require(slow_sample.elapsed_ns()>fast_sample.elapsed_ns()+40'000'000,"stall was absent from backing observations");
+  demand(2);
+  demand(0);demand(1);
+  await([&]{return controller.view().read_ahead_backing_refusals==1;},12000,"slow backing cost did not block speculation");
+  const auto refused=controller.view();
+  require(refused.read_ahead_prepared==2 && refused.maintenance_backing.elapsed_ns()==slow_sample.elapsed_ns(),
+      "backing refusal performed speculative storage operations");
+  demand(2);
+  require(route->native_lz4_read_ahead_hits()==2,"declined read-ahead failed to select ordinary CPU read");
+  callback_cleanup_close(provider,context);
+  controller.stop_and_join();
+  require(controller.view().retired && !controller.view().controller_failed &&
+      provider.fs.UserContext==nullptr,"read-ahead controller did not retire");
+  std::cout<<"read_ahead_controller prepared=2 exact_hits=2 backing_refused=1 refused_backing_calls=0"
+      <<" modeled_stall_ns="<<slow_sample.elapsed_ns()-fast_sample.elapsed_ns()
+      <<" exact_cpu_fallback=1 owner_retired=1\n";
+}
 void volume_file_callbacks() {
   constexpr PagedStoreLimits limits{8ULL*1024*1024};
   constexpr StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
@@ -3147,6 +3250,7 @@ int main(int argc,char** argv){try {
   const bool remount=argc==2 && std::string_view(argv[1])=="--memory-remount";
   const bool volume_file=argc==2 && std::string_view(argv[1])=="--volume-file";
   const bool indexed_startup=argc==2 && std::string_view(argv[1])=="--indexed-startup-profile";
+  const bool read_ahead=argc==2 && std::string_view(argv[1])=="--live-read-ahead";
   const bool screened_public=argc==3 && std::string_view(argv[1])=="--screened-cold-corpus";
   const bool screened_packed=argc==3 && std::string_view(argv[1])=="--screened-cold-packed";
   const bool live_repair_rotation=argc==2 && std::string_view(argv[1])=="--live-indexed-repair-rotation";
@@ -3156,7 +3260,7 @@ int main(int argc,char** argv){try {
   const bool reconciled_compaction=argc==2 && std::string_view(argv[1])=="--live-indexed-reconcile";
   const bool indexed_compaction=reconciled_compaction || (argc==2 && std::string_view(argv[1])=="--live-indexed-compaction");
   if(lifetime_only || shifted_grouping || checkpoint || remount || volume_file || screened_public || screened_packed || indexed_compaction ||
-      live_payload_repair || indexed_startup ||
+      live_payload_repair || indexed_startup || read_ahead ||
       (argc==2 && (std::string_view(argv[1])=="--memory" || std::string_view(argv[1])=="--memory-handles" ||
       std::string_view(argv[1])=="--read-only-memory" || std::string_view(argv[1])=="--indexed-memory" ||
       std::string_view(argv[1])=="--live-indexed-grouping")))
@@ -3167,6 +3271,7 @@ int main(int argc,char** argv){try {
   require(GetProcessHandleCount(GetCurrentProcess(),&before)!=FALSE,"initial handle count");
   if(argc==1){windows_processor_windows();backing_maintenance_window();event_ownership();lifecycle();idle_until_owner_stop(100);invalid_and_unexpected();live_opportunities();}
   else if(lifetime_only)idle_until_owner_stop(31000);
+  else if(read_ahead)live_read_ahead_admission();
   else if(argc==2 && std::string_view(argv[1])=="--memory") {
     memory_planning();memory_paged_footprint();memory_compaction_retirement();memory_capacity_repair();
     memory_capacity_repair(true);

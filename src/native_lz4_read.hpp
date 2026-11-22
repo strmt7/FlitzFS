@@ -22,6 +22,7 @@ class NativeLz4CapturedFrame final {
  private:
   friend class ::flitzfs::PagedObjectStoreSnapshot;
   friend class NativeLz4ReadExchange;
+  friend class NativeLz4ReadyReads;
   NativeLz4ReadKey key_;
   Digest stored_digest_{};
   std::vector<std::byte> encoded_;

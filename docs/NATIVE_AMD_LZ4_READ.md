@@ -187,7 +187,52 @@ These are bytes requested from a memory-backed provider and time spent in
 the paired native reads. Windows file providers can also serve reads from
 the system file cache. The prepared two-frame GPU exchange still took
 34–37 ms after submission, including verification and exact retirement.
-Automatic scheduling therefore still needs lead-time and full cost
-measurements for larger read-ahead windows.
+Automatic AMD scheduling needs lead-time and full cost measurements for
+larger read-ahead windows.
 [Ready read verification](evidence/indexed-ready-amd-reads-2026-11-22.json) ·
 [Windows file caching](https://learn.microsoft.com/en-us/windows/win32/fileio/file-caching)
+
+## Qualifying sequential read-ahead
+
+The Windows volume controller can opt into a CPU baseline that follows
+adjacent successful reads on an adopted handle. The second adjacent read
+can predict one upcoming native extent. The callback records the hint
+without fetching the record or starting a worker. A separate idle
+opportunity can capture the checked frame and decode it outside the
+callback lock. The result belongs to the exact predicted demand and
+still needs to match the current paged index.
+
+The controller offers this work after ordinary maintenance yields. It
+uses the remaining idle time, current CPU and memory observations, and
+recent measured backing I/O duration. A forecast that exceeds the
+remaining time is dropped. A new foreground operation during preparation
+invalidates publication. Misses, interrupted preparation, and stale
+results use the ordinary CPU read. Preparation has no stored output.
+
+The pinned LZ4 callback fixture read the predicted extent with 9,284
+backing bytes on demand. The ordinary read used 17,887 bytes. Capture
+added 17,887 bytes, so the prepared route used 27,171 bytes in total.
+An owned controller fixture served two prepared reads byte-for-byte.
+A measured injected stall blocked the next prediction before backing
+access, and the demand read still returned the exact bytes on CPU.
+A separate AMD worker run verified two indexed frames on the Radeon
+RX 9070 XT and retired its child process. These results exercise
+different parts of the read path.
+[Windows read-ahead verification](evidence/sequential-read-ahead-2026-11-22.json)
+
+The cost estimate is local to the attached backing. A stall can suppress
+read-ahead for the rest of that attachment because only admitted
+captures refresh the estimate today. Use actual demand reads of the
+predicted range to refresh it before enabling this route automatically.
+Verify readmission after ordinary reads become consistently cheaper, with
+no extra probe I/O during the refusal period.
+
+Capture still takes the serialized backing lock for a synchronous extent
+lookup. Before enabling this route by default, qualify its interference
+with foreground work and the value of safely capturing from an owned
+immutable view. Include capture, unused predictions, demand response
+times, and complete provider bytes. Then measure wider qualified AMD
+batches on the same path before enabling them automatically.
+[Windows cached read-ahead](https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ccschedulereadaheadex) ·
+[Linux read-ahead behavior](https://docs.kernel.org/6.18/core-api/mm-api.html#readahead) ·
+[AMD HIP transfer and allocation guidance](https://rocm.docs.amd.com/projects/HIP/en/latest/how-to/performance_guidelines.html)

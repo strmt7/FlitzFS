@@ -16,6 +16,8 @@ class NativeLz4ReadyReads final:public NativeLz4ReadRoute {
   std::optional<std::vector<std::byte>> try_ready(const NativeLz4ReadKey&,
       std::span<const std::byte>) noexcept override;
   void reject(const NativeLz4ReadKey&) noexcept override;
+  static std::unique_ptr<NativeLz4ReadyReads> decode_captured(const NativeLz4CapturedFrame&);
+  bool pending() const noexcept{return !rejected_ && consumed_<frames_.size();}
   std::size_t consumed() const noexcept{return rejected_?0:consumed_;}
   std::size_t indexed_consumed() const noexcept{return rejected_?0:indexed_consumed_;}
  private:

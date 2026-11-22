@@ -195,6 +195,15 @@ std::unique_ptr<NativeLz4ReadyReads> NativeLz4ReadExchange::accept(View bytes,Wo
   return ready;
 }
 
+std::unique_ptr<NativeLz4ReadyReads> NativeLz4ReadyReads::decode_captured(const NativeLz4CapturedFrame& frame) {
+  StoreCodecDecoder decoder;
+  auto decoded=decoder.decode(kStoreLz4,frame.encoded(),frame.key().decoded_bytes);
+  if(record_digest(decoded)!=frame.key().decoded_digest)invalid("captured native LZ4 decoded digest");
+  auto result=std::make_unique<NativeLz4ReadyReads>();
+  result->frames_.push_back({frame.key(),std::move(decoded),frame.stored_digest_});
+  return result;
+}
+
 std::optional<Bytes> NativeLz4ReadyReads::try_ready(const NativeLz4ReadKey& key,View) noexcept {
   if(rejected_)return {};
   const auto match=std::ranges::lower_bound(frames_,key,{},&Frame::key);

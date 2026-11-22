@@ -48,7 +48,7 @@ struct Harness {
   Bytes security;Clock clock;
   explicit Harness(unsigned unit,const Bytes* previous=nullptr,const Bytes* old_head=nullptr,const Bytes* old_advice=nullptr,
       const NativeDeferredWriteOptions* deferred=nullptr,bool indexed=false,
-      StoreCompressionOptions compression={StoreCompressionMode::raw,1,false}):
+      StoreCompressionOptions compression={StoreCompressionMode::raw,1,false},bool read_ahead=false):
       head(ram(unit)),image(ram(unit)),advice(ram(unit)) {
     image_io=std::make_shared<BlockingIo>(image);
     if(previous) {
@@ -61,6 +61,7 @@ struct Harness {
     else adapter=WinFspNativeWritable::create_managed_paged(head,id(90),image_io,id(1),
         {kStoreMaxPhysicalBytes},{StoreCompressionMode::raw,1,false},advice);
     if(deferred)adapter->enable_deferred_writes_hosted(*deferred);
+    if(read_ahead)require(adapter->enable_native_lz4_read_ahead(),"read-ahead fixture refused its codec");
     fs.Version=static_cast<UINT16>(sizeof(fs));fs.UmFileContextIsUserContext2=TRUE;
     fs.Interface=&WinFspNativeWritable::callbacks();adapter->bind_callbacks(fs,[]()->UINT32{return 0;});
     SIZE_T bytes=0;UINT32 attributes=0;
@@ -85,9 +86,9 @@ struct Harness {
   void write(PVOID context,const Bytes& bytes){ULONG count=0;FSP_FSCTL_FILE_INFO info{};
     require(fs.Interface->Write(&fs,context,const_cast<std::byte*>(bytes.data()),0,static_cast<ULONG>(bytes.size()),
         FALSE,FALSE,&count,&info)==STATUS_SUCCESS && count==bytes.size(),"paged SDK Write");}
-  void read(PVOID context,const Bytes& expected) {
+  void read(PVOID context,const Bytes& expected,std::uint64_t offset=0) {
     Bytes actual(expected.size());ULONG count=0;
-    require(fs.Interface->Read(&fs,context,actual.data(),0,static_cast<ULONG>(actual.size()),&count)==STATUS_SUCCESS &&
+    require(fs.Interface->Read(&fs,context,actual.data(),offset,static_cast<ULONG>(actual.size()),&count)==STATUS_SUCCESS &&
         count==actual.size() && actual==expected,"paged SDK Read");
   }
   void close(PVOID context) {
@@ -108,6 +109,100 @@ struct Harness {
     throw std::runtime_error("paged group did not quiesce");}
   void populate(){for(unsigned i=0;i<4;++i){const auto context=create(i);write(context,family(i));read(context,family(i));close(context);}}
 };
+void sequential_read_ahead() {
+  constexpr StoreCompressionOptions fast{StoreCompressionMode::fast,1,false};
+  constexpr std::uint64_t extent=kNativeExtentBytes;
+  Harness h(4096,nullptr,nullptr,nullptr,nullptr,true,fast,true);
+  std::array<Bytes,5> blocks;
+  Bytes file;
+  for(std::size_t i=0;i<blocks.size();++i) {
+    blocks[i]=native_lz4_fixture::source();
+    blocks[i].front()=static_cast<std::byte>(i);
+    file.insert(file.end(),blocks[i].begin(),blocks[i].end());
+  }
+  const auto context=h.create(43);
+  h.write(context,file);
+  const auto writes=h.image->write_bytes;
+  h.read(context,blocks[0]);
+  require(!h.adapter->native_lz4_read_ahead_pending(),"first read offered speculation");
+  h.read(context,blocks[1],extent);
+  require(h.adapter->native_lz4_read_ahead_pending(),"adjacent reads did not offer their following extent");
+  const auto before=h.image->read_bytes;
+  const auto admitted=h.clock.next();
+  const auto demand_epoch=h.adapter->foreground_activity();
+  auto denied=admitted;
+  denied.commit_available=0;
+  require(!h.adapter->advance_native_lz4_read_ahead(denied,h.clock.now,demand_epoch),"commit pressure admitted read-ahead");
+  denied=admitted;denied.cpu_busy_ticks=denied.cpu_total_ticks;
+  require(!h.adapter->advance_native_lz4_read_ahead(denied,h.clock.now,demand_epoch),"CPU pressure admitted read-ahead");
+  require(!h.adapter->advance_native_lz4_read_ahead(admitted,h.clock.now+1000,demand_epoch) &&
+      h.image->read_bytes==before,"refused read-ahead performed backing I/O");
+
+  require(h.adapter->advance_native_lz4_read_ahead(admitted,h.clock.now,demand_epoch) &&
+      !h.adapter->native_lz4_read_ahead_pending(),"funded speculation failed to prepare a single frame");
+  const auto capture_bytes=h.image->read_bytes-before;
+  auto reads=h.image->read_bytes;
+  h.read(context,blocks[2],2*extent);
+  const auto ready_bytes=h.image->read_bytes-reads;
+  require(h.adapter->native_lz4_read_ahead_hits()==1,"next SDK demand did not consume ready bytes");
+  reads=h.image->read_bytes;
+  h.read(context,blocks[2],2*extent);
+  const auto ordinary_bytes=h.image->read_bytes-reads;
+  require(h.adapter->native_lz4_read_ahead_hits()==1 && ordinary_bytes>ready_bytes &&
+      !h.adapter->native_lz4_read_ahead_pending(),"random reread failed its exact CPU miss");
+
+  h.read(context,blocks[3],3*extent);
+  require(h.adapter->native_lz4_read_ahead_pending(),"resumed sequential stream did not forecast");
+  reads=h.image->read_bytes;
+  const auto next_epoch=h.adapter->foreground_activity();
+  const auto later=h.clock.next();
+  require(!h.adapter->advance_native_lz4_read_ahead(admitted,h.clock.now-1000,next_epoch) && h.image->read_bytes==reads,
+      "one observation funded two prefetches");
+  require(!h.adapter->advance_native_lz4_read_ahead(later,h.clock.now,demand_epoch) && h.image->read_bytes==reads,
+      "old foreground epoch authorized new backing work");
+  h.adapter->discard_native_lz4_read_ahead(demand_epoch);
+  require(h.adapter->native_lz4_read_ahead_pending(),"old foreground epoch discarded a new prediction");
+  h.adapter->discard_native_lz4_read_ahead(next_epoch);
+  require(!h.adapter->native_lz4_read_ahead_pending(),"backing refusal kept the same prediction queued");
+
+  h.read(context,blocks[0]);
+  h.read(context,blocks[1],extent);
+  const auto contested=h.clock.next();
+  const auto contested_epoch=h.adapter->foreground_activity();
+  h.image_io->armed=true;
+  bool prepared=false;
+  std::jthread prepare([&]{prepared=h.adapter->advance_native_lz4_read_ahead(contested,h.clock.now,contested_epoch);});
+  {
+    std::unique_lock lock(h.image_io->mutex);
+    require(h.image_io->changed.wait_for(lock,std::chrono::seconds(5),[&]{return h.image_io->entered;}),
+        "read-ahead did not reach controlled backing");
+  }
+  Bytes expected(blocks[2].size());
+  NTSTATUS status=STATUS_UNSUCCESSFUL;
+  ULONG read=0;
+  std::jthread demand([&]{
+    status=h.fs.Interface->Read(&h.fs,context,expected.data(),2*extent,
+        static_cast<ULONG>(expected.size()),&read);
+  });
+  const auto deadline=std::chrono::steady_clock::now()+std::chrono::seconds(5);
+  while(!h.adapter->foreground_pending() && std::chrono::steady_clock::now()<deadline)std::this_thread::sleep_for(std::chrono::milliseconds(1));
+  const bool pending=h.adapter->foreground_pending();
+  h.image_io->release();
+  demand.join();prepare.join();
+  require(pending && !prepared && status==STATUS_SUCCESS && read==expected.size() && expected==blocks[2] &&
+      h.adapter->native_lz4_read_ahead_hits()==1,"read-ahead published across a new foreground call");
+  require(h.image->write_bytes==writes,"read-ahead wrote backing bytes");
+  h.adapter->cancel_background_maintenance();
+  h.read(context,blocks[3],3*extent);
+  require(!h.adapter->native_lz4_read_ahead_pending() && h.adapter->native_lz4_read_ahead_hits()==1,
+      "retired maintenance resumed the optional read-ahead");
+  h.close(context);
+  require(!h.adapter->native_lz4_read_ahead_pending(),"closed context left speculative work");
+  std::cout<<"winfsp_sequential_lz4 ready_hit=1 pressure_refused=1 backing_discard=1 foreground_superseded=1"
+      <<" capture_backing_bytes="<<capture_bytes<<" ready_backing_bytes="<<ready_bytes
+      <<" ordinary_backing_bytes="<<ordinary_bytes<<'\n';
+}
+
 void ready_lz4_reads() {
   if(!store_lz4_available()){
     std::cout<<"winfsp_ready_lz4 cpu_decoder=0\n";
@@ -160,6 +255,7 @@ void ready_lz4_reads() {
   std::cout<<"winfsp_ready_lz4 cpu_decoder=1 ready_hit=1 cpu_miss_exact=1 stale_after_write_rejected=1"
       <<" provisional_and_closed_refused=1 ordinary_backing_bytes="<<ordinary_bytes
       <<" ready_backing_bytes="<<ready_bytes<<'\n';
+  sequential_read_ahead();
 }
 
 void callbacks(unsigned unit) {

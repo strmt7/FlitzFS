@@ -181,6 +181,14 @@ verified AMD result. The scheduler still needs to account for capture,
 preparation, execution and the chance that the data goes unused.
 [Indexed ready read qualification](../NATIVE_AMD_LZ4_READ.md#reusing-a-verified-ready-frame)
 
+An opt-in controller baseline now derives a one-extent forecast from
+ordinary sequential reads. It admits the forecast only after other
+maintenance yields and the observed backing costs fit the idle window.
+The CPU baseline measures preparation and consumption separately. Wider
+batches and automatic AMD enrollment depend on full-path results and
+bounded foreground interference.
+[Sequential read-ahead qualification](../NATIVE_AMD_LZ4_READ.md#qualifying-sequential-read-ahead)
+
 Use [GPU recovery](../GPU_RECOVERY.md) for immediate CPU continuity and
 evidence-driven retry admission. A declined, failed or late reply never
 authorizes stored data or changes the selected version. Bind measurements to
@@ -231,6 +239,9 @@ tests.
 | USB storage and memory cards | Keep removal, transport and seek behavior independent. Shorten writes and in-flight work when measured stalls warrant it. Stop on removal and verify fresh identity and committed roots before reopening. | Use disposable media to qualify removal and reinsertion at commit boundaries with the active Windows removal policy. Verify integrity and space recovery for each supported outer filesystem. |
 | Unclassified backing | Start from the qualified provider contract and conservative concurrency. Change one dimension at a time when ordinary I/O supplies evidence. | Bind supported modes and performance statements to the actual provider and workload. |
 
+An externally created RAM disk needs its own volatile lifetime contract. A
+backing file and successful flush can establish the file provider's barriers
+within that lifetime. Reopening after power loss requires persistent storage.
 Windows removable write-caching behavior follows the active removal policy.
 FlitzFS should observe behavior through the attached provider and keep its
 own commit barriers and detach sequence on every device.

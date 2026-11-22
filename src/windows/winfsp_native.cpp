@@ -192,7 +192,19 @@ UINT32 attributes(UINT32 value,bool directory) {
 NativeWindowsIoOutcome success() noexcept{return {STATUS_SUCCESS,false};}
 }
 struct WinFspNativeWritable::Impl {
-  struct Slot {std::uintptr_t token=0;NativeFileHandle handle;bool provisional=false,awaiting_overwrite=false;UINT32 security_access=0;};
+  struct ReadHistory {std::uint64_t end=0;std::uint32_t bytes=0;};
+  struct Slot {
+    std::uintptr_t token=0;
+    NativeFileHandle handle;
+    bool provisional=false,awaiting_overwrite=false;
+    UINT32 security_access=0;
+    ReadHistory last_read{};
+  };
+  struct ReadAhead {std::uintptr_t token=0;std::uint64_t offset=0;};
+  struct PreparedRead {
+    ReadAhead target;
+    std::unique_ptr<detail::NativeLz4ReadyReads> result;
+  };
   struct ActivitySignal final:detail::NativeVolumeRangeWake {
     Handle event;
     std::atomic<bool> failed{false};
@@ -203,6 +215,10 @@ struct WinFspNativeWritable::Impl {
   WinFspOriginGuard origin;
   NativeFileSession session;
   std::unique_ptr<detail::NativeLz4ReadyReads> native_lz4_reads;
+  bool read_ahead_enabled=false;
+  std::optional<ReadAhead> read_ahead;
+  PreparedRead prepared_read;
+  std::uint64_t read_ahead_hits=0,last_read_ahead_observation=0;
   std::array<Slot,NativeFileSession::max_contexts> slots{};
   std::uintptr_t next_token=1;
   mutable std::mutex control;
@@ -457,6 +473,41 @@ struct WinFspNativeWritable::Impl {
   void install(Slot& slot,const NativeFileHandle& handle,bool overwrite,UINT32 access) noexcept {
     slot={next_token,handle,true,overwrite,access&(READ_CONTROL|WRITE_DAC|WRITE_OWNER|ACCESS_SYSTEM_SECURITY)};++next_token;
   }
+  void invalidate_read_ahead(Slot& slot) noexcept {
+    slot.last_read={};
+    if(read_ahead && read_ahead->token==slot.token)read_ahead.reset();
+    if(prepared_read.target.token==slot.token)prepared_read={};
+  }
+  bool read_ahead_pending() const noexcept {
+    return read_ahead && (!native_lz4_reads || !native_lz4_reads->pending());
+  }
+  bool may_prepare_read() const noexcept {
+    return !maintenance_cancelled && !session.poisoned() && !offline.load(std::memory_order_acquire) &&
+        !stopped.load(std::memory_order_acquire) && !foreground.load(std::memory_order_acquire) &&
+        (!deferred || (!deferred->publication_pending_locked() && !deferred->stats_locked().worker_busy));
+  }
+  std::vector<std::byte> read_data(Slot& slot,std::uint64_t offset,std::uint32_t length) {
+    if(!read_ahead_enabled || maintenance_cancelled)return session.read(slot.handle,offset,length,native_lz4_reads.get());
+    const auto previous=std::exchange(slot.last_read,ReadHistory{});
+    read_ahead.reset();
+    auto prepared=std::exchange(prepared_read,PreparedRead{});
+    auto* ready=native_lz4_reads.get();
+    if((!ready || !ready->pending()) && prepared.result && prepared.target.token==slot.token && length &&
+        (offset<=prepared.target.offset?prepared.target.offset-offset<length:
+            offset-prepared.target.offset<kNativeExtentBytes))
+      ready=prepared.result.get();
+    auto bytes=session.read(slot.handle,offset,length,ready);
+    if(prepared.result && prepared.result->consumed())++read_ahead_hits;
+    const auto maximum=(std::numeric_limits<std::uint64_t>::max)();
+    if(!length || bytes.size()!=length || offset>maximum-length)return bytes;
+    const auto end=offset+length;
+    slot.last_read={end,length};
+    const auto until_next_extent=(kNativeExtentBytes-end%kNativeExtentBytes)%kNativeExtentBytes;
+    if(previous.bytes && previous.end==offset && std::uint64_t(previous.bytes)+length>=kNativeExtentBytes &&
+        until_next_extent<length && until_next_extent<=maximum-end)
+      read_ahead=ReadAhead{slot.token,end+until_next_extent};
+    return bytes;
+  }
   static NTSTATUS security_copy(const std::vector<std::byte>& value,PSECURITY_DESCRIPTOR destination,SIZE_T* size) noexcept {
     if(!size)return destination?STATUS_INVALID_PARAMETER:STATUS_SUCCESS;
     const auto capacity=*size;*size=value.size();
@@ -564,6 +615,7 @@ struct WinFspNativeWritable::Impl {
   static VOID cleanup(FSP_FILE_SYSTEM* fs,PVOID context,PWSTR,ULONG flags) noexcept {
     (void)run(fs,[&](Impl& s) {
       auto& slot=s.adopt(context);
+      if(s.read_ahead_enabled)s.invalidate_read_ahead(slot);
       const auto outcome=dispatch_native_allocated_cleanup(s.session,slot.handle,flags);
       return outcome==NativeCleanupOutcome::applied?success():win_detail::failure(s.session,STATUS_IO_DEVICE_ERROR,true);
     },true);
@@ -571,6 +623,7 @@ struct WinFspNativeWritable::Impl {
   static VOID close(FSP_FILE_SYSTEM* fs,PVOID context) noexcept {
     (void)run(fs,[&](Impl& s) {
       auto& slot=s.resolve(context);
+      if(s.read_ahead_enabled)s.invalidate_read_ahead(slot);
       if(dispatch_native_close(s.session,slot.handle)!=NativeCloseOutcome::retired)
         return win_detail::failure(s.session,STATUS_IO_DEVICE_ERROR,true);
       slot={};return success();
@@ -583,7 +636,7 @@ struct WinFspNativeWritable::Impl {
   static NTSTATUS read(FSP_FILE_SYSTEM* fs,PVOID context,PVOID buffer,UINT64 offset,ULONG length,PULONG count) noexcept {
     if(count)*count=0;if(!count||(!buffer&&length)||length>kNativeMaxReadBytes)return STATUS_INVALID_PARAMETER;
     return run(fs,[&](Impl& s) {
-      auto& slot=s.adopt(context);const auto bytes=s.session.read(slot.handle,offset,length,s.native_lz4_reads.get());
+      auto& slot=s.adopt(context);const auto bytes=s.read_data(slot,offset,length);
       if(bytes.empty()&&length)return win_detail::failure(s.session,STATUS_END_OF_FILE);
       if(!bytes.empty())std::memcpy(buffer,bytes.data(),bytes.size());*count=static_cast<ULONG>(bytes.size());return success();
     });
@@ -595,6 +648,7 @@ struct WinFspNativeWritable::Impl {
     return run(fs,[&](Impl& s) {
       if(length>native_windows_write_limit(s.info_policy))return win_detail::failure(s.session,STATUS_INVALID_PARAMETER);
       auto& slot=s.adopt(context);
+      if(s.read_ahead_enabled)s.invalidate_read_ahead(slot);
       if(s.deferred && s.deferred->enqueue_locked(fs,slot.handle,
           {static_cast<const std::byte*>(buffer),length},offset,append!=FALSE,constrained!=FALSE))
         return NativeWindowsIoOutcome{STATUS_PENDING,false};
@@ -604,7 +658,9 @@ struct WinFspNativeWritable::Impl {
   static NTSTATUS size(FSP_FILE_SYSTEM* fs,PVOID context,UINT64 bytes,BOOLEAN allocation,FSP_FSCTL_FILE_INFO* info) noexcept {
     if(info)*info={};if(!info)return STATUS_INVALID_PARAMETER;
     return run(fs,[&](Impl& s) {
-      auto& slot=s.adopt(context);return dispatch_native_set_size(s.session,slot.handle,bytes,allocation!=FALSE,{},s.info_policy,info);
+      auto& slot=s.adopt(context);
+      if(s.read_ahead_enabled)s.invalidate_read_ahead(slot);
+      return dispatch_native_set_size(s.session,slot.handle,bytes,allocation!=FALSE,{},s.info_policy,info);
     });
   }
   static NTSTATUS flush(FSP_FILE_SYSTEM* fs,PVOID context,FSP_FSCTL_FILE_INFO* info) noexcept {
@@ -947,7 +1003,7 @@ bool WinFspNativeWritable::background_maintenance_pending(bool scrub_due) const 
   if(impl_->maintenance_cancelled || requires_offline() || dispatcher_stopped() || impl_->session.poisoned())
     return false;
   const bool allow_cold=impl_->cold_compaction_allowed(scrub_due && impl_->session.indexed_payload_scrub_eligible());
-  return impl_->session.indexed_payload_repair_pending() ||
+  return impl_->read_ahead_pending() || impl_->session.indexed_payload_repair_pending() ||
       (scrub_due && impl_->session.indexed_payload_scrub_eligible()) ||
       impl_->session.retirement_pending() || impl_->session.persistent_reclamation_pending(allow_cold) ||
       impl_->session.directory_backfill_pending() ||
@@ -999,6 +1055,8 @@ bool WinFspNativeWritable::supports_anchor_search() const noexcept {
 void WinFspNativeWritable::cancel_background_maintenance() {
   std::lock_guard guard(impl_->control);
   impl_->maintenance_cancelled=true;
+  impl_->read_ahead.reset();
+  impl_->prepared_read={};
   impl_->groups.reset();
   if(impl_->memory_backing)impl_->memory_backing->cancel_compaction(impl_->session);
   impl_->session.cancel_persistent_reclamation();
@@ -1181,10 +1239,7 @@ bool WinFspNativeWritable::capture_native_lz4_read(PVOID context,std::uint64_t o
   out={};
   try {
     std::unique_lock guard(impl_->control,std::try_to_lock);
-    if(!guard || !maximum_encoded || impl_->info_policy!=indexed_file_info || requires_offline() ||
-        dispatcher_stopped() || impl_->maintenance_cancelled || foreground_pending() ||
-        (impl_->deferred && (impl_->deferred->publication_pending_locked() ||
-            impl_->deferred->stats_locked().worker_busy)))return false;
+    if(!guard || !maximum_encoded || impl_->info_policy!=indexed_file_info || !impl_->may_prepare_read())return false;
     const auto& slot=impl_->resolve(context);
     return !slot.provisional && !slot.awaiting_overwrite &&
         impl_->session.capture_native_lz4(slot.handle,offset,maximum_encoded,out);
@@ -1205,6 +1260,58 @@ bool WinFspNativeWritable::publish_native_lz4_reads(std::unique_ptr<detail::Nati
 std::size_t WinFspNativeWritable::native_lz4_read_hits() const {
   std::lock_guard guard(impl_->control);
   return impl_->native_lz4_reads?impl_->native_lz4_reads->consumed():0;
+}
+bool WinFspNativeWritable::enable_native_lz4_read_ahead() {
+  std::lock_guard guard(impl_->control);
+  if(impl_->callbacks_bound || impl_->maintenance_cancelled || impl_->info_policy!=indexed_file_info ||
+      !store_lz4_available())return false;
+  impl_->read_ahead_enabled=true;
+  return true;
+}
+bool WinFspNativeWritable::native_lz4_read_ahead_pending() const noexcept {
+  try {
+    std::unique_lock guard(impl_->control,std::try_to_lock);
+    return guard && impl_->read_ahead_pending() && impl_->may_prepare_read();
+  }catch(...) {return false;}
+}
+bool WinFspNativeWritable::advance_native_lz4_read_ahead(
+    const NativeMaintenanceObservation& observed,std::uint64_t now,std::uint64_t epoch) noexcept {
+  try {
+    const auto resources=detail::maintenance_resources(observed,now,impl_->group_policy);
+    // Charge both frame buffers and space for checked index and record scratch.
+    constexpr std::uint64_t working_bytes=2ULL*kStoreMaxObjectBytes+4ULL*kStoreCommitUnit;
+    if(!resources || resources->cpu_busy || resources->memory_allowance<working_bytes || observed.foreground_pending)
+      return false;
+    detail::NativeLz4CapturedFrame captured;
+    Impl::ReadAhead target;
+    {
+      std::unique_lock guard(impl_->control,std::try_to_lock);
+      if(!guard || !impl_->may_prepare_read() || foreground_activity()!=epoch || !impl_->read_ahead_pending() ||
+          observed.sequence<=impl_->last_read_ahead_observation)return false;
+      impl_->last_read_ahead_observation=observed.sequence;
+      target=*std::exchange(impl_->read_ahead,std::nullopt);
+      const auto& slot=impl_->resolve(reinterpret_cast<PVOID>(target.token));
+      if(slot.provisional || slot.awaiting_overwrite ||
+          !impl_->session.capture_native_lz4(slot.handle,target.offset,kStoreMaxObjectBytes,captured))return false;
+    }
+    if(foreground_pending() || foreground_activity()!=epoch)return false;
+    auto ready=detail::NativeLz4ReadyReads::decode_captured(captured);
+    std::unique_lock guard(impl_->control,std::try_to_lock);
+    if(!guard || !impl_->may_prepare_read() || foreground_activity()!=epoch ||
+        (impl_->native_lz4_reads && impl_->native_lz4_reads->pending()))return false;
+    impl_->prepared_read={target,std::move(ready)};
+    return true;
+  }catch(...) {return false;}
+}
+void WinFspNativeWritable::discard_native_lz4_read_ahead(std::uint64_t epoch) noexcept {
+  try {
+    std::unique_lock guard(impl_->control,std::try_to_lock);
+    if(guard && !foreground_pending() && foreground_activity()==epoch)impl_->read_ahead.reset();
+  }catch(...) {}
+}
+std::uint64_t WinFspNativeWritable::native_lz4_read_ahead_hits() const {
+  std::lock_guard guard(impl_->control);
+  return impl_->read_ahead_hits;
 }
 void WinFspNativeWritable::bind_callbacks(FSP_FILE_SYSTEM& fs,WinFspOriginQuery query) noexcept{
   impl_->origin.bind(query);fs.UserContext=impl_.get();

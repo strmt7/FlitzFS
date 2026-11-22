@@ -93,6 +93,7 @@ struct WinFspVolumeController::Impl {
         WindowsMaintenanceHost host;
         using Continuation=WinFspMaintenanceContinuation;
         std::array<detail::MaintenanceBackingTiming,static_cast<std::size_t>(Continuation::payload_scrub)+1> backing_timing{};
+        detail::MaintenanceBackingTiming read_ahead_timing;
         constexpr auto maximum_finite_wait=std::uint64_t{INFINITE-1};
         constexpr auto scrub_day_ms=24ULL*60*60*1000;
         std::uint64_t next=0,next_scrub=0;
@@ -156,7 +157,7 @@ struct WinFspVolumeController::Impl {
           PagedPayloadScrubResult last_scrub_fault;
           std::uint64_t continued=0,continued_compaction=0;
           detail::MaintenanceBackingUse backing_use;
-          bool backing_limited=false;
+          bool backing_limited=false,read_ahead_prepared=false,read_ahead_backing_refused=false;
           MaintenanceThreadScope priority;
           if(!priority.active())disabled=true;
           else try {
@@ -174,7 +175,19 @@ struct WinFspVolumeController::Impl {
                 const auto backing_before=backing_use.elapsed_ns();
                 auto step=[&] {
                   const detail::MaintenanceBackingScope measure(backing_use);
-                  return advance(observed,continuation,scrub_due);
+                  auto step=advance(observed,continuation,scrub_due);
+                  if(!observed.continued && step.state==WinFspMaintenanceState::unchanged &&
+                      !interrupted() && adapter->native_lz4_read_ahead_pending()) {
+                    const auto allowance=host.continue_preparation(adapter->group_maintenance_policy().maximum_age_ms,
+                        read_ahead_timing.predicted_ns(),&read_ahead_backing_refused);
+                    if(allowance && !interrupted()) {
+                      const auto before=backing_use.elapsed_ns();
+                      read_ahead_prepared=adapter->advance_native_lz4_read_ahead(*allowance,GetTickCount64(),epoch);
+                      read_ahead_timing.observe(backing_use.elapsed_ns()-before);
+                      if(!read_ahead_prepared)adapter->discard_native_lz4_read_ahead(epoch);
+                    } else if(read_ahead_backing_refused)adapter->discard_native_lz4_read_ahead(epoch);
+                  }
+                  return step;
                 }();
                 if(observed.continued && step.state==WinFspMaintenanceState::busy)break;
                 auto& timing=backing_timing[static_cast<std::size_t>(step.continuation)];
@@ -251,6 +264,8 @@ struct WinFspVolumeController::Impl {
             current.maximum_quantum_ns=(std::max)(current.maximum_quantum_ns,used);
             current.backing_limited_continuations+=backing_limited;
             current.maintenance_backing.add(backing_use);
+            current.read_ahead_prepared+=read_ahead_prepared;
+            current.read_ahead_backing_refusals+=read_ahead_backing_refused;
           }
           if(notify_integrity_fault && status_changed.value)SetEvent(status_changed.value);
         }
