@@ -2,7 +2,7 @@
 #include "record_digest.hpp"
 #include "folded_checkpoint.hpp"
 #include "protected_stripe_image.hpp"
-#include "native_lz4_read.hpp"
+#include "native_lz4_decode_wire.hpp"
 #include "store_codec.hpp"
 #include <algorithm>
 #include <bit>
@@ -132,6 +132,11 @@ struct PayloadRepairQueue {
   bool pending(std::uint64_t generation) const noexcept {
     return blocked_generation!=generation && (count || scan);
   }
+  bool suspect(const Entry& entry) const noexcept {
+    if(scan || blocked_record==entry)return true;
+    const auto pending=std::span(records).first(count);
+    return std::ranges::find(pending,entry)!=pending.end();
+  }
 };
 void encode_ref(std::span<std::byte> b,std::size_t at,const Ref& r,bool compact=false) {
   put64(b,at,r.first);put64(b,at+8,r.last);put64(b,at+16,r.count);
@@ -177,6 +182,9 @@ struct State {
   std::shared_ptr<detail::StoreCodecDecoder> decoder=std::make_shared<detail::StoreCodecDecoder>();
   std::shared_ptr<PayloadRepairQueue> payload_repairs;
 };
+bool healthy_lz4_index(const State& s) noexcept {
+  return !s.degraded_roots && !s.degraded_metadata && !s.degraded_payloads && !s.image->backing_degraded();
+}
 std::size_t metadata_digest_at(const State& s) {return s.metadata_bytes-Digest{}.size();}
 std::size_t branch_entry_bytes(const State& s) {
   return s.metadata_bytes==compact_metadata_bytes?compact_ref_bytes:ref_bytes;
@@ -1715,24 +1723,32 @@ std::optional<Bytes> PagedObjectStoreSnapshot::read_matching(std::uint64_t id,st
       impl_->retained_root?&*impl_->retained_root:nullptr);
   if(!e || (expected_generation && e->generation!=*expected_generation))return {};
   if(e->logical>maximum_decoded_bytes)fail("object exceeds decoded read budget");
-  return read_object(impl_->state,*e,route);
+  const auto& state=impl_->state;
+  // Only captured frames carry storage provenance. Other advisory routes
+  // still need the checked on-backing record before they may supply bytes.
+  if(auto* ready=dynamic_cast<detail::NativeLz4ReadyReads*>(route);
+      ready && healthy_lz4_index(state) && (!state.payload_repairs || !state.payload_repairs->suspect(*e))) {
+    if(auto bytes=ready->try_indexed(state.id,e->id,e->generation,e->logical,e->digest))
+      return bytes;
+  }
+  return read_object(state,*e,route);
 }
 bool PagedObjectStoreSnapshot::capture_native_lz4(std::uint64_t object,std::size_t maximum_decoded,
     std::size_t maximum_encoded,detail::NativeLz4CapturedFrame& out) const {
   if(!impl_ || !maximum_encoded || !store_lz4_available())return false;
   const auto& state=impl_->state;
-  if(state.degraded_roots || state.degraded_metadata || state.degraded_payloads || state.image->backing_degraded())
-    return false;
+  if(!healthy_lz4_index(state))return false;
   const auto entry=lookup(state,object,impl_->lookup_pages?&*impl_->lookup_pages:nullptr,
       impl_->retained_root?&*impl_->retained_root:nullptr);
-  if(!entry || entry->logical>maximum_decoded || entry->stored>maximum_encoded || entry->stored>=entry->logical)
-    return false;
+  if(!entry || entry->logical>maximum_decoded || entry->stored>maximum_encoded || entry->stored>=entry->logical ||
+      !healthy_lz4_index(state) || (state.payload_repairs && state.payload_repairs->suspect(*entry)))return false;
   // Do not schedule recovery I/O on a speculative read. Normal demand still
   // owns mirror recovery, and the worker verifies the encoded block again.
   auto record=read_record_at(state,*entry,entry->offset);
-  if(get32(record.header,12)!=detail::kStoreLz4 || state.degraded_metadata || state.image->backing_degraded())
-    return false;
-  out={{state.id,entry->id,entry->generation,entry->logical,field<32>(record.header,56)},std::move(record.payload)};
+  if(get32(record.header,12)!=detail::kStoreLz4 || !healthy_lz4_index(state))return false;
+  out.key_={state.id,entry->id,entry->generation,entry->logical,field<32>(record.header,56)};
+  out.stored_digest_=entry->digest;
+  out.encoded_=std::move(record.payload);
   return true;
 }
 std::optional<std::pair<std::uint64_t,Bytes>> PagedObjectStoreSnapshot::read_first_after(

@@ -173,6 +173,14 @@ small demand reads on CPU and price the full cost of a larger speculative
 window before scheduling it automatically.
 [Prepared native read qualification](../NATIVE_AMD_LZ4_READ.md#prepared-native-reads)
 
+The indexed ready path can now bind a captured frame to the stored digest
+in the current paged index. A hit skips fetching its compressed record and
+checks the decoded bytes before delivery. The public AIT A two-frame fixture
+reduced backing reads on demand from 144,341 to 18,168 bytes with an already
+verified AMD result. The scheduler still needs to account for capture,
+preparation, execution and the chance that the data goes unused.
+[Indexed ready read qualification](../NATIVE_AMD_LZ4_READ.md#reusing-a-verified-ready-frame)
+
 Use [GPU recovery](../GPU_RECOVERY.md) for immediate CPU continuity and
 evidence-driven retry admission. A declined, failed or late reply never
 authorizes stored data or changes the selected version. Bind measurements to

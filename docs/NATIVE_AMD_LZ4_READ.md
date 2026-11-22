@@ -146,3 +146,48 @@ costs. Evaluate those changes on the same production read path.
 [Prepared native read verification](evidence/prepared-amd-lz4-reads-2026-11-22.json) ·
 [AMD HIP performance guidance](https://rocm.docs.amd.com/projects/HIP/en/latest/how-to/performance_guidelines.html) ·
 [AMD asynchronous execution](https://rocm.docs.amd.com/projects/HIP/en/latest/how-to/hip_runtime_api/asynchronous.html)
+
+## Reusing a verified ready frame
+
+An adopted WinFsp file context can supply one captured record when the
+controller can obtain the callback lock and foreground work has yielded.
+The capture keeps the digest of the stored record checked by the paged
+index. The parent retains that digest while the worker runs and verifies
+the decoded result before publishing it to the reader.
+
+The file read checks the current index and matches the image, object,
+generation, length and stored digest. It rehashes the decoded bytes before
+returning them and consumes each ready frame once. A normal index lookup
+still runs. The matching frame avoids fetching the compressed record again.
+A changed record or known backing damage sends the read through normal
+record verification and CPU mirror recovery where needed. Reports from an
+advisory route without capture provenance still require the stored record check. A write to an
+unrelated extent can preserve a matching ready frame.
+
+### Ready read measurements
+
+The indexed session consumed both frames in all eight Radeon RX 9070 XT
+trials with exact bytes. The table isolates demand reads after capture,
+GPU work, reply verification and worker retirement had completed.
+
+| Workload | Ordinary backing bytes | Ready backing bytes | Ordinary demand time | Ready demand time |
+| --- | ---: | ---: | ---: | ---: |
+| Synthetic pair | 35,393 | 18,168 | 114–140 µs | 87–90 µs |
+| AIT A prefix | 144,341 | 18,168 | 159–207 µs | 91–103 µs |
+
+The SDK callback fixture consumed a CPU-generated ready frame using 9,239
+backing bytes, compared with 17,839 bytes for its ordinary read. It also
+checked provisional and closed handles and rejected a ready frame from
+before a write. The native fixture verified a miss when two independently
+created images reused the same identity and object generation with different
+stored bytes. A protected copy remained readable on CPU after the fixture
+damaged the primary and observed the failure.
+
+These are bytes requested from a memory-backed provider and time spent in
+the paired native reads. Windows file providers can also serve reads from
+the system file cache. The prepared two-frame GPU exchange still took
+34–37 ms after submission, including verification and exact retirement.
+Automatic scheduling therefore still needs lead-time and full cost
+measurements for larger read-ahead windows.
+[Ready read verification](evidence/indexed-ready-amd-reads-2026-11-22.json) ·
+[Windows file caching](https://learn.microsoft.com/en-us/windows/win32/fileio/file-caching)

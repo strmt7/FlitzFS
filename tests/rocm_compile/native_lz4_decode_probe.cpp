@@ -48,21 +48,6 @@ std::filesystem::path module_path(HMODULE module) {
   return path;
 }
 
-class ReadRoute final:public NativeLz4ReadRoute {
- public:
-  std::unique_ptr<NativeLz4ReadyReads> ready;
-  std::size_t hits=0,rejected=0;
-  std::optional<Bytes> try_ready(const NativeLz4ReadKey& key,std::span<const std::byte> encoded) noexcept override {
-    if(ready) {
-      auto result=ready->try_ready(key,encoded);
-      if(result)++hits;
-      return result;
-    }
-    return {};
-  }
-  void reject(const NativeLz4ReadKey& key) noexcept override{++rejected;if(ready)ready->reject(key);}
-};
-
 enum class Trial {cold,prepared,discard_prepared,refuse_module,refuse_prepared_module};
 
 void run(std::wstring_view runtime_name,std::wstring_view runtime_sha,std::wstring_view module_sha,
@@ -106,7 +91,6 @@ void run(std::wstring_view runtime_name,std::wstring_view runtime_sha,std::wstri
   (void)session.write(reader,kNativeExtentBytes,second);
   const auto first_size=static_cast<std::uint32_t>(first.size());
   const auto second_size=static_cast<std::uint32_t>(second.size());
-  ReadRoute route;
   std::array<NativeLz4CapturedFrame,2> captured;
   using Clock=std::chrono::steady_clock;
   const auto capture_begin=Clock::now();
@@ -115,10 +99,10 @@ void run(std::wstring_view runtime_name,std::wstring_view runtime_sha,std::wstri
       "native read-ahead did not return both current encoded frames");
   const auto capture_ns=std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now()-capture_begin).count();
   const std::array sources{
-      NativeLz4DecodeSource{captured[0].key,captured[0].encoded},
-      NativeLz4DecodeSource{captured[1].key,captured[1].encoded}};
+      NativeLz4DecodeSource{captured[0].key(),captured[0].encoded()},
+      NativeLz4DecodeSource{captured[1].key(),captured[1].encoded()}};
   constexpr NativeLz4DecodeGrant grant{2,256U*1024U};
-  const auto exchange=NativeLz4ReadExchange::prepare(sources,detail::next_gpu_request_id(),grant);
+  const auto exchange=NativeLz4ReadExchange::prepare_captured(captured,detail::next_gpu_request_id(),grant);
   const WorkerChannelCapacity capacity{exchange.request()->bytes().size(),exchange.reply_capacity()};
   const auto first_batch=NativeLz4DecodeBatch::prepare({&sources[0],1},grant);
   const auto second_batch=NativeLz4DecodeBatch::prepare({&sources[1],1},grant);
@@ -134,12 +118,14 @@ void run(std::wstring_view runtime_name,std::wstring_view runtime_sha,std::wstri
   const hip_detail::DirectoryPin pin(native.parent_path());
   const auto pinned=ReadOnlyFile::open(native);
   require(hip_detail::matches_sha256(pinned,ascii(module_sha)),"native decode module hash mismatch");
-  const auto cpu_start=std::chrono::steady_clock::now();
+  auto backing_before=backing->read_bytes;
+  const auto cpu_start=Clock::now();
   require(session.read(reader,0,first_size)==first &&
       session.read(reader,kNativeExtentBytes,second_size)==second,
       "matched CPU fixture reads failed");
   const auto cpu_ns=std::chrono::duration_cast<std::chrono::nanoseconds>(
-      std::chrono::steady_clock::now()-cpu_start).count();
+      Clock::now()-cpu_start).count();
+  const auto cpu_backing=backing->read_bytes-backing_before;
   constexpr ProcessBudget child{160,1200,14000,16};
   require(valid_worker_channel_capacity(capacity,child),"native LZ4 worker channel refused");
   std::wstring worker_module_sha(module_sha);
@@ -153,8 +139,7 @@ void run(std::wstring_view runtime_name,std::wstring_view runtime_sha,std::wstri
   const auto started=Clock::now();
   auto work=prepared?WorkerExchangeSession::start_prepared_sized(executable,arguments,capacity,child):
       WorkerExchangeSession::start_sized(executable,arguments,exchange.request(),capacity,child);
-  require(session.read(reader,0,first_size,&route)==first && route.hits==0,
-      "pending worker prevented immediate CPU file read");
+  require(session.read(reader,0,first_size)==first,"pending worker prevented immediate CPU file read");
   const auto done=static_cast<HANDLE>(work.supervisor_wait_handle());
   require(done!=nullptr,"native LZ4 worker has no retirement handle");
   auto submitted=started;
@@ -178,9 +163,8 @@ void run(std::wstring_view runtime_name,std::wstring_view runtime_sha,std::wstri
     require(result && result->code==WorkerExchangeCode::cancelled && result->process.exit_confirmed &&
         result->process.exit_code==0 && !result->publication_observed && result->response.empty(),
         "unused prepared decoder did not retire without publication");
-    require(session.read(reader,0,first_size,&route)==first &&
-        session.read(reader,kNativeExtentBytes,second_size,&route)==second && route.hits==0,
-        "native CPU reads changed after prepared discard");
+    require(session.read(reader,0,first_size)==first &&
+        session.read(reader,kNativeExtentBytes,second_size)==second,"native CPU reads changed after prepared discard");
     std::cout<<"native_lz4_prepared_discard {\"ready_ns\":"<<ready_ns
         <<",\"gpu_kernel_launched\":false,\"exact_child_retired\":true,\"cpu_fallback_exact\":true}\n";
     return;
@@ -189,9 +173,8 @@ void run(std::wstring_view runtime_name,std::wstring_view runtime_sha,std::wstri
     require(result && result->code==WorkerExchangeCode::worker_failed && result->process.exit_confirmed &&
         result->process.exit_code==static_cast<std::uint32_t>(HipWorkerExit::integrity_failure) &&
         result->response.empty(),"wrong module identity did not refuse the worker before device access");
-    require(session.read(reader,0,first_size,&route)==first &&
-        session.read(reader,kNativeExtentBytes,second_size,&route)==second && route.hits==0,
-        "indexed reads changed after worker refusal");
+    require(session.read(reader,0,first_size)==first &&
+        session.read(reader,kNativeExtentBytes,second_size)==second,"indexed reads changed after worker refusal");
     std::cout<<"native_lz4_refusal {\"worker_refused_module\":true,\"gpu_launched\":false,"
         "\"exact_child_retired\":true,\"cpu_fallback_exact\":true,\"prepared\":"
         <<(prepared?"true":"false")<<"}\n";
@@ -202,14 +185,20 @@ void run(std::wstring_view runtime_name,std::wstring_view runtime_sha,std::wstri
         <<static_cast<unsigned>(result->code)<<'\n';
     throw std::runtime_error("native LZ4 worker did not complete");
   }
-  route.ready=exchange.accept(result->response,WorkerExecution::hip);
+  auto ready=exchange.accept(result->response,WorkerExecution::hip);
   const auto ended=Clock::now();
   const auto exchange_ns=std::chrono::duration_cast<std::chrono::nanoseconds>(ended-started).count();
   const auto after_submit_ns=std::chrono::duration_cast<std::chrono::nanoseconds>(ended-submitted).count();
-  require(session.read(reader,0,first_size,&route)==first &&
-      session.read(reader,kNativeExtentBytes,second_size,&route)==second &&
-      route.hits==2 && !route.rejected,"verified AMD bytes did not reach both native file reads");
-  require(session.read(reader,0,first_size,&route)==first && route.hits==2,
+  backing_before=backing->read_bytes;
+  const auto ready_start=Clock::now();
+  require(session.read(reader,0,first_size,ready.get())==first &&
+      session.read(reader,kNativeExtentBytes,second_size,ready.get())==second &&
+      ready->indexed_consumed()==2,"verified AMD bytes did not reach both indexed ready reads");
+  const auto ready_read_ns=std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now()-ready_start).count();
+  const auto ready_backing=backing->read_bytes-backing_before;
+  require(cpu_backing>=ready_backing+sources[0].encoded.size()+sources[1].encoded.size(),
+      "indexed AMD ready hits reread their compressed payloads");
+  require(session.read(reader,0,first_size,ready.get())==first && ready->consumed()==2,
       "CPU fallback after consuming ready results failed");
   session.snapshot().verify_all();
   std::cout<<"native_lz4_hip {\"architecture\":\""<<arch
@@ -221,7 +210,10 @@ void run(std::wstring_view runtime_name,std::wstring_view runtime_sha,std::wstri
       <<",\"exchange_ns\":"<<exchange_ns<<",\"device_reserved_bytes\":"<<device_reserve
       <<",\"prepared\":"<<(prepared?"true":"false")<<",\"ready_ns\":"<<ready_ns
       <<",\"after_submit_ns\":"<<after_submit_ns<<",\"capture_ns\":"<<capture_ns
-      <<",\"cpu_session_read_ns\":"<<cpu_ns<<",\"public_corpus\":"<<(corpus?"true":"false")<<"}\n";
+      <<",\"cpu_session_read_ns\":"<<cpu_ns<<",\"ready_session_read_ns\":"<<ready_read_ns
+      <<",\"cpu_backing_bytes\":"<<cpu_backing<<",\"ready_backing_bytes\":"<<ready_backing
+      <<",\"indexed_hits\":"<<ready->indexed_consumed()
+      <<",\"public_corpus\":"<<(corpus?"true":"false")<<"}\n";
 }
 }
 

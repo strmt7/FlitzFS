@@ -134,6 +134,10 @@ class WinFspNativeWritable final {
   NativeDeferredWriteStats deferred_write_stats() const;
   std::optional<NativeUniformWriteResult> deferred_write_receipt() const;
   NativeDeferredStop stop_deferred_writes_hosted();
+  // A controller may capture one record from a live adopted context when
+  // the callback lock is available and foreground work has yielded.
+  bool capture_native_lz4_read(PVOID,std::uint64_t offset,std::size_t maximum_encoded,
+      detail::NativeLz4CapturedFrame&) noexcept;
   // The owner publishes only complete, verified worker results after retirement.
   // Read callbacks consume exact-key results and otherwise use the CPU decoder.
   bool publish_native_lz4_reads(std::unique_ptr<detail::NativeLz4ReadyReads>&) noexcept;

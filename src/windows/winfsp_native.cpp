@@ -1176,6 +1176,20 @@ NativeDeferredStop WinFspNativeWritable::stop_deferred_writes_hosted(){
   }
   return service?service->stop():NativeDeferredStop::quiescent;
 }
+bool WinFspNativeWritable::capture_native_lz4_read(PVOID context,std::uint64_t offset,
+    std::size_t maximum_encoded,detail::NativeLz4CapturedFrame& out) noexcept {
+  out={};
+  try {
+    std::unique_lock guard(impl_->control,std::try_to_lock);
+    if(!guard || !maximum_encoded || impl_->info_policy!=indexed_file_info || requires_offline() ||
+        dispatcher_stopped() || impl_->maintenance_cancelled || foreground_pending() ||
+        (impl_->deferred && (impl_->deferred->publication_pending_locked() ||
+            impl_->deferred->stats_locked().worker_busy)))return false;
+    const auto& slot=impl_->resolve(context);
+    return !slot.provisional && !slot.awaiting_overwrite &&
+        impl_->session.capture_native_lz4(slot.handle,offset,maximum_encoded,out);
+  }catch(...) {return false;}
+}
 bool WinFspNativeWritable::publish_native_lz4_reads(std::unique_ptr<detail::NativeLz4ReadyReads>& results) noexcept {
   try {
     std::unique_ptr<detail::NativeLz4ReadyReads> retired;

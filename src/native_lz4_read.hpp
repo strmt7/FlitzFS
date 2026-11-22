@@ -3,6 +3,8 @@
 #include "record_digest.hpp"
 #include <compare>
 
+namespace flitzfs {class PagedObjectStoreSnapshot;}
+
 namespace flitzfs::detail {
 struct NativeLz4ReadKey {
   StoreIdentity image{};
@@ -12,11 +14,17 @@ struct NativeLz4ReadKey {
   auto operator<=>(const NativeLz4ReadKey&) const=default;
 };
 
-// Stored bytes verified against their checkpoint. A deferred consumer must
-// still bind its result to the complete key and verify the decoded digest.
-struct NativeLz4CapturedFrame {
-  NativeLz4ReadKey key;
-  std::vector<std::byte> encoded;
+// The paged reader alone binds the stored digest to these captured bytes.
+class NativeLz4CapturedFrame final {
+ public:
+  const NativeLz4ReadKey& key() const noexcept {return key_;}
+  std::span<const std::byte> encoded() const noexcept {return encoded_;}
+ private:
+  friend class ::flitzfs::PagedObjectStoreSnapshot;
+  friend class NativeLz4ReadExchange;
+  NativeLz4ReadKey key_;
+  Digest stored_digest_{};
+  std::vector<std::byte> encoded_;
 };
 
 // An advisory route for an owned result from an exact native LZ4 frame.

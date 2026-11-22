@@ -102,6 +102,19 @@ NativeLz4ReadExchange NativeLz4ReadExchange::prepare(std::span<const NativeLz4De
   return exchange;
 }
 
+NativeLz4ReadExchange NativeLz4ReadExchange::prepare_captured(std::span<const NativeLz4CapturedFrame> frames,
+    std::uint64_t id,NativeLz4DecodeGrant grant) {
+  if(frames.empty() || frames.size()>grant.maximum_frames)
+    invalid("native LZ4 captured request admission");
+  std::vector<NativeLz4DecodeSource> sources;
+  sources.reserve(frames.size());
+  for(const auto& frame:frames)sources.push_back({frame.key(),frame.encoded()});
+  auto request=prepare(sources,id,grant);
+  request.stored_digests_.reserve(frames.size());
+  for(const auto& frame:frames)request.stored_digests_.push_back(frame.stored_digest_);
+  return request;
+}
+
 NativeLz4WireRequest decode_native_lz4_request(View bytes,NativeLz4DecodeGrant grant,
     std::uint32_t maximum_frames_per_batch){
   require_header(bytes,request_magic);
@@ -170,22 +183,42 @@ std::unique_ptr<NativeLz4ReadyReads> NativeLz4ReadExchange::accept(View bytes,Wo
   auto ready=std::make_unique<NativeLz4ReadyReads>();
   ready->frames_.reserve(keys_.size());
   auto payload=bytes.subspan(header_bytes);
-  for(const auto& key:keys_){
+  for(std::size_t i=0;i<keys_.size();++i){
+    const auto& key=keys_[i];
     const auto data=payload.first(key.decoded_bytes);
     if(record_digest(data)!=key.decoded_digest)invalid("native LZ4 reply digest");
-    ready->frames_.push_back({key,{data.begin(),data.end()}});
+    const auto stored=stored_digests_.empty()?std::optional<Digest>{}:stored_digests_[i];
+    ready->frames_.push_back({key,{data.begin(),data.end()},stored});
     payload=payload.subspan(data.size());
   }
-  std::ranges::sort(ready->frames_,{},&NativeLz4DecodedFrame::key);
+  std::ranges::sort(ready->frames_,{},&NativeLz4ReadyReads::Frame::key);
   return ready;
 }
 
 std::optional<Bytes> NativeLz4ReadyReads::try_ready(const NativeLz4ReadKey& key,View) noexcept {
   if(rejected_)return {};
-  const auto match=std::ranges::lower_bound(frames_,key,{},&NativeLz4DecodedFrame::key);
+  const auto match=std::ranges::lower_bound(frames_,key,{},&Frame::key);
   if(match==frames_.end() || match->key!=key || match->bytes.empty())return {};
+  return consume(*match);
+}
+std::optional<Bytes> NativeLz4ReadyReads::try_indexed(const StoreIdentity& image,std::uint64_t object,
+    std::uint64_t generation,std::uint32_t size,const Digest& stored_digest) noexcept {
+  if(rejected_)return {};
+  const NativeLz4ReadKey prefix{image,object,generation,size,{}};
+  const auto match=std::ranges::lower_bound(frames_,prefix,{},&Frame::key);
+  if(match==frames_.end() || match->key.image!=image || match->key.object!=object ||
+      match->key.generation!=generation || match->key.decoded_bytes!=size ||
+      match->stored_digest!=stored_digest || match->bytes.empty())return {};
+  if(match->bytes.size()!=size || record_digest(match->bytes)!=match->key.decoded_digest) {
+    reject(match->key);
+    return {};
+  }
+  ++indexed_consumed_;
+  return consume(*match);
+}
+Bytes NativeLz4ReadyReads::consume(Frame& frame) noexcept {
   ++consumed_;
-  return std::exchange(match->bytes,Bytes{});
+  return std::exchange(frame.bytes,Bytes{});
 }
 void NativeLz4ReadyReads::reject(const NativeLz4ReadKey&) noexcept {rejected_=true;}
 }

@@ -117,31 +117,34 @@ void ready_lz4_reads() {
   Harness h(4096,nullptr,nullptr,nullptr,nullptr,true,fast);
   const auto context=h.create(42);
   const auto plain=native_lz4_fixture::source();
+  detail::NativeLz4CapturedFrame captured;
+  require(!h.adapter->capture_native_lz4_read(context,0,kNativeExtentBytes,captured),
+      "capture adopted a provisional context");
   h.write(context,plain);
+  require(h.adapter->capture_native_lz4_read(context,0,kNativeExtentBytes,captured),
+      "controller could not capture its active SDK frame");
 
-  const auto store=PagedObjectStoreSnapshot::open(h.image_io,{kStoreMaxPhysicalBytes});
-  constexpr auto object=detail::kNativeIndexedDataObject|1;
-  const auto metadata=store.stat(object);
-  require(metadata.has_value(),"missing native callback extent");
-  const auto decoded=store.read(object);
-  detail::StoreCodecEncoder encoder(fast);
-  const auto encoded=encoder.encode(decoded);
-  require(encoded.codec==detail::kStoreLz4 && encoded.payload.size()==metadata->stored_payload_bytes,
-      "callback fixture did not store a native LZ4 frame");
-  const detail::NativeLz4ReadKey key{store.identity(),object,metadata->generation,
-      static_cast<std::uint32_t>(decoded.size()),detail::record_digest(decoded)};
-  const detail::NativeLz4DecodeSource source{key,encoded.payload};
   constexpr detail::NativeLz4DecodeGrant grant{1,256U*1024U};
-  const auto exchange=detail::NativeLz4ReadExchange::prepare({&source,1},91,grant);
+  const auto exchange=detail::NativeLz4ReadExchange::prepare_captured({&captured,1},91,grant);
   const auto request=detail::decode_native_lz4_request(exchange.request()->bytes(),grant,1);
-  const detail::NativeLz4DecodedFrame frame{key,decoded};
+  detail::StoreCodecDecoder cpu;
+  const detail::NativeLz4DecodedFrame frame{captured.key(),
+      cpu.decode(detail::kStoreLz4,captured.encoded(),captured.key().decoded_bytes)};
   const auto reply=detail::encode_native_lz4_reply(request,{&frame,1},WorkerExecution::cpu_semantics);
   auto ready=exchange.accept(reply,WorkerExecution::cpu_semantics);
+  auto before=h.image->read_bytes;
+  h.read(context,plain);
+  const auto ordinary_bytes=h.image->read_bytes-before;
   require(h.adapter->publish_native_lz4_reads(ready) && !ready,"callback owner refused verified completion");
+  before=h.image->read_bytes;
   h.read(context,plain);
-  require(h.adapter->native_lz4_read_hits()==1,"SDK read skipped the verified ready result");
+  const auto ready_bytes=h.image->read_bytes-before;
+  require(h.adapter->native_lz4_read_hits()==1 && ordinary_bytes>=ready_bytes+captured.encoded().size(),
+      "SDK read skipped the verified ready result or fetched its payload");
+  before=h.image->read_bytes;
   h.read(context,plain);
-  require(h.adapter->native_lz4_read_hits()==1,"SDK read consumed one result twice");
+  require(h.adapter->native_lz4_read_hits()==1 && h.image->read_bytes-before==ordinary_bytes,
+      "SDK read consumed one result twice or skipped its CPU fallback");
 
   ready=exchange.accept(reply,WorkerExecution::cpu_semantics);
   require(h.adapter->publish_native_lz4_reads(ready) && !ready,"callback owner rejected second verification");
@@ -151,8 +154,12 @@ void ready_lz4_reads() {
   h.read(context,changed);
   require(h.adapter->native_lz4_read_hits()==0,"SDK read accepted the prior file revision");
   h.close(context);
+  require(!h.adapter->capture_native_lz4_read(context,0,kNativeExtentBytes,captured) && captured.encoded().empty(),
+      "capture reused a closed context");
   h.adapter->snapshot().verify_all();
-  std::cout<<"winfsp_ready_lz4 cpu_decoder=1 ready_hit=1 cpu_miss_exact=1 stale_after_write_rejected=1\n";
+  std::cout<<"winfsp_ready_lz4 cpu_decoder=1 ready_hit=1 cpu_miss_exact=1 stale_after_write_rejected=1"
+      <<" provisional_and_closed_refused=1 ordinary_backing_bytes="<<ordinary_bytes
+      <<" ready_backing_bytes="<<ready_bytes<<'\n';
 }
 
 void callbacks(unsigned unit) {
