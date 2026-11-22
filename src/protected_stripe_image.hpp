@@ -17,6 +17,8 @@ struct ProtectedStripeLayout {
 
 class ProtectedStripeImage final:public StoreByteIo {
  public:
+  static std::uint64_t projected_occupied(StoreIdentity,std::uint64_t logical_bytes,
+      std::uint32_t failure_unit,std::uint64_t physical_limit);
   static std::shared_ptr<ProtectedStripeImage> open(std::shared_ptr<StoreByteIo>,std::uint64_t physical_limit);
   static std::shared_ptr<ProtectedStripeImage> seal(std::shared_ptr<StoreByteIo> closed_source,
       std::shared_ptr<StoreByteIo> empty_output,StoreIdentity,std::uint64_t physical_limit);
@@ -37,6 +39,7 @@ class ProtectedStripeImage final:public StoreByteIo {
   void verify_stripes(const StoreByteIo* clean_source=nullptr) const;
   using Checksums=std::array<Digest,kProtectedStripeDataUnits>;
   const Checksums& stripe_checksums(std::uint64_t stripe) const;
+  const std::vector<std::byte>& checked_block(std::uint64_t block) const;
   bool allows_writer() const noexcept override {return false;}
   std::shared_ptr<StoreByteIo> backing_;
   ProtectedStripeLayout layout_;
@@ -48,6 +51,11 @@ class ProtectedStripeImage final:public StoreByteIo {
   // Immutable descriptor digests avoid rereading their full allocation unit.
   // A scrub always starts with a fresh view of the stored descriptors.
   mutable std::array<CheckedStripe,4> checked_{};
+  struct CheckedBlock {
+    std::uint64_t ordinal=UINT64_MAX;
+    std::vector<std::byte> bytes;
+  };
+  mutable std::array<CheckedBlock,4> blocks_{};
   mutable bool degraded_=false;
 };
 

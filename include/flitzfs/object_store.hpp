@@ -48,6 +48,10 @@ class StoreByteIo {
   // Preflight resources without changing stream bytes or extent.
   virtual void admit_write(std::uint64_t projected_extent)=0;
   virtual StoreIoContract contract() const noexcept=0;
+  // Providers with independent protection report observed damage and support
+  // a full audit at explicit verification and writable recovery boundaries.
+  virtual bool backing_degraded() const noexcept {return false;}
+  virtual void verify_backing() const {}
  protected:
   // A provider may permanently close writer admission after its last writer
   // retires. The provider's ordinary control-thread rule also governs closure.
@@ -58,6 +62,7 @@ class StoreByteIo {
   friend class PagedObjectStoreWriter;
   friend class NativeVolumeHeadWriter;
   friend class NativeVolumeFile;
+  friend class NativeHybridBacking;
   friend class OptimizationStateWriter;
   friend class detail::ProtectedStripeImage;
   bool acquire_writer() noexcept {

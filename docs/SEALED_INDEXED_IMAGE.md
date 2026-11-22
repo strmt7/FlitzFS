@@ -80,6 +80,82 @@ ownership. See the [storage execution plan](architecture/ADAPTIVE_STORAGE_EXECUT
 [Linux RAID parity consistency](https://docs.kernel.org/next/driver-api/md/raid5-ppl.html) ·
 [Microsoft ReFS mirror-accelerated parity](https://learn.microsoft.com/en-us/windows-server/storage/refs/mirror-accelerated-parity)
 
+## A sealed base with a writable tail
+
+`NativeHybridBacking` exposes the ordinary mirrored indexed address space over
+an immutable base and a separate writable tail. The detached builder first
+creates an ordinary compacted mirror with a new image identity. It compares
+all bytes of each adjacent mirror pair, including metadata and padding. The
+sealed stream keeps the original 131,072-byte root area, followed by one unit
+from each equal pair. Either virtual unit of that pair reads the same verified
+unit in the sealed stream. The external volume selector still names one
+indexed image. Its resolver supplies the bound base and tail as one backing.
+
+The tail starts with two independently flushed 128-byte binding records at
+offsets 0 and 65,536. Both records describe the same immutable layout.
+
+| Record offset | Bytes | Field |
+| --- | ---: | --- |
+| 0 | 8 | `FLTXHB01` |
+| 8 | 8 | Mirrored unit size |
+| 16 | 8 | Original virtual end of the compacted mirror |
+| 24 | 8 | Physical length of the sealed base |
+| 32 | 16 | Native image identity |
+| 48 | 32 | BLAKE3 binding of the two original paged roots |
+| 80 | 8 | Admitted virtual capacity |
+| 88 | 8 | Reserved zeroes |
+| 96 | 32 | BLAKE3 of bytes 0–95 |
+
+The normal mutable roots occupy the next 131,072 bytes in the tail. New data
+and index writes append after that region, with the ordinary mirrored store's
+barriers and copy-on-write publication. The sealed portion stays immutable.
+The builder initializes and flushes both native roots before publishing either
+binding record. It independently reopens the result before selection. Healthy
+binding peers must agree. A surviving binding or a repaired cold unit supports
+CPU readback. The backing reports observed degradation and refuses writable
+admission until a verified rebuild supplies a fresh image. A full audit
+refreshes binding, descriptor and checked data caches. Four verified data units
+can be retained per base between audits.
+
+The builder requires the combined base and initial tail to occupy fewer bytes
+than the compacted mirror. `occupied()` counts the physical base and tail.
+The native address-space extent still counts logical offsets as mirrored.
+Controllers that schedule movement or reclamation need the actual backing
+footprint and must also charge the selector, retained generations and scratch.
+The existing detached `sealed_indexed` format and its CPU reader remain usable.
+[ReFS mirror-accelerated parity](https://learn.microsoft.com/en-us/windows-server/storage/refs/refs-registry-values) ·
+[OpenZFS RAIDZ](https://openzfs.github.io/openzfs-docs/Basic%20Concepts/Pool%20Structure/RAIDZ.html)
+
+### Writable backing results
+
+The standard native volume selector and file-session entry points delivered
+and independently reopened a cross-extent write. Both layouts use the same
+encoded data and the same selector space. The table counts that selector in
+the active footprint. The staging column also includes the old image and the
+full mirrored workspace held during the current build.
+
+| AIT 2026 split | Active compacted mirror | Active base and tail | Staging coexistence |
+| --- | ---: | ---: | ---: |
+| A–H | 16,130,048 bytes | 10,612,736 bytes | 43,249,664 bytes |
+| I–P | 35,766,272 bytes | 22,880,256 bytes | 95,199,232 bytes |
+| A–P | 51,617,792 bytes | 32,788,480 bytes | 137,506,816 bytes |
+
+The full corpus saved 18,829,312 bytes, or 36.5% of the active mirror. The
+matched write added 180,224 bytes to each layout and left the base untouched.
+On the A–P small-read trace, checked data reuse cut the new layout's backing
+traffic from 37,457,920 bytes to 22,532,096 bytes. The mirror read 19,058,592
+bytes. These are matched process-local Windows traces with both read orders.
+
+The 4 KiB and 64 KiB failure-unit fixtures replayed 534 tail write and flush
+cuts. All reopened the complete old or new bytes. Another 21 binding cuts
+preserved the source. Recovery also checked one lost cold or binding unit,
+rejection after two lost units in one cold stripe, read-only rescue, and a
+same-ID base with different frozen roots. Background enrollment, incremental
+construction, persistent range placement and mounted performance remain
+separate qualification work.
+[Writable backing receipt](evidence/native-hybrid-backing-2026-11-22.json) ·
+[AIT 2026 dataset](https://aitdcc.github.io/dataset.html)
+
 ## Verification on Windows
 
 The test creates and reopens real indexed images on instrumented memory

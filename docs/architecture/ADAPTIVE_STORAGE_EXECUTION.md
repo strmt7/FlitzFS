@@ -9,22 +9,27 @@ representation.
 
 ## 1. Price protection and selection before compressing more
 
-The [sealed image](../SEALED_INDEXED_IMAGE.md) establishes a measured lower-cost
-protection option for immutable bytes. Use it as the control for sealed,
-independently referenced cold regions. Keep the mutable namespace and new
-writes in the existing mirrored copy-on-write path. A new region owns its
-checked root, object lengths, codec IDs and dependency inventory. Bind extent
-references to the exact region, generation and restart-frame range. Charge
-both regions while a retained checkpoint or reader pins the old generation.
+The [sealed image and writable tail](../SEALED_INDEXED_IMAGE.md#a-sealed-base-with-a-writable-tail)
+can now expose an ordinary indexed address space through the native volume
+selector. The base folds checked identical mirror units and protects them
+with parity. New writes keep the existing mirrored copy-on-write path. The
+complete AIT corpus used 36.5% fewer active bytes, including the selector in
+both layouts. The byte savings held through the same small write. The current
+build stages a full mirrored workspace. The reported peak also includes the
+prior source. [Writable backing verification](../evidence/native-hybrid-backing-2026-11-22.json)
 
 Extend discovery and storage selection in this order.
 
-1. Build and audit detached candidates for a frozen namespace generation.
-   Record the previous and candidate occupied bytes plus space still pinned by
-   readers, mandatory dependency bytes and temporary working space.
-2. Bind immutable regions to a staged indexed allocation transaction. Check
-   generation, admitted write cost and content equality immediately before
-   selecting. Preserve the source on stale work, cancellation or lost backing.
+1. Replace the synchronous detached build with bounded staged preparation.
+   Use the existing rewrite traversal and fresh resource evidence to reserve
+   the old image, new backing, checked dependencies and workspace together.
+   Record read amplification and actual physical footprint before enrolling an
+   ordinary storage provider.
+2. Bind base and tail placement to the indexed volume allocator and resolver.
+   Verify the frozen generation and exact content at selection, and preserve
+   the source on stale work, cancellation or unavailable backing. Compare
+   the candidate's settled footprint with the current selected layout and
+   charge the temporary and pinned bytes during the handoff.
 3. Commit region references and reclamation ownership with the namespace
    publication. Replay every write/flush cut through the independent CPU
    reader. Verify that rollback and snapshots still reach their original

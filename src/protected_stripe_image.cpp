@@ -172,6 +172,10 @@ ProtectedStripeImage::ProtectedStripeImage(std::shared_ptr<StoreByteIo> backing,
     std::uint64_t maximum,bool degraded):backing_(std::move(backing)),layout_(layout),
     physical_limit_(maximum),degraded_(degraded) {}
 
+std::uint64_t ProtectedStripeImage::projected_occupied(StoreIdentity id,std::uint64_t logical,
+    std::uint32_t failure_unit,std::uint64_t physical_limit) {
+  return make_layout(id,logical,(std::max)(4096U,failure_unit),physical_limit).physical_bytes;
+}
 std::shared_ptr<ProtectedStripeImage> ProtectedStripeImage::open(std::shared_ptr<StoreByteIo> backing,
     std::uint64_t physical_limit) {
   if(!backing)fail("missing protected image backing");
@@ -244,28 +248,40 @@ const ProtectedStripeImage::Checksums& ProtectedStripeImage::stripe_checksums(st
   checked_.front()=loaded;
   return checked_.front().checksums;
 }
+const Bytes& ProtectedStripeImage::checked_block(std::uint64_t block) const {
+  const auto hit=std::ranges::find(blocks_,block,&CheckedBlock::ordinal);
+  if(hit!=blocks_.end()) {
+    std::rotate(blocks_.begin(),hit,hit+1);
+    return blocks_.front().bytes;
+  }
+  const Stripe stripe{layout_,block/stripe_data_units};
+  const auto slot=block%stripe_data_units;
+  const auto expected=stripe_checksums(stripe.index)[slot];
+  auto& victim=blocks_.back();
+  victim.ordinal=UINT64_MAX;
+  auto& data=victim.bytes;
+  data.resize(layout_.unit);
+  if(!read_copy(*backing_,stripe.data_at(slot),data) || record_digest(data)!=expected) {
+    Bytes descriptor(layout_.unit),scratch(layout_.unit);
+    (void)read_descriptor(*backing_,stripe,descriptor,scratch);
+    if(data_digest(descriptor,slot)!=expected)fail("protected stripe descriptor changed");
+    recover_data(*backing_,stripe,slot,descriptor,data,scratch);
+    degraded_=true;
+  }
+  victim.ordinal=block;
+  std::rotate(blocks_.begin(),blocks_.end()-1,blocks_.end());
+  return blocks_.front().bytes;
+}
+
 void ProtectedStripeImage::read_exact(std::uint64_t offset,std::span<std::byte> output) const {
   if(offset>extent() || output.size()>extent()-offset)fail("protected image read outside logical bounds");
-  if(output.empty())return;
-  Bytes data(layout_.unit);
   while(!output.empty()) {
-    const auto block=offset/layout_.unit;
-    const Stripe stripe{layout_,block/stripe_data_units};
-    const auto& hashes=stripe_checksums(stripe.index);
-    for(auto slot=block%stripe_data_units;slot<stripe.count() && !output.empty();++slot) {
-      if(!read_copy(*backing_,stripe.data_at(slot),data) || record_digest(data)!=hashes[slot]) {
-        Bytes descriptor(layout_.unit),scratch(layout_.unit);
-        (void)read_descriptor(*backing_,stripe,descriptor,scratch);
-        if(data_digest(descriptor,slot)!=hashes[slot])fail("protected stripe descriptor changed");
-        recover_data(*backing_,stripe,slot,descriptor,data,scratch);
-        degraded_=true;
-      }
-      const auto first=offset%layout_.unit;
-      const auto length=(std::min<std::uint64_t>)(output.size(),layout_.unit-first);
-      std::ranges::copy(std::span(data).subspan(first,length),output.begin());
-      output=output.subspan(length);
-      offset+=length;
-    }
+    const auto& data=checked_block(offset/layout_.unit);
+    const auto first=offset%layout_.unit;
+    const auto length=(std::min<std::uint64_t>)(output.size(),layout_.unit-first);
+    std::ranges::copy(std::span(data).subspan(first,length),output.begin());
+    output=output.subspan(length);
+    offset+=length;
   }
 }
 void ProtectedStripeImage::verify_stripes(const StoreByteIo* clean_source) const {
@@ -300,6 +316,7 @@ void ProtectedStripeImage::verify_stripes(const StoreByteIo* clean_source) const
 }
 void ProtectedStripeImage::verify_all() const {
   checked_.fill({});
+  for(auto& block:blocks_)block.ordinal=UINT64_MAX;
   const auto [checked,damaged]=load_roots(*backing_,physical_limit_);
   if(checked!=layout_)fail("protected image roots changed");
   if(damaged)degraded_=true;

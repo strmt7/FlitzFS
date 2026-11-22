@@ -115,7 +115,8 @@ target_compile_definitions(flitzfs_blake3 PRIVATE "$<$<COMPILE_LANGUAGE:C>:${fli
 add_library(flitzfs_core src/indexed_coherence.cpp src/container.cpp src/read_only_file.cpp src/catalog.cpp src/projection.cpp src/windows_path.cpp src/mount_plan.cpp src/process_budget.cpp src/catalog_manifest.cpp src/extent_codec.cpp src/gpu_batch.cpp src/gpu_match.cpp src/gpu_lz4_verify.cpp src/gpu_recovery.cpp src/worker_wire.cpp src/match_worker_wire.cpp src/lz4_worker_wire.cpp src/gpu_lz4_slab.cpp src/gpu_lz4_window.cpp src/uniform_lz4_wire.cpp src/record_digest.cpp src/object_store.cpp src/store_file.cpp src/store_codec.cpp src/compression_probe.cpp src/native_group_codec.cpp src/native_filesystem.cpp src/native_session.cpp src/native_security.cpp src/volume_head.cpp src/native_volume_file.cpp src/optimization_state.cpp)
 target_include_directories(flitzfs_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_sources(flitzfs_core PRIVATE src/paged_store.cpp src/native_name_index.cpp src/native_indexed_volume.cpp src/indexed_names.cpp
-  src/protected_stripe_image.cpp)
+  src/protected_stripe_image.cpp
+  src/native_hybrid_backing.cpp)
 target_sources(flitzfs_core PRIVATE src/native_maintenance.cpp src/native_lz4_decode.cpp
   src/native_lz4_decode_wire.cpp)
 target_sources(flitzfs_core PRIVATE src/native_group_lz4.cpp src/native_group_anchor.cpp)
@@ -451,7 +452,8 @@ if(FLITZFS_BUILD_TESTS)
   target_include_directories(flitzfs_protected_indexed_image_tests PRIVATE src)
   target_link_libraries(flitzfs_protected_indexed_image_tests PRIVATE flitzfs_core)
   add_test(NAME bounded_protected_indexed_image COMMAND flitzfs_protected_indexed_image_tests)
-  set_tests_properties(bounded_protected_indexed_image PROPERTIES TIMEOUT 120)
+  add_test(NAME bounded_native_hybrid_backing COMMAND flitzfs_protected_indexed_image_tests --hybrid)
+  set_tests_properties(bounded_protected_indexed_image bounded_native_hybrid_backing PROPERTIES TIMEOUT 120)
   add_executable(flitzfs_staged_paged_rebuild_tests tests/test_staged_paged_rebuild.cpp)
   target_include_directories(flitzfs_staged_paged_rebuild_tests PRIVATE src)
   target_link_libraries(flitzfs_staged_paged_rebuild_tests PRIVATE flitzfs_core)

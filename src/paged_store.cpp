@@ -198,7 +198,7 @@ std::uint64_t packed_rebuild_size(const State& state,std::uint64_t count,std::ui
 }
 PagedStoreInfo info(const State& s) {
   return {s.generation,s.checkpoint,s.end,s.root.count,s.root.logical,s.root.stored*(s.mirrored?2:1),s.root.height,
-          s.degraded_roots,s.degraded_metadata,s.mirrored,s.degraded_payloads,s.metadata_bytes};
+          s.degraded_roots,s.degraded_metadata,s.mirrored,s.degraded_payloads || s.image->backing_degraded(),s.metadata_bytes};
 }
 void admit_ref(const State& s,const Ref& r,bool root=false) {
   if(r.height>maximum_height || !r.generation || r.generation>s.checkpoint ||
@@ -481,6 +481,7 @@ template<class Visitor> void walk(const State& s,const Ref& r,std::uint64_t afte
 using VerifiedObjectVisitor=std::function<void(std::uint64_t,Bytes)>;
 void verify(const State& s,const VerifiedObjectVisitor* consume=nullptr,
     PayloadVerification verification=PayloadVerification::decoded) {
+  s.image->verify_backing();
   (void)read_node(s,s.root);
   auto visitor=[&](const Entry& e) {
     if(consume) {
@@ -1749,6 +1750,7 @@ PagedObjectStoreWriter PagedObjectStoreWriter::resume_impl(std::shared_ptr<Store
         verified.degraded_metadata || verified.degraded_payloads || !same(s,verified))
       fail("verified indexed reopen root changed");
   }else verify(s);
+  if(s.image->backing_degraded())fail("backing protection requires a verified rebuild before writable resume");
   if(s.degraded_metadata || (s.degraded_payloads && !repair_payloads))
     fail("replica rebuild required before writable resume");
   const auto extent=image->extent();image->flush();auto observed=load(image,limits);
@@ -1811,7 +1813,9 @@ PagedObjectStoreWriter PagedObjectStoreWriter::rebuild_replacing(const PagedObje
   if(recovering!=source.impl_->sealed_payloads || (recovering && !replacement_id))
     fail("rebuild requires an explicit sealed recovery source");
   if(zero(id) || id==original.id)fail("rebuild requires a new nonzero identity");
-  Impl::Lease source_lease(original.image,recovering);
+  // Rebuild reads the source under an exclusive lease. A read-only or
+  // degraded source can supply bytes to a new target after verification.
+  Impl::Lease source_lease(original.image,true);
   auto observed=load(original.image,original.limits);
   if(!same(original,observed))fail("rebuild source is not the current checkpoint");
   const auto source_extent=original.image->extent();
