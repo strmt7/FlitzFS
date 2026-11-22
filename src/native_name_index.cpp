@@ -102,7 +102,7 @@ Bytes fetch(const PagedObjectStoreSnapshot& store, std::uint64_t id, std::size_t
   return verify_object([&]{return store.read(id,limit);});
 }
 void protected_store(const PagedObjectStoreSnapshot& store) {
-  if (!store.info().mirrored_payloads)
+  if (!store.payloads_protected())
     fail(Error::invalid_operation, "name index requires protected object payloads");
 }
 void require_healthy_checkpoint(const PagedObjectStoreSnapshot& store) {

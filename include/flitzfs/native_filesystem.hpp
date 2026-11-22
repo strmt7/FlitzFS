@@ -13,7 +13,7 @@
 namespace flitzfs {
 class PagedObjectStoreSnapshot;
 class PagedObjectStoreWriter;
-enum class NativeImageKind:std::uint32_t {flat=0,paged=1,indexed_paged=2};
+enum class NativeImageKind:std::uint32_t {flat=0,paged=1,indexed_paged=2,sealed_indexed=3};
 struct NativeImageStorage {
   NativeImageKind kind=NativeImageKind::flat;
   std::uint64_t maximum_physical_bytes=0; // Required only for paged images.
@@ -325,6 +325,12 @@ class NativeFilesystemSnapshot final {
   // Explicit persisted/provider format descriptor; never guesses or retries a
   // different reader after corruption. Existing open overloads are unchanged.
   static NativeFilesystemSnapshot open_image(std::shared_ptr<StoreByteIo>,NativeImageStorage);
+  // Build a sealed, read-only indexed image from a closed mirrored source.
+  // Both workspace and output must be new. The transient workspace holds an
+  // ordinary single-stream image and has no authority to publish a volume.
+  NativeFilesystemSnapshot create_sealed_indexed_copy(std::shared_ptr<StoreByteIo> empty_workspace,
+      std::shared_ptr<StoreByteIo> empty_output,StoreIdentity new_identity,
+      std::uint64_t maximum_physical_bytes,StoreCompressionOptions={}) const;
   // Export a legacy snapshot with resolved lifetimes to a new, independently
   // checked indexed image. The source remains selected by any volume head.
   NativeFilesystemSnapshot create_indexed_copy(std::shared_ptr<StoreByteIo> empty_target,

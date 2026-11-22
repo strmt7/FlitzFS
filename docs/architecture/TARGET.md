@@ -210,6 +210,9 @@ even when amortized across many members.
 
 ## 5. Share measured resource and rewrite budgets
 
+The [adaptive storage execution plan](ADAPTIVE_STORAGE_EXECUTION.md) defines
+concrete selection, AMD read/write and backing qualification steps.
+
 Use a host resource coordinator to assign separate foreground reserves and
 background allowances across open volumes, CPU work, memory/commit, device
 memory, device quanta and storage write cost. Size allowances from observed

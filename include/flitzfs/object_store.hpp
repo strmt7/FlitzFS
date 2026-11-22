@@ -37,6 +37,7 @@ bool valid_store_io_contract(StoreIoContract) noexcept;
 
 // Positional exact I/O; implementations throw on any short/failed operation.
 // One control thread; do not race calls through writers or snapshots.
+namespace detail {class ProtectedStripeImage;}
 class StoreByteIo {
  public:
   virtual ~StoreByteIo()=default;
@@ -58,6 +59,7 @@ class StoreByteIo {
   friend class NativeVolumeHeadWriter;
   friend class NativeVolumeFile;
   friend class OptimizationStateWriter;
+  friend class detail::ProtectedStripeImage;
   bool acquire_writer() noexcept {
     return allows_writer() && acquire_exclusive_use();
   }

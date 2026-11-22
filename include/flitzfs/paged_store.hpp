@@ -84,6 +84,8 @@ class PagedObjectStoreSnapshot final {
   PagedCompactedSizes rebuilt_size_after(std::span<const StoreMutation> changes,
       std::uint64_t rebound_object=0) const;
   PagedStoreInfo info() const noexcept;
+  // True for directly mirrored objects or a bound, immutable sealed reader.
+  bool payloads_protected() const noexcept;
   std::optional<StoreObjectInfo> stat(std::uint64_t id) const;
   std::vector<std::byte> read(std::uint64_t id) const;
   // Check the verified logical length before opening or decoding a typed object.
@@ -105,6 +107,7 @@ class PagedObjectStoreSnapshot final {
   friend class IndexedCoherenceSnapshot;
   friend class detail::IndexedVolumeView;
   friend class detail::NativeNameIndex;
+  static PagedObjectStoreSnapshot open_sealed(std::shared_ptr<detail::ProtectedStripeImage>);
   // Stream decoded objects after checking all of their payload copies.
   void visit_verified_objects(const std::function<void(std::uint64_t,std::vector<std::byte>)>&) const;
   // For an already decoded and audited checkpoint under the same backing
@@ -222,10 +225,11 @@ class PagedObjectStoreWriter final {
       StoreCompressionOptions,std::span<const std::byte> replacement,bool reencode,
       std::size_t identity_offset,std::optional<RebuildRetention>,PagedRewriteMode,
       std::optional<RebuildColdEncoding> cold={}) const;
+  enum class RebuildPayloads { preserve, sealed_workspace, mirrored_recovery };
   static PagedObjectStoreWriter rebuild_replacing(const PagedObjectStoreSnapshot&,
       std::shared_ptr<StoreByteIo>,StoreIdentity,PagedStoreLimits,StoreCompressionOptions,
       std::uint64_t replacement_id,std::span<const std::byte> replacement,bool reencode,
-      std::size_t identity_offset=40);
+      std::size_t identity_offset=40,RebuildPayloads=RebuildPayloads::preserve);
   PagedObjectStoreSnapshot snapshot_impl(bool retain_tree_root) const;
   PagedObjectStoreSnapshot snapshot_for_staging(bool query_cache=false) const;
   // Borrowed by serialized indexed queries. Independent snapshots and staged

@@ -6,6 +6,7 @@
 #include "flitzfs/catalog.hpp"
 #include "flitzfs/directory_order.hpp"
 #include "record_digest.hpp"
+#include "protected_stripe_image.hpp"
 #include "native_group_codec.hpp"
 #include <algorithm>
 #include <array>
@@ -1122,6 +1123,8 @@ IndexedInodeInput decode_indexed_inode(std::span<const std::byte> bytes,std::uin
 struct NativeFilesystemSnapshot::Impl {
   detail::NativeObjectSnapshot objects;Model model;
   std::optional<detail::IndexedVolumeView> indexed;
+  std::shared_ptr<detail::ProtectedStripeImage> sealed;
+  std::uint64_t sealed_limit=0;
   std::shared_ptr<const void> enumeration_owner=std::make_shared<const unsigned char>(0);
   explicit Impl(detail::NativeObjectSnapshot snapshot):objects(std::move(snapshot)) {
     const auto root=object_bytes(objects,kNamespaceObject,kMetadataCap);
@@ -1315,6 +1318,14 @@ NativeFilesystemSnapshot NativeFilesystemSnapshot::open(PagedObjectStoreSnapshot
   return open_storage(std::move(objects));
 }
 NativeFilesystemSnapshot NativeFilesystemSnapshot::open_image(std::shared_ptr<StoreByteIo> image,NativeImageStorage storage) {
+  if(storage.kind==NativeImageKind::sealed_indexed) {
+    auto backing=detail::ProtectedStripeImage::open(std::move(image),storage.maximum_physical_bytes);
+    auto view=open(PagedObjectStoreSnapshot::open_sealed(backing));
+    if(!view.impl_->indexed)fail(Code::corrupt,"sealed image requires an indexed namespace");
+    view.impl_->sealed=std::move(backing);
+    view.impl_->sealed_limit=storage.maximum_physical_bytes;
+    return view;
+  }
   if(storage.kind==NativeImageKind::flat && !storage.maximum_physical_bytes)
     return open(ObjectStoreSnapshot::open(std::move(image)));
   if((storage.kind==NativeImageKind::paged || storage.kind==NativeImageKind::indexed_paged) &&
@@ -1326,6 +1337,7 @@ NativeFilesystemSnapshot NativeFilesystemSnapshot::open_image(std::shared_ptr<St
   fail(Code::invalid_operation,"invalid explicit image storage descriptor");
 }
 NativeImageStorage NativeFilesystemSnapshot::image_storage() const noexcept {
+  if(impl_ && impl_->sealed)return {NativeImageKind::sealed_indexed,impl_->sealed_limit};
   if(impl_)if(const auto* paged=impl_->objects.paged_if())
     return {impl_->indexed?NativeImageKind::indexed_paged:NativeImageKind::paged,paged->limits().maximum_physical_bytes};
   return {};
@@ -1334,7 +1346,15 @@ NativeFilesystemSnapshot NativeFilesystemSnapshot::open_storage(detail::NativeOb
   return NativeFilesystemSnapshot(std::make_unique<Impl>(std::move(objects)));
 }
 StoreIdentity NativeFilesystemSnapshot::identity() const noexcept{return impl_?impl_->objects.identity():StoreIdentity{};}
-StoreCommitInfo NativeFilesystemSnapshot::storage_info() const noexcept{return impl_?impl_->objects.info():StoreCommitInfo{};}
+StoreCommitInfo NativeFilesystemSnapshot::storage_info() const noexcept {
+  if(!impl_)return {};
+  auto result=impl_->objects.info();
+  if(impl_->sealed) {
+    result.physical_end=impl_->sealed->occupied();
+    result.degraded_checkpoint=result.degraded_checkpoint || impl_->sealed->degraded();
+  }
+  return result;
+}
 std::uint64_t NativeFilesystemSnapshot::sequence() const noexcept {
   if(!impl_)return 0;
   return impl_->indexed?impl_->indexed->root().sequence:impl_->model.sequence;
@@ -1553,6 +1573,7 @@ Bytes NativeFilesystemSnapshot::read_inode(std::uint64_t inode,std::uint64_t off
 void NativeFilesystemSnapshot::verify_all() const {verify_all({});}
 void NativeFilesystemSnapshot::verify_all(const detail::IndexedReopenAdmission& admission) const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
+  if(impl_->sealed)impl_->sealed->verify_all();
   if(impl_->indexed){impl_->indexed->verify_all(admission);return;}
   if(admission)fail(Code::invalid_operation,"indexed startup metadata requires an indexed volume");
   impl_->objects.verify_all();(void)decode(impl_->objects);
@@ -1561,6 +1582,26 @@ void NativeFilesystemSnapshot::recheck_verified_indexed_mirrors(const NativeFile
   if(!matches_indexed_checkpoint(audited))
     fail(Code::invalid_operation,"indexed reopen checkpoint differs from its native audit");
   impl_->objects.paged_if()->recheck_verified_mirrors(*audited.impl_->objects.paged_if());
+}
+NativeFilesystemSnapshot NativeFilesystemSnapshot::create_sealed_indexed_copy(
+    std::shared_ptr<StoreByteIo> workspace,std::shared_ptr<StoreByteIo> target,StoreIdentity id,
+    std::uint64_t maximum,StoreCompressionOptions options) const {
+  if(!impl_ || !impl_->indexed || impl_->sealed || needs_session_recovery() ||
+      !workspace || !target || workspace==target || id==StoreIdentity{} || id==identity() ||
+      workspace->extent() || target->extent() || !valid_store_io_contract(target->contract()))
+    fail(Code::invalid_operation,"sealed copy requires a closed indexed image and two new backings");
+  const auto* original=impl_->objects.paged_if();
+  if(!original->info().mirrored_payloads)fail(Code::invalid_operation,"sealed copy requires a mirrored source");
+  const auto root=detail::rebind_indexed_volume_root(impl_->indexed->root(),id);
+  {
+    const auto packed=detail::NativeObjectWriter::sealed_workspace(*original,workspace,id,root,options,
+        detail::kIndexedVolumeIdentityOffset);
+    packed.snapshot().verify_all();
+  }
+  (void)detail::ProtectedStripeImage::seal(std::move(workspace),target,id,maximum);
+  auto result=open_image(std::move(target),{NativeImageKind::sealed_indexed,maximum});
+  result.verify_all();
+  return result;
 }
 NativeFilesystemSnapshot NativeFilesystemSnapshot::create_indexed_copy(std::shared_ptr<StoreByteIo> target,
     StoreIdentity identity,PagedStoreLimits limits,StoreCompressionOptions compression) const {
@@ -2029,6 +2070,9 @@ PagedObjectStoreWriter NativeFilesystemWriter::copy_indexed_image(const NativeFi
     std::shared_ptr<StoreByteIo> target,StoreIdentity id,StoreCompressionOptions compression,bool reencode) {
   source.verify_all();
   const auto root=detail::rebind_indexed_volume_root(source.impl_->indexed->root(),id);
+  if(source.impl_->sealed)
+    return detail::NativeObjectWriter::recover_sealed(*source.impl_->objects.paged_if(),std::move(target),
+        id,{source.impl_->sealed_limit},root,compression,reencode,detail::kIndexedVolumeIdentityOffset);
   return detail::NativeObjectWriter::rebuild(*source.impl_->objects.paged_if(),std::move(target),
       id,root,compression,reencode,detail::kIndexedVolumeIdentityOffset);
 }

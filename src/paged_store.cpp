@@ -1,5 +1,6 @@
 #include "flitzfs/paged_store.hpp"
 #include "record_digest.hpp"
+#include "protected_stripe_image.hpp"
 #include "store_codec.hpp"
 #include <algorithm>
 #include <bit>
@@ -994,6 +995,7 @@ bool copy_rebuild_object(Rebuild& build,const State& original,const Entry& sourc
 
 struct PagedObjectStoreSnapshot::Impl {
   State state;
+  bool sealed_payloads=false;
   // Checked descriptors for this snapshot's immutable root. Payload reads,
   // publication and recovery continue to verify their own backing bytes.
   std::optional<Node> retained_root;
@@ -1004,8 +1006,9 @@ struct PagedObjectStoreWriter::Impl {
   // Nested lease shares the parent's friendship, as in the flat writer.
   struct Lease {
     std::shared_ptr<StoreByteIo> image;
-    explicit Lease(std::shared_ptr<StoreByteIo> io):image(std::move(io)) {
-      if(!image || !image->acquire_writer())fail("backend already has a writer or is missing");
+    explicit Lease(std::shared_ptr<StoreByteIo> io,bool frozen=false):image(std::move(io)) {
+      if(!image || !(frozen?image->acquire_exclusive_use():image->acquire_writer()))
+        fail("backend already has a writer or is missing");
     }
     ~Lease(){image->release_writer();}
   } lease;
@@ -1487,6 +1490,18 @@ PagedObjectStoreSnapshot::QueryScope PagedObjectStoreSnapshot::scoped_query() co
 PagedObjectStoreSnapshot PagedObjectStoreSnapshot::open(std::shared_ptr<StoreByteIo> image,PagedStoreLimits limits) {
   return open_impl(std::move(image),limits,false);
 }
+PagedObjectStoreSnapshot PagedObjectStoreSnapshot::open_sealed(std::shared_ptr<detail::ProtectedStripeImage> backing) {
+  auto view=open(backing,{backing->extent()});
+  const auto info=view.info();
+  if(view.identity()!=backing->identity() || info.mirrored_payloads ||
+      info.degraded_roots || info.physical_end!=backing->extent())
+    fail("sealed image does not bind an exact single-stream checkpoint");
+  view.impl_->sealed_payloads=true;
+  return view;
+}
+bool PagedObjectStoreSnapshot::payloads_protected() const noexcept {
+  return impl_ && (impl_->state.mirrored || impl_->sealed_payloads);
+}
 PagedObjectStoreSnapshot PagedObjectStoreSnapshot::open_impl(std::shared_ptr<StoreByteIo> image,
     PagedStoreLimits limits,bool retain_tree_root) {
   auto p=std::make_unique<Impl>();
@@ -1775,11 +1790,19 @@ PagedObjectStoreWriter PagedObjectStoreWriter::rebuild(const PagedObjectStoreSna
 }
 PagedObjectStoreWriter PagedObjectStoreWriter::rebuild_replacing(const PagedObjectStoreSnapshot& source,
     std::shared_ptr<StoreByteIo> target,StoreIdentity id,PagedStoreLimits limits,StoreCompressionOptions options,
-    std::uint64_t replacement_id,std::span<const std::byte> replacement,bool reencode,std::size_t identity_offset) {
+    std::uint64_t replacement_id,std::span<const std::byte> replacement,bool reencode,std::size_t identity_offset,
+    RebuildPayloads protection) {
   if(!source.impl_)fail("moved-from rebuild source");admit_limits(limits);
   const auto& original=source.impl_->state;
+  const bool workspace=protection==RebuildPayloads::sealed_workspace;
+  const bool recovering=protection==RebuildPayloads::mirrored_recovery;
+  if(workspace && (!original.mirrored || !replacement_id || reencode))
+    fail("sealed workspace requires a mirrored identity-only source");
+  if(recovering!=source.impl_->sealed_payloads || (recovering && !replacement_id))
+    fail("rebuild requires an explicit sealed recovery source");
   if(zero(id) || id==original.id)fail("rebuild requires a new nonzero identity");
-  Impl::Lease source_lease(original.image);auto observed=load(original.image,original.limits);
+  Impl::Lease source_lease(original.image,recovering);
+  auto observed=load(original.image,original.limits);
   if(!same(original,observed))fail("rebuild source is not the current checkpoint");
   const auto source_extent=original.image->extent();
   std::uint64_t replaced_stored=0;
@@ -1799,7 +1822,8 @@ PagedObjectStoreWriter PagedObjectStoreWriter::rebuild_replacing(const PagedObje
   }
   auto p=std::make_unique<Impl>(target,options);admit_contract(target->contract());
   if(target->extent())fail("rebuild requires an empty target");
-  Rebuild build;build.next.image=target;build.next.limits=limits;build.next.id=id;build.next.mirrored=original.mirrored;
+  Rebuild build;build.next.image=target;build.next.limits=limits;build.next.id=id;
+  build.next.mirrored=recovering || (original.mirrored && !workspace);
   build.next.metadata_bytes=original.metadata_bytes;
   build.next.generation=add(original.generation,2);build.next.checkpoint=original.generation+1;
   build.next.unit=(std::max)(static_cast<std::uint32_t>(page_bytes),target->contract().write_failure_unit_bytes);

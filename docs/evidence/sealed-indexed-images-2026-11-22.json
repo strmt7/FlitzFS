@@ -1,0 +1,870 @@
+{
+  "schema": "flitzfs-sealed-indexed-images-v1",
+  "date": "2026-11-22",
+  "source": {
+    "base": "55ece876926463c00d5307cb03b34bf80479acd1",
+    "base_tree": "772140468b9d27596244a346ebe466cc1c82b482",
+    "git_blobs": {
+      "CMakeLists.txt": "40a2623b758b095152c573e1099496d76deb2ccb",
+      "include/flitzfs/native_filesystem.hpp": "86476b877da1082087a4ee779b19faecf1fd5aba",
+      "include/flitzfs/object_store.hpp": "d2ef0b41b5b56bf95fb60cbdcc4799de87413d9d",
+      "include/flitzfs/paged_store.hpp": "e3a9b76752d79d0da4f52815204b0268faf389ce",
+      "src/native_filesystem.cpp": "6ecae71a0046bc92f59e2d4aed015bcf5bc834bf",
+      "src/native_name_index.cpp": "010c9b4c605231ba9cbb17e33a44455e96d96c60",
+      "src/native_object_storage.hpp": "0c7bf46b56ecfad8b956fab082dee7bceba5a3dc",
+      "src/paged_store.cpp": "42d5d632d0ac21ed01ff2ebb667a17a4c13c749f",
+      "src/protected_stripe_image.cpp": "910aec0a2ca5239f517457f419d9963d547e1ed0",
+      "src/protected_stripe_image.hpp": "5d65ca0ca3fdc2b29321f4458e0326d105780ee4",
+      "tests/test_protected_indexed_image.cpp": "1c4f2a7b95c8f2d29b50013472c3a9099a251bae"
+    },
+    "tested_binaries": {
+      "release": {
+        "program": "flitzfs_protected_indexed_image_tests.exe",
+        "sha256": "383ff5b684ecc351f20cdfc370f0b004aefc1c0d3287ee9bc92c1aa32a0aefc5"
+      },
+      "asan": {
+        "program": "flitzfs_protected_indexed_image_tests.exe",
+        "sha256": "47d7cb82443387f76b2b2dbc698c183a0fab7004128fe96274604fe217732f50"
+      }
+    }
+  },
+  "host": {
+    "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+    "exposed_flitzfs_volumes": [],
+    "exposed_ram_drive_letters": [],
+    "architecture": "AMD64",
+    "windows": "Professional 26H2 26300.10075"
+  },
+  "navigation": {
+    "flitzfs": {
+      "commit": "55ece876926463c00d5307cb03b34bf80479acd1",
+      "source_files": 3,
+      "source_bytes": 167533,
+      "dirty_patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "inventory_sha256": "549552293d99ebfa0d75dec665d5cc37d2dbc4f800cf9ea53a2a46afa8e77374",
+      "native_response_sha256": "5f8ce1af6910512ba56cf839f18eeb974d3f2496078098fbe649fab6fa5d2107",
+      "provider_version": "0.2.43",
+      "actual_searches": 1,
+      "receipt_sha256": "0c5d8ed09535aa63477bd45807de00dd105e0b2271f61773fd39683f053d3970"
+    },
+    "flitzzip": {
+      "commit": "11396b5123505a4a1959173e1db2d0858c10dd6d",
+      "source_files": 13,
+      "source_bytes": 178377,
+      "dirty_patch_sha256": "e86721cd7f8e1bd1c8c2f8e2ea2881fca032ae6da1f3e9123c6677ac7f3d903a",
+      "inventory_sha256": "84b249de6ee2a0398173545204812f150a326fa7f59b156dbb0b211852b9a0df",
+      "native_response_sha256": "f9346e43194ff0d9f2197d0b193706f82eb9143881ccb9375074cac14b7c3de7",
+      "provider_version": "0.2.43",
+      "actual_searches": 1,
+      "receipt_sha256": "7dce794453e42e9b8c9c565bca9a8f1d1398049d0beb98756c08859ea3b65863"
+    }
+  },
+  "research": {
+    "primary": {
+      "provider": "0.9.5+flitzzip.portable2",
+      "provider_receipt_sha256": "6d7a0abcd9f73fd0324d2551ec88b286d871f456b28575fc78baca23a23c96fb",
+      "external_llm": false,
+      "robots": true,
+      "timeout_seconds": 45,
+      "pages": [
+        {
+          "name": "cow",
+          "url": "https://openzfs.github.io/openzfs-docs/Basic%20Concepts/Copy-on-write.html",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 10621,
+          "markdown_sha256": "0d61956e9f3f6184d85a19373b9ea4f12a02f321aea4bf58bdf3d987b3f4f0fa",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.614,
+          "capture_sha256": "c0a5ed0f1db8a6e1f78e922ee092cf238b54451fc48f667578b9fa385e166aef"
+        },
+        {
+          "name": "checksums",
+          "url": "https://openzfs.github.io/openzfs-docs/Basic%20Concepts/Data%20Storage/Checksums.html",
+          "success": false,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 7645,
+          "markdown_sha256": "945d34fb7d195cde2fa51876a35028e692f33ff8380ecb3a63c97bbb3ff94ceb",
+          "expected_content": false,
+          "failure_category": "unexpected_content",
+          "error": "",
+          "seconds": 0.482,
+          "capture_sha256": "7e51293d670d30b4cb0e42a17d57b8e6cfb6572e9f78ad6e26fee89dbc0b8f44"
+        },
+        {
+          "name": "mirror-parity",
+          "url": "https://learn.microsoft.com/en-us/windows-server/storage/refs/mirror-accelerated-parity",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 30179,
+          "markdown_sha256": "002953ca0659b0e80210dcd817f0c91fb5eeb1de985ee16faeefe649a9a5d240",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 1.408,
+          "capture_sha256": "a4a81d780422228748ca822397f137293a5e2451fb05c6d47d188e8e3c9642a7"
+        },
+        {
+          "name": "linux-parity",
+          "url": "https://docs.kernel.org/next/driver-api/md/raid5-ppl.html",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 13945,
+          "markdown_sha256": "48a723fe4819916e9e383974ae7b346ebbbf067ae074fb85c79180aa6e4a09eb",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.576,
+          "capture_sha256": "ab488d9e6cf6c301bd270c82b6416161f931257f8e10de0ce3d6e062b75207e9"
+        },
+        {
+          "name": "stripeless",
+          "url": "https://www.usenix.org/conference/osdi25/presentation/gao",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 9531,
+          "markdown_sha256": "cc2eddd29bdf1a0d765bdfc47040123599e7cb971c3eb93e5ddf9d009b19c2d9",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.961,
+          "capture_sha256": "3b246ce3d59ef3aeaa3bb23bb87fab5fe6ff5a3a7a25061d4c6bb9965cac6016"
+        }
+      ]
+    },
+    "primary-checksums": {
+      "provider": "0.9.5+flitzzip.portable2",
+      "provider_receipt_sha256": "855bf913dd111890462db07b24fb0c799caaada0534eec5a6549adb96f29a165",
+      "external_llm": false,
+      "robots": true,
+      "timeout_seconds": 45,
+      "pages": [
+        {
+          "name": "checksums",
+          "url": "https://openzfs.github.io/openzfs-docs/Basic%20Concepts/Data%20Storage/Checksums.html",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 7645,
+          "markdown_sha256": "945d34fb7d195cde2fa51876a35028e692f33ff8380ecb3a63c97bbb3ff94ceb",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.593,
+          "capture_sha256": "f421d4fbe9f49cba4dc23ec70ff1b4328ef07f61a6309a41a4048f1dc238e661"
+        }
+      ]
+    },
+    "primary-ntfs": {
+      "provider": "0.9.5+flitzzip.portable2",
+      "provider_receipt_sha256": "5bc3f0097758b12b3f338f6e90865b8110d3857845ba8230e0c9991c41285219",
+      "external_llm": false,
+      "robots": true,
+      "timeout_seconds": 45,
+      "pages": [
+        {
+          "name": "compact",
+          "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/compact",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 45765,
+          "markdown_sha256": "e467e58dda0165da314be4e28c476e21eec3c6b71df18ed989bf01a444e99ac5",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 1.806,
+          "capture_sha256": "9e3aa897a0d2b290f6c05928498843d904f6ec5c840512542414a798ea374597"
+        },
+        {
+          "name": "ntfs-state",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/fileio/compression-state",
+          "success": false,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 16265,
+          "markdown_sha256": "17a7ca89445a06a1002be2acc1e46d46f205226bc1374f2912de74521e496cdd",
+          "expected_content": false,
+          "failure_category": "unexpected_content",
+          "error": "",
+          "seconds": 0.794,
+          "capture_sha256": "2541c8cd5cb6db3028b76323a82a5a75937bc3733176765d655f830613fc689c"
+        },
+        {
+          "name": "ntfs-attribute",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/fileio/compression-attribute",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 20293,
+          "markdown_sha256": "788037debdb4bdd5282962f46bdc0b3047b425a5b242d673464b133bfa5ed620",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.753,
+          "capture_sha256": "e7a9b0eab7a9ebc7c20923bd6cbbfd9f80c345cca1438538f46f9dac956051e9"
+        },
+        {
+          "name": "ntfs-fsctl",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_compression",
+          "success": false,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 63183,
+          "markdown_sha256": "48b0bd005d9276173ea26d9d5ddfd0f6019586ea3a1cd33cb8e74730a01f060a",
+          "expected_content": false,
+          "failure_category": "unexpected_content",
+          "error": "",
+          "seconds": 0.829,
+          "capture_sha256": "d5e4210de9812543a13d9703319c465633beed175c5b5de0877f7ed975e1775b"
+        },
+        {
+          "name": "ntfs-allocated",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getcompressedfilesizew",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 37632,
+          "markdown_sha256": "1943b77148828d60f29d4f3e584f58cd93b2ae7a9255f4f624631a7603a48c2e",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.809,
+          "capture_sha256": "b6647c91506cc473923c6989bd8f821c7759df15c8bc87b2060f88eca732a4c6"
+        }
+      ]
+    },
+    "primary-adaptive": {
+      "provider": "0.9.5+flitzzip.portable2",
+      "provider_receipt_sha256": "fa82c65941475569713668ea0b5c7fd66cc5dd76d3ab4ca22f5c8156b9ccc8b1",
+      "external_llm": false,
+      "robots": true,
+      "timeout_seconds": 45,
+      "pages": [
+        {
+          "name": "compression-state",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/fileio/compression-state",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 19802,
+          "markdown_sha256": "e974daeccb546410cea8a472ca9f793c6f2206e7fc66ee921499a001bbae6bb6",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 2.076,
+          "capture_sha256": "dcb030e8771a9e49280ab9fcab5b9c28efd4e28ae1ebee42c408dcc397888a93"
+        },
+        {
+          "name": "set-compression",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_compression",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 63183,
+          "markdown_sha256": "48b0bd005d9276173ea26d9d5ddfd0f6019586ea3a1cd33cb8e74730a01f060a",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.572,
+          "capture_sha256": "7e51f4d3e1d5e0dfe774e89cbeaf2fb28131aba63e41481df33eebe1a02dcfff"
+        },
+        {
+          "name": "storage-query",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-ioctl_storage_query_property",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 61230,
+          "markdown_sha256": "c324a6f49ba0f4d4c49aeed87bcf56ff0af5e6190d8231a5c5dbd071ac74d4a5",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.705,
+          "capture_sha256": "bc01afdd18647d260a646424112d6435852fee8e320faac60825c3e1ddeeb546"
+        },
+        {
+          "name": "alignment",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ns-winioctl-storage_access_alignment_descriptor",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 61735,
+          "markdown_sha256": "a6516835a95b834f4fdc276835ff7d0ce7d11416a212070c7f71871f42e6df47",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.666,
+          "capture_sha256": "66dd67cfd37b21d27f8fc93ded2b63eb9b79766364a480b32d64c88e0a2f8bcd"
+        },
+        {
+          "name": "hip-release",
+          "url": "https://rocm.docs.amd.com/en/docs-10.2.0/about/release-notes.html",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 308596,
+          "markdown_sha256": "65dc225b07c55d48d922e0ed3c5a7f692b8de4bc523b4b33a2733cf2c2ff34ea",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 2.373,
+          "capture_sha256": "d68ca65e5d8bcfd82652458f4b2eaa8e27110185e838d1f04c925fefc901cc07"
+        },
+        {
+          "name": "rubikfs",
+          "url": "https://www.usenix.org/conference/fast26/presentation/huang",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 10395,
+          "markdown_sha256": "b271b38f1feb88acd780ae11d756c7f3723fecb288cfe5e7803fed9c5d93767d",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 2.782,
+          "capture_sha256": "e515d581548aa4ee08bf90e0e9a0a79190f1760a1aeff203f2e5e145af82b5fa"
+        },
+        {
+          "name": "model-lossless",
+          "url": "https://arxiv.org/abs/2605.02904",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 8546,
+          "markdown_sha256": "ab6e0726167123fc215e996315c750247d282af5ddd0b03093ec9b2312445e60",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.755,
+          "capture_sha256": "4953529e1367f938c965e49110e325491ef7af2022b55bd7328ba8351b0fc9bb"
+        },
+        {
+          "name": "codec-selection",
+          "url": "https://arxiv.org/abs/2509.25219",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 8328,
+          "markdown_sha256": "468eb4bbb22f79d621c7b5691230718063c2571a063e60ceee13b959828a1ac9",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.425,
+          "capture_sha256": "90161526750e522a55544a3fa854d2f06a2156c1f07c44d509fafd7c15863f7d"
+        }
+      ]
+    }
+  },
+  "benchmark": {
+    "corpus": {
+      "source": "https://aitdcc.github.io/dataset.html",
+      "paper": "https://arxiv.org/abs/2606.17712",
+      "verified_splits": {
+        "all": {
+          "files": "ABCDEFGHIJKLMNOP",
+          "input_bytes": 38289319,
+          "packed_sha256": "baf1e7283ab49cc5b6c14e77e302637e4f17d84d1603af0fd9f3a62645d6ce1c"
+        },
+        "train": {
+          "files": "ABCDEFGH",
+          "input_bytes": 13136308,
+          "packed_sha256": "bb25d5ebcdcdfe0daf4ebc0d78a452d9e8937808fbb2a481d33bafa5e15b1c42"
+        },
+        "test": {
+          "files": "IJKLMNOP",
+          "input_bytes": 25153011,
+          "packed_sha256": "26204e32bf232e5a40d5cce9d4f63a87c25fcb19f6eceadbff7c76321468c159"
+        }
+      }
+    },
+    "scope": "CPU-only real Windows indexed engine on instrumented memory backing",
+    "read_order": "mirror then sealed, same deterministic range trace, three trials per split",
+    "cache": "four verified descriptor summaries, data units checked on every read",
+    "initial_descriptor_cache_comparison": {
+      "split": "all",
+      "job": "stripeInitialall",
+      "files": 16,
+      "logical_bytes": 38289319,
+      "mirrored_image": 51486720,
+      "single_stream_bytes": 25845760,
+      "sealed_image": 32440320,
+      "mirror_range_reads": 19058592,
+      "sealed_range_reads": 53272576,
+      "mirror_range_ns": 29168100,
+      "sealed_range_ns": 59908100,
+      "build_verify_ns": 390068800,
+      "independent_cpu_exact": 1
+    },
+    "release_trials": [
+      {
+        "split": "all",
+        "job": "stripeBench0",
+        "files": 16,
+        "logical_bytes": 38289319,
+        "mirrored_image": 51486720,
+        "single_stream_bytes": 25845760,
+        "sealed_image": 32440320,
+        "mirror_range_reads": 19058592,
+        "sealed_range_reads": 36024320,
+        "mirror_range_ns": 23464300,
+        "sealed_range_ns": 35770000,
+        "build_verify_ns": 341129000,
+        "independent_cpu_exact": 1
+      },
+      {
+        "split": "train",
+        "job": "stripeBench1",
+        "files": 8,
+        "logical_bytes": 13136308,
+        "mirrored_image": 15998976,
+        "single_stream_bytes": 8085504,
+        "sealed_image": 10240000,
+        "mirror_range_reads": 8160911,
+        "sealed_range_reads": 16146432,
+        "mirror_range_ns": 11583300,
+        "sealed_range_ns": 17227700,
+        "build_verify_ns": 120313100,
+        "independent_cpu_exact": 1
+      },
+      {
+        "split": "test",
+        "job": "stripeBench2",
+        "files": 8,
+        "logical_bytes": 25153011,
+        "mirrored_image": 35635200,
+        "single_stream_bytes": 17911808,
+        "sealed_image": 22523904,
+        "mirror_range_reads": 9227289,
+        "sealed_range_reads": 18485248,
+        "mirror_range_ns": 10691800,
+        "sealed_range_ns": 18163900,
+        "build_verify_ns": 220700300,
+        "independent_cpu_exact": 1
+      },
+      {
+        "split": "test",
+        "job": "stripeBench3",
+        "files": 8,
+        "logical_bytes": 25153011,
+        "mirrored_image": 35635200,
+        "single_stream_bytes": 17911808,
+        "sealed_image": 22523904,
+        "mirror_range_reads": 9227289,
+        "sealed_range_reads": 18485248,
+        "mirror_range_ns": 10704500,
+        "sealed_range_ns": 17554900,
+        "build_verify_ns": 216013600,
+        "independent_cpu_exact": 1
+      },
+      {
+        "split": "train",
+        "job": "stripeBench4",
+        "files": 8,
+        "logical_bytes": 13136308,
+        "mirrored_image": 15998976,
+        "single_stream_bytes": 8085504,
+        "sealed_image": 10240000,
+        "mirror_range_reads": 8160911,
+        "sealed_range_reads": 16146432,
+        "mirror_range_ns": 11440700,
+        "sealed_range_ns": 16603000,
+        "build_verify_ns": 120331900,
+        "independent_cpu_exact": 1
+      },
+      {
+        "split": "all",
+        "job": "stripeBench5",
+        "files": 16,
+        "logical_bytes": 38289319,
+        "mirrored_image": 51486720,
+        "single_stream_bytes": 25845760,
+        "sealed_image": 32440320,
+        "mirror_range_reads": 19058592,
+        "sealed_range_reads": 36024320,
+        "mirror_range_ns": 23359100,
+        "sealed_range_ns": 35340200,
+        "build_verify_ns": 340851500,
+        "independent_cpu_exact": 1
+      },
+      {
+        "split": "all",
+        "job": "stripeBench6",
+        "files": 16,
+        "logical_bytes": 38289319,
+        "mirrored_image": 51486720,
+        "single_stream_bytes": 25845760,
+        "sealed_image": 32440320,
+        "mirror_range_reads": 19058592,
+        "sealed_range_reads": 36024320,
+        "mirror_range_ns": 23930800,
+        "sealed_range_ns": 35416600,
+        "build_verify_ns": 343641600,
+        "independent_cpu_exact": 1
+      },
+      {
+        "split": "train",
+        "job": "stripeBench7",
+        "files": 8,
+        "logical_bytes": 13136308,
+        "mirrored_image": 15998976,
+        "single_stream_bytes": 8085504,
+        "sealed_image": 10240000,
+        "mirror_range_reads": 8160911,
+        "sealed_range_reads": 16146432,
+        "mirror_range_ns": 11144800,
+        "sealed_range_ns": 16742000,
+        "build_verify_ns": 111913000,
+        "independent_cpu_exact": 1
+      },
+      {
+        "split": "test",
+        "job": "stripeBench8",
+        "files": 8,
+        "logical_bytes": 25153011,
+        "mirrored_image": 35635200,
+        "single_stream_bytes": 17911808,
+        "sealed_image": 22523904,
+        "mirror_range_reads": 9227289,
+        "sealed_range_reads": 18485248,
+        "mirror_range_ns": 10866200,
+        "sealed_range_ns": 17798900,
+        "build_verify_ns": 227962900,
+        "independent_cpu_exact": 1
+      }
+    ],
+    "split_summary": {
+      "all": {
+        "files": 16,
+        "logical_bytes": 38289319,
+        "mirrored_image": 51486720,
+        "single_stream_bytes": 25845760,
+        "sealed_image": 32440320,
+        "mirror_range_reads": 19058592,
+        "sealed_range_reads": 36024320,
+        "median_mirror_range_ns": 23464300,
+        "median_sealed_range_ns": 35416600,
+        "median_build_verify_ns": 341129000
+      },
+      "train": {
+        "files": 8,
+        "logical_bytes": 13136308,
+        "mirrored_image": 15998976,
+        "single_stream_bytes": 8085504,
+        "sealed_image": 10240000,
+        "mirror_range_reads": 8160911,
+        "sealed_range_reads": 16146432,
+        "median_mirror_range_ns": 11440700,
+        "median_sealed_range_ns": 16742000,
+        "median_build_verify_ns": 120313100
+      },
+      "test": {
+        "files": 8,
+        "logical_bytes": 25153011,
+        "mirrored_image": 35635200,
+        "single_stream_bytes": 17911808,
+        "sealed_image": 22523904,
+        "mirror_range_reads": 9227289,
+        "sealed_range_reads": 18485248,
+        "median_mirror_range_ns": 10704500,
+        "median_sealed_range_ns": 17798900,
+        "median_build_verify_ns": 220700300
+      }
+    },
+    "asan_trial": {
+      "split": "all",
+      "job": "stripeAsanAit",
+      "files": 16,
+      "logical_bytes": 38289319,
+      "mirrored_image": 51486720,
+      "single_stream_bytes": 25845760,
+      "sealed_image": 32440320,
+      "mirror_range_reads": 19058592,
+      "sealed_range_reads": 36024320,
+      "mirror_range_ns": 73982100,
+      "sealed_range_ns": 107595900,
+      "build_verify_ns": 558710900,
+      "independent_cpu_exact": 1
+    }
+  },
+  "modeled_faults": {
+    "geometries": [
+      {
+        "unit": 4096,
+        "single_lost_units": 98,
+        "image_bytes": 524288,
+        "exact_native_recovery": 1
+      },
+      {
+        "unit": 65536,
+        "single_lost_units": 11,
+        "image_bytes": 720896,
+        "exact_native_recovery": 1
+      }
+    ],
+    "publication_cuts": {
+      "attempts": 51,
+      "unavailable": 43,
+      "complete": 8,
+      "prior_preserved": 1
+    },
+    "same_stripe_two_data_loss": "rejected",
+    "cpu_restore": "fresh mirrored writable indexed image, append and reopen byte-exact"
+  },
+  "ctest_passed": {
+    "stripeCodecSuite": 206,
+    "stripeRawSuite": 205,
+    "stripeCachedFaults": 1,
+    "stripeAsanFaults": 3
+  },
+  "bounded_jobs": {
+    "stripeCodecSuite": {
+      "timeout_seconds": 405.0,
+      "memory_bytes": 2070937600,
+      "cpu_percent": 22,
+      "maximum_processes": 10,
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 332144640,
+      "result_sha256": "05c33c8c197a4678ac04e06512115f3de5578500c75d3bf7be154b71d0b0554f",
+      "output_sha256": "e3b6981de170dad4a6471732b49819f35f452e0da40ab4a9a8e95dcc7eeb0f62"
+    },
+    "stripeRawSuite": {
+      "timeout_seconds": 405.0,
+      "memory_bytes": 2120220672,
+      "cpu_percent": 22,
+      "maximum_processes": 10,
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 342188032,
+      "result_sha256": "353873f1329c7d34ff7b36ee9fd0d2a6ac6716d275bbfed81fc3512cde3851ff",
+      "output_sha256": "40d7ea69068edcb63bad6d6f71cd0ee0f5695219a23deba563007e9d7bca819b"
+    },
+    "stripeCachedFaults": {
+      "timeout_seconds": 115.0,
+      "memory_bytes": 950009856,
+      "cpu_percent": 18,
+      "maximum_processes": 6,
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 25759744,
+      "result_sha256": "21faa14b396a8896ad3ea7e46d5c5246fe429dcd380e8910a05e8bde18768127",
+      "output_sha256": "58627bd3cefd3ede4646fdb8bf0612d604a1e33556325cdb3308b4f01c7115c0"
+    },
+    "stripeAsanBuild": {
+      "timeout_seconds": 400.0,
+      "memory_bytes": 2377121792,
+      "cpu_percent": 22,
+      "maximum_processes": 15,
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 773988352,
+      "result_sha256": "f9754f5ea269b7bc0fdd8154d578de8d1580a955dfe4581205f2fbf9985528b9",
+      "output_sha256": "378803f43b1a0d0e29c410dca593cba0903b1ea8cabdb12b8d631ae22a048ff2"
+    },
+    "stripeAsanFaults": {
+      "timeout_seconds": 185.0,
+      "memory_bytes": 2106589184,
+      "cpu_percent": 19,
+      "maximum_processes": 8,
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 659431424,
+      "result_sha256": "65d5d234fa9afe7b11efd718aa2fee3262a270c3b315c2ed239da958c29ad443",
+      "output_sha256": "c31c22f870ffc6045c6d815cfb2e3762e1b121ad54c2ac167e3a17b9e442e35f"
+    },
+    "stripeAsanAit": {
+      "timeout_seconds": 115.0,
+      "memory_bytes": 2632974336,
+      "cpu_percent": 18,
+      "maximum_processes": 3,
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 966103040,
+      "result_sha256": "d610358a98a62c6b0fd1a9086108cf1c97d3bd02f53685a2e815b7e931c88f45",
+      "output_sha256": "6b3ba54b84907eb309ea5613ffd4b75f94b10ee539fe715b4f8d2ce033256176"
+    },
+    "stripeInitialall": {
+      "timeout_seconds": 115.0,
+      "memory_bytes": 2062548992,
+      "cpu_percent": 17,
+      "maximum_processes": 3,
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 302481408,
+      "result_sha256": "75ea01d0fe42465985bc050e499c416518e9e1454fc5e096099ac8aa91daff08",
+      "output_sha256": "015e9c0253e970f6f9e3927e882850626868752fe0f98c42b06b81fc2e8d8a3d"
+    },
+    "stripeInitialtrain": {
+      "timeout_seconds": 115.0,
+      "memory_bytes": 2060451840,
+      "cpu_percent": 17,
+      "maximum_processes": 3,
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 98209792,
+      "result_sha256": "67c7b48697afde5350f62d3b8c34d7e15b9bfabc006b27836569f5d5de0c15ee",
+      "output_sha256": "2bd0f3d459dc4e1e003ea269133ef713d5bd658758e6c720cac3f6d111665fee"
+    },
+    "stripeInitialtest": {
+      "timeout_seconds": 115.0,
+      "memory_bytes": 2061500416,
+      "cpu_percent": 17,
+      "maximum_processes": 3,
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 197033984,
+      "result_sha256": "3579e4dcf4c600022aa1936d0bb13f85c2cf799249e824ab0732bdc3e831035b",
+      "output_sha256": "27d4a80ecaeb2e270ac2b70f884500da4a551777b8b4909c8e5cbfb53c10ce15"
+    },
+    "stripeBench0": {
+      "timeout_seconds": 125.0,
+      "memory_bytes": 966787072,
+      "cpu_percent": 17,
+      "maximum_processes": 3,
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 304132096,
+      "result_sha256": "a7181e8828365fa5a1d8afdc06303e94966ee2ada18b133eb8f167404dc95d77",
+      "output_sha256": "36608abccd5b30386929a158439e0c64776a6ee258a1212cc5b6d7ce25ce4507"
+    },
+    "stripeBench1": {
+      "timeout_seconds": 125.0,
+      "memory_bytes": 966787072,
+      "cpu_percent": 17,
+      "maximum_processes": 3,
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 99745792,
+      "result_sha256": "275de80a6632226a6ab086cbf5f76ee0cabcc900394c69ea2601c8ddc1a5680f",
+      "output_sha256": "4d712496bffa33e0a3b78405032919bfbb929e9b6f9649c745aa3b4fd2462339"
+    },
+    "stripeBench2": {
+      "timeout_seconds": 125.0,
+      "memory_bytes": 968884224,
+      "cpu_percent": 17,
+      "maximum_processes": 3,
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 196255744,
+      "result_sha256": "d4f8261169a7a84e2919ec3e2613d922ade11788048d13eb95abbf93d206bebf",
+      "output_sha256": "9993ba024cf5753d0fe95951239443cf5bc9057ded4e09a8036a296076306c53"
+    },
+    "stripeBench3": {
+      "timeout_seconds": 125.0,
+      "memory_bytes": 961544192,
+      "cpu_percent": 17,
+      "maximum_processes": 3,
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 195989504,
+      "result_sha256": "773c7b105b2d8e6b10f56b176e935364a60801ac59ed8a5515573cdff71cb57f",
+      "output_sha256": "7e2b1fe53b343a2ccf47da8d17f22114e656e80926f965525959572ef7ab069c"
+    },
+    "stripeBench4": {
+      "timeout_seconds": 125.0,
+      "memory_bytes": 951058432,
+      "cpu_percent": 17,
+      "maximum_processes": 3,
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 100765696,
+      "result_sha256": "6e7a750b028a77cd132959885369b0bfc00f737b4c63292e04579f3a90b5f33f",
+      "output_sha256": "d2c6500e120783709ac1ee55a9aecddc29c1066fe63977719c2527aa1b154ac8"
+    },
+    "stripeBench5": {
+      "timeout_seconds": 125.0,
+      "memory_bytes": 939524096,
+      "cpu_percent": 17,
+      "maximum_processes": 3,
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 303194112,
+      "result_sha256": "e67419a359a28a397db0555ae02e317bd0f274121e059234411cbcb7431d85c2",
+      "output_sha256": "54f923b6a0ae4004998bfe35cb6047adc5646b691a29a889677dc071fa1e61b0"
+    },
+    "stripeBench6": {
+      "timeout_seconds": 125.0,
+      "memory_bytes": 921698304,
+      "cpu_percent": 17,
+      "maximum_processes": 3,
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 305831936,
+      "result_sha256": "d119a55c8fdb79ef2b6af7996ba3d351a159fa8445cd0a7f781ccfb198542362",
+      "output_sha256": "c34b7a901bb4501f34e0a522a8220d58c38bcc75b73a667fd058c74ee85b994e"
+    },
+    "stripeBench7": {
+      "timeout_seconds": 125.0,
+      "memory_bytes": 909115392,
+      "cpu_percent": 17,
+      "maximum_processes": 3,
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 100737024,
+      "result_sha256": "37f6c59aa1140f197f8e374f11c4407eec0eec455781d6c810bb301483bdce41",
+      "output_sha256": "a1ca73f5ae07ecea53394bda17068cfae77ea2063b9ce9e90ebebcba726302d8"
+    },
+    "stripeBench8": {
+      "timeout_seconds": 125.0,
+      "memory_bytes": 907018240,
+      "cpu_percent": 17,
+      "maximum_processes": 3,
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 197931008,
+      "result_sha256": "e8a01764bb5d24cdfaf2616b883b8359a3321f5772913fa465d39071bc46c9c8",
+      "output_sha256": "39b674365cafb9a2183b64f012380f8fd0b3dc2acd4b3301958bcefecc07e3f3"
+    }
+  },
+  "pending": [
+    "incremental sealed region selection inside the writable namespace",
+    "matched mounted plain NTFS, native-compressed NTFS and FlitzFS",
+    "live ordinary AMD range reads and installed-path comparison",
+    "physical flush and power-loss, removal and endurance qualification"
+  ]
+}

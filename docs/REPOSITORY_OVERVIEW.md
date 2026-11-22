@@ -27,6 +27,14 @@ CPU verification. The new timing measures how much setup can be moved outside
 the response window. Automatic foreground eligibility and benefit against CPU
 still need matched full writes. [Prepared AMD evidence](evidence/amd-prepared-sweep-2026-11-22.json)
 
+Detached sealed indexed images are now a measured space-saving option for
+closed volumes. The complete AIT A–P image used 32,440,320 bytes, down from
+51,486,720 bytes with the same compacted file encodings and mirrored payloads.
+CPU readback and restoration survived individual unit losses. Integration
+with the writable region allocator and media-specific qualification remain
+open. [Sealed image format and evidence](SEALED_INDEXED_IMAGE.md) ·
+[Adaptive storage execution plan](architecture/ADAPTIVE_STORAGE_EXECUTION.md)
+
 Keep the shared CPU-readable engine, copy-on-write publication, protected
 decoding dependencies, WinFsp integration and isolated GPU execution. Replace
 the assumptions that make current production paths depend on small volumes,

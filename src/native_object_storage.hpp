@@ -62,6 +62,18 @@ class NativeObjectWriter final {
     return PagedObjectStoreWriter::rebuild_replacing(source,std::move(target),id,source.limits(),
         compression,1,root,reencode,identity_offset);
   }
+  static PagedObjectStoreWriter sealed_workspace(const PagedObjectStoreSnapshot& source,
+      std::shared_ptr<StoreByteIo> target,StoreIdentity id,std::span<const std::byte> root,
+      StoreCompressionOptions compression,std::size_t identity_offset) {
+    return PagedObjectStoreWriter::rebuild_replacing(source,std::move(target),id,source.limits(),
+        compression,1,root,false,identity_offset,PagedObjectStoreWriter::RebuildPayloads::sealed_workspace);
+  }
+  static PagedObjectStoreWriter recover_sealed(const PagedObjectStoreSnapshot& source,
+      std::shared_ptr<StoreByteIo> target,StoreIdentity id,PagedStoreLimits limits,std::span<const std::byte> root,
+      StoreCompressionOptions compression,bool reencode,std::size_t identity_offset) {
+    return PagedObjectStoreWriter::rebuild_replacing(source,std::move(target),id,limits,
+        compression,1,root,reencode,identity_offset,PagedObjectStoreWriter::RebuildPayloads::mirrored_recovery);
+  }
   NativeObjectWriter(ObjectStoreWriter value):value_(std::move(value)){}
   NativeObjectWriter(PagedObjectStoreWriter value):value_(std::move(value)){}
   bool paged() const noexcept {return std::holds_alternative<PagedObjectStoreWriter>(value_);}

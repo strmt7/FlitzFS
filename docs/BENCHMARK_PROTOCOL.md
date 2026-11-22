@@ -71,6 +71,30 @@ HDD performance, physical flush durability or device endurance. Physical-backend
 qualification is a separate final gate, with the owner's existing storage
 protected. Record unavailable comparators instead of manufacturing results.
 
+### Plain and native-compressed NTFS
+
+Prepare equivalent disposable targets with the same Windows build, backing,
+capacity, allocation unit geometry and documented cache/flush settings. Use
+plain directories for the first control. For the second, apply supported native
+NTFS directory/file compression before ingestion and verify each file's final
+compression state with `FSCTL_GET_COMPRESSION`. Record the exact format and
+include the `FILE_ATTRIBUTE_COMPRESSED` inventory. `compact /C` expresses the
+native compression case. Record executable-specific Compact OS compression as
+a separate case if it is investigated.
+[Microsoft compact documentation](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/compact) ·
+[File and directory compression state](https://learn.microsoft.com/en-us/windows/win32/fileio/compression-state) ·
+[FSCTL_SET_COMPRESSION](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_compression)
+
+Record baseline and settled volume allocation and the sum of per-file
+`GetCompressedFileSizeW` results as different measurements. Keep identical
+logical files, verification and metadata workloads. Confirm the requested
+DiskSpd caching and alignment options work on every included target before
+running that comparison. Alternate across comparators and report cold and warm
+trials separately. A host inventory on 22 November exposed no RAM drive or
+FlitzFS mount. The matched mounted comparison remains open.
+[File storage size API](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getcompressedfilesizew) ·
+[Host and image evidence](evidence/sealed-indexed-images-2026-11-22.json)
+
 ## Corpus and workload design
 
 Freeze a licensed, source-identified, SHA-256/BLAKE3-verified manifest before
@@ -193,6 +217,14 @@ DiskSpd 2.3 ran system inventory on this Windows host. Mounted FlitzFS and NTFS
 I/O measurements remain a separate test with equivalent cache, allocation and
 backing settings.
 [Measured runs and source receipts](evidence/aitdcc2026-compression-baseline-2026-11-22.json)
+
+### Sealed image pilot
+
+The [sealed format report](SEALED_INDEXED_IMAGE.md#verification-on-windows)
+records complete-image and small-read costs for the AIT 2026 split on Windows.
+The cold-packing pilot isolates backing-byte changes in the native engine.
+Use mounted DiskSpd and ordinary file operations for comparative latency and
+throughput.
 
 ### Idle cold compression and unit size
 
