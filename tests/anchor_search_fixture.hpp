@@ -21,6 +21,15 @@ inline Bytes fragmented(std::span<const std::byte> base,unsigned member) {
   }
   return result;
 }
+// Keep the outer half of an extent and permute the eight-byte tokens in its
+// middle half. The prefix can share short relocated substrings with the new revision.
+inline void apply_prefix_revision(std::span<std::byte> output,std::span<const std::byte> base,unsigned member) {
+  constexpr std::size_t region=kNativeExtentBytes/4,token_bytes=8,tokens=2*region/token_bytes;
+  for(std::size_t token=0;token<tokens;++token) {
+    const auto source=(token*(2*member+7)+19*member)%tokens;
+    std::copy_n(base.begin()+region+source*token_bytes,token_bytes,output.begin()+region+token*token_bytes);
+  }
+}
 inline std::vector<NativeSharedBaseCopyRange> fragment_ranges(unsigned member) {
   constexpr unsigned region=16,count=kNativeExtentBytes/region;
   std::vector<NativeSharedBaseCopyRange> ranges;

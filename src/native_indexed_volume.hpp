@@ -165,7 +165,7 @@ class IndexedSharedBasePreparation final {
   std::uint32_t reference_member_=0;
   bool allow_subset_=false,invalidated_=false,search_storage_unavailable_=false;
   bool packing_admitted_=false,staged_reference_admitted_=false,staged_reference_comparison_=false;
-  bool compare_sections_=false,section_comparison_finished_=false;
+  bool compare_reference_=false,section_comparison_finished_=false;
   bool packed_only_=false;
 };
 struct IndexedPreparationWatch {

@@ -184,17 +184,10 @@ void indexed_section_reference_reuse() {
 }
 
 constexpr unsigned prefix_family_count=6;
-std::vector<Bytes> prefix_family() {
-  constexpr std::size_t region=kNativeExtentBytes/4,token_bytes=8,tokens=2*region/token_bytes;
-  const auto base=data(kNativeExtentBytes,3819);
+std::vector<Bytes> prefix_family(const Bytes& base=data(kNativeExtentBytes,3819),unsigned count=prefix_family_count) {
   std::vector<Bytes> originals{base};
-  for(unsigned member=1;member<prefix_family_count;++member) {
-    auto& bytes=originals.emplace_back(base);
-    for(std::size_t token=0;token<tokens;++token) {
-      const auto source=(token*(2*member+7)+19*member)%tokens;
-      std::copy_n(base.begin()+region+source*token_bytes,token_bytes,bytes.begin()+region+token*token_bytes);
-    }
-  }
+  for(unsigned member=1;member<count;++member)
+    anchor_search_fixture::apply_prefix_revision(originals.emplace_back(base),base,member);
   return originals;
 }
 
@@ -287,6 +280,76 @@ void indexed_prefixed_reference() {
   std::cout<<"indexed_prefixed_members="<<progress.prefixed_zstd_members
       <<" before_compacted_bytes="<<before<<" after_compacted_bytes="<<after<<" cpu_readback=true"
       <<" cuts="<<previous+complete<<" previous="<<previous<<" complete="<<complete<<"\n";
+}
+
+void indexed_prefix_extension(bool verify_improvement,const char* corpus=nullptr) {
+  if(!store_zstd_available())return;
+  constexpr StoreCompressionOptions policy{StoreCompressionMode::automatic,3,true};
+  auto seed=data(kNativeExtentBytes,3819);
+  if(corpus) {
+    const auto input=ReadOnlyFile::open(corpus);
+    require(input.size()>=seed.size(),"Public prefix input needs one full extent");
+    input.read_exact_at(0,seed.data(),seed.size());
+  }
+  const auto originals=prefix_family(seed,prefix_family_count+1);
+  Fixture f(4096,0,true,policy);
+  const auto name=[](unsigned file){return "f"+std::to_string(file);};
+  for(unsigned i=0;i<prefix_family_count;++i)put(*f.session,name(i),originals[i]);
+  NativeMaintenanceProgress initial;
+  {
+    NativeGroupMaintenance seed_groups(*f.session);
+    initial=f.finish(seed_groups);
+    const auto initial_groups=f.session->snapshot().shared_base_info();
+    require(initial_groups.bases==1 && initial_groups.members==prefix_family_count,
+        "The initial prefix family did not use one protected base");
+  }
+
+  const auto first_base=[&] {
+    const auto pages=PagedObjectStoreSnapshot::open(f.image,{kStoreMaxPhysicalBytes});
+    const detail::IndexedVolumeView source(pages,pages.read(1));
+    auto token=source.content_at({source.resolve(name(0)).inode,0});
+    require(token.has_value(),"The original group lost its witness");
+    require(source.read_content(*token,true)==originals.front() && token->grouped,
+        "The original group lost its linked base");
+    const auto record=pages.read(token->object);
+    const auto reference=detail::read_native_group_header(
+        std::span(record).subspan(detail::kIndexedExtentHeaderBytes),detail::NativeGroupMethod::prefixed_zstd);
+    return std::pair{reference.base_id,reference.base_generation};
+  };
+  const auto original_base=first_base();
+  put(*f.session,name(prefix_family_count),originals.back());
+  const auto compacted=[&](const auto& source,unsigned number) {
+    auto target=ram(4096);
+    (void)NativeFilesystemWriter::compact(source,target,id(number),policy);
+    const auto checked=NativeFilesystemSnapshot::open_image(target,{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes});
+    checked.verify_all();
+    for(unsigned i=0;i<originals.size();++i)
+      require(checked.read(name(i),0,kNativeExtentBytes)==originals[i],"Prefix extension changed acknowledged data");
+    return target->extent();
+  };
+  f.session.reset();
+  const auto resolve=[&](const StoreIdentity& key)->std::shared_ptr<StoreByteIo>{return key==id(1)?f.image:nullptr;};
+  const auto before=compacted(NativeVolumeHeadView::open(f.head,id(90),resolve).filesystem(),2);
+  f.session.emplace(NativeFileSession::resume_closed_indexed_volume(f.head,id(90),1,resolve,policy));
+  NativeMaintenanceProgress extended;
+  {
+    NativeGroupMaintenance maintenance(*f.session);
+    extended=f.finish(maintenance);
+  }
+  f.session.reset();
+  const auto selected=NativeVolumeHeadView::open(f.head,id(90),resolve);
+  selected.filesystem().verify_all();
+  const auto final_groups=selected.filesystem().shared_base_info();
+  const auto after=compacted(selected.filesystem(),3);
+  require(final_groups.bases==1 && final_groups.members==originals.size() && after<before && first_base()==original_base,
+      "The new revision did not extend the same protected base");
+  const auto reused_prefixes=extended.prefixed_zstd_members;
+  if(verify_improvement)require(reused_prefixes>0,"The established base did not try the smaller prefix representation");
+  std::cout<<"indexed_prefix_extension public_input="<<bool(corpus)<<" bases="<<final_groups.bases
+      <<" files="<<originals.size()<<" seeded_prefixes="<<initial.prefixed_zstd_members
+      <<" reused_prefixes="<<reused_prefixes
+      <<" before_compacted_bytes="<<before<<" after_compacted_bytes="<<after
+      <<" same_base_identity=true cpu_reopen_exact=true\n";
 }
 
 void indexed_batched_prefix() {
@@ -3222,6 +3285,9 @@ int main(int argc,char** argv){try{
     indexed_section_reference_reuse();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-prefix") {
     indexed_prefixed_reference();
+    indexed_prefix_extension(true);
+  } else if((argc==2 || argc==3) && std::string_view(argv[1])=="--profile-indexed-prefix-extension") {
+    indexed_prefix_extension(false,argc==3?argv[2]:nullptr);
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-batched-prefix") {
     indexed_batched_prefix();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-packed-short-extents") {

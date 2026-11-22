@@ -33,6 +33,39 @@ releases the alternate candidates and leaves the ordinary group available.
 Device and transport admission remain the adviser's responsibility. Volumes
 without a qualified adviser use CPU preparation.
 
+A complete, funded window can also compare prefixed Zstandard members against
+an existing protected base. The incremental trial encodes only the members
+being replaced. The established base, unchanged members and their verified
+references stay in place. One optional preparation step checks the exact CPU
+readback for each candidate. Publication compares the complete compacted
+layout, including index and replicated payload storage, and selects the
+smaller eligible transaction. That comparison can select a prefix when adding
+a single revision.
+[Zstandard prefix API](https://facebook.github.io/zstd/doc/api_manual_latest.html)
+
+The previous and updated planners each ran twice per input in alternating
+order. Each Windows trial extended an existing six-file group after reopen,
+used a 4 KiB failure unit and kept one protected base. The independent CPU reader verified all seven files after
+compaction. The public-derived input permutes tokens in the first extent of
+AIT DCC 2026 file A.
+
+| Input | Previous compacted image | With prefix reuse | Reduction |
+|---|---:|---:|---:|
+| Synthetic revisions | 516,096 B | 491,520 B | 24,576 B |
+| AIT DCC 2026 file A revisions | 385,024 B | 368,640 B | 16,384 B |
+
+The input is from *The 2026 Algorithmic Information Theory Data Compression
+Challenge*. [AIT DCC 2026 official dataset](https://aitdcc.github.io/dataset.html) ·
+[Prefix extension verification](evidence/indexed-prefix-extension-2026-11-22.json)
+
+An unmounted Windows SDK controller trial added three revisions to an
+existing group while the Radeon RX 9070 XT supplied a verified batch of copy
+candidates. The complete-size comparison selected three prefixed members
+and kept one protected base for all six files. The CPU reopened the image
+and verified every file. The device proposals competed with the stronger
+prefix records and were absent from the selected transaction.
+[Matched hardware and CPU readback evidence](evidence/indexed-prefix-extension-2026-11-22.json)
+
 With automatic Zstandard storage, a scan can also pack short payloads
 missed by similarity search into one protected decode unit. The scanner
 uses already sampled lengths and respects the remaining preparation

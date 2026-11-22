@@ -1557,18 +1557,19 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
   const bool edit_after_verification=mode=="verified-edit";
   const bool queued=mode=="queued" || mode=="queued-yield" || read_after_verification || edit_after_verification;
   const bool restoring=mode=="restored";
-  const bool changing=mode=="changed-extents";
+  const bool prefix_extension=mode=="prefix-extension";
+  const bool changing=mode=="changed-extents" || prefix_extension;
   const bool device_not_ready=mode=="device-not-ready";
   const bool missing_reference=mode=="reference-missing";
   const bool reference=mode=="reference-xor" || missing_reference;
   const bool two_planes=mode=="xor-wide" || mode=="xor-narrow";
   const bool xor_encoding=two_planes || mode=="xor" || mode=="xor-cpu";
   const bool packed=mode=="batch" || mode=="batch-yield" || xor_encoding;
-  const unsigned files_per_group=reference?anchor_search_fixture::indexed_small_extents_per_family:
+  const unsigned files_per_group=prefix_extension?6:reference?anchor_search_fixture::indexed_small_extents_per_family:
       queued?queued_anchor_members+1:installed && (packed || restoring)?3:5;
   const unsigned groups=restoring?4:(packed || device_not_ready)?2:1;
   const unsigned seed_files=reference?2U:0U;
-  const unsigned initial_files=reference?seed_files:changing?2:restoring?2*files_per_group:groups*files_per_group;
+  const unsigned initial_files=reference?seed_files:prefix_extension?3:changing?2:restoring?2*files_per_group:groups*files_per_group;
   const bool yield=mode=="yield" || mode=="batch-yield" || mode=="queued-yield";
   const auto count=seed_files+groups*files_per_group;
   const auto before=handle_count();
@@ -1577,8 +1578,10 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
   Provider provider;Provider::active=&provider;
   NativeMaintenancePolicy qualification;
   qualification.maximum_cpu_busy_ppm=500000;
+  const auto compression=prefix_extension?StoreCompressionOptions{StoreCompressionMode::automatic,3,true}:
+      StoreCompressionOptions{StoreCompressionMode::raw,1,false};
   auto adapter=WinFspNativeWritable::create_managed_indexed(
-      head,id(90),image,id(1),{kStoreMaxPhysicalBytes},{StoreCompressionMode::raw,1,false},{},qualification);
+      head,id(90),image,id(1),{kStoreMaxPhysicalBytes},compression,{},qualification);
   std::vector<Bytes> originals;
   originals.reserve(count);
   if(reference) {
@@ -1588,12 +1591,14 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
   }
   for(unsigned group=0;group<groups;++group) {
     const auto variant=restoring && group>=2?group-2:group;
-    const auto seed=714+variant*5731+(restoring && group<2?99991:0);
+    const auto seed=prefix_extension?3819:714+variant*5731+(restoring && group<2?99991:0);
     const auto base=data(kNativeExtentBytes,seed);
     for(unsigned i=0;i<files_per_group;++i) {
       auto derived=base;
       if(reference)anchor_search_fixture::apply_full_reference_variation(derived,base,i,files_per_group);
-      else if(i && xor_encoding) {
+      else if(prefix_extension) {
+        if(i)anchor_search_fixture::apply_prefix_revision(derived,base,i);
+      } else if(i && xor_encoding) {
         const auto variation=data(kNativeExtentBytes,1511+group*103+i);
         const auto mask=two_planes?std::byte{0x30}:std::byte{1};
         for(std::size_t at=0;at<base.size();++at)derived[at]^=variation[at]&mask;
@@ -1607,13 +1612,14 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
   WinFspControllerView result;
   bool signalled=false,restored=false;
   std::array<unsigned,static_cast<std::size_t>(NativeMaintenanceDeferral::capacity)+1> deferrals{};
-  std::uint64_t last_quantum=0,settled_ms=0,visits_before_edits=0;
+  std::uint64_t last_quantum=0,settled_ms=0,visits_before_edits=0,prefixes_before_edits=0;
   const auto visits=[](const auto& progress){return progress.sampled_extents+progress.reused_features;};
   {
     WinFspVolumeController controller(std::move(adapter),provider.api(),plan(),std::move(options));
     await([&]{return controller.view().state==SessionState::running;},5000,"AMD controller startup deadline");
     for(unsigned i=0;i<initial_files;++i)callback_file(provider,i,originals[i]);
-    if(changing)for(unsigned i=initial_files;i<count;++i)callback_file(provider,i,data(1024,44000+i));
+    if(changing && !prefix_extension)
+      for(unsigned i=initial_files;i<count;++i)callback_file(provider,i,data(1024,44000+i));
     if(read_after_verification) {
       require(!controller.view().anchor_search.submitted,"GPU launched before baseline reads");
       foreground_read_samples(provider,1,originals[1],"before_launch");
@@ -1636,7 +1642,11 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
           result.maintenance.phase==NativeMaintenancePhase::idle) {
         require(!result.anchor_search.submitted,"Seed group unexpectedly used the AMD worker");
         visits_before_edits=visits(result.maintenance);
-        for(unsigned i=initial_files;i<count;++i)replace_callback_file(provider,i,originals[i]);
+        prefixes_before_edits=result.maintenance.prefixed_zstd_members;
+        for(unsigned i=initial_files;i<count;++i) {
+          if(prefix_extension)callback_file(provider,i,originals[i]);
+          else replace_callback_file(provider,i,originals[i]);
+        }
         signalled=true;
       }
       if(reference && !signalled && result.maintenance.published_groups==1 &&
@@ -1742,6 +1752,18 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
       require(reopened.read("f"+std::to_string(i),0,kNativeExtentBytes)==originals[i],"Installed compacted reference changed data");
     std::cout<<"installed_reference mode="<<mode<<" files="<<count<<" compacted_bytes="<<compacted->extent()
         <<" exact_compacted_cpu_readback=true\n";
+    return 0;
+  }
+  if(prefix_extension) {
+    const auto info=snapshot.shared_base_info();
+    const auto reused_prefixes=result.maintenance.prefixed_zstd_members-prefixes_before_edits;
+    std::cout<<"anchor_prefix_extension groups="<<result.maintenance.published_groups
+        <<" submissions="<<result.anchor_search.submitted<<" verified="<<result.anchor_search.verified
+        <<" bases="<<info.bases<<" files="<<info.members<<" reused_prefixes="<<reused_prefixes
+        <<" independent_cpu_readback=true"<<std::endl;
+    require(signalled && result.anchor_search.verified>0 &&
+        !result.anchor_search.integrity_failures && info.bases==1 && info.members==count && reused_prefixes>0,
+        "Protected prefix reuse was not verified after the AMD exchange");
     return 0;
   }
   if(changing) {
@@ -2468,7 +2490,7 @@ int live_anchor_owner(int argc,char** argv) {
       restriction=="queued" || wide_copy;
   const bool xor_mode=mode=="xor" || mode=="xor-wide" || mode=="xor-narrow";
   require(mode=="accept" || mode=="yield" || mode=="both" || mode=="batch" || mode=="batch-yield" || queued ||
-      mode=="changed-extents" || xor_mode || multiwindow,
+      mode=="changed-extents" || mode=="prefix-extension" || xor_mode || multiwindow,
       "Expected an AMD ownership trial");
   require(argc!=9 || (multiwindow && revision_corpus(*multiwindow) &&
       (restriction=="queued" || limited_memory || wide_copy || reference_xor ||
@@ -2507,7 +2529,7 @@ int live_anchor_owner(int argc,char** argv) {
         discovery_ns,*multiwindow,limited_memory,overlap,
         cancel_after_submit?BatchForegroundTrial::cancel_active:BatchForegroundTrial::normal);
   }
-  const std::uint32_t members=mode=="changed-extents"?3:
+  const std::uint32_t members=(mode=="changed-extents" || mode=="prefix-extension")?3:
       queued?queued_anchor_members:(mode=="batch" || mode=="batch-yield" || xor_mode)?8:4;
   NativeAnchorSearchOptions execution{*binding.route,profile,members,members};
   if(queued)execution.dispatches_per_wait=kAnchorProfileMaxQueuedDispatches;
@@ -3538,7 +3560,9 @@ void indexed_group_callback_contract(bool scrub_due=false) {
 }
 int main(int argc,char** argv){try {
   const bool profile_installed_read=argc==2 && std::string_view(argv[1])=="--profile-installed-native-read";
-  app_fixture::Budget budget(true,profile_installed_read);DWORD before=0,after=0;
+  const bool profile_existing_prefix=argc==7 && std::string_view(argv[1])=="--live-anchor-owner" &&
+      std::string_view(argv[6])=="prefix-extension";
+  app_fixture::Budget budget(true,profile_installed_read || profile_existing_prefix);DWORD before=0,after=0;
   if(argc==11) {
     const std::string_view command(argv[1]);
     if(command=="--live-amd-read-ahead" || command=="--live-amd-read-refusal")

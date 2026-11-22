@@ -1011,7 +1011,7 @@ struct NativeGroupMaintenance::Impl {
         (phase==Phase::idle || samples>=checkpoint_window_samples);
   }
   bool refine_reference(NativeFilesystemWriter& writer,std::size_t maximum_members,bool sections) {
-    const bool compare=sections && !work_batched && work_members>=3 && !work_sampled_retry;
+    const bool compare=sections && !work_batched && work_members>=2 && !work_sampled_retry;
     const auto purpose=compare?NativeSharedBaseSearchPurpose::section_comparison:NativeSharedBaseSearchPurpose::advice;
     if((compare || work_sampled_key) && writer.stage_shared_base_search(*work,work_members-1,maximum_members,purpose))
       return true;

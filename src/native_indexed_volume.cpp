@@ -1478,8 +1478,8 @@ bool IndexedSharedBasePreparation::stage_search(std::size_t maximum_members,std:
     const auto available=members_.size()-first-(base_index_>=first);
     const auto count=(std::min)(available,maximum_members);
     if(!count || !owner_window.expired())return false;
-    if(purpose==NativeSharedBaseSearchPurpose::section_comparison && (first || count!=available || count<2 || reusable_anchor_))
-      return false;
+    if(purpose==NativeSharedBaseSearchPurpose::section_comparison &&
+        (first || count!=available || (reusable_anchor_?!store_zstd_available():count<2)))return false;
     try {
       auto bytes=std::make_shared<NativeSharedBaseSearchWindow::Payload>();
       bytes->members.reserve(count);
@@ -1558,7 +1558,7 @@ void IndexedSharedBasePreparation::admit_variants(bool packing,bool staged_refer
   }
   staged_reference_admitted_=staged_reference;
   if(!staged_reference && staged_reference_comparison_) {
-    compare_sections_=false;
+    compare_reference_=false;
     staged_reference_comparison_=false;
     section_reference_.reset();
     prefixed_reference_.reset();
@@ -1617,7 +1617,7 @@ bool IndexedSharedBasePreparation::stage_section_reference() {
 }
 
 bool IndexedSharedBasePreparation::stage_prefixed_reference() {
-  if(reusable_anchor_ || !search_ || !store_zstd_available())return false;
+  if(!search_ || !store_zstd_available())return false;
   try {
     if(!prefixed_reference_)prefixed_reference_.emplace();
     auto& trial=*prefixed_reference_;
@@ -1728,11 +1728,11 @@ bool IndexedSharedBasePreparation::advance(std::span<const NativeSharedBaseCopyR
 
   if(progress_.completed_members==members_.size()) {
     if(stage_packed_reference())return false;
-    if(compare_sections_ && !section_comparison_finished_) {
+    if(compare_reference_ && !reusable_anchor_ && !section_comparison_finished_) {
       if(stage_section_reference())return false;
       section_comparison_finished_=true;
     }
-    if(compare_sections_ && stage_prefixed_reference())return false;
+    if(compare_reference_ && stage_prefixed_reference())return false;
     search_.reset();
     if(section_reference_)section_reference_->index.reset();
     progress_.phase=Phase::ready;
@@ -1875,22 +1875,25 @@ bool IndexedSharedBasePreparation::advance(std::span<const NativeSharedBaseCopyR
 bool IndexedSharedBasePreparation::complete_member() {
   using Phase=NativeSharedBasePhase;
   ++progress_.completed_members;
-  const bool complete_window=search_ && search_->bytes->whole_new_group &&
-      search_->bytes->members.size()==search_->member_count;
+  const bool complete_window=search_ && search_->bytes->members.size()==search_->member_count &&
+      search_->first==0 && search_->member_count+1==members_.size();
   if(search_ && !complete_window && search_slot(progress_.completed_members)>=search_->bytes->members.size())
     search_.reset();
   if(progress_.completed_members!=members_.size())return false;
 
   anchor_index_.reset();
-  // Spend an additional cooperative pass only when the ordinary candidate
-  // has enough residual payload for the alternative to save a failure unit.
-  const auto ideal=base_.size()+members_.size()*(extent_header+kNativeGroupMemberHeaderBytes);
   if(complete_window && std::ranges::none_of(members_,&Member::skipped)) {
     const bool reserved=search_->purpose==NativeSharedBaseSearchPurpose::section_comparison;
-    compare_sections_=(reserved || staged_reference_admitted_) &&
+    const auto header=extent_header+kNativeGroupMemberHeaderBytes;
+    const auto ideal=base_.size()+members_.size()*header;
+    // A reused base costs no new anchor. A single smaller member can take
+    // the compacted layout across a bank boundary, even with a 64 KiB unit.
+    const bool worthwhile=reusable_anchor_?store_zstd_available() &&
+        std::ranges::any_of(members_,[&](const auto& member){return member.frame.size()>header;}):
         progress_.owned_payload_bytes>=ideal+source_.isolation_unit();
-    staged_reference_comparison_=compare_sections_ && !reserved;
-    if(packing_admitted_) {
+    compare_reference_=(reserved || staged_reference_admitted_) && worthwhile;
+    staged_reference_comparison_=compare_reference_ && !reserved;
+    if(packing_admitted_ && !reusable_anchor_) {
       std::size_t bytes=0;
       for(const auto& member:members_) {
         if(!member.payload_bytes || member.payload_bytes>kNativeExtentBytes-bytes) {
@@ -1901,7 +1904,7 @@ bool IndexedSharedBasePreparation::complete_member() {
       }
       if(bytes)packed_reference_.emplace();
     }
-    if(compare_sections_ || packed_reference_)return false;
+    if(compare_reference_ || packed_reference_)return false;
   }
   search_.reset();
   progress_.phase=Phase::ready;
@@ -2028,7 +2031,7 @@ NativeSharedBaseCommit IndexedSharedBasePreparation::finish(PagedObjectStoreWrit
   section=alternate_reference(section_reference_,section_root,false);
   if(!direct_pack)packed=alternate_reference(packed_reference_,packed_root,true);
   std::size_t prefixed_members=0,replaced_advice=0;
-  if(new_anchor && prefixed_reference_ && prefixed_reference_->frames.size()==members_.size()) {
+  if(prefixed_reference_ && prefixed_reference_->frames.size()==members_.size()) {
     try {
       std::map<std::uint64_t,Bytes> replacements;
       for(std::size_t i=0;i<members_.size();++i) {
