@@ -19,13 +19,20 @@ folding stages one copy of each paired unit. It cut complete AIT staging
 coexistence from 137,506,816 to 111,828,992 bytes, including the prior source.
 [Folded staging verification](../evidence/folded-hybrid-workspace-2026-11-22.json)
 
+The native session can now prepare the folded workspace, protected base
+and writable tail incrementally. Each advance yields after its bounded
+work, including individual ordered flushes. The full AIT fixture preserved
+the staged footprint and exact CPU readback. Ownership and admission are
+still explicit at the caller.
+[Cooperative preparation](../SEALED_INDEXED_IMAGE.md#cooperative-preparation) ·
+[Verification](../evidence/cooperative-hybrid-preparation-2026-11-22.json)
+
 Extend discovery and storage selection in this order.
 
-1. Replace the synchronous detached build with bounded staged preparation.
-   Use the existing rewrite traversal and fresh resource evidence to reserve
-   the old image, new backing, checked dependencies and workspace together.
-   Record read amplification and actual physical footprint before enrolling an
-   ordinary storage provider.
+1. Use bounded staged preparation within the existing maintenance governor.
+   Let live resource evidence fund the source, candidate, dependencies and
+   workspace together. Measure foreground interference, read amplification
+   and the actual footprint before enrolling an ordinary storage provider.
 2. Bind base and tail placement to the indexed volume allocator and resolver.
    Verify the frozen generation and exact content at selection, and preserve
    the source on stale work, cancellation or unavailable backing. Compare
@@ -165,18 +172,19 @@ useful compression or read work through the same production operation.
 
 ## 4. Backing provider qualification
 
-Collect provider identity, volatility, geometry and access capabilities before
-admitting work. For Windows disk-backed images, query read-only storage
-properties through the backing provider and record logical/physical sector
-sizes and alignment. Query seek penalty, reclaim support and removal behavior
-where exposed. Distinguish this information from the file provider's actual
-flush, write-failure and allocation-reclamation contract. USB bridges, storage stacks, partitions and firmware can obscure underlying
-device behavior. Treat transport, seek penalty, command queueing, removal and
-TRIM as independent advisory values. Preserve unknown values when a query is
-unsupported. Check bounded, actual I/O observations on the selected provider
-before changing policy. Durability requires a separately qualified contract.
-[Windows storage property queries](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-ioctl_storage_query_property) ·
-[Windows access alignment descriptor](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ns-winioctl-storage_access_alignment_descriptor)
+Collect provider identity, lifetime, geometry and access capabilities before
+admitting work. Windows exposes logical sector size, physical atomicity and
+preferred alignment separately. Keep transport, seek penalty, queueing,
+TRIM, write-cache behavior and removal as separate advisory values. A USB
+bridge can report incomplete characteristics and a SATA bus can carry
+either solid-state or rotating media. Sparse range reclamation depends on
+the outer filesystem's supported operations. Admission to write still
+depends on the provider's qualified recovery contract. Preserve unknown
+fields and use measured I/O on the selected provider to tune maintenance.
+[Windows storage property IDs](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ne-winioctl-storage_property_id) ·
+[Windows file storage geometry](https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_storage_info) ·
+[Windows write-cache queries](https://learn.microsoft.com/en-us/windows-hardware/drivers/storage/querying-for-the-write-cache-property) ·
+[Windows sparse file operations](https://learn.microsoft.com/en-us/windows/win32/fileio/sparse-file-operations)
 
 The Windows file provider now admits qualified local fixed and removable
 volumes. It requires the opened parent and backing file to resolve to the
@@ -199,12 +207,19 @@ tests.
 
 | Provider | Signals and tailored decisions | Qualification |
 | --- | --- | --- |
-| RAM backing | Use available physical and commit headroom and memory bandwidth. Adapt outstanding requests and cache space. Identify volatile lifetime when creating and reopening. | Pressure, cancellation, initiated detach and exact readback while the backing survives. |
-| NVMe | Use queueing, sustained/tail I/O responses, flush costs and any reported discard support. Coalesce writes and let one low-priority region displace little competing queue capacity. | Dedicated media for barrier interruption, steady-state allocation and supported reclaim. |
-| SATA SSD | Learn actual queue and flush bounds independently. Cut background bursts when tails rise and charge total written bytes and reclamation overhead. | Test sustained writes, full-volume churn and recovery against the declared cache/barrier contract. |
-| HDD | Observe seek penalties and seek-sensitive tails. Cluster metadata and related reads, and prefer larger sequential build and reclaim passes when idle. | Random access and namespace workloads, interruption on both retained and newly selected regions. |
-| USB storage and memory cards | Treat transport and removal risk independently from seek behavior. Observe long stalls, control request and flush bursts, and stop admission on device removal. Require a fresh backing identity and reopen audit after reconnect. | Unplug and reconnect disposable USB and card targets at durable boundaries, then verify complete generations and acknowledged state within each provider's qualified contract. |
-| Unclassified backing | Use only demonstrated capabilities and explicit provider contracts. Adjust concurrency with verified observations. | Bind claims and supported modes to the evidence actually available for the backing. |
+| RAM backing | Identify the provider when creating and reopening. Resize work against physical and commit headroom. Use memory bandwidth observations to limit copies and caches. Contents follow the backing's lifetime. | Pressure, cancellation, initiated detach and exact readback while the backing survives. |
+| NVMe | Measure single-request and queued latency, sustained throughput and flush cost. Use queue capacity only when it improves the foreground path. Coalesce low-priority writes and yield when request tails rise. | Check steady-state allocation, supported reclaim and recovery at commit barriers on dedicated devices. |
+| SATA SSD | Learn queue and flush bounds for the actual device. Limit write bursts during sustained slowdown. Charge attempted and completed backing writes, including reclamation overhead. | Test sustained mixed I/O, a nearly full volume, repeated rewrites and interruption under the qualified cache contract. |
+| HDD | Use reported seek penalty and random versus sequential observations. Group nearby reads and writes without changing publication order. Favor sequential passes in idle windows. | Compare metadata and small-file access with sequential media work. Verify both retained and newly selected regions after interruption. |
+| USB storage and memory cards | Keep removal, transport and seek behavior independent. Shorten writes and in-flight work when measured stalls warrant it. Stop on removal and verify fresh identity and committed roots before reopening. | Use disposable media to qualify removal and reinsertion at commit boundaries with the active Windows removal policy. Verify integrity and space recovery for each supported outer filesystem. |
+| Unclassified backing | Start from the qualified provider contract and conservative concurrency. Change one dimension at a time when ordinary I/O supplies evidence. | Bind supported modes and performance statements to the actual provider and workload. |
+
+Windows removable write-caching behavior follows the active removal policy.
+FlitzFS should observe behavior through the attached provider and keep its
+own commit barriers and detach sequence on every device.
+[Microsoft Windows removal policies](https://learn.microsoft.com/en-us/windows/client-management/client-tools/change-default-removal-policy-external-storage-media) ·
+[Microsoft NVMe storage queries](https://learn.microsoft.com/en-us/windows/win32/fileio/working-with-nvme-devices) ·
+[Microsoft file flush contract](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers)
 
 Implement the backing-dependent decisions in this order.
 

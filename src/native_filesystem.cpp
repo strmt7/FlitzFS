@@ -2142,6 +2142,30 @@ NativeFilesystemWriter::Recompression NativeFilesystemWriter::prepare_recompress
   catch(const std::exception&){fail(Code::storage_failure,"staged recompression preparation failed");}
 }
 
+PagedObjectStoreWriter::Rewrite NativeFilesystemWriter::prepare_folded_recompression(
+    std::shared_ptr<StoreByteIo> target,StoreIdentity id,StoreCompressionOptions compression,
+    std::function<void(std::uint64_t)> admission) const {
+  if(poisoned() || !impl_->indexed || impl_->indexed->active_lifetimes || !admission)
+    fail(Code::invalid_operation,"folded rewrite requires a healthy indexed writer and resolved file contexts");
+  const auto root=detail::rebind_indexed_volume_root(*impl_->indexed,id);
+  return impl_->objects.prepare_folded_rebuild(std::move(target),id,root,compression,
+      detail::kIndexedVolumeIdentityOffset,std::move(admission));
+}
+
+bool NativeFilesystemWriter::advance_folded_recompression(PagedObjectStoreWriter::Rewrite& candidate,
+    detail::FoldedCheckpoint& ready) const {
+  if(poisoned() || !impl_->indexed)fail(Code::invalid_operation,"invalid folded rewrite source");
+  const auto& source=*impl_->objects.paged_if();
+  if(!candidate.advance(source))return false;
+  ready=candidate.release_folded_workspace(source);
+  return true;
+}
+
+void NativeFilesystemWriter::verify_folded_recompression_source(const PagedObjectStoreWriter::Rewrite& candidate) const {
+  if(poisoned() || !impl_->indexed)fail(Code::invalid_operation,"invalid folded rewrite source");
+  candidate.verify_folded_source(*impl_->objects.paged_if());
+}
+
 PagedObjectStoreWriter::Rewrite NativeFilesystemWriter::prepare_paged_recompression(
     std::shared_ptr<StoreByteIo> target,StoreIdentity id,StoreCompressionOptions compression,bool reencode,
     PagedRewriteMode mode) const {

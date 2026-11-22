@@ -157,6 +157,39 @@ void recover_data(const StoreByteIo& io,const Stripe& stripe,std::uint64_t missi
   }
   if(!check_data(bytes,descriptor,missing))fail("unrecoverable protected data unit");
 }
+struct StripeBuffers {
+  explicit StripeBuffers(std::size_t unit):descriptor(unit),data(unit),scratch(unit),parity(unit) {}
+  Bytes descriptor,data,scratch,parity;
+};
+
+bool verify_stripe(const StoreByteIo& stored,const Stripe& stripe,StripeBuffers& buffers,
+    const StoreByteIo* clean_source) {
+  auto& [descriptor,data,scratch,parity]=buffers;
+  bool damaged=read_descriptor(stored,stripe,descriptor,scratch);
+  if(damaged && clean_source)fail("damaged descriptor in newly sealed image");
+  std::ranges::copy(descriptor,parity.begin());
+  for(std::uint64_t i=0;i<stripe.count();++i) {
+    if(!read_copy(stored,stripe.data_at(i),data) || !check_data(data,descriptor,i)) {
+      if(damaged || clean_source)fail("damaged data in protected image verification");
+      recover_data(stored,stripe,i,descriptor,data,scratch);
+      damaged=true;
+    }
+    const auto offset=stripe.logical_at(i);
+    const auto length=(std::min)(stripe.layout.unit,stripe.layout.logical_bytes-offset);
+    if(!zero(std::span(data).subspan(length)))fail("protected image nonzero tail");
+    if(clean_source) {
+      clean_source->read_exact(offset,std::span(scratch).first(length));
+      if(!std::ranges::equal(std::span(scratch).first(length),std::span(data).first(length)))
+        fail("new protected image differs from the source");
+    }
+    merge_xor(parity,data);
+  }
+  if(!read_copy(stored,stripe.parity_at(),scratch) || scratch!=parity) {
+    if(damaged || clean_source)fail("damaged parity in protected image verification");
+    damaged=true;
+  }
+  return damaged;
+}
 } // namespace
 
 struct ProtectedStripeImage::Lease {
@@ -183,54 +216,127 @@ std::shared_ptr<ProtectedStripeImage> ProtectedStripeImage::open(std::shared_ptr
   return std::shared_ptr<ProtectedStripeImage>(
       new ProtectedStripeImage(std::move(backing),layout,physical_limit,degraded));
 }
-std::shared_ptr<ProtectedStripeImage> ProtectedStripeImage::seal(std::shared_ptr<StoreByteIo> source,
-    std::shared_ptr<StoreByteIo> target,StoreIdentity id,std::uint64_t physical_limit) {
-  if(!source || !target || source==target)fail("protected sealing requires separate owned backings");
-  const Lease input(*source,false),output(*target,true);
-  if(target->extent() || !valid_store_io_contract(target->contract()))
-    fail("protected image requires an empty qualified target");
-  const auto contract=target->contract();
-  const auto layout=make_layout(id,source->extent(),(std::max)(4096U,contract.write_failure_unit_bytes),physical_limit);
-  target->admit_write(layout.physical_bytes);
-  {
-    const Bytes reservation(kStoreCommitUnit);
-    target->write_exact(0,reservation);
-    target->write_exact(kStoreCommitUnit,reservation);
+struct ProtectedStripeImage::SealWork::Impl {
+  enum class Phase { reserve,copy,flush,verify,first_root,second_root,ready };
+
+  static Layout prepare_layout(const StoreByteIo& source,const StoreByteIo& output,
+      StoreIdentity id,std::uint64_t maximum) {
+    if(output.extent() || !valid_store_io_contract(output.contract()))
+      fail("protected image requires an empty qualified target");
+    return make_layout(id,source.extent(),(std::max)(4096U,output.contract().write_failure_unit_bytes),maximum);
   }
-  Bytes descriptor(layout.unit),parity(layout.unit),data(layout.unit);
-  for(std::uint64_t n=0;n<stripes(layout);++n) {
-    const Stripe stripe{layout,n};
+  Impl(std::shared_ptr<StoreByteIo> source,std::shared_ptr<StoreByteIo> target,StoreIdentity id,std::uint64_t maximum)
+      :input(std::move(source)),output(std::move(target)),input_lease(*input,false),output_lease(*output,true),
+       limit(maximum),layout(prepare_layout(*input,*output,id,maximum)),buffers(layout.unit) {}
+
+  void copy_stripe(const Stripe& stripe) {
+    auto& descriptor=buffers.descriptor;
+    auto& data=buffers.data;
+    auto& parity=buffers.parity;
     initialize_descriptor(descriptor,stripe);
     std::ranges::fill(parity,std::byte{});
     for(std::uint64_t i=0;i<stripe.count();++i) {
       const auto offset=stripe.logical_at(i);
       const auto length=(std::min)(layout.unit,layout.logical_bytes-offset);
-      source->read_exact(offset,std::span(data).first(length));
+      input->read_exact(offset,std::span(data).first(length));
       std::ranges::fill(std::span(data).subspan(length),std::byte{});
       std::ranges::copy(record_digest(data),descriptor.begin()+descriptor_hashes+i*Digest{}.size());
       merge_xor(parity,data);
-      target->write_exact(stripe.data_at(i),data);
+      output->write_exact(stripe.data_at(i),data);
     }
     write_checksum(descriptor);
     merge_xor(parity,descriptor);
-    target->write_exact(stripe.descriptor_at(),descriptor);
-    target->write_exact(stripe.parity_at(),parity);
+    output->write_exact(stripe.descriptor_at(),descriptor);
+    output->write_exact(stripe.parity_at(),parity);
   }
-  target->flush();
-  if(target->extent()!=layout.physical_bytes || source->extent()!=layout.logical_bytes ||
-      !valid_store_io_contract(target->contract()) || target->contract().write_failure_unit_bytes>layout.unit)
-    fail("protected image backing changed during sealing");
-  const ProtectedStripeImage unpublished(target,layout,physical_limit,false);
-  unpublished.verify_stripes(source.get());
 
-  const auto root=make_root(layout);
-  target->write_exact(0,root);
-  target->flush();
-  target->write_exact(kStoreCommitUnit,root);
-  target->flush();
-  auto published=open(target,physical_limit);
-  if(published->layout_!=layout || published->degraded())fail("protected image publication did not verify");
-  return published;
+  bool step() {
+    const auto contract=output->contract();
+    if(!valid_store_io_contract(contract) || contract.write_failure_unit_bytes>layout.unit)
+      fail("protected image contract changed during sealing");
+    switch(phase) {
+      case Phase::reserve: {
+        output->admit_write(prefix_bytes);
+        const Bytes reservation(kStoreCommitUnit);
+        output->write_exact(0,reservation);
+        output->write_exact(kStoreCommitUnit,reservation);
+        phase=Phase::copy;
+        break;
+      }
+      case Phase::copy: {
+        const Stripe stripe{layout,next_stripe};
+        output->admit_write(stripe.parity_at()+layout.unit);
+        copy_stripe(stripe);
+        if(++next_stripe==stripes(layout))phase=Phase::flush;
+        break;
+      }
+      case Phase::flush:
+        output->flush();
+        if(output->extent()!=layout.physical_bytes || input->extent()!=layout.logical_bytes ||
+            !valid_store_io_contract(output->contract()) || output->contract().write_failure_unit_bytes>layout.unit)
+          fail("protected image backing changed during sealing");
+        next_stripe=0;
+        phase=Phase::verify;
+        break;
+      case Phase::verify:
+        (void)verify_stripe(*output,{layout,next_stripe++},buffers,input.get());
+        if(next_stripe==stripes(layout))phase=Phase::first_root;
+        break;
+      case Phase::first_root:
+        output->write_exact(0,make_root(layout));
+        output->flush();
+        phase=Phase::second_root;
+        break;
+      case Phase::second_root:
+        output->write_exact(kStoreCommitUnit,make_root(layout));
+        output->flush();
+        published=ProtectedStripeImage::open(output,limit);
+        if(published->layout_!=layout || published->degraded())fail("protected image publication did not verify");
+        phase=Phase::ready;
+        break;
+      case Phase::ready:
+        break;
+    }
+    return phase==Phase::ready;
+  }
+
+  std::shared_ptr<StoreByteIo> input,output;
+  Lease input_lease,output_lease;
+  std::uint64_t limit;
+  Layout layout;
+  StripeBuffers buffers;
+  std::uint64_t next_stripe=0;
+  Phase phase=Phase::reserve;
+  std::shared_ptr<ProtectedStripeImage> published;
+};
+
+ProtectedStripeImage::SealWork::SealWork(std::unique_ptr<Impl> value) noexcept:impl_(std::move(value)) {}
+ProtectedStripeImage::SealWork::SealWork(SealWork&&) noexcept=default;
+ProtectedStripeImage::SealWork& ProtectedStripeImage::SealWork::operator=(SealWork&&) noexcept=default;
+ProtectedStripeImage::SealWork::~SealWork()=default;
+
+ProtectedStripeImage::SealWork ProtectedStripeImage::begin_seal(std::shared_ptr<StoreByteIo> source,
+    std::shared_ptr<StoreByteIo> target,StoreIdentity id,std::uint64_t physical_limit) {
+  if(!source || !target || source==target)fail("protected sealing requires separate owned backings");
+  return SealWork(std::make_unique<SealWork::Impl>(std::move(source),std::move(target),id,physical_limit));
+}
+bool ProtectedStripeImage::SealWork::advance() {
+  if(!impl_)fail("protected sealing is unavailable");
+  try {return impl_->step();}
+  catch(...){impl_.reset();throw;}
+}
+std::shared_ptr<ProtectedStripeImage> ProtectedStripeImage::SealWork::finish() {
+  if(!impl_ || !impl_->published)fail("protected sealing is incomplete");
+  auto result=std::move(impl_->published);
+  impl_.reset();
+  return result;
+}
+
+std::shared_ptr<ProtectedStripeImage> ProtectedStripeImage::seal(std::shared_ptr<StoreByteIo> source,
+    std::shared_ptr<StoreByteIo> target,StoreIdentity id,std::uint64_t physical_limit) {
+  auto build=begin_seal(std::move(source),std::move(target),id,physical_limit);
+  while(!build.advance()) {}
+  return build.finish();
 }
 const ProtectedStripeImage::Checksums& ProtectedStripeImage::stripe_checksums(std::uint64_t index) const {
   const auto hit=std::ranges::find(checked_,index,&CheckedStripe::stripe);
@@ -284,34 +390,10 @@ void ProtectedStripeImage::read_exact(std::uint64_t offset,std::span<std::byte> 
     offset+=length;
   }
 }
-void ProtectedStripeImage::verify_stripes(const StoreByteIo* clean_source) const {
-  Bytes descriptor(layout_.unit),data(layout_.unit),scratch(layout_.unit),computed(layout_.unit);
+void ProtectedStripeImage::verify_stripes() const {
+  StripeBuffers buffers(layout_.unit);
   for(std::uint64_t n=0;n<stripes(layout_);++n) {
-    const Stripe stripe{layout_,n};
-    bool damaged=read_descriptor(*backing_,stripe,descriptor,scratch);
-    if(damaged && clean_source)fail("damaged descriptor in newly sealed image");
-    std::ranges::copy(descriptor,computed.begin());
-    for(std::uint64_t i=0;i<stripe.count();++i) {
-      if(!read_copy(*backing_,stripe.data_at(i),data) || !check_data(data,descriptor,i)) {
-        if(damaged || clean_source)fail("damaged data in protected image verification");
-        recover_data(*backing_,stripe,i,descriptor,data,scratch);
-        damaged=true;
-      }
-      const auto offset=stripe.logical_at(i);
-      const auto length=(std::min)(layout_.unit,layout_.logical_bytes-offset);
-      if(!zero(std::span(data).subspan(length)))fail("protected image nonzero tail");
-      if(clean_source) {
-        clean_source->read_exact(offset,std::span(scratch).first(length));
-        if(!std::ranges::equal(std::span(scratch).first(length),std::span(data).first(length)))
-          fail("new protected image differs from the source");
-      }
-      merge_xor(computed,data);
-    }
-    if(!read_copy(*backing_,stripe.parity_at(),scratch) || scratch!=computed) {
-      if(damaged || clean_source)fail("damaged parity in protected image verification");
-      damaged=true;
-    }
-    if(damaged)degraded_=true;
+    if(verify_stripe(*backing_,{layout_,n},buffers,nullptr))degraded_=true;
   }
 }
 void ProtectedStripeImage::verify_all() const {

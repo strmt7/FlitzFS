@@ -3,6 +3,7 @@
 #include "flitzfs/native_filesystem.hpp"
 
 namespace flitzfs {
+class NativeFileSession;
 
 // One ordinary mirrored indexed address space over a packed immutable base
 // and a separately qualified writable tail. The caller owns both backings
@@ -13,6 +14,13 @@ class NativeHybridBacking final : public StoreByteIo {
       std::shared_ptr<StoreByteIo> empty_workspace,std::shared_ptr<StoreByteIo> empty_base,
       std::shared_ptr<StoreByteIo> empty_tail,StoreIdentity new_image,std::uint64_t physical_limit,
       StoreCompressionOptions={});
+  enum class BuildPhase { workspace, sealing, binding, ready, stopped };
+  class Build;
+  // Resources cover the new candidate and its workspace. The caller retains
+  // the selected image and admits each advance on its serialized opportunity.
+  static Build prepare(const NativeFileSession& source,std::shared_ptr<StoreByteIo> empty_workspace,
+      std::shared_ptr<StoreByteIo> empty_base,std::shared_ptr<StoreByteIo> empty_tail,StoreIdentity new_image,
+      std::uint64_t candidate_limit,std::uint64_t staging_limit,StoreCompressionOptions={});
   static std::shared_ptr<NativeHybridBacking> open(std::shared_ptr<StoreByteIo> base,
       std::shared_ptr<StoreByteIo> tail,StoreIdentity expected_image,std::uint64_t virtual_limit,
       std::uint64_t physical_limit);
@@ -32,6 +40,24 @@ class NativeHybridBacking final : public StoreByteIo {
   struct Impl;
   explicit NativeHybridBacking(std::unique_ptr<Impl>) noexcept;
   bool allows_writer() const noexcept override;
+  std::unique_ptr<Impl> impl_;
+};
+
+// Partial output is retained for the caller on cancellation. The source
+// identity and checkpoint must still match when the completed backing leaves.
+class NativeHybridBacking::Build final {
+ public:
+  Build(Build&&) noexcept;
+  Build& operator=(Build&&) noexcept;
+  ~Build();
+  BuildPhase phase() const noexcept;
+  bool advance(const NativeFileSession&);
+  std::shared_ptr<NativeHybridBacking> finish(const NativeFileSession&);
+  void cancel() noexcept;
+ private:
+  friend class NativeHybridBacking;
+  struct Impl;
+  explicit Build(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;
 };
 

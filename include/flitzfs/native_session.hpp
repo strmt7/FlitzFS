@@ -454,6 +454,8 @@ class NativeFileSession final {
   bool poisoned() const noexcept;
  private:
   friend class NativeGroupMaintenance;
+  friend class NativeHybridBacking;
+  const NativeFilesystemWriter& hybrid_source() const;
   std::weak_ptr<detail::NativeMaintenanceSource> maintenance_source();
   struct Impl;
   std::unique_ptr<Impl> impl_;

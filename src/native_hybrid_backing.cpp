@@ -1,4 +1,5 @@
 #include "flitzfs/native_hybrid_backing.hpp"
+#include "flitzfs/native_session.hpp"
 #include "folded_checkpoint.hpp"
 #include "protected_stripe_image.hpp"
 #include <algorithm>
@@ -96,6 +97,88 @@ Digest root_binding(const StoreByteIo& source) {
   return detail::record_digest(first,second);
 }
 
+std::uint64_t check_empty_backings(const std::shared_ptr<StoreByteIo>& workspace,
+    const std::shared_ptr<StoreByteIo>& base,const std::shared_ptr<StoreByteIo>& tail) {
+  if(!workspace || !base || !tail || workspace==base || workspace==tail || base==tail ||
+      workspace->extent() || base->extent() || tail->extent() ||
+      !valid_store_io_contract(workspace->contract()) || !valid_store_io_contract(base->contract()) ||
+      !valid_store_io_contract(tail->contract()))
+    fail("hybrid preparation needs three distinct, qualified empty backings");
+  const auto unit=(std::max<std::uint64_t>)(root_size,workspace->contract().write_failure_unit_bytes);
+  if(tail->contract().write_failure_unit_bytes>unit)fail("hybrid tail needs the compacted mirror's failure unit");
+  return unit;
+}
+
+std::uint64_t seal_footprint(StoreIdentity identity,std::uint64_t end,
+    std::uint32_t base_unit,std::uint64_t limit) {
+  const auto occupied=ProtectedStripeImage::projected_occupied(identity,detail::folded_mirror_extent(end),
+      base_unit,limit-tail_start);
+  if(occupied+tail_start>=end)fail("hybrid base and tail do not reduce the protected footprint");
+  return occupied;
+}
+
+Binding bind_workspace(const detail::FoldedCheckpoint& packed,const StoreByteIo& workspace,StoreIdentity identity,
+    std::uint64_t virtual_limit,std::uint64_t unit,std::uint32_t base_unit,std::uint64_t physical_limit) {
+  Binding binding{packed.unit,packed.virtual_end,0,identity,packed.roots,virtual_limit};
+  check_geometry(binding);
+  if(binding.unit!=unit || binding.folded_extent()!=workspace.extent())
+    fail("hybrid folded workspace checkpoint differs");
+  binding.base_occupied=seal_footprint(identity,binding.base_end,base_unit,physical_limit);
+  return binding;
+}
+
+void check_staging(std::uint64_t workspace,std::uint64_t base,std::uint64_t limit) {
+  if(workspace>limit || base+tail_start>limit-workspace)
+    fail("hybrid staging exceeds the workspace and candidate budget");
+}
+
+class TailBootstrap {
+ public:
+  // Each step issues at most one ordered flush. Keep the prior stage valid
+  // until the next opportunity, including on a slow or unavailable backing.
+  bool advance(StoreByteIo& tail,const StoreByteIo& sealed,const Binding& binding) {
+    const auto contract=tail.contract();
+    if(!valid_store_io_contract(contract) || contract.write_failure_unit_bytes>binding.unit)
+      fail("hybrid tail contract changed before binding");
+    switch(phase_) {
+      case Phase::roots: {
+        if(tail.extent())fail("hybrid tail is no longer empty");
+        tail.admit_write(tail_start);
+        roots_.resize(roots);
+        tail.write_exact(0,roots_);
+        sealed.read_exact(0,roots_);
+        tail.write_exact(roots,roots_);
+        tail.flush();
+        phase_=Phase::first;
+        return false;
+      }
+      case Phase::first: {
+        Bytes copied(roots);
+        tail.read_exact(roots,copied);
+        if(copied!=roots_ || tail.extent()!=tail_start)fail("hybrid mutable roots differ");
+        roots_.clear();
+        tail.write_exact(0,encode(binding));
+        tail.flush();
+        phase_=Phase::second;
+        return false;
+      }
+      case Phase::second:
+        tail.write_exact(kStoreCommitUnit,encode(binding));
+        tail.flush();
+        phase_=Phase::ready;
+        break;
+      case Phase::ready:
+        break;
+    }
+    return true;
+  }
+
+ private:
+  enum class Phase { roots, first, second, ready };
+  Phase phase_=Phase::roots;
+  Bytes roots_;
+};
+
 } // namespace
 
 struct NativeHybridBacking::Impl {
@@ -165,52 +248,137 @@ std::shared_ptr<NativeHybridBacking> NativeHybridBacking::create(const NativeFil
   const auto source_storage=source.image_storage();
   check_limits(identity,source_storage.maximum_physical_bytes,physical_limit);
   if(source_storage.kind!=NativeImageKind::indexed_paged || source.needs_session_recovery() ||
-      identity==source.identity() || !workspace || !base || !tail || workspace==base || workspace==tail || base==tail ||
-      workspace->extent() || base->extent() || tail->extent() ||
-      !valid_store_io_contract(workspace->contract()) || !valid_store_io_contract(base->contract()) ||
-      !valid_store_io_contract(tail->contract()))
-    fail("hybrid creation needs a closed indexed source and three qualified empty backings");
-  const auto unit=(std::max<std::uint64_t>)(root_size,workspace->contract().write_failure_unit_bytes);
-  if(tail->contract().write_failure_unit_bytes>unit)fail("hybrid tail needs the compacted mirror's failure unit");
+      identity==source.identity())
+    fail("hybrid creation needs a closed indexed source and a new identity");
+  const auto unit=check_empty_backings(workspace,base,tail);
   const auto packed=source.build_folded_workspace(workspace,identity,compression);
-  Binding binding{packed.unit,packed.virtual_end,0,identity,packed.roots,source_storage.maximum_physical_bytes};
-  check_geometry(binding);
-  if(binding.unit!=unit || binding.folded_extent()!=workspace->extent())
-    fail("hybrid folded workspace checkpoint differs");
-  binding.base_occupied=ProtectedStripeImage::projected_occupied(identity,binding.folded_extent(),
-      base->contract().write_failure_unit_bytes,physical_limit-tail_start);
-  if(binding.base_occupied+tail_start>=binding.base_end)
-    fail("hybrid base and tail do not reduce the protected footprint");
-
+  const auto binding=bind_workspace(packed,*workspace,identity,source_storage.maximum_physical_bytes,unit,
+      base->contract().write_failure_unit_bytes,physical_limit);
   const auto sealed=ProtectedStripeImage::seal(workspace,base,identity,physical_limit-tail_start);
   if(sealed->occupied()!=binding.base_occupied || root_binding(*sealed)!=binding.frozen_roots)
     fail("hybrid checked base differs from the staged checkpoint");
   {
     const Impl::Lease tail_owner(tail,true);
-    if(tail->extent())fail("hybrid tail is no longer empty");
-    tail->admit_write(tail_start);
-    Bytes bytes(roots);
-    tail->write_exact(0,bytes);
-    sealed->read_exact(0,bytes);
-    tail->write_exact(roots,bytes);
-    tail->flush();
-    Bytes copied(roots);
-    tail->read_exact(roots,copied);
-    if(copied!=bytes || tail->extent()!=tail_start)fail("hybrid mutable roots differ");
-    const auto publication=encode(binding);
-    tail->write_exact(0,publication);
-    tail->flush();
-    tail->write_exact(kStoreCommitUnit,publication);
-    tail->flush();
+    TailBootstrap bootstrap;
+    while(!bootstrap.advance(*tail,*sealed,binding)) {}
   }
   auto result=open(std::move(base),std::move(tail),identity,binding.virtual_limit,physical_limit);
   auto checked=NativeFilesystemSnapshot::open_image(result,source_storage);
   checked.verify_all();
-  if(result->backing_degraded() || checked.storage_info().degraded_checkpoint ||
+  if(!result->allows_writer() || checked.storage_info().degraded_checkpoint ||
       checked.storage_info().generation!=packed.generation)
     fail("hybrid checkpoint did not verify after publication");
   return result;
 }
+
+struct NativeHybridBacking::Build::Impl {
+  Impl(PagedObjectStoreWriter::Rewrite rewrite,std::shared_ptr<StoreByteIo> workspace,
+      std::shared_ptr<StoreByteIo> base,std::shared_ptr<StoreByteIo> tail,
+      NativeImageStorage storage,StoreIdentity identity,std::uint64_t unit,
+      std::uint64_t candidate_limit,std::uint64_t staging_limit)
+      :rewrite(std::move(rewrite)),workspace(std::move(workspace)),base(std::move(base)),tail(std::move(tail)),
+       storage(storage),identity(identity),unit(unit),candidate_limit(candidate_limit),staging_limit(staging_limit) {}
+
+  bool advance(const NativeFilesystemWriter& source) {
+    if(!source.matches_paged_recompression(rewrite))fail("hybrid preparation source checkpoint changed");
+    switch(phase) {
+      case BuildPhase::workspace: {
+        detail::FoldedCheckpoint packed;
+        if(!source.advance_folded_recompression(rewrite,packed))return false;
+        binding=bind_workspace(packed,*workspace,identity,storage.maximum_physical_bytes,unit,
+            base->contract().write_failure_unit_bytes,candidate_limit);
+        check_staging(binding.folded_extent(),binding.base_occupied,staging_limit);
+        generation=packed.generation;
+        seal.emplace(ProtectedStripeImage::begin_seal(workspace,base,identity,candidate_limit-tail_start));
+        phase=BuildPhase::sealing;
+        return false;
+      }
+      case BuildPhase::sealing:
+        if(!seal->advance())return false;
+        sealed=seal->finish();
+        seal.reset();
+        if(sealed->occupied()!=binding.base_occupied || root_binding(*sealed)!=binding.frozen_roots)
+          fail("hybrid checked base differs from the staged checkpoint");
+        tail_owner.emplace(tail,true);
+        phase=BuildPhase::binding;
+        return false;
+      case BuildPhase::binding: {
+        if(!bootstrap.advance(*tail,*sealed,binding))return false;
+        tail_owner.reset();
+        auto reopened=NativeHybridBacking::open(base,tail,identity,binding.virtual_limit,candidate_limit);
+        const auto checked=NativeFilesystemSnapshot::open_image(reopened,storage);
+        if(!reopened->allows_writer() || checked.storage_info().degraded_checkpoint ||
+            checked.storage_info().generation!=generation)
+          fail("hybrid checkpoint did not verify after binding");
+        result=std::move(reopened);
+        phase=BuildPhase::ready;
+        break;
+      }
+      case BuildPhase::ready:
+        break;
+      case BuildPhase::stopped:
+        fail("hybrid preparation is unavailable");
+    }
+    return true;
+  }
+
+  PagedObjectStoreWriter::Rewrite rewrite;
+  std::shared_ptr<StoreByteIo> workspace,base,tail;
+  NativeImageStorage storage;
+  StoreIdentity identity;
+  std::uint64_t unit,candidate_limit,staging_limit;
+  BuildPhase phase=BuildPhase::workspace;
+  Binding binding;
+  std::uint64_t generation=0;
+  std::optional<ProtectedStripeImage::SealWork> seal;
+  std::shared_ptr<ProtectedStripeImage> sealed;
+  std::optional<NativeHybridBacking::Impl::Lease> tail_owner;
+  TailBootstrap bootstrap;
+  std::shared_ptr<NativeHybridBacking> result;
+};
+
+NativeHybridBacking::Build NativeHybridBacking::prepare(const NativeFileSession& session,
+    std::shared_ptr<StoreByteIo> workspace,std::shared_ptr<StoreByteIo> base,std::shared_ptr<StoreByteIo> tail,
+    StoreIdentity identity,std::uint64_t candidate_limit,std::uint64_t staging_limit,
+    StoreCompressionOptions compression) {
+  const auto& writer=session.hybrid_source();
+  const auto source=writer.snapshot();
+  const auto storage=source.image_storage();
+  check_limits(identity,storage.maximum_physical_bytes,candidate_limit);
+  if(storage.kind!=NativeImageKind::indexed_paged || identity==source.identity() || staging_limit<tail_start)
+    fail("invalid managed source or hybrid staging budget");
+  const auto unit=check_empty_backings(workspace,base,tail);
+  const auto base_unit=base->contract().write_failure_unit_bytes;
+  auto admission=[identity,base_unit,candidate_limit,staging_limit](std::uint64_t end) {
+    check_staging(detail::folded_mirror_extent(end),seal_footprint(identity,end,base_unit,candidate_limit),staging_limit);
+  };
+  auto rewrite=writer.prepare_folded_recompression(workspace,identity,compression,admission);
+  return Build(std::make_unique<Build::Impl>(std::move(rewrite),std::move(workspace),std::move(base),
+      std::move(tail),storage,identity,unit,candidate_limit,staging_limit));
+}
+
+NativeHybridBacking::Build::Build(std::unique_ptr<Impl> state) noexcept:impl_(std::move(state)) {}
+NativeHybridBacking::Build::Build(Build&&) noexcept=default;
+NativeHybridBacking::Build& NativeHybridBacking::Build::operator=(Build&&) noexcept=default;
+NativeHybridBacking::Build::~Build()=default;
+NativeHybridBacking::BuildPhase NativeHybridBacking::Build::phase() const noexcept {
+  return impl_?impl_->phase:BuildPhase::stopped;
+}
+bool NativeHybridBacking::Build::advance(const NativeFileSession& session) {
+  if(!impl_)fail("hybrid preparation is unavailable");
+  try {return impl_->advance(session.hybrid_source());}
+  catch(...){cancel();throw;}
+}
+std::shared_ptr<NativeHybridBacking> NativeHybridBacking::Build::finish(const NativeFileSession& session) {
+  if(phase()!=BuildPhase::ready)fail("hybrid preparation is incomplete");
+  try {
+    session.hybrid_source().verify_folded_recompression_source(impl_->rewrite);
+    auto result=std::move(impl_->result);
+    cancel();
+    return result;
+  }catch(...){cancel();throw;}
+}
+void NativeHybridBacking::Build::cancel() noexcept {impl_.reset();}
 
 std::uint64_t NativeHybridBacking::occupied() const {
   return impl_->binding.base_occupied+impl_->tail_extent();

@@ -501,6 +501,11 @@ std::array<std::byte,page_bytes> root_bytes(const State& s,std::uint64_t generat
   put32(b,60,s.metadata_bytes);encode_ref(b,64,s.root);
   copy(b,digest_at,detail::record_digest(std::span<const std::byte>(b).first(digest_at)));return b;
 }
+detail::FoldedCheckpoint folded_checkpoint(const State& state) {
+  const auto even=root_bytes(state,state.generation%2?state.checkpoint:state.generation);
+  const auto odd=root_bytes(state,state.generation%2?state.generation:state.checkpoint);
+  return {state.end,state.generation,state.unit,detail::record_digest(even,odd)};
+}
 State load(std::shared_ptr<StoreByteIo> image,PagedStoreLimits limits,LookupPages* query_pages=nullptr,
     Node* retain_tree_root=nullptr) {
   admit_limits(limits);if(!image)fail("missing backend");
@@ -554,9 +559,13 @@ void zeros(StoreByteIo& io,std::uint64_t at,std::uint64_t end) {
   while(at<end) {const auto size=static_cast<std::size_t>((std::min)(end-at,std::uint64_t(page_bytes)));
     io.write_exact(at,std::span<const std::byte>(b).first(size));at+=size;}
 }
+void publish_root(const State& s,StoreByteIo& output,std::uint64_t generation) {
+  output.write_exact(generation%2*kStoreCommitUnit,root_bytes(s,generation));
+  output.flush();
+}
 void publish_roots(const State& s,StoreByteIo& output) {
-  output.write_exact(s.checkpoint%2*kStoreCommitUnit,root_bytes(s,s.checkpoint));output.flush();
-  output.write_exact((s.checkpoint+1)%2*kStoreCommitUnit,root_bytes(s,s.checkpoint+1));output.flush();
+  publish_root(s,output,s.checkpoint);
+  publish_root(s,output,s.checkpoint+1);
 }
 void publish_roots(const State& s) {publish_roots(s,*s.image);}
 void publish(const State& s) {s.image->flush();publish_roots(s);}
@@ -1116,6 +1125,7 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
   std::optional<TreeFrontier> filtered_frontier;
   std::optional<LookupPages> filtered_source_pages;
   std::optional<RebuildColdEncoding> cold;
+  std::function<void(std::uint64_t)> folded_admission;
   struct CompressionScreen {
     std::uint64_t start=0,count=0,samples=0,completed=0,compared=0,saved=0;
   } screen;
@@ -1136,6 +1146,7 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
   std::optional<Entry> capacity_damage;
   std::uint64_t capacity_repair_generation=0,original_root_stored=0;
   bool repair_confirmed=false;
+  unsigned folded_barriers=0;
   struct Reconciliation {
     State source;
     Bytes root;
@@ -1147,9 +1158,13 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
   Impl(const PagedObjectStoreWriter::Impl& writer,std::shared_ptr<StoreByteIo> output,
       StoreIdentity id,StoreCompressionOptions compression,std::span<const std::byte> root,bool encode,
       std::size_t identity_offset,std::optional<RebuildRetention> filter,PagedRewriteMode rewrite_mode,
-      std::optional<RebuildColdEncoding> cold_encoding)
+      std::optional<RebuildColdEncoding> cold_encoding,std::function<void(std::uint64_t)> fold)
       :original(writer.state),owner(writer.owner),replacement_identity_offset(identity_offset),
-       retention(std::move(filter)),cold(std::move(cold_encoding)),reencode(encode),mode(rewrite_mode) {
+       retention(std::move(filter)),cold(std::move(cold_encoding)),folded_admission(std::move(fold)),
+       reencode(encode),mode(rewrite_mode) {
+    if(folded_admission && (mode!=PagedRewriteMode::exact_checkpoint || retention || cold ||
+        root.empty() || encode || !original.mirrored))
+      fail("folded staging requires an exact mirrored native checkpoint");
     if(mode!=PagedRewriteMode::exact_checkpoint && (retention || root.empty() || encode))
       fail("foreground reconciliation requires a lossless native identity-only rebuild");
     const bool screened=mode==PagedRewriteMode::cold_compression;
@@ -1180,6 +1195,10 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
     build.next.metadata_bytes=original.metadata_bytes;
     build.next.generation=add(original.generation,2);build.next.checkpoint=original.generation+1;
     build.next.unit=(std::max)(static_cast<std::uint32_t>(page_bytes),image->contract().write_failure_unit_bytes);
+    if(folded_admission) {
+      build.folded=image.get();
+      build.next.image=std::make_shared<FoldedRebuildView>(image,build.next.unit,build.next.limits.maximum_physical_bytes);
+    }
   }
   void source_check(const State& current) const {
     auto& image=*current.image;
@@ -1261,13 +1280,14 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
   }
   void begin_copy(const State& current) {
     source_check(current);
-    if(capacity_damage) {
+    if(capacity_damage || folded_admission) {
       const auto rebound=target->encoder.encode(replacement).payload.size();
       const auto stored=add(original.root.stored-original_root_stored,rebound);
       const auto projected=packed_rebuild_size(build.next,original.root.count,stored);
       check_physical_capacity(projected,build.next.limits.maximum_physical_bytes);
-      if(!repair_confirmed && projected>=source_extent)
+      if(capacity_damage && !repair_confirmed && projected>=source_extent)
         capacity("staged repair found neither the reported fault nor a smaller image");
+      if(folded_admission)folded_admission(projected);
     }
     const auto initial_end=start+2*build.next.unit;
     if(mode==PagedRewriteMode::cold_compression && original.end<initial_end) {
@@ -1276,7 +1296,7 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
     }
     // Memory providers commit on admission. Admit only the first bounded
     // growth here. Subsequent records admit their own growth.
-    build.next.image->admit_write(initial_end);
+    build.admit_target(initial_end);
     if(mode==PagedRewriteMode::cold_compression) {
       if(!cold->reserve_writes(write_bound)){phase=PagedRewritePhase::declined;return;}
       build.next.limits.maximum_physical_bytes=original.end;
@@ -1285,7 +1305,7 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
       if(!retention->charge(write_bound))return;
       build.next.limits.maximum_physical_bytes=write_bound-2*page_bytes;
     }
-    zeros(*build.next.image,0,start);
+    zeros(*target->lease.image,0,start);
     reset(PagedRewritePhase::copying);
   }
   void compare(const State& source,const Entry& expected_entry,const Entry& entry,
@@ -1295,7 +1315,7 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
     auto expected=read_object(source,expected_entry);
     if(entry.id==1 && !native_root.empty())expected.assign(native_root.begin(),native_root.end());
     if(read_object(build.next,entry)!=expected)fail("staged target CPU comparison");
-    if(build.next.mirrored)verify_object(build.next,entry);
+    if(build.next.mirrored && !build.folded)verify_object(build.next,entry);
   }
   void mark_ready(const State& current) {
     source_check(current);
@@ -1381,7 +1401,7 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
     }
   }
   void step(const State& current) {
-    auto image=build.next.image;
+    const auto& image=target->lease.image;
     if(image->extent()!=target_extent)fail("staged target extent changed");
     admit_contract(image->contract());
     if(image->contract().write_failure_unit_bytes>build.next.unit)fail("staged target contract changed");
@@ -1453,6 +1473,8 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
         for(std::uint64_t i=0;i<batch;++i)count(build.index_record());
       } else {
         build.finish();
+        if(build.folded && image->extent()!=detail::folded_mirror_extent(build.next.end))
+          fail("staged folded length differs from its checkpoint");
         totals(build.next);
         if(completed!=expected_count || logical!=expected_logical)fail("staged copy inventory differs");
         if(retention && (stored!=retained.stored || add(build.next.end,2*page_bytes)!=write_bound))
@@ -1471,8 +1493,16 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
         else mark_ready(current);
       }
     } else if(phase==PagedRewritePhase::publishing) {
-      source_check(current);image->admit_write(build.next.end);publish(build.next);
-      auto published=load(image,build.next.limits);
+      source_check(current);
+      build.admit_target(build.next.end);
+      if(build.folded) {
+        // Keep the data barrier and both isolated root barriers in separate
+        // opportunities. The workspace stays private through verification.
+        if(!folded_barriers)image->flush();
+        else publish_root(build.next,*image,build.next.checkpoint+folded_barriers-1);
+        if(++folded_barriers<3)return;
+      }else publish(build.next);
+      auto published=load(build.next.image,build.next.limits);
       if(!same(build.next,published) || published.degraded_roots || published.degraded_metadata || published.degraded_payloads)
         fail("staged published checkpoint differs/degraded");
       build.next=std::move(published);
@@ -1522,8 +1552,21 @@ bool PagedObjectStoreWriter::Rewrite::advance(const PagedObjectStoreWriter& writ
 PagedObjectStoreWriter PagedObjectStoreWriter::Rewrite::finish(const PagedObjectStoreWriter& writer) {
   if(!matches(writer)) {impl_.reset();fail("staged rebuild source owner/generation is stale");}
   if(!ready_for(writer))fail("staged rebuild has not verified the current source");
+  if(impl_->build.folded)fail("folded workspace cannot become a writable store");
   auto candidate=std::move(impl_);return PagedObjectStoreWriter(std::move(candidate->target));
 }
+void PagedObjectStoreWriter::Rewrite::verify_folded_source(const PagedObjectStoreWriter& writer) const {
+  if(!ready_for(writer) || !impl_->build.folded)fail("folded workspace source checkpoint changed");
+  impl_->source_check(writer.impl_->state);
+}
+detail::FoldedCheckpoint PagedObjectStoreWriter::Rewrite::release_folded_workspace(const PagedObjectStoreWriter& writer) {
+  verify_folded_source(writer);
+  if(!impl_->target)fail("folded workspace has been released");
+  const auto checked=folded_checkpoint(impl_->build.next);
+  impl_->target.reset();
+  return checked;
+}
+
 PagedObjectStoreWriter::Rewrite PagedObjectStoreWriter::prepare_rebuild(std::shared_ptr<StoreByteIo> target,
     StoreIdentity id,StoreCompressionOptions compression,bool reencode) const {
   return prepare_rebuild_replacing(std::move(target),id,compression,{},reencode);
@@ -1542,11 +1585,11 @@ PagedObjectStoreWriter::Rewrite PagedObjectStoreWriter::prepare_rebuild_retainin
 PagedObjectStoreWriter::Rewrite PagedObjectStoreWriter::prepare_rebuild_impl(std::shared_ptr<StoreByteIo> target,
     StoreIdentity id,StoreCompressionOptions compression,std::span<const std::byte> replacement,bool reencode,
     std::size_t identity_offset,std::optional<RebuildRetention> retention,PagedRewriteMode mode,
-    std::optional<RebuildColdEncoding> cold) const {
+    std::optional<RebuildColdEncoding> cold,std::function<void(std::uint64_t)> folded_admission) const {
   if(poisoned())fail("staged rebuild requires a healthy source writer");
   if(!impl_->pending_rebuild.expired())fail("source already has a staged rebuild");
   auto candidate=std::make_unique<Rewrite::Impl>(*impl_,std::move(target),id,compression,
-      replacement,reencode,identity_offset,std::move(retention),mode,std::move(cold));
+      replacement,reencode,identity_offset,std::move(retention),mode,std::move(cold),std::move(folded_admission));
   impl_->pending_rebuild=candidate->reservation;return Rewrite(std::move(candidate));
 }
 PagedObjectStoreSnapshot::PagedObjectStoreSnapshot(std::unique_ptr<Impl> p) noexcept:impl_(std::move(p)){}
@@ -1979,9 +2022,7 @@ detail::FoldedCheckpoint PagedObjectStoreWriter::rebuild_folded(const PagedObjec
   detail::StoreCodecEncoder encoder(compression);
   const auto state=rebuild_checkpoint(original,target,id,original.limits,encoder,1,rebound_root,
       false,identity_offset,true,true);
-  const auto even=root_bytes(state,state.generation%2?state.checkpoint:state.generation);
-  const auto odd=root_bytes(state,state.generation%2?state.generation:state.checkpoint);
-  return {state.end,state.generation,state.unit,detail::record_digest(even,odd)};
+  return folded_checkpoint(state);
 }
 PagedStoreInfo PagedObjectStoreWriter::commit(std::span<const StoreMutation> mutations) {
   return commit_with_write_budget(mutations,(std::numeric_limits<std::uint64_t>::max)()).storage;

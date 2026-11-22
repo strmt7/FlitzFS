@@ -225,7 +225,8 @@ class PagedObjectStoreWriter final {
   Rewrite prepare_rebuild_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,
       StoreCompressionOptions,std::span<const std::byte> replacement,bool reencode,
       std::size_t identity_offset,std::optional<RebuildRetention>,PagedRewriteMode,
-      std::optional<RebuildColdEncoding> cold={}) const;
+      std::optional<RebuildColdEncoding> cold={},
+      std::function<void(std::uint64_t)> folded_admission={}) const;
   enum class RebuildPayloads { preserve, sealed_workspace, mirrored_recovery };
   static PagedObjectStoreWriter rebuild_replacing(const PagedObjectStoreSnapshot&,
       std::shared_ptr<StoreByteIo>,StoreIdentity,PagedStoreLimits,StoreCompressionOptions,
@@ -301,6 +302,9 @@ class PagedObjectStoreWriter::Rewrite final {
  private:
   friend class PagedObjectStoreWriter;
   friend class NativeFileSession;
+  friend class NativeFilesystemWriter;
+  void verify_folded_source(const PagedObjectStoreWriter&) const;
+  detail::FoldedCheckpoint release_folded_workspace(const PagedObjectStoreWriter&);
   std::uint64_t cold_encoding_through() const noexcept;
   struct Impl;
   explicit Rewrite(std::unique_ptr<Impl>) noexcept;

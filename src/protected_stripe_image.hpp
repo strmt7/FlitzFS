@@ -20,6 +20,9 @@ class ProtectedStripeImage final:public StoreByteIo {
   static std::uint64_t projected_occupied(StoreIdentity,std::uint64_t logical_bytes,
       std::uint32_t failure_unit,std::uint64_t physical_limit);
   static std::shared_ptr<ProtectedStripeImage> open(std::shared_ptr<StoreByteIo>,std::uint64_t physical_limit);
+  class SealWork;
+  static SealWork begin_seal(std::shared_ptr<StoreByteIo> closed_source,
+      std::shared_ptr<StoreByteIo> empty_output,StoreIdentity,std::uint64_t physical_limit);
   static std::shared_ptr<ProtectedStripeImage> seal(std::shared_ptr<StoreByteIo> closed_source,
       std::shared_ptr<StoreByteIo> empty_output,StoreIdentity,std::uint64_t physical_limit);
   std::uint64_t extent() const override {return layout_.logical_bytes;}
@@ -36,7 +39,7 @@ class ProtectedStripeImage final:public StoreByteIo {
  private:
   struct Lease;
   ProtectedStripeImage(std::shared_ptr<StoreByteIo>,ProtectedStripeLayout,std::uint64_t,bool);
-  void verify_stripes(const StoreByteIo* clean_source=nullptr) const;
+  void verify_stripes() const;
   using Checksums=std::array<Digest,kProtectedStripeDataUnits>;
   const Checksums& stripe_checksums(std::uint64_t stripe) const;
   const std::vector<std::byte>& checked_block(std::uint64_t block) const;
@@ -59,4 +62,19 @@ class ProtectedStripeImage final:public StoreByteIo {
   mutable bool degraded_=false;
 };
 
-}
+// A caller advances one stripe or publication step per opportunity.
+class ProtectedStripeImage::SealWork final {
+ public:
+  SealWork(SealWork&&) noexcept;
+  SealWork& operator=(SealWork&&) noexcept;
+  ~SealWork();
+  bool advance();
+  std::shared_ptr<ProtectedStripeImage> finish();
+ private:
+  friend class ProtectedStripeImage;
+  struct Impl;
+  explicit SealWork(std::unique_ptr<Impl>) noexcept;
+  std::unique_ptr<Impl> impl_;
+};
+
+} // namespace

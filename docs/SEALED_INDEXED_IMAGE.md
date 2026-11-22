@@ -155,12 +155,57 @@ also preserved the source and reached no base or tail writes. The 4 KiB and
 64 KiB trials compared each folded unit with both slots of a separately built
 mirror and verified exact capacity admission. Recovery checked one lost cold
 or binding unit, rejection after two lost units in one cold stripe, read-only
-rescue, and a same-ID base with different frozen roots. Background enrollment, incremental
-construction, persistent range placement and mounted performance remain
-separate qualification work.
+rescue, and a same-ID base with different frozen roots. Background enrollment,
+persistent range placement and mounted performance remain separate
+qualification work.
 [Folded staging receipt](evidence/folded-hybrid-workspace-2026-11-22.json) ·
 [Original writable backing receipt](evidence/native-hybrid-backing-2026-11-22.json) ·
 [AIT 2026 dataset](https://aitdcc.github.io/dataset.html)
+
+### Cooperative preparation
+
+A managed external indexed session can prepare the same base and tail while
+its selected image continues serving files. The caller provides three
+private backings and two budgets, one for the candidate and one for the
+candidate plus its workspace. The selector and retained source stay under
+the caller's separate ownership and allocation accounting.
+
+```mermaid
+stateDiagram-v2
+    [*] --> FoldedWorkspace
+    FoldedWorkspace --> ParityBase: checked workspace roots
+    ParityBase --> TailBinding: verified stripes and base roots
+    TailBinding --> Ready: ordered tail barriers and CPU reopen
+    Ready --> [*]: exact source check and return candidate
+    FoldedWorkspace --> Stopped: cancel or failed check
+    ParityBase --> Stopped: cancel or failed check
+    TailBinding --> Stopped: cancel or failed check
+    Ready --> Stopped: stale source at final check
+```
+
+The folded rebuild traverses and checks the existing paged records in bounded
+units. It projects the base, tail and workspace before the first output write.
+Each seal advance processes one stripe or one publication step. The workspace,
+parity base and tail each issue at most one ordered flush per advance. The
+candidate reopens through the independent CPU reader after the final tail
+binding. The source must still match its exact in-memory checkpoint on each
+advance and its checked backing checkpoint when the candidate leaves.
+A foreground commit, unavailable backing or cancelled caller releases the
+private work. Selection remains with the source until explicit verified
+publication through the volume selector. A partial workspace or candidate
+is retained as private caller-owned data. This state machine runs within a
+single process. Automatic WinFsp scheduling and persistent range placement
+remain open.
+
+The full 16-file AIT 2026 fixture reopened byte for byte after 4,071 advances.
+It kept the same 111,828,992-byte staged footprint as the earlier detached
+build. The mixed 4 KiB and 64 KiB fixture completed verified selection and
+refused stale work both during sealing and after completion. It also stopped
+before the next tail write when the backing contract became unavailable, and
+refused insufficient staging capacity before writing any candidate bytes.
+[Cooperative preparation receipt](evidence/cooperative-hybrid-preparation-2026-11-22.json) ·
+[Btrfs balance](https://btrfs.readthedocs.io/en/stable/Balance.html) ·
+[OpenZFS scrub and resilver](https://openzfs.github.io/openzfs-docs/Basic%20Concepts/Operations/Scrub%20and%20Resilver.html)
 
 ## Verification on Windows
 

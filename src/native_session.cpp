@@ -1518,6 +1518,14 @@ NativeVolumeHeadInfo NativeFileSession::recover_volume() {
   volume.candidate_io.reset();volume.candidate_id={};volume.baseline.reset();
   volume.pending=false;self.terminal=false;return restored;
 }
+const NativeFilesystemWriter& NativeFileSession::hybrid_source() const {
+  auto& self=ready();
+  if(!self.volume || self.volume_file_bound || self.recompression || !self.writer.maintenance_indexed())
+    fail(E::invalid_options,"hybrid staging requires a managed external indexed session");
+  admit_handoff_contexts(self);
+  return self.writer;
+}
+
 NativeFileSession::Impl& NativeFileSession::ready() const {
   if(!impl_ || impl_->terminal || impl_->writer.poisoned())fail(E::terminal,"native file session is fenced");
   return *impl_;
