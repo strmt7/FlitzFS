@@ -1,0 +1,330 @@
+{
+  "schema": "flitzfs-batched-lz4-capture-v1",
+  "date": "2026-11-22",
+  "source": {
+    "base": "90ba9019f50429a78342114f5eef547491fb2863",
+    "source_blobs": {
+      "include/flitzfs/paged_store.hpp": "6bf1d220cb1bb13784471b09990686b607ccb043",
+      "src/paged_store.cpp": "c8ea54c42a17cb36185ccd3c4074daa72c8d6a0f",
+      "src/native_indexed_volume.hpp": "869a4dce29feae767be141a417522dba6f19ff29",
+      "src/native_indexed_volume.cpp": "a8890bf82672e97a1c2e023b1b294bfd5cdde1dc",
+      "src/native_lz4_capture.hpp": "1c8f37123ed7870a2b6dada6d3027127b1474545",
+      "src/native_filesystem.cpp": "41b04dbe94475ce9e16cea14c4a0959c7dfb2dff",
+      "src/native_lz4_decode_wire.hpp": "1993f1819c1304fc025e786514f21344827fe66f",
+      "src/native_lz4_decode_wire.cpp": "9bb87e8923417a543c5d0521bb5fdaf0d66424de",
+      "src/windows/winfsp_native.cpp": "82a5305a552745a544ab82d39eded6f7f2f89211",
+      "tests/test_winfsp_paged.cpp": "75c113b8a6a30d0c27cbfaa65610d4ca5f99cef1",
+      "tests/rocm_compile/native_lz4_decode_probe.cpp": "e648f751a2774996890012cf6a4f735af0dc7a10"
+    },
+    "tracked_patch_sha256": "3287731188cc1c1a9599e4f344e12beda6a4860c30d675487eb35840d9c03fa4"
+  },
+  "scope": {
+    "os_build": 26300,
+    "foreground": "WinFsp SDK callbacks",
+    "backing": "concurrent process-memory provider",
+    "windows_driver_mount": false,
+    "physical_device_timing": false,
+    "ordinary_mounted_gpu_route": false
+  },
+  "callback": {
+    "frames": 4,
+    "partial_grant_frames": 1,
+    "exact": 1,
+    "capture_independent_bytes": 71852,
+    "capture_shared_bytes": 43781,
+    "ordinary_backing_bytes": 53138,
+    "ready_backing_bytes": 18714,
+    "total_prepared_bytes": 62495,
+    "foreground_during_single_capture": {
+      "read_write_exact_after_epoch_change": 1
+    }
+  },
+  "owned_controller": {
+    "prepared": 3,
+    "exact_hits": 3,
+    "backing_refused": 7,
+    "refused_backing_calls": 0,
+    "modeled_stall_ns": 47383501,
+    "demand_samples": 7,
+    "slow_demand_kept_limit": 1,
+    "timer_only_retries": 0,
+    "demand_recovered": 1,
+    "exact_cpu_fallback": 1,
+    "owner_retired": 1,
+    "handle_counts": {
+      "before": 156,
+      "after": 156
+    }
+  },
+  "amd_probe": {
+    "adapter": "AMD Radeon RX 9070 XT",
+    "driver": "32.0.32029.2010",
+    "hip_runtime": {
+      "module": "amdhip64_7.dll",
+      "sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7"
+    },
+    "executable_hashes": {
+      "probe": "2b6c26c2d9ef0ced3a7ac20b36f75cf8228b5e7a53c7aa1464d476be7086d663",
+      "worker": "03df427e59babfedf041c0582017e37059cc25f940a68dca0572299397f5a1ff",
+      "decode_module": "d5c46512c13866c134762a473edcf9360f93c28e8b7d7c703c7f9deeef3300f6"
+    },
+    "kernel_objects": {
+      "decode": "b817696fea0bd04dc01e7c894be4a032186d8c088a172459c62368b4104cbd6e",
+      "companion": "8d3c796e9360e0a6c8b6166b72149b7d0fa96341ebe0c027435ce7c55a3532bd"
+    },
+    "result": {
+      "architecture": "gfx1201",
+      "frames": 2,
+      "gpu_launched": true,
+      "bytes_exact": true,
+      "cpu_fallback_exact": true,
+      "first_decoded_bytes": 65560,
+      "second_decoded_bytes": 65523,
+      "exact_child_retired": true,
+      "pending_cpu_read_exact": true,
+      "kernel_launches": 2,
+      "reused_device_slab_bytes": 74096,
+      "exchange_ns": 1316284600,
+      "device_reserved_bytes": 262144,
+      "prepared": true,
+      "ready_ns": 1271114200,
+      "after_submit_ns": 45170400,
+      "capture_ns": 36100,
+      "leased_frames": 2,
+      "capture_batches": 1,
+      "cpu_session_read_ns": 119300,
+      "ready_session_read_ns": 114000,
+      "cpu_backing_bytes": 35393,
+      "ready_backing_bytes": 18168,
+      "indexed_hits": 2,
+      "public_corpus": false
+    },
+    "module_refusal": {
+      "worker_refused_module": true,
+      "gpu_launched": false,
+      "exact_child_retired": true,
+      "cpu_fallback_exact": true,
+      "prepared": true
+    }
+  },
+  "tests": {
+    "windows": {
+      "elapsed_seconds": 145.45300000000134,
+      "exit_code": 0,
+      "peak_job_bytes": 335699968,
+      "memory_bytes": 4045406208,
+      "residual_children": 0,
+      "tree_retired": true,
+      "inherited_error_mode": 32771,
+      "result_sha256": "dc0424d0ae6b104f08e7a0d61ec2dc5b1f3fc9fc259c424afdfd090fd9fc9224",
+      "output_sha256": "a3795d94cbd496d099b7847a03d79efbf96afe5992e4199840f84fe1e772fd52",
+      "ctest_passed": 210
+    },
+    "raw": {
+      "elapsed_seconds": 2.688000000001921,
+      "exit_code": 0,
+      "peak_job_bytes": 166608896,
+      "memory_bytes": 4594860032,
+      "residual_children": 0,
+      "tree_retired": true,
+      "inherited_error_mode": 32771,
+      "result_sha256": "7be18fa3369dcabf81407e45472e5602b90b988a94abcae2eef29819644cca07",
+      "output_sha256": "91a063a12ada3a8e6ce8a2d9caf37d8560fa102b6c5bfe6cfe78b8b38b51fa0c",
+      "ctest_passed": 4
+    },
+    "asan": {
+      "elapsed_seconds": 21.906000000002678,
+      "exit_code": 0,
+      "peak_job_bytes": 800624640,
+      "memory_bytes": 4026531840,
+      "residual_children": 0,
+      "tree_retired": true,
+      "inherited_error_mode": 32771,
+      "result_sha256": "26044215b50a112e33e24095d3081bb721958630de1d20d5d371fc84d8e19537",
+      "output_sha256": "813b1b714559d07b62694a180bf49a125650b87e59ff8f1e5875f46c3d5d0baf",
+      "ctest_passed": 6
+    },
+    "pinned": {
+      "elapsed_seconds": 27.68800000000192,
+      "exit_code": 0,
+      "peak_job_bytes": 61915136,
+      "memory_bytes": 5228199936,
+      "residual_children": 0,
+      "tree_retired": true,
+      "inherited_error_mode": 32771,
+      "result_sha256": "a982a6011125acfa96ea2535e51bea5b5fd314d7f742dc89b4e056b280ade17c",
+      "output_sha256": "17e9ef177dda0ff61aa754e5c74f1f0c74287ba726178ce91ee5afc7f8d1966c",
+      "ctest_passed": 4
+    },
+    "controller": {
+      "elapsed_seconds": 17.485000000000582,
+      "exit_code": 0,
+      "peak_job_bytes": 10063872,
+      "memory_bytes": 6334447616,
+      "residual_children": 0,
+      "tree_retired": true,
+      "inherited_error_mode": 32771,
+      "result_sha256": "d21d99233f3f157bb4c782655a0aefda941113206e029833fd43f79dc1722347",
+      "output_sha256": "a54dd0a110d444fe5e25f9b924f1a5feb349380ed4d765074019cd5972f9cb80"
+    },
+    "device": {
+      "elapsed_seconds": 1.4530000000013388,
+      "exit_code": 0,
+      "peak_job_bytes": 93773824,
+      "memory_bytes": 3322937344,
+      "residual_children": 0,
+      "tree_retired": true,
+      "inherited_error_mode": 32771,
+      "result_sha256": "67811728440456c812560fca77538aff1c9ba26d652ba0cd7a53101c192f9a1e",
+      "output_sha256": "03224b419b86c2164f21d30660f56c862223a6788513a48242f8619a52e8416e"
+    },
+    "module_refusal": {
+      "elapsed_seconds": 0.18800000000192085,
+      "exit_code": 0,
+      "peak_job_bytes": 11972608,
+      "memory_bytes": 3321888768,
+      "residual_children": 0,
+      "tree_retired": true,
+      "inherited_error_mode": 32771,
+      "result_sha256": "eb3f3721047080b93819b9cdd739c981f2480bdc30775f4000e3991f00597909",
+      "output_sha256": "bb05d746c531531d4801114003d3e875972d02f918042e62c2f3d45abc34d9b8"
+    }
+  },
+  "navigation": {
+    "successful_searches": 1,
+    "receipt_sha256": "a7bb8a8812a579ab3555cb5d26fdf81e0eab5023037188e7ce89239fc5f09242",
+    "native_stdout_sha256": "ff68147f0e62adf4c6daa7e745980e49499b01c4bde489fd0642c98e91cc2b14"
+  },
+  "research": [
+    {
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "receipt_sha256": "8a800bf4cc22480a6e66280eb9308bb337772b8d1325dd30539a6bc90d858826",
+      "pages": [
+        {
+          "name": "hip-batched-transfer",
+          "url": "https://rocm.docs.amd.com/projects/HIP/en/latest/how-to/performance_guidelines.html",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 55542,
+          "markdown_sha256": "588168e4924701080186eed10616f58c6b03fbd3ec69255751d1374d16cd5f20",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 2.8,
+          "capture": "hip-batched-transfer.native.json",
+          "capture_sha256": "ae6438aba63ec582d72933c87dc586e9a03a0a706683895aabfa062da9176d9a"
+        },
+        {
+          "name": "linux-sequential-sizing",
+          "url": "https://docs.kernel.org/6.18/core-api/mm-api.html",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 393714,
+          "markdown_sha256": "5974c9b38c30fa95d7f83c60289d310fdeaa08d806ce68cfb8c7105751ddf05a",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 1.785,
+          "capture": "linux-sequential-sizing.native.json",
+          "capture_sha256": "df84880dd5e24c7c8c6fc2cd83d00b2a60fccfe6549a2246ea8ca5510916b13c"
+        },
+        {
+          "name": "windows-read-ahead",
+          "url": "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ccschedulereadaheadex",
+          "success": false,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 142412,
+          "markdown_sha256": "53616eece027f6970b0209075ae2df21cce41119d5c59125d74e9dcb710b4189",
+          "expected_content": false,
+          "failure_category": "unexpected_content",
+          "error": "",
+          "seconds": 1.268,
+          "capture": "windows-read-ahead.native.json",
+          "capture_sha256": "a7b1794710fa4a6466f647393dc62152b95afb33528b0954fae8fd1e88a6fe8d"
+        }
+      ]
+    },
+    {
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "receipt_sha256": "39920972da8ea11321e102341509d34091a0b44715bcafdb0b7e3673d67c5c14",
+      "pages": [
+        {
+          "name": "windows-read-ahead",
+          "url": "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ccschedulereadaheadex",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 142412,
+          "markdown_sha256": "53616eece027f6970b0209075ae2df21cce41119d5c59125d74e9dcb710b4189",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.866,
+          "capture": "windows-read-ahead.native.json",
+          "capture_sha256": "9433068d4b10a112492cdb2d9cac6dc892c3be438110f4fd3522171d49895537"
+        }
+      ]
+    },
+    {
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "receipt_sha256": "cb3d5ae026c7c6381fddd7a0ae71fe4379aa5445082f29e23a7c2bd92e436830",
+      "pages": [
+        {
+          "name": "removal-policy",
+          "url": "https://learn.microsoft.com/en-us/windows/client-management/client-tools/change-default-removal-policy-external-storage-media",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 23769,
+          "markdown_sha256": "ae88fed0e7e3ab8fef1e88b3d16117d5f2a23abd6de8d536f7c201b4f761755a",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 1.267,
+          "capture": "removal-policy.native.json",
+          "capture_sha256": "b9dc1af6e7b1d76ec387978ffecaaa78b3a01e7248a84adc6a64e88694a095fc"
+        },
+        {
+          "name": "file-storage-geometry",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_storage_info",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 38550,
+          "markdown_sha256": "96eb61b8d84492d40c69389ae9accb7c7e68de6ef34ffd863c808e44c8dca279",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.836,
+          "capture": "file-storage-geometry.native.json",
+          "capture_sha256": "50bae3af0fc294cc14a9f104d0d0f2a984edcf905b6869d988b692e17e5de2e8"
+        },
+        {
+          "name": "windows-nvme",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/fileio/working-with-nvme-devices",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 66457,
+          "markdown_sha256": "219ef9ada93d4b9fc8bb44daa677d4b7e4473814cddfdcdc0ffa5ac1f8669c2a",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.914,
+          "capture": "windows-nvme.native.json",
+          "capture_sha256": "d55a66ac831a540680f583a1a1ae23bfb7050deeea6d88ec9afa2ea2f371f154"
+        }
+      ]
+    }
+  ]
+}

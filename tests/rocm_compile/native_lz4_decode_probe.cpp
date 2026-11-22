@@ -93,15 +93,14 @@ void run(std::wstring_view runtime_name,std::wstring_view runtime_sha,std::wstri
   (void)session.write(reader,kNativeExtentBytes,second);
   const auto first_size=static_cast<std::uint32_t>(first.size());
   const auto second_size=static_cast<std::uint32_t>(second.size());
-  std::array<NativeLz4CapturedFrame,2> captured;
   using Clock=std::chrono::steady_clock;
   const auto capture_begin=Clock::now();
-  {
-    auto first_lease=session.lease_native_lz4_capture(reader,0,kNativeExtentBytes);
-    auto second_lease=session.lease_native_lz4_capture(reader,kNativeExtentBytes,kNativeExtentBytes);
-    require(first_lease && second_lease && first_lease->capture(captured[0]) &&
-        second_lease->capture(captured[1]),"native read-ahead did not capture both selected frames");
-  }
+  auto lease=session.lease_native_lz4_capture(reader,0,kNativeExtentBytes);
+  require(bool(lease),"native read-ahead could not pin selected frames");
+  constexpr auto frame_bytes=kNativeExtentBytes+detail::kIndexedExtentHeaderBytes;
+  const auto captured=lease->capture_range(2*kNativeExtentBytes,4*frame_bytes);
+  lease.reset();
+  require(captured.size()==2,"native read-ahead did not capture both selected frames");
   const auto capture_ns=std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now()-capture_begin).count();
   const std::array sources{
       NativeLz4DecodeSource{captured[0].key(),captured[0].encoded()},
@@ -214,7 +213,7 @@ void run(std::wstring_view runtime_name,std::wstring_view runtime_sha,std::wstri
       <<",\"kernel_launches\":2,\"reused_device_slab_bytes\":"<<peak
       <<",\"exchange_ns\":"<<exchange_ns<<",\"device_reserved_bytes\":"<<device_reserve
       <<",\"prepared\":"<<(prepared?"true":"false")<<",\"ready_ns\":"<<ready_ns
-      <<",\"after_submit_ns\":"<<after_submit_ns<<",\"capture_ns\":"<<capture_ns<<",\"leased_frames\":2"
+      <<",\"after_submit_ns\":"<<after_submit_ns<<",\"capture_ns\":"<<capture_ns<<",\"leased_frames\":2,\"capture_batches\":1"
       <<",\"cpu_session_read_ns\":"<<cpu_ns<<",\"ready_session_read_ns\":"<<ready_read_ns
       <<",\"cpu_backing_bytes\":"<<cpu_backing<<",\"ready_backing_bytes\":"<<ready_backing
       <<",\"indexed_hits\":"<<ready->indexed_consumed()

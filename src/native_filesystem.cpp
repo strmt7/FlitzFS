@@ -2867,6 +2867,17 @@ bool detail::NativeLz4CaptureLease::capture(NativeLz4CapturedFrame& out) const {
     return view.capture_native_lz4(view.inode(inode_),offset_,maximum_encoded_,out);
   }catch(const std::exception&){return false;}
 }
+std::vector<detail::NativeLz4CapturedFrame> detail::NativeLz4CaptureLease::capture_range(
+    std::uint32_t bytes,std::size_t maximum_frame_bytes,const std::function<bool()>& interrupted) const {
+  if(!bytes || bytes>kNativeMaxReadBytes || offset_%kNativeExtentBytes || !maximum_frame_bytes)return {};
+  try {
+    if(interrupted && interrupted())return {};
+    const auto query=snapshot_.scoped_query();
+    const auto view=verify_indexed_root(snapshot_,root_);
+    return view.capture_native_lz4_range(view.inode(inode_),offset_,bytes,maximum_encoded_,
+        maximum_frame_bytes,interrupted);
+  }catch(const std::exception&){return {};}
+}
 bool NativeFilesystemWriter::capture_native_lz4(std::uint64_t inode,std::uint64_t offset,
     std::size_t maximum_encoded,detail::NativeLz4CapturedFrame& out) const {
   out={};

@@ -181,15 +181,14 @@ verified AMD result. The scheduler still needs to account for capture,
 preparation, execution and the chance that the data goes unused.
 [Indexed ready read qualification](../NATIVE_AMD_LZ4_READ.md#reusing-a-verified-ready-frame)
 
-An opt-in controller baseline now derives a one-extent forecast from
-ordinary sequential reads. It admits the forecast only after other
-maintenance yields and the observed backing costs fit the idle window.
-The CPU baseline measures preparation and consumption separately.
-A checked memory-backed capture keeps its checkpoint and decoder private
-while ordinary callbacks continue. Verified demand can refresh the backing
-cost after a refusal. Wider
-batches and automatic AMD enrollment depend on full-path results and
-bounded foreground interference.
+An opt-in controller baseline sizes a forecast from ordinary sequential
+reads and clips it to the available scratch and frame budget. The checked
+memory-backed capture shares a paged query across the admitted extents while
+ordinary callbacks continue. Verified demand can refresh the backing cost
+after a refusal. Capturing four extents together reduced preparation I/O by
+39% against four independent captures. The full prepared route requested
+18% more bytes than demand alone in the callback fixture. Automatic
+enrollment depends on full-path results and bounded foreground interference.
 [Sequential read-ahead qualification](../NATIVE_AMD_LZ4_READ.md#qualifying-sequential-read-ahead)
 
 Use [GPU recovery](../GPU_RECOVERY.md) for immediate CPU continuity and
@@ -279,11 +278,14 @@ Continue the backing-dependent work in this order.
    range reclamation, device TRIM and qualified flush behavior independent.
    Reacquire advisory properties on a fresh attach. Label missing or
    ambiguous evidence as unknown.
-2. Qualify the measured admission policy with real device latency and a
-   separate foreground trace. Select the next bounded quantum from observed
-   providers, current resource grants and contention. Keep the existing
-   foreground yield checks. Cluster safe reads on seek-sensitive media and
-   coalesce qualified sequential writes when the recovery contract allows it.
+2. Qualify positioned reads, cancellation and exact request retirement before
+   permitting speculative capture on file-backed volumes. Separate kernel
+   request count, provider bytes and actual device service in the trace.
+   Select the next quantum from the observed cost on this attachment and
+   current headroom. Test nearby physical range grouping on seek-sensitive
+   devices, and increase read concurrency on queued devices only where the
+   measured foreground tail permits it. Coalesce eligible writes within the
+   existing commit order.
 3. Charge backing write attempts, retained generations and temporary space to
    each optimization. Keep recovered space and estimated device wear distinct
    from application bytes. Size reduction remains the goal. Repeatedly rewriting
@@ -293,13 +295,20 @@ Continue the backing-dependent work in this order.
    Windows helper asks for sparse range reclamation. A removable volume without
    that capability needs an independently qualified dense path with safe reuse
    or compaction before routine maintenance can reclaim its bytes. Keep
-   the same versioned CPU reader and verify detach, removal and reinsertion
-   before resuming work on a persistent provider.
+   the same versioned CPU reader. Recover the allocation state from the
+   selected checkpoint, and keep retired ranges unavailable while readers or
+   rollback still reach them. Measure occupied outer-file bytes and write
+   traffic across repeated reuse cycles before admitting dense maintenance.
 5. Qualify each persistent provider's barriers, interrupted writes and removal
    on disposable media. A volatile provider preserves files while its owner and
    backing survive. Measure matched foreground and background workload traces on
    real devices when authorized. Keep reported transport, outer filesystem,
    allocation, recovery scope and observed performance in each result.
+   Include USB flash and removable SSD cases under the Windows removal policy
+   in effect. Exercise a partial write, flush failure and failed retirement
+   before attach with the same volume identity. Repeat the matched DiskSpd
+   and file workflow on actual devices with the same cache settings,
+   recording plain and compressed NTFS results where the comparison fits.
 
 ## 5. Finish the autonomous Windows lifecycle
 

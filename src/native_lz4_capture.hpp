@@ -9,6 +9,9 @@ namespace flitzfs::detail {
 class NativeLz4CaptureLease final {
  public:
   bool capture(NativeLz4CapturedFrame&) const;
+  // The grant covers encoded and decoded frame bytes together.
+  std::vector<NativeLz4CapturedFrame> capture_range(std::uint32_t bytes,std::size_t maximum_frame_bytes,
+      const std::function<bool()>& interrupted={}) const;
 
  private:
   friend class ::flitzfs::NativeFilesystemWriter;

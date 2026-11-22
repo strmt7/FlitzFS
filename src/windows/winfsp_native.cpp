@@ -202,7 +202,14 @@ struct WinFspNativeWritable::Impl {
     UINT32 security_access=0;
     ReadHistory last_read{};
   };
-  struct ReadAhead {std::uintptr_t token=0;std::uint64_t offset=0;};
+  struct ReadAhead {
+    std::uintptr_t token=0;
+    std::uint64_t offset=0;
+    std::uint32_t bytes=0;
+    bool overlaps(std::uint64_t start,std::uint32_t length) const noexcept {
+      return length && (start<=offset?offset-start<length:start-offset<bytes);
+    }
+  };
   struct Lz4DemandObservation final:detail::NativeLz4ReadRoute {
     bool verified_input=false;
     std::optional<std::vector<std::byte>> try_ready(const detail::NativeLz4ReadKey&,
@@ -504,9 +511,12 @@ struct WinFspNativeWritable::Impl {
   std::vector<std::byte> read_with_demand_sample(const Slot& slot,std::uint64_t offset,std::uint32_t length,
       detail::NativeLz4ReadyReads* ready) {
     const auto& target=read_ahead_sample_target;
-    if(!target || target->token!=slot.token || !length || length>kNativeExtentBytes || offset<target->offset ||
-        offset-target->offset>kNativeExtentBytes-length || (ready && ready->pending()))
+    if(!target || target->token!=slot.token || !length || (ready && ready->pending()))
       return session.read(slot.handle,offset,length,ready);
+    const bool matching=target->bytes==kNativeExtentBytes?
+        length<=target->bytes && offset>=target->offset && offset-target->offset<=target->bytes-length:
+        offset<=target->offset && target->offset-offset<=length && length-(target->offset-offset)>=target->bytes;
+    if(!matching)return session.read(slot.handle,offset,length,ready);
     read_ahead_sample_target.reset();
     Lz4DemandObservation observation;
     const auto start=std::chrono::steady_clock::now();
@@ -524,21 +534,31 @@ struct WinFspNativeWritable::Impl {
     const auto previous=std::exchange(slot.last_read,ReadHistory{});
     read_ahead.reset();
     auto prepared=std::exchange(prepared_read,PreparedRead{});
+    const bool adjacent=previous.bytes && previous.end==offset;
+    const bool has_prepared=adjacent && prepared.result && prepared.target.token==slot.token;
+    const auto prior_hits=has_prepared?prepared.result->consumed():0;
     auto* ready=native_lz4_reads.get();
-    if((!ready || !ready->pending()) && prepared.result && prepared.target.token==slot.token && length &&
-        (offset<=prepared.target.offset?prepared.target.offset-offset<length:
-            offset-prepared.target.offset<kNativeExtentBytes))
+    if((!ready || !ready->pending()) && has_prepared && prepared.target.overlaps(offset,length))
       ready=prepared.result.get();
     auto bytes=read_with_demand_sample(slot,offset,length,ready);
-    if(prepared.result && prepared.result->consumed())++read_ahead_hits;
+    if(has_prepared && prepared.result->consumed()>prior_hits)
+      read_ahead_hits+=prepared.result->consumed()-prior_hits;
     const auto maximum=(std::numeric_limits<std::uint64_t>::max)();
     if(!length || bytes.size()!=length || offset>maximum-length)return bytes;
     const auto end=offset+length;
     slot.last_read={end,length};
-    const auto until_next_extent=(kNativeExtentBytes-end%kNativeExtentBytes)%kNativeExtentBytes;
-    if(previous.bytes && previous.end==offset && std::uint64_t(previous.bytes)+length>=kNativeExtentBytes &&
-        until_next_extent<length && until_next_extent<=maximum-end)
-      read_ahead=ReadAhead{slot.token,end+until_next_extent};
+    if(has_prepared && prepared.result->pending() &&
+        (end<=prepared.target.offset || end-prepared.target.offset<prepared.target.bytes)) {
+      prepared_read=std::move(prepared);
+      return bytes;
+    }
+    const auto gap=(kNativeExtentBytes-end%kNativeExtentBytes)%kNativeExtentBytes;
+    if(adjacent && std::uint64_t(previous.bytes)+length>=kNativeExtentBytes && gap<length && gap<=maximum-end) {
+      const auto remaining=length-gap;
+      const auto frames=(remaining+kNativeExtentBytes-1)/kNativeExtentBytes;
+      const auto window=static_cast<std::uint32_t>(frames*kNativeExtentBytes);
+      if(window<=maximum-end-gap)read_ahead=ReadAhead{slot.token,end+gap,window};
+    }
     return bytes;
   }
   static NTSTATUS security_copy(const std::vector<std::byte>& value,PSECURITY_DESCRIPTOR destination,SIZE_T* size) noexcept {
@@ -1321,10 +1341,13 @@ bool WinFspNativeWritable::advance_native_lz4_read_ahead(
     const NativeMaintenanceObservation& observed,std::uint64_t now,std::uint64_t epoch) noexcept {
   try {
     const auto resources=detail::maintenance_resources(observed,now,impl_->group_policy);
-    // Charge both frame buffers and space for checked index and record scratch.
-    constexpr std::uint64_t working_bytes=2ULL*kStoreMaxObjectBytes+4ULL*kStoreCommitUnit+detail::kStoreDecoderMemoryCap;
-    if(!resources || resources->cpu_busy || resources->memory_allowance<working_bytes || observed.foreground_pending)
-      return false;
+    constexpr auto frame_bytes=kNativeExtentBytes+detail::kIndexedExtentHeaderBytes;
+    // Charge the pinned query scratch and both versions of each admitted frame.
+    constexpr auto scratch_bytes=4ULL*kStoreCommitUnit+detail::kStoreDecoderMemoryCap;
+    constexpr auto bytes_per_frame=2ULL*frame_bytes+2ULL*sizeof(detail::NativeLz4CapturedFrame);
+    if(!resources || resources->cpu_busy || resources->memory_allowance<scratch_bytes+bytes_per_frame ||
+        observed.foreground_pending)return false;
+    const auto available_frames=(resources->memory_allowance-scratch_bytes)/bytes_per_frame;
     if(impl_->read_ahead_active.exchange(true,std::memory_order_acq_rel))return false;
     struct ReleaseCapture {
       std::atomic<bool>& active;
@@ -1338,18 +1361,21 @@ bool WinFspNativeWritable::advance_native_lz4_read_ahead(
           observed.sequence<=impl_->last_read_ahead_observation)return false;
       impl_->last_read_ahead_observation=observed.sequence;
       target=*std::exchange(impl_->read_ahead,std::nullopt);
+      const auto frames=(std::min)(std::uint64_t{target.bytes}/kNativeExtentBytes,available_frames);
+      target.bytes=static_cast<std::uint32_t>(frames*kNativeExtentBytes);
       const auto& slot=impl_->resolve(reinterpret_cast<PVOID>(target.token));
       if(slot.provisional || slot.awaiting_overwrite)return false;
-      lease=impl_->session.lease_native_lz4_capture(slot.handle,target.offset,kStoreMaxObjectBytes);
+      lease=impl_->session.lease_native_lz4_capture(slot.handle,target.offset,frame_bytes);
     }
-    if(!lease || foreground_pending() || foreground_activity()!=epoch)return false;
-    detail::NativeLz4CapturedFrame captured;
-    if(!lease->capture(captured))return false;
+    const auto interrupted=[&]{return foreground_pending() || foreground_activity()!=epoch;};
+    if(!lease || interrupted())return false;
+    const auto frame_grant=static_cast<std::size_t>(target.bytes/kNativeExtentBytes)*2*frame_bytes;
+    const auto captured=lease->capture_range(target.bytes,frame_grant,interrupted);
     lease.reset();
-    if(foreground_pending() || foreground_activity()!=epoch)return false;
-    auto ready=detail::NativeLz4ReadyReads::decode_captured(captured);
+    if(captured.empty() || interrupted())return false;
+    auto ready=detail::NativeLz4ReadyReads::decode_captured(captured,interrupted);
     std::unique_lock guard(impl_->control,std::try_to_lock);
-    if(!guard || !impl_->may_prepare_read() || foreground_activity()!=epoch ||
+    if(!ready || !guard || !impl_->may_prepare_read() || foreground_activity()!=epoch ||
         (impl_->native_lz4_reads && impl_->native_lz4_reads->pending()))return false;
     impl_->prepared_read={target,std::move(ready)};
     return true;

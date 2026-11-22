@@ -248,6 +248,74 @@ void sequential_read_ahead() {
       <<" ordinary_backing_bytes="<<ordinary_bytes<<'\n';
 }
 
+void batched_read_ahead() {
+  constexpr StoreCompressionOptions fast{StoreCompressionMode::fast,1,false};
+  constexpr std::uint32_t extent=kNativeExtentBytes,first=8,frames=4;
+  Harness h(4096,nullptr,nullptr,nullptr,nullptr,true,fast,true);
+  Bytes file;
+  for(std::uint32_t i=0;i<first+frames;++i) {
+    auto block=native_lz4_fixture::source();
+    block.front()=static_cast<std::byte>(i);
+    file.insert(file.end(),block.begin(),block.end());
+  }
+  const auto part=[&](std::uint32_t start,std::uint32_t count) {
+    return Bytes(file.begin()+start*extent,file.begin()+(start+count)*extent);
+  };
+  const auto context=h.create(45);
+  h.write(context,file);
+  const auto writes=h.image->write_bytes;
+  const auto left=part(first,2),right=part(first+2,2);
+  auto before=h.image->read_bytes;
+  h.read(context,left,first*extent);
+  h.read(context,right,(first+2)*extent);
+  const auto ordinary=h.image->read_bytes-before;
+
+  before=h.image->read_bytes;
+  for(std::uint32_t i=0;i<frames;++i) {
+    detail::NativeLz4CapturedFrame frame;
+    require(h.adapter->capture_native_lz4_read(context,(first+i)*extent,extent,frame),
+        "independent capture refused a selected batch frame");
+  }
+  const auto independent=h.image->read_bytes-before;
+
+  const auto train=[&] {
+    h.read(context,part(0,frames));
+    h.read(context,part(frames,frames),frames*extent);
+    require(h.adapter->native_lz4_read_ahead_pending(),"adjacent wide reads did not offer their next window");
+  };
+  train();
+  before=h.image->read_bytes;
+  const auto observation=h.clock.next();
+  require(h.adapter->advance_native_lz4_read_ahead(observation,h.clock.now,h.adapter->foreground_activity()),
+      "wide speculation did not prepare the captured batch");
+  const auto shared=h.image->read_bytes-before;
+  before=h.image->read_bytes;
+  h.read(context,left,first*extent);
+  require(h.adapter->native_lz4_read_ahead_hits()==2 && !h.adapter->native_lz4_read_ahead_pending(),
+      "first demand lost remaining batch or offered overlapping work");
+  h.read(context,right,(first+2)*extent);
+  const auto prepared=h.image->read_bytes-before;
+  require(h.adapter->native_lz4_read_ahead_hits()==frames && shared<independent && prepared<ordinary,
+      "speculation did not reuse the pinned range or deliver all frames");
+
+  train();
+  auto limited=h.clock.next();
+  const auto divisor=h.adapter->group_maintenance_policy().memory_share_divisor;
+  limited.physical_available=limited.physical_total/16+
+      divisor*(detail::kStoreDecoderMemoryCap+7ULL*kStoreCommitUnit);
+  require(h.adapter->advance_native_lz4_read_ahead(limited,h.clock.now,h.adapter->foreground_activity()),
+      "partial memory grant did not fund a prefix of the window");
+  h.read(context,left,first*extent);
+  h.read(context,right,(first+2)*extent);
+  require(h.adapter->native_lz4_read_ahead_hits()==frames+1 && h.image->write_bytes==writes,
+      "read-ahead exceeded its partial grant or wrote backing data");
+  h.close(context);
+  std::cout<<"winfsp_batched_lz4 frames="<<frames<<" partial_grant_frames=1 exact=1"
+      <<" capture_independent_bytes="<<independent<<" capture_shared_bytes="<<shared
+      <<" ordinary_backing_bytes="<<ordinary<<" ready_backing_bytes="<<prepared
+      <<" total_prepared_bytes="<<shared+prepared<<'\n';
+}
+
 void ready_lz4_reads() {
   if(!store_lz4_available()){
     std::cout<<"winfsp_ready_lz4 cpu_decoder=0\n";
@@ -309,6 +377,7 @@ void ready_lz4_reads() {
       <<" provisional_and_closed_refused=1 ordinary_backing_bytes="<<ordinary_bytes
       <<" ready_backing_bytes="<<ready_bytes<<'\n';
   sequential_read_ahead();
+  batched_read_ahead();
 }
 
 void callbacks(unsigned unit) {

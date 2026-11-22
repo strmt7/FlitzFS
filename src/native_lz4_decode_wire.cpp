@@ -196,11 +196,24 @@ std::unique_ptr<NativeLz4ReadyReads> NativeLz4ReadExchange::accept(View bytes,Wo
 }
 
 std::unique_ptr<NativeLz4ReadyReads> NativeLz4ReadyReads::decode_captured(const NativeLz4CapturedFrame& frame) {
+  return decode_captured({&frame,1});
+}
+
+std::unique_ptr<NativeLz4ReadyReads> NativeLz4ReadyReads::decode_captured(
+    std::span<const NativeLz4CapturedFrame> frames,const std::function<bool()>& interrupted) {
+  if(frames.empty())return {};
   StoreCodecDecoder decoder;
-  auto decoded=decoder.decode(kStoreLz4,frame.encoded(),frame.key().decoded_bytes);
-  if(record_digest(decoded)!=frame.key().decoded_digest)invalid("captured native LZ4 decoded digest");
   auto result=std::make_unique<NativeLz4ReadyReads>();
-  result->frames_.push_back({frame.key(),std::move(decoded),frame.stored_digest_});
+  result->frames_.reserve(frames.size());
+  for(const auto& frame:frames) {
+    if(interrupted && interrupted())return {};
+    auto decoded=decoder.decode(kStoreLz4,frame.encoded(),frame.key().decoded_bytes);
+    if(record_digest(decoded)!=frame.key().decoded_digest)invalid("captured native LZ4 decoded digest");
+    result->frames_.push_back({frame.key(),std::move(decoded),frame.stored_digest_});
+  }
+  std::ranges::sort(result->frames_,{},&Frame::key);
+  if(std::ranges::adjacent_find(result->frames_,{},&Frame::key)!=result->frames_.end())
+    invalid("duplicate captured native LZ4 frame");
   return result;
 }
 

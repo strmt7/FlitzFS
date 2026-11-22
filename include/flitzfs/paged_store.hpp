@@ -139,7 +139,7 @@ class PagedObjectStoreSnapshot final {
   std::optional<std::vector<std::byte>> read_matching(std::uint64_t id,std::size_t maximum_decoded_bytes,
       std::optional<std::uint64_t> expected_generation,detail::NativeLz4ReadRoute* route=nullptr) const;
   bool capture_native_lz4(std::uint64_t object,std::size_t maximum_decoded,std::size_t maximum_encoded,
-      detail::NativeLz4CapturedFrame&) const;
+      detail::NativeLz4CapturedFrame&,std::optional<std::size_t> remaining_frame_bytes={}) const;
   std::optional<std::pair<std::uint64_t,std::vector<std::byte>>> read_first_after(std::uint64_t after,
       std::uint64_t last,std::size_t maximum_decoded_bytes) const;
   static PagedObjectStoreSnapshot open_impl(std::shared_ptr<StoreByteIo>,PagedStoreLimits,bool retain_tree_root);

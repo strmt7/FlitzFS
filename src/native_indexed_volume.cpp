@@ -1,5 +1,6 @@
 #include "native_indexed_volume.hpp"
 #include "indexed_names.hpp"
+#include "native_lz4_read.hpp"
 #include "native_group_codec.hpp"
 #include "native_object_storage.hpp"
 #include "store_codec.hpp"
@@ -21,7 +22,8 @@ constexpr std::string_view member_magic="FLTXPD01",packed_member_magic="FLTXPD02
 constexpr std::uint64_t namespace_object=1,inode_domain=1ULL<<63;
 constexpr std::uint64_t lifetime_domain=2ULL<<61,retirement_domain=5ULL<<61;
 constexpr std::uint64_t ordinal_mask=kNativeIndexedInodeLimit-1;
-constexpr std::size_t original_root_size=96,lifetime_root_size=120,root_size=kIndexedVolumeRootMaximumBytes,extent_header=24;
+constexpr std::size_t original_root_size=96,lifetime_root_size=120,root_size=kIndexedVolumeRootMaximumBytes;
+constexpr auto extent_header=kIndexedExtentHeaderBytes;
 constexpr std::size_t base_size=8+kNativeExtentBytes;
 constexpr std::size_t packed_slice_size=80;
 constexpr std::uint32_t anchor_copy_capability=4,packed_xor_capability=5,modular_delta_capability=6,sparse_xor_capability=7;
@@ -2351,6 +2353,34 @@ bool IndexedVolumeView::capture_native_lz4(const IndexedInodeInput& selected,std
   const auto object=index_.find(native_extent_key(selected.inode,offset/kNativeExtentBytes));
   if(!object || (*object&ordinal_mask)>=root_.next_extent)return false;
   return store_.capture_native_lz4(*object,extent_header+kNativeExtentBytes,maximum_encoded,out);
+}
+std::vector<NativeLz4CapturedFrame> IndexedVolumeView::capture_native_lz4_range(
+    const IndexedInodeInput& selected,std::uint64_t offset,std::uint32_t bytes,std::size_t maximum_encoded,
+    std::size_t remaining_frame_bytes,const std::function<bool()>& interrupted) const {
+  if(selected.directory || selected.lifetime!=IndexedLifetime::linked || offset>=selected.size ||
+      offset%kNativeExtentBytes || !bytes || bytes>kNativeMaxReadBytes || !remaining_frame_bytes)return {};
+  const auto end=offset+(std::min)(std::uint64_t(bytes),selected.size-offset);
+  const auto first=offset/kNativeExtentBytes,last=(end-1)/kNativeExtentBytes;
+  const auto start=native_extent_key(selected.inode,first?first-1:0);
+  const auto range=index_.list(start.parent,first?std::string_view(start.name):std::string_view{},
+      static_cast<std::size_t>(last-first+1));
+  std::vector<NativeLz4CapturedFrame> frames;
+  frames.reserve(range.size());
+  for(const auto& entry:range) {
+    if(interrupted && interrupted())return {};
+    if(native_extent_block(entry.key.name)>last || !remaining_frame_bytes)break;
+    if((entry.value&ordinal_mask)>=root_.next_extent)return {};
+    NativeLz4CapturedFrame frame;
+    if(store_.capture_native_lz4(entry.value,extent_header+kNativeExtentBytes,maximum_encoded,frame,
+          remaining_frame_bytes)) {
+      remaining_frame_bytes-=frame.key().decoded_bytes+frame.encoded().size();
+      frames.push_back(std::move(frame));
+    }
+  }
+  const auto info=store_.info();
+  if(info.degraded_roots || info.degraded_metadata || info.degraded_payloads ||
+      (interrupted && interrupted()))return {};
+  return frames;
 }
 NativeContentToken IndexedVolumeView::content_token(NativeExtentSelection extent,std::uint64_t object) const {
   const auto selected=referenced_inode(extent.inode,true);

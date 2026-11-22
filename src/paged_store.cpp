@@ -391,13 +391,18 @@ void verify_record_header(const State& s,const Entry& e,const RecordHeader& h) {
       !zero(std::span<const std::byte>(h).subspan(codec==detail::kStoreRaw?56:88,codec==detail::kStoreRaw?40:8)) ||
       field<32>(h,96)!=e.digest)fail("object identity/codec/framing");
 }
-ObjectRecord read_record_at(const State& s,const Entry& e,std::uint64_t offset) {
-  ObjectRecord record;auto& h=record.header;
-  read_record_bytes(*s.image,offset,0,h,s.mirrored?s.unit:0);
-  verify_record_header(s,e,h);
-  auto& payload=record.payload;payload.resize(e.stored);
+void read_record_payload(const State& s,const Entry& e,std::uint64_t offset,ObjectRecord& record) {
+  auto& payload=record.payload;
+  payload.resize(e.stored);
   if(!payload.empty())read_record_bytes(*s.image,offset,record_header_bytes,payload,s.mirrored?s.unit:0);
-  if(detail::record_digest(std::span<const std::byte>(h).first(96),payload)!=e.digest)fail("object stored digest");
+  if(detail::record_digest(std::span<const std::byte>(record.header).first(96),payload)!=e.digest)
+    fail("object stored digest");
+}
+ObjectRecord read_record_at(const State& s,const Entry& e,std::uint64_t offset) {
+  ObjectRecord record;
+  read_record_bytes(*s.image,offset,0,record.header,s.mirrored?s.unit:0);
+  verify_record_header(s,e,record.header);
+  read_record_payload(s,e,offset,record);
   return record;
 }
 ObjectRecord read_record(const State& s,const Entry& e) {
@@ -1734,7 +1739,8 @@ std::optional<Bytes> PagedObjectStoreSnapshot::read_matching(std::uint64_t id,st
   return read_object(state,*e,route);
 }
 bool PagedObjectStoreSnapshot::capture_native_lz4(std::uint64_t object,std::size_t maximum_decoded,
-    std::size_t maximum_encoded,detail::NativeLz4CapturedFrame& out) const {
+    std::size_t maximum_encoded,detail::NativeLz4CapturedFrame& out,
+    std::optional<std::size_t> remaining_frame_bytes) const {
   if(!impl_ || !maximum_encoded || !store_lz4_available())return false;
   const auto& state=impl_->state;
   if(!healthy_lz4_index(state))return false;
@@ -1742,10 +1748,14 @@ bool PagedObjectStoreSnapshot::capture_native_lz4(std::uint64_t object,std::size
       impl_->retained_root?&*impl_->retained_root:nullptr);
   if(!entry || entry->logical>maximum_decoded || entry->stored>maximum_encoded || entry->stored>=entry->logical ||
       !healthy_lz4_index(state) || (state.payload_repairs && state.payload_repairs->suspect(*entry)))return false;
-  // Do not schedule recovery I/O on a speculative read. Normal demand still
-  // owns mirror recovery, and the worker verifies the encoded block again.
-  auto record=read_record_at(state,*entry,entry->offset);
-  if(get32(record.header,12)!=detail::kStoreLz4 || !healthy_lz4_index(state))return false;
+  if(remaining_frame_bytes && std::uint64_t{entry->logical}+entry->stored>*remaining_frame_bytes)return false;
+  // Speculation neither opens an unsuitable payload nor schedules repair.
+  ObjectRecord record;
+  read_record_bytes(*state.image,entry->offset,0,record.header,state.mirrored?state.unit:0);
+  verify_record_header(state,*entry,record.header);
+  if(get32(record.header,12)!=detail::kStoreLz4)return false;
+  read_record_payload(state,*entry,entry->offset,record);
+  if(!healthy_lz4_index(state))return false;
   out.key_={state.id,entry->id,entry->generation,entry->logical,field<32>(record.header,56)};
   out.stored_digest_=entry->digest;
   out.encoded_=std::move(record.payload);

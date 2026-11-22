@@ -195,13 +195,14 @@ larger read-ahead windows.
 ## Qualifying sequential read-ahead
 
 The Windows volume controller can opt into a CPU baseline that follows
-adjacent successful reads on an adopted handle. The second adjacent read
-can predict one upcoming native extent. The callback records the hint
-without fetching the record or starting a worker. The idle owner pins
-the exact selected namespace and paged checkpoint under the callback
-lock without issuing backing I/O. It then looks up and captures the
-encoded frame and decodes it outside that lock. The returned frame still
-needs to match the predicted demand and current paged index.
+adjacent successful reads on an adopted handle. The callback derives an
+extent-aligned window from the latest request and records the hint without
+backing I/O. The idle owner funds a prefix of that window with the live
+memory allowance. It pins one selected namespace and paged checkpoint
+under the callback lock, then captures and verifies the frames outside
+that lock. Sequential reads on the same handle can consume the prepared
+frames across more than one callback. Each hit still matches the current
+paged index and passes CPU verification.
 
 The controller offers this work after ordinary maintenance yields. It
 uses the remaining idle time, current CPU and memory observations, and
@@ -223,8 +224,9 @@ different parts of the read path.
 
 The cost estimate is local to the attached backing. When backing cost
 blocks a forecast, the controller can learn from an ordinary read within
-that extent on the same handle. The sample includes checked backing
-access and CPU decoding. It requires a successful native LZ4 demand
+that extent on the same handle, or a read covering a refused multi-extent
+window. The sample includes checked backing access and CPU decoding.
+It requires a successful native LZ4 demand
 without a pending ready result. Other ranges, failed reads, and ready
 results supply no sample. The controller consumes each measurement once.
 A cheaper sample lowers the recent estimate gradually, and a slow
@@ -257,9 +259,24 @@ frames byte-for-byte. The independently verified CPU decoder served
 the same bytes after a module refusal.
 [Capture and recovery verification](evidence/read-capture-lease-2026-11-22.json)
 
-Before enabling this route by default, measure foreground interference,
-unused predictions and complete provider bytes. Measure wider AMD
-batches through the same capture and independent readback path.
+A single checked range query captured four adjacent Windows SDK extents
+using 43,781 backing bytes. Four independent captures requested 71,852
+bytes. Two consecutive demand calls consumed all four results and read
+18,714 backing bytes. Including preparation, the route requested 62,495
+bytes against 53,138 for the same two ordinary reads. A smaller live
+memory allowance funded one frame, with byte-exact ordinary reads for
+the remainder. Capture checks the aggregate encoded and decoded grant
+before opening each payload and skips payloads that use another codec.
+
+The Radeon RX 9070 XT probe decoded two frames captured from a single
+lease. Both matched the ordinary independent CPU read and arrived through
+the indexed reader. Refusing the worker module still served both extents
+byte-for-byte on CPU. The successful prepared worker took about
+45 ms after submission, with setup measured separately at about 1.27 s.
+These are scoped callback and worker measurements. Automatic admission
+needs full-path results for its attached provider, including preparation,
+unused work and foreground interference.
+[Batched capture verification](evidence/batched-lz4-capture-2026-11-22.json)
 [Windows memory reservation and commit](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc) ·
 [Windows page retirement](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualfree)
 [Windows cached read-ahead](https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ccschedulereadaheadex) ·

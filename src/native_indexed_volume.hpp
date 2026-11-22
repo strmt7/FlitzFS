@@ -7,6 +7,7 @@ namespace flitzfs::detail {
 
 inline constexpr std::size_t kIndexedVolumeIdentityOffset=72;
 inline constexpr std::size_t kIndexedVolumeRootMaximumBytes=136;
+inline constexpr std::size_t kIndexedExtentHeaderBytes=24;
 struct IndexedVolumeRoot {
   StoreIdentity identity{};
   std::uint64_t sequence=0,next_inode=2,next_extent=1;
@@ -249,6 +250,9 @@ class IndexedVolumeView final {
       IndexedSharedBaseCache* retained=nullptr,NativeLz4ReadRoute* route=nullptr) const;
   bool capture_native_lz4(const IndexedInodeInput&,std::uint64_t offset,std::size_t maximum_encoded,
       NativeLz4CapturedFrame&) const;
+  std::vector<NativeLz4CapturedFrame> capture_native_lz4_range(const IndexedInodeInput&,
+      std::uint64_t offset,std::uint32_t bytes,std::size_t maximum_encoded,
+      std::size_t remaining_frame_bytes,const std::function<bool()>& interrupted) const;
   std::optional<NativeContentToken> next_content(NativeExtentSelection after,bool first) const;
   std::optional<NativeContentToken> content_at(NativeExtentSelection) const;
   std::vector<std::byte> read_content(NativeContentToken&,bool published_reference) const;

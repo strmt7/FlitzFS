@@ -1,6 +1,7 @@
 #pragma once
 #include "native_lz4_decode.hpp"
 #include "flitzfs/worker_wire.hpp"
+#include <functional>
 
 namespace flitzfs::detail {
 struct NativeLz4WireRequest {
@@ -17,6 +18,8 @@ class NativeLz4ReadyReads final:public NativeLz4ReadRoute {
       std::span<const std::byte>) noexcept override;
   void reject(const NativeLz4ReadKey&) noexcept override;
   static std::unique_ptr<NativeLz4ReadyReads> decode_captured(const NativeLz4CapturedFrame&);
+  static std::unique_ptr<NativeLz4ReadyReads> decode_captured(
+      std::span<const NativeLz4CapturedFrame>,const std::function<bool()>& interrupted={});
   bool pending() const noexcept{return !rejected_ && consumed_<frames_.size();}
   std::size_t consumed() const noexcept{return rejected_?0:consumed_;}
   std::size_t indexed_consumed() const noexcept{return rejected_?0:indexed_consumed_;}
