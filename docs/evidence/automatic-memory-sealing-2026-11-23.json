@@ -1,0 +1,292 @@
+{
+  "schema": "flitzfs-automatic-memory-sealing-v1",
+  "date": "2026-11-23",
+  "source": {
+    "base": "8440340a4d3fa270bd32d4642aee5afb14efb1ab",
+    "blobs": {
+      "include/flitzfs/native_hybrid_backing.hpp": "6022eb609004917ec696dd8956be5bf9c3406def",
+      "src/native_hybrid_backing.cpp": "22adc48fbb305c78088298a5d29ad586e6b83d1c",
+      "src/protected_stripe_image.cpp": "3bee69ce64f6d176dcbb4448142a8c9c615e7ad3",
+      "src/protected_stripe_image.hpp": "094d66315a0333cc82ea9f9fa750e91bebf7d56f",
+      "src/windows/memory_volume.cpp": "ebb0e842ad2e18d80aea951b5abf5d0ffa9c0e5c",
+      "src/windows/memory_volume.hpp": "85a737608f4fa860e16ffb5f509bc3098bd5ddf1",
+      "src/windows/memory_volume_factory.cpp": "d71f85eef87be57e4b73c87b41c0b9aed36cde42",
+      "src/windows/memory_volume_factory.hpp": "4b379bf3e97b59bc3e986d2fa124b679359431af",
+      "src/windows/winfsp_controller.cpp": "6b4a807614d938f30dbdff381dcf9107bb6fedd0",
+      "src/windows/winfsp_controller.hpp": "11bea7c88e39edfaa851fad15f6a6165c7713d7f",
+      "src/windows/winfsp_memory_volume.cpp": "e98f78b72dd0601cfff2733672252faca75a5ec0",
+      "src/windows/winfsp_native.cpp": "0a79a7b789e3a0b3a9c7a6aa1cc0f3982fb9e112",
+      "src/windows/winfsp_native.hpp": "1bdc7107de975c55614d45519953587e8956cd3e",
+      "tests/test_winfsp_controller.cpp": "219b0cbd5afcaa6203336482a1d8f4af4f0b53b4"
+    }
+  },
+  "scope": {
+    "backend": "Windows locked memory",
+    "callback_provider": "WinFsp SDK callbacks with controlled lifecycle operations",
+    "workload": "deterministic synthetic bytes",
+    "real_amd_runtime_and_device": true,
+    "physical_volume_mount": false,
+    "performance_measurement": false
+  },
+  "memory": {
+    "selected": [
+      {
+        "old_bytes": 5955584,
+        "occupied_bytes": 4153344,
+        "peak_locked_bytes": 12984320,
+        "retirement_steps": 6,
+        "reader_pin": 1,
+        "open_handle": 1,
+        "cpu_projection": 1
+      },
+      {
+        "old_bytes": 5955584,
+        "occupied_bytes": 4153344,
+        "peak_locked_bytes": 12984320,
+        "retirement_steps": 6,
+        "reader_pin": 1,
+        "open_handle": 1,
+        "cpu_projection": 1
+      }
+    ],
+    "stale_source": {
+      "stale_cancelled": 1,
+      "unchanged_input_quiet": 1,
+      "exact": 1
+    },
+    "retired_prior_composite": {
+      "composite_retirement_steps": 5,
+      "old_composite_pinned": 1,
+      "both_components_released": 1,
+      "exact": 1
+    }
+  },
+  "amd": {
+    "adapter": {
+      "Name": "AMD Radeon RX 9070 XT",
+      "DriverVersion": "32.0.32029.2010"
+    },
+    "package": {
+      "worker_sha256": "984e99c1cf14f61ed1d0aadeafe96325148c8b66d5efc8f0fe96e2863dd008d2",
+      "module_sha256": "d5c46512c13866c134762a473edcf9360f93c28e8b7d7c703c7f9deeef3300f6",
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "qualification_sha256": "ebfd7d06e053d916ecbf5b410f60b071c970c07bbb1c7921239f71ce10c81285"
+    },
+    "decoded_and_consumed": {
+      "sealed": 1,
+      "refusal": 0,
+      "submitted": 3,
+      "published": 1,
+      "verified_frames": 2,
+      "superseded": 2,
+      "failures": 0,
+      "worker_exit": 1223,
+      "budget_queries": 3,
+      "exact_cpu_fallback": 1,
+      "child_and_owner_retired": 1,
+      "stopped_pending": 1,
+      "checks": 69
+    },
+    "unsupported_configuration": {
+      "sealed": 1,
+      "refusal": 1,
+      "submitted": 1,
+      "published": 0,
+      "verified_frames": 0,
+      "superseded": 0,
+      "failures": 1,
+      "worker_exit": 1179845891,
+      "budget_queries": 1,
+      "exact_cpu_fallback": 1,
+      "child_and_owner_retired": 1,
+      "stopped_pending": 0,
+      "checks": 66
+    },
+    "writable_reopen_and_cpu_readback": {
+      "amd": {
+        "switches": 1,
+        "original_context": 1,
+        "reopened_write": 1,
+        "independent_cpu_projection": 1
+      },
+      "refusal": {
+        "switches": 1,
+        "original_context": 1,
+        "reopened_write": 1,
+        "independent_cpu_projection": 1
+      }
+    }
+  },
+  "corrected_controls": {
+    "cpu_deferral": {
+      "exit_code": 1,
+      "tree_retired": true,
+      "observed_peak_job_bytes": 12496896,
+      "log_sha256": "6e4666a87b09f4baa266cf89c73437753988c6e0097c9447ebab5745d69cb88c"
+    },
+    "provisional_open": {
+      "exit_code": 1,
+      "tree_retired": true,
+      "observed_peak_job_bytes": 12414976,
+      "log_sha256": "6532a1fbb5d1af7c6881184bf76864201189d813e8de1948ae0a3f726796d712"
+    },
+    "worker_budget_age": {
+      "exit_code": 1,
+      "tree_retired": true,
+      "observed_peak_job_bytes": 15216640,
+      "log_sha256": "7f11ad010c4d38e226ba1f132e5d0f5cd9eb190bbd6c98c559b89eecd5021c33"
+    },
+    "legacy_scrub_policy": {
+      "exit_code": 8,
+      "tree_retired": true,
+      "observed_peak_job_bytes": 335876096,
+      "log_sha256": "8d3bed76ffb8a8b2942d544212370a1f02adb1d7f6819f98502ef8dd1067fcc5"
+    }
+  },
+  "tests": {
+    "sdk_build": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "observed_peak_job_bytes": 426377216,
+      "log_sha256": "15ed2f6e0cbc319042a6b58682223221e5e123c97e239174a7fcbe4277783241"
+    },
+    "policy": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "observed_peak_job_bytes": 57991168,
+      "log_sha256": "e45e2eb23792abd0d41d9e069b43ad7c3f56ce15701c4ca3f7c4161eb35260b0"
+    },
+    "memory": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "observed_peak_job_bytes": 26959872,
+      "log_sha256": "eb878e0828c575227db3837dab359e0c3d1a64339bd00b6661a83e37a3343e77"
+    },
+    "amd": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "observed_peak_job_bytes": 92729344,
+      "log_sha256": "00256892eecfbd720c6a4612e261c5a52f0af220cbdc0eb2977df138f744338a"
+    },
+    "refusal": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "observed_peak_job_bytes": 22355968,
+      "log_sha256": "45785731048e6c10cb73d76d5dc8a0dd9a91748c6cdb673c33769336298f6b93"
+    },
+    "standard_build": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "observed_peak_job_bytes": 485937152,
+      "log_sha256": "79f06adc595011e74da11068dfbe7b28ff396d40a712c7b98550ffb02f2f3e8c"
+    },
+    "standard": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "observed_peak_job_bytes": 335511552,
+      "log_sha256": "d5f60174c79cf6d07b9dda6e8b32ddcd3da50b6d2e7f8f3f81b43f616a7ab9d4",
+      "passed": 211
+    },
+    "raw_build": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "observed_peak_job_bytes": 504471552,
+      "log_sha256": "d478bf6b12face258a11be90d200d5391023ea7a0f0a0d51fabd5a486b1db3b7"
+    },
+    "raw": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "observed_peak_job_bytes": 142712832,
+      "log_sha256": "ad555e1cd0136369f3e6dcffa70b9dc25034d53a49b972afa846d9029784549f",
+      "passed": 12
+    },
+    "asan_build": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "observed_peak_job_bytes": 797298688,
+      "log_sha256": "f6cb0cca3cea50c9db263b38e924e4255dae7e95b753ff4564b55e7d04491190"
+    },
+    "asan": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "observed_peak_job_bytes": 849313792,
+      "log_sha256": "5c8e38f5cffc4f0a455416e1e2f0f47fb8c9dafaa12c0377504c5ce4fe46ef64",
+      "passed": 13
+    },
+    "media_research": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "observed_peak_job_bytes": 1311580160,
+      "log_sha256": "e322c59340dd27bfc76498f194b408efad8e361fad2d484bb6fdd2a4d22f26b9"
+    }
+  },
+  "source_navigation": {
+    "provider_version": "0.2.43",
+    "actual_searches": 1,
+    "receipt_sha256": "c6d06e230f49fcce548c4dfd93ebf3fb57b7240c07b0b26bb3ce7b68d8953b25",
+    "response_sha256": "0cf3969feff1f1894953c30a5d5ecc6b707a82f25a267607718e80a8f88f3370"
+  },
+  "research": {
+    "sealed_selection": {
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "receipt_sha256": "c15f391cafe59d9663f2281ffaf7520000b0acec163d864569282733bc151545",
+      "pages": [
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualfree",
+          "http_status": 200,
+          "markdown_bytes": 35422,
+          "markdown_sha256": "482adef62203d0cbb345359727e107a18e019737e816747e9d3dc8f8c3d55bdf",
+          "capture_sha256": "3de1d4ec5b7b44ef6adcc4bf06d3fd9359eaf90de5bf2b991e61d8aceca84e38"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows-server/storage/refs/refs-registry-values",
+          "http_status": 200,
+          "markdown_bytes": 48430,
+          "markdown_sha256": "a2527156e69b89ed0ce6717e56c549dc006fc01d94dbe06e9d09b304e9384e03",
+          "capture_sha256": "71078ae26b90e1627898bc45c672241a8692b2308926dd644f59c9b46408de94"
+        },
+        {
+          "url": "https://openzfs.github.io/openzfs-docs/man/v2.4/8/zfs-rewrite.8.html",
+          "http_status": 200,
+          "markdown_bytes": 15227,
+          "markdown_sha256": "a9f5414e13489a4e3e48f37a9745c9469a268c7efbb4f1922cd22b9df87181a3",
+          "capture_sha256": "ed266abd6e6476b662011dd41eaf1e97a047bd2db045ed74f4681d52fd22bfd0"
+        }
+      ]
+    },
+    "persistent_media": {
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "receipt_sha256": "4cd14ec13ac3e9e710812ee793b6d59ac57b8c8382db85a693844dfe9d8b6ddc",
+      "pages": [
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_query_allocated_ranges",
+          "http_status": 200,
+          "markdown_bytes": 63071,
+          "markdown_sha256": "9f803badccd68995ad416b2fceb2532f8dd4a4f87b9d131a6ab1bd058ffd840e",
+          "capture_sha256": "6a420257afef7c943523e6373582b8ad0f376bc1b9ad379804dbde3c223d42ae"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_zero_data",
+          "http_status": 200,
+          "markdown_bytes": 61945,
+          "markdown_sha256": "c3ec21654a142945c577e399e50070b7b22f9cf7b09aad1d842e2b25c68f16bc",
+          "capture_sha256": "9168f2a384b271b4b327b68c900a2f0c6d0405dfeea7af5e92b135cffc7fcf51"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/fileio/exfat-specification",
+          "http_status": 200,
+          "markdown_bytes": 217379,
+          "markdown_sha256": "9d7bb73d946da88a01facf0abcdd9c9fb0144fed70da1329fbd4c344fdbf6c8f",
+          "capture_sha256": "0502837809414d9c12f29d95335e376ee30330a5095960f2438a4f5f69af4d8f"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows-hardware/drivers/storage/querying-for-the-write-cache-property",
+          "http_status": 200,
+          "markdown_bytes": 22967,
+          "markdown_sha256": "4493d5977eaa497bbd81dc961bd318a70818b50b7e50011e616a4bc6fff77f83",
+          "capture_sha256": "5398aac8acd51b2a6cbbdd30e7a27864c03979a33f8789d177b374fd14429684"
+        }
+      ]
+    }
+  }
+}

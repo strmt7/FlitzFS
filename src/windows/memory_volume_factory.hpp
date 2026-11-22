@@ -1,7 +1,9 @@
 #pragma once
 #include "memory_volume.hpp"
+#include "flitzfs/native_hybrid_backing.hpp"
 #include "flitzfs/projection.hpp"
 #include <array>
+#include <optional>
 namespace flitzfs {
 class NativeFileSession;
 class IndexedCoherenceStorage;
@@ -36,6 +38,8 @@ struct MemoryVolumeBacking {
   // Called with the same volume lock as foreground I/O. The scheduler must
   // admit each opportunity with live resource and contention observations.
   bool compaction_pending(const NativeFileSession&,bool allow_cold=false) const;
+  bool compaction_preparation_pending(const NativeFileSession&) const noexcept;
+  bool selected_image_sealed() const noexcept;
   MemoryCompactionStep advance_compaction(NativeFileSession&,bool allow_cold=false);
   void cancel_compaction(NativeFileSession&) noexcept;
   // Owning controller and all of its callbacks must already have joined.
@@ -51,10 +55,19 @@ struct MemoryVolumeBacking {
   enum class CompactionPhase {idle,copying,ready,uncertain,retiring};
   CompactionPhase phase_=CompactionPhase::idle;
   std::shared_ptr<StoreByteIo> alternate_;
+  std::optional<NativeHybridBacking::Build> hybrid_;
+  std::shared_ptr<StoreByteIo> workspace_;
+  std::array<std::shared_ptr<StoreByteIo>,2> private_parts_;
   std::array<std::shared_ptr<StoreByteIo>,2> coherence_;
   std::shared_ptr<IndexedCoherenceStorage> coherence_storage_;
   StoreIdentity alternate_identity_{};
   std::uint64_t attempted_obsolete_=0,abandoned_bytes_=0,attempted_repair_=0;
+  std::uint64_t attempted_seal_input_=0,seal_retry_input_=0;
+  std::uint64_t staging_capacity() const noexcept;
+  std::uint64_t seal_workspace_bytes(const NativeFileSession&,std::uint64_t staging_bytes) const;
+  MemoryCompactionStep advance_sealing(NativeFileSession&);
+  MemoryCompactionStep advance_retirement();
+  void adopt_alternate() noexcept;
   void retire_alternate(bool charge_attempt);
 };
 }

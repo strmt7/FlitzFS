@@ -54,6 +54,7 @@ struct WinFspMaintenanceResult {
   WinFspMaintenanceContinuation continuation=WinFspMaintenanceContinuation::none;
   bool payload_repaired=false;
   PagedPayloadScrubResult payload_scrub;
+  bool sealed_image=false;
 };
 class WinFspNativeWritable final {
  public:
@@ -78,6 +79,9 @@ class WinFspNativeWritable final {
       std::shared_ptr<StoreByteIo> empty_image,StoreIdentity image_identity,
       PagedStoreLimits,StoreCompressionOptions foreground={},
       std::shared_ptr<StoreByteIo> empty_advice={},NativeMaintenancePolicy group_policy={});
+  // Start the same indexed callbacks with a qualified memory allocation owner.
+  static std::unique_ptr<WinFspNativeWritable> create_indexed_memory(
+      MemoryVolumeBacking&,StoreCompressionOptions foreground={},NativeMaintenancePolicy group_policy={});
   // The same indexed callback profile over one qualified volume file.
   static std::unique_ptr<WinFspNativeWritable> create_file_volume(std::shared_ptr<StoreByteIo> empty,
       StoreIdentity volume,StoreIdentity image,PagedStoreLimits,StoreCompressionOptions foreground={});

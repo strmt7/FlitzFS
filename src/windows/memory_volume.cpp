@@ -1,4 +1,5 @@
 #include "memory_volume.hpp"
+#include "flitzfs/native_hybrid_backing.hpp"
 #include "maintenance_backing.hpp"
 #include <windows.h>
 #include <psapi.h>
@@ -251,10 +252,27 @@ void MemoryVolumeDomain::verify_resident() const {
 bool MemoryVolumeDomain::owns(const StoreByteIo& candidate) const noexcept {
   return state_ && std::find(state_->registry.begin(),state_->registry.end(),&candidate)!=state_->registry.end();
 }
+bool MemoryVolumeDomain::owns_image(const StoreByteIo& candidate) const noexcept {
+  if(owns(candidate))return true;
+  const auto* hybrid=dynamic_cast<const NativeHybridBacking*>(&candidate);
+  if(!hybrid)return false;
+  const auto parts=hybrid->components();
+  return owns(*parts[0]) && owns(*parts[1]);
+}
 void MemoryVolumeDomain::seal_read_only() {
+  seal_read_only(nullptr,nullptr);
+}
+void MemoryVolumeDomain::seal_read_only(const NativeHybridBacking* active,const NativeHybridBacking* retained) {
   verify_resident();
+  std::array<const StoreByteIo*,4> delegated{};
+  std::size_t next=0;
+  for(const auto* image:{active,retained})if(image) {
+    require(owns_image(*image) && !image->has_writer(),"Memory image still has a writer or foreign backing");
+    for(const auto& part:image->components())delegated[next++]=part.get();
+  }
   for(const auto* store:state_->registry)
-    require(!store || !store->writer_in_use(),"Memory domain still has a writer");
+    require(!store || !store->writer_in_use() || std::ranges::find(delegated,store)!=delegated.end(),
+        "Memory domain still has a writer");
   state_->read_only=true;
 }
 bool MemoryVolumeDomain::cleanup_healthy() noexcept {return cleanup_ok.load();}

@@ -369,6 +369,15 @@ preparation for the next eligible window. Both variants used the same
 explicit maintenance admission policy as the mirrored fixture.
 [Sealed AMD read verification](evidence/sealed-amd-read-captures-2026-11-23.json)
 
+The owned indexed memory controller also selected a sealed image during
+normal maintenance with an adopted file context held open. The same SDK
+read callback consumed two verified frames decoded by the RX 9070 XT.
+Foreground CPU reads superseded a later flight. After controller retirement,
+the selected image reopened for an ordinary write, followed by independent
+CPU readback. This fixture used the actual AMD runtime and SDK callbacks
+with a controlled lifecycle.
+[Automatic selection and Radeon evidence](evidence/automatic-memory-sealing-2026-11-23.json)
+
 ### Installed decoder selection
 
 The Windows helper can accept an approved `native_lz4_read_profile` in the

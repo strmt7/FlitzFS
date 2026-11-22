@@ -301,6 +301,7 @@ struct WinFspVolumeController::Impl {
               current.last_payload_scrub_fault=last_scrub_fault;
             }
             if(result.compacted)++current.compactions;
+            if(result.sealed_image)++current.sealed_compactions;
             if(result.compaction_failed)++current.compaction_failures;
             if(anchor)current.anchor_search=anchor->stats();
             if(read_worker)current.amd_read=read_worker->stats();

@@ -44,6 +44,11 @@ class NativeHybridBacking final : public StoreByteIo {
 
  private:
   friend class NativeFileSession;
+  friend class MemoryVolumeDomain;
+  friend struct MemoryVolumeBacking;
+  static std::uint64_t workspace_capacity(StoreIdentity,StoreIoContract,
+      std::uint64_t source_bytes,std::uint64_t staging_bytes);
+  std::array<std::shared_ptr<StoreByteIo>,2> components() const noexcept;
   void verify_prepared_binding() const;
   struct Impl;
   explicit NativeHybridBacking(std::unique_ptr<Impl>) noexcept;
@@ -59,6 +64,8 @@ class NativeHybridBacking::Build final {
   Build& operator=(Build&&) noexcept;
   ~Build();
   BuildPhase phase() const noexcept;
+  bool source_current(const NativeFileSession&) const noexcept;
+  bool can_continue_preparation() const noexcept;
   bool advance(const NativeFileSession&);
   // Returns zero unless a store is requested. Reserve the reported bytes for
   // the exact base or the full admissible writable tail.

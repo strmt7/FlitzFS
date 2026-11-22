@@ -201,12 +201,61 @@ the snapshot. An open file remained usable and an independent CPU reader
 reopened the edited file from the selected base and tail.
 [Allocator and survival evidence](evidence/deferred-hybrid-placement-2026-11-22.json)
 
-Automatic maintenance still needs a resolver that retains both raw stores
-with the selected hybrid, accounts for them during remount and shutdown,
-and preserves active capture ownership during the switch. The independently
-reopened selected hybrid already supports both verified AMD read-ahead
-and CPU fallback.
-[Sealed capture verification](NATIVE_AMD_LZ4_READ.md#selected-sealed-images)
+### Automatic sealed placement
+
+The indexed memory owner offers a sealed replacement after group, scrub
+and ordinary compaction opportunities are clear. It sizes the workspace
+from the selected image's geometry, the domain's unused reservation and
+fresh physical and commit headroom. The allocator still admits every
+page as it is committed. The owner waits for newly committed input
+before retrying a completed or cancelled attempt.
+
+The owner advances preparation while foreground work has yielded. Base
+reservation, workspace retirement, tail binding and selection use fresh
+opportunities. Data and index reconstruction can continue inside an
+admitted CPU window. A changed source checkpoint cancels the attempt.
+The two-slot selector publishes the smaller verified replacement and
+keeps live file contexts usable.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Selected
+    Selected --> Preparing: idle resources and fitted workspace
+    Preparing --> Selected: source changes and private stores retire
+    Preparing --> Verified: exact base and tail readback
+    Verified --> NewSelection: both selector records publish
+    Verified --> Recovery: selector outcome uncertain
+    Recovery --> NewSelection: checked head and retained mappings
+    NewSelection --> Retained: old readers hold an image
+    Retained --> Selected: last reader leaves and pages retire
+```
+
+The domain checks both component stores before admitting a selected
+hybrid to inspection or remount. It retains the wrapper and both parts
+through an uncertain selector outcome. After a confirmed switch, an old
+snapshot retains its whole image. Each retirement opportunity decommits
+one bounded span from the unpinned backing. For a former hybrid, the
+wrapper releases its subordinate leases before the base and tail retire
+separately. The read-only path verifies that selected and retained images
+have released their top-level writers before sealing the domain.
+[Windows reservation and decommit](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualfree) ·
+[ReFS tiering and compaction](https://learn.microsoft.com/en-us/windows-server/storage/refs/refs-registry-values) ·
+[OpenZFS rewrite and retained space](https://openzfs.github.io/openzfs-docs/man/v2.4/8/zfs-rewrite.8.html)
+
+The automatic Windows allocator fixture reached the same 4,153,344-byte
+selected footprint as the prepared path. It kept the mirrored snapshot
+readable until its reader released it, then retired the old image in six
+steps. A later rotation released both parts of an older sealed image in five
+steps after its reader closed. A foreground edit during preparation
+cancelled the stale candidate and preserved the new bytes.
+
+The owned controller with real WinFsp SDK callbacks and a controlled
+lifecycle switched the image while a file was open. The RX 9070 XT decoded
+two independently verified frames that the same handle consumed. Deliberate
+configuration refusal retired the worker and continued through the CPU with
+one GPU budget query. Both runs reopened for a tail write, then verified
+that write through the independent CPU reader.
+[Automatic selection verification](evidence/automatic-memory-sealing-2026-11-23.json)
 
 ## Executed scope and remaining work
 
@@ -252,12 +301,11 @@ Parent/child admission failures are reported promptly. These test-tooling limits
 do not change the GPU worker or product-volume allocation policy. Captured
 out-of-memory, busy-host timeout and rejected child-budget runs remain evidence.
 
-These tests use real SDK callbacks and injected lifecycle operations; they do
-not invoke native mount/dispatcher creation, load/install a driver or execute
-HIP. The follow-up [sealed memory integration](WINFSP_READONLY_MEMORY.md)
-uses this backing for the read-only adapter and a disposable external-client
-probe. Mounted Windows qualification, useful ordinary GPU work, reclamation,
-scalable coherence and full Windows semantics remain open.
+The earlier factory checks use CPU-only SDK callbacks with injected lifecycle
+operations. The [sealed memory integration](WINFSP_READONLY_MEMORY.md) uses
+this backing for the read-only adapter and a disposable external-client probe.
+Mounted qualification of automatic selection and AMD access, scalable coherence,
+and full Windows semantics remain open.
 
 Windows documents the differences between reserving, committing and locking
 pages and the working-set allowance used by page locking. The evidence binds

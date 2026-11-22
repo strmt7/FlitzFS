@@ -3,6 +3,8 @@
 #include <memory>
 
 namespace flitzfs {
+class NativeHybridBacking;
+struct MemoryVolumeBacking;
 // Process-lifetime memory provider. No file/device/driver API.
 // One domain per process; its lease remains alive until the last store retires.
 struct MemoryVolumeObservation {
@@ -28,6 +30,7 @@ class MemoryVolumeDomain final {
   // Full accounting and page checks require the owning control context.
   void verify_resident() const;
   bool owns(const StoreByteIo&) const noexcept;
+  bool owns_image(const StoreByteIo&) const noexcept;
   // One control thread, after all writers and mutation work have retired.
   // Success permanently denies writes and new stores across every alias.
   void seal_read_only();
@@ -37,6 +40,8 @@ class MemoryVolumeDomain final {
   MemoryVolumeDomain(const MemoryVolumeDomain&)=delete;
   MemoryVolumeDomain& operator=(MemoryVolumeDomain&&)=delete;
  private:
+  friend struct MemoryVolumeBacking;
+  void seal_read_only(const NativeHybridBacking* active,const NativeHybridBacking* retained);
   struct State;
   class Store;
   std::shared_ptr<State> state_;

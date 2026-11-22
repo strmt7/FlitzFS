@@ -227,6 +227,33 @@ struct NativeHybridBacking::Impl {
 NativeHybridBacking::NativeHybridBacking(std::unique_ptr<Impl> state) noexcept:impl_(std::move(state)) {}
 NativeHybridBacking::~NativeHybridBacking()=default;
 
+std::uint64_t NativeHybridBacking::workspace_capacity(StoreIdentity identity,StoreIoContract storage,
+    std::uint64_t source_bytes,std::uint64_t staging_bytes) {
+  if(!valid_store_io_contract(storage) || source_bytes<=roots || source_bytes>maximum_io ||
+      staging_bytes<=tail_start || staging_bytes>maximum_io)return 0;
+  const auto alignment=(std::max<std::uint64_t>)(root_size,storage.write_failure_unit_bytes);
+  const auto budget=staging_bytes-tail_start;
+  // The base commits at least as many bytes as the workspace supplies.
+  // Search in isolation units so a fitted workspace can be reserved directly.
+  std::uint64_t low=0,high=(std::min)(detail::folded_mirror_extent(source_bytes),budget/2)/alignment;
+  const auto base_bytes=[&](std::uint64_t workspace) {
+    return ProtectedStripeImage::projected_occupied(identity,workspace,storage.write_failure_unit_bytes,maximum_io);
+  };
+  while(low<high) {
+    const auto middle=low+(high-low+1)/2;
+    const auto workspace=middle*alignment;
+    if(base_bytes(workspace)<=budget-workspace)low=middle;
+    else high=middle-1;
+  }
+  const auto workspace=low*alignment;
+  if(workspace<=roots || base_bytes(workspace)+tail_start>=roots+2*(workspace-roots))return 0;
+  return workspace;
+}
+
+std::array<std::shared_ptr<StoreByteIo>,2> NativeHybridBacking::components() const noexcept {
+  return {impl_->base_owner.io,impl_->tail.io};
+}
+
 std::shared_ptr<NativeHybridBacking> NativeHybridBacking::open(std::shared_ptr<StoreByteIo> base,
     std::shared_ptr<StoreByteIo> tail,StoreIdentity expected,std::uint64_t virtual_limit,std::uint64_t physical_limit) {
   check_limits(expected,virtual_limit,physical_limit);
@@ -402,6 +429,19 @@ NativeHybridBacking::Build& NativeHybridBacking::Build::operator=(Build&&) noexc
 NativeHybridBacking::Build::~Build()=default;
 NativeHybridBacking::BuildPhase NativeHybridBacking::Build::phase() const noexcept {
   return impl_?impl_->phase:BuildPhase::stopped;
+}
+bool NativeHybridBacking::Build::source_current(const NativeFileSession& session) const noexcept {
+  if(!impl_)return false;
+  try {return session.hybrid_source().matches_paged_recompression(impl_->rewrite);}
+  catch(const std::exception&){return false;}
+}
+bool NativeHybridBacking::Build::can_continue_preparation() const noexcept {
+  if(phase()==BuildPhase::sealing)return impl_->seal->can_continue_preparation();
+  if(phase()!=BuildPhase::workspace)return false;
+  using Phase=PagedRewritePhase;
+  const auto next=impl_->rewrite.progress().phase;
+  return next==Phase::verifying_source || next==Phase::copying || next==Phase::building_index ||
+      next==Phase::verifying_target || next==Phase::verifying_publication;
 }
 bool NativeHybridBacking::Build::advance(const NativeFileSession& session) {
   if(!impl_)fail("hybrid preparation is unavailable");

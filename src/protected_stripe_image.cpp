@@ -332,6 +332,9 @@ bool ProtectedStripeImage::SealWork::advance() {
   try {return impl_->step();}
   catch(...){impl_.reset();throw;}
 }
+bool ProtectedStripeImage::SealWork::can_continue_preparation() const noexcept {
+  return impl_ && (impl_->phase==Impl::Phase::copy || impl_->phase==Impl::Phase::verify);
+}
 std::shared_ptr<ProtectedStripeImage> ProtectedStripeImage::SealWork::finish() {
   if(!impl_ || !impl_->published)fail("protected sealing is incomplete");
   auto result=std::move(impl_->published);

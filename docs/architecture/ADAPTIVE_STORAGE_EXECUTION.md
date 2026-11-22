@@ -27,39 +27,46 @@ session can select the prepared pair while retaining its open handles.
 The Windows allocator fixture now reserves the exact base, decommits the
 workspace, and reserves the full usable tail under the same domain budget.
 It independently reopens the selected image after bounded retirement of the
-pinned mirror. The mounted maintenance owner still needs to own that sequence.
+pinned mirror. The owned memory controller now runs this sequence with
+ordinary Windows SDK callbacks. The same open file continued through
+selection and consumed two independently verified Radeon frames.
 [Cooperative preparation](../SEALED_INDEXED_IMAGE.md#cooperative-preparation) ·
 [Verification](../evidence/cooperative-hybrid-preparation-2026-11-22.json) ·
 [Live selection verification](../evidence/live-hybrid-selection-2026-11-22.json) ·
-[Deferred placement verification](../evidence/deferred-hybrid-placement-2026-11-22.json)
+[Deferred placement verification](../evidence/deferred-hybrid-placement-2026-11-22.json) ·
+[Automatic selection verification](../evidence/automatic-memory-sealing-2026-11-23.json)
 
-Extend discovery and storage selection in this order.
+Extend selection to persistent backings in this order.
 
-1. Use bounded staged preparation within the existing maintenance governor.
-   Let live resource evidence fund the source, candidate, dependencies and
-   workspace together. Measure foreground interference, read amplification
-   and the actual footprint before enrolling an ordinary storage provider.
-   Derive the workspace reservation from available domain capacity and the
-   seal's source and parity geometry. Give publication and retirement their
-   own fresh opportunities. Keep existing reclamation available when
-   preparation cannot fit or the source changes.
-2. Bind base and tail placement to the indexed volume allocator and resolver.
-   Verify the frozen generation and exact content at selection, and preserve
-   the source on stale work, cancellation or unavailable backing. Compare
-   the candidate's settled footprint with the current selected layout and
-   charge the temporary and pinned bytes during the handoff.
-3. Commit region references and reclamation ownership with the namespace
-   publication. Replay every write/flush cut through the independent CPU
-   reader. Verify that rollback and snapshots still reach their original
-   content before reclaiming either physical extent.
-4. Measure the footprint after real reclamation and the common small-read
-   trace. The checked base and writable tail now support concurrent captures.
-   The reopened Windows fixture verified AMD read-ahead and CPU fallback
-   through a selected sealed image. Carry that capture ownership through
-   automatic selection with existing callbacks and qualify the end-to-end
-   read latency during the handoff. Keep the detached CPU restore path
-   available for old supported representations.
-   [Sealed read verification](../NATIVE_AMD_LZ4_READ.md#selected-sealed-images)
+1. Bind the base and writable tail to explicit range descriptors in a new,
+   versioned placement. Check the bearing volume identity, image identity,
+   generation, range bounds and overlap before opening either component.
+   Keep the existing paired-file readers and CPU restore path available.
+2. Price candidate, workspace and retained generations against actual
+   available allocation on the attached provider. Keep ordinary
+   reclamation available when the candidate cannot fit. Give allocation,
+   barriers, selection and retirement fresh resource observations.
+3. Publish the descriptor with the checked image selection. Replay each
+   write and flush interruption through the independent CPU reader,
+   including failures during retirement. Allow reclamation only after both
+   committed peers agree and the last reader releases the corresponding
+   component.
+4. Measure retained and returned allocation and the common small-read
+   trace for each qualified layout. Verify the read path with a held-open
+   handle on live AMD and CPU routes while selection advances. Include
+   full read cost and write traffic in the provider-specific decision to
+   continue compression.
+
+First evaluate a packed image inside the existing inactive NTFS range.
+Place the immutable base at its start and the writable tail at the next
+qualified alignment boundary. Bind both offsets to the selector epoch.
+Use a disjoint temporary range while sealing, and admit the whole candidate
+against available allocation. Charge alignment gaps and tail growth to the
+settled footprint. This design can reuse the paired-file ownership and
+reader pins if the complete geometry fits. The dense layout needs an
+allocation map that can reuse internal segments independently.
+[Paired file ranges](../PERSISTENT_VOLUME_FILE.md) ·
+[Windows range allocation](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_query_allocated_ranges)
 
 ReFS moves cold contents through bounded containers. OpenZFS accounts for
 space retained by snapshots during rewrites. FlitzFS's current whole-image
@@ -283,6 +290,27 @@ independent CPU reopen.
 | HDD | Use reported seek penalty and random versus sequential observations. Group nearby reads and writes while preserving publication order. Favor sequential passes in idle windows. |
 | USB storage and memory cards | Keep transport, seek behavior and removal independent. Measure latency and sparse or dense reuse on the actual outer filesystem. Charge optional rewrites against their confirmed space savings. Test both cache policies where the device supports them. |
 | Unclassified backing | Start from the qualified provider contract and conservative concurrency. Change one dimension at a time as ordinary I/O supplies evidence. |
+
+Select the placement by the backing filesystem and its qualified contract.
+Use the locked-memory allocator for an in-process volume, reclaimed sparse
+ranges for the qualified NTFS profile, and segment reuse for qualified dense
+files. Choose the layout before tuning I/O sizes, depth or maintenance
+pacing. An NVMe enclosure on USB, a SATA drive and a memory card can each
+carry a different outer filesystem and expose different cache behavior.
+Retain separate observations for every attachment.
+
+The sparse provider must check returned allocation after deallocation and
+account for the rounded ranges NTFS reports. For dense media, compare space
+eligible for internal reuse with actual reduction in host-file allocation.
+When cache descriptors are unavailable, keep the state unknown and require
+the same independent power-loss and removal checks used for a reported
+device. The exFAT allocation bitmap describes that filesystem's cluster
+ownership. The FlitzFS checkpoint must establish ownership of internal
+segments independently.
+[Windows allocated ranges](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_query_allocated_ranges) ·
+[Windows range deallocation](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_zero_data) ·
+[exFAT specification](https://learn.microsoft.com/en-us/windows/win32/fileio/exfat-specification) ·
+[Windows cache-property queries](https://learn.microsoft.com/en-us/windows-hardware/drivers/storage/querying-for-the-write-cache-property)
 
 An externally created RAM disk needs its own volatile lifetime contract. A
 backing file and successful flush can establish the file provider's barriers

@@ -75,6 +75,7 @@ class ProtectedStripeImage::SealWork final {
   SealWork& operator=(SealWork&&) noexcept;
   ~SealWork();
   bool advance();
+  bool can_continue_preparation() const noexcept;
   std::shared_ptr<ProtectedStripeImage> finish();
  private:
   friend class ProtectedStripeImage;

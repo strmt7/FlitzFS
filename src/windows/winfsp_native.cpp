@@ -320,7 +320,10 @@ struct WinFspNativeWritable::Impl {
     using Deferral=NativeMaintenanceDeferral;
     if(!observed.sequence || observed.sequence<=last_indexed_observation)return Deferral::observation;
     last_indexed_observation=observed.sequence;
-    const auto resources=detail::maintenance_resources(observed,now,{});
+    // The owned memory factory admits its storage and group work with the
+    // supplied policy. Other adapters configure group admission separately.
+    const auto policy=memory_backing?group_policy:NativeMaintenancePolicy{};
+    const auto resources=detail::maintenance_resources(observed,now,policy);
     const bool admitted_capture=observed.continued
         ?last_indexed_capture && observed.captured_ms==last_indexed_capture
         :observed.captured_ms>last_indexed_capture;
@@ -367,7 +370,10 @@ struct WinFspNativeWritable::Impl {
     const bool repair=session.indexed_payload_repair_pending();
     const bool reap=session.retirement_pending();
     const bool discard_catalog=memory_backing && memory_backing->coherence_retirement_pending();
-    if(observed.continued && (repair || reap || discard_catalog || !session.idle_compaction_preparation_pending()))
+    const auto preparing=[&] {
+      return memory_backing?memory_backing->compaction_preparation_pending(session):session.idle_compaction_preparation_pending();
+    };
+    if(observed.continued && (repair || repair_rotation || reap || discard_catalog || !preparing()))
       return defer(Deferral::observation);
     const bool persistent=session.persistent_reclamation_pending(allow_cold);
     const bool memory=memory_backing && memory_backing->compaction_pending(session,allow_cold);
@@ -394,7 +400,7 @@ struct WinFspNativeWritable::Impl {
           case Step::idle:return {State::unchanged};
           case Step::copying: {
             WinFspMaintenanceResult result{State::advanced,{Phase::preparing}};
-            if(session.idle_compaction_preparation_pending())
+            if(preparing())
               result.continuation=WinFspMaintenanceContinuation::compaction;
             return result;
           }
@@ -412,7 +418,11 @@ struct WinFspNativeWritable::Impl {
       };
       if(repair_rotation && groups)groups->release_staged_groups();
       if(persistent)return progress(session.advance_persistent_reclamation(fresh_volume_identity,allow_cold));
-      if(memory)return progress(memory_backing->advance_compaction(session,allow_cold));
+      if(memory) {
+        auto result=progress(memory_backing->advance_compaction(session,allow_cold));
+        result.sealed_image=result.compacted && memory_backing->selected_image_sealed();
+        return result;
+      }
     }catch(...) {
       if(session.poisoned())offline.store(true,std::memory_order_release);
       throw;
@@ -954,6 +964,17 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::from_indexed_session
   impl->group_policy=group_policy;
   return std::unique_ptr<WinFspNativeWritable>(new WinFspNativeWritable(std::move(impl)));
 }
+std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_indexed_memory(
+    MemoryVolumeBacking& backing,StoreCompressionOptions foreground,NativeMaintenancePolicy group_policy) {
+  if(!backing.domain || !backing.head || !backing.image || !backing.advice ||
+      !backing.domain->owns(*backing.head) || !backing.domain->owns(*backing.image) ||
+      !backing.domain->owns(*backing.advice))
+    throw std::invalid_argument("Indexed initialization requires privately owned memory backing");
+  auto adapter=create_managed_indexed(backing.head,backing.volume_identity,backing.image,backing.image_identity,
+      {backing.layout.image_capacity},foreground,backing.advice,group_policy);
+  adapter->configure_memory_maintenance(backing);
+  return adapter;
+}
 std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_file_volume(std::shared_ptr<StoreByteIo> empty,
     StoreIdentity volume,StoreIdentity image,PagedStoreLimits limits,StoreCompressionOptions foreground) {
   const auto security=owner_security();const auto stamp=native_cleanup_utc();
@@ -999,15 +1020,17 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_managed_retir
 std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_memory_volume(
     MemoryVolumeBacking& backing,NativeImageKind kind,StoreCompressionOptions foreground) {
   if(!backing.domain || !backing.head || !backing.image || !backing.advice ||
-      !backing.domain->owns(*backing.head) || !backing.domain->owns(*backing.image) ||
+      !backing.domain->owns(*backing.head) || !backing.domain->owns_image(*backing.image) ||
       !backing.domain->owns(*backing.advice))
     throw std::invalid_argument("Memory reopen requires privately owned backing");
   backing.domain->verify_resident();
   const auto advice=read_optimization_state(*backing.advice,backing.volume_identity);
   const auto sequence=advice.code==OptimizationReadCode::available?advice.sequence:0;
   const NativeVolumeImageResolver resolve=[&](const auto& identity){return backing.resolve_image(identity);};
-  return resume_managed_impl(backing.head,backing.volume_identity,{},resolve,foreground,
+  auto adapter=resume_managed_impl(backing.head,backing.volume_identity,{},resolve,foreground,
       sequence?backing.advice:nullptr,sequence,kind==NativeImageKind::indexed_paged,&backing);
+  if(kind==NativeImageKind::indexed_paged)adapter->configure_memory_maintenance(backing);
+  return adapter;
 }
 std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_managed_impl(
     std::shared_ptr<StoreByteIo> head,StoreIdentity volume,std::optional<std::uint64_t> expected_epoch,

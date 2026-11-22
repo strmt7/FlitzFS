@@ -216,8 +216,9 @@ Selection compares occupied bytes of both the active and prepared images.
 An ordinary mirrored compaction also uses the occupied size of a selected
 hybrid. Verified capacity repair can still admit a rotation. The caller
 accounts for staging space and pinned generations until their actual
-retirement. Automatic WinFsp enrollment and persistent range placement
-remain open.
+retirement. Owned indexed Windows memory volumes now use this path in
+ordinary background maintenance. Persistent backing files still need a
+versioned placement map for the base and tail.
 [Windows write barriers](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers) ·
 [ReFS parity rotation](https://learn.microsoft.com/en-us/windows-server/storage/refs/mirror-accelerated-parity)
 
@@ -265,6 +266,13 @@ a damage report. A real stripe failure still follows the CPU recovery path.
 [Sealed AMD read verification](evidence/sealed-amd-read-captures-2026-11-23.json) ·
 [Microsoft thread resource priority](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadpriority) ·
 [Windows cancellation and request lifetime](https://learn.microsoft.com/en-us/windows/win32/api/ioapiset/nf-ioapiset-cancelioex)
+
+The owned Windows memory controller also prepares and selects the image
+with the SDK dispatcher callbacks active. A file opened before selection
+continues to serve verified AMD and CPU reads. The retired volume can
+reopen for ordinary writes and the independent CPU reader verifies the
+edited bytes.
+[Automatic placement and readback](evidence/automatic-memory-sealing-2026-11-23.json)
 
 ## Verification on Windows
 
