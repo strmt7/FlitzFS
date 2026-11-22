@@ -1,3 +1,4 @@
+#include "native_lz4_capture.hpp"
 #include "native_lz4_decode_wire.hpp"
 #include "worker_exchange.hpp"
 #include "gpu_request_id.hpp"
@@ -68,7 +69,8 @@ void run(std::wstring_view runtime_name,std::wstring_view runtime_sha,std::wstri
   constexpr PagedStoreLimits limits{4U*1024U*1024U};
   constexpr StoreCompressionOptions fast{StoreCompressionMode::fast,1,false};
   auto writer=NativeFilesystemWriter::initialize_indexed(
-      PagedObjectStoreWriter::create_mirrored(backing,native_fixture::identity(),limits,fast));
+      PagedObjectStoreWriter::create_mirrored(std::make_shared<native_fixture::ConcurrentRam>(backing),
+          native_fixture::identity(),limits,fast));
   const auto create=native_fixture::file_create("read-data");
   writer.apply({&create,1});
   auto session=NativeFileSession::create(std::move(writer));
@@ -94,9 +96,12 @@ void run(std::wstring_view runtime_name,std::wstring_view runtime_sha,std::wstri
   std::array<NativeLz4CapturedFrame,2> captured;
   using Clock=std::chrono::steady_clock;
   const auto capture_begin=Clock::now();
-  require(session.capture_native_lz4(reader,0,kNativeExtentBytes,captured[0]) &&
-      session.capture_native_lz4(reader,kNativeExtentBytes,kNativeExtentBytes,captured[1]),
-      "native read-ahead did not return both current encoded frames");
+  {
+    auto first_lease=session.lease_native_lz4_capture(reader,0,kNativeExtentBytes);
+    auto second_lease=session.lease_native_lz4_capture(reader,kNativeExtentBytes,kNativeExtentBytes);
+    require(first_lease && second_lease && first_lease->capture(captured[0]) &&
+        second_lease->capture(captured[1]),"native read-ahead did not capture both selected frames");
+  }
   const auto capture_ns=std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now()-capture_begin).count();
   const std::array sources{
       NativeLz4DecodeSource{captured[0].key(),captured[0].encoded()},
@@ -209,7 +214,7 @@ void run(std::wstring_view runtime_name,std::wstring_view runtime_sha,std::wstri
       <<",\"kernel_launches\":2,\"reused_device_slab_bytes\":"<<peak
       <<",\"exchange_ns\":"<<exchange_ns<<",\"device_reserved_bytes\":"<<device_reserve
       <<",\"prepared\":"<<(prepared?"true":"false")<<",\"ready_ns\":"<<ready_ns
-      <<",\"after_submit_ns\":"<<after_submit_ns<<",\"capture_ns\":"<<capture_ns
+      <<",\"after_submit_ns\":"<<after_submit_ns<<",\"capture_ns\":"<<capture_ns<<",\"leased_frames\":2"
       <<",\"cpu_session_read_ns\":"<<cpu_ns<<",\"ready_session_read_ns\":"<<ready_read_ns
       <<",\"cpu_backing_bytes\":"<<cpu_backing<<",\"ready_backing_bytes\":"<<ready_backing
       <<",\"indexed_hits\":"<<ready->indexed_consumed()

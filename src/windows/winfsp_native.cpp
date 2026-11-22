@@ -1,4 +1,5 @@
 #include "winfsp_native.hpp"
+#include "../native_lz4_capture.hpp"
 #include "../native_lz4_decode_wire.hpp"
 #include "memory_volume_factory.hpp"
 #include "../native_maintenance_source.hpp"
@@ -226,6 +227,7 @@ struct WinFspNativeWritable::Impl {
   NativeFileSession session;
   std::unique_ptr<detail::NativeLz4ReadyReads> native_lz4_reads;
   bool read_ahead_enabled=false;
+  std::atomic<bool> read_ahead_active{false};
   std::optional<ReadAhead> read_ahead;
   std::optional<ReadAhead> read_ahead_sample_target;
   std::uint64_t read_ahead_sample_ns=0;
@@ -1297,7 +1299,7 @@ std::size_t WinFspNativeWritable::native_lz4_read_hits() const {
 bool WinFspNativeWritable::enable_native_lz4_read_ahead() {
   std::lock_guard guard(impl_->control);
   if(impl_->callbacks_bound || impl_->maintenance_cancelled || impl_->info_policy!=indexed_file_info ||
-      !store_lz4_available())return false;
+      !store_lz4_available() || !impl_->session.supports_leased_lz4_capture())return false;
   impl_->read_ahead_enabled=true;
   return true;
 }
@@ -1320,10 +1322,15 @@ bool WinFspNativeWritable::advance_native_lz4_read_ahead(
   try {
     const auto resources=detail::maintenance_resources(observed,now,impl_->group_policy);
     // Charge both frame buffers and space for checked index and record scratch.
-    constexpr std::uint64_t working_bytes=2ULL*kStoreMaxObjectBytes+4ULL*kStoreCommitUnit;
+    constexpr std::uint64_t working_bytes=2ULL*kStoreMaxObjectBytes+4ULL*kStoreCommitUnit+detail::kStoreDecoderMemoryCap;
     if(!resources || resources->cpu_busy || resources->memory_allowance<working_bytes || observed.foreground_pending)
       return false;
-    detail::NativeLz4CapturedFrame captured;
+    if(impl_->read_ahead_active.exchange(true,std::memory_order_acq_rel))return false;
+    struct ReleaseCapture {
+      std::atomic<bool>& active;
+      ~ReleaseCapture(){active.store(false,std::memory_order_release);}
+    } release{impl_->read_ahead_active};
+    std::unique_ptr<detail::NativeLz4CaptureLease> lease;
     Impl::ReadAhead target;
     {
       std::unique_lock guard(impl_->control,std::try_to_lock);
@@ -1332,9 +1339,13 @@ bool WinFspNativeWritable::advance_native_lz4_read_ahead(
       impl_->last_read_ahead_observation=observed.sequence;
       target=*std::exchange(impl_->read_ahead,std::nullopt);
       const auto& slot=impl_->resolve(reinterpret_cast<PVOID>(target.token));
-      if(slot.provisional || slot.awaiting_overwrite ||
-          !impl_->session.capture_native_lz4(slot.handle,target.offset,kStoreMaxObjectBytes,captured))return false;
+      if(slot.provisional || slot.awaiting_overwrite)return false;
+      lease=impl_->session.lease_native_lz4_capture(slot.handle,target.offset,kStoreMaxObjectBytes);
     }
+    if(!lease || foreground_pending() || foreground_activity()!=epoch)return false;
+    detail::NativeLz4CapturedFrame captured;
+    if(!lease->capture(captured))return false;
+    lease.reset();
     if(foreground_pending() || foreground_activity()!=epoch)return false;
     auto ready=detail::NativeLz4ReadyReads::decode_captured(captured);
     std::unique_lock guard(impl_->control,std::try_to_lock);

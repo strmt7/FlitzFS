@@ -1,5 +1,6 @@
 #include "flitzfs/native_session.hpp"
 #include "indexed_names.hpp"
+#include "native_lz4_capture.hpp"
 #include "native_maintenance_source.hpp"
 #include "native_volume_file_reclaimer.hpp"
 #include "flitzfs/catalog.hpp"
@@ -1720,6 +1721,15 @@ bool NativeFileSession::capture_native_lz4(const NativeFileHandle& handle,std::u
   const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
   if(!slot.access.read)fail(E::access_denied,"native context has no read access");
   return self.writer.capture_native_lz4(slot.inode,offset,maximum_encoded,out);
+}
+bool NativeFileSession::supports_leased_lz4_capture() const noexcept {
+  return !poisoned() && impl_->writer.supports_leased_lz4_capture();
+}
+std::unique_ptr<detail::NativeLz4CaptureLease> NativeFileSession::lease_native_lz4_capture(
+    const NativeFileHandle& handle,std::uint64_t offset,std::size_t maximum_encoded) const {
+  const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
+  if(!slot.access.read)fail(E::access_denied,"native context has no read access");
+  return self.writer.lease_native_lz4_capture(slot.inode,offset,maximum_encoded);
 }
 NativeInodeWriteCommit NativeFileSession::write(const NativeFileHandle& handle,
     std::uint64_t offset,std::span<const std::byte> bytes,NativeInodeWriteOptions options) {

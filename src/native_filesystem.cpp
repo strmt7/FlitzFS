@@ -1,7 +1,7 @@
 #include "flitzfs/native_filesystem.hpp"
 #include "native_object_storage.hpp"
 #include "native_indexed_volume.hpp"
-#include "native_lz4_read.hpp"
+#include "native_lz4_capture.hpp"
 #include "indexed_names.hpp"
 #include "native_name_index.hpp"
 #include "flitzfs/catalog.hpp"
@@ -58,6 +58,13 @@ const std::array<std::byte,8>& namespace_magic(std::uint32_t format) {
 }
 std::size_t node_header(std::uint32_t format) {return format>=5?kAllocationNodeHeader:format==4?kSecurityNodeHeader:format==3?kBasicNodeHeader:64;}
 [[noreturn]] void fail(Code code,const char* reason){throw NativeFsError(code,reason);}
+detail::IndexedVolumeView verify_indexed_root(const PagedObjectStoreSnapshot& snapshot,
+    const detail::IndexedVolumeRoot& expected) {
+  const auto bytes=snapshot.read(kNamespaceObject,kMetadataCap);
+  const detail::IndexedVolumeView view(snapshot,bytes);
+  if(view.root()!=expected)fail(Code::corrupt,"indexed writer root differs from backing");
+  return view;
+}
 bool zeros(std::span<const std::byte> bytes){return std::all_of(bytes.begin(),bytes.end(),[](auto b){return b==std::byte{0};});}
 std::uint64_t integer(std::span<const std::byte> bytes,std::size_t at,unsigned width) {
   if(at>bytes.size() || width>bytes.size()-at || width>8)fail(Code::corrupt,"native metadata field bounds");
@@ -1176,10 +1183,7 @@ struct NativeFilesystemWriter::Impl {
   }
   explicit Impl(detail::NativeObjectWriter writer):objects(std::move(writer)) {}
   detail::IndexedVolumeView checked_indexed_view(const PagedObjectStoreSnapshot& snapshot) const {
-    const auto bytes=snapshot.read(kNamespaceObject,kMetadataCap);
-    const detail::IndexedVolumeView view(snapshot,bytes);
-    if(view.root()!=*indexed)fail(Code::corrupt,"indexed writer root differs from backing");
-    return view;
+    return verify_indexed_root(snapshot,*indexed);
   }
   template<class Read>
   auto inspect_indexed(Read&& read) {
@@ -2841,6 +2845,27 @@ Bytes NativeFilesystemWriter::read_inode(std::uint64_t inode,std::uint64_t offse
   return state.read_checked_inode(inode,[&](const auto& snapshot,const Node& n) {
     return read_node(snapshot,state.model,n,offset,bytes);
   });
+}
+bool NativeFilesystemWriter::supports_leased_lz4_capture() const noexcept {
+  if(poisoned() || !impl_->indexed)return false;
+  const auto* image=impl_->objects.paged_if();
+  return image && image->concurrent_reads_supported();
+}
+std::unique_ptr<detail::NativeLz4CaptureLease> NativeFilesystemWriter::lease_native_lz4_capture(
+    std::uint64_t inode,std::uint64_t offset,std::size_t maximum_encoded) const {
+  if(!supports_leased_lz4_capture() || !maximum_encoded || !store_lz4_available())return {};
+  auto snapshot=impl_->objects.paged_if()->snapshot_for_capture();
+  if(!snapshot)return {};
+  return std::unique_ptr<detail::NativeLz4CaptureLease>(new detail::NativeLz4CaptureLease(
+      std::move(*snapshot),*impl_->indexed,inode,offset,maximum_encoded));
+}
+bool detail::NativeLz4CaptureLease::capture(NativeLz4CapturedFrame& out) const {
+  out={};
+  try {
+    const auto query=snapshot_.scoped_query();
+    const auto view=verify_indexed_root(snapshot_,root_);
+    return view.capture_native_lz4(view.inode(inode_),offset_,maximum_encoded_,out);
+  }catch(const std::exception&){return false;}
 }
 bool NativeFilesystemWriter::capture_native_lz4(std::uint64_t inode,std::uint64_t offset,
     std::size_t maximum_encoded,detail::NativeLz4CapturedFrame& out) const {

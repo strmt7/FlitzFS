@@ -2236,6 +2236,20 @@ PagedObjectStoreSnapshot PagedObjectStoreWriter::snapshot_for_staging(bool query
   if(query_cache)p->lookup_pages.emplace();
   return PagedObjectStoreSnapshot(std::move(p));
 }
+bool PagedObjectStoreWriter::concurrent_reads_supported() const noexcept {
+  return impl_ && impl_->state.image->concurrent_reads_supported();
+}
+std::optional<PagedObjectStoreSnapshot> PagedObjectStoreWriter::snapshot_for_capture() const {
+  if(!concurrent_reads_supported() || impl_->poisoned || !healthy_lz4_index(impl_->state) ||
+      payload_repair_pending())return {};
+  auto result=std::make_unique<PagedObjectStoreSnapshot::Impl>();
+  auto decoder=std::move(result->state.decoder);
+  result->state=impl_->state;
+  result->state.decoder=std::move(decoder);
+  result->state.payload_repairs.reset();
+  result->lookup_pages.emplace();
+  return PagedObjectStoreSnapshot(std::move(result));
+}
 PagedObjectStoreSnapshot PagedObjectStoreWriter::snapshot_for_indexed_read() const {
   auto snapshot=snapshot_for_staging(true);
   if(impl_->state.mirrored) {

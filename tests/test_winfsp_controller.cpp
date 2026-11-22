@@ -7,11 +7,14 @@
 #include "flitzfs/native_volume_file.hpp"
 #include "flitzfs/read_only_file.hpp"
 #include "native_fs_fixture.hpp"
+#include "native_lz4_fixture.hpp"
 #include "native_corpus_fixture.hpp"
 #include "native_security_fixture.hpp"
 #include "../src/native_group_codec.hpp"
 #include "../src/native_indexed_volume.hpp"
+#include "../src/native_lz4_capture.hpp"
 #include "../src/native_maintenance_source.hpp"
+#include "../src/store_codec.hpp"
 #include "../src/record_digest.hpp"
 #include "volume_range_fixture.hpp"
 #include "windows_app_budget.hpp"
@@ -342,6 +345,7 @@ void callback_file(Provider& p,unsigned n,const Bytes& bytes,std::size_t quantum
 class DelayedLookaheadBacking final:public StoreByteIo {
  public:
   explicit DelayedLookaheadBacking(std::shared_ptr<StoreByteIo> bytes):bytes_(std::move(bytes)) {}
+  bool concurrent_reads_supported() const noexcept override{return bytes_->concurrent_reads_supported();}
   std::uint64_t extent() const override{return bytes_->extent();}
   StoreIoContract contract() const noexcept override{return bytes_->contract();}
   void admit_write(std::uint64_t bytes) override{bytes_->admit_write(bytes);}
@@ -363,8 +367,51 @@ class DelayedLookaheadBacking final:public StoreByteIo {
   const DWORD foreground_=GetCurrentThreadId();
   mutable std::atomic<bool> delay_idle_{false},delay_demand_{false};
 };
+void read_capture_pins_selected_image() {
+  constexpr std::uint64_t capacity=8ULL*1024*1024;
+  constexpr StoreCompressionOptions fast{StoreCompressionMode::fast,1,false};
+  auto domain=MemoryVolumeDomain::create(capacity+kVolumeHeadBytes);
+  auto head=domain.create_store(kVolumeHeadBytes);
+  auto image=domain.create_store(capacity);
+  const auto original=native_lz4_fixture::source();
+  auto replacement=original;
+  replacement.back()^=std::byte{79};
+  std::unique_ptr<detail::NativeLz4CaptureLease> lease;
+  {
+    auto session=NativeFileSession::create_indexed_volume(head,id(90),image,id(1),{capacity},fast);
+    session.create_entry("retained");
+    const auto file=session.open("retained",{true,true,true});
+    session.write(file,0,original);
+    lease=session.lease_native_lz4_capture(file,0,kNativeExtentBytes);
+    require(lease!=nullptr,"memory image refused the selected capture");
+    session.write(file,0,replacement);
+    require(session.read(file,0,kNativeExtentBytes)==replacement,
+        "ordinary reader lost the acknowledged write while the capture held the previous view");
+    session.cleanup(file,false);
+    session.close(file);
+  }
+  const auto before=domain.usage();
+  require(domain.retire_store(image)==MemoryStoreRetirement::pinned && domain.usage().resident==before.resident,
+      "retirement discarded bytes held by a pending capture");
+  detail::NativeLz4CapturedFrame frame;
+  require(lease->capture(frame),"closed writer invalidated the pinned capture");
+  detail::StoreCodecDecoder cpu;
+  const auto decoded=cpu.decode(detail::kStoreLz4,frame.encoded(),frame.key().decoded_bytes);
+  require(decoded.size()>=original.size() &&
+      std::ranges::equal(std::span(decoded).last(original.size()),original),
+      "the capture returned a different version of the retained extent");
+  lease.reset();
+  while(domain.retire_store(image)==MemoryStoreRetirement::advanced) {}
+  const auto after=domain.usage();
+  require(!image && before.stores==after.stores+1 && before.resident>after.resident &&
+      before.reserved==after.reserved+capacity,"finished capture kept its memory image reserved");
+  std::cout<<"read_capture_pin retained_selected_version=1 later_write_exact=1 protected_from_retirement=1"
+      <<" retired_after_release=1 reclaimed_locked_bytes="<<before.resident-after.resident<<'\n';
+}
 void live_read_ahead_admission() {
   require(store_lz4_available(),"live read-ahead requires the pinned LZ4 decoder");
+  read_capture_pins_selected_image();
+  require(MemoryVolumeDomain::cleanup_healthy(),"capture fixture failed to retire its memory domain");
   constexpr std::uint64_t extent=kNativeExtentBytes,image_capacity=8ULL*1024*1024;
   constexpr StoreCompressionOptions fast{StoreCompressionMode::fast,1,false};
   auto domain=MemoryVolumeDomain::create(image_capacity+kVolumeHeadBytes);

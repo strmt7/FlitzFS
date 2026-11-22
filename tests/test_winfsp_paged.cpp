@@ -25,20 +25,21 @@ struct Clock {
     o.valid=true;o.physical_total=16ULL<<30;o.physical_available=12ULL<<30;o.commit_limit=32ULL<<30;
     o.commit_available=24ULL<<30;o.cpu_total_ticks=1000;o.cpu_window_ms=1000;return o;}
 };
-class BlockingIo final:public StoreByteIo {
+class BlockingIo final:public ConcurrentRam {
  public:
-  std::shared_ptr<Ram> ram;mutable std::mutex mutex;mutable std::condition_variable changed;
-  mutable std::atomic<bool> armed{false};mutable bool entered=false,released=false;
-  explicit BlockingIo(std::shared_ptr<Ram> r):ram(std::move(r)){}
-  std::uint64_t extent() const override{return ram->extent();}
-  StoreIoContract contract() const noexcept override{return ram->contract();}
-  void admit_write(std::uint64_t n) override{ram->admit_write(n);}
-  void write_exact(std::uint64_t n,std::span<const std::byte> bytes) override{ram->write_exact(n,bytes);}
-  void flush() override{ram->flush();}
+  using ConcurrentRam::ConcurrentRam;
+  mutable std::mutex mutex;mutable std::condition_variable changed;
+  mutable std::atomic<bool> armed{false};mutable bool entered=false,released=false,expired=false;
   void read_exact(std::uint64_t n,std::span<std::byte> bytes) const override {
-    if(armed.exchange(false)){std::unique_lock lock(mutex);entered=true;changed.notify_all();
-      if(!changed.wait_for(lock,std::chrono::seconds(5),[&]{return released;}))throw std::runtime_error("controlled callback deadline");}
-    ram->read_exact(n,bytes);
+    if(armed.exchange(false)) {
+      std::unique_lock lock(mutex);
+      entered=true;changed.notify_all();
+      if(!changed.wait_for(lock,std::chrono::seconds(5),[&]{return released;})) {
+        expired=true;
+        throw std::runtime_error("controlled callback deadline");
+      }
+    }
+    ConcurrentRam::read_exact(n,bytes);
   }
   void release(){std::lock_guard lock(mutex);released=true;changed.notify_all();}
 };
@@ -191,33 +192,49 @@ void sequential_read_ahead() {
       h.adapter->take_native_lz4_read_ahead_sample(h.adapter->foreground_activity())==0,
       "ready result contributed a demand cost without reading the stored frame");
 
+  require(h.image->write_bytes==writes,"read-ahead wrote backing bytes before foreground edit");
   h.read(context,blocks[0]);
   h.read(context,blocks[1],extent);
   const auto contested=h.clock.next();
   const auto contested_epoch=h.adapter->foreground_activity();
   h.image_io->armed=true;
   bool prepared=false;
-  std::jthread prepare([&]{prepared=h.adapter->advance_native_lz4_read_ahead(contested,h.clock.now,contested_epoch);});
+  const auto now=h.clock.now;
+  std::jthread prepare([&]{prepared=h.adapter->advance_native_lz4_read_ahead(contested,now,contested_epoch);});
   {
     std::unique_lock lock(h.image_io->mutex);
     require(h.image_io->changed.wait_for(lock,std::chrono::seconds(5),[&]{return h.image_io->entered;}),
         "read-ahead did not reach controlled backing");
   }
-  Bytes expected(blocks[2].size());
-  NTSTATUS status=STATUS_UNSUCCESSFUL;
-  ULONG read=0;
+  auto replacement=blocks[2];
+  replacement.front()^=std::byte{0x71};
+  Bytes before_edit(replacement.size()),after_edit(replacement.size());
+  NTSTATUS first_read=STATUS_UNSUCCESSFUL,write_status=STATUS_UNSUCCESSFUL,last_read=STATUS_UNSUCCESSFUL;
+  ULONG old_bytes=0,written=0,new_bytes=0;
+  std::atomic<bool> foreground_completed{false};
   std::jthread demand([&]{
-    status=h.fs.Interface->Read(&h.fs,context,expected.data(),2*extent,
-        static_cast<ULONG>(expected.size()),&read);
+    first_read=h.fs.Interface->Read(&h.fs,context,before_edit.data(),2*extent,
+        static_cast<ULONG>(before_edit.size()),&old_bytes);
+    FSP_FSCTL_FILE_INFO info{};
+    write_status=h.fs.Interface->Write(&h.fs,context,replacement.data(),2*extent,
+        static_cast<ULONG>(replacement.size()),FALSE,FALSE,&written,&info);
+    last_read=h.fs.Interface->Read(&h.fs,context,after_edit.data(),2*extent,
+        static_cast<ULONG>(after_edit.size()),&new_bytes);
+    foreground_completed.store(true,std::memory_order_release);
   });
-  const auto deadline=std::chrono::steady_clock::now()+std::chrono::seconds(5);
-  while(!h.adapter->foreground_pending() && std::chrono::steady_clock::now()<deadline)std::this_thread::sleep_for(std::chrono::milliseconds(1));
-  const bool pending=h.adapter->foreground_pending();
+  const auto deadline=std::chrono::steady_clock::now()+std::chrono::seconds(2);
+  while(!foreground_completed.load(std::memory_order_acquire) && std::chrono::steady_clock::now()<deadline)
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+  const auto completed_before_release=foreground_completed.load(std::memory_order_acquire);
   h.image_io->release();
   demand.join();prepare.join();
-  require(pending && !prepared && status==STATUS_SUCCESS && read==expected.size() && expected==blocks[2] &&
-      h.adapter->native_lz4_read_ahead_hits()==1,"read-ahead published across a new foreground call");
-  require(h.image->write_bytes==writes,"read-ahead wrote backing bytes");
+  require(completed_before_release && !h.image_io->expired && first_read==STATUS_SUCCESS &&
+      old_bytes==before_edit.size() && before_edit==blocks[2] && write_status==STATUS_SUCCESS &&
+      written==replacement.size() && last_read==STATUS_SUCCESS && new_bytes==after_edit.size() &&
+      after_edit==replacement,"a stalled capture blocked acknowledged foreground I/O");
+  require(!prepared && h.adapter->native_lz4_read_ahead_hits()==1,
+      "read-ahead published from the superseded backing view");
+  h.read(context,replacement,2*extent);
   h.adapter->cancel_background_maintenance();
   h.read(context,blocks[3],3*extent);
   require(!h.adapter->native_lz4_read_ahead_pending() && h.adapter->native_lz4_read_ahead_hits()==1,
@@ -226,6 +243,7 @@ void sequential_read_ahead() {
   require(!h.adapter->native_lz4_read_ahead_pending(),"closed context left speculative work");
   std::cout<<"winfsp_sequential_lz4 ready_hit=1 pressure_refused=1 backing_discard=1 foreground_superseded=1"
       <<" exact_cpu_feedback=1 unrelated_reads_ignored=1 ready_read_ignored=1 single_use_sample=1"
+      <<" foreground_read_write_before_release=1 changed_bytes_exact=1"
       <<" capture_backing_bytes="<<capture_bytes<<" ready_backing_bytes="<<ready_bytes
       <<" ordinary_backing_bytes="<<ordinary_bytes<<'\n';
 }
@@ -236,6 +254,14 @@ void ready_lz4_reads() {
     return;
   }
   constexpr StoreCompressionOptions fast{StoreCompressionMode::fast,1,false};
+  {
+    const auto head=ram(4096),image=ram(4096);
+    const auto unsupported=WinFspNativeWritable::create_managed_indexed(
+        head,id(90),image,id(1),{kStoreMaxPhysicalBytes},fast);
+    const auto reads=image->read_calls;
+    require(!unsupported->enable_native_lz4_read_ahead() && image->read_calls==reads,
+        "read-ahead admitted an unqualified backing or probed it");
+  }
   Harness h(4096,nullptr,nullptr,nullptr,nullptr,true,fast);
   const auto context=h.create(42);
   const auto plain=native_lz4_fixture::source();

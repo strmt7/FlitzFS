@@ -43,6 +43,14 @@ still uses its existing fixed slots. After a failed lock the provider discards
 the attempted commit. If cleanup cannot be confirmed, it refuses new
 writers and retains readable data.
 
+The selected image can supply an independent LZ4 capture while a
+foreground owner continues to write. The extent is published after each
+byte copy, and exact copies share a short provider lock. Admission and
+page growth run outside that lock. A capture holds the selected image
+until it owns the encoded frame. Reclamation checks that pin before it
+clears or decommits pages.
+[Checked capture and read-ahead](NATIVE_AMD_LZ4_READ.md#qualifying-sequential-read-ahead)
+
 The controller checks working-set allowance in constant space and time per
 opportunity. Creation, sealing and explicit retired inspection can verify
 every committed page in fixed-size batches. The UI reports locked bytes,

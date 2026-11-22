@@ -6,6 +6,7 @@
 #include <atomic>
 #include <cstring>
 #include <limits>
+#include <mutex>
 #include <stdexcept>
 
 namespace flitzfs {
@@ -90,7 +91,8 @@ class MemoryVolumeDomain::Store final:public StoreByteIo {
     for(auto& entry:state_->registry)if(!entry){entry=this;break;}
   }
   ~Store() override {release();}
-  std::uint64_t extent() const override {return extent_;}
+  std::uint64_t extent() const override {return extent_.load(std::memory_order_acquire);}
+  bool concurrent_reads_supported() const noexcept override {return true;}
   // Admission is checked before copying, and each copy targets only its
   // supplied byte span. Size the isolation units from the actual Windows
   // pages. A flush preserves bytes for this live, serialized memory provider.
@@ -105,9 +107,11 @@ class MemoryVolumeDomain::Store final:public StoreByteIo {
     observed.complete();
   }
   void read_exact(std::uint64_t at,std::span<std::byte> out) const override {
-    require(at<=extent_ && out.size()<=extent_-at,"Memory read bounds");
+    const auto end=extent();
+    require(at<=end && out.size()<=end-at,"Memory read bounds");
     if(out.empty())return;
     detail::MaintenanceBackingCall observed(detail::MaintenanceBackingOperation::read,out.size());
+    std::lock_guard lock(bytes_mutex_);
     std::memcpy(out.data(),data_+at,out.size());
     observed.complete();
   }
@@ -118,7 +122,11 @@ class MemoryVolumeDomain::Store final:public StoreByteIo {
     detail::MaintenanceBackingCall observed(detail::MaintenanceBackingOperation::write,in.size());
     const auto end = at + in.size();
     if (end > committed_) grow(end);
-    std::memcpy(data_+at,in.data(),in.size());extent_=(std::max)(extent_,end);
+    // Page admission above only extends the reservation. Serialize the byte
+    // copy itself with capture readers of the previously published prefix.
+    std::lock_guard lock(bytes_mutex_);
+    std::memcpy(data_+at,in.data(),in.size());
+    extent_.store((std::max)(extent_.load(std::memory_order_relaxed),end),std::memory_order_release);
     observed.complete();
   }
   void flush() override {
@@ -140,7 +148,7 @@ class MemoryVolumeDomain::Store final:public StoreByteIo {
       throw std::runtime_error("Memory image decommit failed");
     }
     committed_-=bytes;
-    extent_=(std::min)(extent_,committed_);
+    extent_.store((std::min)(extent(),committed_),std::memory_order_release);
     state_->resident-=bytes;
     observed.complete();
     return !committed_;
@@ -180,7 +188,7 @@ class MemoryVolumeDomain::Store final:public StoreByteIo {
   }
   void release() noexcept {
     if(!data_)return;
-    if(extent_)SecureZeroMemory(data_,static_cast<SIZE_T>(extent_));
+    if(const auto end=extent())SecureZeroMemory(data_,static_cast<SIZE_T>(end));
     if(committed_ && !VirtualUnlock(data_,static_cast<SIZE_T>(committed_)))cleanup_ok=false;
     if(VirtualFree(data_,0,MEM_RELEASE)) {
       state_->reserved-=capacity_;
@@ -190,7 +198,9 @@ class MemoryVolumeDomain::Store final:public StoreByteIo {
     --state_->stores;data_=nullptr;
   }
   std::shared_ptr<State> state_;std::byte* data_=nullptr;
-  std::uint64_t capacity_=0,extent_=0,committed_=0;
+  std::uint64_t capacity_=0,committed_=0;
+  std::atomic<std::uint64_t> extent_{0};
+  mutable std::mutex bytes_mutex_;
 };
 MemoryVolumeDomain::MemoryVolumeDomain(std::shared_ptr<State> state) noexcept:state_(std::move(state)) {}
 MemoryVolumeDomain::~MemoryVolumeDomain()=default;

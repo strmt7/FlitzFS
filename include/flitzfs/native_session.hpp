@@ -380,6 +380,11 @@ class NativeFileSession final {
   // Call under the owning control context. The caller sets its byte grant.
   bool capture_native_lz4(const NativeFileHandle&,std::uint64_t offset,std::size_t maximum_encoded,
       detail::NativeLz4CapturedFrame&) const;
+  // Issue under session control. The capture owns a private snapshot of the
+  // selected image and can read its encoded frame without the session lock.
+  bool supports_leased_lz4_capture() const noexcept;
+  std::unique_ptr<detail::NativeLz4CaptureLease> lease_native_lz4_capture(
+      const NativeFileHandle&,std::uint64_t offset,std::size_t maximum_encoded) const;
   NativeInodeWriteCommit write(const NativeFileHandle&,std::uint64_t offset,
       std::span<const std::byte>,NativeInodeWriteOptions options={});
   NativeFsCommit truncate(const NativeFileHandle&,std::uint64_t bytes);

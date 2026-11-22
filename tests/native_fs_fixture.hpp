@@ -4,6 +4,7 @@
 #include <array>
 #include <limits>
 #include <map>
+#include <mutex>
 #include <stdexcept>
 namespace native_fixture {
 using namespace flitzfs;
@@ -117,6 +118,28 @@ class Ram final:public StoreByteIo {
     stable=live;if(fail)throw std::runtime_error("injected native post-flush failure");
   }
 };
+// All access to the modeled bytes goes through this provider during a test
+// with concurrent I/O. The fixture may inspect the model after readers join.
+class ConcurrentRam:public StoreByteIo {
+ public:
+  explicit ConcurrentRam(std::shared_ptr<Ram> ram):ram_(std::move(ram)) {}
+  std::uint64_t extent() const override{std::lock_guard lock(mutex_);return ram_->extent();}
+  StoreIoContract contract() const noexcept override{return ram_->contract();}
+  bool concurrent_reads_supported() const noexcept override{return true;}
+  void admit_write(std::uint64_t end) override{std::lock_guard lock(mutex_);ram_->admit_write(end);}
+  void write_exact(std::uint64_t offset,std::span<const std::byte> bytes) override {
+    std::lock_guard lock(mutex_);ram_->write_exact(offset,bytes);
+  }
+  void flush() override{std::lock_guard lock(mutex_);ram_->flush();}
+  void read_exact(std::uint64_t offset,std::span<std::byte> bytes) const override {
+    std::lock_guard lock(mutex_);ram_->read_exact(offset,bytes);
+  }
+
+ private:
+  std::shared_ptr<Ram> ram_;
+  mutable std::mutex mutex_;
+};
+
 inline std::shared_ptr<Ram> image(Bytes bytes,std::uint32_t failure_unit=65536) {
   auto ram=std::make_shared<Ram>();ram->failure_unit=failure_unit;
   ram->live=bytes;ram->stable=std::move(bytes);return ram;

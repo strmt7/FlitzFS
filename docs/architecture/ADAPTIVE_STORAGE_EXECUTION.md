@@ -185,7 +185,9 @@ An opt-in controller baseline now derives a one-extent forecast from
 ordinary sequential reads. It admits the forecast only after other
 maintenance yields and the observed backing costs fit the idle window.
 The CPU baseline measures preparation and consumption separately.
-Verified demand can refresh the backing cost after a refusal. Wider
+A checked memory-backed capture keeps its checkpoint and decoder private
+while ordinary callbacks continue. Verified demand can refresh the backing
+cost after a refusal. Wider
 batches and automatic AMD enrollment depend on full-path results and
 bounded foreground interference.
 [Sequential read-ahead qualification](../NATIVE_AMD_LZ4_READ.md#qualifying-sequential-read-ahead)

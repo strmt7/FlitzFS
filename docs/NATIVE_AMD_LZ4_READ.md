@@ -197,10 +197,11 @@ larger read-ahead windows.
 The Windows volume controller can opt into a CPU baseline that follows
 adjacent successful reads on an adopted handle. The second adjacent read
 can predict one upcoming native extent. The callback records the hint
-without fetching the record or starting a worker. A separate idle
-opportunity can capture the checked frame and decode it outside the
-callback lock. The result belongs to the exact predicted demand and
-still needs to match the current paged index.
+without fetching the record or starting a worker. The idle owner pins
+the exact selected namespace and paged checkpoint under the callback
+lock without issuing backing I/O. It then looks up and captures the
+encoded frame and decodes it outside that lock. The returned frame still
+needs to match the predicted demand and current paged index.
 
 The controller offers this work after ordinary maintenance yields. It
 uses the remaining idle time, current CPU and memory observations, and
@@ -239,12 +240,28 @@ interval with no demand.
 [Read-ahead recovery verification](evidence/read-ahead-demand-recovery-2026-11-22.json) ·
 [Windows interval measurement](https://learn.microsoft.com/en-us/windows/win32/api/profileapi/nf-profileapi-queryperformancecounter)
 
-Capture still takes the serialized backing lock for a synchronous extent
-lookup. Before enabling this route by default, qualify its interference
-with foreground work and the value of safely capturing from an owned
-immutable view. Include capture, unused predictions, demand response
-times, and complete provider bytes. Then measure wider qualified AMD
-batches on the same path before enabling them automatically.
+The capture owns its query cache and decoder. It carries a strong reference
+to the actual image until the encoded frame is owned by the caller. The
+backing must support concurrent extent and exact-read operations. The
+Windows memory backing serializes byte copies and decommits only after
+other owners release the image. The physical file provider
+still needs independently qualified positioned reads and retirement.
+
+A new foreground operation during capture prevents the older result from
+being published. With a test capture held at its first backing read, the
+WinFsp callbacks read, overwrote and read back the same extent before the
+capture was released. A separate memory-provider test verified both the
+latest file bytes and the leased older view, then reclaimed its locked
+pages on lease release. A Radeon RX 9070 XT worker decoded two leased
+frames byte-for-byte. The independently verified CPU decoder served
+the same bytes after a module refusal.
+[Capture and recovery verification](evidence/read-capture-lease-2026-11-22.json)
+
+Before enabling this route by default, measure foreground interference,
+unused predictions and complete provider bytes. Measure wider AMD
+batches through the same capture and independent readback path.
+[Windows memory reservation and commit](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc) ·
+[Windows page retirement](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualfree)
 [Windows cached read-ahead](https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ccschedulereadaheadex) ·
 [Linux read-ahead behavior](https://docs.kernel.org/6.18/core-api/mm-api.html#readahead) ·
 [AMD HIP transfer and allocation guidance](https://rocm.docs.amd.com/projects/HIP/en/latest/how-to/performance_guidelines.html)

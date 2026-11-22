@@ -9,6 +9,7 @@ namespace detail {
 struct FoldedCheckpoint;
 class IndexedSharedBasePreparation;
 class IndexedVolumeView;
+class NativeLz4CaptureLease;
 class NativeNameIndex;
 inline constexpr std::uint64_t kPagedStoreCheckpointWriteBytes=8192;
 }
@@ -107,6 +108,7 @@ class PagedObjectStoreSnapshot final {
   friend class NativeFilesystemWriter;
   friend class IndexedCoherenceSnapshot;
   friend class detail::IndexedVolumeView;
+  friend class detail::NativeLz4CaptureLease;
   friend class detail::NativeNameIndex;
   static PagedObjectStoreSnapshot open_sealed(std::shared_ptr<detail::ProtectedStripeImage>);
   // Stream decoded objects after checking all of their payload copies.
@@ -239,6 +241,10 @@ class PagedObjectStoreWriter final {
       std::span<const std::byte> rebound_root,std::size_t identity_offset);
   PagedObjectStoreSnapshot snapshot_impl(bool retain_tree_root) const;
   PagedObjectStoreSnapshot snapshot_for_staging(bool query_cache=false) const;
+  bool concurrent_reads_supported() const noexcept;
+  // Pin the selected state without backing I/O. The capture has private query,
+  // decoder and repair state and needs a concurrent provider.
+  std::optional<PagedObjectStoreSnapshot> snapshot_for_capture() const;
   // Borrowed by serialized indexed queries. Independent snapshots and staged
   // workers do not schedule repairs on the selected writer.
   PagedObjectStoreSnapshot snapshot_for_indexed_read() const;

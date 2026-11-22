@@ -36,7 +36,8 @@ struct StoreIoContract {
 bool valid_store_io_contract(StoreIoContract) noexcept;
 
 // Positional exact I/O; implementations throw on any short/failed operation.
-// One control thread; do not race calls through writers or snapshots.
+// One control thread owns writes and reclamation. Independent captures can
+// share exact reads only when the backing explicitly supports that access.
 namespace detail {class ProtectedStripeImage;}
 class StoreByteIo {
  public:
@@ -48,6 +49,9 @@ class StoreByteIo {
   // Preflight resources without changing stream bytes or extent.
   virtual void admit_write(std::uint64_t projected_extent)=0;
   virtual StoreIoContract contract() const noexcept=0;
+  // Exact reads, extent and damage observations may run beside one writer.
+  // A strong provider reference must prevent retirement during those reads.
+  virtual bool concurrent_reads_supported() const noexcept {return false;}
   // Providers with independent protection report observed damage and support
   // a full audit at explicit verification and writable recovery boundaries.
   virtual bool backing_degraded() const noexcept {return false;}
