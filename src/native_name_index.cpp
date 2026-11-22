@@ -1,6 +1,7 @@
 #include "native_name_index.hpp"
 #include "flitzfs/native_filesystem.hpp"
 #include <algorithm>
+#include <array>
 #include <iterator>
 #include <limits>
 #include <map>
@@ -168,9 +169,9 @@ std::size_t encoded_size(const Page& page) {
   for (const auto& row : page.rows) size += row_bytes(row, page.height);
   return size;
 }
-void check_reference(const Page& page, const Reference& reference) {
+void check_reference(const Page& page, const Reference& reference, std::uint64_t count) {
   if (page.id != reference.id || page.height != reference.height || page.rows.empty() ||
-      entries(page) != reference.entries || (reference.lower && page.rows.front().key <= *reference.lower) ||
+      count != reference.entries || (reference.lower && page.rows.front().key <= *reference.lower) ||
       (reference.upper && page.rows.back().key != *reference.upper))
     fail(Error::corrupt, "name index page does not match parent");
 }
@@ -206,7 +207,7 @@ Page read_page(const NativeNameIndexRoot& root, const Reference& reference, cons
     page.rows.push_back(std::move(row));
     at = static_cast<std::size_t>(end);
   }
-  check_reference(page, reference);
+  check_reference(page, reference, entries(page));
   return page;
 }
 Page read_page(const PagedObjectStoreSnapshot& store, const NativeNameIndexRoot& root,
@@ -244,17 +245,17 @@ std::size_t lower_slot(const Page& page, const NativeNameKey& key) {
       [](const Row& row,const NativeNameKey& value){ return row.key < value; });
   return static_cast<std::size_t>(found-page.rows.begin());
 }
-template<class Read>
-bool list_range(const NativeNameIndexRoot& root,
-    const Reference& reference, const NativeNameKey& after, std::uint64_t last_parent,std::size_t maximum,
-    std::vector<NativeNameEntry>& output,const Read& read) {
-  const auto page = read_page(root,reference,read);
+template<class Query>
+bool list_range(const Reference& reference, const NativeNameKey& after, std::uint64_t last_parent,
+    std::size_t maximum,std::vector<NativeNameEntry>& output,const Query& query) {
+  Page scratch{};
+  const auto& page=query(reference,scratch);
   const auto first = std::upper_bound(page.rows.begin(),page.rows.end(),after,
       [](const NativeNameKey& key,const Row& row){ return key < row.key; });
   for (auto it = first; it != page.rows.end(); ++it) {
     if (page.height) {
       const auto child = child_reference(page,reference,static_cast<std::size_t>(it-page.rows.begin()));
-      if (!list_range(root,child,after,last_parent,maximum,output,read)) return false;
+      if (!list_range(child,after,last_parent,maximum,output,query)) return false;
     } else {
       if (it->key.parent > last_parent) return false;
       output.push_back({it->key,it->value});
@@ -358,7 +359,7 @@ class Editor {
     const auto found=staged_.find(reference.id);
     if (found==staged_.end()) return read_page(store_,root_,reference);
     if (!found->second) fail(Error::corrupt, "name index references a retired staged page");
-    check_reference(*found->second,reference);
+    check_reference(*found->second,reference,entries(*found->second));
     return *found->second;
   }
   std::vector<Row> save_split(Page page) {
@@ -453,8 +454,65 @@ std::uint64_t native_extent_block(std::string_view key) {
   return block;
 }
 
+struct NativeNameIndex::AuditPages {
+  struct CheckedPage {
+    Page page{};
+    std::uint64_t count=0;
+  };
+  std::vector<CheckedPage> branches;
+  std::array<CheckedPage,4> leaves{};
+  std::size_t next_leaf=0;
+
+  explicit AuditPages(std::uint32_t height):branches(height) {}
+
+  const Page& get(const Reference& ref,const auto& load) {
+    // A range walk descends strictly in height. A child cannot evict the
+    // branch still in use by its caller.
+    CheckedPage* slot=nullptr;
+    if(ref.height) {
+      slot=&branches.at(ref.height-1);
+    } else {
+      const auto hit=std::ranges::find_if(leaves,[&](const auto& leaf){return leaf.page.id==ref.id;});
+      if(hit!=leaves.end())slot=&*hit;
+      else {
+        slot=&leaves[next_leaf];
+        next_leaf=(next_leaf+1)%leaves.size();
+      }
+    }
+    if(slot->page.id==ref.id)check_reference(slot->page,ref,slot->count);
+    else {
+      slot->page=load();
+      slot->count=ref.entries;
+    }
+    return slot->page;
+  }
+};
+
+class NativeNameIndex::QueryReader final {
+ public:
+  explicit QueryReader(const NativeNameIndex& owner):owner_(owner) {}
+  const Page& operator()(const Reference& ref,Page& scratch) const {
+    const auto load=[&] {
+      return read_page(owner_.root_,ref,[this](auto id,Bytes& bytes){return owner_.query_page(id,bytes);});
+    };
+    if(owner_.audit_pages_)return owner_.audit_pages_->get(ref,load);
+    return scratch=load();
+  }
+ private:
+  const NativeNameIndex& owner_;
+};
+
+NativeNameIndex::AuditScope::AuditScope(const NativeNameIndex& owner)
+    :owner_(owner),previous_(owner.audit_pages_),pages_(std::make_unique<AuditPages>(owner.root_.height)) {
+  owner_.audit_pages_=pages_.get();
+}
+NativeNameIndex::AuditScope::~AuditScope(){owner_.audit_pages_=previous_;}
+NativeNameIndex::AuditScope NativeNameIndex::scoped_audit() const {return AuditScope(*this);}
+
 NativeNameIndex::NativeNameIndex(const PagedObjectStoreSnapshot& store)
     : store_(store), root_(read_root(store)) {}
+NativeNameIndex::NativeNameIndex(const NativeNameIndex& view) noexcept
+    :store_(view.store_),root_(view.root_) {}
 std::span<const std::byte> NativeNameIndex::query_page(std::uint64_t id,Bytes& scratch) const {
   return verify_object([&]{return store_.read_query_metadata(id,page_bytes,scratch);});
 }
@@ -462,8 +520,10 @@ std::span<const std::byte> NativeNameIndex::query_page(std::uint64_t id,Bytes& s
 std::optional<std::uint64_t> NativeNameIndex::find(const NativeNameKey& key) const {
   if (!key_valid(root_.kind,key)) fail(Error::invalid_path, "invalid name index lookup key");
   auto reference=root_reference(root_);
+  const QueryReader load(*this);
+  Page scratch{};
   while (reference.id) {
-    const auto page=read_page(root_,reference,[this](auto id,Bytes& scratch){return query_page(id,scratch);});
+    const auto& page=load(reference,scratch);
     const auto index=lower_slot(page,key);
     if (index==page.rows.size()) return {};
     if (!page.height) return page.rows[index].key==key ? std::optional(page.rows[index].value) : std::nullopt;
@@ -483,8 +543,7 @@ std::vector<NativeNameEntry> NativeNameIndex::list(std::uint64_t parent, std::st
   if (root_.page) {
     const auto count=maximum+(more?1:0);
     output.reserve(count);
-    (void)list_range(root_,root_reference(root_),key,parent,count,output,
-        [this](auto id,Bytes& scratch){return query_page(id,scratch);});
+    (void)list_range(root_reference(root_),key,parent,count,output,QueryReader(*this));
   }
   if(more) {
     *more=output.size()>maximum;
@@ -500,8 +559,7 @@ std::optional<NativeNameEntry> NativeNameIndex::next_extent(const std::optional<
   if(!root_.page)return {};
   std::vector<NativeNameEntry> result;
   const auto first=after.value_or(NativeNameKey{kNativeIndexedInodeLimit,{}});
-  (void)list_range(root_,root_reference(root_),first,reference_domain-1,1,result,
-      [this](auto id,Bytes& scratch){return query_page(id,scratch);});
+  (void)list_range(root_reference(root_),first,reference_domain-1,1,result,QueryReader(*this));
   if(result.empty())return {};
   return std::move(result.front());
 }
@@ -523,8 +581,9 @@ std::uint64_t NativeNameIndex::count_parent(std::uint64_t parent) const {
     const NativeNameKey key{scope,{}};
     auto ref=root_reference(root_);
     std::uint64_t count=0;
+    Page scratch{};
     while(ref.id) {
-      const auto page=read_page(store_,root_,ref);
+      const auto& page=audit_pages_?QueryReader(*this)(ref,scratch):(scratch=read_page(store_,root_,ref));
       const auto slot=lower_slot(page,key);
       if(!page.height)return add_count(count,slot);
       for(std::size_t i=0;i<slot;++i)count=add_count(count,page.rows[i].entries);

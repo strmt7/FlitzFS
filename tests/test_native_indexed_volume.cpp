@@ -4,7 +4,11 @@
 #include "native_security_fixture.hpp"
 #include "flitzfs/native_session.hpp"
 #include "flitzfs/volume_head.hpp"
+#include "flitzfs/read_only_file.hpp"
+#include <charconv>
+#include <chrono>
 #include <iostream>
+#include <map>
 
 namespace {
 using namespace native_fixture;
@@ -42,10 +46,13 @@ Bytes payload(unsigned index) {
   return bytes;
 }
 
-void profile_indexed_reopen(const std::shared_ptr<Ram>& image,const NativeFilesystemSnapshot& source,unsigned files) {
+template<class Verify>
+void profile_indexed_reopen(const std::shared_ptr<Ram>& image,const NativeFilesystemSnapshot& source,unsigned files,
+    std::uint64_t logical_bytes,std::string_view workload,const Verify& verify) {
   const auto volume=identity_for(82);
   auto head=empty();
   {auto owner=NativeVolumeHeadWriter::create(head,volume,source);}
+  const auto layout=PagedObjectStoreSnapshot::open(image,{source.image_storage().maximum_physical_bytes}).info();
   const auto read_before=image->read_bytes,calls_before=image->read_calls;
   const auto image_fences=image->flushes,head_fences=head->flushes;
   const auto bytes_written=image->write_bytes,head_written=head->write_bytes;
@@ -53,7 +60,9 @@ void profile_indexed_reopen(const std::shared_ptr<Ram>& image,const NativeFilesy
     require(id==source.identity(),"scale reopen selected a different image");
     return image;
   };
+  const auto started=std::chrono::steady_clock::now();
   const auto session=NativeFileSession::resume_closed_indexed_volume(head,volume,1,resolve,raw);
+  const auto elapsed=std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now()-started).count();
   const auto read_after=image->read_bytes-image->read_bytes_at_flush;
   std::cout<<"indexed_scale_reopen files="<<files
       <<" image_pre_flush_bytes="<<image->read_bytes_at_flush-read_before
@@ -61,16 +70,18 @@ void profile_indexed_reopen(const std::shared_ptr<Ram>& image,const NativeFilesy
       <<" image_read_calls="<<image->read_calls-calls_before
       <<" image_flushes="<<image->flushes-image_fences
       <<" head_flushes="<<head->flushes-head_fences
-      <<" backing_write_bytes="<<image->write_bytes-bytes_written+head->write_bytes-head_written<<'\n';
+      <<" backing_write_bytes="<<image->write_bytes-bytes_written+head->write_bytes-head_written
+      <<" reopen_ns="<<elapsed<<" logical_bytes="<<logical_bytes<<" workload="<<workload
+      <<" objects="<<layout.objects<<" object_tree_height="<<layout.height<<'\n';
   require(image->write_bytes==bytes_written && head->write_bytes==head_written,
       "clean indexed reopen rewrote the image or selector");
-  const auto restored=session.snapshot();
-  require(restored.sequence()==source.sequence() &&
-      restored.read("Data/"+file(files-1),0,17)==payload(files-1),
-      "scaled writable reopen did not preserve the selected namespace and data");
+  const auto restored=NativeFilesystemSnapshot::open_image(image,source.image_storage());
+  require(restored.sequence()==source.sequence(),"scaled writable reopen selected a different namespace");
+  verify(restored);
+  std::cout<<"indexed_reopen_readback files="<<files<<" workload="<<workload<<" exact=1\n";
 }
 
-void populated_native_snapshot(unsigned files=1024) {
+void populated_native_snapshot(unsigned files=1024,bool reopen_only=false) {
   constexpr unsigned batch=32;
   const std::uint64_t sparse=3+files;
   constexpr auto sparse_size=(std::numeric_limits<std::uint64_t>::max)()-7;
@@ -80,7 +91,7 @@ void populated_native_snapshot(unsigned files=1024) {
   const PagedStoreLimits image_limits{ram->capacity};
   const NativeImageStorage storage{indexed.kind,ram->capacity};
   IndexedVolumeBuilder builder(PagedObjectStoreWriter::create_mirrored(ram,identity(),image_limits,raw),
-      2,sparse+1,{true,files*17},files>1024?2:1);
+      2,sparse+1,{true,files*17},(reopen_only || files>1024)?2:1);
   const std::array<IndexedInodeInput,2> root{{{1,0,0,1,1,true,""},
       {2,1,0,2,2,true,"Data"}}};
   builder.append(root);
@@ -90,7 +101,7 @@ void populated_native_snapshot(unsigned files=1024) {
     std::vector<IndexedInodeInput> inodes;
     std::vector<IndexedExtentInput> extents;
     contents.reserve(batch);inodes.reserve(batch);extents.reserve(batch);
-    for(unsigned i=first;i<first+batch;++i) {
+    for(unsigned i=first;i<(std::min)(first+batch,files);++i) {
       contents.push_back(payload(i));const auto inode=std::uint64_t{3}+i;
       inodes.push_back({inode,2,contents.back().size(),2,2,false,file(i)});
       extents.push_back({inode,0,contents.back()});
@@ -102,6 +113,18 @@ void populated_native_snapshot(unsigned files=1024) {
   const std::array<IndexedExtentInput,3> sparse_extents{{{sparse,127,a},{sparse,128,b},{sparse,last_block,c}}};
   builder.append({&large,1},sparse_extents);
   const auto published=builder.finish();
+  const auto reopen=[&] {
+    profile_indexed_reopen(ram,published,files,files*17ULL,"short_files",[&](const auto& snapshot) {
+      for(unsigned i=0;i<files;++i)
+        require(snapshot.read_inode(3+i,0,17)==payload(i),"scaled writable reopen changed a named file");
+      require(snapshot.read_inode(sparse,127ULL*kNativeExtentBytes,17)==a &&
+          snapshot.read_inode(sparse,last_block*kNativeExtentBytes,17)==c,"scaled writable reopen changed sparse data");
+    });
+  };
+  if(reopen_only) {
+    reopen();
+    return;
+  }
   const auto start_open=ram->read_bytes;
   const auto view=NativeFilesystemSnapshot::open_image(ram,storage);
   const auto open_bytes=ram->read_bytes-start_open;
@@ -153,7 +176,7 @@ void populated_native_snapshot(unsigned files=1024) {
       <<" scrub_read_bytes="<<scrub_bytes<<" sparse_size="<<sparse_size
       <<" scrub_read_calls="<<scrub_reads<<" object_tree_height="<<objects.info().height<<'\n';
 
-  if(files>1024)profile_indexed_reopen(ram,published,files);
+  if(files>1024)reopen();
 
   // Re-seal a semantically wrong owner through the ordinary object store.
   // Object integrity succeeds here, but the indexed reader must refuse it.
@@ -1457,12 +1480,126 @@ void indexed_transaction_recovery() {
   require(original->stable==stable && old && complete,"indexed recovery did not exercise both valid checkpoints");
   std::cout<<"indexed_writer_faults="<<old+complete<<" previous="<<old<<" committed="<<complete<<'\n';
 }
+
+std::uint32_t fixture_get(std::span<const std::byte> raw,std::size_t offset,unsigned width) {
+  std::uint32_t value=0;
+  for(unsigned i=0;i<width;++i)value|=std::to_integer<std::uint32_t>(raw[offset+i])<<(8*i);
+  return value;
+}
+
+void profile_cpython_reopen(const char* path) {
+  const auto input=ReadOnlyFile::open(path);
+  constexpr std::uint64_t maximum_input=96ULL*1024*1024;
+  require(input.size()>=12 && input.size()<=maximum_input,"source tree fixture length");
+  const auto take=[&](std::uint64_t offset,std::size_t count) {
+    require(offset<=input.size() && count<=input.size()-offset,"truncated source tree fixture");
+    Bytes bytes(count);
+    if(count)input.read_exact_at(offset,bytes.data(),count);
+    return bytes;
+  };
+  const auto header=take(0,12);
+  constexpr std::string_view magic="FLSTREE1";
+  require(std::string_view(reinterpret_cast<const char*>(header.data()),magic.size())==magic,"source tree fixture marker");
+  const auto count=fixture_get(header,8,4);
+  require(count && count<=4096,"source tree fixture file count");
+  struct File {
+    std::string path;
+    std::uint64_t first,bytes;
+  };
+  std::vector<File> files;
+  std::map<std::string,std::uint64_t> directories{{"",1}};
+  std::uint64_t offset=header.size(),total=0;
+  for(std::uint64_t i=0;i<count;++i) {
+    const auto record=take(offset,8);
+    offset+=8;
+    const auto length=fixture_get(record,0,4),bytes=fixture_get(record,4,4);
+    require(length && length<=1024 && bytes<=1024*1024,"source tree fixture entry bounds");
+    const auto name=take(offset,static_cast<std::size_t>(length));
+    offset+=length;
+    require(bytes<=input.size()-offset,"truncated source tree fixture payload");
+    auto& file=files.emplace_back(File{std::string(reinterpret_cast<const char*>(name.data()),name.size()),offset,bytes});
+    for(auto end=file.path.find('/');end!=std::string::npos;end=file.path.find('/',end+1))
+      directories.try_emplace(file.path.substr(0,end),0);
+    total+=bytes;
+    offset+=bytes;
+  }
+  require(offset==input.size(),"trailing source tree fixture data");
+
+  auto backing=empty();
+  backing->capacity=2*total+160ULL*1024*1024;
+  IndexedVolumeBuilder builder(PagedObjectStoreWriter::create_mirrored(backing,identity(),
+      {backing->capacity},raw),2,directories.size()+files.size()+1,{},2);
+  std::vector<IndexedInodeInput> directory_batch;
+  std::uint64_t inode=1;
+  for(auto& [path_id,key]:directories) {
+    key=inode++;
+    const auto separator=path_id.rfind('/');
+    const auto parent=separator==std::string::npos?std::string{}:path_id.substr(0,separator);
+    const auto leaf=separator==std::string::npos?path_id:path_id.substr(separator+1);
+    const bool root=path_id.empty();
+    directory_batch.push_back({key,root?0:directories.at(parent),0,root?1U:2U,2,true,leaf});
+    if(directory_batch.size()==32) {
+      builder.append(directory_batch);
+      directory_batch.clear();
+    }
+  }
+  if(!directory_batch.empty())builder.append(directory_batch);
+
+  std::vector<IndexedInodeInput> inode_batch;
+  std::vector<IndexedExtentInput> extents;
+  std::vector<Bytes> payloads;
+  const auto publish=[&] {
+    builder.append(inode_batch,extents);
+    inode_batch.clear();
+    extents.clear();
+    payloads.clear();
+  };
+  for(const auto& file:files) {
+    if(inode_batch.size()==32 || extents.size()+(file.bytes+kNativeExtentBytes-1)/kNativeExtentBytes>48)publish();
+    const auto separator=file.path.rfind('/');
+    const auto parent=separator==std::string::npos?std::string{}:file.path.substr(0,separator);
+    const auto leaf=separator==std::string::npos?file.path:file.path.substr(separator+1);
+    const auto id=inode++;
+    inode_batch.push_back({id,directories.at(parent),file.bytes,2,2,false,leaf});
+    const auto& payload=payloads.emplace_back(take(file.first,static_cast<std::size_t>(file.bytes)));
+    for(std::size_t first=0;first<payload.size();first+=kNativeExtentBytes) {
+      auto bytes=std::span(payload).subspan(first,(std::min<std::size_t>)(payload.size()-first,kNativeExtentBytes));
+      while(!bytes.empty() && bytes.back()==std::byte{})bytes=bytes.first(bytes.size()-1);
+      if(!bytes.empty())extents.push_back({id,first/kNativeExtentBytes,bytes});
+    }
+  }
+  if(!inode_batch.empty())publish();
+  const auto published=builder.finish();
+  profile_indexed_reopen(backing,published,static_cast<unsigned>(files.size()),total,"cpython_lib",
+      [&](const NativeFilesystemSnapshot& restored) {
+    for(const auto& file:files) {
+      require(restored.stat(file.path).logical_bytes==file.bytes &&
+          restored.read(file.path,0,static_cast<std::size_t>(file.bytes))==
+              take(file.first,static_cast<std::size_t>(file.bytes)),
+          "CPython source file differs after indexed reopen");
+    }
+  });
+}
+
 }
 
 int main(int argc,char** argv) {
   try {
     if(argc==2 && std::string_view(argv[1])=="--scale-audit"){
       populated_native_snapshot(16384);
+      return 0;
+    }
+    if(argc==3 && std::string_view(argv[1])=="--profile-reopen-count") {
+      const std::string_view value(argv[2]);
+      unsigned files=0;
+      const auto result=std::from_chars(value.data(),value.data()+value.size(),files);
+      require(result.ec==std::errc{} && result.ptr==value.data()+value.size() && files && files<=16384,
+          "invalid bounded reopen profile size");
+      populated_native_snapshot(files,true);
+      return 0;
+    }
+    if(argc==3 && std::string_view(argv[1])=="--profile-cpython-reopen") {
+      profile_cpython_reopen(argv[2]);
       return 0;
     }
     require(argc==1,"unknown indexed volume test option");

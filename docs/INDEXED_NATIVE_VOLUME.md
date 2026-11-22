@@ -780,6 +780,52 @@ Writable reopen still traverses the full inventory, so this improvement
 reduces I/O within each audit.
 [Matched Windows evidence](evidence/indexed-reopen-single-pass-audit-2026-11-20.json)
 
+### Decoded name pages within an audit
+
+Each native inventory audit keeps one decoded name-index branch per tree
+level and four leaf slots. A hit checks the page ID, height, checked entry
+count and parent key bounds. Child enumeration descends in height, so a
+child cannot evict the branch in use by its parent. The independent object
+walk still reads and verifies both replicas. Each side of the writable
+reopen fences gets its own cache. The fault fixture exercises loss of a
+name page replica at either fence and checks CPU readback after repair.
+[Btrfs tree checks](https://btrfs.readthedocs.io/en/latest/Tree-checker.html) ·
+[XFS live namespace checks](https://docs.kernel.org/filesystems/xfs/xfs-online-fsck-design.html#full-filesystem-scans)
+
+| Workload | Control median | Cached median | Control backing reads | Cached backing reads |
+| --- | ---: | ---: | ---: | ---: |
+| 1,024 short files | 17.19 ms | 12.56 ms | 6,135,648 B | 6,090,808 B |
+| 8,192 short files | 147.69 ms | 95.60 ms | 56,545,744 B | 51,878,488 B |
+| 16,384 short files | 270.87 ms | 192.44 ms | 113,630,294 B | 104,139,778 B |
+| 2,640 CPython standard-library files | 163.45 ms | 132.23 ms | 215,239,276 B | 214,349,092 B |
+
+These runs use the indexed engine on Windows with a memory backing and
+raw mirrored data. Each trial completed one image flush and one selector
+flush, with zero startup writes. The CPU independently read every file
+back. Sixteen additional single-file pairs had overlapping ranges. Their
+medians were 547 µs for the control and 599 µs with the cache, with equal
+read bytes.
+
+The affine backing-read fit from 1,024, 4,096 and 8,192 short files is
+approximately `6,386.12 × file_count − 400,758` bytes in the measured
+range. It predicts the held-out 16,384-file result within 0.09%.
+A payload term calibrated on 1,024 CPython files predicted the larger
+nested CPython tree within 1.18%. The same short-file cost projected to
+10 million and 30 million files is 63.9 GB and 191.6 GB of reads, subject
+to the stated cost and layout assumptions. These are work projections.
+Mounted timings require their own measurements.
+[CPython 3.15.2 source](https://www.python.org/downloads/release/python-3152/) ·
+[Paired results, model and manifest](evidence/indexed-audit-page-cache-2026-11-22.json)
+
+The `flitzfs_native_indexed_volume_tests` executable accepts
+`--profile-reopen-count N` and `--profile-cpython-reopen FIXTURE`.
+A source-tree fixture begins with `FLSTREE1` and a 32-bit file count.
+Each file has a 32-bit UTF-8 path length and a 32-bit logical byte count,
+followed by the path and exact original bytes. Integer fields are
+little-endian. Use the release archive and selection rules in the manifest
+to regenerate the inputs. The timing surrounds writable reopen. The
+independent CPU readback follows the timing.
+
 On the 16,384-file fixture the verified object tree has height three.
 Lookups retain a branch at each admitted level and use four separate leaf
 slots. Each cache belongs to its checked view or query. The mirror audit

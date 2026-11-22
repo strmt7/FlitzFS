@@ -1,5 +1,6 @@
 #include "native_fs_fixture.hpp"
 #include "flitzfs/native_session.hpp"
+#include "native_name_index.hpp"
 #include "record_digest.hpp"
 #include "store_codec.hpp"
 #include <chrono>
@@ -334,9 +335,11 @@ void retained_indexed_reopen_fences() {
       "post-fence fork fixture must share identity, counters and extent");
   const auto inventory=locations(*initial);
   const auto payload=std::ranges::find(inventory,original.size()+indexed_extent_header_bytes,&Location::stored);
-  require(payload!=inventory.end(),"fence test payload record missing");
-  enum class FenceFault {peer, both, forked_root, appended_tail};
-  for(bool image_fence:{true,false})for(const auto fault:{FenceFault::peer,FenceFault::both,
+  const auto name_root=PagedObjectStoreSnapshot::open(initial,limits).read(detail::kNativeNameIndexObject,40);
+  const auto name_page=std::ranges::find(inventory,get(name_root,16),&Location::id);
+  require(payload!=inventory.end() && name_page!=inventory.end(),"fence test payload or name record missing");
+  enum class FenceFault {peer, both, name_peer, forked_root, appended_tail};
+  for(bool image_fence:{true,false})for(const auto fault:{FenceFault::peer,FenceFault::both,FenceFault::name_peer,
       FenceFault::forked_root,FenceFault::appended_tail}) {
     auto body=image(initial->stable,4096);
     auto observed=std::make_shared<FenceBacking>(body);
@@ -351,6 +354,8 @@ void retained_indexed_reopen_fences() {
       }else if(fault==FenceFault::appended_tail) {
         body->stable.resize(body->stable.size()+body->failure_unit);
         body->live=body->stable;
+      }else if(fault==FenceFault::name_peer) {
+        damage_record(*body,name_page->peer);
       }else {
         damage_record(*body,payload->peer);
         if(fault==FenceFault::both)damage_record(*body,payload->primary);
@@ -361,7 +366,7 @@ void retained_indexed_reopen_fences() {
     require(barriers==1 && body->flushes==1 && !observed->leased() && !head->leased() && !body->writes &&
         head->ram->writes==head_writes && NativeVolumeHeadView::inspect_selector(*head,volume).selection==selected.selection,
         "failed fenced reopen changed authoritative storage or retained a lease");
-    if(fault==FenceFault::peer) {
+    if(fault==FenceFault::peer || fault==FenceFault::name_peer) {
       {
         auto session=reopen(observed);
         require(session.snapshot().read("data",0,kNativeExtentBytes)==original,"qualified retry lost the surviving payload");
@@ -394,7 +399,7 @@ void retained_indexed_reopen_fences() {
     auto checked=view(body);checked.verify_all();
     require(checked.read("data",0,kNativeExtentBytes)==different,"retained owner could not commit through reopened storage");
   }
-  std::cout<<"retained_indexed_fences image_and_selector=1 peer_loss=1 double_loss=1 same_generation_fork=1"
+  std::cout<<"retained_indexed_fences image_and_selector=1 peer_loss=1 name_index_peer_loss=1 double_loss=1 same_generation_fork=1"
       " changed_extent=1 independent_repair_and_continued_write=1\n";
 }
 

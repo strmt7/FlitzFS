@@ -17,6 +17,15 @@
     "evidence": "docs/evidence/architecture-reconciliation-2026-11-21.json"
   },
 
+  "indexed_audit_decoded_name_pages": {
+    "evidence": "docs/evidence/indexed-audit-page-cache-2026-11-22.json",
+    "short_files_held_out": 16384,
+    "short_files_median_reopen_ns": {"control": 270873000, "cached": 192439700},
+    "cpython_3152_files": 2640,
+    "cpython_median_reopen_ns": {"control": 163448900, "cached": 132227700},
+    "backing_read_model_held_out_error_percent": 0.086125,
+    "scope": "Windows raw mirrored engine with per-audit cached decoded name pages"
+  },
   "retained_short_packing_similarity": {
     "evidence": "docs/evidence/indexed-retained-packing-similarity-2026-11-22.json",
     "paired_workloads": 4,

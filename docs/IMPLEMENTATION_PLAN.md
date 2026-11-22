@@ -426,11 +426,11 @@ also runs the in-memory WinFsp worker cases on ordinary local SDK builds.
 
 ### Acceptance and failure checks
 
-- Run the [native scale ladder](RELEASE_EXECUTION_PLAN.md#2-large-indexed-volumes-and-foreground-io)
-  with named nonempty files and mixed directory layouts. Include a
-  100,000-entry directory and populated reads beyond cache capacity. Mark
-  each capacity rung with the backing, resource budget and fixture actually
-  exercised.
+- Measure named files and mixed directory layouts with the
+  [native scale protocol](RELEASE_EXECUTION_PLAN.md#2-large-indexed-volumes-and-foreground-io).
+  Include a wide directory and populated reads beyond cache capacity. Record
+  the backing and actual workload for every measured rung. Test the forecast
+  against a held-out rung and declare which quantities are extrapolated.
 - Include small/large/skewed directories, long names, large populated and sparse
   files, overwrites, rename/delete/truncate and restart. Record object counts
   separately from file counts.

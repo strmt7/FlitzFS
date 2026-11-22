@@ -2430,6 +2430,7 @@ void IndexedVolumeView::verify_inventory(bool published,const IndexedReopenAdmis
   // Related lookups share the bounded scratch cache for this audit. The
   // verified object walk still checks both copies directly.
   const auto query=store_.scoped_query();
+  const auto names=index_.scoped_audit();
   index_.verify_all();
   const auto root_inode=referenced_inode(1);
   if(admission)admission(indexed_inode_allocation(root_inode),root_inode.security);

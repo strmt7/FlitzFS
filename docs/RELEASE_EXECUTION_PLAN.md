@@ -69,7 +69,7 @@ artifact and the observation needed before the related work can advance.
 | Gate and work package | Next implementation or qualification artifact | Required evidence |
 | --- | --- | --- |
 | S1 · E10–E11 | Generate a candidate manifest from the CMake configurations, private dependency locks, staged toolchain and actual app, worker and SDK binaries. | Source, runtime and package hashes match the tested artifacts. Each applicable test lane identifies the exact candidate or the unchanged inputs it covers. |
-| S2 · E01 | Extend the WinFsp populated client trace and add read, write and lock accounting at name lookup, inode read, publication and reopen. Exercise deep and wide layouts from one through 30 million files in stages. | Replay agrees with a reference namespace and independent CPU bytes. Profiling identifies the actual scaling term for each operation and bounded resident state at the claimed capacity. |
+| S2 · E01 | Extend the WinFsp populated client trace and add read, write and lock accounting at name lookup, inode read, publication and reopen. Exercise deep and wide layouts at several measured sizes and model larger populations. | Replay agrees with a reference namespace and independent CPU bytes. Backing work and resident state are measured at feasible sizes. Validate projected scaling against a held-out size. |
 | S3 · E02 | Use the existing whole-image rebuild as a control for bounded segment evacuation and reusable allocation in the paged store. Persist reader and retained-root ownership across handoffs. | Repeated mounted churn settles at stable or falling occupied bytes. Old readers and checked dependencies remain readable across cancellation and interrupted retirement. |
 | S4 · E03 | Qualify the installed AMD route for foreground eligible writes and cold shared-base work on the same mounted app build. Compare with a matched CPU lane and an unavailable-device lane. | Device counters prove useful submitted work. End-to-end cost or settled size improves on qualifying data, while missing or failed devices leave CPU operations and every stored representation readable. |
 | S5 · E04–E06 | Freeze the mixed held-out corpus and collect complete-image accounting for independent codecs, shared dictionaries, delta and multi-reference candidates and the existing shared-base control. | Net space gains survive protection, retained generations and reclamation costs. Independent restart units give practical cold random reads. Size and access results include all cohorts and losses. |
@@ -163,16 +163,20 @@ mixed-activity control. [Scheduling and scale evidence](evidence/indexed-scale-r
   affect startup, enumeration, update or close. Use existing indexed cursors
   and generation-safe read views. Split background preparation from bounded
   publication and record the lock time of both.
-- Qualify volumes with one file, 1,000, 16,000, 100,000, one million,
-  ten million and thirty million named files. Vary depth, directory width,
-  allocation density and memory headroom independently. Include empty and
-  byte-sized files, files near extent/compression boundaries, ordinary media
-  and documents, multi-gigabyte files and sparse files above 4 GiB. Use mixed
-  workloads so tiny files and large streams compete for the same caches.
-  Record bytes resident, pages visited, writes, open and enumeration work,
-  and random and sequential I/O tails against the same reference contents.
-  Distinguish indexed key count from a populated, usable Windows namespace.
-  Run each step on a backing and host that have verified capacity.
+- Measure volumes at a single-file control and several increasing feasible
+  sizes. Choose rungs that expose page-depth and cache transitions on the
+  backing being tested. Vary depth, directory width, allocation density and
+  memory headroom. Include empty and byte-sized files, mixed real content,
+  multi-gigabyte files and sparse files above 4 GiB. Use mixed workflows so
+  small files and large streams compete for the same caches.
+- Fit operation work from named files, extents, directory shape, tree depth
+  and bytes touched. Hold out a larger measured rung or a different tree
+  before projecting to 10 million and 30 million files. Separate extrapolated
+  work from measured latency and capacity. Report the fit range, residuals
+  and assumptions for depth, data distribution, caching and resource limits.
+  Record live memory, pages visited, writes, open and enumeration costs, and
+  I/O tails. Build the admitted smaller fixtures and label the results
+  beyond the largest measured rung as projections.
 - Verify a reference model with handle and operation traces after replay.
   S2 passes when ordinary clients complete the declared layouts and resource
   budgets with exact contents and namespace results.
@@ -220,6 +224,17 @@ were observed in each run. The separate compressed-object comparison
 measures the saving from a single decoded check for byte-identical
 encodings. Both stored copies still receive independent verification.
 [Storage audit evidence](evidence/indexed-audit-reuse-2026-11-20.json)
+
+The decoded name-page cache reduced median writable reopen from 271 ms
+to 192 ms on 16,384 short files. On the 2,640-file CPython 3.15.2
+standard-library fixture it moved from 163 ms to 132 ms. Both fences and
+both full inventories still run. The validated short-file work model
+projects about 64 GB of backing reads at 10 million files and 192 GB at
+30 million under comparable layout and per-file cost. This identifies
+the next target for large-volume startup. Move verified work off the
+foreground path under a qualified root and backing proof, then measure
+insertion churn, filesystem shape and mature mounted reads separately.
+[Exact measurements and projection](evidence/indexed-audit-page-cache-2026-11-22.json)
 
 The ordinary helper now retains an existing backing after the initial
 indexed and Windows metadata audit. This removes the separate read-only image

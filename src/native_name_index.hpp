@@ -1,6 +1,7 @@
 #pragma once
 #include "flitzfs/paged_store.hpp"
 #include <compare>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -42,9 +43,28 @@ NativeNameKey native_group_reference_key(std::uint64_t base,std::uint64_t member
 // snapshot on its control thread. Names supplied here are already canonical;
 // Windows name policy and inode/parent consistency belong to the namespace.
 class NativeNameIndex final {
+  struct AuditPages;
+  class QueryReader;
  public:
+  class AuditScope final {
+   public:
+    ~AuditScope();
+    AuditScope(const AuditScope&) = delete;
+    AuditScope& operator=(const AuditScope&) = delete;
+   private:
+    friend class NativeNameIndex;
+    explicit AuditScope(const NativeNameIndex&);
+    const NativeNameIndex& owner_;
+    AuditPages* previous_;
+    std::unique_ptr<AuditPages> pages_;
+  };
   explicit NativeNameIndex(const PagedObjectStoreSnapshot&);
   NativeNameIndex(PagedObjectStoreSnapshot&&) = delete;
+  NativeNameIndex(const NativeNameIndex&) noexcept;
+  NativeNameIndex& operator=(const NativeNameIndex&) = delete;
+  // One immutable audit phase. The independent mirror walk reads backing data
+  // directly, including when it verifies pages cached in this scope.
+  AuditScope scoped_audit() const;
   std::optional<std::uint64_t> find(const NativeNameKey&) const;
   std::vector<NativeNameEntry> list(std::uint64_t parent, std::string_view after,
       std::size_t maximum,bool* more=nullptr) const;
@@ -73,6 +93,7 @@ class NativeNameIndex final {
   std::uint64_t count_parent(std::uint64_t parent) const;
   const PagedObjectStoreSnapshot& store_;
   NativeNameIndexRoot root_;
+  mutable AuditPages* audit_pages_=nullptr;
 };
 
 } // namespace flitzfs::detail
