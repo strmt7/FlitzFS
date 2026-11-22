@@ -1557,6 +1557,11 @@ void NativeFilesystemSnapshot::verify_all(const detail::IndexedReopenAdmission& 
   if(admission)fail(Code::invalid_operation,"indexed startup metadata requires an indexed volume");
   impl_->objects.verify_all();(void)decode(impl_->objects);
 }
+void NativeFilesystemSnapshot::recheck_verified_indexed_mirrors(const NativeFilesystemSnapshot& audited) const {
+  if(!matches_indexed_checkpoint(audited))
+    fail(Code::invalid_operation,"indexed reopen checkpoint differs from its native audit");
+  impl_->objects.paged_if()->recheck_verified_mirrors(*audited.impl_->objects.paged_if());
+}
 NativeFilesystemSnapshot NativeFilesystemSnapshot::create_indexed_copy(std::shared_ptr<StoreByteIo> target,
     StoreIdentity identity,PagedStoreLimits limits,StoreCompressionOptions compression) const {
   if(!impl_ || impl_->indexed || !target || identity==this->identity() || identity==StoreIdentity{})

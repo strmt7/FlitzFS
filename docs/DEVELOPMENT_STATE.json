@@ -17,6 +17,16 @@
     "evidence": "docs/evidence/architecture-reconciliation-2026-11-21.json"
   },
 
+  "indexed_fenced_stored_recheck": {
+    "evidence": "docs/evidence/indexed-fenced-stored-recheck-2026-11-22.json",
+    "indexed_native_audits_on_healthy_reopen": 1,
+    "fresh_stored_mirror_pass_after_both_fences": true,
+    "short_16384_reopen_reads_bytes": {"control": 104139778, "stored_recheck": 76462421},
+    "short_16384_median_reopen_ns": {"control": 197205500, "stored_recheck": 139266900},
+    "cpython_compressed_median_reopen_ns": {"control": 187279100, "stored_recheck": 113770600},
+    "format_changed": false,
+    "mounted_windows_qualified": false
+  },
   "indexed_audit_decoded_name_pages": {
     "evidence": "docs/evidence/indexed-audit-page-cache-2026-11-22.json",
     "short_files_held_out": 16384,

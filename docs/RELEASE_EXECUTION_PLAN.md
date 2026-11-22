@@ -227,14 +227,26 @@ encodings. Both stored copies still receive independent verification.
 
 The decoded name-page cache reduced median writable reopen from 271 ms
 to 192 ms on 16,384 short files. On the 2,640-file CPython 3.15.2
-standard-library fixture it moved from 163 ms to 132 ms. Both fences and
-both full inventories still run. The validated short-file work model
+standard-library fixture it moved from 163 ms to 132 ms. The comparison
+used both fences and two full native inventories. Its short-file work model
 projects about 64 GB of backing reads at 10 million files and 192 GB at
 30 million under comparable layout and per-file cost. This identifies
 the next target for large-volume startup. Move verified work off the
 foreground path under a qualified root and backing proof, then measure
 insertion churn, filesystem shape and mature mounted reads separately.
 [Exact measurements and projection](evidence/indexed-audit-page-cache-2026-11-22.json)
+
+The healthy retained path now reuses the first decoded audit after both
+fences. A fresh object walk reads both encoded replicas and checks them
+against the exact checkpoint. Fault fixtures refused newly degraded
+raw data, compressed data and name pages at either fence. On the same
+16,384-file shape, reopen image reads declined from 104.14 MB to
+76.46 MB. The new short-file curve predicts the held-out result within
+0.006% and projects 46.7 GB and 140.1 GB at 10 million and 30 million.
+The stored walk still reads the entire live object inventory. The next scaling work is
+to give foreground reads and writable admission a qualified bounded path
+while a resumable check verifies the rest of the selected generation.
+[Stored recheck evidence](evidence/indexed-fenced-stored-recheck-2026-11-22.json)
 
 The ordinary helper now retains an existing backing after the initial
 indexed and Windows metadata audit. This removes the separate read-only image

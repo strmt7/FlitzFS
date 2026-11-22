@@ -786,9 +786,10 @@ Each native inventory audit keeps one decoded name-index branch per tree
 level and four leaf slots. A hit checks the page ID, height, checked entry
 count and parent key bounds. Child enumeration descends in height, so a
 child cannot evict the branch in use by its parent. The independent object
-walk still reads and verifies both replicas. Each side of the writable
-reopen fences gets its own cache. The fault fixture exercises loss of a
-name page replica at either fence and checks CPU readback after repair.
+walk still reads and verifies both replicas. The cache-only comparison
+used separate caches for the complete native audits on either side of
+the fences. The fault fixture exercises loss of a name page replica
+at either fence and checks CPU readback after repair.
 [Btrfs tree checks](https://btrfs.readthedocs.io/en/latest/Tree-checker.html) ·
 [XFS live namespace checks](https://docs.kernel.org/filesystems/xfs/xfs-online-fsck-design.html#full-filesystem-scans)
 
@@ -825,6 +826,45 @@ followed by the path and exact original bytes. Integer fields are
 little-endian. Use the release archive and selection rules in the manifest
 to regenerate the inputs. The timing surrounds writable reopen. The
 independent CPU readback follows the timing.
+
+### Stored mirror recheck on healthy writable reopen
+
+The ordinary indexed reopen takes its initial decoded namespace audit from
+a completed volume-head view. That audit checks the Windows metadata when
+the attachment supplies an admission callback. The owner acquires both
+leases and fences the image before the selector. It reopens the image and
+compares the exact native root and paged checkpoint on the same backing.
+
+Each object-tree reference binds the next page digest. Each leaf descriptor
+binds the encoded bytes and the record header, including the codec and the
+decoded digest. The second pass reads both copies of each reachable
+object-tree page and live stored frame, then checks those bindings. The exact checkpoint
+preserves the decoded results of the first audit. The pass rejects newly
+degraded protection before the writer becomes available. The ordinary
+recovery path handles damage found during the first audit. No verification
+state is saved to the format.
+[Microsoft file flush contract](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers) ·
+[Microsoft file sharing](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew) ·
+[Digest tree validation](https://docs.kernel.org/filesystems/fsverity.html)
+
+| Workload | Control median | Stored recheck median | Control image reads | Stored recheck image reads |
+| --- | ---: | ---: | ---: | ---: |
+| 16,384 short files | 197.21 ms | 139.27 ms | 104,139,778 B | 76,462,421 B |
+| 2,640 CPython files, raw | 124.79 ms | 110.00 ms | 214,349,092 B | 206,129,738 B |
+| Same CPython files, automatic compression | 187.28 ms | 113.77 ms | 67,489,504 B | 59,863,717 B |
+
+The control included the decoded page cache from the preceding round. Three
+alternating pairs per workload kept the same files, storage geometry and
+pre-flush read counts. Both modes completed the two flushes with zero
+startup writes. The CPU independently verified every file. The
+`--profile-cpython-compressed-reopen` profile uses the same public input
+as the raw profile and requires Zstandard support.
+
+The new backing-read fit estimates `4,669.83 × file_count − 44,076` bytes
+in the measured short-file range. It predicts the held-out 16,384-file
+result within 0.006%. At 10 million and 30 million files it projects about
+46.7 GB and 140.1 GB under comparable layout and per-file cost.
+[Paired reopen, recovery and scaling evidence](evidence/indexed-fenced-stored-recheck-2026-11-22.json)
 
 On the 16,384-file fixture the verified object tree has height three.
 Lookups retain a branch at each admitted level and use four separate leaf

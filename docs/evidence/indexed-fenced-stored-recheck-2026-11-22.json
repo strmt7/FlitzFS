@@ -1,0 +1,1464 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "observed_utc": "2026-11-22T11:19:56.239459+00:00",
+  "base_commit": "5cece6c9cb4e3b0c9e638bc4a29eea382b20edd2",
+  "candidate_source_blobs": {
+    "include/flitzfs/paged_store.hpp": "d9e463c3303c4e658dcff8df6e3187d5cbff9ad7",
+    "src/paged_store.cpp": "ccb6709fb95e7b034298f12eb97a9afa32d8decc",
+    "include/flitzfs/native_filesystem.hpp": "aff84809368499df7878032937babf96516e6656",
+    "src/native_filesystem.cpp": "e9a57324d9197baf779289ae4c4047411df9e6b5",
+    "include/flitzfs/volume_head.hpp": "9a73e2424f473dc7d175485eceaffa7cc8fc0010",
+    "src/volume_head.cpp": "a90a46c8adb2457ce9c8ac9f1a732afb66cbbd78",
+    "src/native_session.cpp": "a1575824834954ce9761e4272f18631638415a0d",
+    "tests/test_mirrored_payloads.cpp": "652f5058c1d8a29e31b234c66a1c8974abd260fc",
+    "tests/test_native_indexed_volume.cpp": "29dfbf12d9e6e65f6722b3648f7004ddc8d59426"
+  },
+  "candidate_code_patch_sha256": "7e461e732d2f2b01f771e49a7c0f7986d51f4d0a6d7c36b81df2b0d07001fe7d",
+  "source_navigation": {
+    "commit": "5cece6c9cb4e3b0c9e638bc4a29eea382b20edd2",
+    "source_files": 8,
+    "provider_version": "0.2.43",
+    "actual_searches": 1,
+    "native_response_sha256": "bfb4e6a609653ba37522457a271b4c70c3f7f26839368288683b3864fae6e8f7"
+  },
+  "primary_sources": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "8192375786c021e2203828bab2dd0af5cc599da56fbf163b727a7d5363f0282a",
+    "pages": [
+      {
+        "name": "flush",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers",
+        "success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 36207,
+        "markdown_sha256": "116ffcd5a6feba3539c3f668a2c969aa2e38b8f3663a704a7654e7b2a7954e4c",
+        "capture_sha256": "f1e4d90aa00f11af9a38a5bc3b040647c44695c77943d3ebc29ac572038c3e6f"
+      },
+      {
+        "name": "file-sharing",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew",
+        "success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 86077,
+        "markdown_sha256": "ce36c4aa61e35724bbe4060b70d07c2291716bba58f2c82050b72ef0ecec002d",
+        "capture_sha256": "4ef010fd6d5af5dacab62afcd1ad59bf6cf9316b40815ef93355be7649dd9ad3"
+      },
+      {
+        "name": "integrity-tree",
+        "url": "https://docs.kernel.org/filesystems/fsverity.html",
+        "success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 49958,
+        "markdown_sha256": "d1b22ae0fd7cb4a0689c5aafbb62320d9abbb5e11fa48e9849d64cf5ad8436f1",
+        "capture_sha256": "94b0fd37cca39aa27ac9994f772c237ac275b79001050a22af97043bc44c3616"
+      }
+    ]
+  },
+  "baseline": {
+    "base": "5cece6c9cb4e3b0c9e638bc4a29eea382b20edd2",
+    "archive_sha256": "1118e492aa52e33204f798a1669c1bc49c0c5d3df233ca99e8b80501f31603a4",
+    "fixture_sha256": "ded01f5b5d8b303b9f84ae8576f185f14cf279dcf9197d808718ff76d2d17384"
+  },
+  "reused_corpus": {
+    "prior_receipt_sha256": "9a2007069032c76840f18ff95e6358d656efa4d85486577d574d7f143266d848",
+    "release": "CPython 3.15.2",
+    "source_release_page": "https://www.python.org/downloads/release/python-3152/",
+    "archive": {
+      "archive_sha256": "8b5536d280142ecf6cdfe15d12a21ba1c65e300bbf7b28a8d0cdb849575797de",
+      "archive_bytes": 27960396,
+      "eligible_lib_files": 2640,
+      "url": "https://www.python.org/ftp/python/3.15.2/Python-3.15.2.tar.xz"
+    },
+    "samples": [
+      {
+        "path": "cpython-lib-1024.flitz-fixture",
+        "logical_bytes": 17442980,
+        "sha256": "719b4954dc659f0c087a63ea8bb730cc6ec6879c227bc9c0da5aa7be6166bb49",
+        "bytes": 17486251,
+        "files": 1024
+      },
+      {
+        "path": "cpython-lib-2640.flitz-fixture",
+        "logical_bytes": 47331708,
+        "sha256": "a0cf47d48cb8bc4dbd72b0e02dc84290387a767df35a9810d781b2e4dced691f",
+        "bytes": 47443761,
+        "files": 2640
+      }
+    ],
+    "selection": "Regular Lib files with compatible Windows names, at most 230 UTF-16 path units and at most 1 MiB per file. Sample is a prefix of SHA-256 pathname order, then populated with original paths and bytes."
+  },
+  "host": {
+    "comparison": {
+      "processes": 0,
+      "driver": [
+        {
+          "Name": "WinFsp+20260516T182719Z",
+          "State": "Stopped"
+        }
+      ],
+      "build": "26300",
+      "free_phys_bytes": 34510360576
+    },
+    "retired": {
+      "processes": 0,
+      "owned_tools": 0,
+      "driver": [
+        {
+          "Name": "WinFsp+20260516T182719Z",
+          "State": "Stopped"
+        }
+      ],
+      "raw_and_compressed_fence_markers": 2
+    }
+  },
+  "checks": {
+    "full_windows_codec": {
+      "exit_code": 0,
+      "elapsed_seconds": 165.57799999999952,
+      "peak_job_bytes": 397553664,
+      "cpu_percent": 19,
+      "tree_retired": true,
+      "residual_children": 0,
+      "result_sha256": "0fb7158e21e7c621f99464fc2a7387ba257d7a16e1ccc55ddf8092de21886bf7",
+      "log_sha256": "2f45250bddbebffe38fb4550973b4303926867eb4afe63e60334095ea6d64d63",
+      "tests_passed": 205
+    },
+    "full_windows_raw_only": {
+      "exit_code": 0,
+      "elapsed_seconds": 142.90699999999924,
+      "peak_job_bytes": 326369280,
+      "cpu_percent": 19,
+      "tree_retired": true,
+      "residual_children": 0,
+      "result_sha256": "1178103b6174bb65807cfc8260b028cfe537ef5c6df82d3d8403453c932e5b5a",
+      "log_sha256": "f4a2c03a988fc2e7633a4b81cb09cacda8e50610ffb61dcdcd7f0ec99d6d46e5",
+      "tests_passed": 204
+    },
+    "focused_windows_address_sanitizer": {
+      "exit_code": 0,
+      "elapsed_seconds": 31.75,
+      "peak_job_bytes": 1605091328,
+      "cpu_percent": 19,
+      "tree_retired": true,
+      "residual_children": 0,
+      "result_sha256": "b3fbc011a2927e53c841d8ef824f8bf39785eda6e40bb59d4f13b5bb4eb77197",
+      "log_sha256": "4fabfb1ffe1934ccf1bb3edc77bcda8fbb0b0d4adba8e7aa62254ffd2f1b1063",
+      "tests_passed": 5
+    },
+    "direct_replica_and_attachment_tests": {
+      "exit_code": 0,
+      "elapsed_seconds": 8.063000000000102,
+      "peak_job_bytes": 44359680,
+      "cpu_percent": 20,
+      "tree_retired": true,
+      "residual_children": 0,
+      "result_sha256": "0ea3e03fd03331ec9b6aec2c5b15d4e886906fbc7d4d0453224fee9e9d2906b0",
+      "log_sha256": "2cce95efdb3df5d54e6e5cbde63e8493b9b2335e8e57231421c1970448500796",
+      "tests_passed": 3
+    },
+    "compressed_cpython_admission": {
+      "exit_code": 0,
+      "elapsed_seconds": 2.42200000000048,
+      "peak_job_bytes": 117678080,
+      "cpu_percent": 21,
+      "tree_retired": true,
+      "residual_children": 0,
+      "result_sha256": "7c0804b3100fd17bca27247c8eb22f43df9cf68f69eca6c1f1f52fd80ea60340",
+      "log_sha256": "8318d418b9eb764d19105623600ec72799005bb0530977074ea4e639f7f7de1c"
+    },
+    "paired_reopen_profiles": {
+      "exit_code": 0,
+      "elapsed_seconds": 80.53099999999904,
+      "peak_job_bytes": 370475008,
+      "cpu_percent": 31,
+      "tree_retired": true,
+      "residual_children": 0,
+      "result_sha256": "33d35ad1f6059c74663c15632e1633e902ed3420995d47c39dc375887cf9db68",
+      "log_sha256": "53aa9150a4586dbce1d5be36fb593a43755770fb715f878cf77b0abb871cc3db"
+    }
+  },
+  "fence_matrix": {
+    "storage_codecs": [
+      0,
+      1
+    ],
+    "fences": [
+      "image",
+      "selector"
+    ],
+    "cases": [
+      "one_payload_replica",
+      "both_payload_replicas",
+      "name_page_peer",
+      "same_generation_fork",
+      "appended_tail"
+    ],
+    "failed_attachment_preserved_selector_and_released_both_leases": true,
+    "verified_retry_repaired_surviving_replicas": true,
+    "continued_write_verified_on_cpu": true
+  },
+  "retained_development_failure": {
+    "invocation": "The first build named an incorrect Windows attachment target. Both earlier targets linked.",
+    "run": {
+      "exit_code": 1,
+      "elapsed_seconds": 36.90600000000086,
+      "peak_job_bytes": 546332672,
+      "cpu_percent": 22,
+      "tree_retired": true,
+      "residual_children": 0,
+      "result_sha256": "881824fa7df7e4018ac4b76c746e9a9e8e27916433b12f9e8438a26570334d6f",
+      "log_sha256": "16f30a0f39d3b0de9d71884e2c8d38ab27e809ce1d102b9f3e5a389fd5cdaa0f"
+    },
+    "corrected_run": {
+      "exit_code": 0,
+      "elapsed_seconds": 25.90600000000086,
+      "peak_job_bytes": 765378560,
+      "cpu_percent": 22,
+      "tree_retired": true,
+      "residual_children": 0,
+      "result_sha256": "153e75b4135ffd1c2fa62bbee823baf2715c3bf2f0fa41723112c9cbadf91c52",
+      "log_sha256": "018253ac841d41337573cd6865634cf4f3d569a153832294856fbe4af85ad7eb"
+    }
+  },
+  "metrics": {
+    "binaries": {
+      "control_sha256": "69876aa8756153817bdad2958e5c50a2187e165de8a26707e8700c4516738de8",
+      "candidate_sha256": "da360dc664edd07a8086cd19e33d18ae454abbbb48cd3dd57233f0ac21cdd408"
+    },
+    "training_files": [
+      1024,
+      4096,
+      8192
+    ],
+    "workloads": {
+      "short_1": [
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "control": {
+            "files": 1,
+            "image_pre_flush_bytes": 97644,
+            "image_post_flush_bytes": 131060,
+            "image_read_calls": 190,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 460900,
+            "logical_bytes": 17,
+            "objects": 11,
+            "object_tree_height": 0,
+            "stored_payload_bytes": 1952,
+            "read_bytes": 228704,
+            "independent_cpu_exact": true
+          },
+          "candidate": {
+            "files": 1,
+            "image_pre_flush_bytes": 97644,
+            "image_post_flush_bytes": 112560,
+            "image_read_calls": 170,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 455200,
+            "logical_bytes": 17,
+            "objects": 11,
+            "object_tree_height": 0,
+            "stored_payload_bytes": 1952,
+            "read_bytes": 210204,
+            "independent_cpu_exact": true
+          }
+        },
+        {
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "candidate": {
+            "files": 1,
+            "image_pre_flush_bytes": 97644,
+            "image_post_flush_bytes": 112560,
+            "image_read_calls": 170,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 445900,
+            "logical_bytes": 17,
+            "objects": 11,
+            "object_tree_height": 0,
+            "stored_payload_bytes": 1952,
+            "read_bytes": 210204,
+            "independent_cpu_exact": true
+          },
+          "control": {
+            "files": 1,
+            "image_pre_flush_bytes": 97644,
+            "image_post_flush_bytes": 131060,
+            "image_read_calls": 190,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 476700,
+            "logical_bytes": 17,
+            "objects": 11,
+            "object_tree_height": 0,
+            "stored_payload_bytes": 1952,
+            "read_bytes": 228704,
+            "independent_cpu_exact": true
+          }
+        },
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "control": {
+            "files": 1,
+            "image_pre_flush_bytes": 97644,
+            "image_post_flush_bytes": 131060,
+            "image_read_calls": 190,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 454900,
+            "logical_bytes": 17,
+            "objects": 11,
+            "object_tree_height": 0,
+            "stored_payload_bytes": 1952,
+            "read_bytes": 228704,
+            "independent_cpu_exact": true
+          },
+          "candidate": {
+            "files": 1,
+            "image_pre_flush_bytes": 97644,
+            "image_post_flush_bytes": 112560,
+            "image_read_calls": 170,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 432800,
+            "logical_bytes": 17,
+            "objects": 11,
+            "object_tree_height": 0,
+            "stored_payload_bytes": 1952,
+            "read_bytes": 210204,
+            "independent_cpu_exact": true
+          }
+        }
+      ],
+      "short_1024": [
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "control": {
+            "files": 1024,
+            "image_pre_flush_bytes": 3004120,
+            "image_post_flush_bytes": 3086688,
+            "image_read_calls": 26586,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 13025100,
+            "logical_bytes": 17408,
+            "objects": 2082,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 420966,
+            "read_bytes": 6090808,
+            "independent_cpu_exact": true
+          },
+          "candidate": {
+            "files": 1024,
+            "image_pre_flush_bytes": 3004120,
+            "image_post_flush_bytes": 1708918,
+            "image_read_calls": 22028,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 9664200,
+            "logical_bytes": 17408,
+            "objects": 2082,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 420966,
+            "read_bytes": 4713038,
+            "independent_cpu_exact": true
+          }
+        },
+        {
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "candidate": {
+            "files": 1024,
+            "image_pre_flush_bytes": 3004120,
+            "image_post_flush_bytes": 1708918,
+            "image_read_calls": 22028,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 8310500,
+            "logical_bytes": 17408,
+            "objects": 2082,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 420966,
+            "read_bytes": 4713038,
+            "independent_cpu_exact": true
+          },
+          "control": {
+            "files": 1024,
+            "image_pre_flush_bytes": 3004120,
+            "image_post_flush_bytes": 3086688,
+            "image_read_calls": 26586,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 11845600,
+            "logical_bytes": 17408,
+            "objects": 2082,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 420966,
+            "read_bytes": 6090808,
+            "independent_cpu_exact": true
+          }
+        },
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "control": {
+            "files": 1024,
+            "image_pre_flush_bytes": 3004120,
+            "image_post_flush_bytes": 3086688,
+            "image_read_calls": 26586,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 11691000,
+            "logical_bytes": 17408,
+            "objects": 2082,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 420966,
+            "read_bytes": 6090808,
+            "independent_cpu_exact": true
+          },
+          "candidate": {
+            "files": 1024,
+            "image_pre_flush_bytes": 3004120,
+            "image_post_flush_bytes": 1708918,
+            "image_read_calls": 22028,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 8876000,
+            "logical_bytes": 17408,
+            "objects": 2082,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 420966,
+            "read_bytes": 4713038,
+            "independent_cpu_exact": true
+          }
+        }
+      ],
+      "short_4096": [
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "control": {
+            "files": 4096,
+            "image_pre_flush_bytes": 12878960,
+            "image_post_flush_bytes": 12961528,
+            "image_read_calls": 106242,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 52740300,
+            "logical_bytes": 69632,
+            "objects": 8304,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 1679666,
+            "read_bytes": 25840488,
+            "independent_cpu_exact": true
+          },
+          "candidate": {
+            "files": 4096,
+            "image_pre_flush_bytes": 12878960,
+            "image_post_flush_bytes": 6248002,
+            "image_read_calls": 87786,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 38013700,
+            "logical_bytes": 69632,
+            "objects": 8304,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 1679666,
+            "read_bytes": 19126962,
+            "independent_cpu_exact": true
+          }
+        },
+        {
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "candidate": {
+            "files": 4096,
+            "image_pre_flush_bytes": 12878960,
+            "image_post_flush_bytes": 6248002,
+            "image_read_calls": 87786,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 36775400,
+            "logical_bytes": 69632,
+            "objects": 8304,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 1679666,
+            "read_bytes": 19126962,
+            "independent_cpu_exact": true
+          },
+          "control": {
+            "files": 4096,
+            "image_pre_flush_bytes": 12878960,
+            "image_post_flush_bytes": 12961528,
+            "image_read_calls": 106242,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 51586200,
+            "logical_bytes": 69632,
+            "objects": 8304,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 1679666,
+            "read_bytes": 25840488,
+            "independent_cpu_exact": true
+          }
+        },
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "control": {
+            "files": 4096,
+            "image_pre_flush_bytes": 12878960,
+            "image_post_flush_bytes": 12961528,
+            "image_read_calls": 106242,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 52299200,
+            "logical_bytes": 69632,
+            "objects": 8304,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 1679666,
+            "read_bytes": 25840488,
+            "independent_cpu_exact": true
+          },
+          "candidate": {
+            "files": 4096,
+            "image_pre_flush_bytes": 12878960,
+            "image_post_flush_bytes": 6248002,
+            "image_read_calls": 87786,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 32556600,
+            "logical_bytes": 69632,
+            "objects": 8304,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 1679666,
+            "read_bytes": 19126962,
+            "independent_cpu_exact": true
+          }
+        }
+      ],
+      "short_8192": [
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "control": {
+            "files": 8192,
+            "image_pre_flush_bytes": 25897960,
+            "image_post_flush_bytes": 25980528,
+            "image_read_calls": 212362,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 107657300,
+            "logical_bytes": 139264,
+            "objects": 16600,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 3357934,
+            "read_bytes": 51878488,
+            "independent_cpu_exact": true
+          },
+          "candidate": {
+            "files": 8192,
+            "image_pre_flush_bytes": 25897960,
+            "image_post_flush_bytes": 12294654,
+            "image_read_calls": 175414,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 68181100,
+            "logical_bytes": 139264,
+            "objects": 16600,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 3357934,
+            "read_bytes": 38192614,
+            "independent_cpu_exact": true
+          }
+        },
+        {
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "candidate": {
+            "files": 8192,
+            "image_pre_flush_bytes": 25897960,
+            "image_post_flush_bytes": 12294654,
+            "image_read_calls": 175414,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 67104200,
+            "logical_bytes": 139264,
+            "objects": 16600,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 3357934,
+            "read_bytes": 38192614,
+            "independent_cpu_exact": true
+          },
+          "control": {
+            "files": 8192,
+            "image_pre_flush_bytes": 25897960,
+            "image_post_flush_bytes": 25980528,
+            "image_read_calls": 212362,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 103859600,
+            "logical_bytes": 139264,
+            "objects": 16600,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 3357934,
+            "read_bytes": 51878488,
+            "independent_cpu_exact": true
+          }
+        },
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "control": {
+            "files": 8192,
+            "image_pre_flush_bytes": 25897960,
+            "image_post_flush_bytes": 25980528,
+            "image_read_calls": 212362,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 94280700,
+            "logical_bytes": 139264,
+            "objects": 16600,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 3357934,
+            "read_bytes": 51878488,
+            "independent_cpu_exact": true
+          },
+          "candidate": {
+            "files": 8192,
+            "image_pre_flush_bytes": 25897960,
+            "image_post_flush_bytes": 12294654,
+            "image_read_calls": 175414,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 64242200,
+            "logical_bytes": 139264,
+            "objects": 16600,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 3357934,
+            "read_bytes": 38192614,
+            "independent_cpu_exact": true
+          }
+        }
+      ],
+      "short_16384": [
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "control": {
+            "files": 16384,
+            "image_pre_flush_bytes": 52016317,
+            "image_post_flush_bytes": 52123461,
+            "image_read_calls": 424740,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 199789200,
+            "logical_bytes": 278528,
+            "objects": 33194,
+            "object_tree_height": 3,
+            "stored_payload_bytes": 6714760,
+            "read_bytes": 104139778,
+            "independent_cpu_exact": true
+          },
+          "candidate": {
+            "files": 16384,
+            "image_pre_flush_bytes": 52016317,
+            "image_post_flush_bytes": 24446104,
+            "image_read_calls": 350772,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 137482500,
+            "logical_bytes": 278528,
+            "objects": 33194,
+            "object_tree_height": 3,
+            "stored_payload_bytes": 6714760,
+            "read_bytes": 76462421,
+            "independent_cpu_exact": true
+          }
+        },
+        {
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "candidate": {
+            "files": 16384,
+            "image_pre_flush_bytes": 52016317,
+            "image_post_flush_bytes": 24446104,
+            "image_read_calls": 350772,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 139266900,
+            "logical_bytes": 278528,
+            "objects": 33194,
+            "object_tree_height": 3,
+            "stored_payload_bytes": 6714760,
+            "read_bytes": 76462421,
+            "independent_cpu_exact": true
+          },
+          "control": {
+            "files": 16384,
+            "image_pre_flush_bytes": 52016317,
+            "image_post_flush_bytes": 52123461,
+            "image_read_calls": 424740,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 193242300,
+            "logical_bytes": 278528,
+            "objects": 33194,
+            "object_tree_height": 3,
+            "stored_payload_bytes": 6714760,
+            "read_bytes": 104139778,
+            "independent_cpu_exact": true
+          }
+        },
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "control": {
+            "files": 16384,
+            "image_pre_flush_bytes": 52016317,
+            "image_post_flush_bytes": 52123461,
+            "image_read_calls": 424740,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 197205500,
+            "logical_bytes": 278528,
+            "objects": 33194,
+            "object_tree_height": 3,
+            "stored_payload_bytes": 6714760,
+            "read_bytes": 104139778,
+            "independent_cpu_exact": true
+          },
+          "candidate": {
+            "files": 16384,
+            "image_pre_flush_bytes": 52016317,
+            "image_post_flush_bytes": 24446104,
+            "image_read_calls": 350772,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 145590400,
+            "logical_bytes": 278528,
+            "objects": 33194,
+            "object_tree_height": 3,
+            "stored_payload_bytes": 6714760,
+            "read_bytes": 76462421,
+            "independent_cpu_exact": true
+          }
+        }
+      ],
+      "cpython_lib_1024": [
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "control": {
+            "files": 1024,
+            "image_pre_flush_bytes": 39952507,
+            "image_post_flush_bytes": 40035075,
+            "image_read_calls": 47556,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 51184200,
+            "logical_bytes": 17442980,
+            "objects": 2360,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 35354050,
+            "read_bytes": 79987582,
+            "independent_cpu_exact": true
+          },
+          "candidate": {
+            "files": 1024,
+            "image_pre_flush_bytes": 39952507,
+            "image_post_flush_bytes": 36770514,
+            "image_read_calls": 42165,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 37538900,
+            "logical_bytes": 17442980,
+            "objects": 2360,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 35354050,
+            "read_bytes": 76723021,
+            "independent_cpu_exact": true
+          }
+        },
+        {
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "candidate": {
+            "files": 1024,
+            "image_pre_flush_bytes": 39952507,
+            "image_post_flush_bytes": 36770514,
+            "image_read_calls": 42165,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 40951300,
+            "logical_bytes": 17442980,
+            "objects": 2360,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 35354050,
+            "read_bytes": 76723021,
+            "independent_cpu_exact": true
+          },
+          "control": {
+            "files": 1024,
+            "image_pre_flush_bytes": 39952507,
+            "image_post_flush_bytes": 40035075,
+            "image_read_calls": 47556,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 52445100,
+            "logical_bytes": 17442980,
+            "objects": 2360,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 35354050,
+            "read_bytes": 79987582,
+            "independent_cpu_exact": true
+          }
+        },
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "control": {
+            "files": 1024,
+            "image_pre_flush_bytes": 39952507,
+            "image_post_flush_bytes": 40035075,
+            "image_read_calls": 47556,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 49690700,
+            "logical_bytes": 17442980,
+            "objects": 2360,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 35354050,
+            "read_bytes": 79987582,
+            "independent_cpu_exact": true
+          },
+          "candidate": {
+            "files": 1024,
+            "image_pre_flush_bytes": 39952507,
+            "image_post_flush_bytes": 36770514,
+            "image_read_calls": 42165,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 44429000,
+            "logical_bytes": 17442980,
+            "objects": 2360,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 35354050,
+            "read_bytes": 76723021,
+            "independent_cpu_exact": true
+          }
+        }
+      ],
+      "cpython_lib_2640": [
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "control": {
+            "files": 2640,
+            "image_pre_flush_bytes": 107133262,
+            "image_post_flush_bytes": 107215830,
+            "image_read_calls": 121642,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 131547500,
+            "logical_bytes": 47331708,
+            "objects": 5851,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 95809772,
+            "read_bytes": 214349092,
+            "independent_cpu_exact": true
+          },
+          "candidate": {
+            "files": 2640,
+            "image_pre_flush_bytes": 107133262,
+            "image_post_flush_bytes": 98996476,
+            "image_read_calls": 108310,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 110002800,
+            "logical_bytes": 47331708,
+            "objects": 5851,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 95809772,
+            "read_bytes": 206129738,
+            "independent_cpu_exact": true
+          }
+        },
+        {
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "candidate": {
+            "files": 2640,
+            "image_pre_flush_bytes": 107133262,
+            "image_post_flush_bytes": 98996476,
+            "image_read_calls": 108310,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 111343500,
+            "logical_bytes": 47331708,
+            "objects": 5851,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 95809772,
+            "read_bytes": 206129738,
+            "independent_cpu_exact": true
+          },
+          "control": {
+            "files": 2640,
+            "image_pre_flush_bytes": 107133262,
+            "image_post_flush_bytes": 107215830,
+            "image_read_calls": 121642,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 124788800,
+            "logical_bytes": 47331708,
+            "objects": 5851,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 95809772,
+            "read_bytes": 214349092,
+            "independent_cpu_exact": true
+          }
+        },
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "control": {
+            "files": 2640,
+            "image_pre_flush_bytes": 107133262,
+            "image_post_flush_bytes": 107215830,
+            "image_read_calls": 121642,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 123428900,
+            "logical_bytes": 47331708,
+            "objects": 5851,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 95809772,
+            "read_bytes": 214349092,
+            "independent_cpu_exact": true
+          },
+          "candidate": {
+            "files": 2640,
+            "image_pre_flush_bytes": 107133262,
+            "image_post_flush_bytes": 98996476,
+            "image_read_calls": 108310,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 108434700,
+            "logical_bytes": 47331708,
+            "objects": 5851,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 95809772,
+            "read_bytes": 206129738,
+            "independent_cpu_exact": true
+          }
+        }
+      ],
+      "cpython_compressed_2640": [
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "control": {
+            "files": 2640,
+            "image_pre_flush_bytes": 33703537,
+            "image_post_flush_bytes": 33785967,
+            "image_read_calls": 85684,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 187619500,
+            "logical_bytes": 47331708,
+            "objects": 5851,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 22973752,
+            "read_bytes": 67489504,
+            "independent_cpu_exact": true
+          },
+          "candidate": {
+            "files": 2640,
+            "image_pre_flush_bytes": 33703537,
+            "image_post_flush_bytes": 26160180,
+            "image_read_calls": 72529,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 113770600,
+            "logical_bytes": 47331708,
+            "objects": 5851,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 22973752,
+            "read_bytes": 59863717,
+            "independent_cpu_exact": true
+          }
+        },
+        {
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "candidate": {
+            "files": 2640,
+            "image_pre_flush_bytes": 33703537,
+            "image_post_flush_bytes": 26160180,
+            "image_read_calls": 72529,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 119070500,
+            "logical_bytes": 47331708,
+            "objects": 5851,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 22973752,
+            "read_bytes": 59863717,
+            "independent_cpu_exact": true
+          },
+          "control": {
+            "files": 2640,
+            "image_pre_flush_bytes": 33703537,
+            "image_post_flush_bytes": 33785967,
+            "image_read_calls": 85684,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 180408500,
+            "logical_bytes": 47331708,
+            "objects": 5851,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 22973752,
+            "read_bytes": 67489504,
+            "independent_cpu_exact": true
+          }
+        },
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "control": {
+            "files": 2640,
+            "image_pre_flush_bytes": 33703537,
+            "image_post_flush_bytes": 33785967,
+            "image_read_calls": 85684,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 187279100,
+            "logical_bytes": 47331708,
+            "objects": 5851,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 22973752,
+            "read_bytes": 67489504,
+            "independent_cpu_exact": true
+          },
+          "candidate": {
+            "files": 2640,
+            "image_pre_flush_bytes": 33703537,
+            "image_post_flush_bytes": 26160180,
+            "image_read_calls": 72529,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 105647500,
+            "logical_bytes": 47331708,
+            "objects": 5851,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 22973752,
+            "read_bytes": 59863717,
+            "independent_cpu_exact": true
+          }
+        }
+      ]
+    },
+    "medians": {
+      "short_1": {
+        "control": {
+          "read_bytes": 228704,
+          "reopen_ns": 460900,
+          "image_read_calls": 190,
+          "logical_bytes": 17,
+          "objects": 11,
+          "object_tree_height": 0,
+          "image_pre_flush_bytes": 97644,
+          "image_post_flush_bytes": 131060,
+          "stored_payload_bytes": 1952
+        },
+        "candidate": {
+          "read_bytes": 210204,
+          "reopen_ns": 445900,
+          "image_read_calls": 170,
+          "logical_bytes": 17,
+          "objects": 11,
+          "object_tree_height": 0,
+          "image_pre_flush_bytes": 97644,
+          "image_post_flush_bytes": 112560,
+          "stored_payload_bytes": 1952
+        }
+      },
+      "short_1024": {
+        "control": {
+          "read_bytes": 6090808,
+          "reopen_ns": 11845600,
+          "image_read_calls": 26586,
+          "logical_bytes": 17408,
+          "objects": 2082,
+          "object_tree_height": 2,
+          "image_pre_flush_bytes": 3004120,
+          "image_post_flush_bytes": 3086688,
+          "stored_payload_bytes": 420966
+        },
+        "candidate": {
+          "read_bytes": 4713038,
+          "reopen_ns": 8876000,
+          "image_read_calls": 22028,
+          "logical_bytes": 17408,
+          "objects": 2082,
+          "object_tree_height": 2,
+          "image_pre_flush_bytes": 3004120,
+          "image_post_flush_bytes": 1708918,
+          "stored_payload_bytes": 420966
+        }
+      },
+      "short_4096": {
+        "control": {
+          "read_bytes": 25840488,
+          "reopen_ns": 52299200,
+          "image_read_calls": 106242,
+          "logical_bytes": 69632,
+          "objects": 8304,
+          "object_tree_height": 2,
+          "image_pre_flush_bytes": 12878960,
+          "image_post_flush_bytes": 12961528,
+          "stored_payload_bytes": 1679666
+        },
+        "candidate": {
+          "read_bytes": 19126962,
+          "reopen_ns": 36775400,
+          "image_read_calls": 87786,
+          "logical_bytes": 69632,
+          "objects": 8304,
+          "object_tree_height": 2,
+          "image_pre_flush_bytes": 12878960,
+          "image_post_flush_bytes": 6248002,
+          "stored_payload_bytes": 1679666
+        }
+      },
+      "short_8192": {
+        "control": {
+          "read_bytes": 51878488,
+          "reopen_ns": 103859600,
+          "image_read_calls": 212362,
+          "logical_bytes": 139264,
+          "objects": 16600,
+          "object_tree_height": 2,
+          "image_pre_flush_bytes": 25897960,
+          "image_post_flush_bytes": 25980528,
+          "stored_payload_bytes": 3357934
+        },
+        "candidate": {
+          "read_bytes": 38192614,
+          "reopen_ns": 67104200,
+          "image_read_calls": 175414,
+          "logical_bytes": 139264,
+          "objects": 16600,
+          "object_tree_height": 2,
+          "image_pre_flush_bytes": 25897960,
+          "image_post_flush_bytes": 12294654,
+          "stored_payload_bytes": 3357934
+        }
+      },
+      "short_16384": {
+        "control": {
+          "read_bytes": 104139778,
+          "reopen_ns": 197205500,
+          "image_read_calls": 424740,
+          "logical_bytes": 278528,
+          "objects": 33194,
+          "object_tree_height": 3,
+          "image_pre_flush_bytes": 52016317,
+          "image_post_flush_bytes": 52123461,
+          "stored_payload_bytes": 6714760
+        },
+        "candidate": {
+          "read_bytes": 76462421,
+          "reopen_ns": 139266900,
+          "image_read_calls": 350772,
+          "logical_bytes": 278528,
+          "objects": 33194,
+          "object_tree_height": 3,
+          "image_pre_flush_bytes": 52016317,
+          "image_post_flush_bytes": 24446104,
+          "stored_payload_bytes": 6714760
+        }
+      },
+      "cpython_lib_1024": {
+        "control": {
+          "read_bytes": 79987582,
+          "reopen_ns": 51184200,
+          "image_read_calls": 47556,
+          "logical_bytes": 17442980,
+          "objects": 2360,
+          "object_tree_height": 2,
+          "image_pre_flush_bytes": 39952507,
+          "image_post_flush_bytes": 40035075,
+          "stored_payload_bytes": 35354050
+        },
+        "candidate": {
+          "read_bytes": 76723021,
+          "reopen_ns": 40951300,
+          "image_read_calls": 42165,
+          "logical_bytes": 17442980,
+          "objects": 2360,
+          "object_tree_height": 2,
+          "image_pre_flush_bytes": 39952507,
+          "image_post_flush_bytes": 36770514,
+          "stored_payload_bytes": 35354050
+        }
+      },
+      "cpython_lib_2640": {
+        "control": {
+          "read_bytes": 214349092,
+          "reopen_ns": 124788800,
+          "image_read_calls": 121642,
+          "logical_bytes": 47331708,
+          "objects": 5851,
+          "object_tree_height": 2,
+          "image_pre_flush_bytes": 107133262,
+          "image_post_flush_bytes": 107215830,
+          "stored_payload_bytes": 95809772
+        },
+        "candidate": {
+          "read_bytes": 206129738,
+          "reopen_ns": 110002800,
+          "image_read_calls": 108310,
+          "logical_bytes": 47331708,
+          "objects": 5851,
+          "object_tree_height": 2,
+          "image_pre_flush_bytes": 107133262,
+          "image_post_flush_bytes": 98996476,
+          "stored_payload_bytes": 95809772
+        }
+      },
+      "cpython_compressed_2640": {
+        "control": {
+          "read_bytes": 67489504,
+          "reopen_ns": 187279100,
+          "image_read_calls": 85684,
+          "logical_bytes": 47331708,
+          "objects": 5851,
+          "object_tree_height": 2,
+          "image_pre_flush_bytes": 33703537,
+          "image_post_flush_bytes": 33785967,
+          "stored_payload_bytes": 22973752
+        },
+        "candidate": {
+          "read_bytes": 59863717,
+          "reopen_ns": 113770600,
+          "image_read_calls": 72529,
+          "logical_bytes": 47331708,
+          "objects": 5851,
+          "object_tree_height": 2,
+          "image_pre_flush_bytes": 33703537,
+          "image_post_flush_bytes": 26160180,
+          "stored_payload_bytes": 22973752
+        }
+      }
+    },
+    "affine_model_by_lane": {
+      "control": {
+        "read_bytes": {
+          "slope_per_file": 6386.1222550675675,
+          "intercept": -400758.48648648337,
+          "held_out_files": 16384,
+          "held_out_actual": 104139778,
+          "held_out_prediction": 104229469,
+          "held_out_error_pct": 0.08612515050737499,
+          "one_extent_short_file_projection": {
+            "10000000": 63860821792,
+            "30000000": 191583266894
+          },
+          "held_out_cpython_tree": {
+            "fit_files": 1024,
+            "test_files": 2640,
+            "extra_read_bytes_per_logical_byte": 4.237964257201846,
+            "predicted": 216858491,
+            "actual": 214349092,
+            "error_pct": 1.1707066934267107
+          }
+        },
+        "image_read_calls": {
+          "slope_per_file": 25.916913006756754,
+          "intercept": 61.35135135136079,
+          "held_out_files": 16384,
+          "held_out_actual": 424740,
+          "held_out_prediction": 424684,
+          "held_out_error_pct": 0.01317181003578091,
+          "one_extent_short_file_projection": {
+            "10000000": 259169191,
+            "30000000": 777507452
+          }
+        },
+        "reopen_ns": {
+          "slope_per_file": 12823.326646959458,
+          "intercept": -899908.1081081033,
+          "held_out_files": 16384,
+          "held_out_actual": 197205500,
+          "held_out_prediction": 209197476,
+          "held_out_error_pct": 6.080953967143746,
+          "one_extent_short_file_projection": {
+            "10000000": 128232366561,
+            "30000000": 384698899501
+          }
+        }
+      },
+      "candidate": {
+        "read_bytes": {
+          "slope_per_file": 4669.834934543918,
+          "intercept": -44076.216216210276,
+          "held_out_files": 16384,
+          "held_out_actual": 76462421,
+          "held_out_prediction": 76466499,
+          "held_out_error_pct": 0.005333798352200417,
+          "one_extent_short_file_projection": {
+            "10000000": 46698305269,
+            "30000000": 140095003960
+          },
+          "held_out_cpython_tree": {
+            "fit_files": 1024,
+            "test_files": 2640,
+            "extra_read_bytes_per_logical_byte": 4.131008511126248,
+            "predicted": 207626577,
+            "actual": 206129738,
+            "error_pct": 0.7261635112264502
+          }
+        },
+        "image_read_calls": {
+          "slope_per_file": 21.3984375,
+          "intercept": 124.0,
+          "held_out_files": 16384,
+          "held_out_actual": 350772,
+          "held_out_prediction": 350716,
+          "held_out_error_pct": 0.015964786242915627,
+          "one_extent_short_file_projection": {
+            "10000000": 213984499,
+            "30000000": 641953249
+          }
+        },
+        "reopen_ns": {
+          "slope_per_file": 8084.4964104729725,
+          "intercept": 1711594.5945945978,
+          "held_out_files": 16384,
+          "held_out_actual": 139266900,
+          "held_out_prediction": 134167984,
+          "held_out_error_pct": 3.6612549114083976,
+          "one_extent_short_file_projection": {
+            "10000000": 80846675699,
+            "30000000": 242536603909
+          }
+        }
+      }
+    },
+    "scope": "In-memory indexed engine, writable reopen and two fences. Raw scale and raw/automatic CPython workloads. The count-only model uses short files of 17 bytes each and one fixed sparse inode. Projections assume comparable allocation/page shape and exclude Windows mount, NTFS and load."
+  },
+  "scope": {
+    "direct_raw_and_automatic_compression_engine": true,
+    "winfsp_sdk_attachment_fixtures": true,
+    "mounted_windows_performance": false,
+    "physical_power_loss_qualified": false,
+    "ntfs_comparison": false
+  }
+}

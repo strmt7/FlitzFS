@@ -289,8 +289,9 @@ NativeVolumeHeadWriter NativeVolumeHeadWriter::resume_impl(std::shared_ptr<Store
   return NativeVolumeHeadWriter(std::move(p));
 }
 std::optional<NativeVolumeHeadWriter::IndexedReopen> NativeVolumeHeadWriter::retain_indexed_reopen(
-    std::shared_ptr<StoreByteIo> head,const NativeVolumeSelection& selected,
-    const NativeFilesystemSnapshot& verified,StoreCompressionOptions foreground) {
+    std::shared_ptr<StoreByteIo> head,const NativeVolumeHeadView& audited,StoreCompressionOptions foreground) {
+  const auto selected=audited.info().selection;
+  const auto& verified=audited.filesystem();
   auto p=std::make_unique<Impl>(std::move(head));contract(*p->owner.io);
   const auto current=load(*p->owner.io,selected.volume_identity);
   if(current.info.selection!=selected)fail(Code::invalid_operation,"indexed reopen selector changed");
@@ -313,7 +314,11 @@ std::optional<NativeVolumeHeadWriter::IndexedReopen> NativeVolumeHeadWriter::ret
   if(backing->extent()!=extent)fail(Code::invalid_operation,"indexed reopen extent changed");
   auto after=NativeFilesystemSnapshot::open_image(backing,selected.storage);
   Impl::exact(verified,after);
-  bind(selected,after,true);
+  admit_binding(selected,after,true,false);
+  after.recheck_verified_indexed_mirrors(verified);
+  const auto health=after.storage_info();
+  if(health.degraded_checkpoint || health.degraded_root)
+    fail(Code::invalid_operation,"image scrub discovered degraded protection");
   p->check();
   return IndexedReopen{NativeVolumeHeadWriter(std::move(p)),std::move(writer)};
 }

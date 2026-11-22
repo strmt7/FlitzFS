@@ -287,7 +287,7 @@ void proactive_payload_scrub(std::uint32_t unit) {
            <<" latent_peer=1 double_loss_reported=1 bounded_high_water=1 degraded_index_refused=1\n";
 }
 
-void retained_indexed_reopen_fences() {
+void retained_indexed_reopen_fences(bool compressed) {
   class FenceBacking final:public StoreByteIo {
    public:
     explicit FenceBacking(std::shared_ptr<Ram> backing):ram(std::move(backing)){}
@@ -302,21 +302,22 @@ void retained_indexed_reopen_fences() {
     void flush() override{ram->flush();if(on_fence)on_fence();}
   };
 
-  constexpr StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
+  const StoreCompressionOptions encoding{compressed?StoreCompressionMode::automatic:StoreCompressionMode::raw,1,compressed};
   const auto head=std::make_shared<FenceBacking>(std::make_shared<Ram>());
   auto empty=std::make_shared<Ram>();
   empty->failure_unit=4096;
   const auto volume=next_id();
   {
-    auto session=NativeFileSession::create_indexed_volume(head,volume,std::make_shared<FenceBacking>(empty),identity(),limits,raw);
+    auto session=NativeFileSession::create_indexed_volume(head,volume,std::make_shared<FenceBacking>(empty),identity(),limits,encoding);
     session.create_entry("data");
   }
   const auto selected=NativeVolumeHeadView::inspect_selector(*head,volume);
   const auto reopen=[&](const std::shared_ptr<FenceBacking>& body) {
     return NativeFileSession::resume_closed_indexed_volume(head,volume,selected.selection.epoch,
-        [&](const auto& which)->std::shared_ptr<StoreByteIo>{return which==identity()?body:nullptr;},raw);
+        [&](const auto& which)->std::shared_ptr<StoreByteIo>{return which==identity()?body:nullptr;},encoding);
   };
-  const auto original=data(kNativeExtentBytes,10211),different=data(kNativeExtentBytes,10212);
+  const auto original=compressed?Bytes(kNativeExtentBytes,std::byte{0x36}):data(kNativeExtentBytes,10211);
+  const auto different=compressed?Bytes(kNativeExtentBytes,std::byte{0x71}):data(kNativeExtentBytes,10212);
   const auto produce=[&](const Bytes& content) {
     auto body=image(empty->stable,4096);
     auto session=reopen(std::make_shared<FenceBacking>(body));
@@ -334,10 +335,15 @@ void retained_indexed_reopen_fences() {
       fork_snapshot.read("data",0,kNativeExtentBytes)==different,
       "post-fence fork fixture must share identity, counters and extent");
   const auto inventory=locations(*initial);
-  const auto payload=std::ranges::find(inventory,original.size()+indexed_extent_header_bytes,&Location::stored);
+  const auto payload=std::ranges::find(inventory,detail::kNativeIndexedDataObject+1,&Location::id);
   const auto name_root=PagedObjectStoreSnapshot::open(initial,limits).read(detail::kNativeNameIndexObject,40);
   const auto name_page=std::ranges::find(inventory,get(name_root,16),&Location::id);
   require(payload!=inventory.end() && name_page!=inventory.end(),"fence test payload or name record missing");
+  const auto codec=get(initial->live,payload->primary+12,4);
+  require(codec==(compressed?detail::kStoreZstd:detail::kStoreRaw),"reopen fence fixture used the wrong codec");
+  const unsigned damage_offset=compressed?128:0;
+  require(payload->primary%initial->failure_unit+damage_offset<initial->failure_unit,
+      "fence fixture damage does not address the record stripe");
   enum class FenceFault {peer, both, name_peer, forked_root, appended_tail};
   for(bool image_fence:{true,false})for(const auto fault:{FenceFault::peer,FenceFault::both,FenceFault::name_peer,
       FenceFault::forked_root,FenceFault::appended_tail}) {
@@ -357,8 +363,8 @@ void retained_indexed_reopen_fences() {
       }else if(fault==FenceFault::name_peer) {
         damage_record(*body,name_page->peer);
       }else {
-        damage_record(*body,payload->peer);
-        if(fault==FenceFault::both)damage_record(*body,payload->primary);
+        damage_record(*body,payload->peer+damage_offset);
+        if(fault==FenceFault::both)damage_record(*body,payload->primary+damage_offset);
       }
     };
     rejects([&]{(void)reopen(observed);},"writable reopen accepted damage or a changed image at a fence");
@@ -400,7 +406,7 @@ void retained_indexed_reopen_fences() {
     require(checked.read("data",0,kNativeExtentBytes)==different,"retained owner could not commit through reopened storage");
   }
   std::cout<<"retained_indexed_fences image_and_selector=1 peer_loss=1 name_index_peer_loss=1 double_loss=1 same_generation_fork=1"
-      " changed_extent=1 independent_repair_and_continued_write=1\n";
+      " changed_extent=1 independent_repair_and_continued_write=1 stored_codec="<<codec<<'\n';
 }
 
 void durable_payload_scrub() {
@@ -884,7 +890,9 @@ int main(int argc,char** argv){try {
   require(argc==1,"unknown mirrored payload test option");
   compressed_replica_verification(false);
   forged_descriptors();native_shared_lifetime();payload_repair_rechecks();
-  retained_indexed_reopen_fences();durable_payload_scrub();
+  retained_indexed_reopen_fences(false);
+  if(store_zstd_available())retained_indexed_reopen_fences(true);
+  durable_payload_scrub();
   for(auto unit:{4096U,65536U}) {
     proactive_payload_scrub(unit);
     startup_payload_repair(unit);

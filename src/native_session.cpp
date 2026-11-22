@@ -669,7 +669,7 @@ NativeFileSession NativeFileSession::resume_volume_impl(std::shared_ptr<StoreByt
   };
   if(closed_indexed && !selected.info().degraded && !initial.needs_session_recovery() &&
       !initial.storage_info().degraded_checkpoint) {
-    auto retained=NativeVolumeHeadWriter::retain_indexed_reopen(head,selected.info().selection,initial,foreground);
+    auto retained=NativeVolumeHeadWriter::retain_indexed_reopen(head,selected,foreground);
     if(retained){
       owner->head.emplace(std::move(retained->head));
       return attach(std::move(retained->image));

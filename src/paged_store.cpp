@@ -416,12 +416,18 @@ Bytes read_object(const State& s,const Entry& e) {
   if(record.recovered_primary && s.payload_repairs)s.payload_repairs->observe(e);
   return bytes;
 }
-unsigned verify_payload_copies(const State& s,const Entry& e,Bytes* payload=nullptr) {
+enum class PayloadVerification { decoded, stored };
+unsigned verify_payload_copies(const State& s,const Entry& e,Bytes* payload=nullptr,
+    PayloadVerification verification=PayloadVerification::decoded) {
   unsigned verified=0;
   std::optional<ObjectRecord> decoded_primary;
   for(const auto at:{e.offset,e.peer}) {
     try {
       auto record=read_record_at(s,e,at);
+      if(verification==PayloadVerification::stored) {
+        ++verified;
+        continue;
+      }
       // The peer has passed its own stored digest and header check. Matching
       // encoded bytes share the primary's successful decoded digest check.
       if(decoded_primary && record.header==decoded_primary->header && record.payload==decoded_primary->payload) {
@@ -443,13 +449,14 @@ unsigned verify_payload_copies(const State& s,const Entry& e,Bytes* payload=null
   return verified;
 }
 // True reports a verified survivor and a failed replica.
-bool verify_object(const State& s,const Entry& e,Bytes* payload=nullptr) {
+bool verify_object(const State& s,const Entry& e,Bytes* payload=nullptr,
+    PayloadVerification verification=PayloadVerification::decoded) {
   if(!s.mirrored) {
     auto decoded=read_object(s,e);
     if(payload)*payload=std::move(decoded);
     return false;
   }
-  const auto verified=verify_payload_copies(s,e,payload);
+  const auto verified=verify_payload_copies(s,e,payload,verification);
   if(!verified)fail("both payload copies invalid; no rollback");
   return verified==1;
 }
@@ -460,14 +467,15 @@ template<class Visitor> void walk(const State& s,const Ref& r,std::uint64_t afte
   else for(const auto& e:n.entries)if(e.id>after && !done)done=!visitor(e);
 }
 using VerifiedObjectVisitor=std::function<void(std::uint64_t,Bytes)>;
-void verify(const State& s,const VerifiedObjectVisitor* consume=nullptr) {
+void verify(const State& s,const VerifiedObjectVisitor* consume=nullptr,
+    PayloadVerification verification=PayloadVerification::decoded) {
   (void)read_node(s,s.root);
   auto visitor=[&](const Entry& e) {
     if(consume) {
       Bytes bytes;
       verify_object(s,e,&bytes);
       (*consume)(e.id,std::move(bytes));
-    }else verify_object(s,e);
+    }else verify_object(s,e,nullptr,verification);
     return true;
   };
   bool done=false;walk(s,s.root,0,visitor,done);
@@ -1603,6 +1611,17 @@ void PagedObjectStoreSnapshot::verify_all() const {if(!impl_)fail("moved-from sn
 void PagedObjectStoreSnapshot::visit_verified_objects(const VerifiedObjectVisitor& consume) const {
   if(!impl_)fail("moved-from snapshot");
   verify(impl_->state,&consume);
+}
+void PagedObjectStoreSnapshot::recheck_verified_mirrors(const PagedObjectStoreSnapshot& audited) const {
+  if(!impl_ || !audited.impl_)fail("moved-from snapshot");
+  const auto& before=audited.impl_->state;
+  const auto& current=impl_->state;
+  if(before.image!=current.image || !before.mirrored || before.degraded_roots ||
+      before.degraded_metadata || before.degraded_payloads || !same(before,current))
+    fail("stored mirror recheck needs the exact healthy audited checkpoint");
+  // The checked root binds every leaf descriptor to its exact stored frame.
+  // A matching frame retains the earlier decoded digest and native audit.
+  verify(current,nullptr,PayloadVerification::stored);
 }
 PagedObjectStoreWriter::PagedObjectStoreWriter(std::unique_ptr<Impl> p) noexcept:impl_(std::move(p)){}
 PagedObjectStoreWriter::PagedObjectStoreWriter(PagedObjectStoreWriter&&) noexcept=default;

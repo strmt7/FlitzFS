@@ -370,6 +370,7 @@ class NativeFilesystemSnapshot final {
   friend class NativeVolumeHeadWriter;
   friend class NativeFileSession;
   void verify_all(const detail::IndexedReopenAdmission&) const;
+  void recheck_verified_indexed_mirrors(const NativeFilesystemSnapshot& audited) const;
   std::shared_ptr<StoreByteIo> backing_for_volume_head() const;
   void verify_compacted_equivalent_for_volume_head(const NativeFilesystemSnapshot&,bool closed_indexed=false) const;
   bool has_degraded_indexed_payloads() const noexcept;

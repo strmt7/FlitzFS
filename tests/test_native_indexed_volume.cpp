@@ -48,7 +48,7 @@ Bytes payload(unsigned index) {
 
 template<class Verify>
 void profile_indexed_reopen(const std::shared_ptr<Ram>& image,const NativeFilesystemSnapshot& source,unsigned files,
-    std::uint64_t logical_bytes,std::string_view workload,const Verify& verify) {
+    std::uint64_t logical_bytes,std::string_view workload,const Verify& verify,StoreCompressionOptions encoding=raw) {
   const auto volume=identity_for(82);
   auto head=empty();
   {auto owner=NativeVolumeHeadWriter::create(head,volume,source);}
@@ -61,7 +61,7 @@ void profile_indexed_reopen(const std::shared_ptr<Ram>& image,const NativeFilesy
     return image;
   };
   const auto started=std::chrono::steady_clock::now();
-  const auto session=NativeFileSession::resume_closed_indexed_volume(head,volume,1,resolve,raw);
+  const auto session=NativeFileSession::resume_closed_indexed_volume(head,volume,1,resolve,encoding);
   const auto elapsed=std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now()-started).count();
   const auto read_after=image->read_bytes-image->read_bytes_at_flush;
   std::cout<<"indexed_scale_reopen files="<<files
@@ -72,7 +72,8 @@ void profile_indexed_reopen(const std::shared_ptr<Ram>& image,const NativeFilesy
       <<" head_flushes="<<head->flushes-head_fences
       <<" backing_write_bytes="<<image->write_bytes-bytes_written+head->write_bytes-head_written
       <<" reopen_ns="<<elapsed<<" logical_bytes="<<logical_bytes<<" workload="<<workload
-      <<" objects="<<layout.objects<<" object_tree_height="<<layout.height<<'\n';
+      <<" objects="<<layout.objects<<" object_tree_height="<<layout.height
+      <<" stored_payload_bytes="<<layout.stored_payload_bytes<<'\n';
   require(image->write_bytes==bytes_written && head->write_bytes==head_written,
       "clean indexed reopen rewrote the image or selector");
   const auto restored=NativeFilesystemSnapshot::open_image(image,source.image_storage());
@@ -1487,7 +1488,9 @@ std::uint32_t fixture_get(std::span<const std::byte> raw,std::size_t offset,unsi
   return value;
 }
 
-void profile_cpython_reopen(const char* path) {
+void profile_cpython_reopen(const char* path,bool compressed=false) {
+  if(compressed)require(store_zstd_available(),"compressed CPython profile requires Zstandard");
+  const auto encoding=compressed?StoreCompressionOptions{StoreCompressionMode::automatic,3,true}:raw;
   const auto input=ReadOnlyFile::open(path);
   constexpr std::uint64_t maximum_input=96ULL*1024*1024;
   require(input.size()>=12 && input.size()<=maximum_input,"source tree fixture length");
@@ -1528,7 +1531,7 @@ void profile_cpython_reopen(const char* path) {
   auto backing=empty();
   backing->capacity=2*total+160ULL*1024*1024;
   IndexedVolumeBuilder builder(PagedObjectStoreWriter::create_mirrored(backing,identity(),
-      {backing->capacity},raw),2,directories.size()+files.size()+1,{},2);
+      {backing->capacity},encoding),2,directories.size()+files.size()+1,{},2);
   std::vector<IndexedInodeInput> directory_batch;
   std::uint64_t inode=1;
   for(auto& [path_id,key]:directories) {
@@ -1570,7 +1573,8 @@ void profile_cpython_reopen(const char* path) {
   }
   if(!inode_batch.empty())publish();
   const auto published=builder.finish();
-  profile_indexed_reopen(backing,published,static_cast<unsigned>(files.size()),total,"cpython_lib",
+  profile_indexed_reopen(backing,published,static_cast<unsigned>(files.size()),total,
+      compressed?"cpython_compressed":"cpython_lib",
       [&](const NativeFilesystemSnapshot& restored) {
     for(const auto& file:files) {
       require(restored.stat(file.path).logical_bytes==file.bytes &&
@@ -1578,7 +1582,7 @@ void profile_cpython_reopen(const char* path) {
               take(file.first,static_cast<std::size_t>(file.bytes)),
           "CPython source file differs after indexed reopen");
     }
-  });
+  },encoding);
 }
 
 }
@@ -1598,8 +1602,9 @@ int main(int argc,char** argv) {
       populated_native_snapshot(files,true);
       return 0;
     }
-    if(argc==3 && std::string_view(argv[1])=="--profile-cpython-reopen") {
-      profile_cpython_reopen(argv[2]);
+    if(argc==3 && (std::string_view(argv[1])=="--profile-cpython-reopen" ||
+        std::string_view(argv[1])=="--profile-cpython-compressed-reopen")) {
+      profile_cpython_reopen(argv[2],std::string_view(argv[1])=="--profile-cpython-compressed-reopen");
       return 0;
     }
     require(argc==1,"unknown indexed volume test option");

@@ -231,10 +231,10 @@ repair, with replacement subject to ownership and publication checks.
 ## 7. Reopen, repair and image switch
 
 Read-only inspection and writable resume first establish the selected image.
-The healthy indexed writable path can reuse its just-audited read state while
-taking the image and head fences. A damaged or closed-session state has separate
-repair and retirement paths. Resolver, image and selector identity are required
-before a writer is returned.
+The healthy indexed path takes both leases and fences. The exact checkpoint
+binds the earlier decoded audit to the stored replicas verified after the
+fences. Damaged protection and unresolved lifetimes take the checked recovery
+path. Resolver, image and selector identity establish authority for writes.
 
 ```mermaid
 flowchart TD
@@ -242,21 +242,25 @@ flowchart TD
     Head --> Image["Resolve exact image and checkpoint / namespace floors"]
     Image --> Audit["Audit selected records, namespace and ownership"]
     Audit -->|Read-only| Reader["Return verified CPU view"]
-    Audit -->|Healthy writable reopen| Fence["Acquire image and selector ownership then flush and confirm matching state"]
+    Audit -->|Healthy writable reopen| Fence["Acquire both leases and flush image then selector"]
+    Fence --> Exact["Reopen and compare exact checkpoint and selector"]
+    Exact --> Mirrors["Read and verify both stored replicas and the object tree"]
+    Mirrors --> Ready["Construct authorized writable session"]
+    Mirrors -->|Unverified protection| Refusal["Refuse writable exposure"]
+    Exact -->|Changed checkpoint| Refusal
     Audit -->|Admitted damaged or retired state| Repair["Check surviving protection and old lifetime records"]
-    Audit -->|No verified authority| Refusal["Refuse writable exposure"]
+    Audit -->|No verified authority| Refusal
     Repair --> Candidate["Repair selected state or prepare verified replacement image"]
-    Candidate --> Publish["Publish paired selector when image changes"]
-    Publish --> Fence
-    Fence --> Ready["Construct authorized writable session"]
+    Candidate --> Publish["Fence and verify recovery authority and publish selector when needed"]
+    Publish --> Ready
 ```
 
-Normal remount cost still includes full indexed validation. Reader and image
-pins constrain reclaimable storage. Losing both trustworthy copies or losing
+Normal indexed remount requires a full native audit and a stored mirror pass.
+Reader and image pins constrain reclaimable storage. Losing both trustworthy copies or losing
 the backing medium is outside the demonstrated mirror-repair scope.
 [Selector reopen and audit](../../src/volume_head.cpp#L158)
 · [single-pass indexed audit path](../../src/native_session.cpp#L642)
-· [retained reopen evidence](../evidence/indexed-retained-reopen-2026-11-20.json)
+· [stored mirror recheck evidence](../evidence/indexed-fenced-stored-recheck-2026-11-22.json)
 · [mounted post-flush restart](../evidence/windows11-mounted-post-flush-recovery-2026-11-21.json)
 
 ## 8. Background learning, grouping and reclamation

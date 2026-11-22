@@ -102,6 +102,9 @@ class PagedObjectStoreSnapshot final {
   friend class detail::NativeNameIndex;
   // Stream decoded objects after checking all of their payload copies.
   void visit_verified_objects(const std::function<void(std::uint64_t,std::vector<std::byte>)>&) const;
+  // For an already decoded and audited checkpoint under the same backing
+  // lease. Both stored replicas still receive fresh reads and digest checks.
+  void recheck_verified_mirrors(const PagedObjectStoreSnapshot& audited) const;
   struct Impl;
   class QueryScope {
    public:
