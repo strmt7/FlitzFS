@@ -167,6 +167,32 @@ void sequential_read_ahead() {
 
   h.read(context,blocks[0]);
   h.read(context,blocks[1],extent);
+  h.adapter->discard_native_lz4_read_ahead(h.adapter->foreground_activity(),true);
+  require(!h.adapter->take_native_lz4_read_ahead_sample(h.adapter->foreground_activity()),
+      "feedback target queued speculative I/O");
+  h.read(context,blocks[0]);
+  h.read(context,blocks[1],extent);
+  require(h.adapter->take_native_lz4_read_ahead_sample(h.adapter->foreground_activity())==0,
+      "reads outside refused extent lowered backing estimate");
+  h.read(context,blocks[2],2*extent);
+  const auto measured_epoch=h.adapter->foreground_activity();
+  const auto demand_sample=h.adapter->take_native_lz4_read_ahead_sample(measured_epoch);
+  require(demand_sample && *demand_sample>0 && h.adapter->take_native_lz4_read_ahead_sample(measured_epoch)==0,
+      "matching CPU demand failed to supply one measured sample");
+
+  h.adapter->discard_native_lz4_read_ahead(measured_epoch,true);
+  detail::NativeLz4CapturedFrame captured;
+  require(h.adapter->capture_native_lz4_read(context,3*extent,kNativeExtentBytes,captured),
+      "fixture could not capture ready read of the refused extent");
+  auto ready=detail::NativeLz4ReadyReads::decode_captured(captured);
+  require(h.adapter->publish_native_lz4_reads(ready),"fixture ready read publication refused");
+  h.read(context,blocks[3],3*extent);
+  require(h.adapter->native_lz4_read_hits()==1 &&
+      h.adapter->take_native_lz4_read_ahead_sample(h.adapter->foreground_activity())==0,
+      "ready result contributed a demand cost without reading the stored frame");
+
+  h.read(context,blocks[0]);
+  h.read(context,blocks[1],extent);
   const auto contested=h.clock.next();
   const auto contested_epoch=h.adapter->foreground_activity();
   h.image_io->armed=true;
@@ -199,6 +225,7 @@ void sequential_read_ahead() {
   h.close(context);
   require(!h.adapter->native_lz4_read_ahead_pending(),"closed context left speculative work");
   std::cout<<"winfsp_sequential_lz4 ready_hit=1 pressure_refused=1 backing_discard=1 foreground_superseded=1"
+      <<" exact_cpu_feedback=1 unrelated_reads_ignored=1 ready_read_ignored=1 single_use_sample=1"
       <<" capture_backing_bytes="<<capture_bytes<<" ready_backing_bytes="<<ready_bytes
       <<" ordinary_backing_bytes="<<ordinary_bytes<<'\n';
 }

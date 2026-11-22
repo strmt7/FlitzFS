@@ -338,7 +338,7 @@ void callback_file(Provider& p,unsigned n,const Bytes& bytes,std::size_t quantum
       count==out.size() && out==bytes,"controller SDK byte readback");
   callback_cleanup_close(p,context);
 }
-// Adds a single measured provider stall on the maintenance thread.
+// Adds one sampled stall to the selected idle or demand read.
 class DelayedLookaheadBacking final:public StoreByteIo {
  public:
   explicit DelayedLookaheadBacking(std::shared_ptr<StoreByteIo> bytes):bytes_(std::move(bytes)) {}
@@ -348,18 +348,20 @@ class DelayedLookaheadBacking final:public StoreByteIo {
   void write_exact(std::uint64_t offset,std::span<const std::byte> bytes) override{bytes_->write_exact(offset,bytes);}
   void flush() override{bytes_->flush();}
   void read_exact(std::uint64_t offset,std::span<std::byte> bytes) const override {
-    if(GetCurrentThreadId()!=foreground_ && delay_.exchange(false)) {
+    auto& delay=GetCurrentThreadId()==foreground_?delay_demand_:delay_idle_;
+    if(delay.exchange(false)) {
       detail::MaintenanceBackingCall wait(detail::MaintenanceBackingOperation::control);
       std::this_thread::sleep_for(std::chrono::milliseconds(45));
       wait.complete();
     }
     bytes_->read_exact(offset,bytes);
   }
-  void delay_next_idle_read() noexcept{delay_=true;}
+  void delay_next_idle_read() noexcept{delay_idle_=true;}
+  void delay_next_demand_read() noexcept{delay_demand_=true;}
  private:
   std::shared_ptr<StoreByteIo> bytes_;
   const DWORD foreground_=GetCurrentThreadId();
-  mutable std::atomic<bool> delay_{false};
+  mutable std::atomic<bool> delay_idle_{false},delay_demand_{false};
 };
 void live_read_ahead_admission() {
   require(store_lz4_available(),"live read-ahead requires the pinned LZ4 decoder");
@@ -431,15 +433,49 @@ void live_read_ahead_admission() {
   const auto refused=controller.view();
   require(refused.read_ahead_prepared==2 && refused.maintenance_backing.elapsed_ns()==slow_sample.elapsed_ns(),
       "backing refusal performed speculative storage operations");
+  // A refused prediction is inert until ordinary reads supply another hint.
+  std::this_thread::sleep_for(std::chrono::milliseconds(1200));
+  const auto quiet=controller.view();
+  require(quiet.maintenance_quanta==refused.maintenance_quanta &&
+      quiet.read_ahead_demand_samples==0 && quiet.maintenance_backing.elapsed_ns()==slow_sample.elapsed_ns(),
+      "refused read-ahead woke on a timer without demand");
+
+  image->delay_next_demand_read();
   demand(2);
   require(route->native_lz4_read_ahead_hits()==2,"declined read-ahead failed to select ordinary CPU read");
+  demand(0);demand(1);
+  await([&]{return controller.view().read_ahead_backing_refusals==2;},12000,"slow CPU demand did not keep the backing limit");
+  const auto slow_demand=controller.view();
+  require(slow_demand.read_ahead_demand_samples==1 && slow_demand.read_ahead_prepared==2 &&
+      slow_demand.maintenance_backing.elapsed_ns()==slow_sample.elapsed_ns(),
+      "matching slow demand re-admitted speculation or caused probe I/O");
+
+  auto refusals=slow_demand.read_ahead_backing_refusals;
+  WinFspControllerView recovered;
+  for(unsigned i=0;i<8;++i) {
+    demand(2);demand(0);demand(1);
+    await([&]{
+      recovered=controller.view();
+      return recovered.read_ahead_backing_refusals>refusals || recovered.read_ahead_prepared>2;
+    },12000,"successful demand produced no read-ahead decision");
+    require(recovered.read_ahead_demand_samples==i+2,"controller lost or replayed a demand sample");
+    if(recovered.read_ahead_prepared>2)break;
+    require(recovered.maintenance_backing.elapsed_ns()==slow_sample.elapsed_ns(),
+        "controller performed backing I/O to learn recovery");
+    refusals=recovered.read_ahead_backing_refusals;
+  }
+  require(recovered.read_ahead_prepared==3,"ordinary fast reads did not re-admit speculation");
+  demand(2);
+  require(route->native_lz4_read_ahead_hits()==3,"readmission failed to deliver exact prepared bytes");
   callback_cleanup_close(provider,context);
   controller.stop_and_join();
   require(controller.view().retired && !controller.view().controller_failed &&
       provider.fs.UserContext==nullptr,"read-ahead controller did not retire");
-  std::cout<<"read_ahead_controller prepared=2 exact_hits=2 backing_refused=1 refused_backing_calls=0"
+  std::cout<<"read_ahead_controller prepared=3 exact_hits=3 backing_refused="
+      <<recovered.read_ahead_backing_refusals<<" refused_backing_calls=0"
       <<" modeled_stall_ns="<<slow_sample.elapsed_ns()-fast_sample.elapsed_ns()
-      <<" exact_cpu_fallback=1 owner_retired=1\n";
+      <<" demand_samples="<<recovered.read_ahead_demand_samples
+      <<" slow_demand_kept_limit=1 timer_only_retries=0 demand_recovered=1 exact_cpu_fallback=1 owner_retired=1\n";
 }
 void volume_file_callbacks() {
   constexpr PagedStoreLimits limits{8ULL*1024*1024};

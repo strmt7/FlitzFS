@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <chrono>
 #include <cstdlib>
 #include <cstring>
 #include <limits>
@@ -201,6 +202,15 @@ struct WinFspNativeWritable::Impl {
     ReadHistory last_read{};
   };
   struct ReadAhead {std::uintptr_t token=0;std::uint64_t offset=0;};
+  struct Lz4DemandObservation final:detail::NativeLz4ReadRoute {
+    bool verified_input=false;
+    std::optional<std::vector<std::byte>> try_ready(const detail::NativeLz4ReadKey&,
+        std::span<const std::byte>) noexcept override {
+      verified_input=true;
+      return {};
+    }
+    void reject(const detail::NativeLz4ReadKey&) noexcept override {}
+  };
   struct PreparedRead {
     ReadAhead target;
     std::unique_ptr<detail::NativeLz4ReadyReads> result;
@@ -217,6 +227,8 @@ struct WinFspNativeWritable::Impl {
   std::unique_ptr<detail::NativeLz4ReadyReads> native_lz4_reads;
   bool read_ahead_enabled=false;
   std::optional<ReadAhead> read_ahead;
+  std::optional<ReadAhead> read_ahead_sample_target;
+  std::uint64_t read_ahead_sample_ns=0;
   PreparedRead prepared_read;
   std::uint64_t read_ahead_hits=0,last_read_ahead_observation=0;
   std::array<Slot,NativeFileSession::max_contexts> slots{};
@@ -476,6 +488,7 @@ struct WinFspNativeWritable::Impl {
   void invalidate_read_ahead(Slot& slot) noexcept {
     slot.last_read={};
     if(read_ahead && read_ahead->token==slot.token)read_ahead.reset();
+    if(read_ahead_sample_target && read_ahead_sample_target->token==slot.token)read_ahead_sample_target.reset();
     if(prepared_read.target.token==slot.token)prepared_read={};
   }
   bool read_ahead_pending() const noexcept {
@@ -485,6 +498,24 @@ struct WinFspNativeWritable::Impl {
     return !maintenance_cancelled && !session.poisoned() && !offline.load(std::memory_order_acquire) &&
         !stopped.load(std::memory_order_acquire) && !foreground.load(std::memory_order_acquire) &&
         (!deferred || (!deferred->publication_pending_locked() && !deferred->stats_locked().worker_busy));
+  }
+  std::vector<std::byte> read_with_demand_sample(const Slot& slot,std::uint64_t offset,std::uint32_t length,
+      detail::NativeLz4ReadyReads* ready) {
+    const auto& target=read_ahead_sample_target;
+    if(!target || target->token!=slot.token || !length || length>kNativeExtentBytes || offset<target->offset ||
+        offset-target->offset>kNativeExtentBytes-length || (ready && ready->pending()))
+      return session.read(slot.handle,offset,length,ready);
+    read_ahead_sample_target.reset();
+    Lz4DemandObservation observation;
+    const auto start=std::chrono::steady_clock::now();
+    auto bytes=session.read(slot.handle,offset,length,&observation);
+    if(observation.verified_input && bytes.size()==length) {
+      // Complete demand service includes backing calls and CPU verification.
+      const auto elapsed=std::chrono::duration_cast<std::chrono::nanoseconds>(
+          std::chrono::steady_clock::now()-start).count();
+      read_ahead_sample_ns=elapsed>0?static_cast<std::uint64_t>(elapsed):1;
+    }
+    return bytes;
   }
   std::vector<std::byte> read_data(Slot& slot,std::uint64_t offset,std::uint32_t length) {
     if(!read_ahead_enabled || maintenance_cancelled)return session.read(slot.handle,offset,length,native_lz4_reads.get());
@@ -496,7 +527,7 @@ struct WinFspNativeWritable::Impl {
         (offset<=prepared.target.offset?prepared.target.offset-offset<length:
             offset-prepared.target.offset<kNativeExtentBytes))
       ready=prepared.result.get();
-    auto bytes=session.read(slot.handle,offset,length,ready);
+    auto bytes=read_with_demand_sample(slot,offset,length,ready);
     if(prepared.result && prepared.result->consumed())++read_ahead_hits;
     const auto maximum=(std::numeric_limits<std::uint64_t>::max)();
     if(!length || bytes.size()!=length || offset>maximum-length)return bytes;
@@ -1056,6 +1087,8 @@ void WinFspNativeWritable::cancel_background_maintenance() {
   std::lock_guard guard(impl_->control);
   impl_->maintenance_cancelled=true;
   impl_->read_ahead.reset();
+  impl_->read_ahead_sample_target.reset();
+  impl_->read_ahead_sample_ns=0;
   impl_->prepared_read={};
   impl_->groups.reset();
   if(impl_->memory_backing)impl_->memory_backing->cancel_compaction(impl_->session);
@@ -1274,6 +1307,14 @@ bool WinFspNativeWritable::native_lz4_read_ahead_pending() const noexcept {
     return guard && impl_->read_ahead_pending() && impl_->may_prepare_read();
   }catch(...) {return false;}
 }
+std::optional<std::uint64_t> WinFspNativeWritable::take_native_lz4_read_ahead_sample(std::uint64_t epoch) noexcept {
+  try {
+    std::unique_lock guard(impl_->control,std::try_to_lock);
+    if(guard && impl_->may_prepare_read() && foreground_activity()==epoch && impl_->read_ahead_pending())
+      return std::exchange(impl_->read_ahead_sample_ns,std::uint64_t{0});
+  }catch(...) {}
+  return {};
+}
 bool WinFspNativeWritable::advance_native_lz4_read_ahead(
     const NativeMaintenanceObservation& observed,std::uint64_t now,std::uint64_t epoch) noexcept {
   try {
@@ -1303,10 +1344,12 @@ bool WinFspNativeWritable::advance_native_lz4_read_ahead(
     return true;
   }catch(...) {return false;}
 }
-void WinFspNativeWritable::discard_native_lz4_read_ahead(std::uint64_t epoch) noexcept {
+void WinFspNativeWritable::discard_native_lz4_read_ahead(std::uint64_t epoch,bool measure_demand) noexcept {
   try {
     std::unique_lock guard(impl_->control,std::try_to_lock);
-    if(guard && !foreground_pending() && foreground_activity()==epoch)impl_->read_ahead.reset();
+    if(!guard || foreground_pending() || foreground_activity()!=epoch || !impl_->read_ahead)return;
+    if(measure_demand)impl_->read_ahead_sample_target=impl_->read_ahead;
+    impl_->read_ahead.reset();
   }catch(...) {}
 }
 std::uint64_t WinFspNativeWritable::native_lz4_read_ahead_hits() const {

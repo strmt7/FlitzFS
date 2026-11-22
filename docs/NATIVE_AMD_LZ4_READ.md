@@ -220,12 +220,24 @@ RX 9070 XT and retired its child process. These results exercise
 different parts of the read path.
 [Windows read-ahead verification](evidence/sequential-read-ahead-2026-11-22.json)
 
-The cost estimate is local to the attached backing. A stall can suppress
-read-ahead for the rest of that attachment because only admitted
-captures refresh the estimate today. Use actual demand reads of the
-predicted range to refresh it before enabling this route automatically.
-Verify readmission after ordinary reads become consistently cheaper, with
-no extra probe I/O during the refusal period.
+The cost estimate is local to the attached backing. When backing cost
+blocks a forecast, the controller can learn from an ordinary read within
+that extent on the same handle. The sample includes checked backing
+access and CPU decoding. It requires a successful native LZ4 demand
+without a pending ready result. Other ranges, failed reads, and ready
+results supply no sample. The controller consumes each measurement once.
+A cheaper sample lowers the recent estimate gradually, and a slow
+sample holds it high. Each new prediction still needs the existing
+foreground, backing, CPU and memory admission.
+
+The live Windows fixture served three prepared reads byte-for-byte.
+After the injected backing stall, a slow matching CPU read kept the
+next prediction deferred. Faster demand eventually restored admission.
+The controller made no backing calls to collect evidence while
+speculation was refused. It also stayed quiet through an idle sampling
+interval with no demand.
+[Read-ahead recovery verification](evidence/read-ahead-demand-recovery-2026-11-22.json) ·
+[Windows interval measurement](https://learn.microsoft.com/en-us/windows/win32/api/profileapi/nf-profileapi-queryperformancecounter)
 
 Capture still takes the serialized backing lock for a synchronous extent
 lookup. Before enabling this route by default, qualify its interference

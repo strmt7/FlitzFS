@@ -158,6 +158,7 @@ struct WinFspVolumeController::Impl {
           std::uint64_t continued=0,continued_compaction=0;
           detail::MaintenanceBackingUse backing_use;
           bool backing_limited=false,read_ahead_prepared=false,read_ahead_backing_refused=false;
+          bool read_ahead_demand_sampled=false;
           MaintenanceThreadScope priority;
           if(!priority.active())disabled=true;
           else try {
@@ -176,8 +177,11 @@ struct WinFspVolumeController::Impl {
                 auto step=[&] {
                   const detail::MaintenanceBackingScope measure(backing_use);
                   auto step=advance(observed,continuation,scrub_due);
-                  if(!observed.continued && step.state==WinFspMaintenanceState::unchanged &&
-                      !interrupted() && adapter->native_lz4_read_ahead_pending()) {
+                  const auto demand_sample=!observed.continued && step.state==WinFspMaintenanceState::unchanged &&
+                      !interrupted()?adapter->take_native_lz4_read_ahead_sample(epoch):std::nullopt;
+                  if(demand_sample) {
+                    read_ahead_timing.observe(*demand_sample);
+                    read_ahead_demand_sampled=*demand_sample!=0;
                     const auto allowance=host.continue_preparation(adapter->group_maintenance_policy().maximum_age_ms,
                         read_ahead_timing.predicted_ns(),&read_ahead_backing_refused);
                     if(allowance && !interrupted()) {
@@ -185,7 +189,7 @@ struct WinFspVolumeController::Impl {
                       read_ahead_prepared=adapter->advance_native_lz4_read_ahead(*allowance,GetTickCount64(),epoch);
                       read_ahead_timing.observe(backing_use.elapsed_ns()-before);
                       if(!read_ahead_prepared)adapter->discard_native_lz4_read_ahead(epoch);
-                    } else if(read_ahead_backing_refused)adapter->discard_native_lz4_read_ahead(epoch);
+                    } else if(read_ahead_backing_refused)adapter->discard_native_lz4_read_ahead(epoch,true);
                   }
                   return step;
                 }();
@@ -266,6 +270,7 @@ struct WinFspVolumeController::Impl {
             current.maintenance_backing.add(backing_use);
             current.read_ahead_prepared+=read_ahead_prepared;
             current.read_ahead_backing_refusals+=read_ahead_backing_refused;
+            current.read_ahead_demand_samples+=read_ahead_demand_sampled;
           }
           if(notify_integrity_fault && status_changed.value)SetEvent(status_changed.value);
         }

@@ -146,9 +146,12 @@ class WinFspNativeWritable final {
   // is prepared at an admitted idle opportunity after consecutive demand reads.
   bool enable_native_lz4_read_ahead();
   bool native_lz4_read_ahead_pending() const noexcept;
+  // A current forecast yields one measured demand cost, or zero without a sample.
+  std::optional<std::uint64_t> take_native_lz4_read_ahead_sample(std::uint64_t foreground_epoch) noexcept;
   bool advance_native_lz4_read_ahead(const NativeMaintenanceObservation&,std::uint64_t now_ms,
       std::uint64_t foreground_epoch) noexcept;
-  void discard_native_lz4_read_ahead(std::uint64_t foreground_epoch) noexcept;
+  // After a measured backing refusal, the matching CPU demand may refresh cost.
+  void discard_native_lz4_read_ahead(std::uint64_t foreground_epoch,bool measure_demand=false) noexcept;
   std::uint64_t native_lz4_read_ahead_hits() const;
   void bind_callbacks(FSP_FILE_SYSTEM&,WinFspOriginQuery) noexcept;
   bool self_origin_rejected() const noexcept;

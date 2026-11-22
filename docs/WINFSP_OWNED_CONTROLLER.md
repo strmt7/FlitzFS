@@ -66,6 +66,12 @@ indexed inode retirement and advisory checkpoints retain their own fresh
 capture requirement. Indexed final Close records retirement and signals the
 controller.
 
+Opt-in indexed LZ4 read-ahead can consume spare idle credit after other
+maintenance. A backing-cost refusal drops the prediction and records the target extent.
+A subsequent ordinary CPU read of that extent can update the backing
+cost the next time demand produces a prediction.
+[Sequential read-ahead](NATIVE_AMD_LZ4_READ.md#qualifying-sequential-read-ahead)
+
 Complete elapsed time across the admitted steps, including wrapper and
 collector overhead, is charged against the 1% pacing target. Activity cannot
 erase the next due time. Timed waits pace pending maintenance and GPU budget
