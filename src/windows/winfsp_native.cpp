@@ -1,4 +1,5 @@
 #include "winfsp_native.hpp"
+#include "../native_lz4_decode_wire.hpp"
 #include "memory_volume_factory.hpp"
 #include "../native_maintenance_source.hpp"
 #include "../native_volume_file_reclaimer.hpp"
@@ -201,6 +202,7 @@ struct WinFspNativeWritable::Impl {
   };
   WinFspOriginGuard origin;
   NativeFileSession session;
+  std::unique_ptr<detail::NativeLz4ReadyReads> native_lz4_reads;
   std::array<Slot,NativeFileSession::max_contexts> slots{};
   std::uintptr_t next_token=1;
   mutable std::mutex control;
@@ -581,7 +583,7 @@ struct WinFspNativeWritable::Impl {
   static NTSTATUS read(FSP_FILE_SYSTEM* fs,PVOID context,PVOID buffer,UINT64 offset,ULONG length,PULONG count) noexcept {
     if(count)*count=0;if(!count||(!buffer&&length)||length>kNativeMaxReadBytes)return STATUS_INVALID_PARAMETER;
     return run(fs,[&](Impl& s) {
-      auto& slot=s.adopt(context);const auto bytes=s.session.read(slot.handle,offset,length);
+      auto& slot=s.adopt(context);const auto bytes=s.session.read(slot.handle,offset,length,s.native_lz4_reads.get());
       if(bytes.empty()&&length)return win_detail::failure(s.session,STATUS_END_OF_FILE);
       if(!bytes.empty())std::memcpy(buffer,bytes.data(),bytes.size());*count=static_cast<ULONG>(bytes.size());return success();
     });
@@ -1173,6 +1175,22 @@ NativeDeferredStop WinFspNativeWritable::stop_deferred_writes_hosted(){
     service=impl_->deferred.get();
   }
   return service?service->stop():NativeDeferredStop::quiescent;
+}
+bool WinFspNativeWritable::publish_native_lz4_reads(std::unique_ptr<detail::NativeLz4ReadyReads>& results) noexcept {
+  try {
+    std::unique_ptr<detail::NativeLz4ReadyReads> retired;
+    {
+      std::unique_lock guard(impl_->control,std::try_to_lock);
+      if(!guard || !results || impl_->info_policy!=indexed_file_info || requires_offline() || dispatcher_stopped())
+        return false;
+      retired=std::exchange(impl_->native_lz4_reads,std::move(results));
+    }
+    return true;
+  }catch(...) {return false;}
+}
+std::size_t WinFspNativeWritable::native_lz4_read_hits() const {
+  std::lock_guard guard(impl_->control);
+  return impl_->native_lz4_reads?impl_->native_lz4_reads->consumed():0;
 }
 void WinFspNativeWritable::bind_callbacks(FSP_FILE_SYSTEM& fs,WinFspOriginQuery query) noexcept{
   impl_->origin.bind(query);fs.UserContext=impl_.get();

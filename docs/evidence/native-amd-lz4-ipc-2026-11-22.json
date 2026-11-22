@@ -1,0 +1,226 @@
+{
+  "schema": "flitzfs-native-amd-lz4-ipc-v1",
+  "date": "2026-11-22",
+  "source": {
+    "base": "049d558d20894839d15ad8917f09bd417fc52859",
+    "base_tree": "38934568ac0efbc6bbabda8612e66c6ea432bfcf",
+    "blobs": {
+      "CMakeLists.txt": "e05cdff23e64f9f372ea1865ffdc677dd0de3e74",
+      "src/native_lz4_decode_wire.cpp": "f8ac304bd1729fc280b10ec7192740fa811fa693",
+      "src/native_lz4_decode_wire.hpp": "aa41f3ce23356616d457f23bd2ca34da92490b5b",
+      "src/native_lz4_read.hpp": "d0d402d210c9c2abbbd935e843d2d4b6b292491f",
+      "src/windows/hip_worker_main.cpp": "93fd95e17ceac8cd2563f8dbe84525ac407c7482",
+      "src/windows/winfsp_native.cpp": "6d7112a2466f845c4756fbd7121b75dc0d625514",
+      "src/windows/winfsp_native.hpp": "6648557fb18fe590b2a35a142e3d36ab3cf5334b",
+      "tests/rocm_compile/CMakeLists.txt": "c5c77c137cc6ec013e9c596a12a151d417bbbd28",
+      "tests/rocm_compile/native_lz4_decode_probe.cpp": "ba3969d69b228cfd7769bf73ecfbaa7ff8fa3cc8",
+      "tests/test_native_lz4_decode.cpp": "79227fc71965809a13d2d278dbdd7a19f83fa6e0",
+      "tests/test_winfsp_paged.cpp": "93d905bf140cf45f05d9322368e205054a0f5f32"
+    }
+  },
+  "navigation": {
+    "commit": "049d558d20894839d15ad8917f09bd417fc52859",
+    "provider_version": "0.2.43",
+    "inventory_sha256": "702f9a19944d86b2301c7add28c34b24cf49ab31863ea909b72e8a62dba45561",
+    "native_response_sha256": "baf904a17964f44f9559b9a17a43896fab7291bbf7537e25a327fd98ca4d6847",
+    "actual_searches": 1,
+    "receipt_sha256": "02a6e0514c4916f2f2c1c5e344e9518d91e0d89e8d35340834ad93fc52305e44"
+  },
+  "window": {
+    "os": "Windows 11 client",
+    "amd_adapter": "Radeon RX 9070 XT",
+    "backing": "private memory fixture"
+  },
+  "pinned_device": {
+    "luid": "3975010000000000",
+    "runtime_sha": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+    "module_sha": "4e35d628f55b5d91beaf3075ea031a896c167d70b50b01dea82b720f2c747cf7",
+    "source_sha": "4847f6507db6987d1c31e0a692ccf40d1c8953d0c15feee8139615a6a1f7f8e7",
+    "object_sha": "b817696fea0bd04dc01e7c894be4a032186d8c088a172459c62368b4104cbd6e"
+  },
+  "binaries": {
+    "flitzfs_rocm_native_lz4_decode.dll": "4e35d628f55b5d91beaf3075ea031a896c167d70b50b01dea82b720f2c747cf7",
+    "flitzfs_native_lz4_read_worker.exe": "34da90d03c857e687c135d9b5cd618eb65388026946d559f0748840e463ba29f",
+    "flitzfs_native_lz4_decode_probe.exe": "4ee7d9bba45fffc2a21bdd1e251fa54ed5c9af51767d3dbf989d368deecccfe3"
+  },
+  "source_corpus": {
+    "bytes": 1308765,
+    "sha256": "4847f6507db6987d1c31e0a692ccf40d1c8953d0c15feee8139615a6a1f7f8e7",
+    "url": "https://aitdcc.github.io/data/A"
+  },
+  "companion_object_sha256": "8d3c796e9360e0a6c8b6166b72149b7d0fa96341ebe0c027435ce7c55a3532bd",
+  "initial_failures": {
+    "initial_sdk_link": "Earlier companion object lacked the current bind_anchor_wide_search API.",
+    "initial_companion_compile": "Current companion source needed the normal staged FlitzFS headers."
+  },
+  "tests_passed": {
+    "default": 208,
+    "raw": 207,
+    "asan": 3,
+    "sdk_callbacks": 2
+  },
+  "bounded_jobs": {
+    "default": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "memory_bytes": 922746880,
+      "peak_job_bytes": 342429696,
+      "cpu_percent": 19,
+      "elapsed_seconds": 193.18700000000172,
+      "result_sha256": "025fe5f98d2ba6703136279213028fc16c463fc2d6d2278bdc24e08e3e02dfcd",
+      "output_sha256": "3cccbddc5db8b5eb60935d09d055c562a3734d2d1acc72dd6be3c6d24d9d55c0"
+    },
+    "raw": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "memory_bytes": 946864128,
+      "peak_job_bytes": 339476480,
+      "cpu_percent": 19,
+      "elapsed_seconds": 180.43699999999808,
+      "result_sha256": "9f0621a212d9d934715c6dde05d087eeddcb82fc472c2686f39a26cc8d7f8c92",
+      "output_sha256": "d0e097661c6714d3159ef8a490ac28142c38c89538eacf568e8c91d03460116d"
+    },
+    "asan": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "memory_bytes": 960495616,
+      "peak_job_bytes": 75644928,
+      "cpu_percent": 19,
+      "elapsed_seconds": 0.2969999999986612,
+      "result_sha256": "215aa1a587a5ec7ffdce00aeb846d5d16c95cc6f3ebb23c7f7f5c10b14eb690b",
+      "output_sha256": "d14e5706b1f19e7e7370f798ae9c3df649b13428df37301399d4ed65b0cd0796"
+    },
+    "sdk_callbacks": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "memory_bytes": 933232640,
+      "peak_job_bytes": 10002432,
+      "cpu_percent": 16,
+      "elapsed_seconds": 0.23399999999674037,
+      "result_sha256": "6636e0a186d40b73738dccacb9e11379be1de309b8b8ff8dd416dac9985e2bb6",
+      "output_sha256": "546e495474ee248b7c5911927af99baea303fe3aa17a64047e18585550fff5c5"
+    },
+    "sdk_build": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "memory_bytes": 2156920832,
+      "peak_job_bytes": 372985856,
+      "cpu_percent": 14,
+      "elapsed_seconds": 5.360000000000582,
+      "result_sha256": "25811d5448776b9a9518239a3be286af1cfd79ac5535f06156f9610d36e9ec0f",
+      "output_sha256": "f9d98723bc3327b60468c0cf2d64553e990c3103c98c3ead44ed07a9a2e6b1fd"
+    },
+    "synthetic": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "memory_bytes": 1539309568,
+      "peak_job_bytes": 92778496,
+      "cpu_percent": 12,
+      "elapsed_seconds": 2.6090000000003783,
+      "result_sha256": "0c76e6290b12c445e2600f599d443a934e09cc26c635459a9bf762a33b00395b",
+      "output_sha256": "4f3ee9c9bcf74b1cd542e299d282c04a65e27f102922e3954ae18be4b8622db6"
+    },
+    "public": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "memory_bytes": 1177550848,
+      "peak_job_bytes": 91332608,
+      "cpu_percent": 12,
+      "elapsed_seconds": 2.1409999999996217,
+      "result_sha256": "04e8a3e698760f745b30a3167df34c0eabc67c8f882578c3298911f46524ca99",
+      "output_sha256": "2d60d1beed764c5e83f4abae745d34edf2abd67a2fa1ef1f190a6e6541666d75"
+    },
+    "module_refused": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "memory_bytes": 846200832,
+      "peak_job_bytes": 12111872,
+      "cpu_percent": 12,
+      "elapsed_seconds": 0.26599999999962165,
+      "result_sha256": "d8740dca41505d51078dde7d2ebf4f2bbcd142da9966ac8e7e451b22736ee92f",
+      "output_sha256": "bd2d6d56de4bc37732774503cae54afe74ac3048afc81e69ea27e0c549497f1d"
+    },
+    "companion_kernel": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "memory_bytes": 2937061376,
+      "peak_job_bytes": 206422016,
+      "cpu_percent": 19,
+      "elapsed_seconds": 18.235000000000582,
+      "result_sha256": "2d29e13c520659fee505e52b21df9cd045c29cdab4f2c19b3ab1beefbce27869",
+      "output_sha256": "17796c7de7eb54049d09fafc69a88f2ff19934324ac0748e4aeb75c06c7a36be"
+    },
+    "initial_sdk_link": {
+      "exit_code": 1,
+      "tree_retired": true,
+      "residual_children": 0,
+      "memory_bytes": 2899312640,
+      "peak_job_bytes": 690159616,
+      "cpu_percent": 21,
+      "elapsed_seconds": 83.81300000000192,
+      "result_sha256": "b2a1ee82d4c5ba447eb4be755ec938f9dd9e036f32420604be9a918050870426",
+      "output_sha256": "1c9939ac73359ba3c4525e912a93d65b6db551fb46e0c3839aadd57a83d30576"
+    },
+    "initial_companion_compile": {
+      "exit_code": 1,
+      "tree_retired": true,
+      "residual_children": 0,
+      "memory_bytes": 2804940800,
+      "peak_job_bytes": 202420224,
+      "cpu_percent": 19,
+      "elapsed_seconds": 4.15599999999904,
+      "result_sha256": "150353619b13d3daca2f4831de9816c515e826e6f1ee1e63489e065818305224",
+      "output_sha256": "4cc40354c524823d514b227297d115d6d0c3207689414dd2eb4b55355d6893bc"
+    }
+  },
+  "amd_indexed_session": {
+    "synthetic": {
+      "architecture": "gfx1201",
+      "frames": 2,
+      "gpu_launched": true,
+      "bytes_exact": true,
+      "cpu_fallback_exact": true,
+      "first_decoded_bytes": 65560,
+      "second_decoded_bytes": 65523,
+      "exact_child_retired": true,
+      "pending_cpu_read_exact": true,
+      "kernel_launches": 2,
+      "reused_device_slab_bytes": 74096,
+      "exchange_ns": 2439900100,
+      "cpu_session_read_ns": 152200,
+      "public_corpus": false
+    },
+    "public": {
+      "architecture": "gfx1201",
+      "frames": 2,
+      "gpu_launched": true,
+      "bytes_exact": true,
+      "cpu_fallback_exact": true,
+      "first_decoded_bytes": 65560,
+      "second_decoded_bytes": 65523,
+      "exact_child_retired": true,
+      "pending_cpu_read_exact": true,
+      "kernel_launches": 2,
+      "reused_device_slab_bytes": 130880,
+      "exchange_ns": 2018483200,
+      "cpu_session_read_ns": 247800,
+      "public_corpus": true
+    }
+  },
+  "module_refusal": {
+    "worker_refused_module": true,
+    "gpu_launched": false,
+    "exact_child_retired": true,
+    "cpu_fallback_exact": true
+  },
+  "scope": "Two complete cold samples during builds. WinFsp SDK ready consumption was a separate CPU-semantics callback test."
+}

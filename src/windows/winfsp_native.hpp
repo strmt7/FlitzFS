@@ -7,6 +7,7 @@
 #include <functional>
 #include <memory>
 namespace flitzfs {
+namespace detail {class NativeLz4ReadyReads;}
 struct MemoryVolumeBacking;
 // Experimental real writable adapter; qualify backing, runtime and containment.
 // Historical _hosted names remain for ABI/report compatibility, not location.
@@ -133,6 +134,10 @@ class WinFspNativeWritable final {
   NativeDeferredWriteStats deferred_write_stats() const;
   std::optional<NativeUniformWriteResult> deferred_write_receipt() const;
   NativeDeferredStop stop_deferred_writes_hosted();
+  // The owner publishes only complete, verified worker results after retirement.
+  // Read callbacks consume exact-key results and otherwise use the CPU decoder.
+  bool publish_native_lz4_reads(std::unique_ptr<detail::NativeLz4ReadyReads>&) noexcept;
+  std::size_t native_lz4_read_hits() const;
   void bind_callbacks(FSP_FILE_SYSTEM&,WinFspOriginQuery) noexcept;
   bool self_origin_rejected() const noexcept;
   bool mount_names_supported() const;

@@ -1,0 +1,202 @@
+{
+  "schema": "flitzfs-windows-backing-media-v1",
+  "date": "2026-11-22",
+  "source": {
+    "base": "049d558d20894839d15ad8917f09bd417fc52859",
+    "blobs": {
+      "src/store_file.cpp": "6123148f880452f11ba4a4ad8ddf4030d235e537",
+      "src/windows/volume_app_winfsp.cpp": "c93a40625667e9e7660778bf6be0be0e67fca075"
+    }
+  },
+  "windows_sdk": "10.0.28000.0",
+  "native_queries": {
+    "drive_type": 3,
+    "file_storage_info": [
+      512,
+      4096,
+      4096,
+      4096,
+      3,
+      0,
+      0
+    ],
+    "directory_handle": {
+      "transport": {
+        "windows_error": 87
+      },
+      "seek_penalty": {
+        "windows_error": 87
+      },
+      "trim": {
+        "windows_error": 87
+      }
+    },
+    "volume_metadata_handle": {
+      "transport": {
+        "bytes": 396,
+        "version": 40,
+        "declared_size": 396,
+        "removable": false,
+        "command_queueing": true,
+        "bus": 11
+      },
+      "seek_penalty": {
+        "bytes": 12,
+        "version": 12,
+        "declared_size": 12,
+        "enabled": true
+      },
+      "trim": {
+        "bytes": 12,
+        "version": 12,
+        "declared_size": 12,
+        "enabled": false
+      }
+    },
+    "data_write_attempts": 0,
+    "data_read_attempts": 0,
+    "bus_type_name": "BusTypeSata"
+  },
+  "probe_sha256": "aa124e19b850b77fafb06dc56b77874ad63a924ebde37c4b6dab04696e31908a",
+  "navigation": {
+    "provider_version": "0.2.43",
+    "actual_searches": 1,
+    "native_response_sha256": "6b2059fd37c2c00ed2258ea37122fcd54abf39796c8289b9f714043e580df3df",
+    "dirty_patch_sha256": "b07c69b1878fb72743a9779af8dc7eac4126024ef4870ca3f58aaff77ad157ec",
+    "inventory_sha256": "67f7d2623f1b21e64ae145201e90a7c19647c4d9a1aae2207b6639988d7f7713",
+    "receipt_sha256": "73437a88e17ab8c405690b231d695238927082c80155d64dfb416a03d3949cf9"
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "2f1489aed2da4c34ca16c881ccb6f7019dfd5e7208119a1b33b697ac86b14659",
+    "native_pages": [
+      {
+        "name": "device-query",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-ioctl_storage_query_property",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 61230,
+        "markdown_sha256": "c324a6f49ba0f4d4c49aeed87bcf56ff0af5e6190d8231a5c5dbd071ac74d4a5",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.489,
+        "capture": "device-query.native.json",
+        "capture_sha256": "d29bb9115af33bcd44a03f9dbb947c18429d2207aec392e0f39fc545395c2367"
+      },
+      {
+        "name": "device-bus",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ns-winioctl-storage_device_descriptor",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 64289,
+        "markdown_sha256": "db05240fd3c1f516266cb2616d8c79b1c36361a06081c44d7da56a9ecd29138e",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.879,
+        "capture": "device-bus.native.json",
+        "capture_sha256": "31f6ff09d9282d1fffea6665a3f55bb932afc6ae5f32ee307c9c159e6ea3c594"
+      },
+      {
+        "name": "seek-penalty",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ns-winioctl-device_seek_penalty_descriptor",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 60453,
+        "markdown_sha256": "de001d63c7079990e9b43e23e7324d8b3a2d8e1d664acc09f48196704f5dcd94",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.987,
+        "capture": "seek-penalty.native.json",
+        "capture_sha256": "48c4debf784def7182bdccd6022a22d85433361bb00c7ef46c0d12ed37f27a0f"
+      },
+      {
+        "name": "trim",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ns-winioctl-device_trim_descriptor",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 60215,
+        "markdown_sha256": "f13f5b8714d081f77eb32d5cb8fdfe434b943faa6c8f445719b2ab17eae34452",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.992,
+        "capture": "trim.native.json",
+        "capture_sha256": "eda68f73ef5053b382921d7c20570fcb75614f759f0d3bdac4f85588a5087d31"
+      },
+      {
+        "name": "sector-report",
+        "url": "https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/3e75d97f-1d0b-4e47-b435-73c513837a57",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 25500,
+        "markdown_sha256": "2fc3e60f99bc80ea12684afbabd2d1c07c1ef937bff14d9577a03455ffeb4eb9",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.042,
+        "capture": "sector-report.native.json",
+        "capture_sha256": "4d3a57056ed10e085c99a75bda83c77c337f448f364deba5f66e03ebca7e1133"
+      }
+    ]
+  },
+  "initial_failures": {
+    "mediaNewRoute": "No successful chunks under the initial process memory grant.",
+    "mediaOfficialContracts": "Python MemoryError during provider import under the initial grant."
+  },
+  "bounded_jobs": {
+    "mediaNewRoute": {
+      "exit_code": 1,
+      "tree_retired": true,
+      "residual_children": 0,
+      "memory_bytes": 845152256,
+      "peak_job_bytes": 855879680,
+      "result_sha256": "eeaf1e2ba8cc1a6cd60c179c3a9a1634a53a19a3e73d62e1535aeca4d597b505"
+    },
+    "mediaOfficialContracts": {
+      "exit_code": 1,
+      "tree_retired": true,
+      "residual_children": 0,
+      "memory_bytes": 845152256,
+      "peak_job_bytes": 846200832,
+      "result_sha256": "dca51e360370f809eea3f2adb88474fa1bf2578bf8096206236760823ddd75f7"
+    },
+    "mediaCheckedRoute": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "memory_bytes": 1801453568,
+      "peak_job_bytes": 1081450496,
+      "result_sha256": "1b2d1abdcde8c607c1e5796144b1c8296608b9311743bb60a770180b012aae3d"
+    },
+    "mediaCheckedContracts": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "memory_bytes": 1801453568,
+      "peak_job_bytes": 1248010240,
+      "result_sha256": "e782b13cbbfdb6d578a4b53b22ec98a78571bbaefddbb750abe45da50abeb96b"
+    },
+    "mediaSelectedReadOnly": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "memory_bytes": 1119879168,
+      "peak_job_bytes": 10084352,
+      "result_sha256": "04afe7135c5cbeacb10d9f9cffd3fefd0e0ec153913719afb0119666cf973751"
+    }
+  },
+  "scope": "One selected local Windows volume. Advisory properties only. No foreground I/O, device endurance, or physical recovery measurement."
+}

@@ -1,5 +1,7 @@
-#include "hip_uniform_lz4_compute.hpp"
-#include "hip_decode_worker.hpp"
+#include "native_lz4_decode_wire.hpp"
+#include "worker_exchange.hpp"
+#include "gpu_request_id.hpp"
+#include "flitzfs/gpu_batch.hpp"
 #include "hip_module_verification.hpp"
 #include "gpu_budget.hpp"
 #include "../native_fs_fixture.hpp"
@@ -46,24 +48,6 @@ std::filesystem::path module_path(HMODULE module) {
   return path;
 }
 
-class LoadedModule final {
- public:
-  explicit LoadedModule(const std::filesystem::path& path) {
-    handle_=LoadLibraryExW(path.c_str(),nullptr,LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR|LOAD_LIBRARY_SEARCH_SYSTEM32);
-    require(handle_!=nullptr,"verified module could not load");
-    try {
-      require(std::filesystem::equivalent(path,module_path(handle_)),"module resolved to a different file");
-    }catch(...) {FreeLibrary(handle_);throw;}
-  }
-  ~LoadedModule(){if(handle_)FreeLibrary(handle_);}
-  LoadedModule(const LoadedModule&)=delete;
-  LoadedModule& operator=(const LoadedModule&)=delete;
-  HMODULE get() const noexcept{return handle_;}
-  void close(){if(auto h=std::exchange(handle_,nullptr))require(FreeLibrary(h)!=0,"module retirement failed");}
- private:
-  HMODULE handle_=nullptr;
-};
-
 struct CapturedFrame {
   NativeLz4ReadKey key;
   Bytes encoded;
@@ -71,7 +55,7 @@ struct CapturedFrame {
 class ReadRoute final:public NativeLz4ReadRoute {
  public:
   std::array<CapturedFrame,2> captured;
-  std::vector<NativeLz4DecodedFrame> ready;
+  std::unique_ptr<NativeLz4ReadyReads> ready;
   std::size_t count=0,hits=0,rejected=0;
   bool collecting=true;
   std::optional<Bytes> try_ready(const NativeLz4ReadKey& key,std::span<const std::byte> encoded) noexcept override {
@@ -81,22 +65,19 @@ class ReadRoute final:public NativeLz4ReadRoute {
         ++count;
       }catch(const std::exception&) {}
     }
-    if(!collecting) {
-      const auto match=std::ranges::find(ready,key,&NativeLz4DecodedFrame::key);
-      if(match!=ready.end() && !match->bytes.empty()) {
-        ++hits;
-        return std::exchange(match->bytes,Bytes{});
-      }
+    if(!collecting && ready) {
+      auto result=ready->try_ready(key,encoded);
+      if(result)++hits;
+      return result;
     }
     return {};
   }
-  void reject(const NativeLz4ReadKey&) noexcept override{++rejected;}
+  void reject(const NativeLz4ReadKey& key) noexcept override{++rejected;if(ready)ready->reject(key);}
 };
 
 void run(std::wstring_view runtime_name,std::wstring_view runtime_sha,std::wstring_view module_sha,
     std::wstring_view adapter,std::wstring_view architecture,std::wstring_view ordinal_text,
-    const std::optional<std::filesystem::path>& corpus) {
-  require_hip_worker_job(true);
+    const std::optional<std::filesystem::path>& corpus,bool refuse_module) {
   require(store_lz4_available(),"native LZ4 CPU reference unavailable");
   require(ordinal_text.size()==1 && ordinal_text[0]>=L'0' && ordinal_text[0]<=L'9',"invalid HIP ordinal");
   const int ordinal=ordinal_text[0]-L'0';
@@ -104,7 +85,6 @@ void run(std::wstring_view runtime_name,std::wstring_view runtime_sha,std::wstri
   const auto arch=ascii(architecture);
   const auto wave_mask=arch=="gfx1201"?1U:arch=="gfx90a"?2U:0U;
   require(wave_mask!=0,"architecture not in the compiled fixture");
-  const hip_detail::Lz4KernelCoverage coverage{arch,wave_mask};
 
   auto backing=std::make_shared<native_fixture::Ram>();
   backing->failure_unit=4096;
@@ -143,9 +123,11 @@ void run(std::wstring_view runtime_name,std::wstring_view runtime_sha,std::wstri
       NativeLz4DecodeSource{route.captured[0].key,route.captured[0].encoded},
       NativeLz4DecodeSource{route.captured[1].key,route.captured[1].encoded}};
   constexpr NativeLz4DecodeGrant grant{2,256U*1024U};
-  const std::array batches{NativeLz4DecodeBatch::prepare({&sources[0],1},grant),
-      NativeLz4DecodeBatch::prepare({&sources[1],1},grant)};
-  const auto peak=(std::max)(batches[0].upload().size(),batches[1].upload().size());
+  const auto exchange=NativeLz4ReadExchange::prepare(sources,detail::next_gpu_request_id(),grant);
+  const WorkerChannelCapacity capacity{exchange.request()->bytes().size(),exchange.reply_capacity()};
+  const auto first_batch=NativeLz4DecodeBatch::prepare({&sources[0],1},grant);
+  const auto second_batch=NativeLz4DecodeBatch::prepare({&sources[1],1},grant);
+  const auto peak=(std::max)(first_batch.upload().size(),second_batch.upload().size());
 
   WindowsGpuBudgetSampler gpu(luid,1);
   const auto available=gpu.sample().snapshot;
@@ -162,17 +144,41 @@ void run(std::wstring_view runtime_name,std::wstring_view runtime_sha,std::wstri
       "matched CPU fixture reads failed");
   const auto cpu_ns=std::chrono::duration_cast<std::chrono::nanoseconds>(
       std::chrono::steady_clock::now()-cpu_start).count();
+  constexpr ProcessBudget child{160,1200,14000,16};
+  require(valid_worker_channel_capacity(capacity,child),"native LZ4 worker channel refused");
+  std::wstring worker_module_sha(module_sha);
+  if(refuse_module)worker_module_sha.front()=worker_module_sha.front()==L'0'?L'1':L'0';
+  const std::vector<std::wstring> arguments{L"--driver-native-lz4-read-adapter",std::to_wstring(ordinal),
+      std::wstring(adapter),L"1",std::wstring(runtime_sha),std::move(worker_module_sha),std::wstring(architecture),
+      std::to_wstring(wave_mask),std::to_wstring(capacity.request_bytes),std::to_wstring(capacity.reply_bytes),
+      std::to_wstring(grant.maximum_frames),std::to_wstring(grant.maximum_slab_bytes),L"1"};
+  const auto executable=native.parent_path()/"flitzfs_native_lz4_read_worker.exe";
   const auto started=std::chrono::steady_clock::now();
-  LoadedModule runtime(system.path()),kernel(native);
-  const auto address=GetProcAddress(kernel.get(),"flitzfs_native_lz4_decode_api");
-  require(address!=nullptr,"native decode function table unavailable");
-  const auto entry=std::bit_cast<native_lz4_decode::KernelApiEntry>(address);
-  const auto* table=entry();
-  require(table && native_lz4_decode::compatible(*table),"native decode function table changed");
-  route.ready=run_hip_native_lz4_decode_in_worker(runtime.get(),*table,ordinal,luid,1,batches,grant,{&coverage,1});
-  kernel.close();
-  runtime.close();
-  const auto gpu_ns=std::chrono::duration_cast<std::chrono::nanoseconds>(
+  auto work=WorkerExchangeSession::start_sized(executable,arguments,exchange.request(),capacity,child);
+  require(session.read(reader,0,first_size,&route)==first && route.hits==0,
+      "pending worker prevented immediate CPU file read");
+  const auto done=static_cast<HANDLE>(work.supervisor_wait_handle());
+  require(done && WaitForSingleObject(done,child.timeout_ms+2500)==WAIT_OBJECT_0 && work.retirement_confirmed(),
+      "native LZ4 child retirement unconfirmed");
+  const auto* result=work.try_result();
+  if(refuse_module) {
+    require(result && result->code==WorkerExchangeCode::worker_failed && result->process.exit_confirmed &&
+        result->process.exit_code==static_cast<std::uint32_t>(HipWorkerExit::integrity_failure) &&
+        result->response.empty(),"wrong module identity did not refuse the worker before device access");
+    require(session.read(reader,0,first_size,&route)==first &&
+        session.read(reader,kNativeExtentBytes,second_size,&route)==second && route.hits==0,
+        "indexed reads changed after worker refusal");
+    std::cout<<"native_lz4_refusal {\"worker_refused_module\":true,\"gpu_launched\":false,"
+        "\"exact_child_retired\":true,\"cpu_fallback_exact\":true}\n";
+    return;
+  }
+  if(!result || result->code!=WorkerExchangeCode::completed || !result->process.exit_confirmed) {
+    if(result)std::cerr<<"native read worker exit="<<result->process.exit_code<<" state="
+        <<static_cast<unsigned>(result->code)<<'\n';
+    throw std::runtime_error("native LZ4 worker did not complete");
+  }
+  route.ready=exchange.accept(result->response,WorkerExecution::hip);
+  const auto exchange_ns=std::chrono::duration_cast<std::chrono::nanoseconds>(
       std::chrono::steady_clock::now()-started).count();
   require(session.read(reader,0,first_size,&route)==first &&
       session.read(reader,kNativeExtentBytes,second_size,&route)==second &&
@@ -184,8 +190,9 @@ void run(std::wstring_view runtime_name,std::wstring_view runtime_sha,std::wstri
       <<"\",\"frames\":2,\"gpu_launched\":true,\"bytes_exact\":true,\"cpu_fallback_exact\":true"
       <<",\"first_decoded_bytes\":"<<sources[0].key.decoded_bytes
       <<",\"second_decoded_bytes\":"<<sources[1].key.decoded_bytes
-      <<",\"kernel_launches\":"<<batches.size()<<",\"reused_device_slab_bytes\":"<<peak
-      <<",\"module_and_compute_ns\":"<<gpu_ns
+      <<",\"exact_child_retired\":true,\"pending_cpu_read_exact\":true"
+      <<",\"kernel_launches\":2,\"reused_device_slab_bytes\":"<<peak
+      <<",\"exchange_ns\":"<<exchange_ns
       <<",\"cpu_session_read_ns\":"<<cpu_ns<<",\"public_corpus\":"<<(corpus?"true":"false")<<"}\n";
 }
 }
@@ -193,8 +200,9 @@ void run(std::wstring_view runtime_name,std::wstring_view runtime_sha,std::wstri
 int wmain(int argc,wchar_t** argv) {
   try {
     require(argc==7 || argc==8,"expected runtime name and hash, module hash, LUID, architecture and HIP ordinal");
-    const auto corpus=argc==8?std::optional{std::filesystem::path(argv[7])}:std::nullopt;
-    run(argv[1],argv[2],argv[3],argv[4],argv[5],argv[6],corpus);
+    const bool refuse_module=argc==8 && std::wstring_view(argv[7])==L"--refuse-native-module";
+    const auto corpus=argc==8 && !refuse_module?std::optional{std::filesystem::path(argv[7])}:std::nullopt;
+    run(argv[1],argv[2],argv[3],argv[4],argv[5],argv[6],corpus,refuse_module);
   }catch(const flitzfs::HipWorkerFailure& failure) {
     std::cerr<<failure.what()<<" (stage "<<static_cast<unsigned>(failure.stage)<<")\n";
     return 2;

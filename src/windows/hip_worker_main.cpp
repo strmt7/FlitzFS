@@ -16,6 +16,10 @@
 #include "hip_lz4_bundle.hpp"
 #include "hip_uniform_lz4_bundle.hpp"
 #endif
+#ifdef FLITZFS_HIP_NATIVE_LZ4_READ_FIXTURE
+#include "../native_lz4_decode_wire.hpp"
+#include "hip_uniform_lz4_compute.hpp"
+#endif
 #include "hip_module_verification.hpp"
 #include "worker_exchange.hpp"
 #include "flitzfs/read_only_file.hpp"
@@ -255,7 +259,8 @@ int worker(int argc, wchar_t** argv) {
   const bool anchor_batch=mode==L"--driver-anchor-batch" || anchor_transfer;
   const bool anchor_profile=mode==L"--driver-anchor-sweep-profile";
   const bool anchor_sweep=mode==L"--driver-anchor-sweep" || anchor_profile;
-  require_hip_worker_job(anchor_batch || anchor_sweep);
+  const bool native_read=mode==L"--driver-native-lz4-read-adapter";
+  require_hip_worker_job(anchor_batch || anchor_sweep || native_read);
   // Compiler discovery must not leak into an application runtime. This changes
   // only this disposable child; the launching process remains untouched.
   require(_wputenv_s(L"LLVM_PATH", L"") == 0,
@@ -274,6 +279,81 @@ int worker(int argc, wchar_t** argv) {
         "independent CPU LZ4 verification unavailable");
     return 0;
   }
+
+
+#ifdef FLITZFS_HIP_NATIVE_LZ4_READ_FIXTURE
+  if(native_read) {
+    require(argc==16 && std::wstring_view(argv[14])==L"--worker-channel",
+        Exit::invalid_request,"explicit native LZ4 read channel and bounded grant required");
+    const auto ordinal=decimal(argv[2],63);
+    const auto luid=parse_luid(argv[3]);
+    const auto node=decimal(argv[4],(std::numeric_limits<unsigned>::max)());
+    const auto expected_runtime=runtime_digest(argv[5]),expected_kernel=runtime_digest(argv[6]);
+    const std::wstring_view architecture=argv[7];
+    require(std::has_single_bit(node) && architecture.size()>3 && architecture.size()<=32 &&
+        architecture.starts_with(L"gfx") && std::ranges::all_of(architecture,[](wchar_t c){
+          return (c>=L'a' && c<=L'z') || (c>=L'0' && c<=L'9');
+        }),Exit::invalid_request,"native LZ4 read adapter coverage");
+    const std::string arch(architecture.begin(),architecture.end());
+    const hip_detail::Lz4KernelCoverage coverage{arch,decimal(argv[8],3)};
+    const auto message_limit=(std::numeric_limits<std::int32_t>::max)();
+    const WorkerChannelCapacity capacity{decimal(argv[9],message_limit),decimal(argv[10],message_limit)};
+    const detail::NativeLz4DecodeGrant grant{decimal(argv[11],message_limit),wide_decimal(argv[12])};
+    const auto per_batch=decimal(argv[13],message_limit);
+    auto channel=WorkerChannel::open_sized(argv[15],capacity);
+    detail::NativeLz4WireRequest request;
+    {
+      const auto owned=channel.take_request_snapshot();
+      require(owned && owned->bytes().size()==capacity.request_bytes,Exit::invalid_request,
+          "native LZ4 request mapping length differs");
+      try {request=detail::decode_native_lz4_request(owned->bytes(),grant,per_batch);}
+      catch(const std::invalid_argument&) {throw HipWorkerFailure(Exit::invalid_request,"invalid native LZ4 read frame");}
+    }
+    require(request.reply_bytes==capacity.reply_bytes,Exit::invalid_request,"native LZ4 reply mapping length differs");
+
+    const hip_detail::VerifiedSystemModule installed(hip_bundle::runtime,expected_runtime);
+    const auto parent=module_path(nullptr).parent_path();
+    std::vector<DirectoryPin> pins;
+    auto current=parent.root_path();
+    require(parent.is_absolute() && parent.root_name().native().size()==2,Exit::runtime_unavailable,
+        "native LZ4 worker requires a local package");
+    pins.emplace_back(current);
+    for(const auto& part:parent.relative_path()){
+      require(part!=L"." && part!=L".." && pins.size()<32,Exit::runtime_unavailable,"native LZ4 package depth");
+      current/=part;
+      pins.emplace_back(current);
+    }
+    constexpr wchar_t kernel_name[]=L"flitzfs_rocm_native_lz4_decode.dll";
+    const auto path=parent/kernel_name;
+    const auto file=ReadOnlyFile::open(path);
+    require(matches_sha256(file,expected_kernel),Exit::integrity_failure,"native LZ4 device module identity");
+    require(!GetModuleHandleW(kernel_name) && !GetModuleHandleW(hip_bundle::runtime),
+        Exit::integrity_failure,"native LZ4 helper inherited an unexpected module");
+    std::uint64_t peak=0;
+    for(const auto& batch:request.batches)peak=(std::max)(peak,std::uint64_t(batch.upload().size()));
+    const auto budget=query_windows_gpu_budget(luid,node);
+    require_hip_memory(budget.snapshot,luid,node,GetTickCount64(),peak,HipMemoryPoint::pre_initialize);
+    require(SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_SYSTEM32)!=0,
+        Exit::runtime_unavailable,"restrict native LZ4 DLL lookup");
+    Module runtime(installed.path(),HipWorkerStage::runtime_load);
+    Module kernel(path,HipWorkerStage::kernel_load);
+    require(GetModuleHandleW(hip_bundle::runtime)==runtime.get(),Exit::integrity_failure,
+        "native LZ4 runtime identity changed");
+    const auto address=GetProcAddress(kernel.get(),"flitzfs_native_lz4_decode_api");
+    require(address!=nullptr,Exit::unsupported_configuration,"native LZ4 API entry unavailable",HipWorkerStage::kernel_entry);
+    const auto entry=std::bit_cast<native_lz4_decode::KernelApiEntry>(address);
+    const auto* api=entry();
+    require(api && native_lz4_decode::compatible(*api),Exit::unsupported_configuration,
+        "incompatible native LZ4 read table",HipWorkerStage::kernel_table);
+    const auto frames=run_hip_native_lz4_decode_in_worker(runtime.get(),*api,static_cast<int>(ordinal),
+        luid,node,request.batches,grant,{&coverage,1});
+    const auto reply=detail::encode_native_lz4_reply(request,frames,WorkerExecution::hip);
+    kernel.close();
+    runtime.close();
+    channel.publish(reply);
+    return 0;
+  }
+#endif
 
 #ifdef FLITZFS_HIP_LZ4_RUNTIME_FIXTURE
   if(argc==2 && std::wstring_view(argv[1])==L"--verify-uniform-lz4-kernel-bundle"){

@@ -1,6 +1,7 @@
 #pragma once
 #include "flitzfs/object_store.hpp"
 #include "record_digest.hpp"
+#include <compare>
 
 namespace flitzfs::detail {
 struct NativeLz4ReadKey {
@@ -8,7 +9,7 @@ struct NativeLz4ReadKey {
   std::uint64_t object=0,generation=0;
   std::uint32_t decoded_bytes=0;
   Digest decoded_digest{};
-  bool operator==(const NativeLz4ReadKey&) const=default;
+  auto operator<=>(const NativeLz4ReadKey&) const=default;
 };
 
 // An advisory route for an owned result from an exact native LZ4 frame.

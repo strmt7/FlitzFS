@@ -3,9 +3,9 @@
 The optional AMD compute path decodes standard LZ4 records from indexed
 FlitzFS writes. It uses the existing record format and CPU decoder. The
 device result can flow through `NativeFileSession::read` after the indexed
-store verifies the full frame digest. The current executable is a private
-qualification probe. Installed helper scheduling and mounted performance
-remain open.
+store verifies the full frame digest. The private qualification probe runs the decoder in an isolated Windows
+worker. The WinFsp SDK callback can consume the same type of ready result.
+Installed helper scheduling and mounted performance remain open.
 
 ## Input, device execution and recovery
 
@@ -31,9 +31,13 @@ of batches, charging all prepared bytes and frames against the job grant.
 It checks resource evidence before initialization, during the sequence and
 at completion. It downloads the completion descriptors and decoded bank.
 The CPU checks status, exact length, digest and output guards for every frame
-before accepting the sequence. The verified results leave the worker after
-confirmed resource retirement. An unavailable or failed device leaves the
-indexed reader's independent CPU path available.
+before accepting the sequence. The versioned worker exchange binds a reply to its request ID, the BLAKE3
+digest of the immutable frame and the ordered record keys. The parent checks
+length and decoded BLAKE3 for every frame after both the child and supervisor
+retire. The ready window matches exact image, object, generation, decoded
+length and digest, then moves the bytes out once. The indexed reader can use
+its independent CPU decoder while the worker is pending, on a miss or after
+refusal. The reader still checks the indexed record before delivery.
 
 ## Source-bound qualification
 
@@ -45,7 +49,7 @@ to copy the recorded AMD code and apply the exact native-sync transformation.
 Use the staged entry and its source directory with the reviewed SDK compiler.
 The typed exported table binds the launch layout and both wave entry points.
 The verifier requires the exact device module digest, signed installed runtime
-digest, current GPU identity and a bounded one-process job. Keep any initial
+digest, current GPU identity and a bounded one-process worker job. Keep any initial
 hardware qualification to an owned fixture and one admitted sequence.
 
 The native `bounded_native_lz4_decode` test exercises an overlapping copy,
@@ -74,5 +78,26 @@ CPU session reads took about 0.14 ms for synthetic data and 0.19 ms for the
 AIT prefix. Keep these component timings scoped to the recorded process-local
 trials. Automatic admission needs measurements of a prepared producer under
 ordinary mounted reads and writes.
-[Verification receipt](evidence/native-amd-lz4-read-2026-11-22.json) ·
+[In-process verification](evidence/native-amd-lz4-read-2026-11-22.json) ·
 [AIT 2026 dataset](https://aitdcc.github.io/dataset.html)
+
+The subsequent isolated-worker trials ran two GPU dispatches for each of the
+same workloads and delivered both decoded frames through the indexed session.
+CPU reads returned exact bytes while the worker was pending and after the
+ready frames were consumed. A deliberately incorrect worker module digest
+refused before HIP loading. The child retired and both reads stayed exact on
+CPU. A separate SDK callback fixture used CPU-generated completions to check
+exact ready delivery, fallback on a miss and refusal of a ready result from
+before a write. The callback fixture also passed under AddressSanitizer.
+
+| Workload | Cold exchange through retirement | Paired CPU reads |
+| --- | ---: | ---: |
+| Synthetic | 2.440 s | 0.152 ms |
+| AIT A prefix | 2.018 s | 0.248 ms |
+
+These single observations include concurrent build activity. The exchange
+covers child setup, device work, transport, verification and retirement. The
+next qualification should reuse the existing prepared exchange lifecycle,
+measure how often anticipatory batches finish before demand, and compare
+complete costs for sustained ordinary Windows reads.
+[Isolated-worker verification](evidence/native-amd-lz4-ipc-2026-11-22.json)

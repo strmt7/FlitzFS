@@ -1,6 +1,10 @@
 #include "winfsp_native.hpp"
 #include "winfsp_session.hpp"
 #include "native_fs_fixture.hpp"
+#include "native_lz4_fixture.hpp"
+#include "../src/native_lz4_decode_wire.hpp"
+#include "../src/native_name_index.hpp"
+#include "../src/store_codec.hpp"
 #include "windows_app_budget.hpp"
 #include <atomic>
 #include <chrono>
@@ -43,7 +47,8 @@ struct Harness {
   std::shared_ptr<BlockingIo> image_io;
   Bytes security;Clock clock;
   explicit Harness(unsigned unit,const Bytes* previous=nullptr,const Bytes* old_head=nullptr,const Bytes* old_advice=nullptr,
-      const NativeDeferredWriteOptions* deferred=nullptr,bool indexed=false):
+      const NativeDeferredWriteOptions* deferred=nullptr,bool indexed=false,
+      StoreCompressionOptions compression={StoreCompressionMode::raw,1,false}):
       head(ram(unit)),image(ram(unit)),advice(ram(unit)) {
     image_io=std::make_shared<BlockingIo>(image);
     if(previous) {
@@ -52,7 +57,7 @@ struct Harness {
           if(key!=id(1))throw std::runtime_error("fixture image identity");return image_io;},
           {StoreCompressionMode::raw,1,false},advice,1);
     } else if(indexed)adapter=WinFspNativeWritable::create_managed_indexed(head,id(90),image_io,id(1),
-        {kStoreMaxPhysicalBytes},{StoreCompressionMode::raw,1,false},advice);
+        {kStoreMaxPhysicalBytes},compression,advice);
     else adapter=WinFspNativeWritable::create_managed_paged(head,id(90),image_io,id(1),
         {kStoreMaxPhysicalBytes},{StoreCompressionMode::raw,1,false},advice);
     if(deferred)adapter->enable_deferred_writes_hosted(*deferred);
@@ -103,6 +108,53 @@ struct Harness {
     throw std::runtime_error("paged group did not quiesce");}
   void populate(){for(unsigned i=0;i<4;++i){const auto context=create(i);write(context,family(i));read(context,family(i));close(context);}}
 };
+void ready_lz4_reads() {
+  if(!store_lz4_available()){
+    std::cout<<"winfsp_ready_lz4 cpu_decoder=0\n";
+    return;
+  }
+  constexpr StoreCompressionOptions fast{StoreCompressionMode::fast,1,false};
+  Harness h(4096,nullptr,nullptr,nullptr,nullptr,true,fast);
+  const auto context=h.create(42);
+  const auto plain=native_lz4_fixture::source();
+  h.write(context,plain);
+
+  const auto store=PagedObjectStoreSnapshot::open(h.image_io,{kStoreMaxPhysicalBytes});
+  constexpr auto object=detail::kNativeIndexedDataObject|1;
+  const auto metadata=store.stat(object);
+  require(metadata.has_value(),"missing native callback extent");
+  const auto decoded=store.read(object);
+  detail::StoreCodecEncoder encoder(fast);
+  const auto encoded=encoder.encode(decoded);
+  require(encoded.codec==detail::kStoreLz4 && encoded.payload.size()==metadata->stored_payload_bytes,
+      "callback fixture did not store a native LZ4 frame");
+  const detail::NativeLz4ReadKey key{store.identity(),object,metadata->generation,
+      static_cast<std::uint32_t>(decoded.size()),detail::record_digest(decoded)};
+  const detail::NativeLz4DecodeSource source{key,encoded.payload};
+  constexpr detail::NativeLz4DecodeGrant grant{1,256U*1024U};
+  const auto exchange=detail::NativeLz4ReadExchange::prepare({&source,1},91,grant);
+  const auto request=detail::decode_native_lz4_request(exchange.request()->bytes(),grant,1);
+  const detail::NativeLz4DecodedFrame frame{key,decoded};
+  const auto reply=detail::encode_native_lz4_reply(request,{&frame,1},WorkerExecution::cpu_semantics);
+  auto ready=exchange.accept(reply,WorkerExecution::cpu_semantics);
+  require(h.adapter->publish_native_lz4_reads(ready) && !ready,"callback owner refused verified completion");
+  h.read(context,plain);
+  require(h.adapter->native_lz4_read_hits()==1,"SDK read skipped the verified ready result");
+  h.read(context,plain);
+  require(h.adapter->native_lz4_read_hits()==1,"SDK read consumed one result twice");
+
+  ready=exchange.accept(reply,WorkerExecution::cpu_semantics);
+  require(h.adapter->publish_native_lz4_reads(ready) && !ready,"callback owner rejected second verification");
+  auto changed=plain;
+  changed[1]^=std::byte{1};
+  h.write(context,changed);
+  h.read(context,changed);
+  require(h.adapter->native_lz4_read_hits()==0,"SDK read accepted the prior file revision");
+  h.close(context);
+  h.adapter->snapshot().verify_all();
+  std::cout<<"winfsp_ready_lz4 cpu_decoder=1 ready_hit=1 cpu_miss_exact=1 stale_after_write_rejected=1\n";
+}
+
 void callbacks(unsigned unit) {
   Harness h(unit);h.populate();const auto workload=h.adapter->snapshot().workload_info();
   auto context=h.create(4);h.write(context,family(4));
@@ -682,6 +734,7 @@ int main(int argc,char** argv){try {
     callbacks(4096);callbacks(65536);directory_pages();directory_pages(true);selected_change();foreground_busy();
     deferred_response_busy();resume_formats();indexed_backfill_opportunities();lifecycle();indexed_callbacks(4096);indexed_callbacks(65536);
   }
+  else if(mode=="--ready-lz4-reads")ready_lz4_reads();
   else if(mode=="--faults-4096")publication_faults(4096);
   else if(mode=="--faults-65536")publication_faults(65536);
   else if(mode=="--profile-indexed-directory")directory_pages(true);

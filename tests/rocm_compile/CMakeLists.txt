@@ -302,14 +302,26 @@ if(FLITZFS_ROCM_NATIVE_LZ4_READ_OBJECT)
   target_include_directories(flitzfs_rocm_native_lz4_decode PRIVATE "${flitzfs_root}/src/gpu")
   target_link_libraries(flitzfs_rocm_native_lz4_decode PRIVATE "${FLITZFS_ROCM_SDK}/lib/amdhip64.lib")
 
+  add_executable(flitzfs_native_lz4_read_worker
+    "${flitzfs_root}/src/windows/hip_worker_main.cpp"
+    "${flitzfs_root}/src/windows/hip_module_verification.cpp"
+    "${flitzfs_root}/src/windows/hip_uniform_lz4_compute.cpp")
+  add_dependencies(flitzfs_native_lz4_read_worker flitzfs_rocm_native_lz4_decode flitzfs_hip_worker_bundle)
+  target_compile_features(flitzfs_native_lz4_read_worker PRIVATE cxx_std_20)
+  target_compile_definitions(flitzfs_native_lz4_read_worker PRIVATE FLITZFS_HIP_NATIVE_LZ4_READ_FIXTURE=1)
+  target_include_directories(flitzfs_native_lz4_read_worker PRIVATE "${worker_output}"
+    "${flitzfs_root}/include/flitzfs" "${CMAKE_CURRENT_SOURCE_DIR}")
+  target_link_libraries(flitzfs_native_lz4_read_worker PRIVATE flitzfs_hip_compute_common flitzfs_core bcrypt wintrust)
+  target_compile_options(flitzfs_native_lz4_read_worker PRIVATE /W4 /permissive-)
+
   add_executable(flitzfs_native_lz4_decode_probe native_lz4_decode_probe.cpp
-    "${flitzfs_root}/src/windows/hip_uniform_lz4_compute.cpp"
     "${flitzfs_root}/src/windows/hip_module_verification.cpp")
-  add_dependencies(flitzfs_native_lz4_decode_probe flitzfs_rocm_native_lz4_decode)
+  add_dependencies(flitzfs_native_lz4_decode_probe flitzfs_native_lz4_read_worker)
   target_compile_features(flitzfs_native_lz4_decode_probe PRIVATE cxx_std_20)
   target_include_directories(flitzfs_native_lz4_decode_probe PRIVATE "${flitzfs_root}/src"
-    "${flitzfs_root}/include/flitzfs" "${CMAKE_CURRENT_SOURCE_DIR}")
-  target_link_libraries(flitzfs_native_lz4_decode_probe PRIVATE flitzfs_hip_compute_common flitzfs_core bcrypt wintrust)
+    "${flitzfs_root}/src/windows")
+  target_compile_definitions(flitzfs_native_lz4_decode_probe PRIVATE NOMINMAX UNICODE _UNICODE)
+  target_link_libraries(flitzfs_native_lz4_decode_probe PRIVATE flitzfs_worker_exchange flitzfs_gpu_budget flitzfs_core bcrypt wintrust)
   target_compile_options(flitzfs_native_lz4_decode_probe PRIVATE /W4 /permissive-)
 endif()
 

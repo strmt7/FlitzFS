@@ -1,4 +1,4 @@
-#include "native_lz4_decode.hpp"
+#include "native_lz4_decode_wire.hpp"
 #include "store_codec.hpp"
 #include <array>
 #include <cstring>
@@ -74,6 +74,34 @@ void exercise() {
     refused([&]{(void)batch.verify(changed);},"changed completion metadata, byte or guard accepted");
   }
   refused([&]{(void)batch.verify(std::span(completed).first(completed.size()-1));},"short slab accepted");
+  auto other=frame;
+  ++other.key.object;
+  const std::array reading{frame,other};
+  const auto exchange=NativeLz4ReadExchange::prepare(reading,37,{2,4096});
+  const auto request=decode_native_lz4_request(exchange.request()->bytes(),{2,4096},1);
+  require(request.id==37 && request.reply_bytes==exchange.reply_capacity() &&
+      request.keys.size()==2 && request.batches.size()==2,"native LZ4 request lost identity or batch limits");
+  const std::array output{NativeLz4DecodedFrame{frame.key,plain},NativeLz4DecodedFrame{other.key,plain}};
+  const auto reply=encode_native_lz4_reply(request,output,WorkerExecution::cpu_semantics);
+  auto ready=exchange.accept(reply,WorkerExecution::cpu_semantics);
+  auto stale=frame.key;++stale.generation;
+  require(!ready->try_ready(stale,{}) && ready->try_ready(frame.key,{})==plain &&
+      !ready->try_ready(frame.key,{}),"native LZ4 result was stale, wrong or accepted twice");
+  ready->reject(other.key);
+  require(!ready->try_ready(other.key,{}),"rejected ready results remained available");
+  for(const auto at:{std::size_t{8},std::size_t{20},std::size_t{32},std::size_t{64}}) {
+    auto corrupt=reply;corrupt[at]^=std::byte{1};
+    refused([&]{(void)exchange.accept(corrupt,WorkerExecution::cpu_semantics);},
+        "changed result id, role, request digest or bytes accepted");
+  }
+  refused([&]{(void)exchange.accept(reply,WorkerExecution::hip);},"CPU result counted as GPU work");
+  refused([&]{(void)decode_native_lz4_request(exchange.request()->bytes(),{1,4096},1);},
+      "overgrant frame count accepted");
+  refused([&]{(void)NativeLz4ReadExchange::prepare(frames,37,{2,4096});},"duplicate read key accepted");
+  auto malformed=Bytes(exchange.request()->bytes().begin(),exchange.request()->bytes().end());
+  malformed[64+36]=std::byte{0xff};
+  refused([&]{(void)decode_native_lz4_request(malformed,{2,4096},1);},"bad frame extent accepted");
+  std::cout<<"native_lz4_wire exact_request_reply_and_one_shot_ready=1\n";
   std::cout<<"native_lz4_decode framing=passed cpu_decoder=1 frames=2 checked_status_digest_and_guards=1\n";
 }
 }

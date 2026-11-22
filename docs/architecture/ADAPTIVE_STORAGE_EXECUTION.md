@@ -124,9 +124,13 @@ resource-sized batch contract. Validate total lengths, sequence boundaries,
 copy distances, final literals and alignment before input reaches the device.
 Qualify both wave widths where available, with the same stored frames decoded
 through the independent CPU library. Measure the complete read path before
-automatic admission. Next, qualify a prepared process that can offer ready results for exact keys
-while foreground reads continue on CPU. Measure the complete lifetime cost
-and short-read hit rate before changing the ordinary mount's default route.
+automatic admission. The isolated child transport now returns two real AMD
+frames through indexed session reads, and the SDK callback can consume an exact
+ready result once. The independent CPU path served reads while the child was
+pending and after a module refusal. The next step is to qualify a prepared
+producer and anticipatory reads. Measure complete lifetime cost and short-read
+hit rate before changing the ordinary mount's default route.
+[Isolated-worker verification](../evidence/native-amd-lz4-ipc-2026-11-22.json)
 [Pinned AMD LZ4 decoder](https://github.com/ROCm/hipCOMP-core/blob/03df9f7369211ee15d370817165224c73fdc9a46/src/LZ4Kernels.cuh#L921) ·
 [LZ4 block format](https://github.com/lz4/lz4/blob/dev/doc/lz4_Block_format.md)
 
@@ -143,10 +147,11 @@ admitting work. For Windows disk-backed images, query read-only storage
 properties through the backing provider and record logical/physical sector
 sizes and alignment. Query seek penalty, reclaim support and removal behavior
 where exposed. Distinguish this information from the file provider's actual
-flush, write-failure and allocation-reclamation contract. USB bridges, storage
-stacks, partitions, unknown firmware and missing queries can obscure device
-behavior. Confirm current observed latency and throughput with bounded work on
-the owned target. Device names and geometry alone cannot establish durability.
+flush, write-failure and allocation-reclamation contract. USB bridges, storage stacks, partitions and firmware can obscure underlying
+device behavior. Treat transport, seek penalty, command queueing, removal and
+TRIM as independent advisory values. Preserve unknown values when a query is
+unsupported. Check bounded, actual I/O observations on the selected provider
+before changing policy. Durability requires a separately qualified contract.
 [Windows storage property queries](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-ioctl_storage_query_property) ·
 [Windows access alignment descriptor](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ns-winioctl-storage_access_alignment_descriptor)
 
@@ -158,8 +163,13 @@ space reserve is one sixteenth of caller-visible capacity, rounded up and
 capped at 1 GiB. Existing geometry and explicit flush requirements still
 govern writes. Sparse range reclamation uses the qualified NTFS path. The
 read-only Windows probe confirmed the GUID and DOS path for the development
-drive root and its test directory. Removable media and physical persistence
-still require device tests.
+drive root and its test directory. The next probe obtained storage properties
+through a metadata-only handle to that same volume. It observed SATA transport,
+a seek penalty, and TRIM disabled. The ordinary directory handle refused the
+three storage property queries. The probe read no backing bytes and made no
+write attempts. Removable media and physical persistence still require device
+tests.
+[Read-only storage probe](../evidence/windows-backing-media-2026-11-22.json)
 [Windows final paths by handle](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfinalpathnamebyhandlew) ·
 [Caller-visible free space](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getdiskfreespaceexw) ·
 [Windows drive types](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getdrivetypew)
@@ -170,17 +180,40 @@ still require device tests.
 | NVMe | Use queueing, sustained/tail I/O responses, flush costs and any reported discard support. Coalesce writes and let one low-priority region displace little competing queue capacity. | Dedicated media for barrier interruption, steady-state allocation and supported reclaim. |
 | SATA SSD | Learn actual queue and flush bounds independently. Cut background bursts when tails rise and charge total written bytes and reclamation overhead. | Test sustained writes, full-volume churn and recovery against the declared cache/barrier contract. |
 | HDD | Observe seek penalties and seek-sensitive tails. Cluster metadata and related reads, and prefer larger sequential build and reclaim passes when idle. | Random access and namespace workloads, interruption on both retained and newly selected regions. |
-| Removable flash | Observe transport and long stalls, stay conservative around request size, flush and reclaim, and stop admission on device removal. Validate identity before resume. | Unplug and reconnect a disposable target at each durable boundary, then verify old or new complete generations and acknowledged state as applicable. |
+| USB storage and memory cards | Treat transport and removal risk independently from seek behavior. Observe long stalls, control request and flush bursts, and stop admission on device removal. Require a fresh backing identity and reopen audit after reconnect. | Unplug and reconnect disposable USB and card targets at durable boundaries, then verify complete generations and acknowledged state within each provider's qualified contract. |
 | Unclassified backing | Use only demonstrated capabilities and explicit provider contracts. Adjust concurrency with verified observations. | Bind claims and supported modes to the evidence actually available for the backing. |
 
-The helper should carry these observations into its existing resource and
-rewrite-credit grants. Revalidate when provider identity or pressure changes.
-Charge attempted writes, verified and retained bytes, and temporary working
-space. Budget background work at the shared host level. Give integrity repair
-precedence, yield to foreground requests between finite quanta and resume
-from versioned checked cursors. A volatile provider has its own retention
-contract. Use isolated qualification of physical barriers and removal before
-offering the corresponding persistent mode.
+Implement the backing-dependent decisions in this order.
+
+1. Bind advisory properties to the opened volume identity. Probe only the
+   selected backing in managed setup, with finite ownership and deadlines.
+   Use explicit provider identity for process memory. Keep file-system-level
+   range reclamation, device TRIM and qualified flush behavior independent.
+   Reacquire advisory properties on a fresh attach. Label missing or
+   ambiguous evidence as unknown.
+2. Record read, write and flush latency and completed bytes at the provider.
+   Keep foreground and maintenance counters distinct. Fit local ranges for
+   cost and variance per provider during ordinary I/O and bounded idle work.
+   Set the maximum next background quantum within the existing low-priority
+   duty and live resource grants. Shrink the quantum when stalls or foreground
+   contention appear. Cluster safe reads on seek-sensitive media and coalesce
+   qualified sequential writes when the read and recovery contracts allow it.
+3. Charge backing write attempts, retained generations and temporary space to
+   each optimization. Keep recovered space and estimated device wear distinct
+   from application bytes. Size reduction remains the goal. Repeatedly rewriting
+   marginal candidates consumes the budget without a corresponding gain.
+   Give integrity repair precedence and resume optional work from checked cursors.
+4. Qualify dense volume files separately from NTFS sparse files. The current
+   Windows helper asks for sparse range reclamation. A removable volume without
+   that capability needs an independently qualified dense path with safe reuse
+   or compaction before routine maintenance can reclaim its bytes. Keep
+   the same versioned CPU reader and verify detach, removal and reinsertion
+   before resuming work on a persistent provider.
+5. Qualify each persistent provider's barriers, interrupted writes and removal
+   on disposable media. A volatile provider preserves files while its owner and
+   backing survive. Measure matched foreground and background workload traces on
+   real devices when authorized. Keep reported transport, outer filesystem,
+   allocation, recovery scope and observed performance in each result.
 
 ## 5. Finish the autonomous Windows lifecycle
 
