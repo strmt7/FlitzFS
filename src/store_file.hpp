@@ -1,5 +1,7 @@
 #pragma once
 #include "flitzfs/object_store.hpp"
+#include <string>
+#include <string_view>
 namespace flitzfs::detail {
 std::shared_ptr<StoreByteIo> new_store_file(const std::filesystem::path&,StoreIoContract);
 std::shared_ptr<StoreByteIo> read_store_file(const std::filesystem::path&,
@@ -7,8 +9,15 @@ std::shared_ptr<StoreByteIo> read_store_file(const std::filesystem::path&,
 #ifdef _WIN32
 // Persistent volume files have a caller-qualified contract and independent
 // extent limits. Opening never truncates, follows a reparse path or shares a writer.
-std::shared_ptr<StoreByteIo> new_volume_file(const std::filesystem::path&,StoreIoContract,std::uint64_t limit);
-std::shared_ptr<StoreByteIo> reopen_volume_file(const std::filesystem::path&,StoreIoContract,std::uint64_t limit);
+struct VolumeFileDestination {
+  std::wstring volume_root;
+  std::uint64_t available_growth=0;
+};
+VolumeFileDestination volume_file_destination(const std::filesystem::path&);
+std::shared_ptr<StoreByteIo> new_volume_file(const std::filesystem::path&,StoreIoContract,std::uint64_t limit,
+    std::wstring_view expected_volume={});
+std::shared_ptr<StoreByteIo> reopen_volume_file(const std::filesystem::path&,StoreIoContract,std::uint64_t limit,
+    std::wstring_view expected_volume={});
 #ifdef FLITZFS_OBSERVE_VOLUME_PUBLICATION
 // The disposable mounted probe observes one fully qualified backing. Callbacks
 // run inside its I/O lock and cannot perform additional I/O through that backing.

@@ -14,6 +14,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 #ifdef _WIN32
 #include "windows/maintenance_backing.hpp"
@@ -77,7 +78,7 @@ void path_policy(const std::filesystem::path& p) {
 constexpr auto maximum_windows_file_bytes=static_cast<std::uint64_t>((std::numeric_limits<LONGLONG>::max)());
 struct PinnedDirectory {
   HANDLE handle=INVALID_HANDLE_VALUE;
-  std::wstring volume_root;
+  std::wstring volume_path,volume_root;
   PinnedDirectory()=default;
   PinnedDirectory(const PinnedDirectory&)=delete;
   PinnedDirectory& operator=(const PinnedDirectory&)=delete;
@@ -102,18 +103,17 @@ void require_opened_path(HANDLE handle,std::filesystem::path path) {
   if(!same_windows_path(opened_path(handle,VOLUME_NAME_DOS),L"\\\\?\\"+path.native()))
     fail("the opened volume-file path is redirected");
 }
-std::wstring opened_volume_root(HANDLE handle) {
-  const auto actual=opened_path(handle,VOLUME_NAME_GUID);
+std::wstring volume_root_from_path(std::wstring_view actual) {
   const std::wstring_view prefix=L"\\\\?\\Volume{";
   const auto end=actual.find(L'\\',prefix.size());
   if(!actual.starts_with(prefix) || end==std::wstring::npos || end<=prefix.size() || actual[end-1]!=L'}')
     fail("cannot identify the opened local volume");
-  return actual.substr(0,end+1);
+  return std::wstring(actual.substr(0,end+1));
 }
 bool local_volume_drive(UINT type) noexcept {
   return type==DRIVE_FIXED || type==DRIVE_REMOVABLE;
 }
-void admit_volume_space(const std::wstring& volume,std::uint64_t growth) {
+std::uint64_t available_volume_growth(const std::wstring& volume) {
   ULARGE_INTEGER available{},capacity{};
   if(!GetDiskFreeSpaceExW(volume.c_str(),&available,&capacity,nullptr) ||
       !capacity.QuadPart || available.QuadPart>capacity.QuadPart)
@@ -121,8 +121,11 @@ void admit_volume_space(const std::wstring& volume,std::uint64_t growth) {
   // Small removable media need a reserve related to their capacity. Protect
   // larger volumes with the same reserve used by the file adapter.
   const auto reserve=(std::min)(kReserve,capacity.QuadPart/16+(capacity.QuadPart%16!=0));
-  if(available.QuadPart<reserve || growth>available.QuadPart-reserve)
-    fail("insufficient verified volume reserve");
+  if(available.QuadPart<reserve)fail("insufficient verified volume reserve");
+  return available.QuadPart-reserve;
+}
+void admit_volume_space(const std::wstring& volume,std::uint64_t growth) {
+  if(growth>available_volume_growth(volume))fail("insufficient verified volume reserve");
 }
 void pin_volume_directory(PinnedDirectory& pinned,std::filesystem::path file) {
   file.make_preferred();
@@ -137,7 +140,8 @@ void pin_volume_directory(PinnedDirectory& pinned,std::filesystem::path file) {
       !(info.FileAttributes&FILE_ATTRIBUTE_DIRECTORY) || (info.FileAttributes&FILE_ATTRIBUTE_REPARSE_POINT))
     fail("cannot pin the volume-file directory");
   require_opened_path(pinned.handle,path);
-  pinned.volume_root=opened_volume_root(pinned.handle);
+  pinned.volume_path=opened_path(pinned.handle,VOLUME_NAME_GUID);
+  pinned.volume_root=volume_root_from_path(pinned.volume_path);
   if(!local_volume_drive(GetDriveTypeW(pinned.volume_root.c_str())))
     fail("the opened parent has no supported local volume");
 }
@@ -269,7 +273,8 @@ class Output final:public NativeVolumeRangeIo {
   }
  public:
   Output(const std::filesystem::path& p,StoreIoContract c,bool reopen=false,
-      std::optional<std::uint64_t> volume_limit=std::nullopt)
+      std::optional<std::uint64_t> volume_limit=std::nullopt,
+      [[maybe_unused]] std::wstring_view expected_volume={})
       :contract_(c),capacity_(volume_limit.value_or(kStoreMaxPhysicalBytes))
 #ifdef _WIN32
        ,volume_file_(volume_limit.has_value())
@@ -283,6 +288,8 @@ class Output final:public NativeVolumeRangeIo {
       if(!capacity_ || capacity_>maximum_windows_file_bytes || !valid_store_io_contract(c))
         fail("invalid persistent-file qualification");
       pin_volume_directory(parent_pin_,p);
+      if(!expected_volume.empty() && !same_windows_path(parent_pin_.volume_root,expected_volume))
+        fail("the selected backing volume has changed");
       admit_volume_space(parent_pin_.volume_root,0);
       if(c.isolated_range_reclamation)validate_sparse_storage(parent_pin_.handle,parent_pin_.volume_root);
       demand_io_.emplace();
@@ -291,8 +298,15 @@ class Output final:public NativeVolumeRangeIo {
       if(ec || space.available==static_cast<std::uintmax_t>(-1) || space.available<kReserve+kStoreMaxPhysicalBytes)
         fail("insufficient verified disk reserve");
     }
+    auto target=p.native();
+    if(volume_file_) {
+      target=parent_pin_.volume_path;
+      if(target.back()!=L'\\')target+=L'\\';
+      target+=p.filename().native();
+    }
     const auto flags=FILE_ATTRIBUTE_NORMAL|FILE_FLAG_OPEN_REPARSE_POINT|(volume_file_?FILE_FLAG_OVERLAPPED:0);
-    handle_=CreateFileW(p.c_str(),GENERIC_READ|GENERIC_WRITE,0,nullptr,reopen?OPEN_EXISTING:CREATE_NEW,flags,nullptr);
+    handle_=CreateFileW(target.c_str(),GENERIC_READ|GENERIC_WRITE,0,nullptr,
+        reopen?OPEN_EXISTING:CREATE_NEW,flags,nullptr);
     if(handle_==INVALID_HANDLE_VALUE) fail("exclusive creation failed");
     try {
       FILE_ATTRIBUTE_TAG_INFO attr{};FILE_STANDARD_INFO info{};LARGE_INTEGER size{};
@@ -306,9 +320,8 @@ class Output final:public NativeVolumeRangeIo {
       if(volume_file_) {
         if(attr.FileAttributes&(FILE_ATTRIBUTE_COMPRESSED|FILE_ATTRIBUTE_ENCRYPTED))
           fail("volume-file storage requires ordinary caching semantics");
-        require_opened_path(handle_,p);
-        if(!same_windows_path(opened_volume_root(handle_),parent_pin_.volume_root))
-          fail("volume file does not belong to the opened parent volume");
+        if(!same_windows_path(opened_path(handle_,VOLUME_NAME_GUID),target))
+          fail("the opened file is redirected from the selected backing path");
         validate_volume_storage(handle_,c);
         sparse_=(attr.FileAttributes&FILE_ATTRIBUTE_SPARSE_FILE)!=0;
         if(sparse_ && !c.isolated_range_reclamation)
@@ -559,8 +572,16 @@ std::shared_ptr<StoreByteIo> read_store_file(const std::filesystem::path& path,s
   return std::make_shared<Input>(path,limit);
 }
 #ifdef _WIN32
-std::shared_ptr<StoreByteIo> new_volume_file(const std::filesystem::path& path,StoreIoContract c,std::uint64_t limit) {
-  return std::make_shared<Output>(path,c,false,limit);
+VolumeFileDestination volume_file_destination(const std::filesystem::path& path) {
+  path_policy(path);
+  PinnedDirectory pinned;
+  pin_volume_directory(pinned,path);
+  const auto available=available_volume_growth(pinned.volume_root);
+  return {std::move(pinned.volume_root),available};
+}
+std::shared_ptr<StoreByteIo> new_volume_file(const std::filesystem::path& path,StoreIoContract c,std::uint64_t limit,
+    std::wstring_view expected_volume) {
+  return std::make_shared<Output>(path,c,false,limit,expected_volume);
 }
 #ifdef FLITZFS_OBSERVE_VOLUME_PUBLICATION
 std::shared_ptr<StoreByteIo> new_observed_volume_file(const std::filesystem::path& path,StoreIoContract c,
@@ -570,8 +591,9 @@ std::shared_ptr<StoreByteIo> new_observed_volume_file(const std::filesystem::pat
   return output;
 }
 #endif
-std::shared_ptr<StoreByteIo> reopen_volume_file(const std::filesystem::path& path,StoreIoContract c,std::uint64_t limit) {
-  return std::make_shared<Output>(path,c,true,limit);
+std::shared_ptr<StoreByteIo> reopen_volume_file(const std::filesystem::path& path,StoreIoContract c,std::uint64_t limit,
+    std::wstring_view expected_volume) {
+  return std::make_shared<Output>(path,c,true,limit,expected_volume);
 }
 #endif
 } // namespace flitzfs::detail

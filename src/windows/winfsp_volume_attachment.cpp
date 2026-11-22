@@ -123,8 +123,8 @@ class WinFspVolumeAttachment final:public VolumeAttachment {
       if(const auto* path=std::get_if<WinFspVolumeFileSelection::WindowsFile>(&selection.backing)) {
         const auto parents=pin_volume_path_parents(path->path.native());
         backing=selection.create?
-            NativeVolumeFile::create_backing(path->path,path->qualification,selection.create->limits):
-            NativeVolumeFile::reopen_backing(path->path,path->qualification);
+            NativeVolumeFile::create_backing(path->path,path->qualification,selection.create->limits,path->expected_volume):
+            NativeVolumeFile::reopen_backing(path->path,path->qualification,path->expected_volume);
       } else {
         backing=std::get<std::shared_ptr<StoreByteIo>>(selection.backing);
       }

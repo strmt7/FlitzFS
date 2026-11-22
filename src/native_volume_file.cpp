@@ -480,15 +480,16 @@ NativeVolumeHeadView NativeVolumeFile::inspect(std::shared_ptr<StoreByteIo> exis
 }
 #ifdef _WIN32
 std::shared_ptr<StoreByteIo> NativeVolumeFile::create_backing(const std::filesystem::path& path,StoreIoContract contract,
-    PagedStoreLimits limits) {
+    PagedStoreLimits limits,std::wstring_view expected_volume) {
   check_image_capacity(limits.maximum_physical_bytes,Error::invalid_operation);
   const auto bytes=limits.maximum_physical_bytes;
   const auto limit=contract.isolated_range_reclamation?
       paired_file_geometry(bytes,true,Error::invalid_operation).file_end:image_offset+bytes;
-  return detail::new_volume_file(path,contract,limit);
+  return detail::new_volume_file(path,contract,limit,expected_volume);
 }
-std::shared_ptr<StoreByteIo> NativeVolumeFile::reopen_backing(const std::filesystem::path& path,StoreIoContract contract) {
-  return detail::reopen_volume_file(path,contract,maximum_file_bytes);
+std::shared_ptr<StoreByteIo> NativeVolumeFile::reopen_backing(const std::filesystem::path& path,StoreIoContract contract,
+    std::wstring_view expected_volume) {
+  return detail::reopen_volume_file(path,contract,maximum_file_bytes,expected_volume);
 }
 NativeFileSession NativeVolumeFile::create(const std::filesystem::path& path,StoreIoContract contract,StoreIdentity volume,
     StoreIdentity image,PagedStoreLimits limits,StoreCompressionOptions foreground,

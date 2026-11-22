@@ -13,6 +13,8 @@ struct WinFspVolumeFileSelection {
   struct WindowsFile {
     std::filesystem::path path;
     StoreIoContract qualification;
+    // The application binds its selection before invoking mount preflight.
+    std::wstring expected_volume={};
   };
   struct Create {
     StoreIdentity image;

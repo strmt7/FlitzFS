@@ -3,6 +3,7 @@
 #include "volume_app_winfsp.hpp"
 #include "windows_app_budget.hpp"
 #include "flitzfs/native_volume_file.hpp"
+#include "../src/store_file.hpp"
 #include "volume_range_fixture.hpp"
 #include "winfsp_native.hpp"
 #include <chrono>
@@ -436,10 +437,33 @@ void file_lifecycle_in_memory() {
   require(MemoryVolumeDomain::cleanup_healthy(),"Volume file memory backing cleanup failed");
 }
 
+void changed_volume_is_refused(const std::filesystem::path& path) {
+  const auto destination=detail::volume_file_destination(path);
+  constexpr std::wstring_view different=L"\\\\?\\Volume{00000000-0000-0000-0000-000000000000}\\";
+  require(destination.volume_root!=different,"Invalid fixture volume identity");
+  Provider provider;
+  Provider::current=&provider;
+  provider.collision=false;
+  constexpr StoreIoContract contract{65536,true};
+  for(const bool create:{true,false}) {
+    WinFspVolumeFileSelection selection{
+        WinFspVolumeFileSelection::WindowsFile{path,contract,std::wstring(different)},fresh_volume_identity(),{}};
+    if(create)selection.create=WinFspVolumeFileSelection::Create{fresh_volume_identity(),{8*1024*1024}};
+    auto attachment=make_winfsp_volume_file_attachment(Provider::load,std::move(selection));
+    bool refused=false;
+    try{attachment->attach(nullptr);}
+    catch(const std::runtime_error& e){refused=std::string_view(e.what()).ends_with("selected backing volume has changed");}
+    require(refused && !attachment->retains_volume() && !std::filesystem::exists(path) && provider.started==0,
+        "A changed backing selection reached file open or dispatch");
+  }
+  std::cout<<"disposable_volume_binding stale_create_refused=1 stale_reopen_refused=1 no_backing_created=1\n";
+}
+
 void disposable_file_lifecycle(const std::filesystem::path& base) {
   const auto ticks=std::chrono::steady_clock::now().time_since_epoch().count();
   const auto directory=std::filesystem::canonical(base)/("flitzfs-volume-attachment-"+std::to_string(ticks));
   require(std::filesystem::create_directory(directory),"Cannot exclusively create the volume file attachment fixture");
+  changed_volume_is_refused(directory/"changed.flfs");
   const auto path=directory/"attached.flfs";
   file_lifecycle({WinFspVolumeFileSelection::WindowsFile{path,{65536,true}},
       fresh_volume_identity(),WinFspVolumeFileSelection::Create{fresh_volume_identity(),{8*1024*1024}}});

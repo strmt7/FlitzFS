@@ -1,0 +1,310 @@
+{
+  "schema": "flitzfs-windows-backing-binding-v1",
+  "date": "2026-11-22",
+  "source": {
+    "base": "720afbb7a84b8c188c98a72d856d6727c27ad43b",
+    "blobs": {
+      "src/store_file.hpp": "d6aceddbe6d488cbed4fb31711d6fc9ce6762dc7",
+      "src/store_file.cpp": "bbceee7d381f309ec8dec1e1411c57ae1d0fd264",
+      "include/flitzfs/native_volume_file.hpp": "0a128ce4e344fbde714538d367f031d089d9a075",
+      "src/native_volume_file.cpp": "3d8c888be8b13a91a2929a5cfba3a9f8ed651209",
+      "src/windows/winfsp_volume_attachment.hpp": "876f96725747d13bfd380865e54748789c22ee3d",
+      "src/windows/winfsp_volume_attachment.cpp": "626549a7299994215dbad5bc5d0fafbb68c87806",
+      "src/windows/volume_app_winfsp.cpp": "09564327ec5dcb8f740d88fb35be3d9e7da3730a",
+      "tests/windows_volume_attachment_tests.cpp": "74bad6f0262f7455375c33236297f18da66c51b1"
+    },
+    "patch_sha256": "534db045725426c653716dd953b094e734205f2612e2e7ec20c33d8ad33abeee"
+  },
+  "scope": {
+    "host_windows_build": "10.0.26300",
+    "owner_host_backing": "in-process memory",
+    "guest": "disposable Windows Sandbox with its own disk and networking disabled",
+    "stale_identity": "injected before opening the backing file",
+    "mounted": false,
+    "real_media_test": false,
+    "new_format": false,
+    "performance_benchmark": false
+  },
+  "guest": {
+    "exited": true,
+    "exit_code": 0,
+    "build_version": "10.0.26100",
+    "device_fixture": "sandbox disposable virtual disk",
+    "driver_installed": false,
+    "mounted": false,
+    "retired": true,
+    "metadata_sha256": "0abea867d5c2e2f4778dd5571c0eb0e56c38e4bf9e776b201c80db064f1c6cf9",
+    "stdout_sha256": "fb4518af3ad86b35f9551c6b1b90d26f8cf4b88d1502d020b692ee7d34dd8db5",
+    "verified": [
+      "attachment_sdk_binding delay_loaded=1 verified_exports=1",
+      "disposable_volume_binding stale_create_refused=1 stale_reopen_refused=1 no_backing_created=1",
+      "file_attachment collision_retained=1 fresh_mount_target=1 cpu_reopen=1 ordinary_exit=1 joined_provider_sessions=4",
+      "disposable_file_selection exclusive_create=1 existing_bytes_retained=1 cpu_reopen=1"
+    ],
+    "artifacts": [
+      {
+        "sha256": "5b1c10a17a6734a95c445770970b658f9010ea5d3ccbc2d8b4d15225f7feeb86",
+        "name": "flitzfs_volume_attachment_tests.exe"
+      },
+      {
+        "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+        "name": "winfsp-x64.dll"
+      },
+      {
+        "sha256": "59d325227321d52b9a523ea401ce6787a5d59f78229a0ff3a6f124e5d3445685",
+        "name": "msvcp140.dll"
+      },
+      {
+        "sha256": "8b10c6bd4c3c427ce7c8be96ef0fef0f8187bc236962be62a03caef834b37dcd",
+        "name": "msvcp140_atomic_wait.dll"
+      },
+      {
+        "sha256": "eb1ee979bf02324712346e5bdbfc59c785388bc50d18cc2688aae4b0734915a0",
+        "name": "vcruntime140.dll"
+      },
+      {
+        "sha256": "a14b4a42a2c6df04d6d53a8340816023d953406f7f3d94996c7cab30c414ff63",
+        "name": "vcruntime140_1.dll"
+      }
+    ]
+  },
+  "tests": {
+    "standard_build": {
+      "result_sha256": "4640b68859e86cf76337335b03de0b5dbcdd47ab7444d48c2d3b63e9247e0de5",
+      "stdout_sha256": "790c06bba4ca74db03ee5926987963b405409247c1988b8352582441e4c19e25",
+      "tree_retired": true,
+      "exit_code": 0,
+      "residual_children_retired": 1,
+      "peak_job_bytes": 833773568
+    },
+    "standard": {
+      "result_sha256": "a6897812481231d57f0777f05cacb219c72e6aadde66df3ffd9ac4e05e0d170b",
+      "stdout_sha256": "afeabd900e442441008337778b1362b266f016c9a0a435cc7355ccbb3dc826d8",
+      "tree_retired": true,
+      "exit_code": 0,
+      "residual_children_retired": 0,
+      "peak_job_bytes": 332558336,
+      "ctest_passed": 211
+    },
+    "sdk_build": {
+      "result_sha256": "cd752797ddc0179691bffb1112c42615ec007dc3642d14212624018423919b03",
+      "stdout_sha256": "9d7d6446ae3b50dbb8e936e8487e11dc8b01498139c65a0253aa431ff5bdd366",
+      "tree_retired": true,
+      "exit_code": 0,
+      "residual_children_retired": 1,
+      "peak_job_bytes": 626155520
+    },
+    "sdk_memory": {
+      "result_sha256": "9997aa5409841b7a135f38db71e247bfe03861d0be7601368c88975169750b50",
+      "stdout_sha256": "a8ab9ab1bfb4e57a5e73234b5eead163e19b8681df39f4dc8d885d733572fbdf",
+      "tree_retired": true,
+      "exit_code": 0,
+      "residual_children_retired": 0,
+      "peak_job_bytes": 317984768,
+      "ctest_passed": 5
+    },
+    "raw_build": {
+      "result_sha256": "f32862cbede30a4f3a9b95b30070d08195ecf303e766f345c3f912de421c0098",
+      "stdout_sha256": "18d940724b59317cdc25f11a3ce915f8a5d898a6f0ed4460ed739e731c45405a",
+      "tree_retired": true,
+      "exit_code": 0,
+      "residual_children_retired": 1,
+      "peak_job_bytes": 628367360
+    },
+    "raw": {
+      "result_sha256": "7ecf81508651b81894194d481c968184e0e99a49f659aba91ee506f2389496de",
+      "stdout_sha256": "2cae400a173915f3b2a8fd999ce3a9fb4152d34425e3c135ecc85968fe1ae80c",
+      "tree_retired": true,
+      "exit_code": 0,
+      "residual_children_retired": 0,
+      "peak_job_bytes": 317169664,
+      "ctest_passed": 5
+    },
+    "asan_build": {
+      "result_sha256": "ebc000718a81cb365330b7ab75c473b37278fc851504d30e6afdd82c8fa2409a",
+      "stdout_sha256": "12c7dcda7be8b8890c5be00e5a7d6d9e7eebcbf2f7bb61cde37e05d8f68908d9",
+      "tree_retired": true,
+      "exit_code": 0,
+      "residual_children_retired": 1,
+      "peak_job_bytes": 743186432
+    },
+    "asan_preflight": {
+      "result_sha256": "dead1318e2f9a21f4ff6f19e648fa424d2cc43774e4972dacc9b2a5df3c6e82b",
+      "stdout_sha256": "de561e05b63d0933fcb3cd11c117704e5ece7a7daa557c7680228df0d0ee682f",
+      "tree_retired": true,
+      "exit_code": 0,
+      "residual_children_retired": 0,
+      "peak_job_bytes": 9822208,
+      "ctest_passed": 1
+    },
+    "asan": {
+      "result_sha256": "64bc8a7ced119d604ff809f01be808522f5f9ba525b278ab5f02ddf0c3ae6ced",
+      "stdout_sha256": "1b4c1f21613ea0689374bc89a6942627cff05a4264f485cf656e370d91d83ab1",
+      "tree_retired": true,
+      "exit_code": 0,
+      "residual_children_retired": 0,
+      "peak_job_bytes": 719273984,
+      "ctest_passed": 6
+    },
+    "guest_supervisor": {
+      "result_sha256": "13aac4dcc80e9175471e65e3647ba06cd6a3f25f779b672ddc917391788464f2",
+      "stdout_sha256": "1b98b041a23b410ee7f0a959babddb634bfb7ba28d4ad1dc5c60a3a49ed9a18e",
+      "tree_retired": true,
+      "exit_code": 0,
+      "residual_children_retired": 0,
+      "peak_job_bytes": 47702016
+    }
+  },
+  "research": [
+    {
+      "receipt_sha256": "48aa9d7c420907221065ddb2268e00ee996855364c85e96f676dc1b0eb3c158e",
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "pages": [
+        {
+          "name": "windows-allocation-capabilities",
+          "url": "https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/ebc7e6e5-4650-4e54-b17c-cf60f6fbeeaa",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 28898,
+          "markdown_sha256": "1563813704b55e19fda2fbbd22498887d3107aec93cc6d6d46b7bb093a593c62",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 1.496,
+          "capture": "windows-allocation-capabilities.native.json",
+          "capture_sha256": "3c37227f4cb08d84ea7a4f5510701b6507a698a7683e2b60f0887cff8f7af8d7"
+        },
+        {
+          "name": "windows-outer-filesystems",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/fileio/filesystem-functionality-comparison",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 26264,
+          "markdown_sha256": "f3a6e2ece570206a502311aee20b34bdbbbd10becbdc4811a47330a0075d0670",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.565,
+          "capture": "windows-outer-filesystems.native.json",
+          "capture_sha256": "0aedb99aac92045cb243ab13f6b26c4efec57180b91ea8bfc715fc01a1cfe1a4"
+        },
+        {
+          "name": "windows-removal-policy",
+          "url": "https://learn.microsoft.com/en-us/windows/client-management/client-tools/change-default-removal-policy-external-storage-media",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 23769,
+          "markdown_sha256": "ae88fed0e7e3ab8fef1e88b3d16117d5f2a23abd6de8d536f7c201b4f761755a",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.659,
+          "capture": "windows-removal-policy.native.json",
+          "capture_sha256": "27c065043340f788e8b148b140c6145f96d073c6164e3dc6ec737830b69afda3"
+        },
+        {
+          "name": "windows-geometry",
+          "url": "https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/3e75d97f-1d0b-4e47-b435-73c513837a57",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 25500,
+          "markdown_sha256": "2fc3e60f99bc80ea12684afbabd2d1c07c1ef937bff14d9577a03455ffeb4eb9",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.665,
+          "capture": "windows-geometry.native.json",
+          "capture_sha256": "cc695f90cb5bfc32258fec33c79b3ce6acaf8d8649f7fd1ecf0e9a123745ed2a"
+        }
+      ]
+    },
+    {
+      "receipt_sha256": "4f3c09099cb6e23dbdec35d211bde007f447931bfa3772660d453096e4e4b265",
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "pages": [
+        {
+          "name": "allocation-observation",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_standard_info",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 36346,
+          "markdown_sha256": "2c757297745446e64cd82a9f1c4175b474000427f2e1111d440b0010a14ce5b3",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 1.104,
+          "capture": "allocation-observation.native.json",
+          "capture_sha256": "8d20bef3660c8194ba1aeab01d33b8177f3bb7a7cf73c2be7f102be1890fe83e"
+        },
+        {
+          "name": "end-of-file-control",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_end_of_file_info",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 36074,
+          "markdown_sha256": "6018fa2cb8107a8e649e12befc5a8848f04dbb99a8437efc8f5eb28625599c8e",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.764,
+          "capture": "end-of-file-control.native.json",
+          "capture_sha256": "03eb1dde54a7e6fe9749e28366c3bec6b3673dc3caf56adf9d2847d007709925"
+        }
+      ]
+    },
+    {
+      "receipt_sha256": "32f368646114dae4a844a7284c334a5cd885e5f32b6613e4b762ae723d381ffe",
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "pages": [
+        {
+          "name": "opened-volume-guid",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfinalpathnamebyhandlew",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 39739,
+          "markdown_sha256": "307b10b762924204a8834d1585ee5e7f22dde1ed6dc776185da1c524cfbef972",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 1.144,
+          "capture": "opened-volume-guid.native.json",
+          "capture_sha256": "181a10189ad8a908bdf23eef07d58b84462443912a9b1b1da4f2ba54f3914e96"
+        },
+        {
+          "name": "volume-root-free-space",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getdiskfreespaceexw",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 35824,
+          "markdown_sha256": "a303cea096d6e066938f86f3515e7d30929702353d9f5ed0e8669b36f551e0e8",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.723,
+          "capture": "volume-root-free-space.native.json",
+          "capture_sha256": "0c43672fe5ed5129085927ffb6e68492664d3f077d095d162e5f9516a2048d79"
+        }
+      ]
+    }
+  ],
+  "navigation": {
+    "receipt_sha256": "aaf70d261d9e3fef187e6bdf75fbbc2c755f9c4137650badc524cd2b9d53fcde",
+    "native_response_sha256": "7d3581c715b11d25c57bb7b44e29ec8acaf3cfdafe5f6a75b66234e8818da878"
+  }
+}

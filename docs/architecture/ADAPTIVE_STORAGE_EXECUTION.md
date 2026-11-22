@@ -217,9 +217,12 @@ fields and use measured I/O on the selected provider to tune maintenance.
 [Windows sparse file operations](https://learn.microsoft.com/en-us/windows/win32/fileio/sparse-file-operations)
 
 The Windows file provider now admits qualified local fixed and removable
-volumes. It requires the opened parent and backing file to resolve to the
-same volume GUID. Free-space checks and allocation geometry use that GUID
-so a changed drive letter cannot supply evidence for the old volume. The
+volumes. The Explorer helper binds the selected parent's volume GUID
+before mount preflight. The writable provider compares that GUID before
+creating or reopening the file, opens the path under the GUID, and verifies
+the opened file's normalized path. Free-space checks and allocation
+geometry use the same GUID. Creation sizing uses caller-visible free
+space above the existing reserve. The
 space reserve is one sixteenth of caller-visible capacity, rounded up and
 capped at 1 GiB. Existing geometry and explicit flush requirements still
 govern writes. Sparse range reclamation uses the qualified NTFS path. The
@@ -235,14 +238,14 @@ tests.
 [Caller-visible free space](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getdiskfreespaceexw) ·
 [Windows drive types](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getdrivetypew)
 
-| Provider | Signals and tailored decisions | Qualification |
-| --- | --- | --- |
-| RAM backing | Identify the provider when creating and reopening. Resize work against physical and commit headroom. Use memory bandwidth observations to limit copies and caches. Contents follow the backing's lifetime. | Pressure, cancellation, initiated detach and exact readback while the backing survives. |
-| NVMe | Measure single-request and queued latency, sustained throughput and flush cost. Use queue capacity only when it improves the foreground path. Coalesce low-priority writes and yield when request tails rise. | Check steady-state allocation, supported reclaim and recovery at commit barriers on dedicated devices. |
-| SATA SSD | Learn queue and flush bounds for the actual device. Limit write bursts during sustained slowdown. Charge attempted and completed backing writes, including reclamation overhead. | Test sustained mixed I/O, a nearly full volume, repeated rewrites and interruption under the qualified cache contract. |
-| HDD | Use reported seek penalty and random versus sequential observations. Group nearby reads and writes without changing publication order. Favor sequential passes in idle windows. | Compare metadata and small-file access with sequential media work. Verify both retained and newly selected regions after interruption. |
-| USB storage and memory cards | Keep removal, transport and seek behavior independent. Shorten writes and in-flight work when measured stalls warrant it. Stop on removal and verify fresh identity and committed roots before reopening. | Use disposable media to qualify removal and reinsertion at commit boundaries with the active Windows removal policy. Verify integrity and space recovery for each supported outer filesystem. |
-| Unclassified backing | Start from the qualified provider contract and conservative concurrency. Change one dimension at a time when ordinary I/O supplies evidence. | Bind supported modes and performance statements to the actual provider and workload. |
+| Provider | Signals and tailored decisions |
+| --- | --- |
+| RAM backing | Identify the provider at attach. Resize work against physical and commit headroom. Use observed memory bandwidth to limit copies and caches. |
+| NVMe | Use queue depth where it improves foreground reads or writes. Coalesce low-priority writes and yield when request tails rise. |
+| SATA SSD | Learn queue and flush bounds for the actual device. Shorten write bursts during sustained slowdown and account for reclamation writes. |
+| HDD | Use reported seek penalty and random versus sequential observations. Group nearby reads and writes while preserving publication order. Favor sequential passes in idle windows. |
+| USB storage and memory cards | Keep transport, seek behavior and removal independent. Shorten work when measured stalls warrant it. Stop work when the backing disappears. |
+| Unclassified backing | Start from the qualified provider contract and conservative concurrency. Change one dimension at a time as ordinary I/O supplies evidence. |
 
 An externally created RAM disk needs its own volatile lifetime contract. A
 backing file and successful flush can establish the file provider's barriers
@@ -295,14 +298,8 @@ Continue the backing-dependent work in this order.
    from application bytes. Size reduction remains the goal. Repeatedly rewriting
    marginal candidates consumes the budget without a corresponding gain.
    Give integrity repair precedence and resume optional work from checked cursors.
-4. Qualify dense volume files separately from NTFS sparse files. The current
-   Windows helper asks for sparse range reclamation. A removable volume without
-   that capability needs an independently qualified dense path with safe reuse
-   or compaction before routine maintenance can reclaim its bytes. Keep
-   the same versioned CPU reader. Recover the allocation state from the
-   selected checkpoint, and keep retired ranges unavailable while readers or
-   rollback still reach them. Measure occupied outer-file bytes and write
-   traffic across repeated reuse cycles before admitting dense maintenance.
+4. Qualify the [dense backing path](#dense-backing) separately from NTFS sparse
+   files. Keep existing volumes readable by the independent CPU reader.
 5. Qualify each persistent provider's barriers, interrupted writes and removal
    on disposable media. A volatile provider preserves files while its owner and
    backing survive. Measure matched foreground and background workload traces on
@@ -313,6 +310,78 @@ Continue the backing-dependent work in this order.
    before attach with the same volume identity. Repeat the matched DiskSpd
    and file workflow on actual devices with the same cache settings,
    recording plain and compressed NTFS results where the comparison fits.
+
+### Dense backing
+
+The helper requests the qualified NTFS sparse profile for persistent creation.
+The in-process memory provider has its own lifetime and allocation contract.
+Microsoft lists exFAT and FAT32 without sparse-file support, and lists a
+file-size limit of about 4 GiB for FAT32. A USB device can carry either NTFS or exFAT.
+Read the outer filesystem and its capabilities on the pinned backing. Treat
+the file-size bound, available allocation, volatility and durability as
+separate fields. For an external RAM disk, establish the lifetime explicitly
+before treating its bytes as volatile.
+[Windows filesystem capabilities](https://learn.microsoft.com/en-us/windows/win32/fileio/filesystem-functionality-comparison) ·
+[Filesystem capability flags](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/ebc7e6e5-4650-4e54-b17c-cf60f6fbeeaa)
+
+For the dense design, prototype segment reuse in the existing, exclusively
+owned backing file. The paired sparse layout assigns its second image a
+fixed offset. A dense file could allocate the gap before reaching that slot.
+Use a versioned allocation tree rooted in the same checkpoint as the data
+and index. Keep the linear and sparse formats readable. A reader that cannot
+interpret the new layout must refuse it before writable recovery.
+
+1. Allocate aligned ranges that no committed root or pinned reader can
+   reference. Write and verify newly encoded bytes and the candidate indexes.
+   Flush them before publishing the candidate checkpoint. Publish and flush
+   the checkpoint peers using independently qualified failure units. Report
+   durable success only at the existing acknowledgement boundary.
+2. Keep retired ranges protected through peer convergence and reader
+   retirement. Recover the allocation tree from the selected checkpoint.
+   Treat ambiguous ownership as reserved and refuse reuse until an independent
+   walk can account for every referenced range. Lower-priority learning and
+   compaction must yield to integrity repair and current foreground activity.
+3. Reuse interior free ranges to avoid growing the file. To reduce occupied
+   space, preferentially move live tail segments into existing holes.
+   Recheck both checkpoint peers, pending writers and reader pins before
+   shortening the file. Flush and verify the resulting allocation. On an
+   unsuccessful operation, stop further reclamation and recheck the committed
+   roots before resuming. Qualify this operation on each supported outer
+   filesystem with a cut at every durability boundary.
+4. Charge the candidate's actual writes, metadata and temporary overlap to
+   the maintenance decision. Measure the backing file's allocated bytes
+   separately from its logical length and internal free space. A candidate
+   that frees interior ranges may improve future reuse. Report a reduction
+   in outer-file space only after allocation decreases.
+   [Windows file allocation information](https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_standard_info) ·
+   [Windows end-of-file information](https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_end_of_file_info)
+
+### Media qualification
+
+Admit an operation using the qualified provider contract first. Then tune its
+optional work with the actual attachment's observed throughput, queue delay,
+flush cost, memory headroom and foreground contention. Capture capabilities
+against the pinned volume identity. A positive no-seek or TRIM flag is
+advisory. Keep unreported values unknown and recheck them on a new
+attachment. Avoid loading performance estimates for a different volume
+or removal policy. Keep the same independent CPU recovery path for GPU
+and CPU writes on all backings.
+[Windows sector-size and device flags](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/3e75d97f-1d0b-4e47-b435-73c513837a57)
+
+| Test family | Evidence needed for the supported mode |
+| --- | --- |
+| In-process RAM and external RAM disk | Verify pressure, cancellation and detach. Reopen and read exact bytes while the backing survives. Qualify a RAM disk's storage and lifetime separately from the in-process provider. |
+| NVMe and SATA SSD | Use separate devices. Exercise low free space, flush stalls, mixed I/O and sustained repeated compaction. Record temporary space and attempted writes for every recovered byte. Vary queue depth and keep the change only where it improves end-to-end results. |
+| Rotating disk | Exercise fragmented and sequential layouts. Verify that batching reduces random-read cost and that maintenance yields within the foreground tail budget. |
+| USB SSD, USB flash and memory card | Test the NTFS and dense profiles separately where supported. Exercise unplug during copy, checkpoint publication and reclaim, plus reattach at a reused drive letter. Record the active Windows removal policy. Reopen only after revalidating the volume identity and committed roots. |
+| Every persistent provider | Use disposable media for interruption and removal. Reopen with the independent CPU reader, verify acknowledged bytes and namespace, and repeat with GPU unavailable. Use matched plain and compressed NTFS baselines where each comparison can use the same backing, workload and cache settings. |
+
+Use the same [benchmark protocol](../BENCHMARK_PROTOCOL.md) throughout.
+Attribute reductions from codec choices, allocation reuse and outer-file
+reclamation separately. Run performance comparisons on real devices.
+Use isolated fault fixtures for crash sequences and retain evidence for the
+actual outer filesystem, media and policy combination.
+[Windows external-storage removal policies](https://learn.microsoft.com/en-us/windows/client-management/client-tools/change-default-removal-policy-external-storage-media)
 
 ## 5. Finish the autonomous Windows lifecycle
 
