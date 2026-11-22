@@ -2,11 +2,13 @@
 #include "winfsp_session.hpp"
 #include "winfsp_native.hpp"
 #include "bounded_process.hpp"
+#include "maintenance_host.hpp"
 #include "supervised_source_fixture.hpp"
 #include "ram_client_channel.hpp"
 #include "locked_ram_fixture.hpp"
 #include "flitzfs/native_filesystem.hpp"
 #include "flitzfs/native_volume_file.hpp"
+#include "flitzfs/read_only_file.hpp"
 #include "../src/record_digest.hpp"
 #include "../src/store_file.hpp"
 #include <algorithm>
@@ -1073,12 +1075,14 @@ void require_cut_guest() {
   require(length<std::size(temp) && std::wstring_view(temp,length)==parent+L"\\","Publication cut temporary directory differs");
 }
 
-enum class PublicationCut {before_payload_flush,after_first_root,after_second_root};
-enum class PublicationOperation {write,shrink,rename};
-constexpr std::array cut_points{PublicationCut::before_payload_flush,PublicationCut::after_first_root,
-    PublicationCut::after_second_root};
+enum class PublicationCut {before_commit,after_first_copy,after_second_copy};
+enum class PublicationOperation {write,shrink,rename,image_switch};
+constexpr std::array cut_points{PublicationCut::before_commit,PublicationCut::after_first_copy,
+    PublicationCut::after_second_copy};
 constexpr std::array<std::wstring_view,3> cut_names{L"before-payload-flush",L"after-first-root",L"after-second-root"};
-constexpr std::array<std::wstring_view,3> operation_names{L"write",L"eof-shrink",L"rename"};
+constexpr std::array<std::wstring_view,4> operation_names{L"write",L"eof-shrink",L"rename",L"image-switch"};
+constexpr std::array<std::wstring_view,3> selector_cut_names{
+    L"before-first-selector-write",L"after-first-selector-flush",L"after-second-selector-flush"};
 constexpr auto cut_bytes=8192U;
 constexpr auto cut_shrunk_bytes=3751U;
 constexpr unsigned cut_neighbors=32;
@@ -1087,6 +1091,9 @@ constexpr flitzfs::PagedStoreLimits cut_write_limits{8ULL*1024*1024};
 constexpr flitzfs::PagedStoreLimits cut_metadata_limits{
     cut_write_limits.maximum_physical_bytes+cut_neighbors*16*flitzfs::kStoreCommitUnit};
 constexpr flitzfs::StoreIoContract cut_contract{static_cast<std::uint32_t>(flitzfs::kStoreCommitUnit),true};
+constexpr flitzfs::StoreIoContract selector_contract{cut_contract.write_failure_unit_bytes,true,true};
+constexpr flitzfs::PagedStoreLimits selector_limits{16ULL*1024*1024};
+constexpr auto selector_alternate_offset=flitzfs::kNativeVolumeFileImageOffset+selector_limits.maximum_physical_bytes;
 constexpr flitzfs::StoreCompressionOptions cut_compression{flitzfs::StoreCompressionMode::raw,1,false};
 std::vector<std::byte> cut_data(unsigned salt) {
   std::vector<std::byte> bytes(cut_bytes);
@@ -1099,6 +1106,11 @@ flitzfs::StoreIdentity cut_volume_identity(DWORD owner) {
   return volume;
 }
 
+[[noreturn]] void park_publication(const source_fixture::Events& protocol) {
+  protocol.signal(source_fixture::Phase::ack);
+  Sleep(15000);
+  throw std::runtime_error("Supervisor did not retire the paused publication");
+}
 class PublicationIo final:public flitzfs::StoreByteIo {
  public:
   PublicationIo(std::shared_ptr<flitzfs::StoreByteIo> backing,PublicationCut cut,PublicationOperation operation,
@@ -1131,11 +1143,11 @@ class PublicationIo final:public flitzfs::StoreByteIo {
   void flush() override {
     if(active!=this){backing_->flush();return;}
     require(payload_writes_ && roots_==barriers_ && roots_<=2,"Unexpected armed image flush boundary");
-    if(cut_==PublicationCut::before_payload_flush && roots_==0)park();
+    if(cut_==PublicationCut::before_commit && roots_==0)park_publication(protocol_);
     backing_->flush();
     ++barriers_;
-    if((cut_==PublicationCut::after_first_root && roots_==1) ||
-        (cut_==PublicationCut::after_second_root && roots_==2))park();
+    if((cut_==PublicationCut::after_first_copy && roots_==1) ||
+        (cut_==PublicationCut::after_second_copy && roots_==2))park_publication(protocol_);
   }
   bool armed_for(PublicationOperation operation) const noexcept {
     return operation==operation_ && WaitForSingleObject(protocol_.get(source_fixture::Phase::written),0)==WAIT_OBJECT_0;
@@ -1147,11 +1159,6 @@ class PublicationIo final:public flitzfs::StoreByteIo {
   bool claim() noexcept{return !claimed_.exchange(true,std::memory_order_acq_rel);}
   static thread_local PublicationIo* active;
  private:
-  [[noreturn]] void park() {
-    protocol_.signal(source_fixture::Phase::ack); // Boundary reached. The Windows reply is still pending.
-    Sleep(15000);
-    throw std::runtime_error("Supervisor did not retire the paused publication");
-  }
   std::shared_ptr<flitzfs::StoreByteIo> backing_;
   const PublicationCut cut_;
   const PublicationOperation operation_;
@@ -1202,37 +1209,138 @@ NTSTATUS create_cut_filesystem(PWSTR device,const FSP_FSCTL_VOLUME_PARAMS* param
   cut_callbacks.Rename=cut_rename;
   return FspFileSystemCreate(device,params,&cut_callbacks,output);
 }
+
+
+class SelectorPublicationObserver final:public flitzfs::detail::VolumeFileObserver {
+ public:
+  SelectorPublicationObserver(PublicationCut cut,const source_fixture::Events& protocol):
+      cut_(cut),protocol_(protocol) {}
+  static thread_local const SelectorPublicationObserver* active;
+  void before_write(std::uint64_t at,std::size_t bytes) override {
+    if(active!=this)return;
+    constexpr auto unit=flitzfs::kStoreCommitUnit;
+    constexpr auto image=flitzfs::kNativeVolumeFileImageOffset;
+    if(at<flitzfs::kVolumeHeadBytes) {
+      require(alternate_flushed_ && roots_==barriers_ && roots_<2 && (at==0 || at==unit) && bytes==unit,
+          "Unqualified selector write or unflushed replacement");
+      const auto mask=1U<<static_cast<unsigned>(at/unit);
+      require(!(root_slots_&mask),"Selector wrote the same slot twice");
+      if(roots_==0 && cut_==PublicationCut::before_commit)park_publication(protocol_);
+      root_slots_|=mask;++roots_;
+    } else if(at>=selector_alternate_offset && at-selector_alternate_offset<selector_limits.maximum_physical_bytes) {
+      alternate_written_=true;
+      alternate_flushed_=false;
+    } else if(at>=image && at<selector_alternate_offset) {
+      throw std::runtime_error("Mounted reclamation attempted to write the retained source");
+    }
+  }
+  void after_flush() override {
+    if(active!=this)return;
+    if(alternate_written_)alternate_flushed_=true;
+    if(roots_==barriers_)return;
+    require(roots_==barriers_+1,"Selector slots advanced without ordered flushes");
+    ++barriers_;
+    if((cut_==PublicationCut::after_first_copy && roots_==1) ||
+        (cut_==PublicationCut::after_second_copy && roots_==2))park_publication(protocol_);
+  }
+  void before_reclaim(std::uint64_t at,std::uint64_t bytes) override {
+    if(active!=this)return;
+    constexpr auto image=flitzfs::kNativeVolumeFileImageOffset;
+    require(at>=selector_alternate_offset || (at<=image && bytes<=image-at),
+        "Mounted reclamation attempted to retire the selected source before publication");
+  }
+ private:
+  const PublicationCut cut_;
+  const source_fixture::Events& protocol_;
+  unsigned roots_=0,root_slots_=0,barriers_=0;
+  bool alternate_written_=false,alternate_flushed_=false;
+};
+thread_local const SelectorPublicationObserver* SelectorPublicationObserver::active=nullptr;
+
+void advance_selector_publication(flitzfs::WinFspNativeSession& session,SelectorPublicationObserver& observer) {
+  flitzfs::WindowsMaintenanceHost host;
+  const auto deadline=GetTickCount64()+15000;
+  auto continuation=flitzfs::WinFspMaintenanceContinuation::none;
+  struct ActivePublication {
+    explicit ActivePublication(const SelectorPublicationObserver& observer){SelectorPublicationObserver::active=&observer;}
+    ~ActivePublication(){SelectorPublicationObserver::active=nullptr;}
+  } active(observer);
+  while(GetTickCount64()<deadline) {
+    const auto observed=host.observe(false);
+    if(observed.valid) {
+      flitzfs::MaintenanceThreadScope priority;
+      require(priority.active(),"Selector fixture could not lower maintenance priority");
+      auto result=session.advance_background_maintenance(observed,GetTickCount64(),{},continuation,false);
+      require(!result.compacted && !result.compaction_failed &&
+          result.state!=flitzfs::WinFspMaintenanceState::unavailable,"Mounted reclamation bypassed selector cut or failed");
+      continuation=result.continuation;
+      while(continuation==flitzfs::WinFspMaintenanceContinuation::compaction) {
+        const auto fresh=host.continue_preparation(250);
+        if(!fresh)break;
+        result=session.advance_background_maintenance(*fresh,GetTickCount64(),{},continuation,false);
+        require(!result.compacted && !result.compaction_failed &&
+            result.state!=flitzfs::WinFspMaintenanceState::unavailable,"Mounted selector preparation failed");
+        continuation=result.continuation;
+      }
+      require(priority.finish(),"Selector fixture could not restore maintenance priority");
+    }
+    require(host.status()!=flitzfs::MaintenanceHostStatus::unavailable,"Selector fixture could not read guest resources");
+    Sleep(40);
+  }
+  throw std::runtime_error("Mounted reclamation did not reach the selector boundary");
+}
 void publication_source(std::wstring_view token,PublicationCut cut,PublicationOperation operation) {
   require_probe_job();stage=70;
   source_fixture::Events protocol(false,std::wstring(token));
   Fixture fixture;
-  const auto mount=fixture.root/L"mount",path=fixture.root/L"inflight.flfs";
-  const auto limits=operation==PublicationOperation::write?cut_write_limits:cut_metadata_limits;
-  auto provider=flitzfs::detail::new_volume_file(path,cut_contract,
-      flitzfs::kNativeVolumeFileImageOffset+limits.maximum_physical_bytes);
-  auto backing=std::make_shared<PublicationIo>(std::move(provider),cut,operation,protocol);
-  const auto volume=cut_volume_identity(GetCurrentProcessId());
-  auto image=volume;image.back()^=std::byte{1};
-  cut_backing=backing.get();
-  auto api=flitzfs::linked_winfsp_session_api();api.create=create_cut_filesystem;
-  flitzfs::WinFspNativeSession session(flitzfs::WinFspNativeWritable::create_file_volume(
-      backing,volume,image,limits,cut_compression),api);
-  require(session.start({mount.native(),true,true})==STATUS_SUCCESS,"Publication-cut source mount");
-  protocol.signal(source_fixture::Phase::ready);
-  if(operation==PublicationOperation::write)protocol.wait_written();
-  else require(WaitForSingleObject(protocol.get(source_fixture::Phase::written),15000)==WAIT_OBJECT_0,
-      "Mounted metadata population exceeded its preparation deadline");
-  Sleep(20000);
-  throw std::runtime_error("Publication-cut source was not retired");
+  try {
+    const auto mount=fixture.root/L"mount",path=fixture.root/L"inflight.flfs";
+    const bool selector=operation==PublicationOperation::image_switch;
+    const auto limits=selector?selector_limits:(operation==PublicationOperation::write?cut_write_limits:cut_metadata_limits);
+    auto api=flitzfs::linked_winfsp_session_api();
+    std::shared_ptr<SelectorPublicationObserver> selector_observer;
+    std::shared_ptr<flitzfs::StoreByteIo> backing;
+    if(selector) {
+      selector_observer=std::make_shared<SelectorPublicationObserver>(cut,protocol);
+      backing=flitzfs::detail::new_observed_volume_file(path,selector_contract,
+          flitzfs::kNativeVolumeFileImageOffset+3*limits.maximum_physical_bytes,selector_observer);
+    } else {
+      auto provider=flitzfs::detail::new_volume_file(path,cut_contract,
+          flitzfs::kNativeVolumeFileImageOffset+limits.maximum_physical_bytes);
+      auto tap=std::make_shared<PublicationIo>(std::move(provider),cut,operation,protocol);
+      cut_backing=tap.get();
+      backing=std::move(tap);
+      api.create=create_cut_filesystem;
+    }
+    const auto volume=cut_volume_identity(GetCurrentProcessId());
+    auto image=volume;image.back()^=std::byte{1};
+    flitzfs::WinFspNativeSession session(flitzfs::WinFspNativeWritable::create_file_volume(
+        backing,volume,image,limits,cut_compression),api);
+    require(session.start({mount.native(),true,true})==STATUS_SUCCESS,"Publication-cut source mount");
+    protocol.signal(source_fixture::Phase::ready);
+    if(operation==PublicationOperation::write)protocol.wait_written();
+    else require(WaitForSingleObject(protocol.get(source_fixture::Phase::written),15000)==WAIT_OBJECT_0,
+        "Mounted population exceeded its preparation deadline");
+    if(selector_observer)advance_selector_publication(session,*selector_observer);
+    Sleep(20000);
+    throw std::runtime_error("Publication-cut source was not retired");
+  }catch(const std::exception& failure) {
+    try {
+      const auto message=std::string_view(failure.what()).substr(0,1024);
+      const auto* data=reinterpret_cast<const std::byte*>(message.data());
+      write_new(fixture.root/L"publication-source-error.txt",std::vector<std::byte>(data,data+message.size()));
+    }catch(...) {}
+    throw;
+  }
 }
-void publication_resumer(std::wstring_view token,DWORD source) {
+void publication_resumer(std::wstring_view token,DWORD source,flitzfs::StoreIoContract contract) {
   require_probe_job();stage=71;
   source_fixture::Events protocol(false,std::wstring(token));
   Fixture fixture(source);
   require_removed(fixture.root/L"mount");
   const auto mount=fixture.root/L"resume-mount";
   auto adapter=flitzfs::WinFspNativeWritable::resume_file_volume(fixture.root/L"inflight.flfs",
-      cut_contract,cut_volume_identity(source),cut_compression);
+      contract,cut_volume_identity(source),cut_compression);
   flitzfs::WinFspNativeSession session(std::move(adapter),flitzfs::linked_winfsp_session_api());
   require(session.start({mount.native(),true,true})==STATUS_SUCCESS,"Publication-cut continuation mount");
   protocol.signal(source_fixture::Phase::ready);
@@ -1372,6 +1480,25 @@ std::vector<std::byte> cut_neighbor_data(unsigned index) {
   bytes.resize(257+index*11);
   return bytes;
 }
+
+void run_publication_continuation(const fs::path& executable,const Fixture& fixture,DWORD source_id,
+    const std::string& target,const std::vector<std::byte>& expected,bool paired) {
+  constexpr flitzfs::ProcessBudget budget{128,2000,30000};
+  source_fixture::Events continuation(true);
+  source_fixture::Child resumer(executable,
+      {paired?L"--publication-selector-resumer":L"--publication-cut-resumer",
+       continuation.token(),std::to_wstring(source_id)},budget);
+  resumer.await(continuation,source_fixture::Phase::ready);
+  const auto mount=fixture.root/L"resume-mount";
+  mounted_identity(mount);
+  require(read_all(mount/target,expected.size())==expected,"Fresh mount read different recovered bytes");
+  seed_cut_file(mount/L"continuation.bin",cut_data(61));
+  continuation.signal(source_fixture::Phase::written);
+  const auto ended=resumer.result();
+  require(ended.process_id && ended.process_id!=source_id && ended.exit_code==0 && ended.exit_confirmed &&
+      !ended.cancelled && !ended.timed_out && resumer.retirement_confirmed(),"Publication continuation retirement unconfirmed");
+  require_removed(mount);
+}
 void run_publication_cut(const fs::path& executable,PublicationCut point,PublicationOperation operation) {
   stage=72;
   const auto name=cut_names[static_cast<std::size_t>(point)];
@@ -1416,7 +1543,7 @@ void run_publication_cut(const fs::path& executable,PublicationCut point,Publica
   pending_metadata.reset();
   pending_write.reset();
   require_removed(mount);
-  const bool expects_new=point!=PublicationCut::before_payload_flush;
+  const bool expects_new=point!=PublicationCut::before_commit;
   const bool renamed=expects_new && operation==PublicationOperation::rename;
   const std::string name_on_disk=renamed?"renamed.bin":"payload.bin";
   auto expected=cut_data(expects_new && operation==PublicationOperation::write?119:7);
@@ -1447,18 +1574,7 @@ void run_publication_cut(const fs::path& executable,PublicationCut point,Publica
   };
   const auto recovered=verify(false);
   const auto recovered_extent=fs::file_size(path);
-  source_fixture::Events continuation(true);
-  source_fixture::Child resumer(executable,{L"--publication-cut-resumer",continuation.token(),std::to_wstring(source_id)},budget);
-  resumer.await(continuation,source_fixture::Phase::ready);
-  const auto next=fixture.root/L"resume-mount";
-  mounted_identity(next);
-  require(read_all(next/name_on_disk,expected.size())==expected,"Fresh mount read different recovered bytes");
-  seed_cut_file(next/L"continuation.bin",cut_data(61));
-  continuation.signal(source_fixture::Phase::written);
-  const auto ended=resumer.result();
-  require(ended.process_id && ended.process_id!=source_id && ended.exit_code==0 && ended.exit_confirmed &&
-      !ended.cancelled && !ended.timed_out && resumer.retirement_confirmed(),"Publication continuation retirement unconfirmed");
-  require_removed(next);
+  run_publication_continuation(executable,fixture,source_id,name_on_disk,expected,false);
   const auto continued=verify(true);
   require(continued>recovered,"Writable continuation did not advance the image");
   std::wcout<<L"mounted_publication_cut boundary="<<name<<L" pending_before_exit=1 client_error="<<error
@@ -1466,6 +1582,118 @@ void run_publication_cut(const fs::path& executable,PublicationCut point,Publica
       <<L" continuation_generation="<<continued<<L" cpu_readback=1 retired=1 operation="<<operation_name
       <<L" neighbors="<<(metadata?cut_neighbors:0)<<L" recovered_extent="<<recovered_extent
       <<L" continued_extent="<<fs::file_size(path)<<L'\n';
+}
+
+
+// Read both reserved image regions only after the writer's process has exited.
+class SelectorImageReader final:public flitzfs::StoreByteIo {
+ public:
+  SelectorImageReader(std::shared_ptr<const flitzfs::ReadOnlyFile> file,std::uint64_t offset):
+      file_(std::move(file)),offset_(offset) {
+    require(file_->size()>offset_,"Reclamation did not retain the requested image range");
+  }
+  std::uint64_t extent() const override {
+    return (std::min)(selector_limits.maximum_physical_bytes,file_->size()-offset_);
+  }
+  void read_exact(std::uint64_t at,std::span<std::byte> output) const override {
+    require(at<=extent() && output.size()<=extent()-at,"Selector image read range");
+    file_->read_exact_at(offset_+at,output.data(),output.size());
+  }
+  void write_exact(std::uint64_t,std::span<const std::byte>) override {read_only();}
+  void flush() override {read_only();}
+  void admit_write(std::uint64_t) override {read_only();}
+  flitzfs::StoreIoContract contract() const noexcept override{return {};}
+ protected:
+  bool allows_writer() const noexcept override{return false;}
+ private:
+  [[noreturn]] static void read_only(){throw std::runtime_error("Selector image verification is read only");}
+  const std::shared_ptr<const flitzfs::ReadOnlyFile> file_;
+  const std::uint64_t offset_;
+};
+void run_selector_cut(const fs::path& executable,PublicationCut point) {
+  stage=73;
+  const auto index=static_cast<std::size_t>(point);
+  source_fixture::Events protocol(true);
+  constexpr flitzfs::ProcessBudget budget{128,2000,30000};
+  source_fixture::Child source(executable,{L"--publication-cut-source",protocol.token(),
+      std::wstring(cut_names[index]),L"image-switch"},budget);
+  source.await(protocol,source_fixture::Phase::ready);
+  const auto source_id=source.process_id();
+  require(source_id && source_id!=GetCurrentProcessId(),"Selector source and client alias");
+  Fixture fixture(source_id);
+  const auto mount=fixture.root/L"mount",path=fixture.root/L"inflight.flfs";
+  mounted_identity(mount);
+  seed_cut_file(mount/L"payload.bin",cut_data(7));
+  seed_cut_file(mount/L"witness.bin",cut_data(29));
+  auto expected=cut_data(7);
+  std::uint64_t inode=0;
+  {
+    Handle file(CreateFileW((mount/L"payload.bin").c_str(),GENERIC_WRITE|FILE_READ_ATTRIBUTES,
+        FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,nullptr,OPEN_EXISTING,FILE_FLAG_WRITE_THROUGH,nullptr));
+    checked(file.value!=INVALID_HANDLE_VALUE,"Open selector history workload");
+    inode=mounted_cut_inode(file.value);
+    for(unsigned i=0;i<12;++i) {
+      expected=cut_data(181+i);
+      LARGE_INTEGER zero{};
+      checked(SetFilePointerEx(file.value,zero,nullptr,FILE_BEGIN),"Selector history seek");
+      write_bytes(file.value,expected);
+    }
+  }
+  protocol.signal(source_fixture::Phase::written);
+  const HANDLE waits[]{protocol.get(source_fixture::Phase::ack),source.result_event()};
+  const auto reached=WaitForMultipleObjects(static_cast<DWORD>(std::size(waits)),waits,FALSE,18000);
+  if(reached!=WAIT_OBJECT_0) {
+    if(reached==WAIT_TIMEOUT)source.request_cancel();
+    const auto no_cut=source.result();
+    throw std::runtime_error("Selector cut was not observed, wait="+std::to_string(reached)+
+        " source_exit="+std::to_string(no_cut.exit_code));
+  }
+  require(source.request_cancel(),"Selector source cancellation was not admitted");
+  const auto retired=source.result();
+  require(retired.process_id==source_id && retired.cancelled && !retired.timed_out && retired.exit_confirmed &&
+      retired.exit_code==ERROR_CANCELLED && source.retirement_confirmed(),"Selector source retirement unconfirmed");
+  require_removed(mount);
+  auto initial=cut_volume_identity(source_id);
+  initial.back()^=std::byte{1};
+  const bool selected_next=point!=PublicationCut::before_commit;
+  const auto inspect_payload=[&](const flitzfs::NativeFilesystemSnapshot& image,bool continued) {
+    image.verify_all();
+    require(image.stat("payload.bin").inode==inode && image.list().size()==(continued?3U:2U) &&
+        image.read("payload.bin",0,cut_bytes+1)==expected &&
+        image.read("witness.bin",0,cut_bytes+1)==cut_data(29),
+        "Selector recovery did not preserve the acknowledged namespace and bytes");
+    if(continued)require(image.read("continuation.bin",0,cut_bytes+1)==cut_data(61),
+        "Recovered selector did not support a fresh acknowledged write");
+  };
+  flitzfs::StoreIdentity next{};
+  std::uint64_t old_end=0,next_end=0;
+  {
+    const auto selected=flitzfs::NativeVolumeFile::inspect(path,cut_volume_identity(source_id));
+    const auto info=selected.info();
+    require(flitzfs::paired_volume_file(info.selection.placement) &&
+        info.selection.epoch==(selected_next?2U:1U) && info.degraded==(point==PublicationCut::after_first_copy),
+        "Selector recovery chose the wrong epoch or peer state");
+    inspect_payload(selected.filesystem(),false);
+    const auto file=std::make_shared<flitzfs::ReadOnlyFile>(flitzfs::ReadOnlyFile::open(path));
+    const auto original=flitzfs::NativeFilesystemSnapshot::open_image(
+        std::make_shared<SelectorImageReader>(file,flitzfs::kNativeVolumeFileImageOffset),info.selection.storage);
+    const auto alternate=flitzfs::NativeFilesystemSnapshot::open_image(
+        std::make_shared<SelectorImageReader>(file,selector_alternate_offset),info.selection.storage);
+    inspect_payload(original,false);inspect_payload(alternate,false);
+    next=alternate.identity();
+    old_end=original.storage_info().physical_end;next_end=alternate.storage_info().physical_end;
+    require(original.identity()==initial && next!=initial && next_end<old_end &&
+        info.selection.image_identity==(selected_next?next:initial) &&
+        (!selected_next || info.selection.parent_identity==initial),
+        "Mounted handoff did not retain the old image and bind the compacted successor");
+  }
+  run_publication_continuation(executable,fixture,source_id,"payload.bin",expected,true);
+  const auto recovered=flitzfs::NativeVolumeFile::inspect(path,cut_volume_identity(source_id));
+  inspect_payload(recovered.filesystem(),true);
+  require(!recovered.info().degraded && recovered.info().selection.image_identity==(selected_next?next:initial),
+      "Writable continuation changed the selected image or left a damaged selector peer");
+  std::wcout<<L"mounted_selector_cut boundary="<<selector_cut_names[index]<<L" epoch="<<(selected_next?2:1)
+      <<L" source_end="<<old_end<<L" successor_end="<<next_end<<L" bytes_verified=1 retired=1\n";
 }
 
 } // namespace
@@ -1480,11 +1708,13 @@ int wmain(int argc,wchar_t** argv) {try {
     publication_source(argv[2],cut_points[static_cast<std::size_t>(cut-cut_names.begin())],
         static_cast<PublicationOperation>(operation-operation_names.begin()));return 0;
   }
-  if(mode==L"--publication-cut-resumer") {
+  if(mode==L"--publication-cut-resumer" || mode==L"--publication-selector-resumer") {
     require_cut_guest();require(argc==4,"Publication-cut resumer arguments");
-    publication_resumer(argv[2],process_number(argv[3]));return 0;
+    publication_resumer(argv[2],process_number(argv[3]),
+        mode==L"--publication-selector-resumer"?selector_contract:cut_contract);return 0;
   }
-  if(mode==L"--run-publication-cuts" || mode==L"--run-metadata-publication-cuts") {
+  if(mode==L"--run-publication-cuts" || mode==L"--run-metadata-publication-cuts" ||
+      mode==L"--run-selector-publication-cuts") {
     require_cut_guest();require(argc==2,"Publication-cut controller arguments");
     const source_fixture::ControllerBudget controller_budget;
     wchar_t path[512]{};const auto n=GetModuleFileNameW(nullptr,path,512);
@@ -1492,9 +1722,11 @@ int wmain(int argc,wchar_t** argv) {try {
     const fs::path executable(std::wstring(path,n));
     if(mode==L"--run-publication-cuts") {
       for(const auto point:cut_points)run_publication_cut(executable,point,PublicationOperation::write);
-    } else {
+    } else if(mode==L"--run-metadata-publication-cuts") {
       for(const auto operation:{PublicationOperation::shrink,PublicationOperation::rename})
         for(const auto point:cut_points)run_publication_cut(executable,point,operation);
+    } else {
+      for(const auto point:cut_points)run_selector_cut(executable,point);
     }
     require(source_fixture::cleanup_ok.load()&&!source_fixture::source_busy.load(),"Publication-cut final cleanup");
     return 0;

@@ -288,3 +288,23 @@ cuts. The initial 16 MiB metadata fixture reached its append capacity during
 population. The corrected guest fixture reserves history in proportion to the
 number of declared neighbors. Every trial used private test data.
 [Mounted metadata evidence](evidence/windows11-mounted-metadata-publication-cuts-2026-11-22.json)
+
+## Mounted selector publication cuts during reclamation
+
+The opt-in guest probe observes the actual sparse volume provider from the
+normal mount. It holds the background reclamation owner before the first
+selector write and after each successful selector slot flush. The exclusive
+writer lease stays on the provider that performs the writes. Twelve flushed
+history writes and a separate witness supply the acknowledged state.
+
+Two fresh signed WinFsp 2.2 guests each ran the three boundaries. The
+independent CPU reader selected the previous epoch before the first write
+and the replacement epoch after either flush. It checked the target inode,
+the acknowledged contents, both complete image ranges and their lineage.
+A fresh mount flushed another file, and the CPU reader verified the result.
+A separate unmounted phase verified the Windows sparse provider releases
+retired allocations and reuses both ranges when their retained readers are
+gone. The same build also passed three original Write and six metadata
+publication controls. The guest runs qualify process-exit recovery at the
+recorded boundaries. Physical power-loss qualification remains open.
+[Mounted selector evidence](evidence/windows11-mounted-selector-publication-cuts-2026-11-22.json)

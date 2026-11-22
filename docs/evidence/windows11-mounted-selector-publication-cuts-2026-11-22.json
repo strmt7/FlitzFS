@@ -1,0 +1,382 @@
+{
+  "schema": "flitzfs-windows-mounted-selector-cuts-v1",
+  "observed_at_utc": "2026-11-22T08:41:36.906027+00:00",
+  "experimental": true,
+  "release_qualified": false,
+  "source": {
+    "base": "fc126932df9df2b829802ab8374669398f9df89a",
+    "tree": "e38a959424cff6642fcbb50f183bd6a9c30d69bb",
+    "patch_sha256": "6c5c0cd592b7157e762ebac07f5ec370837fcac1dbf974cd77f2a71e7d76633a",
+    "git_blobs": {
+      "CMakeLists.txt": "4856502d9c2f9e6654357870f3a73dc46477a2b7",
+      "src/store_file.cpp": "188a23309be73e254db3f7e60744f295fc160e0a",
+      "src/store_file.hpp": "4dc3aa0c479d7fd1042a825e4abde1a38ebd2c55",
+      "tests/winfsp_write_probe.cpp": "3361cebb6ceebffed86a9a39b64d8d23218fa9a2"
+    }
+  },
+  "research": {
+    "receipt_sha256": "64e18ec1f2901862af6c54e410760c176e03e1979e24c9deeaf74c847044dab4",
+    "provider": "0.9.5+flitzzip.portable2",
+    "pages": [
+      {
+        "name": "query-sparse",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_query_allocated_ranges",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 63071,
+        "markdown_sha256": "9f803badccd68995ad416b2fceb2532f8dd4a4f87b9d131a6ab1bd058ffd840e",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.147,
+        "capture": "query-sparse.native.json",
+        "capture_sha256": "e77ea93467d7b08cea1d21a8f79aac760a5a08e54fa326594e41bd3254c218d7"
+      },
+      {
+        "name": "reclaim-sparse",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_zero_data",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 61945,
+        "markdown_sha256": "c3ec21654a142945c577e399e50070b7b22f9cf7b09aad1d842e2b25c68f16bc",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.765,
+        "capture": "reclaim-sparse.native.json",
+        "capture_sha256": "bb66ead54fb3410ef7f4485e7987fdae1f79f8814181a5e3a21189f0d802eb05"
+      }
+    ],
+    "prior_operation_contracts": "docs/evidence/windows11-mounted-metadata-publication-cuts-2026-11-22.json"
+  },
+  "builds": {
+    "probe": {
+      "run": "local-run-5831892d9847495486c42a4262cb58b6",
+      "receipt_sha256": "251ed1b944bc8094b81facd253c77d81a7756bbb6c8eaf6141746b30d61b3dc8",
+      "output_sha256": "e157e648f31d25b3b198f6571cad3e19959ac807f84cecbdda9a75e903616c2d",
+      "exit_code": 0,
+      "tree_retired": true,
+      "supervisor_retired_remaining_children": 1
+    },
+    "raw_configure": {
+      "run": "local-run-0c651b5d2c7942a29378bbc2231513d2",
+      "receipt_sha256": "d9e5512b372fecebd9e1c345b5d23c523ccf321556a8dfd51b46aad8f10a59bc",
+      "output_sha256": "4491b19db0724c9932d49035df7e9cbe49178a7dafbff6d1a507c41c4c5fc0c2",
+      "exit_code": 0,
+      "tree_retired": true,
+      "supervisor_retired_remaining_children": 1
+    },
+    "raw_build": {
+      "run": "local-run-70fd58cddf2d4ffcb9acade73cfafd9c",
+      "receipt_sha256": "bccec3659c1242b6adb5d56b01e4ae6fc2307556acfaa1ae762599eee03e042b",
+      "output_sha256": "69f026af9e3f1109006d467201f27284b6103e644d9231a7cc31b9a4f608706c",
+      "exit_code": 0,
+      "tree_retired": true,
+      "supervisor_retired_remaining_children": 1
+    },
+    "probe_executable_sha256": "f416c88d729dddcd30b64ad29f6bdfba20497b8dd3fad1d482d28539212ecdbf",
+    "raw_project_has_observation_definition": false,
+    "codec_ctest": {
+      "run": "local-run-10f3924770754b44a084246c4125b524",
+      "receipt_sha256": "85ea3676b9dc4ec23b63dfcc916f71457b85c732eac0cd81d5b1809a1c4eb425",
+      "output_sha256": "3c3a6e7881a32c11bb90f09c4c02c4394623e9c0ca320e258f52b371f20bcaa4",
+      "exit_code": 0,
+      "tree_retired": true,
+      "supervisor_retired_remaining_children": 0,
+      "passed": 4
+    },
+    "raw_ctest": {
+      "run": "local-run-311ba5a5c987477f808bd739f4f4f6fc",
+      "receipt_sha256": "f9a89fa438ad12be4a8ea6adf9d1ce9e2e1a32df349a4249c63315ef8fba3056",
+      "output_sha256": "7f08e8bec5db2235e828e0871817e98fb4faf0667b36ea5b0aa9c8aa234eb77f",
+      "exit_code": 0,
+      "tree_retired": true,
+      "supervisor_retired_remaining_children": 0,
+      "passed": 4
+    }
+  },
+  "mounted_selector_trials": [
+    {
+      "process": {
+        "run": "local-run-02f4e6e86bba4ef08550735949a5c817",
+        "receipt_sha256": "f5d3d863a92ebc1fae5eb2c5453acc7dbea681c788a75d0709b31ebc849df356",
+        "output_sha256": "34260572c597dc718a70db0f4662131e44fe83f43cb99af1626dff4d7c66158d",
+        "exit_code": 0,
+        "tree_retired": true,
+        "supervisor_retired_remaining_children": 0
+      },
+      "build": "26100",
+      "receipt_sha256": "f0bd987054d9fc8cce2e65c937727e4cb7249608c07d5ddfc363d293a76a68f3",
+      "sandbox_receipt_sha256": "01f5440448df87a83ad6900f10882c087ab8ac717e4c44f987fd94d3e1185982",
+      "manifest_sha256": "517ec7b785f7f8ac2042dd27c7747c57b6a3f8131da0aa35f0a232cb490d7b92",
+      "guest_script_sha256": "b444614ba4bf10b2f39c7a2917576f6d2def1329caf8e7a0d837cd239e450d6a",
+      "driver_sha256": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+      "sdk_sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+      "probe_sha256": "f416c88d729dddcd30b64ad29f6bdfba20497b8dd3fad1d482d28539212ecdbf",
+      "guest_retired": true,
+      "cuts": [
+        {
+          "boundary": "before-first-selector-write",
+          "epoch": 1,
+          "source_end": 5505024,
+          "successor_end": 393216,
+          "bytes_verified": 1,
+          "retired": 1
+        },
+        {
+          "boundary": "after-first-selector-flush",
+          "epoch": 2,
+          "source_end": 5242880,
+          "successor_end": 393216,
+          "bytes_verified": 1,
+          "retired": 1
+        },
+        {
+          "boundary": "after-second-selector-flush",
+          "epoch": 2,
+          "source_end": 5767168,
+          "successor_end": 393216,
+          "bytes_verified": 1,
+          "retired": 1
+        }
+      ]
+    },
+    {
+      "process": {
+        "run": "local-run-bd018190f8604c01892864a33f133cda",
+        "receipt_sha256": "4b455da32a90964762455fd524d718005d32e30f56c40c0719965b7ffce3a4b1",
+        "output_sha256": "deeb24a9ebfef577c05803fb13483c77a0facc2649d5790470fb4cfe305e9904",
+        "exit_code": 0,
+        "tree_retired": true,
+        "supervisor_retired_remaining_children": 0
+      },
+      "build": "26100",
+      "receipt_sha256": "3586f3c3912bb8d318863745fef53d6f2f068311cd571717d45d6d3f68d5019c",
+      "sandbox_receipt_sha256": "d64dc0339a6d1746c4f1a5f979512a04f3f66e0c785e2839ec182f13f44da305",
+      "manifest_sha256": "8898b4848239ed880961982888a49552d0f7f50e2c689f12c5391016a9515f71",
+      "guest_script_sha256": "a168052302a29369d55045d38337ae84cd9495038c7b0c11ed86aa6e4afdf531",
+      "driver_sha256": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+      "sdk_sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+      "probe_sha256": "f416c88d729dddcd30b64ad29f6bdfba20497b8dd3fad1d482d28539212ecdbf",
+      "guest_retired": true,
+      "cuts": [
+        {
+          "boundary": "before-first-selector-write",
+          "epoch": 1,
+          "source_end": 5505024,
+          "successor_end": 393216,
+          "bytes_verified": 1,
+          "retired": 1
+        },
+        {
+          "boundary": "after-first-selector-flush",
+          "epoch": 2,
+          "source_end": 5505024,
+          "successor_end": 393216,
+          "bytes_verified": 1,
+          "retired": 1
+        },
+        {
+          "boundary": "after-second-selector-flush",
+          "epoch": 2,
+          "source_end": 5767168,
+          "successor_end": 393216,
+          "bytes_verified": 1,
+          "retired": 1
+        }
+      ],
+      "sparse_backing_reuse": {
+        "sha256": "0450b8e2531f00692641db2d7ee4a80e445a1a5e12a1a98c4fff44f595b8056d",
+        "checks": 21,
+        "allocation_released": true,
+        "both_image_slots_reused": true,
+        "independent_cpu_reopen": true
+      }
+    }
+  ],
+  "same_binary_mounted_controls": {
+    "process": {
+      "run": "local-run-19a6350eff7f4996a4df24d6742adfe3",
+      "receipt_sha256": "7cfb48c6db6b3450af39ba87f85bd4bb27673ebe0f06d1340f9d6a78f6beccca",
+      "output_sha256": "917824b4211bd3c473a6aace9f1ac49f34a191754aca11755941cadca1740c38",
+      "exit_code": 0,
+      "tree_retired": true,
+      "supervisor_retired_remaining_children": 0
+    },
+    "build": "26100",
+    "receipt_sha256": "c9e7458a0bee7c25c0b48a97b08e13581eee7fc3a3697176b08c5ee980c132d8",
+    "sandbox_receipt_sha256": "a2c11b1dae9b5c524c37fd09bcef05567c00d43820f48a92130ea02584127433",
+    "manifest_sha256": "e1311ddb4b5b026540d89e4cabb08dfd792a3136f249c20dcb8514f1649ffe67",
+    "guest_script_sha256": "ed614f7d8aaaf5416d691355c8cab0ae6071215e464a7bfcc1a487765fb6262a",
+    "driver_sha256": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+    "sdk_sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+    "probe_sha256": "f416c88d729dddcd30b64ad29f6bdfba20497b8dd3fad1d482d28539212ecdbf",
+    "guest_retired": true,
+    "cuts": [
+      {
+        "boundary": "before-payload-flush",
+        "pending_before_exit": 1,
+        "client_error": 995,
+        "recovered": "previous",
+        "generation": 176,
+        "continuation_generation": 182,
+        "cpu_readback": 1,
+        "retired": 1,
+        "operation": "eof-shrink",
+        "neighbors": 32,
+        "recovered_extent": 23592960,
+        "continued_extent": 24379392
+      },
+      {
+        "boundary": "after-first-root",
+        "pending_before_exit": 1,
+        "client_error": 995,
+        "recovered": "next",
+        "generation": 183,
+        "continuation_generation": 191,
+        "cpu_readback": 1,
+        "retired": 1,
+        "operation": "eof-shrink",
+        "neighbors": 32,
+        "recovered_extent": 24379392,
+        "continued_extent": 25165824
+      },
+      {
+        "boundary": "after-second-root",
+        "pending_before_exit": 1,
+        "client_error": 995,
+        "recovered": "next",
+        "generation": 182,
+        "continuation_generation": 188,
+        "cpu_readback": 1,
+        "retired": 1,
+        "operation": "eof-shrink",
+        "neighbors": 32,
+        "recovered_extent": 24117248,
+        "continued_extent": 24903680
+      },
+      {
+        "boundary": "before-payload-flush",
+        "pending_before_exit": 1,
+        "client_error": 995,
+        "recovered": "previous",
+        "generation": 180,
+        "continuation_generation": 186,
+        "cpu_readback": 1,
+        "retired": 1,
+        "operation": "rename",
+        "neighbors": 32,
+        "recovered_extent": 24117248,
+        "continued_extent": 24903680
+      },
+      {
+        "boundary": "after-first-root",
+        "pending_before_exit": 1,
+        "client_error": 995,
+        "recovered": "next",
+        "generation": 179,
+        "continuation_generation": 187,
+        "cpu_readback": 1,
+        "retired": 1,
+        "operation": "rename",
+        "neighbors": 32,
+        "recovered_extent": 23855104,
+        "continued_extent": 24641536
+      },
+      {
+        "boundary": "after-second-root",
+        "pending_before_exit": 1,
+        "client_error": 995,
+        "recovered": "next",
+        "generation": 182,
+        "continuation_generation": 188,
+        "cpu_readback": 1,
+        "retired": 1,
+        "operation": "rename",
+        "neighbors": 32,
+        "recovered_extent": 24117248,
+        "continued_extent": 24903680
+      },
+      {
+        "boundary": "before-payload-flush",
+        "pending_before_exit": 1,
+        "client_error": 995,
+        "recovered": "previous",
+        "generation": 18,
+        "continuation_generation": 24,
+        "cpu_readback": 1,
+        "retired": 1,
+        "operation": "write",
+        "neighbors": 0,
+        "recovered_extent": 2883584,
+        "continued_extent": 3670016
+      },
+      {
+        "boundary": "after-first-root",
+        "pending_before_exit": 1,
+        "client_error": 995,
+        "recovered": "next",
+        "generation": 19,
+        "continuation_generation": 27,
+        "cpu_readback": 1,
+        "retired": 1,
+        "operation": "write",
+        "neighbors": 0,
+        "recovered_extent": 2883584,
+        "continued_extent": 3670016
+      },
+      {
+        "boundary": "after-second-root",
+        "pending_before_exit": 1,
+        "client_error": 995,
+        "recovered": "next",
+        "generation": 18,
+        "continuation_generation": 24,
+        "cpu_readback": 1,
+        "retired": 1,
+        "operation": "write",
+        "neighbors": 0,
+        "recovered_extent": 2621440,
+        "continued_extent": 3407872
+      }
+    ]
+  },
+  "initial_wrapper_refusal": {
+    "process": {
+      "run": "local-run-9b86eda4f5e34b08b315c496ad4f2c80",
+      "receipt_sha256": "8cedc10710807e157df742f3295715b894c61ec61916ad66912341354230e9f5",
+      "output_sha256": "6f2cf6358cf14846a82903e0ab0737cc84e9984071b8561a3e24d1c789b30176",
+      "exit_code": 1,
+      "tree_retired": true,
+      "supervisor_retired_remaining_children": 0
+    },
+    "build": "26100",
+    "receipt_sha256": "aeef3a6f729d72eda57a00e61391d74cd386ec0b4d2caa7c6e62be3ca1b4d85d",
+    "sandbox_receipt_sha256": "b7834fa95c73c2c1f2d34935d708be3b17497ad1eaa5bd4e9dab6a75600858a2",
+    "manifest_sha256": "fa0460f3ac206af20a0fd9ba09f285e3022594810e948da2a1b918246dae43f7",
+    "guest_script_sha256": "b444614ba4bf10b2f39c7a2917576f6d2def1329caf8e7a0d837cd239e450d6a",
+    "driver_sha256": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+    "sdk_sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+    "probe_sha256": "a5d851b558d0fc44d6b809ba35f6aaaa9d52ccf70935e7d4bc1695c28ea3d1b5",
+    "guest_retired": true,
+    "source_failure": "FlitzFS store file: range growth needs an exclusive sparse volume owner"
+  },
+  "host": {
+    "windows_client_version": "26H2",
+    "windows_client_build": "26300.10075",
+    "scoped_processes": 0,
+    "winfsp_driver_states": [
+      "Stopped"
+    ]
+  },
+  "scope": "Mounted process interruption with the built-in paired sparse Windows volume provider and signed WinFsp 2.2. Both image ranges were independently verified before writable continuation. Separate explicit sparse tests inspected actual range release after verified reuse.",
+  "remaining": [
+    "Physical power interruption on qualified test backing",
+    "Larger mixed mounted operation traces and interference",
+    "Automatic foreground mounted AMD qualification"
+  ]
+}

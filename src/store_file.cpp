@@ -162,6 +162,9 @@ class Output final:public NativeVolumeRangeIo {
   std::uint64_t admitted_extent_=0;
   PinnedDirectory parent_pin_;
   HANDLE handle_=INVALID_HANDLE_VALUE;
+#ifdef FLITZFS_OBSERVE_VOLUME_PUBLICATION
+  std::shared_ptr<VolumeFileObserver> volume_observer_;
+#endif
   bool has_allocations(std::uint64_t begin,std::uint64_t end) const {
     FILE_ALLOCATED_RANGE_BUFFER query{},range{};
     query.FileOffset.QuadPart=static_cast<LONGLONG>(begin);
@@ -287,6 +290,12 @@ class Output final:public NativeVolumeRangeIo {
     if(parent_>=0) ::close(parent_);
 #endif
   }
+#if defined(_WIN32) && defined(FLITZFS_OBSERVE_VOLUME_PUBLICATION)
+  void observe_volume(std::shared_ptr<VolumeFileObserver> observer) {
+    if(!observer || volume_observer_)fail("invalid volume observer");
+    volume_observer_=std::move(observer);
+  }
+#endif
   StoreIoContract contract() const noexcept override { return contract_; }
   bool supports_reclaimable_ranges() const noexcept override {
 #ifdef _WIN32
@@ -333,6 +342,9 @@ class Output final:public NativeVolumeRangeIo {
       fail("invalid sparse range retirement");
     refresh_extent();
     if(offset>=extent_)return;
+#ifdef FLITZFS_OBSERVE_VOLUME_PUBLICATION
+    if(volume_observer_)volume_observer_->before_reclaim(offset,bytes);
+#endif
     FILE_ZERO_DATA_INFORMATION request{};
     request.FileOffset.QuadPart=static_cast<LONGLONG>(offset);
     request.BeyondFinalZero.QuadPart=static_cast<LONGLONG>((std::min)(offset+bytes,extent_));
@@ -370,6 +382,9 @@ class Output final:public NativeVolumeRangeIo {
 #ifdef _WIN32
     if(volume_file_ && !bytes.empty() && at+bytes.size()>admitted_extent_)
       fail("volume-file growth was not admitted");
+#ifdef FLITZFS_OBSERVE_VOLUME_PUBLICATION
+    if(volume_observer_ && !bytes.empty())volume_observer_->before_write(at,bytes.size());
+#endif
 #endif
     std::size_t done=0;
     while(done<bytes.size()) {
@@ -407,6 +422,9 @@ class Output final:public NativeVolumeRangeIo {
     std::lock_guard lock(mutex_);
 #ifdef _WIN32
     if(!FlushFileBuffers(handle_)) fail("file flush failed");
+#ifdef FLITZFS_OBSERVE_VOLUME_PUBLICATION
+    if(volume_observer_)volume_observer_->after_flush();
+#endif
 #else
     int result;
     do {result=::fsync(fd_);} while(result!=0 && errno==EINTR);
@@ -433,6 +451,14 @@ std::shared_ptr<StoreByteIo> read_store_file(const std::filesystem::path& path,s
 std::shared_ptr<StoreByteIo> new_volume_file(const std::filesystem::path& path,StoreIoContract c,std::uint64_t limit) {
   return std::make_shared<Output>(path,c,false,limit);
 }
+#ifdef FLITZFS_OBSERVE_VOLUME_PUBLICATION
+std::shared_ptr<StoreByteIo> new_observed_volume_file(const std::filesystem::path& path,StoreIoContract c,
+    std::uint64_t limit,std::shared_ptr<VolumeFileObserver> observer) {
+  auto output=std::make_shared<Output>(path,c,false,limit);
+  output->observe_volume(std::move(observer));
+  return output;
+}
+#endif
 std::shared_ptr<StoreByteIo> reopen_volume_file(const std::filesystem::path& path,StoreIoContract c,std::uint64_t limit) {
   return std::make_shared<Output>(path,c,true,limit);
 }

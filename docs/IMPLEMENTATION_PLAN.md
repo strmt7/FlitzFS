@@ -16,9 +16,10 @@ maintenance. The owner makes the release decision.
 The populated signed-driver fixture supports post-flush recovery and a fresh
 writable mount. Independent hardware and SDK paths cover finite AMD batching,
 controlled deferred integration and live indexed readback. Mounted inner
-publication cuts now cover Write, EOF shrink and rename. The next combined
-checkpoint adds outer selector cuts during an image switch and qualifies
-installed foreground AMD through ordinary writes.
+publication cuts cover Write, EOF shrink and rename. The CPU reader also
+verified both image ranges through mounted selector cuts during reclamation.
+The next checkpoint qualifies installed foreground AMD through ordinary writes
+and extends the recovery trace to mixed cached and mapped I/O.
 Keep independent CPU bytes, full occupied-size accounting and safe ownership
 for each path. [Release gate ledger](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
 · [Current state](DEVELOPMENT_STATE.json)
@@ -146,10 +147,11 @@ S1–S12 release gates remain in use.
   affected range, indexed generation, lock/verification time, each publication
   and barrier, fallback reason and retirement to the trace.
 - Reuse signed-driver [inner publication cuts](evidence/windows11-mounted-metadata-publication-cuts-2026-11-22.json)
-  for Write, EOF shrink and rename. Extend the matrix to an outer image
-  switch, preserving independent exact bytes and a verified next write. Capture
-  each selector slot and test retired-range ownership. Add mapped and broader
-  populated operations to the same client and artifact ledger.
+  for Write, EOF shrink and rename and [outer selector cuts](evidence/windows11-mounted-selector-publication-cuts-2026-11-22.json)
+  during reclamation. Keep independent exact readback of both retained image
+  ranges, a verified next write and retired-range ownership checks. Add
+  cached and mapped writes and populated-directory churn to the same client
+  and artifact ledger.
 - Wire qualified foreground offers from the installed owner to an ordinary
   deferred callback. Separate role-specific package inputs and verify the
   app can run without the optional worker. Reuse the existing background
