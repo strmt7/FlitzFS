@@ -11,6 +11,7 @@
 #include <atomic>
 #include <cstring>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 #include <vector>
 
@@ -18,6 +19,28 @@ using namespace flitzfs;
 namespace {
 void require(bool condition,const char* message) {
   if(!condition)throw std::runtime_error(message);
+}
+
+void backing_file_geometry() {
+  const auto ordinary_ntfs=detail::volume_file_geometry(L"NTFS",true,4096);
+  const auto large=detail::volume_file_geometry(L"NTFS",true,2ULL<<20);
+  const auto dense_ntfs=detail::volume_file_geometry(L"NTFS",false,65536);
+  require(ordinary_ntfs.maximum_extent==(16ULL<<40)-65536 && ordinary_ntfs.isolated_sparse_ranges,
+      "The NTFS 4 KiB layout ignored the per-file limit or range alignment");
+  require(large.maximum_extent==(8ULL<<50)-65536 && !large.isolated_sparse_ranges,
+      "A large NTFS cluster admitted a smaller isolated range");
+  require(dense_ntfs.maximum_extent==(256ULL<<40)-65536 && !dense_ntfs.isolated_sparse_ranges,
+      "NTFS file extent and sparse capability were coupled");
+  const auto fat32=detail::volume_file_geometry(L"FAT32",false,4096);
+  const auto exfat=detail::volume_file_geometry(L"exFAT",false,4096);
+  const auto unresolved=detail::volume_file_geometry(L"NTFS",true,0);
+  const auto overflow=detail::volume_file_geometry(L"NTFS",true,1ULL<<32);
+  require(fat32.maximum_extent==(1ULL<<32)-1 && !fat32.isolated_sparse_ranges,
+      "FAT32 admitted an unrepresentable backing extent");
+  require(!exfat.isolated_sparse_ranges && exfat.maximum_extent==(1ULL<<63)-1 &&
+      !unresolved.isolated_sparse_ranges && unresolved.maximum_extent==exfat.maximum_extent &&
+      !overflow.isolated_sparse_ranges && overflow.maximum_extent==exfat.maximum_extent,
+      "Unknown, dense or overflowing backing geometry admitted isolated ranges");
 }
 
 struct Provider {
@@ -464,6 +487,20 @@ void disposable_file_lifecycle(const std::filesystem::path& base) {
   const auto directory=std::filesystem::canonical(base)/("flitzfs-volume-attachment-"+std::to_string(ticks));
   require(std::filesystem::create_directory(directory),"Cannot exclusively create the volume file attachment fixture");
   changed_volume_is_refused(directory/"changed.flfs");
+  const auto outside=directory/"outside-extent.flfs";
+  const auto geometry=detail::volume_file_destination(outside);
+  const auto maximum=geometry.geometry.maximum_extent;
+  if(maximum<static_cast<std::uint64_t>((std::numeric_limits<std::int64_t>::max)())) {
+    bool refused=false;
+    try {
+      (void)detail::new_volume_file(outside,{65536,true},maximum+1,geometry.volume_root);
+    } catch(const std::runtime_error& failure) {
+      refused=std::string_view(failure.what()).ends_with("the backing filesystem's maximum file size");
+    }
+    require(refused && !std::filesystem::exists(outside),
+        "An unrepresentable volume reached exclusive creation");
+    std::cout<<"disposable_file_extent maximum_bytes="<<maximum<<" refused_before_create=1\n";
+  }
   const auto path=directory/"attached.flfs";
   file_lifecycle({WinFspVolumeFileSelection::WindowsFile{path,{65536,true}},
       fresh_volume_identity(),WinFspVolumeFileSelection::Create{fresh_volume_identity(),{8*1024*1024}}});
@@ -517,7 +554,10 @@ int wmain(int argc,wchar_t** argv) {
     require(load_volume_app_winfsp().complete() && GetModuleHandleW(L"winfsp-x64.dll"),
         "App loader did not bind its verified WinFsp SDK");
     std::cout<<"attachment_sdk_binding delay_loaded=1 verified_exports=1\n";
-    if(argc==1)lifecycle();
+    if(argc==1) {
+      backing_file_geometry();
+      lifecycle();
+    }
     else if(argc==2 && std::wstring_view(argv[1])==L"--memory-volume-file")file_lifecycle_in_memory();
     else if(argc==3 && std::wstring_view(argv[1])==L"--disposable-volume-file")
       disposable_file_lifecycle(std::filesystem::path(argv[2]));

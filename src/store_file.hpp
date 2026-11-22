@@ -9,9 +9,17 @@ std::shared_ptr<StoreByteIo> read_store_file(const std::filesystem::path&,
 #ifdef _WIN32
 // Persistent volume files have a caller-qualified contract and independent
 // extent limits. Opening never truncates, follows a reparse path or shares a writer.
+struct VolumeFileGeometry {
+  std::uint64_t maximum_extent;
+  bool isolated_sparse_ranges;
+};
+VolumeFileGeometry volume_file_geometry(std::wstring_view filesystem,bool supports_sparse_files,
+    std::uint64_t cluster_bytes) noexcept;
+
 struct VolumeFileDestination {
   std::wstring volume_root;
-  std::uint64_t available_growth=0;
+  std::uint64_t available_growth;
+  VolumeFileGeometry geometry;
 };
 VolumeFileDestination volume_file_destination(const std::filesystem::path&);
 std::shared_ptr<StoreByteIo> new_volume_file(const std::filesystem::path&,StoreIoContract,std::uint64_t limit,

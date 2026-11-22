@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <bit>
 #include <cerrno>
 #include <cstdlib>
 #include <fstream>
@@ -156,18 +157,18 @@ void validate_volume_storage(HANDLE file,StoreIoContract qualified) {
       fail("live storage geometry exceeds the qualified failure unit");
   }
 }
-void validate_sparse_storage(HANDLE file,const std::wstring& volume) {
+VolumeFileGeometry query_volume_file_geometry(HANDLE file,const std::wstring& volume) {
   wchar_t filesystem[32]{};
   DWORD flags=0;
-  if(!GetVolumeInformationByHandleW(file,nullptr,0,nullptr,nullptr,&flags,filesystem,static_cast<DWORD>(std::size(filesystem))) ||
-      std::wstring_view(filesystem)!=L"NTFS" || !(flags&FILE_SUPPORTS_SPARSE_FILES))
-    fail("isolated file ranges need qualified NTFS sparse storage");
-  DWORD sectors=0,sector_bytes=0,free_clusters=0,total_clusters=0;
-  if(!GetDiskFreeSpaceW(volume.c_str(),&sectors,&sector_bytes,&free_clusters,&total_clusters))
-    fail("cannot verify sparse file allocation granularity");
-  const auto bytes=static_cast<std::uint64_t>(sectors)*sector_bytes;
-  if(!bytes || bytes>kStoreCommitUnit || kStoreCommitUnit%bytes)
-    fail("sparse file allocation granularity exceeds isolated range geometry");
+  if(!GetVolumeInformationByHandleW(file,nullptr,0,nullptr,nullptr,&flags,filesystem,static_cast<DWORD>(std::size(filesystem))))
+    return volume_file_geometry({},false,0);
+  std::uint64_t cluster_bytes=0;
+  if(std::wstring_view(filesystem)==L"NTFS") {
+    DWORD sectors=0,sector_bytes=0,free_clusters=0,total_clusters=0;
+    if(GetDiskFreeSpaceW(volume.c_str(),&sectors,&sector_bytes,&free_clusters,&total_clusters))
+      cluster_bytes=static_cast<std::uint64_t>(sectors)*sector_bytes;
+  }
+  return volume_file_geometry(filesystem,(flags&FILE_SUPPORTS_SPARSE_FILES)!=0,cluster_bytes);
 }
 #endif
 class Input final:public StoreByteIo {
@@ -192,7 +193,7 @@ class Output final:public NativeVolumeRangeIo {
   StoreIoContract contract_;
   mutable std::uint64_t extent_=0;
   std::filesystem::path parent_path_;
-  const std::uint64_t capacity_;
+  std::uint64_t capacity_; // Clamped by the opened backing before the provider is shared.
 #ifdef _WIN32
   const bool volume_file_;
   bool sparse_=false;
@@ -236,6 +237,13 @@ class Output final:public NativeVolumeRangeIo {
       out=out.subspan(result.bytes);
     }
     observed.complete();
+  }
+  void constrain_volume_extent(VolumeFileGeometry geometry,bool reopen) {
+    if(contract_.isolated_range_reclamation && !geometry.isolated_sparse_ranges)
+      fail("isolated file ranges need qualified NTFS sparse storage and allocation geometry");
+    if(!reopen && capacity_>geometry.maximum_extent)
+      fail("the requested volume exceeds the backing filesystem's maximum file size");
+    capacity_=(std::min)(capacity_,geometry.maximum_extent);
   }
   void admit_windows_growth(std::uint64_t projected,std::uint64_t growth) {
     if(projected<extent_ || projected>capacity_ || growth>capacity_)fail("projected extent outside budget");
@@ -291,7 +299,7 @@ class Output final:public NativeVolumeRangeIo {
       if(!expected_volume.empty() && !same_windows_path(parent_pin_.volume_root,expected_volume))
         fail("the selected backing volume has changed");
       admit_volume_space(parent_pin_.volume_root,0);
-      if(c.isolated_range_reclamation)validate_sparse_storage(parent_pin_.handle,parent_pin_.volume_root);
+      constrain_volume_extent(query_volume_file_geometry(parent_pin_.handle,parent_pin_.volume_root),reopen);
       demand_io_.emplace();
     }else {
       std::error_code ec;const auto space=std::filesystem::space(parent,ec);
@@ -323,11 +331,12 @@ class Output final:public NativeVolumeRangeIo {
         if(!same_windows_path(opened_path(handle_,VOLUME_NAME_GUID),target))
           fail("the opened file is redirected from the selected backing path");
         validate_volume_storage(handle_,c);
+        constrain_volume_extent(query_volume_file_geometry(handle_,parent_pin_.volume_root),reopen);
+        if(static_cast<std::uint64_t>(size.QuadPart)>capacity_)fail("the backing file exceeds the live extent limit");
         sparse_=(attr.FileAttributes&FILE_ATTRIBUTE_SPARSE_FILE)!=0;
         if(sparse_ && !c.isolated_range_reclamation)
           fail("sparse volume file needs an isolated range contract");
         if(c.isolated_range_reclamation) {
-          validate_sparse_storage(handle_,parent_pin_.volume_root);
           if(!reopen && !sparse_) {
             if(demand_io_->control(handle_,FSCTL_SET_SPARSE,nullptr,0).error!=ERROR_SUCCESS ||
                 !GetFileInformationByHandleEx(handle_,FileAttributeTagInfo,&attr,sizeof(attr)) ||
@@ -572,12 +581,25 @@ std::shared_ptr<StoreByteIo> read_store_file(const std::filesystem::path& path,s
   return std::make_shared<Input>(path,limit);
 }
 #ifdef _WIN32
+VolumeFileGeometry volume_file_geometry(std::wstring_view filesystem,bool supports_sparse_files,
+    std::uint64_t cluster_bytes) noexcept {
+  if(filesystem==L"FAT32")return {(std::numeric_limits<std::uint32_t>::max)(),false};
+  constexpr std::uint64_t ntfs_cluster_limit=1ULL<<32;
+  constexpr std::uint64_t ntfs_reserved_tail=65536;
+  if(filesystem!=L"NTFS" || !std::has_single_bit(cluster_bytes) ||
+      cluster_bytes>maximum_windows_file_bytes/ntfs_cluster_limit)
+    return {maximum_windows_file_bytes,false};
+  // The current Windows NTFS maximum is (2^32 * cluster size) - 64 KiB.
+  return {ntfs_cluster_limit*cluster_bytes-ntfs_reserved_tail,
+      supports_sparse_files && kStoreCommitUnit%cluster_bytes==0};
+}
 VolumeFileDestination volume_file_destination(const std::filesystem::path& path) {
   path_policy(path);
   PinnedDirectory pinned;
   pin_volume_directory(pinned,path);
   const auto available=available_volume_growth(pinned.volume_root);
-  return {std::move(pinned.volume_root),available};
+  const auto geometry=query_volume_file_geometry(pinned.handle,pinned.volume_root);
+  return {std::move(pinned.volume_root),available,geometry};
 }
 std::shared_ptr<StoreByteIo> new_volume_file(const std::filesystem::path& path,StoreIoContract c,std::uint64_t limit,
     std::wstring_view expected_volume) {

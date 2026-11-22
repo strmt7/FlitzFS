@@ -224,11 +224,15 @@ volumes. The Explorer helper binds the selected parent's volume GUID
 before mount preflight. The writable provider compares that GUID before
 creating or reopening the file, opens the path under the GUID, and verifies
 the opened file's normalized path. Free-space checks and allocation
-geometry use the same GUID. Creation sizing uses caller-visible free
-space above the existing reserve. The
-space reserve is one sixteenth of caller-visible capacity, rounded up and
-capped at 1 GiB. Existing geometry and explicit flush requirements still
-govern writes. Sparse range reclamation uses the qualified NTFS path. The
+geometry use the same GUID. Creation sizing uses the smaller of caller-visible
+free space above the reserve and the backing filesystem's maximum file extent.
+The NTFS extent bound uses the actual cluster size. The reserve is one
+sixteenth of caller-visible capacity, rounded up and capped at 1 GiB. The
+provider checks the extent and sparse allocation geometry before exclusive
+creation and again on the opened file. Existing volumes keep their declared
+logical capacity on reopen, while future backing growth uses the live
+extent bound. Flush and failure-unit requirements still govern writes.
+Sparse range reclamation uses the qualified NTFS path. The
 read-only Windows probe confirmed the GUID and DOS path for the development
 drive root and its test directory. The next probe obtained storage properties
 through a metadata-only handle to that same volume. It observed SATA transport,
@@ -239,7 +243,15 @@ tests.
 [Read-only storage probe](../evidence/windows-backing-media-2026-11-22.json)
 [Windows final paths by handle](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfinalpathnamebyhandlew) ·
 [Caller-visible free space](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getdiskfreespaceexw) ·
-[Windows drive types](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getdrivetypew)
+[Windows drive types](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getdrivetypew) ·
+[NTFS per-file geometry](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fsa/4e3695bd-7574-4f24-a223-b4679c065b63) ·
+[Windows allocation cluster size](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getdiskfreespacew)
+
+The disposable Windows guest reported an NTFS file limit of 16 TiB minus
+64 KiB. It refused a request one byte above that limit before creation.
+The selected ordinary-size volume preserved existing bytes and passed
+independent CPU reopen.
+[Extent and reopen verification](../evidence/volume-file-extent-2026-11-22.json)
 
 | Provider | Signals and tailored decisions |
 | --- | --- |
@@ -320,10 +332,11 @@ The helper requests the qualified NTFS sparse profile for persistent creation.
 The in-process memory provider has its own lifetime and allocation contract.
 Microsoft lists exFAT and FAT32 without sparse-file support, and lists a
 file-size limit of about 4 GiB for FAT32. A USB device can carry either NTFS or exFAT.
-Read the outer filesystem and its capabilities on the pinned backing. Treat
-the file-size bound, available allocation, volatility and durability as
-separate fields. For an external RAM disk, establish the lifetime explicitly
-before treating its bytes as volatile.
+The ordinary file provider applies a FAT32 extent bound when the caller
+supplies a qualified nonsparse contract. The Explorer helper currently uses
+the qualified NTFS sparse profile. Dense reuse and its own recovery
+qualification remain open for exFAT and FAT32. For an external RAM disk,
+establish the backing lifetime explicitly before treating its bytes as volatile.
 [Windows filesystem capabilities](https://learn.microsoft.com/en-us/windows/win32/fileio/filesystem-functionality-comparison) ·
 [Filesystem capability flags](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/ebc7e6e5-4650-4e54-b17c-cf60f6fbeeaa)
 

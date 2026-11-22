@@ -106,16 +106,17 @@ std::unique_ptr<VolumeAttachment> make_volume_app_file_attachment(const VolumeFi
     throw std::invalid_argument("Choose how to open the volume file");
   const auto parents=pin_volume_path_parents(path.native());
   auto destination=detail::volume_file_destination(path);
+  if(!destination.geometry.isolated_sparse_ranges)
+    throw std::runtime_error("The selected backing requires qualified NTFS sparse allocation");
   // The qualified build supplies the NTFS flush and range-isolation contract.
   // The backing rechecks the selected volume, geometry and available space.
   constexpr StoreIoContract contract{static_cast<std::uint32_t>(kStoreCommitUnit),true,true};
   WinFspVolumeFileSelection selection{
       WinFspVolumeFileSelection::WindowsFile{path,contract,std::move(destination.volume_root)},{},std::nullopt};
   if(request.action==VolumeFileAction::create_new) {
-    if(destination.available_growth<=kNativeVolumeFileImageOffset)
+    const auto extent=(std::min)(destination.available_growth,destination.geometry.maximum_extent);
+    if(extent<=kNativeVolumeFileImageOffset)
       throw std::runtime_error("Cannot reserve a volume on the selected backing");
-    const auto extent=(std::min)(destination.available_growth,
-        static_cast<std::uint64_t>((std::numeric_limits<std::int64_t>::max)()));
     const auto range=(extent-kNativeVolumeFileImageOffset)/2;
     const auto capacity=range-range%kStoreCommitUnit;
     if(capacity<kVolumeHeadBytes+2*kStoreCommitUnit)
