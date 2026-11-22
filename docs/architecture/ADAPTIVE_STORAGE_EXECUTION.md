@@ -66,16 +66,33 @@ measurement.
 [AIT 2026 dataset](https://aitdcc.github.io/dataset.html) ·
 [Lossless codec selection research preprint](https://arxiv.org/abs/2509.25219)
 
-Improve the policy locally using admitted idle-work outcomes. Introduce model
-changes through the same selection test. Retain rollback and rebuild advisory
-state from live data. Compare complete committed bytes and independently verify
-the CPU output for every selected candidate. A learned model that changes the
+Automatic indexed discovery now starts from the actual encoded payload bytes
+of the current members. Four fixed-point estimates track the recent observed
+yield of positional, shifted, masked and modular discovery. The controller
+uses the observations when it next orders buckets. Prior representatives can
+supply an existing reference. Each proposed replacement still has to pass the
+independent CPU reconstruction and protected compacted-size checks. The
+estimates live with the controller and start fresh on attachment.
+
+Two alternating comparisons per workload on Windows produced identical
+settled image sizes for all AIT 2026 splits and the paired CPython revisions.
+For the revisions, the new ordering wrote 8,192 fewer bytes during
+maintenance and ended at the same 819,200-byte compacted image. The AIT splits
+made no group writes in either policy. Exact readback passed for both the
+original and selected image in every trial.
+[Collective candidate comparison](../evidence/collective-yield-ranking-2026-11-22.json)
+
+Continue fitting and evaluating locally using admitted idle-work outcomes.
+Introduce model changes through the same selection test. Persist only checked
+advisory state that can be rebuilt from live data. Compare complete committed
+bytes and independently verify the CPU output for every selected candidate. A learned model that changes the
 stored coding is a separate experiment. Trial fixed-point context prediction
 of transformed residuals with bounded restart frames and immutable, versioned
 tables. Include model bytes, dependency protection, cold CPU decoding and
 AMD scheduling in the price. A new mandatory decoder needs format
 capability checks, historical fixtures and CPU rescue coverage.
-[StateSMix learned lossless compression preprint](https://arxiv.org/abs/2605.02904)
+[StateSMix learned lossless compression preprint](https://arxiv.org/abs/2605.02904) ·
+[Tufa Labs measured model and payload costs on enwik9](https://tufalabs.ai/research/tufazip/)
 
 ## 3. Put AMD on ordinary reads and writes
 

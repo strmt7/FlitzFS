@@ -1,0 +1,870 @@
+{
+  "schema": "flitzfs-collective-yield-ranking-v1",
+  "date": "2026-11-22",
+  "source": {
+    "base": "615e5ac32df4e8605c4b8aa0d2eea1c58d5c65a9",
+    "base_tree": "5df7966d8be7a48f0abd0055fbe0bbcef7a359c2",
+    "blobs": {
+      "CMakeLists.txt": "d0a17c444d8d2af93546bedb2cdce7fb78410489",
+      "include/flitzfs/native_filesystem.hpp": "8384e0d4433444d2a6a073213441892f88e77ce9",
+      "include/flitzfs/native_maintenance.hpp": "44703ca993093dab945bd34f612f287ac80d2cc5",
+      "src/native_indexed_volume.cpp": "1ea9d00472f6362d189608bb968b27198dd2410e",
+      "src/native_maintenance.cpp": "81a8c044adf15cd2a81d7df60e33ad8e3e97159f",
+      "tests/test_native_group_maintenance.cpp": "06a617bc5a3373891e65a273c62c58a03d4c8024"
+    }
+  },
+  "navigation": {
+    "provider_version": "0.2.43",
+    "native_response_sha256": "2098db8adf50a61dd1ea66383675758774daad205d10d774ac307a57efbee87f",
+    "actual_searches": 1,
+    "inventory_sha256": "a53b3f71572756c48ed03b64dc88442bf8697a4cf935868124f50912a4084add",
+    "receipt_sha256": "2a37dcbd665314318371f3a822350ee8cdaa3bd4749b3397f212122559b604c2"
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "native_pages": [
+      {
+        "name": "rubikfs",
+        "url": "https://www.usenix.org/conference/fast26/presentation/huang",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 10395,
+        "markdown_sha256": "b271b38f1feb88acd780ae11d756c7f3723fecb288cfe5e7803fed9c5d93767d",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.021,
+        "capture": "rubikfs.native.json",
+        "capture_sha256": "35d0b6e925193834771b75586a28990a84047b35f715f68271c8164ae56dbcb0"
+      },
+      {
+        "name": "model-cost",
+        "url": "https://tufalabs.ai/research/tufazip/",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 34627,
+        "markdown_sha256": "4c5b2886869c07d19668dd05913dd70b42003514c72edc1fdc996971c4c01c9b",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.999,
+        "capture": "model-cost.native.json",
+        "capture_sha256": "33d2b7d60fed9771ae2551869042c69e54e47c1f67a6d356df1f1439d15c9f8b"
+      },
+      {
+        "name": "selector",
+        "url": "https://arxiv.org/abs/2509.25219",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 8328,
+        "markdown_sha256": "468eb4bbb22f79d621c7b5691230718063c2571a063e60ceee13b959828a1ac9",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.657,
+        "capture": "selector.native.json",
+        "capture_sha256": "228d983c7695b2b6afc9b16f3ac968b33d0139d0b59e3284592a67198dbcb88b"
+      },
+      {
+        "name": "aitdcc",
+        "url": "https://aitdcc.github.io/dataset.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 6271,
+        "markdown_sha256": "766801630c0c3f7c80304f41397c0ae265fd0cb79387c2837c920c08b8987676",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.668,
+        "capture": "aitdcc.native.json",
+        "capture_sha256": "2cacf5631213b672817b2563f6fb647dc84ddd6398e6cb88e625f6a5902c1ca7"
+      }
+    ],
+    "receipt_sha256": "344b55745fbf698a70b86cca549b7a6ddd70bc5f8ea7691dbd877ab5c359e18d"
+  },
+  "protocol": {
+    "host": "Live Windows 11 client",
+    "backing": "owned indexed memory images",
+    "matching": "Alternating control/candidate and candidate/control on each frozen workload.",
+    "scope": "Same production codec settings. Each process starts with an empty model. No cross-run fitting.",
+    "criteria": [
+      "All runs must have exact independent CPU reopen and original snapshot readback.",
+      "Compare complete compacted image bytes as the primary result and observed reads and writes as tradeoffs.",
+      "Report both cohorts separately. A regression in deterministic settled size rules out default activation for the unmodified ranker.",
+      "Use this process-local comparison for decision evidence, separate from mounted performance and universal compression claims."
+    ],
+    "frozen_plan_sha256": "6555552c0be528a2c924186cf63820dc882418fc6260c5f0ccdd513da117738e"
+  },
+  "source_corpora": {
+    "training": {
+      "bytes": 13136344,
+      "files": 8,
+      "sha256": "bb25d5ebcdcdfe0daf4ebc0d78a452d9e8937808fbb2a481d33bafa5e15b1c42"
+    },
+    "held_out": {
+      "bytes": 25153047,
+      "files": 8,
+      "sha256": "26204e32bf232e5a40d5cce9d4f63a87c25fcb19f6eceadbff7c76321468c159"
+    },
+    "complete": {
+      "bytes": 38289387,
+      "files": 16,
+      "sha256": "baf1e7283ab49cc5b6c14e77e302637e4f17d84d1603af0fd9f3a62645d6ce1c"
+    },
+    "revisions": {
+      "bytes": 2230950,
+      "files": 24,
+      "sha256": "1e4415e2c80bd97dd16978c2d68f4c403489cf5ca38916bdbf574a174763aead"
+    }
+  },
+  "binary_sha256": {
+    "control": "835bae19d67f09e68f1fef9967d278a3d959f2aa1ccff66aec7b03f2cad342a4",
+    "candidate": "b94275a6d745272514ee8b9dce58929347a20c420f25dfcf5df92beeb4685af0"
+  },
+  "trials": {
+    "training": {
+      "control_compacted": 15998976,
+      "candidate_compacted": 15998976,
+      "candidate_minus_control": {
+        "after_compacted": 0,
+        "maintenance_read_bytes": 0,
+        "maintenance_write_bytes": 0,
+        "after_range_read_bytes": 0
+      },
+      "runs": [
+        {
+          "order": 0,
+          "lane": "control",
+          "growth_and_exactness": {
+            "files": 8,
+            "before_compacted": 15998976,
+            "after_compacted": 15998976,
+            "input_bytes": 13136308,
+            "selector_bytes": 131072,
+            "ingested_image_bytes": 16621568,
+            "maintained_image_bytes": 16621568,
+            "before_range_read_bytes": 574204,
+            "after_range_read_bytes": 574204,
+            "maintenance_read_bytes": 21889084,
+            "maintenance_write_bytes": 0,
+            "work_ns": 69189300,
+            "packed_groups": 0,
+            "attempts": 4,
+            "members": 0,
+            "cpu_exact": 1,
+            "retained_snapshot_exact": 1,
+            "idle_io": 0
+          },
+          "job": {
+            "exit_code": 0,
+            "tree_retired": true,
+            "residual_children": 0,
+            "cpu_percent": 13,
+            "memory_bytes": 1724907520,
+            "peak_job_bytes": 94040064,
+            "elapsed_seconds": 0.6870000000017171,
+            "result_sha256": "9638469d6204b6c0e49598882fc639a5f40df1c83bb65dfbd030328b4a512d2d",
+            "output_sha256": "4f83fd0888d415ffb3c3459f2ad69c1e5b1bac787e09a4a57cab4302a75851c1"
+          }
+        },
+        {
+          "order": 0,
+          "lane": "candidate",
+          "growth_and_exactness": {
+            "files": 8,
+            "before_compacted": 15998976,
+            "after_compacted": 15998976,
+            "input_bytes": 13136308,
+            "selector_bytes": 131072,
+            "ingested_image_bytes": 16621568,
+            "maintained_image_bytes": 16621568,
+            "before_range_read_bytes": 574204,
+            "after_range_read_bytes": 574204,
+            "maintenance_read_bytes": 21889084,
+            "maintenance_write_bytes": 0,
+            "work_ns": 71696800,
+            "packed_groups": 0,
+            "attempts": 4,
+            "yield_observations": 2,
+            "members": 0,
+            "cpu_exact": 1,
+            "retained_snapshot_exact": 1,
+            "idle_io": 0
+          },
+          "job": {
+            "exit_code": 0,
+            "tree_retired": true,
+            "residual_children": 0,
+            "cpu_percent": 13,
+            "memory_bytes": 1635778560,
+            "peak_job_bytes": 94699520,
+            "elapsed_seconds": 0.6870000000017171,
+            "result_sha256": "66f63aaadf0291b7d1c3565d75231a6585799f634cde545c70767fe5814737ae",
+            "output_sha256": "6ba6eb7c9c13b1816d9160b4fe67e3e0834e5b0e57ee2f3e7dcbad2159118ed1"
+          }
+        },
+        {
+          "order": 1,
+          "lane": "candidate",
+          "growth_and_exactness": {
+            "files": 8,
+            "before_compacted": 15998976,
+            "after_compacted": 15998976,
+            "input_bytes": 13136308,
+            "selector_bytes": 131072,
+            "ingested_image_bytes": 16621568,
+            "maintained_image_bytes": 16621568,
+            "before_range_read_bytes": 574204,
+            "after_range_read_bytes": 574204,
+            "maintenance_read_bytes": 21889084,
+            "maintenance_write_bytes": 0,
+            "work_ns": 69164900,
+            "packed_groups": 0,
+            "attempts": 4,
+            "yield_observations": 2,
+            "members": 0,
+            "cpu_exact": 1,
+            "retained_snapshot_exact": 1,
+            "idle_io": 0
+          },
+          "job": {
+            "exit_code": 0,
+            "tree_retired": true,
+            "residual_children": 0,
+            "cpu_percent": 13,
+            "memory_bytes": 1641021440,
+            "peak_job_bytes": 94351360,
+            "elapsed_seconds": 0.6100000000005821,
+            "result_sha256": "37ad33cdcb8f36c1321696133c09ee837318249094a8f70aca3114161ec27a5e",
+            "output_sha256": "317fefd9fd624418d54690c5a14a6e30756d784104a60a65123309af66d92262"
+          }
+        },
+        {
+          "order": 1,
+          "lane": "control",
+          "growth_and_exactness": {
+            "files": 8,
+            "before_compacted": 15998976,
+            "after_compacted": 15998976,
+            "input_bytes": 13136308,
+            "selector_bytes": 131072,
+            "ingested_image_bytes": 16621568,
+            "maintained_image_bytes": 16621568,
+            "before_range_read_bytes": 574204,
+            "after_range_read_bytes": 574204,
+            "maintenance_read_bytes": 21889084,
+            "maintenance_write_bytes": 0,
+            "work_ns": 74598300,
+            "packed_groups": 0,
+            "attempts": 4,
+            "members": 0,
+            "cpu_exact": 1,
+            "retained_snapshot_exact": 1,
+            "idle_io": 0
+          },
+          "job": {
+            "exit_code": 0,
+            "tree_retired": true,
+            "residual_children": 0,
+            "cpu_percent": 13,
+            "memory_bytes": 1792016384,
+            "peak_job_bytes": 94646272,
+            "elapsed_seconds": 0.6560000000026776,
+            "result_sha256": "e46c6188953f8a75fa1af1bfd20434ad270826af2941ecafba4e3271db73a0a1",
+            "output_sha256": "cea8ff7a78ab7373ef26e372c9b1796cfd837a1faefcba15201d2f4987484157"
+          }
+        }
+      ]
+    },
+    "held_out": {
+      "control_compacted": 35635200,
+      "candidate_compacted": 35635200,
+      "candidate_minus_control": {
+        "after_compacted": 0,
+        "maintenance_read_bytes": 0,
+        "maintenance_write_bytes": 0,
+        "after_range_read_bytes": 0
+      },
+      "runs": [
+        {
+          "order": 0,
+          "lane": "control",
+          "growth_and_exactness": {
+            "files": 8,
+            "before_compacted": 35635200,
+            "after_compacted": 35635200,
+            "input_bytes": 25153011,
+            "selector_bytes": 131072,
+            "ingested_image_bytes": 36667392,
+            "maintained_image_bytes": 36667392,
+            "before_range_read_bytes": 669843,
+            "after_range_read_bytes": 669843,
+            "maintenance_read_bytes": 43895805,
+            "maintenance_write_bytes": 0,
+            "work_ns": 107793800,
+            "packed_groups": 0,
+            "attempts": 1,
+            "members": 0,
+            "cpu_exact": 1,
+            "retained_snapshot_exact": 1,
+            "idle_io": 0
+          },
+          "job": {
+            "exit_code": 0,
+            "tree_retired": true,
+            "residual_children": 0,
+            "cpu_percent": 13,
+            "memory_bytes": 1783627776,
+            "peak_job_bytes": 191549440,
+            "elapsed_seconds": 1.1559999999990396,
+            "result_sha256": "87db9f295277221084f01237de381ec807816d866da236a3245cd3d02459c40e",
+            "output_sha256": "53b42d2fe82a8404cc93c9616bc839ca292a44a6cfe115f878cfc331eb1bac5b"
+          }
+        },
+        {
+          "order": 0,
+          "lane": "candidate",
+          "growth_and_exactness": {
+            "files": 8,
+            "before_compacted": 35635200,
+            "after_compacted": 35635200,
+            "input_bytes": 25153011,
+            "selector_bytes": 131072,
+            "ingested_image_bytes": 36667392,
+            "maintained_image_bytes": 36667392,
+            "before_range_read_bytes": 669843,
+            "after_range_read_bytes": 669843,
+            "maintenance_read_bytes": 43895805,
+            "maintenance_write_bytes": 0,
+            "work_ns": 109416500,
+            "packed_groups": 0,
+            "attempts": 1,
+            "yield_observations": 0,
+            "members": 0,
+            "cpu_exact": 1,
+            "retained_snapshot_exact": 1,
+            "idle_io": 0
+          },
+          "job": {
+            "exit_code": 0,
+            "tree_retired": true,
+            "residual_children": 0,
+            "cpu_percent": 13,
+            "memory_bytes": 1786773504,
+            "peak_job_bytes": 191586304,
+            "elapsed_seconds": 1.1720000000022992,
+            "result_sha256": "d5fc5e22d6c15a097b6189487eaa0d19543c4d4b8fa531f3aa09c175070edd94",
+            "output_sha256": "1110a03e23f9f6c0afee23fdd0aa0c401933322d8e93084dd838ad7efd6f1723"
+          }
+        },
+        {
+          "order": 1,
+          "lane": "candidate",
+          "growth_and_exactness": {
+            "files": 8,
+            "before_compacted": 35635200,
+            "after_compacted": 35635200,
+            "input_bytes": 25153011,
+            "selector_bytes": 131072,
+            "ingested_image_bytes": 36667392,
+            "maintained_image_bytes": 36667392,
+            "before_range_read_bytes": 669843,
+            "after_range_read_bytes": 669843,
+            "maintenance_read_bytes": 43895805,
+            "maintenance_write_bytes": 0,
+            "work_ns": 107780400,
+            "packed_groups": 0,
+            "attempts": 1,
+            "yield_observations": 0,
+            "members": 0,
+            "cpu_exact": 1,
+            "retained_snapshot_exact": 1,
+            "idle_io": 0
+          },
+          "job": {
+            "exit_code": 0,
+            "tree_retired": true,
+            "residual_children": 0,
+            "cpu_percent": 13,
+            "memory_bytes": 1745879040,
+            "peak_job_bytes": 191545344,
+            "elapsed_seconds": 1.1720000000022992,
+            "result_sha256": "ddf9c3321ca668bfe40eaa68a73d0156e0df2f3d37567bb4f71f8fd9be640300",
+            "output_sha256": "ca80726993bfc809059c7f59bffd614d49828a1753009c48d527ae16ceaf0a43"
+          }
+        },
+        {
+          "order": 1,
+          "lane": "control",
+          "growth_and_exactness": {
+            "files": 8,
+            "before_compacted": 35635200,
+            "after_compacted": 35635200,
+            "input_bytes": 25153011,
+            "selector_bytes": 131072,
+            "ingested_image_bytes": 36667392,
+            "maintained_image_bytes": 36667392,
+            "before_range_read_bytes": 669843,
+            "after_range_read_bytes": 669843,
+            "maintenance_read_bytes": 43895805,
+            "maintenance_write_bytes": 0,
+            "work_ns": 106255100,
+            "packed_groups": 0,
+            "attempts": 1,
+            "members": 0,
+            "cpu_exact": 1,
+            "retained_snapshot_exact": 1,
+            "idle_io": 0
+          },
+          "job": {
+            "exit_code": 0,
+            "tree_retired": true,
+            "residual_children": 0,
+            "cpu_percent": 13,
+            "memory_bytes": 1725956096,
+            "peak_job_bytes": 191823872,
+            "elapsed_seconds": 1.1559999999990396,
+            "result_sha256": "1f8ed44f3c237c94382580c9f5dcfd30b24276c7abc4dd1dabcbc00549d54a5d",
+            "output_sha256": "d65ca1decd378163290ef79bb175c2ff63e15a6d642b91d21480bc38b465678e"
+          }
+        }
+      ]
+    },
+    "complete": {
+      "control_compacted": 51486720,
+      "candidate_compacted": 51486720,
+      "candidate_minus_control": {
+        "after_compacted": 0,
+        "maintenance_read_bytes": 0,
+        "maintenance_write_bytes": 0,
+        "after_range_read_bytes": 0
+      },
+      "runs": [
+        {
+          "order": 0,
+          "lane": "control",
+          "growth_and_exactness": {
+            "files": 16,
+            "before_compacted": 51486720,
+            "after_compacted": 51486720,
+            "input_bytes": 38289319,
+            "selector_bytes": 131072,
+            "ingested_image_bytes": 53215232,
+            "maintained_image_bytes": 53215232,
+            "before_range_read_bytes": 1343590,
+            "after_range_read_bytes": 1343590,
+            "maintenance_read_bytes": 66560270,
+            "maintenance_write_bytes": 0,
+            "work_ns": 174864600,
+            "packed_groups": 0,
+            "attempts": 6,
+            "members": 0,
+            "cpu_exact": 1,
+            "retained_snapshot_exact": 1,
+            "idle_io": 0
+          },
+          "job": {
+            "exit_code": 0,
+            "tree_retired": true,
+            "residual_children": 0,
+            "cpu_percent": 13,
+            "memory_bytes": 1716518912,
+            "peak_job_bytes": 295256064,
+            "elapsed_seconds": 1.8590000000003783,
+            "result_sha256": "09e430b735d9e1e48104fab7df52c0d0a664a5c973ac7546ffae118448ef2b5c",
+            "output_sha256": "72b5110293441f79c27ad81e4f52273e36a6f20bf542981b3672be8c417013cb"
+          }
+        },
+        {
+          "order": 0,
+          "lane": "candidate",
+          "growth_and_exactness": {
+            "files": 16,
+            "before_compacted": 51486720,
+            "after_compacted": 51486720,
+            "input_bytes": 38289319,
+            "selector_bytes": 131072,
+            "ingested_image_bytes": 53215232,
+            "maintained_image_bytes": 53215232,
+            "before_range_read_bytes": 1343590,
+            "after_range_read_bytes": 1343590,
+            "maintenance_read_bytes": 66560270,
+            "maintenance_write_bytes": 0,
+            "work_ns": 175315800,
+            "packed_groups": 0,
+            "attempts": 6,
+            "yield_observations": 2,
+            "members": 0,
+            "cpu_exact": 1,
+            "retained_snapshot_exact": 1,
+            "idle_io": 0
+          },
+          "job": {
+            "exit_code": 0,
+            "tree_retired": true,
+            "residual_children": 0,
+            "cpu_percent": 13,
+            "memory_bytes": 1694498816,
+            "peak_job_bytes": 295030784,
+            "elapsed_seconds": 1.875,
+            "result_sha256": "f6c9dd54790cc7bec41e2477ee1201b5735064b52fe3363a989d6b47006e5faf",
+            "output_sha256": "80c08d1537ab5e0da1b38444ac297cfe074c82ab63a6dc6dd41a2b79ccfc6f76"
+          }
+        },
+        {
+          "order": 1,
+          "lane": "candidate",
+          "growth_and_exactness": {
+            "files": 16,
+            "before_compacted": 51486720,
+            "after_compacted": 51486720,
+            "input_bytes": 38289319,
+            "selector_bytes": 131072,
+            "ingested_image_bytes": 53215232,
+            "maintained_image_bytes": 53215232,
+            "before_range_read_bytes": 1343590,
+            "after_range_read_bytes": 1343590,
+            "maintenance_read_bytes": 66560270,
+            "maintenance_write_bytes": 0,
+            "work_ns": 185694900,
+            "packed_groups": 0,
+            "attempts": 6,
+            "yield_observations": 2,
+            "members": 0,
+            "cpu_exact": 1,
+            "retained_snapshot_exact": 1,
+            "idle_io": 0
+          },
+          "job": {
+            "exit_code": 0,
+            "tree_retired": true,
+            "residual_children": 0,
+            "cpu_percent": 13,
+            "memory_bytes": 1724907520,
+            "peak_job_bytes": 295043072,
+            "elapsed_seconds": 1.8439999999973224,
+            "result_sha256": "055946a74963067c685594d310c51e36c49ee3f497501b535796135e14297ba1",
+            "output_sha256": "be7bef3c4ad153c93143cf8def2d4fafe96e18b853159ac02f655356b6eab0a2"
+          }
+        },
+        {
+          "order": 1,
+          "lane": "control",
+          "growth_and_exactness": {
+            "files": 16,
+            "before_compacted": 51486720,
+            "after_compacted": 51486720,
+            "input_bytes": 38289319,
+            "selector_bytes": 131072,
+            "ingested_image_bytes": 53215232,
+            "maintained_image_bytes": 53215232,
+            "before_range_read_bytes": 1343590,
+            "after_range_read_bytes": 1343590,
+            "maintenance_read_bytes": 66560270,
+            "maintenance_write_bytes": 0,
+            "work_ns": 183123000,
+            "packed_groups": 0,
+            "attempts": 6,
+            "members": 0,
+            "cpu_exact": 1,
+            "retained_snapshot_exact": 1,
+            "idle_io": 0
+          },
+          "job": {
+            "exit_code": 0,
+            "tree_retired": true,
+            "residual_children": 0,
+            "cpu_percent": 13,
+            "memory_bytes": 1716518912,
+            "peak_job_bytes": 295317504,
+            "elapsed_seconds": 1.875,
+            "result_sha256": "5b5f67ad4352034dd1dc3156c5756481731ae781e3a8dde82dd82df3841aeb02",
+            "output_sha256": "ea376298441e75d657e0141573db56142d1107047a4ffaf0bf9d0226f8c4c7a4"
+          }
+        }
+      ]
+    },
+    "revisions": {
+      "control_compacted": 819200,
+      "candidate_compacted": 819200,
+      "candidate_minus_control": {
+        "after_compacted": 0,
+        "maintenance_read_bytes": -23182,
+        "maintenance_write_bytes": -8192,
+        "after_range_read_bytes": -719
+      },
+      "runs": [
+        {
+          "order": 0,
+          "lane": "control",
+          "growth_and_exactness": {
+            "files": 24,
+            "before_compacted": 1392640,
+            "after_compacted": 819200,
+            "input_bytes": 2230850,
+            "selector_bytes": 131072,
+            "ingested_image_bytes": 2375680,
+            "maintained_image_bytes": 3833856,
+            "before_range_read_bytes": 1030118,
+            "after_range_read_bytes": 1053978,
+            "maintenance_read_bytes": 9646807,
+            "maintenance_write_bytes": 1638400,
+            "work_ns": 71985800,
+            "packed_groups": 1,
+            "attempts": 26,
+            "members": 50,
+            "cpu_exact": 1,
+            "retained_snapshot_exact": 1,
+            "idle_io": 0
+          },
+          "job": {
+            "exit_code": 0,
+            "tree_retired": true,
+            "residual_children": 0,
+            "cpu_percent": 13,
+            "memory_bytes": 1704984576,
+            "peak_job_bytes": 20480000,
+            "elapsed_seconds": 0.25,
+            "result_sha256": "a760148637bcdbaac576d4ed23310675d76ea63b99f7ffca02ea0ae62d8d39e2",
+            "output_sha256": "17e9f5595d64551814ca7ad2bc1fdb1b36ccc658e49d30d8dfde808ce597425c"
+          }
+        },
+        {
+          "order": 0,
+          "lane": "candidate",
+          "growth_and_exactness": {
+            "files": 24,
+            "before_compacted": 1392640,
+            "after_compacted": 819200,
+            "input_bytes": 2230850,
+            "selector_bytes": 131072,
+            "ingested_image_bytes": 2375680,
+            "maintained_image_bytes": 3825664,
+            "before_range_read_bytes": 1030118,
+            "after_range_read_bytes": 1053259,
+            "maintenance_read_bytes": 9623625,
+            "maintenance_write_bytes": 1630208,
+            "work_ns": 69685700,
+            "packed_groups": 0,
+            "attempts": 26,
+            "yield_observations": 25,
+            "members": 44,
+            "cpu_exact": 1,
+            "retained_snapshot_exact": 1,
+            "idle_io": 0
+          },
+          "job": {
+            "exit_code": 0,
+            "tree_retired": true,
+            "residual_children": 0,
+            "cpu_percent": 13,
+            "memory_bytes": 1704984576,
+            "peak_job_bytes": 22245376,
+            "elapsed_seconds": 0.23400000000037835,
+            "result_sha256": "69f6c9cc6d130a999511cb4ef62e56b95175d6ea1e74cf2e1947b67ad319db11",
+            "output_sha256": "61cea13e8a98dc81fc3ac9cb31ff7a90bef5da2c979efcec6e258c4c9895e843"
+          }
+        },
+        {
+          "order": 1,
+          "lane": "candidate",
+          "growth_and_exactness": {
+            "files": 24,
+            "before_compacted": 1392640,
+            "after_compacted": 819200,
+            "input_bytes": 2230850,
+            "selector_bytes": 131072,
+            "ingested_image_bytes": 2375680,
+            "maintained_image_bytes": 3825664,
+            "before_range_read_bytes": 1030118,
+            "after_range_read_bytes": 1053259,
+            "maintenance_read_bytes": 9623625,
+            "maintenance_write_bytes": 1630208,
+            "work_ns": 65679100,
+            "packed_groups": 0,
+            "attempts": 26,
+            "yield_observations": 25,
+            "members": 44,
+            "cpu_exact": 1,
+            "retained_snapshot_exact": 1,
+            "idle_io": 0
+          },
+          "job": {
+            "exit_code": 0,
+            "tree_retired": true,
+            "residual_children": 0,
+            "cpu_percent": 13,
+            "memory_bytes": 1758461952,
+            "peak_job_bytes": 21860352,
+            "elapsed_seconds": 0.21900000000096043,
+            "result_sha256": "45c2142b63b6afac6aa23fa22b74239792760b39ac405b0dd278d31b33c9c300",
+            "output_sha256": "3414612ee57e467c4f9e5796304338034500d6a5f5a2c738e6e2ff4362845c36"
+          }
+        },
+        {
+          "order": 1,
+          "lane": "control",
+          "growth_and_exactness": {
+            "files": 24,
+            "before_compacted": 1392640,
+            "after_compacted": 819200,
+            "input_bytes": 2230850,
+            "selector_bytes": 131072,
+            "ingested_image_bytes": 2375680,
+            "maintained_image_bytes": 3833856,
+            "before_range_read_bytes": 1030118,
+            "after_range_read_bytes": 1053978,
+            "maintenance_read_bytes": 9646807,
+            "maintenance_write_bytes": 1638400,
+            "work_ns": 54290600,
+            "packed_groups": 1,
+            "attempts": 26,
+            "members": 50,
+            "cpu_exact": 1,
+            "retained_snapshot_exact": 1,
+            "idle_io": 0
+          },
+          "job": {
+            "exit_code": 0,
+            "tree_retired": true,
+            "residual_children": 0,
+            "cpu_percent": 13,
+            "memory_bytes": 1792016384,
+            "peak_job_bytes": 20967424,
+            "elapsed_seconds": 0.18800000000192085,
+            "result_sha256": "fdb673f07ca50317ee67d6ace9d0592cfa6a61739c799365541a27ede955fda1",
+            "output_sha256": "e9c63d938dbb33ee9896e185790ad76e03c876d6bacf86f9d2289c6da6d2665e"
+          }
+        }
+      ]
+    }
+  },
+  "bounded_checks": {
+    "first_fixture_compile": {
+      "exit_code": 1,
+      "tree_retired": true,
+      "residual_children": 0,
+      "cpu_percent": 20,
+      "memory_bytes": 2738880512,
+      "peak_job_bytes": 552636416,
+      "elapsed_seconds": 32.21900000000096,
+      "result_sha256": "de467c1ee22fce42e76759f9a63ee03c5ce08abea9192e3a772c1d404148484d",
+      "output_sha256": "aaf78cbbc62b9399bf35d4a5f130eceae4440a425a4323459af22351685463bb"
+    },
+    "baseline_build": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "cpu_percent": 17,
+      "memory_bytes": 2749366272,
+      "peak_job_bytes": 437952512,
+      "elapsed_seconds": 15.0470000000023,
+      "result_sha256": "5c9173029881f1cb46ef2bae7191d61268cb66d6730e0d576347b86b19c645cc",
+      "output_sha256": "c65745c917851f3d725168c50e1e427fed03dfba847f8c67340e22ac32ed545d"
+    },
+    "candidate_build": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "cpu_percent": 20,
+      "memory_bytes": 2738880512,
+      "peak_job_bytes": 767156224,
+      "elapsed_seconds": 37.17199999999866,
+      "result_sha256": "5d7c27532138124da9228104ef0b1be53bae0529f143d2c7d281204dae3a989b",
+      "output_sha256": "f4ca6103561969e7d8acd16c554ce0cc758c2234f0b927215cfc06889bc07a4c"
+    },
+    "pinned_tests": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "cpu_percent": 20,
+      "memory_bytes": 2692743168,
+      "peak_job_bytes": 196902912,
+      "elapsed_seconds": 8.532000000002881,
+      "result_sha256": "ef6079cc4b038c3bed6c1d3c3bd30ed3d5f71580436d4da7b5f095826b77efc7",
+      "output_sha256": "39b21f345c5f96cbe28340bc9e5cb7c26b874f0a57f7c50de4b2acd0527429fc"
+    },
+    "asan_tests": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "cpu_percent": 15,
+      "memory_bytes": 2213543936,
+      "peak_job_bytes": 600748032,
+      "elapsed_seconds": 14.671999999998661,
+      "result_sha256": "3e46a8bcdac6cdd606a0c609e8357fc6a2b2f5d8f93ef9ce4cffc211e745aec7",
+      "output_sha256": "f4e6aa1428c8523cdcc60cd27efb489969c5acf662a70ce90980eb6e1242abd2"
+    },
+    "raw_focused_tests": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "cpu_percent": 15,
+      "memory_bytes": 2206203904,
+      "peak_job_bytes": 106520576,
+      "elapsed_seconds": 5.984000000000378,
+      "result_sha256": "f2ed9d6f0356a91d2f389523167ab55d377bd00fca893797a6619c1ab83cf749",
+      "output_sha256": "af155e08ae270d01b8af7d0898c106e4dbfb61c0b6c0d4de75d249a5505d504a"
+    },
+    "default_build": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "cpu_percent": 20,
+      "memory_bytes": 2710568960,
+      "peak_job_bytes": 978001920,
+      "elapsed_seconds": 146.43699999999808,
+      "result_sha256": "4e4c3019d44b33ecdb3fda2f4440ec5b2ca41c9603296fa0e481e2145cfed518",
+      "output_sha256": "24fb1b200160bafc2ac72c12acc1caeebbbc3cef4d685d3db2ab715bf3002119"
+    },
+    "raw_build": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "cpu_percent": 20,
+      "memory_bytes": 2713714688,
+      "peak_job_bytes": 971800576,
+      "elapsed_seconds": 90.28200000000288,
+      "result_sha256": "5ab97918a9396081b06ebbb1c2b8ae5753cda3ff92e87061888f0c3de02a1b8c",
+      "output_sha256": "b169b1fb7472a7042e15349ef11727690a3aeb0f6683ce5ddac5ed27d364b691"
+    },
+    "default_tests": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "cpu_percent": 20,
+      "memory_bytes": 2740977664,
+      "peak_job_bytes": 361373696,
+      "elapsed_seconds": 164.75,
+      "result_sha256": "e17931a9f118d8e51c1682c55bee00fa2ecd6b754df1b078af24c008f0ca4924",
+      "output_sha256": "e15199be40d3fd992076f2c44dbdce22a0627551317dee7cb584cee2693d9d0c"
+    },
+    "raw_tests": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "cpu_percent": 20,
+      "memory_bytes": 2641362944,
+      "peak_job_bytes": 337391616,
+      "elapsed_seconds": 157.625,
+      "result_sha256": "e10574d2030777ef66072875fc437c473a3e9c82bc37900e8f741fa083dd63f4",
+      "output_sha256": "4494010e052a75dd4c647b0a8f85f8df60992c8df0afabfc3046a64b04625d31"
+    }
+  },
+  "tests_passed": {
+    "pinned_tests": 15,
+    "asan_tests": 6,
+    "raw_focused_tests": 4,
+    "default_tests": 209,
+    "raw_tests": 208
+  },
+  "first_fixture_compile": "Moved the test from a private snapshot method to the checked indexed view."
+}

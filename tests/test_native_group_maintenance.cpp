@@ -53,6 +53,63 @@ struct Fixture {
     require(snapshot.read("f"+std::to_string(i),0,kNativeExtentBytes)==family(i),"automatic grouping changed bytes");snapshot.verify_all();}
 };
 
+void indexed_candidate_yield_order() {
+  if(!store_zstd_available())return;
+  constexpr StoreCompressionOptions compression{StoreCompressionMode::automatic,3,true};
+  Fixture f(4096,0,true,compression);
+  std::array<Bytes,5> compact;
+  std::array<Bytes,3> extensive;
+  const auto tile=data(8192,28971);
+  for(std::size_t i=0;i<compact.size();++i) {
+    auto& bytes=compact[i];
+    for(std::size_t offset=0;offset<kNativeExtentBytes;offset+=tile.size())
+      bytes.insert(bytes.end(),tile.begin(),tile.end());
+    bytes.back()^=std::byte(i);
+    put(*f.session,"compact-"+std::to_string(i),bytes);
+  }
+  for(std::size_t i=0;i<extensive.size();++i) {
+    extensive[i]=family(static_cast<unsigned>(i));
+    put(*f.session,"extensive-"+std::to_string(i),extensive[i]);
+  }
+  const auto before=f.session->snapshot();
+  const auto pages=PagedObjectStoreSnapshot::open(f.image,{kStoreMaxPhysicalBytes});
+  const detail::IndexedVolumeView source(pages,pages.read(1));
+  const auto incumbent=[&](const auto& files,std::string_view prefix) {
+    std::uint64_t stored=0;
+    for(std::size_t i=0;i<files.size();++i) {
+      const auto token=source.content_at({source.resolve(std::string(prefix)+std::to_string(i)).inode,0});
+      require(token && token->stored_payload_bytes,"candidate pricing missed the checked record size");
+      stored+=token->stored_payload_bytes;
+    }
+    return stored;
+  };
+  require(incumbent(extensive,"extensive-")>incumbent(compact,"compact-"),
+      "fixture's three-member group needs greater recoverable bytes than the five-member group");
+  NativeGroupMaintenance groups(*f.session);
+  NativeMaintenanceProgress first;
+  for(unsigned i=0;i<1200 && !first.published_groups;++i) {
+    first=f.step(groups);
+    require(first.phase!=Phase::failed,"candidate ordering failed");
+  }
+  require(first.published_groups==1 && first.candidate_yield_observations>0 &&
+      f.session->snapshot().shared_base_info().members==extensive.size(),
+      "candidate ordering did not prioritize the higher-byte group");
+  const auto settled=f.finish(groups);
+  require(settled.published_groups>=2 && settled.candidate_yield_observations>first.candidate_yield_observations,
+      "candidate learning displaced the smaller group");
+  constexpr NativeImageStorage storage{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes};
+  const auto after=NativeFilesystemSnapshot::open_image(f.image,storage);
+  for(const auto* snapshot:{&before,&after}) {
+    snapshot->verify_all();
+    for(std::size_t i=0;i<compact.size();++i)
+      require(snapshot->read("compact-"+std::to_string(i),0,kNativeExtentBytes)==compact[i],"compact family changed");
+    for(std::size_t i=0;i<extensive.size();++i)
+      require(snapshot->read("extensive-"+std::to_string(i),0,kNativeExtentBytes)==extensive[i],"extensive family changed");
+  }
+  std::cout<<"candidate_yield_orders_verified incumbent_bytes="<<incumbent(extensive,"extensive-")
+      <<" first_members="<<extensive.size()<<" observations="<<settled.candidate_yield_observations<<'\n';
+}
+
 void indexed_section_reference_reuse() {
   constexpr unsigned count=8;
   constexpr auto section=kNativeExtentBytes/count;
@@ -449,6 +506,7 @@ void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expect
       <<" after_range_read_bytes="<<after.second<<" maintenance_read_bytes="<<maintenance_reads
       <<" maintenance_write_bytes="<<maintenance_writes<<" work_ns="<<outcome.elapsed_work_ns
       <<" packed_groups="<<outcome.packed_reference_groups<<" attempts="<<outcome.attempted_groups
+      <<" yield_observations="<<outcome.candidate_yield_observations
       <<" members="<<members<<" cpu_exact=1 retained_snapshot_exact=1 idle_io=0\n";
   if(expected_members) {
     require(after.first<before.first && members==expected_members && outcome.packed_reference_groups,
@@ -3158,6 +3216,8 @@ int main(int argc,char** argv){try{
     modular_delta_indexed_family(bytes,{StoreCompressionMode::automatic,6,true},false);
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-advice") {
     advised_indexed_maintenance();
+  } else if(argc==2 && std::string_view(argv[1])=="--indexed-yield-order") {
+    indexed_candidate_yield_order();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-section-reuse") {
     indexed_section_reference_reuse();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-prefix") {

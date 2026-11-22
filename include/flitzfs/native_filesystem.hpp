@@ -208,6 +208,7 @@ struct NativeContentToken {
   bool grouped=false,exact_base=false; // A sampled extent can nominate its verified shared base.
   bool packed_slice=false;
   std::uint32_t standalone_bytes=0;
+  std::uint32_t stored_payload_bytes=0; // Checked active record size for candidate pricing.
 };
 struct NativeFsCommit {
   StoreCommitInfo storage;

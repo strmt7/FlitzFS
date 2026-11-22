@@ -2353,7 +2353,9 @@ NativeContentToken IndexedVolumeView::content_token(NativeExtentSelection extent
     fail(Code::corrupt,"invalid indexed content selection");
   const auto metadata=store_.stat(object);
   if(!metadata)fail(Code::corrupt,"indexed content record is missing");
-  return {extent,object,metadata->generation,metadata->generation};
+  NativeContentToken result{extent,object,metadata->generation,metadata->generation};
+  result.stored_payload_bytes=metadata->stored_payload_bytes;
+  return result;
 }
 std::optional<NativeContentToken> IndexedVolumeView::next_content(NativeExtentSelection after,bool first) const {
   (void)check_group_storage(store_);
@@ -2381,6 +2383,7 @@ Bytes IndexedVolumeView::read_content(NativeContentToken& token,bool published_r
       required(store_,token.object,extent_header+kNativeExtentBytes),
       referenced_inode(token.extent.inode),token.extent.extent_index,!published_reference);
   (void)check_group_storage(store_);
+  token.stored_payload_bytes=current->stored_payload_bytes;
   token.grouped=extent.base!=0;
   token.exact_base=false;
   token.packed_slice=extent.packed_slice;
