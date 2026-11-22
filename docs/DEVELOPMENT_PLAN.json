@@ -13,9 +13,9 @@
     "package_contract": "docs/IMPLEMENTATION_PLAN.md",
     "gate_ledger": "docs/RELEASE_EXECUTION_PLAN.md#current-gate-ledger",
     "evidence": "docs/evidence/architecture-reconciliation-2026-11-21.json",
-    "latest_recovery_evidence": "docs/evidence/windows11-mounted-selector-publication-cuts-2026-11-22.json",
+    "latest_recovery_evidence": "docs/evidence/windows11-mounted-mapped-publication-cuts-2026-11-22.json",
     "latest_amd_evidence": "docs/evidence/windows-amd-foreground-worker-boundary-2026-11-22.json",
-    "next": "Reduce installed foreground AMD startup cost and qualify it in ordinary writes with independent CPU readback and confirmed retirement. Add cached and mapped I/O and populated-directory churn to the mounted recovery matrix.",
+    "next": "Reduce installed foreground AMD startup cost and qualify it in ordinary writes with independent CPU readback and confirmed retirement. Extend the mapped recovery matrix to concurrent cached and mapped writes and the subsequent file flush.",
     "release_qualified": false
   },
   "baseline": {

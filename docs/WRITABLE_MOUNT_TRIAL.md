@@ -308,3 +308,24 @@ gone. The same build also passed three original Write and six metadata
 publication controls. The guest runs qualify process-exit recovery at the
 recorded boundaries. Physical power-loss qualification remains open.
 [Mounted selector evidence](evidence/windows11-mounted-selector-publication-cuts-2026-11-22.json)
+
+## Mapped writes with cached files and directory churn
+
+The client edits 512 bytes of an existing file through a Windows mapped view.
+The probe recognizes the complete changed range in the real write callback.
+Its separate witness completes `FlushViewOfFile` followed by
+`FlushFileBuffers` before the publication cut. Ordinary cached writes create
+32 neighbors. The client deletes and recreates one neighbor and renames their
+parent directory before arming the cut.
+
+Two fresh signed WinFsp 2.2 guests each ran all three inner boundaries.
+Windows aborted the pending view flush in all six cases. The CPU reader
+recovered the old target before the payload flush and the changed target
+after either root flush. It also verified the unchanged target bytes, the
+mapped witness, all cached neighbors, the new directory name and the
+recreated inode. A fresh mount completed another flushed write in each
+case. Nine original Write, EOF shrink and rename controls passed on the
+same build. Concurrent cached writes and the mapped target's subsequent
+file flush still need cut coverage.
+[Mapped publication evidence](evidence/windows11-mounted-mapped-publication-cuts-2026-11-22.json) ·
+[Windows mapped flush contract](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-flushviewoffile)

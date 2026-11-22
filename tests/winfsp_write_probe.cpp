@@ -1076,16 +1076,19 @@ void require_cut_guest() {
 }
 
 enum class PublicationCut {before_commit,after_first_copy,after_second_copy};
-enum class PublicationOperation {write,shrink,rename,image_switch};
+enum class PublicationOperation {write,shrink,rename,image_switch,mapped_write};
 constexpr std::array cut_points{PublicationCut::before_commit,PublicationCut::after_first_copy,
     PublicationCut::after_second_copy};
 constexpr std::array<std::wstring_view,3> cut_names{L"before-payload-flush",L"after-first-root",L"after-second-root"};
-constexpr std::array<std::wstring_view,4> operation_names{L"write",L"eof-shrink",L"rename",L"image-switch"};
+constexpr std::array<std::wstring_view,5> operation_names{L"write",L"eof-shrink",L"rename",L"image-switch",L"mapped-write"};
 constexpr std::array<std::wstring_view,3> selector_cut_names{
     L"before-first-selector-write",L"after-first-selector-flush",L"after-second-selector-flush"};
 constexpr auto cut_bytes=8192U;
 constexpr auto cut_shrunk_bytes=3751U;
+constexpr auto cut_mapped_offset=1536U;
+constexpr auto cut_mapped_bytes=512U;
 constexpr unsigned cut_neighbors=32;
+constexpr unsigned cut_recreated_neighbor=7;
 constexpr flitzfs::PagedStoreLimits cut_write_limits{8ULL*1024*1024};
 // Create, write and cleanup each leave append history in the isolated fixture.
 constexpr flitzfs::PagedStoreLimits cut_metadata_limits{
@@ -1098,6 +1101,17 @@ constexpr flitzfs::StoreCompressionOptions cut_compression{flitzfs::StoreCompres
 std::vector<std::byte> cut_data(unsigned salt) {
   std::vector<std::byte> bytes(cut_bytes);
   for(std::size_t i=0;i<bytes.size();++i)bytes[i]=static_cast<std::byte>((i/31+i%251+salt)%256);
+  return bytes;
+}
+std::array<std::byte,cut_mapped_bytes> mapped_patch(unsigned salt) noexcept {
+  std::array<std::byte,cut_mapped_bytes> bytes{};
+  for(std::size_t i=0;i<bytes.size();++i)bytes[i]=static_cast<std::byte>((i*29+salt)%256);
+  return bytes;
+}
+std::vector<std::byte> cut_mapped_data(unsigned original,unsigned salt) {
+  auto bytes=cut_data(original);
+  const auto patch=mapped_patch(salt);
+  std::copy(patch.begin(),patch.end(),bytes.begin()+cut_mapped_offset);
   return bytes;
 }
 flitzfs::StoreIdentity cut_volume_identity(DWORD owner) {
@@ -1115,7 +1129,8 @@ class PublicationIo final:public flitzfs::StoreByteIo {
  public:
   PublicationIo(std::shared_ptr<flitzfs::StoreByteIo> backing,PublicationCut cut,PublicationOperation operation,
       const source_fixture::Events& protocol):
-      backing_(std::move(backing)),cut_(cut),operation_(operation),protocol_(protocol),replacement_(cut_data(119)) {}
+      backing_(std::move(backing)),cut_(cut),operation_(operation),protocol_(protocol),
+      replacement_(operation==PublicationOperation::mapped_write?cut_mapped_data(7,119):cut_data(119)) {}
   std::uint64_t extent() const override{return backing_->extent();}
   flitzfs::StoreIoContract contract() const noexcept override{return backing_->contract();}
   void admit_write(std::uint64_t end) override{backing_->admit_write(end);}
@@ -1152,9 +1167,17 @@ class PublicationIo final:public flitzfs::StoreByteIo {
   bool armed_for(PublicationOperation operation) const noexcept {
     return operation==operation_ && WaitForSingleObject(protocol_.get(source_fixture::Phase::written),0)==WAIT_OBJECT_0;
   }
-  bool matches_write(PVOID data,UINT64 offset,ULONG length) const noexcept {
-    return armed_for(PublicationOperation::write) && offset==0 && length==replacement_.size() && data &&
-        std::equal(replacement_.begin(),replacement_.end(),static_cast<const std::byte*>(data));
+  bool matches_write(PVOID data,UINT64 offset,ULONG length,BOOLEAN constrained) const noexcept {
+    if(!data)return false;
+    auto bytes=std::span<const std::byte>(static_cast<const std::byte*>(data),length);
+    if(armed_for(PublicationOperation::write))
+      return offset==0 && std::ranges::equal(replacement_,bytes);
+    if(!armed_for(PublicationOperation::mapped_write) || offset>cut_mapped_offset ||
+        length<cut_mapped_offset+cut_mapped_bytes-offset)return false;
+    const auto expected=std::span(replacement_).subspan(static_cast<std::size_t>(offset));
+    // A paging write can include bytes past EOF, which must be constrained.
+    if(constrained && bytes.size()>expected.size())bytes=bytes.first(expected.size());
+    return bytes.size()<=expected.size() && std::ranges::equal(expected.first(bytes.size()),bytes);
   }
   bool claim() noexcept{return !claimed_.exchange(true,std::memory_order_acq_rel);}
   static thread_local PublicationIo* active;
@@ -1182,7 +1205,7 @@ NTSTATUS publication_callback(bool matches,Invoke&& invoke) noexcept {
 }
 NTSTATUS cut_write(FSP_FILE_SYSTEM* fs,PVOID context,PVOID buffer,UINT64 offset,ULONG length,
     BOOLEAN append,BOOLEAN constrained,PULONG written,FSP_FSCTL_FILE_INFO* info) noexcept {
-  return publication_callback(cut_backing->matches_write(buffer,offset,length),[&] {
+  return publication_callback(cut_backing->matches_write(buffer,offset,length,constrained),[&] {
     return cut_original->Write(fs,context,buffer,offset,length,append,constrained,written,info);
   });
 }
@@ -1400,17 +1423,40 @@ class PendingMountedWrite final {
   alignas(4096) std::array<std::byte,cut_bytes> bytes_{};
   bool pending_=false;
 };
-// The ordinary metadata APIs are synchronous. Keep their thread and exact
-// handle alive until completion or until the fixture process is retired.
-class PendingMountedMetadata final {
+enum class MappedWriteStage {create_mapping,map_view,flush_view,flush_file,unmap,complete};
+constexpr std::array<std::wstring_view,6> mapped_stages{
+    L"create-mapping",L"map-view",L"flush-view",L"flush-file",L"unmap",L"complete"};
+struct MappedWriteResult {
+  DWORD error=ERROR_SUCCESS;
+  MappedWriteStage stage=MappedWriteStage::complete;
+};
+MappedWriteResult write_mapped(HANDLE file,unsigned salt) noexcept {
+  Handle mapping(CreateFileMappingW(file,nullptr,PAGE_READWRITE,0,0,nullptr));
+  if(!mapping.value)return {GetLastError(),MappedWriteStage::create_mapping};
+  auto* const view=static_cast<std::byte*>(MapViewOfFile(mapping.value,FILE_MAP_WRITE,0,0,cut_bytes));
+  if(!view)return {GetLastError(),MappedWriteStage::map_view};
+  const auto patch=mapped_patch(salt);
+  std::copy(patch.begin(),patch.end(),view+cut_mapped_offset);
+  MappedWriteResult result;
+  if(!FlushViewOfFile(view,cut_bytes))result={GetLastError(),MappedWriteStage::flush_view};
+  else if(!FlushFileBuffers(file))result={GetLastError(),MappedWriteStage::flush_file};
+  if(!UnmapViewOfFile(view) && !result.error)result={GetLastError(),MappedWriteStage::unmap};
+  return result;
+}
+
+// These synchronous client operations retain the handle and thread through
+// owner retirement, including any mapped view with outstanding I/O.
+class PendingMountedOperation final {
  public:
-  PendingMountedMetadata(const fs::path& path,PublicationOperation operation):
+  PendingMountedOperation(const fs::path& path,PublicationOperation operation):
       path_(path),destination_(path.parent_path()/L"renamed.bin"),operation_(operation),
-      file_(CreateFileW(path.c_str(),GENERIC_WRITE|DELETE|FILE_READ_ATTRIBUTES,
-          FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,nullptr,OPEN_EXISTING,FILE_FLAG_WRITE_THROUGH,nullptr)) {
-    checked(file_.value!=INVALID_HANDLE_VALUE,"Open existing file for pending metadata publication");
+      file_(CreateFileW(path.c_str(),operation==PublicationOperation::mapped_write?
+          (GENERIC_READ|GENERIC_WRITE):(GENERIC_WRITE|DELETE|FILE_READ_ATTRIBUTES),
+          FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,nullptr,OPEN_EXISTING,
+          operation==PublicationOperation::mapped_write?0:FILE_FLAG_WRITE_THROUGH,nullptr)) {
+    checked(file_.value!=INVALID_HANDLE_VALUE,"Open existing file for pending publication");
   }
-  ~PendingMountedMetadata() {
+  ~PendingMountedOperation() {
     if(!thread_.joinable())return;
     (void)CancelSynchronousIo(thread_.native_handle());
     if(WaitForSingleObject(thread_.native_handle(),5000)!=WAIT_OBJECT_0)std::terminate();
@@ -1419,42 +1465,50 @@ class PendingMountedMetadata final {
   std::uint64_t inode() const {return mounted_cut_inode(file_.value);}
   void submit() {
     thread_=std::thread([this] {
-      FILE_END_OF_FILE_INFO eof{};
-      eof.EndOfFile.QuadPart=cut_shrunk_bytes;
-      const BOOL success=operation_==PublicationOperation::shrink?
-          SetFileInformationByHandle(file_.value,FileEndOfFileInfo,&eof,sizeof(eof)):
-          MoveFileExW(path_.c_str(),destination_.c_str(),0);
-      result_=success?ERROR_SUCCESS:GetLastError();
+      if(operation_==PublicationOperation::mapped_write) {
+        mapped_=write_mapped(file_.value,119);result_=mapped_.error;
+      } else {
+        FILE_END_OF_FILE_INFO eof{};
+        eof.EndOfFile.QuadPart=cut_shrunk_bytes;
+        const BOOL success=operation_==PublicationOperation::shrink?
+            SetFileInformationByHandle(file_.value,FileEndOfFileInfo,&eof,sizeof(eof)):
+            MoveFileExW(path_.c_str(),destination_.c_str(),0);
+        result_=success?ERROR_SUCCESS:GetLastError();
+      }
       responded_.store(true,std::memory_order_release);
     });
   }
+  std::wstring_view mapped_stage() const noexcept {return mapped_stages[static_cast<std::size_t>(mapped_.stage)];}
   void await_cut(source_fixture::Child& source,source_fixture::Events& protocol) {
     const HANDLE waits[]{protocol.get(source_fixture::Phase::ack),thread_.native_handle(),source.result_event()};
     const auto wait=WaitForMultipleObjects(static_cast<DWORD>(std::size(waits)),waits,FALSE,5000);
     if(wait==WAIT_OBJECT_0) {
-      require(!responded_.load(std::memory_order_acquire),"Windows replied before the metadata publication cut");
+      require(!responded_.load(std::memory_order_acquire),"Windows replied before the synchronous publication cut");
       return;
     }
     if(wait==WAIT_OBJECT_0+1) {
       thread_.join();
-      throw std::runtime_error("Windows completed the metadata operation before a publication cut, status="+
-          std::to_string(result_));
+      throw std::runtime_error("Windows completed the synchronous operation before a publication cut, status="+
+          std::to_string(result_)+" mapped_stage="+std::to_string(static_cast<unsigned>(mapped_.stage)));
     }
     if(wait==WAIT_TIMEOUT)source.request_cancel();
     if(wait==WAIT_TIMEOUT || wait==WAIT_OBJECT_0+2) {
       const auto ended=source.result();
-      throw std::runtime_error("Metadata source did not reach the publication cut, wait="+std::to_string(wait)+
+      throw std::runtime_error("Synchronous operation did not reach the publication cut, wait="+std::to_string(wait)+
           " exit="+std::to_string(ended.exit_code)+" confirmed="+std::to_string(ended.exit_confirmed));
     }
-    checked(FALSE,"Metadata publication wait");
+    checked(FALSE,"Synchronous publication wait");
   }
   DWORD retire_after_owner() {
     require(WaitForSingleObject(thread_.native_handle(),5000)==WAIT_OBJECT_0,
-        "Metadata operation did not complete after owner retirement");
+        "Synchronous operation did not complete after owner retirement");
     thread_.join();
     require(responded_.load(std::memory_order_acquire) && result_!=ERROR_SUCCESS,
-        "Interrupted metadata operation was acknowledged");
-    checked(file_.close(),"Close interrupted metadata handle");
+        "Interrupted synchronous operation was acknowledged");
+    if(operation_==PublicationOperation::mapped_write)
+      require(mapped_.stage==MappedWriteStage::flush_view || mapped_.stage==MappedWriteStage::flush_file,
+          "Mapped operation did not reach an explicit flush");
+    checked(file_.close(),"Close interrupted synchronous handle");
     return result_;
   }
  private:
@@ -1464,6 +1518,7 @@ class PendingMountedMetadata final {
   std::thread thread_;
   std::atomic<bool> responded_{false};
   DWORD result_=ERROR_SUCCESS;
+  MappedWriteResult mapped_;
 };
 void seed_cut_file(const fs::path& path,const std::vector<std::byte>& bytes) {
   Handle file(CreateFileW(path.c_str(),GENERIC_WRITE,FILE_SHARE_READ,nullptr,CREATE_NEW,FILE_ATTRIBUTE_NORMAL,nullptr));
@@ -1475,10 +1530,16 @@ void seed_cut_file(const fs::path& path,const std::vector<std::byte>& bytes) {
   write_bytes(file.value,bytes);
 }
 std::string cut_neighbor_name(unsigned index) {return "neighbor-"+std::to_string(index)+".bin";}
-std::vector<std::byte> cut_neighbor_data(unsigned index) {
-  auto bytes=cut_data(151+index);
+std::vector<std::byte> cut_neighbor_data(unsigned index,bool recreated=false) {
+  auto bytes=cut_data((recreated?221:151)+index);
   bytes.resize(257+index*11);
   return bytes;
+}
+std::uint64_t mounted_inode_at(const fs::path& path) {
+  const Handle file(CreateFileW(path.c_str(),FILE_READ_ATTRIBUTES,FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,
+      nullptr,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,nullptr));
+  checked(file.value!=INVALID_HANDLE_VALUE,"Open existing publication neighbor for inode verification");
+  return mounted_cut_inode(file.value);
 }
 
 void run_publication_continuation(const fs::path& executable,const Fixture& fixture,DWORD source_id,
@@ -1503,12 +1564,13 @@ void run_publication_cut(const fs::path& executable,PublicationCut point,Publica
   stage=72;
   const auto name=cut_names[static_cast<std::size_t>(point)];
   const auto operation_name=operation_names[static_cast<std::size_t>(operation)];
-  const bool metadata=operation!=PublicationOperation::write;
+  const bool synchronous=operation!=PublicationOperation::write;
+  const bool mapped=operation==PublicationOperation::mapped_write;
   source_fixture::Events protocol(true);
   constexpr flitzfs::ProcessBudget budget{128,2000,30000};
   // On exception the source supervisor retires before either client's buffer or handle can be released.
   std::optional<PendingMountedWrite> pending_write;
-  std::optional<PendingMountedMetadata> pending_metadata;
+  std::optional<PendingMountedOperation> pending_sync;
   source_fixture::Child source(executable,{L"--publication-cut-source",protocol.token(),std::wstring(name),
       std::wstring(operation_name)},budget);
   source.await(protocol,source_fixture::Phase::ready);
@@ -1519,18 +1581,37 @@ void run_publication_cut(const fs::path& executable,PublicationCut point,Publica
   mounted_identity(mount);
   seed_cut_file(mount/L"payload.bin",cut_data(7));
   seed_cut_file(mount/L"witness.bin",cut_data(29));
-  if(metadata) {
+  if(mapped) {
+    const Handle witness(CreateFileW((mount/L"witness.bin").c_str(),GENERIC_READ|GENERIC_WRITE,FILE_SHARE_READ,
+        nullptr,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,nullptr));
+    checked(witness.value!=INVALID_HANDLE_VALUE,"Open mapped publication witness");
+    const auto result=write_mapped(witness.value,211);
+    if(result.error)throw std::runtime_error("Acknowledged witness mapping failed, status="+
+        std::to_string(result.error)+" stage="+std::to_string(static_cast<unsigned>(result.stage)));
+  }
+  const std::string population=mapped?"rotated-population":"population";
+  std::uint64_t recreated_inode=0;
+  if(synchronous) {
     const auto folder=mount/L"population";
     checked(CreateDirectoryW(folder.c_str(),nullptr),"Create mounted population directory");
     for(unsigned i=0;i<cut_neighbors;++i)seed_cut_file(folder/cut_neighbor_name(i),cut_neighbor_data(i));
-    pending_metadata.emplace(mount/L"payload.bin",operation);
+    if(mapped) {
+      const auto recreated=folder/cut_neighbor_name(cut_recreated_neighbor);
+      const auto previous_inode=mounted_inode_at(recreated);
+      checked(DeleteFileW(recreated.c_str()),"Delete acknowledged publication neighbor");
+      seed_cut_file(recreated,cut_neighbor_data(cut_recreated_neighbor,true));
+      recreated_inode=mounted_inode_at(recreated);
+      require(recreated_inode && recreated_inode!=previous_inode,"Recreated neighbor reused its retired inode");
+      checked(MoveFileExW(folder.c_str(),(mount/population).c_str(),0),"Rename mounted publication population");
+    }
+    pending_sync.emplace(mount/L"payload.bin",operation);
   } else pending_write.emplace(mount/L"payload.bin");
-  const auto inode=metadata?pending_metadata->inode():pending_write->inode();
+  const auto inode=synchronous?pending_sync->inode():pending_write->inode();
   require(inode!=0,"Publication trial lacked a stable file index");
   protocol.signal(source_fixture::Phase::written);
-  if(metadata)pending_metadata->submit();
+  if(synchronous)pending_sync->submit();
   else pending_write->submit();
-  if(metadata)pending_metadata->await_cut(source,protocol);
+  if(synchronous)pending_sync->await_cut(source,protocol);
   else {
     source.await(protocol,source_fixture::Phase::ack);
     pending_write->verify_pending();
@@ -1539,8 +1620,9 @@ void run_publication_cut(const fs::path& executable,PublicationCut point,Publica
   const auto retired=source.result();
   require(retired.process_id==source_id && retired.cancelled && !retired.timed_out && retired.exit_confirmed &&
       retired.exit_code==ERROR_CANCELLED && source.retirement_confirmed(),"Publication source retirement unconfirmed");
-  const auto error=metadata?pending_metadata->retire_after_owner():pending_write->retire_after_owner();
-  pending_metadata.reset();
+  const auto error=synchronous?pending_sync->retire_after_owner():pending_write->retire_after_owner();
+  const auto mapped_stage=mapped?pending_sync->mapped_stage():std::wstring_view{};
+  pending_sync.reset();
   pending_write.reset();
   require_removed(mount);
   const bool expects_new=point!=PublicationCut::before_commit;
@@ -1548,25 +1630,33 @@ void run_publication_cut(const fs::path& executable,PublicationCut point,Publica
   const std::string name_on_disk=renamed?"renamed.bin":"payload.bin";
   auto expected=cut_data(expects_new && operation==PublicationOperation::write?119:7);
   if(expects_new && operation==PublicationOperation::shrink)expected.resize(cut_shrunk_bytes);
+  if(expects_new && mapped)expected=cut_mapped_data(7,119);
+  const auto witness=mapped?cut_mapped_data(29,211):cut_data(29);
   const auto verify=[&](bool continued) {
     const auto view=flitzfs::NativeVolumeFile::inspect(path,cut_volume_identity(source_id));
     const auto& snapshot=view.filesystem();snapshot.verify_all();
     const auto target=snapshot.stat(name_on_disk);
     const auto entries=snapshot.list();
     require(target.inode==inode && target.logical_bytes==expected.size() && !target.directory &&
-        entries.size()==2U+static_cast<unsigned>(metadata)+static_cast<unsigned>(continued) &&
+        entries.size()==2U+static_cast<unsigned>(synchronous)+static_cast<unsigned>(continued) &&
         snapshot.read(name_on_disk,0,cut_bytes+1)==expected &&
-        snapshot.read("witness.bin",0,cut_bytes+1)==cut_data(29),
+        snapshot.read("witness.bin",0,cut_bytes+1)==witness,
         "Independent CPU recovery did not select the complete expected checkpoint");
     const std::string_view absent=renamed?"payload.bin":"renamed.bin";
     require(std::ranges::any_of(entries,[&](const auto& entry){return entry.path==name_on_disk;}) &&
         std::ranges::none_of(entries,[&](const auto& entry){return entry.path==absent;}),
         "Recovered directory does not contain exactly the expected target spelling");
-    if(metadata) {
-      require(snapshot.list("population").size()==cut_neighbors,"Independently recovered population size differs");
-      for(unsigned i=0;i<cut_neighbors;++i)
-        require(snapshot.read("population/"+cut_neighbor_name(i),0,cut_bytes+1)==cut_neighbor_data(i),
+    if(synchronous) {
+      require(snapshot.list(population).size()==cut_neighbors,"Independently recovered population size differs");
+      for(unsigned i=0;i<cut_neighbors;++i) {
+        const auto name=population+"/"+cut_neighbor_name(i);
+        const auto recreated=mapped && i==cut_recreated_neighbor;
+        require(snapshot.read(name,0,cut_bytes+1)==cut_neighbor_data(i,recreated),
             "A neighboring acknowledged file changed");
+        if(recreated)require(snapshot.stat(name).inode==recreated_inode,"Recreated neighbor's inode changed on recovery");
+      }
+      if(mapped)require(std::ranges::none_of(entries,[](const auto& entry){return entry.path=="population";}),
+          "The retired population name survived its acknowledged rename");
     }
     if(continued)require(snapshot.read("continuation.bin",0,cut_bytes+1)==cut_data(61),
         "Independent CPU readback of the fresh mounted write differs");
@@ -1580,8 +1670,11 @@ void run_publication_cut(const fs::path& executable,PublicationCut point,Publica
   std::wcout<<L"mounted_publication_cut boundary="<<name<<L" pending_before_exit=1 client_error="<<error
       <<L" recovered="<<(expects_new?L"next":L"previous")<<L" generation="<<recovered
       <<L" continuation_generation="<<continued<<L" cpu_readback=1 retired=1 operation="<<operation_name
-      <<L" neighbors="<<(metadata?cut_neighbors:0)<<L" recovered_extent="<<recovered_extent
-      <<L" continued_extent="<<fs::file_size(path)<<L'\n';
+      <<L" neighbors="<<(synchronous?cut_neighbors:0)<<L" recovered_extent="<<recovered_extent
+      <<L" continued_extent="<<fs::file_size(path);
+  if(mapped)std::wcout<<L" mapped_stage="<<mapped_stage
+      <<L" acknowledged_witness=1 recreated_neighbor=1 renamed_population=1";
+  std::wcout<<L'\n';
 }
 
 
@@ -1714,7 +1807,7 @@ int wmain(int argc,wchar_t** argv) {try {
         mode==L"--publication-selector-resumer"?selector_contract:cut_contract);return 0;
   }
   if(mode==L"--run-publication-cuts" || mode==L"--run-metadata-publication-cuts" ||
-      mode==L"--run-selector-publication-cuts") {
+      mode==L"--run-mapped-publication-cuts" || mode==L"--run-selector-publication-cuts") {
     require_cut_guest();require(argc==2,"Publication-cut controller arguments");
     const source_fixture::ControllerBudget controller_budget;
     wchar_t path[512]{};const auto n=GetModuleFileNameW(nullptr,path,512);
@@ -1725,6 +1818,8 @@ int wmain(int argc,wchar_t** argv) {try {
     } else if(mode==L"--run-metadata-publication-cuts") {
       for(const auto operation:{PublicationOperation::shrink,PublicationOperation::rename})
         for(const auto point:cut_points)run_publication_cut(executable,point,operation);
+    } else if(mode==L"--run-mapped-publication-cuts") {
+      for(const auto point:cut_points)run_publication_cut(executable,point,PublicationOperation::mapped_write);
     } else {
       for(const auto point:cut_points)run_selector_cut(executable,point);
     }

@@ -75,7 +75,7 @@ artifact and the observation needed before the related work can advance.
 | S5 · E04–E06 | Freeze the mixed held-out corpus and collect complete-image accounting for independent codecs, shared dictionaries, delta and multi-reference candidates and the existing shared-base control. | Net space gains survive protection, retained generations and reclamation costs. Independent restart units give practical cold random reads. Size and access results include all cohorts and losses. |
 | S6 · E07 | Drive the persistent advisory catalog and policy from observed savings, live resource pressure and workload changes in the mounted lifecycle. | Corrupt or absent advice is rebuildable. Foreground bursts preempt the next quantum. Recovery, migration, learning, compaction and scan progress resume independently with measured write cost. |
 | S7 · E08 | Extend the signed WinFsp fixture to an interactive Windows 11 26H2 x64 client and the published Explorer and Win32 compatibility matrix. | Both supported backings cover create, attach, metadata, copy, sharing, mapped I/O, detach and fresh-process recovery. Scoped app, service, mount and worker ownership is verified through failure and removal. |
-| S8 · E02, E11 | Build from the mounted Write, EOF shrink, rename and image-selection cuts. Add mixed cached and mapped I/O, then qualify the persistent backend on dedicated disposable hardware. | Each cut resolves to an allowed complete generation. Acknowledged bytes and namespaces survive the declared failure domain. A single protected-copy loss repairs with byte-exact independent recovery. |
+| S8 · E02, E11 | Build from the mounted Write, EOF shrink, rename, mapped write and image-selection cuts. Add concurrent cached and mapped flushes, then qualify the persistent backend on dedicated disposable hardware. | Each cut resolves to an allowed complete generation. Acknowledged bytes and namespaces survive the declared failure domain. A single protected-copy loss repairs with byte-exact independent recovery. |
 | S9 · E09 | Add a capability and reader matrix for historical fixtures and mixed old/new representations. Exercise bounded, resumable format migration under regular writes and space pressure. | Supported history opens on CPU. Old writers refuse unsupported mandatory features before mutation. Upgrade interruption, compatible rollback and CPU-only export recover the promised data. |
 | S10 · E10–E11 | Stage a signed Windows package and CPU recovery tool with owned installation, repair, removal and rollback. Review the parser, broker, update and dependency trust boundaries. | Every artifact is attributable. The supported install paths work on a clean client. Defensive negative tests and independent review close actionable issues for the exact packaged source. |
 | S11 · E12 | Collect repeated matched DiskSpd and file-workflow results on real hardware, with filesystem and compression controls. | Publishable raw results include complete occupied bytes, CPU/GPU utilization, write amplification, foreground tails and independent recovery for every phase. |
@@ -93,8 +93,8 @@ begin before the integrated path closes.
 The signed-driver fixture now covers in-flight Write, EOF shrink, rename and
 selector changes during reclamation. Qualify installed foreground AMD through
 ordinary writes, with eligibility and response ordering observable. Extend
-the recovery trace to mixed cached and mapped I/O, populated-directory scale
-and maintenance interference.
+the recovery trace to concurrent cached and mapped flushes, populated-directory
+scale and maintenance interference.
 
 The Windows scheduler can service eligible group work after a scan declines
 under its CPU budget. Retain the test with a due but deferred scrub as a
@@ -611,12 +611,19 @@ provider test on the same build verified retired-range allocation release and
 reuse in both directions after the retention checks completed.
 [Mounted selector evidence](evidence/windows11-mounted-selector-publication-cuts-2026-11-22.json)
 
-1. **Extend mounted recovery to mixed I/O and directory churn.**
-   Add mapped writes with a view flush followed by a file flush, concurrent
-   cached writes and populated-directory churn to the established inner and
-   outer cut trace. Bind each outcome to the exact client operation, boundary,
-   storage geometry and binaries. Run the physical failure campaign separately
-   on dedicated backing.
+A mounted client now changes a mapped view in between ordinary acknowledged
+cached writes, delete and recreation, and a directory rename. Six process
+cuts recovered the expected target bytes, 32 neighbors and a separately
+acknowledged mapped witness. Each case recovered under the CPU reader and
+flushed a continuation after remount. The interrupted caller was still in
+`FlushViewOfFile`. [Mapped publication evidence](evidence/windows11-mounted-mapped-publication-cuts-2026-11-22.json)
+
+1. **Combine pending cached and mapped I/O.**
+   Extend the populated trace to simultaneous outstanding cached and mapped
+   operations. Add cuts around the file flush that follows a successful view
+   flush, and record the two acknowledgements independently. Keep binding each
+   result to the client operation, storage geometry and binaries. Run the
+   physical failure campaign on dedicated backing.
    [Mapped flushing contract](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-flushviewoffile)
 2. **Measure the scaling bottleneck on that trace.** Count calls and bytes
    for selector, object-index and name-index pages, inodes and lifetimes,

@@ -136,6 +136,17 @@
     "mounted_guest_locked_ram_handoff": true,
     "follow_up": "Measure the complete Windows handle and volume flush paths on the same populated trace. Keep the startup admission and AMD qualification gates open."
   },
+  "windows_mounted_mapped_publication": {
+    "evidence": "docs/evidence/windows11-mounted-mapped-publication-cuts-2026-11-22.json",
+    "windows_guest_build": "26100",
+    "winfsp": "2.2.26323",
+    "verified_mapped_cuts_with_directory_churn": 6,
+    "same_build_inner_controls": 9,
+    "acknowledged_neighbor_files_per_case": 32,
+    "independent_cpu_readback_and_writable_continuation": true,
+    "concurrent_cached_and_mapped_flushes_qualified": false,
+    "physical_power_loss_qualified": false
+  },
   "windows_mounted_selector_publication": {
     "evidence": "docs/evidence/windows11-mounted-selector-publication-cuts-2026-11-22.json",
     "windows_guest_build": "26100",

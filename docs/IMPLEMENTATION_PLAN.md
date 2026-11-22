@@ -18,8 +18,9 @@ writable mount. Independent hardware and SDK paths cover finite AMD batching,
 controlled deferred integration and live indexed readback. Mounted inner
 publication cuts cover Write, EOF shrink and rename. The CPU reader also
 verified both image ranges through mounted selector cuts during reclamation.
+Mapped-write recovery also passed with cached neighbors and directory churn.
 The next checkpoint qualifies installed foreground AMD through ordinary writes
-and extends the recovery trace to mixed cached and mapped I/O.
+and covers concurrent cached and mapped flushes.
 Keep independent CPU bytes, full occupied-size accounting and safe ownership
 for each path. [Release gate ledger](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
 · [Current state](DEVELOPMENT_STATE.json)
@@ -149,9 +150,10 @@ S1–S12 release gates remain in use.
 - Reuse signed-driver [inner publication cuts](evidence/windows11-mounted-metadata-publication-cuts-2026-11-22.json)
   for Write, EOF shrink and rename and [outer selector cuts](evidence/windows11-mounted-selector-publication-cuts-2026-11-22.json)
   during reclamation. Keep independent exact readback of both retained image
-  ranges, a verified next write and retired-range ownership checks. Add
-  cached and mapped writes and populated-directory churn to the same client
-  and artifact ledger.
+  ranges, a verified next write and retired-range ownership checks. Reuse the
+  [mapped cuts and directory churn](evidence/windows11-mounted-mapped-publication-cuts-2026-11-22.json)
+  for a trace with concurrent cached writes and both view and file flush
+  observations. Carry the same client and artifact ledger through each case.
 - Wire qualified foreground offers from the installed owner to an ordinary
   deferred callback. Separate role-specific package inputs and verify the
   app can run without the optional worker. Reuse the existing background

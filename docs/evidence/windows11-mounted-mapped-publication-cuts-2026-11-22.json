@@ -1,0 +1,420 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "release_qualified": false,
+  "observed_at_utc": "2026-11-22T09:15:09.507908+00:00",
+  "base_commit": "6cceab97c6d3b134fefbe7313f35e59e7a133cd7",
+  "candidate_source_blobs": {
+    "tests/winfsp_write_probe.cpp": "e0fed2e1c7f80193723e81ff0334f0148887b19f"
+  },
+  "candidate_code_patch_sha256": "7b85384cbe7760243e39c209484ec4d555bf89c1cb28e5c1e75112784c3b8b55",
+  "win32_sources": {
+    "provider": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "34cd77f2d5d730f383f5bea2c2bbce2b1afe2cc231a8ce46476c466c74efff2d",
+    "pages": [
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-mapviewoffile",
+        "http_status": 200,
+        "markdown_sha256": "8b2296490b44e0a83344b6e6894ddd76f539833d80419328af6723fe610c09ee",
+        "native_sha256": "ca78cc28af2912021e182a1b95ab78c062a1b801489c6d369bf1b0b0d81f05cc"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-createfilemappingw",
+        "http_status": 200,
+        "markdown_sha256": "75548de6705206960636e99b21a4d457f7d70ebf5ebcbb7ceb76c3acbca5525d",
+        "native_sha256": "67d33790802e9668d8f26751084ca843398b526fe7f2879943aca9122bf7efe2"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-flushviewoffile",
+        "http_status": 200,
+        "markdown_sha256": "cbae2e37207a0bc6af58d74708b53da23378a9f8da9423c2a42f8fda8696c94f",
+        "native_sha256": "7dfac4aab5878d1054e7626e703cafd67d4f0e88c60886e49bc54beee552c0ae"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers",
+        "http_status": 200,
+        "markdown_sha256": "116ffcd5a6feba3539c3f668a2c969aa2e38b8f3663a704a7654e7b2a7954e4c",
+        "native_sha256": "3dfdea81c53015c627cf3ca2657125a9bd36459873d5ee5ea33d5119a823b6ec"
+      }
+    ]
+  },
+  "build": {
+    "receipt_sha256": "02f8bc8896709cb01fb4ea0f9336acd2155b9b5340d47d8c8085f3059760eb50",
+    "log_sha256": "bff7d0b04e1cc53d5182dfb18d6f344a926a824e15468e954499aa838d7e7649",
+    "peak_job_bytes": 416239616,
+    "residual_children": 1,
+    "tree_retired": true
+  },
+  "mapped_trial_before_adding_directory_churn": {
+    "guest_build": "26100",
+    "guest_disposed": true,
+    "signed_runtime_and_driver": true,
+    "guest_report_sha256": "4e32f1aca11e6e68003a4f64a91ca8cc3f1d9969c15e396bee263ea3db302de6",
+    "manifest_sha256": "0796a838a05e724b711fc7c99795830cf9aaa51bbcd941986d94acdeda7ad326",
+    "guest_script_sha256": "0936a1a68bd7610e79b0ee834d22ea14b29f8a25d344ef54590df48e436c0a05",
+    "sdk_sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+    "driver_sha256": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+    "probe_sha256": "47c3e13bb30222eaaa864aff2c6999857d39d76a5ebab46c677b6496e9099c77",
+    "probe_source": "c87a73806c34855eab9cfc9aada121999c7b70a2",
+    "winfsp": "2.2.26323",
+    "supervisor": {
+      "receipt_sha256": "13d22537ce9abffb426976969d9651d0f79f28259d10d1e7f34744d69c452fec",
+      "log_sha256": "fc97715b6e899bd98a8374667e060627291c50ee460beb42ec4bcd1c170f9672",
+      "peak_job_bytes": 45527040,
+      "residual_children": 0,
+      "tree_retired": true
+    },
+    "mapped_cuts": [
+      {
+        "boundary": "before-payload-flush",
+        "pending_before_exit": 1,
+        "client_error": 995,
+        "recovered": "previous",
+        "generation": 176,
+        "continuation_generation": 182,
+        "cpu_readback": 1,
+        "retired": 1,
+        "operation": "mapped-write",
+        "neighbors": 32,
+        "recovered_extent": 23592960,
+        "continued_extent": 24379392,
+        "mapped_stage": "flush-view",
+        "acknowledged_witness": 1
+      },
+      {
+        "boundary": "after-first-root",
+        "pending_before_exit": 1,
+        "client_error": 995,
+        "recovered": "next",
+        "generation": 181,
+        "continuation_generation": 189,
+        "cpu_readback": 1,
+        "retired": 1,
+        "operation": "mapped-write",
+        "neighbors": 32,
+        "recovered_extent": 24117248,
+        "continued_extent": 24903680,
+        "mapped_stage": "flush-view",
+        "acknowledged_witness": 1
+      },
+      {
+        "boundary": "after-second-root",
+        "pending_before_exit": 1,
+        "client_error": 995,
+        "recovered": "next",
+        "generation": 186,
+        "continuation_generation": 192,
+        "cpu_readback": 1,
+        "retired": 1,
+        "operation": "mapped-write",
+        "neighbors": 32,
+        "recovered_extent": 24641536,
+        "continued_extent": 25427968,
+        "mapped_stage": "flush-view",
+        "acknowledged_witness": 1
+      }
+    ]
+  },
+  "mapped_trials_with_cached_population_and_directory_churn": [
+    {
+      "guest_build": "26100",
+      "guest_disposed": true,
+      "signed_runtime_and_driver": true,
+      "guest_report_sha256": "04f046d5e5876ffcc3cb716d7c7cbf8a8700d53b71750b2e99ce3ed76321a5e8",
+      "manifest_sha256": "0023a8a0d2d6eafd0634ce61048518b2d6e78d2c199b1a891d88fc1de40305d9",
+      "guest_script_sha256": "e763bd7fa339de8697c793d4904a76d0eaa1cf51b4178bbe5839e348e160408a",
+      "sdk_sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+      "driver_sha256": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+      "probe_sha256": "9065e1acdca425b0b1f08113b160c93e8b5459e2db20b92a88376b103a773f2b",
+      "probe_source": "e0fed2e1c7f80193723e81ff0334f0148887b19f",
+      "winfsp": "2.2.26323",
+      "supervisor": {
+        "receipt_sha256": "b6a565a984386834336363923ae8a91e9f52c7eed2cd4c24a83574af703de742",
+        "log_sha256": "d7a470a630a2c5282ce5b322dad42e348b707af1b14a51755ab461a735a9f2b7",
+        "peak_job_bytes": 46379008,
+        "residual_children": 0,
+        "tree_retired": true
+      },
+      "mapped_cuts": [
+        {
+          "boundary": "before-payload-flush",
+          "pending_before_exit": 1,
+          "client_error": 995,
+          "recovered": "previous",
+          "generation": 190,
+          "continuation_generation": 196,
+          "cpu_readback": 1,
+          "retired": 1,
+          "operation": "mapped-write",
+          "neighbors": 32,
+          "recovered_extent": 25427968,
+          "continued_extent": 26214400,
+          "mapped_stage": "flush-view",
+          "acknowledged_witness": 1,
+          "recreated_neighbor": 1,
+          "renamed_population": 1
+        },
+        {
+          "boundary": "after-first-root",
+          "pending_before_exit": 1,
+          "client_error": 995,
+          "recovered": "next",
+          "generation": 189,
+          "continuation_generation": 197,
+          "cpu_readback": 1,
+          "retired": 1,
+          "operation": "mapped-write",
+          "neighbors": 32,
+          "recovered_extent": 25165824,
+          "continued_extent": 25952256,
+          "mapped_stage": "flush-view",
+          "acknowledged_witness": 1,
+          "recreated_neighbor": 1,
+          "renamed_population": 1
+        },
+        {
+          "boundary": "after-second-root",
+          "pending_before_exit": 1,
+          "client_error": 995,
+          "recovered": "next",
+          "generation": 188,
+          "continuation_generation": 194,
+          "cpu_readback": 1,
+          "retired": 1,
+          "operation": "mapped-write",
+          "neighbors": 32,
+          "recovered_extent": 24903680,
+          "continued_extent": 25690112,
+          "mapped_stage": "flush-view",
+          "acknowledged_witness": 1,
+          "recreated_neighbor": 1,
+          "renamed_population": 1
+        }
+      ],
+      "metadata_controls": [
+        {
+          "boundary": "before-payload-flush",
+          "pending_before_exit": 1,
+          "client_error": 995,
+          "recovered": "previous",
+          "generation": 174,
+          "continuation_generation": 180,
+          "cpu_readback": 1,
+          "retired": 1,
+          "operation": "eof-shrink",
+          "neighbors": 32,
+          "recovered_extent": 23330816,
+          "continued_extent": 24117248
+        },
+        {
+          "boundary": "after-first-root",
+          "pending_before_exit": 1,
+          "client_error": 995,
+          "recovered": "next",
+          "generation": 175,
+          "continuation_generation": 183,
+          "cpu_readback": 1,
+          "retired": 1,
+          "operation": "eof-shrink",
+          "neighbors": 32,
+          "recovered_extent": 23330816,
+          "continued_extent": 24117248
+        },
+        {
+          "boundary": "after-second-root",
+          "pending_before_exit": 1,
+          "client_error": 995,
+          "recovered": "next",
+          "generation": 174,
+          "continuation_generation": 180,
+          "cpu_readback": 1,
+          "retired": 1,
+          "operation": "eof-shrink",
+          "neighbors": 32,
+          "recovered_extent": 23068672,
+          "continued_extent": 23855104
+        },
+        {
+          "boundary": "before-payload-flush",
+          "pending_before_exit": 1,
+          "client_error": 995,
+          "recovered": "previous",
+          "generation": 180,
+          "continuation_generation": 186,
+          "cpu_readback": 1,
+          "retired": 1,
+          "operation": "rename",
+          "neighbors": 32,
+          "recovered_extent": 24117248,
+          "continued_extent": 24903680
+        },
+        {
+          "boundary": "after-first-root",
+          "pending_before_exit": 1,
+          "client_error": 995,
+          "recovered": "next",
+          "generation": 175,
+          "continuation_generation": 183,
+          "cpu_readback": 1,
+          "retired": 1,
+          "operation": "rename",
+          "neighbors": 32,
+          "recovered_extent": 23330816,
+          "continued_extent": 24117248
+        },
+        {
+          "boundary": "after-second-root",
+          "pending_before_exit": 1,
+          "client_error": 995,
+          "recovered": "next",
+          "generation": 186,
+          "continuation_generation": 192,
+          "cpu_readback": 1,
+          "retired": 1,
+          "operation": "rename",
+          "neighbors": 32,
+          "recovered_extent": 24641536,
+          "continued_extent": 25427968
+        }
+      ],
+      "write_controls": [
+        {
+          "boundary": "before-payload-flush",
+          "pending_before_exit": 1,
+          "client_error": 995,
+          "recovered": "previous",
+          "generation": 16,
+          "continuation_generation": 22,
+          "cpu_readback": 1,
+          "retired": 1,
+          "operation": "write",
+          "neighbors": 0,
+          "recovered_extent": 2621440,
+          "continued_extent": 3407872
+        },
+        {
+          "boundary": "after-first-root",
+          "pending_before_exit": 1,
+          "client_error": 995,
+          "recovered": "next",
+          "generation": 17,
+          "continuation_generation": 25,
+          "cpu_readback": 1,
+          "retired": 1,
+          "operation": "write",
+          "neighbors": 0,
+          "recovered_extent": 2621440,
+          "continued_extent": 3407872
+        },
+        {
+          "boundary": "after-second-root",
+          "pending_before_exit": 1,
+          "client_error": 995,
+          "recovered": "next",
+          "generation": 20,
+          "continuation_generation": 26,
+          "cpu_readback": 1,
+          "retired": 1,
+          "operation": "write",
+          "neighbors": 0,
+          "recovered_extent": 2883584,
+          "continued_extent": 3670016
+        }
+      ]
+    },
+    {
+      "guest_build": "26100",
+      "guest_disposed": true,
+      "signed_runtime_and_driver": true,
+      "guest_report_sha256": "85e90adc2c88e704e3c80a50a596fab97c4e8651833997348c8e1e6569fce6e2",
+      "manifest_sha256": "e3b66cda150024f81595daf4f84383c0718b2e54d6c1d18164cc155aaf179d1c",
+      "guest_script_sha256": "0936a1a68bd7610e79b0ee834d22ea14b29f8a25d344ef54590df48e436c0a05",
+      "sdk_sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+      "driver_sha256": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+      "probe_sha256": "9065e1acdca425b0b1f08113b160c93e8b5459e2db20b92a88376b103a773f2b",
+      "probe_source": "e0fed2e1c7f80193723e81ff0334f0148887b19f",
+      "winfsp": "2.2.26323",
+      "supervisor": {
+        "receipt_sha256": "ee7e633a6a4cf19f4d607231dd122a1c478581e5679f29104ee19c6ba430b459",
+        "log_sha256": "872f9edec196588575fea3d3c7413db8b411536e355e931b197b253590ae206d",
+        "peak_job_bytes": 45740032,
+        "residual_children": 0,
+        "tree_retired": true
+      },
+      "mapped_cuts": [
+        {
+          "boundary": "before-payload-flush",
+          "pending_before_exit": 1,
+          "client_error": 995,
+          "recovered": "previous",
+          "generation": 192,
+          "continuation_generation": 198,
+          "cpu_readback": 1,
+          "retired": 1,
+          "operation": "mapped-write",
+          "neighbors": 32,
+          "recovered_extent": 25690112,
+          "continued_extent": 26476544,
+          "mapped_stage": "flush-view",
+          "acknowledged_witness": 1,
+          "recreated_neighbor": 1,
+          "renamed_population": 1
+        },
+        {
+          "boundary": "after-first-root",
+          "pending_before_exit": 1,
+          "client_error": 995,
+          "recovered": "next",
+          "generation": 201,
+          "continuation_generation": 209,
+          "cpu_readback": 1,
+          "retired": 1,
+          "operation": "mapped-write",
+          "neighbors": 32,
+          "recovered_extent": 26738688,
+          "continued_extent": 27525120,
+          "mapped_stage": "flush-view",
+          "acknowledged_witness": 1,
+          "recreated_neighbor": 1,
+          "renamed_population": 1
+        },
+        {
+          "boundary": "after-second-root",
+          "pending_before_exit": 1,
+          "client_error": 995,
+          "recovered": "next",
+          "generation": 198,
+          "continuation_generation": 204,
+          "cpu_readback": 1,
+          "retired": 1,
+          "operation": "mapped-write",
+          "neighbors": 32,
+          "recovered_extent": 26214400,
+          "continued_extent": 27000832,
+          "mapped_stage": "flush-view",
+          "acknowledged_witness": 1,
+          "recreated_neighbor": 1,
+          "renamed_population": 1
+        }
+      ]
+    }
+  ],
+  "witness_flush_calls": [
+    "FlushViewOfFile",
+    "FlushFileBuffers"
+  ],
+  "changed_view_bytes": 512,
+  "scope": {
+    "guest_backing": "disposable ordinary file",
+    "failure": "exact owner process exit",
+    "host_system_drivers_after": [
+      {
+        "Name": "WinFsp+20260516T182719Z",
+        "State": "Stopped"
+      }
+    ],
+    "scoped_host_processes_after": 0,
+    "concurrent_cached_write_qualified": false,
+    "physical_power_loss_qualified": false
+  }
+}
