@@ -1,6 +1,6 @@
 # Objective FlitzFS benchmark protocol
 
-Planning specification, 15 November 2026; no new benchmark result is claimed.
+Benchmark protocol and measured Windows pilots through 22 November 2026.
 Use existing recognized tools where they measure the required property. Custom
 tests fill explicit gaps; they do not replace an available standard workload.
 All host execution follows current local-development authorization and protects
@@ -26,8 +26,9 @@ and explicit affinity, cache and data controls across paired trials.
 Current official release metadata checked on 15 November: DiskSpd **v2.3**
 (4 September), fio **3.43** (23 September) and lzbench **2.4** (27 September).
 The reviewed source pins and capture digests are in
-[the review receipt](evidence/release-plan-review-2026-11-15.json). Recheck current
-compatible versions before execution; this plan neither installs nor runs them.
+[the review receipt](evidence/release-plan-review-2026-11-15.json). The Windows
+pilot rechecked the DiskSpd and lzbench releases and verified their archive
+hashes before running them.
 [DiskSpd](https://github.com/microsoft/diskspd/tree/v2.3),
 [fio](https://github.com/axboe/fio/tree/fio-3.43),
 [lzbench](https://github.com/inikep/lzbench/tree/v2.4).
@@ -100,6 +101,98 @@ its compression controls synthesize mixtures of random/patterned bytes. Record
 such patterns as labeled controls; real files determine realistic compression.
 Never present zeros or repeating buffers as a typical-data compression record.
 [Current fio controls](https://github.com/axboe/fio/blob/fio-3.43/HOWTO.rst).
+
+## Public compression workloads
+
+### 2026 AIT Data Compression Challenge
+
+Use the complete canonical **AIT Data Compression Challenge 2026 (AITDCC 2026)**
+for contemporary general-purpose lossless compression. Preserve the published
+split of eight training files (A–H) and eight held-out files (I–P) in addition
+to all 16 files together. The organizers publish the complete bytes, SHA-256
+hashes, evaluation rules and results. Report FlitzFS results as an independent
+evaluation. The challenge's codec results cover different resource limits and
+accounting from a complete mirrored filesystem.
+[Official benchmark](https://aitdcc.github.io/) · [Dataset and attribution](https://aitdcc.github.io/dataset.html) · [Ribeiro et al. 2026](https://arxiv.org/abs/2606.17712)
+
+Stage the original files and three packing fixtures in a new development
+directory. The script checks the size and SHA-256 of every file against the
+[pinned catalog](../tools/dev/aitdcc2026-corpus.json). Run the bounded benchmark
+processes through the normal Windows development runner.
+
+```powershell
+$corpus = 'aitdcc2026-corpus'
+$profile = '<path to flitzfs_native_group_maintenance_tests.exe>'
+python -B tools/dev/stage_aitdcc2026.py $corpus
+& $profile --profile-public-files "$corpus/all.flitz-fixture"
+& $profile --profile-public-files "$corpus/test.flitz-fixture"
+& $profile --profile-public-files "$corpus/train.flitz-fixture"
+```
+
+The profile uses ordinary indexed file writes and runs the collective controller
+with modeled idle opportunities. It compactly rebuilds both the pre-maintenance
+and post-maintenance images, reopens them on CPU, and compares the complete files.
+Report the image and selector sizes, including protected stored objects, index
+and metadata. This fixture measures collective packing. The idle cold-codec
+rewrite, persistent coherence catalog and mounted I/O have their own test paths.
+
+For standalone codec controls, pass the individual original files to
+[lzbench v2.4](https://github.com/inikep/lzbench/releases/tag/v2.4) with
+`-elz4,0/zstd,3,12,19/brotli,9 -t0,0 -i1,3 -o4`. Use `-elzma,6` in a
+separate run with the same iteration and output settings. Keep each member
+as an independent input. Alternate order and report A–H, I–P and A–P totals. Charge
+filesystem protection and container overhead in their own measurements.
+
+### Revision and wider workload coverage
+
+- Keep paired **CPython 3.15.0 and 3.15.2** files intact to test regrouping
+  across versions, and use the larger single-release tree for namespace scale
+  and build workflows. The receipt pins the two releases, deterministic
+  selection, file order and hashes. Compare repeated CPU and AMD trials
+  before trusting automatic GPU admission for the observed class.
+  [CPython 3.15.0](https://www.python.org/downloads/release/python-3150/) ·
+  [CPython 3.15.2](https://www.python.org/downloads/release/python-3152/)
+- Keep **Silesia** as a historical continuity control. lzbench 2.4 publishes
+  results using the same tar corpus. A recent tool release does not change the
+  age or coverage of its example inputs.
+  [lzbench published comparisons](https://github.com/inikep/lzbench/tree/v2.4)
+- Consider **Squishy-2026** for a wider codec study. Its checked edition lists
+  26 scored entries and 11.17 GB of scored bytes, with per-file hashes.
+  The pinned citation file has a placeholder for the archival DOI. Pin the
+  exact inventory and confirm attribution per source before using individual
+  entries. Reserve any full-edition score for the complete roster.
+  [Pinned Squishy-2026 inventory](https://github.com/JackDanger/squishy-corpus/blob/64313dfa884da4654d423462f538770dcbf04247/build/meta/edition.json) ·
+  [Pinned citation file](https://github.com/JackDanger/squishy-corpus/blob/64313dfa884da4654d423462f538770dcbf04247/CITATION.cff)
+- Add recognized workload traces after native DiskSpd comparisons. UL's
+  **3DMark Storage Benchmark** replays Windows game and recording traces.
+  **MLPerf Storage v3.0** supplies AI training, checkpoint, vector database
+  and KV-cache lanes. Its reference harness generates synthetic training
+  files. Use that lane for storage behavior and separately test compressibility
+  with verified public checkpoint bytes.
+  [UL storage traces](https://support.benchmarks.ul.com/support/solutions/articles/44002277782-storage-benchmark-tests) ·
+  [MLPerf Storage v3.0](https://mlcommons.org/benchmarks/storage/) ·
+  [MLCommons reference harness](https://github.com/mlcommons/storage)
+
+### First Windows observations
+
+On the complete AIT input of 38,289,319 bytes, the standalone lzbench controls
+ranged from 23,663,675 bytes (LZMA 6) to 31,204,855 bytes (LZ4). Zstandard 19
+used 24,294,750 bytes. The compacted FlitzFS image and selector used 51,617,792
+bytes. The collective scan
+published zero groups and wrote zero bytes. Independent CPU opens recovered
+all files exactly, including the separate training and held-out runs.
+
+On 24 complete CPython files (12 changed paths, each at both revisions), both
+CPU and the AMD copy-advice walk reduced the compacted image from 1,302,528 to
+770,048 bytes and recovered every byte. The AMD trials launched HIP and used
+validated advice. Both routes reached the same image size in three pairs.
+Median process time, including startup and readback, was 0.25 seconds on CPU
+and 3.25 seconds with the explicit AMD route.
+
+DiskSpd 2.3 ran system inventory on this Windows host. Mounted FlitzFS and NTFS
+I/O measurements remain a separate test with equivalent cache, allocation and
+backing settings.
+[Measured runs and source receipts](evidence/aitdcc2026-compression-baseline-2026-11-22.json)
 
 ## Measurements and anti-bias rules
 

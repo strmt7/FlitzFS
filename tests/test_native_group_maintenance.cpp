@@ -380,12 +380,28 @@ void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expect
   constexpr NativeImageStorage storage{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes};
   const auto name=[](std::size_t i){return "pack-profile-"+std::to_string(i);};
   Fixture f(4096,0,true,policy);
-  for(std::size_t i=0;i<inputs.size();++i)put(*f.session,name(i),inputs[i]);
+  std::uint64_t input_bytes=0;
+  constexpr std::size_t write_bytes=1024*1024;
+  for(std::size_t i=0;i<inputs.size();++i) {
+    const auto path=name(i);
+    const auto bytes=std::span(inputs[i]);
+    f.session->create_entry(path);
+    auto handle=f.session->open(path,{true,true,false});
+    for(std::size_t offset=0;offset<bytes.size();offset+=write_bytes)
+      f.session->write(handle,offset,bytes.subspan(offset,(std::min)(write_bytes,bytes.size()-offset)));
+    f.session->cleanup(handle,false);
+    f.session->close(handle);
+    input_bytes+=bytes.size();
+  }
+  const auto ingested_bytes=f.image->extent();
 
   const auto verify=[&](const NativeFilesystemSnapshot& snapshot) {
     snapshot.verify_all();
-    for(std::size_t i=0;i<inputs.size();++i)
-      require(snapshot.read(name(i),0,kNativeExtentBytes)==inputs[i],"similarity packing changed file bytes");
+    for(std::size_t i=0;i<inputs.size();++i) {
+      const auto path=name(i);
+      require(snapshot.stat(path).logical_bytes==inputs[i].size() &&
+          snapshot.read(path,0,inputs[i].size())==inputs[i],"similarity packing changed file bytes");
+    }
   };
   const auto settled_image=[&](const NativeFilesystemSnapshot& source,unsigned target) {
     auto backing=ram(4096);
@@ -426,7 +442,9 @@ void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expect
   const auto after=settled_image(current,3);
   const auto members=current.shared_base_info().members;
   std::cout<<"similarity_packing files="<<inputs.size()<<" before_compacted="<<before.first
-      <<" after_compacted="<<after.first<<" before_range_read_bytes="<<before.second
+      <<" after_compacted="<<after.first<<" input_bytes="<<input_bytes
+      <<" selector_bytes="<<f.head->extent()<<" ingested_image_bytes="<<ingested_bytes
+      <<" maintained_image_bytes="<<f.image->extent()<<" before_range_read_bytes="<<before.second
       <<" after_range_read_bytes="<<after.second<<" maintenance_read_bytes="<<maintenance_reads
       <<" maintenance_write_bytes="<<maintenance_writes<<" work_ns="<<outcome.elapsed_work_ns
       <<" packed_groups="<<outcome.packed_reference_groups<<" attempts="<<outcome.attempted_groups
@@ -469,10 +487,15 @@ void profile_cross_window_short_families(bool regression=false) {
   profile_similarity_packing(inputs,regression?2:0);
 }
 
-void profile_public_short_packs(const std::filesystem::path& filename) {
-  if(!store_zstd_available())return;
+void profile_public_packs(const std::filesystem::path& filename,bool complete_files) {
+  if(!store_zstd_available()) {
+    require(!complete_files,"complete-file packing profile requires Zstandard");
+    return;
+  }
   const auto source=ReadOnlyFile::open(filename);
-  require(source.size()>4 && source.size()<=4*1024*1024,"public pack corpus size");
+  const auto input_limit=complete_files?48ULL*1024*1024:4ULL*1024*1024;
+  const auto file_limit=complete_files?kNativeMaxReadBytes:kNativeExtentBytes-1;
+  require(source.size()>4 && source.size()<=input_limit,"public pack corpus size");
   const auto read_count=[&](std::uint64_t offset) {
     std::array<std::byte,4> raw{};
     source.read_exact_at(offset,raw.data(),raw.size());
@@ -489,7 +512,7 @@ void profile_public_short_packs(const std::filesystem::path& filename) {
     require(offset+4<=source.size(),"truncated public pack corpus");
     const auto size=read_count(offset);
     offset+=4;
-    require(size && size<kNativeExtentBytes && size<=source.size()-offset,"public pack corpus file extent");
+    require(size && size<=file_limit && size<=source.size()-offset,"public pack corpus file extent");
     auto& bytes=inputs.emplace_back(static_cast<std::size_t>(size));
     source.read_exact_at(offset,bytes.data(),bytes.size());
     offset+=size;
@@ -3176,7 +3199,9 @@ int main(int argc,char** argv){try{
   } else if(argc==2 && std::string_view(argv[1])=="--profile-cross-window-short-families") {
     profile_cross_window_short_families();
   } else if(argc==3 && std::string_view(argv[1])=="--profile-public-short-packs") {
-    profile_public_short_packs(argv[2]);
+    profile_public_packs(argv[2],false);
+  } else if(argc==3 && std::string_view(argv[1])=="--profile-public-files") {
+    profile_public_packs(argv[2],true);
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-cross-window-pack") {
     indexed_cross_window_pack(false);
     indexed_cross_window_pack(true);

@@ -1,0 +1,106 @@
+{
+  "schema": 1,
+  "name": "AIT Data Compression Challenge 2026",
+  "home": "https://aitdcc.github.io/",
+  "source": "https://aitdcc.github.io/dataset.html",
+  "paper": "https://arxiv.org/abs/2606.17712",
+  "files": {
+    "A": {
+      "bytes": 1308765,
+      "sha256": "4847f6507db6987d1c31e0a692ccf40d1c8953d0c15feee8139615a6a1f7f8e7",
+      "url": "https://aitdcc.github.io/data/A"
+    },
+    "B": {
+      "bytes": 1168767,
+      "sha256": "e14f65d4ba595d0c7c84e21a43f07de7d1cac693220d7366517f2428f52051ab",
+      "url": "https://aitdcc.github.io/data/B"
+    },
+    "C": {
+      "bytes": 2000000,
+      "sha256": "e53981006244ec5066a58e24939ffdafa7eab579b1fade14a9212662a8a5a354",
+      "url": "https://aitdcc.github.io/data/C"
+    },
+    "D": {
+      "bytes": 2000000,
+      "sha256": "dbb62ea0572cac060ea94f70b4562d7f1177143ce74fdce9eb25005df0044d43",
+      "url": "https://aitdcc.github.io/data/D"
+    },
+    "E": {
+      "bytes": 1012112,
+      "sha256": "ff07707d8705721e2ef9f0dc40fadf4af073cf17e072d26c7bab4188b1080e13",
+      "url": "https://aitdcc.github.io/data/E"
+    },
+    "F": {
+      "bytes": 2097152,
+      "sha256": "a4be1fcb6fca75616924fc9989dfea9d512a2972ca0465b4eca138574d47160f",
+      "url": "https://aitdcc.github.io/data/F"
+    },
+    "G": {
+      "bytes": 2526752,
+      "sha256": "87ab967bcc7cba7192352915ecd147e9a96114923ea69bbc7fa32d7e7599ce16",
+      "url": "https://aitdcc.github.io/data/G"
+    },
+    "H": {
+      "bytes": 1022760,
+      "sha256": "7c5468b370f7c47eda07281e3437fafc568f95d10420051e3aa522709f9342c5",
+      "url": "https://aitdcc.github.io/data/H"
+    },
+    "I": {
+      "bytes": 3295751,
+      "sha256": "ce0c9f7822cb7cb7736c8e5916733f1334f4abc389c41c5f35d1daca42ac5bd2",
+      "url": "https://aitdcc.github.io/data/I"
+    },
+    "J": {
+      "bytes": 3000000,
+      "sha256": "7472a60ee841c2990407baed3b6820ce9bf94d85f00a4538227e075ec3da5d4e",
+      "url": "https://aitdcc.github.io/data/J"
+    },
+    "K": {
+      "bytes": 3000000,
+      "sha256": "8073227627c5155d077fda27a7f372a577ece100dd252cf1c0cd814abbf80732",
+      "url": "https://aitdcc.github.io/data/K"
+    },
+    "L": {
+      "bytes": 3000000,
+      "sha256": "954ede81041d50edc458dadd9b7074519e1e97d957abf2f81ab2e81ff74d7509",
+      "url": "https://aitdcc.github.io/data/L"
+    },
+    "M": {
+      "bytes": 3145728,
+      "sha256": "f0b8d9f3f3b63f795bb40538703ba07454fa597a16c9936b1d0c5b483a2867df",
+      "url": "https://aitdcc.github.io/data/M"
+    },
+    "N": {
+      "bytes": 4194304,
+      "sha256": "d787c7ca9ce500187efe980d7eeaa25f0fbca0240256b92871d2d7e999ccfa78",
+      "url": "https://aitdcc.github.io/data/N"
+    },
+    "O": {
+      "bytes": 2607090,
+      "sha256": "8a0ae94edb3bf4ee820b371e4f1d8ac8c47320e0442ef774c63a1f5874cd7524",
+      "url": "https://aitdcc.github.io/data/O"
+    },
+    "P": {
+      "bytes": 2910138,
+      "sha256": "da2ca4c742dc55216daeb68b6b7ce6d26fac0aae34f3b657c3322c14df4d0cc8",
+      "url": "https://aitdcc.github.io/data/P"
+    }
+  },
+  "splits": {
+    "all": {
+      "files": "ABCDEFGHIJKLMNOP",
+      "input_bytes": 38289319,
+      "packed_sha256": "baf1e7283ab49cc5b6c14e77e302637e4f17d84d1603af0fd9f3a62645d6ce1c"
+    },
+    "train": {
+      "files": "ABCDEFGH",
+      "input_bytes": 13136308,
+      "packed_sha256": "bb25d5ebcdcdfe0daf4ebc0d78a452d9e8937808fbb2a481d33bafa5e15b1c42"
+    },
+    "test": {
+      "files": "IJKLMNOP",
+      "input_bytes": 25153011,
+      "packed_sha256": "26204e32bf232e5a40d5cce9d4f63a87c25fcb19f6eceadbff7c76321468c159"
+    }
+  }
+}

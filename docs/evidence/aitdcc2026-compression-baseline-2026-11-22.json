@@ -1,0 +1,2735 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "captured_utc": "2026-11-22T11:48:33.640861+00:00",
+  "base_commit": "97fa689f2a54b1926cbace206510734d3d78b2a3",
+  "source_blobs": {
+    "tests/test_native_group_maintenance.cpp": "d5fd484999790cc4e828a8ecbc695a532a81f83e",
+    "tests/test_winfsp_controller.cpp": "011ca8b99ddee923482cd76afbc5a42f08d9e65e",
+    "tools/dev/stage_aitdcc2026.py": "8038908858eb89f376a4b3ac8534b2a84a4f07b6"
+  },
+  "host": {
+    "system": "Microsoft Windows 11 Pro",
+    "build": 26300,
+    "cpu": "AMD Ryzen 9 9950X",
+    "logical_processors": 32,
+    "physical_gpu": "AMD Radeon RX 9070 XT",
+    "driver": "32.0.32029.2010"
+  },
+  "source_navigation": {
+    "commit": "97fa689f2a54b1926cbace206510734d3d78b2a3",
+    "scope": "code",
+    "inventory_sha256": "57b21ab306820b019104db27cc8d05f9483fe508928b85ba24bd620ad680a866",
+    "native_response_sha256": "b0ed3476e64d4309b22d81217f66277b8db30e338a08d310f801e0c23445080e",
+    "provider_version": "0.2.43",
+    "actual_searches": 1
+  },
+  "sources": {
+    "diskspd": {
+      "url": "https://github.com/microsoft/diskspd/releases/tag/v2.3",
+      "success": true,
+      "final_http_status": 200,
+      "markdown_bytes": 10890,
+      "markdown_sha256": "eeb9b62171e288479521b4b40ed1cc6cce292b18b155e44762c8f59b64d05cb2",
+      "capture_sha256": "563d6f94dacd486c6fc8fe35511f0b7ce8943052039f5ecfa0e1adcde676f902",
+      "failure_category": "",
+      "provider_version": "0.9.5+flitzzip.portable2"
+    },
+    "silesia": {
+      "url": "https://sun.aei.polsl.pl/~sdeor/index.php?page=silesia",
+      "success": false,
+      "final_http_status": 0,
+      "markdown_bytes": 0,
+      "markdown_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "capture_sha256": "1af3b400da7098cc4a69b898bd5fd12a1d61a12a23ae8ab0a03da9adf9d79009",
+      "failure_category": "native_failure",
+      "provider_version": "0.9.5+flitzzip.portable2"
+    },
+    "cpython": {
+      "url": "https://www.python.org/downloads/release/python-3152/",
+      "success": true,
+      "final_http_status": 200,
+      "markdown_bytes": 19404,
+      "markdown_sha256": "94384fedde966165b90b0cc0a4600d911e0355a59e93dd01b28ff99487225852",
+      "capture_sha256": "d47807da75a1054f7e854307e40f7cf674f6d71bf1818d54bacd78c1523acfca",
+      "failure_category": "",
+      "provider_version": "0.9.5+flitzzip.portable2"
+    },
+    "cpython-prior": {
+      "url": "https://www.python.org/downloads/release/python-3150/",
+      "success": true,
+      "final_http_status": 200,
+      "markdown_bytes": 24835,
+      "markdown_sha256": "2ae83ebaa84c01fd31b3acbf41ddfd8099675166cf114e2b6bc7b3222f2b41f8",
+      "capture_sha256": "110081a1b56f5e4c9daae1378a41fea95b35c6d1dac25f6b5cf43e1925ab3f78",
+      "failure_category": "",
+      "provider_version": "0.9.5+flitzzip.portable2"
+    },
+    "rubikfs": {
+      "url": "https://www.usenix.org/conference/fast26/presentation/huang",
+      "success": true,
+      "final_http_status": 200,
+      "markdown_bytes": 10395,
+      "markdown_sha256": "b271b38f1feb88acd780ae11d756c7f3723fecb288cfe5e7803fed9c5d93767d",
+      "capture_sha256": "976a2de31e736cfe50f47de4967dc89dacdf7fbe452a2472002d483ef8848bc5",
+      "failure_category": "",
+      "provider_version": "0.9.5+flitzzip.portable2"
+    },
+    "corpus-mirror": {
+      "url": "https://github.com/MiloszKrajewski/SilesiaCorpus",
+      "success": true,
+      "final_http_status": 200,
+      "markdown_bytes": 13346,
+      "markdown_sha256": "96d22d97fabb05283d305596e87032adf3f1436744f9e8ceb36811cdb74a2ef4",
+      "capture_sha256": "ada2a31597176960492dbbaa1323025268d1dc0350c70ee74987604e1228f60b",
+      "failure_category": "",
+      "provider_version": "0.9.5+flitzzip.portable2"
+    },
+    "lzbench": {
+      "url": "https://github.com/inikep/lzbench",
+      "success": true,
+      "final_http_status": 200,
+      "markdown_bytes": 44025,
+      "markdown_sha256": "6e4c775ac1bee2074bf45c6118f3ad663e8400c2f5f66197196c9092cadd0e5d",
+      "capture_sha256": "06910e6226c1685dbb01f0ccbd3aec77da0bb38f0bff956b4a60734375539dc3",
+      "failure_category": "",
+      "provider_version": "0.9.5+flitzzip.portable2"
+    },
+    "zstd-benchmark": {
+      "url": "https://github.com/facebook/zstd",
+      "success": false,
+      "final_http_status": 200,
+      "markdown_bytes": 41934,
+      "markdown_sha256": "eeec382b8824fb1293b10a098395d9be064e0c2283b43630ba72ed2a10b9b37d",
+      "capture_sha256": "c73a19f19a8746833ef7e94b9f4d5d9d404d7375dabf823762ec410432d578b9",
+      "failure_category": "unexpected_content",
+      "provider_version": "0.9.5+flitzzip.portable2"
+    },
+    "mlperf": {
+      "url": "https://mlcommons.org/benchmarks/storage/",
+      "success": true,
+      "final_http_status": 200,
+      "markdown_bytes": 42723,
+      "markdown_sha256": "623f8a9495f401ada8a03460ea808124526e8127a077ea2baa3811caa62a3241",
+      "capture_sha256": "9c1019d1631a023cab1bca4f50d37524fe7eecdf4fb6fa0f8c00e488bbfd8bf8",
+      "failure_category": "",
+      "provider_version": "0.9.5+flitzzip.portable2"
+    },
+    "mlperf-results": {
+      "url": "https://mlcommons.org/2026/09/mlperf-storage-v3-0-results/",
+      "success": true,
+      "final_http_status": 200,
+      "markdown_bytes": 21931,
+      "markdown_sha256": "590a6e12466a6a65e42f76016425755c21984f1783b25ff9f06f6a324258734c",
+      "capture_sha256": "6a55af0b88d16d139628394f80db7018332152955e00449b3a411f3f0e275ba9",
+      "failure_category": "",
+      "provider_version": "0.9.5+flitzzip.portable2"
+    },
+    "mlperf-code": {
+      "url": "https://github.com/mlcommons/storage",
+      "success": true,
+      "final_http_status": 200,
+      "markdown_bytes": 62019,
+      "markdown_sha256": "4c6ba5107098fdac0f266c6611e1dc82c488919637dd045f8e25533a63f7d675",
+      "capture_sha256": "42358ac46585f70983aaf8ad8e5d971e8e0855798a2cc7e54d4290e4a2ab6e27",
+      "failure_category": "",
+      "provider_version": "0.9.5+flitzzip.portable2"
+    },
+    "ul3dmark": {
+      "url": "https://support.benchmarks.ul.com/support/solutions/articles/44002277782-storage-benchmark-tests",
+      "success": true,
+      "final_http_status": 200,
+      "markdown_bytes": 54948,
+      "markdown_sha256": "c442235257ad8d7d135db34e6daf172548471c8091c699616bd7fd58277745cd",
+      "capture_sha256": "bffd33780407df8ad8485022f6810b3acc8933fb68d9ba603beddcb1b5ec3007",
+      "failure_category": "",
+      "provider_version": "0.9.5+flitzzip.portable2"
+    },
+    "uldata": {
+      "url": "https://support.benchmarks.ul.com/support/solutions/articles/44002171475-data-drive-benchmark",
+      "success": false,
+      "final_http_status": 200,
+      "markdown_bytes": 22415,
+      "markdown_sha256": "2c9cf7079bb173fb51a6629530f10c3c194eb0f53e3f41805ff69d4d83a72dbd",
+      "capture_sha256": "6524544f427fac33b7cf52b4b1e7c2a5c2151680cfc439071a01b315e11a3816",
+      "failure_category": "unexpected_content",
+      "provider_version": "0.9.5+flitzzip.portable2"
+    },
+    "spec": {
+      "url": "https://open.spec.org/storage2020/index.html",
+      "success": true,
+      "final_http_status": 200,
+      "markdown_bytes": 12382,
+      "markdown_sha256": "d4088bb89548553e71607f3ffc4b80ff8ae8cf7972731f1ec34ecb26cc680177",
+      "capture_sha256": "9b3a1c63bd37ca39ed44a24bd4e98058cddc6ea4c97129427f3200e7d5f3a81b",
+      "failure_category": "",
+      "provider_version": "0.9.5+flitzzip.portable2"
+    },
+    "napierone": {
+      "url": "https://github.com/simonrdavies/NapierOne",
+      "success": true,
+      "final_http_status": 200,
+      "markdown_bytes": 36579,
+      "markdown_sha256": "45f5b201c8e54b9e9c9fdf40418c82db9452e3c994f95963e95658a4c243e2dd",
+      "capture_sha256": "b9ce0ec5ab3ce1100be8bace9153d0d4ac6a6e1009a69a7a55921bd8cbabdc98",
+      "failure_category": "",
+      "provider_version": "0.9.5+flitzzip.portable2"
+    },
+    "squishy": {
+      "url": "https://github.com/JackDanger/squishy-corpus",
+      "success": true,
+      "final_http_status": 200,
+      "markdown_bytes": 33037,
+      "markdown_sha256": "6a0a7ef9e4861d18a6bcc41e058e0a21d0d95b5d4139faad751cd3263e1b615e",
+      "capture_sha256": "d0fa59c4bd9aa94e614dd0ebb27e9a1237c177be79002b3b655c51a460f2936a",
+      "failure_category": "",
+      "provider_version": "0.9.5+flitzzip.portable2"
+    },
+    "zipllm": {
+      "url": "https://www.usenix.org/conference/nsdi26/presentation/wang-zirui",
+      "success": true,
+      "final_http_status": 200,
+      "markdown_bytes": 9804,
+      "markdown_sha256": "130eb91378604ebacf1d676184608e3efff8b2f5b0dc03b971bfd011678b2906",
+      "capture_sha256": "1ec14c715ea6fb0ca9979c6ea5321816b4802443a0604483a6ad3cbcdaff7a11",
+      "failure_category": "",
+      "provider_version": "0.9.5+flitzzip.portable2"
+    },
+    "ait": {
+      "url": "https://arxiv.org/abs/2606.17712",
+      "success": true,
+      "final_http_status": 200,
+      "markdown_bytes": 11402,
+      "markdown_sha256": "601833b90ef571ace533da934fb02783872dfb0b375600c10b67a0eee708ccd1",
+      "capture_sha256": "7e7d3ee2a5ce14206bc52175b6e7404c00b23029d99218623abc4e6237aba199",
+      "failure_category": "",
+      "provider_version": "0.9.5+flitzzip.portable2"
+    },
+    "petra": {
+      "url": "https://arxiv.org/abs/2608.00168",
+      "success": true,
+      "final_http_status": 200,
+      "markdown_bytes": 8716,
+      "markdown_sha256": "d86e09dcf1f0390fbdc765fe2994aea003a9e60f89214b3d586bf881077590e8",
+      "capture_sha256": "17f20918667ad78294c36c8819e62429d33b11eeedf13ca1bd8e19b6893f85a0",
+      "failure_category": "",
+      "provider_version": "0.9.5+flitzzip.portable2"
+    },
+    "ait-dataset": {
+      "url": "https://aitdcc.github.io/dataset.html",
+      "success": true,
+      "final_http_status": 200,
+      "markdown_bytes": 6271,
+      "markdown_sha256": "766801630c0c3f7c80304f41397c0ae265fd0cb79387c2837c920c08b8987676",
+      "capture_sha256": "dc9f3a591fdb4e4662c5e7370e8ce83384e23558d6631511c9c13cd312d7a72c",
+      "failure_category": "",
+      "provider_version": "0.9.5+flitzzip.portable2"
+    },
+    "ait-home": {
+      "url": "https://aitdcc.github.io/",
+      "success": true,
+      "final_http_status": 200,
+      "markdown_bytes": 18256,
+      "markdown_sha256": "3d2f30983e995cb5c35e02ded01c8ba926615cac00036108b11645235d9c3a34",
+      "capture_sha256": "b1db21629cdf23424d6e8061e05ecad0518f6589316b305eb737b827107e666d",
+      "failure_category": "",
+      "provider_version": "0.9.5+flitzzip.portable2"
+    },
+    "squishy-edition": {
+      "url": "https://github.com/JackDanger/squishy-corpus/blob/main/CITATION.cff",
+      "success": true,
+      "final_http_status": 200,
+      "markdown_bytes": 10228,
+      "markdown_sha256": "3034065782d5471881fb9b402a69538238736b29fca3aacb6b09ccfccd636e92",
+      "capture_sha256": "57bad60be85d36ed3b2098b16cc5b105b5cc0034596203d83aed41f8713e86e4",
+      "failure_category": "",
+      "provider_version": "0.9.5+flitzzip.portable2"
+    },
+    "pcmark-data": {
+      "url": "https://support.benchmarks.ul.com/support/solutions/articles/44002171475-data-drive-benchmark",
+      "success": true,
+      "final_http_status": 200,
+      "markdown_bytes": 22415,
+      "markdown_sha256": "2c9cf7079bb173fb51a6629530f10c3c194eb0f53e3f41805ff69d4d83a72dbd",
+      "capture_sha256": "4c8f142d67300d9c63eb47ada60a5f50e74b9eb669b683666dc5b0880c6fbf8d",
+      "failure_category": "",
+      "provider_version": "0.9.5+flitzzip.portable2"
+    }
+  },
+  "dataset": {
+    "catalog": "tools/dev/aitdcc2026-corpus.json",
+    "catalog_sha256": "29772bda9c0f71eb90834df708085c8057b1d5d5edf5ff02c92bc7b9c75c1bc0",
+    "attribution": "AIT Data Compression Challenge 2026 (AITDCC 2026), Ribeiro et al.",
+    "home": "https://aitdcc.github.io/",
+    "paper": "https://arxiv.org/abs/2606.17712",
+    "splits": {
+      "all": {
+        "files": "ABCDEFGHIJKLMNOP",
+        "input_bytes": 38289319,
+        "packed_sha256": "baf1e7283ab49cc5b6c14e77e302637e4f17d84d1603af0fd9f3a62645d6ce1c"
+      },
+      "train": {
+        "files": "ABCDEFGH",
+        "input_bytes": 13136308,
+        "packed_sha256": "bb25d5ebcdcdfe0daf4ebc0d78a452d9e8937808fbb2a481d33bafa5e15b1c42"
+      },
+      "test": {
+        "files": "IJKLMNOP",
+        "input_bytes": 25153011,
+        "packed_sha256": "26204e32bf232e5a40d5cce9d4f63a87c25fcb19f6eceadbff7c76321468c159"
+      }
+    }
+  },
+  "lzbench": {
+    "release": "https://github.com/inikep/lzbench/releases/tag/v2.4",
+    "archive_sha256": "a118772cc5a81b8cb630c6abafd048a796a1f5e43a3dc377d94987dc20d85315",
+    "executable_sha256": "1ae6400283c7268b4d060b06f343661c277dc2d1b6e7413164edb5981c45315b",
+    "row_order": [
+      "compressed_bytes",
+      "compression_MB_per_s",
+      "decompression_MB_per_s"
+    ],
+    "scope": "Standalone per-file codecs, using the original bytes. These are independent tests, not competition scores.",
+    "split_compressed_bytes": {
+      "lz4 1.10.0": {
+        "all": 31204855,
+        "train": 9938605,
+        "test": 21266250
+      },
+      "zstd 1.5.7 -3": {
+        "all": 25118619,
+        "train": 7695386,
+        "test": 17423233
+      },
+      "zstd 1.5.7 -12": {
+        "all": 24774479,
+        "train": 7552509,
+        "test": 17221970
+      },
+      "zstd 1.5.7 -19": {
+        "all": 24294750,
+        "train": 7351946,
+        "test": 16942804
+      },
+      "brotli 1.2.0 -9": {
+        "all": 24569734,
+        "train": 7468536,
+        "test": 17101198
+      },
+      "lzma 26.03 -6": {
+        "all": 23663675,
+        "train": 7127208,
+        "test": 16536467
+      }
+    },
+    "trials": [
+      {
+        "options": [
+          "-elz4,0/zstd,3,12,19/brotli,9",
+          "-t0,0",
+          "-i1,3",
+          "-o4"
+        ],
+        "file_order": "ABCDEFGHIJKLMNOP",
+        "result": {
+          "exit_code": 0,
+          "elapsed_seconds": 9.5,
+          "peak_job_bytes": 167096320,
+          "tree_retired": true,
+          "residual_children": 0,
+          "stdout_sha256": "aef3ee36e877a24705abdd09c86307700c1a1860f0d1d5c578bef57da60352d6"
+        },
+        "codecs": {
+          "lz4 1.10.0": [
+            [
+              1306813,
+              2765.19,
+              46909.14
+            ],
+            [
+              437158,
+              783.83,
+              6883.2
+            ],
+            [
+              969681,
+              833.02,
+              6381.62
+            ],
+            [
+              2007845,
+              12453.3,
+              26041.67
+            ],
+            [
+              1016083,
+              16350.76,
+              27881.87
+            ],
+            [
+              2105378,
+              15163.79,
+              24643.38
+            ],
+            [
+              1472078,
+              583.64,
+              4062.96
+            ],
+            [
+              623569,
+              773.3,
+              5970.58
+            ],
+            [
+              3258992,
+              2178.29,
+              26323.89
+            ],
+            [
+              1577584,
+              944.02,
+              6832.16
+            ],
+            [
+              1422260,
+              812.59,
+              6994.64
+            ],
+            [
+              3011766,
+              16094.42,
+              28846.15
+            ],
+            [
+              3158066,
+              20360.7,
+              27282.98
+            ],
+            [
+              4210754,
+              9657.62,
+              21845.33
+            ],
+            [
+              1705356,
+              571.53,
+              3806.53
+            ],
+            [
+              2921472,
+              17436.42,
+              28308.74
+            ]
+          ],
+          "zstd 1.5.7 -3": [
+            [
+              700405,
+              207.76,
+              1696.39
+            ],
+            [
+              269770,
+              340.0,
+              2198.17
+            ],
+            [
+              623873,
+              324.46,
+              2427.18
+            ],
+            [
+              2000057,
+              4385.0,
+              72202.16
+            ],
+            [
+              895889,
+              1001.6,
+              2236.71
+            ],
+            [
+              1841419,
+              1111.49,
+              2235.05
+            ],
+            [
+              905137,
+              269.95,
+              1284.96
+            ],
+            [
+              458836,
+              271.89,
+              1648.55
+            ],
+            [
+              1729736,
+              222.88,
+              1663.68
+            ],
+            [
+              1266356,
+              408.69,
+              3317.12
+            ],
+            [
+              914782,
+              325.5,
+              1717.72
+            ],
+            [
+              3000079,
+              8201.2,
+              69444.45
+            ],
+            [
+              2786438,
+              1354.57,
+              2302.88
+            ],
+            [
+              3759418,
+              950.94,
+              1980.22
+            ],
+            [
+              1056207,
+              232.35,
+              1104.28
+            ],
+            [
+              2910217,
+              5400.14,
+              80613.24
+            ]
+          ],
+          "zstd 1.5.7 -12": [
+            [
+              712163,
+              24.08,
+              1110.72
+            ],
+            [
+              230650,
+              43.93,
+              3084.63
+            ],
+            [
+              561713,
+              57.04,
+              2415.46
+            ],
+            [
+              2000057,
+              549.22,
+              68027.21
+            ],
+            [
+              895463,
+              426.08,
+              2188.35
+            ],
+            [
+              1840928,
+              347.43,
+              2206.37
+            ],
+            [
+              874433,
+              20.86,
+              1396.54
+            ],
+            [
+              437102,
+              44.88,
+              1520.15
+            ],
+            [
+              1742620,
+              26.81,
+              1466.8
+            ],
+            [
+              1201922,
+              52.36,
+              2561.69
+            ],
+            [
+              807417,
+              35.79,
+              1750.29
+            ],
+            [
+              3000078,
+              548.9,
+              69605.57
+            ],
+            [
+              2783251,
+              428.95,
+              2386.02
+            ],
+            [
+              3759912,
+              342.6,
+              1973.6
+            ],
+            [
+              1016554,
+              23.85,
+              1446.05
+            ],
+            [
+              2910216,
+              443.38,
+              70123.8
+            ]
+          ],
+          "zstd 1.5.7 -19": [
+            [
+              677606,
+              3.7,
+              2080.38
+            ],
+            [
+              211036,
+              4.75,
+              1847.85
+            ],
+            [
+              533189,
+              5.1,
+              2187.47
+            ],
+            [
+              2000057,
+              11.65,
+              63897.76
+            ],
+            [
+              895888,
+              12.92,
+              2068.49
+            ],
+            [
+              1841896,
+              10.44,
+              2060.68
+            ],
+            [
+              798624,
+              3.98,
+              1663.43
+            ],
+            [
+              393650,
+              5.96,
+              969.26
+            ],
+            [
+              1629444,
+              2.22,
+              1691.69
+            ],
+            [
+              1159817,
+              6.04,
+              3217.16
+            ],
+            [
+              763606,
+              4.65,
+              1484.27
+            ],
+            [
+              3000078,
+              12.01,
+              70257.61
+            ],
+            [
+              2784634,
+              12.19,
+              2223.76
+            ],
+            [
+              3759313,
+              8.07,
+              1736.05
+            ],
+            [
+              942236,
+              5.84,
+              1771.24
+            ],
+            [
+              2903676,
+              18.42,
+              53299.23
+            ]
+          ],
+          "brotli 1.2.0 -9": [
+            [
+              713689,
+              12.5,
+              313.81
+            ],
+            [
+              224677,
+              27.66,
+              767.86
+            ],
+            [
+              540312,
+              23.07,
+              495.02
+            ],
+            [
+              2000008,
+              105.07,
+              5133.47
+            ],
+            [
+              895490,
+              28.76,
+              247.7
+            ],
+            [
+              1840165,
+              57.88,
+              318.16
+            ],
+            [
+              845836,
+              13.44,
+              547.12
+            ],
+            [
+              408359,
+              17.33,
+              339.46
+            ],
+            [
+              1728920,
+              9.36,
+              291.18
+            ],
+            [
+              1184025,
+              27.54,
+              715.02
+            ],
+            [
+              783058,
+              21.74,
+              561.41
+            ],
+            [
+              3000009,
+              139.5,
+              4118.05
+            ],
+            [
+              2783451,
+              18.66,
+              248.74
+            ],
+            [
+              3729585,
+              40.12,
+              301.87
+            ],
+            [
+              982000,
+              17.91,
+              488.81
+            ],
+            [
+              2910150,
+              119.89,
+              3776.46
+            ]
+          ]
+        }
+      },
+      {
+        "options": [
+          "-ebrotli,9/zstd,19,12,3/lz4,0",
+          "-t0,0",
+          "-i1,3",
+          "-o4"
+        ],
+        "file_order": "PONMLKJIHGFEDCBA",
+        "result": {
+          "exit_code": 0,
+          "elapsed_seconds": 8.061999999999898,
+          "peak_job_bytes": 167141376,
+          "tree_retired": true,
+          "residual_children": 0,
+          "stdout_sha256": "b89431b8a7bca9dc965e56d6238d0aabd865c429e0a7d61902754ed276e07b3d"
+        },
+        "codecs": {
+          "brotli 1.2.0 -9": [
+            [
+              2910150,
+              109.96,
+              4058.77
+            ],
+            [
+              982000,
+              19.41,
+              492.48
+            ],
+            [
+              3729585,
+              50.19,
+              318.96
+            ],
+            [
+              2783451,
+              23.5,
+              252.2
+            ],
+            [
+              3000009,
+              94.51,
+              3821.17
+            ],
+            [
+              783058,
+              28.79,
+              637.67
+            ],
+            [
+              1184025,
+              25.45,
+              655.67
+            ],
+            [
+              1728920,
+              10.87,
+              387.52
+            ],
+            [
+              408359,
+              16.12,
+              355.27
+            ],
+            [
+              845836,
+              12.55,
+              586.23
+            ],
+            [
+              1840165,
+              60.08,
+              314.93
+            ],
+            [
+              895490,
+              29.38,
+              241.58
+            ],
+            [
+              2000008,
+              105.26,
+              5566.38
+            ],
+            [
+              540312,
+              23.06,
+              472.31
+            ],
+            [
+              224677,
+              31.87,
+              617.74
+            ],
+            [
+              713689,
+              14.32,
+              344.42
+            ]
+          ],
+          "zstd 1.5.7 -19": [
+            [
+              2903676,
+              17.73,
+              49492.14
+            ],
+            [
+              942236,
+              6.87,
+              1759.65
+            ],
+            [
+              3759313,
+              10.7,
+              2013.97
+            ],
+            [
+              2784634,
+              13.07,
+              2119.62
+            ],
+            [
+              3000078,
+              21.16,
+              35629.45
+            ],
+            [
+              763606,
+              6.12,
+              1483.83
+            ],
+            [
+              1159817,
+              7.16,
+              3032.75
+            ],
+            [
+              1629444,
+              3.53,
+              1718.06
+            ],
+            [
+              393650,
+              5.6,
+              1060.51
+            ],
+            [
+              798624,
+              3.47,
+              2141.68
+            ],
+            [
+              1841896,
+              9.45,
+              2144.33
+            ],
+            [
+              895888,
+              16.27,
+              2025.84
+            ],
+            [
+              2000057,
+              10.81,
+              56497.18
+            ],
+            [
+              533189,
+              6.74,
+              2168.73
+            ],
+            [
+              211036,
+              6.71,
+              2806.16
+            ],
+            [
+              677606,
+              3.87,
+              2508.65
+            ]
+          ],
+          "zstd 1.5.7 -12": [
+            [
+              2910216,
+              389.82,
+              56288.94
+            ],
+            [
+              1016554,
+              32.87,
+              1365.33
+            ],
+            [
+              3759912,
+              473.81,
+              2388.42
+            ],
+            [
+              2783251,
+              373.05,
+              2367.7
+            ],
+            [
+              3000078,
+              457.63,
+              67873.3
+            ],
+            [
+              807417,
+              34.25,
+              1814.44
+            ],
+            [
+              1201922,
+              71.71,
+              3588.95
+            ],
+            [
+              1742620,
+              29.22,
+              1424.2
+            ],
+            [
+              437102,
+              45.97,
+              1805.08
+            ],
+            [
+              874433,
+              22.37,
+              1399.47
+            ],
+            [
+              1840928,
+              375.38,
+              2148.28
+            ],
+            [
+              895463,
+              458.78,
+              2179.87
+            ],
+            [
+              2000057,
+              563.48,
+              57803.47
+            ],
+            [
+              561713,
+              59.14,
+              2430.72
+            ],
+            [
+              230650,
+              59.02,
+              3080.57
+            ],
+            [
+              712163,
+              50.6,
+              1240.42
+            ]
+          ],
+          "zstd 1.5.7 -3": [
+            [
+              2910217,
+              4595.2,
+              75003.55
+            ],
+            [
+              1056207,
+              254.78,
+              1543.57
+            ],
+            [
+              3759418,
+              1010.14,
+              2370.33
+            ],
+            [
+              2786438,
+              1321.46,
+              2263.44
+            ],
+            [
+              3000079,
+              3757.04,
+              74626.87
+            ],
+            [
+              914782,
+              320.24,
+              2055.64
+            ],
+            [
+              1266356,
+              471.37,
+              3445.9
+            ],
+            [
+              1729736,
+              252.56,
+              1623.68
+            ],
+            [
+              458836,
+              322.5,
+              1885.97
+            ],
+            [
+              905137,
+              258.49,
+              1678.57
+            ],
+            [
+              1841419,
+              1109.08,
+              2283.48
+            ],
+            [
+              895889,
+              986.85,
+              2167.26
+            ],
+            [
+              2000057,
+              6275.49,
+              77821.01
+            ],
+            [
+              623873,
+              408.88,
+              2173.91
+            ],
+            [
+              269770,
+              441.81,
+              2853.44
+            ],
+            [
+              700405,
+              220.05,
+              2217.87
+            ]
+          ],
+          "lz4 1.10.0": [
+            [
+              2921472,
+              21398.07,
+              28756.3
+            ],
+            [
+              1705356,
+              640.66,
+              5095.95
+            ],
+            [
+              4210754,
+              24036.13,
+              29026.33
+            ],
+            [
+              3158066,
+              22928.05,
+              26681.32
+            ],
+            [
+              3011766,
+              23237.8,
+              29041.63
+            ],
+            [
+              1422260,
+              861.35,
+              6132.46
+            ],
+            [
+              1577584,
+              1155.18,
+              7953.34
+            ],
+            [
+              3258992,
+              2270.27,
+              26664.65
+            ],
+            [
+              623569,
+              888.66,
+              6485.48
+            ],
+            [
+              1472078,
+              623.58,
+              4495.2
+            ],
+            [
+              2105378,
+              18299.76,
+              25085.55
+            ],
+            [
+              1016083,
+              16924.95,
+              28671.73
+            ],
+            [
+              2007845,
+              21834.06,
+              28169.01
+            ],
+            [
+              969681,
+              1003.81,
+              7114.91
+            ],
+            [
+              437158,
+              863.13,
+              6705.49
+            ],
+            [
+              1306813,
+              4246.48,
+              56902.82
+            ]
+          ]
+        }
+      },
+      {
+        "options": [
+          "-ezstd,12,3/lz4,0/brotli,9/zstd,19",
+          "-t0,0",
+          "-i1,3",
+          "-o4"
+        ],
+        "file_order": "ABCDEFGHIJKLMNOP",
+        "result": {
+          "exit_code": 0,
+          "elapsed_seconds": 10.484999999998763,
+          "peak_job_bytes": 167100416,
+          "tree_retired": true,
+          "residual_children": 0,
+          "stdout_sha256": "778a9109a5a7962341070a0c46584c4c2778c561131f59e56e97cda530fe2010"
+        },
+        "codecs": {
+          "zstd 1.5.7 -12": [
+            [
+              712163,
+              66.49,
+              1828.14
+            ],
+            [
+              230650,
+              43.27,
+              2540.25
+            ],
+            [
+              561713,
+              40.47,
+              1673.5
+            ],
+            [
+              2000057,
+              565.53,
+              65146.58
+            ],
+            [
+              895463,
+              432.49,
+              2136.61
+            ],
+            [
+              1840928,
+              568.29,
+              2398.39
+            ],
+            [
+              874433,
+              22.14,
+              1310.15
+            ],
+            [
+              437102,
+              44.67,
+              1985.56
+            ],
+            [
+              1742620,
+              26.95,
+              1076.06
+            ],
+            [
+              1201922,
+              44.78,
+              2692.76
+            ],
+            [
+              807417,
+              31.76,
+              1678.7
+            ],
+            [
+              3000078,
+              285.3,
+              56285.18
+            ],
+            [
+              2783251,
+              303.17,
+              2133.28
+            ],
+            [
+              3759912,
+              316.48,
+              1964.64
+            ],
+            [
+              1016554,
+              20.05,
+              1162.89
+            ],
+            [
+              2910216,
+              319.14,
+              58672.14
+            ]
+          ],
+          "zstd 1.5.7 -3": [
+            [
+              700405,
+              337.59,
+              2168.98
+            ],
+            [
+              269770,
+              398.79,
+              2832.69
+            ],
+            [
+              623873,
+              314.1,
+              1695.2
+            ],
+            [
+              2000057,
+              6978.37,
+              80000.0
+            ],
+            [
+              895889,
+              1341.61,
+              2448.26
+            ],
+            [
+              1841419,
+              1571.72,
+              2403.61
+            ],
+            [
+              905137,
+              269.65,
+              1925.44
+            ],
+            [
+              458836,
+              242.68,
+              1799.68
+            ],
+            [
+              1729736,
+              232.63,
+              1741.2
+            ],
+            [
+              1266356,
+              434.03,
+              2561.26
+            ],
+            [
+              914782,
+              330.24,
+              1725.43
+            ],
+            [
+              3000079,
+              3077.55,
+              41379.31
+            ],
+            [
+              2786438,
+              701.14,
+              2048.8
+            ],
+            [
+              3759418,
+              811.18,
+              1891.54
+            ],
+            [
+              1056207,
+              225.76,
+              1065.6
+            ],
+            [
+              2910217,
+              2064.07,
+              38544.88
+            ]
+          ],
+          "lz4 1.10.0": [
+            [
+              1306813,
+              4058.19,
+              57909.96
+            ],
+            [
+              437158,
+              878.31,
+              6418.27
+            ],
+            [
+              969681,
+              789.61,
+              5947.07
+            ],
+            [
+              2007845,
+              17590.15,
+              27173.91
+            ],
+            [
+              1016083,
+              19806.5,
+              29251.79
+            ],
+            [
+              2105378,
+              21334.2,
+              24643.38
+            ],
+            [
+              1472078,
+              560.43,
+              4095.22
+            ],
+            [
+              623569,
+              791.36,
+              6878.01
+            ],
+            [
+              3258992,
+              2205.55,
+              27327.95
+            ],
+            [
+              1577584,
+              1001.4,
+              7009.35
+            ],
+            [
+              1422260,
+              825.17,
+              6108.74
+            ],
+            [
+              3011766,
+              16330.97,
+              22607.38
+            ],
+            [
+              3158066,
+              18131.0,
+              28187.53
+            ],
+            [
+              4210754,
+              11187.79,
+              23750.31
+            ],
+            [
+              1705356,
+              552.27,
+              4180.04
+            ],
+            [
+              2921472,
+              19769.96,
+              26821.55
+            ]
+          ],
+          "brotli 1.2.0 -9": [
+            [
+              713689,
+              14.21,
+              352.32
+            ],
+            [
+              224677,
+              28.46,
+              668.78
+            ],
+            [
+              540312,
+              22.79,
+              494.21
+            ],
+            [
+              2000008,
+              95.46,
+              5107.25
+            ],
+            [
+              895490,
+              26.02,
+              242.68
+            ],
+            [
+              1840165,
+              70.12,
+              340.86
+            ],
+            [
+              845836,
+              12.59,
+              544.59
+            ],
+            [
+              408359,
+              16.01,
+              348.77
+            ],
+            [
+              1728920,
+              9.94,
+              342.6
+            ],
+            [
+              1184025,
+              23.17,
+              703.47
+            ],
+            [
+              783058,
+              19.46,
+              500.27
+            ],
+            [
+              3000009,
+              101.62,
+              3492.43
+            ],
+            [
+              2783451,
+              12.93,
+              234.62
+            ],
+            [
+              3729585,
+              36.71,
+              284.11
+            ],
+            [
+              982000,
+              11.06,
+              366.69
+            ],
+            [
+              2910150,
+              88.2,
+              3171.12
+            ]
+          ],
+          "zstd 1.5.7 -19": [
+            [
+              677606,
+              4.03,
+              2457.31
+            ],
+            [
+              211036,
+              4.98,
+              2519.44
+            ],
+            [
+              533189,
+              5.17,
+              1860.12
+            ],
+            [
+              2000057,
+              11.53,
+              67340.07
+            ],
+            [
+              895888,
+              14.67,
+              2282.1
+            ],
+            [
+              1841896,
+              13.39,
+              2045.2
+            ],
+            [
+              798624,
+              3.53,
+              1400.25
+            ],
+            [
+              393650,
+              6.01,
+              1298.25
+            ],
+            [
+              1629444,
+              2.69,
+              1920.94
+            ],
+            [
+              1159817,
+              5.49,
+              2548.42
+            ],
+            [
+              763606,
+              4.47,
+              1328.14
+            ],
+            [
+              3000078,
+              10.21,
+              27932.96
+            ],
+            [
+              2784634,
+              6.04,
+              1706.3
+            ],
+            [
+              3759313,
+              5.82,
+              1611.89
+            ],
+            [
+              942236,
+              4.06,
+              1097.95
+            ],
+            [
+              2903676,
+              7.66,
+              23468.86
+            ]
+          ]
+        }
+      },
+      {
+        "options": [
+          "-elzma,6/lzma2,6",
+          "-t0,0",
+          "-i1,3",
+          "-o4"
+        ],
+        "file_order": "ABCDEFGHIJKLMNOP",
+        "result": {
+          "exit_code": 0,
+          "elapsed_seconds": 6.968999999999141,
+          "peak_job_bytes": 714821632,
+          "tree_retired": true,
+          "residual_children": 0,
+          "stdout_sha256": "9d859e4c4018198341799b3ceab692850eb4443f8ee5a50f8601767ab276fc3c"
+        },
+        "codecs": {
+          "lzma 26.03 -6": [
+            [
+              703538,
+              7.69,
+              63.22
+            ],
+            [
+              209619,
+              8.64,
+              179.14
+            ],
+            [
+              496789,
+              7.41,
+              131.49
+            ],
+            [
+              2000128,
+              12.12,
+              3985.65
+            ],
+            [
+              867388,
+              14.67,
+              34.73
+            ],
+            [
+              1734636,
+              11.12,
+              35.32
+            ],
+            [
+              748171,
+              4.71,
+              134.19
+            ],
+            [
+              366939,
+              9.21,
+              87.35
+            ],
+            [
+              1663980,
+              4.62,
+              77.25
+            ],
+            [
+              1159340,
+              9.02,
+              79.7
+            ],
+            [
+              718954,
+              7.46,
+              135.21
+            ],
+            [
+              3000188,
+              7.9,
+              4033.88
+            ],
+            [
+              2690289,
+              7.38,
+              35.2
+            ],
+            [
+              3557301,
+              6.54,
+              36.01
+            ],
+            [
+              841699,
+              6.67,
+              93.73
+            ],
+            [
+              2904716,
+              7.03,
+              266.81
+            ]
+          ]
+        }
+      },
+      {
+        "options": [
+          "-elzma,6",
+          "-t0,0",
+          "-i1,3",
+          "-o4"
+        ],
+        "file_order": "PONMLKJIHGFEDCBA",
+        "result": {
+          "exit_code": 0,
+          "elapsed_seconds": 6.313000000000102,
+          "peak_job_bytes": 714850304,
+          "tree_retired": true,
+          "residual_children": 0,
+          "stdout_sha256": "ec95472331cc456eaa7420fa167173fdaa908e603a6c8a3e6f482f53e4248970"
+        },
+        "codecs": {
+          "lzma 26.03 -6": [
+            [
+              2904716,
+              8.83,
+              272.84
+            ],
+            [
+              841699,
+              6.9,
+              93.84
+            ],
+            [
+              3557301,
+              8.36,
+              36.53
+            ],
+            [
+              2690289,
+              10.09,
+              35.78
+            ],
+            [
+              3000188,
+              10.77,
+              4020.37
+            ],
+            [
+              718954,
+              7.75,
+              138.76
+            ],
+            [
+              1159340,
+              9.76,
+              79.38
+            ],
+            [
+              1663980,
+              4.37,
+              70.15
+            ],
+            [
+              366939,
+              9.61,
+              87.18
+            ],
+            [
+              748171,
+              5.31,
+              130.88
+            ],
+            [
+              1734636,
+              12.33,
+              36.02
+            ],
+            [
+              867388,
+              16.17,
+              34.8
+            ],
+            [
+              2000128,
+              15.12,
+              3944.0
+            ],
+            [
+              496789,
+              8.93,
+              131.7
+            ],
+            [
+              209619,
+              9.28,
+              183.77
+            ],
+            [
+              703538,
+              8.79,
+              64.26
+            ]
+          ]
+        }
+      },
+      {
+        "options": [
+          "-elzma,6",
+          "-t0,0",
+          "-i1,3",
+          "-o4"
+        ],
+        "file_order": "ABCDEFGHIJKLMNOP",
+        "result": {
+          "exit_code": 0,
+          "elapsed_seconds": 6.188000000000102,
+          "peak_job_bytes": 714813440,
+          "tree_retired": true,
+          "residual_children": 0,
+          "stdout_sha256": "1f4ab4a61916363b3f15874d84d44cfa010c5632f7621363e64663b4df7d9712"
+        },
+        "codecs": {
+          "lzma 26.03 -6": [
+            [
+              703538,
+              8.57,
+              64.47
+            ],
+            [
+              209619,
+              8.9,
+              179.6
+            ],
+            [
+              496789,
+              8.24,
+              132.73
+            ],
+            [
+              2000128,
+              14.73,
+              3650.3
+            ],
+            [
+              867388,
+              14.79,
+              34.8
+            ],
+            [
+              1734636,
+              11.25,
+              35.51
+            ],
+            [
+              748171,
+              5.15,
+              133.67
+            ],
+            [
+              366939,
+              9.49,
+              88.74
+            ],
+            [
+              1663980,
+              5.25,
+              76.45
+            ],
+            [
+              1159340,
+              8.97,
+              78.53
+            ],
+            [
+              718954,
+              7.68,
+              135.79
+            ],
+            [
+              3000188,
+              12.37,
+              3992.55
+            ],
+            [
+              2690289,
+              9.68,
+              35.67
+            ],
+            [
+              3557301,
+              7.66,
+              36.41
+            ],
+            [
+              841699,
+              7.03,
+              95.79
+            ],
+            [
+              2904716,
+              12.0,
+              275.05
+            ]
+          ]
+        }
+      }
+    ],
+    "unsupported_codec_probe": {
+      "selection": "lzma2,6",
+      "reports": 16,
+      "note": "The distribution printed NOT FOUND per file despite returning zero. Those lines have no CSV sizes and were excluded."
+    }
+  },
+  "flitzfs_collective": {
+    "mode": "Native indexed and mirrored, ingest Zstandard level 3, CPU collective controller with modeled idle opportunities",
+    "image_workload_scope": "Ordinary indexed writes, pre- and post-maintenance compacted copies, independent CPU byte verification. Selector accounted separately.",
+    "results": {
+      "all": {
+        "files": 16,
+        "before_compacted": 51486720,
+        "after_compacted": 51486720,
+        "input_bytes": 38289319,
+        "selector_bytes": 131072,
+        "ingested_image_bytes": 53215232,
+        "maintained_image_bytes": 53215232,
+        "before_range_read_bytes": 1343590,
+        "after_range_read_bytes": 1343590,
+        "maintenance_read_bytes": 66560270,
+        "maintenance_write_bytes": 0,
+        "work_ns": 151079800,
+        "packed_groups": 0,
+        "attempts": 6,
+        "members": 0,
+        "cpu_exact": 1,
+        "retained_snapshot_exact": 1,
+        "idle_io": 0,
+        "settled_image_plus_selector_bytes": 51617792,
+        "result": {
+          "exit_code": 0,
+          "elapsed_seconds": 1.6710000000002765,
+          "peak_job_bytes": 295321600,
+          "tree_retired": true,
+          "residual_children": 0,
+          "stdout_sha256": "7a682d123bac4d528d7780ff9e8410321b7ed87f584f58496e8f3837180847f2"
+        }
+      },
+      "test": {
+        "files": 8,
+        "before_compacted": 35635200,
+        "after_compacted": 35635200,
+        "input_bytes": 25153011,
+        "selector_bytes": 131072,
+        "ingested_image_bytes": 36667392,
+        "maintained_image_bytes": 36667392,
+        "before_range_read_bytes": 669843,
+        "after_range_read_bytes": 669843,
+        "maintenance_read_bytes": 43895805,
+        "maintenance_write_bytes": 0,
+        "work_ns": 102191000,
+        "packed_groups": 0,
+        "attempts": 1,
+        "members": 0,
+        "cpu_exact": 1,
+        "retained_snapshot_exact": 1,
+        "idle_io": 0,
+        "settled_image_plus_selector_bytes": 35766272,
+        "result": {
+          "exit_code": 0,
+          "elapsed_seconds": 1.0630000000001019,
+          "peak_job_bytes": 191705088,
+          "tree_retired": true,
+          "residual_children": 0,
+          "stdout_sha256": "3b9713b784c8c5cffef142416e270b56d5cb1e84dfa336b029179ef55acaf067"
+        }
+      },
+      "train": {
+        "files": 8,
+        "before_compacted": 15998976,
+        "after_compacted": 15998976,
+        "input_bytes": 13136308,
+        "selector_bytes": 131072,
+        "ingested_image_bytes": 16621568,
+        "maintained_image_bytes": 16621568,
+        "before_range_read_bytes": 574204,
+        "after_range_read_bytes": 574204,
+        "maintenance_read_bytes": 21889084,
+        "maintenance_write_bytes": 0,
+        "work_ns": 69031900,
+        "packed_groups": 0,
+        "attempts": 4,
+        "members": 0,
+        "cpu_exact": 1,
+        "retained_snapshot_exact": 1,
+        "idle_io": 0,
+        "settled_image_plus_selector_bytes": 16130048,
+        "result": {
+          "exit_code": 0,
+          "elapsed_seconds": 0.625,
+          "peak_job_bytes": 94629888,
+          "tree_retired": true,
+          "residual_children": 0,
+          "stdout_sha256": "f96b07459fa26964d550895c1aacf5b3d3c3b62cc9f6e965dc90a51bc413dd67"
+        }
+      }
+    },
+    "executable_sha256": "255167ce3ddc47588e6ebba7404dbf7501a399500ddecf223e8d20eb17d39e43"
+  },
+  "cpython_revisions": {
+    "selection": "First twelve changed paths in ordinal name order in Python, Objects, Modules or Lib, with both versions sized 64–192 KiB inclusive and extensions .c .h .py .txt. File order is by version then path. All bytes are unmodified.",
+    "fixture_sha256": "1e4415e2c80bd97dd16978c2d68f4c403489cf5ca38916bdbf574a174763aead",
+    "fixture_bytes": 2230950,
+    "archive_sha256": [
+      "ba4bed1ba346b916890b76d9e320451420aa69f6408997d33c66482eeae3d575",
+      "8b5536d280142ecf6cdfe15d12a21ba1c65e300bbf7b28a8d0cdb849575797de"
+    ],
+    "files": [
+      {
+        "version": "3.15.0",
+        "path": "Lib/_pydatetime.py",
+        "bytes": 97356,
+        "sha256": "3a55fdc98158cf969b2a1ba827576eb6a9d7e588c8a0401b3e7e4fbe0ff649c1"
+      },
+      {
+        "version": "3.15.0",
+        "path": "Lib/_pyio.py",
+        "bytes": 96779,
+        "sha256": "873278d6bd9b499ec904dd9416b381036bb1fcf6310361c006d31d6ba0a5ffe3"
+      },
+      {
+        "version": "3.15.0",
+        "path": "Lib/asyncio/base_events.py",
+        "bytes": 81870,
+        "sha256": "4957c8c949facde6efbff64232f7368eb0a21ba87c4c65810363315d94a654d0"
+      },
+      {
+        "version": "3.15.0",
+        "path": "Lib/dataclasses.py",
+        "bytes": 71471,
+        "sha256": "ed22f6fedb3d59202d5c5507c76098ab735b232184c9f9e8e20963b3e9237c66"
+      },
+      {
+        "version": "3.15.0",
+        "path": "Lib/doctest.py",
+        "bytes": 112885,
+        "sha256": "bcc2e6951bb8663b03c8bed93d8aa6eab498cbfe6a3f653eed3e09af431d4f52"
+      },
+      {
+        "version": "3.15.0",
+        "path": "Lib/email/_header_value_parser.py",
+        "bytes": 115424,
+        "sha256": "fdc6ddfae5a84de05a4afefeb368449d4124d01df875b2d1f19d3dcff3a03ce9"
+      },
+      {
+        "version": "3.15.0",
+        "path": "Lib/http/cookiejar.py",
+        "bytes": 77643,
+        "sha256": "664e94c950c364d3bd0d69d276be6230e67060619f8f0d62d9178aedcda6a44c"
+      },
+      {
+        "version": "3.15.0",
+        "path": "Lib/idlelib/configdialog.py",
+        "bytes": 106757,
+        "sha256": "d645cbb77c175f0832059e5f02e759d98579b500f07b02db3c1ea541e9358dbc"
+      },
+      {
+        "version": "3.15.0",
+        "path": "Lib/idlelib/editor.py",
+        "bytes": 67609,
+        "sha256": "a9c612cd60cba3e7e3c5789a8b8e0723b9c7288e9cab21277004c80b1c8ad2eb"
+      },
+      {
+        "version": "3.15.0",
+        "path": "Lib/imaplib.py",
+        "bytes": 72600,
+        "sha256": "0ef388f9ddf68802c470729a88f8191b7ecffdcb95831f0caf043f06789b6a92"
+      },
+      {
+        "version": "3.15.0",
+        "path": "Lib/inspect.py",
+        "bytes": 131399,
+        "sha256": "a6cb064cd3231c73c97a1728e085d81a5e93ed6c01da4308924ef726342cf86a"
+      },
+      {
+        "version": "3.15.0",
+        "path": "Lib/ipaddress.py",
+        "bytes": 81507,
+        "sha256": "8e3cbda946c87a10e0c7454613b8dcfdc29b320eac8b92e1b5067ece60285e9b"
+      },
+      {
+        "version": "3.15.2",
+        "path": "Lib/_pydatetime.py",
+        "bytes": 97835,
+        "sha256": "657fa302b8d219a9ec3fe8997cfe1195b6eaa35e9cabbf402c2aa87f07e0ecec"
+      },
+      {
+        "version": "3.15.2",
+        "path": "Lib/_pyio.py",
+        "bytes": 96790,
+        "sha256": "553b58f16a118b56602804877a0216cd48b5e8b2876ca6adc348a7773e186364"
+      },
+      {
+        "version": "3.15.2",
+        "path": "Lib/asyncio/base_events.py",
+        "bytes": 81922,
+        "sha256": "fabef0e5045a38862ccd271218f5d998f63b798cb1a07e8499684808ff76a89b"
+      },
+      {
+        "version": "3.15.2",
+        "path": "Lib/dataclasses.py",
+        "bytes": 71617,
+        "sha256": "85284c01e378472f3f431bb699c73cf1ccaaff10d122d72c3bd1b75b548dd813"
+      },
+      {
+        "version": "3.15.2",
+        "path": "Lib/doctest.py",
+        "bytes": 112918,
+        "sha256": "822e293ae054f1bfc3daaa4ccbe45d523314a26845a10d1be5c6c393b04621cb"
+      },
+      {
+        "version": "3.15.2",
+        "path": "Lib/email/_header_value_parser.py",
+        "bytes": 115787,
+        "sha256": "e95340a5344f50d2c21c7bdeb1335a0a0649ba45273fa82f696c0e10b8449751"
+      },
+      {
+        "version": "3.15.2",
+        "path": "Lib/http/cookiejar.py",
+        "bytes": 78303,
+        "sha256": "fd45df08b50b098cee0e6a67d326caa815fd48452dcc8478585196981387dbc0"
+      },
+      {
+        "version": "3.15.2",
+        "path": "Lib/idlelib/configdialog.py",
+        "bytes": 106918,
+        "sha256": "f17dd2391d85ddc4e655f44ae098f1803f9e36df24780180a395bb3a11599e82"
+      },
+      {
+        "version": "3.15.2",
+        "path": "Lib/idlelib/editor.py",
+        "bytes": 69040,
+        "sha256": "98e3ce925ec6ca25c97548a7bef5be8c357c4e3a4bc9330f1f442c4695a0762d"
+      },
+      {
+        "version": "3.15.2",
+        "path": "Lib/imaplib.py",
+        "bytes": 72863,
+        "sha256": "ebb09bab21dbabf7414aca19d8334aea67fa1c21b1cefa83149ad3ae14957570"
+      },
+      {
+        "version": "3.15.2",
+        "path": "Lib/inspect.py",
+        "bytes": 131854,
+        "sha256": "c658688867700378d174d2e01c6bfa7419dcbc44f185190c1b37faf037054647"
+      },
+      {
+        "version": "3.15.2",
+        "path": "Lib/ipaddress.py",
+        "bytes": 81703,
+        "sha256": "66bccdc23e14565cab738aadc3a1b16e8657668229aacb89dcc3e32172e0b3d9"
+      }
+    ],
+    "releases": [
+      "https://www.python.org/downloads/release/python-3150/",
+      "https://www.python.org/downloads/release/python-3152/"
+    ],
+    "trials": [
+      {
+        "mode": "cpu",
+        "cohort": "revision-corpus",
+        "sparse_device": 0,
+        "reply_bytes": 0,
+        "copy_suggested_ranges": 0,
+        "copy_compared_ranges": 0,
+        "copy_suggested_bytes": 0,
+        "copy_compared_bytes": 0,
+        "files": 24,
+        "groups": 21,
+        "advised_members": 0,
+        "capability": 9,
+        "submitted": 0,
+        "verified_batches": 0,
+        "worker_ns": 0,
+        "submitted_groups": 0,
+        "verified_groups": 0,
+        "cpu_groups_before_gpu_reply": 0,
+        "fully_submitted_batches": 0,
+        "foreground_cancelled": 0,
+        "submitted_queued_batches": 0,
+        "verified_queued_batches": 0,
+        "dispatches_per_wait": 0,
+        "queued_worker_wall_ns": 0,
+        "queued_kernel_wait_ns": 0,
+        "submitted_kernel_launches": 0,
+        "largest_dispatch_members": 0,
+        "empty_batches": 0,
+        "discovery_ns": 0,
+        "maintenance_ns": 67854700,
+        "compact_verify_ns": 46409100,
+        "input_compacted_bytes": 1302528,
+        "grouped_compacted_bytes": 770048,
+        "packed_widths": 0,
+        "packed_payload_bytes": 0,
+        "sampled_bias_members": 0,
+        "sparse_bodies": 0,
+        "delta_bodies": 0,
+        "reference_batches": 0,
+        "reselected_groups": 0,
+        "cpu_reference_pairs": 0,
+        "published_references_changed": 0,
+        "section_reference_groups": 0,
+        "packed_reference_groups": 1,
+        "prefixed_zstd_members": 0,
+        "retired": true,
+        "independent_cpu_readback": true,
+        "modeled_idle_time": true,
+        "input_blake3": "617ff40912e105b39b7742d8c208609684d9d68e2dba64327366aafe65aa9518",
+        "reads": {
+          "zstd": 10507,
+          "full_logical": 2230850,
+          "full_input_backing": 1171629,
+          "full_grouped_backing": 1282297,
+          "sampled_logical": 294912,
+          "sampled_input_backing": 2842181,
+          "sampled_grouped_backing": 2991417
+        },
+        "session_reads": {
+          "full_logical": 2230850,
+          "full_input_backing": 1180317,
+          "full_grouped_backing": 925585,
+          "sampled_logical": 294912,
+          "sampled_input_backing": 2868245,
+          "sampled_grouped_backing": 1906751
+        },
+        "result": {
+          "exit_code": 0,
+          "elapsed_seconds": 0.25,
+          "peak_job_bytes": 20975616,
+          "tree_retired": true,
+          "residual_children": 0,
+          "stdout_sha256": "177d8619903e9e1a1e9d6ad48fff9341a6c4e25848b7afb281b4eac747ce4334"
+        }
+      },
+      {
+        "mode": "amd",
+        "cohort": "revision-corpus",
+        "sparse_device": 0,
+        "reply_bytes": 411364,
+        "copy_suggested_ranges": 102283,
+        "copy_compared_ranges": 47639,
+        "copy_suggested_bytes": 6153494,
+        "copy_compared_bytes": 3533498,
+        "files": 24,
+        "groups": 22,
+        "advised_members": 15,
+        "capability": 9,
+        "submitted": 1,
+        "verified_batches": 1,
+        "worker_ns": 2271996900,
+        "submitted_groups": 25,
+        "verified_groups": 25,
+        "cpu_groups_before_gpu_reply": 0,
+        "fully_submitted_batches": 0,
+        "foreground_cancelled": 0,
+        "submitted_queued_batches": 0,
+        "verified_queued_batches": 0,
+        "dispatches_per_wait": 0,
+        "queued_worker_wall_ns": 0,
+        "queued_kernel_wait_ns": 0,
+        "submitted_kernel_launches": 50,
+        "largest_dispatch_members": 1,
+        "empty_batches": 0,
+        "discovery_ns": 318200500,
+        "maintenance_ns": 2331808500,
+        "compact_verify_ns": 44920300,
+        "input_compacted_bytes": 1302528,
+        "grouped_compacted_bytes": 770048,
+        "packed_widths": 0,
+        "packed_payload_bytes": 0,
+        "sampled_bias_members": 0,
+        "sparse_bodies": 0,
+        "delta_bodies": 0,
+        "reference_batches": 0,
+        "reselected_groups": 0,
+        "cpu_reference_pairs": 0,
+        "published_references_changed": 0,
+        "section_reference_groups": 0,
+        "packed_reference_groups": 6,
+        "prefixed_zstd_members": 0,
+        "retired": true,
+        "independent_cpu_readback": true,
+        "modeled_idle_time": true,
+        "input_blake3": "617ff40912e105b39b7742d8c208609684d9d68e2dba64327366aafe65aa9518",
+        "reads": {
+          "zstd": 10507,
+          "full_logical": 2230850,
+          "full_input_backing": 1171629,
+          "full_grouped_backing": 1240592,
+          "sampled_logical": 294912,
+          "sampled_input_backing": 2842181,
+          "sampled_grouped_backing": 2949462
+        },
+        "session_reads": {
+          "full_logical": 2230850,
+          "full_input_backing": 1180317,
+          "full_grouped_backing": 925185,
+          "sampled_logical": 294912,
+          "sampled_input_backing": 2868245,
+          "sampled_grouped_backing": 1905268
+        },
+        "result": {
+          "exit_code": 0,
+          "elapsed_seconds": 2.8280000000013388,
+          "peak_job_bytes": 108146688,
+          "tree_retired": true,
+          "residual_children": 0,
+          "stdout_sha256": "940c2d11bda9391c2801e88c297e40014982e48fb48317d629ded6d931e0526f"
+        }
+      },
+      {
+        "mode": "amd",
+        "cohort": "revision-corpus",
+        "sparse_device": 0,
+        "reply_bytes": 411364,
+        "copy_suggested_ranges": 102283,
+        "copy_compared_ranges": 47639,
+        "copy_suggested_bytes": 6153494,
+        "copy_compared_bytes": 3533498,
+        "files": 24,
+        "groups": 22,
+        "advised_members": 15,
+        "capability": 9,
+        "submitted": 1,
+        "verified_batches": 1,
+        "worker_ns": 2980411400,
+        "submitted_groups": 25,
+        "verified_groups": 25,
+        "cpu_groups_before_gpu_reply": 0,
+        "fully_submitted_batches": 0,
+        "foreground_cancelled": 0,
+        "submitted_queued_batches": 0,
+        "verified_queued_batches": 0,
+        "dispatches_per_wait": 0,
+        "queued_worker_wall_ns": 0,
+        "queued_kernel_wait_ns": 0,
+        "submitted_kernel_launches": 50,
+        "largest_dispatch_members": 1,
+        "empty_batches": 0,
+        "discovery_ns": 294214400,
+        "maintenance_ns": 3036902000,
+        "compact_verify_ns": 41913500,
+        "input_compacted_bytes": 1302528,
+        "grouped_compacted_bytes": 770048,
+        "packed_widths": 0,
+        "packed_payload_bytes": 0,
+        "sampled_bias_members": 0,
+        "sparse_bodies": 0,
+        "delta_bodies": 0,
+        "reference_batches": 0,
+        "reselected_groups": 0,
+        "cpu_reference_pairs": 0,
+        "published_references_changed": 0,
+        "section_reference_groups": 0,
+        "packed_reference_groups": 6,
+        "prefixed_zstd_members": 0,
+        "retired": true,
+        "independent_cpu_readback": true,
+        "modeled_idle_time": true,
+        "input_blake3": "617ff40912e105b39b7742d8c208609684d9d68e2dba64327366aafe65aa9518",
+        "reads": {
+          "zstd": 10507,
+          "full_logical": 2230850,
+          "full_input_backing": 1171629,
+          "full_grouped_backing": 1240592,
+          "sampled_logical": 294912,
+          "sampled_input_backing": 2842181,
+          "sampled_grouped_backing": 2949462
+        },
+        "session_reads": {
+          "full_logical": 2230850,
+          "full_input_backing": 1180317,
+          "full_grouped_backing": 925185,
+          "sampled_logical": 294912,
+          "sampled_input_backing": 2868245,
+          "sampled_grouped_backing": 1905268
+        },
+        "result": {
+          "exit_code": 0,
+          "elapsed_seconds": 3.5319999999992433,
+          "peak_job_bytes": 109850624,
+          "tree_retired": true,
+          "residual_children": 0,
+          "stdout_sha256": "7b4d0ec17f4bdece9188d7a38142d6a2df451b26e97cef8fb61af4a3c3b79988"
+        }
+      },
+      {
+        "mode": "cpu",
+        "cohort": "revision-corpus",
+        "sparse_device": 0,
+        "reply_bytes": 0,
+        "copy_suggested_ranges": 0,
+        "copy_compared_ranges": 0,
+        "copy_suggested_bytes": 0,
+        "copy_compared_bytes": 0,
+        "files": 24,
+        "groups": 21,
+        "advised_members": 0,
+        "capability": 9,
+        "submitted": 0,
+        "verified_batches": 0,
+        "worker_ns": 0,
+        "submitted_groups": 0,
+        "verified_groups": 0,
+        "cpu_groups_before_gpu_reply": 0,
+        "fully_submitted_batches": 0,
+        "foreground_cancelled": 0,
+        "submitted_queued_batches": 0,
+        "verified_queued_batches": 0,
+        "dispatches_per_wait": 0,
+        "queued_worker_wall_ns": 0,
+        "queued_kernel_wait_ns": 0,
+        "submitted_kernel_launches": 0,
+        "largest_dispatch_members": 0,
+        "empty_batches": 0,
+        "discovery_ns": 0,
+        "maintenance_ns": 61764800,
+        "compact_verify_ns": 45344200,
+        "input_compacted_bytes": 1302528,
+        "grouped_compacted_bytes": 770048,
+        "packed_widths": 0,
+        "packed_payload_bytes": 0,
+        "sampled_bias_members": 0,
+        "sparse_bodies": 0,
+        "delta_bodies": 0,
+        "reference_batches": 0,
+        "reselected_groups": 0,
+        "cpu_reference_pairs": 0,
+        "published_references_changed": 0,
+        "section_reference_groups": 0,
+        "packed_reference_groups": 1,
+        "prefixed_zstd_members": 0,
+        "retired": true,
+        "independent_cpu_readback": true,
+        "modeled_idle_time": true,
+        "input_blake3": "617ff40912e105b39b7742d8c208609684d9d68e2dba64327366aafe65aa9518",
+        "reads": {
+          "zstd": 10507,
+          "full_logical": 2230850,
+          "full_input_backing": 1171629,
+          "full_grouped_backing": 1282297,
+          "sampled_logical": 294912,
+          "sampled_input_backing": 2842181,
+          "sampled_grouped_backing": 2991417
+        },
+        "session_reads": {
+          "full_logical": 2230850,
+          "full_input_backing": 1180317,
+          "full_grouped_backing": 925585,
+          "sampled_logical": 294912,
+          "sampled_input_backing": 2868245,
+          "sampled_grouped_backing": 1906751
+        },
+        "result": {
+          "exit_code": 0,
+          "elapsed_seconds": 0.23500000000058208,
+          "peak_job_bytes": 21319680,
+          "tree_retired": true,
+          "residual_children": 0,
+          "stdout_sha256": "fb947b43e374ea5680be78c332434c16bc4634a4f08a88a7bb3dccae7aceeaf1"
+        }
+      },
+      {
+        "mode": "cpu",
+        "cohort": "revision-corpus",
+        "sparse_device": 0,
+        "reply_bytes": 0,
+        "copy_suggested_ranges": 0,
+        "copy_compared_ranges": 0,
+        "copy_suggested_bytes": 0,
+        "copy_compared_bytes": 0,
+        "files": 24,
+        "groups": 21,
+        "advised_members": 0,
+        "capability": 9,
+        "submitted": 0,
+        "verified_batches": 0,
+        "worker_ns": 0,
+        "submitted_groups": 0,
+        "verified_groups": 0,
+        "cpu_groups_before_gpu_reply": 0,
+        "fully_submitted_batches": 0,
+        "foreground_cancelled": 0,
+        "submitted_queued_batches": 0,
+        "verified_queued_batches": 0,
+        "dispatches_per_wait": 0,
+        "queued_worker_wall_ns": 0,
+        "queued_kernel_wait_ns": 0,
+        "submitted_kernel_launches": 0,
+        "largest_dispatch_members": 0,
+        "empty_batches": 0,
+        "discovery_ns": 0,
+        "maintenance_ns": 76776000,
+        "compact_verify_ns": 54579600,
+        "input_compacted_bytes": 1302528,
+        "grouped_compacted_bytes": 770048,
+        "packed_widths": 0,
+        "packed_payload_bytes": 0,
+        "sampled_bias_members": 0,
+        "sparse_bodies": 0,
+        "delta_bodies": 0,
+        "reference_batches": 0,
+        "reselected_groups": 0,
+        "cpu_reference_pairs": 0,
+        "published_references_changed": 0,
+        "section_reference_groups": 0,
+        "packed_reference_groups": 1,
+        "prefixed_zstd_members": 0,
+        "retired": true,
+        "independent_cpu_readback": true,
+        "modeled_idle_time": true,
+        "input_blake3": "617ff40912e105b39b7742d8c208609684d9d68e2dba64327366aafe65aa9518",
+        "reads": {
+          "zstd": 10507,
+          "full_logical": 2230850,
+          "full_input_backing": 1171629,
+          "full_grouped_backing": 1282297,
+          "sampled_logical": 294912,
+          "sampled_input_backing": 2842181,
+          "sampled_grouped_backing": 2991417
+        },
+        "session_reads": {
+          "full_logical": 2230850,
+          "full_input_backing": 1180317,
+          "full_grouped_backing": 925585,
+          "sampled_logical": 294912,
+          "sampled_input_backing": 2868245,
+          "sampled_grouped_backing": 1906751
+        },
+        "result": {
+          "exit_code": 0,
+          "elapsed_seconds": 0.2969999999986612,
+          "peak_job_bytes": 21397504,
+          "tree_retired": true,
+          "residual_children": 0,
+          "stdout_sha256": "14b894641a3e3848518242bbedb1932d10cc26e4b0ccef045aec49c8f2d51d99"
+        }
+      },
+      {
+        "mode": "amd",
+        "cohort": "revision-corpus",
+        "sparse_device": 0,
+        "reply_bytes": 411364,
+        "copy_suggested_ranges": 102283,
+        "copy_compared_ranges": 47639,
+        "copy_suggested_bytes": 6153494,
+        "copy_compared_bytes": 3533498,
+        "files": 24,
+        "groups": 22,
+        "advised_members": 15,
+        "capability": 9,
+        "submitted": 1,
+        "verified_batches": 1,
+        "worker_ns": 2691784200,
+        "submitted_groups": 25,
+        "verified_groups": 25,
+        "cpu_groups_before_gpu_reply": 0,
+        "fully_submitted_batches": 0,
+        "foreground_cancelled": 0,
+        "submitted_queued_batches": 0,
+        "verified_queued_batches": 0,
+        "dispatches_per_wait": 0,
+        "queued_worker_wall_ns": 0,
+        "queued_kernel_wait_ns": 0,
+        "submitted_kernel_launches": 50,
+        "largest_dispatch_members": 1,
+        "empty_batches": 0,
+        "discovery_ns": 294039400,
+        "maintenance_ns": 2758340200,
+        "compact_verify_ns": 47329600,
+        "input_compacted_bytes": 1302528,
+        "grouped_compacted_bytes": 770048,
+        "packed_widths": 0,
+        "packed_payload_bytes": 0,
+        "sampled_bias_members": 0,
+        "sparse_bodies": 0,
+        "delta_bodies": 0,
+        "reference_batches": 0,
+        "reselected_groups": 0,
+        "cpu_reference_pairs": 0,
+        "published_references_changed": 0,
+        "section_reference_groups": 0,
+        "packed_reference_groups": 6,
+        "prefixed_zstd_members": 0,
+        "retired": true,
+        "independent_cpu_readback": true,
+        "modeled_idle_time": true,
+        "input_blake3": "617ff40912e105b39b7742d8c208609684d9d68e2dba64327366aafe65aa9518",
+        "reads": {
+          "zstd": 10507,
+          "full_logical": 2230850,
+          "full_input_backing": 1171629,
+          "full_grouped_backing": 1240592,
+          "sampled_logical": 294912,
+          "sampled_input_backing": 2842181,
+          "sampled_grouped_backing": 2949462
+        },
+        "session_reads": {
+          "full_logical": 2230850,
+          "full_input_backing": 1180317,
+          "full_grouped_backing": 925185,
+          "sampled_logical": 294912,
+          "sampled_input_backing": 2868245,
+          "sampled_grouped_backing": 1905268
+        },
+        "result": {
+          "exit_code": 0,
+          "elapsed_seconds": 3.25,
+          "peak_job_bytes": 107868160,
+          "tree_retired": true,
+          "residual_children": 0,
+          "stdout_sha256": "d596db8e8dd3458b5c0f30455c154b83c34b5d6fbe9374bb1be3ee28e77ad49c"
+        }
+      }
+    ],
+    "wall_seconds_median": {
+      "amd": 3.25,
+      "cpu": 0.25
+    },
+    "amd_route": {
+      "runtime": "amdhip64_7.dll",
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "worker_sha256": "bca40a979dcd51660cf900e6d9b4d80472ab38e6aead2bb3437957481449211c",
+      "module_sha256": "9aad995bc1b2e330a8f24f76dcc5eaa9edc8f96351c999f10712aef0be33467d",
+      "worker_memory_mib": 128,
+      "mode": "reference-xor profile with copy fallback",
+      "explicit_diagnostic_route": true
+    }
+  },
+  "diskspd": {
+    "release": "https://github.com/microsoft/diskspd/releases/tag/v2.3",
+    "archive_sha256": "18609981e8b04b4f645f1fd182ad0541615fe71722de36a9a933c54f747218a3",
+    "executable_sha256": "dd4e57e1e8ccaf5d6437938f8aab7f17e9a1e6d8fba8a093006b7cadf16faea2",
+    "mode": "-Rs",
+    "inventory_only": true,
+    "result": {
+      "exit_code": 0,
+      "elapsed_seconds": 0.046999999998661224,
+      "peak_job_bytes": 2490368,
+      "tree_retired": true,
+      "residual_children": 0,
+      "stdout_sha256": "6516c136d987946c3cb7056fc5229b58ce4394cadd82c76c17104df3e1584b31"
+    }
+  },
+  "historical_control": {
+    "corpus": "Silesia tar used by lzbench upstream",
+    "sha256": "a667bac80089b3d04d5496772149e632f0758974b0579d743cd8d6e5e0d63eb2",
+    "source_git_blob": "0e85e23779e75502ef484d98f5de72ed8985fa7a",
+    "bytes": 211947520,
+    "result": {
+      "exit_code": 10,
+      "elapsed_seconds": 79.07799999999952,
+      "peak_job_bytes": 845107200,
+      "tree_retired": true,
+      "residual_children": 0,
+      "stdout_sha256": "f2bff26c769f9eee790a5fff9c2f0da0bb7ceb68af2be29d9a62aa6a2a8ece18"
+    },
+    "scope": "The one-block probe cleared Zstandard and Brotli rows. The LZMA row returned a compression error. No aggregate claim was made."
+  },
+  "qualification": {
+    "windows_codecs_focused_12": {
+      "exit_code": 0,
+      "elapsed_seconds": 10.57799999999952,
+      "peak_job_bytes": 191504384,
+      "tree_retired": true,
+      "residual_children": 0,
+      "stdout_sha256": "61972d10aa0c13e574407db68b181d29194ab6f2a0728319e7a500cdf414625f"
+    },
+    "windows_raw_focused_10": {
+      "exit_code": 0,
+      "elapsed_seconds": 4.578000000001339,
+      "peak_job_bytes": 256749568,
+      "tree_retired": true,
+      "residual_children": 0,
+      "stdout_sha256": "122e850633f50dc7920b04bae78a764e9cb38b79c42d7dfa600ff4ba5377b5bc"
+    },
+    "windows_asan_focused_3_with_preflight": {
+      "exit_code": 0,
+      "elapsed_seconds": 28.67199999999866,
+      "peak_job_bytes": 541224960,
+      "tree_retired": true,
+      "residual_children": 0,
+      "stdout_sha256": "87f9eb012fe789538f63fcda33acdba8c6b51d0d0326c77741bcae661103c7c6"
+    },
+    "windows_asan_full_AIT": {
+      "exit_code": 0,
+      "elapsed_seconds": 2.9689999999991414,
+      "peak_job_bytes": 922054656,
+      "tree_retired": true,
+      "residual_children": 0,
+      "stdout_sha256": "4fd0d75f9b94cd229b98903883f27ae549c8b12c9475b05f4f1687cfda46263d"
+    },
+    "staging_reproduction": {
+      "exit_code": 0,
+      "elapsed_seconds": 3.014999999999418,
+      "peak_job_bytes": 22970368,
+      "tree_retired": true,
+      "residual_children": 0,
+      "stdout_sha256": "ed58655ff86fba928132f609aa35a1df0f20470c04973cb6bd46c1dadcf77f02"
+    },
+    "asan_configuration_retry": {
+      "initial_result": {
+        "exit_code": 1,
+        "elapsed_seconds": 0.04700000000048021,
+        "peak_job_bytes": 52207616,
+        "tree_retired": true,
+        "residual_children": 0,
+        "stdout_sha256": "8154aa66a2c64754f6a013d0a68319f1afcae46ea533a3636de071163468af73"
+      },
+      "cause": "The first build selected the default configuration. A stale RelWithDebInfo executable rejected the new option; the exact configuration was rebuilt before qualification."
+    }
+  },
+  "limits": [
+    "This pilot measures local engine and standalone codec behavior on the actual Windows host. It supplies no mounted NTFS, mounted FlitzFS, or physical device rates.",
+    "The AIT driver measures collective grouping and includes no persistent coherence store or automatic cold-codec rewrite.",
+    "The AMD revision fixture offers the existing route explicitly, uses modeled idle opportunities, and binds the same source data and physical AMD worker in each paired trial. It does not establish that automatic policy should choose this route."
+  ]
+}

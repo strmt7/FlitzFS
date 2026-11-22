@@ -542,6 +542,15 @@ advisory and artifact inventories.
 
 ## 8. Benchmarks, soak and the release decision
 
+- Use the full 2026 AIT Data Compression Challenge and retain its original
+  training and held-out splits. Current measurements cover standalone codecs,
+  verified mirrored image size and collective compression on complete CPython
+  revisions. Continue with ordinary cold recompression and account for the
+  persistent catalog and all maintained copies before claiming a size win.
+  Attribute occupied bytes to encoded data, protection copies, alignment and
+  metadata. Evaluate larger independently readable compression units on A–H,
+  then freeze the selected policy for I–P and report its small-read cost.
+  [Public workloads and evidence](BENCHMARK_PROTOCOL.md#public-compression-workloads)
 - Use Microsoft's DiskSpd 2.3 as the current controlled Windows I/O
   benchmark. Retain the exact binary, XML profile and results, cache mode,
   queue depth, duration, fixture data and platform topology. Run the common
