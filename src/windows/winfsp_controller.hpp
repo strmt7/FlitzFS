@@ -2,6 +2,7 @@
 #include "native_anchor_search.hpp"
 #include "winfsp_session.hpp"
 #include "maintenance_host.hpp"
+#include "maintenance_backing.hpp"
 namespace flitzfs {
 class MemoryVolumeDomain;
 struct WinFspControllerView {
@@ -13,7 +14,8 @@ struct WinFspControllerView {
   std::uint64_t continued_preparation_steps=0,continued_compaction_steps=0,payload_repairs=0;
   std::uint64_t payload_scrub_checks=0,payload_scrub_passes=0,payload_scrub_faults=0;
   PagedPayloadScrubResult last_payload_scrub_fault;
-  std::uint64_t maintenance_elapsed_ns=0,maximum_quantum_ns=0;
+  std::uint64_t maintenance_elapsed_ns=0,maximum_quantum_ns=0,backing_limited_continuations=0;
+  detail::MaintenanceBackingUse maintenance_backing;
   std::uint64_t gpu_budget_queries=0,gpu_budget_refusals=0;
   NativeAnchorSearchStats anchor_search;
   std::optional<NativeDeferredActivation> foreground_activation;

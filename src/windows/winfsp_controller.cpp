@@ -91,6 +91,8 @@ struct WinFspVolumeController::Impl {
       if(NT_SUCCESS(started)) {
         // Age can make a scan due. Live resource observations admit each step.
         WindowsMaintenanceHost host;
+        using Continuation=WinFspMaintenanceContinuation;
+        std::array<detail::MaintenanceBackingTiming,static_cast<std::size_t>(Continuation::payload_scrub)+1> backing_timing{};
         constexpr auto maximum_finite_wait=std::uint64_t{INFINITE-1};
         constexpr auto scrub_day_ms=24ULL*60*60*1000;
         std::uint64_t next=0,next_scrub=0;
@@ -153,6 +155,8 @@ struct WinFspVolumeController::Impl {
           std::uint64_t scrub_checks=0,scrub_passes=0,scrub_faults=0;
           PagedPayloadScrubResult last_scrub_fault;
           std::uint64_t continued=0,continued_compaction=0;
+          detail::MaintenanceBackingUse backing_use;
+          bool backing_limited=false;
           MaintenanceThreadScope priority;
           if(!priority.active())disabled=true;
           else try {
@@ -167,8 +171,15 @@ struct WinFspVolumeController::Impl {
               for(;;) {
                 if(residency && observed.valid)residency->verify_working_set();
                 if(observed.continued && interrupted())break;
-                auto step=advance(observed,continuation,scrub_due);
+                const auto backing_before=backing_use.elapsed_ns();
+                auto step=[&] {
+                  const detail::MaintenanceBackingScope measure(backing_use);
+                  return advance(observed,continuation,scrub_due);
+                }();
                 if(observed.continued && step.state==WinFspMaintenanceState::busy)break;
+                auto& timing=backing_timing[static_cast<std::size_t>(step.continuation)];
+                if(step.continuation!=Continuation::none && step.progress.deferral==NativeMaintenanceDeferral::none)
+                  timing.observe(backing_use.elapsed_ns()-backing_before);
                 result=std::move(step);
                 const auto scrub=result.payload_scrub;
                 if(scrub.object_id)++scrub_checks;
@@ -198,7 +209,8 @@ struct WinFspVolumeController::Impl {
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
                 if(acquisition_thread.joinable())break;
 #endif
-                const auto refreshed=host.continue_preparation(adapter->group_maintenance_policy().maximum_age_ms);
+                const auto refreshed=host.continue_preparation(adapter->group_maintenance_policy().maximum_age_ms,
+                    timing.predicted_ns(),&backing_limited);
                 if(!refreshed || interrupted())break;
                 observed=*refreshed;
               }
@@ -237,6 +249,8 @@ struct WinFspVolumeController::Impl {
             if(anchor)current.anchor_search=anchor->stats();
             current.maintenance_elapsed_ns+=used;
             current.maximum_quantum_ns=(std::max)(current.maximum_quantum_ns,used);
+            current.backing_limited_continuations+=backing_limited;
+            current.maintenance_backing.add(backing_use);
           }
           if(notify_integrity_fault && status_changed.value)SetEvent(status_changed.value);
         }

@@ -129,16 +129,25 @@ NativeMaintenanceObservation WindowsMaintenanceHost::observe(bool foreground) no
   p.sample=o;p.issued=Clock::now();return o;
 }
 std::optional<NativeMaintenanceObservation> WindowsMaintenanceHost::continue_preparation(
-    std::uint32_t maximum_age_ms) noexcept {
+    std::uint32_t maximum_age_ms,std::uint64_t backing_prediction_ns,bool* backing_limited) noexcept {
   auto& p=*impl_;
+  if(backing_limited)*backing_limited=false;
   if(!p.sample.valid || p.sequence==(std::numeric_limits<std::uint64_t>::max)())return {};
   const auto begin=Clock::now();
   if(processor_topology()!=p.topology){p.sample={};p.state=MaintenanceHostStatus::warming;return {};}
-  const auto budget=std::chrono::nanoseconds(p.sample.cpu_window_ms*maintenance_wall_share_ppm);
-  const auto used=begin-p.started;
-  // Leave room for another step of the cost just observed. The owner still
-  // charges the full duration if an individual synchronous step overruns.
-  if(used>=budget || begin-p.issued>budget-used)return {};
+  const auto budget=p.sample.cpu_window_ms*maintenance_wall_share_ppm;
+  const auto nanoseconds=[](Clock::duration duration) {
+    return static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count());
+  };
+  const auto previous=nanoseconds(begin-p.issued);
+  const auto permits=[&](Clock::time_point now) {
+    const auto decision=detail::maintenance_followup(budget,nanoseconds(now-p.started),previous,backing_prediction_ns);
+    if(backing_limited && decision==detail::MaintenanceFollowup::backing)*backing_limited=true;
+    return decision==detail::MaintenanceFollowup::admit;
+  };
+  // Account for the previous wall time and reserve enough room for recent
+  // actual backing behavior. The owner still charges a step that overruns.
+  if(!permits(begin))return {};
   const auto fresh=[&] {
     const auto now=GetTickCount64();
     return now>=p.sample.captured_ms && now-p.sample.captured_ms<=maximum_age_ms;
@@ -146,8 +155,7 @@ std::optional<NativeMaintenanceObservation> WindowsMaintenanceHost::continue_pre
   auto observation=p.sample;
   if(!fresh())return {};
   if(!observe_memory(observation)){p.sample={};p.state=MaintenanceHostStatus::unavailable;return {};}
-  const auto refreshed=Clock::now()-p.started;
-  if(!fresh() || refreshed>=budget || begin-p.issued>budget-refreshed)return {};
+  if(!fresh() || !permits(Clock::now()))return {};
   observation.sequence=++p.sequence;observation.continued=true;
   p.issued=begin;
   return observation;

@@ -13,6 +13,12 @@ struct WindowsProcessorDelta {
 };
 std::optional<WindowsProcessorDelta> windows_processor_delta(
     WindowsProcessorTimes before,WindowsProcessorTimes after) noexcept;
+enum class MaintenanceFollowup {admit,elapsed,backing};
+inline MaintenanceFollowup maintenance_followup(std::uint64_t budget,std::uint64_t used,
+    std::uint64_t previous,std::uint64_t backing_prediction) noexcept {
+  if(used>=budget || previous>budget-used)return MaintenanceFollowup::elapsed;
+  return backing_prediction>budget-used?MaintenanceFollowup::backing:MaintenanceFollowup::admit;
+}
 }
 inline constexpr std::uint64_t maintenance_wall_share_ppm=10000;
 inline std::uint64_t maintenance_delay_ms(std::uint64_t elapsed_ns) noexcept {
@@ -36,7 +42,8 @@ class WindowsMaintenanceHost final {
   NativeMaintenanceObservation observe(bool foreground_pending) noexcept;
   // Reuse the current CPU capture only within its fresh, measured idle slice.
   // The caller owns the foreground and stop checks around every step.
-  std::optional<NativeMaintenanceObservation> continue_preparation(std::uint32_t maximum_age_ms) noexcept;
+  std::optional<NativeMaintenanceObservation> continue_preparation(std::uint32_t maximum_age_ms,
+      std::uint64_t backing_prediction_ns=0,bool* backing_limited=nullptr) noexcept;
   MaintenanceHostStatus status() const noexcept;
   std::uint64_t next_delay_ms() const noexcept;
  private:

@@ -181,6 +181,52 @@ void windows_processor_windows() {
       !delta(start,{70,101,39}) && !delta(start,{90,119,55}),"Invalid CPU counter sequence was admitted");
   require(!delta({0,0,0},{0,(std::numeric_limits<std::uint64_t>::max)(),1}),"Overflowing CPU sample was admitted");
 }
+void backing_maintenance_window() {
+  using Operation=detail::MaintenanceBackingOperation;
+  using Choice=detail::MaintenanceFollowup;
+  detail::MaintenanceBackingUse use,isolated;
+  {
+    const detail::MaintenanceBackingScope tracking(use);
+    {
+      detail::MaintenanceBackingCall written(Operation::write,39);
+      written.complete();
+    }
+    {
+      const detail::MaintenanceBackingScope separate(isolated);
+      detail::MaintenanceBackingCall reads(Operation::read,91);
+      reads.complete();
+    }
+    detail::MaintenanceBackingCall partial(Operation::write,17);
+  }
+  {
+    detail::MaintenanceBackingCall ordinary(Operation::write,100);
+    ordinary.complete();
+  }
+  const auto written=use[Operation::write];
+  require(written.attempts==2 && written.completed==1 && written.attempted_bytes==56 &&
+      written.completed_bytes==39 && written.elapsed_ns>0 && use[Operation::read].attempts==0 &&
+      isolated[Operation::read].completed_bytes==91,"maintenance sample mixed scopes or counted an incomplete write");
+  detail::MaintenanceBackingTiming timing;
+  constexpr auto window=10'000'000ULL;
+  constexpr auto elapsed=3'000'000ULL;
+  constexpr auto previous=2'000'000ULL;
+  const auto fits=[&](std::uint64_t spent,std::uint64_t last) {
+    return detail::maintenance_followup(window,spent,last,timing.predicted_ns());
+  };
+  require(fits(elapsed,previous)==Choice::admit && fits(window,previous)==Choice::elapsed &&
+      fits(elapsed,window)==Choice::elapsed,"unobserved backing replaced the wall-time gate");
+  timing.observe(24'000'000);
+  require(fits(elapsed,previous)==Choice::backing,"slow backing did not restrict a continued idle step");
+  timing.observe(0);
+  require(timing.predicted_ns()==24'000'000,"missing backing evidence reset the recent cost");
+  timing.observe(1'000'000);
+  require(fits(elapsed,previous)==Choice::backing,"one fast step erased recent backing contention");
+  for(unsigned sample=0;sample<4;++sample)timing.observe(1'000'000);
+  require(fits(elapsed,previous)==Choice::admit && fits(window,previous)==Choice::elapsed,
+      "repeated fast backing evidence did not recover the remaining-window admission");
+  std::cout<<"maintenance_backing_gate slower_refused=1 missing_preserved=1 recovery_after_observation=1"
+      <<" wall_gate_preserved=1 partial_writes_separate=1 isolated_scopes=1\n";
+}
 void native_rng_initialization() {
   std::array<DWORD,3> observed{};const auto cold=handle_count();
   for(unsigned i=0;i<observed.size();++i) {
@@ -2590,11 +2636,20 @@ void memory_backing_ownership() {
     backing.image->admit_write(3*page+1);
     require(backing.image->extent()==0 && backing.domain->usage().resident==4*page,
         "preflight did not lock just the required pages or changed the stream extent");
-    backing.image->write_exact(4*page,marker);
-    backing.image->flush();backing.domain->verify_resident();
     std::array<std::byte,4> zero{};
     std::array<std::byte,4> untouched{std::byte{9},std::byte{9},std::byte{9},std::byte{9}};
-    backing.image->read_exact(2*page,untouched);
+    detail::MaintenanceBackingUse use;
+    {
+      const detail::MaintenanceBackingScope tracking(use);
+      backing.image->write_exact(4*page,marker);
+      backing.image->flush();
+      backing.image->read_exact(2*page,untouched);
+    }
+    backing.domain->verify_resident();
+    using Operation=detail::MaintenanceBackingOperation;
+    require(use[Operation::write].completed_bytes==marker.size() &&
+        use[Operation::flush].completed==1 && use[Operation::read].completed_bytes==untouched.size(),
+        "actual locked-memory backing did not supply exact maintenance costs");
     require(untouched==zero && backing.domain->usage().resident==5*page &&
         backing.domain->usage().reserved==usage.reserved,"write growth or zero-filled gap changed");
     std::cout<<"memory_demand_lock domain="<<usage.capacity<<" image="<<backing.layout.image_capacity
@@ -2837,6 +2892,14 @@ void indexed_memory_composition() {
       Sleep(20);
     }
     const auto maintenance=volume.view();
+    using Operation=detail::MaintenanceBackingOperation;
+    const auto& backing_use=maintenance.maintenance_backing;
+    const auto read_bytes=backing_use[Operation::read].completed_bytes;
+    const auto writ=backing_use[Operation::write];
+    const auto barriers=backing_use[Operation::flush].completed;
+    require(!maintenance.reclamation_quanta || (read_bytes && writ.completed_bytes && barriers &&
+        writ.attempted_bytes>=writ.completed_bytes && backing_use.elapsed_ns()>0),
+        "mounted controller reclamation bypassed backing measurement");
     require(!maintenance.retired && !maintenance.maintenance_disabled && maintenance.maintenance_quanta &&
         (maintenance.reclamation_quanta==2 || maintenance.maintenance.phase==NativeMaintenancePhase::deferred ||
           (maintenance.reclamation_quanta==1 && maintenance.maintenance.phase==NativeMaintenancePhase::publishing)),
@@ -2867,7 +2930,10 @@ void indexed_memory_composition() {
         snapshot.read_inode(inode,0,100)==orphan,"indexed sealing lost immutable or recovered files");
     std::cout<<"live_indexed_reclamation extents="<<blocks<<" quanta="<<quanta
         <<" deferral="<<static_cast<unsigned>(maintenance.maintenance.deferral)
-        <<" max_quantum_ns="<<maintenance.maximum_quantum_ns<<" closed_session_recovered=1\n";
+        <<" max_quantum_ns="<<maintenance.maximum_quantum_ns
+        <<" backing_read_bytes="<<read_bytes<<" backing_written_bytes="<<writ.completed_bytes
+        <<" backing_flushes="<<barriers<<" backed_ns="<<backing_use.elapsed_ns()
+        <<" backing_limited="<<maintenance.backing_limited_continuations<<" closed_session_recovered=1\n";
   }
   require(sealed->read(L"\\f0",0,256)==keep,"sealed indexed projection lost its retained backing");
   sealed.reset();
@@ -3099,7 +3165,7 @@ int main(int argc,char** argv){try {
   // before the explicit long-volume mode measures controller ownership.
   if(lifetime_only || indexed_compaction)initialize_long_pdh_window();
   require(GetProcessHandleCount(GetCurrentProcess(),&before)!=FALSE,"initial handle count");
-  if(argc==1){windows_processor_windows();event_ownership();lifecycle();idle_until_owner_stop(100);invalid_and_unexpected();live_opportunities();}
+  if(argc==1){windows_processor_windows();backing_maintenance_window();event_ownership();lifecycle();idle_until_owner_stop(100);invalid_and_unexpected();live_opportunities();}
   else if(lifetime_only)idle_until_owner_stop(31000);
   else if(argc==2 && std::string_view(argv[1])=="--memory") {
     memory_planning();memory_paged_footprint();memory_compaction_retirement();memory_capacity_repair();

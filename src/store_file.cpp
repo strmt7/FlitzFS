@@ -15,6 +15,7 @@
 #include <string>
 
 #ifdef _WIN32
+#include "windows/maintenance_backing.hpp"
 #define NOMINMAX
 #include <windows.h>
 #include <winioctl.h>
@@ -197,6 +198,7 @@ class Output final:public NativeVolumeRangeIo {
   std::shared_ptr<VolumeFileObserver> volume_observer_;
 #endif
   bool has_allocations(std::uint64_t begin,std::uint64_t end) const {
+    MaintenanceBackingCall observed(MaintenanceBackingOperation::control);
     FILE_ALLOCATED_RANGE_BUFFER query{},range{};
     query.FileOffset.QuadPart=static_cast<LONGLONG>(begin);
     query.Length.QuadPart=static_cast<LONGLONG>(end-begin);
@@ -204,19 +206,23 @@ class Output final:public NativeVolumeRangeIo {
     if(!DeviceIoControl(handle_,FSCTL_QUERY_ALLOCATED_RANGES,&query,sizeof(query),&range,sizeof(range),&returned,nullptr) &&
         (GetLastError()!=ERROR_MORE_DATA || returned!=sizeof(range)))
       fail("cannot independently query sparse allocations");
-    if(!returned)return false;
+    if(!returned){observed.complete();return false;}
     if(returned!=sizeof(range) || range.FileOffset.QuadPart<0 || range.Length.QuadPart<=0)
       fail("invalid sparse allocation range");
     const auto at=static_cast<std::uint64_t>(range.FileOffset.QuadPart);
     const auto length=static_cast<std::uint64_t>(range.Length.QuadPart);
     if(at>=end || (at<begin && length<=begin-at))fail("sparse allocation range does not intersect query");
+    observed.complete();
     return true;
   }
   void admit_windows_growth(std::uint64_t projected,std::uint64_t growth) {
     if(projected<extent_ || projected>capacity_ || growth>capacity_)fail("projected extent outside budget");
     memory_headroom();
-    if(volume_file_)admit_volume_space(parent_pin_.volume_root,growth);
-    else {
+    if(volume_file_) {
+      MaintenanceBackingCall observed(MaintenanceBackingOperation::control);
+      admit_volume_space(parent_pin_.volume_root,growth);
+      observed.complete();
+    }else {
       std::error_code ec;const auto free=std::filesystem::space(parent_path_,ec);
       if(ec || free.available==static_cast<std::uintmax_t>(-1) || free.available<kReserve || growth>free.available-kReserve)
         fail("insufficient verified disk reserve");
@@ -229,10 +235,12 @@ class Output final:public NativeVolumeRangeIo {
 #endif
   void refresh_extent() const {
 #ifdef _WIN32
+    MaintenanceBackingCall observed(MaintenanceBackingOperation::control,0,volume_file_);
     LARGE_INTEGER size{};
     if(!GetFileSizeEx(handle_,&size) || size.QuadPart<0 ||
         static_cast<std::uint64_t>(size.QuadPart)>capacity_) fail("cannot qualify current file extent");
     extent_=static_cast<std::uint64_t>(size.QuadPart);
+    observed.complete();
 #else
     struct stat st{};
     if(::fstat(fd_,&st)!=0 || !S_ISREG(st.st_mode) || st.st_size<0 ||
@@ -386,8 +394,10 @@ class Output final:public NativeVolumeRangeIo {
     request.FileOffset.QuadPart=static_cast<LONGLONG>(offset);
     request.BeyondFinalZero.QuadPart=static_cast<LONGLONG>((std::min)(offset+bytes,extent_));
     DWORD returned=0;
+    MaintenanceBackingCall observed(MaintenanceBackingOperation::control);
     if(!DeviceIoControl(handle_,FSCTL_SET_ZERO_DATA,&request,sizeof(request),nullptr,0,&returned,nullptr))
       fail("sparse range retirement failed");
+    observed.complete();
 #else
     (void)offset;(void)bytes;fail("range reclamation requires Windows");
 #endif
@@ -397,6 +407,9 @@ class Output final:public NativeVolumeRangeIo {
     std::lock_guard lock(mutex_);
     refresh_extent();
     if(at>extent_ || out.size()>extent_-at) fail("read outside backing extent");
+#ifdef _WIN32
+    MaintenanceBackingCall observed(MaintenanceBackingOperation::read,out.size(),volume_file_ && !out.empty());
+#endif
     std::size_t done=0;
     while(done<out.size()) {
 #ifdef _WIN32
@@ -412,6 +425,9 @@ class Output final:public NativeVolumeRangeIo {
 #endif
       done+=static_cast<std::size_t>(n);
     }
+#ifdef _WIN32
+    observed.complete();
+#endif
   }
   void write_exact(std::uint64_t at,std::span<const std::byte> bytes) override {
     std::lock_guard lock(mutex_);
@@ -422,6 +438,7 @@ class Output final:public NativeVolumeRangeIo {
 #ifdef FLITZFS_OBSERVE_VOLUME_PUBLICATION
     if(volume_observer_ && !bytes.empty())volume_observer_->before_write(at,bytes.size());
 #endif
+    MaintenanceBackingCall observed(MaintenanceBackingOperation::write,bytes.size(),volume_file_ && !bytes.empty());
 #endif
     std::size_t done=0;
     while(done<bytes.size()) {
@@ -439,6 +456,9 @@ class Output final:public NativeVolumeRangeIo {
       done+=static_cast<std::size_t>(n);
       extent_=(std::max)(extent_,at+done);
     }
+#ifdef _WIN32
+    observed.complete();
+#endif
   }
   void admit_write(std::uint64_t projected) override {
     std::lock_guard lock(mutex_);
@@ -458,7 +478,11 @@ class Output final:public NativeVolumeRangeIo {
   void flush() override {
     std::lock_guard lock(mutex_);
 #ifdef _WIN32
-    if(!FlushFileBuffers(handle_)) fail("file flush failed");
+    {
+      MaintenanceBackingCall observed(MaintenanceBackingOperation::flush,0,volume_file_);
+      if(!FlushFileBuffers(handle_))fail("file flush failed");
+      observed.complete();
+    }
 #ifdef FLITZFS_OBSERVE_VOLUME_PUBLICATION
     if(volume_observer_)volume_observer_->after_flush();
 #endif

@@ -1,4 +1,5 @@
 #include "memory_volume.hpp"
+#include "maintenance_backing.hpp"
 #include <windows.h>
 #include <psapi.h>
 #include <algorithm>
@@ -98,30 +99,40 @@ class MemoryVolumeDomain::Store final:public StoreByteIo {
   }
   void admit_write(std::uint64_t projected) override {
     require(allows_writer() && projected<=capacity_,"Memory write admission denied");
-    if (projected <= committed_) check_headroom(0);
+    detail::MaintenanceBackingCall observed(detail::MaintenanceBackingOperation::control);
+    if(projected<=committed_)check_headroom(0);
     else grow(projected);
+    observed.complete();
   }
   void read_exact(std::uint64_t at,std::span<std::byte> out) const override {
     require(at<=extent_ && out.size()<=extent_-at,"Memory read bounds");
-    if(!out.empty())std::memcpy(out.data(),data_+at,out.size());
+    if(out.empty())return;
+    detail::MaintenanceBackingCall observed(detail::MaintenanceBackingOperation::read,out.size());
+    std::memcpy(out.data(),data_+at,out.size());
+    observed.complete();
   }
   void write_exact(std::uint64_t at,std::span<const std::byte> in) override {
     require(allows_writer(),"Memory store is not writable");
     require(at<=capacity_ && in.size()<=capacity_-at,"Memory write bounds");
     if(in.empty())return; // A zero-byte operation must never extend the image.
+    detail::MaintenanceBackingCall observed(detail::MaintenanceBackingOperation::write,in.size());
     const auto end = at + in.size();
     if (end > committed_) grow(end);
     std::memcpy(data_+at,in.data(),in.size());extent_=(std::max)(extent_,end);
+    observed.complete();
   }
   void flush() override {
     require(allows_writer(),"Memory store is not writable");
     // No stable mirror and no O(image-size) copy on every transaction.
+    detail::MaintenanceBackingCall observed(detail::MaintenanceBackingOperation::flush);
     std::atomic_thread_fence(std::memory_order_seq_cst);
+    observed.complete();
   }
   bool writer_in_use() const noexcept {return has_writer();}
   bool retire_step() {
     const auto bytes=(std::min)(committed_,std::uint64_t{kStoreMaxObjectBytes});
     if(!bytes)return true;
+    detail::MaintenanceBackingCall observed(detail::MaintenanceBackingOperation::control);
     auto* const start=data_+committed_-bytes;
     SecureZeroMemory(start,static_cast<SIZE_T>(bytes));
     if(!VirtualUnlock(start,static_cast<SIZE_T>(bytes)) || !VirtualFree(start,static_cast<SIZE_T>(bytes),MEM_DECOMMIT)) {
@@ -131,6 +142,7 @@ class MemoryVolumeDomain::Store final:public StoreByteIo {
     committed_-=bytes;
     extent_=(std::min)(extent_,committed_);
     state_->resident-=bytes;
+    observed.complete();
     return !committed_;
   }
   std::uint64_t verify() const {

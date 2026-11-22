@@ -221,7 +221,26 @@ own commit barriers and detach sequence on every device.
 [Microsoft NVMe storage queries](https://learn.microsoft.com/en-us/windows/win32/fileio/working-with-nvme-devices) ·
 [Microsoft file flush contract](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers)
 
-Implement the backing-dependent decisions in this order.
+The mounted controller now measures reads, writes, barriers and selected
+control operations on the backing during each maintenance step. The memory
+provider and the qualified Windows file provider supply observations from
+their actual calls. Each capture belongs to the current maintenance thread.
+The counters distinguish bytes requested from exact calls that completed.
+These are logical provider operations. Device-level write amplification
+requires independent measurements.
+
+The controller keeps a separate recent backing-cost estimate for group
+preparation, compaction and payload scrubbing. It uses the estimate along
+with the last step's elapsed time to decide whether another step fits the
+current idle window. New observations gradually lower a slow estimate.
+A fresh window can still admit one step under the existing live resource
+and foreground checks. The controller charges any overrun to its existing
+elapsed-work pacing. This changes admission between synchronous steps.
+[Backing-aware maintenance verification](../evidence/backing-maintenance-admission-2026-11-22.json) ·
+[Windows background resource scheduling](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadpriority) ·
+[Windows monotonic timing](https://learn.microsoft.com/en-us/windows/win32/sysinfo/acquiring-high-resolution-time-stamps)
+
+Continue the backing-dependent work in this order.
 
 1. Bind advisory properties to the opened volume identity. Probe only the
    selected backing in managed setup, with finite ownership and deadlines.
@@ -229,13 +248,11 @@ Implement the backing-dependent decisions in this order.
    range reclamation, device TRIM and qualified flush behavior independent.
    Reacquire advisory properties on a fresh attach. Label missing or
    ambiguous evidence as unknown.
-2. Record read, write and flush latency and completed bytes at the provider.
-   Keep foreground and maintenance counters distinct. Fit local ranges for
-   cost and variance per provider during ordinary I/O and bounded idle work.
-   Set the maximum next background quantum within the existing low-priority
-   duty and live resource grants. Shrink the quantum when stalls or foreground
-   contention appear. Cluster safe reads on seek-sensitive media and coalesce
-   qualified sequential writes when the read and recovery contracts allow it.
+2. Qualify the measured admission policy with real device latency and a
+   separate foreground trace. Select the next bounded quantum from observed
+   providers, current resource grants and contention. Keep the existing
+   foreground yield checks. Cluster safe reads on seek-sensitive media and
+   coalesce qualified sequential writes when the recovery contract allows it.
 3. Charge backing write attempts, retained generations and temporary space to
    each optimization. Keep recovered space and estimated device wear distinct
    from application bytes. Size reduction remains the goal. Repeatedly rewriting

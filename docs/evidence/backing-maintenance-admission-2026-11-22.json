@@ -1,0 +1,162 @@
+{
+  "schema": "flitzfs-backing-maintenance-admission-v1",
+  "date": "2026-11-22",
+  "source": {
+    "base": "486b19e08ea5eb243e592b0c31ecffd9416787e3",
+    "blobs": {
+      "src/store_file.cpp": "e166e6a85edc662636cf6be81fe059ab58eebbc1",
+      "src/windows/maintenance_backing.hpp": "e4444deced2899cb6eb6e896c0d8a2eec3bbb028",
+      "src/windows/maintenance_host.cpp": "a480799ceff9793317fbc0f976cf871500a6a8b8",
+      "src/windows/maintenance_host.hpp": "4d643bed1a03bc23313d61fc1097cbd606441b8f",
+      "src/windows/memory_volume.cpp": "0c6433af72c23b641dc01621e86e98759db27ce4",
+      "src/windows/winfsp_controller.cpp": "e7fecb7a60cad0ebeb531e686cf3be7e4a3f34e1",
+      "src/windows/winfsp_controller.hpp": "999fad83365af3a0a2e9f1723032cf6a18c60d33",
+      "tests/test_winfsp_controller.cpp": "c3aeb2976696549d6a85f379b8e68f433900fc9b"
+    }
+  },
+  "scope": {
+    "platform": "Windows development host",
+    "provider_control": "live locked process-memory backing behind WinFsp SDK callbacks",
+    "windows_driver_mount": false,
+    "physical_device_timing": false,
+    "persistent_file_timing_code_compiled": true,
+    "media_query_or_policy_change": false,
+    "measurement_boundary": "synchronous provider operations on the maintenance owner thread"
+  },
+  "admission": {
+    "host_wall_time_and_foreground_gates": "preserved",
+    "recent_costs": "one per attachment and offered preparation lane",
+    "observed_cost_input": "elapsed read, write, flush and control calls",
+    "storage_estimate_floor": "latest measured step",
+    "slow_estimate_recovery": "decays with further measured work",
+    "fault_accounting": "attempted write bytes remain observable when an exact request fails",
+    "physical_device_wear": "requires independent evidence"
+  },
+  "deterministic": {
+    "slower_refused": 1,
+    "missing_preserved": 1,
+    "recovery_after_observation": 1,
+    "wall_gate_preserved": 1,
+    "partial_writes_separate": 1,
+    "isolated_scopes": 1
+  },
+  "locked_memory_callback": {
+    "extents": 65,
+    "quanta": 2,
+    "deferral": 0,
+    "max_quantum_ns": 2342000,
+    "backing_read_bytes": 1392615,
+    "backing_written_bytes": 81920,
+    "backing_flushes": 6,
+    "backed_ns": 107343,
+    "backing_limited": 0,
+    "closed_session_recovered": 1
+  },
+  "address_sanitized_callback": {
+    "extents": 65,
+    "quanta": 2,
+    "deferral": 0,
+    "max_quantum_ns": 6629100,
+    "backing_read_bytes": 1392621,
+    "backing_written_bytes": 81920,
+    "backing_flushes": 6,
+    "backed_ns": 170190,
+    "backing_limited": 0,
+    "closed_session_recovered": 1
+  },
+  "address_sanitized_concurrent_callback": {
+    "extents": 65,
+    "quanta": 0,
+    "deferral": 3,
+    "max_quantum_ns": 949500,
+    "backing_read_bytes": 0,
+    "backing_written_bytes": 0,
+    "backing_flushes": 0,
+    "backed_ns": 0,
+    "backing_limited": 0,
+    "closed_session_recovered": 1
+  },
+  "tests": {
+    "focused": {
+      "passed": 4,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 224116736,
+      "log_sha256": "6fb545cab97a04fa2951e7ef56ac82af77143ca881144b63da543678765a694c"
+    },
+    "default": {
+      "passed": 210,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 343732224,
+      "log_sha256": "db2c03ab834f329390a6f3b076e1fd1f30f8e952176dd91fbd49b3968ca7964f"
+    },
+    "raw": {
+      "passed": 209,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 342126592,
+      "log_sha256": "f75c6ad2eea401c29c5061409ab9adc2b32fc94e0d6748a2c7108957e6d5da17"
+    },
+    "asan": {
+      "passed": 5,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 851529728,
+      "log_sha256": "1db4d2f638d29ee66f48e3fa3abf25fb702e8507655c03c503f67b0d69db0f11"
+    },
+    "asan_isolated": {
+      "passed": 2,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 794959872,
+      "log_sha256": "f2d3756cbd7ec1563704d7521bb8c7750399463de32329ce0e69b8b49026b035"
+    }
+  },
+  "navigation": {
+    "actual_searches": 1,
+    "provider_version": "0.2.43",
+    "source_files": 16,
+    "native_response_sha256": "68e1dba4edbd3cedc58c80c74bcf9b3e190e9ded7fe6ed00663c65f5c96bafaf",
+    "inventory_sha256": "ce4fde44337844f97c85c4b167bf25176f6df31fad9bc88ed0c7d19488e23d09",
+    "receipt_sha256": "74a74570a8cebea0088e7a405ad16b62a79ea4fff556ce585c6943af3eecc978"
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "1a70e7234eae4a3b55d18e5c0d8d83b6028adfc618053530c6d051f5c2f3ae8a",
+    "native_pages": [
+      {
+        "name": "thread-priority",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadpriority",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 45634,
+        "markdown_sha256": "4f535a0b9a9f909b21bfa37d7b66735c7c6d47d13f2ba0217574c2587183c9f3",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.087,
+        "capture": "thread-priority.native.json",
+        "capture_sha256": "e967214e2b48fce20da14305510edff4feaacb5ace7642841427a1b5e5faec58"
+      },
+      {
+        "name": "timestamps",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/sysinfo/acquiring-high-resolution-time-stamps",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 70440,
+        "markdown_sha256": "b7bb13b0ebe38ff4f4007114b4b3d3a490131be4d5b8dda8ba4af948e27b3f48",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.769,
+        "capture": "timestamps.native.json",
+        "capture_sha256": "2009347f19cc0496e17ab7946146b26d10175010e08ad0f3f86f633578e3014c"
+      }
+    ]
+  }
+}
