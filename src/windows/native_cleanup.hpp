@@ -16,5 +16,5 @@ NativeCleanupOutcome dispatch_native_cleanup(NativeFileSession&,const NativeFile
 // Writable Windows bridge with tracked native reservations and coalesced
 // access-only timestamps. Regular trim requires prior tracking.
 NativeCleanupOutcome dispatch_native_allocated_cleanup(NativeFileSession&,const NativeFileHandle&,
-    ULONG flags,NativeCleanupClock clock=native_cleanup_utc) noexcept;
+    ULONG flags,NativeCleanupClock clock=native_cleanup_utc,detail::NativeCleanupRevision* revision=nullptr) noexcept;
 }

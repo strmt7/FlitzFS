@@ -2864,6 +2864,13 @@ std::unique_ptr<detail::NativeLz4CaptureLease> NativeFilesystemWriter::lease_nat
   return std::unique_ptr<detail::NativeLz4CaptureLease>(new detail::NativeLz4CaptureLease(
       std::move(*snapshot),*impl_->indexed,inode,offset,maximum_encoded));
 }
+std::unique_ptr<detail::NativeWriteCaptureLease> NativeFilesystemWriter::lease_committed_write_capture() const {
+  if(!supports_leased_lz4_capture())return {};
+  auto snapshot=impl_->objects.paged_if()->snapshot_for_capture();
+  if(!snapshot)return {};
+  return std::unique_ptr<detail::NativeWriteCaptureLease>(new detail::NativeWriteCaptureLease(
+      std::move(*snapshot),*impl_->indexed));
+}
 bool detail::NativeLz4CaptureLease::capture(NativeLz4CapturedFrame& out) const {
   out={};
   try {
@@ -2874,25 +2881,47 @@ bool detail::NativeLz4CaptureLease::capture(NativeLz4CapturedFrame& out) const {
     return view.capture_native_lz4(view.inode(inode_),offset_,maximum_encoded_,out);
   }catch(const std::exception&){return false;}
 }
-std::vector<std::byte> detail::NativeLz4CaptureLease::read_range(
-    std::uint32_t bytes,const std::function<bool()>& interrupted) const {
-  if(!bytes || bytes>kNativeMaxReadBytes || bytes%kNativeExtentBytes || offset_%kNativeExtentBytes ||
-      offset_>UINT64_MAX-bytes)return {};
+std::vector<detail::NativeCapturedWrite> detail::NativeWriteCaptureLease::read(
+    std::span<const NativeCommittedWriteRange> sources,const std::function<bool()>& interrupted) const {
+  if(sources.empty())return {};
   try {
     const StoreCaptureReadScope capture(interrupted);
     if(capture.interrupted())return {};
     const auto query=snapshot_.scoped_query();
     const auto view=verify_indexed_root(snapshot_,root_);
-    const auto inode=view.inode(inode_);
-    std::vector<std::byte> result;
-    result.reserve(bytes);
-    for(std::uint32_t at=0;at<bytes;at+=kNativeExtentBytes) {
-      if(capture.interrupted())return {};
-      const auto block=view.read(inode,offset_+at,kNativeExtentBytes);
-      if(block.size()!=kNativeExtentBytes)return {};
-      result.insert(result.end(),block.begin(),block.end());
+    const auto selected_inode=[&](std::uint64_t id)->std::optional<IndexedInodeInput> {
+      try{return view.inode(id);}
+      catch(const NativeFsError& error) {
+        if(error.code()!=NativeFsErrorCode::not_found)throw;
+        return {};
+      }
+    };
+    std::vector<NativeCapturedWrite> result;
+    result.reserve(sources.size());
+    for(const auto& source:sources) {
+      if(capture.interrupted() || !source.sequence || !source.inode || !source.revision || !source.bytes ||
+          source.bytes>kStoreMaxTransactionBytes || source.bytes%kNativeExtentBytes ||
+          source.offset%kNativeExtentBytes || source.offset>UINT64_MAX-source.bytes)return {};
+      const auto inode=selected_inode(source.inode);
+      if(!inode || inode->directory || inode->lifetime!=IndexedLifetime::linked ||
+          inode->modified!=source.revision || source.offset+source.bytes>inode->size) {
+        if(result.empty())return {};
+        continue;
+      }
+      NativeCapturedWrite item{source.sequence,{}};
+      item.bytes.reserve(source.bytes);
+      for(std::uint32_t at=0;at<source.bytes;at+=kNativeExtentBytes) {
+        if(capture.interrupted())return {};
+        const auto block=view.read(*inode,source.offset+at,kNativeExtentBytes);
+        if(block.size()!=kNativeExtentBytes)return {};
+        item.bytes.insert(item.bytes.end(),block.begin(),block.end());
+      }
+      result.push_back(std::move(item));
     }
-    if(!capture.interrupted())return result;
+    if(!capture.interrupted()) {
+      std::reverse(result.begin(),result.end());
+      return result;
+    }
   }catch(const std::exception&) {}
   return {};
 }

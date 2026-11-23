@@ -9,9 +9,6 @@ namespace flitzfs::detail {
 class NativeLz4CaptureLease final {
  public:
   bool capture(NativeLz4CapturedFrame&) const;
-  // Qualification replays take independently read bytes from the same
-  // private selected roots. No live writer or cached ready read participates.
-  std::vector<std::byte> read_range(std::uint32_t bytes,const std::function<bool()>& interrupted) const;
   // The grant covers encoded and decoded frame bytes together.
   std::vector<NativeLz4CapturedFrame> capture_range(std::uint32_t bytes,std::size_t maximum_frame_bytes,
       const std::function<bool()>& interrupted={},std::shared_ptr<PagedReadMetadata>* metadata=nullptr) const;
@@ -25,5 +22,26 @@ class NativeLz4CaptureLease final {
   IndexedVolumeRoot root_;
   std::uint64_t inode_,offset_;
   std::size_t maximum_encoded_;
+};
+struct NativeCommittedWriteRange {
+  std::uint64_t sequence=0,inode=0,revision=0,offset=0;
+  std::uint32_t bytes=0;
+};
+struct NativeCapturedWrite {
+  std::uint64_t sequence=0;
+  std::vector<std::byte> bytes;
+};
+// One selected checkpoint for a funded set of completed write receipts.
+// The first member is required. Older stale members can be dropped.
+class NativeWriteCaptureLease final {
+ public:
+  std::vector<NativeCapturedWrite> read(std::span<const NativeCommittedWriteRange>,
+      const std::function<bool()>& interrupted) const;
+ private:
+  friend class ::flitzfs::NativeFilesystemWriter;
+  NativeWriteCaptureLease(PagedObjectStoreSnapshot snapshot,IndexedVolumeRoot root):
+      snapshot_(std::move(snapshot)),root_(root) {}
+  PagedObjectStoreSnapshot snapshot_;
+  IndexedVolumeRoot root_;
 };
 }

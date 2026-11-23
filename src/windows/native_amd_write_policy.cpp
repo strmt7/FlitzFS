@@ -101,7 +101,7 @@ std::optional<NativeAmdWriteSample> record_private_writes(const NativeAmdStorage
   // Charge retained source, staging and decoder before the demand-committed
   // provider. Layout and member count are bounded by the exact wire geometry.
   const auto scratch=4ULL*layout.input_bytes+detail::kStoreDecoderMemoryCap+4ULL*kStoreCommitUnit;
-  if(allowance<=scratch || read_scope.interrupted())return {};
+  if(!native_amd_cpu_replay_fits(layout.input_bytes,requests.size(),allowance) || read_scope.interrupted())return {};
   auto capacity=allowance-scratch;
   if(existing) {
     const auto used=existing->usage();
@@ -174,6 +174,14 @@ std::optional<NativeAmdWriteSample> record_private_writes(const NativeAmdStorage
   sample.retirement_confirmed=true;
   return sample;
 }
+}
+
+bool native_amd_cpu_replay_fits(std::uint64_t bytes,std::size_t writes,std::uint64_t allowance) noexcept {
+  std::uint64_t data=0,reservations=0;
+  return bytes && writes && uniform_lz4::multiply(bytes,6,data) &&
+      uniform_lz4::multiply(writes,2ULL*kStoreCommitUnit,reservations) &&
+      uniform_lz4::add(data,reservations,data) &&
+      uniform_lz4::add(data,detail::kStoreDecoderMemoryCap+6ULL*kStoreCommitUnit,data) && data<=allowance;
 }
 
 std::optional<NativeAmdWriteSample> record_native_amd_cpu_batch(const NativeAmdStoragePolicy& storage,

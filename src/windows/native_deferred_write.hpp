@@ -29,7 +29,8 @@ struct NativeAmdCpuWriteSample {
 struct NativeAmdWriteDemand {
   NativeAmdWriteShape shape;
   std::array<NativeAmdCpuWriteSample,kNativeAmdWriteMinimumPairs> samples;
-  std::uint64_t sequence=0;
+  std::uint64_t sequence=0,source_sequence=0;
+  bool grouped_candidate=false;
 };
 bool native_amd_write_geometry(NativeFileInfoAllocation,std::uint64_t offset,
     std::size_t bytes,bool append,bool constrained) noexcept;

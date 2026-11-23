@@ -19,7 +19,7 @@ struct NativeImageStorage {
   std::uint64_t maximum_physical_bytes=0; // Required only for paged images.
   bool operator==(const NativeImageStorage&) const=default;
 };
-namespace detail {class NativeObjectSnapshot;class NativeObjectWriter;class IndexedSharedBasePreparation;class NativeLz4CaptureLease;enum class NativeInodeAction;}
+namespace detail {class NativeObjectSnapshot;class NativeObjectWriter;class IndexedSharedBasePreparation;class NativeLz4CaptureLease;class NativeWriteCaptureLease;enum class NativeInodeAction;}
 // Native file/extent layer, experimental and CPU-only. Explicit Windows
 // read-only projection is available; mounted writes and live GPU remain absent.
 inline constexpr std::uint32_t kNativeExtentBytes=65536;
@@ -632,6 +632,7 @@ class NativeFilesystemWriter final {
   bool supports_leased_lz4_capture() const noexcept;
   std::unique_ptr<detail::NativeLz4CaptureLease> lease_native_lz4_capture(
       std::uint64_t inode,std::uint64_t offset,std::size_t maximum_encoded) const;
+  std::unique_ptr<detail::NativeWriteCaptureLease> lease_committed_write_capture() const;
   NativeInodeAllocationInfo inspect_allocation(std::uint64_t inode,bool verify_ancestry) const;
   PagedObjectStoreWriter::Rewrite prepare_folded_recompression(std::shared_ptr<StoreByteIo>,StoreIdentity,
       StoreCompressionOptions,std::function<void(std::uint64_t)> admission) const;

@@ -1,4 +1,5 @@
 #include "winfsp_controller.hpp"
+#include "../native_lz4_capture.hpp"
 #include "winfsp_native.hpp"
 #include "gpu_budget.hpp"
 #include "memory_volume.hpp"
@@ -46,7 +47,7 @@ struct WinFspVolumeController::Impl {
   bool observe_write_reference=false;
   std::optional<bool> write_package_present;
   std::optional<NativeAmdWriteDemand> write_reference_demand;
-  std::bitset<kStoreMaxTransactionBytes/kNativeExtentBytes> recorded_write_sizes;
+  std::bitset<kStoreMaxTransactionBytes/kNativeExtentBytes> recorded_write_sizes,recorded_group_sizes;
   std::optional<InstalledAnchorProfile> installed;
   HipRouteDiscoveryResult acquisition;
   std::optional<NativeAnchorRecoveryProof> acquisition_proof;
@@ -156,7 +157,9 @@ struct WinFspVolumeController::Impl {
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
             if(observe_write_reference) {
               write_reference_demand.reset();
-              if(write_package_present!=false && !recorded_write_sizes[demand->shape.input_bytes/kNativeExtentBytes-1])
+              const auto size=demand->shape.input_bytes/kNativeExtentBytes-1;
+              if(write_package_present!=false &&
+                  (!recorded_write_sizes[size] || (demand->grouped_candidate && !recorded_group_sizes[size])))
                 write_reference_demand=demand;
             }
 #endif
@@ -470,13 +473,23 @@ struct WinFspVolumeController::Impl {
       return stop_requested.load(std::memory_order_acquire) || adapter->foreground_pending() ||
           adapter->foreground_activity()!=epoch || adapter->requires_offline() || adapter->dispatcher_stopped();
     };
-    const auto source=adapter->capture_amd_write_source(selected,observed,GetTickCount64(),epoch,stop_requested);
-    if(source.empty() || interrupted() ||
+    const auto size=selected.shape.input_bytes/kNativeExtentBytes-1;
+    const auto capture=adapter->capture_amd_write_group(selected,observed,GetTickCount64(),epoch,stop_requested,
+        selected.grouped_candidate && !recorded_group_sizes[size]);
+    if(capture.empty() || (capture.size()==1 && recorded_write_sizes[size]) || interrupted() ||
         GetTickCount64()-observed.captured_ms>policy.maximum_age_ms)return {};
-    const auto result=record_native_amd_cpu_trial(selected.shape,source,allowance->memory_allowance,residency,interrupted);
+    std::vector<UniformLz4BatchInput> inputs;
+    inputs.reserve(capture.size());
+    std::uint64_t bytes=0;
+    for(const auto& item:capture) {
+      inputs.push_back({item.sequence,item.bytes});
+      bytes+=item.bytes.size();
+    }
+    const NativeAmdStoragePolicy storage{selected.shape.isolation_unit,selected.shape.foreground};
+    const auto result=record_native_amd_cpu_batch(storage,inputs,allowance->memory_allowance,residency,interrupted);
     if(!result || interrupted())return {};
-    recorded_write_sizes.set(selected.shape.input_bytes/kNativeExtentBytes-1);
-    return WinFspAmdCpuTrial{selected,*result};
+    (inputs.size()>1?recorded_group_sizes:recorded_write_sizes).set(size);
+    return WinFspAmdCpuTrial{selected,*result,bytes};
   }
 
   void begin_read_acquisition(const WinFspReadAheadWork& work,const NativeMaintenanceObservation& observed) {

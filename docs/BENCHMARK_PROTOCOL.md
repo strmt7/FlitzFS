@@ -311,12 +311,15 @@ data get their own qualification. [Source-bound profiles](evidence/windows-ordin
 
 ### Cold and prepared CPU and Radeon trials
 
-Reset both arms to the same private memory-backed layout and verify identical
-input and operation order. Vary the request size, batch width and concurrency
-within measured host RAM, CPU and adapter budgets. Keep the foreground codec
-comparison separate from the later collective reduction. Repeat both small
-random reads and sequential reads on the verified stored results, with CPU
-fallback included for every encoding.
+Use the same private memory-backed layout to characterize CPU and Radeon on the
+real host before testing the mounted path. Hold bytes, transaction boundaries,
+protection and operation order constant. Sweep request size and batch width
+under fresh host and adapter budgets. Increase concurrency only after the
+single-exchange cost is understood. Keep foreground codec performance and
+later collective reduction as distinct measurements. Sweep small random reads
+and sequential reads on the verified output, including CPU decoding of each
+encoding. When the mounted RAM disk is ready, repeat the matched operations
+through ordinary Windows handles to measure the complete filesystem path.
 
 Record fresh-process startup and discovery, initialized worker setup, host and
 device transfers, device execution, CPU verification, filesystem publication
@@ -326,17 +329,35 @@ over the actual number of completed requests. Record the file cache state
 independently of worker readiness. Include occupied size, read amplification
 and background interference alongside throughput and latency.
 
-The controller can verify the CPU arm from a completed ordinary write. The
-detached comparison now uses the same mirrored writer for CPU, immediate
+The controller can verify the CPU arm from a group of completed ordinary
+writes. Metadata-only Cleanup and closed handles can precede capture, and
+superseded older writes are discarded. The detached comparison uses the same
+mirrored writer for CPU, immediate
 Radeon and prepared Radeon arms. It records worker readiness, total exchange
 and native write cost, actual occupied size and exact CPU readback. A Windows host trial replayed a 128 KiB group from two public source files.
 CPU took 0.748 ms and occupied 304 KiB in the protected image. Immediate Radeon
 took 2.727 s. Prepared Radeon took 1.789 s, including 1.721 s to readiness.
 Both Radeon images occupied 328 KiB and stored two independently verified
-device-produced extents. CPU is preferred for this tested shape. Each
-prepared lease serves one finite exchange. Reserve sustained throughput
-claims for repeated eligible groups and mounted measurements.
-[Grouped Radeon evidence](evidence/windows-amd-grouped-write-replay-2026-11-23.json)
+device-produced extents. CPU is preferred for this tested shape.
+
+A separate synthetic control passed two 512 KiB writes through the same
+protected paths on the host RX 9070 XT. Each image occupied 680 KiB. CPU
+took 2.92 ms. Immediate Radeon took 3.681 s and prepared Radeon took 2.271 s,
+of which 1.740 s was the readiness interval. The remaining measured 530 ms
+includes parent verification and private native writes. Both device arms
+stored and independently recovered all 16 device-produced extents. These
+are finite one-exchange observations. Compare repeated eligible groups
+through the mounted path for sustained throughput.
+[Grouped CPU capture and 1 MiB trial](evidence/windows-ordinary-amd-capture-groups-2026-11-23.json)
+
+Measure context reuse across real admitted bursts. In each arm record readiness,
+host-to-device transfer, kernel/queue wait, device-to-host transfer, parent
+validation, transaction publication and retirement. Reusing a ready stream
+changes setup frequency. Larger adaptive quanta and buffer reuse address the
+cost within each exchange. Keep separate cold measurements and apply the same
+admission and scoring to complete results for both paths.
+
+[Grouped Radeon evidence](evidence/windows-amd-grouped-write-replay-2026-11-23.json) ·
 [Trial evidence](evidence/windows-amd-detached-write-trials-2026-11-23.json) ·
 [Finite Radeon traces](evidence/windows-ordinary-amd-write-demand-2026-11-23.json)
 

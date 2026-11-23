@@ -151,30 +151,35 @@ existing activity signal. The record retains no file names, contents or
 recovery authority. It provides a workload baseline for a later matched
 qualification. [Source-bound Windows evidence](evidence/windows-ordinary-amd-write-demand-2026-11-23.json)
 
-### CPU reference from a completed write
+### CPU references from completed writes
 
-The controller can now replay the newest eligible aligned write on a private
-mirrored image. The adapter keeps an internal source handle, offset and
-namespace checkpoint alongside the rolling window. The capture requires the
-same checkpoint and a still-open readable source context. It acquires a
-checked immutable snapshot under the adapter's try-lock and reads the range on
-CPU after releasing the lock. Foreground callbacks retain no payload copies.
+The adapter records each eligible aligned write's committed inode revision and
+range in a bounded sample history. These scalar receipts require no allocation
+or additional backing read in the write callback. Ordinary WinFsp Cleanup can
+advance a receipt through an adjacent metadata-only revision. A handle can
+close before capture, and an unrelated inode can commit during collection.
+[WinFsp Cleanup contract](https://winfsp.dev/doc/WinFsp-API-winfsp.h/)
 
-The pending receipt survives CPU telemetry warm-up for up to two maximum CPU
-observation windows. Admitting the replay still requires a fresh idle
-observation, enough memory, a quiet foreground epoch and the installed
-uniform worker and module files. Foreground activity or shutdown cancels
-preparation. The owner charges capture, verification and cleanup to the
-existing maintenance duty cycle. Each aligned size gets at most one verified
-CPU reference per attachment.
+The owner chooses the newest eligible receipt and, when funded, recent receipts
+from distinct files. It pins one checked snapshot under the adapter's try-lock
+and reads after releasing that lock. The latest range must match its exact
+revision. Superseded older members are discarded. The replay retains the order
+and boundaries of the remaining writes.
 
-The private image uses the same foreground codec and isolation geometry as the
-captured write. The recorded interval covers its native write transaction.
-An independent CPU reopen verifies the image and compares every extent against
-the source. The owner reports the source digest and occupied image bytes after
-retiring the scratch. The Windows SDK fixture verified these conditions and
-reopened the original image independently.
-[Windows CPU replay evidence](evidence/windows-ordinary-amd-cpu-replay-2026-11-23.json)
+Receipts can span up to two maximum CPU observation windows. Group size depends
+on fresh memory and observed CPU service cost. The controller also requires an
+idle opportunity, a quiet foreground epoch and the staged uniform package.
+Foreground activity or shutdown cancels preparation. The complete capture,
+verification and cleanup consume the existing maintenance budget. The owner
+records one verified single-write reference and one grouped reference per
+aligned size and attachment.
+
+The private mirrored image uses the captured foreground codec and isolation
+geometry. An independent CPU reopen compares every extent against its source.
+The owner reports the input digest, byte count, native write time and occupied
+image size after retiring scratch.
+[Single-write evidence](evidence/windows-ordinary-amd-cpu-replay-2026-11-23.json) ·
+[Grouped capture evidence](evidence/windows-ordinary-amd-capture-groups-2026-11-23.json)
 
 ### Detached Radeon write trials
 
@@ -193,6 +198,17 @@ the number of actually stored device candidates. The measured write interval
 charges the complete worker exchange and native transaction. Independent
 private reopen provides evidence of correctness outside that interval.
 [Windows trial evidence](evidence/windows-amd-detached-write-trials-2026-11-23.json)
+
+A prepared exchange loads HIP, creates the stream and makes its bounded
+buffers available before requesting the first work. It serves a single
+group today. A supervised worker can reuse the same HIP state across a
+finite burst. That extension needs fresh memory and device admission at each
+handoff, per-group checked ownership and independent validation, responsive
+cancellation, and confirmed retirement when demand falls or pressure rises.
+Quantify the savings using real completed requests, including the cost and
+idle residency of any early preparation.
+[AMD initialization](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/initialization.html) ·
+[AMD stream lifecycle](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/reference/hip_runtime_api/modules/stream_management.html)
 
 ### Grouped native write replay
 
@@ -219,10 +235,10 @@ two Radeon-produced extents in each of two device arms and independently
 recovered both files.
 [Grouped replay evidence](evidence/windows-amd-grouped-write-replay-2026-11-23.json)
 
-The existing automatic controller records the CPU reference. The next
-integration step gathers and funds several independently captured writes.
-Route selection requires repeated matched comparisons and a measured
-advantage for the relevant shape.
+The running controller can collect recent closed-file writes and verify their
+grouped CPU reference. The next integration step gives the detached Radeon arm
+the same captured bytes and transaction boundaries. Route selection requires
+repeated matched comparisons and a measured advantage for the relevant shape.
 
 ## Activating a route on a running volume
 

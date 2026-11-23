@@ -307,9 +307,12 @@ three initial lanes with a common build and external operation witness.
    calibration; release buffers on veto, stale demand or shutdown. Count
    aligned and rejected requests, along with sampling cost. Validate zero
    worker launch on normal CPU-only, busy and unsupported shapes.
-3. **Calibrate with a complete operation.** Move reusable trial logic from
-   the [SDK comparison](../tests/test_native_deferred_write_sdk.cpp) into an
-   owned off-path recorder. Use paired independently decoded native
+3. **Calibrate with a complete operation.** The owned off-path recorder can
+   capture verified CPU reference groups from ordinary committed writes, and
+   the [SDK comparison](../tests/test_native_deferred_write_sdk.cpp) can run a
+   finite detached Radeon replay. Connect the two through one captured batch.
+   [Ordinary grouped capture](evidence/windows-ordinary-amd-capture-groups-2026-11-23.json)
+   Use paired independently decoded native
    transactions over identical immutable bytes and equal protection, initial
    volume shape and exact foreground policy. Rotate first-use order. Record
    launch/setup/transfer/wait/readback/verification/retirement/publication,
@@ -330,10 +333,14 @@ three initial lanes with a common build and external operation witness.
    outputs that change the selected image. Keep CPU recovery independent of
    runtime installation, GPU encoder choice and persisted learner state.
 5. **Use measured losses.** If foreground remains CPU-preferred, improve the
-   cost stage that dominates on the paired hardware. Compare useful extents
-   per owned exchange, context setup amortization, immutable slab reuse and
-   verified staged prefetch. Use larger opportunities only when fresh quotas
-   fund the full operation and its retirement. The read lane evaluates whole
+   cost stage that dominates on the paired hardware. Extend the prepared
+   stream from one exchange to a finite funded burst with backpressure, fresh
+   admission for each group and a stop condition driven by demand and
+   contention. Check exact group ownership, CPU verification before byte
+   use, and retirement on arena exhaustion, foreground demand or stop.
+   Compare useful extents per exchange, setup amortization, immutable slab
+   reuse and verified staged prefetch. Use larger opportunities only when
+   fresh quotas fund the full operation and its retirement. The read lane evaluates whole
    delivered latency and useful prefetch rate. The collective lane evaluates
    verified net bytes saved and foreground interference. Do not infer a win
    from kernel throughput or from a stored extent with higher complete cost.

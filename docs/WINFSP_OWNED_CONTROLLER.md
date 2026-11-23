@@ -35,9 +35,12 @@ complete rolling windows keyed by aligned request size, compression policy
 and backing isolation. The controller takes the newest observation at a
 quiet boundary and exposes it in the synchronized view. The installed uniform
 package and an admitted idle opportunity let the controller capture that exact
-completed write for a detached CPU trial. The replay uses a private protected
-image, independent CPU verification and the controller's existing cancellation
-and pacing. A qualified offer requires a winning matched GPU comparison.
+committed revision, along with funded recent writes from other files. The
+controller can capture closed files, using one immutable backing snapshot.
+The replay uses a private protected image, independent CPU verification and
+the controller's existing cancellation and pacing. Single-write and grouped
+CPU observations are tracked independently. A qualified offer requires a
+winning matched GPU comparison.
 [Measurement and replay contract](OWNED_DEFERRED_WRITES.md#cpu-service-cost-from-ordinary-writes)
 
 ## Content events and bounded work

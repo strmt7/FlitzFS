@@ -10,6 +10,9 @@ class NativeGroupMaintenance;
 class NativeHybridBacking;
 namespace detail {
 struct NativeMaintenanceSource;
+struct NativeCleanupRevision {
+  std::uint64_t inode=0,before=0,after=0;
+};
 class NativeSealScratch;
 struct NativeSealScratchOffer {
   std::uint64_t bytes=0;
@@ -461,7 +464,8 @@ class NativeFileSession final {
   void cleanup(const NativeFileHandle&,bool delete_file,const NativeCleanupMetadata&);
   // Separate name avoids ambiguity for historical cleanup(...,{}). Optional
   // tracked reservation trim shares the SAME metadata/unlink publication.
-  void cleanup_event(const NativeFileHandle&,bool delete_file,const NativeCleanupEvent&);
+  void cleanup_event(const NativeFileHandle&,bool delete_file,const NativeCleanupEvent&,
+      detail::NativeCleanupRevision* revision=nullptr);
   // No I/O or context release. Required when a void OS callback cannot report
   // an internal failure; the adapter must separately signal its supervisor.
   void fence() noexcept;
@@ -512,6 +516,7 @@ class NativeFileSession final {
       NativeVolumePlacement=NativeVolumePlacement::external);
   friend class NativeVolumeFile;
   friend class WinFspNativeWritable;
+  std::unique_ptr<detail::NativeWriteCaptureLease> lease_committed_write_capture() const;
   void bind_persistent_reclamation(std::shared_ptr<detail::NativeVolumeFileReclaimer>);
   void bind_memory_idle_compaction() noexcept;
   void bind_persistent_reclamation_wake(const std::shared_ptr<detail::NativeVolumeRangeWake>&) noexcept;

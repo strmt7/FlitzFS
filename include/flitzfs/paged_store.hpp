@@ -10,6 +10,7 @@ struct FoldedCheckpoint;
 class IndexedSharedBasePreparation;
 class IndexedVolumeView;
 class NativeLz4CaptureLease;
+class NativeWriteCaptureLease;
 class NativeNameIndex;
 class PagedReadMetadata;
 inline constexpr std::uint64_t kPagedStoreCheckpointWriteBytes=8192;
@@ -131,6 +132,7 @@ class PagedObjectStoreSnapshot final {
   friend class IndexedCoherenceSnapshot;
   friend class detail::IndexedVolumeView;
   friend class detail::NativeLz4CaptureLease;
+  friend class detail::NativeWriteCaptureLease;
   friend class detail::NativeNameIndex;
   static PagedObjectStoreSnapshot open_sealed(std::shared_ptr<detail::ProtectedStripeImage>);
   // Stream decoded objects after checking all of their payload copies.

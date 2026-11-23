@@ -40,6 +40,9 @@ struct NativeAmdStoragePolicy {
   StoreCompressionOptions foreground;
 };
 
+// Minimum memory for source, CPU scratch and a mirrored trial image.
+bool native_amd_cpu_replay_fits(std::uint64_t bytes,std::size_t writes,std::uint64_t allowance) noexcept;
+
 // Write each complete source to its own inode in a private volume. Batch
 // samples include the ordered request identities and boundaries in the digest.
 std::optional<NativeAmdWriteSample> record_native_amd_cpu_batch(const NativeAmdStoragePolicy&,

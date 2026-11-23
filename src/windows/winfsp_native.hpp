@@ -10,6 +10,7 @@
 #include <functional>
 #include <memory>
 namespace flitzfs {
+namespace detail {struct NativeCapturedWrite;}
 namespace detail {class NativeLz4ReadyReads;}
 class WinFspNativeWritable;
 struct WinFspReadAheadWork {
@@ -129,8 +130,11 @@ class WinFspNativeWritable final {
   // Before binding callbacks. Observe only successful eligible CPU writes.
   bool enable_amd_write_demand() noexcept;
   std::optional<NativeAmdWriteDemand> take_amd_write_demand() noexcept;
-  // Take the single matching range from its checked immutable root. Reads
-  // run outside the callback mutex and yield at native extent boundaries.
+  // Copy one or more admitted recent ranges from a checked immutable root.
+  // Reads run outside the callback mutex and yield at native extent boundaries.
+  std::vector<detail::NativeCapturedWrite> capture_amd_write_group(const NativeAmdWriteDemand&,
+      const NativeMaintenanceObservation&,std::uint64_t now,std::uint64_t epoch,
+      const std::atomic<bool>& stop,bool grouped=true) noexcept;
   std::vector<std::byte> capture_amd_write_source(const NativeAmdWriteDemand&,
       const NativeMaintenanceObservation&,std::uint64_t now,std::uint64_t epoch,
       const std::atomic<bool>& stop) noexcept;

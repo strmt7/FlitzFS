@@ -17,7 +17,7 @@
     "next_implementation_tickets": "docs/IMPLEMENTATION_PLAN.md#next-implementation-tickets",
     "native_ntfs_comparison": "Plain and built-in NTFS compression specified; matched real-host run pending.",
     "mounted_packed_attachment": "Bounded signed guest recovery and continued writes verified, with a 1,024-file packed recovery fixture. Sustained populated settlement and current-client qualification remain open.",
-    "automatic_foreground_amd": "Installed uniform discovery supports cancellation. The ordinary controller can capture and verify a CPU reference from a completed aligned write. Three prior exact Radeon comparisons favored CPU at equal occupied size. Controller-owned matched AMD replay and automatic selection remain open.",
+    "automatic_foreground_amd": "Installed uniform discovery supports cancellation. The ordinary controller can capture and verify grouped CPU references from independently committed files, including after Close. Controller-owned matched AMD replay and automatic selection remain open.",
     "incremental_admission": "Checked read coalescing and batched scrub have lower measured I/O. A complete unchanged scrub observation has no attach authority. Full writable verification remains in force."
   },
   "ordinary_amd_write_demand": {
@@ -59,6 +59,25 @@
     "radeon_occupied_bytes": 335872,
     "observed_preference_this_shape": "cpu",
     "automatic_grouped_route_qualified": false
+  },
+  "ordinary_amd_group_capture": {
+    "evidence": "docs/evidence/windows-ordinary-amd-capture-groups-2026-11-23.json",
+    "scope": "Per-inode committed write receipts, one immutable snapshot and a private grouped CPU replay under live Windows admission",
+    "closed_files_verified": 2,
+    "captured_bytes": 262144,
+    "superseded_receipt_excluded": true,
+    "independent_cpu_readback_and_retirement": true,
+    "detached_synthetic_control": {
+      "input_bytes": 1048576,
+      "cpu_native_ns": 2919400,
+      "radeon_immediate_ns": 3680834000,
+      "radeon_prepared_ns": 2270515000,
+      "radeon_readiness_ns": 1740241300,
+      "verified_device_extents_per_arm": 16,
+      "occupied_image_bytes_each": 696320
+    },
+    "automatic_grouped_route_qualified": false,
+    "next": "Fund matched CPU and Radeon trials from one captured group. Measure finite burst reuse, separate exchange phases and protected occupancy on memory backing."
   },
   "dense_cross_group_relocation": {
     "evidence": "docs/evidence/dense-cross-group-2026-11-23.json",

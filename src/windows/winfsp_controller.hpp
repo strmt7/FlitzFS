@@ -11,6 +11,7 @@ class MemoryVolumeDomain;
 struct WinFspAmdCpuTrial {
   NativeAmdWriteDemand demand;
   NativeAmdWriteSample sample;
+  std::uint64_t input_bytes=0;
 };
 struct WinFspControllerView {
   SessionState state=SessionState::ready;

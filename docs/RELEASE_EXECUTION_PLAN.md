@@ -495,20 +495,18 @@ latency independently on the measured Windows host. [Existing fixture](evidence/
    completion time and native service cost. Qualification can use the
    timestamps to estimate active request cadence and check freshness.
    [Write demand and Radeon evidence](evidence/windows-ordinary-amd-write-demand-2026-11-23.json)
-3. **CPU reference implemented.** The owner captures an exact eligible
-   completed write under current idle and memory admission and verifies the
-   CPU replay on a private mirrored image. It cancels when foreground work
-   returns and retires scratch before publishing the observation.
-   [Replay evidence](evidence/windows-ordinary-amd-cpu-replay-2026-11-23.json)
-   The detached Radeon arm supports multiple distinct native transactions in
-   one immediate or prepared exchange. The full group must verify before any
-   observation is eligible. Extend the volume owner to collect generation-bound
-   batches of completed writes without copying input on the callback path.
-   Run repeated paired trials under live admission, alongside read and anchor
-   opportunities. Measure complete cost across useful group sizes and separate
-   cold and prepared read paths. Bind any offer to its observed geometry and
-   confirmed retirement.
-   [Grouped replay evidence](evidence/windows-amd-grouped-write-replay-2026-11-23.json) ·
+3. **Grouped CPU reference implemented.** The owner captures generation-bound
+   batches of completed writes from distinct files under current idle and
+   memory admission. It verifies the CPU replay on a private mirrored image,
+   cancels when foreground work returns and retires scratch before publishing.
+   [Grouped capture evidence](evidence/windows-ordinary-amd-capture-groups-2026-11-23.json)
+   The detached Radeon arm supports the same distinct native transactions in
+   one immediate or prepared exchange. Pass the same captured batch to both
+   arms and run repeated paired trials under live admission, alongside read and
+   anchor opportunities. Measure complete cost across useful group sizes and
+   separate cold and prepared read paths. Bind offers to observed geometry,
+   verified output and confirmed retirement.
+   [Grouped Radeon evidence](evidence/windows-amd-grouped-write-replay-2026-11-23.json) ·
    [Benchmark protocol](BENCHMARK_PROTOCOL.md#cold-and-prepared-cpu-and-radeon-trials)
 4. Measure useful output with a real mounted request after a positive route
    qualification. Record why other requests use CPU and whether the helper

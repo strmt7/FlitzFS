@@ -8,6 +8,7 @@
 #include "../store_file.hpp"
 #include "../store_codec.hpp"
 #include "native_cleanup.hpp"
+#include "native_amd_write_policy.hpp"
 #include "native_close.hpp"
 #include "native_windows_boundary.hpp"
 #include "flitzfs/directory_order.hpp"
@@ -254,13 +255,16 @@ struct WinFspNativeWritable::Impl {
   struct AmdWriteDemand {
     static constexpr auto sizes=kStoreMaxTransactionBytes/kNativeExtentBytes;
     std::array<NativeAmdWriteDemand,sizes> by_size{};
-    std::uint64_t sequence=0;
-    std::size_t latest=0;
+    std::uint64_t sequence=0,source_sequence=0;
+    std::size_t latest=0,next_source=0;
     struct Source {
-      NativeFileHandle handle;
-      std::uint64_t offset=0,checkpoint=0;
+      detail::NativeCommittedWriteRange range;
+      NativeAmdCpuWriteSample timing;
     };
-    std::optional<Source> source;
+    // Calibration history only. No backing pin, handle, payload or allocation
+    // on the write path. The shape table supplies its bounded metadata size.
+    std::array<Source,sizes> sources{};
+    NativeAmdWriteShape source_layout;
   };
   struct ActivitySignal final:detail::NativeVolumeRangeWake {
     Handle event;
@@ -322,10 +326,16 @@ struct WinFspNativeWritable::Impl {
   void signal_maintenance() noexcept {
     if(maintenance_event)maintenance_event->signal();
   }
+  void refresh_amd_write_revisions(const detail::NativeCleanupRevision& cleanup) noexcept {
+    if(!amd_write_demand || !cleanup.inode)return;
+    for(auto& source:amd_write_demand->sources)
+      if(source.range.inode==cleanup.inode && source.range.revision==cleanup.before)
+        source.range.revision=cleanup.after;
+  }
   void record_amd_write_demand(ULONG length,std::uint64_t elapsed_ns,
-      const NativeFileHandle& handle,std::uint64_t offset) noexcept {
+      const NativeInodeCommitInfo& written,std::uint64_t offset) noexcept {
     const auto selected=session.managed_foreground();
-    if(!selected || !elapsed_ns || amd_write_demand->sequence==UINT64_MAX)return;
+    if(!selected || !elapsed_ns || amd_write_demand->source_sequence==UINT64_MAX)return;
     auto& demand=*amd_write_demand;
     const auto index=length/kNativeExtentBytes-1;
     auto& band=demand.by_size[index];
@@ -335,10 +345,21 @@ struct WinFspNativeWritable::Impl {
     }
     std::move(band.samples.begin()+1,band.samples.end(),band.samples.begin());
     band.samples.back()={elapsed_ns,GetTickCount64()};
+    if(!demand.source_layout.matches_storage(selected->compression,selected->isolation_unit)) {
+      demand.sources={};
+      demand.next_source=0;
+      demand.source_layout=band.shape;
+    }
+    const auto sequence=++demand.source_sequence;
+    if(written.inode && written.modified_sequence && !written.directory && !written.unlinked && !written.delete_pending) {
+      demand.sources[demand.next_source]={{sequence,written.inode,written.modified_sequence,offset,length},
+          band.samples.back()};
+      demand.next_source=(demand.next_source+1)%demand.sources.size();
+    }
     if(!band.samples.front().elapsed_ns)return;
     band.sequence=++demand.sequence;
+    band.source_sequence=sequence;
     demand.latest=index;
-    demand.source=AmdWriteDemand::Source{handle,offset,session.namespace_sequence()};
     amd_write_demand_pending.store(true,std::memory_order_release);
   }
   void install_deferred_locked(NativeDeferredWriteOptions options) {
@@ -783,8 +804,12 @@ struct WinFspNativeWritable::Impl {
     (void)run(fs,[&](Impl& s) {
       auto& slot=s.adopt(context);
       if(s.read_ahead_enabled)s.invalidate_read_ahead(slot);
-      const auto outcome=dispatch_native_allocated_cleanup(s.session,slot.handle,flags);
-      return outcome==NativeCleanupOutcome::applied?success():win_detail::failure(s.session,STATUS_IO_DEVICE_ERROR,true);
+      detail::NativeCleanupRevision revision;
+      const auto outcome=dispatch_native_allocated_cleanup(s.session,slot.handle,flags,native_cleanup_utc,
+          s.amd_write_demand?&revision:nullptr);
+      if(outcome!=NativeCleanupOutcome::applied)return win_detail::failure(s.session,STATUS_IO_DEVICE_ERROR,true);
+      s.refresh_amd_write_revisions(revision);
+      return success();
     },true);
   }
   static VOID close(FSP_FILE_SYSTEM* fs,PVOID context) noexcept {
@@ -819,17 +844,18 @@ struct WinFspNativeWritable::Impl {
       if(s.deferred && s.deferred->enqueue_locked(fs,slot.handle,
           {static_cast<const std::byte*>(buffer),length},offset,append!=FALSE,constrained!=FALSE))
         return NativeWindowsIoOutcome{STATUS_PENDING,false};
-      const auto write_cpu=[&] {
+      const auto write_cpu=[&](NativeInodeCommitInfo* receipt=nullptr) {
         return dispatch_native_write(s.session,slot.handle,buffer,offset,length,
-            append!=FALSE,constrained!=FALSE,{},s.info_policy,count,info);
+            append!=FALSE,constrained!=FALSE,{},s.info_policy,count,info,receipt);
       };
       if(!s.amd_write_demand || !native_amd_write_geometry(s.info_policy,offset,length,append!=FALSE,constrained!=FALSE))
         return write_cpu();
+      NativeInodeCommitInfo receipt;
       const auto start=std::chrono::steady_clock::now();
-      const auto written=write_cpu();
+      const auto written=write_cpu(&receipt);
       if(written.status==STATUS_SUCCESS && !written.offline_required && *count==length) {
         const auto elapsed=std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now()-start).count();
-        if(elapsed>0)s.record_amd_write_demand(length,static_cast<std::uint64_t>(elapsed),slot.handle,offset);
+        if(elapsed>0)s.record_amd_write_demand(length,static_cast<std::uint64_t>(elapsed),receipt,offset);
       }
       return written;
     });
@@ -1280,42 +1306,91 @@ std::optional<NativeAmdWriteDemand> WinFspNativeWritable::take_amd_write_demand(
     if(!guard || foreground_pending() || requires_offline() ||
         !impl_->amd_write_demand_pending.exchange(false,std::memory_order_acq_rel))return {};
     const auto& demand=*impl_->amd_write_demand;
-    const auto& observed=demand.by_size[demand.latest];
+    auto observed=demand.by_size[demand.latest];
     const auto selected=impl_->session.managed_foreground();
     if(!selected || !observed.shape.matches_storage(selected->compression,selected->isolation_unit))return {};
+    const auto first=std::ranges::find_if(demand.sources,[&](const auto& source) {
+      return source.range.sequence==observed.source_sequence;
+    });
+    if(first!=demand.sources.end())
+      observed.grouped_candidate=std::ranges::any_of(demand.sources,[&](const auto& source) {
+        return source.range.sequence && source.range.sequence<observed.source_sequence &&
+            source.range.inode!=first->range.inode;
+      });
     return observed;
   }catch(...) {return {};}
 }
-std::vector<std::byte> WinFspNativeWritable::capture_amd_write_source(
+std::vector<detail::NativeCapturedWrite> WinFspNativeWritable::capture_amd_write_group(
     const NativeAmdWriteDemand& observed,const NativeMaintenanceObservation& resources,
-    std::uint64_t now,std::uint64_t epoch,const std::atomic<bool>& stop) noexcept {
+    std::uint64_t now,std::uint64_t epoch,const std::atomic<bool>& stop,bool grouped) noexcept {
   try {
-    const auto allowance=detail::maintenance_resources(resources,now,impl_->group_policy);
-    constexpr auto read_scratch=detail::kStoreDecoderMemoryCap+4ULL*kStoreCommitUnit+2ULL*kNativeExtentBytes;
+    const auto& policy=impl_->group_policy;
+    const auto allowance=detail::maintenance_resources(resources,now,policy);
     if(!allowance || allowance->cpu_busy || resources.foreground_pending ||
-        allowance->memory_allowance<read_scratch+observed.shape.input_bytes)return {};
+        !native_amd_cpu_replay_fits(observed.shape.input_bytes,1,allowance->memory_allowance))return {};
     const auto interrupted=[&] {
       return foreground_pending() || foreground_activity()!=epoch || requires_offline() ||
           dispatcher_stopped() || stop.load(std::memory_order_acquire);
     };
     if(interrupted())return {};
-    std::unique_ptr<detail::NativeLz4CaptureLease> lease;
+    std::array<detail::NativeCommittedWriteRange,Impl::AmdWriteDemand::sizes> ranges{};
+    std::size_t count=0;
+    std::unique_ptr<detail::NativeWriteCaptureLease> lease;
     {
       std::unique_lock guard(impl_->control,std::try_to_lock);
       if(!guard || interrupted() || !impl_->may_prepare_read() || !impl_->amd_write_demand)return {};
       auto& demand=*impl_->amd_write_demand;
       const auto& latest=demand.by_size[demand.latest];
-      if(!demand.source || !observed.sequence || latest.sequence!=observed.sequence ||
+      if(!observed.sequence || latest.sequence!=observed.sequence || latest.source_sequence!=observed.source_sequence ||
           latest.shape.input_bytes!=observed.shape.input_bytes ||
-          !latest.shape.matches_storage(observed.shape.foreground,observed.shape.isolation_unit))return {};
-      const auto source=*std::exchange(demand.source,std::nullopt);
-      if(!source.checkpoint || source.checkpoint!=impl_->session.namespace_sequence() ||
+          !latest.shape.matches_storage(observed.shape.foreground,observed.shape.isolation_unit) ||
+          !demand.source_layout.matches_storage(observed.shape.foreground,observed.shape.isolation_unit) ||
           !impl_->session.matches_managed_foreground(observed.shape.foreground,observed.shape.isolation_unit))return {};
-      lease=impl_->session.lease_native_lz4_capture(source.handle,source.offset,
-          kNativeExtentBytes+detail::kIndexedExtentHeaderBytes);
+      const auto fresh=[&](const auto& source) {
+        return source.timing.completed_ms<=now && now-source.timing.completed_ms<=2ULL*policy.maximum_cpu_window_ms;
+      };
+      const auto first=std::ranges::find_if(demand.sources,[&](const auto& source) {
+        return source.range.sequence==observed.source_sequence && source.range.bytes==observed.shape.input_bytes && fresh(source);
+      });
+      if(first==demand.sources.end())return {};
+      ranges[count++]=first->range;
+      std::uint64_t bytes=first->range.bytes,service=first->timing.elapsed_ns;
+      // Previous CPU service is an admission estimate, not a time guarantee.
+      // The owner still paces the measured complete quantum after it finishes.
+      const auto budget=(std::max)(service,resources.cpu_window_ms*policy.work_share_ppm);
+      if(grouped)for(std::size_t distance=1;distance<=demand.sources.size();++distance) {
+        if(interrupted())return {};
+        const auto index=(demand.next_source+demand.sources.size()-distance)%demand.sources.size();
+        const auto& candidate=demand.sources[index];
+        const auto& range=candidate.range;
+        if(!range.sequence || range.sequence>=observed.source_sequence || !fresh(candidate) ||
+            candidate.timing.elapsed_ns>budget-service ||
+            !native_amd_cpu_replay_fits(bytes+range.bytes,count+1,allowance->memory_allowance) ||
+            std::ranges::any_of(std::span(ranges).first(count),[&](const auto& chosen) {
+              return chosen.inode==range.inode;
+            }))continue;
+        ranges[count++]=range;
+        bytes+=range.bytes;
+        service+=candidate.timing.elapsed_ns;
+      }
+      lease=impl_->session.lease_committed_write_capture();
+      if(!lease || interrupted())return {};
+      // A fresh attempt consumes its selected receipts. It cannot replay an
+      // obsolete observation after failure or foreground cancellation.
+      for(auto& source:demand.sources)
+        if(std::ranges::any_of(std::span(ranges).first(count),[&](const auto& chosen) {
+          return chosen.sequence==source.range.sequence;
+        }))source={};
     }
-    if(lease && !interrupted())return lease->read_range(observed.shape.input_bytes,interrupted);
+    if(!interrupted())return lease->read(std::span(ranges).first(count),interrupted);
   }catch(...) {}
+  return {};
+}
+std::vector<std::byte> WinFspNativeWritable::capture_amd_write_source(
+    const NativeAmdWriteDemand& observed,const NativeMaintenanceObservation& resources,
+    std::uint64_t now,std::uint64_t epoch,const std::atomic<bool>& stop) noexcept {
+  auto result=capture_amd_write_group(observed,resources,now,epoch,stop,false);
+  if(result.size()==1)return std::move(result.front().bytes);
   return {};
 }
 void WinFspNativeWritable::cancel_background_maintenance() {

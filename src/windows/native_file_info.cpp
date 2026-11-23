@@ -86,17 +86,18 @@ NativeWindowsIoOutcome dispatch_native_file_info(NativeFileSession& session,cons
 NativeWindowsIoOutcome dispatch_native_write(NativeFileSession& session,const NativeFileHandle& handle,
     const void* buffer,UINT64 offset,ULONG length,bool append,bool constrained,
     const NativeAutomaticMetadata& effect,NativeFileInfoAllocation mode,PULONG transferred,
-    FSP_FSCTL_FILE_INFO* output) noexcept {
+    FSP_FSCTL_FILE_INFO* output,NativeInodeCommitInfo* write_receipt) noexcept {
   return dispatch_native_write_with_lz4(session,handle,buffer,offset,length,append,constrained,
-      {},effect,mode,transferred,output);
+      {},effect,mode,transferred,output,nullptr,write_receipt);
 }
 NativeWindowsIoOutcome dispatch_native_write_with_lz4(NativeFileSession& session,const NativeFileHandle& handle,
     const void* buffer,UINT64 offset,ULONG length,bool append,bool constrained,
     std::span<const NativeLz4ExtentCandidate> candidates,const NativeAutomaticMetadata& effect,
     NativeFileInfoAllocation mode,PULONG transferred,FSP_FSCTL_FILE_INFO* output,
-    std::uint32_t* stored_lz4_candidates) noexcept {
+    std::uint32_t* stored_lz4_candidates,NativeInodeCommitInfo* write_receipt) noexcept {
   if(transferred)*transferred=0;if(output)*output={};
   if(stored_lz4_candidates)*stored_lz4_candidates=0;
+  if(write_receipt)*write_receipt={};
   const bool indexed=mode==NativeFileInfoAllocation::indexed_reserved_cache;
   if(!transferred || !output || !policy(mode) || (length && !buffer) ||
       length>native_windows_write_limit(mode) || append!=(offset==UINT64_MAX) || !native_cleanup_metadata_valid(effect))
@@ -117,6 +118,7 @@ NativeWindowsIoOutcome dispatch_native_write_with_lz4(NativeFileSession& session
     if(!encode_native_file_info(committed.state,mode,*output))
       return failure(session,STATUS_IO_DEVICE_ERROR,true);
     if(stored_lz4_candidates)*stored_lz4_candidates=committed.transaction.storage.stored_lz4_candidates;
+    if(write_receipt && committed.bytes)*write_receipt=committed.state.info;
     *transferred=committed.bytes;return NativeWindowsIoOutcome{STATUS_SUCCESS,false};
   });
 }

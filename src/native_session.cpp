@@ -1819,6 +1819,9 @@ std::unique_ptr<detail::NativeLz4CaptureLease> NativeFileSession::lease_native_l
   if(!slot.access.read)fail(E::access_denied,"native context has no read access");
   return self.writer.lease_native_lz4_capture(slot.inode,offset,maximum_encoded);
 }
+std::unique_ptr<detail::NativeWriteCaptureLease> NativeFileSession::lease_committed_write_capture() const {
+  return ready().writer.lease_committed_write_capture();
+}
 NativeInodeWriteCommit NativeFileSession::write(const NativeFileHandle& handle,
     std::uint64_t offset,std::span<const std::byte> bytes,NativeInodeWriteOptions options) {
   const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
@@ -2009,7 +2012,8 @@ void NativeFileSession::cleanup(const NativeFileHandle& handle,bool delete_file,
   cleanup_event(handle,delete_file,{effect,false});
 }
 void NativeFileSession::cleanup_event(const NativeFileHandle& handle,bool delete_file,
-    const NativeCleanupEvent& event) {
+    const NativeCleanupEvent& event,detail::NativeCleanupRevision* revision) {
+  if(revision)*revision={};
   const auto& effect=event.metadata;
   const auto index=slot_for(handle);auto& self=ready();auto& slot=self.slots[index];
   if(!native_cleanup_metadata_valid(effect))
@@ -2056,9 +2060,14 @@ void NativeFileSession::cleanup_event(const NativeFileHandle& handle,bool delete
           applied.metadata={};
       }
     }
-    if(applied.metadata.any() || applied.trim_allocation)
-      self.writer.cleanup_inode_storage_result(slot.inode,delete_file,false,applied);
-    else if(delete_file)self.writer.unlink_inode(slot.inode);
+    if(applied.metadata.any() || applied.trim_allocation) {
+      const auto committed=self.writer.cleanup_inode_storage_result(slot.inode,delete_file,false,applied);
+      const auto& after=committed.state.info;
+      if(revision && !delete_file && !state.directory && !state.unlinked && !state.delete_pending &&
+          !after.unlinked && !after.delete_pending && after.logical_bytes==state.logical_bytes &&
+          after.modified_sequence>state.modified_sequence)
+        *revision={slot.inode,state.modified_sequence,after.modified_sequence};
+    } else if(delete_file)self.writer.unlink_inode(slot.inode);
     if(delete_file)self.clear_latch(slot.inode);
     else if(latch!=self.latched.size()) {
       self.latched[latch]=slot.inode;
