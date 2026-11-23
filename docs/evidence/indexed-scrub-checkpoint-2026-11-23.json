@@ -1,0 +1,434 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "qualification": "development",
+  "release_qualified": false,
+  "source": {
+    "base": "bfae3d23e23aa8a55629272a682f4751e3e04543",
+    "base_tree": "b52b0208297b115f0fc2b291b86fec1fb2865cf7",
+    "blobs": {
+      "include/flitzfs/native_filesystem.hpp": "81501ed7ac0b62cec216418c26ab6de869d1c2fc",
+      "include/flitzfs/native_session.hpp": "deab48372e5f0f6ba7f507fa44b5dc2b4daf6eaf",
+      "include/flitzfs/paged_store.hpp": "41c7501ebb74826280d82d3139d1853b878d4f17",
+      "src/native_filesystem.cpp": "6941a2fbe0f969c3f864cebc096edd3d2798db89",
+      "src/native_object_storage.hpp": "073ff7f3fb77fcde8a775dc15db02f443a028a30",
+      "src/native_session.cpp": "e0ab0cb499f811f27d16b1b912a6c87c614de8d4",
+      "src/paged_store.cpp": "389c35adc71f76d99e6e2debb054de6245a92ed7",
+      "src/windows/winfsp_controller.cpp": "9353a7896c0f97a042dc05538bf744d678bb97f0",
+      "src/windows/winfsp_controller.hpp": "063c10993298c2518f0e5c11e3ed462c8aa8ed90",
+      "src/windows/winfsp_native.cpp": "d9bff0dfbe8987bd38443454e08ab925d5e150cc",
+      "tests/test_mirrored_payloads.cpp": "e72e268eb6b2519bbd05b08c9b3a437d09c83632",
+      "tests/test_winfsp_controller.cpp": "663859096f928b7d12d557840584c021d09f02ab"
+    },
+    "normalized_sha256": {
+      "include/flitzfs/native_filesystem.hpp": "a4c0d36e1f08b92ea0dddc68e35c9f063ab0ecc644b097b2d9dd7ba943c62073",
+      "include/flitzfs/native_session.hpp": "c08f0eab39decc89ee795cb6dd65e33fd67856089cf68c625682a383feac2965",
+      "include/flitzfs/paged_store.hpp": "bce922081ee85769f3207552460304e4f59c263cc363a8e0171b0a0daceec391",
+      "src/native_filesystem.cpp": "929b6f5208cc35f8b240d98ccc2816bdee299150298fc144ffd3f51aef040bda",
+      "src/native_object_storage.hpp": "a4230ce5efeed1cbd3aaa9283a26228d53e2438b4a14787667c40cafd15d949f",
+      "src/native_session.cpp": "18f08ce7cb6ac98969af837aef510eb2760fe5a92640cd23433cdaf051d528ae",
+      "src/paged_store.cpp": "efa6b0fa35bc1f3d89c1969412623199c20e227f80034f598305c1155b652f1d",
+      "src/windows/winfsp_controller.cpp": "cd9457f72e712b2af7925828f56dc616ec45b00af87f32f97a0c87f63eed8c18",
+      "src/windows/winfsp_controller.hpp": "0235f5c23ededc13e46292704db0a0eff85592fc31b5ca7c52023dfd673acafe",
+      "src/windows/winfsp_native.cpp": "8767ce18821138773e49c0893cebdbda013a1539b8d82c0f71d90f21e60a3453",
+      "tests/test_mirrored_payloads.cpp": "c519487cb07f5a3468517c168467c7e432702344574bf1692b80e4a6675c91e8",
+      "tests/test_winfsp_controller.cpp": "d728531ccb4c31ca1566b061cb7fcd08465fbe6da35901d5277d6afbe77c650d"
+    }
+  },
+  "mechanism": {
+    "bounded_steps": "Share a freshly checked paged index walk for several objects. Bound admitted encoded and decoded object work. Observe queued foreground and elapsed time between records.",
+    "observation": "Only full clean in-process coverage at one exact checkpoint, including a final root check, identifies a verified generation. Restored and mixed-generation scans remain useful advisory progress.",
+    "scope": "Paged replica verification. The complete native writable-attach audit continues."
+  },
+  "routing": {
+    "execution": {
+      "id": "local-run-45811b9c3dc4489fb7d97c1a4a3afc24",
+      "receipt_sha256": "3fef122142644ba7c5c59b72d3e5c5ab0a2ad8ac39d3285a77aedfb5cc862569",
+      "log_sha256": "99202fb0545e719521c866b98d994789164ef4e1248e845838fd5a8460e62539",
+      "exit_code": 0,
+      "tree_retired": true,
+      "children_terminated_by_supervisor": 0,
+      "commitment_cap_bytes": 1341128704,
+      "peak_commitment_bytes": 1223254016,
+      "cpu_percent": 13,
+      "timeout_seconds": 170.0,
+      "elapsed_seconds": 59.719,
+      "inherited_error_mode": 32771
+    },
+    "provider": "0.2.43",
+    "receipt_sha256": "71d4ac6dbaa058a9a12d7a176c128b639be2427343b7f4b0eb87ff6ea673fecd",
+    "inventory_sha256": "31d528878edb6bda4a254d464b1d1abd8c69879cd39e5e2c3b51be2f093cbb87",
+    "results_sha256": "269052ac7e66eb7b8a7cb1e32e6e79115646236a828920d97142238f736a689a"
+  },
+  "external_sources": {
+    "execution": {
+      "id": "local-run-60ef2b7003234c1db22e25cf4db84759",
+      "receipt_sha256": "781268990c4132fd86d252417182d924ab3ec5b4428425407dcf0279cd8b0aea",
+      "log_sha256": "522e72632174298ef76d0f8016daa38e427e9be09b100d4527b22b06f14b4b35",
+      "exit_code": 0,
+      "tree_retired": true,
+      "children_terminated_by_supervisor": 0,
+      "commitment_cap_bytes": 2163212288,
+      "peak_commitment_bytes": 391020544,
+      "cpu_percent": 11,
+      "timeout_seconds": 175.0,
+      "elapsed_seconds": 7.265,
+      "inherited_error_mode": 32771
+    },
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "provider_source_identity": {
+      "tools/crawl4ai_tool.py": "e84a0e54ee07e4e13d3d2f35491f641730096a78126068f232c1f2397a467d8c",
+      "tools/crawl4ai_research.py": "ec3cb7a98eceed8fef08f3af806d6eaed35656bd76ca0ee8853d273f790337a5",
+      "tools/requirements/crawl4ai.txt": "6a42b0ff5ff6c63c843c6329ce823b819fd4f6f068e68d1836ab6dbec96e8f2f",
+      "tools/crawl4ai_sites.json": "e8869cb0488d78762a90aea6ecf2c3616bb89f0c89a8800cc512c613a750dc86",
+      "tools/nltk_distribution.py": "19eb3007c226b1a13e1ad0daa79cbd8a7bf6d082a20bf386e36ac060d0000919",
+      "tools/python_wheel.py": "c3c9a62454cb377203abce32154bec07cbf805bc7420cc89386c1c18370b301a",
+      "tools/test_nltk_model_security.py": "8aab7e2a704af875992ecae9137cdf5e5ff6935a4dd49e6751c54b2629a7280b",
+      "tools/requirements/python-build.txt": "9b280d724fda87773ba33a2654362adad84c68c4f79394adc07ff2e0293ca498",
+      "tools/crawl4ai_source_build.py": "5c27c4693fa0880a8db399825f637b694616963fc11f708afed33fa5b2e38b48",
+      "tools/crawl4ai_download_opener.py": "d5fd20b5545fd64c93a06b3ef07732f1c2da7e09ee6cda80662475007db52538",
+      "tools/test_crawl4ai_downloads.py": "ae4cf54c351a9da2de49caeb96306f384bb6a8f487318eabc69db4132d658619",
+      "third_party/upstream/nltk/3.10.4/distribution.json": "3241a8670f12e205525fc096572ed1969c063f77e13cffd70eff5eb656fbe1b0",
+      "nltk_upstream_wheel": "e46d89e59ef949270e3b19ab097da8dbb09350e05cb5a746ff92f6ccf6e8ce90",
+      "crawl4ai_source_build": "7da6376934254d9ad1de9e016a4509dae32c47559955889424435fcbbc7419f5"
+    },
+    "robots": true,
+    "external_model": false,
+    "receipt_sha256": "658da2c4cf50953a3863c4df2bddf0f09f895e282bafc02a6200a9bab0021423",
+    "pages": [
+      {
+        "url": "https://btrfs.readthedocs.io/en/latest/btrfs-scrub.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 21691,
+        "markdown_sha256": "48885e6d61e8bf4733545528733782c8e85bc9a16e56da0d328c25556c041118",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.837,
+        "capture": "btrfs-scrub.native.json",
+        "capture_sha256": "9cc9705f3721404764b36973b613e2da48fca1e99c16b70cd318ca430eda11e2",
+        "name": "btrfs-scrub"
+      },
+      {
+        "url": "https://openzfs.github.io/openzfs-docs/Basic%20Concepts/Operations/Scrub%20and%20Resilver.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 9934,
+        "markdown_sha256": "614643fc6c4d9297939d91e4e80f743dcfb0f80fa0208539e503491bf168e82f",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.819,
+        "capture": "openzfs-scrub.native.json",
+        "capture_sha256": "18f7486fc796e012bee7ae8f549d8e6754c78eec04e1dd02117e9ede40505587",
+        "name": "openzfs-scrub"
+      },
+      {
+        "url": "https://docs.kernel.org/filesystems/xfs/xfs-online-fsck-design.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 275823,
+        "markdown_sha256": "6db21e649727eb496cd2d62c6448185c446796cd79dc4747407e279d1af259b6",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.701,
+        "capture": "xfs-checks.native.json",
+        "capture_sha256": "df85a6e7aab88ad422ef29649a3628e43c35e11761ce6e2924f5a699eba678b3",
+        "name": "xfs-checks"
+      }
+    ]
+  },
+  "profile": {
+    "execution": {
+      "id": "local-run-2a07ee1834994ab49a53c66b8456c917",
+      "receipt_sha256": "b81def1c9c4dd210d2e554b8d1cdbf2e9a27369a8d49f0084874b52b5df5d137",
+      "log_sha256": "166e29ca3d41e3a377fa1714c8f7a4b74f60e01d49e8edba817ae3fda0d1ccad",
+      "exit_code": 0,
+      "tree_retired": true,
+      "children_terminated_by_supervisor": 0,
+      "commitment_cap_bytes": 783286272,
+      "peak_commitment_bytes": 51056640,
+      "cpu_percent": 16,
+      "timeout_seconds": 180.0,
+      "elapsed_seconds": 2.641,
+      "inherited_error_mode": 32771
+    },
+    "binary_sha256": "c4960d771c59184e8568b7b6eb3af5c18b259065590fbad587d0f816c892dda4",
+    "comparisons": {
+      "one_record": {
+        "backing_calls": 197640,
+        "backing_bytes": 677412864,
+        "median_elapsed_ns": 615647200
+      },
+      "batched_64": {
+        "backing_calls": 37166,
+        "backing_bytes": 20111360,
+        "median_elapsed_ns": 21869300
+      }
+    },
+    "samples": [
+      {
+        "batched": 0,
+        "objects": 16384,
+        "backing_calls": 197640,
+        "backing_bytes": 677412864,
+        "elapsed_ns": 615647200,
+        "exact_checkpoint": 1,
+        "writes": 0
+      },
+      {
+        "batched": 1,
+        "objects": 16384,
+        "backing_calls": 37166,
+        "backing_bytes": 20111360,
+        "elapsed_ns": 21821100,
+        "exact_checkpoint": 1,
+        "writes": 0
+      },
+      {
+        "batched": 1,
+        "objects": 16384,
+        "backing_calls": 37166,
+        "backing_bytes": 20111360,
+        "elapsed_ns": 21869300,
+        "exact_checkpoint": 1,
+        "writes": 0
+      },
+      {
+        "batched": 0,
+        "objects": 16384,
+        "backing_calls": 197640,
+        "backing_bytes": 677412864,
+        "elapsed_ns": 611351400,
+        "exact_checkpoint": 1,
+        "writes": 0
+      },
+      {
+        "batched": 0,
+        "objects": 16384,
+        "backing_calls": 197640,
+        "backing_bytes": 677412864,
+        "elapsed_ns": 622258800,
+        "exact_checkpoint": 1,
+        "writes": 0
+      },
+      {
+        "batched": 1,
+        "objects": 16384,
+        "backing_calls": 37166,
+        "backing_bytes": 20111360,
+        "elapsed_ns": 22475600,
+        "exact_checkpoint": 1,
+        "writes": 0
+      }
+    ],
+    "pairs": [
+      {
+        "pair": 1,
+        "batched_first": 0,
+        "identical_roots": 1
+      },
+      {
+        "pair": 2,
+        "batched_first": 1,
+        "identical_roots": 1
+      },
+      {
+        "pair": 3,
+        "batched_first": 0,
+        "identical_roots": 1
+      }
+    ],
+    "scope": "16,384 raw 64-byte objects in an in-memory store on the Windows development host. Explicit width comparison within one binary. Windows controller additionally limits step time and checks foreground demand."
+  },
+  "validation": {
+    "selected_windows_build": {
+      "id": "local-run-915a3be4ba2c431faacbee8d7a28dc7c",
+      "receipt_sha256": "0b4f5b80ca546b6a0ace99c7cf9eb534efbe66e09f5d14a1cd34515501304f1a",
+      "log_sha256": "179e7749d09765bb6a29e21bbec384e19cc6caff62930336e90256108b1ad5ed",
+      "exit_code": 0,
+      "tree_retired": true,
+      "children_terminated_by_supervisor": 1,
+      "commitment_cap_bytes": 3137339392,
+      "peak_commitment_bytes": 1000382464,
+      "cpu_percent": 20,
+      "timeout_seconds": 550.0,
+      "elapsed_seconds": 121.484,
+      "inherited_error_mode": 32771
+    },
+    "windows": {
+      "id": "local-run-75b8e800e4844a7c8300165be46b3ba3",
+      "receipt_sha256": "fea1db85af7a378ffb28e47fba568ca8ed100cde1e10204af8a11e145093d3d2",
+      "log_sha256": "ef89a38852c082b666cc2e3323c269b15198983dc82cf26f76fcef712d6834b0",
+      "exit_code": 0,
+      "tree_retired": true,
+      "children_terminated_by_supervisor": 0,
+      "commitment_cap_bytes": 896532480,
+      "peak_commitment_bytes": 682029056,
+      "cpu_percent": 20,
+      "timeout_seconds": 625.0,
+      "elapsed_seconds": 158.047,
+      "inherited_error_mode": 32771,
+      "groups_passed": 217
+    },
+    "raw": {
+      "id": "local-run-bb497dbde2594a22abe71943135ed778",
+      "receipt_sha256": "c952cd668738bfe5e0dfb38cebcbcdeba121a92fab4ab93938dabfcad0c05819",
+      "log_sha256": "fa21949bb1c8ae023b693cf4789f89dc1e169f8c239cc1faaed0b78d5b389acc",
+      "exit_code": 0,
+      "tree_retired": true,
+      "children_terminated_by_supervisor": 0,
+      "commitment_cap_bytes": 836763648,
+      "peak_commitment_bytes": 93835264,
+      "cpu_percent": 17,
+      "timeout_seconds": 420.0,
+      "elapsed_seconds": 27.235,
+      "inherited_error_mode": 32771,
+      "groups_passed": 6
+    },
+    "asan": {
+      "id": "local-run-a7e63dc7271142d1bc14087166c01ba8",
+      "receipt_sha256": "715d628c8ecb7ec4dcf5f5d55b6552b7571ac09198615fbe5bd7322c69feb4b0",
+      "log_sha256": "6959c6852686d0d00b1e609941cfd60837c1749c8d1df0a2fd313de036d59c08",
+      "exit_code": 0,
+      "tree_retired": true,
+      "children_terminated_by_supervisor": 0,
+      "commitment_cap_bytes": 1735393280,
+      "peak_commitment_bytes": 906588160,
+      "cpu_percent": 17,
+      "timeout_seconds": 420.0,
+      "elapsed_seconds": 68.625,
+      "inherited_error_mode": 32771,
+      "groups_passed": 7
+    },
+    "sdk_backing": {
+      "id": "local-run-c24e0ed09c0648d492c925d1730f121e",
+      "receipt_sha256": "1061549a0a87a009ef6eafcad0968d0aaab01b51485369a045f146fb4ca84d85",
+      "log_sha256": "4995c3cfd226c26f7b2bb7cec5618e99dcc81f9186b2dc31191462dbd209a633",
+      "exit_code": 0,
+      "tree_retired": true,
+      "children_terminated_by_supervisor": 0,
+      "commitment_cap_bytes": 781189120,
+      "peak_commitment_bytes": 229040128,
+      "cpu_percent": 18,
+      "timeout_seconds": 260.0,
+      "elapsed_seconds": 3.36,
+      "inherited_error_mode": 32771,
+      "markers": [
+        "dense_release_scrub observed_objects=",
+        "exact_generation=1 independent_bytes=1",
+        "paired_scrub_checkpoint retired_and_resumed=1"
+      ]
+    },
+    "actual_windows_scheduler": {
+      "id": "local-run-2da84ea336a94292a30ba4ec3e3072ca",
+      "receipt_sha256": "808d416f4d34ab824aa2c744ed9aee8d435e88d655d370913272e777af35403c",
+      "log_sha256": "bca721ff91845f4108f103a3d8fdf9ad2e324b23fa53312e2c91bc4f7d49873b",
+      "exit_code": 0,
+      "tree_retired": true,
+      "children_terminated_by_supervisor": 0,
+      "commitment_cap_bytes": 631242752,
+      "peak_commitment_bytes": 15753216,
+      "cpu_percent": 18,
+      "timeout_seconds": 32.0,
+      "elapsed_seconds": 9.328,
+      "inherited_error_mode": 32771,
+      "markers": [
+        "live_payload_scrub peer_before_read=1"
+      ]
+    },
+    "earlier_qualification": {
+      "private_adapter_fixture_build": {
+        "id": "local-run-9510935d4ba1452fae6ff9ad7490d827",
+        "receipt_sha256": "1aa1813c718f2dd1332e58cbf1518234cda8abdca69fe2aa0e964e89f63a8115",
+        "log_sha256": "12828fe2d433d45c09b7c5f4c8fe68c4edc4547b0aca6800d229d053cc91f98f",
+        "exit_code": 1,
+        "tree_retired": true,
+        "children_terminated_by_supervisor": 1,
+        "commitment_cap_bytes": 3481272320,
+        "peak_commitment_bytes": 602218496,
+        "cpu_percent": 18,
+        "timeout_seconds": 350.0,
+        "elapsed_seconds": 36.344,
+        "inherited_error_mode": 32771
+      },
+      "one_object_test_assumption": {
+        "id": "local-run-2c3f42ff64724598a8074aab1155362c",
+        "receipt_sha256": "e31f40c46a9b44e37a8ea703a8c356aa89e8ef780bf3dfe4ca4bddca5a129847",
+        "log_sha256": "c7db12ec5f5e9d8865e64899fc54f16705f559b84a29ae96a7b2c01a2012f8f9",
+        "exit_code": 8,
+        "tree_retired": true,
+        "children_terminated_by_supervisor": 0,
+        "commitment_cap_bytes": 2725249024,
+        "peak_commitment_bytes": 63504384,
+        "cpu_percent": 17,
+        "timeout_seconds": 330.0,
+        "elapsed_seconds": 11.343,
+        "inherited_error_mode": 32771
+      },
+      "saved_checkpoint_single_step_assumption": {
+        "id": "local-run-5d2eec18278a4f72b9dffabc422f3b1f",
+        "receipt_sha256": "8fe4c6e5a66d89c6ba5693139062baf8a1c6ca36b06cfd72234f98b0e707fc12",
+        "log_sha256": "82b45a82b71829c03fdf9513773c55455ba8de866945937b50fe907939802b4d",
+        "exit_code": 1,
+        "tree_retired": true,
+        "children_terminated_by_supervisor": 0,
+        "commitment_cap_bytes": 2775580672,
+        "peak_commitment_bytes": 51081216,
+        "cpu_percent": 18,
+        "timeout_seconds": 260.0,
+        "elapsed_seconds": 0.297,
+        "inherited_error_mode": 32771
+      },
+      "resolution": "The targeted fixtures used the existing native object bridge and tested actual keys and examined records across a slice that may complete a scan."
+    }
+  },
+  "cleanup": {
+    "owned_processes": 0,
+    "owned_sandboxes": 0,
+    "controlled_artifact_bytes": 15932492
+  },
+  "mounted_windows": {
+    "execution": {
+      "id": "local-run-2b22849d42c348a3be2fbe43aa8b1ad8",
+      "receipt_sha256": "5fdb655211f82ed9efcdeffa30d20ffed7e69ba837a8b764d4bf58f26af05134",
+      "log_sha256": "0a78e4026daf868257b9c0ad8086959d12fe1e366a648f81926ccaf2cfc04685",
+      "exit_code": 0,
+      "tree_retired": true,
+      "children_terminated_by_supervisor": 0,
+      "commitment_cap_bytes": 2731540480,
+      "peak_commitment_bytes": 46510080,
+      "cpu_percent": 13,
+      "timeout_seconds": 530.0,
+      "elapsed_seconds": 128.235,
+      "inherited_error_mode": 32771
+    },
+    "windows": {
+      "caption": "Microsoft Windows 11 Enterprise",
+      "version": "10.0.26100",
+      "build": "26100",
+      "session": 0,
+      "ram_mib": 4094,
+      "available_mib": 3057,
+      "explorer_sessions": []
+    },
+    "guest_receipt_sha256": "68bed8b09b75ca6afe15e443f338aea14a240801b8a6d55fd6de9d9500797952",
+    "sandbox_receipt_sha256": "d3d0a3fed02447d78e1d1a429e3d2c9e5c1b4e575b6eb1e011c54186ad2e62c6",
+    "manifest_sha256": "9d9e27c23e18c8c87eee2d812a21a0a3a2add0b3fc420a378d8719e9d0f2d77b",
+    "guest_script_sha256": "b3de566d21153af3d1eaf38d2858c9952e2dfa7982416e6665cb578765d312ba",
+    "sandbox_script_sha256": "003f788bf236b01ba88e367e46890a90e1762a02bc16cf5aaa058a1d0e7313a4",
+    "memory_mib": 4096,
+    "awaited_flush_cycles": 3,
+    "owned_windows_guest_retired": true,
+    "correctness_witness": "mounted_mixed_recovery phase=complete overlap_cycles=3 interrupted_after_both_flushes=1 continued_after_reopen=1 settled_checkpoints=2",
+    "performance_claim": false
+  }
+}

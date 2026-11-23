@@ -26,6 +26,7 @@ constexpr std::size_t page_bytes=detail::kPagedStoreCheckpointWriteBytes/2,
 constexpr std::uint32_t compact_metadata_bytes=1024;
 constexpr std::size_t inline_record_read_bytes=1024;
 constexpr std::size_t compact_ref_bytes=88;
+static_assert(kPagedScrubRecordWorkBytes==2ULL*(record_header_bytes+2ULL*kStoreMaxObjectBytes));
 constexpr std::size_t digest_at=page_bytes-32;
 constexpr std::uint32_t maximum_height=16;
 constexpr char root_magic[]="FLTXPG01",page_magic[]="FLTXPGN1",data_magic[]="FLTXDAT1";
@@ -1197,6 +1198,11 @@ struct PagedObjectStoreWriter::Impl {
   mutable std::shared_ptr<PayloadRepairQueue> payload_repairs;
   std::uint64_t scrub_after=0,scrub_through=0;
   bool scrub_prefix_verified=true;
+  struct ScrubCheckpoint {
+    CheckpointKey key;
+    std::uint64_t objects=0;
+  };
+  std::optional<ScrubCheckpoint> scrub_checkpoint;
   Impl(std::shared_ptr<StoreByteIo> image,StoreCompressionOptions options):lease(std::move(image)),encoder(options){}
 };
 struct PagedObjectStoreWriter::Rewrite::Impl {
@@ -2387,39 +2393,83 @@ bool PagedObjectStoreWriter::restore_payload_scrub(const PagedPayloadScrubPositi
       !position.after || position.after>=position.through || position.through>impl_->state.root.last)return false;
   impl_->scrub_after=position.after;
   impl_->scrub_through=position.through;
+  impl_->scrub_checkpoint.reset();
   return true;
 }
-PagedPayloadScrubResult PagedObjectStoreWriter::scrub_payload() {
+PagedPayloadScrubResult PagedObjectStoreWriter::scrub_payload(const PagedPayloadScrubBudget& budget) {
   using S=PagedPayloadScrubState;
-  if(poisoned() || !impl_->state.mirrored)return {};
+  if(poisoned() || !impl_->state.mirrored || !budget.maximum_objects || !budget.maximum_object_work_bytes ||
+      (budget.should_yield && budget.should_yield(0)))return {};
   auto& writer=*impl_;
+  PagedPayloadScrubResult result;
   const auto finish=[&](S state) {
     writer.scrub_after=writer.scrub_through=0;
     writer.scrub_prefix_verified=true;
-    return PagedPayloadScrubResult{state,0,0,{}};
+    writer.scrub_checkpoint.reset();
+    result.state=state;
+    result.resumable.reset();
+    result.object_id=0;
+    return result;
   };
   const auto& selected=writer.state;
   try {
-    auto source=load(selected.image,selected.limits);
+    const auto source=load(selected.image,selected.limits);
     if(!same(selected,source) || source.degraded_roots || source.degraded_metadata)
       return finish(S::unverified_index);
-    if(!writer.scrub_through)writer.scrub_through=source.root.last;
-    std::optional<Entry> record;
-    auto first=[&](const Entry& entry){record=entry;return false;};
-    bool done=false;
-    walk(source,source.root,writer.scrub_after,first,done);
-    if(source.degraded_metadata)return finish(S::unverified_index);
-    if(!record || record->id>writer.scrub_through)return finish(S::complete);
-    const auto verified=verify_payload_copies(source,*record);
-    if(verified==1) {
-      if(!writer.payload_repairs)writer.payload_repairs=std::make_shared<PayloadRepairQueue>();
-      writer.payload_repairs->observe(*record);
+    if(!writer.scrub_through) {
+      writer.scrub_through=source.root.last;
+      writer.scrub_checkpoint.emplace(Impl::ScrubCheckpoint{CheckpointKey(source)});
     }
-    writer.scrub_after=record->id;
-    if(verified!=2)writer.scrub_prefix_verified=false;
-    PagedPayloadScrubResult result{verified==2?S::checked:verified==1?S::repair_queued:S::unverified_payload,
-        record->id,verified==2?2ULL*(record_header_bytes+record->stored):0,{}};
-    if(writer.scrub_prefix_verified && writer.scrub_after<writer.scrub_through)
+    auto& checkpoint=writer.scrub_checkpoint;
+    if(checkpoint && (!checkpoint->key.matches(source) || source.image->backing_degraded()))checkpoint.reset();
+
+    auto remaining=budget.maximum_object_work_bytes;
+    bool reached_limit=false;
+    auto examine=[&](const Entry& record) {
+      if(source.degraded_metadata)return false;
+      if(record.id>writer.scrub_through) {
+        reached_limit=true;
+        return false;
+      }
+      const auto cost=2ULL*(record_header_bytes+record.stored+record.logical);
+      if(cost>remaining || (budget.should_yield && budget.should_yield(result.examined_objects)))return false;
+      const auto verified=verify_payload_copies(source,record);
+      if(verified==1) {
+        if(!writer.payload_repairs)writer.payload_repairs=std::make_shared<PayloadRepairQueue>();
+        writer.payload_repairs->observe(record);
+      }
+      writer.scrub_after=record.id;
+      result.object_id=record.id;
+      if(!result.examined_objects)result.first_examined_object_id=record.id;
+      ++result.examined_objects;
+      remaining-=cost;
+      if(verified!=2) {
+        writer.scrub_prefix_verified=false;
+        checkpoint.reset();
+        result.state=verified==1?S::repair_queued:S::unverified_payload;
+        return false;
+      }
+      result.verified_record_bytes+=2ULL*(record_header_bytes+record.stored);
+      result.state=S::checked;
+      if(checkpoint)++checkpoint->objects;
+      return result.examined_objects<budget.maximum_objects;
+    };
+    bool stopped=false;
+    walk(source,source.root,writer.scrub_after,examine,stopped);
+    if(source.degraded_metadata)return finish(S::unverified_index);
+    if(source.image->backing_degraded())checkpoint.reset();
+    if(!stopped || reached_limit) {
+      if(checkpoint && checkpoint->objects==source.root.count) {
+        const auto observed=load(source.image,source.limits);
+        if(!same(source,observed) || observed.degraded_roots || observed.degraded_metadata)
+          return finish(S::unverified_index);
+        if(!source.image->backing_degraded())
+          result.verified_checkpoint=PagedPayloadCheckpointObservation{source.id,source.generation,
+              folded_checkpoint(observed).roots};
+      }
+      return finish(S::complete);
+    }
+    if(writer.scrub_prefix_verified && writer.scrub_after && writer.scrub_after<writer.scrub_through)
       result.resumable=PagedPayloadScrubPosition{source.id,source.generation,writer.scrub_after,writer.scrub_through};
     return result;
   }catch(const std::runtime_error&) {

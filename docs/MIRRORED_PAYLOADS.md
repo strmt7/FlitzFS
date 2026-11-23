@@ -117,12 +117,28 @@ selection and until retirement.
 ### Automatic integrity scan
 
 On a populated indexed attachment the Windows owner also inspects replicas
-that foreground reads have never needed. It checks both stored and decoded
-copies of one object per admitted step, using the CPU and checked index
-paths. The scan advances by key to the end captured at the start of the
-pass. It reads the current checkpoint and holds no old image between
-steps. A foreground commit can supersede a record or add keys beyond the
-captured end. A later pass covers that range.
+that foreground reads have never needed. An admitted step shares a freshly
+checked object-index traversal across several records. Each record still
+checks both copies and independently validates its decoded bytes. A step
+charges encoded bytes, headers and the maximum decoded work for both copies.
+The owner checks for foreground demand and elapsed slice time before taking
+another record. It retains no decoded pages or old image between steps.
+
+The scan advances by key to the end captured at the start of the pass. A
+foreground commit can supersede a record or add keys beyond the captured end.
+A later pass covers that range. A complete in-process pass earns a checkpoint
+observation only if each step saw the same checked generation and every
+object passed. The final step freshly checks the roots and binds the
+observation to the image identity, generation and digest of both roots.
+Restored advisory cursors and passes across a generation change continue
+scanning without producing this observation. The observation covers
+paged-object verification. Writable attach keeps its full native audit.
+
+On a 16,384-object in-memory control, verifying up to 64 objects per step
+reduced backing reads from 677,412,864 to 20,111,360 bytes. Every paired pass
+checked the same checkpoint and the CPU reader independently recovered
+every object. The Windows owner also applies its live time and foreground
+checks. [Matched scan evidence](evidence/indexed-scrub-checkpoint-2026-11-23.json)
 
 The scan queues repair only after decoding a surviving copy. A later
 opportunity revalidates the descriptor before the usual append repair or

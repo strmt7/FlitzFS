@@ -60,10 +60,29 @@ struct PagedPayloadScrubPosition {
   std::uint64_t generation=0,after=0,through=0;
   bool operator==(const PagedPayloadScrubPosition&) const = default;
 };
+// Charge both stored frames and the possible decoded bytes of both copies.
+inline constexpr std::uint64_t kPagedScrubRecordWorkBytes=2ULL*(128+2ULL*kStoreMaxObjectBytes);
+struct PagedPayloadScrubBudget {
+  std::uint32_t maximum_objects=1;
+  std::uint64_t maximum_object_work_bytes=kPagedScrubRecordWorkBytes;
+  // Observe demand before taking another record on the owner's control
+  // thread. The callback must not reenter storage or throw.
+  std::function<bool(std::uint32_t examined)> should_yield;
+};
+struct PagedPayloadCheckpointObservation {
+  StoreIdentity image{};
+  std::uint64_t generation=0;
+  std::array<std::byte,32> roots{};
+};
 struct PagedPayloadScrubResult {
   PagedPayloadScrubState state=PagedPayloadScrubState::idle;
   std::uint64_t object_id=0,verified_record_bytes=0;
   std::optional<PagedPayloadScrubPosition> resumable;
+  std::uint64_t first_examined_object_id=0;
+  std::uint32_t examined_objects=0;
+  // Present after a complete in-process pass through one checked checkpoint.
+  // An observation of the paged records, never writable admission authority.
+  std::optional<PagedPayloadCheckpointObservation> verified_checkpoint;
 };
 enum class PagedRewriteMode { exact_checkpoint, reconcile_foreground, cold_compression };
 class IndexedCoherenceWriter;
@@ -259,7 +278,7 @@ class PagedObjectStoreWriter final {
   bool payload_repair_pending() const noexcept;
   std::uint64_t capacity_repair_generation() const noexcept;
   PagedPayloadRepairProgress repair_payload();
-  PagedPayloadScrubResult scrub_payload();
+  PagedPayloadScrubResult scrub_payload(const PagedPayloadScrubBudget& budget={});
   bool restore_payload_scrub(const PagedPayloadScrubPosition&) noexcept;
   std::uint64_t generation_for_staging() const noexcept;
   std::uint64_t physical_end_for_staging() const noexcept;

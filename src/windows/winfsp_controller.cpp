@@ -186,6 +186,7 @@ struct WinFspVolumeController::Impl {
           using Scrub=PagedPayloadScrubState;
           std::uint64_t scrub_checks=0,scrub_passes=0,scrub_faults=0;
           PagedPayloadScrubResult last_scrub_fault;
+          std::optional<PagedPayloadCheckpointObservation> payload_checkpoint;
           std::uint64_t continued=0,continued_compaction=0;
           detail::MaintenanceBackingUse backing_use;
           bool backing_limited=false,read_ahead_prepared=false,read_ahead_backing_refused=false;
@@ -240,7 +241,8 @@ struct WinFspVolumeController::Impl {
                   timing.observe(backing_use.elapsed_ns()-backing_before);
                 result=std::move(step);
                 const auto scrub=result.payload_scrub;
-                if(scrub.object_id)++scrub_checks;
+                scrub_checks+=scrub.examined_objects;
+                if(scrub.verified_checkpoint)payload_checkpoint=scrub.verified_checkpoint;
                 if(scrub.state==Scrub::unverified_payload || scrub.state==Scrub::unverified_index) {
                   ++scrub_faults;
                   last_scrub_fault=scrub;
@@ -297,6 +299,7 @@ struct WinFspVolumeController::Impl {
             if(result.payload_repaired)++current.payload_repairs;
             current.payload_scrub_checks+=scrub_checks;
             current.payload_scrub_passes+=scrub_passes;
+            if(payload_checkpoint)current.last_payload_checkpoint=payload_checkpoint;
             if(scrub_faults) {
               notify_integrity_fault=current.payload_scrub_faults==0;
               current.payload_scrub_faults+=scrub_faults;

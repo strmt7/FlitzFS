@@ -1,6 +1,7 @@
 #include "native_fs_fixture.hpp"
 #include "flitzfs/native_session.hpp"
 #include "native_name_index.hpp"
+#include "native_object_storage.hpp"
 #include "record_digest.hpp"
 #include "store_codec.hpp"
 #include <chrono>
@@ -881,8 +882,129 @@ void compressed_replica_verification(bool profile) {
       <<" backing_read_calls="<<read_calls<<" audit_ns="<<audit_ns
       <<" independent_cpu_readback=1 peer_damage_detected=1 primary_damage_recovered=1 double_damage_refused=1\n";
 }
+
+constexpr unsigned scrub_payload_bytes=64;
+constexpr auto scrub_work_per_record=2ULL*(128+2*scrub_payload_bytes);
+detail::NativeObjectWriter seed_scrub_records(const std::shared_ptr<Ram>& ram,unsigned total) {
+  auto writer=PagedObjectStoreWriter::create_mirrored(ram,identity(),limits,{StoreCompressionMode::raw,1,false});
+  for(unsigned first=1;first<=total;) {
+    std::vector<StoreMutation> changes;
+    for(;first<=total && changes.size()<64;++first)changes.push_back({first,false,data(scrub_payload_bytes,first)});
+    writer.commit(changes);
+  }
+  return detail::NativeObjectWriter(std::move(writer));
+}
+struct ScrubPass {
+  std::uint64_t objects=0;
+  std::optional<PagedPayloadCheckpointObservation> checkpoint;
+};
+ScrubPass finish_scrub(detail::NativeObjectWriter& writer,const PagedPayloadScrubBudget& budget,unsigned limit) {
+  ScrubPass pass;
+  for(unsigned i=0;i<=limit;++i) {
+    const auto result=writer.scrub_payload(budget);
+    pass.objects+=result.examined_objects;
+    if(result.state==PagedPayloadScrubState::complete) {
+      pass.checkpoint=result.verified_checkpoint;
+      return pass;
+    }
+    require(result.state==PagedPayloadScrubState::checked && result.examined_objects &&
+        result.examined_objects<=budget.maximum_objects,"scrub did not make bounded verified progress");
+  }
+  throw std::runtime_error("scrub exceeded its population bound");
+}
+void bounded_scrub_provenance() {
+  using S=PagedPayloadScrubState;
+  constexpr unsigned total=96;
+  auto ram=std::make_shared<Ram>();ram->failure_unit=4096;
+  auto writer=seed_scrub_records(ram,total);
+  const auto calls=ram->calls,reads=ram->read_calls;
+  require(writer.scrub_payload({16,kPagedScrubRecordWorkBytes,[](auto){return true;}}).state==S::idle &&
+      ram->read_calls==reads,"foreground refusal reached backing");
+  require(writer.scrub_payload({16,scrub_work_per_record-1,{}}).state==S::idle,
+      "scrub exceeded the first record's work limit");
+  const auto first=writer.scrub_payload({16,kPagedScrubRecordWorkBytes,[](auto checked){return checked==3;}});
+  require(first.state==S::checked && first.examined_objects==3 && first.first_examined_object_id==1 && first.object_id==3 &&
+      first.verified_record_bytes==3*2*(128+scrub_payload_bytes) && first.resumable && !first.verified_checkpoint,
+      "scrub did not yield between verified records");
+  const auto next=writer.scrub_payload({16,2*scrub_work_per_record-1,{}});
+  require(next.state==S::checked && next.object_id==4 && next.examined_objects==1,
+      "scrub exceeded the batch work limit or skipped a record");
+  const PagedPayloadScrubBudget full{16,kPagedScrubRecordWorkBytes,{}};
+  const auto clean=finish_scrub(writer,full,total);
+  require(clean.objects==total-4 && clean.checkpoint && clean.checkpoint->image==identity() &&
+      clean.checkpoint->generation==writer.snapshot().info().generation && ram->calls==calls,
+      "complete unchanged checkpoint did not verify its exact inventory");
+  require(writer.restore_payload_scrub(*first.resumable),"saved advisory cursor was refused");
+  const auto restored=finish_scrub(writer,full,total);
+  require(restored.objects==total-3 && !restored.checkpoint,"saved progress became checkpoint evidence");
+
+  require(writer.scrub_payload({3,kPagedScrubRecordWorkBytes,{}}).object_id==3,"new audit did not start from the first key");
+  const std::array<StoreMutation,2> changed{{{1,false,data(scrub_payload_bytes,979)},{total+1,false,data(scrub_payload_bytes,980)}}};
+  writer.paged_if()->commit(changed);
+  const auto mixed=finish_scrub(writer,full,total+1);
+  require(mixed.objects==total-3 && !mixed.checkpoint,"superseded or grown checkpoint gained exact evidence");
+  const auto renewed=finish_scrub(writer,full,total+1);
+  require(renewed.objects==total+1 && renewed.checkpoint && renewed.checkpoint->generation>clean.checkpoint->generation &&
+      renewed.checkpoint->roots!=clean.checkpoint->roots,"new complete checkpoint retained the old identity");
+
+  const auto records=locations(*ram);
+  const auto target=records.at(4);
+  damage_record(*ram,target.peer+128);
+  const auto before_fault=ram->calls;
+  const auto fault=writer.scrub_payload(full);
+  require(fault.state==S::repair_queued && fault.object_id==5 && fault.examined_objects==5 &&
+      fault.verified_record_bytes==4*2*(128+scrub_payload_bytes) && !fault.resumable &&
+      !fault.verified_checkpoint && ram->calls==before_fault,"scanner went past a fault or tried to write a repair");
+  require(writer.repair_payload()==PagedPayloadRepairProgress::repaired &&
+      writer.snapshot().read(5)==data(scrub_payload_bytes,5),"repair lost the verified bytes");
+  const auto repaired=finish_scrub(writer,full,total+1);
+  require(!repaired.checkpoint,"repaired mixed-generation pass was certified");
+  const auto last=writer.scrub_payload({total+1,kPagedScrubRecordWorkBytes,{}});
+  require(last.state==S::checked && last.object_id==total+1,"final-fence fixture missed the end of the inventory");
+  ram->corrupt_read_offset=0;ram->corrupt_read_number=2;ram->matching_reads=0;
+  const auto final=writer.scrub_payload(full);
+  require(final.state==S::unverified_index && !final.verified_checkpoint && ram->matching_reads==2,
+      "checkpoint evidence ignored a new fault at its final root read");
+  ram->corrupt_read_offset=(std::numeric_limits<std::uint64_t>::max)();
+  auto independent=PagedObjectStoreSnapshot::open(ram,limits);
+  independent.verify_all();
+  require(independent.read(1)==changed[0].bytes && independent.read(total+1)==changed[1].bytes,
+      "independent CPU reader disagreed after foreground changes");
+  std::cout<<"bounded_scrub_provenance yielded=1 frame_budget=1 saved_cursor_advisory=1"
+      <<" generation_change_refused=1 high_water_reached=1 fault_stopped_and_repaired=1 final_root_rechecked=1\n";
+}
+void profile_batched_scrub() {
+  constexpr unsigned total=16384;
+  auto ram=std::make_shared<Ram>();ram->failure_unit=4096;ram->capacity=96ULL*1024*1024;
+  auto writer=seed_scrub_records(ram,total);
+  const auto run=[&](bool batched) {
+    const auto reads=ram->read_calls,bytes=ram->read_bytes,calls=ram->calls;
+    const auto start=std::chrono::steady_clock::now();
+    const auto pass=finish_scrub(writer,{batched?64U:1U,kPagedScrubRecordWorkBytes,{}},total);
+    const auto time=std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now()-start).count();
+    require(pass.objects==total && pass.checkpoint && ram->calls==calls,"profile changed or failed to cover its checkpoint");
+    std::cout<<"scrub_sample batched="<<batched<<" objects="<<pass.objects<<" backing_calls="<<ram->read_calls-reads
+        <<" backing_bytes="<<ram->read_bytes-bytes<<" elapsed_ns="<<time<<" exact_checkpoint=1 writes=0\n";
+    return *pass.checkpoint;
+  };
+  for(unsigned pair=0;pair<3;++pair) {
+    const bool batch_first=pair%2!=0;
+    const auto first=run(batch_first),second=run(!batch_first);
+    require(first.image==second.image && first.generation==second.generation && first.roots==second.roots,
+        "batch width changed the verified checkpoint");
+    std::cout<<"scrub_pair pair="<<pair+1<<" batched_first="<<batch_first<<" identical_roots=1\n";
+  }
+  const auto cpu=PagedObjectStoreSnapshot::open(ram,limits);
+  cpu.verify_all();
+  for(unsigned id=1;id<=total;++id)require(cpu.read(id)==data(scrub_payload_bytes,id),"profile changed an independently read object");
+  std::cout<<"scrub_profile_readback objects="<<total<<" exact=1\n";
+}
 }
 int main(int argc,char** argv){try {
+  if(argc==2 && std::string_view(argv[1])=="--scrub-batch-profile"){
+    profile_batched_scrub();
+    return 0;
+  }
   if(argc==2 && std::string_view(argv[1])=="--compressed-audit-profile"){
     compressed_replica_verification(true);
     return 0;
@@ -892,7 +1014,7 @@ int main(int argc,char** argv){try {
   forged_descriptors();native_shared_lifetime();payload_repair_rechecks();
   retained_indexed_reopen_fences(false);
   if(store_zstd_available())retained_indexed_reopen_fences(true);
-  durable_payload_scrub();
+  durable_payload_scrub();bounded_scrub_provenance();
   for(auto unit:{4096U,65536U}) {
     proactive_payload_scrub(unit);
     startup_payload_repair(unit);

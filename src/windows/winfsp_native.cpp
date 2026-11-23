@@ -379,13 +379,25 @@ struct WinFspNativeWritable::Impl {
       result.progress.phase=Phase::deferred;
       return result;
     }
-    try{result.payload_scrub=session.scrub_indexed_payload(native_cleanup_utc());}
-    catch(const std::bad_alloc&) {
+    try {
+      const auto deadline=std::chrono::steady_clock::now()+std::chrono::milliseconds(2);
+      const PagedPayloadScrubBudget budget{static_cast<std::uint32_t>(kStoreMaxObjects),kPagedScrubRecordWorkBytes,
+          [&](std::uint32_t examined) noexcept {
+            return foreground.load(std::memory_order_acquire) ||
+                (examined && std::chrono::steady_clock::now()>=deadline);
+          }};
+      result.payload_scrub=session.scrub_indexed_payload(native_cleanup_utc(),budget);
+    }catch(const std::bad_alloc&) {
       result.progress.phase=Phase::deferred;
       result.progress.deferral=Deferral::memory;
       return result;
     }
     if(!foreground.load(std::memory_order_acquire))session.checkpoint_indexed_payload_scrub();
+    else if(result.payload_scrub.state==S::idle) {
+      result.progress.phase=Phase::deferred;
+      result.progress.deferral=Deferral::foreground;
+      return result;
+    }
     scrub_yield=true;
     if(result.payload_scrub.state==S::checked)
       result.continuation=WinFspMaintenanceContinuation::payload_scrub;

@@ -62,6 +62,14 @@ read-only replica verification inside one
 fresh CPU sample. It releases the callback lock between steps, refreshes memory
 headroom, and checks foreground activity and stop before each continuation.
 Each continuation stays with the preparation that received the opportunity.
+Replica verification shares one checked path across a bounded group of
+objects. The object-work allowance covers both encoded copies and possible
+decoded bytes. The owner checks waiting foreground calls between records
+and yields after the current record when the two-millisecond slice has
+expired. A synchronous backing read can extend that record's duration.
+The controller records examined objects, completed passes and the last
+exact checkpoint observation. [Replica scan contract](MIRRORED_PAYLOADS.md#automatic-integrity-scan)
+
 A device launch or route acquisition ends the sequence. Opening a compaction
 candidate, publishing its private roots, switching the selected image and
 reclaiming the old backing each require a fresh CPU capture. The indexed

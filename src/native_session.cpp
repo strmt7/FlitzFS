@@ -825,7 +825,7 @@ PagedPayloadRepairProgress NativeFileSession::repair_indexed_payload() {
 bool NativeFileSession::indexed_payload_scrub_eligible() const noexcept {
   return !poisoned() && impl_->writer.indexed_payload_scrub_eligible();
 }
-PagedPayloadScrubResult NativeFileSession::scrub_indexed_payload(std::uint64_t utc) {
+PagedPayloadScrubResult NativeFileSession::scrub_indexed_payload(std::uint64_t utc,const PagedPayloadScrubBudget& budget) {
   using State=PagedPayloadScrubState;
   constexpr auto age_limit=28ULL*24*60*60*10'000'000;
   constexpr auto verification_cost=64*kOptimizationAreaBytes;
@@ -843,8 +843,9 @@ PagedPayloadScrubResult NativeFileSession::scrub_indexed_payload(std::uint64_t u
       work.started=saved->pass_started_utc;
     }
   }
-  auto result=self.writer.scrub_indexed_payload();
+  auto result=self.writer.scrub_indexed_payload(budget);
   work.checkpoint.reset();
+  if(result.state==State::idle)return result;
   if(!utc || !result.resumable) {
     work.verified_record_bytes=0;
     if(result.state==State::complete || result.state==State::unverified_index)work.started=0;

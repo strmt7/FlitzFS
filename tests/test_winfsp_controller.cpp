@@ -1151,15 +1151,21 @@ void dense_file_retirement_with_due_scrub() {
   observed.foreground_pending=false;
   for(unsigned step=0;step<24 && backing->extent()>=before;++step)(void)advance();
   require(backing->extent()<before,"a due scrub blocked release of retired dense backing");
-  bool scrubbed=false;
-  for(unsigned step=0;step<32 && !scrubbed;++step)
-    scrubbed=advance().payload_scrub.state==PagedPayloadScrubState::checked;
-  require(scrubbed,"scrub could not continue after dense release");
+  std::optional<PagedPayloadCheckpointObservation> verified;
+  std::uint64_t checked_objects=0;
+  for(unsigned step=0;step<32 && !verified;++step) {
+    const auto scan=advance().payload_scrub;
+    checked_objects+=scan.examined_objects;
+    verified=scan.verified_checkpoint;
+  }
+  require(verified && checked_objects,"scrub did not verify the released backing's checkpoint");
   session.stop();
   require(session.write_restart_ready(),"dense retirement owner did not retire");
   const auto reopened=NativeVolumeFile::inspect(DenseTailRam::replay(*backing),volume);
-  require(reopened.info().selection.epoch==2 &&
+  require(reopened.info().selection.epoch==2 && verified->image==reopened.info().selection.image_identity &&
+      verified->generation==reopened.filesystem().storage_info().generation &&
       reopened.filesystem().read("f0",0,kNativeExtentBytes)==expected,"dense release changed selected bytes");
+  std::cout<<"dense_release_scrub observed_objects="<<checked_objects<<" exact_generation=1 independent_bytes=1\n";
 }
 
 void volume_file_scrub_checkpoint() {
@@ -1204,11 +1210,12 @@ void volume_file_scrub_checkpoint() {
     bool verified=false;
     for(unsigned i=0;i<256 && !verified;++i) {
       const auto step=advance().payload_scrub;
-      if(!step.object_id)continue;
-      require(step.state==Scrub::checked,"scrub fixture found corruption in a clean volume");
+      if(!step.examined_objects)continue;
+      require(step.state==Scrub::checked || step.state==Scrub::complete,"scrub fixture found corruption in a clean volume");
       if(reopen) {
-        require(step.object_id>saved.position.after && step.object_id<=saved.position.through,
-            "SDK restart discarded its verified checkpoint");
+        require(step.first_examined_object_id>saved.position.after &&
+            step.first_examined_object_id<=saved.position.through && !step.verified_checkpoint,
+            "SDK restart discarded its advisory cursor or certified a skipped prefix");
         verified=true;
       }else if(const auto state=advisory();state.state.payload_scrub) {
         saved=*state.state.payload_scrub;

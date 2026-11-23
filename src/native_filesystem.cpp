@@ -2263,9 +2263,9 @@ std::uint64_t NativeFilesystemWriter::indexed_capacity_repair_generation() const
 bool NativeFilesystemWriter::indexed_payload_scrub_eligible() const noexcept {
   return !poisoned() && impl_->indexed && (impl_->indexed->inodes>1 || impl_->indexed->extents);
 }
-PagedPayloadScrubResult NativeFilesystemWriter::scrub_indexed_payload() {
+PagedPayloadScrubResult NativeFilesystemWriter::scrub_indexed_payload(const PagedPayloadScrubBudget& budget) {
   if(!indexed_payload_scrub_eligible())return {};
-  return impl_->objects.scrub_payload();
+  return impl_->objects.scrub_payload(budget);
 }
 bool NativeFilesystemWriter::restore_indexed_payload_scrub(const PagedPayloadScrubPosition& position) noexcept {
   return indexed_payload_scrub_eligible() && impl_->objects.restore_payload_scrub(position);

@@ -258,7 +258,7 @@ class NativeFileSession final {
   bool indexed_payload_scrub_eligible() const noexcept;
   // One serialized read-only step from the selected index. The cursor belongs
   // to the writer and reaches only the key range captured at the start of a pass.
-  PagedPayloadScrubResult scrub_indexed_payload(std::uint64_t utc=0);
+  PagedPayloadScrubResult scrub_indexed_payload(std::uint64_t utc=0,const PagedPayloadScrubBudget& budget={});
   // Only after an admitted scan, with no pending foreground activity.
   bool checkpoint_indexed_payload_scrub();
   // One admitted idle opportunity. The identity source is invoked only when

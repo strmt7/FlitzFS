@@ -58,6 +58,15 @@
     "evidence": "docs/evidence/architecture-reconciliation-2026-11-21.json"
   },
 
+  "indexed_scrub_checkpoint": {
+    "evidence": "docs/evidence/indexed-scrub-checkpoint-2026-11-23.json",
+    "objects_in_profile": 16384,
+    "backing_read_bytes": {"one_record": 677412864, "batched_64": 20111360},
+    "backing_read_calls": {"one_record": 197640, "batched_64": 37166},
+    "requires_one_unchanged_checkpoint": true,
+    "restored_advisory_prefix_can_certify": false,
+    "scope": "Bounded paged replica checks through the Windows owner. Full native writable admission remains required."
+  },
   "indexed_record_read_coalescing": {
     "evidence": "docs/evidence/indexed-record-read-coalescing-2026-11-23.json",
     "short_16384_reopen_read_calls": {"control": 350772, "combined": 186089},

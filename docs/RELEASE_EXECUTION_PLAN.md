@@ -150,6 +150,12 @@ its diagnosis and reproduction.
    foreground data walk on healthy attach. Retain separate startup and
    full-background-scrub costs in the result.
 
+The bounded background replica pass now reports a checkpoint observation
+after covering every paged object in one exact generation and rechecking
+its roots. Saved advisory progress can resume the scan. An attach authority
+still needs the native namespace, allocator and provider proofs in this
+section. [Bounded replica verification](evidence/indexed-scrub-checkpoint-2026-11-23.json)
+
 Read the [indexed namespace contract](INODE_RECORD_NAMESPACE.md), the
 [on-disk store contract](OBJECT_STORE_FORMAT.md), and the
 [fenced recheck receipt](evidence/indexed-fenced-stored-recheck-2026-11-22.json).

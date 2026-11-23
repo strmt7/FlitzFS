@@ -128,8 +128,8 @@ class NativeObjectWriter final {
     auto* paged=paged_if();
     return paged?paged->repair_payload():PagedPayloadRepairProgress::idle;
   }
-  PagedPayloadScrubResult scrub_payload() {
-    return std::get<PagedObjectStoreWriter>(value_).scrub_payload();
+  PagedPayloadScrubResult scrub_payload(const PagedPayloadScrubBudget& budget) {
+    return std::get<PagedObjectStoreWriter>(value_).scrub_payload(budget);
   }
   bool restore_payload_scrub(const PagedPayloadScrubPosition& position) noexcept {
     auto* paged=paged_if();
