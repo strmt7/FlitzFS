@@ -30,6 +30,7 @@ class NativeVolumeFileReclaimer final {
       std::shared_ptr<NativeVolumeFile::Region> spare,bool recover_spare,
       std::shared_ptr<NativeVolumeFile::CatalogRanges> catalog);
   bool pending(const NativeFileSession&,bool allow_cold) const;
+  std::optional<NativeDenseFileSpace> dense_file_space() const;
   bool seal_preparation_pending(const NativeFileSession&) const noexcept;
   std::uint64_t projected_seal_writes(const NativeVolumeSelection&,std::uint64_t occupied) const noexcept;
   bool cold_target_available() const noexcept {return phase_==Phase::idle && spare_.use_count()==1;}
@@ -47,6 +48,7 @@ class NativeVolumeFileReclaimer final {
   enum class Phase {idle,copying,ready,retiring,uncertain,failed};
   struct SealPlan {std::uint64_t workspace,staging,writes;};
   bool image_work_pending(const NativeFileSession&,bool allow_cold) const;
+  bool dense_work_pending(const NativeFileSession&,bool allow_cold) const;
   std::optional<SealPlan> seal_plan(const NativeVolumeSelection&,std::uint64_t occupied) const;
   NativeVolumeReclaimProgress begin_seal(NativeFileSession&,StoreIdentity,const SealPlan&,NativeSealScratchOffer);
   NativeVolumeReclaimProgress advance_seal(NativeFileSession&);

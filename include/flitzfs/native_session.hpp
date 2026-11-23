@@ -127,6 +127,11 @@ struct NativeOptimizationBudgetPublication {
   NativeOptimizationInfo state;
 };
 enum class NativeVolumeReclaimProgress {idle,copying,ready,published,retiring,pinned,failed};
+struct NativeDenseFileSpace {
+  std::uint64_t file_end=0,physical_limit=0,owned_payload_bytes=0,interior_reusable_bytes=0,retired_tail_bytes=0;
+  // Live OS allocation of the ordinary file, when the provider verifies it.
+  std::optional<std::uint64_t> allocated_file_bytes;
+};
 struct NativeStartupRepairImage {
   std::shared_ptr<StoreByteIo> backing;
   StoreIdentity identity{};
@@ -241,6 +246,8 @@ class NativeFileSession final {
   // Uses the selected writer's aligned append boundary, including
   // trailing bytes left outside the selected checkpoint after recovery.
   NativeVolumeSpace indexed_volume_space() const;
+  // Reports the packed backing independently of the mounted namespace usage.
+  std::optional<NativeDenseFileSpace> dense_file_space() const;
   // The serialized idle owner admits one verified repair. Its checkpoint
   // preserves namespace state, file contexts and logical object generations.
   bool indexed_payload_repair_pending() const noexcept;

@@ -457,7 +457,11 @@ fresh CPU sample. Publication and retirement each require a fresh observation.
 Indexed compaction can preserve its private work across foreground commits by
 reconciling immutable tree checkpoints. A verified live repair can use that
 handoff to restore payload redundancy when append admission fails.
-**Missing:** segment-level evacuation,
+The packed ordinary-file provider now evacuates live tail units within one
+group and releases the verified suffix. Windows NTFS allocation fell after
+shortening, and held readers and independent CPU recovery retained their
+bytes. [Dense retirement evidence](evidence/dense-tail-reclamation-2026-11-23.json)
+**Missing:** cross-group evacuation, pageable recovery at scale,
 durable staging progress, and persistent-provider qualification.
 **Planning effort:** 5–10 person-weeks; confidence low.
 

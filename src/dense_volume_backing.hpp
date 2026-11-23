@@ -29,6 +29,9 @@ class DenseVolumeBacking final : public NativeVolumeRangeIo {
   void admit_range_write(std::uint64_t projected, std::uint64_t additional) override;
   void admit_contiguous_growth(std::uint64_t projected, std::uint64_t begin, std::uint64_t end) override;
   void reclaim_range(std::uint64_t offset, std::uint64_t bytes) override;
+  NativeDenseFileSpace file_space() const;
+  bool tail_work_pending(std::uint64_t budget) const;
+  bool advance_tail(std::uint64_t budget);
 
  private:
   struct Impl;

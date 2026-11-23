@@ -132,8 +132,8 @@ writer until reopen.
 Compact directory runs limit metadata traffic for contiguous allocations.
 Reopen currently scans the directories and builds an in-memory run index.
 Freed interior units are available to the volume after publication.
-Outer-file allocation reduction needs tail relocation and shortening.
-The helper's persistent path uses its existing qualified sparse profile.
+The qualified WinFsp factory can create and open packed files. The Explorer
+helper's default persistent profile is sparse.
 
 The in-memory tests recovered the acknowledged filesystem through 696
 interruptions spanning candidate writes, selector publication and retired
@@ -141,6 +141,41 @@ ownership. Each case reopened independently and then accepted a new
 write. The ordinary NTFS guest fixture retained a file length of 1,114,112
 bytes through two rotations and verified the selected data with the CPU reader.
 [Dense backing evidence](evidence/dense-volume-backing-2026-11-23.json)
+
+#### Releasing space to the outer filesystem
+
+The session reports its confirmed file length, mapped payload, reusable
+interior units and immediately releasable suffix. The Windows provider
+samples allocated bytes on the same exclusive file handle. That field
+stays unknown when the provider cannot confirm the sample.
+
+The idle owner can move live tail units into a lower hole in the same
+allocation group. It copies the bytes, flushes them and verifies exact
+CPU readback. Each copy of the updated directory is then written and
+flushed independently. Readers use the original location until both
+copies settle. The inverse index switches under its reader lock and an
+active snapshot retains the same virtual offsets and byte contents.
+Recovery follows the valid newer directory while both physical locations
+still exist.
+
+A later admitted step checks the retired suffix against the settled
+ownership map and its pinned provider. The ordinary-file provider must
+explicitly qualify prefix-preserving shortening. The Windows path confirms
+the new EOF and releases any remaining allocation beyond it through the
+same handle. The step flushes and confirms the new file extent before
+allowing fresh growth. Empty suffix directories may be dropped together.
+An uncertain write, readback or shortening fences the writer and keeps
+the selected bytes available for independent recovery within the provider
+contract.
+[Windows EOF operation](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fsa/5555bcb6-bc29-4f8a-900c-e469b792faab) ·
+[Windows allocation operation](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/0201c69b-50db-412d-bab3-dd97aeede13b)
+
+The NTFS guest verified a reduction from 1,900,544 to 720,896 allocated
+bytes. The file retained its held snapshot and independently reopened
+with the CPU reader. The storage model exercised 27 interruptions across
+copy, directory publication and shortening. Cross-group movement and
+physical device qualification remain release work.
+[Dense tail evidence](evidence/dense-tail-reclamation-2026-11-23.json)
 
 ### Data image compaction and retirement
 

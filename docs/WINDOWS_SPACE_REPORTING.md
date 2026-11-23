@@ -59,6 +59,22 @@ Keep the following facts separate:
 This intentionally sparse, compressible fixture is not a representative codec
 benchmark. Do not report its sparse logical/image ratio as compression gain.
 
+## Packed backing allocation
+
+The writable packed session reports ordinary-file length and the current
+allocation returned by `FileStandardInfo` on its exclusive backing handle.
+Its mirrored map accounts for mapped payload units, reusable holes before
+the last owner and the retired suffix. WinFsp volume totals describe the
+indexed volume budget.
+
+The disposable NTFS fixture observed unchanged allocation after an EOF-only
+operation. The qualified provider now confirms the shorter EOF, reduces
+allocation through `FileAllocationInfo` when Windows retains space, and
+flushes before confirming retirement. It measured 720,896 allocated bytes
+after shortening, down from 1,900,544. The fixture verified exact payloads
+through an open snapshot and an independent CPU reopen.
+[Dense tail evidence](evidence/dense-tail-reclamation-2026-11-23.json)
+
 ## Live read-only observations
 
 The probe samples sample, empty and >4 GiB sparse files during normal mounting,

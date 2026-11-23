@@ -439,9 +439,10 @@ Microsoft lists exFAT and FAT32 without sparse-file support, and lists a
 file-size limit of about 4 GiB for FAT32. A USB device can carry either NTFS or exFAT.
 The ordinary file provider applies a FAT32 extent bound when the caller
 supplies a qualified nonsparse contract. The Explorer helper currently uses
-the qualified NTFS sparse profile. The packed allocator now reuses internal
-space in the same ordinary file. Its current Windows fixture uses a
-nonsparse NTFS file. Recovery qualification remains open for exFAT and
+the qualified NTFS sparse profile. The packed allocator reuses internal
+space and can shorten a qualified ordinary file after same-group evacuation.
+Its current Windows fixture uses a nonsparse NTFS file. Recovery
+qualification remains open for exFAT and
 FAT32. For an external RAM disk,
 establish the backing lifetime explicitly before treating its bytes as volatile.
 A single backing file must stay within the outer filesystem's file-size limit.
@@ -464,13 +465,13 @@ allocation group when the namespace checkpoint advances.
    independently verifiable directory index if the full scan exceeds the
    attachment's headroom or open budget. Keep the mirrored group records
    usable as the recovery source for that index.
-2. Expose physical high-water, reusable interior bytes and temporary hold
-   space separately. Bind dense creation and reopen to a qualified ordinary
-   provider on the pinned backing volume. Cap new volumes by the actual file
-   limit, current available growth and staged-copy cost. Qualify exFAT and FAT32
-   independently before enabling those attachments.
-3. To reduce occupied space, move verified live tail units into existing
-   holes. Treat a cross-group relocation as one ownership transition so an
+2. Carry the session's physical file length, reusable interior bytes,
+   releasable tail and sampled allocation into helper diagnostics. Report
+   temporary hold space and reservations from their actual owners. Cap new
+   volumes by the actual file limit, current available growth and staged-copy
+   cost. Qualify exFAT and FAT32 independently before enabling attachments.
+3. Extend verified tail relocation across groups. Treat a cross-group
+   relocation as one ownership transition so an
    interrupted reopen always finds exactly one authoritative mapping. Keep
    the old bytes until the authority and affected directory peers are
    durable and mapping readers release them. Recheck pending writers and
@@ -490,6 +491,19 @@ allocation group when the namespace checkpoint advances.
    useful compression against plain and compressed NTFS. Keep pending
    relocation below foreground demand and qualify physical shrink separately
    from internal reuse.
+
+For cross-group moves, evaluate a versioned intent in the existing paired
+anchors. A newer reader would keep the current group offsets and read older
+volumes directly. A move would reserve its destination, copy and verify the
+bytes, then persist the exact source, destination, extent and directory
+generations in both anchors. That record would authorize the single
+temporary overlap while both affected directories converge. After all
+copies settle and prior readers drain, clear the intent before reusing or
+shortening the source. An intact older anchor must never authorize ignoring
+a newer committed move. Qualify every transition with independent CPU
+readback, interrupted reopen, same-group controls and mounted continued
+writes. Select a layout only after measuring the gain in allocated bytes
+and the corresponding metadata writes, latency and temporary allocation.
 
 ### Media qualification
 

@@ -14,6 +14,7 @@ namespace flitzfs {
 namespace {
 constexpr auto image_offset=kNativeVolumeFileImageOffset;
 constexpr auto maximum_file_bytes=static_cast<std::uint64_t>((std::numeric_limits<std::int64_t>::max)());
+constexpr std::uint64_t retirement_quantum=4*1024*1024;
 static_assert(image_offset%kStoreCommitUnit==0);
 using Error=NativeFsErrorCode;
 [[noreturn]] void fail(Error code,const char* message){throw NativeFsError(code,message);}
@@ -48,6 +49,7 @@ struct NativeVolumeFile::Owner {
   std::shared_ptr<StoreByteIo> backing;
   const bool writable;
   NativeVolumeRangeIo* ranges=nullptr;
+  detail::DenseVolumeBacking* dense_file=nullptr;
   std::atomic<std::weak_ptr<detail::NativeVolumeRangeWake>> reclamation_wake;
   bool leased=false;
 
@@ -67,6 +69,7 @@ struct NativeVolumeFile::Owner {
         candidate->supports_reclaimable_ranges()?candidate:nullptr;
   }
   void install_dense(std::shared_ptr<detail::DenseVolumeBacking> dense) {
+    dense_file=dense.get();
     backing=std::move(dense);
     install_ranges();
   }
@@ -153,8 +156,7 @@ struct NativeVolumeFile::Region final:StoreByteIo {
   void reclaim_tail() {
     const auto before=allocation_extent();
     if(!before){fixed_extent.store(0,std::memory_order_release);return;}
-    constexpr std::uint64_t quantum=4*1024*1024;
-    const auto start=(before-1)/quantum*quantum;
+    const auto start=(before-1)/retirement_quantum*retirement_quantum;
     owner->ranges->reclaim_range(offset+start,before-start);
     flush();
     const auto after=allocation_extent();
@@ -249,11 +251,20 @@ NativeVolumeFileReclaimer::NativeVolumeFileReclaimer(std::shared_ptr<StoreByteIo
     phase_(recover_spare?Phase::retiring:Phase::idle) {}
 
 bool NativeVolumeFileReclaimer::pending(const NativeFileSession& session,bool allow_cold) const {
-  if(image_work_pending(session,allow_cold))return true;
+  if(image_work_pending(session,allow_cold) || dense_work_pending(session,allow_cold))return true;
   if(!catalog_)return false;
   std::optional<OptimizationCatalogSelection> selected;
   const auto sequence=session.catalog_retirement_selection(selected);
   return catalog_->pending(sequence,selected);
+}
+std::optional<NativeDenseFileSpace> NativeVolumeFileReclaimer::dense_file_space() const {
+  const auto* dense=active_->owner->dense_file;
+  return dense?std::optional{dense->file_space()}:std::nullopt;
+}
+bool NativeVolumeFileReclaimer::dense_work_pending(const NativeFileSession& session,bool allow_cold) const {
+  const auto* dense=active_->owner->dense_file;
+  return allow_cold && dense && phase_==Phase::idle && session.idle_compaction_context_ready() &&
+      dense->tail_work_pending(retirement_quantum);
 }
 bool NativeVolumeFileReclaimer::image_work_pending(const NativeFileSession& session,bool allow_cold) const {
   if(phase_==Phase::retiring)
@@ -487,6 +498,12 @@ Progress NativeVolumeFileReclaimer::advance(NativeFileSession& session,const std
     }
     catch(const std::exception&){phase_=Phase::failed;return Progress::failed;}
   }
+  if(dense_work_pending(session,allow_cold) && !image_work_pending(session,false)) {
+    try {
+      check_inactive(session.volume_info());
+      return active_->owner->dense_file->advance_tail(retirement_quantum)?Progress::retiring:Progress::idle;
+    }catch(const std::exception&){phase_=Phase::failed;return Progress::failed;}
+  }
   if(phase_==Phase::idle && !identity)return Progress::idle;
   if(!image_pending)return Progress::idle;
   try {
@@ -716,8 +733,15 @@ NativeVolumeHeadView NativeVolumeFile::inspect(std::shared_ptr<StoreByteIo> exis
 }
 #ifdef _WIN32
 std::shared_ptr<StoreByteIo> NativeVolumeFile::create_backing(const std::filesystem::path& path,StoreIoContract contract,
-    PagedStoreLimits limits,std::wstring_view expected_volume) {
+    PagedStoreLimits limits,std::wstring_view expected_volume,std::optional<std::uint64_t> dense_physical_limit) {
   check_image_capacity(limits.maximum_physical_bytes,Error::invalid_operation);
+  if(dense_physical_limit) {
+    if(!valid_store_io_contract(contract) || contract.isolated_range_reclamation ||
+        *dense_physical_limit<5*kStoreCommitUnit || *dense_physical_limit>maximum_file_bytes)
+      fail(Error::invalid_operation,"dense creation requires a qualified ordinary file and physical limit");
+    (void)paired_file_geometry(limits.maximum_physical_bytes,true,Error::invalid_operation);
+    return detail::new_volume_file(path,contract,*dense_physical_limit,expected_volume);
+  }
   const auto bytes=limits.maximum_physical_bytes;
   const auto limit=contract.isolated_range_reclamation?
       paired_file_geometry(bytes,true,Error::invalid_operation).file_end:image_offset+bytes;
@@ -735,9 +759,7 @@ NativeFileSession NativeVolumeFile::create(const std::filesystem::path& path,Sto
 NativeFileSession NativeVolumeFile::create_dense(const std::filesystem::path& path,StoreIoContract contract,
     std::uint64_t physical_limit,StoreIdentity volume,StoreIdentity image,PagedStoreLimits limits,
     StoreCompressionOptions foreground,NativeDispositionPolicy disposition,std::optional<NativeVolumeRootMetadata> root) {
-  if(!valid_store_io_contract(contract) || contract.isolated_range_reclamation)
-    fail(Error::invalid_operation,"dense creation requires a qualified ordinary file");
-  return create_dense(detail::new_volume_file(path,contract,physical_limit),physical_limit,volume,image,limits,
+  return create_dense(create_backing(path,contract,limits,{},physical_limit),physical_limit,volume,image,limits,
       foreground,disposition,std::move(root));
 }
 NativeFileSession NativeVolumeFile::resume(const std::filesystem::path& path,StoreIoContract contract,

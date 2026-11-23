@@ -194,7 +194,11 @@ class Input final:public StoreByteIo {
   void admit_write(std::uint64_t) override { fail("read-only backing"); }
   StoreIoContract contract() const noexcept override { return {}; }
 };
-class Output final:public NativeVolumeRangeIo {
+class Output final:public NativeVolumeRangeIo
+#ifdef _WIN32
+    ,public DenseFileTailIo
+#endif
+{
   mutable std::mutex mutex_;
   StoreIoContract contract_;
   mutable std::uint64_t extent_=0;
@@ -295,6 +299,21 @@ class Output final:public NativeVolumeRangeIo {
     extent_=static_cast<std::uint64_t>(st.st_size);
 #endif
   }
+#ifdef _WIN32
+  std::optional<std::uint64_t> ordinary_file_allocation(std::uint64_t expected) const {
+    if(!volume_file_ || sparse_)return std::nullopt;
+    volume_lifetime_.check();
+    MaintenanceBackingCall observed(MaintenanceBackingOperation::control);
+    FILE_STANDARD_INFO info{};
+    const auto sampled=GetFileInformationByHandleEx(handle_,FileStandardInfo,&info,sizeof(info));
+    volume_lifetime_.check(sampled?ERROR_SUCCESS:GetLastError());
+    if(!sampled || info.Directory || info.DeletePending || info.NumberOfLinks!=1 ||
+        info.EndOfFile.QuadPart<0 || static_cast<std::uint64_t>(info.EndOfFile.QuadPart)!=expected ||
+        info.AllocationSize.QuadPart<0)return std::nullopt;
+    observed.complete();
+    return static_cast<std::uint64_t>(info.AllocationSize.QuadPart);
+  }
+#endif
  public:
   Output(const std::filesystem::path& p,StoreIoContract c,bool reopen=false,
       std::optional<std::uint64_t> volume_limit=std::nullopt,
@@ -412,6 +431,41 @@ class Output final:public NativeVolumeRangeIo {
  public:
   std::optional<VolumeFileProfile> volume_profile() const noexcept {
     return volume_lifetime_.current()?volume_profile_:std::nullopt;
+  }
+  std::optional<std::uint64_t> allocated_file_bytes(std::uint64_t expected) const override {
+    std::lock_guard lock(mutex_);
+    return ordinary_file_allocation(expected);
+  }
+  void shorten_file(std::uint64_t expected,std::uint64_t retained) override {
+    std::lock_guard lock(mutex_);
+    if(!has_writer() || !contract_.isolated_tail_truncation || retained<kStoreCommitUnit ||
+        retained>=expected || expected>capacity_ || !ordinary_file_allocation(expected))
+      fail("dense shortening requires the qualified exclusive ordinary file and matching extent");
+    FILE_END_OF_FILE_INFO end{};
+    end.EndOfFile.QuadPart=static_cast<LONGLONG>(retained);
+    {
+      MaintenanceBackingCall observed(MaintenanceBackingOperation::control);
+      const auto shortened=SetFileInformationByHandle(handle_,FileEndOfFileInfo,&end,sizeof(end));
+      volume_lifetime_.check(shortened?ERROR_SUCCESS:GetLastError());
+      if(!shortened)fail("ordinary backing could not release its retired suffix");
+      observed.complete();
+    }
+    const auto allocation=ordinary_file_allocation(retained);
+    if(!allocation)fail("cannot confirm the shortened ordinary file");
+    if(*allocation>retained) {
+      // NTFS can retain preallocation until close. Request the already
+      // verified EOF as the allocation, which the OS rounds to its unit.
+      FILE_ALLOCATION_INFO release{};
+      release.AllocationSize.QuadPart=static_cast<LONGLONG>(retained);
+      MaintenanceBackingCall observed(MaintenanceBackingOperation::control);
+      const auto reduced=SetFileInformationByHandle(handle_,FileAllocationInfo,&release,sizeof(release));
+      volume_lifetime_.check(reduced?ERROR_SUCCESS:GetLastError());
+      if(!reduced)fail("ordinary backing could not release allocation beyond its confirmed EOF");
+      observed.complete();
+    }
+    refresh_extent();
+    if(extent_!=retained)fail("shortened backing extent differs from the requested boundary");
+    admitted_extent_=retained;
   }
 #endif
   bool concurrent_reads_supported() const noexcept override {

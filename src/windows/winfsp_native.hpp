@@ -85,12 +85,14 @@ class WinFspNativeWritable final {
       MemoryVolumeBacking&,StoreCompressionOptions foreground={},NativeMaintenancePolicy group_policy={});
   // The same indexed callback profile over one qualified volume file.
   static std::unique_ptr<WinFspNativeWritable> create_file_volume(std::shared_ptr<StoreByteIo> empty,
-      StoreIdentity volume,StoreIdentity image,PagedStoreLimits,StoreCompressionOptions foreground={});
+      StoreIdentity volume,StoreIdentity image,PagedStoreLimits,StoreCompressionOptions foreground={},
+      std::optional<std::uint64_t> dense_physical_limit={});
   static std::unique_ptr<WinFspNativeWritable> resume_file_volume(std::shared_ptr<StoreByteIo> existing,
       std::optional<StoreIdentity> expected_volume=std::nullopt,StoreCompressionOptions foreground={},
       const std::function<void(StoreIdentity)>& retain_verified={});
   static std::unique_ptr<WinFspNativeWritable> create_file_volume(const std::filesystem::path&,StoreIoContract,
-      StoreIdentity volume,StoreIdentity image,PagedStoreLimits,StoreCompressionOptions foreground={});
+      StoreIdentity volume,StoreIdentity image,PagedStoreLimits,StoreCompressionOptions foreground={},
+      std::optional<std::uint64_t> dense_physical_limit={});
   static std::unique_ptr<WinFspNativeWritable> resume_file_volume(const std::filesystem::path&,StoreIoContract,
       std::optional<StoreIdentity> expected_volume=std::nullopt,StoreCompressionOptions foreground={});
   static std::unique_ptr<WinFspNativeWritable> resume_indexed_retired(

@@ -4,6 +4,14 @@
 #include <string>
 #include <string_view>
 namespace flitzfs::detail {
+// Only the dense owner decides that a suffix has no durable mappings or
+// in-flight readers. The provider independently checks its lease and EOF.
+class DenseFileTailIo {
+ public:
+  virtual ~DenseFileTailIo()=default;
+  virtual std::optional<std::uint64_t> allocated_file_bytes(std::uint64_t expected_end) const=0;
+  virtual void shorten_file(std::uint64_t expected_end,std::uint64_t retained_end)=0;
+};
 std::shared_ptr<StoreByteIo> new_store_file(const std::filesystem::path&,StoreIoContract);
 std::shared_ptr<StoreByteIo> read_store_file(const std::filesystem::path&,
     std::uint64_t maximum_physical_bytes=kStoreMaxPhysicalBytes);

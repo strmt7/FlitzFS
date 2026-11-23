@@ -87,7 +87,7 @@ class NativeVolumeFile final {
       const std::function<void(StoreIdentity)>& retain_verified={});
 #ifdef _WIN32
   static std::shared_ptr<StoreByteIo> create_backing(const std::filesystem::path&,StoreIoContract,PagedStoreLimits,
-      std::wstring_view expected_volume={});
+      std::wstring_view expected_volume={},std::optional<std::uint64_t> dense_physical_limit={});
   static std::shared_ptr<StoreByteIo> reopen_backing(const std::filesystem::path&,StoreIoContract,
       std::wstring_view expected_volume={});
 #endif

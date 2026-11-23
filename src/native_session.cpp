@@ -801,6 +801,10 @@ NativeVolumeSpace NativeFileSession::indexed_volume_space() const {
       self.maintenance?self.maintenance->group_append_shortfall(
           self.writer.maintenance_identity(),self.writer.recompression_generation()):0};
 }
+std::optional<NativeDenseFileSpace> NativeFileSession::dense_file_space() const {
+  const auto& self=ready();
+  return self.persistent_reclaimer?self.persistent_reclaimer->dense_file_space():std::nullopt;
+}
 void NativeFileSession::bind_persistent_reclamation(std::shared_ptr<detail::NativeVolumeFileReclaimer> reclaimer) {
   auto& self=ready();
   self.volume_file_bound=true;

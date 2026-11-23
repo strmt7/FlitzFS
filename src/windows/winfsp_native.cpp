@@ -1025,11 +1025,13 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_indexed_memor
   return adapter;
 }
 std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_file_volume(std::shared_ptr<StoreByteIo> empty,
-    StoreIdentity volume,StoreIdentity image,PagedStoreLimits limits,StoreCompressionOptions foreground) {
+    StoreIdentity volume,StoreIdentity image,PagedStoreLimits limits,StoreCompressionOptions foreground,
+    std::optional<std::uint64_t> dense_physical_limit) {
   const auto profile=detail::volume_file_profile(empty.get());
   const auto security=owner_security();const auto stamp=native_cleanup_utc();
   const NativeVolumeRootMetadata root{{stamp,stamp,stamp,stamp,FILE_ATTRIBUTE_DIRECTORY},security};
-  auto session=NativeVolumeFile::create(std::move(empty),volume,image,limits,foreground,
+  auto regions=NativeVolumeFile::new_regions(std::move(empty),volume,limits,dense_physical_limit);
+  auto session=NativeVolumeFile::create_regions(std::move(regions),volume,image,limits,foreground,
       NativeDispositionPolicy::windows_global,root);
   return from_indexed_session(std::move(session),volume,stamp,{},profile);
 }
@@ -1048,8 +1050,10 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_file_volume(s
   return from_indexed_session(std::move(session),volume,created,{},profile);
 }
 std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_file_volume(const std::filesystem::path& path,
-    StoreIoContract contract,StoreIdentity volume,StoreIdentity image,PagedStoreLimits limits,StoreCompressionOptions foreground) {
-  return create_file_volume(NativeVolumeFile::create_backing(path,contract,limits),volume,image,limits,foreground);
+    StoreIoContract contract,StoreIdentity volume,StoreIdentity image,PagedStoreLimits limits,
+    StoreCompressionOptions foreground,std::optional<std::uint64_t> dense_physical_limit) {
+  return create_file_volume(NativeVolumeFile::create_backing(path,contract,limits,{},dense_physical_limit),
+      volume,image,limits,foreground,dense_physical_limit);
 }
 std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_file_volume(const std::filesystem::path& path,
     StoreIoContract contract,std::optional<StoreIdentity> expected,StoreCompressionOptions foreground) {

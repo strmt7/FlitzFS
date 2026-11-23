@@ -30,6 +30,9 @@ struct StoreIoContract {
   // Range reclamation affects only the specified reserved region. Successful
   // flush also persists its new allocation state for independent reopen.
   bool isolated_range_reclamation=false;
+  // Shortening a qualified ordinary file affects only the retired suffix,
+  // including on interruption. A successful flush persists the shorter EOF.
+  bool isolated_tail_truncation=false;
 };
 
 // Pure shared admission rule; this does not qualify a device or its flushes.

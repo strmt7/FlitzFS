@@ -1,5 +1,6 @@
 #include "dense_volume_backing.hpp"
 #include "record_digest.hpp"
+#include "store_file.hpp"
 
 #include <algorithm>
 #include <cstring>
@@ -35,6 +36,18 @@ using Runs = std::map<std::uint64_t, Run>;
 
 std::uint64_t end_of(Runs::const_iterator run) noexcept { return run->first + run->second.units; }
 
+bool adjacent(Runs::const_iterator left, Runs::const_iterator right) noexcept {
+  return end_of(left) == right->first && left->second.target + left->second.units == right->second.target;
+}
+
+void merge_next(Runs& runs, Runs::iterator current) noexcept {
+  const auto next = std::next(current);
+  if (next != runs.end() && adjacent(current, next)) {
+    current->second.units += next->second.units;
+    runs.erase(next);
+  }
+}
+
 void insert(Runs& runs, std::uint64_t first, Run incoming) {
   const auto next = runs.lower_bound(first);
   const auto previous = next == runs.begin() ? runs.end() : std::prev(next);
@@ -48,11 +61,7 @@ void insert(Runs& runs, std::uint64_t first, Run incoming) {
   } else {
     current = runs.emplace_hint(next, first, incoming);
   }
-  if (next != runs.end() && end_of(current) == next->first &&
-      current->second.target + current->second.units == next->second.target) {
-    current->second.units += next->second.units;
-    runs.erase(next);
-  }
+  merge_next(runs, current);
 }
 
 // Remove a slice of one existing run. Prepare a split before shortening the
@@ -253,10 +262,15 @@ struct Group {
   std::uint64_t available = 0;
   std::optional<unsigned> repair_slot;
 };
+
+struct TailMove {
+  std::uint64_t source, destination, logical, units;
+};
 }
 
 struct DenseVolumeBacking::Impl {
   const std::shared_ptr<StoreByteIo> physical;
+  DenseFileTailIo* const file;
   const Geometry geometry;
   const bool writable;
   std::uint64_t physical_end, admitted_end = 0, used_slots = 0;
@@ -264,14 +278,53 @@ struct DenseVolumeBacking::Impl {
   std::optional<unsigned> anchor_repair;
   Runs logical;
   std::vector<Group> groups;
+  std::size_t occupied_groups = 0; // One past the last group owning payload units.
   std::set<std::uint64_t> available_groups, dirty_groups;
   mutable std::shared_mutex mutex;
 
   Impl(std::shared_ptr<StoreByteIo> io, Geometry layout, bool write, std::uint64_t end)
-      : physical(std::move(io)), geometry(layout), writable(write), physical_end(end) {}
+      : physical(std::move(io)), file(dynamic_cast<DenseFileTailIo*>(physical.get())), geometry(layout),
+        writable(write), physical_end(end) {}
 
   std::uint64_t logical_end() const noexcept {
     return logical.empty() ? 0 : end_of(std::prev(logical.end())) * unit;
+  }
+
+  std::uint64_t retained_end() const noexcept {
+    if (!occupied_groups) return unit + header_bytes; // Both anchors remain legible.
+    return end_of(std::prev(groups[occupied_groups - 1].directory.physical.end())) * unit;
+  }
+
+  bool tail_settled() const noexcept {
+    return writable && !fenced && file && physical->contract().isolated_tail_truncation && dirty_groups.empty();
+  }
+
+  std::optional<std::uint64_t> shorten_to(std::uint64_t budget) const noexcept {
+    const auto retained = retained_end();
+    if (!budget || physical_end <= retained) return {};
+    const auto minimum = physical_end - (std::min)(budget, physical_end - retained);
+    auto end = minimum == retained ? retained : (minimum + unit - 1) / unit * unit;
+    if (end >= anchor_units * unit) {
+      const auto group = (end / unit - anchor_units) / group_units;
+      // Keep either the entire directory pair or none of it, so a later
+      // allocation can reuse the surviving group's empty directory.
+      if (end > group_start(group) * unit && end < payload_start(group) * unit)
+        end = payload_start(group) * unit;
+    }
+    return end < physical_end ? std::optional{end} : std::nullopt;
+  }
+
+  std::optional<TailMove> tail_move(std::uint64_t budget) const noexcept {
+    if (budget < unit || !occupied_groups || physical_end != retained_end()) return {};
+    const auto& group = groups[occupied_groups - 1];
+    const auto& physical_runs = group.directory.physical;
+    const auto last = std::prev(physical_runs.end());
+    if (group.available >= last->first ||
+        group.directory.sequence == (std::numeric_limits<std::uint64_t>::max)()) return {};
+    const auto gap_end = physical_runs.lower_bound(group.available)->first;
+    const auto count = (std::min)({budget / unit, gap_end - group.available, last->second.units});
+    const auto start = last->second.units - count;
+    return TailMove{last->first + start, group.available, last->second.target + start, count};
   }
 
   void check_writer() const {
@@ -325,6 +378,7 @@ struct DenseVolumeBacking::Impl {
       }
       group.available = first_free(group.directory.physical, group.available);
       if (group.available < group_end(index)) available_groups.insert(index);
+      if (!group.directory.physical.empty()) occupied_groups = groups.size() + 1;
       groups.push_back(std::move(group));
     }
   }
@@ -403,6 +457,7 @@ struct DenseVolumeBacking::Impl {
     dirty_groups.insert(index);
     insert(group.directory.physical, at, {logical_at, taken});
     insert(logical, logical_at, {at, taken});
+    occupied_groups = (std::max)(occupied_groups, static_cast<std::size_t>(index) + 1);
     used_slots += taken;
     group.available = first_free(group.directory.physical, at);
     if (group.available == group_end(index)) available_groups.erase(index);
@@ -430,6 +485,7 @@ struct DenseVolumeBacking::Impl {
       used_slots -= until - first;
       first = until;
     }
+    while (occupied_groups && groups[occupied_groups - 1].directory.physical.empty()) --occupied_groups;
   }
 
   void publish() {
@@ -450,6 +506,70 @@ struct DenseVolumeBacking::Impl {
     for (const auto index : dirty_groups) ++groups[static_cast<std::size_t>(index)].directory.sequence;
     dirty_groups.clear();
     pending_release = false;
+  }
+
+  void shorten(std::uint64_t end) {
+    file->shorten_file(physical_end, end);
+    physical->flush();
+    if (physical->extent() != end) fail(Code::storage_failure, "dense shorter extent was not confirmed");
+    physical_end = end;
+    admitted_end = (std::min)(admitted_end, end);
+    while (!groups.empty() && group_start(groups.size() - 1) * unit >= end) {
+      available_groups.erase(groups.size() - 1);
+      groups.pop_back();
+    }
+  }
+
+  void relocate(const TailMove& move) {
+    const auto index = occupied_groups - 1;
+    auto& group = groups[index];
+    auto candidate = group.directory.physical;
+    erase(candidate, move.source, move.source + move.units);
+    insert(candidate, move.destination, {move.logical, move.units});
+    const auto sequence = group.directory.sequence + 1;
+    const auto record = directory_record(geometry, index, sequence, candidate);
+
+    // Only the control thread changes the inverse index. Prepare a split
+    // node privately so readers use the original map until both peers settle.
+    const auto next = logical.upper_bound(move.logical);
+    if (next == logical.begin()) fail(Code::corrupt, "dense relocation has no source owner");
+    const auto original = std::prev(next);
+    if (original->second.target + move.logical - original->first != move.source ||
+        end_of(original) != move.logical + move.units)
+      fail(Code::corrupt, "dense relocation disagrees with inverse ownership");
+    Runs split;
+    if (move.logical != original->first) split.emplace(move.logical, Run{move.destination, move.units});
+
+    Bytes source(static_cast<std::size_t>(move.units * unit)), checked(source.size());
+    physical->read_exact(move.source * unit, source);
+    write(move.destination * unit, source);
+    physical->flush();
+    physical->read_exact(move.destination * unit, checked);
+    if (source != checked) fail(Code::storage_failure, "dense relocated bytes differ from their source");
+
+    const auto slot = sequence % 2;
+    write((group_start(index) + slot) * unit, record);
+    physical->flush();
+    write((group_start(index) + 1 - slot) * unit, record);
+    physical->flush();
+
+    // Drain reads already using the previous physical location before later
+    // maintenance can reuse or shorten it. Captured logical offsets survive.
+    const std::unique_lock lock(mutex);
+    auto current = original;
+    if (split.empty()) {
+      current->second.target = move.destination;
+    } else {
+      original->second.units = move.logical - original->first;
+      current = logical.insert(next, split.extract(split.begin()));
+    }
+    if (current != logical.begin() && adjacent(std::prev(current), current)) {
+      current = std::prev(current);
+      merge_next(logical, current);
+    }
+    merge_next(logical, current);
+    group.directory = {sequence, std::move(candidate)};
+    group.available = first_free(group.directory.physical, payload_start(index));
   }
 };
 
@@ -500,6 +620,7 @@ std::uint64_t DenseVolumeBacking::logical_limit() const noexcept { return state_
 StoreIoContract DenseVolumeBacking::contract() const noexcept {
   auto contract = state_->physical->contract();
   contract.isolated_range_reclamation = state_->writable;
+  contract.isolated_tail_truncation = false; // Only the outer file can be shortened.
   return contract;
 }
 bool DenseVolumeBacking::allows_writer() const noexcept { return state_->writable; }
@@ -629,6 +750,37 @@ void DenseVolumeBacking::reclaim_range(std::uint64_t offset, std::uint64_t bytes
     state_->begin_writes();
     const std::unique_lock lock(state_->mutex);
     state_->remove(offset / unit, (offset + bytes) / unit);
+  } catch (...) {
+    state_->fenced = true;
+    throw;
+  }
+}
+
+NativeDenseFileSpace DenseVolumeBacking::file_space() const {
+  if (state_->fenced || !state_->dirty_groups.empty())
+    fail(Code::invalid_operation, "dense allocation accounting requires settled ownership");
+  const auto retained = state_->retained_end();
+  return {state_->physical_end, state_->geometry.physical_limit, state_->used_slots * unit,
+      (count_slots(retained) - state_->used_slots) * unit,
+      state_->physical_end > retained ? state_->physical_end - retained : 0,
+      state_->file ? state_->file->allocated_file_bytes(state_->physical_end) : std::nullopt};
+}
+
+bool DenseVolumeBacking::tail_work_pending(std::uint64_t budget) const {
+  return state_->tail_settled() &&
+      (state_->shorten_to(budget).has_value() || state_->tail_move(budget).has_value());
+}
+
+bool DenseVolumeBacking::advance_tail(std::uint64_t budget) {
+  if (!state_->tail_settled()) return false;
+  const auto end = state_->shorten_to(budget);
+  const auto move = end ? std::optional<TailMove>{} : state_->tail_move(budget);
+  if (!end && !move) return false;
+  try {
+    state_->begin_writes();
+    if (end) state_->shorten(*end);
+    else state_->relocate(*move);
+    return true;
   } catch (...) {
     state_->fenced = true;
     throw;
