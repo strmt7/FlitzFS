@@ -7,6 +7,8 @@ class NativeHybridBacking;
 struct MemoryVolumeBacking;
 // Process-lifetime memory provider. No file/device/driver API.
 // One domain per process; its lease remains alive until the last store retires.
+// Separate stores share serialized capacity and residency accounting. Each
+// store still has one mutation owner and obeys its exact-read lease contract.
 struct MemoryVolumeObservation {
   std::uint64_t physical_total=0,physical_available=0,commit_total=0,commit_available=0;
 };

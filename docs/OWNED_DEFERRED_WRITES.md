@@ -151,6 +151,32 @@ existing activity signal. The record retains no file names, contents or
 recovery authority. It provides a workload baseline for a later matched
 qualification. [Source-bound Windows evidence](evidence/windows-ordinary-amd-write-demand-2026-11-23.json)
 
+### CPU reference from a completed write
+
+The controller can now replay the newest eligible aligned write on a private
+mirrored image. The adapter keeps an internal source handle, offset and
+namespace checkpoint alongside the rolling window. The capture requires the
+same checkpoint and a still-open readable source context. It acquires a
+checked immutable snapshot under the adapter's try-lock and reads the range on
+CPU after releasing the lock. Foreground callbacks retain no payload copies.
+
+The pending receipt survives CPU telemetry warm-up for up to two maximum CPU
+observation windows. Admitting the replay still requires a fresh idle
+observation, enough memory, a quiet foreground epoch and the installed
+uniform worker and module files. Foreground activity or shutdown cancels
+preparation. The owner charges capture, verification and cleanup to the
+existing maintenance duty cycle. Each aligned size gets at most one verified
+CPU reference per attachment.
+
+The private image uses the same foreground codec and isolation geometry as the
+captured write. The recorded interval covers its native write transaction.
+An independent CPU reopen verifies the image and compares every extent against
+the source. The owner reports the source digest and occupied image bytes after
+retiring the scratch. The Windows SDK fixture verified these conditions and
+reopened the original image independently. Matched AMD replay and installed
+route selection are the next qualification steps.
+[Windows CPU replay evidence](evidence/windows-ordinary-amd-cpu-replay-2026-11-23.json)
+
 ## Activating a route on a running volume
 
 The Windows volume controller can receive an independently acquired foreground

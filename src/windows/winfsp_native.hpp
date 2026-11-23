@@ -129,6 +129,11 @@ class WinFspNativeWritable final {
   // Before binding callbacks. Observe only successful eligible CPU writes.
   bool enable_amd_write_demand() noexcept;
   std::optional<NativeAmdWriteDemand> take_amd_write_demand() noexcept;
+  // Take the single matching range from its checked immutable root. Reads
+  // run outside the callback mutex and yield at native extent boundaries.
+  std::vector<std::byte> capture_amd_write_source(const NativeAmdWriteDemand&,
+      const NativeMaintenanceObservation&,std::uint64_t now,std::uint64_t epoch,
+      const std::atomic<bool>& stop) noexcept;
   // One controller reads the demand, observes resources outside the callback
   // lock and returns a sample for exactly that still-current demand.
   std::optional<NativeGpuBudgetTask> gpu_budget_task() const;

@@ -469,6 +469,22 @@ bool has_configured_uniform_write_package() noexcept {
 #endif
 }
 
+bool installed_uniform_write_files_present() noexcept {
+#ifdef FLITZFS_BIND_INSTALLED_AMD_PACKAGE
+  if(!has_configured_uniform_write_package())return false;
+  try {
+    const auto directory=application_amd_directory();
+    if(directory.empty())return false;
+    const auto worker=package_worker(directory,HipRouteRole::uniform);
+    const auto module=route_module(worker,route_files(HipRouteRole::uniform));
+    const auto worker_state=observe_installed_input(worker);
+    const auto module_state=observe_installed_input(module);
+    return worker_state && worker_state->present && module_state && module_state->present;
+  }catch(...) {}
+#endif
+  return false;
+}
+
 HipRouteDiscoveryResult discover_installed_hip_route(ProcessBudget budget,std::uint32_t maximum_identity_queries,
     std::stop_token stop) {
   if(stop.stop_requested())return {Status::cancelled};

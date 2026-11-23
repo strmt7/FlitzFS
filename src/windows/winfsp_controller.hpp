@@ -1,5 +1,6 @@
 #pragma once
 #include "native_anchor_search.hpp"
+#include "native_amd_write_policy.hpp"
 #include "native_lz4_read_worker.hpp"
 #include "winfsp_session.hpp"
 #include "maintenance_host.hpp"
@@ -7,6 +8,10 @@
 #include "../store_file.hpp"
 namespace flitzfs {
 class MemoryVolumeDomain;
+struct WinFspAmdCpuTrial {
+  NativeAmdWriteDemand demand;
+  NativeAmdWriteSample sample;
+};
 struct WinFspControllerView {
   SessionState state=SessionState::ready;
   NTSTATUS start_status=STATUS_PENDING;
@@ -26,6 +31,8 @@ struct WinFspControllerView {
   NativeLz4ReadWorkerStats amd_read;
   std::optional<NativeDeferredActivation> foreground_activation;
   std::optional<NativeAmdWriteDemand> amd_write_demand;
+  std::optional<WinFspAmdCpuTrial> amd_cpu_trial;
+  std::uint64_t amd_cpu_trial_attempts=0;
   std::optional<HipDiscoveryStatus> installed_anchor_status,installed_read_status;
   std::uint32_t installed_anchor_attempts=0,installed_anchor_queries=0;
   std::uint32_t installed_read_attempts=0,installed_read_queries=0,installed_read_worker_exit=0;

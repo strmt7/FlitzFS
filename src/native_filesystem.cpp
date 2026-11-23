@@ -2874,6 +2874,28 @@ bool detail::NativeLz4CaptureLease::capture(NativeLz4CapturedFrame& out) const {
     return view.capture_native_lz4(view.inode(inode_),offset_,maximum_encoded_,out);
   }catch(const std::exception&){return false;}
 }
+std::vector<std::byte> detail::NativeLz4CaptureLease::read_range(
+    std::uint32_t bytes,const std::function<bool()>& interrupted) const {
+  if(!bytes || bytes>kNativeMaxReadBytes || bytes%kNativeExtentBytes || offset_%kNativeExtentBytes ||
+      offset_>UINT64_MAX-bytes)return {};
+  try {
+    const StoreCaptureReadScope capture(interrupted);
+    if(capture.interrupted())return {};
+    const auto query=snapshot_.scoped_query();
+    const auto view=verify_indexed_root(snapshot_,root_);
+    const auto inode=view.inode(inode_);
+    std::vector<std::byte> result;
+    result.reserve(bytes);
+    for(std::uint32_t at=0;at<bytes;at+=kNativeExtentBytes) {
+      if(capture.interrupted())return {};
+      const auto block=view.read(inode,offset_+at,kNativeExtentBytes);
+      if(block.size()!=kNativeExtentBytes)return {};
+      result.insert(result.end(),block.begin(),block.end());
+    }
+    if(!capture.interrupted())return result;
+  }catch(const std::exception&) {}
+  return {};
+}
 std::vector<detail::NativeLz4CapturedFrame> detail::NativeLz4CaptureLease::capture_range(
     std::uint32_t bytes,std::size_t maximum_frame_bytes,const std::function<bool()>& interrupted,
     std::shared_ptr<PagedReadMetadata>* metadata) const {

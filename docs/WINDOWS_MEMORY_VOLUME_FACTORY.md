@@ -54,9 +54,12 @@ clears or decommits pages.
 The controller checks working-set allowance in constant space and time per
 opportunity. Creation, sealing and explicit retired inspection can verify
 every committed page in fixed-size batches. The UI reports locked bytes,
-while internal reservation accounting protects the staging image used by
-automatic indexed compaction.
-[Local checks](evidence/demand-locked-memory-2026-11-18.json)
+while internal reservation accounting protects private staging images. The
+domain serializes allocation, working-set accounting and retirement across
+stores. Each store has one mutation owner. The detached CPU replay can
+reserve and retire scratch while distinct foreground stores remain available.
+[Local checks](evidence/demand-locked-memory-2026-11-18.json) ·
+[Concurrent store and replay checks](evidence/windows-ordinary-amd-cpu-replay-2026-11-23.json)
 
 ## Automatic coherence catalog
 

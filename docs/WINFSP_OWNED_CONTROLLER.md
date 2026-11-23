@@ -33,10 +33,12 @@ With a configured uniform package, the controller enables CPU write
 observation through the ordinary attachment path. The adapter publishes
 complete rolling windows keyed by aligned request size, compression policy
 and backing isolation. The controller takes the newest observation at a
-quiet boundary and exposes it in the synchronized view. This uses the
-existing callback activity signal and makes no device query. A qualified
-offer still requires a separately verified, winning matched GPU comparison.
-[Measurement contract](OWNED_DEFERRED_WRITES.md#cpu-service-cost-from-ordinary-writes)
+quiet boundary and exposes it in the synchronized view. The installed uniform
+package and an admitted idle opportunity let the controller capture that exact
+completed write for a detached CPU trial. The replay uses a private protected
+image, independent CPU verification and the controller's existing cancellation
+and pacing. A qualified offer requires a winning matched GPU comparison.
+[Measurement and replay contract](OWNED_DEFERRED_WRITES.md#cpu-service-cost-from-ordinary-writes)
 
 ## Content events and bounded work
 

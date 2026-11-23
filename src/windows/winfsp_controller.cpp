@@ -6,6 +6,7 @@
 #include "worker_exchange.hpp"
 #endif
 #include "../native_maintenance_source.hpp"
+#include <bitset>
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -42,6 +43,10 @@ struct WinFspVolumeController::Impl {
   std::unique_ptr<NativeAnchorSearchController> anchor;
   std::unique_ptr<NativeLz4ReadWorker> read_worker;
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
+  bool observe_write_reference=false;
+  std::optional<bool> write_package_present;
+  std::optional<NativeAmdWriteDemand> write_reference_demand;
+  std::bitset<kStoreMaxTransactionBytes/kNativeExtentBytes> recorded_write_sizes;
   std::optional<InstalledAnchorProfile> installed;
   HipRouteDiscoveryResult acquisition;
   std::optional<NativeAnchorRecoveryProof> acquisition_proof;
@@ -79,7 +84,7 @@ struct WinFspVolumeController::Impl {
     }
 #endif
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
-    if(has_configured_uniform_write_package())(void)source->enable_amd_write_demand();
+    observe_write_reference=has_configured_uniform_write_package() && source->enable_amd_write_demand();
 #endif
     source->set_maintenance_event(activity.value);adapter=source.get();
     session=std::make_unique<WinFspNativeSession>(std::move(source),api);
@@ -148,6 +153,13 @@ struct WinFspVolumeController::Impl {
             current.amd_read=read_worker->stats();
           }
           if(const auto demand=adapter->take_amd_write_demand()) {
+#ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
+            if(observe_write_reference) {
+              write_reference_demand.reset();
+              if(write_package_present!=false && !recorded_write_sizes[demand->shape.input_bytes/kNativeExtentBytes-1])
+                write_reference_demand=demand;
+            }
+#endif
             std::lock_guard lock(mutex);
             current.amd_write_demand=demand;
           }
@@ -166,7 +178,11 @@ struct WinFspVolumeController::Impl {
             continue;
           }
           const bool scrub_due=now>=next_scrub;
-          const bool pending=!disabled && (session->background_maintenance_pending(scrub_due) ||
+          bool qualification_pending=false;
+#ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
+          qualification_pending=write_reference_demand.has_value();
+#endif
+          const bool pending=!disabled && (qualification_pending || session->background_maintenance_pending(scrub_due) ||
               (read_worker && read_worker->ready_to_verify()));
           if(anchor && !pending)anchor->cancel();
           const bool awaiting_anchor=anchor && anchor->waiting();
@@ -198,6 +214,8 @@ struct WinFspVolumeController::Impl {
           detail::MaintenanceBackingUse backing_use;
           bool backing_limited=false,read_ahead_prepared=false,read_ahead_backing_refused=false;
           bool read_ahead_demand_sampled=false;
+          bool amd_cpu_trial_attempted=false;
+          std::optional<WinFspAmdCpuTrial> amd_cpu_trial;
           MaintenanceThreadScope priority;
           if(!priority.active())disabled=true;
           else try {
@@ -208,8 +226,15 @@ struct WinFspVolumeController::Impl {
             };
             auto observed=host.observe(stop_requested.load(std::memory_order_acquire));
             if(!stop_requested.load(std::memory_order_acquire) && host.status()!=MaintenanceHostStatus::waiting) {
+#ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
+              if(!interrupted() && write_reference_demand) {
+                const detail::MaintenanceBackingScope measure(backing_use);
+                amd_cpu_trial=record_ordinary_cpu_reference(observed,epoch,amd_cpu_trial_attempted);
+              }
+#endif
               auto continuation=WinFspMaintenanceContinuation::none;
               for(;;) {
+                if(amd_cpu_trial_attempted)break;
                 if(residency && observed.valid)residency->verify_working_set();
                 if(observed.continued && interrupted())break;
                 const auto backing_before=backing_use.elapsed_ns();
@@ -324,6 +349,8 @@ struct WinFspVolumeController::Impl {
             current.read_ahead_prepared+=read_ahead_prepared;
             current.read_ahead_backing_refusals+=read_ahead_backing_refused;
             current.read_ahead_demand_samples+=read_ahead_demand_sampled;
+            current.amd_cpu_trial_attempts+=amd_cpu_trial_attempted;
+            if(amd_cpu_trial)current.amd_cpu_trial=amd_cpu_trial;
           }
           if(notify_integrity_fault && status_changed.value)SetEvent(status_changed.value);
         }
@@ -419,6 +446,39 @@ struct WinFspVolumeController::Impl {
     return result;
   }
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
+  std::optional<WinFspAmdCpuTrial> record_ordinary_cpu_reference(
+      const NativeMaintenanceObservation& observed,std::uint64_t epoch,bool& attempted) {
+    if(!write_reference_demand)return {};
+    const auto now=GetTickCount64();
+    const auto policy=adapter->group_maintenance_policy();
+    const auto& demand=*write_reference_demand;
+    // Retain the checkpoint receipt through CPU counter warm-up. The live
+    // observation has its own shorter freshness bound at admission.
+    const auto receipt_window=2ULL*policy.maximum_cpu_window_ms;
+    const auto completed=demand.samples.back().completed_ms;
+    if(completed>now || now-completed>receipt_window) {
+      write_reference_demand.reset();
+      return {};
+    }
+    const auto allowance=detail::maintenance_resources(observed,now,policy);
+    if(!allowance || allowance->cpu_busy || observed.foreground_pending)return {};
+    if(!write_package_present)write_package_present=installed_uniform_write_files_present();
+    const auto selected=*std::exchange(write_reference_demand,std::nullopt);
+    if(!*write_package_present)return {};
+    attempted=true;
+    const auto interrupted=[&] {
+      return stop_requested.load(std::memory_order_acquire) || adapter->foreground_pending() ||
+          adapter->foreground_activity()!=epoch || adapter->requires_offline() || adapter->dispatcher_stopped();
+    };
+    const auto source=adapter->capture_amd_write_source(selected,observed,GetTickCount64(),epoch,stop_requested);
+    if(source.empty() || interrupted() ||
+        GetTickCount64()-observed.captured_ms>policy.maximum_age_ms)return {};
+    const auto result=record_native_amd_cpu_trial(selected.shape,source,allowance->memory_allowance,residency,interrupted);
+    if(!result || interrupted())return {};
+    recorded_write_sizes.set(selected.shape.input_bytes/kNativeExtentBytes-1);
+    return WinFspAmdCpuTrial{selected,*result};
+  }
+
   void begin_read_acquisition(const WinFspReadAheadWork& work,const NativeMaintenanceObservation& observed) {
     if(!installed_read || !acquisition_retired || acquisition_thread.joinable() ||
         stop_requested.load(std::memory_order_acquire) || adapter->foreground_pending() ||

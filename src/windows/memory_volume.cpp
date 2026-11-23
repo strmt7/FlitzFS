@@ -39,10 +39,14 @@ std::uint64_t usable_memory_volume_headroom(const MemoryVolumeObservation& m) {
 }
 struct MemoryVolumeDomain::State {
   std::uint64_t capacity=0,reserved=0,resident=0,stores=0,lock_budget=0;
+  // Different stores can grow independently. Serialize only domain admission,
+  // residency accounting and lifetime operations, never payload copies.
+  mutable std::mutex allocation;
   std::array<Store*,64> registry{};
   SIZE_T old_min=0,old_max=0;DWORD old_flags=0;std::size_t page=0;
   std::atomic<SIZE_T> minimum{0}; // The WinFsp controller checks this outside the callback lock.
-  bool working_set_changed=false,read_only=false;
+  bool working_set_changed=false;
+  std::atomic<bool> read_only{false};
   explicit State(std::uint64_t cap):capacity(cap) {
     check_headroom(0);
     SYSTEM_INFO info{};GetSystemInfo(&info);page=info.dwPageSize;
@@ -85,6 +89,8 @@ class MemoryVolumeDomain::Store final:public StoreByteIo {
       state_(std::move(state)),capacity_(capacity),
       unit_((std::max)(minimum_unit,static_cast<std::uint32_t>(state_->page))) {
     require(!minimum_unit || valid_store_io_contract({minimum_unit,true}),"Invalid memory isolation unit");
+    std::lock_guard guard(state_->allocation);
+    require(allows_writer(),"Memory domain unavailable for allocation");
     require(state_->stores<state_->registry.size(),"Memory store count cap");
     require(capacity && capacity%state_->page==0 && capacity<=state_->capacity &&
         state_->reserved<=state_->capacity-capacity,"Memory allocation capacity exceeded");
@@ -142,6 +148,7 @@ class MemoryVolumeDomain::Store final:public StoreByteIo {
   }
   bool writer_in_use() const noexcept {return has_writer();}
   bool retire_step() {
+    std::lock_guard guard(state_->allocation);
     const auto bytes=(std::min)(committed_,std::uint64_t{kStoreMaxObjectBytes});
     if(!bytes)return true;
     detail::MaintenanceBackingCall observed(detail::MaintenanceBackingOperation::control);
@@ -173,12 +180,15 @@ class MemoryVolumeDomain::Store final:public StoreByteIo {
     return committed_;
   }
  private:
-  bool allows_writer() const noexcept override {return !state_->read_only && cleanup_ok.load();}
+  bool allows_writer() const noexcept override {
+    return !state_->read_only.load(std::memory_order_acquire) && cleanup_ok.load();
+  }
   void grow(std::uint64_t end) {
     const auto page = state_->page;
     const auto next = ((end-1)/page+1)*page;
     const auto added = static_cast<SIZE_T>(next-committed_);
     auto* const start = data_+committed_;
+    std::lock_guard guard(state_->allocation);
     state_->admit_lock_growth(added);
     if (!VirtualAlloc(start, added, MEM_COMMIT, PAGE_READWRITE))
       throw std::runtime_error("Memory commit failed; Windows status "+std::to_string(GetLastError()));
@@ -193,6 +203,7 @@ class MemoryVolumeDomain::Store final:public StoreByteIo {
   void release() noexcept {
     if(!data_)return;
     if(const auto end=extent())SecureZeroMemory(data_,static_cast<SIZE_T>(end));
+    std::lock_guard guard(state_->allocation);
     if(committed_ && !VirtualUnlock(data_,static_cast<SIZE_T>(committed_)))cleanup_ok=false;
     if(VirtualFree(data_,0,MEM_RELEASE)) {
       state_->reserved-=capacity_;
@@ -220,11 +231,12 @@ MemoryVolumeDomain MemoryVolumeDomain::create(std::uint64_t cap) {
   catch(...){domain_claimed=false;throw;}
 }
 std::shared_ptr<StoreByteIo> MemoryVolumeDomain::create_store(std::uint64_t cap,std::uint32_t minimum_unit) {
-  require(state_ && !state_->read_only && cleanup_ok.load(),"Memory domain unavailable for allocation");
+  require(state_ && !state_->read_only.load(std::memory_order_acquire) && cleanup_ok.load(),
+      "Memory domain unavailable for allocation");
   return std::make_shared<Store>(state_,cap,minimum_unit);
 }
 MemoryStoreRetirement MemoryVolumeDomain::retire_store(std::shared_ptr<StoreByteIo>& backing) {
-  require(backing && owns(*backing) && !state_->read_only && cleanup_ok.load(),
+  require(backing && owns(*backing) && !state_->read_only.load(std::memory_order_acquire) && cleanup_ok.load(),
       "Memory retirement requires a writable domain and its own store");
   auto& store=static_cast<Store&>(*backing);
   if(backing.use_count()!=1 || store.writer_in_use())return MemoryStoreRetirement::pinned;
@@ -234,6 +246,7 @@ MemoryStoreRetirement MemoryVolumeDomain::retire_store(std::shared_ptr<StoreByte
 }
 MemoryVolumeUsage MemoryVolumeDomain::usage() const noexcept {
   if(!state_)return {};
+  std::lock_guard guard(state_->allocation);
   return {state_->capacity,state_->reserved,state_->resident,state_->stores};
 }
 void MemoryVolumeDomain::verify_working_set() const {
@@ -245,6 +258,7 @@ void MemoryVolumeDomain::verify_working_set() const {
 }
 void MemoryVolumeDomain::verify_resident() const {
   verify_working_set();
+  std::lock_guard guard(state_->allocation);
   std::uint64_t observed=0,resident=0;
   for (const auto* store : state_->registry) if (store) {
     resident += store->verify();
@@ -254,7 +268,9 @@ void MemoryVolumeDomain::verify_resident() const {
       "Memory store ownership accounting differs");
 }
 bool MemoryVolumeDomain::owns(const StoreByteIo& candidate) const noexcept {
-  return state_ && std::find(state_->registry.begin(),state_->registry.end(),&candidate)!=state_->registry.end();
+  if(!state_)return false;
+  std::lock_guard guard(state_->allocation);
+  return std::find(state_->registry.begin(),state_->registry.end(),&candidate)!=state_->registry.end();
 }
 bool MemoryVolumeDomain::owns_image(const StoreByteIo& candidate) const noexcept {
   if(owns(candidate))return true;
@@ -274,10 +290,11 @@ void MemoryVolumeDomain::seal_read_only(const NativeHybridBacking* active,const 
     require(owns_image(*image) && !image->has_writer(),"Memory image still has a writer or foreign backing");
     for(const auto& part:image->components())delegated[next++]=part.get();
   }
+  std::lock_guard guard(state_->allocation);
   for(const auto* store:state_->registry)
     require(!store || !store->writer_in_use() || std::ranges::find(delegated,store)!=delegated.end(),
         "Memory domain still has a writer");
-  state_->read_only=true;
+  state_->read_only.store(true,std::memory_order_release);
 }
 bool MemoryVolumeDomain::cleanup_healthy() noexcept {return cleanup_ok.load();}
 } // namespace flitzfs

@@ -494,17 +494,19 @@ latency independently on the measured Windows host. [Existing fixture](evidence/
    their foreground policy and backing geometry. The window includes each
    completion time and native service cost. Qualification can use the
    timestamps to estimate active request cadence and check freshness.
-   Calibration inputs still need separate bounded ownership.
    [Write demand and Radeon evidence](evidence/windows-ordinary-amd-write-demand-2026-11-23.json)
-3. Extend the existing controller's acquisition slot to own calibrated writes,
-   coexisting with read and anchor opportunities. Fund preparation from live
-   resource observations. Use complete, matched native transactions with
-   independent readback, byte accounting and child retirement to create a
-   configuration-bound offer. Reuse the existing qualified foreground
-   admission point. Exercise CPU preference and invalidating observations
-   before accepting a live-device offer. The latest locked-memory traces
-   put initialized worker preparation and amortization ahead of kernel tuning
-   for the measured 1 MiB shape.
+3. **CPU reference implemented.** The owner captures an exact eligible
+   completed write under current idle and memory admission and verifies the
+   CPU replay on a private mirrored image. It cancels when foreground work
+   returns and retires scratch before publishing the observation.
+   [Replay evidence](evidence/windows-ordinary-amd-cpu-replay-2026-11-23.json)
+   Extend that owner to alternate the CPU and AMD arms on the same immutable
+   input, with cancellable discovery coexisting with read and anchor
+   opportunities. Compare cold and prepared write/read paths on equivalent
+   memory-backed images. Use complete transaction time, byte accounting,
+   independent readback and child retirement to qualify a configuration-bound
+   offer. The current 1 MiB traces put initialized worker preparation and
+   amortization ahead of kernel tuning. [Benchmark protocol](BENCHMARK_PROTOCOL.md#cold-and-prepared-cpu-and-radeon-trials)
 4. Measure useful output with a real mounted request after a positive route
    qualification. Record why other requests use CPU and whether the helper
    resumes with a fresh opportunity after an interruption. A losing shape stays

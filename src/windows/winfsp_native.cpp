@@ -256,6 +256,11 @@ struct WinFspNativeWritable::Impl {
     std::array<NativeAmdWriteDemand,sizes> by_size{};
     std::uint64_t sequence=0;
     std::size_t latest=0;
+    struct Source {
+      NativeFileHandle handle;
+      std::uint64_t offset=0,checkpoint=0;
+    };
+    std::optional<Source> source;
   };
   struct ActivitySignal final:detail::NativeVolumeRangeWake {
     Handle event;
@@ -317,7 +322,8 @@ struct WinFspNativeWritable::Impl {
   void signal_maintenance() noexcept {
     if(maintenance_event)maintenance_event->signal();
   }
-  void record_amd_write_demand(ULONG length,std::uint64_t elapsed_ns) noexcept {
+  void record_amd_write_demand(ULONG length,std::uint64_t elapsed_ns,
+      const NativeFileHandle& handle,std::uint64_t offset) noexcept {
     const auto selected=session.managed_foreground();
     if(!selected || !elapsed_ns || amd_write_demand->sequence==UINT64_MAX)return;
     auto& demand=*amd_write_demand;
@@ -332,6 +338,7 @@ struct WinFspNativeWritable::Impl {
     if(!band.samples.front().elapsed_ns)return;
     band.sequence=++demand.sequence;
     demand.latest=index;
+    demand.source=AmdWriteDemand::Source{handle,offset,session.namespace_sequence()};
     amd_write_demand_pending.store(true,std::memory_order_release);
   }
   void install_deferred_locked(NativeDeferredWriteOptions options) {
@@ -822,7 +829,7 @@ struct WinFspNativeWritable::Impl {
       const auto written=write_cpu();
       if(written.status==STATUS_SUCCESS && !written.offline_required && *count==length) {
         const auto elapsed=std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now()-start).count();
-        if(elapsed>0)s.record_amd_write_demand(length,static_cast<std::uint64_t>(elapsed));
+        if(elapsed>0)s.record_amd_write_demand(length,static_cast<std::uint64_t>(elapsed),slot.handle,offset);
       }
       return written;
     });
@@ -1278,6 +1285,38 @@ std::optional<NativeAmdWriteDemand> WinFspNativeWritable::take_amd_write_demand(
     if(!selected || !observed.shape.matches_storage(selected->compression,selected->isolation_unit))return {};
     return observed;
   }catch(...) {return {};}
+}
+std::vector<std::byte> WinFspNativeWritable::capture_amd_write_source(
+    const NativeAmdWriteDemand& observed,const NativeMaintenanceObservation& resources,
+    std::uint64_t now,std::uint64_t epoch,const std::atomic<bool>& stop) noexcept {
+  try {
+    const auto allowance=detail::maintenance_resources(resources,now,impl_->group_policy);
+    constexpr auto read_scratch=detail::kStoreDecoderMemoryCap+4ULL*kStoreCommitUnit+2ULL*kNativeExtentBytes;
+    if(!allowance || allowance->cpu_busy || resources.foreground_pending ||
+        allowance->memory_allowance<read_scratch+observed.shape.input_bytes)return {};
+    const auto interrupted=[&] {
+      return foreground_pending() || foreground_activity()!=epoch || requires_offline() ||
+          dispatcher_stopped() || stop.load(std::memory_order_acquire);
+    };
+    if(interrupted())return {};
+    std::unique_ptr<detail::NativeLz4CaptureLease> lease;
+    {
+      std::unique_lock guard(impl_->control,std::try_to_lock);
+      if(!guard || interrupted() || !impl_->may_prepare_read() || !impl_->amd_write_demand)return {};
+      auto& demand=*impl_->amd_write_demand;
+      const auto& latest=demand.by_size[demand.latest];
+      if(!demand.source || !observed.sequence || latest.sequence!=observed.sequence ||
+          latest.shape.input_bytes!=observed.shape.input_bytes ||
+          !latest.shape.matches_storage(observed.shape.foreground,observed.shape.isolation_unit))return {};
+      const auto source=*std::exchange(demand.source,std::nullopt);
+      if(!source.checkpoint || source.checkpoint!=impl_->session.namespace_sequence() ||
+          !impl_->session.matches_managed_foreground(observed.shape.foreground,observed.shape.isolation_unit))return {};
+      lease=impl_->session.lease_native_lz4_capture(source.handle,source.offset,
+          kNativeExtentBytes+detail::kIndexedExtentHeaderBytes);
+    }
+    if(lease && !interrupted())return lease->read_range(observed.shape.input_bytes,interrupted);
+  }catch(...) {}
+  return {};
 }
 void WinFspNativeWritable::cancel_background_maintenance() {
   std::lock_guard guard(impl_->control);

@@ -38,6 +38,7 @@
 #include <iostream>
 #include <limits>
 #include <optional>
+#include <latch>
 #include <thread>
 #include <utility>
 namespace {
@@ -3966,6 +3967,158 @@ PairedWorkspaceResult volume_file_sealed_callbacks(PairedWorkspaceFixture worksp
   return {attempted_backing_writes,allocated};
 }
 
+void concurrent_memory_store_accounting() {
+  constexpr auto capacity=8*kStoreCommitUnit;
+  auto domain=MemoryVolumeDomain::create(2*capacity);
+  const auto first_bytes=data(kStoreCommitUnit,429);
+  const auto second_bytes=data(kStoreCommitUnit,719);
+  const auto fill=[&](const Bytes& bytes) {
+    auto store=domain.create_store(capacity);
+    for(std::uint64_t offset=0;offset<capacity;offset+=bytes.size())
+      store->write_exact(offset,bytes);
+    return store;
+  };
+  std::shared_ptr<StoreByteIo> first;
+  std::exception_ptr failure;
+  std::latch start{1};
+  std::jthread writer([&] {
+    start.wait();
+    try{first=fill(first_bytes);}
+    catch(...){failure=std::current_exception();}
+  });
+  start.count_down();
+  auto second=fill(second_bytes);
+  writer.join();
+  if(failure)std::rethrow_exception(failure);
+  const auto usage=domain.usage();
+  require(usage.stores==2 && usage.reserved==2*capacity && usage.resident==2*capacity,
+      "Parallel memory store growth lost ownership accounting");
+  Bytes output(kStoreCommitUnit);
+  first->read_exact(capacity-kStoreCommitUnit,output);
+  require(output==first_bytes,"Parallel first store changed bytes");
+  second->read_exact(capacity-kStoreCommitUnit,output);
+  require(output==second_bytes,"Parallel second store changed bytes");
+  domain.verify_resident();
+  first.reset();second.reset();
+  const auto retired=domain.usage();
+  require(!retired.stores && !retired.reserved && !retired.resident,
+      "Parallel stores did not retire their resident pages");
+}
+
+void amd_write_cpu_replay(bool controller_owned) {
+  if(!gpu_lz4_cpu_verification_available())return;
+  constexpr std::uint64_t image_capacity=8ULL*1024*1024,allowance=32ULL*1024*1024;
+  auto domain=MemoryVolumeDomain::create(image_capacity+kVolumeHeadBytes+allowance);
+  auto head=domain.create_store(kVolumeHeadBytes);
+  auto image=domain.create_store(image_capacity);
+  NativeMaintenancePolicy policy;
+  policy.maximum_cpu_busy_ppm=500'000;
+  auto source=WinFspNativeWritable::create_managed_indexed(head,id(90),image,id(1),{image_capacity},
+      {StoreCompressionMode::fast,1,false},{},policy);
+  auto& adapter=*source;
+  Provider p;
+  Provider::active=&p;
+  std::optional<WinFspVolumeController> owner;
+  if(controller_owned) {
+#ifdef FLITZFS_INDEXED_HIP_FIXTURE
+    require(installed_uniform_write_files_present(),"CPU replay needs the verified staged uniform package");
+#endif
+    owner.emplace(std::move(source),p.api(),plan(),domain);
+    await([&]{return owner->view().state==SessionState::running;},5000,"CPU replay controller did not start");
+  } else {
+    require(adapter.enable_amd_write_demand(),"CPU replay demand not enabled");
+    p.fs.Version=static_cast<UINT16>(sizeof(p.fs));
+    p.fs.UmFileContextIsUserContext2=TRUE;
+    p.fs.Interface=&WinFspNativeWritable::callbacks();
+    adapter.bind_callbacks(p.fs,Provider::origin);
+  }
+  const auto* table=p.fs.Interface;
+  auto security=native_security_fixture::descriptor();
+  wchar_t name[]=L"\\replay";
+  FSP_FSCTL_FILE_INFO info{};
+  PVOID handle=nullptr;
+  require(table->Create(&p.fs,name,FILE_NON_DIRECTORY_FILE,FILE_ALL_ACCESS,FILE_ATTRIBUTE_NORMAL,
+      security.data(),0,&handle,&info)==STATUS_SUCCESS && handle,"CPU replay Create");
+  auto bytes=data(2*kNativeExtentBytes,912);
+  const auto write=[&](std::span<const std::byte> input) {
+    ULONG count=0;
+    require(table->Write(&p.fs,handle,const_cast<std::byte*>(input.data()),0,static_cast<ULONG>(input.size()),
+        FALSE,FALSE,&count,&info)==STATUS_SUCCESS && count==input.size(),"CPU replay ordinary Write");
+  };
+  for(std::size_t i=0;i<kNativeAmdWriteMinimumPairs;++i)write(bytes);
+  NativeAmdWriteSample sample;
+  if(owner) {
+    await([&]{const auto view=owner->view();return view.amd_cpu_trial_attempts || view.maintenance_disabled;},
+        6000,"Controller did not admit its detached CPU trial");
+    require(owner->view().amd_cpu_trial.has_value(),"Controller's admitted CPU trial did not verify");
+    const auto measured=owner->view();
+    require(measured.amd_cpu_trial_attempts==1 && measured.amd_cpu_trial->demand.shape.input_bytes==bytes.size() &&
+        measured.amd_cpu_trial->sample.input_digest==detail::record_digest(bytes),"Controller measured a different range");
+    sample=measured.amd_cpu_trial->sample;
+    write(bytes);
+    await([&]{const auto demand=owner->view().amd_write_demand;return demand &&
+        demand->sequence>measured.amd_cpu_trial->demand.sequence;},3000,"Repeated write demand did not reach the owner");
+    require(owner->view().amd_cpu_trial_attempts==1,"An already recorded shape relaunched its CPU trial");
+  } else {
+    const auto demand=adapter.take_amd_write_demand();
+    require(demand && demand->shape.input_bytes==bytes.size(),"Ordinary demand was missing");
+    std::atomic<bool> stopped{true};
+    const auto capture=[&](const auto& observed,bool funded) {
+      const auto now=GetTickCount64();
+      const auto headroom=observe_memory_volume_headroom();
+      const auto limit=funded?headroom.physical_available:std::uint64_t{1};
+      const NativeMaintenanceObservation resources{1,now,headroom.physical_total,limit,
+          headroom.commit_total,headroom.commit_available,1000,0,1000,true,false};
+      return adapter.capture_amd_write_source(observed,resources,now,adapter.foreground_activity(),stopped);
+    };
+    require(capture(*demand,true).empty(),"A stopped caller acquired a source");
+    stopped=false;
+    require(capture(*demand,false).empty(),"An unfunded caller acquired a source");
+    auto wrong=*demand;
+    ++wrong.sequence;
+    require(capture(wrong,true).empty(),"Different sequence acquired a source");
+    const auto captured=capture(*demand,true);
+    require(captured==bytes && capture(*demand,true).empty(),"CPU source differed or was consumed twice");
+    const auto before=domain.usage();
+    const auto cancelled=[] {return true;};
+    const auto running=[] {return false;};
+    require(!record_native_amd_cpu_trial(demand->shape,captured,1,&domain,running) &&
+        !record_native_amd_cpu_trial(demand->shape,captured,allowance,&domain,cancelled),
+        "Unfunded or cancelled replay accepted");
+    unsigned cancellation_checks=0;
+    const auto cancel_after_reservation=[&] {return ++cancellation_checks==2;};
+    require(!record_native_amd_cpu_trial(demand->shape,captured,allowance,&domain,cancel_after_reservation) &&
+        cancellation_checks>=2 && domain.usage().reserved==before.reserved,
+        "Cancellation after reservation retained calibration scratch");
+    const auto measured=record_native_amd_cpu_trial(demand->shape,captured,allowance,&domain,running);
+    require(measured && measured->input_digest==detail::record_digest(bytes),"Detached CPU trial failed independent readback");
+    sample=*measured;
+    const auto after=domain.usage();
+    require(before.stores==after.stores && before.reserved==after.reserved && before.resident==after.resident,
+        "Replay leaked a private store or locked pages");
+    write(bytes);
+    const auto superseded=adapter.take_amd_write_demand();
+    require(superseded.has_value(),"Second ordinary demand missing");
+    const auto changed=bytes.front()^std::byte{0xff};
+    write(std::span{&changed,1}); // Ineligible size, but a different selected namespace.
+    require(capture(*superseded,true).empty(),"Superseded write range was captured");
+    write(std::span(bytes).first(1));
+  }
+  require(sample.elapsed_ns && sample.occupied_bytes && sample.cpu_readback_verified &&
+      sample.retirement_confirmed && !sample.device_executed && !sample.stored_lz4_candidates,
+      "Detached CPU trial returned unproved device or storage facts");
+  callback_cleanup_close(p,handle);
+  if(owner) {
+    owner->stop_and_join();
+    require(owner->view().retired,"CPU trial owner did not retire");
+  }else source.reset();
+  Provider::active=nullptr;
+  const auto recovered=NativeFilesystemSnapshot::open_image(image,{NativeImageKind::indexed_paged,image_capacity});
+  require(recovered.read("replay",0,static_cast<std::uint32_t>(bytes.size()))==bytes,"Trial changed the ordinary volume");
+  std::cout<<"ordinary_amd_cpu_replay controller="<<controller_owned<<" verified=1 retired=1 gpu_submitted=0"
+      <<" bytes="<<bytes.size()<<" private_image_bytes="<<sample.occupied_bytes<<" cpu_ns="<<sample.elapsed_ns<<'\n';
+}
+
 void indexed_memory_composition() {
   Provider p;Provider::active=&p;
   std::optional<ReadOnlyProjection> sealed;
@@ -4319,6 +4472,7 @@ int main(int argc,char** argv){try {
   const bool volume_file=argc==2 && std::string_view(argv[1])=="--volume-file";
   const bool indexed_startup=argc==2 && std::string_view(argv[1])=="--indexed-startup-profile";
   const bool read_ahead=argc==2 && std::string_view(argv[1])=="--live-read-ahead";
+  const bool amd_cpu_replay=argc==2 && std::string_view(argv[1])=="--amd-write-cpu-replay";
   const bool screened_public=argc==3 && std::string_view(argv[1])=="--screened-cold-corpus";
   const bool screened_packed=argc==3 && std::string_view(argv[1])=="--screened-cold-packed";
   const bool live_repair_rotation=argc==2 && std::string_view(argv[1])=="--live-indexed-repair-rotation";
@@ -4328,7 +4482,7 @@ int main(int argc,char** argv){try {
   const bool reconciled_compaction=argc==2 && std::string_view(argv[1])=="--live-indexed-reconcile";
   const bool indexed_compaction=reconciled_compaction || (argc==2 && std::string_view(argv[1])=="--live-indexed-compaction");
   if(lifetime_only || shifted_grouping || checkpoint || remount || volume_file || screened_public || screened_packed || indexed_compaction ||
-      live_payload_repair || indexed_startup || read_ahead ||
+      live_payload_repair || indexed_startup || read_ahead || amd_cpu_replay ||
       (argc==2 && (std::string_view(argv[1])=="--memory" || std::string_view(argv[1])=="--memory-handles" ||
       std::string_view(argv[1])=="--read-only-memory" || std::string_view(argv[1])=="--indexed-memory" ||
       std::string_view(argv[1])=="--live-indexed-grouping")))
@@ -4340,6 +4494,7 @@ int main(int argc,char** argv){try {
   if(argc==1){windows_processor_windows();backing_maintenance_window();event_ownership();lifecycle();idle_until_owner_stop(100);invalid_and_unexpected();live_opportunities();}
   else if(lifetime_only)idle_until_owner_stop(31000);
   else if(read_ahead)live_read_ahead_admission();
+  else if(amd_cpu_replay)amd_write_cpu_replay(true);
   else if(argc==2 && std::string_view(argv[1])=="--memory") {
     memory_planning();memory_paged_footprint();memory_hybrid_placement();automatic_memory_sealing(false);
     automatic_memory_sealing(true);automatic_memory_sealing(false,true);
@@ -4352,6 +4507,8 @@ int main(int argc,char** argv){try {
   }else if(argc==2 && std::string_view(argv[1])=="--indexed-memory") {
     memory_composition(NativeImageKind::indexed_paged);
     indexed_memory_composition();
+    concurrent_memory_store_accounting();
+    amd_write_cpu_replay(false);
     if(store_lz4_available())capture_during_hybrid_tail_write();
     indexed_group_callback_contract();
     indexed_group_callback_contract(true);

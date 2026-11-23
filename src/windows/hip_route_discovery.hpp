@@ -62,6 +62,9 @@ HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest
 // The build carries uniform write digests. This performs no installed-file
 // inspection, runtime discovery or hardware queries.
 bool has_configured_uniform_write_package() noexcept;
+// A metadata-only gate before a detached CPU reference. Actual GPU discovery
+// still pins and verifies the complete installed package and runtime.
+bool installed_uniform_write_files_present() noexcept;
 HipRouteDiscoveryResult discover_installed_hip_route(ProcessBudget,std::uint32_t maximum_identity_queries,
     std::stop_token={});
 struct InstalledAnchorProfile {

@@ -309,6 +309,29 @@ These runs attribute costs inside the engine and worker envelope. Mounted
 client throughput, cold filesystem caching, physical storage and held-out
 data get their own qualification. [Source-bound profiles](evidence/windows-ordinary-amd-write-demand-2026-11-23.json)
 
+### Cold and prepared CPU and Radeon trials
+
+Reset both arms to the same private memory-backed layout and verify identical
+input and operation order. Vary the request size, batch width and concurrency
+within measured host RAM, CPU and adapter budgets. Keep the foreground codec
+comparison separate from the later collective reduction. Repeat both small
+random reads and sequential reads on the verified stored results, with CPU
+fallback included for every encoding.
+
+Record fresh-process startup and discovery, initialized worker setup, host and
+device transfers, device execution, CPU verification, filesystem publication
+and retirement. A prepared run may reuse resources only within one finite,
+supervised scope. Measure the complete request and report setup amortized
+over the actual number of completed requests. Record the file cache state
+independently of worker readiness. Include occupied size, read amplification
+and background interference alongside throughput and latency.
+
+The current controller can verify the CPU arm from a completed ordinary write.
+The prior Radeon traces cover finite diagnostic workers, including setup.
+A matched prepared worker trial with the same captured data is pending.
+[Controller replay evidence](evidence/windows-ordinary-amd-cpu-replay-2026-11-23.json) ·
+[Finite Radeon traces](evidence/windows-ordinary-amd-write-demand-2026-11-23.json)
+
 ## Measurements and anti-bias rules
 
 1. Pin source, binary/tool/runtime hashes, parameters, seeds, corpus, Windows
