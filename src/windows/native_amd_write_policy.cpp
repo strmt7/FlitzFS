@@ -235,7 +235,7 @@ NativeAmdDeviceTrial record_native_amd_device_trial(const NativeAmdWriteShape& s
 NativeAmdDeviceTrial record_native_amd_device_batch(const NativeAmdStoragePolicy& storage,
     std::span<const UniformLz4BatchInput> requests,const HipDiscoveredRoute& route,NativeUniformSweepGrant grant,
     ProcessBudget budget,std::uint64_t allowance,MemoryVolumeDomain* existing,NativeAmdTrialLaunch launch,
-    std::stop_token stop) noexcept {
+    std::stop_token stop,const std::function<bool()>& may_submit) noexcept {
   NativeAmdDeviceTrial trial;
   try {
     if(stop.stop_requested() || !gpu_lz4_cpu_verification_available())return trial;
@@ -252,7 +252,7 @@ NativeAmdDeviceTrial record_native_amd_device_batch(const NativeAmdStoragePolicy
         !route.pins->matches(route.helper,route.identity,route.runtime_sha256,static_cast<int>(route.ordinal),route.memory) ||
         !WorkerExchangeSession::available())return trial;
     const auto plan=plan_uniform_lz4_sweep(*layout,grant.maximum_chunks,grant.maximum_device_bytes);
-    if(!route.pins->device_ready() || stop.stop_requested())return trial;
+    if(!route.pins->device_ready() || stop.stop_requested() || (may_submit && !may_submit()))return trial;
     WindowsGpuBudgetSampler sampler(route.memory.luid,route.memory.node_mask);
     const auto before=sampler.sample();
     if(before.status!=WindowsGpuBudgetStatus::success ||
@@ -274,13 +274,16 @@ NativeAmdDeviceTrial record_native_amd_device_batch(const NativeAmdStoragePolicy
     auto dispatch=prepare_native_uniform_dispatch(binding,evidence,batch.source(),WorkerExecution::hip);
     auto frame=std::make_shared<const WorkerRequestSnapshot>(encode_uniform_lz4_request(batch.source(),id));
     WorkerExchangeResult result;
-    if(launch==NativeAmdTrialLaunch::prepared) {
+    if(launch==NativeAmdTrialLaunch::prepared)
       dispatch.arguments.front()=L"--driver-uniform-lz4-prepared-adapter";
-      const auto setup=TrialClock::now();
+    const auto setup=TrialClock::now();
+    trial.preparation_ns=elapsed_ns(started);
+    if(launch==NativeAmdTrialLaunch::prepared) {
       const auto ready=[&] {
         trial.ready_ns=elapsed_ns(setup);
         const auto current=sampler.sample();
-        return !stop.stop_requested() && current.status==WindowsGpuBudgetStatus::success &&
+        return !stop.stop_requested() && (!may_submit || may_submit()) &&
+            current.status==WindowsGpuBudgetStatus::success &&
             current.snapshot.captured_ms>before.snapshot.captured_ms &&
             check_gpu_memory_transition(before.snapshot,current.snapshot,route.memory.luid,
                 route.memory.node_mask,GetTickCount64(),plan.device_peak_bytes)==GpuGateCode::admitted;
@@ -291,10 +294,13 @@ NativeAmdDeviceTrial record_native_amd_device_batch(const NativeAmdStoragePolicy
       result=WorkerExchangeSession::run_sized(binding.helper,dispatch.arguments,std::move(frame),
           channel,budget,stop,route.pins);
     }
+    trial.supervised_ns=elapsed_ns(setup);
     trial.exchange=result.code;
     trial.worker_exit=result.process.exit_code;
-    trial.worker_retired=result.process.exit_confirmed && WorkerExchangeSession::available();
+    trial.worker_retired=result.process.exit_confirmed && result.code!=WorkerExchangeCode::exit_unconfirmed &&
+        result.code!=WorkerExchangeCode::supervisor_exit_unconfirmed;
     if(result.code!=WorkerExchangeCode::completed || !trial.worker_retired || stop.stop_requested())return trial;
+    const auto verification=TrialClock::now();
     const auto candidates=VerifiedUniformLz4Batch::accept(result.response,batch,id,WorkerExecution::hip);
     std::vector<std::byte>().swap(result.response);
     const auto after=sampler.sample();
@@ -302,11 +308,14 @@ NativeAmdDeviceTrial record_native_amd_device_batch(const NativeAmdStoragePolicy
         after.snapshot.captured_ms<=before.snapshot.captured_ms ||
         check_gpu_memory_transition(before.snapshot,after.snapshot,route.memory.luid,
             route.memory.node_mask,GetTickCount64(),plan.device_peak_bytes)!=GpuGateCode::admitted)return trial;
+    trial.verification_ns=elapsed_ns(verification);
     trial.exchange_ns=elapsed_ns(started);
     if(!trial.exchange_ns)return trial;
 
     const auto interrupted=[&] {return stop.stop_requested();};
+    const auto replay=TrialClock::now();
     auto sample=record_native_amd_verified_batch(storage,batch,candidates,funded,existing,interrupted);
+    trial.replay_ns=elapsed_ns(replay);
     if(!sample || stop.stop_requested() ||
         !uniform_lz4::add(sample->elapsed_ns,trial.exchange_ns,sample->elapsed_ns))return trial;
     sample->device_executed=true;

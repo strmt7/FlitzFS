@@ -145,7 +145,13 @@ void populated_native_snapshot(unsigned files=1024,bool reopen_only=false) {
   const auto audit_read_budget=files>1024?5000ULL*files:4*view.storage_info().physical_end;
   require(scrub_bytes<audit_read_budget,
       "indexed scrub repeated object and metadata reads on the short-file fixture");
-  require(open_bytes<scrub_bytes/16 && lookup_bytes<scrub_bytes/16,"indexed volume loaded whole namespace for lookup");
+  const auto objects=PagedObjectStoreSnapshot::open(ram,image_limits);
+  const auto layout=objects.info();
+  // A complete raw inventory would read at least the stored payload in one
+  // replica. This bound is independent of the full audit's read algorithm.
+  const auto one_copy_bytes=layout.stored_payload_bytes/2;
+  require(layout.mirrored_payloads && open_bytes<one_copy_bytes && lookup_bytes<one_copy_bytes,
+      "indexed volume loaded whole namespace for lookup");
   std::optional<NativeDirectoryCursor> cursor;
   unsigned seen=0;
   do {
@@ -173,11 +179,11 @@ void populated_native_snapshot(unsigned files=1024,bool reopen_only=false) {
   auto cross=Bytes(2);
   cross.insert(cross.end(),b.begin(),b.begin()+3);
   require(view.read_inode(sparse,128ULL*kNativeExtentBytes-2,5)==cross,"indexed range across sparse blocks");
-  const auto objects=PagedObjectStoreSnapshot::open(ram,image_limits);
   std::cout<<"indexed_volume files="<<files<<" image_bytes="<<view.storage_info().physical_end
       <<" open_read_bytes="<<open_bytes<<" lookup_read_bytes="<<lookup_bytes
       <<" scrub_read_bytes="<<scrub_bytes<<" sparse_size="<<sparse_size
-      <<" scrub_read_calls="<<scrub_reads<<" object_tree_height="<<objects.info().height<<'\n';
+      <<" scrub_read_calls="<<scrub_reads<<" object_tree_height="<<layout.height
+      <<" one_copy_payload_bytes="<<one_copy_bytes<<'\n';
 
   if(files>1024)reopen();
 
@@ -197,6 +203,44 @@ void populated_native_snapshot(unsigned files=1024,bool reopen_only=false) {
   require(malformed.read_inode(4,0,17)==payload(1) && view.read_inode(3,0,17)==payload(0),
       "bad extent crossed ownership or changed an older root");
   refuses(NativeFsErrorCode::corrupt,[&]{malformed.verify_all();});
+}
+
+void indexed_unreachable_name_page() {
+  auto image=empty();
+  const auto contents=payload(943);
+  {
+    auto writer=NativeFilesystemWriter::initialize_indexed(
+        PagedObjectStoreWriter::create_mirrored(image,identity(),limits,raw));
+    writer.apply(std::array{file_create("document"),file_write("document",0,contents)});
+  }
+  const auto original=NativeFilesystemSnapshot::open_image(image,indexed);
+  original.verify_all();
+  const auto store=PagedObjectStoreSnapshot::open(image,limits);
+  auto root=store.read(kNativeNameIndexObject,40);
+  const auto field=[&](std::size_t offset) {
+    std::uint64_t value=0;
+    for(unsigned i=0;i<8;++i)value|=std::to_integer<std::uint64_t>(root.at(offset+i))<<(8*i);
+    return value;
+  };
+  const auto live_page=field(16),unused_ordinal=field(24);
+  require(live_page && unused_ordinal && unused_ordinal<kNativeIndexedInodeLimit-1,
+      "name page inventory fixture");
+  const auto orphan=kNativeNameIndexObject|unused_ordinal;
+  for(unsigned i=0;i<8;++i)root.at(24+i)=static_cast<std::byte>((unused_ordinal+1)>>(8*i));
+  {
+    auto writer=PagedObjectStoreWriter::resume(image,identity(),store.info().generation,limits,raw);
+    const std::array changes{StoreMutation{kNativeNameIndexObject,false,std::move(root)},
+        StoreMutation{orphan,false,store.read(live_page,4096)}};
+    writer.commit(changes);
+  }
+  const auto protected_objects=PagedObjectStoreSnapshot::open(image,limits);
+  protected_objects.verify_all();
+  const auto with_orphan=NativeFilesystemSnapshot::open_image(image,indexed);
+  refuses(NativeFsErrorCode::corrupt,[&]{NativeNameIndex(protected_objects).verify_all();});
+  refuses(NativeFsErrorCode::corrupt,[&]{with_orphan.verify_all();});
+  require(original.read("document",0,contents.size())==contents &&
+      with_orphan.read("document",0,contents.size())==contents,"orphan changed selected payload bytes");
+  std::cout<<"indexed_name_page_inventory protected_orphan_refused=1 earlier_snapshot_exact=1\n";
 }
 
 void compare(const NativeFilesystemSnapshot& source,const NativeFilesystemSnapshot& indexed_copy) {
@@ -1682,7 +1726,7 @@ int main(int argc,char** argv) {
       return 0;
     }
     require(argc==1,"unknown indexed volume test option");
-    populated_native_snapshot();migration(false);migration(true);growing_native_writer();indexed_capacity_and_metadata();indexed_stable_inode_io();indexed_session_lifetimes();indexed_detach_recovery();
+    populated_native_snapshot();indexed_unreachable_name_page();migration(false);migration(true);growing_native_writer();indexed_capacity_and_metadata();indexed_stable_inode_io();indexed_session_lifetimes();indexed_detach_recovery();
     indexed_large_retirement();indexed_head_independent_sequence();indexed_staged_rebuild();indexed_reconciled_rebuild();
     indexed_managed_handoff();indexed_managed_staged_compaction();indexed_managed_staged_faults();
     indexed_transaction_recovery();indexed_query_page_lifetime();indexed_extent_advice();indexed_extent_read_route();

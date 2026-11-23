@@ -73,6 +73,10 @@ class NativeNameIndex final {
   std::uint64_t group_reference_count(std::uint64_t base) const;
   std::uint64_t size() const noexcept { return root_.entries; }
   NativeIndexKind kind() const noexcept { return root_.kind; }
+  // Verify the reachable tree, then account for each stored page during a
+  // complete object walk. The caller requires a zero remainder at the end.
+  std::uint64_t verify_reachable_pages() const;
+  void account_verified_page(std::uint64_t id,std::uint64_t& remaining) const;
   void verify_all() const;
 
   // Initialize the reserved object domain in a new namespace.

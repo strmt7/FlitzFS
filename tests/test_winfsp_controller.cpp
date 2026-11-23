@@ -4008,7 +4008,8 @@ void concurrent_memory_store_accounting() {
       "Parallel stores did not retire their resident pages");
 }
 
-void amd_write_cpu_replay(bool controller_owned,bool grouped=false) {
+enum class AmdWriteReplayMode {cpu,paired,interrupt};
+void amd_write_cpu_replay(bool controller_owned,bool grouped=false,AmdWriteReplayMode mode=AmdWriteReplayMode::cpu) {
   if(!gpu_lz4_cpu_verification_available())return;
   constexpr std::uint64_t image_capacity=8ULL*1024*1024,allowance=32ULL*1024*1024;
   auto domain=MemoryVolumeDomain::create(image_capacity+kVolumeHeadBytes+allowance);
@@ -4042,27 +4043,35 @@ void amd_write_cpu_replay(bool controller_owned,bool grouped=false) {
   PVOID handle=nullptr;
   require(table->Create(&p.fs,name,FILE_NON_DIRECTORY_FILE,FILE_ALL_ACCESS,FILE_ATTRIBUTE_NORMAL,
       security.data(),0,&handle,&info)==STATUS_SUCCESS && handle,"CPU replay Create");
-  auto bytes=data(2*kNativeExtentBytes,912);
+  const auto make_input=[&](unsigned seed) {
+    if(mode==AmdWriteReplayMode::cpu)return data(2*kNativeExtentBytes,seed);
+    const auto prefix=data(kNativeExtentBytes/8,seed);
+    Bytes input(8*kNativeExtentBytes);
+    for(std::size_t offset=0;offset<input.size();offset+=prefix.size())
+      std::ranges::copy(prefix,input.begin()+offset);
+    return input;
+  };
+  auto bytes=make_input(912);
   const auto write_to=[&](PVOID target,std::span<const std::byte> input) {
     ULONG count=0;
     require(table->Write(&p.fs,target,const_cast<std::byte*>(input.data()),0,static_cast<ULONG>(input.size()),
         FALSE,FALSE,&count,&info)==STATUS_SUCCESS && count==input.size(),"CPU replay ordinary Write");
   };
   const auto write=[&](std::span<const std::byte> input){write_to(handle,input);};
-  Bytes peer,stale;
+  Bytes peer,stale,foreground;
+  const auto create_peer=[&](wchar_t* path) {
+    PVOID target=nullptr;
+    require(table->Create(&p.fs,path,FILE_NON_DIRECTORY_FILE,FILE_ALL_ACCESS,FILE_ATTRIBUTE_NORMAL,
+        security.data(),0,&target,&info)==STATUS_SUCCESS && target,"CPU group peer Create");
+    return target;
+  };
   if(grouped) {
-    const auto create_peer=[&](wchar_t* path) {
-      PVOID target=nullptr;
-      require(table->Create(&p.fs,path,FILE_NON_DIRECTORY_FILE,FILE_ALL_ACCESS,FILE_ATTRIBUTE_NORMAL,
-          security.data(),0,&target,&info)==STATUS_SUCCESS && target,"CPU group peer Create");
-      return target;
-    };
     wchar_t peer_name[]=L"\\peer",stale_name[]=L"\\stale";
-    peer=data(bytes.size(),913);
+    peer=make_input(913);
     const auto peer_handle=create_peer(peer_name);
     write_to(peer_handle,peer);
     callback_cleanup_close(p,peer_handle,true);
-    stale=data(bytes.size(),914);
+    stale=make_input(914);
     const auto stale_handle=create_peer(stale_name);
     write_to(stale_handle,stale);
     stale[0]^=std::byte{0xff};
@@ -4090,6 +4099,47 @@ void amd_write_cpu_replay(bool controller_owned,bool grouped=false) {
           demand->sequence>measured.amd_cpu_trial->demand.sequence;},3000,"Repeated write demand did not reach the owner");
       require(owner->view().amd_cpu_trial_attempts==1,"An already recorded shape relaunched its CPU trial");
     }
+    if(mode!=AmdWriteReplayMode::cpu) {
+      await([&]{return owner->view().amd_write_trial_attempts!=0;},5000,"Write trial did not acquire its owner slot");
+      const auto publish_foreground=[&] {
+        wchar_t during[]=L"\\foreground";
+        const auto writer=create_peer(during);
+        foreground=data(521,915);
+        write_to(writer,foreground);
+        callback_cleanup_close(p,writer,true);
+      };
+      const bool interrupt=mode==AmdWriteReplayMode::interrupt;
+      if(interrupt)publish_foreground();
+      await([&]{return owner->view().amd_write_trial.has_value();},15000,"Write trial did not settle");
+      const auto paired=owner->view();
+      const auto& trial=*paired.amd_write_trial;
+      std::cout<<"ordinary_amd_write_trial status="<<static_cast<unsigned>(trial.status)
+          <<" attempts="<<paired.amd_write_trial_attempts<<" exchange_code="<<static_cast<unsigned>(trial.device.exchange)
+          <<" worker_exit="<<trial.device.worker_exit<<" discovery_ns="<<trial.discovery_ns
+          <<" device_wall_ns="<<trial.device_wall_ns<<" preparation_ns="<<trial.device.preparation_ns
+          <<" supervised_ns="<<trial.device.supervised_ns<<" ready_ns="<<trial.device.ready_ns
+          <<" verification_ns="<<trial.device.verification_ns<<" replay_ns="<<trial.device.replay_ns
+          <<" cpu_wall_ns="<<trial.reference.wall_ns<<" bytes="<<trial.reference.input_bytes<<'\n';
+      require(paired.amd_write_trial_attempts==1 && !paired.foreground_activation &&
+          trial.reference.sample.input_digest==sample.input_digest && trial.reference.sample.transactions==2,
+          "Write trial changed its reference or offered an unqualified route");
+      if(interrupt) {
+        require(trial.status==HipDiscoveryStatus::cancelled && !trial.device.sample,
+            "Foreground did not cancel and discard the private write result");
+      } else {
+        const auto& device=trial.device;
+        require(trial.status==HipDiscoveryStatus::ready && device.sample && device.worker_retired &&
+            device.sample->device_executed && device.sample->stored_lz4_candidates>0 &&
+            device.sample->cpu_readback_verified && device.sample->retirement_confirmed &&
+            device.sample->input_digest==sample.input_digest && device.sample->transactions==sample.transactions &&
+            device.ready_ns && device.supervised_ns>=device.ready_ns && device.verification_ns && device.replay_ns,
+            "Normal owner did not complete and independently recover the exact Radeon replay");
+        std::cout<<"ordinary_amd_pair device_extents="<<device.sample->stored_lz4_candidates
+            <<" cpu_occupied="<<sample.occupied_bytes<<" gpu_occupied="<<device.sample->occupied_bytes
+            <<" cpu_verified=1 retired=1\n";
+        publish_foreground();
+      }
+    }
   } else if(grouped) {
     const auto demand=adapter.take_amd_write_demand();
     require(demand && demand->grouped_candidate,"Closed files did not produce group demand");
@@ -4098,7 +4148,10 @@ void amd_write_cpu_replay(bool controller_owned,bool grouped=false) {
     const NativeMaintenanceObservation observation{1,now,memory.physical_total,memory.physical_available,
         memory.commit_total,memory.commit_available,1000,0,1000,true,false};
     std::atomic<bool> stopped{false};
-    const auto capture=adapter.capture_amd_write_group(*demand,observation,now,adapter.foreground_activity(),stopped);
+    require(adapter.capture_amd_write_group(*demand,observation,now,adapter.foreground_activity(),stopped,
+        true,bytes.size()-1).empty(),"A capture crossed its finite trial grant");
+    const auto capture=adapter.capture_amd_write_group(*demand,observation,now,adapter.foreground_activity(),stopped,
+        true,2*bytes.size());
     require(capture.size()==2 && capture[0].sequence==1 && capture[0].bytes==peer &&
         capture[1].sequence==demand->source_sequence && capture[1].bytes==bytes,
         "Closed current ranges were lost or a superseded range was captured");
@@ -4167,6 +4220,8 @@ void amd_write_cpu_replay(bool controller_owned,bool grouped=false) {
   Provider::active=nullptr;
   const auto recovered=NativeFilesystemSnapshot::open_image(image,{NativeImageKind::indexed_paged,image_capacity});
   require(recovered.read("replay",0,static_cast<std::uint32_t>(bytes.size()))==bytes,"Trial changed the ordinary volume");
+  if(!foreground.empty())require(recovered.read("foreground",0,static_cast<std::uint32_t>(foreground.size()))==foreground,
+      "Bytes acknowledged during or after the write trial did not recover");
   if(grouped) {
     require(recovered.read("peer",0,static_cast<std::uint32_t>(peer.size()))==peer &&
         recovered.read("stale",0,static_cast<std::uint32_t>(stale.size()))==stale,
@@ -4178,7 +4233,7 @@ void amd_write_cpu_replay(bool controller_owned,bool grouped=false) {
         expected,allowance,&domain,[]{return false;});
     require(replay && replay->input_digest==sample.input_digest,"Grouped CPU trial used different acknowledged bytes");
     std::cout<<"ordinary_amd_cpu_group controller="<<controller_owned<<" closed=2 stale_refused=1"
-        <<" bytes="<<bytes.size()+peer.size()<<" retired=1 gpu_submitted=0\n";
+        <<" bytes="<<bytes.size()+peer.size()<<" retired=1 gpu_trial="<<(mode!=AmdWriteReplayMode::cpu)<<'\n';
   } else {
     std::cout<<"ordinary_amd_cpu_replay controller="<<controller_owned<<" verified=1 retired=1 gpu_submitted=0"
         <<" bytes="<<bytes.size()<<" private_image_bytes="<<sample.occupied_bytes<<" cpu_ns="<<sample.elapsed_ns<<'\n';
@@ -4540,6 +4595,8 @@ int main(int argc,char** argv){try {
   const bool read_ahead=argc==2 && std::string_view(argv[1])=="--live-read-ahead";
   const bool amd_cpu_replay=argc==2 && std::string_view(argv[1])=="--amd-write-cpu-replay";
   const bool amd_cpu_group=argc==2 && std::string_view(argv[1])=="--amd-write-cpu-group";
+  const bool amd_write_pair=argc==2 && std::string_view(argv[1])=="--amd-write-pair";
+  const bool amd_write_interrupt=argc==2 && std::string_view(argv[1])=="--amd-write-pair-interrupt";
   const bool screened_public=argc==3 && std::string_view(argv[1])=="--screened-cold-corpus";
   const bool screened_packed=argc==3 && std::string_view(argv[1])=="--screened-cold-packed";
   const bool live_repair_rotation=argc==2 && std::string_view(argv[1])=="--live-indexed-repair-rotation";
@@ -4549,7 +4606,7 @@ int main(int argc,char** argv){try {
   const bool reconciled_compaction=argc==2 && std::string_view(argv[1])=="--live-indexed-reconcile";
   const bool indexed_compaction=reconciled_compaction || (argc==2 && std::string_view(argv[1])=="--live-indexed-compaction");
   if(lifetime_only || shifted_grouping || checkpoint || remount || volume_file || screened_public || screened_packed || indexed_compaction ||
-      live_payload_repair || indexed_startup || read_ahead || amd_cpu_replay || amd_cpu_group ||
+      live_payload_repair || indexed_startup || read_ahead || amd_cpu_replay || amd_cpu_group || amd_write_pair || amd_write_interrupt ||
       (argc==2 && (std::string_view(argv[1])=="--memory" || std::string_view(argv[1])=="--memory-handles" ||
       std::string_view(argv[1])=="--read-only-memory" || std::string_view(argv[1])=="--indexed-memory" ||
       std::string_view(argv[1])=="--live-indexed-grouping")))
@@ -4562,7 +4619,15 @@ int main(int argc,char** argv){try {
   else if(lifetime_only)idle_until_owner_stop(31000);
   else if(read_ahead)live_read_ahead_admission();
   else if(amd_cpu_replay || amd_cpu_group)amd_write_cpu_replay(true,amd_cpu_group);
-  else if(argc==2 && std::string_view(argv[1])=="--memory") {
+  else if(amd_write_pair || amd_write_interrupt) {
+    require(gpu_lz4_cpu_verification_available(),"Radeon trial requires independent CPU verification");
+    const auto mode=amd_write_interrupt?AmdWriteReplayMode::interrupt:AmdWriteReplayMode::paired;
+    amd_write_cpu_replay(true,true,mode);
+    const auto settled=handle_count();
+    std::cout<<"amd_write_handles cold="<<before<<" first_retired="<<settled<<'\n';
+    before=settled;
+    amd_write_cpu_replay(true,true,mode);
+  } else if(argc==2 && std::string_view(argv[1])=="--memory") {
     memory_planning();memory_paged_footprint();memory_hybrid_placement();automatic_memory_sealing(false);
     automatic_memory_sealing(true);automatic_memory_sealing(false,true);
     memory_compaction_retirement();memory_capacity_repair();
@@ -4641,6 +4706,7 @@ int main(int argc,char** argv){try {
   require(GetProcessHandleCount(GetCurrentProcess(),&after)!=FALSE,"final handle count");
   std::cout<<"controller_handles before="<<before<<" after="<<after<<'\n';
   require(before==after,"controller handle leak");
-  std::cout<<"PASS: "<<checks<<" owned controller checks; real local telemetry and SDK callbacks; injected lifecycle; no mount/GPU\n";
+  std::cout<<"PASS: "<<checks<<" owned controller checks; real local telemetry and SDK callbacks; injected lifecycle; "
+      <<(amd_write_pair || amd_write_interrupt?"scoped Radeon trial mode":"CPU mode")<<'\n';
   return 0;
 }catch(const std::exception& e){std::cerr<<"after "<<checks<<" checks: "<<e.what()<<'\n';return 1;}}

@@ -36,7 +36,7 @@ struct NativeCapturedWrite {
 class NativeWriteCaptureLease final {
  public:
   std::vector<NativeCapturedWrite> read(std::span<const NativeCommittedWriteRange>,
-      const std::function<bool()>& interrupted) const;
+      const std::function<bool(std::size_t)>& admit,const std::function<bool()>& interrupted) const;
  private:
   friend class ::flitzfs::NativeFilesystemWriter;
   NativeWriteCaptureLease(PagedObjectStoreSnapshot snapshot,IndexedVolumeRoot root):

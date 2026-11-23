@@ -15,6 +15,7 @@ from hip_runtime_exports import pe_function_exports
 
 UNIFORM_WORKER = "flitzfs_hip_lz4_worker.exe"
 UNIFORM_MODULE = "hip-uniform-lz4/flitzfs_rocm_uniform_lz4_candidate.dll"
+UNIFORM_TRIAL_EVIDENCE = "uniform-write-trial-qualification.json"
 ANCHOR_WORKER = "flitzfs_hip_worker.exe"
 ANCHOR_MODULE = "hip/flitzfs_rocm_kernels.dll"
 ANCHOR_EVIDENCE = "shared-base-qualification.json"
@@ -68,6 +69,9 @@ def bind(package: Path, approved: str) -> tuple[str, list[str]]:
             and data["runtime_shipped"] is False and data["kpack_shipped"] is False,
             "Package does not identify the installed AMD runtime contract")
     uniform = data.get("uniform_runtime_packaged") is True
+    write_trial = data.get("uniform_write_trial_profile")
+    require("uniform_write_trial_profile" not in data or (uniform and isinstance(write_trial, dict)),
+            "Write trial profile requires the uniform worker and module")
     anchor = data.get("shared_base_profile")
     read = data.get("native_lz4_read_profile")
     require(("shared_base_profile" not in data or isinstance(anchor, dict))
@@ -108,6 +112,7 @@ def bind(package: Path, approved: str) -> tuple[str, list[str]]:
 
     zero = "inline constexpr std::array<std::byte,32> {}{{}};\n"
     result = ("#pragma once\n#include <array>\n#include <cstddef>\n#include <cstdint>\n"
+              f"#define FLITZFS_INSTALLED_AMD_HAS_WRITE_TRIAL {int(write_trial is not None)}\n"
               f"#define FLITZFS_INSTALLED_AMD_HAS_ANCHOR {int(anchor is not None)}\n"
               f"#define FLITZFS_INSTALLED_AMD_HAS_NATIVE_READ {int(read is not None)}\n"
               "namespace flitzfs::installed_amd_package {\n"
@@ -115,6 +120,29 @@ def bind(package: Path, approved: str) -> tuple[str, list[str]]:
               f"inline constexpr bool has_uniform={'true' if uniform else 'false'};\n")
     result += artifact(UNIFORM_WORKER, "worker_sha256", True) if uniform else zero.format("worker_sha256")
     result += artifact(UNIFORM_MODULE, "uniform_module_sha256", False) if uniform else zero.format("uniform_module_sha256")
+    if write_trial is not None:
+        evidence = write_trial.get("qualification_sha256")
+        runtime_digest = write_trial.get("runtime_sha256")
+        require(exact_digest(evidence) and exact_digest(runtime_digest), "Write trial provenance digests are required")
+        _, receipt_digest = verified(UNIFORM_TRIAL_EVIDENCE, 256 * 1024)
+        require(receipt_digest.hex() == evidence, "Write trial qualification digest mismatch")
+        fields = {
+            "vendor_id": integer(write_trial, "vendor_id", 0x1002, 0x1002),
+            "device_id": integer(write_trial, "device_id", 1, 0xffff),
+            "subsystem_id": integer(write_trial, "subsystem_id", 0, 0xffffffff),
+            "revision": integer(write_trial, "revision", 0, 0xff),
+            "worker_memory_mib": integer(write_trial, "worker_memory_mib", 64, 0xffffffff),
+            "memory_share_divisor": integer(write_trial, "memory_share_divisor", 16, 0xffffffff),
+            "worker_cpu_rate": integer(write_trial, "worker_cpu_rate", 100, 2000),
+            "worker_timeout_ms": integer(write_trial, "worker_timeout_ms", 1, 40000),
+            "maximum_identity_queries": integer(write_trial, "maximum_identity_queries", 1, 64),
+            "maximum_batch_chunks": integer(write_trial, "maximum_batch_chunks", 2, 0xffffffff),
+            "maximum_launch_chunks": integer(write_trial, "maximum_launch_chunks", 1, 0xffffffff),
+        }
+        require(fields["maximum_launch_chunks"] <= fields["maximum_batch_chunks"],
+                "Write trial launch exceeds its approved batch")
+        result += f"inline constexpr std::array write_trial_runtime_sha256{{{array_literal(bytes.fromhex(runtime_digest))}}};\n"
+        result += "".join(f"inline constexpr std::uint32_t write_trial_{key}={value}U;\n" for key, value in fields.items())
     if anchor is not None:
         evidence = anchor.get("qualification_sha256")
         runtime_digest = anchor.get("runtime_sha256")

@@ -827,6 +827,22 @@ little-endian. Use the release archive and selection rules in the manifest
 to regenerate the inputs. The timing surrounds writable reopen. The
 independent CPU readback follows the timing.
 
+### Count name pages in the verified object walk
+
+The native audit validates each reachable name-index page against its parent
+bounds. The same audit counts stored name pages as its full object walk
+verifies both replicas. It checks each page ID against the index allocator
+and requires every reachable page to be accounted for. The regression fixture
+inserts an otherwise valid mirrored page outside the reachable tree and
+requires the native audit to reject the volume.
+
+On the Windows memory-backed short-file fixtures, the total backing reads
+fell from 4,713,038 to 4,654,688 bytes at 1,024 files and from 76,462,421 to
+76,085,219 bytes at 16,384 files. Both scales used one image flush and one
+selector flush with zero reopen writes and exact independent CPU readback.
+The paired timings were close. These samples establish fewer backing reads
+for this audit. [Matched audit evidence](evidence/indexed-name-page-inventory-2026-11-23.json)
+
 ### Stored mirror recheck on healthy writable reopen
 
 The ordinary indexed reopen takes its initial decoded namespace audit from

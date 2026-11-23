@@ -38,9 +38,13 @@ package and an admitted idle opportunity let the controller capture that exact
 committed revision, along with funded recent writes from other files. The
 controller can capture closed files, using one immutable backing snapshot.
 The replay uses a private protected image, independent CPU verification and
-the controller's existing cancellation and pacing. Single-write and grouped
-CPU observations are tracked independently. A qualified offer requires a
-winning matched GPU comparison.
+the controller's existing cancellation and pacing. A detached trial profile
+permits the owner to pass those same captured bytes through the Radeon arm
+using the shared acquisition slot. The owner retains CPU service throughout
+and cancels the experiment on new foreground demand. It checks the paired
+member digest before publishing a result. Single-write and grouped
+observations remain distinct from foreground route offers.
+[Controller-owned paired trials](OWNED_DEFERRED_WRITES.md#controller-owned-paired-trials) ·
 [Measurement and replay contract](OWNED_DEFERRED_WRITES.md#cpu-service-cost-from-ordinary-writes)
 
 ## Content events and bounded work

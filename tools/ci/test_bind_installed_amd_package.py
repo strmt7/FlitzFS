@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 from bind_installed_amd_package import (
     ANCHOR_EVIDENCE, ANCHOR_MODULE, ANCHOR_WORKER, READ_EVIDENCE, READ_MODULE, READ_WORKER,
-    UNIFORM_MODULE, UNIFORM_WORKER, bind,
+    UNIFORM_MODULE, UNIFORM_TRIAL_EVIDENCE, UNIFORM_WORKER, bind,
 )
 
 
@@ -38,6 +38,16 @@ class PackageTests(unittest.TestCase):
         self.manifest["uniform_runtime_packaged"] = True
         for name in (UNIFORM_WORKER, UNIFORM_MODULE):
             self.file(name)
+
+    def write_trial(self):
+        self.uniform()
+        profile = dict(qualification_sha256=self.file(UNIFORM_TRIAL_EVIDENCE), runtime_sha256="ab" * 32,
+                       vendor_id=0x1002, device_id=1, subsystem_id=0, revision=0,
+                       worker_memory_mib=128, memory_share_divisor=16, worker_cpu_rate=2000,
+                       worker_timeout_ms=5000, maximum_identity_queries=4,
+                       maximum_batch_chunks=16, maximum_launch_chunks=2)
+        self.manifest["uniform_write_trial_profile"] = profile
+        return profile
 
     def anchor(self):
         for name in (ANCHOR_WORKER, ANCHOR_MODULE):
@@ -72,8 +82,33 @@ class PackageTests(unittest.TestCase):
         self.uniform()
         header, files = self.bind()
         self.assertIn("has_uniform=true", header)
+        self.assertIn("FLITZFS_INSTALLED_AMD_HAS_WRITE_TRIAL 0", header)
         self.assertIn("FLITZFS_INSTALLED_AMD_HAS_ANCHOR 0", header)
         self.assertEqual(files, ["qualification-manifest.json", UNIFORM_WORKER, UNIFORM_MODULE])
+
+    def test_write_trial_binds_distinct_burst_and_launch_limits(self):
+        self.write_trial()
+        header, files = self.bind()
+        self.assertIn("FLITZFS_INSTALLED_AMD_HAS_WRITE_TRIAL 1", header)
+        self.assertIn("write_trial_maximum_batch_chunks=16U", header)
+        self.assertIn("write_trial_maximum_launch_chunks=2U", header)
+        self.assertEqual(files, ["qualification-manifest.json", UNIFORM_WORKER, UNIFORM_MODULE, UNIFORM_TRIAL_EVIDENCE])
+
+    def test_write_trial_requires_uniform_worker(self):
+        self.write_trial()
+        self.manifest["uniform_runtime_packaged"] = False
+        with self.assertRaisesRegex(RuntimeError, "Write trial profile requires the uniform worker"):
+            self.bind()
+
+    def test_write_trial_refuses_another_qualification(self):
+        self.write_trial()["qualification_sha256"] = "ef" * 32
+        with self.assertRaisesRegex(RuntimeError, "Write trial qualification digest mismatch"):
+            self.bind()
+
+    def test_write_trial_refuses_an_oversized_launch(self):
+        self.write_trial()["maximum_launch_chunks"] = 17
+        with self.assertRaisesRegex(RuntimeError, "Write trial launch exceeds its approved batch"):
+            self.bind()
 
     def test_anchor_only_manifest_stages_just_the_qualified_route_and_notice(self):
         self.anchor()

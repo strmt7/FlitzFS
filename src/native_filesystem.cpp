@@ -2882,7 +2882,8 @@ bool detail::NativeLz4CaptureLease::capture(NativeLz4CapturedFrame& out) const {
   }catch(const std::exception&){return false;}
 }
 std::vector<detail::NativeCapturedWrite> detail::NativeWriteCaptureLease::read(
-    std::span<const NativeCommittedWriteRange> sources,const std::function<bool()>& interrupted) const {
+    std::span<const NativeCommittedWriteRange> sources,const std::function<bool(std::size_t)>& admit,
+    const std::function<bool()>& interrupted) const {
   if(sources.empty())return {};
   try {
     const StoreCaptureReadScope capture(interrupted);
@@ -2898,13 +2899,19 @@ std::vector<detail::NativeCapturedWrite> detail::NativeWriteCaptureLease::read(
     };
     std::vector<NativeCapturedWrite> result;
     result.reserve(sources.size());
-    for(const auto& source:sources) {
+    for(std::size_t index=0;index<sources.size();++index) {
+      const auto& source=sources[index];
       if(capture.interrupted() || !source.sequence || !source.inode || !source.revision || !source.bytes ||
           source.bytes>kStoreMaxTransactionBytes || source.bytes%kNativeExtentBytes ||
           source.offset%kNativeExtentBytes || source.offset>UINT64_MAX-source.bytes)return {};
       const auto inode=selected_inode(source.inode);
       if(!inode || inode->directory || inode->lifetime!=IndexedLifetime::linked ||
           inode->modified!=source.revision || source.offset+source.bytes>inode->size) {
+        if(result.empty())return {};
+        continue;
+      }
+      // Budget only a revision the selected backing can still supply.
+      if(!admit(index)) {
         if(result.empty())return {};
         continue;
       }

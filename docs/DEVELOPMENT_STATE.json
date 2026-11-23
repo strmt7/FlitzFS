@@ -17,7 +17,7 @@
     "next_implementation_tickets": "docs/IMPLEMENTATION_PLAN.md#next-implementation-tickets",
     "native_ntfs_comparison": "Plain and built-in NTFS compression specified; matched real-host run pending.",
     "mounted_packed_attachment": "Bounded signed guest recovery and continued writes verified, with a 1,024-file packed recovery fixture. Sustained populated settlement and current-client qualification remain open.",
-    "automatic_foreground_amd": "Installed uniform discovery supports cancellation. The ordinary controller can capture and verify grouped CPU references from independently committed files, including after Close. Controller-owned matched AMD replay and automatic selection remain open.",
+    "automatic_foreground_amd": "An admitted installed profile compares the same captured group through CPU and Radeon private replay. Repeated staged controller and foreground cancellation checks passed. The sampled shape prefers CPU and automatic route selection remains open.",
     "incremental_admission": "Checked read coalescing and batched scrub have lower measured I/O. A complete unchanged scrub observation has no attach authority. Full writable verification remains in force."
   },
   "ordinary_amd_write_demand": {
@@ -78,6 +78,39 @@
     },
     "automatic_grouped_route_qualified": false,
     "next": "Fund matched CPU and Radeon trials from one captured group. Measure finite burst reuse, separate exchange phases and protected occupancy on memory backing."
+  },
+  "owner_amd_write_trials": {
+    "evidence": "docs/evidence/windows-owner-amd-write-pairs-2026-11-23.json",
+    "scope": "Controller-owned CPU reference and prepared Radeon replay over the same immutable group of acknowledged writes",
+    "initial_live_trial": {
+      "input_bytes": 1048576,
+      "cpu_wall_ns": 4016300,
+      "device_wall_ns_excluding_discovery": 2996778200,
+      "discovery_ns": 438910600,
+      "worker_readiness_ns": 2922307900,
+      "device_extents_verified": 16,
+      "occupied_image_bytes_each": 499712,
+      "cpu_recovery_verified": true,
+      "process_tree_retired": true,
+      "whole_fixture_passed": false
+    },
+    "repeated_exact_build_verified": true,
+    "repeated_trials": 2,
+    "foreground_discovery_cancellations": 2,
+    "steady_handles_after_pair": 326,
+    "combined_live_device_run": "Deferred by memory and GPU contention after the subsequent name-page audit change.",
+    "automatic_foreground_route_qualified": false,
+    "next": "Fund larger representative groups, shorten the prepared startup and exchange, and qualify useful shapes before offering a foreground route."
+  },
+  "indexed_name_page_inventory": {
+    "evidence": "docs/evidence/indexed-name-page-inventory-2026-11-23.json",
+    "scope": "Reachable native name pages are reconciled during the full mirrored-object audit",
+    "short_file_counts": [1024, 16384],
+    "backing_bytes_before": [4713038, 76462421],
+    "backing_bytes_after": [4654688, 76085219],
+    "backing_write_bytes_on_reopen": 0,
+    "independent_cpu_readback_verified": true,
+    "unreachable_protected_page_refused": true
   },
   "dense_cross_group_relocation": {
     "evidence": "docs/evidence/dense-cross-group-2026-11-23.json",

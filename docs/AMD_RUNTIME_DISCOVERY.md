@@ -16,6 +16,25 @@ digests and the exact HIP ABI basename. For shared-base work it binds
 altered artifacts return before launching a worker. The explicit helper path
 API supports diagnostics. [Executable path lookup](https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getmodulefilenamew)
 
+### Uniform write trial profile
+
+An optional `uniform_write_trial_profile` in the approved manifest binds the
+uniform worker and module to one tested runtime and adapter. The inventory
+includes `uniform-write-trial-qualification.json` with its
+`qualification_sha256`. The profile also supplies `runtime_sha256`,
+`vendor_id`, `device_id`, `subsystem_id` and `revision`. Acquisition checks
+that binding before querying HIP identity.
+
+`worker_memory_mib`, `memory_share_divisor`, `worker_cpu_rate`,
+`worker_timeout_ms` and `maximum_identity_queries` bound the worker and
+discovery. `maximum_batch_chunks` bounds one complete trial, and
+`maximum_launch_chunks` bounds each dispatch inside it. Both counts are in
+native extents. Live demand and memory may yield smaller groups. A legacy
+uniform-only manifest retains explicit diagnostic acquisition and ordinary
+CPU observation. The trial profile permits detached comparison. Foreground
+route selection has its own verified cost evidence requirement.
+[Owned paired trials](OWNED_DEFERRED_WRITES.md#controller-owned-paired-trials)
+
 ### Shared-base package profile
 
 The manifest's `shared_base_profile` binds an approved qualification receipt

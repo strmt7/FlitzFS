@@ -2480,7 +2480,7 @@ void IndexedVolumeView::verify_inventory(bool published,const IndexedReopenAdmis
   // verified object walk still checks both copies directly.
   const auto query=store_.scoped_query();
   const auto names=index_.scoped_audit();
-  index_.verify_all();
+  auto remaining_name_pages=index_.verify_reachable_pages();
   const auto root_inode=referenced_inode(1);
   if(admission)admission(indexed_inode_allocation(root_inode),root_inode.security);
   if(verify_namespace(root_inode,0,0,admission)!=root_.inodes-root_.detached_inodes)
@@ -2532,8 +2532,10 @@ void IndexedVolumeView::verify_inventory(bool published,const IndexedReopenAdmis
         fail(Code::corrupt,"unreferenced indexed extent");
       ++extents;
       if(!owner.allocation)charged=add(charged,1);
-    } else if(domain(id)!=kNativeNameIndexObject)fail(Code::corrupt,"foreign indexed object domain");
+    } else if(domain(id)==kNativeNameIndexObject)index_.account_verified_page(id,remaining_name_pages);
+    else fail(Code::corrupt,"foreign indexed object domain");
   });
+  if(remaining_name_pages)fail(Code::corrupt,"missing name index pages");
   if(found_root!=published || inodes!=root_.inodes || extents!=root_.extents || charged!=root_.charged_extents ||
       lifetimes!=root_.active_lifetimes || detached!=root_.detached_inodes || retiring!=root_.retiring_inodes ||
       bases!=root_.shared_bases || members!=root_.shared_members)

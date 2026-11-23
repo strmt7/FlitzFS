@@ -265,13 +265,13 @@ bool list_range(const Reference& reference, const NativeNameKey& after, std::uin
   }
   return true;
 }
-std::uint64_t check_pages(const PagedObjectStoreSnapshot& store, const NativeNameIndexRoot& root,
-    const Reference& reference) {
-  const auto page = read_page(store,root,reference);
-  std::uint64_t count = 1;
-  if (page.height) {
-    for (std::size_t i = 0; i < page.rows.size(); ++i)
-      count = add_count(count,check_pages(store,root,child_reference(page,reference,i)));
+std::uint64_t check_pages(const Reference& reference,const auto& load) {
+  Page scratch;
+  const auto& page=load(reference,scratch);
+  std::uint64_t count=1;
+  if(page.height) {
+    for(std::size_t i=0;i<page.rows.size();++i)
+      count=add_count(count,check_pages(child_reference(page,reference,i),load));
   }
   return count;
 }
@@ -597,24 +597,33 @@ std::uint64_t NativeNameIndex::count_parent(std::uint64_t parent) const {
   return last-first;
 }
 
+std::uint64_t NativeNameIndex::verify_reachable_pages() const {
+  return root_.page?check_pages(root_reference(root_),QueryReader(*this)):0;
+}
+
+void NativeNameIndex::account_verified_page(std::uint64_t id,std::uint64_t& remaining) const {
+  if(id==kNativeNameIndexObject)return;
+  if(!remaining || !page_object(id,root_.next_page))
+    fail(Error::corrupt,"unreachable name index pages");
+  --remaining;
+}
+
 void NativeNameIndex::verify_all() const {
-  const auto reachable=root_.page ? check_pages(store_,root_,root_reference(root_)) : 0;
-  std::uint64_t cursor=kNativeNameIndexObject, stored=0;
-  for (;;) {
+  auto remaining=verify_reachable_pages();
+  auto cursor=kNativeNameIndexObject;
+  for(;;) {
     const auto page=store_.list_page(cursor,64);
-    if (page.empty()) break;
-    for (const auto& object : page) {
-      if (!index_object(object.id)) {
-        if (reachable!=stored) fail(Error::corrupt,"unreachable name index pages");
+    if(page.empty())break;
+    for(const auto& object:page) {
+      if(!index_object(object.id)) {
+        if(remaining)fail(Error::corrupt,"missing name index pages");
         return;
       }
-      if (!page_object(object.id,root_.next_page) || stored==reachable)
-        fail(Error::corrupt,"unreachable name index pages");
-      ++stored;
+      account_verified_page(object.id,remaining);
     }
     cursor=page.back().id;
   }
-  if (reachable!=stored) fail(Error::corrupt,"missing name index pages");
+  if(remaining)fail(Error::corrupt,"missing name index pages");
 }
 
 PagedStoreInfo NativeNameIndex::initialize(PagedObjectStoreWriter& writer,

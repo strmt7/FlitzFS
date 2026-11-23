@@ -5,6 +5,7 @@
 #include "memory_volume.hpp"
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
 #include "worker_exchange.hpp"
+#include "flitzfs/uniform_lz4_sweep.hpp"
 #endif
 #include "../native_maintenance_source.hpp"
 #include <bitset>
@@ -47,6 +48,14 @@ struct WinFspVolumeController::Impl {
   bool observe_write_reference=false;
   std::optional<bool> write_package_present;
   std::optional<NativeAmdWriteDemand> write_reference_demand;
+  std::optional<InstalledUniformWriteTrialProfile> installed_write_trial;
+  std::unique_ptr<InstalledHipInputWitness> write_trial_inputs;
+  WinFspAmdWriteTrial write_trial;
+  UniformLz4Limits write_trial_limits{};
+  bool write_trial_memory_refused=false;
+  std::uint64_t next_write_trial_ms=0,next_write_poll_ms=0;
+  std::atomic<std::uint64_t> write_trial_idle_ms{0};
+  bool acquiring_write=false,write_trial_matched=false,write_trial_requires_evidence=false;
   std::bitset<kStoreMaxTransactionBytes/kNativeExtentBytes> recorded_write_sizes,recorded_group_sizes;
   std::optional<InstalledAnchorProfile> installed;
   HipRouteDiscoveryResult acquisition;
@@ -86,6 +95,7 @@ struct WinFspVolumeController::Impl {
 #endif
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
     observe_write_reference=has_configured_uniform_write_package() && source->enable_amd_write_demand();
+    if(observe_write_reference)installed_write_trial=installed_uniform_write_trial_profile();
 #endif
     source->set_maintenance_event(activity.value);adapter=source.get();
     session=std::make_unique<WinFspNativeSession>(std::move(source),api);
@@ -138,16 +148,17 @@ struct WinFspVolumeController::Impl {
           const auto now=GetTickCount64();
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
           if(qualifying_device && acquisition_thread.joinable() &&
-              (adapter->foreground_pending() || adapter->foreground_activity()!=qualification_activity))
+              (disabled || adapter->foreground_pending() || adapter->foreground_activity()!=qualification_activity))
             acquisition_thread.request_stop();
           settle_acquisition(true);
+          if(acquiring_write && now>=next_write_poll_ms)observe_write_trial(host);
 #endif
           if(anchor) {
             if(disabled)anchor->cancel();
             anchor->observe(adapter->foreground_activity(),now,adapter->foreground_pending()?
                 NativeAnchorOpportunity::foreground:NativeAnchorOpportunity::poll);
-            adapter->signal_foreground_for_anchor(waiting_for_accelerator());
           }
+          adapter->signal_foreground_for_anchor(waiting_for_accelerator());
           if(read_worker) {
             read_worker->observe(*adapter,disabled);
             std::lock_guard lock(mutex);
@@ -158,8 +169,8 @@ struct WinFspVolumeController::Impl {
             if(observe_write_reference) {
               write_reference_demand.reset();
               const auto size=demand->shape.input_bytes/kNativeExtentBytes-1;
-              if(write_package_present!=false &&
-                  (!recorded_write_sizes[size] || (demand->grouped_candidate && !recorded_group_sizes[size])))
+              if(write_package_present!=false && (!recorded_write_sizes[size] ||
+                  (demand->grouped_candidate && (!recorded_group_sizes[size] || write_trial_due(*demand,now)))))
                 write_reference_demand=demand;
             }
 #endif
@@ -181,11 +192,13 @@ struct WinFspVolumeController::Impl {
             continue;
           }
           const bool scrub_due=now>=next_scrub;
-          bool qualification_pending=false;
+          bool qualification_pending=false,write_trial_running=false;
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
           qualification_pending=write_reference_demand.has_value();
+          write_trial_running=acquiring_write;
 #endif
-          const bool pending=!disabled && (qualification_pending || session->background_maintenance_pending(scrub_due) ||
+          const bool pending=!disabled && !write_trial_running &&
+              (qualification_pending || session->background_maintenance_pending(scrub_due) ||
               (read_worker && read_worker->ready_to_verify()));
           if(anchor && !pending)anchor->cancel();
           const bool awaiting_anchor=anchor && anchor->waiting();
@@ -197,6 +210,10 @@ struct WinFspVolumeController::Impl {
               const auto due=anchor->deadline();
               delay=(std::min)(delay,due>now?due-now:std::uint64_t{0});
             }
+#ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
+            if(acquiring_write)
+              delay=(std::min)(delay,next_write_poll_ms>now?next_write_poll_ms-now:std::uint64_t{0});
+#endif
             HANDLE events[4]={stop.value,activity.value};
             DWORD count=2;
             if(anchor)if(const auto event=anchor->wake_handle())events[count++]=event;
@@ -373,6 +390,7 @@ struct WinFspVolumeController::Impl {
     anchor_retired=anchor_retired && acquisition_retired;
     acquisition_inputs.reset();
     read_inputs.reset();
+    write_trial_inputs.reset();
 #endif
     std::lock_guard lock(mutex);current.state=session->state();current.start_status=started;
     current.offline=session->requires_offline();
@@ -474,8 +492,10 @@ struct WinFspVolumeController::Impl {
           adapter->foreground_activity()!=epoch || adapter->requires_offline() || adapter->dispatcher_stopped();
     };
     const auto size=selected.shape.input_bytes/kNativeExtentBytes-1;
-    const auto capture=adapter->capture_amd_write_group(selected,observed,GetTickCount64(),epoch,stop_requested,
-        selected.grouped_candidate && !recorded_group_sizes[size]);
+    const bool compare=selected.grouped_candidate && may_sample_write_trial(selected,now);
+    const auto trial_bytes=compare?std::uint64_t(installed_write_trial->maximum_batch_chunks)*kNativeExtentBytes:UINT64_MAX;
+    auto capture=adapter->capture_amd_write_group(selected,observed,GetTickCount64(),epoch,stop_requested,
+        selected.grouped_candidate && (!recorded_group_sizes[size] || compare),trial_bytes);
     if(capture.empty() || (capture.size()==1 && recorded_write_sizes[size]) || interrupted() ||
         GetTickCount64()-observed.captured_ms>policy.maximum_age_ms)return {};
     std::vector<UniformLz4BatchInput> inputs;
@@ -486,10 +506,182 @@ struct WinFspVolumeController::Impl {
       bytes+=item.bytes.size();
     }
     const NativeAmdStoragePolicy storage{selected.shape.isolation_unit,selected.shape.foreground};
+    const auto started=std::chrono::steady_clock::now();
     const auto result=record_native_amd_cpu_batch(storage,inputs,allowance->memory_allowance,residency,interrupted);
     if(!result || interrupted())return {};
     (inputs.size()>1?recorded_group_sizes:recorded_write_sizes).set(size);
-    return WinFspAmdCpuTrial{selected,*result,bytes};
+    const WinFspAmdCpuTrial reference{selected,*result,bytes,observed_ns(started)};
+    if(compare && inputs.size()>1)
+      begin_write_acquisition(reference,std::move(capture),observed,allowance->memory_allowance,epoch);
+    return reference;
+  }
+
+  static std::uint64_t observed_ns(std::chrono::steady_clock::time_point started) noexcept {
+    const auto elapsed=std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now()-started).count();
+    return elapsed>0?static_cast<std::uint64_t>(elapsed):0;
+  }
+
+  bool write_trial_due(const NativeAmdWriteDemand& demand,std::uint64_t now) const noexcept {
+    return installed_write_trial && !write_trial_matched && acquisition_retired && !acquisition_thread.joinable() &&
+        now>=next_write_trial_ms && demand.shape.input_bytes/kNativeExtentBytes<installed_write_trial->maximum_batch_chunks;
+  }
+
+  bool may_sample_write_trial(const NativeAmdWriteDemand& demand,std::uint64_t now) {
+    if(!write_trial_due(demand,now) || (anchor && anchor->waiting()) || !WorkerExchangeSession::available())return false;
+    if(!write_trial_requires_evidence)return true;
+    if(write_trial_inputs && write_trial_inputs->changed()) {
+      write_trial_requires_evidence=false;
+      return true;
+    }
+    next_write_trial_ms=now+installed_write_trial->worker.timeout_ms;
+    return false;
+  }
+
+  void observe_write_trial(WindowsMaintenanceHost& host) {
+    const auto stop=acquisition_thread.get_stop_token();
+    if(stop.stop_requested()) {
+      next_write_poll_ms=GetTickCount64()+installed_write_trial->worker.timeout_ms;
+      return;
+    }
+    const auto observed=host.observe(adapter->foreground_pending());
+    const auto now=GetTickCount64();
+    next_write_poll_ms=now+(std::max)(host.next_delay_ms(),std::uint64_t{1});
+    if(host.status()==MaintenanceHostStatus::waiting)return;
+    const auto resources=detail::maintenance_resources(observed,now,adapter->group_maintenance_policy());
+    if(!resources || resources->cpu_busy || observed.foreground_pending ||
+        !uniform_worker_host_budget_covers(write_trial_limits,installed_write_trial->worker,resources->memory_allowance))
+      acquisition_thread.request_stop();
+    else write_trial_idle_ms.store(observed.captured_ms,std::memory_order_release);
+  }
+
+  void run_write_trial(const InstalledUniformWriteTrialProfile& profile,NativeUniformSweepGrant grant,
+      const UniformLz4Limits& limits,std::span<const detail::NativeCapturedWrite> capture,
+      std::uint64_t allowance,std::uint64_t epoch,std::stop_token stop) {
+    const auto started=std::chrono::steady_clock::now();
+    write_trial_inputs=std::make_unique<InstalledHipInputWitness>(HipRouteRole::uniform);
+    auto acquired=discover_installed_hip_write_trial_route(stop);
+    write_trial.discovery_ns=observed_ns(started);
+    write_trial.status=acquired.status;
+    if(acquired.status==HipDiscoveryStatus::device_not_ready)write_trial_inputs->note_device_unavailable();
+    if(acquired.memory_pressure) {
+      write_trial_inputs->note_memory_pressure(*acquired.memory_pressure);
+      write_trial_memory_refused=true;
+    }
+    if(acquired.status!=HipDiscoveryStatus::ready)return;
+    if(!acquired.route) {
+      write_trial.status=HipDiscoveryStatus::profile_mismatch;
+      return;
+    }
+    write_trial.configuration=acquired.route->identity;
+    const auto policy=adapter->group_maintenance_policy();
+    bool resource_refused=false;
+    const auto may_submit=[&]() {
+      if(stop.stop_requested() || stop_requested.load(std::memory_order_acquire) ||
+          adapter->foreground_pending() || adapter->foreground_activity()!=epoch)return false;
+      const auto now=GetTickCount64();
+      const auto idle=write_trial_idle_ms.load(std::memory_order_acquire);
+      bool funded=false;
+      if(idle && now>=idle && now-idle<=policy.maximum_cpu_window_ms) {
+        try {
+          const auto memory=usable_memory_volume_headroom(observe_memory_volume_headroom())/policy.memory_share_divisor;
+          funded=uniform_worker_host_budget_covers(limits,profile.worker,(std::min)(allowance,memory));
+        }catch(const std::exception&) {} // Treat changing or missing telemetry as refusal.
+      }
+      resource_refused|=!funded;
+      return funded;
+    };
+    std::vector<UniformLz4BatchInput> inputs;
+    inputs.reserve(capture.size());
+    for(const auto& item:capture)inputs.push_back({item.sequence,item.bytes});
+    const auto& shape=write_trial.reference.demand.shape;
+    const NativeAmdStoragePolicy storage{shape.isolation_unit,shape.foreground};
+    const auto device=std::chrono::steady_clock::now();
+    write_trial.device=record_native_amd_device_batch(storage,inputs,*acquired.route,grant,profile.worker,
+        allowance,residency,NativeAmdTrialLaunch::prepared,stop,may_submit);
+    write_trial.device_wall_ns=observed_ns(device);
+    const auto& observed=write_trial.device;
+    const auto& reference=write_trial.reference.sample;
+    if(observed.exchange==WorkerExchangeCode::exit_unconfirmed ||
+        observed.exchange==WorkerExchangeCode::supervisor_exit_unconfirmed)
+      write_trial.status=HipDiscoveryStatus::retirement_unconfirmed;
+    else if(stop.stop_requested())write_trial.status=HipDiscoveryStatus::cancelled;
+    else if(resource_refused || (!observed.sample && !observed.supervised_ns))
+      write_trial.status=HipDiscoveryStatus::resource_deferred;
+    else if(!observed.sample || !observed.worker_retired || !observed.sample->cpu_readback_verified ||
+        !observed.sample->retirement_confirmed || !observed.sample->device_executed ||
+        observed.sample->transactions!=reference.transactions || observed.sample->input_digest!=reference.input_digest) {
+      write_trial.status=HipDiscoveryStatus::configuration_quarantined;
+      write_trial.device.sample.reset();
+    }
+  }
+
+  void begin_write_acquisition(const WinFspAmdCpuTrial& reference,std::vector<detail::NativeCapturedWrite> capture,
+      const NativeMaintenanceObservation& observed,std::uint64_t allowance,std::uint64_t epoch) {
+    const auto now=GetTickCount64();
+    if(!may_sample_write_trial(reference.demand,now) || stop_requested.load(std::memory_order_acquire) ||
+        adapter->foreground_pending() || adapter->foreground_activity()!=epoch ||
+        now<observed.captured_ms || now-observed.captured_ms>adapter->group_maintenance_policy().maximum_age_ms)return;
+    const auto profile=*installed_write_trial;
+    uniform_lz4::Layout group{},quantum{};
+    if(!uniform_lz4::make_layout(reference.input_bytes,kNativeExtentBytes,group) ||
+        group.chunks>profile.maximum_batch_chunks ||
+        !uniform_lz4::make_layout(std::uint64_t((std::min)(group.chunks,profile.maximum_launch_chunks))*kNativeExtentBytes,
+            kNativeExtentBytes,quantum))return;
+    UniformLz4Limits limits{};
+    if(!try_uniform_lz4_limits(group,limits) || !uniform_worker_host_budget_covers(limits,profile.worker,allowance))return;
+    const NativeUniformSweepGrant grant{quantum.chunks,quantum.total_bytes};
+    write_trial={};
+    write_trial_memory_refused=false;
+    write_trial_limits=limits;
+    write_trial.reference=reference;
+    write_trial.status=HipDiscoveryStatus::resource_deferred;
+    write_trial_inputs.reset();
+    write_trial_idle_ms.store(observed.captured_ms,std::memory_order_release);
+    next_write_poll_ms=now;
+    acquiring_write=true;
+    qualifying_device=true;
+    qualification_activity=epoch;
+    adapter->signal_foreground_for_anchor(true);
+    acquisition_finished.store(false,std::memory_order_relaxed);
+    try {
+      acquisition_thread=std::jthread([this,profile,grant,limits,allowance,epoch,capture=std::move(capture)](std::stop_token stop) noexcept {
+        try {
+          MaintenanceThreadScope priority;
+          if(priority.active()) {
+            run_write_trial(profile,grant,limits,capture,allowance,epoch,stop);
+            if(!priority.finish() && write_trial.status==HipDiscoveryStatus::ready)
+              write_trial.status=HipDiscoveryStatus::resource_deferred;
+          }
+        }catch(...) {write_trial.status=HipDiscoveryStatus::resource_deferred;}
+        acquisition_finished.store(true,std::memory_order_release);
+        SetEvent(activity.value);
+      });
+    }catch(...) {settle_write_acquisition(true);}
+    std::lock_guard lock(mutex);
+    ++current.amd_write_trial_attempts;
+  }
+
+  void settle_write_acquisition(bool use_pair) {
+    acquiring_write=false;
+    qualifying_device=false;
+    acquisition_retired=write_trial.status!=HipDiscoveryStatus::retirement_unconfirmed;
+    if(acquisition_retired && (!use_pair || adapter->foreground_pending() ||
+        adapter->foreground_activity()!=qualification_activity || stop_requested.load(std::memory_order_acquire)))
+      write_trial.status=HipDiscoveryStatus::cancelled;
+    write_trial_matched=write_trial.status==HipDiscoveryStatus::ready && write_trial.device.sample.has_value();
+    if(!write_trial_matched)write_trial.device.sample.reset();
+    const auto duration=write_trial.discovery_ns+write_trial.device_wall_ns;
+    const auto delay=(std::max)(maintenance_delay_ms(duration),std::uint64_t(installed_write_trial->worker.timeout_ms));
+    next_write_trial_ms=GetTickCount64()+delay;
+    using Status=HipDiscoveryStatus;
+    write_trial_requires_evidence=write_trial.status!=Status::ready && write_trial.status!=Status::cancelled &&
+        write_trial.status!=Status::transport_busy &&
+        (write_trial.status!=Status::resource_deferred || write_trial_memory_refused);
+    if(!write_trial_requires_evidence)write_trial_inputs.reset();
+    adapter->signal_foreground_for_anchor(waiting_for_accelerator());
+    std::lock_guard lock(mutex);
+    current.amd_write_trial=write_trial;
+    if(status_changed.value)SetEvent(status_changed.value);
   }
 
   void begin_read_acquisition(const WinFspReadAheadWork& work,const NativeMaintenanceObservation& observed) {
@@ -652,6 +844,7 @@ struct WinFspVolumeController::Impl {
     if(!use_route)acquisition_thread.request_stop();
     acquisition_thread.join();
     if(acquiring_read){settle_read_acquisition(use_route);return;}
+    if(acquiring_write){settle_write_acquisition(use_route);return;}
     if(qualifying_device && (adapter->foreground_pending() || adapter->foreground_activity()!=qualification_activity)) {
       use_route=false;
       if(acquisition.status==HipDiscoveryStatus::ready)acquisition.status=HipDiscoveryStatus::cancelled;

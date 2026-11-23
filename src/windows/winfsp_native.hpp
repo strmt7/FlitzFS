@@ -134,7 +134,7 @@ class WinFspNativeWritable final {
   // Reads run outside the callback mutex and yield at native extent boundaries.
   std::vector<detail::NativeCapturedWrite> capture_amd_write_group(const NativeAmdWriteDemand&,
       const NativeMaintenanceObservation&,std::uint64_t now,std::uint64_t epoch,
-      const std::atomic<bool>& stop,bool grouped=true) noexcept;
+      const std::atomic<bool>& stop,bool grouped=true,std::uint64_t maximum_input_bytes=UINT64_MAX) noexcept;
   std::vector<std::byte> capture_amd_write_source(const NativeAmdWriteDemand&,
       const NativeMaintenanceObservation&,std::uint64_t now,std::uint64_t epoch,
       const std::atomic<bool>& stop) noexcept;

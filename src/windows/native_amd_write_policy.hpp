@@ -58,6 +58,7 @@ enum class NativeAmdTrialLaunch {immediate,prepared};
 struct NativeAmdDeviceTrial {
   std::optional<NativeAmdWriteSample> sample;
   std::uint64_t ready_ns=0,exchange_ns=0;
+  std::uint64_t preparation_ns=0,supervised_ns=0,verification_ns=0,replay_ns=0;
   WorkerExchangeCode exchange=WorkerExchangeCode::invalid_response;
   std::uint32_t worker_exit=0;
   bool worker_retired=false;
@@ -74,7 +75,7 @@ NativeAmdDeviceTrial record_native_amd_device_trial(const NativeAmdWriteShape&,
 NativeAmdDeviceTrial record_native_amd_device_batch(const NativeAmdStoragePolicy&,
     std::span<const UniformLz4BatchInput>,const HipDiscoveredRoute&,NativeUniformSweepGrant,
     ProcessBudget,std::uint64_t memory_allowance,MemoryVolumeDomain*,NativeAmdTrialLaunch,
-    std::stop_token) noexcept;
+    std::stop_token,const std::function<bool()>& may_submit={}) noexcept;
 
 // Called off the filesystem path with independently acquired launch costs.
 // Package admission, a matched recommendation and an exact route are needed.

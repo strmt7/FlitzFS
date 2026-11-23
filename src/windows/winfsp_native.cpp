@@ -1322,11 +1322,13 @@ std::optional<NativeAmdWriteDemand> WinFspNativeWritable::take_amd_write_demand(
 }
 std::vector<detail::NativeCapturedWrite> WinFspNativeWritable::capture_amd_write_group(
     const NativeAmdWriteDemand& observed,const NativeMaintenanceObservation& resources,
-    std::uint64_t now,std::uint64_t epoch,const std::atomic<bool>& stop,bool grouped) noexcept {
+    std::uint64_t now,std::uint64_t epoch,const std::atomic<bool>& stop,bool grouped,
+    std::uint64_t maximum_input_bytes) noexcept {
   try {
     const auto& policy=impl_->group_policy;
     const auto allowance=detail::maintenance_resources(resources,now,policy);
     if(!allowance || allowance->cpu_busy || resources.foreground_pending ||
+        observed.shape.input_bytes>maximum_input_bytes ||
         !native_amd_cpu_replay_fits(observed.shape.input_bytes,1,allowance->memory_allowance))return {};
     const auto interrupted=[&] {
       return foreground_pending() || foreground_activity()!=epoch || requires_offline() ||
@@ -1334,6 +1336,7 @@ std::vector<detail::NativeCapturedWrite> WinFspNativeWritable::capture_amd_write
     };
     if(interrupted())return {};
     std::array<detail::NativeCommittedWriteRange,Impl::AmdWriteDemand::sizes> ranges{};
+    std::array<std::uint64_t,Impl::AmdWriteDemand::sizes> service_times{};
     std::size_t count=0;
     std::unique_ptr<detail::NativeWriteCaptureLease> lease;
     {
@@ -1353,25 +1356,19 @@ std::vector<detail::NativeCapturedWrite> WinFspNativeWritable::capture_amd_write
         return source.range.sequence==observed.source_sequence && source.range.bytes==observed.shape.input_bytes && fresh(source);
       });
       if(first==demand.sources.end())return {};
-      ranges[count++]=first->range;
-      std::uint64_t bytes=first->range.bytes,service=first->timing.elapsed_ns;
-      // Previous CPU service is an admission estimate, not a time guarantee.
-      // The owner still paces the measured complete quantum after it finishes.
-      const auto budget=(std::max)(service,resources.cpu_window_ms*policy.work_share_ppm);
+      ranges[0]=first->range;
+      service_times[count++]=first->timing.elapsed_ns;
       if(grouped)for(std::size_t distance=1;distance<=demand.sources.size();++distance) {
         if(interrupted())return {};
         const auto index=(demand.next_source+demand.sources.size()-distance)%demand.sources.size();
         const auto& candidate=demand.sources[index];
         const auto& range=candidate.range;
         if(!range.sequence || range.sequence>=observed.source_sequence || !fresh(candidate) ||
-            candidate.timing.elapsed_ns>budget-service ||
-            !native_amd_cpu_replay_fits(bytes+range.bytes,count+1,allowance->memory_allowance) ||
             std::ranges::any_of(std::span(ranges).first(count),[&](const auto& chosen) {
               return chosen.inode==range.inode;
             }))continue;
-        ranges[count++]=range;
-        bytes+=range.bytes;
-        service+=candidate.timing.elapsed_ns;
+        ranges[count]=range;
+        service_times[count++]=candidate.timing.elapsed_ns;
       }
       lease=impl_->session.lease_committed_write_capture();
       if(!lease || interrupted())return {};
@@ -1382,7 +1379,22 @@ std::vector<detail::NativeCapturedWrite> WinFspNativeWritable::capture_amd_write
           return chosen.sequence==source.range.sequence;
         }))source={};
     }
-    if(!interrupted())return lease->read(std::span(ranges).first(count),interrupted);
+    // Check freshness in the pinned backing before spending the actual grant.
+    // The previous CPU service is an estimate. The full quantum is paced.
+    const auto budget=(std::max)(service_times.front(),resources.cpu_window_ms*policy.work_share_ppm);
+    std::uint64_t bytes=0,service=0;
+    std::size_t admitted=0;
+    const auto fund=[&](std::size_t index) {
+      const auto length=ranges[index].bytes;
+      const auto time=service_times[index];
+      if(length>maximum_input_bytes-bytes || time>budget-service ||
+          !native_amd_cpu_replay_fits(bytes+length,admitted+1,allowance->memory_allowance))return false;
+      bytes+=length;
+      service+=time;
+      ++admitted;
+      return true;
+    };
+    if(!interrupted())return lease->read(std::span(ranges).first(count),fund,interrupted);
   }catch(...) {}
   return {};
 }

@@ -495,17 +495,19 @@ latency independently on the measured Windows host. [Existing fixture](evidence/
    completion time and native service cost. Qualification can use the
    timestamps to estimate active request cadence and check freshness.
    [Write demand and Radeon evidence](evidence/windows-ordinary-amd-write-demand-2026-11-23.json)
-3. **Grouped CPU reference implemented.** The owner captures generation-bound
-   batches of completed writes from distinct files under current idle and
-   memory admission. It verifies the CPU replay on a private mirrored image,
-   cancels when foreground work returns and retires scratch before publishing.
-   [Grouped capture evidence](evidence/windows-ordinary-amd-capture-groups-2026-11-23.json)
-   The detached Radeon arm supports the same distinct native transactions in
-   one immediate or prepared exchange. Pass the same captured batch to both
-   arms and run repeated paired trials under live admission, alongside read and
-   anchor opportunities. Measure complete cost across useful group sizes and
-   separate cold and prepared read paths. Bind offers to observed geometry,
-   verified output and confirmed retirement.
+3. **Owner-controlled paired replay implemented.** The owner captures
+   generation-bound completed writes from distinct files. An admitted trial
+   sends the exact same capture through private mirrored CPU and Radeon
+   images. Foreground activity cancels the paired opportunity, and valid
+   results require independent readback and retired scratch.
+   [Grouped capture evidence](evidence/windows-ordinary-amd-capture-groups-2026-11-23.json) ·
+   Two scoped paired runs used verified Radeon output, and the foreground
+   cancellation controls recovered the ordinary writes independently. CPU was
+   faster for the tested 1 MiB shape.
+   [Paired owner evidence](evidence/windows-owner-amd-write-pairs-2026-11-23.json)
+   Balance order in follow-up trials across multiple funded group sizes and
+   held-out workload classes. Separate cold and prepared read paths. Bind
+   offers to observed geometry, verified output and confirmed retirement.
    [Grouped Radeon evidence](evidence/windows-amd-grouped-write-replay-2026-11-23.json) ·
    [Benchmark protocol](BENCHMARK_PROTOCOL.md#cold-and-prepared-cpu-and-radeon-trials)
 4. Measure useful output with a real mounted request after a positive route
@@ -513,9 +515,13 @@ latency independently on the measured Windows host. [Existing fixture](evidence/
    resumes with a fresh opportunity after an interruption. A losing shape stays
    on CPU and feeds the batch/codec work in E03, E05 and E06.
 5. In the same development sequence, exercise writable admission and scrub
-   against the full audit on a new scale tier. Verify legacy and damaged
-   images, repairs between observation and attach, and interrupted publication.
-   Advance an attach optimization only after the differential agrees.
+   against the full audit on a new scale tier. The full mirrored-object audit
+   now accounts for native name pages during its object walk. Paired fixtures
+   at 1,024 and 16,384 files reduced backing reads.
+   [Indexed inventory evidence](evidence/indexed-name-page-inventory-2026-11-23.json)
+   Verify legacy and damaged images, repairs between observation and attach,
+   and interrupted publication. Advance an attach optimization only after the
+   differential agrees.
 
 [Detailed implementation tickets](IMPLEMENTATION_PLAN.md#next-implementation-tickets) ·
 [Current architecture diagrams](architecture/CURRENT.md) ·

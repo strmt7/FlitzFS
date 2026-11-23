@@ -29,7 +29,9 @@
     "latest_detached_amd_write_trials": "docs/evidence/windows-amd-detached-write-trials-2026-11-23.json",
     "latest_grouped_amd_write_replay": "docs/evidence/windows-amd-grouped-write-replay-2026-11-23.json",
     "latest_ordinary_amd_group_capture": "docs/evidence/windows-ordinary-amd-capture-groups-2026-11-23.json",
-    "next": "Collect generation-bound completed write groups on the automatic controller, then compare immediate and prepared groups under live admission. Measure the full exchange, random read and CPU recovery costs before selecting a device route. Extend the mounted mixed-flush client under populated churn and evaluate incremental writable admission beside the full oracle. Build held-out compression and sparse-catalog accounting controls.",
+    "latest_owner_amd_write_pairs": "docs/evidence/windows-owner-amd-write-pairs-2026-11-23.json",
+    "latest_indexed_name_page_inventory": "docs/evidence/indexed-name-page-inventory-2026-11-23.json",
+    "next": "Repeat owner-bound matched trials across representative sizes and improve the measured readiness and supervised exchange phases. Verify mixed read and write behavior with CPU recovery before offering a winning route. Extend mounted mixed-flush coverage under populated churn and compare incremental admission with the full oracle. Build held-out compression and sparse-catalog accounting controls.",
     "release_qualified": false
   },
   "baseline": {

@@ -11,7 +11,14 @@ class MemoryVolumeDomain;
 struct WinFspAmdCpuTrial {
   NativeAmdWriteDemand demand;
   NativeAmdWriteSample sample;
-  std::uint64_t input_bytes=0;
+  std::uint64_t input_bytes=0,wall_ns=0;
+};
+struct WinFspAmdWriteTrial {
+  WinFspAmdCpuTrial reference;
+  NativeAmdDeviceTrial device;
+  HipDiscoveryStatus status=HipDiscoveryStatus::invalid_request;
+  GpuConfigurationId configuration{};
+  std::uint64_t discovery_ns=0,device_wall_ns=0;
 };
 struct WinFspControllerView {
   SessionState state=SessionState::ready;
@@ -33,7 +40,8 @@ struct WinFspControllerView {
   std::optional<NativeDeferredActivation> foreground_activation;
   std::optional<NativeAmdWriteDemand> amd_write_demand;
   std::optional<WinFspAmdCpuTrial> amd_cpu_trial;
-  std::uint64_t amd_cpu_trial_attempts=0;
+  std::uint64_t amd_cpu_trial_attempts=0,amd_write_trial_attempts=0;
+  std::optional<WinFspAmdWriteTrial> amd_write_trial;
   std::optional<HipDiscoveryStatus> installed_anchor_status,installed_read_status;
   std::uint32_t installed_anchor_attempts=0,installed_anchor_queries=0;
   std::uint32_t installed_read_attempts=0,installed_read_queries=0,installed_read_worker_exit=0;

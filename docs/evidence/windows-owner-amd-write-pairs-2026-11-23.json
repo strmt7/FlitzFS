@@ -1,0 +1,998 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "source": {
+    "base": "6036fd6901b8b38195c476e0bf48da230f2414cd",
+    "patch_sha256": "02b7f0947a2498b9544439fc431f05effe265bea22318e00ddee01d64ecf9192",
+    "blobs": {
+      "src/native_filesystem.cpp": "62df6abd63ad08edc27efca12e201abda03b6396",
+      "src/native_lz4_capture.hpp": "82e66ff34d5efe5a58dc09f39eb6103df461f525",
+      "src/windows/hip_route_discovery.cpp": "56f8607abd0615b4a996003bed2c5638c6d8d34a",
+      "src/windows/hip_route_discovery.hpp": "111a6870799911f6a1b26898068fecb3f5e00f5f",
+      "src/windows/native_amd_write_policy.cpp": "d9195e7bf66b4506771f021268c77f13ac73ff64",
+      "src/windows/native_amd_write_policy.hpp": "c045681c546c8638a3781660ef2f3251c96b4a75",
+      "src/windows/winfsp_controller.cpp": "0cc1edd322a3cb00f77a29532e3d2628f86ed68d",
+      "src/windows/winfsp_controller.hpp": "c15063a7be0257564a090bfd8011c98131e3bd73",
+      "src/windows/winfsp_native.cpp": "e553d879ec32d4440b6a06fa7757d79f0ede3188",
+      "src/windows/winfsp_native.hpp": "907f19297a02c6ec42d11f59f02015675dd53fdf",
+      "tests/test_winfsp_controller.cpp": "20c6b64238733246f3f6da1ca836b6015fa14f8d",
+      "tools/ci/bind_installed_amd_package.py": "77707ae4fd0d2ffc6ae789e30a188f08544a62fc",
+      "tools/ci/test_bind_installed_amd_package.py": "c79033c5373f94a2f3d26c365d006a0bb07b8b69"
+    }
+  },
+  "source_navigation": {
+    "commit": "6036fd6901b8b38195c476e0bf48da230f2414cd",
+    "source_files": 7,
+    "actual_searches": 1,
+    "provider_version": "0.2.43",
+    "inventory_sha256": "beafaa350b265ad0b4607f4c68f90c6f72cd0f29b313be90415162e0bd07826e",
+    "native_response_sha256": "08c08c7e206f230b1c297bb224f61b7be239ae704e97927426616d94848b204f",
+    "receipt_sha256": "ddae09baf9e9329410fff90f635eeb8618de3049fbacf33d358e4a76030b042a",
+    "run": {
+      "run": "local-run-66e94dc5db054332a4691cb783a027aa",
+      "log_sha256": "0113ddcae6ffa2dd4863d01728a64d8c295d24e94769e10787933d24a8e6aaca",
+      "exit_code": 0,
+      "tree_retired": true,
+      "exit_confirmed": true,
+      "residual_children": 0,
+      "physical_available_bytes": 24540766208,
+      "memory_bytes": 2026897408,
+      "peak_job_bytes": 1138315264,
+      "cpu_percent": 13,
+      "elapsed_seconds": 40.96899999999732,
+      "timeout_seconds": 96.0,
+      "stop_reason": null
+    }
+  },
+  "primary_sources": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "28083f64d27d17fd614098ef663a1040dc544e10e4b18568b2b12c224c8bdafb",
+    "pages": {
+      "win-thread-background": {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadpriority",
+        "final_http_status": 200,
+        "capture_sha256": "d28f89c8781c69f04ab095c320f015fba8d7f70d8234383892a1f2f45c472d89",
+        "markdown_sha256": "4f535a0b9a9f909b21bfa37d7b66735c7c6d47d13f2ba0217574c2587183c9f3"
+      },
+      "hip-stream-safety": {
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/reference/hip_runtime_api/modules/stream_management.html",
+        "final_http_status": 200,
+        "capture_sha256": "e7478e09a83d74e0db6d5a877b3773fc2d1c244d308083955b39cd36a3072afe",
+        "markdown_sha256": "bee401671f6fc9c05ac9b57c010c93ce535666de88336c70a4d0d7d4d81dae5a"
+      }
+    },
+    "run": {
+      "run": "local-run-95bc932747b34225bc20a1a39d0fc9f9",
+      "log_sha256": "c474223c7af18229b1874e16edf983ec0c5de47dc7c7520953f8ac9293d0cc8a",
+      "exit_code": 0,
+      "tree_retired": true,
+      "exit_confirmed": true,
+      "residual_children": 0,
+      "physical_available_bytes": 26099032064,
+      "memory_bytes": 1212153856,
+      "peak_job_bytes": 443338752,
+      "cpu_percent": 13,
+      "elapsed_seconds": 10.14100000000326,
+      "timeout_seconds": 108.0,
+      "stop_reason": null
+    }
+  },
+  "validation": {
+    "profile_stage": {
+      "run": "local-run-7cb8b24859364c4d9cb3c16a4d2171ae",
+      "log_sha256": "1698617d05ee7ea954f83c0baa44947cb0d5ca89fbf8fd2ddeb1dee3dd1050d4",
+      "exit_code": 0,
+      "tree_retired": true,
+      "exit_confirmed": true,
+      "residual_children": 0,
+      "physical_available_bytes": 27624226816,
+      "memory_bytes": 973078528,
+      "peak_job_bytes": 11055104,
+      "cpu_percent": 8,
+      "elapsed_seconds": 0.4840000000112923,
+      "timeout_seconds": 22.0,
+      "stop_reason": null
+    },
+    "package_tests": {
+      "run": "local-run-e23fed03a889433da162981d050ca10a",
+      "log_sha256": "80a2d4b766a99da21c44dbe9fe821175f4c371d57914f66b7de20a8cd80c59c2",
+      "exit_code": 0,
+      "tree_retired": true,
+      "exit_confirmed": true,
+      "residual_children": 0,
+      "physical_available_bytes": 27595264000,
+      "memory_bytes": 970981376,
+      "peak_job_bytes": 157138944,
+      "cpu_percent": 8,
+      "elapsed_seconds": 1.375,
+      "timeout_seconds": 20.0,
+      "stop_reason": null
+    },
+    "sdk_configure": {
+      "run": "local-run-5550479afc9f44f4bd0a5cb59f51f077",
+      "log_sha256": "5b47eef1be21692d62bfbfae0f964e9d561b813cc769cc7d25bd7657ae5d5112",
+      "exit_code": 0,
+      "tree_retired": true,
+      "exit_confirmed": true,
+      "residual_children": 0,
+      "physical_available_bytes": 27833352192,
+      "memory_bytes": 1962934272,
+      "peak_job_bytes": 164618240,
+      "cpu_percent": 14,
+      "elapsed_seconds": 14.76600000000326,
+      "timeout_seconds": 58.0,
+      "stop_reason": null
+    },
+    "sdk_original_build": {
+      "run": "local-run-530f0479fe114d5d954fbe45c07a6617",
+      "log_sha256": "f92269e0ed59f6d5be7e4661d2ba8eb6a1daaa7f9edf66d252e9329b5d5d540d",
+      "exit_code": 0,
+      "tree_retired": true,
+      "exit_confirmed": true,
+      "residual_children": 0,
+      "physical_available_bytes": 27206496256,
+      "memory_bytes": 2866806784,
+      "peak_job_bytes": 426082304,
+      "cpu_percent": 17,
+      "elapsed_seconds": 51.953000000008615,
+      "timeout_seconds": 220.0,
+      "stop_reason": null
+    },
+    "sdk_provisional": {
+      "run": "local-run-9761a36e374a4bd7876e0f8862cd84c4",
+      "log_sha256": "2c1915ed5c44201395abd98768453701df4ceda3a7a064f2c20d89c61b2d31de",
+      "exit_code": 0,
+      "tree_retired": true,
+      "exit_confirmed": true,
+      "residual_children": 1,
+      "physical_available_bytes": 25879552000,
+      "memory_bytes": 2701131776,
+      "peak_job_bytes": 448303104,
+      "cpu_percent": 17,
+      "elapsed_seconds": 33.171999999991385,
+      "timeout_seconds": 190.0,
+      "stop_reason": null
+    },
+    "sdk_provisional_ctest": {
+      "run": "local-run-5b9487b3a5c941c2a863918205e8b2a9",
+      "log_sha256": "07c5edb4ffbb6f2c7ce3f6a11122e4ee5579890041e9c25ee453c2c5c89daaf6",
+      "exit_code": 0,
+      "tree_retired": true,
+      "exit_confirmed": true,
+      "residual_children": 0,
+      "physical_available_bytes": 26778398720,
+      "memory_bytes": 2813329408,
+      "peak_job_bytes": 63221760,
+      "cpu_percent": 17,
+      "elapsed_seconds": 16.905999999988126,
+      "timeout_seconds": 120.0,
+      "stop_reason": null
+    },
+    "first_stage": {
+      "run": "local-run-9e4dd6e907e34df8910a4479dc4b0329",
+      "log_sha256": "c1ac444051d51f7dd603d55cbd033d161f1908927c8ebd4e0d9113c88907a71c",
+      "exit_code": 0,
+      "tree_retired": true,
+      "exit_confirmed": true,
+      "residual_children": 0,
+      "physical_available_bytes": 26736021504,
+      "memory_bytes": 935329792,
+      "peak_job_bytes": 28086272,
+      "cpu_percent": 8,
+      "elapsed_seconds": 0.7810000000026776,
+      "timeout_seconds": 25.0,
+      "stop_reason": null
+    },
+    "first_preflight": {
+      "run": "local-run-7f745a48125b4ae6a461094cabdcd000",
+      "log_sha256": "0623f368e80bc9b88fe6bfa93718a8496d9d54fad8e377eb50a8142e545f9281",
+      "exit_code": 0,
+      "tree_retired": true,
+      "exit_confirmed": true,
+      "residual_children": 0,
+      "physical_available_bytes": 27575787520,
+      "memory_bytes": 932184064,
+      "peak_job_bytes": 95215616,
+      "cpu_percent": 13,
+      "elapsed_seconds": 4.125,
+      "timeout_seconds": 18.0,
+      "stop_reason": null
+    },
+    "first_trial": {
+      "run": "local-run-8a87e43e7e78429f8247bc2667fc34d4",
+      "log_sha256": "94b70138d9b8d0b2b8ca5474cffef3458e2ab58d6b96cc52b9d1d371f9d8bfa9",
+      "exit_code": 1,
+      "tree_retired": true,
+      "exit_confirmed": true,
+      "residual_children": 0,
+      "physical_available_bytes": 27370151936,
+      "memory_bytes": 1924136960,
+      "peak_job_bytes": 126226432,
+      "cpu_percent": 18,
+      "elapsed_seconds": 4.860000000000582,
+      "timeout_seconds": 32.0,
+      "stop_reason": null
+    },
+    "first_postflight": {
+      "run": "local-run-ff8d6f54a2b04e8ea9d366e5a71efcd1",
+      "log_sha256": "b140936089f5948eb9cdb7977442443a2b2de050e4a92e9ec3d893429cd944b9",
+      "exit_code": 0,
+      "tree_retired": true,
+      "exit_confirmed": true,
+      "residual_children": 0,
+      "physical_available_bytes": 27726241792,
+      "memory_bytes": 937426944,
+      "peak_job_bytes": 95862784,
+      "cpu_percent": 13,
+      "elapsed_seconds": 3.8439999999973224,
+      "timeout_seconds": 17.0,
+      "stop_reason": null
+    },
+    "repeat_preflight_deferred": {
+      "run": "local-run-1ff6c55a605041ecb24ae4e5f6727ae3",
+      "log_sha256": "fb67cba4eb812746be6f0346dc29c441628a3d33cc6a4ec1805202e695d955d4",
+      "exit_code": 2,
+      "tree_retired": true,
+      "exit_confirmed": true,
+      "residual_children": 0,
+      "physical_available_bytes": 9336664064,
+      "memory_bytes": 202375168,
+      "peak_job_bytes": 92942336,
+      "cpu_percent": 13,
+      "elapsed_seconds": 4.0939999999973224,
+      "timeout_seconds": 18.0,
+      "stop_reason": null
+    },
+    "app_configure": {
+      "run": "local-run-4e61adca12974af590084680047b8127",
+      "log_sha256": "2ad3f361259c49f8d542be62822de4ed80607d28ebd3d0841709e0bc13dd6db1",
+      "exit_code": 0,
+      "tree_retired": true,
+      "exit_confirmed": true,
+      "residual_children": 0,
+      "physical_available_bytes": 8109772800,
+      "memory_bytes": 383778816,
+      "peak_job_bytes": 164769792,
+      "cpu_percent": 14,
+      "elapsed_seconds": 14.735000000000582,
+      "timeout_seconds": 55.0,
+      "stop_reason": null
+    },
+    "app_provisional": {
+      "run": "local-run-2d3b09becc17412ca075de6838991347",
+      "log_sha256": "f2b17fd9de969486d9f6bd82f39670ff4c44dd0629300c05e8ebce19678db43f",
+      "exit_code": 0,
+      "tree_retired": true,
+      "exit_confirmed": true,
+      "residual_children": 1,
+      "physical_available_bytes": 7859396608,
+      "memory_bytes": 512753664,
+      "peak_job_bytes": 388366336,
+      "cpu_percent": 17,
+      "elapsed_seconds": 22.186999999990803,
+      "timeout_seconds": 245.0,
+      "stop_reason": null
+    },
+    "app_ctest_deferred": {
+      "run": "local-run-83829d3d05c843b6b7e4a57853dca5d6",
+      "log_sha256": "fb23e64637c9779b7e12d13170fbaaa0b61659d005288eba046c03d9d2ac9950",
+      "exit_code": 8,
+      "tree_retired": true,
+      "exit_confirmed": true,
+      "residual_children": 0,
+      "physical_available_bytes": 8000970752,
+      "memory_bytes": 465567744,
+      "peak_job_bytes": 24858624,
+      "cpu_percent": 17,
+      "elapsed_seconds": 0.5309999999881256,
+      "timeout_seconds": 145.0,
+      "stop_reason": null
+    },
+    "sdk_app_final_build": {
+      "run": "local-run-0e1a2917497c495a9688b68a16ef65be",
+      "log_sha256": "28c75d94fa4a7629ee2c7f4c109724aec2ec57bc31ba5fa2d5f82e8909b874f9",
+      "exit_code": 0,
+      "tree_retired": true,
+      "exit_confirmed": true,
+      "residual_children": 1,
+      "physical_available_bytes": 8219279360,
+      "memory_bytes": 564133888,
+      "peak_job_bytes": 372346880,
+      "cpu_percent": 17,
+      "elapsed_seconds": 16.514999999999418,
+      "timeout_seconds": 225.0,
+      "stop_reason": null
+    },
+    "final_stage": {
+      "run": "local-run-591d1f0043254f568cc44992de4ce207",
+      "log_sha256": "dc7ec206aef3f498d6bbffd0d782d6c2a5f827110eb251239d57b824a49283bc",
+      "exit_code": 0,
+      "tree_retired": true,
+      "exit_confirmed": true,
+      "residual_children": 0,
+      "physical_available_bytes": 8473608192,
+      "memory_bytes": 167772160,
+      "peak_job_bytes": 28172288,
+      "cpu_percent": 8,
+      "elapsed_seconds": 0.4220000000059372,
+      "timeout_seconds": 22.0,
+      "stop_reason": null
+    },
+    "release_diagnostics": {
+      "run": "local-run-335ad50432d648349a47aa2a5df6cc97",
+      "log_sha256": "bcc1754063aec9c20aa8a5984b5de6ecaebdcd0aa54f97b1277440b97353bc12",
+      "exit_code": 0,
+      "tree_retired": true,
+      "exit_confirmed": true,
+      "residual_children": 0,
+      "physical_available_bytes": 8464330752,
+      "memory_bytes": 321912832,
+      "peak_job_bytes": 25518080,
+      "cpu_percent": 13,
+      "elapsed_seconds": 0.4529999999940628,
+      "timeout_seconds": 35.0,
+      "stop_reason": null
+    },
+    "raw_build": {
+      "run": "local-run-5aed68968cdd4238bd87aa862a737631",
+      "log_sha256": "ce348d30bc99129c4e926469f4a322f8d13d9202c55db4a96f48661ef9b216c8",
+      "exit_code": 0,
+      "tree_retired": true,
+      "exit_confirmed": true,
+      "residual_children": 1,
+      "physical_available_bytes": 8188608512,
+      "memory_bytes": 652214272,
+      "peak_job_bytes": 466182144,
+      "cpu_percent": 16,
+      "elapsed_seconds": 68.42199999999139,
+      "timeout_seconds": 215.0,
+      "stop_reason": null
+    },
+    "raw_diagnostics": {
+      "run": "local-run-71963e9a77f74f0ab0ad2e78439e4e6d",
+      "log_sha256": "f6ed84bdadb7fed3a523ddaec86e6890946d235156cfbfaf6ea0bf9ebc7ca9d2",
+      "exit_code": 0,
+      "tree_retired": true,
+      "exit_confirmed": true,
+      "residual_children": 0,
+      "physical_available_bytes": 8575397888,
+      "memory_bytes": 330301440,
+      "peak_job_bytes": 24829952,
+      "cpu_percent": 12,
+      "elapsed_seconds": 0.26600000000325963,
+      "timeout_seconds": 25.0,
+      "stop_reason": null
+    },
+    "asan_configure": {
+      "run": "local-run-8af498d07feb4c20899c911b4390ef24",
+      "log_sha256": "7047cb0eae21c5ff22c30fdb259e4bca03a610afe32f3c8bab142c984b27a62a",
+      "exit_code": 0,
+      "tree_retired": true,
+      "exit_confirmed": true,
+      "residual_children": 0,
+      "physical_available_bytes": 7900090368,
+      "memory_bytes": 452984832,
+      "peak_job_bytes": 164761600,
+      "cpu_percent": 14,
+      "elapsed_seconds": 13.875,
+      "timeout_seconds": 55.0,
+      "stop_reason": null
+    },
+    "initial_asan_link": {
+      "run": "local-run-13447a2ce847465dabdd8d0389b5fae0",
+      "log_sha256": "87728f7afd585bdc3ec696518d0098afc8d509d67c930f4709c13c3e64a51613",
+      "exit_code": 1,
+      "tree_retired": true,
+      "exit_confirmed": true,
+      "residual_children": 1,
+      "physical_available_bytes": 7925747712,
+      "memory_bytes": 609222656,
+      "peak_job_bytes": 610598912,
+      "cpu_percent": 16,
+      "elapsed_seconds": 46.04700000000594,
+      "timeout_seconds": 240.0,
+      "stop_reason": null
+    },
+    "asan_build": {
+      "run": "local-run-f3b1805b3810485687137883acc2412c",
+      "log_sha256": "96101b26d110c22e4e6cf52e455576d7d92fc1f426034a767d1f57610493458a",
+      "exit_code": 0,
+      "tree_retired": true,
+      "exit_confirmed": true,
+      "residual_children": 1,
+      "physical_available_bytes": 8276963328,
+      "memory_bytes": 801112064,
+      "peak_job_bytes": 690511872,
+      "cpu_percent": 16,
+      "elapsed_seconds": 22.73399999999674,
+      "timeout_seconds": 205.0,
+      "stop_reason": null
+    },
+    "asan_preflight": {
+      "run": "local-run-4f88daebc9f94ce1ae9efdb8b844910a",
+      "log_sha256": "ebdbf72b7be3da14249650ba0b9584ecaa3036d02428d8762b754c55653e6633",
+      "exit_code": 0,
+      "tree_retired": true,
+      "exit_confirmed": true,
+      "residual_children": 0,
+      "physical_available_bytes": 8223821824,
+      "memory_bytes": 246415360,
+      "peak_job_bytes": 10268672,
+      "cpu_percent": 12,
+      "elapsed_seconds": 0.15600000000267755,
+      "timeout_seconds": 25.0,
+      "stop_reason": null
+    },
+    "asan_diagnostics": {
+      "run": "local-run-4769ccb6bdf84434a1f463f9bc5e9348",
+      "log_sha256": "6eafa0a606ef842ae00dff68731707ee7879587f0c85182cbeec6e450e85d95c",
+      "exit_code": 0,
+      "tree_retired": true,
+      "exit_confirmed": true,
+      "residual_children": 0,
+      "physical_available_bytes": 8607973376,
+      "memory_bytes": 433061888,
+      "peak_job_bytes": 406745088,
+      "cpu_percent": 14,
+      "elapsed_seconds": 0.5929999999934807,
+      "timeout_seconds": 25.0,
+      "stop_reason": null
+    },
+    "dxgi_handles": {
+      "run": "local-run-b4f9c2d2ceb6430aa1ac5575c052e0eb",
+      "log_sha256": "89df10634e1a0bb2c4b262f0cfaf2b61cff8ce8fc7d58e16c4df42c9d1e11ce4",
+      "exit_code": 0,
+      "tree_retired": true,
+      "exit_confirmed": true,
+      "residual_children": 0,
+      "physical_available_bytes": 8078843904,
+      "memory_bytes": 135266304,
+      "peak_job_bytes": 3244032,
+      "cpu_percent": 8,
+      "elapsed_seconds": 0.07799999999406282,
+      "timeout_seconds": 12.0,
+      "stop_reason": null
+    },
+    "metadata_handles": {
+      "run": "local-run-d71fa629ff1843a6910cc93f1d36be5d",
+      "log_sha256": "cb35d2475528510f04ec3a888a42dba2617919139301ef292079e14be0cb1b19",
+      "exit_code": 0,
+      "tree_retired": true,
+      "exit_confirmed": true,
+      "residual_children": 0,
+      "physical_available_bytes": 8553586688,
+      "memory_bytes": 213909504,
+      "peak_job_bytes": 6156288,
+      "cpu_percent": 12,
+      "elapsed_seconds": 0.21899999999732245,
+      "timeout_seconds": 18.0,
+      "stop_reason": null
+    },
+    "paired": {
+      "run": "local-run-75c71986195346ddb5a2112fc84ef032",
+      "log_sha256": "a286b769d0a2dd86d8462abb711fb8a94c887a2441d703c96f99b33a20cb47d3",
+      "exit_code": 0,
+      "tree_retired": true,
+      "exit_confirmed": true,
+      "residual_children": 0,
+      "physical_available_bytes": 27528900608,
+      "memory_bytes": 1937768448,
+      "peak_job_bytes": 126652416,
+      "cpu_percent": 18,
+      "elapsed_seconds": 7.2810000000026776,
+      "timeout_seconds": 37.0,
+      "stop_reason": null
+    },
+    "cancelled": {
+      "run": "local-run-c158ada1bc20415f83f40aa8436e8fd6",
+      "log_sha256": "27294480ca2a3cd941eca7130a6b41c4a8df90f6a1f9c17eb57a8ba656899ff5",
+      "exit_code": 0,
+      "tree_retired": true,
+      "exit_confirmed": true,
+      "residual_children": 0,
+      "physical_available_bytes": 27698868224,
+      "memory_bytes": 1952448512,
+      "peak_job_bytes": 16261120,
+      "cpu_percent": 18,
+      "elapsed_seconds": 2.4689999999973224,
+      "timeout_seconds": 28.0,
+      "stop_reason": null
+    },
+    "repeat_preflight": {
+      "run": "local-run-cc4eff2a936249a4b1d7f656f74cc70e",
+      "log_sha256": "3807c97346457cbf8bff1676233348f3ee79b48ceb078b78b9a8d5b63d933419",
+      "exit_code": 0,
+      "tree_retired": true,
+      "exit_confirmed": true,
+      "residual_children": 0,
+      "physical_available_bytes": 27948957696,
+      "memory_bytes": 946864128,
+      "peak_job_bytes": 102674432,
+      "cpu_percent": 13,
+      "elapsed_seconds": 3.922000000005937,
+      "timeout_seconds": 18.0,
+      "stop_reason": null
+    },
+    "repeat_midflight": {
+      "run": "local-run-ac5db2fa114d4991857af30266e7cfc5",
+      "log_sha256": "d005fd441a6ee7740b4345fcb3661bd128175583c68466c02145ff68e2b98e42",
+      "exit_code": 0,
+      "tree_retired": true,
+      "exit_confirmed": true,
+      "residual_children": 0,
+      "physical_available_bytes": 27489816576,
+      "memory_bytes": 927989760,
+      "peak_job_bytes": 98070528,
+      "cpu_percent": 13,
+      "elapsed_seconds": 3.75,
+      "timeout_seconds": 18.0,
+      "stop_reason": null
+    },
+    "repeat_postflight": {
+      "run": "local-run-7452ca8bf7144397a89259b453d9dfb7",
+      "log_sha256": "727b0dd79b67d425e2be516d0cf6bda3a3c73f02f1dde14a856ec3f1bdbd983f",
+      "exit_code": 0,
+      "tree_retired": true,
+      "exit_confirmed": true,
+      "residual_children": 0,
+      "physical_available_bytes": 27614203904,
+      "memory_bytes": 933232640,
+      "peak_job_bytes": 93097984,
+      "cpu_percent": 13,
+      "elapsed_seconds": 3.7179999999934807,
+      "timeout_seconds": 18.0,
+      "stop_reason": null
+    },
+    "combined_preflight_deferred": {
+      "run": "local-run-72256bc90a9642ad9c5d75265fb01028",
+      "log_sha256": "6839c51ad87546e5bb332ec059e9a027927d3e64cf32d997c98a5fb933e6f67c",
+      "exit_code": 2,
+      "tree_retired": true,
+      "exit_confirmed": true,
+      "residual_children": 0,
+      "physical_available_bytes": 8198803456,
+      "memory_bytes": 156237824,
+      "peak_job_bytes": 80601088,
+      "cpu_percent": 13,
+      "elapsed_seconds": 5.875,
+      "timeout_seconds": 18.0,
+      "stop_reason": null
+    },
+    "combined_stage": {
+      "run": "local-run-4e603d89438f48b2ad3db3b11e2febda",
+      "log_sha256": "982852bac1e5ea7efdfd7d0f0953f7b04e8f7370a8773cb7146a01b66114c823",
+      "exit_code": 0,
+      "tree_retired": true,
+      "exit_confirmed": true,
+      "residual_children": 0,
+      "physical_available_bytes": 27268329472,
+      "memory_bytes": 957349888,
+      "peak_job_bytes": 28168192,
+      "cpu_percent": 8,
+      "elapsed_seconds": 0.29699999999138527,
+      "timeout_seconds": 22.0,
+      "stop_reason": null
+    }
+  },
+  "package": {
+    "manifest_sha256": "55f9950a927b62180add8890d8c7c7ed12b8ac0c3ab8f060a163f167a6081037",
+    "profile": {
+      "qualification_sha256": "59bf20415361690dc04dda35b797a92dec849552feb5cf861f11a0f544851099",
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "vendor_id": 4098,
+      "device_id": 30032,
+      "subsystem_id": 606344280,
+      "revision": 192,
+      "worker_memory_mib": 128,
+      "memory_share_divisor": 16,
+      "worker_cpu_rate": 2000,
+      "worker_timeout_ms": 5000,
+      "maximum_identity_queries": 4,
+      "maximum_batch_chunks": 16,
+      "maximum_launch_chunks": 2
+    },
+    "package_members": [
+      {
+        "path": "flitzfs_hip_lz4_worker.exe",
+        "bytes": 610816,
+        "sha256": "0f7f6b4857c7cd9db025f174a9b685536045fac1d91ffc4faff7b7485971b5e5"
+      },
+      {
+        "path": "hip-uniform-lz4/flitzfs_rocm_uniform_lz4_candidate.dll",
+        "bytes": 322048,
+        "sha256": "64601897f13003dfea6d47116963c96b2ce7af1a80e5b854e6397b12cbc6bc3d"
+      },
+      {
+        "path": "uniform-write-trial-qualification.json",
+        "bytes": 22113,
+        "sha256": "59bf20415361690dc04dda35b797a92dec849552feb5cf861f11a0f544851099"
+      }
+    ]
+  },
+  "staged_files": {
+    "amd/qualification-manifest.json": {
+      "bytes": 1247,
+      "sha256": "55f9950a927b62180add8890d8c7c7ed12b8ac0c3ab8f060a163f167a6081037"
+    },
+    "amd/flitzfs_hip_lz4_worker.exe": {
+      "bytes": 610816,
+      "sha256": "0f7f6b4857c7cd9db025f174a9b685536045fac1d91ffc4faff7b7485971b5e5"
+    },
+    "amd/hip-uniform-lz4/flitzfs_rocm_uniform_lz4_candidate.dll": {
+      "bytes": 322048,
+      "sha256": "64601897f13003dfea6d47116963c96b2ce7af1a80e5b854e6397b12cbc6bc3d"
+    },
+    "amd/uniform-write-trial-qualification.json": {
+      "bytes": 22113,
+      "sha256": "59bf20415361690dc04dda35b797a92dec849552feb5cf861f11a0f544851099"
+    },
+    "winfsp-x64.dll": {
+      "bytes": 200816,
+      "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+    },
+    "flitzfs_winfsp_controller_tests.exe": {
+      "bytes": 2866176,
+      "sha256": "83efc50f6027861af5e7eeff4fbf609e57cba72ddae929ee2d9486eda8fc8133"
+    }
+  },
+  "initial_live_trial": {
+    "trial": {
+      "status": 0,
+      "attempts": 1,
+      "exchange_code": 0,
+      "worker_exit": 0,
+      "discovery_ns": 438910600,
+      "device_wall_ns": 2996778200,
+      "preparation_ns": 544500,
+      "supervised_ns": 2991164800,
+      "ready_ns": 2922307900,
+      "verification_ns": 117100,
+      "replay_ns": 4825800,
+      "cpu_wall_ns": 4016300,
+      "bytes": 1048576
+    },
+    "pair": {
+      "device_extents": 16,
+      "cpu_occupied": 499712,
+      "gpu_occupied": 499712,
+      "cpu_verified": 1,
+      "retired": 1
+    },
+    "handles": {
+      "before": 162,
+      "after": 326
+    },
+    "staged_files": {
+      "amd/qualification-manifest.json": {
+        "bytes": 1247,
+        "sha256": "55f9950a927b62180add8890d8c7c7ed12b8ac0c3ab8f060a163f167a6081037"
+      },
+      "amd/flitzfs_hip_lz4_worker.exe": {
+        "bytes": 610816,
+        "sha256": "0f7f6b4857c7cd9db025f174a9b685536045fac1d91ffc4faff7b7485971b5e5"
+      },
+      "amd/hip-uniform-lz4/flitzfs_rocm_uniform_lz4_candidate.dll": {
+        "bytes": 322048,
+        "sha256": "64601897f13003dfea6d47116963c96b2ce7af1a80e5b854e6397b12cbc6bc3d"
+      },
+      "amd/uniform-write-trial-qualification.json": {
+        "bytes": 22113,
+        "sha256": "59bf20415361690dc04dda35b797a92dec849552feb5cf861f11a0f544851099"
+      },
+      "winfsp-x64.dll": {
+        "bytes": 200816,
+        "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+      },
+      "flitzfs_winfsp_controller_tests.exe": {
+        "bytes": 2865664,
+        "sha256": "b01f149b3947eacfe6edbe27e7fa9748341eafae5bebc2327a111f331833ac6b"
+      }
+    },
+    "scope": "Earlier candidate binary. The native pair and CPU recovery completed. The enclosing fixture failed its cold-to-retired handle comparison. The final build adds a live-memory refusal guard and a repeated ownership check."
+  },
+  "metadata_handle_diagnostics": {
+    "dxgi": [
+      "dxgi_handle_probe cold=64",
+      "dxgi_handle_probe round=1 after=111",
+      "dxgi_handle_probe round=2 after=111",
+      "dxgi_handle_probe round=3 after=111"
+    ],
+    "signed_runtime_and_dxgi": [
+      "dxgi_handle_probe cold=85",
+      "pinned_metadata round=1 after=236",
+      "readiness_metadata round=1 after=236",
+      "dxgi_handle_probe round=1 after=265",
+      "pinned_metadata round=2 after=265",
+      "readiness_metadata round=2 after=265",
+      "dxgi_handle_probe round=2 after=265",
+      "pinned_metadata round=3 after=265",
+      "readiness_metadata round=3 after=265",
+      "dxgi_handle_probe round=3 after=265"
+    ],
+    "scope": "Separate metadata-only processes. DXGI queries and signed system DLL verification show stable warm handle counts. Full owner handle behavior requires the repeated controller fixture."
+  },
+  "owner_pairs": {
+    "samples": [
+      {
+        "trial": {
+          "status": 0,
+          "attempts": 1,
+          "exchange_code": 0,
+          "worker_exit": 0,
+          "discovery_ns": 406789900,
+          "device_wall_ns": 2604481200,
+          "preparation_ns": 579400,
+          "supervised_ns": 2600218400,
+          "ready_ns": 2543824100,
+          "verification_ns": 69300,
+          "replay_ns": 3535100,
+          "cpu_wall_ns": 4023500,
+          "bytes": 1048576
+        },
+        "pair": {
+          "device_extents": 16,
+          "cpu_occupied": 499712,
+          "gpu_occupied": 499712,
+          "cpu_verified": 1,
+          "retired": 1
+        },
+        "capture": {
+          "controller": 1,
+          "closed": 2,
+          "stale_refused": 1,
+          "bytes": 1048576,
+          "retired": 1,
+          "gpu_trial": 1
+        },
+        "supervised_after_ready_ns": 56394300
+      },
+      {
+        "trial": {
+          "status": 0,
+          "attempts": 1,
+          "exchange_code": 0,
+          "worker_exit": 0,
+          "discovery_ns": 342248400,
+          "device_wall_ns": 1523605100,
+          "preparation_ns": 657800,
+          "supervised_ns": 1519397000,
+          "ready_ns": 1464108200,
+          "verification_ns": 68900,
+          "replay_ns": 3408300,
+          "cpu_wall_ns": 3664100,
+          "bytes": 1048576
+        },
+        "pair": {
+          "device_extents": 16,
+          "cpu_occupied": 499712,
+          "gpu_occupied": 499712,
+          "cpu_verified": 1,
+          "retired": 1
+        },
+        "capture": {
+          "controller": 1,
+          "closed": 2,
+          "stale_refused": 1,
+          "bytes": 1048576,
+          "retired": 1,
+          "gpu_trial": 1
+        },
+        "supervised_after_ready_ns": 55288800
+      }
+    ],
+    "handles": {
+      "cold": 162,
+      "first_retired": 326,
+      "second_retired": 326
+    },
+    "repeated_exact_build_verified": true,
+    "scope": "Two 512 KiB native writes from distinct files, generated from seed-dependent repeated 8 KiB prefixes. Same immutable group through both arms in private protected memory images. Ready worker reused its stream across bounded launches in each finite exchange.",
+    "timing": "CPU and device arm wall times include their private independent reopens. Discovery is separate. Supervised time includes readiness, dispatch and retirement. CPU was first within each scope."
+  },
+  "foreground_cancellation": {
+    "samples": [
+      {
+        "status": 14,
+        "attempts": 1,
+        "exchange_code": 5,
+        "worker_exit": 0,
+        "discovery_ns": 61033800,
+        "device_wall_ns": 0,
+        "preparation_ns": 0,
+        "supervised_ns": 0,
+        "ready_ns": 0,
+        "verification_ns": 0,
+        "replay_ns": 0,
+        "cpu_wall_ns": 3610600,
+        "bytes": 1048576
+      },
+      {
+        "status": 14,
+        "attempts": 1,
+        "exchange_code": 5,
+        "worker_exit": 0,
+        "discovery_ns": 31822300,
+        "device_wall_ns": 0,
+        "preparation_ns": 0,
+        "supervised_ns": 0,
+        "ready_ns": 0,
+        "verification_ns": 0,
+        "replay_ns": 0,
+        "cpu_wall_ns": 3629600,
+        "bytes": 1048576
+      }
+    ],
+    "handles": {
+      "cold": 156,
+      "first_retired": 295,
+      "second_retired": 295
+    },
+    "independent_cpu_recovered_foreground_bytes": true
+  },
+  "device_pre_and_postflight": {
+    "first_preflight": {
+      "admitted": true,
+      "when_utc": "2026-11-23T19:37:51.4253260Z",
+      "windows_build": "26300",
+      "devices": [
+        {
+          "Name": "AMD Radeon RX 9070 XT",
+          "Status": "OK",
+          "DriverVersion": "32.0.32029.2010"
+        }
+      ],
+      "cpu_percent": [
+        17.64,
+        12.25
+      ],
+      "max_gpu_engine_percent": 2.502193616409545,
+      "gpu_counters": 1476,
+      "available_kib": 26228492,
+      "total_kib": 66704480,
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "other_flitzfs_fixture_processes": 0,
+      "bound_fixture_members": 6
+    },
+    "first_postflight": {
+      "admitted": true,
+      "when_utc": "2026-11-23T19:38:01.4847093Z",
+      "windows_build": "26300",
+      "devices": [
+        {
+          "Name": "AMD Radeon RX 9070 XT",
+          "Status": "OK",
+          "DriverVersion": "32.0.32029.2010"
+        }
+      ],
+      "cpu_percent": [
+        16.21,
+        10.09
+      ],
+      "max_gpu_engine_percent": 1.0555337159941205,
+      "gpu_counters": 1476,
+      "available_kib": 27041220,
+      "total_kib": 66704480,
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "other_flitzfs_fixture_processes": 0,
+      "bound_fixture_members": 6
+    },
+    "repeat_preflight_deferred": {
+      "admitted": false,
+      "when_utc": "2026-11-23T19:39:38.2405199Z",
+      "windows_build": "26300",
+      "devices": [
+        {
+          "Name": "AMD Radeon RX 9070 XT",
+          "Status": "OK",
+          "DriverVersion": "32.0.32029.2010"
+        }
+      ],
+      "cpu_percent": [
+        27.39,
+        26.66
+      ],
+      "max_gpu_engine_percent": 3.9483500920146373,
+      "gpu_counters": 1492,
+      "available_kib": 8614672,
+      "total_kib": 66704480,
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "other_flitzfs_fixture_processes": 0,
+      "bound_fixture_members": 6
+    },
+    "repeat_preflight": {
+      "admitted": true,
+      "when_utc": "2026-11-23T20:00:02.5882323Z",
+      "windows_build": "26300",
+      "devices": [
+        {
+          "Name": "AMD Radeon RX 9070 XT",
+          "Status": "OK",
+          "DriverVersion": "32.0.32029.2010"
+        }
+      ],
+      "cpu_percent": [
+        14.77,
+        11.8
+      ],
+      "max_gpu_engine_percent": 3.942804012333038,
+      "gpu_counters": 1476,
+      "available_kib": 27240040,
+      "total_kib": 66704480,
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "other_flitzfs_fixture_processes": 0,
+      "bound_fixture_members": 6
+    },
+    "repeat_midflight": {
+      "admitted": true,
+      "when_utc": "2026-11-23T20:00:14.8844058Z",
+      "windows_build": "26300",
+      "devices": [
+        {
+          "Name": "AMD Radeon RX 9070 XT",
+          "Status": "OK",
+          "DriverVersion": "32.0.32029.2010"
+        }
+      ],
+      "cpu_percent": [
+        6.71,
+        11.0
+      ],
+      "max_gpu_engine_percent": 3.9831043449063532,
+      "gpu_counters": 1476,
+      "available_kib": 27172008,
+      "total_kib": 66704480,
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "other_flitzfs_fixture_processes": 0,
+      "bound_fixture_members": 6
+    },
+    "repeat_postflight": {
+      "admitted": true,
+      "when_utc": "2026-11-23T20:00:22.3179516Z",
+      "windows_build": "26300",
+      "devices": [
+        {
+          "Name": "AMD Radeon RX 9070 XT",
+          "Status": "OK",
+          "DriverVersion": "32.0.32029.2010"
+        }
+      ],
+      "cpu_percent": [
+        8.52,
+        10.91
+      ],
+      "max_gpu_engine_percent": 3.830526795897788,
+      "gpu_counters": 1476,
+      "available_kib": 26923184,
+      "total_kib": 66704480,
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "other_flitzfs_fixture_processes": 0,
+      "bound_fixture_members": 6
+    },
+    "combined_preflight_deferred": {
+      "admitted": false,
+      "when_utc": "2026-11-23T20:05:49.8092795Z",
+      "windows_build": "26300",
+      "devices": [
+        {
+          "Name": "AMD Radeon RX 9070 XT",
+          "Status": "OK",
+          "DriverVersion": "32.0.32029.2010"
+        }
+      ],
+      "cpu_percent": [
+        16.8,
+        13.13
+      ],
+      "max_gpu_engine_percent": 98.54568628225901,
+      "gpu_counters": 1492,
+      "available_kib": 7943776,
+      "total_kib": 66704480,
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "other_flitzfs_fixture_processes": 0,
+      "bound_fixture_members": 6
+    }
+  },
+  "build_scope": "The paired and cancellation runs use the staged controller artifact compiled before the separate indexed name-page audit edit. The combined build deferred a fresh device run during host memory and GPU contention.",
+  "automatic_foreground_route_qualified": false,
+  "release_qualified": false
+}

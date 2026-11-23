@@ -307,12 +307,10 @@ three initial lanes with a common build and external operation witness.
    calibration; release buffers on veto, stale demand or shutdown. Count
    aligned and rejected requests, along with sampling cost. Validate zero
    worker launch on normal CPU-only, busy and unsupported shapes.
-3. **Calibrate with a complete operation.** The owned off-path recorder can
-   capture verified CPU reference groups from ordinary committed writes, and
-   the [SDK comparison](../tests/test_native_deferred_write_sdk.cpp) can run a
-   finite detached Radeon replay. Connect the two through one captured batch.
-   [Ordinary grouped capture](evidence/windows-ordinary-amd-capture-groups-2026-11-23.json)
-   Use paired independently decoded native
+3. **Calibrate with a complete operation.** Keep the controller's verified
+   CPU and prepared Radeon replays bound to one immutable group and the
+   approved package. Expand from the first completed pair to repeated
+   independently decoded native
    transactions over identical immutable bytes and equal protection, initial
    volume shape and exact foreground policy. Rotate first-use order. Record
    launch/setup/transfer/wait/readback/verification/retirement/publication,
@@ -321,6 +319,7 @@ three initial lanes with a common build and external operation witness.
    failed trials. The [existing policy](../src/windows/native_amd_write_policy.cpp)
    is the control for eligibility. Require a positive matched result and
    an independently funded complete window before offering a route.
+   [Paired owner evidence](evidence/windows-owner-amd-write-pairs-2026-11-23.json)
 4. **Consume and invalidate.** Bind a measured offer to package/driver/runtime,
    adapter, role, backing and compatible demand. Validate live headroom and
    every candidate before authoritative publication. Expire or replace an offer

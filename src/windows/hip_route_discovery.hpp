@@ -67,6 +67,14 @@ bool has_configured_uniform_write_package() noexcept;
 bool installed_uniform_write_files_present() noexcept;
 HipRouteDiscoveryResult discover_installed_hip_route(ProcessBudget,std::uint32_t maximum_identity_queries,
     std::stop_token={});
+// A device-bound development trial grant. This profile cannot enable
+// deferred foreground writes. The live controller still funds its entire group.
+struct InstalledUniformWriteTrialProfile {
+  ProcessBudget worker;
+  std::uint32_t maximum_batch_chunks=0,maximum_launch_chunks=0;
+};
+std::optional<InstalledUniformWriteTrialProfile> installed_uniform_write_trial_profile() noexcept;
+HipRouteDiscoveryResult discover_installed_hip_write_trial_route(std::stop_token={});
 struct InstalledAnchorProfile {
   ProcessBudget worker;
   std::uint32_t minimum_members=0,maximum_members=0,duty_ppm=0;

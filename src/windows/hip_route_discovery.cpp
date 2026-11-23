@@ -18,6 +18,11 @@
 namespace flitzfs {
 namespace {
 using Status=HipDiscoveryStatus;
+#if defined(FLITZFS_BIND_INSTALLED_AMD_PACKAGE) && FLITZFS_INSTALLED_AMD_HAS_WRITE_TRIAL
+constexpr HipAdapterHardware installed_write_trial_hardware{
+    installed_amd_package::write_trial_vendor_id,installed_amd_package::write_trial_device_id,
+    installed_amd_package::write_trial_subsystem_id,installed_amd_package::write_trial_revision};
+#endif
 #if defined(FLITZFS_BIND_INSTALLED_AMD_PACKAGE) && FLITZFS_INSTALLED_AMD_HAS_ANCHOR
 constexpr HipAdapterHardware installed_anchor_hardware{
     installed_amd_package::anchor_vendor_id,installed_amd_package::anchor_device_id,
@@ -173,7 +178,7 @@ HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest
       request.helper.filename()!=files.worker || (anchor && read) ||
       ((anchor || read) && nonzero(request.uniform_module_sha256)) ||
       !nonzero(request.helper_sha256) || (read && !request.qualified_device) ||
-      (request.qualified_device && (role==HipRouteRole::uniform ||
+      (request.qualified_device && (!nonzero(module_digest) ||
           request.qualified_device->hardware.vendor_id!=0x1002 ||
           !request.qualified_device->hardware.device_id || !nonzero(request.qualified_device->runtime_sha256))) ||
       !hip_runtime_name(request.runtime_basename) || !valid_process_budget(request.worker) ||
@@ -355,6 +360,9 @@ struct InstalledInputObservation {
 
 #ifdef FLITZFS_BIND_INSTALLED_AMD_PACKAGE
 std::optional<HipAdapterHardware> installed_hardware(HipRouteRole role) noexcept {
+#if FLITZFS_INSTALLED_AMD_HAS_WRITE_TRIAL
+  if(role==HipRouteRole::uniform)return installed_write_trial_hardware;
+#endif
 #if FLITZFS_INSTALLED_AMD_HAS_ANCHOR
   if(role==HipRouteRole::anchor)return installed_anchor_hardware;
 #endif
@@ -500,6 +508,33 @@ HipRouteDiscoveryResult discover_installed_hip_route(ProcessBudget budget,std::u
 #else
   (void)budget;
   (void)maximum_identity_queries;
+  return {Status::package_unavailable};
+#endif
+}
+
+std::optional<InstalledUniformWriteTrialProfile> installed_uniform_write_trial_profile() noexcept {
+#if defined(FLITZFS_BIND_INSTALLED_AMD_PACKAGE) && FLITZFS_INSTALLED_AMD_HAS_WRITE_TRIAL
+  using namespace installed_amd_package;
+  return InstalledUniformWriteTrialProfile{{write_trial_worker_memory_mib,write_trial_worker_cpu_rate,
+      write_trial_worker_timeout_ms,write_trial_memory_share_divisor},write_trial_maximum_batch_chunks,
+      write_trial_maximum_launch_chunks};
+#else
+  return {};
+#endif
+}
+
+HipRouteDiscoveryResult discover_installed_hip_write_trial_route(std::stop_token stop) {
+#if defined(FLITZFS_BIND_INSTALLED_AMD_PACKAGE) && FLITZFS_INSTALLED_AMD_HAS_WRITE_TRIAL
+  using namespace installed_amd_package;
+  HipRouteDiscoveryRequest request;
+  request.worker=installed_uniform_write_trial_profile()->worker;
+  request.maximum_identity_queries=write_trial_maximum_identity_queries;
+  request.helper_sha256=worker_sha256;
+  request.uniform_module_sha256=uniform_module_sha256;
+  request.qualified_device=HipQualifiedDeviceBinding{installed_write_trial_hardware,write_trial_runtime_sha256};
+  return discover_application_package(std::move(request),HipRouteRole::uniform,stop);
+#else
+  (void)stop;
   return {Status::package_unavailable};
 #endif
 }

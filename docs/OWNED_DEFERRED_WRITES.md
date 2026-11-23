@@ -235,10 +235,43 @@ two Radeon-produced extents in each of two device arms and independently
 recovered both files.
 [Grouped replay evidence](evidence/windows-amd-grouped-write-replay-2026-11-23.json)
 
-The running controller can collect recent closed-file writes and verify their
-grouped CPU reference. The next integration step gives the detached Radeon arm
-the same captured bytes and transaction boundaries. Route selection requires
-repeated matched comparisons and a measured advantage for the relevant shape.
+### Controller-owned paired trials
+
+With an approved [uniform write trial profile](AMD_RUNTIME_DISCOVERY.md#uniform-write-trial-profile),
+the controller can take the same captured closed-file writes through both arms.
+It checks inode revisions in the pinned snapshot before charging each member
+to the byte, service-time and memory grant. The CPU arm verifies the private
+image first. The existing acquisition slot owns the captured bytes while the
+Radeon arm reuses its prepared stream across the group's bounded launches.
+The parent takes the response after confirmed retirement and verifies every
+byte independently. Matching compares the ordered member digest and transaction
+count. Each arm uses the same foreground policy and mirrored image geometry.
+
+The controller monitors live CPU and memory during the scoped trial. New
+foreground activity, shutdown or lost headroom requests cancellation. It
+settles the trial before making its status visible. Timings include discovery,
+host preparation, readiness, supervised exchange, parent verification and
+private replay, with whole-arm times alongside. A verified pair finishes the
+attachment's trial. Further attempts after an infrastructure refusal require
+changed inputs where applicable, a new write group and pacing from the complete
+cost. Single-request route qualification still requires repeated matched
+measurements for the supported request geometry.
+
+The initial real-host 1 MiB control captured two committed writes and verified
+sixteen Radeon-produced extents with the independent CPU reader. Both private
+images occupied 488 KiB. CPU replay took 4.02 ms. Radeon replay took 3.00 s,
+with 2.92 s attributable to readiness and 0.44 s of separate discovery.
+The initial fixture flagged a higher post-run handle count. Separate signed
+runtime and DXGI metadata probes measured initialization effects. Two full
+scoped Radeon runs then recovered all sixteen device extents in each run.
+Their parent handle counts settled at 326. Two foreground cancellation
+scenarios recovered the acknowledged writes after cancelling discovery.
+The timed CPU replays took 3.66–4.02 ms and Radeon took 1.52–2.60 s before
+adding discovery. The prepared worker spent most of that interval reaching
+readiness. The subsequent combined build deferred a fresh GPU run during
+host contention.
+[Windows background priority](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadpriority) ·
+[Controller evidence](evidence/windows-owner-amd-write-pairs-2026-11-23.json)
 
 ## Activating a route on a running volume
 
