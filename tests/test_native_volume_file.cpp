@@ -2,6 +2,7 @@
 #include "flitzfs/indexed_coherence.hpp"
 #include "flitzfs/native_maintenance.hpp"
 #include "flitzfs/read_only_file.hpp"
+#include "dense_volume_backing.hpp"
 #include "native_fs_fixture.hpp"
 #include "native_volume_file_reclaimer.hpp"
 #include "record_digest.hpp"
@@ -798,6 +799,315 @@ void reclaimed_ranges() {
       "recycled first range lost the latest acknowledged foreground data");
 }
 
+void dense_allocation() {
+  constexpr auto unit=kStoreCommitUnit;
+  constexpr std::uint64_t logical_limit=8ULL<<40;
+  constexpr auto remote=logical_limit-4*unit;
+  auto io=empty(4096);
+  {
+    auto dense=detail::DenseVolumeBacking::create(io,id(70),logical_limit,8*unit);
+    const auto early=data(3*unit,62),late=data(337,63);
+    dense->write_exact(0,early);
+    dense->write_exact(remote+31,late);
+    dense->flush();
+    const auto occupied=io->extent();
+    require(occupied==8*unit && dense->extent()==remote+unit,
+        "logical gaps grew the ordinary backing");
+    dense->admit_contiguous_growth(dense->extent(),remote+32,remote+33);
+    rejects([&]{dense->admit_contiguous_growth(remote+2*unit,remote+unit,remote+2*unit);},
+        "growth beyond the physical cap was admitted");
+    dense->reclaim_range(unit,unit);
+    require(dense->allocated_extent(unit,unit)==0 && dense->allocated_extent(0,3*unit)==3*unit,
+        "removing a middle slice damaged the surrounding runs");
+    // Exercise allocation before the caller's flush. The retired mapping
+    // must settle first, and the reused private slot must be zero-initialized.
+    dense->admit_contiguous_growth(dense->extent(),5*unit,6*unit);
+    dense->write_exact(5*unit+19,late);
+    dense->flush();
+    require(io->extent()==occupied,"reuse extended an already full ordinary backing");
+    Bytes actual(3*unit),range(unit);
+    dense->read_exact(0,actual);
+    dense->read_exact(5*unit,range);
+    auto expected=early;
+    std::fill_n(expected.begin()+unit,unit,std::byte{});
+    Bytes replacement(unit);
+    std::copy(late.begin(),late.end(),replacement.begin()+19);
+    require(actual==expected && range==replacement,"dense split or partial reuse changed logical bytes");
+  }
+  auto recovered=detail::DenseVolumeBacking::open(image(io->stable,4096),false);
+  const auto late=data(337,63);
+  Bytes actual(late.size()),hole(unit);
+  recovered->read_exact(remote+31,actual);
+  recovered->read_exact(unit,hole);
+  require(actual==late && hole==Bytes(unit),"recovered directory lost its mappings");
+  rejects([&]{recovered->reclaim_range(0,unit);},"read-only dense inspection retired a range");
+
+  // A single damaged copy is independent at both the anchor and the
+  // directory. A writable reopen converges them before publishing reuse.
+  auto damaged=image(io->stable,4096);
+  damaged->live[0]^=std::byte{1};
+  damaged->live[2*unit]^=std::byte{1};
+  damaged->stable=damaged->live;
+  require(detail::DenseVolumeBacking::recognizes(*damaged),"one lost anchor hid a dense backing");
+  {
+    auto dense=detail::DenseVolumeBacking::open(damaged,true);
+    dense->read_exact(remote+31,actual);
+    require(actual==late && !damaged->calls,"dense inspection changed the damaged peers");
+    dense->reclaim_range(remote,unit);
+    dense->write_exact(6*unit,late);
+    dense->flush();
+  }
+  auto each=image(damaged->stable,4096);
+  each->live[unit]^=std::byte{1};
+  each->live[3*unit]^=std::byte{1};
+  auto repaired=detail::DenseVolumeBacking::open(each,false);
+  repaired->read_exact(6*unit,actual);
+  require(actual==late && !each->calls,"independently recovered map did not retain repaired peers");
+  each->live[2*unit]^=std::byte{1};
+  rejects([&]{(void)detail::DenseVolumeBacking::open(each,false);},
+      "two unusable directories were treated as reusable space");
+}
+
+// Store unchanged zero units implicitly to exercise the on-disk group stride
+// with bounded RAM. The reported physical extent still includes those units.
+class DenseStrideRam final:public StoreByteIo {
+ public:
+  explicit DenseStrideRam(std::uint64_t limit):limit_(limit){}
+  std::uint64_t extent() const override {return extent_;}
+  StoreIoContract contract() const noexcept override {return {4096,true};}
+  void admit_write(std::uint64_t end) override {if(end>limit_)throw std::runtime_error("stride fixture capacity");}
+  void flush() override {}
+  void write_exact(std::uint64_t offset,std::span<const std::byte> input) override {
+    admit_write(offset+input.size());
+    extent_=(std::max)(extent_,offset+input.size());
+    while(!input.empty()) {
+      const auto slot=offset/kStoreCommitUnit;
+      const auto start=offset%kStoreCommitUnit;
+      const auto count=(std::min)(input.size(),kStoreCommitUnit-start);
+      const auto portion=input.first(count);
+      const auto entry=pages_.find(slot);
+      if(entry!=pages_.end() || std::any_of(portion.begin(),portion.end(),[](auto b){return b!=std::byte{};})) {
+        auto& page=pages_[slot];
+        if(page.empty())page.resize(kStoreCommitUnit);
+        std::copy(portion.begin(),portion.end(),page.begin()+static_cast<std::ptrdiff_t>(start));
+      }
+      offset+=count;
+      input=input.subspan(count);
+    }
+  }
+  void read_exact(std::uint64_t offset,std::span<std::byte> output) const override {
+    if(offset>extent_ || output.size()>extent_-offset)throw std::runtime_error("stride fixture read");
+    while(!output.empty()) {
+      const auto slot=offset/kStoreCommitUnit;
+      const auto start=offset%kStoreCommitUnit;
+      const auto count=(std::min)(output.size(),kStoreCommitUnit-start);
+      const auto found=pages_.find(slot);
+      if(found==pages_.end())std::fill_n(output.begin(),count,std::byte{});
+      else std::copy_n(found->second.begin()+static_cast<std::ptrdiff_t>(start),count,output.begin());
+      offset+=count;
+      output=output.subspan(count);
+    }
+  }
+ private:
+  std::uint64_t limit_,extent_=0;
+  std::map<std::uint64_t,Bytes> pages_;
+};
+
+void dense_group_boundary() {
+  constexpr auto unit=kStoreCommitUnit;
+  constexpr std::uint64_t group_slots=4091;
+  constexpr auto cap=(2+2+group_slots+2+1)*unit;
+  const auto first=data(unit,167),second=data(unit,168);
+  auto file=std::make_shared<DenseStrideRam>(cap);
+  {
+    auto dense=detail::DenseVolumeBacking::create(file,id(70),cap,cap);
+    const Bytes zeros(unit);
+    for(std::uint64_t i=0;i<group_slots-1;++i)dense->write_exact(i*unit,zeros);
+    auto pair=first;
+    pair.insert(pair.end(),second.begin(),second.end());
+    dense->write_exact((group_slots-1)*unit,pair);
+    dense->flush();
+    require(file->extent()==cap,"group transition miscounted its metadata or payload");
+  }
+  {
+    auto dense=detail::DenseVolumeBacking::open(file,true);
+    Bytes pair(2*unit);
+    dense->read_exact((group_slots-1)*unit,pair);
+    require(std::equal(first.begin(),first.end(),pair.begin()) &&
+        std::equal(second.begin(),second.end(),pair.begin()+unit),"read crossed a physical directory boundary");
+    dense->reclaim_range((group_slots-1)*unit,2*unit);
+    dense->flush();
+    dense->write_exact((group_slots+1)*unit,second);
+    dense->flush();
+    require(file->extent()==cap && !dense->allocated_extent((group_slots-1)*unit,2*unit),
+        "cross-group retire and reuse changed its outer extent or retained a retired owner");
+  }
+  auto recovered=detail::DenseVolumeBacking::open(file,false);
+  Bytes checked(unit);
+  recovered->read_exact((group_slots+1)*unit,checked);
+  require(checked==second,"reopened two-group volume could not address a reused run");
+}
+
+void dense_directory_cuts() {
+  constexpr auto unit=kStoreCommitUnit;
+  const auto first=data(3*unit,99),replacement=data(1231,118);
+  auto seed=empty(4096);
+  {
+    auto io=detail::DenseVolumeBacking::create(seed,id(70),16*unit,8*unit);
+    io->write_exact(0,first);
+    io->flush();
+  }
+  const auto exchange=[&](const std::shared_ptr<Ram>& backing) {
+    auto io=detail::DenseVolumeBacking::open(backing,true);
+    try {
+      io->reclaim_range(unit,unit);
+      io->write_exact(8*unit+54,replacement);
+      io->flush();
+      return true;
+    } catch(const std::runtime_error&) {
+      rejects([&]{io->flush();},"uncertain directory publication admitted another flush");
+      return false;
+    }
+  };
+  auto trial=image(seed->stable,4096);
+  require(exchange(trial) && trial->extent()==seed->extent(),"control transaction did not reuse its range");
+  const auto boundaries=trial->calls;
+  require(boundaries>=10 && boundaries<32,"directory exchange did not cover its publication barriers");
+  for(unsigned failure=0;failure<3;++failure) {
+    for(std::size_t cut=0;cut<boundaries;++cut) {
+      auto backing=image(seed->stable,4096);
+      backing->fail_at=cut;
+      backing->failure=failure;
+      require(!exchange(backing),"directory cut was not observed");
+      auto reopened=image(backing->stable,4096);
+      auto reader=detail::DenseVolumeBacking::open(reopened,false);
+      Bytes actual(3*unit);
+      reader->read_exact(0,actual);
+      require(std::equal(actual.begin(),actual.begin()+unit,first.begin()) &&
+          std::equal(actual.begin()+2*unit,actual.end(),first.begin()+2*unit),
+          "directory interruption lost a live extent");
+      if (reader->allocated_extent(unit,unit)) {
+        require(actual==first && !reader->allocated_extent(8*unit,unit),
+            "old directory owner aliased reused data");
+      } else {
+        require(std::all_of(actual.begin()+unit,actual.begin()+2*unit,[](std::byte b){return b==std::byte{};}),
+            "retired logical data remained reachable");
+      }
+      if (reader->allocated_extent(8*unit,unit)) {
+        Bytes checked(unit),expected(unit);
+        std::copy(replacement.begin(),replacement.end(),expected.begin()+54);
+        reader->read_exact(8*unit,checked);
+        require(checked==expected,"directory became durable before its replacement data");
+      }
+      require(!reopened->calls,"fault recovery wrote during CPU-only inspection");
+    }
+  }
+  std::cout<<"dense_directory_cuts boundaries="<<boundaries<<" injected_failures="<<3*boundaries<<'\n';
+}
+
+void dense_session_reuse() {
+  auto backing=empty(4096);
+  Bytes expected;
+  {
+    auto session=NativeVolumeFile::create_dense(backing,backing->capacity,id(90),id(91),limits,raw);
+    expected=establish_history(session);
+    const auto original=backing->extent();
+    require(original<limits.maximum_physical_bytes,"dense initial image did not pack into its file");
+    {
+      auto captured=session.snapshot();
+      require(stage_compaction(session)==Reclaim::ready &&
+          session.advance_persistent_reclamation({})==Reclaim::published,
+          "dense session could not publish a compacted image");
+      require(backing->extent()<limits.maximum_physical_bytes &&
+          session.advance_persistent_reclamation({})==Reclaim::pinned &&
+          captured.read("payload",0,50000)==expected,"dense storage lost the retained image or allocated a logical gap");
+      rejects([&]{(void)NativeVolumeFile::inspect(backing,id(90));},"dense CPU reopen bypassed the live lease");
+    }
+    release_inactive(session);
+  }
+  auto restarted=image(backing->stable,4096);
+  const auto high_water=restarted->extent();
+  {
+    auto session=NativeVolumeFile::resume(restarted,id(90),raw);
+    for(unsigned i=0;i<12 && !session.persistent_reclamation_pending();++i) {
+      expected=data(12289,698+i);
+      update(session,expected);
+    }
+    require(stage_compaction(session,94)==Reclaim::ready &&
+        session.advance_persistent_reclamation({})==Reclaim::published,
+        "dense session could not recycle retired physical slots");
+    release_inactive(session);
+    require(session.volume_info().selection.epoch==3 &&
+        restarted->extent()<=high_water+kStoreCommitUnit,
+        "recycled dense session kept extending its ordinary backing");
+  }
+  auto final=image(restarted->stable,4096);
+  const auto independent=NativeVolumeFile::inspect(final,id(90));
+  independent.filesystem().verify_all();
+  require(independent.filesystem().read("payload",0,50000)==expected &&
+      independent.filesystem().read("witness",0,1000)==witness_bytes && !final->calls,
+      "independent dense reopen lost acknowledged data");
+}
+
+void dense_session_cuts() {
+  unsigned interrupted=0;
+  for(const auto unit:{4096U,65536U}) {
+    auto seed=empty(unit);
+    Bytes expected;
+    {
+      auto session=NativeVolumeFile::create_dense(seed,limits.maximum_physical_bytes,id(90),id(91),limits,raw);
+      expected=establish_history(session);
+    }
+    const auto rotate=[&](std::optional<std::size_t> cut,unsigned failure) {
+      auto file=image(seed->stable,unit);
+      std::size_t boundary=0;
+      {
+        auto session=NativeVolumeFile::resume(file,id(90),raw);
+        boundary=file->calls;
+        if(cut) {
+          file->fail_at=boundary+*cut;
+          file->failure=failure;
+        }
+        try {
+          const bool ready=stage_compaction(session)==Reclaim::ready;
+          const bool published=ready && session.advance_persistent_reclamation({})==Reclaim::published;
+          if(published)release_inactive(session);
+          if(!cut)require(published,"dense control failed to publish its alternate image");
+        } catch(const std::runtime_error&) {
+          if(!cut)throw;
+        }
+      }
+      if(cut)require(file->calls>file->fail_at,"dense candidate did not reach the requested failure cut");
+      auto durable=image(file->stable,unit);
+      {
+        const auto reader=NativeVolumeFile::inspect(durable,id(90));
+        require((reader.info().selection.epoch==1 || reader.info().selection.epoch==2) &&
+            reader.filesystem().read("payload",0,50000)==expected &&
+            reader.filesystem().read("witness",0,1000)==witness_bytes,
+            "dense recovery lost acknowledged bytes during image publication");
+      }
+      {
+        auto resumed=NativeVolumeFile::resume(durable,id(90),raw);
+        const auto replacement=data(expected.size(),492);
+        update(resumed,replacement);
+        resumed.flush();
+        require(resumed.snapshot().read("payload",0,50000)==replacement,
+            "dense recovery could not continue writing");
+      }
+      return file->calls-boundary;
+    };
+    const auto operations=rotate({},0);
+    require(operations>16 && operations<150,"dense rotation did not cover its bounded directory and selector I/O");
+    for(unsigned failure=0;failure<3;++failure)
+      for(std::size_t at=0;at<operations;++at) {
+        (void)rotate(at,failure);
+        ++interrupted;
+      }
+    std::cout<<"dense_session_cuts unit="<<unit<<" boundaries="<<operations<<'\n';
+  }
+  std::cout<<"dense_session_interruption_cases "<<interrupted<<'\n';
+}
+
 unsigned scratch_leases=0;
 class ModelSealScratch final:public detail::NativeSealScratch {
  public:
@@ -1521,6 +1831,48 @@ void disposable_file(const std::filesystem::path& base) {
   require(after.filesystem().read("payload",0,100000)==second,"Windows reopen altered the durable update");
   std::cout<<"windows_volume_file bytes_before_update="<<size<<" bytes_after_update="<<std::filesystem::file_size(path)<<'\n';
 }
+
+void disposable_dense_file(const std::filesystem::path& base) {
+  const auto ticks=std::chrono::steady_clock::now().time_since_epoch().count();
+  const auto root=std::filesystem::canonical(base)/("flitzfs-dense-file-"+std::to_string(ticks));
+  require(std::filesystem::create_directory(root),"could not exclusively create the dense fixture directory");
+  const auto path=root/"volume.flfs";
+  constexpr StoreIoContract model{4096,true};
+  constexpr auto physical_limit=limits.maximum_physical_bytes;
+  Bytes expected;
+  {
+    auto session=NativeVolumeFile::create_dense(path,model,physical_limit,id(61),id(62),limits,raw);
+    expected=establish_history(session);
+    require(stage_compaction(session)==Reclaim::ready &&
+        session.advance_persistent_reclamation({})==Reclaim::published,"Windows dense rotation did not publish");
+    release_inactive(session);
+  }
+  const auto high_water=std::filesystem::file_size(path);
+  const auto attributes=GetFileAttributesW(path.c_str());
+  require(attributes!=INVALID_FILE_ATTRIBUTES && !(attributes&FILE_ATTRIBUTE_SPARSE_FILE) &&
+      high_water<physical_limit,"Windows dense file reserved the sparse image gap");
+  rejects([&]{(void)NativeVolumeFile::create_dense(path,model,physical_limit,id(64),id(65),limits,raw);},
+      "Windows dense creation modified an existing file");
+  {
+    auto session=NativeVolumeFile::resume(path,model,id(61),raw);
+    for(unsigned i=0;i<12 && !session.persistent_reclamation_pending();++i) {
+      expected=data(12289,798+i);
+      update(session,expected);
+    }
+    require(stage_compaction(session,94)==Reclaim::ready &&
+        session.advance_persistent_reclamation({})==Reclaim::published,"Windows dense second rotation did not publish");
+    release_inactive(session);
+  }
+  const auto after=std::filesystem::file_size(path);
+  const auto cpu=NativeVolumeFile::inspect(path,id(61));
+  cpu.filesystem().verify_all();
+  require(cpu.info().selection.epoch==3 && cpu.filesystem().read("payload",0,50000)==expected &&
+      cpu.filesystem().read("witness",0,1000)==witness_bytes && after<=high_water+kStoreCommitUnit,
+      "Windows dense restart lost bytes or extended beyond reclaimed capacity");
+  std::cout<<"windows_dense_file first_rotation_bytes="<<high_water<<" second_rotation_bytes="<<after
+      <<" independent_cpu_readback=1 sparse_attribute=0\n";
+}
+
 std::uint64_t allocated_bytes(const std::filesystem::path& file) {
   DWORD high=0;
   SetLastError(ERROR_SUCCESS);
@@ -1659,6 +2011,23 @@ void disposable_positioned_file(const std::filesystem::path& base) {
 }
 int main(int argc,char** argv){
   try {
+    if(argc==2 && std::string_view(argv[1])=="--dense-allocation") {
+      dense_allocation();
+      dense_group_boundary();
+      dense_directory_cuts();
+      std::cout<<"PASS: "<<checks<<" dense ownership checks\n";
+      return 0;
+    }
+    if(argc==2 && std::string_view(argv[1])=="--dense-session") {
+      dense_session_reuse();
+      std::cout<<"PASS: "<<checks<<" dense volume session checks\n";
+      return 0;
+    }
+    if(argc==2 && std::string_view(argv[1])=="--dense-session-cuts") {
+      dense_session_cuts();
+      std::cout<<"PASS: "<<checks<<" dense publication recovery checks\n";
+      return 0;
+    }
     if(argc==2 && std::string_view(argv[1])=="--overwrite-rename-cuts") {
       overwrite_and_rename_publication_cuts();
       std::cout<<"PASS: "<<checks<<" overwrite and rename recovery checks\n";
@@ -1702,6 +2071,11 @@ int main(int argc,char** argv){
     if(argc==3 && std::string_view(argv[1])=="--disposable-file") {
       disposable_file(std::filesystem::path(argv[2]));
       std::cout<<"PASS: "<<checks<<" isolated Windows file-handle checks\n";
+      return 0;
+    }
+    if(argc==3 && std::string_view(argv[1])=="--disposable-dense-file") {
+      disposable_dense_file(std::filesystem::path(argv[2]));
+      std::cout<<"PASS: "<<checks<<" isolated Windows dense backing checks\n";
       return 0;
     }
     if(argc==3 && std::string_view(argv[1])=="--disposable-sparse-file") {

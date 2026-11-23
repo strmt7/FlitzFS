@@ -17,6 +17,9 @@ class NativeVolumeRangeIo : public StoreByteIo {
   virtual bool supports_reclaimable_ranges() const noexcept=0;
   virtual std::uint64_t allocated_extent(std::uint64_t offset,std::uint64_t bytes) const=0;
   virtual void admit_range_write(std::uint64_t projected_file_extent,std::uint64_t additional_bytes)=0;
+  virtual void admit_contiguous_growth(std::uint64_t projected_file_extent,std::uint64_t begin,std::uint64_t end) {
+    admit_range_write(projected_file_extent,end-begin);
+  }
   virtual void reclaim_range(std::uint64_t offset,std::uint64_t bytes)=0;
 };
 
@@ -28,6 +31,12 @@ class NativeVolumeFile final {
   static NativeFileSession create(std::shared_ptr<StoreByteIo> empty,StoreIdentity volume,
       StoreIdentity image,PagedStoreLimits,StoreCompressionOptions foreground={},
       NativeDispositionPolicy=NativeDispositionPolicy::aggregate,
+      std::optional<NativeVolumeRootMetadata> root={});
+  // Packed allocation for a new, exclusively owned ordinary byte stream.
+  // The physical limit comes from the caller's qualified backing geometry.
+  static NativeFileSession create_dense(std::shared_ptr<StoreByteIo> empty,
+      std::uint64_t physical_limit,StoreIdentity volume,StoreIdentity image,PagedStoreLimits,
+      StoreCompressionOptions foreground={},NativeDispositionPolicy=NativeDispositionPolicy::aggregate,
       std::optional<NativeVolumeRootMetadata> root={});
   static NativeFileSession resume(std::shared_ptr<StoreByteIo> existing,
       std::optional<StoreIdentity> expected_volume=std::nullopt,StoreCompressionOptions foreground={},
@@ -41,6 +50,10 @@ class NativeVolumeFile final {
   static NativeFileSession create(const std::filesystem::path&,StoreIoContract,StoreIdentity volume,
       StoreIdentity image,PagedStoreLimits,StoreCompressionOptions foreground={},
       NativeDispositionPolicy=NativeDispositionPolicy::aggregate,
+      std::optional<NativeVolumeRootMetadata> root={});
+  static NativeFileSession create_dense(const std::filesystem::path&,StoreIoContract,
+      std::uint64_t physical_limit,StoreIdentity volume,StoreIdentity image,PagedStoreLimits,
+      StoreCompressionOptions foreground={},NativeDispositionPolicy=NativeDispositionPolicy::aggregate,
       std::optional<NativeVolumeRootMetadata> root={});
   static NativeFileSession resume(const std::filesystem::path&,StoreIoContract,
       std::optional<StoreIdentity> expected_volume=std::nullopt,StoreCompressionOptions foreground={},
@@ -64,7 +77,10 @@ class NativeVolumeFile final {
     std::uint64_t advice_sequence() const;
     void configure_catalog(NativeFileSession&) const noexcept;
   };
-  static Regions new_regions(std::shared_ptr<StoreByteIo>,StoreIdentity,PagedStoreLimits);
+  static Regions new_regions(std::shared_ptr<StoreByteIo>,StoreIdentity,PagedStoreLimits,
+      std::optional<std::uint64_t> dense_physical_limit={});
+  static NativeFileSession create_regions(Regions,StoreIdentity,StoreIdentity,PagedStoreLimits,
+      StoreCompressionOptions,NativeDispositionPolicy,std::optional<NativeVolumeRootMetadata>);
   static Regions open_regions(std::shared_ptr<StoreByteIo>,bool writable,std::optional<StoreIdentity> expected);
   static NativeFileSession resume_regions(Regions,StoreCompressionOptions,NativeDispositionPolicy,
       const std::function<StoreIdentity()>& startup_repair_identity,const detail::IndexedReopenAdmission& admission={},

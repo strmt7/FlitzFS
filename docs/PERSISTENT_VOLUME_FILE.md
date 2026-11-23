@@ -60,7 +60,7 @@ When a new paired volume has room for a catalog, the head records capability
 one thirty-second of C, rounded down to 64 KiB and limited by the remaining
 file address space. The minimum includes two roots and room for an initial
 and an incremental allocation at the largest supported failure unit.
-The ranges remain sparse until the funded scanner writes them. New readers
+Range providers leave unused slots unallocated until the funded scanner writes them. New readers
 also support capability 4 and the linear layout.
 
 The saved backing identity identifies the slot through its last byte's low
@@ -78,6 +78,69 @@ I/O and holds both catalog ranges. The independent CPU data reader opens
 the selected filesystem using its authoritative head and image.
 [Catalog selector](OPTIMIZATION_STATE.md#identified-catalog-selection) ·
 [Managed range validation](evidence/managed-coherence-catalog-ranges-2026-11-21.json)
+
+### Packed allocation on ordinary files
+
+`NativeVolumeFile::create_dense` opens a new, qualified ordinary backing with
+an explicit physical limit. The existing CPU inspection and writable reopen
+paths recognize its envelope. The envelope maps the same virtual head,
+advice, image and catalog ranges into one file without allocating the gaps
+between them. The inner head continues to bind the data image and its
+checkpoint. Linear and sparse files retain their existing encodings.
+
+The outer format uses little-endian integers and the existing 64 KiB commit
+unit. Unassigned virtual units read as zero within the visible extent. Two
+physical units separate the first group's data from its directory peers,
+and two anchor units precede that group. Each group has room for 4,091 data
+units. Physical groups start at ordinals `2 + group * 4,093`. The first two
+units of each group carry its directory peers. Only the leading record of
+each metadata unit is significant.
+
+| Record | Fields in order |
+| --- | --- |
+| Anchor | Eight-byte `FLTDENS1` magic, 32-bit version 1, zero 32-bit reserved field, 64-bit virtual and physical byte limits, 16-byte volume identity, 32-byte digest |
+| Directory | Eight-byte `FLTDIR01` magic, 32-bit version 1, 32-bit run count, 64-bit group ordinal, 64-bit generation, 16-byte volume identity, 32-byte digest, run records |
+| Directory run | 64-bit virtual unit ordinal, 32-bit offset in the group's payload units, 32-bit unit count |
+
+The digest covers the first 48 bytes and the run records. Directory runs
+sort by physical offset and merge when both coordinates are contiguous.
+The reader checks the actual physical extent and the virtual limit, rejects
+overlapping owners and requires the envelope identity and virtual geometry to
+agree with the selected filesystem. The versioned envelope requires a reader
+that implements it.
+
+```mermaid
+flowchart LR
+    W[Write candidate data] --> D[Flush data]
+    D --> P[Write and flush first directory peer]
+    P --> M[Write and flush second directory peer]
+    M --> C[Publish inner filesystem checkpoint]
+    C --> R[Wait for both selectors and old readers]
+    R --> T[Retire inactive virtual ranges]
+    T --> F[Flush both directory peers]
+    F --> U[Reuse the retired physical units]
+```
+
+A newly reached group has two durable empty directories before its first
+data write. One valid directory can recover an interrupted peer update.
+When intact peers differ by one generation, recovery follows the newer
+directory. Same-generation disagreements and data groups without an intact
+directory stop reopen. Writable recovery stabilizes known peers before
+mapping changes or physical reuse. An uncertain storage operation fences the
+writer until reopen.
+
+Compact directory runs limit metadata traffic for contiguous allocations.
+Reopen currently scans the directories and builds an in-memory run index.
+Freed interior units are available to the volume after publication.
+Outer-file allocation reduction needs tail relocation and shortening.
+The helper's persistent path uses its existing qualified sparse profile.
+
+The in-memory tests recovered the acknowledged filesystem through 696
+interruptions spanning candidate writes, selector publication and retired
+ownership. Each case reopened independently and then accepted a new
+write. The ordinary NTFS guest fixture retained a file length of 1,114,112
+bytes through two rotations and verified the selected data with the CPU reader.
+[Dense backing evidence](evidence/dense-volume-backing-2026-11-23.json)
 
 ### Data image compaction and retirement
 

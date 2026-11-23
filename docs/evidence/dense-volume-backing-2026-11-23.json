@@ -1,0 +1,270 @@
+{
+  "scope": "Experimental packed allocation in an ordinary file",
+  "date": "2026-11-23",
+  "source": {
+    "base": "66f5764c60e05ce8db553f9456f80cfb854294cb",
+    "blobs": {
+      "CMakeLists.txt": "467a1a31f02c6891b9aab6c46936a7351c184765",
+      "include/flitzfs/native_volume_file.hpp": "8acf229c7c5b9eec4f569292ef767f38b5e1f991",
+      "src/native_volume_file.cpp": "29240623e0ab38e129001cfd6af1b2c9a675f977",
+      "src/dense_volume_backing.hpp": "c9188d53e93b3d37f7d2c25cce30d1bbcf2fc40d",
+      "src/dense_volume_backing.cpp": "bd9d2e3b69f4027f9ca1512cd86080ba23548135",
+      "tests/test_native_volume_file.cpp": "4d9c53c2114e9b1b4236a6151175bbc7ea140bd4"
+    },
+    "normalized_sha256": {
+      "CMakeLists.txt": "9197ce1d067756ad0738cc5ccaf8700bcb229c0db4904d526c76f7c78953147a",
+      "include/flitzfs/native_volume_file.hpp": "7374c5444b1110a86160c20c713e509ca4febcb516383d4e67396f811b26c232",
+      "src/native_volume_file.cpp": "4266c33777373512a442294e193ab77fb0030f1d73940f9b790e0031d40423e9",
+      "src/dense_volume_backing.hpp": "8a259a50a28e5360118d1ad9f6320a49bba9a344fbb9cb579f8144d3212df6fe",
+      "src/dense_volume_backing.cpp": "f5b4a94b3e4fe14160d679c8964b069d10b8108925bd75dcfb5585a6eb0cf274",
+      "tests/test_native_volume_file.cpp": "6931e49572164d6027686602aa024aeb824901bec8e88ab20947010ea6242353"
+    }
+  },
+  "host": {
+    "caption": "Microsoft Windows 11 Pro",
+    "build": "26300",
+    "visible_memory_mib": 65141,
+    "amd": [
+      {
+        "Name": "AMD Radeon RX 9070 XT",
+        "DriverVersion": "32.0.32029.2010"
+      }
+    ]
+  },
+  "routing": {
+    "source_commit": "66f5764c60e05ce8db553f9456f80cfb854294cb",
+    "provider_version": "0.2.43",
+    "inventory_sha256": "ed5df36d77c6fa499d5f5bac88c1833633ffd453ecdbd50a0db51c99433a0de7",
+    "receipt_sha256": "70b2d97655f026c5bedf390c2c0fdd917472d452723aec190c8a5898284aca9b",
+    "actual_searches": 1
+  },
+  "research": {
+    "version": "0.9.5+flitzzip.portable2",
+    "isolated": true,
+    "robots": true,
+    "external_llm": false,
+    "receipt_sha256": "08f73c29c1560a4ce91a314ff1b9170859641407f3998a9f58319da3435d7232",
+    "documents": [
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/fileio/exfat-specification",
+        "http_status": 200,
+        "success": true,
+        "expected_content": true,
+        "markdown_sha256": "9d7bb73d946da88a01facf0abcdd9c9fb0144fed70da1329fbd4c344fdbf6c8f",
+        "capture_sha256": "c1a52641a43ea5bca7c3be7d6184bed0d0069528254fb81ee3ff8447d8ce1b1e",
+        "failure_category": ""
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/fileio/filesystem-functionality-comparison",
+        "http_status": 200,
+        "success": true,
+        "expected_content": true,
+        "markdown_sha256": "f3a6e2ece570206a502311aee20b34bdbbbd10becbdc4811a47330a0075d0670",
+        "capture_sha256": "eafb7b2f91701c0e3a9a4cbd529937c55b1548591eced4aae7438fb108943f14",
+        "failure_category": ""
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_end_of_file_info",
+        "http_status": 200,
+        "success": true,
+        "expected_content": true,
+        "markdown_sha256": "6018fa2cb8107a8e649e12befc5a8848f04dbb99a8437efc8f5eb28625599c8e",
+        "capture_sha256": "032c55cbce68a6c2ed77a17ba29c93ab1b2a0f28866b48d3b6b467f3167edce2",
+        "failure_category": ""
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_standard_info",
+        "http_status": 200,
+        "success": true,
+        "expected_content": true,
+        "markdown_sha256": "2c757297745446e64cd82a9f1c4175b474000427f2e1111d440b0010a14ce5b3",
+        "capture_sha256": "2d0f75d77a2caee942152c13c4f731616eb2b4435f2c17aad0b11eba5a166cd4",
+        "failure_category": ""
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers",
+        "http_status": 200,
+        "success": true,
+        "expected_content": true,
+        "markdown_sha256": "2f12c6325e2d0cd0950ae3621c20590cff1c447f16312b2ce53dc09f590d2b02",
+        "capture_sha256": "c3cbfa755abbc72b06efdae7130a5dc77b9647485a615eb2e027e5f489ff100a",
+        "failure_category": ""
+      },
+      {
+        "url": "https://www.usenix.org/conference/fast25/presentation/kim-juwon",
+        "http_status": 200,
+        "success": false,
+        "expected_content": false,
+        "markdown_sha256": "8cd2fc4cdabcf35306f9ae72d1d9a904ace25b362fac49d39994ddcd12327cd6",
+        "capture_sha256": "80c9e70943e89074c8777d6cbe7a2314bcfd446a1fee3785b37fcd0648b98e33",
+        "failure_category": "unexpected_content"
+      }
+    ]
+  },
+  "ownership": {
+    "run": "local-run-441e862fb0274ff2a6f53d0b7f327478",
+    "receipt_sha256": "ccbe699065ec4d8e2549ef78a25106f76a34f5cfb3425769bb3dfbae43694b63",
+    "output_sha256": "54bab8cb1997a480f21fd9d56e0b04fe36d59b77c2cf3bfa59b5e520df439f2b",
+    "exit_code": 0,
+    "tree_retired": true,
+    "peak_job_bytes": 7311360,
+    "checks": 205,
+    "directory_interruption_boundaries": 12,
+    "directory_interruption_cases": 36,
+    "synthetic_group_boundary": true,
+    "unallocated_virtual_gap_test_bytes": 8796093022208
+  },
+  "session_reuse": {
+    "run": "local-run-2d6f15eef39c4928b0eb32e23965467d",
+    "receipt_sha256": "605c96691b19eaf1b43305ac6fca1d5ec488d18f87909d06794dd3c57a5a3773",
+    "output_sha256": "a8c1409ac6b42279cb156d5ce96a4bdee931aaad1a326a500c1bdd5b44c947d2",
+    "exit_code": 0,
+    "tree_retired": true,
+    "peak_job_bytes": 10579968,
+    "checks": 12,
+    "retained_reader": true,
+    "selection_epochs": 3
+  },
+  "session_recovery": {
+    "run": "local-run-9422514844fd4f34a6c58911b76ef258",
+    "receipt_sha256": "4e206dcfd8d1b017149cf85d7897257b9fcd25c26e5ff64b487e2a447f9f1f7f",
+    "output_sha256": "bcfe63d9548595b1a028a2a709e55fce4cde1b6079e3cfe4473576f54572a245",
+    "exit_code": 0,
+    "tree_retired": true,
+    "peak_job_bytes": 23318528,
+    "checks": 2162,
+    "cuts_by_failure_unit": {
+      "4096": 92,
+      "65536": 140
+    },
+    "fault_modes": 3,
+    "independent_reopens_and_writable_continuations": 696
+  },
+  "testing": {
+    "windows": {
+      "run": "local-run-85b785fb12d14d9cb4afd41661e7c504",
+      "receipt_sha256": "316f366ba331cb41072ea3956bd2fe5bd18e68af776975c377214194860edd3f",
+      "output_sha256": "4351ac8911392b4356e18796989409629335568e0dd573f9d379af39ed998862",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 679452672,
+      "passed": 215
+    },
+    "raw_only": {
+      "run": "local-run-97d2c2f4bd694cb7b5767acccf4f8c36",
+      "receipt_sha256": "399414f932e26f529da28cde27bd08b91ee7afbcef50cdeb0a6680213ec21165",
+      "output_sha256": "c142e1de5e5bfeade2122f4d5e02e238e92d5755c17bc2a9f5636cb0fc26b04a",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 99692544,
+      "passed": 6
+    },
+    "raw_cut_matrix": {
+      "run": "local-run-51e8655674244b9189bcca8fde81355e",
+      "receipt_sha256": "4a712dd8122b728a84407d5350364f4ae0caeddef774334c02cda6b303f06457",
+      "output_sha256": "53d22c63d881797fccc8d2216e3138fdf4c35d98282311823a1e05abfe0c42fc",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 28495872,
+      "passed": 1
+    },
+    "address_sanitizer": {
+      "run": "local-run-afbf0e58a5bf435bbe57ddb425a08c6f",
+      "receipt_sha256": "134f9dcf229d43076a6909471a6996a5e3808ed3bee9d8de8a3737a5a72cb71f",
+      "output_sha256": "16f4aec00c062a7ce2894a2421da16e68810f8e89e88603485eadfa1075142e8",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 1009610752,
+      "passed": 7
+    },
+    "sanitized_runtime_preflight_and_cut_matrix": {
+      "run": "local-run-355c0720d6644745909baa9f7466ae77",
+      "receipt_sha256": "07ce0f96100fe06e40a3983757c1893513e2d724dfd7c2c179c230a0493ff8a9",
+      "output_sha256": "c741a114e61c88c1ea6162e310daca58f04676a85110874846691f667dee7eb8",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 484593664,
+      "passed": 2
+    }
+  },
+  "isolated_windows": {
+    "guest_receipt_sha256": "c3933e6cfac595cdc8e7fb51de11f05d1e7a3f889b48f11395398b9d2c10e331",
+    "sandbox_receipt_sha256": "7994d1a7f4d336c35210c92d7792bb52c595ba66c5525c395886ef80c6732d3e",
+    "build": "26100",
+    "outer_filesystem": "NTFS",
+    "sparse_attribute": false,
+    "length_after_first_rotation": 1114112,
+    "length_after_second_rotation": 1114112,
+    "checks": 11,
+    "verification": "independent CPU readback",
+    "sandbox_retired": true,
+    "binary_sha256": "4850f1f3022cf7f280abd4f1c2605a5c6ef0edba6b849c2c30581f283edf35ff"
+  },
+  "amd_general_regression": {
+    "general_build_preflight": [
+      {
+        "run": "local-run-79a7345411ff41bd831a5db05903a7ba",
+        "receipt_sha256": "98f7a6dc41f445f33cd2f19f1ecca78b9b81545fca0a848b92254bd2573aad9a",
+        "output_sha256": "1fc3f5eca5a0afad1014d1fdee62c460999dad69ee9aead790576230ab45beb2",
+        "exit_code": 1,
+        "tree_retired": true,
+        "peak_job_bytes": 3260416,
+        "reason": "Two-frame installed package prerequisite"
+      },
+      {
+        "run": "local-run-e99e6fffea314734970d55f8b672476c",
+        "receipt_sha256": "00d4c15159816ebdd16e48c0a35e6df77a0dd4bff47e90aee9f0dc387d4705de",
+        "output_sha256": "039c08001480f5ac01243c9c01459821941cf8a2f916b7c766808be4afaa60b7",
+        "exit_code": 1,
+        "tree_retired": true,
+        "peak_job_bytes": 3260416,
+        "reason": "Qualified CPU LZ4 decoder prerequisite"
+      }
+    ],
+    "paired_cpu_admission": {
+      "samples": [
+        10,
+        7,
+        5,
+        17,
+        11,
+        8
+      ],
+      "within": false
+    },
+    "purpose": "Reconfirm the installed GPU read path with the LZ4-enabled fixture",
+    "lz4_build": {
+      "run": "local-run-369ac1d0589246a9b625e92a0ddf3525",
+      "receipt_sha256": "241f8eb8d14b6b2774f46255b8c1d2897d75bdf0851d1cc9a90db7e96d2b00ba",
+      "output_sha256": "4125623c615ae5692cda633e2e07f9046d24d88ec383bca59827fd62fe2e348a",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 520933376
+    },
+    "lz4_fixture": {
+      "run": "local-run-62ded4f74ad747f9b641613964ff9d06",
+      "receipt_sha256": "c0ebdaf44b6ad7ef5b53b8daa367717b18824bece9c22acb687f3f55c3c2ef26",
+      "output_sha256": "74f5e3327800c651410e289a46ef78977d4da8903ce08a2bb35c39567d6b48cc",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 96378880,
+      "output": "winfsp_owned_amd_read sealed=1 refusal=0 submitted=3 published=1 verified_frames=2 superseded=2 failures=0 worker_exit=1223 budget_queries=3 exact_cpu_fallback=1 child_and_owner_retired=1 stopped_pending=1 checks=248"
+    },
+    "forced_refusal": {
+      "run": "local-run-60fa0a7086bb41b5b119ee674af4b347",
+      "receipt_sha256": "77c19b5d7c82fc1602705a151db86fef4d9a1e572066c66d7d4c10204813bcb2",
+      "output_sha256": "eb2ea268d4468488e37737655e58b9b04cd908900c4690f4c77b76082bc10ebe",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 24895488,
+      "output": "winfsp_owned_amd_read sealed=1 refusal=1 submitted=1 published=0 verified_frames=0 superseded=0 failures=1 worker_exit=1179845891 budget_queries=1 exact_cpu_fallback=1 child_and_owner_retired=1 stopped_pending=0 checks=245"
+    }
+  },
+  "open_qualification": [
+    "bounded directory recovery at scale",
+    "atomic tail relocation and outer truncation",
+    "Windows helper activation on qualified ordinary providers",
+    "exFAT and FAT32 device interruption and removal",
+    "real-device performance and durability"
+  ]
+}

@@ -1,5 +1,6 @@
 #include "flitzfs/native_volume_file.hpp"
 #include "flitzfs/indexed_coherence.hpp"
+#include "dense_volume_backing.hpp"
 #include "store_file.hpp"
 #include "native_volume_file_reclaimer.hpp"
 #include "protected_stripe_image.hpp"
@@ -43,30 +44,39 @@ std::uint64_t image_start(const NativeVolumeSelection& selected) noexcept {
 }
 }
 struct NativeVolumeFile::Owner {
-  const std::shared_ptr<StoreByteIo> backing;
+  const std::shared_ptr<StoreByteIo> physical;
+  std::shared_ptr<StoreByteIo> backing;
   const bool writable;
   NativeVolumeRangeIo* ranges=nullptr;
   std::atomic<std::weak_ptr<detail::NativeVolumeRangeWake>> reclamation_wake;
   bool leased=false;
 
-  explicit Owner(std::shared_ptr<StoreByteIo> file,bool write):backing(std::move(file)),writable(write) {
-    if(!backing)fail(Error::invalid_operation,"missing volume-file backing");
+  explicit Owner(std::shared_ptr<StoreByteIo> file,bool write):physical(std::move(file)),
+      backing(physical),writable(write) {
+    if(!physical)fail(Error::invalid_operation,"missing volume-file backing");
     if(writable) {
-      if(!valid_store_io_contract(backing->contract()) || !backing->acquire_writer())
+      if(!valid_store_io_contract(physical->contract()) || !physical->acquire_writer())
         fail(Error::invalid_operation,"volume file requires an exclusive qualified writer");
       leased=true;
-      auto* candidate=dynamic_cast<NativeVolumeRangeIo*>(backing.get());
-      if(candidate && backing->contract().isolated_range_reclamation && candidate->supports_reclaimable_ranges())
-        ranges=candidate;
+      install_ranges();
     }
+  }
+  void install_ranges() noexcept {
+    auto* candidate=dynamic_cast<NativeVolumeRangeIo*>(backing.get());
+    ranges=writable && candidate && backing->contract().isolated_range_reclamation &&
+        candidate->supports_reclaimable_ranges()?candidate:nullptr;
+  }
+  void install_dense(std::shared_ptr<detail::DenseVolumeBacking> dense) {
+    backing=std::move(dense);
+    install_ranges();
   }
   void pin_reader() {
     if(!leased) {
-      leased=backing->acquire_exclusive_use();
+      leased=physical->acquire_exclusive_use();
       if(!leased)fail(Error::invalid_operation,"paired volume inspection requires a retired backing owner");
     }
   }
-  ~Owner(){if(leased)backing->release_writer();}
+  ~Owner(){if(leased)physical->release_writer();}
 };
 
 struct NativeVolumeFile::Region final:StoreByteIo {
@@ -124,7 +134,7 @@ struct NativeVolumeFile::Region final:StoreByteIo {
     const auto current=extent();
     if(projected<current || projected>capacity)fail(Error::limit,"volume-file admission exceeds its region");
     const auto end=(std::max)(owner->backing->extent(),offset+projected);
-    if(owner->ranges)owner->ranges->admit_range_write(end,projected-current);
+    if(owner->ranges)owner->ranges->admit_contiguous_growth(end,offset+current,offset+projected);
     else owner->backing->admit_write(end);
   }
   void flush() override {
@@ -563,11 +573,16 @@ void NativeVolumeFile::Regions::configure_catalog(NativeFileSession& session) co
   }
 }
 NativeVolumeFile::Regions NativeVolumeFile::new_regions(std::shared_ptr<StoreByteIo> file,
-    StoreIdentity volume,PagedStoreLimits limits) {
+    StoreIdentity volume,PagedStoreLimits limits,std::optional<std::uint64_t> dense_physical_limit) {
   check_image_capacity(limits.maximum_physical_bytes,Error::invalid_operation);
   auto owner=std::make_shared<Owner>(std::move(file),true);
   if(owner->backing->extent())fail(Error::invalid_operation,"volume-file creation requires empty backing");
   const auto bytes=limits.maximum_physical_bytes;
+  if(dense_physical_limit) {
+    const auto geometry=paired_file_geometry(bytes,true,Error::invalid_operation);
+    owner->install_dense(detail::DenseVolumeBacking::create(owner->physical,volume,geometry.file_end,
+        *dense_physical_limit));
+  }
   auto head=std::make_shared<Region>(owner,0,kVolumeHeadBytes,0);
   auto advice=std::make_shared<Region>(owner,kVolumeHeadBytes,kOptimizationAreaBytes,0);
   auto image=std::make_shared<Region>(owner,image_offset,bytes,0,!owner->ranges);
@@ -587,6 +602,15 @@ NativeVolumeFile::Regions NativeVolumeFile::new_regions(std::shared_ptr<StoreByt
 NativeVolumeFile::Regions NativeVolumeFile::open_regions(std::shared_ptr<StoreByteIo> file,bool writable,
     std::optional<StoreIdentity> expected) {
   auto owner=std::make_shared<Owner>(std::move(file),writable);
+  std::shared_ptr<detail::DenseVolumeBacking> dense;
+  if(detail::DenseVolumeBacking::recognizes(*owner->physical)) {
+    owner->pin_reader();
+    dense=detail::DenseVolumeBacking::open(owner->physical,writable);
+    if(expected && *expected!=dense->volume_identity())
+      fail(Error::corrupt,"dense volume-file identity mismatch");
+    expected=dense->volume_identity();
+    owner->install_dense(dense);
+  }
   const auto end=owner->backing->extent();
   if(end<image_offset+kVolumeHeadBytes || end>maximum_file_bytes)
     fail(Error::corrupt,"truncated or oversized volume file");
@@ -598,13 +622,14 @@ NativeVolumeFile::Regions NativeVolumeFile::open_regions(std::shared_ptr<StoreBy
   check_image_capacity(bytes,Error::corrupt);
   auto advice=std::make_shared<Region>(owner,kVolumeHeadBytes,kOptimizationAreaBytes,kOptimizationAreaBytes);
   if(selected.placement==NativeVolumePlacement::external) {
-    if(selected.epoch!=1 || end-image_offset>bytes || owner->ranges)
+    if(selected.epoch!=1 || end-image_offset>bytes || owner->ranges || dense)
       fail(Error::corrupt,"invalid linear volume-file extent or selection");
     return {std::move(head),std::make_shared<Region>(owner,image_offset,bytes,0,true),std::move(advice),selected,{}};
   }
   const bool has_catalog=selected.placement==NativeVolumePlacement::paired_file_catalog_ranges;
   const auto geometry=paired_file_geometry(bytes,has_catalog,Error::corrupt);
-  if(end>geometry.file_end || (has_catalog && !geometry.catalog_capacity))
+  if(end>geometry.file_end || (has_catalog && !geometry.catalog_capacity) ||
+      (dense && dense->logical_limit()!=geometry.file_end))
     fail(Error::corrupt,"volume file exceeds its paired range geometry");
   if(writable && !owner->ranges)fail(Error::invalid_operation,"paired volume file requires a qualified range provider");
   const auto offset=image_start(selected);
@@ -643,7 +668,19 @@ NativeVolumeFile::Regions NativeVolumeFile::open_regions(std::shared_ptr<StoreBy
 NativeFileSession NativeVolumeFile::create(std::shared_ptr<StoreByteIo> empty,StoreIdentity volume,
     StoreIdentity image,PagedStoreLimits limits,StoreCompressionOptions foreground,
     NativeDispositionPolicy disposition,std::optional<NativeVolumeRootMetadata> root) {
-  auto region=new_regions(std::move(empty),volume,limits);
+  return create_regions(new_regions(std::move(empty),volume,limits),volume,image,limits,
+      foreground,disposition,std::move(root));
+}
+NativeFileSession NativeVolumeFile::create_dense(std::shared_ptr<StoreByteIo> empty,
+    std::uint64_t physical_limit,StoreIdentity volume,StoreIdentity image,PagedStoreLimits limits,
+    StoreCompressionOptions foreground,NativeDispositionPolicy disposition,
+    std::optional<NativeVolumeRootMetadata> root) {
+  return create_regions(new_regions(std::move(empty),volume,limits,physical_limit),volume,image,limits,
+      foreground,disposition,std::move(root));
+}
+NativeFileSession NativeVolumeFile::create_regions(Regions region,StoreIdentity volume,StoreIdentity image,
+    PagedStoreLimits limits,StoreCompressionOptions foreground,NativeDispositionPolicy disposition,
+    std::optional<NativeVolumeRootMetadata> root) {
   auto session=NativeFileSession::create_indexed_volume(std::move(region.head),volume,std::move(region.image),
       image,limits,foreground,disposition,std::move(root),region.selection.placement);
   session.create_budgeted_optimization_area(std::move(region.advice));
@@ -694,6 +731,14 @@ NativeFileSession NativeVolumeFile::create(const std::filesystem::path& path,Sto
     StoreIdentity image,PagedStoreLimits limits,StoreCompressionOptions foreground,
     NativeDispositionPolicy disposition,std::optional<NativeVolumeRootMetadata> root) {
   return create(create_backing(path,contract,limits),volume,image,limits,foreground,disposition,std::move(root));
+}
+NativeFileSession NativeVolumeFile::create_dense(const std::filesystem::path& path,StoreIoContract contract,
+    std::uint64_t physical_limit,StoreIdentity volume,StoreIdentity image,PagedStoreLimits limits,
+    StoreCompressionOptions foreground,NativeDispositionPolicy disposition,std::optional<NativeVolumeRootMetadata> root) {
+  if(!valid_store_io_contract(contract) || contract.isolated_range_reclamation)
+    fail(Error::invalid_operation,"dense creation requires a qualified ordinary file");
+  return create_dense(detail::new_volume_file(path,contract,physical_limit),physical_limit,volume,image,limits,
+      foreground,disposition,std::move(root));
 }
 NativeFileSession NativeVolumeFile::resume(const std::filesystem::path& path,StoreIoContract contract,
     std::optional<StoreIdentity> expected,StoreCompressionOptions foreground,NativeDispositionPolicy disposition) {

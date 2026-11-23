@@ -439,8 +439,10 @@ Microsoft lists exFAT and FAT32 without sparse-file support, and lists a
 file-size limit of about 4 GiB for FAT32. A USB device can carry either NTFS or exFAT.
 The ordinary file provider applies a FAT32 extent bound when the caller
 supplies a qualified nonsparse contract. The Explorer helper currently uses
-the qualified NTFS sparse profile. Dense reuse and its own recovery
-qualification remain open for exFAT and FAT32. For an external RAM disk,
+the qualified NTFS sparse profile. The packed allocator now reuses internal
+space in the same ordinary file. Its current Windows fixture uses a
+nonsparse NTFS file. Recovery qualification remains open for exFAT and
+FAT32. For an external RAM disk,
 establish the backing lifetime explicitly before treating its bytes as volatile.
 A single backing file must stay within the outer filesystem's file-size limit.
 Supporting a larger FlitzFS volume on FAT32 would require a separately
@@ -449,30 +451,32 @@ ordered flush across the files that participate in one checkpoint.
 [Windows filesystem capabilities](https://learn.microsoft.com/en-us/windows/win32/fileio/filesystem-functionality-comparison) ·
 [Filesystem capability flags](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/ebc7e6e5-4650-4e54-b17c-cf60f6fbeeaa)
 
-For the dense design, prototype segment reuse in the existing, exclusively
-owned backing file. The paired sparse layout assigns its second image a
-fixed offset. A dense file could allocate the gap before reaching that slot.
-Use a versioned allocation tree rooted in the same checkpoint as the data
-and index. Keep the linear and sparse formats readable. A reader that cannot
-interpret the new layout must refuse it before writable recovery.
+The [packed volume file](../PERSISTENT_VOLUME_FILE.md#packed-allocation-on-ordinary-files)
+maps both virtual image lanes into physical allocation groups. Published
+directories can add previously unowned virtual units ahead of a filesystem
+checkpoint. Removing existing owners requires selector convergence and reader
+retirement before the independent directory transition. The authority to
+release a range remains with the filesystem, which avoids modifying every
+allocation group when the namespace checkpoint advances.
 
-1. Allocate aligned ranges that no committed root or pinned reader can
-   reference. Write and verify newly encoded bytes and the candidate indexes.
-   Flush them before publishing the candidate checkpoint. Publish and flush
-   the checkpoint peers using independently qualified failure units. Report
-   durable success only at the existing acknowledgement boundary.
-2. Keep retired ranges protected through peer convergence and reader
-   retirement. Recover the allocation tree from the selected checkpoint.
-   Treat ambiguous ownership as reserved and refuse reuse until an independent
-   walk can account for every referenced range. Lower-priority learning and
-   compaction must yield to integrity repair and current foreground activity.
-3. Reuse interior free ranges to avoid growing the file. To reduce occupied
-   space, preferentially move live tail segments into existing holes.
-   Recheck both checkpoint peers, pending writers and reader pins before
-   shortening the file. Flush and verify the resulting allocation. On an
-   unsuccessful operation, stop further reclamation and recheck the committed
-   roots before resuming. Qualify this operation on each supported outer
-   filesystem with a cut at every durability boundary.
+1. Measure mount and recovery cost over increasing numbers of physical groups
+   and fragmented runs. Bound startup memory and group reads with a pageable,
+   independently verifiable directory index if the full scan exceeds the
+   attachment's headroom or open budget. Keep the mirrored group records
+   usable as the recovery source for that index.
+2. Expose physical high-water, reusable interior bytes and temporary hold
+   space separately. Bind dense creation and reopen to a qualified ordinary
+   provider on the pinned backing volume. Cap new volumes by the actual file
+   limit, current available growth and staged-copy cost. Qualify exFAT and FAT32
+   independently before enabling those attachments.
+3. To reduce occupied space, move verified live tail units into existing
+   holes. Treat a cross-group relocation as one ownership transition so an
+   interrupted reopen always finds exactly one authoritative mapping. Keep
+   the old bytes until the authority and affected directory peers are
+   durable and mapping readers release them. Recheck pending writers and
+   references before shortening the file. Flush and verify the resulting
+   allocation. Qualify interruption at each publication and shortening
+   boundary on every enabled provider.
 4. Charge the candidate's actual writes, metadata and temporary overlap to
    the maintenance decision. Measure the backing file's allocated bytes
    separately from its logical length and internal free space. A candidate
@@ -480,6 +484,12 @@ interpret the new layout must refuse it before writable recovery.
    in outer-file space only after allocation decreases.
    [Windows file allocation information](https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_standard_info) ·
    [Windows end-of-file information](https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_end_of_file_info)
+5. Test interrupted allocation and retirement on disposable devices under the
+   actual removal policy and write cache. Require independent CPU byte
+   verification followed by continued writes. Compare write amplification and
+   useful compression against plain and compressed NTFS. Keep pending
+   relocation below foreground demand and qualify physical shrink separately
+   from internal reuse.
 
 ### Media qualification
 
