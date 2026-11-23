@@ -4,12 +4,14 @@
 #include "winfsp_session.hpp"
 #include "maintenance_host.hpp"
 #include "maintenance_backing.hpp"
+#include "../store_file.hpp"
 namespace flitzfs {
 class MemoryVolumeDomain;
 struct WinFspControllerView {
   SessionState state=SessionState::ready;
   NTSTATUS start_status=STATUS_PENDING;
   MaintenanceHostStatus host=MaintenanceHostStatus::warming;
+  std::optional<detail::VolumeFileProfile> file_backing;
   NativeMaintenanceProgress maintenance;
   std::uint64_t maintenance_quanta=0,reclamation_quanta=0,compactions=0,sealed_compactions=0,compaction_failures=0;
   std::uint64_t continued_preparation_steps=0,continued_compaction_steps=0,payload_repairs=0;

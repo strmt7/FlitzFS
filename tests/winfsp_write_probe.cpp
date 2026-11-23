@@ -3,6 +3,7 @@
 #include "winfsp_native.hpp"
 #include "bounded_process.hpp"
 #include "maintenance_host.hpp"
+#include "maintenance_backing.hpp"
 #include "supervised_source_fixture.hpp"
 #include "ram_client_channel.hpp"
 #include "locked_ram_fixture.hpp"
@@ -12,6 +13,7 @@
 #include "flitzfs/read_only_file.hpp"
 #include "../src/record_digest.hpp"
 #include "../src/store_file.hpp"
+#include "../src/store_codec.hpp"
 #include <algorithm>
 #include <array>
 #include <filesystem>
@@ -2077,10 +2079,129 @@ void run_sealed_selector(const fs::path& executable,SealedBoundary point,bool vo
       <<L" range_reclaimed=1 retired=1 volatile_workspace="<<static_cast<unsigned>(volatile_workspace)<<L'\n';
 }
 
+void run_attached_file_profile() {
+  stage=75;
+  const source_fixture::ControllerBudget budget;
+  Fixture fixture;
+  const auto path=fixture.root/L"inflight.flfs";
+  constexpr flitzfs::StoreCompressionOptions fast{flitzfs::StoreCompressionMode::fast,1,false};
+  constexpr auto extent=flitzfs::kNativeExtentBytes;
+  std::vector<std::byte> content(4*extent);
+  const auto motif=cut_data(197);
+  for(std::size_t at=0;at<content.size();++at)content[at]=motif[at%4096];
+  require(flitzfs::store_lz4_available(),"Attached file seed needs the independent LZ4 decoder");
+  const auto volume=cut_volume_identity(GetCurrentProcessId());
+  std::optional<flitzfs::detail::VolumeFileProfile> profile;
+  for(const bool reopen:{false,true}) {
+    auto adapter=reopen?flitzfs::WinFspNativeWritable::resume_file_volume(path,selector_contract,volume,fast):
+        flitzfs::WinFspNativeWritable::create_file_volume(path,selector_contract,volume,cut_volume_identity(GetCurrentProcessId()+1),
+            selector_limits,fast);
+    const auto got=adapter->attached_file_profile();
+    require(got && got->isolated_sparse_ranges && got->allocation_unit_bytes &&
+        got->qualified_failure_unit_bytes==selector_contract.write_failure_unit_bytes,
+        "Opened Windows backing did not publish its qualified profile");
+    if(reopen)require(got==profile,"Fresh file reopen did not bind the same backing geometry");
+    else profile=got;
+    require(adapter->enable_native_lz4_read_ahead(),"Attached file refused LZ4 demand observation");
+    FSP_FILE_SYSTEM file_system{};
+    file_system.Version=static_cast<UINT16>(sizeof(file_system));
+    file_system.UmFileContextIsUserContext2=TRUE;
+    file_system.Interface=&flitzfs::WinFspNativeWritable::callbacks();
+    adapter->bind_callbacks(file_system,[]()->UINT32{return 0;});
+    const auto& callbacks=*file_system.Interface;
+    wchar_t name[]=L"\\sample.bin";
+    PVOID context=nullptr;
+    FSP_FSCTL_FILE_INFO info{};
+    if(reopen) {
+      require(callbacks.Open(&file_system,name,FILE_NON_DIRECTORY_FILE|(1U<<24),FILE_READ_DATA,
+          &context,&info)==STATUS_SUCCESS && info.FileSize==content.size(),"Reopen profiled file through callbacks");
+    } else {
+      wchar_t root[]=L"\\";
+      SIZE_T length=0;
+      UINT32 attributes=0;
+      require(callbacks.GetSecurityByName(&file_system,root,&attributes,nullptr,&length)==STATUS_BUFFER_OVERFLOW,
+          "Profile fixture root security size");
+      std::vector<std::byte> security(length);
+      require(callbacks.GetSecurityByName(&file_system,root,&attributes,security.data(),&length)==STATUS_SUCCESS &&
+          callbacks.Create(&file_system,name,FILE_NON_DIRECTORY_FILE,FILE_ALL_ACCESS,FILE_ATTRIBUTE_NORMAL,
+              security.data(),0,&context,&info)==STATUS_SUCCESS,"Create profiled file through callbacks");
+      ULONG moved=0;
+      require(callbacks.Write(&file_system,context,content.data(),0,static_cast<ULONG>(content.size()),FALSE,FALSE,
+          &moved,&info)==STATUS_SUCCESS && moved==content.size() &&
+          callbacks.Flush(&file_system,context,&info)==STATUS_SUCCESS,"Persist exact LZ4 fixture");
+    }
+    require(context,"Attached file callback did not own a context");
+    const auto demand=[&](std::uint32_t slot) {
+      std::vector<std::byte> bytes(extent);
+      ULONG moved=0;
+      const auto offset=slot*extent;
+      require(callbacks.Read(&file_system,context,bytes.data(),offset,extent,&moved)==STATUS_SUCCESS &&
+          moved==extent && std::equal(bytes.begin(),bytes.end(),content.begin()+offset),"Profiled demand bytes changed");
+    };
+    demand(0);demand(1);
+    require(adapter->native_lz4_read_ahead_pending(),"Adjacent demand did not forecast the next read");
+    demand(3);
+    require(!adapter->take_native_lz4_read_ahead_sample(adapter->foreground_activity()),
+        "Nonadjacent demand retained the stale forecast");
+    demand(0);demand(1);
+    const auto epoch=adapter->foreground_activity();
+    const auto sample=adapter->take_native_lz4_read_ahead_sample(epoch);
+    require(sample && *sample>1 && adapter->take_native_lz4_read_ahead_sample(epoch)==0,
+        "The first verified demand did not seed one read-ahead forecast");
+    flitzfs::detail::MaintenanceBackingTiming timing;
+    timing.observe(*sample);
+    using Decision=flitzfs::detail::MaintenanceFollowup;
+    require(flitzfs::detail::maintenance_followup(*sample,1,0,timing.predicted_ns())==Decision::backing &&
+        flitzfs::detail::maintenance_followup(*sample+1,1,0,timing.predicted_ns())==Decision::admit,
+        "Initial demand observation did not constrain the existing backing budget");
+    adapter->discard_native_lz4_read_ahead(epoch,true);
+    demand(2);
+    const auto original=context;
+    require(callbacks.Open(&file_system,name,FILE_NON_DIRECTORY_FILE|(1U<<24),FILE_READ_DATA,
+        &context,&info)==STATUS_SUCCESS && context && context!=original,"A second open context was unavailable");
+    demand(0);demand(1);
+    require(adapter->take_native_lz4_read_ahead_sample(adapter->foreground_activity())==0,
+        "A different open context received the matched demand measurement");
+    callbacks.Cleanup(&file_system,context,name,0);
+    callbacks.Close(&file_system,context);
+    context=original;
+    demand(0);demand(1);
+    const auto recovery=adapter->take_native_lz4_read_ahead_sample(adapter->foreground_activity());
+    require(recovery && *recovery>0,"Matching demand observation did not survive a new forecast on the same handle");
+    callbacks.Cleanup(&file_system,context,name,0);
+    callbacks.Close(&file_system,context);
+    require(adapter->stats().contexts==0,"Profiled callback context did not retire");
+  }
+  {
+    source_fixture::Handle file(CreateFileW(path.c_str(),FILE_READ_ATTRIBUTES,FILE_SHARE_READ,nullptr,
+        OPEN_EXISTING,FILE_FLAG_OPEN_REPARSE_POINT,nullptr));
+    FILE_STORAGE_INFO disk{};
+    require(file.value!=INVALID_HANDLE_VALUE &&
+        GetFileInformationByHandleEx(file.value,FileStorageInfo,&disk,sizeof(disk)), "Independent file geometry query");
+    constexpr auto aligned=STORAGE_INFO_FLAGS_ALIGNED_DEVICE|STORAGE_INFO_FLAGS_PARTITION_ALIGNED_ON_DEVICE;
+    require(profile->logical_sector_bytes==disk.LogicalBytesPerSector &&
+        profile->physical_atomicity_bytes==disk.PhysicalBytesPerSectorForAtomicity &&
+        profile->physical_performance_bytes==disk.PhysicalBytesPerSectorForPerformance &&
+        profile->effective_atomicity_bytes==disk.FileSystemEffectivePhysicalBytesPerSectorForAtomicity &&
+        profile->alignment_flags==(disk.Flags&aligned),"File profile differed from the independent OS query");
+  }
+  const auto cpu=flitzfs::NativeVolumeFile::inspect(path,volume);
+  require(cpu.filesystem().read("sample.bin",0,static_cast<std::uint32_t>(content.size()))==content,
+      "Independent CPU reopen changed the profiled volume");
+  std::wcout<<L"attached_file_profile same_handle=1 geometry_verified=1 seek_cache_unknown=1"
+      <<L" first_sample=1 stale_forecast_discarded=1 budget_checked=1 reopened_sample=1"
+      <<L" matched_demand_retained=1 sample_context_isolated=1 independent_cpu_reopen=1 retired=1\n";
+}
+
 } // namespace
 int wmain(int argc,wchar_t** argv) {try {
   require_hosted_opt_in();require(argc>=2&&argc<=5,"explicit writable probe mode required");
   const std::wstring_view mode(argv[1]);
+  if(mode==L"--run-attached-file-profile") {
+    require_cut_guest();require(argc==2,"Attached backing profile fixture arguments");
+    run_attached_file_profile();
+    return 0;
+  }
   if(mode==L"--publication-cut-source") {
     require_cut_guest();require(argc==5,"Publication-cut source arguments");
     const auto cut=std::ranges::find(cut_names,std::wstring_view(argv[3]));

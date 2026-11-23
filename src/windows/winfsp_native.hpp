@@ -1,5 +1,6 @@
 #pragma once
 #include "../native_lz4_read.hpp"
+#include "../store_file.hpp"
 #include "native_file_info.hpp"
 #include "native_deferred_write.hpp"
 #include "winfsp_origin.hpp"
@@ -195,11 +196,13 @@ class WinFspNativeWritable final {
   // same control lock as callbacks; no mutable writer escapes.
   NativeSessionStats stats() const;
   NativeFilesystemSnapshot snapshot() const;
+  std::optional<detail::VolumeFileProfile> attached_file_profile() const noexcept;
  private:
   friend class WinFspMemoryVolume;
   void configure_memory_maintenance(MemoryVolumeBacking&) noexcept;
   static std::unique_ptr<WinFspNativeWritable> from_indexed_session(
-      NativeFileSession,StoreIdentity volume,std::uint64_t created,NativeMaintenancePolicy);
+      NativeFileSession,StoreIdentity volume,std::uint64_t created,NativeMaintenancePolicy,
+      std::optional<detail::VolumeFileProfile> profile={});
   static std::unique_ptr<WinFspNativeWritable> resume_managed_impl(std::shared_ptr<StoreByteIo>,
       StoreIdentity,std::optional<std::uint64_t>,const NativeVolumeImageResolver&,StoreCompressionOptions,
       std::shared_ptr<StoreByteIo>,std::uint64_t,bool closed_indexed,MemoryVolumeBacking* memory=nullptr,

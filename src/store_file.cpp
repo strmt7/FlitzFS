@@ -81,6 +81,7 @@ constexpr auto maximum_windows_file_bytes=static_cast<std::uint64_t>((std::numer
 struct PinnedDirectory {
   HANDLE handle=INVALID_HANDLE_VALUE;
   std::wstring volume_path,volume_root;
+  UINT drive_type=DRIVE_UNKNOWN;
   PinnedDirectory()=default;
   PinnedDirectory(const PinnedDirectory&)=delete;
   PinnedDirectory& operator=(const PinnedDirectory&)=delete;
@@ -146,10 +147,11 @@ void pin_volume_directory(PinnedDirectory& pinned,std::filesystem::path file) {
   require_opened_path(pinned.handle,path);
   pinned.volume_path=opened_path(pinned.handle,VOLUME_NAME_GUID);
   pinned.volume_root=volume_root_from_path(pinned.volume_path);
-  if(!local_volume_drive(GetDriveTypeW(pinned.volume_root.c_str())))
+  pinned.drive_type=GetDriveTypeW(pinned.volume_root.c_str());
+  if(!local_volume_drive(pinned.drive_type))
     fail("the opened parent has no supported local volume");
 }
-void validate_volume_storage(HANDLE file,StoreIoContract qualified) {
+FILE_STORAGE_INFO validate_volume_storage(HANDLE file,StoreIoContract qualified) {
   FILE_STORAGE_INFO disk{};
   if(!GetFileInformationByHandleEx(file,FileStorageInfo,&disk,sizeof(disk)) ||
       disk.ByteOffsetForSectorAlignment || disk.ByteOffsetForPartitionAlignment)
@@ -159,6 +161,7 @@ void validate_volume_storage(HANDLE file,StoreIoContract qualified) {
     if(!unit || (unit&(unit-1)) || unit>qualified.write_failure_unit_bytes)
       fail("live storage geometry exceeds the qualified failure unit");
   }
+  return disk;
 }
 VolumeFileGeometry query_volume_file_geometry(HANDLE file,const std::wstring& volume) {
   wchar_t filesystem[32]{};
@@ -204,6 +207,7 @@ class Output final:public NativeVolumeRangeIo {
   PinnedDirectory parent_pin_;
   HANDLE handle_=INVALID_HANDLE_VALUE;
   VolumeFileLifetime volume_lifetime_;
+  std::optional<VolumeFileProfile> volume_profile_;
   std::optional<PositionedFileIo> demand_io_;
   mutable std::mutex capture_mutex_;
   mutable std::optional<PositionedFileIo> capture_io_;
@@ -342,8 +346,9 @@ class Output final:public NativeVolumeRangeIo {
           fail("volume-file storage requires ordinary caching semantics");
         if(!same_windows_path(opened_path(handle_,VOLUME_NAME_GUID),target))
           fail("the opened file is redirected from the selected backing path");
-        validate_volume_storage(handle_,c);
-        constrain_volume_extent(query_volume_file_geometry(handle_,parent_pin_.volume_root),reopen);
+        const auto disk=validate_volume_storage(handle_,c);
+        const auto geometry=query_volume_file_geometry(handle_,parent_pin_.volume_root);
+        constrain_volume_extent(geometry,reopen);
         if(static_cast<std::uint64_t>(size.QuadPart)>capacity_)fail("the backing file exceeds the live extent limit");
         sparse_=(attr.FileAttributes&FILE_ATTRIBUTE_SPARSE_FILE)!=0;
         if(sparse_ && !c.isolated_range_reclamation)
@@ -357,6 +362,11 @@ class Output final:public NativeVolumeRangeIo {
             sparse_=true;
           }
         }
+        constexpr auto alignment_flags=STORAGE_INFO_FLAGS_ALIGNED_DEVICE|STORAGE_INFO_FLAGS_PARTITION_ALIGNED_ON_DEVICE;
+        volume_profile_=VolumeFileProfile{geometry.maximum_extent,geometry.allocation_unit_bytes,
+            disk.LogicalBytesPerSector,disk.PhysicalBytesPerSectorForAtomicity,disk.PhysicalBytesPerSectorForPerformance,
+            disk.FileSystemEffectivePhysicalBytesPerSectorForAtomicity,disk.Flags&alignment_flags,c.write_failure_unit_bytes,
+            parent_pin_.drive_type==DRIVE_REMOVABLE,sparse_};
       }
       extent_=admitted_extent_=static_cast<std::uint64_t>(size.QuadPart);
       if(volume_file_)published_extent_.store(extent_,std::memory_order_release);
@@ -400,6 +410,9 @@ class Output final:public NativeVolumeRangeIo {
  protected:
   bool allows_writer() const noexcept override {return volume_lifetime_.current();}
  public:
+  std::optional<VolumeFileProfile> volume_profile() const noexcept {
+    return volume_lifetime_.current()?volume_profile_:std::nullopt;
+  }
 #endif
   bool concurrent_reads_supported() const noexcept override {
 #ifdef _WIN32
@@ -626,7 +639,11 @@ VolumeFileGeometry volume_file_geometry(std::wstring_view filesystem,bool suppor
     return {maximum_windows_file_bytes,false};
   // The current Windows NTFS maximum is (2^32 * cluster size) - 64 KiB.
   return {ntfs_cluster_limit*cluster_bytes-ntfs_reserved_tail,
-      supports_sparse_files && kStoreCommitUnit%cluster_bytes==0};
+      supports_sparse_files && kStoreCommitUnit%cluster_bytes==0,cluster_bytes};
+}
+std::optional<VolumeFileProfile> volume_file_profile(const StoreByteIo* backing) noexcept {
+  const auto* file=dynamic_cast<const Output*>(backing);
+  return file?file->volume_profile():std::nullopt;
 }
 VolumeFileDestination volume_file_destination(const std::filesystem::path& path) {
   path_policy(path);

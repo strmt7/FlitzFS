@@ -229,7 +229,7 @@ struct WinFspNativeWritable::Impl {
     std::uintptr_t token=0;
     std::uint64_t offset=0;
     std::uint32_t bytes=0;
-    std::uint64_t created_ms=0,observed_lead_ms=0;
+    std::uint64_t created_ms=0,observed_lead_ms=0,demand_cost_ns=0;
     bool overlaps(std::uint64_t start,std::uint32_t length) const noexcept {
       return length && (start<=offset?offset-start<length:start-offset<bytes);
     }
@@ -247,6 +247,10 @@ struct WinFspNativeWritable::Impl {
     ReadAhead target;
     std::unique_ptr<detail::NativeLz4ReadyReads> result;
   };
+  struct DemandSample {
+    std::uintptr_t token=0;
+    std::uint64_t cost_ns=0;
+  };
   struct ActivitySignal final:detail::NativeVolumeRangeWake {
     Handle event;
     std::atomic<bool> failed{false};
@@ -261,7 +265,8 @@ struct WinFspNativeWritable::Impl {
   std::atomic<bool> read_ahead_active{false};
   std::optional<ReadAhead> read_ahead;
   std::optional<ReadAhead> read_ahead_sample_target;
-  std::uint64_t read_ahead_sample_ns=0;
+  std::optional<DemandSample> recovery_demand_sample;
+  bool file_read_ahead_seeded=false;
   PreparedRead prepared_read;
   std::uint64_t read_ahead_hits=0,last_read_ahead_observation=0;
   std::array<Slot,NativeFileSession::max_contexts> slots{};
@@ -280,6 +285,7 @@ struct WinFspNativeWritable::Impl {
   std::unique_ptr<NativeGroupMaintenance> groups;
   NativeMaintenancePolicy group_policy;
   MemoryVolumeBacking* memory_backing=nullptr;
+  std::optional<detail::VolumeFileProfile> file_profile;
   std::uint64_t last_indexed_observation=0,last_indexed_capture=0;
   bool maintenance_cancelled=false,scrub_yield=false,directory_backfill_yield=false,paired_seal_memory=false;
   std::atomic<bool> callbacks_bound{false};
@@ -547,6 +553,7 @@ struct WinFspNativeWritable::Impl {
     slot.last_read={};
     if(read_ahead && read_ahead->token==slot.token)read_ahead.reset();
     if(read_ahead_sample_target && read_ahead_sample_target->token==slot.token)read_ahead_sample_target.reset();
+    if(recovery_demand_sample && recovery_demand_sample->token==slot.token)recovery_demand_sample.reset();
     if(prepared_read.target.token==slot.token)prepared_read={};
   }
   bool read_ahead_pending() const noexcept {
@@ -558,15 +565,15 @@ struct WinFspNativeWritable::Impl {
         (!deferred || (!deferred->publication_pending_locked() && !deferred->stats_locked().worker_busy));
   }
   std::vector<std::byte> read_with_demand_sample(const Slot& slot,std::uint64_t offset,std::uint32_t length,
-      detail::NativeLz4ReadyReads* ready) {
+      detail::NativeLz4ReadyReads* ready,bool seed_file_cost,std::uint64_t& demand_cost) {
     const auto& target=read_ahead_sample_target;
-    if(!target || target->token!=slot.token || !length || (ready && ready->pending()))
+    if(!length || (ready && ready->pending()))
       return session.read(slot.handle,offset,length,ready);
-    const bool matching=target->bytes==kNativeExtentBytes?
+    const bool matching=target && target->token==slot.token && (target->bytes==kNativeExtentBytes?
         length<=target->bytes && offset>=target->offset && offset-target->offset<=target->bytes-length:
-        offset<=target->offset && target->offset-offset<=length && length-(target->offset-offset)>=target->bytes;
-    if(!matching)return session.read(slot.handle,offset,length,ready);
-    read_ahead_sample_target.reset();
+        offset<=target->offset && target->offset-offset<=length && length-(target->offset-offset)>=target->bytes);
+    if(!matching && !seed_file_cost)return session.read(slot.handle,offset,length,ready);
+    if(matching)read_ahead_sample_target.reset();
     Lz4DemandObservation observation;
     const auto start=std::chrono::steady_clock::now();
     auto bytes=session.read(slot.handle,offset,length,&observation);
@@ -574,7 +581,9 @@ struct WinFspNativeWritable::Impl {
       // Complete demand service includes backing calls and CPU verification.
       const auto elapsed=std::chrono::duration_cast<std::chrono::nanoseconds>(
           std::chrono::steady_clock::now()-start).count();
-      read_ahead_sample_ns=elapsed>0?static_cast<std::uint64_t>(elapsed):1;
+      const auto cost=elapsed>0?static_cast<std::uint64_t>(elapsed):1;
+      if(matching)recovery_demand_sample=DemandSample{slot.token,cost};
+      else demand_cost=cost;
     }
     return bytes;
   }
@@ -592,7 +601,10 @@ struct WinFspNativeWritable::Impl {
     auto* ready=native_lz4_reads.get();
     if((!ready || !ready->pending()) && has_prepared && prepared.target.overlaps(offset,length))
       ready=prepared.result.get();
-    auto bytes=read_with_demand_sample(slot,offset,length,ready);
+    const bool adjacent_window=adjacent && std::uint64_t(previous.bytes)+length>=kNativeExtentBytes;
+    const bool seed_file_cost=file_profile && !file_read_ahead_seeded && adjacent_window;
+    std::uint64_t demand_cost=0;
+    auto bytes=read_with_demand_sample(slot,offset,length,ready,seed_file_cost,demand_cost);
     if(has_prepared && prepared.result->consumed()>prior_hits)
       read_ahead_hits+=prepared.result->consumed()-prior_hits;
     const auto maximum=(std::numeric_limits<std::uint64_t>::max)();
@@ -606,12 +618,12 @@ struct WinFspNativeWritable::Impl {
       return bytes;
     }
     const auto gap=(kNativeExtentBytes-end%kNativeExtentBytes)%kNativeExtentBytes;
-    if(adjacent && std::uint64_t(previous.bytes)+length>=kNativeExtentBytes && gap<length && gap<=maximum-end) {
+    if(adjacent_window && gap<length && gap<=maximum-end) {
       const auto remaining=length-gap;
       const auto frames=(remaining+kNativeExtentBytes-1)/kNativeExtentBytes;
       const auto window=static_cast<std::uint32_t>(frames*kNativeExtentBytes);
       if(window<=maximum-end-gap)read_ahead=ReadAhead{slot.token,end+gap,window,completed_ms,
-          (std::min)(idle,previous.idle_before_ms)};
+          (std::min)(idle,previous.idle_before_ms),demand_cost};
     }
     return bytes;
   }
@@ -993,10 +1005,12 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_managed_index
   return from_indexed_session(std::move(session),volume,stamp,group_policy);
 }
 std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::from_indexed_session(
-    NativeFileSession session,StoreIdentity volume,std::uint64_t stamp,NativeMaintenancePolicy group_policy) {
+    NativeFileSession session,StoreIdentity volume,std::uint64_t stamp,NativeMaintenancePolicy group_policy,
+    std::optional<detail::VolumeFileProfile> profile) {
   auto impl=std::make_unique<Impl>(std::move(session),volume,stamp,indexed_file_info);
   impl->groups=std::make_unique<NativeGroupMaintenance>(impl->session,group_policy);
   impl->group_policy=group_policy;
+  impl->file_profile=profile;
   return std::unique_ptr<WinFspNativeWritable>(new WinFspNativeWritable(std::move(impl)));
 }
 std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_indexed_memory(
@@ -1012,15 +1026,17 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_indexed_memor
 }
 std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_file_volume(std::shared_ptr<StoreByteIo> empty,
     StoreIdentity volume,StoreIdentity image,PagedStoreLimits limits,StoreCompressionOptions foreground) {
+  const auto profile=detail::volume_file_profile(empty.get());
   const auto security=owner_security();const auto stamp=native_cleanup_utc();
   const NativeVolumeRootMetadata root{{stamp,stamp,stamp,stamp,FILE_ATTRIBUTE_DIRECTORY},security};
   auto session=NativeVolumeFile::create(std::move(empty),volume,image,limits,foreground,
       NativeDispositionPolicy::windows_global,root);
-  return from_indexed_session(std::move(session),volume,stamp,{});
+  return from_indexed_session(std::move(session),volume,stamp,{},profile);
 }
 std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_file_volume(std::shared_ptr<StoreByteIo> existing,
     std::optional<StoreIdentity> expected,StoreCompressionOptions foreground,
     const std::function<void(StoreIdentity)>& retain_verified) {
+  const auto profile=detail::volume_file_profile(existing.get());
   auto regions=NativeVolumeFile::open_regions(std::move(existing),true,expected);
   const auto volume=regions.selection.volume_identity;
   UINT64 created=0;
@@ -1029,7 +1045,7 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_file_volume(s
   };
   auto session=NativeVolumeFile::resume_regions(std::move(regions),foreground,
       NativeDispositionPolicy::windows_global,fresh_volume_identity,admit,retain_verified);
-  return from_indexed_session(std::move(session),volume,created,{});
+  return from_indexed_session(std::move(session),volume,created,{},profile);
 }
 std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_file_volume(const std::filesystem::path& path,
     StoreIoContract contract,StoreIdentity volume,StoreIdentity image,PagedStoreLimits limits,StoreCompressionOptions foreground) {
@@ -1184,7 +1200,7 @@ void WinFspNativeWritable::cancel_background_maintenance() {
   impl_->maintenance_cancelled=true;
   impl_->read_ahead.reset();
   impl_->read_ahead_sample_target.reset();
-  impl_->read_ahead_sample_ns=0;
+  impl_->recovery_demand_sample.reset();
   impl_->prepared_read={};
   impl_->groups.reset();
   if(impl_->memory_backing)impl_->memory_backing->cancel_compaction(impl_->session);
@@ -1406,10 +1422,21 @@ bool WinFspNativeWritable::native_lz4_read_ahead_pending() const noexcept {
 std::optional<std::uint64_t> WinFspNativeWritable::take_native_lz4_read_ahead_sample(std::uint64_t epoch) noexcept {
   try {
     std::unique_lock guard(impl_->control,std::try_to_lock);
-    if(guard && impl_->may_prepare_read() && foreground_activity()==epoch && impl_->read_ahead_pending())
-      return std::exchange(impl_->read_ahead_sample_ns,std::uint64_t{0});
+    if(guard && impl_->may_prepare_read() && foreground_activity()==epoch && impl_->read_ahead_pending()) {
+      auto cost=std::exchange(impl_->read_ahead->demand_cost_ns,std::uint64_t{0});
+      const auto& recovery=impl_->recovery_demand_sample;
+      if(recovery && recovery->token==impl_->read_ahead->token) {
+        cost=(std::max)(cost,recovery->cost_ns);
+        impl_->recovery_demand_sample.reset();
+      }
+      if(cost && impl_->file_profile)impl_->file_read_ahead_seeded=true;
+      return cost;
+    }
   }catch(...) {}
   return {};
+}
+std::optional<detail::VolumeFileProfile> WinFspNativeWritable::attached_file_profile() const noexcept {
+  return impl_->file_profile;
 }
 bool WinFspNativeWritable::advance_native_lz4_read_ahead(
     const NativeMaintenanceObservation& observed,std::uint64_t now,std::uint64_t epoch,

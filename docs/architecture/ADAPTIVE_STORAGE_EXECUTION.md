@@ -374,14 +374,30 @@ elapsed-work pacing. This changes admission between synchronous steps.
 [Windows background resource scheduling](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadpriority) ·
 [Windows monotonic timing](https://learn.microsoft.com/en-us/windows/win32/sysinfo/acquiring-high-resolution-time-stamps)
 
+The ordinary Windows file attachment carries a profile from its exclusive
+backing handle into the controller. When an adjacent CPU demand read checks
+native LZ4 input and predicts the next range, that demand can supply the
+first read-ahead cost estimate. The estimate comes from the requested read
+and includes its verification and decode. The forecast carries the first
+sample until the controller consumes it once or foreground activity replaces
+the forecast. After a refusal, a matching demand sample stays with its open
+context until that context supplies another forecast. Live idle, memory and
+foreground checks govern admission for speculative work. A fresh controller
+learns from its own requests.
+The disposable NTFS test matched the profile to an independent Windows
+query of the same backing file. It verified a one-use demand sample,
+discarded a replaced forecast, checked the existing idle budget boundary
+and repeated the sample after exclusive reopen. A separate mounted
+handoff checked the same backing path through selector publication.
+[Opened backing profile](../PERSISTENT_VOLUME_FILE.md#create-inspect-and-resume) ·
+[Windows verification](../evidence/windows11-attached-storage-profile-2026-11-23.json)
+
 Continue the backing-dependent work in this order.
 
-1. Bind advisory properties to the opened volume identity. Probe only the
-   selected backing in managed setup, with finite ownership and deadlines.
-   Use explicit provider identity for process memory. Keep file-system-level
-   range reclamation, device TRIM and qualified flush behavior independent.
-   Reacquire advisory properties on a fresh attach. Label missing or
-   ambiguous evidence as unknown.
+1. Qualify any optional device advisory queries against the actual selected
+   backing, with finite ownership and deadlines. Keep filesystem-level range
+   reclamation, advertised device TRIM and qualified flush behavior independent.
+   Preserve unknowns where the file handle and device supply different evidence.
 2. Use the positioned file provider for bounded opt-in capture. The Windows
    guest verified independent foreground access and pinned range retirement.
    Qualify it on persistent devices before automatic admission, separating kernel

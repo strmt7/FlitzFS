@@ -291,6 +291,17 @@ of the new directory entry require qualification for the actual storage chain.
 [Windows storage geometry](https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_storage_info) ·
 [Windows flush contract](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers)
 
+The opened provider retains the sector geometry and documented alignment
+flags from that same Windows file. The profile includes the NTFS allocation
+unit when available, the outer filesystem's maximum extent, the qualified
+failure unit, whether Windows reported a removable drive and the admitted
+sparse-range capability. A new exclusive file open collects a new profile.
+When the helper remounts a retained handle, the new controller starts a new
+I/O history under the same file lease. Seek penalty, TRIM, transport and
+removal policy remain unknown through this file query.
+[Windows storage geometry](https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_storage_info) ·
+[Windows drive type](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getdrivetypew)
+
 Open verifies both head peers and binds the selected data to the declared layout
 and epoch. A supplied expected volume identity must match. Without that identity,
 the checked peers must belong to the same volume. The independent CPU reader

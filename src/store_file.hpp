@@ -1,5 +1,6 @@
 #pragma once
 #include "flitzfs/object_store.hpp"
+#include <optional>
 #include <string>
 #include <string_view>
 namespace flitzfs::detail {
@@ -12,6 +13,7 @@ std::shared_ptr<StoreByteIo> read_store_file(const std::filesystem::path&,
 struct VolumeFileGeometry {
   std::uint64_t maximum_extent;
   bool isolated_sparse_ranges;
+  std::uint64_t allocation_unit_bytes=0;
 };
 VolumeFileGeometry volume_file_geometry(std::wstring_view filesystem,bool supports_sparse_files,
     std::uint64_t cluster_bytes) noexcept;
@@ -22,6 +24,16 @@ struct VolumeFileDestination {
   VolumeFileGeometry geometry;
 };
 VolumeFileDestination volume_file_destination(const std::filesystem::path&);
+// Snapshot from the qualified open file and its pinned volume. Zero allocation
+// or performance units mean the provider supplied no admitted value.
+struct VolumeFileProfile {
+  std::uint64_t maximum_extent=0,allocation_unit_bytes=0;
+  std::uint32_t logical_sector_bytes=0,physical_atomicity_bytes=0,physical_performance_bytes=0;
+  std::uint32_t effective_atomicity_bytes=0,alignment_flags=0,qualified_failure_unit_bytes=0;
+  bool removable_reported=false,isolated_sparse_ranges=false;
+  bool operator==(const VolumeFileProfile&) const noexcept=default;
+};
+std::optional<VolumeFileProfile> volume_file_profile(const StoreByteIo*) noexcept;
 std::shared_ptr<StoreByteIo> new_volume_file(const std::filesystem::path&,StoreIoContract,std::uint64_t limit,
     std::wstring_view expected_volume={});
 std::shared_ptr<StoreByteIo> reopen_volume_file(const std::filesystem::path&,StoreIoContract,std::uint64_t limit,

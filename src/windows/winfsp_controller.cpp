@@ -63,6 +63,7 @@ struct WinFspVolumeController::Impl {
       std::optional<NativeLz4ReadWorkerProfile> read_profile):
       status_changed(notification),plan(std::move(p)),residency(memory) {
     if(!source || !valid_native_write_plan(plan))throw std::invalid_argument("Invalid controller source or mount plan");
+    current.file_backing=source->attached_file_profile();
     if(!memory)source->enable_paired_seal_memory();
     if(read_profile) {
       try {
