@@ -6,7 +6,8 @@ namespace flitzfs {
 namespace {
 bool verified(const NativeAmdWriteSample& sample,bool amd) noexcept {
   return sample.elapsed_ns && sample.occupied_bytes && sample.input_digest!=decltype(sample.input_digest){} &&
-      sample.cpu_readback_verified && sample.retirement_confirmed && sample.amd_used==amd;
+      sample.cpu_readback_verified && sample.retirement_confirmed && sample.device_executed==amd &&
+      (amd || !sample.stored_lz4_candidates);
 }
 }
 
@@ -23,10 +24,12 @@ NativeAmdWritePreference evaluate_native_amd_writes(const NativeAmdWriteEvidence
   auto cpu_min=(std::numeric_limits<std::uint64_t>::max)();
   std::uint64_t cpu_max=0,amd_max=0;
   bool smaller=true,nonexpanding=true;
+  bool device_output_stored=true;
   auto previous_order=!evidence.comparisons.front().amd_first;
   for(const auto& trial:evidence.comparisons) {
     if(trial.amd_first==previous_order || trial.cpu.input_digest!=trial.amd.input_digest ||
-        !verified(trial.cpu,false) || !verified(trial.amd,true))
+        !verified(trial.cpu,false) || !verified(trial.amd,true) ||
+        trial.amd.stored_lz4_candidates>shape.input_bytes/kNativeExtentBytes)
       return Result::unqualified;
     previous_order=trial.amd_first;
     cpu_min=(std::min)(cpu_min,trial.cpu.elapsed_ns);
@@ -34,8 +37,9 @@ NativeAmdWritePreference evaluate_native_amd_writes(const NativeAmdWriteEvidence
     amd_max=(std::max)(amd_max,trial.amd.elapsed_ns);
     smaller=smaller && trial.amd.occupied_bytes<trial.cpu.occupied_bytes;
     nonexpanding=nonexpanding && trial.amd.occupied_bytes<=trial.cpu.occupied_bytes;
+    device_output_stored=device_output_stored && trial.amd.stored_lz4_candidates;
   }
-  if((nonexpanding && amd_max<cpu_min) || (smaller && amd_max<=cpu_max))return Result::amd;
+  if(device_output_stored && ((nonexpanding && amd_max<cpu_min) || (smaller && amd_max<=cpu_max)))return Result::amd;
   return Result::cpu;
 }
 

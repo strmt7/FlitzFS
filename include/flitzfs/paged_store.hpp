@@ -43,6 +43,8 @@ struct PagedStoreInfo {
   bool degraded_roots=false,degraded_metadata=false;
   bool mirrored_payloads=false,degraded_payloads=false;
   std::uint32_t metadata_page_bytes=0;
+  // Counts objects once, regardless of the number of protected copies.
+  std::uint32_t stored_lz4_candidates=0;
 };
 struct PagedStoreWriteResult {
   PagedStoreInfo storage;

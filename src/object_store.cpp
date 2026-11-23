@@ -768,6 +768,7 @@ StoreCommitInfo ObjectStoreWriter::commit_impl(std::span<const StoreMutation> ch
   struct Prepared {std::uint64_t offset;std::array<std::byte,kDataHeader> header;Bytes data;};
   std::vector<Prepared> prepared;prepared.reserve(changes.size());
   auto cursor=impl_->append_floor;
+  std::uint32_t stored_lz4_candidates=0;
   // Private copies and every admission check precede the first backing write.
   for(const auto& m:changes) {
     auto it=std::lower_bound(next.entries.begin(),next.entries.end(),m.id,[](const Entry& e,auto key){return e.id<key;});
@@ -776,6 +777,7 @@ StoreCommitInfo ObjectStoreWriter::commit_impl(std::span<const StoreMutation> ch
       next.entries.erase(it);continue;
     }
     auto encoded=impl_->encoder.encode_with_lz4(m.bytes,m.lz4_candidate,m.lz4_literal_prefix_bytes);
+    stored_lz4_candidates+=encoded.used_lz4_candidate;
     Prepared record{cursor,{},std::move(encoded.payload)};
     auto& h=record.header;
     copy_field(h,0,kDataMagic);put32(h,8,1);put32(h,12,encoded.codec);put64(h,16,m.id);put64(h,24,next.generation);
@@ -800,7 +802,9 @@ StoreCommitInfo ObjectStoreWriter::commit_impl(std::span<const StoreMutation> ch
       publish_replicated(plan,*plan.last.image);
     }catch(...){impl_->poisoned=true;throw;}
     impl_->state=std::move(plan.last);impl_->append_floor=impl_->state.end;
-    return state_info(impl_->state);
+    auto result=state_info(impl_->state);
+    result.stored_lz4_candidates=stored_lz4_candidates;
+    return result;
   }
   const auto index=manifest(next);
   const auto index_offset=cursor;next.index_offset=index_offset;
@@ -821,7 +825,9 @@ StoreCommitInfo ObjectStoreWriter::commit_impl(std::span<const StoreMutation> ch
     next.image->flush(); // Acknowledge ONLY after publication durability.
   } catch(...) {impl_->poisoned=true;throw;}
   impl_->state=std::move(next);impl_->append_floor=impl_->state.end;
-  return state_info(impl_->state);
+  auto result=state_info(impl_->state);
+  result.stored_lz4_candidates=stored_lz4_candidates;
+  return result;
 }
 StoreCommitInfo ObjectStoreWriter::flush_checkpoint() {
   if(!impl_)fail("moved-from writer");

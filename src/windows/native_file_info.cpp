@@ -93,8 +93,10 @@ NativeWindowsIoOutcome dispatch_native_write(NativeFileSession& session,const Na
 NativeWindowsIoOutcome dispatch_native_write_with_lz4(NativeFileSession& session,const NativeFileHandle& handle,
     const void* buffer,UINT64 offset,ULONG length,bool append,bool constrained,
     std::span<const NativeLz4ExtentCandidate> candidates,const NativeAutomaticMetadata& effect,
-    NativeFileInfoAllocation mode,PULONG transferred,FSP_FSCTL_FILE_INFO* output) noexcept {
+    NativeFileInfoAllocation mode,PULONG transferred,FSP_FSCTL_FILE_INFO* output,
+    std::uint32_t* stored_lz4_candidates) noexcept {
   if(transferred)*transferred=0;if(output)*output={};
+  if(stored_lz4_candidates)*stored_lz4_candidates=0;
   const bool indexed=mode==NativeFileInfoAllocation::indexed_reserved_cache;
   if(!transferred || !output || !policy(mode) || (length && !buffer) ||
       length>native_windows_write_limit(mode) || append!=(offset==UINT64_MAX) || !native_cleanup_metadata_valid(effect))
@@ -114,6 +116,7 @@ NativeWindowsIoOutcome dispatch_native_write_with_lz4(NativeFileSession& session
     // sample a clock, allocate, release a context or retry after publication.
     if(!encode_native_file_info(committed.state,mode,*output))
       return failure(session,STATUS_IO_DEVICE_ERROR,true);
+    if(stored_lz4_candidates)*stored_lz4_candidates=committed.transaction.storage.stored_lz4_candidates;
     *transferred=committed.bytes;return NativeWindowsIoOutcome{STATUS_SUCCESS,false};
   });
 }

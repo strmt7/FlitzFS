@@ -33,6 +33,7 @@ struct EncodedStoreObject {
   Digest decoded_digest{};
   bool used_match_proposals=false;
   std::uint32_t match_baseline_bytes=0; // CPU baseline only when hints were selected.
+  bool used_lz4_candidate=false;
 };
 struct ColdStoreEncoding {
   std::optional<EncodedStoreObject> smaller;

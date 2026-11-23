@@ -29,7 +29,8 @@ NativeWindowsIoOutcome dispatch_native_write(NativeFileSession&,const NativeFile
 NativeWindowsIoOutcome dispatch_native_write_with_lz4(NativeFileSession&,const NativeFileHandle&,
     const void* buffer,UINT64 offset,ULONG length,bool append,bool constrained,
     std::span<const NativeLz4ExtentCandidate>,const NativeAutomaticMetadata&,
-    NativeFileInfoAllocation,PULONG transferred,FSP_FSCTL_FILE_INFO*) noexcept;
+    NativeFileInfoAllocation,PULONG transferred,FSP_FSCTL_FILE_INFO*,
+    std::uint32_t* stored_lz4_candidates=nullptr) noexcept;
 NativeWindowsIoOutcome dispatch_native_set_size(NativeFileSession&,const NativeFileHandle&,
     UINT64 bytes,bool allocation,const NativeAutomaticMetadata&,NativeFileInfoAllocation,
     FSP_FSCTL_FILE_INFO*) noexcept;

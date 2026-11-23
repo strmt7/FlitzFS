@@ -897,13 +897,16 @@ void fast_ingestion_transactions() {
   require(put.bytes==original.bytes && put.lz4_candidate==original.lz4_candidate,"native mutation input changed");
   require(committed.replicated_checkpoint && committed.stored_payload_bytes==reference.payload.size(),
       "fast record publication/size disagrees with CPU recovery");
+  require(committed.stored_lz4_candidates==static_cast<std::uint32_t>(reference.codec==kStoreLz4),
+      "stored candidate count must describe the selected representation");
   const auto snapshot=ObjectStoreSnapshot::open(ram);
-  require(snapshot.read(1)==plain,"fast persisted independent CPU recovery");
+  require(snapshot.read(1)==plain && !snapshot.info().stored_lz4_candidates,
+      "fast persisted independent CPU recovery or publication count leaked into the snapshot");
   auto changed=plain;changed[17]^=std::byte{1};
   StoreMutation stale{1,false,changed,reference.payload};
   const auto expected=encoder.encode(changed);
   const auto next=writer.commit_replicated({&stale,1});
-  require(next.stored_payload_bytes==expected.payload.size() &&
+  require(next.stored_payload_bytes==expected.payload.size() && !next.stored_lz4_candidates &&
       ObjectStoreSnapshot::open(ram).read(1)==changed && snapshot.read(1)==plain,
       "stale compressed bytes changed current or retained generation");
   const auto writes=ram->writes;

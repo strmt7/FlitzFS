@@ -138,6 +138,9 @@ struct StoreCommitInfo {
   std::uint64_t checkpoint_generation=0; // Stable first publication of a replicated object set.
   bool replicated_checkpoint=false; // Replicated format; inspect degraded_checkpoint.
   bool degraded_checkpoint=false; // Missing/stale root or damaged manifest replica.
+  // Logical objects published using supplied LZ4 candidates in this commit.
+  // Snapshot and checkpoint queries return zero.
+  std::uint32_t stored_lz4_candidates=0;
 };
 
 class ObjectStoreSnapshot final {

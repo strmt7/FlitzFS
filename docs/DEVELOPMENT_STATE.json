@@ -97,6 +97,15 @@
     "unused_lease_retired_without_reply": true,
     "automatic_foreground_enrolled": false
   },
+  "amd_native_file_policy": {
+    "evidence": "docs/evidence/windows-amd-native-file-policy-2026-11-23.json",
+    "committed_candidate_count": "Counts a selected logical object once in a successful flat or paged commit.",
+    "positive_control": {"device_extents_stored": 16, "matching_mirrored_records": 32},
+    "file_policy_1mib": {"verified_candidate_extents_per_trial": 16, "stored_device_extents": 0, "matched_pairs": 3, "image_bytes_both_arms": 2621440},
+    "file_policy_63_extents": "The device deadline expired. CPU publication and independent reopen were exact.",
+    "timing_comparison_qualified": false,
+    "automatic_foreground_enrolled": false
+  },
   "amd_complete_measured_window": {
     "evidence": "docs/evidence/windows-amd-full-measured-window-2026-11-22.json",
     "partial_geometry_uses_synchronous_cpu": true,

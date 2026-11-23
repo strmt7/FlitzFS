@@ -53,6 +53,7 @@ struct NativeUniformWriteResult {
   ULONG transferred=0;
   FSP_FSCTL_FILE_INFO info{};
   std::uint32_t candidate_count=0,candidate_bytes=0;
+  std::uint32_t stored_lz4_candidates=0;
   NativeUniformAdviceReceipt advice{};
   UniformLz4WorkerOutcome worker{};
 };

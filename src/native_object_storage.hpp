@@ -14,6 +14,7 @@ inline StoreCommitInfo native_paged_info(PagedStoreInfo value) noexcept {
   result.degraded_root=value.degraded_roots;result.stored_payload_bytes=value.stored_payload_bytes;
   result.checkpoint_generation=value.checkpoint_generation;result.replicated_checkpoint=true;
   result.degraded_checkpoint=value.degraded_roots || value.degraded_metadata || value.degraded_payloads;
+  result.stored_lz4_candidates=value.stored_lz4_candidates;
   return result;
 }
 class NativeObjectSnapshot final {

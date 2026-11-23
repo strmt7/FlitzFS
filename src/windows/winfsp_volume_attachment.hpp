@@ -5,6 +5,9 @@
 #include <variant>
 
 namespace flitzfs {
+inline constexpr StoreCompressionOptions kWinFspFileForegroundCompression{
+    StoreCompressionMode::automatic,3,false};
+
 // The application selects its qualified runtime. SDK tests supply the same ABI
 // operations without starting a driver or creating a mount.
 std::unique_ptr<VolumeAttachment> make_winfsp_memory_attachment(WinFspSessionApi (*load_api)());

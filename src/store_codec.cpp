@@ -458,7 +458,7 @@ EncodedStoreObject StoreCodecEncoder::encode_with_lz4(std::span<const std::byte>
   auto baseline=encode_compressed(input,false);
   const auto best=baseline.codec==kStoreRaw?input.size():baseline.payload.size();
   if(owned.size()>=best)return verify_encoding(std::move(baseline),input);
-  return {kStoreLz4,std::move(owned),record_digest(input),false,0};
+  return {kStoreLz4,std::move(owned),record_digest(input),false,0,true};
 }
 EncodedStoreObject StoreCodecEncoder::encode_with_matches(Bytes input,std::span<const StoreMatchProposal> matches) {
 #ifdef FLITZFS_STORE_HAS_SEQUENCE_API

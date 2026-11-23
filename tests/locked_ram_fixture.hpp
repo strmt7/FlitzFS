@@ -89,7 +89,7 @@ class Block final {
 class Store final:public flitzfs::StoreByteIo {
  public:
   static std::size_t admitted(std::size_t n,std::uint32_t unit) {
-    check(n&&n<=8U*1024*1024&&flitzfs::valid_store_io_contract({unit,true}),"locked RAM store shape");
+    check(n&&n<=aggregate_cap/2&&flitzfs::valid_store_io_contract({unit,true}),"locked RAM store shape");
     return n;
   }
   explicit Store(std::size_t capacity,std::uint32_t failure_unit=65536)

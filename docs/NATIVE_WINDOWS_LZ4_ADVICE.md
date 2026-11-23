@@ -45,6 +45,48 @@ attempt refused stale completion telemetry, retired its worker and completed
 with byte-exact CPU recovery. CPU remains the preferred write path for these
 workloads. [Physical-host evidence](evidence/native-lz4-advice-acceptance-2026-11-19.json)
 
+### Committed device output and the file helper's write policy
+
+The store reports the number of logical objects that used a supplied LZ4
+candidate in a successful commit. A mirrored object counts once. The result
+travels through the native write receipt. The encoder checks candidate bytes
+on CPU and retains its size comparison. Snapshots and CPU-only writes
+return zero for this counter.
+
+The foreground evaluator requires independently verified CPU readback,
+retirement and stored device output in each matched AMD sample. The paired
+trials compare callback-to-response time and protected image occupancy.
+Verified device work whose output loses storage selection can yield a valid
+CPU preference. The SDK fixture also compares the stored copies against
+verified device bodies for the known uniform positive control.
+
+The automatic profile still evaluates the CPU Zstandard alternative after
+verifying a device LZ4 candidate. Measure the full write to include this cost.
+The fast profile can replace CPU LZ4 encoding with verified device output.
+Evaluate it together with later compression and the settled volume size.
+[Encoder selection](../src/store_codec.cpp#L430)
+
+The opt-in `--compare-installed-amd-file-policy` fixture uses the Windows
+file helper's automatic compression setting and a 64 KiB isolation unit.
+It accepts a read-only corpus of complete extents up to 63 in one indexed
+fixture transaction. The CPU reference runs through the same callbacks
+and checks both committed writes and the earlier snapshot independently.
+The fixture exercises the user-mode SDK with the installed AMD worker and
+keeps the image in a bounded memory backing. Mounted operation and physical
+flush qualification use their separate fixtures.
+
+On the installed Radeon, the fast-policy positive control committed all 16
+device-produced extents. Independent inspection matched both stored copies
+of each candidate. In three alternating 1 MiB pairs using the file helper's
+automatic policy, the GPU produced 16 verified candidates per trial and the
+writer selected the CPU representation for every extent. Both images
+occupied 2,621,440 bytes in each pair. The 63-extent request reached its
+five-second GPU deadline. CPU publication and independent reopen recovered
+the bytes before the fixture reported incomplete device qualification.
+The paired storage results support the CPU choice for that input. The
+quiet-host timing comparison remains pending.
+[Matched storage and device evidence](evidence/windows-amd-native-file-policy-2026-11-23.json)
+
 ## Foreground worker preparation and ownership
 
 The mounted service binds the native handle, write geometry and owned source

@@ -694,7 +694,12 @@ void pad_index(const State& state,std::uint64_t pages,StoreByteIo* folded=nullpt
     zeros(*state.image,peer_start+used,state.end);
   }
 }
-struct PreparedObject {Entry entry;RecordHeader header{};Bytes payload;};
+struct PreparedObject {
+  Entry entry;
+  RecordHeader header{};
+  Bytes payload;
+  bool used_lz4_candidate=false;
+};
 PreparedObject prepare_object(const State& state,detail::StoreCodecEncoder& encoder,
     const StoreMutation& mutation) {
   auto encoded=encoder.encode_with_lz4(mutation.bytes,mutation.lz4_candidate,mutation.lz4_literal_prefix_bytes);
@@ -708,6 +713,7 @@ PreparedObject prepare_object(const State& state,detail::StoreCodecEncoder& enco
   if(encoded.codec!=detail::kStoreRaw)copy(h,56,encoded.decoded_digest);
   e.digest=detail::record_digest(std::span<const std::byte>(h).first(96),encoded.payload);copy(h,96,e.digest);
   record.payload=std::move(encoded.payload);
+  record.used_lz4_candidate=encoded.used_lz4_candidate;
   return record;
 }
 void place_object(const State& state,PreparedObject& record,PayloadAllocation& allocation,std::uint64_t& cursor) {
@@ -2279,9 +2285,11 @@ PagedStoreWriteResult PagedObjectStoreWriter::commit_impl(
   // The reserved catalog is independent of its credit journal. A failed
   // settlement leaves this catalog's bytes and checkpoint untouched.
   if(reserve_writes && !reserve_writes(write_bound))capacity("transaction write reservation declined");
+  std::uint32_t stored_lz4_candidates=0;
   try {
     for(const auto& record:objects) {
       write_object_record(*old.image,record.entry,record.header,record.payload,old.unit);
+      stored_lz4_candidates+=record.used_lz4_candidate;
     }
     allocation.write_padding(*old.image);
     plan.write_pages(cursor);
@@ -2292,7 +2300,9 @@ PagedStoreWriteResult PagedObjectStoreWriter::commit_impl(
     publish(plan.next);
   } catch(...) {p.poisoned=true;throw;}
   p.state=std::move(plan.next);p.append_floor=p.state.end;p.obsolete_bytes=obsolete;
-  return {flitzfs::info(p.state),write_bound};
+  auto result=flitzfs::info(p.state);
+  result.stored_lz4_candidates=stored_lz4_candidates;
+  return {result,write_bound};
 }
 PagedObjectStoreSnapshot PagedObjectStoreWriter::snapshot() const {
   return snapshot_impl(false);

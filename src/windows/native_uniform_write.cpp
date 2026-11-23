@@ -208,7 +208,7 @@ std::optional<NativeUniformWriteResult> ControlledNativeUniformWrite::finish() n
   if(capture_advice_ && submitted_)result_.worker=controller_.outcome();
   result_.outcome=dispatch_native_write_with_lz4(session_,handle_,source_.data(),offset_,
       static_cast<ULONG>(source_.size()),append_,constrained_,std::span(hints).first(count),effect_,mode_,
-      &result_.transferred,&result_.info);
+      &result_.transferred,&result_.info,&result_.stored_lz4_candidates);
   // Retain all owned buffers. Publication is followed only by trivial state
   // copies; no query, allocation, process operation or context release follows.
   pending_=false;completed_=true;return result_;

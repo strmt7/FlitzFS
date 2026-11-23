@@ -7,7 +7,8 @@ namespace flitzfs {
 struct NativeAmdWriteSample {
   std::uint64_t elapsed_ns=0,occupied_bytes=0;
   std::array<std::byte,32> input_digest{};
-  bool cpu_readback_verified=false,retirement_confirmed=false,amd_used=false;
+  bool cpu_readback_verified=false,retirement_confirmed=false,device_executed=false;
+  std::uint32_t stored_lz4_candidates=0;
 };
 
 struct NativeAmdWriteComparison {

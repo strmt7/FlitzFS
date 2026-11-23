@@ -114,7 +114,7 @@ class WinFspVolumeAttachment final:public VolumeAttachment {
 
   void start_file(WinFspSessionApi api,NativeWriteMountPlan plan,HANDLE state_changed) {
     auto& selection=*selection_;
-    constexpr StoreCompressionOptions foreground{StoreCompressionMode::automatic,3,false};
+    constexpr auto foreground=kWinFspFileForegroundCompression;
     std::unique_ptr<WinFspNativeWritable> adapter;
     if(file_) {
       adapter=WinFspNativeWritable::resume_file_volume(file_,selection.volume,foreground);

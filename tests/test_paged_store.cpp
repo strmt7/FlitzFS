@@ -1,6 +1,7 @@
 #include "flitzfs/indexed_coherence.hpp"
 #include "flitzfs/paged_store.hpp"
 #include "record_digest.hpp"
+#include "store_codec.hpp"
 #include <algorithm>
 #include <chrono>
 #include <iostream>
@@ -515,11 +516,30 @@ void codec_modes() {
   for(auto mode:{StoreCompressionMode::raw,StoreCompressionMode::automatic,StoreCompressionMode::fast}) {
     auto ram=std::make_shared<Ram>();auto writer=create(ram,mode);std::vector<StoreMutation> batch;
     for(std::size_t i=0;i<inputs.size();++i)batch.push_back({i+1,false,inputs[i],{std::byte{255}}});
-    writer.commit(batch);auto s=PagedObjectStoreSnapshot::open(ram,limits);
+    require(!writer.commit(batch).stored_lz4_candidates,"invalid candidate was counted as stored");
+    auto s=PagedObjectStoreSnapshot::open(ram,limits);
     for(std::size_t i=0;i<inputs.size();++i)require(s.read(i+1)==inputs[i],"codec mode CPU roundtrip");
     s.verify_all();
     if(mode!=StoreCompressionMode::raw)require(s.info().stored_payload_bytes<s.info().logical_bytes,"zero/pattern encoding absent");
   }
+  const StoreCompressionOptions fast{StoreCompressionMode::fast,6,false};
+  detail::StoreCodecEncoder encoder(fast);
+  Bytes repeated(65536);
+  for(std::size_t i=0;i<repeated.size();++i)repeated[i]=inputs[3][i%8192];
+  const auto reference=encoder.encode(repeated);
+  auto changed=repeated;
+  changed[0]^=std::byte{1};
+  auto ram=std::make_shared<Ram>();
+  auto writer=PagedObjectStoreWriter::create_mirrored(ram,identity(),limits,fast);
+  const StoreMutation batch[]{{1,false,repeated,reference.payload},{2,false,changed,reference.payload}};
+  const auto committed=writer.commit(batch);
+  require(committed.mirrored_payloads &&
+      committed.stored_lz4_candidates==static_cast<std::uint32_t>(reference.codec==detail::kStoreLz4),
+      "mirrored commit did not count only the selected logical candidate");
+  auto reopened=PagedObjectStoreSnapshot::open(ram,limits);
+  reopened.verify_all();
+  require(!reopened.info().stored_lz4_candidates && reopened.read(1)==repeated && reopened.read(2)==changed,
+      "candidate accounting or stale input affected independent recovery");
 }
 void scale(std::uint64_t count) {
   const auto started=std::chrono::steady_clock::now();auto ram=std::make_shared<Ram>();auto writer=create(ram);
