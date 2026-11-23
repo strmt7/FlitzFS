@@ -296,6 +296,26 @@ group boundary with a held reader, two upgraded anchors, independent CPU
 reopen and a continued write.
 [Mounted retirement evidence](evidence/windows-mounted-packed-retirement-2026-11-23.json)
 
+A subsequent signed-driver guest trace mounted each backing for three
+cycles with two files totaling 725,104 logical bytes after every burst.
+Each cycle wrote and flushed 16 revisions. The later cycles deleted and
+recreated the payload before overwriting it. The packed file settled at
+2,097,152 allocated bytes each time, and its checked tail was empty. The
+sparse file settled at 1,835,008 allocated bytes each time. Its EOF reached
+91,226,112 bytes because the two image ranges retain their logical
+positions. The fixture sampled allocation with Windows file information
+for the packed backing and the sparse allocation API for the sparse
+backing. Both measurements include the whole backing file.
+
+Both fixtures verified the held reader, detached, reopened for independent
+CPU verification and checked the persisted retirement debt without
+advancing it. Both retirement checks were clear after each cycle and all
+later mounts accepted writes. The controller produced the observed
+settlement. This is a small-set correctness trace across separate attaches.
+[Repeated settlement evidence](evidence/windows-mounted-repeated-reclamation-2026-11-23.json) ·
+[Windows file allocation information](https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_standard_info) ·
+[Windows sparse file size](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getcompressedfilesizew)
+
 After interruption, independent CPU open follows the checked head. A
 writable reopen verifies and repairs the selected head before attempting
 to reclaim an interrupted candidate or old image. Reclamation checks

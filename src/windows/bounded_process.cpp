@@ -73,12 +73,14 @@ ProcessResult run_bounded_publication_probe(const std::filesystem::path& executa
   const std::filesystem::path caller(std::wstring_view(module,length));
   const auto source=executable==caller && executable.filename()==L"flitzfs_write_probe.exe" &&
       !arguments.empty() && arguments.front()==L"--sealed-selector-source";
-  const auto packed=caller.filename()==L"flitzfs_volume_app_tests.exe" &&
+  const auto image=arguments.size()==2?std::filesystem::path(arguments.back()):std::filesystem::path{};
+  const auto mounted_app=caller.filename()==L"flitzfs_volume_app_tests.exe" &&
       executable==caller.parent_path()/L"flitzfs_volume_app.exe" && arguments.size()==2 &&
       (arguments.front()==L"--create-volume-file" || arguments.front()==L"--open-volume-file") &&
-      arguments.back()==(caller.parent_path()/L"Packed.flfs").native();
-  if(!source && !packed)throw std::invalid_argument("Publication probe executable or mode differs");
-  return ProcessObserver::supervise(executable,arguments,budget,packed?kMountedAppProbeTimeoutMs:100000,observer);
+      image.is_absolute() && image==image.lexically_normal() &&
+      image.parent_path()==caller.parent_path() && image.extension()==L".flfs";
+  if(!source && !mounted_app)throw std::invalid_argument("Publication probe executable or mode differs");
+  return ProcessObserver::supervise(executable,arguments,budget,mounted_app?kMountedAppProbeTimeoutMs:100000,observer);
 }
 #endif
 ProcessResult ProcessObserver::supervise(const std::filesystem::path& executable,

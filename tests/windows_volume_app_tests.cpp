@@ -2,6 +2,9 @@
 #include "bounded_process.hpp"
 #include "memory_volume_factory.hpp"
 #include "windows_app_budget.hpp"
+#ifdef FLITZFS_OBSERVE_VOLUME_PUBLICATION
+#include "winfsp_native.hpp"
+#endif
 #include "flitzfs/native_volume_file.hpp"
 #include "flitzfs/read_only_file.hpp"
 #include "../src/record_digest.hpp"
@@ -720,6 +723,13 @@ struct MountedTrialFile {
 
 enum class MountedRecoveryPhase {none,interrupt,resume};
 enum class MountedRecoveryOperation {create_file,overwrite_and_rename};
+enum class MountedReclaimBacking {packed,sparse};
+struct MountedReclaimCycle {
+  MountedReclaimBacking backing;
+  unsigned cycle=0;
+  std::uint64_t baseline_ceiling=0;
+  std::uint64_t peak_allocated=0;
+};
 struct MountedFileActivation {
   std::filesystem::path path;
   VolumeFileAction action=VolumeFileAction::create_new;
@@ -735,6 +745,7 @@ struct MountedFileActivation {
   std::vector<std::byte> packed_payload;
   bool compare_packed_reclaimer=false;
   bool packed_release_pending=false;
+  std::optional<MountedReclaimCycle> reclamation;
 };
 
 constexpr std::size_t mounted_trace_files=1024;
@@ -934,14 +945,107 @@ void verify_mounted_bytes(HANDLE file,const std::vector<std::byte>& expected) {
       read==bytes.size() && bytes==expected,"Mounted file bytes differ");
 }
 
-std::uint64_t packed_file_allocation(const std::filesystem::path& path) {
+struct MountedBackingSpace {
+  std::uint64_t eof,allocated;
+};
+
+MountedBackingSpace mounted_backing_space(const std::filesystem::path& path,MountedReclaimBacking profile) {
   MountedTrialFile file(path,FILE_READ_ATTRIBUTES,OPEN_EXISTING,FILE_SHARE_READ|FILE_SHARE_WRITE);
   FILE_STANDARD_INFO info{};
+  FILE_ATTRIBUTE_TAG_INFO attributes{};
+  const bool sparse=profile==MountedReclaimBacking::sparse;
   require(GetFileInformationByHandleEx(file.file,FileStandardInfo,&info,sizeof(info)) &&
-      !info.Directory && !info.DeletePending && info.NumberOfLinks==1 &&
-      info.EndOfFile.QuadPart>0 && info.AllocationSize.QuadPart>=info.EndOfFile.QuadPart,
-      "Cannot confirm allocation of the ordinary Explorer backing");
-  return static_cast<std::uint64_t>(info.AllocationSize.QuadPart);
+      GetFileInformationByHandleEx(file.file,FileAttributeTagInfo,&attributes,sizeof(attributes)) &&
+      !info.Directory && !info.DeletePending && info.NumberOfLinks==1 && info.EndOfFile.QuadPart>0 &&
+      !(attributes.FileAttributes&(FILE_ATTRIBUTE_COMPRESSED|FILE_ATTRIBUTE_REPARSE_POINT)) &&
+      ((attributes.FileAttributes&FILE_ATTRIBUTE_SPARSE_FILE)!=0)==sparse,
+      "Cannot confirm the expected ordinary Explorer backing");
+  const auto eof=static_cast<std::uint64_t>(info.EndOfFile.QuadPart);
+  if(!sparse) {
+    require(info.AllocationSize.QuadPart>=info.EndOfFile.QuadPart,"Invalid packed backing allocation");
+    return {eof,static_cast<std::uint64_t>(info.AllocationSize.QuadPart)};
+  }
+  DWORD high=0;
+  SetLastError(ERROR_SUCCESS);
+  const auto low=GetCompressedFileSizeW(path.c_str(),&high);
+  require(low!=INVALID_FILE_SIZE || GetLastError()==ERROR_SUCCESS,"Cannot confirm sparse backing allocation");
+  const auto allocated=(static_cast<std::uint64_t>(high)<<32)|low;
+  require(allocated>0 && allocated<=eof,"Invalid sparse backing allocation");
+  return {eof,allocated};
+}
+
+std::uint64_t packed_file_allocation(const std::filesystem::path& path) {
+  return mounted_backing_space(path,MountedReclaimBacking::packed).allocated;
+}
+
+const char* reclaim_backing_name(MountedReclaimBacking profile) noexcept {
+  return profile==MountedReclaimBacking::packed?"packed":"sparse";
+}
+
+void mounted_reclamation_cycle(const std::wstring& root,MountedFileActivation& activation,std::uint64_t deadline) {
+  auto& trial=activation.reclamation.value();
+  const auto observation_end=(std::min)(deadline-9000,GetTickCount64()+85000);
+  const auto witness=root+L"witness.bin";
+  const auto payload=root+L"payload.bin";
+  if(!trial.cycle){
+    MountedTrialFile file(witness,GENERIC_WRITE,CREATE_NEW);
+    write_mounted_bytes(file.file,activation.packed_witness);
+  } else {
+    {
+      MountedTrialFile existing(payload,GENERIC_READ,OPEN_EXISTING);
+      verify_mounted_bytes(existing.file,activation.packed_payload);
+    }
+    require(DeleteFileW(payload.c_str()),"Mounted reclamation unlink failed");
+    require(GetFileAttributesW(payload.c_str())==INVALID_FILE_ATTRIBUTES && GetLastError()==ERROR_FILE_NOT_FOUND,
+        "Unlinked mounted payload remains visible");
+  }
+  MountedTrialFile retained(witness,GENERIC_READ,OPEN_EXISTING,FILE_SHARE_READ|FILE_SHARE_DELETE);
+  constexpr std::size_t payload_bytes=8*kNativeExtentBytes;
+  constexpr unsigned revisions=16;
+  activation.packed_payload.resize(payload_bytes);
+  std::uint32_t generator=0x9d37a695U+trial.cycle;
+  trial.peak_allocated=0;
+  {
+    MountedTrialFile file(payload,GENERIC_WRITE,CREATE_NEW);
+    for(unsigned revision=0;revision<revisions;++revision){
+      for(auto& byte:activation.packed_payload){
+        generator=generator*1664525U+1013904223U;
+        byte=static_cast<std::byte>(generator>>24);
+      }
+      require(SetFilePointerEx(file.file,{},nullptr,FILE_BEGIN),"Cannot rewind the mounted churn payload");
+      write_mounted_bytes(file.file,activation.packed_payload);
+      const auto space=mounted_backing_space(activation.path,trial.backing);
+      trial.peak_allocated=(std::max)(trial.peak_allocated,space.allocated);
+      if(!trial.cycle && !revision){
+        // Permit fixed auxiliary growth beyond the original two-file image.
+        // The detached check still requires the actual retirement queue to drain.
+        trial.baseline_ceiling=space.allocated+4*kStoreCommitUnit;
+      }
+    }
+  }
+  std::cout<<"mounted_reclaim_burst backing="<<reclaim_backing_name(trial.backing)
+      <<" cycle="<<trial.cycle+1<<" live_bytes="<<payload_bytes+activation.packed_witness.size()
+      <<" revisions="<<revisions<<" delete_regrow="<<(trial.cycle!=0)
+      <<" peak="<<trial.peak_allocated<<" ceiling="<<trial.baseline_ceiling<<std::endl;
+  require(trial.peak_allocated>trial.baseline_ceiling,"Mounted churn did not construct reclaimable history");
+  auto settled=mounted_backing_space(activation.path,trial.backing);
+  auto last_change=GetTickCount64();
+  std::uint64_t next_sample=0;
+  until([&]{
+    const auto now=GetTickCount64();
+    if(now<next_sample)return false;
+    next_sample=now+200;
+    const auto observed=mounted_backing_space(activation.path,trial.backing);
+    if(observed.allocated!=settled.allocated || observed.eof!=settled.eof)last_change=now;
+    settled=observed;
+    // Keep observing after the target size is crossed. A persisted debt
+    // check after detach is the actual settlement assertion.
+    return now>=observation_end || (settled.allocated<=trial.baseline_ceiling && now-last_change>=5000);
+  },deadline-4000,"Cannot observe mounted backing allocation before detach");
+  verify_mounted_bytes(retained.file,activation.packed_witness);
+  std::cout<<"mounted_reclaim_observation backing="<<reclaim_backing_name(trial.backing)
+      <<" cycle="<<trial.cycle+1<<" allocated="<<settled.allocated<<" eof="<<settled.eof
+      <<" held_reader=exact"<<std::endl;
 }
 
 void mounted_packed_workload(const std::wstring& root,MountedFileActivation& activation,
@@ -1122,10 +1226,11 @@ void mounted_gui_workflow(HWND window,std::wstring_view parent,ProcessObserver& 
   const auto first=location();
   const auto initial_serial=serial(first);
   if(activation && !activation->packed_witness.empty()) {
-    if(activation->action==VolumeFileAction::open_existing)
-      require(activation->serial==initial_serial,"Fresh mounted packed file changed volume identity");
+    if(activation->serial)
+      require(activation->serial==initial_serial,"Fresh mounted file changed volume identity");
     else activation->serial=initial_serial;
-    mounted_packed_workload(root(first),*activation,deadline);
+    if(activation->reclamation)mounted_reclamation_cycle(root(first),*activation,deadline);
+    else mounted_packed_workload(root(first),*activation,deadline);
     button(108);await_detach(first);
     button(105);wait_status(closed);
     return;
@@ -1541,16 +1646,89 @@ void mounted_file_gui_tests(const std::filesystem::path& app,const app_fixture::
       <<"fresh_process_reopen=1 independent_cpu_readback=1\n";
 }
 
+std::vector<std::byte> mounted_reclamation_witness(const std::filesystem::path& app) {
+  const auto input=ReadOnlyFile::open(app.parent_path()/L"winfsp-x64.dll");
+  require(input.size()>0 && input.size()<=kStoreMaxObjectBytes,"Mounted witness exceeds its budget");
+  std::vector<std::byte> bytes(static_cast<std::size_t>(input.size()));
+  input.read_exact_at(0,bytes.data(),bytes.size());
+  return bytes;
+}
+
+void mounted_reclamation_gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budget,
+    MountedReclaimBacking profile) {
+  const auto parent=std::filesystem::path(disposable_mount_parent()).parent_path();
+  const bool sparse=profile==MountedReclaimBacking::sparse;
+  MountedFileActivation activation{parent/(sparse?L"SparseChurn.flfs":L"PackedChurn.flfs")};
+  activation.reclamation=MountedReclaimCycle{profile};
+  activation.packed_witness=mounted_reclamation_witness(app);
+  constexpr StoreCompressionOptions foreground{StoreCompressionMode::automatic,3,false};
+  const StoreIoContract contract{static_cast<std::uint32_t>(kStoreCommitUnit),true,sparse,!sparse};
+  std::optional<StoreIdentity> volume;
+  if(sparse){
+    // Seed the alternate provider inside this admitted guest. The ordinary
+    // helper creates packed backing when its live geometry supports it.
+    volume=fresh_volume_identity();
+#ifdef FLITZFS_OBSERVE_VOLUME_PUBLICATION
+    constexpr PagedStoreLimits fixture_capacity{64*1024*1024};
+    WinFspNativeWritable::create_file_volume(activation.path,contract,*volume,fresh_volume_identity(),
+        fixture_capacity,foreground).reset();
+    activation.action=VolumeFileAction::open_existing;
+#else
+    throw std::runtime_error("Sparse churn requires the native WinFsp fixture build");
+#endif
+  }
+  constexpr unsigned cycles=3;
+  auto& trial=*activation.reclamation;
+  for(trial.cycle=0;trial.cycle<cycles;++trial.cycle){
+    gui_tests(app,budget,GuiRuntime::mounted,&activation);
+    std::uint64_t epoch=0;
+    {
+      const auto independent=NativeVolumeFile::inspect(activation.path,volume);
+      volume=independent.info().selection.volume_identity;
+      epoch=independent.info().selection.epoch;
+      const auto& reader=independent.filesystem();
+      reader.verify_all();
+      require(reader.list().size()==2,"Independent reclamation namespace differs");
+      const auto verify=[&](std::string_view name,const std::vector<std::byte>& bytes){
+        require(reader.stat(name).logical_bytes==bytes.size() &&
+            reader.read(name,0,static_cast<std::uint32_t>(bytes.size()))==bytes,
+            "Independent reclamation readback differs");
+      };
+      verify("witness.bin",activation.packed_witness);
+      verify("payload.bin",activation.packed_payload);
+    }
+    // Inspect the persisted scheduler debt without advancing maintenance.
+    const auto settled=mounted_backing_space(activation.path,profile);
+    const auto diagnostic=NativeVolumeFile::resume(activation.path,contract,volume,foreground);
+    const auto space=diagnostic.indexed_volume_space();
+    const auto dense=diagnostic.dense_file_space();
+    const auto pending=diagnostic.persistent_reclamation_pending(NativeVolumeReclaimMode::release_backing);
+    const auto retired_inode_pending=diagnostic.retirement_pending();
+    std::cout<<"mounted_reclaim_checkpoint backing="<<reclaim_backing_name(profile)
+        <<" cycle="<<trial.cycle+1<<" epoch="<<epoch<<" allocated="<<settled.allocated<<" eof="<<settled.eof
+        <<" image_occupied="<<space.total_bytes-space.free_bytes<<" image_obsolete="<<space.obsolete_bytes
+        <<" dense_owned="<<(dense?dense->owned_payload_bytes:0)
+        <<" dense_reusable="<<(dense?dense->interior_reusable_bytes:0)
+        <<" dense_tail="<<(dense?dense->retired_tail_bytes:0)
+        <<" eligible_retirement="<<pending<<" retired_inode_pending="<<retired_inode_pending
+        <<" independent_cpu=exact"<<std::endl;
+    require(diagnostic.volume_info().selection.epoch==epoch && !pending && !retired_inode_pending &&
+        settled.allocated<=trial.baseline_ceiling && settled.allocated<trial.peak_allocated,
+        "Automatic mounted reclamation left actionable history or excess allocation");
+    require(sparse?!dense.has_value():dense && dense->allocated_file_bytes==settled.allocated &&
+        dense->file_end==settled.eof && !dense->retired_tail_bytes,
+        "Packed allocation ledger did not agree with the detached file");
+    activation.action=VolumeFileAction::open_existing;
+  }
+  std::cout<<"mounted_reclaim_complete backing="<<reclaim_backing_name(profile)
+      <<" cycles="<<cycles<<" delete_regrow="<<cycles-1<<" continued_writes=1 both_leases_retired=1\n";
+}
+
 void mounted_packed_file_gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budget,bool compare) {
   const auto parent=std::filesystem::path(disposable_mount_parent()).parent_path();
   MountedFileActivation activation{parent/L"Packed.flfs"};
   activation.compare_packed_reclaimer=compare;
-  {
-    const auto input=ReadOnlyFile::open(app.parent_path()/L"winfsp-x64.dll");
-    require(input.size()>0 && input.size()<=kStoreMaxObjectBytes,"Mounted witness exceeds its budget");
-    activation.packed_witness.resize(static_cast<std::size_t>(input.size()));
-    input.read_exact_at(0,activation.packed_witness.data(),activation.packed_witness.size());
-  }
+  activation.packed_witness=mounted_reclamation_witness(app);
   const auto inspect=[&](std::optional<StoreIdentity> expected,bool continued) {
     const auto anchor=ReadOnlyFile::open(activation.path);
     std::array<std::byte,4> first{},second{};
@@ -1650,8 +1828,10 @@ int wmain(int argc,wchar_t** argv) {
     const bool populated=mode==L"--gui-mounted-populated-file-sandbox" || interruption.has_value();
     const bool packed_compare=mode==L"--gui-mounted-packed-compare-sandbox";
     const bool packed=mode==L"--gui-mounted-packed-file-sandbox" || packed_compare;
-    const bool mounted=argc==3 &&
-        (mode==L"--gui-mounted-sandbox" || mode==L"--gui-mounted-file-sandbox" || populated || packed);
+    const bool packed_churn=mode==L"--gui-mounted-packed-churn-sandbox";
+    const bool sparse_churn=mode==L"--gui-mounted-sparse-churn-sandbox";
+    const bool mounted=argc==3 && (mode==L"--gui-mounted-sandbox" ||
+        mode==L"--gui-mounted-file-sandbox" || populated || packed || packed_churn || sparse_churn);
     app_fixture::Budget budget(!mounted);
     if(argc==2 && std::wstring_view(argv[1])==L"--model") {
       native_initialization();
@@ -1666,6 +1846,8 @@ int wmain(int argc,wchar_t** argv) {
       else if(mode==L"--gui-altered-winfsp")gui_tests(app,budget,GuiRuntime::altered);
       else if(mode==L"--gui-mounted-sandbox")gui_tests(app,budget,GuiRuntime::mounted);
       else if(packed)mounted_packed_file_gui_tests(app,budget,packed_compare);
+      else if(packed_churn || sparse_churn)
+        mounted_reclamation_gui_tests(app,budget,packed_churn?MountedReclaimBacking::packed:MountedReclaimBacking::sparse);
       else if(mode==L"--gui-mounted-file-sandbox" || populated)mounted_file_gui_tests(app,budget,populated,interruption);
       else throw std::runtime_error("Unknown GUI qualification mode");
     } else throw std::runtime_error("Explicit model, maintenance or GUI qualification mode required");

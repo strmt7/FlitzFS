@@ -1,0 +1,748 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "scope": "Mounted repeated reclamation on NTFS in disposable Windows guests. Correctness and occupied bytes.",
+  "release_qualified": false,
+  "source": {
+    "base": "c2b38d75f55feff5b9f053eb89b1ade0086fb3d8",
+    "base_tree": "4ed102e8a8388aa8a02af47191c2475884bb6d64",
+    "blobs": {
+      "CMakeLists.txt": "624259e31a0462ac1cb096a1fcd5d044344ef213",
+      "src/windows/bounded_process.cpp": "4da569b38248e32aaa9f99be9060747c2222366e",
+      "tests/windows_volume_app_tests.cpp": "3791a0b834ed5eecd7d1ddc0db93be771e1ac63a"
+    },
+    "normalized_sha256": {
+      "CMakeLists.txt": "ee08d5b5fe9d3407eede78322f13dae7c256211569f197d1011b6bb3a114c273",
+      "src/windows/bounded_process.cpp": "51e42dca203458437eebac5e90f026499caba9d77bd3222b0585ee17d105a43f",
+      "tests/windows_volume_app_tests.cpp": "537f4d64017b9a60556aee0f07ea5a249b85eaeaed34417f0341bb5908216a84"
+    }
+  },
+  "packed": {
+    "receipt_dir": "local-run-695a45c8af1a4ba9813803fcd30c6f25",
+    "result_sha256": "b572429e58a7373c9415a13f04773ffeebe736bb108cbbb470a726b23f80222b",
+    "log_sha256": "1a7ffaa1a2772e1d83e8a93b478df24506bcda025c5335f1ac8ea719ca8146ae",
+    "exit_code": 0,
+    "tree_retired": true,
+    "job_peak_commit_bytes": 49123328,
+    "job_memory_limit_bytes": 1692401664,
+    "job_cpu_percent": 12,
+    "job_timeout_seconds": 540.0,
+    "guest_build": "26100",
+    "guest_memory_mib": 4096,
+    "guest_exit": 0,
+    "guest_postflight_empty": true,
+    "driver_stop_exit": 5,
+    "guest_driver_unregistration_exit": 0,
+    "driver_retired_with_guest": true,
+    "guest_receipt_sha256": "abfee282b1040cca7f07a6b4a365ccf9374f53c34f1beb062d0456c42078e89b",
+    "sandbox_receipt_sha256": "e46ee1c46acd5c940623cc11b60222363de7cee0422a50d52500d5dc85574317",
+    "input_sha256": {
+      "flitzfs_volume_app.exe": "01189c2eeea8e4718269a6a61b7b88abfcf2711e9cd8b13ad8265a3e4b3aa369",
+      "flitzfs_volume_app_tests.exe": "e3c1b97d113591d69f54525257365637ce8c35cf905cc75c59b666677c6cc00c",
+      "flitzfs_volume_attachment_tests.exe": "5f6b130af0ad1ab6be8e09e7d171c9981133b9ba76079f93271b8e3a1b55dab0",
+      "winfsp-x64.dll": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+      "winfsp-x64.sys": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+      "msvcp140.dll": "59d325227321d52b9a523ea401ce6787a5d59f78229a0ff3a6f124e5d3445685",
+      "msvcp140_atomic_wait.dll": "8b10c6bd4c3c427ce7c8be96ef0fef0f8187bc236962be62a03caef834b37dcd",
+      "vcruntime140.dll": "eb1ee979bf02324712346e5bdbfc59c785388bc50d18cc2688aae4b0734915a0",
+      "vcruntime140_1.dll": "a14b4a42a2c6df04d6d53a8340816023d953406f7f3d94996c7cab30c414ff63"
+    },
+    "source_sha256": {
+      "CMakeLists.txt": "ee08d5b5fe9d3407eede78322f13dae7c256211569f197d1011b6bb3a114c273",
+      "src/windows/bounded_process.cpp": "51e42dca203458437eebac5e90f026499caba9d77bd3222b0585ee17d105a43f",
+      "tests/windows_volume_app_tests.cpp": "537f4d64017b9a60556aee0f07ea5a249b85eaeaed34417f0341bb5908216a84"
+    },
+    "test_stdout": [
+      "mounted_reclaim_burst backing=packed cycle=1 live_bytes=725104 revisions=16 delete_regrow=0 peak=24248320 ceiling=4259840",
+      "mounted_reclaim_observation backing=packed cycle=1 allocated=2097152 eof=2097152 held_reader=exact",
+      "GUI command: 108",
+      "GUI command: 105",
+      "GUI command: 106 (asynchronous exit)",
+      "mounted_reclaim_checkpoint backing=packed cycle=1 epoch=2 allocated=2097152 eof=2097152 image_occupied=1572864 image_obsolete=0 dense_owned=1835008 dense_reusable=0 dense_tail=0 eligible_retirement=0 retired_inode_pending=0 independent_cpu=exact",
+      "mounted_reclaim_burst backing=packed cycle=2 live_bytes=725104 revisions=16 delete_regrow=1 peak=24903680 ceiling=4259840",
+      "mounted_reclaim_observation backing=packed cycle=2 allocated=2097152 eof=2097152 held_reader=exact",
+      "GUI command: 108",
+      "GUI command: 105",
+      "GUI command: 106 (asynchronous exit)",
+      "mounted_reclaim_checkpoint backing=packed cycle=2 epoch=3 allocated=2097152 eof=2097152 image_occupied=1572864 image_obsolete=0 dense_owned=1835008 dense_reusable=0 dense_tail=0 eligible_retirement=0 retired_inode_pending=0 independent_cpu=exact",
+      "mounted_reclaim_burst backing=packed cycle=3 live_bytes=725104 revisions=16 delete_regrow=1 peak=24444928 ceiling=4259840",
+      "mounted_reclaim_observation backing=packed cycle=3 allocated=2097152 eof=2097152 held_reader=exact",
+      "GUI command: 108",
+      "GUI command: 105",
+      "GUI command: 106 (asynchronous exit)",
+      "mounted_reclaim_checkpoint backing=packed cycle=3 epoch=4 allocated=2097152 eof=2097152 image_occupied=1572864 image_obsolete=0 dense_owned=1835008 dense_reusable=0 dense_tail=0 eligible_retirement=0 retired_inode_pending=0 independent_cpu=exact",
+      "mounted_reclaim_complete backing=packed cycles=3 delete_regrow=2 continued_writes=1 both_leases_retired=1",
+      "Windows volume application checks: 1804. Disposable mounted workflow."
+    ],
+    "test_stderr": [],
+    "bursts": [
+      {
+        "backing": "packed",
+        "cycle": 1,
+        "live_bytes": 725104,
+        "revisions": 16,
+        "delete_regrow": 0,
+        "peak": 24248320,
+        "ceiling": 4259840
+      },
+      {
+        "backing": "packed",
+        "cycle": 2,
+        "live_bytes": 725104,
+        "revisions": 16,
+        "delete_regrow": 1,
+        "peak": 24903680,
+        "ceiling": 4259840
+      },
+      {
+        "backing": "packed",
+        "cycle": 3,
+        "live_bytes": 725104,
+        "revisions": 16,
+        "delete_regrow": 1,
+        "peak": 24444928,
+        "ceiling": 4259840
+      }
+    ],
+    "observations": [
+      {
+        "backing": "packed",
+        "cycle": 1,
+        "allocated": 2097152,
+        "eof": 2097152,
+        "held_reader": "exact"
+      },
+      {
+        "backing": "packed",
+        "cycle": 2,
+        "allocated": 2097152,
+        "eof": 2097152,
+        "held_reader": "exact"
+      },
+      {
+        "backing": "packed",
+        "cycle": 3,
+        "allocated": 2097152,
+        "eof": 2097152,
+        "held_reader": "exact"
+      }
+    ],
+    "checkpoints": [
+      {
+        "backing": "packed",
+        "cycle": 1,
+        "epoch": 2,
+        "allocated": 2097152,
+        "eof": 2097152,
+        "image_occupied": 1572864,
+        "image_obsolete": 0,
+        "dense_owned": 1835008,
+        "dense_reusable": 0,
+        "dense_tail": 0,
+        "eligible_retirement": 0,
+        "retired_inode_pending": 0,
+        "independent_cpu": "exact"
+      },
+      {
+        "backing": "packed",
+        "cycle": 2,
+        "epoch": 3,
+        "allocated": 2097152,
+        "eof": 2097152,
+        "image_occupied": 1572864,
+        "image_obsolete": 0,
+        "dense_owned": 1835008,
+        "dense_reusable": 0,
+        "dense_tail": 0,
+        "eligible_retirement": 0,
+        "retired_inode_pending": 0,
+        "independent_cpu": "exact"
+      },
+      {
+        "backing": "packed",
+        "cycle": 3,
+        "epoch": 4,
+        "allocated": 2097152,
+        "eof": 2097152,
+        "image_occupied": 1572864,
+        "image_obsolete": 0,
+        "dense_owned": 1835008,
+        "dense_reusable": 0,
+        "dense_tail": 0,
+        "eligible_retirement": 0,
+        "retired_inode_pending": 0,
+        "independent_cpu": "exact"
+      }
+    ],
+    "completion": {
+      "backing": "packed",
+      "cycles": 3,
+      "delete_regrow": 2,
+      "continued_writes": 1,
+      "both_leases_retired": 1
+    }
+  },
+  "sparse": {
+    "receipt_dir": "local-run-c7062f22db424f1f892465f9f5fcc94a",
+    "result_sha256": "c9526bc94873cda7497c41d466c32ba0357037926ee1ebb614b2ac7ee0352af0",
+    "log_sha256": "acc858bb610bfb35a8b035a5ca15aad2d849251bc40ced7ec24d60a784018476",
+    "exit_code": 0,
+    "tree_retired": true,
+    "job_peak_commit_bytes": 48898048,
+    "job_memory_limit_bytes": 1701838848,
+    "job_cpu_percent": 12,
+    "job_timeout_seconds": 540.0,
+    "guest_build": "26100",
+    "guest_memory_mib": 4096,
+    "guest_exit": 0,
+    "guest_postflight_empty": true,
+    "driver_stop_exit": 5,
+    "guest_driver_unregistration_exit": 0,
+    "driver_retired_with_guest": true,
+    "guest_receipt_sha256": "cdb675a38858b26d1842c6336a62e7fb2223cb4e8f248a9f0c8d2628db99935b",
+    "sandbox_receipt_sha256": "6b58efecf128edc06f1d2ce0810de207b1b16cb76fe1193b65a616cfa701eb2d",
+    "input_sha256": {
+      "flitzfs_volume_app.exe": "01189c2eeea8e4718269a6a61b7b88abfcf2711e9cd8b13ad8265a3e4b3aa369",
+      "flitzfs_volume_app_tests.exe": "e3c1b97d113591d69f54525257365637ce8c35cf905cc75c59b666677c6cc00c",
+      "flitzfs_volume_attachment_tests.exe": "5f6b130af0ad1ab6be8e09e7d171c9981133b9ba76079f93271b8e3a1b55dab0",
+      "winfsp-x64.dll": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+      "winfsp-x64.sys": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+      "msvcp140.dll": "59d325227321d52b9a523ea401ce6787a5d59f78229a0ff3a6f124e5d3445685",
+      "msvcp140_atomic_wait.dll": "8b10c6bd4c3c427ce7c8be96ef0fef0f8187bc236962be62a03caef834b37dcd",
+      "vcruntime140.dll": "eb1ee979bf02324712346e5bdbfc59c785388bc50d18cc2688aae4b0734915a0",
+      "vcruntime140_1.dll": "a14b4a42a2c6df04d6d53a8340816023d953406f7f3d94996c7cab30c414ff63"
+    },
+    "source_sha256": {
+      "CMakeLists.txt": "ee08d5b5fe9d3407eede78322f13dae7c256211569f197d1011b6bb3a114c273",
+      "src/windows/bounded_process.cpp": "51e42dca203458437eebac5e90f026499caba9d77bd3222b0585ee17d105a43f",
+      "tests/windows_volume_app_tests.cpp": "537f4d64017b9a60556aee0f07ea5a249b85eaeaed34417f0341bb5908216a84"
+    },
+    "test_stdout": [
+      "mounted_reclaim_burst backing=sparse cycle=1 live_bytes=725104 revisions=16 delete_regrow=0 peak=23199744 ceiling=3801088",
+      "mounted_reclaim_observation backing=sparse cycle=1 allocated=1835008 eof=68943872 held_reader=exact",
+      "GUI command: 108",
+      "GUI command: 105",
+      "GUI command: 106 (asynchronous exit)",
+      "mounted_reclaim_checkpoint backing=sparse cycle=1 epoch=2 allocated=1835008 eof=68943872 image_occupied=1572864 image_obsolete=0 dense_owned=0 dense_reusable=0 dense_tail=0 eligible_retirement=0 retired_inode_pending=0 independent_cpu=exact",
+      "mounted_reclaim_burst backing=sparse cycle=2 live_bytes=725104 revisions=16 delete_regrow=1 peak=23855104 ceiling=3801088",
+      "mounted_reclaim_observation backing=sparse cycle=2 allocated=1835008 eof=91226112 held_reader=exact",
+      "GUI command: 108",
+      "GUI command: 105",
+      "GUI command: 106 (asynchronous exit)",
+      "mounted_reclaim_checkpoint backing=sparse cycle=2 epoch=3 allocated=1835008 eof=91226112 image_occupied=1572864 image_obsolete=0 dense_owned=0 dense_reusable=0 dense_tail=0 eligible_retirement=0 retired_inode_pending=0 independent_cpu=exact",
+      "mounted_reclaim_burst backing=sparse cycle=3 live_bytes=725104 revisions=16 delete_regrow=1 peak=23855104 ceiling=3801088",
+      "mounted_reclaim_observation backing=sparse cycle=3 allocated=1835008 eof=91226112 held_reader=exact",
+      "GUI command: 108",
+      "GUI command: 105",
+      "GUI command: 106 (asynchronous exit)",
+      "mounted_reclaim_checkpoint backing=sparse cycle=3 epoch=4 allocated=1835008 eof=91226112 image_occupied=1572864 image_obsolete=0 dense_owned=0 dense_reusable=0 dense_tail=0 eligible_retirement=0 retired_inode_pending=0 independent_cpu=exact",
+      "mounted_reclaim_complete backing=sparse cycles=3 delete_regrow=2 continued_writes=1 both_leases_retired=1",
+      "Windows volume application checks: 2094. Disposable mounted workflow."
+    ],
+    "test_stderr": [],
+    "bursts": [
+      {
+        "backing": "sparse",
+        "cycle": 1,
+        "live_bytes": 725104,
+        "revisions": 16,
+        "delete_regrow": 0,
+        "peak": 23199744,
+        "ceiling": 3801088
+      },
+      {
+        "backing": "sparse",
+        "cycle": 2,
+        "live_bytes": 725104,
+        "revisions": 16,
+        "delete_regrow": 1,
+        "peak": 23855104,
+        "ceiling": 3801088
+      },
+      {
+        "backing": "sparse",
+        "cycle": 3,
+        "live_bytes": 725104,
+        "revisions": 16,
+        "delete_regrow": 1,
+        "peak": 23855104,
+        "ceiling": 3801088
+      }
+    ],
+    "observations": [
+      {
+        "backing": "sparse",
+        "cycle": 1,
+        "allocated": 1835008,
+        "eof": 68943872,
+        "held_reader": "exact"
+      },
+      {
+        "backing": "sparse",
+        "cycle": 2,
+        "allocated": 1835008,
+        "eof": 91226112,
+        "held_reader": "exact"
+      },
+      {
+        "backing": "sparse",
+        "cycle": 3,
+        "allocated": 1835008,
+        "eof": 91226112,
+        "held_reader": "exact"
+      }
+    ],
+    "checkpoints": [
+      {
+        "backing": "sparse",
+        "cycle": 1,
+        "epoch": 2,
+        "allocated": 1835008,
+        "eof": 68943872,
+        "image_occupied": 1572864,
+        "image_obsolete": 0,
+        "dense_owned": 0,
+        "dense_reusable": 0,
+        "dense_tail": 0,
+        "eligible_retirement": 0,
+        "retired_inode_pending": 0,
+        "independent_cpu": "exact"
+      },
+      {
+        "backing": "sparse",
+        "cycle": 2,
+        "epoch": 3,
+        "allocated": 1835008,
+        "eof": 91226112,
+        "image_occupied": 1572864,
+        "image_obsolete": 0,
+        "dense_owned": 0,
+        "dense_reusable": 0,
+        "dense_tail": 0,
+        "eligible_retirement": 0,
+        "retired_inode_pending": 0,
+        "independent_cpu": "exact"
+      },
+      {
+        "backing": "sparse",
+        "cycle": 3,
+        "epoch": 4,
+        "allocated": 1835008,
+        "eof": 91226112,
+        "image_occupied": 1572864,
+        "image_obsolete": 0,
+        "dense_owned": 0,
+        "dense_reusable": 0,
+        "dense_tail": 0,
+        "eligible_retirement": 0,
+        "retired_inode_pending": 0,
+        "independent_cpu": "exact"
+      }
+    ],
+    "completion": {
+      "backing": "sparse",
+      "cycles": 3,
+      "delete_regrow": 2,
+      "continued_writes": 1,
+      "both_leases_retired": 1
+    }
+  },
+  "retained_attempts": {
+    "wrong_runtime_staging": {
+      "receipt_dir": "local-run-d76ed0b75624440399f4cb9c47a3fe21",
+      "result_sha256": "fa60f8e663ed815834c17869b5ddc725fe0b2da3307b93d854f6bc8a9e7788b7",
+      "log_sha256": "b0c0173de5a3fae1dabe8560757c170adeb946e0b400219b9f3cb83debe213ae",
+      "exit_code": 1,
+      "tree_retired": true,
+      "job_peak_commit_bytes": 15372288,
+      "job_memory_limit_bytes": 933232640,
+      "job_cpu_percent": 9,
+      "job_timeout_seconds": 45.0,
+      "output": "RuntimeError: Staged WinFsp artifact differs: winfsp-x64.dll"
+    },
+    "missing_codecs_configuration": {
+      "receipt_dir": "local-run-878f46dcb0f146d5ab8bbe15bf5eee9e",
+      "result_sha256": "86d09fb8dce1af0989bbf748657880a5f150d23a2cff81ddbb24ec9fc184e166",
+      "log_sha256": "d353a800e2524c56ea8159bc1ffce069224a65f8d830443ff64ac4da8d42d463",
+      "exit_code": 1,
+      "tree_retired": true,
+      "job_peak_commit_bytes": 23851008,
+      "job_memory_limit_bytes": 1586495488,
+      "job_cpu_percent": 14,
+      "job_timeout_seconds": 80.0,
+      "output": [
+        "-- Zstandard enabled",
+        "-- LZ4 unavailable: native dictionary stages explicitly unsupported",
+        "-- Optional new-store file fixtures are disabled; enable FLITZFS_REGISTER_INTEGRATION_FIXTURES after backing qualification",
+        "CMake Error at CMakeLists.txt:1128 (message):",
+        "  Writable probe requires native Windows callbacks and mandatory recovery",
+        "  codecs",
+        "",
+        "",
+        "-- Configuring incomplete, errors occurred!"
+      ]
+    },
+    "observer_unavailable": {
+      "receipt_dir": "local-run-f353c4ab9857449a83a6d1037e29aa62",
+      "result_sha256": "5a9f9972458af4c7b14c8322ad7a5080fde05f3614d352fef7cb89f1a7457c7a",
+      "log_sha256": "fd9c0d1b3a13aed36b4c2cda77db6509d32dbf67bb382ea6b0b6eb24ba1b6a31",
+      "exit_code": 1,
+      "tree_retired": true,
+      "job_peak_commit_bytes": 51990528,
+      "job_memory_limit_bytes": 1348468736,
+      "job_cpu_percent": 12,
+      "job_timeout_seconds": 540.0,
+      "guest_build": "26100",
+      "guest_memory_mib": 4096,
+      "guest_exit": 1,
+      "guest_postflight_empty": true,
+      "driver_stop_exit": 5,
+      "guest_driver_unregistration_exit": 0,
+      "driver_retired_with_guest": true,
+      "guest_receipt_sha256": "71faa95ef88fa459f0ec6c33e36ed877aa6e4cf32cdfb157269480e92e00905e",
+      "sandbox_receipt_sha256": "e63085136c1a0b47cb2704fbd7e6bc4feaf64906093185f02c4995c471843946",
+      "input_sha256": {
+        "flitzfs_volume_app.exe": "9eb9804903501876fb62334b14dd0d7812827b384b141d22ca03e7ef98be09e7",
+        "flitzfs_volume_app_tests.exe": "2c2dba26ce16354fad9c0147b764bda08ac128eb27849c94833477dae70965f3",
+        "flitzfs_volume_attachment_tests.exe": "b7c26938a49306d73f9bae328eaafe8c5eae303f3263a1a99e09e0959c57ec2d",
+        "winfsp-x64.dll": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+        "winfsp-x64.sys": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+        "msvcp140.dll": "59d325227321d52b9a523ea401ce6787a5d59f78229a0ff3a6f124e5d3445685",
+        "msvcp140_atomic_wait.dll": "8b10c6bd4c3c427ce7c8be96ef0fef0f8187bc236962be62a03caef834b37dcd",
+        "vcruntime140.dll": "eb1ee979bf02324712346e5bdbfc59c785388bc50d18cc2688aae4b0734915a0",
+        "vcruntime140_1.dll": "a14b4a42a2c6df04d6d53a8340816023d953406f7f3d94996c7cab30c414ff63"
+      },
+      "source_sha256": {
+        "tests/windows_volume_app_tests.cpp": "f811a8293af733a47240064db5bd4bebc4dd32c803df0cea616fa0b008b99607"
+      },
+      "test_stdout": [],
+      "test_stderr": [
+        "Packed application qualification requires the writable publication probe build"
+      ]
+    },
+    "single_filename_refusal": {
+      "receipt_dir": "local-run-faded2225fd4405cb9f9d2a3a336f46d",
+      "result_sha256": "4f0e769061f93a00287fe0bce17a8c824bf8d6d88cdbf1ef79445f50b7699168",
+      "log_sha256": "0975412c4f77d792b95ff3d32ad5694975b791d70276e46d5ffc10b6353c3f06",
+      "exit_code": 1,
+      "tree_retired": true,
+      "job_peak_commit_bytes": 52420608,
+      "job_memory_limit_bytes": 1644167168,
+      "job_cpu_percent": 12,
+      "job_timeout_seconds": 540.0,
+      "guest_build": "26100",
+      "guest_memory_mib": 4096,
+      "guest_exit": 1,
+      "guest_postflight_empty": true,
+      "driver_stop_exit": 5,
+      "guest_driver_unregistration_exit": 0,
+      "driver_retired_with_guest": true,
+      "guest_receipt_sha256": "a25138305665ddb2d118dca6467d5f2753ca422fea2322b3a9bee20c877a2f4e",
+      "sandbox_receipt_sha256": "3c185a5c6ed5e8ebd238872cc2de42cbcb243588d10e660df6d36bc071f254ff",
+      "input_sha256": {
+        "flitzfs_volume_app.exe": "7a9c5e6fbc36d97d6c2a558c7a9b918b41b3d5d170da1d824cb2dbb6cb3b6fa9",
+        "flitzfs_volume_app_tests.exe": "36ce94209edced53f4964b1082f9dd3b6d6ce3a15ab0bf324d4b99f3a0bb2685",
+        "flitzfs_volume_attachment_tests.exe": "f432ed56ee0ddbd0605b3ef26d8c151b95ef7f8b0b0d74df4df0de17aa2c688c",
+        "winfsp-x64.dll": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+        "winfsp-x64.sys": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+        "msvcp140.dll": "59d325227321d52b9a523ea401ce6787a5d59f78229a0ff3a6f124e5d3445685",
+        "msvcp140_atomic_wait.dll": "8b10c6bd4c3c427ce7c8be96ef0fef0f8187bc236962be62a03caef834b37dcd",
+        "vcruntime140.dll": "eb1ee979bf02324712346e5bdbfc59c785388bc50d18cc2688aae4b0734915a0",
+        "vcruntime140_1.dll": "a14b4a42a2c6df04d6d53a8340816023d953406f7f3d94996c7cab30c414ff63"
+      },
+      "source_sha256": {
+        "tests/windows_volume_app_tests.cpp": "f811a8293af733a47240064db5bd4bebc4dd32c803df0cea616fa0b008b99607"
+      },
+      "test_stdout": [],
+      "test_stderr": [
+        "Publication probe executable or mode differs"
+      ]
+    },
+    "early_detach_packed": {
+      "receipt_dir": "local-run-99dfebd6f9dd43a28cb87a861a355186",
+      "result_sha256": "e9452e3dd547cee011bf8144880da02b56e2711b4e70805185305ecc4965cf45",
+      "log_sha256": "e9845a0e09482561c5ef3ae0a1c0a955ef767ea2646f2e8215de8bbeda75917e",
+      "exit_code": 1,
+      "tree_retired": true,
+      "job_peak_commit_bytes": 53542912,
+      "job_memory_limit_bytes": 1627389952,
+      "job_cpu_percent": 12,
+      "job_timeout_seconds": 540.0,
+      "guest_build": "26100",
+      "guest_memory_mib": 4096,
+      "guest_exit": 1,
+      "guest_postflight_empty": true,
+      "driver_stop_exit": 5,
+      "guest_driver_unregistration_exit": 0,
+      "driver_retired_with_guest": true,
+      "guest_receipt_sha256": "d28b4a7d300c3039ecc646f40dae68c98be974e8295f6c00370b3a43a082441d",
+      "sandbox_receipt_sha256": "361bbe10a96e7854d3ed24186337775fc4bba90b936915f3ca3fd91f012e6947",
+      "input_sha256": {
+        "flitzfs_volume_app.exe": "01189c2eeea8e4718269a6a61b7b88abfcf2711e9cd8b13ad8265a3e4b3aa369",
+        "flitzfs_volume_app_tests.exe": "81d21f4a1f00d82cdd0dd63c03ff1bc932143cb2512d3b71eb8457f11e80f994",
+        "flitzfs_volume_attachment_tests.exe": "5f6b130af0ad1ab6be8e09e7d171c9981133b9ba76079f93271b8e3a1b55dab0",
+        "winfsp-x64.dll": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+        "winfsp-x64.sys": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+        "msvcp140.dll": "59d325227321d52b9a523ea401ce6787a5d59f78229a0ff3a6f124e5d3445685",
+        "msvcp140_atomic_wait.dll": "8b10c6bd4c3c427ce7c8be96ef0fef0f8187bc236962be62a03caef834b37dcd",
+        "vcruntime140.dll": "eb1ee979bf02324712346e5bdbfc59c785388bc50d18cc2688aae4b0734915a0",
+        "vcruntime140_1.dll": "a14b4a42a2c6df04d6d53a8340816023d953406f7f3d94996c7cab30c414ff63"
+      },
+      "source_sha256": {
+        "src/windows/bounded_process.cpp": "51e42dca203458437eebac5e90f026499caba9d77bd3222b0585ee17d105a43f",
+        "tests/windows_volume_app_tests.cpp": "f811a8293af733a47240064db5bd4bebc4dd32c803df0cea616fa0b008b99607"
+      },
+      "test_stdout": [
+        "mounted_reclaim_burst backing=packed cycle=1 live_bytes=725104 revisions=16 delete_regrow=0 peak=24248320 ceiling=4259840",
+        "mounted_reclaim_observation backing=packed cycle=1 allocated=3538944 eof=3538944 held_reader=exact",
+        "GUI command: 108",
+        "GUI command: 105",
+        "GUI command: 106 (asynchronous exit)",
+        "mounted_reclaim_checkpoint backing=packed cycle=1 epoch=2 allocated=3538944 eof=3538944 image_occupied=1572864 image_obsolete=0 dense_owned=1835008 dense_reusable=0 dense_tail=1441792 eligible_retirement=1 retired_inode_pending=0 independent_cpu=exact"
+      ],
+      "test_stderr": [
+        "Automatic mounted reclamation left actionable history or excess allocation"
+      ]
+    },
+    "uninitialized_sparse_root": {
+      "receipt_dir": "local-run-a9d1be2f8d8e403882fc26c50c1a44ff",
+      "result_sha256": "f55d12c1f88659336b2877524da07d793ef1f457b665a2fa0f9a2d5a5b1e44b5",
+      "log_sha256": "b7c5e9bb6a13b27bad13855fe2a14d8c192afd2660c6c3245a1dde3d1e5d6cdb",
+      "exit_code": 1,
+      "tree_retired": true,
+      "job_peak_commit_bytes": 52822016,
+      "job_memory_limit_bytes": 1648361472,
+      "job_cpu_percent": 12,
+      "job_timeout_seconds": 540.0,
+      "guest_build": "26100",
+      "guest_memory_mib": 4096,
+      "guest_exit": 1,
+      "guest_postflight_empty": true,
+      "driver_stop_exit": 5,
+      "guest_driver_unregistration_exit": 0,
+      "driver_retired_with_guest": true,
+      "guest_receipt_sha256": "58d6b12d4132ab6544afd31d870a040b7ca329bbc6432c1e84cf96b6272a45b9",
+      "sandbox_receipt_sha256": "2a1fcca7bf5c6325dab4ce9d86b637cca1767a333398bc3854ed8322ccc812b1",
+      "input_sha256": {
+        "flitzfs_volume_app.exe": "01189c2eeea8e4718269a6a61b7b88abfcf2711e9cd8b13ad8265a3e4b3aa369",
+        "flitzfs_volume_app_tests.exe": "81d21f4a1f00d82cdd0dd63c03ff1bc932143cb2512d3b71eb8457f11e80f994",
+        "flitzfs_volume_attachment_tests.exe": "5f6b130af0ad1ab6be8e09e7d171c9981133b9ba76079f93271b8e3a1b55dab0",
+        "winfsp-x64.dll": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+        "winfsp-x64.sys": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+        "msvcp140.dll": "59d325227321d52b9a523ea401ce6787a5d59f78229a0ff3a6f124e5d3445685",
+        "msvcp140_atomic_wait.dll": "8b10c6bd4c3c427ce7c8be96ef0fef0f8187bc236962be62a03caef834b37dcd",
+        "vcruntime140.dll": "eb1ee979bf02324712346e5bdbfc59c785388bc50d18cc2688aae4b0734915a0",
+        "vcruntime140_1.dll": "a14b4a42a2c6df04d6d53a8340816023d953406f7f3d94996c7cab30c414ff63"
+      },
+      "source_sha256": {
+        "src/windows/bounded_process.cpp": "51e42dca203458437eebac5e90f026499caba9d77bd3222b0585ee17d105a43f",
+        "tests/windows_volume_app_tests.cpp": "f811a8293af733a47240064db5bd4bebc4dd32c803df0cea616fa0b008b99607"
+      },
+      "test_stdout": [],
+      "test_stderr": [
+        "Operation failed: unqualified restart FileInfo/reservation",
+        "Bounded GUI child exit=1223 cancelled=1 timed_out=0",
+        "Mounted application reported a lifecycle failure"
+      ]
+    }
+  },
+  "validation": {
+    "windows": {
+      "receipt_dir": "local-run-35376be4bb6e440abe151c1a6cda3230",
+      "result_sha256": "d5db6910376df0f7ab032c60e583d8b2c095c58d7b8466969233c26002992dd5",
+      "log_sha256": "f4a1619bdc7896ac3121ed11d1653d4c66f3477c0844b7e83ac9278a6305f423",
+      "exit_code": 0,
+      "tree_retired": true,
+      "job_peak_commit_bytes": 680189952,
+      "job_memory_limit_bytes": 2467299328,
+      "job_cpu_percent": 20,
+      "job_timeout_seconds": 620.0,
+      "passed": 217
+    },
+    "app_model": {
+      "receipt_dir": "local-run-d637b729761047279bdf892bac99f395",
+      "result_sha256": "4e7865712866afc19288df95548db7e4f2e358c01c29e340978f73c5ebf78bef",
+      "log_sha256": "57d283480e5f8d32e2882399e5d7c9d08aba32a1eb16b82abf321629e08fae52",
+      "exit_code": 0,
+      "tree_retired": true,
+      "job_peak_commit_bytes": 11833344,
+      "job_memory_limit_bytes": 1984954368,
+      "job_cpu_percent": 12,
+      "job_timeout_seconds": 145.0,
+      "output": [
+        "Application handle balance: 155 -> 155",
+        "Windows volume application checks: 841. Real CPU engine and bounded process-lifetime memory.",
+        "Application fixture peak commit: 10514432 bytes"
+      ]
+    },
+    "app_maintenance": {
+      "receipt_dir": "local-run-dbeefc2d88484304b7565f1a743e7723",
+      "result_sha256": "6250c5e34644bc0e562b70e37fc3604ea255eb2935ef94c4993b82860b5f5400",
+      "log_sha256": "c9a634f6637bcf6657847123cdaa89aec6d6afe3dbcf6bcbd69940f1f50aa85d",
+      "exit_code": 0,
+      "tree_retired": true,
+      "job_peak_commit_bytes": 5828608,
+      "job_memory_limit_bytes": 1984954368,
+      "job_cpu_percent": 12,
+      "job_timeout_seconds": 145.0,
+      "output": [
+        "Live maintenance outcome=resource-deferred preparation_interleave=0 publication_exercised=0 deferral=3",
+        "Windows volume application checks: 111. Real CPU engine and bounded process-lifetime memory.",
+        "Application fixture peak commit: 4505600 bytes"
+      ]
+    },
+    "raw": {
+      "receipt_dir": "local-run-f5199ff70a924c5fac3de55f31a10364",
+      "result_sha256": "f1cf64bd848fdeac4ae7877ec78f03a2f42592e1345f050f74e47f506b381de1",
+      "log_sha256": "0321e3da43c8384a4823484f34b3142a197e84cf40156f762bde9f9092d7e8a5",
+      "exit_code": 0,
+      "tree_retired": true,
+      "job_peak_commit_bytes": 88334336,
+      "job_memory_limit_bytes": 2454716416,
+      "job_cpu_percent": 15,
+      "job_timeout_seconds": 195.0,
+      "tests": [
+        "bounded_native_volume_file",
+        "bounded_native_volume_file_dense_allocation",
+        "bounded_native_volume_file_dense_cross_group",
+        "bounded_native_volume_file_dense_tail"
+      ],
+      "passed": 4
+    },
+    "asan": {
+      "receipt_dir": "local-run-da9955d4c6944a5385f82e45daa4831e",
+      "result_sha256": "e1dbd9df89b39da5e6a88609498c90af86963b86d2ab3b33a6aaee1ce01ade07",
+      "log_sha256": "89d77be004959f8254b93de7d8bda99ad03ed742bdb761880a0d3f0c17f719c1",
+      "exit_code": 0,
+      "tree_retired": true,
+      "job_peak_commit_bytes": 515141632,
+      "job_memory_limit_bytes": 2395996160,
+      "job_cpu_percent": 15,
+      "job_timeout_seconds": 195.0,
+      "tests": [
+        "bounded_native_volume_file",
+        "bounded_native_volume_file_dense_allocation",
+        "bounded_native_volume_file_dense_cross_group",
+        "bounded_native_volume_file_dense_tail",
+        "windows_asan_runtime_preflight"
+      ],
+      "passed": 5
+    }
+  },
+  "primary_sources": [
+    {
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "configuration_sha256": "27cbdb259d99d49eb97f4f00546d4699fb1c76373ca9940ae8b0e0e1fe497b4e",
+      "pages": [
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_zero_data",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 61945,
+          "markdown_sha256": "c3ec21654a142945c577e399e50070b7b22f9cf7b09aad1d842e2b25c68f16bc",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "capture_sha256": "f362ed7aca4a115b46cb2d01bcd0d68e992b840f0c8f7a23c75c4f97921219fe",
+          "name": "windows-sparse-erase"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_query_allocated_ranges",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 63071,
+          "markdown_sha256": "9f803badccd68995ad416b2fceb2532f8dd4a4f87b9d131a6ab1bd058ffd840e",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "capture_sha256": "c2dee385b50726577ed327f647540e3709c696ee2598a710ed7dd8bb71af0f5e",
+          "name": "windows-allocated-ranges"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_standard_info",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 36346,
+          "markdown_sha256": "2c757297745446e64cd82a9f1c4175b474000427f2e1111d440b0010a14ce5b3",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "capture_sha256": "5e518d815fb7a0c00fa68753e61dd0942126997cd3913962ce4fd05b73843fb8",
+          "name": "windows-file-allocation"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/0201c69b-50db-412d-bab3-dd97aeede13b",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 28369,
+          "markdown_sha256": "d95b1330b8f62e19275436ef57cc3270a8f50738641deb8c20163eb5cd057a5f",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "capture_sha256": "e86579317014e2d056456a9f5f74ca1ff95782ab086397820b663eb539351a93",
+          "name": "windows-allocation-change"
+        },
+        {
+          "url": "https://winfsp.dev/apiref/",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 73095,
+          "markdown_sha256": "23f2e7b26b2297a12d6e98acb7b612010c44361803cc72c3563f82571cce5837",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "capture_sha256": "ba02849802fb942d7ff63e02f233fcb275756feb11004a6b061f8c6d281bbc39",
+          "name": "winfsp-operations"
+        }
+      ]
+    },
+    {
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "configuration_sha256": "a9fb9355c5e24030917c43f33b77e2b2cb9db02b06868fa920d95f4963118192",
+      "pages": [
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getcompressedfilesizew",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 37632,
+          "markdown_sha256": "1943b77148828d60f29d4f3e584f58cd93b2ae7a9255f4f624631a7603a48c2e",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "capture_sha256": "72bbf2e23f7253041fa8015a74707149743400e1cdbdba5c172e5b836fccf43b",
+          "name": "sparse-size"
+        }
+      ]
+    }
+  ],
+  "source_navigation": {
+    "head": "c2b38d75f55feff5b9f053eb89b1ade0086fb3d8",
+    "native_result_sha256": "7473df816dbd4239625f0b4f7bef0c899d9eea2e680b47cb19e3c01dce545db6",
+    "source_inventory_sha256": "82a8597a9fc28bc6ceed1f1d34a276a5d196970e0404bf2e92f98a4c8996f27c",
+    "candidates": [
+      "src/windows/winfsp_controller.cpp",
+      "src/windows/winfsp_native.cpp",
+      "src/windows/winfsp_native.cpp",
+      "src/windows/winfsp_native.cpp",
+      "src/windows/winfsp_native.cpp"
+    ]
+  },
+  "interpretation": [
+    "Both backings returned to the same occupied size after each of three cycles with the same live namespace size.",
+    "The packed backing retained no physically releasable suffix. The sparse backing reused its logical ranges with larger EOF and unchanged occupied size.",
+    "Every cycle included a newly started helper, a retained reader and a detached independent CPU audit. Backing and inode retirement were no longer actionable after each detach.",
+    "This selected client shape supports larger sustained attachment and interruption qualification. It does not measure throughput or real persistent-media failure behavior."
+  ]
+}

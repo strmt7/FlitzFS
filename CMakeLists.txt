@@ -1374,6 +1374,7 @@ if(FLITZFS_BUILD_VOLUME_APP)
     target_compile_options(flitzfs_volume_app_tests PRIVATE /W4 /permissive- /utf-8)
     if(FLITZFS_BUILD_WRITE_PROBE AND FLITZFS_EXPLORER_FILE_BACKING)
       target_compile_definitions(flitzfs_volume_app_tests PRIVATE FLITZFS_OBSERVE_VOLUME_PUBLICATION=1)
+      target_link_libraries(flitzfs_volume_app_tests PRIVATE flitzfs_volume_app_mount)
     endif()
     # GUI qualification is explicit and separate from normal CTest.
     if(FLITZFS_BUILD_EXPLORER_APP)

@@ -42,8 +42,13 @@ and brought occupied allocation from 270,598,144 to 265,551,872 bytes.
 Both allocation anchors advanced while the held reader stayed exact. An
 independent CPU reopen verified both live files, and a fresh writable mount
 accepted a continued write. The earlier detached native run reached
-7,340,032 bytes with maintenance still pending. Repeated mounted churn
-through complete settlement remains open.
+7,340,032 bytes with maintenance still pending. The new two-file mounted
+trace completed three cycles on each backing, including two delete/regrow
+transitions. The packed allocation returned to exactly 2 MiB each time and
+the sparse allocation to 1.75 MiB. A fresh helper wrote successfully again
+in each later cycle. The held reader, independent CPU inspection and
+persisted retirement checks passed on every cycle. Scale and sustained
+attachment still need separate evidence. [Repeated settlement](evidence/windows-mounted-repeated-reclamation-2026-11-23.json)
 **AMD can produce stored extents and read them back through the independent
 CPU path.** The controlled fast-write route committed 16 real Radeon extents
 and verified both protected copies of each. The automatic-policy helper
