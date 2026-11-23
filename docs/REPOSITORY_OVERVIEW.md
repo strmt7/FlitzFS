@@ -1,8 +1,8 @@
 # FlitzFS repository overview
 
-Reconciled on 23 November 2026 against the **1,019-file** tree at
-`8f035645067b334a6cc0ddbac401b9733676d3bc` and the tested cross-group
-relocation changes. The review maps Windows attachment, authority,
+Reconciled on 23 November 2026 against the **1,022-file** tree at
+`d4462a626bc69ea2c78f2954dade95308a1ac2e6`. The review maps Windows
+attachment, authority,
 allocation, recovery, AMD, maintenance and package paths to live source
 and qualification. The [current architecture](architecture/CURRENT.md)
 shows the flows, and the [source review](architecture/REVIEW.md) records
@@ -10,7 +10,8 @@ which assumptions still need evidence. Use the [revised architecture](architectu
 [detailed implementation plan](IMPLEMENTATION_PLAN.md) and
 [release execution plan](RELEASE_EXECUTION_PLAN.md) for forward work.
 
-[23 November review receipt](evidence/release-path-review-2026-11-23.json) ·
+[Current review receipt](evidence/release-execution-reconciliation-2026-11-23.json) ·
+[Previous review receipt](evidence/release-path-review-2026-11-23.json) ·
 [21 November architecture evidence](evidence/architecture-reconciliation-2026-11-21.json) ·
 [Previous handle and recovery reconciliation](evidence/release-reconciliation-indexed-handle-2026-11-22.json) ·
 [Development state ledger](DEVELOPMENT_STATE.json)
@@ -33,18 +34,25 @@ through the helper next. [Helper factory](../src/windows/volume_app_winfsp.cpp) 
 [Foreground activation tests](../tests/test_native_deferred_write_sdk.cpp) ·
 [Mounted packed lifecycle](evidence/windows-packed-explorer-2026-11-23.json)
 
-**The latest tests isolate three different properties.** The packed NTFS
+**The latest tests establish individual properties.** The packed NTFS
 guest fixture released an entire allocation group and retained correct held
 reads, CPU reopen and continued writes. Reopened paired volumes served two
 verified Radeon read frames and preserved CPU service when the worker refused.
 Sealed indexed AIT A–P images retained the same compacted encodings and
 payload protection at 32,440,320 bytes, down from 51,486,720. Paired placement
 has mounted Windows correctness evidence. Scale, integrated acceleration
-and held-out whole-product size and performance remain open.
+and held-out whole-product size and performance remain open. The mounted
+packed reclamation replay remained at its first image generation. After
+detach, the native reclaimer recognized 264,896,512 obsolete bytes on the
+same image, selected epoch 2 and reduced allocation to 7,340,032 bytes.
+Independent CPU inspection verified both live files. Additional maintenance
+was pending when the native fixture reached its step limit. The next proof
+is automatic mounted selection and physical retirement across repeated churn.
 [Cross-group relocation](evidence/dense-cross-group-2026-11-23.json) ·
 [Reopened AMD read](evidence/amd-reopened-paired-sealed-read-2026-11-23.json) ·
 [Sealed image evidence](evidence/sealed-indexed-images-2026-11-22.json) ·
-[Mounted paired selection](evidence/windows11-mounted-paired-sealing-2026-11-23.json)
+[Mounted paired selection](evidence/windows11-mounted-paired-sealing-2026-11-23.json) ·
+[Mounted/native differential](evidence/release-execution-reconciliation-2026-11-23.json)
 
 Keep the shared CPU-readable engine, copy-on-write publication, protected
 decoding dependencies, WinFsp integration and isolated GPU execution. Replace
@@ -59,9 +67,9 @@ release, tag, publication or product-version change is authorized by this review
 
 ## What is in the repository
 
-The reviewed parent contains 1,019 tracked files and 17,136,582 bytes of
+The reviewed commit contains 1,022 tracked files and 17,246,508 bytes of
 tracked content. The `src/` and `include/` directories contain 214 files
-and 2,372,791 bytes. Each receipt identifies its inspection or test scope.
+and 2,389,102 bytes. Each receipt identifies its inspection or test scope.
 
 | Area | Inventory | Responsibility |
 | --- | ---: | --- |
@@ -69,20 +77,22 @@ and 2,372,791 bytes. Each receipt identifies its inspection or test scope.
 | `include/` | 42 files | Public core, session, storage, resource and recovery interfaces |
 | `tests/` | 153 files | Model, malformed-input, failure, SDK, process, application and qualification fixtures |
 | `tools/` | 66 files | Dependency staging, provenance, resource containment and qualification |
-| `docs/` | 531 files | Contracts, plans, historical results and source-bound evidence |
+| `docs/` | 534 files | Contracts, plans, historical results and source-bound evidence |
 | `.github/` | 19 files | Complementary build, analysis and experimental workflows |
 | `third_party/` | 19 files | Pinned BLAKE3 sources, licensing and provenance |
 | `cmake/`, `evidence/`, `resources/`, and top-level files | 17 files | Build support, historical evidence, branding, README and licensing |
 
-Use the [review inventory and source bindings](evidence/release-path-review-2026-11-23.json)
+Use the [review inventory and source bindings](evidence/release-execution-reconciliation-2026-11-23.json)
 and the [cross-group build and test receipt](evidence/dense-cross-group-2026-11-23.json)
 for exact scope.
 
 ## Reconciliation
 
-The active checkout and GitHub `main` agreed on the reviewed parent. The
-original checkout remains on `d6bb574` with earlier working changes. Use the
-active checkout and its source-bound builds for this change.
+The active development checkout started with `main` and its tracked remote
+reference at the reviewed commit. The mounted comparison used a local
+instrumented test. Its result identifies the exact test executable and
+modified source. The product changes and earlier validation remain bound
+to their original receipts.
 
 Five hosted workflows failed on the earlier `227c82d` baseline. A dual-codec cold
 coverage fixture accounted for five failed test jobs. It verified its

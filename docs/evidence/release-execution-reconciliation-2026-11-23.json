@@ -1,0 +1,526 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "scope": "Stable release planning and signed guest mounted versus detached packed reclamation correctness",
+  "release_qualified": false,
+  "source": {
+    "reviewed_commit": "d4462a626bc69ea2c78f2954dade95308a1ac2e6",
+    "reviewed_tree": "c0e10e1ad8c3128ecd39bc004d896f3ebdde8217",
+    "inventory_sha256": "ca1b1be3f078c1a9e33dc53fcf2c2222c50b9b834181e8a54e21100fffc527a6",
+    "tracked_files": 1022,
+    "tracked_bytes": 17246508,
+    "native_files": 214,
+    "native_bytes": 2389102,
+    "inventory_by_top_level": [
+      [
+        ".github",
+        {
+          "files": 19,
+          "bytes": 129279
+        }
+      ],
+      [
+        ".gitignore",
+        {
+          "files": 1,
+          "bytes": 106
+        }
+      ],
+      [
+        "AGENTS.md",
+        {
+          "files": 1,
+          "bytes": 20560
+        }
+      ],
+      [
+        "CMakeLists.txt",
+        {
+          "files": 1,
+          "bytes": 96728
+        }
+      ],
+      [
+        "CONTRIBUTING.md",
+        {
+          "files": 1,
+          "bytes": 839
+        }
+      ],
+      [
+        "LICENSE",
+        {
+          "files": 1,
+          "bytes": 34523
+        }
+      ],
+      [
+        "README.md",
+        {
+          "files": 1,
+          "bytes": 4393
+        }
+      ],
+      [
+        "cmake",
+        {
+          "files": 2,
+          "bytes": 6868
+        }
+      ],
+      [
+        "docs",
+        {
+          "files": 534,
+          "bytes": 9123203
+        }
+      ],
+      [
+        "evidence",
+        {
+          "files": 2,
+          "bytes": 16049
+        }
+      ],
+      [
+        "include",
+        {
+          "files": 42,
+          "bytes": 227708
+        }
+      ],
+      [
+        "resources",
+        {
+          "files": 7,
+          "bytes": 974685
+        }
+      ],
+      [
+        "src",
+        {
+          "files": 172,
+          "bytes": 2161394
+        }
+      ],
+      [
+        "tests",
+        {
+          "files": 153,
+          "bytes": 3260035
+        }
+      ],
+      [
+        "third_party",
+        {
+          "files": 19,
+          "bytes": 527470
+        }
+      ],
+      [
+        "tools",
+        {
+          "files": 66,
+          "bytes": 662668
+        }
+      ]
+    ],
+    "previous_review": "8f035645067b334a6cc0ddbac401b9733676d3bc",
+    "paths_changed_since_previous_review": 27,
+    "reviewed_committed_blobs": {
+      "CMakeLists.txt": "92a65426abc885439abc078d1143d1b987f7c77f",
+      "src/windows/volume_app_winfsp.cpp": "8a58279971803b332b4abdd3bcc8023589d0ca9e",
+      "src/windows/winfsp_volume_attachment.cpp": "20038906a8c0a4fbde2127ffcbc23d927416e3fd",
+      "src/windows/winfsp_controller.cpp": "5d6126f46103f885f080d741c896c0da00f84d13",
+      "src/windows/winfsp_native.cpp": "62e407f49f7f81b9aaad59407d574f7deb99170e",
+      "src/windows/native_amd_write_policy.cpp": "9995f8d87bf315dc5ab4a322b28a8d0c1f25ee67",
+      "src/windows/native_deferred_write.cpp": "e7ca624984767f4c70a45a52988c1abcb21483a8",
+      "src/native_session.cpp": "d5cbdf23d7d41950a5615819e5171d903b925f2c",
+      "src/native_filesystem.cpp": "0ccb0cfe3490a3a864c43f65e63edfdf02481e6c",
+      "src/native_volume_file.cpp": "8350b2b01f8fd7a769aab152c6d5bfc458e98f7e",
+      "src/dense_volume_backing.cpp": "02ae38ad44a2d9785c343cb2536fa8ff439b1823",
+      "src/paged_store.cpp": "33913506a3be4b90bb410dc8a0c07b3fbcd7526a",
+      "src/volume_head.cpp": "7bbd421fbe0e24abccce9734beb49773156dc4cb",
+      "src/native_indexed_volume.cpp": "557fd21a5752d784e9da3693ed0c3bc7604a4170",
+      "src/native_maintenance.cpp": "d11c2186645d5b41519db16a77c841ea8a48bc10",
+      "src/indexed_coherence.cpp": "8c95ab1b7ab600013d2705276691d5d42f65f4a9",
+      "src/gpu_recovery.cpp": "204cbf0dc3a49e2ded897df74572e368d0264150",
+      "src/store_file.cpp": "28d1d6018cc6f842439ac3185ffc04e3cc96d996",
+      "cmake/WindowsAsanRuntime.cmake": "9d44b0a1bcb21618245861127a5ae9647ac59012",
+      "tools/dev/windows_run.py": "73dc7edd90b8dbe582b25655d1b529c7701b65dd"
+    },
+    "blobs": {
+      "tests/windows_volume_app_tests.cpp": "d34a347f94e4e4f2bc9ede1731e3af4ca0b08852"
+    },
+    "normalized_sha256": {
+      "tests/windows_volume_app_tests.cpp": "5ff6c1c5f847a72c27c3760d50c59f0471703fc220eb74f725d31f507bde8a8b"
+    }
+  },
+  "navigation": {
+    "earlier_job_deadline": {
+      "run": "local-run-5a7a7053fdaf4999a487cd9c96a24116",
+      "receipt_sha256": "2a79cd6bdfda7c97dd12bc087ca3e04f474c9e012f0231cd01d55125d8f16461",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 1460,
+      "tree_retired": true,
+      "stop_reason": "deadline"
+    },
+    "restored_search": {
+      "run": "local-run-eb36006d7642409f813ed3342890d453",
+      "receipt_sha256": "f3ac527262323e293f4a69bde727dc2e6bc33ef1da199997981dfc34857a18dc",
+      "output_sha256": "899a8262c9ad78e7a1b418fd1a68de419c4422487d1268da7c8d7bed3928f54c",
+      "exit_code": 0,
+      "tree_retired": true,
+      "stop_reason": null
+    },
+    "provider_version": "0.2.43",
+    "actual_searches": 1,
+    "candidate_paths": [
+      "src/native_volume_file.cpp",
+      "src/windows/winfsp_controller.cpp"
+    ],
+    "receipt_sha256": "2de0df219c6e99a9ec9b4e8abf035f6eab2327016b9ab4d48c98d9d41e6f2ebb",
+    "native_response_sha256": "a5ad408d3475bb0d914cab02353d14ef6afa8a9b69420123a557562706fc025d",
+    "inventory_sha256": "d2362276f916e7bb4f5dbef1d9b044d6c01d5e9cf480a69609108039c997c04a",
+    "dirty_patch_sha256": "53094284d8f737a6a7aa77645fafcde5c9eb6f2ee24e8a2a33507b4c4745be76"
+  },
+  "primary_research": {
+    "earlier_environment_failure": {
+      "run": "local-run-abb6917d81d44e8c8d96bc2169bf04f8",
+      "receipt_sha256": "bb70b3d0d09e4ddeffbdaa058cc1c5624930f1177a2a88f035b2c360a4519552",
+      "output_sha256": "feedfb0a356aaf98d1a849b76b49994e4ea1a5cb4dc50f41e24755ef37b6d75a",
+      "exit_code": 1,
+      "tree_retired": true,
+      "stop_reason": null,
+      "diagnosis": "OpenBLAS initialization exceeded the available job budget at the earlier attempt."
+    },
+    "restored_run": {
+      "run": "local-run-0b498f7bb66b43c98329dbf1e7f5d8dd",
+      "receipt_sha256": "5eccd32cddd90a4a03ca7a17531058450bd3f1f43673a77c815043fee9339ac8",
+      "output_sha256": "c1ab90e9e8f812383654c5707e7f91cf5570eef727b96a7a640cef128d281bd3",
+      "exit_code": 0,
+      "tree_retired": true,
+      "stop_reason": null
+    },
+    "robots_checked": true,
+    "personal_profile": false,
+    "external_llm": false,
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "f7ef77513469ce95ed343b5fbcada9c333d49f3cbe7ec3cecb87c01e2e0a0c75",
+    "pages": [
+      {
+        "url": "https://winfsp.dev/apiref/",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 73095,
+        "markdown_sha256": "23f2e7b26b2297a12d6e98acb7b612010c44361803cc72c3563f82571cce5837",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.049,
+        "capture": "winfsp-cleanup.native.json",
+        "capture_sha256": "e17cfed9a0c10a581c1483975cf04e1b42e965837a0fdd49716e8b07c9159111",
+        "name": "winfsp-cleanup"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/compact",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 45765,
+        "markdown_sha256": "e467e58dda0165da314be4e28c476e21eec3c6b71df18ed989bf01a444e99ac5",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.221,
+        "capture": "native-compression.native.json",
+        "capture_sha256": "d4b8c0e2bfbb4d2ba1f62677a4659457e84099d5d84e19c66ae84bfd1befe98b",
+        "name": "native-compression"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_get_compression",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 62004,
+        "markdown_sha256": "390314720de1e4c5dbc16c818f666b94bbe2650b68317f67da3008a382fb932d",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.885,
+        "capture": "compression-control.native.json",
+        "capture_sha256": "2d720b17dfbe1f38ce5ac2ecda4e5d0b2e28902d49eeb57833ea8e36027ec0d5",
+        "name": "compression-control"
+      },
+      {
+        "url": "https://github.com/microsoft/diskspd/releases/tag/v2.3",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 10890,
+        "markdown_sha256": "eeb9b62171e288479521b4b40ed1cc6cce292b18b155e44762c8f59b64d05cb2",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.15,
+        "capture": "diskspd.native.json",
+        "capture_sha256": "f2c541708d27214ed54d4de375f926ef866e40813cd8a55351802aafd446614d",
+        "name": "diskspd"
+      },
+      {
+        "url": "https://aitdcc.github.io/dataset.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 6271,
+        "markdown_sha256": "766801630c0c3f7c80304f41397c0ae265fd0cb79387c2837c920c08b8987676",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.678,
+        "capture": "aitdcc.native.json",
+        "capture_sha256": "02ce6f2d92004f5c227f42d10ce94e7a198329bbef7d667d283cc5c62fdf9049",
+        "name": "aitdcc"
+      },
+      {
+        "url": "https://rocm.docs.amd.com/en/docs-10.2.0/about/release-notes.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 303361,
+        "markdown_sha256": "18caaf90d5ea55c1acb99c34abb277aa89c6eada8e5300b6ffdebe356e45a728",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.68,
+        "capture": "amd-windows.native.json",
+        "capture_sha256": "0c33e6b3bb161952cdd97ba72a9b25d53a13bfb54ff461ec9b211ff265b5c93a",
+        "name": "amd-windows"
+      },
+      {
+        "url": "https://www.usenix.org/conference/fast26/presentation/kim-jeeyun",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 10653,
+        "markdown_sha256": "595183d73b6f7b3cb31203621a98abbcf33189d12809233883cf3c6ed64870f9",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 4.171,
+        "capture": "fast26-placement.native.json",
+        "capture_sha256": "6ff2ab2ee7ab709dc17bc312682f21336649030f44775bc997c45eaf3cd03f80",
+        "name": "fast26-placement"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 36207,
+        "markdown_sha256": "116ffcd5a6feba3539c3f668a2c969aa2e38b8f3663a704a7654e7b2a7954e4c",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.658,
+        "capture": "flush.native.json",
+        "capture_sha256": "d307175cbe7ac97dbda53efcdd5352afe1b5f4c98ed42e1970ffc105f2d30021",
+        "name": "flush"
+      }
+    ]
+  },
+  "diagnostic": {
+    "winfsp_version": "2.2",
+    "guest_windows": {
+      "caption": "Microsoft Windows 11 Enterprise",
+      "version": "10.0.26100",
+      "build": "26100",
+      "session": 0,
+      "ram_mib": 4094,
+      "available_mib": 3058,
+      "explorer_sessions": []
+    },
+    "exact_artifact_sha256": {
+      "flitzfs_volume_app.exe": "5e94bb8e429e8debe8aa0ee98672e92d4632c08fe6862e1f82b8cb2eb3301a66",
+      "flitzfs_volume_app_tests.exe": "1fb7856e4f50f23768876c7c2681afeda1aede82dcac0f99a58295e6dd390279",
+      "flitzfs_volume_attachment_tests.exe": "0ec1c3a9cde5c7ccdd4da4a146cedca17043429b74f0d008260bcb75a655b608",
+      "winfsp-x64.dll": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+      "winfsp-x64.sys": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+      "msvcp140.dll": "59d325227321d52b9a523ea401ce6787a5d59f78229a0ff3a6f124e5d3445685",
+      "msvcp140_atomic_wait.dll": "8b10c6bd4c3c427ce7c8be96ef0fef0f8187bc236962be62a03caef834b37dcd",
+      "vcruntime140.dll": "eb1ee979bf02324712346e5bdbfc59c785388bc50d18cc2688aae4b0734915a0",
+      "vcruntime140_1.dll": "a14b4a42a2c6df04d6d53a8340816023d953406f7f3d94996c7cab30c414ff63"
+    },
+    "failed_settled_query": {
+      "run": "local-run-603b32c954174a2bafb1f93117f331cd",
+      "receipt_sha256": "d9d79aac03eada698d6c3384db11a2b925bd9a3f22027d04dddfcac0f2a1171f",
+      "output_sha256": "d6232ddcf83d5af3bf9df3c4e03f1b330c1b851094e5bd2dcffb655ac42e49ea",
+      "exit_code": 1,
+      "tree_retired": true,
+      "stop_reason": null,
+      "guest_result_sha256": "6b30fe2a5832ed4bd4314c8739e8dd7132b5b1eddf2f3863986040bda8962bcc",
+      "test_source_sha256": "21ceee7a0f16bf0b5d56779601253824418d8358dfe1368f0e6f4f04d24a31be",
+      "test_artifact_sha256": "4d0f72e60820d904d450e9c276417e8328273c2e607d33453051d2ec70c429fc",
+      "guest_file_length_bytes": 7340032,
+      "reported_error": "dense allocation accounting requires settled ownership",
+      "independent_readback": false
+    },
+    "declined_before_guest_creation": {
+      "run": "local-run-ebb604ba20c04158b5a81d5f247eae58",
+      "receipt_sha256": "4b228501227123add6411c7ee0a24b645190920f02f23a4b05e34395f753bfd3",
+      "output_sha256": "5f8b2bb7e0e0fd806bd75c0d6a08269baf612e27e20c9dfaeb28e364238d6e89",
+      "exit_code": 1,
+      "tree_retired": true,
+      "stop_reason": null,
+      "reason": "Insufficient observed host memory headroom for one sandbox under the fixture's existing reserve."
+    },
+    "verified_bytes_and_allocation": {
+      "run": "local-run-a667507589134fa291a11a26f1147507",
+      "receipt_sha256": "cbb6e6e7ac5c4b0f07f3879cc19f01902086e7348e5f9e2b8b950bcc5aa9f03c",
+      "output_sha256": "4e8066a6e35a39153fdf5638c3fb681fb15dc5220f25e6469602218a6a4e89f4",
+      "exit_code": 0,
+      "tree_retired": true,
+      "stop_reason": null,
+      "fresh_test_build": {
+        "run": "local-run-900b118ba3ad405f8b36c45d5f3d4de4",
+        "receipt_sha256": "e5d2e6494da419e5804dea2e98f126626a9aebe9a02ed326f79c9cc987610b59",
+        "output_sha256": "6e6ffca000933fa8cefe021c5dee6b0098ff230931a179a03acc21cfcd4f53d0",
+        "exit_code": 0,
+        "tree_retired": true,
+        "stop_reason": null
+      },
+      "guest_result_sha256": "533c1e8670aaf328a162806dc2514aeaab992a28eac217e0c009aa626c2fdba2",
+      "guest_supervisor_sha256": "3ae7187e6ae3c2f13ed79e1a27356d633ce96fe11bcd977190cdee374cb1ddf9",
+      "observations": {
+        "mounted_packed_population": {
+          "allocated": 270598144,
+          "revisions": 60
+        },
+        "mounted_packed_comparison": {
+          "after_allocation": 270598144
+        },
+        "native_packed_comparison": {
+          "epoch": 1,
+          "occupied": 269615104,
+          "obsolete": 264896512,
+          "owned": 269877248,
+          "allocated": 270270464,
+          "worthwhile": 1,
+          "context_ready": 1,
+          "pending": 1,
+          "cold_pending": 1
+        },
+        "native_packed_steps": {
+          "epoch": 2,
+          "idle": 0,
+          "copying": 249,
+          "ready": 1,
+          "published": 1,
+          "retiring": 133,
+          "pinned": 0,
+          "failed": 0,
+          "pending": 1
+        },
+        "native_packed_readback": {
+          "allocated": 7340032,
+          "independent_cpu": 1,
+          "files": 2
+        }
+      },
+      "guest_file_length_bytes": 7340032,
+      "native_step_budget": 384,
+      "verification": "Retired the native writer and opened the same image independently on CPU. Checked the selected epoch, full filesystem verification and both exact live file contents.",
+      "settled_maintenance_proven": false,
+      "automatic_mounted_reclaim_proven": false,
+      "performance_measurement": false,
+      "guest_retired": true,
+      "remaining_mounts": [],
+      "remaining_app_processes": []
+    }
+  },
+  "qualification": {
+    "current_test_scope": {
+      "newPlanAppModel": {
+        "run": "local-run-a11e756c8adb4d9198081bb77d34711e",
+        "receipt_sha256": "026600a4e6b6e4f5363640b54a58c55f26368b158fbad2359316d97c9887e534",
+        "output_sha256": "866caad35647b7bfe3af8cac916a2e903a093bf3768610d8211d801a90a31562",
+        "exit_code": 0,
+        "tree_retired": true,
+        "stop_reason": null,
+        "result_lines": [
+          "Helper post-admission allocator cut: 1 retained and retired",
+          "Helper post-admission allocator cut: 2 retained and retired",
+          "Helper post-admission allocator cut: 3 retained and retired",
+          "Application handle phase: volume-retired handles=155",
+          "Application handle phase: controller-retired handles=155",
+          "Application handle balance: 155 -> 155",
+          "Windows volume application checks: 841. Real CPU engine and bounded process-lifetime memory.",
+          "Application fixture peak commit: 10280960 bytes"
+        ]
+      },
+      "newPlanAppMaintenance": {
+        "run": "local-run-7636e840b8914de8b90b3c7929dc6a44",
+        "receipt_sha256": "b076a4cb04fa64601d4e693c306c006b79f589d9e6a5263c3a3d2fefb2511787",
+        "output_sha256": "4fea76a7c418b53850ae0eff5ca9060d478a1083d96eec0e7fb5d64f751df27d",
+        "exit_code": 0,
+        "tree_retired": true,
+        "stop_reason": null,
+        "result_lines": [
+          "Application fixture memory allowance: 564441088 bytes; existing_private=1355776 additional_headroom=563085312 enclosing_job_limit=565182464 requested_limit=565182464 fixture_cpu_rate=2000 supervisor_cpu_rate=0",
+          "Live maintenance telemetry: busy_ppm=182780 window_ms=1000 physical_available=13319262208 commit_available=54830624768",
+          "Already compact groups declined=1",
+          "Profitable family groups=1 compacted_savings_lower_bound=196608",
+          "Live idle groups=0 samples=0 control_generation=5 notifications=7 quanta=2 continued_steps=0 elapsed_ns=425800 maximum_quantum_ns=334900",
+          "Live maintenance outcome=resource-deferred preparation_interleave=0 publication_exercised=0 deferral=3",
+          "Windows volume application checks: 109. Real CPU engine and bounded process-lifetime memory.",
+          "Application fixture peak commit: 4501504 bytes"
+        ]
+      },
+      "newPlanCtestApps": {
+        "run": "local-run-1f978e07c16f4949a8084216694e950b",
+        "receipt_sha256": "9b7fcca49e089d84d9c772a06e2e26991e16afc5c641d7f7c1446028b427db95",
+        "output_sha256": "4a34056af6917f38c0f8af7d72f9757bb81de255c7ae021626928ebc38fb9778",
+        "exit_code": 0,
+        "tree_retired": true,
+        "stop_reason": null,
+        "result_lines": [
+          "    Start 216: bounded_windows_volume_attachment",
+          "1/2 Test #216: bounded_windows_volume_attachment ........   Passed    0.36 sec",
+          "    Start 217: bounded_windows_volume_file_attachment",
+          "2/2 Test #217: bounded_windows_volume_file_attachment ...   Passed    0.61 sec",
+          "",
+          "100% tests passed out of 2",
+          "",
+          "Total Test time (real) =   1.05 sec"
+        ]
+      }
+    },
+    "unchanged_product_validation": {
+      "receipt": "docs/evidence/windows-packed-explorer-2026-11-23.json",
+      "passed": {
+        "windows": 217,
+        "raw_only": 9,
+        "address_sanitizer": 10
+      }
+    },
+    "last_actual_gpu_read": "docs/evidence/amd-reopened-paired-sealed-read-2026-11-23.json",
+    "automatic_gpu_foreground_admission": "The volume controller has a qualified offer API and SDK tests. The ordinary app has no production offer caller.",
+    "native_ntfs_compression_benchmark": "The verified built-in LZNT1 comparison is specified. A matched real-host mounted run remains open.",
+    "current_release_gates_open": 12,
+    "remaining_person_weeks": [
+      59,
+      127
+    ],
+    "estimate_confidence": "low",
+    "goal": "active"
+  }
+}

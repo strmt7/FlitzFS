@@ -7,15 +7,15 @@
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
   "release_path_review": {
-    "evidence": "docs/evidence/release-path-review-2026-11-23.json",
-    "reviewed_parent": "8f035645067b334a6cc0ddbac401b9733676d3bc",
-    "tracked_parent_files": 1019,
+    "evidence": "docs/evidence/release-execution-reconciliation-2026-11-23.json",
+    "reviewed_parent": "d4462a626bc69ea2c78f2954dade95308a1ac2e6",
+    "tracked_parent_files": 1022,
     "qualification": "development",
     "remaining_effort_person_weeks": [59, 127],
     "estimate_confidence": "low",
     "immediate_trace": "docs/RELEASE_EXECUTION_PLAN.md#next-integrated-qualification",
     "native_ntfs_comparison": "specified, matched live-host run pending",
-    "mounted_packed_attachment": "core qualified in bounded fixtures, helper integration pending",
+    "mounted_packed_attachment": "Signed guest helper lifecycle and acknowledged overwrite recovery verified. Automatic mounted reclamation is open.",
     "automatic_foreground_amd": "SDK activation qualified in its scope, ordinary helper admission pending"
   },
   "dense_cross_group_relocation": {
@@ -33,8 +33,16 @@
     "selected_provider": "qualified ordinary NTFS with packed creation and checked sparse reopen",
     "mounted_guest": "signed WinFsp 2.2 packed create, detach and fresh writable reopen with independent CPU verification",
     "interrupted_mount": "acknowledged overwrite and rename, 1024 neighboring files, and a continued write independently verified",
-    "mounted_reclamation": "open; latest two-group overwrite trial remained at image epoch 1",
-    "next": "Trace obsolete-space accounting and controller opportunities before changing packed reclamation admission. Compare with the native reclaimer on the same owned fixture, then continue ordinary AMD activation."
+    "mounted_reclamation": "Open. The mounted churn fixture remained at image epoch 1. The detached native reference then selected epoch 2, reduced backing allocation to 7340032 bytes and passed independent CPU readback of both files. Additional native work was pending at the step limit.",
+    "next": "Capture mounted controller admission and reclaimer transitions on the same workload. Correct the observed divergence, verify repeated automatic allocation-group retirement, and continue ordinary AMD activation."
+  },
+  "current_product_boundary": {
+    "authority": "docs/RELEASE_EXECUTION_PLAN.md#current-gate-ledger",
+    "windows_scope": "Writable WinFsp application in development qualification. Packed and sparse NTFS-backed guest evidence and an in-memory path. Interactive installed client and supported persistent-media qualification are open.",
+    "gpu_scope": "Installed read-ahead and collective acquisition in eligible builds, with actual device verification in bounded fixtures. Ordinary foreground AMD admission through the helper and product-wide measured benefit are open.",
+    "advisory_scope": "Sparse persistent coherence postings, funded group selection and cooperative compaction exist. Scalable discovery, learned choice and cross-volume resource scheduling still need product qualification.",
+    "recovery_scope": "Checked CPU recovery and mirrored transaction evidence from model and guest interruptions. Physical power-loss recovery, versioned rescue distribution and gradual upgrade still need qualification.",
+    "historical_detail": "Earlier boundary observations below retain their original qualification scope."
   },
   "architecture_reconciliation": {
     "reviewed_commit": "df5be9b5b9d0bc05ac565eb2da8454ac76bed3d2",
@@ -1626,7 +1634,8 @@
   ],
   "next_implementation": {
     "contract": "docs/IMPLEMENTATION_PLAN.md",
-    "next": "Qualify the disposable external-client mount. Persist sparse candidate discovery. Measure AMD setup and accounting overhead before admitting a collective codec.",
+    "next": "Complete the first source-bound mounted slice with automatic packed allocation retirement and ordinary AMD admission. Use the same client and independent CPU bytes to extend scale, recovery and whole-volume compression qualification.",
+    "sequence": "docs/RELEASE_EXECUTION_PLAN.md#first-implementation-slice",
     "steps": [
       "E08.4",
       "E01.2",
@@ -1636,7 +1645,7 @@
       "E03.4"
     ]
   },
-  "implementation_boundary": {
+  "historical_implementation_boundary": {
     "normal_filesystem_operations": "Default CPU-only; explicit hosted owned service qualified for CPU-semantic advice and real CPU-only pending responses. No automatic GPU launch.",
     "native_compression": "Independent CPU formats and controlled GPU advice; d384b6c passed three actual owned-service GPU requests in a matched series with CPU recovery. Explicit exact sharing/private updates are locally implemented in format 7. Automatic useful GPU routing, scalable indices, learned collective codecs and payload repair remain unfinished. Explicit PN capability-3 shared-base groups now have independent CPU decoding and conservative complete-size admission; selected raw/ASan checks do not qualify actual AMD collective execution.",
     "persistent_learner": false,

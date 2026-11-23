@@ -1,10 +1,12 @@
 # Release readiness
 
 FlitzFS is in development qualification. Its current Windows app, indexed
-storage and AMD route have source-bound development evidence. The open gates
-cover large mounted volumes, real backend failures, useful mounted AMD work,
-strong held-out compression, installed Explorer behavior and compatibility.
-The owner alone makes the release decision.
+storage and AMD routes have source-bound development evidence. The packed
+helper passed creation, reopen and post-flush guest recovery. Automatic
+mounted physical reclamation, useful ordinary AMD read and write work,
+large-volume startup, backend failures, held-out compression and installed
+Explorer behavior still have open gates. The owner alone makes the release
+decision.
 
 Use the [current gate ledger](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
 for status and acceptance. The [architecture review](architecture/REVIEW.md)
@@ -12,8 +14,9 @@ records current source evidence and release risks, and the
 [detailed implementation plan](IMPLEMENTATION_PLAN.md) gives the work packages.
 
 The release plan estimates **60–130 person-weeks** at low confidence.
-Re-estimate after mounted scale, physical recovery and the first held-out
-compression comparison. The research needed for the compression target
+Re-estimate after mounted scale and reclamation, ordinary AMD and CPU
+continuity, the first physical recovery campaign and the first held-out
+compression comparison. Compression research beyond that measured frontier
 has no defensible end date yet.
 
 ## Historical checkpoint of 15 November 2026

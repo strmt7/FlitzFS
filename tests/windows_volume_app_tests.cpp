@@ -1,5 +1,6 @@
 #include "volume_controller.hpp"
 #include "bounded_process.hpp"
+#include "memory_volume_factory.hpp"
 #include "windows_app_budget.hpp"
 #include "flitzfs/native_volume_file.hpp"
 #include "flitzfs/read_only_file.hpp"
@@ -732,6 +733,7 @@ struct MountedFileActivation {
   std::shared_ptr<ProcessObserver> interrupted_owner;
   std::vector<std::byte> packed_witness;
   std::vector<std::byte> packed_payload;
+  bool compare_packed_reclaimer=false;
 };
 
 constexpr std::size_t mounted_trace_files=1024;
@@ -984,6 +986,16 @@ void mounted_packed_workload(const std::wstring& root,MountedFileActivation& act
   require(before>first_group_end,"Retained mounted witness missed its allocation group");
   std::cout<<"mounted_packed_population allocated="<<before<<" revisions="<<writes<<std::endl;
   std::uint64_t settled=before;
+  if(activation.compare_packed_reclaimer) {
+    const auto stop=(std::min)(deadline-4000,GetTickCount64()+12000);
+    while(GetTickCount64()<stop && settled>=first_group_end) {
+      Sleep(100);
+      settled=packed_file_allocation(activation.path);
+    }
+    verify_mounted_bytes(retained.file,activation.packed_witness);
+    std::cout<<"mounted_packed_comparison after_allocation="<<settled<<'\n';
+    return;
+  }
   std::uint64_t next_sample=0;
   until([&] {
     const auto now=GetTickCount64();
@@ -1524,9 +1536,10 @@ void mounted_file_gui_tests(const std::filesystem::path& app,const app_fixture::
       <<"fresh_process_reopen=1 independent_cpu_readback=1\n";
 }
 
-void mounted_packed_file_gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budget) {
+void mounted_packed_file_gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budget,bool compare) {
   const auto parent=std::filesystem::path(disposable_mount_parent()).parent_path();
   MountedFileActivation activation{parent/L"Packed.flfs"};
+  activation.compare_packed_reclaimer=compare;
   {
     const auto input=ReadOnlyFile::open(app.parent_path()/L"winfsp-x64.dll");
     require(input.size()>0 && input.size()<=kStoreMaxObjectBytes,"Mounted witness exceeds its budget");
@@ -1566,6 +1579,49 @@ void mounted_packed_file_gui_tests(const std::filesystem::path& app,const app_fi
     }catch(const std::exception& e){std::cerr<<"Pending packed fixture: "<<e.what()<<'\n';}
     throw;
   }
+  if(compare) {
+    using Progress=NativeVolumeReclaimProgress;
+    const auto identity=NativeVolumeFile::inspect(activation.path).info().selection.volume_identity;
+    constexpr StoreIoContract contract{static_cast<std::uint32_t>(kStoreCommitUnit),true,false,true};
+    std::array<unsigned,7> steps{};
+    std::uint64_t epoch=0;
+    {
+      auto writer=NativeVolumeFile::resume(activation.path,contract,identity,
+          {StoreCompressionMode::automatic,3,false});
+      const auto space=writer.indexed_volume_space();
+      const auto before=writer.dense_file_space().value();
+      std::cout<<"native_packed_comparison epoch="<<writer.volume_info().selection.epoch
+          <<" occupied="<<(space.total_bytes-space.free_bytes)<<" obsolete="<<space.obsolete_bytes
+          <<" owned="<<before.owned_payload_bytes<<" allocated="<<before.allocated_file_bytes.value_or(0)
+          <<" worthwhile="<<space.reclamation_worthwhile()
+          <<" context_ready="<<writer.idle_compaction_context_ready()
+          <<" pending="<<writer.persistent_reclamation_pending()
+          <<" cold_pending="<<writer.persistent_reclamation_pending(true)<<std::endl;
+      const auto stop=GetTickCount64()+25000;
+      for(unsigned i=0;i<384 && GetTickCount64()<stop && writer.persistent_reclamation_pending(true);++i) {
+        const auto result=writer.advance_persistent_reclamation(fresh_volume_identity,true);
+        ++steps.at(static_cast<std::size_t>(result));
+        if(result==Progress::idle || result==Progress::pinned || result==Progress::failed)break;
+      }
+      epoch=writer.volume_info().selection.epoch;
+      std::cout<<"native_packed_steps epoch="<<epoch<<" idle="<<steps[0]
+          <<" copying="<<steps[1]<<" ready="<<steps[2]<<" published="<<steps[3]
+          <<" retiring="<<steps[4]<<" pinned="<<steps[5]<<" failed="<<steps[6]
+          <<" pending="<<writer.persistent_reclamation_pending(true)<<std::endl;
+    }
+    const auto cpu=NativeVolumeFile::inspect(activation.path,identity);
+    const auto& final=cpu.filesystem();
+    final.verify_all();
+    require(cpu.info().selection.epoch==epoch,"CPU recovery chose a different volume generation");
+    require(final.read("witness.bin",0,static_cast<std::uint32_t>(activation.packed_witness.size()))==
+        activation.packed_witness && final.read("payload.bin",0,
+        static_cast<std::uint32_t>(activation.packed_payload.size()))==activation.packed_payload,
+        "Packed comparison changed mounted data");
+    std::cout<<"native_packed_readback allocated="<<packed_file_allocation(activation.path)
+        <<" independent_cpu=1 files=2"<<std::endl;
+    require(!steps[static_cast<std::size_t>(Progress::failed)],"Native packed comparison failed a reclamation step");
+    return;
+  }
   const auto identity=inspect({},false);
   activation.action=VolumeFileAction::open_existing;
   gui_tests(app,budget,GuiRuntime::mounted,&activation);
@@ -1581,7 +1637,8 @@ int wmain(int argc,wchar_t** argv) {
     if(mode==L"--gui-mounted-flush-recovery-sandbox")interruption=MountedRecoveryOperation::create_file;
     if(mode==L"--gui-mounted-overwrite-recovery-sandbox")interruption=MountedRecoveryOperation::overwrite_and_rename;
     const bool populated=mode==L"--gui-mounted-populated-file-sandbox" || interruption.has_value();
-    const bool packed=mode==L"--gui-mounted-packed-file-sandbox";
+    const bool packed_compare=mode==L"--gui-mounted-packed-compare-sandbox";
+    const bool packed=mode==L"--gui-mounted-packed-file-sandbox" || packed_compare;
     const bool mounted=argc==3 &&
         (mode==L"--gui-mounted-sandbox" || mode==L"--gui-mounted-file-sandbox" || populated || packed);
     app_fixture::Budget budget(!mounted);
@@ -1597,7 +1654,7 @@ int wmain(int argc,wchar_t** argv) {
       else if(mode==L"--gui-missing-winfsp")gui_tests(app,budget,GuiRuntime::missing);
       else if(mode==L"--gui-altered-winfsp")gui_tests(app,budget,GuiRuntime::altered);
       else if(mode==L"--gui-mounted-sandbox")gui_tests(app,budget,GuiRuntime::mounted);
-      else if(packed)mounted_packed_file_gui_tests(app,budget);
+      else if(packed)mounted_packed_file_gui_tests(app,budget,packed_compare);
       else if(mode==L"--gui-mounted-file-sandbox" || populated)mounted_file_gui_tests(app,budget,populated,interruption);
       else throw std::runtime_error("Unknown GUI qualification mode");
     } else throw std::runtime_error("Explicit model, maintenance or GUI qualification mode required");

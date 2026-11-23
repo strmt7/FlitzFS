@@ -1,9 +1,10 @@
 # Current FlitzFS architecture
 
-The diagrams reflect the 23 November source review and the tested cross-group
-relocation. The [review receipt](../evidence/release-path-review-2026-11-23.json)
+The diagrams reflect the 23 November source review through
+`d4462a626bc69ea2c78f2954dade95308a1ac2e6`. The
+[current review receipt](../evidence/release-execution-reconciliation-2026-11-23.json)
 binds source and evidence. The [subsystem review](REVIEW.md) contains the
-earlier reconciliation. The [revised architecture](TARGET.md) describes
+detailed reconciliation. The [revised architecture](TARGET.md) describes
 planned product changes.
 
 ## 1. Process and build boundaries
@@ -340,6 +341,32 @@ under bounds, but still depends on alternate capacity and scans for this work.
 · [persistent postings](../../src/indexed_coherence.cpp#L258)
 · [file reclaimer](../../src/native_volume_file.cpp#L227)
 · [staged rebuild](../STAGED_PAGED_REBUILD.md)
+
+### Mounted reclaim admission and the native control
+
+```mermaid
+flowchart TD
+    App["Helper-owned WinFsp dispatcher"] --> Event["Callback activity and retained-reader events"]
+    Event --> Scheduler["Controller refreshes host resources and checks pacing"]
+    Scheduler --> Slot{"Indexed maintenance slot admitted?"}
+    Slot -->|Deferred| Event
+    Slot -->|Admitted| Native["Native maintenance evaluates repairs, groups and reclamation"]
+    Native --> Pending{"Image or physical-tail work pending?"}
+    Pending -->|Yes| Advance["Bounded reclaimer step"]
+    Pending -->|No| Idle["Another eligible task or idle"]
+    Advance --> Ownership["Verify image and allocation ownership before replacement or release"]
+    Detach["Detached packed fixture with independent native writer"] --> Direct["Explicit native admission and step"]
+    Direct --> Advance
+    Ownership --> Verify["After retirement, independent CPU reopen and physical accounting"]
+```
+
+The ordinary mounted replay stayed at its original image during the observed
+window. The detached native control selected epoch 2, reduced backing
+allocation and passed independent CPU checks on both live files.
+Maintenance was pending at the last bounded native step. The
+[next implementation slice](../RELEASE_EXECUTION_PLAN.md#first-implementation-slice)
+records mounted admission and the first divergent transition before making
+a scheduling or allocation change.
 
 ## 9. AMD work and immediate CPU continuity
 

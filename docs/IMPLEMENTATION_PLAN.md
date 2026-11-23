@@ -1,7 +1,7 @@
 # FlitzFS detailed implementation plan
 
 **Reconciled on 23 November 2026.** The current source, tested changes and
-qualification are bound in the [release-path review receipt](evidence/release-path-review-2026-11-23.json).
+qualification are bound in the [current review receipt](evidence/release-execution-reconciliation-2026-11-23.json).
 
 The [current architecture](architecture/CURRENT.md) shows the implementation.
 The [source review](architecture/REVIEW.md) tests the assumptions and the
@@ -20,11 +20,14 @@ controlled deferred integration and live indexed readback. Mounted inner
 publication cuts cover Write, EOF shrink and rename. The CPU reader also
 verified both image ranges through mounted selector cuts during reclamation.
 Mapped-write recovery passed with cached neighbors and directory churn.
-Packed relocation between allocation groups now has a verified recovery
-model and an ordinary NTFS guest-file trial. The next checkpoint connects
-packed creation and installed foreground AMD through the ordinary Explorer
-helper. Carry concurrent cached and mapped flushes through the same client
-trace. [Integrated sequence](RELEASE_EXECUTION_PLAN.md#immediate-implementation-order)
+Packed relocation between allocation groups has a verified recovery model
+and an ordinary NTFS guest-file trial. The helper creates packed backing
+and reopens both supported formats. Its mounted two-group churn still needs
+automatic image selection and verified physical retirement. The immediate
+checkpoint traces mounted reclamation against the verified native control
+and activates the qualified foreground AMD offer through the same Explorer helper. Carry
+concurrent cached and mapped flushes through one client trace.
+[Integrated sequence](RELEASE_EXECUTION_PLAN.md#immediate-implementation-order)
 Keep independent CPU bytes, full occupied-size accounting and safe ownership
 for each path. [Release gate ledger](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
 · [Current state](DEVELOPMENT_STATE.json)
@@ -147,12 +150,14 @@ release gates provide the references.
 
 ### Checkpoint 1. Establish the client and storage trace
 
-- Carry the selected ordinary-file backing contract through
-  `WinFspVolumeFileSelection` into the existing writable adapter. Select the
-  sparse or packed creation path from probed capabilities and admitted
-  extent. On reopen use persisted format and pinned identity. Mount the
-  cross-group reclamation workload with a held reader, then independently
-  reopen and continue writing. [Relocation evidence](evidence/dense-cross-group-2026-11-23.json)
+- Retain the verified carrier of the opened backing identity and physical
+  extent through `WinFspVolumeFileSelection`. Trace packed maintenance
+  admission, held readers and retirement under the ordinary helper.
+  Use the independently verified detached native result as a control.
+  Qualify repeated automatic group release, fresh reopen and a
+  continued flushed write.
+  [Relocation evidence](evidence/dense-cross-group-2026-11-23.json) ·
+  [Mounted differential](RELEASE_EXECUTION_PLAN.md#first-implementation-slice)
 - Generate one exact manifest for source, toolchain, helper, WinFsp DLL and
   driver, AMD modules and runtime, data and backing. Record client-observed
   status separately from WinFsp response attempts. Add operation identity,
