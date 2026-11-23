@@ -394,6 +394,23 @@ void detached_write_batch(const std::filesystem::path& helper) {
       advised->stored_lz4_candidates==2 && advised->cpu_readback_verified && advised->retirement_confirmed &&
       !advised->device_executed && domain.usage().stores==0 && domain.usage().resident==0,
       "Grouped output crossed a file boundary or retained resources");
+  std::vector<std::vector<std::byte>> frames;
+  for(std::size_t i=0;i<prepared.members().size();++i) {
+    const auto reply=verified.reply(i);
+    UniformLz4Candidates part{{reply.payload.begin(),reply.payload.end()},{reply.sizes.begin(),reply.sizes.end()}};
+    frames.push_back(encode_uniform_lz4_reply(prepared.prepare_member(i),reply.request_id,
+        part,WorkerExecution::cpu_semantics));
+  }
+  std::vector<UniformLz4Bytes> views;
+  for(const auto& frame:frames)views.push_back(frame);
+  const auto separately=VerifiedUniformLz4Batch::accept_members(views,prepared,WorkerExecution::cpu_semantics);
+  const auto stored=record_native_amd_verified_batch(storage,prepared,separately,allowance,&domain,running);
+  check(stored && stored->transactions==advised->transactions && stored->input_digest==advised->input_digest &&
+      stored->occupied_bytes==advised->occupied_bytes && stored->stored_lz4_candidates==advised->stored_lz4_candidates &&
+      stored->cpu_readback_verified && stored->retirement_confirmed && domain.usage().stores==0 &&
+      domain.usage().resident==0,"Separate replies changed native write grouping or recovery");
+  std::cout<<"detached_repeated_reply_replay writes="<<stored->transactions
+      <<" stored_advice="<<stored->stored_lz4_candidates<<" exact_reopen=1 retired=1 gpu_executed=0\n";
   std::cout<<"detached_write_batch writes="<<advised->transactions<<" bytes="<<bytes.size()
       <<" cpu_occupied="<<cpu->occupied_bytes<<" advised_occupied="<<advised->occupied_bytes
       <<" stored_advice="<<advised->stored_lz4_candidates<<" retired=1 gpu_executed=0\n";
@@ -1375,7 +1392,7 @@ RecordedSweepBatch run_sweep_batch(const HipDiscoveredRoute& route,
   measured.elapsed_ns=elapsed_ns(start);
   return measured;
 }
-int compare_installed_detached_writes(const std::filesystem::path& corpus,bool grouped) {
+int compare_installed_detached_writes(const std::filesystem::path& corpus,bool grouped,bool repeated=false) {
   gpu_probe_fixture::Budget controller_budget;
   const auto file=ReadOnlyFile::open(corpus);
   check(file.size() && file.size()<=fixture_sweep_chunks*kNativeExtentBytes && file.size()%kNativeExtentBytes==0,
@@ -1391,7 +1408,7 @@ int compare_installed_detached_writes(const std::filesystem::path& corpus,bool g
   std::vector<UniformLz4BatchInput> requests;
   const auto extents=source.size()/kNativeExtentBytes;
   if(grouped) {
-    check(extents>=2,"Grouped comparison needs two complete writes");
+    check(extents>=2 && (!repeated || extents%2==0),"Grouped comparison needs two complete compatible writes");
     const auto first=extents/2*kNativeExtentBytes;
     requests={{1,input.first(first)},{2,input.subspan(first)}};
   } else requests={{1,input}};
@@ -1407,8 +1424,11 @@ int compare_installed_detached_writes(const std::filesystem::path& corpus,bool g
       <<" complete_ns="<<cpu->elapsed_ns<<" cpu_verified=1 retired=1\n"<<std::flush;
   const auto discovery=discover_installed_hip_route(diagnostic_worker_budget,4);
   const auto& route=require_indexed_route(discovery);
-  for(const auto launch:{NativeAmdTrialLaunch::immediate,NativeAmdTrialLaunch::prepared}) {
-    const bool prepared=launch==NativeAmdTrialLaunch::prepared;
+  const std::array launches{NativeAmdTrialLaunch::immediate,NativeAmdTrialLaunch::prepared,
+      NativeAmdTrialLaunch::prepared_requests};
+  for(const auto launch:std::span(launches).first(repeated?launches.size():2)) {
+    const bool prepared=launch!=NativeAmdTrialLaunch::immediate;
+    const bool separate=launch==NativeAmdTrialLaunch::prepared_requests;
     const auto measured=record_native_amd_device_batch(storage,requests,route,grant,diagnostic_worker_budget,
         allowance,nullptr,launch,{});
     if(!measured.sample)
@@ -1418,12 +1438,14 @@ int compare_installed_detached_writes(const std::filesystem::path& corpus,bool g
     check(measured.sample && measured.sample->transactions==cpu->transactions &&
         measured.sample->input_digest==cpu->input_digest && measured.sample->device_executed &&
         measured.sample->cpu_readback_verified && measured.sample->retirement_confirmed && measured.worker_retired &&
-        (prepared==(measured.ready_ns!=0)), "Detached Radeon write did not verify the same source");
+        (prepared==(measured.ready_ns!=0)) && (!separate || measured.admitted_requests==requests.size()),
+        "Detached Radeon write did not verify the same source");
     const auto& sample=*measured.sample;
     std::cout<<"detached_amd_write prepared="<<prepared<<" writes="<<sample.transactions
         <<" bytes="<<source.size()<<" occupied="<<sample.occupied_bytes
         <<" complete_ns="<<sample.elapsed_ns<<" ready_ns="<<measured.ready_ns<<" exchange_ns="<<measured.exchange_ns
-        <<" stored_candidates="<<sample.stored_lz4_candidates<<" cpu_verified=1 retired=1\n";
+        <<" stored_candidates="<<sample.stored_lz4_candidates<<" separate_requests="<<separate
+        <<" admitted_requests="<<measured.admitted_requests<<" cpu_verified=1 retired=1\n";
   }
   check(MemoryVolumeDomain::cleanup_healthy() && WorkerExchangeSession::available() &&
       !GetModuleHandleW(route.runtime_basename.c_str()),"Detached write retained a runtime lease");
@@ -1517,6 +1539,8 @@ int wmain(int argc,wchar_t** argv){try{
     return compare_installed_detached_writes(argv[2],false);
   if(argc==3 && std::wstring_view(argv[1])==L"--compare-installed-amd-detached-write-batch")
     return compare_installed_detached_writes(argv[2],true);
+  if(argc==3 && std::wstring_view(argv[1])==L"--compare-installed-amd-resident-write-batch")
+    return compare_installed_detached_writes(argv[2],true,true);
   if(argc==2 && std::wstring_view(argv[1])==L"--live-installed-late-foreground")return installed_late_foreground();
   if(argc==2 && std::wstring_view(argv[1])==L"--compare-installed-amd")return compare_installed_amd();
   if(argc==2 && std::wstring_view(argv[1])==L"--compare-installed-amd-grouped")

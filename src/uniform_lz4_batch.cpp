@@ -81,10 +81,45 @@ UniformLz4Bytes PreparedUniformLz4Batch::input(std::size_t index) const {
   return source_.plaintext().subspan(std::size_t(member.first_chunk)*source_.layout().chunk_bytes,member.source_bytes);
 }
 
+PreparedUniformLz4 PreparedUniformLz4Batch::prepare_member(std::size_t index) const {
+  const auto bytes=input(index);
+  uniform_lz4::Layout layout{};
+  if(!uniform_lz4::make_layout(bytes.size(),source_.layout().chunk_bytes,layout))
+    throw std::invalid_argument("Invalid uniform batch member geometry");
+  return PreparedUniformLz4::prepare(bytes,uniform_lz4_limits(layout));
+}
+
 VerifiedUniformLz4Batch VerifiedUniformLz4Batch::accept(UniformLz4Bytes wire,
     const PreparedUniformLz4Batch& batch,std::uint64_t exchange_id,WorkerExecution execution) {
+  return bind(batch,accept_uniform_lz4_reply(wire,batch.source(),exchange_id,execution));
+}
+
+VerifiedUniformLz4Batch VerifiedUniformLz4Batch::accept_members(std::span<const UniformLz4Bytes> replies,
+    const PreparedUniformLz4Batch& batch,WorkerExecution execution) {
+  const auto members=batch.members();
+  if(!batch.source().ready() || replies.size()!=members.size())
+    throw std::invalid_argument("Incomplete sequence of uniform replies");
+  std::uint64_t bytes=0;
+  for(const auto reply:replies)
+    if(!uniform_lz4::add(bytes,reply.size(),bytes))throw std::invalid_argument("Uniform replies exceed representation");
+  const auto& limits=batch.source().limits();
+  UniformLz4Candidates combined;
+  combined.sizes.reserve(limits.chunks);
+  combined.payload.reserve(static_cast<std::size_t>((std::min)(bytes,limits.reply_bytes)));
+  for(std::size_t index=0;index<members.size();++index) {
+    const auto input=batch.prepare_member(index);
+    auto part=accept_uniform_lz4_reply(replies[index],input,members[index].request_id,execution);
+    if(part.payload.size()>limits.reply_bytes-combined.payload.size())
+      throw std::invalid_argument("Uniform replies exceed their prepared batch");
+    combined.sizes.insert(combined.sizes.end(),part.sizes.begin(),part.sizes.end());
+    combined.payload.insert(combined.payload.end(),part.payload.begin(),part.payload.end());
+  }
+  return bind(batch,std::move(combined));
+}
+
+VerifiedUniformLz4Batch VerifiedUniformLz4Batch::bind(const PreparedUniformLz4Batch& batch,UniformLz4Candidates&& candidates) {
   VerifiedUniformLz4Batch result;
-  result.candidates_=accept_uniform_lz4_reply(wire,batch.source(),exchange_id,execution);
+  result.candidates_=std::move(candidates);
   result.limits_=batch.source().limits();
   result.input_digest_=batch.source().digest();
   const auto sizes=std::span(result.candidates_.sizes);

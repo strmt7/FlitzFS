@@ -62,6 +62,12 @@ void dispatch_geometry(){
       selected.arguments[6]==std::to_wstring(batch.limits().reply_bytes) &&
       selected.arguments[7]==L"2" && selected.arguments[8]==std::to_wstring(peak.total_bytes) &&
       selected.arguments[9]==L"65536","real reused argv lost exact full/quantum binding");
+  const auto repeated=prepare_native_uniform_dispatch(binding,e,batch,WorkerExecution::hip,nullptr,2);
+  check(repeated.arguments.size()==11 && repeated.arguments.front()==L"--driver-uniform-lz4-prepared-adapter" &&
+      repeated.arguments[5]==selected.arguments[5] &&
+      repeated.arguments[6]==std::to_wstring(2*(batch.limits().reply_bytes+sizeof(std::uint32_t))) &&
+      repeated.arguments.back()==L"2" && repeated.device_peak_bytes==selected.device_peak_bytes &&
+      repeated.quantum_chunks==selected.quantum_chunks,"separate prepared dispatch changed the admitted geometry");
   const auto cpu=prepare_native_uniform_dispatch(binding,e,batch,WorkerExecution::cpu_semantics);
   check(cpu.reused && cpu.windows==8 && cpu.arguments==binding.cpu_fixture_arguments,
       "CPU semantic dispatch geometry differs");

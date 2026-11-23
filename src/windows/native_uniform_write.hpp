@@ -33,7 +33,7 @@ struct NativeUniformDispatch {
 // Validates optional sweep grants for BOTH real and CPU-semantic callers.
 NativeUniformDispatch prepare_native_uniform_dispatch(const NativeUniformWorkerBinding&,
     const GpuHealthEvidence&,const PreparedUniformLz4&,WorkerExecution,
-    const GpuLz4SweepGrant* admitted_sweep=nullptr);
+    const GpuLz4SweepGrant* admitted_sweep=nullptr,std::uint32_t prepared_requests=0);
 struct NativeUniformWriteStart {
   NativeWindowsIoOutcome admission;
   UniformLz4WorkerStart worker;

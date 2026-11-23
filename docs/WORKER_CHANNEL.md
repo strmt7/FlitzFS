@@ -648,10 +648,36 @@ adapter changes or the volume closes. A restart after sleep or driver recovery
 requires fresh device admission. Foreground work keeps a CPU path available
 while the worker starts or retires.
 
-The current reply protocol requires confirmed child exit before acceptance.
-Cross-job reuse needs an explicit request completion boundary with synchronized
-device work, per-request buffers, and protection against stale completions.
-The CPU still owns independent byte verification and publication. Qualify
-cold and reused requests on real work, including small bursts, idle gaps,
-foreground contention and teardown. Measure first-ready and end-to-end latency,
-retained memory and idle GPU activity before enabling automatic retention.
+### Separately admitted requests
+
+The experimental version 5 exchange uses a finite sequence of same-sized
+private requests. The parent receives a readiness signal and checks admission
+before each supply. After the first job completes, the worker asks for a new
+immutable frame. The parent replaces the previous input only at that boundary.
+The worker snapshots the new bytes before using them.
+
+Uniform LZ4 uses one HIP stream and slab for all requests with matching
+geometry. Each job completes synchronization, readback and memory checks
+before the next admission. Between jobs the worker waits on events.
+The supervisor verifies exact child and thread exit before exposing the
+length-framed replies. The caller checks each reply against its own request
+identity and CPU decode. A refusal or failure retires the sequence, and its
+results are discarded.
+
+The Windows Release, codec-free and AddressSanitizer transport suites passed.
+The CPU compute model also verified a single setup and retirement for two
+requests and for refusal at the second boundary.
+
+On the Radeon RX 9070 XT, two independent synthetic 64 KiB requests took
+3.27–3.94 seconds using two fresh workers and 2.32–2.54 seconds using one
+worker in three alternating paired trials. The complete exchange was
+28–38% shorter with reuse. The second readiness signal followed the first
+by 9.5–13.0 milliseconds with reuse. Every reply passed independent CPU
+verification. In a separate refusal trial the parent declined the second
+input, the worker retired, and the exchange exposed no reply.
+[Prepared request evidence](evidence/windows-prepared-worker-requests-2026-11-24.json)
+
+Normal volume scheduling still needs to choose when to retain a worker.
+The present sequence ends at its admitted count or deadline. A longer
+lifecycle needs a per-request completion boundary and bounded retention
+while the controller continues CPU operation.

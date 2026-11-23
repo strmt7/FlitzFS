@@ -36,6 +36,7 @@ class PreparedUniformLz4Batch final {
   const PreparedUniformLz4& source() const noexcept{return source_;}
   std::span<const UniformLz4BatchMember> members() const noexcept{return members_;}
   UniformLz4Bytes input(std::size_t member) const;
+  PreparedUniformLz4 prepare_member(std::size_t member) const;
  private:
   PreparedUniformLz4Batch(PreparedUniformLz4&&,std::vector<UniformLz4BatchMember>&&) noexcept;
   PreparedUniformLz4 source_;
@@ -54,6 +55,10 @@ class VerifiedUniformLz4Batch final {
   // individual result becomes available.
   static VerifiedUniformLz4Batch accept(UniformLz4Bytes,const PreparedUniformLz4Batch&,
       std::uint64_t exchange_id,WorkerExecution);
+  // Each frame must match the exact member and its original request identity.
+  // A complete sequence is verified before exposing any individual candidate.
+  static VerifiedUniformLz4Batch accept_members(std::span<const UniformLz4Bytes>,
+      const PreparedUniformLz4Batch&,WorkerExecution);
   std::size_t size() const noexcept{return blocks_.size();}
   bool matches(const PreparedUniformLz4Batch&) const noexcept;
   UniformLz4BatchReply reply(std::size_t member) const;
@@ -65,6 +70,7 @@ class VerifiedUniformLz4Batch final {
   friend UniformLz4BatchWindow plan_uniform_lz4_batch(std::span<const UniformLz4BatchInput>,std::uint32_t,
       const GpuHealthEvidence&,std::uint64_t,const GpuLz4ResidentCost&,GpuLz4WindowPolicy,
       GpuLz4SweepGrant,std::uint32_t) noexcept;
+  static VerifiedUniformLz4Batch bind(const PreparedUniformLz4Batch&,UniformLz4Candidates&&);
   UniformLz4Limits limits_{};
   std::array<std::byte,32> input_digest_{};
   UniformLz4Candidates candidates_;

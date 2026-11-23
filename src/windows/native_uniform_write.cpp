@@ -42,8 +42,9 @@ GpuLz4ResidentCost charge_native_uniform_source(GpuLz4ResidentCost cost,std::uin
 }
 NativeUniformDispatch prepare_native_uniform_dispatch(const NativeUniformWorkerBinding& binding,
     const GpuHealthEvidence& evidence,const PreparedUniformLz4& batch,WorkerExecution expected,
-    const GpuLz4SweepGrant* admitted_sweep){
+    const GpuLz4SweepGrant* admitted_sweep,std::uint32_t prepared_requests){
   if(!batch.ready() || binding.configuration!=evidence.configuration ||
+      (prepared_requests && (prepared_requests<2 || expected!=WorkerExecution::hip || !binding.sweep)) ||
       (expected!=WorkerExecution::hip && expected!=WorkerExecution::cpu_semantics) ||
       (admitted_sweep && (!binding.sweep || admitted_sweep->maximum_chunks>binding.sweep->maximum_chunks ||
           admitted_sweep->maximum_device_bytes>binding.sweep->maximum_device_bytes)))
@@ -61,10 +62,17 @@ NativeUniformDispatch prepare_native_uniform_dispatch(const NativeUniformWorkerB
   if(binding.ordinal<0 || binding.ordinal>=64 ||
       std::none_of(binding.runtime_sha256.begin(),binding.runtime_sha256.end(),[](auto b){return b!=std::byte{0};}))
     throw std::invalid_argument("native uniform runtime unqualified");
-  result.arguments={result.reused?L"--driver-uniform-lz4-sweep-adapter":L"--driver-uniform-lz4-adapter",
+  auto reply_bytes=l.reply_bytes;
+  if(prepared_requests && (!uniform_lz4::add(reply_bytes,sizeof(std::uint32_t),reply_bytes) ||
+      !uniform_lz4::multiply(reply_bytes,prepared_requests,reply_bytes) ||
+      reply_bytes>(std::numeric_limits<std::int32_t>::max)()))
+    throw std::invalid_argument("prepared uniform reply capacity exceeds wire");
+  result.arguments={prepared_requests?L"--driver-uniform-lz4-prepared-adapter":
+          result.reused?L"--driver-uniform-lz4-sweep-adapter":L"--driver-uniform-lz4-adapter",
       std::to_wstring(binding.ordinal),hex(evidence.memory.luid),std::to_wstring(evidence.memory.node_mask),
-      hex(binding.runtime_sha256),std::to_wstring(l.request_bytes),std::to_wstring(l.reply_bytes),
+      hex(binding.runtime_sha256),std::to_wstring(l.request_bytes),std::to_wstring(reply_bytes),
       std::to_wstring(result.quantum_chunks),std::to_wstring(result.device_peak_bytes),std::to_wstring(l.chunk_bytes)};
+  if(prepared_requests)result.arguments.push_back(std::to_wstring(prepared_requests));
   return result;
 }
 

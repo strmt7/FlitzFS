@@ -182,6 +182,39 @@ int prepared_child(std::wstring_view mode,std::wstring_view token,std::uint32_t 
   channel.publish(output);
   return mode==L"prepared-fail-after"?17:0;
 }
+constexpr std::uint32_t prepared_requests=3;
+constexpr WorkerChannelCapacity repeated_capacity{prepared_capacity.request_bytes,
+    prepared_requests*(prepared_capacity.reply_bytes+sizeof(std::uint32_t))};
+int repeated_child(std::wstring_view mode,std::wstring_view token,std::uint32_t timeout) {
+  check_job();
+  auto channel=WorkerChannel::open_prepared_requests(token,repeated_capacity,timeout,prepared_requests);
+  if(!channel.receive_prepared())return 0;
+  const auto first=channel.take_request_snapshot();
+  const auto sentinel=first->bytes().front();
+  Bytes replies,part(prepared_capacity.reply_bytes);
+  const auto append=[&](std::span<const std::byte> source) {
+    std::copy_n(source.rbegin(),part.size(),part.begin());
+    append_prepared_reply(replies,part,repeated_capacity.reply_bytes);
+  };
+  append(first->bytes());
+  if(mode==L"requests-early"){
+    rejects([&]{channel.publish(replies);});
+    return 21;
+  }
+  for(std::uint32_t i=1;i<prepared_requests;++i) {
+    if(!channel.receive_next_prepared()) {
+      rejects([&]{channel.publish(replies);});
+      return 0;
+    }
+    const auto fresh=channel.take_request_snapshot();
+    check(first->bytes().front()==sentinel && fresh->bytes().front()!=sentinel,
+        "resupply replaced a retained private input or reused the first frame");
+    append(fresh->bytes());
+  }
+  rejects([&]{(void)channel.receive_next_prepared();});
+  channel.publish(replies);
+  return mode==L"requests-fail-after"?17:0;
+}
 int child(std::wstring_view mode,std::wstring_view token) {
   if(mode.starts_with(L"uniform-")){
     check_job();auto limits=uniform_fixture_limits();
@@ -1416,6 +1449,58 @@ void prepared_window_transactions(const std::filesystem::path& executable) {
   }
   std::cout<<"Prepared windows: ordered admissions, private reply, CPU semantics and retirement passed\n";
 }
+void prepared_request_transactions(const std::filesystem::path& executable) {
+  ProcessBudget budget;budget.timeout_ms=5000;
+  std::array<SharedWorkerRequest,prepared_requests> inputs;
+  for(std::uint32_t job=0;job<prepared_requests;++job) {
+    Bytes source(prepared_capacity.request_bytes);
+    for(std::size_t i=0;i<source.size();++i)source[i]=static_cast<std::byte>((i*37+i/57+17*job)%256);
+    inputs[job]=std::make_shared<const WorkerRequestSnapshot>(std::move(source));
+  }
+  for(const auto* mode:{L"requests-ok",L"requests-refuse",L"requests-invalid-size",
+      L"requests-stop",L"requests-early",L"requests-fail-after"}) {
+    const std::wstring_view action(mode);
+    std::stop_source stop;
+    std::uint32_t admitted=0;
+    const auto result=WorkerExchangeSession::run_prepared_requests(executable,{mode},
+        repeated_capacity,budget,prepared_requests,stop.get_token(),[&](std::uint32_t job)->SharedWorkerRequest {
+          check(job==admitted++ && !WorkerExchangeSession::available(),"repeated request lost the exchange lease");
+          if(job==1 && action==L"requests-refuse")return {};
+          if(job==1 && action==L"requests-invalid-size")
+            return std::make_shared<const WorkerRequestSnapshot>(Bytes(prepared_capacity.request_bytes-1));
+          if(job==1 && action==L"requests-stop")stop.request_stop();
+          return inputs[job];
+        });
+    check(result.process.exit_confirmed && WorkerExchangeSession::available(),"repeated worker did not retire");
+    if(action==L"requests-ok"){
+      check(admitted==prepared_requests && result.code==WorkerExchangeCode::completed &&
+          result.response.size()==repeated_capacity.reply_bytes,"repeated worker lost a reply");
+      auto rest=std::span<const std::byte>(result.response);
+      for(const auto& input:inputs) {
+        const auto reply=take_prepared_reply(rest);
+        check(reply.size()==prepared_capacity.reply_bytes &&
+            std::equal(reply.begin(),reply.end(),input->bytes().rbegin()),"repeated reply differed from its own input");
+      }
+      check(rest.empty(),"extra repeated reply");
+      rejects([&]{(void)take_prepared_reply(rest);});
+    }else {
+      check(result.response.empty(),"failed repeated job exposed a reply");
+      if(action==L"requests-early" || action==L"requests-fail-after")
+        check(result.code==WorkerExchangeCode::worker_failed &&
+            result.publication_observed==(action==L"requests-fail-after"),"repeated publish failure was accepted");
+      else check(admitted==2 && result.code==WorkerExchangeCode::cancelled && !result.publication_observed &&
+          (action==L"requests-stop" || result.process.exit_code==0),"repeated decline did not retire cleanly");
+    }
+    check_closed(result);
+    for(const auto* suffix:{L".ready",L".supplied",L".declined"}) {
+      const auto name=L"Local\\FlitzFS.worker."+result.channel_token+suffix;
+      const auto event=OpenEventW(SYNCHRONIZE,FALSE,name.c_str());
+      if(event)CloseHandle(event);
+      check(!event,"repeated readiness event remained after exit");
+    }
+  }
+  std::cout<<"Prepared requests: distinct private frames, independent replies and confirmed retirement passed\n";
+}
 void asynchronous_fallback(const std::filesystem::path& executable) {
   std::array<std::byte,8> luid{};luid[0]=std::byte{1};
   GpuResultGate gate(mixed(),luid,1);
@@ -1480,7 +1565,10 @@ void abandoned_session(const std::filesystem::path& executable,const std::vector
 }
 int wmain(int argc,wchar_t** argv){try{
   if(argc==2 && std::wstring_view(argv[1])==L"--native-error-resource-probe")return native_error_resources();
+  if(argc==2 && std::wstring_view(argv[1])==L"--test-prepared-requests"){prepared_request_transactions(self());return 0;}
   if(argc==4 && std::wstring_view(argv[2])==L"--worker-channel")return child(argv[1],argv[3]);
+  if(argc==5 && std::wstring_view(argv[2])==kPreparedWorkerRequestsArgument)
+    return repeated_child(argv[1],argv[3],static_cast<std::uint32_t>(std::stoul(argv[4])));
   if(argc==5 && (std::wstring_view(argv[2])==kPreparedWorkerChannelArgument ||
       std::wstring_view(argv[2])==kPreparedWorkerWindowsArgument))
     return prepared_child(argv[1],argv[3],static_cast<std::uint32_t>(std::stoul(argv[4])),
@@ -1580,6 +1668,7 @@ int wmain(int argc,wchar_t** argv){try{
   sized_transactions(executable);observe(L"sized-transport");
   prepared_transactions(executable);observe(L"prepared-transport");
   prepared_window_transactions(executable);observe(L"prepared-windows");
+  prepared_request_transactions(executable);observe(L"prepared-requests");
   asynchronous_fallback(executable);
   observe(L"async-fallback");
   abandoned_session(executable,request);

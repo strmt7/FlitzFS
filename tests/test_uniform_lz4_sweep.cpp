@@ -96,6 +96,27 @@ void independent_requests() {
     }
     check(payload.empty(),"group payload includes another request");
   }
+  std::vector<std::vector<std::byte>> parts;
+  for(std::size_t index=0;index<batch.members().size();++index) {
+    const auto member=batch.prepare_member(index);
+    parts.push_back(encode_uniform_lz4_reply(member,batch.members()[index].request_id,
+        cpu_candidates(member),WorkerExecution::cpu_semantics));
+  }
+  std::vector<UniformLz4Bytes> split;
+  for(const auto& part:parts)split.push_back(part);
+  const auto joined=VerifiedUniformLz4Batch::accept_members(split,batch,WorkerExecution::cpu_semantics);
+  check(joined.matches(batch) && joined.size()==verified.size(),"individual responses lost their prepared group");
+  for(std::size_t i=0;i<joined.size();++i) {
+    const auto separate=joined.reply(i),combined=verified.reply(i);
+    check(separate.request_id==combined.request_id && std::ranges::equal(separate.sizes,combined.sizes) &&
+        std::ranges::equal(separate.payload,combined.payload),"different verified member after joining separate replies");
+  }
+  std::swap(split[0],split[1]);
+  rejects([&]{(void)VerifiedUniformLz4Batch::accept_members(split,batch,WorkerExecution::cpu_semantics);});
+  std::swap(split[0],split[1]);
+  rejects([&]{(void)VerifiedUniformLz4Batch::accept_members(std::span(split).first(2),batch,WorkerExecution::cpu_semantics);});
+  parts.back().back()^=std::byte{1};
+  rejects([&]{(void)VerifiedUniformLz4Batch::accept_members(split,batch,WorkerExecution::cpu_semantics);});
   auto corrupt=wire;corrupt.back()^=std::byte{1};
   rejects([&]{(void)VerifiedUniformLz4Batch::accept(corrupt,batch,exchange,WorkerExecution::cpu_semantics);});
   rejects([&]{(void)VerifiedUniformLz4Batch::accept(wire,batch,exchange+1,WorkerExecution::cpu_semantics);});

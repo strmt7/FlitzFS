@@ -1106,6 +1106,111 @@ int direct_anchor_batch_compare(int argc,wchar_t** argv,AnchorBatchMode mode) {
   return verified?0:2;
 }
 
+int uniform_repeated_gpu_once(int argc,wchar_t** argv) {
+  require(argc==9,"Repeated uniform calibration requires exact runtime binding and two extent inputs");
+  const std::wstring_view mode(argv[1]);
+  const bool cold=mode==L"--gpu-uniform-repeated-cold-once";
+  const bool refuse=mode==L"--gpu-uniform-repeated-decline-once";
+  const fs::path worker(argv[2]);
+  require(worker.is_absolute() && worker.filename()==L"flitzfs_hip_lz4_worker.exe","Trusted uniform worker required");
+  require(gpu_lz4_cpu_verification_available(),"Independent uniform CPU verification required");
+  const auto ordinal=number(argv[3],63),mask=number(argv[5],(std::numeric_limits<unsigned>::max)());
+  const auto luid=luid_value(argv[4]);
+  const std::wstring_view digest(argv[6]);
+  require(mask && !(mask&(mask-1)) && digest.size()==64 &&
+      std::all_of(digest.begin(),digest.end(),[](wchar_t c){return (c>=L'0'&&c<=L'9')||(c>=L'a'&&c<=L'f');}),
+      "Repeated uniform adapter binding invalid");
+
+  constexpr std::uint32_t jobs=2;
+  uniform_lz4::Layout layout{};
+  require(uniform_lz4::make_layout(kNativeExtentBytes,kNativeExtentBytes,layout),"Repeated uniform layout");
+  const auto limits=uniform_lz4_limits(layout);
+  constexpr std::uint64_t first_id=82001;
+  std::vector<PreparedUniformLz4> batches;
+  batches.reserve(jobs);
+  std::array<SharedWorkerRequest,jobs> requests;
+  for(std::uint32_t i=0;i<jobs;++i) {
+    Bytes plain(kNativeExtentBytes);
+    const fs::path path(argv[7+i]);
+    std::ifstream file(path,std::ios::binary);
+    require(file.read(reinterpret_cast<char*>(plain.data()),static_cast<std::streamsize>(plain.size())) &&
+        file.peek()==std::ifstream::traits_type::eof(),"Expected exactly one extent per input");
+    batches.push_back(PreparedUniformLz4::prepare(plain,limits));
+    requests[i]=std::make_shared<const WorkerRequestSnapshot>(encode_uniform_lz4_request(batches.back(),first_id+i));
+  }
+  require(!std::ranges::equal(batches.front().input(0),batches.back().input(0)),"Expected independent extent bytes");
+  const WorkerChannelCapacity single{static_cast<std::size_t>(limits.request_bytes),static_cast<std::size_t>(limits.reply_bytes)};
+  const WorkerChannelCapacity combined{single.request_bytes,jobs*(single.reply_bytes+sizeof(std::uint32_t))};
+  const auto capacity=cold?single:combined;
+  std::vector<std::wstring> arguments{L"--driver-uniform-lz4-prepared-adapter",std::to_wstring(ordinal),argv[4],
+      std::to_wstring(mask),std::wstring(digest),std::to_wstring(capacity.request_bytes),
+      std::to_wstring(capacity.reply_bytes),std::to_wstring(layout.chunks),std::to_wstring(layout.total_bytes),
+      std::to_wstring(layout.chunk_bytes)};
+  if(!cold)arguments.push_back(std::to_wstring(jobs));
+  constexpr ProcessBudget budget{128,2000,5000};
+  WindowsGpuBudgetSampler sampler(luid,mask);
+  const auto before=sampler.sample();
+  require(before.status==WindowsGpuBudgetStatus::success &&
+      check_gpu_memory_budget(before.snapshot,luid,mask,GetTickCount64(),layout.total_bytes)==GpuGateCode::admitted,
+      "Repeated uniform start lacks device headroom");
+  const auto started=std::chrono::steady_clock::now();
+  std::uint32_t admitted=0,verified=0,children=0;
+  std::uint64_t encoded=0;
+  std::array<std::uint64_t,jobs> ready{},payload_bytes{};
+  const auto prepare=[&](std::uint32_t i) -> SharedWorkerRequest {
+    ready[i]=nanos_since(started);
+    if(refuse && i==1)return {};
+    const auto sample=sampler.sample();
+    if(sample.status!=WindowsGpuBudgetStatus::success ||
+        check_gpu_memory_transition(before.snapshot,sample.snapshot,luid,mask,GetTickCount64(),layout.total_bytes)!=
+          GpuGateCode::admitted)return {};
+    ++admitted;
+    return requests[i];
+  };
+  const auto accept=[&](std::span<const std::byte> reply,std::uint32_t i) {
+    const auto decoded=accept_uniform_lz4_reply(reply,batches[i],first_id+i,WorkerExecution::hip);
+    payload_bytes[i]=decoded.payload.size();
+    encoded+=payload_bytes[i];
+    ++verified;
+  };
+  const auto retired=[&](const WorkerExchangeResult& result) {
+    ++children;
+    require(result.process.exit_confirmed && WorkerExchangeSession::available(),"Repeated experiment did not retire");
+  };
+  if(cold){
+    for(std::uint32_t i=0;i<jobs;++i){
+      const auto result=WorkerExchangeSession::run_prepared_sized(worker,arguments,requests[i],single,budget,{},
+          [&]{return static_cast<bool>(prepare(i));});
+      retired(result);
+      require(result.code==WorkerExchangeCode::completed,"Cold uniform worker failed");
+      accept(result.response,i);
+    }
+  }else{
+    const auto result=WorkerExchangeSession::run_prepared_requests(worker,arguments,combined,budget,jobs,{},prepare);
+    retired(result);
+    if(refuse){
+      require(admitted==1 && ready[1] && result.code==WorkerExchangeCode::cancelled && result.process.exit_code==0 &&
+          result.response.empty() && !result.publication_observed,"Refused warm worker exposed a result");
+    }else{
+      require(admitted==jobs && result.code==WorkerExchangeCode::completed,"Repeated uniform worker failed");
+      auto sequence=std::span<const std::byte>(result.response);
+      for(std::uint32_t i=0;i<jobs;++i)accept(take_prepared_reply(sequence),i);
+      require(sequence.empty(),"Unexpected repeated uniform reply tail");
+    }
+  }
+  const auto total=nanos_since(started);
+  const auto after=sampler.sample();
+  require(after.status==WindowsGpuBudgetStatus::success &&
+      check_gpu_memory_transition(before.snapshot,after.snapshot,luid,mask,GetTickCount64(),0)==GpuGateCode::admitted,
+      "Repeated uniform teardown lost device admission");
+  std::cout<<"prepared_requests mode="<<(cold?"cold":refuse?"decline":"reused")
+      <<" admitted="<<admitted<<" verified="<<verified<<" workers="<<children<<" total_ns="<<total
+      <<" first_ready_ns="<<ready[0]<<" second_ready_ns="<<ready[1]<<" encoded_bytes="<<encoded
+      <<" first_payload_bytes="<<payload_bytes[0]<<" second_payload_bytes="<<payload_bytes[1]
+      <<" retired=true\n";
+  return 0;
+}
+
 int uniform_native_gpu_once(int argc,wchar_t** argv,const gpu_probe_fixture::Budget& controller,
     bool sweep=false,bool sweep_profile=false,const AnchorSearchInput* anchor=nullptr){
   require(argc==7 || (anchor && argc==8),"Uniform calibration needs explicit trusted worker/ordinal/LUID/node/runtime digest");
@@ -1484,6 +1589,8 @@ int wmain(int argc,wchar_t** argv){
       return uniform_native_gpu_once(argc,argv,controller,true,true,&input);
     }
     if(argc>1 && std::wstring_view(argv[1])==L"--gpu-uniform-sweep-profile-native-once")return uniform_native_gpu_once(argc,argv,controller,true,true);
+    if(mode==L"--gpu-uniform-repeated-native-once" || mode==L"--gpu-uniform-repeated-cold-once" ||
+        mode==L"--gpu-uniform-repeated-decline-once")return uniform_repeated_gpu_once(argc,argv);
     if(mode==L"--gpu-uniform-prepared-windows-native-once" || mode==L"--gpu-uniform-prepared-window-decline-once")
       return uniform_native_gpu_once(argc,argv,controller,true);
     if(argc>1 && std::wstring_view(argv[1])==L"--gpu-uniform-sweep-native-once")return uniform_native_gpu_once(argc,argv,controller,true);

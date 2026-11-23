@@ -235,6 +235,21 @@ two Radeon-produced extents in each of two device arms and independently
 recovered both files.
 [Grouped replay evidence](evidence/windows-amd-grouped-write-replay-2026-11-23.json)
 
+The diagnostic comparison can send two equal-sized native writes as separately
+admitted requests to one worker. The caller checks host and device conditions
+before each handoff. It verifies each reply against its own captured input and
+request identity after the worker retires. The mirrored writer stores both
+files in independent transactions, then reopens them with the CPU reader.
+
+The Windows Release and AddressSanitizer fixtures reopened three files and
+stored two independently framed candidates using a CPU-semantic worker.
+The private Radeon replay admitted both 64 KiB requests, stored two
+GPU-produced extents and reopened both files byte for byte. The CPU control
+and each device arm occupied 245,760 bytes. The diagnostic package supports
+explicit acquisition for this comparison. Automatic scheduling of worker reuse
+remains a separate qualification step.
+[Separate-request replay evidence](evidence/windows-resident-native-write-replay-2026-11-24.json)
+
 ### Controller-owned paired trials
 
 With an approved [uniform write trial profile](AMD_RUNTIME_DISCOVERY.md#uniform-write-trial-profile),

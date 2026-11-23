@@ -76,9 +76,10 @@ UniformLz4Candidates execute_uniform_lz4_sweep_plan(const HipApi& api,Lz4Attribu
     const uniform_lz4::KernelApi& kernel,const UniformLz4SweepPlan& sweep,Lz4KernelCoverage coverage,
     Receive&& receive,Initialize&& initialize,MemoryPolicy&& memory,UniformLz4SweepTrace* trace=nullptr,
     UniformLz4SweepRecorder::Clock clock=hip_phase_detail::clock_ns,const SweepEventApi* event_api=nullptr,
-    HipStreamCopy stream_copy=nullptr,const std::function<bool()>& await_window={}) {
-  lz4_require((!event_api || trace) && (!stream_copy || !trace),HipWorkerExit::invalid_request,
-      "incompatible sweep timing mode and transfer path");
+    HipStreamCopy stream_copy=nullptr,const std::function<bool()>& await_window={},
+    const UniformLz4NextRequest& next_request={}) {
+  lz4_require((!event_api || trace) && (!stream_copy || !trace) && (!next_request || (!trace && !await_window)),
+      HipWorkerExit::invalid_request,"incompatible sweep observation or admission mode");
   lz4_require(gpu_lz4_cpu_verification_available(),HipWorkerExit::unsupported_configuration,
       "independent CPU uniform sweep verification unavailable");
   uniform_lz4::Layout whole{};
@@ -127,8 +128,9 @@ UniformLz4Candidates execute_uniform_lz4_sweep_plan(const HipApi& api,Lz4Attribu
     if(event_api)events.create();
     recorder.end(UniformSweepPhase::setup);
     const auto* request=receive();
+    const bool submitted=request!=nullptr;
     bool first_window=true;
-    auto result=request?compute_uniform_lz4_sweep(*request,sweep,[&](const UniformLz4Request& part){
+    const auto compute=[&](const UniformLz4Request& part){
       if(!std::exchange(first_window,false) && await_window && !await_window())throw UniformLz4WindowDeclined{};
       // Admission includes retained setup, complete result capacity, both host
       // workspaces and this owned quantum, against the original baseline.
@@ -189,13 +191,20 @@ UniformLz4Candidates execute_uniform_lz4_sweep_plan(const HipApi& api,Lz4Attribu
       memory(HipMemoryPoint::completed);
       recorder.end(UniformSweepPhase::completion);
       return candidate;
-    }):UniformLz4Candidates{};
-    if(request)recorder.begin(UniformSweepPhase::retirement);
+    };
+    UniformLz4Candidates result;
+    while(request) {
+      result=compute_uniform_lz4_sweep(*request,sweep,compute);
+      if(!next_request)break;
+      request=next_request(std::move(result));
+    }
+    if(submitted)recorder.begin(UniformSweepPhase::retirement);
     lz4_require(retire(),HipWorkerExit::device_fault,"reusable uniform retirement failed",HipWorkerStage::sweep_retire);
-    if(request) {
+    if(submitted) {
       recorder.end(UniformSweepPhase::retirement);
       recorder.finish();
     }
+    if(next_request)return {};
     return result;
   }catch(...){
     const auto failure=std::current_exception();

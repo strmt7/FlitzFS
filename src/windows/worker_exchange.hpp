@@ -16,6 +16,7 @@ struct WorkerChannelCapacity {
 };
 inline constexpr std::wstring_view kPreparedWorkerChannelArgument=L"--prepared-worker-channel";
 inline constexpr std::wstring_view kPreparedWorkerWindowsArgument=L"--prepared-worker-windows";
+inline constexpr std::wstring_view kPreparedWorkerRequestsArgument=L"--prepared-worker-requests";
 bool valid_worker_channel_capacity(WorkerChannelCapacity,ProcessBudget) noexcept;
 // Sized exchanges keep at least this share of live headroom even when a
 // fixed child budget leaves memory_share_divisor at zero.
@@ -26,6 +27,11 @@ constexpr std::uint32_t sized_worker_memory_share_divisor(const ProcessBudget& b
 // A caller can check this before allocating its input. Zero means invalid.
 std::uint64_t required_sized_worker_headroom(WorkerChannelCapacity,ProcessBudget) noexcept;
 enum class WorkerExchangeCode { completed, worker_failed, timed_out, cancelled, exit_unconfirmed, invalid_response, supervisor_failed, supervisor_exit_unconfirmed };
+// Frame independent replies in the single post-retirement response. These
+// helpers charge the length prefix and reject a truncated or empty part.
+void append_prepared_reply(std::vector<std::byte>& sequence,std::span<const std::byte> reply,
+    std::size_t capacity);
+std::span<const std::byte> take_prepared_reply(std::span<const std::byte>& sequence);
 struct WorkerExchangeResult {
   WorkerExchangeCode code = WorkerExchangeCode::invalid_response;
   ProcessResult process;
@@ -86,6 +92,13 @@ class WorkerExchangeSession final {
       const std::vector<std::wstring>& arguments,SharedWorkerRequest request,
       WorkerChannelCapacity capacity,ProcessBudget budget,std::uint32_t windows,std::stop_token,
       const std::function<bool(std::uint32_t)>& admit,std::shared_ptr<const void> pinned_route={});
+  // Each readiness event admits a new exact-size private request. The caller
+  // supplies the aggregate reply capacity and independently checks each part.
+  // An absent request declines the remaining sequence.
+  static WorkerExchangeResult run_prepared_requests(const std::filesystem::path& helper,
+      const std::vector<std::wstring>& arguments,WorkerChannelCapacity capacity,ProcessBudget budget,
+      std::uint32_t requests,std::stop_token,const std::function<SharedWorkerRequest(std::uint32_t)>& prepare,
+      std::shared_ptr<const void> pinned_route={});
   ~WorkerExchangeSession();
   WorkerExchangeSession(WorkerExchangeSession&&) noexcept;
   WorkerExchangeSession& operator=(WorkerExchangeSession&&) noexcept;
@@ -110,7 +123,8 @@ class WorkerExchangeSession final {
   static WorkerExchangeSession start_impl(const std::filesystem::path&,
       const std::vector<std::wstring>&,std::span<const std::byte>,
       WorkerChannelCapacity,ProcessBudget,bool sized,SharedWorkerRequest snapshot={},
-      std::shared_ptr<const void> pinned_route={},bool prepared=false,std::uint32_t continuation_windows=0);
+      std::shared_ptr<const void> pinned_route={},bool prepared=false,std::uint32_t continuation_windows=0,
+      bool repeated_requests=false);
   struct Impl;
   explicit WorkerExchangeSession(std::unique_ptr<Impl>) noexcept;
   WorkerExchangeResult wait_result(); // Synchronous adapters only.
@@ -135,12 +149,17 @@ class WorkerChannel final {
   static WorkerChannel open_sized(std::wstring_view token,WorkerChannelCapacity);
   static WorkerChannel open_prepared_sized(std::wstring_view token,WorkerChannelCapacity,
       std::uint32_t timeout_ms,bool windowed=false);
+  static WorkerChannel open_prepared_requests(std::wstring_view token,WorkerChannelCapacity,
+      std::uint32_t timeout_ms,std::uint32_t requests);
   // The child signals readiness only after its own setup succeeds. It then
   // waits once for the full frame and copies it into its private buffer.
   bool receive_prepared();
   // Call at a quiescent boundary before dispatching the next window. A
   // declined window requires resource retirement and exit without a reply.
   bool await_window();
+  // The preceding request must be finished. This copies the next authorized
+  // frame into private storage and invalidates the borrowed request() view.
+  bool receive_next_prepared();
   ~WorkerChannel();
   WorkerChannel(WorkerChannel&&) noexcept;
   WorkerChannel& operator=(WorkerChannel&&) noexcept;
@@ -154,6 +173,7 @@ class WorkerChannel final {
  private:
   struct Impl;
   explicit WorkerChannel(std::unique_ptr<Impl>) noexcept;
+  bool await_prepared_boundary();
   std::unique_ptr<Impl> impl_;
 };
 } // namespace flitzfs

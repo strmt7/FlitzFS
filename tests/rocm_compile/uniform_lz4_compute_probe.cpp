@@ -279,7 +279,7 @@ UniformLz4Candidates compute(State& state,Lz4KernelCoverage covered=coverage,Uni
 }
 UniformLz4Candidates reused_compute(State& state,UniformLz4ComputeGrant grant={},UniformLz4SweepTrace* trace=nullptr,
     bool prepared=false,const SweepEventApi* events=nullptr,HipStreamCopy transfer=nullptr,
-    const std::function<bool()>& await_window={}){
+    const std::function<bool()>& await_window={},const UniformLz4NextRequest& next_request={}){
   Activate owner(state);state.reuse=true;
   uniform_lz4::Layout quantum{};require(uniform_lz4::make_layout(2U*65536,65536,quantum),"reused fixture peak");
   if(!grant.maximum_chunks && !grant.maximum_device_bytes)grant={2,quantum.total_bytes,65536};
@@ -326,7 +326,7 @@ UniformLz4Candidates reused_compute(State& state,UniformLz4ComputeGrant grant={}
       return state.fault=="prepared-discard"?nullptr:&state.source;
     };
     return execute_uniform_lz4_sweep_plan(api,&attributes,kernels,shape,coverage,receive,initialize,memory,
-        trace,hip_phase_detail::clock_ns,events,transfer,await_window);
+        trace,hip_phase_detail::clock_ns,events,transfer,await_window,next_request);
   }
   return execute_uniform_lz4_reused_sweep(api,&attributes,kernels,state.source,coverage,grant,initialize,memory,
       trace,hip_phase_detail::clock_ns,events,transfer);
@@ -345,6 +345,38 @@ void reused_success(const UniformLz4Request& source,unsigned wave,bool delayed_c
       state.priority_queries==2 && state.source_offset==source.batch.plaintext().size() &&
       !state.allocated && !state.stream_live,"reused sweep incomplete coverage/admission/retirement");
   require(state.completion_samples==windows+delayed_completion,"reused completion sampled beyond its evidence");
+}
+void repeated_preparation(const UniformLz4Request& source,bool refuse) {
+  ++scenarios;
+  State state(source);
+  state.properties.maxGridSize[0]=2;
+  const auto second=decode_uniform_lz4_request(encode_uniform_lz4_request(source.batch,source.request_id+1),
+      source.batch.limits());
+  unsigned completed=0;
+  const auto windows=(source.batch.layout().chunks+1)/2;
+  const UniformLz4NextRequest next=[&](UniformLz4Candidates part)->const UniformLz4Request* {
+    ++completed;
+    require(state.allocated && state.stream_live && state.waits==completed*windows &&
+        state.source_offset==source.batch.plaintext().size(),"next request preceded verified completion");
+    verify_uniform_lz4_candidates(completed==1?source.batch:second.batch,part);
+    if(completed==2)return nullptr;
+    if(refuse)throw UniformLz4WindowDeclined{};
+    state.source_offset=0;
+    return &second;
+  };
+  try {
+    const auto unpublished=reused_compute(state,{},nullptr,true,nullptr,nullptr,{},next);
+    require(!refuse && unpublished.payload.empty() && unpublished.sizes.empty(),
+        "repeated computation returned a second copy of its results");
+    ++successes;
+  }catch(const UniformLz4WindowDeclined&) {
+    require(refuse,"unexpected repeated refusal");
+    ++refusals;
+  }
+  const auto count=[&](const char* name){return std::count(state.calls.begin(),state.calls.end(),name);};
+  require(completed==(refuse?1U:2U) && count("initialize")==1 && count("stream-create")==1 &&
+      count("allocate")==1 && count("stream-destroy")==1 && count("release")==1 &&
+      !state.allocated && !state.stream_live,"repeated computation recreated or retained device resources");
 }
 void reused_refused(State& state,HipWorkerExit code,UniformLz4ComputeGrant grant={}){
   ++scenarios;++refusals;UniformLz4Candidates escaped;
@@ -418,6 +450,8 @@ int wmain(int argc,wchar_t** argv){try{
     success(source,32);success(source,64);success(request(1),32);
     reused_success(source,32);reused_success(source,64);reused_success(request(16U*65536),32);reused_success(request(1),32);
     reused_success(source,32,true);
+    repeated_preparation(source,false);
+    repeated_preparation(source,true);
     {
       ++scenarios;++successes;State state(source);state.fault="prepared-discard";UniformLz4SweepTrace trace;
       const auto result=reused_compute(state,{},&trace,true);

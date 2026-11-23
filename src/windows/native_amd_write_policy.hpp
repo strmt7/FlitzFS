@@ -54,13 +54,13 @@ std::optional<NativeAmdWriteSample> record_native_amd_verified_batch(const Nativ
     const PreparedUniformLz4Batch&,const VerifiedUniformLz4Batch&,std::uint64_t memory_allowance,
     MemoryVolumeDomain*,const std::function<bool()>& interrupted) noexcept;
 
-enum class NativeAmdTrialLaunch {immediate,prepared};
+enum class NativeAmdTrialLaunch {immediate,prepared,prepared_requests};
 struct NativeAmdDeviceTrial {
   std::optional<NativeAmdWriteSample> sample;
   std::uint64_t ready_ns=0,exchange_ns=0;
   std::uint64_t preparation_ns=0,supervised_ns=0,verification_ns=0,replay_ns=0;
   WorkerExchangeCode exchange=WorkerExchangeCode::invalid_response;
-  std::uint32_t worker_exit=0;
+  std::uint32_t worker_exit=0,admitted_requests=0;
   bool worker_retired=false;
 };
 // One detached device arm. Use an independently admitted finite grant. The

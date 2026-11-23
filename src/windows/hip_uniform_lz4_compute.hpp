@@ -146,9 +146,13 @@ UniformLz4Candidates run_hip_uniform_lz4_sweep_in_worker(HMODULE runtime,
     const UniformLz4Request&,hip_detail::UniformLz4ComputeGrant,
     std::span<const hip_detail::Lz4KernelCoverage>,UniformLz4SweepTrace* trace=nullptr,bool timeline=false,
     bool stream_bound=false);
+// Consume a verified result and optionally supply the next private request
+// with the same admitted sweep geometry.
+using UniformLz4NextRequest=std::function<const UniformLz4Request*(UniformLz4Candidates)>;
 UniformLz4Candidates run_hip_uniform_lz4_prepared_sweep_in_worker(HMODULE runtime,
     const uniform_lz4::KernelApi&,int ordinal,WindowsGpuBudgetSampler&,
     const UniformLz4SweepPlan&,std::span<const hip_detail::Lz4KernelCoverage>,
-    const std::function<const UniformLz4Request*()>& receive,const std::function<bool()>& await_window={});
+    const std::function<const UniformLz4Request*()>& receive,const std::function<bool()>& await_window={},
+    const UniformLz4NextRequest& next_request={});
 
 }
