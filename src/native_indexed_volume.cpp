@@ -2447,29 +2447,23 @@ std::uint64_t IndexedVolumeView::verify_namespace(const IndexedInodeInput& direc
     unsigned components,const IndexedReopenAdmission& admission) const {
   IndexedDirectoryShape expected;
   std::uint64_t reachable=1;
-  std::string after;
   const auto limit=root_.name_profile?kIndexedPathUnits:240;
-  for(;;) {
-    const auto rows=index_.list(directory.inode,after,64);
-    if(rows.empty())break;
+  index_.visit_directory(directory.inode,[&](std::string_view key,std::uint64_t inode) {
     if(directory.lifetime!=IndexedLifetime::linked || components==kIndexedPathDepth)
       fail(Code::corrupt,"indexed directory contains unreachable children");
-    for(const auto& row:rows) {
-      const auto child=referenced_inode(row.value);
-      if(indexed_detached(child.lifetime) || child.parent!=directory.inode || name_key(child.name)!=row.key.name)
-        fail(Code::corrupt,"indexed namespace child differs from its name binding");
-      const auto units=path_units+(components?1:0)+indexed_utf16_length(child.name);
-      if(units>limit)fail(Code::corrupt,"indexed namespace path exceeds its profile");
-      if(directory.shape) {
-        const auto bound=child_path_bound(child);
-        if(!bound)fail(Code::corrupt,"indexed directory shape has an unmeasured child");
-        expected.replace({},bound);
-      }
-      if(admission)admission(indexed_inode_allocation(child),child.security);
-      reachable=add(reachable,child.directory?verify_namespace(child,units,components+1,admission):1);
+    const auto child=referenced_inode(inode);
+    if(indexed_detached(child.lifetime) || child.parent!=directory.inode || name_key(child.name)!=key)
+      fail(Code::corrupt,"indexed namespace child differs from its name binding");
+    const auto units=path_units+(components?1:0)+indexed_utf16_length(child.name);
+    if(units>limit)fail(Code::corrupt,"indexed namespace path exceeds its profile");
+    if(directory.shape) {
+      const auto bound=child_path_bound(child);
+      if(!bound)fail(Code::corrupt,"indexed directory shape has an unmeasured child");
+      expected.replace({},bound);
     }
-    after=rows.back().key.name;
-  }
+    if(admission)admission(indexed_inode_allocation(child),child.security);
+    reachable=add(reachable,child.directory?verify_namespace(child,units,components+1,admission):1);
+  });
   if(directory.shape && expected!=*directory.shape)
     fail(Code::corrupt,"indexed directory shape differs from its children");
   return reachable;

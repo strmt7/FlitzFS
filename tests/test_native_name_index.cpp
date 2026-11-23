@@ -1,6 +1,7 @@
 #include "native_fs_fixture.hpp"
 #include "native_name_index.hpp"
 #include <iostream>
+#include <iterator>
 
 namespace {
 using namespace native_fixture;
@@ -90,6 +91,30 @@ void ordered_names() {
   }
   const auto scan_bytes=ram->read_bytes-before_scan;
   require(point_bytes<scan_bytes/12,"lookup unexpectedly reads most directory pages");
+  {
+    const auto audit=index.scoped_audit();
+    const auto split=oracle.lower_bound({2,{}});
+    auto expected=oracle.begin();
+    const auto midpoint=std::next(expected,std::distance(expected,split)/2);
+    index.visit_directory(1,[&](std::string_view name,std::uint64_t inode) {
+      if(expected==midpoint) {
+        auto nested=split;
+        index.visit_directory(2,[&](std::string_view child,std::uint64_t id) {
+          require(nested!=oracle.end() && child==nested->first.name && id==nested->second,
+              "nested directory walk changed key order");
+          ++nested;
+        });
+        require(nested==oracle.end(),"nested directory walk skipped entries");
+      }
+      require(expected!=split && name==expected->first.name && inode==expected->second,
+          "nested reads changed the active directory walk");
+      ++expected;
+    });
+    require(expected==split,"streamed directory walk skipped entries");
+    index.visit_directory(3,[](std::string_view,std::uint64_t) {
+      throw std::runtime_error("empty range returned a directory child");
+    });
+  }
   const auto recorded=retained.info();
   const auto height=word(retained.read(kNativeNameIndexObject,40),12,4);
   require(height>=2,"test must traverse multiple internal name pages");

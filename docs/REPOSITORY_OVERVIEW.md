@@ -243,6 +243,17 @@ startup still walks the selected inventory. The next improvement needs
 generation-bound admission and a bounded follow-on scrub.
 [Record-read evidence](evidence/indexed-record-read-coalescing-2026-11-23.json)
 
+Directory auditing now finishes short folders with the existing bounded page.
+When a directory continues, an ordered cursor retains the active tree path
+through nested lookups and visits the rest of the names without repeated
+restarts. The complete namespace and mirror checks still run.
+
+In three matched Windows pairs for the 2,640-file CPython source tree, median
+writable reopen moved from 120.0 to 113.7 ms, with fewer backing reads and
+byte-exact independent readback. The 16,384-file fixture read 130,095 fewer
+backing bytes and produced mixed timing. These are native memory-backed
+reopen measurements. [Namespace traversal evidence](evidence/indexed-namespace-range-2026-11-23.json)
+
 The helper's existing-file open now joins the native writable audit during
 exclusive acquisition. In the matched in-memory attachment fixture, backing
 reads fell from 1,644,441 to 1,304,248 bytes with three flushes and zero

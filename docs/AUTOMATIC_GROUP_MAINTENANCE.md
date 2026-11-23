@@ -12,6 +12,59 @@ encoding. A qualified Windows adviser can contribute independently verified
 device candidates during preparation.
 No thread, timer, online model, driver, mount or service starts implicitly.
 
+### Device startup and batch sizing
+
+A serial copy-search batch can include a complete worker phase profile when
+its live host budget funds the reply. The controller retains the latest trace
+after worker retirement and independent CPU verification of the copy advice.
+It charges device initialization plus stream and slab setup once and prices
+the remaining observed worker time per launch. Both estimates retain recent
+peaks across verified exchanges.
+[HIP stream management](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/reference/hip_runtime_api/modules/stream_management.html)
+
+The separated estimate applies to groups of the same verified size with the
+configured dispatch width and a slab that fits the complete group. Mixed group
+sizes, narrower dispatches or slabs, and exchanges without the applicable
+timing use the measured complete-cost estimate.
+When a staged list mixes sizes, the planner can still use the separated estimate
+for its leading matching groups. It keeps a longer mixed prefix if the
+complete-cost estimate can fund it. Setup alone can exhaust the deadline
+allowance for the route.
+The launch planner charges each group's index and search dispatches, keeps the
+deadline margin, and admits only complete groups within current transport,
+device and host budgets. A new route starts with a small measured batch.
+[Launch planner](../src/windows/native_anchor_search.cpp)
+
+In the planner regression, one 2,100 ms exchange includes 1,850 ms of setup. With the same 5,000 ms deadline and margin, the planner admits
+five matching groups where the complete-cost estimate admits one. The Windows
+Release, AddressSanitizer and raw-only planner checks passed alongside nine CPU
+group and anchor regressions and five raw-only group tests. The planner tests
+also cover a six-group mixed request, a longer affordable mixed batch, and a
+calibrated prefix that exceeds its deadline.
+
+After host admission, the staged Windows build ran CPU-only and Radeon
+comparisons on two 20-file workloads derived from AIT DCC 2026 training and
+held-out data. The full device arm verified advice for four groups per split.
+All arms selected the same Zstandard-prefix layout and reopened all files
+byte for byte on CPU. Compacted images occupied 507,904 and 499,712 bytes.
+The individual CPU trials took about 0.24 seconds. The Radeon-assisted trials
+took 2.75–3.17 seconds. The profiled device initialization phase took only
+10–11 ms within 2.07–2.21 seconds of supervised worker time. In earlier
+packed-XOR trials, the same worker's stream creation call had a median near
+1.21 seconds for both 24 and 101 members, with slab allocation around 24
+microseconds. [Earlier stream measurements](evidence/amd-anchor-stream-setup-2026-11-19.json)
+
+The updated planner and phase-profile tests passed in Windows Release,
+codec-free Release and AddressSanitizer builds. The combined Windows build
+also completed two live Radeon comparisons, each with one profiled group,
+four profiled groups and a CPU control. Stream and slab setup took
+1.37–1.70 seconds, roughly 93–94% of the profiled worker time.
+Four verified groups cost 5–7% more worker time than one in these runs.
+CPU controls finished sooner on both small workloads and produced the
+same compacted layouts. All files reopened byte for byte.
+[Qualification evidence](evidence/windows-collective-startup-sizing-2026-11-23.json) ·
+[AIT DCC 2026 official dataset](https://aitdcc.github.io/dataset.html)
+
 An explicit adviser can supply a member grant on an idle opportunity. The
 controller stages one decoded member per opportunity. An indexed batch can
 collect additional disjoint groups from the current discovery window within the

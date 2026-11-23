@@ -245,13 +245,16 @@ std::size_t lower_slot(const Page& page, const NativeNameKey& key) {
       [](const Row& row,const NativeNameKey& value){ return row.key < value; });
   return static_cast<std::size_t>(found-page.rows.begin());
 }
+auto upper_row(const Page& page,const NativeNameKey& key) {
+  return std::upper_bound(page.rows.begin(),page.rows.end(),key,
+      [](const NativeNameKey& value,const Row& row){ return value < row.key; });
+}
 template<class Query>
 bool list_range(const Reference& reference, const NativeNameKey& after, std::uint64_t last_parent,
     std::size_t maximum,std::vector<NativeNameEntry>& output,const Query& query) {
   Page scratch{};
   const auto& page=query(reference,scratch);
-  const auto first = std::upper_bound(page.rows.begin(),page.rows.end(),after,
-      [](const NativeNameKey& key,const Row& row){ return key < row.key; });
+  const auto first=upper_row(page,after);
   for (auto it = first; it != page.rows.end(); ++it) {
     if (page.height) {
       const auto child = child_reference(page,reference,static_cast<std::size_t>(it-page.rows.begin()));
@@ -457,7 +460,9 @@ std::uint64_t native_extent_block(std::string_view key) {
 struct NativeNameIndex::AuditPages {
   struct CheckedPage {
     Page page{};
+    std::shared_ptr<const Page> retained;
     std::uint64_t count=0;
+    const Page& view() const noexcept {return retained?*retained:page;}
   };
   std::vector<CheckedPage> branches;
   std::array<CheckedPage,4> leaves{};
@@ -465,26 +470,25 @@ struct NativeNameIndex::AuditPages {
 
   explicit AuditPages(std::uint32_t height):branches(height) {}
 
-  const Page& get(const Reference& ref,const auto& load) {
-    // A range walk descends strictly in height. A child cannot evict the
-    // branch still in use by its caller.
+  CheckedPage& get(const Reference& ref,const auto& load) {
     CheckedPage* slot=nullptr;
     if(ref.height) {
       slot=&branches.at(ref.height-1);
     } else {
-      const auto hit=std::ranges::find_if(leaves,[&](const auto& leaf){return leaf.page.id==ref.id;});
+      const auto hit=std::ranges::find_if(leaves,[&](const auto& leaf){return leaf.view().id==ref.id;});
       if(hit!=leaves.end())slot=&*hit;
       else {
         slot=&leaves[next_leaf];
         next_leaf=(next_leaf+1)%leaves.size();
       }
     }
-    if(slot->page.id==ref.id)check_reference(slot->page,ref,slot->count);
+    if(slot->view().id==ref.id)check_reference(slot->view(),ref,slot->count);
     else {
       slot->page=load();
+      slot->retained.reset();
       slot->count=ref.entries;
     }
-    return slot->page;
+    return *slot;
   }
 };
 
@@ -492,13 +496,20 @@ class NativeNameIndex::QueryReader final {
  public:
   explicit QueryReader(const NativeNameIndex& owner):owner_(owner) {}
   const Page& operator()(const Reference& ref,Page& scratch) const {
-    const auto load=[&] {
-      return read_page(owner_.root_,ref,[this](auto id,Bytes& bytes){return owner_.query_page(id,bytes);});
-    };
-    if(owner_.audit_pages_)return owner_.audit_pages_->get(ref,load);
-    return scratch=load();
+    if(owner_.audit_pages_)return owner_.audit_pages_->get(ref,[&]{return read(ref);}).view();
+    return scratch=read(ref);
+  }
+  std::shared_ptr<const Page> pin(const Reference& ref) const {
+    if(!owner_.audit_pages_)return std::make_shared<const Page>(read(ref));
+    auto& cached=owner_.audit_pages_->get(ref,[&]{return read(ref);});
+    // Only cursor pages need lifetimes beyond the current query.
+    if(!cached.retained)cached.retained=std::make_shared<const Page>(std::move(cached.page));
+    return cached.retained;
   }
  private:
+  Page read(const Reference& ref) const {
+    return read_page(owner_.root_,ref,[this](auto id,Bytes& bytes){return owner_.query_page(id,bytes);});
+  }
   const NativeNameIndex& owner_;
 };
 
@@ -550,6 +561,51 @@ std::vector<NativeNameEntry> NativeNameIndex::list(std::uint64_t parent, std::st
     if(*more)output.pop_back();
   }
   return output;
+}
+
+void NativeNameIndex::visit_directory(std::uint64_t parent,
+    const std::function<void(std::string_view,std::uint64_t)>& visit) const {
+  NativeNameKey after;
+  {
+    // Short directories fit the same bounded page as ordinary enumeration.
+    bool more=false;
+    const auto first=list(parent,{},64,&more);
+    for(const auto& entry:first)visit(entry.key.name,entry.value);
+    if(!more)return;
+    after=first.back().key;
+  }
+  // Keep the tree path on the heap so nested namespace walks cannot multiply
+  // the native call stack by the height of the name tree.
+  struct CursorPage {
+    Reference reference;
+    std::shared_ptr<const Page> page;
+    std::size_t next;
+  };
+  std::vector<CursorPage> path;
+  path.reserve(root_.height+1);
+  const QueryReader query(*this);
+  const auto enter=[&](Reference reference) {
+    auto page=query.pin(reference);
+    const auto next=static_cast<std::size_t>(upper_row(*page,after)-page->rows.begin());
+    path.push_back({std::move(reference),std::move(page),next});
+  };
+  enter(root_reference(root_));
+  while(!path.empty()) {
+    auto& current=path.back();
+    const auto& page=*current.page;
+    if(current.next==page.rows.size()) {
+      path.pop_back();
+      continue;
+    }
+    const auto slot=current.next++;
+    if(page.height) {
+      enter(child_reference(page,current.reference,slot));
+    }else {
+      const auto& row=page.rows[slot];
+      if(row.key.parent>parent)return;
+      visit(row.key.name,row.value);
+    }
+  }
 }
 
 std::optional<NativeNameEntry> NativeNameIndex::next_extent(const std::optional<NativeNameKey>& after) const {

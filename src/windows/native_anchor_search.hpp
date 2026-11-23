@@ -2,6 +2,7 @@
 #include "flitzfs/native_filesystem.hpp"
 #include "flitzfs/gpu_anchor_match.hpp"
 #include "hip_route_discovery.hpp"
+#include "hip_phase_profile.hpp"
 #include <stop_token>
 #include <utility>
 
@@ -24,6 +25,8 @@ struct NativeAnchorSearchOptions {
   bool prefer_reference=false;
   // Fixed sizing is reserved for explicit hardware comparisons.
   bool adaptive_batch_sizing=true;
+  // Allow a verified phase trace for fixed-size copy comparisons as well.
+  bool profile_copy_batches=false;
 };
 
 struct NativeAnchorSearchStats {
@@ -40,8 +43,10 @@ struct NativeAnchorSearchStats {
   std::optional<WorkerExchangeCode> last_exchange;
   std::uint32_t last_worker_exit_code=0;
   std::uint64_t last_retirement_elapsed_ms=0;
-  std::uint64_t last_worker_elapsed_ms=0,verified_timing_samples=0;
+  std::uint64_t last_worker_elapsed_ms=0,verified_timing_samples=0,last_profiled_setup_ns=0;
   std::optional<std::uint32_t> learned_launch_limit;
+  // The latest accepted copy job on this route, when it supplied a trace.
+  std::optional<HipPhaseTrace> last_verified_copy_profile;
   bool last_publication_observed=false;
 };
 

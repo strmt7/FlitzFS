@@ -69,6 +69,7 @@ void anchor_launch_budget() {
   options.worker = {128, 2'000, 5'000, 16};
   options.minimum_members = 20;
   options.maximum_members = 128;
+  options.adaptive_batch_sizing = false;
   constexpr std::array<std::uint32_t,4> members{12, 24, 30, 44};
   const auto full = plan_native_anchor_launch(members, options, observed, observed.captured_ms, false);
   const auto three = plan_native_anchor_launch(std::span(members).first(3),
@@ -119,6 +120,85 @@ void anchor_launch_budget() {
   require(funded && funded->dispatches_per_wait==1 && funded->batch==unprofiled->batch &&
       funded->capacity.reply_bytes==unprofiled->capacity.reply_bytes,
       "Optional wait profile displaced a funded unprofiled batch");
+
+  auto measured_options=options;
+  measured_options.minimum_members=1;
+  measured_options.adaptive_batch_sizing=true;
+  constexpr std::array<std::uint32_t,5> uniform_groups{4,4,4,4,4};
+  const auto bootstrap=plan_native_anchor_launch(std::span(uniform_groups).first(1),measured_options,
+      observed,observed.captured_ms,false);
+  require(bootstrap && bootstrap->profiled,"Initial copy batch did not fund its setup trace");
+  auto fixed_options=measured_options;
+  fixed_options.adaptive_batch_sizing=false;
+  const auto fixed_batch=plan_native_anchor_launch(uniform_groups,fixed_options,observed,observed.captured_ms,false);
+  fixed_options.profile_copy_batches=true;
+  const auto measured_fixed=plan_native_anchor_launch(uniform_groups,fixed_options,observed,observed.captured_ms,false);
+  require(fixed_batch && !fixed_batch->profiled && measured_fixed && measured_fixed->profiled &&
+      measured_fixed->batch==fixed_batch->batch && measured_fixed->transfer==fixed_batch->transfer &&
+      measured_fixed->dispatches_per_wait==1 &&
+      measured_fixed->capacity.reply_bytes==fixed_batch->capacity.reply_bytes+kAnchorBatchProfileBytes,
+      "Fixed-size phase observation changed the planned work");
+  const auto measured_launches=bootstrap->batch.launches;
+  NativeAnchorBatchTiming setup_timing;
+  setup_timing.record_verified(2100,measured_launches,1'850'000'000,uniform_groups.front());
+  const auto stop_ms=measured_options.worker.timeout_ms;
+  const auto split_limit=setup_timing.launch_limit(stop_ms,uniform_groups.front());
+  const auto mixed_limit=setup_timing.launch_limit(stop_ms,0);
+  const auto amortized=plan_native_anchor_launch(uniform_groups,measured_options,observed,
+      observed.captured_ms,false,split_limit);
+  const auto charged_per_launch=plan_native_anchor_launch(uniform_groups,measured_options,observed,
+      observed.captured_ms,false,mixed_limit);
+  require(split_limit && mixed_limit && *split_limit>*mixed_limit &&
+      setup_timing.launch_limit(stop_ms,uniform_groups.front()+1)==mixed_limit &&
+      amortized && amortized->profiled && amortized->dispatches_per_wait==1 &&
+      amortized->capacity.reply_bytes==amortized->batch.reply_bytes+kAnchorBatchProfileBytes &&
+      amortized->batch.groups.size()==uniform_groups.size() &&
+      charged_per_launch && charged_per_launch->batch.groups.size()==1,
+      "Startup evidence failed to admit a bounded identical-shape burst");
+  constexpr std::array<std::uint32_t,6> mixed_groups{4,4,4,4,4,6};
+  const auto matching=plan_timed_native_anchor_launch(mixed_groups,measured_options,observed,
+      observed.captured_ms,false,setup_timing);
+  require(matching && matching->batch==amortized->batch,
+      "A different trailing group suppressed the affordable calibrated prefix");
+  auto narrow_slab=observed;
+  const auto local_reserve=gpu_memory_envelope(observed).local_reserve;
+  narrow_slab.local_usage=observed.local_budget-local_reserve-
+      anchor_match::device_bytes(uniform_groups.front()-1,measured_options.output);
+  const auto narrow_limit=plan_native_anchor_launch(uniform_groups,measured_options,narrow_slab,
+      narrow_slab.captured_ms,false,mixed_limit);
+  const auto narrowed=plan_timed_native_anchor_launch(uniform_groups,measured_options,narrow_slab,
+      narrow_slab.captured_ms,false,setup_timing);
+  require(narrow_limit && narrow_limit->transfer.members_per_transfer<uniform_groups.front() &&
+      narrowed && narrowed->batch==narrow_limit->batch && narrowed->transfer==narrow_limit->transfer,
+      "A narrowed staging slab retained the calibrated complete-group setup estimate");
+  NativeAnchorBatchTiming larger_mixed_grant;
+  larger_mixed_grant.record_verified(2500,6*measured_launches,1'500'000'000,uniform_groups.front());
+  const auto mixed=plan_timed_native_anchor_launch(mixed_groups,measured_options,observed,
+      observed.captured_ms,false,larger_mixed_grant);
+  require(mixed && mixed->batch.groups.size()==mixed_groups.size() &&
+      mixed->batch.groups.back().whole.members==mixed_groups.back(),
+      "A calibrated prefix displaced a larger funded mixed batch");
+  NativeAnchorBatchTiming expensive_setup;
+  expensive_setup.record_verified(4000,4*measured_launches,3'200'000'000,uniform_groups.front());
+  const auto whole_limit=expensive_setup.launch_limit(stop_ms,0);
+  const auto misleading=plan_native_anchor_launch(mixed_groups,measured_options,observed,
+      observed.captured_ms,false,whole_limit);
+  require(misleading && misleading->batch.groups.size()<=uniform_groups.size() &&
+      !plan_timed_native_anchor_launch(mixed_groups,measured_options,observed,observed.captured_ms,false,expensive_setup),
+      "A mixed estimate admitted an unaffordable calibrated prefix");
+  expensive_setup.record_verified(4000,4*measured_launches,3'800'000'000,uniform_groups.front());
+  require(expensive_setup.launch_limit(stop_ms,0)==0 &&
+      !plan_timed_native_anchor_launch(mixed_groups,measured_options,observed,observed.captured_ms,false,expensive_setup),
+      "A setup cost that consumes the whole allowance admitted mixed work");
+  require(setup_timing.launch_limit(2000,uniform_groups.front())==0,
+      "Startup-aware sizing did not charge setup against the deadline");
+  setup_timing.record_verified(2600,measured_launches,1'850'000'000,uniform_groups.front());
+  const auto slow_profile=setup_timing.launch_limit(stop_ms,uniform_groups.front());
+  require(slow_profile && *slow_profile>=measured_launches && *slow_profile<2*measured_launches,
+      "Slower verified incremental work did not shrink the burst");
+  setup_timing.record_verified(2600,measured_launches,2'600'000'000,uniform_groups.front());
+  require(setup_timing.launch_limit(stop_ms,uniform_groups.front())==setup_timing.launch_limit(stop_ms,0),
+      "An inconsistent profile displaced the complete-cost estimate");
 
   options.output=anchor_match::BatchOutput::wide_anchors;
   require(!plan_native_anchor_launch(members,options,observed,observed.captured_ms,false),
@@ -2380,6 +2460,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
     BatchForegroundTrial foreground=BatchForegroundTrial::normal,bool adaptive=false) {
   constexpr auto families=anchor_search_fixture::indexed_batch_families;
   const bool revision=revision_corpus(pattern);
+  const bool require_phase_profile=options && options->profile_copy_batches;
   const bool shifted_bias=pattern==IndexedBatchPattern::shifted_bias;
   const bool tile_reference=pattern==IndexedBatchPattern::xor_tile_reference;
   const bool sparse_reference=pattern==IndexedBatchPattern::xor_sparse_reference;
@@ -2694,12 +2775,22 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
         (tile_reference || sparse_xor || progress.advised_members_published==members),
         "Related AMD work did not fill one verified multiwindow batch");
   if(adaptive && !deadline_fallback) {
-    require(stats.submitted==1 && stats.verified_groups==1 && stats.verified_timing_samples==1 &&
-        stats.learned_launch_limit && progress.published_groups>=families,
+    require(stats.submitted==1 && stats.verified_groups>=1 && stats.verified_timing_samples==1 &&
+        stats.learned_launch_limit && (revision || (stats.verified_groups==1 && progress.published_groups>=families)),
         "The first measured AMD batch failed to leave the other complete groups on the CPU");
     std::cout<<"adaptive_batch measured_samples="<<stats.verified_timing_samples
-        <<" learned_launch_limit="<<*stats.learned_launch_limit<<" cpu_groups="
-        <<progress.published_groups-stats.verified_groups<<'\n';
+        <<" learned_launch_limit="<<*stats.learned_launch_limit
+        <<" worker_elapsed_ms="<<stats.last_worker_elapsed_ms
+        <<" setup_ns="<<stats.last_profiled_setup_ns
+        <<" launches="<<stats.submitted_kernel_launches<<" published_groups="<<progress.published_groups<<'\n';
+  }
+  if(require_phase_profile)
+    require(stats.last_verified_copy_profile.has_value(),"AMD comparison lacked a verified phase trace");
+  if(const auto& phase=stats.last_verified_copy_profile;phase && require_phase_profile) {
+    std::cout<<"verified_phase_profile total_worker_wall_ns="<<phase->total_wall_ns;
+    for(std::size_t i=0;i<hip_phase_names.size();++i)
+      std::cout<<' '<<hip_phase_names[i]<<"_ns="<<phase->wall_ns[i];
+    std::cout<<'\n';
   }
   if(tile_reference || sparse_xor)
     require(progress.published_groups==families,"Packed XOR did not group the complete cohort");
@@ -2858,6 +2949,8 @@ int live_anchor_owner(int argc,char** argv) {
   const auto restriction=argc==9?std::string_view(argv[8]):std::string_view{};
   const bool wide_copy=restriction=="wide-copy";
   const bool reference_xor=restriction=="reference-xor";
+  const bool measure_startup=restriction=="startup-profile";
+  const bool measure_batch=restriction=="batch-profile";
   const bool cancel_after_submit=restriction=="cancel-after-submit";
   auto overlap=BatchOverlapTrial::normal;
   if(restriction=="limited-overlap")overlap=BatchOverlapTrial::partial;
@@ -2872,7 +2965,7 @@ int live_anchor_owner(int argc,char** argv) {
       "Expected an AMD ownership trial");
   require(argc!=9 || (multiwindow && revision_corpus(*multiwindow) &&
       (restriction=="queued" || limited_memory || wide_copy || reference_xor ||
-          cancel_after_submit || overlap!=BatchOverlapTrial::normal)),
+          cancel_after_submit || measure_startup || measure_batch || overlap!=BatchOverlapTrial::normal)),
       "The requested comparison needs a revision corpus");
   const ProcessBudget profile{128,2000,5000,16};
   HipRouteDiscoveryRequest request;
@@ -2899,13 +2992,15 @@ int live_anchor_owner(int argc,char** argv) {
         mode=="xor-full-reference"?anchor_match::BatchOutput::reference_xor:
         mode=="collective"?anchor_match::BatchOutput::collective:sparse?anchor_match::BatchOutput::sparse_xor:
         modular?anchor_match::BatchOutput::modular_delta:anchor_match::BatchOutput::wide_packed_xor;
-    return live_multiwindow_anchor(NativeAnchorSearchOptions{*binding.route,profile,minimum,
-        static_cast<std::uint32_t>(members+families),10000,
-        output,wide_copy || reference_xor?12U:small_batch?4U:modular?16U:0U,
-        queued?kAnchorProfileMaxQueuedDispatches:1U,reference_xor},
+    return live_multiwindow_anchor(NativeAnchorSearchOptions{
+        .route=*binding.route,.worker=profile,.minimum_members=minimum,
+        .maximum_members=static_cast<std::uint32_t>(members+families),.output=output,
+        .maximum_dispatch_members=wide_copy || reference_xor?12U:small_batch?4U:modular?16U:0U,
+        .dispatches_per_wait=queued?kAnchorProfileMaxQueuedDispatches:1U,.prefer_reference=reference_xor,
+        .profile_copy_batches=measure_startup || measure_batch},
         argc>=8?std::filesystem::path(argv[7]):std::filesystem::path{},
         discovery_ns,*multiwindow,limited_memory,overlap,
-        cancel_after_submit?BatchForegroundTrial::cancel_active:BatchForegroundTrial::normal);
+        cancel_after_submit?BatchForegroundTrial::cancel_active:BatchForegroundTrial::normal,measure_startup);
   }
   const std::uint32_t members=(mode=="changed-extents" || mode=="prefix-extension")?3:
       queued?queued_anchor_members:(mode=="batch" || mode=="batch-yield" || xor_mode)?8:4;
@@ -4494,6 +4589,12 @@ void indexed_group_callback_contract(bool scrub_due=false) {
 }
 }
 int main(int argc,char** argv){try {
+#ifdef FLITZFS_INDEXED_HIP_FIXTURE
+  if(argc==2 && std::string_view(argv[1])=="--test-anchor-launch-budget") {
+    anchor_launch_budget();
+    return 0;
+  }
+#endif
   const bool profile_installed_read=argc==2 && std::string_view(argv[1])=="--profile-installed-native-read";
   const bool profile_existing_prefix=argc==7 && std::string_view(argv[1])=="--live-anchor-owner" &&
       std::string_view(argv[6])=="prefix-extension";

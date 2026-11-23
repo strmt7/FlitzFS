@@ -1,0 +1,182 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "source": {
+    "base": "31c84751785179e87865e0c3abd64f0913127d4c",
+    "blobs": {
+      "src/native_name_index.cpp": "1c98075096baad9d93e169a185789b154dfd2cdf",
+      "src/native_name_index.hpp": "2223060ef1c8a2538640e9b908a8b10d6fa81bac",
+      "src/native_indexed_volume.cpp": "c74ac15facdea6eef41b3665aa196a78e1d990b5",
+      "tests/test_native_name_index.cpp": "d2ee1e7df44e28a45b112b5d221bc96ac71aa7ae",
+      "src/windows/native_anchor_launch.hpp": "9a93d90f0a69ba9105242ec49faf0c9cac65733d",
+      "src/windows/native_anchor_search.cpp": "52df2069ada323882792fafcaa0dc4e345a2c466",
+      "src/windows/native_anchor_search.hpp": "fb1326c7a10b5c5b8571a20fa74c3260077804da",
+      "tests/test_winfsp_controller.cpp": "b18b7b3d0ca73c35de741cac25192d7f9a6fde41"
+    }
+  },
+  "navigation": {
+    "repository": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\repo",
+    "commit": "31c84751785179e87865e0c3abd64f0913127d4c",
+    "source_files": 1,
+    "inventory_sha256": "9b0f3c96025be3c86e29993d30c0cfba8d87bebe0b6dbc238ba916fca27e5ab8",
+    "native_response_sha256": "1a2e368764dcfe759c43964a32f40873bcd523e6932e21976ec781d3a0f0158b",
+    "actual_searches": 1
+  },
+  "scope": "Short-directory admission and continued ordered namespace traversal on Windows in-memory indexed volumes",
+  "baseline": {
+    "commit": "31c84751785179e87865e0c3abd64f0913127d4c",
+    "executable_sha256": "d00f306cc2e88b8e99c93ce7402c9ee2fa8c47a0d280245068e603b49e532752",
+    "source_blobs": {
+      "src/native_name_index.cpp": "91cf5f0bb897c2c1d78d806b6acc58b6ad25e669",
+      "src/native_name_index.hpp": "5c9c572e5965dcdf668b4cbaa7bc34dced5451be",
+      "src/native_indexed_volume.cpp": "e28e6c80db96e22e2c9955aff9de773aed52a9b2",
+      "tests/test_native_indexed_volume.cpp": "87e20078edb6082476046fe159e9189107c7a825"
+    }
+  },
+  "candidate": {
+    "executable_sha256": "20f1566000d6aceab5337b4f9b422fd3975c1ba9f198de08d30cc6118524a81c"
+  },
+  "method": "Three alternating baseline and candidate pairs per workload, timing only writable reopen. Both arms build the same fresh memory-backed fixture, use the same counters and verify independent readback.",
+  "corpus": {
+    "sha256": "a0cf47d48cb8bc4dbd72b0e02dc84290387a767df35a9810d781b2e4dced691f",
+    "bytes": 47443761,
+    "source": "CPython 3.15.2 Lib, 2,640 files from the recorded release catalog",
+    "receipt": "indexed-record-read-coalescing-2026-11-23.json"
+  },
+  "results": [
+    {
+      "mode": 1024,
+      "control_ms": 7.7649,
+      "candidate_ms": 7.7422,
+      "candidate_pairs_faster": 2,
+      "control_read_bytes": 4654688,
+      "candidate_read_bytes": 4636114,
+      "control_calls": 11678,
+      "candidate_calls": 11672,
+      "control_arm_ms": [
+        7.7649,
+        8.3385,
+        7.5336
+      ],
+      "candidate_arm_ms": [
+        7.7422,
+        7.6858,
+        8.0741
+      ]
+    },
+    {
+      "mode": 4096,
+      "control_ms": 32.2301,
+      "candidate_ms": 31.2,
+      "candidate_pairs_faster": 2,
+      "control_read_bytes": 19033230,
+      "candidate_read_bytes": 19006464,
+      "control_calls": 46566,
+      "candidate_calls": 46558,
+      "control_arm_ms": [
+        32.2301,
+        28.1923,
+        33.0375
+      ],
+      "candidate_arm_ms": [
+        31.2,
+        32.3312,
+        29.6658
+      ]
+    },
+    {
+      "mode": 16384,
+      "control_ms": 131.1096,
+      "candidate_ms": 134.3553,
+      "candidate_pairs_faster": 1,
+      "control_read_bytes": 76085219,
+      "candidate_read_bytes": 75955124,
+      "control_calls": 185996,
+      "candidate_calls": 185960,
+      "control_arm_ms": [
+        115.0884,
+        135.4229,
+        131.1096
+      ],
+      "candidate_arm_ms": [
+        134.5152,
+        128.949,
+        134.3553
+      ]
+    },
+    {
+      "mode": "cpython",
+      "control_ms": 119.9744,
+      "candidate_ms": 113.7272,
+      "candidate_pairs_faster": 3,
+      "control_read_bytes": 59788785,
+      "candidate_read_bytes": 59765774,
+      "control_calls": 47195,
+      "candidate_calls": 47182,
+      "control_arm_ms": [
+        122.6108,
+        119.9744,
+        117.4142
+      ],
+      "candidate_arm_ms": [
+        104.8224,
+        116.1049,
+        113.7272
+      ]
+    }
+  ],
+  "checks": {
+    "windows_release": {
+      "summary": "100% tests passed out of 3",
+      "output_sha256": "ed472a08766c1e1e03fb09759af6335dc92af162b99d60e18e38c16d3852453e",
+      "exit_code": 0,
+      "process_tree_retired": true
+    },
+    "windows_codec_free": {
+      "summary": "100% tests passed out of 3",
+      "output_sha256": "5881ae9d35d32925f2efe263dadc00c6ab83162e9f695f9c8d2e22db61b4547c",
+      "exit_code": 0,
+      "process_tree_retired": true
+    },
+    "windows_address_sanitizer_with_loader_preflight": {
+      "summary": "100% tests passed out of 4",
+      "output_sha256": "a968d881d84f93a638a8d70666364d9ef563e33baa40d3be20b506993c2b0749",
+      "exit_code": 0,
+      "process_tree_retired": true
+    },
+    "windows_gpu_planner": {
+      "summary": "anchor launch prefix: wide=4 at_budget=3 below_budget=2 below_minimum=0",
+      "output_sha256": "47c0e82cdfc88f567ba0efb6ce5dc6127118abc39613cbcda6b09c87f01bd3a1",
+      "exit_code": 0,
+      "process_tree_retired": true
+    }
+  },
+  "processes_remaining": 0,
+  "interpretation": "Backing read counts and bytes dropped in all four matched fixtures. The CPython median improved in this sample. Wide synthetic timing varied and the 16,384-file median was slower. All directories and both mirror inventories still receive checks.",
+  "trials": [
+    {"workload":1024,"arm":"control","pair":1,"metrics":{"files":1024,"image_pre_flush_bytes":2945770,"image_post_flush_bytes":1708918,"image_read_calls":11678,"image_flushes":1,"head_flushes":1,"backing_write_bytes":0,"reopen_ns":7764900,"logical_bytes":17408,"workload":"short_files","objects":2082,"object_tree_height":2,"stored_payload_bytes":420966},"output_sha256":"9011b121b1bb33b0f2041e0ef03b3b3b452b577584ae27088ab06f091bdde990","byte_exact_readback":true,"process_tree_retired":true},
+    {"workload":1024,"arm":"candidate","pair":1,"metrics":{"files":1024,"image_pre_flush_bytes":2927196,"image_post_flush_bytes":1708918,"image_read_calls":11672,"image_flushes":1,"head_flushes":1,"backing_write_bytes":0,"reopen_ns":7742200,"logical_bytes":17408,"workload":"short_files","objects":2082,"object_tree_height":2,"stored_payload_bytes":420966},"output_sha256":"411e430112b089b55940189dc4f4816e666bac6efdffbd9039adca2c37c94780","byte_exact_readback":true,"process_tree_retired":true},
+    {"workload":1024,"arm":"candidate","pair":2,"metrics":{"files":1024,"image_pre_flush_bytes":2927196,"image_post_flush_bytes":1708918,"image_read_calls":11672,"image_flushes":1,"head_flushes":1,"backing_write_bytes":0,"reopen_ns":7685800,"logical_bytes":17408,"workload":"short_files","objects":2082,"object_tree_height":2,"stored_payload_bytes":420966},"output_sha256":"b619caa9dbdafa51e29c9a9e6f8663854fc60259f836242e75f4c247b5becb98","byte_exact_readback":true,"process_tree_retired":true},
+    {"workload":1024,"arm":"control","pair":2,"metrics":{"files":1024,"image_pre_flush_bytes":2945770,"image_post_flush_bytes":1708918,"image_read_calls":11678,"image_flushes":1,"head_flushes":1,"backing_write_bytes":0,"reopen_ns":8338500,"logical_bytes":17408,"workload":"short_files","objects":2082,"object_tree_height":2,"stored_payload_bytes":420966},"output_sha256":"2a08aecd5e60cab38bd66b0948a263eff6d5c4c96767712a139a98af4c789e10","byte_exact_readback":true,"process_tree_retired":true},
+    {"workload":1024,"arm":"control","pair":3,"metrics":{"files":1024,"image_pre_flush_bytes":2945770,"image_post_flush_bytes":1708918,"image_read_calls":11678,"image_flushes":1,"head_flushes":1,"backing_write_bytes":0,"reopen_ns":7533600,"logical_bytes":17408,"workload":"short_files","objects":2082,"object_tree_height":2,"stored_payload_bytes":420966},"output_sha256":"2a8322be34220309738060cec220d37162cab34e34d3157fc713feb5e814b039","byte_exact_readback":true,"process_tree_retired":true},
+    {"workload":1024,"arm":"candidate","pair":3,"metrics":{"files":1024,"image_pre_flush_bytes":2927196,"image_post_flush_bytes":1708918,"image_read_calls":11672,"image_flushes":1,"head_flushes":1,"backing_write_bytes":0,"reopen_ns":8074100,"logical_bytes":17408,"workload":"short_files","objects":2082,"object_tree_height":2,"stored_payload_bytes":420966},"output_sha256":"ed04a1a1b1d7776a750c9a4f3bca612310bdd75d987039ab18b83e4b6f442fd2","byte_exact_readback":true,"process_tree_retired":true},
+    {"workload":4096,"arm":"candidate","pair":1,"metrics":{"files":4096,"image_pre_flush_bytes":12758462,"image_post_flush_bytes":6248002,"image_read_calls":46558,"image_flushes":1,"head_flushes":1,"backing_write_bytes":0,"reopen_ns":31200000,"logical_bytes":69632,"workload":"short_files","objects":8304,"object_tree_height":2,"stored_payload_bytes":1679666},"output_sha256":"6503108f910055b722a2c6a5dd722f0e882cc34d5e204c37a2614443f1c66e53","byte_exact_readback":true,"process_tree_retired":true},
+    {"workload":4096,"arm":"control","pair":1,"metrics":{"files":4096,"image_pre_flush_bytes":12785228,"image_post_flush_bytes":6248002,"image_read_calls":46566,"image_flushes":1,"head_flushes":1,"backing_write_bytes":0,"reopen_ns":32230100,"logical_bytes":69632,"workload":"short_files","objects":8304,"object_tree_height":2,"stored_payload_bytes":1679666},"output_sha256":"de5cdb8b2a68f114c8c5fa1ecd95cd74844fdbde765d8409b1722c2fad5fb28a","byte_exact_readback":true,"process_tree_retired":true},
+    {"workload":4096,"arm":"control","pair":2,"metrics":{"files":4096,"image_pre_flush_bytes":12785228,"image_post_flush_bytes":6248002,"image_read_calls":46566,"image_flushes":1,"head_flushes":1,"backing_write_bytes":0,"reopen_ns":28192300,"logical_bytes":69632,"workload":"short_files","objects":8304,"object_tree_height":2,"stored_payload_bytes":1679666},"output_sha256":"c7485819071161fa16d0242dbad20eedbfc893f827f4bc0d863cbb928def3d5e","byte_exact_readback":true,"process_tree_retired":true},
+    {"workload":4096,"arm":"candidate","pair":2,"metrics":{"files":4096,"image_pre_flush_bytes":12758462,"image_post_flush_bytes":6248002,"image_read_calls":46558,"image_flushes":1,"head_flushes":1,"backing_write_bytes":0,"reopen_ns":32331200,"logical_bytes":69632,"workload":"short_files","objects":8304,"object_tree_height":2,"stored_payload_bytes":1679666},"output_sha256":"22619117c1b587655ac52b8f3d817fd023782656a1d914028112cd809f919456","byte_exact_readback":true,"process_tree_retired":true},
+    {"workload":4096,"arm":"candidate","pair":3,"metrics":{"files":4096,"image_pre_flush_bytes":12758462,"image_post_flush_bytes":6248002,"image_read_calls":46558,"image_flushes":1,"head_flushes":1,"backing_write_bytes":0,"reopen_ns":29665800,"logical_bytes":69632,"workload":"short_files","objects":8304,"object_tree_height":2,"stored_payload_bytes":1679666},"output_sha256":"a4f20a2141a186b1eae1ba0db5ed1099c2bafa5fca352e27811549e070b30a37","byte_exact_readback":true,"process_tree_retired":true},
+    {"workload":4096,"arm":"control","pair":3,"metrics":{"files":4096,"image_pre_flush_bytes":12785228,"image_post_flush_bytes":6248002,"image_read_calls":46566,"image_flushes":1,"head_flushes":1,"backing_write_bytes":0,"reopen_ns":33037500,"logical_bytes":69632,"workload":"short_files","objects":8304,"object_tree_height":2,"stored_payload_bytes":1679666},"output_sha256":"160db38fc201b507637cbbff55045ae1706390ee306e7735a3c1eafc7133d9a3","byte_exact_readback":true,"process_tree_retired":true},
+    {"workload":16384,"arm":"control","pair":1,"metrics":{"files":16384,"image_pre_flush_bytes":51639115,"image_post_flush_bytes":24446104,"image_read_calls":185996,"image_flushes":1,"head_flushes":1,"backing_write_bytes":0,"reopen_ns":115088400,"logical_bytes":278528,"workload":"short_files","objects":33194,"object_tree_height":3,"stored_payload_bytes":6714760},"output_sha256":"70af46a95dd097a2573c1ff12a283c1b14a4e8b9aca262bb1c88355c6371f9ad","byte_exact_readback":true,"process_tree_retired":true},
+    {"workload":16384,"arm":"candidate","pair":1,"metrics":{"files":16384,"image_pre_flush_bytes":51509020,"image_post_flush_bytes":24446104,"image_read_calls":185960,"image_flushes":1,"head_flushes":1,"backing_write_bytes":0,"reopen_ns":134515200,"logical_bytes":278528,"workload":"short_files","objects":33194,"object_tree_height":3,"stored_payload_bytes":6714760},"output_sha256":"18ec71255adc2d901a30021b98e8abd4de0936c4570baa3aafc310be6346794d","byte_exact_readback":true,"process_tree_retired":true},
+    {"workload":16384,"arm":"candidate","pair":2,"metrics":{"files":16384,"image_pre_flush_bytes":51509020,"image_post_flush_bytes":24446104,"image_read_calls":185960,"image_flushes":1,"head_flushes":1,"backing_write_bytes":0,"reopen_ns":128949000,"logical_bytes":278528,"workload":"short_files","objects":33194,"object_tree_height":3,"stored_payload_bytes":6714760},"output_sha256":"4371eca304f8deb15933da88ba93c1e74b445bc945c71ead8a29c50ac898815c","byte_exact_readback":true,"process_tree_retired":true},
+    {"workload":16384,"arm":"control","pair":2,"metrics":{"files":16384,"image_pre_flush_bytes":51639115,"image_post_flush_bytes":24446104,"image_read_calls":185996,"image_flushes":1,"head_flushes":1,"backing_write_bytes":0,"reopen_ns":135422900,"logical_bytes":278528,"workload":"short_files","objects":33194,"object_tree_height":3,"stored_payload_bytes":6714760},"output_sha256":"68152aeaac103e23861536057e36e1729bc6aba8769ae0ce09e16c1c86d4f56c","byte_exact_readback":true,"process_tree_retired":true},
+    {"workload":16384,"arm":"control","pair":3,"metrics":{"files":16384,"image_pre_flush_bytes":51639115,"image_post_flush_bytes":24446104,"image_read_calls":185996,"image_flushes":1,"head_flushes":1,"backing_write_bytes":0,"reopen_ns":131109600,"logical_bytes":278528,"workload":"short_files","objects":33194,"object_tree_height":3,"stored_payload_bytes":6714760},"output_sha256":"d8960ba293f5afce2c591c4b3677f1a4043beea353faebd60bff32b0084f8a4c","byte_exact_readback":true,"process_tree_retired":true},
+    {"workload":16384,"arm":"candidate","pair":3,"metrics":{"files":16384,"image_pre_flush_bytes":51509020,"image_post_flush_bytes":24446104,"image_read_calls":185960,"image_flushes":1,"head_flushes":1,"backing_write_bytes":0,"reopen_ns":134355300,"logical_bytes":278528,"workload":"short_files","objects":33194,"object_tree_height":3,"stored_payload_bytes":6714760},"output_sha256":"ff2daa1ba6c9b4f011aa17957ab9995543c2ec665f6336cafab25a82f56234cb","byte_exact_readback":true,"process_tree_retired":true},
+    {"workload":"cpython","arm":"candidate","pair":1,"metrics":{"files":2640,"image_pre_flush_bytes":33605594,"image_post_flush_bytes":26160180,"image_read_calls":47182,"image_flushes":1,"head_flushes":1,"backing_write_bytes":0,"reopen_ns":104822400,"logical_bytes":47331708,"workload":"cpython_compressed","objects":5851,"object_tree_height":2,"stored_payload_bytes":22973752},"output_sha256":"600a7d22ea84d7f9db7bfc5c1489afb50506705cf2e23e14e7bde0e7893796f7","byte_exact_readback":true,"process_tree_retired":true},
+    {"workload":"cpython","arm":"control","pair":1,"metrics":{"files":2640,"image_pre_flush_bytes":33628605,"image_post_flush_bytes":26160180,"image_read_calls":47195,"image_flushes":1,"head_flushes":1,"backing_write_bytes":0,"reopen_ns":122610800,"logical_bytes":47331708,"workload":"cpython_compressed","objects":5851,"object_tree_height":2,"stored_payload_bytes":22973752},"output_sha256":"29a148c65878614dfcd6aa3ab697db1692ba8ec02dbd6dcf2c5a152a2229ab46","byte_exact_readback":true,"process_tree_retired":true},
+    {"workload":"cpython","arm":"control","pair":2,"metrics":{"files":2640,"image_pre_flush_bytes":33628605,"image_post_flush_bytes":26160180,"image_read_calls":47195,"image_flushes":1,"head_flushes":1,"backing_write_bytes":0,"reopen_ns":119974400,"logical_bytes":47331708,"workload":"cpython_compressed","objects":5851,"object_tree_height":2,"stored_payload_bytes":22973752},"output_sha256":"629c9a8374d5ea517c59818245a578ee2564bc892bde6a23804bbaa9640b34cc","byte_exact_readback":true,"process_tree_retired":true},
+    {"workload":"cpython","arm":"candidate","pair":2,"metrics":{"files":2640,"image_pre_flush_bytes":33605594,"image_post_flush_bytes":26160180,"image_read_calls":47182,"image_flushes":1,"head_flushes":1,"backing_write_bytes":0,"reopen_ns":116104900,"logical_bytes":47331708,"workload":"cpython_compressed","objects":5851,"object_tree_height":2,"stored_payload_bytes":22973752},"output_sha256":"b7b1627ac626c77e06fdcc83ffe87185f7beb3460cf4f6134985291e49cedb3f","byte_exact_readback":true,"process_tree_retired":true},
+    {"workload":"cpython","arm":"candidate","pair":3,"metrics":{"files":2640,"image_pre_flush_bytes":33605594,"image_post_flush_bytes":26160180,"image_read_calls":47182,"image_flushes":1,"head_flushes":1,"backing_write_bytes":0,"reopen_ns":113727200,"logical_bytes":47331708,"workload":"cpython_compressed","objects":5851,"object_tree_height":2,"stored_payload_bytes":22973752},"output_sha256":"0bccc42935ef78e6fee0a6f8c065febd5949f01461e07934aa5a44ff5b022559","byte_exact_readback":true,"process_tree_retired":true},
+    {"workload":"cpython","arm":"control","pair":3,"metrics":{"files":2640,"image_pre_flush_bytes":33628605,"image_post_flush_bytes":26160180,"image_read_calls":47195,"image_flushes":1,"head_flushes":1,"backing_write_bytes":0,"reopen_ns":117414200,"logical_bytes":47331708,"workload":"cpython_compressed","objects":5851,"object_tree_height":2,"stored_payload_bytes":22973752},"output_sha256":"1dc24c985e2a718bcd02fc5ef89aac8a3449b73007b2845d37b3066fb40bea81","byte_exact_readback":true,"process_tree_retired":true}
+  ]
+}
