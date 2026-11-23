@@ -345,6 +345,7 @@ three initial lanes with a common build and external operation witness.
    from kernel throughput or from a stored extent with higher complete cost.
    A diagnostic losing shape remains a regression control. E03 exits only
    with useful automatic mounted work for advertised roles and CPU continuity.
+   [Current preparation baseline and warm-session criteria](AMD_RUNTIME_DISCOVERY.md#keeping-the-hip-worker-ready-during-active-work)
 
 #### E01, E02 and E11. Replace the global startup bottleneck safely
 

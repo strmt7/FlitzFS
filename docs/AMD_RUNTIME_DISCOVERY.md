@@ -243,7 +243,54 @@ payload difference left the occupied image size unchanged in this experiment.
 
 The single small fixture isolates startup as the largest measured phase.
 The earlier matched 1 MiB series also favored CPU on elapsed time and produced
-identical occupied sizes. AMD documents implicit runtime initialization in HIP
-APIs. The next experiment will test amortization in a bounded owned work
-window. It will measure repeated complete operations, separate cold and warm
-work, and retire the worker when its admitted queue ends. [Observed phases and provenance](evidence/amd-route-2026-11-17.json), [earlier matched series](evidence/owned-service-comparison-d384b6c.json), [AMD initialization API](https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/reference/hip_runtime_api/modules/initialization_and_version.html)
+identical occupied sizes. [Observed phases and provenance](evidence/amd-route-2026-11-17.json) ·
+[Earlier matched series](evidence/owned-service-comparison-d384b6c.json)
+
+## Keeping the HIP worker ready during active work
+
+A prepared worker loads the kernel module, initializes the device, and allocates
+one stream and its buffers before it accepts an owned request. The stream and
+buffers serve every kernel launch in that request. HIP supports reusing this
+initialized state. Windows and the display driver control GPU idle and active
+power states. [AMD HIP initialization](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/initialization.html) ·
+[AMD HIP stream management](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/reference/hip_runtime_api/modules/stream_management.html) ·
+[Microsoft WDDM power management](https://learn.microsoft.com/en-us/windows-hardware/drivers/display/gpu-power-management-of-idle-and-active-power)
+
+Two 1 MiB controller pairs on the development Radeon and combined revision
+`3805bc6bf2c3d3f427a8b99b4211fda0114c22dd` took 1,576.04 and 803.68 ms
+to reach readiness. A further 63.44 and 61.60 ms covered the rest of the
+supervised exchange, including worker retirement. Discovery took 430.64 and
+376.65 ms separately. The matched CPU operations took 4.08 and 3.82 ms.
+Both routes occupied 499,712 bytes and CPU readback verified all 16 extents per
+pair. Two separate cancellations during discovery preserved the acknowledged
+bytes and fully retired the supervised process trees. CPU remains preferred
+for this shape.
+[Paired controller evidence](evidence/windows-owner-amd-write-pairs-2026-11-23.json)
+
+The uniform LZ4 writer and native LZ4 reader now reuse their worker's DXGI
+adapter binding from before module load through dispatch. Each admission
+still samples current local memory, nonlocal memory, host headroom, and
+factory currency. A topology change retires the binding. The worker releases
+that binding before closing its modules on normal completion and discard.
+Both worker builds and the CPU-only semantics and bundle checks passed. The
+device recheck for the updated workers was deferred during host contention.
+[DXGI factory currency](https://learn.microsoft.com/en-us/windows/win32/api/dxgi/nf-dxgi-idxgifactory1-iscurrent) ·
+[DXGI memory budget query](https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/nf-dxgi1_4-idxgiadapter3-queryvideomemoryinfo)
+
+Keep a future multi-group session ready only while eligible work can fund the
+whole session. Check live memory, topology, contention, and the estimated
+advantage before each group. Size the workspace and queue from current headroom.
+The supervisor owns the worker, bounds its lifetime, and retires it when the
+eligible queue drains or host pressure rises. A failed or revoked request
+continues on the CPU, and a subsequent readiness episode requires fresh evidence.
+Leave GPU work queues empty between actual dispatches.
+
+The current prepared transport permits one immutable exchange and validates
+the reply after confirmed retirement. Extending reuse across separate groups
+requires a verified publication boundary. First qualify a finite burst whose
+fully funded results stay private until retirement. On the physical host, rotate
+CPU, single-exchange GPU and burst GPU runs on identical owned workloads. Measure
+end-to-end cost, readiness, useful bytes, compression, resource retention and
+foreground latency. Exercise pressure, cancellation, empty-queue retirement
+and byte-exact recovery before offering the warm route automatically.
+[Worker exchange contract](WORKER_CHANNEL.md#one-request-prepared-exchange)

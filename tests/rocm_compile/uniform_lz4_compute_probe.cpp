@@ -1,4 +1,5 @@
 #include "hip_uniform_lz4_reuse.hpp"
+#include "gpu_budget.hpp"
 #include "gpu_topology.hpp"
 #include "uniform_lz4_sweep_profile.hpp"
 #include "flitzfs/uniform_lz4_sweep.hpp"
@@ -381,12 +382,13 @@ int wmain(int argc,wchar_t** argv){try{
       !GetModuleHandleW(L"flitzfs_rocm_uniform_lz4_candidate.dll"),"uniform CPU probe loaded AMD code");
   const auto source=request();
   if(argc==2 && std::wstring_view(argv[1])==L"--guarded-refusal"){
-    try{(void)run_hip_uniform_lz4_in_worker(nullptr,kernels,0,identity,1,source,
+    WindowsGpuBudgetSampler sampler(identity,1);
+    try{(void)run_hip_uniform_lz4_in_worker(nullptr,kernels,0,sampler,source,
         {source.batch.layout().chunks,source.batch.layout().total_bytes,source.batch.layout().chunk_bytes},std::span(&coverage,1));
       throw std::runtime_error("uniform null runtime admitted");}
     catch(const HipWorkerFailure& f){require(f.code==(gpu_lz4_cpu_verification_available()?
         HipWorkerExit::invalid_request:HipWorkerExit::unsupported_configuration),"uniform guarded refusal category");}
-    try{(void)run_hip_uniform_lz4_sweep_in_worker(nullptr,kernels,0,identity,1,source,
+    try{(void)run_hip_uniform_lz4_sweep_in_worker(nullptr,kernels,0,sampler,source,
         {2,source.batch.layout().total_bytes,65536},std::span(&coverage,1));
       throw std::runtime_error("reused null runtime admitted");}
     catch(const HipWorkerFailure& f){require(f.code==(gpu_lz4_cpu_verification_available()?

@@ -122,29 +122,31 @@ UniformLz4Candidates execute_uniform_lz4_compute(const HipApi& api,Lz4Attributes
 }
 
 namespace flitzfs {
+class WindowsGpuBudgetSampler;
+
 std::vector<detail::NativeLz4DecodedFrame> run_hip_native_lz4_decode_in_worker(HMODULE,
-    const native_lz4_decode::KernelApi&,int ordinal,std::array<std::byte,8> luid,
-    std::uint32_t node_mask,std::span<const detail::NativeLz4DecodeBatch>,
+    const native_lz4_decode::KernelApi&,int ordinal,WindowsGpuBudgetSampler&,
+    std::span<const detail::NativeLz4DecodeBatch>,
     detail::NativeLz4DecodeGrant,std::span<const hip_detail::Lz4KernelCoverage>,
     HipPhaseRecorder* =nullptr,NativeReadTransferTrace* =nullptr,bool allow_device_guard=true);
 std::vector<detail::NativeLz4DecodedFrame> run_hip_native_lz4_prepared_decode_in_worker(HMODULE,
-    const native_lz4_decode::KernelApi&,int ordinal,std::array<std::byte,8> luid,std::uint32_t node_mask,
+    const native_lz4_decode::KernelApi&,int ordinal,WindowsGpuBudgetSampler&,
     detail::NativeLz4DecodeGrant,std::uint32_t maximum_chunks,std::size_t device_bytes,
     std::span<const hip_detail::Lz4KernelCoverage>,
     const std::function<std::span<const detail::NativeLz4DecodeBatch>()>& receive,
     HipPhaseRecorder* =nullptr,NativeReadTransferTrace* =nullptr);
 UniformLz4Candidates run_hip_uniform_lz4_in_worker(HMODULE runtime,
-    const uniform_lz4::KernelApi&,int ordinal,std::array<std::byte,8> luid,
-    std::uint32_t node_mask,const UniformLz4Request&,hip_detail::UniformLz4ComputeGrant,
+    const uniform_lz4::KernelApi&,int ordinal,WindowsGpuBudgetSampler&,
+    const UniformLz4Request&,hip_detail::UniformLz4ComputeGrant,
     std::span<const hip_detail::Lz4KernelCoverage>,HipPhaseRecorder* profile=nullptr);
 UniformLz4Candidates run_hip_uniform_lz4_sweep_in_worker(HMODULE runtime,
-    const uniform_lz4::KernelApi&,int ordinal,std::array<std::byte,8> luid,
-    std::uint32_t node_mask,const UniformLz4Request&,hip_detail::UniformLz4ComputeGrant,
+    const uniform_lz4::KernelApi&,int ordinal,WindowsGpuBudgetSampler&,
+    const UniformLz4Request&,hip_detail::UniformLz4ComputeGrant,
     std::span<const hip_detail::Lz4KernelCoverage>,UniformLz4SweepTrace* trace=nullptr,bool timeline=false,
     bool stream_bound=false);
 UniformLz4Candidates run_hip_uniform_lz4_prepared_sweep_in_worker(HMODULE runtime,
-    const uniform_lz4::KernelApi&,int ordinal,std::array<std::byte,8> luid,
-    std::uint32_t node_mask,const UniformLz4SweepPlan&,std::span<const hip_detail::Lz4KernelCoverage>,
+    const uniform_lz4::KernelApi&,int ordinal,WindowsGpuBudgetSampler&,
+    const UniformLz4SweepPlan&,std::span<const hip_detail::Lz4KernelCoverage>,
     const std::function<const UniformLz4Request*()>& receive);
 
 }

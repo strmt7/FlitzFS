@@ -32,12 +32,14 @@ void require_uniform_job(){
 }
 namespace {
 template<class Compute>
-auto with_uniform_device(HMODULE runtime,int ordinal,std::array<std::byte,8> luid,std::uint32_t node_mask,
+auto with_uniform_device(HMODULE runtime,int ordinal,WindowsGpuBudgetSampler& sampler,
     std::span<const hip_detail::Lz4KernelCoverage> targets,std::uint32_t maximum_chunks,
     std::uint64_t device_bytes,Compute&& compute){
   require_uniform_job();
   hip_detail::lz4_require(gpu_lz4_cpu_verification_available(),HipWorkerExit::unsupported_configuration,
       "independent CPU uniform LZ4 verification unavailable");
+  const auto& luid=sampler.luid();
+  const auto node_mask=sampler.node_mask();
   hip_detail::lz4_require(runtime && ordinal>=0 && ordinal<64 && node_mask && std::has_single_bit(node_mask) &&
       std::any_of(luid.begin(),luid.end(),[](auto b){return b!=std::byte{0};}) &&
       !targets.empty() && targets.size()<=16,HipWorkerExit::invalid_request,"invalid uniform worker binding");
@@ -58,7 +60,6 @@ auto with_uniform_device(HMODULE runtime,int ordinal,std::array<std::byte,8> lui
   hip_detail::lz4_require(entry!=nullptr,HipWorkerExit::runtime_unavailable,
       "uniform function metadata unavailable",HipWorkerStage::runtime_api);
   const auto attributes=std::bit_cast<hip_detail::Lz4Attributes>(entry);
-  WindowsGpuBudgetSampler sampler(luid,node_mask);
   GpuMemorySnapshot baseline{};const auto bytes=device_bytes;
   const auto read_memory=[&]{return sampler.sample().snapshot;};
   const auto monotonic=[] {return GetTickCount64();};
@@ -125,7 +126,7 @@ NativeLz4SequenceSize native_lz4_sequence_size(std::span<const detail::NativeLz4
 
 template<class Receive>
 std::vector<detail::NativeLz4DecodedFrame> execute_native_lz4_decode(HMODULE runtime,
-    const native_lz4_decode::KernelApi& kernel,int ordinal,std::array<std::byte,8> luid,std::uint32_t node_mask,
+    const native_lz4_decode::KernelApi& kernel,int ordinal,WindowsGpuBudgetSampler& sampler,
     std::span<const hip_detail::Lz4KernelCoverage> targets,detail::NativeLz4DecodeGrant grant,
     std::uint32_t maximum_chunks,std::size_t device_bytes,Receive&& receive,HipPhaseRecorder* profile,
     NativeReadTransferTrace* traffic,bool allow_device_guard) {
@@ -137,7 +138,7 @@ std::vector<detail::NativeLz4DecodedFrame> execute_native_lz4_decode(HMODULE run
   const auto set_device_guard=std::bit_cast<decltype(&hipMemsetAsync)>(memset_address);
   const auto begin=[&](HipPhase phase){if(profile)profile->begin(phase);};
   const auto end=[&](HipPhase phase){if(profile)profile->end(phase);};
-  return with_uniform_device(runtime,ordinal,luid,node_mask,targets,maximum_chunks,device_bytes,
+  return with_uniform_device(runtime,ordinal,sampler,targets,maximum_chunks,device_bytes,
       [&](const auto& api,auto attributes,auto,auto&& initialize,auto&& memory) {
         begin(HipPhase::device_initialize);
         memory(HipMemoryPoint::pre_initialize);
@@ -244,47 +245,47 @@ std::vector<detail::NativeLz4DecodedFrame> execute_native_lz4_decode(HMODULE run
 } // namespace
 
 std::vector<detail::NativeLz4DecodedFrame> run_hip_native_lz4_decode_in_worker(HMODULE runtime,
-    const native_lz4_decode::KernelApi& kernel,int ordinal,std::array<std::byte,8> luid,
-    std::uint32_t node_mask,std::span<const detail::NativeLz4DecodeBatch> batches,
+    const native_lz4_decode::KernelApi& kernel,int ordinal,WindowsGpuBudgetSampler& sampler,
+    std::span<const detail::NativeLz4DecodeBatch> batches,
     detail::NativeLz4DecodeGrant grant,std::span<const hip_detail::Lz4KernelCoverage> targets,HipPhaseRecorder* profile,
     NativeReadTransferTrace* traffic,bool allow_device_guard) {
   const auto plan=native_lz4_sequence_size(batches,grant);
-  return execute_native_lz4_decode(runtime,kernel,ordinal,luid,node_mask,targets,grant,
+  return execute_native_lz4_decode(runtime,kernel,ordinal,sampler,targets,grant,
       plan.maximum_chunks,plan.peak_bytes,[&] {return batches;},profile,traffic,allow_device_guard);
 }
 
 std::vector<detail::NativeLz4DecodedFrame> run_hip_native_lz4_prepared_decode_in_worker(HMODULE runtime,
-    const native_lz4_decode::KernelApi& kernel,int ordinal,std::array<std::byte,8> luid,std::uint32_t node_mask,
+    const native_lz4_decode::KernelApi& kernel,int ordinal,WindowsGpuBudgetSampler& sampler,
     detail::NativeLz4DecodeGrant grant,std::uint32_t maximum_chunks,std::size_t device_bytes,
     std::span<const hip_detail::Lz4KernelCoverage> targets,
     const std::function<std::span<const detail::NativeLz4DecodeBatch>()>& receive,HipPhaseRecorder* profile,
     NativeReadTransferTrace* traffic) {
   hip_detail::lz4_require(static_cast<bool>(receive),HipWorkerExit::invalid_request,
       "native LZ4 prepared decoder requires an owned input");
-  return execute_native_lz4_decode(runtime,kernel,ordinal,luid,node_mask,targets,grant,
+  return execute_native_lz4_decode(runtime,kernel,ordinal,sampler,targets,grant,
       maximum_chunks,device_bytes,receive,profile,traffic,true);
 }
 
 UniformLz4Candidates run_hip_uniform_lz4_in_worker(HMODULE runtime,
-    const uniform_lz4::KernelApi& kernel,int ordinal,std::array<std::byte,8> luid,
-    std::uint32_t node_mask,const UniformLz4Request& request,hip_detail::UniformLz4ComputeGrant grant,
+    const uniform_lz4::KernelApi& kernel,int ordinal,WindowsGpuBudgetSampler& sampler,
+    const UniformLz4Request& request,hip_detail::UniformLz4ComputeGrant grant,
     std::span<const hip_detail::Lz4KernelCoverage> targets,HipPhaseRecorder* profile){
-  return with_uniform_device(runtime,ordinal,luid,node_mask,targets,
+  return with_uniform_device(runtime,ordinal,sampler,targets,
       request.batch.layout().chunks,request.batch.layout().total_bytes,
       [&](const auto& api,auto attributes,auto coverage,auto&& initialize,auto&& memory){
         return hip_detail::execute_uniform_lz4_compute(api,attributes,kernel,request,coverage,grant,initialize,memory,profile);
       });
 }
 UniformLz4Candidates run_hip_uniform_lz4_sweep_in_worker(HMODULE runtime,
-    const uniform_lz4::KernelApi& kernel,int ordinal,std::array<std::byte,8> luid,
-    std::uint32_t node_mask,const UniformLz4Request& request,hip_detail::UniformLz4ComputeGrant grant,
+    const uniform_lz4::KernelApi& kernel,int ordinal,WindowsGpuBudgetSampler& sampler,
+    const UniformLz4Request& request,hip_detail::UniformLz4ComputeGrant grant,
     std::span<const hip_detail::Lz4KernelCoverage> targets,UniformLz4SweepTrace* trace,bool timeline,bool stream_bound){
   hip_detail::lz4_require(gpu_lz4_cpu_verification_available(),HipWorkerExit::unsupported_configuration,
       "independent CPU uniform sweep verification unavailable");
   UniformLz4SweepPlan plan;
   try{plan=plan_uniform_lz4_sweep(request.batch,grant.maximum_chunks,grant.maximum_device_bytes);}
   catch(const std::exception&){throw HipWorkerFailure(HipWorkerExit::invalid_request,"invalid uniform sweep grant");}
-  return with_uniform_device(runtime,ordinal,luid,node_mask,targets,plan.quantum_chunks,plan.device_peak_bytes,
+  return with_uniform_device(runtime,ordinal,sampler,targets,plan.quantum_chunks,plan.device_peak_bytes,
       [&](const auto& api,auto attributes,auto coverage,auto&& initialize,auto&& memory){
         const auto events=timeline?hip_detail::bind_sweep_event_api(runtime):hip_detail::SweepEventApi{};
         const auto copy=stream_bound?hip_detail::bind_stream_copy(runtime):nullptr;
@@ -293,10 +294,10 @@ UniformLz4Candidates run_hip_uniform_lz4_sweep_in_worker(HMODULE runtime,
       });
 }
 UniformLz4Candidates run_hip_uniform_lz4_prepared_sweep_in_worker(HMODULE runtime,
-    const uniform_lz4::KernelApi& kernel,int ordinal,std::array<std::byte,8> luid,
-    std::uint32_t node_mask,const UniformLz4SweepPlan& plan,std::span<const hip_detail::Lz4KernelCoverage> targets,
+    const uniform_lz4::KernelApi& kernel,int ordinal,WindowsGpuBudgetSampler& sampler,
+    const UniformLz4SweepPlan& plan,std::span<const hip_detail::Lz4KernelCoverage> targets,
     const std::function<const UniformLz4Request*()>& receive) {
-  return with_uniform_device(runtime,ordinal,luid,node_mask,targets,plan.quantum_chunks,plan.device_peak_bytes,
+  return with_uniform_device(runtime,ordinal,sampler,targets,plan.quantum_chunks,plan.device_peak_bytes,
       [&](const auto& api,auto attributes,auto coverage,auto&& initialize,auto&& memory) {
         return hip_detail::execute_uniform_lz4_sweep_plan(api,attributes,kernel,plan,coverage,receive,initialize,memory);
       });

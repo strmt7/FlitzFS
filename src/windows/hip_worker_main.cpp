@@ -361,7 +361,8 @@ int worker(int argc, wchar_t** argv) {
     trace.begin(HipPhase::adapter_admit);
     std::uint64_t peak=native_prepared?reserve:0;
     if(request)for(const auto& batch:request->batches)peak=(std::max)(peak,std::uint64_t(batch.slab_bytes()));
-    const auto budget=query_windows_gpu_budget(luid,node);
+    std::optional<WindowsGpuBudgetSampler> sampler(std::in_place,luid,node);
+    const auto budget=sampler->sample();
     require_hip_memory(budget.snapshot,luid,node,GetTickCount64(),peak,HipMemoryPoint::pre_initialize);
     require(SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_SYSTEM32)!=0,
         Exit::runtime_unavailable,"restrict native LZ4 DLL lookup");
@@ -389,9 +390,10 @@ int worker(int argc, wchar_t** argv) {
     auto* const traffic=native_recording?&transfer:nullptr;
     const auto frames=native_prepared?
         run_hip_native_lz4_prepared_decode_in_worker(runtime.get(),*api,static_cast<int>(ordinal),
-            luid,node,grant,max_dispatch,static_cast<std::size_t>(reserve),{&coverage,1},receive,timing,traffic):
+            *sampler,grant,max_dispatch,static_cast<std::size_t>(reserve),{&coverage,1},receive,timing,traffic):
         run_hip_native_lz4_decode_in_worker(runtime.get(),*api,static_cast<int>(ordinal),
-            luid,node,request->batches,grant,{&coverage,1},timing,traffic,!native_host_guard);
+            *sampler,request->batches,grant,{&coverage,1},timing,traffic,!native_host_guard);
+    sampler.reset();
     if(!request) {
       kernel.close();
       runtime.close();
@@ -496,7 +498,8 @@ int worker(int argc, wchar_t** argv) {
     clock.end(HipPhase::bundle_verify);
     clock.begin(HipPhase::adapter_admit);
     const hip_detail::VerifiedSystemModule installed(hip_bundle::runtime,expected_runtime);
-    const auto before=query_windows_gpu_budget(luid,mask);
+    std::optional<WindowsGpuBudgetSampler> sampler(std::in_place,luid,mask);
+    const auto before=sampler->sample();
     require_hip_memory(before.snapshot,luid,mask,GetTickCount64(),
         device_bytes,HipMemoryPoint::pre_initialize);
     clock.end(HipPhase::adapter_admit);clock.begin(HipPhase::modules_load);
@@ -522,11 +525,12 @@ int worker(int argc, wchar_t** argv) {
       return &*request;
     };
     const auto candidates=prepared?run_hip_uniform_lz4_prepared_sweep_in_worker(runtime.get(),*api,
-        static_cast<int>(ordinal),luid,mask,*sweep_plan,targets,receive):
+        static_cast<int>(ordinal),*sampler,*sweep_plan,targets,receive):
         sweeping?run_hip_uniform_lz4_sweep_in_worker(runtime.get(),*api,
-            static_cast<int>(ordinal),luid,mask,*request,grant,targets,sweep_recording?&sweep_trace:nullptr,timeline,stream_bound):
-            run_hip_uniform_lz4_in_worker(runtime.get(),*api,static_cast<int>(ordinal),luid,mask,
+            static_cast<int>(ordinal),*sampler,*request,grant,targets,sweep_recording?&sweep_trace:nullptr,timeline,stream_bound):
+            run_hip_uniform_lz4_in_worker(runtime.get(),*api,static_cast<int>(ordinal),*sampler,
                 *request,grant,targets,recording?&clock:nullptr);
+    sampler.reset();
     if(prepared && !request) {
       kernels.close();
       runtime.close();

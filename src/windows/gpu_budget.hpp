@@ -21,6 +21,8 @@ class WindowsGpuBudgetSampler final {
   ~WindowsGpuBudgetSampler();
   WindowsGpuBudgetSampler(const WindowsGpuBudgetSampler&)=delete;
   WindowsGpuBudgetSampler& operator=(const WindowsGpuBudgetSampler&)=delete;
+  [[nodiscard]] const std::array<std::byte,8>& luid() const noexcept {return luid_;}
+  [[nodiscard]] std::uint32_t node_mask() const noexcept {return node_mask_;}
   WindowsGpuBudgetResult sample() noexcept;
 
  private:

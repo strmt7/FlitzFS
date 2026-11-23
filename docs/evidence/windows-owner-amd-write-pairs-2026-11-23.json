@@ -993,6 +993,137 @@
     }
   },
   "build_scope": "The paired and cancellation runs use the staged controller artifact compiled before the separate indexed name-page audit edit. The combined build deferred a fresh device run during host memory and GPU contention.",
+  "combined_control_recheck": {
+    "source_commit": "3805bc6bf2c3d3f427a8b99b4211fda0114c22dd",
+    "source_tree": "11fe0310246cacdc80949126d9b2849825ab3bdf",
+    "controller_sha256": "78941ff65be5b24be21ad9a593e6652f72646e00812395f0ff2b091ff00449c1",
+    "worker_sha256": "0f7f6b4857c7cd9db025f174a9b685536045fac1d91ffc4faff7b7485971b5e5",
+    "preflight": {
+      "admitted": true,
+      "when_utc": "2026-11-23T20:17:01.9650009Z",
+      "available_kib": 26967584,
+      "max_gpu_engine_percent": 1.4615747427651977,
+      "log_sha256": "9d6517cd40a1ff5579da6cf2b6144640b4d9dee2320a1fa3f4c4c2f9e80132cd"
+    },
+    "paired": {
+      "input_bytes_per_pair": 1048576,
+      "cpu_verified_device_extents_per_pair": 16,
+      "occupied_bytes_each_route": 499712,
+      "discovery_ns": [430644700, 376649400],
+      "readiness_ns": [1576036600, 803682300],
+      "supervised_ns": [1639474700, 865278700],
+      "post_readiness_ns": [63438100, 61596400],
+      "cpu_wall_ns": [4075000, 3820800],
+      "parent_handles_before_repeat": 326,
+      "parent_handles_after_repeat": 326,
+      "log_sha256": "c65c574ea87d4673fa79bc670824ad0b3dcc6ba437d48ec907e7d884108374fa"
+    },
+    "cancelled_discovery": {
+      "trials": 2,
+      "acknowledged_bytes_verified_per_trial": 1048576,
+      "parent_handles_before_repeat": 295,
+      "parent_handles_after_repeat": 295,
+      "log_sha256": "cbefc8fbb082107fe0778e61b835778f22bb89b4d48251c3ff0bfb1ffeabf989"
+    },
+    "all_runs_exited_successfully_and_retired": true
+  },
+  "worker_sampler_validation": {
+    "source": {
+      "base": "3805bc6bf2c3d3f427a8b99b4211fda0114c22dd",
+      "blobs": {
+        "src/windows/gpu_budget.hpp": "98c35251d3dd4f3572feac905f6a2794428f8b7d",
+        "src/windows/hip_uniform_lz4_compute.hpp": "52f5ae3cfa0794adeafe6e792b7f520c16d94c7e",
+        "src/windows/hip_uniform_lz4_compute.cpp": "84efc204fd8df5b58874c44c9cbf4670d11499ee",
+        "src/windows/hip_worker_main.cpp": "8a1ba50f98afd3ac830acb4ba1ef04c0337e0bc3",
+        "tests/rocm_compile/uniform_lz4_compute_probe.cpp": "08a9a3ea3c56d4f9ac6f5f76b36ca17ac63c06b5"
+      }
+    },
+    "rocm_sdk": "10.2.0",
+    "rocm_offline_proof": {
+      "complete": true,
+      "compile_targets": 6,
+      "sha256": "b5eef0305b4418ba324829f9d246bb67f976a7b7673aa0f405efd078de59bf92"
+    },
+    "worker_sha256": {
+      "flitzfs_native_lz4_read_worker.exe": "da8e627071571423943427712cdfa771b9a084b1abb0206788786cce251b215c",
+      "flitzfs_hip_lz4_worker.exe": "649840d581309dbf1d5f60b114a2c30347681588bac23128db20bc5ca6379e40"
+    },
+    "uniform_cpu_semantics": {
+      "checks": 5190,
+      "scenarios": 106,
+      "successes": 14,
+      "refusals": 92,
+      "hip_runtime_loaded": false,
+      "gpu_executed": false
+    },
+    "compression_bundle_admission": {
+      "checks": 151,
+      "exits_confirmed": 25,
+      "hip_runtime_loaded": false,
+      "gpu_executed": false
+    },
+    "live_device_admission": {
+      "admitted": false,
+      "when_utc": "2026-11-23T20:41:31.3434496Z",
+      "available_kib": 8039568,
+      "max_gpu_engine_percent": 93.41088657556107
+    },
+    "reference_receipt_sha256": {
+      "hip_and_wddm": "c9746232e5d6553adb9cccdf91ab617a150b75dd4b3600ad77caa15c23e3292f",
+      "dxgi": "994e451250be185f92087859377f8c62d7c1d6a144aa8e554782d3d6c38e4911"
+    },
+    "runs": {
+      "rocm_offline_control": {
+        "scope": "local-run-091d12c7f97a4a749e329a13433cf73b",
+        "sha256": "98f8ad060279b6da35dfc9b09af8e52b72350ea138b284ff6155a5868ada1d8d",
+        "exit": 0,
+        "retired": true,
+        "confirmed": true,
+        "peak_bytes": 365137920
+      },
+      "compression_worker_build": {
+        "scope": "local-run-00e09518b07f4f32971d1a2917b72b84",
+        "sha256": "a570454585417adc8547c9b47f3b97a30922b1f375f053e69ab5c295bb0ccdce",
+        "exit": 0,
+        "retired": true,
+        "confirmed": true,
+        "peak_bytes": 383746048
+      },
+      "read_worker_and_semantic_build": {
+        "scope": "local-run-d9e73827c6cb4ee5a77e28df21949aa8",
+        "sha256": "e29abfd9e8e760e902be742287f23095d8a40ba8ee2521121b346f1717682dc6",
+        "exit": 0,
+        "retired": true,
+        "confirmed": true,
+        "peak_bytes": 331124736
+      },
+      "uniform_cpu_semantics": {
+        "scope": "local-run-366339c34ffa4f8db4330b461fe23fae",
+        "sha256": "b1de0ef80fe78bb47baffedfbba379268edf6cd04b0a57209e125682c79cb275",
+        "exit": 0,
+        "retired": true,
+        "confirmed": true,
+        "peak_bytes": 16166912
+      },
+      "compression_bundle_admission": {
+        "scope": "local-run-94728f75d2d8480eb2aeab2dd9d18769",
+        "sha256": "dd50c82433597274889e0d9dcb0fa9311f12835bb11bf5a850ee05f27bb4be0b",
+        "exit": 0,
+        "retired": true,
+        "confirmed": true,
+        "peak_bytes": 14327808
+      },
+      "live_device_admission": {
+        "scope": "local-run-d77818fcebd04c7384c1ece43bc59faf",
+        "sha256": "9fc3363dd69ab197ce24ab097becde1133341845a77b4fb558ff02dbc195cee9",
+        "exit": 2,
+        "retired": true,
+        "confirmed": true,
+        "peak_bytes": 102019072
+      }
+    },
+    "updated_workers_executed_on_device": false
+  },
   "automatic_foreground_route_qualified": false,
   "release_qualified": false
 }
