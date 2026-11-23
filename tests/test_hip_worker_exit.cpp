@@ -9,7 +9,7 @@ int main() {
     for(std::uint32_t base=0x46530001;base<=0x46530006;++base) {
       require(flitzfs::hip_worker_exit_category(base)==base,"legacy category changed");
       require(flitzfs::hip_worker_exit_stage(base)==flitzfs::HipWorkerStage::none,"legacy exit invented a stage");
-      for(unsigned detail=1;detail<=31;++detail) {
+      for(unsigned detail=1;detail<=flitzfs::kHipWorkerLastStage;++detail) {
         const auto stage=static_cast<flitzfs::HipWorkerStage>(detail);
         const auto code=flitzfs::hip_worker_diagnostic_exit(static_cast<flitzfs::HipWorkerExit>(base),stage);
         require(code!=base && flitzfs::hip_worker_exit_category(code)==base,"stage changed recovery category");
@@ -21,12 +21,14 @@ int main() {
         flitzfs::HipWorkerStage::adapter_node)==0x46530703U,"historical node diagnostic changed");
     require(flitzfs::hip_worker_diagnostic_exit(flitzfs::HipWorkerExit::device_fault,
         flitzfs::HipWorkerStage::completed_nonlocal_growth)==0x46531f05U,"new memory diagnostic bytes changed");
-    for(const auto code:{0U,1460U,0xffffffffU,0x46532002U,0x4653ff04U,0x46530100U,0x46530107U,0x47530102U}) {
+    require(flitzfs::hip_worker_diagnostic_exit(flitzfs::HipWorkerExit::device_fault,
+        flitzfs::HipWorkerStage::sweep_readback)==0x46532405U,"sweep readback wire stage differs");
+    for(const auto code:{0U,1460U,0xffffffffU,0x46532a02U,0x4653ff04U,0x46530100U,0x46530107U,0x47530102U}) {
       require(flitzfs::hip_worker_exit_category(code)==code,"foreign or unknown code was normalized");
       require(flitzfs::hip_worker_exit_stage(code)==flitzfs::HipWorkerStage::none,"foreign code invented evidence");
     }
     require(flitzfs::hip_worker_diagnostic_exit(flitzfs::HipWorkerExit::device_fault,
-        static_cast<flitzfs::HipWorkerStage>(32))==0x46530005,"unknown stage changed legacy exit");
+        static_cast<flitzfs::HipWorkerStage>(flitzfs::kHipWorkerLastStage+1))==0x46530005,"unknown stage changed legacy exit");
     const flitzfs::HipWorkerFailure tagged(flitzfs::HipWorkerExit::unsupported_configuration,
         "node identity",flitzfs::HipWorkerStage::adapter_node);
     require(tagged.code==flitzfs::HipWorkerExit::unsupported_configuration &&

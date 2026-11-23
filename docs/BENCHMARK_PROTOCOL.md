@@ -77,6 +77,8 @@ Prepare equivalent disposable targets with the same Windows build, backing,
 capacity, allocation unit geometry and documented cache/flush settings. Check
 that both handles identify NTFS volumes and that the compressed target supports
 per-file compression. Use a freshly created fixture directory for each arm.
+Use the ordinary Windows file and folder feature. Exclude CompactOS,
+`compact /EXE`, archives and alternate NTFS drivers from this baseline.
 
 1. **Plain NTFS.** Require `FSCTL_GET_COMPRESSION` to return
    `COMPRESSION_FORMAT_NONE` for the fixture directory and its completed files.

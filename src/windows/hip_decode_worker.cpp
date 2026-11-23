@@ -22,6 +22,8 @@ void require(bool condition,const char* message,HipWorkerStage stage=HipWorkerSt
 }
 
 using hip_detail::HipApi;
+using hip_detail::HipStreamCopy;
+using hip_detail::bind_stream_copy;
 void check_hip(hipError_t status, const char* operation) {
   hip_detail::check_hip(status, operation, HipWorkerStage::execution);
 }
@@ -233,7 +235,7 @@ namespace {
 struct AnchorStreamWork {
   const DeviceResources& resources;
   decltype(&hipMemcpyAsync) enqueue;
-  decltype(&hipMemcpyWithStream) copy;
+  HipStreamCopy copy;
   bool pending=false;
   void upload(void* destination,const void* input,std::size_t bytes,const char* operation) {
     pending=true;
@@ -348,10 +350,7 @@ AnchorReadback run_hip_anchor_groups(HMODULE runtime,
   if(!transfer_address)throw HipWorkerFailure(HipWorkerExit::runtime_unavailable,
       "hipMemcpyAsync",HipWorkerStage::runtime_api);
   const auto transfer=std::bit_cast<decltype(&hipMemcpyAsync)>(transfer_address);
-  const auto readback_address=GetProcAddress(runtime,"hipMemcpyWithStream");
-  if(!readback_address)throw HipWorkerFailure(HipWorkerExit::runtime_unavailable,
-      "hipMemcpyWithStream",HipWorkerStage::runtime_api);
-  const auto readback=std::bit_cast<decltype(&hipMemcpyWithStream)>(readback_address);
+  const auto readback=bind_stream_copy(runtime);
   const auto least=initialize_device(api,ordinal,luid,node_mask,[](auto identity) {
     return verified_single_gpu_node(query_windows_gpu_topology(identity),identity);
   });

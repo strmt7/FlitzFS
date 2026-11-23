@@ -965,8 +965,10 @@ struct RecordedSweepProfile {
   UniformLz4SweepProfiledReply reply;
   std::uint64_t total_ns=0,fixed_ns=0;
 };
-RecordedSweepProfile profile_installed_sweep(const HipDiscoveredRoute& route,const PreparedUniformLz4& batch,
-    std::uint32_t quantum_chunks,std::uint64_t request_id,UniformLz4SweepProfileMode mode) {
+template<class Accept>
+auto measure_installed_sweep(const HipDiscoveredRoute& route,const PreparedUniformLz4& batch,
+    std::uint32_t quantum_chunks,std::uint64_t request_id,std::wstring_view command,std::size_t extra_reply_bytes,
+    Accept&& accept) {
   const auto started=std::chrono::steady_clock::now();
   auto cost=diagnostic_uniform_cost(route);
   cost.maximum_grid_x=quantum_chunks;
@@ -988,10 +990,8 @@ RecordedSweepProfile profile_installed_sweep(const HipDiscoveredRoute& route,con
       uniform_worker_host_budget_covers(batch.limits(),diagnostic_worker_budget,plan.host_peak_bytes),
       "profile could not admit the whole requested sweep");
   auto dispatch=prepare_native_uniform_dispatch(binding,evidence,batch,WorkerExecution::hip,&grant);
-  const WorkerChannelCapacity channel{batch.limits().request_bytes,
-      batch.limits().reply_bytes+uniform_lz4_sweep_profile_bytes(mode)};
-  dispatch.arguments[0]=mode==UniformLz4SweepProfileMode::timeline?
-      L"--driver-uniform-lz4-sweep-timeline-adapter":L"--driver-uniform-lz4-sweep-profile-adapter";
+  const WorkerChannelCapacity channel{batch.limits().request_bytes,batch.limits().reply_bytes+extra_reply_bytes};
+  dispatch.arguments[0]=command;
   dispatch.arguments[6]=std::to_wstring(channel.reply_bytes);
   auto frame=std::make_shared<const WorkerRequestSnapshot>(encode_uniform_lz4_request(batch,request_id));
   const auto worker=WorkerExchangeSession::run_sized(binding.helper,dispatch.arguments,std::move(frame),channel,
@@ -1006,14 +1006,25 @@ RecordedSweepProfile profile_installed_sweep(const HipDiscoveredRoute& route,con
       "profiled worker did not publish and retire");
   const UniformLz4ProfileBinding profile{request_id,route.ordinal,route.memory.node_mask,
       grant.maximum_chunks,static_cast<std::uint32_t>(kNativeExtentBytes),grant.maximum_device_bytes,route.memory.luid};
-  auto reply=accept_uniform_lz4_sweep_profile_reply(worker.response,batch,profile,WorkerExecution::hip,mode);
+  auto receipt=accept(worker.response,profile,dispatch.windows);
   const auto after=sampler.sample();
   check(after.status==WindowsGpuBudgetStatus::success && after.snapshot.captured_ms>before.snapshot.captured_ms &&
       check_gpu_memory_budget(after.snapshot,route.memory.luid,route.memory.node_mask,GetTickCount64(),
           dispatch.device_peak_bytes)==GpuGateCode::admitted,"profile completion budget unavailable");
-  const auto duration=elapsed_ns(started);
+  return std::pair{std::move(receipt),elapsed_ns(started)};
+}
+RecordedSweepProfile profile_installed_sweep(const HipDiscoveredRoute& route,const PreparedUniformLz4& batch,
+    std::uint32_t quantum_chunks,std::uint64_t request_id,UniformLz4SweepProfileMode mode) {
+  const auto command=mode==UniformLz4SweepProfileMode::timeline?
+      L"--driver-uniform-lz4-sweep-timeline-adapter":L"--driver-uniform-lz4-sweep-profile-adapter";
+  auto [reply,duration]=measure_installed_sweep(route,batch,quantum_chunks,request_id,command,
+      uniform_lz4_sweep_profile_bytes(mode),[&](UniformLz4Bytes response,const auto& binding,auto windows){
+        auto accepted=accept_uniform_lz4_sweep_profile_reply(response,batch,binding,WorkerExecution::hip,mode);
+        check(accepted.trace.completed_windows==windows,"profile window count differs from dispatch");
+        return accepted;
+      });
   const auto& trace=reply.trace;
-  check(trace.total_wall_ns<=duration && trace.completed_windows==dispatch.windows,"profile total disagrees with parent");
+  check(trace.total_wall_ns<=duration,"profile total disagrees with parent");
   std::uint64_t window_phases=0;
   for(auto phase=static_cast<unsigned>(UniformSweepPhase::admission);
       phase<=static_cast<unsigned>(UniformSweepPhase::completion);++phase)
@@ -1059,6 +1070,42 @@ int compare_profiled_sweep_quanta(const std::filesystem::path& corpus,UniformLz4
         <<" identical_payload=1\n";
   }
   std::cout<<"sweep_profile_done parent_peak_commit="<<controller_budget.peak_commit()<<'\n';
+  return 0;
+}
+int compare_stream_bound_sweeps(const std::filesystem::path& corpus) {
+  gpu_probe_fixture::Budget controller_budget;
+  const auto input=read_indexed_write_corpus(corpus,fixture_sweep_chunks*kNativeExtentBytes);
+  check(input.size()==fixture_sweep_chunks*kNativeExtentBytes,"Stream sweep requires the complete matched corpus");
+  uniform_lz4::Layout geometry{};
+  check(uniform_lz4::make_layout(input.size(),kNativeExtentBytes,geometry),"Stream sweep source layout");
+  const auto batch=PreparedUniformLz4::prepare(input,uniform_lz4_limits(geometry));
+  const auto discovery=discover_installed_hip_route(diagnostic_worker_budget,4);
+  const auto& route=require_indexed_route(discovery);
+  check(route.pins->uniform_module_pinned(),"Stream sweep requires pinned compute module");
+  std::uint64_t sequence=0;
+  const auto measure=[&](bool stream_bound) {
+    const auto id=++sequence;
+    const auto command=stream_bound?L"--driver-uniform-lz4-stream-sweep-adapter":L"--driver-uniform-lz4-sweep-adapter";
+    auto sample=measure_installed_sweep(route,batch,4,id,command,0,
+        [&](UniformLz4Bytes response,const auto&,auto windows){
+          check(windows==4,"Stream sweep changed its four-window plan");
+          return accept_uniform_lz4_reply(response,batch,id,WorkerExecution::hip);
+        });
+    std::cout<<"stream_sweep request="<<id<<" stream_bound="<<stream_bound<<" parent_ns="<<sample.second
+        <<" encoded_bytes="<<sample.first.payload.size()<<" verified=1 retired=1\n";
+    return sample;
+  };
+  for(unsigned pair=0;pair<3;++pair){
+    const bool stream_first=pair%2!=0;
+    auto first=measure(stream_first);
+    auto second=measure(!stream_first);
+    check(first.first.sizes==second.first.sizes && first.first.payload==second.first.payload,
+        "Transfer order changed the verified encoding");
+    std::cout<<"stream_sweep_pair pair="<<pair+1<<" stream_first="<<stream_first
+        <<" separated_ns="<<(stream_first?second.second:first.second)
+        <<" stream_bound_ns="<<(stream_first?first.second:second.second)<<" identical_payload=1\n";
+  }
+  std::cout<<"stream_sweep_done parent_peak_commit="<<controller_budget.peak_commit()<<'\n';
   return 0;
 }
 RecordedSweepBatch run_sweep_batch(const HipDiscoveredRoute& route,
@@ -1250,6 +1297,8 @@ int wmain(int argc,wchar_t** argv){try{
     return compare_installed_amd(argv[2]);
   if(argc==3 && std::wstring_view(argv[1])==L"--compare-installed-amd-file-policy")
     return compare_file_policy(argv[2],false);
+  if(argc==3 && std::wstring_view(argv[1])==L"--compare-installed-amd-stream-sweep-corpus")
+    return compare_stream_bound_sweeps(argv[2]);
   if(argc==3 && std::wstring_view(argv[1])==L"--profile-installed-amd-sweep-corpus")
     return compare_profiled_sweep_quanta(argv[2],UniformLz4SweepProfileMode::aggregate);
   if(argc==3 && std::wstring_view(argv[1])==L"--profile-installed-amd-sweep-timeline-corpus")

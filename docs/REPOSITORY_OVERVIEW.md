@@ -1,9 +1,8 @@
 # FlitzFS repository overview
 
-Reconciled on 23 November 2026 against the **1,027-file** tree at
-`fbb19a371c4db34cb2ecd98f53964fe5d58694e9`, the latest mounted
-reclamation and native-write receipts, and the separately source-bound
-Radeon timing work. The review maps Windows attachment, authority,
+Reconciled on 23 November 2026 against the **1,031-file** tree at
+`2091be0d5fb26a45b81d0b6a9258748a381e2739`, the latest mounted recovery
+receipts, and the separately source-bound Radeon transfer comparison. The review maps Windows attachment, authority,
 allocation, recovery, AMD, maintenance and package paths to live source
 and qualification. The [current architecture](architecture/CURRENT.md)
 shows the flows, and the [source review](architecture/REVIEW.md) records
@@ -11,7 +10,8 @@ which assumptions still need evidence. Use the [revised architecture](architectu
 [detailed implementation plan](IMPLEMENTATION_PLAN.md) and
 [release execution plan](RELEASE_EXECUTION_PLAN.md) for forward work.
 
-[Current review and mounted retirement receipt](evidence/windows-mounted-packed-retirement-2026-11-23.json) ·
+[Current review and Radeon transfer receipt](evidence/windows-amd-stream-copy-2026-11-23.json) ·
+[Mounted retirement](evidence/windows-mounted-packed-retirement-2026-11-23.json) ·
 [Prior mounted/native reconciliation](evidence/release-execution-reconciliation-2026-11-23.json) ·
 [Previous review receipt](evidence/release-path-review-2026-11-23.json) ·
 [21 November architecture evidence](evidence/architecture-reconciliation-2026-11-21.json) ·
@@ -63,8 +63,10 @@ and verified both protected copies of each. The automatic-policy helper
 comparison selected CPU encoding on all three 1 MiB public-input trials,
 and a longer test continued on CPU at the exchange deadline. Reopened paired
 SDK volumes served two verified Radeon read frames through the separately
-qualified read path. AMD enablement still depends on useful results in the
-ordinary mounted application.
+qualified read path. Six synthetic sweeps produced identical verified output
+with both transfer paths. Their warmed pairs were within 1%, which leaves
+stream-bound transfer as a diagnostic option. AMD enablement still depends
+on useful results in the ordinary mounted application.
 [Device write output](evidence/windows-amd-native-file-policy-2026-11-23.json) ·
 [Full-sweep funding](evidence/windows-amd-sweep-deadline-2026-11-23.json) ·
 [Host and stream timing](evidence/windows-amd-sweep-timeline-2026-11-23.json)
@@ -95,9 +97,10 @@ release, tag, publication or product-version change is authorized by this review
 
 ## What is in the repository
 
-The reviewed parent contains 1,024 tracked files and 17,329,318 bytes of
-tracked content. The `src/` and `include/` directories contain 214 files
-and 2,389,396 bytes. Each receipt identifies its inspection or test scope.
+The reviewed tree contains 1,031 tracked files and 17,623,896 tracked bytes.
+The `src/` and `include/` directories contain 214 files and 2,402,562 bytes.
+These counts describe the reviewed commit. The current receipt binds the
+additional source changes and qualification.
 
 | Area | Inventory | Responsibility |
 | --- | ---: | --- |
@@ -105,7 +108,7 @@ and 2,389,396 bytes. Each receipt identifies its inspection or test scope.
 | `include/` | 42 files | Public core, session, storage, resource and recovery interfaces |
 | `tests/` | 153 files | Model, malformed-input, failure, SDK, process, application and qualification fixtures |
 | `tools/` | 66 files | Dependency staging, provenance, resource containment and qualification |
-| `docs/` | 536 files | Contracts, plans, historical results and source-bound evidence |
+| `docs/` | 543 files | Contracts, plans, historical results and source-bound evidence |
 | `.github/` | 19 files | Complementary build, analysis and experimental workflows |
 | `third_party/` | 19 files | Pinned BLAKE3 sources, licensing and provenance |
 | `cmake/`, `evidence/`, `resources/`, and top-level files | 17 files | Build support, historical evidence, branding, README and licensing |
@@ -735,11 +738,9 @@ populated mounted scale trace, useful AMD on the installed client, the held-out
 whole-volume compression frontier and persistent-provider failure checks.
 The exceptional compression target stays a research risk.
 
-Start from the existing Windows client trace. Qualify sustained packed
-reclamation and make automatic AMD foreground activation reachable through
-the helper. Carry cached and
-mapped writes through independent flush and reopen verification, then scale
-that same trace. Develop sparse coherence, protected group representations
+Extend the passing concurrent cached and mapped flush trace with populated
+churn, attach and publication counters. Use it to qualify bounded reopen,
+sustained reuse and measured automatic AMD work in the helper. Develop sparse coherence, protected group representations
 and offline maintenance using a separate held-out accounting track. The
 final gates bind the supported Windows package, providers, backward readers,
 recovery and real-host comparison to the same candidate.

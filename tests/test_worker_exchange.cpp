@@ -1535,7 +1535,7 @@ int wmain(int argc,wchar_t** argv){try{
         check(worker_transport_failure(session,named,WorkerExecution::hip)==GpuRecoveryOutcome::device_fault,
             "unconfirmed named exit supplied recovery evidence");
       }
-      auto unknown=*result;unknown.process.exit_code=0x46532002U;
+      auto unknown=*result;unknown.process.exit_code=0x46532a02U;
       check(worker_transport_failure(session,unknown,WorkerExecution::hip)==GpuRecoveryOutcome::device_fault,
           "unknown stage downgraded recovery requirements");
       eventually([&]{return session.retirement_confirmed() && WorkerExchangeSession::available();},

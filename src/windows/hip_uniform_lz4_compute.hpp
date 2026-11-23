@@ -140,7 +140,8 @@ UniformLz4Candidates run_hip_uniform_lz4_in_worker(HMODULE runtime,
 UniformLz4Candidates run_hip_uniform_lz4_sweep_in_worker(HMODULE runtime,
     const uniform_lz4::KernelApi&,int ordinal,std::array<std::byte,8> luid,
     std::uint32_t node_mask,const UniformLz4Request&,hip_detail::UniformLz4ComputeGrant,
-    std::span<const hip_detail::Lz4KernelCoverage>,UniformLz4SweepTrace* trace=nullptr,bool timeline=false);
+    std::span<const hip_detail::Lz4KernelCoverage>,UniformLz4SweepTrace* trace=nullptr,bool timeline=false,
+    bool stream_bound=false);
 UniformLz4Candidates run_hip_uniform_lz4_prepared_sweep_in_worker(HMODULE runtime,
     const uniform_lz4::KernelApi&,int ordinal,std::array<std::byte,8> luid,
     std::uint32_t node_mask,const UniformLz4SweepPlan&,std::span<const hip_detail::Lz4KernelCoverage>,

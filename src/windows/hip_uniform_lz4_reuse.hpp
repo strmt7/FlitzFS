@@ -33,25 +33,25 @@ class SweepEventPair final {
   void create(){
     for(auto& owned:events_){
       hipEvent_t handle=nullptr;
-      check_hip(api_->create(&handle),"create sweep event",HipWorkerStage::execution);
+      check_hip(api_->create(&handle),"create sweep event",HipWorkerStage::sweep_event_create);
       lz4_require(handle && handle!=events_.front(),HipWorkerExit::device_fault,
-          "invalid sweep event handle",HipWorkerStage::execution);
+          "invalid sweep event handle",HipWorkerStage::sweep_event_create);
       owned=handle;
     }
   }
   void record_start(hipStream_t stream) {
-    check_hip(api_->record(events_.front(),stream),"record sweep start event",HipWorkerStage::execution);
+    check_hip(api_->record(events_.front(),stream),"record sweep start event",HipWorkerStage::sweep_event_record);
   }
   void record_stop(hipStream_t stream) {
-    check_hip(api_->record(events_.back(),stream),"record sweep stop event",HipWorkerStage::execution);
+    check_hip(api_->record(events_.back(),stream),"record sweep stop event",HipWorkerStage::sweep_event_record);
   }
   std::uint64_t interval_ns() {
     float milliseconds=std::numeric_limits<float>::quiet_NaN();
     check_hip(api_->elapsed(&milliseconds,events_.front(),events_.back()),
-        "read sweep event interval",HipWorkerStage::execution);
+        "read sweep event interval",HipWorkerStage::sweep_event_elapsed);
     const auto ns=static_cast<double>(milliseconds)*1'000'000.0;
     lz4_require(ns>=0 && ns<=static_cast<double>(hip_profile_limit_ns),HipWorkerExit::device_fault,
-        "invalid sweep event interval",HipWorkerStage::execution);
+        "invalid sweep event interval",HipWorkerStage::sweep_event_elapsed);
     return static_cast<std::uint64_t>(ns);
   }
   bool retire() noexcept {
@@ -73,8 +73,10 @@ template<class Receive,class Initialize,class MemoryPolicy>
 UniformLz4Candidates execute_uniform_lz4_sweep_plan(const HipApi& api,Lz4Attributes attributes,
     const uniform_lz4::KernelApi& kernel,const UniformLz4SweepPlan& sweep,Lz4KernelCoverage coverage,
     Receive&& receive,Initialize&& initialize,MemoryPolicy&& memory,UniformLz4SweepTrace* trace=nullptr,
-    UniformLz4SweepRecorder::Clock clock=hip_phase_detail::clock_ns,const SweepEventApi* event_api=nullptr) {
-  lz4_require(!event_api || trace,HipWorkerExit::invalid_request,"sweep event trace required");
+    UniformLz4SweepRecorder::Clock clock=hip_phase_detail::clock_ns,const SweepEventApi* event_api=nullptr,
+    HipStreamCopy stream_copy=nullptr) {
+  lz4_require((!event_api || trace) && (!stream_copy || !trace),HipWorkerExit::invalid_request,
+      "incompatible sweep timing mode and transfer path");
   lz4_require(gpu_lz4_cpu_verification_available(),HipWorkerExit::unsupported_configuration,
       "independent CPU uniform sweep verification unavailable");
   uniform_lz4::Layout whole{};
@@ -88,6 +90,12 @@ UniformLz4Candidates execute_uniform_lz4_sweep_plan(const HipApi& api,Lz4Attribu
   UniformLz4SweepRecorder recorder(trace,sweep.windows,clock);
   DeviceResources resources(api);
   SweepEventPair events(event_api);
+  const auto copy=[&](void* destination,const void* source,std::size_t bytes,hipMemcpyKind kind,
+      const char* operation,HipWorkerStage stage) {
+    const auto status=stream_copy?stream_copy(destination,source,bytes,kind,resources.stream):
+        api.copy(destination,source,bytes,kind);
+    check_hip(status,operation,stage);
+  };
   const auto retire=[&]{
     const auto events_retired=events.retire();
     const auto state=resources.release_all();
@@ -110,10 +118,10 @@ UniformLz4Candidates execute_uniform_lz4_sweep_plan(const HipApi& api,Lz4Attribu
     lz4_require(resources.stream!=nullptr,HipWorkerExit::device_fault,"null reusable uniform stream",HipWorkerStage::stream_create);
     upload.resize(peak);readback.resize(peak);
     memory(HipMemoryPoint::initialized);
-    check_hip(api.allocate(&resources.buffers[0],peak),"allocate reusable uniform slab",HipWorkerStage::execution);
+    check_hip(api.allocate(&resources.buffers[0],peak),"allocate reusable uniform slab",HipWorkerStage::sweep_slab);
     const auto address=reinterpret_cast<std::uintptr_t>(resources.buffers[0]);
     lz4_require(address && !(address&7U) && sweep.device_peak_bytes<=~std::uintptr_t{0}-address,
-        HipWorkerExit::device_fault,"invalid reusable uniform slab address",HipWorkerStage::execution);
+        HipWorkerExit::device_fault,"invalid reusable uniform slab address",HipWorkerStage::sweep_slab);
     if(event_api)events.create();
     recorder.end(UniformSweepPhase::setup);
     const auto* request=receive();
@@ -129,8 +137,8 @@ UniformLz4Candidates execute_uniform_lz4_sweep_plan(const HipApi& api,Lz4Attribu
       std::fill(upload.begin(),upload.end(),std::byte{0xd3});
       initialize_uniform_lz4_upload(part.batch,std::span(upload).first(static_cast<std::size_t>(plan.total_bytes)));
       recorder.end(UniformSweepPhase::prepare);recorder.begin(UniformSweepPhase::upload);
-      check_hip(api.copy(resources.buffers[0],upload.data(),peak,hipMemcpyHostToDevice),
-          "upload reusable uniform slab",HipWorkerStage::execution);
+      copy(resources.buffers[0],upload.data(),peak,hipMemcpyHostToDevice,
+          "upload reusable uniform slab",HipWorkerStage::sweep_upload);
       recorder.end(UniformSweepPhase::upload);
       auto* slab=static_cast<unsigned char*>(resources.buffers[0]);
       // The kernel receives the canonical ACTIVE extent within the larger owned
@@ -138,10 +146,10 @@ UniformLz4Candidates execute_uniform_lz4_sweep_plan(const HipApi& api,Lz4Attribu
       auto allocated=plan.total_bytes;auto layout=plan;void* arguments[]{&slab,&allocated,&layout};
       const auto launch=[&]{
         check_hip(api.launch(reinterpret_cast<const void*>(selected),dim3(plan.chunks),dim3(device.wave),
-            arguments,0,resources.stream),"submit reusable uniform quantum",HipWorkerStage::execution);
+            arguments,0,resources.stream),"submit reusable uniform quantum",HipWorkerStage::sweep_launch);
       };
       const auto synchronize=[&]{
-        check_hip(api.synchronize(resources.stream),"complete reusable uniform quantum",HipWorkerStage::execution);
+        check_hip(api.synchronize(resources.stream),"complete reusable uniform quantum",HipWorkerStage::sweep_wait);
       };
       recorder.begin(UniformSweepPhase::kernel_wait);
       if(event_api){
@@ -154,12 +162,14 @@ UniformLz4Candidates execute_uniform_lz4_sweep_plan(const HipApi& api,Lz4Attribu
         recorder.end(UniformSweepPhase::kernel_wait,interval);
       } else {
         launch();
-        synchronize();
+        if(!stream_copy)synchronize();
         recorder.end(UniformSweepPhase::kernel_wait);
       }
       recorder.begin(UniformSweepPhase::download);
-      check_hip(api.copy(readback.data(),resources.buffers[0],peak,hipMemcpyDeviceToHost),
-          "read reusable uniform slab",HipWorkerStage::execution);
+      // A blocking stream-bound readback completes the preceding kernel and
+      // transfer on this stream before the CPU inspects the host buffer.
+      copy(readback.data(),resources.buffers[0],peak,hipMemcpyDeviceToHost,
+          "read reusable uniform slab",HipWorkerStage::sweep_readback);
       recorder.end(UniformSweepPhase::download);recorder.begin(UniformSweepPhase::verification);
       UniformLz4Candidates candidate;
       try{
@@ -170,14 +180,14 @@ UniformLz4Candidates execute_uniform_lz4_sweep_plan(const HipApi& api,Lz4Attribu
             std::span<const std::byte>(readback).first(static_cast<std::size_t>(plan.total_bytes)));
       }catch(const std::bad_alloc&){throw;}
       catch(const std::exception&){throw HipWorkerFailure(HipWorkerExit::integrity_failure,
-          "reused uniform quantum failed CPU/guard verification",HipWorkerStage::execution);}
+          "reused uniform quantum failed CPU/guard verification",HipWorkerStage::sweep_verify);}
       recorder.end(UniformSweepPhase::verification);recorder.begin(UniformSweepPhase::completion);
       memory(HipMemoryPoint::completed);
       recorder.end(UniformSweepPhase::completion);
       return candidate;
     }):UniformLz4Candidates{};
     if(request)recorder.begin(UniformSweepPhase::retirement);
-    lz4_require(retire(),HipWorkerExit::device_fault,"reusable uniform retirement failed",HipWorkerStage::execution);
+    lz4_require(retire(),HipWorkerExit::device_fault,"reusable uniform retirement failed",HipWorkerStage::sweep_retire);
     if(request) {
       recorder.end(UniformSweepPhase::retirement);
       recorder.finish();
@@ -185,7 +195,7 @@ UniformLz4Candidates execute_uniform_lz4_sweep_plan(const HipApi& api,Lz4Attribu
     return result;
   }catch(...){
     const auto failure=std::current_exception();
-    lz4_require(retire(),HipWorkerExit::device_fault,"reusable uniform failure retirement unconfirmed",HipWorkerStage::execution);
+    lz4_require(retire(),HipWorkerExit::device_fault,"reusable uniform failure retirement unconfirmed",HipWorkerStage::sweep_retire);
     std::rethrow_exception(failure);
   }
 }
@@ -194,7 +204,8 @@ UniformLz4Candidates execute_uniform_lz4_reused_sweep(const HipApi& api,Lz4Attri
     const uniform_lz4::KernelApi& kernel,const UniformLz4Request& request,
     Lz4KernelCoverage coverage,UniformLz4ComputeGrant grant,
     Initialize&& initialize,MemoryPolicy&& memory,UniformLz4SweepTrace* trace=nullptr,
-    UniformLz4SweepRecorder::Clock clock=hip_phase_detail::clock_ns,const SweepEventApi* event_api=nullptr) {
+    UniformLz4SweepRecorder::Clock clock=hip_phase_detail::clock_ns,const SweepEventApi* event_api=nullptr,
+    HipStreamCopy stream_copy=nullptr) {
   lz4_require(request.request_id && request.batch.ready() && grant.chunk_bytes &&
       request.batch.layout().chunk_bytes==grant.chunk_bytes,
       HipWorkerExit::invalid_request,"uniform sweep request/grant mismatch");
@@ -202,6 +213,6 @@ UniformLz4Candidates execute_uniform_lz4_reused_sweep(const HipApi& api,Lz4Attri
   try{sweep=plan_uniform_lz4_sweep(request.batch,grant.maximum_chunks,grant.maximum_device_bytes);}
   catch(const std::exception&){throw HipWorkerFailure(HipWorkerExit::invalid_request,"invalid uniform sweep grant");}
   return execute_uniform_lz4_sweep_plan(api,attributes,kernel,sweep,coverage,[&]{return &request;},
-      initialize,memory,trace,clock,event_api);
+      initialize,memory,trace,clock,event_api,stream_copy);
 }
 }

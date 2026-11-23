@@ -164,6 +164,16 @@ hipError_t copy(void* out,const void* in,std::size_t size,hipMemcpyKind kind){
   if(active->reuse && kind==hipMemcpyDeviceToHost)active->source_offset+=active->current_plan.input_bytes;
   return hipSuccess;
 }
+hipError_t stream_copy(void* out,const void* in,std::size_t size,hipMemcpyKind kind,hipStream_t stream){
+  require(stream==active->stream() && active->stream_live,"Copy used a different stream");
+  const bool download=kind==hipMemcpyDeviceToHost;
+  if(download)require(active->submitted && !active->completed,
+      "Stream readback did not own the kernel completion boundary");
+  const auto status=active->step(download?"stream-readback":"stream-upload");
+  if(status!=hipSuccess)return status;
+  if(download)active->completed=true;
+  return copy(out,in,size,kind);
+}
 Bytes literal(std::span<const std::byte> source){
   Bytes out{static_cast<std::byte>((std::min)(source.size(),std::size_t{15})<<4)};
   if(source.size()>=15){
@@ -265,7 +275,7 @@ UniformLz4Candidates compute(State& state,Lz4KernelCoverage covered=coverage,Uni
   return result;
 }
 UniformLz4Candidates reused_compute(State& state,UniformLz4ComputeGrant grant={},UniformLz4SweepTrace* trace=nullptr,
-    bool prepared=false,const SweepEventApi* events=nullptr){
+    bool prepared=false,const SweepEventApi* events=nullptr,HipStreamCopy transfer=nullptr){
   Activate owner(state);state.reuse=true;
   uniform_lz4::Layout quantum{};require(uniform_lz4::make_layout(2U*65536,65536,quantum),"reused fixture peak");
   if(!grant.maximum_chunks && !grant.maximum_device_bytes)grant={2,quantum.total_bytes,65536};
@@ -312,10 +322,10 @@ UniformLz4Candidates reused_compute(State& state,UniformLz4ComputeGrant grant={}
       return state.fault=="prepared-discard"?nullptr:&state.source;
     };
     return execute_uniform_lz4_sweep_plan(api,&attributes,kernels,shape,coverage,receive,initialize,memory,
-        trace,hip_phase_detail::clock_ns,events);
+        trace,hip_phase_detail::clock_ns,events,transfer);
   }
   return execute_uniform_lz4_reused_sweep(api,&attributes,kernels,state.source,coverage,grant,initialize,memory,
-      trace,hip_phase_detail::clock_ns,events);
+      trace,hip_phase_detail::clock_ns,events,transfer);
 }
 void reused_success(const UniformLz4Request& source,unsigned wave,bool delayed_completion=false){
   ++scenarios;++successes;State state(source,wave);state.properties.maxGridSize[0]=2;
@@ -455,12 +465,54 @@ int wmain(int argc,wchar_t** argv){try{
           candidate.sizes.size()==source.batch.layout().chunks && !state.allocated && !state.stream_live,
           "timed sweep did not reuse and retire one event pair");
     }
-    for(const auto* fault:{"event-create-1","event-duplicate","event-record-0","event-record-1","event-elapsed",
-        "event-no-interval","event-destroy-0","reuse-wait-second"}){
+    {
+      ++scenarios;++successes;
+      State baseline(source),ordered(source);
+      const auto reference=reused_compute(baseline);
+      const auto result=reused_compute(ordered,{},nullptr,false,nullptr,&stream_copy);
+      const auto count=[&](const char* name){return std::count(ordered.calls.begin(),ordered.calls.end(),name);};
+      require(result.payload==reference.payload && result.sizes==reference.sizes &&
+          count("stream-upload")==9 && count("launch")==9 && count("stream-readback")==9 &&
+          count("wait")==0 && count("reuse-complete")==9 && !ordered.stream_live && !ordered.allocated,
+          "Stream-bound sweep changed bytes, completion, admission or ownership");
+    }
+    for(const auto& [fault,stage]:std::array{
+        std::pair{"stream-upload",HipWorkerStage::sweep_upload},
+        std::pair{"launch",HipWorkerStage::sweep_launch},
+        std::pair{"stream-readback",HipWorkerStage::sweep_readback},
+        std::pair{"reuse-unused-tail",HipWorkerStage::sweep_verify},
+        std::pair{"release",HipWorkerStage::sweep_retire}}){
+      ++scenarios;++refusals;State state(source);state.fault=fault;
+      try{(void)reused_compute(state,{},nullptr,false,nullptr,&stream_copy);
+        throw std::runtime_error("Failed stream-bound sweep returned candidates");}
+      catch(const HipWorkerFailure& failure){
+        require(failure.stage==stage && !state.waits && !state.allocated && !state.stream_live &&
+            failure.code==(stage==HipWorkerStage::sweep_verify?HipWorkerExit::integrity_failure:HipWorkerExit::device_fault),
+            "Stream-bound failure lost its stage or resource retirement");
+      }
+    }
+    {
+      ++scenarios;++refusals;State state(source);UniformLz4SweepTrace trace;
+      try{(void)reused_compute(state,{},&trace,false,nullptr,&stream_copy);
+        throw std::runtime_error("Stream-bound sweep reused the separate-wait timing contract");}
+      catch(const HipWorkerFailure& failure){
+        require(failure.code==HipWorkerExit::invalid_request && state.calls.empty() && !trace.finished,
+            "Mixed sweep timing contract touched runtime");
+      }
+    }
+    for(const auto& [fault,stage]:std::array{
+        std::pair{"event-create-1",HipWorkerStage::sweep_event_create},
+        std::pair{"event-duplicate",HipWorkerStage::sweep_event_create},
+        std::pair{"event-record-0",HipWorkerStage::sweep_event_record},
+        std::pair{"event-record-1",HipWorkerStage::sweep_event_record},
+        std::pair{"event-elapsed",HipWorkerStage::sweep_event_elapsed},
+        std::pair{"event-no-interval",HipWorkerStage::sweep_event_elapsed},
+        std::pair{"event-destroy-0",HipWorkerStage::sweep_retire},
+        std::pair{"reuse-wait-second",HipWorkerStage::sweep_wait}}){
       ++scenarios;++refusals;State state(source);state.fault=fault;UniformLz4SweepTrace trace;
       try{(void)reused_compute(state,{},&trace,false,&sweep_events);throw std::runtime_error("failed timing published");}
       catch(const HipWorkerFailure& failure){
-        require(failure.code==HipWorkerExit::device_fault && !trace.finished &&
+        require(failure.code==HipWorkerExit::device_fault && failure.stage==stage && !trace.finished &&
             state.event_live==std::array<bool,2>{} && !state.allocated && !state.stream_live,
             "event failure changed classification, published or leaked");
       }

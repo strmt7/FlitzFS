@@ -1,7 +1,7 @@
 # FlitzFS detailed implementation plan
 
 **Reconciled on 23 November 2026.** The current source, tested changes and
-qualification are bound in the [current review receipt](evidence/windows-mounted-packed-retirement-2026-11-23.json).
+qualification are bound in the [current review receipt](evidence/windows-amd-stream-copy-2026-11-23.json).
 
 The [current architecture](architecture/CURRENT.md) shows the implementation.
 The [source review](architecture/REVIEW.md) tests the assumptions and the
@@ -25,10 +25,11 @@ and an ordinary NTFS guest-file trial. The helper creates packed backing
 and reopens both supported formats. The mounted two-group fixture now
 automatically selects a new image and crosses the trailing physical allocation
 boundary. It preserves a held reader and passes independent CPU reopen and a
-continued write. The remaining allocator work is steady-state settlement,
-bounded growth and fault qualification. The next checkpoint extends that
-fixture and brings measured foreground AMD admission into the same Explorer
-helper. Carry concurrent cached and mapped flushes through one client trace.
+continued write. Repeated reuse and concurrent cached/mapped flush recovery
+have now passed bounded packed and sparse guest traces. Extend that client
+to populated churn and use the same trace to attribute attach, publication
+and allocator costs. Admit AMD through the ordinary helper when measured
+complete-path cost and consumed device output support the offer.
 [Integrated sequence](RELEASE_EXECUTION_PLAN.md#immediate-implementation-order)
 Keep independent CPU bytes, full occupied-size accounting and safe ownership
 for each path. [Release gate ledger](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)

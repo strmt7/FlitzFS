@@ -427,6 +427,7 @@ int worker(int argc, wchar_t** argv) {
   if(argc>1 && (std::wstring_view(argv[1])==L"--driver-uniform-lz4-adapter" ||
       std::wstring_view(argv[1])==L"--driver-uniform-lz4-profile-adapter" ||
       std::wstring_view(argv[1])==L"--driver-uniform-lz4-sweep-adapter" ||
+      std::wstring_view(argv[1])==L"--driver-uniform-lz4-stream-sweep-adapter" ||
       std::wstring_view(argv[1])==L"--driver-uniform-lz4-sweep-profile-adapter" ||
       std::wstring_view(argv[1])==L"--driver-uniform-lz4-sweep-timeline-adapter" ||
       std::wstring_view(argv[1])==L"--driver-uniform-lz4-prepared-adapter")) {
@@ -435,7 +436,9 @@ int worker(int argc, wchar_t** argv) {
     const bool sweep_recording=timeline || std::wstring_view(argv[1])==L"--driver-uniform-lz4-sweep-profile-adapter";
     const auto sweep_mode=timeline?UniformLz4SweepProfileMode::timeline:UniformLz4SweepProfileMode::aggregate;
     const bool prepared=std::wstring_view(argv[1])==L"--driver-uniform-lz4-prepared-adapter";
-    const bool sweeping=prepared || sweep_recording || std::wstring_view(argv[1])==L"--driver-uniform-lz4-sweep-adapter";
+    const bool stream_bound=std::wstring_view(argv[1])==L"--driver-uniform-lz4-stream-sweep-adapter";
+    const bool sweeping=prepared || sweep_recording || stream_bound ||
+        std::wstring_view(argv[1])==L"--driver-uniform-lz4-sweep-adapter";
     require(argc==(prepared?14:13) && std::wstring_view(argv[11])==
         (prepared?kPreparedWorkerChannelArgument:std::wstring_view(L"--worker-channel")),
         Exit::invalid_request,"explicit uniform adapter/channel/capacities required");
@@ -521,7 +524,7 @@ int worker(int argc, wchar_t** argv) {
     const auto candidates=prepared?run_hip_uniform_lz4_prepared_sweep_in_worker(runtime.get(),*api,
         static_cast<int>(ordinal),luid,mask,*sweep_plan,targets,receive):
         sweeping?run_hip_uniform_lz4_sweep_in_worker(runtime.get(),*api,
-            static_cast<int>(ordinal),luid,mask,*request,grant,targets,sweep_recording?&sweep_trace:nullptr,timeline):
+            static_cast<int>(ordinal),luid,mask,*request,grant,targets,sweep_recording?&sweep_trace:nullptr,timeline,stream_bound):
             run_hip_uniform_lz4_in_worker(runtime.get(),*api,static_cast<int>(ordinal),luid,mask,
                 *request,grant,targets,recording?&clock:nullptr);
     if(prepared && !request) {

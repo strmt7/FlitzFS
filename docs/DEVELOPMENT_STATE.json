@@ -7,16 +7,16 @@
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
   "release_path_review": {
-    "evidence": "docs/evidence/windows-mounted-packed-retirement-2026-11-23.json",
-    "reviewed_parent": "1a9ae9423b1eebf6eb31d05b6478e1596a8e5719",
-    "tracked_parent_files": 1024,
+    "evidence": "docs/evidence/windows-amd-stream-copy-2026-11-23.json",
+    "reviewed_parent": "2091be0d5fb26a45b81d0b6a9258748a381e2739",
+    "tracked_parent_files": 1031,
     "qualification": "development",
     "remaining_effort_person_weeks": [59, 127],
     "estimate_confidence": "low",
     "immediate_trace": "docs/RELEASE_EXECUTION_PLAN.md#next-integrated-qualification",
     "native_ntfs_comparison": "specified, matched live-host run pending",
-    "mounted_packed_attachment": "Signed guest lifecycle, acknowledged overwrite recovery and automatic packed allocation-boundary release verified. Repeated full settlement remains open.",
-    "automatic_foreground_amd": "SDK activation qualified in its scope, ordinary helper admission pending"
+    "mounted_packed_attachment": "Signed guest lifecycle, repeated packed and sparse settlement, and overlapping cached and mapped flush recovery verified in bounded traces. Populated sustained settlement remains open.",
+    "automatic_foreground_amd": "SDK activation qualified in its scope. The transfer comparison verified six requests with no warmed advantage. Ordinary helper admission pending."
   },
   "dense_cross_group_relocation": {
     "evidence": "docs/evidence/dense-cross-group-2026-11-23.json",
@@ -1656,7 +1656,7 @@
   ],
   "next_implementation": {
     "contract": "docs/IMPLEMENTATION_PLAN.md",
-    "next": "Complete the first source-bound mounted slice with automatic packed allocation retirement and ordinary AMD admission. Use the same client and independent CPU bytes to extend scale, recovery and whole-volume compression qualification.",
+    "next": "Extend the passing mixed-flush trace to populated churn and attribute startup, publication and allocator costs. Qualify automatic AMD using complete accepted-output cost and reuse this client for integrity checks and scaling.",
     "sequence": "docs/RELEASE_EXECUTION_PLAN.md#first-implementation-slice",
     "steps": [
       "E08.4",

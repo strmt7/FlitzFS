@@ -61,6 +61,14 @@ inline HipApi bind_api(HMODULE module) {
 #undef FLITZFS_HIP_STRING
 #undef FLITZFS_HIP_STRING_INNER
 
+using HipStreamCopy=decltype(&hipMemcpyWithStream);
+inline HipStreamCopy bind_stream_copy(HMODULE module) {
+  const auto address=GetProcAddress(module,"hipMemcpyWithStream");
+  if(!address)throw HipWorkerFailure(HipWorkerExit::runtime_unavailable,
+      "hipMemcpyWithStream",HipWorkerStage::runtime_api);
+  return std::bit_cast<HipStreamCopy>(address);
+}
+
 inline void check_hip(hipError_t status, const char* operation,
     HipWorkerStage stage = HipWorkerStage::none) {
   if (status == hipSuccess) return;

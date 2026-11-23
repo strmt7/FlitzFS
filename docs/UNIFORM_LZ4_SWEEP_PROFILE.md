@@ -138,6 +138,29 @@ rejection without complete timing and verified all 16 committed candidates
 after a funded offer.
 [Current profile and write evidence](evidence/windows-amd-sweep-deadline-2026-11-23.json)
 
+## Matched stream-copy experiment
+
+The explicit `--compare-installed-amd-stream-sweep-corpus` fixture compares
+the existing upload, launch, wait and download sequence with blocking
+uploads and readbacks tied to the kernel stream. In the second path, the
+readback orders completion on the stream. Both use the same pinned module,
+identical slabs and guard checks, and independent CPU verification. The
+unmodified profile envelope still reports separate host waits and events.
+[AMD stream copy contract](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/reference/hip_runtime_api/modules/memory_management.html)
+
+Three alternating pairs on a 1 MiB seeded synthetic fixture produced
+135,344 encoded payload bytes in every request. The first separated sweep
+took 2.298 s and the first stream-bound sweep took 1.190 s. Both warmed
+pairs were within 1%. Each completed worker was confirmed retired. These
+observations leave transfer selection in diagnostics. The next qualification
+should attribute long waits and measure the full mounted path.
+
+The worker now identifies allocation, upload, launch, wait, readback,
+verification, retirement and timing API failures separately. It preserves
+the existing failure categories, budget decisions and CPU fallback. The
+CPU semantic fixture verifies no reply on a failed operation or cleanup.
+[Exact source, resource receipts and trial results](evidence/windows-amd-stream-copy-2026-11-23.json)
+
 ## Encoding independence
 
 CPU fallback need not reproduce GPU compressed bytes, ratio, algorithm or format.

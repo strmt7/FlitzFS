@@ -23,14 +23,17 @@ enum class HipWorkerStage : std::uint32_t {
   initialized_headroom, initialized_nonlocal_growth,
   completed_invalid_budget, completed_stale_budget, completed_wrong_adapter,
   completed_headroom, completed_nonlocal_growth,
+  sweep_slab, sweep_upload, sweep_launch, sweep_wait, sweep_readback,
+  sweep_verify, sweep_retire, sweep_event_create, sweep_event_record, sweep_event_elapsed,
 };
+inline constexpr auto kHipWorkerLastStage=static_cast<std::uint32_t>(HipWorkerStage::sweep_event_elapsed);
 constexpr bool hip_worker_category_valid(std::uint32_t value) noexcept {
   return value >= 0x46530001U && value <= 0x46530006U;
 }
 constexpr std::uint32_t hip_worker_exit_category(std::uint32_t value) noexcept {
   const auto category = value & 0xffff00ffU;
   const auto stage = (value >> 8) & 255U;
-  return hip_worker_category_valid(category) && stage >= 1 && stage <= 31 ? category : value;
+  return hip_worker_category_valid(category) && stage >= 1 && stage <= kHipWorkerLastStage ? category : value;
 }
 constexpr HipWorkerStage hip_worker_exit_stage(std::uint32_t value) noexcept {
   return hip_worker_exit_category(value) != value ?
@@ -39,7 +42,7 @@ constexpr HipWorkerStage hip_worker_exit_stage(std::uint32_t value) noexcept {
 constexpr std::uint32_t hip_worker_diagnostic_exit(HipWorkerExit category, HipWorkerStage stage) noexcept {
   const auto code = static_cast<std::uint32_t>(category);
   const auto detail = static_cast<std::uint32_t>(stage);
-  return hip_worker_category_valid(code) && detail >= 1 && detail <= 31 ? code | (detail << 8) : code;
+  return hip_worker_category_valid(code) && detail >= 1 && detail <= kHipWorkerLastStage ? code | (detail << 8) : code;
 }
 constexpr const char* hip_worker_stage_name(HipWorkerStage stage) noexcept {
   switch (stage) {
@@ -75,6 +78,16 @@ constexpr const char* hip_worker_stage_name(HipWorkerStage stage) noexcept {
     case HipWorkerStage::completed_wrong_adapter: return "completed_wrong_adapter";
     case HipWorkerStage::completed_headroom: return "completed_headroom";
     case HipWorkerStage::completed_nonlocal_growth: return "completed_nonlocal_growth";
+    case HipWorkerStage::sweep_slab: return "sweep_slab";
+    case HipWorkerStage::sweep_upload: return "sweep_upload";
+    case HipWorkerStage::sweep_launch: return "sweep_launch";
+    case HipWorkerStage::sweep_wait: return "sweep_wait";
+    case HipWorkerStage::sweep_readback: return "sweep_readback";
+    case HipWorkerStage::sweep_verify: return "sweep_verify";
+    case HipWorkerStage::sweep_retire: return "sweep_retire";
+    case HipWorkerStage::sweep_event_create: return "sweep_event_create";
+    case HipWorkerStage::sweep_event_record: return "sweep_event_record";
+    case HipWorkerStage::sweep_event_elapsed: return "sweep_event_elapsed";
   }
   return "unknown";
 }

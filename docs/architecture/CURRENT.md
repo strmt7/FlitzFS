@@ -1,10 +1,10 @@
 # Current FlitzFS architecture
 
 The diagrams reflect the 23 November source review at
-`1a9ae9423b1eebf6eb31d05b6478e1596a8e5719` and the packed-tail
-scheduling change. The
-[current review receipt](../evidence/windows-mounted-packed-retirement-2026-11-23.json)
-binds source and evidence. The [subsystem review](REVIEW.md) contains the
+`2091be0d5fb26a45b81d0b6a9258748a381e2739`, including repeated reclamation
+and concurrent mapped and cached flushes. The
+[current review receipt](../evidence/windows-amd-stream-copy-2026-11-23.json)
+binds the source and the scoped Radeon worker change. The [subsystem review](REVIEW.md) contains the
 detailed reconciliation. The [revised architecture](TARGET.md) describes
 planned product changes.
 
@@ -134,6 +134,30 @@ fixture exercises real AMD through the native write bridge.
 · [deferred completion and response](../../src/windows/native_deferred_write.cpp#L157)
 · [foreground route offer](../../src/windows/winfsp_controller.cpp#L443)
 · [hardware write evidence](../evidence/amd-fresh-completion-observation-2026-11-21.json)
+
+### Overlapping client flushes
+
+The external Win32 client ran a cached write and a mapped write on separate
+files. It flushed the mapped view and then called `FlushFileBuffers` on that
+file. Both file-handle flush calls overlapped in the client. The mount owner's
+serialized publication protocol still governs which generation becomes visible.
+
+```mermaid
+flowchart TD
+    Cached["Cached client edit"] --> CachedFlush["Flush cached file handle"]
+    Mapped["Mapped client edit"] --> View["Flush mapped view"]
+    View --> MappedFlush["Flush mapped file handle"]
+    CachedFlush --> Owner["WinFsp and serialized native publication"]
+    MappedFlush --> Owner
+    Owner --> Ack["Client records both successful file flushes"]
+    Ack --> Cut["Terminate the owned helper"]
+    Cut --> Verify["Independent CPU reader checks both edits and untouched bytes"]
+    Verify --> Resume["Fresh writable mount and allocation settle"]
+```
+
+The packed and sparse guest traces each exercised three cycles. The process
+cut after both acknowledgements occurred in cycle two. The durable-media gate
+uses a separate failure campaign. [Mounted flush receipt](../evidence/windows-mounted-mixed-flush-recovery-2026-11-23.json)
 
 ## 4. Durable authority and advisory storage
 
@@ -407,6 +431,12 @@ are separately recorded. [Runtime discovery](../../src/windows/hip_route_discove
 · [GPU health policy](../../src/gpu_recovery.cpp#L61)
 · [freshness checks](../../src/windows/hip_worker_budget.hpp)
 · [selected-SDK and physical AMD results](../evidence/amd-fresh-completion-observation-2026-11-21.json)
+
+The sweep worker can identify slab, transfer, launch, wait, verification and
+retirement failures separately. Its explicit stream-copy comparison keeps
+the same independent CPU verification and retirement boundary. The
+ordinary helper still needs a measured foreground route for the admitted
+write shape. [Stream copy and stage evidence](../evidence/windows-amd-stream-copy-2026-11-23.json)
 
 ## 10. Verification and remaining integration
 
