@@ -16,10 +16,11 @@
     "latest_allocator_evidence": "docs/evidence/dense-cross-group-2026-11-23.json",
     "latest_recovery_evidence": "docs/evidence/windows11-mounted-mapped-publication-cuts-2026-11-22.json",
     "latest_packed_helper_evidence": "docs/evidence/windows-packed-explorer-2026-11-23.json",
+    "latest_mounted_handoff_evidence": "docs/evidence/windows-mounted-packed-handoff-2026-11-23.json",
     "latest_amd_evidence": "docs/evidence/amd-reopened-paired-sealed-read-2026-11-23.json",
     "ntfs_comparison": "docs/BENCHMARK_PROTOCOL.md#plain-and-native-compressed-ntfs",
     "first_implementation_slice": "docs/RELEASE_EXECUTION_PLAN.md#first-implementation-slice",
-    "next": "Capture the mounted controller's decision against the independently verified detached native control on the same packed churn. Fix the first observed divergence and qualify repeated allocation-group retirement. Wire the qualified foreground AMD offer into the normal helper. Carry cache, mapping, flush and CPU recovery through one source-bound client trace.",
+    "next": "Follow inactive image ownership and tail retirement after automatic mounted publication at epoch 2. Qualify repeated allocation-group release. Wire the qualified foreground AMD offer into the normal helper and carry cache, mapping, flush and CPU recovery through one source-bound client trace.",
     "release_qualified": false
   },
   "baseline": {

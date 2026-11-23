@@ -233,6 +233,15 @@ allocated until both durable records select the new epoch and readers
 release the old backing. Each retirement opportunity rechecks the
 selector and retires up to 4 MiB from the inactive range.
 
+An ordinary WinFsp context already holds an inode ID when Create or Open
+returns. The paired-file reclaimer preserves that ID and the context phase
+even before its first use. Close can still retire an unused context without a
+cleanup mutation. Provisional overwrite, supersede and delete-on-close
+contexts still defer handoff. Manual volume replacement requires adoption
+before handoff. An engine snapshot pins the old image until it retires.
+[WinFsp callback contract](https://winfsp.dev/apiref/) ·
+[Mounted handoff evidence](evidence/windows-mounted-packed-handoff-2026-11-23.json)
+
 After a restart, the verified object-tree totals also provide a conservative
 estimate of reclaimable committed space. The estimate compares the selected
 image extent with an upper bound for the packed image, including mirrored

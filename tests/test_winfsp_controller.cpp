@@ -1545,6 +1545,14 @@ void volume_file_idle_reclamation() {
     require(step(true,age_ms).progress.deferral==reason && file->io.calls==writes,
         "paired-file continuation performed deferred backing work");
   };
+  const auto open_context=[&](UINT32 options,UINT32 access) {
+    wchar_t name[]=L"\\f0";
+    PVOID context=nullptr;FSP_FSCTL_FILE_INFO metadata{};
+    require(provider.fs.Interface->Open(&provider.fs,name,options,access,&context,&metadata)==STATUS_SUCCESS &&
+        context,"paired-file maintenance fixture could not open a context");
+    return context;
+  };
+  constexpr auto ordinary_open=FILE_NON_DIRECTORY_FILE|(1U<<24);
   const auto before=file->occupied();
   unsigned private_steps=0,publish_boundaries=0;
   {
@@ -1556,8 +1564,24 @@ void volume_file_idle_reclamation() {
     observed.foreground_pending=false;
     refuse(Deferral::observation); // A reused sample cannot start a new image.
 
+    const auto defer_provisional=[&](UINT32 options,UINT32 access) {
+      const auto context=open_context(options,access);
+      const auto writes=file->io.calls;
+      const auto result=step(false);
+      require(result.continuation!=Continuation::compaction && file->io.calls==writes,
+          "paired-file maintenance crossed an unresolved disposition");
+      provider.fs.Interface->Close(&provider.fs,context);
+      require(!source->requires_offline() && file->io.calls==writes,
+          "abandoned provisional context performed a cleanup mutation");
+    };
+    defer_provisional(ordinary_open|FILE_DELETE_ON_CLOSE,DELETE);
+    defer_provisional(FILE_NON_DIRECTORY_FILE|(4U<<24),FILE_WRITE_DATA);
+
+    const auto reader=open_context(ordinary_open,FILE_READ_DATA);
+    const auto abandoned_open=open_context(ordinary_open,FILE_READ_DATA);
     auto progress=step(false);
-    require(progress.continuation==Continuation::compaction,"paired-file preparation was not admitted");
+    require(progress.continuation==Continuation::compaction,
+        "untouched ordinary opens blocked paired-file preparation");
     refuse(Deferral::observation,NativeMaintenancePolicy{}.maximum_age_ms+1);
     const auto available=observed.physical_available;
     observed.physical_available=0;
@@ -1580,6 +1604,16 @@ void volume_file_idle_reclamation() {
     }
     require(progress.compacted && private_steps && publish_boundaries==2 && !file->range_reclaims &&
         retained->read("f0",0,50000)==expected,"paired-file publication boundaries or pinned source changed");
+    Bytes readback(expected.size());
+    ULONG read=0;
+    require(provider.fs.Interface->Read(&provider.fs,reader,readback.data(),0,
+        static_cast<ULONG>(readback.size()),&read)==STATUS_SUCCESS && read==readback.size() && readback==expected,
+        "untouched WinFsp reader changed at its first read after image publication");
+    callback_cleanup_close(provider,reader);
+    const auto cancel_writes=file->io.calls;
+    provider.fs.Interface->Close(&provider.fs,abandoned_open);
+    require(!source->requires_offline() && file->io.calls==cancel_writes,
+        "unadopted open could not retire without writes after image publication");
     const auto previous=expected;
     expected[0]^=std::byte{0x42};
     wchar_t name[]=L"\\f0";

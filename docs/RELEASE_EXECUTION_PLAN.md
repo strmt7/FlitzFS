@@ -40,8 +40,11 @@ first run ended during settled-ownership accounting. The completed diagnostic
 published native epoch 2, reduced allocation from 270,270,464 to 7,340,032
 bytes and verified both live files independently on CPU after writer
 retirement. It reached the step limit with additional maintenance pending.
-The next step is to capture the mounted admission and first reclaimer
-transition, then verify automatic settlement through the helper.
+The mounted diagnostic then located an admission block at an untouched Open.
+Preserving that handle's phase while permitting the handoff took the signed
+mount to epoch 2. The physical group was still present at the trial deadline.
+Track old-image ownership and physical retirement from that published
+generation. [Mounted handoff evidence](evidence/windows-mounted-packed-handoff-2026-11-23.json)
 [File attachment](../src/windows/volume_app_winfsp.cpp) ·
 [Native adapter](../src/windows/winfsp_native.cpp) ·
 [Controller](../src/windows/winfsp_controller.cpp) ·
@@ -115,7 +118,7 @@ artifact and the observation needed before the related work can advance.
 | --- | --- | --- |
 | S1 · E10–E11 | Generate a candidate manifest from the CMake configurations, private dependency locks, staged toolchain and actual app, worker and SDK binaries. | Source, runtime and package hashes match the tested artifacts. Each applicable test lane identifies the exact candidate or the unchanged inputs it covers. |
 | S2 · E01 | Extend the WinFsp populated client trace and add read, write and lock accounting at name lookup, inode read, publication and reopen. Exercise deep and wide layouts at several measured sizes and model larger populations. | Replay agrees with a reference namespace and independent CPU bytes. Backing work and resident state are measured at feasible sizes. Validate projected scaling against a held-out size. |
-| S3 · E02 | Instrument mounted reclaim against the verified detached native control. Resolve the first observed divergence, then use whole-image and cross-group relocation as controls for incremental paged-space reuse. | Repeated mounted churn settles at stable or falling occupied bytes. Readers and checked dependencies remain readable across cancellation, interrupted retirement and resumed writes. |
+| S3 · E02 | Trace inactive-image pins and allocated ranges after mounted selection at epoch 2. Use the verified detached path and cross-group relocation as controls for physical release and incremental reuse. | Repeated mounted churn settles at stable or falling occupied bytes. Readers and checked dependencies remain readable across cancellation, interrupted retirement and resumed writes. |
 | S4 · E03 | Supply `offer_qualified_foreground_route` from the ordinary helper owner. Exercise writes, cold reads and shared-base work with one installed artifact manifest. | Verified, consumed device completions by role improve end-to-end cost or settled size on qualifying data. Missing or failed devices leave CPU service and every stored representation readable. |
 | S5 · E04–E06 | Freeze the mixed held-out corpus and collect complete-image accounting for independent codecs, shared dictionaries, delta and multi-reference candidates and the existing shared-base control. | Net space gains survive protection, retained generations and reclamation costs. Independent restart units give practical cold random reads. Size and access results include all cohorts and losses. |
 | S6 · E07 | Drive the persistent advisory catalog and policy from observed savings, live resource pressure and workload changes in the mounted lifecycle. | Corrupt or absent advice is rebuildable. Foreground bursts preempt the next quantum. Recovery, migration, learning, compaction and scan progress resume independently with measured write cost. |
@@ -135,8 +138,8 @@ automatic AMD work. The execution evidence below sets each gate's exit.
 Independent corpus, process ownership, allocator and failure-model work can
 begin before the integrated path closes.
 
-Start by attributing the mounted reclaim decision and connecting the automatic
-AMD foreground offer. These both use the existing helper and can advance
+Start by tracing post-publication mounted retirement and connecting the
+automatic AMD foreground offer. These both use the existing helper and can advance
 independently with source-bound controls. Merge their operation identifiers
 into one populated client trace. Extend that trace to concurrent cached and mapped flushes,
 populated-directory scale and maintenance interference. Keep the signed-driver
@@ -1038,13 +1041,19 @@ remained at epoch 1 with version-1 anchors. In a repeat of that workload, the
 detached native writer selected epoch 2. Independent CPU inspection verified
 both live files, and the backing allocation fell to 7,340,032 bytes. The
 bounded native trial still reported pending maintenance. Automatic mounted
-publication, final settlement and the first divergent state are open for S3.
+settlement remains open for S3. The corrected ordinary Open gate now lets
+the signed mount publish epoch 2. It reached the deadline at 274,989,056
+bytes of file length, with both outer allocation anchors still at version 1.
+The fixture preserved the untouched reader through publication and verified
+both live files through an independent CPU reopen after orderly detach.
+The SDK regression verified cancellation of the unused open.
+[Mounted handoff](evidence/windows-mounted-packed-handoff-2026-11-23.json) ·
 [Executed helper coverage](evidence/windows-packed-explorer-2026-11-23.json) ·
 [Differential receipt](evidence/release-execution-reconciliation-2026-11-23.json)
 
 | Step | Implementation | Exit evidence |
 | --- | --- | --- |
-| 1. Attribute the mounted decision | Capture controller quanta, last sampled host admission, deferral reason, continuation, reclaimer phase and generation. At each phase transition, track obsolete estimate, live handle eligibility, current/inactive image pins and backing reservation. Use an owned diagnostic snapshot with bounded samples and a fresh source/artifact binding. | A signed helper replay identifies the first difference between an eligible live and detached image, or records the exact resource deferral with no phase advance. |
+| 1. Attribute mounted retirement | Start from epoch 2. Capture inactive image pins, retirement quanta, allocated range endpoints and the dense tail candidate. Preserve host admission, deferral reason, scheduler continuation and selected generation. | A signed helper replay identifies retained ownership, retirement pacing or backing allocation as the first unfinished stage and records the eligible wake or next step. |
 | 2. Use the native reference | Preserve step outcomes and selector epoch before any settled-space query. Use the verified independent CPU bytes and native allocation result as the control. Classify remaining pending work by scope, pin and generation after each quiescent trial. | The corrected mounted trial agrees on acknowledged bytes and reaches eligible physical retirement. The receipt records any pending optional work explicitly. |
 | 3. Fix and regress the observed transition | Resolve the measured cause in `WinFspVolumeController`, `advance_indexed_maintenance`, context transfer or the dense allocator. Keep the existing resource and publication invariants. Cover an ordinary held reader, mapped/cache contexts, active group work, mixed scrub and cleanup, and fresh resource or pin-release wake-up for any applicable change. | The regression exercises the corrected transition in the signed mounted helper. It preserves acknowledged bytes, releases a physical group, survives reopen and accepts another flushed write. |
 | 4. Integrate the automatic write route | Work from the actual helper owner and existing deferred service. Feed fully qualified device evidence to `offer_qualified_foreground_route` outside callbacks. Preserve bounded copy/commit ownership and CPU completion before teardown. Trace cold read, foreground write and collective outcomes by their consumed device work. | The same app can offer and use a measured device route with a matched CPU-only and failed/unavailable-device replay, then independently verify all bytes on CPU. |

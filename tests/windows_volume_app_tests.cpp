@@ -734,6 +734,7 @@ struct MountedFileActivation {
   std::vector<std::byte> packed_witness;
   std::vector<std::byte> packed_payload;
   bool compare_packed_reclaimer=false;
+  bool packed_release_pending=false;
 };
 
 constexpr std::size_t mounted_trace_files=1024;
@@ -997,15 +998,19 @@ void mounted_packed_workload(const std::wstring& root,MountedFileActivation& act
     return;
   }
   std::uint64_t next_sample=0;
+  const auto settle_deadline=deadline-9000; // Keep time for the held read and orderly detach.
   until([&] {
     const auto now=GetTickCount64();
+    if(now>=settle_deadline)return true;
     if(now<next_sample)return false;
     next_sample=now+100;
     settled=packed_file_allocation(activation.path);
     return settled<first_group_end;
   },deadline-4000,"Mounted packed allocation did not release the tail group within this trial");
+  activation.packed_release_pending=settled>=first_group_end;
   verify_mounted_bytes(retained.file,activation.packed_witness);
-  std::cout<<"mounted_packed_relocation before_allocation="<<before<<" after_allocation="<<settled
+  std::cout<<(activation.packed_release_pending?"mounted_packed_observed":"mounted_packed_relocation")
+      <<" before_allocation="<<before<<" after_allocation="<<settled
       <<" held_reader=1 witness_bytes="<<activation.packed_witness.size()<<" revisions="<<writes<<'\n';
 }
 
@@ -1552,7 +1557,8 @@ void mounted_packed_file_gui_tests(const std::filesystem::path& app,const app_fi
     anchor.read_exact_at(8,first.data(),first.size());
     anchor.read_exact_at(kStoreCommitUnit+8,second.data(),second.size());
     const std::array<std::byte,4> relocated{std::byte{2}};
-    require(first==relocated && second==relocated,"Mounted volume did not settle both cross-group anchors");
+    if(!activation.packed_release_pending)
+      require(first==relocated && second==relocated,"Mounted volume did not settle both cross-group anchors");
     const auto cpu=NativeVolumeFile::inspect(activation.path,expected);
     cpu.filesystem().verify_all();
     const auto verify=[&](std::string_view name,const std::vector<std::byte>& bytes) {
@@ -1563,6 +1569,10 @@ void mounted_packed_file_gui_tests(const std::filesystem::path& app,const app_fi
     verify("witness.bin",activation.packed_witness);
     verify("payload.bin",activation.packed_payload);
     if(continued)verify("continued.bin",activation.packed_witness);
+    if(activation.packed_release_pending)
+      std::cout<<"mounted_packed_pending epoch="<<cpu.info().selection.epoch<<" file_bytes="<<anchor.size()
+          <<" anchor_a="<<std::to_integer<unsigned>(first.front())<<" anchor_b="<<std::to_integer<unsigned>(second.front())
+          <<" independent_cpu=1 files=2 orderly_detach=1"<<std::endl;
     return cpu.info().selection.volume_identity;
   };
   try{gui_tests(app,budget,GuiRuntime::mounted,&activation);}
@@ -1623,6 +1633,7 @@ void mounted_packed_file_gui_tests(const std::filesystem::path& app,const app_fi
     return;
   }
   const auto identity=inspect({},false);
+  require(!activation.packed_release_pending,"Mounted packed allocation did not release the tail group within this trial");
   activation.action=VolumeFileAction::open_existing;
   gui_tests(app,budget,GuiRuntime::mounted,&activation);
   inspect(identity,true);

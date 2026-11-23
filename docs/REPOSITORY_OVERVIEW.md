@@ -46,13 +46,15 @@ packed reclamation replay remained at its first image generation. After
 detach, the native reclaimer recognized 264,896,512 obsolete bytes on the
 same image, selected epoch 2 and reduced allocation to 7,340,032 bytes.
 Independent CPU inspection verified both live files. Additional maintenance
-was pending when the native fixture reached its step limit. The next proof
-is automatic mounted selection and physical retirement across repeated churn.
+was pending when the native fixture reached its step limit. The ordinary
+Open fix let the signed mounted helper reach epoch 2. Releasing the
+physical group through the helper remains open.
 [Cross-group relocation](evidence/dense-cross-group-2026-11-23.json) ·
 [Reopened AMD read](evidence/amd-reopened-paired-sealed-read-2026-11-23.json) ·
 [Sealed image evidence](evidence/sealed-indexed-images-2026-11-22.json) ·
 [Mounted paired selection](evidence/windows11-mounted-paired-sealing-2026-11-23.json) ·
-[Mounted/native differential](evidence/release-execution-reconciliation-2026-11-23.json)
+[Mounted/native differential](evidence/release-execution-reconciliation-2026-11-23.json) ·
+[Mounted handoff](evidence/windows-mounted-packed-handoff-2026-11-23.json)
 
 Keep the shared CPU-readable engine, copy-on-write publication, protected
 decoding dependencies, WinFsp integration and isolated GPU execution. Replace

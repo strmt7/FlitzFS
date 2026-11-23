@@ -1238,8 +1238,14 @@ void NativeFileSession::admit_replacement(const Impl& self,
 }
 
 bool NativeFileSession::handoff_contexts_resolved(const Impl& self) noexcept {
-  for(const auto& slot:self.slots)if(slot.token &&
-      (slot.phase!=Impl::Phase::active || slot.requested || slot.cleanup_delete))return false;
+  for(const auto& slot:self.slots) {
+    if(!slot.token)continue;
+    // The paired file reclaimer preserves inode IDs and context phases.
+    // Keep an ordinary unused context eligible for cancellation at Close.
+    const bool opened=self.persistent_reclaimer && slot.phase==Impl::Phase::opened && !slot.initial_delete;
+    if((slot.phase!=Impl::Phase::active && !opened) || slot.requested || slot.cleanup_delete)
+      return false;
+  }
   for(const auto latch:self.latched)if(latch)return false;
   return true;
 }
