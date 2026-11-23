@@ -593,10 +593,11 @@ void live_read_ahead_admission() {
       <<" demand_samples="<<recovered.read_ahead_demand_samples
       <<" slow_demand_kept_limit=1 timer_only_retries=0 demand_recovered=1 exact_cpu_fallback=1 owner_retired=1\n";
 }
-enum class AmdReadFixtureLayout {mirrored,prepared,automatic_sealed};
+enum class AmdReadFixtureLayout {mirrored,prepared,automatic_sealed,reopened_pair};
 int live_amd_read_ahead(char** argv,bool refuse,AmdReadFixtureLayout layout=AmdReadFixtureLayout::mirrored) {
   const bool sealed=layout!=AmdReadFixtureLayout::mirrored;
   const bool automatic=layout==AmdReadFixtureLayout::automatic_sealed;
+  const bool paired=layout==AmdReadFixtureLayout::reopened_pair;
   require(store_lz4_available(),"owned AMD read-ahead requires a qualified CPU LZ4 decoder");
   const auto number=[](std::string_view value) {
     std::uint32_t result=0;
@@ -630,17 +631,27 @@ int live_amd_read_ahead(char** argv,bool refuse,AmdReadFixtureLayout layout=AmdR
   constexpr std::uint64_t extent=kNativeExtentBytes,image_capacity=8ULL*1024*1024;
   constexpr std::size_t window=2*extent;
   constexpr StoreCompressionOptions fast{StoreCompressionMode::fast,1,false};
+  constexpr StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
   auto owned=automatic?MemoryVolumeBacking::create(true):MemoryVolumeBacking{};
   std::optional<MemoryVolumeDomain> standalone;
-  if(!automatic)standalone.emplace(MemoryVolumeDomain::create((sealed?3:1)*image_capacity+kVolumeHeadBytes));
-  auto& domain=automatic?*owned.domain:*standalone;
-  auto head=automatic?nullptr:domain.create_store(kVolumeHeadBytes);
-  auto image=automatic?nullptr:domain.create_store(image_capacity);
+  if(!automatic && !paired)
+    standalone.emplace(MemoryVolumeDomain::create((sealed?3:1)*image_capacity+kVolumeHeadBytes));
+  auto* domain=automatic?owned.domain.get():standalone?&*standalone:nullptr;
+  std::shared_ptr<StoreByteIo> head,image;
+  std::shared_ptr<SparseVolumeRam> paired_backing;
   NativeMaintenancePolicy qualification;
   qualification.maximum_cpu_busy_ppm=500'000;
-  auto adapter=automatic?WinFspNativeWritable::create_indexed_memory(owned,fast,qualification):
-      WinFspNativeWritable::create_managed_indexed(
-      head,id(90),image,id(1),{image_capacity},fast,{},qualification);
+  std::unique_ptr<WinFspNativeWritable> adapter;
+  if(automatic)adapter=WinFspNativeWritable::create_indexed_memory(owned,fast,qualification);
+  else if(paired) {
+    paired_backing=std::make_shared<SparseVolumeRam>(4096,2*image_capacity+2*1024*1024,true);
+    adapter=WinFspNativeWritable::create_file_volume(paired_backing,id(90),id(1),{image_capacity},fast);
+  } else {
+    head=domain->create_store(kVolumeHeadBytes);
+    image=domain->create_store(image_capacity);
+    adapter=WinFspNativeWritable::create_managed_indexed(
+        head,id(90),image,id(1),{image_capacity},fast,{},qualification);
+  }
   Bytes file(3*window);
   for(std::size_t i=0;i<2;++i) {
     const auto motif=data(extent/8,917+static_cast<unsigned>(i));
@@ -656,21 +667,50 @@ int live_amd_read_ahead(char** argv,bool refuse,AmdReadFixtureLayout layout=AmdR
       require(seed.start(plan())==STATUS_SUCCESS,"sealed AMD source callbacks did not start");
       callback_file(provider,0,file,static_cast<ULONG>(extent));
       callback_file(provider,1,data(kStoreMaxObjectBytes,227),static_cast<ULONG>(extent));
+      if(paired)callback_file(provider,2,Bytes(4*1024*1024),static_cast<ULONG>(extent));
       seed.stop();
       require(seed.write_restart_ready(),"sealed AMD source owner did not retire");
     }
-    {
-      auto builder=NativeFileSession::resume_closed_indexed_volume(head,id(90),1,
-          [&](const StoreIdentity& choice){return choice==id(1)?image:nullptr;},fast,
-          NativeDispositionPolicy::windows_global);
-      selected=select_capture_hybrid(builder,domain,domain.create_store(image_capacity/2),
-          id(2),image_capacity,fast);
+    if(paired) {
+      {
+        auto builder=NativeVolumeFile::resume(paired_backing,id(90),raw,NativeDispositionPolicy::windows_global);
+        require(builder.persistent_reclamation_pending(true),"paired AMD source did not fund its seal");
+        using Step=NativeVolumeReclaimProgress;
+        bool selected_pair=false;
+        for(unsigned turn=0;turn<4096;++turn) {
+          const auto step=builder.advance_persistent_reclamation([]{return id(2);},true);
+          if(step==Step::published) {
+            selected_pair=builder.volume_info().selection.sealed_range.has_value();
+            break;
+          }
+          require(step==Step::copying || step==Step::ready,"paired AMD source could not prepare its seal");
+        }
+        require(selected_pair,"paired AMD source did not select a sealed image");
+        for(unsigned turn=0;paired_backing->allocated_extent(kNativeVolumeFileImageOffset,image_capacity);++turn) {
+          require(turn<8 && builder.advance_persistent_reclamation({})==Step::retiring,
+              "paired AMD setup could not retire the old range");
+        }
+      }
+      paired_backing=paired_backing->replay();
+      adapter=WinFspNativeWritable::resume_file_volume(paired_backing,id(90),raw);
+    } else {
+      {
+        auto builder=NativeFileSession::resume_closed_indexed_volume(head,id(90),1,
+            [&](const StoreIdentity& choice){return choice==id(1)?image:nullptr;},fast,
+            NativeDispositionPolicy::windows_global);
+        selected=select_capture_hybrid(builder,*domain,domain->create_store(image_capacity/2),
+            id(2),image_capacity,fast);
+      }
+      adapter=WinFspNativeWritable::resume_indexed_retired(head,id(90),2,
+          [&](const StoreIdentity& choice){return choice==id(2)?selected:nullptr;},fast,{},0,qualification);
     }
-    adapter=WinFspNativeWritable::resume_indexed_retired(head,id(90),2,
-        [&](const StoreIdentity& choice){return choice==id(2)?selected:nullptr;},fast,{},0,qualification);
   }
   auto* route=adapter.get();
-  WinFspVolumeController owner(std::move(adapter),provider.api(),plan(),domain,{},nullptr,std::move(profile));
+  std::optional<WinFspVolumeController> controller;
+  if(domain)controller.emplace(std::move(adapter),provider.api(),plan(),*domain,
+      std::nullopt,nullptr,std::move(profile));
+  else controller.emplace(std::move(adapter),provider.api(),plan(),std::nullopt,nullptr,std::move(profile));
+  auto& owner=*controller;
   await([&]{return owner.view().state==SessionState::running;},5000,"AMD read controller startup");
   require(!owner.view().amd_read.configuration_refused,"AMD read package did not verify");
   if(!sealed || automatic)callback_file(provider,0,file,static_cast<ULONG>(extent));
@@ -689,13 +729,14 @@ int live_amd_read_ahead(char** argv,bool refuse,AmdReadFixtureLayout layout=AmdR
     require(fs->Interface->Read(fs,context,&first,0,1,&moved)==STATUS_SUCCESS &&
         moved==1 && first==file.front(),"AMD read fixture could not adopt its open context");
   }
+  const auto startup_timeout=automatic?85000:(paired?35000:12000);
   try {
     await([&]{
       const auto status=owner.view();
       if(!status.payload_scrub_passes || route->background_maintenance_pending())return false;
       require(!automatic || status.sealed_compactions==1,"maintenance quiesced without selecting a sealed image");
       return true;
-    },automatic?85000:12000,"AMD read fixture initial maintenance did not quiesce");
+    },startup_timeout,"AMD read fixture initial maintenance did not quiesce");
   }catch(...) {
     const auto state=owner.view();
     const auto volume=route->snapshot();
@@ -779,6 +820,17 @@ int live_amd_read_ahead(char** argv,bool refuse,AmdReadFixtureLayout layout=AmdR
       provider.fs.UserContext==nullptr,"owned AMD read controller did not retire");
   if(!refuse)require(state.amd_read.submitted==3 && state.amd_read.superseded==2 &&
       state.amd_read.published==1,"stop did not cancel the last AMD read flight");
+  if(paired) {
+    const auto reopened=NativeVolumeFile::inspect(paired_backing->replay(),id(90));
+    const auto& snapshot=reopened.filesystem();
+    snapshot.verify_all();
+    require(reopened.info().selection.epoch==2 && reopened.info().selection.image_identity==id(2) &&
+        reopened.info().selection.sealed_range && !reopened.info().degraded && snapshot.list().size()==3 &&
+        snapshot.read("f0",0,static_cast<std::uint32_t>(file.size()+1))==file &&
+        snapshot.read("f1",0,kStoreMaxObjectBytes)==data(kStoreMaxObjectBytes,227),
+        "reopened paired AMD fixture lost its selected image or CPU bytes");
+    std::cout<<"paired_sealed_amd reopened=1 independent_cpu_projection=1\n";
+  }
   if(automatic) {
     owned.release_unselected_after_join();
     require(state.sealed_compactions==1 && owned.selected_image_sealed(),
@@ -3990,8 +4042,11 @@ int main(int argc,char** argv){try {
   const bool profile_automatic_sealed_read=argc==11 &&
       (std::string_view(argv[1])=="--live-amd-automatic-sealed-read" ||
        std::string_view(argv[1])=="--live-amd-automatic-sealed-refusal");
+  const bool profile_paired_sealed_read=argc==11 &&
+      (std::string_view(argv[1])=="--live-amd-paired-sealed-read" ||
+       std::string_view(argv[1])=="--live-amd-paired-sealed-refusal");
   app_fixture::Budget budget(true,profile_installed_read || profile_existing_prefix ||
-      profile_automatic_sealed_read);DWORD before=0,after=0;
+      profile_automatic_sealed_read || profile_paired_sealed_read);DWORD before=0,after=0;
   if(argc==11) {
     const std::string_view command(argv[1]);
     if(command=="--live-amd-read-ahead" || command=="--live-amd-read-refusal")
@@ -4000,6 +4055,8 @@ int main(int argc,char** argv){try {
       return live_amd_read_ahead(argv,command=="--live-amd-sealed-read-refusal",AmdReadFixtureLayout::prepared);
     if(command=="--live-amd-automatic-sealed-read" || command=="--live-amd-automatic-sealed-refusal")
       return live_amd_read_ahead(argv,command=="--live-amd-automatic-sealed-refusal",AmdReadFixtureLayout::automatic_sealed);
+    if(profile_paired_sealed_read)
+      return live_amd_read_ahead(argv,command=="--live-amd-paired-sealed-refusal",AmdReadFixtureLayout::reopened_pair);
   }
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
   if(profile_installed_read || (argc==2 && std::string_view(argv[1])=="--live-installed-native-read"))

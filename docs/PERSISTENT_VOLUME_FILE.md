@@ -220,6 +220,14 @@ advance between idle observations. Device power loss and removal require
 separate checks of the medium and its cache policy.
 [Mounted paired sealing evidence](evidence/windows11-mounted-paired-sealing-2026-11-23.json)
 
+The AMD worker also served two verified LZ4 frames from a reopened
+paired selection through ordinary SDK read callbacks. That fixture
+replayed durable records in owned sparse memory. An unsupported worker
+configuration left exact CPU reads available and stayed fenced for the
+remainder of the attachment. Independent CPU inspection checked the
+selected layout and file bytes after shutdown.
+[Reopened paired AMD evidence](evidence/amd-reopened-paired-sealed-read-2026-11-23.json)
+
 Physical allocation is separate from logical file length. The Windows
 provider requires an explicit isolated range reclamation contract, a
 sparse-capable NTFS volume and compatible live cluster geometry. It

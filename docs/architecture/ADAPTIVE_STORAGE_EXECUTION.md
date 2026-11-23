@@ -57,9 +57,17 @@ continuation after reopening. NTFS reported that the inactive range was
 released after recovery.
 [Mounted process verification](../evidence/windows11-mounted-paired-sealing-2026-11-23.json)
 
-Qualify AMD captures from a reopened paired image, including decode
-refusal and CPU continuity. Measure complete read cost, returned allocation
-and attempted rewrite traffic on real devices. Compare a volatile workspace
+The Radeon RX 9070 XT decoded two verified frames from the reopened
+paired layout in the sparse-memory SDK fixture. An unsupported worker
+configuration was refused after a single request. The CPU route returned
+the same bytes immediately and continued preparing later requests.
+Independent CPU recovery verified the selected image after both trials.
+Combine the AMD path with the mounted Win32 path on the same volume
+before counting it as an end-to-end result.
+[Reopened paired AMD evidence](../evidence/amd-reopened-paired-sealed-read-2026-11-23.json)
+
+Measure complete read cost, returned allocation and attempted rewrite
+traffic on real devices. Compare a volatile workspace
 with the current folded file workspace under the same committed layout.
 Grant volatile scratch from current headroom, keep the selected image
 through cancellation, and verify that the candidate has no dependency on

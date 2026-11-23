@@ -1,0 +1,159 @@
+{
+  "schema": "flitzfs-amd-reopened-paired-sealed-read-v1",
+  "observed_at_utc": "2026-11-23T01:15:07.353965+00:00",
+  "experimental": true,
+  "release_qualified": false,
+  "source": {
+    "base": "06b5bce46361e7791e32163cb6ba3dc1a09c2069",
+    "tree": "0a7d094bda3d3269cc4ef01445f33fff9746d41d",
+    "patch_sha256": "3c81a17ead08be03bb1687a588318307aa8a60726d3dda43afd56909bcd58a18",
+    "blobs": {
+      "tests/test_winfsp_controller.cpp": "0c4a5ad4b625a094a7798fa6089118ad539ad711",
+      "tests/volume_range_fixture.hpp": "55d71d28a5159ee6f61de26f8a1c65e1b4b21a0f"
+    }
+  },
+  "binary": {
+    "build": {
+      "receipt_sha256": "bc78f704ca2e81c344839967566723940485931fb0d6ef8791403582b7975555",
+      "output_sha256": "85fed1e08031240a78bb3461ad9e92fa89e6d1c90afdc95f45617f038859d3ba",
+      "run": "local-run-92040fa1e53d41dc99aac0652bbeda87",
+      "exit_code": 0,
+      "tree_retired": true
+    },
+    "sha256": "9f8a00f223882a152a099791f8e3dda7f60731dc67e8fc6cd23891025e6bcba2"
+  },
+  "amd_package": {
+    "device": "AMD Radeon RX 9070 XT",
+    "driver": "32.0.32029.2010",
+    "architecture": "gfx1201",
+    "worker_sha256": "984e99c1cf14f61ed1d0aadeafe96325148c8b66d5efc8f0fe96e2863dd008d2",
+    "hip_runtime_name": "amdhip64_7.dll",
+    "hip_runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+    "device_module_sha256": "d5c46512c13866c134762a473edcf9360f93c28e8b7d7c703c7f9deeef3300f6"
+  },
+  "live": {
+    "read": {
+      "receipt_sha256": "92bd316b98886d7544027a09ba0c75c454d3f91b7de7d299acb04e3d8499ac96",
+      "output_sha256": "05cfe1f3389dfa549266ff8330b74b45f4fb4cdcc29c64e55d2b28f15db972a6",
+      "run": "local-run-5e86b4138ab94c81bcacd50dac97c088",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 124571648,
+      "result": {
+        "sealed": 1,
+        "refusal": 0,
+        "submitted": 3,
+        "published": 1,
+        "verified_frames": 2,
+        "superseded": 2,
+        "failures": 0,
+        "worker_exit": 1223,
+        "budget_queries": 3,
+        "exact_cpu_fallback": 1,
+        "child_and_owner_retired": 1,
+        "stopped_pending": 1,
+        "checks": 330
+      },
+      "reopened": 1,
+      "independent_cpu_projection": 1
+    },
+    "refusal": {
+      "receipt_sha256": "24592c94f3ba04ff2435456357b5df7eb17bbe1cc1d88b89a58a340d318552ac",
+      "output_sha256": "c7c9d095a85e18baaba385159c8b97ec845219dd23f47559556e15c6fd2de741",
+      "run": "local-run-3d782f8c7f2f4287b66c31ff3474e3fb",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 75542528,
+      "result": {
+        "sealed": 1,
+        "refusal": 1,
+        "submitted": 1,
+        "published": 0,
+        "verified_frames": 0,
+        "superseded": 0,
+        "failures": 1,
+        "worker_exit": 1179845891,
+        "budget_queries": 1,
+        "exact_cpu_fallback": 1,
+        "child_and_owner_retired": 1,
+        "stopped_pending": 0,
+        "checks": 327
+      },
+      "reopened": 1,
+      "independent_cpu_projection": 1
+    }
+  },
+  "earlier_startup_deferral": {
+    "receipt_sha256": "71a8e0602dd97070d8fc39f31362b2e7c5798e8c2d2e7038d994c2c7c659b6ce",
+    "output_sha256": "657ec5c5854acf5c3b05bcfe11be8c0b8a53786fb12eb5a00f74142274fb1564",
+    "run": "local-run-10b3837ae36a4ecea0923675573a0990",
+    "exit_code": 1,
+    "tree_retired": true,
+    "source": "The SDK callback controller deferred incidental maintenance on host CPU load.",
+    "fixture_change": "Retire the source range during controlled fixture preparation and wait for actual resource admission."
+  },
+  "tests": {
+    "windows": {
+      "build": {
+        "receipt_sha256": "178b8b89054fd893dff9e5ba94d2d0debda72b893d01dc5af16aaad473de4474",
+        "output_sha256": "8b13a5e4e9acad2021c493458b8c44538663bf3926f202d94339bd0edef8069b",
+        "run": "local-run-d5e8f062de82470e958f520000714599",
+        "exit_code": 0,
+        "tree_retired": true
+      },
+      "tests": {
+        "receipt_sha256": "d9c3634fe00fe520e56e5407bead20b48c7cd8b9f7b2c870a97030ebce977462",
+        "output_sha256": "0b66436ffc9c48489d19c303d7a65a7bdc6f51f893a3212d994e8b8c27ca04d5",
+        "run": "local-run-9f974a14c0fd441ca80089bc4ff4b2c2",
+        "exit_code": 0,
+        "tree_retired": true,
+        "passed": 2
+      }
+    },
+    "raw": {
+      "build": {
+        "receipt_sha256": "cf47179fc1af85ae861db2d7dac2f0054af00e8842bbb19e0109c3dab1f0701f",
+        "output_sha256": "6db5d1b85a3e8211fa881c8ea0db3ebb603c0cc8aded1684edcb1c631d757653",
+        "run": "local-run-874d85fd01ed4400aed2224a5d1854a8",
+        "exit_code": 0,
+        "tree_retired": true
+      },
+      "tests": {
+        "receipt_sha256": "0a2a2979302e2f8b566e411ccaac6d99e52a46e91dd518d7d32a4c874cc05a36",
+        "output_sha256": "443becc66bc6fa4466d5c232b330396a47bd7824768e55f524dcc86c961c0596",
+        "run": "local-run-c5d6c0b6c72645f2aa6b6147b76945f3",
+        "exit_code": 0,
+        "tree_retired": true,
+        "passed": 2
+      }
+    },
+    "asan": {
+      "build": {
+        "receipt_sha256": "0e33b22d46ad3168fb60fcb043e1c2004e817536905a8bf663f485e089a2415f",
+        "output_sha256": "3573a1470e29c38644b8a425630185b81715f639200a0c69a6f7c1d56eb84c86",
+        "run": "local-run-96a0a5af74584b3883d5307728d66208",
+        "exit_code": 0,
+        "tree_retired": true
+      },
+      "tests": {
+        "receipt_sha256": "eb413c2d34b337ad7a4c561135c52c81a5b216e29e874514e973a36eca9c357c",
+        "output_sha256": "2a03f4e3a649549240ed8d4958a90aa0a5bffac7c7e0260db8660ada52c3064d",
+        "run": "local-run-e8aeac57081c4bd7a009250e0169187f",
+        "exit_code": 0,
+        "tree_retired": true,
+        "passed": 3
+      }
+    }
+  },
+  "host": {
+    "build": "26300",
+    "scoped_processes": [],
+    "winfsp_driver": [],
+    "sandbox_environments": []
+  },
+  "scope": "Actual Radeon worker, ordinary WinFsp SDK read callbacks and the persistent paired layout replayed from owned sparse memory. In the refusal lane the installed worker rejected an intentionally unsupported architecture. CPU service continued and the owner retained the refusal. Independent CPU inspection verified the sealed layout after retirement.",
+  "remaining": [
+    "End-to-end AMD operation through the mounted Win32 client",
+    "Current per-medium cost and physical recovery evidence"
+  ]
+}
