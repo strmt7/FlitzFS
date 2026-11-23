@@ -1,8 +1,8 @@
 # FlitzFS repository overview
 
-Reconciled on 23 November 2026 against the **1,022-file** tree at
-`d4462a626bc69ea2c78f2954dade95308a1ac2e6`. The review maps Windows
-attachment, authority,
+Reconciled on 23 November 2026 against the **1,024-file** tree at
+`1a9ae9423b1eebf6eb31d05b6478e1596a8e5719` and the source-bound
+packed-tail scheduling change. The review maps Windows attachment, authority,
 allocation, recovery, AMD, maintenance and package paths to live source
 and qualification. The [current architecture](architecture/CURRENT.md)
 shows the flows, and the [source review](architecture/REVIEW.md) records
@@ -10,7 +10,8 @@ which assumptions still need evidence. Use the [revised architecture](architectu
 [detailed implementation plan](IMPLEMENTATION_PLAN.md) and
 [release execution plan](RELEASE_EXECUTION_PLAN.md) for forward work.
 
-[Current review receipt](evidence/release-execution-reconciliation-2026-11-23.json) ·
+[Current review and mounted retirement receipt](evidence/windows-mounted-packed-retirement-2026-11-23.json) ·
+[Prior mounted/native reconciliation](evidence/release-execution-reconciliation-2026-11-23.json) ·
 [Previous review receipt](evidence/release-path-review-2026-11-23.json) ·
 [21 November architecture evidence](evidence/architecture-reconciliation-2026-11-21.json) ·
 [Previous handle and recovery reconciliation](evidence/release-reconciliation-indexed-handle-2026-11-22.json) ·
@@ -34,27 +35,28 @@ through the helper next. [Helper factory](../src/windows/volume_app_winfsp.cpp) 
 [Foreground activation tests](../tests/test_native_deferred_write_sdk.cpp) ·
 [Mounted packed lifecycle](evidence/windows-packed-explorer-2026-11-23.json)
 
-**The latest tests establish individual properties.** The packed NTFS
-guest fixture released an entire allocation group and retained correct held
-reads, CPU reopen and continued writes. Reopened paired volumes served two
-verified Radeon read frames and preserved CPU service when the worker refused.
-Sealed indexed AIT A–P images retained the same compacted encodings and
-payload protection at 32,440,320 bytes, down from 51,486,720. Paired placement
-has mounted Windows correctness evidence. Scale, integrated acceleration
-and held-out whole-product size and performance remain open. The mounted
-packed reclamation replay remained at its first image generation. After
-detach, the native reclaimer recognized 264,896,512 obsolete bytes on the
-same image, selected epoch 2 and reduced allocation to 7,340,032 bytes.
-Independent CPU inspection verified both live files. Additional maintenance
-was pending when the native fixture reached its step limit. The ordinary
-Open fix let the signed mounted helper reach epoch 2. Releasing the
-physical group through the helper remains open.
+**The latest mounted test crossed a physical allocation boundary.** The
+signed NTFS guest completed 60 flushed revisions, selected a new image
+and brought occupied allocation from 270,598,144 to 265,551,872 bytes.
+Both allocation anchors advanced while the held reader stayed exact. An
+independent CPU reopen verified both live files, and a fresh writable mount
+accepted a continued write. The earlier detached native run reached
+7,340,032 bytes with maintenance still pending. Repeated mounted churn
+through complete settlement remains open.
+**Existing GPU and compression results have narrower scope.** Reopened
+paired SDK volumes served two verified Radeon read frames and preserved CPU
+service through worker refusal. Sealed indexed AIT A–P images occupied
+32,440,320 bytes, down from 51,486,720 with the same compacted encodings and
+payload protection. These results advance mounted correctness and format
+work. Automatic ordinary AMD writes and matched held-out whole-product
+size, speed and scale still need qualification.
 [Cross-group relocation](evidence/dense-cross-group-2026-11-23.json) ·
 [Reopened AMD read](evidence/amd-reopened-paired-sealed-read-2026-11-23.json) ·
 [Sealed image evidence](evidence/sealed-indexed-images-2026-11-22.json) ·
 [Mounted paired selection](evidence/windows11-mounted-paired-sealing-2026-11-23.json) ·
 [Mounted/native differential](evidence/release-execution-reconciliation-2026-11-23.json) ·
-[Mounted handoff](evidence/windows-mounted-packed-handoff-2026-11-23.json)
+[Mounted handoff](evidence/windows-mounted-packed-handoff-2026-11-23.json) ·
+[Mounted retirement](evidence/windows-mounted-packed-retirement-2026-11-23.json)
 
 Keep the shared CPU-readable engine, copy-on-write publication, protected
 decoding dependencies, WinFsp integration and isolated GPU execution. Replace
@@ -69,9 +71,9 @@ release, tag, publication or product-version change is authorized by this review
 
 ## What is in the repository
 
-The reviewed commit contains 1,022 tracked files and 17,246,508 bytes of
+The reviewed parent contains 1,024 tracked files and 17,329,318 bytes of
 tracked content. The `src/` and `include/` directories contain 214 files
-and 2,389,102 bytes. Each receipt identifies its inspection or test scope.
+and 2,389,396 bytes. Each receipt identifies its inspection or test scope.
 
 | Area | Inventory | Responsibility |
 | --- | ---: | --- |
@@ -79,12 +81,12 @@ and 2,389,102 bytes. Each receipt identifies its inspection or test scope.
 | `include/` | 42 files | Public core, session, storage, resource and recovery interfaces |
 | `tests/` | 153 files | Model, malformed-input, failure, SDK, process, application and qualification fixtures |
 | `tools/` | 66 files | Dependency staging, provenance, resource containment and qualification |
-| `docs/` | 534 files | Contracts, plans, historical results and source-bound evidence |
+| `docs/` | 536 files | Contracts, plans, historical results and source-bound evidence |
 | `.github/` | 19 files | Complementary build, analysis and experimental workflows |
 | `third_party/` | 19 files | Pinned BLAKE3 sources, licensing and provenance |
 | `cmake/`, `evidence/`, `resources/`, and top-level files | 17 files | Build support, historical evidence, branding, README and licensing |
 
-Use the [review inventory and source bindings](evidence/release-execution-reconciliation-2026-11-23.json)
+Use the [review inventory and source bindings](evidence/windows-mounted-packed-retirement-2026-11-23.json)
 and the [cross-group build and test receipt](evidence/dense-cross-group-2026-11-23.json)
 for exact scope.
 
@@ -158,11 +160,11 @@ connects each change to verified source behavior and open proof.
 
 | Component | Implemented and supported by evidence | Material remaining gap |
 | --- | --- | --- |
-| Object storage | Flat and paged stores, checked COW transactions, replicated metadata, bounded indexed selector publication and versioned packed cross-group relocation | Incremental native segment allocation, pageable dense mapping, mounted reclamation and backend-specific recovery |
+| Object storage | Flat and paged stores, checked COW transactions, replicated metadata, bounded indexed selector publication and mounted packed allocation-boundary release | Incremental native segment allocation, pageable dense mapping, repeated settled mounted reuse and backend-specific recovery |
 | Native namespace | Indexed path and handle transactions, typed head selection, mounted guest evidence, scheduled retirement and staged compaction | Full Windows 11 client semantics and interference measurements during large live mutations |
 | Populated capacity | Million-object paged inventory, 16,384 populated files in the native reopen fixture, and 4,096 in the Windows SDK startup fixture | Comparable mounted scale curves for large directories, population, I/O and recovery |
 | Compression | Optional CPU Zstd/LZ4, exact sharing, packed slices and independently readable indexed shared-base methods including copy, residual and prefixed frames | Stronger multireference and independent model candidates with representative held-out complete-size results |
-| Background work | Incremental indexed similarity discovery, live Windows admission, advisory checkpointing and automatic paired-range reclamation | Persistent scale, workload-driven codec selection and a measured policy for background writes |
+| Background work | Incremental indexed similarity discovery, live Windows admission, advisory checkpointing and separate scheduling for eligible backing release | Persistent scale, workload-driven codec selection and a measured policy for aggregate CPU, device and rewrite cost |
 | CPU recovery | Independent parsers/decoders, typed-head validation, surviving-copy reads and source-preserving repair/rebuild primitives | Full backend failure qualification, repair after wider dependency damage and production recovery orchestration |
 | GPU | Installed-runtime read and collective admission in the controller, verified Radeon work and independent CPU reopen, foreground activation through the SDK | Automatic foreground admission in the application, full mounted costs and failure recovery across supported adapters |
 | Windows interface | Writable native SDK callbacks, owner ACL/time initialization, contexts, cleanup/close, metadata/security and directory operations | Current-source mounted product qualification, complete Unicode/path/Win32 behavior, caching/mapping/concurrency and deployment |
@@ -699,10 +701,12 @@ There is no defensible completion percentage. A million object keys, a tray
 application, a GPU request and thousands of checks do not compose into a
 million-file, accelerated, durable product automatically.
 
-The estimate remains **60–130 person-weeks** at low confidence. Re-estimate
-after a populated mounted scale trace, useful AMD on the installed client,
-the held-out whole-volume compression frontier and persistent-provider
-failure checks. The exceptional compression target stays a research risk.
+The estimate remains **60–130 person-weeks** at low confidence. The mounted
+boundary crossing removes an admission defect, while steady-state reuse and
+the other critical-path work still bound the schedule. Re-estimate after a
+populated mounted scale trace, useful AMD on the installed client, the held-out
+whole-volume compression frontier and persistent-provider failure checks.
+The exceptional compression target stays a research risk.
 
 Start from the existing Windows client trace. Qualify sustained packed
 reclamation and make automatic AMD foreground activation reachable through

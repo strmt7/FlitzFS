@@ -127,6 +127,7 @@ struct NativeOptimizationBudgetPublication {
   NativeOptimizationInfo state;
 };
 enum class NativeVolumeReclaimProgress {idle,copying,ready,published,retiring,pinned,failed};
+enum class NativeVolumeReclaimMode {logical_only,release_backing,include_cold};
 struct NativeDenseFileSpace {
   std::uint64_t file_end=0,physical_limit=0,owned_payload_bytes=0,interior_reusable_bytes=0,retired_tail_bytes=0;
   // Live OS allocation of the ordinary file, when the provider verifies it.
@@ -263,8 +264,13 @@ class NativeFileSession final {
   // One admitted idle opportunity. The identity source is invoked only when
   // starting a new image. These operations use the session's control thread.
   bool persistent_reclamation_pending(bool allow_cold=false) const;
+  bool persistent_reclamation_pending(NativeVolumeReclaimMode) const;
   NativeVolumeReclaimProgress advance_persistent_reclamation(const std::function<StoreIdentity()>&,
       bool allow_cold=false,detail::NativeSealScratchOffer={});
+  // Release already reclaimable backing under its own storage opportunity.
+  // Cold codec screening and sealing require include_cold.
+  NativeVolumeReclaimProgress advance_persistent_reclamation(const std::function<StoreIdentity()>&,
+      NativeVolumeReclaimMode,detail::NativeSealScratchOffer={});
   // One memory-only cleanup step after a fresh resource observation.
   bool shed_persistent_seal_scratch(std::uint64_t retained_bytes) noexcept;
   void cancel_persistent_reclamation() noexcept;

@@ -285,6 +285,17 @@ the inactive range. Foreground I/O can continue on the new image during
 the wait.
 [Reader release and recovery evidence](evidence/paired-range-reader-wake-2026-11-20.json)
 
+After old-range retirement, the file owner can select eligible packed
+backing release while optional cold compression waits behind due scrub,
+directory backfill or queued group work. Settlement and selector checks
+still run before each physical step. Existing priorities for repair and
+active pinned work and the admitted idle quantum still apply. The SDK
+fixture verifies foreground refusal, release with scrub due and subsequent
+scrub progress. A signed WinFsp 2.2 NTFS fixture crossed the allocation
+group boundary with a held reader, two upgraded anchors, independent CPU
+reopen and a continued write.
+[Mounted retirement evidence](evidence/windows-mounted-packed-retirement-2026-11-23.json)
+
 After interruption, independent CPU open follows the checked head. A
 writable reopen verifies and repairs the selected head before attempting
 to reclaim an interrupted candidate or old image. Reclamation checks

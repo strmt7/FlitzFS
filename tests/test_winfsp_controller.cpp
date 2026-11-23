@@ -1094,6 +1094,74 @@ void volume_file_callbacks() {
       cpu.filesystem().read("f0",0,static_cast<std::uint32_t>(payload.size()))==payload,
       "fresh CPU model reopen lost original or subsequent callback bytes");
 }
+void dense_file_retirement_with_due_scrub() {
+  using Progress=NativeVolumeReclaimProgress;
+  constexpr PagedStoreLimits limits{8ULL*1024*1024};
+  constexpr auto physical_capacity=2*limits.maximum_physical_bytes+2*1024*1024;
+  const StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
+  const auto volume=id(90);
+  auto backing=std::make_shared<DenseTailRam>();
+  backing->bytes.failure_unit=4096;
+  backing->bytes.capacity=physical_capacity;
+  auto expected=data(kNativeExtentBytes,920);
+  {
+    Provider provider;Provider::active=&provider;
+    WinFspNativeSession writer(WinFspNativeWritable::create_file_volume(
+        backing,volume,id(1),limits,raw,physical_capacity),provider.api());
+    require(writer.start(plan())==STATUS_SUCCESS,"dense retirement producer did not start");
+    callback_file(provider,0,expected);
+    for(unsigned i=1;i<8;++i) {
+      wchar_t name[]=L"\\f0";
+      constexpr auto open_file=FILE_NON_DIRECTORY_FILE|(1U<<24);
+      PVOID context=nullptr;FSP_FSCTL_FILE_INFO info{};
+      require(provider.fs.Interface->Open(&provider.fs,name,open_file,FILE_WRITE_DATA,&context,&info)==STATUS_SUCCESS &&
+          context,"dense retirement producer could not open its file");
+      expected=data(expected.size(),920+i);
+      ULONG count=0;
+      require(provider.fs.Interface->Write(&provider.fs,context,expected.data(),0,static_cast<ULONG>(expected.size()),
+          FALSE,FALSE,&count,&info)==STATUS_SUCCESS && count==expected.size(),"dense retirement producer could not write");
+      callback_cleanup_close(provider,context);
+    }
+    writer.stop();
+    require(writer.write_restart_ready(),"dense retirement producer did not retire");
+  }
+  {
+    auto writer=NativeVolumeFile::resume(backing,volume,raw,NativeDispositionPolicy::windows_global);
+    for(unsigned step=0;writer.persistent_reclamation_pending();++step) {
+      require(step<128,"dense preparation did not retire its old image");
+      const auto result=writer.advance_persistent_reclamation([]{return id(2);});
+      require(result==Progress::copying || result==Progress::ready || result==Progress::published ||
+          result==Progress::retiring,"dense preparation failed");
+    }
+    require(writer.volume_info().selection.epoch==2 && writer.persistent_reclamation_pending(true),
+        "dense preparation did not leave physical tail work");
+  }
+  const auto before=backing->extent();
+  Provider provider;Provider::active=&provider;
+  WinFspNativeSession session(WinFspNativeWritable::resume_file_volume(backing,volume,raw),provider.api());
+  require(session.start(plan())==STATUS_SUCCESS,"dense retirement fixture did not start");
+  NativeMaintenanceObservation observed{1,1000,16ULL<<30,12ULL<<30,32ULL<<30,24ULL<<30,1000,0,1000,true,true};
+  const auto advance=[&] {
+    ++observed.sequence;observed.captured_ms+=1000;
+    return session.advance_background_maintenance(observed,observed.captured_ms,{},WinFspMaintenanceContinuation::none,true);
+  };
+  const auto writes=backing->bytes.calls;
+  require(advance().progress.deferral==NativeMaintenanceDeferral::foreground && backing->bytes.calls==writes,
+      "dense retirement wrote under foreground demand");
+  observed.foreground_pending=false;
+  for(unsigned step=0;step<24 && backing->extent()>=before;++step)(void)advance();
+  require(backing->extent()<before,"a due scrub blocked release of retired dense backing");
+  bool scrubbed=false;
+  for(unsigned step=0;step<32 && !scrubbed;++step)
+    scrubbed=advance().payload_scrub.state==PagedPayloadScrubState::checked;
+  require(scrubbed,"scrub could not continue after dense release");
+  session.stop();
+  require(session.write_restart_ready(),"dense retirement owner did not retire");
+  const auto reopened=NativeVolumeFile::inspect(DenseTailRam::replay(*backing),volume);
+  require(reopened.info().selection.epoch==2 &&
+      reopened.filesystem().read("f0",0,kNativeExtentBytes)==expected,"dense release changed selected bytes");
+}
+
 void volume_file_scrub_checkpoint() {
   using Scrub=PagedPayloadScrubState;
   constexpr PagedStoreLimits limits{24ULL*1024*1024};
@@ -4288,6 +4356,7 @@ int main(int argc,char** argv){try {
     (void)indexed_windows_reopen_profile();
   }else if(volume_file) {
     volume_file_callbacks();
+    dense_file_retirement_with_due_scrub();
     volume_file_scrub_checkpoint();
     indexed_reopen_platform_admission();
     volume_file_idle_reclamation();

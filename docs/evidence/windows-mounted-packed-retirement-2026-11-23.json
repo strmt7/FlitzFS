@@ -1,0 +1,736 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "scope": "Packed tail admission, independent CPU continuity and a fresh stable release plan.",
+  "source": {
+    "base": "1a9ae9423b1eebf6eb31d05b6478e1596a8e5719",
+    "base_tree": "c46ba218bbd54a74c944e62d63bc41b4a6e30b38",
+    "blobs": {
+      "include/flitzfs/native_session.hpp": "4cec58a004de749b2c2dc645cfbd40fbad5fa167",
+      "src/native_session.cpp": "19f01f28160873d92a336155b62d749ecdb073fd",
+      "src/native_volume_file.cpp": "23ab4c362b0a640726988d25020901813e2abdb9",
+      "src/native_volume_file_reclaimer.hpp": "4c547e49d6f31fe258ce344851a99f4f8c3d04b3",
+      "src/windows/winfsp_native.cpp": "b1041fbb0c4332c4c18cf3c892932f8ff8f4e4fb",
+      "tests/test_winfsp_controller.cpp": "3c104ab98bcf502b32f40ede2582ee72ad7cb2c1"
+    },
+    "normalized_sha256": {
+      "include/flitzfs/native_session.hpp": "78cbd5890a7881f59e9b94a4f9c3b7d9f42154c940221095d454ce1108dfece9",
+      "src/native_session.cpp": "fccf6ba57a1ff7e64d605360f37c7e3f513ad510c7c89448ae457ecf187c66ea",
+      "src/native_volume_file.cpp": "0c5ef59952a3b84fd64cb6811c80f9b9e606bc783f2b8875611fb90fb9a108d4",
+      "src/native_volume_file_reclaimer.hpp": "751eecafbb21b72008a98f4c212019526a016891d03940e5470f9396a283e28a",
+      "src/windows/winfsp_native.cpp": "1570ce15c3028529130e374b7bee396be8a60867221caa466a7c20d70025b258",
+      "tests/test_winfsp_controller.cpp": "a31d89bbb57328e3587a486ba3f849d9da5bece68ed0012772811593d6652ccc"
+    },
+    "tracked_parent_inventory": {
+      ".github": {
+        "files": 19,
+        "bytes": 129279
+      },
+      "cmake": {
+        "files": 2,
+        "bytes": 6868
+      },
+      "docs": {
+        "files": 536,
+        "bytes": 9199533
+      },
+      "evidence": {
+        "files": 2,
+        "bytes": 16049
+      },
+      "include": {
+        "files": 42,
+        "bytes": 227708
+      },
+      "resources": {
+        "files": 7,
+        "bytes": 974685
+      },
+      "root": {
+        "files": 6,
+        "bytes": 157149
+      },
+      "src": {
+        "files": 172,
+        "bytes": 2161688
+      },
+      "tests": {
+        "files": 153,
+        "bytes": 3266221
+      },
+      "third_party": {
+        "files": 19,
+        "bytes": 527470
+      },
+      "tools": {
+        "files": 66,
+        "bytes": 662668
+      }
+    },
+    "change_since_previous_review": [
+      "docs/DEVELOPMENT_PLAN.json",
+      "docs/DEVELOPMENT_STATE.json",
+      "docs/IMPLEMENTATION_PLAN.md",
+      "docs/PERSISTENT_VOLUME_FILE.md",
+      "docs/RELEASE_EXECUTION_PLAN.md",
+      "docs/RELEASE_READINESS.md",
+      "docs/REPOSITORY_OVERVIEW.md",
+      "docs/WINDOWS_VOLUME_APP.md",
+      "docs/architecture/CURRENT.md",
+      "docs/architecture/REVIEW.md",
+      "docs/evidence/release-execution-reconciliation-2026-11-23.json",
+      "docs/evidence/windows-mounted-packed-handoff-2026-11-23.json",
+      "src/native_session.cpp",
+      "tests/test_winfsp_controller.cpp",
+      "tests/windows_volume_app_tests.cpp"
+    ]
+  },
+  "mechanism": "File-backed maintenance distinguishes logical reclamation, physical release and optional cold candidate screening under the existing indexed admission. Both pending and advance use the same selection.",
+  "mounted_diagnostic": {
+    "receipt_dir": "local-run-c724490f7b734bc199a6c96df1fbc029",
+    "exit_code": 1,
+    "tree_retired": true,
+    "stop_reason": null,
+    "result_sha256": "6943f7a134c58b2bae26e7151e074f80048a875b94cb49bbf30b9f28866d73f4",
+    "stdout_sha256": "20c4440b494dc07374f705fde766071354a3f80d543ee9638c71c9045b2a20e8",
+    "guest_build": "26100",
+    "guest_exit": 1,
+    "guest_postflight_empty": true,
+    "driver_deployment": "WinFsp development registration",
+    "driver_stop_exit": 5,
+    "driver_unregistration_exit": 0,
+    "driver_retired_with_guest": true,
+    "guest_receipt_sha256": "7c8e453334b5f526782cb7996451436ac80464fdac4d9211d397f69c04dee961",
+    "sandbox_receipt_sha256": "e75ec98fdb5468a8ab9ceea2b04a77d50f394262f708ef7e619a896b005f5f41",
+    "input_sha256": {
+      "flitzfs_volume_app.exe": "42022b315a699320a21a579c04095c3405c157f9f4b242f4c0972294c7c4e39c",
+      "flitzfs_volume_app_tests.exe": "bc198d48eed68c5e971a66a69ce0b83741f7cd6dc2c9389289f75a55602cabb4",
+      "flitzfs_volume_attachment_tests.exe": "6c5e2bca2615eb09a416c6c17b418f6c218aaf2552cd6522d25a0de036d41c1e",
+      "winfsp-x64.dll": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+      "winfsp-x64.sys": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+      "msvcp140.dll": "59d325227321d52b9a523ea401ce6787a5d59f78229a0ff3a6f124e5d3445685",
+      "msvcp140_atomic_wait.dll": "8b10c6bd4c3c427ce7c8be96ef0fef0f8187bc236962be62a03caef834b37dcd",
+      "vcruntime140.dll": "eb1ee979bf02324712346e5bdbfc59c785388bc50d18cc2688aae4b0734915a0",
+      "vcruntime140_1.dll": "a14b4a42a2c6df04d6d53a8340816023d953406f7f3d94996c7cab30c414ff63"
+    },
+    "test_stdout": [
+      "mounted_packed_population allocated=270598144 revisions=60",
+      "mounted_packed_observed before_allocation=270598144 after_allocation=275841024 held_reader=1 witness_bytes=200816 revisions=60",
+      "GUI command: 108",
+      "retirement selected=1 pin_checks=0 last_refs=1 old_quanta=65 old_extent_start=269615104 old_extent_end=0 old_drained=1 tail_blocked=92 tail_admitted=0 tail_steps=0 tail_errors=0 retire_errors=0 catalog_steps=0 after_switch_ms=176828 after_drain_ms=98819 error=[] controller_quanta=144 compaction_continuations=136 post_compaction_failures=0",
+      "GUI command: 105",
+      "GUI command: 106 (asynchronous exit)",
+      "mounted_packed_pending epoch=2 file_bytes=274989056 anchor_a=1 anchor_b=1 independent_cpu=1 files=2 orderly_detach=1"
+    ],
+    "performance_measured": false,
+    "diagnostic_patch_sha256": "932a38027663a0f6357e5eb61f0d9030f9f1d8d8d15027aa41f557a709ae8620",
+    "diagnostic_source_sha256": {
+      "CMakeLists.txt": "94d1eaf64c81d8c76271843f857519b4d55d09431deb3d9d2f2ae8dcf315f3ff",
+      "src/native_volume_file.cpp": "f05b27e58bd3de119fbdcd3a40d744b91bf68f70008666a05fccbc46603bd0f7",
+      "src/windows/volume_app.cpp": "b16fc027e71cf44c50cd7167acd8eb7bcf616de5146a393aff6122986c648976",
+      "src/windows/volume_attachment.hpp": "814cf2451dd3449ad9a12f0bf796445094808e175f70098e926294b981857bec",
+      "src/windows/winfsp_volume_attachment.cpp": "abe63b920ec48ba81b57a5674c2840a579d7f981ef6a5a96793530da3f373757",
+      "tests/windows_volume_app_tests.cpp": "fa932fd8cc1ffa6cae48aa41603463ac087824509065edae9c446c584f152e7b"
+    },
+    "observed_counters": {
+      "selected": 1,
+      "pin_checks": 0,
+      "last_refs": 1,
+      "old_quanta": 65,
+      "old_extent_start": 269615104,
+      "old_extent_end": 0,
+      "old_drained": 1,
+      "tail_blocked": 92,
+      "tail_admitted": 0,
+      "tail_steps": 0,
+      "tail_errors": 0,
+      "retire_errors": 0,
+      "catalog_steps": 0,
+      "after_switch_ms": 176828,
+      "after_drain_ms": 98819,
+      "controller_quanta": 144,
+      "compaction_continuations": 136,
+      "post_compaction_failures": 0
+    }
+  },
+  "mounted_current": {
+    "receipt_dir": "local-run-8c14261b8a2047e6984c45ad27e2db21",
+    "exit_code": 0,
+    "tree_retired": true,
+    "stop_reason": null,
+    "result_sha256": "da0f79f6f47bb44527c55b7322fe59d3c28402b9e76930daf4f18f7f90a9a3f6",
+    "stdout_sha256": "e9da840dcd6c864de212bcb585ac826624f08dfa97fbc25e42ce59ee088788bb",
+    "guest_build": "26100",
+    "guest_exit": 0,
+    "guest_postflight_empty": true,
+    "driver_deployment": "WinFsp development registration",
+    "driver_stop_exit": 5,
+    "driver_unregistration_exit": 0,
+    "driver_retired_with_guest": true,
+    "guest_receipt_sha256": "4ba594d4b3325586726c1fcb1cee6a251338b2e4df9ccb7d7815c285ab49e1d8",
+    "sandbox_receipt_sha256": "ab565776d441d75f863873bcad7919943fc2a96bd6c38b6b45a0c5cbc384ce20",
+    "input_sha256": {
+      "flitzfs_volume_app.exe": "e13a7a38d02cb8467bc883b60d1dd86492b167ed349637da4e19dd3a79683074",
+      "flitzfs_volume_app_tests.exe": "d2ed3526d0860dc01f8817d1655fa60ad5cfd7fc0bd3372e76d27405298a1643",
+      "flitzfs_volume_attachment_tests.exe": "2f3642d79f2f68f07a4fbb2dad0599e3d4fc8682d317638bf18b5383d5aeab48",
+      "winfsp-x64.dll": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+      "winfsp-x64.sys": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+      "msvcp140.dll": "59d325227321d52b9a523ea401ce6787a5d59f78229a0ff3a6f124e5d3445685",
+      "msvcp140_atomic_wait.dll": "8b10c6bd4c3c427ce7c8be96ef0fef0f8187bc236962be62a03caef834b37dcd",
+      "vcruntime140.dll": "eb1ee979bf02324712346e5bdbfc59c785388bc50d18cc2688aae4b0734915a0",
+      "vcruntime140_1.dll": "a14b4a42a2c6df04d6d53a8340816023d953406f7f3d94996c7cab30c414ff63"
+    },
+    "test_stdout": [
+      "mounted_packed_population allocated=270598144 revisions=60",
+      "mounted_packed_relocation before_allocation=270598144 after_allocation=265551872 held_reader=1 witness_bytes=200816 revisions=60",
+      "GUI command: 108",
+      "GUI command: 105",
+      "GUI command: 106 (asynchronous exit)",
+      "GUI command: 108",
+      "GUI command: 105",
+      "GUI command: 106 (asynchronous exit)",
+      "mounted_packed_confirmation upgraded_anchors=2 independent_cpu=1 fresh_writable_mount=1 continued_write=1 both_dispatchers_retired=1",
+      "Windows volume application checks: 1549. Disposable mounted workflow."
+    ],
+    "performance_measured": false,
+    "allocation_before_bytes": 270598144,
+    "allocation_at_boundary_bytes": 265551872,
+    "scope": "First physical group boundary reached after 60 flushed overwrites. Full settlement and repeated churn remain open."
+  },
+  "controlled_regression": {
+    "before": {
+      "receipt_dir": "local-run-5f0cb9e51ae34bfea8de9ad7e84c5723",
+      "exit_code": 1,
+      "tree_retired": true,
+      "stop_reason": null,
+      "result_sha256": "cfc1fd9eb41a16ebec50e1ef06e0bbc6a6aa0cfe5fe37d9bc25480f7c69bc6b6",
+      "stdout_sha256": "a083793ebdc690db076ee3ff199bfab7b6a8fe8ef030189c4c7dd33ba9cc264a",
+      "first_failure": "a due scrub blocked release of retired dense backing"
+    },
+    "after": {
+      "receipt_dir": "local-run-e81ba1085dd94f5a85df9e254252c32e",
+      "exit_code": 0,
+      "tree_retired": true,
+      "stop_reason": null,
+      "result_sha256": "7ccf064825269f8119f7d7fca2f73aa566d907f116f8f3750e2413206bcddffb",
+      "stdout_sha256": "7888e328ad0cb0efbb5cac52bd6a82fe7db6e86e904a6be65fd68783b4e821fa",
+      "checks": 2759,
+      "observations": [
+        "No backing write on a foreground observation.",
+        "Physical release progresses while scrub is due.",
+        "Scrub proceeds after release and independent CPU reopen is exact."
+      ]
+    }
+  },
+  "verification": {
+    "windows": {
+      "receipt_dir": "local-run-44aac6a4bbc546c99a468b8aa464bc2c",
+      "exit_code": 0,
+      "tree_retired": true,
+      "stop_reason": null,
+      "result_sha256": "bd109acce21eafbbdefde52dceed85cdfce8232f6a7ce2d2aebb6779d4f4c0cd",
+      "stdout_sha256": "91634c5ba3e58fe624b0857ac27178b44c1d83dbb55c447298b5789dccbaacee",
+      "passed": 217
+    },
+    "windows_raw": {
+      "receipt_dir": "local-run-ab85f317e6de4160b18ff23f747cdd47",
+      "exit_code": 0,
+      "tree_retired": true,
+      "stop_reason": null,
+      "result_sha256": "fa13fb167d671a5ca244e22bbe179e2b543a67b3d56592ff5884b93a25f78e75",
+      "stdout_sha256": "6dc137277ce7a445f11cebecbc930e64a832a32fefb460f832700dba6f0fb16a",
+      "passed": 12
+    },
+    "windows_asan": {
+      "receipt_dir": "local-run-0d7ce46f64484a91a9dc12d2931d3a0f",
+      "exit_code": 0,
+      "tree_retired": true,
+      "stop_reason": null,
+      "result_sha256": "fc23cfa7df1dd4de421307efd98bee6bcac32219bf7d1301d6ea10d2c7bf8bd6",
+      "stdout_sha256": "d8e95534eea715b011b0b3802d048a49f52f416c4e71ac3e14acf62a19ca7f90",
+      "passed": 13
+    },
+    "windows_isolated_winfsp": {
+      "receipt_dir": "local-run-8c14261b8a2047e6984c45ad27e2db21",
+      "exit_code": 0,
+      "tree_retired": true,
+      "stop_reason": null,
+      "result_sha256": "da0f79f6f47bb44527c55b7322fe59d3c28402b9e76930daf4f18f7f90a9a3f6",
+      "stdout_sha256": "e9da840dcd6c864de212bcb585ac826624f08dfa97fbc25e42ce59ee088788bb"
+    },
+    "parallel_asan_attempt": {
+      "receipt_dir": "local-run-06b5eb06748e483594083aacb4bd3705",
+      "exit_code": 3221226505,
+      "tree_retired": true,
+      "stop_reason": null,
+      "result_sha256": "07c1618719ebf6bf05d53106139f610f8b41095d39d2f70c2112f562b045394c",
+      "stdout_sha256": "199b4a0343c14fdcc919879ce16296b6a510f0eb91786f9de20493b7cfc64ac3",
+      "sanitizer_runtime_preflight": "passed",
+      "job_memory_limit_bytes": 1017118720,
+      "peak_job_bytes": 1017303040,
+      "resolution": "The serial rerun preserves instrumentation and the runtime preflight."
+    }
+  },
+  "source_routing": {
+    "packed": {
+      "receipt_dir": "local-run-f630398dee0e4ef2b5158febb96409f0",
+      "exit_code": 0,
+      "tree_retired": true,
+      "stop_reason": null,
+      "result_sha256": "b7f55b4de78338a8a3c0685f85682db5418b5dfacca3396083775aedd4caa9db",
+      "stdout_sha256": "8642d6b0648cd2fffd216023736409a4f25ce5a76c4038b54a29c301e78eff21",
+      "source_inventory_sha256": "2cb7835c0d60db7f35400ea00a0e6ac7a5971930fb60f67c7d646014c1990026",
+      "native_result_sha256": "e4f7a9d693bd4af09dae1f7d51b33291c8bcf154704552d0afe54216412d81e6",
+      "results": [
+        {
+          "file_path": "src/dense_volume_backing.cpp",
+          "start_line": 674,
+          "end_line": 685
+        },
+        {
+          "file_path": "src/native_volume_file.cpp",
+          "start_line": 262,
+          "end_line": 278
+        },
+        {
+          "file_path": "src/windows/winfsp_native.cpp",
+          "start_line": 1062,
+          "end_line": 1074
+        },
+        {
+          "file_path": "src/native_volume_file.cpp",
+          "start_line": 490,
+          "end_line": 499
+        },
+        {
+          "file_path": "src/native_volume_file.cpp",
+          "start_line": 279,
+          "end_line": 288
+        }
+      ]
+    },
+    "amd": {
+      "receipt_dir": "local-run-8e7463885a8347e6ab6849a6bc55bf47",
+      "exit_code": 0,
+      "tree_retired": true,
+      "stop_reason": null,
+      "result_sha256": "89a819e92113844989c60408687564f42f6ff5d52be2707efd9319b5741ab7e4",
+      "stdout_sha256": "de43d59208a04b44025a49a0c7a28c6811b8039d7158f810417fc2593df8c986",
+      "source_inventory_sha256": "c435c479649d0cc9b037a6ee5aeee970cc98d4cc57eaa257bd7969c1e1936362",
+      "native_result_sha256": "9ab52468404c4e95c519e003061e9d57ed43179221c3d02237e3e9d26f77f236",
+      "results": [
+        {
+          "file_path": "src/windows/native_amd_write_policy.cpp",
+          "start_line": 42,
+          "end_line": 44
+        },
+        {
+          "file_path": "src/windows/winfsp_controller.cpp",
+          "start_line": 353,
+          "end_line": 369
+        },
+        {
+          "file_path": "src/windows/native_deferred_write.cpp",
+          "start_line": 25,
+          "end_line": 39
+        },
+        {
+          "file_path": "src/windows/winfsp_controller.cpp",
+          "start_line": 209,
+          "end_line": 216
+        },
+        {
+          "file_path": "src/windows/hip_route_discovery.cpp",
+          "start_line": 101,
+          "end_line": 105
+        }
+      ]
+    },
+    "broad_failed": {
+      "receipt_dir": "local-run-2147308cffbc48bcafaac8accaaab304",
+      "exit_code": 1,
+      "tree_retired": true,
+      "stop_reason": null,
+      "result_sha256": "6e0c882b4a27036fa618635b274ae2e60e62d52511130f0558faf95fe2e3b9b8",
+      "stdout_sha256": "3d18217e0452c293cd319d868595ba7f0d9588d556276b1d56b6e6cf01772389",
+      "source_inventory_sha256": "81d770c58b8f73206878fcede86b336efc105242338a73f973666fd7cbb9a165",
+      "failure": "Connection to daemon lost during indexing",
+      "native_failure_sha256": "7868bae855b9aeef3aeb4a9ed9c8af1876446a3c64f611b8424a1fc50d29ac11"
+    },
+    "release_focused": {
+      "receipt_dir": "local-run-27c380c39f8a4a269b32dfff2cd0c8ff",
+      "exit_code": 0,
+      "tree_retired": true,
+      "stop_reason": null,
+      "result_sha256": "74767d81ed2f7352ba96b227bed43615468f4941bb146a52e913f3a615b5f284",
+      "stdout_sha256": "4b6ae97c50e67616718af3bf9941ab1a83310e663c186676d3d42339db66940c",
+      "source_inventory_sha256": "6055004bfb558ef3c28b12ca0f938a83309a1f25da0339350c15622b61c40fc5",
+      "native_result_sha256": "7ccef128e7856700924e08b9ddbc40ec8aab32cd2bb93cb3933aa9859b9873d7",
+      "results": [
+        {
+          "file_path": "src/native_session.cpp",
+          "start_line": 690,
+          "end_line": 694
+        },
+        {
+          "file_path": "tools/ci/qualify_rocm_sdk.py",
+          "start_line": 990,
+          "end_line": 998
+        },
+        {
+          "file_path": "tools/ci/qualify_rocm_sdk.py",
+          "start_line": 1141,
+          "end_line": 1151
+        },
+        {
+          "file_path": "tools/ci/qualify_rocm_sdk.py",
+          "start_line": 985,
+          "end_line": 991
+        },
+        {
+          "file_path": "tools/ci/qualify_rocm_sdk.py",
+          "start_line": 1134,
+          "end_line": 1143
+        }
+      ]
+    }
+  },
+  "primary_research": {
+    "windows_allocation": {
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "provider_source_identity": "ec3cb7a98eceed8fef08f3af806d6eaed35656bd76ca0ee8853d273f790337a5",
+      "robots_check": true,
+      "timeout_seconds": 45,
+      "external_llm": false,
+      "receipt_sha256": "6e9beb497df28d73366863a9943b8c8f78d479db5f5c28dc24a09c25bd9c2648",
+      "pages": [
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-setendoffile",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 35778,
+          "markdown_sha256": "d6742cfb151617e8231e745985b1fccb1ba5331a42da24c64df0ceab8cf95ad9",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "capture_sha256": "9c16697f32498488470a0a8512564e70080486900fa67673e35edf5d43238407",
+          "name": "set-end-of-file"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_end_of_file_info",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 36074,
+          "markdown_sha256": "6018fa2cb8107a8e649e12befc5a8848f04dbb99a8437efc8f5eb28625599c8e",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "capture_sha256": "1c2f1aa8ba69f5a4b834946def8d857739ae2111c887a95748d2df61582fba32",
+          "name": "end-of-file-information"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_allocation_info",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 36746,
+          "markdown_sha256": "b8e501c32be8ea95315638155c33362303db54a33c903b2f80ae922ae643518b",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "capture_sha256": "3497ab32343378389d8fa658de0f8c136eaeaa45663cd4a20303c40b7887bb08",
+          "name": "file-allocation-information"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/fileio/file-caching",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 23227,
+          "markdown_sha256": "6f6a632ded8fba3af29ee5630a4126ac5fdb5338b81c1827b3a66556d03ebf62",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "capture_sha256": "8ba7f63b495bc919a2185c3df1268e412d00835d003b6b4ec3b02c4d51a6f06c",
+          "name": "file-caching"
+        }
+      ]
+    },
+    "release_plan": {
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "provider_source_identity": "ec3cb7a98eceed8fef08f3af806d6eaed35656bd76ca0ee8853d273f790337a5",
+      "robots_check": true,
+      "timeout_seconds": 45,
+      "external_llm": false,
+      "receipt_sha256": "67894318893168240d138503190e677e7fdb5c95c45d88f0b02ff2676d5ebd88",
+      "pages": [
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 78583,
+          "markdown_sha256": "2faae088806a31e9fb4957a073081fb98ba56f0b12a7541b87233f5d5d9ccbec",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "capture_sha256": "fb74f0762690a2f200e10632fc3bd7ee891230ed2b49131e9d33232091b1e3df",
+          "name": "windows-release-information"
+        },
+        {
+          "url": "https://rocm.docs.amd.com/en/docs-10.2.0/about/release-notes.html",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 303361,
+          "markdown_sha256": "18caaf90d5ea55c1acb99c34abb277aa89c6eada8e5300b6ffdebe356e45a728",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "capture_sha256": "2d49259bedfc5f23e3c74927bf0ca61514fd0232bfd76046df871ab9d7d5461c",
+          "name": "rocm-10-2"
+        },
+        {
+          "url": "https://rocm.docs.amd.com/en/docs-10.2.0/install/rocm.html",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 226767,
+          "markdown_sha256": "59f751df1840f5db1853aebb5e22593e505fd379bc6d0008b81ff45c77ac4133",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "capture_sha256": "c666f9c2bf8ded19f14444972ff9a3b0d3abdc28d4e988f6f21e6453d318e492",
+          "name": "rocm-10-2-install"
+        },
+        {
+          "url": "https://github.com/microsoft/diskspd/releases/tag/v2.3",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 10890,
+          "markdown_sha256": "eeb9b62171e288479521b4b40ed1cc6cce292b18b155e44762c8f59b64d05cb2",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "capture_sha256": "5b8f66af4e17997eec7195bbfbb5d931035e2701ad96aaef61f4d6f0765f2ccf",
+          "name": "microsoft-diskspd"
+        },
+        {
+          "url": "https://github.com/winfsp/winfsp/releases/tag/v2.2",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 14040,
+          "markdown_sha256": "8f4088fb00fc374e043238c09f208c2a45592c26488ac5adcf75ae6e35765ef6",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "capture_sha256": "d2a6843db03f9ea43cc6b93a91b96be09aab52b54def902a5a02cf0b49fa4f58",
+          "name": "winfsp-stable"
+        },
+        {
+          "url": "https://www.usenix.org/conference/fast26/presentation/huang",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 10395,
+          "markdown_sha256": "b271b38f1feb88acd780ae11d756c7f3723fecb288cfe5e7803fed9c5d93767d",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "capture_sha256": "f6e5a64e0ae27d35e316c60af24aaecffe380a8e670c02c3cbe202efcd2799a1",
+          "name": "rubikfs-fast26"
+        },
+        {
+          "url": "https://www.usenix.org/conference/nsdi26/presentation/shawger",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 8836,
+          "markdown_sha256": "690441a6f74b9072f40c7be048f631b89e74051b9c46d493858f18f190c9999c",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "capture_sha256": "63a49ac622669c37a63b5d866659426c21aabc3b9fe1dcd21747468bc819cdb1",
+          "name": "xll-nsdi26"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_compression",
+          "success": false,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 63183,
+          "markdown_sha256": "48b0bd005d9276173ea26d9d5ddfd0f6019586ea3a1cd33cb8e74730a01f060a",
+          "expected_content": false,
+          "failure_category": "unexpected_content",
+          "error": "",
+          "capture_sha256": "f4721f2e2655638cd3aaf2fe747f11900d0e122bfee244a9a990bf68a89af524",
+          "name": "native-ntfs"
+        }
+      ]
+    },
+    "ntfs_native_recheck": {
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "provider_source_identity": "ec3cb7a98eceed8fef08f3af806d6eaed35656bd76ca0ee8853d273f790337a5",
+      "robots_check": true,
+      "timeout_seconds": 45,
+      "external_llm": false,
+      "receipt_sha256": "07e6a39e5c97c678714149cfa6e287ddb8dc4d812ce718563154acf8cba6e26c",
+      "pages": [
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_compression",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 63183,
+          "markdown_sha256": "48b0bd005d9276173ea26d9d5ddfd0f6019586ea3a1cd33cb8e74730a01f060a",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "capture_sha256": "49a03dc440ad062d33cb560e96efcb484ae1c4de5bd0d368b3df5f6845f1fc16",
+          "name": "native-ntfs-set"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_get_compression",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 62004,
+          "markdown_sha256": "390314720de1e4c5dbc16c818f666b94bbe2650b68317f67da3008a382fb932d",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "capture_sha256": "d20a7e5de197e5c2d18bb7aa335de1fd54cf67f88c18f30f39623b41c23c8a19",
+          "name": "native-ntfs-get"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/compact",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 45765,
+          "markdown_sha256": "e467e58dda0165da314be4e28c476e21eec3c6b71df18ed989bf01a444e99ac5",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "capture_sha256": "d772af0d8e2d11e07357dda4208d4b66d064e4682db7a5a1f4ed97d62b98b538",
+          "name": "compact"
+        }
+      ]
+    },
+    "rejected_duplicate_scope_receipt_sha256": "c15552f401e1611c906d6299cfe34e132f960c230250425c5794ab3ee6f77086"
+  },
+  "release": {
+    "qualification": "development",
+    "open_product_gates": 12,
+    "remaining_effort_person_weeks": [
+      59,
+      127
+    ],
+    "estimate_confidence": "low",
+    "plan": "docs/RELEASE_EXECUTION_PLAN.md",
+    "release_qualified": false,
+    "work_remaining": [
+      "Repeated full allocation settlement under mounted churn and bounded reopen at scale.",
+      "Measured ordinary automatic AMD writes, cold reads and collective work on the supported client.",
+      "Held-out complete-volume compression and latency, offline learning and shared resource budgets.",
+      "Provider failures and independent repair, supported format migration and the exact Windows package.",
+      "Recognized live-host comparison and exact-candidate soak."
+    ]
+  },
+  "live_amd": {
+    "scope": "Current-build admission recheck on the owner host. The previous installed AMD result remains separately bound.",
+    "result": "deferred before worker launch",
+    "observations": [
+      {
+        "ready": false,
+        "loads": [
+          8,
+          6,
+          15
+        ],
+        "build": "26300",
+        "physical_available_kib": 16173152,
+        "commit_available_kib": 56826148,
+        "devices": [
+          {
+            "Name": "AMD Radeon RX 9070 XT",
+            "DriverVersion": "32.0.32029.2010"
+          }
+        ],
+        "artifacts": [
+          {
+            "name": "flitzfs_native_lz4_read_worker.exe",
+            "sha256": "984e99c1cf14f61ed1d0aadeafe96325148c8b66d5efc8f0fe96e2863dd008d2",
+            "bytes": 553472
+          },
+          {
+            "name": "flitzfs_rocm_native_lz4_decode.dll",
+            "sha256": "d5c46512c13866c134762a473edcf9360f93c28e8b7d7c703c7f9deeef3300f6",
+            "bytes": 145920
+          },
+          {
+            "name": "amdhip64_7.dll",
+            "sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+            "bytes": 17382040
+          }
+        ],
+        "run": "local-run-7773cf3ce5fc42a2851095c4ff86f3ab"
+      },
+      {
+        "ready": false,
+        "loads": [
+          28,
+          15,
+          20
+        ],
+        "build": "26300",
+        "physical_available_kib": 16257864,
+        "commit_available_kib": 56932600,
+        "devices": [
+          {
+            "Name": "AMD Radeon RX 9070 XT",
+            "DriverVersion": "32.0.32029.2010"
+          }
+        ],
+        "artifacts": [
+          {
+            "name": "flitzfs_native_lz4_read_worker.exe",
+            "sha256": "984e99c1cf14f61ed1d0aadeafe96325148c8b66d5efc8f0fe96e2863dd008d2",
+            "bytes": 553472
+          },
+          {
+            "name": "flitzfs_rocm_native_lz4_decode.dll",
+            "sha256": "d5c46512c13866c134762a473edcf9360f93c28e8b7d7c703c7f9deeef3300f6",
+            "bytes": 145920
+          },
+          {
+            "name": "amdhip64_7.dll",
+            "sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+            "bytes": 17382040
+          }
+        ],
+        "run": "local-run-9cc4e96633b945fba700294d9cf609a3"
+      }
+    ],
+    "previous_real_device_evidence": "docs/evidence/amd-reopened-paired-sealed-read-2026-11-23.json"
+  }
+}

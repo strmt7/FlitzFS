@@ -1,8 +1,9 @@
 # Current FlitzFS architecture
 
-The diagrams reflect the 23 November source review through
-`d4462a626bc69ea2c78f2954dade95308a1ac2e6`. The
-[current review receipt](../evidence/release-execution-reconciliation-2026-11-23.json)
+The diagrams reflect the 23 November source review at
+`1a9ae9423b1eebf6eb31d05b6478e1596a8e5719` and the packed-tail
+scheduling change. The
+[current review receipt](../evidence/windows-mounted-packed-retirement-2026-11-23.json)
 binds source and evidence. The [subsystem review](REVIEW.md) contains the
 detailed reconciliation. The [revised architecture](TARGET.md) describes
 planned product changes.
@@ -321,13 +322,18 @@ flowchart TD
     Scan --> Postings["Read or update sparse coherence postings"]
     Postings --> Plan["Nominate bases and candidate extents"]
     Decide --> Repair["Scrub, repair and directory backfill"]
-    Decide --> Reclaim["Incremental staging of alternate image or region retirement"]
+    Decide --> Reclaim["Stage alternate image or retire old logical range"]
+    Decide --> Tail["Select eligible packed backing release"]
+    Decide --> Screen["Cold codec screening if the optional work gate permits"]
     Plan --> Search["CPU matching or qualified AMD advice"]
     Search --> Compare["Check tokens, bytes and complete compacted cost"]
     Compare -->|Smaller and current| Publish["Publish protected group by normal transaction"]
     Compare -->|Stale or no net improvement| Yield
     Repair --> Yield
     Reclaim --> Commit["Verify target and publish selector before old range retirement"]
+    Tail --> Allocator["Recheck selector and ownership then release a bounded suffix"]
+    Allocator --> Yield
+    Screen --> Yield
     Commit --> Yield
     Publish --> Yield
 ```
@@ -351,22 +357,26 @@ flowchart TD
     Scheduler --> Slot{"Indexed maintenance slot admitted?"}
     Slot -->|Deferred| Event
     Slot -->|Admitted| Native["Native maintenance evaluates repairs, groups and reclamation"]
-    Native --> Pending{"Image or physical-tail work pending?"}
-    Pending -->|Yes| Advance["Bounded reclaimer step"]
-    Pending -->|No| Idle["Another eligible task or idle"]
-    Advance --> Ownership["Verify image and allocation ownership before replacement or release"]
+    Native --> Phase{"What can safely advance?"}
+    Phase -->|Logical reclaim| Advance["Stage, select, or retire a range"]
+    Phase -->|Eligible packed tail| Release["Relocate or shorten after settled ownership"]
+    Phase -->|Cold work permitted| Screen["Screen and fund cold image work"]
+    Phase -->|Deferred| Idle["Another eligible task or wait for evidence"]
+    Advance --> Ownership["Verify image and allocation ownership"]
+    Ownership --> Release
     Detach["Detached packed fixture with independent native writer"] --> Direct["Explicit native admission and step"]
     Direct --> Advance
-    Ownership --> Verify["After retirement, independent CPU reopen and physical accounting"]
+    Release --> Verify["After retirement, independent CPU reopen and physical accounting"]
 ```
 
-The ordinary mounted replay stayed at its original image during the observed
-window. The detached native control selected epoch 2, reduced backing
-allocation and passed independent CPU checks on both live files.
-Maintenance was pending at the last bounded native step. The
-[next implementation slice](../RELEASE_EXECUTION_PLAN.md#first-implementation-slice)
-records mounted admission and the first divergent transition before making
-a scheduling or allocation change.
+The earlier mounted trace completed inactive-range retirement, then withheld
+eligible physical tail work behind the optional cold-work gate. File-backed
+maintenance now admits eligible backing release through the ordinary idle
+policy. The signed WinFsp guest crossed the packed group boundary and verified
+both version-2 anchors, the held reader, independent CPU reopen and a continued
+write. The next fixture extends this result through repeated settled cycles.
+[Mounted retirement](../evidence/windows-mounted-packed-retirement-2026-11-23.json) ·
+[Next implementation slice](../RELEASE_EXECUTION_PLAN.md#first-implementation-slice)
 
 ## 9. AMD work and immediate CPU continuity
 
@@ -413,11 +423,12 @@ flowchart TD
     Evidence --> Open["Open gates for client scale, GPU, persistent recovery and comparison"]
 ```
 
-The source tree preserves evidence for CPU, SDK, live AMD and mounted guest runs.
-The reviewed round includes 203 Windows tests, focused raw and sanitizer checks,
-selected-SDK fault cases, and three matched real AMD batches. Those checks cover
-the scopes recorded in their receipts. The [release gate ledger](../RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
-specifies the remaining products of Windows, storage and benchmark qualification.
+The scoped regression and signed mounted guest both verified the new retirement
+scheduling. The validation receipt records the Windows, raw and sanitizer
+suites and binds their terminal status to the changed source. Earlier installed
+AMD read and fallback runs have separate receipts. The
+[release gate ledger](../RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
+specifies the remaining Windows, storage and benchmark qualification.
 [Validation guide](../validation/README.md)
 · [sanitizer preflight](../../cmake/WindowsAsanRuntime.cmake)
-· [latest AMD campaign](../evidence/amd-fresh-completion-observation-2026-11-21.json)
+· [installed AMD read evidence](../evidence/amd-reopened-paired-sealed-read-2026-11-23.json)

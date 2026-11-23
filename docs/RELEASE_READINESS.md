@@ -2,11 +2,12 @@
 
 FlitzFS is in development qualification. Its current Windows app, indexed
 storage and AMD routes have source-bound development evidence. The packed
-helper passed creation, reopen and post-flush guest recovery. Automatic
-mounted physical reclamation, useful ordinary AMD read and write work,
-large-volume startup, backend failures, held-out compression and installed
-Explorer behavior still have open gates. The owner alone makes the release
-decision.
+helper passed creation, reopen and post-flush guest recovery. Automatic packed
+reclamation crossed a physical group boundary in the signed Windows guest.
+Repeated settled reuse, useful ordinary AMD read and write work, large-volume
+startup, backend failures, held-out compression and installed Explorer
+behavior still have open gates. The owner alone makes the release decision.
+[Current evidence](evidence/windows-mounted-packed-retirement-2026-11-23.json)
 
 Use the [current gate ledger](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
 for status and acceptance. The [architecture review](architecture/REVIEW.md)

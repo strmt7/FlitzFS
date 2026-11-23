@@ -885,7 +885,11 @@ bool NativeFileSession::checkpoint_indexed_payload_scrub() {
   }
 }
 bool NativeFileSession::persistent_reclamation_pending(bool allow_cold) const {
-  return !poisoned() && impl_->persistent_reclaimer && impl_->persistent_reclaimer->pending(*this,allow_cold);
+  return persistent_reclamation_pending(
+      allow_cold?NativeVolumeReclaimMode::include_cold:NativeVolumeReclaimMode::logical_only);
+}
+bool NativeFileSession::persistent_reclamation_pending(NativeVolumeReclaimMode mode) const {
+  return !poisoned() && impl_->persistent_reclaimer && impl_->persistent_reclaimer->pending(*this,mode);
 }
 std::uint64_t NativeFileSession::catalog_retirement_selection(
     std::optional<OptimizationCatalogSelection>& selected) const noexcept {
@@ -901,8 +905,13 @@ void NativeFileSession::bind_persistent_reclamation_wake(
 }
 NativeVolumeReclaimProgress NativeFileSession::advance_persistent_reclamation(
     const std::function<StoreIdentity()>& next_identity,bool allow_cold,detail::NativeSealScratchOffer scratch) {
+  return advance_persistent_reclamation(next_identity,
+      allow_cold?NativeVolumeReclaimMode::include_cold:NativeVolumeReclaimMode::logical_only,scratch);
+}
+NativeVolumeReclaimProgress NativeFileSession::advance_persistent_reclamation(
+    const std::function<StoreIdentity()>& next_identity,NativeVolumeReclaimMode mode,detail::NativeSealScratchOffer scratch) {
   auto& self=ready();
-  return self.persistent_reclaimer?self.persistent_reclaimer->advance(*this,next_identity,allow_cold,scratch):
+  return self.persistent_reclaimer?self.persistent_reclaimer->advance(*this,next_identity,mode,scratch):
       NativeVolumeReclaimProgress::idle;
 }
 bool NativeFileSession::shed_persistent_seal_scratch(std::uint64_t retained_bytes) noexcept {

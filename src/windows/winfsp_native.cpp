@@ -342,6 +342,9 @@ struct WinFspNativeWritable::Impl {
   bool cold_compaction_allowed(bool scrub) const {
     return !scrub && !session.directory_backfill_pending() && (!groups || !groups->pending());
   }
+  static NativeVolumeReclaimMode file_reclaim_mode(bool allow_cold) noexcept {
+    return allow_cold?NativeVolumeReclaimMode::include_cold:NativeVolumeReclaimMode::release_backing;
+  }
   struct IndexedAdmission {
     NativeMaintenanceDeferral deferral;
     std::optional<std::uint64_t> memory;
@@ -405,7 +408,8 @@ struct WinFspNativeWritable::Impl {
     };
     if(observed.continued && (repair || repair_rotation || reap || discard_catalog || !preparing()))
       return defer(Deferral::observation);
-    const bool persistent=session.persistent_reclamation_pending(allow_cold);
+    const auto file_mode=file_reclaim_mode(allow_cold);
+    const bool persistent=session.persistent_reclamation_pending(file_mode);
     const bool memory=memory_backing && memory_backing->compaction_pending(session,allow_cold);
     if(!repair && !reap && !discard_catalog && !persistent && !memory)return {State::unchanged};
     const auto admission=admit_indexed_opportunity(observed,now);
@@ -455,7 +459,7 @@ struct WinFspNativeWritable::Impl {
       if(persistent) {
         detail::NativeSealScratchOffer scratch;
         if(paired_seal_memory)scratch={*admission.memory-indexed_transaction_scratch,try_locked_seal_scratch};
-        auto result=progress(session.advance_persistent_reclamation(fresh_volume_identity,allow_cold,scratch));
+        auto result=progress(session.advance_persistent_reclamation(fresh_volume_identity,file_mode,scratch));
         result.sealed_image=result.compacted && session.volume_info().selection.sealed_range.has_value();
         return result;
       }
@@ -1152,7 +1156,7 @@ bool WinFspNativeWritable::background_maintenance_pending(bool scrub_due) const 
   const bool allow_cold=impl_->cold_compaction_allowed(scrub_due && impl_->session.indexed_payload_scrub_eligible());
   return impl_->read_ahead_pending() || impl_->session.indexed_payload_repair_pending() ||
       (scrub_due && impl_->session.indexed_payload_scrub_eligible()) ||
-      impl_->session.retirement_pending() || impl_->session.persistent_reclamation_pending(allow_cold) ||
+      impl_->session.retirement_pending() || impl_->session.persistent_reclamation_pending(Impl::file_reclaim_mode(allow_cold)) ||
       impl_->session.directory_backfill_pending() ||
       (impl_->memory_backing && (impl_->memory_backing->coherence_retirement_pending() ||
       impl_->memory_backing->compaction_pending(impl_->session,allow_cold))) ||

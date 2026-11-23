@@ -1,7 +1,7 @@
 # FlitzFS detailed implementation plan
 
 **Reconciled on 23 November 2026.** The current source, tested changes and
-qualification are bound in the [current review receipt](evidence/release-execution-reconciliation-2026-11-23.json).
+qualification are bound in the [current review receipt](evidence/windows-mounted-packed-retirement-2026-11-23.json).
 
 The [current architecture](architecture/CURRENT.md) shows the implementation.
 The [source review](architecture/REVIEW.md) tests the assumptions and the
@@ -22,11 +22,13 @@ verified both image ranges through mounted selector cuts during reclamation.
 Mapped-write recovery passed with cached neighbors and directory churn.
 Packed relocation between allocation groups has a verified recovery model
 and an ordinary NTFS guest-file trial. The helper creates packed backing
-and reopens both supported formats. Its mounted two-group churn still needs
-automatic image selection and verified physical retirement. The immediate
-checkpoint traces mounted reclamation against the verified native control
-and activates the qualified foreground AMD offer through the same Explorer helper. Carry
-concurrent cached and mapped flushes through one client trace.
+and reopens both supported formats. The mounted two-group fixture now
+automatically selects a new image and crosses the trailing physical allocation
+boundary. It preserves a held reader and passes independent CPU reopen and a
+continued write. The remaining allocator work is steady-state settlement,
+bounded growth and fault qualification. The next checkpoint extends that
+fixture and brings measured foreground AMD admission into the same Explorer
+helper. Carry concurrent cached and mapped flushes through one client trace.
 [Integrated sequence](RELEASE_EXECUTION_PLAN.md#immediate-implementation-order)
 Keep independent CPU bytes, full occupied-size accounting and safe ownership
 for each path. [Release gate ledger](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
@@ -150,14 +152,15 @@ release gates provide the references.
 
 ### Checkpoint 1. Establish the client and storage trace
 
-- Retain the verified carrier of the opened backing identity and physical
-  extent through `WinFspVolumeFileSelection`. Trace packed maintenance
-  admission, held readers and retirement under the ordinary helper.
-  Use the independently verified detached native result as a control.
-  Qualify repeated automatic group release, fresh reopen and a
+- Retain the opened backing identity and physical extent through
+  `WinFspVolumeFileSelection`. Start with the passing mounted boundary
+  crossing and run additional overwrite/delete/regrow cycles through full
+  settlement while readers pin earlier data. Record wait reasons, logical
+  ownership, physical EOF and allocated bytes after each generation. Keep
+  the detached native and sparse references and verify a fresh reopen and
   continued flushed write.
   [Relocation evidence](evidence/dense-cross-group-2026-11-23.json) ·
-  [Mounted differential](RELEASE_EXECUTION_PLAN.md#first-implementation-slice)
+  [Mounted retirement and next steps](RELEASE_EXECUTION_PLAN.md#first-implementation-slice)
 - Generate one exact manifest for source, toolchain, helper, WinFsp DLL and
   driver, AMD modules and runtime, data and backing. Record client-observed
   status separately from WinFsp response attempts. Add operation identity,
@@ -178,6 +181,11 @@ release gates provide the references.
   a finite readiness episode funded by real eligible backlog, with exact
   retirement and CPU service before readiness. Preserve the complete CPU
   path through stale observations, lost runtime, pressure and cancellation.
+  Collect aligned multi-extent and partial write shapes from ordinary Win32
+  operations before selecting batches. Compare complete usable time and
+  persisted byte cost against the CPU path. Bind certificates to the runtime,
+  adapter, module, shape and allocation state that produced them. Treat the
+  supported client and the vendor's listed Windows build as separate evidence.
   [Foreground worker evidence](evidence/windows-amd-foreground-worker-boundary-2026-11-22.json)
 - Run matching client workloads using the supported Windows paths. Include
   append, overlapping writes, Flush, truncate, rename, Cleanup and Close.
@@ -475,9 +483,13 @@ reconciling immutable tree checkpoints. A verified live repair can use that
 handoff to restore payload redundancy when append admission fails.
 The packed ordinary-file provider evacuates live tail units within and
 across groups. A mirrored relocation intent binds interrupted directory
-updates. The NTFS fixture released the tail group, retained held readers
-and continued writing after independent CPU recovery.
-[Cross-group evidence](evidence/dense-cross-group-2026-11-23.json)
+updates. Both the native NTFS fixture and the signed mounted helper reached
+a group boundary with an earlier reader and a continued write after CPU
+recovery. The mounted test now verifies release independent of optional
+compression admission. Its first boundary crossing leaves full settlement
+to be measured.
+[Cross-group evidence](evidence/dense-cross-group-2026-11-23.json) ·
+[Mounted retirement](evidence/windows-mounted-packed-retirement-2026-11-23.json)
 **Missing:** pageable recovery at scale, durable progress across longer
 maintenance jobs and persistent-provider qualification.
 **Planning effort:** 5–10 person-weeks; confidence low.
@@ -505,7 +517,10 @@ maintenance jobs and persistent-provider qualification.
    Recovery identifies out-of-selection ranges from the head's epoch.
    Preserve private staging across foreground changes by reconciling
    checkpoint differences. Persist restart progress and measure interference
-   during mounted Windows 11 activity.
+   during mounted Windows 11 activity. Record logical retirement, backing
+   relocation and physical release as separate events with their admissions,
+   reserved bytes and remaining work. Verify repeated overwrite, deletion
+   and regrowth at equal live size against the detached and sparse controls.
    [Persistent range evidence](evidence/windows-sparse-volume-reclamation-2026-11-19.json)
 6. Implement steady-state segment evacuation with bounded units and a persistent
    liveness index or equivalent reverse mapping. Select a victim using its live
@@ -532,8 +547,10 @@ maintenance jobs and persistent-provider qualification.
 11. Add layout/defragmentation selection based on access locality, medium traits
     and net benefit. Flash does not need a periodic HDD-style full rewrite.
 12. Measure source reads, bytes written, temporary high water, retired bytes and
-    rewrite amplification. Feed them to E07 rather than resetting a wear counter
-    on every new maintenance session.
+    rewrite amplification. Keep the counters stable across sessions. Attribute
+    required metadata and protection writes to their logical operation, and
+    count rebuildable similarity checkpoints separately. Verify independent CPU
+    recovery across every new ordering boundary.
 
 ### Acceptance and failure checks
 

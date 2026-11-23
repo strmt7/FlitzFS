@@ -81,14 +81,15 @@ then verified a new flushed write with the independent CPU reader.
 
 The separate `--gui-mounted-packed-file-sandbox` qualification exercises
 two physical allocation groups. It requires the writable publication probe
-build and an isolated guest. The overwrite fixture held an untouched WinFsp
-open during maintenance. The original handoff gate treated it as unresolved.
-After correcting the gate, the fixture published epoch 2. Its physical tail
-group was still allocated at the trial deadline. The test verified the
-held reader, detached cleanly and verified both live files through a separate
-CPU reader. The SDK regression also verified an unused handle's Close without
-storage writes. Provisional deletes and overwrites still defer handoff.
-[Mounted and SDK evidence](evidence/windows-mounted-packed-handoff-2026-11-23.json)
+build and an isolated guest. A held untouched WinFsp open survives automatic
+image selection. Provisional deletes and overwrites still defer handoff.
+The file reclaimer releases eligible storage on an admitted idle opportunity
+while optional compression waits. The mounted trial crossed the group
+boundary after 60 revisions. It checked both anchors, the held bytes, orderly
+detach, independent CPU readback and a fresh writable mount with a continued
+write. Full settlement across repeated churn remains a release gate.
+[Mounted handoff and SDK evidence](evidence/windows-mounted-packed-handoff-2026-11-23.json) ·
+[Mounted backing release](evidence/windows-mounted-packed-retirement-2026-11-23.json)
 · [Remaining reclamation checks](RELEASE_EXECUTION_PLAN.md#next-integrated-qualification)
 
 ### Initial Windows 11 driver trial

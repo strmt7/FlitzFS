@@ -7,15 +7,15 @@
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
   "release_path_review": {
-    "evidence": "docs/evidence/release-execution-reconciliation-2026-11-23.json",
-    "reviewed_parent": "d4462a626bc69ea2c78f2954dade95308a1ac2e6",
-    "tracked_parent_files": 1022,
+    "evidence": "docs/evidence/windows-mounted-packed-retirement-2026-11-23.json",
+    "reviewed_parent": "1a9ae9423b1eebf6eb31d05b6478e1596a8e5719",
+    "tracked_parent_files": 1024,
     "qualification": "development",
     "remaining_effort_person_weeks": [59, 127],
     "estimate_confidence": "low",
     "immediate_trace": "docs/RELEASE_EXECUTION_PLAN.md#next-integrated-qualification",
     "native_ntfs_comparison": "specified, matched live-host run pending",
-    "mounted_packed_attachment": "Signed guest helper lifecycle and acknowledged overwrite recovery verified. Automatic mounted reclamation is open.",
+    "mounted_packed_attachment": "Signed guest lifecycle, acknowledged overwrite recovery and automatic packed allocation-boundary release verified. Repeated full settlement remains open.",
     "automatic_foreground_amd": "SDK activation qualified in its scope, ordinary helper admission pending"
   },
   "dense_cross_group_relocation": {
@@ -31,11 +31,13 @@
   "packed_explorer_attachment": {
     "evidence": "docs/evidence/windows-packed-explorer-2026-11-23.json",
     "handoff_evidence": "docs/evidence/windows-mounted-packed-handoff-2026-11-23.json",
+    "retirement_evidence": "docs/evidence/windows-mounted-packed-retirement-2026-11-23.json",
     "selected_provider": "qualified ordinary NTFS with packed creation and checked sparse reopen",
     "mounted_guest": "signed WinFsp 2.2 packed create, detach and fresh writable reopen with independent CPU verification",
     "interrupted_mount": "acknowledged overwrite and rename, 1024 neighboring files, and a continued write independently verified",
-    "mounted_reclamation": "The signed guest reached epoch 2, verified the held reader and detached cleanly. Independent CPU inspection verified both live files. The physical allocation group remained at the deadline. The SDK regression also preserved cancellation and the provisional disposition gates.",
-    "next": "Trace the inactive image owner and physical tail retirement after epoch 2. Verify repeated automatic allocation-group retirement. Continue measured ordinary AMD write activation."
+    "mounted_reclamation": "The signed guest crossed a packed allocation boundary automatically after 60 flushed revisions. Both anchors upgraded, the held read and both live files verified exactly, and a fresh writable mount accepted a continued write.",
+    "mounted_allocation_bytes": {"before": 270598144, "at_boundary_crossing": 265551872},
+    "next": "Measure repeated overwrite, delete and regrow through full settlement. Calibrate actual ordinary AMD write shapes on the supported runtime and wire measured offers through the helper."
   },
   "current_product_boundary": {
     "authority": "docs/RELEASE_EXECUTION_PLAN.md#current-gate-ledger",
