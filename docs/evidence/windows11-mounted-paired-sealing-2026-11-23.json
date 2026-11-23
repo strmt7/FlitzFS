@@ -1,0 +1,567 @@
+{
+  "schema": "flitzfs-windows-mounted-paired-sealing-v1",
+  "observed_at_utc": "2026-11-23T01:04:18.545887+00:00",
+  "experimental": true,
+  "release_qualified": false,
+  "source": {
+    "base": "830cc5b7ed2342bae16baf8e5e9d11f190550310",
+    "tree": "0ec272ad76a68e46a50d20f137bbebc51e4f6fb7",
+    "patch_sha256": "049082b4853f10d935934d818fb18b78c048c66223b25f4bcad533c284977901",
+    "blobs": {
+      "CMakeLists.txt": "06ffd201e1f25001f7750f022ff5096e52d879d6",
+      "src/store_file.cpp": "fdff735671c38c10b7d722bb24f2829cd9216d7f",
+      "src/store_file.hpp": "1624c412f2aa099681bbf8cdd329b8f2ebc58d6f",
+      "src/windows/bounded_process.cpp": "0ff64e9d9b5edea8983ea9e932151a0a621f5baa",
+      "src/windows/bounded_process.hpp": "3bf5834dbd8630cf09acde98dc10211374080c4e",
+      "tests/supervised_source_fixture.hpp": "6d7ae40bb327c0ab1315308dd534a20520f44637",
+      "tests/winfsp_write_probe.cpp": "185818597dd759dd93c69b5ce037727c69fe79fe"
+    }
+  },
+  "probe_sha256": "c39907a92e5598de3e1315341bb69dd36423c46d02daabe72c81904c25186208",
+  "research": [
+    {
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "receipt_sha256": "8aa58d0cd4700aa525f43e2cdc4e09fbff7ca8830dac04bfba24793853d1a687",
+      "pages": [
+        {
+          "name": "sandbox",
+          "url": "https://learn.microsoft.com/en-us/windows/security/application-security/application-isolation/windows-sandbox/windows-sandbox-configure-using-wsb-file",
+          "final_http_status": 200,
+          "markdown_bytes": 35046,
+          "markdown_sha256": "2e88cb947a778ba3cca2f437aac49fcfb6c150ffcfe432f8098b977d102bd8f2",
+          "capture_sha256": "b7c4643e31b6c1624459b1f49352912f13b45b158eb8b85696ca8d311bb70825"
+        },
+        {
+          "name": "flush",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers",
+          "final_http_status": 200,
+          "markdown_bytes": 36207,
+          "markdown_sha256": "116ffcd5a6feba3539c3f668a2c969aa2e38b8f3663a704a7654e7b2a7954e4c",
+          "capture_sha256": "d619cfa0ddeaa4bd87fe60710096dc0c17ff73681cd2ae19d2303bf678d92699"
+        },
+        {
+          "name": "process-cut",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-terminateprocess",
+          "final_http_status": 200,
+          "markdown_bytes": 39360,
+          "markdown_sha256": "169fce1cd31b758dc7327b0d272b40cc100f29b8f25eb24222612b4ef1a2c331",
+          "capture_sha256": "9ac8b2a7c0fc397aa6880fb28da748b89d8868e0d9c6f5948de41d56fb18eaa5"
+        },
+        {
+          "name": "winfsp",
+          "url": "https://winfsp.dev/doc/WinFsp-API-winfsp.h/",
+          "final_http_status": 200,
+          "markdown_bytes": 73095,
+          "markdown_sha256": "23f2e7b26b2297a12d6e98acb7b612010c44361803cc72c3563f82571cce5837",
+          "capture_sha256": "dba46676c5585cba65ace7aa4190672417efee7a94fee08ef3ccd9be4b7eae4b"
+        }
+      ]
+    },
+    {
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "receipt_sha256": "a9279618620e7a2a4bc647f88328e4e41ff078514eb90249216df2bde385bb3e",
+      "pages": [
+        {
+          "name": "nvme",
+          "url": "https://nvmexpress.org/specification/nvm-express-base-specification/",
+          "final_http_status": 200,
+          "markdown_bytes": 13587,
+          "markdown_sha256": "17a73866a0a1214971a3ec56f3ba9da1f329c744f4c8de2380b5dd3bb001e31e",
+          "capture_sha256": "abeda7b1f5493fcd356099ba05f5f5774e4028dcf0b85ba1a039aec0a2ec91e2"
+        },
+        {
+          "name": "removal",
+          "url": "https://learn.microsoft.com/en-us/windows/client-management/client-tools/change-default-removal-policy-external-storage-media",
+          "final_http_status": 200,
+          "markdown_bytes": 23769,
+          "markdown_sha256": "ae88fed0e7e3ab8fef1e88b3d16117d5f2a23abd6de8d536f7c201b4f761755a",
+          "capture_sha256": "500470916e21af121afcbba5293f1302b8677ddb444db50d1450e50a553498bb"
+        },
+        {
+          "name": "sparse-compare",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/fileio/filesystem-functionality-comparison",
+          "final_http_status": 200,
+          "markdown_bytes": 26264,
+          "markdown_sha256": "f3a6e2ece570206a502311aee20b34bdbbbd10becbdc4811a47330a0075d0670",
+          "capture_sha256": "1f8e2042a94f813c45cfce35831945091e3ee82b22cba0a683097e86d8e480b5"
+        },
+        {
+          "name": "sector",
+          "url": "https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/3e75d97f-1d0b-4e47-b435-73c513837a57",
+          "final_http_status": 200,
+          "markdown_bytes": 25500,
+          "markdown_sha256": "2fc3e60f99bc80ea12684afbabd2d1c07c1ef937bff14d9577a03455ffeb4eb9",
+          "capture_sha256": "02ec1f16a799a9761950d1f8fd52ae8cf45c37628b0f93f9fb33936642b3d4dd"
+        },
+        {
+          "name": "exfat",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/fileio/exfat-specification",
+          "final_http_status": 200,
+          "markdown_bytes": 217379,
+          "markdown_sha256": "9d7bb73d946da88a01facf0abcdd9c9fb0144fed70da1329fbd4c344fdbf6c8f",
+          "capture_sha256": "823d13a9c1874a72962117d0af5df7dd87f881a1b187aa2c92689a89db8b66ee"
+        }
+      ]
+    }
+  ],
+  "routing": [
+    {
+      "provider_version": "0.2.43",
+      "receipt_sha256": "964a07ec597790628620c1a895b36fb85d7b93d1ad9f5b4d21c85c445845a053",
+      "query": "Windows mounted WinFsp real NTFS probe stop process outer selector publication held client independent CPU inspector sparse reclaim boundary observer preserved old candidate",
+      "native_response_sha256": "fc2915a9b0d1a3e44ab272a21228a177366731fdabca9c2ba56a81d1c2fd5d76",
+      "dirty_patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "provider_version": "0.2.43",
+      "receipt_sha256": "7b8358ea46f0b012e7f6d533e61d558bd26bd2e7e092dd374b0829d9544ba4cd",
+      "query": "qualified medium attached storage backing capability advisory profile sparse range NTFS dense file exFAT volume GUID flush unknown device seek TRIM",
+      "native_response_sha256": "48fee8233270cb36635788012731da669bab11fe66af18640a3279d98cd0f279",
+      "dirty_patch_sha256": "9fb4e7f04476cd6a1cafe0b8da0c04f6a177c956364184231a3cd87c1911b1dd"
+    }
+  ],
+  "routing_retry": {
+    "initial": {
+      "run": "local-run-c550ae11efc74a44985372e4b84c0e78",
+      "receipt_sha256": "0f2206e11282a183e59a04ebf2d82f87f15826ee53f0965100ea8f9a23fc02ba",
+      "output_sha256": "3d18217e0452c293cd319d868595ba7f0d9588d556276b1d56b6e6cf01772389",
+      "exit_code": 1,
+      "tree_retired": true,
+      "supervisor_retired_remaining_children": 0
+    },
+    "diagnostic": "The initial process-tree budget refused the indexing daemon with Windows quota exhaustion.",
+    "recovery": {
+      "run": "local-run-1a5326fd26724d32b2f4aa27887e0da8",
+      "receipt_sha256": "beae70d1bb4604f66d5c02e87c4f1ea2a76c87ad93600bfb56a8c614e5163dc1",
+      "output_sha256": "6851492de9da3460949b2c4659b3c77ef530b16761fd65f3cc36cd23ea855494",
+      "exit_code": 0,
+      "tree_retired": true,
+      "supervisor_retired_remaining_children": 0
+    }
+  },
+  "builds_and_tests": {
+    "probe_build": {
+      "run": "local-run-93063df4dcb5496daebe88c118162d7a",
+      "receipt_sha256": "e2935347bdded12c018798d42b851f9f1828d23341ee3f4813f8368830c7abef",
+      "output_sha256": "335a507f697dc69fbb4dc2d8786bfff107f53c50cf2233c88aff096cb59cca74",
+      "exit_code": 0,
+      "tree_retired": true,
+      "supervisor_retired_remaining_children": 0
+    },
+    "windows_build": {
+      "run": "local-run-51ad72ad0a154990aa1565a985571902",
+      "receipt_sha256": "ab684a9591c0b90228b2917575fb40bee9b336c36b5e822f0524439684a46e3e",
+      "output_sha256": "b57c451aa45ebd7f67f3166aa482fca3cd24c79e69857908a7653aef9cf1fa7b",
+      "exit_code": 0,
+      "tree_retired": true,
+      "supervisor_retired_remaining_children": 0
+    },
+    "raw_build": {
+      "run": "local-run-1314c008181149749f0598d3111cda28",
+      "receipt_sha256": "699d50f06891ae2807aad7ae32cd14ac90640eac2a65d0feb76d67c3b2e3c20f",
+      "output_sha256": "7e5af3e8728df9137eac91ce7cf8253e49d6f41fbc899544ef26c5b337f44f66",
+      "exit_code": 0,
+      "tree_retired": true,
+      "supervisor_retired_remaining_children": 0
+    },
+    "asan_build": {
+      "run": "local-run-fd603f96b001423da9badd5ee14120da",
+      "receipt_sha256": "8a2ec069fbcef92e2b12ae4d550f68bb2bee2419bd45d623b3f8fa6c3bc7bf6a",
+      "output_sha256": "3d72febe2f031c12733d2a298c0fb17d8674f45579452d6789cc32f17f7bda65",
+      "exit_code": 0,
+      "tree_retired": true,
+      "supervisor_retired_remaining_children": 0
+    },
+    "windows_ctest": {
+      "run": "local-run-f9c9d260f7864c23be86588276bc7387",
+      "receipt_sha256": "697c93e22965b09dc69e8037c6e1bde3425782f61a2e1b56ac82c9204dc3aacb",
+      "output_sha256": "efb5e0733f61025d885cad329dde86dcf672b8ba972a6c44b0c17078532da975",
+      "exit_code": 0,
+      "tree_retired": true,
+      "supervisor_retired_remaining_children": 0,
+      "passed": 212
+    },
+    "raw_ctest": {
+      "run": "local-run-1022e8061407410c90fcb13f9f193024",
+      "receipt_sha256": "ff4ae75ef16ae12a430e7fe973f0139812c71b6ff34da2ce77019cef091a0622",
+      "output_sha256": "16edee3577ebc689352664d3aab31f1b2b8f1f256ef61938cd55bb7e9c2b79e2",
+      "exit_code": 0,
+      "tree_retired": true,
+      "supervisor_retired_remaining_children": 0,
+      "passed": 13
+    },
+    "asan_ctest": {
+      "run": "local-run-7ab4507159194c0eae255871e8ea08fc",
+      "receipt_sha256": "e716d9f55651e390e5891251533c3fb037ac1a617a3f697531e26d0141c205c2",
+      "output_sha256": "87e971c33cdada1faada2501888c5d21622e06b9a825376e62e1a34b6efacbbf",
+      "exit_code": 0,
+      "tree_retired": true,
+      "supervisor_retired_remaining_children": 0,
+      "passed": 14
+    }
+  },
+  "mounted_trials": [
+    {
+      "process": {
+        "run": "local-run-cde40b606a634c32b44616aa595ccca5",
+        "receipt_sha256": "b8d8579017bc10674c1ac615edadf953889290bf39934a872a6e6bde74201e95",
+        "output_sha256": "fb94cb2ed903276dccb2262a1ea15ab0fb8d3e88574f2563bab1aa65e48b7a36",
+        "exit_code": 0,
+        "tree_retired": true,
+        "supervisor_retired_remaining_children": 0
+      },
+      "windows_build": "26100",
+      "receipt_sha256": "a545acd6d8a8dff60ecf1de5b2e7c6813bc0da53fc20836940dd02d569669db1",
+      "sandbox_receipt_sha256": "425611ddb40192abfcc7640ebeefdb606d6ef4b531ff02de62cc65368bde50b5",
+      "manifest_sha256": "a13c022d3fc7402b2ed70b1e5a7c6e099ff249119da6ac30cd0b55567901bdc0",
+      "guest_script_sha256": "40d2db5615057ac7dfb105bff950eeed38989870fcdd2c44ce9feb0655f9a5d4",
+      "probe_sha256": "c39907a92e5598de3e1315341bb69dd36423c46d02daabe72c81904c25186208",
+      "winfsp_driver_sha256": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+      "winfsp_sdk_sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+      "driver_service_stop_exit": 5,
+      "driver_unregistered": true,
+      "driver_retirement_requires_guest_disposal": true,
+      "guest_retired": true,
+      "sealed_cases": [
+        {
+          "boundary": "live-handoff",
+          "epoch": 2,
+          "held_client": 1,
+          "bytes_verified": 1,
+          "candidate_verified": 0,
+          "range_reclaimed": 1,
+          "retired": 1
+        }
+      ]
+    },
+    {
+      "process": {
+        "run": "local-run-8a3228800abc4675970347c0d8d3821c",
+        "receipt_sha256": "a39d5f21b8f49c50ae3272631f3a15592ae7b89791261efd6b18b309eef95da3",
+        "output_sha256": "920ecccb4f4b88928980d01a6703e3f802298178352d44e186b3ad62e403ba35",
+        "exit_code": 0,
+        "tree_retired": true,
+        "supervisor_retired_remaining_children": 0
+      },
+      "windows_build": "26100",
+      "receipt_sha256": "a5f4f7a10ed7b8da763b3d26acb90ec6f550a38fc2924c3b9e74a3e7325d15d3",
+      "sandbox_receipt_sha256": "78ae54e00419da2e0a39f715a22acea01bccc2ddc90c9274142530cbb2462d13",
+      "manifest_sha256": "235cde7b0ad7f112b23a89d065edee68ae123fb4b04bdf216be607f9043c75f0",
+      "guest_script_sha256": "1bbe080a2ae353bc76cfe693a2ddcf215f2dd80016b45208167faec639ed2fc5",
+      "probe_sha256": "c39907a92e5598de3e1315341bb69dd36423c46d02daabe72c81904c25186208",
+      "winfsp_driver_sha256": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+      "winfsp_sdk_sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+      "driver_service_stop_exit": 5,
+      "driver_unregistered": true,
+      "driver_retirement_requires_guest_disposal": true,
+      "guest_retired": true,
+      "sealed_cases": [
+        {
+          "boundary": "before-workspace-reclaim",
+          "epoch": 1,
+          "held_client": 1,
+          "bytes_verified": 1,
+          "candidate_verified": 0,
+          "range_reclaimed": 1,
+          "retired": 1
+        },
+        {
+          "boundary": "after-workspace-flush",
+          "epoch": 1,
+          "held_client": 1,
+          "bytes_verified": 1,
+          "candidate_verified": 0,
+          "range_reclaimed": 1,
+          "retired": 1
+        },
+        {
+          "boundary": "before-candidate-flush",
+          "epoch": 1,
+          "held_client": 1,
+          "bytes_verified": 1,
+          "candidate_verified": 1,
+          "range_reclaimed": 1,
+          "retired": 1
+        }
+      ]
+    },
+    {
+      "process": {
+        "run": "local-run-0bec9d1414da483cbbde4dd9c5b22a3b",
+        "receipt_sha256": "c380c21360a04ac4fc214ee32b1d1f22e8caf7a22c8285fb65a82bbae9d9c5dc",
+        "output_sha256": "fa2bb627ce30f90afe7f52124edac674a59c001f121f27b6c92383881f7a5b90",
+        "exit_code": 0,
+        "tree_retired": true,
+        "supervisor_retired_remaining_children": 0
+      },
+      "windows_build": "26100",
+      "receipt_sha256": "c3bfdf8ea62ae90ee538e76b0895eb6851ec9b7e9d3767dbb0ccade65bb48d68",
+      "sandbox_receipt_sha256": "d239c61d71ee5ca4f672935c2b915ad0bc85a9ca77a38bd948aabe71011281c3",
+      "manifest_sha256": "2ae6219975b3f614d145b6ca56a45adf285bb90eddc8f9944970f7d4bfd4963b",
+      "guest_script_sha256": "b4a33fbc54dfc0fe7e35017e0c4463da88a187cf39493e9b7125148adfef1ba8",
+      "probe_sha256": "c39907a92e5598de3e1315341bb69dd36423c46d02daabe72c81904c25186208",
+      "winfsp_driver_sha256": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+      "winfsp_sdk_sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+      "driver_service_stop_exit": 5,
+      "driver_unregistered": true,
+      "driver_retirement_requires_guest_disposal": true,
+      "guest_retired": true,
+      "sealed_cases": [
+        {
+          "boundary": "before-first-selector-write",
+          "epoch": 1,
+          "held_client": 1,
+          "bytes_verified": 1,
+          "candidate_verified": 1,
+          "range_reclaimed": 1,
+          "retired": 1
+        },
+        {
+          "boundary": "before-first-selector-flush",
+          "epoch": 2,
+          "held_client": 1,
+          "bytes_verified": 1,
+          "candidate_verified": 1,
+          "range_reclaimed": 1,
+          "retired": 1
+        },
+        {
+          "boundary": "after-first-selector-flush",
+          "epoch": 2,
+          "held_client": 1,
+          "bytes_verified": 1,
+          "candidate_verified": 1,
+          "range_reclaimed": 1,
+          "retired": 1
+        }
+      ]
+    },
+    {
+      "process": {
+        "run": "local-run-1055de2400b548f180692e2f07e05aeb",
+        "receipt_sha256": "f2848da3a0931ab16601786bb690a65e31aa719bbbd638f95b7b239a6db62f81",
+        "output_sha256": "8e4b57ddbd2662139654a49c624e32596dea6c2fbd4416b7bdd00aab35e599e0",
+        "exit_code": 0,
+        "tree_retired": true,
+        "supervisor_retired_remaining_children": 0
+      },
+      "windows_build": "26100",
+      "receipt_sha256": "3479e666ea2236d571da365cbed8bc73dafe4479ecb1fa3ec57cd63d649c34df",
+      "sandbox_receipt_sha256": "c00962bad388f7d1da917502291d6c3495e4c78f091118f0499fa66f9940a209",
+      "manifest_sha256": "51a33cfe87eca499ed118426f27f79dcf505b915bb795ab321eb620ab485da55",
+      "guest_script_sha256": "a869c761e7018a92039c52623f80c16c4a462cb9bcb9560991ce1ee80cf857cd",
+      "probe_sha256": "c39907a92e5598de3e1315341bb69dd36423c46d02daabe72c81904c25186208",
+      "winfsp_driver_sha256": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+      "winfsp_sdk_sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+      "driver_service_stop_exit": 5,
+      "driver_unregistered": true,
+      "driver_retirement_requires_guest_disposal": true,
+      "guest_retired": true,
+      "sealed_cases": [
+        {
+          "boundary": "before-second-selector-write",
+          "epoch": 2,
+          "held_client": 1,
+          "bytes_verified": 1,
+          "candidate_verified": 1,
+          "range_reclaimed": 1,
+          "retired": 1
+        },
+        {
+          "boundary": "before-second-selector-flush",
+          "epoch": 2,
+          "held_client": 1,
+          "bytes_verified": 1,
+          "candidate_verified": 1,
+          "range_reclaimed": 1,
+          "retired": 1
+        },
+        {
+          "boundary": "after-second-selector-flush",
+          "epoch": 2,
+          "held_client": 1,
+          "bytes_verified": 1,
+          "candidate_verified": 1,
+          "range_reclaimed": 1,
+          "retired": 1
+        }
+      ]
+    },
+    {
+      "process": {
+        "run": "local-run-c5918b640792453eb7dc5af97988284c",
+        "receipt_sha256": "d66c476ceada48492f0ca3cc00975b27741b7634a261df8780c76ce5e0b2ea5c",
+        "output_sha256": "904dff45a2777c5f0018245115107a74d0675daa5fac3702fe81bb5e40e2f222",
+        "exit_code": 0,
+        "tree_retired": true,
+        "supervisor_retired_remaining_children": 0
+      },
+      "windows_build": "26100",
+      "receipt_sha256": "4e0587c65b4b40e74c1f629ee54466944b1d8f608b9732c051a1b47fff88bb3a",
+      "sandbox_receipt_sha256": "af22ffa8530899da2724eb09afc3a0eee46f75b8affa04edaaba1d3d2789b076",
+      "manifest_sha256": "8899c787661b134b89118bd82d3d115998ed0de3eadf9015719b287d33632129",
+      "guest_script_sha256": "158ffee9b6acfe5c580f9b7fc16b67767dec8658908698dcbe6f4ba35839e887",
+      "probe_sha256": "c39907a92e5598de3e1315341bb69dd36423c46d02daabe72c81904c25186208",
+      "winfsp_driver_sha256": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+      "winfsp_sdk_sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+      "driver_service_stop_exit": 5,
+      "driver_unregistered": true,
+      "driver_retirement_requires_guest_disposal": true,
+      "guest_retired": true,
+      "sealed_cases": [
+        {
+          "boundary": "stale-candidate",
+          "epoch": 1,
+          "held_client": 1,
+          "bytes_verified": 1,
+          "candidate_verified": 0,
+          "range_reclaimed": 1,
+          "retired": 1
+        }
+      ],
+      "mirrored_controls": [
+        {
+          "boundary": "before-first-selector-write",
+          "epoch": 1,
+          "source_end": 5505024,
+          "successor_end": 393216,
+          "bytes_verified": 1,
+          "retired": 1
+        },
+        {
+          "boundary": "after-first-selector-flush",
+          "epoch": 2,
+          "source_end": 5505024,
+          "successor_end": 393216,
+          "bytes_verified": 1,
+          "retired": 1
+        },
+        {
+          "boundary": "after-second-selector-flush",
+          "epoch": 2,
+          "source_end": 5505024,
+          "successor_end": 393216,
+          "bytes_verified": 1,
+          "retired": 1
+        }
+      ]
+    }
+  ],
+  "earlier_pilots": [
+    {
+      "process": {
+        "run": "local-run-382630aad66c46c9b3d0cb83f1873cfe",
+        "receipt_sha256": "7ca17bcfa7a1267086d469481e11d76c4043251eb8fc816ae768a9345ee32967",
+        "output_sha256": "de650eac78949254b1df934291ae2f26da6d1370f26f1bfb71eb2e4e5d6c72bd",
+        "exit_code": 1,
+        "tree_retired": true,
+        "supervisor_retired_remaining_children": 0
+      },
+      "windows_build": "26100",
+      "receipt_sha256": "e5ae52f8108ff7eeb56f679f06220b53de906cd1edfb609284de7d10542df272",
+      "sandbox_receipt_sha256": "dd115284baf241493651e2118a103e8cf72930d2425c73f03851afd92be84b54",
+      "manifest_sha256": "2ba4f1630cb91ff962a4e01ea9a3d24354ecf69516e02552cf373bc1a7711b14",
+      "guest_script_sha256": "db4e1cd52e615aebb185287a252e72dc41a2e25a7ba5cd1934a1df842fcb61a7",
+      "probe_sha256": "5962efafca43631a21c41ce468bdf9cd1f3afc06637501120edced722ecb884e",
+      "winfsp_driver_sha256": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+      "winfsp_sdk_sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+      "driver_service_stop_exit": 5,
+      "driver_unregistered": true,
+      "driver_retirement_requires_guest_disposal": true,
+      "guest_retired": true,
+      "source_failures": [
+        "Mounted maintenance did not reach the boundary, phase=1 deferral=0"
+      ]
+    },
+    {
+      "process": {
+        "run": "local-run-1a6c67f472fe4ab785c1deba414b71e4",
+        "receipt_sha256": "98f7624720fe4644d861ab19179fe6a51f26d91770bf9ec42ab009961e5b8a6a",
+        "output_sha256": "fa2bffcce961b6fb860d816b79bb82344132524d5e1578dfc3d618af4f76d89c",
+        "exit_code": 1,
+        "tree_retired": true,
+        "supervisor_retired_remaining_children": 0
+      },
+      "windows_build": "26100",
+      "receipt_sha256": "72e3f7341d50252f652fd52ebbefa79341d94d970d9f27283466ae06eebeca41",
+      "sandbox_receipt_sha256": "06147438996317b773476c0f1907f6d5fa6bccf95c776b16bb434cf059c91571",
+      "manifest_sha256": "c2d11a15af1a5313785543daf535808ae60d2a2e4ce93d1d019f07e7f4187d3a",
+      "guest_script_sha256": "db4e1cd52e615aebb185287a252e72dc41a2e25a7ba5cd1934a1df842fcb61a7",
+      "probe_sha256": "4683c8551a1f423cbd4ca32969f05f2ae5d9bda04801bb1d26ec300188364692",
+      "winfsp_driver_sha256": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+      "winfsp_sdk_sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+      "driver_service_stop_exit": 5,
+      "driver_unregistered": true,
+      "driver_retirement_requires_guest_disposal": true,
+      "guest_retired": true,
+      "source_failures": [
+        "Mounted maintenance did not reach the boundary, phase=3 deferral=0 opportunities=23 continuations=106 sampled=45"
+      ]
+    },
+    {
+      "process": {
+        "run": "local-run-44d4f55ef8c5427294e5e1182f04465c",
+        "receipt_sha256": "d52d3a0188f62c57558239ea25b145ffd5ca7a1d5dab539feaa65f8f242dbd2c",
+        "output_sha256": "1f61926feb08a0d283b72fd7eab628b9e18d77ffb9cda696b544efd19ebf69ce",
+        "exit_code": 1,
+        "tree_retired": true,
+        "supervisor_retired_remaining_children": 0
+      },
+      "windows_build": "26100",
+      "receipt_sha256": "5f20b0144c5a3149e44b256c8cb08b0a6dc9866abce8b8ce0e3154f843c66fbc",
+      "sandbox_receipt_sha256": "88e59abbf1043447fb77b3b2786dc464a1d9bed9ec8e7dbbb6c7cdd2d1521243",
+      "manifest_sha256": "772a42177d9366a6886d323354c6f5ae705fb756e52c95de6c944f1a9b17a1ba",
+      "guest_script_sha256": "db4e1cd52e615aebb185287a252e72dc41a2e25a7ba5cd1934a1df842fcb61a7",
+      "probe_sha256": "8e816f03154cade1e0577a1b5de3eb4dc11582764d09e8a80fae2b51d9dc1f1c",
+      "winfsp_driver_sha256": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+      "winfsp_sdk_sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+      "driver_service_stop_exit": 5,
+      "driver_unregistered": true,
+      "driver_retirement_requires_guest_disposal": true,
+      "guest_retired": true,
+      "source_failures": [
+        "Mounted maintenance did not reach the boundary, phase=3 deferral=0 opportunities=23 continuations=109 sampled=22 candidate_written=1572864 workspace_reclaimed=0 candidate_flushed=0 selector_writes=0"
+      ]
+    },
+    {
+      "process": {
+        "run": "local-run-23496fa23cad47bdaafd3148460dc2dd",
+        "receipt_sha256": "6dd9c56065a72480b0e4f21ec6b2041ec0cdc18c30f682fde8705550eadc188c",
+        "output_sha256": "c608cdf4615b014666502c4aa4f7ac6e9fde9729b3d151a9d4b711fe1a8e0d8d",
+        "exit_code": 1,
+        "tree_retired": true,
+        "supervisor_retired_remaining_children": 0
+      },
+      "windows_build": "26100",
+      "receipt_sha256": "377b724d88c4b8f62bd80607e82e59ba3d412107d88ec56c30c181127404996a",
+      "sandbox_receipt_sha256": "5f81f7e6aa83f536a432f166c7feb9a10df1d3bfc8f36f1ad00ba81e186d27ba",
+      "manifest_sha256": "96a4f94a53551ec442521d94dddb976814ca35f2623b9bd90952e4eeaa9f952d",
+      "guest_script_sha256": "40d2db5615057ac7dfb105bff950eeed38989870fcdd2c44ce9feb0655f9a5d4",
+      "probe_sha256": "a2663f31070b501e1e993df516f102ffa6e1134b8cf7e2a39a2667067384f371",
+      "winfsp_driver_sha256": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+      "winfsp_sdk_sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+      "driver_service_stop_exit": 5,
+      "driver_unregistered": true,
+      "driver_retirement_requires_guest_disposal": true,
+      "guest_retired": true,
+      "source_failures": [
+        "Mounted maintenance did not reach the boundary, phase=5 deferral=1 opportunities=7 continuations=0 sampled=45"
+      ]
+    }
+  ],
+  "host": {
+    "build": "26300",
+    "scoped_processes": [],
+    "winfsp_driver": [],
+    "sandbox_environments": [],
+    "available_physical_gib": 33.7,
+    "ordinary_builds_omit_observation_code": true
+  },
+  "scope": "Signed WinFsp 2.2, Win32 file client and native sparse guest NTFS. Correctness covers confirmed process interruption and independent CPU recovery. A flush call must return before a selector peer is counted as flushed. A completed write before that flush may already be visible on reopen.",
+  "remaining": [
+    "AMD and fallback on a mounted persistent sealed image",
+    "Device-specific physical power interruption and removal",
+    "Dense backing and reclamation on exFAT and FAT32",
+    "Real-hardware performance and write traffic across media and cache policies"
+  ]
+}

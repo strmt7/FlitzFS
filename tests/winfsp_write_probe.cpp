@@ -7,6 +7,7 @@
 #include "ram_client_channel.hpp"
 #include "locked_ram_fixture.hpp"
 #include "flitzfs/native_filesystem.hpp"
+#include "flitzfs/native_hybrid_backing.hpp"
 #include "flitzfs/native_volume_file.hpp"
 #include "flitzfs/read_only_file.hpp"
 #include "../src/record_digest.hpp"
@@ -1083,6 +1084,16 @@ constexpr std::array<std::wstring_view,3> cut_names{L"before-payload-flush",L"af
 constexpr std::array<std::wstring_view,5> operation_names{L"write",L"eof-shrink",L"rename",L"image-switch",L"mapped-write"};
 constexpr std::array<std::wstring_view,3> selector_cut_names{
     L"before-first-selector-write",L"after-first-selector-flush",L"after-second-selector-flush"};
+enum class SealedBoundary {
+  before_workspace_reclaim,after_workspace_flush,before_candidate_flush,
+  before_first_write,before_first_flush,after_first_flush,before_second_write,before_second_flush,after_second_flush,
+  live,stale
+};
+constexpr std::array<std::wstring_view,11> sealed_boundaries{
+    L"before-workspace-reclaim",L"after-workspace-flush",L"before-candidate-flush",
+    L"before-first-selector-write",L"before-first-selector-flush",L"after-first-selector-flush",
+    L"before-second-selector-write",L"before-second-selector-flush",L"after-second-selector-flush",
+    L"live-handoff",L"stale-candidate"};
 constexpr auto cut_bytes=8192U;
 constexpr auto cut_shrunk_bytes=3751U;
 constexpr auto cut_mapped_offset=1536U;
@@ -1236,9 +1247,16 @@ NTSTATUS create_cut_filesystem(PWSTR device,const FSP_FSCTL_VOLUME_PARAMS* param
 
 class SelectorPublicationObserver final:public flitzfs::detail::VolumeFileObserver {
  public:
-  SelectorPublicationObserver(PublicationCut cut,const source_fixture::Events& protocol):
-      cut_(cut),protocol_(protocol) {}
+  SelectorPublicationObserver(PublicationCut cut,const source_fixture::Events& protocol,
+      std::optional<SealedBoundary> sealed={}):cut_(cut),protocol_(protocol),sealed_(sealed) {}
   static thread_local const SelectorPublicationObserver* active;
+  void prepare_publication(bool ready) noexcept {publication_ready_=ready;}
+  bool workspace_retired() const noexcept {return workspace_retired_;}
+  std::string describe() const {
+    return " candidate_written="+std::to_string(alternate_bytes_)+
+        " workspace_reclaimed="+std::to_string(workspace_retired_)+
+        " candidate_flushed="+std::to_string(candidate_flushed_)+" selector_writes="+std::to_string(roots_);
+  }
   void before_write(std::uint64_t at,std::size_t bytes) override {
     if(active!=this)return;
     constexpr auto unit=flitzfs::kStoreCommitUnit;
@@ -1248,22 +1266,48 @@ class SelectorPublicationObserver final:public flitzfs::detail::VolumeFileObserv
           "Unqualified selector write or unflushed replacement");
       const auto mask=1U<<static_cast<unsigned>(at/unit);
       require(!(root_slots_&mask),"Selector wrote the same slot twice");
-      if(roots_==0 && cut_==PublicationCut::before_commit)park_publication(protocol_);
+      if(sealed_) {
+        require(*sealed_!=SealedBoundary::stale && candidate_flushed_ && workspace_retired_,
+            "Sealed selector reached publication without its candidate fence or after invalidation");
+        stop_at(roots_?SealedBoundary::before_second_write:SealedBoundary::before_first_write);
+      } else if(roots_==0 && cut_==PublicationCut::before_commit)park_publication(protocol_);
       root_slots_|=mask;++roots_;
     } else if(at>=selector_alternate_offset && at-selector_alternate_offset<selector_limits.maximum_physical_bytes) {
+      alternate_bytes_+=bytes;
       alternate_written_=true;
       alternate_flushed_=false;
     } else if(at>=image && at<selector_alternate_offset) {
       throw std::runtime_error("Mounted reclamation attempted to write the retained source");
     }
   }
+  void before_flush() override {
+    if(active!=this || !sealed_)return;
+    if(roots_!=barriers_) {
+      stop_at(roots_==1?SealedBoundary::before_first_flush:SealedBoundary::before_second_flush);
+    } else if(publication_ready_ && roots_==0) {
+      require(alternate_flushed_ && workspace_retired_ && !candidate_flushed_,
+          "Sealed candidate fence was not the first operation after verification");
+      candidate_flushing_=true;
+      stop_at(SealedBoundary::before_candidate_flush);
+    }
+  }
   void after_flush() override {
     if(active!=this)return;
     if(alternate_written_)alternate_flushed_=true;
+    if(workspace_reclaiming_) {
+      workspace_reclaiming_=false;
+      workspace_retired_=true;
+      stop_at(SealedBoundary::after_workspace_flush);
+    }
+    if(candidate_flushing_) {
+      candidate_flushing_=false;
+      candidate_flushed_=true;
+    }
     if(roots_==barriers_)return;
     require(roots_==barriers_+1,"Selector slots advanced without ordered flushes");
     ++barriers_;
-    if((cut_==PublicationCut::after_first_copy && roots_==1) ||
+    if(sealed_)stop_at(roots_==1?SealedBoundary::after_first_flush:SealedBoundary::after_second_flush);
+    else if((cut_==PublicationCut::after_first_copy && roots_==1) ||
         (cut_==PublicationCut::after_second_copy && roots_==2))park_publication(protocol_);
   }
   void before_reclaim(std::uint64_t at,std::uint64_t bytes) override {
@@ -1271,48 +1315,85 @@ class SelectorPublicationObserver final:public flitzfs::detail::VolumeFileObserv
     constexpr auto image=flitzfs::kNativeVolumeFileImageOffset;
     require(at>=selector_alternate_offset || (at<=image && bytes<=image-at),
         "Mounted reclamation attempted to retire the selected source before publication");
+    if(sealed_ && at>=selector_alternate_offset &&
+        at-selector_alternate_offset<selector_limits.maximum_physical_bytes) {
+      require(bytes<=selector_limits.maximum_physical_bytes-(at-selector_alternate_offset),
+          "Workspace retirement crossed the inactive image range");
+      workspace_reclaiming_=true;
+      stop_at(SealedBoundary::before_workspace_reclaim);
+    }
   }
  private:
+  void stop_at(SealedBoundary boundary) const {
+    if(sealed_==boundary)park_publication(protocol_);
+  }
   const PublicationCut cut_;
   const source_fixture::Events& protocol_;
+  const std::optional<SealedBoundary> sealed_;
+  std::uint64_t alternate_bytes_=0;
   unsigned roots_=0,root_slots_=0,barriers_=0;
   bool alternate_written_=false,alternate_flushed_=false;
+  bool publication_ready_=false,candidate_flushing_=false,candidate_flushed_=false;
+  bool workspace_reclaiming_=false,workspace_retired_=false;
 };
 thread_local const SelectorPublicationObserver* SelectorPublicationObserver::active=nullptr;
 
-void advance_selector_publication(flitzfs::WinFspNativeSession& session,SelectorPublicationObserver& observer) {
-  flitzfs::WindowsMaintenanceHost host;
-  const auto deadline=GetTickCount64()+15000;
+template<class Complete>
+void advance_selector_work(flitzfs::WinFspNativeSession& session,flitzfs::WindowsMaintenanceHost& host,
+    SelectorPublicationObserver* observer,
+    std::uint64_t timeout_ms,Complete&& complete) {
+  const auto deadline=GetTickCount64()+timeout_ms;
   auto continuation=flitzfs::WinFspMaintenanceContinuation::none;
+  flitzfs::NativeMaintenanceProgress last;
+  unsigned opportunities=0,continued=0;
   struct ActivePublication {
-    explicit ActivePublication(const SelectorPublicationObserver& observer){SelectorPublicationObserver::active=&observer;}
+    explicit ActivePublication(const SelectorPublicationObserver* observer){SelectorPublicationObserver::active=observer;}
     ~ActivePublication(){SelectorPublicationObserver::active=nullptr;}
   } active(observer);
+  const auto consume=[&](const flitzfs::WinFspMaintenanceResult& result) {
+    require(!result.compaction_failed && result.state!=flitzfs::WinFspMaintenanceState::unavailable,
+        "Mounted selector maintenance failed");
+    last=result.progress;
+    continuation=result.continuation;
+    return complete(result);
+  };
   while(GetTickCount64()<deadline) {
     const auto observed=host.observe(false);
     if(observed.valid) {
       flitzfs::MaintenanceThreadScope priority;
       require(priority.active(),"Selector fixture could not lower maintenance priority");
-      auto result=session.advance_background_maintenance(observed,GetTickCount64(),{},continuation,false);
-      require(!result.compacted && !result.compaction_failed &&
-          result.state!=flitzfs::WinFspMaintenanceState::unavailable,"Mounted reclamation bypassed selector cut or failed");
-      continuation=result.continuation;
-      while(continuation==flitzfs::WinFspMaintenanceContinuation::compaction) {
+      ++opportunities;
+      bool done=consume(session.advance_background_maintenance(observed,GetTickCount64(),{},continuation,false));
+      while(!done && continuation!=flitzfs::WinFspMaintenanceContinuation::none &&
+          flitzfs::can_continue_preparation(last)) {
         const auto fresh=host.continue_preparation(250);
         if(!fresh)break;
-        result=session.advance_background_maintenance(*fresh,GetTickCount64(),{},continuation,false);
-        require(!result.compacted && !result.compaction_failed &&
-            result.state!=flitzfs::WinFspMaintenanceState::unavailable,"Mounted selector preparation failed");
-        continuation=result.continuation;
+        ++continued;
+        done=consume(session.advance_background_maintenance(*fresh,GetTickCount64(),{},continuation,false));
       }
       require(priority.finish(),"Selector fixture could not restore maintenance priority");
+      if(done)return;
     }
     require(host.status()!=flitzfs::MaintenanceHostStatus::unavailable,"Selector fixture could not read guest resources");
     Sleep(40);
   }
-  throw std::runtime_error("Mounted reclamation did not reach the selector boundary");
+  throw std::runtime_error("Mounted maintenance did not reach the boundary, phase="+
+      std::to_string(static_cast<unsigned>(last.phase))+" deferral="+
+      std::to_string(static_cast<unsigned>(last.deferral))+" opportunities="+std::to_string(opportunities)+
+      " continuations="+std::to_string(continued)+" sampled="+std::to_string(last.sampled_extents)+
+      (observer?observer->describe():std::string{}));
 }
-void publication_source(std::wstring_view token,PublicationCut cut,PublicationOperation operation) {
+void retire_selector_range(flitzfs::WinFspNativeSession& session,flitzfs::WindowsMaintenanceHost& host,
+    const flitzfs::NativeVolumeRangeIo& ranges,std::uint64_t offset) {
+  const auto retired=[&]{return ranges.allocated_extent(offset,selector_limits.maximum_physical_bytes)==0;};
+  if(retired())return;
+  advance_selector_work(session,host,nullptr,8000,[&](const auto& progress) {
+    require(!progress.compacted,"Range retirement started another image handoff");
+    return retired();
+  });
+}
+void publication_source(std::wstring_view token,PublicationCut cut,PublicationOperation operation,
+    std::optional<SealedBoundary> sealed={},std::wstring_view continued={}) {
   require_probe_job();stage=70;
   source_fixture::Events protocol(false,std::wstring(token));
   Fixture fixture;
@@ -1324,7 +1405,7 @@ void publication_source(std::wstring_view token,PublicationCut cut,PublicationOp
     std::shared_ptr<SelectorPublicationObserver> selector_observer;
     std::shared_ptr<flitzfs::StoreByteIo> backing;
     if(selector) {
-      selector_observer=std::make_shared<SelectorPublicationObserver>(cut,protocol);
+      selector_observer=std::make_shared<SelectorPublicationObserver>(cut,protocol,sealed);
       backing=flitzfs::detail::new_observed_volume_file(path,selector_contract,
           flitzfs::kNativeVolumeFileImageOffset+3*limits.maximum_physical_bytes,selector_observer);
     } else {
@@ -1344,7 +1425,39 @@ void publication_source(std::wstring_view token,PublicationCut cut,PublicationOp
     if(operation==PublicationOperation::write)protocol.wait_written();
     else require(WaitForSingleObject(protocol.get(source_fixture::Phase::written),15000)==WAIT_OBJECT_0,
         "Mounted population exceeded its preparation deadline");
-    if(selector_observer)advance_selector_publication(session,*selector_observer);
+    if(selector_observer) {
+      const auto* ranges=dynamic_cast<const flitzfs::NativeVolumeRangeIo*>(backing.get());
+      require(ranges && ranges->supports_reclaimable_ranges(),"Selector fixture needs NTFS sparse ranges");
+      const bool live=sealed==SealedBoundary::live;
+      const bool stale=sealed==SealedBoundary::stale;
+      std::optional<source_fixture::Events> completion;
+      if(live || stale)completion.emplace(false,std::wstring(continued));
+      flitzfs::WindowsMaintenanceHost host; // Keep observations monotonic throughout this session.
+      bool changed=false;
+      advance_selector_work(session,host,selector_observer.get(),sealed?78000:15000,[&](const auto& progress) {
+        const bool ready=selector_observer->workspace_retired() &&
+            progress.progress.phase==flitzfs::NativeMaintenancePhase::publishing;
+        if(stale && ready && !changed) {
+          protocol.signal(source_fixture::Phase::ack);
+          completion->wait_written();
+          changed=true;
+        }
+        selector_observer->prepare_publication(ready && !changed);
+        if(progress.compacted) {
+          require(live && progress.sealed_image,"Mounted maintenance passed the intended cut or selected a mirror");
+          return true;
+        }
+        return stale && changed &&
+            !ranges->allocated_extent(selector_alternate_offset,selector_limits.maximum_physical_bytes);
+      });
+      if(live) {
+        protocol.signal(source_fixture::Phase::ack);
+        completion->wait_written();
+        retire_selector_range(session,host,*ranges,flitzfs::kNativeVolumeFileImageOffset);
+      }
+      finish_session(session,mount);
+      return;
+    }
     Sleep(20000);
     throw std::runtime_error("Publication-cut source was not retired");
   }catch(const std::exception& failure) {
@@ -1356,18 +1469,31 @@ void publication_source(std::wstring_view token,PublicationCut cut,PublicationOp
     throw;
   }
 }
-void publication_resumer(std::wstring_view token,DWORD source,flitzfs::StoreIoContract contract) {
+void publication_resumer(std::wstring_view token,DWORD source,flitzfs::StoreIoContract contract,
+    bool retire_pair=false) {
   require_probe_job();stage=71;
   source_fixture::Events protocol(false,std::wstring(token));
   Fixture fixture(source);
   require_removed(fixture.root/L"mount");
   const auto mount=fixture.root/L"resume-mount";
-  auto adapter=flitzfs::WinFspNativeWritable::resume_file_volume(fixture.root/L"inflight.flfs",
-      contract,cut_volume_identity(source),cut_compression);
+  const auto path=fixture.root/L"inflight.flfs";
+  const auto volume=cut_volume_identity(source);
+  const auto epoch=retire_pair?flitzfs::NativeVolumeFile::inspect(path,volume).info().selection.epoch:0;
+  auto backing=retire_pair?flitzfs::detail::reopen_volume_file(path,contract,
+      flitzfs::kNativeVolumeFileImageOffset+3*selector_limits.maximum_physical_bytes):nullptr;
+  auto adapter=backing?flitzfs::WinFspNativeWritable::resume_file_volume(backing,volume,cut_compression):
+      flitzfs::WinFspNativeWritable::resume_file_volume(path,contract,volume,cut_compression);
   flitzfs::WinFspNativeSession session(std::move(adapter),flitzfs::linked_winfsp_session_api());
   require(session.start({mount.native(),true,true})==STATUS_SUCCESS,"Publication-cut continuation mount");
   protocol.signal(source_fixture::Phase::ready);
   protocol.wait_written();
+  if(retire_pair) {
+    const auto* ranges=dynamic_cast<const flitzfs::NativeVolumeRangeIo*>(backing.get());
+    require(ranges,"Recovery fixture lost its sparse provider");
+    flitzfs::WindowsMaintenanceHost host;
+    retire_selector_range(session,host,*ranges,
+        epoch%2?selector_alternate_offset:flitzfs::kNativeVolumeFileImageOffset);
+  }
   finish_session(session,mount);
 }
 std::uint64_t mounted_cut_inode(HANDLE file) {
@@ -1543,11 +1669,11 @@ std::uint64_t mounted_inode_at(const fs::path& path) {
 }
 
 void run_publication_continuation(const fs::path& executable,const Fixture& fixture,DWORD source_id,
-    const std::string& target,const std::vector<std::byte>& expected,bool paired) {
+    const std::string& target,const std::vector<std::byte>& expected,bool paired,bool retire_pair=false) {
   constexpr flitzfs::ProcessBudget budget{128,2000,30000};
   source_fixture::Events continuation(true);
   source_fixture::Child resumer(executable,
-      {paired?L"--publication-selector-resumer":L"--publication-cut-resumer",
+      {retire_pair?L"--publication-sealed-resumer":(paired?L"--publication-selector-resumer":L"--publication-cut-resumer"),
        continuation.token(),std::to_wstring(source_id)},budget);
   resumer.await(continuation,source_fixture::Phase::ready);
   const auto mount=fixture.root/L"resume-mount";
@@ -1681,12 +1807,13 @@ void run_publication_cut(const fs::path& executable,PublicationCut point,Publica
 // Read both reserved image regions only after the writer's process has exited.
 class SelectorImageReader final:public flitzfs::StoreByteIo {
  public:
-  SelectorImageReader(std::shared_ptr<const flitzfs::ReadOnlyFile> file,std::uint64_t offset):
-      file_(std::move(file)),offset_(offset) {
-    require(file_->size()>offset_,"Reclamation did not retain the requested image range");
+  SelectorImageReader(std::shared_ptr<const flitzfs::ReadOnlyFile> file,std::uint64_t offset,
+      std::uint64_t maximum=selector_limits.maximum_physical_bytes):
+      file_(std::move(file)),offset_(offset),maximum_(maximum) {
+    require(maximum_ && file_->size()>offset_,"Reclamation did not retain the requested image range");
   }
   std::uint64_t extent() const override {
-    return (std::min)(selector_limits.maximum_physical_bytes,file_->size()-offset_);
+    return (std::min)(maximum_,file_->size()-offset_);
   }
   void read_exact(std::uint64_t at,std::span<std::byte> output) const override {
     require(at<=extent() && output.size()<=extent()-at,"Selector image read range");
@@ -1701,7 +1828,7 @@ class SelectorImageReader final:public flitzfs::StoreByteIo {
  private:
   [[noreturn]] static void read_only(){throw std::runtime_error("Selector image verification is read only");}
   const std::shared_ptr<const flitzfs::ReadOnlyFile> file_;
-  const std::uint64_t offset_;
+  const std::uint64_t offset_,maximum_;
 };
 void run_selector_cut(const fs::path& executable,PublicationCut point) {
   stage=73;
@@ -1789,6 +1916,154 @@ void run_selector_cut(const fs::path& executable,PublicationCut point) {
       <<L" source_end="<<old_end<<L" successor_end="<<next_end<<L" bytes_verified=1 retired=1\n";
 }
 
+SealedBoundary sealed_boundary(std::wstring_view name) {
+  const auto at=std::ranges::find(sealed_boundaries,name);
+  require(at!=sealed_boundaries.end(),"Unknown paired sealed interruption boundary");
+  return static_cast<SealedBoundary>(at-sealed_boundaries.begin());
+}
+auto open_sealed_candidate(const std::shared_ptr<const flitzfs::ReadOnlyFile>& file,
+    flitzfs::NativeImageStorage storage) {
+  std::array<std::byte,64> outer{};
+  file->read_exact_at(selector_alternate_offset,outer.data(),outer.size());
+  constexpr std::string_view magic="FLTXSP01";
+  require(std::ranges::equal(std::span(outer).first(magic.size()),std::as_bytes(std::span(magic))),
+      "Inactive range did not contain the prepared protected base");
+  std::uint64_t base_bytes=0;
+  for(unsigned byte=0;byte<8;++byte)
+    base_bytes|=std::to_integer<std::uint64_t>(outer[24+byte])<<(8*byte);
+  const auto capacity=storage.maximum_physical_bytes;
+  require(base_bytes>flitzfs::kVolumeHeadBytes && base_bytes<capacity-flitzfs::kNativeHybridTailPrefixBytes,
+      "Prepared base length is outside the inactive range");
+  flitzfs::StoreIdentity id{};
+  std::copy_n(outer.begin()+32,id.size(),id.begin());
+  auto base=std::make_shared<SelectorImageReader>(file,selector_alternate_offset,base_bytes);
+  auto tail=std::make_shared<SelectorImageReader>(file,selector_alternate_offset+base_bytes,
+      flitzfs::kNativeHybridTailPrefixBytes);
+  auto backing=flitzfs::NativeHybridBacking::open(std::move(base),std::move(tail),id,capacity,capacity);
+  auto result=flitzfs::NativeFilesystemSnapshot::open_image(backing,storage);
+  result.verify_all();
+  return std::pair{std::move(result),backing->occupied()};
+}
+std::vector<std::byte> sealed_payload() {
+  std::vector<std::byte> bytes(2'861'348);
+  std::uint32_t state=167;
+  for(auto& byte:bytes) {
+    state^=state<<13;
+    state^=state>>17;
+    state^=state<<5;
+    byte=static_cast<std::byte>(state&0xffU);
+  }
+  return bytes;
+}
+void run_sealed_selector(const fs::path& executable,SealedBoundary point) {
+  stage=74;
+  const bool live=point==SealedBoundary::live,stale=point==SealedBoundary::stale;
+  const bool uninterrupted=live || stale;
+  const auto name=sealed_boundaries[static_cast<std::size_t>(point)];
+  source_fixture::Events protocol(true);
+  std::optional<source_fixture::Events> completion;
+  if(uninterrupted)completion.emplace(true);
+  std::vector<std::wstring> arguments{L"--sealed-selector-source",protocol.token(),std::wstring(name)};
+  if(completion)arguments.push_back(completion->token());
+  constexpr flitzfs::ProcessBudget budget{128,2000,40000};
+  source_fixture::Child source(executable,std::move(arguments),budget,flitzfs::run_bounded_publication_probe);
+  source.await(protocol,source_fixture::Phase::ready);
+  const auto source_id=source.process_id();
+  require(source_id && source_id!=GetCurrentProcessId(),"Sealed source and client alias");
+  Fixture fixture(source_id);
+  const auto mount=fixture.root/L"mount",path=fixture.root/L"inflight.flfs";
+  mounted_identity(mount);
+  auto expected=sealed_payload();
+  constexpr auto sparse_bytes=4U*1024*1024;
+  seed_cut_file(mount/L"payload.bin",expected);
+  seed_cut_file(mount/L"witness.bin",cut_data(29));
+  seed_cut_file(mount/L"sparse.bin",std::vector<std::byte>(sparse_bytes));
+  source_fixture::Handle client(CreateFileW((mount/L"payload.bin").c_str(),GENERIC_READ|GENERIC_WRITE,
+      FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,nullptr,OPEN_EXISTING,FILE_FLAG_WRITE_THROUGH,nullptr));
+  checked(client.value!=INVALID_HANDLE_VALUE,"Open held sealed client");
+  const auto inode=mounted_cut_inode(client.value);
+  read_handle(client.value,expected); // Adopt the ordinary Open before handoff.
+  protocol.signal(source_fixture::Phase::written);
+  const HANDLE waits[]{protocol.get(source_fixture::Phase::ack),source.result_event()};
+  const auto reached=WaitForMultipleObjects(static_cast<DWORD>(std::size(waits)),waits,FALSE,81000);
+  if(reached!=WAIT_OBJECT_0) {
+    if(reached==WAIT_TIMEOUT)source.request_cancel();
+    const auto failed=source.result();
+    throw std::runtime_error("Sealed boundary was not observed, wait="+std::to_string(reached)+
+        " source_exit="+std::to_string(failed.exit_code));
+  }
+  if(uninterrupted) {
+    read_handle(client.value,expected);
+    require(mounted_cut_inode(client.value)==inode,"Open inode changed during sealed work");
+    auto edit=cut_data(127);edit.resize(3001);
+    constexpr auto at=flitzfs::kNativeExtentBytes-17;
+    LARGE_INTEGER offset{};offset.QuadPart=at;
+    checked(SetFilePointerEx(client.value,offset,nullptr,FILE_BEGIN),"Sealed mounted edit seek");
+    write_bytes(client.value,edit);
+    std::ranges::copy(edit,expected.begin()+at);
+    read_handle(client.value,expected);
+    checked(client.close(),"Close verified held Win32 handle");
+    completion->signal(source_fixture::Phase::written);
+  }else require(source.request_cancel(),"Sealed source cancellation was not admitted");
+  const auto ended=source.result();
+  require(ended.process_id==source_id && ended.exit_confirmed && !ended.timed_out && source.retirement_confirmed() &&
+      ended.cancelled==!uninterrupted && ended.exit_code==(uninterrupted?ERROR_SUCCESS:ERROR_CANCELLED),
+      "Sealed source retirement unconfirmed");
+  if(!uninterrupted)checked(client.close(),"Close interrupted held Win32 handle");
+  require_removed(mount);
+  const auto volume=cut_volume_identity(source_id);
+  const auto verify=[&](const flitzfs::NativeFilesystemSnapshot& image,bool continued) {
+    require(image.stat("payload.bin").inode==inode && image.list().size()==(continued?4U:3U) &&
+        image.read("payload.bin",0,static_cast<std::uint32_t>(expected.size()+1))==expected &&
+        image.read("witness.bin",0,cut_bytes+1)==cut_data(29) &&
+        image.stat("sparse.bin").logical_bytes==sparse_bytes &&
+        image.read("sparse.bin",sparse_bytes-4096,4096)==std::vector<std::byte>(4096),
+        "Sealed file recovery lost acknowledged data or changed the namespace");
+    if(continued)require(image.read("continuation.bin",0,cut_bytes+1)==cut_data(61),
+        "Recovered sealed file did not persist a continuation");
+  };
+  flitzfs::NativeVolumeHeadInfo selected;
+  bool verified_candidate=false;
+  {
+    const auto view=flitzfs::NativeVolumeFile::inspect(path,volume);
+    selected=view.info();
+    const bool new_required=point>=SealedBoundary::after_first_flush && !stale;
+    const auto epoch=selected.selection.epoch;
+    require(flitzfs::paired_volume_file(selected.selection.placement) &&
+        (epoch==(new_required?2U:1U) || (point==SealedBoundary::before_first_flush && epoch==2)) &&
+        selected.selection.sealed_range.has_value()==(epoch==2),"Sealed recovery chose an unexpected layout");
+    if(point==SealedBoundary::after_first_flush || point==SealedBoundary::before_second_write)
+      require(selected.degraded,"Only the first selector record should be durable");
+    if(live || stale || point==SealedBoundary::after_second_flush)
+      require(!selected.degraded,"Completed selector records disagreed");
+    verify(view.filesystem(),false);
+    if(!uninterrupted) {
+      const auto file=std::make_shared<flitzfs::ReadOnlyFile>(flitzfs::ReadOnlyFile::open(path));
+      const auto old=flitzfs::NativeFilesystemSnapshot::open_image(
+          std::make_shared<SelectorImageReader>(file,flitzfs::kNativeVolumeFileImageOffset),
+          selected.selection.storage);
+      old.verify_all();
+      verify(old,false);
+      if(point>=SealedBoundary::before_candidate_flush) {
+        const auto [candidate,occupied]=open_sealed_candidate(file,selected.selection.storage);
+        verify(candidate,false);
+        require(candidate.identity()!=old.identity() && occupied<old.storage_info().physical_end &&
+            selected.selection.image_identity==(epoch==2?candidate.identity():old.identity()),
+            "The independently checked selector did not bind the complete prepared image");
+        verified_candidate=true;
+      }
+    }
+  }
+  run_publication_continuation(executable,fixture,source_id,"payload.bin",expected,true,true);
+  const auto recovered=flitzfs::NativeVolumeFile::inspect(path,volume);
+  verify(recovered.filesystem(),true);
+  require(!recovered.info().degraded && recovered.info().selection==selected.selection,
+      "Writable continuation changed the selected paired layout");
+  std::wcout<<L"mounted_paired_seal boundary="<<name<<L" epoch="<<selected.selection.epoch
+      <<L" held_client=1 bytes_verified=1 candidate_verified="<<static_cast<unsigned>(verified_candidate)
+      <<L" range_reclaimed=1 retired=1\n";
+}
+
 } // namespace
 int wmain(int argc,wchar_t** argv) {try {
   require_hosted_opt_in();require(argc>=2&&argc<=5,"explicit writable probe mode required");
@@ -1801,10 +2076,29 @@ int wmain(int argc,wchar_t** argv) {try {
     publication_source(argv[2],cut_points[static_cast<std::size_t>(cut-cut_names.begin())],
         static_cast<PublicationOperation>(operation-operation_names.begin()));return 0;
   }
-  if(mode==L"--publication-cut-resumer" || mode==L"--publication-selector-resumer") {
+  if(mode==L"--sealed-selector-source") {
+    require_cut_guest();require(argc==4 || argc==5,"Sealed selector source arguments");
+    const auto point=sealed_boundary(argv[3]);
+    require((argc==5)==(point==SealedBoundary::live || point==SealedBoundary::stale),
+        "Sealed client completion binding");
+    publication_source(argv[2],PublicationCut::before_commit,PublicationOperation::image_switch,
+        point,argc==5?argv[4]:L"");return 0;
+  }
+  if(mode==L"--run-sealed-selector") {
+    require_cut_guest();require(argc==3,"One mounted sealed case required");
+    const source_fixture::ControllerBudget controller_budget;
+    wchar_t path[512]{};const auto n=GetModuleFileNameW(nullptr,path,512);
+    require(n && n<512,"Sealed selector executable identity");
+    run_sealed_selector(fs::path(std::wstring(path,n)),sealed_boundary(argv[2]));
+    require(source_fixture::cleanup_ok.load() && !source_fixture::source_busy.load(),"Sealed selector final cleanup");
+    return 0;
+  }
+  if(mode==L"--publication-cut-resumer" || mode==L"--publication-selector-resumer" ||
+      mode==L"--publication-sealed-resumer") {
     require_cut_guest();require(argc==4,"Publication-cut resumer arguments");
     publication_resumer(argv[2],process_number(argv[3]),
-        mode==L"--publication-selector-resumer"?selector_contract:cut_contract);return 0;
+        mode==L"--publication-cut-resumer"?cut_contract:selector_contract,
+        mode==L"--publication-sealed-resumer");return 0;
   }
   if(mode==L"--run-publication-cuts" || mode==L"--run-metadata-publication-cuts" ||
       mode==L"--run-mapped-publication-cuts" || mode==L"--run-selector-publication-cuts") {

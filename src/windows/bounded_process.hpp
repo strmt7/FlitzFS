@@ -23,6 +23,10 @@ class ProcessObserver final {
  private:
   friend ProcessResult run_bounded_process(const std::filesystem::path&,
       const std::vector<std::wstring>&, ProcessBudget, const std::shared_ptr<ProcessObserver>&);
+  friend ProcessResult run_bounded_publication_probe(const std::filesystem::path&,
+      const std::vector<std::wstring>&, ProcessBudget, const std::shared_ptr<ProcessObserver>&);
+  static ProcessResult supervise(const std::filesystem::path&,const std::vector<std::wstring>&,
+      ProcessBudget,std::uint32_t,const std::shared_ptr<ProcessObserver>&);
   void* process_ = nullptr;
   void* stop_ = nullptr;
   std::atomic<std::uint32_t> process_id_{0};
@@ -45,4 +49,9 @@ struct ProcessResult {
 ProcessResult run_bounded_process(const std::filesystem::path& executable,
     const std::vector<std::wstring>& arguments, ProcessBudget budget = {},
     const std::shared_ptr<ProcessObserver>& observer = {});
+#ifdef FLITZFS_OBSERVE_VOLUME_PUBLICATION
+// Self-launch for the paced publication campaign inside a disposable guest.
+ProcessResult run_bounded_publication_probe(const std::filesystem::path&,
+    const std::vector<std::wstring>&,ProcessBudget,const std::shared_ptr<ProcessObserver>&);
+#endif
 } // namespace flitzfs

@@ -109,17 +109,21 @@ class Events final {
 // Only schedules the existing creation-time/job-bounded launcher. It does not
 // duplicate process creation, quoting, caps, termination or exit-code logic.
 class Child final {
+  using Launch=decltype(&flitzfs::run_bounded_process);
   struct State {
     const std::filesystem::path executable;
     const std::vector<std::wstring> arguments;
     const flitzfs::ProcessBudget budget;
+    const Launch launch;
     const std::shared_ptr<flitzfs::ProcessObserver> observer=std::make_shared<flitzfs::ProcessObserver>();
     Handle ready{CreateEventW(nullptr,TRUE,FALSE,nullptr)};
     flitzfs::ProcessResult result;
     std::exception_ptr error;
     std::atomic<bool> done{false},retired{false};
-    State(const std::filesystem::path& exe,const std::vector<std::wstring>& args,flitzfs::ProcessBudget limits):
-        executable(exe),arguments(args),budget(limits){checked(ready.value!=nullptr,"source result event");}
+    State(const std::filesystem::path& exe,const std::vector<std::wstring>& args,flitzfs::ProcessBudget limits,
+        Launch launcher):executable(exe),arguments(args),budget(limits),launch(launcher) {
+      checked(ready.value!=nullptr,"source result event");
+    }
   };
   std::shared_ptr<State> state_;
   Handle thread_;
@@ -134,7 +138,7 @@ class Child final {
     const auto state=*incoming;incoming.reset();
     try {
       checked(SetThreadPriority(GetCurrentThread(),THREAD_PRIORITY_LOWEST),"source supervisor priority");
-      state->result=flitzfs::run_bounded_process(state->executable,state->arguments,state->budget,state->observer);
+      state->result=state->launch(state->executable,state->arguments,state->budget,state->observer);
     }catch(...) {
       state->error=std::current_exception();state->result.process_id=state->observer->process_id();
     }
@@ -160,13 +164,13 @@ class Child final {
   }
  public:
   Child(const std::filesystem::path& executable,const std::vector<std::wstring>& arguments,
-      flitzfs::ProcessBudget budget) {
-    require(flitzfs::valid_process_budget(budget)&&arguments.size()<=14,"source launch bounds");
+      flitzfs::ProcessBudget budget,Launch launch=flitzfs::run_bounded_process) {
+    require(flitzfs::valid_process_budget(budget)&&launch&&arguments.size()<=14,"source launch bounds");
     (void)flitzfs::windows_child_command(executable.native(),arguments);
     bool expected=false;
     require(source_busy.compare_exchange_strong(expected,true),"a source or terminal retirement is already active");
     try {
-      state_=std::make_shared<State>(executable,arguments,budget);
+      state_=std::make_shared<State>(executable,arguments,budget,launch);
       auto* context=new std::shared_ptr<State>(state_);
       const auto handle=_beginthreadex(nullptr,0,supervise,context,0,nullptr);
       if(!handle){delete context;throw std::runtime_error("source supervisor creation");}

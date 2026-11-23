@@ -57,6 +57,27 @@ ProcessObservation ProcessObserver::wait_for_exit(std::uint32_t milliseconds) co
 ProcessResult run_bounded_process(const std::filesystem::path& executable,
     const std::vector<std::wstring>& arguments, ProcessBudget budget,
     const std::shared_ptr<ProcessObserver>& supplied_observer) {
+  return ProcessObserver::supervise(executable,arguments,budget,budget.timeout_ms,supplied_observer);
+}
+#ifdef FLITZFS_OBSERVE_VOLUME_PUBLICATION
+ProcessResult run_bounded_publication_probe(const std::filesystem::path& executable,
+    const std::vector<std::wstring>& arguments,ProcessBudget budget,
+    const std::shared_ptr<ProcessObserver>& observer) {
+  DWORD type=0,bytes=sizeof(type);
+  wchar_t module[512]{};
+  const auto length=GetModuleFileNameW(nullptr,module,512);
+  if(RegGetValueW(HKEY_LOCAL_MACHINE,L"SYSTEM\\CurrentControlSet\\Control",L"ContainerType",
+        RRF_RT_REG_DWORD,nullptr,&type,&bytes)!=ERROR_SUCCESS || type!=4 ||
+      !length || length>=512 || executable.native()!=std::wstring_view(module,length) ||
+      executable.filename()!=L"flitzfs_write_probe.exe" || arguments.empty() ||
+      arguments.front()!=L"--sealed-selector-source")
+    throw std::invalid_argument("Publication probe requires its exact disposable guest executable and source mode");
+  return ProcessObserver::supervise(executable,arguments,budget,100000,observer);
+}
+#endif
+ProcessResult ProcessObserver::supervise(const std::filesystem::path& executable,
+    const std::vector<std::wstring>& arguments,ProcessBudget budget,std::uint32_t timeout_ms,
+    const std::shared_ptr<ProcessObserver>& supplied_observer) {
   if (!valid_process_budget(budget)) throw std::invalid_argument("unsafe process budget");
   auto command = windows_child_command(executable.native(), arguments);
   const auto observer = supplied_observer ? supplied_observer : std::make_shared<ProcessObserver>();
@@ -117,7 +138,7 @@ ProcessResult run_bounded_process(const std::filesystem::path& executable,
   ProcessResult result;
   result.process_id = process.dwProcessId;
   const HANDLE waits[] = {child, static_cast<HANDLE>(observer->stop_)};
-  auto wait = WaitForMultipleObjects(2, waits, FALSE, budget.timeout_ms);
+  auto wait = WaitForMultipleObjects(2, waits, FALSE, timeout_ms);
   result.elapsed_ms=GetTickCount64()-started;
   if (wait == WAIT_TIMEOUT || wait == WAIT_OBJECT_0 + 1) {
     result.timed_out = wait == WAIT_TIMEOUT;

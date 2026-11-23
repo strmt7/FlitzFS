@@ -581,6 +581,9 @@ class Output final:public NativeVolumeRangeIo {
 #ifdef _WIN32
     {
       if(volume_file_)volume_lifetime_.check();
+#ifdef FLITZFS_OBSERVE_VOLUME_PUBLICATION
+      if(volume_observer_)volume_observer_->before_flush();
+#endif
       MaintenanceBackingCall observed(MaintenanceBackingOperation::flush,0,volume_file_);
       const auto flushed=FlushFileBuffers(handle_);
       if(volume_file_)volume_lifetime_.check(flushed?ERROR_SUCCESS:GetLastError());

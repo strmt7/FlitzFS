@@ -186,6 +186,40 @@ verified the edited file after dispatcher retirement. Real-device allocation
 and power-loss behavior still require qualification.
 [Paired placement evidence](evidence/paired-sealed-placement-2026-11-23.json)
 
+#### Mounted process interruption
+
+The signed WinFsp 2.2 probe ran the writable session and an independent
+Win32 client on sparse NTFS in a disposable Windows 11 guest. The client
+kept the same file handle and inode through live selection, then wrote
+and flushed a change through that handle. A separate CPU reader reopened
+the edited bytes. The provider observed complete release of the inactive
+range after the old client retired.
+
+Nine process cuts covered workspace retirement, the candidate flush and
+both selector records. Each cut held a Win32 file handle open until the
+source process retired. The CPU check read the payload and witness exactly
+and verified the prepared image separately when its base and tail were
+complete. Each recovered writable mount finished retirement and persisted
+a new file that the independent CPU reader checked again.
+
+| Interruption point | Expected selected image |
+| --- | --- |
+| Before workspace retirement through before the first selector write | Previous image |
+| After the first selector write, before its flush | Either complete image. The guest exposed the successor in this run. |
+| After the first selector flush through the second selector flush | Successor. Recovery verifies the selected image and reconciles the peer before reuse. |
+
+The stale-candidate case changed the source after the replacement was
+verified. The same open client wrote and flushed the edit. The source
+stayed selected, the prepared range was released, and the edit survived
+writable reopen. Three cuts through ordinary mirrored selection passed
+under the same probe.
+
+The opt-in probe allows up to 100 seconds for the exact sealed source
+mode in the disposable guest so the normal maintenance governor can
+advance between idle observations. Device power loss and removal require
+separate checks of the medium and its cache policy.
+[Mounted paired sealing evidence](evidence/windows11-mounted-paired-sealing-2026-11-23.json)
+
 Physical allocation is separate from logical file length. The Windows
 provider requires an explicit isolated range reclamation contract, a
 sparse-capable NTFS volume and compatible live cluster geometry. It

@@ -1117,6 +1117,8 @@ if(FLITZFS_BUILD_WRITE_PROBE)
   target_link_libraries(flitzfs_write_probe PRIVATE flitzfs_winfsp flitzfs_process psapi bcrypt advapi32)
   target_compile_definitions(flitzfs_write_probe PRIVATE PSAPI_VERSION=2 FLITZFS_OBSERVE_VOLUME_PUBLICATION=1)
   set_property(SOURCE src/store_file.cpp APPEND PROPERTY COMPILE_DEFINITIONS FLITZFS_OBSERVE_VOLUME_PUBLICATION=1)
+  set_property(SOURCE src/windows/bounded_process.cpp APPEND PROPERTY COMPILE_DEFINITIONS FLITZFS_OBSERVE_VOLUME_PUBLICATION=1)
+  target_link_libraries(flitzfs_process PRIVATE advapi32)
   add_custom_command(TARGET flitzfs_write_probe POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different "${FLITZFS_WINFSP_DLL}" "$<TARGET_FILE_DIR:flitzfs_write_probe>")
 endif()

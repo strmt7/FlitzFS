@@ -49,13 +49,22 @@ selection and a later tail write.
 [Paired placement verification](../evidence/paired-sealed-placement-2026-11-23.json) ·
 [Windows range allocation](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_query_allocated_ranges)
 
-Continue with a disposable NTFS mounted correctness run through each
-placement, publication and retirement boundary. Qualify AMD captures
-from a reopened persistent image, including decode refusal and CPU
-continuity. Measure complete read cost, returned allocation and attempted
-rewrite traffic on real devices. Consider a bounded volatile workspace
-when it fits current headroom and avoids persistent writes. Dense backing
-still needs its own internal segment reuse and recovery qualification.
+The disposable NTFS mount verified the original Win32 handle through
+sealed selection and a subsequent committed write. Nine process cuts
+then exercised workspace retirement, candidate fencing and both selector
+records. The independent CPU reader verified the chosen image and the
+continuation after reopening. NTFS reported that the inactive range was
+released after recovery.
+[Mounted process verification](../evidence/windows11-mounted-paired-sealing-2026-11-23.json)
+
+Qualify AMD captures from a reopened paired image, including decode
+refusal and CPU continuity. Measure complete read cost, returned allocation
+and attempted rewrite traffic on real devices. Compare a volatile workspace
+with the current folded file workspace under the same committed layout.
+Grant volatile scratch from current headroom, keep the selected image
+through cancellation, and verify that the candidate has no dependency on
+the scratch before the selector writes. Dense backing needs its own
+internal segment reuse and recovery qualification.
 
 ReFS moves cold contents through bounded containers. OpenZFS accounts for
 space retained by snapshots during rewrites. FlitzFS's current whole-image
@@ -273,11 +282,12 @@ independent CPU reopen.
 
 | Provider | Signals and tailored decisions |
 | --- | --- |
-| RAM backing | Identify the provider at attach. Resize work against physical and commit headroom. Use observed memory bandwidth to limit copies and caches. Track the peak when the current image and staged replacement coexist. |
-| NVMe | Measure the queue depth where throughput improves without excess tail latency. Coalesce low-priority writes within the commit order. Track sustained write and flush latency as well as short bursts. |
-| SATA SSD | Learn queue and flush bounds for the actual device. Shorten write bursts during sustained slowdown and account for reclamation writes. Test sparse reuse separately from device discard. |
+| In-process RAM and external RAM disks | Bind the volatile lifetime at attach. Resize work against physical and commit headroom, and charge both the selected image and its staged replacement. Yield or cancel private preparation when memory pressure rises. Check a RAM disk's reported geometry separately from its lifetime. |
+| NVMe and other queued solid-state storage | Start with the qualified commit order and measure useful queue depth alongside foreground latency. Group adjacent low-priority requests when this lowers complete I/O cost. Relearn throughput after sustained slowdown and preserve the same flush fences. |
+| SATA SSD | Learn queue and flush bounds for the actual device. Shorten write bursts during sustained slowdown and prefer reuse that avoids growing the backing file. Account for reclamation writes and test sparse reuse separately from device discard. |
 | HDD | Use reported seek penalty and random versus sequential observations. Group nearby reads and writes while preserving publication order. Favor sequential passes in idle windows. |
-| USB storage and memory cards | Keep transport, seek behavior and removal independent. Measure latency and sparse or dense reuse on the actual outer filesystem. Charge optional rewrites against their confirmed space savings. Test both cache policies where the device supports them. |
+| USB-attached SSD and HDD | Keep transport, seek behavior and removal independent. Qualify the bridge, outer filesystem and active cache policy together. Revalidate a fresh attachment before resuming work after removal. |
+| USB flash drives and memory cards | Test write and flush costs after short bursts and after the device slows under sustained work. Favor internal reuse and cheaper candidate preparation where it saves committed bytes. Charge rewrites against confirmed gains and reserve room for foreground writes. Keep cache and removal qualification specific to the attachment. |
 | Unclassified backing | Start from the qualified provider contract and conservative concurrency. Change one dimension at a time as ordinary I/O supplies evidence. |
 
 Select the placement by the backing filesystem and its qualified contract.
@@ -309,7 +319,7 @@ FlitzFS should observe behavior through the attached provider and keep its
 own commit barriers and detach sequence on every device.
 [Microsoft Windows removal policies](https://learn.microsoft.com/en-us/windows/client-management/client-tools/change-default-removal-policy-external-storage-media) ·
 [Windows media and device hotplug fields](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ns-winioctl-storage_hotplug_info) ·
-[Current NVM Express specifications](https://nvmexpress.org/SPECIFICATIONS/) ·
+[NVM Express Base Specification 2.4](https://nvmexpress.org/specification/nvm-express-base-specification/) ·
 [Microsoft NVMe storage queries](https://learn.microsoft.com/en-us/windows/win32/fileio/working-with-nvme-devices) ·
 [Microsoft file flush contract](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers)
 
@@ -402,6 +412,10 @@ supplies a qualified nonsparse contract. The Explorer helper currently uses
 the qualified NTFS sparse profile. Dense reuse and its own recovery
 qualification remain open for exFAT and FAT32. For an external RAM disk,
 establish the backing lifetime explicitly before treating its bytes as volatile.
+A single backing file must stay within the outer filesystem's file-size limit.
+Supporting a larger FlitzFS volume on FAT32 would require a separately
+qualified segmented backing with a stable identity for every member and
+ordered flush across the files that participate in one checkpoint.
 [Windows filesystem capabilities](https://learn.microsoft.com/en-us/windows/win32/fileio/filesystem-functionality-comparison) ·
 [Filesystem capability flags](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/ebc7e6e5-4650-4e54-b17c-cf60f6fbeeaa)
 
@@ -454,7 +468,7 @@ and CPU writes on all backings.
 | In-process RAM and external RAM disk | Verify pressure, cancellation and detach. Reopen and read exact bytes while the backing survives. Qualify a RAM disk's storage and lifetime separately from the in-process provider. |
 | NVMe and SATA SSD | Use separate devices. Exercise low free space, flush stalls, mixed I/O and sustained repeated compaction. Record temporary space and attempted writes for every recovered byte. Vary queue depth and keep the change only where it improves end-to-end results. |
 | Rotating disk | Exercise fragmented and sequential layouts. Verify that batching reduces random-read cost and that maintenance yields within the foreground tail budget. |
-| USB SSD, USB flash and memory card | Test the NTFS and dense profiles separately where supported. Exercise unplug during copy, checkpoint publication and reclaim, plus reattach at a reused drive letter. Record the active Windows removal policy. Reopen only after revalidating the volume identity and committed roots. |
+| USB SSD, USB flash and memory card | Test the NTFS and dense profiles separately where supported. Exercise unplug during copy, checkpoint publication and reclaim, plus reattach at a reused drive letter. Check the file extent limit and a nearly full backing. Record the active Windows removal policy and compare sustained writes with short bursts. Reopen only after revalidating the volume identity and committed roots. |
 | Every persistent provider | Use disposable media for interruption and removal. Reopen with the independent CPU reader, verify acknowledged bytes and namespace, and repeat with GPU unavailable. Use matched plain and compressed NTFS baselines where each comparison can use the same backing, workload and cache settings. |
 
 Use the same [benchmark protocol](../BENCHMARK_PROTOCOL.md) throughout.

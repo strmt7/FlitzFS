@@ -33,6 +33,7 @@ class VolumeFileObserver {
  public:
   virtual ~VolumeFileObserver()=default;
   virtual void before_write(std::uint64_t offset,std::size_t bytes)=0;
+  virtual void before_flush() {}
   virtual void after_flush()=0;
   virtual void before_reclaim(std::uint64_t offset,std::uint64_t bytes)=0;
 };
