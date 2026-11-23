@@ -345,6 +345,11 @@ three initial lanes with a common build and external operation witness.
    from kernel throughput or from a stored extent with higher complete cost.
    A diagnostic losing shape remains a regression control. E03 exits only
    with useful automatic mounted work for advertised roles and CPU continuity.
+   The experimental LZ4 worker and its native qualification fixture now support
+   [admission between windows](WORKER_CHANNEL.md#admission-between-windows)
+   of a sealed request. Next, qualify repeatable Radeon cost against whole
+   CPU work and the ordinary GPU sweep. Bind a positive result and the supported
+   transport to the installed package before selecting bursts automatically.
    [Current preparation baseline and warm-session criteria](AMD_RUNTIME_DISCOVERY.md#keeping-the-hip-worker-ready-during-active-work)
 
 #### E01, E02 and E11. Replace the global startup bottleneck safely

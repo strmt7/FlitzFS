@@ -1109,6 +1109,9 @@ int direct_anchor_batch_compare(int argc,wchar_t** argv,AnchorBatchMode mode) {
 int uniform_native_gpu_once(int argc,wchar_t** argv,const gpu_probe_fixture::Budget& controller,
     bool sweep=false,bool sweep_profile=false,const AnchorSearchInput* anchor=nullptr){
   require(argc==7 || (anchor && argc==8),"Uniform calibration needs explicit trusted worker/ordinal/LUID/node/runtime digest");
+  const std::wstring_view invocation(argv[1]);
+  const bool decline_window=invocation==L"--gpu-uniform-prepared-window-decline-once";
+  const bool windowed=decline_window || invocation==L"--gpu-uniform-prepared-windows-native-once";
   require(store_lz4_available() && gpu_lz4_cpu_verification_available(),"Independent uniform CPU recovery required");
   const fs::path worker(argv[2]);
   require(worker.is_absolute() && worker.filename()==L"flitzfs_hip_lz4_worker.exe","Trusted uniform worker required");
@@ -1131,30 +1134,61 @@ int uniform_native_gpu_once(int argc,wchar_t** argv,const gpu_probe_fixture::Bud
   const auto device_bytes=sweep?plan.device_peak_bytes:layout.total_bytes;
   const auto reply_bytes=batch.limits().reply_bytes+(sweep?(sweep_profile?kUniformLz4SweepProfileBytes:0):kUniformLz4ProfileBytes);
   const auto grant_chunks=sweep?plan.quantum_chunks:layout.chunks;
+  require(!windowed || (sweep && !sweep_profile && !anchor && plan.windows>1),"Invalid prepared window calibration");
   std::optional<lz4_native_fixture::Volume> volume;
   if(!anchor)volume.emplace();
-  const auto before=query_windows_gpu_budget(luid,mask);
+  WindowsGpuBudgetSampler sampler(luid,mask);
+  const auto before=sampler.sample();
   const bool admitted=before.status==WindowsGpuBudgetStatus::success &&
       check_gpu_memory_budget(before.snapshot,luid,mask,GetTickCount64(),device_bytes)==GpuGateCode::admitted;
-  std::optional<WorkerExchangeSession> session;const WorkerExchangeResult* result=nullptr;
+  std::optional<WorkerExchangeSession> session;
+  std::optional<WorkerExchangeResult> window_result;
+  const WorkerExchangeResult* result=nullptr;
+  std::uint32_t window_admissions=0;
+  std::uint64_t readiness_ns=0;
+  bool refused_at_boundary=false;
   bool verified=false;UniformLz4ProfiledReply accepted;UniformLz4SweepTrace sweep_trace;std::uint64_t exchange_ns=0;
   if(admitted){
     try{
-    const auto frame=encode_uniform_lz4_request(batch,binding.request_id);const auto started=std::chrono::steady_clock::now();
-    session.emplace(WorkerExchangeSession::start_sized(worker,{sweep?(sweep_profile?L"--driver-uniform-lz4-sweep-profile-adapter":L"--driver-uniform-lz4-sweep-adapter"):L"--driver-uniform-lz4-profile-adapter",
+    auto frame=encode_uniform_lz4_request(batch,binding.request_id);
+    const WorkerChannelCapacity capacity{static_cast<std::size_t>(batch.limits().request_bytes),
+        static_cast<std::size_t>(reply_bytes)};
+    constexpr ProcessBudget budget{128,2000,5000};
+    const auto* mode=windowed?L"--driver-uniform-lz4-prepared-adapter":
+        sweep?(sweep_profile?L"--driver-uniform-lz4-sweep-profile-adapter":L"--driver-uniform-lz4-sweep-adapter"):
+        L"--driver-uniform-lz4-profile-adapter";
+    const std::vector<std::wstring> arguments{mode,
         std::to_wstring(ordinal),argv[4],std::to_wstring(mask),std::wstring(digest),
         std::to_wstring(batch.limits().request_bytes),std::to_wstring(reply_bytes),
-        std::to_wstring(grant_chunks),std::to_wstring(device_bytes),std::to_wstring(layout.chunk_bytes)},
-        frame,{static_cast<std::size_t>(batch.limits().request_bytes),
-          static_cast<std::size_t>(reply_bytes)},{128,2000,5000}));
-    const auto wait_started=GetTickCount64();
-    while(!(result=session->try_result()) && GetTickCount64()-wait_started<7000)Sleep(1);
+        std::to_wstring(grant_chunks),std::to_wstring(device_bytes),std::to_wstring(layout.chunk_bytes)};
+    const auto started=std::chrono::steady_clock::now();
+    if(windowed) {
+      const auto admit_window=[&](std::uint32_t window) {
+        if(!window)readiness_ns=nanos_since(started);
+        if(decline_window && window==1) {
+          refused_at_boundary=true;
+          return false;
+        }
+        const auto current=sampler.sample();
+        const bool allowed=current.status==WindowsGpuBudgetStatus::success &&
+            check_gpu_memory_transition(before.snapshot,current.snapshot,luid,mask,GetTickCount64(),device_bytes)==GpuGateCode::admitted;
+        if(allowed)++window_admissions;
+        return allowed;
+      };
+      window_result.emplace(WorkerExchangeSession::run_prepared_windows(worker,arguments,
+          std::make_shared<const WorkerRequestSnapshot>(std::move(frame)),capacity,budget,plan.windows,{},admit_window));
+      result=&*window_result;
+    }else {
+      session.emplace(WorkerExchangeSession::start_sized(worker,arguments,frame,capacity,budget));
+      const auto wait_started=GetTickCount64();
+      while(!(result=session->try_result()) && GetTickCount64()-wait_started<7000)Sleep(1);
+    }
     exchange_ns=static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
         std::chrono::steady_clock::now()-started).count());
     if(result && result->code==WorkerExchangeCode::completed && result->process.exit_confirmed &&
         !result->process.timed_out && !result->process.cancelled){
       try{
-        const auto after=query_windows_gpu_budget(luid,mask);
+        const auto after=sampler.sample();
         if(after.status==WindowsGpuBudgetStatus::success &&
             check_gpu_memory_transition(before.snapshot,after.snapshot,luid,mask,GetTickCount64(),device_bytes)==GpuGateCode::admitted){
           if(sweep_profile){
@@ -1219,8 +1253,12 @@ int uniform_native_gpu_once(int argc,wchar_t** argv,const gpu_probe_fixture::Bud
   const auto stored=volume->publish_uniform(plain,hints);
   require(std::equal(plain.begin(),plain.end(),batch.plaintext().begin()),"Uniform retained source changed");
   const auto image=volume->image_bytes,payload=volume->active_payload_bytes;volume->close();
-  const auto retired=retire_gpu_exchange(session);
+  const auto retired=window_result?window_result->process.exit_confirmed &&
+      window_result->code!=WorkerExchangeCode::supervisor_exit_unconfirmed:retire_gpu_exchange(session);
   if(session)result=session->try_result(); // Report late exit status, never accept late output.
+  const bool clean_decline=refused_at_boundary && window_admissions==1 && window_result && retired &&
+      window_result->code==WorkerExchangeCode::cancelled && window_result->process.exit_code==0 &&
+      !window_result->publication_observed && window_result->response.empty() && !verified && !stored;
   require(locked_ram_fixture::locked_bytes==0 && locked_ram_fixture::cleanup_ok,"Uniform native lock retirement");
   const auto kernel=accepted.trace.wall_ns[static_cast<unsigned>(HipPhase::kernel_wait)];
   std::cout<<(sweep?"Uniform native sweep GPU: {":"Uniform native GPU calibration: {")<<"\"gpu_result_verified\":"<<(verified?"true":"false")
@@ -1228,6 +1266,8 @@ int uniform_native_gpu_once(int argc,wchar_t** argv,const gpu_probe_fixture::Bud
       <<",\"CPU_fallback_selected\":"<<(!(verified && stored)?"true":"false")
       <<",\"source_bytes\":"<<plain.size()<<",\"chunks\":"<<layout.chunks<<",\"device_bytes\":"<<device_bytes
       <<",\"planned_windows\":"<<(sweep?plan.windows:1)<<",\"quantum_chunks\":"<<grant_chunks
+      <<",\"window_admissions\":"<<window_admissions<<",\"readiness_ns\":"<<readiness_ns
+      <<",\"clean_window_decline\":"<<(clean_decline?"true":"false")
       <<",\"worker_payload_bytes\":"<<accepted.candidates.payload.size()<<",\"image_bytes\":"<<image
       <<",\"active_payload_bytes\":"<<payload<<",\"exchange_ns\":"<<exchange_ns
       <<",\"phase_profile_supported\":"<<(sweep?"false":"true")
@@ -1252,7 +1292,7 @@ int uniform_native_gpu_once(int argc,wchar_t** argv,const gpu_probe_fixture::Bud
       "\"locked_peak_bytes\":"<<locked_ram_fixture::peak_locked_bytes.load()
       <<",\"locked_after_bytes\":0,\"working_set_restored\":true,\"normal_io_route\":false,"
       "\"cost_profile_qualified\":false,\"mounted\":false,\"physical_power_loss_qualified\":false}\n";
-  return verified && stored && retired?0:2;
+  return (decline_window?clean_decline:verified && stored && retired)?0:2;
 }
 int native_gpu_once(int argc,wchar_t** argv,const gpu_probe_fixture::Budget& controller){
   require(argc==7,"Native GPU composition needs explicit worker/ordinal/LUID/node/runtime hash");
@@ -1444,6 +1484,8 @@ int wmain(int argc,wchar_t** argv){
       return uniform_native_gpu_once(argc,argv,controller,true,true,&input);
     }
     if(argc>1 && std::wstring_view(argv[1])==L"--gpu-uniform-sweep-profile-native-once")return uniform_native_gpu_once(argc,argv,controller,true,true);
+    if(mode==L"--gpu-uniform-prepared-windows-native-once" || mode==L"--gpu-uniform-prepared-window-decline-once")
+      return uniform_native_gpu_once(argc,argv,controller,true);
     if(argc>1 && std::wstring_view(argv[1])==L"--gpu-uniform-sweep-native-once")return uniform_native_gpu_once(argc,argv,controller,true);
     if(argc==2 && std::wstring_view(argv[1])==L"--uniform-native-cpu-fixture")return uniform_native_cpu_fixture();
     if(argc>1 && std::wstring_view(argv[1])==L"--gpu-uniform-native-once")return uniform_native_gpu_once(argc,argv,controller);

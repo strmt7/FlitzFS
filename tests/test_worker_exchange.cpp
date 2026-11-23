@@ -156,9 +156,9 @@ int sized_child(std::wstring_view mode,std::wstring_view token) {
   return mode==L"sized-fail-after"?17:0;
 }
 constexpr WorkerChannelCapacity prepared_capacity{128U*1024+37,64U*1024+71};
-int prepared_child(std::wstring_view mode,std::wstring_view token,std::uint32_t timeout) {
+int prepared_child(std::wstring_view mode,std::wstring_view token,std::uint32_t timeout,bool windowed) {
   check_job();
-  auto channel=WorkerChannel::open_prepared_sized(token,prepared_capacity,timeout);
+  auto channel=WorkerChannel::open_prepared_sized(token,prepared_capacity,timeout,windowed);
   check(channel.request().empty(),"prepared child received bytes before readiness");
   if(mode==L"prepared-fail-before")return 17;
   std::array<std::byte,kWorkerHeaderBytes> premature{};
@@ -170,6 +170,15 @@ int prepared_child(std::wstring_view mode,std::wstring_view token,std::uint32_t 
   check(input.size()==prepared_capacity.request_bytes && channel.request().empty(),"prepared source was not privately transferred");
   Bytes output(prepared_capacity.reply_bytes);
   std::copy_n(input.rbegin(),output.size(),output.begin());
+  if(windowed && mode!=L"prepared-windows-early") {
+    for(unsigned window=1;window<3;++window) {
+      if(!channel.await_window()) {
+        rejects([&]{channel.publish(output);});
+        rejects([&]{(void)channel.await_window();});
+        return 0;
+      }
+    }
+  }
   channel.publish(output);
   return mode==L"prepared-fail-after"?17:0;
 }
@@ -1359,6 +1368,54 @@ void prepared_transactions(const std::filesystem::path& executable) {
   }
   std::cout<<"Prepared exchange: empty startup, exact one-shot frame, CPU semantics, cancellation and retirement passed\n";
 }
+void prepared_window_transactions(const std::filesystem::path& executable) {
+  ProcessBudget budget;
+  budget.timeout_ms=4000;
+  Bytes source(prepared_capacity.request_bytes);
+  for(std::size_t i=0;i<source.size();++i)source[i]=static_cast<std::byte>((i*37+i/57)%256);
+  const auto frame=std::make_shared<const WorkerRequestSnapshot>(source);
+  for(const auto* mode:{L"prepared-ok",L"prepared-windows-decline",L"prepared-windows-early",
+      L"prepared-windows-stop",L"prepared-fail-after"}) {
+    const std::wstring_view variant(mode);
+    std::stop_source stop;
+    unsigned visited=0;
+    const auto result=WorkerExchangeSession::run_prepared_windows(executable,{mode},frame,
+        prepared_capacity,budget,3,stop.get_token(),[&](std::uint32_t window) {
+          check(window==visited++ && !WorkerExchangeSession::available(),
+              "prepared window callback was duplicated or lost the job lease");
+          if(window==1 && variant==L"prepared-windows-stop")stop.request_stop();
+          return !(window==1 && variant==L"prepared-windows-decline");
+        });
+    check(result.process.exit_confirmed && WorkerExchangeSession::available(),
+        "prepared windows did not confirm retirement");
+    if(variant==L"prepared-ok") {
+      check(visited==3 && result.code==WorkerExchangeCode::completed &&
+          result.response.size()==prepared_capacity.reply_bytes &&
+          std::equal(result.response.begin(),result.response.end(),source.rbegin()),
+          "prepared windows did not return the verified fixture bytes");
+    } else {
+      check(result.response.empty(),"unsuccessful prepared windows exposed a reply");
+      if(variant==L"prepared-windows-early")
+        check(visited==1 && result.code==WorkerExchangeCode::invalid_response && result.publication_observed,
+            "prepared windows accepted an early publication");
+      else if(variant==L"prepared-fail-after")
+        check(visited==3 && result.code==WorkerExchangeCode::worker_failed && result.publication_observed,
+            "prepared windows accepted an unsuccessful child");
+      else
+        check(visited==2 && result.code==WorkerExchangeCode::cancelled && !result.publication_observed &&
+            (variant!=L"prepared-windows-decline" || result.process.exit_code==0),
+            "prepared windows did not cancel at the declined boundary");
+    }
+    check_closed(result);
+    for(const auto* suffix:{L".ready",L".supplied",L".declined"}) {
+      const auto name=L"Local\\FlitzFS.worker."+result.channel_token+suffix;
+      const auto event=OpenEventW(SYNCHRONIZE,FALSE,name.c_str());
+      if(event)CloseHandle(event);
+      check(!event,"prepared window event remained after retirement");
+    }
+  }
+  std::cout<<"Prepared windows: ordered admissions, private reply, CPU semantics and retirement passed\n";
+}
 void asynchronous_fallback(const std::filesystem::path& executable) {
   std::array<std::byte,8> luid{};luid[0]=std::byte{1};
   GpuResultGate gate(mixed(),luid,1);
@@ -1424,8 +1481,10 @@ void abandoned_session(const std::filesystem::path& executable,const std::vector
 int wmain(int argc,wchar_t** argv){try{
   if(argc==2 && std::wstring_view(argv[1])==L"--native-error-resource-probe")return native_error_resources();
   if(argc==4 && std::wstring_view(argv[2])==L"--worker-channel")return child(argv[1],argv[3]);
-  if(argc==5 && std::wstring_view(argv[2])==kPreparedWorkerChannelArgument)
-    return prepared_child(argv[1],argv[3],static_cast<std::uint32_t>(std::stoul(argv[4])));
+  if(argc==5 && (std::wstring_view(argv[2])==kPreparedWorkerChannelArgument ||
+      std::wstring_view(argv[2])==kPreparedWorkerWindowsArgument))
+    return prepared_child(argv[1],argv[3],static_cast<std::uint32_t>(std::stoul(argv[4])),
+        std::wstring_view(argv[2])==kPreparedWorkerWindowsArgument);
   check(argc==1,"unexpected worker test arguments");
   const auto executable=self();const auto batch=mixed();const auto request=encode_worker_request(batch,221);
   // Warm the full success path, including validation/copying and object-lifetime
@@ -1520,6 +1579,7 @@ int wmain(int argc,wchar_t** argv){try{
   coordinated_uniform_requests(executable);observe(L"uniform-controller");
   sized_transactions(executable);observe(L"sized-transport");
   prepared_transactions(executable);observe(L"prepared-transport");
+  prepared_window_transactions(executable);observe(L"prepared-windows");
   asynchronous_fallback(executable);
   observe(L"async-fallback");
   abandoned_session(executable,request);

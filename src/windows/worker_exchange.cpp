@@ -21,10 +21,13 @@ constexpr ULONG request_magic=0x51575846, reply_magic=0x52575846;
 constexpr ULONG sized_request_magic=0x32575846, sized_reply_magic=0x32525946;
 struct ChannelProfile {
   WorkerChannelCapacity capacity{kWorkerRequestLimit,kWorkerReplyLimit};
-  bool sized=false,prepared=false;
+  bool sized=false,prepared=false,windowed=false;
   ULONG input_magic() const noexcept {return sized?sized_request_magic:request_magic;}
   ULONG output_magic() const noexcept {return sized?sized_reply_magic:reply_magic;}
-  ULONG version() const noexcept {return prepared?3U:sized?2U:0U;}
+  ULONG version() const noexcept {return windowed?4U:prepared?3U:sized?2U:0U;}
+  std::wstring_view prepared_argument() const noexcept {
+    return windowed?kPreparedWorkerWindowsArgument:kPreparedWorkerChannelArgument;
+  }
 };
 constexpr LONG pending=-1, writing=-2, discarded=-3;
 constexpr std::size_t guard_bytes=16;
@@ -59,9 +62,9 @@ std::wstring object_name(std::wstring_view token,bool response) {
   require(valid_token(token),"invalid worker channel token");
   return L"Local\\FlitzFS.worker."+std::wstring(token)+(response?L".reply":L".request");
 }
-std::wstring prepared_event_name(std::wstring_view token,bool ready) {
+std::wstring prepared_event_name(std::wstring_view token,std::wstring_view suffix) {
   require(valid_token(token),"invalid prepared worker channel token");
-  return L"Local\\FlitzFS.worker."+std::wstring(token)+(ready?L".ready":L".supplied");
+  return L"Local\\FlitzFS.worker."+std::wstring(token)+std::wstring(suffix);
 }
 std::wstring random_token() {
   std::array<UCHAR,16> random{};
@@ -89,8 +92,8 @@ void owner_security(Local& descriptor) {
   if(!ConvertStringSecurityDescriptorToSecurityDescriptorW(sddl.c_str(),SDDL_REVISION_1,&descriptor.value,&length) ||
       length>4096 || !IsValidSecurityDescriptor(descriptor.value))failed("worker mapping ACL");
 }
-Handle create_prepared_event(std::wstring_view token,bool ready,PSECURITY_DESCRIPTOR acl) {
-  const auto name=prepared_event_name(token,ready);
+Handle create_prepared_event(std::wstring_view token,std::wstring_view suffix,PSECURITY_DESCRIPTOR acl) {
+  const auto name=prepared_event_name(token,suffix);
   SECURITY_ATTRIBUTES security{sizeof(SECURITY_ATTRIBUTES),acl,FALSE};
   Handle event(CreateEventW(&security,TRUE,FALSE,name.c_str()));
   const auto error=GetLastError();
@@ -98,8 +101,8 @@ Handle create_prepared_event(std::wstring_view token,bool ready,PSECURITY_DESCRI
   require(error!=ERROR_ALREADY_EXISTS,"prepared worker event name collision");
   return event;
 }
-Handle open_prepared_event(std::wstring_view token,bool ready,DWORD access) {
-  const auto name=prepared_event_name(token,ready);
+Handle open_prepared_event(std::wstring_view token,std::wstring_view suffix,DWORD access) {
+  const auto name=prepared_event_name(token,suffix);
   Handle event(OpenEventW(access,FALSE,name.c_str()));
   if(!event.value)failed("prepared worker event open");
   return event;
@@ -233,14 +236,16 @@ WorkerExchangeResult exchange_unclaimed(const std::filesystem::path& helper,
 struct PreparedChannel {
   const std::wstring token;
   Mapping input,output;
-  Handle ready,supplied;
+  Handle ready,supplied,declined;
   SharedWorkerRequest request;
+  std::uint32_t permits=0;
   bool accepting=true;
   PreparedChannel(std::wstring key,ChannelProfile profile,PSECURITY_DESCRIPTOR acl):
       token(std::move(key)),
       input(Mapping::create(object_name(token,false),profile.capacity.request_bytes,profile.input_magic(),acl,profile.version())),
       output(Mapping::create(object_name(token,true),profile.capacity.reply_bytes,profile.output_magic(),acl,profile.version())),
-      ready(create_prepared_event(token,true,acl)),supplied(create_prepared_event(token,false,acl)) {}
+      ready(create_prepared_event(token,L".ready",acl)),supplied(create_prepared_event(token,L".supplied",acl)),
+      declined(profile.windowed?create_prepared_event(token,L".declined",acl):Handle{}) {}
 };
 std::unique_ptr<PreparedChannel> make_prepared_channel(ChannelProfile profile) {
   Local acl;owner_security(acl);
@@ -278,6 +283,7 @@ struct ExchangeState {
   const std::shared_ptr<const void> pinned_route;
   const ProcessBudget budget;
   const ChannelProfile profile;
+  const std::uint32_t continuation_windows;
   std::unique_ptr<PreparedChannel> prepared;
   WorkerExchangeResult result;
   std::exception_ptr error;
@@ -286,9 +292,9 @@ struct ExchangeState {
   std::condition_variable ready;
   ExchangeState(std::shared_ptr<ExchangeControl> c,const std::filesystem::path& h,
       const std::vector<std::wstring>& a,SharedWorkerRequest r,ProcessBudget b,ChannelProfile p,
-      std::shared_ptr<const void> pins):
+      std::shared_ptr<const void> pins,std::uint32_t windows):
       control(std::move(c)),helper(h),arguments(a),request(std::move(r)),pinned_route(std::move(pins)),
-      budget(b),profile(p),prepared(p.prepared?make_prepared_channel(p):nullptr) {}
+      budget(b),profile(p),continuation_windows(windows),prepared(p.prepared?make_prepared_channel(p):nullptr) {}
   bool stop() noexcept {
     if(profile.prepared)prepared_cancelled.store(true,std::memory_order_release);
     return observer->request_stop();
@@ -319,7 +325,7 @@ WorkerExchangeResult exchange_prepared(ExchangeState& state) {
   headroom(state.budget,state.profile);
   auto& channel=*state.prepared;
   auto command=state.arguments;
-  command.emplace_back(kPreparedWorkerChannelArgument);
+  command.emplace_back(state.profile.prepared_argument());
   command.push_back(channel.token);
   command.push_back(std::to_wstring(state.budget.timeout_ms));
   if(state.prepared_cancelled.load(std::memory_order_acquire)) {
@@ -334,7 +340,8 @@ WorkerExchangeResult exchange_prepared(ExchangeState& state) {
   if(!process.timed_out && state.prepared_cancelled.load(std::memory_order_acquire))
     process.cancelled=true;
   channel.accepting=false;
-  const auto request=channel.request?channel.request->bytes():std::span<const std::byte>{};
+  const auto request=channel.request && channel.permits==state.continuation_windows?
+      channel.request->bytes():std::span<const std::byte>{};
   return complete_exchange(process,channel.token,channel.input,channel.output,request,state.profile);
 }
 void record_retirement(const std::shared_ptr<ExchangeState>& state,ProcessObservation observation) noexcept {
@@ -424,14 +431,14 @@ WorkerExchangeSession WorkerExchangeSession::start_prepared_sized(const std::fil
 WorkerExchangeSession WorkerExchangeSession::start_impl(const std::filesystem::path& helper,
     const std::vector<std::wstring>& arguments,std::span<const std::byte> request,
     WorkerChannelCapacity capacity,ProcessBudget budget,bool sized,SharedWorkerRequest snapshot,
-    std::shared_ptr<const void> pinned_route,bool prepared) {
-  const ChannelProfile profile{capacity,sized,prepared};
-  require(valid_process_budget(budget) && (prepared?
+    std::shared_ptr<const void> pinned_route,bool prepared,std::uint32_t continuation_windows) {
+  const ChannelProfile profile{capacity,sized,prepared,continuation_windows!=0};
+  require(valid_process_budget(budget) && (!profile.windowed || prepared) && (prepared?
       (sized && request.empty() && !snapshot && arguments.size()<=13):
       (request.size()>=kWorkerHeaderBytes && request.size()<=capacity.request_bytes && arguments.size()<=14)),
       "invalid asynchronous worker admission");
   auto command=arguments;
-  command.emplace_back(prepared?kPreparedWorkerChannelArgument:std::wstring_view(L"--worker-channel"));
+  command.emplace_back(prepared?profile.prepared_argument():std::wstring_view(L"--worker-channel"));
   command.push_back(std::wstring(32,L'0'));
   if(prepared)command.push_back(std::to_wstring(budget.timeout_ms));
   (void)windows_child_command(helper.native(),command);
@@ -454,7 +461,8 @@ WorkerExchangeSession WorkerExchangeSession::start_impl(const std::filesystem::p
   } reservation{control};
   headroom(budget,profile); // Refuse before proportional copies or supervisor creation.
   if(!prepared && !snapshot)snapshot=std::make_shared<const WorkerRequestSnapshot>(request);
-  auto state=std::make_shared<ExchangeState>(control,helper,arguments,std::move(snapshot),budget,profile,std::move(pinned_route));
+  auto state=std::make_shared<ExchangeState>(control,helper,arguments,std::move(snapshot),budget,profile,
+      std::move(pinned_route),continuation_windows);
   auto impl=std::make_unique<Impl>(state);
   auto* context=new std::shared_ptr<ExchangeState>(state);
   const auto thread=_beginthreadex(nullptr,0,supervise_exchange,context,0,nullptr);
@@ -484,7 +492,8 @@ bool WorkerExchangeSession::wait_prepared(std::uint32_t milliseconds) const noex
     {
       std::lock_guard lock(state.mutex);
       const auto* channel=state.prepared.get();
-      if(!channel || !channel->accepting || channel->request ||
+      if(!channel || !channel->accepting ||
+          (channel->request && channel->permits==state.continuation_windows) ||
           state.prepared_cancelled.load(std::memory_order_acquire) || state.done.load(std::memory_order_acquire))
         return false;
       if(!DuplicateHandle(GetCurrentProcess(),channel->ready.value,GetCurrentProcess(),&ready.value,
@@ -511,10 +520,36 @@ bool WorkerExchangeSession::submit_prepared(SharedWorkerRequest request) noexcep
       channel->request=std::move(request);
       std::memcpy(input.bytes(),bytes.data(),bytes.size());
       InterlockedExchange(&input.control()->published,static_cast<LONG>(bytes.size()));
-      if(!state.prepared_cancelled.load(std::memory_order_acquire) && SetEvent(channel->supplied.value))return true;
+      if((!state.profile.windowed || ResetEvent(channel->ready.value)) &&
+          !state.prepared_cancelled.load(std::memory_order_acquire) && SetEvent(channel->supplied.value))return true;
     }
     channel->accepting=false;
     (void)state.stop();
+  }catch(...) {}
+  return false;
+}
+bool WorkerExchangeSession::permit_window(bool admitted) noexcept {
+  if(!impl_)return false;
+  auto& state=*impl_->state;
+  try {
+    std::lock_guard lock(state.mutex);
+    auto* channel=state.prepared.get();
+    if(!channel || !channel->accepting || !channel->request || channel->permits>=state.continuation_windows ||
+        state.prepared_cancelled.load(std::memory_order_acquire) ||
+        WaitForSingleObject(channel->ready.value,0)!=WAIT_OBJECT_0 ||
+        state.observer->wait_for_exit()!=ProcessObservation::running || !ResetEvent(channel->ready.value))return false;
+    if(admitted) {
+      if(!SetEvent(channel->supplied.value))return false;
+      ++channel->permits;
+      return true;
+    }
+    channel->accepting=false;
+    state.prepared_cancelled.store(true,std::memory_order_release);
+    state.prepared_discarded.store(true,std::memory_order_release);
+    if(!SetEvent(channel->declined.value)) {
+      state.prepared_discarded.store(false,std::memory_order_release);
+      (void)state.stop();
+    }
   }catch(...) {}
   return false;
 }
@@ -606,19 +641,36 @@ WorkerExchangeResult WorkerExchangeSession::run_prepared_sized(const std::filesy
     const std::vector<std::wstring>& arguments,SharedWorkerRequest request,WorkerChannelCapacity capacity,
     ProcessBudget budget,std::stop_token stop,const std::function<bool()>& on_ready,
     std::shared_ptr<const void> pinned_route) {
+  return run_prepared_windows(helper,arguments,std::move(request),capacity,budget,1,stop,
+      on_ready?std::function<bool(std::uint32_t)>([&](std::uint32_t){return on_ready();}):
+          std::function<bool(std::uint32_t)>{},std::move(pinned_route));
+}
+WorkerExchangeResult WorkerExchangeSession::run_prepared_windows(const std::filesystem::path& helper,
+    const std::vector<std::wstring>& arguments,SharedWorkerRequest request,WorkerChannelCapacity capacity,
+    ProcessBudget budget,std::uint32_t windows,std::stop_token stop,
+    const std::function<bool(std::uint32_t)>& admit,std::shared_ptr<const void> pinned_route) {
   if(stop.stop_requested()) {
     WorkerExchangeResult refused;
     refused.code=WorkerExchangeCode::cancelled;
     refused.process.cancelled=true;
     return refused;
   }
-  require(request && request->bytes().size()==capacity.request_bytes && on_ready,
+  require(request && request->bytes().size()==capacity.request_bytes && admit && windows &&
+      windows<=capacity.request_bytes && valid_worker_channel_capacity(capacity,budget),
       "invalid prepared exchange input");
-  auto session=start_prepared_sized(helper,arguments,capacity,budget,std::move(pinned_route));
+  auto session=start_impl(helper,arguments,{},capacity,budget,true,{},std::move(pinned_route),true,windows-1);
   std::stop_callback cancel(stop,[&]() noexcept {(void)session.request_cancel();});
   try {
     if(!session.wait_prepared(budget.timeout_ms) || stop.stop_requested() ||
-        !on_ready() || !session.submit_prepared(std::move(request))) (void)session.request_cancel();
+        !admit(0) || !session.submit_prepared(std::move(request))) {
+      (void)session.request_cancel();
+    } else {
+      for(std::uint32_t i=1;i<windows;++i) {
+        if(session.wait_prepared(budget.timeout_ms) && session.permit_window(!stop.stop_requested() && admit(i)))continue;
+        if(!session.try_result())(void)session.request_cancel();
+        break;
+      }
+    }
   }catch(...) {
     (void)session.request_cancel();
     (void)session.wait_sized_result();
@@ -639,15 +691,16 @@ WorkerExchangeResult WorkerExchangeSession::wait_sized_result() {
 struct WorkerChannel::Impl {
   ChannelProfile profile;
   Mapping input,output;
-  Handle ready,supplied;
+  Handle ready,supplied,declined;
   std::vector<std::byte> owned;
   std::uint32_t timeout_ms=0;
-  bool receive_started=false,received=false;
+  bool receive_started=false,received=false,window_declined=false;
   explicit Impl(std::wstring_view token,ChannelProfile p={},std::uint32_t timeout=0):profile(p),
       input(Mapping::open(object_name(token,false),p.capacity.request_bytes,FILE_MAP_READ)),
       output(Mapping::open(object_name(token,true),p.capacity.reply_bytes,FILE_MAP_WRITE)),
-      ready(p.prepared?open_prepared_event(token,true,EVENT_MODIFY_STATE):Handle{}),
-      supplied(p.prepared?open_prepared_event(token,false,SYNCHRONIZE):Handle{}),timeout_ms(timeout) {
+      ready(p.prepared?open_prepared_event(token,L".ready",EVENT_MODIFY_STATE):Handle{}),
+      supplied(p.prepared?open_prepared_event(token,L".supplied",SYNCHRONIZE|(p.windowed?EVENT_MODIFY_STATE:0)):Handle{}),
+      declined(p.windowed?open_prepared_event(token,L".declined",SYNCHRONIZE):Handle{}),timeout_ms(timeout) {
     if(p.prepared) {
       require(input.intact(p.input_magic(),p.version()) && output.intact(p.output_magic(),p.version()) &&
           input.control()->published==pending && output.control()->published==pending,
@@ -675,7 +728,7 @@ WorkerChannel WorkerChannel::open(std::wstring_view token) {
 }
 namespace {
 ChannelProfile sized_child_profile(std::wstring_view token,WorkerChannelCapacity capacity,
-    std::uint32_t timeout_ms,bool prepared) {
+    std::uint32_t timeout_ms,bool prepared,bool windowed=false) {
   require(valid_token(token),"invalid sized worker channel token");
   JOBOBJECT_EXTENDED_LIMIT_INFORMATION limits{};
   if(!QueryInformationJobObject(nullptr,JobObjectExtendedLimitInformation,&limits,sizeof(limits),nullptr))
@@ -690,7 +743,7 @@ ChannelProfile sized_child_profile(std::wstring_view token,WorkerChannelCapacity
   budget.memory_share_divisor=16;
   budget.timeout_ms=timeout_ms;
   require(valid_worker_channel_capacity(capacity,budget),"sized child capacity exceeds job allowance");
-  const ChannelProfile profile{capacity,true,prepared};
+  const ChannelProfile profile{capacity,true,prepared,windowed};
   headroom(budget,profile);
   return profile;
 }
@@ -699,8 +752,8 @@ WorkerChannel WorkerChannel::open_sized(std::wstring_view token,WorkerChannelCap
   return WorkerChannel(std::make_unique<Impl>(token,sized_child_profile(token,capacity,ProcessBudget{}.timeout_ms,false)));
 }
 WorkerChannel WorkerChannel::open_prepared_sized(std::wstring_view token,WorkerChannelCapacity capacity,
-    std::uint32_t timeout_ms) {
-  return WorkerChannel(std::make_unique<Impl>(token,sized_child_profile(token,capacity,timeout_ms,true),timeout_ms));
+    std::uint32_t timeout_ms,bool windowed) {
+  return WorkerChannel(std::make_unique<Impl>(token,sized_child_profile(token,capacity,timeout_ms,true,windowed),timeout_ms));
 }
 bool WorkerChannel::receive_prepared() {
   require(impl_ && impl_->profile.prepared && !impl_->receive_started,"invalid prepared worker receive");
@@ -716,6 +769,22 @@ bool WorkerChannel::receive_prepared() {
     return false;
   }
   endpoint.copy_request();
+  if(endpoint.profile.windowed && !ResetEvent(endpoint.supplied.value))failed("prepared window reset");
+  return true;
+}
+bool WorkerChannel::await_window() {
+  require(impl_ && impl_->profile.windowed && impl_->received && !impl_->window_declined &&
+      impl_->output.control()->published==pending,"invalid prepared window request");
+  auto& endpoint=*impl_;
+  if(!SetEvent(endpoint.ready.value))failed("prepared window ready signal");
+  const HANDLE events[]{endpoint.declined.value,endpoint.supplied.value};
+  const auto wait=WaitForMultipleObjects(2,events,FALSE,endpoint.timeout_ms);
+  if(wait==WAIT_OBJECT_0) {
+    endpoint.window_declined=true;
+    return false;
+  }
+  if(wait!=WAIT_OBJECT_0+1)failed("prepared window grant wait",wait==WAIT_TIMEOUT?ERROR_TIMEOUT:GetLastError());
+  if(!ResetEvent(endpoint.supplied.value))failed("prepared window reset");
   return true;
 }
 std::span<const std::byte> WorkerChannel::request() const noexcept {
@@ -728,7 +797,8 @@ SharedWorkerRequest WorkerChannel::take_request_snapshot() {
   return snapshot;
 }
 void WorkerChannel::publish(std::span<const std::byte> response) {
-  require(impl_ && impl_->received && response.size()>=kWorkerHeaderBytes && response.size()<=impl_->profile.capacity.reply_bytes,
+  require(impl_ && impl_->received && !impl_->window_declined && response.size()>=kWorkerHeaderBytes &&
+      response.size()<=impl_->profile.capacity.reply_bytes,
       "invalid worker response bound");
   auto& output=impl_->output;
   const auto profile=impl_->profile;

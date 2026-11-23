@@ -438,11 +438,12 @@ int worker(int argc, wchar_t** argv) {
     const bool sweep_recording=timeline || std::wstring_view(argv[1])==L"--driver-uniform-lz4-sweep-profile-adapter";
     const auto sweep_mode=timeline?UniformLz4SweepProfileMode::timeline:UniformLz4SweepProfileMode::aggregate;
     const bool prepared=std::wstring_view(argv[1])==L"--driver-uniform-lz4-prepared-adapter";
+    const bool windowed=prepared && argc==14 && std::wstring_view(argv[11])==kPreparedWorkerWindowsArgument;
     const bool stream_bound=std::wstring_view(argv[1])==L"--driver-uniform-lz4-stream-sweep-adapter";
     const bool sweeping=prepared || sweep_recording || stream_bound ||
         std::wstring_view(argv[1])==L"--driver-uniform-lz4-sweep-adapter";
     require(argc==(prepared?14:13) && std::wstring_view(argv[11])==
-        (prepared?kPreparedWorkerChannelArgument:std::wstring_view(L"--worker-channel")),
+        (windowed?kPreparedWorkerWindowsArgument:prepared?kPreparedWorkerChannelArgument:std::wstring_view(L"--worker-channel")),
         Exit::invalid_request,"explicit uniform adapter/channel/capacities required");
     require(gpu_lz4_cpu_verification_available(),Exit::unsupported_configuration,
         "independent CPU uniform recovery unavailable");
@@ -460,7 +461,7 @@ int worker(int argc, wchar_t** argv) {
     require(reply_capacity>profile_bytes,Exit::invalid_request,"uniform profile capacity");
     const auto data_capacity=reply_capacity-profile_bytes;
     auto channel=prepared?WorkerChannel::open_prepared_sized(argv[12],{request_capacity,reply_capacity},
-        decimal(argv[13],(std::numeric_limits<unsigned>::max)())):
+        decimal(argv[13],(std::numeric_limits<unsigned>::max)()),windowed):
         WorkerChannel::open_sized(argv[12],{request_capacity,reply_capacity});
     HipPhaseTrace trace;HipPhaseRecorder clock(recording?&trace:nullptr);
     UniformLz4SweepTrace sweep_trace;
@@ -488,6 +489,7 @@ int worker(int argc, wchar_t** argv) {
       catch(const std::exception&){throw HipWorkerFailure(Exit::invalid_request,"uniform sweep exceeds work grant");}
       if(prepared)require(sweep_plan->whole.request_bytes==request_capacity && sweep_plan->whole.reply_bytes==data_capacity,
           Exit::invalid_request,"prepared uniform frame capacity mismatch");
+      if(windowed)require(sweep_plan->windows>1,Exit::invalid_request,"prepared burst requires multiple windows");
     } else require(request->batch.layout().chunks<=grant.maximum_chunks &&
         request->batch.layout().total_bytes<=grant.maximum_device_bytes,
         Exit::invalid_request,"uniform frame exceeds qualified work grant");
@@ -524,20 +526,27 @@ int worker(int argc, wchar_t** argv) {
       decode();
       return &*request;
     };
-    const auto candidates=prepared?run_hip_uniform_lz4_prepared_sweep_in_worker(runtime.get(),*api,
-        static_cast<int>(ordinal),*sampler,*sweep_plan,targets,receive):
-        sweeping?run_hip_uniform_lz4_sweep_in_worker(runtime.get(),*api,
-            static_cast<int>(ordinal),*sampler,*request,grant,targets,sweep_recording?&sweep_trace:nullptr,timeline,stream_bound):
-            run_hip_uniform_lz4_in_worker(runtime.get(),*api,static_cast<int>(ordinal),*sampler,
-                *request,grant,targets,recording?&clock:nullptr);
+    std::function<bool()> await_window;
+    if(windowed)await_window=[&]{return channel.await_window();};
+    std::optional<UniformLz4Candidates> candidates;
+    try {
+      candidates.emplace(prepared?run_hip_uniform_lz4_prepared_sweep_in_worker(runtime.get(),*api,
+          static_cast<int>(ordinal),*sampler,*sweep_plan,targets,receive,await_window):
+          sweeping?run_hip_uniform_lz4_sweep_in_worker(runtime.get(),*api,
+              static_cast<int>(ordinal),*sampler,*request,grant,targets,sweep_recording?&sweep_trace:nullptr,timeline,stream_bound):
+              run_hip_uniform_lz4_in_worker(runtime.get(),*api,static_cast<int>(ordinal),*sampler,
+                  *request,grant,targets,recording?&clock:nullptr));
+    }catch(const hip_detail::UniformLz4WindowDeclined&) {
+      require(windowed,Exit::invalid_request,"unexpected prepared window refusal");
+    }
     sampler.reset();
-    if(prepared && !request) {
+    if(!candidates || (prepared && !request)) {
       kernels.close();
       runtime.close();
       return 0;
     }
     clock.begin(HipPhase::reply_encode);
-    auto frame=encode_uniform_lz4_reply(request->batch,request->request_id,candidates,WorkerExecution::hip);
+    auto frame=encode_uniform_lz4_reply(request->batch,request->request_id,*candidates,WorkerExecution::hip);
     clock.end(HipPhase::reply_encode);clock.begin(HipPhase::modules_release);
     kernels.close();runtime.close();clock.end(HipPhase::modules_release);clock.finish();
     if(recording || sweep_recording){

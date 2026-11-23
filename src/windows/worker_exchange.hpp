@@ -15,6 +15,7 @@ struct WorkerChannelCapacity {
   std::size_t request_bytes=0,reply_bytes=0;
 };
 inline constexpr std::wstring_view kPreparedWorkerChannelArgument=L"--prepared-worker-channel";
+inline constexpr std::wstring_view kPreparedWorkerWindowsArgument=L"--prepared-worker-windows";
 bool valid_worker_channel_capacity(WorkerChannelCapacity,ProcessBudget) noexcept;
 // Sized exchanges keep at least this share of live headroom even when a
 // fixed child budget leaves memory_share_divisor at zero.
@@ -79,6 +80,12 @@ class WorkerExchangeSession final {
       const std::vector<std::wstring>& arguments, SharedWorkerRequest request,
       WorkerChannelCapacity capacity,ProcessBudget budget,std::stop_token,
       const std::function<bool()>& on_ready,std::shared_ptr<const void> pinned_route={});
+  // The first permit delivers the immutable frame. Later permits authorize
+  // more work on that frame, from the same child, with one final reply.
+  static WorkerExchangeResult run_prepared_windows(const std::filesystem::path& helper,
+      const std::vector<std::wstring>& arguments,SharedWorkerRequest request,
+      WorkerChannelCapacity capacity,ProcessBudget budget,std::uint32_t windows,std::stop_token,
+      const std::function<bool(std::uint32_t)>& admit,std::shared_ptr<const void> pinned_route={});
   ~WorkerExchangeSession();
   WorkerExchangeSession(WorkerExchangeSession&&) noexcept;
   WorkerExchangeSession& operator=(WorkerExchangeSession&&) noexcept;
@@ -103,11 +110,12 @@ class WorkerExchangeSession final {
   static WorkerExchangeSession start_impl(const std::filesystem::path&,
       const std::vector<std::wstring>&,std::span<const std::byte>,
       WorkerChannelCapacity,ProcessBudget,bool sized,SharedWorkerRequest snapshot={},
-      std::shared_ptr<const void> pinned_route={},bool prepared=false);
+      std::shared_ptr<const void> pinned_route={},bool prepared=false,std::uint32_t continuation_windows=0);
   struct Impl;
   explicit WorkerExchangeSession(std::unique_ptr<Impl>) noexcept;
   WorkerExchangeResult wait_result(); // Synchronous adapters only.
   WorkerExchangeResult wait_sized_result();
+  bool permit_window(bool admitted) noexcept;
   friend WorkerExchangeResult run_worker_exchange(const std::filesystem::path&,
       const std::vector<std::wstring>&, std::span<const std::byte>, ProcessBudget,std::stop_token,std::shared_ptr<const void>);
   std::unique_ptr<Impl> impl_;
@@ -126,10 +134,13 @@ class WorkerChannel final {
   // infers arbitrary allocation sizes from writable shared metadata.
   static WorkerChannel open_sized(std::wstring_view token,WorkerChannelCapacity);
   static WorkerChannel open_prepared_sized(std::wstring_view token,WorkerChannelCapacity,
-      std::uint32_t timeout_ms);
+      std::uint32_t timeout_ms,bool windowed=false);
   // The child signals readiness only after its own setup succeeds. It then
   // waits once for the full frame and copies it into its private buffer.
   bool receive_prepared();
+  // Call at a quiescent boundary before dispatching the next window. A
+  // declined window requires resource retirement and exit without a reply.
+  bool await_window();
   ~WorkerChannel();
   WorkerChannel(WorkerChannel&&) noexcept;
   WorkerChannel& operator=(WorkerChannel&&) noexcept;

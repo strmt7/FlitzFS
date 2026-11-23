@@ -278,7 +278,8 @@ UniformLz4Candidates compute(State& state,Lz4KernelCoverage covered=coverage,Uni
   return result;
 }
 UniformLz4Candidates reused_compute(State& state,UniformLz4ComputeGrant grant={},UniformLz4SweepTrace* trace=nullptr,
-    bool prepared=false,const SweepEventApi* events=nullptr,HipStreamCopy transfer=nullptr){
+    bool prepared=false,const SweepEventApi* events=nullptr,HipStreamCopy transfer=nullptr,
+    const std::function<bool()>& await_window={}){
   Activate owner(state);state.reuse=true;
   uniform_lz4::Layout quantum{};require(uniform_lz4::make_layout(2U*65536,65536,quantum),"reused fixture peak");
   if(!grant.maximum_chunks && !grant.maximum_device_bytes)grant={2,quantum.total_bytes,65536};
@@ -325,7 +326,7 @@ UniformLz4Candidates reused_compute(State& state,UniformLz4ComputeGrant grant={}
       return state.fault=="prepared-discard"?nullptr:&state.source;
     };
     return execute_uniform_lz4_sweep_plan(api,&attributes,kernels,shape,coverage,receive,initialize,memory,
-        trace,hip_phase_detail::clock_ns,events,transfer);
+        trace,hip_phase_detail::clock_ns,events,transfer,await_window);
   }
   return execute_uniform_lz4_reused_sweep(api,&attributes,kernels,state.source,coverage,grant,initialize,memory,
       trace,hip_phase_detail::clock_ns,events,transfer);
@@ -432,6 +433,37 @@ int wmain(int argc,wchar_t** argv){try{
         require(failure.code==HipWorkerExit::invalid_request && state.calls.empty(),
             "invalid prepared sweep reached runtime or lost its error class");
       }
+    }
+    for(const auto* outcome:{"complete","decline","retirement-failure"}) {
+      const std::string_view mode(outcome);
+      State state(source);
+      if(mode=="retirement-failure")state.fault="release";
+      unsigned admissions=0;
+      const auto await=[&] {
+        require(state.allocated && state.stream_live && state.waits==++admissions,
+            "prepared window did not keep the completed stream at the boundary");
+        return mode=="complete";
+      };
+      ++scenarios;
+      try {
+        const auto candidates=reused_compute(state,{},nullptr,true,nullptr,nullptr,await);
+        require(mode=="complete" && admissions==8 && state.waits==9,
+            "prepared window lost a permit or ignored decline");
+        verify_uniform_lz4_candidates(source.batch,candidates);
+        ++successes;
+      }catch(const UniformLz4WindowDeclined&) {
+        require(mode=="decline" && admissions==1 && state.waits==1,
+            "prepared decline submitted an additional window");
+        ++refusals;
+      }catch(const HipWorkerFailure& failure) {
+        require(mode=="retirement-failure" && admissions==1 && state.waits==1 &&
+            failure.code==HipWorkerExit::device_fault && failure.stage==HipWorkerStage::sweep_retire,
+            "prepared decline concealed failed device retirement");
+        ++refusals;
+      }
+      const auto count=[&](const char* name){return std::count(state.calls.begin(),state.calls.end(),name);};
+      require(!state.allocated && !state.stream_live && count("stream-create")==1 && count("allocate")==1 &&
+          count("stream-destroy")==1 && count("release")==1,"prepared windows duplicated or retained the stream or slab");
     }
     {State state(source);state.fault="reuse-completion-stale";reused_refused(state,HipWorkerExit::temporary_pressure);}
     {

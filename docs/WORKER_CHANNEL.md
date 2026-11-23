@@ -572,3 +572,58 @@ as well. This keeps the waiter valid while the supervisor releases its channel
 handles. [Microsoft event creation](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-createeventw) ·
 [Microsoft wait semantics](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitformultipleobjects) ·
 [Microsoft mapping access](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-mapviewoffile)
+
+## Admission between windows
+
+The experimental windowed prepared exchange uses control version 4. The caller
+supplies an exact window count and the same immutable request for the entire job.
+The first admission attaches its bytes. Each later admission authorizes work on
+the next part of those bytes. One child owns the initialized device, stream and
+slab throughout. The child finishes transfer, synchronization and verification
+for the current window before it requests the next one.
+
+The endpoints reuse the readiness and supply events. The parent resets
+readiness before granting permission. The child resets supply before it asks
+again. A separate decline event lets a paused child release its device resources
+and exit without publishing. The caller may revoke a running request through the
+bounded supervisor. The job deadline covers the complete exchange.
+
+```mermaid
+sequenceDiagram
+    participant P as Scoped caller
+    participant S as Supervisor
+    participant W as Compression worker
+    participant D as Radeon
+    P->>S: Reserve one exact request and all windows
+    S->>W: Start one bounded worker
+    W->>D: Initialize stream and slab
+    W-->>P: Ready for first window
+    P->>W: Supply immutable frame after admission
+    W->>D: Run and synchronize first window
+    loop Each later window
+        W-->>P: Request permission at completed boundary
+        P->>P: Collect live evidence
+        alt Window admitted
+            P->>W: Grant next window
+            W->>D: Recheck device budget, run and synchronize
+        else Window declined
+            P->>W: Signal decline
+            W->>D: Release stream and slab
+            W-->>S: Exit without publishing
+        end
+    end
+    opt All windows admitted and verified
+        W->>D: Release stream and slab
+        W->>S: Publish once and exit
+        S-->>P: Return complete reply after confirmed retirement
+        P->>P: Verify against independent CPU decoding
+    end
+```
+
+Acceptance requires the expected number of permits, exact successful child
+exit, confirmed supervisor retirement and verification of the original request.
+The controller can keep CPU work authoritative while a burst is pending.
+The scoped native LZ4 fixture can request this transport explicitly. Production
+selection requires matched device evidence and an admitted package.
+[Windows event semantics](https://learn.microsoft.com/en-us/windows/win32/sync/event-objects) ·
+[Windows wait semantics](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitformultipleobjects)

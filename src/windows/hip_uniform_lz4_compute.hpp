@@ -8,6 +8,8 @@
 #include "../gpu/native_lz4_decode_api.hpp"
 #include "../native_lz4_decode.hpp"
 namespace flitzfs::hip_detail {
+struct UniformLz4WindowDeclined {};
+
 // A configuration-qualified maximum kernel quantum expressed as work, not a
 // universal input cap. A trusted caller must obtain this from its admitted
 // time/grid/resource plan. It does not authorize module loading or discovery.
@@ -147,6 +149,6 @@ UniformLz4Candidates run_hip_uniform_lz4_sweep_in_worker(HMODULE runtime,
 UniformLz4Candidates run_hip_uniform_lz4_prepared_sweep_in_worker(HMODULE runtime,
     const uniform_lz4::KernelApi&,int ordinal,WindowsGpuBudgetSampler&,
     const UniformLz4SweepPlan&,std::span<const hip_detail::Lz4KernelCoverage>,
-    const std::function<const UniformLz4Request*()>& receive);
+    const std::function<const UniformLz4Request*()>& receive,const std::function<bool()>& await_window={});
 
 }

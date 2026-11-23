@@ -2,6 +2,7 @@
 #include "hip_uniform_lz4_compute.hpp"
 #include "flitzfs/uniform_lz4_sweep.hpp"
 #include "uniform_lz4_sweep_trace.hpp"
+#include <utility>
 namespace flitzfs::hip_detail {
 struct SweepEventApi {
   decltype(&hipEventCreate) create;
@@ -75,7 +76,7 @@ UniformLz4Candidates execute_uniform_lz4_sweep_plan(const HipApi& api,Lz4Attribu
     const uniform_lz4::KernelApi& kernel,const UniformLz4SweepPlan& sweep,Lz4KernelCoverage coverage,
     Receive&& receive,Initialize&& initialize,MemoryPolicy&& memory,UniformLz4SweepTrace* trace=nullptr,
     UniformLz4SweepRecorder::Clock clock=hip_phase_detail::clock_ns,const SweepEventApi* event_api=nullptr,
-    HipStreamCopy stream_copy=nullptr) {
+    HipStreamCopy stream_copy=nullptr,const std::function<bool()>& await_window={}) {
   lz4_require((!event_api || trace) && (!stream_copy || !trace),HipWorkerExit::invalid_request,
       "incompatible sweep timing mode and transfer path");
   lz4_require(gpu_lz4_cpu_verification_available(),HipWorkerExit::unsupported_configuration,
@@ -126,7 +127,9 @@ UniformLz4Candidates execute_uniform_lz4_sweep_plan(const HipApi& api,Lz4Attribu
     if(event_api)events.create();
     recorder.end(UniformSweepPhase::setup);
     const auto* request=receive();
+    bool first_window=true;
     auto result=request?compute_uniform_lz4_sweep(*request,sweep,[&](const UniformLz4Request& part){
+      if(!std::exchange(first_window,false) && await_window && !await_window())throw UniformLz4WindowDeclined{};
       // Admission includes retained setup, complete result capacity, both host
       // workspaces and this owned quantum, against the original baseline.
       recorder.begin(UniformSweepPhase::admission);

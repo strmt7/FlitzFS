@@ -285,12 +285,37 @@ eligible queue drains or host pressure rises. A failed or revoked request
 continues on the CPU, and a subsequent readiness episode requires fresh evidence.
 Leave GPU work queues empty between actual dispatches.
 
-The current prepared transport permits one immutable exchange and validates
-the reply after confirmed retirement. Extending reuse across separate groups
-requires a verified publication boundary. First qualify a finite burst whose
-fully funded results stay private until retirement. On the physical host, rotate
-CPU, single-exchange GPU and burst GPU runs on identical owned workloads. Measure
+The experimental prepared burst keeps one immutable request and one final
+reply. An LZ4 worker can reuse its stream and slab across several windows of
+that request. The caller provides a fresh permit before each window. A decline
+at a completed boundary retires the device resources and discards all candidates.
+The native fixture exposes the burst through an explicit test mode. On the
+physical host, rotate CPU, single-exchange GPU and burst GPU runs on identical
+owned workloads. Measure
 end-to-end cost, readiness, useful bytes, compression, resource retention and
 foreground latency. Exercise pressure, cancellation, empty-queue retirement
 and byte-exact recovery before offering the warm route automatically.
-[Worker exchange contract](WORKER_CHANNEL.md#one-request-prepared-exchange)
+[Worker exchange contract](WORKER_CHANNEL.md#admission-between-windows)
+
+### Live Radeon trials on 23 November 2026
+
+Three paired 1 MiB tests on the host Radeon RX 9070 XT rotated prepared windows
+and the ordinary sweep. All three prepared runs received eight permits and
+verified the full native readback. Both modes used 135,561 active payload bytes
+and 1,114,112 image bytes in this fixture.
+
+| Pair | Ordinary sweep exchange | Prepared windows exchange | Prepared readiness |
+| --- | ---: | ---: | ---: |
+| 1 | 2,185.69 ms | 2,502.53 ms | 2,035.97 ms |
+| 2 | 2,282.49 ms | 2,238.11 ms | 1,785.15 ms |
+| 3 | 1,585.48 ms | 1,701.23 ms | 1,639.99 ms |
+
+The prepared worker cooperatively retired when the caller declined the second
+window after the first completed. The fixture verified independent CPU
+publication and readback. The updated native read worker also decoded two
+frames on Radeon with byte-exact CPU comparison and retired a separate unused
+prepared read before launching a kernel. The Windows transport, deferred
+write and controller checks passed, as did the AddressSanitizer preflight
+and transport test. Automatic selection still needs a repeatable complete
+operation advantage on representative workloads.
+[Scoped verification evidence](evidence/windows-prepared-gpu-windows-2026-11-23.json)
