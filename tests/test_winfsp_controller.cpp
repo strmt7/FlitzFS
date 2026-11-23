@@ -4138,10 +4138,15 @@ void amd_write_cpu_replay(bool controller_owned,bool grouped=false,AmdWriteRepla
   PVOID handle=nullptr;
   require(table->Create(&p.fs,name,FILE_NON_DIRECTORY_FILE,FILE_ALL_ACCESS,FILE_ATTRIBUTE_NORMAL,
       security.data(),0,&handle,&info)==STATUS_SUCCESS && handle,"CPU replay Create");
+  std::uint32_t device_write_extents=8;
+#ifdef FLITZFS_INDEXED_HIP_FIXTURE
+  if(const auto profile=installed_uniform_write_trial_profile())
+    device_write_extents=(std::min)(device_write_extents,profile->maximum_batch_chunks/2);
+#endif
   const auto make_input=[&](unsigned seed) {
     if(mode==AmdWriteReplayMode::cpu)return data(2*kNativeExtentBytes,seed);
     const auto prefix=data(kNativeExtentBytes/8,seed);
-    Bytes input(8*kNativeExtentBytes);
+    Bytes input(device_write_extents*kNativeExtentBytes);
     for(std::size_t offset=0;offset<input.size();offset+=prefix.size())
       std::ranges::copy(prefix,input.begin()+offset);
     return input;
@@ -4214,7 +4219,8 @@ void amd_write_cpu_replay(bool controller_owned,bool grouped=false,AmdWriteRepla
           <<" device_wall_ns="<<trial.device_wall_ns<<" preparation_ns="<<trial.device.preparation_ns
           <<" supervised_ns="<<trial.device.supervised_ns<<" ready_ns="<<trial.device.ready_ns
           <<" verification_ns="<<trial.device.verification_ns<<" replay_ns="<<trial.device.replay_ns
-          <<" cpu_wall_ns="<<trial.reference.wall_ns<<" bytes="<<trial.reference.input_bytes<<'\n';
+          <<" cpu_wall_ns="<<trial.reference.wall_ns<<" bytes="<<trial.reference.input_bytes
+          <<" admitted_requests="<<trial.device.admitted_requests<<'\n';
       require(paired.amd_write_trial_attempts==1 && !paired.foreground_activation &&
           trial.reference.sample.input_digest==sample.input_digest && trial.reference.sample.transactions==2,
           "Write trial changed its reference or offered an unqualified route");
@@ -4223,6 +4229,11 @@ void amd_write_cpu_replay(bool controller_owned,bool grouped=false,AmdWriteRepla
             "Foreground did not cancel and discard the private write result");
       } else {
         const auto& device=trial.device;
+#ifdef FLITZFS_INDEXED_HIP_FIXTURE
+        const auto profile=installed_uniform_write_trial_profile();
+        require(profile && device.admitted_requests==(profile->separate_requests?sample.transactions:0),
+            "Owner did not use the qualified request admission mode");
+#endif
         require(trial.status==HipDiscoveryStatus::ready && device.sample && device.worker_retired &&
             device.sample->device_executed && device.sample->stored_lz4_candidates>0 &&
             device.sample->cpu_readback_verified && device.sample->retirement_confirmed &&

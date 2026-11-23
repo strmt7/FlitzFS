@@ -29,9 +29,13 @@ that binding before querying HIP identity.
 `worker_timeout_ms` and `maximum_identity_queries` bound the worker and
 discovery. `maximum_batch_chunks` bounds one complete trial, and
 `maximum_launch_chunks` bounds each dispatch inside it. Both counts are in
-native extents. Live demand and memory may yield smaller groups. A legacy
-uniform-only manifest retains explicit diagnostic acquisition and ordinary
-CPU observation. The trial profile permits detached comparison. Foreground
+native extents. Live demand and memory may yield smaller groups. The optional boolean
+`separate_requests` qualifies a worker that can reuse its HIP state across
+separately admitted same-sized requests. Omitting the field selects the
+single grouped exchange. The controller also uses the grouped exchange when
+the captured files have different sizes or the additional reply framing
+does not fit the current allowance. A uniform-only manifest retains
+explicit diagnostic acquisition and ordinary CPU observation. The trial profile permits detached comparison. Foreground
 route selection has its own verified cost evidence requirement.
 [Owned paired trials](OWNED_DEFERRED_WRITES.md#controller-owned-paired-trials)
 

@@ -55,6 +55,18 @@ std::optional<NativeAmdWriteSample> record_native_amd_verified_batch(const Nativ
     MemoryVolumeDomain*,const std::function<bool()>& interrupted) noexcept;
 
 enum class NativeAmdTrialLaunch {immediate,prepared,prepared_requests};
+
+struct NativeAmdWriteWorkerPlan {
+  uniform_lz4::Layout group,work;
+  WorkerChannelCapacity channel;
+  UniformLz4Limits host_limits;
+  std::uint64_t reply_views_bytes=0;
+
+  bool fits(ProcessBudget,std::uint64_t allowance) const noexcept;
+};
+// Plan the complete transport and host footprint before touching the runtime.
+std::optional<NativeAmdWriteWorkerPlan> plan_native_amd_write_worker(const NativeAmdStoragePolicy&,
+    std::span<const UniformLz4BatchInput>,NativeAmdTrialLaunch,ProcessBudget,std::uint64_t allowance) noexcept;
 struct NativeAmdDeviceTrial {
   std::optional<NativeAmdWriteSample> sample;
   std::uint64_t ready_ns=0,exchange_ns=0;

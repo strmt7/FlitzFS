@@ -517,7 +517,7 @@ std::optional<InstalledUniformWriteTrialProfile> installed_uniform_write_trial_p
   using namespace installed_amd_package;
   return InstalledUniformWriteTrialProfile{{write_trial_worker_memory_mib,write_trial_worker_cpu_rate,
       write_trial_worker_timeout_ms,write_trial_memory_share_divisor},write_trial_maximum_batch_chunks,
-      write_trial_maximum_launch_chunks};
+      write_trial_maximum_launch_chunks,write_trial_separate_requests};
 #else
   return {};
 #endif

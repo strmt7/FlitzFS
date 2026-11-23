@@ -72,6 +72,7 @@ HipRouteDiscoveryResult discover_installed_hip_route(ProcessBudget,std::uint32_t
 struct InstalledUniformWriteTrialProfile {
   ProcessBudget worker;
   std::uint32_t maximum_batch_chunks=0,maximum_launch_chunks=0;
+  bool separate_requests=false;
 };
 std::optional<InstalledUniformWriteTrialProfile> installed_uniform_write_trial_profile() noexcept;
 HipRouteDiscoveryResult discover_installed_hip_write_trial_route(std::stop_token={});

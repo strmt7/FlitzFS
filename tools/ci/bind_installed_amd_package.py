@@ -141,6 +141,9 @@ def bind(package: Path, approved: str) -> tuple[str, list[str]]:
         }
         require(fields["maximum_launch_chunks"] <= fields["maximum_batch_chunks"],
                 "Write trial launch exceeds its approved batch")
+        separate_requests = write_trial.get("separate_requests", False)
+        require(type(separate_requests) is bool, "Invalid write trial separate_requests")
+        result += f"inline constexpr bool write_trial_separate_requests={str(separate_requests).lower()};\n"
         result += f"inline constexpr std::array write_trial_runtime_sha256{{{array_literal(bytes.fromhex(runtime_digest))}}};\n"
         result += "".join(f"inline constexpr std::uint32_t write_trial_{key}={value}U;\n" for key, value in fields.items())
     if anchor is not None:

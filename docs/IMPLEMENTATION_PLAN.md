@@ -911,8 +911,16 @@ latency before admitting a production profile.
    path can now cover several independently bounded launches in one worker
    exchange and charges the complete host footprint. CPU work can publish
    independent groups from the current discovery window while the entire
-   staged batch runs on AMD. Extend finite exchanges
-   to collective work across files. Bind each job to a source revision,
+   staged batch runs on AMD. An approved uniform write profile can also
+   allocate a private exchange for separately admitted, same-sized closed
+   writes. Both the new and legacy package modes recovered the original bytes
+   through the controller fixture.
+   [Separate-request admission evidence](evidence/windows-controller-separate-request-admission-2026-11-24.json)
+   Next, measure the intervals between eligible jobs and quantify preparation
+   savings over the full cost of retaining the worker. Preserve exact worker
+   retirement before reply acceptance. Exercise host pressure, foreground
+   interruption, volume close and device changes across the admitted interval.
+   Extend finite exchanges to collective work across files. Bind each job to a source revision,
    verify every decoded byte before publication, and retire the helper when
    admitted work drains or foreground demand rises. Compare complete occupied
    bytes and foreground interference with a matched CPU baseline, including

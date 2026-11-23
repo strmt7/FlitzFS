@@ -245,9 +245,9 @@ The Windows Release and AddressSanitizer fixtures reopened three files and
 stored two independently framed candidates using a CPU-semantic worker.
 The private Radeon replay admitted both 64 KiB requests, stored two
 GPU-produced extents and reopened both files byte for byte. The CPU control
-and each device arm occupied 245,760 bytes. The diagnostic package supports
-explicit acquisition for this comparison. Automatic scheduling of worker reuse
-remains a separate qualification step.
+and each device arm occupied 245,760 bytes. This comparison uses explicit
+acquisition. The controller can also select the separate-request path with
+a qualified package.
 [Separate-request replay evidence](evidence/windows-resident-native-write-replay-2026-11-24.json)
 
 ### Controller-owned paired trials
@@ -261,6 +261,14 @@ Radeon arm reuses its prepared stream across the group's bounded launches.
 The parent takes the response after confirmed retirement and verifies every
 byte independently. Matching compares the ordered member digest and transaction
 count. Each arm uses the same foreground policy and mirrored image geometry.
+
+When the profile qualifies separate admission, the controller can give each
+same-sized captured write to the same worker as a separate request. The shared
+plan charges the combined owned source, all reply frames and verification
+views before it starts the acquisition. It also supplies the budget check used
+during periodic host observation and before each request. Current GPU memory
+and device identity govern every handoff. The grouped exchange handles
+profiles and captures that do not qualify for separate admission.
 
 The controller monitors live CPU and memory during the scoped trial. New
 foreground activity, shutdown or lost headroom requests cancellation. It
@@ -287,6 +295,17 @@ readiness. The subsequent combined build deferred a fresh GPU run during
 host contention.
 [Windows background priority](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadpriority) ·
 [Controller evidence](evidence/windows-owner-amd-write-pairs-2026-11-23.json)
+
+On the RX 9070 XT, two controller-owned trials each submitted two independent
+64 KiB requests through one worker. Both files reopened exactly and both GPU
+extents were stored. The CPU and GPU images each occupied 253,952 bytes.
+The legacy package completed two 1 MiB groups using its single grouped
+exchange, with sixteen verified GPU extents in each group. In two interruption
+runs the foreground write cancelled device acquisition before the first GPU
+request and recovered the acknowledged files. The complete device arm exceeded
+the CPU cost for these small workloads. The scoped callback trials did not
+mount a filesystem.
+[Separate admission through the controller](evidence/windows-controller-separate-request-admission-2026-11-24.json)
 
 ## Activating a route on a running volume
 

@@ -416,6 +416,35 @@ void detached_write_batch(const std::filesystem::path& helper) {
       <<" stored_advice="<<advised->stored_lz4_candidates<<" retired=1 gpu_executed=0\n";
 }
 
+void native_amd_worker_plan() {
+  constexpr std::uint64_t mib=1024*1024;
+  constexpr ProcessBudget budget{128,2000,5000,16};
+  constexpr auto allowance=256*mib;
+  const NativeAmdStoragePolicy storage{4096,{StoreCompressionMode::fast,1,false}};
+  const std::vector<std::byte> plain(3*kNativeExtentBytes);
+  const auto bytes=std::span<const std::byte>(plain);
+  const std::array equal{UniformLz4BatchInput{1,bytes.first(kNativeExtentBytes)},
+      UniformLz4BatchInput{2,bytes.subspan(kNativeExtentBytes,kNativeExtentBytes)}};
+  const std::array unequal{equal.front(),UniformLz4BatchInput{2,bytes.subspan(kNativeExtentBytes)}};
+  const auto grouped=plan_native_amd_write_worker(storage,equal,NativeAmdTrialLaunch::prepared,budget,allowance);
+  const auto repeated=plan_native_amd_write_worker(storage,equal,NativeAmdTrialLaunch::prepared_requests,budget,allowance);
+  check(grouped && repeated && grouped->group.input_bytes==repeated->group.input_bytes &&
+      grouped->work.chunks==2 && repeated->work.chunks==1 &&
+      repeated->channel.request_bytes<grouped->channel.request_bytes &&
+      repeated->channel.reply_bytes>grouped->channel.reply_bytes &&
+      repeated->reply_views_bytes==equal.size()*sizeof(UniformLz4Bytes),
+      "Separate requests did not plan their own transport and shared source");
+  check(plan_native_amd_write_worker(storage,unequal,NativeAmdTrialLaunch::prepared,budget,allowance).has_value() &&
+      !plan_native_amd_write_worker(storage,unequal,NativeAmdTrialLaunch::prepared_requests,budget,allowance),
+      "Unequal geometry changed grouped eligibility");
+  const auto& limits=grouped->host_limits;
+  const auto grouped_charge=budget.memory_mib*mib+6*limits.request_bytes+3*limits.reply_bytes+
+      12*limits.chunks+4*mib+kNativeExtentBytes+sizeof(std::uint64_t);
+  check(grouped->fits(budget,grouped_charge) && !repeated->fits(budget,grouped_charge) &&
+      !plan_native_amd_write_worker(storage,equal,NativeAmdTrialLaunch::prepared_requests,budget,grouped_charge),
+      "Separate requests could use a grant that covered only the grouped reply");
+}
+
 void native_amd_write_preference() {
   using Preference=NativeAmdWritePreference;
   GpuConfigurationId configuration{};configuration[0]=std::byte{12};
@@ -1589,6 +1618,7 @@ int wmain(int argc,wchar_t** argv){try{
   check(worker.is_absolute(),"absolute CPU helper required");
   transport_required();
   for(bool fault:{false,true})deferred_activity_notification(fault);
+  native_amd_worker_plan();
   native_amd_write_preference();
   detached_write_batch(worker);
   for(const bool owned:{false,true})ordinary_amd_write_demand(owned);

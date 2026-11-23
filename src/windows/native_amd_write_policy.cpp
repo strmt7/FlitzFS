@@ -222,6 +222,41 @@ std::optional<NativeAmdWriteSample> record_native_amd_verified_batch(const Nativ
   return {};
 }
 
+bool NativeAmdWriteWorkerPlan::fits(ProcessBudget budget,std::uint64_t allowance) const noexcept {
+  return allowance>=reply_views_bytes && valid_worker_channel_capacity(channel,budget) &&
+      uniform_worker_host_budget_covers(host_limits,budget,allowance-reply_views_bytes);
+}
+
+std::optional<NativeAmdWriteWorkerPlan> plan_native_amd_write_worker(const NativeAmdStoragePolicy& storage,
+    std::span<const UniformLz4BatchInput> requests,NativeAmdTrialLaunch launch,ProcessBudget budget,
+    std::uint64_t allowance) noexcept {
+  const auto group=replay_layout(storage,requests);
+  if(!group)return {};
+  NativeAmdWriteWorkerPlan result;
+  result.group=result.work=*group;
+  if(!try_uniform_lz4_limits(result.group,result.host_limits))return {};
+  auto request_bytes=result.host_limits.request_bytes;
+  if(launch==NativeAmdTrialLaunch::prepared_requests) {
+    if(requests.size()<2 || requests.size()>(std::numeric_limits<std::uint32_t>::max)())return {};
+    const auto bytes=requests.front().source.size();
+    UniformLz4Limits member{};
+    if(!std::ranges::all_of(requests,[bytes](const auto& item){return item.source.size()==bytes;}) ||
+        !uniform_lz4::make_layout(bytes,group->chunk_bytes,result.work) ||
+        !try_uniform_lz4_limits(result.work,member))return {};
+    std::uint64_t framed_reply=0;
+    if(!uniform_lz4::add(member.reply_bytes,sizeof(std::uint32_t),framed_reply) ||
+        !uniform_lz4::multiply(framed_reply,requests.size(),result.host_limits.reply_bytes) ||
+        !uniform_lz4::multiply(requests.size(),sizeof(UniformLz4Bytes),result.reply_views_bytes) ||
+        result.host_limits.reply_bytes>static_cast<std::uint64_t>((std::numeric_limits<std::int32_t>::max)()))return {};
+    request_bytes=member.request_bytes;
+  }
+  if(request_bytes>(std::numeric_limits<std::size_t>::max)() ||
+      result.host_limits.reply_bytes>(std::numeric_limits<std::size_t>::max)())return {};
+  result.channel={static_cast<std::size_t>(request_bytes),static_cast<std::size_t>(result.host_limits.reply_bytes)};
+  if(!result.fits(budget,allowance))return {};
+  return result;
+}
+
 NativeAmdDeviceTrial record_native_amd_device_trial(const NativeAmdWriteShape& shape,
     std::span<const std::byte> source,const HipDiscoveredRoute& route,NativeUniformSweepGrant grant,
     ProcessBudget budget,std::uint64_t allowance,MemoryVolumeDomain* existing,NativeAmdTrialLaunch launch,
@@ -239,57 +274,38 @@ NativeAmdDeviceTrial record_native_amd_device_batch(const NativeAmdStoragePolicy
   NativeAmdDeviceTrial trial;
   try {
     if(stop.stop_requested() || !gpu_lz4_cpu_verification_available())return trial;
-    const auto layout=replay_layout(storage,requests);
-    if(!layout)return trial;
     const auto started=TrialClock::now();
-    // The supplied live host grant funds the worker tree, parent transport and
-    // immutable source before any runtime or adapter access.
-    auto limits=uniform_lz4_limits(*layout);
-    const bool repeated=launch==NativeAmdTrialLaunch::prepared_requests;
-    auto work=*layout;
-    WorkerChannelCapacity channel{static_cast<std::size_t>(limits.request_bytes),
-        static_cast<std::size_t>(limits.reply_bytes)};
-    if(repeated) {
-      // The negotiated worker keeps one stream and a single geometry. Each
-      // reply has its own header and a length prefix in the final mapping.
-      if(requests.size()<2 || requests.size()>(std::numeric_limits<std::uint32_t>::max)())return trial;
-      const auto bytes=requests.front().source.size();
-      if(!std::ranges::all_of(requests,[bytes](const auto& item){return item.source.size()==bytes;}) ||
-          !uniform_lz4::make_layout(bytes,layout->chunk_bytes,work))return trial;
-      const auto member=uniform_lz4_limits(work);
-      std::uint64_t reply_bytes=0,views=0;
-      if(!uniform_lz4::multiply(member.reply_bytes+sizeof(std::uint32_t),requests.size(),reply_bytes) ||
-          reply_bytes>(std::numeric_limits<std::size_t>::max)() ||
-          !uniform_lz4::multiply(requests.size(),sizeof(UniformLz4Bytes),views) ||
-          views>=allowance)return trial;
-      channel={static_cast<std::size_t>(member.request_bytes),static_cast<std::size_t>(reply_bytes)};
-      limits.reply_bytes=reply_bytes;
-      allowance-=views;
-    }
-    if(!valid_worker_channel_capacity(channel,budget) || !uniform_worker_host_budget_covers(limits,budget,allowance) || !route.pins ||
+    const auto worker=plan_native_amd_write_worker(storage,requests,launch,budget,allowance);
+    if(!worker || !route.pins ||
         route.identity==GpuConfigurationId{} || route.ordinal>=64 || !route.pins->uniform_module_pinned() ||
         !route.pins->matches(route.helper,route.identity,route.runtime_sha256,static_cast<int>(route.ordinal),route.memory) ||
         !WorkerExchangeSession::available())return trial;
-    const auto plan=plan_uniform_lz4_sweep(work,grant.maximum_chunks,grant.maximum_device_bytes);
-    if(!route.pins->device_ready() || stop.stop_requested() || (may_submit && !may_submit()))return trial;
+    const bool repeated=launch==NativeAmdTrialLaunch::prepared_requests;
+    const auto channel=worker->channel;
+    const auto plan=plan_uniform_lz4_sweep(worker->work,grant.maximum_chunks,grant.maximum_device_bytes);
+    if(stop.stop_requested() || (may_submit && !may_submit()) || !route.pins->device_ready())return trial;
     WindowsGpuBudgetSampler sampler(route.memory.luid,route.memory.node_mask);
     const auto before=sampler.sample();
     if(before.status!=WindowsGpuBudgetStatus::success ||
         check_gpu_memory_budget(before.snapshot,route.memory.luid,route.memory.node_mask,
             GetTickCount64(),plan.device_peak_bytes)!=GpuGateCode::admitted)return trial;
 
-    const auto& memory=before.snapshot;
-    const auto usable=usable_memory_volume_headroom({memory.physical_total,memory.physical_available,
-        memory.commit_limit,memory.commit_available});
-    const auto funded=(std::min)(allowance,usable/sized_worker_memory_share_divisor(budget));
-    if(!uniform_worker_host_budget_covers(limits,budget,funded))return trial;
+    const auto host_grant=[&](const GpuMemorySnapshot& memory) noexcept {
+      try {
+        const auto usable=usable_memory_volume_headroom({memory.physical_total,memory.physical_available,
+            memory.commit_limit,memory.commit_available});
+        return (std::min)(allowance,usable/sized_worker_memory_share_divisor(budget));
+      }catch(...) {return std::uint64_t{0};}
+    };
+    const auto funded=host_grant(before.snapshot);
+    if(!worker->fits(budget,funded))return trial;
 
     const auto id=detail::next_gpu_request_id();
     if(!id || stop.stop_requested())return trial;
     const GpuHealthEvidence evidence{route.identity,id,0,true,true,before.snapshot};
     const NativeUniformWorkerBinding binding{.helper=route.helper,.configuration=route.identity,
         .ordinal=static_cast<int>(route.ordinal),.runtime_sha256=route.runtime_sha256,.sweep=grant};
-    const auto batch=PreparedUniformLz4Batch::prepare(requests,*layout);
+    const auto batch=PreparedUniformLz4Batch::prepare(requests,worker->group);
     const auto run_request=[&](const PreparedUniformLz4& source,std::uint64_t request_id)->SharedWorkerRequest {
       return std::make_shared<const WorkerRequestSnapshot>(encode_uniform_lz4_request(source,request_id));
     };
@@ -310,12 +326,14 @@ NativeAmdDeviceTrial record_native_amd_device_batch(const NativeAmdStoragePolicy
     const auto setup=TrialClock::now();
     trial.preparation_ns=elapsed_ns(started);
     const auto permitted=[&] {
+      if(stop.stop_requested())return false;
       const auto current=sampler.sample();
       return !stop.stop_requested() && (!may_submit || may_submit()) &&
           current.status==WindowsGpuBudgetStatus::success &&
           current.snapshot.captured_ms>before.snapshot.captured_ms &&
           check_gpu_memory_transition(before.snapshot,current.snapshot,route.memory.luid,
-              route.memory.node_mask,GetTickCount64(),plan.device_peak_bytes)==GpuGateCode::admitted;
+              route.memory.node_mask,GetTickCount64(),plan.device_peak_bytes)==GpuGateCode::admitted &&
+          worker->fits(budget,host_grant(current.snapshot));
     };
     if(repeated) {
       const auto prepare=[&](std::uint32_t index)->SharedWorkerRequest {
@@ -366,7 +384,7 @@ NativeAmdDeviceTrial record_native_amd_device_batch(const NativeAmdStoragePolicy
 
     const auto interrupted=[&] {return stop.stop_requested();};
     const auto replay=TrialClock::now();
-    auto sample=record_native_amd_verified_batch(storage,batch,candidates,funded,existing,interrupted);
+    auto sample=record_native_amd_verified_batch(storage,batch,candidates,funded-worker->reply_views_bytes,existing,interrupted);
     trial.replay_ns=elapsed_ns(replay);
     if(!sample || stop.stop_requested() ||
         !uniform_lz4::add(sample->elapsed_ns,trial.exchange_ns,sample->elapsed_ns))return trial;

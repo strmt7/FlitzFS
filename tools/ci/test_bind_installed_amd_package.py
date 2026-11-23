@@ -92,7 +92,18 @@ class PackageTests(unittest.TestCase):
         self.assertIn("FLITZFS_INSTALLED_AMD_HAS_WRITE_TRIAL 1", header)
         self.assertIn("write_trial_maximum_batch_chunks=16U", header)
         self.assertIn("write_trial_maximum_launch_chunks=2U", header)
+        self.assertIn("write_trial_separate_requests=false", header)
         self.assertEqual(files, ["qualification-manifest.json", UNIFORM_WORKER, UNIFORM_MODULE, UNIFORM_TRIAL_EVIDENCE])
+
+    def test_write_trial_binds_separate_request_admission(self):
+        self.write_trial()["separate_requests"] = True
+        header, _ = self.bind()
+        self.assertIn("write_trial_separate_requests=true", header)
+
+    def test_write_trial_rejects_non_boolean_admission(self):
+        self.write_trial()["separate_requests"] = 1
+        with self.assertRaisesRegex(RuntimeError, "Invalid write trial separate_requests"):
+            self.bind()
 
     def test_write_trial_requires_uniform_worker(self):
         self.write_trial()
