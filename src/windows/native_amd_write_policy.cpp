@@ -1,5 +1,7 @@
 #include "native_amd_write_policy.hpp"
 #include "memory_volume.hpp"
+#include "gpu_budget.hpp"
+#include "../gpu_request_id.hpp"
 #include "../record_digest.hpp"
 #include "../store_codec.hpp"
 #include "../store_read_scope.hpp"
@@ -52,9 +54,15 @@ NativeAmdWritePreference evaluate_native_amd_writes(const NativeAmdWriteEvidence
   return Result::cpu;
 }
 
-std::optional<NativeAmdWriteSample> record_native_amd_cpu_trial(const NativeAmdWriteShape& shape,
-    std::span<const std::byte> source,std::uint64_t allowance,MemoryVolumeDomain* existing,
-    const std::function<bool()>& interrupted) noexcept {
+namespace {
+using TrialClock=std::chrono::steady_clock;
+std::uint64_t elapsed_ns(TrialClock::time_point started) {
+  const auto elapsed=std::chrono::duration_cast<std::chrono::nanoseconds>(TrialClock::now()-started).count();
+  return elapsed>0?static_cast<std::uint64_t>(elapsed):0;
+}
+std::optional<NativeAmdWriteSample> record_private_write(const NativeAmdWriteShape& shape,
+    std::span<const std::byte> source,std::span<const NativeLz4ExtentCandidate> advice,
+    std::uint64_t allowance,MemoryVolumeDomain* existing,const std::function<bool()>& interrupted) noexcept {
   try {
     if(!valid_shape(shape) || source.size()!=shape.input_bytes)return {};
     detail::StoreCaptureReadScope read_scope(interrupted);
@@ -88,12 +96,11 @@ std::optional<NativeAmdWriteSample> record_native_amd_cpu_trial(const NativeAmdW
         writer.apply(std::span{&seed,1});
         const auto inode=writer.snapshot().stat(name).inode;
         if(read_scope.interrupted())return {};
-        const auto started=std::chrono::steady_clock::now();
-        const auto written=writer.write_inode_storage_result(inode,0,source);
-        const auto elapsed=std::chrono::duration_cast<std::chrono::nanoseconds>(
-            std::chrono::steady_clock::now()-started).count();
-        if(elapsed<=0 || written.bytes!=source.size() || read_scope.interrupted())return {};
-        sample.elapsed_ns=static_cast<std::uint64_t>(elapsed);
+        const auto started=TrialClock::now();
+        const auto written=writer.write_inode_storage_with_lz4(inode,0,source,advice);
+        sample.elapsed_ns=elapsed_ns(started);
+        if(!sample.elapsed_ns || written.bytes!=source.size() || read_scope.interrupted())return {};
+        sample.stored_lz4_candidates=written.transaction.storage.stored_lz4_candidates;
       }
       sample.occupied_bytes=image->extent();
       {
@@ -113,6 +120,102 @@ std::optional<NativeAmdWriteSample> record_native_amd_cpu_trial(const NativeAmdW
     sample.retirement_confirmed=true;
     return sample;
   }catch(...) {return {};}
+}
+
+}
+std::optional<NativeAmdWriteSample> record_native_amd_cpu_trial(const NativeAmdWriteShape& shape,
+    std::span<const std::byte> source,std::uint64_t allowance,MemoryVolumeDomain* existing,
+    const std::function<bool()>& interrupted) noexcept {
+  return record_private_write(shape,source,{},allowance,existing,interrupted);
+}
+
+NativeAmdDeviceTrial record_native_amd_device_trial(const NativeAmdWriteShape& shape,
+    std::span<const std::byte> source,const HipDiscoveredRoute& route,NativeUniformSweepGrant grant,
+    ProcessBudget budget,std::uint64_t allowance,MemoryVolumeDomain* existing,NativeAmdTrialLaunch launch,
+    std::stop_token stop) noexcept {
+  NativeAmdDeviceTrial trial;
+  try {
+    uniform_lz4::Layout layout{};
+    if(stop.stop_requested() || !valid_shape(shape) || source.size()!=shape.input_bytes ||
+        !gpu_lz4_cpu_verification_available() ||
+        !uniform_lz4::make_layout(source.size(),kNativeExtentBytes,layout))return trial;
+    const auto started=TrialClock::now();
+    // The supplied live host grant funds the worker tree, parent transport and
+    // immutable source before any runtime or adapter access.
+    const auto limits=uniform_lz4_limits(layout);
+    if(!uniform_worker_host_budget_covers(limits,budget,allowance) || !route.pins ||
+        route.identity==GpuConfigurationId{} || route.ordinal>=64 || !route.pins->uniform_module_pinned() ||
+        !route.pins->matches(route.helper,route.identity,route.runtime_sha256,static_cast<int>(route.ordinal),route.memory) ||
+        !WorkerExchangeSession::available())return trial;
+    const auto plan=plan_uniform_lz4_sweep(layout,grant.maximum_chunks,grant.maximum_device_bytes);
+    if(!route.pins->device_ready() || stop.stop_requested())return trial;
+    WindowsGpuBudgetSampler sampler(route.memory.luid,route.memory.node_mask);
+    const auto before=sampler.sample();
+    if(before.status!=WindowsGpuBudgetStatus::success ||
+        check_gpu_memory_budget(before.snapshot,route.memory.luid,route.memory.node_mask,
+            GetTickCount64(),plan.device_peak_bytes)!=GpuGateCode::admitted)return trial;
+
+    const auto id=detail::next_gpu_request_id();
+    if(!id || stop.stop_requested())return trial;
+    const GpuHealthEvidence evidence{route.identity,id,0,true,true,before.snapshot};
+    const NativeUniformWorkerBinding binding{.helper=route.helper,.configuration=route.identity,
+        .ordinal=static_cast<int>(route.ordinal),.runtime_sha256=route.runtime_sha256,.sweep=grant};
+    const auto batch=PreparedUniformLz4::prepare(source,limits);
+    auto dispatch=prepare_native_uniform_dispatch(binding,evidence,batch,WorkerExecution::hip);
+    const WorkerChannelCapacity channel{static_cast<std::size_t>(limits.request_bytes),
+        static_cast<std::size_t>(limits.reply_bytes)};
+    auto frame=std::make_shared<const WorkerRequestSnapshot>(encode_uniform_lz4_request(batch,id));
+    WorkerExchangeResult result;
+    if(launch==NativeAmdTrialLaunch::prepared) {
+      dispatch.arguments.front()=L"--driver-uniform-lz4-prepared-adapter";
+      const auto setup=TrialClock::now();
+      const auto ready=[&] {
+        trial.ready_ns=elapsed_ns(setup);
+        const auto current=sampler.sample();
+        return !stop.stop_requested() && current.status==WindowsGpuBudgetStatus::success &&
+            current.snapshot.captured_ms>before.snapshot.captured_ms &&
+            check_gpu_memory_transition(before.snapshot,current.snapshot,route.memory.luid,
+                route.memory.node_mask,GetTickCount64(),plan.device_peak_bytes)==GpuGateCode::admitted;
+      };
+      result=WorkerExchangeSession::run_prepared_sized(binding.helper,dispatch.arguments,std::move(frame),
+          channel,budget,stop,ready,route.pins);
+    } else {
+      result=WorkerExchangeSession::run_sized(binding.helper,dispatch.arguments,std::move(frame),
+          channel,budget,stop,route.pins);
+    }
+    trial.exchange=result.code;
+    trial.worker_exit=result.process.exit_code;
+    trial.worker_retired=result.process.exit_confirmed && WorkerExchangeSession::available();
+    if(result.code!=WorkerExchangeCode::completed || !trial.worker_retired || stop.stop_requested())return trial;
+    const auto candidates=accept_uniform_lz4_reply(result.response,batch,id,WorkerExecution::hip);
+    const auto after=sampler.sample();
+    if(after.status!=WindowsGpuBudgetStatus::success ||
+        after.snapshot.captured_ms<=before.snapshot.captured_ms ||
+        check_gpu_memory_transition(before.snapshot,after.snapshot,route.memory.luid,
+            route.memory.node_mask,GetTickCount64(),plan.device_peak_bytes)!=GpuGateCode::admitted)return trial;
+    trial.exchange_ns=elapsed_ns(started);
+    if(!trial.exchange_ns)return trial;
+
+    std::vector<NativeLz4ExtentCandidate> advice;
+    advice.reserve(candidates.sizes.size());
+    std::size_t offset=0;
+    for(std::size_t index=0;index<candidates.sizes.size();++index) {
+      const auto bytes=candidates.sizes[index];
+      if(bytes)advice.push_back({index,std::span(candidates.payload).subspan(offset,bytes)});
+      offset+=bytes;
+    }
+    // The worker has retired. The source and accepted reply are still owned
+    // while the CPU writer and reopen consume the private image grant.
+    const auto retained=2ULL*source.size()+result.response.size()+candidates.payload.size();
+    if(retained>=allowance)return trial;
+    const auto interrupted=[&] {return stop.stop_requested();};
+    auto sample=record_private_write(shape,source,advice,allowance-retained,existing,interrupted);
+    if(!sample || stop.stop_requested() ||
+        !uniform_lz4::add(sample->elapsed_ns,trial.exchange_ns,sample->elapsed_ns))return trial;
+    sample->device_executed=true;
+    trial.sample=sample;
+  }catch(...) {}
+  return trial;
 }
 
 std::optional<NativeDeferredWriteOptions> qualify_native_amd_writes(const HipDiscoveredRoute& route,

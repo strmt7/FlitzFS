@@ -67,6 +67,14 @@ The existing exchange limit, memory observations and guard verification apply
 to every window. The parent accepts after successful worker retirement and its
 own complete byte verification. The retained timeline is constant space.
 
+The current worker reports distinct stages when the elapsed query returns
+`hipErrorNotReady`, returns another API error, or succeeds with an invalid
+duration. Every case retires its resources and withholds the timeline and
+candidate. The older `sweep_event_elapsed` result remains ambiguous. The
+selected-SDK CPU controls verify all three cases.
+[HIP event contract](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/reference/hip_runtime_api/modules/event_management.html) ·
+[Windows evidence](evidence/windows-amd-detached-write-trials-2026-11-23.json)
+
 On the installed Radeon, one matched pair finished before an exchange with
 unrecorded child status ended the first probe. The rebuilt parent now retains
 the exchange code, child exit and retirement when a probe fails. Its next run

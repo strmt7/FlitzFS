@@ -1,0 +1,493 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "release_qualified": false,
+  "source": {
+    "base": "e8666058f72721b0249d229f7c1ffdc472f0b1a8",
+    "blobs": {
+      "src/windows/hip_uniform_lz4_reuse.hpp": "35236a0609e072f6ec1225d6cda789ada2a3f4d6",
+      "src/windows/hip_worker_exit.hpp": "70a387f9b7fbf961b668edd08a2c9af056191eae",
+      "src/windows/native_amd_write_policy.cpp": "ed028eaf0a6e728f5f56c09bfc8599dc33eb7b61",
+      "src/windows/native_amd_write_policy.hpp": "72ce311c2a2f0576740b010938b16f499bfc17d9",
+      "src/windows/worker_exchange.cpp": "75d30017cfa7a1cc04de41a7d283f08a7466e8df",
+      "src/windows/worker_exchange.hpp": "4f1d3b80c3c52cb8d9fcb8d7d3de564bc3b1c330",
+      "tests/rocm_compile/uniform_lz4_compute_probe.cpp": "ec7e403211a62d4245ce7ce5ad40b2ca09f58459",
+      "tests/test_native_deferred_write_sdk.cpp": "fbbde334727c792a7aea1ded11de491f920649b1",
+      "tests/test_worker_exchange.cpp": "4ec2b588591b72d065442d5667db27cb3e0a6208"
+    },
+    "patch_sha256": "c5bedb939ad5128a8ea00b000584fc2b04482b6af774e47b1d77845cc0e88213"
+  },
+  "mechanism": {
+    "prepared": "Fresh admission at readiness can cancel an exact-size one-shot frame before submission. Both sized paths require exact worker and supervisor retirement.",
+    "native": "Both cold and prepared Radeon trials decode and verify the exact immutable source, publish through the ordinary mirrored writer, and independently reopen on CPU. The measured cost charges setup and the native transaction. Independent reopen is outside that timing scope.",
+    "diagnostics": "Separate elapsed timing stages for a runtime error, hipErrorNotReady after synchronization and a successful return with an invalid duration. Preserve the existing device-fault recovery category and retire without a usable profile."
+  },
+  "source_navigation": {
+    "commit": "e8666058f72721b0249d229f7c1ffdc472f0b1a8",
+    "provider_version": "0.2.43",
+    "source_files": 7,
+    "inventory_sha256": "3c8d204d8a08bd08d1735517160c7b2c1b630a418c5bb95716305e1c4a3559ff",
+    "native_response_sha256": "75154bc4f09f63c4552d275e1f483add8e23b0c166b08de8fa6d50ee574ae0fe",
+    "actual_searches": 1,
+    "receipt_sha256": "d490717b75927fe9b78f9750f3e118d48aece063cbd1c10eafa3cee751dd5aef",
+    "run": {
+      "run": "local-run-adc4464ca5494150a89287a366216390",
+      "log_sha256": "95fb1ed75f96566ae945eee9de4fb7af3562ea95daa87603c192faca940ef10f",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "memory_bytes": 1975517184,
+      "peak_job_bytes": 1076523008,
+      "cpu_percent": 12,
+      "maximum_processes": 10,
+      "elapsed_seconds": 37.95299999999406,
+      "timeout_seconds": 94.0,
+      "stop_reason": null
+    }
+  },
+  "primary_sources": {
+    "receipt_sha256": "770c4eb23c15688bca8eec0f1a7a0bb090b4be18043068d81baaf2731b2bb0b2",
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "robots": true,
+    "external_LLM": false,
+    "native_pages": [
+      {
+        "name": "events",
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/reference/hip_runtime_api/modules/event_management.html",
+        "success": true,
+        "http_status": 200,
+        "markdown_bytes": 40456,
+        "markdown_sha256": "b4e5c8eec8212133030722be7b4e24003ae04fa1cc1fe39b3843fc002e1aa879",
+        "capture_sha256": "a218878e3d5cf3b3f3928c253c85710e99d5f431a378063d27ff2b9ec194dfbf",
+        "error": ""
+      },
+      {
+        "name": "streams",
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/reference/hip_runtime_api/modules/stream_management.html",
+        "success": true,
+        "http_status": 200,
+        "markdown_bytes": 51306,
+        "markdown_sha256": "bee401671f6fc9c05ac9b57c010c93ce535666de88336c70a4d0d7d4d81dae5a",
+        "capture_sha256": "a510c9c88f6b9b95259aeb71a6b7f8e1908a735a9caed496e4134987a2532010",
+        "error": ""
+      },
+      {
+        "name": "initialization",
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/initialization.html",
+        "success": true,
+        "http_status": 200,
+        "markdown_bytes": 24762,
+        "markdown_sha256": "0c10f76d1d2e978b48e18e7adc6388cab281302448951d65cf568b492a107af5",
+        "capture_sha256": "9cf8e8ebaa703aa9dfd8e24f5893d90cb74ef44eab803aea9db9a988ceb7e113",
+        "error": ""
+      }
+    ]
+  },
+  "validation": {
+    "binding": {
+      "run": "local-run-34b69c342979400ab10c31da78537521",
+      "log_sha256": "a5edb14a866d36e306747f14aa6c89ef3b9f165ead71de30748cfba6f2eb4395",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "memory_bytes": 585105408,
+      "peak_job_bytes": 164085760,
+      "cpu_percent": 16,
+      "maximum_processes": 13,
+      "elapsed_seconds": 13.328000000008615,
+      "timeout_seconds": 100.0,
+      "stop_reason": null
+    },
+    "windows_build": {
+      "run": "local-run-a0391a69291d4433a3b4514a3c4f53ba",
+      "log_sha256": "0faf66406b4f5a11caf8163caa1600e2ab153a770d3bae71ee09bb18458b8ead",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "memory_bytes": 693108736,
+      "peak_job_bytes": 373805056,
+      "cpu_percent": 17,
+      "maximum_processes": 15,
+      "elapsed_seconds": 18.936999999990803,
+      "timeout_seconds": 165.0,
+      "stop_reason": null
+    },
+    "amd_worker_build": {
+      "run": "local-run-32a996f1098f4ebf9c7d716301abc9ba",
+      "log_sha256": "c44bcc3a0e4a2f0b1e7a6b74d69bd73b23977af082109c9f48118ed926639f04",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "memory_bytes": 4061134848,
+      "peak_job_bytes": 505774080,
+      "cpu_percent": 17,
+      "maximum_processes": 16,
+      "elapsed_seconds": 71.67199999999139,
+      "timeout_seconds": 190.0,
+      "stop_reason": null
+    },
+    "amd_admission_build": {
+      "run": "local-run-5969c49fc4304528a22703bf1a76ca08",
+      "log_sha256": "fb0c88e21977a6cf7b8c739cfb431ee4d58da2f2012eb823f495ca1d3099f433",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "memory_bytes": 696254464,
+      "peak_job_bytes": 351801344,
+      "cpu_percent": 15,
+      "maximum_processes": 14,
+      "elapsed_seconds": 14.171999999991385,
+      "timeout_seconds": 115.0,
+      "stop_reason": null
+    },
+    "raw_build": {
+      "run": "local-run-bf29cf9e4ede4c6abf3d9fbe62c35776",
+      "log_sha256": "b427bf57b8cc91eb090fcbd8849d796593ebd8c1a6b4aa0f59b170c9bcdf25aa",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "memory_bytes": 801112064,
+      "peak_job_bytes": 416161792,
+      "cpu_percent": 16,
+      "maximum_processes": 15,
+      "elapsed_seconds": 48.98500000000058,
+      "timeout_seconds": 185.0,
+      "stop_reason": null
+    },
+    "asan_build": {
+      "run": "local-run-530e6c939bc0498f8f5b52f248c0695a",
+      "log_sha256": "864f4d7b14ee695890ac44c6307225fdbadc8cd3d935a105fa06052cac1e8e4c",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "memory_bytes": 945815552,
+      "peak_job_bytes": 660660224,
+      "cpu_percent": 16,
+      "maximum_processes": 15,
+      "elapsed_seconds": 49.562000000005355,
+      "timeout_seconds": 185.0,
+      "stop_reason": null
+    },
+    "windows_sdk": {
+      "run": "local-run-66c11811deeb4fd28e3179f20f493ae0",
+      "log_sha256": "fe57f66798881f2b6c98d9059e6fbb1d3ad5e2d774fbf6a23c6f6db796d9cd87",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "memory_bytes": 434110464,
+      "peak_job_bytes": 38105088,
+      "cpu_percent": 17,
+      "maximum_processes": 14,
+      "elapsed_seconds": 11.436999999990803,
+      "timeout_seconds": 80.0,
+      "stop_reason": null,
+      "groups": [
+        "uniform_lz4_sweep_profile_envelope",
+        "owned_native_deferred_write_sdk",
+        "controlled_native_uniform_write_sdk",
+        "bounded_windows_worker_exchange"
+      ]
+    },
+    "indexed": {
+      "run": "local-run-21eb9829ae2b438c898ace558f9e2c15",
+      "log_sha256": "ed218585065a5041d386ecf7a05965605d8db2ef495ec615f0872dca1dc5f20c",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "memory_bytes": 445644800,
+      "peak_job_bytes": 57069568,
+      "cpu_percent": 17,
+      "maximum_processes": 9,
+      "elapsed_seconds": 3.3909999999887077,
+      "timeout_seconds": 55.0,
+      "stop_reason": null
+    },
+    "raw_indexed": {
+      "run": "local-run-5a7c77f9471647ca8ef04376f6797c64",
+      "log_sha256": "41f1f78fc048aa1667339e6f9bd9748de55e6fb889abd35c322dc7b4a326003e",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "memory_bytes": 402653184,
+      "peak_job_bytes": 56913920,
+      "cpu_percent": 16,
+      "maximum_processes": 8,
+      "elapsed_seconds": 4.35899999999674,
+      "timeout_seconds": 58.0,
+      "stop_reason": null
+    },
+    "raw_worker": {
+      "run": "local-run-6e85cde105e84de7856c9a5a85b52456",
+      "log_sha256": "424329b1ef8469ffb438ec287c3da980221adcfaff06446f17fa61a4a0f92a81",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "memory_bytes": 419430400,
+      "peak_job_bytes": 17162240,
+      "cpu_percent": 17,
+      "maximum_processes": 10,
+      "elapsed_seconds": 8.406000000002678,
+      "timeout_seconds": 54.0,
+      "stop_reason": null
+    },
+    "asan_worker": {
+      "run": "local-run-1011293a04c74666913f675f366a821d",
+      "log_sha256": "8f8063599a80883ccb1eb07bed6b3db1a1ec311e031251b045e3f3e76a746f75",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "memory_bytes": 789577728,
+      "peak_job_bytes": 350396416,
+      "cpu_percent": 17,
+      "maximum_processes": 10,
+      "elapsed_seconds": 13.156999999991967,
+      "timeout_seconds": 54.0,
+      "stop_reason": null
+    },
+    "asan_runtime": {
+      "run": "local-run-6304f94beda143dcad2fd1f6711a4180",
+      "log_sha256": "5697d87a12ba87e42ec34b00fec1a2402a549b6b3e27579c10603ecd1d3a8ec5",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "memory_bytes": 385875968,
+      "peak_job_bytes": 9875456,
+      "cpu_percent": 9,
+      "maximum_processes": 7,
+      "elapsed_seconds": 0.10900000001129229,
+      "timeout_seconds": 18.0,
+      "stop_reason": null
+    },
+    "asan_small_memory": {
+      "run": "local-run-faca0bc315d44dff9adecdb24c3c8651",
+      "log_sha256": "1988c1bd79a5140c89b51be074c9130793249fbed1631352c3ff8218d871ab49",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "memory_bytes": 428867584,
+      "peak_job_bytes": 372056064,
+      "cpu_percent": 14,
+      "maximum_processes": 8,
+      "elapsed_seconds": 0.5620000000053551,
+      "timeout_seconds": 30.0,
+      "stop_reason": null
+    },
+    "amd_cpu_compute": {
+      "run": "local-run-d6db464e411941c7bf3d4d632e08e3a7",
+      "log_sha256": "b1de0ef80fe78bb47baffedfbba379268edf6cd04b0a57209e125682c79cb275",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "memory_bytes": 477102080,
+      "peak_job_bytes": 15822848,
+      "cpu_percent": 15,
+      "maximum_processes": 9,
+      "elapsed_seconds": 0.3279999999940628,
+      "timeout_seconds": 55.0,
+      "stop_reason": null,
+      "checks": {
+        "checks": 5190,
+        "scenarios": 106,
+        "successes": 14,
+        "refusals": 92,
+        "decoder_available": true,
+        "guarded_exit_confirmed": true,
+        "hip_runtime_loaded": false,
+        "gpu_executed": false,
+        "complete": true
+      }
+    },
+    "amd_admission": {
+      "run": "local-run-c4284518a0ff4129af8ee12dc637e2e1",
+      "log_sha256": "dd50c82433597274889e0d9dcb0fa9311f12835bb11bf5a850ee05f27bb4be0b",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "memory_bytes": 483393536,
+      "peak_job_bytes": 14315520,
+      "cpu_percent": 19,
+      "maximum_processes": 13,
+      "elapsed_seconds": 1.375,
+      "timeout_seconds": 65.0,
+      "stop_reason": null,
+      "checks": {
+        "checks": 151,
+        "exits_confirmed": 25,
+        "bundle_verified": true,
+        "tamper_refused": true,
+        "CPU_source_unchanged": true,
+        "hip_runtime_loaded": false,
+        "gpu_executed": false,
+        "complete": true
+      }
+    }
+  },
+  "earlier_attempts": {
+    "initial_windows": {
+      "run": "local-run-dc3bc4d899304f46910a11588d02493e",
+      "log_sha256": "cffacaf30ebaa0dfa162171773479a835bea6597e9ffd25bec99fc71ad85bdf9",
+      "exit_code": 8,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "memory_bytes": 2035286016,
+      "peak_job_bytes": 37965824,
+      "cpu_percent": 17,
+      "maximum_processes": 14,
+      "elapsed_seconds": 7.703000000008615,
+      "timeout_seconds": 102.0,
+      "stop_reason": null,
+      "finding": "The test used stage 42 as an unknown sentinel. Appending the new stage made 42 defined. The test now uses reserved stage 255."
+    },
+    "outer_job_bundle_refusal": {
+      "run": "local-run-d3bdbfd920df429191963d1be0bb9bc9",
+      "log_sha256": "e13b37d5d5e7c759de58e8f9da911faf71a6f3c5ccb55773c371674c457e6152",
+      "exit_code": 1179848709,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "memory_bytes": 371195904,
+      "peak_job_bytes": 2736128,
+      "cpu_percent": 12,
+      "maximum_processes": 6,
+      "elapsed_seconds": 0.07799999999406282,
+      "timeout_seconds": 22.0,
+      "stop_reason": null,
+      "finding": "A direct invocation entered the outer development job. The exact single-child job requirement refused it. The existing bounded uniform admission fixture verified the staged bundle."
+    },
+    "asan_indexed_refusal": {
+      "run": "local-run-853f7e1b76dc4921af53c4843b199414",
+      "log_sha256": "b99da613d022ca7abf4d2d72b8eaa10adeaea8dbd2bfd7e755475d81028567b0",
+      "exit_code": 1,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "memory_bytes": 953155584,
+      "peak_job_bytes": 544534528,
+      "cpu_percent": 16,
+      "maximum_processes": 8,
+      "elapsed_seconds": 5.061999999990803,
+      "timeout_seconds": 58.0,
+      "stop_reason": null,
+      "finding": "The larger indexed run reached its dynamic fixture memory allowance before completion. The ASan worker suite and small memory control passed."
+    }
+  },
+  "hardware": {
+    "status": "deferred_on_active_host_before_worker_start",
+    "gpu_executed": false,
+    "preflights": [
+      {
+        "admitted": false,
+        "when_utc": "2026-11-23T18:22:49.3355978Z",
+        "windows_build": "26300",
+        "devices": [
+          {
+            "Name": "AMD Radeon RX 9070 XT",
+            "Status": "OK",
+            "DriverVersion": "32.0.32029.2010"
+          }
+        ],
+        "cpu_percent": [
+          10.54,
+          12.28,
+          14.97
+        ],
+        "max_gpu_engine_percent": 99,
+        "gpu_counters": 746,
+        "available_kib": 8997168,
+        "total_kib": 66704480,
+        "commit_available_bytes": 51951886336,
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "flitzfs_processes": 0,
+        "bound_fixture_members": 5
+      },
+      {
+        "admitted": false,
+        "when_utc": "2026-11-23T18:26:10.1813544Z",
+        "windows_build": "26300",
+        "devices": [
+          {
+            "Name": "AMD Radeon RX 9070 XT",
+            "Status": "OK",
+            "DriverVersion": "32.0.32029.2010"
+          }
+        ],
+        "cpu_percent": [
+          15.12,
+          8.96,
+          17.03
+        ],
+        "max_gpu_engine_percent": 100,
+        "gpu_counters": 746,
+        "available_kib": 8773716,
+        "total_kib": 66704480,
+        "commit_available_bytes": 51723595776,
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "flitzfs_processes": 0,
+        "bound_fixture_members": 5
+      }
+    ],
+    "public_trial_input": {
+      "commit": "e8666058f72721b0249d229f7c1ffdc472f0b1a8",
+      "bytes": 131072,
+      "sha256": "b2e05e9c128679e217acc617330d0b17d557ef3e69fd89cbe9658680fb0c78ea",
+      "inputs": [
+        {
+          "path": "src/native_filesystem.cpp",
+          "source_bytes": 168808,
+          "contributed_bytes": 131072,
+          "source_sha256": "68f7101203f940b09a25a636db2f6b44bcd9b422e5dc06b5daacd06605c96221"
+        }
+      ]
+    },
+    "package_manifest_sha256": "0eb5a1989af82e605ae205f888f70fe48ad84ff16d4f024c801917cf5e9a7b80",
+    "kernel_bundle_receipt_sha256": "d4946a7b31d94f71db4539ff36b127d720293294052bd44090a58bd541583305",
+    "package": {
+      "experimental": true,
+      "runtime_basename": "amdhip64_7.dll",
+      "runtime_shipped": false,
+      "kpack_shipped": false,
+      "uniform_runtime_packaged": true,
+      "files": [
+        {
+          "path": "flitzfs_hip_lz4_worker.exe",
+          "bytes": 610816,
+          "sha256": "0f7f6b4857c7cd9db025f174a9b685536045fac1d91ffc4faff7b7485971b5e5"
+        },
+        {
+          "path": "hip-uniform-lz4/flitzfs_rocm_uniform_lz4_candidate.dll",
+          "bytes": 322048,
+          "sha256": "64601897f13003dfea6d47116963c96b2ce7af1a80e5b854e6397b12cbc6bc3d"
+        }
+      ]
+    },
+    "staged_sdk": {
+      "winfsp-x64.dll": {
+        "bytes": 200816,
+        "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+      },
+      "flitzfs_native_deferred_write_sdk_tests.exe": {
+        "bytes": 2368512,
+        "sha256": "bffb8df3b278a8e039763c81f467600cd5c869c7122993235b01444944c2d92e"
+      }
+    },
+    "prior_timing_failure": "docs/evidence/windows-ordinary-amd-write-demand-2026-11-23.json"
+  },
+  "scope_boundary": "The Windows, selected ROCm SDK and sanitizer checks exercise CPU semantics and ownership. The hardware comparison, larger ASan indexed check and automatic GPU preference remain open."
+}

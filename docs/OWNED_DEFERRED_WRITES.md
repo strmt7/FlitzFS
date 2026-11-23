@@ -173,9 +173,30 @@ captured write. The recorded interval covers its native write transaction.
 An independent CPU reopen verifies the image and compares every extent against
 the source. The owner reports the source digest and occupied image bytes after
 retiring the scratch. The Windows SDK fixture verified these conditions and
-reopened the original image independently. Matched AMD replay and installed
-route selection are the next qualification steps.
+reopened the original image independently.
 [Windows CPU replay evidence](evidence/windows-ordinary-amd-cpu-replay-2026-11-23.json)
+
+### Detached Radeon write trials
+
+The detached Radeon arm uses the same mirrored native writer and isolation
+geometry as the CPU reference. It admits a finite input with a pinned uniform
+worker, current resource evidence and an explicit sweep grant. The immediate
+exchange provides the owned input at startup. The prepared exchange checks
+resources again after the runtime, stream and slab are ready, before providing
+that same input. A stop signal cancels either route.
+
+After exact retirement, the parent verifies and decodes the returned
+candidates against the original bytes. The ordinary native writer chooses
+which encoded extents to store. The complete image is opened and verified by
+the independent CPU reader. The observation records occupied image bytes and
+the number of actually stored device candidates. The measured write interval
+charges the complete worker exchange and native transaction. Independent
+private reopen provides evidence of correctness outside that interval.
+[Windows trial evidence](evidence/windows-amd-detached-write-trials-2026-11-23.json)
+
+The existing automatic controller records the CPU reference. A production
+offer still requires repeated matched comparisons and a measured advantage
+for the relevant shape.
 
 ## Activating a route on a running volume
 

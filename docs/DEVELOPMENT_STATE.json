@@ -39,6 +39,15 @@
     "matched_device_replay_qualified": false,
     "next": "Compare cold and prepared CPU and AMD transfers on the same captured data, then qualify complete writes and reads."
   },
+  "detached_amd_write_trials": {
+    "evidence": "docs/evidence/windows-amd-detached-write-trials-2026-11-23.json",
+    "scope": "Immediate and prepared worker exchanges with the same private native publication and independent CPU readback",
+    "prepared_readiness_cancellation_verified": true,
+    "elapsed_event_diagnostics": ["api_error", "not_ready", "invalid_duration"],
+    "new_live_device_trial": "Deferred during host activity before creating a worker",
+    "ordinary_amd_route_qualified": false,
+    "next": "Run verified cold and prepared comparisons under fresh readiness, then fund batched controller trials from ordinary demand."
+  },
   "dense_cross_group_relocation": {
     "evidence": "docs/evidence/dense-cross-group-2026-11-23.json",
     "anchor_format_after_first_cross_group_move": 2,

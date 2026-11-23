@@ -129,7 +129,9 @@ hipError_t elapsed_event(float* ms,hipEvent_t first,hipEvent_t last){
       first==reinterpret_cast<hipEvent_t>(&active->event_tags[0]) &&
       last==reinterpret_cast<hipEvent_t>(&active->event_tags[1]),"Event read before full wait or from wrong pair");
   const auto status=active->step("event-elapsed");
-  if(status==hipSuccess && active->fault!="event-no-interval")*ms=0.25F;
+  if(active->fault=="event-not-ready")return hipErrorNotReady;
+  if(status==hipSuccess && active->fault!="event-no-interval")
+    *ms=active->fault=="event-negative-interval"?-0.25F:0.25F;
   return status;
 }
 hipError_t destroy_event(hipEvent_t event){
@@ -506,7 +508,9 @@ int wmain(int argc,wchar_t** argv){try{
         std::pair{"event-record-0",HipWorkerStage::sweep_event_record},
         std::pair{"event-record-1",HipWorkerStage::sweep_event_record},
         std::pair{"event-elapsed",HipWorkerStage::sweep_event_elapsed},
-        std::pair{"event-no-interval",HipWorkerStage::sweep_event_elapsed},
+        std::pair{"event-not-ready",HipWorkerStage::sweep_event_not_ready},
+        std::pair{"event-no-interval",HipWorkerStage::sweep_event_invalid_sample},
+        std::pair{"event-negative-interval",HipWorkerStage::sweep_event_invalid_sample},
         std::pair{"event-destroy-0",HipWorkerStage::sweep_retire},
         std::pair{"reuse-wait-second",HipWorkerStage::sweep_wait}}){
       ++scenarios;++refusals;State state(source);state.fault=fault;UniformLz4SweepTrace trace;

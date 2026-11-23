@@ -33,6 +33,22 @@ std::optional<NativeAmdWriteSample> record_native_amd_cpu_trial(const NativeAmdW
     std::span<const std::byte> source,std::uint64_t memory_allowance,MemoryVolumeDomain*,
     const std::function<bool()>& interrupted) noexcept;
 
+enum class NativeAmdTrialLaunch {immediate,prepared};
+struct NativeAmdDeviceTrial {
+  std::optional<NativeAmdWriteSample> sample;
+  std::uint64_t ready_ns=0,exchange_ns=0;
+  WorkerExchangeCode exchange=WorkerExchangeCode::invalid_response;
+  std::uint32_t worker_exit=0;
+  bool worker_retired=false;
+};
+// One detached device arm. Use an independently admitted finite grant. The
+// complete measured cost includes preparation, transport, verification and the
+// private native write. Cancellation never reaches the source filesystem.
+NativeAmdDeviceTrial record_native_amd_device_trial(const NativeAmdWriteShape&,
+    std::span<const std::byte> source,const HipDiscoveredRoute&,NativeUniformSweepGrant,
+    ProcessBudget,std::uint64_t memory_allowance,MemoryVolumeDomain*,NativeAmdTrialLaunch,
+    std::stop_token) noexcept;
+
 // Called off the filesystem path with independently acquired launch costs.
 // Package admission, a matched recommendation and an exact route are needed.
 std::optional<NativeDeferredWriteOptions> qualify_native_amd_writes(const HipDiscoveredRoute&,

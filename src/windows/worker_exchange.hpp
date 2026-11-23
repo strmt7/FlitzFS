@@ -3,6 +3,7 @@
 #include "flitzfs/worker_wire.hpp"
 #include <memory>
 #include <exception>
+#include <functional>
 #include <span>
 #include <stop_token>
 #include <string_view>
@@ -67,6 +68,12 @@ class WorkerExchangeSession final {
       const std::vector<std::wstring>& arguments, SharedWorkerRequest request,
       WorkerChannelCapacity capacity, ProcessBudget budget,std::stop_token,
       std::shared_ptr<const void> pinned_route={});
+  // For one of the same bounded qualifying threads. Readiness is delivered
+  // before the immutable frame is sent. A refused admission discards it.
+  static WorkerExchangeResult run_prepared_sized(const std::filesystem::path& helper,
+      const std::vector<std::wstring>& arguments, SharedWorkerRequest request,
+      WorkerChannelCapacity capacity,ProcessBudget budget,std::stop_token,
+      const std::function<bool()>& on_ready,std::shared_ptr<const void> pinned_route={});
   ~WorkerExchangeSession();
   WorkerExchangeSession(WorkerExchangeSession&&) noexcept;
   WorkerExchangeSession& operator=(WorkerExchangeSession&&) noexcept;
@@ -94,7 +101,8 @@ class WorkerExchangeSession final {
       std::shared_ptr<const void> pinned_route={},bool prepared=false);
   struct Impl;
   explicit WorkerExchangeSession(std::unique_ptr<Impl>) noexcept;
-  WorkerExchangeResult wait_result(); // Legacy synchronous adapter only.
+  WorkerExchangeResult wait_result(); // Synchronous adapters only.
+  WorkerExchangeResult wait_sized_result();
   friend WorkerExchangeResult run_worker_exchange(const std::filesystem::path&,
       const std::vector<std::wstring>&, std::span<const std::byte>, ProcessBudget,std::stop_token,std::shared_ptr<const void>);
   std::unique_ptr<Impl> impl_;

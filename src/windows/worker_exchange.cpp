@@ -599,8 +599,37 @@ WorkerExchangeResult WorkerExchangeSession::run_sized(const std::filesystem::pat
   }
   auto session=start_sized(helper,arguments,std::move(request),capacity,budget,std::move(pinned_route));
   std::stop_callback cancel(stop,[&]() noexcept {(void)session.request_cancel();});
-  auto result=session.wait_result();
-  if(!session.retirement_confirmed() && result.code!=WorkerExchangeCode::exit_unconfirmed) {
+  return session.wait_sized_result();
+}
+
+WorkerExchangeResult WorkerExchangeSession::run_prepared_sized(const std::filesystem::path& helper,
+    const std::vector<std::wstring>& arguments,SharedWorkerRequest request,WorkerChannelCapacity capacity,
+    ProcessBudget budget,std::stop_token stop,const std::function<bool()>& on_ready,
+    std::shared_ptr<const void> pinned_route) {
+  if(stop.stop_requested()) {
+    WorkerExchangeResult refused;
+    refused.code=WorkerExchangeCode::cancelled;
+    refused.process.cancelled=true;
+    return refused;
+  }
+  require(request && request->bytes().size()==capacity.request_bytes && on_ready,
+      "invalid prepared exchange input");
+  auto session=start_prepared_sized(helper,arguments,capacity,budget,std::move(pinned_route));
+  std::stop_callback cancel(stop,[&]() noexcept {(void)session.request_cancel();});
+  try {
+    if(!session.wait_prepared(budget.timeout_ms) || stop.stop_requested() ||
+        !on_ready() || !session.submit_prepared(std::move(request))) (void)session.request_cancel();
+  }catch(...) {
+    (void)session.request_cancel();
+    (void)session.wait_sized_result();
+    throw;
+  }
+  return session.wait_sized_result();
+}
+
+WorkerExchangeResult WorkerExchangeSession::wait_sized_result() {
+  auto result=wait_result();
+  if(!retirement_confirmed() && result.code!=WorkerExchangeCode::exit_unconfirmed) {
     result.code=WorkerExchangeCode::supervisor_exit_unconfirmed;
     result.response.clear();
   }

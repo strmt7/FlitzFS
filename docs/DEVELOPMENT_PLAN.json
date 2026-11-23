@@ -26,7 +26,8 @@
     "first_implementation_slice": "docs/RELEASE_EXECUTION_PLAN.md#first-implementation-slice",
     "latest_ordinary_amd_write_evidence": "docs/evidence/windows-ordinary-amd-write-demand-2026-11-23.json",
     "latest_ordinary_amd_cpu_replay": "docs/evidence/windows-ordinary-amd-cpu-replay-2026-11-23.json",
-    "next": "Add matched AMD replay with cancellable discovery to the controller-owned detached CPU reference. Compare cold and prepared writes and reads on the same memory-backed input and charge complete exchange cost. Extend the mounted mixed-flush client under populated churn and evaluate incremental writable admission beside the full oracle. Build held-out compression and sparse-catalog accounting controls.",
+    "latest_detached_amd_write_trials": "docs/evidence/windows-amd-detached-write-trials-2026-11-23.json",
+    "next": "Use the detached prepared and immediate AMD replay in repeated controller-owned matched trials. Fund grouped inputs from live demand and measure the complete exchange, random read and CPU recovery cost to find useful device regions. Extend the mounted mixed-flush client under populated churn and evaluate incremental writable admission beside the full oracle. Build held-out compression and sparse-catalog accounting controls.",
     "release_qualified": false
   },
   "baseline": {

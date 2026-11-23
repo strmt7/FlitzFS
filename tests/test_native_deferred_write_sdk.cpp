@@ -14,6 +14,7 @@
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
 #include "gpu_budget.hpp"
 #include "hip_route_discovery.hpp"
+#include "memory_volume.hpp"
 #include "native_name_index.hpp"
 #include "winfsp_volume_attachment.hpp"
 #include "flitzfs/read_only_file.hpp"
@@ -1299,6 +1300,53 @@ RecordedSweepBatch run_sweep_batch(const HipDiscoveredRoute& route,
   measured.elapsed_ns=elapsed_ns(start);
   return measured;
 }
+int compare_installed_detached_writes(const std::filesystem::path& corpus) {
+  gpu_probe_fixture::Budget controller_budget;
+  const auto file=ReadOnlyFile::open(corpus);
+  check(file.size() && file.size()<=fixture_sweep_chunks*kNativeExtentBytes && file.size()%kNativeExtentBytes==0,
+      "Detached write fixture must contain complete admitted extents");
+  std::vector<std::byte> source(static_cast<std::size_t>(file.size()));
+  file.read_exact_at(0,source.data(),source.size());
+  const auto discovery=discover_installed_hip_route(diagnostic_worker_budget,4);
+  const auto& route=require_indexed_route(discovery);
+  const auto available=observe_memory_volume_headroom();
+  const auto allowance=usable_memory_volume_headroom(available)/diagnostic_worker_budget.memory_share_divisor;
+  SYSTEM_INFO system{};
+  GetSystemInfo(&system);
+  const NativeAmdWriteShape shape{static_cast<std::uint32_t>(source.size()),system.dwPageSize,
+      {StoreCompressionMode::fast,1,false}};
+  const auto chunks=(std::min<std::uint32_t>)(shape.input_bytes/kNativeExtentBytes,fixture_quantum_chunks);
+  uniform_lz4::Layout quantum{};
+  check(uniform_lz4::make_layout(std::uint64_t(chunks)*kNativeExtentBytes,kNativeExtentBytes,quantum),
+      "Detached write quantum");
+  const NativeUniformSweepGrant grant{chunks,quantum.total_bytes};
+  const auto cpu=record_native_amd_cpu_trial(shape,source,allowance,nullptr,[]{return false;});
+  check(cpu && !cpu->device_executed && !cpu->stored_lz4_candidates && cpu->cpu_readback_verified &&
+      cpu->retirement_confirmed,"Detached CPU write did not verify");
+  std::cout<<"detached_cpu_write bytes="<<source.size()<<" occupied="<<cpu->occupied_bytes
+      <<" complete_ns="<<cpu->elapsed_ns<<" cpu_verified=1 retired=1\n";
+  for(const auto launch:{NativeAmdTrialLaunch::immediate,NativeAmdTrialLaunch::prepared}) {
+    const bool prepared=launch==NativeAmdTrialLaunch::prepared;
+    const auto measured=record_native_amd_device_trial(shape,source,route,grant,diagnostic_worker_budget,
+        allowance,nullptr,launch,{});
+    if(!measured.sample)
+      std::cerr<<"detached_amd_write_refusal prepared="<<prepared<<" code="<<static_cast<unsigned>(measured.exchange)
+          <<" worker_exit="<<measured.worker_exit<<" retired="<<measured.worker_retired
+          <<" ready_ns="<<measured.ready_ns<<" exchange_ns="<<measured.exchange_ns<<'\n';
+    check(measured.sample && measured.sample->input_digest==cpu->input_digest && measured.sample->device_executed &&
+        measured.sample->cpu_readback_verified && measured.sample->retirement_confirmed && measured.worker_retired &&
+        (prepared==(measured.ready_ns!=0)), "Detached Radeon write did not verify the same source");
+    const auto& sample=*measured.sample;
+    std::cout<<"detached_amd_write prepared="<<prepared<<" bytes="<<source.size()<<" occupied="<<sample.occupied_bytes
+        <<" complete_ns="<<sample.elapsed_ns<<" ready_ns="<<measured.ready_ns<<" exchange_ns="<<measured.exchange_ns
+        <<" stored_candidates="<<sample.stored_lz4_candidates<<" cpu_verified=1 retired=1\n";
+  }
+  check(MemoryVolumeDomain::cleanup_healthy() && WorkerExchangeSession::available() &&
+      !GetModuleHandleW(route.runtime_basename.c_str()),"Detached write retained a runtime lease");
+  std::cout<<"detached_write_comparison complete=1 scoped_gpu=1 parent_runtime_loaded=0 parent_peak="
+      <<controller_budget.peak_commit()<<'\n';
+  return 0;
+}
 int compare_installed_prepared_sweep(const std::filesystem::path& corpus) {
   gpu_probe_fixture::Budget controller_budget;
   const auto file=ReadOnlyFile::open(corpus);
@@ -1381,6 +1429,8 @@ int wmain(int argc,wchar_t** argv){try{
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
   if(argc==3 && std::wstring_view(argv[1])==L"--compare-installed-amd-sweep-batch")return compare_installed_sweep_batch(argv[2]);
   if(argc==3 && std::wstring_view(argv[1])==L"--compare-installed-amd-prepared")return compare_installed_prepared_sweep(argv[2]);
+  if(argc==3 && std::wstring_view(argv[1])==L"--compare-installed-amd-detached-writes")
+    return compare_installed_detached_writes(argv[2]);
   if(argc==2 && std::wstring_view(argv[1])==L"--live-installed-late-foreground")return installed_late_foreground();
   if(argc==2 && std::wstring_view(argv[1])==L"--compare-installed-amd")return compare_installed_amd();
   if(argc==2 && std::wstring_view(argv[1])==L"--compare-installed-amd-grouped")

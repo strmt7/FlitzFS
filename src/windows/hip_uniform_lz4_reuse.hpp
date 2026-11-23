@@ -47,11 +47,12 @@ class SweepEventPair final {
   }
   std::uint64_t interval_ns() {
     float milliseconds=std::numeric_limits<float>::quiet_NaN();
-    check_hip(api_->elapsed(&milliseconds,events_.front(),events_.back()),
-        "read sweep event interval",HipWorkerStage::sweep_event_elapsed);
+    const auto status=api_->elapsed(&milliseconds,events_.front(),events_.back());
+    check_hip(status,"read sweep event interval",status==hipErrorNotReady?
+        HipWorkerStage::sweep_event_not_ready:HipWorkerStage::sweep_event_elapsed);
     const auto ns=static_cast<double>(milliseconds)*1'000'000.0;
     lz4_require(ns>=0 && ns<=static_cast<double>(hip_profile_limit_ns),HipWorkerExit::device_fault,
-        "invalid sweep event interval",HipWorkerStage::sweep_event_elapsed);
+        "invalid sweep event interval",HipWorkerStage::sweep_event_invalid_sample);
     return static_cast<std::uint64_t>(ns);
   }
   bool retire() noexcept {

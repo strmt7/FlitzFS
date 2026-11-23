@@ -1324,6 +1324,39 @@ void prepared_transactions(const std::filesystem::path& executable) {
     check(session.wait_prepared(2500),"abandoned prepared child did not become ready");
   }
   eventually([&]{return WorkerExchangeSession::available();},3000,"abandoned readiness retained a worker");
+  for(const bool admit:{false,true}) {
+    unsigned readiness=0;
+    const auto result=WorkerExchangeSession::run_prepared_sized(executable,{L"prepared-ok"},frame,
+        prepared_capacity,budget,{},[&] {
+          ++readiness;
+          return admit;
+        });
+    check(readiness==1 && result.process.exit_confirmed && WorkerExchangeSession::available(),
+        "Prepared qualification did not observe readiness and confirmed retirement");
+    if(admit)
+      check(result.code==WorkerExchangeCode::completed && result.response.size()==prepared_capacity.reply_bytes &&
+          std::equal(result.response.begin(),result.response.end(),source.rbegin()),"Prepared qualification bytes differ");
+    else
+      check(result.code==WorkerExchangeCode::cancelled && result.response.empty() &&
+          !result.publication_observed,"Refused prepared qualification exposed a reply");
+    check_closed(result);
+  }
+  {
+    std::stop_source stop;
+    const auto result=WorkerExchangeSession::run_prepared_sized(executable,{L"prepared-ok"},frame,
+        prepared_capacity,budget,stop.get_token(),[&] {
+          stop.request_stop();
+          return true;
+        });
+    check(result.code==WorkerExchangeCode::cancelled && result.response.empty() &&
+        result.process.exit_confirmed && WorkerExchangeSession::available(),
+        "Cancellation during prepared admission did not retire without submitting");
+    check_closed(result);
+    const auto presettled=WorkerExchangeSession::run_prepared_sized(executable,{L"prepared-ok"},frame,
+        prepared_capacity,budget,stop.get_token(),[]{return true;});
+    check(presettled.code==WorkerExchangeCode::cancelled && !presettled.process.process_id &&
+        WorkerExchangeSession::available(),"Pre-cancelled prepared qualification started a child");
+  }
   std::cout<<"Prepared exchange: empty startup, exact one-shot frame, CPU semantics, cancellation and retirement passed\n";
 }
 void asynchronous_fallback(const std::filesystem::path& executable) {
@@ -1535,7 +1568,8 @@ int wmain(int argc,wchar_t** argv){try{
         check(worker_transport_failure(session,named,WorkerExecution::hip)==GpuRecoveryOutcome::device_fault,
             "unconfirmed named exit supplied recovery evidence");
       }
-      auto unknown=*result;unknown.process.exit_code=0x46532a02U;
+      static_assert(kHipWorkerLastStage<0xffU);
+      auto unknown=*result;unknown.process.exit_code=0x4653ff02U;
       check(worker_transport_failure(session,unknown,WorkerExecution::hip)==GpuRecoveryOutcome::device_fault,
           "unknown stage downgraded recovery requirements");
       eventually([&]{return session.retirement_confirmed() && WorkerExchangeSession::available();},

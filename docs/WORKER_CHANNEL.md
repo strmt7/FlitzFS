@@ -534,7 +534,11 @@ result. If the ready lease is no longer useful, the parent can send a discard
 marker before supplying data. The child retires its resources and exits without
 publishing. Cancellation during setup or submitted work keeps the existing
 bounded stop path. Fresh admission requires the exact child and supervisor to
-retire. No background worker is created by ordinary filesystem operations.
+retire. The qualifying caller can now run the prepared exchange with a live admission
+check at readiness. Stop or refusal cancels the exchange before the frame is
+supplied. The same exact-child and supervisor retirement checks govern both
+the prepared and immediate sized exchanges.
+[Detached native write trial](OWNED_DEFERRED_WRITES.md#detached-radeon-write-trials)
 
 ```mermaid
 sequenceDiagram

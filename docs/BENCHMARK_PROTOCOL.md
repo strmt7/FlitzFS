@@ -326,10 +326,14 @@ over the actual number of completed requests. Record the file cache state
 independently of worker readiness. Include occupied size, read amplification
 and background interference alongside throughput and latency.
 
-The current controller can verify the CPU arm from a completed ordinary write.
-The prior Radeon traces cover finite diagnostic workers, including setup.
-A matched prepared worker trial with the same captured data is pending.
-[Controller replay evidence](evidence/windows-ordinary-amd-cpu-replay-2026-11-23.json) ·
+The controller can verify the CPU arm from a completed ordinary write. The
+detached comparison now uses the same mirrored writer for CPU, immediate
+Radeon and prepared Radeon arms. It records worker readiness, total exchange
+and native write cost, actual occupied size and exact CPU readback. The
+November 23 preflights deferred this hardware comparison under concurrent GPU
+load. Each prepared lease serves one finite exchange. Sustained input batches
+and ordinary mounted read and write costs require further trials.
+[Trial evidence](evidence/windows-amd-detached-write-trials-2026-11-23.json) ·
 [Finite Radeon traces](evidence/windows-ordinary-amd-write-demand-2026-11-23.json)
 
 ## Measurements and anti-bias rules

@@ -25,8 +25,9 @@ enum class HipWorkerStage : std::uint32_t {
   completed_headroom, completed_nonlocal_growth,
   sweep_slab, sweep_upload, sweep_launch, sweep_wait, sweep_readback,
   sweep_verify, sweep_retire, sweep_event_create, sweep_event_record, sweep_event_elapsed,
+  sweep_event_not_ready, sweep_event_invalid_sample,
 };
-inline constexpr auto kHipWorkerLastStage=static_cast<std::uint32_t>(HipWorkerStage::sweep_event_elapsed);
+inline constexpr auto kHipWorkerLastStage=static_cast<std::uint32_t>(HipWorkerStage::sweep_event_invalid_sample);
 constexpr bool hip_worker_category_valid(std::uint32_t value) noexcept {
   return value >= 0x46530001U && value <= 0x46530006U;
 }
@@ -88,6 +89,8 @@ constexpr const char* hip_worker_stage_name(HipWorkerStage stage) noexcept {
     case HipWorkerStage::sweep_event_create: return "sweep_event_create";
     case HipWorkerStage::sweep_event_record: return "sweep_event_record";
     case HipWorkerStage::sweep_event_elapsed: return "sweep_event_elapsed";
+    case HipWorkerStage::sweep_event_not_ready: return "sweep_event_not_ready";
+    case HipWorkerStage::sweep_event_invalid_sample: return "sweep_event_invalid_sample";
   }
   return "unknown";
 }
