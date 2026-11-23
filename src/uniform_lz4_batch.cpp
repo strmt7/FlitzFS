@@ -52,8 +52,12 @@ PreparedUniformLz4Batch PreparedUniformLz4Batch::prepare(std::span<const Uniform
   const auto& window=planned.window;
   if(window.code!=GpuGateCode::admitted || !planned.requests || planned.requests>requests.size())
     throw std::invalid_argument("Invalid uniform batch admission");
-  const auto limits=uniform_lz4_limits(window.layout);
-  requests=requests.first(planned.requests);
+  return prepare(requests.first(planned.requests),window.layout);
+}
+
+PreparedUniformLz4Batch PreparedUniformLz4Batch::prepare(std::span<const UniformLz4BatchInput> requests,
+    const uniform_lz4::Layout& layout) {
+  const auto limits=uniform_lz4_limits(layout);
   if(input_bytes(requests,limits.chunk_bytes)!=limits.input_bytes)
     throw std::invalid_argument("Uniform batch differs from admitted source extent");
 
@@ -81,6 +85,8 @@ VerifiedUniformLz4Batch VerifiedUniformLz4Batch::accept(UniformLz4Bytes wire,
     const PreparedUniformLz4Batch& batch,std::uint64_t exchange_id,WorkerExecution execution) {
   VerifiedUniformLz4Batch result;
   result.candidates_=accept_uniform_lz4_reply(wire,batch.source(),exchange_id,execution);
+  result.limits_=batch.source().limits();
+  result.input_digest_=batch.source().digest();
   const auto sizes=std::span(result.candidates_.sizes);
   result.blocks_.reserve(batch.members().size());
   std::size_t offset=0;
@@ -91,6 +97,15 @@ VerifiedUniformLz4Batch VerifiedUniformLz4Batch::accept(UniformLz4Bytes wire,
     offset+=bytes;
   }
   return result;
+}
+
+bool VerifiedUniformLz4Batch::matches(const PreparedUniformLz4Batch& input) const noexcept {
+  const auto members=input.members();
+  if(!input.source().ready() || input.source().limits()!=limits_ || input.source().digest()!=input_digest_ ||
+      members.size()!=blocks_.size())return false;
+  for(std::size_t index=0;index<members.size();++index)
+    if(blocks_[index].member!=members[index])return false;
+  return true;
 }
 
 UniformLz4BatchReply VerifiedUniformLz4Batch::reply(std::size_t index) const {

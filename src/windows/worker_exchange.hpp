@@ -16,6 +16,11 @@ struct WorkerChannelCapacity {
 };
 inline constexpr std::wstring_view kPreparedWorkerChannelArgument=L"--prepared-worker-channel";
 bool valid_worker_channel_capacity(WorkerChannelCapacity,ProcessBudget) noexcept;
+// Sized exchanges keep at least this share of live headroom even when a
+// fixed child budget leaves memory_share_divisor at zero.
+constexpr std::uint32_t sized_worker_memory_share_divisor(const ProcessBudget& budget) noexcept {
+  return budget.memory_share_divisor<16?16:budget.memory_share_divisor;
+}
 // Minimum available physical and commit bytes at sized channel admission.
 // A caller can check this before allocating its input. Zero means invalid.
 std::uint64_t required_sized_worker_headroom(WorkerChannelCapacity,ProcessBudget) noexcept;

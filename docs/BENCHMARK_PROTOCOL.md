@@ -329,10 +329,14 @@ and background interference alongside throughput and latency.
 The controller can verify the CPU arm from a completed ordinary write. The
 detached comparison now uses the same mirrored writer for CPU, immediate
 Radeon and prepared Radeon arms. It records worker readiness, total exchange
-and native write cost, actual occupied size and exact CPU readback. The
-November 23 preflights deferred this hardware comparison under concurrent GPU
-load. Each prepared lease serves one finite exchange. Sustained input batches
-and ordinary mounted read and write costs require further trials.
+and native write cost, actual occupied size and exact CPU readback. A Windows host trial replayed a 128 KiB group from two public source files.
+CPU took 0.748 ms and occupied 304 KiB in the protected image. Immediate Radeon
+took 2.727 s. Prepared Radeon took 1.789 s, including 1.721 s to readiness.
+Both Radeon images occupied 328 KiB and stored two independently verified
+device-produced extents. CPU is preferred for this tested shape. Each
+prepared lease serves one finite exchange. Reserve sustained throughput
+claims for repeated eligible groups and mounted measurements.
+[Grouped Radeon evidence](evidence/windows-amd-grouped-write-replay-2026-11-23.json)
 [Trial evidence](evidence/windows-amd-detached-write-trials-2026-11-23.json) ·
 [Finite Radeon traces](evidence/windows-ordinary-amd-write-demand-2026-11-23.json)
 

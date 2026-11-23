@@ -500,13 +500,15 @@ latency independently on the measured Windows host. [Existing fixture](evidence/
    CPU replay on a private mirrored image. It cancels when foreground work
    returns and retires scratch before publishing the observation.
    [Replay evidence](evidence/windows-ordinary-amd-cpu-replay-2026-11-23.json)
-   The detached Radeon arm uses the same checked native transaction with
-   immediate or prepared worker ownership. Extend the volume owner to run
-   repeated paired trials on its immutable capture, alongside read and anchor
-   opportunities. Measure total costs across useful grouped sizes and separate
-   cold and prepared read paths. Use byte accounting, independent CPU readback
-   and child retirement to qualify a configuration-bound offer.
-   [Detached trial evidence](evidence/windows-amd-detached-write-trials-2026-11-23.json) ·
+   The detached Radeon arm supports multiple distinct native transactions in
+   one immediate or prepared exchange. The full group must verify before any
+   observation is eligible. Extend the volume owner to collect generation-bound
+   batches of completed writes without copying input on the callback path.
+   Run repeated paired trials under live admission, alongside read and anchor
+   opportunities. Measure complete cost across useful group sizes and separate
+   cold and prepared read paths. Bind any offer to its observed geometry and
+   confirmed retirement.
+   [Grouped replay evidence](evidence/windows-amd-grouped-write-replay-2026-11-23.json) ·
    [Benchmark protocol](BENCHMARK_PROTOCOL.md#cold-and-prepared-cpu-and-radeon-trials)
 4. Measure useful output with a real mounted request after a positive route
    qualification. Record why other requests use CPU and whether the helper

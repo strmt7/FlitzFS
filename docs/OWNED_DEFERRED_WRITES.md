@@ -194,9 +194,35 @@ charges the complete worker exchange and native transaction. Independent
 private reopen provides evidence of correctness outside that interval.
 [Windows trial evidence](evidence/windows-amd-detached-write-trials-2026-11-23.json)
 
-The existing automatic controller records the CPU reference. A production
-offer still requires repeated matched comparisons and a measured advantage
-for the relevant shape.
+### Grouped native write replay
+
+The detached replay can send several complete writes in one worker exchange.
+The prepared input records their request IDs and boundaries alongside
+the combined source. Verification checks both the combined bytes and the
+member map. The mirrored writer stores each member in its own inode and
+transaction. An independent CPU reopen verifies every member before
+the group can produce an observation.
+
+The group is sized against live memory and the worker's finite grant.
+Each individual write retains the ordinary native transaction bounds. The
+observation reports the full private image footprint and accumulated native
+write time. The AMD arm also charges setup and the full verified exchange.
+Single-write route selection accepts only single-write observations.
+
+The Windows fixture verified three files and two stored candidates using a
+CPU-semantic worker. A separate five-write CPU fixture verified a 5 MiB
+aggregate in both compressed and raw builds. Cancellation and changed
+boundaries are covered by the same suite. The first live comparison found a
+zero divisor in fixed-budget allowance calculation. The native replay and
+fixture now share the sized worker admission rule. The corrected trial stored
+two Radeon-produced extents in each of two device arms and independently
+recovered both files.
+[Grouped replay evidence](evidence/windows-amd-grouped-write-replay-2026-11-23.json)
+
+The existing automatic controller records the CPU reference. The next
+integration step gathers and funds several independently captured writes.
+Route selection requires repeated matched comparisons and a measured
+advantage for the relevant shape.
 
 ## Activating a route on a running volume
 

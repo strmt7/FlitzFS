@@ -167,7 +167,7 @@ void headroom(ProcessBudget budget,ChannelProfile profile={}) {
   // The optional large-window route yields at least 15/16 of CURRENT spare
   // physical/commit headroom, including runtime allowance and all parent copies.
   if(profile.sized) {
-    const auto required=channel_headroom_bytes(resident,(std::max)(16U,budget.memory_share_divisor));
+    const auto required=channel_headroom_bytes(resident,sized_worker_memory_share_divisor(budget));
     if(!required || available<required)throw std::runtime_error("sized worker would consume excessive live headroom");
   }
 }
@@ -185,7 +185,7 @@ bool valid_worker_channel_capacity(WorkerChannelCapacity capacity,ProcessBudget 
 }
 std::uint64_t required_sized_worker_headroom(WorkerChannelCapacity capacity,ProcessBudget budget) noexcept {
   if(!valid_worker_channel_capacity(capacity,budget))return 0;
-  return channel_headroom_bytes(channel_resident_bytes(capacity,budget),(std::max)(16U,budget.memory_share_divisor));
+  return channel_headroom_bytes(channel_resident_bytes(capacity,budget),sized_worker_memory_share_divisor(budget));
 }
 namespace {
 WorkerExchangeResult complete_exchange(ProcessResult process,const std::wstring& token,

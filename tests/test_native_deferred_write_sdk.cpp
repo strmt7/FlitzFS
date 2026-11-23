@@ -2,6 +2,7 @@
 #include "winfsp_native.hpp"
 #include "winfsp_controller.hpp"
 #include "locked_ram_fixture.hpp"
+#include "memory_volume.hpp"
 #include "native_lz4_fixture.hpp"
 #include "native_amd_write_policy.hpp"
 #include "native_fs_fixture.hpp"
@@ -14,7 +15,6 @@
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
 #include "gpu_budget.hpp"
 #include "hip_route_discovery.hpp"
-#include "memory_volume.hpp"
 #include "native_name_index.hpp"
 #include "winfsp_volume_attachment.hpp"
 #include "flitzfs/read_only_file.hpp"
@@ -327,6 +327,78 @@ void refused_foreground_offer() {
   check(recovered.read("target",0,static_cast<std::uint32_t>(first.size()))==first && h.collector.count==0,
       "unqualified route changed acknowledged data or used a deferred response");
 }
+void detached_write_batch(const std::filesystem::path& helper) {
+  constexpr auto extent=kNativeExtentBytes;
+  constexpr auto allowance=48ULL*1024*1024;
+  std::vector<std::byte> bytes(16*extent);
+  for(std::size_t index=0;index<16;++index)
+    std::fill_n(bytes.begin()+static_cast<std::ptrdiff_t>(index*extent),extent,static_cast<std::byte>(index));
+  const auto selected=native_lz4_fixture::source();
+  for(const auto index:{0U,9U})std::ranges::copy(selected,bytes.begin()+index*extent);
+  const auto source=std::span<const std::byte>(bytes);
+  const std::array requests{UniformLz4BatchInput{9,source.first(4*extent)},
+      UniformLz4BatchInput{11,source.subspan(4*extent,8*extent)},
+      UniformLz4BatchInput{17,source.last(4*extent)}};
+  SYSTEM_INFO system{};
+  GetSystemInfo(&system);
+  const NativeAmdStoragePolicy storage{system.dwPageSize,{StoreCompressionMode::fast,1,false}};
+  auto domain=MemoryVolumeDomain::create(allowance);
+  const auto running=[] {return false;};
+  static_assert(sized_worker_memory_share_divisor(ProcessBudget{128,2000,5000})==16);
+  static_assert(sized_worker_memory_share_divisor(ProcessBudget{128,2000,5000,32})==32);
+  auto duplicate=requests;
+  duplicate[1].request_id=duplicate[0].request_id;
+  auto partial=requests;
+  partial[1].source=partial[1].source.first(8*extent-1);
+  check(!record_native_amd_cpu_batch(storage,duplicate,allowance,&domain,running) &&
+      !record_native_amd_cpu_batch(storage,partial,allowance,&domain,running) &&
+      !record_native_amd_cpu_batch(storage,requests,1,&domain,running),
+      "Grouped replay accepted a duplicate, partial or unfunded transaction");
+  const auto cancelled=[&] {return domain.usage().stores!=0;};
+  check(!record_native_amd_cpu_batch(storage,requests,allowance,&domain,cancelled) && domain.usage().stores==0,
+      "Cancelled grouped transaction retained its private image");
+  const auto cpu=record_native_amd_cpu_batch(storage,requests,allowance,&domain,running);
+  check(cpu && cpu->transactions==3 && cpu->cpu_readback_verified && cpu->retirement_confirmed &&
+      !cpu->device_executed && !cpu->stored_lz4_candidates && domain.usage().resident==0,
+      "Grouped CPU transaction did not independently reopen");
+  // Exercise a complete group beyond the single-transaction format limit.
+  std::array<UniformLz4BatchInput,kStoreMaxTransactionBytes/(16*extent)+1> larger{};
+  for(std::size_t index=0;index<larger.size();++index)larger[index]={index+1,source};
+  const auto large=record_native_amd_cpu_batch(storage,larger,allowance,&domain,running);
+  check(large && large->transactions==larger.size() && large->cpu_readback_verified &&
+      large->retirement_confirmed && domain.usage().resident==0,"Group inherited the single-write limit");
+  std::cout<<"grouped_cpu_limit writes="<<large->transactions<<" bytes="<<source.size()*larger.size()
+      <<" occupied="<<large->occupied_bytes<<" retired=1\n";
+  if(!gpu_lz4_cpu_verification_available())return;
+
+  uniform_lz4::Layout layout{};
+  check(uniform_lz4::make_layout(source.size(),extent,layout),"Grouped replay wire geometry");
+  const auto prepared=PreparedUniformLz4Batch::prepare(requests,layout);
+  const auto& limits=prepared.source().limits();
+  constexpr auto exchange_id=4861ULL;
+  const auto snapshot=std::make_shared<const WorkerRequestSnapshot>(encode_uniform_lz4_request(prepared.source(),exchange_id));
+  const auto result=WorkerExchangeSession::run_sized(helper,{L"uniform-native16-sweep"},snapshot,
+      {static_cast<std::size_t>(limits.request_bytes),static_cast<std::size_t>(limits.reply_bytes)},
+      ProcessBudget{128,2000,5000},{});
+  check(result.code==WorkerExchangeCode::completed && result.process.exit_confirmed && WorkerExchangeSession::available(),
+      "Grouped CPU-semantic worker did not retire");
+  const auto verified=VerifiedUniformLz4Batch::accept(result.response,prepared,exchange_id,WorkerExecution::cpu_semantics);
+  auto other=requests;
+  other[0].source=source.first(7*extent);
+  other[1].source=source.subspan(7*extent,5*extent);
+  const auto repartitioned=PreparedUniformLz4Batch::prepare(other,layout);
+  check(!record_native_amd_verified_batch(storage,repartitioned,verified,allowance,&domain,running),
+      "Grouped reply authorized different file boundaries");
+  const auto advised=record_native_amd_verified_batch(storage,prepared,verified,allowance,&domain,running);
+  check(advised && advised->transactions==3 && advised->input_digest==cpu->input_digest &&
+      advised->stored_lz4_candidates==2 && advised->cpu_readback_verified && advised->retirement_confirmed &&
+      !advised->device_executed && domain.usage().stores==0 && domain.usage().resident==0,
+      "Grouped output crossed a file boundary or retained resources");
+  std::cout<<"detached_write_batch writes="<<advised->transactions<<" bytes="<<bytes.size()
+      <<" cpu_occupied="<<cpu->occupied_bytes<<" advised_occupied="<<advised->occupied_bytes
+      <<" stored_advice="<<advised->stored_lz4_candidates<<" retired=1 gpu_executed=0\n";
+}
+
 void native_amd_write_preference() {
   using Preference=NativeAmdWritePreference;
   GpuConfigurationId configuration{};configuration[0]=std::byte{12};
@@ -341,6 +413,9 @@ void native_amd_write_preference() {
   }
   const NativeAmdWriteEvidence evidence{configuration,shape,trials};
   check(evaluate_native_amd_writes(evidence)==Preference::amd,"faster matched AMD writes refused");
+  trials[1].amd.transactions=2;
+  check(evaluate_native_amd_writes(evidence)==Preference::unqualified,"Grouped time qualified a single write");
+  trials[1].amd.transactions=1;
   trials[1].amd.stored_lz4_candidates=0;
   check(evaluate_native_amd_writes(evidence)==Preference::cpu,"discarded device output qualified a route");
   trials[1].amd.stored_lz4_candidates=5;
@@ -1300,44 +1375,53 @@ RecordedSweepBatch run_sweep_batch(const HipDiscoveredRoute& route,
   measured.elapsed_ns=elapsed_ns(start);
   return measured;
 }
-int compare_installed_detached_writes(const std::filesystem::path& corpus) {
+int compare_installed_detached_writes(const std::filesystem::path& corpus,bool grouped) {
   gpu_probe_fixture::Budget controller_budget;
   const auto file=ReadOnlyFile::open(corpus);
   check(file.size() && file.size()<=fixture_sweep_chunks*kNativeExtentBytes && file.size()%kNativeExtentBytes==0,
       "Detached write fixture must contain complete admitted extents");
   std::vector<std::byte> source(static_cast<std::size_t>(file.size()));
   file.read_exact_at(0,source.data(),source.size());
-  const auto discovery=discover_installed_hip_route(diagnostic_worker_budget,4);
-  const auto& route=require_indexed_route(discovery);
   const auto available=observe_memory_volume_headroom();
-  const auto allowance=usable_memory_volume_headroom(available)/diagnostic_worker_budget.memory_share_divisor;
+  const auto allowance=usable_memory_volume_headroom(available)/sized_worker_memory_share_divisor(diagnostic_worker_budget);
   SYSTEM_INFO system{};
   GetSystemInfo(&system);
-  const NativeAmdWriteShape shape{static_cast<std::uint32_t>(source.size()),system.dwPageSize,
-      {StoreCompressionMode::fast,1,false}};
-  const auto chunks=(std::min<std::uint32_t>)(shape.input_bytes/kNativeExtentBytes,fixture_quantum_chunks);
+  const NativeAmdStoragePolicy storage{system.dwPageSize,{StoreCompressionMode::fast,1,false}};
+  const auto input=std::span<const std::byte>(source);
+  std::vector<UniformLz4BatchInput> requests;
+  const auto extents=source.size()/kNativeExtentBytes;
+  if(grouped) {
+    check(extents>=2,"Grouped comparison needs two complete writes");
+    const auto first=extents/2*kNativeExtentBytes;
+    requests={{1,input.first(first)},{2,input.subspan(first)}};
+  } else requests={{1,input}};
+  const auto chunks=(std::min<std::uint32_t>)(static_cast<std::uint32_t>(extents),fixture_quantum_chunks);
   uniform_lz4::Layout quantum{};
   check(uniform_lz4::make_layout(std::uint64_t(chunks)*kNativeExtentBytes,kNativeExtentBytes,quantum),
       "Detached write quantum");
   const NativeUniformSweepGrant grant{chunks,quantum.total_bytes};
-  const auto cpu=record_native_amd_cpu_trial(shape,source,allowance,nullptr,[]{return false;});
-  check(cpu && !cpu->device_executed && !cpu->stored_lz4_candidates && cpu->cpu_readback_verified &&
+  const auto cpu=record_native_amd_cpu_batch(storage,requests,allowance,nullptr,[]{return false;});
+  check(cpu && cpu->transactions==requests.size() && !cpu->device_executed && !cpu->stored_lz4_candidates && cpu->cpu_readback_verified &&
       cpu->retirement_confirmed,"Detached CPU write did not verify");
-  std::cout<<"detached_cpu_write bytes="<<source.size()<<" occupied="<<cpu->occupied_bytes
-      <<" complete_ns="<<cpu->elapsed_ns<<" cpu_verified=1 retired=1\n";
+  std::cout<<"detached_cpu_write writes="<<cpu->transactions<<" bytes="<<source.size()<<" occupied="<<cpu->occupied_bytes
+      <<" complete_ns="<<cpu->elapsed_ns<<" cpu_verified=1 retired=1\n"<<std::flush;
+  const auto discovery=discover_installed_hip_route(diagnostic_worker_budget,4);
+  const auto& route=require_indexed_route(discovery);
   for(const auto launch:{NativeAmdTrialLaunch::immediate,NativeAmdTrialLaunch::prepared}) {
     const bool prepared=launch==NativeAmdTrialLaunch::prepared;
-    const auto measured=record_native_amd_device_trial(shape,source,route,grant,diagnostic_worker_budget,
+    const auto measured=record_native_amd_device_batch(storage,requests,route,grant,diagnostic_worker_budget,
         allowance,nullptr,launch,{});
     if(!measured.sample)
       std::cerr<<"detached_amd_write_refusal prepared="<<prepared<<" code="<<static_cast<unsigned>(measured.exchange)
           <<" worker_exit="<<measured.worker_exit<<" retired="<<measured.worker_retired
           <<" ready_ns="<<measured.ready_ns<<" exchange_ns="<<measured.exchange_ns<<'\n';
-    check(measured.sample && measured.sample->input_digest==cpu->input_digest && measured.sample->device_executed &&
+    check(measured.sample && measured.sample->transactions==cpu->transactions &&
+        measured.sample->input_digest==cpu->input_digest && measured.sample->device_executed &&
         measured.sample->cpu_readback_verified && measured.sample->retirement_confirmed && measured.worker_retired &&
         (prepared==(measured.ready_ns!=0)), "Detached Radeon write did not verify the same source");
     const auto& sample=*measured.sample;
-    std::cout<<"detached_amd_write prepared="<<prepared<<" bytes="<<source.size()<<" occupied="<<sample.occupied_bytes
+    std::cout<<"detached_amd_write prepared="<<prepared<<" writes="<<sample.transactions
+        <<" bytes="<<source.size()<<" occupied="<<sample.occupied_bytes
         <<" complete_ns="<<sample.elapsed_ns<<" ready_ns="<<measured.ready_ns<<" exchange_ns="<<measured.exchange_ns
         <<" stored_candidates="<<sample.stored_lz4_candidates<<" cpu_verified=1 retired=1\n";
   }
@@ -1430,7 +1514,9 @@ int wmain(int argc,wchar_t** argv){try{
   if(argc==3 && std::wstring_view(argv[1])==L"--compare-installed-amd-sweep-batch")return compare_installed_sweep_batch(argv[2]);
   if(argc==3 && std::wstring_view(argv[1])==L"--compare-installed-amd-prepared")return compare_installed_prepared_sweep(argv[2]);
   if(argc==3 && std::wstring_view(argv[1])==L"--compare-installed-amd-detached-writes")
-    return compare_installed_detached_writes(argv[2]);
+    return compare_installed_detached_writes(argv[2],false);
+  if(argc==3 && std::wstring_view(argv[1])==L"--compare-installed-amd-detached-write-batch")
+    return compare_installed_detached_writes(argv[2],true);
   if(argc==2 && std::wstring_view(argv[1])==L"--live-installed-late-foreground")return installed_late_foreground();
   if(argc==2 && std::wstring_view(argv[1])==L"--compare-installed-amd")return compare_installed_amd();
   if(argc==2 && std::wstring_view(argv[1])==L"--compare-installed-amd-grouped")
@@ -1480,6 +1566,7 @@ int wmain(int argc,wchar_t** argv){try{
   transport_required();
   for(bool fault:{false,true})deferred_activity_notification(fault);
   native_amd_write_preference();
+  detached_write_batch(worker);
   for(const bool owned:{false,true})ordinary_amd_write_demand(owned);
   refused_foreground_offer();
   budget_demand(worker);

@@ -48,6 +48,18 @@
     "ordinary_amd_route_qualified": false,
     "next": "Run verified cold and prepared comparisons under fresh readiness, then fund batched controller trials from ordinary demand."
   },
+  "grouped_amd_write_replay": {
+    "evidence": "docs/evidence/windows-amd-grouped-write-replay-2026-11-23.json",
+    "scope": "One verified worker exchange can feed distinct private mirrored native transactions and independent per-file CPU recovery",
+    "cpu_test_aggregate_beyond_single_write_bytes": 5242880,
+    "radeon_trial_input_bytes": 131072,
+    "radeon_trial_transactions": 2,
+    "verified_device_extents_per_arm": 2,
+    "cpu_occupied_bytes": 311296,
+    "radeon_occupied_bytes": 335872,
+    "observed_preference_this_shape": "cpu",
+    "automatic_grouped_route_qualified": false
+  },
   "dense_cross_group_relocation": {
     "evidence": "docs/evidence/dense-cross-group-2026-11-23.json",
     "anchor_format_after_first_cross_group_move": 2,

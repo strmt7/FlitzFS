@@ -50,7 +50,10 @@ The worker uses the existing wire format and creates one stream and slab for
 the admitted set. The parent verifies the complete reply and every decoded
 chunk after confirmed worker retirement, then exposes each independently
 identified payload. The shared payload and per-request views avoid a second
-copy when separating the results.
+copy when separating the results. The grouped native replay applies that
+result to separate mirrored write transactions. A verified result remains
+bound to both the combined bytes and the original member map.
+[Native replay](OWNED_DEFERRED_WRITES.md#grouped-native-write-replay)
 
 AMD's ROCm 10.2 stream reference specifies synchronization before reuse and
 explicit stream destruction. It also marks stream priority disabled. The

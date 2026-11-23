@@ -1,0 +1,393 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "release_qualified": false,
+  "source": {
+    "base": "e05dc49a3a0cb72dafcfc0aa42438659c1a7e1a8",
+    "blobs": {
+      "include/flitzfs/uniform_lz4_batch.hpp": "eabe33318fc62df05f503f99d4bf3c06bb4ace05",
+      "src/uniform_lz4_batch.cpp": "60257757185cd0e8c8554faabee6c6f85fecb9a2",
+      "src/windows/native_amd_write_policy.cpp": "d66037e5d431e033cd06a6e32e82286817f7d947",
+      "src/windows/native_amd_write_policy.hpp": "4d17d9d32b0f32141d27c696a2a242794a653e2e",
+      "src/windows/worker_exchange.cpp": "9f60f83906276c5896fcafed80e75b48f98ec450",
+      "src/windows/worker_exchange.hpp": "bd101297c94cfe1afa0f9574ec19e9cc684a5988",
+      "tests/test_native_deferred_write_sdk.cpp": "1a87909b38a9b5128d4a1ca5939bc4be777134f9",
+      "tests/test_uniform_lz4_sweep.cpp": "e1b0a82e7da91b8c6925b4909038ebc2703393bd"
+    },
+    "patch_sha256": "0df90dff1af26e0348d461e97f1ff6794daf9e407730894f62af73b8268bcf4a"
+  },
+  "source_navigation": {
+    "initial": {
+      "run": "local-run-2a6c8a9401004800a8951f61b42b263e",
+      "log_sha256": "3d18217e0452c293cd319d868595ba7f0d9588d556276b1d56b6e6cf01772389",
+      "exit_code": 1,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "elapsed_seconds": 16.78200000000652,
+      "cpu_percent": 13,
+      "maximum_processes": 10,
+      "memory_bytes": 543162368,
+      "peak_job_bytes": 548098048,
+      "timeout_seconds": 93.0,
+      "stop_reason": null,
+      "provider_error_sha256": "9c85ffec3019f4f5ea904dc95ede22b40367bb53389641ac07d99b65ae7f6036",
+      "finding": "Provider index allocation exceeded the initial process memory envelope. The narrower source-bound query completed under fresh headroom."
+    },
+    "restored": {
+      "commit": "e05dc49a3a0cb72dafcfc0aa42438659c1a7e1a8",
+      "provider_version": "0.2.43",
+      "source_files": 3,
+      "actual_searches": 1,
+      "inventory_sha256": "2c00b86bb93542ed98a68bbdad95114a7b38339c1fc6af264f04e7fb28fcab3d",
+      "native_response_sha256": "0b5a4e26825f50b753b074fc053076e602b9a0136b40c64b2800767e6307f137",
+      "receipt_sha256": "4c34e368ebd7d49d4c83c9eef947cfb57f16bf1eb38c6e311c1705ab44cc81e4",
+      "run": {
+        "run": "local-run-4a0de7b6dd704de79e1dcfc1ff5a1dae",
+        "log_sha256": "f4eb4e95658b72d0c4daa7ff1b77f785f3db0bb0cffcaddcbba5134c3cce7643",
+        "exit_code": 0,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "residual_children": 0,
+        "elapsed_seconds": 25.375,
+        "cpu_percent": 11,
+        "maximum_processes": 10,
+        "memory_bytes": 1250951168,
+        "peak_job_bytes": 1010692096,
+        "timeout_seconds": 87.0,
+        "stop_reason": null
+      }
+    }
+  },
+  "primary_stream_contract": {
+    "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/reference/hip_runtime_api/modules/stream_management.html",
+    "http_status": 200,
+    "markdown_sha256": "bee401671f6fc9c05ac9b57c010c93ce535666de88336c70a4d0d7d4d81dae5a",
+    "capture_sha256": "a510c9c88f6b9b95259aeb71a6b7f8e1908a735a9caed496e4134987a2532010"
+  },
+  "mechanism": {
+    "replay": "One exchange supplies verified per-member advice to distinct mirrored native write transactions. Independent CPU reopen checks the entire private image and every member.",
+    "binding": "The group preserves exact request IDs, chunk boundaries and a combined input digest. Replay rejects a re-partitioned or re-identified group even when the combined bytes agree.",
+    "bounds": "Each write respects its native transaction limit. Combined size is admitted by the actual worker transport, fresh host and adapter budget, and retired scratch and reply ownership.",
+    "qualification": "Group timings are ineligible as single-write route evidence."
+  },
+  "validation": {
+    "release_build": {
+      "run": "local-run-d2e3c6f88e634e8ea8a57f9e6a22afef",
+      "log_sha256": "17e5eed90ce80515668fe4573543d97c3e408f3901fa89c3f3099ac30d90850a",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "elapsed_seconds": 54.63999999999942,
+      "cpu_percent": 18,
+      "maximum_processes": 15,
+      "memory_bytes": 3068133376,
+      "peak_job_bytes": 413413376,
+      "timeout_seconds": 148.0,
+      "stop_reason": null
+    },
+    "raw_build": {
+      "run": "local-run-6f5fc4e4008b492dbe62f3bec46cd1c9",
+      "log_sha256": "ec190e9bf22c4361cb26d6a9b024b8c25ec51787f5086decaee438fb0f777432",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "elapsed_seconds": 38.20299999999406,
+      "cpu_percent": 16,
+      "maximum_processes": 15,
+      "memory_bytes": 3031433216,
+      "peak_job_bytes": 376807424,
+      "timeout_seconds": 179.0,
+      "stop_reason": null
+    },
+    "asan_build": {
+      "run": "local-run-d15f8a099bb044aa85cd7bf40a792602",
+      "log_sha256": "db6f5389f742b694e14152890a24c484158b456ff75b1f83de9a65b03167c3bc",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "elapsed_seconds": 37.76499999999942,
+      "cpu_percent": 16,
+      "maximum_processes": 15,
+      "memory_bytes": 3485466624,
+      "peak_job_bytes": 652242944,
+      "timeout_seconds": 179.0,
+      "stop_reason": null
+    },
+    "release_tests": {
+      "run": "local-run-38e7b76da1a24bff98c4903e7c2e5e20",
+      "log_sha256": "ae16dfb7f9ca72d90cbfd2a7fc3e42c3ff47b33b9fa419ad34fb6622b1f91f16",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "elapsed_seconds": 11.687000000005355,
+      "cpu_percent": 17,
+      "maximum_processes": 13,
+      "memory_bytes": 2174746624,
+      "peak_job_bytes": 37896192,
+      "timeout_seconds": 75.0,
+      "stop_reason": null,
+      "groups_passed": 3,
+      "group_above_single_transaction": {
+        "writes": 5,
+        "bytes": 5242880,
+        "occupied": 598016,
+        "retired": 1
+      },
+      "grouped_codec_control": {
+        "writes": 3,
+        "bytes": 1048576,
+        "cpu_occupied": 294912,
+        "advised_occupied": 294912,
+        "stored_advice": 2,
+        "retired": 1,
+        "gpu_executed": 0
+      }
+    },
+    "raw_tests": {
+      "run": "local-run-1fd2e6ff06704209b9abf63f8e7537c1",
+      "log_sha256": "b9217a280ebe57a234797d6883a0a220cd0e2d6f39f84ac39d9fb7b75b90f23d",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "elapsed_seconds": 0.46899999999732245,
+      "cpu_percent": 16,
+      "maximum_processes": 12,
+      "memory_bytes": 2214592512,
+      "peak_job_bytes": 34254848,
+      "timeout_seconds": 60.0,
+      "stop_reason": null,
+      "groups_passed": 2,
+      "group_above_single_transaction": {
+        "writes": 5,
+        "bytes": 5242880,
+        "occupied": 10911744,
+        "retired": 1
+      }
+    },
+    "asan_tests": {
+      "run": "local-run-48c81bc118bf444b8ae2b3bac180a7c6",
+      "log_sha256": "39f28dfd3446cae4d3b6caf3a4d4ae4907be192a10c9c1c3007860550ab1a0ee",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "elapsed_seconds": 1.5,
+      "cpu_percent": 16,
+      "maximum_processes": 12,
+      "memory_bytes": 3477078016,
+      "peak_job_bytes": 463269888,
+      "timeout_seconds": 60.0,
+      "stop_reason": null,
+      "groups_passed": 3,
+      "group_above_single_transaction": {
+        "writes": 5,
+        "bytes": 5242880,
+        "occupied": 598016,
+        "retired": 1
+      },
+      "grouped_codec_control": {
+        "writes": 3,
+        "bytes": 1048576,
+        "cpu_occupied": 294912,
+        "advised_occupied": 294912,
+        "stored_advice": 2,
+        "retired": 1,
+        "gpu_executed": 0
+      },
+      "runtime_preflight_passed": true
+    },
+    "release_indexed": {
+      "run": "local-run-defdb79661c1414e881620ef0d88e5b6",
+      "log_sha256": "72729cf05007b0dc7e4bb6dde60eec6a48f12beb2385b607f7fc9fe9ae42cc38",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "elapsed_seconds": 3.3910000000032596,
+      "cpu_percent": 17,
+      "maximum_processes": 9,
+      "memory_bytes": 2205155328,
+      "peak_job_bytes": 56905728,
+      "timeout_seconds": 52.0,
+      "stop_reason": null,
+      "checks": 5238
+    }
+  },
+  "hardware": {
+    "initial_preflight": {
+      "admitted": true,
+      "when_utc": "2026-11-23T18:40:25.5447705Z",
+      "windows_build": "26300",
+      "devices": [
+        {
+          "Name": "AMD Radeon RX 9070 XT",
+          "Status": "OK",
+          "DriverVersion": "32.0.32029.2010"
+        }
+      ],
+      "cpu_percent": [
+        4.32,
+        5.27,
+        5.15
+      ],
+      "max_gpu_engine_percent": 0,
+      "gpu_counters": 738,
+      "available_kib": 28207936,
+      "total_kib": 66704480,
+      "commit_available_bytes": 70219661312,
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "flitzfs_processes": 0,
+      "bound_fixture_members": 5
+    },
+    "initial_attempt": {
+      "run": "local-run-2dad8b9f0b8640a3b2ad5e572b977bd0",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 3221225620,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "elapsed_seconds": 0.48399999999674037,
+      "cpu_percent": 17,
+      "maximum_processes": 8,
+      "memory_bytes": 2037383168,
+      "peak_job_bytes": 50401280,
+      "timeout_seconds": 28.0,
+      "stop_reason": null,
+      "ntstatus": "0xC0000094",
+      "finding": "The fixture divided by the valid fixed-budget divisor of zero before its compression phase. The live replay and fixture now use the same nonzero sized exchange divisor as channel admission."
+    },
+    "final_preflight": {
+      "admitted": true,
+      "when_utc": "2026-11-23T18:43:55.0509040Z",
+      "windows_build": "26300",
+      "devices": [
+        {
+          "Name": "AMD Radeon RX 9070 XT",
+          "Status": "OK",
+          "DriverVersion": "32.0.32029.2010"
+        }
+      ],
+      "cpu_percent": [
+        4.58,
+        6.82,
+        4.42
+      ],
+      "max_gpu_engine_percent": 0,
+      "gpu_counters": 738,
+      "available_kib": 28103444,
+      "total_kib": 66704480,
+      "commit_available_bytes": 70205083648,
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "flitzfs_processes": 0,
+      "bound_fixture_members": 5
+    },
+    "final_run": {
+      "run": "local-run-077008d12f264178ab3cad784ab5acb5",
+      "log_sha256": "42246dbf8e91d0ef90d691e8a5c15512c75f032ba55cb15d917f25155f05fc20",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "elapsed_seconds": 4.936999999990803,
+      "cpu_percent": 17,
+      "maximum_processes": 8,
+      "memory_bytes": 2040528896,
+      "peak_job_bytes": 112685056,
+      "timeout_seconds": 28.0,
+      "stop_reason": null
+    },
+    "postflight": {
+      "devices": [
+        {
+          "Name": "AMD Radeon RX 9070 XT",
+          "Status": "OK",
+          "DriverVersion": "32.0.32029.2010"
+        }
+      ],
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "owned_processes": 0,
+      "matching_system_warnings": [],
+      "when_utc": "2026-11-23T18:44:26.2429154Z"
+    },
+    "source_input": {
+      "commit": "e05dc49a3a0cb72dafcfc0aa42438659c1a7e1a8",
+      "inputs": [
+        {
+          "path": "src/native_filesystem.cpp",
+          "source_sha256": "68f7101203f940b09a25a636db2f6b44bcd9b422e5dc06b5daacd06605c96221",
+          "contributed_bytes": 65536
+        },
+        {
+          "path": "src/native_session.cpp",
+          "source_sha256": "64e60e37a549298bd04a7738a990027c3e8644d5c2d7ea002fa99cc8b7808ed1",
+          "contributed_bytes": 65536
+        }
+      ],
+      "bytes": 131072,
+      "sha256": "68d38fd5238c13425cfc1b66bacebfc2d8f43f11421354e7f8045e96c39f3a29"
+    },
+    "package_manifest_sha256": "0eb5a1989af82e605ae205f888f70fe48ad84ff16d4f024c801917cf5e9a7b80",
+    "package_members": [
+      {
+        "path": "flitzfs_hip_lz4_worker.exe",
+        "bytes": 610816,
+        "sha256": "0f7f6b4857c7cd9db025f174a9b685536045fac1d91ffc4faff7b7485971b5e5"
+      },
+      {
+        "path": "hip-uniform-lz4/flitzfs_rocm_uniform_lz4_candidate.dll",
+        "bytes": 322048,
+        "sha256": "64601897f13003dfea6d47116963c96b2ce7af1a80e5b854e6397b12cbc6bc3d"
+      }
+    ],
+    "staged_sdk": {
+      "winfsp-x64.dll": {
+        "bytes": 200816,
+        "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+      },
+      "flitzfs_native_deferred_write_sdk_tests.exe": {
+        "bytes": 2379776,
+        "sha256": "7fe68d36c0b69a8ad3dc58bf79367961377c8a7031a8ffe814d9bd786d13186c"
+      }
+    },
+    "cpu": {
+      "writes": 2,
+      "bytes": 131072,
+      "occupied": 311296,
+      "complete_ns": 748400,
+      "cpu_verified": 1,
+      "retired": 1
+    },
+    "radeon_immediate": {
+      "prepared": 0,
+      "writes": 2,
+      "bytes": 131072,
+      "occupied": 335872,
+      "complete_ns": 2726599700,
+      "ready_ns": 0,
+      "exchange_ns": 2726042800,
+      "stored_candidates": 2,
+      "cpu_verified": 1,
+      "retired": 1
+    },
+    "radeon_prepared": {
+      "prepared": 1,
+      "writes": 2,
+      "bytes": 131072,
+      "occupied": 335872,
+      "complete_ns": 1789134400,
+      "ready_ns": 1721048100,
+      "exchange_ns": 1788542400,
+      "stored_candidates": 2,
+      "cpu_verified": 1,
+      "retired": 1
+    },
+    "scope": "One real 128 KiB, two-write Windows trial. Both AMD arms stored two verified Radeon extents after one retired worker exchange. CPU has lower complete cost and occupied bytes for this observed shape.",
+    "timing_boundary": "Accumulated native write intervals plus the complete device exchange for the AMD arms. Independent native CPU reopen is verified outside this timed interval. Worker readiness does not establish sustained throughput."
+  }
+}

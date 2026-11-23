@@ -77,7 +77,12 @@ void independent_requests() {
   constexpr auto exchange=178ULL;
   const auto wire=encode_uniform_lz4_reply(batch.source(),exchange,cpu_candidates(batch.source()),WorkerExecution::cpu_semantics);
   const auto verified=VerifiedUniformLz4Batch::accept(wire,batch,exchange,WorkerExecution::cpu_semantics);
-  check(verified.size()==inputs.size(),"verified batch lost a member");
+  check(verified.size()==inputs.size() && verified.matches(batch),"verified batch lost its exact binding");
+  const std::array replacement{UniformLz4BatchInput{7,batch.input(0)},UniformLz4BatchInput{80,batch.input(1)},
+      UniformLz4BatchInput{110,batch.input(2)}};
+  const auto rebound=PreparedUniformLz4Batch::prepare(replacement,batch.source().layout());
+  check(rebound.source().digest()==batch.source().digest() && !verified.matches(rebound),
+      "Identical combined bytes authorized different request identities");
   for(std::size_t index=0;index<verified.size();++index) {
     const auto reply=verified.reply(index);
     const auto& member=batch.members()[index];
