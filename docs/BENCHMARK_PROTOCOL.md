@@ -284,6 +284,31 @@ layouts also treats grouping and read amplification as coupled decisions.
 [FAST 2026 RubikFS](https://www.usenix.org/conference/fast26/presentation/huang) ·
 [EROFS compression design](https://erofs.docs.kernel.org/en/latest/design.html)
 
+### Memory-backed native write diagnostics
+
+On the real Windows host, compare like data through the indexed native
+write path with locked backing and an independent CPU reopen. The CPU size
+sweep varies aligned request size using generated input. It records ordinary
+file-policy service time and complete occupied bytes. The paired 1 MiB
+write trial holds input, policy and protection constant across CPU and AMD.
+The separate Radeon timeline reports setup, transfer, wait and retirement
+on the same generated 1 MiB at two admitted quantum widths. The CPU sweep
+verified three trials each at seven sizes from 64 KiB through 3.94 MiB.
+Representative median native service times were 0.389 ms, 2.75 ms and
+9.81 ms at 64 KiB, 1 MiB and 3.94 MiB respectively.
+
+The three paired writes settled at 2 MiB each. CPU took 2.21–2.48 ms and AMD
+took 1.67–3.40 seconds for the tested fast-ingestion mode. Five accepted
+timeline traces measured 1.16–2.46 seconds of setup and 14–26 ms of total
+host kernel wait. One readback phase took 432 ms. The sixth worker stopped
+at the elapsed-event timing stage and retired. An independent CPU write and
+readback passed afterward. Use measured setup, transfer and completion costs
+when deciding whether to qualify a route.
+
+These runs attribute costs inside the engine and worker envelope. Mounted
+client throughput, cold filesystem caching, physical storage and held-out
+data get their own qualification. [Source-bound profiles](evidence/windows-ordinary-amd-write-demand-2026-11-23.json)
+
 ## Measurements and anti-bias rules
 
 1. Pin source, binary/tool/runtime hashes, parameters, seeds, corpus, Windows

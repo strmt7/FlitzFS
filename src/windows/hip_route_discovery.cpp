@@ -461,12 +461,20 @@ bool InstalledHipInputWitness::changed() noexcept {
 #endif
 }
 
+bool has_configured_uniform_write_package() noexcept {
+#ifdef FLITZFS_BIND_INSTALLED_AMD_PACKAGE
+  return installed_amd_package::has_uniform;
+#else
+  return false;
+#endif
+}
+
 HipRouteDiscoveryResult discover_installed_hip_route(ProcessBudget budget,std::uint32_t maximum_identity_queries,
     std::stop_token stop) {
   if(stop.stop_requested())return {Status::cancelled};
 #ifdef FLITZFS_BIND_INSTALLED_AMD_PACKAGE
   if(!valid_process_budget(budget) || !maximum_identity_queries || maximum_identity_queries>64)return {};
-  if(!installed_amd_package::has_uniform)return {Status::package_unavailable};
+  if(!has_configured_uniform_write_package())return {Status::package_unavailable};
   HipRouteDiscoveryRequest request;
   request.helper_sha256=installed_amd_package::worker_sha256;
   request.uniform_module_sha256=installed_amd_package::uniform_module_sha256;

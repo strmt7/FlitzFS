@@ -133,6 +133,24 @@ its dependencies are independently available outside this volume. This flag is
 not learning state or proof of automatic dependency validation. Configuration
 and helper paths are immutable during service lifetime.
 
+## CPU service cost from ordinary writes
+
+When the build has a configured uniform write package, the Windows volume
+owner enables measurement before binding the indexed callbacks. The callback
+records successful full-length, extent-aligned synchronous CPU writes. It
+uses the same geometry check as measured GPU admission. Append, constrained,
+partial and failed writes leave the sample unchanged. An unmanaged or raw
+volume and a missing independent CPU decoder refuse measurement.
+
+Each aligned size keeps a rolling three-sample window for its exact
+compression policy and backing isolation geometry. Samples contain elapsed
+native CPU service time and a monotonic completion timestamp. Timing starts
+after callback serialization and includes the native write and file-info path.
+The owner can take the newest complete window at a quiet boundary using the
+existing activity signal. The record retains no file names, contents or
+recovery authority. It provides a workload baseline for a later matched
+qualification. [Source-bound Windows evidence](evidence/windows-ordinary-amd-write-demand-2026-11-23.json)
+
 ## Activating a route on a running volume
 
 The Windows volume controller can receive an independently acquired foreground

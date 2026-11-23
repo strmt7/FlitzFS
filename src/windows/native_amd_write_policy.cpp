@@ -19,7 +19,7 @@ NativeAmdWritePreference evaluate_native_amd_writes(const NativeAmdWriteEvidence
       shape.input_bytes>native_windows_write_limit(NativeFileInfoAllocation::indexed_reserved_cache) ||
       !valid_store_io_contract({shape.isolation_unit,true}) ||
       (shape.foreground.mode!=StoreCompressionMode::fast && shape.foreground.mode!=StoreCompressionMode::automatic) ||
-      shape.foreground.zstd_level<1 || shape.foreground.zstd_level>9 || evidence.comparisons.size()<3)
+      shape.foreground.zstd_level<1 || shape.foreground.zstd_level>9 || evidence.comparisons.size()<kNativeAmdWriteMinimumPairs)
     return Result::unqualified;
   auto cpu_min=(std::numeric_limits<std::uint64_t>::max)();
   std::uint64_t cpu_max=0,amd_max=0;

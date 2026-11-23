@@ -24,7 +24,8 @@
     "latest_amd_evidence": "docs/evidence/windows-amd-stream-copy-2026-11-23.json",
     "ntfs_comparison": "docs/BENCHMARK_PROTOCOL.md#plain-and-native-compressed-ntfs",
     "first_implementation_slice": "docs/RELEASE_EXECUTION_PLAN.md#first-implementation-slice",
-    "next": "Capture eligible ordinary write demand and complete CPU cost; add controller-owned calibrated AMD offers using cancellable discovery. Extend the mounted mixed-flush client under populated churn and evaluate incremental writable admission beside the full oracle. Build the held-out compression and sparse-catalog accounting controls.",
+    "latest_ordinary_amd_write_evidence": "docs/evidence/windows-ordinary-amd-write-demand-2026-11-23.json",
+    "next": "Use the ordinary CPU write demand windows in controller-owned calibrated AMD offers using cancellable discovery. Reduce complete exchange cost where verified timing identifies the dominant stage. Extend the mounted mixed-flush client under populated churn and evaluate incremental writable admission beside the full oracle. Build held-out compression and sparse-catalog accounting controls.",
     "release_qualified": false
   },
   "baseline": {

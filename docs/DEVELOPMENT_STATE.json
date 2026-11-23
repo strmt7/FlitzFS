@@ -17,8 +17,18 @@
     "next_implementation_tickets": "docs/IMPLEMENTATION_PLAN.md#next-implementation-tickets",
     "native_ntfs_comparison": "Plain and built-in NTFS compression specified; matched real-host run pending.",
     "mounted_packed_attachment": "Bounded signed guest recovery and continued writes verified, with a 1,024-file packed recovery fixture. Sustained populated settlement and current-client qualification remain open.",
-    "automatic_foreground_amd": "Installed uniform discovery supports cancellation. Existing measured controlled writes stored real device output, and the three paired comparisons favored CPU. Ordinary helper qualification and selection remain open.",
+    "automatic_foreground_amd": "Installed uniform discovery supports cancellation. The ordinary WinFsp controller receives aligned CPU write demand and native service cost. Three exact live Radeon comparisons favored CPU at equal occupied size. Controller-owned matched calibration and automatic selection remain open.",
     "incremental_admission": "Checked read coalescing and batched scrub have lower measured I/O. A complete unchanged scrub observation has no attach authority. Full writable verification remains in force."
+  },
+  "ordinary_amd_write_demand": {
+    "evidence": "docs/evidence/windows-ordinary-amd-write-demand-2026-11-23.json",
+    "scope": "Three recent CPU service observations per eligible aligned size and exact managed policy. The existing activity signal delivers one coalesced observation to the controller.",
+    "paired_live_write_bytes": 1048576,
+    "paired_live_trials": 3,
+    "exact_verified_device_extents": 48,
+    "exact_verified_protected_copies": 96,
+    "measured_preference": "cpu",
+    "automatic_foreground_route_qualified": false
   },
   "dense_cross_group_relocation": {
     "evidence": "docs/evidence/dense-cross-group-2026-11-23.json",

@@ -21,6 +21,18 @@ struct NativeAmdWriteShape {
         foreground.zstd_level==selected.zstd_level && foreground.require_zstd==selected.require_zstd;
   }
 };
+inline constexpr std::size_t kNativeAmdWriteMinimumPairs=3;
+struct NativeAmdCpuWriteSample {
+  std::uint64_t elapsed_ns=0,completed_ms=0;
+};
+// Rolling CPU service samples for one exact native write geometry and policy.
+struct NativeAmdWriteDemand {
+  NativeAmdWriteShape shape;
+  std::array<NativeAmdCpuWriteSample,kNativeAmdWriteMinimumPairs> samples;
+  std::uint64_t sequence=0;
+};
+bool native_amd_write_geometry(NativeFileInfoAllocation,std::uint64_t offset,
+    std::size_t bytes,bool append,bool constrained) noexcept;
 struct NativeDeferredWriteOptions {
   NativeUniformWorkerBinding binding;
   GpuLz4ResidentCost cost;

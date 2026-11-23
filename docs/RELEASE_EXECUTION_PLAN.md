@@ -484,23 +484,27 @@ latency independently on the measured Windows host. [Existing fixture](evidence/
 
 ### First implementation slice
 
-1. **Completed in this checkpoint.** Installed uniform write discovery
+1. **Completed.** Installed uniform write discovery
    accepts cancellation through the existing worker transport. The Windows SDK
    checks cover a pre-cancelled request and the existing CPU ownership path.
    All routes recheck cancellation after final budget sampling.
    [Validation receipt](evidence/release-plan-refresh-2026-11-23.json)
-2. Capture ordinary eligible write shapes as bounded observations in the WinFsp
-   owner. Include expected request rate, exact foreground compression policy,
-   alignment and backing geometry. Measure real CPU write cost at this entry
-   point. Keep request bytes inside owned preparation or dedicated samples with
-   an explicit lifetime.
+2. **Implemented for synchronous CPU service.** The ordinary controller
+   receives complete bounded windows for successful aligned write sizes and
+   their foreground policy and backing geometry. The window includes each
+   completion time and native service cost. Qualification can use the
+   timestamps to estimate active request cadence and check freshness.
+   Calibration inputs still need separate bounded ownership.
+   [Write demand and Radeon evidence](evidence/windows-ordinary-amd-write-demand-2026-11-23.json)
 3. Extend the existing controller's acquisition slot to own calibrated writes,
    coexisting with read and anchor opportunities. Fund preparation from live
    resource observations. Use complete, matched native transactions with
    independent readback, byte accounting and child retirement to create a
    configuration-bound offer. Reuse the existing qualified foreground
    admission point. Exercise CPU preference and invalidating observations
-   before accepting a live-device offer.
+   before accepting a live-device offer. The latest locked-memory traces
+   put initialized worker preparation and amortization ahead of kernel tuning
+   for the measured 1 MiB shape.
 4. Measure useful output with a real mounted request after a positive route
    qualification. Record why other requests use CPU and whether the helper
    resumes with a fresh opportunity after an interruption. A losing shape stays

@@ -25,6 +25,7 @@ struct WinFspControllerView {
   NativeAnchorSearchStats anchor_search;
   NativeLz4ReadWorkerStats amd_read;
   std::optional<NativeDeferredActivation> foreground_activation;
+  std::optional<NativeAmdWriteDemand> amd_write_demand;
   std::optional<HipDiscoveryStatus> installed_anchor_status,installed_read_status;
   std::uint32_t installed_anchor_attempts=0,installed_anchor_queries=0;
   std::uint32_t installed_read_attempts=0,installed_read_queries=0,installed_read_worker_exit=0;

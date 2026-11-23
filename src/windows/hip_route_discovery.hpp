@@ -59,6 +59,9 @@ HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest
 // The application supplies a resource budget. The configured package supplies
 // immutable digests and its ABI. Resolve relative to the running executable
 // and complete the same supervised discovery used by explicit callers.
+// The build carries uniform write digests. This performs no installed-file
+// inspection, runtime discovery or hardware queries.
+bool has_configured_uniform_write_package() noexcept;
 HipRouteDiscoveryResult discover_installed_hip_route(ProcessBudget,std::uint32_t maximum_identity_queries,
     std::stop_token={});
 struct InstalledAnchorProfile {

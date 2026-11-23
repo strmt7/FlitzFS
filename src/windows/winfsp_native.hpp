@@ -126,6 +126,9 @@ class WinFspNativeWritable final {
   void signal_foreground_for_anchor(bool) noexcept;
   NativeMaintenancePolicy group_maintenance_policy() const noexcept;
   bool supports_anchor_search() const noexcept;
+  // Before binding callbacks. Observe only successful eligible CPU writes.
+  bool enable_amd_write_demand() noexcept;
+  std::optional<NativeAmdWriteDemand> take_amd_write_demand() noexcept;
   // One controller reads the demand, observes resources outside the callback
   // lock and returns a sample for exactly that still-current demand.
   std::optional<NativeGpuBudgetTask> gpu_budget_task() const;

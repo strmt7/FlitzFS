@@ -90,6 +90,10 @@ struct NativeSessionStats {
   std::uint32_t contexts=0,cleaned=0,delete_requests=0,latched_inodes=0;
   bool fenced=true; // Table diagnostics, not an independent storage/driver verdict.
 };
+struct NativeManagedForeground {
+  StoreCompressionOptions compression;
+  std::uint32_t isolation_unit=0;
+};
 // Trusted startup metadata for a NEW root, published together before its head.
 struct NativeVolumeSpace {
   std::uint64_t total_bytes=0,free_bytes=0;
@@ -477,6 +481,7 @@ class NativeFileSession final {
   bool directory_backfill_pending() const noexcept;
   NativeDirectoryBackfillStep advance_directory_backfill();
   void cancel_directory_backfill() noexcept;
+  std::optional<NativeManagedForeground> managed_foreground() const noexcept;
   bool matches_managed_foreground(StoreCompressionOptions,std::uint32_t failure_unit) const noexcept;
   NativeFilesystemSnapshot snapshot() const;
   NativeSessionStats stats() const noexcept;

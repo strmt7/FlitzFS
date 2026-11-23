@@ -78,6 +78,9 @@ struct WinFspVolumeController::Impl {
       if(installed_read && !source->enable_native_lz4_read_ahead())installed_read.reset();
     }
 #endif
+#ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
+    if(has_configured_uniform_write_package())(void)source->enable_amd_write_demand();
+#endif
     source->set_maintenance_event(activity.value);adapter=source.get();
     session=std::make_unique<WinFspNativeSession>(std::move(source),api);
     if(acceleration)anchor=std::make_unique<NativeAnchorSearchController>(std::move(*acceleration));
@@ -143,6 +146,10 @@ struct WinFspVolumeController::Impl {
             read_worker->observe(*adapter,disabled);
             std::lock_guard lock(mutex);
             current.amd_read=read_worker->stats();
+          }
+          if(const auto demand=adapter->take_amd_write_demand()) {
+            std::lock_guard lock(mutex);
+            current.amd_write_demand=demand;
           }
           apply_foreground_offer();
           const auto gpu=adapter->gpu_budget_task();

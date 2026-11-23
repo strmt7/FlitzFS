@@ -63,6 +63,13 @@ bool NativeDeferredWriteService::measured_write_funded(const NativeDeferredWrite
       try_uniform_lz4_limits(plan.layout,limits) &&
       uniform_worker_host_budget_covers(limits,options.budget,plan.host_peak_bytes);
 }
+bool native_amd_write_geometry(NativeFileInfoAllocation mode,std::uint64_t offset,
+    std::size_t bytes,bool append,bool constrained) noexcept {
+  const auto maximum=native_windows_eof_limit(mode);
+  return !append && !constrained && bytes>=kNativeExtentBytes && bytes%kNativeExtentBytes==0 &&
+      bytes<=native_windows_write_limit(mode) && offset%kNativeExtentBytes==0 &&
+      offset<=maximum && bytes<=maximum-offset;
+}
 bool NativeDeferredWriteService::enqueue_locked(FSP_FILE_SYSTEM* fs,const NativeFileHandle& handle,
     std::span<const std::byte> bytes,UINT64 offset,bool append,bool constrained){
   if(!fs||stats_.stopping||stats_.disabled||stats_.worker_busy||stats_.native_pending||bytes.empty()||
@@ -74,11 +81,9 @@ bool NativeDeferredWriteService::enqueue_locked(FSP_FILE_SYSTEM* fs,const Native
         !valid_process_budget(options_.budget) || !options_.deadline_ms ||
         options_.deadline_ms>options_.budget.timeout_ms || bytes.size()<kNativeExtentBytes ||
         (controller_collects_budget() && (!activity_event_ || budget_disabled_)))return false;
-    if(const auto& shape=options_.measured_shape) {
-      const auto maximum=native_windows_eof_limit(info_policy_);
-      if(append || constrained || offset%kNativeExtentBytes || bytes.size()!=shape->input_bytes ||
-          offset>maximum || bytes.size()>maximum-offset)return false;
-    }
+    if(const auto& shape=options_.measured_shape;shape &&
+        (bytes.size()!=shape->input_bytes || !native_amd_write_geometry(
+            info_policy_,offset,bytes.size(),append,constrained)))return false;
     const auto now=GetTickCount64();
     const auto gate=check_gpu_memory_budget(health_.memory,health_.memory.luid,health_.memory.node_mask,now,0);
     if(gate!=GpuGateCode::admitted) {

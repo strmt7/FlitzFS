@@ -1,0 +1,961 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "release_qualified": false,
+  "source": {
+    "base": "37f0b87119e9d99986888eef7149b2bb76b27877",
+    "blobs": {
+      "include/flitzfs/native_session.hpp": "6336b572415d64bcd0f1246f07cee44b0a34ed42",
+      "src/native_session.cpp": "7da5eb47c03721467eb3b2bdb4cad20639d44767",
+      "src/windows/hip_route_discovery.cpp": "5befbead88260410a83e9e70c776a50753dbbf2c",
+      "src/windows/hip_route_discovery.hpp": "b7f4ff1a40fd59f4de5321747cde11ee8378dcb4",
+      "src/windows/native_amd_write_policy.cpp": "d8d588e266fca7b0237a2bdc8d376ac12114e6a8",
+      "src/windows/native_deferred_write.cpp": "045d315252bcb7e8204206cfbcc85d8566d4f14e",
+      "src/windows/native_deferred_write.hpp": "989cc47669068a39c6e6307d96ea7b52d2abcc4b",
+      "src/windows/winfsp_controller.cpp": "ced624b3e64cdadcf77546cea0520279744c9cd5",
+      "src/windows/winfsp_controller.hpp": "6d5be79f4bfc4cef4b7acb7970b2a660375abbca",
+      "src/windows/winfsp_native.cpp": "61322a808ce296cda2ddd370632135ef28043f3f",
+      "src/windows/winfsp_native.hpp": "3ed83dfdb4a5241eaec2c83e7e660086d697dd46",
+      "tests/test_native_deferred_write_sdk.cpp": "46ca29d9add2bee02dd92ab2d39031e8b28dd543"
+    },
+    "patch_sha256": "7b80728cda783687d95eb1a9f73e227f9c465dfde7bd7d3c8ed13bb53af9b7b9"
+  },
+  "scope": "Real Windows host. Native indexed callback and independent CPU readback over locked memory images. AMD profiling is a supervised diagnostic.",
+  "mechanism": {
+    "capture": "Three rolling successful synchronous CPU write durations and completion timestamps per aligned size, isolation unit and foreground compression policy. Coalesced controller handoff through the existing activity signal.",
+    "window": "Native write and file-info service after callback serialization. Includes no retained user payload, no additional backing I/O, and no device query.",
+    "admission": "Configured uniform package and in-process independent CPU decoder. Share aligned request geometry with measured deferred writes. Append, constrained, partial and failed writes do not advance the window.",
+    "state": "Controller view receives ordinary demand. Matched automatic calibration and profitable mounted AMD admission remain open."
+  },
+  "source_navigation": {
+    "initial": {
+      "run": "local-run-466d97b2a6a640bda7daf3ea44bafd6f",
+      "log_sha256": "7e027233db1affdf7f2c899db5724aef8c7d4a6182a4d9defb5a3629d5b59d92",
+      "exit_code": 1,
+      "tree_retired": true,
+      "process_limit": 8,
+      "cpu_percent": 12,
+      "commit_limit_bytes": 960495616,
+      "peak_job_commit_bytes": 988258304,
+      "elapsed_seconds": 16.422000000005937,
+      "timeout_seconds": 90
+    },
+    "limitation": "CPU embedding allocation was refused under the first process budget while requesting 79,626,240 bytes. No index coverage from that attempt.",
+    "restored": {
+      "run": "local-run-a1c867c724204b81a824f0d6af527d9d",
+      "log_sha256": "351c3c34e631d9d47c2235c62b356b587b5583f9f78a82f53493380298918a03",
+      "exit_code": 0,
+      "tree_retired": true,
+      "process_limit": 8,
+      "cpu_percent": 12,
+      "commit_limit_bytes": 1346371584,
+      "peak_job_commit_bytes": 1132376064,
+      "elapsed_seconds": 25.25,
+      "timeout_seconds": 100,
+      "version": "0.2.43",
+      "source_files": 4,
+      "commit": "37f0b87119e9d99986888eef7149b2bb76b27877",
+      "actual_searches": 1,
+      "scope_sha256": "8447e398940d11f641f0644bba042012ad90d10cee2fdad46221e3c81e2e4f3d",
+      "native_response_sha256": "4884e406370aa09edf84ea852859c929c1307bd4c53608bc9016f7ae2b734dc1",
+      "receipt_sha256": "1b32f54b8c57fc72a3e9f4cb5f8d12a0fe091b5473a1f58c998fbd99b5ae5c64"
+    }
+  },
+  "primary_sources": {
+    "provider": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "f942fd313683d19a550fadccebad61219805ead86d6e1a6f9299f97e4e917c21",
+    "robots_checked": true,
+    "external_llm": false,
+    "pages": [
+      {
+        "name": "winfsp-write",
+        "url": "https://winfsp.dev/doc/WinFsp-API-winfsp.h/",
+        "success": true,
+        "http_status": 200,
+        "capture_sha256": "f2320da1084c35c9126d02b7a8e8f6694fae99dd3dcb3734ec58ed752ff8374c",
+        "markdown_sha256": "23f2e7b26b2297a12d6e98acb7b612010c44361803cc72c3563f82571cce5837",
+        "error": ""
+      },
+      {
+        "name": "windows-counter",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/sysinfo/acquiring-high-resolution-time-stamps",
+        "success": true,
+        "http_status": 200,
+        "capture_sha256": "ac05b1d329691eea3f035c51d5f9bddfc6cbb099746edd3115053fa8d544d067",
+        "markdown_sha256": "5e977ef991f42a2f75d9b2e8e3b890c11e9cd9981f53f3438f3302af505cea50",
+        "error": ""
+      },
+      {
+        "name": "hip-init",
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/initialization.html",
+        "success": true,
+        "http_status": 200,
+        "capture_sha256": "aab1a4d7a1cd391c43ff9356fccea1c87da00ed5c5f764cd303f9aa1aebe4b5a",
+        "markdown_sha256": "ba8e3777d20fb5b14d6bb415a19956c19a1d21585681a5914e53dfbc0a2b3003",
+        "error": ""
+      }
+    ]
+  },
+  "validation": {
+    "sdk": {
+      "run": "local-run-a8cb3a41b81642da921e8198c87170b3",
+      "log_sha256": "615517eccfdd502efad13cfa0d36755c8d2390ae769280b8878385868a3a0af2",
+      "exit_code": 0,
+      "tree_retired": true,
+      "process_limit": 14,
+      "cpu_percent": 16,
+      "commit_limit_bytes": 4822401024,
+      "peak_job_commit_bytes": 62242816,
+      "elapsed_seconds": 21.468999999997322,
+      "timeout_seconds": 120,
+      "groups_passed": 4
+    },
+    "final_diagnostic_sdk": {
+      "run": "local-run-f1c210b79c764f56bc76ff512ac3b49b",
+      "log_sha256": "a5c2c67d1697fe5498d93da06fd94073cc39c80a48dc322f6bab022c7a01c44f",
+      "exit_code": 0,
+      "tree_retired": true,
+      "process_limit": 12,
+      "cpu_percent": 11,
+      "commit_limit_bytes": 2875195392,
+      "peak_job_commit_bytes": 38309888,
+      "elapsed_seconds": 0.9680000000080327,
+      "timeout_seconds": 60,
+      "groups_passed": 1
+    },
+    "final_sdk_build": {
+      "run": "local-run-ca7f2e8981ca467188fd99d27364743d",
+      "log_sha256": "896d0874d3673fd172fdb682a29e558588e4f86d5edcc80869b4996921ce97bb",
+      "exit_code": 0,
+      "tree_retired": true,
+      "process_limit": 14,
+      "cpu_percent": 11,
+      "commit_limit_bytes": 2868903936,
+      "peak_job_commit_bytes": 391602176,
+      "elapsed_seconds": 9.610000000000582,
+      "timeout_seconds": 140
+    },
+    "ordinary_views": [
+      {
+        "owned": 0,
+        "configured": 0,
+        "ready_shapes": 2,
+        "one_bytes": 65536,
+        "two_bytes": 131072,
+        "one_cpu_ns": 681800,
+        "two_cpu_ns": 633300,
+        "cpu_readback": 1,
+        "worker_submitted": 0
+      },
+      {
+        "owned": 1,
+        "configured": 1,
+        "ready_shapes": 2,
+        "one_bytes": 65536,
+        "two_bytes": 131072,
+        "one_cpu_ns": 726200,
+        "two_cpu_ns": 654700,
+        "cpu_readback": 1,
+        "worker_submitted": 0
+      }
+    ],
+    "windows_build": {
+      "run": "local-run-2f9aa8ff943b4f4d9fa4e941485ac93e",
+      "log_sha256": "cb6c97b24ac8e00e68873fb3298bbf904541b93b213c0fa759cc3c1b8fa93985",
+      "exit_code": 0,
+      "tree_retired": true,
+      "process_limit": 16,
+      "cpu_percent": 18,
+      "commit_limit_bytes": 4249878528,
+      "peak_job_commit_bytes": 524079104,
+      "elapsed_seconds": 210.90699999999197,
+      "timeout_seconds": 310
+    },
+    "windows": {
+      "run": "local-run-a538bdcc94b1476ea559ad26a52efc5b",
+      "log_sha256": "6a6535666a3f338035bf634f93551444a7eeb3b583fcb790f52ee3021f55e80a",
+      "exit_code": 0,
+      "tree_retired": true,
+      "process_limit": 16,
+      "cpu_percent": 19,
+      "commit_limit_bytes": 5864685568,
+      "peak_job_commit_bytes": 670982144,
+      "elapsed_seconds": 327.7649999999994,
+      "timeout_seconds": 390,
+      "groups_passed": 217
+    },
+    "raw_build": {
+      "run": "local-run-2df8e29953844c4a8d1fe099c3911b9f",
+      "log_sha256": "ab3a9203d5863b2de4cc120909e2cbf927f5f5fe5cde5c861cd70606bc32e435",
+      "exit_code": 0,
+      "tree_retired": true,
+      "process_limit": 15,
+      "cpu_percent": 17,
+      "commit_limit_bytes": 3759144960,
+      "peak_job_commit_bytes": 485511168,
+      "elapsed_seconds": 80.71800000000803,
+      "timeout_seconds": 260
+    },
+    "raw": {
+      "run": "local-run-39af2025cf6f4bb091e073daaca688a0",
+      "log_sha256": "a64f97aa5181e390d5ed4d273e81a383f0023665a72dd9211b66399d109c693d",
+      "exit_code": 0,
+      "tree_retired": true,
+      "process_limit": 14,
+      "cpu_percent": 15,
+      "commit_limit_bytes": 5908725760,
+      "peak_job_commit_bytes": 669720576,
+      "elapsed_seconds": 21.764999999999418,
+      "timeout_seconds": 160,
+      "groups_passed": 5
+    },
+    "sanitizer_build": {
+      "run": "local-run-864e6f24238d4f0db21b86b6d6975e0b",
+      "log_sha256": "bad91d484e904fbadecb2ec0dca0772aede22e981ee15d99f04335ad7456a954",
+      "exit_code": 0,
+      "tree_retired": true,
+      "process_limit": 16,
+      "cpu_percent": 18,
+      "commit_limit_bytes": 4713349120,
+      "peak_job_commit_bytes": 699047936,
+      "elapsed_seconds": 74.73399999999674,
+      "timeout_seconds": 320
+    },
+    "sanitizer": {
+      "run": "local-run-e58021d10ab84a57a58af561762e80b3",
+      "log_sha256": "8c900d4f3a6eb48791b330fba720d2fdf6ccb86d28fad8e9c7f32484c3004063",
+      "exit_code": 0,
+      "tree_retired": true,
+      "process_limit": 15,
+      "cpu_percent": 17,
+      "commit_limit_bytes": 5883559936,
+      "peak_job_commit_bytes": 1587519488,
+      "elapsed_seconds": 51.26499999999942,
+      "timeout_seconds": 215,
+      "groups_passed": 6
+    },
+    "scope_note": "The full 217-group run used an earlier diagnostic test fixture. Production sources match the final checkpoint. The final SDK regression and newly added profiling commands were built and exercised separately."
+  },
+  "hardware": {
+    "paired_executable_and_package": {
+      "kind": "probe",
+      "manifest": {
+        "path": "qualification-manifest.json",
+        "bytes": 528,
+        "sha256": "9ab7dda865ee26b64512bc99222c5dab8c3afcd59d7621ff1e6d26a19242e64c"
+      },
+      "files": [
+        {
+          "path": "flitzfs_hip_lz4_worker.exe",
+          "bytes": 610816,
+          "sha256": "713293358fd219a46523160ab56ebb4c390b7d94f720f086c5925d218ec06eb3"
+        },
+        {
+          "path": "hip-uniform-lz4/flitzfs_rocm_uniform_lz4_candidate.dll",
+          "bytes": 322048,
+          "sha256": "64601897f13003dfea6d47116963c96b2ce7af1a80e5b854e6397b12cbc6bc3d"
+        },
+        {
+          "path": "winfsp-x64.dll",
+          "bytes": 200816,
+          "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+        },
+        {
+          "path": "flitzfs_native_deferred_write_sdk_tests.exe",
+          "bytes": 2334208,
+          "sha256": "8892624abfd7e96380f544529d00b26911893b5d5149531d9e35cec58d1a1601"
+        }
+      ]
+    },
+    "profile_executable_sha256": "861679cdd7dafc970211362c5cd49ea6acff2853a66fd868623100ebd8b84606",
+    "matched_write": {
+      "preflight": {
+        "windows_build": "26300",
+        "devices": [
+          {
+            "Name": "AMD Radeon RX 9070 XT",
+            "DriverVersion": "32.0.32029.2010"
+          }
+        ],
+        "physical_available_kib": 24267832,
+        "commit_available_kib": 64934744,
+        "cpu_loads_percent": [
+          11,
+          9,
+          4
+        ],
+        "maximum_gpu_engine_percent": 2,
+        "artifacts": [
+          {
+            "name": "flitzfs_hip_lz4_worker.exe",
+            "sha256": "713293358fd219a46523160ab56ebb4c390b7d94f720f086c5925d218ec06eb3",
+            "bytes": 610816
+          },
+          {
+            "name": "flitzfs_rocm_uniform_lz4_candidate.dll",
+            "sha256": "64601897f13003dfea6d47116963c96b2ce7af1a80e5b854e6397b12cbc6bc3d",
+            "bytes": 322048
+          },
+          {
+            "name": "amdhip64_7.dll",
+            "sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+            "bytes": 17382040
+          }
+        ]
+      },
+      "run": {
+        "run": "local-run-283c59f13afa45418756f4c3fd380f5f",
+        "log_sha256": "7602e0689168f590872f829aa092ddaa5a2e39e6076e0643e3c6cdca39c3a275",
+        "exit_code": 0,
+        "tree_retired": true,
+        "process_limit": 8,
+        "cpu_percent": 16,
+        "commit_limit_bytes": 2290089984,
+        "peak_job_commit_bytes": 137023488,
+        "elapsed_seconds": 7.625,
+        "timeout_seconds": 45
+      },
+      "input_bytes": 1048576,
+      "quantum_extents": 2,
+      "device_extents": 48,
+      "protected_verified_copies": 96,
+      "pairs": [
+        {
+          "indexed_pair": 1,
+          "amd_first": 0,
+          "cpu_ns": 2388300,
+          "amd_ns": 3402996800,
+          "cpu_image_bytes": 2097152,
+          "amd_image_bytes": 2097152,
+          "amd_stored_lz4_candidates": 16
+        },
+        {
+          "indexed_pair": 2,
+          "amd_first": 1,
+          "cpu_ns": 2214400,
+          "amd_ns": 1668867000,
+          "cpu_image_bytes": 2097152,
+          "amd_image_bytes": 2097152,
+          "amd_stored_lz4_candidates": 16
+        },
+        {
+          "indexed_pair": 3,
+          "amd_first": 0,
+          "cpu_ns": 2484600,
+          "amd_ns": 1692754300,
+          "cpu_image_bytes": 2097152,
+          "amd_image_bytes": 2097152,
+          "amd_stored_lz4_candidates": 16
+        }
+      ],
+      "writes": [
+        {
+          "sweep": 1,
+          "quantum_chunks": 2,
+          "source_bytes": 1048576,
+          "offset": 33554432,
+          "worker_payload_bytes": 135344,
+          "stored_lz4_candidates": 16,
+          "matched_copies": 32,
+          "image_bytes": 2097152,
+          "response_ns": 3402996800
+        },
+        {
+          "sweep": 1,
+          "quantum_chunks": 2,
+          "source_bytes": 1048576,
+          "offset": 33554432,
+          "worker_payload_bytes": 135344,
+          "stored_lz4_candidates": 16,
+          "matched_copies": 32,
+          "image_bytes": 2097152,
+          "response_ns": 1668867000
+        },
+        {
+          "sweep": 1,
+          "quantum_chunks": 2,
+          "source_bytes": 1048576,
+          "offset": 33554432,
+          "worker_payload_bytes": 135344,
+          "stored_lz4_candidates": 16,
+          "matched_copies": 32,
+          "image_bytes": 2097152,
+          "response_ns": 1692754300
+        }
+      ],
+      "preference": "cpu"
+    },
+    "cpu_size_profile": {
+      "run": {
+        "run": "local-run-e16bce65a2c2455986588cf3bdf9548b",
+        "log_sha256": "2dfd5504e85d1e3914b17cd081590d0855d00a263f66bea01d808146a55ede73",
+        "exit_code": 0,
+        "tree_retired": true,
+        "process_limit": 8,
+        "cpu_percent": 16,
+        "commit_limit_bytes": 2644508672,
+        "peak_job_commit_bytes": 64516096,
+        "elapsed_seconds": 0.6560000000026776,
+        "timeout_seconds": 70
+      },
+      "foreground": "ordinary file policy, automatic level 3",
+      "trial_inputs": "Generated in process from the same repeatable native fixture as the GPU timeline. All 21 trials independently read back the protected writes.",
+      "medians_by_bytes": {
+        "65536": {
+          "samples_ns": [
+            383600,
+            389400,
+            419900
+          ],
+          "median_ns": 389400,
+          "occupied_bytes": 1572864
+        },
+        "131072": {
+          "samples_ns": [
+            723600,
+            510200,
+            621900
+          ],
+          "median_ns": 621900,
+          "occupied_bytes": 1572864
+        },
+        "262144": {
+          "samples_ns": [
+            733200,
+            859900,
+            806600
+          ],
+          "median_ns": 806600,
+          "occupied_bytes": 1572864
+        },
+        "524288": {
+          "samples_ns": [
+            1327500,
+            1449500,
+            1335900
+          ],
+          "median_ns": 1335900,
+          "occupied_bytes": 1835008
+        },
+        "1048576": {
+          "samples_ns": [
+            2745300,
+            2399100,
+            2864000
+          ],
+          "median_ns": 2745300,
+          "occupied_bytes": 2097152
+        },
+        "2097152": {
+          "samples_ns": [
+            4642000,
+            4014500,
+            4860100
+          ],
+          "median_ns": 4642000,
+          "occupied_bytes": 2621440
+        },
+        "4128768": {
+          "samples_ns": [
+            9992600,
+            9644900,
+            9805500
+          ],
+          "median_ns": 9805500,
+          "occupied_bytes": 3670016
+        }
+      },
+      "all_trials": [
+        {
+          "trial": 1,
+          "bytes": 65536,
+          "mode": 1,
+          "zstd_level": 3,
+          "response_ns": 383600,
+          "occupied_bytes": 1572864,
+          "cpu_readback": 1,
+          "retired": 1
+        },
+        {
+          "trial": 1,
+          "bytes": 131072,
+          "mode": 1,
+          "zstd_level": 3,
+          "response_ns": 723600,
+          "occupied_bytes": 1572864,
+          "cpu_readback": 1,
+          "retired": 1
+        },
+        {
+          "trial": 1,
+          "bytes": 262144,
+          "mode": 1,
+          "zstd_level": 3,
+          "response_ns": 733200,
+          "occupied_bytes": 1572864,
+          "cpu_readback": 1,
+          "retired": 1
+        },
+        {
+          "trial": 1,
+          "bytes": 524288,
+          "mode": 1,
+          "zstd_level": 3,
+          "response_ns": 1327500,
+          "occupied_bytes": 1835008,
+          "cpu_readback": 1,
+          "retired": 1
+        },
+        {
+          "trial": 1,
+          "bytes": 1048576,
+          "mode": 1,
+          "zstd_level": 3,
+          "response_ns": 2745300,
+          "occupied_bytes": 2097152,
+          "cpu_readback": 1,
+          "retired": 1
+        },
+        {
+          "trial": 1,
+          "bytes": 2097152,
+          "mode": 1,
+          "zstd_level": 3,
+          "response_ns": 4642000,
+          "occupied_bytes": 2621440,
+          "cpu_readback": 1,
+          "retired": 1
+        },
+        {
+          "trial": 1,
+          "bytes": 4128768,
+          "mode": 1,
+          "zstd_level": 3,
+          "response_ns": 9992600,
+          "occupied_bytes": 3670016,
+          "cpu_readback": 1,
+          "retired": 1
+        },
+        {
+          "trial": 2,
+          "bytes": 4128768,
+          "mode": 1,
+          "zstd_level": 3,
+          "response_ns": 9644900,
+          "occupied_bytes": 3670016,
+          "cpu_readback": 1,
+          "retired": 1
+        },
+        {
+          "trial": 2,
+          "bytes": 2097152,
+          "mode": 1,
+          "zstd_level": 3,
+          "response_ns": 4014500,
+          "occupied_bytes": 2621440,
+          "cpu_readback": 1,
+          "retired": 1
+        },
+        {
+          "trial": 2,
+          "bytes": 1048576,
+          "mode": 1,
+          "zstd_level": 3,
+          "response_ns": 2399100,
+          "occupied_bytes": 2097152,
+          "cpu_readback": 1,
+          "retired": 1
+        },
+        {
+          "trial": 2,
+          "bytes": 524288,
+          "mode": 1,
+          "zstd_level": 3,
+          "response_ns": 1449500,
+          "occupied_bytes": 1835008,
+          "cpu_readback": 1,
+          "retired": 1
+        },
+        {
+          "trial": 2,
+          "bytes": 262144,
+          "mode": 1,
+          "zstd_level": 3,
+          "response_ns": 859900,
+          "occupied_bytes": 1572864,
+          "cpu_readback": 1,
+          "retired": 1
+        },
+        {
+          "trial": 2,
+          "bytes": 131072,
+          "mode": 1,
+          "zstd_level": 3,
+          "response_ns": 510200,
+          "occupied_bytes": 1572864,
+          "cpu_readback": 1,
+          "retired": 1
+        },
+        {
+          "trial": 2,
+          "bytes": 65536,
+          "mode": 1,
+          "zstd_level": 3,
+          "response_ns": 389400,
+          "occupied_bytes": 1572864,
+          "cpu_readback": 1,
+          "retired": 1
+        },
+        {
+          "trial": 3,
+          "bytes": 65536,
+          "mode": 1,
+          "zstd_level": 3,
+          "response_ns": 419900,
+          "occupied_bytes": 1572864,
+          "cpu_readback": 1,
+          "retired": 1
+        },
+        {
+          "trial": 3,
+          "bytes": 131072,
+          "mode": 1,
+          "zstd_level": 3,
+          "response_ns": 621900,
+          "occupied_bytes": 1572864,
+          "cpu_readback": 1,
+          "retired": 1
+        },
+        {
+          "trial": 3,
+          "bytes": 262144,
+          "mode": 1,
+          "zstd_level": 3,
+          "response_ns": 806600,
+          "occupied_bytes": 1572864,
+          "cpu_readback": 1,
+          "retired": 1
+        },
+        {
+          "trial": 3,
+          "bytes": 524288,
+          "mode": 1,
+          "zstd_level": 3,
+          "response_ns": 1335900,
+          "occupied_bytes": 1835008,
+          "cpu_readback": 1,
+          "retired": 1
+        },
+        {
+          "trial": 3,
+          "bytes": 1048576,
+          "mode": 1,
+          "zstd_level": 3,
+          "response_ns": 2864000,
+          "occupied_bytes": 2097152,
+          "cpu_readback": 1,
+          "retired": 1
+        },
+        {
+          "trial": 3,
+          "bytes": 2097152,
+          "mode": 1,
+          "zstd_level": 3,
+          "response_ns": 4860100,
+          "occupied_bytes": 2621440,
+          "cpu_readback": 1,
+          "retired": 1
+        },
+        {
+          "trial": 3,
+          "bytes": 4128768,
+          "mode": 1,
+          "zstd_level": 3,
+          "response_ns": 9805500,
+          "occupied_bytes": 3670016,
+          "cpu_readback": 1,
+          "retired": 1
+        }
+      ]
+    },
+    "amd_timeline": {
+      "preflight": {
+        "windows_build": "26300",
+        "devices": [
+          {
+            "Name": "AMD Radeon RX 9070 XT",
+            "DriverVersion": "32.0.32029.2010"
+          }
+        ],
+        "physical_available_kib": 27138396,
+        "commit_available_kib": 67925400,
+        "cpu_loads_percent": [
+          10,
+          2,
+          7
+        ],
+        "maximum_gpu_engine_percent": 0,
+        "artifacts": [
+          {
+            "name": "flitzfs_hip_lz4_worker.exe",
+            "sha256": "713293358fd219a46523160ab56ebb4c390b7d94f720f086c5925d218ec06eb3",
+            "bytes": 610816
+          },
+          {
+            "name": "flitzfs_rocm_uniform_lz4_candidate.dll",
+            "sha256": "64601897f13003dfea6d47116963c96b2ce7af1a80e5b854e6397b12cbc6bc3d",
+            "bytes": 322048
+          },
+          {
+            "name": "amdhip64_7.dll",
+            "sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+            "bytes": 17382040
+          }
+        ]
+      },
+      "run": {
+        "run": "local-run-974433698290447489a8665c2ae6385f",
+        "log_sha256": "5ce1d44180ffba02ffdf955a5ba43a274cbf26800e0e935185b4e67a0d5fe53c",
+        "exit_code": 1,
+        "tree_retired": true,
+        "process_limit": 8,
+        "cpu_percent": 16,
+        "commit_limit_bytes": 2609905664,
+        "peak_job_commit_bytes": 118857728,
+        "elapsed_seconds": 12.468999999997322,
+        "timeout_seconds": 45
+      },
+      "input_bytes": 1048576,
+      "quantum_extents": [
+        2,
+        4
+      ],
+      "complete_pairs": 2,
+      "accepted_traces": [
+        {
+          "request": 1,
+          "quantum": 2,
+          "windows": 8,
+          "parent_ns": 3106785500,
+          "fixed_ns": 3066584100,
+          "setup_ns": 2457284300,
+          "upload_ns": 11459100,
+          "kernel_wait_ns": 24749300,
+          "download_ns": 3581300,
+          "retirement_ns": 2760800,
+          "maximum_window_ns": 16370600,
+          "maximum_kernel_wait_ns": 4853800,
+          "encoded_bytes": 135344,
+          "verified": 1,
+          "retired": 1
+        },
+        {
+          "request": 2,
+          "quantum": 4,
+          "windows": 4,
+          "parent_ns": 1826142200,
+          "fixed_ns": 1798188800,
+          "setup_ns": 1674935300,
+          "upload_ns": 11409500,
+          "kernel_wait_ns": 14379400,
+          "download_ns": 1932300,
+          "retirement_ns": 3082100,
+          "maximum_window_ns": 16669100,
+          "maximum_kernel_wait_ns": 4766700,
+          "encoded_bytes": 135344,
+          "verified": 1,
+          "retired": 1
+        },
+        {
+          "request": 3,
+          "quantum": 4,
+          "windows": 4,
+          "parent_ns": 1773712500,
+          "fixed_ns": 1748409400,
+          "setup_ns": 1612141800,
+          "upload_ns": 8988900,
+          "kernel_wait_ns": 14064000,
+          "download_ns": 2079000,
+          "retirement_ns": 1976200,
+          "maximum_window_ns": 14230500,
+          "maximum_kernel_wait_ns": 4695800,
+          "encoded_bytes": 135344,
+          "verified": 1,
+          "retired": 1
+        },
+        {
+          "request": 4,
+          "quantum": 2,
+          "windows": 8,
+          "parent_ns": 1754526900,
+          "fixed_ns": 1284062100,
+          "setup_ns": 1162080800,
+          "upload_ns": 11385900,
+          "kernel_wait_ns": 26325400,
+          "download_ns": 432472800,
+          "retirement_ns": 2739200,
+          "maximum_window_ns": 434303900,
+          "maximum_kernel_wait_ns": 4745400,
+          "encoded_bytes": 135344,
+          "verified": 1,
+          "retired": 1
+        },
+        {
+          "request": 5,
+          "quantum": 2,
+          "windows": 8,
+          "parent_ns": 1834820100,
+          "fixed_ns": 1799066500,
+          "setup_ns": 1677510300,
+          "upload_ns": 11015700,
+          "kernel_wait_ns": 22060100,
+          "download_ns": 2383200,
+          "retirement_ns": 2787400,
+          "maximum_window_ns": 15285900,
+          "maximum_kernel_wait_ns": 4834000,
+          "encoded_bytes": 135344,
+          "verified": 1,
+          "retired": 1
+        }
+      ],
+      "stream_samples": [
+        {
+          "request": 1,
+          "phase": "first",
+          "window": 0,
+          "host_ns": 4853800,
+          "launch_ns": 881700,
+          "sync_ns": 3920600,
+          "stream_ns": 3789299
+        },
+        {
+          "request": 1,
+          "phase": "slowest_later",
+          "window": 3,
+          "host_ns": 3980400,
+          "launch_ns": 10800,
+          "sync_ns": 3955700,
+          "stream_ns": 3764600
+        },
+        {
+          "request": 2,
+          "phase": "first",
+          "window": 0,
+          "host_ns": 4766700,
+          "launch_ns": 961500,
+          "sync_ns": 3777100,
+          "stream_ns": 3689800
+        },
+        {
+          "request": 2,
+          "phase": "slowest_later",
+          "window": 1,
+          "host_ns": 3817100,
+          "launch_ns": 8200,
+          "sync_ns": 3796800,
+          "stream_ns": 3720299
+        },
+        {
+          "request": 3,
+          "phase": "first",
+          "window": 0,
+          "host_ns": 4695800,
+          "launch_ns": 914000,
+          "sync_ns": 3760200,
+          "stream_ns": 3709100
+        },
+        {
+          "request": 3,
+          "phase": "slowest_later",
+          "window": 1,
+          "host_ns": 3841800,
+          "launch_ns": 4700,
+          "sync_ns": 3827800,
+          "stream_ns": 3746560
+        },
+        {
+          "request": 4,
+          "phase": "first",
+          "window": 0,
+          "host_ns": 4745400,
+          "launch_ns": 940000,
+          "sync_ns": 3778100,
+          "stream_ns": 3701099
+        },
+        {
+          "request": 4,
+          "phase": "slowest_later",
+          "window": 3,
+          "host_ns": 4271300,
+          "launch_ns": 5300,
+          "sync_ns": 4259600,
+          "stream_ns": 4048200
+        },
+        {
+          "request": 5,
+          "phase": "first",
+          "window": 0,
+          "host_ns": 4834000,
+          "launch_ns": 991600,
+          "sync_ns": 3813000,
+          "stream_ns": 3721199
+        },
+        {
+          "request": 5,
+          "phase": "slowest_later",
+          "window": 1,
+          "host_ns": 3833000,
+          "launch_ns": 6200,
+          "sync_ns": 3811300,
+          "stream_ns": 3715460
+        }
+      ],
+      "phase_failure": {
+        "request": 6,
+        "quantum": 4,
+        "code": 1,
+        "worker_exit": 1179855109,
+        "worker_ms": 1719,
+        "exit_confirmed": 1,
+        "retired": 1,
+        "category": "device_fault",
+        "stage": "sweep_event_elapsed",
+        "error_scope": "An elapsed-event API error and an invalid duration share this stage. The observed exit does not distinguish the two.",
+        "no_immediate_device_reprobe": true
+      }
+    },
+    "cpu_after_timing_fault": {
+      "run": {
+        "run": "local-run-c1741a2c7e2643c69e49707539f70230",
+        "log_sha256": "61bf44d817d023de88babb58a5000620df3af727384cd4007a310c9173ed3c9f",
+        "exit_code": 0,
+        "tree_retired": true,
+        "process_limit": 8,
+        "cpu_percent": 12,
+        "commit_limit_bytes": 2727346176,
+        "peak_job_commit_bytes": 23838720,
+        "elapsed_seconds": 0.062000000005355105,
+        "timeout_seconds": 28
+      },
+      "result": {
+        "bytes": 1048576,
+        "isolation_unit": 65536,
+        "mode": 1,
+        "zstd_level": 3,
+        "image_bytes": 2097152,
+        "response_ns": 2254100
+      },
+      "scope": "Separate verified CPU write after the diagnostic worker retired."
+    }
+  },
+  "interpretation": {
+    "foreground": "All three verified 1 MiB pairs favor CPU at equal occupied bytes.",
+    "phase": "Setup is the largest measured component in each accepted trace. One RAM-backed readback stage also took 432,472,800 ns. Separate setup from the consumed request and attribute the outlier before changing compression kernels.",
+    "release": "Mounted throughput, production GPU admission, longer-term pressure and recovery require separate tests."
+  },
+  "cleanup": {
+    "all_owned_process_trees_retired": true,
+    "mounted_filesystem_started": false,
+    "gpu_driver_changed": false
+  }
+}

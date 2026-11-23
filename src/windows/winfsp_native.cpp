@@ -251,6 +251,12 @@ struct WinFspNativeWritable::Impl {
     std::uintptr_t token=0;
     std::uint64_t cost_ns=0;
   };
+  struct AmdWriteDemand {
+    static constexpr auto sizes=kStoreMaxTransactionBytes/kNativeExtentBytes;
+    std::array<NativeAmdWriteDemand,sizes> by_size{};
+    std::uint64_t sequence=0;
+    std::size_t latest=0;
+  };
   struct ActivitySignal final:detail::NativeVolumeRangeWake {
     Handle event;
     std::atomic<bool> failed{false};
@@ -281,6 +287,8 @@ struct WinFspNativeWritable::Impl {
   // The service joins before the control lock, session and signal handle retire.
   std::unique_ptr<NativeDeferredWriteService> deferred;
   std::atomic<bool> deferred_installed{false};
+  std::unique_ptr<AmdWriteDemand> amd_write_demand;
+  std::atomic<bool> amd_write_demand_pending{false};
   bool deferred_admission_closed=false;
   std::unique_ptr<NativeGroupMaintenance> groups;
   NativeMaintenancePolicy group_policy;
@@ -308,6 +316,23 @@ struct WinFspNativeWritable::Impl {
   };
   void signal_maintenance() noexcept {
     if(maintenance_event)maintenance_event->signal();
+  }
+  void record_amd_write_demand(ULONG length,std::uint64_t elapsed_ns) noexcept {
+    const auto selected=session.managed_foreground();
+    if(!selected || !elapsed_ns || amd_write_demand->sequence==UINT64_MAX)return;
+    auto& demand=*amd_write_demand;
+    const auto index=length/kNativeExtentBytes-1;
+    auto& band=demand.by_size[index];
+    if(!band.shape.matches_storage(selected->compression,selected->isolation_unit)) {
+      band={};
+      band.shape={length,selected->isolation_unit,selected->compression};
+    }
+    std::move(band.samples.begin()+1,band.samples.end(),band.samples.begin());
+    band.samples.back()={elapsed_ns,GetTickCount64()};
+    if(!band.samples.front().elapsed_ns)return;
+    band.sequence=++demand.sequence;
+    demand.latest=index;
+    amd_write_demand_pending.store(true,std::memory_order_release);
   }
   void install_deferred_locked(NativeDeferredWriteOptions options) {
     if(!options.hint_query)options.hint_query=sdk_hint;
@@ -787,7 +812,19 @@ struct WinFspNativeWritable::Impl {
       if(s.deferred && s.deferred->enqueue_locked(fs,slot.handle,
           {static_cast<const std::byte*>(buffer),length},offset,append!=FALSE,constrained!=FALSE))
         return NativeWindowsIoOutcome{STATUS_PENDING,false};
-      return dispatch_native_write(s.session,slot.handle,buffer,offset,length,append!=FALSE,constrained!=FALSE,{},s.info_policy,count,info);
+      const auto write_cpu=[&] {
+        return dispatch_native_write(s.session,slot.handle,buffer,offset,length,
+            append!=FALSE,constrained!=FALSE,{},s.info_policy,count,info);
+      };
+      if(!s.amd_write_demand || !native_amd_write_geometry(s.info_policy,offset,length,append!=FALSE,constrained!=FALSE))
+        return write_cpu();
+      const auto start=std::chrono::steady_clock::now();
+      const auto written=write_cpu();
+      if(written.status==STATUS_SUCCESS && !written.offline_required && *count==length) {
+        const auto elapsed=std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now()-start).count();
+        if(elapsed>0)s.record_amd_write_demand(length,static_cast<std::uint64_t>(elapsed));
+      }
+      return written;
     });
   }
   static NTSTATUS size(FSP_FILE_SYSTEM* fs,PVOID context,UINT64 bytes,BOOLEAN allocation,FSP_FSCTL_FILE_INFO* info) noexcept {
@@ -1214,6 +1251,33 @@ NativeMaintenancePolicy WinFspNativeWritable::group_maintenance_policy() const n
 }
 bool WinFspNativeWritable::supports_anchor_search() const noexcept {
   return impl_->info_policy==indexed_file_info;
+}
+bool WinFspNativeWritable::enable_amd_write_demand() noexcept {
+  try {
+    std::lock_guard guard(impl_->control);
+    if(impl_->callbacks_bound || impl_->info_policy!=indexed_file_info ||
+        !gpu_lz4_cpu_verification_available())return false;
+    const auto selected=impl_->session.managed_foreground();
+    if(!selected || !valid_store_io_contract({selected->isolation_unit,true}) ||
+        (selected->compression.mode!=StoreCompressionMode::automatic &&
+         selected->compression.mode!=StoreCompressionMode::fast) ||
+        selected->compression.zstd_level<1 || selected->compression.zstd_level>9)return false;
+    if(!impl_->amd_write_demand)impl_->amd_write_demand=std::make_unique<Impl::AmdWriteDemand>();
+    return true;
+  }catch(...) {return false;}
+}
+std::optional<NativeAmdWriteDemand> WinFspNativeWritable::take_amd_write_demand() noexcept {
+  if(!impl_->amd_write_demand_pending.load(std::memory_order_acquire) || foreground_pending())return {};
+  try {
+    std::unique_lock guard(impl_->control,std::try_to_lock);
+    if(!guard || foreground_pending() || requires_offline() ||
+        !impl_->amd_write_demand_pending.exchange(false,std::memory_order_acq_rel))return {};
+    const auto& demand=*impl_->amd_write_demand;
+    const auto& observed=demand.by_size[demand.latest];
+    const auto selected=impl_->session.managed_foreground();
+    if(!selected || !observed.shape.matches_storage(selected->compression,selected->isolation_unit))return {};
+    return observed;
+  }catch(...) {return {};}
 }
 void WinFspNativeWritable::cancel_background_maintenance() {
   std::lock_guard guard(impl_->control);

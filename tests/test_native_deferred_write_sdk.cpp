@@ -217,7 +217,7 @@ struct Harness {
   static UINT32 origin(){return 0;}
   explicit Harness(std::optional<NativeDeferredWriteOptions> options,bool indexed=false,bool observe_budget=false,
       bool with_grouped_target=false,std::uint64_t image_capacity=0,
-      StoreCompressionOptions compression=fixture_compression)
+      StoreCompressionOptions compression=fixture_compression,bool measure_write_demand=false)
       :capacity(image_capacity?image_capacity:indexed?8U*1024*1024:4U*1024*1024),
        image(std::make_shared<locked_ram_fixture::Store>(static_cast<std::size_t>(capacity))){
     StoreIdentity volume{},id{};volume[0]=std::byte{5};id[0]=std::byte{6};
@@ -225,6 +225,7 @@ struct Harness {
         indexed?WinFspNativeWritable::create_managed_indexed(head,volume,image,id,{capacity},compression):
         WinFspNativeWritable::create_managed_hosted(head,volume,image,id,compression);
     adapter=source.get();
+    if(measure_write_demand)check(adapter->enable_amd_write_demand(),"CPU write demand could not be enabled");
     if(options)adapter->enable_deferred_writes_hosted(*options);
     fs.Version=static_cast<UINT16>(sizeof(fs));fs.UmFileContextIsUserContext2=TRUE;
     if(observe_budget) {
@@ -544,6 +545,81 @@ void run(const std::filesystem::path& worker,unsigned kind,bool indexed){
         <<" submitted="<<stats.worker_submitted<<" advised="<<stats.advised<<" forced="<<stats.cpu_forced<<'\n';
   }
 }
+void check_indexed_retirement() {
+  check(locked_ram_fixture::locked_bytes.load()==0 && locked_ram_fixture::cleanup_ok.load() &&
+      WorkerExchangeSession::available(),"indexed backing or worker did not retire");
+}
+void ordinary_amd_write_demand(bool owned_controller) {
+  if(!gpu_lz4_cpu_verification_available())return;
+  bool configured=false;
+#ifdef FLITZFS_INDEXED_HIP_FIXTURE
+  configured=owned_controller && has_configured_uniform_write_package();
+#endif
+  {
+    Harness h(std::nullopt,true,owned_controller,false,0,kWinFspFileForegroundCompression,!configured);
+    check(!h.adapter->enable_amd_write_demand(),"AMD write demand enabled after callback binding");
+    const auto file=h.create(L"\\observed");
+    auto one=native_fixture::data(kNativeExtentBytes,109);
+    auto two=one;
+    two.insert(two.end(),one.begin(),one.end());
+    const auto write=[&](std::vector<std::byte>& data,UINT64 offset,BOOLEAN append=FALSE,BOOLEAN constrained=FALSE) {
+      ULONG written=0;FSP_FSCTL_FILE_INFO info{};
+      check(h.fs.Interface->Write(&h.fs,file,data.data(),offset,static_cast<ULONG>(data.size()),
+          append,constrained,&written,&info)==STATUS_SUCCESS && written==data.size(),
+          "ordinary CPU write did not complete");
+    };
+    const auto observed=[&] {
+      return owned_controller?h.controller->view().amd_write_demand:h.adapter->take_amd_write_demand();
+    };
+    const auto verify=[&](const NativeAmdWriteDemand& demand,const std::vector<std::byte>& data,std::uint64_t sequence) {
+      check(demand.sequence==sequence && demand.shape.input_bytes==data.size() &&
+          demand.shape.matches_storage(kWinFspFileForegroundCompression,h.image->contract().write_failure_unit_bytes),
+          "ordinary write demand did not retain exact geometry and compression policy");
+      check(std::all_of(demand.samples.begin(),demand.samples.end(),[](const auto& sample){return sample.elapsed_ns>0;}) &&
+          std::is_sorted(demand.samples.begin(),demand.samples.end(),[](const auto& a,const auto& b) {
+            return a.completed_ms<b.completed_ms;
+          }),"ordinary CPU samples were empty or unordered");
+    };
+    for(std::size_t i=1;i<kNativeAmdWriteMinimumPairs;++i) {
+      write(one,0);
+      write(two,2*kNativeExtentBytes);
+    }
+    write(one,1);
+    write(one,0,FALSE,TRUE);
+    write(one,UINT64_MAX,TRUE);
+    check(!observed(),"mixed geometry or ineligible writes funded a matched sample");
+    write(one,0);
+    std::optional<NativeAmdWriteDemand> first;
+    eventually([&]{first=observed();return first.has_value();},"first aligned demand missing");
+    verify(*first,one,1);
+    write(two,2*kNativeExtentBytes);
+    std::optional<NativeAmdWriteDemand> second;
+    eventually([&]{second=observed();return second && second->sequence==2;},"interleaved write size lost its samples");
+    verify(*second,two,2);
+    write(one,0);
+    std::optional<NativeAmdWriteDemand> third;
+    eventually([&]{third=observed();return third && third->sequence==3;},"rolling CPU samples did not refresh");
+    verify(*third,one,3);
+    check(third->samples.front().elapsed_ns==first->samples[1].elapsed_ns &&
+        third->samples[1].elapsed_ns==first->samples[2].elapsed_ns,
+        "rolling observation did not retain only its own size samples");
+    check(!h.adapter->take_amd_write_demand(),"consumed CPU demand was delivered twice");
+    check(h.adapter->deferred_write_stats().worker_submitted==0 && WorkerExchangeSession::available(),
+        "an ordinary CPU observation launched a device worker");
+    h.close(file);
+    const auto reopened=NativeFilesystemSnapshot::open_image(h.image,{NativeImageKind::indexed_paged,h.capacity});
+    reopened.verify_all();
+    check(reopened.read("observed",0,static_cast<std::uint32_t>(one.size()))==one &&
+        reopened.read("observed",2*kNativeExtentBytes,static_cast<std::uint32_t>(two.size()))==two &&
+        reopened.read("observed",4*kNativeExtentBytes,static_cast<std::uint32_t>(one.size()))==one,
+        "ordinary capture changed indexed contents");
+    std::cout<<"ordinary_amd_write_demand owned="<<owned_controller<<" configured="<<configured
+        <<" ready_shapes=2 one_bytes="<<first->shape.input_bytes<<" two_bytes="<<second->shape.input_bytes
+        <<" one_cpu_ns="<<first->samples.front().elapsed_ns<<" two_cpu_ns="<<second->samples.front().elapsed_ns
+        <<" cpu_readback=1 worker_submitted=0\n";
+  }
+  check_indexed_retirement();
+}
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
 // The diagnostic independently removes the first literal prefix from the on-image
 // stream to compare its body with the verified worker receipt.
@@ -656,10 +732,6 @@ void indexed_oracle(const Harness& h,const NativeFilesystemSnapshot& prior,const
         "indexed overwrite changed another grouped file");
   std::cout<<"indexed_grouped_prior_members="<<grouped_files
       <<" indexed_grouped_remaining_members="<<reopened.shared_base_info().members<<'\n';
-}
-void check_indexed_retirement() {
-  check(locked_ram_fixture::locked_bytes.load()==0 && locked_ram_fixture::cleanup_ok.load() &&
-      WorkerExchangeSession::available(),"indexed backing or worker did not retire");
 }
 constexpr std::uint32_t fixture_quantum_chunks=2,fixture_sweep_chunks=16;
 struct IndexedWriteFixture {
@@ -1032,6 +1104,10 @@ RecordedSweepProfile profile_installed_sweep(const HipDiscoveredRoute& route,con
   std::cout<<"sweep_profile request="<<request_id<<" quantum="<<quantum_chunks
       <<" windows="<<trace.completed_windows<<" parent_ns="<<duration<<" fixed_ns="<<duration-window_phases
       <<" setup_ns="<<trace.wall_ns[static_cast<unsigned>(UniformSweepPhase::setup)]
+      <<" upload_ns="<<trace.wall_ns[static_cast<unsigned>(UniformSweepPhase::upload)]
+      <<" kernel_wait_ns="<<trace.wall_ns[static_cast<unsigned>(UniformSweepPhase::kernel_wait)]
+      <<" download_ns="<<trace.wall_ns[static_cast<unsigned>(UniformSweepPhase::download)]
+      <<" retirement_ns="<<trace.wall_ns[static_cast<unsigned>(UniformSweepPhase::retirement)]
       <<" maximum_window_ns="<<trace.maximum_quantum_wall_ns<<" maximum_kernel_wait_ns="<<trace.maximum_kernel_wall_ns
       <<" encoded_bytes="<<reply.candidates.payload.size()<<" verified=1 retired=1\n";
   if(trace.timeline){
@@ -1045,10 +1121,30 @@ RecordedSweepProfile profile_installed_sweep(const HipDiscoveredRoute& route,con
   }
   return {std::move(reply),duration,duration-window_phases};
 }
-int compare_profiled_sweep_quanta(const std::filesystem::path& corpus,UniformLz4SweepProfileMode mode) {
+int profile_indexed_cpu_sizes() {
   gpu_probe_fixture::Budget controller_budget;
-  const auto input=read_indexed_write_corpus(corpus,fixture_sweep_chunks*kNativeExtentBytes);
-  check(input.size()==fixture_sweep_chunks*kNativeExtentBytes,"profile requires the complete matched corpus");
+  constexpr std::array sizes{1U,2U,4U,8U,16U,32U,static_cast<unsigned>(kNativeMaxDirtyExtents)};
+  for(std::size_t trial=0;trial<kNativeAmdWriteMinimumPairs;++trial) {
+    for(std::size_t lane=0;lane<sizes.size();++lane) {
+      const auto size=sizes[trial%2?sizes.size()-lane-1:lane];
+      const auto input=indexed_source(size);
+      const IndexedWriteFixture fixture{4ULL*input.size()+2U*1024*1024,kWinFspFileForegroundCompression};
+      NativeAmdWriteShape shape;
+      const auto sample=indexed_trial(nullptr,true,input,false,false,&shape,false,false,fixture);
+      check(sample.cpu_readback_verified && sample.retirement_confirmed && !sample.device_executed,
+          "CPU scaling trial did not independently verify the memory image");
+      std::cout<<"indexed_cpu_memory trial="<<trial+1<<" bytes="<<shape.input_bytes
+          <<" mode="<<static_cast<unsigned>(shape.foreground.mode)<<" zstd_level="<<shape.foreground.zstd_level
+          <<" response_ns="<<sample.elapsed_ns<<" occupied_bytes="<<sample.occupied_bytes
+          <<" cpu_readback=1 retired=1\n";
+    }
+  }
+  std::cout<<"indexed_cpu_memory_done peak_commit="<<controller_budget.peak_commit()<<'\n';
+  return 0;
+}
+int compare_profiled_sweep_quanta(std::span<const std::byte> input,UniformLz4SweepProfileMode mode) {
+  gpu_probe_fixture::Budget controller_budget;
+  check(input.size()==fixture_sweep_chunks*kNativeExtentBytes,"profile requires the complete matched input");
   uniform_lz4::Layout layout{};
   check(uniform_lz4::make_layout(input.size(),kNativeExtentBytes,layout),"profile source layout");
   const auto batch=PreparedUniformLz4::prepare(input,uniform_lz4_limits(layout));
@@ -1299,10 +1395,15 @@ int wmain(int argc,wchar_t** argv){try{
     return compare_file_policy(argv[2],false);
   if(argc==3 && std::wstring_view(argv[1])==L"--compare-installed-amd-stream-sweep-corpus")
     return compare_stream_bound_sweeps(argv[2]);
+  if(argc==2 && std::wstring_view(argv[1])==L"--profile-indexed-cpu-sizes")return profile_indexed_cpu_sizes();
+  if(argc==2 && std::wstring_view(argv[1])==L"--profile-installed-amd-memory-timeline")
+    return compare_profiled_sweep_quanta(indexed_source(fixture_sweep_chunks),UniformLz4SweepProfileMode::timeline);
   if(argc==3 && std::wstring_view(argv[1])==L"--profile-installed-amd-sweep-corpus")
-    return compare_profiled_sweep_quanta(argv[2],UniformLz4SweepProfileMode::aggregate);
+    return compare_profiled_sweep_quanta(read_indexed_write_corpus(argv[2],fixture_sweep_chunks*kNativeExtentBytes),
+        UniformLz4SweepProfileMode::aggregate);
   if(argc==3 && std::wstring_view(argv[1])==L"--profile-installed-amd-sweep-timeline-corpus")
-    return compare_profiled_sweep_quanta(argv[2],UniformLz4SweepProfileMode::timeline);
+    return compare_profiled_sweep_quanta(read_indexed_write_corpus(argv[2],fixture_sweep_chunks*kNativeExtentBytes),
+        UniformLz4SweepProfileMode::timeline);
   if(argc==3 && std::wstring_view(argv[1])==L"--verify-file-policy-cpu")
     return compare_file_policy(argv[2],true);
   if(argc==2) {
@@ -1329,6 +1430,7 @@ int wmain(int argc,wchar_t** argv){try{
   transport_required();
   for(bool fault:{false,true})deferred_activity_notification(fault);
   native_amd_write_preference();
+  for(const bool owned:{false,true})ordinary_amd_write_demand(owned);
   refused_foreground_offer();
   budget_demand(worker);
   partial_measured_window_uses_cpu(worker);

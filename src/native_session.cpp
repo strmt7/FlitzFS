@@ -2124,13 +2124,17 @@ NativeDirectoryBackfillStep NativeFileSession::advance_directory_backfill() {
 void NativeFileSession::cancel_directory_backfill() noexcept {
   if(impl_)impl_->writer.cancel_directory_backfill();
 }
+std::optional<NativeManagedForeground> NativeFileSession::managed_foreground() const noexcept {
+  if(poisoned() || !impl_->volume || !impl_->volume->active_io)return {};
+  const auto& volume=*impl_->volume;
+  return NativeManagedForeground{volume.foreground,volume.active_io->contract().write_failure_unit_bytes};
+}
 bool NativeFileSession::matches_managed_foreground(StoreCompressionOptions compression,
     std::uint32_t failure_unit) const noexcept {
-  if(poisoned() || !impl_->volume || !impl_->volume->active_io)return false;
-  const auto& volume=*impl_->volume;
-  return volume.active_io->contract().write_failure_unit_bytes==failure_unit &&
-      volume.foreground.mode==compression.mode && volume.foreground.zstd_level==compression.zstd_level &&
-      volume.foreground.require_zstd==compression.require_zstd;
+  const auto foreground=managed_foreground();
+  return foreground && foreground->isolation_unit==failure_unit &&
+      foreground->compression.mode==compression.mode && foreground->compression.zstd_level==compression.zstd_level &&
+      foreground->compression.require_zstd==compression.require_zstd;
 }
 NativeFilesystemSnapshot NativeFileSession::snapshot() const {
   return ready().writer.snapshot();

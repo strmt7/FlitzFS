@@ -431,9 +431,12 @@ write. The next fixture extends this result through repeated settled cycles.
 ## 9. AMD work and immediate CPU continuity
 
 Package-enabled controllers can acquire installed AMD anchor and read-ahead
-routes from eligible opportunities. The foreground write interface can accept
-a qualified offer. Its current callers exercise SDK fixtures. A uniform
-acquisition can be cancelled before or during its supervised exchange.
+routes from eligible opportunities. The ordinary owner records bounded service-cost windows on eligible CPU
+writes when a uniform package is configured. That observation records the
+admitted geometry and policy for later calibration. The foreground write
+interface accepts an independently qualified offer in SDK fixtures, and a
+uniform acquisition can be cancelled through its supervised exchange.
+[CPU write measurement](../OWNED_DEFERRED_WRITES.md#cpu-service-cost-from-ordinary-writes)
 
 ```mermaid
 flowchart LR

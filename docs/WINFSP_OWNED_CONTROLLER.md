@@ -27,6 +27,17 @@ ready bytes or perform their usual CPU read. The owner releases the package
 when the volume stops.
 [AMD read-ahead ownership](NATIVE_AMD_LZ4_READ.md#amd-read-ahead-in-the-volume-controller)
 
+## Ordinary AMD write demand
+
+With a configured uniform package, the controller enables CPU write
+observation through the ordinary attachment path. The adapter publishes
+complete rolling windows keyed by aligned request size, compression policy
+and backing isolation. The controller takes the newest observation at a
+quiet boundary and exposes it in the synchronized view. This uses the
+existing callback activity signal and makes no device query. A qualified
+offer still requires a separately verified, winning matched GPU comparison.
+[Measurement contract](OWNED_DEFERRED_WRITES.md#cpu-service-cost-from-ordinary-writes)
+
 ## Content events and bounded work
 
 Before binding callbacks, the adapter duplicates a same-process event handle
