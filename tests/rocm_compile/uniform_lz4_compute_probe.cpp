@@ -47,6 +47,9 @@ struct State {
   bool bad_alignment=false,null_allocation=false,missing_attributes=false,inconsistent_attributes=false;
   unsigned property_queries=0,priority_queries=0,attribute_queries=0;
   int stream_tag=0;
+  std::array<int,2> event_tags{};
+  std::array<bool,2> event_live{};
+  unsigned event_creates=0,event_records=0,event_reads=0;
   bool reuse=false,null_stream=false;
   std::uint64_t allocation_bytes=0,source_offset=0;
   std::size_t allocated_size=0;
@@ -101,6 +104,41 @@ hipError_t synchronize(hipStream_t stream){
   require(stream==active->stream() && active->stream_live && active->submitted,"Wait without submission");
   const auto status=active->step("wait");if(status==hipSuccess)active->completed=true;return status;
 }
+hipError_t create_event(hipEvent_t* out){
+  const auto index=active->event_creates++;
+  require(index<active->event_tags.size() && active->allocated && active->stream_live,
+      "Event creation requires the unique admitted sweep");
+  const auto status=active->step("event-create-"+std::to_string(index));
+  if(status!=hipSuccess)return status;
+  if(index==1 && active->fault=="event-duplicate"){
+    *out=reinterpret_cast<hipEvent_t>(&active->event_tags[0]);return hipSuccess;
+  }
+  *out=reinterpret_cast<hipEvent_t>(&active->event_tags[index]);
+  active->event_live[index]=true;return hipSuccess;
+}
+hipError_t record_event(hipEvent_t event,hipStream_t stream){
+  const auto index=active->event_records++%2;
+  require(stream==active->stream() && active->stream_live && active->event_live[index] &&
+      event==reinterpret_cast<hipEvent_t>(&active->event_tags[index]) &&
+      active->submitted==(index==1) && !active->completed,"Event was not recorded around the kernel");
+  return active->step("event-record-"+std::to_string(index));
+}
+hipError_t elapsed_event(float* ms,hipEvent_t first,hipEvent_t last){
+  ++active->event_reads;
+  require(active->completed && active->event_live[0] && active->event_live[1] &&
+      first==reinterpret_cast<hipEvent_t>(&active->event_tags[0]) &&
+      last==reinterpret_cast<hipEvent_t>(&active->event_tags[1]),"Event read before full wait or from wrong pair");
+  const auto status=active->step("event-elapsed");
+  if(status==hipSuccess && active->fault!="event-no-interval")*ms=0.25F;
+  return status;
+}
+hipError_t destroy_event(hipEvent_t event){
+  const auto index=event==reinterpret_cast<hipEvent_t>(&active->event_tags[0])?0U:1U;
+  require(event==reinterpret_cast<hipEvent_t>(&active->event_tags[index]) &&
+      active->allocated && active->stream_live && active->event_live[index],"Foreign event retirement");
+  active->event_live[index]=false;return active->step("event-destroy-"+std::to_string(index));
+}
+constexpr SweepEventApi sweep_events{&create_event,&record_event,&elapsed_event,&destroy_event};
 hipError_t allocate(void** out,std::size_t size){
   require(!active->allocated && size==(active->reuse?active->allocation_bytes:active->source.batch.layout().total_bytes) && size<=4U*1024*1024,
       "Allocation is not the complete bounded slab");
@@ -227,7 +265,7 @@ UniformLz4Candidates compute(State& state,Lz4KernelCoverage covered=coverage,Uni
   return result;
 }
 UniformLz4Candidates reused_compute(State& state,UniformLz4ComputeGrant grant={},UniformLz4SweepTrace* trace=nullptr,
-    bool prepared=false){
+    bool prepared=false,const SweepEventApi* events=nullptr){
   Activate owner(state);state.reuse=true;
   uniform_lz4::Layout quantum{};require(uniform_lz4::make_layout(2U*65536,65536,quantum),"reused fixture peak");
   if(!grant.maximum_chunks && !grant.maximum_device_bytes)grant={2,quantum.total_bytes,65536};
@@ -273,9 +311,11 @@ UniformLz4Candidates reused_compute(State& state,UniformLz4ComputeGrant grant={}
       require(state.allocated && state.stream_live && !state.waits,"prepared handoff preceded setup or followed launch");
       return state.fault=="prepared-discard"?nullptr:&state.source;
     };
-    return execute_uniform_lz4_sweep_plan(api,&attributes,kernels,shape,coverage,receive,initialize,memory,trace);
+    return execute_uniform_lz4_sweep_plan(api,&attributes,kernels,shape,coverage,receive,initialize,memory,
+        trace,hip_phase_detail::clock_ns,events);
   }
-  return execute_uniform_lz4_reused_sweep(api,&attributes,kernels,state.source,coverage,grant,initialize,memory,trace);
+  return execute_uniform_lz4_reused_sweep(api,&attributes,kernels,state.source,coverage,grant,initialize,memory,
+      trace,hip_phase_detail::clock_ns,events);
 }
 void reused_success(const UniformLz4Request& source,unsigned wave,bool delayed_completion=false){
   ++scenarios;++successes;State state(source,wave);state.properties.maxGridSize[0]=2;
@@ -403,6 +443,35 @@ int wmain(int argc,wchar_t** argv){try{
         }
         require(!partial.finished && escaped.payload.empty() && escaped.sizes.empty() &&
             !failed.allocated && !failed.stream_live,"failed reuse published observation or leaked resources");
+      }
+    }
+    {
+      ++scenarios;++successes;State state(source);UniformLz4SweepTrace trace;
+      const auto candidate=reused_compute(state,{},&trace,false,&sweep_events);
+      require(trace.finished && trace.timeline && trace.completed_windows==9 && state.event_creates==2 &&
+          state.event_records==18 && state.event_reads==9 && state.event_live==std::array<bool,2>{} &&
+          trace.timeline->first.stream_interval_ns==250'000 &&
+          trace.timeline->slowest_later.stream_interval_ns==250'000 &&
+          candidate.sizes.size()==source.batch.layout().chunks && !state.allocated && !state.stream_live,
+          "timed sweep did not reuse and retire one event pair");
+    }
+    for(const auto* fault:{"event-create-1","event-duplicate","event-record-0","event-record-1","event-elapsed",
+        "event-no-interval","event-destroy-0","reuse-wait-second"}){
+      ++scenarios;++refusals;State state(source);state.fault=fault;UniformLz4SweepTrace trace;
+      try{(void)reused_compute(state,{},&trace,false,&sweep_events);throw std::runtime_error("failed timing published");}
+      catch(const HipWorkerFailure& failure){
+        require(failure.code==HipWorkerExit::device_fault && !trace.finished &&
+            state.event_live==std::array<bool,2>{} && !state.allocated && !state.stream_live,
+            "event failure changed classification, published or leaked");
+      }
+    }
+    {
+      ++scenarios;++refusals;State state(source);UniformLz4SweepTrace trace;
+      auto missing=sweep_events;missing.elapsed=nullptr;
+      try{(void)reused_compute(state,{},&trace,false,&missing);throw std::runtime_error("missing timing export accepted");}
+      catch(const HipWorkerFailure& failure){
+        require(failure.code==HipWorkerExit::runtime_unavailable && !trace.finished && state.calls.empty(),
+            "unavailable timing export reached initialization");
       }
     }
     for(const auto* name:{"initialize","properties-1","properties-2","select","priority-1","priority-2",

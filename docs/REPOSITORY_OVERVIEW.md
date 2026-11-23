@@ -1,8 +1,9 @@
 # FlitzFS repository overview
 
-Reconciled on 23 November 2026 against the **1,024-file** tree at
-`1a9ae9423b1eebf6eb31d05b6478e1596a8e5719` and the source-bound
-packed-tail scheduling change. The review maps Windows attachment, authority,
+Reconciled on 23 November 2026 against the **1,027-file** tree at
+`fbb19a371c4db34cb2ecd98f53964fe5d58694e9`, the latest mounted
+reclamation and native-write receipts, and the separately source-bound
+Radeon timing work. The review maps Windows attachment, authority,
 allocation, recovery, AMD, maintenance and package paths to live source
 and qualification. The [current architecture](architecture/CURRENT.md)
 shows the flows, and the [source review](architecture/REVIEW.md) records
@@ -43,13 +44,23 @@ independent CPU reopen verified both live files, and a fresh writable mount
 accepted a continued write. The earlier detached native run reached
 7,340,032 bytes with maintenance still pending. Repeated mounted churn
 through complete settlement remains open.
-**Existing GPU and compression results have narrower scope.** Reopened
-paired SDK volumes served two verified Radeon read frames and preserved CPU
-service through worker refusal. Sealed indexed AIT A–P images occupied
-32,440,320 bytes, down from 51,486,720 with the same compacted encodings and
-payload protection. These results advance mounted correctness and format
-work. Automatic ordinary AMD writes and matched held-out whole-product
-size, speed and scale still need qualification.
+**AMD can produce stored extents and read them back through the independent
+CPU path.** The controlled fast-write route committed 16 real Radeon extents
+and verified both protected copies of each. The automatic-policy helper
+comparison selected CPU encoding on all three 1 MiB public-input trials,
+and a longer test continued on CPU at the exchange deadline. Reopened paired
+SDK volumes served two verified Radeon read frames through the separately
+qualified read path. AMD enablement still depends on useful results in the
+ordinary mounted application.
+[Device write output](evidence/windows-amd-native-file-policy-2026-11-23.json) ·
+[Full-sweep funding](evidence/windows-amd-sweep-deadline-2026-11-23.json) ·
+[Host and stream timing](evidence/windows-amd-sweep-timeline-2026-11-23.json)
+
+**Image layout changes already reduce occupied bytes on bounded data.**
+Sealed indexed AIT A–P images occupied 32,440,320 bytes, down from
+51,486,720 with the same compacted encodings and payload protection.
+The stable candidate still needs a held-out whole-volume compression and
+access frontier.
 [Cross-group relocation](evidence/dense-cross-group-2026-11-23.json) ·
 [Reopened AMD read](evidence/amd-reopened-paired-sealed-read-2026-11-23.json) ·
 [Sealed image evidence](evidence/sealed-indexed-images-2026-11-22.json) ·
@@ -267,7 +278,10 @@ A qualified installed package can route indexed background copy search
 to AMD when current resources admit a group. The native deferred write
 service also has CPU selection and separately tracked retirement.
 Automatic foreground acceleration still needs current route, health and
-complete-operation cost evidence.
+complete-operation cost evidence. The latest Radeon probes separated long
+in-stream intervals from long host waits around shorter stream intervals.
+Use both parts of the measured tail in subsequent residency and dispatch
+work. [Host and stream timing](evidence/windows-amd-sweep-timeline-2026-11-23.json)
 
 The last matched six-request observation at `d384b6c` used 1 MiB per trial:
 CPU median 24.2311 ms, GPU median 513.918 ms, and identical 1,310,720-byte images.

@@ -428,9 +428,12 @@ int worker(int argc, wchar_t** argv) {
       std::wstring_view(argv[1])==L"--driver-uniform-lz4-profile-adapter" ||
       std::wstring_view(argv[1])==L"--driver-uniform-lz4-sweep-adapter" ||
       std::wstring_view(argv[1])==L"--driver-uniform-lz4-sweep-profile-adapter" ||
+      std::wstring_view(argv[1])==L"--driver-uniform-lz4-sweep-timeline-adapter" ||
       std::wstring_view(argv[1])==L"--driver-uniform-lz4-prepared-adapter")) {
     const bool recording=std::wstring_view(argv[1])==L"--driver-uniform-lz4-profile-adapter";
-    const bool sweep_recording=std::wstring_view(argv[1])==L"--driver-uniform-lz4-sweep-profile-adapter";
+    const bool timeline=std::wstring_view(argv[1])==L"--driver-uniform-lz4-sweep-timeline-adapter";
+    const bool sweep_recording=timeline || std::wstring_view(argv[1])==L"--driver-uniform-lz4-sweep-profile-adapter";
+    const auto sweep_mode=timeline?UniformLz4SweepProfileMode::timeline:UniformLz4SweepProfileMode::aggregate;
     const bool prepared=std::wstring_view(argv[1])==L"--driver-uniform-lz4-prepared-adapter";
     const bool sweeping=prepared || sweep_recording || std::wstring_view(argv[1])==L"--driver-uniform-lz4-sweep-adapter";
     require(argc==(prepared?14:13) && std::wstring_view(argv[11])==
@@ -448,7 +451,7 @@ int worker(int argc, wchar_t** argv) {
         decimal(argv[8],(std::numeric_limits<unsigned>::max)()),wide_decimal(argv[9]),
         decimal(argv[10],uniform_lz4::max_chunk_bytes)};
     require(grant.maximum_chunks && grant.maximum_device_bytes && grant.chunk_bytes,Exit::invalid_request,"missing uniform work grant");
-    const auto profile_bytes=recording?kUniformLz4ProfileBytes:sweep_recording?kUniformLz4SweepProfileBytes:0;
+    const auto profile_bytes=recording?kUniformLz4ProfileBytes:sweep_recording?uniform_lz4_sweep_profile_bytes(sweep_mode):0;
     require(reply_capacity>profile_bytes,Exit::invalid_request,"uniform profile capacity");
     const auto data_capacity=reply_capacity-profile_bytes;
     auto channel=prepared?WorkerChannel::open_prepared_sized(argv[12],{request_capacity,reply_capacity},
@@ -518,7 +521,7 @@ int worker(int argc, wchar_t** argv) {
     const auto candidates=prepared?run_hip_uniform_lz4_prepared_sweep_in_worker(runtime.get(),*api,
         static_cast<int>(ordinal),luid,mask,*sweep_plan,targets,receive):
         sweeping?run_hip_uniform_lz4_sweep_in_worker(runtime.get(),*api,
-            static_cast<int>(ordinal),luid,mask,*request,grant,targets,sweep_recording?&sweep_trace:nullptr):
+            static_cast<int>(ordinal),luid,mask,*request,grant,targets,sweep_recording?&sweep_trace:nullptr,timeline):
             run_hip_uniform_lz4_in_worker(runtime.get(),*api,static_cast<int>(ordinal),luid,mask,
                 *request,grant,targets,recording?&clock:nullptr);
     if(prepared && !request) {
@@ -533,7 +536,7 @@ int worker(int argc, wchar_t** argv) {
     if(recording || sweep_recording){
       const UniformLz4ProfileBinding binding{request->request_id,ordinal,mask,grant.maximum_chunks,
           grant.chunk_bytes,grant.maximum_device_bytes,luid};
-      frame=sweep_recording?encode_uniform_lz4_sweep_profile_reply(request->batch,binding,sweep_trace,frame,WorkerExecution::hip):
+      frame=sweep_recording?encode_uniform_lz4_sweep_profile_reply(request->batch,binding,sweep_trace,frame,WorkerExecution::hip,sweep_mode):
           encode_uniform_lz4_profile_reply(request->batch,binding,trace,frame,WorkerExecution::hip);
     }
     channel.publish(frame);return 0;

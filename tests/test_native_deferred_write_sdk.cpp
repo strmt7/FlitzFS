@@ -966,7 +966,7 @@ struct RecordedSweepProfile {
   std::uint64_t total_ns=0,fixed_ns=0;
 };
 RecordedSweepProfile profile_installed_sweep(const HipDiscoveredRoute& route,const PreparedUniformLz4& batch,
-    std::uint32_t quantum_chunks,std::uint64_t request_id) {
+    std::uint32_t quantum_chunks,std::uint64_t request_id,UniformLz4SweepProfileMode mode) {
   const auto started=std::chrono::steady_clock::now();
   auto cost=diagnostic_uniform_cost(route);
   cost.maximum_grid_x=quantum_chunks;
@@ -988,17 +988,25 @@ RecordedSweepProfile profile_installed_sweep(const HipDiscoveredRoute& route,con
       uniform_worker_host_budget_covers(batch.limits(),diagnostic_worker_budget,plan.host_peak_bytes),
       "profile could not admit the whole requested sweep");
   auto dispatch=prepare_native_uniform_dispatch(binding,evidence,batch,WorkerExecution::hip,&grant);
-  const WorkerChannelCapacity channel{batch.limits().request_bytes,batch.limits().reply_bytes+kUniformLz4SweepProfileBytes};
-  dispatch.arguments[0]=L"--driver-uniform-lz4-sweep-profile-adapter";
+  const WorkerChannelCapacity channel{batch.limits().request_bytes,
+      batch.limits().reply_bytes+uniform_lz4_sweep_profile_bytes(mode)};
+  dispatch.arguments[0]=mode==UniformLz4SweepProfileMode::timeline?
+      L"--driver-uniform-lz4-sweep-timeline-adapter":L"--driver-uniform-lz4-sweep-profile-adapter";
   dispatch.arguments[6]=std::to_wstring(channel.reply_bytes);
   auto frame=std::make_shared<const WorkerRequestSnapshot>(encode_uniform_lz4_request(batch,request_id));
   const auto worker=WorkerExchangeSession::run_sized(binding.helper,dispatch.arguments,std::move(frame),channel,
       diagnostic_worker_budget,{},route.pins);
-  check(worker.code==WorkerExchangeCode::completed && worker.process.exit_confirmed &&
-      WorkerExchangeSession::available(),"profiled worker did not publish and retire");
+  const auto retired=WorkerExchangeSession::available();
+  if(worker.code!=WorkerExchangeCode::completed || !worker.process.exit_confirmed || !retired)
+    std::cerr<<"sweep_profile_worker_failure request="<<request_id<<" quantum="<<quantum_chunks
+        <<" code="<<static_cast<unsigned>(worker.code)<<" worker_exit="<<worker.process.exit_code
+        <<" worker_ms="<<worker.process.elapsed_ms<<" exit_confirmed="<<worker.process.exit_confirmed
+        <<" retired="<<retired<<'\n';
+  check(worker.code==WorkerExchangeCode::completed && worker.process.exit_confirmed && retired,
+      "profiled worker did not publish and retire");
   const UniformLz4ProfileBinding profile{request_id,route.ordinal,route.memory.node_mask,
       grant.maximum_chunks,static_cast<std::uint32_t>(kNativeExtentBytes),grant.maximum_device_bytes,route.memory.luid};
-  auto reply=accept_uniform_lz4_sweep_profile_reply(worker.response,batch,profile,WorkerExecution::hip);
+  auto reply=accept_uniform_lz4_sweep_profile_reply(worker.response,batch,profile,WorkerExecution::hip,mode);
   const auto after=sampler.sample();
   check(after.status==WindowsGpuBudgetStatus::success && after.snapshot.captured_ms>before.snapshot.captured_ms &&
       check_gpu_memory_budget(after.snapshot,route.memory.luid,route.memory.node_mask,GetTickCount64(),
@@ -1015,9 +1023,18 @@ RecordedSweepProfile profile_installed_sweep(const HipDiscoveredRoute& route,con
       <<" setup_ns="<<trace.wall_ns[static_cast<unsigned>(UniformSweepPhase::setup)]
       <<" maximum_window_ns="<<trace.maximum_quantum_wall_ns<<" maximum_kernel_wait_ns="<<trace.maximum_kernel_wall_ns
       <<" encoded_bytes="<<reply.candidates.payload.size()<<" verified=1 retired=1\n";
+  if(trace.timeline){
+    const auto report=[&](const char* phase,const UniformLz4KernelInterval& interval){
+      std::cout<<"sweep_kernel request="<<request_id<<" phase="<<phase<<" window="<<interval.window
+          <<" host_ns="<<interval.host_wall_ns<<" launch_ns="<<interval.launch_call_ns
+          <<" sync_ns="<<interval.sync_call_ns<<" stream_ns="<<interval.stream_interval_ns<<'\n';
+    };
+    report("first",trace.timeline->first);
+    if(trace.completed_windows>1)report("slowest_later",trace.timeline->slowest_later);
+  }
   return {std::move(reply),duration,duration-window_phases};
 }
-int compare_profiled_sweep_quanta(const std::filesystem::path& corpus) {
+int compare_profiled_sweep_quanta(const std::filesystem::path& corpus,UniformLz4SweepProfileMode mode) {
   gpu_probe_fixture::Budget controller_budget;
   const auto input=read_indexed_write_corpus(corpus,fixture_sweep_chunks*kNativeExtentBytes);
   check(input.size()==fixture_sweep_chunks*kNativeExtentBytes,"profile requires the complete matched corpus");
@@ -1031,9 +1048,9 @@ int compare_profiled_sweep_quanta(const std::filesystem::path& corpus) {
   for(unsigned pair=0;pair<3;++pair) {
     RecordedSweepProfile narrow,wide;
     const bool wide_first=pair%2!=0;
-    if(wide_first)wide=profile_installed_sweep(route,batch,4,++sequence);
-    narrow=profile_installed_sweep(route,batch,2,++sequence);
-    if(!wide_first)wide=profile_installed_sweep(route,batch,4,++sequence);
+    if(wide_first)wide=profile_installed_sweep(route,batch,4,++sequence,mode);
+    narrow=profile_installed_sweep(route,batch,2,++sequence,mode);
+    if(!wide_first)wide=profile_installed_sweep(route,batch,4,++sequence,mode);
     check(narrow.reply.candidates.sizes==wide.reply.candidates.sizes &&
         narrow.reply.candidates.payload==wide.reply.candidates.payload,"launch size changed the verified GPU result");
     std::cout<<"sweep_profile_pair pair="<<pair+1<<" wide_first="<<wide_first
@@ -1234,7 +1251,9 @@ int wmain(int argc,wchar_t** argv){try{
   if(argc==3 && std::wstring_view(argv[1])==L"--compare-installed-amd-file-policy")
     return compare_file_policy(argv[2],false);
   if(argc==3 && std::wstring_view(argv[1])==L"--profile-installed-amd-sweep-corpus")
-    return compare_profiled_sweep_quanta(argv[2]);
+    return compare_profiled_sweep_quanta(argv[2],UniformLz4SweepProfileMode::aggregate);
+  if(argc==3 && std::wstring_view(argv[1])==L"--profile-installed-amd-sweep-timeline-corpus")
+    return compare_profiled_sweep_quanta(argv[2],UniformLz4SweepProfileMode::timeline);
   if(argc==3 && std::wstring_view(argv[1])==L"--verify-file-policy-cpu")
     return compare_file_policy(argv[2],true);
   if(argc==2) {

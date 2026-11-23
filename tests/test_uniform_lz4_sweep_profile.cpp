@@ -9,15 +9,22 @@ template<class F>void rejects(F&& f){try{f();}catch(const std::invalid_argument&
   throw std::runtime_error("invalid sweep observation accepted");}
 std::uint64_t clock(){return ticks+=step;}
 std::uint64_t broken(){throw std::invalid_argument("clock unavailable");}
-void quantum(UniformLz4SweepRecorder& r){
+void quantum(UniformLz4SweepRecorder& r,bool timeline=false){
   for(unsigned i=static_cast<unsigned>(UniformSweepPhase::admission);i<=static_cast<unsigned>(UniformSweepPhase::completion);++i){
-    const auto p=static_cast<UniformSweepPhase>(i);r.begin(p);r.end(p);
+    const auto p=static_cast<UniformSweepPhase>(i);r.begin(p);
+    if(timeline && p==UniformSweepPhase::kernel_wait){
+      UniformLz4KernelInterval interval;
+      interval.launch_call_ns=r.time_kernel_call([]{});
+      interval.sync_call_ns=r.time_kernel_call([]{});
+      interval.stream_interval_ns=1'000;
+      r.end(p,interval);
+    } else r.end(p);
   }
 }
-UniformLz4SweepTrace observed(std::uint32_t windows){
+UniformLz4SweepTrace observed(std::uint32_t windows,bool timeline=false){
   UniformLz4SweepTrace t;UniformLz4SweepRecorder r(&t,windows,&clock);
   r.begin(UniformSweepPhase::setup);r.end(UniformSweepPhase::setup);
-  for(unsigned i=0;i<windows;++i){step=17+i;quantum(r);}step=17;
+  for(unsigned i=0;i<windows;++i){step=17+i;quantum(r,timeline);}step=17;
   r.begin(UniformSweepPhase::retirement);r.end(UniformSweepPhase::retirement);r.finish();return t;
 }
 Bytes literal(UniformLz4Bytes source){
@@ -33,6 +40,12 @@ void recorder_contract(){
   const auto before=ticks;UniformLz4SweepRecorder disabled(nullptr,0,&broken);
   disabled.begin(UniformSweepPhase::count);disabled.end(UniformSweepPhase::count);disabled.finish();
   check(ticks==before,"disabled sweep profile queried clock");
+  const auto detailed=observed(4,true);
+  check(detailed.timeline && detailed.timeline->first==UniformLz4KernelInterval{0,85,17,17,1'000} &&
+      detailed.timeline->slowest_later==UniformLz4KernelInterval{3,100,20,20,1'000},
+      "timeline associated the wrong intervals with the first or slowest later window");
+  const auto one=observed(1,true);
+  check(one.timeline && one.timeline->slowest_later==UniformLz4KernelInterval{},"single window has a later interval");
   UniformLz4SweepTrace invalid;
   rejects([&]{UniformLz4SweepRecorder r(&invalid,0,&clock);});
   rejects([&]{UniformLz4SweepRecorder r(&invalid,1,nullptr);});
@@ -47,6 +60,13 @@ void recorder_contract(){
     r.begin(UniformSweepPhase::setup);r.end(UniformSweepPhase::setup);quantum(r);
     rejects([&]{r.begin(UniformSweepPhase::retirement);});rejects([&]{r.finish();});
     check(!partial.finished && partial.completed_windows==1,"partial sweep completed");
+  }
+  {
+    UniformLz4SweepTrace partial;UniformLz4SweepRecorder r(&partial,2,&clock);
+    r.begin(UniformSweepPhase::setup);r.end(UniformSweepPhase::setup);quantum(r,true);
+    rejects([&]{quantum(r);});
+    rejects([&]{r.finish();});
+    check(!partial.finished,"aggregate window completed a timeline observation");
   }
   {
     UniformLz4SweepTrace partial;UniformLz4SweepRecorder r(&partial,1,&clock);
@@ -124,5 +144,33 @@ int main(){try{
   rejects([&]{(void)encode_uniform_lz4_sweep_profile_reply(batch,binding,partial,ordinary,WorkerExecution::cpu_semantics);});
   partial=trace;partial.completed_windows--;
   rejects([&]{(void)encode_uniform_lz4_sweep_profile_reply(batch,binding,partial,ordinary,WorkerExecution::cpu_semantics);});
+  const auto timed=observed(plan.windows,true);
+  constexpr auto mode=UniformLz4SweepProfileMode::timeline;
+  const auto timeline_frame=encode_uniform_lz4_sweep_profile_reply(batch,binding,timed,ordinary,WorkerExecution::cpu_semantics,mode);
+  const auto timeline=accept_uniform_lz4_sweep_profile_reply(timeline_frame,batch,binding,WorkerExecution::cpu_semantics,mode);
+  check(timeline.trace.timeline==timed.timeline && timeline.trace.wall_ns==timed.wall_ns &&
+      timeline.candidates.payload==c.payload && timeline.candidates.sizes==c.sizes,"timeline reply was not exact");
+  rejects([&]{(void)accept_uniform_lz4_sweep_profile_reply(timeline_frame,batch,binding,WorkerExecution::cpu_semantics);});
+  rejects([&]{(void)accept_uniform_lz4_sweep_profile_reply(frame,batch,binding,WorkerExecution::cpu_semantics,mode);});
+  rejects([&]{(void)encode_uniform_lz4_sweep_profile_reply(batch,binding,timed,ordinary,WorkerExecution::cpu_semantics);});
+  rejects([&]{(void)encode_uniform_lz4_sweep_profile_reply(batch,binding,trace,ordinary,WorkerExecution::cpu_semantics,mode);});
+  for(const auto& [at,value]:std::array<std::pair<std::size_t,std::uint64_t>,7>{{
+      {256,1},{264,0},{272,hip_profile_limit_ns},{280,timed.timeline->first.host_wall_ns},
+      {288,hip_profile_limit_ns+1},{296,plan.windows},{304,0}}}){
+    auto forged=timeline_frame;uniform_profile_detail::put(forged,at,value);
+    rejects([&]{(void)accept_uniform_lz4_sweep_profile_reply(forged,batch,binding,WorkerExecution::cpu_semantics,mode);});
+  }
+  for(const auto n:{std::size_t{256},kUniformLz4SweepTimelineBytes-1,timeline_frame.size()-1})
+    rejects([&]{(void)accept_uniform_lz4_sweep_profile_reply(std::span(timeline_frame).first(n),batch,binding,
+        WorkerExecution::cpu_semantics,mode);});
+  changed=timeline_frame;changed.back()^=std::byte{1};
+  rejects([&]{(void)accept_uniform_lz4_sweep_profile_reply(changed,batch,binding,WorkerExecution::cpu_semantics,mode);});
+  const UniformLz4ProfileBinding single_binding{77,0,1,layout.chunks,65'536,layout.total_bytes,{std::byte{1}}};
+  const auto single_trace=observed(1,true);
+  const auto single_frame=encode_uniform_lz4_sweep_profile_reply(batch,single_binding,single_trace,ordinary,WorkerExecution::cpu_semantics,mode);
+  check(accept_uniform_lz4_sweep_profile_reply(single_frame,batch,single_binding,WorkerExecution::cpu_semantics,mode)
+      .trace.timeline==single_trace.timeline,"single-window timeline did not round-trip");
+  changed=single_frame;uniform_profile_detail::put(changed,328,1);
+  rejects([&]{(void)accept_uniform_lz4_sweep_profile_reply(changed,batch,single_binding,WorkerExecution::cpu_semantics,mode);});
   std::cout<<"Uniform sweep profile: checks="<<checks<<" exact_data=true disabled_clock_calls=0 gpu_executed=false\n";return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

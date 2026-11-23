@@ -1,8 +1,8 @@
 # Experimental finite-sweep observations
 
 This extends [the reusable compute scope](UNIFORM_LZ4_REUSE.md). It adds explicit,
-opt-in host wall-time observations for one finite operation. It changes neither
-ordinary worker frames nor stored codecs and does not enable ordinary file I/O.
+opt-in timing observations for one finite operation. Ordinary I/O continues to
+use its existing worker messages and stored encodings.
 
 ## Measurement boundary
 
@@ -19,8 +19,8 @@ maximum kernel-wait wall times, maximum admission-to-completion quantum wall
 time, and complete compute-scope wall time. State and work per phase are fixed;
 there is no allocation, sampling thread or retained per-window array.
 
-These are host wall times including scheduling and synchronization. They are
-not GPU event measurements. The compute scope starts after request decoding,
+The aggregate phases measure host wall time including scheduling and
+synchronization. The compute scope starts after request decoding,
 bundle/module admission and entry binding; it excludes reply encoding, module
 release, publication and parent acceptance. Full-result assembly/verification
 between quanta and final retirement remains in total scope time, even where not
@@ -42,6 +42,40 @@ phase sums and extrema must be consistent and bounded. Ordinary and single-windo
 profile readers reject this envelope. The parent independently decodes all returned
 bytes and accepts only after successful confirmed child exit and supervisor
 quiescence. A complete child trace alone never authorizes acceptance.
+
+## First and later launch timing
+
+The explicit `--driver-uniform-lz4-sweep-timeline-adapter` worker diagnostic
+uses a 336-byte `FLUSP002` header bound to the same request, device, admitted
+geometry and complete independent CPU verification. The original
+`--driver-uniform-lz4-sweep-profile-adapter` keeps `FLUSP001`. Each reader
+requires its declared version, exact capacity and complete ordinary reply.
+
+The timeline keeps the initial window and the later window with the longest
+observed host kernel phase, including its ordinal. For each retained window
+it gives host wall time, time in the launch call, time in the synchronization
+call and the elapsed interval between two events recorded around the kernel
+on its stream. The interval includes time between event timestamps and can
+include device scheduling. Use it with the host times to attribute costs.
+[HIP event contract](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/reference/hip_runtime_api/modules/event_management.html)
+
+The worker resolves event functions from the same pinned runtime only in this
+mode. It owns two events, reuses them after full synchronization, and retires
+both before publishing a result. Missing exports, incomplete or out-of-range
+event timing, invalid phase order and retirement failure refuse the diagnostic.
+The existing exchange limit, memory observations and guard verification apply
+to every window. The parent accepts after successful worker retirement and its
+own complete byte verification. The retained timeline is constant space.
+
+On the installed Radeon, one matched pair finished before an exchange with
+unrecorded child status ended the first probe. The rebuilt parent now retains
+the exchange code, child exit and retirement when a probe fails. Its next run
+completed three matched pairs with the same verified 467,755-byte LZ4 output.
+Across both runs, some later windows spent about 436–483 ms between stream
+events. Other first or later windows took about 434–475 ms in the host wait
+with about 43–58 ms between the events. Launch calls in the recorded windows
+took up to about 1.26 ms. Measure both sources of tail cost when choosing the
+next throughput change. [Exact timing evidence](evidence/windows-amd-sweep-timeline-2026-11-23.json)
 
 ## What this permits next
 
