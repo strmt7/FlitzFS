@@ -1,12 +1,24 @@
 # Source and architecture review
 
-**Reviewed tree [df5be9b5b9d0](https://github.com/strmt7/FlitzFS/commit/df5be9b5b9d0bc05ac565eb2da8454ac76bed3d2).** Current behavior is shown in the [architecture diagrams](CURRENT.md).
-The [revised architecture](TARGET.md) and [implementation plan](../IMPLEMENTATION_PLAN.md)
-describe the work prompted by this review.
+**Current baseline [1afc654b9ee4](https://github.com/strmt7/FlitzFS/commit/1afc654b9ee44952dce82a99a74e474cb5b03fb9).**
+The [architecture diagrams](CURRENT.md), [target architecture](TARGET.md)
+and [implementation plan](../IMPLEMENTATION_PLAN.md) correspond to this review.
+
+| Source boundary | 23 November finding | Consequence |
+| --- | --- | --- |
+| [Native session](../../src/native_session.cpp) and [paged store](../../src/paged_store.cpp) | Merged reads and batched scrub improve the cost of verification. The healthy writable path still needs the two fences, full inventory and checked storage. | Prove exact authority in shadow mode and compare off-path damage against the full oracle before changing attach. |
+| [Controller](../../src/windows/winfsp_controller.cpp) and [write policy](../../src/windows/native_amd_write_policy.cpp) | The ordinary installed wiring handles acquisition for read-ahead and anchor search. Qualified foreground offers have SDK callers. | Use the existing owner for complete-cost write qualification, including cancellation and fresh re-admission. |
+| [Coherence catalog](../../src/indexed_coherence.cpp) and [group codecs](../../src/native_group_codec.cpp) | Persistent postings and independently CPU-readable group members exist. Live settled savings and search scaling are separate gaps from encoded-size savings. | Measure paired protected volume occupation, range access and write cost at multiple data sizes before new stored formats. |
+| [Windows app entry](../../src/windows/volume_app_winfsp.cpp) and [file backing](../../src/native_volume_file.cpp) | Writable packed and sparse guest paths have bounded interruption evidence. | Qualify the actual signed package on a current interactive Windows 11 x64 client and disposable persistent media. |
+
+The [review receipt](../evidence/release-plan-refresh-2026-11-23.json) records the clean baseline,
+semantic source routing, exact input evidence and independently retrieved
+primary documentation. [Prior broad source review](../evidence/architecture-reconciliation-2026-11-21.json)
 
 ## Scope and evidence
 
-The inventory read and hashed every tracked blob in the selected tree. It
+The broad review at [df5be9b5b9d0](https://github.com/strmt7/FlitzFS/commit/df5be9b5b9d0bc05ac565eb2da8454ac76bed3d2)
+read and hashed every tracked blob in that tree. It
 visited 102,268 first-party source, test, build and tooling lines across 414
 files and retained 7,290 lines matching review criteria for ownership,
 resources, platforms, recovery, compatibility and explicit assumptions. It

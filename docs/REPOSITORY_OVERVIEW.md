@@ -1,16 +1,17 @@
 # FlitzFS repository overview
 
-Reconciled on 23 November 2026 against the **1,031-file** tree at
-`2091be0d5fb26a45b81d0b6a9258748a381e2739`, the latest mounted recovery
-receipts, and the separately source-bound Radeon transfer comparison. The review maps Windows attachment, authority,
-allocation, recovery, AMD, maintenance and package paths to live source
-and qualification. The [current architecture](architecture/CURRENT.md)
-shows the flows, and the [source review](architecture/REVIEW.md) records
-which assumptions still need evidence. Use the [revised architecture](architecture/TARGET.md),
+Reconciled on 23 November 2026 against the **1,034-file** tree at
+`1afc654b9ee44952dce82a99a74e474cb5b03fb9`. The review follows the actual Windows
+entry points, indexed storage and recovery, AMD roles, compression and
+maintenance with source-bound test receipts. The
+[current architecture](architecture/CURRENT.md) shows these flows and the
+[source review](architecture/REVIEW.md) records the assumptions under review.
+Use the [target architecture](architecture/TARGET.md),
 [detailed implementation plan](IMPLEMENTATION_PLAN.md) and
 [release execution plan](RELEASE_EXECUTION_PLAN.md) for forward work.
 
-[Current review and Radeon transfer receipt](evidence/windows-amd-stream-copy-2026-11-23.json) ·
+[Current review receipt](evidence/release-plan-refresh-2026-11-23.json) ·
+[Radeon transfer receipt](evidence/windows-amd-stream-copy-2026-11-23.json) ·
 [Mounted retirement](evidence/windows-mounted-packed-retirement-2026-11-23.json) ·
 [Prior mounted/native reconciliation](evidence/release-execution-reconciliation-2026-11-23.json) ·
 [Previous review receipt](evidence/release-path-review-2026-11-23.json) ·
@@ -49,6 +50,17 @@ the sparse allocation to 1.75 MiB. A fresh helper wrote successfully again
 in each later cycle. The held reader, independent CPU inspection and
 persisted retirement checks passed on every cycle. Scale and sustained
 attachment still need separate evidence. [Repeated settlement](evidence/windows-mounted-repeated-reclamation-2026-11-23.json)
+
+**The indexed path spends less backing I/O on the same verification.**
+At 16,384 short files, checked record reads fell from 350,772 to 186,089
+backing calls with the same byte coverage and both fences. In a separate
+16,384-object scrub profile, a batch of up to 64 records reduced reading
+from 677,412,864 to 20,111,360 backing bytes. The live controller repaired
+a bad peer before the first file read. An in-process observation
+requires complete coverage of an unchanged checkpoint. Writable admission
+still runs the full inventory.
+[Record reads](evidence/indexed-record-read-coalescing-2026-11-23.json) ·
+[Scrub and repair](evidence/indexed-scrub-checkpoint-2026-11-23.json)
 
 **Concurrent cached and mapped flushes survived helper interruption.**
 The three-file fixture observed two overlapping successful file-handle
@@ -385,7 +397,7 @@ Source: [WinFsp callback table and parameters](../src/windows/winfsp_native.cpp)
 [controller](../src/windows/winfsp_controller.cpp),
 [backend contract](../include/flitzfs/object_store.hpp).
 
-## Fresh dependency and alert check
+## Previous dependency and alert check
 
 The authenticated GitHub REST endpoint returned **zero open Dependabot
 alerts** in this reconciliation. The connector rejected the alert endpoint.

@@ -107,7 +107,13 @@ DiskSpd caching and alignment options work on every included target before
 running that comparison. Alternate across comparators and report cold and warm
 trials separately. The 22 November host inventory found neither matched mount
 available. The 23 November NTFS guest run exercised FlitzFS backing-file
-reclamation and CPU recovery. The native compression comparison remains open.
+reclamation and CPU recovery. The native compression comparison remains open. Build the matched benchmark
+pair only after the client and candidate support the same benchmarked
+operations. Create the compressed arm using the Windows directory feature and
+verify completed files, even when the source copy carries attributes. Sum file
+allocation and measure enclosing-volume use independently. Count FlitzFS's
+protection, namespace, shared dependencies and allocator slack in its complete
+cost. Report each baseline's protection and attach costs with the result.
 [File storage size API](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getcompressedfilesizew) ·
 [Host and image evidence](evidence/sealed-indexed-images-2026-11-22.json) ·
 [Guest recovery evidence](evidence/dense-cross-group-2026-11-23.json)

@@ -95,6 +95,10 @@ search when reference pricing could not be admitted. It kept the
 5. Require confirmed worker exit and fresh headroom before returning a route.
    Query at most the caller's bounded ordinal count under one exchange
    deadline. After an abnormal exchange, return without another probe.
+   The installed write entry point accepts the owner's stop token. A
+   pre-cancelled request returns before package or adapter inspection.
+   During discovery the supervisor handles cancellation and verifies retirement.
+   Check the stop token after final budget sampling before offering a route.
 
 The route key binds the worker, compute module and runtime digests to
 the adapter LUID, node and HIP ordinal. Its sealed token retains the file

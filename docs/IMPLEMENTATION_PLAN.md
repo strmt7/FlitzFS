@@ -1,7 +1,7 @@
 # FlitzFS detailed implementation plan
 
-**Reconciled on 23 November 2026.** The current source, tested changes and
-qualification are bound in the [current review receipt](evidence/windows-amd-stream-copy-2026-11-23.json).
+**Reconciled on 23 November 2026.** The [source and review receipt](evidence/release-plan-refresh-2026-11-23.json)
+binds the current baseline, referenced evidence, primary sources and scoped change.
 
 The [current architecture](architecture/CURRENT.md) shows the implementation.
 The [source review](architecture/REVIEW.md) tests the assumptions and the
@@ -278,6 +278,206 @@ Preparatory work can proceed in parallel within the dependency graph.
 Integrated claims depend on the corresponding complete paths. This sequence
 reuses the existing mounted and AMD controls instead of rebuilding the first
 indexed or read-only prototypes.
+
+### Next implementation tickets
+
+The following tickets turn the [release sequence](RELEASE_EXECUTION_PLAN.md#immediate-implementation-order)
+into changes that can be reviewed and verified independently. The per-package
+sections give the full contracts and contain the remaining work. Start the
+three initial lanes with a common build and external operation witness.
+
+#### E03 and E08. Qualify ordinary AMD foreground I/O
+
+1. **Acquisition and retirement.** Use the one owner in
+   [WinFsp controller](../src/windows/winfsp_controller.cpp). Extend its
+   installed-role acquisition to uniform writes. Use cancellation through
+   [installed discovery](../src/windows/hip_route_discovery.cpp) and the
+   existing worker supervisor. Distinguish lack of a winning workload,
+   transport contention, pressure, cancellation, configuration change,
+   untrusted results and unconfirmed retirement. Reuse the existing qualified
+   foreground offer. Confirm CPU requests complete during discovery and while
+   cancellation or worker retirement is in progress. Use a fake transport
+   and missing-package control before testing exact hardware.
+2. **Observe useful demand.** Publish a bounded observation from
+   [ordinary writes](../src/windows/winfsp_native.cpp) through the controller.
+   Capture alignment, request size, write mode, stream cadence, foreground
+   compression options, backing isolation unit and observed CPU write cost.
+   Add workload signals for compressibility and locality using measured
+   sampling overhead. Keep ownership of captured bytes explicit in
+   calibration; release buffers on veto, stale demand or shutdown. Count
+   aligned and rejected requests, along with sampling cost. Validate zero
+   worker launch on normal CPU-only, busy and unsupported shapes.
+3. **Calibrate with a complete operation.** Move reusable trial logic from
+   the [SDK comparison](../tests/test_native_deferred_write_sdk.cpp) into an
+   owned off-path recorder. Use paired independently decoded native
+   transactions over identical immutable bytes and equal protection, initial
+   volume shape and exact foreground policy. Rotate first-use order. Record
+   launch/setup/transfer/wait/readback/verification/retirement/publication,
+   as well as total elapsed and occupied bytes. Keep complete-cost sampling
+   separate from launch timing for funding. Preserve partial, fallback and
+   failed trials. The [existing policy](../src/windows/native_amd_write_policy.cpp)
+   is the control for eligibility. Require a positive matched result and
+   an independently funded complete window before offering a route.
+4. **Consume and invalidate.** Bind a measured offer to package/driver/runtime,
+   adapter, role, backing and compatible demand. Validate live headroom and
+   every candidate before authoritative publication. Expire or replace an offer
+   on material workload, runtime, pressure or topology change. Keep terminal
+   per-request fallback and exactly one accepted publication/response.
+   Replay refused fetch, malformed reply, cancellation, two competing offers,
+   fault before acknowledgement, unavailable accelerator and clean reacquisition.
+   Freeze a Windows client manifest and report accepted device extents,
+   reads delivered from independently verified device decode, and collective
+   outputs that change the selected image. Keep CPU recovery independent of
+   runtime installation, GPU encoder choice and persisted learner state.
+5. **Use measured losses.** If foreground remains CPU-preferred, improve the
+   cost stage that dominates on the paired hardware. Compare useful extents
+   per owned exchange, context setup amortization, immutable slab reuse and
+   verified staged prefetch. Use larger opportunities only when fresh quotas
+   fund the full operation and its retirement. The read lane evaluates whole
+   delivered latency and useful prefetch rate. The collective lane evaluates
+   verified net bytes saved and foreground interference. Do not infer a win
+   from kernel throughput or from a stored extent with higher complete cost.
+   A diagnostic losing shape remains a regression control. E03 exits only
+   with useful automatic mounted work for advertised roles and CPU continuity.
+
+#### E01, E02 and E11. Replace the global startup bottleneck safely
+
+1. **Use one independent trace.** Extend the existing mounted mixed-flush
+   case in [Windows application tests](../tests/windows_volume_app_tests.cpp).
+   Record client request ordering and successful barriers. Run paired packed
+   and sparse fixtures with fixed initialized data, mixed small/large files,
+   held readers and cache flags. Sweep short-file populations through feasible
+   geometrically spaced tiers. Reserve at least one feasible tier and one
+   different corpus for validation. Capture calls, bytes, cache traffic and
+   writes at the selector, image, catalog, inode and payload edges. Continue
+   from independent CPU recovery after helper exit. Export machine-readable
+   per-operation results with labels for native, mounted and physical evidence.
+2. **Observe before using faster admission.** Define the exact accepted root
+   pair, selector generation, backing identity and geometry, active lease,
+   allocator incarnation and dirty range coverage. Put the candidate attach
+   decision beside the complete CPU checks in
+   [native session](../src/native_session.cpp) and
+   [indexed inventory verification](../src/native_indexed_volume.cpp). The
+   decision runs in comparison mode while every attachment still uses full
+   authority checks. The current complete scrub observation remains advisory
+   and local to its exact checkpoint. It cannot stand in for signed-off
+   namespace/allocator coverage or for verification after a new lease.
+3. **Check touched dependencies and reconcile.** Prove page and payload
+   verification before exposure, including acquired reader pins and both
+   protection paths for newly written data. Exercise dirty shutdown, bad peer
+   and bad root, generation or selector replacement, changed backing, old
+   format, missing progress, concurrent mutation and damage outside the first
+   requested path. Compare selected generation, reads, error handling,
+   bytes and invocation counts with the reference. Any difference with
+   unresolved ownership or durability keeps full admission. Fit separate
+   predictions for lookup page growth, attach inventory reads, coherence
+   candidates, peak memory and reuse under churn. Check the predictions against
+   held-out measured tiers. Report prediction intervals and the assumed file
+   size, directory fan-out, data locality and hardware envelope when projecting
+   to millions or tens of millions of files. Keep observed ranges visible
+   beside projections.
+4. **Reclaim those same ranges.** Add reusable allocation incarnations behind
+   explicit format capability. Record extent, current owner, last reader and
+   rollback pins and retire sequence in the same COW authority as new
+   references. Model crashes before and after each range state change.
+   Extend the [native backing](../src/native_volume_file.cpp) and
+   [paged store](../src/paged_store.cpp) tests for near-full churn,
+   pinned generations, truncation, cancellation and partial provider
+   release. Verify allocation conservation and monotonic settled size
+   for a fixed live set after rebuilding and reopening. Keep the checked
+   rebuild as the oracle/provider fallback.
+
+#### E04 through E07. Establish the complete-volume compression frontier
+
+1. **Build the accounting and recall oracles.** Freeze content manifests,
+   revision groups and access schedules before tuning. Keep AIT A–H and I–P
+   as distinct named partitions and keep an additional corpus/revision
+   holdout independent of AIT pilot work. Count canonical object and
+   dependency bytes, namespaces, indices, models, mirrors, retention and
+   provider allocation. Report peak temporary bytes and write amplification
+   separately from settled size. Verify every file and a held-out set of
+   random ranges with the independent CPU reader.
+2. **Build scalable candidate discovery.** Extend the
+   [indexed coherence catalog](../src/indexed_coherence.cpp) from current
+   versioned postings. Reconcile by immutable extent/content ID and revision,
+   share exact equality only after confirming bytes, and use sparse bands
+   and bounded range lookups for similarity. Measure exact-oracle recall
+   on small cohorts and held-out savings on large cohorts. Page group
+   membership and resumable cursors, retire stale postings incrementally
+   and throttle frequent-key fan-out. Let one, a few or thousands of files
+   share a grouping if attractive. Use independent restart frames and
+   versioned dependencies to limit the work required for one file range.
+3. **Test representations before adding disk methods.** Compare current
+   packing, base/residual and strong per-frame controls with content-defined
+   matches, dictionary generations, structure-aware residuals and optional
+   specialized stages. Vary frame size, group size and dependency sharing
+   independently. Use the [current group codecs](../src/native_group_codec.cpp)
+   and fully charged protected roots as controls. Select the best complete
+   settled size among candidates that pass the declared range access and
+   resource envelope. Preserve incompressible, encrypted and already
+   compressed input as realistic controls. A learned codec must earn its
+   protected model and compute cost and provide a versioned deterministic
+   CPU reader before it can become a stored method.
+4. **Promote the tested format and offline policy.** Introduce only candidates
+   that pass size and access checks into the versioned CPU decoder registry.
+   Commit protected dependencies and self-contained frame references with
+   checked source revisions and reader lifetimes. Off-path preparation
+   must surrender publication rights when a selected source changes.
+   Learn which experiments to try and when to stop, using a small
+   rebuildable local learner and a deterministic baseline. Persist counters,
+   sampled features, policy version and progress in bounded advice objects.
+   Evaluate workload drift, restart, advice corruption, false positives,
+   low resources and two-volume contention. Report foreground overhead,
+   saved bytes, time to settle and actual bytes written.
+5. **Fund all autonomous maintenance together.** Run compression, scrubbing,
+   reclamation and migration through the same host/device admission and
+   per-volume resource accounting. Use live physical/commit/VRAM budgets,
+   CPU/GPU utilization, backing pressure, measured work cost and
+   foreground changes to admit bounded quanta. Share quotas across volumes;
+   protect readers, verify cancellation and track recipe-specific IO cost.
+   On HDD compare seek penalties and on flash record host writes and avoid
+   speculative rewrite churn. Observe actual pressure and capability by
+   backing rather than inferring policy from a drive label. Produce a
+   quiescence and resource-retirement report for each mounted profile.
+
+#### E08 through E13. Qualify and stabilize the thing users would install
+
+1. **Windows and provider contracts.** Exercise Explorer, common Win32 file
+   editors, directory enumeration, sharing, mapped and cached data, durable
+   flush, long/Unicode names, case matching and all advertised metadata.
+   Explicitly decide which additional Windows semantics become supported.
+   Apply the same contract to memory and existing-volume image backings.
+   Stage and verify missing user-mode dependencies with isolated scope,
+   transaction logs and rollback. Keep the approved kernel/display driver
+   state. Qualify the tray's create/mount/detach, recovery presentation,
+   offline install, relocation, upgrade and uninstall with signed artifacts
+   on the supported Windows client. Reuse FlitzZip's installed discovery
+   and dependency staging patterns where the filesystem's acknowledgement
+   and ownership contracts permit. Use byte and resource tests for each
+   additional provider before adding it to the support matrix.
+2. **Compatibility and restore.** Freeze historical readable fixtures and
+   their CPU decoder/dependency manifests. Test the proposed current
+   plus three preceding releases once those versions exist. Include
+   mixed-version roots, optional codec absence, unknown mandatory
+   features, staged upgrade under an older reader, interrupted selection
+   and recoverable rollback. Pin the data under upgrade until the
+   authority is verified. Ship an independent CPU inspection/export/repair
+   path with no accelerator dependency. Recover from surviving copies or a
+   separately verified restore source. Maintain an explicit failure model
+   for cases where every valid copy is lost.
+3. **Failure qualification and exact-candidate proof.** With the same
+   acknowledgement oracle, test data/metadata barriers, out-of-space and
+   device I/O errors, torn selectors, missing dependencies and faulty
+   retirement in isolated environments. Collect physical durability
+   evidence on disposable independent backings before a persistent
+   durability claim. Run benchmark, lifecycle and long soak work on the
+   exact supported candidate. Use Microsoft DiskSpd, WinFsp metadata and
+   correctness tools, and the public workloads specified in the
+   [benchmark protocol](BENCHMARK_PROTOCOL.md). Compare plain NTFS and
+   built-in NTFS compression; verify every compressed control file's state.
+   Keep guest results for correctness and collect comparison timings on
+   the real host. Record every open gate, unsupported path and material
+   measurement uncertainty in the owner decision packet.
 
 ## 4. E01 — Scalable native inode, name and extent storage
 
@@ -1708,7 +1908,7 @@ client; normal-user operation; required independent CPU recovery present;
 compatible missing packages handled safely without assumed host layout.
 **Existing ledger:** W01, U01, Q01. Do not publish a package as part of this plan.
 
-## 14. E11 — Durability, repair, security and independent failure qualification
+## 14. E11 — Durability, repair, and independent failure qualification
 
 This starts with each implementation change and continues through final release
 qualification. It is not a final pass of extra assertions after design is frozen.
@@ -1894,7 +2094,7 @@ work, bounded research and early integration steps should proceed sooner.
 | E08 Windows product | E01 for promised scale; native-provider qualification | 5–10 |
 | E09 compatibility/migration | E01, E02, E06 | 3–6 |
 | E10 supported package/workflows | E08, E09 | 3–6 |
-| E11 independent failure/security qualification | Runs throughout; final relevant implementations | 6–12 |
+| E11 independent failure qualification | Runs throughout; final relevant implementations | 6–12 |
 | E12 comparative qualification | E03, E06, E07, E08 and applicable E11 correctness gates | 3–6 |
 | E13 stabilization | E02, E03, E06–E12 | 6–12 |
 

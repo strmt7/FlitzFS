@@ -3,8 +3,8 @@
   "updated": "2026-11-23",
   "forward_work_rule": "Use current_release_sequence for integration order, and execution_programme and the implementation plan for package dependencies and exits. Historical checkpoints describe completed or partial evidence.",
   "current_release_sequence": {
-    "reviewed_commit": "2091be0d5fb26a45b81d0b6a9258748a381e2739",
-    "reviewed_tree": "ed355216aedfc9ddbc1104f0d52e2484e724a124",
+    "reviewed_commit": "1afc654b9ee44952dce82a99a74e474cb5b03fb9",
+    "reviewed_tree": "f2357634bc7f46004a331dd629d8e3f6bef129b6",
     "assessment": "docs/REPOSITORY_OVERVIEW.md",
     "architecture_diagrams": "docs/architecture/CURRENT.md",
     "source_review": "docs/architecture/REVIEW.md",
@@ -12,7 +12,10 @@
     "ordered_work": "docs/RELEASE_EXECUTION_PLAN.md#immediate-implementation-order",
     "package_contract": "docs/IMPLEMENTATION_PLAN.md",
     "gate_ledger": "docs/RELEASE_EXECUTION_PLAN.md#current-gate-ledger",
-    "evidence": "docs/evidence/windows-amd-stream-copy-2026-11-23.json",
+    "next_implementation_tickets": "docs/IMPLEMENTATION_PLAN.md#next-implementation-tickets",
+    "evidence": "docs/evidence/release-plan-refresh-2026-11-23.json",
+    "latest_native_attach_evidence": "docs/evidence/indexed-record-read-coalescing-2026-11-23.json",
+    "latest_chunked_scrub_evidence": "docs/evidence/indexed-scrub-checkpoint-2026-11-23.json",
     "latest_allocator_evidence": "docs/evidence/windows-mounted-repeated-reclamation-2026-11-23.json",
     "latest_recovery_evidence": "docs/evidence/windows-mounted-mixed-flush-recovery-2026-11-23.json",
     "latest_packed_helper_evidence": "docs/evidence/windows-packed-explorer-2026-11-23.json",
@@ -21,7 +24,7 @@
     "latest_amd_evidence": "docs/evidence/windows-amd-stream-copy-2026-11-23.json",
     "ntfs_comparison": "docs/BENCHMARK_PROTOCOL.md#plain-and-native-compressed-ntfs",
     "first_implementation_slice": "docs/RELEASE_EXECUTION_PLAN.md#first-implementation-slice",
-    "next": "Extend the mounted mixed-flush client under populated churn with attach and publication counters. Use the result to qualify bounded indexed reopen and sustained reuse. Calibrate the ordinary AMD offers with complete accepted-output cost while measuring held-out collective candidates.",
+    "next": "Capture eligible ordinary write demand and complete CPU cost; add controller-owned calibrated AMD offers using cancellable discovery. Extend the mounted mixed-flush client under populated churn and evaluate incremental writable admission beside the full oracle. Build the held-out compression and sparse-catalog accounting controls.",
     "release_qualified": false
   },
   "baseline": {

@@ -1,15 +1,15 @@
 # Release readiness
 
-FlitzFS is in development qualification. Its current Windows app, indexed
-storage and AMD routes have source-bound development evidence. Both backing
-profiles passed repeated mounted reclamation and recovered concurrent cached
-and mapped writes after the helper exited. The new Radeon transfer comparison
-verified six synthetic sweeps and left the production default unchanged.
-Sustained reuse at scale, ordinary AMD work, large-volume startup, physical
-recovery, held-out compression and installed Windows 11 behavior remain open.
+FlitzFS is in development qualification. Both backing profiles recovered
+acknowledged cached and mapped edits in small mounted guest trials. The
+latest indexed changes reduce backing I/O for full verification and scrub.
+Measured AMD work produced verified extents, and CPU won the three tested
+ordinary-policy write comparisons. The release still depends on large
+writable startup, sustained reuse, useful automatic AMD operation, held-out
+compression, physical recovery and supported signed Windows installation.
 The owner alone makes the release decision.
 [Mounted recovery](evidence/windows-mounted-mixed-flush-recovery-2026-11-23.json) ·
-[Current review](evidence/windows-amd-stream-copy-2026-11-23.json)
+[Current review](evidence/release-plan-refresh-2026-11-23.json)
 
 Use the [current gate ledger](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
 for status and acceptance. The [architecture review](architecture/REVIEW.md)

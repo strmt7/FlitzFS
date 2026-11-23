@@ -2,6 +2,11 @@
 
 ## Current local development
 
+Use the [stable release execution plan](RELEASE_EXECUTION_PLAN.md) for current
+priorities, the [detailed implementation tickets](IMPLEMENTATION_PLAN.md#next-implementation-tickets)
+for source-level handoffs, and the [current review receipt](evidence/release-plan-refresh-2026-11-23.json)
+for scope and evidence. The entries below retain implementation history.
+
 Background CPU preparation can continue on disjoint discovered groups while
 a full batch runs on AMD. Current host trials verified the overlap and CPU
 readback. Complete-operation throughput and mounted AMD qualification remain

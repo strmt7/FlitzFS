@@ -134,6 +134,9 @@ int verify_request_refusals() {
   const auto cancelled=flitzfs::discover_system_hip_route(valid,stop.get_token());
   if(cancelled.status!=HipDiscoveryStatus::cancelled || cancelled.route || cancelled.identity_queries)
     throw std::runtime_error("Cancelled discovery opened a route");
+  const auto installed=flitzfs::discover_installed_hip_route(valid.worker,valid.maximum_identity_queries,stop.get_token());
+  if(installed.status!=HipDiscoveryStatus::cancelled || installed.route || installed.identity_queries || installed.worker_exit)
+    throw std::runtime_error("Cancelled installed write discovery inspected an adapter or opened a route");
   verify_budget_recovery();
   std::cout << "HIP route request refusals: " << std::size(changes) << "\n";
   return 0;

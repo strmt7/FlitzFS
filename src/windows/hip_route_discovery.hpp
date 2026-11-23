@@ -59,7 +59,8 @@ HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest
 // The application supplies a resource budget. The configured package supplies
 // immutable digests and its ABI. Resolve relative to the running executable
 // and complete the same supervised discovery used by explicit callers.
-HipRouteDiscoveryResult discover_installed_hip_route(ProcessBudget,std::uint32_t maximum_identity_queries);
+HipRouteDiscoveryResult discover_installed_hip_route(ProcessBudget,std::uint32_t maximum_identity_queries,
+    std::stop_token={});
 struct InstalledAnchorProfile {
   ProcessBudget worker;
   std::uint32_t minimum_members=0,maximum_members=0,duty_ppm=0;

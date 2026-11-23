@@ -1,35 +1,33 @@
 # FlitzFS stable release execution plan
 
-Reviewed on 23 November 2026 against `2091be0d5fb26a45b81d0b6a9258748a381e2739`
-and tree `ed355216aedfc9ddbc1104f0d52e2484e724a124`. The current development
-delta and its tests are bound separately in the
-[stream-copy and planning receipt](evidence/windows-amd-stream-copy-2026-11-23.json).
-The [repository overview](REPOSITORY_OVERVIEW.md) describes the implemented
-paths. The [current architecture](architecture/CURRENT.md) and
-[target architecture](architecture/TARGET.md) show the boundaries. The
-[implementation plan](IMPLEMENTATION_PLAN.md) owns the detailed E01–E13
-package contracts. This plan sets priorities, dependencies and release exits.
-The [previous execution plan](https://github.com/strmt7/FlitzFS/blob/2091be0d5fb26a45b81d0b6a9258748a381e2739/docs/RELEASE_EXECUTION_PLAN.md)
-retains the earlier decisions and measurements.
+Reviewed on 23 November 2026 against the 1,034 tracked files at
+`1afc654b9ee44952dce82a99a74e474cb5b03fb9` and tree `f2357634bc7f46004a331dd629d8e3f6bef129b6`.
+The [review receipt](evidence/release-plan-refresh-2026-11-23.json) binds the
+source, reviewed artifacts and checks for this planning round.
+Use the [repository overview](REPOSITORY_OVERVIEW.md) for the product snapshot,
+the [current architecture](architecture/CURRENT.md) and [target architecture](architecture/TARGET.md)
+for system flows, and the [detailed implementation plan](IMPLEMENTATION_PLAN.md)
+for the E01–E13 work packages. The [previous plan](https://github.com/strmt7/FlitzFS/blob/1afc654b9ee44952dce82a99a74e474cb5b03fb9/docs/RELEASE_EXECUTION_PLAN.md)
+preserves the earlier order and assessment.
 
 ## Release assessment
 
-**Development qualification.** FlitzFS has a native, writable Windows storage
-path and an independent CPU reader. The largest risks for a stable release
-are full-inventory writable reopen, automatic AMD work that earns its cost
-inside the shipped helper, and persistent-media recovery. Extreme compression
-is a separate research risk. Smaller protected test images establish specific
-layout improvements. A record claim requires held-out, whole-volume results.
+**Development qualification.** The code provides a writable WinFsp filesystem
+with a native indexed store, independent CPU recovery and protected compression
+dependencies. The latest evidence reduces the cost of checked open and ongoing
+scrub, and confirms small mounted recovery sequences. The next release risks
+are ordinary AMD admission, the amount of work startup does at scale, the
+value of stronger collective compression, and recovery on persistent media.
 
-| Subsystem | Demonstrated | Remaining decision or gap |
+| Subsystem | Demonstrated | Work that still determines release |
 | --- | --- | --- |
-| Windows mount and foreground I/O | The WinFsp 2.2 guest opened packed and sparse images. Both accepted overlapping cached and mapped flushes. A separate CPU process recovered both acknowledged edits after helper termination, and a fresh helper wrote again. | Qualify the intended Windows 11 x64 servicing build, Explorer and native applications, external sharing and cache semantics, signed package lifecycle and longer mounted failure traces. [Mixed flush recovery](evidence/windows-mounted-mixed-flush-recovery-2026-11-23.json) |
-| Indexed storage | Paged names, inodes and extents serve native operations. Combining record reads cut backing calls from 350,772 to 186,089 at 16,384 short files. Both arms checked 76,462,421 bytes and held both fences. | Revise writable admission with a validated generation-bound path. Demonstrate correctness for old, dirty and damaged images and quantify the growth curve. [Record reads](evidence/indexed-record-read-coalescing-2026-11-23.json) |
-| Space reuse | Mounted packed and sparse images settled at 2 MiB and 1.75 MiB respectively over three repeated synthetic overwrite cycles, including delete/regrow, with the held reader verified. | Sustain reuse across populated live sets, pinned generations, churn, foreground load and near-full, interrupted and failing backings. [Repeated settlement](evidence/windows-mounted-repeated-reclamation-2026-11-23.json) |
-| AMD execution | A controlled Radeon write committed 16 device extents and verified 32 protected copies. The automatic write policy selected CPU in three 1 MiB public-input comparisons. A reopened SDK path verified two device read frames. The new transfer comparison verified all six requests, with near-equal warmed timings. | Supply qualified offers to the ordinary helper. Measure consumed device output, CPU service on loss, and complete cost by read, ingest and collective role. [Native writes](evidence/windows-amd-native-file-policy-2026-11-23.json) · [Reopened reads](evidence/amd-reopened-paired-sealed-read-2026-11-23.json) · [Transfer comparison](evidence/windows-amd-stream-copy-2026-11-23.json) |
-| Collective storage | On the AIT A–P fixture, sealed indexed images fell from 51,486,720 to 32,440,320 occupied bytes with the same compacted encodings and payload protection. Protected shared bases and incremental advisory state exist. | Compare whole-volume compression with held-out revisions and mixed files. Prove independent frame reads, restart, protected dependencies, offline adaptation and bounded rewrite cost. [Sealed placement](evidence/dense-cross-group-2026-11-23.json) |
-| Recovery and compatibility | Checked COW roots, mirrored payloads, independent CPU recovery, and mounted publication-cut tests cover defined scenarios. | Establish device-specific durability and repair, freeze a multi-release reader matrix, exercise gradual migration and keep verified recovery independent of the accelerator and learner. [Mounted publication cuts](evidence/windows11-mounted-mapped-publication-cuts-2026-11-22.json) |
-| Comparative evidence | DiskSpd 2.3 is available. The official AIT challenge corpus and CPython revisions are pinned. Whole-volume comparisons against mounted NTFS and native-compressed NTFS remain pending. | Collect matched, repeated live-host results on the exact candidate with content verification, complete bytes and latency distributions. [Benchmark protocol](BENCHMARK_PROTOCOL.md) |
+| Writable Windows path | Bounded signed WinFsp 2.2 guest runs mounted packed and sparse images, handled overlapping cached and mapped flushes, and recovered acknowledged edits after helper interruption. A fresh helper accepted more writes. | Extend one independent Win32/Explorer trace across populated churn and a current Windows 11 x64 installation, including sharing, cache behavior, packaging and stop/restart. [Mounted flush recovery](evidence/windows-mounted-mixed-flush-recovery-2026-11-23.json) |
+| Indexed storage | At 16,384 short files, merging checked reads reduced backing calls from 350,772 to 186,089 with the same 76,462,421 checked bytes and both fences. An independently checked 1,024-file mount recovered and accepted a further write. | Make healthy writable admission grow with the validated decision surface. Retain the full CPU oracle for ambiguous state, old images and recovery. [Record-read evidence](evidence/indexed-record-read-coalescing-2026-11-23.json) |
+| Background repair and space reuse | A same-checkpoint scrub compared 677,412,864 and 20,111,360 backing read bytes over 16,384 objects. The live controller repaired a damaged peer before the first file read. Small mounted packed and sparse overwrite/delete/regrow cycles returned to 2 MiB and 1.75 MiB respectively. | Verify off-path corruption, crash/repair interleavings, near-full reuse, retained readers and sustained plateau under a realistic live set. [Scrub checkpoint](evidence/indexed-scrub-checkpoint-2026-11-23.json) · [Repeated settlement](evidence/windows-mounted-repeated-reclamation-2026-11-23.json) |
+| AMD execution | A controlled Radeon write committed 16 device extents with 32 checked protected copies. All three paired 1 MiB public-file write trials selected CPU. A reopened SDK path verified two device-read frames. Six separate transfer trials had near-equal warmed times across modes. | Connect qualified observations to the ordinary controller. Win separately on compression, decompression and collective search where matched full-path measurements justify it, then show consumed output and CPU continuity through the same supported mount. [Native writes](evidence/windows-amd-native-file-policy-2026-11-23.json) · [Reopened reads](evidence/amd-reopened-paired-sealed-read-2026-11-23.json) · [Transfer comparison](evidence/windows-amd-stream-copy-2026-11-23.json) |
+| Compression and learning | Protected shared bases, packed extents, paged similarity postings and low-priority maintenance exist. On the bounded AIT A–P fixture, a layout change kept encodings and protection fixed and reduced the settled image from 51,486,720 to 32,440,320 bytes. | Price the entire volume and all dependencies on held-out snapshots and mutation traces. Prove the sparse catalog scales and compare offline adaptive choices with deterministic controls. [Sealed placement](evidence/dense-cross-group-2026-11-23.json) |
+| Durability and evolution | Both root and selector publication have modeled and mounted interruption cases. The independent CPU reader and replica checks have verified recovery in those cases. | Establish per-backing flush behavior, physical fault boundaries, repair from surviving sources, historical reader fixtures and resumable migration. [Mounted publication cuts](evidence/windows11-mounted-mapped-publication-cuts-2026-11-22.json) |
+| Comparative evidence | Recognized benchmark tooling and official corpus inputs have been staged. Measured pilots identify individual storage and accelerator costs. | Compare the same installed candidate with plain and Windows-native-compressed NTFS on the real host, using verified writes/reads, occupation and access distributions. [Benchmark protocol](BENCHMARK_PROTOCOL.md) |
 
 ### Remaining engineering effort
 
@@ -43,10 +41,14 @@ layout improvements. A record claim requires held-out, whole-volume results.
 | Comparative evidence and stabilization | E12–E13 | 9–18 | Repeatable matched comparisons and exact-candidate soak |
 
 **59–127 person-weeks**, approximately **60–130**, remain as a low-confidence
-work estimate. The individual ranges include qualification and corrective
-work. The compression result is open-ended. Re-estimate after each listed
-observation. Hardware and signing availability and the soak windows affect
-calendar time. [Package dependency and effort table](IMPLEMENTATION_PLAN.md#17-completion-dependency-graph-and-effort)
+work estimate. The recent work reduced local I/O costs. It leaves the package
+ranges intact because it does not change startup's inventory dependence,
+ordinary AMD selection or persistent-media qualification. The ranges include
+corrective work and verification. Hardware coverage, signed artifact
+availability and exact-candidate soak also affect elapsed time. The compression
+research has an additional open-ended component until a credible held-out
+result sets the direction. Re-estimate where the table identifies new evidence.
+[Package dependency and effort table](IMPLEMENTATION_PLAN.md#17-completion-dependency-graph-and-effort)
 
 ## Current gate ledger
 
@@ -71,25 +73,36 @@ covers the exact candidate and advertised support matrix.
 
 ## Critical path
 
-1. Close the first mounted product slice with a client witness, phase
-   attribution and independent recovery. Use that trace to prioritize startup,
-   publication and allocation work.
-2. Move the unavoidable inventory work out of healthy attach only when the
-   exact root, backing and touched ranges can justify that change. Qualify
-   allocator reuse and the durable frontier with the same client trace.
-3. Qualify useful AMD by role and the first held-out collective representation
-   on the current native engine. Reuse compatible evidence between them.
-   Freeze a new durable representation only after the CPU reader and complete
-   cost win are demonstrated.
-4. Bind automated, low-priority maintenance, upgrades and product installation
-   to those contracts. Complete provider qualification before final benchmark
-   and soak. Prepare installer and failure fixtures during storage work.
-5. Freeze the supported candidate. Run comparisons and stabilization with
-   the packaged paths and prepare the owner decision packet.
+1. **Start from the ordinary application.** Use one external client trace for
+   startup, a populated mixed operation sequence, foreground AMD, allocation
+   and successful flush acknowledgements. The helper, driver and backing
+   manifests travel with that trace. Keep the reference native CPU reader in
+   a different process. E01, E02, E03 and E08 share this harness.
+2. **Prove the writable authority and reuse rules.** Advance E01's checked
+   mount and E02's allocator together where their invariants intersect.
+   Isolate the acceleration change from any format change. Keep prospective
+   incremental decisions in comparison mode until they agree with full
+   verification across healthy, interrupted and older images.
+3. **Find useful GPU and compression regions in parallel.** E03 starts with
+   costs on the ordinary write and read paths and can qualify background
+   compute while foreground shapes are still on CPU. E04 and E05 price
+   candidate selection and encoding on disposable images before committing
+   to a new representation. E06 owns the independent reader and format
+   contract. E07 can tune behavior after those costs and invariants are
+   observable.
+4. **Qualify the delivered product.** E08–E11 carry the same path through a
+   signed Windows 11 installation, clean restart, physical and memory
+   backings, older fixtures, independent rescue and interruptible upgrades.
+   Prepare package and failure fixtures during earlier work. The applicable
+   durability evidence must precede exact-candidate performance claims.
+5. **Freeze the candidate and make the results reproducible.** E12 runs
+   matched real-host comparisons and documents where FlitzFS wins or loses.
+   E13 closes outstanding integration failures and repeats affected evidence
+   after any artifact change. The final packet goes to the owner.
 
-A package advances when its exit evidence covers the intended product path.
-Return a missed acceptance condition to the responsible work package with
-its diagnosis and reproduction.
+Open gates stay visible in the ledger. The team records any failed criterion
+with the observed scope, first diverging operation and the work package that
+owns the correction.
 
 ## 1. Candidate and platform ledger
 
@@ -99,9 +112,11 @@ its diagnosis and reproduction.
   Qualify at the actual artifact boundary. Reuse evidence for unchanged
   inputs only when the measured path and environment still apply.
 - Bind actual Windows edition, architecture, build and servicing revision.
-  Windows 11 26H2 is listed at 26300.9974 for the 10 November servicing
-  update. The mounted guests sampled build 26100. Record the actual client
-  revision on every run. [Windows release information](https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information)
+  Microsoft's current Windows 11 26H2 table lists 26300.9974 for the November
+  B update and 26300.10075 for the November D update. Qualify the supported
+  generally available x64 servicing build rather than inferring full client
+  coverage from mounted guest build 26100. Record the edition, channel and
+  actual client revision on every run. [Windows release information](https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information)
 - Bind the exact signed WinFsp SDK, user DLL and driver independently.
   WinFsp 2026 v2.2 is the checked upstream release. Run the selected package
   in a disposable client before any conditional owner installation.
@@ -109,8 +124,11 @@ its diagnosis and reproduction.
 - Track ROCm Core SDK distribution, HIP headers, runtime ABI and installed
   driver as separate identities. Use version-specific AMD release notes and
   observed device capabilities for any support claim. Recent AMD notes cover
-  the 10.2.0 distribution. A successful live run on a machine covers the
-  recorded tuple. Preserve CPU service when no AMD tuple qualifies.
+  the 10.2.0 distribution and its HIP 7.17.0 component. They also report
+  that priority streams are disabled in that HIP release. Use host scheduling,
+  finite device quanta and foreground feedback to govern background work.
+  A successful live run covers the recorded tuple, including the actual DLL
+  ABI and digest. Preserve CPU service when no AMD tuple qualifies.
   [ROCm Core SDK 10.2.0 release notes](https://rocm.docs.amd.com/en/docs-10.2.0/about/release-notes.html)
 - For a candidate change, invalidate evidence that shares any changed input
   or altered contract. Write the required recheck into the gate record before
@@ -436,48 +454,62 @@ separately. [Persistence model](PERSISTENCE_MODEL.md)
 
 ## Immediate implementation order
 
-| Order | Work to start | Concrete handoff |
-| --- | --- | --- |
-| 1 · E01/E02/E08 | Extend the existing mixed-flush mounted client under populated churn and add startup/publication counters. | One request-to-ack trace with both backing modes, independent CPU results and allocation/ownership reconciliation. |
-| 2 · E01/E11 | Add the root/allocator verification invariant and differential harness, then replace the demonstrated inventory bottleneck behind the unchanged full-audit oracle. | An exact-source healthy/repair/legacy sweep and held-out growth curve. |
-| 3 · E03/E08 | Build normal-helper automatic AMD calibration from the scoped hardware evidence. Compare mixed shapes and integrate the measured offer. | A mounted AMD/CPU/refused-device run showing consumed write and read output, whole-path cost and fallback/recovery. |
-| 4 · E04–E07 | Build a complete-size oracle and sparse-catalog tests, then evaluate protected reference/residual layouts and offline selection. | A held-out size/access/write frontier that identifies the candidate representation, budgets and unsupported cohorts. |
-| 5 · E08–E11 | Lock the Windows semantic and package contracts, native provider recovery and compatibility traces. | Exact signed candidate artifacts with install/removal and provider/migration evidence. |
-| 6 · E12/E13 | Run matched comparisons and candidate stabilization. | Owner decision packet with reproducible evidence for the twelve gates. |
+| Start order | Work package | First reviewable output | Next dependency |
+| --- | --- | --- | --- |
+| 1 | E03/E08 ordinary AMD acquisition and CPU continuity | The running controller owns an idle-admitted, cancelable qualification; ordinary writes remain operational during refusal, cancellation and retirement. | Measured ordinary-path offer and accepted/rejected route outcomes by role |
+| 1 | E01/E02/E11 checked attach and settled ownership | Full-audit differential with populated short and mixed-file images, attach category counters, preserved flush witness and allocator reconciliation. | Generation-bound prototype in shadow mode and a held-out scale curve |
+| 1 | E04/E05/E06 complete-size oracle and research | Replayable pinned cohorts, protected size ledger, bounded-query recall oracle, independent frame decode and a validation split by source family. | A candidate representation with demonstrable whole-volume savings and usable range reads |
+| 2 | E01/E02/E08 integrated native engine | Mounted incremental admission and allocation settle under churn, retained readers and near-full pressure, with the independent full CPU reader. | Reliable backing lifecycle for packaging and fault qualification |
+| 2 | E06/E07/E09 ordinary collective storage and upgrades | CPU-first reader, transactionally published protected dependencies, bounded migration and an offline policy tested against a deterministic control. | Windows client, recovery and comparative qualification |
+| 3 | E08–E11 installed Windows experience | Signed artifact passes current Windows 11 installation, interaction and removal, backing lifecycle, compatibility and scoped physical-recovery campaigns. | Freeze executable, driver, format and supported platform inputs |
+| 4 | E12/E13 comparisons and stabilization | Matched real-host reports, reliability and soak evidence, and an owner decision packet for the twelve gates. | Owner approval |
 
-The AMD and collective experiments can proceed using verified unchanged
-interfaces while the scalable admission work advances. Defer final comparative
-claims until the mounted paths and format under test have stabilized.
+Work in the first three lanes can proceed together when the relevant owners,
+fixtures and measurements are independent. Use
+[implementation tickets](IMPLEMENTATION_PLAN.md#next-implementation-tickets)
+for source entry points, exit tests and decisions that depend on the results.
 
 ### Next integrated qualification
 
-Grow the latest mixed-flush fixture on both existing backings, under one
-owned mount per case. Interleave acknowledged overwrites, mapped range edits,
-rename, delete/regrow and reads from an older held handle. Include a phase
-without maintenance and a phase with automatic settle. Save per-operation
-inputs and hashes, file revision, cache flags, callback and publication times,
-selected generation, client acknowledgement, occupied allocation, and all
-owned process outcomes. Correlate timestamps at the external client and helper
-boundaries. Preserve partial failing traces.
+Extend the signed WinFsp mixed-flush trace to populated packed and sparse
+volumes with a fixed logical live set and held readers. Interleave acknowledged
+cached writes, mapped changes, rename, delete/regrow, enumeration and ordinary
+reads. Capture the application's acknowledgement before interrupting the
+owned helper. Verify all affected ranges, neighboring files and expected
+metadata with a separate CPU reader. Run an unchanged control with maintenance
+off and a second trace through automatic settle. Record selected generation,
+per-phase backing bytes/calls/writes/flushes, pins, resource deltas and which
+state was made durable. Use the guest for correctness. Collect throughput and
+latency independently on the measured Windows host. [Existing fixture](evidence/windows-mounted-mixed-flush-recovery-2026-11-23.json)
 
 ### First implementation slice
 
-1. Extend `tests/windows_volume_app_tests.cpp` and its isolated client harness
-   from the existing mixed-flush case. Record acknowledgements at the client
-   and check all touched and untouched payloads on an independent CPU reader.
-2. Attribute attach and edit work in `src/native_volume_file.cpp`,
-   `src/paged_store.cpp` and `src/windows/winfsp_native.cpp` with test-gated
-   counters. Record the selected backing, page/metadata/payload categories,
-   writes, flush count and peak memory. Verify the counters and reproduce the
-   existing small-volume behavior before scaling.
-3. Use the result to choose the first bounded writable-admission change and
-   the next reclamation cut. For AMD, price actual complete work by role.
-   Carry the measured foreground binding through the existing controller once
-   it shows useful cost, and use an unchanged CPU control. Preserve
-   phase-specific GPU failures along with request exit and retirement.
-4. Attach source-bound receipts, a verified resource cleanup result and an
-   updated gate row at each validated checkpoint. Publish development
-   checkpoints through the configured repository workflow.
+1. **Completed in this checkpoint.** Installed uniform write discovery
+   accepts cancellation through the existing worker transport. The Windows SDK
+   checks cover a pre-cancelled request and the existing CPU ownership path.
+   All routes recheck cancellation after final budget sampling.
+   [Validation receipt](evidence/release-plan-refresh-2026-11-23.json)
+2. Capture ordinary eligible write shapes as bounded observations in the WinFsp
+   owner. Include expected request rate, exact foreground compression policy,
+   alignment and backing geometry. Measure real CPU write cost at this entry
+   point. Keep request bytes inside owned preparation or dedicated samples with
+   an explicit lifetime.
+3. Extend the existing controller's acquisition slot to own calibrated writes,
+   coexisting with read and anchor opportunities. Fund preparation from live
+   resource observations. Use complete, matched native transactions with
+   independent readback, byte accounting and child retirement to create a
+   configuration-bound offer. Reuse the existing qualified foreground
+   admission point. Exercise CPU preference and invalidating observations
+   before accepting a live-device offer.
+4. Measure useful output with a real mounted request after a positive route
+   qualification. Record why other requests use CPU and whether the helper
+   resumes with a fresh opportunity after an interruption. A losing shape stays
+   on CPU and feeds the batch/codec work in E03, E05 and E06.
+5. In the same development sequence, exercise writable admission and scrub
+   against the full audit on a new scale tier. Verify legacy and damaged
+   images, repairs between observation and attach, and interrupted publication.
+   Advance an attach optimization only after the differential agrees.
 
+[Detailed implementation tickets](IMPLEMENTATION_PLAN.md#next-implementation-tickets) ·
 [Current architecture diagrams](architecture/CURRENT.md) ·
-[Previous mounted flush case](evidence/windows-mounted-mixed-flush-recovery-2026-11-23.json)
+[Physical-host and guest evidence boundaries](BENCHMARK_PROTOCOL.md)

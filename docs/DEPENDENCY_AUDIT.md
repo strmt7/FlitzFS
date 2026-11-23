@@ -29,7 +29,7 @@ authenticated GitHub CLI.
 
 The 17 November review and its initial unsupported `page` request are retained
 in the [historical receipt](evidence/repository-review-2026-11-17.json).
-The [current overview](REPOSITORY_OVERVIEW.md#fresh-dependency-and-alert-check)
+The [current overview](REPOSITORY_OVERVIEW.md#previous-dependency-and-alert-check)
 records fresh upstream release metadata and distinguishes selected pins from
 the older VS-bundled CMake actually used locally. Zero alerts is not a complete
 C++ dependency, runtime or security audit. The following UI/API observations

@@ -7,16 +7,18 @@
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
   "release_path_review": {
-    "evidence": "docs/evidence/windows-amd-stream-copy-2026-11-23.json",
-    "reviewed_parent": "2091be0d5fb26a45b81d0b6a9258748a381e2739",
-    "tracked_parent_files": 1031,
+    "evidence": "docs/evidence/release-plan-refresh-2026-11-23.json",
+    "reviewed_parent": "1afc654b9ee44952dce82a99a74e474cb5b03fb9",
+    "tracked_parent_files": 1034,
     "qualification": "development",
     "remaining_effort_person_weeks": [59, 127],
     "estimate_confidence": "low",
     "immediate_trace": "docs/RELEASE_EXECUTION_PLAN.md#next-integrated-qualification",
-    "native_ntfs_comparison": "specified, matched live-host run pending",
-    "mounted_packed_attachment": "Signed guest lifecycle, repeated packed and sparse settlement, and overlapping cached and mapped flush recovery verified in bounded traces. Populated sustained settlement remains open.",
-    "automatic_foreground_amd": "SDK activation qualified in its scope. The transfer comparison verified six requests with no warmed advantage. Ordinary helper admission pending."
+    "next_implementation_tickets": "docs/IMPLEMENTATION_PLAN.md#next-implementation-tickets",
+    "native_ntfs_comparison": "Plain and built-in NTFS compression specified; matched real-host run pending.",
+    "mounted_packed_attachment": "Bounded signed guest recovery and continued writes verified, with a 1,024-file packed recovery fixture. Sustained populated settlement and current-client qualification remain open.",
+    "automatic_foreground_amd": "Installed uniform discovery supports cancellation. Existing measured controlled writes stored real device output, and the three paired comparisons favored CPU. Ordinary helper qualification and selection remain open.",
+    "incremental_admission": "Checked read coalescing and batched scrub have lower measured I/O. A complete unchanged scrub observation has no attach authority. Full writable verification remains in force."
   },
   "dense_cross_group_relocation": {
     "evidence": "docs/evidence/dense-cross-group-2026-11-23.json",

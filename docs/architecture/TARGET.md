@@ -1,7 +1,7 @@
 # Revised FlitzFS architecture
 
-The [current architecture](CURRENT.md) and [repository review](REVIEW.md) describe
-the source at df5be9b5b9d0. This document specifies the proposed boundaries for
+The [current architecture](CURRENT.md) and [source review](REVIEW.md) describe
+the reviewed implementation. This document specifies the proposed boundaries for
 the Windows 11 x64 product. Each change has an implementation and acceptance
 sequence in the [development plan](../IMPLEMENTATION_PLAN.md#3-execution-order-and-dependencies).
 
@@ -117,6 +117,13 @@ Qualify three mechanisms separately before combining them:
    and payloads on access, run a resumable whole-volume audit and keep explicit
    full verification for recovery. Unknown coverage forces the verified
    recovery path. Measure startup work and the time to discover off-path damage.
+   Run the candidate decision beside full verification first, with no authority
+   to attach. Bind any later reusable coverage to the exact root and selector
+   generations, exclusive backing lease, checked allocation incarnations and
+   complete identification of changed ranges. An in-process scrub observation
+   only covers payload replicas at its observed checkpoint. Retain an explicit
+   full-audit recovery path and treat unverifiable overlap or changed external
+   state as reasons to require it.
 2. Same-layout segment repair or evacuation. Copy only proven live objects,
    compare generations before publication and retire storage under existing
    reader and object pins. Measure host and provider bytes written, allocator
@@ -262,7 +269,31 @@ representative input shape, workload, device memory and recovery generation.
   runtime. Build and link isolated role controls to detect cross-role symbol
   dependencies early. Link shared verified routines explicitly for each role.
 
-Discovery runs only for qualified work and changed evidence. Resource pressure
+The normal controller owns calibration beside discovery. Callbacks emit a
+bounded demand and CPU-cost observation. The controller admits complete paired
+native trials with a fresh idle/resource window and an explicit input owner.
+Qualifying observed work produces a scoped offer; each actual request is
+admitted again against its shape, policy, bounds and live route. A canceled
+probe can be repeated at a new qualified opportunity after retirement. Refusal
+due to runtime/device identity or pressure requires corresponding evidence.
+[Detailed calibration steps](../IMPLEMENTATION_PLAN.md#e03-and-e08-qualify-ordinary-amd-foreground-io)
+
+```mermaid
+flowchart LR
+    Write["Ordinary Windows write"] --> Cpu["Immediate eligible CPU storage"]
+    Write --> Demand["Bounded write shape and observed CPU cost"]
+    Demand --> Owner["Existing controller admits a qualification opportunity"]
+    Owner --> Trials["Matched CPU and device native trial transactions"]
+    Trials --> Verify["Independent readback, complete bytes and retirement"]
+    Verify -->|Measured win| Offer["Configuration-bound foreground offer"]
+    Verify -->|No measured win| Cpu
+    Offer --> Later["Recheck the next eligible request and resource envelope"]
+    Later -->|Admitted| Candidate["Verified device candidate for native publication"]
+    Later -->|Refused| Cpu
+    Candidate -->|Validation or worker failure| Cpu
+```
+
+Runtime acquisition uses fresh, role-specific evidence. Resource pressure
 uses a fresh observation. Device, runtime or integrity failures require a
 suitable requalification signal and confirmed retirement before reuse. An
 unready or unavailable route leaves the CPU path available while the owner

@@ -1,12 +1,11 @@
 # Current FlitzFS architecture
 
 The diagrams reflect the 23 November source review at
-`2091be0d5fb26a45b81d0b6a9258748a381e2739`, including repeated reclamation
-and concurrent mapped and cached flushes. The
-[current review receipt](../evidence/windows-amd-stream-copy-2026-11-23.json)
-binds the source and the scoped Radeon worker change. The [subsystem review](REVIEW.md) contains the
-detailed reconciliation. The [revised architecture](TARGET.md) describes
-planned product changes.
+`1afc654b9ee44952dce82a99a74e474cb5b03fb9` and the reviewed change to
+installed AMD discovery. The [source receipt](../evidence/release-plan-refresh-2026-11-23.json)
+binds this review to its code and validation. The [subsystem review](REVIEW.md)
+contains the findings. The [revised architecture](TARGET.md) gives the
+proposed boundaries for release.
 
 ## 1. Process and build boundaries
 
@@ -292,12 +291,39 @@ flowchart TD
 ```
 
 Normal indexed remount requires a full native audit and a stored mirror pass.
-Reader and image pins constrain reclaimable storage. Losing both trustworthy copies or losing
-the backing medium is outside the demonstrated mirror-repair scope.
+Checked record-header and payload spans can share a backing read. The
+selected image and selector must both remain bound through the fences.
+Reader and image pins constrain reclaimable storage. Repair requires a
+verified surviving source.
+[Combined record reads](../evidence/indexed-record-read-coalescing-2026-11-23.json)
 [Selector reopen and audit](../../src/volume_head.cpp#L158)
 · [single-pass indexed audit path](../../src/native_session.cpp#L642)
 · [stored mirror recheck evidence](../evidence/indexed-fenced-stored-recheck-2026-11-22.json)
 · [mounted post-flush restart](../evidence/windows11-mounted-post-flush-recovery-2026-11-21.json)
+
+### Background payload verification
+
+The active Windows controller performs small replica checks during admitted
+maintenance. It closes an observation only after verifying one unchanged
+checkpoint from the beginning. Restored advisory positions can resume work.
+Damage, repair or a change in selected state requires fresh complete coverage.
+
+```mermaid
+flowchart TD
+    Work["Controller admits low-priority scrub work"] --> Start["Capture exact active checkpoint and cursor"]
+    Start --> Batch["Read a funded record batch and verify both replicas"]
+    Batch -->|Valid and more remain| Yield["Yield or continue while foreground and budgets permit"]
+    Yield --> Batch
+    Batch -->|Valid complete unchanged checkpoint| Observation["Record current in-process verification observation"]
+    Batch -->|Bad peer| Repair["Queue repair under ordinary COW ownership"]
+    Batch -->|State changed or checks failed| Reset["Restart verification or report damage"]
+    Resume["Restore advisory cursor"] --> Batch
+    Resume -. "needs a fresh complete pass" .-> Start
+    Observation -. "telemetry only" .-> Full["Writable admission independently verifies its authority"]
+```
+
+[Current scrub evidence](../evidence/indexed-scrub-checkpoint-2026-11-23.json) ·
+[Scrub contract](../MIRRORED_PAYLOADS.md) · [Owned controller](../WINFSP_OWNED_CONTROLLER.md)
 
 ### Packed backing relocation
 
@@ -404,23 +430,25 @@ write. The next fixture extends this result through repeated settled cycles.
 
 ## 9. AMD work and immediate CPU continuity
 
-The installed background anchor acquisition path can start from an eligible
-native maintenance candidate. The separately qualified foreground controller and
-finite uniform sweep demonstrate additional real GPU work. Both follow an
-independent CPU validation boundary.
+Package-enabled controllers can acquire installed AMD anchor and read-ahead
+routes from eligible opportunities. The foreground write interface can accept
+a qualified offer. Its current callers exercise SDK fixtures. A uniform
+acquisition can be cancelled before or during its supervised exchange.
 
 ```mermaid
 flowchart LR
-    B["Background anchor opportunity"] --> Discover["Match package, runtime, adapter LUID and node"]
-    F["Qualified foreground offer / native integration fixture"] --> Discover
-    Discover --> Admit["Fresh host and device budgets, active identity and useful-work evidence"]
-    Admit -->|Admitted| Worker["Bounded process / session channel / finite kernel work"]
-    Admit -->|Refused| CPU["Continue on independent CPU input"]
-    Worker --> Validate["Check job, byte output and live completion evidence"]
-    Validate -->|Candidate fits| Publish["Native owner revalidates before publication"]
-    Validate -->|Any refusal| CPU
-    Worker --> End["Confirm process and channel retirement"]
-    End --> Health["Evidence-driven future eligibility or quarantine"]
+    B["Ordinary installed read-ahead or anchor opportunity"] --> Discover["Match package, runtime, adapter LUID and node"]
+    F["SDK-controlled measured foreground offer"] --> Discover
+    Discover --> Admit["Check fresh budgets and supported work"]
+    Admit -->|Admitted| Worker["Bounded process with owned immutable input"]
+    Admit -->|Refused| CPU["Select independent CPU service"]
+    Worker -->|Deadline or cancellation| CPU
+    Worker --> End["Confirm process and transport retirement"]
+    End -->|Successful exchange| Validate["Check job, bytes and live completion evidence on CPU"]
+    Validate -->|Accepted| Publish["Native owner revalidates before delivery or publication"]
+    Validate -->|Rejected| CPU
+    End -->|Unconfirmed retirement| Quarantine["Fence later accelerator work"]
+    Quarantine --> CPU
 ```
 
 The most recent uniform worker change allows one qualifying replacement sample

@@ -286,6 +286,7 @@ HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest
       }
       const auto fresh=query_windows_gpu_budget(match.luid,node);
       if (!admit_discovery_budget(result, fresh, match.luid, node, deadline)) return result;
+      if(stop.stop_requested())return {Status::cancelled,result.worker_exit,result.identity_queries};
       const auto runtime=pinned->runtime.digest();
       const auto configuration=route_key(request.helper_sha256,runtime,module_digest,match,node);
       const auto module_pinned=pinned->module.has_value();
@@ -460,7 +461,9 @@ bool InstalledHipInputWitness::changed() noexcept {
 #endif
 }
 
-HipRouteDiscoveryResult discover_installed_hip_route(ProcessBudget budget,std::uint32_t maximum_identity_queries) {
+HipRouteDiscoveryResult discover_installed_hip_route(ProcessBudget budget,std::uint32_t maximum_identity_queries,
+    std::stop_token stop) {
+  if(stop.stop_requested())return {Status::cancelled};
 #ifdef FLITZFS_BIND_INSTALLED_AMD_PACKAGE
   if(!valid_process_budget(budget) || !maximum_identity_queries || maximum_identity_queries>64)return {};
   if(!installed_amd_package::has_uniform)return {Status::package_unavailable};
@@ -469,7 +472,7 @@ HipRouteDiscoveryResult discover_installed_hip_route(ProcessBudget budget,std::u
   request.uniform_module_sha256=installed_amd_package::uniform_module_sha256;
   request.worker=budget;
   request.maximum_identity_queries=maximum_identity_queries;
-  return discover_application_package(std::move(request),HipRouteRole::uniform,{});
+  return discover_application_package(std::move(request),HipRouteRole::uniform,stop);
 #else
   (void)budget;
   (void)maximum_identity_queries;

@@ -1,0 +1,314 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "release_qualified": false,
+  "scope": "Repository overview and revised stable-release execution plan with a scoped Windows AMD acquisition change.",
+  "source": {
+    "commit": "1afc654b9ee44952dce82a99a74e474cb5b03fb9",
+    "tree": "f2357634bc7f46004a331dd629d8e3f6bef129b6",
+    "tracked_files": 1034,
+    "tracked_bytes": 17704561,
+    "tracked_source_inventory_sha256": "19bcd4e4ccd6bb2997e671de06250e96230fb9a206a506e00335383f1cb48819",
+    "tracked_directory_counts": {
+      ".github": 19,
+      ".gitignore": 1,
+      "AGENTS.md": 1,
+      "CMakeLists.txt": 1,
+      "CONTRIBUTING.md": 1,
+      "LICENSE": 1,
+      "README.md": 1,
+      "cmake": 2,
+      "docs": 546,
+      "evidence": 2,
+      "include": 42,
+      "resources": 7,
+      "src": 172,
+      "tests": 153,
+      "third_party": 19,
+      "tools": 66
+    },
+    "adapted_source_lf_sha256": {
+      "src/windows/hip_route_discovery.cpp": "4f82dbc5da4361337739710a2fdf987034ec52205d55033515717af8e66af6bb",
+      "src/windows/hip_route_discovery.hpp": "ff9180aa28019f59055657e6f9a20d4106043b1430ab743edd67a9ed0791dae0",
+      "tests/win_hip_route_probe.cpp": "10b7b793c45186a27e40db4bbf01b9ddc96b98d92c3d314efb50f96c04635839"
+    },
+    "verification": "All tracked baseline blobs inventoried and matched against Git object identities. Manual review traced the active product boundaries and the differences from the previous plan.",
+    "blobs": {
+      "src/windows/hip_route_discovery.cpp": "813723fdafbd853ba27024139b093f735ddb12dd",
+      "src/windows/hip_route_discovery.hpp": "836faabfe315c8abee9b4127db02836c8e474f25",
+      "tests/win_hip_route_probe.cpp": "57360334e140cf0745f60da9c4df0b3aea53aa93"
+    }
+  },
+  "source_navigation": [
+    {
+      "commit": "1afc654b9ee44952dce82a99a74e474cb5b03fb9",
+      "provider_version": "0.2.43",
+      "scope": "code",
+      "source_files": 16,
+      "inventory_sha256": "1821682b2798348e07b130dba278ae69bab75df8fd0239cd643e27020f9ff2b4",
+      "actual_searches": 1,
+      "query": "persistent paged coherence ranges shared base group immutable dictionary independent restart units compression candidate policy low priority resource maintenance writable",
+      "native_response_sha256": "14c5273a80ca2d353b23fa6f1bfaba966d4a8c9681d164e1946277f4449300c3",
+      "source_receipt_sha256": "76c18064897fea77020408d39c11657ba499f12d896388339cf0023305b972a8",
+      "shared_registration_changed": false
+    },
+    {
+      "commit": "1afc654b9ee44952dce82a99a74e474cb5b03fb9",
+      "provider_version": "0.2.43",
+      "scope": "code",
+      "source_files": 7,
+      "inventory_sha256": "62c460193395460411f22f93e655bfe3fa770ec57ee63786e859359d3b6163b3",
+      "actual_searches": 1,
+      "query": "automatic product AMD foreground write route discovery pinned HIP package adaptive calibration CPU fallback deferred write shape complete measured deadlines installed read ahead worker owner lifecycle",
+      "native_response_sha256": "58df9d3a7dda4f47e13c16230fc72f5f84f6d2d59d18eaf0c47e3fdbf3540148",
+      "source_receipt_sha256": "569fa5b17e286994b347f2e0104b3e1c8b2fb7542c744da1aadba809dee10029",
+      "shared_registration_changed": false
+    }
+  ],
+  "reviewed_prior_evidence": [
+    "docs/evidence/indexed-record-read-coalescing-2026-11-23.json",
+    "docs/evidence/indexed-scrub-checkpoint-2026-11-23.json",
+    "docs/evidence/windows-mounted-mixed-flush-recovery-2026-11-23.json",
+    "docs/evidence/windows-mounted-repeated-reclamation-2026-11-23.json",
+    "docs/evidence/windows-amd-native-file-policy-2026-11-23.json",
+    "docs/evidence/amd-reopened-paired-sealed-read-2026-11-23.json",
+    "docs/evidence/windows-amd-stream-copy-2026-11-23.json",
+    "docs/evidence/dense-cross-group-2026-11-23.json",
+    "docs/evidence/architecture-reconciliation-2026-11-21.json"
+  ],
+  "primary_sources": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "aa9f3e1e7d4e0d3d1b030dd2695b8c0a5114a7b0d90e1f3d85cc38f581ff0631",
+    "robots_checked": true,
+    "external_llm": false,
+    "retained_native_extractions": true,
+    "pages": [
+      {
+        "name": "windows-current",
+        "url": "https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information",
+        "success": true,
+        "http_status": 200,
+        "error": "",
+        "capture_sha256": "3145893762790c0961af9b4e4727bb424474b9088d79be5bd94908bd5025df61",
+        "markdown_sha256": "2faae088806a31e9fb4957a073081fb98ba56f0b12a7541b87233f5d5d9ccbec",
+        "markdown_bytes": 78583,
+        "reviewed_scope": "Windows 11 26H2 general availability, November Security and Preview builds, and scope of the parallel 26H1 release."
+      },
+      {
+        "name": "amd-release",
+        "url": "https://rocm.docs.amd.com/en/docs-10.2.0/about/release-notes.html",
+        "success": true,
+        "http_status": 200,
+        "error": "",
+        "capture_sha256": "fdecb1d79427c054f1138f2295fcb8f08c7d90c8938853cd659c11700132dde8",
+        "markdown_sha256": "18caaf90d5ea55c1acb99c34abb277aa89c6eada8e5300b6ffdebe356e45a728",
+        "markdown_bytes": 303361,
+        "reviewed_scope": "ROCm Core 10.2.0 was released on 18 November, lists HIP 7.17.0, and reports disabled priority streams for that HIP release. Verify the actual installed ABI, digest and Windows device tuple independently."
+      },
+      {
+        "name": "ntfs-native",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_compression",
+        "success": true,
+        "http_status": 200,
+        "error": "",
+        "capture_sha256": "b533963c21c4fc9b0750ccd7a8e3d20714d014749062e04e509454578fe2e539",
+        "markdown_sha256": "48b0bd005d9276173ea26d9d5ddfd0f6019586ea3a1cd33cb8e74730a01f060a",
+        "markdown_bytes": 63183,
+        "reviewed_scope": "FSCTL_SET_COMPRESSION DEFAULT uses Windows built-in LZNT1. A directory setting provides the default for new files, and FSCTL_GET_COMPRESSION verifies the mode."
+      },
+      {
+        "name": "diskspd",
+        "url": "https://github.com/microsoft/diskspd/releases/tag/v2.3",
+        "success": true,
+        "http_status": 200,
+        "error": "",
+        "capture_sha256": "2c9e3859a8a975a7f4563a10076f1bad2f0c94ced6c207f782588caa88278adb",
+        "markdown_sha256": "eeb9b62171e288479521b4b40ed1cc6cce292b18b155e44762c8f59b64d05cb2",
+        "markdown_bytes": 10890,
+        "reviewed_scope": "Microsoft DiskSpd 2.3 changes default affinity and buffer spacing. Explicit matched options control those effects."
+      },
+      {
+        "name": "winfsp",
+        "url": "https://github.com/winfsp/winfsp/releases/tag/v2.2",
+        "success": true,
+        "http_status": 200,
+        "error": "",
+        "capture_sha256": "feac1242f0fe5f78c4e73681241cd2a69554a73fa8cd4011c2ad8e934bd2094e",
+        "markdown_sha256": "8f4088fb00fc374e043238c09f208c2a45592c26488ac5adcf75ae6e35765ef6",
+        "markdown_bytes": 14040,
+        "reviewed_scope": "Maintainer's WinFsp 2026 v2.2 release dated 19 November. The release asset does not establish qualification on a given client."
+      },
+      {
+        "name": "ait",
+        "url": "https://aitdcc.github.io/dataset.html",
+        "success": true,
+        "http_status": 200,
+        "error": "",
+        "capture_sha256": "d9f0bfd5be98f7a0500f660395cedec8cf8f570f4ff3f90997634deeda89cff1",
+        "markdown_sha256": "766801630c0c3f7c80304f41397c0ae265fd0cb79387c2837c920c08b8987676",
+        "markdown_bytes": 6271,
+        "reviewed_scope": "The official AITDCC 2026 dataset identifies training A\u00e2\u20ac\u201cH, prior challenge testing I\u00e2\u20ac\u201cP, published integrity hashes and attribution obligations. Use a separate revision-family holdout for pilot-driven filesystem decisions."
+      },
+      {
+        "name": "sort-enhanced",
+        "url": "https://www.usenix.org/conference/fast26/presentation/huang",
+        "success": true,
+        "http_status": 200,
+        "error": "",
+        "capture_sha256": "6306b64ac22a78a075148640a0a52df148ddaea9274c74f5bd1c51c4db2feacc",
+        "markdown_sha256": "b271b38f1feb88acd780ae11d756c7f3723fecb288cfe5e7803fed9c5d93767d",
+        "markdown_bytes": 10395,
+        "reviewed_scope": "FAST '26 RubikFS uses similarity sorting and hotness grouping for static, read-only images. The writable design still needs bounded incremental discovery, protected references and measured rewrite interference."
+      }
+    ]
+  },
+  "implementation": {
+    "changed": "Forward owner cancellation through installed uniform route discovery and withhold a binding after cancellation detected at the final budget check.",
+    "exact_windows_probe": "bounded_hip_route_request_refusals",
+    "observed_behavior": "Pre-cancelled installed discovery refuses before inspecting package or adapter and reports zero identity queries and no route.",
+    "unchanged_authority": "The native controller, independently verified CPU data and existing worker retirement contract retain their existing roles. This checkpoint does not enroll a production AMD foreground profile.",
+    "device_compute_executed_this_round": false,
+    "owner_driver_installation": false
+  },
+  "tests": {
+    "windows_sdk_build": {
+      "id": "local-run-43a16cf2ef2c411eb0723e420baa6a12",
+      "log_sha256": "bbf7bdef50f33c1ccac945b3a501429a8230a6913f49f21a7e47dd52537027f3",
+      "exit_code": 0,
+      "seconds": 83.2039999999979,
+      "timeout_seconds": 180,
+      "available_physical_bytes": 11776847872,
+      "available_commit_bytes": 53633949696,
+      "commitment_limit_bytes": 624951296,
+      "peak_job_bytes": 537604096,
+      "cpu_limit_percent": 18,
+      "tree_retired": true,
+      "residual_children": 1
+    },
+    "windows_sdk_checks": {
+      "id": "local-run-84ef8175bd6a4345988071c524c4a9cc",
+      "log_sha256": "4d6d964bfaba642442027608902431bd959c563cd3d2a5d98aecdf4e31dede35",
+      "exit_code": 0,
+      "seconds": 6.562000000005355,
+      "timeout_seconds": 100,
+      "available_physical_bytes": 11746607104,
+      "available_commit_bytes": 53623173120,
+      "commitment_limit_bytes": 747634688,
+      "peak_job_bytes": 38133760,
+      "cpu_limit_percent": 15,
+      "tree_retired": true,
+      "residual_children": 0,
+      "groups": [
+        "bounded_winfsp_controller",
+        "owned_native_deferred_write_sdk",
+        "bounded_hip_route_request_refusals"
+      ]
+    },
+    "windows_release_build": {
+      "id": "local-run-d576b2feeb8746d3b9f57de9999a948a",
+      "log_sha256": "639018c1e986111209da6466964ec5cca170098512deee75d499cb41e6a0c39d",
+      "exit_code": 0,
+      "seconds": 35.89100000000326,
+      "timeout_seconds": 200,
+      "available_physical_bytes": 11581067264,
+      "available_commit_bytes": 53463887872,
+      "commitment_limit_bytes": 609222656,
+      "peak_job_bytes": 523583488,
+      "cpu_limit_percent": 18,
+      "tree_retired": true,
+      "residual_children": 1
+    },
+    "windows_ctest": {
+      "groups_verified": 217,
+      "initial": {
+        "id": "local-run-5dce3f772dff452885cd4bcad0f2ecf1",
+        "log_sha256": "5dcbdef976ae4fbc664c85168c0a0ff2b8a1de7611991a48f53b4477b8b2903e",
+        "exit_code": 1460,
+        "seconds": 160.06200000000536,
+        "timeout_seconds": 160,
+        "available_physical_bytes": 11449200640,
+        "available_commit_bytes": 53315710976,
+        "commitment_limit_bytes": 717225984,
+        "peak_job_bytes": 325263360,
+        "cpu_limit_percent": 16,
+        "tree_retired": true,
+        "residual_children": 0,
+        "groups_passed_before_deadline": 108
+      },
+      "continuation": {
+        "id": "local-run-51efda928399498985d349aac06b4d61",
+        "log_sha256": "0f43c60485e974c571b20cf4fa436b215c074437a0b8808673af5bf6cc5a7e7f",
+        "exit_code": 8,
+        "seconds": 134.86000000000058,
+        "timeout_seconds": 220,
+        "available_physical_bytes": 9623142400,
+        "available_commit_bytes": 51260379136,
+        "commitment_limit_bytes": 534773760,
+        "peak_job_bytes": 538296320,
+        "cpu_limit_percent": 18,
+        "tree_retired": true,
+        "residual_children": 0,
+        "groups_attempted": 109,
+        "passed": 107,
+        "first_failures": [
+          "bounded_native_volume_file_sealed_ranges",
+          "bounded_winfsp_volume_file"
+        ],
+        "observations": [
+          "Paired sealing stopped before checked selection.",
+          "WinFsp backing fixture reported bad allocation with a 204288000-byte fixture allowance."
+        ]
+      },
+      "selective_recheck": {
+        "id": "local-run-673fc0c706be4138bf6d8ecd49b35743",
+        "log_sha256": "bd55bca9cd27936c8b06d8f10496f6cb04593a09f3e12157535739881f0d0699",
+        "exit_code": 0,
+        "seconds": 9.235000000000582,
+        "timeout_seconds": 110,
+        "available_physical_bytes": 9760190464,
+        "available_commit_bytes": 51421200384,
+        "commitment_limit_bytes": 1372585984,
+        "peak_job_bytes": 669855744,
+        "cpu_limit_percent": 16,
+        "tree_retired": true,
+        "residual_children": 0,
+        "previously_failed_groups_passed": [
+          "bounded_native_volume_file_sealed_ranges",
+          "bounded_winfsp_volume_file"
+        ],
+        "note": "Same binaries and checks. Recomputed allowance using one quarter of the live headroom after the configured reserve. First-run failures are retained."
+      }
+    },
+    "documentation_check": {
+      "links_checked": 75,
+      "work_packages": 13,
+      "open_gates": 12,
+      "planning_json_files": 3
+    }
+  },
+  "planning": {
+    "packages": 13,
+    "open_release_gates": 12,
+    "remaining_effort_person_weeks": [
+      59,
+      127
+    ],
+    "estimate_confidence": "low",
+    "immediate_work": [
+      "Own measured AMD qualification in the ordinary controller and consume only winning verified offers.",
+      "Measure and compare incremental writable admission against the full indexed inventory without weakening authority.",
+      "Build complete-byte and recall oracles for sparse collective compression using held-out data."
+    ],
+    "comparison_status": "Matched real-host plain and built-in-compressed NTFS results remain open.",
+    "authorities": [
+      "docs/RELEASE_EXECUTION_PLAN.md",
+      "docs/IMPLEMENTATION_PLAN.md",
+      "docs/architecture/CURRENT.md",
+      "docs/architecture/TARGET.md"
+    ]
+  },
+  "cleanup": {
+    "bounded_test_runs_retired": true,
+    "isolated_research_and_routing_retired": true
+  }
+}
