@@ -1,0 +1,1322 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "qualification": "development",
+  "release_qualified": false,
+  "source": {
+    "base": "b3397d3bfb7e7b5b936fcd98b7e1f7c6f10f1455",
+    "base_tree": "71cd27fb87516ed9ee2732b79690919e7a30e691",
+    "blobs": {
+      "src/paged_store.cpp": "8c25ea35542726f729b5effe12a4154a1a0499eb",
+      "tests/native_fs_fixture.hpp": "2daa4a4aa861eda9bdd14b0c4dfdc7879a15eb1e",
+      "tests/test_native_paged_backend.cpp": "e715a725e2ec684e0679240ccfc516c0f2a165ae"
+    },
+    "normalized_sha256": {
+      "src/paged_store.cpp": "fb367bc7b4675c7af12222d60845d29f8d5014f10e1d40755dc65581acd0165c",
+      "tests/native_fs_fixture.hpp": "034087ce82688ebb0640b0a3a8bc7efbf02568801799c63d695bfe2699515d99",
+      "tests/test_native_paged_backend.cpp": "a85df0254e02f06d53d9ef39de4c766b5cc911991bdbba83cf2822ab44c23f0c"
+    }
+  },
+  "mechanism": {
+    "short_read": "Read the frame described by the checked descriptor. Header, encoded digest and paired-bank geometry remain checked independently.",
+    "post_fence": "Reuse the bounded frame buffer for stored-only verification of both mirrors.",
+    "fixture": "Inject and count a fault at the byte read from the modeled backing, including an offset internal to a coalesced read.",
+    "format_changed": false,
+    "complete_inventory_walk": true
+  },
+  "routing": {
+    "provider_version": "0.2.43",
+    "current_files": 6,
+    "source_inventory_sha256": "08e714cbfa240221eeb4d10ba05b2c0fb4acaa3d952d0d7583d47e243a3af4f2",
+    "observation_sha256": "8f9c833ba014ce056a2831ad8f493a1e6bd994c2dd4cc74d4a85a03ab5220d0a",
+    "routing_receipt_sha256": "f6d47e84d0fcf9c3f2b5960f28b13435141ef4423ba4653c17caf4fd2841d7e5",
+    "execution": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 1208614912,
+      "memory_bytes": 1405091840,
+      "cpu_percent": 13,
+      "elapsed_seconds": 55.578000000008615,
+      "timeout_seconds": 170.0,
+      "inherited_error_mode": 32771,
+      "id": "local-run-81a0b66ad7984df89baf2f87d14c4faa",
+      "receipt_sha256": "f063800b0896d760ffe1c5d49cfa8e4caaefd500aef3e4281e89d51fb79d4bb7",
+      "stdout_sha256": "ca5adb5f583e5a9b0ab366211ae5a662f1e1443f1ec4a8cfb9a01486689eaaf1"
+    },
+    "failed_initial_run": {
+      "exit_code": 1,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 665866240,
+      "memory_bytes": 665845760,
+      "cpu_percent": 14,
+      "elapsed_seconds": 18.937000000005355,
+      "timeout_seconds": 150.0,
+      "inherited_error_mode": 32771,
+      "id": "local-run-6bbb90254e004ea08ff377dfc61d876b",
+      "receipt_sha256": "732879def7eece8f6e684c1eab2470f778c84a820e0d765190d2a6b40105b06e",
+      "stdout_sha256": "3d18217e0452c293cd319d868595ba7f0d9588d556276b1d56b6e6cf01772389"
+    },
+    "initial_failure": "The index daemon connection was lost while the job reached its measured allocation boundary. The bounded restored run searched the isolated mirror at current main."
+  },
+  "research": {
+    "execution": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 446353408,
+      "memory_bytes": 675282944,
+      "cpu_percent": 11,
+      "elapsed_seconds": 9.343999999997322,
+      "timeout_seconds": 205.0,
+      "inherited_error_mode": 32771,
+      "id": "local-run-2c917347a4c74644bb81f881eb4a1213",
+      "receipt_sha256": "51e4dd532532e442dc007a988cb302a7a4d8ce09007f3683ac41e18fe7170039",
+      "stdout_sha256": "1c50dabb8cc2f87fefce0cbfe8c7d34e62ad600f11aa5a384a63f3b6c99b1d1b"
+    },
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "robots": true,
+    "external_LLM": false,
+    "source_identity": {
+      "tools/crawl4ai_tool.py": "e84a0e54ee07e4e13d3d2f35491f641730096a78126068f232c1f2397a467d8c",
+      "tools/crawl4ai_research.py": "ec3cb7a98eceed8fef08f3af806d6eaed35656bd76ca0ee8853d273f790337a5",
+      "tools/requirements/crawl4ai.txt": "6a42b0ff5ff6c63c843c6329ce823b819fd4f6f068e68d1836ab6dbec96e8f2f",
+      "tools/crawl4ai_sites.json": "e8869cb0488d78762a90aea6ecf2c3616bb89f0c89a8800cc512c613a750dc86",
+      "tools/nltk_distribution.py": "19eb3007c226b1a13e1ad0daa79cbd8a7bf6d082a20bf386e36ac060d0000919",
+      "tools/python_wheel.py": "c3c9a62454cb377203abce32154bec07cbf805bc7420cc89386c1c18370b301a",
+      "tools/test_nltk_model_security.py": "8aab7e2a704af875992ecae9137cdf5e5ff6935a4dd49e6751c54b2629a7280b",
+      "tools/requirements/python-build.txt": "9b280d724fda87773ba33a2654362adad84c68c4f79394adc07ff2e0293ca498",
+      "tools/crawl4ai_source_build.py": "5c27c4693fa0880a8db399825f637b694616963fc11f708afed33fa5b2e38b48",
+      "tools/crawl4ai_download_opener.py": "d5fd20b5545fd64c93a06b3ef07732f1c2da7e09ee6cda80662475007db52538",
+      "tools/test_crawl4ai_downloads.py": "ae4cf54c351a9da2de49caeb96306f384bb6a8f487318eabc69db4132d658619",
+      "third_party/upstream/nltk/3.10.4/distribution.json": "3241a8670f12e205525fc096572ed1969c063f77e13cffd70eff5eb656fbe1b0",
+      "nltk_upstream_wheel": "e46d89e59ef949270e3b19ab097da8dbb09350e05cb5a746ff92f6ccf6e8ce90",
+      "crawl4ai_source_build": "7da6376934254d9ad1de9e016a4509dae32c47559955889424435fcbbc7419f5"
+    },
+    "receipt_sha256": "4a7befcd640933a34d774a580eca2ebda38b1ab4ab21d6e89c0cd3a2b0d0918f",
+    "pages": [
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 21415,
+        "markdown_sha256": "2f12c6325e2d0cd0950ae3621c20590cff1c447f16312b2ce53dc09f590d2b02",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.08,
+        "capture": "flush-file.native.json",
+        "capture_sha256": "7d8fad3e640ba3bbe32ddc96eadce7def3a40a807247189949be36f62b5752bc",
+        "name": "flush-file"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/fileio/file-caching",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 23227,
+        "markdown_sha256": "6f6a632ded8fba3af29ee5630a4126ac5fdb5338b81c1827b3a66556d03ebf62",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.647,
+        "capture": "file-cache.native.json",
+        "capture_sha256": "8d611934e54830b31920c400aae9bb074da43590ff622d5082a2cc002c9ba04d",
+        "name": "file-cache"
+      },
+      {
+        "url": "https://docs.kernel.org/filesystems/xfs/xfs-online-fsck-design.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 275823,
+        "markdown_sha256": "6db21e649727eb496cd2d62c6448185c446796cd79dc4747407e279d1af259b6",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.87,
+        "capture": "xfs-scrub.native.json",
+        "capture_sha256": "f91df709cf6441a85138cd4668fcf0665327d488f6b520ed734fd4cbb5623102",
+        "name": "xfs-scrub"
+      },
+      {
+        "url": "https://www.usenix.org/conference/osdi25/presentation/cui",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 10567,
+        "markdown_sha256": "e7a4ce40ce6e46564e695765295749e5d60911e98398d0f6458036d7347caa7f",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.426,
+        "capture": "f2fsj.native.json",
+        "capture_sha256": "0806acb24cc2fc2a52f2c63736bbc9c2079f0b45fb8d71bb78965c58ecaf7c43",
+        "name": "f2fsj"
+      }
+    ]
+  },
+  "profile": {
+    "method": "Timed only writable resume of in-memory volumes on the Windows host. Three pairs per workload, order AB, BA, AB. Both profile binaries used identical no-fault fixture code before the test-only fault injection patch.",
+    "control": {
+      "commit": "b3397d3bfb7e7b5b936fcd98b7e1f7c6f10f1455",
+      "binary_sha256": "9f891b6334c1ca443510bb0af0672125cac04e7484d8f51bbac6c770f68d13cc"
+    },
+    "candidate": {
+      "paged_store_blob": "8c25ea35542726f729b5effe12a4154a1a0499eb",
+      "binary_sha256": "4fde58b838d4bb04f45882efef502f529178e241f2382a012c373419d2511491"
+    },
+    "short_files": [
+      {
+        "files": 1024,
+        "workload": "short_files",
+        "trials": [
+          {
+            "pair": 1,
+            "arm": "A",
+            "run": {
+              "exit_code": 0,
+              "tree_retired": true,
+              "residual_children": 0,
+              "peak_job_bytes": 14925824,
+              "memory_bytes": 658505728,
+              "cpu_percent": 16,
+              "elapsed_seconds": 0.15600000000267755,
+              "timeout_seconds": 75.0,
+              "inherited_error_mode": 32771,
+              "id": "local-run-eae494790e8d4289be7c5e2fdb326160",
+              "receipt_sha256": "41584d6cf8486ecd5ecf39f2df3fb13fbda86597df7b92e65cf02e6849bccd10",
+              "stdout_sha256": "36699c8f514ee9603882282e9e6dac07614d37a6537c476135a6c1b776a5acfc"
+            },
+            "observed": {
+              "files": 1024,
+              "image_pre_flush_bytes": 3004120,
+              "image_post_flush_bytes": 1708918,
+              "image_read_calls": 22028,
+              "image_flushes": 1,
+              "head_flushes": 1,
+              "backing_write_bytes": 0,
+              "reopen_ns": 7918200,
+              "logical_bytes": 17408,
+              "workload": "short_files",
+              "objects": 2082,
+              "object_tree_height": 2,
+              "stored_payload_bytes": 420966
+            }
+          },
+          {
+            "pair": 1,
+            "arm": "B",
+            "run": {
+              "exit_code": 0,
+              "tree_retired": true,
+              "residual_children": 0,
+              "peak_job_bytes": 14856192,
+              "memory_bytes": 658505728,
+              "cpu_percent": 16,
+              "elapsed_seconds": 0.17200000000593718,
+              "timeout_seconds": 75.0,
+              "inherited_error_mode": 32771,
+              "id": "local-run-40d1b98a946e42cea2452d1adcdf3b61",
+              "receipt_sha256": "fb77699fb2e55c7cb9fa19f72de08c5010a8f31c84fca98b09c641545de8f264",
+              "stdout_sha256": "8772eaf49e4891df8f1f8790f1553ef3093f1d5e7db45b925f7ccfba8f26815b"
+            },
+            "observed": {
+              "files": 1024,
+              "image_pre_flush_bytes": 3004120,
+              "image_post_flush_bytes": 1708918,
+              "image_read_calls": 11693,
+              "image_flushes": 1,
+              "head_flushes": 1,
+              "backing_write_bytes": 0,
+              "reopen_ns": 6966000,
+              "logical_bytes": 17408,
+              "workload": "short_files",
+              "objects": 2082,
+              "object_tree_height": 2,
+              "stored_payload_bytes": 420966
+            }
+          },
+          {
+            "pair": 2,
+            "arm": "B",
+            "run": {
+              "exit_code": 0,
+              "tree_retired": true,
+              "residual_children": 0,
+              "peak_job_bytes": 14774272,
+              "memory_bytes": 628097024,
+              "cpu_percent": 16,
+              "elapsed_seconds": 0.1409999999887077,
+              "timeout_seconds": 75.0,
+              "inherited_error_mode": 32771,
+              "id": "local-run-f8362d0b61774c6380916cf3a0f0c279",
+              "receipt_sha256": "52f14e3eb487bd181b1571c156ff5a8048d887a1373cfe5b82e24f69467fa727",
+              "stdout_sha256": "a664eb458748267776945e9344c278568c43dde696c176d5dbf847a909b5ebef"
+            },
+            "observed": {
+              "files": 1024,
+              "image_pre_flush_bytes": 3004120,
+              "image_post_flush_bytes": 1708918,
+              "image_read_calls": 11693,
+              "image_flushes": 1,
+              "head_flushes": 1,
+              "backing_write_bytes": 0,
+              "reopen_ns": 7004300,
+              "logical_bytes": 17408,
+              "workload": "short_files",
+              "objects": 2082,
+              "object_tree_height": 2,
+              "stored_payload_bytes": 420966
+            }
+          },
+          {
+            "pair": 2,
+            "arm": "A",
+            "run": {
+              "exit_code": 0,
+              "tree_retired": true,
+              "residual_children": 0,
+              "peak_job_bytes": 14831616,
+              "memory_bytes": 627048448,
+              "cpu_percent": 16,
+              "elapsed_seconds": 0.13999999999941792,
+              "timeout_seconds": 75.0,
+              "inherited_error_mode": 32771,
+              "id": "local-run-e0c3992429714d2891705967c9290762",
+              "receipt_sha256": "2b4140b781a3d62ce3f790244fd52e1780bdc1ac742be963714a997dce898f1c",
+              "stdout_sha256": "f34b2c83e65d09258248995a3f42de41f905baca8cf10be7c5960701d4bdf789"
+            },
+            "observed": {
+              "files": 1024,
+              "image_pre_flush_bytes": 3004120,
+              "image_post_flush_bytes": 1708918,
+              "image_read_calls": 22028,
+              "image_flushes": 1,
+              "head_flushes": 1,
+              "backing_write_bytes": 0,
+              "reopen_ns": 7829000,
+              "logical_bytes": 17408,
+              "workload": "short_files",
+              "objects": 2082,
+              "object_tree_height": 2,
+              "stored_payload_bytes": 420966
+            }
+          },
+          {
+            "pair": 3,
+            "arm": "A",
+            "run": {
+              "exit_code": 0,
+              "tree_retired": true,
+              "residual_children": 0,
+              "peak_job_bytes": 14811136,
+              "memory_bytes": 658505728,
+              "cpu_percent": 16,
+              "elapsed_seconds": 0.15600000000267755,
+              "timeout_seconds": 75.0,
+              "inherited_error_mode": 32771,
+              "id": "local-run-58ea643be37a47749cb6884c02e0252d",
+              "receipt_sha256": "57b1ce274e1655dd970730d93ad0d0835edbd775e0241b92a6007079c78ace0e",
+              "stdout_sha256": "6babde6ba209e589c2b0e33a5bf473121726ec95a9f595a233d7b9a17560666b"
+            },
+            "observed": {
+              "files": 1024,
+              "image_pre_flush_bytes": 3004120,
+              "image_post_flush_bytes": 1708918,
+              "image_read_calls": 22028,
+              "image_flushes": 1,
+              "head_flushes": 1,
+              "backing_write_bytes": 0,
+              "reopen_ns": 8098500,
+              "logical_bytes": 17408,
+              "workload": "short_files",
+              "objects": 2082,
+              "object_tree_height": 2,
+              "stored_payload_bytes": 420966
+            }
+          },
+          {
+            "pair": 3,
+            "arm": "B",
+            "run": {
+              "exit_code": 0,
+              "tree_retired": true,
+              "residual_children": 0,
+              "peak_job_bytes": 14843904,
+              "memory_bytes": 657457152,
+              "cpu_percent": 16,
+              "elapsed_seconds": 0.13999999999941792,
+              "timeout_seconds": 75.0,
+              "inherited_error_mode": 32771,
+              "id": "local-run-d729fca4ba004a289e7d91e82ed5447e",
+              "receipt_sha256": "2f05c2d4166929c9d362caac76c37c5b31d779d3e3f21b6be6be533016d2f5f3",
+              "stdout_sha256": "5ca42cceb0d823ae9c7a585ed4908bb1b30ddf34bd266da1e7f3d9d1c0a554f4"
+            },
+            "observed": {
+              "files": 1024,
+              "image_pre_flush_bytes": 3004120,
+              "image_post_flush_bytes": 1708918,
+              "image_read_calls": 11693,
+              "image_flushes": 1,
+              "head_flushes": 1,
+              "backing_write_bytes": 0,
+              "reopen_ns": 7002500,
+              "logical_bytes": 17408,
+              "workload": "short_files",
+              "objects": 2082,
+              "object_tree_height": 2,
+              "stored_payload_bytes": 420966
+            }
+          }
+        ],
+        "A": {
+          "read_calls": 22028,
+          "median_reopen_ns": 7918200,
+          "read_bytes": 4713038
+        },
+        "B": {
+          "read_calls": 11693,
+          "median_reopen_ns": 7002500,
+          "read_bytes": 4713038
+        }
+      },
+      {
+        "files": 8192,
+        "workload": "short_files",
+        "trials": [
+          {
+            "pair": 1,
+            "arm": "A",
+            "run": {
+              "exit_code": 0,
+              "tree_retired": true,
+              "residual_children": 0,
+              "peak_job_bytes": 112562176,
+              "memory_bytes": 627048448,
+              "cpu_percent": 16,
+              "elapsed_seconds": 1.5470000000059372,
+              "timeout_seconds": 75.0,
+              "inherited_error_mode": 32771,
+              "id": "local-run-9f660fbdc3f64c539e153b73b721a9d1",
+              "receipt_sha256": "0b4e814a6e0eac46649d16c4eef35b9811d18df4c9df494bcd753f2c62faa016",
+              "stdout_sha256": "f422407307323123e9fbdcd1742e84075b68e9f387b7c3bbd1ab43c7d6fc3983"
+            },
+            "observed": {
+              "files": 8192,
+              "image_pre_flush_bytes": 25897960,
+              "image_post_flush_bytes": 12294654,
+              "image_read_calls": 175414,
+              "image_flushes": 1,
+              "head_flushes": 1,
+              "backing_write_bytes": 0,
+              "reopen_ns": 66835000,
+              "logical_bytes": 139264,
+              "workload": "short_files",
+              "objects": 16600,
+              "object_tree_height": 2,
+              "stored_payload_bytes": 3357934
+            }
+          },
+          {
+            "pair": 1,
+            "arm": "B",
+            "run": {
+              "exit_code": 0,
+              "tree_retired": true,
+              "residual_children": 0,
+              "peak_job_bytes": 112570368,
+              "memory_bytes": 654311424,
+              "cpu_percent": 16,
+              "elapsed_seconds": 1.4369999999908032,
+              "timeout_seconds": 75.0,
+              "inherited_error_mode": 32771,
+              "id": "local-run-6c5820d6ba91429185330c49906673fa",
+              "receipt_sha256": "3a1b00b4708922fd43f1bda797aa675268df3ff41ef73aa05220b795b2c1b6a6",
+              "stdout_sha256": "01e2815e0bf55637ab4699bc0349422bb328ce86d8d4d479a2dfce8c9c85f482"
+            },
+            "observed": {
+              "files": 8192,
+              "image_pre_flush_bytes": 25897960,
+              "image_post_flush_bytes": 12294654,
+              "image_read_calls": 93059,
+              "image_flushes": 1,
+              "head_flushes": 1,
+              "backing_write_bytes": 0,
+              "reopen_ns": 55490900,
+              "logical_bytes": 139264,
+              "workload": "short_files",
+              "objects": 16600,
+              "object_tree_height": 2,
+              "stored_payload_bytes": 3357934
+            }
+          },
+          {
+            "pair": 2,
+            "arm": "B",
+            "run": {
+              "exit_code": 0,
+              "tree_retired": true,
+              "residual_children": 0,
+              "peak_job_bytes": 112566272,
+              "memory_bytes": 648019968,
+              "cpu_percent": 16,
+              "elapsed_seconds": 1.4839999999967404,
+              "timeout_seconds": 75.0,
+              "inherited_error_mode": 32771,
+              "id": "local-run-28bc030d8eea4b42882d7b73ba7f6616",
+              "receipt_sha256": "8705dacfd485d3044475d3a37e46e32ee101ecf52db35e0f8a6a5a7c84932f68",
+              "stdout_sha256": "fc48b2d1bc491a08efe9effc4d76716544645ba87c355a50df058a4ba1f66f7e"
+            },
+            "observed": {
+              "files": 8192,
+              "image_pre_flush_bytes": 25897960,
+              "image_post_flush_bytes": 12294654,
+              "image_read_calls": 93059,
+              "image_flushes": 1,
+              "head_flushes": 1,
+              "backing_write_bytes": 0,
+              "reopen_ns": 56554800,
+              "logical_bytes": 139264,
+              "workload": "short_files",
+              "objects": 16600,
+              "object_tree_height": 2,
+              "stored_payload_bytes": 3357934
+            }
+          },
+          {
+            "pair": 2,
+            "arm": "A",
+            "run": {
+              "exit_code": 0,
+              "tree_retired": true,
+              "residual_children": 0,
+              "peak_job_bytes": 111833088,
+              "memory_bytes": 646971392,
+              "cpu_percent": 16,
+              "elapsed_seconds": 1.485000000000582,
+              "timeout_seconds": 75.0,
+              "inherited_error_mode": 32771,
+              "id": "local-run-a8b85f66473c4630a9e694af7c96b7d1",
+              "receipt_sha256": "958b4b4d74e222d5053e773b4ff85233606119a2a10c6cb6617706e118a08889",
+              "stdout_sha256": "230ecb64d21f0da7006e9a081973b3cc7105da5e9eb818f9fef941d2bacb5689"
+            },
+            "observed": {
+              "files": 8192,
+              "image_pre_flush_bytes": 25897960,
+              "image_post_flush_bytes": 12294654,
+              "image_read_calls": 175414,
+              "image_flushes": 1,
+              "head_flushes": 1,
+              "backing_write_bytes": 0,
+              "reopen_ns": 62699000,
+              "logical_bytes": 139264,
+              "workload": "short_files",
+              "objects": 16600,
+              "object_tree_height": 2,
+              "stored_payload_bytes": 3357934
+            }
+          },
+          {
+            "pair": 3,
+            "arm": "A",
+            "run": {
+              "exit_code": 0,
+              "tree_retired": true,
+              "residual_children": 0,
+              "peak_job_bytes": 112594944,
+              "memory_bytes": 661651456,
+              "cpu_percent": 16,
+              "elapsed_seconds": 1.4689999999973224,
+              "timeout_seconds": 75.0,
+              "inherited_error_mode": 32771,
+              "id": "local-run-788f7a8a0d8d49fe90dd433cf8c252fd",
+              "receipt_sha256": "4507a687330be11f18b6fa44a3389a9a2646b4c91c995c61800a55dfe95a8feb",
+              "stdout_sha256": "64cedcc10910b4cc489e79fa802f95354f61dd705c3aa110f8fca68df7dc53c4"
+            },
+            "observed": {
+              "files": 8192,
+              "image_pre_flush_bytes": 25897960,
+              "image_post_flush_bytes": 12294654,
+              "image_read_calls": 175414,
+              "image_flushes": 1,
+              "head_flushes": 1,
+              "backing_write_bytes": 0,
+              "reopen_ns": 62898500,
+              "logical_bytes": 139264,
+              "workload": "short_files",
+              "objects": 16600,
+              "object_tree_height": 2,
+              "stored_payload_bytes": 3357934
+            }
+          },
+          {
+            "pair": 3,
+            "arm": "B",
+            "run": {
+              "exit_code": 0,
+              "tree_retired": true,
+              "residual_children": 0,
+              "peak_job_bytes": 111845376,
+              "memory_bytes": 633339904,
+              "cpu_percent": 16,
+              "elapsed_seconds": 1.4690000000118744,
+              "timeout_seconds": 75.0,
+              "inherited_error_mode": 32771,
+              "id": "local-run-89c0b52f61da4b8ba0d70a82328f06a7",
+              "receipt_sha256": "70afff917a96cfef05f5c378dfe3fa8c0bbb246c3e391c592eff3e9013e06d07",
+              "stdout_sha256": "373ea755a85e77a592d583b9988b30afe4930e94ea01d2e1667af7eb0b94cd7d"
+            },
+            "observed": {
+              "files": 8192,
+              "image_pre_flush_bytes": 25897960,
+              "image_post_flush_bytes": 12294654,
+              "image_read_calls": 93059,
+              "image_flushes": 1,
+              "head_flushes": 1,
+              "backing_write_bytes": 0,
+              "reopen_ns": 56803200,
+              "logical_bytes": 139264,
+              "workload": "short_files",
+              "objects": 16600,
+              "object_tree_height": 2,
+              "stored_payload_bytes": 3357934
+            }
+          }
+        ],
+        "A": {
+          "read_calls": 175414,
+          "median_reopen_ns": 62898500,
+          "read_bytes": 38192614
+        },
+        "B": {
+          "read_calls": 93059,
+          "median_reopen_ns": 56554800,
+          "read_bytes": 38192614
+        }
+      },
+      {
+        "files": 16384,
+        "workload": "short_files",
+        "trials": [
+          {
+            "pair": 1,
+            "arm": "A",
+            "run": {
+              "exit_code": 0,
+              "tree_retired": true,
+              "residual_children": 0,
+              "peak_job_bytes": 248815616,
+              "memory_bytes": 652214272,
+              "cpu_percent": 16,
+              "elapsed_seconds": 4.76600000000326,
+              "timeout_seconds": 75.0,
+              "inherited_error_mode": 32771,
+              "id": "local-run-1e3ef24b9aa5494e8f228ebea52abd9c",
+              "receipt_sha256": "b0bc734719d62bcf8314ab14294e9fe20cd88e24dee38e836ae1c132f402c0ed",
+              "stdout_sha256": "c2ba2f819a57960c13aaf62c82d07c9947b76c1590fd1c508ed2cdbe8b7c0fad"
+            },
+            "observed": {
+              "files": 16384,
+              "image_pre_flush_bytes": 52016317,
+              "image_post_flush_bytes": 24446104,
+              "image_read_calls": 350772,
+              "image_flushes": 1,
+              "head_flushes": 1,
+              "backing_write_bytes": 0,
+              "reopen_ns": 135035800,
+              "logical_bytes": 278528,
+              "workload": "short_files",
+              "objects": 33194,
+              "object_tree_height": 3,
+              "stored_payload_bytes": 6714760
+            }
+          },
+          {
+            "pair": 1,
+            "arm": "B",
+            "run": {
+              "exit_code": 0,
+              "tree_retired": true,
+              "residual_children": 0,
+              "peak_job_bytes": 248434688,
+              "memory_bytes": 659554304,
+              "cpu_percent": 16,
+              "elapsed_seconds": 4.797000000005937,
+              "timeout_seconds": 75.0,
+              "inherited_error_mode": 32771,
+              "id": "local-run-710ab797b6e84177aa990041b40caba5",
+              "receipt_sha256": "970b506d7a4af8453d57931136854311b879d6fee06b1f191115057d97cf0b1a",
+              "stdout_sha256": "6c34a80c9bf3b07787382a7d1574f24ac0a8ac26c7b3ffa27fde8c896414869c"
+            },
+            "observed": {
+              "files": 16384,
+              "image_pre_flush_bytes": 52016317,
+              "image_post_flush_bytes": 24446104,
+              "image_read_calls": 186089,
+              "image_flushes": 1,
+              "head_flushes": 1,
+              "backing_write_bytes": 0,
+              "reopen_ns": 115230000,
+              "logical_bytes": 278528,
+              "workload": "short_files",
+              "objects": 33194,
+              "object_tree_height": 3,
+              "stored_payload_bytes": 6714760
+            }
+          },
+          {
+            "pair": 2,
+            "arm": "B",
+            "run": {
+              "exit_code": 0,
+              "tree_retired": true,
+              "residual_children": 0,
+              "peak_job_bytes": 248541184,
+              "memory_bytes": 659554304,
+              "cpu_percent": 16,
+              "elapsed_seconds": 4.953000000008615,
+              "timeout_seconds": 75.0,
+              "inherited_error_mode": 32771,
+              "id": "local-run-45f2e58d245543d8acc812287e857ac7",
+              "receipt_sha256": "5bfa5e442bc379872867adada3c823ee978b9b1bee2f567a5e9097647861653e",
+              "stdout_sha256": "f1eeca273ff78820898e7dab531800898e76e5eb1425bc9746fcc2a6d0722060"
+            },
+            "observed": {
+              "files": 16384,
+              "image_pre_flush_bytes": 52016317,
+              "image_post_flush_bytes": 24446104,
+              "image_read_calls": 186089,
+              "image_flushes": 1,
+              "head_flushes": 1,
+              "backing_write_bytes": 0,
+              "reopen_ns": 115683800,
+              "logical_bytes": 278528,
+              "workload": "short_files",
+              "objects": 33194,
+              "object_tree_height": 3,
+              "stored_payload_bytes": 6714760
+            }
+          },
+          {
+            "pair": 2,
+            "arm": "A",
+            "run": {
+              "exit_code": 0,
+              "tree_retired": true,
+              "residual_children": 0,
+              "peak_job_bytes": 249040896,
+              "memory_bytes": 657457152,
+              "cpu_percent": 16,
+              "elapsed_seconds": 4.687999999994645,
+              "timeout_seconds": 75.0,
+              "inherited_error_mode": 32771,
+              "id": "local-run-b72b3949808e4e85a924be7fe6afed02",
+              "receipt_sha256": "96767428c379c3ca63fab661b8b189705249924f85438fd9cb24b3166d5662ea",
+              "stdout_sha256": "cbbaa0afc9ecb48b4128230725160dd462064f8f6d85d5fee53fb745271d7d86"
+            },
+            "observed": {
+              "files": 16384,
+              "image_pre_flush_bytes": 52016317,
+              "image_post_flush_bytes": 24446104,
+              "image_read_calls": 350772,
+              "image_flushes": 1,
+              "head_flushes": 1,
+              "backing_write_bytes": 0,
+              "reopen_ns": 128344600,
+              "logical_bytes": 278528,
+              "workload": "short_files",
+              "objects": 33194,
+              "object_tree_height": 3,
+              "stored_payload_bytes": 6714760
+            }
+          },
+          {
+            "pair": 3,
+            "arm": "A",
+            "run": {
+              "exit_code": 0,
+              "tree_retired": true,
+              "residual_children": 0,
+              "peak_job_bytes": 248963072,
+              "memory_bytes": 679477248,
+              "cpu_percent": 16,
+              "elapsed_seconds": 4.6710000000020955,
+              "timeout_seconds": 75.0,
+              "inherited_error_mode": 32771,
+              "id": "local-run-89fb5a85360a4c5eacb58c0c8ad0ef98",
+              "receipt_sha256": "a9d9f1c82be0b0a0bcabc8dd30a5aaf8834e09d5563c11d736e0c34f20f0b80e",
+              "stdout_sha256": "ffe0dd7badeae197072af4e01873eed42fb99de3196727953c10d2f01e1cad8a"
+            },
+            "observed": {
+              "files": 16384,
+              "image_pre_flush_bytes": 52016317,
+              "image_post_flush_bytes": 24446104,
+              "image_read_calls": 350772,
+              "image_flushes": 1,
+              "head_flushes": 1,
+              "backing_write_bytes": 0,
+              "reopen_ns": 128423400,
+              "logical_bytes": 278528,
+              "workload": "short_files",
+              "objects": 33194,
+              "object_tree_height": 3,
+              "stored_payload_bytes": 6714760
+            }
+          },
+          {
+            "pair": 3,
+            "arm": "B",
+            "run": {
+              "exit_code": 0,
+              "tree_retired": true,
+              "residual_children": 0,
+              "peak_job_bytes": 248639488,
+              "memory_bytes": 658505728,
+              "cpu_percent": 16,
+              "elapsed_seconds": 4.671999999991385,
+              "timeout_seconds": 75.0,
+              "inherited_error_mode": 32771,
+              "id": "local-run-10d2a4d771294cb9b02686ac46e45de8",
+              "receipt_sha256": "3bd1e5eeef7928e7b399548ada73cc7c6a1591ab76ade3ce150dda428f002f26",
+              "stdout_sha256": "c72a653fff188bacba220aaeb6aa4100a5d6a9cb64e3eefef458383c345e724b"
+            },
+            "observed": {
+              "files": 16384,
+              "image_pre_flush_bytes": 52016317,
+              "image_post_flush_bytes": 24446104,
+              "image_read_calls": 186089,
+              "image_flushes": 1,
+              "head_flushes": 1,
+              "backing_write_bytes": 0,
+              "reopen_ns": 109134800,
+              "logical_bytes": 278528,
+              "workload": "short_files",
+              "objects": 33194,
+              "object_tree_height": 3,
+              "stored_payload_bytes": 6714760
+            }
+          }
+        ],
+        "A": {
+          "read_calls": 350772,
+          "median_reopen_ns": 128423400,
+          "read_bytes": 76462421
+        },
+        "B": {
+          "read_calls": 186089,
+          "median_reopen_ns": 115230000,
+          "read_bytes": 76462421
+        }
+      }
+    ],
+    "public_input": {
+      "bytes": 47443761,
+      "sha256": "a0cf47d48cb8bc4dbd72b0e02dc84290387a767df35a9810d781b2e4dced691f",
+      "source": "CPython 3.15.2 Lib, 2,640 files from the recorded release catalog"
+    },
+    "public_source_tree": {
+      "files": 2640,
+      "workload": "cpython_compressed",
+      "trials": [
+        {
+          "pair": 1,
+          "arm": "A",
+          "run": {
+            "exit_code": 0,
+            "tree_retired": true,
+            "residual_children": 0,
+            "peak_job_bytes": 117583872,
+            "memory_bytes": 994050048,
+            "cpu_percent": 16,
+            "elapsed_seconds": 2.389999999999418,
+            "timeout_seconds": 135.0,
+            "inherited_error_mode": 32771,
+            "id": "local-run-c042b30eaef04f63b1d7cf1e68560350",
+            "receipt_sha256": "32b78d5f5da31f8faf2af8bb4290db9eab52c995dd7ac16f317e3d8e60834271",
+            "stdout_sha256": "018e04b30f2324aa0a8ed782b02edf6b0bdf2782b2d2c27b8f2835d5728f1730"
+          },
+          "observed": {
+            "files": 2640,
+            "image_pre_flush_bytes": 33703537,
+            "image_post_flush_bytes": 26160180,
+            "image_read_calls": 72529,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 99214400,
+            "logical_bytes": 47331708,
+            "workload": "cpython_compressed",
+            "objects": 5851,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 22973752
+          }
+        },
+        {
+          "pair": 1,
+          "arm": "B",
+          "run": {
+            "exit_code": 0,
+            "tree_retired": true,
+            "residual_children": 0,
+            "peak_job_bytes": 117608448,
+            "memory_bytes": 990904320,
+            "cpu_percent": 16,
+            "elapsed_seconds": 2.4059999999881256,
+            "timeout_seconds": 135.0,
+            "inherited_error_mode": 32771,
+            "id": "local-run-e87c49383a97434e8728c9ed3c01b461",
+            "receipt_sha256": "95a7a71d03c43727dd34fd41255903d69c2bb2e01f5cefc318b67ea1323d6024",
+            "stdout_sha256": "0754311fa8e5bb2a62a4c7d71e871f437115e5cdcbec9f383fbf7059d3e454b0"
+          },
+          "observed": {
+            "files": 2640,
+            "image_pre_flush_bytes": 33703537,
+            "image_post_flush_bytes": 26160180,
+            "image_read_calls": 47216,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 96770300,
+            "logical_bytes": 47331708,
+            "workload": "cpython_compressed",
+            "objects": 5851,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 22973752
+          }
+        },
+        {
+          "pair": 2,
+          "arm": "B",
+          "run": {
+            "exit_code": 0,
+            "tree_retired": true,
+            "residual_children": 0,
+            "peak_job_bytes": 117555200,
+            "memory_bytes": 1020264448,
+            "cpu_percent": 16,
+            "elapsed_seconds": 2.4060000000026776,
+            "timeout_seconds": 135.0,
+            "inherited_error_mode": 32771,
+            "id": "local-run-09e4832a2e394802b5b49b4a54f7bf0f",
+            "receipt_sha256": "f78eeffb18e7ef560935a01d1e27f783100cd5bce35a07b42c25ad10c21e0d0d",
+            "stdout_sha256": "8dff52af257bd5634f10126e21dfd16d2cc623e8fe2f233436d7c9093f3d7b46"
+          },
+          "observed": {
+            "files": 2640,
+            "image_pre_flush_bytes": 33703537,
+            "image_post_flush_bytes": 26160180,
+            "image_read_calls": 47216,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 98602200,
+            "logical_bytes": 47331708,
+            "workload": "cpython_compressed",
+            "objects": 5851,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 22973752
+          }
+        },
+        {
+          "pair": 2,
+          "arm": "A",
+          "run": {
+            "exit_code": 0,
+            "tree_retired": true,
+            "residual_children": 0,
+            "peak_job_bytes": 117809152,
+            "memory_bytes": 1022361600,
+            "cpu_percent": 16,
+            "elapsed_seconds": 2.4059999999881256,
+            "timeout_seconds": 135.0,
+            "inherited_error_mode": 32771,
+            "id": "local-run-8082848d081c4a6b85a9fce743f02e33",
+            "receipt_sha256": "406976a7ca90a0d5f24313b958efdbba10ad53dbf17ebfc8edcddec8711483cd",
+            "stdout_sha256": "7b0c535d80cbfb3564f4e060c4a6601677c987cc4e6ad24a3c336c849d2bd4d4"
+          },
+          "observed": {
+            "files": 2640,
+            "image_pre_flush_bytes": 33703537,
+            "image_post_flush_bytes": 26160180,
+            "image_read_calls": 72529,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 100384700,
+            "logical_bytes": 47331708,
+            "workload": "cpython_compressed",
+            "objects": 5851,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 22973752
+          }
+        },
+        {
+          "pair": 3,
+          "arm": "A",
+          "run": {
+            "exit_code": 0,
+            "tree_retired": true,
+            "residual_children": 0,
+            "peak_job_bytes": 118046720,
+            "memory_bytes": 1020264448,
+            "cpu_percent": 16,
+            "elapsed_seconds": 2.3910000000032596,
+            "timeout_seconds": 135.0,
+            "inherited_error_mode": 32771,
+            "id": "local-run-7b9dd5f58ee7486c9de86173867a8360",
+            "receipt_sha256": "e95707f5bbdd931a86248ceab9a33f8c33c14eba4ba08d20b05bc2d5481c4e41",
+            "stdout_sha256": "c758419a16ed8538239fa0272e7d9751e1242b23d96003de9d69835df57184dc"
+          },
+          "observed": {
+            "files": 2640,
+            "image_pre_flush_bytes": 33703537,
+            "image_post_flush_bytes": 26160180,
+            "image_read_calls": 72529,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 101321400,
+            "logical_bytes": 47331708,
+            "workload": "cpython_compressed",
+            "objects": 5851,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 22973752
+          }
+        },
+        {
+          "pair": 3,
+          "arm": "B",
+          "run": {
+            "exit_code": 0,
+            "tree_retired": true,
+            "residual_children": 0,
+            "peak_job_bytes": 117624832,
+            "memory_bytes": 1026555904,
+            "cpu_percent": 16,
+            "elapsed_seconds": 2.389999999999418,
+            "timeout_seconds": 135.0,
+            "inherited_error_mode": 32771,
+            "id": "local-run-1794643e6c604810b0fd9cc3678c918a",
+            "receipt_sha256": "1212058a87658792c6f2150434cac4d9d39a36a8bc7e0c199ee0443bd8572694",
+            "stdout_sha256": "5862cb0b31f48c9a8fb780a426aad653dab994e4fecda07f52fed4ea96d3806d"
+          },
+          "observed": {
+            "files": 2640,
+            "image_pre_flush_bytes": 33703537,
+            "image_post_flush_bytes": 26160180,
+            "image_read_calls": 47216,
+            "image_flushes": 1,
+            "head_flushes": 1,
+            "backing_write_bytes": 0,
+            "reopen_ns": 97486100,
+            "logical_bytes": 47331708,
+            "workload": "cpython_compressed",
+            "objects": 5851,
+            "object_tree_height": 2,
+            "stored_payload_bytes": 22973752
+          }
+        }
+      ],
+      "A": {
+        "read_calls": 72529,
+        "median_reopen_ns": 100384700,
+        "read_bytes": 59863717
+      },
+      "B": {
+        "read_calls": 47216,
+        "median_reopen_ns": 97486100,
+        "read_bytes": 59863717
+      }
+    },
+    "limits": "Backing calls in the fixture measure software operations. Physical storage and whole-product performance remain open."
+  },
+  "regression": {
+    "windows": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 680480768,
+      "memory_bytes": 3555721216,
+      "cpu_percent": 20,
+      "elapsed_seconds": 130.40600000000268,
+      "timeout_seconds": 620.0,
+      "inherited_error_mode": 32771,
+      "id": "local-run-da02700b95ef40cd9861290d533e2029",
+      "receipt_sha256": "df77bf4a4bc1068ceff450d74c487a4f30e9aaac792a22f6a2709f435865e9fa",
+      "stdout_sha256": "ac6acaab504ef6cc836595b6ebb78a906cf9ae4c9d757be9a040248fb787d421",
+      "groups_passed": 217
+    },
+    "raw": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 205213696,
+      "memory_bytes": 2904555520,
+      "cpu_percent": 16,
+      "elapsed_seconds": 43.28200000000652,
+      "timeout_seconds": 310.0,
+      "inherited_error_mode": 32771,
+      "id": "local-run-8bff08caa0674e50b4a54d93ba004619",
+      "receipt_sha256": "cbd2d17de732b0e7dec1d391f58315c3ed98d4a668670850e60b926a6b7fe207",
+      "stdout_sha256": "580a74445db9d37c16ea0602559fc49d823d3571701a58f7b2a8673a4c4ab8cc",
+      "groups_passed": 11
+    },
+    "asan": {
+      "groups_passed": 12,
+      "passed_groups": [
+        "bounded_native_directory_index",
+        "bounded_native_hybrid_backing",
+        "bounded_native_indexed_volume",
+        "bounded_native_inode_records",
+        "bounded_native_paged_backend",
+        "bounded_native_volume_file",
+        "bounded_paged_mirrored_payloads",
+        "bounded_paged_object_store",
+        "bounded_protected_indexed_image",
+        "bounded_volume_head_publish",
+        "bounded_volume_head_repair",
+        "windows_asan_runtime_preflight"
+      ],
+      "initial_envelope": {
+        "exit_code": 8,
+        "tree_retired": true,
+        "residual_children": 0,
+        "peak_job_bytes": 937152512,
+        "memory_bytes": 935329792,
+        "cpu_percent": 16,
+        "elapsed_seconds": 101.07800000000861,
+        "timeout_seconds": 310.0,
+        "inherited_error_mode": 32771,
+        "id": "local-run-a70081f3bc784acd8576353ea38d4f84",
+        "receipt_sha256": "f6404c517c9feb9f5f326d2f2e2f86e4caf1dce08b9b5830a5e68f8876c260ad",
+        "stdout_sha256": "4b2dc4d21457a8bfc5c6d39127b1508e2f04341654bc91a9d92444f805f0e85b"
+      },
+      "funded_retry": {
+        "exit_code": 0,
+        "tree_retired": true,
+        "residual_children": 0,
+        "peak_job_bytes": 1031028736,
+        "memory_bytes": 2026897408,
+        "cpu_percent": 16,
+        "elapsed_seconds": 35.96899999999732,
+        "timeout_seconds": 220.0,
+        "inherited_error_mode": 32771,
+        "id": "local-run-7a1e3fd2cfda4bbeb0602f348d4bd944",
+        "receipt_sha256": "69d3e776cc4e193da8a537568da059320769d419ef9d8fac34020e937815c793",
+        "stdout_sha256": "7992976e0567bc94192930083d60b1489113cfd144fbffb946edfe5e4a0b03ef",
+        "groups_passed": 3
+      },
+      "reason": "The first envelope hit its commitment cap during two fixtures. The unchanged instrumented binaries and runtime settings passed both groups under a larger live-headroom-derived envelope."
+    },
+    "windows_build": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 1,
+      "peak_job_bytes": 1009291264,
+      "memory_bytes": 3553624064,
+      "cpu_percent": 20,
+      "elapsed_seconds": 46.59399999999732,
+      "timeout_seconds": 530.0,
+      "inherited_error_mode": 32771,
+      "id": "local-run-3d6009378f8c4419bd6e7eb1d0a7d67f",
+      "receipt_sha256": "838cc7444244ae99be4fdcbcd21436f74328944a68e4ca2f8b44d628b9da2492",
+      "stdout_sha256": "3028df1f7e623e9f676c544cb7890657658bfca301692337a3eda01a10c2b8b8"
+    },
+    "raw_build": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 1,
+      "peak_job_bytes": 377425920,
+      "memory_bytes": 3415212032,
+      "cpu_percent": 18,
+      "elapsed_seconds": 33.562000000005355,
+      "timeout_seconds": 370.0,
+      "inherited_error_mode": 32771,
+      "id": "local-run-9630df6a065b427f9376ed56ed0fa7f9",
+      "receipt_sha256": "fac6c4e1b27e2db46ea5d5b57f78f802fd85a01e02b71e32f6acf7c1f7b545c6",
+      "stdout_sha256": "0a7ecc44d6ba458bad581900f7eae762105c11ea9aeea548409b0983a8911db3"
+    },
+    "asan_build": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 1,
+      "peak_job_bytes": 600420352,
+      "memory_bytes": 3454009344,
+      "cpu_percent": 18,
+      "elapsed_seconds": 30.26600000000326,
+      "timeout_seconds": 370.0,
+      "inherited_error_mode": 32771,
+      "id": "local-run-98b4f072d87d488ab1172b257d3c1525",
+      "receipt_sha256": "fd2387417beafa9c809cf65fd10577de7421b7918b0ca117f8284cab0637392a",
+      "stdout_sha256": "45bd782285d6b45cc0c417819993cdae2935018ec99a0695406698089a85e1ab"
+    },
+    "retained_failed_observations": {
+      "resumeWindowsFullCtest": {
+        "exit_code": 8,
+        "tree_retired": true,
+        "residual_children": 0,
+        "peak_job_bytes": 680820736,
+        "memory_bytes": 957349888,
+        "cpu_percent": 20,
+        "elapsed_seconds": 145.46799999999348,
+        "timeout_seconds": 620.0,
+        "inherited_error_mode": 32771,
+        "id": "local-run-d8df57963c534245b48729d08301b45d",
+        "receipt_sha256": "5c66c1a72909915c3fe06f90465598c7b770b9c4e1bd7d81aca33ece4e158e51",
+        "stdout_sha256": "ebc4bdb4f7dca2d5ea4f1cb4f1d6dc45ce552152400deff9f339e18fce139d2b"
+      },
+      "resumeRawCtest": {
+        "exit_code": 8,
+        "tree_retired": true,
+        "residual_children": 0,
+        "peak_job_bytes": 670429184,
+        "memory_bytes": 3558866944,
+        "cpu_percent": 16,
+        "elapsed_seconds": 36.0,
+        "timeout_seconds": 480.0,
+        "inherited_error_mode": 32771,
+        "id": "local-run-481c5d758f62462da0e861fa8e56495c",
+        "receipt_sha256": "9b738451157cfedaebe0567d2e41641112e84575c1ade744826c145f97f81f24",
+        "stdout_sha256": "00b35933d6b817b5cdfd9a7a7f560b9ace2740f8f285c7467f8085e9e29f2fbe"
+      },
+      "resumeAsanCtest": {
+        "exit_code": 8,
+        "tree_retired": true,
+        "residual_children": 0,
+        "peak_job_bytes": 1622274048,
+        "memory_bytes": 3564109824,
+        "cpu_percent": 16,
+        "elapsed_seconds": 96.11000000000058,
+        "timeout_seconds": 480.0,
+        "inherited_error_mode": 32771,
+        "id": "local-run-cd8838b7d2d04517a1d4c858171ad7ec",
+        "receipt_sha256": "a64a2a1598032452f01369bec43ac5f33b76d3472062f7740a149b17f20fffb9",
+        "stdout_sha256": "6519ef865d3a3ce4b675105e4601e6fc3254cb20b3f47510f4db3612cafa5a5a"
+      },
+      "resumeRangeFaultCtest": {
+        "exit_code": 8,
+        "tree_retired": true,
+        "residual_children": 0,
+        "peak_job_bytes": 87240704,
+        "memory_bytes": 2807037952,
+        "cpu_percent": 15,
+        "elapsed_seconds": 5.75,
+        "timeout_seconds": 360.0,
+        "inherited_error_mode": 32771,
+        "id": "local-run-618d344732f64536bd0ac179e34716da",
+        "receipt_sha256": "446c9f357aaaa8c4934c1af16d5f620b634fff20ebd415fe1755d1cb11c3e819",
+        "stdout_sha256": "baa8bb06a0131a007e7320f43aa7f393538ee502b7b6801a66ceab62dd1a02f3"
+      }
+    },
+    "resolution": "Merged reads exposed start-offset-dependent fault injection. Covered-byte targeting restored the fault. The partial rebuild confirmed two groups but left two test executables stale. Final builds rebuilt all four."
+  },
+  "cleanup": {
+    "scoped_remaining": 0,
+    "sandbox_remaining": 0,
+    "scope_bytes": 28131126
+  },
+  "sandbox_configuration_research": {
+    "execution": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 375230464,
+      "memory_bytes": 1992294400,
+      "cpu_percent": 11,
+      "elapsed_seconds": 6.280999999988126,
+      "timeout_seconds": 74.0,
+      "inherited_error_mode": 32771,
+      "id": "local-run-014a06e9cabe426aaa77d031fe7d1ce7",
+      "receipt_sha256": "92de8e68060466c1ac119375f192dc48954aa768786ac6e587f12c1f48d74f9a",
+      "stdout_sha256": "630e48499fb3ae2da6927172b2696e6bd903aa3e26e102e9b6123f9ebc56dc07"
+    },
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "robots": true,
+    "external_LLM": false,
+    "source_identity": {
+      "tools/crawl4ai_tool.py": "e84a0e54ee07e4e13d3d2f35491f641730096a78126068f232c1f2397a467d8c",
+      "tools/crawl4ai_research.py": "ec3cb7a98eceed8fef08f3af806d6eaed35656bd76ca0ee8853d273f790337a5",
+      "tools/requirements/crawl4ai.txt": "6a42b0ff5ff6c63c843c6329ce823b819fd4f6f068e68d1836ab6dbec96e8f2f",
+      "tools/crawl4ai_sites.json": "e8869cb0488d78762a90aea6ecf2c3616bb89f0c89a8800cc512c613a750dc86",
+      "tools/nltk_distribution.py": "19eb3007c226b1a13e1ad0daa79cbd8a7bf6d082a20bf386e36ac060d0000919",
+      "tools/python_wheel.py": "c3c9a62454cb377203abce32154bec07cbf805bc7420cc89386c1c18370b301a",
+      "tools/test_nltk_model_security.py": "8aab7e2a704af875992ecae9137cdf5e5ff6935a4dd49e6751c54b2629a7280b",
+      "tools/requirements/python-build.txt": "9b280d724fda87773ba33a2654362adad84c68c4f79394adc07ff2e0293ca498",
+      "tools/crawl4ai_source_build.py": "5c27c4693fa0880a8db399825f637b694616963fc11f708afed33fa5b2e38b48",
+      "tools/crawl4ai_download_opener.py": "d5fd20b5545fd64c93a06b3ef07732f1c2da7e09ee6cda80662475007db52538",
+      "tools/test_crawl4ai_downloads.py": "ae4cf54c351a9da2de49caeb96306f384bb6a8f487318eabc69db4132d658619",
+      "third_party/upstream/nltk/3.10.4/distribution.json": "3241a8670f12e205525fc096572ed1969c063f77e13cffd70eff5eb656fbe1b0",
+      "nltk_upstream_wheel": "e46d89e59ef949270e3b19ab097da8dbb09350e05cb5a746ff92f6ccf6e8ce90",
+      "crawl4ai_source_build": "7da6376934254d9ad1de9e016a4509dae32c47559955889424435fcbbc7419f5"
+    },
+    "receipt_sha256": "88695f87e1382c932651f3e48edd254491dd52bad1e6b21f49c1be08d6a8fe46",
+    "pages": [
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/security/application-security/application-isolation/windows-sandbox/windows-sandbox-configure-using-wsb-file",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 35778,
+        "markdown_sha256": "d0cbabfd624992babdf78077804210f258b61d243bf6057189711b47ed3c2c1c",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.018,
+        "capture": "sandbox-memory.native.json",
+        "capture_sha256": "aa4d76235b767d20361b9df1c77d1b1eb186a768e627f20c42ba116f2864f2e3",
+        "name": "sandbox-memory"
+      }
+    ]
+  },
+  "mounted_correctness": {
+    "guest_script_sha256": "79676ba7b9175b0b31cdfba53abddd56d6b36a83ce64b08e76900d3c61970a25",
+    "runner_script_sha256": "003f788bf236b01ba88e367e46890a90e1762a02bc16cf5aaa058a1d0e7313a4",
+    "host_preflight_available_bytes": 12104216576,
+    "execution": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 46813184,
+      "memory_bytes": 768606208,
+      "cpu_percent": 13,
+      "elapsed_seconds": 42.687000000005355,
+      "timeout_seconds": 530.0,
+      "inherited_error_mode": 32771,
+      "id": "local-run-aad81a33809d4441b2d6983808fd6519",
+      "receipt_sha256": "1d2847ade9cca8a3ac0c655819055d0184877cfe0d32ccebfbe0019e56c4cb3b",
+      "stdout_sha256": "5447d64b77c7ee40b814ebcf05e3916e15bbbe7846458532ede78ae927918e69"
+    },
+    "guest_receipt_sha256": "4aa0f14ca13dabcb19f9994392cf926d3144f028a1df41b7497b23de1d475198",
+    "runner_receipt_sha256": "aa8cf2df01d29d77d90103a05a4267fbd0f27903d24814c4e6745d43477b8379",
+    "manifest_sha256": "e95f28854f10a9eba4a41ef9cb8821a0e3243f70cc960e1dc83f853dce140350",
+    "guest_memory_mib": 3584,
+    "workload": "Signed WinFsp 2.2 populated external Win32 overwrite, rename, helper interruption, independent recovery and continued writes. Guest correctness scope.",
+    "performance_claim": false,
+    "windows": {
+      "caption": "Microsoft Windows 11 Enterprise",
+      "version": "10.0.26100",
+      "build": "26100",
+      "session": 0,
+      "ram_mib": 3582,
+      "available_mib": 2552,
+      "explorer_sessions": []
+    },
+    "verified_population": 1024,
+    "driver_stop_exit": 5,
+    "driver_unregistration_exit": 0,
+    "mounts_remaining": 0,
+    "helper_processes_remaining": 0,
+    "fixture_logical_bytes": [
+      758775808
+    ],
+    "allocation_measurement": false
+  }
+}

@@ -58,6 +58,14 @@
     "evidence": "docs/evidence/architecture-reconciliation-2026-11-21.json"
   },
 
+  "indexed_record_read_coalescing": {
+    "evidence": "docs/evidence/indexed-record-read-coalescing-2026-11-23.json",
+    "short_16384_reopen_read_calls": {"control": 350772, "combined": 186089},
+    "compressed_cpython_2640_reopen_read_calls": {"control": 72529, "combined": 47216},
+    "one_image_and_one_selector_fence": true,
+    "healthy_reopen_backing_writes": 0,
+    "startup_requires_inventory_walk": true
+  },
   "indexed_fenced_stored_recheck": {
     "evidence": "docs/evidence/indexed-fenced-stored-recheck-2026-11-22.json",
     "indexed_native_audits_on_healthy_reopen": 1,

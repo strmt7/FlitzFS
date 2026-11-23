@@ -24,6 +24,7 @@ constexpr std::uint64_t start=2*kStoreCommitUnit;
 constexpr std::size_t page_bytes=detail::kPagedStoreCheckpointWriteBytes/2,
     header_bytes=64,ref_bytes=112,record_header_bytes=128;
 constexpr std::uint32_t compact_metadata_bytes=1024;
+constexpr std::size_t inline_record_read_bytes=1024;
 constexpr std::size_t compact_ref_bytes=88;
 constexpr std::size_t digest_at=page_bytes-32;
 constexpr std::uint32_t maximum_height=16;
@@ -403,7 +404,7 @@ Entry entry_at_rank(const State& s,std::uint64_t rank) {
 }
 using RecordHeader=std::array<std::byte,record_header_bytes>;
 struct ObjectRecord {RecordHeader header{};Bytes payload;bool recovered_primary=false;};
-void verify_record_header(const State& s,const Entry& e,const RecordHeader& h) {
+void verify_record_header(const State& s,const Entry& e,std::span<const std::byte,record_header_bytes> h) {
   const auto codec=get32(h,12);
   if(!magic(h,data_magic) || get32(h,8)!=1 || get64(h,16)!=e.id || get64(h,24)!=e.generation ||
       get32(h,32)!=e.logical || get32(h,36)!=e.stored || field<16>(h,40)!=s.id ||
@@ -411,15 +412,37 @@ void verify_record_header(const State& s,const Entry& e,const RecordHeader& h) {
       !zero(std::span<const std::byte>(h).subspan(codec==detail::kStoreRaw?56:88,codec==detail::kStoreRaw?40:8)) ||
       field<32>(h,96)!=e.digest)fail("object identity/codec/framing");
 }
+void verify_stored_digest(const Entry& e,std::span<const std::byte,record_header_bytes> header,
+    std::span<const std::byte> payload) {
+  if(detail::record_digest(header.first<96>(),payload)!=e.digest)fail("object stored digest");
+}
+std::span<const std::byte> read_checked_frame(const State& s,const Entry& e,std::uint64_t offset,
+    std::span<std::byte> scratch) {
+  const auto frame=scratch.first(record_header_bytes+e.stored);
+  read_record_bytes(*s.image,offset,0,frame,s.mirrored?s.unit:0);
+  const auto header=frame.first<record_header_bytes>();
+  const auto payload=frame.subspan<record_header_bytes>();
+  verify_record_header(s,e,header);
+  verify_stored_digest(e,header,payload);
+  return payload;
+}
 void read_record_payload(const State& s,const Entry& e,std::uint64_t offset,ObjectRecord& record) {
   auto& payload=record.payload;
   payload.resize(e.stored);
   if(!payload.empty())read_record_bytes(*s.image,offset,record_header_bytes,payload,s.mirrored?s.unit:0);
-  if(detail::record_digest(std::span<const std::byte>(record.header).first(96),payload)!=e.digest)
-    fail("object stored digest");
+  verify_stored_digest(e,record.header,payload);
 }
 ObjectRecord read_record_at(const State& s,const Entry& e,std::uint64_t offset) {
   ObjectRecord record;
+  if(e.stored<=inline_record_read_bytes-record_header_bytes) {
+    // Tiny objects share a bounded read for framing and payload. The stream
+    // mapper still stops each backing read at the paired-bank boundary.
+    std::array<std::byte,inline_record_read_bytes> scratch;
+    const auto payload=read_checked_frame(s,e,offset,scratch);
+    std::copy_n(scratch.begin(),record.header.size(),record.header.begin());
+    record.payload.assign(payload.begin(),payload.end());
+    return record;
+  }
   read_record_bytes(*s.image,offset,0,record.header,s.mirrored?s.unit:0);
   verify_record_header(s,e,record.header);
   read_record_payload(s,e,offset,record);
@@ -465,16 +488,18 @@ Bytes read_object(const State& s,const Entry& e,detail::NativeLz4ReadRoute* rout
 }
 enum class PayloadVerification { decoded, stored };
 unsigned verify_payload_copies(const State& s,const Entry& e,Bytes* payload=nullptr,
-    PayloadVerification verification=PayloadVerification::decoded) {
+    Bytes* stored_frame=nullptr) {
   unsigned verified=0;
   std::optional<ObjectRecord> decoded_primary;
   for(const auto at:{e.offset,e.peer}) {
     try {
-      auto record=read_record_at(s,e,at);
-      if(verification==PayloadVerification::stored) {
+      if(stored_frame) {
+        stored_frame->resize(record_header_bytes+e.stored);
+        (void)read_checked_frame(s,e,at,*stored_frame);
         ++verified;
         continue;
       }
+      auto record=read_record_at(s,e,at);
       // The peer has passed its own stored digest and header check. Matching
       // encoded bytes share the primary's successful decoded digest check.
       if(decoded_primary && record.header==decoded_primary->header && record.payload==decoded_primary->payload) {
@@ -496,14 +521,13 @@ unsigned verify_payload_copies(const State& s,const Entry& e,Bytes* payload=null
   return verified;
 }
 // True reports a verified survivor and a failed replica.
-bool verify_object(const State& s,const Entry& e,Bytes* payload=nullptr,
-    PayloadVerification verification=PayloadVerification::decoded) {
+bool verify_object(const State& s,const Entry& e,Bytes* payload=nullptr,Bytes* stored_frame=nullptr) {
   if(!s.mirrored) {
     auto decoded=read_object(s,e);
     if(payload)*payload=std::move(decoded);
     return false;
   }
-  const auto verified=verify_payload_copies(s,e,payload,verification);
+  const auto verified=verify_payload_copies(s,e,payload,stored_frame);
   if(!verified)fail("both payload copies invalid; no rollback");
   return verified==1;
 }
@@ -518,12 +542,15 @@ void verify(const State& s,const VerifiedObjectVisitor* consume=nullptr,
     PayloadVerification verification=PayloadVerification::decoded) {
   s.image->verify_backing();
   (void)read_node(s,s.root);
+  // Only the stored-only pass reuses this frame. Its capacity is bounded by
+  // the checked object descriptor and it never escapes the current walk.
+  Bytes stored_frame;
   auto visitor=[&](const Entry& e) {
     if(consume) {
       Bytes bytes;
       verify_object(s,e,&bytes);
       (*consume)(e.id,std::move(bytes));
-    }else verify_object(s,e,nullptr,verification);
+    }else verify_object(s,e,nullptr,verification==PayloadVerification::stored?&stored_frame:nullptr);
     return true;
   };
   bool done=false;walk(s,s.root,0,visitor,done);

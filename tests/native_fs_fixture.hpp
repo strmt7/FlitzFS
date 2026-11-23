@@ -90,8 +90,10 @@ class Ram final:public StoreByteIo {
     if(at>live.size() || out.size()>live.size()-at)throw std::runtime_error("RAM read");
     read_bytes+=out.size();++read_calls;
     std::copy_n(live.begin()+static_cast<std::ptrdiff_t>(at),out.size(),out.begin());
-    // Synthetic bad backing bytes on a selected repeated read, never owner data.
-    if(at==corrupt_read_offset && ++matching_reads==corrupt_read_number && !out.empty())out[0]^=std::byte{1};
+    // Count every read covering the selected byte, irrespective of the
+    // caller's batching. Corrupt just that byte on the selected observation.
+    if(corrupt_read_offset>=at && corrupt_read_offset-at<out.size() && ++matching_reads==corrupt_read_number)
+      out[static_cast<std::size_t>(corrupt_read_offset-at)]^=std::byte{1};
   }
   static void copy(Bytes& to,std::uint64_t at,std::span<const std::byte> in,
       std::uint64_t maximum=kStoreMaxPhysicalBytes) {

@@ -225,6 +225,20 @@ The [native maintenance regression](NATIVE_PAGED_MAINTENANCE.md) exercises both
 root-slot and metadata-primary readback corruption. This is a verification fix,
 not new payload redundancy or physical durability evidence.
 
+Short object records read their header and stored payload together. Reads that
+cross the replica layout's failure-unit boundary follow the same separate
+bank segments. Each copy still gets its own header and stored digest check
+before decoding. The post-fence mirror pass reuses one frame buffer bounded by
+the checked descriptor and the one-object size limit.
+
+The 16,384-file indexed fixture used 186,089 backing reads per healthy reopen,
+down from 350,772. It checked 76,462,421 backing bytes, flushed the image and
+selector once each, and performed zero backing writes in both arms.
+The compressed 2,640-file CPython source-tree fixture used 47,216 reads,
+down from 72,529, with the same 59,863,717 bytes and exact CPU readback.
+The full inventory walk still determines how startup scales.
+[Matched reopen evidence](evidence/indexed-record-read-coalescing-2026-11-23.json)
+
 ## Executed scope and next integration
 
 [Source-bound local evidence](evidence/local-paged-store-2026-11-15.json) records

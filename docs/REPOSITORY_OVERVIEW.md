@@ -224,6 +224,13 @@ reduced the healthy path from three backing flushes to two. The remaining
 full inventories are still proportional to volume population.
 [Scale and ownership evidence](evidence/indexed-scale-reopen-2026-11-20.json)
 
+The latest matched series at 16,384 files reduced backing read calls by 47%
+by combining checks on each record's header and stored payload into the same
+read where possible. Both passes check the same total bytes and healthy
+startup still walks the selected inventory. The next improvement needs
+generation-bound admission and a bounded follow-on scrub.
+[Record-read evidence](evidence/indexed-record-read-coalescing-2026-11-23.json)
+
 The helper's existing-file open now joins the native writable audit during
 exclusive acquisition. In the matched in-memory attachment fixture, backing
 reads fell from 1,644,441 to 1,304,248 bytes with three flushes and zero

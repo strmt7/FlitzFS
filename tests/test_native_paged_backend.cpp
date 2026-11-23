@@ -342,6 +342,7 @@ void maintenance_faults(std::uint32_t unit) {
   auto corrupt=std::make_shared<Ram>();corrupt->failure_unit=unit;
   corrupt->corrupt_read_offset=2*kStoreCommitUnit+128;corrupt->corrupt_read_number=1;
   rejects([&]{NativeFilesystemWriter::compact(source,corrupt,next_identity());},"corrupted copy readback published");
+  require(corrupt->matching_reads>0,"copy readback fault never reached the targeted byte");
   require(std::all_of(corrupt->live.begin(),corrupt->live.begin()+2*kStoreCommitUnit,
       [](auto byte){return byte==std::byte{0};}),"bad target had a published root");
   require(ram->live==original && ram->calls==original_calls,"corrupt candidate touched source");
