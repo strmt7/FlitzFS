@@ -65,11 +65,18 @@ void write_header(std::span<std::byte> bytes,NativeGroupMethod method,std::span<
 class AnchorCopyFrame {
  public:
   AnchorCopyFrame(std::span<const std::byte> member,std::size_t limit):member_(member),limit_(limit),bytes_(header){}
-  bool append_copy(std::size_t offset,std::size_t source,std::size_t length) {
+  bool append_copy(std::span<const std::byte> base,std::size_t offset,std::size_t source,std::size_t length) {
+    const auto matched_end=offset+length;
+    // Recover matching bytes before the verified seed while the preceding
+    // literal is still pending. Never cross an already emitted span.
+    while(offset>end_ && source && member_[offset-1]==base[source-1]) {
+      --offset;
+      --source;
+    }
     if(!literal_until(offset) || 8>=limit_-bytes_.size())return false;
     const auto next=bytes_.size();bytes_.resize(next+8);
-    put(bytes_,next,copy_flag|length,4);put(bytes_,next+4,source,4);
-    ++count_;end_=offset+length;
+    put(bytes_,next,copy_flag|(matched_end-offset),4);put(bytes_,next+4,source,4);
+    ++count_;end_=matched_end;
     return true;
   }
   std::optional<std::vector<std::byte>> finish(std::span<const std::byte> base,std::uint64_t id,std::uint64_t generation) {
@@ -938,17 +945,13 @@ std::optional<std::vector<std::byte>> encode_native_group_copies(std::span<const
     validated_end=target+length;
     // Validate even a seed already covered by an earlier extended copy.
     if(validated_end<=covered_end)continue;
-    auto start=(std::max)(target,covered_end);
-    auto anchor=source+start-target;
-    while(start>covered_end && anchor && member[start-1]==base[anchor-1]) {
-      --start;
-      --anchor;
-    }
+    const auto start=(std::max)(target,covered_end);
+    const auto anchor=source+start-target;
     const auto tail=member.begin()+validated_end;
     const auto room=(std::min)(extent-validated_end,extent-source-length);
     const auto equal=std::mismatch(tail,tail+room,base.begin()+source+length).first;
     covered_end=validated_end+static_cast<std::size_t>(equal-tail);
-    if(!frame.append_copy(start,anchor,covered_end-start))return {};
+    if(!frame.append_copy(base,start,anchor,covered_end-start))return {};
   }
   return frame.finish(base,base_id,generation);
 }
@@ -985,7 +988,7 @@ std::optional<std::vector<std::byte>> NativeGroupAnchorIndex::encode(std::span<c
       ++offset;
       continue;
     }
-    if(!frame.append_copy(offset,source,length))return {};
+    if(!frame.append_copy(base,offset,source,length))return {};
     offset+=length;
     if(offset<=last)rolling=fingerprint(member.subspan(offset,window_bytes));
   }

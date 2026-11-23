@@ -111,6 +111,20 @@ void indexed_candidate_yield_order() {
 }
 
 void indexed_section_reference_reuse() {
+  {
+    const auto base=data(kNativeExtentBytes,10609);
+    constexpr std::size_t displacement=3;
+    constexpr auto frame_bytes=detail::kNativeGroupCopyMinimumBytes+4+displacement;
+    auto member=base;
+    std::rotate(member.begin(),member.begin()+displacement,member.end());
+    const detail::NativeGroupAnchorIndex index(base);
+    const auto frame=index.encode(member,base,detail::kNativeGroupBaseBit+1,1,frame_bytes+1);
+    require(frame && frame->size()==frame_bytes &&
+        detail::decode_native_group_member(*frame,base,detail::NativeGroupMethod::anchor_copies)==member,
+        "Indexed anchor lost the matching prefix before its first seed");
+    require(!index.encode(member,base,detail::kNativeGroupBaseBit+1,1,frame_bytes),
+        "An extended anchor exceeded its exclusive competing frame size");
+  }
   constexpr unsigned count=8;
   constexpr auto section=kNativeExtentBytes/count;
   const StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
@@ -1369,20 +1383,36 @@ void modular_delta_indexed_family(const Bytes& base,StoreCompressionOptions comp
       "Automatic maintenance missed fully shifted numeric data");
 }
 
-void shifted_indexed_family(const Bytes& base,StoreCompressionOptions compression,bool corpus) {
+void shifted_indexed_family(const Bytes& base,StoreCompressionOptions compression,bool corpus,bool section_shifts=false) {
   constexpr unsigned count=12;
   constexpr std::uint32_t unit=4096;
   Fixture f(unit,0,true,compression);
   std::vector<Bytes> originals;
   for(unsigned i=0;i<count;++i) {
     auto input=base;
-    if(i) {
+    if(i && section_shifts) {
+      constexpr std::size_t section_bytes=256;
+      for(std::size_t offset=0;offset<input.size();offset+=section_bytes) {
+        const auto from=input.begin()+offset;
+        std::rotate(from,from+i,from+section_bytes);
+      }
+    } else if(i) {
       const auto prefix=7*i+1;
       std::copy_n(base.begin(),base.size()-prefix,input.begin()+prefix);
       std::fill_n(input.begin(),prefix,static_cast<std::byte>(i));
     }
     put(*f.session,"shifted"+std::to_string(i),input);
     originals.push_back(std::move(input));
+  }
+  std::size_t anchor_frame_bytes=0;
+  if(section_shifts) {
+    const detail::NativeGroupAnchorIndex anchor(base);
+    for(const auto& member:std::span(originals).subspan(1)) {
+      const auto frame=anchor.encode(member,base,detail::kNativeGroupBaseBit+1,1,kNativeExtentBytes);
+      require(frame && detail::decode_native_group_member(*frame,base,detail::NativeGroupMethod::anchor_copies)==member,
+          "Indexed copy comparison changed the member bytes");
+      anchor_frame_bytes+=frame->size();
+    }
   }
   const auto before=f.session->snapshot();
   const auto workload=f.session->workload_info();
@@ -1398,7 +1428,7 @@ void shifted_indexed_family(const Bytes& base,StoreCompressionOptions compressio
   require(result.published_groups==1 && after.shared_base_info().members==count &&
       after.shared_base_info().bases==1 && f.session->workload_info()==workload,"shifted extents were not grouped");
   const auto root=PagedObjectStoreSnapshot::open(f.image,{kStoreMaxPhysicalBytes}).read(1);
-  require(root[8]==std::byte{4},"shifted group did not promote the indexed capability");
+  if(!section_shifts)require(root[8]==std::byte{4},"shifted group did not promote the indexed capability");
   controller.cancel();
   f.session.reset();
   auto compacted=ram(unit);
@@ -1411,8 +1441,11 @@ void shifted_indexed_family(const Bytes& base,StoreCompressionOptions compressio
         before.read(path,0,kNativeExtentBytes)==originals[i],"shifted group changed current or prior bytes");
   }
   require(compacted->extent()<baseline->extent(),"complete shifted image did not shrink");
-  std::cout<<"shifted_indexed corpus="<<corpus<<" members="<<count<<" before_bytes="<<baseline->extent()
-      <<" after_bytes="<<compacted->extent()<<" minimum_compacted_saved="<<result.minimum_compacted_bytes_saved<<'\n';
+  std::cout<<"shifted_indexed corpus="<<corpus<<" section_shifts="<<section_shifts
+      <<" members="<<count<<" capability="<<std::to_integer<unsigned>(root[8])
+      <<" assembled_groups="<<result.section_reference_groups<<" before_bytes="<<baseline->extent()
+      <<" after_bytes="<<compacted->extent()<<" minimum_compacted_saved="<<result.minimum_compacted_bytes_saved
+      <<" anchor_frame_bytes="<<anchor_frame_bytes<<'\n';
 }
 void xor_indexed_family(bool require_xor,bool throughout=false) {
   constexpr unsigned count=9,unit=4096;
@@ -3329,12 +3362,15 @@ int main(int argc,char** argv){try{
     for(auto unit:{4096U,65536U})automatic_and_extension(unit,true);
     indexed_scan_windows();indexed_stale_binding_and_padding();
     shifted_indexed_family(data(kNativeExtentBytes,714),{StoreCompressionMode::raw,1,false},false);
-  } else if(argc==3 && std::string_view(argv[1])=="--shifted-corpus") {
+  } else if(argc==3 && (std::string_view(argv[1])=="--shifted-corpus" ||
+      std::string_view(argv[1])=="--shifted-sections-corpus")) {
     auto input=ReadOnlyFile::open(argv[2]);
     require(input.size()==kNativeExtentBytes,"expected one extent of public source data");
     Bytes bytes(kNativeExtentBytes);
     input.read_exact_at(0,bytes.data(),bytes.size());
-    shifted_indexed_family(bytes,{StoreCompressionMode::automatic,6,true},true);
+    const bool sections=std::string_view(argv[1])=="--shifted-sections-corpus";
+    shifted_indexed_family(bytes,sections?StoreCompressionOptions{StoreCompressionMode::raw,1,false}:
+        StoreCompressionOptions{StoreCompressionMode::automatic,6,true},true,sections);
   } else if(argc==1) {
     for(auto unit:{4096U,65536U}){automatic_and_extension(unit);publication_faults(unit);}
     admission();continued_preparation_admission();negative_cache_and_incompressible();ownership_and_pressure();

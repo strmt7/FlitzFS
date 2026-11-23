@@ -1,0 +1,155 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "scope": "Cross-file anchor-copy compression of shifted sections on the live Windows native indexed backend",
+  "source": {
+    "base": "eb5a04d1321834e4083b10d452110d58612c40ca",
+    "blobs": {
+      "src/native_group_codec.cpp": "b34193aa8a789cdcd2fb9f71a0c214809de26a78",
+      "tests/test_native_group_maintenance.cpp": "90b719d2badddca837223c655e6abc209de5821b"
+    }
+  },
+  "workload": {
+    "source": "AIT Data Compression Challenge 2026",
+    "dataset_url": "https://aitdcc.github.io/dataset.html",
+    "input_bytes_per_split": 65536,
+    "section_bytes": 256,
+    "training": {
+      "file": "A",
+      "source_extent_sha256": "d8bbfe842bdd305bcab24bba6384ac42fe6b9dcc55e18a0adcc16738efffb82b"
+    },
+    "held_out": {
+      "file": "I",
+      "source_extent_sha256": "c9038015ee67868b325aa38d15c219c25891f34116af8e5124a2d46e9b06008d"
+    },
+    "procedure": "Use the first canonical native extent from each split. Make 12 files per extent by rotating every 256-byte section left by the file's index from 0 through 11. Use the same comparison harness and raw initial ingestion in both arms."
+  },
+  "backing": "RAM-backed indexed volume with 4096-byte isolation granule",
+  "baseline_anchor_codec_git_blob": "b96a2b2372b05d452765667fa4c32dea1eff922a",
+  "arms": [
+    {
+      "build": "LZ4 and Zstandard enabled",
+      "selected_method": "Zstandard prefix",
+      "baseline_executable_sha256": "07249fabdc99ed6e59081b9b968b1f606b1dcfb95844dfe6f382c5abbb995849",
+      "candidate_executable_sha256": "758bde36fce75a423e005d3ababaa14900ef1dafdd55e6ee0e874c28222b2cfc",
+      "training": {
+        "baseline": {
+          "members": 12,
+          "format_capability": 8,
+          "compacted_before_group_bytes": 1728512,
+          "compacted_after_group_bytes": 303104,
+          "anchor_copy_member_frame_bytes": 79994,
+          "output_sha256": "ac71df8ce40dd7eb0244fede03cfffdf20ab79c8c216b81761fab79d991dc8e8",
+          "exact_readback": true,
+          "process_tree_retired": true
+        },
+        "candidate": {
+          "members": 12,
+          "format_capability": 8,
+          "compacted_before_group_bytes": 1728512,
+          "compacted_after_group_bytes": 303104,
+          "anchor_copy_member_frame_bytes": 51796,
+          "output_sha256": "2de4f34d84112f852c2118924b6f7b197df835d74f6cb214e6e313a89fc27fca",
+          "exact_readback": true,
+          "process_tree_retired": true
+        }
+      },
+      "held_out": {
+        "baseline": {
+          "members": 12,
+          "format_capability": 8,
+          "compacted_before_group_bytes": 1728512,
+          "compacted_after_group_bytes": 303104,
+          "anchor_copy_member_frame_bytes": 79712,
+          "output_sha256": "4d154e6d360f97544de164a0bb524c565dd4ca4c4f711e706654758618dbebcc",
+          "exact_readback": true,
+          "process_tree_retired": true
+        },
+        "candidate": {
+          "members": 12,
+          "format_capability": 8,
+          "compacted_before_group_bytes": 1728512,
+          "compacted_after_group_bytes": 303104,
+          "anchor_copy_member_frame_bytes": 51555,
+          "output_sha256": "26f8ee3aad0f8468ad27d4db3430a9285f9afca14e875f5480a98c642438a8fb",
+          "exact_readback": true,
+          "process_tree_retired": true
+        }
+      }
+    },
+    {
+      "build": "LZ4 and Zstandard disabled",
+      "selected_method": "anchor copy",
+      "baseline_artifact": {
+        "library_sha256": "f02dfb569a99e2e0985cd888c4fb519dcce15fb0f98eddd86248cd7711b459f3",
+        "test_sha256": "91aa0f14e2986aa18d56b299bc34111f54e53b8e133c87a9e64e09b11e2cd531"
+      },
+      "candidate_artifact": {
+        "library_sha256": "f59eb05ce6def2726daffab6883c0dd8bb9c21e72d95648f91b02bccb1ffba23",
+        "test_sha256": "bb1f2aa2deb2bfa762807b89b07acba6124c4d5a5f747af22132ebba714856e1"
+      },
+      "training": {
+        "baseline": {
+          "members": 12,
+          "format_capability": 4,
+          "compacted_before_group_bytes": 1728512,
+          "compacted_after_group_bytes": 450560,
+          "anchor_copy_member_frame_bytes": 79994,
+          "output_sha256": "73c7c1cf8338223f8f9d08708ef9be95d0da16267ee759b7e32ea24caf3cc5f4",
+          "exact_readback": true,
+          "process_tree_retired": true
+        },
+        "candidate": {
+          "members": 12,
+          "format_capability": 4,
+          "compacted_before_group_bytes": 1728512,
+          "compacted_after_group_bytes": 393216,
+          "anchor_copy_member_frame_bytes": 51796,
+          "output_sha256": "5968fcab900393fb0711e4b5adaa271de6856a23ace5f0e840ac1070500c2769",
+          "exact_readback": true,
+          "process_tree_retired": true
+        }
+      },
+      "held_out": {
+        "baseline": {
+          "members": 12,
+          "format_capability": 4,
+          "compacted_before_group_bytes": 1728512,
+          "compacted_after_group_bytes": 450560,
+          "anchor_copy_member_frame_bytes": 79712,
+          "output_sha256": "f22081d2cd1c867fc374d06400ecff680602a15f13a2467704dbcac887cfb5ab",
+          "exact_readback": true,
+          "process_tree_retired": true
+        },
+        "candidate": {
+          "members": 12,
+          "format_capability": 4,
+          "compacted_before_group_bytes": 1728512,
+          "compacted_after_group_bytes": 393216,
+          "anchor_copy_member_frame_bytes": 51555,
+          "output_sha256": "c46b44a400200b8ab64c41f5e58d39058981537b8aceab0e59d7a7a634875922",
+          "exact_readback": true,
+          "process_tree_retired": true
+        }
+      }
+    }
+  ],
+  "checks": {
+    "windows_release": {
+      "passed": 8,
+      "output_sha256": "356e0e91994f4cc20767f1b9b1b985a270102b4654179c5fb8ad2f71f25241d5",
+      "process_tree_retired": true
+    },
+    "windows_address_sanitizer_including_runtime_preflight": {
+      "passed": 4,
+      "output_sha256": "dce9c0a97ad4f0322226c3c5eb55a04eb831382164c46a76c243856e029bc2e3",
+      "process_tree_retired": true
+    },
+    "windows_raw_release": {
+      "passed": 3,
+      "output_sha256": "fc337eca4dcb97e275508d8e0856684971ed559f1c47bd03a4883a0bd692374a",
+      "process_tree_retired": true
+    }
+  },
+  "interpretation": "Both configurations selected one protected group per split. The complete compacted image was independently reopened and compared with the input. The shift is controlled and these measurements are specific to section rotation. They measure bytes and do not estimate throughput, mounted filesystem performance or GPU performance."
+}

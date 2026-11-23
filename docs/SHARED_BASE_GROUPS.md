@@ -235,6 +235,15 @@ same packed layouts in both winning cases.
 [Packed slice representation](INDEXED_NATIVE_VOLUME.md#packed-slices) ·
 [Paired Windows trials](evidence/indexed-packed-small-extents-2026-11-20.json)
 
+On two controlled revision families derived from AIT DCC 2026 data, the anchor
+encoder now copies matching bytes before each verified seed. Its candidate
+frames were about 35% smaller. With LZ4 and Zstandard disabled, each complete
+compacted image fell from 450,560 to 393,216 bytes. The normal build selected
+Zstandard prefixes and kept each complete image at 303,104 bytes. An independent
+CPU snapshot of every compacted image verified all 12 files byte for byte.
+[Windows comparison and input hashes](evidence/windows-anchor-copy-prefix-2026-11-23.json) ·
+[AIT DCC 2026 dataset](https://aitdcc.github.io/dataset.html)
+
 Next: fresh contention/resource admission, durable restart progress and protected
 paged coherence metadata;
 evaluate shifted/fine-grained, dictionary, multi-reference and learned candidates

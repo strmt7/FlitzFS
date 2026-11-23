@@ -627,3 +627,31 @@ The scoped native LZ4 fixture can request this transport explicitly. Production
 selection requires matched device evidence and an admitted package.
 [Windows event semantics](https://learn.microsoft.com/en-us/windows/win32/sync/event-objects) ·
 [Windows wait semantics](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitformultipleobjects)
+
+## Reusing an initialized GPU worker
+
+A worker can retain the initialized HIP runtime and reuse its stream and
+working buffers while Windows manages device power. In three Radeon trials a
+single worker served all eight admitted windows. It took 1.64–2.04 seconds
+to signal first readiness. Total time varied against the ordinary sweep.
+The worker retired at the job boundary in every trial.
+[Windows Radeon trials](evidence/windows-prepared-gpu-windows-2026-11-23.json) ·
+[AMD HIP initialization](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/reference/hip_runtime_api/modules/initialization_and_version.html) ·
+[Windows GPU queue power transitions](https://learn.microsoft.com/en-us/windows-hardware/drivers/display/user-mode-work-submission)
+
+For reuse across jobs, qualify an event-driven worker scoped to the active
+volume controller. Start it during CPU preparation when recent eligible
+requests and current headroom justify the setup cost. Keep idle GPU submission
+at zero. Retain only resources covered by the current RAM and VRAM budgets.
+Shrink or retire the worker when demand drops, the host needs resources, the
+adapter changes or the volume closes. A restart after sleep or driver recovery
+requires fresh device admission. Foreground work keeps a CPU path available
+while the worker starts or retires.
+
+The current reply protocol requires confirmed child exit before acceptance.
+Cross-job reuse needs an explicit request completion boundary with synchronized
+device work, per-request buffers, and protection against stale completions.
+The CPU still owns independent byte verification and publication. Qualify
+cold and reused requests on real work, including small bursts, idle gaps,
+foreground contention and teardown. Measure first-ready and end-to-end latency,
+retained memory and idle GPU activity before enabling automatic retention.
