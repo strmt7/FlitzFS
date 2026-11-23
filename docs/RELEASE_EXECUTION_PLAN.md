@@ -437,6 +437,13 @@ multiple sessions and measure actual allocated bytes and write costs.
   ingestion policy with later stronger compression to the automatic CPU
   baseline. [Write qualification](NATIVE_WINDOWS_LZ4_ADVICE.md#committed-device-output-and-the-file-helpers-write-policy) ·
   [Current Radeon write evidence](evidence/windows-amd-native-file-policy-2026-11-23.json)
+- Measured native sweep offers now require timing for the complete exchange.
+  The planner budgets both fixed overhead and the admitted window count.
+  A real Radeon comparison halved dispatches at four extents per launch
+  and produced identical verified output. Observed synchronized waits above
+  440 ms leave tail behavior open. Attribute initial and recurring costs
+  before expanding measured work offers in the foreground or background.
+  [Current sweep profile](evidence/windows-amd-sweep-deadline-2026-11-23.json)
 - A one-request preparation lease now reaches actual AMD readiness before input
   delivery. On three matched 1 MiB public requests it cut the median response
   after submission from 1.79 s to 545 ms. Charging setup, the prepared median

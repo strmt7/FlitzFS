@@ -54,6 +54,7 @@ bool NativeDeferredWriteService::measured_write_funded(const NativeDeferredWrite
   if(!bytes || bytes%kNativeExtentBytes)return false;
   const auto cost=charge_native_uniform_source(charge_request(options.cost),bytes);
   const auto& sweep=options.binding.sweep;
+  if(sweep && !cost.sweep_timing)return false;
   const auto plan=sweep?plan_gpu_lz4_sweep_window(bytes,kNativeExtentBytes,evidence,now,
       cost,options.window,*sweep,options.deadline_ms):
       plan_gpu_lz4_window(bytes,kNativeExtentBytes,evidence,now,cost,options.window);

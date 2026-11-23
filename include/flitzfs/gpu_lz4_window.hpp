@@ -1,7 +1,12 @@
 #pragma once
 #include "flitzfs/gpu_recovery.hpp"
 #include "flitzfs/gpu_lz4_uniform.hpp"
+#include <optional>
 namespace flitzfs {
+struct GpuLz4SweepTiming {
+  std::uint64_t fixed_ns=0; // Setup, final verification and retirement outside the windows.
+  std::uint64_t per_window_ns=0; // Complete window including copies, checks and synchronization.
+};
 // A measured/configuration-qualified bound for fixed runtime costs plus the
 // actual resident buffers of the selected implementation. These are demand
 // accounting inputs, never assumed installed system specifications.
@@ -14,6 +19,7 @@ struct GpuLz4ResidentCost {
   std::uint32_t profiled_chunk_bytes=0,maximum_grid_x=0;
   std::uint64_t kernel_ns_per_chunk=0,qualified_kernel_quantum_ns=0;
   bool qualified=false;
+  std::optional<GpuLz4SweepTiming> sweep_timing;
 };
 struct GpuLz4WindowPolicy {
   std::uint32_t memory_share_divisor=0;
@@ -28,6 +34,7 @@ struct GpuLz4WindowPlan {
   uniform_lz4::Layout layout{};
   std::uint64_t host_peak_bytes=0,remaining_input_bytes=0,estimated_kernel_ns=0;
   uniform_lz4::Layout quantum{};
+  std::uint64_t estimated_total_ns=0; // Zero when full sweep timing was not supplied.
 };
 // Derive the largest window from CURRENT GPU, physical and process-constrained
 // commit headroom. No fixed KiB/MiB allocation cap or hardware model lookup.
@@ -42,7 +49,8 @@ GpuLz4WindowPlan plan_gpu_lz4_window(std::uint64_t input_bytes,std::uint32_t chu
 
 // Admit one finite exchange with a reusable device slab. Host accounting
 // covers the whole exchange. Grid, device memory and kernel quantum bounds
-// apply to the largest launch. The supervisor enforces the elapsed deadline.
+// apply to the largest launch. When timing evidence is present, charge the
+// fixed overhead and every reused window against the elapsed deadline.
 GpuLz4WindowPlan plan_gpu_lz4_sweep_window(std::uint64_t input_bytes,std::uint32_t chunk_bytes,
     const GpuHealthEvidence&,std::uint64_t now_ms,const GpuLz4ResidentCost&,GpuLz4WindowPolicy,
     GpuLz4SweepGrant,std::uint32_t deadline_ms) noexcept;

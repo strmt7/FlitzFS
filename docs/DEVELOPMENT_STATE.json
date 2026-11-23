@@ -106,6 +106,16 @@
     "timing_comparison_qualified": false,
     "automatic_foreground_enrolled": false
   },
+  "amd_sweep_deadline": {
+    "evidence": "docs/evidence/windows-amd-sweep-deadline-2026-11-23.json",
+    "measured_sweep_admission": "Requires fixed and per-window elapsed costs and complete write funding.",
+    "profiled_input_bytes": 1048576,
+    "matched_launch_comparisons": 3,
+    "window_counts": {"two_extents": 8, "four_extents": 4},
+    "verified_output_bytes": 467755,
+    "automatic_mounted_writes_qualified": false,
+    "next": "Trace initial versus recurring synchronized waits before qualifying wider automatic work."
+  },
   "amd_complete_measured_window": {
     "evidence": "docs/evidence/windows-amd-full-measured-window-2026-11-22.json",
     "partial_geometry_uses_synchronous_cpu": true,

@@ -187,6 +187,31 @@ void finite_sweeps(){
   require(tail.code==GpuGateCode::admitted && tail.layout.input_bytes==input+7 &&
       tail.layout.chunks==9 && tail.quantum.total_bytes==maximum.total_bytes,
       "finite exchange discarded a partial final input");
+  auto timed=measured;
+  timed.sweep_timing=GpuLz4SweepTiming{4000000,2500000};
+  const auto time_limited=plan_gpu_lz4_sweep_window(input,chunk_bytes,health,100,timed,policy,grant,12);
+  require(time_limited.code==GpuGateCode::admitted && time_limited.layout.chunks==6 &&
+      time_limited.estimated_kernel_ns==6000000 && time_limited.estimated_total_ns==11500000,
+      "fixed and per-window costs did not limit the sweep");
+  const auto smaller=plan_gpu_lz4_sweep_window(input,chunk_bytes,health,100,timed,policy,smaller_slab,12);
+  require(smaller.code==GpuGateCode::admitted && smaller.layout.chunks==3 &&
+      smaller.estimated_total_ns==time_limited.estimated_total_ns,
+      "sweep counted too few windows after the slab shrank");
+  Layout wider;
+  require(make_layout(4*chunk_bytes,chunk_bytes,wider),"invalid wider fixture");
+  timed.maximum_grid_x=4;
+  const auto full=plan_gpu_lz4_sweep_window(input,chunk_bytes,health,100,timed,{16,4000000},
+      {wider.chunks,wider.total_bytes},12);
+  require(full.code==GpuGateCode::admitted && !full.remaining_input_bytes && full.quantum.chunks==4 &&
+      full.estimated_total_ns==12000000,"elapsed estimate undercharged the kernel or refused a complete wider sweep");
+  require(plan_gpu_lz4_sweep_window(input,chunk_bytes,health,100,timed,policy,grant,6).code==GpuGateCode::expired,
+      "deadline shorter than setup and the first window was admitted");
+  timed.sweep_timing->fixed_ns=(std::numeric_limits<std::uint64_t>::max)();
+  require(plan_gpu_lz4_sweep_window(input,chunk_bytes,health,100,timed,policy,grant,12).code==GpuGateCode::expired,
+      "fixed cost overflowed the elapsed deadline");
+  timed.sweep_timing=GpuLz4SweepTiming{4000000,0};
+  require(plan_gpu_lz4_sweep_window(input,chunk_bytes,health,100,timed,policy,grant,12).code==GpuGateCode::invalid_budget,
+      "incomplete elapsed time evidence admitted a sweep");
   auto pressured=health;
   pressured.memory.physical_available=5ULL<<30;
   const auto enough=plan_gpu_lz4_sweep_window(256ULL<<20,chunk_bytes,health,100,measured,policy,grant,6000);

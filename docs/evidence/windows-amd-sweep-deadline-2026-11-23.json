@@ -1,0 +1,444 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "release_qualified": false,
+  "source": {
+    "base": "46f75064132f39cf916d7a9e451bdf7a472b2e26",
+    "base_tree": "5203d18bd111a9cf0015f8146c32702894e8b4bd",
+    "blobs": {
+      "include/flitzfs/gpu_lz4_window.hpp": "9767be03b1933429b960b7d256fe84d124e7b938",
+      "src/gpu_lz4_window.cpp": "5e828a2b8e47faf01001a0222f7ac3631200b32c",
+      "src/windows/native_deferred_write.cpp": "b86b5c6bcc07551e82e5659a6aa69391bf4d73ba",
+      "tests/test_gpu_lz4_window.cpp": "ab56500e65cd59931e15759877a1907749ad210f",
+      "tests/test_native_deferred_write_sdk.cpp": "64e69d095f3eda7c55f6cbf8b6874529ecccb1c8"
+    },
+    "normalized_sha256": {
+      "include/flitzfs/gpu_lz4_window.hpp": "044c1261834d492d5b105a7ffa59a011c59d3ba80a466de0e385327a4b813fb1",
+      "src/gpu_lz4_window.cpp": "2ffd6b366f432c99126a6f6f6cf131db9e90625f3539ffd6006538c4eceb6726",
+      "src/windows/native_deferred_write.cpp": "c4100f392e486b6108e9de1c9b299e0d799ca8fd03be288c214b1f3e3cd8505a",
+      "tests/test_gpu_lz4_window.cpp": "36ebb71f016eb3dff51cebb567f1924e57f24aa4ed1388eb1adbd53c88c52f83",
+      "tests/test_native_deferred_write_sdk.cpp": "dea66d235fea5beb4becb0a853acb77bdd5bb1a67832b7853332a1d1c36d110e"
+    }
+  },
+  "behavior": "Sweeps with complete timing evidence reserve fixed interval cost plus every admitted window, and also charge the independent kernel-time floor. Measured native sweep offers require complete timing and whole-input funding before defer.",
+  "validation": {
+    "windows": {
+      "run": "local-run-82ddbd4a81ca4ca98bf7d77ee71f1117",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_commit_bytes": 691511296,
+      "receipt_sha256": "a2c4dc43bd1da3c3ed293852b87cb85ae3e30540a0c6c77a29ab25db3bc76189",
+      "log_sha256": "5950735d3c40cf1005df47f4de7d2f60dce1e22d83eec33e8d4663743a6c9cb9",
+      "passed": 217
+    },
+    "raw": {
+      "runs": [
+        {
+          "run": "local-run-16c88f1c8a8d4f718b9588e593f0dabe",
+          "exit_code": 0,
+          "tree_retired": true,
+          "peak_commit_bytes": 33681408,
+          "receipt_sha256": "32a77f44c189763ed78768fb1ae9f5722c80b6ed0fdd31db90b7b136a0743775",
+          "log_sha256": "35d2ada2913d835df647c27dabacc51b8e39d821036fe048af88b976b18aabda",
+          "passed": 2,
+          "tests": [
+            "adaptive_gpu_lz4_windows",
+            "owned_native_deferred_write_sdk"
+          ]
+        },
+        {
+          "run": "local-run-fc9c7be6e20243f189da1698a312c609",
+          "exit_code": 0,
+          "tree_retired": true,
+          "peak_commit_bytes": 9027584,
+          "receipt_sha256": "ef68cb759c5ed68170fa61186f7d0e6e715eada525deb830216c1dc17a9cb986",
+          "log_sha256": "f3ced82108d5eee7a557d3c5cdf3af938041da8d09e36f7409b274d1331f2437",
+          "passed": 1,
+          "tests": [
+            "uniform_lz4_sweep_profile_envelope"
+          ]
+        }
+      ],
+      "passed_unique": 3
+    },
+    "asan": {
+      "runs": [
+        {
+          "run": "local-run-7191015f59f945a4b2046a5da41dd347",
+          "exit_code": 0,
+          "tree_retired": true,
+          "peak_commit_bytes": 378994688,
+          "receipt_sha256": "89091db75809c934a2425a8cca385ce85aea241bf3e5463b9add341c3e1af9ee",
+          "log_sha256": "883111f7006b746a86717f1c5d996f8265c5f9bc6cb139af6a74065e30974e1f",
+          "passed": 3,
+          "tests": [
+            "adaptive_gpu_lz4_windows",
+            "owned_native_deferred_write_sdk",
+            "windows_asan_runtime_preflight"
+          ]
+        },
+        {
+          "run": "local-run-e5f82132fb674479bc7636d92c656959",
+          "exit_code": 0,
+          "tree_retired": true,
+          "peak_commit_bytes": 102559744,
+          "receipt_sha256": "e8a858b87b35c19ef223a212c9f07c85701a9158bf06493bc20474907842cf46",
+          "log_sha256": "a8d1d71d0dbb18fe314beb8b889684bb57cf790dbc133c281f1c5a9434f06db0",
+          "passed": 2,
+          "tests": [
+            "uniform_lz4_sweep_profile_envelope",
+            "windows_asan_runtime_preflight"
+          ]
+        }
+      ],
+      "passed_unique": 4
+    },
+    "sdk_cpu": {
+      "run": "local-run-66e67deab9744e6fb2f4868d4849815c",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_commit_bytes": 37908480,
+      "receipt_sha256": "99362d089af5dc759b6a1a759296f6302a6efe4a53fc6fba2f90b9a2818e736e",
+      "log_sha256": "96a299a70fa789165062e1f30615c2aaf0757c8dfc8ce71b9ed05dcf1f1ea9ca",
+      "passed": 1,
+      "tests": [
+        "owned_native_deferred_write_sdk"
+      ]
+    },
+    "planner": {
+      "run": "local-run-968dcdf67c324322a0a6f6d1809107ef",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_commit_bytes": 2252800,
+      "receipt_sha256": "17422145fee15978436f2d15c79a746c613ee1e43d82eae89754b93bf204271f",
+      "log_sha256": "50170a3a7d2d956204756e46c08db51665cc81ffccf8ec16799e1cf6941a3020",
+      "checks": 771
+    }
+  },
+  "primary_sources": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "provider_source_sha256": "ec3cb7a98eceed8fef08f3af806d6eaed35656bd76ca0ee8853d273f790337a5",
+    "receipt_sha256": "379dfb465cdb92ad1207d1103993f23c3727a1fefd4f12f6e8d44194d5acf07f",
+    "pages": [
+      {
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/reference/hip_runtime_api/modules/stream_management.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 51306,
+        "markdown_sha256": "bee401671f6fc9c05ac9b57c010c93ce535666de88336c70a4d0d7d4d81dae5a",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "capture_sha256": "581991f9dfe80bddc31ad6c2efb194899811773497adf8b8511430a94789c1b0",
+        "name": "stream-management"
+      },
+      {
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/hipgraph.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 46644,
+        "markdown_sha256": "1a9a14cb9f414fc6cf14a3565acf89227940026bf93f7ab8cdf57a9f54a007f0",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "capture_sha256": "74ad1379ffef875121954df2c5706cd191e0f4cbcae5797adb35696033fc8c42",
+        "name": "graph-overhead"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/timeout-detection-and-recovery",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 28643,
+        "markdown_sha256": "e14e08e3ff79cd105e92d306076d2106c1f245b81b5dcc305ca6bde41f59434f",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "capture_sha256": "8ec80ab6a94a3f98643b7e43af02908834a54febfc9d860239d369610de9e8eb",
+        "name": "wddm-recovery"
+      }
+    ]
+  },
+  "source_navigation": {
+    "initial_error": "Indexing: 5 files listed | 0 added, 0 deleted, 0 reprocessed, 0 unchanged, error: 5",
+    "recovered_results": [
+      "src/windows/uniform_lz4_sweep_profile.hpp",
+      "src/gpu_lz4_window.cpp",
+      "src/gpu_lz4_window.cpp",
+      "src/gpu_lz4_window.cpp",
+      "src/gpu_lz4_window.cpp"
+    ],
+    "source_inventory_sha256": "d673d15f637deb761b5518c83ee37a9992c54836b9f126557323a22f2bdb6032",
+    "native_result_sha256": "da2682a965f7df3b77c49989fb0242f5595421dfcdbefc59a602f7522aa15791"
+  },
+  "installed_inputs": {
+    "kind": "probe",
+    "manifest": {
+      "path": "qualification-manifest.json",
+      "bytes": 528,
+      "sha256": "e82febe04dbf951fddd780a5db58a85f96e845f970c8abbb3d21bf6a38cd4ebd"
+    },
+    "files": [
+      {
+        "path": "flitzfs_hip_lz4_worker.exe",
+        "bytes": 604672,
+        "sha256": "af8326f20c735e2989c24f6e15da8da7b8912aea1e51a1e08523e674d7c707d5"
+      },
+      {
+        "path": "hip-uniform-lz4/flitzfs_rocm_uniform_lz4_candidate.dll",
+        "bytes": 322048,
+        "sha256": "64601897f13003dfea6d47116963c96b2ce7af1a80e5b854e6397b12cbc6bc3d"
+      },
+      {
+        "path": "winfsp-x64.dll",
+        "bytes": 200816,
+        "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+      },
+      {
+        "path": "flitzfs_native_deferred_write_sdk_tests.exe",
+        "bytes": 2309120,
+        "sha256": "d42373c0fe7016370dd8728155748db327c617588452f775114f32bd908266dd"
+      }
+    ]
+  },
+  "hardware_profile": {
+    "run": "local-run-6c7350ab749e47a2ad5b3aac1da4ab16",
+    "exit_code": 0,
+    "tree_retired": true,
+    "peak_commit_bytes": 119590912,
+    "receipt_sha256": "907d625419171f4c4db3242362a52f7fe3aa896068c0d3428e125c0d28005076",
+    "log_sha256": "f2d459145301c2b74a526e4abb3822987258ea4675d1b07e729a1ac5c495feae",
+    "preflight": {
+      "ready": false,
+      "loads": [
+        3,
+        2,
+        19
+      ],
+      "build": "26300",
+      "physical_available_kib": 31386912,
+      "commit_available_kib": 73334864,
+      "devices": [
+        {
+          "Name": "AMD Radeon RX 9070 XT",
+          "DriverVersion": "32.0.32029.2010"
+        }
+      ],
+      "artifacts": [
+        {
+          "name": "flitzfs_hip_lz4_worker.exe",
+          "sha256": "af8326f20c735e2989c24f6e15da8da7b8912aea1e51a1e08523e674d7c707d5",
+          "bytes": 604672
+        },
+        {
+          "name": "flitzfs_rocm_uniform_lz4_candidate.dll",
+          "sha256": "64601897f13003dfea6d47116963c96b2ce7af1a80e5b854e6397b12cbc6bc3d",
+          "bytes": 322048
+        },
+        {
+          "name": "amdhip64_7.dll",
+          "sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+          "bytes": 17382040
+        }
+      ]
+    },
+    "preflight_run": {
+      "run": "local-run-71f603bd0612465f81ca9bb653fc59cc",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_commit_bytes": 44658688,
+      "receipt_sha256": "bbbd08dfb10898ae6bbf81e220f6c4f8847e126ac7798957e125613413f45b65",
+      "log_sha256": "a563105982e1dedf0371e66165fff87603d4a74dbb86897866162b2c4ac4ad12"
+    },
+    "input_bytes": 1048576,
+    "corpus_sha256": "5efc5c798295069e2151fdd2eaf06366dc0aa2e92a93ccf178ae3f5cfb309792",
+    "observations": [
+      {
+        "request": 1,
+        "quantum": 2,
+        "windows": 8,
+        "parent_ns": 3057697600,
+        "fixed_ns": 2443743600,
+        "setup_ns": 2303385400,
+        "maximum_window_ns": 440215200,
+        "maximum_kernel_wait_ns": 439367100,
+        "encoded_bytes": 467755,
+        "verified": 1,
+        "retired": 1
+      },
+      {
+        "request": 2,
+        "quantum": 4,
+        "windows": 4,
+        "parent_ns": 1206934600,
+        "fixed_ns": 1105327800,
+        "setup_ns": 984412800,
+        "maximum_window_ns": 38081600,
+        "maximum_kernel_wait_ns": 28485900,
+        "encoded_bytes": 467755,
+        "verified": 1,
+        "retired": 1
+      },
+      {
+        "request": 3,
+        "quantum": 4,
+        "windows": 4,
+        "parent_ns": 1185460300,
+        "fixed_ns": 1072001400,
+        "setup_ns": 953236700,
+        "maximum_window_ns": 49598600,
+        "maximum_kernel_wait_ns": 39585700,
+        "encoded_bytes": 467755,
+        "verified": 1,
+        "retired": 1
+      },
+      {
+        "request": 4,
+        "quantum": 2,
+        "windows": 8,
+        "parent_ns": 1735849700,
+        "fixed_ns": 1100465600,
+        "setup_ns": 977667600,
+        "maximum_window_ns": 446349500,
+        "maximum_kernel_wait_ns": 445440900,
+        "encoded_bytes": 467755,
+        "verified": 1,
+        "retired": 1
+      },
+      {
+        "request": 5,
+        "quantum": 2,
+        "windows": 8,
+        "parent_ns": 1755899800,
+        "fixed_ns": 1144936200,
+        "setup_ns": 1016461400,
+        "maximum_window_ns": 440558900,
+        "maximum_kernel_wait_ns": 439881100,
+        "encoded_bytes": 467755,
+        "verified": 1,
+        "retired": 1
+      },
+      {
+        "request": 6,
+        "quantum": 4,
+        "windows": 4,
+        "parent_ns": 1700235000,
+        "fixed_ns": 1175148700,
+        "setup_ns": 1039266000,
+        "maximum_window_ns": 442218000,
+        "maximum_kernel_wait_ns": 441396400,
+        "encoded_bytes": 467755,
+        "verified": 1,
+        "retired": 1
+      }
+    ],
+    "paired_results": [
+      {
+        "pair": 1,
+        "wide_first": 0,
+        "narrow_ns": 3057697600,
+        "wide_ns": 1206934600,
+        "narrow_fixed_ns": 2443743600,
+        "wide_fixed_ns": 1105327800,
+        "identical_payload": 1
+      },
+      {
+        "pair": 2,
+        "wide_first": 1,
+        "narrow_ns": 1735849700,
+        "wide_ns": 1185460300,
+        "narrow_fixed_ns": 1100465600,
+        "wide_fixed_ns": 1072001400,
+        "identical_payload": 1
+      },
+      {
+        "pair": 3,
+        "wide_first": 0,
+        "narrow_ns": 1755899800,
+        "wide_ns": 1700235000,
+        "narrow_fixed_ns": 1144936200,
+        "wide_fixed_ns": 1175148700,
+        "identical_payload": 1
+      }
+    ],
+    "median_parent_ns": {
+      "two_extents": 1755899800,
+      "four_extents": 1206934600
+    },
+    "scope": "Host wall diagnostics for the pinned worker. Includes setup and independent checks. Excludes mounted write and competitive throughput claims."
+  },
+  "hardware_activation": {
+    "run": "local-run-f1b3130dedb1435698be82289f1d6a98",
+    "exit_code": 0,
+    "tree_retired": true,
+    "peak_commit_bytes": 137162752,
+    "receipt_sha256": "32f364a38e2815c52fabad855ede9f1adf0cf734e5ff8eb04c9bec3d001df2d2",
+    "log_sha256": "df308588b392c3b074fde037425db1684f6f75b248fcb611ab97ebfb8efc0b02",
+    "published": {
+      "sweep": 1,
+      "quantum_chunks": 2,
+      "source_bytes": 1048576,
+      "offset": 33554432,
+      "worker_payload_bytes": 135344,
+      "stored_lz4_candidates": 16,
+      "matched_copies": 32,
+      "image_bytes": 2621440,
+      "response_ns": 2278841400
+    },
+    "missing_sweep_timing_refused": true,
+    "independent_cpu_readback": true,
+    "scope": "Explicit controlled activation used fixture timing bounds. Mounted application admission remains open.",
+    "preflight": {
+      "ready": false,
+      "loads": [
+        19,
+        19,
+        11
+      ],
+      "build": "26300",
+      "physical_available_kib": 31618708,
+      "commit_available_kib": 73635128,
+      "devices": [
+        {
+          "Name": "AMD Radeon RX 9070 XT",
+          "DriverVersion": "32.0.32029.2010"
+        }
+      ],
+      "artifacts": [
+        {
+          "name": "flitzfs_hip_lz4_worker.exe",
+          "sha256": "af8326f20c735e2989c24f6e15da8da7b8912aea1e51a1e08523e674d7c707d5",
+          "bytes": 604672
+        },
+        {
+          "name": "flitzfs_rocm_uniform_lz4_candidate.dll",
+          "sha256": "64601897f13003dfea6d47116963c96b2ce7af1a80e5b854e6397b12cbc6bc3d",
+          "bytes": 322048
+        },
+        {
+          "name": "amdhip64_7.dll",
+          "sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+          "bytes": 17382040
+        }
+      ]
+    },
+    "preflight_run": {
+      "run": "local-run-ec79b9e6084346b1915104df94f7a803",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_commit_bytes": 44736512,
+      "receipt_sha256": "e0883483d391a7602b88e6819006bc636cb76c4d22730075f6ff0af61a22634b",
+      "log_sha256": "2de303ce4192166c5bdcd15fa00cf78ecc4a8e9b7e6e3b2a8424b9ebe4934be2"
+    }
+  },
+  "conclusions": [
+    "The four-extent configuration used one half the dispatches and kept the independently verified output identical in all three pairs.",
+    "The synchronized kernel-wait phase exceeded 440 ms at both sizes. The traces cannot localize those waits to first launch or distinguish host wait from device execution.",
+    "Retain CPU continuity and measure initial versus recurring work before enlarging automatic grants. Mounted speed and stronger collective compression remain open."
+  ]
+}

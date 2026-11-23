@@ -18,6 +18,7 @@
 #include "winfsp_volume_attachment.hpp"
 #include "flitzfs/read_only_file.hpp"
 #include "flitzfs/uniform_lz4_batch.hpp"
+#include "uniform_lz4_sweep_profile.hpp"
 #endif
 #include <array>
 #include <atomic>
@@ -743,6 +744,10 @@ NativeAmdWriteSample indexed_trial(const HipDiscoveredRoute* route,bool sweep,
       h.close(before);
       options.measured_shape=NativeAmdWriteShape{static_cast<std::uint32_t>(source.size()),
           h.image->contract().write_failure_unit_bytes,fixture.compression};
+      check(!NativeDeferredWriteService::measured_write_funded(options,observed,observed.memory.captured_ms),
+          "measured sweep was funded with kernel costs alone");
+      // The live fixture exercises route activation independently of performance qualification.
+      options.cost.sweep_timing=GpuLz4SweepTiming{3000000000,250000000};
       auto mismatch=options;
       ++mismatch.measured_shape->foreground.zstd_level;
       check(h.controller->offer_qualified_foreground_route(std::move(mismatch)),
@@ -956,6 +961,89 @@ std::uint64_t elapsed_ns(std::chrono::steady_clock::time_point start) {
   return static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
       std::chrono::steady_clock::now()-start).count());
 }
+struct RecordedSweepProfile {
+  UniformLz4SweepProfiledReply reply;
+  std::uint64_t total_ns=0,fixed_ns=0;
+};
+RecordedSweepProfile profile_installed_sweep(const HipDiscoveredRoute& route,const PreparedUniformLz4& batch,
+    std::uint32_t quantum_chunks,std::uint64_t request_id) {
+  const auto started=std::chrono::steady_clock::now();
+  auto cost=diagnostic_uniform_cost(route);
+  cost.maximum_grid_x=quantum_chunks;
+  cost.qualified_kernel_quantum_ns=quantum_chunks*cost.kernel_ns_per_chunk;
+  uniform_lz4::Layout quantum{};
+  check(uniform_lz4::make_layout(std::uint64_t(quantum_chunks)*kNativeExtentBytes,kNativeExtentBytes,quantum),
+      "profile quantum geometry");
+  const NativeUniformSweepGrant grant{quantum_chunks,quantum.total_bytes};
+  const NativeUniformWorkerBinding binding{.helper=route.helper,.configuration=route.identity,
+      .ordinal=static_cast<int>(route.ordinal),.runtime_sha256=route.runtime_sha256,.sweep=grant};
+  check(route.pins->device_ready() && WorkerExchangeSession::available(),"profile device not available");
+  WindowsGpuBudgetSampler sampler(route.memory.luid,route.memory.node_mask);
+  const auto before=sampler.sample();
+  check(before.status==WindowsGpuBudgetStatus::success,"profile GPU budget unavailable");
+  const GpuHealthEvidence evidence{route.identity,request_id,0,true,true,before.snapshot};
+  const auto plan=plan_gpu_lz4_sweep_window(batch.layout().input_bytes,kNativeExtentBytes,
+      evidence,GetTickCount64(),cost,{16,cost.qualified_kernel_quantum_ns},grant,diagnostic_worker_budget.timeout_ms);
+  check(plan.code==GpuGateCode::admitted && !plan.remaining_input_bytes && plan.quantum.chunks==quantum_chunks &&
+      uniform_worker_host_budget_covers(batch.limits(),diagnostic_worker_budget,plan.host_peak_bytes),
+      "profile could not admit the whole requested sweep");
+  auto dispatch=prepare_native_uniform_dispatch(binding,evidence,batch,WorkerExecution::hip,&grant);
+  const WorkerChannelCapacity channel{batch.limits().request_bytes,batch.limits().reply_bytes+kUniformLz4SweepProfileBytes};
+  dispatch.arguments[0]=L"--driver-uniform-lz4-sweep-profile-adapter";
+  dispatch.arguments[6]=std::to_wstring(channel.reply_bytes);
+  auto frame=std::make_shared<const WorkerRequestSnapshot>(encode_uniform_lz4_request(batch,request_id));
+  const auto worker=WorkerExchangeSession::run_sized(binding.helper,dispatch.arguments,std::move(frame),channel,
+      diagnostic_worker_budget,{},route.pins);
+  check(worker.code==WorkerExchangeCode::completed && worker.process.exit_confirmed &&
+      WorkerExchangeSession::available(),"profiled worker did not publish and retire");
+  const UniformLz4ProfileBinding profile{request_id,route.ordinal,route.memory.node_mask,
+      grant.maximum_chunks,static_cast<std::uint32_t>(kNativeExtentBytes),grant.maximum_device_bytes,route.memory.luid};
+  auto reply=accept_uniform_lz4_sweep_profile_reply(worker.response,batch,profile,WorkerExecution::hip);
+  const auto after=sampler.sample();
+  check(after.status==WindowsGpuBudgetStatus::success && after.snapshot.captured_ms>before.snapshot.captured_ms &&
+      check_gpu_memory_budget(after.snapshot,route.memory.luid,route.memory.node_mask,GetTickCount64(),
+          dispatch.device_peak_bytes)==GpuGateCode::admitted,"profile completion budget unavailable");
+  const auto duration=elapsed_ns(started);
+  const auto& trace=reply.trace;
+  check(trace.total_wall_ns<=duration && trace.completed_windows==dispatch.windows,"profile total disagrees with parent");
+  std::uint64_t window_phases=0;
+  for(auto phase=static_cast<unsigned>(UniformSweepPhase::admission);
+      phase<=static_cast<unsigned>(UniformSweepPhase::completion);++phase)
+    window_phases+=trace.wall_ns[phase];
+  std::cout<<"sweep_profile request="<<request_id<<" quantum="<<quantum_chunks
+      <<" windows="<<trace.completed_windows<<" parent_ns="<<duration<<" fixed_ns="<<duration-window_phases
+      <<" setup_ns="<<trace.wall_ns[static_cast<unsigned>(UniformSweepPhase::setup)]
+      <<" maximum_window_ns="<<trace.maximum_quantum_wall_ns<<" maximum_kernel_wait_ns="<<trace.maximum_kernel_wall_ns
+      <<" encoded_bytes="<<reply.candidates.payload.size()<<" verified=1 retired=1\n";
+  return {std::move(reply),duration,duration-window_phases};
+}
+int compare_profiled_sweep_quanta(const std::filesystem::path& corpus) {
+  gpu_probe_fixture::Budget controller_budget;
+  const auto input=read_indexed_write_corpus(corpus,fixture_sweep_chunks*kNativeExtentBytes);
+  check(input.size()==fixture_sweep_chunks*kNativeExtentBytes,"profile requires the complete matched corpus");
+  uniform_lz4::Layout layout{};
+  check(uniform_lz4::make_layout(input.size(),kNativeExtentBytes,layout),"profile source layout");
+  const auto batch=PreparedUniformLz4::prepare(input,uniform_lz4_limits(layout));
+  const auto discovery=discover_installed_hip_route(diagnostic_worker_budget,4);
+  const auto& route=require_indexed_route(discovery);
+  check(route.pins->uniform_module_pinned(),"profile requires pinned compute module");
+  std::uint64_t sequence=0;
+  for(unsigned pair=0;pair<3;++pair) {
+    RecordedSweepProfile narrow,wide;
+    const bool wide_first=pair%2!=0;
+    if(wide_first)wide=profile_installed_sweep(route,batch,4,++sequence);
+    narrow=profile_installed_sweep(route,batch,2,++sequence);
+    if(!wide_first)wide=profile_installed_sweep(route,batch,4,++sequence);
+    check(narrow.reply.candidates.sizes==wide.reply.candidates.sizes &&
+        narrow.reply.candidates.payload==wide.reply.candidates.payload,"launch size changed the verified GPU result");
+    std::cout<<"sweep_profile_pair pair="<<pair+1<<" wide_first="<<wide_first
+        <<" narrow_ns="<<narrow.total_ns<<" wide_ns="<<wide.total_ns
+        <<" narrow_fixed_ns="<<narrow.fixed_ns<<" wide_fixed_ns="<<wide.fixed_ns
+        <<" identical_payload=1\n";
+  }
+  std::cout<<"sweep_profile_done parent_peak_commit="<<controller_budget.peak_commit()<<'\n';
+  return 0;
+}
 RecordedSweepBatch run_sweep_batch(const HipDiscoveredRoute& route,
     std::span<const UniformLz4BatchInput> requests,bool grouped,std::uint64_t& sequence,
     SweepLaunch launch=SweepLaunch::immediate) {
@@ -1145,6 +1233,8 @@ int wmain(int argc,wchar_t** argv){try{
     return compare_installed_amd(argv[2]);
   if(argc==3 && std::wstring_view(argv[1])==L"--compare-installed-amd-file-policy")
     return compare_file_policy(argv[2],false);
+  if(argc==3 && std::wstring_view(argv[1])==L"--profile-installed-amd-sweep-corpus")
+    return compare_profiled_sweep_quanta(argv[2]);
   if(argc==3 && std::wstring_view(argv[1])==L"--verify-file-policy-cpu")
     return compare_file_policy(argv[2],true);
   if(argc==2) {

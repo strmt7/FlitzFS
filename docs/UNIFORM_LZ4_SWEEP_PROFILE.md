@@ -58,6 +58,38 @@ or collective compression. CPU-generated measurements are not hardware evidence.
 Hardware use still requires the complete exact-source isolated gates and a fresh,
 audited owner experiment; do not repeat an unchanged previous experiment.
 
+## Complete deadline admission
+
+A measured native sweep offer now needs both a fixed elapsed cost and a
+complete per-window cost. The planner reserves setup and retirement, then
+charges the number of windows implied by the admitted slab. It also keeps
+the independent kernel-time floor and per-launch kernel bound. A smaller
+slab can admit less of the request under the same deadline. The native
+callback requires funding for the full write before it defers to AMD.
+
+The explicit `--profile-installed-amd-sweep-corpus` control uses the same
+pinned worker, immutable input, independent CPU verification and confirmed
+retirement with two and four extents per launch. It alternates the order
+over three pairs. Its parent interval includes setup, transport, verification
+and retirement. The trace attributes the fixed portion after subtracting
+recorded window phases, and records both the largest complete window and the
+largest synchronized kernel wait. Bind any adopted cost to the validated
+configuration and exercised input shape. [Planner](../src/gpu_lz4_window.cpp) ·
+[AMD stream contract](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/reference/hip_runtime_api/modules/stream_management.html)
+
+On the installed Radeon, both launch sizes produced the same 467,755-byte
+LZ4 output for the 1 MiB public-source input in all three pairs. Four
+extents per launch used four windows and two extents used eight. Median
+observed parent time was about 1.21 seconds and 1.76 seconds respectively.
+Setup and synchronized waits varied, with a wait above 440 ms in both
+geometries. The parent timings cover the profiled worker exchange under
+observed host load. They leave mounted throughput and background interference
+open. Distinguish first-launch costs, device execution and host wait before
+qualifying a larger work window. The live controlled write also exercised
+rejection without complete timing and verified all 16 committed candidates
+after a funded offer.
+[Current profile and write evidence](evidence/windows-amd-sweep-deadline-2026-11-23.json)
+
 ## Encoding independence
 
 CPU fallback need not reproduce GPU compressed bytes, ratio, algorithm or format.

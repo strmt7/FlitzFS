@@ -13,6 +13,7 @@ GpuLz4WindowPlan plan_window(std::uint64_t requested,std::uint32_t chunk_bytes,
   result.code=check_gpu_memory_budget(memory,luid,mask,now,0);
   if(result.code!=GpuGateCode::admitted)return result;
   result.code=GpuGateCode::invalid_budget;
+  const auto* timing=sweep && cost.sweep_timing?&*cost.sweep_timing:nullptr;
   if(!requested || !chunk_bytes || chunk_bytes>uniform_lz4::max_chunk_bytes ||
       divisor<16 || !cost.qualified || !cost.fixed_bytes || !cost.input_copies ||
       !evidence.compatible || !evidence.sequence ||
@@ -21,7 +22,8 @@ GpuLz4WindowPlan plan_window(std::uint64_t requested,std::uint32_t chunk_bytes,
       cost.recovery_generation!=evidence.recovery_generation || cost.profiled_chunk_bytes!=chunk_bytes ||
       !cost.maximum_grid_x || !cost.kernel_ns_per_chunk || !policy.kernel_quantum_ns ||
       policy.kernel_quantum_ns>cost.qualified_kernel_quantum_ns ||
-      (sweep && (!sweep->maximum_chunks || !sweep->maximum_device_bytes || !deadline_ms)))return result;
+      (sweep && (!sweep->maximum_chunks || !sweep->maximum_device_bytes || !deadline_ms)) ||
+      (timing && (!timing->fixed_ns || !timing->per_window_ns)))return result;
   if(sweep) {
     uniform_lz4::Layout minimum{};
     if(!uniform_lz4::make_layout((std::min)(requested,std::uint64_t(chunk_bytes)),chunk_bytes,minimum) ||
@@ -43,9 +45,19 @@ GpuLz4WindowPlan plan_window(std::uint64_t requested,std::uint32_t chunk_bytes,
   auto high=(std::min)(requested_chunks,launch_chunks);
   std::uint64_t quantum_input=0;
   if(sweep) {
-    const auto total_kernel_ns=std::uint64_t(deadline_ms)*1000000;
-    high=(std::min)({requested_chunks,total_kernel_ns/cost.kernel_ns_per_chunk,
+    const auto deadline_ns=std::uint64_t(deadline_ms)*1000000;
+    const auto fixed_ns=timing?timing->fixed_ns:0;
+    if(fixed_ns>=deadline_ns || (timing && timing->per_window_ns>deadline_ns-fixed_ns)) {
+      result.code=GpuGateCode::expired;
+      return result;
+    }
+    const auto available_ns=deadline_ns-fixed_ns;
+    high=(std::min)({requested_chunks,available_ns/cost.kernel_ns_per_chunk,
         std::uint64_t((std::numeric_limits<std::uint32_t>::max)())});
+    if(!high) {
+      if(timing)result.code=GpuGateCode::expired;
+      return result;
+    }
     uniform_lz4::Layout largest{};
     if(!uniform_lz4::make_layout((std::min)(requested,high*chunk_bytes),chunk_bytes,largest))
       return result;
@@ -54,6 +66,11 @@ GpuLz4WindowPlan plan_window(std::uint64_t requested,std::uint32_t chunk_bytes,
         (std::min)(device_allowance,sweep->maximum_device_bytes));
     if(!quantum.chunks)return result;
     quantum_input=quantum.input_bytes;
+    if(timing) {
+      const auto windows=available_ns/timing->per_window_ns;
+      // Multiply only when the resulting chunk count is smaller than high.
+      if(windows<1+(high-1)/quantum.chunks)high=windows*quantum.chunks;
+    }
   }
   // At most 32 trials; no allocation, polling, timers, scans or runtime calls.
   while(low<=high){
@@ -80,7 +97,10 @@ GpuLz4WindowPlan plan_window(std::uint64_t requested,std::uint32_t chunk_bytes,
         charge(quantum.output_stride*quantum.chunks,1);
     if(valid && quantum.total_bytes<=device_allowance && peak<=host_allowance &&
         check_gpu_memory_budget(memory,luid,mask,now,quantum.total_bytes)==GpuGateCode::admitted){
-      result={GpuGateCode::admitted,layout,peak,requested-bytes,count*cost.kernel_ns_per_chunk,quantum};
+      const auto kernel_ns=count*cost.kernel_ns_per_chunk;
+      const auto total_ns=timing?timing->fixed_ns+(std::max)(kernel_ns,
+          (1+(count-1)/quantum.chunks)*timing->per_window_ns):0;
+      result={GpuGateCode::admitted,layout,peak,requested-bytes,kernel_ns,quantum,total_ns};
       low=count+1;
     }else high=count-1;
   }
