@@ -68,11 +68,17 @@ ProcessResult run_bounded_publication_probe(const std::filesystem::path& executa
   const auto length=GetModuleFileNameW(nullptr,module,512);
   if(RegGetValueW(HKEY_LOCAL_MACHINE,L"SYSTEM\\CurrentControlSet\\Control",L"ContainerType",
         RRF_RT_REG_DWORD,nullptr,&type,&bytes)!=ERROR_SUCCESS || type!=4 ||
-      !length || length>=512 || executable.native()!=std::wstring_view(module,length) ||
-      executable.filename()!=L"flitzfs_write_probe.exe" || arguments.empty() ||
-      arguments.front()!=L"--sealed-selector-source")
-    throw std::invalid_argument("Publication probe requires its exact disposable guest executable and source mode");
-  return ProcessObserver::supervise(executable,arguments,budget,100000,observer);
+      !length || length>=512)
+    throw std::invalid_argument("Publication probe requires a disposable guest");
+  const std::filesystem::path caller(std::wstring_view(module,length));
+  const auto source=executable==caller && executable.filename()==L"flitzfs_write_probe.exe" &&
+      !arguments.empty() && arguments.front()==L"--sealed-selector-source";
+  const auto packed=caller.filename()==L"flitzfs_volume_app_tests.exe" &&
+      executable==caller.parent_path()/L"flitzfs_volume_app.exe" && arguments.size()==2 &&
+      (arguments.front()==L"--create-volume-file" || arguments.front()==L"--open-volume-file") &&
+      arguments.back()==(caller.parent_path()/L"Packed.flfs").native();
+  if(!source && !packed)throw std::invalid_argument("Publication probe executable or mode differs");
+  return ProcessObserver::supervise(executable,arguments,budget,packed?kMountedAppProbeTimeoutMs:100000,observer);
 }
 #endif
 ProcessResult ProcessObserver::supervise(const std::filesystem::path& executable,

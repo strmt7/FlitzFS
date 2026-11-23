@@ -381,6 +381,10 @@ class Output final:public NativeVolumeRangeIo
             sparse_=true;
           }
         }
+        // A reopen can admit either storage profile. Bind the capabilities
+        // exposed to the engine to the actual exclusively opened file.
+        if(sparse_)contract_.isolated_tail_truncation=false;
+        else contract_.isolated_range_reclamation=false;
         constexpr auto alignment_flags=STORAGE_INFO_FLAGS_ALIGNED_DEVICE|STORAGE_INFO_FLAGS_PARTITION_ALIGNED_ON_DEVICE;
         volume_profile_=VolumeFileProfile{geometry.maximum_extent,geometry.allocation_unit_bytes,
             disk.LogicalBytesPerSector,disk.PhysicalBytesPerSectorForAtomicity,disk.PhysicalBytesPerSectorForPerformance,

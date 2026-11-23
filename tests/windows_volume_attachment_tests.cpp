@@ -502,7 +502,7 @@ void disposable_file_lifecycle(const std::filesystem::path& base) {
     std::cout<<"disposable_file_extent maximum_bytes="<<maximum<<" refused_before_create=1\n";
   }
   const auto path=directory/"attached.flfs";
-  file_lifecycle({WinFspVolumeFileSelection::WindowsFile{path,{65536,true}},
+  file_lifecycle({WinFspVolumeFileSelection::WindowsFile{path,{65536,true,true}},
       fresh_volume_identity(),WinFspVolumeFileSelection::Create{fresh_volume_identity(),{8*1024*1024}}});
 #ifdef FLITZFS_EXPLORER_FILE_BACKING
   const auto selected_path=directory/"selected.flfs";
@@ -515,8 +515,8 @@ void disposable_file_lifecycle(const std::filesystem::path& base) {
   const auto state=[&](VolumeAttachmentState expected) {
     return await(controller,[&](const auto& view){return view.idle() && view.attachment.state==expected;});
   };
-  const auto select=[&](VolumeFileAction action) {
-    require(controller.submit({VolumeCommandKind::attach_file,{},{},VolumeFileRequest{action,selected_path}}),
+  const auto select=[&](VolumeFileAction action,const std::filesystem::path& selected) {
+    require(controller.submit({VolumeCommandKind::attach_file,{},{},VolumeFileRequest{action,selected}}),
         "Cannot queue the disposable file selection");
   };
   const auto release=[&]{
@@ -525,24 +525,37 @@ void disposable_file_lifecycle(const std::filesystem::path& base) {
     require(controller.submit({VolumeCommandKind::discard,{},{}}),"Cannot close the selected file");
     state(VolumeAttachmentState::empty);
   };
-  select(VolumeFileAction::create_new);
+  select(VolumeFileAction::create_new,selected_path);
   require(state(VolumeAttachmentState::attached).attachment.backing_path==selected_path.native(),
       "Selected backing label differs");
   make_file(provider);
   release();
-  const auto identity=NativeVolumeFile::inspect(selected_path).info().selection.volume_identity;
-  select(VolumeFileAction::create_new);
+  const auto packed_attributes=GetFileAttributesW(selected_path.c_str());
+  const auto sparse_attributes=GetFileAttributesW(path.c_str());
+  require(packed_attributes!=INVALID_FILE_ATTRIBUTES && !(packed_attributes&FILE_ATTRIBUTE_SPARSE_FILE) &&
+      sparse_attributes!=INVALID_FILE_ATTRIBUTES && (sparse_attributes&FILE_ATTRIBUTE_SPARSE_FILE),
+      "The packed and sparse helper controls did not produce distinct physical profiles");
+  const auto selected=NativeVolumeFile::inspect(selected_path).info().selection;
+  require(selected.placement!=NativeVolumePlacement::external,
+      "The selected ordinary file lost the paired layout");
+  select(VolumeFileAction::create_new,selected_path);
   require(state(VolumeAttachmentState::empty).can_select_file() && provider.started==1,
       "Exclusive creation consumed an existing volume");
-  select(VolumeFileAction::open_existing);
+  select(VolumeFileAction::open_existing,selected_path);
+  state(VolumeAttachmentState::attached);
+  verify_file(provider);
+  release();
+  select(VolumeFileAction::open_existing,path);
   state(VolumeAttachmentState::attached);
   verify_file(provider);
   release();
   require(controller.stop(false),"Closed persistent controller refused to exit");
   await(controller,[](const auto& view){return view.stopped;});
-  verify_backing({WinFspVolumeFileSelection::WindowsFile{selected_path,{65536,true,true}},identity,std::nullopt});
-  require(provider.started==2 && provider.deleted==2,"Selected file provider did not retire");
-  std::cout<<"disposable_file_selection exclusive_create=1 existing_bytes_retained=1 cpu_reopen=1\n";
+  verify_backing({WinFspVolumeFileSelection::WindowsFile{selected_path,{65536,true,false,true}},
+      selected.volume_identity,std::nullopt});
+  require(provider.started==3 && provider.deleted==3,"Selected file provider did not retire");
+  std::cout<<"disposable_file_selection exclusive_create=1 existing_bytes_retained=1 cpu_reopen=1"
+      <<" packed_create=1 packed_reopen=1 sparse_reopen=1\n";
 #endif
 }
 }

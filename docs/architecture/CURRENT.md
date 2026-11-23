@@ -67,10 +67,10 @@ stateDiagram-v2
 Fresh adapter creation can fail before any backing is retained. A user-mode
 runtime DLL is checked beside the application, and the mount lifecycle holds
 the adapter until after dispatcher stop and deletion. The persistent file
-backing in the Explorer helper is a sparse ordinary local NTFS image under
-a qualified contract. The core adapter can create packed ordinary-file
-backing with a physical extent limit. The app's attach factory currently
-requires the sparse contract.
+backing in the Explorer helper is a local NTFS file under the qualified
+contract. New files use packed placement when capacity covers both virtual
+image ranges, the reserved catalog and the packed directories. The exclusive
+open selects the effective contract for existing packed or sparse files.
 [Runtime and backing selection](../../src/windows/volume_app_winfsp.cpp#L67)
 · [attachment and retirement](../../src/windows/winfsp_volume_attachment.cpp#L55)
 · [dispatcher lifecycle](../../src/windows/winfsp_session.cpp#L101)

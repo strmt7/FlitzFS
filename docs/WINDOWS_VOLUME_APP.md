@@ -36,18 +36,23 @@ requires separate qualification.
 ### Persistent volume files
 
 The Explorer build with `FLITZFS_EXPLORER_FILE_BACKING=ON` exposes **New volume
-file** and **Open volume file** in the window and tray. The option selects
-a local NTFS contract for 64 KiB failure units, flushes and isolated sparse
-ranges. Enable it for storage independently qualified against that contract.
-File attributes and sector geometry are admission inputs.
+file** and **Open volume file** in the window and tray. The build uses local
+NTFS storage independently qualified for 64 KiB failure units, flushes and
+the applicable allocation operation. The helper checks the pinned volume's
+allocation geometry before selecting a backing. New files use packed allocation
+when the complete layout fits. A qualified sparse file can fit when there is
+space for both images and the catalog but the packed directory units would
+exceed the file's limit.
 
 The Windows picker runs on the UI thread. The selected path and the create
 or open action move to the existing attachment worker. Before acquiring a
 backing, the worker checks the WinFsp mount location. Creation atomically
-requires a new file, and the capacity follows available space and paired
-range geometry. Reopen checks the volume identity on the same exclusive
-handle before writable recovery. The window shows the selected file and
-its mount location. **Open in Explorer** opens that location.
+requires a new file. Capacity fits the current available growth and file-size
+limit, including both image ranges, the reserved catalog and any packed
+allocation metadata. Reopen derives sparse or ordinary capabilities from the
+exclusive handle and checks the persisted volume identity and layout before
+writable recovery. The window shows the selected file and its mount location.
+**Open in Explorer** opens that location.
 
 The same build accepts `--create-volume-file` or `--open-volume-file` with
 one absolute path at launch. Quote paths containing spaces. The helper
@@ -64,6 +69,22 @@ file choice or the memory provider.
 [File attachment contract](PERSISTENT_VOLUME_FILE.md#windows-helper-ownership) ·
 [File selection validation](evidence/helper-file-selection-2026-11-21.json)
 [Current attachment evidence](evidence/windows-tray-attachment-2026-11-18.json)
+
+A signed WinFsp 2.2 Windows guest passed packed startup creation, live-handle
+rename, detach and fresh-process reopen through the actual helper. The
+independent CPU reader verified the reopened bytes. The separate same-SDK
+fixture checked exclusive creation and writable opening of an older sparse
+volume. A second mounted trial terminated the owner after a flushed overwrite
+and rename. It recovered the target inode and all 1,024 neighboring files,
+then verified a new flushed write with the independent CPU reader.
+[Packed attachment receipt](evidence/windows-packed-explorer-2026-11-23.json)
+
+The separate `--gui-mounted-packed-file-sandbox` qualification exercises
+two physical allocation groups. It requires the writable publication probe
+build and an isolated guest. The overwrite fixture reached two groups. Its
+long idle window ended with both anchors and the selected image at their
+initial versions. The automatic reclamation gate remains open.
+[Reclamation schedule and outstanding checks](RELEASE_EXECUTION_PLAN.md#next-integrated-qualification)
 
 ### Initial Windows 11 driver trial
 

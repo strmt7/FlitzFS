@@ -19,6 +19,7 @@ struct WinFspVolumeFileSelection {
   struct Create {
     StoreIdentity image;
     PagedStoreLimits limits;
+    std::optional<std::uint64_t> dense_physical_limit={};
   };
   // The caller supplies a qualified backing. An existing file can select its
   // identity from its checked head while its exclusive lease is held.

@@ -832,6 +832,10 @@ struct DenseVolumeBacking::Impl {
 DenseVolumeBacking::DenseVolumeBacking(std::unique_ptr<Impl> state) : state_(std::move(state)) {}
 DenseVolumeBacking::~DenseVolumeBacking() = default;
 
+std::uint64_t DenseVolumeBacking::payload_capacity(std::uint64_t backing_bytes) noexcept {
+  return count_slots(backing_bytes) * unit;
+}
+
 bool DenseVolumeBacking::recognizes(const StoreByteIo& io) {
   const auto end = io.extent();
   std::array<std::byte, 8> bytes;

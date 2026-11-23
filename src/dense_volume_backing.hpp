@@ -9,6 +9,7 @@ namespace flitzfs::detail {
 // ranges and preventing reads through any checkpoint that still uses them.
 class DenseVolumeBacking final : public NativeVolumeRangeIo {
  public:
+  static std::uint64_t payload_capacity(std::uint64_t backing_bytes) noexcept;
   static bool recognizes(const StoreByteIo&);
   static std::shared_ptr<DenseVolumeBacking> create(std::shared_ptr<StoreByteIo>,
       StoreIdentity volume, std::uint64_t logical_limit, std::uint64_t physical_limit);

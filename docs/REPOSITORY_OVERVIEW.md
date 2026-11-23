@@ -23,15 +23,15 @@ real AMD collective work. Release depends on carrying these paths through the
 same installed Windows client, at scale, with backend-specific recovery,
 independent CPU reads, and controlled size and performance results.
 
-**The Windows product path has two visible gaps.** The Explorer helper
-requires sparse NTFS for file backing. The native adapter accepts packed
-volumes and the normal reclaimer now relocates across allocation groups.
-The shared controller discovers installed AMD read and group profiles in
-eligible builds, while foreground write activation is driven by SDK test
-callers. The next connected client trace brings packed backing and automatic
-AMD foreground selection through the helper. [Helper factory](../src/windows/volume_app_winfsp.cpp) ·
+**The Windows helper now selects both backing profiles.** It provisions packed
+files on qualified NTFS when capacity permits and reopens existing sparse or
+packed volumes. The shared controller discovers installed AMD read and group
+profiles in eligible builds. Foreground write activation is driven by SDK test
+callers. The shared client trace must carry automatic AMD foreground selection
+through the helper next. [Helper factory](../src/windows/volume_app_winfsp.cpp) ·
 [Native adapter](../src/windows/winfsp_native.cpp) ·
-[Foreground activation tests](../tests/test_native_deferred_write_sdk.cpp)
+[Foreground activation tests](../tests/test_native_deferred_write_sdk.cpp) ·
+[Mounted packed lifecycle](evidence/windows-packed-explorer-2026-11-23.json)
 
 **The latest tests isolate three different properties.** The packed NTFS
 guest fixture released an entire allocation group and retained correct held
@@ -156,7 +156,7 @@ connects each change to verified source behavior and open proof.
 | Windows interface | Writable native SDK callbacks, owner ACL/time initialization, contexts, cleanup/close, metadata/security and directory operations | Current-source mounted product qualification, complete Unicode/path/Win32 behavior, caching/mapping/concurrency and deployment |
 | Application | Native helper/tray, owned worker, volume selection and two mounted workflows with external Win32 callers in a signed-driver guest | Interactive Explorer on the target client, complete volume management and a supported installer |
 | Memory composition | Live adaptive admission beyond the old ceiling, on-demand page locking, retained backing through stop and explicit-join CPU inspection | Larger populated volumes, multiple-volume aggregate policy and broker/process-failure behavior |
-| Indexed volume files | Exclusive sparse NTFS create and audited reopen from the helper, persistent head and advice, independent CPU inspection and paired-range reclamation. The core also supports packed ordinary-file volumes. | Packed helper attachment, incremental reclamation during concurrent edits and media durability qualification |
+| Indexed volume files | Exclusive packed or sparse NTFS create and audited reopen from the helper, persistent head and advice, independent CPU inspection and paired-range reclamation | Incremental reclamation during concurrent edits and media durability qualification |
 | Learning state | Budgeted scan checkpoints, a paged coherence catalog and stale-posting compaction in owned indexed memory volumes | Full paged catalog on the persistent provider, higher candidate recall and observed adaptive policy wins across restart and workload change |
 | Compatibility | Several historical native encodings and explicit capabilities remain readable | A published support window, mixed-version migration program, rollback boundaries and exact released-reader matrix |
 
@@ -692,8 +692,9 @@ after a populated mounted scale trace, useful AMD on the installed client,
 the held-out whole-volume compression frontier and persistent-provider
 failure checks. The exceptional compression target stays a research risk.
 
-Start from the existing Windows client trace. Make the packed backing and
-AMD foreground activation reachable through the helper. Carry cached and
+Start from the existing Windows client trace. Qualify sustained packed
+reclamation and make automatic AMD foreground activation reachable through
+the helper. Carry cached and
 mapped writes through independent flush and reopen verification, then scale
 that same trace. Develop sparse coherence, protected group representations
 and offline maintenance using a separate held-out accounting track. The

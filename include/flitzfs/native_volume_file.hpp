@@ -28,6 +28,10 @@ class NativeVolumeRangeIo : public StoreByteIo {
 // Inspection requires stable backing and performs no recovery writes.
 class NativeVolumeFile final {
  public:
+  // Fit both image ranges and the reserved catalog within the backing extent.
+  // Packed files also reserve their outer anchors and allocation directories.
+  static std::optional<PagedStoreLimits> paired_image_limits(std::uint64_t backing_bytes,bool packed);
+
   static NativeFileSession create(std::shared_ptr<StoreByteIo> empty,StoreIdentity volume,
       StoreIdentity image,PagedStoreLimits,StoreCompressionOptions foreground={},
       NativeDispositionPolicy=NativeDispositionPolicy::aggregate,

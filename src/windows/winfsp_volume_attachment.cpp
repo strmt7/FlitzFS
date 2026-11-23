@@ -123,7 +123,8 @@ class WinFspVolumeAttachment final:public VolumeAttachment {
       if(const auto* path=std::get_if<WinFspVolumeFileSelection::WindowsFile>(&selection.backing)) {
         const auto parents=pin_volume_path_parents(path->path.native());
         backing=selection.create?
-            NativeVolumeFile::create_backing(path->path,path->qualification,selection.create->limits,path->expected_volume):
+            NativeVolumeFile::create_backing(path->path,path->qualification,selection.create->limits,
+                path->expected_volume,selection.create->dense_physical_limit):
             NativeVolumeFile::reopen_backing(path->path,path->qualification,path->expected_volume);
       } else {
         backing=std::get<std::shared_ptr<StoreByteIo>>(selection.backing);
@@ -140,7 +141,7 @@ class WinFspVolumeAttachment final:public VolumeAttachment {
         retain_backing(selection.volume);
         const auto initial=std::exchange(selection.create,std::nullopt);
         adapter=WinFspNativeWritable::create_file_volume(file_,selection.volume,
-            initial->image,initial->limits,foreground);
+            initial->image,initial->limits,foreground,initial->dense_physical_limit);
       } else {
         const auto expected=selection.volume==StoreIdentity{}?std::nullopt:std::optional{selection.volume};
         adapter=WinFspNativeWritable::resume_file_volume(backing,expected,foreground,retain_backing);

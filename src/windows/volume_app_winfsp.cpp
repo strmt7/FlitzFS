@@ -106,24 +106,29 @@ std::unique_ptr<VolumeAttachment> make_volume_app_file_attachment(const VolumeFi
     throw std::invalid_argument("Choose how to open the volume file");
   const auto parents=pin_volume_path_parents(path.native());
   auto destination=detail::volume_file_destination(path);
-  if(!destination.geometry.isolated_sparse_ranges)
-    throw std::runtime_error("The selected backing requires qualified NTFS sparse allocation");
-  // The qualified build supplies the NTFS flush and range-isolation contract.
-  // The backing rechecks the selected volume, geometry and available space.
-  constexpr StoreIoContract contract{static_cast<std::uint32_t>(kStoreCommitUnit),true,true};
-  WinFspVolumeFileSelection selection{
-      WinFspVolumeFileSelection::WindowsFile{path,contract,std::move(destination.volume_root)},{},std::nullopt};
+  const auto& geometry=destination.geometry;
+  if(!geometry.allocation_unit_bytes || kStoreCommitUnit%geometry.allocation_unit_bytes)
+    throw std::runtime_error("The selected backing requires qualified NTFS allocation geometry");
+  StoreIoContract contract{static_cast<std::uint32_t>(kStoreCommitUnit),true,
+      geometry.isolated_sparse_ranges,true};
+  WinFspVolumeFileSelection selection{};
   if(request.action==VolumeFileAction::create_new) {
-    const auto extent=(std::min)(destination.available_growth,destination.geometry.maximum_extent);
-    if(extent<=kNativeVolumeFileImageOffset)
-      throw std::runtime_error("Cannot reserve a volume on the selected backing");
-    const auto range=(extent-kNativeVolumeFileImageOffset)/2;
-    const auto capacity=range-range%kStoreCommitUnit;
-    if(capacity<kVolumeHeadBytes+2*kStoreCommitUnit)
+    const auto extent=(std::min)(destination.available_growth,geometry.maximum_extent);
+    auto limits=NativeVolumeFile::paired_image_limits(extent,true);
+    std::optional<std::uint64_t> dense_physical_limit;
+    if(limits) {
+      dense_physical_limit=extent;
+      contract.isolated_range_reclamation=false;
+    } else if(contract.isolated_range_reclamation) {
+      limits=NativeVolumeFile::paired_image_limits(extent,false);
+      contract.isolated_tail_truncation=false;
+    }
+    if(!limits)
       throw std::runtime_error("The target is too small for an indexed volume");
     selection.volume=fresh_volume_identity();
-    selection.create=WinFspVolumeFileSelection::Create{fresh_volume_identity(),{capacity}};
+    selection.create=WinFspVolumeFileSelection::Create{fresh_volume_identity(),*limits,dense_physical_limit};
   }
+  selection.backing=WinFspVolumeFileSelection::WindowsFile{path,contract,std::move(destination.volume_root)};
   return make_winfsp_volume_file_attachment(load_api,std::move(selection));
 }
 #endif

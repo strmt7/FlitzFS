@@ -132,8 +132,12 @@ writer until reopen.
 Compact directory runs limit metadata traffic for contiguous allocations.
 Reopen currently scans the directories and builds an in-memory run index.
 Freed interior units are available to the volume after publication.
-The qualified WinFsp factory can create and open packed files. The Explorer
-helper's default persistent profile is sparse.
+The qualified Explorer helper can create a packed file and reopen either
+profile. The planner fits both image ranges, the catalog and the outer
+allocation metadata to the same available physical extent. Once the file is
+exclusively open, its actual sparse attribute determines which physical
+allocation operation the backing can offer.
+[Mounted helper and sparse compatibility evidence](evidence/windows-packed-explorer-2026-11-23.json)
 
 The in-memory tests recovered the acknowledged filesystem through 696
 interruptions spanning candidate writes, selector publication and retired

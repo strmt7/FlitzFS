@@ -28,6 +28,14 @@
     "runtime_backing_performance_measured_in_guest": false,
     "mounted_current_product_qualified": false
   },
+  "packed_explorer_attachment": {
+    "evidence": "docs/evidence/windows-packed-explorer-2026-11-23.json",
+    "selected_provider": "qualified ordinary NTFS with packed creation and checked sparse reopen",
+    "mounted_guest": "signed WinFsp 2.2 packed create, detach and fresh writable reopen with independent CPU verification",
+    "interrupted_mount": "acknowledged overwrite and rename, 1024 neighboring files, and a continued write independently verified",
+    "mounted_reclamation": "open; latest two-group overwrite trial remained at image epoch 1",
+    "next": "Trace obsolete-space accounting and controller opportunities before changing packed reclamation admission. Compare with the native reclaimer on the same owned fixture, then continue ordinary AMD activation."
+  },
   "architecture_reconciliation": {
     "reviewed_commit": "df5be9b5b9d0bc05ac565eb2da8454ac76bed3d2",
     "reviewed_tree": "a9bab22082849332c28a085f0eb154aaacb15538",

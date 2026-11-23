@@ -50,7 +50,8 @@ ProcessResult run_bounded_process(const std::filesystem::path& executable,
     const std::vector<std::wstring>& arguments, ProcessBudget budget = {},
     const std::shared_ptr<ProcessObserver>& observer = {});
 #ifdef FLITZFS_OBSERVE_VOLUME_PUBLICATION
-// Self-launch for the paced publication campaign inside a disposable guest.
+inline constexpr std::uint32_t kMountedAppProbeTimeoutMs=240000;
+// Exact source and application launches for paced publication in a disposable guest.
 ProcessResult run_bounded_publication_probe(const std::filesystem::path&,
     const std::vector<std::wstring>&,ProcessBudget,const std::shared_ptr<ProcessObserver>&);
 #endif

@@ -44,6 +44,25 @@ std::uint64_t image_start(const NativeVolumeSelection& selected) noexcept {
   return image_offset+((selected.epoch%2==0)?selected.storage.maximum_physical_bytes:0);
 }
 }
+
+std::optional<PagedStoreLimits> NativeVolumeFile::paired_image_limits(std::uint64_t backing_bytes,bool packed) {
+  backing_bytes=(std::min)(backing_bytes,maximum_file_bytes);
+  const auto usable=packed?detail::DenseVolumeBacking::payload_capacity(backing_bytes):backing_bytes;
+  constexpr auto minimum=(kVolumeHeadBytes+2*kStoreCommitUnit)/kStoreCommitUnit;
+  if(usable<image_offset+2*minimum*kStoreCommitUnit)return std::nullopt;
+  auto low=minimum,high=(usable-image_offset)/(2*kStoreCommitUnit);
+  // Catalog slots are derived from the image capacity. Use the same layout
+  // as creation and reopen so reserve rounding cannot overstate capacity.
+  while(low<high) {
+    const auto middle=low+(high-low+1)/2;
+    if(paired_file_geometry(middle*kStoreCommitUnit,true,Error::invalid_operation).file_end<=usable)
+      low=middle;
+    else
+      high=middle-1;
+  }
+  return PagedStoreLimits{low*kStoreCommitUnit};
+}
+
 struct NativeVolumeFile::Owner {
   const std::shared_ptr<StoreByteIo> physical;
   std::shared_ptr<StoreByteIo> backing;

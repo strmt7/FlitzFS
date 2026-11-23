@@ -1019,6 +1019,34 @@ void dense_group_boundary() {
   require(checked==first,"newly rebuilt directory did not bind its recovered data");
 }
 
+void paired_image_admission() {
+  constexpr auto unit=kStoreCommitUnit;
+  constexpr auto minimum_bytes=kNativeVolumeFileImageOffset+2*(kVolumeHeadBytes+2*unit);
+  require(!NativeVolumeFile::paired_image_limits(0,false) &&
+      !NativeVolumeFile::paired_image_limits(0,true),"an empty backing admitted paired ranges");
+  require(NativeVolumeFile::paired_image_limits(minimum_bytes,false).has_value() &&
+      !NativeVolumeFile::paired_image_limits(minimum_bytes,true),
+      "paired capacity did not charge packed anchors and directories");
+  for(const bool packed:{false,true}) {
+    // Exercise both sides of catalog admission, allocation-group rollover and
+    // large file limits without allocating the planned volume.
+    for(const auto image_units:{4ULL,7ULL,255ULL,256ULL,257ULL,2048ULL,67108864ULL}) {
+      const auto catalog_units=image_units/32>=8?image_units/32:0;
+      const auto virtual_units=kNativeVolumeFileImageOffset/unit+2*(image_units+catalog_units);
+      const auto directories=2*((virtual_units+4090)/4091);
+      const auto backing=(virtual_units+(packed?2+directories:0))*unit;
+      const auto exact=NativeVolumeFile::paired_image_limits(backing,packed);
+      const auto short_backing=NativeVolumeFile::paired_image_limits(backing-1,packed);
+      require(exact && exact->maximum_physical_bytes==image_units*unit &&
+          (!short_backing || short_backing->maximum_physical_bytes<exact->maximum_physical_bytes),
+          "paired capacity did not respect its exact physical boundary");
+    }
+    const auto largest=NativeVolumeFile::paired_image_limits(UINT64_MAX,packed);
+    require(largest && largest->maximum_physical_bytes%unit==0 &&
+        largest->maximum_physical_bytes<UINT64_MAX/2,"paired capacity overflowed the file extent");
+  }
+}
+
 void dense_cross_group_moves() {
   constexpr auto unit=kStoreCommitUnit;
   constexpr std::uint64_t group_slots=4091;
@@ -2544,6 +2572,7 @@ int main(int argc,char** argv){
       return 0;
     }
     if(argc==2 && std::string_view(argv[1])=="--dense-cross-group") {
+      paired_image_admission();
       dense_cross_group_moves();
       std::cout<<"PASS: "<<checks<<" dense cross-group checks\n";
       return 0;

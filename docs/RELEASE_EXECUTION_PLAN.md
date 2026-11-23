@@ -26,19 +26,19 @@ workflow, recovery on each supported backing provider, and strong held-out
 compression results. The verified pieces use different executables and
 fixtures today. Bring them together before counting a gate as complete.
 
-The next product slice starts with the Explorer helper. Its
-`make_volume_app_file_attachment` currently requires the NTFS sparse
-contract. The native volume and writable adapter already accept a dense
-physical extent limit. The controller can acquire installed read and group
+The Explorer helper selects packed creation when the qualified NTFS backing
+can fit the complete layout and reopens both sparse and packed files by their
+checked format. It carries the pinned volume identity and physical extent to
+the native adapter. The controller can acquire installed read and group
 routes in supported builds. Foreground route activation uses
-`offer_qualified_foreground_route`, whose callers are SDK tests. Carry both
-missing integrations through the ordinary application entry point and the
-same external client trace. Start the scale instrumentation in that trace
-before changing writer admission.
+`offer_qualified_foreground_route`, whose callers are SDK tests. Use the same
+external client trace for packed reclamation, automatic AMD work and scale
+instrumentation. Measure the trace before changing writer admission.
 [File attachment](../src/windows/volume_app_winfsp.cpp) ·
 [Native adapter](../src/windows/winfsp_native.cpp) ·
 [Controller](../src/windows/winfsp_controller.cpp) ·
-[Foreground activation tests](../tests/test_native_deferred_write_sdk.cpp)
+[Foreground activation tests](../tests/test_native_deferred_write_sdk.cpp) ·
+[Mounted packed lifecycle and open reclaim trial](evidence/windows-packed-explorer-2026-11-23.json)
 
 | Area | Evidence now | Work that still determines release |
 | --- | --- | --- |
@@ -107,7 +107,7 @@ artifact and the observation needed before the related work can advance.
 | --- | --- | --- |
 | S1 · E10–E11 | Generate a candidate manifest from the CMake configurations, private dependency locks, staged toolchain and actual app, worker and SDK binaries. | Source, runtime and package hashes match the tested artifacts. Each applicable test lane identifies the exact candidate or the unchanged inputs it covers. |
 | S2 · E01 | Extend the WinFsp populated client trace and add read, write and lock accounting at name lookup, inode read, publication and reopen. Exercise deep and wide layouts at several measured sizes and model larger populations. | Replay agrees with a reference namespace and independent CPU bytes. Backing work and resident state are measured at feasible sizes. Validate projected scaling against a held-out size. |
-| S3 · E02 | Bring both backing profiles through the normal helper. Use whole-image rebuild and packed cross-group relocation as controls for incremental paged-space reuse. Persist allocation, retained-root and repair ownership across handoffs. | Repeated mounted churn settles at stable or falling occupied bytes. Readers and checked dependencies remain readable across cancellation, interrupted retirement and resumed writes. |
+| S3 · E02 | Exercise both backing profiles through the normal helper. Use whole-image rebuild and packed cross-group relocation as controls for incremental paged-space reuse. Persist allocation, retained-root and repair ownership across handoffs. | Repeated mounted churn settles at stable or falling occupied bytes. Readers and checked dependencies remain readable across cancellation, interrupted retirement and resumed writes. |
 | S4 · E03 | Wire the automatically qualified foreground offer into the mounted helper and exercise ordinary writes, cold reads and shared-base work. Compare matched CPU, AMD and unavailable-device lanes. | Device counters prove useful submitted work by role. End-to-end cost or settled size improves on qualifying data. Missing or failed devices leave CPU service and every stored representation readable. |
 | S5 · E04–E06 | Freeze the mixed held-out corpus and collect complete-image accounting for independent codecs, shared dictionaries, delta and multi-reference candidates and the existing shared-base control. | Net space gains survive protection, retained generations and reclamation costs. Independent restart units give practical cold random reads. Size and access results include all cohorts and losses. |
 | S6 · E07 | Drive the persistent advisory catalog and policy from observed savings, live resource pressure and workload changes in the mounted lifecycle. | Corrupt or absent advice is rebuildable. Foreground bursts preempt the next quantum. Recovery, migration, learning, compaction and scan progress resume independently with measured write cost. |
@@ -673,13 +673,12 @@ flowchart LR
 
 #### 1. Close the first Windows product slice
 
-- Keep the existing native engine and WinFsp callback stack. Add provider
-  selection to the existing file-attachment factory. Carry the selected
+- The file-attachment factory keeps the native engine and WinFsp callback
+  stack and selects the storage provider. It carries the selected
   sparse or dense contract, volume identity and physical extent limit through
-  exclusive creation into the existing writable adapter. For reopen, use the
-  existing outer anchors and identity. Refuse an unknown capability or
-  mismatched volume without creating or rewriting an image. Derive reservations
-  from current provider capabilities and headroom. [Attachment factory](../src/windows/volume_app_winfsp.cpp) ·
+  exclusive creation into the writable adapter. Reopen uses the validated
+  outer anchors and identity. Check refusal of an unknown capability or
+  mismatched volume before attachment. [Attachment factory](../src/windows/volume_app_winfsp.cpp) ·
   [Adapter construction](../src/windows/winfsp_volume_attachment.cpp)
 - Use the current sparse WinFsp fixture as a control. Add an ordinary
   mounted packed fixture that builds live data in multiple allocation groups,
@@ -921,12 +920,22 @@ identifiers. Use the same format for every arm.
 | Recovery and ownership | Recovered committed generation, independent manifest/content hashes, expected namespace and required metadata, live reader checks, final resource ownership |
 | Cost | Logical and occupied bytes, source/backup/pending bytes, requested writes, CPU/GPU workload, backing calls and memory. Include elapsed latency only in comparable real-host runs. |
 
-First, exercise the mounted packed provider with a held reader and normal reclaim.
-Then add the automatic foreground route to the matched client without changing
-its operation sequence. The prior mapped, metadata and selector cuts supply the
-starting oracle. Extend it and the independently acknowledged witness before
-using the combined trace for scale or comparison. This closes the gap between
-the tested core and the app while producing data for the four estimate reviews.
+The signed guest passed packed create, retained-handle rename, detach,
+fresh-process reopen and independent CPU readback through the helper. The
+process interruption trial preserved an acknowledged overwrite and rename,
+1,024 neighboring files and a continued write after fresh attachment. The
+separate reclamation fixture reached two groups after 60 flushed revisions.
+Its idle trial ended with image epoch 1 and version-1 anchors. Distinguish
+admission debt, live obsolete-space accounting and failed preparation in the
+mounted trace. Compare the same retired image under the independent native
+reclaimer in the guest before changing the automatic policy. Qualify both
+overwrite reclamation and large-file retirement while a client retains a
+reader. [Executed helper coverage](evidence/windows-packed-explorer-2026-11-23.json)
+
+Add the automatic foreground route to the matched client without changing
+its operation sequence. The prior mapped, metadata and selector cuts supply
+the starting oracle. Extend it and the independently acknowledged witness
+before using the combined trace for scale or comparison.
 
 [Initial populated trace](evidence/windows11-populated-mount-access-time-2026-11-21.json) ·
 [Post-flush recovery](evidence/windows11-mounted-post-flush-recovery-2026-11-21.json) ·

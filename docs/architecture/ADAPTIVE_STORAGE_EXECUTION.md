@@ -433,16 +433,16 @@ Continue the backing-dependent work in this order.
 
 ### Dense backing
 
-The helper requests the qualified NTFS sparse profile for persistent creation.
-The in-process memory provider has its own lifetime and allocation contract.
+The helper selects packed or sparse allocation for the qualified local NTFS
+provider. The capacity calculation reserves the catalog, both image ranges
+and the packed format's anchors and directories. The in-process memory
+provider has its own lifetime and allocation contract.
 Microsoft lists exFAT and FAT32 without sparse-file support, and lists a
 file-size limit of about 4 GiB for FAT32. A USB device can carry either NTFS or exFAT.
 The ordinary file provider applies a FAT32 extent bound when the caller
-supplies a qualified nonsparse contract. The Explorer helper currently uses
-the qualified NTFS sparse profile. The packed allocator reuses internal
+supplies a qualified nonsparse contract. The packed allocator reuses internal
 space and can shorten a qualified ordinary file after same-group or
-cross-group evacuation. Its Windows fixture uses a nonsparse NTFS file. Recovery
-qualification remains open for exFAT and
+cross-group evacuation. Recovery qualification remains open for exFAT and
 FAT32. For an external RAM disk,
 establish the backing lifetime explicitly before treating its bytes as volatile.
 A single backing file must stay within the outer filesystem's file-size limit.

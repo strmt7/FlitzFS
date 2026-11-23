@@ -730,6 +730,8 @@ struct MountedFileActivation {
   std::uint64_t original_inode=0,original_creation_time=0;
   std::wstring interrupted_mount;
   std::shared_ptr<ProcessObserver> interrupted_owner;
+  std::vector<std::byte> packed_witness;
+  std::vector<std::byte> packed_payload;
 };
 
 constexpr std::size_t mounted_trace_files=1024;
@@ -929,6 +931,72 @@ void verify_mounted_bytes(HANDLE file,const std::vector<std::byte>& expected) {
       read==bytes.size() && bytes==expected,"Mounted file bytes differ");
 }
 
+std::uint64_t packed_file_allocation(const std::filesystem::path& path) {
+  MountedTrialFile file(path,FILE_READ_ATTRIBUTES,OPEN_EXISTING,FILE_SHARE_READ|FILE_SHARE_WRITE);
+  FILE_STANDARD_INFO info{};
+  require(GetFileInformationByHandleEx(file.file,FileStandardInfo,&info,sizeof(info)) &&
+      !info.Directory && !info.DeletePending && info.NumberOfLinks==1 &&
+      info.EndOfFile.QuadPart>0 && info.AllocationSize.QuadPart>=info.EndOfFile.QuadPart,
+      "Cannot confirm allocation of the ordinary Explorer backing");
+  return static_cast<std::uint64_t>(info.AllocationSize.QuadPart);
+}
+
+void mounted_packed_workload(const std::wstring& root,MountedFileActivation& activation,
+    std::uint64_t deadline) {
+  const auto witness=root+L"witness.bin";
+  const auto payload=root+L"payload.bin";
+  if(activation.action==VolumeFileAction::open_existing) {
+    MountedTrialFile file(witness,GENERIC_READ,OPEN_EXISTING);
+    verify_mounted_bytes(file.file,activation.packed_witness);
+    MountedTrialFile data(payload,GENERIC_READ,OPEN_EXISTING);
+    verify_mounted_bytes(data.file,activation.packed_payload);
+    MountedTrialFile continued(root+L"continued.bin",GENERIC_WRITE,CREATE_NEW);
+    write_mounted_bytes(continued.file,activation.packed_witness);
+    return;
+  }
+  const auto attributes=GetFileAttributesW(activation.path.c_str());
+  require(attributes!=INVALID_FILE_ATTRIBUTES && !(attributes&(FILE_ATTRIBUTE_SPARSE_FILE|
+      FILE_ATTRIBUTE_COMPRESSED|FILE_ATTRIBUTE_REPARSE_POINT)),"Explorer did not create an ordinary packed file");
+  constexpr auto first_group_end=(2ULL+4093)*kStoreCommitUnit;
+  unsigned writes=0;
+  {
+    MountedTrialFile file(payload,GENERIC_WRITE,CREATE_NEW);
+    activation.packed_payload.resize(2*1024*1024);
+    std::uint32_t generator=0x9d37a695U;
+    // A small live set builds obsolete records through normal flushed
+    // overwrites. Large unlinks have a separate retired-inode workload.
+    do {
+      require(++writes<=96,"Mounted write history did not reach another allocation group");
+      for(auto& byte:activation.packed_payload) {
+        generator=generator*1664525U+1013904223U;
+        byte=static_cast<std::byte>(generator>>24);
+      }
+      require(SetFilePointerEx(file.file,{},nullptr,FILE_BEGIN),"Cannot rewind the mounted payload");
+      write_mounted_bytes(file.file,activation.packed_payload);
+    } while(packed_file_allocation(activation.path)<=first_group_end);
+  }
+  {
+    MountedTrialFile file(witness,GENERIC_WRITE,CREATE_NEW);
+    write_mounted_bytes(file.file,activation.packed_witness);
+  }
+  MountedTrialFile retained(witness,GENERIC_READ,OPEN_EXISTING,FILE_SHARE_READ|FILE_SHARE_DELETE);
+  const auto before=packed_file_allocation(activation.path);
+  require(before>first_group_end,"Retained mounted witness missed its allocation group");
+  std::cout<<"mounted_packed_population allocated="<<before<<" revisions="<<writes<<std::endl;
+  std::uint64_t settled=before;
+  std::uint64_t next_sample=0;
+  until([&] {
+    const auto now=GetTickCount64();
+    if(now<next_sample)return false;
+    next_sample=now+100;
+    settled=packed_file_allocation(activation.path);
+    return settled<first_group_end;
+  },deadline-4000,"Mounted packed allocation did not release the tail group within this trial");
+  verify_mounted_bytes(retained.file,activation.packed_witness);
+  std::cout<<"mounted_packed_relocation before_allocation="<<before<<" after_allocation="<<settled
+      <<" held_reader=1 witness_bytes="<<activation.packed_witness.size()<<" revisions="<<writes<<'\n';
+}
+
 void print_mounted_recovery(const char* phase,std::string_view name,const std::vector<std::byte>& bytes) {
   std::cout<<"mounted_flush_recovery phase="<<phase<<" file="<<name<<" bytes="<<bytes.size()
       <<" blake3="<<hex_mounted_digest(detail::record_digest(bytes))<<'\n';
@@ -1036,6 +1104,15 @@ void mounted_gui_workflow(HWND window,std::wstring_view parent,ProcessObserver& 
   wait_status(volume+L" attached.");
   const auto first=location();
   const auto initial_serial=serial(first);
+  if(activation && !activation->packed_witness.empty()) {
+    if(activation->action==VolumeFileAction::open_existing)
+      require(activation->serial==initial_serial,"Fresh mounted packed file changed volume identity");
+    else activation->serial=initial_serial;
+    mounted_packed_workload(root(first),*activation,deadline);
+    button(108);await_detach(first);
+    button(105);wait_status(closed);
+    return;
+  }
   if(activation && activation->action==VolumeFileAction::open_existing) {
     require(activation->serial==initial_serial,"A fresh process opened a different volume");
     const bool overwrite=activation->interruption==MountedRecoveryOperation::overwrite_and_rename;
@@ -1160,17 +1237,30 @@ void gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budge
   auto observer=std::make_shared<ProcessObserver>();ProcessResult result;
   std::exception_ptr failure;
   std::atomic<bool> supervisor_failed{false};
-  const auto child_memory_mib=budget.child_memory_mib(mounted?64:128);
-  const std::uint32_t timeout_ms=mounted?39000:25000;
+  const bool packed=activation && !activation->packed_witness.empty();
+  const auto child_memory_mib=budget.child_memory_mib(mounted && !packed?64:128);
+  const ProcessBudget child_budget{child_memory_mib,2000,mounted?39000U:25000U,16};
+  auto timeout_ms=child_budget.timeout_ms;
+#ifdef FLITZFS_OBSERVE_VOLUME_PUBLICATION
+  if(packed)timeout_ms=kMountedAppProbeTimeoutMs;
+#else
+  require(!packed,"Packed application qualification requires the writable publication probe build");
+#endif
   std::vector<std::wstring> arguments;
   if(activation)arguments={activation->action==VolumeFileAction::create_new?
       L"--create-volume-file":L"--open-volume-file",activation->path.native()};
-  std::thread supervisor([&]{try{result=run_bounded_process(app,arguments,ProcessBudget{child_memory_mib,2000,timeout_ms,16},observer);}
+  std::thread supervisor([&]{try{
+#ifdef FLITZFS_OBSERVE_VOLUME_PUBLICATION
+      if(packed)result=run_bounded_publication_probe(app,arguments,child_budget,observer);
+      else
+#endif
+        result=run_bounded_process(app,arguments,child_budget,observer);
+      }
       catch(...){failure=std::current_exception();supervisor_failed.store(true,std::memory_order_release);}});
   std::exception_ptr test_failure;
   std::optional<MountedTrialFile> interruption_client;
   try {
-    const auto deadline=GetTickCount64()+(mounted?34000:20000);
+    const auto deadline=GetTickCount64()+timeout_ms-5000;
     HWND window=nullptr;
     until([&]{
       if(supervisor_failed.load(std::memory_order_acquire))throw std::runtime_error("GUI child launch failed");
@@ -1433,6 +1523,56 @@ void mounted_file_gui_tests(const std::filesystem::path& app,const app_fixture::
   std::cout<<"mounted_file_activation exclusive_create=1 identity_preserved=1 "
       <<"fresh_process_reopen=1 independent_cpu_readback=1\n";
 }
+
+void mounted_packed_file_gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budget) {
+  const auto parent=std::filesystem::path(disposable_mount_parent()).parent_path();
+  MountedFileActivation activation{parent/L"Packed.flfs"};
+  {
+    const auto input=ReadOnlyFile::open(app.parent_path()/L"winfsp-x64.dll");
+    require(input.size()>0 && input.size()<=kStoreMaxObjectBytes,"Mounted witness exceeds its budget");
+    activation.packed_witness.resize(static_cast<std::size_t>(input.size()));
+    input.read_exact_at(0,activation.packed_witness.data(),activation.packed_witness.size());
+  }
+  const auto inspect=[&](std::optional<StoreIdentity> expected,bool continued) {
+    const auto anchor=ReadOnlyFile::open(activation.path);
+    std::array<std::byte,4> first{},second{};
+    anchor.read_exact_at(8,first.data(),first.size());
+    anchor.read_exact_at(kStoreCommitUnit+8,second.data(),second.size());
+    const std::array<std::byte,4> relocated{std::byte{2}};
+    require(first==relocated && second==relocated,"Mounted volume did not settle both cross-group anchors");
+    const auto cpu=NativeVolumeFile::inspect(activation.path,expected);
+    cpu.filesystem().verify_all();
+    const auto verify=[&](std::string_view name,const std::vector<std::byte>& bytes) {
+      require(cpu.filesystem().stat(name).logical_bytes==bytes.size() &&
+          cpu.filesystem().read(name,0,static_cast<std::uint32_t>(bytes.size()))==bytes,
+          "Independent packed-volume CPU readback differs");
+    };
+    verify("witness.bin",activation.packed_witness);
+    verify("payload.bin",activation.packed_payload);
+    if(continued)verify("continued.bin",activation.packed_witness);
+    return cpu.info().selection.volume_identity;
+  };
+  try{gui_tests(app,budget,GuiRuntime::mounted,&activation);}
+  catch(...) {
+    try {
+      const auto anchor=ReadOnlyFile::open(activation.path);
+      std::byte first{},second{};
+      anchor.read_exact_at(8,&first,1);
+      anchor.read_exact_at(kStoreCommitUnit+8,&second,1);
+      const auto cpu=NativeVolumeFile::inspect(activation.path);
+      std::cout<<"mounted_packed_pending epoch="<<cpu.info().selection.epoch
+          <<" file_bytes="<<anchor.size()<<" anchor_a="<<std::to_integer<unsigned>(first)
+          <<" anchor_b="<<std::to_integer<unsigned>(second)<<'\n';
+    }catch(const std::exception& e){std::cerr<<"Pending packed fixture: "<<e.what()<<'\n';}
+    throw;
+  }
+  const auto identity=inspect({},false);
+  activation.action=VolumeFileAction::open_existing;
+  gui_tests(app,budget,GuiRuntime::mounted,&activation);
+  inspect(identity,true);
+  std::cout<<"mounted_packed_confirmation upgraded_anchors=2 independent_cpu=1 "
+      <<"fresh_writable_mount=1 continued_write=1 both_dispatchers_retired=1\n";
+}
 }
 int wmain(int argc,wchar_t** argv) {
   try {
@@ -1441,7 +1581,9 @@ int wmain(int argc,wchar_t** argv) {
     if(mode==L"--gui-mounted-flush-recovery-sandbox")interruption=MountedRecoveryOperation::create_file;
     if(mode==L"--gui-mounted-overwrite-recovery-sandbox")interruption=MountedRecoveryOperation::overwrite_and_rename;
     const bool populated=mode==L"--gui-mounted-populated-file-sandbox" || interruption.has_value();
-    const bool mounted=argc==3 && (mode==L"--gui-mounted-sandbox" || mode==L"--gui-mounted-file-sandbox" || populated);
+    const bool packed=mode==L"--gui-mounted-packed-file-sandbox";
+    const bool mounted=argc==3 &&
+        (mode==L"--gui-mounted-sandbox" || mode==L"--gui-mounted-file-sandbox" || populated || packed);
     app_fixture::Budget budget(!mounted);
     if(argc==2 && std::wstring_view(argv[1])==L"--model") {
       native_initialization();
@@ -1455,6 +1597,7 @@ int wmain(int argc,wchar_t** argv) {
       else if(mode==L"--gui-missing-winfsp")gui_tests(app,budget,GuiRuntime::missing);
       else if(mode==L"--gui-altered-winfsp")gui_tests(app,budget,GuiRuntime::altered);
       else if(mode==L"--gui-mounted-sandbox")gui_tests(app,budget,GuiRuntime::mounted);
+      else if(packed)mounted_packed_file_gui_tests(app,budget);
       else if(mode==L"--gui-mounted-file-sandbox" || populated)mounted_file_gui_tests(app,budget,populated,interruption);
       else throw std::runtime_error("Unknown GUI qualification mode");
     } else throw std::runtime_error("Explicit model, maintenance or GUI qualification mode required");

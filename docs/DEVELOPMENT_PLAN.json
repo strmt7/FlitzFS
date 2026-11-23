@@ -17,7 +17,7 @@
     "latest_recovery_evidence": "docs/evidence/windows11-mounted-mapped-publication-cuts-2026-11-22.json",
     "latest_amd_evidence": "docs/evidence/amd-reopened-paired-sealed-read-2026-11-23.json",
     "ntfs_comparison": "docs/BENCHMARK_PROTOCOL.md#plain-and-native-compressed-ntfs",
-    "next": "Connect packed creation through the Explorer helper and qualified foreground AMD through ordinary writes. Use one external client trace for held-reader reclamation, concurrent cached and mapped flushes, independent CPU readback and retirement. Establish baseline scale and settled-size accounting before replacing writable admission.",
+    "next": "Trace automatic reclamation after the verified packed Explorer create and reopen. Separate scheduler admission, obsolete-space accounting and failed preparation using the two-group fixture. Wire qualified foreground AMD through the helper and use one external trace for cache, mapping, flush and independent CPU recovery.",
     "release_qualified": false
   },
   "baseline": {
