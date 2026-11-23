@@ -1,0 +1,454 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "scope": "Source and qualification review for the updated Windows stable-release implementation sequence",
+  "source": {
+    "parent": "8f035645067b334a6cc0ddbac401b9733676d3bc",
+    "parent_tree": "7ad9b0cbd3ed9d87a740b5b8093b61e9a3887fc4",
+    "parent_inventory_sha256": "aeae8813d2efd9dac3156d8ee36c024053fcf9adf802659e78bbd6bca4e717fc",
+    "parent_tracked_files": 1019,
+    "parent_bytes": 17136582,
+    "parent_native_source_and_headers": {
+      "files": 214,
+      "bytes": 2372791
+    },
+    "parent_files_by_top_level": {
+      ".github": 19,
+      ".gitignore": 1,
+      "AGENTS.md": 1,
+      "CMakeLists.txt": 1,
+      "CONTRIBUTING.md": 1,
+      "LICENSE": 1,
+      "README.md": 1,
+      "cmake": 2,
+      "docs": 531,
+      "evidence": 2,
+      "include": 42,
+      "resources": 7,
+      "src": 172,
+      "tests": 153,
+      "third_party": 19,
+      "tools": 66
+    },
+    "checked_contract_files": {
+      "src/windows/volume_app_winfsp.cpp": "08e18afd7277bb2ba09fd5895acad21bb6e0a38c24b1be336a072978fefedd87",
+      "src/windows/winfsp_volume_attachment.cpp": "b3f6dc85f22176345dc7bf76393ff4c38d9841f59f210124172d57d2b82be350",
+      "src/windows/winfsp_native.cpp": "5c5d9ab5ffe461ddca70253464769267399ef99297dce0d846b2db50cb592544",
+      "src/windows/winfsp_controller.cpp": "791f0d8073fbee493a40a1700097f7ed37c379a02354244a34d9eea03ed99fdd",
+      "src/windows/native_amd_write_policy.cpp": "9efd8c112aff6223bff52c918d027e20953cb2d25fbcb640d0b9285147b278cc",
+      "tests/test_native_deferred_write_sdk.cpp": "cfa88981f102cacd84904025ae111a022471f922315cf98114b1393692a8d709",
+      "src/native_volume_file.cpp": "570a823804acae5381531b84883eddbca0ffbc803f1659fb65361843dcaa8196",
+      "src/dense_volume_backing.cpp": "acd687ce4e9f64941dd80942a1a796f6aabea7044af5d0bf0cc0c6dd85eca557",
+      "src/paged_store.cpp": "6fbbb1a051f09a93cbe1fe7568bf80354220aef8c62d5f61dc0149cde29bc71e",
+      "src/native_indexed_volume.cpp": "d128516d6925cc9ee4ea2dbb5a28362ed4681da8ae97b185cd9acb8354cd7964",
+      "src/native_maintenance.cpp": "2ac973c7e1854301aca13c716c55c5fe2bcb0d59b40f8190d87e6badd7dde7dc",
+      "src/store_file.cpp": "40306c647f9cf9296f882c33ff21bd217d819dd974b6bde9bc7d5e01dd8e57ba",
+      "cmake/WindowsAsanRuntime.cmake": "dbe4777503cdc4ceab21405a524a878ab85aa5a035ab4a9f0efc9daa72ebf70f",
+      "tools/dev/windows_run.py": "8fd5ef3979e282706acfc59dca3d950373fc654b4fed2f4e0d2f4f6ee63eaf47"
+    },
+    "changed_code_evidence": "docs/evidence/dense-cross-group-2026-11-23.json"
+  },
+  "navigation": {
+    "initial_attempt": {
+      "run": "local-run-4169d93d5ee1447c9476cc68ab8c0401",
+      "receipt_sha256": "0c0a2a18cd442ea4dd988cbe6bbcaa3a89e972389ddd6dea8d28e7d7302afa44",
+      "exit_code": 1460,
+      "elapsed_seconds": 210.015,
+      "tree_retired": true,
+      "stop_reason": "deadline",
+      "result": "Whole-source indexing reached its 210 second job limit"
+    },
+    "completed_source_and_documentation_searches": [
+      {
+        "scope": "code",
+        "source_files": 6,
+        "source_bytes": 186017,
+        "path_prefixes": [
+          "src/windows/winfsp_comp",
+          "src/windows/winfsp_controller",
+          "src/windows/gui",
+          "src/windows/helper",
+          "src/windows/winfsp_native",
+          "src/windows/installed_amd",
+          "src/windows/amd",
+          "src/native_volume_file",
+          "src/windows_memory_volume"
+        ],
+        "provider_version": "0.2.43",
+        "dirty_patch_sha256": "c1f6c421856076f6680e3921398cf99bd9bdf69905f7d969cb82c3289c8055dd",
+        "inventory_sha256": "1ce9bda18c4b4f953427fe13bfd541e7cb2e49bf07da7725fd4bd0ca25c6e8b7",
+        "native_response_sha256": "03e1a602a9453d204b658921f4cca116e1fa7adb2a549bc7107a350b2fb5e5dd",
+        "topic": "planRouteWindows",
+        "receipt_sha256": "9ed64d49e2d347ae1793b13b1123529b62d65b0cd4803beb323c9d06b805660b",
+        "actual_searches": 1,
+        "result_paths": [
+          "src/windows/winfsp_controller.cpp",
+          "src/windows/winfsp_native.cpp",
+          "src/windows/winfsp_native.hpp"
+        ],
+        "execution": {
+          "run": "local-run-c92b4483c5184c81b7e9a239c49d5c0c",
+          "receipt_sha256": "bb7c1ccce783633ab5b5411bd5425f2a61a0343072c4b32a23b0712a3a9143eb",
+          "exit_code": 0,
+          "elapsed_seconds": 21.125,
+          "tree_retired": true,
+          "stop_reason": null
+        }
+      },
+      {
+        "scope": "code",
+        "source_files": 11,
+        "source_bytes": 492113,
+        "path_prefixes": [
+          "src/native_indexed_volume",
+          "src/native_maintenance",
+          "src/native_group_codec",
+          "src/native_similarity",
+          "src/native_advisory",
+          "src/native_volume_file",
+          "src/dense_volume_backing",
+          "src/paged_store"
+        ],
+        "provider_version": "0.2.43",
+        "dirty_patch_sha256": "c1f6c421856076f6680e3921398cf99bd9bdf69905f7d969cb82c3289c8055dd",
+        "inventory_sha256": "8056d1a3d1feb34ad5c44ba3b05c6f980f33f1a289e738ddcb351be8853e8799",
+        "native_response_sha256": "d0fdfa5b3819044e6d5c2cd666dd688e14d41a3da881443e54e62635c20d7dd1",
+        "topic": "planRouteStorage",
+        "receipt_sha256": "401701dad4f058dc8907f495bbfa8c51539d4ef71b07989a24412dac855ce2da",
+        "actual_searches": 1,
+        "result_paths": [
+          "src/native_indexed_volume.cpp",
+          "src/native_maintenance.cpp",
+          "src/native_maintenance_source.hpp",
+          "src/native_volume_file.cpp"
+        ],
+        "execution": {
+          "run": "local-run-eb4625444926467ca0bc435c3ecd3c7d",
+          "receipt_sha256": "fd067d96bd9b0a4e89404f16c7d845afded60849c984bd0fece849f6863a176d",
+          "exit_code": 0,
+          "elapsed_seconds": 44.61,
+          "tree_retired": true,
+          "stop_reason": null
+        }
+      },
+      {
+        "scope": "documentation",
+        "source_files": 4,
+        "source_bytes": 117770,
+        "path_prefixes": [
+          "docs/architecture/REVIEW.md",
+          "docs/architecture/CURRENT.md",
+          "docs/architecture/TARGET.md",
+          "docs/RELEASE_EXECUTION_PLAN.md"
+        ],
+        "provider_version": "0.2.43",
+        "dirty_patch_sha256": "c1f6c421856076f6680e3921398cf99bd9bdf69905f7d969cb82c3289c8055dd",
+        "inventory_sha256": "57dd5edec07b4fecfce7953b859426730bf54c2527575cb5e7dbeaaa3a3700ee",
+        "native_response_sha256": "79355d1cbeae8799acb400739440de05fd061e1ad2b125f4ff33bdceac2991e5",
+        "topic": "planRouteDocs",
+        "receipt_sha256": "d0d20caa89f0b48da0d28652f60bae9c3c0d8792bfde8575156363a05c61406e",
+        "actual_searches": 1,
+        "result_paths": [
+          "docs/RELEASE_EXECUTION_PLAN.md"
+        ],
+        "execution": {
+          "run": "local-run-e8fbd4ba5e014bfdb291710837af7924",
+          "receipt_sha256": "1f17fd921da0d1af8553e37b83f5edfda1ceaabc56123d02213570b45f2d0910",
+          "exit_code": 0,
+          "elapsed_seconds": 19.157,
+          "tree_retired": true,
+          "stop_reason": null
+        }
+      }
+    ]
+  },
+  "primary_sources": {
+    "initial": {
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "robots": true,
+      "external_LLM": false,
+      "receipt_sha256": "6388c51126f9b5e6c2e115ba645bd0f6a8c9fd34525eb865502689e1d6a61b65",
+      "pages": [
+        {
+          "name": "compact",
+          "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/compact",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "failure_category": "",
+          "error": "",
+          "expected_content": true,
+          "markdown_sha256": "e467e58dda0165da314be4e28c476e21eec3c6b71df18ed989bf01a444e99ac5",
+          "capture_sha256": "c5a139606b3264ba984c560eaf1f9541359a11c46debf5f69f8e0bd8caaab7dd"
+        },
+        {
+          "name": "compression-state",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/fileio/compression-state",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": false,
+          "failure_category": "unexpected_content",
+          "error": "",
+          "expected_content": false,
+          "markdown_sha256": "e974daeccb546410cea8a472ca9f793c6f2206e7fc66ee921499a001bbae6bb6",
+          "capture_sha256": "ba9ab1fbb6be6a389f92f3fbf323504695cc0784482c2e9ca267de20a40e8688"
+        },
+        {
+          "name": "set-compression",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_compression",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": false,
+          "failure_category": "unexpected_content",
+          "error": "",
+          "expected_content": false,
+          "markdown_sha256": "48b0bd005d9276173ea26d9d5ddfd0f6019586ea3a1cd33cb8e74730a01f060a",
+          "capture_sha256": "f994d129d337585502fff73e8ad4ce771e76872a758ff20aa932bb36eab439a5"
+        },
+        {
+          "name": "get-compression",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_get_compression",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": false,
+          "failure_category": "unexpected_content",
+          "error": "",
+          "expected_content": false,
+          "markdown_sha256": "390314720de1e4c5dbc16c818f666b94bbe2650b68317f67da3008a382fb932d",
+          "capture_sha256": "9c26de6ba746a414b68a4be3532e82ce0d9518d9ea284bf176adff131c403678"
+        },
+        {
+          "name": "win11",
+          "url": "https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "failure_category": "",
+          "error": "",
+          "expected_content": true,
+          "markdown_sha256": "2faae088806a31e9fb4957a073081fb98ba56f0b12a7541b87233f5d5d9ccbec",
+          "capture_sha256": "f0244439d24f417af5766f22dd3a0b8173bf5be0d144ac97371ad170183dfa61"
+        },
+        {
+          "name": "signing",
+          "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/driver-security/kernel-mode-code-signing-and-integrity",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "failure_category": "",
+          "error": "",
+          "expected_content": true,
+          "markdown_sha256": "563483667f71172777de182d2f35f48060333b0bae34f4299f25b76e71ac0d89",
+          "capture_sha256": "e69d8fb8dd5c0c20422537ca240f2b4030cbd62347cfaeaa1b2e5a1c783e507b"
+        },
+        {
+          "name": "amd-matrix",
+          "url": "https://rocm.docs.amd.com/projects/radeon-ryzen/en/latest/docs/compatibility/compatibilityrad/windows/windows_compatibility.html",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "failure_category": "",
+          "error": "",
+          "expected_content": true,
+          "markdown_sha256": "84210caa72ac7099207f17f2dc95daf33cf1064767345c91584a482a2f0f9e74",
+          "capture_sha256": "775cf610b25ab8a520064481339734fc92da6805904fd1a8265a76c52e0fc4f2"
+        },
+        {
+          "name": "amd-sdk",
+          "url": "https://rocm.docs.amd.com/projects/install-on-windows/en/latest/reference/system-requirements.html",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "failure_category": "",
+          "error": "",
+          "expected_content": true,
+          "markdown_sha256": "1308840c706894114b51bd5e9a761963a1dac920bd46a1ec54b3dd57055e1d18",
+          "capture_sha256": "97fd41819188494eb1185bd327e9ccadf5aab189c5bdfce1f3a5af08d3fb1258"
+        },
+        {
+          "name": "diskspd",
+          "url": "https://github.com/microsoft/diskspd/releases/tag/v2.3",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "failure_category": "",
+          "error": "",
+          "expected_content": true,
+          "markdown_sha256": "eeb9b62171e288479521b4b40ed1cc6cce292b18b155e44762c8f59b64d05cb2",
+          "capture_sha256": "0cf89d80cc14d7a53a8222c4f88b253120b5c1eb5886d2153de6fab296fcb5a6"
+        },
+        {
+          "name": "winfsp",
+          "url": "https://winfsp.dev/rel/",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "failure_category": "",
+          "error": "",
+          "expected_content": true,
+          "markdown_sha256": "d04c4dd89bf166c90f10057d51ebc2157b96cd3046e63f31c0aac5c2694a7220",
+          "capture_sha256": "538919db8e26863e9aede188fe7a453f931d7f6db465a79f8362f322c2e5fa6e"
+        }
+      ],
+      "execution": {
+        "run": "local-run-3827003b07ac461d8815c21c29c32f3b",
+        "receipt_sha256": "479768cae6d404a4901ff6b62f9af7fb7db57fdb6d2806cd3377477b8e55bd94",
+        "exit_code": 0,
+        "elapsed_seconds": 16.671,
+        "tree_retired": true,
+        "stop_reason": null
+      }
+    },
+    "verified_contracts": {
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "robots": true,
+      "external_LLM": false,
+      "receipt_sha256": "e1ab3c74d47ca9f896d08f2a3e99bed9a712343493bbb741b82156b2211bef7f",
+      "pages": [
+        {
+          "name": "compression-state",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/fileio/compression-state",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "failure_category": "",
+          "error": "",
+          "expected_content": true,
+          "markdown_sha256": "e974daeccb546410cea8a472ca9f793c6f2206e7fc66ee921499a001bbae6bb6",
+          "capture_sha256": "319d61d8554b967361a8b1c46a0b2ce0fc17b9e93517198c2b0e3c9e14f24fb0"
+        },
+        {
+          "name": "set-compression",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_compression",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "failure_category": "",
+          "error": "",
+          "expected_content": true,
+          "markdown_sha256": "48b0bd005d9276173ea26d9d5ddfd0f6019586ea3a1cd33cb8e74730a01f060a",
+          "capture_sha256": "1c74fbe5c9fc9d8812c2fd047ac71fb6227af107511f5c1bf5625b1c83c71558"
+        },
+        {
+          "name": "get-compression",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_get_compression",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "failure_category": "",
+          "error": "",
+          "expected_content": true,
+          "markdown_sha256": "390314720de1e4c5dbc16c818f666b94bbe2650b68317f67da3008a382fb932d",
+          "capture_sha256": "42414149c573a7c88758c6ad61cb24b681eb79ddc751111c80fff9906ad70ebc"
+        },
+        {
+          "name": "file-compression",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/fileio/file-compression-and-decompression",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "failure_category": "",
+          "error": "",
+          "expected_content": true,
+          "markdown_sha256": "9b39932c97f054c479407fa720f114ee978b23093125a08d33728d4c9f143c77",
+          "capture_sha256": "141a0fad94d13f47fcbd58ee75faf1adc72aa2da8d78ddd143d1fc2a6c09b5c2"
+        },
+        {
+          "name": "amd-current",
+          "url": "https://rocm.docs.amd.com/en/docs-10.2.0/about/release-notes.html",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "failure_category": "",
+          "error": "",
+          "expected_content": true,
+          "markdown_sha256": "18caaf90d5ea55c1acb99c34abb277aa89c6eada8e5300b6ffdebe356e45a728",
+          "capture_sha256": "c0fbbe3e965c23d743643e6047b2d369aa504cf34efdc27a9f1543148b9a3b59"
+        },
+        {
+          "name": "winfsp-exact",
+          "url": "https://github.com/winfsp/winfsp/releases/tag/v2.2",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "failure_category": "",
+          "error": "",
+          "expected_content": true,
+          "markdown_sha256": "8f4088fb00fc374e043238c09f208c2a45592c26488ac5adcf75ae6e35765ef6",
+          "capture_sha256": "0b0b96def5636ae601dd069c8d4ad85343b381efb5cf6be99bec2b7fa579ecc1"
+        },
+        {
+          "name": "candidate-signed-distribution",
+          "url": "https://learn.microsoft.com/en-us/windows-hardware/drivers/dashboard/code-signing-attestation",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "failure_category": "",
+          "error": "",
+          "expected_content": true,
+          "markdown_sha256": "267a462d23df1826bfca7c3b2b614181accbd6eba3049cc7443858ac4b64d1ad",
+          "capture_sha256": "578bd2509e4fa9cbda118c0a66ff381a725cb0cd8d916ddd562ad9502c2eb7fb"
+        },
+        {
+          "name": "aitdcc",
+          "url": "https://aitdcc.github.io/dataset.html",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "failure_category": "",
+          "error": "",
+          "expected_content": true,
+          "markdown_sha256": "766801630c0c3f7c80304f41397c0ae265fd0cb79387c2837c920c08b8987676",
+          "capture_sha256": "ba0eccdba881544b3fd7bd54b329f54e3fb8ae28619775bd8b55f9d2022ede48"
+        },
+        {
+          "name": "fast-scale",
+          "url": "https://www.usenix.org/conference/fast26/presentation/kim-jeeyun",
+          "http_status": 200,
+          "final_http_status": 200,
+          "success": true,
+          "failure_category": "",
+          "error": "",
+          "expected_content": true,
+          "markdown_sha256": "595183d73b6f7b3cb31203621a98abbcf33189d12809233883cf3c6ed64870f9",
+          "capture_sha256": "6302efff7e0a1385ccb9d313816dcd56abbba710cc3e4b8af1fb397ffa23399f"
+        }
+      ],
+      "execution": {
+        "run": "local-run-adb9a8ac99da4cc88f5de7451d535dda",
+        "receipt_sha256": "664028d5f00fdb364b4531c1239d90d68f1066e845274418744611762b211e40",
+        "exit_code": 0,
+        "elapsed_seconds": 15.313,
+        "tree_retired": true,
+        "stop_reason": null
+      }
+    },
+    "initial_failed_markers": "Exact underscored markers were missed in the Microsoft Markdown. A second scoped capture verified substantive API text with corrected markers.",
+    "version_scope": "The Radeon/Ryzen and Windows HIP SDK pages describe earlier branches. The explicit ROCm Core SDK 10.2.0 notes supply the Windows and HIP version statements."
+  },
+  "observed": {
+    "helper_creation": "Ordinary Windows file selection currently requires an isolated sparse NTFS contract. The native adapter accepts a packed physical limit.",
+    "foreground_amd": "The WinFsp volume controller accepts a foreground route offer. The observed callers are SDK tests.",
+    "collective_and_read_amd": "The compiled installed-acquisition path can discover separate read and group profiles. The reopened flow has verified Radeon SDK evidence.",
+    "writable_reopen": "The retained indexed path still reads the complete stored live inventory after the two fences.",
+    "native_ntfs_control": "The planned compressed arm uses Windows per-file LZNT1 through the supported NTFS directory or file setting. Matched end-to-end runs are open."
+  },
+  "prior_and_current_qualification": {
+    "docs/evidence/dense-cross-group-2026-11-23.json": "7c7e574cb9214a16d364707c3704803615ec57307e8837854d9d719d30ee6d05",
+    "docs/evidence/windows11-mounted-paired-sealing-2026-11-23.json": "d69ace48af7070aa2e5589f5d1b51a3ddb2e9e0dc05faf0b8b0a824d34a8b105",
+    "docs/evidence/windows11-mounted-mapped-publication-cuts-2026-11-22.json": "122d1883991803f764dd5579bf243c0afab8fa4d248a35f450a6e22582ca5047",
+    "docs/evidence/amd-reopened-paired-sealed-read-2026-11-23.json": "beb6df13fafb07fbc38b910e53ec863d7eca3d8fa6fe079193390053f6003a06",
+    "docs/evidence/indexed-fenced-stored-recheck-2026-11-22.json": "7c1675b8c645b3834360859ba0297363881cbb8d108d096dc4c9b03ba79b6229",
+    "docs/evidence/sealed-indexed-images-2026-11-22.json": "3dc9112fc51a343652300a1838369758e60bca938c3fa02bb34b020bdbfdaecd"
+  },
+  "release": {
+    "state": "development",
+    "gates_open": 12,
+    "engineering_effort_person_weeks": [
+      59,
+      127
+    ],
+    "estimate_confidence": "low",
+    "compression_research_duration": null
+  }
+}

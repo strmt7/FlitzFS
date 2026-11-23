@@ -874,53 +874,107 @@ void dense_allocation() {
 class DenseStrideRam final:public StoreByteIo,public detail::DenseFileTailIo {
  public:
   explicit DenseStrideRam(std::uint64_t limit):limit_(limit){}
-  std::uint64_t extent() const override {return extent_;}
-  StoreIoContract contract() const noexcept override {return {4096,true,false,true};}
+  std::size_t calls=0,cut=(std::numeric_limits<std::size_t>::max)();
+  std::uint32_t failure_unit=4096;
+  unsigned failure=0;
+  bool hit=false;
+  std::uint64_t extent() const override {return live_.extent;}
+  StoreIoContract contract() const noexcept override {return {failure_unit,true,false,true};}
   void admit_write(std::uint64_t end) override {if(end>limit_)throw std::runtime_error("stride fixture capacity");}
-  void flush() override {}
+  void flush() override {
+    const auto fail=interruption();
+    if(!fail || failure)stable_=live_;
+    if(fail)throw std::runtime_error("stride fixture interrupted flush");
+  }
+  std::shared_ptr<DenseStrideRam> replay() const {
+    auto output=std::make_shared<DenseStrideRam>(limit_);
+    output->failure_unit=failure_unit;
+    output->live_=output->stable_=stable_;
+    return output;
+  }
   std::optional<std::uint64_t> allocated_file_bytes(std::uint64_t expected) const override {
-    return expected==extent_?std::optional{expected}:std::nullopt;
+    return expected==extent()?std::optional{expected}:std::nullopt;
   }
   void shorten_file(std::uint64_t expected,std::uint64_t retained) override {
-    if(expected!=extent_ || retained>=expected || retained%kStoreCommitUnit)
+    if(expected!=extent() || retained>=expected || retained%kStoreCommitUnit)
       throw std::runtime_error("stride fixture truncation boundary");
-    pages_.erase(pages_.lower_bound(retained/kStoreCommitUnit),pages_.end());
-    extent_=retained;
+    const auto fail=interruption();
+    if(!fail || failure) {
+      const auto end=fail && failure==2?retained+(expected-retained)/2:retained;
+      shorten(live_,end);
+      if(fail)shorten(stable_,(std::min)(stable_.extent,end));
+    }
+    if(fail)throw std::runtime_error("stride fixture interrupted truncate");
   }
   void write_exact(std::uint64_t offset,std::span<const std::byte> input) override {
     admit_write(offset+input.size());
-    extent_=(std::max)(extent_,offset+input.size());
-    while(!input.empty()) {
-      const auto slot=offset/kStoreCommitUnit;
-      const auto start=offset%kStoreCommitUnit;
-      const auto count=(std::min)(input.size(),kStoreCommitUnit-start);
-      const auto portion=input.first(count);
-      const auto entry=pages_.find(slot);
-      if(entry!=pages_.end() || std::any_of(portion.begin(),portion.end(),[](auto b){return b!=std::byte{};})) {
-        auto& page=pages_[slot];
-        if(page.empty())page.resize(kStoreCommitUnit);
-        std::copy(portion.begin(),portion.end(),page.begin()+static_cast<std::ptrdiff_t>(start));
+    if(interruption()) {
+      if(failure==1) {
+        write(stable_,offset,input.first(input.size()/2));
+      } else if(failure==2) {
+        const auto begin=offset-offset%failure_unit;
+        write(stable_,begin,Bytes(failure_unit));
       }
-      offset+=count;
-      input=input.subspan(count);
+      live_=stable_;
+      throw std::runtime_error("stride fixture interrupted write");
     }
+    write(live_,offset,input);
   }
   void read_exact(std::uint64_t offset,std::span<std::byte> output) const override {
-    if(offset>extent_ || output.size()>extent_-offset)throw std::runtime_error("stride fixture read");
+    if(offset>extent() || output.size()>extent()-offset)throw std::runtime_error("stride fixture read");
     while(!output.empty()) {
       const auto slot=offset/kStoreCommitUnit;
       const auto start=offset%kStoreCommitUnit;
       const auto count=(std::min)(output.size(),kStoreCommitUnit-start);
-      const auto found=pages_.find(slot);
-      if(found==pages_.end())std::fill_n(output.begin(),count,std::byte{});
-      else std::copy_n(found->second.begin()+static_cast<std::ptrdiff_t>(start),count,output.begin());
+      const auto found=live_.pages.find(slot);
+      if(found==live_.pages.end())std::fill_n(output.begin(),count,std::byte{});
+      else std::copy_n(found->second->begin()+static_cast<std::ptrdiff_t>(start),count,output.begin());
       offset+=count;
       output=output.subspan(count);
     }
   }
  private:
-  std::uint64_t limit_,extent_=0;
-  std::map<std::uint64_t,Bytes> pages_;
+  struct Image {
+    std::uint64_t extent=0;
+    std::map<std::uint64_t,std::shared_ptr<Bytes>> pages;
+  };
+  bool interruption() noexcept {
+    if(calls++!=cut)return false;
+    return hit=true;
+  }
+  static void shorten(Image& image,std::uint64_t end) {
+    const auto slot=end/kStoreCommitUnit;
+    const auto from=end%kStoreCommitUnit;
+    image.pages.erase(image.pages.lower_bound(slot+(from!=0)),image.pages.end());
+    if(from) {
+      const auto last=image.pages.find(slot);
+      if(last!=image.pages.end()) {
+        if(last->second.use_count()!=1)last->second=std::make_shared<Bytes>(*last->second);
+        std::fill(last->second->begin()+static_cast<std::ptrdiff_t>(from),last->second->end(),std::byte{});
+      }
+    }
+    image.extent=end;
+  }
+  static void write(Image& image,std::uint64_t offset,std::span<const std::byte> input) {
+    image.extent=(std::max)(image.extent,offset+input.size());
+    while(!input.empty()) {
+      const auto slot=offset/kStoreCommitUnit;
+      const auto start=offset%kStoreCommitUnit;
+      const auto count=(std::min)(input.size(),kStoreCommitUnit-start);
+      const auto portion=input.first(count);
+      const auto entry=image.pages.find(slot);
+      if(entry!=image.pages.end() || std::any_of(portion.begin(),portion.end(),[](auto b){return b!=std::byte{};})) {
+        auto& page=image.pages[slot];
+        if(!page)page=std::make_shared<Bytes>(kStoreCommitUnit);
+        else if(page.use_count()!=1)page=std::make_shared<Bytes>(*page);
+        std::copy(portion.begin(),portion.end(),page->begin()+static_cast<std::ptrdiff_t>(start));
+      }
+      offset+=count;
+      input=input.subspan(count);
+    }
+  }
+  std::uint64_t limit_;
+  Image live_,stable_;
 };
 
 void dense_group_boundary() {
@@ -963,6 +1017,276 @@ void dense_group_boundary() {
   require(checked==second,"reopened two-group volume could not address a reused run");
   recovered->read_exact((group_slots+2)*unit,checked);
   require(checked==first,"newly rebuilt directory did not bind its recovered data");
+}
+
+void dense_cross_group_moves() {
+  constexpr auto unit=kStoreCommitUnit;
+  constexpr std::uint64_t group_slots=4091;
+  constexpr auto group_end=(4+group_slots)*unit;
+  constexpr auto source=group_end+2*unit, destination=17*unit;
+  constexpr auto capacity=source+2*unit;
+  constexpr auto logical=(group_slots-1)*unit;
+  constexpr auto quantum=4*unit;
+  const auto payload=data(3*unit,6037);
+  const Bytes zero(unit);
+  std::uint64_t move_cuts=0,recovery_cuts=0;
+  for(const auto unit_bytes:{4096U,65536U}) {
+    auto seed=std::make_shared<DenseStrideRam>(capacity);
+    seed->failure_unit=unit_bytes;
+    {
+      auto dense=detail::DenseVolumeBacking::create(seed,id(70),capacity,capacity);
+      for(std::uint64_t i=0;i<group_slots-1;++i)dense->write_exact(i*unit,zero);
+      dense->write_exact(logical,payload);
+      dense->flush();
+      dense->reclaim_range(13*unit,2*unit);
+      dense->flush();
+      require(dense->file_space().interior_reusable_bytes==2*unit && seed->extent()==capacity,
+          "cross-group fixture did not retain an older hole and a live tail group");
+    }
+    const auto verify=[&](const detail::DenseVolumeBacking& view) {
+      Bytes actual(payload.size());
+      view.read_exact(logical,actual);
+      require(actual==payload,"cross-group transition changed acknowledged bytes");
+      view.read_exact(13*unit,std::span(actual).first(2*unit));
+      require(std::all_of(actual.begin(),actual.begin()+2*unit,[](auto b){return b==std::byte{};}),
+          "cross-group recovery reassigned retired virtual offsets");
+    };
+    const auto finish=[&](const std::shared_ptr<DenseStrideRam>& trial) {
+      auto durable=trial->replay();
+      {
+        const auto reader=detail::DenseVolumeBacking::open(durable,false);
+        verify(*reader);
+        require(!durable->calls,"independent cross-group inspection wrote to its source");
+      }
+      {
+        auto writer=detail::DenseVolumeBacking::open(durable,true);
+        for(unsigned i=0;writer->tail_work_pending(quantum);++i) {
+          require(i<3 && writer->advance_tail(quantum),"recovered cross-group retirement did not settle");
+          verify(*writer);
+        }
+        require(durable->extent()==group_end && !writer->file_space().interior_reusable_bytes,
+            "cross-group move did not release the complete outer group");
+        Bytes copied(2*unit);
+        durable->read_exact(destination,copied);
+        require(std::equal(copied.begin(),copied.end(),payload.begin()+unit),
+            "released tail did not leave its live data in the earlier hole");
+        writer->write_exact(logical+payload.size(),std::span(payload).first(unit));
+        writer->flush();
+      }
+      auto reopened=detail::DenseVolumeBacking::open(durable->replay(),false);
+      verify(*reopened);
+      Bytes appended(unit);
+      reopened->read_exact(logical+payload.size(),appended);
+      require(std::equal(appended.begin(),appended.end(),payload.begin()),"cross-group recovery did not continue writing");
+    };
+    const auto pair=[&](const std::shared_ptr<DenseStrideRam>& trial) {
+      auto dense=detail::DenseVolumeBacking::open(trial,true);
+      try {
+        require(dense->advance_tail(quantum),"cross-group move was not admitted");
+        verify(*dense);
+        require(dense->advance_tail(quantum) && trial->extent()==group_end,"cross-group tail did not shorten");
+        return true;
+      }catch(const std::runtime_error&) {
+        if(!trial->hit)throw;
+        rejects([&]{dense->flush();},"interrupted cross-group move admitted writes before reopen");
+        verify(*dense);
+        return false;
+      }
+    };
+    auto control=seed->replay();
+    require(pair(control),"cross-group control failed");
+    const auto boundaries=control->calls;
+    require(boundaries==21,"cross-group control missed a data, anchor, directory or length boundary");
+    {
+      auto repeated=control->replay();
+      auto dense=detail::DenseVolumeBacking::open(repeated,true);
+      dense->write_exact(logical+payload.size(),std::span(payload).first(unit));
+      dense->reclaim_range(20*unit,unit);
+      dense->flush();
+      require(dense->advance_tail(quantum) && dense->advance_tail(quantum) && repeated->extent()==group_end,
+          "settled version-2 allocation could not execute a second move");
+      std::byte sequence{};
+      repeated->read_exact(80,{&sequence,1});
+      require(sequence==std::byte{4},"repeated cross-group relocation lost its authority sequence");
+      verify(*detail::DenseVolumeBacking::open(repeated->replay(),false));
+    }
+    for(unsigned mode=0;mode<3;++mode)for(std::size_t cut=0;cut<boundaries;++cut) {
+      auto trial=seed->replay();
+      trial->cut=cut;
+      trial->failure=mode;
+      require(!pair(trial),"cross-group interruption was not observed");
+      finish(trial);
+      ++move_cuts;
+    }
+
+    auto mixed=seed->replay();
+    mixed->cut=5; // One published version-2 peer with the other still version 1.
+    require(!pair(mixed),"mixed-version restart fixture did not interrupt");
+    auto partial=mixed->replay();
+    std::array<std::byte,80> old_anchor{},new_anchor{};
+    partial->read_exact(0,old_anchor);
+    partial->read_exact(unit,new_anchor);
+    const auto digest=detail::record_digest(std::span(new_anchor).first(48));
+    require(old_anchor[8]==std::byte{1} && new_anchor[8]==std::byte{2} &&
+        std::equal(digest.begin(),digest.end(),new_anchor.begin()+48),
+        "legacy readers could miss the newer format marker during upgrade");
+    finish(partial);
+
+    auto committed=seed->replay();
+    committed->cut=7; // Both intent peers have settled and directories are about to change.
+    require(!pair(committed),"pending recovery fixture did not interrupt");
+    auto foreign=committed->replay();
+    std::array<std::byte,96> directory{};
+    foreign->read_exact(group_end,directory);
+    directory[80]^=std::byte{1};
+    const auto changed=detail::record_digest(std::span(directory).first(48),std::span(directory).subspan(80));
+    std::copy(changed.begin(),changed.end(),directory.begin()+48);
+    foreign->write_exact(group_end,directory);
+    foreign->flush();
+    rejects([&]{(void)detail::DenseVolumeBacking::open(foreign,true);},
+        "a valid but unrelated directory was accepted under a relocation intent");
+
+    auto damaged=committed->replay();
+    const std::array wrong{payload[unit]^std::byte{1}};
+    damaged->write_exact(destination,wrong);
+    damaged->flush();
+    verify(*detail::DenseVolumeBacking::open(damaged,false));
+    auto lost=damaged->replay();
+    lost->write_exact(source,wrong);
+    lost->flush();
+    rejects([&]{(void)detail::DenseVolumeBacking::open(lost,false);},"recovery accepted two damaged relocation copies");
+
+    const auto repair=[&](const std::shared_ptr<DenseStrideRam>& trial) {
+      auto dense=detail::DenseVolumeBacking::open(trial,true);
+      try {
+        require(dense->advance_tail(quantum) && trial->extent()==capacity,
+            "intent repair tried to shorten before settling");
+        return true;
+      }catch(const std::runtime_error&) {
+        if(!trial->hit)throw;
+        verify(*dense);
+        return false;
+      }
+    };
+    auto repaired=damaged->replay();
+    require(repair(repaired),"verified original did not repair its interrupted destination");
+    const auto repair_boundaries=repaired->calls;
+    require(repair_boundaries==15,"repair control missed durable recovery boundaries");
+    for(unsigned mode=0;mode<3;++mode)for(std::size_t cut=0;cut<repair_boundaries;++cut) {
+      auto trial=damaged->replay();
+      trial->cut=cut;
+      trial->failure=mode;
+      require(!repair(trial),"cross-group recovery interruption was not observed");
+      finish(trial);
+      ++recovery_cuts;
+    }
+  }
+  std::cout<<"dense_cross_group move_cuts="<<move_cuts<<" repair_cuts="<<recovery_cuts
+      <<" released_bytes="<<capacity-group_end<<" continued_writes=1 legacy_transition_checked=1\n";
+}
+
+constexpr PagedStoreLimits cross_fixture_limits{384ULL*1024*1024};
+constexpr auto cross_fixture_group_end=(4+4091ULL)*kStoreCommitUnit;
+constexpr auto cross_fixture_second_payload=cross_fixture_group_end+2*kStoreCommitUnit;
+constexpr auto cross_fixture_payload_bytes=2U*1024*1024;
+
+struct NativeCrossFixture {
+  Bytes expected;
+  NativeDenseFileSpace before,after;
+  std::uint64_t peak=0;
+  unsigned overwrites=0,steps=0;
+};
+
+NativeCrossFixture advance_native_cross_group(NativeFileSession& session) {
+  NativeCrossFixture result;
+  auto& [expected,before,after,peak,overwrites,steps]=result;
+  expected=data(cross_fixture_payload_bytes,16043);
+  put(session,"payload",expected);
+  put(session,"witness",witness_bytes);
+  auto size=session.dense_file_space().value().file_end;
+  while(size<=cross_fixture_second_payload) {
+    require(++overwrites<100,"bounded native write history did not reach a second group");
+    for(std::size_t at=0;at<expected.size();at+=kNativeExtentBytes)
+      expected[at]^=std::byte{1};
+    update(session,expected);
+    size=session.dense_file_space().value().file_end;
+  }
+  require(session.persistent_reclamation_pending(),"native history did not admit a replacement image");
+  {
+    const auto old=session.snapshot();
+    require(stage_compaction(session)==Reclaim::ready &&
+        session.advance_persistent_reclamation({})==Reclaim::published,"native image switch failed across groups");
+    require(session.advance_persistent_reclamation({})==Reclaim::pinned &&
+        old.read("payload",0,cross_fixture_payload_bytes)==expected,"old image was retired while its snapshot was pinned");
+  }
+  peak=session.dense_file_space().value().file_end;
+  require(peak>size,"replacement image was not appended beyond the first group's history");
+  for(unsigned i=0;session.persistent_reclamation_pending();++i) {
+    require(i<cross_fixture_limits.maximum_physical_bytes/kStoreMaxTransactionBytes &&
+        session.advance_persistent_reclamation({})==Reclaim::retiring,"native source retirement did not settle");
+  }
+  before=session.dense_file_space().value();
+  require(before.allocated_file_bytes && before.file_end>cross_fixture_second_payload &&
+      before.interior_reusable_bytes>cross_fixture_group_end/2,
+      "native rotation did not release reusable holes before the selected image");
+  const auto held=session.snapshot();
+  while(session.persistent_reclamation_pending(true)) {
+    const auto progress=session.advance_persistent_reclamation({},true);
+    if(progress==Reclaim::idle)break;
+    require(progress==Reclaim::retiring && ++steps<2*cross_fixture_limits.maximum_physical_bytes/kStoreMaxTransactionBytes,
+        "cross-group maintenance exceeded the fixture's volume bounds");
+    require(held.read("witness",0,1000)==witness_bytes,"held witness changed during cross-group retirement");
+  }
+  after=session.dense_file_space().value();
+  require(after.file_end<cross_fixture_group_end && after.owned_payload_bytes==before.owned_payload_bytes &&
+      after.allocated_file_bytes && *after.allocated_file_bytes<*before.allocated_file_bytes &&
+      held.read("payload",0,cross_fixture_payload_bytes)==expected,"native cross-group retirement changed data or kept the old allocation");
+  return result;
+}
+
+void append_cross_fixture_edit(NativeFileSession& writer,Bytes& expected) {
+  const auto handle=writer.open("payload",{true,true,false});
+  expected.front()^=std::byte{2};
+  writer.write(handle,0,std::span(expected).first(1));
+  writer.cleanup(handle,false);
+  writer.close(handle);
+  writer.flush();
+}
+
+void verify_cross_fixture(const NativeVolumeHeadView& reopened,const Bytes& expected) {
+  reopened.filesystem().verify_all();
+  require(reopened.info().selection.epoch==2 && reopened.filesystem().read("payload",0,cross_fixture_payload_bytes)==expected &&
+      reopened.filesystem().read("witness",0,1000)==witness_bytes,"upgraded backing lost data after independent reopen");
+}
+
+void report_cross_fixture(const char* label,const NativeCrossFixture& state) {
+  const auto& before=state.before;
+  const auto& after=state.after;
+  std::cout<<label<<" peak_eof="<<state.peak<<" before_eof="<<before.file_end<<" after_eof="<<after.file_end
+      <<" before_allocation="<<*before.allocated_file_bytes<<" after_allocation="<<*after.allocated_file_bytes
+      <<" overwritten="<<state.overwrites<<" steps="<<state.steps
+      <<" independent_reopen=1 continued_write=1 held_reader=1 upgraded_anchors=2\n";
+}
+
+void modeled_native_dense_cross_file() {
+  constexpr auto limit=cross_fixture_limits.maximum_physical_bytes;
+  auto backing=std::make_shared<DenseStrideRam>(limit);
+  NativeCrossFixture result;
+  {
+    auto session=NativeVolumeFile::create_dense(backing,limit,id(61),id(62),cross_fixture_limits,raw);
+    result=advance_native_cross_group(session);
+  }
+  std::byte a{},b{};
+  backing->read_exact(8,{&a,1});
+  backing->read_exact(kStoreCommitUnit+8,{&b,1});
+  require(a==std::byte{2} && b==a,"modeled native backing did not settle both upgraded anchors");
+  verify_cross_fixture(NativeVolumeFile::inspect(backing->replay(),id(61)),result.expected);
+  {
+    auto writer=NativeVolumeFile::resume(backing,id(61),raw);
+    append_cross_fixture_edit(writer,result.expected);
+  }
+  verify_cross_fixture(NativeVolumeFile::inspect(backing->replay(),id(61)),result.expected);
+  report_cross_fixture("modeled_native_dense_cross",result);
 }
 
 void dense_directory_cuts() {
@@ -2031,6 +2355,34 @@ void disposable_dense_tail_file(const std::filesystem::path& base) {
       <<" steps="<<steps<<" held_readers_verified=1 independent_cpu_reopen=1\n";
 }
 
+void disposable_dense_cross_file(const std::filesystem::path& base) {
+  const auto ticks=std::chrono::steady_clock::now().time_since_epoch().count();
+  const auto root=std::filesystem::canonical(base)/("flitzfs-dense-cross-"+std::to_string(ticks));
+  require(std::filesystem::create_directory(root),"could not exclusively create the cross-group fixture directory");
+  const auto path=root/"volume.flfs";
+  constexpr StoreIoContract model{4096,true,false,true};
+  NativeCrossFixture result;
+  {
+    auto session=NativeVolumeFile::create_dense(path,model,cross_fixture_limits.maximum_physical_bytes,
+        id(61),id(62),cross_fixture_limits,raw);
+    result=advance_native_cross_group(session);
+  }
+  {
+    const auto header=ReadOnlyFile::open(path);
+    std::byte a{},b{};
+    header.read_exact_at(8,&a,1);
+    header.read_exact_at(kStoreCommitUnit+8,&b,1);
+    require(a==std::byte{2} && b==a,"ordinary backing did not settle both upgraded anchors");
+  }
+  verify_cross_fixture(NativeVolumeFile::inspect(path,id(61)),result.expected);
+  {
+    auto writer=NativeVolumeFile::resume(path,model,id(61),raw);
+    append_cross_fixture_edit(writer,result.expected);
+  }
+  verify_cross_fixture(NativeVolumeFile::inspect(path,id(61)),result.expected);
+  report_cross_fixture("windows_dense_cross",result);
+}
+
 std::uint64_t allocated_bytes(const std::filesystem::path& file) {
   DWORD high=0;
   SetLastError(ERROR_SUCCESS);
@@ -2191,6 +2543,16 @@ int main(int argc,char** argv){
       std::cout<<"PASS: "<<checks<<" dense tail checks\n";
       return 0;
     }
+    if(argc==2 && std::string_view(argv[1])=="--dense-cross-group") {
+      dense_cross_group_moves();
+      std::cout<<"PASS: "<<checks<<" dense cross-group checks\n";
+      return 0;
+    }
+    if(argc==2 && std::string_view(argv[1])=="--dense-cross-native") {
+      modeled_native_dense_cross_file();
+      std::cout<<"PASS: "<<checks<<" modeled native cross-group checks\n";
+      return 0;
+    }
     if(argc==2 && std::string_view(argv[1])=="--overwrite-rename-cuts") {
       overwrite_and_rename_publication_cuts();
       std::cout<<"PASS: "<<checks<<" overwrite and rename recovery checks\n";
@@ -2244,6 +2606,11 @@ int main(int argc,char** argv){
     if(argc==3 && std::string_view(argv[1])=="--disposable-dense-tail-file") {
       disposable_dense_tail_file(std::filesystem::path(argv[2]));
       std::cout<<"PASS: "<<checks<<" isolated Windows dense tail checks\n";
+      return 0;
+    }
+    if(argc==3 && std::string_view(argv[1])=="--disposable-dense-cross-file") {
+      disposable_dense_cross_file(std::filesystem::path(argv[2]));
+      std::cout<<"PASS: "<<checks<<" isolated Windows cross-group checks\n";
       return 0;
     }
     if(argc==3 && std::string_view(argv[1])=="--disposable-sparse-file") {

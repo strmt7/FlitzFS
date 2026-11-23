@@ -173,9 +173,50 @@ contract.
 The NTFS guest verified a reduction from 1,900,544 to 720,896 allocated
 bytes. The file retained its held snapshot and independently reopened
 with the CPU reader. The storage model exercised 27 interruptions across
-copy, directory publication and shortening. Cross-group movement and
-physical device qualification remain release work.
+copy, directory publication and shortening.
 [Dense tail evidence](evidence/dense-tail-reclamation-2026-11-23.json)
+
+#### Moving live data across allocation groups
+
+An earlier free range can receive the last live units of a later group.
+The owner copies and verifies up to one store transaction of bytes during
+an admitted idle opportunity. It flushes both anchors with the relocation
+intent before changing either directory. It then settles the destination
+directory pair, the source directory pair and the cleared anchor pair.
+The inverse mapping switches after readers using the old location drain.
+A separate admitted operation can shorten the now-unused suffix.
+[Write-ahead ordering and roll-forward recovery](https://www.postgresql.org/docs/current/wal-intro.html)
+
+The first cross-group move upgrades the anchors to version 2. The base
+record keeps the existing fields and uses the former reserved field for
+the 248-byte extension length. Its original digest covers the 48-byte
+prefix, so an earlier reader sees the intact new version and refuses the
+file before writing. The current reader also reads original version-1
+volumes. The directory geometry and lower record format are unchanged.
+
+| Extension offset | Fields |
+| --- | --- |
+| 0 | 64-bit sequence. Odd sequences identify a move. Even sequences identify settled ownership. |
+| 8 | 64-bit source, destination and virtual unit ordinals and 64-bit unit count |
+| 40 | 64-bit source and destination directory generations before the move |
+| 56 | 32-byte digest of the copied bytes |
+| 88 | Four 32-byte directory digests, ordered source before, source after, destination before, destination after |
+| 216 | 32-byte digest over the base record and preceding extension bytes |
+
+Reopen selects the newer valid anchor and checks both affected directories
+against the recorded states. It reconstructs the resulting mappings in
+memory and verifies the copied bytes. When the destination fails
+verification, a checked original can serve reads and repair the
+destination. Writable recovery settles missing peers and clears the
+intent before it allows reuse. Ambiguous ownership, unrelated directory
+content and loss of both copies stop the operation.
+
+The storage model passed 126 move interruptions and 90 interruptions
+while repairing a damaged destination. The ordinary NTFS fixture moved a
+held image back into the first group and reduced allocation from
+276,037,632 to 4,915,200 bytes. It independently reopened and durably
+wrote again. These byte counts measure recovery of retired history.
+[Cross-group evidence](evidence/dense-cross-group-2026-11-23.json)
 
 ### Data image compaction and retirement
 

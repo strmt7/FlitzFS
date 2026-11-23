@@ -667,9 +667,11 @@ if(FLITZFS_BUILD_TESTS)
     COMMAND flitzfs_native_volume_file_tests --dense-session-cuts)
   add_test(NAME bounded_native_volume_file_dense_tail
     COMMAND flitzfs_native_volume_file_tests --dense-tail)
+  add_test(NAME bounded_native_volume_file_dense_cross_group
+    COMMAND flitzfs_native_volume_file_tests --dense-cross-group)
   set_tests_properties(bounded_native_volume_file_dense_allocation
     bounded_native_volume_file_dense_session bounded_native_volume_file_dense_session_cuts
-    bounded_native_volume_file_dense_tail PROPERTIES TIMEOUT 60)
+    bounded_native_volume_file_dense_tail bounded_native_volume_file_dense_cross_group PROPERTIES TIMEOUT 60)
   add_test(NAME bounded_native_volume_file_catalog_ranges
     COMMAND flitzfs_native_volume_file_tests --catalog-ranges)
   set_tests_properties(bounded_native_volume_file_catalog_ranges PROPERTIES TIMEOUT 75)

@@ -1,0 +1,194 @@
+{
+  "scope": "Cross-group relocation with mirrored ownership intent in ordinary backing files",
+  "date": "2026-11-23",
+  "source": {
+    "base": "8f035645067b334a6cc0ddbac401b9733676d3bc",
+    "blobs": {
+      "CMakeLists.txt": "059b5932853e4f300b7f575f9b7d1ce4c760393f",
+      "src/dense_volume_backing.cpp": "a6e9a9976ba8f8c2537a520d5fc4d89b67a25a77",
+      "tests/test_native_volume_file.cpp": "f5521c5a85f10c8982d4606467d4d866978fd7d0"
+    },
+    "normalized_sha256": {
+      "CMakeLists.txt": "f1f7d85e312d389463fa8c51f17c37d55c01b92017b8ef649633ac060bb69c20",
+      "src/dense_volume_backing.cpp": "acd687ce4e9f64941dd80942a1a796f6aabea7044af5d0bf0cc0c6dd85eca557",
+      "tests/test_native_volume_file.cpp": "6d638a8c2b4372c977389ac60b42342770dde78570613f0c7e45721bd4a9e6f8"
+    }
+  },
+  "routing": {
+    "provider_version": "0.2.43",
+    "actual_searches": 1,
+    "inventory_sha256": "697da55924d3f18765835a7d5b92ed7fbbdae9f697e127e92d7921e3bda28aed",
+    "receipt_sha256": "d033ff70b45caa3f078438ecf8a7b9cc90a6890ef4e9b7062b7db47a3a254e42"
+  },
+  "primary_sources": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "robots": true,
+    "external_llm": false,
+    "receipt_sha256": "f10e7136ca83439a2f3479ad34ff9ff249be121b3ccc9e869b0356cdfebbcd0e",
+    "pages": [
+      {
+        "url": "https://www.postgresql.org/docs/current/wal-intro.html",
+        "http_status": 200,
+        "success": true,
+        "expected_content": true,
+        "markdown_sha256": "efaa3e02bdb7900d4bbea5fa0d685d47625d44f8d8f0f1937d0cde92b031e33f",
+        "capture_sha256": "8d0b143f400d11438cc65c7e0f6ffa244ca1ddc26e92773453baa28ed84dc105",
+        "failure_category": ""
+      },
+      {
+        "url": "https://www.postgresql.org/docs/current/wal-reliability.html",
+        "http_status": 200,
+        "success": true,
+        "expected_content": true,
+        "markdown_sha256": "8914dab8d4688080c7c3f9400a13e93bf4f60c04d00a17e1b0c34cbaf836b83e",
+        "capture_sha256": "11b0a20d7fc4b2f3f5a9ab3b03c16b88c6a5f5e55ed21fc7b85e2c0a0fec1c6b",
+        "failure_category": ""
+      },
+      {
+        "url": "https://www.usenix.org/conference/fast26/presentation/kim-jeeyun",
+        "http_status": 200,
+        "success": true,
+        "expected_content": true,
+        "markdown_sha256": "595183d73b6f7b3cb31203621a98abbcf33189d12809233883cf3c6ed64870f9",
+        "capture_sha256": "be534c62165608d179a88519ffd9dbcf4c882b13ebc5e3cc25e8a5e2c68d2f7f",
+        "failure_category": ""
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/0201c69b-50db-412d-bab3-dd97aeede13b",
+        "http_status": 200,
+        "success": true,
+        "expected_content": true,
+        "markdown_sha256": "a1097351bee38dc74e81a426cfc9b9bd985a2e6338a9430822588d283936fd11",
+        "capture_sha256": "28a2d140de01c11f64c61d8b3c4a5298bc714e53bf2bf0b2bb9967e88c6b2b71",
+        "failure_category": ""
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fsa/5555bcb6-bc29-4f8a-900c-e469b792faab",
+        "http_status": 200,
+        "success": true,
+        "expected_content": true,
+        "markdown_sha256": "ce553b65c64f54d69c69beaccaf80bc46dbad8a4c2daed25fb814644a4fcc817",
+        "capture_sha256": "1763a274dd6b5da202f23ee1f8af7e9c2f4a30ebd85a33f4fdafa96f475b8e79",
+        "failure_category": ""
+      }
+    ]
+  },
+  "model": {
+    "run": "local-run-506ea7cbe07b4d7b8b5f1182a81dd732",
+    "receipt_sha256": "92b7d0f4cbfdb9ab4038d711757ef406249ef792139f08237f76459ac4c5ce2a",
+    "output_sha256": "3f189648e420bd500e76693cac9b298a97b62b8e3b70951ea4169aba2f5c724e",
+    "exit_code": 0,
+    "tree_retired": true,
+    "peak_job_bytes": 6262784,
+    "move_cuts": 126,
+    "repair_cuts": 90,
+    "released_bytes": 262144,
+    "continued_writes": 1,
+    "legacy_transition_checked": 1,
+    "checks": 3766,
+    "failure_unit_bytes": [
+      4096,
+      65536
+    ],
+    "old_version_detection": "Original short checksum remains valid on the version-2 marker",
+    "isolated_copy_repair": true,
+    "dual_loss_rejected": true,
+    "unrelated_directory_rejected": true
+  },
+  "native_memory": {
+    "run": "local-run-60c975ed9cff4dcf85e4dbf98b180ed4",
+    "receipt_sha256": "34895a22ed7ee1cb165a947db6bfe0f72e21f1fcfb9f5518bc295280879f2504",
+    "output_sha256": "55da98bf7b0ad1fc46b4e10dd4bbcd0d9618f34bb2c1c24fb92244cad842382a",
+    "exit_code": 0,
+    "tree_retired": true,
+    "peak_job_bytes": 294412288,
+    "peak_eof": 275316736,
+    "before_eof": 275316736,
+    "after_eof": 4915200,
+    "before_allocation": 275316736,
+    "after_allocation": 4915200,
+    "overwritten": 63,
+    "steps": 68,
+    "independent_reopen": 1,
+    "continued_write": 1,
+    "held_reader": 1,
+    "upgraded_anchors": 2
+  },
+  "ntfs_guest": {
+    "run": "local-run-6cb9564ce05e410ca2b30ed89ef7921c",
+    "receipt_sha256": "ec74766126df1ef7ab7a6fc1318e2edae89a92ab187ad9dc168704d8ab6e1ea4",
+    "output_sha256": "5f03330c7e6fa58240784fe78472862dc09ca71689a3e271ff5c25125b3208ce",
+    "exit_code": 0,
+    "tree_retired": true,
+    "peak_job_bytes": 46321664,
+    "peak_eof": 275316736,
+    "before_eof": 275316736,
+    "after_eof": 4915200,
+    "before_allocation": 276037632,
+    "after_allocation": 4915200,
+    "overwritten": 63,
+    "steps": 68,
+    "independent_reopen": 1,
+    "continued_write": 1,
+    "held_reader": 1,
+    "upgraded_anchors": 2,
+    "sandbox_receipt_sha256": "142381070f9091fd14fd1e0faa7a2efab999a34500ea6853b0e3064c79d4062a",
+    "guest_result_sha256": "e4cb2a98281a02624da24fea6b955c59f6b1d61883e689c4a76a4e19a2b4d136",
+    "windows": {
+      "build": "26100",
+      "version": "10.0.26100",
+      "filesystem": "NTFS"
+    },
+    "post_write_file_bytes": 5111808,
+    "sandbox_retired": true,
+    "exe_sha256": "542d0158d4fbc79b3251cf8e93f4fbf788b5725a1c8b7075b1562ef119dad38f",
+    "earlier_headroom_deferral": {
+      "run": "local-run-0ce572da9040440fa45db06e312027bb",
+      "receipt_sha256": "dae5efe37b3032fbeb9dd463b51be428c861e93a0a7190130121651e709ee88f",
+      "output_sha256": "adea925ab00d24661ecd483a36e1a538c4f316249750168ff7e62271de9667d0",
+      "exit_code": 1,
+      "tree_retired": true,
+      "peak_job_bytes": 38985728
+    }
+  },
+  "validation": {
+    "windows": {
+      "run": "local-run-9d040e7191614629b96b1500117c40f2",
+      "receipt_sha256": "781bd3c61f95d03dde83ddce16dbc48f15048825e533a78d6da1d01801378bfb",
+      "output_sha256": "36ee7aef03b08a0b431f27e4710a6fa93e5549fd01ef380b0f828800ff75f6c7",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 678346752,
+      "passed": 217
+    },
+    "raw_only": {
+      "run": "local-run-860562ca5d754fa59868e5065d52cfac",
+      "receipt_sha256": "1b5927148aeb8a0a768c12879015f22c89e98f216e6c14f60f141185c8243192",
+      "output_sha256": "2a42edfe9f0abb908aab8fed79d4210f682784c9991eaa4ff867da9c4e5e6839",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 99717120,
+      "passed": 9
+    },
+    "address_sanitizer": {
+      "run": "local-run-bc4651b1d9164007bb943e30135804ed",
+      "receipt_sha256": "d207509703d398772e874fce5e4ab10c6903e1bde1976a99d6d32f0f7e3421b8",
+      "output_sha256": "6656155dd8bb2474be880d513a23de86e007de1139a2a74843175fc55702eb63",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 940367872,
+      "passed": 10
+    }
+  },
+  "gpu": {
+    "admission": null,
+    "host": null
+  },
+  "open_qualification": [
+    "pageable directory search and recovery at scale",
+    "mounted Windows client qualification",
+    "physical interruption or removal",
+    "exFAT and FAT32 qualification",
+    "end-to-end performance"
+  ]
+}

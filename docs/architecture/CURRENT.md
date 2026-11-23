@@ -1,8 +1,10 @@
 # Current FlitzFS architecture
 
-**Source baseline [df5be9b5b9d0](https://github.com/strmt7/FlitzFS/commit/df5be9b5b9d0bc05ac565eb2da8454ac76bed3d2).** These diagrams describe paths in that tree. The [repository review](REVIEW.md)
-records the assumptions and evidence for them. The [revised architecture](TARGET.md)
-describes proposed changes.
+The diagrams reflect the 23 November source review and the tested cross-group
+relocation. The [review receipt](../evidence/release-path-review-2026-11-23.json)
+binds source and evidence. The [subsystem review](REVIEW.md) contains the
+earlier reconciliation. The [revised architecture](TARGET.md) describes
+planned product changes.
 
 ## 1. Process and build boundaries
 
@@ -65,7 +67,10 @@ stateDiagram-v2
 Fresh adapter creation can fail before any backing is retained. A user-mode
 runtime DLL is checked beside the application, and the mount lifecycle holds
 the adapter until after dispatcher stop and deletion. The persistent file
-backing is an ordinary local NTFS image under a qualified contract.
+backing in the Explorer helper is a sparse ordinary local NTFS image under
+a qualified contract. The core adapter can create packed ordinary-file
+backing with a physical extent limit. The app's attach factory currently
+requires the sparse contract.
 [Runtime and backing selection](../../src/windows/volume_app_winfsp.cpp#L67)
 · [attachment and retirement](../../src/windows/winfsp_volume_attachment.cpp#L55)
 · [dispatcher lifecycle](../../src/windows/winfsp_session.cpp#L101)
@@ -78,6 +83,11 @@ control lock. The current deferred service accepts at most one pending native
 write. A conflicting entry can force CPU completion while the optional
 worker is retiring. The independent storage commit determines status, transferred
 bytes and file information in either route.
+The SDK drives the deferred-write activation used in this diagram. The
+ordinary helper has automatic installed acquisition entry points for
+eligible read-ahead and collective work.
+[Route activation](../../src/windows/winfsp_controller.cpp) ·
+[SDK activation tests](../../tests/test_native_deferred_write_sdk.cpp)
 
 ```mermaid
 sequenceDiagram
@@ -262,6 +272,35 @@ the backing medium is outside the demonstrated mirror-repair scope.
 · [single-pass indexed audit path](../../src/native_session.cpp#L642)
 · [stored mirror recheck evidence](../evidence/indexed-fenced-stored-recheck-2026-11-22.json)
 · [mounted post-flush restart](../evidence/windows11-mounted-post-flush-recovery-2026-11-21.json)
+
+### Packed backing relocation
+
+The ordinary packed reclaimer may relocate live units into an earlier
+allocation group. The anchor intent records the checked transition of both
+directories. Readers continue to use the old mapping until both directory
+pairs and the cleared anchor pair have settled.
+
+```mermaid
+sequenceDiagram
+    participant Owner as Dense backing owner
+    participant Data as Source and destination units
+    participant Head as Mirrored outer anchors
+    participant Maps as Both allocation directories
+    participant Read as Mapping readers
+    Owner->>Data: Copy to earlier hole, flush and verify bytes
+    Owner->>Head: Commit intent with source, destination and directory digests
+    Owner->>Maps: Commit destination pair, then source pair
+    Owner->>Head: Commit cleared intent pair
+    Owner->>Read: Drain old physical reads and switch logical mapping
+    Owner->>Data: Release empty suffix on a later admitted step
+```
+
+Reopen with a pending intent validates both directories and the destination
+bytes. A verified original can supply read-only recovery and repair of a
+damaged destination. The same evidence binds version-1 access and refusal
+when neither copy verifies.
+[Format and recovery](../PERSISTENT_VOLUME_FILE.md#moving-live-data-across-allocation-groups) ·
+[Cross-group test evidence](../evidence/dense-cross-group-2026-11-23.json)
 
 ## 8. Background learning, grouping and reclamation
 

@@ -440,8 +440,8 @@ file-size limit of about 4 GiB for FAT32. A USB device can carry either NTFS or 
 The ordinary file provider applies a FAT32 extent bound when the caller
 supplies a qualified nonsparse contract. The Explorer helper currently uses
 the qualified NTFS sparse profile. The packed allocator reuses internal
-space and can shorten a qualified ordinary file after same-group evacuation.
-Its current Windows fixture uses a nonsparse NTFS file. Recovery
+space and can shorten a qualified ordinary file after same-group or
+cross-group evacuation. Its Windows fixture uses a nonsparse NTFS file. Recovery
 qualification remains open for exFAT and
 FAT32. For an external RAM disk,
 establish the backing lifetime explicitly before treating its bytes as volatile.
@@ -470,14 +470,12 @@ allocation group when the namespace checkpoint advances.
    temporary hold space and reservations from their actual owners. Cap new
    volumes by the actual file limit, current available growth and staged-copy
    cost. Qualify exFAT and FAT32 independently before enabling attachments.
-3. Extend verified tail relocation across groups. Treat a cross-group
-   relocation as one ownership transition so an
-   interrupted reopen always finds exactly one authoritative mapping. Keep
-   the old bytes until the authority and affected directory peers are
-   durable and mapping readers release them. Recheck pending writers and
-   references before shortening the file. Flush and verify the resulting
-   allocation. Qualify interruption at each publication and shortening
-   boundary on every enabled provider.
+3. Qualify the implemented cross-group relocation and prefix-preserving
+   shortening on every enabled provider. Confirm that the owner can
+   resume mixed-version anchor publication, finish directory recovery,
+   protect captured readers and return allocated bytes while the client
+   remains active. Reduce moves that save little space for their measured
+   copy and metadata traffic.
 4. Charge the candidate's actual writes, metadata and temporary overlap to
    the maintenance decision. Measure the backing file's allocated bytes
    separately from its logical length and internal free space. A candidate
@@ -492,18 +490,15 @@ allocation group when the namespace checkpoint advances.
    relocation below foreground demand and qualify physical shrink separately
    from internal reuse.
 
-For cross-group moves, evaluate a versioned intent in the existing paired
-anchors. A newer reader would keep the current group offsets and read older
-volumes directly. A move would reserve its destination, copy and verify the
-bytes, then persist the exact source, destination, extent and directory
-generations in both anchors. That record would authorize the single
-temporary overlap while both affected directories converge. After all
-copies settle and prior readers drain, clear the intent before reusing or
-shortening the source. An intact older anchor must never authorize ignoring
-a newer committed move. Qualify every transition with independent CPU
-readback, interrupted reopen, same-group controls and mounted continued
-writes. Select a layout only after measuring the gain in allocated bytes
-and the corresponding metadata writes, latency and temporary allocation.
+The versioned intent now uses the existing paired anchors. It binds the
+affected ranges, directory generations, mappings and moved bytes. The
+independent reader rolls a valid intent forward in memory. Writable recovery
+finishes the peers before releasing either copy. The NTFS fixture released
+an entire tail allocation group and continued writing after reopen.
+Measure the gain in allocated bytes alongside metadata writes, latency
+and temporary allocation before selecting a policy for each medium.
+[Cross-group evidence](../evidence/dense-cross-group-2026-11-23.json) ·
+[FAST '26 on placement and write amplification](https://www.usenix.org/conference/fast26/presentation/kim-jeeyun)
 
 ### Media qualification
 

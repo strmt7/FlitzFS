@@ -1,15 +1,17 @@
 # FlitzFS repository overview
 
-Reconciled against the **933-file** tree at
-`df5be9b5b9d0bc05ac565eb2da8454ac76bed3d2`. The review maps the actual
-Windows attachment, authority, allocation, recovery, AMD, maintenance and
-package paths to source and qualification. The [current architecture](architecture/CURRENT.md)
+Reconciled on 23 November 2026 against the **1,019-file** tree at
+`8f035645067b334a6cc0ddbac401b9733676d3bc` and the tested cross-group
+relocation changes. The review maps Windows attachment, authority,
+allocation, recovery, AMD, maintenance and package paths to live source
+and qualification. The [current architecture](architecture/CURRENT.md)
 shows the flows, and the [source review](architecture/REVIEW.md) records
 which assumptions still need evidence. Use the [revised architecture](architecture/TARGET.md),
 [detailed implementation plan](IMPLEMENTATION_PLAN.md) and
 [release execution plan](RELEASE_EXECUTION_PLAN.md) for forward work.
 
-[Current architecture evidence](evidence/architecture-reconciliation-2026-11-21.json) ·
+[23 November review receipt](evidence/release-path-review-2026-11-23.json) ·
+[21 November architecture evidence](evidence/architecture-reconciliation-2026-11-21.json) ·
 [Previous handle and recovery reconciliation](evidence/release-reconciliation-indexed-handle-2026-11-22.json) ·
 [Development state ledger](DEVELOPMENT_STATE.json)
 
@@ -21,19 +23,28 @@ real AMD collective work. Release depends on carrying these paths through the
 same installed Windows client, at scale, with backend-specific recovery,
 independent CPU reads, and controlled size and performance results.
 
-The bounded AMD preparation path moves device setup ahead of one request.
-Three real AMD pairs returned identical compressed bytes and passed independent
-CPU verification. The new timing measures how much setup can be moved outside
-the response window. Automatic foreground eligibility and benefit against CPU
-still need matched full writes. [Prepared AMD evidence](evidence/amd-prepared-sweep-2026-11-22.json)
+**The Windows product path has two visible gaps.** The Explorer helper
+requires sparse NTFS for file backing. The native adapter accepts packed
+volumes and the normal reclaimer now relocates across allocation groups.
+The shared controller discovers installed AMD read and group profiles in
+eligible builds, while foreground write activation is driven by SDK test
+callers. The next connected client trace brings packed backing and automatic
+AMD foreground selection through the helper. [Helper factory](../src/windows/volume_app_winfsp.cpp) ·
+[Native adapter](../src/windows/winfsp_native.cpp) ·
+[Foreground activation tests](../tests/test_native_deferred_write_sdk.cpp)
 
-Detached sealed indexed images are now a measured space-saving option for
-closed volumes. The complete AIT A–P image used 32,440,320 bytes, down from
-51,486,720 bytes with the same compacted file encodings and mirrored payloads.
-CPU readback and restoration survived individual unit losses. Integration
-with the writable region allocator and media-specific qualification remain
-open. [Sealed image format and evidence](SEALED_INDEXED_IMAGE.md) ·
-[Adaptive storage execution plan](architecture/ADAPTIVE_STORAGE_EXECUTION.md)
+**The latest tests isolate three different properties.** The packed NTFS
+guest fixture released an entire allocation group and retained correct held
+reads, CPU reopen and continued writes. Reopened paired volumes served two
+verified Radeon read frames and preserved CPU service when the worker refused.
+Sealed indexed AIT A–P images retained the same compacted encodings and
+payload protection at 32,440,320 bytes, down from 51,486,720. Paired placement
+has mounted Windows correctness evidence. Scale, integrated acceleration
+and held-out whole-product size and performance remain open.
+[Cross-group relocation](evidence/dense-cross-group-2026-11-23.json) ·
+[Reopened AMD read](evidence/amd-reopened-paired-sealed-read-2026-11-23.json) ·
+[Sealed image evidence](evidence/sealed-indexed-images-2026-11-22.json) ·
+[Mounted paired selection](evidence/windows11-mounted-paired-sealing-2026-11-23.json)
 
 Keep the shared CPU-readable engine, copy-on-write publication, protected
 decoding dependencies, WinFsp integration and isolated GPU execution. Replace
@@ -48,23 +59,24 @@ release, tag, publication or product-version change is authorized by this review
 
 ## What is in the repository
 
-The baseline Git tree contains 915 tracked files and 14,954,593 bytes of
-tracked content. The `src/` and `include/` directories contain 190 tracked
-files and 1,980,075 bytes. Each receipt identifies its inspection or test scope.
+The reviewed parent contains 1,019 tracked files and 17,136,582 bytes of
+tracked content. The `src/` and `include/` directories contain 214 files
+and 2,372,791 bytes. Each receipt identifies its inspection or test scope.
 
 | Area | Inventory | Responsibility |
 | --- | ---: | --- |
-| `src/` | 150 files | Storage, native filesystem, codecs, Windows adapters, controllers and workers |
-| `include/` | 40 files | Public core, session, storage, resource and recovery interfaces |
-| `tests/` | 146 files | Model, malformed-input, failure, SDK, process, application and qualification fixtures |
-| `tools/` | 63 files | Dependency staging, provenance, resource containment and qualification |
-| `docs/` | 461 files | Contracts, plans, historical results and source-bound evidence |
+| `src/` | 172 files | Storage, native filesystem, codecs, Windows adapters, controllers and workers |
+| `include/` | 42 files | Public core, session, storage, resource and recovery interfaces |
+| `tests/` | 153 files | Model, malformed-input, failure, SDK, process, application and qualification fixtures |
+| `tools/` | 66 files | Dependency staging, provenance, resource containment and qualification |
+| `docs/` | 531 files | Contracts, plans, historical results and source-bound evidence |
 | `.github/` | 19 files | Complementary build, analysis and experimental workflows |
 | `third_party/` | 19 files | Pinned BLAKE3 sources, licensing and provenance |
 | `cmake/`, `evidence/`, `resources/`, and top-level files | 17 files | Build support, historical evidence, branding, README and licensing |
 
-Use the [current reconciliation evidence](evidence/release-reconciliation-indexed-handle-2026-11-22.json)
-for the exact build and executed results.
+Use the [review inventory and source bindings](evidence/release-path-review-2026-11-23.json)
+and the [cross-group build and test receipt](evidence/dense-cross-group-2026-11-23.json)
+for exact scope.
 
 ## Reconciliation
 
@@ -134,17 +146,17 @@ connects each change to verified source behavior and open proof.
 
 | Component | Implemented and supported by evidence | Material remaining gap |
 | --- | --- | --- |
-| Object storage | Flat and paged stores, checked COW transactions, replicated metadata, streaming rebuild and bounded indexed selector publication | Durable segment allocation, reclamation under concurrent writes and backend qualification |
+| Object storage | Flat and paged stores, checked COW transactions, replicated metadata, bounded indexed selector publication and versioned packed cross-group relocation | Incremental native segment allocation, pageable dense mapping, mounted reclamation and backend-specific recovery |
 | Native namespace | Indexed path and handle transactions, typed head selection, mounted guest evidence, scheduled retirement and staged compaction | Full Windows 11 client semantics and interference measurements during large live mutations |
 | Populated capacity | Million-object paged inventory, 16,384 populated files in the native reopen fixture, and 4,096 in the Windows SDK startup fixture | Comparable mounted scale curves for large directories, population, I/O and recovery |
 | Compression | Optional CPU Zstd/LZ4, exact sharing, packed slices and independently readable indexed shared-base methods including copy, residual and prefixed frames | Stronger multireference and independent model candidates with representative held-out complete-size results |
 | Background work | Incremental indexed similarity discovery, live Windows admission, advisory checkpointing and automatic paired-range reclamation | Persistent scale, workload-driven codec selection and a measured policy for background writes |
 | CPU recovery | Independent parsers/decoders, typed-head validation, surviving-copy reads and source-preserving repair/rebuild primitives | Full backend failure qualification, repair after wider dependency damage and production recovery orchestration |
-| GPU | Automatic installed-runtime admission exercised in a controlled WinFsp owner, verified AMD collective proposals and independent CPU reopen | Automatic foreground and collective selection on the installed client, recovery across supported adapters and measurable net benefit |
+| GPU | Installed-runtime read and collective admission in the controller, verified Radeon work and independent CPU reopen, foreground activation through the SDK | Automatic foreground admission in the application, full mounted costs and failure recovery across supported adapters |
 | Windows interface | Writable native SDK callbacks, owner ACL/time initialization, contexts, cleanup/close, metadata/security and directory operations | Current-source mounted product qualification, complete Unicode/path/Win32 behavior, caching/mapping/concurrency and deployment |
 | Application | Native helper/tray, owned worker, volume selection and two mounted workflows with external Win32 callers in a signed-driver guest | Interactive Explorer on the target client, complete volume management and a supported installer |
 | Memory composition | Live adaptive admission beyond the old ceiling, on-demand page locking, retained backing through stop and explicit-join CPU inspection | Larger populated volumes, multiple-volume aggregate policy and broker/process-failure behavior |
-| Indexed volume files | Exclusive create and audited reopen from the helper, persistent head and advice, independent CPU inspection and paired-range reclamation eligibility after reopen | Incremental reclamation during concurrent edits and actual media durability qualification |
+| Indexed volume files | Exclusive sparse NTFS create and audited reopen from the helper, persistent head and advice, independent CPU inspection and paired-range reclamation. The core also supports packed ordinary-file volumes. | Packed helper attachment, incremental reclamation during concurrent edits and media durability qualification |
 | Learning state | Budgeted scan checkpoints, a paged coherence catalog and stale-posting compaction in owned indexed memory volumes | Full paged catalog on the persistent provider, higher candidate recall and observed adaptive policy wins across restart and workload change |
 | Compatibility | Several historical native encodings and explicit capabilities remain readable | A published support window, mixed-version migration program, rollback boundaries and exact released-reader matrix |
 
@@ -675,18 +687,17 @@ There is no defensible completion percentage. A million object keys, a tray
 application, a GPU request and thousands of checks do not compose into a
 million-file, accelerated, durable product automatically.
 
-The detailed plan retains a low-confidence engineering envelope of roughly
-**60–130 person-weeks**, with an open research tail for the compression frontier.
-That is a work estimate, not a promised calendar for an autonomous agent.
-It must be recalibrated after the scalable native engine, real mounted path and
-first held-out collective comparison. The small recent integration slices do
-not justify calling a release imminent or silently lowering the exit criteria.
+The estimate remains **60–130 person-weeks** at low confidence. Re-estimate
+after a populated mounted scale trace, useful AMD on the installed client,
+the held-out whole-volume compression frontier and persistent-provider
+failure checks. The exceptional compression target stays a research risk.
 
-The populated Windows trace now covers acknowledged overwrite, EOF shrink and
-rename through helper termination and fresh writable attachment. The next
-checkpoint carries the paged image publication cuts into mounted recovery
-and uses separate selector cuts during image replacement. Follow with
-bounded writable admission, safe segment reuse and useful mounted AMD
-operation. Advance sparse coherence and held-out compression selection
-alongside that work. [Recovery evidence](evidence/windows11-overwrite-rename-recovery-2026-11-22.json) ·
-[Current gate ledger](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
+Start from the existing Windows client trace. Make the packed backing and
+AMD foreground activation reachable through the helper. Carry cached and
+mapped writes through independent flush and reopen verification, then scale
+that same trace. Develop sparse coherence, protected group representations
+and offline maintenance using a separate held-out accounting track. The
+final gates bind the supported Windows package, providers, backward readers,
+recovery and real-host comparison to the same candidate.
+[Current gate ledger](RELEASE_EXECUTION_PLAN.md#current-gate-ledger) ·
+[Implementation sequence](RELEASE_EXECUTION_PLAN.md#immediate-implementation-order)

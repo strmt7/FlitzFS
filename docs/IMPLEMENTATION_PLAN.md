@@ -1,6 +1,7 @@
 # FlitzFS detailed implementation plan
 
-**Reconciled baseline `df5be9b5b9d0bc05ac565eb2da8454ac76bed3d2`.**
+**Reconciled on 23 November 2026.** The current source, tested changes and
+qualification are bound in the [release-path review receipt](evidence/release-path-review-2026-11-23.json).
 
 The [current architecture](architecture/CURRENT.md) shows the implementation.
 The [source review](architecture/REVIEW.md) tests the assumptions and the
@@ -18,9 +19,12 @@ writable mount. Independent hardware and SDK paths cover finite AMD batching,
 controlled deferred integration and live indexed readback. Mounted inner
 publication cuts cover Write, EOF shrink and rename. The CPU reader also
 verified both image ranges through mounted selector cuts during reclamation.
-Mapped-write recovery also passed with cached neighbors and directory churn.
-The next checkpoint qualifies installed foreground AMD through ordinary writes
-and covers concurrent cached and mapped flushes.
+Mapped-write recovery passed with cached neighbors and directory churn.
+Packed relocation between allocation groups now has a verified recovery
+model and an ordinary NTFS guest-file trial. The next checkpoint connects
+packed creation and installed foreground AMD through the ordinary Explorer
+helper. Carry concurrent cached and mapped flushes through the same client
+trace. [Integrated sequence](RELEASE_EXECUTION_PLAN.md#immediate-implementation-order)
 Keep independent CPU bytes, full occupied-size accounting and safe ownership
 for each path. [Release gate ledger](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
 · [Current state](DEVELOPMENT_STATE.json)
@@ -128,13 +132,14 @@ gate; it does not authorize GPU-driver changes or destructive device operations.
 ## 3. Execution order and dependencies
 
 The [revised architecture](architecture/TARGET.md) sets the target ownership,
-format and resource contracts. The ordered checkpoints below govern the
-current implementation. The existing E01–E13 work-package numbers and
-S1–S12 release gates remain in use.
+format and resource contracts. The [release execution plan](RELEASE_EXECUTION_PLAN.md#next-integrated-qualification)
+defines the first integrated trace and its receipt. The ordered checkpoints
+below model package dependencies. E01–E13 work-package numbers and S1–S12
+release gates provide the references.
 
 | Checkpoint | Primary work packages | Required result before promotion |
 | --- | --- | --- |
-| 1. One instrumented Windows path | E01, E03, E08, E11 | A populated client trace ties application completion to indexed commit, flush, cancellation and independent CPU recovery. Eligible installed AMD, CPU-only and refused-AMD lanes exercise the same workload. |
+| 1. One instrumented Windows path | E01, E02, E03, E08, E11 | The helper creates and reopens packed backing. A populated trace ties application completion to commit, flush, cancellation and CPU recovery. Installed AMD, CPU-only and refused-AMD lanes exercise the same workload. |
 | 2. Scale and reclaim under writes | E01, E02, E11 | Named namespace and restart curves, generation-bound validation, owned segments and a proven reclamation path preserve prior readers and acknowledged data. |
 | 3. Reduce complete size and learn | E04–E07, E03 | Sparse candidate selection and protected encodings lower held-out total bytes with measured random access, resource and write costs. Learning survives restart and yields under contention. |
 | 4. Qualify lifecycle and compatibility | E08–E11 | Independent volume ownership, supported backings, versioned CPU rescue, gradual migration and failure recovery pass their declared bounds. |
@@ -142,6 +147,12 @@ S1–S12 release gates remain in use.
 
 ### Checkpoint 1. Establish the client and storage trace
 
+- Carry the selected ordinary-file backing contract through
+  `WinFspVolumeFileSelection` into the existing writable adapter. Select the
+  sparse or packed creation path from probed capabilities and admitted
+  extent. On reopen use persisted format and pinned identity. Mount the
+  cross-group reclamation workload with a held reader, then independently
+  reopen and continue writing. [Relocation evidence](evidence/dense-cross-group-2026-11-23.json)
 - Generate one exact manifest for source, toolchain, helper, WinFsp DLL and
   driver, AMD modules and runtime, data and backing. Record client-observed
   status separately from WinFsp response attempts. Add operation identity,
@@ -457,12 +468,13 @@ fresh CPU sample. Publication and retirement each require a fresh observation.
 Indexed compaction can preserve its private work across foreground commits by
 reconciling immutable tree checkpoints. A verified live repair can use that
 handoff to restore payload redundancy when append admission fails.
-The packed ordinary-file provider now evacuates live tail units within one
-group and releases the verified suffix. Windows NTFS allocation fell after
-shortening, and held readers and independent CPU recovery retained their
-bytes. [Dense retirement evidence](evidence/dense-tail-reclamation-2026-11-23.json)
-**Missing:** cross-group evacuation, pageable recovery at scale,
-durable staging progress, and persistent-provider qualification.
+The packed ordinary-file provider evacuates live tail units within and
+across groups. A mirrored relocation intent binds interrupted directory
+updates. The NTFS fixture released the tail group, retained held readers
+and continued writing after independent CPU recovery.
+[Cross-group evidence](evidence/dense-cross-group-2026-11-23.json)
+**Missing:** pageable recovery at scale, durable progress across longer
+maintenance jobs and persistent-provider qualification.
 **Planning effort:** 5–10 person-weeks; confidence low.
 
 ### Implementation steps

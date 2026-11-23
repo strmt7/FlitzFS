@@ -1,11 +1,33 @@
 {
   "schema": 2,
-  "updated": "2026-11-22",
+  "updated": "2026-11-23",
   "goal_status": "active",
   "product": "Windows 11 AMD64 filesystem/helper/driver integration; AMD acceleration with independent CPU recovery",
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "release_path_review": {
+    "evidence": "docs/evidence/release-path-review-2026-11-23.json",
+    "reviewed_parent": "8f035645067b334a6cc0ddbac401b9733676d3bc",
+    "tracked_parent_files": 1019,
+    "qualification": "development",
+    "remaining_effort_person_weeks": [59, 127],
+    "estimate_confidence": "low",
+    "immediate_trace": "docs/RELEASE_EXECUTION_PLAN.md#next-integrated-qualification",
+    "native_ntfs_comparison": "specified, matched live-host run pending",
+    "mounted_packed_attachment": "core qualified in bounded fixtures, helper integration pending",
+    "automatic_foreground_amd": "SDK activation qualified in its scope, ordinary helper admission pending"
+  },
+  "dense_cross_group_relocation": {
+    "evidence": "docs/evidence/dense-cross-group-2026-11-23.json",
+    "anchor_format_after_first_cross_group_move": 2,
+    "modeled_move_cuts": 126,
+    "modeled_repair_cuts": 90,
+    "isolated_ntfs_guest_allocation_bytes": {"before": 276037632, "after": 4915200},
+    "independent_cpu_reopen_and_continued_write": true,
+    "runtime_backing_performance_measured_in_guest": false,
+    "mounted_current_product_qualified": false
+  },
   "architecture_reconciliation": {
     "reviewed_commit": "df5be9b5b9d0bc05ac565eb2da8454ac76bed3d2",
     "reviewed_tree": "a9bab22082849332c28a085f0eb154aaacb15538",

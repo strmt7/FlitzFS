@@ -1,6 +1,6 @@
 # Objective FlitzFS benchmark protocol
 
-Benchmark protocol and measured Windows pilots through 22 November 2026.
+Benchmark protocol and measured Windows pilots through 23 November 2026.
 Use existing recognized tools where they measure the required property. Custom
 tests fill explicit gaps; they do not replace an available standard workload.
 All host execution follows current local-development authorization and protects
@@ -74,26 +74,41 @@ protected. Record unavailable comparators instead of manufacturing results.
 ### Plain and native-compressed NTFS
 
 Prepare equivalent disposable targets with the same Windows build, backing,
-capacity, allocation unit geometry and documented cache/flush settings. Use
-plain directories for the first control. For the second, apply supported native
-NTFS directory/file compression before ingestion and verify each file's final
-compression state with `FSCTL_GET_COMPRESSION`. Record the exact format and
-include the `FILE_ATTRIBUTE_COMPRESSED` inventory. `compact /C` expresses the
-native compression case. Record executable-specific Compact OS compression as
-a separate case if it is investigated.
+capacity, allocation unit geometry and documented cache/flush settings. Check
+that both handles identify NTFS volumes and that the compressed target supports
+per-file compression. Use a freshly created fixture directory for each arm.
+
+1. **Plain NTFS.** Require `FSCTL_GET_COMPRESSION` to return
+   `COMPRESSION_FORMAT_NONE` for the fixture directory and its completed files.
+2. **Windows' built-in NTFS compression.** Apply ordinary `compact /C` to the
+   empty fixture directory or set `COMPRESSION_FORMAT_DEFAULT` with
+   `FSCTL_SET_COMPRESSION` on its handle. This is the built-in file and folder
+   compression setting, using LZNT1. Create files underneath that directory so
+   they inherit its state. For a workflow that preserves source attributes,
+   verify the resulting mode before including it in the comparison.
+3. **Verify both arms.** Before measurement and after all writes, flush and
+   query each completed file with `FSCTL_GET_COMPRESSION`. The compressed arm
+   requires `COMPRESSION_FORMAT_LZNT1`. Record the compression attribute,
+   queried format, logical bytes and content digest. Reject the pair if native
+   compression is unavailable or any file has an unexpected mode. Keep the
+   setup and verification times distinct from measured task times.
+
 [Microsoft compact documentation](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/compact) ·
 [File and directory compression state](https://learn.microsoft.com/en-us/windows/win32/fileio/compression-state) ·
-[FSCTL_SET_COMPRESSION](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_compression)
+[FSCTL_SET_COMPRESSION](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_compression) ·
+[FSCTL_GET_COMPRESSION](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_get_compression)
 
 Record baseline and settled volume allocation and the sum of per-file
 `GetCompressedFileSizeW` results as different measurements. Keep identical
 logical files, verification and metadata workloads. Confirm the requested
 DiskSpd caching and alignment options work on every included target before
 running that comparison. Alternate across comparators and report cold and warm
-trials separately. A host inventory on 22 November exposed no RAM drive or
-FlitzFS mount. The matched mounted comparison remains open.
+trials separately. The 22 November host inventory found neither matched mount
+available. The 23 November NTFS guest run exercised FlitzFS backing-file
+reclamation and CPU recovery. The native compression comparison remains open.
 [File storage size API](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getcompressedfilesizew) ·
-[Host and image evidence](evidence/sealed-indexed-images-2026-11-22.json)
+[Host and image evidence](evidence/sealed-indexed-images-2026-11-22.json) ·
+[Guest recovery evidence](evidence/dense-cross-group-2026-11-23.json)
 
 ## Corpus and workload design
 
