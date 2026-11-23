@@ -661,6 +661,9 @@ if(FLITZFS_BUILD_TESTS)
   add_test(NAME bounded_native_volume_file_catalog_ranges
     COMMAND flitzfs_native_volume_file_tests --catalog-ranges)
   set_tests_properties(bounded_native_volume_file_catalog_ranges PROPERTIES TIMEOUT 75)
+  add_test(NAME bounded_native_volume_file_sealed_ranges
+    COMMAND flitzfs_native_volume_file_tests --sealed-ranges)
+  set_tests_properties(bounded_native_volume_file_sealed_ranges PROPERTIES TIMEOUT 145)
   add_test(NAME bounded_native_volume_file_overwrite_rename_cuts
     COMMAND flitzfs_native_volume_file_tests --overwrite-rename-cuts)
   set_tests_properties(bounded_native_volume_file_overwrite_rename_cuts PROPERTIES TIMEOUT 90)

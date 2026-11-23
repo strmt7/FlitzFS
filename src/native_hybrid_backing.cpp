@@ -17,7 +17,8 @@ namespace {
 using detail::Digest;
 using detail::ProtectedStripeImage;
 using Bytes=std::vector<std::byte>;
-constexpr std::uint64_t roots=detail::kFoldedMirrorRoots,tail_start=2*roots;
+constexpr std::uint64_t roots=detail::kFoldedMirrorRoots,tail_start=kNativeHybridTailPrefixBytes;
+static_assert(tail_start==2*roots);
 constexpr std::size_t root_size=detail::kPagedStoreCheckpointWriteBytes/2;
 constexpr std::uint64_t maximum_io=static_cast<std::uint64_t>((std::numeric_limits<std::int64_t>::max)());
 constexpr std::string_view binding_magic="FLTXHB01";
@@ -253,6 +254,9 @@ std::uint64_t NativeHybridBacking::workspace_capacity(StoreIdentity identity,Sto
 std::array<std::shared_ptr<StoreByteIo>,2> NativeHybridBacking::components() const noexcept {
   return {impl_->base_owner.io,impl_->tail.io};
 }
+NativePairedSealedRange NativeHybridBacking::sealed_range() const noexcept {
+  return {impl_->binding.base_occupied,impl_->binding.base_end};
+}
 
 std::shared_ptr<NativeHybridBacking> NativeHybridBacking::open(std::shared_ptr<StoreByteIo> base,
     std::shared_ptr<StoreByteIo> tail,StoreIdentity expected,std::uint64_t virtual_limit,std::uint64_t physical_limit) {
@@ -305,9 +309,10 @@ std::shared_ptr<NativeHybridBacking> NativeHybridBacking::create(const NativeFil
 struct NativeHybridBacking::Build::Impl {
   Impl(PagedObjectStoreWriter::Rewrite rewrite,std::shared_ptr<StoreByteIo> workspace,
       StoreIoContract base_contract,NativeImageStorage storage,StoreIdentity identity,std::uint64_t unit,
-      std::uint64_t candidate_limit,std::uint64_t staging_limit)
+      std::uint64_t candidate_limit,std::uint64_t staging_limit,bool owned_file_target)
       :rewrite(std::move(rewrite)),workspace(std::move(workspace)),base_contract(base_contract),
-       storage(storage),identity(identity),unit(unit),candidate_limit(candidate_limit),staging_limit(staging_limit) {}
+       storage(storage),identity(identity),unit(unit),candidate_limit(candidate_limit),staging_limit(staging_limit),
+       owned_file_target(owned_file_target) {}
 
   void begin_seal() {
     seal.emplace(ProtectedStripeImage::begin_seal(workspace,base,identity,candidate_limit-tail_start));
@@ -375,6 +380,7 @@ struct NativeHybridBacking::Build::Impl {
   NativeImageStorage storage;
   StoreIdentity identity;
   std::uint64_t unit,candidate_limit,staging_limit;
+  const bool owned_file_target;
   BuildPhase phase=BuildPhase::workspace;
   Binding binding;
   std::uint64_t generation=0;
@@ -404,8 +410,15 @@ NativeHybridBacking::Build NativeHybridBacking::prepare(const NativeFileSession&
 NativeHybridBacking::Build NativeHybridBacking::prepare(const NativeFileSession& session,
     std::shared_ptr<StoreByteIo> workspace,StoreIoContract base_contract,StoreIdentity identity,
     std::uint64_t candidate_limit,std::uint64_t staging_limit,StoreCompressionOptions compression) {
-  const auto& writer=session.hybrid_source();
-  session.admit_replacement(session.ready(),workspace,identity);
+  return prepare_impl(session,std::move(workspace),base_contract,identity,candidate_limit,staging_limit,
+      compression,false);
+}
+NativeHybridBacking::Build NativeHybridBacking::prepare_impl(const NativeFileSession& session,
+    std::shared_ptr<StoreByteIo> workspace,StoreIoContract base_contract,StoreIdentity identity,
+    std::uint64_t candidate_limit,std::uint64_t staging_limit,StoreCompressionOptions compression,
+    bool owned_file_target) {
+  const auto& writer=session.hybrid_source(owned_file_target);
+  session.admit_replacement(session.ready(),workspace,identity,owned_file_target);
   if(workspace->extent() || !valid_store_io_contract(workspace->contract()) || !valid_store_io_contract(base_contract))
     fail("hybrid preparation requires an empty workspace and qualified backing contracts");
   const auto source=writer.snapshot();
@@ -420,7 +433,7 @@ NativeHybridBacking::Build NativeHybridBacking::prepare(const NativeFileSession&
   };
   auto rewrite=writer.prepare_folded_recompression(workspace,identity,compression,admission);
   return Build(std::make_unique<Build::Impl>(std::move(rewrite),std::move(workspace),base_contract,
-      storage,identity,unit,candidate_limit,staging_limit));
+      storage,identity,unit,candidate_limit,staging_limit,owned_file_target));
 }
 
 NativeHybridBacking::Build::Build(std::unique_ptr<Impl> state) noexcept:impl_(std::move(state)) {}
@@ -432,7 +445,7 @@ NativeHybridBacking::BuildPhase NativeHybridBacking::Build::phase() const noexce
 }
 bool NativeHybridBacking::Build::source_current(const NativeFileSession& session) const noexcept {
   if(!impl_)return false;
-  try {return session.hybrid_source().matches_paged_recompression(impl_->rewrite);}
+  try {return session.hybrid_source(impl_->owned_file_target).matches_paged_recompression(impl_->rewrite);}
   catch(const std::exception&){return false;}
 }
 bool NativeHybridBacking::Build::can_continue_preparation() const noexcept {
@@ -445,7 +458,7 @@ bool NativeHybridBacking::Build::can_continue_preparation() const noexcept {
 }
 bool NativeHybridBacking::Build::advance(const NativeFileSession& session) {
   if(!impl_)fail("hybrid preparation is unavailable");
-  try {return impl_->advance(session.hybrid_source());}
+  try {return impl_->advance(session.hybrid_source(impl_->owned_file_target));}
   catch(...){cancel();throw;}
 }
 std::uint64_t NativeHybridBacking::Build::required_store_bytes() const noexcept {
@@ -461,9 +474,9 @@ void NativeHybridBacking::Build::provide_store(const NativeFileSession& session,
   if(needed!=BuildPhase::awaiting_base && needed!=BuildPhase::awaiting_tail)
     fail("hybrid preparation is not waiting for a store");
   try {
-    if(!session.hybrid_source().matches_paged_recompression(impl_->rewrite))
+    if(!source_current(session))
       fail("hybrid preparation source checkpoint changed");
-    session.admit_replacement(session.ready(),store,impl_->identity);
+    session.admit_replacement(session.ready(),store,impl_->identity,impl_->owned_file_target);
     if(store==impl_->workspace || store==impl_->base || store->extent() ||
         !valid_store_io_contract(store->contract()))
       fail("hybrid preparation needs a distinct, qualified empty store");
@@ -483,7 +496,7 @@ void NativeHybridBacking::Build::provide_store(const NativeFileSession& session,
 std::shared_ptr<NativeHybridBacking> NativeHybridBacking::Build::finish(const NativeFileSession& session) {
   if(phase()!=BuildPhase::ready)fail("hybrid preparation is incomplete");
   try {
-    session.hybrid_source().verify_folded_recompression_source(impl_->rewrite);
+    session.hybrid_source(impl_->owned_file_target).verify_folded_recompression_source(impl_->rewrite);
     auto result=std::move(impl_->result);
     cancel();
     return result;
@@ -493,11 +506,12 @@ bool NativeHybridBacking::Build::publish(NativeFileSession& session,
     std::shared_ptr<NativeHybridBacking>& replacement) {
   if(phase()!=BuildPhase::ready || replacement)fail("live hybrid selection needs ready work and an empty replacement slot");
   try {
-    session.hybrid_source().verify_folded_recompression_source(impl_->rewrite);
+    const auto file=impl_->owned_file_target;
+    session.hybrid_source(file).verify_folded_recompression_source(impl_->rewrite);
     auto checked=std::move(*impl_->verified);
     replacement=std::move(impl_->result);
     cancel();
-    if(session.publish_hybrid_replacement(replacement,checked))return true;
+    if(session.publish_hybrid_replacement(replacement,checked,file))return true;
     replacement.reset();
     return false;
   }catch(...) {

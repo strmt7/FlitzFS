@@ -1,8 +1,8 @@
 # Fixed-size native volume head (experimental)
 
-The explicit [capability-2 extension](MANAGED_PAGED_VOLUMES.md) now binds paged
-image kind/capacity and supports verified managed selection/repair. The original
-capability-1 bytes and flat-source rules described below remain unchanged.
+The [managed paged layouts](MANAGED_PAGED_VOLUMES.md) bind paged image kind
+and capacity. The [paired file layouts](PERSISTENT_VOLUME_FILE.md#paired-sparse-image-ranges)
+also bind the selected range and the geometry of a sealed image.
 
 This is a CPU-only custom-backend authority for selecting an active native image
 after verified compaction. It is not physical reclamation, a file-provider,
@@ -36,7 +36,7 @@ Each slot contains the following little-endian fields:
 | Offset | Bytes | Meaning |
 |---:|---:|---|
 | 0 | 8 | FLTVH001 |
-| 8 | 4 | Internal encoding capability 1 |
+| 8 | 4 | Internal encoding capability |
 | 12 | 4 | Physical slot index, 0 or 1 |
 | 16 | 8 | Positive handoff epoch |
 | 24 | 16 | Stable external volume identity |
@@ -45,8 +45,25 @@ Each slot contains the following little-endian fields:
 | 72 | 8 | Minimum active image checkpoint-group generation |
 | 80 | 8 | Minimum native namespace sequence |
 | 88 | 8 | Parent checkpoint-group generation; zero at epoch 1 |
-| 96 | 65408 | Reserved zero |
+| 96 | 65408 | Capability-specific fields followed by reserved zero |
 | 65504 | 32 | Existing unkeyed BLAKE3 integrity over bytes 0..65503 |
+
+Capability 1 reserves all bytes after offset 95. Capabilities 2–7 store the
+image kind at offset 96 and the indexed byte limit at offset 104. Offset
+100 remains reserved. Capabilities 6 and 7 extend 4 and 5 respectively with
+two little-endian 64-bit fields. The packed base length starts at offset
+112 and the corresponding end of the folded indexed address space starts
+at offset 120. The base starts at the beginning of the selected paired
+range and the tail follows it. The tail binding must confirm both lengths
+and the selected image identity. Earlier capabilities reserve all bytes
+after their last defined field. Current readers accept those earlier layouts.
+
+During a mixed mirror/sealed handoff, adjacent epochs keep the same outer
+paired layout and capacity. Each peer independently describes its own
+image. The higher bound epoch selects its complete image. Older readers
+reject an intact sealed capability. A fresh verified mirrored successor
+uses capability 4 or 5 again.
+[Paired sealed layout](PERSISTENT_VOLUME_FILE.md#sealed-paired-images)
 
 This is a separate internal control encoding, not a release/product-number
 change. Existing object, root, namespace, codec and default-route bytes/APIs

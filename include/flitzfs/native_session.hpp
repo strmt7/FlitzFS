@@ -465,8 +465,9 @@ class NativeFileSession final {
  private:
   friend class NativeGroupMaintenance;
   friend class NativeHybridBacking;
-  const NativeFilesystemWriter& hybrid_source() const;
-  bool publish_hybrid_replacement(const std::shared_ptr<NativeHybridBacking>&,const NativeFilesystemSnapshot&);
+  const NativeFilesystemWriter& hybrid_source(bool owned_file_target) const;
+  bool publish_hybrid_replacement(const std::shared_ptr<NativeHybridBacking>&,
+      const NativeFilesystemSnapshot&,bool owned_file_target);
   std::weak_ptr<detail::NativeMaintenanceSource> maintenance_source();
   struct Impl;
   std::unique_ptr<Impl> impl_;
@@ -490,6 +491,8 @@ class NativeFileSession final {
   friend class detail::NativeVolumeFileReclaimer;
   std::uint64_t catalog_retirement_selection(std::optional<OptimizationCatalogSelection>&) const noexcept;
   bool begin_idle_compaction_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,bool owned_file_target,PagedRewriteMode);
+  bool idle_seal_funded(std::uint64_t bytes) const noexcept;
+  bool reserve_idle_seal(std::uint64_t bytes);
   NativeOptimizationInfo bind_optimization_area(std::shared_ptr<StoreByteIo>,
       std::uint64_t,unsigned,bool create,bool rebuild,bool budgeted=false);
   static void admit_replacement(const Impl&,const std::shared_ptr<StoreByteIo>&,StoreIdentity,bool owned_file_target=false);
@@ -498,7 +501,8 @@ class NativeFileSession final {
   static void begin_handoff(Impl&,NativeFilesystemSnapshot,std::shared_ptr<StoreByteIo>,StoreIdentity);
   static NativeVolumeHeadInfo finish_handoff(Impl&);
   static NativeVolumeHeadInfo publish_indexed_handoff(Impl&,NativeFilesystemWriter,
-      const NativeFilesystemSnapshot&,std::shared_ptr<StoreByteIo>);
+      const NativeFilesystemSnapshot&,std::shared_ptr<StoreByteIo>,
+      std::optional<NativePairedSealedRange> = std::nullopt);
   static void adopt_handoff(Impl&,const NativeVolumeHeadInfo&) noexcept;
   bool stage_recompression(std::shared_ptr<StoreByteIo>,StoreIdentity,StoreCompressionOptions,
       StoreCheckpointOptions,bool idle);

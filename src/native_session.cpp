@@ -168,14 +168,32 @@ struct NativeFileSession::Impl {
     const auto end=writer.maintenance_physical_end();
     return end?cold_compaction_input_cost(end+detail::kPagedStoreCheckpointWriteBytes):0;
   }
+  bool has_cold_compaction_credit(std::uint64_t cost) const noexcept {
+    const auto* advice=ready_funded_advice();
+    if(!cost || !advice)return false;
+    const auto settled=advice->budget_settlement();
+    const auto input=writer.workload_info();
+    if(!settled || !input.enabled)return false;
+    const auto floor=(std::max)(*settled,cold_screen_input_floor);
+    return input.committed_input_bytes>=floor && input.committed_input_bytes-floor>=cost;
+  }
   std::uint64_t scan_input_ceiling(std::uint64_t input,std::uint64_t settled) const noexcept {
-    if(!memory_idle_compaction && !(persistent_reclaimer && persistent_reclaimer->cold_target_available()))
-      return input;
+    const bool paired=persistent_reclaimer && persistent_reclaimer->cold_target_available();
+    if(!memory_idle_compaction && !paired)return input;
     const auto cost=cold_compaction_cost();
     const auto floor=(std::max)(settled,cold_screen_input_floor);
     // Lookups and grouping can proceed in memory. Leave a complete admission
-    // for cold compression before spending the same credit on advisory writes.
-    return input>=floor && input-floor>=cost?input-cost:input;
+    // for eligible image work before spending its credit on advisory writes.
+    if(input<=floor)return input;
+    if(cost && input-floor>=cost)return input-cost;
+    if(paired && volume && volume->head && !volume->pending && !recompression &&
+        NativeFileSession::handoff_contexts_resolved(*this) && !writer.indexed_capacity_repair_generation()) {
+      const auto writes=persistent_reclaimer->projected_seal_writes(volume->head->info().selection,
+          writer.indexed_append_floor());
+      if(writes && input-floor>=cold_compaction_input_cost(writes))
+        return input-cold_compaction_input_cost(writes);
+    }
+    return input;
   }
   bool scan_advice_funded() const noexcept {
     const auto* advice=ready_scan_advice();
@@ -697,8 +715,10 @@ NativeFileSession NativeFileSession::resume_volume_impl(std::shared_ptr<StoreByt
     session.impl_->volume=std::move(owner);
     return session;
   };
+  const bool sealed_repair=closed_indexed && selected.info().selection.sealed_range &&
+      owner->active_io->backing_degraded();
   if(closed_indexed && !selected.info().degraded && !initial.needs_session_recovery() &&
-      !initial.storage_info().degraded_checkpoint) {
+      !initial.storage_info().degraded_checkpoint && !sealed_repair) {
     auto retained=NativeVolumeHeadWriter::retain_indexed_reopen(head,selected,foreground);
     if(retained){
       owner->head.emplace(std::move(retained->head));
@@ -711,7 +731,37 @@ NativeFileSession NativeFileSession::resume_volume_impl(std::shared_ptr<StoreByt
   auto repaired=[&] {
     const auto& source=selected.filesystem();
     if(!closed_indexed)return resume_image(owner->active_io,source,foreground);
+    const auto rotate_verified=[&](const NativeVolumeHeadView& latest) {
+      if(latest.info().selection!=selected.info().selection)
+        fail(E::invalid_options,"startup repair selector changed");
+      const auto& current=latest.filesystem();
+      if(epoch==(std::numeric_limits<std::uint64_t>::max)())
+        fail(E::invalid_options,"startup repair selector epoch exhausted");
+      auto authority=NativeVolumeHeadWriter::resume_impl(head,volume,epoch,current,true);
+      if(authority.info().selection!=latest.info().selection)
+        fail(E::invalid_options,"startup repair authority changed");
+      auto replacement=repair_target(authority.info());
+      if(replacement.identity==StoreIdentity{} || replacement.identity==volume ||
+          replacement.identity==current.identity() || replacement.identity==authority.info().selection.parent_identity ||
+          replacement.backing==head || replacement.backing==owner->active_io)
+        fail(E::invalid_options,"startup repair requires a distinct image");
+      admit_empty(replacement.backing);
+      auto candidate=[&] {
+        auto copy=NativeFilesystemWriter::copy_indexed_image(current,replacement.backing,replacement.identity,foreground,false);
+        return NativeFilesystemSnapshot::open(copy.snapshot());
+      }();
+      const auto published=authority.publish_compacted_impl(current,candidate,true);
+      owner->head.emplace(std::move(authority));
+      owner->active_io=std::move(replacement.backing);
+      owner->active_id=published.selection.image_identity;owner->epoch=published.selection.epoch;
+      return PagedObjectStoreWriter::resume(owner->active_io,owner->active_id,candidate.storage_info().generation,
+          {candidate.image_storage().maximum_physical_bytes},foreground);
+    };
     auto objects=[&] {
+      if(sealed_repair) {
+        if(!repair_target)fail(E::invalid_options,"degraded sealed image needs an owned startup repair range");
+        return rotate_verified(selected);
+      }
       try {
         return PagedObjectStoreWriter::resume_impl(owner->active_io,source.identity(),
             source.storage_info().generation,{source.image_storage().maximum_physical_bytes},foreground,true);
@@ -722,29 +772,8 @@ NativeFileSession NativeFileSession::resume_volume_impl(std::shared_ptr<StoreByt
         const auto latest=NativeVolumeHeadView::open_indexed_recovery(head,volume,select);
         if(latest.info().selection!=selected.info().selection)
           fail(E::invalid_options,"startup repair selector changed");
-        const auto& current=latest.filesystem();
-        if(!current.has_degraded_indexed_payloads())throw;
-        if(epoch==(std::numeric_limits<std::uint64_t>::max)())
-          fail(E::invalid_options,"startup repair selector epoch exhausted");
-        auto authority=NativeVolumeHeadWriter::resume_impl(head,volume,epoch,current,true);
-        if(authority.info().selection!=latest.info().selection)
-          fail(E::invalid_options,"startup repair authority changed");
-        auto replacement=repair_target(authority.info());
-        if(replacement.identity==StoreIdentity{} || replacement.identity==volume ||
-            replacement.identity==current.identity() || replacement.identity==authority.info().selection.parent_identity ||
-            replacement.backing==head || replacement.backing==owner->active_io)
-          fail(E::invalid_options,"startup repair requires a distinct image");
-        admit_empty(replacement.backing);
-        auto candidate=[&] {
-          auto copy=NativeFilesystemWriter::copy_indexed_image(current,replacement.backing,replacement.identity,foreground,false);
-          return NativeFilesystemSnapshot::open(copy.snapshot());
-        }();
-        const auto published=authority.publish_compacted_impl(current,candidate,true);
-        owner->head.emplace(std::move(authority));
-        owner->active_io=std::move(replacement.backing);
-        owner->active_id=published.selection.image_identity;owner->epoch=published.selection.epoch;
-        return PagedObjectStoreWriter::resume(owner->active_io,owner->active_id,candidate.storage_info().generation,
-            {candidate.image_storage().maximum_physical_bytes},foreground);
+        if(!latest.filesystem().has_degraded_indexed_payloads())throw;
+        return rotate_verified(latest);
       }
     }();
     return NativeFilesystemWriter::resume_closed_session(std::move(objects));
@@ -1217,15 +1246,18 @@ bool NativeFileSession::idle_compaction_context_ready() const noexcept {
 }
 bool NativeFileSession::idle_cold_compaction_pending() const noexcept {
   if(poisoned())return false;
-  const auto& self=*impl_;
-  const auto cost=self.cold_compaction_cost();
-  const auto* advice=self.ready_funded_advice();
-  if(!cost || !advice)return false;
-  const auto settled=advice->budget_settlement();
-  const auto input=self.writer.workload_info();
-  if(!settled || !input.enabled)return false;
-  const auto floor=(std::max)(*settled,self.cold_screen_input_floor);
-  return input.committed_input_bytes>=floor && input.committed_input_bytes-floor>=cost;
+  return impl_->has_cold_compaction_credit(impl_->cold_compaction_cost());
+}
+bool NativeFileSession::idle_seal_funded(std::uint64_t bytes) const noexcept {
+  return !poisoned() && impl_->volume_file_bound && !impl_->recompression && bytes &&
+      impl_->has_cold_compaction_credit(cold_compaction_input_cost(bytes));
+}
+bool NativeFileSession::reserve_idle_seal(std::uint64_t bytes) {
+  if(!idle_seal_funded(bytes))return false;
+  auto& self=ready();
+  if(!self.reserve_cold_compaction(bytes))return false;
+  self.cold_screen_input_floor=self.writer.workload_info().committed_input_bytes;
+  return true;
 }
 
 void NativeFileSession::begin_handoff(Impl& self,NativeFilesystemSnapshot baseline,
@@ -1248,12 +1280,13 @@ NativeVolumeHeadInfo NativeFileSession::finish_handoff(Impl& self) {
 }
 
 NativeVolumeHeadInfo NativeFileSession::publish_indexed_handoff(Impl& self,NativeFilesystemWriter candidate,
-    const NativeFilesystemSnapshot& verified,std::shared_ptr<StoreByteIo> target) {
+    const NativeFilesystemSnapshot& verified,std::shared_ptr<StoreByteIo> target,
+    std::optional<NativePairedSealedRange> sealed_range) {
   begin_handoff(self,self.writer.snapshot(),std::move(target),verified.identity());
   auto& volume=*self.volume;
   NativeVolumeHeadInfo published;
   try {
-    published=volume.head->publish_indexed_rebuild(*volume.baseline,verified);
+    published=volume.head->publish_indexed_rebuild(*volume.baseline,verified,sealed_range);
   }catch(...) {
     if(!volume.head->poisoned()) {
       volume.baseline.reset();
@@ -1378,7 +1411,10 @@ bool NativeFileSession::begin_idle_compaction_impl(std::shared_ptr<StoreByteIo> 
 }
 
 bool NativeFileSession::idle_compaction_preparation_pending() const noexcept {
-  if(poisoned() || !impl_->recompression || !impl_->recompression->idle)return false;
+  if(poisoned())return false;
+  if(!impl_->recompression)
+    return impl_->persistent_reclaimer && impl_->persistent_reclaimer->seal_preparation_pending(*this);
+  if(!impl_->recompression->idle)return false;
   const auto* work=std::get_if<PagedObjectStoreWriter::Rewrite>(&impl_->recompression->work);
   if(!work || !impl_->writer.matches_paged_recompression(*work))return false;
   using Phase=PagedRewritePhase;
@@ -1527,29 +1563,32 @@ NativeVolumeHeadInfo NativeFileSession::recover_volume() {
   volume.head.emplace(NativeVolumeHeadWriter::resume(volume.head_io,volume.volume_id,observed.epoch,checked));
   const auto restored=volume.head->info();
   self.writer=resume_image(chosen,checked,volume.foreground);
+  if(self.persistent_reclaimer)self.persistent_reclaimer->settle_recovery(volume.epoch,restored.selection);
   if(self.maintenance && observed.image_identity!=volume.active_id)self.maintenance->retire_coherence();
   volume.active_io=std::move(chosen);volume.active_id=observed.image_identity;volume.epoch=observed.epoch;
   volume.candidate_io.reset();volume.candidate_id={};volume.baseline.reset();
   volume.pending=false;self.terminal=false;return restored;
 }
-const NativeFilesystemWriter& NativeFileSession::hybrid_source() const {
+const NativeFilesystemWriter& NativeFileSession::hybrid_source(bool owned_file_target) const {
   auto& self=ready();
-  if(!self.volume || self.volume_file_bound || self.recompression || !self.writer.maintenance_indexed())
-    fail(E::invalid_options,"hybrid staging requires a managed external indexed session");
+  if(!self.volume || self.volume_file_bound!=owned_file_target || self.recompression ||
+      !self.writer.maintenance_indexed())
+    fail(E::invalid_options,"hybrid staging requires its managed indexed owner");
   admit_handoff_contexts(self);
   return self.writer;
 }
 
 bool NativeFileSession::publish_hybrid_replacement(const std::shared_ptr<NativeHybridBacking>& target,
-    const NativeFilesystemSnapshot& verified) {
+    const NativeFilesystemSnapshot& verified,bool owned_file_target) {
   auto& self=ready();
-  admit_replacement(self,target,verified.identity());
+  admit_replacement(self,target,verified.identity(),owned_file_target);
   const auto& volume=*self.volume;
   const auto selected_size=occupied_indexed_image(*volume.active_io,volume.active_io->extent());
   if(target->occupied()>=selected_size)return false;
   auto candidate=NativeFilesystemWriter::lease_verified_indexed_reopen(verified,volume.foreground);
   target->verify_prepared_binding();
-  (void)publish_indexed_handoff(self,std::move(candidate),verified,target);
+  const auto seal=owned_file_target?std::optional(target->sealed_range()):std::nullopt;
+  (void)publish_indexed_handoff(self,std::move(candidate),verified,target,seal);
   return true;
 }
 

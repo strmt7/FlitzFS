@@ -217,8 +217,10 @@ An ordinary mirrored compaction also uses the occupied size of a selected
 hybrid. Verified capacity repair can still admit a rotation. The caller
 accounts for staging space and pinned generations until their actual
 retirement. Owned indexed Windows memory volumes now use this path in
-ordinary background maintenance. Persistent backing files still need a
-versioned placement map for the base and tail.
+ordinary background maintenance. Paired backing files can carry a sealed
+selection with a versioned placement in the head. The CPU reader also
+accepts older mirrored selections.
+[Persistent paired placement](PERSISTENT_VOLUME_FILE.md#sealed-paired-images)
 [Windows write barriers](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers) ·
 [ReFS parity rotation](https://learn.microsoft.com/en-us/windows-server/storage/refs/mirror-accelerated-parity)
 

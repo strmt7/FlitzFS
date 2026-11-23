@@ -1,0 +1,271 @@
+{
+  "schema": "flitzfs-paired-sealed-placement-v1",
+  "date": "2026-11-23",
+  "source": {
+    "base": "df81e97a8c325dee1723b7edc17c1e10f3c884d5",
+    "blobs": {
+      "CMakeLists.txt": "57cde4af7aaef29cbc0c5aaad8170fd4668121cd",
+      "include/flitzfs/native_hybrid_backing.hpp": "63a93138c2c5fb0a200f1d841e4ebe11acfa8baf",
+      "include/flitzfs/native_session.hpp": "e7ce40498f07505b3e2c89063bbe33a0afed255f",
+      "include/flitzfs/volume_head.hpp": "9211320155a21fc188222b0aeacb48bf7703261e",
+      "src/native_hybrid_backing.cpp": "d74bc427bdff71b668a95e6b0e691502e1d175c1",
+      "src/native_session.cpp": "9f1acea3cfc983a45c6f7b6b31e31fc423907bed",
+      "src/native_volume_file.cpp": "704b5f94041eca86d2aa7a24df9db1284fcb4472",
+      "src/native_volume_file_reclaimer.hpp": "5df47fd742b684c55a4846384058a10f687f6ff8",
+      "src/volume_head.cpp": "7bbd421fbe0e24abccce9734beb49773156dc4cb",
+      "src/windows/winfsp_native.cpp": "a0862c44dc31fcedc3483a39e23220467f1466b9",
+      "tests/test_native_volume_file.cpp": "90ccdb4bd2526355204ff96eb8ded6a54355400f",
+      "tests/test_winfsp_controller.cpp": "472f716b917532a773c4c6fbea05a9edf7c3c565"
+    }
+  },
+  "scope": {
+    "paired_backing": "in-memory sparse-range model of the persistent file layout",
+    "sdk": "Windows callbacks with injected lifecycle and resource observations",
+    "amd_backing": "owned Windows locked-memory selection regression",
+    "physical_media_mount": false,
+    "physical_power_loss": false,
+    "performance_benchmark": false
+  },
+  "paired_model": [
+    {
+      "unit": 4096,
+      "original_bytes": 6291456,
+      "settled_bytes": 4456448,
+      "old_selector": 7,
+      "new_selector": 8,
+      "original_handle": 1,
+      "cpu_reopen": 1,
+      "tail_write": 1,
+      "previous_snapshot_pinned": 1,
+      "mirror_successor": 1,
+      "damaged_base_repaired": 1,
+      "stale_workspace_retired": 1
+    },
+    {
+      "unit": 65536,
+      "original_bytes": 7995392,
+      "settled_bytes": 4521984,
+      "old_selector": 7,
+      "new_selector": 8,
+      "original_handle": 1,
+      "cpu_reopen": 1,
+      "tail_write": 1,
+      "previous_snapshot_pinned": 1,
+      "mirror_successor": 1,
+      "damaged_base_repaired": 1,
+      "stale_workspace_retired": 1
+    }
+  ],
+  "publication_cuts": {
+    "total": 30,
+    "per_failure_unit": "one candidate flush, two selector writes and two selector flushes, three outcomes at each",
+    "in_place_cpu_recovery": true,
+    "independent_cpu_reopen": true,
+    "mismatched_intact_geometry_refused": true,
+    "unfunded_candidate_deferred": true
+  },
+  "sdk": {
+    "selected": 1,
+    "held_context": 1,
+    "stored_tail_edit": 1,
+    "independent_cpu_reopen": 1
+  },
+  "amd_regression": {
+    "adapter": {
+      "Name": "AMD Radeon RX 9070 XT",
+      "DriverVersion": "32.0.32029.2010"
+    },
+    "package": {
+      "worker_sha256": "984e99c1cf14f61ed1d0aadeafe96325148c8b66d5efc8f0fe96e2863dd008d2",
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "module_sha256": "d5c46512c13866c134762a473edcf9360f93c28e8b7d7c703c7f9deeef3300f6",
+      "qualification_sha256": "ebfd7d06e053d916ecbf5b410f60b071c970c07bbb1c7921239f71ce10c81285"
+    },
+    "successful_read": {
+      "sealed": 1,
+      "refusal": 0,
+      "submitted": 3,
+      "published": 1,
+      "verified_frames": 2,
+      "superseded": 2,
+      "failures": 0,
+      "worker_exit": 1223,
+      "budget_queries": 3,
+      "exact_cpu_fallback": 1,
+      "child_and_owner_retired": 1,
+      "stopped_pending": 1,
+      "checks": 69
+    },
+    "forced_refusal": {
+      "sealed": 1,
+      "refusal": 1,
+      "submitted": 1,
+      "published": 0,
+      "verified_frames": 0,
+      "superseded": 0,
+      "failures": 1,
+      "worker_exit": 1179845891,
+      "budget_queries": 1,
+      "exact_cpu_fallback": 1,
+      "child_and_owner_retired": 1,
+      "stopped_pending": 0,
+      "checks": 66
+    }
+  },
+  "tests": {
+    "focused_build": {
+      "confirmed_exit_code": 0,
+      "process_tree_retired": true,
+      "peak_job_bytes": 546320384,
+      "log_sha256": "5e46294245b7f4144a999cc81771043a3778d8ef1a0c1aff23a6e1a3821dc893"
+    },
+    "paired_layout": {
+      "confirmed_exit_code": 0,
+      "process_tree_retired": true,
+      "peak_job_bytes": 664690688,
+      "log_sha256": "10c4bd0d0af5b13e10c7dd7f9742f107c0c444eedde773a31feb30789d894af7"
+    },
+    "sdk": {
+      "confirmed_exit_code": 0,
+      "process_tree_retired": true,
+      "peak_job_bytes": 219738112,
+      "log_sha256": "fb9687ee72ce9bb9600df750f2e4b2df4b91b3ede2c788fff6e03649ea19a42a"
+    },
+    "amd_build": {
+      "confirmed_exit_code": 0,
+      "process_tree_retired": true,
+      "peak_job_bytes": 555294720,
+      "log_sha256": "acbe9dba5d17959c14736118bd2511c7e9680b20389a55ede35fa3a33805f05b"
+    },
+    "amd": {
+      "confirmed_exit_code": 0,
+      "process_tree_retired": true,
+      "peak_job_bytes": 92450816,
+      "log_sha256": "2e2095de75d36f2f366acc938b993407b766b5158e81b437b3bdd51a8a629f1b"
+    },
+    "refusal": {
+      "confirmed_exit_code": 0,
+      "process_tree_retired": true,
+      "peak_job_bytes": 22269952,
+      "log_sha256": "fc1294d084244b91c771b8f813d4d1fc75d009e219351ade9110494c9bbfef16"
+    },
+    "standard_build": {
+      "confirmed_exit_code": 0,
+      "process_tree_retired": true,
+      "peak_job_bytes": 883671040,
+      "log_sha256": "af958a6e04562cc3fd86c477af9bb32f153ad8eacabb3e184c63a93d88c5b914"
+    },
+    "standard": {
+      "confirmed_exit_code": 0,
+      "process_tree_retired": true,
+      "peak_job_bytes": 671227904,
+      "log_sha256": "7a16c1a4237c29085469924d91d1700486b16aab6e89e65e112a23bd5956889f",
+      "passed": 212
+    },
+    "raw_build": {
+      "confirmed_exit_code": 0,
+      "process_tree_retired": true,
+      "peak_job_bytes": 553963520,
+      "log_sha256": "d20801e3d2ba02220a10abc1429a59e82fe13c7854850c12b9fe1eb9f68c31f9"
+    },
+    "raw": {
+      "confirmed_exit_code": 0,
+      "process_tree_retired": true,
+      "peak_job_bytes": 669732864,
+      "log_sha256": "99395e7878835e3cd06b359f8156ee2fdcbe5462c1bcee6201725448b4231c01",
+      "passed": 18
+    },
+    "asan_build": {
+      "confirmed_exit_code": 0,
+      "process_tree_retired": true,
+      "peak_job_bytes": 735637504,
+      "log_sha256": "e6c9535b2a505c5d79c32cc50ff35eebbdd46fae8e47fc8c2bc68a28f4b0d634"
+    },
+    "asan": {
+      "confirmed_exit_code": 0,
+      "process_tree_retired": true,
+      "peak_job_bytes": 1557958656,
+      "log_sha256": "d2655b6db8b6accd4a87ec9eb4cd27debbb9d2e6737b462e028dee48a762991e",
+      "passed": 19
+    },
+    "semantic_navigation": {
+      "confirmed_exit_code": 0,
+      "process_tree_retired": true,
+      "peak_job_bytes": 1176014848,
+      "log_sha256": "044de2f6ba714f8a10c38fa7b2f737efd0d537f9db75464ea485edc7be47adc8"
+    },
+    "source_research": {
+      "confirmed_exit_code": 0,
+      "process_tree_retired": true,
+      "peak_job_bytes": 1248317440,
+      "log_sha256": "8df98ea42bfaf8df88d8e1d3d1e48c08c81658251ca6b37e1c3cdb191ceca4d5"
+    }
+  },
+  "earlier_controls": {
+    "initial_unfunded_model": {
+      "confirmed_exit_code": 1,
+      "process_tree_retired": true,
+      "peak_job_bytes": 34177024,
+      "log_sha256": "ab21cf7cff5e69a4823fa160b91938717e244a4c34ff12e941ee51b1b3d36a1e"
+    },
+    "missed_candidate_barrier": {
+      "confirmed_exit_code": 1,
+      "process_tree_retired": true,
+      "peak_job_bytes": 99110912,
+      "log_sha256": "04748114303880a8beaa63da56bb82defdda345d57bbddbbc8e6ad7e44617eb9"
+    },
+    "rejected_repair_error_enum": {
+      "confirmed_exit_code": 1,
+      "process_tree_retired": true,
+      "peak_job_bytes": 403574784,
+      "log_sha256": "a17493d989b235aa9a8e4b756da1369de36fc34e479bb72c92ee3432b0d7953b"
+    }
+  },
+  "source_navigation": {
+    "provider_version": "0.2.43",
+    "actual_searches": 1,
+    "response_sha256": "646acf8b8c673daba88eb5ae79abc826a38ba261e22ac7417157624b6151e2da",
+    "receipt_sha256": "9503270b54ddca33fe1682f1c48a5cb2e50e927830020b2f3426a49a646b3024"
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "pages": [
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers",
+        "http_status": 200,
+        "markdown_bytes": 36207,
+        "markdown_sha256": "116ffcd5a6feba3539c3f668a2c969aa2e38b8f3663a704a7654e7b2a7954e4c",
+        "capture_sha256": "cd4a49500a001e98a4f22ec5c28dc2ee7e9f10c986da3c87dd1c1089293dde21"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_storage_info",
+        "http_status": 200,
+        "markdown_bytes": 38550,
+        "markdown_sha256": "96eb61b8d84492d40c69389ae9accb7c7e68de6ef34ffd863c808e44c8dca279",
+        "capture_sha256": "f434d8c9a48b4a77d2382beb8f26dd76ead8954b9826e16e8830c7d2423d14e1"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_zero_data",
+        "http_status": 200,
+        "markdown_bytes": 61945,
+        "markdown_sha256": "c3ec21654a142945c577e399e50070b7b22f9cf7b09aad1d842e2b25c68f16bc",
+        "capture_sha256": "aa714fb0ac378cfc6c8c85005a5ba302f8f62fedc577056474709daf28ba01f0"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_query_allocated_ranges",
+        "http_status": 200,
+        "markdown_bytes": 63071,
+        "markdown_sha256": "9f803badccd68995ad416b2fceb2532f8dd4a4f87b9d131a6ab1bd058ffd840e",
+        "capture_sha256": "b447b44409f919d5e91d908a1ebbe00e92596029d4b8a2a6c315fd06de3bdf64"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_standard_info",
+        "http_status": 200,
+        "markdown_bytes": 36346,
+        "markdown_sha256": "2c757297745446e64cd82a9f1c4175b474000427f2e1111d440b0010a14ce5b3",
+        "capture_sha256": "b60a2b3f67f172bc1fad8bdddc1fb9a39870e66153b30507f8d0f1d6c6703ce1"
+      }
+    ],
+    "receipt_sha256": "dcda288db7fc982e8075e178574f092044097aeb5d8f016eac0213f270420371"
+  }
+}

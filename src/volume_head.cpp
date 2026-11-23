@@ -1,4 +1,5 @@
 #include "flitzfs/volume_head.hpp"
+#include "flitzfs/native_hybrid_backing.hpp"
 #include "record_digest.hpp"
 #include <algorithm>
 #include <cstring>
@@ -13,6 +14,7 @@ using Code=NativeFsErrorCode;
 constexpr std::size_t digest_at=kStoreCommitUnit-32;
 constexpr char magic[]="FLTVH001";
 constexpr auto paired_file_capability=4U,paired_catalog_capability=5U;
+constexpr auto sealed_file_capability=6U,sealed_catalog_capability=7U;
 void put(Bytes& b,std::size_t at,std::uint64_t v,unsigned n=8) {
   for(unsigned i=0;i<n;++i)b[at+i]=static_cast<std::byte>(v>>(8*i));
 }
@@ -30,6 +32,14 @@ void valid(const NativeVolumeSelection& s,Code code) {
   if(!((s.storage.kind==NativeImageKind::flat && !s.storage.maximum_physical_bytes) ||
       ((s.storage.kind==NativeImageKind::paged || indexed) && s.storage.maximum_physical_bytes)))
     fail(code,"invalid volume image storage descriptor");
+  if(s.sealed_range) {
+    const auto [base,end]=*s.sealed_range;
+    constexpr std::uint64_t minimum_unit=4096;
+    if(!paired_volume_file(s.placement) || s.epoch<2 || end>s.storage.maximum_physical_bytes ||
+        end<=kNativeHybridTailPrefixBytes || base>=end-kNativeHybridTailPrefixBytes ||
+        base<=kVolumeHeadBytes || base%minimum_unit || end%minimum_unit)
+      fail(code,"invalid paired sealed image geometry");
+  }
   if(!s.epoch||zero(s.volume_identity)||zero(s.image_identity)||s.volume_identity==s.image_identity||
       !s.minimum_checkpoint||!s.namespace_sequence||(!indexed && s.namespace_sequence>s.minimum_checkpoint))
     fail(code,"invalid volume head identity/checkpoint");
@@ -48,14 +58,18 @@ void contract(const StoreByteIo& io) {
 Bytes encoded(const NativeVolumeSelection& s,unsigned slot) {
   valid(s,Code::invalid_operation);Bytes b(kStoreCommitUnit);
   const auto kind=static_cast<std::uint32_t>(s.storage.kind);
-  const auto capability=s.placement==NativeVolumePlacement::paired_file_catalog_ranges?paired_catalog_capability:
-      (s.placement==NativeVolumePlacement::paired_file_ranges?paired_file_capability:kind+1);
+  auto capability=kind+1;
+  if(s.placement==NativeVolumePlacement::paired_file_catalog_ranges)
+    capability=s.sealed_range?sealed_catalog_capability:paired_catalog_capability;
+  else if(s.placement==NativeVolumePlacement::paired_file_ranges)
+    capability=s.sealed_range?sealed_file_capability:paired_file_capability;
   std::memcpy(b.data(),magic,8);put(b,8,capability,4);put(b,12,slot,4);put(b,16,s.epoch);
   std::copy(s.volume_identity.begin(),s.volume_identity.end(),b.begin()+24);
   std::copy(s.image_identity.begin(),s.image_identity.end(),b.begin()+40);
   std::copy(s.parent_identity.begin(),s.parent_identity.end(),b.begin()+56);
   put(b,72,s.minimum_checkpoint);put(b,80,s.namespace_sequence);put(b,88,s.parent_checkpoint);
   if(kind){put(b,96,kind,4);put(b,104,s.storage.maximum_physical_bytes);}
+  if(s.sealed_range){put(b,112,s.sealed_range->base_bytes);put(b,120,s.sealed_range->indexed_end);}
   const auto digest=detail::record_digest(std::span<const std::byte>(b).first(digest_at));
   std::copy(digest.begin(),digest.end(),b.begin()+digest_at);return b;
 }
@@ -66,18 +80,21 @@ std::optional<NativeVolumeSelection> decoded(std::span<const std::byte> b,unsign
   // Intact unsupported/contradictory metadata is NEVER an excuse to roll back.
   const auto capability=get(b,8,4);
   const bool paired=capability>=paired_file_capability;
+  const bool sealed=capability>=sealed_file_capability;
   const auto kind=paired?static_cast<std::uint64_t>(NativeImageKind::indexed_paged):capability-1;
-  if(std::memcmp(b.data(),magic,8)||capability<1||capability>paired_catalog_capability||get(b,12,4)!=slot||
+  const auto reserved_at=sealed?128:(capability>1?112:96);
+  if(std::memcmp(b.data(),magic,8)||capability<1||capability>sealed_catalog_capability||get(b,12,4)!=slot||
       (capability>1 && (get(b,96,4)!=kind || get(b,100,4)!=0)) ||
-      !std::all_of(b.begin()+(capability>1?112:96),b.begin()+digest_at,[](auto x){return x==std::byte{};}))
+      !std::all_of(b.begin()+reserved_at,b.begin()+digest_at,[](auto x){return x==std::byte{};}))
     fail(Code::corrupt,"intact volume head framing unsupported");
   NativeVolumeSelection s;s.epoch=get(b,16);
   std::copy_n(b.begin()+24,16,s.volume_identity.begin());std::copy_n(b.begin()+40,16,s.image_identity.begin());
   std::copy_n(b.begin()+56,16,s.parent_identity.begin());
   s.minimum_checkpoint=get(b,72);s.namespace_sequence=get(b,80);s.parent_checkpoint=get(b,88);
   if(capability>1)s.storage={static_cast<NativeImageKind>(kind),get(b,104)};
-  if(paired)s.placement=capability==paired_catalog_capability?NativeVolumePlacement::paired_file_catalog_ranges:
-      NativeVolumePlacement::paired_file_ranges;
+  if(paired)s.placement=(capability==paired_catalog_capability || capability==sealed_catalog_capability)?
+      NativeVolumePlacement::paired_file_catalog_ranges:NativeVolumePlacement::paired_file_ranges;
+  if(sealed)s.sealed_range=NativePairedSealedRange{get(b,112),get(b,120)};
   valid(s,Code::corrupt);
   if(expected && s.volume_identity!=*expected)fail(Code::corrupt,"volume head identity mismatch");
   return s;
@@ -164,6 +181,11 @@ NativeVolumeHeadView NativeVolumeHeadView::open_impl(std::shared_ptr<StoreByteIo
       fail(Code::invalid_operation,"indexed recovery requires the indexed volume head kind");
     auto image=resolve(selected.selection.image_identity);
     if(!image||image==head)fail(Code::corrupt,"missing or aliased selected image");
+    if(selected.selection.sealed_range) {
+      const auto* hybrid=dynamic_cast<const NativeHybridBacking*>(image.get());
+      if(!hybrid || hybrid->sealed_range()!=*selected.selection.sealed_range)
+        fail(Code::corrupt,"selected sealed image differs from the volume head");
+    }
     auto view=NativeFilesystemSnapshot::open_image(std::move(image),selected.selection.storage);
     admit_binding(selected.selection,view,false,indexed_recovery);
     view.verify_all(admission);
@@ -179,8 +201,9 @@ const NativeFilesystemSnapshot& NativeVolumeHeadView::filesystem() const {
 struct NativeVolumeHeadWriter::Impl {
   struct Lease {
     std::shared_ptr<StoreByteIo> io;
-    explicit Lease(std::shared_ptr<StoreByteIo> p):io(std::move(p)) {
-      if(!io||!io->acquire_writer())fail(Code::invalid_operation,"volume backend already has a live writer");
+    explicit Lease(std::shared_ptr<StoreByteIo> p,bool writable=true):io(std::move(p)) {
+      if(!io || !(writable?io->acquire_writer():io->acquire_exclusive_use()))
+        fail(Code::invalid_operation,"volume backend cannot acquire its required lease");
     }
     ~Lease(){io->release_writer();}
     Lease(const Lease&)=delete;Lease& operator=(const Lease&)=delete;
@@ -225,6 +248,7 @@ struct NativeVolumeHeadWriter::Impl {
     next.namespace_sequence=target.sequence();
     next.parent_identity=source.identity();
     next.parent_checkpoint=source.storage_info().checkpoint_generation;
+    next.sealed_range.reset();
     valid(next,Code::invalid_operation);
     return next;
   }
@@ -275,13 +299,18 @@ NativeVolumeHeadWriter NativeVolumeHeadWriter::resume_impl(std::shared_ptr<Store
   if(!epoch||epoch!=current.info.selection.epoch)fail(Code::invalid_operation,"stale volume head epoch");
   auto backing=Impl::backing(image);
   if(backing==p->owner.io)fail(Code::invalid_operation,"volume head aliases image");
-  Impl::Lease image_lease(backing);contract(*backing);
+  // Scoped to a closed paired file. Its verified degraded image stays
+  // immutable and the head flush reaches the same qualified backing file.
+  const bool sealed_repair=closed_indexed && current.info.selection.sealed_range && backing->backing_degraded();
+  Impl::Lease image_lease(backing,!sealed_repair);contract(*backing);
   // A paged head may be resumed over independently CPU-readable degraded
   // data solely to select a verified repaired copy. Paged writable resume
   // still refuses lost payload replicas; no damaged source is repaired here.
   bind(current.info.selection,image,current.info.selection.storage.kind==NativeImageKind::flat,closed_indexed);
   auto before=Impl::fresh(backing,current.info.selection.storage);Impl::exact(image,before);
-  backing->flush();auto after=Impl::fresh(backing,current.info.selection.storage);Impl::exact(image,after);
+  if(sealed_repair)p->owner.io->flush();
+  else backing->flush();
+  auto after=Impl::fresh(backing,current.info.selection.storage);Impl::exact(image,after);
   p->selected=current.info.selection;p->owner.io->admit_write(kVolumeHeadBytes);
   // Repair peer FIRST, preserving the selected durable survivor.
   if(current.info.degraded)p->pair(p->selected,1-current.selected_slot);
@@ -331,7 +360,8 @@ NativeVolumeHeadInfo NativeVolumeHeadWriter::publish_compacted_impl(
   if(!impl_||impl_->poisoned)fail(Code::storage_failure,"volume head writer is terminal");
   auto& p=*impl_;const auto source_io=Impl::backing(source),target_io=Impl::backing(target);
   const auto next=p.successor(source,target);
-  Impl::Lease source_lease(source_io),target_lease(target_io);
+  const bool sealed_repair=closed_indexed && p.selected.sealed_range && source_io->backing_degraded();
+  Impl::Lease source_lease(source_io,!sealed_repair),target_lease(target_io);
   bool mutation=false;
   try {
     p.check();contract(*source_io);contract(*target_io);p.owner.io->admit_write(kVolumeHeadBytes);
@@ -355,12 +385,15 @@ NativeVolumeHeadInfo NativeVolumeHeadWriter::publish_compacted_impl(
   catch(const std::exception&){p.poisoned=true;fail(Code::storage_failure,"volume handoff failed; retain all images");}
 }
 NativeVolumeHeadInfo NativeVolumeHeadWriter::publish_indexed_rebuild(
-    const NativeFilesystemSnapshot& source,const NativeFilesystemSnapshot& target) {
+    const NativeFilesystemSnapshot& source,const NativeFilesystemSnapshot& target,
+    std::optional<NativePairedSealedRange> sealed_range) {
   if(!impl_ || impl_->poisoned)fail(Code::storage_failure,"volume head writer is terminal");
   auto& p=*impl_;
   if(p.selected.storage.kind!=NativeImageKind::indexed_paged || source.sequence()!=target.sequence())
     fail(Code::invalid_operation,"staged selection requires an equivalent indexed image");
-  const auto next=p.successor(source,target);
+  auto next=p.successor(source,target);
+  next.sealed_range=sealed_range;
+  valid(next,Code::invalid_operation);
   const auto source_io=Impl::backing(source),target_io=Impl::backing(target);
   // Rewrite already flushed and independently compared every selected object
   // and replica after publishing the private target. Recheck the exact durable

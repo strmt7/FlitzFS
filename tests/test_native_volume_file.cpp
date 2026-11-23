@@ -797,6 +797,227 @@ void reclaimed_ranges() {
       "recycled first range lost the latest acknowledged foreground data");
 }
 
+void stage_file_seal(NativeFileSession& session,StoreIdentity next) {
+  const auto reclaim=session.persistent_reclamation_pending();
+  const auto optional=session.persistent_reclamation_pending(true);
+  if(reclaim || !optional) {
+    const auto space=session.indexed_volume_space();
+    const auto input=session.workload_info();
+    const auto advice=session.optimization_info();
+    std::cerr<<"paired seal admission reclaim="<<reclaim<<" optional="<<optional
+        <<" occupied="<<space.total_bytes-space.free_bytes<<" obsolete="<<space.obsolete_bytes
+        <<" input_enabled="<<input.enabled<<" input_bytes="<<input.committed_input_bytes
+        <<" advice_phase="<<static_cast<unsigned>(advice.phase)<<" advice_sequence="<<advice.sequence<<'\n';
+  }
+  require(!reclaim && optional,
+      "append-only input did not fund optional paired sealing");
+  require(session.advance_persistent_reclamation([&]{return next;},true)==Reclaim::copying,
+      "paired sealing did not reserve private preparation");
+  for(unsigned turn=0;turn<4096;++turn) {
+    const auto progress=session.advance_persistent_reclamation({},true);
+    if(progress==Reclaim::ready)return;
+    require(progress==Reclaim::copying,"paired sealing did not reach its checked selection");
+  }
+  throw std::runtime_error("paired sealing exceeded the fixture's advance limit");
+}
+
+void sealed_ranges() {
+  const auto payload=data(2'861'348,167);
+  const Bytes sparse(2*1024*1024);
+  const auto size=static_cast<std::uint32_t>(payload.size());
+  const auto volume=id(70),first=id(71),second=id(72),third=id(73);
+  for(const auto unit:{4096U,65536U}) {
+    const PagedStoreLimits plan{(unit==4096?8ULL:16ULL)*1024*1024};
+    const auto slot=plan.maximum_physical_bytes;
+    const auto older=kNativeVolumeFileImageOffset,newer=older+slot;
+    auto seed=std::make_shared<SparseVolumeRam>(unit,2*slot+2*1024*1024);
+    {
+      auto session=NativeVolumeFile::create(seed,volume,first,plan,raw);
+      put(session,"payload",payload);
+      put(session,"witness",witness_bytes);
+      require(!session.volume_info().selection.sealed_range,"initial layout was not the historical mirror");
+      require(!session.persistent_reclamation_pending(true),"unfunded sealing started a persistent rewrite");
+      put(session,"sparse",sparse);
+    }
+    const auto before=seed->occupied();
+    auto io=seed->replay();
+    std::size_t selection_calls=0;
+    std::uint64_t after=0;
+    {
+      auto session=NativeVolumeFile::resume(io,volume,raw);
+      const auto handle=session.open("payload",{true,true,false});
+      std::optional<NativeFilesystemSnapshot> held(session.snapshot());
+      stage_file_seal(session,second);
+      require(io->range_reclaims && session.volume_info().selection.epoch==1 &&
+          NativeVolumeFile::inspect(io->replay(),volume).filesystem().read("payload",0,size)==payload,
+          "private workspace retirement affected the selected source");
+      const auto start=io->io.calls;
+      require(session.advance_persistent_reclamation({},true)==Reclaim::published,"sealed file was not selected");
+      selection_calls=io->io.calls-start;
+      const auto selected=session.volume_info();
+      require(selected.selection.epoch==2 && selected.selection.image_identity==second &&
+          selected.selection.sealed_range && !selected.degraded && selection_calls==5,
+          "paired publication did not flush the candidate and then bind it in two ordered records");
+      require(session.read(handle,0,size)==payload && held->read("payload",0,size)==payload,
+          "selection changed a live handle or retained snapshot");
+      require(session.advance_persistent_reclamation({})==Reclaim::pinned &&
+          io->allocated_extent(older,slot)!=0,"old image retired while its reader was pinned");
+      held.reset();
+      release_inactive(session);
+      after=io->occupied();
+      require(!io->allocated_extent(older,slot) && after<before &&
+          session.snapshot().read("witness",0,5000)==witness_bytes,
+          "sealing did not return physical model allocation or preserve the witness");
+      session.cleanup(handle,false);
+      session.close(handle);
+    }
+    // The ordinary byte reader can reopen the selected file without a sparse
+    // allocation interface, even though the reported EOF includes discarded workspace.
+    const auto portable=image(io->io.stable,unit);
+    const auto read_only=NativeVolumeFile::inspect(portable,volume);
+    require(read_only.info().selection.sealed_range &&
+        read_only.filesystem().read("payload",0,size)==payload,"independent reader did not resolve the sealed pair");
+    auto mismatched=io->replay();
+    const auto roundtrip_base=read_only.info().selection.sealed_range->indexed_end;
+    for(unsigned index=0;index<2;++index) {
+      auto record=std::span(mismatched->io.stable).subspan(index*kStoreCommitUnit,kStoreCommitUnit);
+      const auto changed=roundtrip_base+unit;
+      for(unsigned byte=0;byte<8;++byte)record[120+byte]=static_cast<std::byte>(255U&(changed>>(8*byte)));
+      const auto digest=detail::record_digest(record.first(record.size()-detail::Digest{}.size()));
+      std::ranges::copy(digest,record.end()-digest.size());
+    }
+    mismatched->io.live=mismatched->io.stable;
+    rejects([&]{(void)NativeVolumeFile::inspect(mismatched,volume);},
+        "an independently valid selector disagreed with the sealed tail binding");
+    require(!mismatched->io.writes,"placement verification changed the backing");
+
+    auto damaged=io->replay();
+    const auto stripe=static_cast<std::size_t>(newer+kVolumeHeadBytes);
+    damaged->io.stable.at(stripe)^=std::byte{0x80};
+    damaged->io.live=damaged->io.stable;
+    {
+      const auto recovered=NativeVolumeFile::inspect(damaged->replay(),volume);
+      require(recovered.info().selection.sealed_range &&
+          recovered.filesystem().read("payload",0,size)==payload,"sealed parity did not recover the read-only view");
+      auto refused=damaged->replay();
+      rejects([&]{(void)NativeVolumeFile::resume(refused,volume,raw);},
+          "degraded sealed layout acquired a writer without a repair range");
+      require(!refused->io.writes && !refused->range_reclaims,"refused repair changed the source");
+    }
+    {
+      const auto old_span=std::span(damaged->io.stable).subspan(newer,
+          static_cast<std::size_t>((std::min)(slot,damaged->io.extent()-newer)));
+      const Bytes damaged_source(old_span.begin(),old_span.end());
+      auto restored=NativeVolumeFile::resume(damaged,volume,raw,NativeDispositionPolicy::aggregate,[]{return id(74);});
+      require(restored.volume_info().selection.epoch==3 && restored.volume_info().selection.image_identity==id(74) &&
+          !restored.volume_info().selection.sealed_range &&
+          restored.snapshot().read("payload",0,size)==payload &&
+          std::ranges::equal(damaged_source,std::span(damaged->io.stable).subspan(newer,damaged_source.size())),
+          "sealed startup repair modified the source or lost reconstructed bytes");
+      release_inactive(restored);
+      require(!damaged->allocated_extent(newer,slot),"repaired volume kept the damaged range allocated");
+    }
+    require(NativeVolumeFile::inspect(damaged->replay(),volume).filesystem().read("payload",0,size)==payload,
+        "independent reader could not reopen the repaired mirror");
+
+    auto obsolete=seed->replay();
+    {
+      auto session=NativeVolumeFile::resume(obsolete,volume,raw);
+      const auto handle=session.open("payload",{true,true,false});
+      require(session.advance_persistent_reclamation([&]{return second;},true)==Reclaim::copying,
+          "stale source fixture did not admit its workspace");
+      for(unsigned turn=0;!obsolete->allocated_extent(newer,slot) && turn<1024;++turn)
+        require(session.advance_persistent_reclamation({},true)==Reclaim::copying,
+            "stale source fixture did not reach private writes");
+      require(obsolete->allocated_extent(newer,slot)!=0,"stale source fixture has no private allocation");
+      const std::byte edited_first=payload.front()^std::byte{1};
+      session.write(handle,0,{&edited_first,1});
+      require(session.advance_persistent_reclamation({},true)==Reclaim::retiring,
+          "changed source allowed private preparation to continue");
+      release_inactive(session);
+      require(session.volume_info().selection.epoch==1 && !obsolete->allocated_extent(newer,slot) &&
+          session.read(handle,0,1)==Bytes(1,edited_first) && !session.persistent_reclamation_pending(true),
+          "retired stale preparation changed selection, data or funding");
+      session.cleanup(handle,false);
+      session.close(handle);
+    }
+    auto resumed=io->replay();
+    auto edited=payload;
+    const auto edit=data(3119,547);
+    const auto edit_at=kNativeExtentBytes-19;
+    std::ranges::copy(edit,edited.begin()+edit_at);
+    const auto shortened=data(117'372,47);
+    {
+      auto session=NativeVolumeFile::resume(resumed,volume,raw);
+      const auto handle=session.open("payload",{true,true,false});
+      session.write(handle,edit_at,edit);
+      require(session.read(handle,0,size)==edited &&
+          NativeVolumeFile::inspect(resumed->replay(),volume).filesystem().read("payload",0,size)==edited,
+          "writable reopen did not persist the changed tail");
+      std::optional<NativeFilesystemSnapshot> held(session.snapshot());
+      session.truncate(handle,0);
+      session.write(handle,0,shortened);
+      require(stage_compaction(session,73)==Reclaim::ready &&
+          session.advance_persistent_reclamation({})==Reclaim::published,"ordinary reclamation did not rotate a sealed source");
+      require(session.volume_info().selection.image_identity==third &&
+          !session.volume_info().selection.sealed_range && held->read("payload",0,size)==edited &&
+          session.advance_persistent_reclamation({})==Reclaim::pinned,"old sealed components lost their common range pin");
+      held.reset();
+      release_inactive(session);
+      require(!resumed->allocated_extent(newer,slot) &&
+          session.read(handle,0,static_cast<std::uint32_t>(shortened.size()))==shortened,
+          "two-part image retirement changed the new selection");
+      session.cleanup(handle,false);
+      session.close(handle);
+    }
+    require(NativeVolumeFile::inspect(resumed->replay(),volume).filesystem().read("payload",0,size)==shortened,
+        "mirrored successor after sealed retirement did not reopen");
+
+    std::array<unsigned,2> recovered{};
+    for(unsigned mode=0;mode<3;++mode)for(std::size_t cut=0;cut<selection_calls;++cut) {
+      auto torn=seed->replay();
+      auto session=NativeVolumeFile::resume(torn,volume,raw);
+      stage_file_seal(session,second);
+      const auto start=torn->io.calls;
+      torn->io.failure=mode;
+      torn->io.fail_at=start+cut;
+      if(!cut)
+        require(session.advance_persistent_reclamation({},true)==Reclaim::failed &&
+            session.volume_info().selection.epoch==1,"candidate flush failure affected the source authority");
+      else rejects([&]{(void)session.advance_persistent_reclamation({},true);},"interrupted selector was acknowledged");
+      require(session.poisoned()==(cut!=0) && torn->io.calls==start+cut+1,
+          "selector continued writing after its uncertain boundary");
+      auto stable=torn->replay();
+      const auto checked=NativeVolumeFile::inspect(stable->replay(),volume);
+      const auto select=checked.info().selection;
+      require((select.epoch==1 || select.epoch==2) &&
+          select.image_identity==(select.epoch==1?first:second) &&
+          select.sealed_range.has_value()==(select.epoch==2) &&
+          checked.filesystem().read("payload",0,size)==payload &&
+          checked.filesystem().read("witness",0,5000)==witness_bytes &&
+          checked.filesystem().read("sparse",sparse.size()-4096,4096)==Bytes(4096),
+          "selector cut mixed layouts or lost acknowledged files");
+      ++recovered[select.epoch-1];
+      auto reopened=NativeVolumeFile::resume(stable,volume,raw);
+      release_inactive(reopened);
+      require(!reopened.volume_info().degraded && reopened.volume_info().selection==select &&
+          !stable->allocated_extent(select.epoch==1?newer:older,slot),"closed recovery did not retire the unselected slot");
+      if(mode==0 && (cut==1 || cut==4)) {
+        torn->io.live=torn->io.stable; // Reopen the modeled durable bytes on the same owned handle.
+        require(session.recover_volume().selection==select,"in-place CPU recovery disagreed with independent selection");
+        release_inactive(session);
+        require(!torn->allocated_extent(select.epoch==1?newer:older,slot),
+            "in-place recovery kept the reclaimer on the wrong slot");
+      }
+    }
+    require(recovered[0] && recovered[1],"selector cuts did not reach both durable outcomes");
+    std::cout<<"paired_sealed_range unit="<<unit<<" original_bytes="<<before<<" settled_bytes="<<after
+        <<" old_selector="<<recovered[0]<<" new_selector="<<recovered[1]
+        <<" original_handle=1 cpu_reopen=1 tail_write=1 previous_snapshot_pinned=1 mirror_successor=1"
+        <<" damaged_base_repaired=1 stale_workspace_retired=1\n";
+  }
+}
+
 void reclamation_after_reopen() {
   for(const auto unit:{4096U,65536U}) {
     auto io=std::make_shared<SparseVolumeRam>(unit);
@@ -1444,6 +1665,11 @@ int main(int argc,char** argv){
     if(argc==2 && std::string_view(argv[1])=="--catalog-ranges") {
       managed_catalog_ranges();
       std::cout<<"PASS: "<<checks<<" managed catalog range checks\n";
+      return 0;
+    }
+    if(argc==2 && std::string_view(argv[1])=="--sealed-ranges") {
+      sealed_ranges();
+      std::cout<<"PASS: "<<checks<<" paired sealed range checks\n";
       return 0;
     }
     require(argc==1,"unexpected volume file fixture mode");

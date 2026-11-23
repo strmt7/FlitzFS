@@ -36,37 +36,26 @@ selection and consumed two independently verified Radeon frames.
 [Deferred placement verification](../evidence/deferred-hybrid-placement-2026-11-22.json) ·
 [Automatic selection verification](../evidence/automatic-memory-sealing-2026-11-23.json)
 
-Extend selection to persistent backings in this order.
-
-1. Bind the base and writable tail to explicit range descriptors in a new,
-   versioned placement. Check the bearing volume identity, image identity,
-   generation, range bounds and overlap before opening either component.
-   Keep the existing paired-file readers and CPU restore path available.
-2. Price candidate, workspace and retained generations against actual
-   available allocation on the attached provider. Keep ordinary
-   reclamation available when the candidate cannot fit. Give allocation,
-   barriers, selection and retirement fresh resource observations.
-3. Publish the descriptor with the checked image selection. Replay each
-   write and flush interruption through the independent CPU reader,
-   including failures during retirement. Allow reclamation only after both
-   committed peers agree and the last reader releases the corresponding
-   component.
-4. Measure retained and returned allocation and the common small-read
-   trace for each qualified layout. Verify the read path with a held-open
-   handle on live AMD and CPU routes while selection advances. Include
-   full read cost and write traffic in the provider-specific decision to
-   continue compression.
-
-First evaluate a packed image inside the existing inactive NTFS range.
-Place the immutable base at its start and the writable tail at the next
-qualified alignment boundary. Bind both offsets to the selector epoch.
-Use a disjoint temporary range while sealing, and admit the whole candidate
-against available allocation. Charge alignment gaps and tail growth to the
-settled footprint. This design can reuse the paired-file ownership and
-reader pins if the complete geometry fits. The dense layout needs an
-allocation map that can reuse internal segments independently.
-[Paired file ranges](../PERSISTENT_VOLUME_FILE.md) ·
+The paired-file implementation now places the base and tail inside the
+inactive image range and binds their geometry to the selector epoch.
+The workspace occupies a disjoint area at the end of that range and
+retires before tail binding. Admission uses the fitted staging geometry,
+the backing's allocation allowance and a durably settled write charge.
+The CPU reader can recover either complete selected layout after an
+interruption and verify a mirrored successor when a sealed data unit
+needs repair. The SDK fixture exercised the same open handle through
+selection and a later tail write.
+[Paired placement](../PERSISTENT_VOLUME_FILE.md#sealed-paired-images) ·
+[Paired placement verification](../evidence/paired-sealed-placement-2026-11-23.json) ·
 [Windows range allocation](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_query_allocated_ranges)
+
+Continue with a disposable NTFS mounted correctness run through each
+placement, publication and retirement boundary. Qualify AMD captures
+from a reopened persistent image, including decode refusal and CPU
+continuity. Measure complete read cost, returned allocation and attempted
+rewrite traffic on real devices. Consider a bounded volatile workspace
+when it fits current headroom and avoids persistent writes. Dense backing
+still needs its own internal segment reuse and recovery qualification.
 
 ReFS moves cold contents through bounded containers. OpenZFS accounts for
 space retained by snapshots during rewrites. FlitzFS's current whole-image

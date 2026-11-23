@@ -4,6 +4,13 @@
 
 namespace flitzfs {
 class NativeFileSession;
+class NativeVolumeHeadView;
+class NativeVolumeFile;
+struct NativePairedSealedRange;
+namespace detail {class NativeVolumeFileReclaimer;}
+
+// Two immutable binding records followed by the mutable indexed root peers.
+inline constexpr auto kNativeHybridTailPrefixBytes=4*kStoreCommitUnit;
 
 // One ordinary mirrored indexed address space over a packed immutable base
 // and a separately qualified writable tail. The caller owns both backings
@@ -44,10 +51,17 @@ class NativeHybridBacking final : public StoreByteIo {
 
  private:
   friend class NativeFileSession;
+  friend class NativeVolumeHeadView;
+  friend class NativeVolumeFile;
+  friend class detail::NativeVolumeFileReclaimer;
   friend class MemoryVolumeDomain;
   friend struct MemoryVolumeBacking;
+  static Build prepare_impl(const NativeFileSession&,std::shared_ptr<StoreByteIo>,StoreIoContract,
+      StoreIdentity,std::uint64_t candidate_limit,std::uint64_t staging_limit,StoreCompressionOptions,
+      bool owned_file_target);
   static std::uint64_t workspace_capacity(StoreIdentity,StoreIoContract,
       std::uint64_t source_bytes,std::uint64_t staging_bytes);
+  NativePairedSealedRange sealed_range() const noexcept;
   std::array<std::shared_ptr<StoreByteIo>,2> components() const noexcept;
   void verify_prepared_binding() const;
   struct Impl;

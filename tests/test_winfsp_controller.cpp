@@ -3679,6 +3679,57 @@ void live_memory_composition(NativeImageKind kind=NativeImageKind::paged,bool sh
   require(MemoryVolumeDomain::cleanup_healthy(),"memory composition cleanup failed");
 }
 
+void volume_file_sealed_callbacks() {
+  constexpr PagedStoreLimits limits{8ULL*1024*1024};
+  constexpr StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
+  auto backing=std::make_shared<SparseVolumeRam>(4096,2*limits.maximum_physical_bytes+2*1024*1024);
+  auto expected=data(2'861'348,167);
+  constexpr auto edit_at=kNativeExtentBytes-13;
+  Provider provider;Provider::active=&provider;
+  {
+    WinFspNativeSession session(WinFspNativeWritable::create_file_volume(backing,id(90),id(1),limits,raw),provider.api());
+    require(session.start(plan())==STATUS_SUCCESS,"paired seal SDK fixture could not start");
+    callback_file(provider,0,expected,kStoreMaxObjectBytes);
+    callback_file(provider,1,Bytes(2*1024*1024),kStoreMaxObjectBytes);
+    wchar_t name[]=L"\\f0";
+    PVOID context=nullptr;FSP_FSCTL_FILE_INFO metadata{};
+    auto* fs=&provider.fs;
+    require(fs->Interface->Open(fs,name,FILE_NON_DIRECTORY_FILE|(1U<<24),FILE_READ_DATA|FILE_WRITE_DATA,
+        &context,&metadata)==STATUS_SUCCESS && context,"could not open the file before paired sealing");
+    ULONG bytes=0;
+    std::byte first{};
+    require(fs->Interface->Read(fs,context,&first,0,1,&bytes)==STATUS_SUCCESS && bytes==1 &&
+        first==expected.front(),"paired seal SDK fixture did not adopt the open");
+    NativeMaintenanceObservation observed;
+    observed.valid=true;observed.physical_total=16ULL<<30;observed.physical_available=12ULL<<30;
+    observed.commit_limit=32ULL<<30;observed.commit_available=24ULL<<30;
+    observed.cpu_total_ticks=1000;observed.cpu_window_ms=1000;
+    bool selected=false;
+    for(unsigned turn=0;!selected && session.background_maintenance_pending() && turn<3200;++turn) {
+      ++observed.sequence;observed.captured_ms+=observed.cpu_window_ms;
+      const auto offer=session.advance_background_maintenance(observed,observed.captured_ms);
+      require(!offer.compaction_failed && offer.progress.phase!=NativeMaintenancePhase::failed,
+          "paired SDK compaction failed");
+      selected=offer.sealed_image;
+    }
+    require(selected,"ordinary SDK maintenance did not select a funded sealed image");
+    auto edit=data(3001,913);
+    require(fs->Interface->Write(fs,context,edit.data(),edit_at,static_cast<ULONG>(edit.size()),
+        FALSE,FALSE,&bytes,&metadata)==STATUS_SUCCESS && bytes==edit.size(),"open context could not write the selected tail");
+    std::ranges::copy(edit,expected.begin()+edit_at);
+    Bytes output(expected.size());
+    require(fs->Interface->Read(fs,context,output.data(),0,static_cast<ULONG>(output.size()),&bytes)==STATUS_SUCCESS &&
+        bytes==expected.size() && output==expected,"same SDK context did not read the new image");
+    callback_cleanup_close(provider,context);
+    session.stop();
+    require(session.write_restart_ready(),"paired seal SDK fixture did not retire");
+  }
+  const auto view=NativeVolumeFile::inspect(backing->replay(),id(90));
+  require(view.info().selection.sealed_range && view.filesystem().read("f0",0,
+      static_cast<std::uint32_t>(expected.size()))==expected,"CPU inspection lost the SDK tail write");
+  std::cout<<"paired_sealed_sdk selected=1 held_context=1 stored_tail_edit=1 independent_cpu_reopen=1\n";
+}
+
 void indexed_memory_composition() {
   Provider p;Provider::active=&p;
   std::optional<ReadOnlyProjection> sealed;
@@ -4059,6 +4110,7 @@ int main(int argc,char** argv){try {
     volume_file_scrub_checkpoint();
     indexed_reopen_platform_admission();
     volume_file_idle_reclamation();
+    volume_file_sealed_callbacks();
     if(store_zstd_available()) {
       const std::array fixture{cold_test_payload(),cold_test_payload(130011),Bytes(640*1024)};
       volume_file_screened_cold(fixture,{StoreCompressionMode::fast,1,false});

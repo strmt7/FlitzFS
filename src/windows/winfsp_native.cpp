@@ -417,7 +417,11 @@ struct WinFspNativeWritable::Impl {
         return {State::unchanged};
       };
       if(repair_rotation && groups)groups->release_staged_groups();
-      if(persistent)return progress(session.advance_persistent_reclamation(fresh_volume_identity,allow_cold));
+      if(persistent) {
+        auto result=progress(session.advance_persistent_reclamation(fresh_volume_identity,allow_cold));
+        result.sealed_image=result.compacted && session.volume_info().selection.sealed_range.has_value();
+        return result;
+      }
       if(memory) {
         auto result=progress(memory_backing->advance_compaction(session,allow_cold));
         result.sealed_image=result.compacted && memory_backing->selected_image_sealed();

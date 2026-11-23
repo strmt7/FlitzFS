@@ -46,7 +46,8 @@ Sandbox fixture. Physical power-loss qualification remains a separate gate.
 
 A qualified range provider can create a paired volume with two aligned
 image ranges of the same declared capacity. Capability 4 contains the
-image pair. Capability 5 adds reserved catalog ranges. The head and advice
+image pair. Capability 5 adds reserved catalog ranges. Capabilities 6 and
+7 bind a sealed selection within those respective range layouts. The head and advice
 retain the positions above. If the image capacity is C, the first image
 range begins at 256 KiB, and the second begins at 256 KiB + C. Odd epochs
 select the first range and even epochs select the second. The indexed
@@ -139,6 +140,51 @@ allocation after flushing the range. A failure leaves the active data
 authority available and defers more range work until reopen. The
 exclusive backing lease also covers independent paired-file inspection
 so a retained reader cannot race a writable reopen.
+
+### Sealed paired images
+
+After ordinary reclamation and funded cold compression have yielded, the
+same maintenance owner can prepare a sealed base and writable tail in the
+inactive paired range. The existing advisory journal confirms the write
+charge before preparation. The charge includes the folded workspace, base,
+tail and ordered control writes. Advisory scans leave room for a complete
+currently funded image operation. A fresh bulk write can leave insufficient
+credit for the whole preparation, especially for weakly compressible data.
+
+The workspace starts at the high end of the inactive range and the base
+starts at its beginning. The fitted workspace and the projected parity
+layout establish the bounds before writes. The owner verifies the base,
+then rechecks both current selector peers before releasing the private
+workspace in bounded spans. The tail starts immediately after the base at
+a boundary admitted by the backing's failure-unit contract. Reclamation
+uses the outer provider's coarser aligned ranges. A new foreground commit
+invalidates the sealed candidate and leaves the acknowledged image selected.
+[Windows storage geometry](https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_storage_info) ·
+[Windows range retirement](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_zero_data)
+
+The candidate flush precedes the two independently flushed selector peers.
+The CPU opener validates the selected image identity, range bounds,
+protected base and tail binding. It can reopen from ordinary bytes even
+when zeros left by sparse retirement extend the backing file's logical
+length. Both components retain the same paired range for as long as an old
+snapshot needs either one. A closed owner can rebuild a CPU-readable
+degraded base into a verified mirror in the inactive range, then resume
+writes. The old image survives until the new head is durable and the range
+has no readers.
+[Head format](VOLUME_HEAD.md#fixed-encoding) ·
+[Windows file flush](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers)
+
+The in-memory sparse provider modeled 64 KiB allocation and exercised two
+write-failure units. The occupied whole-file allocation after retirement was
+4,456,448 bytes versus 6,291,456 bytes for the 4 KiB model. The 64 KiB model
+settled at 4,521,984 bytes versus 7,995,392 bytes. Across 30 interruptions of
+the candidate flush and selector operations, the CPU reader recovered the
+complete previously acknowledged state. Both models rebuilt a CPU-readable
+damaged base into an independently verified mirror. The Windows SDK fixture
+kept the original handle open through selection, wrote to the new tail and
+verified the edited file after dispatcher retirement. Real-device allocation
+and power-loss behavior still require qualification.
+[Paired placement evidence](evidence/paired-sealed-placement-2026-11-23.json)
 
 Physical allocation is separate from logical file length. The Windows
 provider requires an explicit isolated range reclamation contract, a

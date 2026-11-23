@@ -449,9 +449,10 @@ for production-scale completion, but their bounded design/experiments can start 
 
 **Reuse:** mirrored payloads, COW records, protected anchors, staged rebuild,
 context-preserving head handoff and source-preserving recovery.
-**Available:** bounded indexed handoff and automatic staged compaction on the
-owned Windows memory and modeled paired-range paths, using measured obsolete
-history and CPU verification. Private preparation uses work credit within a
+**Available:** bounded indexed handoff, automatic staged compaction and
+exact sealed selection on owned Windows memory and modeled paired ranges.
+The paired selector describes each candidate's range geometry and preserves
+CPU reopen of prior mirrored layouts. Private preparation uses work credit within a
 fresh CPU sample. Publication and retirement each require a fresh observation.
 Indexed compaction can preserve its private work across foreground commits by
 reconciling immutable tree checkpoints. A verified live repair can use that

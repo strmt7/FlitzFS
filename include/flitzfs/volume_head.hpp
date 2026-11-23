@@ -9,11 +9,18 @@ constexpr bool paired_volume_file(NativeVolumePlacement placement) noexcept {
   return placement==NativeVolumePlacement::paired_file_ranges ||
       placement==NativeVolumePlacement::paired_file_catalog_ranges;
 }
+// Selected image geometry inside one owned paired file range. The tail starts
+// at base_bytes and overlays the writable roots and bytes after indexed_end.
+struct NativePairedSealedRange {
+  std::uint64_t base_bytes=0,indexed_end=0;
+  bool operator==(const NativePairedSealedRange&) const = default;
+};
 struct NativeVolumeSelection {
   StoreIdentity volume_identity{},image_identity{},parent_identity{};
   std::uint64_t epoch=0,minimum_checkpoint=0,namespace_sequence=0,parent_checkpoint=0;
   NativeImageStorage storage{};
   NativeVolumePlacement placement=NativeVolumePlacement::external;
+  std::optional<NativePairedSealedRange> sealed_range;
   bool operator==(const NativeVolumeSelection&) const = default;
 };
 struct NativeVolumeHeadInfo {NativeVolumeSelection selection;bool degraded=false;};
@@ -78,7 +85,7 @@ class NativeVolumeHeadWriter final {
   // Only an owned, completed indexed rewrite can reach this path. Both image
   // writer leases remain held by the session until selection is known.
   NativeVolumeHeadInfo publish_indexed_rebuild(const NativeFilesystemSnapshot& source,
-      const NativeFilesystemSnapshot& verified_target);
+      const NativeFilesystemSnapshot& verified_target,std::optional<NativePairedSealedRange>);
   struct Impl;explicit NativeVolumeHeadWriter(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;
 };

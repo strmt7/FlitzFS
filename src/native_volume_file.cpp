@@ -2,6 +2,7 @@
 #include "flitzfs/indexed_coherence.hpp"
 #include "store_file.hpp"
 #include "native_volume_file_reclaimer.hpp"
+#include "protected_stripe_image.hpp"
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -73,10 +74,18 @@ struct NativeVolumeFile::Region final:StoreByteIo {
   const std::uint64_t offset,capacity;
   const bool tail;
   std::atomic<std::uint64_t> fixed_extent;
+  const std::shared_ptr<StoreByteIo> image_pin;
 
   Region(std::shared_ptr<Owner> file,std::uint64_t base,std::uint64_t limit,
-      std::uint64_t initialized,bool follows_end=false)
-      :owner(std::move(file)),offset(base),capacity(limit),tail(follows_end),fixed_extent(initialized){}
+      std::uint64_t initialized,bool follows_end=false,std::shared_ptr<StoreByteIo> pin={})
+      :owner(std::move(file)),offset(base),capacity(limit),tail(follows_end),fixed_extent(initialized),
+       image_pin(std::move(pin)){}
+  static std::shared_ptr<Region> slice(const std::shared_ptr<Region>& range,std::uint64_t at,
+      std::uint64_t limit,std::uint64_t extent,std::shared_ptr<StoreByteIo> pin={}) {
+    if(at>range->capacity || !limit || limit>range->capacity-at || extent>limit)
+      fail(Error::corrupt,"volume image component exceeds its owned range");
+    return std::make_shared<Region>(range->owner,range->offset+at,limit,extent,false,std::move(pin));
+  }
   // All copies of a selected or staged region share this pin. The reclaimer
   // retains the underlying Region separately after a selector switch.
   static std::shared_ptr<StoreByteIo> pin_image(const std::shared_ptr<Region>& region) {
@@ -239,26 +248,60 @@ bool NativeVolumeFileReclaimer::pending(const NativeFileSession& session,bool al
 bool NativeVolumeFileReclaimer::image_work_pending(const NativeFileSession& session,bool allow_cold) const {
   if(phase_==Phase::retiring)
     return spare_.use_count()==1 || active_->owner->reclamation_wake.load(std::memory_order_acquire).expired();
-  if(phase_==Phase::uncertain || phase_==Phase::failed || !session.idle_compaction_context_ready())return false;
+  if(phase_==Phase::uncertain || phase_==Phase::failed)return false;
+  if(seal_)return true;
+  if(!session.idle_compaction_context_ready())return false;
   if(phase_!=Phase::idle)return true;
   if(const auto repair=session.indexed_capacity_repair_generation())return repair!=attempted_repair_;
   const auto space=session.indexed_volume_space();
   const auto obsolete=space.obsolete_bytes;
   return (obsolete>attempted_obsolete_ && obsolete-attempted_obsolete_>=abandoned_bytes_ &&
-      space.reclamation_worthwhile()) || (allow_cold && session.idle_cold_compaction_pending());
+      space.reclamation_worthwhile()) ||
+      (allow_cold && (session.idle_cold_compaction_pending() || session.idle_seal_funded(
+          projected_seal_writes(session.volume_info().selection,space.total_bytes-space.free_bytes))));
+}
+bool NativeVolumeFileReclaimer::seal_preparation_pending(const NativeFileSession& session) const noexcept {
+  return seal_ && seal_->source_current(session) && seal_->can_continue_preparation();
+}
+std::uint64_t NativeVolumeFileReclaimer::projected_seal_writes(
+    const NativeVolumeSelection& selected,std::uint64_t occupied) const noexcept {
+  if(!cold_target_available())return 0;
+  try {
+    const auto plan=seal_plan(selected,occupied);
+    return plan?plan->writes:0;
+  }catch(const std::exception&){return 0;}
+}
+std::optional<NativeVolumeFileReclaimer::SealPlan> NativeVolumeFileReclaimer::seal_plan(
+    const NativeVolumeSelection& selected,std::uint64_t occupied) const {
+  if(selected.sealed_range)return std::nullopt;
+  const auto contract=spare_->contract();
+  const auto fitted=NativeHybridBacking::workspace_capacity(selected.volume_identity,contract,occupied,spare_->capacity);
+  const auto workspace=fitted-fitted%kStoreCommitUnit;
+  if(workspace<=kVolumeHeadBytes)return std::nullopt;
+  const auto base=ProtectedStripeImage::projected_occupied(selected.volume_identity,workspace,
+      contract.write_failure_unit_bytes,spare_->capacity);
+  const auto staging=workspace+base+kNativeHybridTailPrefixBytes;
+  // Include overwritten roots and binding records as well as final staging
+  // allocation. Charge before writing any candidate bytes.
+  const auto writes=staging+kVolumeHeadBytes;
+  if(staging>spare_->capacity)return std::nullopt;
+  return SealPlan{workspace,staging,writes};
 }
 void NativeVolumeFileReclaimer::bind_wake(const std::shared_ptr<NativeVolumeRangeWake>& wake) noexcept {
   active_->owner->reclamation_wake.store(wake,std::memory_order_release);
 }
 
-Progress NativeVolumeFileReclaimer::retire(const NativeVolumeHeadInfo& current) {
-  if(spare_.use_count()!=1)return Progress::pinned;
+void NativeVolumeFileReclaimer::check_inactive(const NativeVolumeHeadInfo& current) const {
   // Revalidate both replicas immediately before changing any allocation.
   const auto durable=NativeVolumeHeadView::inspect_selector(*head_,current.selection.volume_identity);
   if(current.degraded || durable.degraded || durable.selection!=current.selection ||
       !paired_volume_file(durable.selection.placement) ||
       image_start(durable.selection)!=active_->offset || active_->offset==spare_->offset)
     fail(Error::corrupt,"unconfirmed volume selection prevents range reclamation");
+}
+Progress NativeVolumeFileReclaimer::retire(const NativeVolumeHeadInfo& current) {
+  if(spare_.use_count()!=1)return Progress::pinned;
+  check_inactive(current);
   auto& range=*spare_;
   range.reclaim_tail();
   if(!range.extent())phase_=Phase::idle;
@@ -284,8 +327,89 @@ void NativeVolumeFileReclaimer::adopt_startup_repair(const NativeVolumeSelection
       !paired_volume_file(repaired.placement) || repaired.placement!=original.placement ||
       image_start(repaired)!=spare_->offset)
     fail(Error::storage_failure,"startup repair selected an unexpected range");
+  adopt_selection();
+}
+void NativeVolumeFileReclaimer::settle_recovery(std::uint64_t previous_epoch,const NativeVolumeSelection& selected) {
+  if(phase_!=Phase::uncertain || !paired_volume_file(selected.placement))
+    fail(Error::storage_failure,"recovered selector is outside the owned range transition");
+  const auto offset=image_start(selected);
+  if(selected.epoch==previous_epoch && offset==active_->offset) {
+    phase_=Phase::retiring;
+    return;
+  }
+  if(selected.epoch>previous_epoch && selected.epoch-previous_epoch==1 && offset==spare_->offset) {
+    adopt_selection();
+    return;
+  }
+  fail(Error::storage_failure,"recovered selector chose an unexpected range");
+}
+void NativeVolumeFileReclaimer::adopt_selection() noexcept {
   active_.swap(spare_);
+  attempted_obsolete_=0;
+  abandoned_bytes_=0;
+  attempted_repair_=0;
   phase_=Phase::retiring;
+}
+void NativeVolumeFileReclaimer::discard_seal() noexcept {
+  seal_.reset();
+  workspace_.reset();
+  base_bytes_=0;
+}
+Progress NativeVolumeFileReclaimer::begin_seal(NativeFileSession& session,StoreIdentity identity,
+    const SealPlan& plan) {
+  check_inactive(session.volume_info());
+  if(!session.reserve_idle_seal(plan.writes))return Progress::idle;
+  const auto& file=*spare_->owner;
+  file.ranges->admit_range_write((std::max)(file.backing->extent(),spare_->offset+spare_->capacity),plan.staging);
+  phase_=Phase::copying;
+  workspace_=NativeVolumeFile::Region::slice(spare_,spare_->capacity-plan.workspace,plan.workspace,0);
+  seal_.emplace(NativeHybridBacking::prepare_impl(session,workspace_,spare_->contract(),identity,
+      spare_->capacity,plan.staging,{},true));
+  return Progress::copying;
+}
+Progress NativeVolumeFileReclaimer::advance_seal(NativeFileSession& session) {
+  using Stage=NativeHybridBacking::BuildPhase;
+  using Region=NativeVolumeFile::Region;
+  if(!seal_->source_current(session) || session.indexed_capacity_repair_generation()) {
+    discard_seal();
+    phase_=Phase::retiring;
+    return Progress::retiring;
+  }
+  const auto stage=seal_->phase();
+  if(stage==Stage::awaiting_base) {
+    base_bytes_=seal_->required_store_bytes();
+    if(base_bytes_>workspace_->offset-spare_->offset)
+      fail(Error::storage_failure,"sealed base overlaps its private workspace");
+    seal_->provide_store(session,Region::slice(spare_,0,base_bytes_,0,Region::pin_image(spare_)));
+    return Progress::copying;
+  }
+  if(stage==Stage::awaiting_tail) {
+    if(workspace_) {
+      if(workspace_.use_count()!=1)return Progress::pinned;
+      check_inactive(session.volume_info());
+      workspace_->reclaim_tail();
+      if(!workspace_->extent())workspace_.reset();
+      return Progress::copying;
+    }
+    seal_->provide_store(session,Region::slice(spare_,base_bytes_,seal_->required_store_bytes(),0,
+        Region::pin_image(spare_)));
+    return Progress::copying;
+  }
+  if(stage!=Stage::ready) {
+    if(!seal_->advance(session))return Progress::copying;
+    phase_=Phase::ready;
+    return Progress::ready;
+  }
+  phase_=Phase::uncertain;
+  std::shared_ptr<NativeHybridBacking> replacement;
+  const bool published=seal_->publish(session,replacement);
+  discard_seal();
+  if(!published) {
+    phase_=Phase::retiring;
+    return Progress::retiring;
+  }
+  adopt_selection();
+  return Progress::published;
 }
 
 Progress NativeVolumeFileReclaimer::advance(NativeFileSession& session,const std::function<StoreIdentity()>& identity,
@@ -304,6 +428,7 @@ Progress NativeVolumeFileReclaimer::advance(NativeFileSession& session,const std
   if(phase_==Phase::idle && !identity)return Progress::idle;
   if(!image_pending)return Progress::idle;
   try {
+    if(seal_)return advance_seal(session);
     if(phase_==Phase::idle) {
       const bool reclaim=image_work_pending(session,false);
       if(reclaim) {
@@ -313,6 +438,11 @@ Progress NativeVolumeFileReclaimer::advance(NativeFileSession& session,const std
       }
       if(spare_.use_count()!=1 || spare_->allocation_extent())
         fail(Error::invalid_operation,"inactive volume range is unavailable");
+      if(!reclaim && allow_cold && !session.idle_cold_compaction_pending()) {
+        const auto space=session.indexed_volume_space();
+        const auto plan=seal_plan(session.volume_info().selection,space.total_bytes-space.free_bytes);
+        return plan?begin_seal(session,identity(),*plan):Progress::idle;
+      }
       if(!session.begin_idle_compaction_impl(NativeVolumeFile::Region::pin_image(spare_),identity(),true,
           reclaim?PagedRewriteMode::reconcile_foreground:PagedRewriteMode::cold_compression))
         return Progress::idle;
@@ -337,11 +467,7 @@ Progress NativeVolumeFileReclaimer::advance(NativeFileSession& session,const std
     if(!session.publish_staged_recompression(true,true)) {
       abandoned_bytes_=spare_->extent();phase_=Phase::retiring;return Progress::retiring;
     }
-    active_.swap(spare_);
-    attempted_obsolete_=0;
-    abandoned_bytes_=0;
-    attempted_repair_=0;
-    phase_=Phase::retiring;
+    adopt_selection();
     return Progress::published;
   }catch(const std::exception&) {
     if(session.poisoned()){phase_=Phase::uncertain;throw;}
@@ -353,6 +479,7 @@ Progress NativeVolumeFileReclaimer::advance(NativeFileSession& session,const std
 
 void NativeVolumeFileReclaimer::cancel(NativeFileSession& session) noexcept {
   session.cancel_recompression();
+  discard_seal();
   if(phase_==Phase::copying || phase_==Phase::ready || (phase_==Phase::uncertain && !session.poisoned()))
     phase_=Phase::retiring;
 }
@@ -435,10 +562,25 @@ NativeVolumeFile::Regions NativeVolumeFile::open_regions(std::shared_ptr<StoreBy
         std::make_shared<CatalogRanges>(owner,advice,selected.volume_identity,geometry,end):nullptr;
     regions.reclaimer=std::make_shared<detail::NativeVolumeFileReclaimer>(head,image,std::move(spare),recover_spare,
         std::move(catalog));
-    regions.image=Region::pin_image(image);
   } else {
     owner->pin_reader();
   }
+  if(!selected.sealed_range) {
+    if(writable)regions.image=Region::pin_image(image);
+    return regions;
+  }
+  const auto [base_bytes,indexed_end]=*selected.sealed_range;
+  const auto present=(std::min)(visible,image->extent());
+  if(present<base_bytes+kNativeHybridTailPrefixBytes)
+    fail(Error::corrupt,"sealed image components are outside the selected file range");
+  const auto contract=image->contract();
+  if(writable && (!valid_store_io_contract(contract) || base_bytes%contract.write_failure_unit_bytes))
+    fail(Error::invalid_operation,"sealed component alignment exceeds the current backing contract");
+  const auto tail_capacity=(std::min)(bytes-base_bytes,kNativeHybridTailPrefixBytes+(bytes-indexed_end));
+  auto pin=Region::pin_image(image);
+  auto base=Region::slice(image,0,base_bytes,base_bytes,pin);
+  auto tail=Region::slice(image,base_bytes,tail_capacity,(std::min)(tail_capacity,present-base_bytes),std::move(pin));
+  regions.image=NativeHybridBacking::open(std::move(base),std::move(tail),selected.image_identity,bytes,bytes);
   return regions;
 }
 NativeFileSession NativeVolumeFile::create(std::shared_ptr<StoreByteIo> empty,StoreIdentity volume,
