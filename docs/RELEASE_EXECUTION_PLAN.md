@@ -148,7 +148,7 @@ artifact and the observation needed before the related work can advance.
 | S5 · E04–E06 | Freeze the mixed held-out corpus and collect complete-image accounting for independent codecs, shared dictionaries, delta and multi-reference candidates and the existing shared-base control. | Net space gains survive protection, retained generations and reclamation costs. Independent restart units give practical cold random reads. Size and access results include all cohorts and losses. |
 | S6 · E07 | Drive the persistent advisory catalog and policy from observed savings, live resource pressure and workload changes in the mounted lifecycle. | Corrupt or absent advice is rebuildable. Foreground bursts preempt the next quantum. Recovery, migration, learning, compaction and scan progress resume independently with measured write cost. |
 | S7 · E08 | Extend the signed WinFsp guest fixture from build 26100 to the current interactive Windows 11 26H2 x64 servicing build and the Explorer and Win32 compatibility matrix. | Both supported backings cover create, attach, metadata, copy, sharing, mapped I/O, detach and fresh-process recovery. Scoped app, service, mount and worker ownership is verified through failure and removal. |
-| S8 · E02, E11 | Build from the mounted Write, EOF shrink, rename, mapped write and image-selection cuts. Add concurrent cached and mapped flushes, then qualify the persistent backend on dedicated disposable hardware. | Each cut resolves to an allowed complete generation. Acknowledged bytes and namespaces survive the declared failure domain. A single protected-copy loss repairs with byte-exact independent recovery. |
+| S8 · E02, E11 | Retain the mounted Write, EOF shrink, rename, mapped write and image-selection cuts. The three-file concurrent flush path now recovers both acknowledged edits on packed and sparse backing. Extend it to a populated, sustained attachment with mixed namespace operations and interruption during each publication boundary. Qualify stable-write and repair behavior by device on dedicated disposable hardware. [Mixed flush recovery](evidence/windows-mounted-mixed-flush-recovery-2026-11-23.json) | Each cut resolves to an allowed complete generation. Acknowledged bytes and namespaces survive the declared failure domain. A single protected-copy loss repairs with byte-exact independent recovery. |
 | S9 · E09 | Add a capability and reader matrix for historical fixtures and mixed old/new representations. Exercise bounded, resumable format migration under regular writes and space pressure. | Supported history opens on CPU. Old writers refuse unsupported mandatory features before mutation. Upgrade interruption, compatible rollback and CPU-only export recover the promised data. |
 | S10 · E10–E11 | Stage a signed Windows package and CPU recovery tool with owned installation, repair, removal and rollback. Review the parser, broker, update and dependency trust boundaries. | Every artifact is attributable. The supported install paths work on a clean client. Defensive negative tests and independent review close actionable issues for the exact packaged source. |
 | S11 · E12 | Collect matched DiskSpd and real-file workflow results on real hardware against plain NTFS and verified built-in NTFS compression. | Raw results include native compression evidence per file, complete occupied bytes, CPU/GPU utilization, write amplification, foreground tails and independent recovery for every phase. |
@@ -552,6 +552,14 @@ multiple sessions and measure actual allocated bytes and write costs.
   controlled contention separately. Count the effect of instrumenting the
   stream. Use the whole exchange and actual consumed results to qualify
   dispatch. [Host and stream evidence](evidence/windows-amd-sweep-timeline-2026-11-23.json)
+- The original-order control observed about 416 ms and 35 ms between stream
+  events in separate launches of the same four extents at the same
+  ordinal. Both host waits exceeded 400 ms. A rotated-input follow-up ended
+  on an execution-stage device fault after three verified replies. Treat
+  input shape as one cost feature. Capture the failing runtime call and
+  separate observed host pressure from device and stream state before
+  issuing a larger or longer-lived work offer.
+  [Input order and refusal evidence](evidence/windows-amd-sweep-input-order-2026-11-23.json)
 - A one-request preparation lease now reaches actual AMD readiness before input
   delivery. On three matched 1 MiB public requests it cut the median response
   after submission from 1.79 s to 545 ms. Charging setup, the prepared median
@@ -825,11 +833,13 @@ flowchart LR
   release to check automatic re-entry. Cut the durable placement phases
   using the isolated process fixture and validate both anchor copies.
   [Packed relocation](PERSISTENT_VOLUME_FILE.md#moving-live-data-across-allocation-groups)
-- Extend the external client trace to concurrent cached and mapped writes
-  with independent witnesses. Distinguish view flush, file flush, callback
-  completion and the engine's publication fences. Verify the expected ordering
-  after each induced interruption, across handles and directory mutations.
-  Run the same trace against memory and persistent qualified backings.
+- Use the packed and sparse mixed-flush recovery controls as the next
+  baseline. They distinguish view propagation from overlapping file-handle
+  flushes and verify both acknowledged edits independently after helper
+  exit. Extend the same oracle through large concurrent handle sets,
+  directory mutations and exact callback and publication cut points. Run
+  equivalent sequences against memory and qualified persistent backings.
+  [Mixed flush recovery](evidence/windows-mounted-mixed-flush-recovery-2026-11-23.json) ·
   [Prior mapped cuts](evidence/windows11-mounted-mapped-publication-cuts-2026-11-22.json) ·
   [Windows view flush contract](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-flushviewoffile)
 - Record build, package, OS and physical or memory provider identity. Attach

@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <barrier>
 #include <chrono>
 #include <cstring>
 #include <cstdlib>
@@ -721,6 +722,23 @@ struct MountedTrialFile {
   MountedTrialFile& operator=(const MountedTrialFile&)=delete;
 };
 
+struct MountedWritableView {
+  explicit MountedWritableView(HANDLE file) {
+    section=CreateFileMappingW(file,nullptr,PAGE_READWRITE,0,0,nullptr);
+    require(section!=nullptr,"Mounted writable section creation failed");
+    view=static_cast<std::byte*>(MapViewOfFile(section,FILE_MAP_WRITE,0,0,0));
+    if(!view){
+      CloseHandle(section);
+      throw std::runtime_error("Mounted writable view mapping failed");
+    }
+  }
+  ~MountedWritableView(){UnmapViewOfFile(view);CloseHandle(section);}
+  MountedWritableView(const MountedWritableView&)=delete;
+  MountedWritableView& operator=(const MountedWritableView&)=delete;
+  HANDLE section=nullptr;
+  std::byte* view=nullptr;
+};
+
 enum class MountedRecoveryPhase {none,interrupt,resume};
 enum class MountedRecoveryOperation {create_file,overwrite_and_rename};
 enum class MountedReclaimBacking {packed,sparse};
@@ -729,6 +747,8 @@ struct MountedReclaimCycle {
   unsigned cycle=0;
   std::uint64_t baseline_ceiling=0;
   std::uint64_t peak_allocated=0;
+  bool mixed_flush=false;
+  std::vector<std::byte> cached_payload;
 };
 struct MountedFileActivation {
   std::filesystem::path path;
@@ -834,15 +854,7 @@ void write_mounted_trace(const std::wstring& directory) {
   {
     MountedTrialFile file(mounted_trace_path(directory,mapped_trace_file),
         GENERIC_READ|GENERIC_WRITE,OPEN_EXISTING);
-    struct Mapping {
-      HANDLE section=nullptr;
-      std::byte* view=nullptr;
-      ~Mapping(){if(view)UnmapViewOfFile(view);if(section)CloseHandle(section);}
-    } mapping;
-    mapping.section=CreateFileMappingW(file.file,nullptr,PAGE_READWRITE,0,0,nullptr);
-    require(mapping.section!=nullptr,"Mounted writable section creation failed");
-    mapping.view=static_cast<std::byte*>(MapViewOfFile(mapping.section,FILE_MAP_WRITE,0,0,0));
-    require(mapping.view!=nullptr,"Mounted writable view mapping failed");
+    MountedWritableView mapping(file.file);
     constexpr auto offset=kNativeExtentBytes-23;
     std::fill_n(mapping.view+offset,64,std::byte{0x6d});
     require(FlushViewOfFile(mapping.view+offset,64)!=FALSE,"Mounted dirty view flush failed");
@@ -982,15 +994,83 @@ const char* reclaim_backing_name(MountedReclaimBacking profile) noexcept {
   return profile==MountedReclaimBacking::packed?"packed":"sparse";
 }
 
+void mounted_mixed_flush(const std::wstring& root,MountedFileActivation& activation) {
+  auto& trial=activation.reclamation.value();
+  MountedTrialFile cached(root+L"cached.bin",GENERIC_WRITE,OPEN_EXISTING);
+  MountedTrialFile mapped(root+L"payload.bin",GENERIC_READ|GENERIC_WRITE,OPEN_EXISTING);
+  MountedWritableView mapping(mapped.file);
+  constexpr auto mapped_offset=kNativeExtentBytes-23;
+  constexpr DWORD mapped_count=64;
+  constexpr auto cached_offset=kNativeExtentBytes+31;
+  constexpr DWORD cached_count=41;
+  require(activation.packed_payload.size()>=mapped_offset+mapped_count &&
+      trial.cached_payload.size()>=cached_offset+cached_count,"Mixed flush extent exceeds the seeded file");
+  const auto mapped_value=static_cast<std::byte>(0x70+trial.cycle);
+  std::fill_n(mapping.view+mapped_offset,mapped_count,mapped_value);
+  std::fill_n(activation.packed_payload.begin()+mapped_offset,mapped_count,mapped_value);
+  auto cached_patch=std::span(trial.cached_payload).subspan(cached_offset,cached_count);
+  std::fill(cached_patch.begin(),cached_patch.end(),static_cast<std::byte>(0xa0+trial.cycle));
+  LARGE_INTEGER position{};
+  position.QuadPart=static_cast<LONGLONG>(cached_offset);
+  DWORD written=0;
+  require(SetFilePointerEx(cached.file,position,nullptr,FILE_BEGIN) &&
+      WriteFile(cached.file,cached_patch.data(),cached_count,&written,nullptr) && written==cached_count,
+      "Mixed cached write did not stage its bytes");
+
+  // Publish the dirty view first. Release the two file-handle flushes at the
+  // same barrier and check their actual client call intervals for overlap.
+  struct FlushObservation {
+    std::chrono::steady_clock::time_point begin,end;
+    DWORD error=ERROR_SUCCESS;
+    bool acknowledged=false;
+  } view,buffer;
+  std::barrier start(2);
+  std::jthread view_client([&] {
+    const bool view_flushed=FlushViewOfFile(mapping.view+mapped_offset,mapped_count)!=FALSE;
+    if(!view_flushed)view.error=GetLastError();
+    start.arrive_and_wait();
+    view.begin=std::chrono::steady_clock::now();
+    if(view_flushed){
+      view.acknowledged=FlushFileBuffers(mapped.file)!=FALSE;
+      if(!view.acknowledged)view.error=GetLastError();
+    }
+    view.end=std::chrono::steady_clock::now();
+  });
+  start.arrive_and_wait();
+  buffer.begin=std::chrono::steady_clock::now();
+  buffer.acknowledged=FlushFileBuffers(cached.file)!=FALSE;
+  if(!buffer.acknowledged)buffer.error=GetLastError();
+  buffer.end=std::chrono::steady_clock::now();
+  view_client.join();
+  if(!view.acknowledged || !buffer.acknowledged)
+    throw std::runtime_error("Concurrent mapped/cached flush failed with Windows statuses "+
+        std::to_string(view.error)+"/"+std::to_string(buffer.error));
+  const bool overlap=view.begin<buffer.end && buffer.begin<view.end;
+  require(overlap,"Mounted cached and mapped flush calls did not overlap");
+  std::cout<<"mounted_mixed_flush cycle="<<trial.cycle+1<<" handle_flush_overlap=1 cached_ack=1 mapped_ack=1"
+      <<" cached_blake3="<<hex_mounted_digest(detail::record_digest(trial.cached_payload))
+      <<" mapped_blake3="<<hex_mounted_digest(detail::record_digest(activation.packed_payload))<<std::endl;
+}
+
 void mounted_reclamation_cycle(const std::wstring& root,MountedFileActivation& activation,std::uint64_t deadline) {
   auto& trial=activation.reclamation.value();
   const auto observation_end=(std::min)(deadline-9000,GetTickCount64()+85000);
   const auto witness=root+L"witness.bin";
   const auto payload=root+L"payload.bin";
+  const auto cached=root+L"cached.bin";
   if(!trial.cycle){
     MountedTrialFile file(witness,GENERIC_WRITE,CREATE_NEW);
     write_mounted_bytes(file.file,activation.packed_witness);
+    if(trial.mixed_flush){
+      trial.cached_payload=mounted_client_bytes();
+      MountedTrialFile buffer(cached,GENERIC_WRITE,CREATE_NEW);
+      write_mounted_bytes(buffer.file,trial.cached_payload);
+    }
   } else {
+    if(trial.mixed_flush){
+      MountedTrialFile buffer(cached,GENERIC_READ,OPEN_EXISTING);
+      verify_mounted_bytes(buffer.file,trial.cached_payload);
+    }
     {
       MountedTrialFile existing(payload,GENERIC_READ,OPEN_EXISTING);
       verify_mounted_bytes(existing.file,activation.packed_payload);
@@ -1023,11 +1103,17 @@ void mounted_reclamation_cycle(const std::wstring& root,MountedFileActivation& a
       }
     }
   }
+  if(trial.mixed_flush)mounted_mixed_flush(root,activation);
+  const auto live_bytes=payload_bytes+activation.packed_witness.size()+trial.cached_payload.size();
   std::cout<<"mounted_reclaim_burst backing="<<reclaim_backing_name(trial.backing)
-      <<" cycle="<<trial.cycle+1<<" live_bytes="<<payload_bytes+activation.packed_witness.size()
+      <<" cycle="<<trial.cycle+1<<" live_bytes="<<live_bytes
       <<" revisions="<<revisions<<" delete_regrow="<<(trial.cycle!=0)
       <<" peak="<<trial.peak_allocated<<" ceiling="<<trial.baseline_ceiling<<std::endl;
   require(trial.peak_allocated>trial.baseline_ceiling,"Mounted churn did not construct reclaimable history");
+  if(activation.recovery==MountedRecoveryPhase::interrupt){
+    verify_mounted_bytes(retained.file,activation.packed_witness);
+    return;
+  }
   auto settled=mounted_backing_space(activation.path,trial.backing);
   auto last_change=GetTickCount64();
   std::uint64_t next_sample=0;
@@ -1229,8 +1315,26 @@ void mounted_gui_workflow(HWND window,std::wstring_view parent,ProcessObserver& 
     if(activation->serial)
       require(activation->serial==initial_serial,"Fresh mounted file changed volume identity");
     else activation->serial=initial_serial;
-    if(activation->reclamation)mounted_reclamation_cycle(root(first),*activation,deadline);
-    else mounted_packed_workload(root(first),*activation,deadline);
+    if(activation->reclamation){
+      if(activation->recovery==MountedRecoveryPhase::resume) {
+        const auto& prior=activation->interrupted_owner;
+        require(prior && prior->wait_for_exit()==ProcessObservation::exited &&
+            prior->process_id()!=observer.process_id() && first!=activation->interrupted_mount,
+            "Mixed flush did not resume on a fresh mounted owner");
+      }
+      const auto interrupt=activation->recovery==MountedRecoveryPhase::interrupt;
+      if(interrupt){
+        activation->interrupted_mount=first;
+        interruption_client.emplace(root(first)+L"witness.bin",GENERIC_READ,OPEN_EXISTING,
+            FILE_SHARE_READ|FILE_SHARE_DELETE);
+      }
+      mounted_reclamation_cycle(root(first),*activation,deadline);
+      if(interrupt) {
+        require(observer.wait_for_exit()==ProcessObservation::running && observer.request_stop(),
+            "Mounted owner did not accept interruption after both flushes");
+        return;
+      }
+    } else mounted_packed_workload(root(first),*activation,deadline);
     button(108);await_detach(first);
     button(105);wait_status(closed);
     return;
@@ -1655,11 +1759,12 @@ std::vector<std::byte> mounted_reclamation_witness(const std::filesystem::path& 
 }
 
 void mounted_reclamation_gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budget,
-    MountedReclaimBacking profile) {
+    MountedReclaimBacking profile,bool mixed_flush=false) {
   const auto parent=std::filesystem::path(disposable_mount_parent()).parent_path();
   const bool sparse=profile==MountedReclaimBacking::sparse;
   MountedFileActivation activation{parent/(sparse?L"SparseChurn.flfs":L"PackedChurn.flfs")};
   activation.reclamation=MountedReclaimCycle{profile};
+  activation.reclamation->mixed_flush=mixed_flush;
   activation.packed_witness=mounted_reclamation_witness(app);
   constexpr StoreCompressionOptions foreground{StoreCompressionMode::automatic,3,false};
   const StoreIoContract contract{static_cast<std::uint32_t>(kStoreCommitUnit),true,sparse,!sparse};
@@ -1680,6 +1785,8 @@ void mounted_reclamation_gui_tests(const std::filesystem::path& app,const app_fi
   constexpr unsigned cycles=3;
   auto& trial=*activation.reclamation;
   for(trial.cycle=0;trial.cycle<cycles;++trial.cycle){
+    if(mixed_flush && trial.cycle!=0)
+      activation.recovery=trial.cycle==1?MountedRecoveryPhase::interrupt:MountedRecoveryPhase::resume;
     gui_tests(app,budget,GuiRuntime::mounted,&activation);
     std::uint64_t epoch=0;
     {
@@ -1688,7 +1795,7 @@ void mounted_reclamation_gui_tests(const std::filesystem::path& app,const app_fi
       epoch=independent.info().selection.epoch;
       const auto& reader=independent.filesystem();
       reader.verify_all();
-      require(reader.list().size()==2,"Independent reclamation namespace differs");
+      require(reader.list().size()==(mixed_flush?3U:2U),"Independent reclamation namespace differs");
       const auto verify=[&](std::string_view name,const std::vector<std::byte>& bytes){
         require(reader.stat(name).logical_bytes==bytes.size() &&
             reader.read(name,0,static_cast<std::uint32_t>(bytes.size()))==bytes,
@@ -1696,6 +1803,14 @@ void mounted_reclamation_gui_tests(const std::filesystem::path& app,const app_fi
       };
       verify("witness.bin",activation.packed_witness);
       verify("payload.bin",activation.packed_payload);
+      if(mixed_flush)verify("cached.bin",trial.cached_payload);
+    }
+    if(activation.recovery==MountedRecoveryPhase::interrupt){
+      std::cout<<"mounted_mixed_recovery phase=independent_after_exit epoch="<<epoch
+          <<" files=3 independent_cpu=exact cached_blake3="
+          <<hex_mounted_digest(detail::record_digest(trial.cached_payload))
+          <<" mapped_blake3="<<hex_mounted_digest(detail::record_digest(activation.packed_payload))<<std::endl;
+      continue;
     }
     // Inspect the persisted scheduler debt without advancing maintenance.
     const auto settled=mounted_backing_space(activation.path,profile);
@@ -1722,6 +1837,9 @@ void mounted_reclamation_gui_tests(const std::filesystem::path& app,const app_fi
   }
   std::cout<<"mounted_reclaim_complete backing="<<reclaim_backing_name(profile)
       <<" cycles="<<cycles<<" delete_regrow="<<cycles-1<<" continued_writes=1 both_leases_retired=1\n";
+  if(mixed_flush)
+    std::cout<<"mounted_mixed_recovery phase=complete overlap_cycles=3 interrupted_after_both_flushes=1"
+        <<" continued_after_reopen=1 settled_checkpoints=2\n";
 }
 
 void mounted_packed_file_gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budget,bool compare) {
@@ -1828,8 +1946,10 @@ int wmain(int argc,wchar_t** argv) {
     const bool populated=mode==L"--gui-mounted-populated-file-sandbox" || interruption.has_value();
     const bool packed_compare=mode==L"--gui-mounted-packed-compare-sandbox";
     const bool packed=mode==L"--gui-mounted-packed-file-sandbox" || packed_compare;
-    const bool packed_churn=mode==L"--gui-mounted-packed-churn-sandbox";
-    const bool sparse_churn=mode==L"--gui-mounted-sparse-churn-sandbox";
+    const bool packed_mixed=mode==L"--gui-mounted-mixed-churn-recovery-sandbox";
+    const bool sparse_mixed=mode==L"--gui-mounted-sparse-mixed-churn-recovery-sandbox";
+    const bool packed_churn=mode==L"--gui-mounted-packed-churn-sandbox" || packed_mixed;
+    const bool sparse_churn=mode==L"--gui-mounted-sparse-churn-sandbox" || sparse_mixed;
     const bool mounted=argc==3 && (mode==L"--gui-mounted-sandbox" ||
         mode==L"--gui-mounted-file-sandbox" || populated || packed || packed_churn || sparse_churn);
     app_fixture::Budget budget(!mounted);
@@ -1847,7 +1967,8 @@ int wmain(int argc,wchar_t** argv) {
       else if(mode==L"--gui-mounted-sandbox")gui_tests(app,budget,GuiRuntime::mounted);
       else if(packed)mounted_packed_file_gui_tests(app,budget,packed_compare);
       else if(packed_churn || sparse_churn)
-        mounted_reclamation_gui_tests(app,budget,packed_churn?MountedReclaimBacking::packed:MountedReclaimBacking::sparse);
+        mounted_reclamation_gui_tests(app,budget,packed_churn?MountedReclaimBacking::packed:MountedReclaimBacking::sparse,
+            packed_mixed || sparse_mixed);
       else if(mode==L"--gui-mounted-file-sandbox" || populated)mounted_file_gui_tests(app,budget,populated,interruption);
       else throw std::runtime_error("Unknown GUI qualification mode");
     } else throw std::runtime_error("Explicit model, maintenance or GUI qualification mode required");

@@ -398,6 +398,24 @@ and power-loss behavior still require qualification.
 
 #### Mounted process interruption
 
+The three-file client trace issued a cached update and a mapped update
+on separate files. The mapped edit crossed a native extent boundary.
+The client flushed the mapped view, then released the two file-handle
+flushes at a common barrier. Both calls succeeded with overlapping
+client intervals on packed and sparse NTFS backing in all three cycles.
+
+The fixture stopped the helper after both acknowledgements in cycle two,
+with a witness read handle open. The mount was removed and independent
+CPU inspection verified the exact namespace and both acknowledged
+payloads. A fresh writable attach verified those edits, performed new
+edits and reclaimed the occupied sizes back to their own pre-interruption
+values of 2,097,152 and 1,835,008 bytes. The settled snapshots had no
+eligible backing retirement or pending retired inode. The report records
+the exact three-file workload and process cut.
+[Mixed flush and recovery evidence](evidence/windows-mounted-mixed-flush-recovery-2026-11-23.json) ·
+[Windows mapped flush contract](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-flushviewoffile) ·
+[WinFsp flush contract](https://winfsp.dev/apiref/)
+
 The signed WinFsp 2.2 probe ran the writable session and an independent
 Win32 client on sparse NTFS in a disposable Windows 11 guest. The client
 kept the same file handle and inode through live selection, then wrote

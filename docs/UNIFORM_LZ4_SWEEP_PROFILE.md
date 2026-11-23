@@ -77,6 +77,20 @@ with about 43–58 ms between the events. Launch calls in the recorded windows
 took up to about 1.26 ms. Measure both sources of tail cost when choosing the
 next throughput change. [Exact timing evidence](evidence/windows-amd-sweep-timeline-2026-11-23.json)
 
+A later control kept the original extents, launch geometry and worker
+identities. Two four-extent launches processed the same original extents at
+the same window ordinal. Their event intervals were about 416 ms and 35 ms,
+and both host synchronization waits exceeded 400 ms. Use observed runtime
+and host activity alongside data and geometry when estimating the tail.
+
+The reordered arm moved the last four extents to the first position. Three
+requests passed complete independent CPU verification. The next worker
+retired with a classified execution-stage device fault. The completed
+original and reordered requests each encoded 467,755 bytes. The exit
+identifies the failing stage. More specific runtime-call evidence is needed
+to localize the failure and qualify a sustained dispatch policy.
+[Input order evidence](evidence/windows-amd-sweep-input-order-2026-11-23.json)
+
 ## What this permits next
 
 Use source-bound, repeated, varied-content observations with independently

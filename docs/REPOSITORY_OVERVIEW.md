@@ -36,7 +36,7 @@ through the helper next. [Helper factory](../src/windows/volume_app_winfsp.cpp) 
 [Foreground activation tests](../tests/test_native_deferred_write_sdk.cpp) ·
 [Mounted packed lifecycle](evidence/windows-packed-explorer-2026-11-23.json)
 
-**The latest mounted test crossed a physical allocation boundary.** The
+**Mounted packed reclamation crossed a physical allocation boundary.** The
 signed NTFS guest completed 60 flushed revisions, selected a new image
 and brought occupied allocation from 270,598,144 to 265,551,872 bytes.
 Both allocation anchors advanced while the held reader stayed exact. An
@@ -49,6 +49,14 @@ the sparse allocation to 1.75 MiB. A fresh helper wrote successfully again
 in each later cycle. The held reader, independent CPU inspection and
 persisted retirement checks passed on every cycle. Scale and sustained
 attachment still need separate evidence. [Repeated settlement](evidence/windows-mounted-repeated-reclamation-2026-11-23.json)
+
+**Concurrent cached and mapped flushes survived helper interruption.**
+The three-file fixture observed two overlapping successful file-handle
+flush calls on each of three cycles. An independent CPU reader recovered
+both edits after the second cycle's process exit. A fresh attach wrote
+again and both backings returned to their previous occupied size.
+[Mixed flush recovery](evidence/windows-mounted-mixed-flush-recovery-2026-11-23.json)
+
 **AMD can produce stored extents and read them back through the independent
 CPU path.** The controlled fast-write route committed 16 real Radeon extents
 and verified both protected copies of each. The automatic-policy helper

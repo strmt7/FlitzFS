@@ -1,0 +1,914 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "artifact_source": {
+    "commit": "c2b38d75f55feff5b9f053eb89b1ade0086fb3d8",
+    "blobs": {
+      "src/windows/hip_uniform_lz4_compute.cpp": "47874f72bc284f15abee030a329965730f595ee2",
+      "src/windows/hip_uniform_lz4_compute.hpp": "d995cec0f6e17c5d47346f9429b959f15055976a",
+      "src/windows/hip_uniform_lz4_reuse.hpp": "487ca339449560cfcd13f0b35ab275e287553007",
+      "src/windows/hip_worker_main.cpp": "9955381823556fd86ba0b98495baf19885116884",
+      "src/windows/uniform_lz4_sweep_profile.hpp": "e66a382dac043b0302ca34e7d4e25a201dd47f60",
+      "src/windows/uniform_lz4_sweep_trace.hpp": "6e669a8df1e2d439443fd19dd66a9fe7d6524d8c",
+      "tests/rocm_compile/uniform_lz4_compute_probe.cpp": "16292e1a15eac4c18f3f2f70e4b8708e604b2068",
+      "tests/test_native_deferred_write_sdk.cpp": "b9e34436f9cfc9862e244486ef310909247df7c5",
+      "tests/test_uniform_lz4_sweep_profile.cpp": "3a27b33ca8a15dedcb9432cb93682bb74c099bf9"
+    },
+    "existing_scope": "windows-amd-sweep-timeline-2026-11-23.json",
+    "manifest": {
+      "kind": "probe",
+      "manifest": {
+        "path": "qualification-manifest.json",
+        "bytes": 528,
+        "sha256": "7dbb86231bee89009398a7a1f0077c4c90a0646e30fc99d356e43fb0ca294b9d"
+      },
+      "files": [
+        {
+          "path": "flitzfs_hip_lz4_worker.exe",
+          "bytes": 610304,
+          "sha256": "35a3c7b96a0516278fa76ec70e772344bb604c75541101e231296c058d15a20c"
+        },
+        {
+          "path": "hip-uniform-lz4/flitzfs_rocm_uniform_lz4_candidate.dll",
+          "bytes": 322048,
+          "sha256": "64601897f13003dfea6d47116963c96b2ce7af1a80e5b854e6397b12cbc6bc3d"
+        },
+        {
+          "path": "winfsp-x64.dll",
+          "bytes": 200816,
+          "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+        },
+        {
+          "path": "flitzfs_native_deferred_write_sdk_tests.exe",
+          "bytes": 2313216,
+          "sha256": "431cb6570b736ca77ff08287dd2df27cce1a520c56113206a9b94377bc9005fd"
+        }
+      ]
+    }
+  },
+  "source_unchanged_at": "8ae71317ea0be78a81172449229be0d8af92e5bf",
+  "inputs": {
+    "source_sha256": "5efc5c798295069e2151fdd2eaf06366dc0aa2e92a93ccf178ae3f5cfb309792",
+    "rotated_sha256": "d01a2e37a31c98af7205432356b298410e16e626d29f1fd5e3fb5a58c6505c0f",
+    "bytes": 1048576,
+    "source_indices_in_rotated_order": [
+      12,
+      13,
+      14,
+      15,
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ]
+  },
+  "admission": {
+    "prior_deferrals": [
+      {
+        "receipt": "local-run-63b167f0f38f466281475f3d5928d572",
+        "receipt_sha256": "965828002ecb3eafadf19545fa8c5cb42a6191460f6237a87e7a5122f4f6958d",
+        "stdout_sha256": "3e4efd2b7c9831c68f6d0bc1fb933518c8b960fe9a6d0cdb827d45b252ab8a5b",
+        "exit": 0,
+        "cpu_percent": 10,
+        "limit_committed_bytes": 1005584384,
+        "peak_committed_bytes": 41656320,
+        "all_owned_processes_retired": true,
+        "data": {
+          "ready": false,
+          "loads": [
+            31,
+            16,
+            23
+          ],
+          "build": "26300",
+          "physical_available_kib": 23062016,
+          "commit_available_kib": 51301448,
+          "devices": [
+            {
+              "Name": "AMD Radeon RX 9070 XT",
+              "DriverVersion": "32.0.32029.2010"
+            }
+          ],
+          "artifacts": [
+            {
+              "name": "flitzfs_hip_lz4_worker.exe",
+              "sha256": "35a3c7b96a0516278fa76ec70e772344bb604c75541101e231296c058d15a20c",
+              "bytes": 610304
+            },
+            {
+              "name": "flitzfs_rocm_uniform_lz4_candidate.dll",
+              "sha256": "64601897f13003dfea6d47116963c96b2ce7af1a80e5b854e6397b12cbc6bc3d",
+              "bytes": 322048
+            },
+            {
+              "name": "amdhip64_7.dll",
+              "sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+              "bytes": 17382040
+            }
+          ]
+        }
+      },
+      {
+        "receipt": "local-run-4281ab4fd1a74254bd840f6dd581c98a",
+        "receipt_sha256": "71efd11b3cbbb820d38478a4833bc266a5a51cbdb527ca4ae1e5290fc40e4aee",
+        "stdout_sha256": "7f362363549e8130c0606fea5ae88a00783a03d412e189589b102ecfb5fe6e56",
+        "exit": 0,
+        "cpu_percent": 10,
+        "limit_committed_bytes": 1056964608,
+        "peak_committed_bytes": 41766912,
+        "all_owned_processes_retired": true,
+        "data": {
+          "ready": false,
+          "loads": [
+            34,
+            21,
+            11
+          ],
+          "build": "26300",
+          "physical_available_kib": 24844616,
+          "commit_available_kib": 53525116,
+          "devices": [
+            {
+              "Name": "AMD Radeon RX 9070 XT",
+              "DriverVersion": "32.0.32029.2010"
+            }
+          ],
+          "artifacts": [
+            {
+              "name": "flitzfs_hip_lz4_worker.exe",
+              "sha256": "35a3c7b96a0516278fa76ec70e772344bb604c75541101e231296c058d15a20c",
+              "bytes": 610304
+            },
+            {
+              "name": "flitzfs_rocm_uniform_lz4_candidate.dll",
+              "sha256": "64601897f13003dfea6d47116963c96b2ce7af1a80e5b854e6397b12cbc6bc3d",
+              "bytes": 322048
+            },
+            {
+              "name": "amdhip64_7.dll",
+              "sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+              "bytes": 17382040
+            }
+          ]
+        }
+      },
+      {
+        "receipt": "local-run-08e7f57e076341dc97bf0289ab29e0cc",
+        "receipt_sha256": "6f174d0834c19fc5be663ec6683ac89d3e3f0776b1ae55ba9f19244350f5f724",
+        "stdout_sha256": "d756dce6b320e7a4ebc56787d3e325960b08b81fd8d6292ec76dc13cfe74d994",
+        "exit": 0,
+        "cpu_percent": 10,
+        "limit_committed_bytes": 1051721728,
+        "peak_committed_bytes": 42549248,
+        "all_owned_processes_retired": true,
+        "data": {
+          "ready": false,
+          "loads": [
+            14,
+            29,
+            35
+          ],
+          "all_loads": [
+            25,
+            17,
+            14,
+            29,
+            35
+          ],
+          "build": "26300",
+          "physical_available_kib": 24560048,
+          "commit_available_kib": 53184104,
+          "devices": [
+            {
+              "Name": "AMD Radeon RX 9070 XT",
+              "DriverVersion": "32.0.32029.2010"
+            }
+          ],
+          "artifacts": [
+            {
+              "name": "flitzfs_hip_lz4_worker.exe",
+              "sha256": "35a3c7b96a0516278fa76ec70e772344bb604c75541101e231296c058d15a20c",
+              "bytes": 610304
+            },
+            {
+              "name": "flitzfs_rocm_uniform_lz4_candidate.dll",
+              "sha256": "64601897f13003dfea6d47116963c96b2ce7af1a80e5b854e6397b12cbc6bc3d",
+              "bytes": 322048
+            },
+            {
+              "name": "amdhip64_7.dll",
+              "sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+              "bytes": 17382040
+            }
+          ]
+        }
+      }
+    ],
+    "method": "Five host observations with three final samples controlling the current budget. Read-only artifact checks and empty Sandbox inventory required.",
+    "preflight_sha256": "28313d6312ffd71ac4ef18516912e4756530863c67253ceba4ae442934333577"
+  },
+  "original_order": {
+    "receipt": "local-run-4d039988ef794ca18c500fde73c449c1",
+    "receipt_sha256": "99964b31d839616cfdedf4fe7ed7899888df134a47165a623ff502922476b996",
+    "stdout_sha256": "0ac255ec1a588dde1077337bb8ff7c3b6fec5557717769a15704af9d986161d5",
+    "exit": 0,
+    "cpu_percent": 20,
+    "limit_committed_bytes": 1065353216,
+    "peak_committed_bytes": 117182464,
+    "all_owned_processes_retired": true,
+    "preflight": {
+      "receipt": "local-run-6414f08f6d2b4f958478c8bbc06bad10",
+      "receipt_sha256": "88639b14040ca9ad45a1cd01d4b85aa6c77eab1227ce300c7a27f132f826f09b",
+      "stdout_sha256": "7a01526da0427a20aa5681325d1e3678fd86c54cafe621abd82e053e7146df1a",
+      "exit": 0,
+      "cpu_percent": 9,
+      "limit_committed_bytes": 1065353216,
+      "peak_committed_bytes": 41816064,
+      "all_owned_processes_retired": true,
+      "data": {
+        "ready": true,
+        "loads": [
+          14,
+          19,
+          18
+        ],
+        "all_loads": [
+          23,
+          31,
+          14,
+          19,
+          18
+        ],
+        "build": "26300",
+        "physical_available_kib": 24928284,
+        "commit_available_kib": 54851856,
+        "devices": [
+          {
+            "Name": "AMD Radeon RX 9070 XT",
+            "DriverVersion": "32.0.32029.2010"
+          }
+        ],
+        "artifacts": [
+          {
+            "name": "flitzfs_hip_lz4_worker.exe",
+            "sha256": "35a3c7b96a0516278fa76ec70e772344bb604c75541101e231296c058d15a20c",
+            "bytes": 610304
+          },
+          {
+            "name": "flitzfs_rocm_uniform_lz4_candidate.dll",
+            "sha256": "64601897f13003dfea6d47116963c96b2ce7af1a80e5b854e6397b12cbc6bc3d",
+            "bytes": 322048
+          },
+          {
+            "name": "amdhip64_7.dll",
+            "sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+            "bytes": 17382040
+          }
+        ]
+      }
+    },
+    "postflight": {
+      "receipt": "local-run-324510e45a7141c68617985527af04e4",
+      "receipt_sha256": "a6d695376b33ac5c5593b2cefe1e2ee72052ddeeaf2852f74ce47745946a5b4c",
+      "stdout_sha256": "f18146e3bd1347abf3c4ea2ac5cd3e5649d81bfcd4fc65621189ce739539cf12",
+      "exit": 0,
+      "cpu_percent": 9,
+      "limit_committed_bytes": 1063256064,
+      "peak_committed_bytes": 42524672,
+      "all_owned_processes_retired": true,
+      "data": {
+        "ready": true,
+        "loads": [
+          17,
+          20,
+          20
+        ],
+        "all_loads": [
+          27,
+          18,
+          17,
+          20,
+          20
+        ],
+        "build": "26300",
+        "physical_available_kib": 24888352,
+        "commit_available_kib": 54626728,
+        "devices": [
+          {
+            "Name": "AMD Radeon RX 9070 XT",
+            "DriverVersion": "32.0.32029.2010"
+          }
+        ],
+        "artifacts": [
+          {
+            "name": "flitzfs_hip_lz4_worker.exe",
+            "sha256": "35a3c7b96a0516278fa76ec70e772344bb604c75541101e231296c058d15a20c",
+            "bytes": 610304
+          },
+          {
+            "name": "flitzfs_rocm_uniform_lz4_candidate.dll",
+            "sha256": "64601897f13003dfea6d47116963c96b2ce7af1a80e5b854e6397b12cbc6bc3d",
+            "bytes": 322048
+          },
+          {
+            "name": "amdhip64_7.dll",
+            "sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+            "bytes": 17382040
+          }
+        ]
+      }
+    },
+    "profiles": [
+      {
+        "request": 1,
+        "quantum": 2,
+        "windows": 8,
+        "parent_ns": 4300534600,
+        "fixed_ns": 3588690700,
+        "setup_ns": 2982708200,
+        "maximum_window_ns": 409622500,
+        "maximum_kernel_wait_ns": 408950500,
+        "encoded_bytes": 467755,
+        "verified": 1,
+        "retired": 1
+      },
+      {
+        "request": 2,
+        "quantum": 4,
+        "windows": 4,
+        "parent_ns": 2373434600,
+        "fixed_ns": 1813604800,
+        "setup_ns": 1648907000,
+        "maximum_window_ns": 417156700,
+        "maximum_kernel_wait_ns": 416181700,
+        "encoded_bytes": 467755,
+        "verified": 1,
+        "retired": 1
+      },
+      {
+        "request": 3,
+        "quantum": 4,
+        "windows": 4,
+        "parent_ns": 1904467500,
+        "fixed_ns": 1348691900,
+        "setup_ns": 1186067400,
+        "maximum_window_ns": 421859200,
+        "maximum_kernel_wait_ns": 410389100,
+        "encoded_bytes": 467755,
+        "verified": 1,
+        "retired": 1
+      },
+      {
+        "request": 4,
+        "quantum": 2,
+        "windows": 8,
+        "parent_ns": 2325333000,
+        "fixed_ns": 1245706400,
+        "setup_ns": 1097275500,
+        "maximum_window_ns": 443149700,
+        "maximum_kernel_wait_ns": 442534600,
+        "encoded_bytes": 467755,
+        "verified": 1,
+        "retired": 1
+      },
+      {
+        "request": 5,
+        "quantum": 2,
+        "windows": 8,
+        "parent_ns": 2893250200,
+        "fixed_ns": 1740901200,
+        "setup_ns": 1591109400,
+        "maximum_window_ns": 466961500,
+        "maximum_kernel_wait_ns": 466273000,
+        "encoded_bytes": 467755,
+        "verified": 1,
+        "retired": 1
+      },
+      {
+        "request": 6,
+        "quantum": 4,
+        "windows": 4,
+        "parent_ns": 2375493100,
+        "fixed_ns": 1798854900,
+        "setup_ns": 1641421100,
+        "maximum_window_ns": 445576600,
+        "maximum_kernel_wait_ns": 444549500,
+        "encoded_bytes": 467755,
+        "verified": 1,
+        "retired": 1
+      }
+    ],
+    "trace_windows": [
+      {
+        "request": 1,
+        "phase": "first",
+        "window": 0,
+        "host_ns": 48267100,
+        "launch_ns": 678600,
+        "sync_ns": 47555400,
+        "stream_ns": 47461601,
+        "original_extent_indices": [
+          0,
+          1
+        ]
+      },
+      {
+        "request": 1,
+        "phase": "slowest_later",
+        "window": 3,
+        "host_ns": 408950500,
+        "launch_ns": 10400,
+        "sync_ns": 408925000,
+        "stream_ns": 40997898,
+        "original_extent_indices": [
+          6,
+          7
+        ]
+      },
+      {
+        "request": 2,
+        "phase": "first",
+        "window": 0,
+        "host_ns": 48222000,
+        "launch_ns": 933900,
+        "sync_ns": 47259100,
+        "stream_ns": 47162899,
+        "original_extent_indices": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "request": 2,
+        "phase": "slowest_later",
+        "window": 3,
+        "host_ns": 416181700,
+        "launch_ns": 11000,
+        "sync_ns": 416154400,
+        "stream_ns": 415886901,
+        "original_extent_indices": [
+          12,
+          13,
+          14,
+          15
+        ]
+      },
+      {
+        "request": 3,
+        "phase": "first",
+        "window": 0,
+        "host_ns": 410389100,
+        "launch_ns": 700400,
+        "sync_ns": 409655800,
+        "stream_ns": 49019100,
+        "original_extent_indices": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "request": 3,
+        "phase": "slowest_later",
+        "window": 1,
+        "host_ns": 47481300,
+        "launch_ns": 9600,
+        "sync_ns": 47427600,
+        "stream_ns": 47327190,
+        "original_extent_indices": [
+          4,
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "request": 4,
+        "phase": "first",
+        "window": 0,
+        "host_ns": 399233400,
+        "launch_ns": 822000,
+        "sync_ns": 398381200,
+        "stream_ns": 43324199,
+        "original_extent_indices": [
+          0,
+          1
+        ]
+      },
+      {
+        "request": 4,
+        "phase": "slowest_later",
+        "window": 5,
+        "host_ns": 442534600,
+        "launch_ns": 11200,
+        "sync_ns": 442501800,
+        "stream_ns": 32219001,
+        "original_extent_indices": [
+          10,
+          11
+        ]
+      },
+      {
+        "request": 5,
+        "phase": "first",
+        "window": 0,
+        "host_ns": 42845100,
+        "launch_ns": 902500,
+        "sync_ns": 41914400,
+        "stream_ns": 41837898,
+        "original_extent_indices": [
+          0,
+          1
+        ]
+      },
+      {
+        "request": 5,
+        "phase": "slowest_later",
+        "window": 7,
+        "host_ns": 466273000,
+        "launch_ns": 10300,
+        "sync_ns": 466246600,
+        "stream_ns": 38182159,
+        "original_extent_indices": [
+          14,
+          15
+        ]
+      },
+      {
+        "request": 6,
+        "phase": "first",
+        "window": 0,
+        "host_ns": 42495800,
+        "launch_ns": 962200,
+        "sync_ns": 41496800,
+        "stream_ns": 41326198,
+        "original_extent_indices": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "request": 6,
+        "phase": "slowest_later",
+        "window": 3,
+        "host_ns": 444549500,
+        "launch_ns": 11300,
+        "sync_ns": 444513000,
+        "stream_ns": 34739398,
+        "original_extent_indices": [
+          12,
+          13,
+          14,
+          15
+        ]
+      }
+    ],
+    "pairs": [
+      {
+        "pair": 1,
+        "wide_first": 0,
+        "narrow_ns": 4300534600,
+        "wide_ns": 2373434600,
+        "narrow_fixed_ns": 3588690700,
+        "wide_fixed_ns": 1813604800,
+        "identical_payload": 1
+      },
+      {
+        "pair": 2,
+        "wide_first": 1,
+        "narrow_ns": 2325333000,
+        "wide_ns": 1904467500,
+        "narrow_fixed_ns": 1245706400,
+        "wide_fixed_ns": 1348691900,
+        "identical_payload": 1
+      },
+      {
+        "pair": 3,
+        "wide_first": 0,
+        "narrow_ns": 2893250200,
+        "wide_ns": 2375493100,
+        "narrow_fixed_ns": 1740901200,
+        "wide_fixed_ns": 1798854900,
+        "identical_payload": 1
+      }
+    ],
+    "complete": true
+  },
+  "reordered_extents": {
+    "receipt": "local-run-02ce9316c36d41daabbe5ddd189ba9dd",
+    "receipt_sha256": "7d319529522a5e780183e35d58af9a36c87266ddcd8e9046b1600ee6d3d82a80",
+    "stdout_sha256": "cdf0ee5750e42509b94f1e447059940a6e356c66ec8c4e2472dd30874ccc1e04",
+    "exit": 1,
+    "cpu_percent": 20,
+    "limit_committed_bytes": 1048576000,
+    "peak_committed_bytes": 118939648,
+    "all_owned_processes_retired": true,
+    "preflight": {
+      "receipt": "local-run-61d9a39455df469180b97a8559d663d1",
+      "receipt_sha256": "78d941f473bc90d176d4e1864cc707a9c9fe4d45c0c3074c43ef5e34636169e8",
+      "stdout_sha256": "83208e2fd59b706a5b967dfca842eb1a95f343c7c6cf9373edfb6bdb7cbbb504",
+      "exit": 0,
+      "cpu_percent": 9,
+      "limit_committed_bytes": 1061158912,
+      "peak_committed_bytes": 41865216,
+      "all_owned_processes_retired": true,
+      "data": {
+        "ready": true,
+        "loads": [
+          17,
+          20,
+          23
+        ],
+        "all_loads": [
+          22,
+          21,
+          17,
+          20,
+          23
+        ],
+        "build": "26300",
+        "physical_available_kib": 24609144,
+        "commit_available_kib": 53407084,
+        "devices": [
+          {
+            "Name": "AMD Radeon RX 9070 XT",
+            "DriverVersion": "32.0.32029.2010"
+          }
+        ],
+        "artifacts": [
+          {
+            "name": "flitzfs_hip_lz4_worker.exe",
+            "sha256": "35a3c7b96a0516278fa76ec70e772344bb604c75541101e231296c058d15a20c",
+            "bytes": 610304
+          },
+          {
+            "name": "flitzfs_rocm_uniform_lz4_candidate.dll",
+            "sha256": "64601897f13003dfea6d47116963c96b2ce7af1a80e5b854e6397b12cbc6bc3d",
+            "bytes": 322048
+          },
+          {
+            "name": "amdhip64_7.dll",
+            "sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+            "bytes": 17382040
+          }
+        ]
+      }
+    },
+    "postflight": {
+      "receipt": "local-run-a3299a2f432e4862a7faa3779c9c0aa6",
+      "receipt_sha256": "112b1d4d3dd392c59dc520f72d5c88718ded7c27b73b2105d64c62626e7e0683",
+      "stdout_sha256": "c36bad110bfe14595586cc1e25676220ea7e6b7f366b35ec10891efda6b22a8a",
+      "exit": 0,
+      "cpu_percent": 9,
+      "limit_committed_bytes": 1061158912,
+      "peak_committed_bytes": 41811968,
+      "all_owned_processes_retired": true,
+      "data": {
+        "ready": true,
+        "loads": [
+          25,
+          25,
+          26
+        ],
+        "all_loads": [
+          17,
+          17,
+          25,
+          25,
+          26
+        ],
+        "build": "26300",
+        "physical_available_kib": 24927432,
+        "commit_available_kib": 53800056,
+        "devices": [
+          {
+            "Name": "AMD Radeon RX 9070 XT",
+            "DriverVersion": "32.0.32029.2010"
+          }
+        ],
+        "artifacts": [
+          {
+            "name": "flitzfs_hip_lz4_worker.exe",
+            "sha256": "35a3c7b96a0516278fa76ec70e772344bb604c75541101e231296c058d15a20c",
+            "bytes": 610304
+          },
+          {
+            "name": "flitzfs_rocm_uniform_lz4_candidate.dll",
+            "sha256": "64601897f13003dfea6d47116963c96b2ce7af1a80e5b854e6397b12cbc6bc3d",
+            "bytes": 322048
+          },
+          {
+            "name": "amdhip64_7.dll",
+            "sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+            "bytes": 17382040
+          }
+        ]
+      }
+    },
+    "profiles": [
+      {
+        "request": 1,
+        "quantum": 2,
+        "windows": 8,
+        "parent_ns": 4271213300,
+        "fixed_ns": 3067107700,
+        "setup_ns": 2889499800,
+        "maximum_window_ns": 448446600,
+        "maximum_kernel_wait_ns": 447779700,
+        "encoded_bytes": 467755,
+        "verified": 1,
+        "retired": 1
+      },
+      {
+        "request": 2,
+        "quantum": 4,
+        "windows": 4,
+        "parent_ns": 2312089200,
+        "fixed_ns": 1761684100,
+        "setup_ns": 1577646400,
+        "maximum_window_ns": 430442300,
+        "maximum_kernel_wait_ns": 429562000,
+        "encoded_bytes": 467755,
+        "verified": 1,
+        "retired": 1
+      },
+      {
+        "request": 3,
+        "quantum": 4,
+        "windows": 4,
+        "parent_ns": 2376808800,
+        "fixed_ns": 1823991500,
+        "setup_ns": 1654056400,
+        "maximum_window_ns": 427639400,
+        "maximum_kernel_wait_ns": 426602400,
+        "encoded_bytes": 467755,
+        "verified": 1,
+        "retired": 1
+      }
+    ],
+    "trace_windows": [
+      {
+        "request": 1,
+        "phase": "first",
+        "window": 0,
+        "host_ns": 49506900,
+        "launch_ns": 1172800,
+        "sync_ns": 48272500,
+        "stream_ns": 48174900,
+        "original_extent_indices": [
+          12,
+          13
+        ]
+      },
+      {
+        "request": 1,
+        "phase": "slowest_later",
+        "window": 6,
+        "host_ns": 447779700,
+        "launch_ns": 11600,
+        "sync_ns": 447752100,
+        "stream_ns": 39233951,
+        "original_extent_indices": [
+          8,
+          9
+        ]
+      },
+      {
+        "request": 2,
+        "phase": "first",
+        "window": 0,
+        "host_ns": 35281700,
+        "launch_ns": 866400,
+        "sync_ns": 34385100,
+        "stream_ns": 34304000,
+        "original_extent_indices": [
+          12,
+          13,
+          14,
+          15
+        ]
+      },
+      {
+        "request": 2,
+        "phase": "slowest_later",
+        "window": 3,
+        "host_ns": 429562000,
+        "launch_ns": 10400,
+        "sync_ns": 429538200,
+        "stream_ns": 36547401,
+        "original_extent_indices": [
+          8,
+          9,
+          10,
+          11
+        ]
+      },
+      {
+        "request": 3,
+        "phase": "first",
+        "window": 0,
+        "host_ns": 36787500,
+        "launch_ns": 1042200,
+        "sync_ns": 35712100,
+        "stream_ns": 35608600,
+        "original_extent_indices": [
+          12,
+          13,
+          14,
+          15
+        ]
+      },
+      {
+        "request": 3,
+        "phase": "slowest_later",
+        "window": 3,
+        "host_ns": 426602400,
+        "launch_ns": 11700,
+        "sync_ns": 426571400,
+        "stream_ns": 34054298,
+        "original_extent_indices": [
+          8,
+          9,
+          10,
+          11
+        ]
+      }
+    ],
+    "pairs": [
+      {
+        "pair": 1,
+        "wide_first": 0,
+        "narrow_ns": 4271213300,
+        "wide_ns": 2312089200,
+        "narrow_fixed_ns": 3067107700,
+        "wide_fixed_ns": 1761684100,
+        "identical_payload": 1
+      }
+    ],
+    "complete": false,
+    "failure": {
+      "request": 4,
+      "quantum": 2,
+      "code": 1,
+      "worker_exit": 1179847429,
+      "worker_ms": 2422,
+      "exit_confirmed": 1,
+      "retired": 1,
+      "category": "device_fault",
+      "stage": "execution",
+      "retry_performed": false
+    }
+  },
+  "same_ordinal_same_content_control": {
+    "long_interval": {
+      "request": 2,
+      "phase": "slowest_later",
+      "window": 3,
+      "host_ns": 416181700,
+      "launch_ns": 11000,
+      "sync_ns": 416154400,
+      "stream_ns": 415886901,
+      "original_extent_indices": [
+        12,
+        13,
+        14,
+        15
+      ]
+    },
+    "short_interval": {
+      "request": 6,
+      "phase": "slowest_later",
+      "window": 3,
+      "host_ns": 444549500,
+      "launch_ns": 11300,
+      "sync_ns": 444513000,
+      "stream_ns": 34739398,
+      "original_extent_indices": [
+        12,
+        13,
+        14,
+        15
+      ]
+    }
+  },
+  "conclusions": [
+    "Request 2 and request 6 both processed original extents 12–15 at the same four-extent launch ordinal. The stream intervals were about 416 and 35 ms while both host waits exceeded 400 ms.",
+    "Reordering preserved the exact input extents. Three reordered outputs passed independent CPU verification before a classified execution-stage device failure ended that arm.",
+    "Input contents and launch ordinal alone did not predict the measured long in-stream interval. The incomplete reordered arm does not qualify an acceleration policy or establish a failure's cause.",
+    "The diagnostic ended with confirmed owned-process retirement. It exercised neither an ordinary mounted write route nor CPU failover of the refused request."
+  ],
+  "release_qualified": false
+}
