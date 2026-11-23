@@ -3731,18 +3731,30 @@ void live_memory_composition(NativeImageKind kind=NativeImageKind::paged,bool sh
   require(MemoryVolumeDomain::cleanup_healthy(),"memory composition cleanup failed");
 }
 
-void volume_file_sealed_callbacks() {
-  constexpr PagedStoreLimits limits{8ULL*1024*1024};
+enum class PairedWorkspaceFixture {file,locked_memory,denied_memory};
+struct PairedWorkspaceResult {
+  std::uint64_t written=0,allocated=0;
+};
+PairedWorkspaceResult volume_file_sealed_callbacks(PairedWorkspaceFixture workspace=PairedWorkspaceFixture::file,
+    std::uint32_t unit=4096) {
+  const PagedStoreLimits limits{(unit==4096?8ULL:16ULL)*1024*1024};
   constexpr StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
-  auto backing=std::make_shared<SparseVolumeRam>(4096,2*limits.maximum_physical_bytes+2*1024*1024);
+  auto backing=std::make_shared<SparseVolumeRam>(unit,2*limits.maximum_physical_bytes+2*1024*1024);
+  std::optional<MemoryVolumeDomain> occupied_domain;
+  if(workspace==PairedWorkspaceFixture::denied_memory)
+    occupied_domain.emplace(MemoryVolumeDomain::create(kStoreCommitUnit));
   auto expected=data(2'861'348,167);
+  std::uint64_t attempted_backing_writes=0;
   constexpr auto edit_at=kNativeExtentBytes-13;
   Provider provider;Provider::active=&provider;
   {
-    WinFspNativeSession session(WinFspNativeWritable::create_file_volume(backing,id(90),id(1),limits,raw),provider.api());
+    auto adapter=WinFspNativeWritable::create_file_volume(backing,id(90),id(1),limits,raw);
+    if(workspace!=PairedWorkspaceFixture::file)adapter->enable_paired_seal_memory();
+    WinFspNativeSession session(std::move(adapter),provider.api());
     require(session.start(plan())==STATUS_SUCCESS,"paired seal SDK fixture could not start");
     callback_file(provider,0,expected,kStoreMaxObjectBytes);
-    callback_file(provider,1,Bytes(2*1024*1024),kStoreMaxObjectBytes);
+    callback_file(provider,1,Bytes((unit==4096?2U:3U)*1024*1024),kStoreMaxObjectBytes);
+    if(unit!=4096)callback_file(provider,2,Bytes(3U*1024*1024),kStoreMaxObjectBytes);
     wchar_t name[]=L"\\f0";
     PVOID context=nullptr;FSP_FSCTL_FILE_INFO metadata{};
     auto* fs=&provider.fs;
@@ -3756,15 +3768,22 @@ void volume_file_sealed_callbacks() {
     observed.valid=true;observed.physical_total=16ULL<<30;observed.physical_available=12ULL<<30;
     observed.commit_limit=32ULL<<30;observed.commit_available=24ULL<<30;
     observed.cpu_total_ticks=1000;observed.cpu_window_ms=1000;
+    const auto before_writes=backing->io.write_bytes;
     bool selected=false;
+    WinFspMaintenanceResult last;
     for(unsigned turn=0;!selected && session.background_maintenance_pending() && turn<3200;++turn) {
       ++observed.sequence;observed.captured_ms+=observed.cpu_window_ms;
-      const auto offer=session.advance_background_maintenance(observed,observed.captured_ms);
-      require(!offer.compaction_failed && offer.progress.phase!=NativeMaintenancePhase::failed,
+      last=session.advance_background_maintenance(observed,observed.captured_ms);
+      require(!last.compaction_failed && last.progress.phase!=NativeMaintenancePhase::failed,
           "paired SDK compaction failed");
-      selected=offer.sealed_image;
+      selected=last.sealed_image;
     }
+    if(!selected)std::cerr<<"paired SDK seal unit="<<unit<<" workspace="<<static_cast<unsigned>(workspace)
+        <<" phase="<<static_cast<unsigned>(last.progress.phase)<<" deferral="<<static_cast<unsigned>(last.progress.deferral)<<'\n';
     require(selected,"ordinary SDK maintenance did not select a funded sealed image");
+    require(bool(backing->range_reclaims)==(workspace!=PairedWorkspaceFixture::locked_memory),
+        "sealed SDK fixture did not place scratch on the admitted provider");
+    attempted_backing_writes=backing->io.write_bytes-before_writes;
     auto edit=data(3001,913);
     require(fs->Interface->Write(fs,context,edit.data(),edit_at,static_cast<ULONG>(edit.size()),
         FALSE,FALSE,&bytes,&metadata)==STATUS_SUCCESS && bytes==edit.size(),"open context could not write the selected tail");
@@ -3779,7 +3798,16 @@ void volume_file_sealed_callbacks() {
   const auto view=NativeVolumeFile::inspect(backing->replay(),id(90));
   require(view.info().selection.sealed_range && view.filesystem().read("f0",0,
       static_cast<std::uint32_t>(expected.size()))==expected,"CPU inspection lost the SDK tail write");
-  std::cout<<"paired_sealed_sdk selected=1 held_context=1 stored_tail_edit=1 independent_cpu_reopen=1\n";
+  occupied_domain.reset();
+  if(workspace!=PairedWorkspaceFixture::file) {
+    {auto free=MemoryVolumeDomain::create(kStoreCommitUnit);}
+    require(MemoryVolumeDomain::cleanup_healthy(),"paired seal scratch did not release its Windows lease");
+  }
+  const auto allocated=backing->occupied();
+  std::cout<<"paired_sealed_sdk selected=1 held_context=1 stored_tail_edit=1 independent_cpu_reopen=1"
+      <<" workspace="<<static_cast<unsigned>(workspace)<<" unit="<<unit<<" attempted_backing_write_bytes="
+      <<attempted_backing_writes<<" allocated_bytes="<<allocated<<" memory_lease_retired=1\n";
+  return {attempted_backing_writes,allocated};
 }
 
 void indexed_memory_composition() {
@@ -4047,6 +4075,17 @@ int main(int argc,char** argv){try {
        std::string_view(argv[1])=="--live-amd-paired-sealed-refusal");
   app_fixture::Budget budget(true,profile_installed_read || profile_existing_prefix ||
       profile_automatic_sealed_read || profile_paired_sealed_read);DWORD before=0,after=0;
+  if(argc==2 && std::string_view(argv[1])=="--paired-seal-workspaces") {
+    for(const auto unit:{4096U,65536U}) {
+      const auto file=volume_file_sealed_callbacks(PairedWorkspaceFixture::file,unit);
+      const auto memory=volume_file_sealed_callbacks(PairedWorkspaceFixture::locked_memory,unit);
+      const auto denied=volume_file_sealed_callbacks(PairedWorkspaceFixture::denied_memory,unit);
+      require(file.allocated==memory.allocated && file.allocated==denied.allocated &&
+          memory.written<file.written && file.written==denied.written,
+          "scratch placement changed allocation or did not reduce backing writes");
+    }
+    return 0;
+  }
   if(argc==11) {
     const std::string_view command(argv[1]);
     if(command=="--live-amd-read-ahead" || command=="--live-amd-read-refusal")

@@ -20,7 +20,8 @@ struct MemoryVolumeUsage {
 class MemoryVolumeDomain final {
  public:
   static MemoryVolumeDomain create(std::uint64_t capacity);
-  std::shared_ptr<StoreByteIo> create_store(std::uint64_t capacity);
+  // A temporary workspace can use a larger isolation unit to match its destination.
+  std::shared_ptr<StoreByteIo> create_store(std::uint64_t capacity,std::uint32_t minimum_failure_unit=0);
   // Only an unselected store with no live reader or writer may be discarded.
   // Release at most one object-sized span per call in the owning control context.
   MemoryStoreRetirement retire_store(std::shared_ptr<StoreByteIo>&);

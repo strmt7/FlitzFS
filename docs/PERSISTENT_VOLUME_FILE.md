@@ -146,21 +146,48 @@ so a retained reader cannot race a writable reopen.
 After ordinary reclamation and funded cold compression have yielded, the
 same maintenance owner can prepare a sealed base and writable tail in the
 inactive paired range. The existing advisory journal confirms the write
-charge before preparation. The charge includes the folded workspace, base,
-tail and ordered control writes. Advisory scans leave room for a complete
-currently funded image operation. A fresh bulk write can leave insufficient
-credit for the whole preparation, especially for weakly compressible data.
+charge before preparation. The charge includes the base, tail, ordered
+control writes and any workspace placed in the backing file. Advisory
+scans leave room for a complete image operation at the file-workspace cost.
+A fresh bulk write can leave insufficient credit for preparation,
+especially for weakly compressible data.
 
-The workspace starts at the high end of the inactive range and the base
-starts at its beginning. The fitted workspace and the projected parity
-layout establish the bounds before writes. The owner verifies the base,
-then rechecks both current selector peers before releasing the private
-workspace in bounded spans. The tail starts immediately after the base at
-a boundary admitted by the backing's failure-unit contract. Reclamation
-uses the outer provider's coarser aligned ranges. A new foreground commit
-invalidates the sealed candidate and leaves the acknowledged image selected.
+The file workspace starts at the high end of the inactive range and the
+base starts at its beginning. The fitted workspace and projected parity
+layout establish the bounds before writes. The owner verifies the base and
+rechecks both current selector peers before releasing a file workspace in
+bounded spans. The tail starts immediately after the base at a boundary
+admitted by the backing's failure-unit contract. Reclamation uses the
+outer provider's coarser aligned ranges. A new foreground commit invalidates
+the sealed candidate and leaves the acknowledged image selected.
 [Windows storage geometry](https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_storage_info) ·
 [Windows range retirement](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_zero_data)
+
+The Windows controller can place the workspace in locked memory when it
+fits the current idle memory allowance after reserving ordinary
+transaction scratch. The memory provider rechecks physical and commit
+headroom and shares its existing process-wide lease. A refused reservation
+selects the file workspace before charging either path. Both paths use the
+same effective failure-unit geometry and write the protected base and tail
+to the inactive file range. The build releases the workspace before tail
+binding. When the current memory grant can no longer retain the workspace,
+the owner abandons incomplete work and releases locked pages in bounded
+steps. A verified base that has released its workspace references remains
+eligible to finish later.
+[Windows memory locking](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtuallock) ·
+[Windows decommit and release](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualfree)
+
+The Windows SDK fixture used that allocator against a sparse backing model.
+Compared with the file workspace, locked memory reduced attempted backing
+writes from 10,437,120 to 4,416,000 bytes at a 4 KiB failure unit and from
+10,691,072 to 4,522,496 at 64 KiB. Each pair retained the same total
+allocation and reopened the held client's edit. An occupied memory lease
+selected the file workspace with the same write count as the file control.
+The attempted byte counts include the model's writes for range zeroing.
+Sixty modeled selector interruptions exercised both workspace paths and
+both failure units. Retiring a partial candidate under pressure preserved
+the previous image and returned its inactive allocation.
+[Workspace placement evidence](evidence/volatile-paired-workspace-2026-11-23.json)
 
 The candidate flush precedes the two independently flushed selector peers.
 The CPU opener validates the selected image identity, range bounds,
@@ -219,6 +246,13 @@ mode in the disposable guest so the normal maintenance governor can
 advance between idle observations. Device power loss and removal require
 separate checks of the medium and its cache policy.
 [Mounted paired sealing evidence](evidence/windows11-mounted-paired-sealing-2026-11-23.json)
+
+The locked-workspace NTFS probe also kept the original handle across
+publication. Process cuts before the candidate flush and after the first
+selector flush recovered the old and new image respectively. The observer
+checked that the candidate passed through the inactive file range without a
+file workspace. Each case verified the exact payload after a writable reopen.
+[Locked workspace on mounted NTFS](evidence/volatile-paired-workspace-2026-11-23.json)
 
 The AMD worker also served two verified LZ4 frames from a reopened
 paired selection through ordinary SDK read callbacks. That fixture

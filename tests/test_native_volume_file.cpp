@@ -3,6 +3,7 @@
 #include "flitzfs/native_maintenance.hpp"
 #include "flitzfs/read_only_file.hpp"
 #include "native_fs_fixture.hpp"
+#include "native_volume_file_reclaimer.hpp"
 #include "record_digest.hpp"
 #include "volume_range_fixture.hpp"
 #ifdef _WIN32
@@ -797,7 +798,32 @@ void reclaimed_ranges() {
       "recycled first range lost the latest acknowledged foreground data");
 }
 
-void stage_file_seal(NativeFileSession& session,StoreIdentity next) {
+unsigned scratch_leases=0;
+class ModelSealScratch final:public detail::NativeSealScratch {
+ public:
+  ModelSealScratch(std::uint64_t capacity,StoreIoContract storage) {
+    auto model=std::make_shared<Ram>();
+    model->capacity=capacity;
+    model->failure_unit=storage.write_failure_unit_bytes;
+    store_=std::move(model);
+    ++scratch_leases;
+  }
+  ~ModelSealScratch() override{--scratch_leases;}
+  const std::shared_ptr<StoreByteIo>& store() const noexcept override{return store_;}
+  bool retire_step() override {
+    if(store_.use_count()!=1)return false;
+    store_.reset();
+    return true;
+  }
+ private:
+  std::shared_ptr<StoreByteIo> store_;
+};
+std::unique_ptr<detail::NativeSealScratch> model_seal_scratch(std::uint64_t bytes,StoreIoContract storage) noexcept {
+  try{return std::make_unique<ModelSealScratch>(bytes,storage);}
+  catch(const std::bad_alloc&){return {};}
+}
+
+void stage_file_seal(NativeFileSession& session,StoreIdentity next,detail::NativeSealScratchOffer scratch={}) {
   const auto reclaim=session.persistent_reclamation_pending();
   const auto optional=session.persistent_reclamation_pending(true);
   if(reclaim || !optional) {
@@ -811,7 +837,7 @@ void stage_file_seal(NativeFileSession& session,StoreIdentity next) {
   }
   require(!reclaim && optional,
       "append-only input did not fund optional paired sealing");
-  require(session.advance_persistent_reclamation([&]{return next;},true)==Reclaim::copying,
+  require(session.advance_persistent_reclamation([&]{return next;},true,scratch)==Reclaim::copying,
       "paired sealing did not reserve private preparation");
   for(unsigned turn=0;turn<4096;++turn) {
     const auto progress=session.advance_persistent_reclamation({},true);
@@ -821,7 +847,7 @@ void stage_file_seal(NativeFileSession& session,StoreIdentity next) {
   throw std::runtime_error("paired sealing exceeded the fixture's advance limit");
 }
 
-void sealed_ranges() {
+void sealed_ranges(bool volatile_workspace) {
   const auto payload=data(2'861'348,167);
   const Bytes sparse(2*1024*1024);
   const auto size=static_cast<std::uint32_t>(payload.size());
@@ -829,6 +855,8 @@ void sealed_ranges() {
   for(const auto unit:{4096U,65536U}) {
     const PagedStoreLimits plan{(unit==4096?8ULL:16ULL)*1024*1024};
     const auto slot=plan.maximum_physical_bytes;
+    const auto offer=volatile_workspace?detail::NativeSealScratchOffer{slot,model_seal_scratch}:
+        detail::NativeSealScratchOffer{};
     const auto older=kNativeVolumeFileImageOffset,newer=older+slot;
     auto seed=std::make_shared<SparseVolumeRam>(unit,2*slot+2*1024*1024);
     {
@@ -842,18 +870,20 @@ void sealed_ranges() {
     const auto before=seed->occupied();
     auto io=seed->replay();
     std::size_t selection_calls=0;
-    std::uint64_t after=0;
+    std::uint64_t after=0,backing_writes=0;
     {
       auto session=NativeVolumeFile::resume(io,volume,raw);
       const auto handle=session.open("payload",{true,true,false});
       std::optional<NativeFilesystemSnapshot> held(session.snapshot());
-      stage_file_seal(session,second);
-      require(io->range_reclaims && session.volume_info().selection.epoch==1 &&
+      stage_file_seal(session,second,offer);
+      require(bool(io->range_reclaims)!=volatile_workspace && scratch_leases==0 &&
+          session.volume_info().selection.epoch==1 &&
           NativeVolumeFile::inspect(io->replay(),volume).filesystem().read("payload",0,size)==payload,
           "private workspace retirement affected the selected source");
       const auto start=io->io.calls;
       require(session.advance_persistent_reclamation({},true)==Reclaim::published,"sealed file was not selected");
       selection_calls=io->io.calls-start;
+      backing_writes=io->io.write_bytes;
       const auto selected=session.volume_info();
       require(selected.selection.epoch==2 && selected.selection.image_identity==second &&
           selected.selection.sealed_range && !selected.degraded && selection_calls==5,
@@ -924,7 +954,7 @@ void sealed_ranges() {
     {
       auto session=NativeVolumeFile::resume(obsolete,volume,raw);
       const auto handle=session.open("payload",{true,true,false});
-      require(session.advance_persistent_reclamation([&]{return second;},true)==Reclaim::copying,
+      require(session.advance_persistent_reclamation([&]{return second;},true,offer)==Reclaim::copying,
           "stale source fixture did not admit its workspace");
       for(unsigned turn=0;!obsolete->allocated_extent(newer,slot) && turn<1024;++turn)
         require(session.advance_persistent_reclamation({},true)==Reclaim::copying,
@@ -935,11 +965,30 @@ void sealed_ranges() {
       require(session.advance_persistent_reclamation({},true)==Reclaim::retiring,
           "changed source allowed private preparation to continue");
       release_inactive(session);
-      require(session.volume_info().selection.epoch==1 && !obsolete->allocated_extent(newer,slot) &&
+      require(session.volume_info().selection.epoch==1 && !obsolete->allocated_extent(newer,slot) && !scratch_leases &&
           session.read(handle,0,1)==Bytes(1,edited_first) && !session.persistent_reclamation_pending(true),
           "retired stale preparation changed selection, data or funding");
       session.cleanup(handle,false);
       session.close(handle);
+    }
+    if(volatile_workspace) {
+      auto pressure=seed->replay();
+      {
+        auto session=NativeVolumeFile::resume(pressure,volume,raw);
+        require(session.advance_persistent_reclamation([&]{return second;},true,offer)==Reclaim::copying &&
+            scratch_leases==1,"paired seal pressure fixture did not acquire its workspace");
+        for(unsigned turn=0;!pressure->allocated_extent(newer,slot) && turn<1024;++turn)
+          require(session.advance_persistent_reclamation({},true)==Reclaim::copying,
+              "paired seal pressure fixture did not create a partial durable candidate");
+        require(pressure->allocated_extent(newer,slot) && session.shed_persistent_seal_scratch(0) &&
+            !scratch_leases && !session.shed_persistent_seal_scratch(0) &&
+            session.volume_info().selection.epoch==1,
+            "pressure did not abandon the unselected build and release its immediate memory lease");
+        release_inactive(session);
+        require(!pressure->allocated_extent(newer,slot),"pressure left an inactive disk allocation");
+      }
+      require(NativeVolumeFile::inspect(pressure,volume).filesystem().read("payload",0,size)==payload,
+          "pressure changed the selected bytes");
     }
     auto resumed=io->replay();
     auto edited=payload;
@@ -977,7 +1026,7 @@ void sealed_ranges() {
     for(unsigned mode=0;mode<3;++mode)for(std::size_t cut=0;cut<selection_calls;++cut) {
       auto torn=seed->replay();
       auto session=NativeVolumeFile::resume(torn,volume,raw);
-      stage_file_seal(session,second);
+      stage_file_seal(session,second,offer);
       const auto start=torn->io.calls;
       torn->io.failure=mode;
       torn->io.fail_at=start+cut;
@@ -1014,7 +1063,8 @@ void sealed_ranges() {
     std::cout<<"paired_sealed_range unit="<<unit<<" original_bytes="<<before<<" settled_bytes="<<after
         <<" old_selector="<<recovered[0]<<" new_selector="<<recovered[1]
         <<" original_handle=1 cpu_reopen=1 tail_write=1 previous_snapshot_pinned=1 mirror_successor=1"
-        <<" damaged_base_repaired=1 stale_workspace_retired=1\n";
+        <<" damaged_base_repaired=1 stale_workspace_retired=1 volatile_workspace="<<volatile_workspace
+        <<" attempted_backing_write_bytes="<<backing_writes<<"\n";
   }
 }
 
@@ -1668,7 +1718,8 @@ int main(int argc,char** argv){
       return 0;
     }
     if(argc==2 && std::string_view(argv[1])=="--sealed-ranges") {
-      sealed_ranges();
+      sealed_ranges(false);
+      sealed_ranges(true);
       std::cout<<"PASS: "<<checks<<" paired sealed range checks\n";
       return 0;
     }

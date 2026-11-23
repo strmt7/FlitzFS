@@ -896,10 +896,13 @@ void NativeFileSession::bind_persistent_reclamation_wake(
   if(impl_ && impl_->persistent_reclaimer)impl_->persistent_reclaimer->bind_wake(wake);
 }
 NativeVolumeReclaimProgress NativeFileSession::advance_persistent_reclamation(
-    const std::function<StoreIdentity()>& next_identity,bool allow_cold) {
+    const std::function<StoreIdentity()>& next_identity,bool allow_cold,detail::NativeSealScratchOffer scratch) {
   auto& self=ready();
-  return self.persistent_reclaimer?self.persistent_reclaimer->advance(*this,next_identity,allow_cold):
+  return self.persistent_reclaimer?self.persistent_reclaimer->advance(*this,next_identity,allow_cold,scratch):
       NativeVolumeReclaimProgress::idle;
+}
+bool NativeFileSession::shed_persistent_seal_scratch(std::uint64_t retained_bytes) noexcept {
+  return !poisoned() && impl_->persistent_reclaimer && impl_->persistent_reclaimer->shed_scratch(retained_bytes);
 }
 void NativeFileSession::cancel_persistent_reclamation() noexcept {
   if(impl_ && impl_->persistent_reclaimer)impl_->persistent_reclaimer->cancel(*this);

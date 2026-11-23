@@ -168,6 +168,8 @@ class WinFspNativeWritable final {
   // A qualified controller can opt in before callbacks bind. One future extent
   // is prepared at an admitted idle opportunity after consecutive demand reads.
   bool enable_native_lz4_read_ahead();
+  // The controller enables this on a file-backed session before callbacks bind.
+  void enable_paired_seal_memory() noexcept;
   bool native_lz4_read_ahead_pending() const noexcept;
   // A current forecast yields one measured demand cost, or zero without a sample.
   std::optional<std::uint64_t> take_native_lz4_read_ahead_sample(std::uint64_t foreground_epoch) noexcept;

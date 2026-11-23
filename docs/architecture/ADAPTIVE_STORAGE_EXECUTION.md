@@ -66,13 +66,19 @@ Combine the AMD path with the mounted Win32 path on the same volume
 before counting it as an end-to-end result.
 [Reopened paired AMD evidence](../evidence/amd-reopened-paired-sealed-read-2026-11-23.json)
 
+The Windows file controller can keep the folded workspace in locked memory
+using the current idle grant and the existing process-wide lease. Either
+workspace feeds the same independently checked base and ordered selector
+publication. Resource pressure retires an incomplete workspace in bounded
+steps. File placement remains available when memory admission fails.
+The SDK fixture saw about 58% fewer attempted backing bytes with the
+locked workspace and the same final allocation. The mounted NTFS guest
+verified a live handoff and two interruption points on that route.
 Measure complete read cost, returned allocation and attempted rewrite
-traffic on real devices. Compare a volatile workspace
-with the current folded file workspace under the same committed layout.
-Grant volatile scratch from current headroom, keep the selected image
-through cancellation, and verify that the candidate has no dependency on
-the scratch before the selector writes. Dense backing needs its own
-internal segment reuse and recovery qualification.
+traffic on real devices. Dense backing needs its own internal segment
+reuse and recovery qualification.
+[Paired scratch placement](../PERSISTENT_VOLUME_FILE.md#sealed-paired-images) ·
+[Workspace placement evidence](../evidence/volatile-paired-workspace-2026-11-23.json)
 
 ReFS moves cold contents through bounded containers. OpenZFS accounts for
 space retained by snapshots during rewrites. FlitzFS's current whole-image

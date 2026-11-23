@@ -247,7 +247,8 @@ bool NativeVolumeFileReclaimer::pending(const NativeFileSession& session,bool al
 }
 bool NativeVolumeFileReclaimer::image_work_pending(const NativeFileSession& session,bool allow_cold) const {
   if(phase_==Phase::retiring)
-    return spare_.use_count()==1 || active_->owner->reclamation_wake.load(std::memory_order_acquire).expired();
+    return scratch_ || spare_.use_count()==1 ||
+        active_->owner->reclamation_wake.load(std::memory_order_acquire).expired();
   if(phase_==Phase::uncertain || phase_==Phase::failed)return false;
   if(seal_)return true;
   if(!session.idle_compaction_context_ready())return false;
@@ -355,15 +356,55 @@ void NativeVolumeFileReclaimer::discard_seal() noexcept {
   workspace_.reset();
   base_bytes_=0;
 }
+void NativeVolumeFileReclaimer::retire_scratch() {
+  try {
+    if(!scratch_->retire_step())return;
+  }catch(...) {
+    scratch_.reset();
+    scratch_bytes_=0;
+    throw;
+  }
+  scratch_.reset();
+  scratch_bytes_=0;
+}
+bool NativeVolumeFileReclaimer::shed_scratch(std::uint64_t retained_bytes) noexcept {
+  if(!scratch_ || (phase_!=Phase::retiring && scratch_bytes_<=retained_bytes))return false;
+  if(seal_ && seal_->phase()!=NativeHybridBacking::BuildPhase::awaiting_tail) {
+    discard_seal();
+    phase_=Phase::retiring;
+  }
+  try{retire_scratch();}
+  catch(...) {
+    discard_seal();
+    phase_=Phase::retiring;
+  }
+  return true;
+}
 Progress NativeVolumeFileReclaimer::begin_seal(NativeFileSession& session,StoreIdentity identity,
-    const SealPlan& plan) {
+    const SealPlan& plan,NativeSealScratchOffer offer) {
   check_inactive(session.volume_info());
-  if(!session.reserve_idle_seal(plan.writes))return Progress::idle;
+  const auto destination=spare_->contract();
+  auto scratch=offer.create && plan.workspace<=offer.bytes?
+      offer.create(plan.workspace,destination):nullptr;
+  if(scratch) {
+    constexpr auto root_unit=static_cast<std::uint32_t>(detail::kPagedStoreCheckpointWriteBytes/2);
+    const auto& store=scratch->store();
+    const auto contract=store?store->contract():StoreIoContract{};
+    if(!valid_store_io_contract(contract) || (std::max)(root_unit,contract.write_failure_unit_bytes)!=
+        (std::max)(root_unit,destination.write_failure_unit_bytes))scratch.reset();
+  }
+  const auto private_bytes=scratch?plan.workspace:0;
   const auto& file=*spare_->owner;
-  file.ranges->admit_range_write((std::max)(file.backing->extent(),spare_->offset+spare_->capacity),plan.staging);
+  const auto staging=plan.staging-private_bytes;
+  const auto end=scratch?staging:spare_->capacity;
+  file.ranges->admit_range_write((std::max)(file.backing->extent(),spare_->offset+end),staging);
+  if(!session.reserve_idle_seal(plan.writes-private_bytes))return Progress::idle;
   phase_=Phase::copying;
-  workspace_=NativeVolumeFile::Region::slice(spare_,spare_->capacity-plan.workspace,plan.workspace,0);
-  seal_.emplace(NativeHybridBacking::prepare_impl(session,workspace_,spare_->contract(),identity,
+  if(scratch) {
+    scratch_=std::move(scratch);
+    scratch_bytes_=private_bytes;
+  }else workspace_=NativeVolumeFile::Region::slice(spare_,spare_->capacity-plan.workspace,plan.workspace,0);
+  seal_.emplace(NativeHybridBacking::prepare_impl(session,scratch_?scratch_->store():workspace_,destination,identity,
       spare_->capacity,plan.staging,{},true));
   return Progress::copying;
 }
@@ -378,12 +419,17 @@ Progress NativeVolumeFileReclaimer::advance_seal(NativeFileSession& session) {
   const auto stage=seal_->phase();
   if(stage==Stage::awaiting_base) {
     base_bytes_=seal_->required_store_bytes();
-    if(base_bytes_>workspace_->offset-spare_->offset)
+    if(workspace_ && base_bytes_>workspace_->offset-spare_->offset)
       fail(Error::storage_failure,"sealed base overlaps its private workspace");
     seal_->provide_store(session,Region::slice(spare_,0,base_bytes_,0,Region::pin_image(spare_)));
     return Progress::copying;
   }
   if(stage==Stage::awaiting_tail) {
+    if(scratch_) {
+      if(scratch_->store().use_count()!=1)return Progress::pinned;
+      retire_scratch();
+      return Progress::copying;
+    }
     if(workspace_) {
       if(workspace_.use_count()!=1)return Progress::pinned;
       check_inactive(session.volume_info());
@@ -413,7 +459,7 @@ Progress NativeVolumeFileReclaimer::advance_seal(NativeFileSession& session) {
 }
 
 Progress NativeVolumeFileReclaimer::advance(NativeFileSession& session,const std::function<StoreIdentity()>& identity,
-    bool allow_cold) {
+    bool allow_cold,NativeSealScratchOffer scratch) {
   const bool image_pending=image_work_pending(session,allow_cold);
   if(catalog_ && (!image_pending || (phase_==Phase::idle && !identity) ||
       (phase_==Phase::retiring && spare_.use_count()!=1))) {
@@ -422,7 +468,13 @@ Progress NativeVolumeFileReclaimer::advance(NativeFileSession& session,const std
     if(catalog_->pending(sequence,selected))return catalog_->retire(sequence,selected);
   }
   if(phase_==Phase::retiring) {
-    try{return retire(session.volume_info());}
+    try {
+      if(scratch_) {
+        retire_scratch();
+        return Progress::retiring;
+      }
+      return retire(session.volume_info());
+    }
     catch(const std::exception&){phase_=Phase::failed;return Progress::failed;}
   }
   if(phase_==Phase::idle && !identity)return Progress::idle;
@@ -441,7 +493,7 @@ Progress NativeVolumeFileReclaimer::advance(NativeFileSession& session,const std
       if(!reclaim && allow_cold && !session.idle_cold_compaction_pending()) {
         const auto space=session.indexed_volume_space();
         const auto plan=seal_plan(session.volume_info().selection,space.total_bytes-space.free_bytes);
-        return plan?begin_seal(session,identity(),*plan):Progress::idle;
+        return plan?begin_seal(session,identity(),*plan,scratch):Progress::idle;
       }
       if(!session.begin_idle_compaction_impl(NativeVolumeFile::Region::pin_image(spare_),identity(),true,
           reclaim?PagedRewriteMode::reconcile_foreground:PagedRewriteMode::cold_compression))
@@ -472,16 +524,21 @@ Progress NativeVolumeFileReclaimer::advance(NativeFileSession& session,const std
   }catch(const std::exception&) {
     if(session.poisoned()){phase_=Phase::uncertain;throw;}
     abandoned_bytes_=spare_->extent();
-    cancel(session);
+    abandon(session);
     return Progress::failed;
   }
 }
 
-void NativeVolumeFileReclaimer::cancel(NativeFileSession& session) noexcept {
+void NativeVolumeFileReclaimer::abandon(NativeFileSession& session) noexcept {
   session.cancel_recompression();
   discard_seal();
   if(phase_==Phase::copying || phase_==Phase::ready || (phase_==Phase::uncertain && !session.poisoned()))
     phase_=Phase::retiring;
+}
+void NativeVolumeFileReclaimer::cancel(NativeFileSession& session) noexcept {
+  abandon(session);
+  scratch_.reset();
+  scratch_bytes_=0;
 }
 } // namespace detail
 

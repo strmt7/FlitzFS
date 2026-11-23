@@ -32,6 +32,26 @@ namespace flitzfs {
 namespace {
 constexpr auto legacy_file_info=NativeFileInfoAllocation::native_reserved_cache;
 constexpr auto indexed_file_info=NativeFileInfoAllocation::indexed_reserved_cache;
+constexpr auto indexed_transaction_scratch=8ULL*kStoreMaxTransactionBytes;
+class LockedSealScratch final:public detail::NativeSealScratch {
+ public:
+  LockedSealScratch(std::uint64_t bytes,StoreIoContract storage):
+      domain_(MemoryVolumeDomain::create(bytes)),store_(domain_.create_store(bytes,storage.write_failure_unit_bytes)) {
+    // Verify commit and locking admission before charging a persistent attempt.
+    store_->admit_write(kStoreCommitUnit);
+  }
+  const std::shared_ptr<StoreByteIo>& store() const noexcept override {return store_;}
+  bool retire_step() override {return domain_.retire_store(store_)==MemoryStoreRetirement::released;}
+ private:
+  MemoryVolumeDomain domain_;
+  std::shared_ptr<StoreByteIo> store_;
+};
+std::unique_ptr<detail::NativeSealScratch> try_locked_seal_scratch(std::uint64_t bytes,StoreIoContract storage) noexcept {
+  try {
+    if(bytes>usable_memory_volume_headroom(observe_memory_volume_headroom()))return {};
+    return std::make_unique<LockedSealScratch>(bytes,storage);
+  }catch(const std::exception&){return {};}
+}
 NativeFileInfoAllocation file_info_policy(NativeImageKind kind) noexcept {
   return kind==NativeImageKind::indexed_paged?indexed_file_info:legacy_file_info;
 }
@@ -261,7 +281,7 @@ struct WinFspNativeWritable::Impl {
   NativeMaintenancePolicy group_policy;
   MemoryVolumeBacking* memory_backing=nullptr;
   std::uint64_t last_indexed_observation=0,last_indexed_capture=0;
-  bool maintenance_cancelled=false,scrub_yield=false,directory_backfill_yield=false;
+  bool maintenance_cancelled=false,scrub_yield=false,directory_backfill_yield=false,paired_seal_memory=false;
   std::atomic<bool> callbacks_bound{false};
   StoreIdentity identity{};UINT64 created=0;UINT32 serial=0;
   const NativeFileInfoAllocation info_policy;
@@ -316,9 +336,13 @@ struct WinFspNativeWritable::Impl {
   bool cold_compaction_allowed(bool scrub) const {
     return !scrub && !session.directory_backfill_pending() && (!groups || !groups->pending());
   }
-  NativeMaintenanceDeferral admit_indexed_opportunity(const NativeMaintenanceObservation& observed,std::uint64_t now) {
+  struct IndexedAdmission {
+    NativeMaintenanceDeferral deferral;
+    std::optional<std::uint64_t> memory;
+  };
+  IndexedAdmission admit_indexed_opportunity(const NativeMaintenanceObservation& observed,std::uint64_t now) {
     using Deferral=NativeMaintenanceDeferral;
-    if(!observed.sequence || observed.sequence<=last_indexed_observation)return Deferral::observation;
+    if(!observed.sequence || observed.sequence<=last_indexed_observation)return {Deferral::observation,{}};
     last_indexed_observation=observed.sequence;
     // The owned memory factory admits its storage and group work with the
     // supplied policy. Other adapters configure group admission separately.
@@ -327,12 +351,12 @@ struct WinFspNativeWritable::Impl {
     const bool admitted_capture=observed.continued
         ?last_indexed_capture && observed.captured_ms==last_indexed_capture
         :observed.captured_ms>last_indexed_capture;
-    if(!resources || !admitted_capture)return Deferral::observation;
+    if(!resources || !admitted_capture)return {Deferral::observation,{}};
     last_indexed_capture=observed.captured_ms;
-    if(observed.foreground_pending)return Deferral::foreground;
-    if(resources->cpu_busy)return Deferral::cpu;
-    constexpr auto transaction_scratch=8ULL*kStoreMaxTransactionBytes;
-    return resources->memory_allowance<transaction_scratch?Deferral::memory:Deferral::none;
+    const auto memory=resources->memory_allowance;
+    if(observed.foreground_pending)return {Deferral::foreground,memory};
+    if(resources->cpu_busy)return {Deferral::cpu,memory};
+    return {memory<indexed_transaction_scratch?Deferral::memory:Deferral::none,memory};
   }
   WinFspMaintenanceResult advance_payload_scrub(const NativeMaintenanceObservation& observed,std::uint64_t now) {
     using S=PagedPayloadScrubState;
@@ -340,7 +364,7 @@ struct WinFspNativeWritable::Impl {
     using Deferral=NativeMaintenanceDeferral;
     auto progress=groups?groups->progress():NativeMaintenanceProgress{};
     progress.phase=Phase::preparing;
-    progress.deferral=admit_indexed_opportunity(observed,now);
+    progress.deferral=admit_indexed_opportunity(observed,now).deferral;
     WinFspMaintenanceResult result{WinFspMaintenanceState::advanced,progress};
     if(progress.deferral!=Deferral::none) {
       result.progress.phase=Phase::deferred;
@@ -378,7 +402,12 @@ struct WinFspNativeWritable::Impl {
     const bool persistent=session.persistent_reclamation_pending(allow_cold);
     const bool memory=memory_backing && memory_backing->compaction_pending(session,allow_cold);
     if(!repair && !reap && !discard_catalog && !persistent && !memory)return {State::unchanged};
-    if(const auto refusal=admit_indexed_opportunity(observed,now);refusal!=Deferral::none)return defer(refusal);
+    const auto admission=admit_indexed_opportunity(observed,now);
+    if(persistent && paired_seal_memory && admission.memory && !observed.foreground_pending) {
+      const auto retained=*admission.memory>=indexed_transaction_scratch?*admission.memory:0;
+      if(session.shed_persistent_seal_scratch(retained))return {State::advanced,{Phase::preparing}};
+    }
+    if(admission.deferral!=Deferral::none)return defer(admission.deferral);
     try {
       if(repair) {
         const auto repaired=session.repair_indexed_payload();
@@ -418,7 +447,9 @@ struct WinFspNativeWritable::Impl {
       };
       if(repair_rotation && groups)groups->release_staged_groups();
       if(persistent) {
-        auto result=progress(session.advance_persistent_reclamation(fresh_volume_identity,allow_cold));
+        detail::NativeSealScratchOffer scratch;
+        if(paired_seal_memory)scratch={*admission.memory-indexed_transaction_scratch,try_locked_seal_scratch};
+        auto result=progress(session.advance_persistent_reclamation(fresh_volume_identity,allow_cold,scratch));
         result.sealed_image=result.compacted && session.volume_info().selection.sealed_range.has_value();
         return result;
       }
@@ -443,7 +474,7 @@ struct WinFspNativeWritable::Impl {
     };
     if(foreground.load(std::memory_order_acquire))return {State::busy};
     directory_backfill_yield=true;
-    if(const auto refusal=admit_indexed_opportunity(observed,now);refusal!=Deferral::none)return defer(refusal);
+    if(const auto refusal=admit_indexed_opportunity(observed,now).deferral;refusal!=Deferral::none)return defer(refusal);
     try {
       switch(session.advance_directory_backfill()) {
         case Step::idle:return {State::unchanged};
@@ -1087,6 +1118,9 @@ void WinFspNativeWritable::configure_memory_maintenance(MemoryVolumeBacking& bac
   impl_->memory_backing=&backing;
   impl_->session.bind_memory_idle_compaction();
   backing.configure_coherence(impl_->session);
+}
+void WinFspNativeWritable::enable_paired_seal_memory() noexcept {
+  if(!impl_->callbacks_bound)impl_->paired_seal_memory=true;
 }
 bool WinFspNativeWritable::background_maintenance_pending(bool scrub_due) const {
   std::unique_lock guard(impl_->control,std::try_to_lock);

@@ -1,0 +1,511 @@
+{
+  "schema": "flitzfs-volatile-paired-workspace-v1",
+  "observed_at_utc": "2026-11-23T01:44:23.312052+00:00",
+  "experimental": true,
+  "release_qualified": false,
+  "source": {
+    "base": "98b5eec8a1bb3a79cf4bd57a2cc8d8ef2948438a",
+    "tree": "32f81a902c03673b40a837e2ed887ed96cde3148",
+    "blobs": {
+      "include/flitzfs/native_session.hpp": "c5f6795cfe9a92931f7072981544e3caefbf9aa7",
+      "src/native_session.cpp": "6dd76397eaed900a4bb7bdb553e0d32f7ac177c2",
+      "src/native_volume_file.cpp": "51253c04fe3194048c72609536b77579a72beb4f",
+      "src/native_volume_file_reclaimer.hpp": "35f2f9f53250573ea7cb973b5d8da83412010f58",
+      "src/windows/memory_volume.cpp": "6ceb037b52ab2cd7c66f0d6edca99bd30231cdfa",
+      "src/windows/memory_volume.hpp": "3c2a4789a8074241d05f80d78a1e30ce57c3a0e8",
+      "src/windows/winfsp_controller.cpp": "5b65ced946f68a3c6709125e38766c70e4535b77",
+      "src/windows/winfsp_native.cpp": "e750d2bda31d9bfc6c9443b7ac1421931ea501de",
+      "src/windows/winfsp_native.hpp": "88441eb61fe0e86a8352437259b859538fe6a1aa",
+      "tests/test_native_volume_file.cpp": "322005ffc38f51268ab687446663f20282858dad",
+      "tests/test_winfsp_controller.cpp": "436fcd44600602a685d1d05dbcdaa4364a2741ff",
+      "tests/winfsp_write_probe.cpp": "663899ddc123f5a67a325b031583e1edf80ea451"
+    },
+    "patch_sha256": "6509a40ce5e880be9f7ac038c0caed0478bd01ca13a5f7958ffd1a333f6f975d"
+  },
+  "research": {
+    "version": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "2af899817e54678d2976bb72e09febbb3f1212abe7baba813333a98676f4a9ce",
+    "captures": [
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc",
+        "final_http_status": 200,
+        "capture_sha256": "53e950346b49c008a491e02eed3aaae8484c0bcfe376ffbaa41ccf5c49c74234",
+        "markdown_sha256": "47e0fded2a401359330ccb8d3fe33c75a8afd9dee5a285c0e2e6d2c162b9a4b2"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualfree",
+        "final_http_status": 200,
+        "capture_sha256": "cd46cac141ddf32dcdffcb88da0efe6efd601999c37a8b71e8d52c11715fcd15",
+        "markdown_sha256": "482adef62203d0cbb345359727e107a18e019737e816747e9d3dc8f8c3d55bdf"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtuallock",
+        "final_http_status": 200,
+        "capture_sha256": "0f891fb94ae0d1bfd3cf7a90b1fe44d53bbbef8f0072ec730839adbc5bac266a",
+        "markdown_sha256": "9b354fb71fa8f7ce4ac1c82d842d2020dc31f8db6a49a7a990316bff9c3c2c98"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-querymemoryresourcenotification",
+        "final_http_status": 200,
+        "capture_sha256": "610d99a7564fb8048029f33f664ed1b991cb18d47483f4dbf419392f0ed60b0f",
+        "markdown_sha256": "0c08d9c9cf5c539cab8592baae88f09dd7e69dbe7ffe77ada4eed8da8fd47be5"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers",
+        "final_http_status": 200,
+        "capture_sha256": "bd2b31a5072bf39838dd972002d278e06f9dae3c5e86699f9faf70107d75ab12",
+        "markdown_sha256": "116ffcd5a6feba3539c3f668a2c969aa2e38b8f3663a704a7654e7b2a7954e4c"
+      }
+    ]
+  },
+  "routing": {
+    "provider_version": "0.2.43",
+    "receipt_sha256": "80c7e0f8963f5f8f700af0eb3dbf460646238704a3ae3ae675b6991e4ea8290d",
+    "native_response_sha256": "f048a4c372e5c47fa6f614814e6ff3ee2f8d31fe59bf08bdf4e5a2d385701aa5"
+  },
+  "model": {
+    "run": "local-run-b464e570cd544579aea833e9a6f726bf",
+    "receipt_sha256": "802f688cfe49db15bc11a5ca0f56f504e563be7be75021e508450d637224a6bc",
+    "output_sha256": "a9674502b1d4ea3b9aa7daaf4d2e99b81b101851a5ad9e2170c0b4f2ddfdf716",
+    "exit_code": 0,
+    "tree_retired": true,
+    "peak_job_bytes": 664817664,
+    "selector_cuts": 60,
+    "results": [
+      {
+        "unit": 4096,
+        "original_bytes": 6291456,
+        "settled_bytes": 4456448,
+        "old_selector": 7,
+        "new_selector": 8,
+        "original_handle": 1,
+        "cpu_reopen": 1,
+        "tail_write": 1,
+        "previous_snapshot_pinned": 1,
+        "mirror_successor": 1,
+        "damaged_base_repaired": 1,
+        "stale_workspace_retired": 1,
+        "volatile_workspace": 0,
+        "attempted_backing_write_bytes": 10449408
+      },
+      {
+        "unit": 65536,
+        "original_bytes": 7995392,
+        "settled_bytes": 4521984,
+        "old_selector": 7,
+        "new_selector": 8,
+        "original_handle": 1,
+        "cpu_reopen": 1,
+        "tail_write": 1,
+        "previous_snapshot_pinned": 1,
+        "mirror_successor": 1,
+        "damaged_base_repaired": 1,
+        "stale_workspace_retired": 1,
+        "volatile_workspace": 0,
+        "attempted_backing_write_bytes": 10691072
+      },
+      {
+        "unit": 4096,
+        "original_bytes": 6291456,
+        "settled_bytes": 4456448,
+        "old_selector": 7,
+        "new_selector": 8,
+        "original_handle": 1,
+        "cpu_reopen": 1,
+        "tail_write": 1,
+        "previous_snapshot_pinned": 1,
+        "mirror_successor": 1,
+        "damaged_base_repaired": 1,
+        "stale_workspace_retired": 1,
+        "volatile_workspace": 1,
+        "attempted_backing_write_bytes": 4420096
+      },
+      {
+        "unit": 65536,
+        "original_bytes": 7995392,
+        "settled_bytes": 4521984,
+        "old_selector": 7,
+        "new_selector": 8,
+        "original_handle": 1,
+        "cpu_reopen": 1,
+        "tail_write": 1,
+        "previous_snapshot_pinned": 1,
+        "mirror_successor": 1,
+        "damaged_base_repaired": 1,
+        "stale_workspace_retired": 1,
+        "volatile_workspace": 1,
+        "attempted_backing_write_bytes": 4522496
+      }
+    ]
+  },
+  "windows_locked_memory": {
+    "run": "local-run-6062f285aae042e88940c2b401e6dd15",
+    "receipt_sha256": "65a586244c87e86c9c55acfa4ba1d932314779453fc62b68c1dc88d3f74c5e36",
+    "output_sha256": "79cdefe24729165099f830484a788c77b23938362ab8780352c1561cf6070c10",
+    "exit_code": 0,
+    "tree_retired": true,
+    "peak_job_bytes": 150155264,
+    "results": [
+      {
+        "selected": 1,
+        "held_context": 1,
+        "stored_tail_edit": 1,
+        "independent_cpu_reopen": 1,
+        "workspace": 0,
+        "unit": 4096,
+        "attempted_backing_write_bytes": 10437120,
+        "allocated_bytes": 10747904,
+        "memory_lease_retired": 1
+      },
+      {
+        "selected": 1,
+        "held_context": 1,
+        "stored_tail_edit": 1,
+        "independent_cpu_reopen": 1,
+        "workspace": 1,
+        "unit": 4096,
+        "attempted_backing_write_bytes": 4416000,
+        "allocated_bytes": 10747904,
+        "memory_lease_retired": 1
+      },
+      {
+        "selected": 1,
+        "held_context": 1,
+        "stored_tail_edit": 1,
+        "independent_cpu_reopen": 1,
+        "workspace": 2,
+        "unit": 4096,
+        "attempted_backing_write_bytes": 10437120,
+        "allocated_bytes": 10747904,
+        "memory_lease_retired": 1
+      },
+      {
+        "selected": 1,
+        "held_context": 1,
+        "stored_tail_edit": 1,
+        "independent_cpu_reopen": 1,
+        "workspace": 0,
+        "unit": 65536,
+        "attempted_backing_write_bytes": 10691072,
+        "allocated_bytes": 14614528,
+        "memory_lease_retired": 1
+      },
+      {
+        "selected": 1,
+        "held_context": 1,
+        "stored_tail_edit": 1,
+        "independent_cpu_reopen": 1,
+        "workspace": 1,
+        "unit": 65536,
+        "attempted_backing_write_bytes": 4522496,
+        "allocated_bytes": 14614528,
+        "memory_lease_retired": 1
+      },
+      {
+        "selected": 1,
+        "held_context": 1,
+        "stored_tail_edit": 1,
+        "independent_cpu_reopen": 1,
+        "workspace": 2,
+        "unit": 65536,
+        "attempted_backing_write_bytes": 10691072,
+        "allocated_bytes": 14614528,
+        "memory_lease_retired": 1
+      }
+    ]
+  },
+  "mounted_ntfs": {
+    "build": {
+      "run": "local-run-cf7a0fd6f731408c88bb654386ec076b",
+      "receipt_sha256": "24c892da5918557da8e8263df681f7d3625e3b728c7aa6c7bcb09a3adf7c3e60",
+      "output_sha256": "febf7e29c236a10779bdd5d72769b6dcb89aeee001b3db91edfdfa4ffa1adb2b",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 589082624
+    },
+    "probe_sha256": "3c87a0e7a02b713e11c7f4eee5def36af40c79a67e6e3501abdaeef4e4ab383e",
+    "compiled_source_blobs": {
+      "include/flitzfs/native_session.hpp": "c5f6795cfe9a92931f7072981544e3caefbf9aa7",
+      "src/native_session.cpp": "6dd76397eaed900a4bb7bdb553e0d32f7ac177c2",
+      "src/native_volume_file.cpp": "51253c04fe3194048c72609536b77579a72beb4f",
+      "src/native_volume_file_reclaimer.hpp": "35f2f9f53250573ea7cb973b5d8da83412010f58",
+      "src/windows/memory_volume.cpp": "6ceb037b52ab2cd7c66f0d6edca99bd30231cdfa",
+      "src/windows/memory_volume.hpp": "3c2a4789a8074241d05f80d78a1e30ce57c3a0e8",
+      "src/windows/winfsp_controller.cpp": "5b65ced946f68a3c6709125e38766c70e4535b77",
+      "src/windows/winfsp_native.cpp": "e750d2bda31d9bfc6c9443b7ac1421931ea501de",
+      "src/windows/winfsp_native.hpp": "88441eb61fe0e86a8352437259b859538fe6a1aa",
+      "tests/winfsp_write_probe.cpp": "663899ddc123f5a67a325b031583e1edf80ea451"
+    },
+    "trials": [
+      {
+        "process": {
+          "run": "local-run-8afaf3ed428545098fa827a13c5a818e",
+          "receipt_sha256": "6e4bce12944c2b7e131e923b8dc1ed924575276800a402b2af59396e436ab171",
+          "output_sha256": "d51c8f2ed96f51d9723a5b4e353faab62f10e35e1a7c3dd839888248fd59015b",
+          "exit_code": 0,
+          "tree_retired": true,
+          "peak_job_bytes": 46514176
+        },
+        "result_sha256": "e588806df884d3ffac194301ee3fa3bb4bffd61713625cb1326c1602a54f0f62",
+        "manifest_sha256": "ebb083a6bcf159617683d9b6bb1963d4b8feaeb674d0dc56570531ac8db875bb",
+        "sandbox_sha256": "5b23915e92e6b749e7dad08a6f23c0aa53e6be3dc9a0c5564942639869f7254d",
+        "windows_build": "26100",
+        "driver_sha256": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+        "driver_unregistered": true,
+        "driver_retirement_requires_guest_disposal": true,
+        "results": [
+          {
+            "boundary": "live-handoff",
+            "epoch": 2,
+            "held_client": 1,
+            "bytes_verified": 1,
+            "candidate_verified": 0,
+            "range_reclaimed": 1,
+            "retired": 1,
+            "volatile_workspace": 1
+          },
+          {
+            "boundary": "before-candidate-flush",
+            "epoch": 1,
+            "held_client": 1,
+            "bytes_verified": 1,
+            "candidate_verified": 1,
+            "range_reclaimed": 1,
+            "retired": 1,
+            "volatile_workspace": 1
+          },
+          {
+            "boundary": "after-first-selector-flush",
+            "epoch": 2,
+            "held_client": 1,
+            "bytes_verified": 1,
+            "candidate_verified": 1,
+            "range_reclaimed": 1,
+            "retired": 1,
+            "volatile_workspace": 1
+          }
+        ]
+      },
+      {
+        "process": {
+          "run": "local-run-76f45fc0ae3d487ca662c894234c2f65",
+          "receipt_sha256": "682cddd644b970ad3271e134397404b7303e6a58cd8304ae5297116c2990373e",
+          "output_sha256": "c305daa893569757bd4c838ae905517e07c420ba4f59f150ba3f34761f8d35c5",
+          "exit_code": 0,
+          "tree_retired": true,
+          "peak_job_bytes": 46301184
+        },
+        "result_sha256": "30f232512759cd9d37da6176dbe9f7ac977510f129e011fcc0d011c244041582",
+        "manifest_sha256": "5e777efd482f969cee3a36926a2fe056eca18eb38d8b8b3b030b9c09539d0038",
+        "sandbox_sha256": "3bbed74c91a2da4a05194a68dde2a7af48037b7503ea4149ed366fba792148a5",
+        "windows_build": "26100",
+        "driver_sha256": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+        "driver_unregistered": true,
+        "driver_retirement_requires_guest_disposal": true,
+        "results": [
+          {
+            "boundary": "before-candidate-flush",
+            "epoch": 1,
+            "held_client": 1,
+            "bytes_verified": 1,
+            "candidate_verified": 1,
+            "range_reclaimed": 1,
+            "retired": 1,
+            "volatile_workspace": 0
+          },
+          {
+            "boundary": "before-first-selector-write",
+            "epoch": 1,
+            "source_end": 5242880,
+            "successor_end": 393216,
+            "bytes_verified": 1,
+            "retired": 1
+          },
+          {
+            "boundary": "after-first-selector-flush",
+            "epoch": 2,
+            "source_end": 5767168,
+            "successor_end": 393216,
+            "bytes_verified": 1,
+            "retired": 1
+          },
+          {
+            "boundary": "after-second-selector-flush",
+            "epoch": 2,
+            "source_end": 5505024,
+            "successor_end": 393216,
+            "bytes_verified": 1,
+            "retired": 1
+          }
+        ]
+      }
+    ]
+  },
+  "standard_windows": {
+    "windows": {
+      "build": {
+        "run": "local-run-34c01e99cb6a4188a0f0e55227af4e12",
+        "receipt_sha256": "ba3d60560c6960877da56ff519f58de2d41ab363113348e8d5667d3fd690f601",
+        "output_sha256": "82f18a77ecebc7e6b2903baf12ee3862ae9d40fddaf840ad50374e6b5a0ca2a0",
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 471580672
+      },
+      "tests": {
+        "run": "local-run-1ad0171bcfa2418caaf6eaab210168b7",
+        "receipt_sha256": "531f7cfe3023cb44ff0e7c7e411a357bd51f82456393a87a44224e44738d666c",
+        "output_sha256": "7810f607ce8d58603fa8d3ef8877c36a87c4320b979f1260fc28808cc7331069",
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 692383744,
+        "passed": 212
+      },
+      "full_prebuild": {
+        "run": "local-run-f1940773261e4225ba7e7081098f86c8",
+        "receipt_sha256": "1e73cc45e59a5b40dd98809323645ddf9ae41a4c6b6cc4846a58d05efa07451c",
+        "output_sha256": "c0e71fbdaf608b7a67ea2986cb23b2258c597140d5812822124b9348f603c22e",
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 951762944
+      }
+    },
+    "raw": {
+      "build": {
+        "run": "local-run-ca078f4873bf42f48dec888131761620",
+        "receipt_sha256": "af9050ae55d5e4da4b561dcbfc95a0d8ad24f09ee850680da3f6f15930b6fcea",
+        "output_sha256": "134a334585c61363275a197d3912fcaaca079bf315f017a5211646390e233790",
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 592691200
+      },
+      "tests": {
+        "run": "local-run-d0339dd624854a76b0bd287018917aa8",
+        "receipt_sha256": "435d330017d9f7188ddc53b9730d937a185a1fe0f240c07c7493912beee45f50",
+        "output_sha256": "89e8611766c00344455a53d67354bb428ad3a6059a2605b27791941b170ebf81",
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 682565632,
+        "passed": 5
+      }
+    },
+    "asan": {
+      "build": {
+        "run": "local-run-9e80245e34844964bcc7c6abbd63e476",
+        "receipt_sha256": "169dccac8beea154b61500db186a5c61d8dd4ee3e8d8627ebafe0f7109d81e9d",
+        "output_sha256": "2b0f0a2dd766d299ba677b8215a6e119286316b1ca782642706ec9d5fa658343",
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 717008896
+      },
+      "tests": {
+        "run": "local-run-334f2b983e314f17968b8a6571286845",
+        "receipt_sha256": "5fe232da66e30284cd7c9c92415db6fe2a84e521543beccc6f76d676d0ff71d7",
+        "output_sha256": "108e812d551295309a3e451805201e9140e8893e5d19f9c3061cdc78413ceabe",
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 1592627200,
+        "passed": 6
+      }
+    }
+  },
+  "amd_read_regression": {
+    "build": {
+      "run": "local-run-247d3c2edb344563865765899a5ec614",
+      "receipt_sha256": "d9d56326aeffc5ad445376dcb341f901342bf52d9cd16421bf6d0d3203738450",
+      "output_sha256": "cfb344957ef215ce66d9fd6802e1070135077c4606315412252f8be4c8f14c00",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 584859648
+    },
+    "binary_sha256": "7c02c25ba4bab8ea87436c7dcfb0ab8f8f4d78e9b6d1d2c56d1f26afa192c3f9",
+    "worker_sha256": "984e99c1cf14f61ed1d0aadeafe96325148c8b66d5efc8f0fe96e2863dd008d2",
+    "module_sha256": "d5c46512c13866c134762a473edcf9360f93c28e8b7d7c703c7f9deeef3300f6",
+    "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+    "adapter": {
+      "Name": "AMD Radeon RX 9070 XT",
+      "DriverVersion": "32.0.32029.2010"
+    },
+    "gpu_read": {
+      "run": "local-run-cfa2a01c48ac415da0d6538ca86d03b0",
+      "receipt_sha256": "85d8c9b0d3a9e1d2719a58639fcc82fbe3cbc0f410943975fe23aea9c70944e4",
+      "output_sha256": "72bf9cb6874657883156f8b56eea2e78f051582e7d439555a69c45bdfbb7a98e",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 123678720,
+      "result": {
+        "sealed": 1,
+        "refusal": 0,
+        "submitted": 3,
+        "published": 1,
+        "verified_frames": 2,
+        "superseded": 2,
+        "failures": 0,
+        "worker_exit": 1223,
+        "budget_queries": 3,
+        "exact_cpu_fallback": 1,
+        "child_and_owner_retired": 1,
+        "stopped_pending": 1,
+        "checks": 330
+      }
+    },
+    "gpu_refusal": {
+      "run": "local-run-a6bdfd2359aa415a838dc9ad061951f8",
+      "receipt_sha256": "721f5f530f08de6e45a9f137807f010b801fae9d4c896bb286decb79e2f3dcf1",
+      "output_sha256": "606390d6051fccd3e7004d2fe4a23c02410a35afe57b140ca3f0e17758408be1",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 75452416,
+      "result": {
+        "sealed": 1,
+        "refusal": 1,
+        "submitted": 1,
+        "published": 0,
+        "verified_frames": 0,
+        "superseded": 0,
+        "failures": 1,
+        "worker_exit": 1179845891,
+        "budget_queries": 1,
+        "exact_cpu_fallback": 1,
+        "child_and_owner_retired": 1,
+        "stopped_pending": 0,
+        "checks": 327
+      }
+    }
+  },
+  "retained_pilots": [
+    {
+      "run": "local-run-29c675d5d8cb44c2aedcde04ac3bcf56",
+      "receipt_sha256": "522e4e90bafe3931d8b66c569b565603c6777b5a5d66dfbfbabb4cacc522d6b2",
+      "output_sha256": "8c9c3d3ba01b2b02e9e954f281caa1400e654f5c84b91c6fbd3e52dfaf7875cc",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 664621056,
+      "finding": "The model offered 64 KiB workspace geometry for a 4 KiB destination. The final provider matches the effective destination unit before staging."
+    },
+    {
+      "run": "local-run-986161d0f1444e4995256143450bd33b",
+      "receipt_sha256": "233a5a9fffb1c5d02877f99ea2120938d2009c056347fb980216a0cd3a359fa0",
+      "output_sha256": "f7ac6cb651a5189d6371abbf65725ad2ded3a1dc40f3b46059c6c7bb2072c0f1",
+      "exit_code": 1,
+      "tree_retired": true,
+      "peak_job_bytes": 82071552,
+      "finding": "The 64 KiB SDK fixture required more acknowledged sparse input to fund a matched candidate."
+    },
+    {
+      "run": "local-run-8db63143c95b4a289797dee5ff791b5a",
+      "receipt_sha256": "734328595af1350a7cd21f021b75061c6fabecee0c2f5a3da661bbb7f38d9e6d",
+      "output_sha256": "5f463bfbf39938d2aa9d04c63e8d5eb38d9ef7c667996fc06f034b59faa6922c",
+      "exit_code": 1,
+      "tree_retired": true,
+      "peak_job_bytes": 81850368,
+      "finding": "The test helper reads a complete file up to 4 MiB. The final fixture supplies the same credit through two smaller sparse files."
+    }
+  ],
+  "host": {
+    "build": "26300",
+    "scoped_processes": [],
+    "winfsp_driver": [],
+    "sandbox_environments": []
+  },
+  "scope": "The attempted backing byte counts include simulated zeroing by the sparse model and exclude writes to locked memory. Windows Sandbox results cover mounted correctness. Physical device writes, power interruption, removal and wear remain device-specific qualification work."
+}

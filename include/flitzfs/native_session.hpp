@@ -8,7 +8,14 @@ class IndexedCoherenceWriter;
 class IndexedCoherenceStorage;
 class NativeGroupMaintenance;
 class NativeHybridBacking;
-namespace detail {struct NativeMaintenanceSource;}
+namespace detail {
+struct NativeMaintenanceSource;
+class NativeSealScratch;
+struct NativeSealScratchOffer {
+  std::uint64_t bytes=0;
+  std::unique_ptr<NativeSealScratch> (*create)(std::uint64_t,StoreIoContract) noexcept=nullptr;
+};
+}
 // Pure CPU ownership layer for the future Windows adapter. It never creates
 // a driver, dispatcher, mount, worker or thread. One control thread is required.
 enum class NativeSessionErrorCode {
@@ -250,7 +257,9 @@ class NativeFileSession final {
   // starting a new image. These operations use the session's control thread.
   bool persistent_reclamation_pending(bool allow_cold=false) const;
   NativeVolumeReclaimProgress advance_persistent_reclamation(const std::function<StoreIdentity()>&,
-      bool allow_cold=false);
+      bool allow_cold=false,detail::NativeSealScratchOffer={});
+  // One memory-only cleanup step after a fresh resource observation.
+  bool shed_persistent_seal_scratch(std::uint64_t retained_bytes) noexcept;
   void cancel_persistent_reclamation() noexcept;
   // Explicit managed-volume control; reject pending/staged maintenance.
   // Preserve live contexts and return cached scalars without post-commit I/O.

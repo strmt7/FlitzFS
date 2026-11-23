@@ -1248,10 +1248,13 @@ NTSTATUS create_cut_filesystem(PWSTR device,const FSP_FSCTL_VOLUME_PARAMS* param
 class SelectorPublicationObserver final:public flitzfs::detail::VolumeFileObserver {
  public:
   SelectorPublicationObserver(PublicationCut cut,const source_fixture::Events& protocol,
-      std::optional<SealedBoundary> sealed={}):cut_(cut),protocol_(protocol),sealed_(sealed) {}
+      std::optional<SealedBoundary> sealed={},bool volatile_workspace=false):
+      cut_(cut),protocol_(protocol),sealed_(sealed),volatile_workspace_(volatile_workspace) {}
   static thread_local const SelectorPublicationObserver* active;
   void prepare_publication(bool ready) noexcept {publication_ready_=ready;}
-  bool workspace_retired() const noexcept {return workspace_retired_;}
+  bool workspace_complete() const noexcept {
+    return alternate_written_ && (volatile_workspace_ || workspace_retired_);
+  }
   std::string describe() const {
     return " candidate_written="+std::to_string(alternate_bytes_)+
         " workspace_reclaimed="+std::to_string(workspace_retired_)+
@@ -1267,7 +1270,7 @@ class SelectorPublicationObserver final:public flitzfs::detail::VolumeFileObserv
       const auto mask=1U<<static_cast<unsigned>(at/unit);
       require(!(root_slots_&mask),"Selector wrote the same slot twice");
       if(sealed_) {
-        require(*sealed_!=SealedBoundary::stale && candidate_flushed_ && workspace_retired_,
+        require(*sealed_!=SealedBoundary::stale && candidate_flushed_ && workspace_complete(),
             "Sealed selector reached publication without its candidate fence or after invalidation");
         stop_at(roots_?SealedBoundary::before_second_write:SealedBoundary::before_first_write);
       } else if(roots_==0 && cut_==PublicationCut::before_commit)park_publication(protocol_);
@@ -1285,7 +1288,7 @@ class SelectorPublicationObserver final:public flitzfs::detail::VolumeFileObserv
     if(roots_!=barriers_) {
       stop_at(roots_==1?SealedBoundary::before_first_flush:SealedBoundary::before_second_flush);
     } else if(publication_ready_ && roots_==0) {
-      require(alternate_flushed_ && workspace_retired_ && !candidate_flushed_,
+      require(alternate_flushed_ && workspace_complete() && !candidate_flushed_,
           "Sealed candidate fence was not the first operation after verification");
       candidate_flushing_=true;
       stop_at(SealedBoundary::before_candidate_flush);
@@ -1317,6 +1320,7 @@ class SelectorPublicationObserver final:public flitzfs::detail::VolumeFileObserv
         "Mounted reclamation attempted to retire the selected source before publication");
     if(sealed_ && at>=selector_alternate_offset &&
         at-selector_alternate_offset<selector_limits.maximum_physical_bytes) {
+      require(!volatile_workspace_,"A volatile probe fell back to writing a private file workspace");
       require(bytes<=selector_limits.maximum_physical_bytes-(at-selector_alternate_offset),
           "Workspace retirement crossed the inactive image range");
       workspace_reclaiming_=true;
@@ -1330,6 +1334,7 @@ class SelectorPublicationObserver final:public flitzfs::detail::VolumeFileObserv
   const PublicationCut cut_;
   const source_fixture::Events& protocol_;
   const std::optional<SealedBoundary> sealed_;
+  const bool volatile_workspace_;
   std::uint64_t alternate_bytes_=0;
   unsigned roots_=0,root_slots_=0,barriers_=0;
   bool alternate_written_=false,alternate_flushed_=false;
@@ -1393,7 +1398,7 @@ void retire_selector_range(flitzfs::WinFspNativeSession& session,flitzfs::Window
   });
 }
 void publication_source(std::wstring_view token,PublicationCut cut,PublicationOperation operation,
-    std::optional<SealedBoundary> sealed={},std::wstring_view continued={}) {
+    std::optional<SealedBoundary> sealed={},std::wstring_view continued={},bool volatile_workspace=false) {
   require_probe_job();stage=70;
   source_fixture::Events protocol(false,std::wstring(token));
   Fixture fixture;
@@ -1405,7 +1410,7 @@ void publication_source(std::wstring_view token,PublicationCut cut,PublicationOp
     std::shared_ptr<SelectorPublicationObserver> selector_observer;
     std::shared_ptr<flitzfs::StoreByteIo> backing;
     if(selector) {
-      selector_observer=std::make_shared<SelectorPublicationObserver>(cut,protocol,sealed);
+      selector_observer=std::make_shared<SelectorPublicationObserver>(cut,protocol,sealed,volatile_workspace);
       backing=flitzfs::detail::new_observed_volume_file(path,selector_contract,
           flitzfs::kNativeVolumeFileImageOffset+3*limits.maximum_physical_bytes,selector_observer);
     } else {
@@ -1418,8 +1423,9 @@ void publication_source(std::wstring_view token,PublicationCut cut,PublicationOp
     }
     const auto volume=cut_volume_identity(GetCurrentProcessId());
     auto image=volume;image.back()^=std::byte{1};
-    flitzfs::WinFspNativeSession session(flitzfs::WinFspNativeWritable::create_file_volume(
-        backing,volume,image,limits,cut_compression),api);
+    auto adapter=flitzfs::WinFspNativeWritable::create_file_volume(backing,volume,image,limits,cut_compression);
+    if(volatile_workspace)adapter->enable_paired_seal_memory();
+    flitzfs::WinFspNativeSession session(std::move(adapter),api);
     require(session.start({mount.native(),true,true})==STATUS_SUCCESS,"Publication-cut source mount");
     protocol.signal(source_fixture::Phase::ready);
     if(operation==PublicationOperation::write)protocol.wait_written();
@@ -1435,7 +1441,7 @@ void publication_source(std::wstring_view token,PublicationCut cut,PublicationOp
       flitzfs::WindowsMaintenanceHost host; // Keep observations monotonic throughout this session.
       bool changed=false;
       advance_selector_work(session,host,selector_observer.get(),sealed?78000:15000,[&](const auto& progress) {
-        const bool ready=selector_observer->workspace_retired() &&
+        const bool ready=selector_observer->workspace_complete() &&
             progress.progress.phase==flitzfs::NativeMaintenancePhase::publishing;
         if(stale && ready && !changed) {
           protocol.signal(source_fixture::Phase::ack);
@@ -1955,7 +1961,12 @@ std::vector<std::byte> sealed_payload() {
   }
   return bytes;
 }
-void run_sealed_selector(const fs::path& executable,SealedBoundary point) {
+bool supported_volatile_boundary(SealedBoundary point) noexcept {
+  return point==SealedBoundary::live || point==SealedBoundary::before_candidate_flush ||
+      point==SealedBoundary::after_first_flush;
+}
+constexpr std::wstring_view volatile_prefix=L"volatile-";
+void run_sealed_selector(const fs::path& executable,SealedBoundary point,bool volatile_workspace) {
   stage=74;
   const bool live=point==SealedBoundary::live,stale=point==SealedBoundary::stale;
   const bool uninterrupted=live || stale;
@@ -1963,7 +1974,9 @@ void run_sealed_selector(const fs::path& executable,SealedBoundary point) {
   source_fixture::Events protocol(true);
   std::optional<source_fixture::Events> completion;
   if(uninterrupted)completion.emplace(true);
-  std::vector<std::wstring> arguments{L"--sealed-selector-source",protocol.token(),std::wstring(name)};
+  std::wstring source_name=volatile_workspace?std::wstring(volatile_prefix):std::wstring{};
+  source_name+=name;
+  std::vector<std::wstring> arguments{L"--sealed-selector-source",protocol.token(),std::move(source_name)};
   if(completion)arguments.push_back(completion->token());
   constexpr flitzfs::ProcessBudget budget{128,2000,40000};
   source_fixture::Child source(executable,std::move(arguments),budget,flitzfs::run_bounded_publication_probe);
@@ -2061,7 +2074,7 @@ void run_sealed_selector(const fs::path& executable,SealedBoundary point) {
       "Writable continuation changed the selected paired layout");
   std::wcout<<L"mounted_paired_seal boundary="<<name<<L" epoch="<<selected.selection.epoch
       <<L" held_client=1 bytes_verified=1 candidate_verified="<<static_cast<unsigned>(verified_candidate)
-      <<L" range_reclaimed=1 retired=1\n";
+      <<L" range_reclaimed=1 retired=1 volatile_workspace="<<static_cast<unsigned>(volatile_workspace)<<L'\n';
 }
 
 } // namespace
@@ -2078,18 +2091,25 @@ int wmain(int argc,wchar_t** argv) {try {
   }
   if(mode==L"--sealed-selector-source") {
     require_cut_guest();require(argc==4 || argc==5,"Sealed selector source arguments");
-    const auto point=sealed_boundary(argv[3]);
+    std::wstring_view name(argv[3]);
+    const bool volatile_workspace=name.starts_with(volatile_prefix);
+    if(volatile_workspace)name.remove_prefix(volatile_prefix.size());
+    const auto point=sealed_boundary(name);
+    require(!volatile_workspace || supported_volatile_boundary(point),"Volatile selector source boundary");
     require((argc==5)==(point==SealedBoundary::live || point==SealedBoundary::stale),
         "Sealed client completion binding");
     publication_source(argv[2],PublicationCut::before_commit,PublicationOperation::image_switch,
-        point,argc==5?argv[4]:L"");return 0;
+        point,argc==5?argv[4]:L"",volatile_workspace);return 0;
   }
-  if(mode==L"--run-sealed-selector") {
+  if(mode==L"--run-sealed-selector" || mode==L"--run-volatile-sealed-selector") {
     require_cut_guest();require(argc==3,"One mounted sealed case required");
     const source_fixture::ControllerBudget controller_budget;
     wchar_t path[512]{};const auto n=GetModuleFileNameW(nullptr,path,512);
     require(n && n<512,"Sealed selector executable identity");
-    run_sealed_selector(fs::path(std::wstring(path,n)),sealed_boundary(argv[2]));
+    const auto point=sealed_boundary(argv[2]);
+    const bool volatile_workspace=mode==L"--run-volatile-sealed-selector";
+    require(!volatile_workspace || supported_volatile_boundary(point),"Volatile selector boundary");
+    run_sealed_selector(fs::path(std::wstring(path,n)),point,volatile_workspace);
     require(source_fixture::cleanup_ok.load() && !source_fixture::source_busy.load(),"Sealed selector final cleanup");
     return 0;
   }

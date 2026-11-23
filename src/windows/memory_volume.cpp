@@ -81,7 +81,10 @@ struct MemoryVolumeDomain::State {
 };
 class MemoryVolumeDomain::Store final:public StoreByteIo {
  public:
-  Store(std::shared_ptr<State> state,std::uint64_t capacity):state_(std::move(state)),capacity_(capacity) {
+  Store(std::shared_ptr<State> state,std::uint64_t capacity,std::uint32_t minimum_unit):
+      state_(std::move(state)),capacity_(capacity),
+      unit_((std::max)(minimum_unit,static_cast<std::uint32_t>(state_->page))) {
+    require(!minimum_unit || valid_store_io_contract({minimum_unit,true}),"Invalid memory isolation unit");
     require(state_->stores<state_->registry.size(),"Memory store count cap");
     require(capacity && capacity%state_->page==0 && capacity<=state_->capacity &&
         state_->reserved<=state_->capacity-capacity,"Memory allocation capacity exceeded");
@@ -98,7 +101,7 @@ class MemoryVolumeDomain::Store final:public StoreByteIo {
   // supplied byte span. Size the isolation units from the actual Windows
   // pages. A flush preserves bytes for this live, serialized memory provider.
   StoreIoContract contract() const noexcept override {
-    return {static_cast<std::uint32_t>(state_->page),true};
+    return {unit_,true};
   }
   void admit_write(std::uint64_t projected) override {
     require(allows_writer() && projected<=capacity_,"Memory write admission denied");
@@ -200,6 +203,7 @@ class MemoryVolumeDomain::Store final:public StoreByteIo {
   }
   std::shared_ptr<State> state_;std::byte* data_=nullptr;
   std::uint64_t capacity_=0,committed_=0;
+  const std::uint32_t unit_;
   std::atomic<std::uint64_t> extent_{0};
   mutable std::mutex bytes_mutex_;
 };
@@ -215,9 +219,9 @@ MemoryVolumeDomain MemoryVolumeDomain::create(std::uint64_t cap) {
   try{return MemoryVolumeDomain(std::make_shared<State>(cap));}
   catch(...){domain_claimed=false;throw;}
 }
-std::shared_ptr<StoreByteIo> MemoryVolumeDomain::create_store(std::uint64_t cap) {
+std::shared_ptr<StoreByteIo> MemoryVolumeDomain::create_store(std::uint64_t cap,std::uint32_t minimum_unit) {
   require(state_ && !state_->read_only && cleanup_ok.load(),"Memory domain unavailable for allocation");
-  return std::make_shared<Store>(state_,cap);
+  return std::make_shared<Store>(state_,cap,minimum_unit);
 }
 MemoryStoreRetirement MemoryVolumeDomain::retire_store(std::shared_ptr<StoreByteIo>& backing) {
   require(backing && owns(*backing) && !state_->read_only && cleanup_ok.load(),
