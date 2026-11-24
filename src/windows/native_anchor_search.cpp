@@ -31,16 +31,19 @@ bool valid_dispatch_grant(const NativeAnchorSearchOptions& options) noexcept {
   return members>anchor_match::max_members && members<=options.maximum_members &&
       members<=detail::anchor_match_batch_member_limit();
 }
-// The measured setup is useful when the same dispatch and full-group staging
-// can serve every group. A narrower slab can change the number of transfers.
-std::uint32_t setup_group_size(const detail::AnchorMatchBatchPlan& batch,
+std::uint32_t copy_dispatch_width(const NativeAnchorSearchOptions& options,std::uint32_t members) noexcept {
+  const auto codec_width=anchor_match::dispatch_member_limit(options.output);
+  const auto configured=options.maximum_dispatch_members?options.maximum_dispatch_members:codec_width;
+  return (std::min)({members,codec_width,configured});
+}
+// Full-group staging uploads each group's base only once. The measured
+// setup can cover a smaller group with that same transfer and dispatch shape.
+std::uint32_t fully_staged_copy_members(const detail::AnchorMatchBatchPlan& batch,
     const detail::AnchorMatchTransferPlan& transfer,const NativeAnchorSearchOptions& options) noexcept {
-  if(batch.groups.empty() || !anchor_match::copy_output(batch.output))return 0;
-  const auto members=batch.groups.front().whole.members;
-  const auto codec_width=anchor_match::dispatch_member_limit(batch.output);
-  const auto configured_width=options.maximum_dispatch_members?options.maximum_dispatch_members:codec_width;
-  if(transfer.members_per_transfer!=members || batch.quantum_members!=(std::min)({members,codec_width,configured_width}) ||
-      !std::ranges::all_of(batch.groups,[members](const auto& group){return group.whole.members==members;}))return 0;
+  if(batch.groups.empty() || batch.output!=options.output || !anchor_match::copy_output(batch.output))return 0;
+  const auto largest=std::ranges::max_element(batch.groups,{},[](const auto& group){return group.whole.members;});
+  const auto members=largest->whole.members;
+  if(transfer.members_per_transfer!=members || batch.quantum_members!=copy_dispatch_width(options,members))return 0;
   return members;
 }
 bool valid_anchor_route(const HipDiscoveredRoute& route) noexcept {
@@ -188,7 +191,7 @@ std::optional<NativeAnchorLaunchPlan> plan_native_anchor_launch(
 }
 
 void NativeAnchorBatchTiming::record_verified(std::uint64_t elapsed_ms,std::uint32_t launches,
-    std::uint64_t setup_ns,std::uint32_t group_members) noexcept {
+    std::uint64_t setup_ns,std::uint32_t group_members,bool uniform) noexcept {
   if(!elapsed_ms || !launches)return;
   // Job durations are normally bounded in seconds. Cap the conversion even
   // if the supervisor did not regain a CPU promptly after the child exited.
@@ -198,15 +201,24 @@ void NativeAnchorBatchTiming::record_verified(std::uint64_t elapsed_ms,std::uint
   };
   microseconds_per_launch_=retain_peak(microseconds_per_launch_,(microseconds+launches-1)/launches);
   const auto measured_setup=setup_ns/1000;
-  if(!group_members || !measured_setup || measured_setup>=microseconds) {
+  if(!group_members || !measured_setup || measured_setup>=microseconds ||
+      (!uniform && group_members>calibrated_group_)) {
     calibrated_group_=0;
     setup_us_=incremental_us_per_launch_=0;
     return;
   }
   const auto remaining=microseconds-measured_setup;
-  setup_us_=retain_peak(setup_us_,measured_setup);
-  incremental_us_per_launch_=retain_peak(incremental_us_per_launch_,(remaining+launches-1)/launches);
-  calibrated_group_=group_members;
+  const auto per_launch=(remaining+launches-1)/launches;
+  if(uniform) {
+    setup_us_=retain_peak(setup_us_,measured_setup);
+    incremental_us_per_launch_=retain_peak(incremental_us_per_launch_,per_launch);
+    calibrated_group_=group_members;
+  } else {
+    // A smaller mixed sample can raise the price of the verified envelope.
+    // Only another uniform sample may lower it or establish a new geometry.
+    setup_us_=(std::max)(setup_us_,measured_setup);
+    incremental_us_per_launch_=(std::max)(incremental_us_per_launch_,per_launch);
+  }
 }
 std::optional<std::uint32_t> NativeAnchorBatchTiming::launch_limit(std::uint32_t hard_timeout_ms,
     std::optional<std::uint32_t> group_members) const noexcept {
@@ -225,22 +237,26 @@ std::optional<NativeAnchorLaunchPlan> plan_timed_native_anchor_launch(
     const GpuMemorySnapshot& observed,std::uint64_t now,bool permits_reference_change,
     const NativeAnchorBatchTiming& timing) {
   if(members.empty())return {};
-  const auto first=members.front();
+  const auto calibrated=timing.calibrated_members();
   const auto complete_limit=timing.launch_limit(options.worker.timeout_ms,0);
-  const auto calibrated_limit=timing.launch_limit(options.worker.timeout_ms,first);
-  if(complete_limit==calibrated_limit)
-    return plan_native_anchor_launch(members,options,observed,now,permits_reference_change,complete_limit);
+  const auto split_limit=timing.launch_limit(options.worker.timeout_ms,calibrated);
+  auto complete=plan_native_anchor_launch(members,options,observed,now,permits_reference_change,complete_limit);
+  if(!calibrated || complete_limit==split_limit || !anchor_match::copy_output(options.output) ||
+      options.prefer_reference)return complete;
 
-  const auto different=std::ranges::find_if(members,[first](auto count){return count!=first;});
-  const auto matching=static_cast<std::size_t>(different-members.begin());
-  if(matching<members.size()) {
-    auto mixed=plan_native_anchor_launch(members,options,observed,now,permits_reference_change,complete_limit);
-    if(mixed && mixed->batch.groups.size()>matching)return mixed;
-  }
-  auto uniform=plan_native_anchor_launch(members.first(matching),options,observed,now,permits_reference_change,calibrated_limit);
-  if(uniform && !setup_group_size(uniform->batch,uniform->transfer,options))
-    return plan_native_anchor_launch(members.first(matching),options,observed,now,permits_reference_change,complete_limit);
-  return uniform;
+  const auto different=std::ranges::find_if(members,[calibrated](auto count){return count>calibrated;});
+  const auto covered=static_cast<std::size_t>(different-members.begin());
+  if(!covered || (complete && complete->batch.groups.size()>covered))return complete;
+
+  // Charge every covered group as though it used the full measured geometry,
+  // including the anchor indexing launch where that kernel requires one.
+  const auto width=copy_dispatch_width(options,calibrated);
+  const auto launches=1ULL+(calibrated-1)/width+(anchor_match::wide_output(options.output)?0U:1U);
+  const auto count=(std::min)(covered,static_cast<std::size_t>(*split_limit/launches));
+  if(!count)return {};
+  auto funded=plan_native_anchor_launch(members.first(count),options,observed,now,permits_reference_change,split_limit);
+  if(funded && fully_staged_copy_members(funded->batch,funded->transfer,options))return funded;
+  return complete;
 }
 
 NativeAnchorRecoveryCheck qualify_native_anchor_recovery(NativeAnchorRecoveryTarget target,
@@ -297,6 +313,7 @@ struct NativeAnchorSearchController::Impl {
     std::uint32_t launches;
     std::uint64_t setup_ns=0;
     std::uint32_t group_members=0;
+    bool uniform=true;
   };
   struct Flight {
     WorkerExchangeSession session;
@@ -389,7 +406,7 @@ struct NativeAnchorSearchController::Impl {
   void learn(TimingSample observed) noexcept {
     deadline_check_spent=false;
     if(!options.adaptive_batch_sizing || !observed.elapsed_ms || !observed.launches)return;
-    timing.record_verified(observed.elapsed_ms,observed.launches,observed.setup_ns,observed.group_members);
+    timing.record_verified(observed.elapsed_ms,observed.launches,observed.setup_ns,observed.group_members,observed.uniform);
     stats.last_profiled_setup_ns=observed.setup_ns;
     ++stats.verified_timing_samples;
   }
@@ -594,8 +611,12 @@ void NativeAnchorSearchController::observe(std::uint64_t activity,std::uint64_t 
             self.replies.push_back({self.windows[i],self.advice[i],{}});
           if(phase && flight.profile->dispatches_per_wait==1) {
             timing.elapsed_ms=(std::max)(timing.elapsed_ms,(phase->total_wall_ns+million-1)/million);
-            timing.group_members=setup_group_size(flight.request.plan(),flight.profile->transfer,self.options);
+            const auto& plan=flight.request.plan();
+            timing.group_members=fully_staged_copy_members(plan,flight.profile->transfer,self.options);
             if(timing.group_members) {
+              timing.uniform=std::ranges::all_of(plan.groups,[&](const auto& group) {
+                return group.whole.members==timing.group_members;
+              });
               timing.setup_ns=phase->wall_ns[static_cast<unsigned>(HipPhase::device_initialize)]+
                   phase->wall_ns[static_cast<unsigned>(HipPhase::stream_allocate)];
             }

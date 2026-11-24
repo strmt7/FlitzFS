@@ -19,9 +19,10 @@ struct NativeAnchorLaunchPlan {
 class NativeAnchorBatchTiming final {
  public:
   void record_verified(std::uint64_t elapsed_ms,std::uint32_t launches,
-      std::uint64_t setup_ns=0,std::uint32_t group_members=0) noexcept;
-  // Staging can ask whether the calibrated shape can fit. Launch planning
-  // supplies the uniform group size, or zero for mixed group sizes.
+      std::uint64_t setup_ns=0,std::uint32_t group_members=0,bool uniform=true) noexcept;
+  std::uint32_t calibrated_members() const noexcept {return calibrated_group_;}
+  // Pass zero to charge the complete observed cost per launch. The setup
+  // estimate uses the exact calibrated group size.
   std::optional<std::uint32_t> launch_limit(std::uint32_t hard_timeout_ms,
       std::optional<std::uint32_t> group_members={}) const noexcept;
  private:

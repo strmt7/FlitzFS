@@ -345,11 +345,13 @@ three initial lanes with a common build and external operation witness.
    from kernel throughput or from a stored extent with higher complete cost.
    A diagnostic losing shape remains a regression control. E03 exits only
    with useful automatic mounted work for advertised roles and CPU continuity.
-   The experimental LZ4 worker and its native qualification fixture now support
-   [admission between windows](WORKER_CHANNEL.md#admission-between-windows)
-   of a sealed request. Next, qualify repeatable Radeon cost against whole
-   CPU work and the ordinary GPU sweep. Bind a positive result and the supported
-   transport to the installed package before selecting bursts automatically.
+   The experimental version 6 transport now supports admission of separately
+   sealed writes, including a new write captured after the device is ready.
+   Compare the approved arrived-write route against complete CPU work and
+   fresh GPU workers under paired real workloads. Record the first readiness
+   gap, later request latency, cancellation, memory and power while waiting,
+   and byte-exact CPU recovery. Qualify additional request classes for the
+   installed package using that evidence.
    [Current preparation baseline and warm-session criteria](AMD_RUNTIME_DISCOVERY.md#keeping-the-hip-worker-ready-during-active-work)
 
 #### E01, E02 and E11. Replace the global startup bottleneck safely
@@ -944,9 +946,16 @@ latency before admitting a production profile.
    [Geometry calibration evidence](evidence/windows-amd-write-geometry-calibration-2026-11-24.json)
    Exercise host pressure, foreground interruption and device changes
    during the wait before promoting any route.
-   Extend finite exchanges to collective work across files. Bind each job to a source revision,
-   verify every decoded byte before publication, and retire the helper when
-   admitted work drains or foreground demand rises. Compare complete occupied
+   A verified full-group copy measurement can now fund a mixed prefix with
+   one setup charge and a full measured launch allowance for each group.
+   The Radeon scope verified four groups from one mixed exchange and the
+   complete-cost estimate admitted two. Both lanes produced identical
+   protected image sizes and verified independent readback.
+   [Mixed collective setup evidence](evidence/windows-mixed-collective-setup-2026-11-24.json)
+   Extend finite exchanges to independently admitted collective cohorts.
+   Bind each job to a source revision, verify decoded bytes before publication,
+   and retire the helper when admitted work drains or foreground demand rises.
+   Compare complete occupied
    bytes and foreground interference with a matched CPU baseline, including
    unsuccessful or cancelled batches. For reference selection, compare
    bounded candidate retrieval and actual delta cost. Include held-out data

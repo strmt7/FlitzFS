@@ -294,25 +294,45 @@ device recheck for the updated workers was deferred during host contention.
 [DXGI factory currency](https://learn.microsoft.com/en-us/windows/win32/api/dxgi/nf-dxgi-idxgifactory1-iscurrent) ·
 [DXGI memory budget query](https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/nf-dxgi1_4-idxgiadapter3-queryvideomemoryinfo)
 
-Keep a future multi-group session ready only while eligible work can fund the
-whole session. Check live memory, topology, contention, and the estimated
-advantage before each group. Size the workspace and queue from current headroom.
-The supervisor owns the worker, bounds its lifetime, and retires it when the
-eligible queue drains or host pressure rises. A failed or revoked request
-continues on the CPU, and a subsequent readiness episode requires fresh evidence.
-Leave GPU work queues empty between actual dispatches.
+The supervised version 6 write exchange reuses initialized HIP state across
+separately admitted requests. Each request has its own immutable bytes and
+geometry within the prepared transport and device capacity. The volume
+controller uses observed arrival intervals and setup costs to decide whether
+to wait for another write. Before supply it checks current host and device
+headroom, foreground activity and source identity. The initialized worker
+waits on events between requests with an empty GPU command queue. The worker
+retires when the funded burst ends. CPU service remains available during
+start, refusal and retirement.
+[Worker exchange contract](WORKER_CHANNEL.md#reusing-an-initialized-gpu-worker) ·
+[Controller arrival evidence](evidence/windows-controller-arriving-write-bursts-2026-11-24.json) ·
+[Microsoft WDDM architecture](https://learn.microsoft.com/en-us/windows-hardware/drivers/display/windows-vista-and-later-display-driver-model-architecture)
 
-The experimental prepared burst keeps one immutable request and one final
-reply. An LZ4 worker can reuse its stream and slab across several windows of
-that request. The caller provides a fresh permit before each window. A decline
-at a completed boundary retires the device resources and discards all candidates.
-The native fixture exposes the burst through an explicit test mode. On the
-physical host, rotate CPU, single-exchange GPU and burst GPU runs on identical
-owned workloads. Measure
-end-to-end cost, readiness, useful bytes, compression, resource retention and
-foreground latency. Exercise pressure, cancellation, empty-queue retirement
-and byte-exact recovery before offering the warm route automatically.
-[Worker exchange contract](WORKER_CHANNEL.md#admission-between-windows)
+The paired two-request Radeon trial measured 28–38% shorter complete GPU
+exchange time with one reusable worker. A new worker still incurs readiness
+cost after the prior burst retires. A ready HIP worker can also see hardware
+wake or memory residency costs because Windows and the display driver manage
+power and memory. Compare the complete CPU and GPU operation across real
+arrival patterns, including the first request after a gap. Record retained
+RAM and VRAM, foreground latency, and idle power before promoting a wider
+request class.
+[Prepared request evidence](evidence/windows-prepared-worker-requests-2026-11-24.json)
+
+### Collective copy batches with different group sizes
+
+A verified, fully staged copy batch provides a setup estimate for groups up
+to its measured size. Charge each group for the full measured launch geometry,
+including the indexing kernel where required. Share setup across the funded
+prefix only when the current host and GPU budgets still cover full staging.
+A slower mixed exchange can tighten the estimate. A new uniform measurement
+can establish a different group size.
+
+On the host Radeon RX 9070 XT, the mixed exchange verified four groups.
+The complete-cost estimate from the same calibration admitted two. CPU and
+GPU-assisted maintenance both compacted the protected image from 6,365,184
+to 1,662,976 bytes and reopened all 47 files byte for byte on CPU. The
+filesystem chose its CPU representations in this cohort. The first GPU
+exchange spent 2.58 seconds on device and stream setup.
+[Mixed collective setup evidence](evidence/windows-mixed-collective-setup-2026-11-24.json)
 
 ### Live Radeon trials on 23 November 2026
 

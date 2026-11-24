@@ -1,0 +1,293 @@
+{
+  "schema": 1,
+  "date": "2026-11-24",
+  "source": {
+    "base": "7fbe616f2bdfb3bd0b5a2352152a6d48d1447cf2",
+    "blobs": {
+      "src/windows/native_anchor_launch.hpp": "faee73871da623cef6c087205d646e447b4856eb",
+      "src/windows/native_anchor_search.cpp": "e3ef7679f87bfbc7dcb23fe31dd0bb974bca9e3e",
+      "tests/test_winfsp_controller.cpp": "7f1bd87f376cf71cb04d0067ae0fddd7a0213473"
+    },
+    "navigation_receipt_sha256": "2a98179486ee85dc62a0b8502177a144c5d57b13c01faaef06c302f876ceb1c4"
+  },
+  "qualification_bundle": "windows-collective-startup-sizing-2026-11-23.json",
+  "scope": "Physical Windows Radeon, explicit opt-in diagnostic, owned memory-backed indexed volume, modeled idle intervals for CPU maintenance, fresh real host/device admission and real GPU pacing. No mount or driver changes.",
+  "provenance": {
+    "source_bank": "Pinned public FlitzFS source bank from windows-amd-write-geometry-calibration-2026-11-24.json",
+    "used_source_bytes": 720896,
+    "staged_members": {
+      "amd/qualification-manifest.json": {
+        "sha256": "55f9950a927b62180add8890d8c7c7ed12b8ac0c3ab8f060a163f167a6081037",
+        "bytes": 1247
+      },
+      "flitzfs_hip_worker.exe": {
+        "sha256": "f909f3037217f1258409b61f184f6abc85b046ee9289da4174eec5257fbb92bc",
+        "bytes": 492544
+      },
+      "flitzfs_winfsp_controller_tests.exe": {
+        "sha256": "46b17da2cee14f1f09bc66bf6859edf8d99a3afe91cf3613412feb10d41896c4",
+        "bytes": 2950656
+      },
+      "hip/flitzfs_rocm_kernels.dll": {
+        "sha256": "2fd26121fff5c0c285fea184dfc426a67c347be9b38a1c6d826bed3a6b75746d",
+        "bytes": 1240576
+      },
+      "public-source.txt": {
+        "sha256": "94b4fda579071d14a70c7f06a2626849eabfb9ae5d2a90d6dd3782cecd8f80ab",
+        "bytes": 1114112
+      },
+      "winfsp-x64.dll": {
+        "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+        "bytes": 200816
+      }
+    },
+    "fixture": "47 files of 64 KiB, assembled from 11 public source excerpts and deterministic localized edits. The same discovery and CPU publication path ran in both lanes."
+  },
+  "admission": {
+    "admitted": true,
+    "when_utc": "2026-11-24T02:17:03.9257004Z",
+    "windows_build": "26300",
+    "devices": [
+      {
+        "Name": "AMD Radeon RX 9070 XT",
+        "Status": "OK",
+        "DriverVersion": "32.0.32029.2010"
+      }
+    ],
+    "cpu_percent": [
+      11.09,
+      6.68
+    ],
+    "max_gpu_engine_percent": 0.76887562270308,
+    "gpu_counters": 1476,
+    "available_kib": 24581732,
+    "total_kib": 66704480,
+    "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+    "other_flitzfs_fixture_processes": 0,
+    "bound_fixture_members": 6
+  },
+  "hardware_result": {
+    "fixtures_files": 47,
+    "admitted_image_ceiling_bytes": 33554432,
+    "diagnostic_gpu_duty_ppm": 100000,
+    "fixture_peak_commit_bytes": 119779328,
+    "calibration": {
+      "nonbase_members": 8,
+      "verified_groups": 1,
+      "device_and_stream_setup_ns": 2578862700,
+      "worker_elapsed_ms": 2734
+    },
+    "mixed": {
+      "offered_nonbase_members": [
+        4,
+        3,
+        4,
+        4,
+        4,
+        4,
+        2,
+        2,
+        1
+      ],
+      "complete_cost_model_groups": 2,
+      "verified_groups": 4,
+      "verified_nonbase_members": 15,
+      "worker_elapsed_ms": 1281,
+      "verified_observations_total": 2,
+      "retirement_confirmed": true
+    },
+    "complete_protected_image": {
+      "baseline_bytes": 6365184,
+      "cpu_final_bytes": 1662976,
+      "gpu_advised_final_bytes": 1662976,
+      "published_groups_per_arm": 10,
+      "selected_gpu_advised_members": 0,
+      "independent_cpu_readback_all_files": true
+    },
+    "lane_elapsed_ns": {
+      "cpu": 88455500,
+      "amd": 31444705900,
+      "interpretation": "AMD wall time includes calibration and the real pacing gate. Admission and identical protected occupancy are verified. This is not a filesystem throughput or compression-ratio benchmark."
+    },
+    "output_rows": [
+      "mixed_setup_image gpu=0 files=47 initial_compacted_bytes=6365184 whole_bytes=1662976 groups=10 advised_members=0 elapsed_ns=88455500 verified=1",
+      "mixed_setup verified_groups=4 full_cost_groups=2 bootstrap_setup_ns=2578862700 bootstrap_elapsed_ms=2734 mixed_elapsed_ms=1281 observations=2 retired=1 training_members=8 offered_members=4,3,4,4,4,4,2,2,1,",
+      "mixed_setup_image gpu=1 files=47 initial_compacted_bytes=0 whole_bytes=1662976 groups=10 advised_members=0 elapsed_ns=31444705900 verified=1",
+      "Application fixture peak commit: 119779328 bytes"
+    ]
+  },
+  "gates": {
+    "release": [
+      "bounded_native_indexed_group_advice",
+      "bounded_native_indexed_group_batch",
+      "bounded_native_indexed_multiwindow_batch",
+      "bounded_native_indexed_batch_capacity",
+      "bounded_winfsp_controller"
+    ],
+    "raw_only": [
+      "bounded_winfsp_controller"
+    ],
+    "windows_asan": [
+      "windows_asan_runtime_preflight",
+      "bounded_winfsp_controller"
+    ],
+    "runs": {
+      "current_build": {
+        "run": "local-run-c87141a4e09842238e1f51083a303990",
+        "exit_code": 0,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "log_sha256": "44176e19b23eec893a81647be54b043286a07833367b3934606e2fce5ba1ed33",
+        "receipt_sha256": "56ca1458048465eadaa0b38c7d395d9ef71c2aaef45b8d1fdcd8f18264252962"
+      },
+      "live_admission": {
+        "run": "local-run-b7d184fe41034a82b5662160736d7471",
+        "exit_code": 0,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "log_sha256": "88f19737ceb81895c25dc001f0ae0d03341088f952f5b822e86a1c649541bc94",
+        "receipt_sha256": "1175d85c8f78371c76d58313dba8e04f73068e24fbef69682e3695cd024b7853"
+      },
+      "live_device": {
+        "run": "local-run-40ea5bffea5d4516b9481ec392e9e92f",
+        "exit_code": 0,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "log_sha256": "144907e6dbd7af87808ae0e848efff9d1362edfed65a34f27e71630efd6f2a5e",
+        "receipt_sha256": "e29e3723232764bf152e99c46821c3582819ddd21dd4edfd7bf9d1fda0339c68"
+      },
+      "release_checks": {
+        "run": "local-run-90466492ae674892aae68b9acd78358b",
+        "exit_code": 0,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "log_sha256": "9a5de79ce9f568bdcab43d9f0b5366824e60c7710300700f922a1c21b30feefc",
+        "receipt_sha256": "8055a812379a0c3354d840435909625a02ef14af07101f99a120eea5d3f738d2"
+      },
+      "raw_controller": {
+        "run": "local-run-bf1fbd5800b04d44b0a17bf24636c48e",
+        "exit_code": 0,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "log_sha256": "d9914d73f0c6d4ad1531469c43520d4dd2885c63099d4a5d1e8ad9d725dd5fbf",
+        "receipt_sha256": "fbdaad88358810dce8a3e376a07d3829fb495b9a37f8e703d0c3e34a8f88c86e"
+      },
+      "asan_preflight": {
+        "run": "local-run-879159847b864fa791ecfa0497d51097",
+        "exit_code": 0,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "log_sha256": "b318e27671ec09d0f48af228ef115562d05a9c1797dba9e9610243277606670a",
+        "receipt_sha256": "16729109e5141acc4314632a6233aba5f5c913dd5b16ab1f1785dc4b5d735ab7"
+      },
+      "asan_controller": {
+        "run": "local-run-528a3ae413624b3489dceecd0ee56f6b",
+        "exit_code": 0,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "log_sha256": "9008134bf35f913110730bfd31e251d85b684f2926fc4509d5d85c5655939c42",
+        "receipt_sha256": "dd09698a4486900cc3e59dc0f6f47f7bb22ef23b208b4eee245e0b4a8a5d000c"
+      },
+      "first_compaction_fixture": {
+        "run": "local-run-51dd3db87af045ca87af8e0e7010fb05",
+        "exit_code": 1,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "log_sha256": "d26a095f8ab364f8a83729db963d6b82910fcad073a881a1af9fa9478107d5cf",
+        "receipt_sha256": "1af0eaa4daa2832f0c077b27cc757c3862eb135f1b081294fd0d068cfb79e4aa"
+      },
+      "first_stage_preflight": {
+        "run": "local-run-2fbf451100bf46c4a9d57a618f02643f",
+        "exit_code": 1,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "log_sha256": "46e0a9c14cd22031f2438f2dc0adf54b434cb39df6fe4d729b6a058c9b3cfebc",
+        "receipt_sha256": "baaa2b63555353cc850e2bc33f683c98ce00126912fc5e321360ffd47779a596"
+      },
+      "second_compaction_fixture": {
+        "run": "local-run-b53b99d20e124a0ba9e460bfc8b8a4f3",
+        "exit_code": 1,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "log_sha256": "e6d4c6e832a50518d3ac54be6be387bf5945e24b825282e2cc0f797913660231",
+        "receipt_sha256": "d72d6380f757faa48ba2b7f6c590e3e2421958fc68b06cb0bf58bd1f64722462"
+      },
+      "device_before_retention_assertion_fix": {
+        "run": "local-run-75427d81d6324b71820241c79bd54714",
+        "exit_code": 1,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "log_sha256": "83fe7499537cfc03e61b909d7cdb429d90d22f2c4df95f87492888243292af38",
+        "receipt_sha256": "11aab0179cbec8b7f03c6e167d0aaa44e6cde3d94c72fa3e2a12990aa6252823"
+      }
+    }
+  },
+  "recovered_fixture_failures": {
+    "first_compaction_fixture": "A live writer owned the source during compaction. The final fixture closes the indexed session before compaction.",
+    "first_stage_preflight": "The transient staging manifest used a different length field from the existing preflight contract. No device request was issued.",
+    "second_compaction_fixture": "The public explicit group API allows only one work reservation. The final fixture discovers and stages multiple groups through NativeGroupMaintenance.",
+    "device_before_retention_assertion_fix": "Radeon verified two groups where the complete-cost estimate admitted one. The fixture incorrectly required selection of a GPU copy representation. The final fixture measures the selected representation and verifies whole-image recovery independently."
+  },
+  "readiness_source_captures": {
+    "hip-readiness-sources": {
+      "sha256": "8ae9000d6e86ca0ad98af118e6c4f99d7a4b1fccd6670e9c2e4b9a714b5e4e27",
+      "pages": [
+        {
+          "name": "amd-initialization",
+          "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/initialization.html",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 29997,
+          "markdown_sha256": "ba8e3777d20fb5b14d6bb415a19956c19a1d21585681a5914e53dfbc0a2b3003",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 3.122,
+          "capture": "amd-initialization.native.json",
+          "capture_sha256": "ceeea83694798dec835badd13d3be9b3477de3d5ac9b858547bc678be7f50084"
+        },
+        {
+          "name": "windows-gpu-idle",
+          "url": "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/gpu-power-management-of-idle-and-active-power",
+          "success": false,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 27598,
+          "markdown_sha256": "8babd1568f00f5c90483c647f0142a08fac0c2b05bcc40df489e0b275f96b3ab",
+          "expected_content": false,
+          "failure_category": "unexpected_content",
+          "error": "",
+          "seconds": 1.24,
+          "capture": "windows-gpu-idle.native.json",
+          "capture_sha256": "8ef90e6300def2e301ab247cb130382f371dc69f50273bbfdcbfd79c4be678d7"
+        }
+      ],
+      "provider_version": "0.9.5+flitzzip.portable2"
+    },
+    "hip-readiness-current-wddm": {
+      "sha256": "330ac0114e911de58ca80575e0d01a3ae0b3f3d87113fe27e3d1919244b49108",
+      "pages": [
+        {
+          "name": "windows-wddm",
+          "url": "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/windows-vista-and-later-display-driver-model-architecture",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 22995,
+          "markdown_sha256": "99cf9d5a5ae81b3f42332f03d4645820862251fc3aaac49a9d4fa4401e6d8d43",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 1.701,
+          "capture": "windows-wddm.native.json",
+          "capture_sha256": "cbcd71fb4b080218afac1d0535e66a63a9b73bf5ec736f7f789748abb0aaf55d"
+        }
+      ],
+      "provider_version": "0.9.5+flitzzip.portable2"
+    }
+  }
+}

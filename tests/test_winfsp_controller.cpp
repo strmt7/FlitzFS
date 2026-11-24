@@ -159,7 +159,24 @@ void anchor_launch_budget() {
   const auto matching=plan_timed_native_anchor_launch(mixed_groups,measured_options,observed,
       observed.captured_ms,false,setup_timing);
   require(matching && matching->batch==amortized->batch,
-      "A different trailing group suppressed the affordable calibrated prefix");
+      "A larger trailing group suppressed the affordable calibrated prefix");
+  constexpr std::array<std::uint32_t,6> smaller_groups{4,2,4,3,2,6};
+  const auto staged_mix=plan_timed_native_anchor_launch(smaller_groups,measured_options,observed,
+      observed.captured_ms,false,setup_timing);
+  require(staged_mix && staged_mix->batch.groups.size()==5 &&
+      staged_mix->batch.groups[1].whole.members==2 && staged_mix->batch.groups[3].whole.members==3,
+      "Smaller groups did not share the verified setup");
+  auto mixed_timing=setup_timing;
+  mixed_timing.record_verified(1950,4*measured_launches,1'500'000'000,uniform_groups.front(),false);
+  require(mixed_timing.calibrated_members()==uniform_groups.front() &&
+      mixed_timing.launch_limit(stop_ms,uniform_groups.front())==split_limit,
+      "A cheaper mixed job weakened the measured maximum group price");
+  mixed_timing.record_verified(3300,2*measured_launches,1'850'000'000,uniform_groups.front(),false);
+  require(mixed_timing.calibrated_members()==uniform_groups.front() &&
+      mixed_timing.launch_limit(stop_ms,uniform_groups.front())<split_limit,
+      "Slower mixed work failed to tighten the shared budget");
+  mixed_timing.record_verified(3300,2*measured_launches,1'850'000'000,6,false);
+  require(!mixed_timing.calibrated_members(),"A larger mixed job extended the verified envelope");
   auto narrow_slab=observed;
   const auto local_reserve=gpu_memory_envelope(observed).local_reserve;
   narrow_slab.local_usage=observed.local_budget-local_reserve-
@@ -196,6 +213,10 @@ void anchor_launch_budget() {
   const auto slow_profile=setup_timing.launch_limit(stop_ms,uniform_groups.front());
   require(slow_profile && *slow_profile>=measured_launches && *slow_profile<2*measured_launches,
       "Slower verified incremental work did not shrink the burst");
+  const auto priced_small=plan_timed_native_anchor_launch(std::span(smaller_groups).subspan(1),measured_options,
+      observed,observed.captured_ms,false,setup_timing);
+  require(priced_small && priced_small->batch.groups.size()==1 && priced_small->batch.groups[0].whole.members==2,
+      "The planner priced a smaller group below the full calibrated group");
   setup_timing.record_verified(2600,measured_launches,2'600'000'000,uniform_groups.front());
   require(setup_timing.launch_limit(stop_ms,uniform_groups.front())==setup_timing.launch_limit(stop_ms,0),
       "An inconsistent profile displaced the complete-cost estimate");
@@ -2943,8 +2964,153 @@ int live_installed_recovery_check() {
   return 0;
 }
 
+int live_mixed_anchor_setup(const HipDiscoveredRoute& route,ProcessBudget budget,const std::filesystem::path& input) {
+  constexpr std::array<std::uint32_t,11> widths{4,2,4,3,4,2,4,3,4,2,4};
+  constexpr auto capacity=32ULL*1024*1024;
+  constexpr StoreCompressionOptions compression{StoreCompressionMode::raw,1,false};
+  const auto source=ReadOnlyFile::open(input);
+  require(source.size()>=widths.size()*kNativeExtentBytes,"Mixed anchor fixture requires a complete public source");
+  std::vector<Bytes> originals;
+  std::vector<std::string> names;
+  for(std::size_t group=0;group<widths.size();++group) {
+    Bytes base(kNativeExtentBytes);
+    source.read_exact_at(group*kNativeExtentBytes,base.data(),base.size());
+    for(std::uint32_t member=0;member<=widths[group];++member) {
+      auto bytes=base;
+      if(member)for(std::size_t j=0;j<96;++j)bytes[4096*member+j]^=std::byte{29};
+      names.push_back("m"+std::to_string(originals.size()));
+      originals.push_back(std::move(bytes));
+    }
+  }
+
+  const auto lane=[&](bool gpu) {
+    auto head=std::make_shared<Ram>(),live=std::make_shared<Ram>();
+    head->failure_unit=live->failure_unit=4096;
+    std::optional<NativeFileSession> session(NativeFileSession::create_indexed_volume(
+        head,id(90),live,id(1),{capacity},compression));
+    for(std::size_t index=0;index<originals.size();++index) {
+      session->create_entry(names[index]);
+      const auto handle=session->open(names[index],{true,true,false});
+      session->write(handle,0,originals[index]);
+      session->cleanup(handle,false);
+      session->close(handle);
+    }
+    const auto resolve=[&](const auto& key)->std::shared_ptr<StoreByteIo>{return key==id(1)?live:nullptr;};
+    session.reset();
+    const auto before=NativeVolumeHeadView::open(head,id(90),resolve);
+    std::uint64_t baseline_bytes=0;
+    if(!gpu) {
+      auto baseline=std::make_shared<Ram>();
+      baseline->failure_unit=live->failure_unit;
+      (void)NativeFilesystemWriter::compact(before.filesystem(),baseline,id(3),compression);
+      baseline_bytes=baseline->extent();
+    }
+    session.emplace(NativeFileSession::resume_closed_indexed_volume(head,id(90),1,resolve,compression));
+    NativeGroupMaintenance maintenance(*session);
+    const auto begun=std::chrono::steady_clock::now();
+    const auto members=static_cast<std::uint32_t>(originals.size()-widths.size());
+    const NativeAnchorSearchOptions options{.route=route,.worker=budget,.minimum_members=2,
+        .maximum_members=members,.duty_ppm=100000,.maximum_dispatch_members=2};
+    std::unique_ptr<NativeAnchorSearchController> anchor;
+    if(gpu)anchor=std::make_unique<NativeAnchorSearchController>(options);
+    const auto run=[&](std::span<const NativeSharedBaseSearchWindow> batch) {
+      anchor->start(batch,1);
+      const auto terminal=anchor->wake_handle();
+      require(terminal && WaitForSingleObject(terminal,8000)==WAIT_OBJECT_0,"Mixed anchor worker did not settle");
+      anchor->observe(1,GetTickCount64(),NativeAnchorOpportunity::idle);
+      require(WorkerExchangeSession::available() && anchor->stats().retirement_confirmed,
+          "Mixed anchor worker was still owned after its reply");
+    };
+    NativeMaintenanceProgress progress;
+    bool compared=false;
+    for(std::uint64_t sequence=1;sequence<=4096 && maintenance.pending();++sequence) {
+      MEMORYSTATUSEX host{};
+      host.dwLength=sizeof(host);
+      require(GlobalMemoryStatusEx(&host)!=0,"Cannot confirm current memory headroom");
+      const NativeMaintenanceObservation observation{sequence,sequence*1000,host.ullTotalPhys,host.ullAvailPhys,
+          host.ullTotalPageFile,host.ullAvailPageFile,1000,0,1000,true,false};
+      const auto replies=anchor?anchor->replies():std::span<const NativeSharedBaseSearchReply>{};
+      progress=maintenance.advance(observation,observation.captured_ms,
+          {compared?0U:members,nullptr,true,replies});
+      require(progress.phase!=NativeMaintenancePhase::failed &&
+          progress.deferral!=NativeMaintenanceDeferral::memory &&
+          progress.deferral!=NativeMaintenanceDeferral::capacity,"Mixed group preparation or publication failed");
+      if(!progress.search_batch_ready || compared)continue;
+      compared=true;
+      if(!anchor)continue;
+      auto windows=maintenance.search_batch();
+      require(windows.size()>=3,"Mixed copy fixture did not discover enough complete groups");
+      const auto member_count=[](const auto& window){return window.members().size();};
+      const auto largest=std::ranges::max_element(windows,{},member_count);
+      const auto training=*largest;
+      windows.erase(largest);
+      const auto different=std::find_if(std::next(windows.begin()),windows.end(),[&](const auto& window) {
+        return member_count(window)!=member_count(windows.front());
+      });
+      require(different!=windows.end(),"Mixed copy fixture needs distinct group sizes");
+      std::rotate(std::next(windows.begin()),different,std::next(different));
+      std::vector<std::uint32_t> counts;
+      for(const auto& window:windows)counts.push_back(static_cast<std::uint32_t>(member_count(window)));
+      run(std::span{&training,1});
+      const auto trained=anchor->stats();
+      require(trained.verified_groups==1 && trained.verified_timing_samples==1 &&
+          trained.last_profiled_setup_ns && trained.last_verified_copy_profile,"Could not verify the initial GPU setup");
+      NativeAnchorBatchTiming complete;
+      const auto profiled_ms=(trained.last_verified_copy_profile->total_wall_ns+999999)/1000000;
+      complete.record_verified((std::max)(profiled_ms,trained.last_worker_elapsed_ms),
+          static_cast<std::uint32_t>(trained.submitted_kernel_launches));
+      anchor->discard_reply();
+      await([&]{return anchor->stage_grant(GetTickCount64(),originals.size())!=0;},62000,
+          "Mixed GPU fixture did not pass its real pacing gate");
+      const auto pressure=query_windows_gpu_budget(route.memory.luid,route.memory.node_mask);
+      require(pressure.status==WindowsGpuBudgetStatus::success,"Cannot price the confirmation batch");
+      const auto fallback=plan_native_anchor_launch(counts,options,pressure.snapshot,
+          GetTickCount64(),false,complete.launch_limit(budget.timeout_ms));
+      run(windows);
+      const auto settled=anchor->stats();
+      const auto cold_groups=fallback?fallback->batch.groups.size():0;
+      const auto verified_groups=anchor->replies().size();
+      std::cout<<"mixed_setup verified_groups="<<verified_groups<<" full_cost_groups="<<cold_groups
+          <<" bootstrap_setup_ns="<<trained.last_profiled_setup_ns<<" bootstrap_elapsed_ms="<<trained.last_worker_elapsed_ms
+          <<" mixed_elapsed_ms="<<settled.last_worker_elapsed_ms<<" observations="<<settled.verified_timing_samples
+          <<" retired="<<settled.retirement_confirmed<<" training_members="<<member_count(training)<<" offered_members=";
+      for(const auto count:counts)std::cout<<count<<',';
+      std::cout<<std::endl;
+      require(verified_groups>cold_groups && verified_groups>=2 &&
+          settled.verified_groups==verified_groups+1 && settled.verified_timing_samples==2,
+          "Verified setup did not fund more heterogeneous groups");
+    }
+    // Suggested copies compete against the native CPU encodings. The
+    // device can verify a group without winning the final byte comparison.
+    require(compared && !maintenance.pending() && progress.published_groups>0,
+        "Mixed group publication did not finish");
+    if(anchor)require(anchor->stop(),"Mixed anchor controller failed to retire");
+    session.reset();
+    auto packed=std::make_shared<Ram>();
+    packed->failure_unit=live->failure_unit;
+    const auto after=NativeVolumeHeadView::open(head,id(90),resolve);
+    (void)NativeFilesystemWriter::compact(after.filesystem(),packed,id(2),compression);
+    const auto verified=NativeFilesystemSnapshot::open_image(packed,{NativeImageKind::indexed_paged,capacity});
+    verified.verify_all();
+    for(std::size_t index=0;index<originals.size();++index)
+      require(verified.read(names[index],0,kNativeExtentBytes)==originals[index] &&
+          before.filesystem().read(names[index],0,kNativeExtentBytes)==originals[index],"Mixed group changed an original extent");
+    if(baseline_bytes)require(packed->extent()<baseline_bytes,"Mixed grouping did not reduce complete occupancy");
+    std::cout<<"mixed_setup_image gpu="<<gpu<<" files="<<originals.size()<<" initial_compacted_bytes="<<baseline_bytes
+        <<" whole_bytes="<<packed->extent()<<" groups="<<progress.published_groups
+        <<" advised_members="<<progress.advised_members_published
+        <<" elapsed_ns="<<elapsed_ns(begun)<<" verified=1"<<std::endl;
+    return packed->extent();
+  };
+  const auto cpu=lane(false);
+  const auto amd=lane(true);
+  require(amd<=cpu && WorkerExchangeSession::available(),"Mixed GPU grouping expanded the CPU result or retained the worker");
+  return 0;
+}
+
 int live_anchor_owner(int argc,char** argv) {
   const std::string_view mode(argv[6]);
+  const bool mixed_setup=mode=="mixed-setup";
   const auto multiwindow=multiwindow_pattern(mode);
   const auto restriction=argc==9?std::string_view(argv[8]):std::string_view{};
   const bool wide_copy=restriction=="wide-copy";
@@ -2961,7 +3127,7 @@ int live_anchor_owner(int argc,char** argv) {
       restriction=="queued" || wide_copy;
   const bool xor_mode=mode=="xor" || mode=="xor-wide" || mode=="xor-narrow";
   require(mode=="accept" || mode=="yield" || mode=="both" || mode=="batch" || mode=="batch-yield" || queued ||
-      mode=="changed-extents" || mode=="prefix-extension" || xor_mode || multiwindow,
+      mode=="changed-extents" || mode=="prefix-extension" || xor_mode || multiwindow || (mixed_setup && argc==8),
       "Expected an AMD ownership trial");
   require(argc!=9 || (multiwindow && revision_corpus(*multiwindow) &&
       (restriction=="queued" || limited_memory || wide_copy || reference_xor ||
@@ -2977,6 +3143,7 @@ int live_anchor_owner(int argc,char** argv) {
   const auto discovery_ns=elapsed_ns(discovery_start);
   require(binding.status==HipDiscoveryStatus::ready && binding.route && binding.route->pins->anchor_module_pinned() &&
       !binding.route->pins->uniform_module_pinned(),"Shared-base worker route was not authenticated");
+  if(mixed_setup)return live_mixed_anchor_setup(*binding.route,profile,argv[7]);
   if(multiwindow) {
     constexpr auto families=anchor_search_fixture::indexed_batch_families;
     const bool small_batch=anchor_search_fixture::small_indexed_batch(*multiwindow);
@@ -4812,7 +4979,8 @@ int main(int argc,char** argv){try {
     return live_installed_retired_reply(BatchForegroundTrial::recover_after_deadline);
   if(argc==2 && std::string_view(argv[1])=="--live-installed-retired-edit")
     return live_installed_retired_reply(BatchForegroundTrial::edit_after_retirement);
-  if((argc==7 || ((argc==8 || argc==9) && multiwindow_pattern(argv[6]))) &&
+  if((argc==7 || (argc==8 && std::string_view(argv[6])=="mixed-setup") ||
+      ((argc==8 || argc==9) && multiwindow_pattern(argv[6]))) &&
       std::string_view(argv[1])=="--live-anchor-owner")return live_anchor_owner(argc,argv);
   if(argc==2 || argc==3) {
     const std::string_view command(argv[1]);
