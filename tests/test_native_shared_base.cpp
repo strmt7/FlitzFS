@@ -293,6 +293,15 @@ void prepared_mixed_group_reads() {
   const auto request=detail::decode_native_group_request(exchange.request()->bytes(),maximum_members,slab_grant);
   require(request.layout.abi==group_decode::mixed_version && request.layout.bases==1,
       "Mixed device request lost its ABI or reused base");
+  const auto grant_for_device=detail::plan_native_group_preparation(maximum_members,slab_grant,true);
+  require(grant_for_device.maximum_members==maximum_members && grant_for_device.device_bytes<=slab_grant &&
+      grant_for_device.device_bytes>=exchange.device_bytes() &&
+      grant_for_device.request_bytes>=exchange.request()->bytes().size() &&
+      grant_for_device.reply_bytes==exchange.reply_capacity(),"Prepared reservation did not bound the committed group");
+  const auto smaller=detail::plan_native_group_preparation(maximum_members,4*extent,true);
+  require(smaller.maximum_members && smaller.maximum_members<maximum_members && smaller.device_bytes<=4*extent &&
+      !detail::plan_native_group_preparation(maximum_members,extent,true).maximum_members,
+      "Prepared reservation did not adapt to device capacity");
   const auto encoded=exchange.request()->bytes();
   const auto reject=[&](Bytes wrong,const char* error){
     rejects([&]{(void)detail::decode_native_group_request(wrong,maximum_members,slab_grant);},error);

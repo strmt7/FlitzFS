@@ -1674,7 +1674,8 @@ bool WinFspNativeWritable::advance_native_lz4_read_ahead(
 
 std::optional<WinFspReadAheadWork> WinFspNativeWritable::capture_native_lz4_read_ahead(
     const NativeMaintenanceObservation& observed,std::uint64_t now,std::uint64_t epoch,
-    const std::atomic<bool>& stop_requested) noexcept {
+    const std::atomic<bool>& stop_requested,
+    const std::function<void(const WinFspReadAheadWork&)>& before_group_capture) noexcept {
   try {
     const auto resources=detail::maintenance_resources(observed,now,impl_->group_policy);
     constexpr auto frame_bytes=kNativeExtentBytes+detail::kIndexedExtentHeaderBytes;
@@ -1716,6 +1717,7 @@ std::optional<WinFspReadAheadWork> WinFspNativeWritable::capture_native_lz4_read
     work.hint_created_ms=target.created_ms;
     work.observed_lead_ms=target.observed_lead_ms;
     if(group_lease) {
+      if(before_group_capture)before_group_capture(work);
       const auto grant=(std::min<std::uint64_t>)(resources->memory_allowance-scratch_bytes,
           std::uint64_t{4}*kNativeMaxReadBytes);
       work.groups=group_lease->capture(target.bytes,static_cast<std::size_t>(grant),interrupted);

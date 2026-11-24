@@ -10,6 +10,14 @@ struct NativeGroupWireRequest {
   group_decode::Layout layout{};
   std::vector<std::byte> upload;
 };
+struct NativeGroupPreparedGrant {
+  std::uint32_t maximum_members=0;
+  std::uint64_t device_bytes=0;
+  std::size_t request_bytes=0,reply_bytes=0;
+};
+// Size a one-use reservation before the actual checkpoint records are known.
+NativeGroupPreparedGrant plan_native_group_preparation(std::uint32_t maximum_members,
+    std::uint64_t maximum_device_bytes,bool mixed) noexcept;
 NativeGroupWireRequest decode_native_group_request(std::span<const std::byte>,
     std::uint32_t maximum_members,std::uint64_t maximum_device_bytes);
 std::size_t native_group_reply_bytes(group_decode::Layout) noexcept;

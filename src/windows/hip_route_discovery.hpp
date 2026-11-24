@@ -93,6 +93,7 @@ struct InstalledNativeReadProfile {
   std::uint64_t maximum_slab_bytes=0;
   bool packed_groups=false;
   bool mixed_groups=false;
+  std::uint32_t prepared_group_submit_lead_ms=0;
 };
 std::optional<InstalledNativeReadProfile> installed_native_read_profile() noexcept;
 HipRouteDiscoveryResult discover_installed_hip_native_read_route(std::stop_token={});

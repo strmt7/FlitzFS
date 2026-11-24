@@ -156,6 +156,32 @@ int sized_child(std::wstring_view mode,std::wstring_view token) {
   return mode==L"sized-fail-after"?17:0;
 }
 constexpr WorkerChannelCapacity prepared_capacity{128U*1024+37,64U*1024+71};
+struct PreparationEvent {
+  HANDLE value;
+  ~PreparationEvent(){if(value)CloseHandle(value);}
+};
+int bounded_prepared_child(std::wstring_view mode,std::wstring_view event,std::wstring_view token,std::uint32_t timeout) {
+  check_job();
+  if(mode==L"bounded-before-open" || mode==L"bounded-fail-setup") {
+    const std::wstring name(event);
+    PreparationEvent release{OpenEventW(SYNCHRONIZE,FALSE,name.c_str())};
+    check(release.value && WaitForSingleObject(release.value,timeout)==WAIT_OBJECT_0,
+        "qualified child did not receive its setup release");
+  }
+  auto channel=WorkerChannel::open_prepared_bounded(token,prepared_capacity,timeout);
+  check(channel.request().empty(),"bounded preparation consumed input during setup");
+  if(mode==L"bounded-fail-setup")return 17;
+  if(!channel.receive_prepared())return 0;
+  const auto request=channel.take_request_snapshot();
+  const auto input=request->bytes();
+  check(input.size()==prepared_capacity.request_bytes-113 && channel.request().empty(),
+      "bounded preparation lost the exact logical request");
+  rejects([&]{(void)channel.receive_prepared();});
+  Bytes output(prepared_capacity.reply_bytes-17);
+  std::copy_n(input.rbegin(),output.size(),output.begin());
+  channel.publish(output);
+  return 0;
+}
 int prepared_child(std::wstring_view mode,std::wstring_view token,std::uint32_t timeout,bool windowed) {
   check_job();
   auto channel=WorkerChannel::open_prepared_sized(token,prepared_capacity,timeout,windowed);
@@ -1409,6 +1435,51 @@ void prepared_transactions(const std::filesystem::path& executable) {
   }
   std::cout<<"Prepared exchange: empty startup, exact one-shot frame, CPU semantics, cancellation and retirement passed\n";
 }
+void bounded_prepared_transactions(const std::filesystem::path& executable) {
+  ProcessBudget budget;budget.timeout_ms=4000;
+  Bytes input(prepared_capacity.request_bytes-113);
+  for(std::size_t i=0;i<input.size();++i)input[i]=static_cast<std::byte>((i*17+i/89)%256);
+  auto request=std::make_shared<const WorkerRequestSnapshot>(input);
+  const auto oversize=std::make_shared<const WorkerRequestSnapshot>(Bytes(prepared_capacity.request_bytes+1));
+  const auto base=L"Local\\FlitzFS.prepared.test."+std::to_wstring(GetCurrentProcessId())+L"."+
+      std::to_wstring(GetTickCount64());
+  for(unsigned attempt=0;attempt<3;++attempt) {
+    const auto name=base+L"."+std::to_wstring(attempt);
+    PreparationEvent release{CreateEventW(nullptr,TRUE,FALSE,name.c_str())};
+    check(release.value && GetLastError()!=ERROR_ALREADY_EXISTS,"setup latch was not created exclusively");
+    const wchar_t* mode=attempt==1?L"bounded-fail-setup":L"bounded-before-open";
+    auto session=WorkerExchangeSession::start_prepared_bounded(executable,{mode,name},prepared_capacity,budget);
+    check(!session.wait_prepared() && !session.submit_prepared(oversize) && session.submit_prepared(request) &&
+        !session.submit_prepared(request) && !session.try_result(),"early bounded submission did not preserve one owned frame");
+    if(attempt==2)check(session.request_cancel(),"queued bounded request did not cancel during setup");
+    else check(SetEvent(release.value)!=0,"release bounded child setup");
+    check(WaitForSingleObject(session.supervisor_wait_handle(),5000)==WAIT_OBJECT_0 &&
+        session.retirement_confirmed() && WorkerExchangeSession::available(),"bounded preparation retirement unconfirmed");
+    const auto* result=session.try_result();
+    check(result && !session.failure(),"missing bounded worker result");
+    if(!attempt) {
+      const auto expected=prepared_capacity.reply_bytes-17;
+      check(result->code==WorkerExchangeCode::completed && result->process.exit_confirmed &&
+          result->response.size()==expected && std::equal(result->response.begin(),result->response.end(),input.rbegin()),
+          "bounded early submission did not return the exact short reply");
+    }else {
+      check(result->code==(attempt==1?WorkerExchangeCode::worker_failed:WorkerExchangeCode::cancelled) &&
+          result->response.empty() && !result->publication_observed,"failed bounded preparation exposed output");
+    }
+    check_closed(*result);
+  }
+  {
+    auto session=WorkerExchangeSession::start_prepared_bounded(executable,{L"bounded-unused",L"-"},prepared_capacity,budget);
+    check(session.wait_prepared(3000) && session.request_cancel(),"unused bounded preparation did not discard");
+    check(WaitForSingleObject(session.supervisor_wait_handle(),5000)==WAIT_OBJECT_0 &&
+        session.retirement_confirmed(),"unused bounded preparation was not retired");
+    const auto* result=session.try_result();
+    check(result && result->code==WorkerExchangeCode::cancelled && result->process.exit_confirmed &&
+        result->process.exit_code==0 && result->response.empty(),"unused preparation performed work");
+    check_closed(*result);
+  }
+  std::cout<<"bounded_prepared_exchange early_request=1 exact_short_reply=1 cancelled=2 refused_setup=1\n";
+}
 void prepared_window_transactions(const std::filesystem::path& executable) {
   ProcessBudget budget;
   budget.timeout_ms=4000;
@@ -1648,6 +1719,12 @@ void abandoned_session(const std::filesystem::path& executable,const std::vector
 
 }
 int wmain(int argc,wchar_t** argv){try{
+  if(argc==2 && std::wstring_view(argv[1])==L"--test-bounded-prepared"){
+    bounded_prepared_transactions(self());
+    return 0;
+  }
+  if(argc==6 && std::wstring_view(argv[3])==kPreparedWorkerBoundedArgument)
+    return bounded_prepared_child(argv[1],argv[2],argv[4],static_cast<std::uint32_t>(std::stoul(argv[5])));
   if(argc==2 && std::wstring_view(argv[1])==L"--native-error-resource-probe")return native_error_resources();
   if(argc==2 && std::wstring_view(argv[1])==L"--test-prepared-requests"){
     const auto executable=self();

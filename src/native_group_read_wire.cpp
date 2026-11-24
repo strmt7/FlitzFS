@@ -59,6 +59,22 @@ std::size_t native_group_reply_bytes(Layout layout) noexcept {
   return reply_header+std::size_t(layout.members)*kNativeExtentBytes;
 }
 
+NativeGroupPreparedGrant plan_native_group_preparation(std::uint32_t maximum_members,
+    std::uint64_t maximum_device_bytes,bool mixed) noexcept {
+  const auto abi=mixed?group_decode::mixed_version:group_decode::version;
+  const auto minimum_body=mixed?group_decode::delta_prefix_bytes:group_decode::tiles+group_decode::words_per_tile;
+  auto count=(std::min)(maximum_members,group_decode::maximum_members);
+  while(count && group_decode::slab_bytes({count,1,count*minimum_body,abi})>maximum_device_bytes)--count;
+  if(!count)return {};
+  // Each member has at most one private base and its stored body stays below
+  // a full extent, including the optional delta prefix on this protocol.
+  const Layout maximum{count,count,count*(kNativeExtentBytes-1),abi};
+  const auto slab=(std::min)(maximum_device_bytes,group_decode::slab_bytes(maximum));
+  const auto input=(std::min)(group_decode::output_at(maximum),
+      slab-kNativeExtentBytes-group_decode::tiles);
+  return {count,slab,request_header+static_cast<std::size_t>(input),native_group_reply_bytes(maximum)};
+}
+
 NativeGroupReadExchange NativeGroupReadExchange::prepare(const NativeGroupReadBatch& capture,std::uint64_t id,
     std::uint32_t maximum_members,std::uint64_t maximum_device_bytes) {
   const auto members=capture.members();

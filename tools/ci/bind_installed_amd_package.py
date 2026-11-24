@@ -228,6 +228,9 @@ def bind(package: Path, approved: str) -> tuple[str, list[str]]:
         mixed_groups = read.get("mixed_groups", False)
         require(isinstance(packed_groups, bool), "Invalid native read packed_groups")
         require(isinstance(mixed_groups, bool) and (not mixed_groups or packed_groups), "Invalid native read mixed_groups")
+        submit_lead = integer(read, "prepared_group_submit_lead_ms", 0, fields["minimum_lead_ms"]) \
+            if "prepared_group_submit_lead_ms" in read else 0
+        require(not submit_lead or packed_groups, "Prepared group reads require packed group qualification")
         read_exports = ("flitzfs_native_lz4_decode_api",)
         if packed_groups:
             read_exports += ("flitzfs_native_group_decode_api",)
@@ -237,6 +240,7 @@ def bind(package: Path, approved: str) -> tuple[str, list[str]]:
         result += artifact(READ_MODULE, "read_module_sha256", False, read_exports)
         result += f"inline constexpr bool read_packed_groups={'true' if packed_groups else 'false'};\n"
         result += f"inline constexpr bool read_mixed_groups={'true' if mixed_groups else 'false'};\n"
+        result += f"inline constexpr std::uint32_t read_prepared_group_submit_lead_ms={submit_lead}U;\n"
         result += f'inline constexpr wchar_t read_architecture[]=L"{architecture}";\n'
         result += f"inline constexpr std::uint64_t read_maximum_slab_bytes={slab_bytes}ULL;\n"
         result += f"inline constexpr std::array read_runtime_sha256{{{array_literal(bytes.fromhex(runtime_digest))}}};\n"

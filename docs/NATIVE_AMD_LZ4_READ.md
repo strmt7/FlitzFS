@@ -123,6 +123,22 @@ requests. The worker
 checks the request, adapter and live memory again, then completes the command
 and retires before the controller can use the reply.
 
+With a qualified `prepared_group_submit_lead_ms`, the controller can start
+one prepared helper after it pins the forecast's checkpoint and releases
+the callback lock. The helper initializes HIP and reserves a slab while the
+storage reader captures the grouped records. Only the exact forecast can
+queue a request, and its bytes and extent count must fit the reservation.
+The helper receives the private request after initialization and releases
+its resources on completion, cancellation, or an unused forecast. Foreground
+activity can supersede the forecast before any use of its result.
+
+The profile's startup lead and the measured worker turnaround govern when
+preparation can begin. The remaining lead and the observed time from prior
+submissions govern whether a captured request can be queued. AMD documents
+stream priority as disabled, so this route relies on admission, finite
+reservations, and cancellation to limit competing work.
+[AMD HIP stream management](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/doxygen/html/group___stream.html)
+
 The parent verifies every complete extent against its independently captured
 decoded digest, including bytes outside the requested slice. On demand,
 FlitzFS checks the exact backing checkpoint and both protected record
@@ -134,6 +150,11 @@ same committed capabilities and data.
 The next qualification compares complete AMD and CPU costs with natural
 foreground lead times. Measure capture, upload, decode, readback, CPU
 verification and worker retirement along with the cost of late work.
+Record the interval before submission as well as the interval from
+submission to completion. Microsoft's storage timing guidance uses this
+distinction to identify queue and execution costs.
+[Microsoft storage timing guidance](https://learn.microsoft.com/en-us/windows/pix/timing-captures/directstorage)
+
 Use the measured costs to compare finite prepared workers with cold
 dispatch, including contention and release of idle resources. Anchor copies,
 aligned patches, prefixed Zstandard, and packed slices remain on the CPU.
@@ -143,7 +164,8 @@ encodings across the link. FlitzFS needs its own complete-cost measurements
 for ordinary reads. [PlaneZip](https://arxiv.org/abs/2610.25033)
 
 [Packed read-ahead evidence](evidence/windows-prepared-group-reads-2026-11-24.json) ·
-[Mixed decoder evidence](evidence/windows-mixed-group-reads-2026-11-24.json)
+[Mixed decoder evidence](evidence/windows-mixed-group-reads-2026-11-24.json) ·
+[Prepared grouped-read evidence](evidence/windows-prepared-group-worker-2026-11-24.json)
 
 ## Prepared native reads
 

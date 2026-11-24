@@ -185,6 +185,7 @@ class PackageTests(unittest.TestCase):
         self.assertIn("read_minimum_lead_ms=120U", header)
         self.assertIn("read_packed_groups=false", header)
         self.assertIn("read_mixed_groups=false", header)
+        self.assertIn("read_prepared_group_submit_lead_ms=0U", header)
         self.assertEqual(files, ["qualification-manifest.json", READ_EVIDENCE, READ_WORKER, READ_MODULE])
 
     def test_native_read_requires_verified_dispatch(self):
@@ -236,6 +237,23 @@ class PackageTests(unittest.TestCase):
         }):
             header, _ = self.bind()
         self.assertIn("read_mixed_groups=true", header)
+
+    def test_prepared_group_requires_a_qualified_group_profile(self):
+        self.native_read()["prepared_group_submit_lead_ms"] = 20
+        with self.assertRaisesRegex(RuntimeError, "Prepared group reads require packed group qualification"):
+            self.bind()
+
+    def test_prepared_group_requires_the_submit_lead_within_the_start_lead(self):
+        self.native_read().update(packed_groups=True, prepared_group_submit_lead_ms=121)
+        with self.assertRaisesRegex(RuntimeError, "prepared_group_submit_lead_ms"):
+            self.bind()
+
+    def test_prepared_group_binds_its_submit_lead(self):
+        self.native_read().update(packed_groups=True, prepared_group_submit_lead_ms=20)
+        with patch("bind_installed_amd_package.pe_function_exports",
+                   return_value={"flitzfs_native_lz4_decode_api", "flitzfs_native_group_decode_api"}):
+            header, _ = self.bind()
+        self.assertIn("read_prepared_group_submit_lead_ms=20U", header)
 
     def test_manifest_approval_is_required(self):
         self.anchor()

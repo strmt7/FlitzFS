@@ -972,6 +972,11 @@ latency before admitting a production profile.
    or an unavailable result.
    [Grouped read-ahead design and verification](NATIVE_AMD_LZ4_READ.md#shared-base-extent-read-ahead)
 
+   A separately qualified prepared worker can overlap part of initialization
+   with protected capture. The controller reserves one finite exchange and
+   checks both startup and submission lead times. A missed forecast releases
+   the unused reservation through the same retirement boundary.
+
    Run the device qualification for this exact module and worker. Then compare
    cold and prepared workers using the same captured groups and natural read
    lead times. Record transfer, verification, retirement, cancellation and

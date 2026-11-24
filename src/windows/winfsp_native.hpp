@@ -196,7 +196,8 @@ class WinFspNativeWritable final {
   bool advance_native_lz4_read_ahead(const NativeMaintenanceObservation&,std::uint64_t now_ms,
       std::uint64_t foreground_epoch,const std::atomic<bool>* stop_requested=nullptr) noexcept;
   std::optional<WinFspReadAheadWork> capture_native_lz4_read_ahead(const NativeMaintenanceObservation&,
-      std::uint64_t now_ms,std::uint64_t foreground_epoch,const std::atomic<bool>& stop_requested) noexcept;
+      std::uint64_t now_ms,std::uint64_t foreground_epoch,const std::atomic<bool>& stop_requested,
+      const std::function<void(const WinFspReadAheadWork&)>& before_group_capture={}) noexcept;
   bool publish_read_ahead(WinFspReadAheadWork&,std::unique_ptr<detail::NativeLz4ReadyReads>,
       std::unique_ptr<detail::NativeGroupReadyReads>,
       const std::atomic<bool>& stop_requested) noexcept;

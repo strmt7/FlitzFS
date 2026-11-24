@@ -126,9 +126,10 @@ UniformLz4Candidates execute_uniform_lz4_compute(const HipApi& api,Lz4Attributes
 
 namespace flitzfs {
 class WindowsGpuBudgetSampler;
-std::vector<std::byte> run_hip_native_group_read_in_worker(HMODULE,const group_decode::KernelApi&,
-    int ordinal,WindowsGpuBudgetSampler&,const detail::NativeGroupWireRequest&,
-    std::span<const hip_detail::Lz4KernelCoverage>);
+std::vector<std::byte> run_hip_native_group_read_in_worker(HMODULE,std::span<const group_decode::KernelApi>,
+    int ordinal,WindowsGpuBudgetSampler&,std::uint32_t maximum_members,std::uint64_t device_bytes,
+    std::span<const hip_detail::Lz4KernelCoverage>,
+    const std::function<const detail::NativeGroupWireRequest*()>& receive);
 
 std::vector<detail::NativeLz4DecodedFrame> run_hip_native_lz4_decode_in_worker(HMODULE,
     const native_lz4_decode::KernelApi&,int ordinal,WindowsGpuBudgetSampler&,

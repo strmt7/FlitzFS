@@ -573,6 +573,21 @@ handles. [Microsoft event creation](https://learn.microsoft.com/en-us/windows/wi
 [Microsoft wait semantics](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitformultipleobjects) ·
 [Microsoft mapping access](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-mapviewoffile)
 
+### Bounded grouped read preparation
+
+The grouped read preparation uses control version 7. The parent and child
+independently bind fixed maximum request and reply sizes. The parent can
+queue one immutable request within the bound while the child initializes.
+The child checks both mappings when it opens them and copies only the exact
+published request after its initial setup completes. A queued request
+cannot be replaced. A superseding foreground read or failed capture can
+cancel the lease, which releases unused resources and discards late output.
+The supervisor supplies bytes only after successful, confirmed child exit.
+The application then verifies the reply's exact length, request identity
+and decoded data. Existing exact-size and repeated channels retain their
+previous controls.
+[Prepared grouped-read evidence](evidence/windows-prepared-group-worker-2026-11-24.json)
+
 ## Admission between windows
 
 The experimental windowed prepared exchange uses control version 4. The caller

@@ -28,12 +28,14 @@ struct NativeLz4ReadWorkerProfile {
   // Each grouped read ABI needs qualification for this exact package.
   bool packed_groups=false;
   bool mixed_groups=false;
+  std::uint32_t prepared_group_submit_lead_ms=0;
 };
 
 struct NativeLz4ReadWorkerStats {
   std::uint64_t submitted=0,published=0,superseded=0,failures=0,declined=0;
   std::uint64_t submitted_frames=0,verified_frames=0,budget_queries=0,last_worker_elapsed_ms=0;
   std::uint64_t last_turnaround_ms=0,lead_refusals=0;
+  std::uint64_t prepared_groups_started=0,prepared_groups_submitted=0,last_prepared_submit_ms=0;
   std::uint32_t last_worker_exit_code=0;
   bool pending=false,configuration_refused=false,retirement_confirmed=true;
 };
@@ -46,7 +48,9 @@ class NativeLz4ReadWorker final {
   ~NativeLz4ReadWorker();
   NativeLz4ReadWorker(const NativeLz4ReadWorker&)=delete;
   NativeLz4ReadWorker& operator=(const NativeLz4ReadWorker&)=delete;
+  bool prepare_group(const WinFspReadAheadWork&,const NativeMaintenanceObservation&,const std::atomic<bool>&) noexcept;
   bool start(WinFspReadAheadWork&,const NativeMaintenanceObservation&,const std::atomic<bool>&) noexcept;
+  void abandon_unused_preparation() noexcept;
   void observe(const WinFspNativeWritable&,bool cancel) noexcept;
   bool ready_to_verify() const noexcept;
   bool verify_and_publish(WinFspNativeWritable&,const NativeMaintenanceObservation&,std::uint64_t now,

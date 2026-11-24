@@ -317,11 +317,15 @@ struct WinFspVolumeController::Impl {
                         read_ahead_timing.predicted_ns(),&read_ahead_backing_refused);
                     if(allowance && !interrupted()) {
                       const auto before=backing_use.elapsed_ns();
-                      auto work=adapter->capture_native_lz4_read_ahead(*allowance,GetTickCount64(),epoch,stop_requested);
+                      auto work=adapter->capture_native_lz4_read_ahead(*allowance,GetTickCount64(),epoch,stop_requested,
+                          [&](const auto& forecast) {
+                            if(read_worker)(void)read_worker->prepare_group(forecast,*allowance,stop_requested);
+                          });
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
                       if(work && !read_worker)begin_read_acquisition(*work,*allowance);
 #endif
                       const bool submitted=read_worker && work && read_worker->start(*work,*allowance,stop_requested);
+                      if(read_worker && !submitted)read_worker->abandon_unused_preparation();
                       if(work && !submitted)
                         read_ahead_prepared=adapter->prepare_captured_native_lz4_read(*work,stop_requested);
                       read_ahead_timing.observe(backing_use.elapsed_ns()-before);

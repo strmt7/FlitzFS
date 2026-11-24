@@ -244,41 +244,55 @@ std::vector<detail::NativeLz4DecodedFrame> execute_native_lz4_decode(HMODULE run
 }
 } // namespace
 
-std::vector<std::byte> run_hip_native_group_read_in_worker(HMODULE runtime,const group_decode::KernelApi& kernel,
-    int ordinal,WindowsGpuBudgetSampler& sampler,const detail::NativeGroupWireRequest& request,
-    std::span<const hip_detail::Lz4KernelCoverage> targets) {
+std::vector<std::byte> run_hip_native_group_read_in_worker(HMODULE runtime,
+    std::span<const group_decode::KernelApi> kernels,int ordinal,WindowsGpuBudgetSampler& sampler,
+    std::uint32_t maximum_members,std::uint64_t device_bytes,std::span<const hip_detail::Lz4KernelCoverage> targets,
+    const std::function<const detail::NativeGroupWireRequest*()>& receive) {
   using namespace hip_detail;
-  auto layout=request.layout;
-  auto allocation=group_decode::slab_bytes(layout);
-  const auto output=group_decode::output_at(layout);
-  lz4_require(group_decode::compatible(kernel,layout.abi) && group_decode::valid(layout) && request.upload.size()==output,
-      HipWorkerExit::invalid_request,"invalid grouped extent launch plan");
+  lz4_require(maximum_members && maximum_members<=group_decode::maximum_members && device_bytes &&
+      device_bytes<=(std::numeric_limits<std::size_t>::max)() && !kernels.empty() && kernels.size()<=2 && receive,
+      HipWorkerExit::invalid_request,"invalid grouped extent preparation grant");
+  for(const auto& kernel:kernels)lz4_require(group_decode::compatible(kernel,kernel.abi),
+      HipWorkerExit::unsupported_configuration,"invalid grouped extent device API");
   const auto clear=std::bit_cast<decltype(&hipMemsetAsync)>(GetProcAddress(runtime,"hipMemsetAsync"));
   lz4_require(clear!=nullptr,HipWorkerExit::runtime_unavailable,"packed group output initializer unavailable",
       HipWorkerStage::runtime_api);
-  return with_uniform_device(runtime,ordinal,sampler,targets,layout.members*(group_decode::words/32),allocation,
+  return with_uniform_device(runtime,ordinal,sampler,targets,maximum_members*(group_decode::words/32),device_bytes,
       [&](const auto& api,auto attributes,auto,auto&& initialize,auto&& memory) {
         memory(HipMemoryPoint::pre_initialize);
         const auto device=initialize();
-        check_lz4_attributes(attributes,kernel.decode,device);
-        std::vector<std::byte> readback(static_cast<std::size_t>(allocation-output));
+        for(const auto& kernel:kernels)check_lz4_attributes(attributes,kernel.decode,device);
         DeviceResources resources(api);
         try {
           check_hip(api.create_stream(&resources.stream,hipStreamNonBlocking,device.priority),
               "create packed group stream",HipWorkerStage::stream_create);
           memory(HipMemoryPoint::initialized);
-          check_hip(api.allocate(&resources.buffers[0],static_cast<std::size_t>(allocation)),
+          check_hip(api.allocate(&resources.buffers[0],static_cast<std::size_t>(device_bytes)),
               "allocate packed group slab",HipWorkerStage::execution);
           auto* slab=static_cast<group_decode::u8*>(resources.buffers[0]);
           const auto address=reinterpret_cast<std::uintptr_t>(slab);
-          lz4_require(address && !(address&7) && allocation<=~std::uintptr_t{0}-address,
+          lz4_require(address && !(address&7) && device_bytes<=~std::uintptr_t{0}-address,
               HipWorkerExit::device_fault,"invalid packed group allocation",HipWorkerStage::execution);
-          check_hip(api.copy(slab,request.upload.data(),request.upload.size(),hipMemcpyHostToDevice),
+          const auto* request=receive();
+          if(!request) {
+            check_hip(resources.release_all(),"retire unused grouped extent resources",HipWorkerStage::execution);
+            return std::vector<std::byte>{};
+          }
+          auto layout=request->layout;
+          auto allocation=group_decode::slab_bytes(layout);
+          const auto output=group_decode::output_at(layout);
+          const auto kernel=std::ranges::find(kernels,layout.abi,&group_decode::KernelApi::abi);
+          lz4_require(group_decode::valid(layout) && layout.members<=maximum_members && allocation<=device_bytes &&
+              request->upload.size()==output && kernel!=kernels.end(),HipWorkerExit::invalid_request,
+              "grouped extent request exceeded its reservation");
+          memory(HipMemoryPoint::initialized);
+          std::vector<std::byte> readback(static_cast<std::size_t>(allocation-output));
+          check_hip(api.copy(slab,request->upload.data(),request->upload.size(),hipMemcpyHostToDevice),
               "upload packed group bases and members",HipWorkerStage::execution);
           check_hip(clear(slab+output,0,readback.size(),resources.stream),
               "initialize packed group output",HipWorkerStage::execution);
           void* arguments[]{&slab,&allocation,&layout};
-          check_hip(api.launch(reinterpret_cast<const void*>(kernel.decode),
+          check_hip(api.launch(reinterpret_cast<const void*>(kernel->decode),
               dim3(layout.members*(group_decode::words/device.wave)),dim3(device.wave),arguments,0,resources.stream),
               "submit packed group decoder",HipWorkerStage::execution);
           check_hip(api.synchronize(resources.stream),"complete packed group decoder",HipWorkerStage::execution);
@@ -286,7 +300,7 @@ std::vector<std::byte> run_hip_native_group_read_in_worker(HMODULE runtime,const
               "read packed group output",HipWorkerStage::execution);
           memory(HipMemoryPoint::completed);
           check_hip(resources.release_all(),"retire packed group compute resources",HipWorkerStage::execution);
-          try {return detail::encode_native_group_reply(request,readback,WorkerExecution::hip);}
+          try {return detail::encode_native_group_reply(*request,readback,WorkerExecution::hip);}
           catch(const std::invalid_argument&){throw HipWorkerFailure(HipWorkerExit::integrity_failure,
               "packed group decode did not complete every tile",HipWorkerStage::execution);}
         }catch(...) {

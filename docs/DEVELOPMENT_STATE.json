@@ -151,6 +151,11 @@
     "scope": "Sparse XOR and modular delta share the native protected read-ahead path. Packed XOR retains its compatible worker protocol.",
     "next": "Qualify exact device output for both worker protocols, model complete costs under observed foreground lead times, and verify ordinary route selection."
   },
+  "prepared_group_worker": {
+    "evidence": "docs/evidence/windows-prepared-group-worker-2026-11-24.json",
+    "scope": "One-use AMD context and slab preparation can overlap checked grouped capture when the package and forecast are admitted.",
+    "next": "Run the exact prepared and cold worker packages on admitted hardware and compare complete cost, queue lead and foreground overlap."
+  },
   "architecture_reconciliation": {
     "reviewed_commit": "df5be9b5b9d0bc05ac565eb2da8454ac76bed3d2",
     "reviewed_tree": "a9bab22082849332c28a085f0eb154aaacb15538",

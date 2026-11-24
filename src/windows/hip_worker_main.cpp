@@ -262,9 +262,10 @@ int worker(int argc, wchar_t** argv) {
   const bool native_host_guard=mode==L"--profile-native-lz4-host-guard-adapter";
   const bool native_recording=native_host_guard || mode==L"--profile-native-lz4-read-adapter" ||
       mode==L"--profile-native-lz4-prepared-read-adapter";
-  const bool native_prepared=mode==L"--driver-native-lz4-prepared-read-adapter" ||
+  const bool native_group_prepared=mode==L"--driver-native-group-prepared-read-adapter";
+  const bool native_prepared=native_group_prepared || mode==L"--driver-native-lz4-prepared-read-adapter" ||
       mode==L"--profile-native-lz4-prepared-read-adapter";
-  const bool native_groups=mode==L"--driver-native-group-read-adapter";
+  const bool native_groups=native_group_prepared || mode==L"--driver-native-group-read-adapter";
   const bool native_read=native_groups || native_prepared || native_recording || mode==L"--driver-native-lz4-read-adapter";
   const bool sized_identity=mode==L"--inspect-system-adapter-sized";
   require_hip_worker_job(anchor_batch || anchor_sweep || native_read || sized_identity);
@@ -294,8 +295,9 @@ int worker(int argc, wchar_t** argv) {
     NativeReadTransferTrace transfer;
     HipPhaseRecorder trace(native_recording?&measurement.trace:nullptr,hip_phase_detail::clock_ns,
         HipPhaseOrder::accumulate,native_read_trace_limit_ns);
-    require(argc==(native_prepared?17:16) && std::wstring_view(argv[14])==
-        (native_prepared?kPreparedWorkerChannelArgument:std::wstring_view(L"--worker-channel")),
+    const auto endpoint=native_group_prepared?kPreparedWorkerBoundedArgument:
+        native_prepared?kPreparedWorkerChannelArgument:std::wstring_view(L"--worker-channel");
+    require(argc==(native_prepared?17:16) && std::wstring_view(argv[14])==endpoint,
         Exit::invalid_request,"explicit native LZ4 read channel and bounded grant required");
     const auto ordinal=decimal(argv[2],63);
     const auto luid=parse_luid(argv[3]);
@@ -311,7 +313,8 @@ int worker(int argc, wchar_t** argv) {
     const auto message_limit=(std::numeric_limits<std::int32_t>::max)();
     const WorkerChannelCapacity capacity{decimal(argv[9],message_limit),decimal(argv[10],message_limit)};
     const detail::NativeLz4DecodeGrant grant{decimal(argv[11],message_limit),wide_decimal(argv[12])};
-    const auto per_batch=decimal(argv[13],message_limit);
+    const auto mode_grant=decimal(argv[13],message_limit);
+    const auto per_batch=native_group_prepared?grant.maximum_frames:mode_grant;
     require(per_batch && grant.maximum_frames && grant.maximum_slab_bytes,Exit::invalid_request,
         "empty native LZ4 read grant");
     const auto max_dispatch=(std::min)(grant.maximum_frames,per_batch);
@@ -319,9 +322,20 @@ int worker(int argc, wchar_t** argv) {
     // Charge the entire reserved slab before initialization and after readiness.
     constexpr auto max_frame_slab=2ULL*kStoreMaxObjectBytes+3*native_lz4_decode::alignment+
         sizeof(native_lz4_decode::Record);
-    const auto reserve=(std::min<std::uint64_t>)(grant.maximum_slab_bytes,max_dispatch*max_frame_slab);
+    const auto reserve=native_group_prepared?grant.maximum_slab_bytes:
+        (std::min<std::uint64_t>)(grant.maximum_slab_bytes,max_dispatch*max_frame_slab);
     require(reserve<=(std::numeric_limits<std::size_t>::max)(),Exit::invalid_request,"native LZ4 slab address limit");
-    auto channel=native_prepared?WorkerChannel::open_prepared_sized(argv[15],capacity,
+    if(native_group_prepared) {
+      require(mode_grant==group_decode::version || mode_grant==group_decode::mixed_version,
+          Exit::invalid_request,"grouped extent preparation ABI");
+      const auto plan=detail::plan_native_group_preparation(per_batch,reserve,mode_grant==group_decode::mixed_version);
+      require(plan.maximum_members==per_batch && plan.device_bytes==reserve &&
+          plan.request_bytes==capacity.request_bytes && plan.reply_bytes==capacity.reply_bytes,
+          Exit::invalid_request,"grouped extent preparation shape");
+    }
+    auto channel=native_group_prepared?WorkerChannel::open_prepared_bounded(argv[15],capacity,
+        decimal(argv[16],(std::numeric_limits<std::uint32_t>::max)())):
+        native_prepared?WorkerChannel::open_prepared_sized(argv[15],capacity,
         decimal(argv[16],(std::numeric_limits<std::uint32_t>::max)())):
         WorkerChannel::open_sized(argv[15],capacity);
     std::optional<detail::NativeLz4WireRequest> request;
@@ -338,15 +352,22 @@ int worker(int argc, wchar_t** argv) {
           Exit::invalid_request,"native LZ4 reply mapping length differs");
       trace.end(HipPhase::request_decode);
     };
-    if(native_groups) {
+    const auto decode_groups=[&] {
       const auto owned=channel.take_request_snapshot();
-      require(owned && owned->bytes().size()==capacity.request_bytes,Exit::invalid_request,
+      require(owned && (native_group_prepared?owned->bytes().size()<=capacity.request_bytes:
+          owned->bytes().size()==capacity.request_bytes),Exit::invalid_request,
           "native group request mapping length differs");
       try {groups.emplace(detail::decode_native_group_request(owned->bytes(),max_dispatch,grant.maximum_slab_bytes));}
       catch(const std::invalid_argument&) {throw HipWorkerFailure(Exit::invalid_request,"invalid native group read frame");}
-      require(detail::native_group_reply_bytes(groups->layout)==capacity.reply_bytes,Exit::invalid_request,
+      const auto reply=detail::native_group_reply_bytes(groups->layout);
+      require(native_group_prepared?reply<=capacity.reply_bytes && groups->layout.abi<=mode_grant:
+          reply==capacity.reply_bytes,Exit::invalid_request,
           "native group reply mapping length differs");
-    }else if(!native_prepared)decode();
+    };
+    if(!native_prepared) {
+      if(native_groups)decode_groups();
+      else decode();
+    }
 
     trace.begin(HipPhase::bundle_verify);
     const hip_detail::VerifiedSystemModule installed(hip_bundle::runtime,expected_runtime);
@@ -384,22 +405,38 @@ int worker(int argc, wchar_t** argv) {
     require(GetModuleHandleW(hip_bundle::runtime)==runtime.get(),Exit::integrity_failure,
         "native LZ4 runtime identity changed");
     trace.end(HipPhase::modules_load);
-    if(groups) {
-      const auto abi=groups->layout.abi;
-      const auto entry_name=abi==group_decode::mixed_version?"flitzfs_native_group_decode_api_v2":
-          "flitzfs_native_group_decode_api";
-      const auto address=GetProcAddress(kernel.get(),entry_name);
-      require(address!=nullptr,Exit::unsupported_configuration,"native group API entry unavailable",HipWorkerStage::kernel_entry);
-      const auto entry=std::bit_cast<group_decode::KernelApiEntry>(address);
-      const auto* api=entry();
-      require(api && group_decode::compatible(*api,abi),Exit::unsupported_configuration,
-          "incompatible native group read table",HipWorkerStage::kernel_table);
-      const auto reply=run_hip_native_group_read_in_worker(runtime.get(),*api,static_cast<int>(ordinal),
-          *sampler,*groups,{&coverage,1});
+    if(native_groups) {
+      std::array<group_decode::KernelApi,2> apis{};
+      std::size_t api_count=0;
+      const auto bind=[&](std::uint32_t abi) {
+        const auto entry_name=abi==group_decode::mixed_version?"flitzfs_native_group_decode_api_v2":
+            "flitzfs_native_group_decode_api";
+        const auto address=GetProcAddress(kernel.get(),entry_name);
+        require(address!=nullptr,Exit::unsupported_configuration,"native group API entry unavailable",HipWorkerStage::kernel_entry);
+        const auto entry=std::bit_cast<group_decode::KernelApiEntry>(address);
+        const auto* api=entry();
+        require(api && group_decode::compatible(*api,abi),Exit::unsupported_configuration,
+            "incompatible native group read table",HipWorkerStage::kernel_table);
+        apis[api_count++]=*api;
+      };
+      if(native_group_prepared) {
+        bind(group_decode::version);
+        if(mode_grant==group_decode::mixed_version)bind(group_decode::mixed_version);
+      }else bind(groups->layout.abi);
+      const auto receive=[&]() -> const detail::NativeGroupWireRequest* {
+        if(native_group_prepared) {
+          if(!channel.receive_prepared())return nullptr;
+          decode_groups();
+        }
+        return &*groups;
+      };
+      const auto members=native_group_prepared?max_dispatch:groups->layout.members;
+      const auto reply=run_hip_native_group_read_in_worker(runtime.get(),std::span(apis).first(api_count),
+          static_cast<int>(ordinal),*sampler,members,peak,{&coverage,1},receive);
       sampler.reset();
       kernel.close();
       runtime.close();
-      channel.publish(reply);
+      if(groups)channel.publish(reply);
       return 0;
     }
     trace.begin(HipPhase::entry_bind);

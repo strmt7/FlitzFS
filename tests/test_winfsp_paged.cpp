@@ -295,47 +295,67 @@ void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},bool 
   require(h.fs.Interface->Open(&h.fs,name.data(),FILE_NON_DIRECTORY_FILE|(1U<<24),FILE_ALL_ACCESS,&context,&info)==STATUS_SUCCESS,
       "Grouped callback fixture reopen");
   constexpr auto width=2U;
+  const bool warm=profile && profile->prepared_group_submit_lead_ms!=0;
   const auto read=[&](unsigned first) {
     const auto begin=file.begin()+first*extent;
     h.read(context,Bytes(begin,begin+width*extent),first*extent);
   };
   const auto writes=h.image->write_bytes;
   read(0);
+  if(warm)Sleep(750);
   read(width);
+  if(warm) {
+    Sleep(750);
+    read(2*width);
+  }
+  const auto predicted=(warm?3U:2U)*width;
   require(h.adapter->native_lz4_read_ahead_pending(),"Grouped demand did not forecast its next extent");
   const auto epoch=h.adapter->foreground_activity();
   auto admitted=h.clock.next();
+  std::unique_ptr<NativeLz4ReadWorker> worker;
+  std::uint32_t timeout=0;
   if(profile) {
     MEMORYSTATUSEX memory{};memory.dwLength=sizeof(memory);
     require(GlobalMemoryStatusEx(&memory)!=0,"Live group fixture memory telemetry missing");
     admitted.physical_total=memory.ullTotalPhys;admitted.physical_available=memory.ullAvailPhys;
     admitted.commit_limit=memory.ullTotalPageFile;admitted.commit_available=memory.ullAvailPageFile;
+    timeout=profile->worker.timeout_ms;
+    worker=std::make_unique<NativeLz4ReadWorker>(std::move(*profile));
   }
   const std::atomic<bool> stop{false};
-  auto work=h.adapter->capture_native_lz4_read_ahead(admitted,h.clock.now,epoch,stop);
-  require(work && work->frames.empty() && work->groups && work->groups->bases().size()==1 &&
+  bool forecast_seen=false;
+  auto work=h.adapter->capture_native_lz4_read_ahead(admitted,h.clock.now,epoch,stop,
+      [&](const auto& forecast) {
+        require(!forecast_seen && forecast.owner==h.adapter.get() && forecast.foreground_epoch==epoch &&
+            forecast.offset==predicted*extent && forecast.bytes==width*extent &&
+            !forecast.groups && forecast.frames.empty(),"Grouped forecast already owned a payload");
+        forecast_seen=true;
+        if(warm)require(worker->prepare_group(forecast,admitted,stop),"Live grouped AMD preparation refused");
+      });
+  require(forecast_seen && work && work->frames.empty() && work->groups && work->groups->bases().size()==1 &&
       work->groups->members().size()==width && work->groups->mixed_methods()==mixed,
       "Grouped WinFsp forecast did not capture its protected inputs");
-  if(profile) {
-    const auto timeout=profile->worker.timeout_ms;
-    NativeLz4ReadWorker worker(std::move(*profile));
-    require(worker.start(*work,admitted,stop),"Live grouped AMD start refused");
-    if(const auto wake=static_cast<HANDLE>(worker.wake_handle()))
+  if(worker) {
+    require(worker->start(*work,admitted,stop),"Live grouped AMD submission refused");
+    if(const auto wake=static_cast<HANDLE>(worker->wake_handle()))
       require(WaitForSingleObject(wake,timeout+2500)==WAIT_OBJECT_0,"Packed-group AMD retirement wait");
-    worker.observe(*h.adapter,false);
-    if(!worker.ready_to_verify()) {
-      const auto failure=worker.stats();
+    worker->observe(*h.adapter,false);
+    if(!worker->ready_to_verify()) {
+      const auto failure=worker->stats();
       std::cerr<<"Packed group worker exit="<<failure.last_worker_exit_code<<" failures="<<failure.failures<<'\n';
     }
-    require(worker.ready_to_verify() && worker.verify_and_publish(*h.adapter,admitted,h.clock.now,stop),
+    require(worker->ready_to_verify() && worker->verify_and_publish(*h.adapter,admitted,h.clock.now,stop),
         "Packed-group AMD preparation failed");
-    const auto stats=worker.stats();
+    const auto stats=worker->stats();
     require(stats.submitted==1 && stats.verified_frames==width && stats.retirement_confirmed &&
-        !stats.pending && worker.stop(),"Packed-group AMD session was not retired");
-    std::cout<<"winfsp_group_hip mixed="<<mixed<<" verified="<<stats.verified_frames<<" worker_ms="<<stats.last_worker_elapsed_ms
+        !stats.pending && stats.prepared_groups_started==static_cast<unsigned>(warm) &&
+        stats.prepared_groups_submitted==static_cast<unsigned>(warm) && worker->stop(),
+        "Grouped AMD session did not retire its selected mode");
+    std::cout<<"winfsp_group_hip mixed="<<mixed<<" prepared="<<warm<<" verified="<<stats.verified_frames
+        <<" worker_ms="<<stats.last_worker_elapsed_ms<<" prepared_submit_ms="<<stats.last_prepared_submit_ms
         <<" exact_child_retired=1\n";
   }else require(h.adapter->prepare_captured_native_lz4_read(*work,stop),"Grouped WinFsp preparation failed");
-  read(2*width);
+  read(predicted);
   require(h.adapter->native_lz4_read_ahead_hits()==width && h.image->write_bytes==writes,
       "Grouped callback failed to hit or issued a write");
 
@@ -343,9 +363,17 @@ void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},bool 
   const auto next=h.adapter->foreground_activity();
   auto superseded=h.adapter->capture_native_lz4_read_ahead(admitted,h.clock.now,next,stop);
   require(superseded && superseded->groups,"Missing second grouped forecast");
-  read(3*width);
+  read(predicted+width);
   require(!h.adapter->prepare_captured_native_lz4_read(*superseded,stop) &&
       h.adapter->native_lz4_read_ahead_hits()==width,"Late grouped preparation survived foreground demand");
+  if(!worker) {
+    const auto foreground=h.adapter->foreground_activity();
+    admitted=h.clock.next();
+    const auto cancelled=h.adapter->capture_native_lz4_read_ahead(admitted,h.clock.now,foreground,stop,
+        [&](const auto&) {read(predicted+2*width);});
+    require(!cancelled && h.adapter->foreground_activity()!=foreground,
+        "Grouped forecast did not yield before capture");
+  }
   h.close(context);
   auto snapshot=h.adapter->snapshot();
   require(snapshot.read("f47",0,file.size())==file,"Independent CPU read changed callback bytes");
@@ -1129,10 +1157,16 @@ void publication_faults(unsigned unit) {
 int wmain(int argc,wchar_t** argv){try {
   app_fixture::Budget budget;
   const auto mode=argc>1?std::wstring_view(argv[1]):std::wstring_view{};
-  if((mode==L"--hip-group-reads" || mode==L"--hip-mixed-group-reads") && argc==12) {
+  const bool warm=mode==L"--hip-prepared-group-reads" || mode==L"--hip-prepared-mixed-group-reads";
+  if((warm || mode==L"--hip-group-reads" || mode==L"--hip-mixed-group-reads") && argc==12) {
     auto profile=group_gpu_profile(argv);
-    profile.mixed_groups=mode==L"--hip-mixed-group-reads";
-    group_read_ahead(std::move(profile),mode==L"--hip-mixed-group-reads");
+    const bool mixed=mode==L"--hip-mixed-group-reads" || mode==L"--hip-prepared-mixed-group-reads";
+    profile.mixed_groups=mixed;
+    if(warm) {
+      profile.minimum_lead_ms=100;
+      profile.prepared_group_submit_lead_ms=20;
+    }
+    group_read_ahead(std::move(profile),mixed);
     return 0;
   }
   if(argc!=2)throw std::runtime_error("Explicit callback/fault mode required");

@@ -18,6 +18,7 @@ inline constexpr std::wstring_view kPreparedWorkerChannelArgument=L"--prepared-w
 inline constexpr std::wstring_view kPreparedWorkerWindowsArgument=L"--prepared-worker-windows";
 inline constexpr std::wstring_view kPreparedWorkerRequestsArgument=L"--prepared-worker-requests";
 inline constexpr std::wstring_view kPreparedWorkerBurstArgument=L"--prepared-worker-burst";
+inline constexpr std::wstring_view kPreparedWorkerBoundedArgument=L"--prepared-worker-bounded";
 bool valid_worker_channel_capacity(WorkerChannelCapacity,ProcessBudget) noexcept;
 // Sized exchanges keep at least this share of live headroom even when a
 // fixed child budget leaves memory_share_divisor at zero.
@@ -78,6 +79,11 @@ class WorkerExchangeSession final {
   // Starts one bounded child with a fixed frame size and no request contents.
   // Only the single controlling owner may wait for readiness or provide the frame.
   static WorkerExchangeSession start_prepared_sized(const std::filesystem::path& helper,
+      const std::vector<std::wstring>& arguments, WorkerChannelCapacity capacity, ProcessBudget budget,
+      std::shared_ptr<const void> pinned_route={});
+  // Queue one immutable frame within the capacities, including during child
+  // setup. The child takes ownership only after its preparation succeeds.
+  static WorkerExchangeSession start_prepared_bounded(const std::filesystem::path& helper,
       const std::vector<std::wstring>& arguments, WorkerChannelCapacity capacity, ProcessBudget budget,
       std::shared_ptr<const void> pinned_route={});
   bool wait_prepared(std::uint32_t milliseconds=0) const noexcept;
@@ -141,7 +147,7 @@ class WorkerExchangeSession final {
       const std::vector<std::wstring>&,std::span<const std::byte>,
       WorkerChannelCapacity,ProcessBudget,bool sized,SharedWorkerRequest snapshot={},
       std::shared_ptr<const void> pinned_route={},bool prepared=false,std::uint32_t continuation_windows=0,
-      bool repeated_requests=false,bool finishable=false);
+      bool repeated_requests=false,bool finishable=false,bool bounded_prepared=false);
   static WorkerExchangeResult run_prepared_sequence(const std::filesystem::path&,
       const std::vector<std::wstring>&,WorkerChannelCapacity,ProcessBudget,std::uint32_t,std::stop_token,
       const std::function<PreparedRequestDecision(std::uint32_t)>&,std::shared_ptr<const void>,bool finishable);
@@ -170,6 +176,7 @@ class WorkerChannel final {
   static WorkerChannel open_sized(std::wstring_view token,WorkerChannelCapacity);
   static WorkerChannel open_prepared_sized(std::wstring_view token,WorkerChannelCapacity,
       std::uint32_t timeout_ms,bool windowed=false);
+  static WorkerChannel open_prepared_bounded(std::wstring_view token,WorkerChannelCapacity,std::uint32_t timeout_ms);
   static WorkerChannel open_prepared_requests(std::wstring_view token,WorkerChannelCapacity,
       std::uint32_t timeout_ms,std::uint32_t requests,bool finishable=false);
   // The child signals readiness only after its own setup succeeds. It then
