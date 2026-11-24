@@ -1,0 +1,346 @@
+{
+  "schema": 1,
+  "date": "2026-11-24",
+  "release_qualified": false,
+  "scope": "Repository reconciliation, architecture and implementation planning. Earlier runtime and benchmark evidence retains its own qualification scope.",
+  "source": {
+    "reviewed_commit": "c32348b7efe5aaa789965ee669189840f3f6f5b3",
+    "reviewed_tree": "2de01631e9021df3006b85f18d80710ed52ae473",
+    "previous_reviewed_commit": "1afc654b9ee44952dce82a99a74e474cb5b03fb9",
+    "tracked_files": 1065,
+    "tracked_bytes": 18615393,
+    "git_tree_inventory_sha256": "16d27ceb871ce33d6cf18a5bc3b32da74e8e17fbde5481d766641c8fcad0b279",
+    "intervening_commits": 23,
+    "changed_paths": 133,
+    "changed_paths_by_scope": {
+      "CMakeLists.txt": 1,
+      "docs": 24,
+      "docs/evidence": 26,
+      "include": 7,
+      "src": 52,
+      "tests": 20,
+      "tools": 3
+    }
+  },
+  "navigation": {
+    "successful": [
+      {
+        "receipt_sha256": "600351c80b18e456cd7508b2e4e9224f87a5a8b23368a536f17bdd05c69a1f24",
+        "native_response_sha256": "49d42f3ce8b93264bc4290bc50cb73e6007c538c01e36a4127edb3156f192221",
+        "inventory_sha256": "6fdb1b3c1bb970ef87277b2d72db137526b17e5cb52c79c8204ce5dfcce1f2e9",
+        "source_files": 18,
+        "provider_version": "0.2.43",
+        "query": "Windows volume helper lifecycle WinFsp ordinary read write flush durable indexed generation allocation recovery reclaim compression optimizer GPU fallback",
+        "actual_searches": 1,
+        "returned_paths": [
+          "src/windows/native_amd_write_policy.cpp",
+          "src/windows/native_lz4_read_worker.cpp",
+          "src/windows/volume_app_winfsp.cpp",
+          "src/windows/winfsp_controller.cpp"
+        ]
+      },
+      {
+        "receipt_sha256": "fa8eb947b4507e1efa25e0652cd669054c9a3d6ae7a8fc6a3c3d2020fb065b05",
+        "native_response_sha256": "d7db7b64060bb922a241765e391ebc62e3e994554ab40c2c91fdd9b01b30796b",
+        "inventory_sha256": "6fdb1b3c1bb970ef87277b2d72db137526b17e5cb52c79c8204ce5dfcce1f2e9",
+        "source_files": 18,
+        "provider_version": "0.2.43",
+        "query": "automatic background collective compression cross-file similarity persistent coherence postings independent group decode bounded scheduling GPU resource fallback cleanup occupancy reclaim profile",
+        "actual_searches": 1,
+        "returned_paths": [
+          "src/native_maintenance.cpp",
+          "src/native_session.cpp",
+          "src/windows/native_amd_write_policy.cpp",
+          "src/windows/native_lz4_read_worker.cpp"
+        ]
+      }
+    ],
+    "initial_failure": "The first bounded index run lost its daemon near the job memory limit. A new private run with sufficient observed headroom completed and retired.",
+    "live_source_verified": [
+      "src/windows/winfsp_controller.cpp",
+      "src/windows/volume_app_winfsp.cpp",
+      "src/windows/native_amd_write_policy.cpp",
+      "src/windows/native_lz4_read_worker.cpp",
+      "src/windows/worker_exchange.cpp",
+      "src/paged_store.cpp",
+      "src/native_session.cpp",
+      "src/native_indexed_volume.cpp",
+      "src/indexed_coherence.cpp",
+      "src/native_maintenance.cpp"
+    ]
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "robots": true,
+    "timeout_seconds_per_page": 45,
+    "external_LLM": false,
+    "native_receipt_sha256": {
+      "controls": "82b5b5c57148ba7149dd84bb6a15395b6ab5f3589d720b1ae5932e18c86e4ce0",
+      "storage": "e2abe2e670219d83c63876e72abd10f46eba2b8b7f74b58955191d1260304f39",
+      "compression": "61606b56a70eb61eaa0a061851a0a0df6fd023cf401e30eda5fde6d88e3dca19",
+      "platform": "4a1d0a82afd100228d5fb2d00a205af9984559d2e5417fa3d691ac8ce01e0298",
+      "platform-retry": "a626cd33e3f1cabb214fb4686715ab58ea7b7932c51b4560e39b369775f88b77",
+      "comparables": "d28f6a52136785e5cbddb8b9e048678fb5d0a764ce4a43e0f182924de684760c"
+    },
+    "primary_page_captures": [
+      {
+        "name": "ntfs-native",
+        "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/compact",
+        "http_status": 200,
+        "success": true,
+        "markdown_bytes": 45765,
+        "capture_sha256": "6386a72ec14142ed90d76bc13693bc5fbd32d3bdaa7207518070134f9b38b2ac",
+        "markdown_sha256": "e467e58dda0165da314be4e28c476e21eec3c6b71df18ed989bf01a444e99ac5"
+      },
+      {
+        "name": "diskspd",
+        "url": "https://github.com/microsoft/diskspd/releases/tag/v2.3",
+        "http_status": 200,
+        "success": true,
+        "markdown_bytes": 10898,
+        "capture_sha256": "25ff7ce5b51fe1f591c09705d3b389b668b09a32ff674957ad790c539f711c13",
+        "markdown_sha256": "0365773817f65cbec629c1f9fd781de5dbf2021326e806d424ff0a827f6d0720"
+      },
+      {
+        "name": "corpus",
+        "url": "https://aitdcc.github.io/dataset.html",
+        "http_status": 200,
+        "success": true,
+        "markdown_bytes": 6271,
+        "capture_sha256": "1dad75f3127c18d672accb2b3d05537c3ea046693b892beb351704ef3cbe9415",
+        "markdown_sha256": "766801630c0c3f7c80304f41397c0ae265fd0cb79387c2837c920c08b8987676"
+      },
+      {
+        "name": "windows-flush",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers",
+        "http_status": 200,
+        "success": true,
+        "markdown_bytes": 36207,
+        "capture_sha256": "319225f2c1e56fbbe28dff67e7e1593fbb05552579a8d3f626151d54b14214e2",
+        "markdown_sha256": "116ffcd5a6feba3539c3f668a2c969aa2e38b8f3663a704a7654e7b2a7954e4c"
+      },
+      {
+        "name": "winfsp-testing",
+        "url": "https://github.com/winfsp/winfsp/blob/master/doc/WinFsp-Testing.asciidoc",
+        "http_status": 200,
+        "success": true,
+        "markdown_bytes": 20914,
+        "capture_sha256": "c6ee74b671bb5cdec11f29bc44a49c324ecdcf6a69d11f7177a902d5608bdfca",
+        "markdown_sha256": "dea5dbbe89738c63ac1d10331af23327f682fba32634b4d01f91e495faec7745"
+      },
+      {
+        "name": "crash-layering",
+        "url": "https://www.usenix.org/conference/atc25/presentation/duan-shaohua",
+        "http_status": 200,
+        "success": true,
+        "markdown_bytes": 8660,
+        "capture_sha256": "454eaf3e70dbe1e11bfea7a6b6af74b7f30b24c36e8c51283da0dfeed5d3297f",
+        "markdown_sha256": "131fdc8966dacaa3a4f3e082cb2fd6f9f619a0f3cd0bc8a8f22e4680d98b8314"
+      },
+      {
+        "name": "cdc",
+        "url": "https://arxiv.org/abs/2610.13704",
+        "http_status": 200,
+        "success": true,
+        "markdown_bytes": 8069,
+        "capture_sha256": "1386d506f459adff4aaed0dadfb5f23030852b7969604a6bf8035689bbd55718",
+        "markdown_sha256": "572b2f042ac88982ff5806e4da8afa63127430b30803c5e0010af8ed1d4fc555"
+      },
+      {
+        "name": "neural-compression",
+        "url": "https://arxiv.org/abs/2611.05871",
+        "http_status": 200,
+        "success": true,
+        "markdown_bytes": 8434,
+        "capture_sha256": "198a7adc1adaf76fa038a4fdaf276203e2d3cbed7cc3c20f6d510b4813c1eb1a",
+        "markdown_sha256": "41a638d88449dadecf1a93db5a47c96c1f018bb5c5f4d92fe00f0b87c1bac2c4"
+      },
+      {
+        "name": "sparse-model-files",
+        "url": "https://www.usenix.org/conference/nsdi26/presentation/wang-zirui",
+        "http_status": 200,
+        "success": true,
+        "markdown_bytes": 9804,
+        "capture_sha256": "0d0d0c6d4d910b30dfd520e9139b7b71b4e18e0f12900f865c06e163885ea7d6",
+        "markdown_sha256": "130eb91378604ebacf1d676184608e3efff8b2f5b0dc03b971bfd011678b2906"
+      },
+      {
+        "name": "windows-support",
+        "url": "https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information",
+        "http_status": 200,
+        "success": true,
+        "markdown_bytes": 78583,
+        "capture_sha256": "6a2011d52d7fcb9d8587516faafb98f2ff42f41438dc672fead6b0b1aaa4e39a",
+        "markdown_sha256": "2faae088806a31e9fb4957a073081fb98ba56f0b12a7541b87233f5d5d9ccbec"
+      },
+      {
+        "name": "dxgi-budget",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/nf-dxgi1_4-idxgiadapter3-queryvideomemoryinfo",
+        "http_status": 200,
+        "success": true,
+        "markdown_bytes": 19434,
+        "capture_sha256": "079705236f9c5b3b6f1acf0d3b4dc9c90648902778c5245b1147d987d80512ad",
+        "markdown_sha256": "5b279b15cc64337766a88fc68f660baeadfd4a87f24a43920f5ca7ea669a62df"
+      },
+      {
+        "name": "winfsp-release",
+        "url": "https://github.com/winfsp/winfsp/releases/tag/v2.2",
+        "http_status": 200,
+        "success": true,
+        "markdown_bytes": 14048,
+        "capture_sha256": "632507c9ad483317638b3e2561c1916b0fe64d898798d75efbf03588af6a47fa",
+        "markdown_sha256": "e61fdecb616075cbaa50a470ae25bb37ec519888647965b4ed6c9a50f92315c4"
+      },
+      {
+        "name": "ntfs-fsctl",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_compression",
+        "http_status": 200,
+        "success": true,
+        "markdown_bytes": 63183,
+        "capture_sha256": "017320651f640a918e4ec816957ff1f23c06bff13740a4cfc068dc612689a638",
+        "markdown_sha256": "48b0bd005d9276173ea26d9d5ddfd0f6019586ea3a1cd33cb8e74730a01f060a"
+      },
+      {
+        "name": "rubikfs",
+        "url": "https://www.usenix.org/conference/fast26/presentation/huang",
+        "http_status": 200,
+        "success": true,
+        "markdown_bytes": 10395,
+        "capture_sha256": "dcbfe5456ed187cabb656ef8eb1dc45a7878a494abc9a7911e7ae0377d123442",
+        "markdown_sha256": "b271b38f1feb88acd780ae11d756c7f3723fecb288cfe5e7803fed9c5d93767d"
+      },
+      {
+        "name": "ait-paper",
+        "url": "https://aitdcc.github.io/",
+        "http_status": 200,
+        "success": true,
+        "markdown_bytes": 18256,
+        "capture_sha256": "c923928f71e4a5eb193cb3e32bc3c3e0ea0f05602e57f3c536e037e81fdb42ef",
+        "markdown_sha256": "3d2f30983e995cb5c35e02ded01c8ba926615cac00036108b11645235d9c3a34"
+      }
+    ],
+    "refused_captures": [
+      {
+        "name": "winfsp-release",
+        "url": "https://github.com/winfsp/winfsp/releases/tag/v2.2",
+        "http_status": 200,
+        "success": false,
+        "markdown_bytes": 14048,
+        "capture_sha256": "def62fc34740ed45add93abf6e2faf970eaa4db14d7c1ab906fca32c4cc66471",
+        "markdown_sha256": "e61fdecb616075cbaa50a470ae25bb37ec519888647965b4ed6c9a50f92315c4",
+        "failure_category": "unexpected_content",
+        "error": ""
+      },
+      {
+        "name": "ntfs-fsctl",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_compression",
+        "http_status": 200,
+        "success": false,
+        "markdown_bytes": 63183,
+        "capture_sha256": "d136a57a40c47e1edef54c6f3f8392bdf25959b56b68a72b74bbb0ae436d9013",
+        "markdown_sha256": "48b0bd005d9276173ea26d9d5ddfd0f6019586ea3a1cd33cb8e74730a01f060a",
+        "failure_category": "unexpected_content",
+        "error": ""
+      },
+      {
+        "name": "winfsp-pinned-tests",
+        "url": "https://github.com/winfsp/winfsp/blob/ada6de157df4fa99f5a866b6ac7af66918d6d838/doc/WinFsp-Testing.asciidoc",
+        "http_status": 503,
+        "success": false,
+        "markdown_bytes": 680,
+        "capture_sha256": "080c58d524bfa1ad9a44a5738b3db42e9c970cdd95562cde37149a21420db064",
+        "markdown_sha256": "beab35ab1e04d974f35221f6cd00ecf8b98c2a98173f3d923de8f7f5b883fc9a",
+        "failure_category": "access_challenge",
+        "error": "Blocked by anti-bot protection: HTTP 503 with HTML content (56625 bytes)"
+      }
+    ],
+    "previous_amd_stream_capture": "docs/evidence/windows-prepared-group-worker-2026-11-24.json",
+    "local_flitzzip_source": {
+      "commit": "11396b5123505a4a1959173e1db2d0858c10dd6d",
+      "path": "docs/small-file-gpu-batching.md"
+    }
+  },
+  "reviewed_runtime_receipts": {
+    "windows": {
+      "path": "docs/evidence/windows-mounted-mixed-flush-recovery-2026-11-23.json",
+      "sha256": "623a5e7c61037e20ea934241e3ba442588d4190c04f21888a3f05b3fb6acf6f6"
+    },
+    "retirement": {
+      "path": "docs/evidence/windows-mounted-packed-retirement-2026-11-23.json",
+      "sha256": "313ef0b3c1d675bec7c018daa843dabea6b921e37274b8d515bebb84172dcbda"
+    },
+    "scale": {
+      "path": "docs/evidence/indexed-record-read-coalescing-2026-11-23.json",
+      "sha256": "9028d2d2005d8ccac1cb57c569295108df459b64b4e092532ebf6b5171668160"
+    },
+    "settlement": {
+      "path": "docs/evidence/dense-cross-group-2026-11-23.json",
+      "sha256": "7c7e574cb9214a16d364707c3704803615ec57307e8837854d9d719d30ee6d05"
+    },
+    "dense_replay": {
+      "path": "docs/evidence/windows-collective-dense-readback-2026-11-24.json",
+      "sha256": "096241d66850318ba80aff5163c9efdf54d56b46f68809f646aed2b8669c2db7"
+    },
+    "amd_write": {
+      "path": "docs/evidence/windows-owner-amd-write-pairs-2026-11-23.json",
+      "sha256": "dd21c686d692d441764d885bab53dc59ed61f589559fa0b5f8710517f8eefb6e"
+    },
+    "amd_decode": {
+      "path": "docs/evidence/windows-prepared-group-worker-2026-11-24.json",
+      "sha256": "66ee735fb8d09b06e4f10da3f213efd91b6dc96a15fedca79ed421c9d79874b8"
+    }
+  },
+  "release_gates_open": [
+    "S1",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S6",
+    "S7",
+    "S8",
+    "S9",
+    "S10",
+    "S11",
+    "S12"
+  ],
+  "remaining_effort_person_weeks": [
+    59,
+    127
+  ],
+  "staged_grouped_decode_launches": 0,
+  "new_executable_validation": false,
+  "documentation_validation": {
+    "plan_packages": 13,
+    "numbered_steps": 156,
+    "release_gates": 12,
+    "resolved_relative_links": 458,
+    "source_tree_verified": true,
+    "json_duplicate_keys": 0,
+    "mermaid_version": "12.2.0",
+    "docs/architecture/CURRENT.md": [
+      "flowchart-v2",
+      "stateDiagram",
+      "sequence",
+      "flowchart-v2",
+      "flowchart-v2",
+      "sequence",
+      "flowchart-v2",
+      "flowchart-v2",
+      "flowchart-v2",
+      "sequence",
+      "flowchart-v2",
+      "flowchart-v2",
+      "flowchart-v2",
+      "sequence",
+      "flowchart-v2"
+    ],
+    "docs/architecture/TARGET.md": [
+      "flowchart-v2",
+      "sequence",
+      "stateDiagram",
+      "flowchart-v2",
+      "flowchart-v2"
+    ]
+  }
+}

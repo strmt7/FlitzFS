@@ -1,9 +1,10 @@
 # FlitzFS stable release execution plan
 
-Reviewed on 23 November 2026 against the 1,034 tracked files at
-`1afc654b9ee44952dce82a99a74e474cb5b03fb9` and tree `f2357634bc7f46004a331dd629d8e3f6bef129b6`.
-The [review receipt](evidence/release-plan-refresh-2026-11-23.json) binds the
-source, reviewed artifacts and checks for this planning round.
+Reviewed on 24 November 2026 against the 1,065 tracked files at
+`c32348b7efe5aaa789965ee669189840f3f6f5b3` and tree `2de01631e9021df3006b85f18d80710ed52ae473`.
+The [current reconciliation](RELEASE_RECONCILIATION_2026-11-24.md) records
+the evidence, design decisions and prioritized checkpoints.
+[Source and research receipt](evidence/release-reconciliation-2026-11-24.json)
 Use the [repository overview](REPOSITORY_OVERVIEW.md) for the product snapshot,
 the [current architecture](architecture/CURRENT.md) and [target architecture](architecture/TARGET.md)
 for system flows, and the [detailed implementation plan](IMPLEMENTATION_PLAN.md)
@@ -456,18 +457,18 @@ separately. [Persistence model](PERSISTENCE_MODEL.md)
 
 | Start order | Work package | First reviewable output | Next dependency |
 | --- | --- | --- | --- |
-| 1 | E03/E08 ordinary AMD acquisition and CPU continuity | The running controller owns an idle-admitted, cancelable qualification; ordinary writes remain operational during refusal, cancellation and retirement. | Measured ordinary-path offer and accepted/rejected route outcomes by role |
-| 1 | E01/E02/E11 checked attach and settled ownership | Full-audit differential with populated short and mixed-file images, attach category counters, preserved flush witness and allocator reconciliation. | Generation-bound prototype in shadow mode and a held-out scale curve |
-| 1 | E04/E05/E06 complete-size oracle and research | Replayable pinned cohorts, protected size ledger, bounded-query recall oracle, independent frame decode and a validation split by source family. | A candidate representation with demonstrable whole-volume savings and usable range reads |
-| 2 | E01/E02/E08 integrated native engine | Mounted incremental admission and allocation settle under churn, retained readers and near-full pressure, with the independent full CPU reader. | Reliable backing lifecycle for packaging and fault qualification |
-| 2 | E06/E07/E09 ordinary collective storage and upgrades | CPU-first reader, transactionally published protected dependencies, bounded migration and an offline policy tested against a deterministic control. | Windows client, recovery and comparative qualification |
+| 1 | Shared E01/E02/E03/E08/E11/E12 integration trace | External Win32 witness, exact artifacts, populated packed/sparse trace, independent CPU readback and a complete occupancy record. | Common comparison and fault harness |
+| 2 | E01/E02/E11 checked attach and settled ownership | Full-audit differential with attach phase counters, preserved flush witness and allocator settlement under churn. | Generation-bound prototype and held-out scale curve |
+| 2 | E03/E08 ordinary AMD acquisition and CPU continuity | Exact packed and mixed decode trial where admitted, paired complete-cost CPU/AMD timings, and consumed ordinary I/O on a shape that wins. | Measured offer and route outcomes by role |
+| 2 | E04/E05/E06 complete-size oracle and research | Replayable pinned cohorts, bounded-query recall, independently decoded restart frames and validation split by source family. | A candidate with demonstrable protected savings and usable range reads |
+| 3 | E06/E07/E09 collective storage, policy and upgrade | CPU-first reader, protected dependency publication, bounded migration and a measured offline policy. | Windows client, recovery and comparative qualification |
 | 3 | E08–E11 installed Windows experience | Signed artifact passes current Windows 11 installation, interaction and removal, backing lifecycle, compatibility and scoped physical-recovery campaigns. | Freeze executable, driver, format and supported platform inputs |
 | 4 | E12/E13 comparisons and stabilization | Matched real-host reports, reliability and soak evidence, and an owner decision packet for the twelve gates. | Owner approval |
 
-Work in the first three lanes can proceed together when the relevant owners,
-fixtures and measurements are independent. Use
-[implementation tickets](IMPLEMENTATION_PLAN.md#next-implementation-tickets)
-for source entry points, exit tests and decisions that depend on the results.
+The three measurement lanes share the first trace and can progress on
+independent fixtures. Favor the largest measured cost or complete storage
+saving in each lane before expanding format or worker variants.
+[Next implementation steps](RELEASE_RECONCILIATION_2026-11-24.md#prioritized-implementation)
 
 ### Next integrated qualification
 

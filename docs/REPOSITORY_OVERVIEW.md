@@ -1,6 +1,13 @@
 # FlitzFS repository overview
 
-Reconciled on 23 November 2026 against the **1,034-file** tree at
+The [24 November reconciliation](RELEASE_RECONCILIATION_2026-11-24.md) reviews
+the current **1,065-file** tree at `c32348b7efe5aaa789965ee669189840f3f6f5b3`.
+The ordered work starts with one ordinary Windows operation trace, a
+full-cost AMD comparison and settled-byte accounting for collective
+compression. The new prepared grouped decoder passed SDK callback and CPU
+checks. The live AMD preflights recorded no grouped device launches.
+
+The detailed baseline below was reconciled on 23 November against the **1,034-file** tree at
 `1afc654b9ee44952dce82a99a74e474cb5b03fb9`. The review follows the actual Windows
 entry points, indexed storage and recovery, AMD roles, compression and
 maintenance with source-bound test receipts. The
@@ -10,7 +17,8 @@ Use the [target architecture](architecture/TARGET.md),
 [detailed implementation plan](IMPLEMENTATION_PLAN.md) and
 [release execution plan](RELEASE_EXECUTION_PLAN.md) for forward work.
 
-[Current review receipt](evidence/release-plan-refresh-2026-11-23.json) ·
+[Current review receipt](evidence/release-reconciliation-2026-11-24.json) ·
+[23 November review receipt](evidence/release-plan-refresh-2026-11-23.json) ·
 [Radeon transfer receipt](evidence/windows-amd-stream-copy-2026-11-23.json) ·
 [Mounted retirement](evidence/windows-mounted-packed-retirement-2026-11-23.json) ·
 [Prior mounted/native reconciliation](evidence/release-execution-reconciliation-2026-11-23.json) ·

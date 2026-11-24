@@ -1,10 +1,11 @@
 # Current FlitzFS architecture
 
-The diagrams reflect the 23 November source review at
-`1afc654b9ee44952dce82a99a74e474cb5b03fb9` and the reviewed change to
-installed AMD discovery. The [source receipt](../evidence/release-plan-refresh-2026-11-23.json)
-binds this review to its code and validation. The [subsystem review](REVIEW.md)
-contains the findings. The [revised architecture](TARGET.md) gives the
+The diagrams reflect the 24 November source review at
+`c32348b7efe5aaa789965ee669189840f3f6f5b3`. The AMD path includes the
+prepared group worker and separately sealed uniform write batches.
+The [release reconciliation](../RELEASE_RECONCILIATION_2026-11-24.md) records
+what is qualified and the [source receipt](../evidence/release-reconciliation-2026-11-24.json)
+binds the review to the code. The [revised architecture](TARGET.md) gives the
 proposed boundaries for release.
 
 ## 1. Process and build boundaries
@@ -468,6 +469,48 @@ retirement failures separately. Its explicit stream-copy comparison keeps
 the same independent CPU verification and retirement boundary. The
 ordinary helper still needs a measured foreground route for the admitted
 write shape. [Stream copy and stage evidence](../evidence/windows-amd-stream-copy-2026-11-23.json)
+
+### Prepared grouped read-ahead
+
+An approved nonzero submission-lead profile lets the controller reserve a
+single packed or mixed group before pulling the protected payload. It keeps
+the forecast's exact snapshot and range identity. The checked capture can
+queue a shorter immutable request inside the reserved maximum while the child
+prepares HIP. A foreground operation can supersede the forecast. The native
+read path remains independently decodable on CPU.
+
+```mermaid
+sequenceDiagram
+    participant C as WinFsp controller
+    participant S as Native protected snapshot
+    participant W as Supervised HIP worker
+    participant R as Foreground reader
+    C->>S: Ask for forecast and protected identity
+    opt Funded prepared group with valid submission lead
+        C->>W: Reserve one bounded request and begin setup
+        par Prepare device context and arena
+            W->>W: Bind device and check live budget
+        and Capture immutable group bytes
+            C->>S: Recheck snapshot and capture range
+            S-->>C: Verified fragments and references
+            C->>W: Queue exact bounded payload
+        end
+    end
+    alt CPU demand supersedes capture or no verified candidate is ready
+        R->>S: Read requested range with independent CPU decoder
+        C->>W: Cancel owned preparation if active
+    else Exact worker reply and confirmed retirement
+        W-->>C: Exact reply and terminal exit
+        C->>S: Independently compare bytes and recheck capture identity
+        C-->>R: Make accepted range available to read-ahead
+    end
+```
+
+The transport, exact capture and cancellation were verified with Windows
+callback and CPU-backed worker tests. The prepared and cold grouped
+device-decode preflights refused live admission. The installed plain
+LZ4 role has separate executed device evidence. [Prepared worker evidence](../evidence/windows-prepared-group-worker-2026-11-24.json)
+· [Native LZ4 device evidence](../NATIVE_AMD_LZ4_READ.md)
 
 ## 10. Verification and remaining integration
 

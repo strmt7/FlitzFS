@@ -4,6 +4,9 @@ The [current architecture](CURRENT.md) and [source review](REVIEW.md) describe
 the reviewed implementation. This document specifies the proposed boundaries for
 the Windows 11 x64 product. Each change has an implementation and acceptance
 sequence in the [development plan](../IMPLEMENTATION_PLAN.md#3-execution-order-and-dependencies).
+The [24 November reconciliation](../RELEASE_RECONCILIATION_2026-11-24.md)
+ties candidate selection and measured AMD demand to the same Windows operation
+witness and complete occupancy record.
 
 ## 1. Separate volume ownership from presentation and acceleration
 
@@ -179,13 +182,17 @@ flowchart TD
     Ingest["Fast native ingestion"] --> Stable["Stable file or extent versions"]
     Stable --> Sample["Sample across content and access history"]
     Sample --> Sparse["Paged sketches, representatives and bounded postings"]
-    Sparse --> Nominate["Nominate region membership and reference choices"]
+    Sparse --> Nominate["Nominate members, frames and direct references"]
     Nominate --> Trial["Try independent codecs, exact sharing, deltas or dictionaries"]
-    Trial --> Verify["CPU verify bytes, dependencies and restart bounds"]
-    Verify --> Compare["Compare full settled size and measured access / write cost"]
-    Compare -->|Better and eligible| Publish["Publish COW frames, group descriptors and required models"]
-    Compare -->|No useful change| Memo["Record measured outcome for this content and policy"]
+    Trial --> Verify["CPU verify range bytes, dependencies and restart bounds"]
+    Verify --> Settle["Replay placement and retirement for the same live set and pins"]
+    Settle --> Compare{"Smaller settled image within access and rewrite envelope?"}
+    Compare -->|Yes| Recheck["Recheck versions, available headroom and ownership"]
+    Recheck -->|Current| Publish["Publish COW frames, group descriptors and required models"]
+    Recheck -->|Changed| Memo["Record bounded advisory outcome"]
+    Compare -->|No| Memo
     Publish --> Range["Resolve one requested range through bounded frames and bases"]
+    Publish --> Memo
     Memo --> Sample
 ```
 
@@ -288,9 +295,11 @@ flowchart LR
     Verify -->|Measured win| Offer["Configuration-bound foreground offer"]
     Verify -->|No measured win| Cpu
     Offer --> Later["Recheck the next eligible request and resource envelope"]
-    Later -->|Admitted| Candidate["Verified device candidate for native publication"]
+    Later -->|Admitted| Candidate["Fund device exchange and retire within the workload window"]
     Later -->|Refused| Cpu
-    Candidate -->|Validation or worker failure| Cpu
+    Candidate -->|Scope, time or ownership changed| Cpu
+    Candidate -->|Verified candidate| Used["Measure actual delivery or committed device output"]
+    Used --> Trials
 ```
 
 Runtime acquisition uses fresh, role-specific evidence. Resource pressure

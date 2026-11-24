@@ -1,7 +1,10 @@
 # FlitzFS detailed implementation plan
 
-**Reconciled on 23 November 2026.** The [source and review receipt](evidence/release-plan-refresh-2026-11-23.json)
-binds the current baseline, referenced evidence, primary sources and scoped change.
+**Reconciled on 24 November 2026.** The
+[latest evidence and implementation sequence](RELEASE_RECONCILIATION_2026-11-24.md)
+prioritizes the shared Win32 trace, indexed attach differential, full-cost AMD
+comparisons and held-out settled compression. The package contracts below still
+define the release exits. [Source and review receipt](evidence/release-reconciliation-2026-11-24.json)
 
 The [current architecture](architecture/CURRENT.md) shows the implementation.
 The [source review](architecture/REVIEW.md) tests the assumptions and the
@@ -281,10 +284,11 @@ indexed or read-only prototypes.
 
 ### Next implementation tickets
 
-The following tickets turn the [release sequence](RELEASE_EXECUTION_PLAN.md#immediate-implementation-order)
-into changes that can be reviewed and verified independently. The per-package
-sections give the full contracts and contain the remaining work. Start the
-three initial lanes with a common build and external operation witness.
+Start with the [24 November work order](RELEASE_RECONCILIATION_2026-11-24.md#prioritized-implementation).
+Use the following source-level tickets inside that sequence. The first
+integration change establishes a common build, external operation witness and
+complete occupancy record. Paired measured results determine which route and
+representation work to implement next.
 
 #### E03 and E08. Qualify ordinary AMD foreground I/O
 

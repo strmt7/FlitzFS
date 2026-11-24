@@ -1,23 +1,23 @@
 {
   "schema": 2,
-  "updated": "2026-11-23",
+  "updated": "2026-11-24",
   "goal_status": "active",
   "product": "Windows 11 AMD64 filesystem/helper/driver integration; AMD acceleration with independent CPU recovery",
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
   "release_path_review": {
-    "evidence": "docs/evidence/release-plan-refresh-2026-11-23.json",
-    "reviewed_parent": "1afc654b9ee44952dce82a99a74e474cb5b03fb9",
-    "tracked_parent_files": 1034,
+    "evidence": "docs/evidence/release-reconciliation-2026-11-24.json",
+    "reviewed_parent": "c32348b7efe5aaa789965ee669189840f3f6f5b3",
+    "tracked_parent_files": 1065,
     "qualification": "development",
     "remaining_effort_person_weeks": [59, 127],
     "estimate_confidence": "low",
     "immediate_trace": "docs/RELEASE_EXECUTION_PLAN.md#next-integrated-qualification",
-    "next_implementation_tickets": "docs/IMPLEMENTATION_PLAN.md#next-implementation-tickets",
+    "next_implementation_tickets": "docs/RELEASE_RECONCILIATION_2026-11-24.md#prioritized-implementation",
     "native_ntfs_comparison": "Plain and built-in NTFS compression specified; matched real-host run pending.",
     "mounted_packed_attachment": "Bounded signed guest recovery and continued writes verified, with a 1,024-file packed recovery fixture. Sustained populated settlement and current-client qualification remain open.",
-    "automatic_foreground_amd": "An admitted installed profile compares the same captured group through CPU and Radeon private replay. Repeated staged controller and foreground cancellation checks passed. The sampled shape prefers CPU and automatic route selection remains open.",
+    "automatic_foreground_amd": "Identical captured writes can be replayed on CPU and Radeon. Finite prepared bursts and shape-specific calibration are implemented. The measured 1 MiB write shape prefers CPU, and useful automatic mounted AMD qualification remains open.",
     "incremental_admission": "Checked read coalescing and batched scrub have lower measured I/O. A complete unchanged scrub observation has no attach authority. Full writable verification remains in force."
   },
   "ordinary_amd_write_demand": {
@@ -136,7 +136,7 @@
   "current_product_boundary": {
     "authority": "docs/RELEASE_EXECUTION_PLAN.md#current-gate-ledger",
     "windows_scope": "Writable WinFsp application in development qualification. Packed and sparse NTFS-backed guest evidence and an in-memory path. Interactive installed client and supported persistent-media qualification are open.",
-    "gpu_scope": "Installed LZ4 read-ahead and collective acquisition in eligible builds, with actual device verification in bounded fixtures. Packed XOR adds protected grouped read-ahead and its own AMD qualification gate. Ordinary foreground AMD admission through the helper and product-wide measured benefit are open.",
+    "gpu_scope": "Installed LZ4 read-ahead and collective acquisition in eligible builds, with actual device verification in bounded fixtures. Packed and mixed grouped read-ahead can prepare before protected capture. Grouped device decode, useful mounted read/write selection and product-wide benefit are open.",
     "advisory_scope": "Sparse persistent coherence postings, funded group selection and cooperative compaction exist. Scalable discovery, learned choice and cross-volume resource scheduling still need product qualification.",
     "recovery_scope": "Checked CPU recovery and mirrored transaction evidence from model and guest interruptions. Physical power-loss recovery, versioned rescue distribution and gradual upgrade still need qualification.",
     "historical_detail": "Earlier boundary observations below retain their original qualification scope."

@@ -1,8 +1,10 @@
 # Source and architecture review
 
-**Current baseline [1afc654b9ee4](https://github.com/strmt7/FlitzFS/commit/1afc654b9ee44952dce82a99a74e474cb5b03fb9).**
-The [architecture diagrams](CURRENT.md), [target architecture](TARGET.md)
-and [implementation plan](../IMPLEMENTATION_PLAN.md) correspond to this review.
+The [24 November reconciliation](../RELEASE_RECONCILIATION_2026-11-24.md)
+continues this review and has the current gate and work order.
+The findings below describe the 23 November baseline
+[`1afc654b9ee4`](https://github.com/strmt7/FlitzFS/commit/1afc654b9ee44952dce82a99a74e474cb5b03fb9).
+[Current diagrams](CURRENT.md) · [Target architecture](TARGET.md)
 
 | Source boundary | 23 November finding | Consequence |
 | --- | --- | --- |
