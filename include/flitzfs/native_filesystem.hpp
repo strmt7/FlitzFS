@@ -19,7 +19,7 @@ struct NativeImageStorage {
   std::uint64_t maximum_physical_bytes=0; // Required only for paged images.
   bool operator==(const NativeImageStorage&) const=default;
 };
-namespace detail {class NativeObjectSnapshot;class NativeObjectWriter;class IndexedSharedBasePreparation;class NativeLz4CaptureLease;class NativeWriteCaptureLease;enum class NativeInodeAction;}
+namespace detail {class NativeObjectSnapshot;class NativeObjectWriter;class IndexedSharedBasePreparation;class NativeLz4CaptureLease;class NativeWriteCaptureLease;struct NativeGroupReadRoute;enum class NativeInodeAction;}
 // Native file/extent layer, experimental and CPU-only. Explicit Windows
 // read-only projection is available; mounted writes and live GPU remain absent.
 inline constexpr std::uint32_t kNativeExtentBytes=65536;
@@ -617,7 +617,8 @@ class NativeFilesystemWriter final {
   NativeInodeState inspect_inode(std::uint64_t inode) const;
   std::vector<NativeFileInfo> inspect_directory(std::uint64_t inode) const;
   std::vector<std::byte> read_inode(std::uint64_t inode,
-      std::uint64_t offset,std::uint32_t bytes,detail::NativeLz4ReadRoute* route=nullptr) const;
+      std::uint64_t offset,std::uint32_t bytes,detail::NativeLz4ReadRoute* route=nullptr,
+      detail::NativeGroupReadRoute* groups=nullptr) const;
   bool capture_native_lz4(std::uint64_t inode,std::uint64_t offset,std::size_t maximum_encoded,
       detail::NativeLz4CapturedFrame&) const;
   // Real shared-image barrier; pre/post namespace verification, no publication.
@@ -632,6 +633,8 @@ class NativeFilesystemWriter final {
   bool supports_leased_lz4_capture() const noexcept;
   std::unique_ptr<detail::NativeLz4CaptureLease> lease_native_lz4_capture(
       std::uint64_t inode,std::uint64_t offset,std::size_t maximum_encoded) const;
+  std::unique_ptr<detail::NativeGroupCaptureLease> lease_native_group_capture(
+      std::uint64_t inode,std::uint64_t offset) const;
   std::unique_ptr<detail::NativeWriteCaptureLease> lease_committed_write_capture() const;
   NativeInodeAllocationInfo inspect_allocation(std::uint64_t inode,bool verify_ancestry) const;
   PagedObjectStoreWriter::Rewrite prepare_folded_recompression(std::shared_ptr<StoreByteIo>,StoreIdentity,

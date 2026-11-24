@@ -2,6 +2,7 @@
 #include "record_digest.hpp"
 #include "folded_checkpoint.hpp"
 #include "protected_stripe_image.hpp"
+#include "native_group_read.hpp"
 #include "native_lz4_decode_wire.hpp"
 #include "store_codec.hpp"
 #include "store_read_scope.hpp"
@@ -117,6 +118,9 @@ struct Entry {
   std::uint64_t peer=0;
   bool operator==(const Entry&) const =default;
 };
+detail::PagedGroupReadRecord group_read_record(const Entry& entry) noexcept {
+  return {entry.id,entry.generation,entry.offset,entry.peer,entry.digest};
+}
 // Only observed failures use this queue. When it fills, a bounded keyset sweep
 // recovers notifications without allocating an inventory proportional to the volume.
 struct PayloadRepairQueue {
@@ -1863,6 +1867,34 @@ bool PagedObjectStoreSnapshot::capture_native_lz4(std::uint64_t object,std::size
   out.stored_digest_=entry->digest;
   out.encoded_=std::move(record.payload);
   return true;
+}
+bool PagedObjectStoreSnapshot::capture_group_read_record(std::uint64_t object,std::size_t maximum_decoded,
+    std::optional<std::uint64_t> generation,detail::PagedGroupReadFrame& out) const {
+  const auto& state=impl_->state;
+  if(!state.mirrored || !can_reuse_query(state))return false;
+  const auto entry=lookup(state,object,impl_->lookup_pages?&*impl_->lookup_pages:nullptr,
+      impl_->retained_root?&*impl_->retained_root:nullptr);
+  if(!entry || entry->logical>maximum_decoded || (generation && entry->generation!=*generation) ||
+      !can_reuse_query(state) || (state.payload_repairs && state.payload_repairs->suspect(*entry)))return false;
+  auto record=read_record_at(state,*entry,entry->offset);
+  auto decoded=consume_decoded_record(state,*entry,record);
+  if(!can_reuse_query(state))return false;
+  out={group_read_record(*entry),std::move(decoded)};
+  return true;
+}
+bool PagedObjectStoreSnapshot::matches_group_read(const detail::PagedGroupReadRecord& member,
+    const detail::PagedGroupReadRecord& base,const detail::PagedReadMetadata& capture) const noexcept {
+  const auto& state=impl_->state;
+  if(!state.mirrored || !capture.matches(state))return false;
+  try {
+    for(const auto* binding:{&member,&base}) {
+      const auto entry=lookup(state,binding->object,impl_->lookup_pages?&*impl_->lookup_pages:nullptr,
+          impl_->retained_root?&*impl_->retained_root:nullptr);
+      if(!entry || group_read_record(*entry)!=*binding ||
+          (state.payload_repairs && state.payload_repairs->suspect(*entry)))return false;
+    }
+    return capture.matches(state);
+  }catch(const std::exception&){return false;}
 }
 std::optional<std::pair<std::uint64_t,Bytes>> PagedObjectStoreSnapshot::read_first_after(
     std::uint64_t after,std::uint64_t last,std::size_t maximum_decoded_bytes) const {

@@ -10,9 +10,12 @@ struct FoldedCheckpoint;
 class IndexedSharedBasePreparation;
 class IndexedVolumeView;
 class NativeLz4CaptureLease;
+class NativeGroupCaptureLease;
 class NativeWriteCaptureLease;
 class NativeNameIndex;
 class PagedReadMetadata;
+struct PagedGroupReadFrame;
+struct PagedGroupReadRecord;
 inline constexpr std::uint64_t kPagedStoreCheckpointWriteBytes=8192;
 }
 // Scalable object storage for native volumes. The caller supplies an
@@ -132,6 +135,7 @@ class PagedObjectStoreSnapshot final {
   friend class IndexedCoherenceSnapshot;
   friend class detail::IndexedVolumeView;
   friend class detail::NativeLz4CaptureLease;
+  friend class detail::NativeGroupCaptureLease;
   friend class detail::NativeWriteCaptureLease;
   friend class detail::NativeNameIndex;
   static PagedObjectStoreSnapshot open_sealed(std::shared_ptr<detail::ProtectedStripeImage>);
@@ -166,6 +170,10 @@ class PagedObjectStoreSnapshot final {
       std::optional<std::uint64_t> expected_generation,detail::NativeLz4ReadRoute* route=nullptr) const;
   bool capture_native_lz4(std::uint64_t object,std::size_t maximum_decoded,std::size_t maximum_encoded,
       detail::NativeLz4CapturedFrame&,std::optional<std::size_t> remaining_frame_bytes={}) const;
+  bool capture_group_read_record(std::uint64_t object,std::size_t maximum_decoded,
+      std::optional<std::uint64_t> generation,detail::PagedGroupReadFrame&) const;
+  bool matches_group_read(const detail::PagedGroupReadRecord& member,const detail::PagedGroupReadRecord& base,
+      const detail::PagedReadMetadata&) const noexcept;
   std::optional<std::pair<std::uint64_t,std::vector<std::byte>>> read_first_after(std::uint64_t after,
       std::uint64_t last,std::size_t maximum_decoded_bytes) const;
   static PagedObjectStoreSnapshot open_impl(std::shared_ptr<StoreByteIo>,PagedStoreLimits,bool retain_tree_root);

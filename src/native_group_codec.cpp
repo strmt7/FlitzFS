@@ -18,7 +18,7 @@ constexpr auto delta_magic=[] {auto value=aligned_magic;value.back()=std::byte{'
 constexpr auto sparse_xor_magic=[] {auto value=aligned_magic;value.back()=std::byte{'5'};return value;}();
 constexpr auto prefixed_zstd_magic=[] {auto value=aligned_magic;value.back()=std::byte{'6'};return value;}();
 constexpr std::array member_magics{aligned_magic,copy_magic,xor_magic,delta_magic,sparse_xor_magic,prefixed_zstd_magic};
-constexpr std::size_t xor_tile_bytes=256,xor_plane_bytes=xor_tile_bytes/8,xor_tiles=extent/xor_tile_bytes;
+constexpr std::size_t xor_tile_bytes=kNativePackedXorTileBytes,xor_plane_bytes=xor_tile_bytes/8,xor_tiles=extent/xor_tile_bytes;
 using anchor_match::sparse_plane_max;
 using anchor_match::sparse_plane_inverse;
 static_assert(extent%xor_tile_bytes==0 && xor_tile_bytes%8==0 &&
@@ -523,6 +523,15 @@ NativeGroupReference parse_native_group_member(std::span<const std::byte> bytes,
       break;
   }
   return ref;
+}
+NativePackedXorOffsets native_packed_xor_offsets(std::span<const std::byte> body) {
+  if(body.size()>=extent-header)fail();
+  NativePackedXorOffsets offsets;
+  packed_xor_tiles(body,[&](std::size_t tile,unsigned,std::span<const std::byte> planes) {
+    offsets[tile]=static_cast<std::uint16_t>(planes.data()-body.data()-1);
+  });
+  offsets.back()=static_cast<std::uint16_t>(body.size());
+  return offsets;
 }
 NativeGroupBase::NativeGroupBase(std::vector<std::byte> record,std::size_t payload_offset)
     :record_(std::move(record)),payload_offset_(payload_offset) {

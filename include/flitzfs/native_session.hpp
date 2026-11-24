@@ -405,7 +405,7 @@ class NativeFileSession final {
   NativeDirectoryRecordPage list_page(const NativeFileHandle&,std::string_view after,
       std::size_t maximum) const;
   std::vector<std::byte> read(const NativeFileHandle&,std::uint64_t offset,std::uint32_t bytes,
-      detail::NativeLz4ReadRoute* route=nullptr) const;
+      detail::NativeLz4ReadRoute* route=nullptr,detail::NativeGroupReadRoute* groups=nullptr) const;
   // Advisory read-ahead captures one encoded frame without decoding its payload.
   // Call under the owning control context. The caller sets its byte grant.
   bool capture_native_lz4(const NativeFileHandle&,std::uint64_t offset,std::size_t maximum_encoded,
@@ -415,6 +415,8 @@ class NativeFileSession final {
   bool supports_leased_lz4_capture() const noexcept;
   std::unique_ptr<detail::NativeLz4CaptureLease> lease_native_lz4_capture(
       const NativeFileHandle&,std::uint64_t offset,std::size_t maximum_encoded) const;
+  std::unique_ptr<detail::NativeGroupCaptureLease> lease_native_group_capture(
+      const NativeFileHandle&,std::uint64_t offset) const;
   NativeInodeWriteCommit write(const NativeFileHandle&,std::uint64_t offset,
       std::span<const std::byte>,NativeInodeWriteOptions options={});
   NativeFsCommit truncate(const NativeFileHandle&,std::uint64_t bytes);

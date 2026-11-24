@@ -119,7 +119,7 @@ target_sources(flitzfs_core PRIVATE src/paged_store.cpp src/native_name_index.cp
   src/protected_stripe_image.cpp
   src/native_hybrid_backing.cpp)
 target_sources(flitzfs_core PRIVATE src/native_maintenance.cpp src/native_lz4_decode.cpp
-  src/native_lz4_decode_wire.cpp)
+  src/native_lz4_decode_wire.cpp src/native_group_read.cpp src/native_group_read_wire.cpp)
 target_sources(flitzfs_core PRIVATE src/native_group_lz4.cpp src/native_group_anchor.cpp)
 target_sources(flitzfs_core PRIVATE src/uniform_lz4_batch.cpp)
 target_compile_features(flitzfs_core PUBLIC cxx_std_20)
@@ -470,9 +470,11 @@ if(FLITZFS_BUILD_TESTS)
   target_link_libraries(flitzfs_native_shared_base_tests PRIVATE flitzfs_core)
   add_test(NAME bounded_native_shared_bases COMMAND flitzfs_native_shared_base_tests)
   add_test(NAME bounded_native_shared_base_packed_xor COMMAND flitzfs_native_shared_base_tests --packed-xor)
+  add_test(NAME bounded_native_prepared_packed_reads COMMAND flitzfs_native_shared_base_tests --prepared-packed-reads)
   add_test(NAME bounded_native_shared_base_modular_delta COMMAND flitzfs_native_shared_base_tests --modular-delta)
   add_test(NAME bounded_native_shared_base_sparse_xor COMMAND flitzfs_native_shared_base_tests --sparse-xor)
   set_tests_properties(bounded_native_shared_bases bounded_native_shared_base_sparse_xor PROPERTIES TIMEOUT 120)
+  set_tests_properties(bounded_native_prepared_packed_reads PROPERTIES TIMEOUT 30)
   # The two full fault matrices take longer with Windows AddressSanitizer.
   set_tests_properties(bounded_native_shared_base_packed_xor bounded_native_shared_base_modular_delta
     PROPERTIES TIMEOUT 330)
@@ -977,7 +979,7 @@ if(FLITZFS_BUILD_WINFSP)
     target_link_libraries(flitzfs_winfsp_paged_tests PRIVATE flitzfs_winfsp Threads::Threads)
     add_custom_command(TARGET flitzfs_winfsp_paged_tests POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_if_different "${FLITZFS_WINFSP_DLL}" "$<TARGET_FILE_DIR:flitzfs_winfsp_paged_tests>")
-    foreach(mode callbacks faults-4096 faults-65536 ready-lz4-reads)
+    foreach(mode callbacks faults-4096 faults-65536 ready-lz4-reads ready-group-reads)
       add_test(NAME bounded_winfsp_paged_${mode} COMMAND flitzfs_winfsp_paged_tests --${mode})
       set_tests_properties(bounded_winfsp_paged_${mode} PROPERTIES TIMEOUT 120)
     endforeach()

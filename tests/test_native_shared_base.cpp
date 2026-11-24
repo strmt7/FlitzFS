@@ -1,7 +1,11 @@
 #include "native_fs_fixture.hpp"
+#include "flitzfs/native_session.hpp"
+#include "native_capture.hpp"
+#include "native_group_read_wire.hpp"
 #include "native_group_codec.hpp"
 #include "anchor_search_fixture.hpp"
 #include <bit>
+#include <cstring>
 #include <iostream>
 #include <set>
 namespace {
@@ -84,6 +88,150 @@ void read_grouped_extents() {
   require(reopened.read("joined",0,input.size())==input && ram->matching_reads==2,
       "A separate request reused the prior request's shared base");
   std::cout<<"shared_base_request_cache extents="<<count<<" primary_reads=2 peer_recovery=true byte_exact=true\n";
+}
+void prepared_packed_group_reads() {
+  using detail::NativeGroupReadyReads;
+  constexpr auto extent=kNativeExtentBytes;
+  constexpr std::uint32_t count=4;
+  constexpr auto grant=std::size_t{(2*count+3)*extent};
+  constexpr StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
+  auto ram=std::make_shared<Ram>();
+  ram->failure_unit=4096;
+  auto backing=std::make_shared<ConcurrentRam>(ram);
+  auto writer=NativeFilesystemWriter::initialize_indexed(
+      PagedObjectStoreWriter::create_mirrored(backing,identity(),limits,raw));
+  Bytes input;
+  for(unsigned i=0;i<count;++i) {
+    const auto extent_bytes=xor_family(i);
+    input.insert(input.end(),extent_bytes.begin(),extent_bytes.end());
+  }
+  writer.apply(std::array{file_create("joined"),file_write("joined",0,input)});
+  const auto inode=writer.snapshot().stat("joined").inode;
+  std::array<NativeExtentSelection,count> members;
+  for(unsigned i=0;i<count;++i)members[i]={inode,i};
+  require(writer.compress_shared_base(members.front(),members).applied,"Packed capture fixture did not group");
+  auto session=NativeFileSession::create(std::move(writer));
+  auto file=session.open("joined",{true,true,true});
+  auto lease=session.lease_native_group_capture(file,extent);
+  require(lease && !session.lease_native_group_capture(file,extent+1),"Packed capture alignment");
+  require(!lease->capture((count-1)*extent,extent) &&
+      !lease->capture((count-1)*extent,grant,[]{return true;}),"Unfunded or cancelled group capture");
+  auto capture=lease->capture((count-1)*extent,grant);
+  require(capture && capture->bases().size()==1 && capture->members().size()==count-1,
+      "Packed members did not reuse one captured base");
+  const auto& base=capture->bases().front();
+  require(base.record.object && base.record.generation && base.record.primary!=base.record.peer &&
+      std::ranges::equal(base.bytes.payload(),xor_family(0)),"Packed capture base binding");
+  std::vector<Bytes> decoded;
+  for(const auto& member:capture->members()) {
+    require(member.base==0 && member.block==decoded.size()+1 && member.maximum_payload==extent &&
+        member.record.generation && member.record.primary!=member.record.peer &&
+        member.offsets.front()==0 &&
+        member.offsets.back()==member.frame.size()-detail::kNativeGroupMemberHeaderBytes &&
+        std::ranges::adjacent_find(member.offsets,std::greater_equal{})==member.offsets.end(),
+        "Packed member binding or tile directory");
+    decoded.push_back(xor_family(static_cast<unsigned>(member.block)));
+  }
+  auto wrong=decoded;
+  wrong.front().back()^=std::byte{1};
+  require(!NativeGroupReadyReads::verify(*capture,std::move(wrong)) &&
+      !NativeGroupReadyReads::verify(*capture,{decoded.front()}),
+      "An incomplete or wrong reply reached prepared reads");
+  wrong=decoded;
+  std::swap(wrong[0],wrong[1]);
+  require(!NativeGroupReadyReads::verify(*capture,std::move(wrong)) &&
+      !NativeGroupReadyReads::verify(*capture,decoded,[]{return true;}),
+      "A reordered or cancelled reply reached prepared reads");
+  constexpr auto slab_limit=512*1024;
+  const auto exchange=detail::NativeGroupReadExchange::prepare(*capture,73,count,slab_limit);
+  const auto request=detail::decode_native_group_request(exchange.request()->bytes(),count,slab_limit);
+  require(request.layout.bases==1 && request.layout.members==count-1 &&
+      exchange.device_bytes()==group_decode::slab_bytes(request.layout),"Group wire duplicated its base");
+  auto bad_request=Bytes(exchange.request()->bytes().begin(),exchange.request()->bytes().end());
+  bad_request[32+offsetof(group_decode::Member,offsets)+2]^=std::byte{1};
+  rejects([&]{(void)detail::decode_native_group_request(bad_request,count,slab_limit);},
+      "Noncanonical tile directory survived wire validation");
+  rejects([&]{(void)detail::decode_native_group_request(exchange.request()->bytes(),count,exchange.device_bytes()-1);},
+      "A grouped request overran the device grant");
+  const auto output_at=group_decode::output_at(request.layout);
+  Bytes output(exchange.device_bytes()-output_at);
+  const auto* prefix=reinterpret_cast<const group_decode::u8*>(request.upload.data());
+  auto* device_output=reinterpret_cast<group_decode::u8*>(output.data());
+  bool valid=true;
+  for(std::uint32_t i=0;i<request.layout.members;++i) {
+    group_decode::Member member;
+    std::memcpy(&member,request.upload.data()+i*sizeof(member),sizeof(member));
+    auto* words=device_output+i*extent;
+    for(std::uint32_t word=0;word<group_decode::words;++word) {
+      const auto complete=group_decode::reconstruct(member,prefix+group_decode::bases_at(request.layout),
+          prefix+group_decode::bodies_at(request.layout),request.layout,word,words);
+      valid=valid && complete;
+      if(complete && word%group_decode::words_per_tile==0)
+        device_output[group_decode::status_at(request.layout)-output_at+i*group_decode::tiles+
+            word/group_decode::words_per_tile]=group_decode::complete;
+    }
+  }
+  require(valid,"Shared device semantics failed on checked packed members");
+  constexpr auto backend=WorkerExecution::cpu_semantics;
+  output.back()=std::byte{};
+  rejects([&]{(void)detail::encode_native_group_reply(request,output,backend);},
+      "Incomplete group launch survived tile verification");
+  output.back()=std::byte{group_decode::complete};
+  const auto reply=detail::encode_native_group_reply(request,output,backend);
+  auto changed_reply=reply;
+  changed_reply.back()^=std::byte{1};
+  auto repeated_capture=lease->capture((count-1)*extent,grant);
+  require(repeated_capture && !exchange.accept(*repeated_capture,reply,backend) &&
+      !exchange.accept(*capture,reply,WorkerExecution::hip) &&
+      !exchange.accept(*capture,changed_reply,backend),"Invalid group completion accepted");
+  auto ready=exchange.accept(*capture,reply,backend);
+  require(ready && ready->pending() && !NativeGroupReadyReads::decode_captured(*capture),
+      "Packed results were not transferred once");
+  capture.reset();
+  detail::NativeGroupReadRoute route{ready.get()};
+
+  // Byte-identical backing and image credentials are insufficient without
+  // the original backing owner.
+  auto clone=image(ram->stable,ram->failure_unit);
+  const auto generation=PagedObjectStoreSnapshot::open(clone,limits).info().generation;
+  auto alternate=NativeFileSession::create(NativeFilesystemWriter::resume(
+      PagedObjectStoreWriter::resume(clone,identity(),generation,limits,raw)));
+  auto alternate_file=alternate.open("joined",{true,true,true});
+  require(alternate.read(alternate_file,extent,11,nullptr,&route)==Bytes(input.begin()+extent,input.begin()+extent+11) &&
+      ready->consumed()==0,"Different backing consumed the prepared result");
+
+  const auto magic=std::as_bytes(std::span("FLTXPA01",std::size_t{8}));
+  const auto marker=std::ranges::search(ram->live,magic);
+  require(!marker.empty(),"Packed fixture primary anchor not found");
+  ram->corrupt_read_offset=static_cast<std::uint64_t>(marker.begin()-ram->live.begin());
+  ram->corrupt_read_number=1;
+  ram->matching_reads=0;
+  require(session.read(file,extent,11,nullptr,&route)==Bytes(input.begin()+extent,input.begin()+extent+11) &&
+      ready->consumed()==1 && ram->matching_reads==0,"Exact packed read did not use the prepared bytes");
+  require(session.read(file,extent,11,nullptr,&route)==Bytes(input.begin()+extent,input.begin()+extent+11) &&
+      ready->consumed()==1 && ram->matching_reads==1,"Consumed member did not recover through the CPU");
+  require(session.read(file,2*extent,11,nullptr,&route)==Bytes(input.begin()+2*extent,input.begin()+2*extent+11) &&
+      ready->consumed()==1,"A known suspect anchor still admitted a prepared result");
+  ram->corrupt_read_offset=(std::numeric_limits<std::uint64_t>::max)();
+
+  // The pinned capture may finish after an intervening mutation, but demand
+  // must resolve the new protected records.
+  const auto changed=input[2*extent]^std::byte{9};
+  (void)session.write(file,2*extent,{&changed,1});
+  require(session.read(file,2*extent,1,nullptr,&route)==Bytes{changed} && ready->consumed()==1,
+      "Stale packed result changed a later write");
+  auto prior=lease->capture((count-1)*extent,grant);
+  require(prior && prior->members().size()==count-1,"The pinned capture lost its selected checkpoint");
+  auto late=NativeGroupReadyReads::decode_captured(*prior);
+  detail::NativeGroupReadRoute late_route{late.get()};
+  require(late && session.read(file,3*extent,1,nullptr,&late_route)==Bytes{input[3*extent]} &&
+      late->consumed()==0,"An unchanged member bypassed checkpoint revocation");
+  auto current=session.snapshot();
+  input[2*extent]=changed;
+  require(current.read("joined",0,count*extent)==input,"Independent CPU reread changed committed bytes");
+  current.verify_all();
+  std::cout<<"prepared_packed_groups bases=1 members=3 cpu_fallback=1 wrong_reply_rejected=1"
+      <<" changed_checkpoint_rejected=1 different_backing_rejected=1 observed_repair_rejected=1\n";
 }
 void retained_group_anchors() {
   constexpr unsigned family_size=8,files=2*family_size;
@@ -1097,6 +1245,10 @@ void layouts(std::uint32_t unit) {
 }
 }
 int main(int argc,char** argv){try {
+  if(argc==2 && std::string_view(argv[1])=="--prepared-packed-reads") {
+    prepared_packed_group_reads();
+    return 0;
+  }
   if(argc==2 && std::string_view(argv[1])=="--audit-anchor-reads") {
     retained_group_anchors();
     return 0;

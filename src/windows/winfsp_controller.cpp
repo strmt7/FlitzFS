@@ -1,5 +1,5 @@
 #include "winfsp_controller.hpp"
-#include "../native_lz4_capture.hpp"
+#include "../native_capture.hpp"
 #include "winfsp_native.hpp"
 #include "gpu_budget.hpp"
 #include "memory_volume.hpp"
@@ -840,6 +840,7 @@ struct WinFspVolumeController::Impl {
 
   void begin_read_acquisition(const WinFspReadAheadWork& work,const NativeMaintenanceObservation& observed) {
     if(!installed_read || !acquisition_retired || acquisition_thread.joinable() ||
+        (work.groups && !installed_read->packed_groups) ||
         stop_requested.load(std::memory_order_acquire) || adapter->foreground_pending() ||
         !WorkerExchangeSession::available())return;
     const auto now=GetTickCount64();
@@ -847,7 +848,8 @@ struct WinFspVolumeController::Impl {
       std::lock_guard lock(mutex);
       ++(current.*count);
     };
-    if(work.frames.size()<installed_read->minimum_frames) {
+    const auto frames=work.groups?work.groups->members().size():work.frames.size();
+    if(frames<installed_read->minimum_frames || (work.groups && frames>installed_read->maximum_frames)) {
       refused(&WinFspControllerView::installed_read_shape_refusals);
       return;
     }

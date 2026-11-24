@@ -244,6 +244,60 @@ std::vector<detail::NativeLz4DecodedFrame> execute_native_lz4_decode(HMODULE run
 }
 } // namespace
 
+std::vector<std::byte> run_hip_native_group_read_in_worker(HMODULE runtime,const group_decode::KernelApi& kernel,
+    int ordinal,WindowsGpuBudgetSampler& sampler,const detail::NativeGroupWireRequest& request,
+    std::span<const hip_detail::Lz4KernelCoverage> targets) {
+  using namespace hip_detail;
+  auto layout=request.layout;
+  auto allocation=group_decode::slab_bytes(layout);
+  const auto output=group_decode::output_at(layout);
+  lz4_require(group_decode::compatible(kernel) && group_decode::valid(layout) && request.upload.size()==output,
+      HipWorkerExit::invalid_request,"invalid packed group launch plan");
+  const auto clear=std::bit_cast<decltype(&hipMemsetAsync)>(GetProcAddress(runtime,"hipMemsetAsync"));
+  lz4_require(clear!=nullptr,HipWorkerExit::runtime_unavailable,"packed group output initializer unavailable",
+      HipWorkerStage::runtime_api);
+  return with_uniform_device(runtime,ordinal,sampler,targets,layout.members*(group_decode::words/32),allocation,
+      [&](const auto& api,auto attributes,auto,auto&& initialize,auto&& memory) {
+        memory(HipMemoryPoint::pre_initialize);
+        const auto device=initialize();
+        check_lz4_attributes(attributes,kernel.packed_xor,device);
+        std::vector<std::byte> readback(static_cast<std::size_t>(allocation-output));
+        DeviceResources resources(api);
+        try {
+          check_hip(api.create_stream(&resources.stream,hipStreamNonBlocking,device.priority),
+              "create packed group stream",HipWorkerStage::stream_create);
+          memory(HipMemoryPoint::initialized);
+          check_hip(api.allocate(&resources.buffers[0],static_cast<std::size_t>(allocation)),
+              "allocate packed group slab",HipWorkerStage::execution);
+          auto* slab=static_cast<group_decode::u8*>(resources.buffers[0]);
+          const auto address=reinterpret_cast<std::uintptr_t>(slab);
+          lz4_require(address && !(address&7) && allocation<=~std::uintptr_t{0}-address,
+              HipWorkerExit::device_fault,"invalid packed group allocation",HipWorkerStage::execution);
+          check_hip(api.copy(slab,request.upload.data(),request.upload.size(),hipMemcpyHostToDevice),
+              "upload packed group bases and members",HipWorkerStage::execution);
+          check_hip(clear(slab+output,0,readback.size(),resources.stream),
+              "initialize packed group output",HipWorkerStage::execution);
+          void* arguments[]{&slab,&allocation,&layout};
+          check_hip(api.launch(reinterpret_cast<const void*>(kernel.packed_xor),
+              dim3(layout.members*(group_decode::words/device.wave)),dim3(device.wave),arguments,0,resources.stream),
+              "submit packed group decoder",HipWorkerStage::execution);
+          check_hip(api.synchronize(resources.stream),"complete packed group decoder",HipWorkerStage::execution);
+          check_hip(api.copy(readback.data(),slab+output,readback.size(),hipMemcpyDeviceToHost),
+              "read packed group output",HipWorkerStage::execution);
+          memory(HipMemoryPoint::completed);
+          check_hip(resources.release_all(),"retire packed group compute resources",HipWorkerStage::execution);
+          try {return detail::encode_native_group_reply(request,readback,WorkerExecution::hip);}
+          catch(const std::invalid_argument&){throw HipWorkerFailure(HipWorkerExit::integrity_failure,
+              "packed group decode did not complete every tile",HipWorkerStage::execution);}
+        }catch(...) {
+          const auto failure=std::current_exception();
+          lz4_require(resources.release_all()==hipSuccess && !resources.retirement_failed,
+              HipWorkerExit::device_fault,"packed group compute retirement unconfirmed",HipWorkerStage::execution);
+          std::rethrow_exception(failure);
+        }
+      });
+}
+
 std::vector<detail::NativeLz4DecodedFrame> run_hip_native_lz4_decode_in_worker(HMODULE runtime,
     const native_lz4_decode::KernelApi& kernel,int ordinal,WindowsGpuBudgetSampler& sampler,
     std::span<const detail::NativeLz4DecodeBatch> batches,

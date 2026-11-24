@@ -1,6 +1,6 @@
 #include "flitzfs/native_session.hpp"
 #include "indexed_names.hpp"
-#include "native_lz4_capture.hpp"
+#include "native_capture.hpp"
 #include "native_maintenance_source.hpp"
 #include "native_volume_file_reclaimer.hpp"
 #include "flitzfs/catalog.hpp"
@@ -1799,10 +1799,11 @@ NativeDirectoryRecordPage NativeFileSession::list_page(const NativeFileHandle& h
   return std::move(*page);
 }
 std::vector<std::byte> NativeFileSession::read(const NativeFileHandle& handle,
-    std::uint64_t offset,std::uint32_t bytes,detail::NativeLz4ReadRoute* route) const {
+    std::uint64_t offset,std::uint32_t bytes,detail::NativeLz4ReadRoute* route,
+    detail::NativeGroupReadRoute* groups) const {
   const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
   if(!slot.access.read)fail(E::access_denied,"native context has no read access");
-  return self.writer.read_inode(slot.inode,offset,bytes,route);
+  return self.writer.read_inode(slot.inode,offset,bytes,route,groups);
 }
 bool NativeFileSession::capture_native_lz4(const NativeFileHandle& handle,std::uint64_t offset,
     std::size_t maximum_encoded,detail::NativeLz4CapturedFrame& out) const {
@@ -1818,6 +1819,12 @@ std::unique_ptr<detail::NativeLz4CaptureLease> NativeFileSession::lease_native_l
   const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
   if(!slot.access.read)fail(E::access_denied,"native context has no read access");
   return self.writer.lease_native_lz4_capture(slot.inode,offset,maximum_encoded);
+}
+std::unique_ptr<detail::NativeGroupCaptureLease> NativeFileSession::lease_native_group_capture(
+    const NativeFileHandle& handle,std::uint64_t offset) const {
+  const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
+  if(!slot.access.read)fail(E::access_denied,"native context has no read access");
+  return self.writer.lease_native_group_capture(slot.inode,offset);
 }
 std::unique_ptr<detail::NativeWriteCaptureLease> NativeFileSession::lease_committed_write_capture() const {
   return ready().writer.lease_committed_write_capture();

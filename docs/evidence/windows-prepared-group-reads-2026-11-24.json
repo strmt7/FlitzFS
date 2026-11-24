@@ -1,0 +1,191 @@
+{
+  "schema": 1,
+  "date": "2026-11-24",
+  "scope": "Windows 11 build 26300 on the owner's PC. Native sessions and WinFsp SDK callbacks used owned memory backing. Device compilation included gfx1201 and gfx90a.",
+  "source": {
+    "base_commit": "be47089eb542fcfd19af9fce64224d54e3335270",
+    "source_tree": "d651b861bb91eec2bb86a15ec5d38397ec206db9",
+    "changed_source_paths": 40,
+    "tree_scope": "Base tree with the tested code, test and tooling changes applied, before adding this round's documentation.",
+    "semantic_navigation_sha256": "7fbacfa9f0c3dfc55bd51f3eddd4188c3f2fff346f62d294a0ccce1dd71cfc2c"
+  },
+  "results": {
+    "grouped_capture": "One protected checkpoint and one owned base for three packed members. Each member retained its backing binding and canonical tile offsets.",
+    "ready_delivery": "The grouped read route verified complete returned extents and skipped an extra base payload read. Tests exercised altered bytes outside the requested slice, incomplete and reordered replies, another backing owner, a superseding checkpoint, an observed suspect base, and immediate checked CPU reads.",
+    "winfsp": "Consecutive SDK callbacks offered and consumed a prepared grouped read. Foreground demand superseded a pending preparation. Independent CPU readback verified the whole file.",
+    "installed_package": "Packed groups require the exact pinned device entry and an explicitly qualified package profile. The legacy native LZ4 profile retained its existing dispatch.",
+    "release_tests": 8,
+    "raw_control_tests": 5,
+    "installed_binding_python_tests": 36,
+    "focused_asan_tests": 2,
+    "filesystems_mounted": 0,
+    "drivers_changed": 0,
+    "performance_verified": false
+  },
+  "compilation": {
+    "sdk": "ROCm 10.2.0 whole-package lock",
+    "device_targets": [
+      "gfx1201",
+      "gfx90a"
+    ],
+    "device_object_sha256": "6ff79fc2d0d5c718e3f712aa37fff50bab23d09bf7a0751efea9e4bdd51a2ce2",
+    "staged_artifacts": {
+      "flitzfs_winfsp_paged_tests.exe": {
+        "bytes": 2210304,
+        "sha256": "aa9d6f5e881f4d8e7d43e3cf367bfab8b786095d231b58dc37f96ea75e1a95d1"
+      },
+      "winfsp-x64.dll": {
+        "bytes": 200816,
+        "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+      },
+      "flitzfs_native_lz4_read_worker.exe": {
+        "bytes": 573440,
+        "sha256": "e9253b7f1975c360ff863aa166a59c1ca69efa72a99702bbdc4e5adc8b390afe"
+      },
+      "flitzfs_rocm_native_lz4_decode.dll": {
+        "bytes": 155648,
+        "sha256": "7e8ac7a7ef91bd5b504528e5d28f5db410727fbc662fec3ef83a677850457dcf"
+      }
+    }
+  },
+  "live_amd": {
+    "device": "AMD Radeon RX 9070 XT",
+    "driver": "32.0.32029.2010",
+    "result": "Refused before launch because live GPU engine utilization exceeded the scheduled trial envelope in both observations.",
+    "trial_gpu_peak_limit_percent": 15,
+    "dispatches": 0,
+    "admissions": [
+      {
+        "admitted": false,
+        "utc": "2026-11-24T18:45:57.9827462Z",
+        "windows_build": "26300",
+        "devices": [
+          {
+            "Name": "AMD Radeon RX 9070 XT",
+            "Status": "OK",
+            "DriverVersion": "32.0.32029.2010"
+          }
+        ],
+        "cpu": [
+          11.02,
+          9.1
+        ],
+        "peak_gpu_engine": 99.94635144226203,
+        "available_kib": 9003896,
+        "total_kib": 66704480,
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "other_fixture_processes": 0
+      },
+      {
+        "admitted": false,
+        "utc": "2026-11-24T18:50:10.0348745Z",
+        "windows_build": "26300",
+        "devices": [
+          {
+            "Name": "AMD Radeon RX 9070 XT",
+            "Status": "OK",
+            "DriverVersion": "32.0.32029.2010"
+          }
+        ],
+        "cpu": [
+          8.81,
+          11.87
+        ],
+        "peak_gpu_engine": 98.34921654514925,
+        "available_kib": 9744028,
+        "total_kib": 66704480,
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "other_fixture_processes": 0
+      }
+    ]
+  },
+  "verification": [
+    {
+      "check": "groupKernelBuildFinal",
+      "exit": 0,
+      "tree_retired": true,
+      "peak_job_commit_bytes": 313479168,
+      "receipt_sha256": "cc5f91b9cc7250aae035c9e3184add42890fa55fe78e5ccf81191955d01f1c51",
+      "log_sha256": "bf568e77850f1d0229f6d2faaa4a7a26afd0c173394895592b1b0a3399a4fd38"
+    },
+    {
+      "check": "packedWireSdkFixed",
+      "exit": 0,
+      "tree_retired": true,
+      "peak_job_commit_bytes": 358277120,
+      "receipt_sha256": "bca0745449d9d53284f19a2876b5c5d73248d87b24313b72d3a04396283fcab5",
+      "log_sha256": "d931e92dc8563edefc6eb461f527c709e326c6b43983b448b9847d4d28054412"
+    },
+    {
+      "check": "packedWireTests",
+      "exit": 0,
+      "tree_retired": true,
+      "peak_job_commit_bytes": 59187200,
+      "receipt_sha256": "5d6ae717e4c31468481d72b4dec96a160eb505db1fb7ad5db3b5bddf08aea8f5",
+      "log_sha256": "77b902bfc63c6d2a5a9c81843d89edc68c95023d9be793510297b5f6047aac32"
+    },
+    {
+      "check": "groupBindingFinal",
+      "exit": 0,
+      "tree_retired": true,
+      "peak_job_commit_bytes": 168054784,
+      "receipt_sha256": "ae3499cb49e2f5bb31baa2d65085b355c95e01c5380dd3bde356d18a972fc60e",
+      "log_sha256": "d0c0d911cdb55ca419302b09efeabcf0b2b6047122d2a70c9abceae7113caa89"
+    },
+    {
+      "check": "groupRawFinal",
+      "exit": 0,
+      "tree_retired": true,
+      "peak_job_commit_bytes": 40574976,
+      "receipt_sha256": "5dd55273151995d31fcef8d0ae8a307b26fa235328bfc6d73cbd0de4fda87873",
+      "log_sha256": "6bc82fb7c3b427f0f0233a14bdff03f607ad1d1611949ec81b6b545559e577c6"
+    },
+    {
+      "check": "groupAsanRuntime",
+      "exit": 0,
+      "tree_retired": true,
+      "peak_job_commit_bytes": 9662464,
+      "receipt_sha256": "ab1b0a4af8071ecf7a43b37693e2761dded84530079e4211308e60d0258967e2",
+      "log_sha256": "853808be628f6d4cb56fa2f147c3fed0c70f00fe977dbc46dfe0dfbc0652c0f0"
+    },
+    {
+      "check": "groupAsanFocused",
+      "exit": 0,
+      "tree_retired": true,
+      "peak_job_commit_bytes": 94666752,
+      "receipt_sha256": "b83f1f43845fe0b2352742fb89d02b8ed10393d1a80603b1b7d94c9cb0afd5ce",
+      "log_sha256": "e3d384de72adb51feb1339596804affbc593987e3ff8bde5c9f52a9d3dcebe60"
+    },
+    {
+      "check": "groupAsanIndexedRetry",
+      "exit": 0,
+      "tree_retired": true,
+      "peak_job_commit_bytes": 830017536,
+      "receipt_sha256": "4278def6b35917df718ba8a30c990eed5b34e044c981c7104a973a001ea556bf",
+      "log_sha256": "f6b209bbdea06de527368004097eea3e3ab7f6b9251f4380b8a1aa1ca936dc46"
+    },
+    {
+      "check": "groupGpuGate",
+      "exit": 2,
+      "tree_retired": true,
+      "peak_job_commit_bytes": 70737920,
+      "receipt_sha256": "c287821e536224ac00e48dcc98a0b3a90a5f81ab270a025c5e4dbc8f412ff85a",
+      "log_sha256": "9a7ab5ead3550f5fc016851482da9fb37aab83b5aeb2e0a80b95d6f5358574d6"
+    },
+    {
+      "check": "groupGpuGateRepeat",
+      "exit": 2,
+      "tree_retired": true,
+      "peak_job_commit_bytes": 71688192,
+      "receipt_sha256": "359c1a66091c868ef2c9315df21b7e0e1d093da1359ff361ce655ff27b67889c",
+      "log_sha256": "a7ca2ea78bf5d0b6d7de3f71265eeb8b50a2f12e10ffb3eb28e8edb07b44a7f6"
+    }
+  ],
+  "resolved_test_attempts": [
+    "The first modeled suspect-base test lacked the selected fault count. The corrected fixture uncovered a peer recovery and refused the ready hit.",
+    "The raw compiler reached its original job memory limit. A serial rebuild within freshly measured headroom and all five raw controls passed.",
+    "The initial combined ASan process reached its job commit limit. The grouped and indexed suites passed individually after their sanitizer runtime preflights.",
+    "The first packed profile binding test reused an exclusive fixture path. Independent fixture cases passed with both device-entry configurations."
+  ],
+  "next": "Run a bounded Radeon trial when hardware load permits. Compare complete CPU and device costs, including idle readiness, before ordinary installation qualification."
+}

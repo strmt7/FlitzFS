@@ -25,7 +25,7 @@ def main() -> None:
         raise ValueError("native decode staging requires a stable local directory")
 
     inputs = {}
-    for name in ("native_lz4_decode_layout.hpp", "native_lz4_decode_api.hpp", "native_lz4_decode.hip"):
+    for name in ("native_lz4_decode_layout.hpp", "native_lz4_decode_api.hpp", "native_group_decode.hpp", "native_lz4_decode.hip"):
         path = repo / "src/gpu" / name
         data = path.read_bytes().replace(b"\r\n", b"\n")
         if not 0 < len(data) <= 65536:

@@ -1,6 +1,7 @@
 #pragma once
 #include "native_indexed_volume.hpp"
 #include "native_lz4_read.hpp"
+#include "native_group_read.hpp"
 #include <utility>
 
 namespace flitzfs::detail {
@@ -22,6 +23,20 @@ class NativeLz4CaptureLease final {
   IndexedVolumeRoot root_;
   std::uint64_t inode_,offset_;
   std::size_t maximum_encoded_;
+};
+// Issued under session control, then consumed without the foreground lock.
+class NativeGroupCaptureLease final {
+ public:
+  std::unique_ptr<NativeGroupReadBatch> capture(std::uint32_t bytes,std::size_t maximum_frame_bytes,
+      const std::function<bool()>& interrupted={}) const;
+ private:
+  friend class ::flitzfs::NativeFilesystemWriter;
+  NativeGroupCaptureLease(PagedObjectStoreSnapshot snapshot,IndexedVolumeRoot root,
+      std::uint64_t inode,std::uint64_t offset)
+      :snapshot_(std::move(snapshot)),root_(root),inode_(inode),offset_(offset) {}
+  PagedObjectStoreSnapshot snapshot_;
+  IndexedVolumeRoot root_;
+  std::uint64_t inode_,offset_;
 };
 struct NativeCommittedWriteRange {
   std::uint64_t sequence=0,inode=0,revision=0,offset=0;

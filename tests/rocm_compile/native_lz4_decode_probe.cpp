@@ -1,4 +1,4 @@
-#include "native_lz4_capture.hpp"
+#include "native_capture.hpp"
 #include "native_lz4_decode_wire.hpp"
 #include "worker_exchange.hpp"
 #include "gpu_request_id.hpp"

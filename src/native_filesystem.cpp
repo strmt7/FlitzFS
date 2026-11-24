@@ -1,7 +1,7 @@
 #include "flitzfs/native_filesystem.hpp"
 #include "native_object_storage.hpp"
 #include "native_indexed_volume.hpp"
-#include "native_lz4_capture.hpp"
+#include "native_capture.hpp"
 #include "native_lz4_decode_wire.hpp"
 #include "store_read_scope.hpp"
 #include "indexed_names.hpp"
@@ -2838,14 +2838,16 @@ std::optional<NativeDirectoryRecordPage> NativeFilesystemWriter::inspect_directo
   });
 }
 Bytes NativeFilesystemWriter::read_inode(std::uint64_t inode,std::uint64_t offset,std::uint32_t bytes,
-    detail::NativeLz4ReadRoute* route) const {
+    detail::NativeLz4ReadRoute* route,detail::NativeGroupReadRoute* groups) const {
   auto& state=checked_impl();
   if(bytes>kNativeMaxReadBytes)fail(Code::limit,"native read request budget");
   if(state.indexed) {
     auto* ready=dynamic_cast<detail::NativeLz4ReadyReads*>(route);
+    auto* grouped=groups?groups->ready:nullptr;
+    auto* metadata=grouped && grouped->pending()?grouped->metadata_.get():ready?ready->query_metadata():nullptr;
     return state.read_indexed([&](const auto& view) {
-      return view.read(view.inode(inode),offset,bytes,&state.shared_base_reads,route);
-    },ready?ready->query_metadata():nullptr);
+      return view.read(view.inode(inode),offset,bytes,&state.shared_base_reads,route,groups);
+    },metadata);
   }
   return state.read_checked_inode(inode,[&](const auto& snapshot,const Node& n) {
     return read_node(snapshot,state.model,n,offset,bytes);
@@ -2870,6 +2872,29 @@ std::unique_ptr<detail::NativeWriteCaptureLease> NativeFilesystemWriter::lease_c
   if(!snapshot)return {};
   return std::unique_ptr<detail::NativeWriteCaptureLease>(new detail::NativeWriteCaptureLease(
       std::move(*snapshot),*impl_->indexed));
+}
+std::unique_ptr<detail::NativeGroupCaptureLease> NativeFilesystemWriter::lease_native_group_capture(
+    std::uint64_t inode,std::uint64_t offset) const {
+  if(poisoned() || !impl_->indexed || !impl_->indexed->shared_members || offset%kNativeExtentBytes)return {};
+  auto snapshot=impl_->objects.paged_if()->snapshot_for_capture();
+  if(!snapshot)return {};
+  return std::unique_ptr<detail::NativeGroupCaptureLease>(new detail::NativeGroupCaptureLease(
+      std::move(*snapshot),*impl_->indexed,inode,offset));
+}
+std::unique_ptr<detail::NativeGroupReadBatch> detail::NativeGroupCaptureLease::capture(std::uint32_t bytes,
+    std::size_t maximum_frame_bytes,const std::function<bool()>& interrupted) const {
+  if(!bytes || bytes>kNativeMaxReadBytes || !maximum_frame_bytes)return {};
+  try {
+    const StoreCaptureReadScope capture_scope(interrupted);
+    if(capture_scope.interrupted())return {};
+    const auto query=snapshot_.scoped_query();
+    const auto view=verify_indexed_root(snapshot_,root_);
+    auto batch=view.capture_group_range(view.inode(inode_),offset_,bytes,maximum_frame_bytes,interrupted);
+    if(!batch)return {};
+    batch->metadata_=snapshot_.take_query_metadata();
+    if(!batch->metadata_ || capture_scope.interrupted())return {};
+    return batch;
+  }catch(const std::exception&){return {};}
 }
 bool detail::NativeLz4CaptureLease::capture(NativeLz4CapturedFrame& out) const {
   out={};

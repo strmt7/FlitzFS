@@ -16,7 +16,7 @@
 #include "native_security_fixture.hpp"
 #include "../src/native_group_codec.hpp"
 #include "../src/native_indexed_volume.hpp"
-#include "../src/native_lz4_capture.hpp"
+#include "../src/native_capture.hpp"
 #include "../src/native_maintenance_source.hpp"
 #include "../src/store_codec.hpp"
 #include "../src/record_digest.hpp"

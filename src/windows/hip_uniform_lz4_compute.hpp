@@ -7,6 +7,7 @@
 #include "uniform_lz4_sweep_trace.hpp"
 #include "../gpu/native_lz4_decode_api.hpp"
 #include "../native_lz4_decode.hpp"
+#include "../native_group_read_wire.hpp"
 namespace flitzfs::hip_detail {
 struct UniformLz4WindowDeclined {};
 
@@ -125,6 +126,9 @@ UniformLz4Candidates execute_uniform_lz4_compute(const HipApi& api,Lz4Attributes
 
 namespace flitzfs {
 class WindowsGpuBudgetSampler;
+std::vector<std::byte> run_hip_native_group_read_in_worker(HMODULE,const group_decode::KernelApi&,
+    int ordinal,WindowsGpuBudgetSampler&,const detail::NativeGroupWireRequest&,
+    std::span<const hip_detail::Lz4KernelCoverage>);
 
 std::vector<detail::NativeLz4DecodedFrame> run_hip_native_lz4_decode_in_worker(HMODULE,
     const native_lz4_decode::KernelApi&,int ordinal,WindowsGpuBudgetSampler&,

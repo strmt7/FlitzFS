@@ -1,4 +1,5 @@
 #pragma once
+#include "../native_group_read.hpp"
 #include "../native_lz4_read.hpp"
 #include "../store_file.hpp"
 #include "native_file_info.hpp"
@@ -20,6 +21,7 @@ struct WinFspReadAheadWork {
   std::uint32_t bytes=0;
   std::vector<detail::NativeLz4CapturedFrame> frames;
   std::shared_ptr<detail::PagedReadMetadata> metadata;
+  std::unique_ptr<detail::NativeGroupReadBatch> groups;
   std::uint64_t hint_created_ms=0,observed_lead_ms=0;
   bool has_read_lead(std::uint64_t required_ms,std::uint64_t now_ms) const noexcept {
     if(!required_ms)return true;
@@ -195,7 +197,8 @@ class WinFspNativeWritable final {
       std::uint64_t foreground_epoch,const std::atomic<bool>* stop_requested=nullptr) noexcept;
   std::optional<WinFspReadAheadWork> capture_native_lz4_read_ahead(const NativeMaintenanceObservation&,
       std::uint64_t now_ms,std::uint64_t foreground_epoch,const std::atomic<bool>& stop_requested) noexcept;
-  bool publish_native_lz4_read_ahead(WinFspReadAheadWork&,std::unique_ptr<detail::NativeLz4ReadyReads>,
+  bool publish_read_ahead(WinFspReadAheadWork&,std::unique_ptr<detail::NativeLz4ReadyReads>,
+      std::unique_ptr<detail::NativeGroupReadyReads>,
       const std::atomic<bool>& stop_requested) noexcept;
   bool prepare_captured_native_lz4_read(WinFspReadAheadWork&,const std::atomic<bool>& stop_requested) noexcept;
   // After a measured backing refusal, the matching CPU demand may refresh cost.

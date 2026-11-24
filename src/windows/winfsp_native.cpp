@@ -1,5 +1,5 @@
 #include "winfsp_native.hpp"
-#include "../native_lz4_capture.hpp"
+#include "../native_capture.hpp"
 #include "../native_lz4_decode_wire.hpp"
 #include "memory_volume_factory.hpp"
 #include "../native_maintenance_source.hpp"
@@ -231,6 +231,7 @@ struct WinFspNativeWritable::Impl {
     std::uint64_t offset=0;
     std::uint32_t bytes=0;
     std::uint64_t created_ms=0,observed_lead_ms=0,demand_cost_ns=0;
+    bool packed=false;
     bool overlaps(std::uint64_t start,std::uint32_t length) const noexcept {
       return length && (start<=offset?offset-start<length:start-offset<bytes);
     }
@@ -246,7 +247,10 @@ struct WinFspNativeWritable::Impl {
   };
   struct PreparedRead {
     ReadAhead target;
-    std::unique_ptr<detail::NativeLz4ReadyReads> result;
+    std::unique_ptr<detail::NativeLz4ReadyReads> lz4;
+    std::unique_ptr<detail::NativeGroupReadyReads> groups;
+    bool pending() const noexcept{return groups?groups->pending():lz4 && lz4->pending();}
+    std::size_t consumed() const noexcept{return groups?groups->consumed():lz4?lz4->consumed():0;}
   };
   struct DemandSample {
     std::uintptr_t token=0;
@@ -636,19 +640,20 @@ struct WinFspNativeWritable::Impl {
         (!deferred || (!deferred->publication_pending_locked() && !deferred->stats_locked().worker_busy));
   }
   std::vector<std::byte> read_with_demand_sample(const Slot& slot,std::uint64_t offset,std::uint32_t length,
-      detail::NativeLz4ReadyReads* ready,bool seed_file_cost,std::uint64_t& demand_cost) {
+      detail::NativeLz4ReadyReads* ready,detail::NativeGroupReadRoute& groups,bool seed_file_cost,
+      std::uint64_t& demand_cost) {
     const auto& target=read_ahead_sample_target;
-    if(!length || (ready && ready->pending()))
-      return session.read(slot.handle,offset,length,ready);
+    if(!length || (ready && ready->pending()) || groups.ready)
+      return session.read(slot.handle,offset,length,ready,&groups);
     const bool matching=target && target->token==slot.token && (target->bytes==kNativeExtentBytes?
         length<=target->bytes && offset>=target->offset && offset-target->offset<=target->bytes-length:
         offset<=target->offset && target->offset-offset<=length && length-(target->offset-offset)>=target->bytes);
-    if(!matching && !seed_file_cost)return session.read(slot.handle,offset,length,ready);
+    if(!matching && !seed_file_cost)return session.read(slot.handle,offset,length,ready,&groups);
     if(matching)read_ahead_sample_target.reset();
     Lz4DemandObservation observation;
     const auto start=std::chrono::steady_clock::now();
-    auto bytes=session.read(slot.handle,offset,length,&observation);
-    if(observation.verified_input && bytes.size()==length) {
+    auto bytes=session.read(slot.handle,offset,length,&observation,&groups);
+    if((observation.verified_input || groups.packed) && bytes.size()==length) {
       // Complete demand service includes backing calls and CPU verification.
       const auto elapsed=std::chrono::duration_cast<std::chrono::nanoseconds>(
           std::chrono::steady_clock::now()-start).count();
@@ -667,23 +672,25 @@ struct WinFspNativeWritable::Impl {
     const bool adjacent=previous.bytes && previous.end==offset;
     const auto idle=adjacent && previous.bytes==length && previous.completed_ms && start_ms>previous.completed_ms?
         start_ms-previous.completed_ms:0;
-    const bool has_prepared=adjacent && prepared.result && prepared.target.token==slot.token;
-    const auto prior_hits=has_prepared?prepared.result->consumed():0;
+    const bool has_prepared=adjacent && prepared.pending() && prepared.target.token==slot.token;
+    const auto prior_hits=has_prepared?prepared.consumed():0;
     auto* ready=native_lz4_reads.get();
-    if((!ready || !ready->pending()) && has_prepared && prepared.target.overlaps(offset,length))
-      ready=prepared.result.get();
+    detail::NativeGroupReadRoute groups;
+    if((!ready || !ready->pending()) && has_prepared && prepared.target.overlaps(offset,length)) {
+      ready=prepared.lz4.get();
+      groups.ready=prepared.groups.get();
+    }
     const bool adjacent_window=adjacent && std::uint64_t(previous.bytes)+length>=kNativeExtentBytes;
     const bool seed_file_cost=file_profile && !file_read_ahead_seeded && adjacent_window;
     std::uint64_t demand_cost=0;
-    auto bytes=read_with_demand_sample(slot,offset,length,ready,seed_file_cost,demand_cost);
-    if(has_prepared && prepared.result->consumed()>prior_hits)
-      read_ahead_hits+=prepared.result->consumed()-prior_hits;
+    auto bytes=read_with_demand_sample(slot,offset,length,ready,groups,seed_file_cost,demand_cost);
+    if(has_prepared && prepared.consumed()>prior_hits)read_ahead_hits+=prepared.consumed()-prior_hits;
     const auto maximum=(std::numeric_limits<std::uint64_t>::max)();
     if(!length || bytes.size()!=length || offset>maximum-length)return bytes;
     const auto end=offset+length;
     const auto completed_ms=GetTickCount64();
     slot.last_read={end,completed_ms,idle,length};
-    if(has_prepared && prepared.result->pending() &&
+    if(has_prepared && prepared.pending() &&
         (end<=prepared.target.offset || end-prepared.target.offset<prepared.target.bytes)) {
       prepared_read=std::move(prepared);
       return bytes;
@@ -694,7 +701,7 @@ struct WinFspNativeWritable::Impl {
       const auto frames=(remaining+kNativeExtentBytes-1)/kNativeExtentBytes;
       const auto window=static_cast<std::uint32_t>(frames*kNativeExtentBytes);
       if(window<=maximum-end-gap)read_ahead=ReadAhead{slot.token,end+gap,window,completed_ms,
-          (std::min)(idle,previous.idle_before_ms),demand_cost};
+          (std::min)(idle,previous.idle_before_ms),demand_cost,groups.packed};
     }
     return bytes;
   }
@@ -1627,7 +1634,7 @@ std::size_t WinFspNativeWritable::native_lz4_read_hits() const {
 bool WinFspNativeWritable::enable_native_lz4_read_ahead() {
   std::lock_guard guard(impl_->control);
   if(impl_->callbacks_bound || impl_->maintenance_cancelled || impl_->info_policy!=indexed_file_info ||
-      !store_lz4_available() || !impl_->session.supports_leased_lz4_capture())return false;
+      !impl_->session.supports_leased_lz4_capture())return false;
   impl_->read_ahead_enabled=true;
   return true;
 }
@@ -1683,6 +1690,7 @@ std::optional<WinFspReadAheadWork> WinFspNativeWritable::capture_native_lz4_read
       ~ReleaseCapture(){active.store(false,std::memory_order_release);}
     } release{impl_->read_ahead_active};
     std::unique_ptr<detail::NativeLz4CaptureLease> lease;
+    std::unique_ptr<detail::NativeGroupCaptureLease> group_lease;
     Impl::ReadAhead target;
     {
       std::unique_lock guard(impl_->control,std::try_to_lock);
@@ -1694,34 +1702,40 @@ std::optional<WinFspReadAheadWork> WinFspNativeWritable::capture_native_lz4_read
       target.bytes=static_cast<std::uint32_t>(frames*kNativeExtentBytes);
       const auto& slot=impl_->resolve(reinterpret_cast<PVOID>(target.token));
       if(slot.provisional || slot.awaiting_overwrite)return {};
-      lease=impl_->session.lease_native_lz4_capture(slot.handle,target.offset,frame_bytes);
+      if(target.packed)group_lease=impl_->session.lease_native_group_capture(slot.handle,target.offset);
+      else lease=impl_->session.lease_native_lz4_capture(slot.handle,target.offset,frame_bytes);
     }
     const auto interrupted=[&]{
       return foreground_pending() || foreground_activity()!=epoch ||
           impl_->stopped.load(std::memory_order_acquire) || impl_->offline.load(std::memory_order_acquire) ||
           stop_requested.load(std::memory_order_acquire);
     };
-    if(!lease || interrupted())return {};
+    if((!lease && !group_lease) || interrupted())return {};
     const auto frame_grant=static_cast<std::size_t>(target.bytes/kNativeExtentBytes)*2*frame_bytes;
     WinFspReadAheadWork work{this,target.token,target.offset,epoch,target.bytes};
     work.hint_created_ms=target.created_ms;
     work.observed_lead_ms=target.observed_lead_ms;
-    work.frames=lease->capture_range(target.bytes,frame_grant,interrupted,&work.metadata);
-    if(work.frames.empty() || interrupted())return {};
+    if(group_lease) {
+      const auto grant=(std::min<std::uint64_t>)(resources->memory_allowance-scratch_bytes,
+          std::uint64_t{4}*kNativeMaxReadBytes);
+      work.groups=group_lease->capture(target.bytes,static_cast<std::size_t>(grant),interrupted);
+    }else work.frames=lease->capture_range(target.bytes,frame_grant,interrupted,&work.metadata);
+    if((work.frames.empty() && !work.groups) || interrupted())return {};
     return work;
   }catch(...) {return {};}
 }
 
-bool WinFspNativeWritable::publish_native_lz4_read_ahead(WinFspReadAheadWork& work,
-    std::unique_ptr<detail::NativeLz4ReadyReads> ready,const std::atomic<bool>& stop_requested) noexcept {
+bool WinFspNativeWritable::publish_read_ahead(WinFspReadAheadWork& work,
+    std::unique_ptr<detail::NativeLz4ReadyReads> lz4,std::unique_ptr<detail::NativeGroupReadyReads> groups,
+    const std::atomic<bool>& stop_requested) noexcept {
   try {
-    if(!ready || !ready->pending() || work.owner!=this)return false;
+    if(work.owner!=this || (groups?lz4 || !groups->pending():!lz4 || !lz4->pending()))return false;
     std::unique_lock guard(impl_->control,std::try_to_lock);
     if(!guard || !impl_->may_prepare_read() || foreground_activity()!=work.foreground_epoch ||
         stop_requested.load(std::memory_order_acquire) ||
         (impl_->native_lz4_reads && impl_->native_lz4_reads->pending()))return false;
-    ready->keep_metadata(std::move(work.metadata));
-    impl_->prepared_read={{work.token,work.offset,work.bytes},std::move(ready)};
+    if(lz4)lz4->keep_metadata(std::move(work.metadata));
+    impl_->prepared_read={{work.token,work.offset,work.bytes},std::move(lz4),std::move(groups)};
     return true;
   }catch(...) {return false;}
 }
@@ -1735,7 +1749,9 @@ bool WinFspNativeWritable::prepare_captured_native_lz4_read(WinFspReadAheadWork&
           stop_requested.load(std::memory_order_acquire);
     };
     if(work.owner!=this || interrupted())return false;
-    return publish_native_lz4_read_ahead(work,detail::NativeLz4ReadyReads::decode_captured(work.frames,interrupted),stop_requested);
+    if(work.groups)
+      return publish_read_ahead(work,{},detail::NativeGroupReadyReads::decode_captured(*work.groups,interrupted),stop_requested);
+    return publish_read_ahead(work,detail::NativeLz4ReadyReads::decode_captured(work.frames,interrupted),{},stop_requested);
   }catch(...) {return false;}
 }
 void WinFspNativeWritable::discard_native_lz4_read_ahead(std::uint64_t epoch,bool measure_demand) noexcept {

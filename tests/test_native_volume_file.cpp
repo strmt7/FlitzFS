@@ -12,7 +12,7 @@
 #define NOMINMAX
 #include "windows/positioned_file_io.hpp"
 #include "windows/volume_file_lifetime.hpp"
-#include "native_lz4_capture.hpp"
+#include "native_capture.hpp"
 #include "native_lz4_fixture.hpp"
 #include "store_codec.hpp"
 #include <future>

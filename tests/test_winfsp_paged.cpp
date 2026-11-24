@@ -1,5 +1,6 @@
 #include "winfsp_native.hpp"
 #include "winfsp_session.hpp"
+#include "native_lz4_read_worker.hpp"
 #include "native_fs_fixture.hpp"
 #include "native_lz4_fixture.hpp"
 #include "../src/native_lz4_decode_wire.hpp"
@@ -248,6 +249,116 @@ void sequential_read_ahead() {
       <<" foreground_read_write_before_release=1 changed_bytes_exact=1"
       <<" capture_backing_bytes="<<capture_bytes<<" ready_backing_bytes="<<ready_bytes
       <<" ordinary_backing_bytes="<<ordinary_bytes<<'\n';
+}
+void packed_group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={}) {
+  constexpr auto extent=kNativeExtentBytes;
+  Harness h(4096,nullptr,nullptr,nullptr,nullptr,true,{StoreCompressionMode::raw,1,false},true);
+  std::array<Bytes,10> blocks;
+  Bytes file;
+  const auto base=family(0);
+  for(std::size_t i=0;i<blocks.size();++i) {
+    blocks[i]=base;
+    const auto bits=data(extent,32019+static_cast<unsigned>(i));
+    for(std::size_t at=0;at<extent;++at)blocks[i][at]^=bits[at]&std::byte{1};
+    file.insert(file.end(),blocks[i].begin(),blocks[i].end());
+  }
+  const auto context=h.create(47);
+  h.write(context,file);
+  h.finish();
+  require(h.adapter->snapshot().shared_base_info().members>=5,"Packed callback input was not grouped");
+  const auto width=profile?2U:1U;
+  const auto read=[&](unsigned first) {
+    const auto begin=file.begin()+first*extent;
+    h.read(context,Bytes(begin,begin+width*extent),first*extent);
+  };
+  const auto writes=h.image->write_bytes;
+  read(0);
+  read(width);
+  require(h.adapter->native_lz4_read_ahead_pending(),"Grouped demand did not forecast its next extent");
+  const auto epoch=h.adapter->foreground_activity();
+  auto admitted=h.clock.next();
+  if(profile) {
+    MEMORYSTATUSEX memory{};memory.dwLength=sizeof(memory);
+    require(GlobalMemoryStatusEx(&memory)!=0,"Live group fixture memory telemetry missing");
+    admitted.physical_total=memory.ullTotalPhys;admitted.physical_available=memory.ullAvailPhys;
+    admitted.commit_limit=memory.ullTotalPageFile;admitted.commit_available=memory.ullAvailPageFile;
+  }
+  const std::atomic<bool> stop{false};
+  auto work=h.adapter->capture_native_lz4_read_ahead(admitted,h.clock.now,epoch,stop);
+  require(work && work->frames.empty() && work->groups && work->groups->bases().size()==1 &&
+      work->groups->members().size()==width,"Grouped WinFsp forecast did not capture its protected inputs");
+  if(profile) {
+    const auto timeout=profile->worker.timeout_ms;
+    NativeLz4ReadWorker worker(std::move(*profile));
+    require(worker.start(*work,admitted,stop),"Live packed-group AMD start refused");
+    if(const auto wake=static_cast<HANDLE>(worker.wake_handle()))
+      require(WaitForSingleObject(wake,timeout+2500)==WAIT_OBJECT_0,"Packed-group AMD retirement wait");
+    worker.observe(*h.adapter,false);
+    if(!worker.ready_to_verify()) {
+      const auto failure=worker.stats();
+      std::cerr<<"Packed group worker exit="<<failure.last_worker_exit_code<<" failures="<<failure.failures<<'\n';
+    }
+    require(worker.ready_to_verify() && worker.verify_and_publish(*h.adapter,admitted,h.clock.now,stop),
+        "Packed-group AMD preparation failed");
+    const auto stats=worker.stats();
+    require(stats.submitted==1 && stats.verified_frames==width && stats.retirement_confirmed &&
+        !stats.pending && worker.stop(),"Packed-group AMD session was not retired");
+    std::cout<<"winfsp_group_hip verified="<<stats.verified_frames<<" worker_ms="<<stats.last_worker_elapsed_ms
+        <<" exact_child_retired=1\n";
+  }else require(h.adapter->prepare_captured_native_lz4_read(*work,stop),"Packed WinFsp preparation failed");
+  read(2*width);
+  require(h.adapter->native_lz4_read_ahead_hits()==width && h.image->write_bytes==writes,
+      "Grouped callback failed to hit or issued a write");
+
+  admitted=h.clock.next();
+  const auto next=h.adapter->foreground_activity();
+  auto superseded=h.adapter->capture_native_lz4_read_ahead(admitted,h.clock.now,next,stop);
+  require(superseded && superseded->groups,"Missing second grouped forecast");
+  read(3*width);
+  require(!h.adapter->prepare_captured_native_lz4_read(*superseded,stop) &&
+      h.adapter->native_lz4_read_ahead_hits()==width,"Late grouped preparation survived foreground demand");
+  h.close(context);
+  auto snapshot=h.adapter->snapshot();
+  require(snapshot.read("f47",0,file.size())==file,"Independent CPU read changed callback bytes");
+  snapshot.verify_all();
+  std::cout<<"winfsp_ready_groups ready_hits="<<width<<" late_refused=1 cpu_readback=1 backing_writes=0\n";
+}
+
+NativeLz4ReadWorkerProfile group_gpu_profile(wchar_t** arguments) {
+  const auto ascii=[](std::wstring_view value) {
+    require(value.size()==64 && std::ranges::all_of(value,[](auto c){
+      return (c>=L'0' && c<=L'9') || (c>=L'a' && c<=L'f');
+    }),"Invalid fixture SHA");
+    return std::string(value.begin(),value.end());
+  };
+  const auto decimal=[](std::wstring_view value,std::uint32_t maximum) {
+    require(!value.empty() && value.size()<=10 && std::ranges::all_of(value,[](auto c){return c>=L'0' && c<=L'9';}),
+        "Invalid fixture adapter integer");
+    const auto parsed=std::stoul(std::wstring(value));
+    require(parsed<=maximum,"Fixture adapter integer out of range");
+    return static_cast<std::uint32_t>(parsed);
+  };
+  const std::wstring_view luid=arguments[7];
+  require(luid.size()==16,"Fixture adapter LUID length");
+  const auto digit=[](wchar_t value) {
+    if(value>=L'0' && value<=L'9')return static_cast<unsigned>(value-L'0');
+    require(value>=L'a' && value<=L'f',"Invalid fixture LUID digit");
+    return static_cast<unsigned>(value-L'a'+10);
+  };
+  NativeLz4ReadWorkerProfile profile;
+  profile.helper=arguments[2];profile.runtime_name=arguments[3];profile.architecture=arguments[4];
+  profile.runtime_sha256=ascii(arguments[5]);profile.helper_sha256=ascii(arguments[6]);
+  profile.module_sha256=ascii(arguments[8]);
+  for(std::size_t i=0;i<profile.luid.size();++i)
+    profile.luid[i]=static_cast<std::byte>(16*digit(luid[2*i])+digit(luid[2*i+1]));
+  profile.ordinal=decimal(arguments[9],63);
+  profile.node_mask=decimal(arguments[10],(std::numeric_limits<std::uint32_t>::max)());
+  profile.wave_mask=decimal(arguments[11],3);
+  profile.worker={160,1200,14000,16};
+  profile.minimum_frames=2;profile.maximum_frames=2;
+  profile.maximum_slab_bytes=512*1024;
+  profile.packed_groups=true;
+  return profile;
 }
 
 void batched_read_ahead() {
@@ -986,18 +1097,23 @@ void publication_faults(unsigned unit) {
   std::cout<<"paged_callback_faults unit="<<unit<<" cuts="<<cuts<<" modes=3\n";
 }
 }
-int main(int argc,char** argv){try {
+int wmain(int argc,wchar_t** argv){try {
   app_fixture::Budget budget;
+  const auto mode=argc>1?std::wstring_view(argv[1]):std::wstring_view{};
+  if(mode==L"--hip-group-reads" && argc==12) {
+    packed_group_read_ahead(group_gpu_profile(argv));
+    return 0;
+  }
   if(argc!=2)throw std::runtime_error("Explicit callback/fault mode required");
-  const std::string_view mode=argv[1];
-  if(mode=="--callbacks"){
+  if(mode==L"--callbacks"){
     callbacks(4096);callbacks(65536);directory_pages();directory_pages(true);selected_change();foreground_busy();
     deferred_response_busy();resume_formats();indexed_backfill_opportunities();lifecycle();indexed_callbacks(4096);indexed_callbacks(65536);
   }
-  else if(mode=="--ready-lz4-reads")ready_lz4_reads();
-  else if(mode=="--faults-4096")publication_faults(4096);
-  else if(mode=="--faults-65536")publication_faults(65536);
-  else if(mode=="--profile-indexed-directory")directory_pages(true);
+  else if(mode==L"--ready-lz4-reads")ready_lz4_reads();
+  else if(mode==L"--ready-group-reads")packed_group_read_ahead();
+  else if(mode==L"--faults-4096")publication_faults(4096);
+  else if(mode==L"--faults-65536")publication_faults(65536);
+  else if(mode==L"--profile-indexed-directory")directory_pages(true);
   else throw std::runtime_error("Unknown callback qualification mode");
   std::cout<<"PASS: "<<checks<<" paged WinFsp SDK checks; "<<faults<<" injected group failures; modeled CPU observations; memory only, no mount/driver/GPU\n";return 0;
 }catch(const std::exception& error){std::cerr<<"after "<<checks<<" checks: "<<error.what()<<'\n';return 1;}}

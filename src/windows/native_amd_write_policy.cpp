@@ -2,7 +2,7 @@
 #include "memory_volume.hpp"
 #include "gpu_budget.hpp"
 #include "../gpu_request_id.hpp"
-#include "../native_lz4_capture.hpp"
+#include "../native_capture.hpp"
 #include "../record_digest.hpp"
 #include "../store_codec.hpp"
 #include "../store_read_scope.hpp"

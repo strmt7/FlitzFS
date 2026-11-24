@@ -4,6 +4,7 @@
 #include "native_name_index.hpp"
 
 namespace flitzfs::detail {
+class NativeGroupReadBatch;
 
 inline constexpr std::size_t kIndexedVolumeIdentityOffset=72;
 inline constexpr std::size_t kIndexedVolumeRootMaximumBytes=136;
@@ -247,12 +248,16 @@ class IndexedVolumeView final {
   IndexedDirectoryPage list(std::uint64_t directory,std::string_view after,std::size_t maximum) const;
   std::vector<NativeFileInfo> list_all(std::uint64_t directory) const;
   std::vector<std::byte> read(const IndexedInodeInput&,std::uint64_t offset,std::uint32_t bytes,
-      IndexedSharedBaseCache* retained=nullptr,NativeLz4ReadRoute* route=nullptr) const;
+      IndexedSharedBaseCache* retained=nullptr,NativeLz4ReadRoute* route=nullptr,
+      NativeGroupReadRoute* groups=nullptr) const;
   bool capture_native_lz4(const IndexedInodeInput&,std::uint64_t offset,std::size_t maximum_encoded,
       NativeLz4CapturedFrame&) const;
   std::vector<NativeLz4CapturedFrame> capture_native_lz4_range(const IndexedInodeInput&,
       std::uint64_t offset,std::uint32_t bytes,std::size_t maximum_encoded,
       std::size_t remaining_frame_bytes,const std::function<bool()>& interrupted) const;
+  std::unique_ptr<NativeGroupReadBatch> capture_group_range(const IndexedInodeInput&,
+      std::uint64_t offset,std::uint32_t bytes,std::size_t remaining_frame_bytes,
+      const std::function<bool()>& interrupted) const;
   std::optional<NativeContentToken> next_content(NativeExtentSelection after,bool first) const;
   std::optional<NativeContentToken> content_at(NativeExtentSelection) const;
   std::vector<std::byte> read_content(NativeContentToken&,bool published_reference) const;

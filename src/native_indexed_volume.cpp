@@ -2,6 +2,7 @@
 #include "indexed_names.hpp"
 #include "native_lz4_read.hpp"
 #include "native_group_codec.hpp"
+#include "native_group_read.hpp"
 #include "native_object_storage.hpp"
 #include "store_codec.hpp"
 #include "flitzfs/gpu_anchor_match.hpp"
@@ -216,7 +217,7 @@ struct DecodedIndexedExtent {
   Bytes data;
   std::size_t payload_offset=0;
   std::uint64_t base=0,reusable_anchor_generation=0;
-  bool packed_slice=false;
+  bool packed_slice=false,packed_xor=false;
   std::span<const std::byte> payload() const {return std::span(data).subspan(payload_offset);}
 };
 void verify_base_frame(const Bytes& bytes) {
@@ -309,7 +310,7 @@ DecodedIndexedExtent decode_extent(const PagedObjectStoreSnapshot& source,const 
     while(!decoded.empty() && decoded.back()==std::byte{})decoded.pop_back();
     validate_payload(inode,block,decoded);
     if(retained && anchor==&scratch)retained->remember(scratch);
-    return {std::move(decoded),0,reference.base_id,reusable};
+    return {std::move(decoded),0,reference.base_id,reusable,false,reference.method==NativeGroupMethod::packed_xor};
   }catch(const std::bad_alloc&){throw;}
   catch(const NativeFsError&){throw;}
   catch(const std::exception&){fail(Code::corrupt,"indexed shared-base proof failed");}
@@ -2316,7 +2317,7 @@ void IndexedSharedBaseCache::clear() noexcept {
 }
 
 Bytes IndexedVolumeView::read(const IndexedInodeInput& selected,std::uint64_t offset,std::uint32_t bytes,
-    IndexedSharedBaseCache* retained,NativeLz4ReadRoute* route) const {
+    IndexedSharedBaseCache* retained,NativeLz4ReadRoute* route,NativeGroupReadRoute* groups) const {
   if(selected.lifetime==IndexedLifetime::retiring)fail(Code::not_found,"indexed inode is retired");
   if(selected.directory)fail(Code::is_directory,"cannot read indexed directory");
   if(bytes>kNativeMaxReadBytes)fail(Code::limit,"indexed read budget");
@@ -2334,14 +2335,28 @@ Bytes IndexedVolumeView::read(const IndexedInodeInput& selected,std::uint64_t of
     if(block>last)break;
     if((entry.value&ordinal_mask)>=root_.next_extent)
       fail(Code::corrupt,"indexed extent reference exceeds allocator");
-    std::optional<Bytes> record;
-    try {
-      record=store_.read_matching(entry.value,extent_header+kNativeExtentBytes,std::nullopt,route);
-    }catch(const std::bad_alloc&){throw;}
-    catch(const std::exception&){fail(Code::storage_failure,"indexed object integrity or read failure");}
-    if(!record)fail(Code::corrupt,"indexed object reference missing");
-    const auto extent=decode_extent(store_,index_,root_,entry.value,std::move(*record),
-        selected,block,false,&cached_base,retained);
+    DecodedIndexedExtent extent;
+    if(groups && groups->ready) {
+      auto& pending=*groups->ready;
+      auto* ready=pending.find(selected.inode,block,entry.value);
+      if(ready && store_.matches_group_read(ready->record,ready->base,*pending.metadata_)) {
+        validate_payload(selected,block,ready->bytes);
+        extent.data=std::exchange(ready->bytes,Bytes{});
+        extent.packed_xor=true;
+        ++pending.consumed_;
+      }
+    }
+    if(extent.data.empty()) {
+      std::optional<Bytes> record;
+      try {
+        record=store_.read_matching(entry.value,extent_header+kNativeExtentBytes,std::nullopt,route);
+      }catch(const std::bad_alloc&){throw;}
+      catch(const std::exception&){fail(Code::storage_failure,"indexed object integrity or read failure");}
+      if(!record)fail(Code::corrupt,"indexed object reference missing");
+      extent=decode_extent(store_,index_,root_,entry.value,std::move(*record),
+          selected,block,false,&cached_base,retained);
+    }
+    if(groups && extent.packed_xor)groups->packed=true;
     const auto data=extent.payload();
     const auto begin=block*kNativeExtentBytes;
     const auto from=(std::max)(begin,offset),to=(std::min)(end,begin+data.size());
@@ -2385,6 +2400,72 @@ std::vector<NativeLz4CapturedFrame> IndexedVolumeView::capture_native_lz4_range(
   if(info.degraded_roots || info.degraded_metadata || info.degraded_payloads ||
       (interrupted && interrupted()))return {};
   return frames;
+}
+std::unique_ptr<NativeGroupReadBatch> IndexedVolumeView::capture_group_range(
+    const IndexedInodeInput& selected,std::uint64_t offset,std::uint32_t bytes,
+    std::size_t remaining,const std::function<bool()>& interrupted) const {
+  if(root_.format<packed_xor_capability || !root_.shared_members || selected.directory ||
+      selected.lifetime!=IndexedLifetime::linked || offset>=selected.size || offset%kNativeExtentBytes ||
+      !bytes || bytes>kNativeMaxReadBytes)return {};
+  constexpr auto frame_limit=extent_header+kNativeExtentBytes-1;
+  // Unfunded or ineligible probes can hold a member and base temporarily.
+  constexpr auto scratch=frame_limit+base_size;
+  if(remaining<=scratch)return {};
+  remaining-=scratch;
+  const auto descriptor=NativeGroupReadyReads::descriptor_bytes();
+  const auto end=offset+(std::min)(std::uint64_t{bytes},selected.size-offset);
+  const auto first=offset/kNativeExtentBytes,last=(end-1)/kNativeExtentBytes;
+  const auto capacity=static_cast<std::size_t>((std::min)(last-first+1,
+      std::uint64_t{remaining/(descriptor+kNativeExtentBytes)}));
+  if(!capacity)return {};
+  remaining-=capacity*descriptor;
+  (void)check_group_storage(store_);
+  const auto start=native_extent_key(selected.inode,first?first-1:0);
+  const auto range=index_.list(start.parent,first?std::string_view(start.name):std::string_view{},
+      static_cast<std::size_t>(last-first+1));
+  auto batch=std::unique_ptr<NativeGroupReadBatch>(new NativeGroupReadBatch);
+  batch->inode_=selected.inode;
+  batch->members_.reserve(capacity);
+  batch->bases_.reserve(capacity);
+  for(const auto& entry:range) {
+    if(interrupted && interrupted())return {};
+    const auto block=native_extent_block(entry.key.name);
+    if(block>last || batch->members_.size()==capacity || remaining<=kNativeExtentBytes)break;
+    if((entry.value&ordinal_mask)>=root_.next_extent)return {};
+    PagedGroupReadFrame member;
+    if(!store_.capture_group_read_record(entry.value,frame_limit,std::nullopt,member) ||
+        !magic(member.bytes,member_magic))continue;
+    if(member.bytes.size()<=extent_header || get(member.bytes,8)!=selected.inode ||
+        get(member.bytes,16)!=block)return {};
+    const auto frame=std::span<const std::byte>(member.bytes).subspan(extent_header);
+    const auto reference=read_native_group_header(frame,available_group_method(root_.format));
+    if(reference.method!=NativeGroupMethod::packed_xor)continue;
+    if(reference.base_id==entry.value || (reference.base_id&ordinal_mask)>=root_.next_extent ||
+        index_.find(native_group_reference_key(reference.base_id,entry.value))!=entry.value)return {};
+    const auto offsets=native_packed_xor_offsets(frame.subspan(kNativeGroupMemberHeaderBytes));
+    const auto existing=std::ranges::find_if(batch->bases_,[&](const auto& base) {
+      return base.record.object==reference.base_id && base.record.generation==reference.base_generation;
+    });
+    const auto base_index=static_cast<std::size_t>(existing-batch->bases_.begin());
+    const auto cost=member.bytes.size()+kNativeExtentBytes+(existing==batch->bases_.end()?base_size:0);
+    if(cost>remaining)continue;
+    if(existing==batch->bases_.end()) {
+      PagedGroupReadFrame base;
+      if(!store_.capture_group_read_record(reference.base_id,base_size,reference.base_generation,base))return {};
+      verify_base_frame(base.bytes);
+      batch->bases_.push_back({base.record,NativeGroupBase(std::move(base.bytes),base_magic.size())});
+    }
+    if(batch->bases_[base_index].bytes.payload_digest()!=reference.base_digest)return {};
+    const auto available=selected.size-extent_begin(selected,block);
+    const auto maximum=static_cast<std::uint32_t>((std::min)(available,std::uint64_t{kNativeExtentBytes}));
+    member.bytes.erase(member.bytes.begin(),member.bytes.begin()+extent_header);
+    batch->members_.push_back({member.record,block,maximum,base_index,reference.decoded_digest,
+        offsets,std::move(member.bytes)});
+    remaining-=cost;
+  }
+  if(batch->members_.empty() || (interrupted && interrupted()))return {};
+  (void)check_group_storage(store_);
+  return batch;
 }
 NativeContentToken IndexedVolumeView::content_token(NativeExtentSelection extent,std::uint64_t object) const {
   const auto selected=referenced_inode(extent.inode,true);

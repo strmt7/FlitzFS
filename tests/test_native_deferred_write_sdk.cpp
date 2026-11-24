@@ -15,7 +15,7 @@
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
 #include "gpu_budget.hpp"
 #include "hip_route_discovery.hpp"
-#include "native_lz4_capture.hpp"
+#include "native_capture.hpp"
 #include "native_name_index.hpp"
 #include "winfsp_volume_attachment.hpp"
 #include "flitzfs/read_only_file.hpp"

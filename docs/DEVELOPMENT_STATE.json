@@ -136,10 +136,15 @@
   "current_product_boundary": {
     "authority": "docs/RELEASE_EXECUTION_PLAN.md#current-gate-ledger",
     "windows_scope": "Writable WinFsp application in development qualification. Packed and sparse NTFS-backed guest evidence and an in-memory path. Interactive installed client and supported persistent-media qualification are open.",
-    "gpu_scope": "Installed read-ahead and collective acquisition in eligible builds, with actual device verification in bounded fixtures. Ordinary foreground AMD admission through the helper and product-wide measured benefit are open.",
+    "gpu_scope": "Installed LZ4 read-ahead and collective acquisition in eligible builds, with actual device verification in bounded fixtures. Packed XOR adds protected grouped read-ahead and its own AMD qualification gate. Ordinary foreground AMD admission through the helper and product-wide measured benefit are open.",
     "advisory_scope": "Sparse persistent coherence postings, funded group selection and cooperative compaction exist. Scalable discovery, learned choice and cross-volume resource scheduling still need product qualification.",
     "recovery_scope": "Checked CPU recovery and mirrored transaction evidence from model and guest interruptions. Physical power-loss recovery, versioned rescue distribution and gradual upgrade still need qualification.",
     "historical_detail": "Earlier boundary observations below retain their original qualification scope."
+  },
+  "packed_group_read_ahead": {
+    "evidence": "docs/evidence/windows-prepared-group-reads-2026-11-24.json",
+    "scope": "Prepared packed XOR reads through WinFsp callbacks and native sessions using protected checkpoint provenance",
+    "next": "Exercise the exact decoder on admitted AMD hardware. Compare complete costs, then qualify automatic route selection and cover more shared-base methods."
   },
   "architecture_reconciliation": {
     "reviewed_commit": "df5be9b5b9d0bc05ac565eb2da8454ac76bed3d2",

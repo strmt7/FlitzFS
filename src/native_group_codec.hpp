@@ -103,6 +103,9 @@ class NativeGroupSections final {
 };
 
 inline constexpr std::size_t kNativeGroupMemberHeaderBytes=128;
+inline constexpr std::size_t kNativePackedXorTileBytes=256;
+using NativePackedXorOffsets=std::array<std::uint16_t,kNativeExtentBytes/kNativePackedXorTileBytes+1>;
+NativePackedXorOffsets native_packed_xor_offsets(std::span<const std::byte> body);
 inline constexpr std::size_t kNativeGroupCopyMinimumBytes=kNativeGroupMemberHeaderBytes+8;
 inline constexpr std::size_t kNativeGroupAnchorIndexBytes=65536;
 std::optional<std::vector<std::byte>> encode_native_group_copies(std::span<const std::byte> member,

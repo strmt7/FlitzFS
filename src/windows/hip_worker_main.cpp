@@ -264,7 +264,8 @@ int worker(int argc, wchar_t** argv) {
       mode==L"--profile-native-lz4-prepared-read-adapter";
   const bool native_prepared=mode==L"--driver-native-lz4-prepared-read-adapter" ||
       mode==L"--profile-native-lz4-prepared-read-adapter";
-  const bool native_read=native_prepared || native_recording || mode==L"--driver-native-lz4-read-adapter";
+  const bool native_groups=mode==L"--driver-native-group-read-adapter";
+  const bool native_read=native_groups || native_prepared || native_recording || mode==L"--driver-native-lz4-read-adapter";
   const bool sized_identity=mode==L"--inspect-system-adapter-sized";
   require_hip_worker_job(anchor_batch || anchor_sweep || native_read || sized_identity);
   // Compiler discovery must not leak into an application runtime. This changes
@@ -324,6 +325,7 @@ int worker(int argc, wchar_t** argv) {
         decimal(argv[16],(std::numeric_limits<std::uint32_t>::max)())):
         WorkerChannel::open_sized(argv[15],capacity);
     std::optional<detail::NativeLz4WireRequest> request;
+    std::optional<detail::NativeGroupWireRequest> groups;
     const auto decode=[&] {
       trace.begin(HipPhase::request_decode);
       const auto owned=channel.take_request_snapshot();
@@ -336,7 +338,15 @@ int worker(int argc, wchar_t** argv) {
           Exit::invalid_request,"native LZ4 reply mapping length differs");
       trace.end(HipPhase::request_decode);
     };
-    if(!native_prepared)decode();
+    if(native_groups) {
+      const auto owned=channel.take_request_snapshot();
+      require(owned && owned->bytes().size()==capacity.request_bytes,Exit::invalid_request,
+          "native group request mapping length differs");
+      try {groups.emplace(detail::decode_native_group_request(owned->bytes(),max_dispatch,grant.maximum_slab_bytes));}
+      catch(const std::invalid_argument&) {throw HipWorkerFailure(Exit::invalid_request,"invalid native group read frame");}
+      require(detail::native_group_reply_bytes(groups->layout)==capacity.reply_bytes,Exit::invalid_request,
+          "native group reply mapping length differs");
+    }else if(!native_prepared)decode();
 
     trace.begin(HipPhase::bundle_verify);
     const hip_detail::VerifiedSystemModule installed(hip_bundle::runtime,expected_runtime);
@@ -360,6 +370,7 @@ int worker(int argc, wchar_t** argv) {
     trace.end(HipPhase::bundle_verify);
     trace.begin(HipPhase::adapter_admit);
     std::uint64_t peak=native_prepared?reserve:0;
+    if(groups)peak=group_decode::slab_bytes(groups->layout);
     if(request)for(const auto& batch:request->batches)peak=(std::max)(peak,std::uint64_t(batch.slab_bytes()));
     std::optional<WindowsGpuBudgetSampler> sampler(std::in_place,luid,node);
     const auto budget=sampler->sample();
@@ -373,6 +384,21 @@ int worker(int argc, wchar_t** argv) {
     require(GetModuleHandleW(hip_bundle::runtime)==runtime.get(),Exit::integrity_failure,
         "native LZ4 runtime identity changed");
     trace.end(HipPhase::modules_load);
+    if(groups) {
+      const auto address=GetProcAddress(kernel.get(),"flitzfs_native_group_decode_api");
+      require(address!=nullptr,Exit::unsupported_configuration,"native group API entry unavailable",HipWorkerStage::kernel_entry);
+      const auto entry=std::bit_cast<group_decode::KernelApiEntry>(address);
+      const auto* api=entry();
+      require(api && group_decode::compatible(*api),Exit::unsupported_configuration,
+          "incompatible native group read table",HipWorkerStage::kernel_table);
+      const auto reply=run_hip_native_group_read_in_worker(runtime.get(),*api,static_cast<int>(ordinal),
+          *sampler,*groups,{&coverage,1});
+      sampler.reset();
+      kernel.close();
+      runtime.close();
+      channel.publish(reply);
+      return 0;
+    }
     trace.begin(HipPhase::entry_bind);
     const auto address=GetProcAddress(kernel.get(),"flitzfs_native_lz4_decode_api");
     require(address!=nullptr,Exit::unsupported_configuration,"native LZ4 API entry unavailable",HipWorkerStage::kernel_entry);
