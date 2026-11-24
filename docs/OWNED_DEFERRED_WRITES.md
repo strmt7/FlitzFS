@@ -250,6 +250,32 @@ acquisition. The controller can also select the separate-request path with
 a qualified package.
 [Separate-request replay evidence](evidence/windows-resident-native-write-replay-2026-11-24.json)
 
+### Writes captured after worker readiness
+
+The version 6 native replay starts with one captured file and a grant for
+a finite number of same-sized requests. Planning reserves room for the
+largest supplied prefix, including the source bytes, reply framing and the
+private replay. After the first request, a producer can supply a new owned
+capture at the next readiness boundary. The recorder rechecks admission
+before the capture and before providing its bytes. An exact size and a
+strictly increasing request identity bind each supply.
+
+Once the worker exits successfully, transport and native verification must
+agree on the number of supplied requests. Each reply is decoded against
+its own capture. The recorder builds the private image from the verified
+prefix and uses the CPU reader to reopen every file before recording a
+result.
+
+The Windows callback fixture committed its second file after the Radeon
+worker asked for the next request. The original volume used the
+memory-volume provider, so capture selected a checked concurrent-read
+snapshot. The fixture reserved three requests, supplied two 64 KiB writes
+and reopened both files independently. It also finished a separate burst
+after one request. The duplicate-identity case cancelled the GPU replay
+and recovered both acknowledged files on CPU. The existing immediate,
+grouped prepared and version 5 exchanges also passed through this build.
+[Arriving native write evidence](evidence/windows-native-arriving-write-burst-2026-11-24.json)
+
 ### Controller-owned paired trials
 
 With an approved [uniform write trial profile](AMD_RUNTIME_DISCOVERY.md#uniform-write-trial-profile),

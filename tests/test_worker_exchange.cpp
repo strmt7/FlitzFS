@@ -185,9 +185,9 @@ int prepared_child(std::wstring_view mode,std::wstring_view token,std::uint32_t 
 constexpr std::uint32_t prepared_requests=3;
 constexpr WorkerChannelCapacity repeated_capacity{prepared_capacity.request_bytes,
     prepared_requests*(prepared_capacity.reply_bytes+sizeof(std::uint32_t))};
-int repeated_child(std::wstring_view mode,std::wstring_view token,std::uint32_t timeout) {
+int repeated_child(std::wstring_view mode,std::wstring_view token,std::uint32_t timeout,bool finishable) {
   check_job();
-  auto channel=WorkerChannel::open_prepared_requests(token,repeated_capacity,timeout,prepared_requests);
+  auto channel=WorkerChannel::open_prepared_requests(token,repeated_capacity,timeout,prepared_requests,finishable);
   if(!channel.receive_prepared())return 0;
   const auto first=channel.take_request_snapshot();
   const auto sentinel=first->bytes().front();
@@ -202,9 +202,16 @@ int repeated_child(std::wstring_view mode,std::wstring_view token,std::uint32_t 
     return 21;
   }
   for(std::uint32_t i=1;i<prepared_requests;++i) {
-    if(!channel.receive_next_prepared()) {
+    const auto received=channel.receive_prepared_continuation();
+    if(received==PreparedRequestReceipt::declined) {
       rejects([&]{channel.publish(replies);});
       return 0;
+    }
+    if(received==PreparedRequestReceipt::finished) {
+      check(finishable && channel.request().empty(),"finished request left a borrowed input");
+      if(mode==L"requests-finish-extra")append(first->bytes());
+      if(mode==L"requests-finish-missing")replies.resize(prepared_capacity.reply_bytes+sizeof(std::uint32_t));
+      break;
     }
     const auto fresh=channel.take_request_snapshot();
     check(first->bytes().front()==sentinel && fresh->bytes().front()!=sentinel,
@@ -213,6 +220,7 @@ int repeated_child(std::wstring_view mode,std::wstring_view token,std::uint32_t 
   }
   rejects([&]{(void)channel.receive_next_prepared();});
   channel.publish(replies);
+  if(mode==L"requests-finish-hang")Sleep(5000);
   return mode==L"requests-fail-after"?17:0;
 }
 int child(std::wstring_view mode,std::wstring_view token) {
@@ -1449,14 +1457,29 @@ void prepared_window_transactions(const std::filesystem::path& executable) {
   }
   std::cout<<"Prepared windows: ordered admissions, private reply, CPU semantics and retirement passed\n";
 }
-void prepared_request_transactions(const std::filesystem::path& executable) {
-  ProcessBudget budget;budget.timeout_ms=5000;
+auto prepared_request_inputs() {
   std::array<SharedWorkerRequest,prepared_requests> inputs;
   for(std::uint32_t job=0;job<prepared_requests;++job) {
     Bytes source(prepared_capacity.request_bytes);
     for(std::size_t i=0;i<source.size();++i)source[i]=static_cast<std::byte>((i*37+i/57+17*job)%256);
     inputs[job]=std::make_shared<const WorkerRequestSnapshot>(std::move(source));
   }
+  return inputs;
+}
+
+void check_prepared_events_closed(const WorkerExchangeResult& result) {
+  check_closed(result);
+  for(const auto* suffix:{L".ready",L".supplied",L".declined"}) {
+    const auto name=L"Local\\FlitzFS.worker."+result.channel_token+suffix;
+    const auto event=OpenEventW(SYNCHRONIZE,FALSE,name.c_str());
+    if(event)CloseHandle(event);
+    check(!event,"repeated readiness event remained after exit");
+  }
+}
+
+void prepared_request_transactions(const std::filesystem::path& executable) {
+  ProcessBudget budget;budget.timeout_ms=5000;
+  const auto inputs=prepared_request_inputs();
   for(const auto* mode:{L"requests-ok",L"requests-refuse",L"requests-invalid-size",
       L"requests-stop",L"requests-early",L"requests-fail-after"}) {
     const std::wstring_view action(mode);
@@ -1491,15 +1514,63 @@ void prepared_request_transactions(const std::filesystem::path& executable) {
       else check(admitted==2 && result.code==WorkerExchangeCode::cancelled && !result.publication_observed &&
           (action==L"requests-stop" || result.process.exit_code==0),"repeated decline did not retire cleanly");
     }
-    check_closed(result);
-    for(const auto* suffix:{L".ready",L".supplied",L".declined"}) {
-      const auto name=L"Local\\FlitzFS.worker."+result.channel_token+suffix;
-      const auto event=OpenEventW(SYNCHRONIZE,FALSE,name.c_str());
-      if(event)CloseHandle(event);
-      check(!event,"repeated readiness event remained after exit");
-    }
+    check_prepared_events_closed(result);
   }
   std::cout<<"Prepared requests: distinct private frames, independent replies and confirmed retirement passed\n";
+}
+
+void finishable_prepared_bursts(const std::filesystem::path& executable) {
+  using Action=PreparedRequestAction;
+  using Code=WorkerExchangeCode;
+  struct Trial {
+    const wchar_t* mode;
+    std::uint32_t boundary;
+    Action action;
+    Code expected;
+    std::uint32_t replies;
+    bool stop=false;
+    std::uint32_t deadline_ms=5000;
+  };
+  constexpr std::array trials{
+    Trial{L"requests-ok",prepared_requests,Action::finish,Code::completed,prepared_requests},
+    Trial{L"requests-ok",1,Action::finish,Code::completed,1},
+    Trial{L"requests-ok",2,Action::finish,Code::completed,2},
+    Trial{L"requests-ok",0,Action::finish,Code::cancelled,0},
+    Trial{L"requests-ok",1,Action::cancel,Code::cancelled,0},
+    Trial{L"requests-ok",1,Action::finish,Code::cancelled,0,true},
+    Trial{L"requests-early",2,Action::finish,Code::worker_failed,0},
+    Trial{L"requests-fail-after",1,Action::finish,Code::worker_failed,0},
+    Trial{L"requests-finish-hang",1,Action::finish,Code::timed_out,0,false,1200},
+    Trial{L"requests-finish-extra",1,Action::finish,Code::invalid_response,0},
+    Trial{L"requests-finish-missing",2,Action::finish,Code::invalid_response,0}
+  };
+  const auto inputs=prepared_request_inputs();
+  for(const auto& trial:trials) {
+    ProcessBudget budget;budget.timeout_ms=trial.deadline_ms;
+    std::stop_source stop;
+    const auto result=WorkerExchangeSession::run_prepared_burst(executable,{trial.mode},repeated_capacity,
+        budget,prepared_requests,stop.get_token(),[&](std::uint32_t index)->PreparedRequestDecision {
+          check(!WorkerExchangeSession::available(),"prepared burst lost the exchange lease");
+          if(index!=trial.boundary)return {Action::submit,inputs[index]};
+          if(trial.stop)stop.request_stop();
+          return {trial.action,{}};
+        });
+    check(result.code==trial.expected && result.completed_requests==trial.replies &&
+        result.process.exit_confirmed && WorkerExchangeSession::available(),"invalid prepared burst completion");
+    if(trial.expected==Code::timed_out)
+      check(result.publication_observed,"timeout did not exercise a published prefix");
+    auto rest=std::span<const std::byte>(result.response);
+    for(std::uint32_t index=0;index<trial.replies;++index) {
+      const auto reply=take_prepared_reply(rest);
+      check(reply.size()==prepared_capacity.reply_bytes &&
+          std::equal(reply.begin(),reply.end(),inputs[index]->bytes().rbegin()),"prepared burst changed a supplied frame");
+    }
+    check(rest.empty() && (result.code!=Code::completed || result.publication_observed),
+        "prepared burst exposed an extra or unverified reply");
+    check_prepared_events_closed(result);
+  }
+  std::cout<<"Finishable prepared bursts: cases="<<trials.size()
+      <<" exact_prefix=true abort_discards=true retired=true\n";
 }
 void asynchronous_fallback(const std::filesystem::path& executable) {
   std::array<std::byte,8> luid{};luid[0]=std::byte{1};
@@ -1565,10 +1636,17 @@ void abandoned_session(const std::filesystem::path& executable,const std::vector
 }
 int wmain(int argc,wchar_t** argv){try{
   if(argc==2 && std::wstring_view(argv[1])==L"--native-error-resource-probe")return native_error_resources();
-  if(argc==2 && std::wstring_view(argv[1])==L"--test-prepared-requests"){prepared_request_transactions(self());return 0;}
+  if(argc==2 && std::wstring_view(argv[1])==L"--test-prepared-requests"){
+    const auto executable=self();
+    prepared_request_transactions(executable);
+    finishable_prepared_bursts(executable);
+    return 0;
+  }
   if(argc==4 && std::wstring_view(argv[2])==L"--worker-channel")return child(argv[1],argv[3]);
-  if(argc==5 && std::wstring_view(argv[2])==kPreparedWorkerRequestsArgument)
-    return repeated_child(argv[1],argv[3],static_cast<std::uint32_t>(std::stoul(argv[4])));
+  if(argc==5 && (std::wstring_view(argv[2])==kPreparedWorkerRequestsArgument ||
+      std::wstring_view(argv[2])==kPreparedWorkerBurstArgument))
+    return repeated_child(argv[1],argv[3],static_cast<std::uint32_t>(std::stoul(argv[4])),
+        std::wstring_view(argv[2])==kPreparedWorkerBurstArgument);
   if(argc==5 && (std::wstring_view(argv[2])==kPreparedWorkerChannelArgument ||
       std::wstring_view(argv[2])==kPreparedWorkerWindowsArgument))
     return prepared_child(argv[1],argv[3],static_cast<std::uint32_t>(std::stoul(argv[4])),
@@ -1668,7 +1746,8 @@ int wmain(int argc,wchar_t** argv){try{
   sized_transactions(executable);observe(L"sized-transport");
   prepared_transactions(executable);observe(L"prepared-transport");
   prepared_window_transactions(executable);observe(L"prepared-windows");
-  prepared_request_transactions(executable);observe(L"prepared-requests");
+  prepared_request_transactions(executable);
+  finishable_prepared_bursts(executable);observe(L"prepared-requests");
   asynchronous_fallback(executable);
   observe(L"async-fallback");
   abandoned_session(executable,request);

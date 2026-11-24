@@ -2,6 +2,7 @@
 #include "memory_volume.hpp"
 #include "gpu_budget.hpp"
 #include "../gpu_request_id.hpp"
+#include "../native_lz4_capture.hpp"
 #include "../record_digest.hpp"
 #include "../store_codec.hpp"
 #include "../store_read_scope.hpp"
@@ -223,30 +224,27 @@ std::optional<NativeAmdWriteSample> record_native_amd_verified_batch(const Nativ
 }
 
 bool NativeAmdWriteWorkerPlan::fits(ProcessBudget budget,std::uint64_t allowance) const noexcept {
-  return allowance>=reply_views_bytes && valid_worker_channel_capacity(channel,budget) &&
-      uniform_worker_host_budget_covers(host_limits,budget,allowance-reply_views_bytes);
+  return allowance>=parent_metadata_bytes && valid_worker_channel_capacity(channel,budget) &&
+      uniform_worker_host_budget_covers(host_limits,budget,allowance-parent_metadata_bytes);
 }
 
-std::optional<NativeAmdWriteWorkerPlan> plan_native_amd_write_worker(const NativeAmdStoragePolicy& storage,
-    std::span<const UniformLz4BatchInput> requests,NativeAmdTrialLaunch launch,ProcessBudget budget,
-    std::uint64_t allowance) noexcept {
-  const auto group=replay_layout(storage,requests);
-  if(!group)return {};
+namespace {
+std::optional<NativeAmdWriteWorkerPlan> make_native_amd_worker_plan(const uniform_lz4::Layout& group,
+    const uniform_lz4::Layout& work,std::uint32_t requests,std::size_t metadata_per_request,
+    ProcessBudget budget,std::uint64_t allowance) noexcept {
   NativeAmdWriteWorkerPlan result;
-  result.group=result.work=*group;
-  if(!try_uniform_lz4_limits(result.group,result.host_limits))return {};
+  result.group=group;
+  result.work=work;
+  result.maximum_requests=requests;
+  if(!try_uniform_lz4_limits(group,result.host_limits))return {};
   auto request_bytes=result.host_limits.request_bytes;
-  if(launch==NativeAmdTrialLaunch::prepared_requests) {
-    if(requests.size()<2 || requests.size()>(std::numeric_limits<std::uint32_t>::max)())return {};
-    const auto bytes=requests.front().source.size();
+  if(requests) {
     UniformLz4Limits member{};
-    if(!std::ranges::all_of(requests,[bytes](const auto& item){return item.source.size()==bytes;}) ||
-        !uniform_lz4::make_layout(bytes,group->chunk_bytes,result.work) ||
-        !try_uniform_lz4_limits(result.work,member))return {};
     std::uint64_t framed_reply=0;
-    if(!uniform_lz4::add(member.reply_bytes,sizeof(std::uint32_t),framed_reply) ||
-        !uniform_lz4::multiply(framed_reply,requests.size(),result.host_limits.reply_bytes) ||
-        !uniform_lz4::multiply(requests.size(),sizeof(UniformLz4Bytes),result.reply_views_bytes) ||
+    if(!try_uniform_lz4_limits(work,member) ||
+        !uniform_lz4::add(member.reply_bytes,sizeof(std::uint32_t),framed_reply) ||
+        !uniform_lz4::multiply(framed_reply,requests,result.host_limits.reply_bytes) ||
+        !uniform_lz4::multiply(requests,metadata_per_request,result.parent_metadata_bytes) ||
         result.host_limits.reply_bytes>static_cast<std::uint64_t>((std::numeric_limits<std::int32_t>::max)()))return {};
     request_bytes=member.request_bytes;
   }
@@ -255,6 +253,39 @@ std::optional<NativeAmdWriteWorkerPlan> plan_native_amd_write_worker(const Nativ
   result.channel={static_cast<std::size_t>(request_bytes),static_cast<std::size_t>(result.host_limits.reply_bytes)};
   if(!result.fits(budget,allowance))return {};
   return result;
+}
+}
+
+std::optional<NativeAmdWriteWorkerPlan> plan_native_amd_write_worker(const NativeAmdStoragePolicy& storage,
+    std::span<const UniformLz4BatchInput> requests,NativeAmdTrialLaunch launch,ProcessBudget budget,
+    std::uint64_t allowance) noexcept {
+  const auto group=replay_layout(storage,requests);
+  if(!group)return {};
+  if(launch!=NativeAmdTrialLaunch::prepared_requests)
+    return make_native_amd_worker_plan(*group,*group,0,0,budget,allowance);
+  if(requests.size()<2 || requests.size()>(std::numeric_limits<std::uint32_t>::max)())return {};
+  const auto bytes=requests.front().source.size();
+  uniform_lz4::Layout work{};
+  if(!std::ranges::all_of(requests,[bytes](const auto& item){return item.source.size()==bytes;}) ||
+      !uniform_lz4::make_layout(bytes,group->chunk_bytes,work))return {};
+  return make_native_amd_worker_plan(*group,work,static_cast<std::uint32_t>(requests.size()),
+      sizeof(UniformLz4Bytes),budget,allowance);
+}
+
+std::optional<NativeAmdWriteWorkerPlan> plan_native_amd_write_burst(const NativeAmdStoragePolicy& storage,
+    std::uint32_t request_bytes,std::uint32_t maximum_requests,ProcessBudget budget,
+    std::uint64_t allowance) noexcept {
+  if(maximum_requests<2 || !valid_shape({request_bytes,storage.isolation_unit,storage.foreground}))return {};
+  std::uint64_t bytes=0;
+  uniform_lz4::Layout group{},work{};
+  if(!uniform_lz4::multiply(request_bytes,maximum_requests,bytes) ||
+      !uniform_lz4::make_layout(bytes,kNativeExtentBytes,group) ||
+      !uniform_lz4::make_layout(request_bytes,kNativeExtentBytes,work))return {};
+  constexpr auto metadata=sizeof(UniformLz4Bytes)+sizeof(UniformLz4BatchInput)+sizeof(UniformLz4Request);
+  const auto plan=make_native_amd_worker_plan(group,work,maximum_requests,metadata,budget,allowance);
+  if(!plan || plan->channel.reply_bytes>allowance-plan->parent_metadata_bytes ||
+      !native_amd_cpu_replay_fits(bytes,maximum_requests,allowance-plan->parent_metadata_bytes-plan->channel.reply_bytes))return {};
+  return plan;
 }
 
 NativeAmdDeviceTrial record_native_amd_device_trial(const NativeAmdWriteShape& shape,
@@ -267,15 +298,20 @@ NativeAmdDeviceTrial record_native_amd_device_trial(const NativeAmdWriteShape& s
       route,grant,budget,allowance,existing,launch,stop);
 }
 
-NativeAmdDeviceTrial record_native_amd_device_batch(const NativeAmdStoragePolicy& storage,
+namespace {
+NativeAmdDeviceTrial run_native_amd_write_trial(const NativeAmdStoragePolicy& storage,
     std::span<const UniformLz4BatchInput> requests,const HipDiscoveredRoute& route,NativeUniformSweepGrant grant,
     ProcessBudget budget,std::uint64_t allowance,MemoryVolumeDomain* existing,NativeAmdTrialLaunch launch,
-    std::stop_token stop,const std::function<bool()>& may_submit) noexcept {
+    std::stop_token stop,const std::function<bool()>& may_submit,std::uint32_t burst_limit=0,
+    const NativeAmdWriteContinuation& continuation={}) noexcept {
   NativeAmdDeviceTrial trial;
   try {
     if(stop.stop_requested() || !gpu_lz4_cpu_verification_available())return trial;
     const auto started=TrialClock::now();
-    const auto worker=plan_native_amd_write_worker(storage,requests,launch,budget,allowance);
+    const bool finishable=burst_limit!=0;
+    const auto worker=finishable?plan_native_amd_write_burst(storage,
+        static_cast<std::uint32_t>(requests.front().source.size()),burst_limit,budget,allowance):
+        plan_native_amd_write_worker(storage,requests,launch,budget,allowance);
     if(!worker || !route.pins ||
         route.identity==GpuConfigurationId{} || route.ordinal>=64 || !route.pins->uniform_module_pinned() ||
         !route.pins->matches(route.helper,route.identity,route.runtime_sha256,static_cast<int>(route.ordinal),route.memory) ||
@@ -305,7 +341,7 @@ NativeAmdDeviceTrial record_native_amd_device_batch(const NativeAmdStoragePolicy
     const GpuHealthEvidence evidence{route.identity,id,0,true,true,before.snapshot};
     const NativeUniformWorkerBinding binding{.helper=route.helper,.configuration=route.identity,
         .ordinal=static_cast<int>(route.ordinal),.runtime_sha256=route.runtime_sha256,.sweep=grant};
-    const auto batch=PreparedUniformLz4Batch::prepare(requests,worker->group);
+    auto batch=PreparedUniformLz4Batch::prepare(requests,finishable?worker->work:worker->group);
     const auto run_request=[&](const PreparedUniformLz4& source,std::uint64_t request_id)->SharedWorkerRequest {
       return std::make_shared<const WorkerRequestSnapshot>(encode_uniform_lz4_request(source,request_id));
     };
@@ -314,7 +350,7 @@ NativeAmdDeviceTrial record_native_amd_device_batch(const NativeAmdStoragePolicy
     if(repeated) {
       const auto first=batch.prepare_member(0);
       dispatch=prepare_native_uniform_dispatch(binding,evidence,first,WorkerExecution::hip,nullptr,
-          static_cast<std::uint32_t>(requests.size()));
+          worker->maximum_requests);
       frame=run_request(first,batch.members().front().request_id);
     }else {
       dispatch=prepare_native_uniform_dispatch(binding,evidence,batch.source(),WorkerExecution::hip);
@@ -335,7 +371,36 @@ NativeAmdDeviceTrial record_native_amd_device_batch(const NativeAmdStoragePolicy
               route.memory.node_mask,GetTickCount64(),plan.device_peak_bytes)==GpuGateCode::admitted &&
           worker->fits(budget,host_grant(current.snapshot));
     };
-    if(repeated) {
+    std::vector<UniformLz4Request> following;
+    if(finishable) {
+      following.reserve(worker->maximum_requests-1);
+      const auto member=uniform_lz4_limits(worker->work);
+      const auto decide=[&](std::uint32_t index)->PreparedRequestDecision {
+        if(!index)trial.ready_ns=elapsed_ns(setup);
+        if(!permitted())return {};
+        if(!index) {
+          ++trial.admitted_requests;
+          return {PreparedRequestAction::submit,std::move(frame)};
+        }
+        detail::NativeCapturedWrite captured;
+        const auto action=continuation(index,captured);
+        if(stop.stop_requested())return {};
+        if(action==PreparedRequestAction::finish) {
+          if(captured.sequence || !captured.bytes.empty() || (may_submit && !may_submit()))return {};
+          return {action,{}};
+        }
+        const auto last=following.empty()?batch.members().front().request_id:following.back().request_id;
+        if(action!=PreparedRequestAction::submit || captured.sequence<=last ||
+            captured.bytes.size()!=member.input_bytes || captured.bytes.capacity()>member.input_bytes || !permitted())return {};
+        auto request=PreparedUniformLz4::prepare_owned(std::move(captured.bytes),member);
+        auto supplied=run_request(request,captured.sequence);
+        following.push_back({captured.sequence,std::move(request)});
+        ++trial.admitted_requests;
+        return {action,std::move(supplied)};
+      };
+      result=WorkerExchangeSession::run_prepared_burst(binding.helper,dispatch.arguments,channel,budget,
+          worker->maximum_requests,stop,decide,route.pins);
+    }else if(repeated) {
       const auto prepare=[&](std::uint32_t index)->SharedWorkerRequest {
         if(!index)trial.ready_ns=elapsed_ns(setup);
         if(!permitted())return {};
@@ -363,12 +428,30 @@ NativeAmdDeviceTrial record_native_amd_device_batch(const NativeAmdStoragePolicy
         result.code!=WorkerExchangeCode::supervisor_exit_unconfirmed;
     if(result.code!=WorkerExchangeCode::completed || !trial.worker_retired || stop.stop_requested())return trial;
     const auto verification=TrialClock::now();
+    if(finishable) {
+      if(result.completed_requests!=1+following.size() ||
+          result.completed_requests!=trial.admitted_requests) {
+        trial.exchange=WorkerExchangeCode::invalid_response;
+        return trial;
+      }
+      if(!following.empty()) {
+        std::vector<UniformLz4BatchInput> supplied;
+        supplied.reserve(result.completed_requests);
+        supplied.push_back({batch.members().front().request_id,batch.input(0)});
+        for(const auto& item:following)supplied.push_back({item.request_id,item.batch.plaintext()});
+        const auto layout=replay_layout(storage,supplied);
+        if(!layout || layout->input_bytes>worker->group.input_bytes)return trial;
+        batch=PreparedUniformLz4Batch::prepare(supplied,*layout);
+      }
+      std::vector<UniformLz4Request>().swap(following);
+    }
     const auto candidates=[&] {
       if(!repeated)return VerifiedUniformLz4Batch::accept(result.response,batch,id,WorkerExecution::hip);
       auto all=std::span<const std::byte>(result.response);
       std::vector<UniformLz4Bytes> replies;
-      replies.reserve(requests.size());
-      for(std::size_t i=0;i<requests.size();++i)replies.push_back(take_prepared_reply(all));
+      const auto count=batch.members().size();
+      replies.reserve(count);
+      for(std::size_t i=0;i<count;++i)replies.push_back(take_prepared_reply(all));
       if(!all.empty())throw std::invalid_argument("Unexpected native write reply tail");
       return VerifiedUniformLz4Batch::accept_members(replies,batch,WorkerExecution::hip);
     }();
@@ -380,11 +463,13 @@ NativeAmdDeviceTrial record_native_amd_device_batch(const NativeAmdStoragePolicy
             route.memory.node_mask,GetTickCount64(),plan.device_peak_bytes)!=GpuGateCode::admitted)return trial;
     trial.verification_ns=elapsed_ns(verification);
     trial.exchange_ns=elapsed_ns(started);
-    if(!trial.exchange_ns)return trial;
+    const auto replay_funded=(std::min)(funded,host_grant(after.snapshot));
+    if(!trial.exchange_ns || replay_funded<=worker->parent_metadata_bytes)return trial;
 
     const auto interrupted=[&] {return stop.stop_requested();};
     const auto replay=TrialClock::now();
-    auto sample=record_native_amd_verified_batch(storage,batch,candidates,funded-worker->reply_views_bytes,existing,interrupted);
+    auto sample=record_native_amd_verified_batch(storage,batch,candidates,replay_funded-worker->parent_metadata_bytes,
+        existing,interrupted);
     trial.replay_ns=elapsed_ns(replay);
     if(!sample || stop.stop_requested() ||
         !uniform_lz4::add(sample->elapsed_ns,trial.exchange_ns,sample->elapsed_ns))return trial;
@@ -392,6 +477,24 @@ NativeAmdDeviceTrial record_native_amd_device_batch(const NativeAmdStoragePolicy
     trial.sample=sample;
   }catch(...) {}
   return trial;
+}
+}
+
+NativeAmdDeviceTrial record_native_amd_device_batch(const NativeAmdStoragePolicy& storage,
+    std::span<const UniformLz4BatchInput> requests,const HipDiscoveredRoute& route,NativeUniformSweepGrant grant,
+    ProcessBudget budget,std::uint64_t allowance,MemoryVolumeDomain* existing,NativeAmdTrialLaunch launch,
+    std::stop_token stop,const std::function<bool()>& may_submit) noexcept {
+  return run_native_amd_write_trial(storage,requests,route,grant,budget,allowance,existing,launch,stop,may_submit);
+}
+
+NativeAmdDeviceTrial record_native_amd_device_burst(const NativeAmdStoragePolicy& storage,UniformLz4BatchInput first,
+    std::uint32_t maximum_requests,const HipDiscoveredRoute& route,NativeUniformSweepGrant grant,
+    ProcessBudget budget,std::uint64_t allowance,MemoryVolumeDomain* existing,std::stop_token stop,
+    const NativeAmdWriteContinuation& continuation,const std::function<bool()>& may_submit) noexcept {
+  if(!first.request_id || first.source.size()>(std::numeric_limits<std::uint32_t>::max)() ||
+      maximum_requests<2 || !continuation)return {};
+  return run_native_amd_write_trial(storage,std::span{&first,1},route,grant,budget,allowance,existing,
+      NativeAmdTrialLaunch::prepared_requests,stop,may_submit,maximum_requests,continuation);
 }
 
 std::optional<NativeDeferredWriteOptions> qualify_native_amd_writes(const HipDiscoveredRoute& route,

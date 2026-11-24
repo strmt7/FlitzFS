@@ -6,6 +6,7 @@
 namespace flitzfs {
 
 class MemoryVolumeDomain;
+namespace detail {struct NativeCapturedWrite;}
 struct NativeAmdWriteSample {
   std::uint64_t elapsed_ns=0,occupied_bytes=0;
   std::array<std::byte,32> input_digest{};
@@ -60,13 +61,18 @@ struct NativeAmdWriteWorkerPlan {
   uniform_lz4::Layout group,work;
   WorkerChannelCapacity channel;
   UniformLz4Limits host_limits;
-  std::uint64_t reply_views_bytes=0;
+  std::uint64_t parent_metadata_bytes=0;
+  std::uint32_t maximum_requests=0;
 
   bool fits(ProcessBudget,std::uint64_t allowance) const noexcept;
 };
 // Plan the complete transport and host footprint before touching the runtime.
 std::optional<NativeAmdWriteWorkerPlan> plan_native_amd_write_worker(const NativeAmdStoragePolicy&,
     std::span<const UniformLz4BatchInput>,NativeAmdTrialLaunch,ProcessBudget,std::uint64_t allowance) noexcept;
+// Reserve an upper bound using one eligible write's size. No future source
+// contents or committed images are needed when planning this exchange.
+std::optional<NativeAmdWriteWorkerPlan> plan_native_amd_write_burst(const NativeAmdStoragePolicy&,
+    std::uint32_t request_bytes,std::uint32_t maximum_requests,ProcessBudget,std::uint64_t allowance) noexcept;
 struct NativeAmdDeviceTrial {
   std::optional<NativeAmdWriteSample> sample;
   std::uint64_t ready_ns=0,exchange_ns=0;
@@ -88,6 +94,15 @@ NativeAmdDeviceTrial record_native_amd_device_batch(const NativeAmdStoragePolicy
     std::span<const UniformLz4BatchInput>,const HipDiscoveredRoute&,NativeUniformSweepGrant,
     ProcessBudget,std::uint64_t memory_allowance,MemoryVolumeDomain*,NativeAmdTrialLaunch,
     std::stop_token,const std::function<bool()>& may_submit={}) noexcept;
+
+// The first capture is ready when the worker starts. At each later completed
+// boundary a bounded producer supplies a newly owned capture or finishes the
+// burst. Successful retirement and CPU readback apply to the supplied prefix.
+using NativeAmdWriteContinuation=std::function<PreparedRequestAction(std::uint32_t,detail::NativeCapturedWrite&)>;
+NativeAmdDeviceTrial record_native_amd_device_burst(const NativeAmdStoragePolicy&,UniformLz4BatchInput first,
+    std::uint32_t maximum_requests,const HipDiscoveredRoute&,NativeUniformSweepGrant,
+    ProcessBudget,std::uint64_t memory_allowance,MemoryVolumeDomain*,std::stop_token,
+    const NativeAmdWriteContinuation&,const std::function<bool()>& may_submit={}) noexcept;
 
 // Called off the filesystem path with independently acquired launch costs.
 // Package admission, a matched recommendation and an exact route are needed.

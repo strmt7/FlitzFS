@@ -15,6 +15,7 @@
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
 #include "gpu_budget.hpp"
 #include "hip_route_discovery.hpp"
+#include "native_lz4_capture.hpp"
 #include "native_name_index.hpp"
 #include "winfsp_volume_attachment.hpp"
 #include "flitzfs/read_only_file.hpp"
@@ -432,7 +433,7 @@ void native_amd_worker_plan() {
       grouped->work.chunks==2 && repeated->work.chunks==1 &&
       repeated->channel.request_bytes<grouped->channel.request_bytes &&
       repeated->channel.reply_bytes>grouped->channel.reply_bytes &&
-      repeated->reply_views_bytes==equal.size()*sizeof(UniformLz4Bytes),
+      repeated->parent_metadata_bytes==equal.size()*sizeof(UniformLz4Bytes),
       "Separate requests did not plan their own transport and shared source");
   check(plan_native_amd_write_worker(storage,unequal,NativeAmdTrialLaunch::prepared,budget,allowance).has_value() &&
       !plan_native_amd_write_worker(storage,unequal,NativeAmdTrialLaunch::prepared_requests,budget,allowance),
@@ -443,6 +444,18 @@ void native_amd_worker_plan() {
   check(grouped->fits(budget,grouped_charge) && !repeated->fits(budget,grouped_charge) &&
       !plan_native_amd_write_worker(storage,equal,NativeAmdTrialLaunch::prepared_requests,budget,grouped_charge),
       "Separate requests could use a grant that covered only the grouped reply");
+  const auto burst=plan_native_amd_write_burst(storage,kNativeExtentBytes,3,budget,allowance);
+  check(burst && burst->maximum_requests==3 && burst->group.input_bytes==3*kNativeExtentBytes &&
+      uniform_lz4_limits(burst->work)==uniform_lz4_limits(repeated->work) &&
+      burst->channel.request_bytes==repeated->channel.request_bytes &&
+      burst->channel.reply_bytes==3*(repeated->channel.reply_bytes/2) &&
+      burst->parent_metadata_bytes>repeated->parent_metadata_bytes,
+      "Burst did not fund later frames without an assumed source");
+  check(!plan_native_amd_write_burst(storage,kNativeExtentBytes,0,budget,allowance) &&
+      !plan_native_amd_write_burst(storage,kNativeExtentBytes,1,budget,allowance) &&
+      !plan_native_amd_write_burst(storage,kNativeExtentBytes-1,3,budget,allowance) &&
+      !plan_native_amd_write_burst(storage,kNativeExtentBytes,3,budget,grouped_charge),
+      "An invalid or unfunded burst passed planning");
 }
 
 void native_amd_write_preference() {
@@ -1482,6 +1495,131 @@ int compare_installed_detached_writes(const std::filesystem::path& corpus,bool g
       <<controller_budget.peak_commit()<<'\n';
   return 0;
 }
+int compare_installed_arriving_burst(std::wstring_view mode) {
+  const bool single=mode==L"single";
+  const bool duplicate=mode==L"duplicate";
+  check(single || duplicate || mode==L"later","Unknown arriving write fixture");
+  gpu_probe_fixture::Budget controller_budget;
+  SYSTEM_INFO system{};
+  GetSystemInfo(&system);
+  const auto memory=observe_memory_volume_headroom();
+  const auto allowance=usable_memory_volume_headroom(memory)/sized_worker_memory_share_divisor(diagnostic_worker_budget);
+  const NativeAmdStoragePolicy storage{system.dwPageSize,{StoreCompressionMode::fast,1,false}};
+  constexpr std::uint32_t maximum_requests=3;
+  const auto plan=plan_native_amd_write_burst(storage,kNativeExtentBytes,maximum_requests,
+      diagnostic_worker_budget,allowance);
+  check(plan.has_value(),"Arriving burst lacks a complete grant");
+  const NativeUniformSweepGrant grant{plan->work.chunks,plan->work.total_bytes};
+  const auto discovery=discover_installed_hip_route(diagnostic_worker_budget,4);
+  const auto& route=require_indexed_route(discovery);
+  const auto domain_capacity=allowance-allowance%system.dwPageSize;
+  auto domain=MemoryVolumeDomain::create(domain_capacity);
+  constexpr std::uint64_t capacity=4ULL*1024*1024;
+  std::size_t admitted=0;
+  {
+    auto head=domain.create_store(kVolumeHeadBytes);
+    auto image=domain.create_store(capacity,storage.isolation_unit);
+    StoreIdentity volume_id{},image_id{};
+    volume_id[0]=std::byte{4};
+    image_id[0]=std::byte{5};
+    FSP_FILE_SYSTEM fs{};
+    auto source=WinFspNativeWritable::create_managed_indexed(head,volume_id,image,image_id,{capacity},storage.foreground);
+    check(source->enable_amd_write_demand(),"Could not observe ordinary source writes");
+    fs.Version=static_cast<UINT16>(sizeof(fs));
+    fs.UmFileContextIsUserContext2=TRUE;
+    fs.Interface=&WinFspNativeWritable::callbacks();
+    source->bind_callbacks(fs,Harness::origin);
+    auto security=native_security_fixture::descriptor();
+    const auto input=[](unsigned ordinal) {
+      auto bytes=indexed_source(1);
+      bytes.front()^=static_cast<std::byte>(ordinal);
+      return bytes;
+    };
+    const auto commit=[&](PCWSTR name,unsigned ordinal,std::size_t observations) {
+      auto bytes=input(ordinal);
+      PVOID file=nullptr;
+      FSP_FSCTL_FILE_INFO info{};
+      check(fs.Interface->Create(&fs,const_cast<PWSTR>(name),FILE_NON_DIRECTORY_FILE,FILE_ALL_ACCESS,
+          FILE_ATTRIBUTE_NORMAL,security.data(),0,&file,&info)==STATUS_SUCCESS && file,"Source callback Create");
+      for(std::size_t i=0;i<observations;++i) {
+        ULONG written=0;
+        check(fs.Interface->Write(&fs,file,bytes.data(),0,static_cast<ULONG>(bytes.size()),FALSE,FALSE,
+            &written,&info)==STATUS_SUCCESS && written==bytes.size(),"Source callback did not commit the complete write");
+      }
+      fs.Interface->Cleanup(&fs,file,nullptr,0);
+      fs.Interface->Close(&fs,file);
+      const auto demand=source->take_amd_write_demand();
+      check(demand.has_value(),"Missing completed write demand");
+      const auto current=observe_memory_volume_headroom();
+      const auto now=GetTickCount64();
+      const NativeMaintenanceObservation observation{ordinal,now,current.physical_total,current.physical_available,
+          current.commit_total,current.commit_available,1000,0,1000,true,false};
+      const std::atomic<bool> stopped{false};
+      auto captured=source->capture_amd_write_group(*demand,observation,now,source->foreground_activity(),
+          stopped,false,kNativeExtentBytes);
+      check(captured.size()==1 && captured[0].sequence==demand->source_sequence && captured[0].bytes==bytes,
+          "The committed callback write did not capture");
+      return std::move(captured.front());
+    };
+    const auto first=commit(L"\\first",1,kNativeAmdWriteMinimumPairs);
+    std::uint64_t later_sequence=0;
+    std::uint32_t boundaries=0;
+    const auto next=[&](std::uint32_t index,detail::NativeCapturedWrite& out) {
+      check(index==++boundaries && !WorkerExchangeSession::available(),
+          "Later capture did not run while the exact worker was ready");
+      if(single || index==2)return PreparedRequestAction::finish;
+      out=commit(L"\\later",2,1);
+      later_sequence=out.sequence;
+      if(duplicate)out.sequence=first.sequence;
+      return PreparedRequestAction::submit;
+    };
+    const auto measured=record_native_amd_device_burst(storage,{first.sequence,first.bytes},maximum_requests,
+        route,grant,diagnostic_worker_budget,allowance,&domain,{},next);
+    admitted=measured.admitted_requests;
+    if(!measured.sample)
+      std::cerr<<"arriving_burst status="<<static_cast<unsigned>(measured.exchange)
+          <<" worker_exit="<<measured.worker_exit<<" retired="<<measured.worker_retired
+          <<" admitted="<<admitted<<'\n';
+
+    check(measured.worker_retired && WorkerExchangeSession::available() &&
+        !GetModuleHandleW(route.runtime_basename.c_str()),"The arriving write worker did not retire");
+    const auto original=NativeFilesystemSnapshot::open_image(image,{NativeImageKind::indexed_paged,capacity});
+    original.verify_all();
+    const auto original_first=original.read("first",0,kNativeExtentBytes);
+    check(original_first==first.bytes,"The first acknowledged write changed");
+    std::vector<std::byte> original_later;
+    std::vector<UniformLz4BatchInput> inputs{{first.sequence,original_first}};
+    if(later_sequence) {
+      original_later=original.read("later",0,kNativeExtentBytes);
+      check(original_later==input(2),"The later acknowledged write changed");
+      inputs.push_back({later_sequence,original_later});
+    }
+    const auto cpu=record_native_amd_cpu_batch(storage,inputs,allowance,&domain,[]{return false;});
+    check(cpu && cpu->cpu_readback_verified && cpu->retirement_confirmed &&
+        cpu->transactions==inputs.size() && domain.usage().stores==2,"CPU did not recover the original captures");
+    if(duplicate) {
+      check(measured.exchange==WorkerExchangeCode::cancelled && !measured.sample && admitted==1 && boundaries==1,
+          "Duplicate late identity exposed a partial replay");
+    }else {
+      check(measured.exchange==WorkerExchangeCode::completed && measured.sample && measured.sample->device_executed &&
+          measured.sample->cpu_readback_verified && measured.sample->retirement_confirmed &&
+          measured.sample->stored_lz4_candidates==inputs.size() && measured.sample->input_digest==cpu->input_digest &&
+          measured.sample->transactions==inputs.size() && admitted==inputs.size() && boundaries==inputs.size(),
+          "A deterministic native replay changed the supplied prefix");
+    }
+    std::cout<<"arriving_burst maximum="<<maximum_requests<<" admitted="<<admitted
+        <<" later_commits="<<bool(later_sequence)<<" callbacks="<<boundaries<<" replayed="
+        <<(measured.sample?measured.sample->transactions:0)<<" stored="
+        <<(measured.sample?measured.sample->stored_lz4_candidates:0)
+        <<" ready_ns="<<measured.ready_ns<<" total_device_ns="<<measured.exchange_ns
+        <<" original_cpu_verified=1 independent_reopen="<<bool(measured.sample)
+        <<" duplicate_cancelled="<<duplicate<<" retired=1\n";
+  }
+  check(MemoryVolumeDomain::cleanup_healthy() && domain.usage().stores==0 && domain.usage().resident==0,
+      "Arriving write fixture retained a memory store");
+  return 0;
+}
+
 int compare_installed_prepared_sweep(const std::filesystem::path& corpus) {
   gpu_probe_fixture::Budget controller_budget;
   const auto file=ReadOnlyFile::open(corpus);
@@ -1570,6 +1708,8 @@ int wmain(int argc,wchar_t** argv){try{
     return compare_installed_detached_writes(argv[2],true);
   if(argc==3 && std::wstring_view(argv[1])==L"--compare-installed-amd-resident-write-batch")
     return compare_installed_detached_writes(argv[2],true,true);
+  if(argc==3 && std::wstring_view(argv[1])==L"--compare-installed-amd-arriving-burst")
+    return compare_installed_arriving_burst(argv[2]);
   if(argc==2 && std::wstring_view(argv[1])==L"--live-installed-late-foreground")return installed_late_foreground();
   if(argc==2 && std::wstring_view(argv[1])==L"--compare-installed-amd")return compare_installed_amd();
   if(argc==2 && std::wstring_view(argv[1])==L"--compare-installed-amd-grouped")

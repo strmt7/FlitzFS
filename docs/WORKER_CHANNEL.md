@@ -677,7 +677,36 @@ verification. In a separate refusal trial the parent declined the second
 input, the worker retired, and the exchange exposed no reply.
 [Prepared request evidence](evidence/windows-prepared-worker-requests-2026-11-24.json)
 
-Normal volume scheduling still needs to choose when to retain a worker.
-The present sequence ends at its admitted count or deadline. A longer
-lifecycle needs a per-request completion boundary and bounded retention
-while the controller continues CPU operation.
+### Finishing a prepared burst
+
+Control version 6 reserves a maximum request count and aggregate reply
+budget. At a readiness boundary after at least one completed request,
+the caller can supply another frame, finish the work already supplied, or
+cancel the burst. The finish marker uses the existing supply event and
+leaves the previous frame intact for the supervisor's comparison. The
+child consumes the finish marker at that boundary, retires the stream and
+slab, closes the modules and publishes the completed replies once.
+
+Acceptance requires successful exact child exit. The supervisor compares
+the last supplied input and checks one complete reply frame for each
+successful supply, including the first. A missing or extra frame discards
+the result. The caller receives the reply count and bytes after confirmed
+supervisor retirement. It still independently verifies each reply. A
+cancellation, deadline or failed retirement discards the exchange.
+
+The Windows Release, codec-free and AddressSanitizer transport suites
+passed eleven cases. They covered full and short bursts, premature finish,
+cancellation and stop, early publication, failure and timeout after
+publication, and missing or extra reply frames. In two live Radeon runs,
+a worker reserved three requests, completed two distinct 64 KiB requests and
+exited normally after the finish signal. Both replies in each run decoded
+byte for byte on CPU. The version 5 cancellation control exposed no replies.
+[Finished-burst evidence](evidence/windows-finishable-worker-bursts-2026-11-24.json)
+
+The native replay can capture and supply another committed write at this
+boundary. [Arriving native write evidence](evidence/windows-native-arriving-write-burst-2026-11-24.json)
+
+Ordinary scheduling still needs an adaptive wait for later eligible work
+and a live resource decision during that wait. The volume owner can finish
+the burst when the admission window ends normally. Foreground preemption
+and failures use cancellation.

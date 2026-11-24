@@ -31,6 +31,8 @@
     "latest_ordinary_amd_group_capture": "docs/evidence/windows-ordinary-amd-capture-groups-2026-11-23.json",
     "latest_owner_amd_write_pairs": "docs/evidence/windows-owner-amd-write-pairs-2026-11-23.json",
     "latest_separate_request_admission": "docs/evidence/windows-controller-separate-request-admission-2026-11-24.json",
+    "latest_finishable_worker_burst": "docs/evidence/windows-finishable-worker-bursts-2026-11-24.json",
+    "latest_arriving_native_write_burst": "docs/evidence/windows-native-arriving-write-burst-2026-11-24.json",
     "latest_indexed_name_page_inventory": "docs/evidence/indexed-name-page-inventory-2026-11-23.json",
     "next": "Repeat owner-bound matched trials across representative sizes and improve the measured readiness and supervised exchange phases. Verify mixed read and write behavior with CPU recovery before offering a winning route. Extend mounted mixed-flush coverage under populated churn and compare incremental admission with the full oracle. Build held-out compression and sparse-catalog accounting controls.",
     "release_qualified": false

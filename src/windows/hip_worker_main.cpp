@@ -438,14 +438,15 @@ int worker(int argc, wchar_t** argv) {
     const bool sweep_recording=timeline || std::wstring_view(argv[1])==L"--driver-uniform-lz4-sweep-profile-adapter";
     const auto sweep_mode=timeline?UniformLz4SweepProfileMode::timeline:UniformLz4SweepProfileMode::aggregate;
     const bool prepared=std::wstring_view(argv[1])==L"--driver-uniform-lz4-prepared-adapter";
-    const bool repeated=prepared && argc==15 && std::wstring_view(argv[12])==kPreparedWorkerRequestsArgument;
+    const bool finishable=prepared && argc==15 && std::wstring_view(argv[12])==kPreparedWorkerBurstArgument;
+    const bool repeated=finishable || (prepared && argc==15 && std::wstring_view(argv[12])==kPreparedWorkerRequestsArgument);
     const bool windowed=prepared && argc==14 && std::wstring_view(argv[11])==kPreparedWorkerWindowsArgument;
     const auto endpoint=repeated?12:11;
     const bool stream_bound=std::wstring_view(argv[1])==L"--driver-uniform-lz4-stream-sweep-adapter";
     const bool sweeping=prepared || sweep_recording || stream_bound ||
         std::wstring_view(argv[1])==L"--driver-uniform-lz4-sweep-adapter";
     require(argc==(repeated?15:prepared?14:13) && std::wstring_view(argv[endpoint])==
-        (repeated?kPreparedWorkerRequestsArgument:windowed?kPreparedWorkerWindowsArgument:
+        (finishable?kPreparedWorkerBurstArgument:repeated?kPreparedWorkerRequestsArgument:windowed?kPreparedWorkerWindowsArgument:
             prepared?kPreparedWorkerChannelArgument:std::wstring_view(L"--worker-channel")),
         Exit::invalid_request,"explicit uniform adapter/channel/capacities required");
     require(gpu_lz4_cpu_verification_available(),Exit::unsupported_configuration,
@@ -469,7 +470,7 @@ int worker(int argc, wchar_t** argv) {
     const auto data_capacity=repeated?reply_capacity/requests-prefix_bytes:reply_capacity-profile_bytes;
     const WorkerChannelCapacity channel_capacity{request_capacity,reply_capacity};
     const auto timeout=prepared?decimal(argv[endpoint+2],(std::numeric_limits<unsigned>::max)()):0U;
-    auto channel=repeated?WorkerChannel::open_prepared_requests(argv[endpoint+1],channel_capacity,timeout,requests):
+    auto channel=repeated?WorkerChannel::open_prepared_requests(argv[endpoint+1],channel_capacity,timeout,requests,finishable):
         prepared?WorkerChannel::open_prepared_sized(argv[endpoint+1],channel_capacity,timeout,windowed):
         WorkerChannel::open_sized(argv[endpoint+1],channel_capacity);
     HipPhaseTrace trace;HipPhaseRecorder clock(recording?&trace:nullptr);
@@ -539,6 +540,7 @@ int worker(int argc, wchar_t** argv) {
     if(windowed)await_window=[&]{return channel.await_window();};
     std::vector<std::byte> replies;
     std::uint32_t completed=0;
+    bool prefix_finished=false;
     UniformLz4NextRequest next_request;
     if(repeated)next_request=[&](UniformLz4Candidates part) -> const UniformLz4Request* {
       const auto reply=encode_uniform_lz4_reply(request->batch,request->request_id,part,WorkerExecution::hip);
@@ -547,7 +549,12 @@ int worker(int argc, wchar_t** argv) {
       // Quanta have completed, including CPU readback and the memory recheck.
       // Release this job's decoded input while waiting for the next permit.
       request.reset();
-      if(!channel.receive_next_prepared())throw hip_detail::UniformLz4WindowDeclined{};
+      const auto receipt=channel.receive_prepared_continuation();
+      if(receipt==PreparedRequestReceipt::declined)throw hip_detail::UniformLz4WindowDeclined{};
+      if(receipt==PreparedRequestReceipt::finished) {
+        prefix_finished=true;
+        return nullptr;
+      }
       decode();
       return &*request;
     };
@@ -563,13 +570,14 @@ int worker(int argc, wchar_t** argv) {
       require(windowed || repeated,Exit::invalid_request,"unexpected prepared admission refusal");
     }
     sampler.reset();
-    if(!candidates || (prepared && !request)) {
+    if(!candidates || (prepared && !request && !prefix_finished)) {
       kernels.close();
       runtime.close();
       return 0;
     }
     if(repeated) {
-      require(completed==requests,Exit::invalid_request,"incomplete repeated uniform replies");
+      require(completed==requests || (prefix_finished && completed && completed<requests),
+          Exit::invalid_request,"incomplete repeated uniform replies");
       kernels.close();
       runtime.close();
       channel.publish(replies);

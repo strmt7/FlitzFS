@@ -1,0 +1,260 @@
+{
+  "schema": 1,
+  "date": "2026-11-24",
+  "scope": "Later native Windows writes through a single finishable AMD worker and independent reopening",
+  "source": {
+    "base": "25f7e4b77bbe5cc573f5828813724020e3806b01",
+    "blobs": {
+      "src/windows/hip_worker_main.cpp": "0b3fd47fc51b5737113bea744bec8052f94972e3",
+      "src/windows/worker_exchange.cpp": "e860802e2fb02f4a01858c1475e72684e62df754",
+      "src/windows/worker_exchange.hpp": "5f76f929026814be4c83195d3f721ab453e4ec4b",
+      "tests/rocm_compile/lz4_runtime_probe.cpp": "a5168c54a11c428465963fd7f4ea3727d3e668e5",
+      "tests/test_worker_exchange.cpp": "e03cb1ad3bf9f783cdd13f9c7f85ed05984f908c",
+      "src/windows/native_amd_write_policy.cpp": "850a98713df9b039fdf367527a4c3fbf7c67e8b5",
+      "src/windows/native_amd_write_policy.hpp": "fd3be385502b85181f4d3d08e91446190e0c757f",
+      "tests/test_native_deferred_write_sdk.cpp": "d58c1397d3bf467d872e16a3de7720c254557bbd"
+    }
+  },
+  "navigation": {
+    "repository": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\repo",
+    "commit": "25f7e4b77bbe5cc573f5828813724020e3806b01",
+    "dirty_patch_sha256": "a7c6a70f0c1d93843768f5fe62feae89d1175e074b46052590f24f32d76add1f",
+    "inventory_sha256": "316b4fd72e745c16a212bedf3a4c067909a17ae58ad0f218024767d29176e6b3",
+    "native_response_sha256": "7f8fb6f6bb09268c823421e5f9ea198c35a40bed3239a4fed08aadf574c81382",
+    "source_files": 1,
+    "actual_searches": 1,
+    "provider_version": "0.2.43"
+  },
+  "transport_evidence": "docs/evidence/windows-finishable-worker-bursts-2026-11-24.json",
+  "staged_artifacts": {
+    "flitzfs_native_deferred_write_sdk_tests.exe": {
+      "bytes": 2458112,
+      "sha256": "e395d11adda684f0ef6a152db2a473c6ab718be674ab6708b221cb76163302ce"
+    },
+    "winfsp-x64.dll": {
+      "bytes": 200816,
+      "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+    },
+    "amd/qualification-manifest.json": {
+      "bytes": 528,
+      "sha256": "3e3c4f187d61063e7d6304e050593beeac1a7001dd4e050aed12caaa9ec0f509"
+    },
+    "amd/flitzfs_hip_lz4_worker.exe": {
+      "bytes": 621056,
+      "sha256": "499e326aee90c6ca3fe7a5e1f0520c53983dbba845aa587287d0a8e7c1d9b022"
+    },
+    "amd/hip-uniform-lz4/flitzfs_rocm_uniform_lz4_candidate.dll": {
+      "bytes": 322048,
+      "sha256": "179797e791a8aac3e43c1277aca4a88edfe4650122af535d08c8b199d32b89c4"
+    }
+  },
+  "tests": {
+    "initial_sdk_diagnostics": {
+      "run": "local-run-522420a0d7b84635bad293248f4cbb19",
+      "log_sha256": "7ef2db6ed861adf5f789d5704fd3878bcba27225a17acf4286899bc646988202",
+      "exit_code": 1,
+      "tree_retired": true,
+      "owned_children_terminated_during_retirement": 0,
+      "peak_job_bytes": 395735040,
+      "observations": [
+        "C2678: binary '==': no operator found which takes a left-hand operand of type 'const flitzfs::uniform_lz4::Layout' (or there is no acceptable conversion)",
+        "C2248: 'flitzfs::NativeFilesystemWriter::lease_committed_write_capture': cannot access private member declared in class 'flitzfs::NativeFilesystemWriter'"
+      ]
+    },
+    "alignment_refusal": {
+      "run": "local-run-459b84df3d204156a71c1d97d3205833",
+      "log_sha256": "bdd4242b9a67c1424632a72dbaddb2e3273f9a09b301676f961c046454d63f73",
+      "exit_code": 1,
+      "tree_retired": true,
+      "owned_children_terminated_during_retirement": 0,
+      "peak_job_bytes": 50401280,
+      "observations": [
+        "indexed_gpu_discovery status=0 queries=1 worker_exit=0",
+        "Unsupported memory page size or capacity alignment"
+      ]
+    },
+    "capture_refusal": {
+      "run": "local-run-a4a15f550478499a95e72d26b0d60264",
+      "log_sha256": "656cc46d08f3ecba9fffc45b903d7a9a0f52db46ebeef12fc992dca1bbf3f990",
+      "exit_code": 1,
+      "tree_retired": true,
+      "owned_children_terminated_during_retirement": 0,
+      "peak_job_bytes": 50458624,
+      "observations": [
+        "indexed_gpu_discovery status=0 queries=1 worker_exit=0",
+        "The committed callback write did not capture"
+      ]
+    },
+    "final_release_build": {
+      "run": "local-run-b24861b0c3ad492f85f5fa8c765d72cd",
+      "log_sha256": "6dd6270fb7804c40eaebfc90039ad475a4b2cc8ebf9f9cec10d6c65b69fc81c3",
+      "exit_code": 0,
+      "tree_retired": true,
+      "owned_children_terminated_during_retirement": 1,
+      "peak_job_bytes": 407678976,
+      "observations": [
+        null
+      ]
+    },
+    "windows_release": {
+      "run": "local-run-1a7e41d106fa497abe53e10742483b77",
+      "log_sha256": "a23e0522b22df64bf3da1a06b060c3441350cd22439af11a19e3e48ee32a64bf",
+      "exit_code": 0,
+      "tree_retired": true,
+      "owned_children_terminated_during_retirement": 0,
+      "peak_job_bytes": 37867520,
+      "observations": [
+        "199: Deferred native callbacks: checks=267 owned_input=true exact_response=true CPU_fallback=true controller_joined=true gpu_executed=false mounted=false",
+        "215: Finishable prepared bursts: cases=11 exact_prefix=true abort_discards=true retired=true",
+        "100% tests passed out of 4"
+      ]
+    },
+    "windows_codec_free": {
+      "run": "local-run-636163aab972495e9fe5f3cdfe98a3c9",
+      "log_sha256": "8c73acafcdfbb8aedef0efa50e75f0b472a3ec34a3c26e5af97fd0fde42c3938",
+      "exit_code": 0,
+      "tree_retired": true,
+      "owned_children_terminated_during_retirement": 0,
+      "peak_job_bytes": 34770944,
+      "observations": [
+        "198: Deferred native callbacks: checks=149 owned_input=true exact_response=true CPU_fallback=true controller_joined=true gpu_executed=false mounted=false",
+        "214: Finishable prepared bursts: cases=11 exact_prefix=true abort_discards=true retired=true",
+        "100% tests passed out of 4"
+      ]
+    },
+    "windows_asan": {
+      "run": "local-run-d77adef0d3b64ae295856dcc6fa31561",
+      "log_sha256": "43b5a94a73c5d987433101e469092f2d5742a774089a53784bb2b7be76ee4519",
+      "exit_code": 0,
+      "tree_retired": true,
+      "owned_children_terminated_during_retirement": 0,
+      "peak_job_bytes": 484024320,
+      "observations": [
+        "199: Deferred native callbacks: checks=267 owned_input=true exact_response=true CPU_fallback=true controller_joined=true gpu_executed=false mounted=false",
+        "215: Finishable prepared bursts: cases=11 exact_prefix=true abort_discards=true retired=true",
+        "100% tests passed out of 5"
+      ]
+    },
+    "asan_loader": {
+      "run": "local-run-fefcc6e4eb834f27884787369144229e",
+      "log_sha256": "e1c3dae785a8029c4fa23de5dc9fb494a4252d73b02209f7c0979f1327011bf4",
+      "exit_code": 0,
+      "tree_retired": true,
+      "owned_children_terminated_during_retirement": 0,
+      "peak_job_bytes": 9879552,
+      "observations": [
+        "100% tests passed out of 1"
+      ]
+    },
+    "later_admission": {
+      "run": "local-run-157a311dcb61498fb118fb49535163ca",
+      "log_sha256": "c624adf49a3b0d442b3294ba9b9d11ff8d25854b91270eb26438deba69d3d404",
+      "exit_code": 0,
+      "tree_retired": true,
+      "owned_children_terminated_during_retirement": 0,
+      "peak_job_bytes": 99246080,
+      "observations": [
+        "{\"admitted\":true,\"when_utc\":\"2026-11-24T00:29:02.4066853Z\",\"windows_build\":\"26300\",\"devices\":[{\"Name\":\"AMD Radeon RX 9070 XT\",\"Status\":\"OK\",\"DriverVersion\":\"32.0.32029.2010\"}],\"cpu_percent\":[17.48,11.61],\"max_gpu_engine_percent\":2.813631540599019,\"gpu_counters\":1476,\"available_kib\":23261288,\"total_kib\":66704480,\"runtime_sha256\":\"e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7\",\"other_flitzfs_fixture_processes\":0,\"bound_fixture_members\":5}"
+      ]
+    },
+    "later": {
+      "run": "local-run-da09156df1054fc7b22ff248ade375e5",
+      "log_sha256": "6ab13c6f6f45fbd91b0f80e4a2b00743612d20bf7e9060601245ed7730000b97",
+      "exit_code": 0,
+      "tree_retired": true,
+      "owned_children_terminated_during_retirement": 0,
+      "peak_job_bytes": 110833664,
+      "observations": [
+        "indexed_gpu_discovery status=0 queries=1 worker_exit=0",
+        "arriving_burst maximum=3 admitted=2 later_commits=1 callbacks=2 replayed=2 stored=2 ready_ns=2005798800 total_device_ns=2053791800 original_cpu_verified=1 independent_reopen=1 duplicate_cancelled=0 retired=1"
+      ]
+    },
+    "single_admission": {
+      "run": "local-run-d97acfbf2f5d45ed8b65beebbb72f018",
+      "log_sha256": "fdf84a38ab2445d77720047a1806df1dc8fb83278938c4db49297a41a29343d2",
+      "exit_code": 0,
+      "tree_retired": true,
+      "owned_children_terminated_during_retirement": 0,
+      "peak_job_bytes": 98328576,
+      "observations": [
+        "{\"admitted\":true,\"when_utc\":\"2026-11-24T00:29:10.3087222Z\",\"windows_build\":\"26300\",\"devices\":[{\"Name\":\"AMD Radeon RX 9070 XT\",\"Status\":\"OK\",\"DriverVersion\":\"32.0.32029.2010\"}],\"cpu_percent\":[11.81,13.91],\"max_gpu_engine_percent\":2.9393723936233718,\"gpu_counters\":1476,\"available_kib\":23223204,\"total_kib\":66704480,\"runtime_sha256\":\"e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7\",\"other_flitzfs_fixture_processes\":0,\"bound_fixture_members\":5}"
+      ]
+    },
+    "single": {
+      "run": "local-run-6916a92509844837a5a1a1b3209f1b0f",
+      "log_sha256": "09f85d4eaee60cac8bd4b1878399d970564968cad17e69c9183e90b0501d1c5f",
+      "exit_code": 0,
+      "tree_retired": true,
+      "owned_children_terminated_during_retirement": 0,
+      "peak_job_bytes": 109772800,
+      "observations": [
+        "indexed_gpu_discovery status=0 queries=1 worker_exit=0",
+        "arriving_burst maximum=3 admitted=1 later_commits=0 callbacks=1 replayed=1 stored=1 ready_ns=2447740400 total_device_ns=2488376200 original_cpu_verified=1 independent_reopen=1 duplicate_cancelled=0 retired=1"
+      ]
+    },
+    "duplicate_admission": {
+      "run": "local-run-dba9dd9e8ce641368d29483f85308eb6",
+      "log_sha256": "6343aaf6b6e85bfa96e53572316d4803faa607d827adca934ca9ae1e27787ccd",
+      "exit_code": 0,
+      "tree_retired": true,
+      "owned_children_terminated_during_retirement": 0,
+      "peak_job_bytes": 94121984,
+      "observations": [
+        "{\"admitted\":true,\"when_utc\":\"2026-11-24T00:29:18.5153883Z\",\"windows_build\":\"26300\",\"devices\":[{\"Name\":\"AMD Radeon RX 9070 XT\",\"Status\":\"OK\",\"DriverVersion\":\"32.0.32029.2010\"}],\"cpu_percent\":[11.3,13.36],\"max_gpu_engine_percent\":2.800978098124631,\"gpu_counters\":1476,\"available_kib\":23153980,\"total_kib\":66704480,\"runtime_sha256\":\"e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7\",\"other_flitzfs_fixture_processes\":0,\"bound_fixture_members\":5}"
+      ]
+    },
+    "duplicate": {
+      "run": "local-run-06da7e54ada54aae8eaaeecd376b6033",
+      "log_sha256": "2f62ff985c51b0ee69546571cfd837d72ca6fd5e1484f2449365ce2c582dc9c0",
+      "exit_code": 0,
+      "tree_retired": true,
+      "owned_children_terminated_during_retirement": 0,
+      "peak_job_bytes": 110387200,
+      "observations": [
+        "indexed_gpu_discovery status=0 queries=1 worker_exit=0",
+        "arriving_burst status=3 worker_exit=0 retired=1 admitted=1",
+        "arriving_burst maximum=3 admitted=1 later_commits=1 callbacks=1 replayed=0 stored=0 ready_ns=1998701300 total_device_ns=0 original_cpu_verified=1 independent_reopen=0 duplicate_cancelled=1 retired=1"
+      ]
+    },
+    "compatibility_admission": {
+      "run": "local-run-508c01fc2b6e4c739af51a18eb9d5462",
+      "log_sha256": "9cb52db8df7c97cbbfc9c399b0f9e18a2e3e23c5adf44d248c1516d4374382a6",
+      "exit_code": 0,
+      "tree_retired": true,
+      "owned_children_terminated_during_retirement": 0,
+      "peak_job_bytes": 94539776,
+      "observations": [
+        "{\"admitted\":true,\"when_utc\":\"2026-11-24T00:33:03.3105230Z\",\"windows_build\":\"26300\",\"devices\":[{\"Name\":\"AMD Radeon RX 9070 XT\",\"Status\":\"OK\",\"DriverVersion\":\"32.0.32029.2010\"}],\"cpu_percent\":[16.45,15.86],\"max_gpu_engine_percent\":1.1004596705734997,\"gpu_counters\":1476,\"available_kib\":23602916,\"total_kib\":66704480,\"runtime_sha256\":\"e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7\",\"other_flitzfs_fixture_processes\":0,\"bound_fixture_members\":5}"
+      ]
+    },
+    "compatibility": {
+      "run": "local-run-24a70731de3842109143fd6d17d18776",
+      "log_sha256": "1591b078dca0d750bd1b28fef7beb4c93b9913f4609a3518828ec38a1d693d07",
+      "exit_code": 0,
+      "tree_retired": true,
+      "owned_children_terminated_during_retirement": 0,
+      "peak_job_bytes": 112242688,
+      "observations": [
+        "detached_cpu_write writes=2 bytes=131072 occupied=245760 complete_ns=499200 cpu_verified=1 retired=1",
+        "indexed_gpu_discovery status=0 queries=1 worker_exit=0",
+        "detached_amd_write prepared=0 writes=2 bytes=131072 occupied=245760 complete_ns=2258924700 ready_ns=0 exchange_ns=2258460200 stored_candidates=2 separate_requests=0 admitted_requests=0 cpu_verified=1 retired=1",
+        "detached_amd_write prepared=1 writes=2 bytes=131072 occupied=245760 complete_ns=1217076700 ready_ns=1176369300 exchange_ns=1216612800 stored_candidates=2 separate_requests=0 admitted_requests=0 cpu_verified=1 retired=1",
+        "detached_amd_write prepared=1 writes=2 bytes=131072 occupied=245760 complete_ns=1223854000 ready_ns=1173572000 exchange_ns=1223408500 stored_candidates=2 separate_requests=1 admitted_requests=2 cpu_verified=1 retired=1",
+        "detached_write_comparison complete=1 scoped_gpu=1 parent_runtime_loaded=0 parent_peak=110927872"
+      ]
+    }
+  },
+  "result": {
+    "maximum_requests": 3,
+    "extent_bytes": 65536,
+    "later_native_files_replayed": 2,
+    "single_native_files_replayed": 1,
+    "duplicate_native_files_replayed": 0,
+    "original_cpu_verified_all_cases": true,
+    "installed_legacy_protocol_control": true,
+    "remaining_fixture_processes": 0,
+    "automatic_controller_use": false,
+    "mounted": false,
+    "release_qualified": false
+  }
+}

@@ -916,10 +916,19 @@ latency before admitting a production profile.
    writes. Both the new and legacy package modes recovered the original bytes
    through the controller fixture.
    [Separate-request admission evidence](evidence/windows-controller-separate-request-admission-2026-11-24.json)
-   Next, measure the intervals between eligible jobs and quantify preparation
-   savings over the full cost of retaining the worker. Preserve exact worker
-   retirement before reply acceptance. Exercise host pressure, foreground
-   interruption, volume close and device changes across the admitted interval.
+   The version 6 transport can finish a nonempty supplied prefix and verify
+   the reply count after exact retirement. Its Radeon fixture finished two
+   requests with room reserved for a third.
+   [Finished-burst evidence](evidence/windows-finishable-worker-bursts-2026-11-24.json)
+   The native replay now supplies a write committed after the worker
+   reaches readiness. It verifies the exact supplied prefix in a private
+   native image and keeps the originals available through CPU.
+   [Arriving native write evidence](evidence/windows-native-arriving-write-burst-2026-11-24.json)
+   Connect the automatic scheduler to this boundary. Measure intervals
+   between arrivals and quantify setup savings over the full cost of retention. Use
+   host activity and current headroom to choose a short wait or finish.
+   Exercise host pressure, foreground interruption, volume close and device
+   changes across the admitted interval.
    Extend finite exchanges to collective work across files. Bind each job to a source revision,
    verify every decoded byte before publication, and retire the helper when
    admitted work drains or foreground demand rises. Compare complete occupied

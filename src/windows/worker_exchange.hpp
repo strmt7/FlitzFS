@@ -17,6 +17,7 @@ struct WorkerChannelCapacity {
 inline constexpr std::wstring_view kPreparedWorkerChannelArgument=L"--prepared-worker-channel";
 inline constexpr std::wstring_view kPreparedWorkerWindowsArgument=L"--prepared-worker-windows";
 inline constexpr std::wstring_view kPreparedWorkerRequestsArgument=L"--prepared-worker-requests";
+inline constexpr std::wstring_view kPreparedWorkerBurstArgument=L"--prepared-worker-burst";
 bool valid_worker_channel_capacity(WorkerChannelCapacity,ProcessBudget) noexcept;
 // Sized exchanges keep at least this share of live headroom even when a
 // fixed child budget leaves memory_share_divisor at zero.
@@ -38,7 +39,14 @@ struct WorkerExchangeResult {
   bool publication_observed = false; // Diagnostic only, sampled after confirmed exit; never acceptance.
   std::wstring channel_token; // Nonsecret correlation ID; objects must be gone after confirmed exit.
   std::vector<std::byte> response;
+  std::uint32_t completed_requests=0; // Count bound to the caller's permits in a burst.
 };
+enum class PreparedRequestAction {submit,finish,cancel};
+struct PreparedRequestDecision {
+  PreparedRequestAction action=PreparedRequestAction::cancel;
+  SharedWorkerRequest request;
+};
+enum class PreparedRequestReceipt {received,finished,declined};
 // One trusted helper, one exchange, one process-wide in-flight exchange. Reuses
 // creation-time Job Object limits. No inherited handles, shell, files or HIP.
 // Returns response bytes only AFTER a successful, confirmed child exit and
@@ -99,6 +107,15 @@ class WorkerExchangeSession final {
       const std::vector<std::wstring>& arguments,WorkerChannelCapacity capacity,ProcessBudget budget,
       std::uint32_t requests,std::stop_token,const std::function<SharedWorkerRequest(std::uint32_t)>& prepare,
       std::shared_ptr<const void> pinned_route={});
+  // Reserve capacity for up to maximum_requests. At a completed boundary the
+  // caller may finish the supplied prefix, or cancel and discard the burst.
+  // A caller that waits for new work in decide must honor the job deadline
+  // and the stop token. The supervisor can retire the process during that wait.
+  static WorkerExchangeResult run_prepared_burst(const std::filesystem::path& helper,
+      const std::vector<std::wstring>& arguments,WorkerChannelCapacity capacity,ProcessBudget budget,
+      std::uint32_t maximum_requests,std::stop_token,
+      const std::function<PreparedRequestDecision(std::uint32_t)>& decide,
+      std::shared_ptr<const void> pinned_route={});
   ~WorkerExchangeSession();
   WorkerExchangeSession(WorkerExchangeSession&&) noexcept;
   WorkerExchangeSession& operator=(WorkerExchangeSession&&) noexcept;
@@ -124,12 +141,16 @@ class WorkerExchangeSession final {
       const std::vector<std::wstring>&,std::span<const std::byte>,
       WorkerChannelCapacity,ProcessBudget,bool sized,SharedWorkerRequest snapshot={},
       std::shared_ptr<const void> pinned_route={},bool prepared=false,std::uint32_t continuation_windows=0,
-      bool repeated_requests=false);
+      bool repeated_requests=false,bool finishable=false);
+  static WorkerExchangeResult run_prepared_sequence(const std::filesystem::path&,
+      const std::vector<std::wstring>&,WorkerChannelCapacity,ProcessBudget,std::uint32_t,std::stop_token,
+      const std::function<PreparedRequestDecision(std::uint32_t)>&,std::shared_ptr<const void>,bool finishable);
   struct Impl;
   explicit WorkerExchangeSession(std::unique_ptr<Impl>) noexcept;
   WorkerExchangeResult wait_result(); // Synchronous adapters only.
   WorkerExchangeResult wait_sized_result();
   bool permit_window(bool admitted) noexcept;
+  bool finish_prepared() noexcept;
   friend WorkerExchangeResult run_worker_exchange(const std::filesystem::path&,
       const std::vector<std::wstring>&, std::span<const std::byte>, ProcessBudget,std::stop_token,std::shared_ptr<const void>);
   std::unique_ptr<Impl> impl_;
@@ -150,7 +171,7 @@ class WorkerChannel final {
   static WorkerChannel open_prepared_sized(std::wstring_view token,WorkerChannelCapacity,
       std::uint32_t timeout_ms,bool windowed=false);
   static WorkerChannel open_prepared_requests(std::wstring_view token,WorkerChannelCapacity,
-      std::uint32_t timeout_ms,std::uint32_t requests);
+      std::uint32_t timeout_ms,std::uint32_t requests,bool finishable=false);
   // The child signals readiness only after its own setup succeeds. It then
   // waits once for the full frame and copies it into its private buffer.
   bool receive_prepared();
@@ -160,6 +181,7 @@ class WorkerChannel final {
   // The preceding request must be finished. This copies the next authorized
   // frame into private storage and invalidates the borrowed request() view.
   bool receive_next_prepared();
+  PreparedRequestReceipt receive_prepared_continuation();
   ~WorkerChannel();
   WorkerChannel(WorkerChannel&&) noexcept;
   WorkerChannel& operator=(WorkerChannel&&) noexcept;
