@@ -112,7 +112,7 @@ struct NativeLz4ReadWorker::Impl {
     std::uint64_t submitted_at=0;
     std::uint32_t frames=0;
     detail::NativeGroupPreparedGrant preparation;
-    bool superseded=false;
+    bool superseded=false,ready_at_submit=false;
   };
   const NativeLz4ReadWorkerProfile profile;
   const std::shared_ptr<const PinnedReadPackage> package;
@@ -121,7 +121,7 @@ struct NativeLz4ReadWorker::Impl {
   NativeLz4ReadWorkerStats status;
   std::optional<Flight> flight;
   std::uint64_t sequence=0;
-  std::uint64_t group_turnaround_ms=0;
+  detail::NativeGroupReadTiming group_timing;
 
   explicit Impl(NativeLz4ReadWorkerProfile config)
       :profile(std::move(config)),package(std::make_shared<PinnedReadPackage>(profile)),
@@ -211,7 +211,7 @@ bool NativeLz4ReadWorker::prepare_group(const WinFspReadAheadWork& work,const Na
   const auto& profile=s.profile;
   if(!profile.prepared_group_submit_lead_ms || s.flight || !s.status.retirement_confirmed ||
       s.status.configuration_refused || !Impl::current(work,stopped) || !WorkerExchangeSession::available())return false;
-  const auto need=(std::max)(std::uint64_t{profile.minimum_lead_ms},s.group_turnaround_ms);
+  const auto need=s.group_timing.start_lead(profile.minimum_lead_ms);
   if(!s.has_lead(work,need,GetTickCount64()))return false;
   const auto frames=(std::min)(work.bytes/kNativeExtentBytes,profile.maximum_frames);
   const auto grant=detail::plan_native_group_preparation(frames,profile.maximum_slab_bytes,profile.mixed_groups);
@@ -248,17 +248,25 @@ bool NativeLz4ReadWorker::start(WinFspReadAheadWork& work,const NativeMaintenanc
         target.owner!=work.owner || target.token!=work.token || target.offset!=work.offset ||
         target.bytes!=work.bytes || target.foreground_epoch!=work.foreground_epoch ||
         target.hint_created_ms!=work.hint_created_ms || target.observed_lead_ms!=work.observed_lead_ms)return false;
-    const auto lead=(std::max)(std::uint64_t{profile.prepared_group_submit_lead_ms},s.status.last_prepared_submit_ms);
-    if(!s.has_lead(work,lead,GetTickCount64()))return false;
+    const auto lead=[&](std::uint64_t now,bool ready) {
+      const auto elapsed=now>=f.worker.started_at?now-f.worker.started_at:0;
+      return s.group_timing.submit_lead(profile.minimum_lead_ms,profile.prepared_group_submit_lead_ms,elapsed,ready);
+    };
+    const auto ready_before_encoding=f.worker.child.wait_prepared();
+    const auto now=GetTickCount64();
+    if(!s.has_lead(work,lead(now,ready_before_encoding),now))return false;
     try {
       auto exchange=detail::NativeGroupReadExchange::prepare(*work.groups,detail::next_gpu_request_id(),
           f.preparation.maximum_members,f.preparation.device_bytes);
+      const auto ready_at_submit=f.worker.child.wait_prepared();
       const auto submitted_at=GetTickCount64();
       if(exchange.reply_capacity()>f.preparation.reply_bytes || !Impl::current(work,stop_requested) ||
-          !s.has_lead(work,lead,submitted_at) || !f.worker.child.submit_prepared(exchange.request()))return false;
+          !s.has_lead(work,lead(submitted_at,ready_at_submit),submitted_at) ||
+          !f.worker.child.submit_prepared(exchange.request()))return false;
       f.request.emplace(std::move(exchange));
       f.work=std::move(work);
       f.submitted_at=submitted_at;
+      f.ready_at_submit=ready_at_submit;
       f.frames=static_cast<std::uint32_t>(available);
       ++s.status.prepared_groups_submitted;
       ++s.status.submitted;
@@ -267,8 +275,8 @@ bool NativeLz4ReadWorker::start(WinFspReadAheadWork& work,const NativeMaintenanc
     }catch(...) {++s.status.declined;return false;}
   }
   if(!WorkerExchangeSession::available())return false;
-  const auto lead=profile.minimum_lead_ms?(std::max)(std::uint64_t{profile.minimum_lead_ms},
-      grouped?s.group_turnaround_ms:s.status.last_turnaround_ms):0;
+  const auto lead=profile.minimum_lead_ms?(grouped?s.group_timing.start_lead(profile.minimum_lead_ms):
+      (std::max)(std::uint64_t{profile.minimum_lead_ms},s.status.last_turnaround_ms)):0;
   if(!s.has_lead(work,lead,GetTickCount64()))return false;
   try {
     std::uint32_t frames=0,encoded=0,decoded=0;
@@ -365,10 +373,12 @@ bool NativeLz4ReadWorker::verify_and_publish(WinFspNativeWritable& adapter,
     }
     if(published) {
       ++s.status.published;
-      auto& turnaround=f.work.groups?s.group_turnaround_ms:s.status.last_turnaround_ms;
       const auto complete=GetTickCount64();
-      turnaround=complete-f.worker.started_at;
-      if(f.preparation.maximum_members)s.status.last_prepared_submit_ms=complete-f.submitted_at;
+      const auto turnaround=complete-f.worker.started_at;
+      const auto after_submit=complete-f.submitted_at;
+      if(f.work.groups)s.group_timing.observe_accepted(turnaround,after_submit,f.ready_at_submit);
+      else s.status.last_turnaround_ms=turnaround;
+      if(f.preparation.maximum_members)s.status.last_prepared_submit_ms=after_submit;
       (void)s.policy.finish(f.worker.ticket,GpuRecoveryOutcome::accepted,true);
     }else {
       ++s.status.superseded;

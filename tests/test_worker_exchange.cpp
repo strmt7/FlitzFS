@@ -1451,7 +1451,12 @@ void bounded_prepared_transactions(const std::filesystem::path& executable) {
     auto session=WorkerExchangeSession::start_prepared_bounded(executable,{mode,name},prepared_capacity,budget);
     check(!session.wait_prepared() && !session.submit_prepared(oversize) && session.submit_prepared(request) &&
         !session.submit_prepared(request) && !session.try_result(),"early bounded submission did not preserve one owned frame");
-    if(attempt==2)check(session.request_cancel(),"queued bounded request did not cancel during setup");
+    if(attempt==2) {
+      eventually([&]{return session.process_id()!=0 || session.try_result();},2000,
+          "bounded child did not reach its latched setup");
+      check(session.process_id()!=0 && !session.try_result() && !session.wait_prepared() && session.request_cancel(),
+          "queued bounded request did not cancel in the live child's setup");
+    }
     else check(SetEvent(release.value)!=0,"release bounded child setup");
     check(WaitForSingleObject(session.supervisor_wait_handle(),5000)==WAIT_OBJECT_0 &&
         session.retirement_confirmed() && WorkerExchangeSession::available(),"bounded preparation retirement unconfirmed");
@@ -1470,7 +1475,9 @@ void bounded_prepared_transactions(const std::filesystem::path& executable) {
   }
   {
     auto session=WorkerExchangeSession::start_prepared_bounded(executable,{L"bounded-unused",L"-"},prepared_capacity,budget);
-    check(session.wait_prepared(3000) && session.request_cancel(),"unused bounded preparation did not discard");
+    check(session.wait_prepared(3000) && session.wait_prepared() && session.wait_prepared(),
+        "Repeated zero-time probes consumed bounded preparation readiness");
+    check(session.request_cancel(),"unused bounded preparation did not discard");
     check(WaitForSingleObject(session.supervisor_wait_handle(),5000)==WAIT_OBJECT_0 &&
         session.retirement_confirmed(),"unused bounded preparation was not retired");
     const auto* result=session.try_result();

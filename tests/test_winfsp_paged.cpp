@@ -251,6 +251,26 @@ void sequential_read_ahead() {
       <<" capture_backing_bytes="<<capture_bytes<<" ready_backing_bytes="<<ready_bytes
       <<" ordinary_backing_bytes="<<ordinary_bytes<<'\n';
 }
+void group_read_timing() {
+  detail::NativeGroupReadTiming timing;
+  constexpr std::uint64_t startup=900,dispatch=30;
+  require(timing.start_lead(startup)==startup && timing.submit_lead(startup,dispatch,250,false)==650,
+      "An unready worker did not reserve the remaining qualified startup");
+  timing.observe_accepted(4800,4700,false);
+  require(timing.start_lead(startup)==4800 && timing.submit_lead(startup,dispatch,4500,false)==300 &&
+      timing.submit_lead(startup,dispatch,4500,true)==dispatch,
+      "An early submission contaminated ready dispatch timing");
+  require(timing.submit_lead(startup,dispatch,5000,false)==4800,
+      "An overdue estimate was accepted as a readiness signal");
+  timing.observe_accepted(900,45,true);
+  require(timing.submit_lead(startup,dispatch,880,true)==45 &&
+      timing.submit_lead(startup,60,880,true)==60,
+      "A verified ready observation or qualified dispatch floor was ignored");
+  timing.observe_accepted(4900,4800,false);
+  require(timing.start_lead(startup)==4900 && timing.submit_lead(startup,dispatch,4900,true)==45,
+      "A later cold exchange replaced the ready dispatch observation");
+  std::cout<<"winfsp_group_timing startup_observed=1 ready_dispatch_observed=1 overdue_refused=1\n";
+}
 void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},bool mixed=false) {
   constexpr auto extent=kNativeExtentBytes;
   constexpr PagedStoreLimits limits{kStoreMaxPhysicalBytes};
@@ -1178,7 +1198,7 @@ int wmain(int argc,wchar_t** argv){try {
   }
   else if(mode==L"--ready-lz4-reads")ready_lz4_reads();
   else if(mode==L"--ready-group-reads")group_read_ahead();
-  else if(mode==L"--ready-mixed-group-reads")group_read_ahead({},true);
+  else if(mode==L"--ready-mixed-group-reads"){group_read_timing();group_read_ahead({},true);}
   else if(mode==L"--faults-4096")publication_faults(4096);
   else if(mode==L"--faults-65536")publication_faults(65536);
   else if(mode==L"--profile-indexed-directory")directory_pages(true);

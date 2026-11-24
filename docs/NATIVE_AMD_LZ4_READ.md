@@ -132,11 +132,20 @@ The helper receives the private request after initialization and releases
 its resources on completion, cancellation, or an unused forecast. Foreground
 activity can supersede the forecast before any use of its result.
 
-The profile's startup lead and the measured worker turnaround govern when
-preparation can begin. The remaining lead and the observed time from prior
-submissions govern whether a captured request can be queued. AMD documents
-stream priority as disabled, so this route relies on admission, finite
-reservations, and cancellation to limit competing work.
+The qualified startup lead and the observed full exchange govern preparation.
+The controller probes the same helper's readiness without blocking, before
+encoding a request and again before queuing it. An unready worker needs
+enough lead for its estimated remaining setup and dispatch. An overdue
+estimate still requires full lead until the event confirms readiness. Once
+ready, the worker needs the qualified dispatch lead or a longer measured
+ready-to-publication time. Only a verified result published from a request
+submitted to a ready helper can update that estimate. Early submissions
+continue to inform the full exchange estimate.
+[Readiness and fallback evidence](evidence/windows-amd-group-read-admission-2026-11-24.json) ·
+[Windows zero-time wait](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitformultipleobjects)
+
+AMD documents stream priority as disabled, so this route relies on
+admission, finite reservations, and cancellation to limit competing work.
 [AMD HIP stream management](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/doxygen/html/group___stream.html)
 
 The parent verifies every complete extent against its independently captured

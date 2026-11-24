@@ -1,5 +1,6 @@
 #pragma once
 #include "flitzfs/process_budget.hpp"
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <cstddef>
@@ -30,6 +31,30 @@ struct NativeLz4ReadWorkerProfile {
   bool mixed_groups=false;
   std::uint32_t prepared_group_submit_lead_ms=0;
 };
+
+namespace detail {
+class NativeGroupReadTiming final {
+ public:
+  std::uint64_t start_lead(std::uint64_t qualified_ms) const noexcept {
+    return (std::max)(qualified_ms, total_ms_);
+  }
+  std::uint64_t submit_lead(std::uint64_t startup_ms, std::uint64_t dispatch_ms,
+      std::uint64_t elapsed_ms, bool ready) const noexcept {
+    const auto dispatch=(std::max)(dispatch_ms, ready_ms_);
+    if(ready)return dispatch;
+    const auto total=start_lead(startup_ms);
+    // An overdue preparation still needs an observed readiness signal.
+    const auto remaining=elapsed_ms<total?total-elapsed_ms:total;
+    return (std::max)(dispatch, remaining);
+  }
+  void observe_accepted(std::uint64_t turnaround_ms, std::uint64_t submit_ms, bool ready_at_submit) noexcept {
+    total_ms_=turnaround_ms;
+    if(ready_at_submit)ready_ms_=submit_ms;
+  }
+ private:
+  std::uint64_t total_ms_=0,ready_ms_=0;
+};
+} // namespace detail
 
 struct NativeLz4ReadWorkerStats {
   std::uint64_t submitted=0,published=0,superseded=0,failures=0,declined=0;

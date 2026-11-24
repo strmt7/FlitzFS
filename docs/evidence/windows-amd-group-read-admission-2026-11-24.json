@@ -1,0 +1,171 @@
+{
+  "schema": 1,
+  "date": "2026-11-24",
+  "scope": "Grouped-read admission behavior, CPU callback byte checks and the Windows worker transport. Live AMD normal-cap comparison deferred before dispatch.",
+  "source": {
+    "parent": "b47de68973472792e15f6f78bdcf58b81090a604",
+    "base_tree": "98aa69b1dd158ed8a8d9528ba23fdc9859e0d841",
+    "tree": "a2912b70e800e4f5d67caaabefbdb21f91db1d1e",
+    "elements": [
+      {
+        "path": "src/windows/native_lz4_read_worker.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "020083558a411d72422d10ec4d4c4bf8b60aec1c",
+        "bytes": 20375
+      },
+      {
+        "path": "src/windows/native_lz4_read_worker.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "8c9551b6f459ec917d012ce383bbc1ff1b149733",
+        "bytes": 3543
+      },
+      {
+        "path": "tests/test_winfsp_paged.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "dce6e1279c27f02d6932135baaf1c3b24013b2f4",
+        "bytes": 72604
+      },
+      {
+        "path": "tests/test_worker_exchange.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "561ad55304118beb6ec96d3f68024904a8bfe37e",
+        "bytes": 127416
+      }
+    ]
+  },
+  "prior_group_phase_receipt": {
+    "path": "docs/evidence/windows-amd-group-exchange-phases-2026-11-24.json",
+    "sha256": "58959144475d23df42330fb8d45b65711390753772541c9969ddb14c63386a79"
+  },
+  "decisions": {
+    "same_worker_ready_signal": true,
+    "readiness_wait_ms": 0,
+    "readiness_before_request_encoding": true,
+    "readiness_before_submission": true,
+    "samples_only_from_independently_verified_committed_ready_reply": true,
+    "later_cold_samples_leave_ready_cost_intact": true,
+    "elapsed_startup_as_readiness": false
+  },
+  "artifacts": {
+    "flitzfs_winfsp_paged_tests.exe": {
+      "sha256": "67c4359ce0d3dadbe0469175423b36874d06aa2d46a218570d53a74779bf8ffb",
+      "bytes": 2224640
+    },
+    "flitzfs_worker_exchange_tests.exe": {
+      "sha256": "5a42b7d49534fc0957928981fc1ac366f2e3595c7a2f7e56aa82299fa15e2256",
+      "bytes": 1614848
+    },
+    "winfsp-x64.dll": {
+      "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+      "bytes": 200816
+    }
+  },
+  "validation": {
+    "targeted_tests_passed": 4,
+    "repeated_transport_passes": 5,
+    "cpu_sdk_checks": 34,
+    "runs": {
+      "stageLeadBuild": {
+        "exit_code": 0,
+        "retired": true,
+        "receipt_sha256": "872921de105ef5d6c4caef13ba560507eb5ca2647a77552d25b718f0609a62bd",
+        "log_sha256": "23543505f7b8c5c546e92419e64c254b1dd129097fcd7560f0d58805b5906ea0",
+        "peak_job_bytes": 396713984
+      },
+      "stageLeadCTest": {
+        "exit_code": 8,
+        "retired": true,
+        "receipt_sha256": "6e5afe6f619fc55abec1f57cc26920a279c0bcfa818abb848db8b13fe3e78f6b",
+        "log_sha256": "415f76d96e68094eab29354694703238f4419ef6e7503807c1a6728e6b940a65",
+        "peak_job_bytes": 21061632
+      },
+      "stageLeadTransportBuild": {
+        "exit_code": 0,
+        "retired": true,
+        "receipt_sha256": "223a3d11d65b1f3f5550a6ad9890b09afa6709f0f45a765979ca9e3247d3d2f2",
+        "log_sha256": "0d61692f9152464b1fe4d6268910165a70f626447d59c68a9183c511fb351724",
+        "peak_job_bytes": 365690880
+      },
+      "stageLeadVerifiedCTest": {
+        "exit_code": 0,
+        "retired": true,
+        "receipt_sha256": "456c659da53ab9e951adbfcb37fe9b98d3d21478ef32c512565441821bb9c6cb",
+        "log_sha256": "8fc6a5d47805b9d3362f41a0c8fd46c391367135264769cd92a8c336e3ba4212",
+        "peak_job_bytes": 20987904
+      },
+      "stageLeadRepeatedTransport": {
+        "exit_code": 0,
+        "retired": true,
+        "receipt_sha256": "9e7484cf85be3854fe70d9873b6738b682c4d3384110a301bb1648ed6fc595d0",
+        "log_sha256": "27ba0cdc4793b41126f908e2dd7663d8782b68cc7af343c00d95cc7c2b83d509",
+        "peak_job_bytes": 10997760
+      },
+      "stageLeadVisibleTimingFixture": {
+        "exit_code": 0,
+        "retired": true,
+        "receipt_sha256": "9a44390edaa9d2bd6eccd382e30185a7e8556d0a9d241e5dfaa535a6a6cba0fc",
+        "log_sha256": "ffac27377673d24f91b9acfd5270de2171d15784607aef5f298530e0e58baf96",
+        "peak_job_bytes": 15486976
+      }
+    },
+    "corrected_fixture_race": "The cancellation case assumed a completed exchange identity without first observing the child. It now waits for a live process while setup remains latched, before asserting exact retirement and cleanup."
+  },
+  "host_pressure": {
+    "observed": [
+      {
+        "now": "2026-11-24T21:51:53.6448810Z",
+        "gpu": 99.7808508344799,
+        "cpu": 18.007996519877988,
+        "free_kib": 10215404,
+        "commit_kib": 59912464,
+        "required_kib": 9386636
+      },
+      {
+        "now": "2026-11-24T21:58:25.7782972Z",
+        "gpu": 98.88883813711955,
+        "cpu": 15.265100368536666,
+        "free_kib": 10064060,
+        "commit_kib": 59592452,
+        "required_kib": 9386636
+      }
+    ],
+    "gpu_dispatches": 0,
+    "timed_comparison_finished": false
+  },
+  "navigation": {
+    "receipt_sha256": "9a91e5ff0518f854318371b11536f041aa51b5a30ed65606807d8ab14e81411d",
+    "native_response_sha256": "241c68a98c3af50f883a385a0040223ad594cae4f4b9bea3c1e0d94814853a22"
+  },
+  "research": {
+    "receipt_sha256": "9a2a0750b59b854bfecdff0994f9ebfef5dde736b91b7f16aaa1d57214adf31c",
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "sources": [
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitformultipleobjects",
+        "http_status": 200,
+        "markdown_bytes": 36138,
+        "markdown_sha256": "bf1df963847b163ca82f18ebb0c80959ef6fe226a767d8dbfc3a69a504fbf025",
+        "capture_sha256": "c0d9bbd29df333974ce11a502a73d83921ea0a36982baa3689ec317ed73eff60"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/sync/event-objects",
+        "http_status": 200,
+        "markdown_bytes": 21045,
+        "markdown_sha256": "79c5dee1327154e745bc5fd50736d658f92e9f8cea107774ee001885aaaadecd",
+        "capture_sha256": "4eed021edfabaeeb1cb792bf26f560f7d35558d1789cea3177b3b8bba6cdbe6b"
+      },
+      {
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/initialization.html",
+        "http_status": 200,
+        "markdown_bytes": 24762,
+        "markdown_sha256": "0c10f76d1d2e978b48e18e7adc6388cab281302448951d65cf568b492a107af5",
+        "capture_sha256": "d7732f64674dffb3f323edfaffb1788638e36cd6d4d23f770324faf305b0e577"
+      }
+    ]
+  },
+  "mounted_performance_qualified": false
+}
