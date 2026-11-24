@@ -76,6 +76,7 @@ std::optional<NativeAmdWriteWorkerPlan> plan_native_amd_write_burst(const Native
 struct NativeAmdDeviceTrial {
   std::optional<NativeAmdWriteSample> sample,matched_cpu;
   std::uint64_t ready_ns=0,exchange_ns=0,cpu_wall_ns=0;
+  std::uint64_t verified_input_bytes=0;
   std::uint64_t preparation_ns=0,supervised_ns=0,verification_ns=0,replay_ns=0;
   WorkerExchangeCode exchange=WorkerExchangeCode::invalid_response;
   std::uint32_t worker_exit=0,admitted_requests=0;
@@ -107,7 +108,8 @@ using NativeAmdWriteContinuation=std::function<PreparedRequestAction(const Nativ
 NativeAmdDeviceTrial record_native_amd_device_burst(const NativeAmdStoragePolicy&,UniformLz4BatchInput first,
     std::uint32_t maximum_requests,const HipDiscoveredRoute&,NativeUniformSweepGrant,
     ProcessBudget,std::uint64_t memory_allowance,MemoryVolumeDomain*,std::stop_token,
-    const NativeAmdWriteContinuation&,const std::function<bool()>& may_submit={}) noexcept;
+    const NativeAmdWriteContinuation&,const std::function<bool()>& may_submit={},
+    bool allow_smaller_writes=false) noexcept;
 
 // Called off the filesystem path with independently acquired launch costs.
 // Package admission, a matched recommendation and an exact route are needed.

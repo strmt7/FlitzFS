@@ -40,9 +40,14 @@ The optional boolean `await_later_writes` requires `separate_requests` and
 a worker qualified for the version 6 finishable exchange. The controller can
 start with one eligible write and supply another if it arrives within the
 observed workload and resource budget. Omission keeps the existing
-pre-captured behavior. A uniform-only manifest without a trial profile
-retains diagnostic acquisition and ordinary CPU observation. Foreground route
-selection requires its own verified cost evidence.
+pre-captured behavior. An approved `allow_smaller_writes` profile also
+admits a smaller later write into the allocation sized for the first write.
+It requires `await_later_writes` and a worker qualified for shorter
+continuations. Each frame keeps its exact native extent geometry.
+
+A uniform-only manifest without a trial profile retains diagnostic
+acquisition and ordinary CPU observation. Foreground route selection
+requires its own verified cost evidence.
 [Owned paired trials](OWNED_DEFERRED_WRITES.md#controller-owned-paired-trials)
 
 ### Shared-base package profile

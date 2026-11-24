@@ -146,8 +146,12 @@ def bind(package: Path, approved: str) -> tuple[str, list[str]]:
         await_later_writes = write_trial.get("await_later_writes", False)
         require(type(await_later_writes) is bool and (separate_requests or not await_later_writes),
                 "Invalid write trial await_later_writes")
+        allow_smaller_writes = write_trial.get("allow_smaller_writes", False)
+        require(type(allow_smaller_writes) is bool and (await_later_writes or not allow_smaller_writes),
+                "Invalid write trial allow_smaller_writes")
         result += f"inline constexpr bool write_trial_separate_requests={str(separate_requests).lower()};\n"
         result += f"inline constexpr bool write_trial_await_later_writes={str(await_later_writes).lower()};\n"
+        result += f"inline constexpr bool write_trial_allow_smaller_writes={str(allow_smaller_writes).lower()};\n"
         result += f"inline constexpr std::array write_trial_runtime_sha256{{{array_literal(bytes.fromhex(runtime_digest))}}};\n"
         result += "".join(f"inline constexpr std::uint32_t write_trial_{key}={value}U;\n" for key, value in fields.items())
     if anchor is not None:

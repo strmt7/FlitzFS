@@ -361,6 +361,26 @@ own timing. These measurements describe the two synthetic 64 KiB
 writes in a driver-free callback fixture.
 [Controller arrival evidence](evidence/windows-controller-arriving-write-bursts-2026-11-24.json)
 
+An approved `allow_smaller_writes` profile can capture a shorter committed
+write while the worker is parked. The initial write funds the largest
+per-request stream and transport allocation. The owner considers the latest
+commit even if its size has no calibration history. Starting a worker
+still requires the normal rolling samples. The continuation must share
+the storage policy, belong to the current source revision and fit the
+original request allocation. A larger arrival stays on its original CPU
+path. The private replays compare exactly the ordered set and lengths that
+were accepted by the worker.
+
+On the RX 9070 XT, two controlled and two public-source callback runs each
+reused one worker for 128 KiB followed by 64 KiB. Each paired replay
+verified all three extents and both originals reopened on CPU. The
+oversized controls kept a 128 KiB arrival on CPU while the 64 KiB worker
+drained normally. Equal-size controls still replayed both files. CPU
+replay took about 1–2 ms in these examples. Complete GPU replay took
+2.45–4.63 s, including readiness and the admission wait. The callback
+fixtures exercised the private replay and original CPU volume.
+[Mixed-size controller evidence](evidence/windows-mixed-size-resident-worker-2026-11-24.json)
+
 ## Activating a route on a running volume
 
 The Windows volume controller can receive an independently acquired foreground

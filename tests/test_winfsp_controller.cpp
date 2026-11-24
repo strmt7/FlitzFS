@@ -4104,11 +4104,15 @@ void concurrent_memory_store_accounting() {
 }
 
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
-void amd_write_arrival_trial(std::string_view mode) {
-  const bool later=mode=="later";
+void amd_write_arrival_trial(std::string_view mode,const std::filesystem::path& public_input={}) {
+  const bool mixed=mode=="mixed";
+  const bool oversized=mode=="oversized";
+  const bool later=mode=="later" || mixed || oversized;
+  const bool receive_later=later && !oversized;
   const bool stop_waiting=mode=="stop";
   const auto profile=installed_uniform_write_trial_profile();
   require((later || stop_waiting || mode=="drain") && profile && profile->await_later_writes &&
+      (!(mixed || oversized) || profile->allow_smaller_writes) && (mixed || public_input.empty()) &&
       installed_uniform_write_files_present(),"Arriving write trial requires its staged version 6 profile");
   constexpr std::uint64_t image_capacity=8ULL*1024*1024,allowance=32ULL*1024*1024;
   auto domain=MemoryVolumeDomain::create(image_capacity+kVolumeHeadBytes+allowance);
@@ -4124,15 +4128,21 @@ void amd_write_arrival_trial(std::string_view mode) {
   await([&]{return owner.view().state==SessionState::running;},5000,"Arriving write controller did not start");
   const auto* table=p.fs.Interface;
   const auto security=native_security_fixture::descriptor();
-  const auto make_input=[](unsigned seed) {
+  const auto make_input=[](unsigned seed,std::size_t chunks) {
     const auto block=data(kNativeExtentBytes/8,seed);
-    Bytes result(kNativeExtentBytes);
+    Bytes result(chunks*kNativeExtentBytes);
     for(std::size_t offset=0;offset<result.size();offset+=block.size())
       std::ranges::copy(block,result.begin()+offset);
     return result;
   };
-  auto initial=make_input(918);
-  auto following=make_input(919);
+  auto initial=make_input(918,mixed?2:1);
+  auto following=make_input(919,oversized?2:1);
+  if(!public_input.empty()) {
+    const auto file=ReadOnlyFile::open(public_input);
+    require(file.size()>=initial.size()+following.size(),"Mixed write fixture needs a complete public source");
+    file.read_exact_at(0,initial.data(),initial.size());
+    file.read_exact_at(initial.size(),following.data(),following.size());
+  }
   const auto commit=[&](PCWSTR name,Bytes& bytes,std::size_t count) {
     PVOID handle=nullptr;
     FSP_FSCTL_FILE_INFO info{};
@@ -4164,11 +4174,14 @@ void amd_write_arrival_trial(std::string_view mode) {
       !view.foreground_activation,"Arriving trial lost ownership or offered a foreground route");
   const auto& trial=*view.amd_write_trial;
   const auto& device=trial.device;
-  const std::size_t expected=later?2:1;
+  const std::size_t expected=receive_later?2:1;
+  const auto expected_bytes=initial.size()+(receive_later?following.size():0);
   std::cout<<"arriving_owner status="<<static_cast<unsigned>(trial.status)
       <<" requests="<<device.admitted_requests<<" cpu_writes="<<trial.reference.sample.transactions
       <<" gpu_writes="<<(device.sample?device.sample->transactions:0)
       <<" stored="<<(device.sample?device.sample->stored_lz4_candidates:0)
+      <<" verified_input_bytes="<<device.verified_input_bytes
+      <<" exchange="<<static_cast<unsigned>(device.exchange)<<" worker_exit="<<device.worker_exit
       <<" parked=1 ready_ns="<<device.ready_ns<<" device_wall_ns="<<trial.device_wall_ns
       <<" cpu_wall_ns="<<trial.reference.wall_ns<<" retired="<<device.worker_retired<<'\n';
   if(stop_waiting) {
@@ -4178,16 +4191,19 @@ void amd_write_arrival_trial(std::string_view mode) {
     require(trial.status==HipDiscoveryStatus::ready && device.sample && device.matched_cpu && device.worker_retired &&
         device.admitted_requests==expected && trial.reference.sample.transactions==expected &&
         device.sample->cpu_readback_verified && device.sample->transactions==expected &&
-        device.sample->input_digest==trial.reference.sample.input_digest && device.sample->stored_lz4_candidates==expected,
+        device.sample->input_digest==trial.reference.sample.input_digest &&
+        trial.reference.input_bytes==expected_bytes && device.verified_input_bytes==expected_bytes &&
+        (public_input.empty()?device.sample->stored_lz4_candidates==expected_bytes/kNativeExtentBytes:
+            device.sample->stored_lz4_candidates<=expected_bytes/kNativeExtentBytes),
         "Arriving worker did not verify the same writes as CPU");
     owner.stop_and_join();
   }
   const auto snapshot=NativeFilesystemSnapshot::open_image(image,{NativeImageKind::indexed_paged,image_capacity});
   snapshot.verify_all();
-  require(snapshot.read("first",0,kNativeExtentBytes)==initial &&
-      (!later || snapshot.read("later",0,kNativeExtentBytes)==following) &&
+  require(snapshot.read("first",0,initial.size())==initial &&
+      (!later || snapshot.read("later",0,following.size())==following) &&
       WorkerExchangeSession::available(),"Original acknowledged writes did not survive the arriving trial");
-  std::cout<<"arriving_originals verified=1 source_files="<<expected<<" retained_after_stop=0\n";
+  std::cout<<"arriving_originals verified=1 source_files="<<(later?2:1)<<" retained_after_stop=0\n";
 }
 #endif
 
@@ -4797,7 +4813,7 @@ int main(int argc,char** argv){try {
   const bool amd_cpu_group=argc==2 && std::string_view(argv[1])=="--amd-write-cpu-group";
   const bool amd_write_pair=argc==2 && std::string_view(argv[1])=="--amd-write-pair";
   const bool amd_write_interrupt=argc==2 && std::string_view(argv[1])=="--amd-write-pair-interrupt";
-  const bool amd_write_arrival=argc==3 && std::string_view(argv[1])=="--amd-write-arrival";
+  const bool amd_write_arrival=(argc==3 || argc==4) && std::string_view(argv[1])=="--amd-write-arrival";
   const bool screened_public=argc==3 && std::string_view(argv[1])=="--screened-cold-corpus";
   const bool screened_packed=argc==3 && std::string_view(argv[1])=="--screened-cold-packed";
   const bool live_repair_rotation=argc==2 && std::string_view(argv[1])=="--live-indexed-repair-rotation";
@@ -4824,9 +4840,10 @@ int main(int argc,char** argv){try {
   else if(amd_write_arrival) {
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
     require(gpu_lz4_cpu_verification_available(),"Arriving Radeon trial requires independent CPU verification");
-    amd_write_arrival_trial(argv[2]);
+    const std::filesystem::path input=argc==4?argv[3]:"";
+    amd_write_arrival_trial(argv[2],input);
     before=handle_count();
-    amd_write_arrival_trial(argv[2]);
+    amd_write_arrival_trial(argv[2],input);
 #else
     throw std::runtime_error("Arriving write trial package is unavailable");
 #endif

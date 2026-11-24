@@ -513,7 +513,7 @@ struct WinFspVolumeController::Impl {
     // observation has its own shorter freshness bound at admission.
     const auto receipt_window=2ULL*policy.maximum_cpu_window_ms;
     const auto completed=demand.samples.back().completed_ms;
-    if(completed>now || now-completed>receipt_window) {
+    if(!demand.samples.front().elapsed_ns || completed>now || now-completed>receipt_window) {
       write_reference_demand.reset();
       return {};
     }
@@ -601,10 +601,18 @@ struct WinFspVolumeController::Impl {
 
   void offer_arriving_write() {
     const auto waiting=write_waiting_boundary.load(std::memory_order_acquire);
-    if(!waiting || !write_reference_demand || !write_arrival_observation ||
-        acquisition_thread.get_stop_token().stop_requested() || adapter->foreground_pending())return;
+    if(!waiting || acquisition_thread.get_stop_token().stop_requested() || adapter->foreground_pending())return;
+    const bool allow_smaller=installed_write_trial->allow_smaller_writes;
+    if(allow_smaller) {
+      if(const auto arrival=adapter->take_amd_write_demand(true);arrival &&
+          (!write_reference_demand || arrival->source_sequence>=write_reference_demand->source_sequence))
+        write_reference_demand=arrival;
+    }
+    if(!write_reference_demand || !write_arrival_observation)return;
     const auto& available=*write_reference_demand;
-    if(available.source_sequence<=last_captured_write || available.shape.input_bytes!=write_trial_shape.input_bytes ||
+    const auto bytes=available.shape.input_bytes;
+    if(available.source_sequence<=last_captured_write || bytes>write_trial_shape.input_bytes ||
+        (!allow_smaller && bytes!=write_trial_shape.input_bytes) ||
         !available.shape.matches_storage(write_trial_shape.foreground,write_trial_shape.isolation_unit))return;
     const auto now=GetTickCount64();
     const auto& observation=*write_arrival_observation;
@@ -614,10 +622,10 @@ struct WinFspVolumeController::Impl {
     if(!priority.active()) {acquisition_thread.request_stop();return;}
     const auto selected=*std::exchange(write_reference_demand,std::nullopt);
     auto captured=adapter->capture_amd_write_group(selected,observation,now,epoch,stop_requested,false,
-        write_trial_shape.input_bytes);
+        write_trial_shape.input_bytes,allow_smaller);
     if(!priority.finish()) {acquisition_thread.request_stop();return;}
     if(captured.size()!=1 || captured.front().sequence!=selected.source_sequence ||
-        adapter->foreground_pending() || adapter->foreground_activity()!=epoch)return;
+        captured.front().bytes.size()!=selected.shape.input_bytes || adapter->foreground_pending() || adapter->foreground_activity()!=epoch)return;
     const std::lock_guard lock(mutex);
     if(write_waiting_boundary.load(std::memory_order_acquire)!=waiting || queued_write)return;
     last_captured_write=captured.front().sequence;
@@ -699,7 +707,7 @@ struct WinFspVolumeController::Impl {
         return wait_for_arriving_write(boundary,next,profile,stop);
       };
       write_trial.device=record_native_amd_device_burst(storage,inputs.front(),worker_plan.maximum_requests,*acquired.route,
-          grant,profile.worker,allowance,residency,stop,continuation,may_submit);
+          grant,profile.worker,allowance,residency,stop,continuation,may_submit,profile.allow_smaller_writes);
     } else {
       write_trial.device=record_native_amd_device_batch(storage,inputs,*acquired.route,grant,profile.worker,
           allowance,residency,launch,stop,may_submit);
@@ -709,7 +717,7 @@ struct WinFspVolumeController::Impl {
     write_trial.device_wall_ns-=(std::min)(write_trial.device_wall_ns,observed.cpu_wall_ns);
     if(profile.await_later_writes && observed.sample && observed.matched_cpu) {
       write_trial.reference.sample=*observed.matched_cpu;
-      write_trial.reference.input_bytes=observed.matched_cpu->transactions*std::uint64_t(shape.input_bytes);
+      write_trial.reference.input_bytes=observed.verified_input_bytes;
       write_trial.reference.wall_ns=observed.cpu_wall_ns;
     }
     const auto& reference=write_trial.reference.sample;

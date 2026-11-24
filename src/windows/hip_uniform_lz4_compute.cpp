@@ -297,11 +297,11 @@ UniformLz4Candidates run_hip_uniform_lz4_prepared_sweep_in_worker(HMODULE runtim
     const uniform_lz4::KernelApi& kernel,int ordinal,WindowsGpuBudgetSampler& sampler,
     const UniformLz4SweepPlan& plan,std::span<const hip_detail::Lz4KernelCoverage> targets,
     const std::function<const UniformLz4Request*()>& receive,const std::function<bool()>& await_window,
-    const UniformLz4NextRequest& next_request) {
+    const UniformLz4NextRequest& next_request,bool allow_smaller_requests) {
   return with_uniform_device(runtime,ordinal,sampler,targets,plan.quantum_chunks,plan.device_peak_bytes,
       [&](const auto& api,auto attributes,auto coverage,auto&& initialize,auto&& memory) {
         return hip_detail::execute_uniform_lz4_sweep_plan(api,attributes,kernel,plan,coverage,receive,initialize,memory,
-            nullptr,hip_phase_detail::clock_ns,nullptr,nullptr,await_window,next_request);
+            nullptr,hip_phase_detail::clock_ns,nullptr,nullptr,await_window,next_request,allow_smaller_requests);
       });
 }
 }

@@ -256,7 +256,7 @@ struct WinFspNativeWritable::Impl {
     static constexpr auto sizes=kStoreMaxTransactionBytes/kNativeExtentBytes;
     std::array<NativeAmdWriteDemand,sizes> by_size{};
     std::uint64_t sequence=0,source_sequence=0;
-    std::size_t latest=0,next_source=0;
+    std::size_t latest=0,latest_arrival=0,next_source=0;
     struct Source {
       detail::NativeCommittedWriteRange range;
       NativeAmdCpuWriteSample timing;
@@ -297,7 +297,7 @@ struct WinFspNativeWritable::Impl {
   std::unique_ptr<NativeDeferredWriteService> deferred;
   std::atomic<bool> deferred_installed{false};
   std::unique_ptr<AmdWriteDemand> amd_write_demand;
-  std::atomic<bool> amd_write_demand_pending{false};
+  std::atomic<bool> amd_write_demand_pending{false},amd_write_arrival_pending{false};
   bool deferred_admission_closed=false;
   std::unique_ptr<NativeGroupMaintenance> groups;
   NativeMaintenancePolicy group_policy;
@@ -356,6 +356,8 @@ struct WinFspNativeWritable::Impl {
           band.samples.back()};
       demand.next_source=(demand.next_source+1)%demand.sources.size();
     }
+    demand.latest_arrival=index;
+    amd_write_arrival_pending.store(true,std::memory_order_release);
     if(!band.samples.front().elapsed_ns)return;
     band.sequence=++demand.sequence;
     band.source_sequence=sequence;
@@ -1299,14 +1301,18 @@ bool WinFspNativeWritable::enable_amd_write_demand() noexcept {
     return true;
   }catch(...) {return false;}
 }
-std::optional<NativeAmdWriteDemand> WinFspNativeWritable::take_amd_write_demand() noexcept {
-  if(!impl_->amd_write_demand_pending.load(std::memory_order_acquire) || foreground_pending())return {};
+std::optional<NativeAmdWriteDemand> WinFspNativeWritable::take_amd_write_demand(bool from_arrival) noexcept {
+  auto& pending=from_arrival?impl_->amd_write_arrival_pending:impl_->amd_write_demand_pending;
+  if(!pending.load(std::memory_order_acquire) || foreground_pending())return {};
   try {
     std::unique_lock guard(impl_->control,std::try_to_lock);
     if(!guard || foreground_pending() || requires_offline() ||
-        !impl_->amd_write_demand_pending.exchange(false,std::memory_order_acq_rel))return {};
+        !pending.exchange(false,std::memory_order_acq_rel))return {};
     const auto& demand=*impl_->amd_write_demand;
-    auto observed=demand.by_size[demand.latest];
+    auto observed=demand.by_size[from_arrival?demand.latest_arrival:demand.latest];
+    // Arrivals have a source receipt even if this size has too little history
+    // to start a worker. Preserve the separate calibrated demand numbering.
+    if(from_arrival)observed.sequence=observed.source_sequence=demand.source_sequence;
     const auto selected=impl_->session.managed_foreground();
     if(!selected || !observed.shape.matches_storage(selected->compression,selected->isolation_unit))return {};
     const auto first=std::ranges::find_if(demand.sources,[&](const auto& source) {
@@ -1323,7 +1329,7 @@ std::optional<NativeAmdWriteDemand> WinFspNativeWritable::take_amd_write_demand(
 std::vector<detail::NativeCapturedWrite> WinFspNativeWritable::capture_amd_write_group(
     const NativeAmdWriteDemand& observed,const NativeMaintenanceObservation& resources,
     std::uint64_t now,std::uint64_t epoch,const std::atomic<bool>& stop,bool grouped,
-    std::uint64_t maximum_input_bytes) noexcept {
+    std::uint64_t maximum_input_bytes,bool from_arrival) noexcept {
   try {
     const auto& policy=impl_->group_policy;
     const auto allowance=detail::maintenance_resources(resources,now,policy);
@@ -1343,8 +1349,10 @@ std::vector<detail::NativeCapturedWrite> WinFspNativeWritable::capture_amd_write
       std::unique_lock guard(impl_->control,std::try_to_lock);
       if(!guard || interrupted() || !impl_->may_prepare_read() || !impl_->amd_write_demand)return {};
       auto& demand=*impl_->amd_write_demand;
-      const auto& latest=demand.by_size[demand.latest];
-      if(!observed.sequence || latest.sequence!=observed.sequence || latest.source_sequence!=observed.source_sequence ||
+      const auto& latest=demand.by_size[from_arrival?demand.latest_arrival:demand.latest];
+      const auto sequence=from_arrival?demand.source_sequence:latest.sequence;
+      const auto source_sequence=from_arrival?demand.source_sequence:latest.source_sequence;
+      if(!observed.sequence || sequence!=observed.sequence || source_sequence!=observed.source_sequence ||
           latest.shape.input_bytes!=observed.shape.input_bytes ||
           !latest.shape.matches_storage(observed.shape.foreground,observed.shape.isolation_unit) ||
           !demand.source_layout.matches_storage(observed.shape.foreground,observed.shape.isolation_unit) ||

@@ -40,6 +40,7 @@ GpuMemorySnapshot baseline() {
 }
 struct State {
   const UniformLz4Request& source;
+  std::span<const std::byte> expected_input;
   std::vector<std::uint64_t> arena;
   std::vector<std::string> calls;
   std::string fault,secondary_fault;
@@ -56,7 +57,8 @@ struct State {
   std::size_t allocated_size=0;
   unsigned waits=0,completion_samples=0;uniform_lz4::Layout current_plan{};
   void* allocation=nullptr;
-  explicit State(const UniformLz4Request& input,unsigned wave=32):source(input),arena((input.batch.layout().total_bytes+7)/8+1) {
+  explicit State(const UniformLz4Request& input,unsigned wave=32):source(input),expected_input(input.batch.plaintext()),
+      arena((input.batch.layout().total_bytes+7)/8+1) {
     std::copy(identity.begin(),identity.end(),reinterpret_cast<std::byte*>(properties.luid));
     properties.luidDeviceNodeMask=1;properties.warpSize=static_cast<int>(wave);
     properties.maxThreadsPerBlock=1024;properties.maxThreadsDim[0]=1024;
@@ -192,7 +194,7 @@ void word(std::span<std::byte> bytes,std::size_t at,std::uint64_t value){
 hipError_t launch(const void* entry,dim3 grid,dim3 block,void** args,std::size_t shared,hipStream_t stream){
   auto expected=active->source.batch.layout();
   if(active->reuse){
-    const auto left=active->source.batch.plaintext().size()-active->source_offset;
+    const auto left=active->expected_input.size()-active->source_offset;
     require(uniform_lz4::make_layout((std::min)(std::uint64_t(left),std::uint64_t{2}*65536),65536,expected),
         "reused fake expected quantum");
   }
@@ -208,7 +210,7 @@ hipError_t launch(const void* entry,dim3 grid,dim3 block,void** args,std::size_t
   const auto status=active->step("launch");if(status!=hipSuccess)return status;
   active->submitted=true;active->current_plan=plan;
   auto bytes=active->bytes().first(static_cast<std::size_t>(allocated));
-  const auto expected_source=active->source.batch.plaintext().subspan(
+  const auto expected_source=active->expected_input.subspan(
       static_cast<std::size_t>(active->reuse?active->source_offset:0),static_cast<std::size_t>(plan.input_bytes));
   require(std::equal(expected_source.begin(),expected_source.end(),bytes.begin()+static_cast<std::ptrdiff_t>(plan.input_offset)),
       "typed upload differs from exact quantum source");
@@ -279,7 +281,8 @@ UniformLz4Candidates compute(State& state,Lz4KernelCoverage covered=coverage,Uni
 }
 UniformLz4Candidates reused_compute(State& state,UniformLz4ComputeGrant grant={},UniformLz4SweepTrace* trace=nullptr,
     bool prepared=false,const SweepEventApi* events=nullptr,HipStreamCopy transfer=nullptr,
-    const std::function<bool()>& await_window={},const UniformLz4NextRequest& next_request={}){
+    const std::function<bool()>& await_window={},const UniformLz4NextRequest& next_request={},
+    bool allow_smaller_requests=false){
   Activate owner(state);state.reuse=true;
   uniform_lz4::Layout quantum{};require(uniform_lz4::make_layout(2U*65536,65536,quantum),"reused fixture peak");
   if(!grant.maximum_chunks && !grant.maximum_device_bytes)grant={2,quantum.total_bytes,65536};
@@ -326,7 +329,7 @@ UniformLz4Candidates reused_compute(State& state,UniformLz4ComputeGrant grant={}
       return state.fault=="prepared-discard"?nullptr:&state.source;
     };
     return execute_uniform_lz4_sweep_plan(api,&attributes,kernels,shape,coverage,receive,initialize,memory,
-        trace,hip_phase_detail::clock_ns,events,transfer,await_window,next_request);
+        trace,hip_phase_detail::clock_ns,events,transfer,await_window,next_request,allow_smaller_requests);
   }
   return execute_uniform_lz4_reused_sweep(api,&attributes,kernels,state.source,coverage,grant,initialize,memory,
       trace,hip_phase_detail::clock_ns,events,transfer);
@@ -346,35 +349,46 @@ void reused_success(const UniformLz4Request& source,unsigned wave,bool delayed_c
       !state.allocated && !state.stream_live,"reused sweep incomplete coverage/admission/retirement");
   require(state.completion_samples==windows+delayed_completion,"reused completion sampled beyond its evidence");
 }
-void repeated_preparation(const UniformLz4Request& source,bool refuse) {
+enum class PreparedFollowup {same_size,decline,smaller,legacy_smaller};
+void repeated_preparation(const UniformLz4Request& source,PreparedFollowup followup) {
   ++scenarios;
   State state(source);
   state.properties.maxGridSize[0]=2;
-  const auto second=decode_uniform_lz4_request(encode_uniform_lz4_request(source.batch,source.request_id+1),
-      source.batch.limits());
+  const bool smaller=followup==PreparedFollowup::smaller || followup==PreparedFollowup::legacy_smaller;
+  const bool rejected=followup==PreparedFollowup::decline || followup==PreparedFollowup::legacy_smaller;
+  const auto prefix=source.batch.plaintext().first(smaller?source.batch.layout().chunk_bytes:source.batch.plaintext().size());
+  uniform_lz4::Layout layout{};
+  require(uniform_lz4::make_layout(prefix.size(),source.batch.layout().chunk_bytes,layout),"Continuation layout");
+  const UniformLz4Request second{source.request_id+1,PreparedUniformLz4::prepare(prefix,uniform_lz4_limits(layout))};
   unsigned completed=0;
   const auto windows=(source.batch.layout().chunks+1)/2;
   const UniformLz4NextRequest next=[&](UniformLz4Candidates part)->const UniformLz4Request* {
-    ++completed;
-    require(state.allocated && state.stream_live && state.waits==completed*windows &&
-        state.source_offset==source.batch.plaintext().size(),"next request preceded verified completion");
-    verify_uniform_lz4_candidates(completed==1?source.batch:second.batch,part);
+    const auto& request=completed++?second:source;
+    const auto expected_windows=completed==1?windows:windows+(layout.chunks+1)/2;
+    require(state.allocated && state.stream_live && state.waits==expected_windows &&
+        state.source_offset==request.batch.plaintext().size(),"next request preceded verified completion");
+    verify_uniform_lz4_candidates(request.batch,part);
     if(completed==2)return nullptr;
-    if(refuse)throw UniformLz4WindowDeclined{};
+    if(followup==PreparedFollowup::decline)throw UniformLz4WindowDeclined{};
     state.source_offset=0;
+    state.expected_input=second.batch.plaintext();
     return &second;
   };
   try {
-    const auto unpublished=reused_compute(state,{},nullptr,true,nullptr,nullptr,{},next);
-    require(!refuse && unpublished.payload.empty() && unpublished.sizes.empty(),
-        "repeated computation returned a second copy of its results");
+    const auto unpublished=reused_compute(state,{},nullptr,true,nullptr,nullptr,{},next,
+        followup==PreparedFollowup::smaller);
+    require(!rejected && unpublished.payload.empty() && unpublished.sizes.empty(),
+        "Unexpected continuation success or duplicated result");
     ++successes;
   }catch(const UniformLz4WindowDeclined&) {
-    require(refuse,"unexpected repeated refusal");
+    require(followup==PreparedFollowup::decline,"unexpected repeated refusal");
+    ++refusals;
+  }catch(const std::invalid_argument&) {
+    require(followup==PreparedFollowup::legacy_smaller && state.waits==windows,"legacy worker launched a shorter request");
     ++refusals;
   }
   const auto count=[&](const char* name){return std::count(state.calls.begin(),state.calls.end(),name);};
-  require(completed==(refuse?1U:2U) && count("initialize")==1 && count("stream-create")==1 &&
+  require(completed==(rejected?1U:2U) && count("initialize")==1 && count("stream-create")==1 &&
       count("allocate")==1 && count("stream-destroy")==1 && count("release")==1 &&
       !state.allocated && !state.stream_live,"repeated computation recreated or retained device resources");
 }
@@ -450,8 +464,10 @@ int wmain(int argc,wchar_t** argv){try{
     success(source,32);success(source,64);success(request(1),32);
     reused_success(source,32);reused_success(source,64);reused_success(request(16U*65536),32);reused_success(request(1),32);
     reused_success(source,32,true);
-    repeated_preparation(source,false);
-    repeated_preparation(source,true);
+    repeated_preparation(source,PreparedFollowup::same_size);
+    repeated_preparation(source,PreparedFollowup::decline);
+    repeated_preparation(source,PreparedFollowup::smaller);
+    repeated_preparation(source,PreparedFollowup::legacy_smaller);
     {
       ++scenarios;++successes;State state(source);state.fault="prepared-discard";UniformLz4SweepTrace trace;
       const auto result=reused_compute(state,{},&trace,true);

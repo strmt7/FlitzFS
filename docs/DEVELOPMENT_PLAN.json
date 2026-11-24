@@ -34,6 +34,7 @@
     "latest_finishable_worker_burst": "docs/evidence/windows-finishable-worker-bursts-2026-11-24.json",
     "latest_arriving_native_write_burst": "docs/evidence/windows-native-arriving-write-burst-2026-11-24.json",
     "latest_controller_arriving_write_bursts": "docs/evidence/windows-controller-arriving-write-bursts-2026-11-24.json",
+    "latest_mixed_size_resident_worker": "docs/evidence/windows-mixed-size-resident-worker-2026-11-24.json",
     "latest_indexed_name_page_inventory": "docs/evidence/indexed-name-page-inventory-2026-11-23.json",
     "next": "Repeat owner-bound matched trials across representative sizes and improve the measured readiness and supervised exchange phases. Verify mixed read and write behavior with CPU recovery before offering a winning route. Extend mounted mixed-flush coverage under populated churn and compare incremental admission with the full oracle. Build held-out compression and sparse-catalog accounting controls.",
     "release_qualified": false

@@ -77,8 +77,9 @@ UniformLz4Candidates execute_uniform_lz4_sweep_plan(const HipApi& api,Lz4Attribu
     Receive&& receive,Initialize&& initialize,MemoryPolicy&& memory,UniformLz4SweepTrace* trace=nullptr,
     UniformLz4SweepRecorder::Clock clock=hip_phase_detail::clock_ns,const SweepEventApi* event_api=nullptr,
     HipStreamCopy stream_copy=nullptr,const std::function<bool()>& await_window={},
-    const UniformLz4NextRequest& next_request={}) {
-  lz4_require((!event_api || trace) && (!stream_copy || !trace) && (!next_request || (!trace && !await_window)),
+    const UniformLz4NextRequest& next_request={},bool allow_smaller_requests=false) {
+  lz4_require((!event_api || trace) && (!stream_copy || !trace) &&
+      (!next_request || (!trace && !await_window)) && (!allow_smaller_requests || next_request),
       HipWorkerExit::invalid_request,"incompatible sweep observation or admission mode");
   lz4_require(gpu_lz4_cpu_verification_available(),HipWorkerExit::unsupported_configuration,
       "independent CPU uniform sweep verification unavailable");
@@ -193,10 +194,18 @@ UniformLz4Candidates execute_uniform_lz4_sweep_plan(const HipApi& api,Lz4Attribu
       return candidate;
     };
     UniformLz4Candidates result;
+    bool continuation=false;
     while(request) {
-      result=compute_uniform_lz4_sweep(*request,sweep,compute);
+      const auto& work=request->batch.limits();
+      const bool smaller=allow_smaller_requests && continuation &&
+          work.input_bytes<sweep.whole.input_bytes && work.chunk_bytes==sweep.whole.chunk_bytes;
+      // Derive only the active geometry. The originally funded slab and its
+      // tail guard still cover each quantum, including a shorter final one.
+      const auto plan=smaller?plan_uniform_lz4_sweep(request->batch,sweep.quantum_chunks,sweep.device_peak_bytes):sweep;
+      result=compute_uniform_lz4_sweep(*request,plan,compute);
       if(!next_request)break;
       request=next_request(std::move(result));
+      continuation=true;
     }
     if(submitted)recorder.begin(UniformSweepPhase::retirement);
     lz4_require(retire(),HipWorkerExit::device_fault,"reusable uniform retirement failed",HipWorkerStage::sweep_retire);

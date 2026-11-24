@@ -929,9 +929,17 @@ latency before admitting a production profile.
    capture and supply, finishes an empty wait and cancels on shutdown. The
    Radeon callback fixtures exercised both outcomes and independent CPU recovery.
    [Controller arrival evidence](evidence/windows-controller-arriving-write-bursts-2026-11-24.json)
+   Mixed-size continuations now use the largest prepared request's transport
+   and device allocation. Each accepted file retains its own frame geometry.
+   Public FlitzFS source and oversized controls passed through the Radeon
+   controller fixture.
+   [Mixed-size controller evidence](evidence/windows-mixed-size-resident-worker-2026-11-24.json)
    Measure setup savings and retention costs with varied real arrival
-   patterns and larger compression jobs. Exercise host pressure, foreground
-   interruption and device changes during the wait before promoting any route.
+   patterns and larger compression jobs. Record completed calibration by
+   request geometry and storage policy so one small CPU-preferred result
+   leaves larger patterns eligible for evaluation. Exercise host pressure,
+   foreground interruption and device changes during the wait before
+   promoting any route.
    Extend finite exchanges to collective work across files. Bind each job to a source revision,
    verify every decoded byte before publication, and retire the helper when
    admitted work drains or foreground demand rises. Compare complete occupied

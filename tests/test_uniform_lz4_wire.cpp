@@ -46,6 +46,14 @@ void shape_and_wire(){
   rejects([&]{(void)inspect_uniform_lz4_request(frame,source.limits().request_bytes-1,source.limits().reply_bytes);});
   rejects([&]{(void)inspect_uniform_lz4_request(frame,source.limits().request_bytes,source.limits().reply_bytes-1);});
   rejects([&]{(void)inspect_uniform_lz4_request(std::span(frame).first(79),79,source.limits().reply_bytes);});
+  const auto wider_request=source.limits().request_bytes+source.limits().chunk_bytes;
+  const auto wider_reply=source.limits().reply_bytes+source.limits().chunk_bytes;
+  check(inspect_uniform_lz4_request(frame,wider_request,wider_reply,true)==source.limits(),
+      "shorter request retains its exact frame geometry");
+  rejects([&]{(void)inspect_uniform_lz4_request(frame,wider_request,wider_reply);});
+  rejects([&]{(void)inspect_uniform_lz4_request(frame,wider_request,source.limits().reply_bytes-1,true);});
+  rejects([&]{(void)inspect_uniform_lz4_request(frame,source.limits().request_bytes-1,wider_reply,true);});
+  rejects([&]{(void)inspect_uniform_lz4_request(std::span(frame).first(frame.size()-1),wider_request,wider_reply,true);});
   auto request=decode_uniform_lz4_request(frame,source.limits());
   check(request.request_id==73 && request.batch.digest()==source.digest() &&
       std::equal(expected.begin(),expected.end(),request.batch.plaintext().begin()),"version-2 source round trip");

@@ -25,6 +25,10 @@ struct ChannelProfile {
   ULONG input_magic() const noexcept {return sized?sized_request_magic:request_magic;}
   ULONG output_magic() const noexcept {return sized?sized_reply_magic:reply_magic;}
   ULONG version() const noexcept {return finishable?6U:repeated_requests?5U:windowed?4U:prepared?3U:sized?2U:0U;}
+  bool accepts_request_bytes(std::size_t bytes,bool continuing) const noexcept {
+    return bytes>=kWorkerHeaderBytes && bytes<=capacity.request_bytes &&
+        (!prepared || bytes==capacity.request_bytes || (finishable && continuing));
+  }
   std::wstring_view prepared_argument() const noexcept {
     if(finishable)return kPreparedWorkerBurstArgument;
     if(repeated_requests)return kPreparedWorkerRequestsArgument;
@@ -546,14 +550,14 @@ bool WorkerExchangeSession::submit_prepared(SharedWorkerRequest request) noexcep
   try {
     std::lock_guard lock(state.mutex);
     auto* channel=state.prepared.get();
+    const bool continuing=channel && channel->request;
     if(!channel || !channel->accepting ||
-        (channel->request && (!state.profile.repeated_requests || channel->permits>=state.continuation_windows)) ||
+        (continuing && (!state.profile.repeated_requests || channel->permits>=state.continuation_windows)) ||
         state.prepared_cancelled.load(std::memory_order_acquire) || state.done.load(std::memory_order_acquire) ||
-        request->bytes().size()!=state.profile.capacity.request_bytes ||
+        !state.profile.accepts_request_bytes(request->bytes().size(),continuing) ||
         WaitForSingleObject(channel->ready.value,0)!=WAIT_OBJECT_0 ||
         state.observer->wait_for_exit()!=ProcessObservation::running)return false;
     auto& input=channel->input;
-    const bool continuing=static_cast<bool>(channel->request);
     if(state.profile.repeated_requests)headroom(state.budget,state.profile);
     const auto previous=continuing?channel->request->bytes():std::span<const std::byte>{};
     const bool intact=input.intact(state.profile.input_magic(),state.profile.version());
@@ -845,9 +849,8 @@ struct WorkerChannel::Impl {
   void copy_request() {
     const LONG length=input.control()->published;
     require(input.intact(profile.input_magic(),profile.version()) && output.intact(profile.output_magic(),profile.version()) &&
-        output.control()->published==pending && length>=static_cast<LONG>(kWorkerHeaderBytes) &&
-        length<=static_cast<LONG>(profile.capacity.request_bytes) &&
-        (!profile.prepared || length==static_cast<LONG>(profile.capacity.request_bytes)),
+        output.control()->published==pending && length>0 &&
+        profile.accepts_request_bytes(static_cast<std::size_t>(length),received_requests!=0),
         "invalid worker channel framing");
     owned.assign(input.bytes(),input.bytes()+length);
     received=true;

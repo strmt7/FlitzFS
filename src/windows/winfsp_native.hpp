@@ -129,12 +129,15 @@ class WinFspNativeWritable final {
   bool supports_anchor_search() const noexcept;
   // Before binding callbacks. Observe only successful eligible CPU writes.
   bool enable_amd_write_demand() noexcept;
-  std::optional<NativeAmdWriteDemand> take_amd_write_demand() noexcept;
+  // A parked, already funded exchange can use the latest committed write
+  // before its size has accumulated a full calibration history.
+  std::optional<NativeAmdWriteDemand> take_amd_write_demand(bool from_arrival=false) noexcept;
   // Copy one or more admitted recent ranges from a checked immutable root.
   // Reads run outside the callback mutex and yield at native extent boundaries.
   std::vector<detail::NativeCapturedWrite> capture_amd_write_group(const NativeAmdWriteDemand&,
       const NativeMaintenanceObservation&,std::uint64_t now,std::uint64_t epoch,
-      const std::atomic<bool>& stop,bool grouped=true,std::uint64_t maximum_input_bytes=UINT64_MAX) noexcept;
+      const std::atomic<bool>& stop,bool grouped=true,std::uint64_t maximum_input_bytes=UINT64_MAX,
+      bool from_arrival=false) noexcept;
   std::vector<std::byte> capture_amd_write_source(const NativeAmdWriteDemand&,
       const NativeMaintenanceObservation&,std::uint64_t now,std::uint64_t epoch,
       const std::atomic<bool>& stop) noexcept;

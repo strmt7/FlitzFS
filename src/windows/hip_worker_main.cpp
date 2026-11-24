@@ -477,10 +477,11 @@ int worker(int argc, wchar_t** argv) {
     UniformLz4SweepTrace sweep_trace;
     clock.begin(HipPhase::request_decode);
     std::optional<UniformLz4Request> request;
-    const auto decode=[&] {
+    const auto decode=[&](bool allow_smaller=false) {
       try {
-        const auto limits=inspect_uniform_lz4_request(channel.request(),request_capacity,data_capacity);
-        request.emplace(decode_uniform_lz4_request(channel.request(),limits));
+        const auto frame=channel.request();
+        const auto limits=inspect_uniform_lz4_request(frame,request_capacity,data_capacity,allow_smaller);
+        request.emplace(decode_uniform_lz4_request(frame,limits));
       }catch(const std::bad_alloc&){throw;}
       catch(const std::exception&){throw HipWorkerFailure(Exit::invalid_request,"invalid uniform compression frame");}
       require(request->batch.layout().chunk_bytes==grant.chunk_bytes,
@@ -555,13 +556,13 @@ int worker(int argc, wchar_t** argv) {
         prefix_finished=true;
         return nullptr;
       }
-      decode();
+      decode(finishable);
       return &*request;
     };
     std::optional<UniformLz4Candidates> candidates;
     try {
       candidates.emplace(prepared?run_hip_uniform_lz4_prepared_sweep_in_worker(runtime.get(),*api,
-          static_cast<int>(ordinal),*sampler,*sweep_plan,targets,receive,await_window,next_request):
+          static_cast<int>(ordinal),*sampler,*sweep_plan,targets,receive,await_window,next_request,finishable):
           sweeping?run_hip_uniform_lz4_sweep_in_worker(runtime.get(),*api,
               static_cast<int>(ordinal),*sampler,*request,grant,targets,sweep_recording?&sweep_trace:nullptr,timeline,stream_bound):
               run_hip_uniform_lz4_in_worker(runtime.get(),*api,static_cast<int>(ordinal),*sampler,

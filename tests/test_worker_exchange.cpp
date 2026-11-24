@@ -1530,11 +1530,16 @@ void finishable_prepared_bursts(const std::filesystem::path& executable) {
     std::uint32_t replies;
     bool stop=false;
     std::uint32_t deadline_ms=5000;
+    std::uint32_t resized_request=prepared_requests;
+    bool exceed_capacity=false;
   };
   constexpr std::array trials{
     Trial{L"requests-ok",prepared_requests,Action::finish,Code::completed,prepared_requests},
     Trial{L"requests-ok",1,Action::finish,Code::completed,1},
     Trial{L"requests-ok",2,Action::finish,Code::completed,2},
+    Trial{L"requests-ok",2,Action::finish,Code::completed,2,false,5000,1},
+    Trial{L"requests-ok",2,Action::finish,Code::cancelled,0,false,5000,0},
+    Trial{L"requests-ok",2,Action::finish,Code::cancelled,0,false,5000,1,true},
     Trial{L"requests-ok",0,Action::finish,Code::cancelled,0},
     Trial{L"requests-ok",1,Action::cancel,Code::cancelled,0},
     Trial{L"requests-ok",1,Action::finish,Code::cancelled,0,true},
@@ -1544,8 +1549,16 @@ void finishable_prepared_bursts(const std::filesystem::path& executable) {
     Trial{L"requests-finish-extra",1,Action::finish,Code::invalid_response,0},
     Trial{L"requests-finish-missing",2,Action::finish,Code::invalid_response,0}
   };
-  const auto inputs=prepared_request_inputs();
+  const auto original=prepared_request_inputs();
   for(const auto& trial:trials) {
+    auto inputs=original;
+    if(trial.resized_request<inputs.size()) {
+      const auto frame=inputs[trial.resized_request]->bytes();
+      Bytes resized(frame.begin(),frame.end());
+      const auto length=trial.exceed_capacity?frame.size()+1:frame.size()-19;
+      resized.resize(length);
+      inputs[trial.resized_request]=std::make_shared<const WorkerRequestSnapshot>(std::move(resized));
+    }
     ProcessBudget budget;budget.timeout_ms=trial.deadline_ms;
     std::stop_source stop;
     const auto result=WorkerExchangeSession::run_prepared_burst(executable,{trial.mode},repeated_capacity,

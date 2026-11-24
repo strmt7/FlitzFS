@@ -712,3 +712,15 @@ arrival and setup costs, and checks fresh resource and foreground evidence
 before supply. The worker releases its retained HIP state when the burst
 finishes or is cancelled.
 [Controller arrival evidence](evidence/windows-controller-arriving-write-bursts-2026-11-24.json)
+
+A worker qualified for shorter version 6 continuations interprets the
+original request and reply capacities as upper bounds after the first
+request. The first request still matches the prepared geometry. The next
+frame must declare exact lengths within both capacities and keep the same
+chunk size. The worker derives a smaller active sweep from that frame and
+uses the existing stream and slab. Each launch retains independent CPU
+verification and checks the inactive tail of the original allocation.
+Version 5 and the first request in version 6 retain exact capacity checks.
+The transport tests cover a successful shorter continuation, a shorter
+initial frame and a continuation that exceeds the prepared capacity.
+[AMD HIP memory management](https://rocm.docs.amd.com/projects/HIP/en/latest/doxygen/html/group___memory.html) · [Windows transport and controller evidence](evidence/windows-mixed-size-resident-worker-2026-11-24.json)
