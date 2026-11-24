@@ -215,6 +215,23 @@ extent coordinate, object and physical revision. Group preparation uses the
 current representation and independently verifies the selected data. Changed
 images rebuild discovery from their current index.
 
+### Reusing samples after a verified copy
+
+An indexed relocation that independently verifies every copied record can
+transfer the live controller's retained similarity samples to the next
+image. A sample stays in a bounded cache until discovery sees its exact
+object, generation, inode and extent again. Discovery uses the current
+stored size for candidate pricing. The current image still supplies the
+scan cursor, candidate comparisons and every publication check.
+
+The cached samples share the representative budget. Discovery discards
+unmatched samples when the sweep finishes. A changed extent requires a
+new sample, while a repair rotation, unresolved handoff or unrelated image
+starts with fresh discovery. In the Windows memory fixture, a verified
+copy followed by one file edit reused 11 samples and read 195,638 backing
+bytes, down from 1,022,381. Both snapshots returned their exact bytes.
+[Relocation and complete-file evidence](evidence/windows-collective-cold-order-2026-11-24.json)
+
 ## Resource and foreground admission
 
 Observations must be valid, fresh, monotonically sequenced and internally

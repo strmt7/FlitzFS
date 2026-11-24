@@ -248,6 +248,46 @@ void indexed_prefix_bank_boundary() {
       <<" prefixes="<<progress.prefixed_zstd_members<<" cpu_exact=1 retained_snapshot_exact=1\n";
 }
 
+void indexed_relocation_reuses_samples() {
+  constexpr StoreCompressionOptions policy{StoreCompressionMode::automatic,3,false};
+  constexpr unsigned count=12;
+  const auto name=[](unsigned file){return "relocated-"+std::to_string(file);};
+  Fixture f(4096,0,true,policy);
+  for(unsigned file=0;file<count;++file)put(*f.session,name(file),data(kNativeExtentBytes,4117+file));
+  NativeGroupMaintenance maintenance(*f.session);
+  const auto initial=f.finish(maintenance);
+  require(initial.sampled_extents==count && !initial.published_groups,"Independent relocation sample set");
+  const auto retained=f.session->snapshot();
+
+  auto target=ram(4096);
+  require(f.session->begin_idle_compaction(target,id(22),PagedRewriteMode::reconcile_foreground),
+      "Could not start indexed relocation");
+  using Recompression=NativeFileSession::RecompressionProgress;
+  auto phase=Recompression::copying;
+  for(unsigned steps=0;steps<1024 && phase==Recompression::copying;++steps)phase=f.session->advance_recompression();
+  require(phase==Recompression::ready && f.session->publish_idle_recompression().has_value(),
+      "Verified relocation did not publish");
+
+  const auto changed=data(kNativeExtentBytes,8293);
+  auto handle=f.session->open(name(0),{true,true,false});
+  f.session->write(handle,0,changed);
+  f.session->cleanup(handle,false);f.session->close(handle);
+
+  const auto reads=target->read_bytes;
+  const auto settled=f.finish(maintenance);
+  const auto sampled=settled.sampled_extents-initial.sampled_extents,reused=settled.reused_features-initial.reused_features;
+  std::cout<<"relocated_samples new="<<sampled<<" reused="<<reused<<" backing_read_bytes="<<target->read_bytes-reads<<'\n';
+  require(sampled==1 && reused==count-1 && !settled.published_groups,
+      "Relocation did not reuse exactly the unchanged samples");
+  const auto active=f.session->snapshot();
+  retained.verify_all();active.verify_all();
+  for(unsigned file=0;file<count;++file) {
+    const auto original=data(kNativeExtentBytes,4117+file);
+    require(retained.read(name(file),0,original.size())==original &&
+        active.read(name(file),0,original.size())==(file?original:changed),"Relocation sample reuse changed file bytes");
+  }
+}
+
 void indexed_prefixed_reference() {
   using Method=detail::NativeGroupMethod;
   constexpr auto count=prefix_family_count;
@@ -582,12 +622,7 @@ void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expect
           snapshot.read(path,0,inputs[i].size())==inputs[i],"similarity packing changed file bytes");
     }
   };
-  const auto settled_image=[&](const NativeFilesystemSnapshot& source,unsigned target,int reencode_level=0) {
-    auto backing=ram(4096);
-    if(reencode_level)
-      (void)NativeFilesystemWriter::recompress(source,backing,id(target),
-          {StoreCompressionMode::automatic,reencode_level,true});
-    else (void)NativeFilesystemWriter::compact(source,backing,id(target),policy);
+  const auto check_image=[&](const std::shared_ptr<Ram>& backing) {
     const auto reader=NativeFilesystemSnapshot::open_image(backing,storage);
     const auto read_start=backing->read_bytes;
     for(std::size_t i=0;i<inputs.size();++i) {
@@ -600,6 +635,34 @@ void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expect
     verify(reader);
     return std::pair{backing->extent(),small_reads};
   };
+  const auto settled_image=[&](const NativeFilesystemSnapshot& source,unsigned target,int reencode_level=0) {
+    auto backing=ram(4096);
+    if(reencode_level)
+      (void)NativeFilesystemWriter::recompress(source,backing,id(target),
+          {StoreCompressionMode::automatic,reencode_level,true});
+    else (void)NativeFilesystemWriter::compact(source,backing,id(target),policy);
+    return check_image(backing);
+  };
+  const auto cold_copy=[&](Fixture& volume,std::string_view order) {
+    using Recompression=NativeFileSession::RecompressionProgress;
+    auto target=ram(4096);
+    const auto retained=volume.session->snapshot();
+    const auto reads=volume.image->read_bytes;
+    require(volume.session->begin_idle_compaction(target,id(5),PagedRewriteMode::reconcile_foreground),
+        "Could not start the ordinary cold copy");
+    auto state=Recompression::copying;
+    for(unsigned steps=0;steps<15000 && state==Recompression::copying;++steps)
+      state=volume.session->advance_recompression();
+    require(state==Recompression::ready,"Cold copy failed to settle in the public-file profile");
+    const bool selected=volume.session->publish_idle_recompression().has_value();
+    const auto source_reads=volume.image->read_bytes-reads;
+    const auto [bytes,range_bytes]=check_image(target);
+    verify(retained);
+    std::cout<<"cold_order arm="<<order<<" settled="<<bytes<<" selector="<<volume.head->extent()
+        <<" source_read_bytes="<<source_reads<<" target_write_bytes="<<target->write_bytes
+        <<" range_read_bytes="<<range_bytes<<" selected="<<selected<<" cpu_exact=1\n";
+    if(selected)volume.image=std::move(target);
+  };
 
   f.session.reset();
   const auto prior=NativeFilesystemSnapshot::open_image(f.image,storage);
@@ -610,6 +673,21 @@ void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expect
       std::cout<<"independent_reencode level="<<level<<" image_bytes="<<image_bytes
           <<" selector_bytes="<<f.head->extent()<<" range_read_bytes="<<range_bytes<<" cpu_exact=1\n";
     }
+    Fixture cold_first(image(f.head->stable,4096),image(f.image->stable,4096),policy);
+    cold_copy(cold_first,"cold_only");
+    const auto read_start=cold_first.image->read_bytes,write_start=cold_first.image->write_bytes;
+    NativeMaintenanceProgress progress;
+    {
+      NativeGroupMaintenance groups(*cold_first.session);
+      progress=cold_first.finish(groups);
+    }
+    const auto read_bytes=cold_first.image->read_bytes-read_start,write_bytes=cold_first.image->write_bytes-write_start;
+    cold_first.session.reset();
+    const auto source=NativeFilesystemSnapshot::open_image(cold_first.image,storage);
+    const auto [bytes,range_bytes]=settled_image(source,6);
+    std::cout<<"cold_order arm=cold_then_group settled="<<bytes<<" selector="<<cold_first.head->extent()
+        <<" source_read_bytes="<<read_bytes<<" target_write_bytes="<<write_bytes
+        <<" range_read_bytes="<<range_bytes<<" groups="<<progress.published_groups<<" cpu_exact=1\n";
   }
   const auto resolve=[&](const StoreIdentity& key)->std::shared_ptr<StoreByteIo>{return key==id(1)?f.image:nullptr;};
   f.session.emplace(NativeFileSession::resume_closed_indexed_volume(f.head,id(90),1,resolve,policy));
@@ -637,6 +715,10 @@ void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expect
       <<" packed_groups="<<outcome.packed_reference_groups<<" attempts="<<outcome.attempted_groups
       <<" yield_observations="<<outcome.candidate_yield_observations
       <<" members="<<members<<" cpu_exact=1 retained_snapshot_exact=1 idle_io=0\n";
+  if(compare_reencoding) {
+    f.session.emplace(NativeFileSession::resume_closed_indexed_volume(f.head,id(90),1,resolve,policy));
+    cold_copy(f,"group_then_cold");
+  }
   if(expected_members) {
     require(after.first<before.first && members==expected_members && outcome.packed_reference_groups,
         "similarity ranking missed the fitting short-file families");
@@ -3475,6 +3557,7 @@ int main(int argc,char** argv){try{
   } else if(argc==2 && std::string_view(argv[1])=="--indexed") {
     for(auto unit:{4096U,65536U})automatic_and_extension(unit,true);
     indexed_scan_windows();indexed_stale_binding_and_padding();
+    indexed_relocation_reuses_samples();
     shifted_indexed_family(data(kNativeExtentBytes,714),{StoreCompressionMode::raw,1,false},false);
   } else if(argc==3 && (std::string_view(argv[1])=="--shifted-corpus" ||
       std::string_view(argv[1])=="--shifted-sections-corpus")) {

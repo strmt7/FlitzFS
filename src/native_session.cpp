@@ -1336,6 +1336,7 @@ void NativeFileSession::adopt_handoff(Impl& self,const NativeVolumeHeadInfo& pub
   if(self.maintenance) {
     self.maintenance->retire_coherence();
     self.maintenance->group_append_refusal={};
+    self.maintenance->relocation={};
   }
   volume.epoch=published.selection.epoch;
   volume.candidate_id={};
@@ -1527,7 +1528,10 @@ std::optional<NativeVolumeHeadInfo> NativeFileSession::publish_staged_recompress
     if(!permits_rotation && verified.storage_info().physical_end>=
         occupied_indexed_image(*self.volume->active_io,self.writer.indexed_append_floor()))
       return std::nullopt;
+    const auto prior_image=self.volume->active_id;
     const auto published=publish_indexed_handoff(self,std::move(candidate),verified,std::move(staged->target));
+    if(self.maintenance && !permits_rotation)
+      self.maintenance->relocation={prior_image,published.selection.image_identity};
     auto& volume=*self.volume;
     if(cold_through) {
       const auto& selection=published.selection;
@@ -1590,7 +1594,10 @@ NativeVolumeHeadInfo NativeFileSession::recover_volume() {
   const auto restored=volume.head->info();
   self.writer=resume_image(chosen,checked,volume.foreground);
   if(self.persistent_reclaimer)self.persistent_reclaimer->settle_recovery(volume.epoch,restored.selection);
-  if(self.maintenance && observed.image_identity!=volume.active_id)self.maintenance->retire_coherence();
+  if(self.maintenance && observed.image_identity!=volume.active_id) {
+    self.maintenance->retire_coherence();
+    self.maintenance->relocation={};
+  }
   volume.active_io=std::move(chosen);volume.active_id=observed.image_identity;volume.epoch=observed.epoch;
   volume.candidate_io.reset();volume.candidate_id={};volume.baseline.reset();
   volume.pending=false;self.terminal=false;return restored;

@@ -38,13 +38,22 @@
     "latest_reviewed_tree": "3154befa7dcf83310d7c00a5d75a078acfbc2b83",
     "latest_reviewed_tracked_files": 1074,
     "followup_evidence": "docs/evidence/windows-mounted-range-retirement-2026-11-24.json",
-    "matched_size_evidence": "docs/evidence/windows-protected-prefix-banks-2026-11-24.json",
+    "matched_size_evidence": "docs/evidence/windows-collective-cold-order-2026-11-24.json",
     "settled_size_plan": "docs/RELEASE_RECONCILIATION_2026-11-24.md#first-settled-size-implementation-sequence",
     "next_implementation_tickets": "docs/RELEASE_RECONCILIATION_2026-11-24.md#prioritized-implementation",
     "native_ntfs_comparison": "Plain and built-in NTFS compression specified; matched real-host run pending.",
     "mounted_packed_attachment": "Bounded signed guest recovery and continued writes verified, with a 1,024-file packed recovery fixture. Sustained populated settlement and current-client qualification remain open.",
     "automatic_foreground_amd": "Identical captured writes can be replayed on CPU and Radeon. Finite prepared bursts and shape-specific calibration are implemented. The measured 1 MiB write shape prefers CPU, and useful automatic mounted AMD qualification remains open.",
     "incremental_admission": "Checked read coalescing and batched scrub have lower measured I/O. A complete unchanged scrub observation has no attach authority. Full writable verification remains in force."
+  },
+  "collective_cold_order": {
+    "evidence": "docs/evidence/windows-collective-cold-order-2026-11-24.json",
+    "scope": "Windows indexed in-process memory backing with complete-file CPU readback and staged stronger encoding",
+    "complete_bytes_grouping_then_cold": {"cpython_revisions": 868352, "curl_revisions": 1138688, "ait_ap": 50462720},
+    "complete_bytes_cold_then_grouping": {"cpython_revisions": 942080, "curl_revisions": 1245184, "ait_ap": 50462720},
+    "relocated_samples_reused": 11,
+    "relocation_scan_backing_read_bytes": {"baseline": 1022381, "with_reuse": 195638},
+    "automatic_mounted_workload_qualified": false
   },
   "ordinary_amd_write_demand": {
     "evidence": "docs/evidence/windows-ordinary-amd-write-demand-2026-11-23.json",

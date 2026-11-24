@@ -1,0 +1,598 @@
+{
+  "schema": 1,
+  "date": "2026-11-24",
+  "captured_utc": "2026-11-24T22:47:15.2767658Z",
+  "experimental": true,
+  "scope": "Matched Windows protected native session profiles using process-local memory. Independent control uses native Zstandard policy levels 3 and 9. Stronger arms explicitly run the existing reconciled indexed copy. The measurements describe size and backing byte counts under modeled idle observations.",
+  "source": {
+    "parent": "f456616cb2f64f833337e83372df3f67e61d5ce8",
+    "tree": "48bfd972c3be7da274ba36ce650d62a92cee8767",
+    "final_source_blobs": {
+      "src/native_maintenance.cpp": "440a7ca67344852ce0f68bd2883381864ae582fd",
+      "src/native_maintenance_source.hpp": "525776aacca4c95f8e5a2fc927b42c2ce8fd88bd",
+      "src/native_session.cpp": "7ab8394f96c62eb5a9897875572441a9a7a1d7a5",
+      "tests/test_native_group_maintenance.cpp": "1274661ad596ca875bb413af43047217cd481b58"
+    },
+    "comparison_profile_blob": "3ee99e6d72db4af5b2abf99fbbc2815d79a7bb28",
+    "comparison_profile_executable_sha256": "89dee2d99a2db842252da063772b1a9d81aef07bbc13265bdda37e53c315de46",
+    "native_final_executable_sha256": "e001d170b02e7cb718799cdd037d6b74b5e239e3474aa37af3550c255f9896bf",
+    "codec_free_final_executable_sha256": "d9c1f325c00676c2ea1b7937c06530babc97794d58d620d4a27a51ba7c4787f8"
+  },
+  "controls": {
+    "foreground_zstd_level": 3,
+    "mirror_unit_bytes": 4096,
+    "full_file_validation": true,
+    "previous_snapshot_retained_and_verified": true,
+    "cohort_source_manifests": "docs/evidence/aitdcc2026-compression-baseline-2026-11-22.json",
+    "curl_revision_manifest": {
+      "selection": "First 16 changed lib C and H files in ordinal path order. Both versions must be 64-192 KiB. Original bytes, version-major order.",
+      "archives": {
+        "8.21.0": {
+          "url": "https://curl.se/download/curl-8.21.0.tar.xz",
+          "final_url": "https://curl.se/download/curl-8.21.0.tar.xz",
+          "status": 200,
+          "archive_bytes": 2882336,
+          "archive_sha256": "aa1b66a70eace83dc624508745646c08ae561de512ab403adffb93ac87fc72e6"
+        },
+        "8.22.0": {
+          "url": "https://curl.se/download/curl-8.22.0.tar.xz",
+          "final_url": "https://curl.se/download/curl-8.22.0.tar.xz",
+          "status": 200,
+          "archive_bytes": 2953092,
+          "archive_sha256": "f7ef3ae8a22e521f289803fe93543eb64c329b58aa73a9e224dfd915a2a5f4f7"
+        }
+      },
+      "files": [
+        {
+          "version": "8.21.0",
+          "path": "lib/cf-socket.c",
+          "bytes": 73061,
+          "sha256": "d821bd73b68e44f10bfe95d646720c9e979c7193438ffe8745e4202818c8a10b"
+        },
+        {
+          "version": "8.21.0",
+          "path": "lib/ftp.c",
+          "bytes": 141684,
+          "sha256": "7ab67a18105f263bf6eadb82c0bc10d32f9569a2347a7d2bbfb1a1544aa67b90"
+        },
+        {
+          "version": "8.21.0",
+          "path": "lib/http.c",
+          "bytes": 156633,
+          "sha256": "3ecd2e593f38689255ea5c8937552c920b0bb1d3c3fe74a3ee5b4828d1fa9b15"
+        },
+        {
+          "version": "8.21.0",
+          "path": "lib/http2.c",
+          "bytes": 95749,
+          "sha256": "15002a71560e7f993d53ce4f059eb61439485af775dd79ec6fa75ffda3c33409"
+        },
+        {
+          "version": "8.21.0",
+          "path": "lib/imap.c",
+          "bytes": 68314,
+          "sha256": "9fd3cfd806ad4e61ae2d7a14257863a85ae774d5455272f84cc301c69c80d029"
+        },
+        {
+          "version": "8.21.0",
+          "path": "lib/multi.c",
+          "bytes": 131512,
+          "sha256": "b5dc84f15ed14179acbd06ae6b108331c46dd6c7067395282f0d1a2c42a5cdf3"
+        },
+        {
+          "version": "8.21.0",
+          "path": "lib/setopt.c",
+          "bytes": 85258,
+          "sha256": "3738ff6a04a09f4941b9d9b7c79d2882a999fc20f0dcaf543ce5385eb4972dcc"
+        },
+        {
+          "version": "8.21.0",
+          "path": "lib/url.c",
+          "bytes": 84181,
+          "sha256": "f8d03541137cd974afb8d43643a9ac05b13702aa22c28275e83e260fa2df3dcd"
+        },
+        {
+          "version": "8.21.0",
+          "path": "lib/vssh/libssh.c",
+          "bytes": 95701,
+          "sha256": "856281f185b84bdcf23002ce5423612fce0bbbd333957c37045441f848101bfd"
+        },
+        {
+          "version": "8.21.0",
+          "path": "lib/vssh/libssh2.c",
+          "bytes": 126878,
+          "sha256": "b0691ac4e1a5583793e080696798c87e77ca35fb3c10cfdcd81e4fec00999621"
+        },
+        {
+          "version": "8.21.0",
+          "path": "lib/vtls/gtls.c",
+          "bytes": 74958,
+          "sha256": "44198c943383386fcac84e8857f1fd33a45f68e230e2c2f4e1f47316c07d5cc0"
+        },
+        {
+          "version": "8.21.0",
+          "path": "lib/vtls/openssl.c",
+          "bytes": 171966,
+          "sha256": "09394349f5a19aae3415c562d4ca40b2f6c1a5af806c72103205fa583f891eb3"
+        },
+        {
+          "version": "8.21.0",
+          "path": "lib/vtls/schannel.c",
+          "bytes": 100519,
+          "sha256": "a8ab396dbae709af79eb23f6813adb893fa2f22e4558d95e9c4ab9627ad01b39"
+        },
+        {
+          "version": "8.21.0",
+          "path": "lib/vtls/wolfssl.c",
+          "bytes": 72341,
+          "sha256": "8d076227906e4a9a8c8c9c853c26beef7a3064ec1e69adfd85c1ae0f7dc15b45"
+        },
+        {
+          "version": "8.22.0",
+          "path": "lib/cf-socket.c",
+          "bytes": 76009,
+          "sha256": "52ec5b141c2de076e695d8789f09770713c0e2f9fb9331e035d7c0bbffd6b522"
+        },
+        {
+          "version": "8.22.0",
+          "path": "lib/ftp.c",
+          "bytes": 142403,
+          "sha256": "ce296597f91e4cff3952cf02aebe4183c4dd8b29298495948291df11e784f6d2"
+        },
+        {
+          "version": "8.22.0",
+          "path": "lib/http.c",
+          "bytes": 157414,
+          "sha256": "46a39923e8db9522a14a18b7de50e36df26f0504e57e4eaa38c458f3c58c0594"
+        },
+        {
+          "version": "8.22.0",
+          "path": "lib/http2.c",
+          "bytes": 95688,
+          "sha256": "c8de9362868e02885fff334ba2d01099cb722763111b965949ed319cac6945b4"
+        },
+        {
+          "version": "8.22.0",
+          "path": "lib/imap.c",
+          "bytes": 68617,
+          "sha256": "6bf08c0451d4f253acf82df90d677f455e22728ba01d5f23edebcd1db30d0176"
+        },
+        {
+          "version": "8.22.0",
+          "path": "lib/multi.c",
+          "bytes": 132646,
+          "sha256": "20bd4c9758d62cea5f436f2821f18fbb1646af1f55a2685ffc570f4b2aba8c97"
+        },
+        {
+          "version": "8.22.0",
+          "path": "lib/setopt.c",
+          "bytes": 85741,
+          "sha256": "3efa933894a53ebc311d2e74dbb88c96472f974e39b6dd1e77ad3abda86f5bb6"
+        },
+        {
+          "version": "8.22.0",
+          "path": "lib/url.c",
+          "bytes": 82333,
+          "sha256": "03e9624fb77558cd6cd305bb10af5c6b32b482a0f0fd4e62129a8d397e077ffe"
+        },
+        {
+          "version": "8.22.0",
+          "path": "lib/vssh/libssh.c",
+          "bytes": 94709,
+          "sha256": "38dc531947157c4410b9dd400f7525e3b38c7d477dc93d2be8eeeb2996fa0dbe"
+        },
+        {
+          "version": "8.22.0",
+          "path": "lib/vssh/libssh2.c",
+          "bytes": 123514,
+          "sha256": "9f42e1edff961ab968f52c64beb84c249f55f8bbd520732990a5f93763e5db46"
+        },
+        {
+          "version": "8.22.0",
+          "path": "lib/vtls/gtls.c",
+          "bytes": 74389,
+          "sha256": "fda9edd0f93116e225c54cc453a37206ed54200772b7cd999480f9af6fa0b871"
+        },
+        {
+          "version": "8.22.0",
+          "path": "lib/vtls/openssl.c",
+          "bytes": 172817,
+          "sha256": "8603afe25edfc7163b9f56b7386f92bc4057ffba22e76671e86a973231a02802"
+        },
+        {
+          "version": "8.22.0",
+          "path": "lib/vtls/schannel.c",
+          "bytes": 100503,
+          "sha256": "53cac264b1002be3ea42128b9a13bdc780316868876a3cb5df3d39f2a654ffb2"
+        },
+        {
+          "version": "8.22.0",
+          "path": "lib/vtls/wolfssl.c",
+          "bytes": 73745,
+          "sha256": "6d47b1cceb53f05c5ab944d4295aa846de38006943dc954a3ebede8557d4ac6a"
+        }
+      ],
+      "fixture_sha256": "cb6fd07f4327384ba8afb4b43293b01e8b8b5095de2286509a1695e0b397143c",
+      "fixture_bytes": 2959399
+    }
+  },
+  "matched_public_cohorts": [
+    {
+      "workload": "Curl",
+      "fixture_sha256": "cb6fd07f4327384ba8afb4b43293b01e8b8b5095de2286509a1695e0b397143c",
+      "file_count": 28,
+      "logical_bytes": 2959283,
+      "selector_bytes": 131072,
+      "independent": [
+        {
+          "zstd_policy_level": 3,
+          "complete_bytes": 1900544,
+          "short_range_reads": 1173648
+        },
+        {
+          "zstd_policy_level": 9,
+          "complete_bytes": 1744896,
+          "short_range_reads": 1122592
+        }
+      ],
+      "group_only": {
+        "complete_bytes": 1245184,
+        "stage_reads": 13541065,
+        "stage_writes": 2179072,
+        "short_range_reads": 1345634,
+        "grouped_members": 56
+      },
+      "passes": {
+        "cold_only": {
+          "complete_bytes": 1679360,
+          "stage_reads": 4344780,
+          "stage_writes": 1556480,
+          "short_range_reads": 1103586
+        },
+        "cold_then_group": {
+          "complete_bytes": 1245184,
+          "stage_reads": 11711342,
+          "stage_writes": 1949696,
+          "short_range_reads": 1367742,
+          "groups_published": 26
+        },
+        "group_then_cold": {
+          "complete_bytes": 1138688,
+          "stage_reads": 2728727,
+          "stage_writes": 1015808,
+          "short_range_reads": 1274499
+        }
+      },
+      "total_stage_writes_cold_then_group": 3506176,
+      "total_stage_writes_group_then_cold": 3194880,
+      "receipt": {
+        "run": "local-run-44482a1a66a4450bb41b989ed279c7ae",
+        "receipt_sha256": "7f6cc67010a11684b13fc3060404f99948916cbfeb2d56c9654f1e2054d7dc88",
+        "log_sha256": "f621079a533ea6a3eb8ce44e3a687808adf59d6173677c8e00cc2668014b4a2d",
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 25497600,
+        "cpu_limit_percent": 14,
+        "memory_limit_bytes": 728760320,
+        "reason": null
+      }
+    },
+    {
+      "workload": "CPython",
+      "fixture_sha256": "1e4415e2c80bd97dd16978c2d68f4c403489cf5ca38916bdbf574a174763aead",
+      "file_count": 24,
+      "logical_bytes": 2230850,
+      "selector_bytes": 131072,
+      "independent": [
+        {
+          "zstd_policy_level": 3,
+          "complete_bytes": 1523712,
+          "short_range_reads": 1030118
+        },
+        {
+          "zstd_policy_level": 9,
+          "complete_bytes": 1417216,
+          "short_range_reads": 988901
+        }
+      ],
+      "group_only": {
+        "complete_bytes": 950272,
+        "stage_reads": 9622717,
+        "stage_writes": 1630208,
+        "short_range_reads": 1052927,
+        "grouped_members": 44
+      },
+      "passes": {
+        "cold_only": {
+          "complete_bytes": 1359872,
+          "stage_reads": 3375822,
+          "stage_writes": 1236992,
+          "short_range_reads": 969340
+        },
+        "cold_then_group": {
+          "complete_bytes": 942080,
+          "stage_reads": 9483536,
+          "stage_writes": 1466368,
+          "short_range_reads": 1053552,
+          "groups_published": 21
+        },
+        "group_then_cold": {
+          "complete_bytes": 868352,
+          "stage_reads": 1976519,
+          "stage_writes": 745472,
+          "short_range_reads": 992000
+        }
+      },
+      "total_stage_writes_cold_then_group": 2703360,
+      "total_stage_writes_group_then_cold": 2375680,
+      "receipt": {
+        "run": "local-run-d1260c23de27428db57ca476bc2a319c",
+        "receipt_sha256": "b00a8aa307204c7bf1edda0a6107c769b8f3f9ebba4bfbd2e54bbabd39e96d57",
+        "log_sha256": "dfbb45e71966adc54c5a9460216c6ffbf76980a921488b8c8c7a41c2fad54094",
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 22298624,
+        "cpu_limit_percent": 14,
+        "memory_limit_bytes": 729808896,
+        "reason": null
+      }
+    },
+    {
+      "workload": "AIT",
+      "fixture_sha256": "baf1e7283ab49cc5b6c14e77e302637e4f17d84d1603af0fd9f3a62645d6ce1c",
+      "file_count": 16,
+      "logical_bytes": 38289319,
+      "selector_bytes": 131072,
+      "independent": [
+        {
+          "zstd_policy_level": 3,
+          "complete_bytes": 51617792,
+          "short_range_reads": 1343590
+        },
+        {
+          "zstd_policy_level": 9,
+          "complete_bytes": 51355648,
+          "short_range_reads": 1337997
+        }
+      ],
+      "group_only": {
+        "complete_bytes": 51617792,
+        "stage_reads": 66560270,
+        "stage_writes": 0,
+        "short_range_reads": 1343590,
+        "grouped_members": 0
+      },
+      "passes": {
+        "cold_only": {
+          "complete_bytes": 50462720,
+          "stage_reads": 128951457,
+          "stage_writes": 50339840,
+          "short_range_reads": 1324393
+        },
+        "cold_then_group": {
+          "complete_bytes": 50462720,
+          "stage_reads": 73005064,
+          "stage_writes": 0,
+          "short_range_reads": 1324393,
+          "groups_published": 0
+        },
+        "group_then_cold": {
+          "complete_bytes": 50462720,
+          "stage_reads": 128951457,
+          "stage_writes": 50339840,
+          "short_range_reads": 1324393
+        }
+      },
+      "total_stage_writes_cold_then_group": 50339840,
+      "total_stage_writes_group_then_cold": 50339840,
+      "receipt": {
+        "run": "local-run-7c6d2b1d1cd14098a4ed8e449c729fc2",
+        "receipt_sha256": "c44923208643aa918e90ee18e1f9bed0e27c9a665c6f159012d230e04d43f637",
+        "log_sha256": "c518696597905ceec4ebae745fc8b7012d5e2b80e18d1f0b3f778cb7ea16c554",
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 406417408,
+        "cpu_limit_percent": 14,
+        "memory_limit_bytes": 730857472,
+        "reason": null
+      }
+    }
+  ],
+  "exact_final_held_out_repeat": {
+    "same_occupied_bytes_reads_and_writes": true,
+    "receipt": {
+      "run": "local-run-644dcea1f68f42b8ac3de165eecaa43f",
+      "receipt_sha256": "9ce60b32f707490334c21ea4a02f7f35d529e063e76ec05b55d2a847bcb71c8e",
+      "log_sha256": "c1e2f97bdbfc8aca31eb09e0588e3401f71e58028c7c3679eb64632e11eec7c7",
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 25694208,
+      "cpu_limit_percent": 14,
+      "memory_limit_bytes": 657457152,
+      "reason": null
+    }
+  },
+  "relocation_regression": {
+    "case": "Twelve independent extents, checked indexed handoff, one extent edited after selection. The retained prior and active snapshot verify every complete file.",
+    "previous": {
+      "new": 12,
+      "reused": 0,
+      "backing_read_bytes": 1022381,
+      "receipt": {
+        "run": "local-run-e7048f9fbc034f199632d38635754d3a",
+        "receipt_sha256": "3c6fed758e4f01296ab8031754943bd55a3d6f4a7a102fd95f9393a1280704d2",
+        "log_sha256": "8f1ecfa7057fd0dd337aeb0f11221f4c56284cd75305e5a506fc951b05aedc42",
+        "exit_code": 1,
+        "tree_retired": true,
+        "peak_job_bytes": 101908480,
+        "cpu_limit_percent": 14,
+        "memory_limit_bytes": 731906048,
+        "reason": null
+      }
+    },
+    "current": {
+      "new": 1,
+      "reused": 11,
+      "backing_read_bytes": 195638,
+      "receipt": {
+        "run": "local-run-d9423ded4369468a98f563ea281230b1",
+        "receipt_sha256": "9faf67058699e6891922769a0483a805c4d5f3b88aa6f90e3c27061744d915c4",
+        "log_sha256": "482e7ebc9ed73a5bb7098145be02fb841871924d1e63979a55e4dae4f638b3ec",
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 108003328,
+        "cpu_limit_percent": 16,
+        "memory_limit_bytes": 753926144,
+        "reason": null
+      }
+    },
+    "codec_free": {
+      "new": 1,
+      "reused": 11,
+      "backing_read_bytes": 204948,
+      "receipt": {
+        "run": "local-run-a10ec4f12c8f420e80868d5d928c491f",
+        "receipt_sha256": "d8a2ba8848c8e8bf0a5aba6c8b90da9f80550ee902531a4894003e7f30fd103e",
+        "log_sha256": "e42f5104feb4f07d6f417bc8fbed7ff4523a7a742afbf4f8e0c3fef85178c0ae",
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 107716608,
+        "cpu_limit_percent": 16,
+        "memory_limit_bytes": 757071872,
+        "reason": null
+      }
+    }
+  },
+  "validation": {
+    "native_windows_cases_passed": 9,
+    "codec_free_windows_cases_passed": 3,
+    "native_ctest_log_sha256": "b906bcdbdc3db73ec5e88fe1bf435a6663b3f8944494679787934af340457863",
+    "all_recorded_job_trees_retired": true
+  },
+  "primary_research": [
+    {
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "provider_source_identity": {
+        "tools/crawl4ai_tool.py": "e84a0e54ee07e4e13d3d2f35491f641730096a78126068f232c1f2397a467d8c",
+        "tools/crawl4ai_research.py": "ec3cb7a98eceed8fef08f3af806d6eaed35656bd76ca0ee8853d273f790337a5",
+        "tools/requirements/crawl4ai.txt": "6a42b0ff5ff6c63c843c6329ce823b819fd4f6f068e68d1836ab6dbec96e8f2f",
+        "tools/crawl4ai_sites.json": "e8869cb0488d78762a90aea6ecf2c3616bb89f0c89a8800cc512c613a750dc86",
+        "tools/nltk_distribution.py": "19eb3007c226b1a13e1ad0daa79cbd8a7bf6d082a20bf386e36ac060d0000919",
+        "tools/python_wheel.py": "c3c9a62454cb377203abce32154bec07cbf805bc7420cc89386c1c18370b301a",
+        "tools/test_nltk_model_security.py": "8aab7e2a704af875992ecae9137cdf5e5ff6935a4dd49e6751c54b2629a7280b",
+        "tools/requirements/python-build.txt": "9b280d724fda87773ba33a2654362adad84c68c4f79394adc07ff2e0293ca498",
+        "tools/crawl4ai_source_build.py": "5c27c4693fa0880a8db399825f637b694616963fc11f708afed33fa5b2e38b48",
+        "tools/crawl4ai_download_opener.py": "d5fd20b5545fd64c93a06b3ef07732f1c2da7e09ee6cda80662475007db52538",
+        "tools/test_crawl4ai_downloads.py": "ae4cf54c351a9da2de49caeb96306f384bb6a8f487318eabc69db4132d658619",
+        "third_party/upstream/nltk/3.10.4/distribution.json": "3241a8670f12e205525fc096572ed1969c063f77e13cffd70eff5eb656fbe1b0",
+        "nltk_upstream_wheel": "e46d89e59ef949270e3b19ab097da8dbb09350e05cb5a746ff92f6ccf6e8ce90",
+        "crawl4ai_source_build": "7da6376934254d9ad1de9e016a4509dae32c47559955889424435fcbbc7419f5"
+      },
+      "receipt_sha256": "6c054c03554e047c5d6b3590f12b0762cd6b963208fb1ec969d75f139a3fcacd",
+      "pages": [
+        {
+          "url": "https://meta.github.io/zstd/doc/api_manual_latest.html",
+          "http_status": 200,
+          "success": true,
+          "markdown_bytes": 132742,
+          "markdown_sha256": "0c9fb8969be62f9ddb4554d4e220b27a645cfa554416e84fef011ba940bf9533",
+          "capture_sha256": "f2d3e90cbebf7f4e550f568dc016b9715c08800f9a366a463226a2c229da24ab"
+        },
+        {
+          "url": "https://www.usenix.org/conference/fast26/presentation/huang",
+          "http_status": 200,
+          "success": true,
+          "markdown_bytes": 10395,
+          "markdown_sha256": "b271b38f1feb88acd780ae11d756c7f3723fecb288cfe5e7803fed9c5d93767d",
+          "capture_sha256": "01f207bdb1bb8d556914c302484f6cefebc8004a3dd17c967f82328fdac788e7"
+        },
+        {
+          "url": "https://curl.se/docs/releases.html",
+          "http_status": 200,
+          "success": true,
+          "markdown_bytes": 50668,
+          "markdown_sha256": "5cd7f9012476bf332640a9f94146764ac4b4614f566bfd43a86e5a5235a2514c",
+          "capture_sha256": "fb851a22966d48270277964be1a6af01601b2b78a956719478a92ba164c8a442"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_io_priority_hint_info",
+          "http_status": 200,
+          "success": false,
+          "markdown_bytes": 37149,
+          "markdown_sha256": "3e589333077e848599bbc244966ae0a5f5e9199a9cd85fa27a38beb45d76c885",
+          "capture_sha256": "5a0d4e8b04ab62498d460c79cf1321d940e19e3d0121b8d8074355ab9c7084a9",
+          "diagnosis": "unexpected_content"
+        }
+      ]
+    },
+    {
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "provider_source_identity": {
+        "tools/crawl4ai_tool.py": "e84a0e54ee07e4e13d3d2f35491f641730096a78126068f232c1f2397a467d8c",
+        "tools/crawl4ai_research.py": "ec3cb7a98eceed8fef08f3af806d6eaed35656bd76ca0ee8853d273f790337a5",
+        "tools/requirements/crawl4ai.txt": "6a42b0ff5ff6c63c843c6329ce823b819fd4f6f068e68d1836ab6dbec96e8f2f",
+        "tools/crawl4ai_sites.json": "e8869cb0488d78762a90aea6ecf2c3616bb89f0c89a8800cc512c613a750dc86",
+        "tools/nltk_distribution.py": "19eb3007c226b1a13e1ad0daa79cbd8a7bf6d082a20bf386e36ac060d0000919",
+        "tools/python_wheel.py": "c3c9a62454cb377203abce32154bec07cbf805bc7420cc89386c1c18370b301a",
+        "tools/test_nltk_model_security.py": "8aab7e2a704af875992ecae9137cdf5e5ff6935a4dd49e6751c54b2629a7280b",
+        "tools/requirements/python-build.txt": "9b280d724fda87773ba33a2654362adad84c68c4f79394adc07ff2e0293ca498",
+        "tools/crawl4ai_source_build.py": "5c27c4693fa0880a8db399825f637b694616963fc11f708afed33fa5b2e38b48",
+        "tools/crawl4ai_download_opener.py": "d5fd20b5545fd64c93a06b3ef07732f1c2da7e09ee6cda80662475007db52538",
+        "tools/test_crawl4ai_downloads.py": "ae4cf54c351a9da2de49caeb96306f384bb6a8f487318eabc69db4132d658619",
+        "third_party/upstream/nltk/3.10.4/distribution.json": "3241a8670f12e205525fc096572ed1969c063f77e13cffd70eff5eb656fbe1b0",
+        "nltk_upstream_wheel": "e46d89e59ef949270e3b19ab097da8dbb09350e05cb5a746ff92f6ccf6e8ce90",
+        "crawl4ai_source_build": "7da6376934254d9ad1de9e016a4509dae32c47559955889424435fcbbc7419f5"
+      },
+      "receipt_sha256": "3eb56910b7ba7dcde9537699053602da62d8a00f421beef7bf3b17b9620d4d49",
+      "pages": [
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_io_priority_hint_info",
+          "http_status": 200,
+          "success": true,
+          "markdown_bytes": 37149,
+          "markdown_sha256": "3e589333077e848599bbc244966ae0a5f5e9199a9cd85fa27a38beb45d76c885",
+          "capture_sha256": "46177867ace187c9eec566d10e40596290600ca8a194ac1f9ed8aa5a0bcb5f00"
+        }
+      ]
+    }
+  ],
+  "source_navigation": {
+    "response_sha256": "998702bc117685a973aa6fa80f4b91a803477b9ec1b87d5563d406a9a0f76d95",
+    "provider_version": "0.2.43",
+    "actual_searches": 1,
+    "commit": "f456616cb2f64f833337e83372df3f67e61d5ce8",
+    "dirty_patch_sha256": "436f20a909ffd76c8eee46878a4d7391ff7a5e59e5fee6f973696b3f3b8ec053",
+    "receipt_sha256": "f703850edf3a0456f55b7b7caee80cafe7b76c7a2303f248076e86781d166e66",
+    "earlier_attempts": [
+      {
+        "run": "local-run-edb996f660c644d8bc743b692dd48552",
+        "receipt_sha256": "92fb4f56b7f1e47c6378444c1dedad4169aa1474c2bdea391500eeff702eef77",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exit_code": 1460,
+        "tree_retired": true,
+        "peak_job_bytes": 941277184,
+        "cpu_limit_percent": 13,
+        "memory_limit_bytes": 909115392,
+        "reason": "deadline"
+      },
+      {
+        "run": "local-run-a2e49148efa94f259479de0db3200470",
+        "receipt_sha256": "07e788e70f718eacc6f7687688156e7627d5616ac63b372ba211bacf75582bd5",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exit_code": 1460,
+        "tree_retired": true,
+        "peak_job_bytes": 873455616,
+        "cpu_limit_percent": 18,
+        "memory_limit_bytes": 839909376,
+        "reason": "deadline"
+      }
+    ],
+    "restoration": "Narrowed the source set and adjusted the process memory allowance to verified host headroom after the bounded retries exceeded their deadlines."
+  },
+  "limits": [
+    "Stage write totals count the two compared operations. Detached final layout measurement is excluded from their write-traffic sums.",
+    "Recorded sizes include the selector. Peak job memory and retained imagery are separate from settled bytes.",
+    "Explicit reconciled copy measures a possible outcome. Automatic screen funding and mounted throughput need their own evidence.",
+    "This checkpoint covers CPU correctness and accounting. Physical interruption, ordinary AMD gain and release qualification remain open."
+  ]
+}

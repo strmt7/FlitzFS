@@ -14,10 +14,9 @@ its configured level.
 Only the initial copy tries stronger encoding. Reconciliation copies
 intervening foreground records with their existing encodings. On a
 successful handoff, the live session records the last generation covered
-by that copy. A later compaction skips those generations on the selected
-image. A new session can evaluate them again. Explicit raw policy and
-compaction to restore a verified damaged copy retain the original encoding
-path.
+by that copy. Protected optimization state can retain that coverage across
+reopen when the image, selector, checkpoint and encoding policy match.
+Explicit raw policy and damaged-copy recovery use the preservation path.
 
 The three public-derived level 3 Zstandard inputs used 5.0–7.1% fewer
 complete image bytes than compaction that preserved their original
@@ -27,6 +26,26 @@ fast-policy fixture used raw ingestion in this build and verified replay
 of a foreground edit made after the first candidate was ready.
 [Relocation evidence](evidence/indexed-cold-encoding-2026-11-20.json) ·
 [Zstandard parameter and allocator API](https://meta.github.io/zstd/doc/api_manual_latest.html)
+
+## Order of collective and stronger encoding
+
+The ordinary optional cold route yields to pending group work. On the
+CPython and curl revision cohorts, grouping before the stronger copy
+produced the smaller final image and less cumulative stage write traffic.
+On AIT A–P, neither order produced a group. Its stronger 50,339,840-byte
+copy saved 1,155,072 settled bytes. That observation motivates keeping
+the cold copy's write-budget and size screening. Reclamation that has
+already earned a copy can evaluate stronger encoding in its existing pass.
+[Paired complete-file evidence](evidence/windows-collective-cold-order-2026-11-24.json)
+
+A verified indexed copy keeps record identities, revisions and decoded
+bytes. The live grouping controller can reuse its bounded cache of
+similarity samples after that handoff. It checks the current object and
+extent binding before reusing a sample and updates its price from the
+current stored payload size. Grouping decisions and pending encoding work
+are prepared for the new image. The original and published data remain
+independently readable through their respective snapshots.
+[Discovery contract](AUTOMATIC_GROUP_MAINTENANCE.md#reusing-samples-after-a-verified-copy)
 
 ## Explicit recompression
 

@@ -23,7 +23,7 @@
     "latest_mounted_retirement_evidence": "docs/evidence/windows-mounted-packed-retirement-2026-11-23.json",
     "latest_amd_evidence": "docs/evidence/windows-amd-group-supervisor-comparison-2026-11-24.json",
     "latest_group_exchange_profile": "docs/evidence/windows-amd-group-supervisor-comparison-2026-11-24.json",
-    "latest_protected_size_evidence": "docs/evidence/windows-protected-prefix-banks-2026-11-24.json",
+    "latest_protected_size_evidence": "docs/evidence/windows-collective-cold-order-2026-11-24.json",
     "settled_size_implementation": "docs/RELEASE_RECONCILIATION_2026-11-24.md#first-settled-size-implementation-sequence",
     "ntfs_comparison": "docs/BENCHMARK_PROTOCOL.md#plain-and-native-compressed-ntfs",
     "first_implementation_slice": "docs/RELEASE_EXECUTION_PLAN.md#first-implementation-slice",
@@ -45,7 +45,7 @@
     "latest_mixed_size_resident_worker": "docs/evidence/windows-mixed-size-resident-worker-2026-11-24.json",
     "latest_write_geometry_calibration": "docs/evidence/windows-amd-write-geometry-calibration-2026-11-24.json",
     "latest_indexed_name_page_inventory": "docs/evidence/indexed-name-page-inventory-2026-11-23.json",
-    "next": "Use the populated Win32 trace for mounted copy, selection and physical settlement. Apply matched supervision to CPU, cold and prepared AMD routes on identical client demand. Compare the existing high-ratio CPU re-encode with grouped compression at equal protection. Continue generation-bound attach shadowing and independent CPU recovery.",
+    "next": "Use the populated Win32 trace for mounted copy, selection and physical settlement. Apply matched supervision to CPU, cold and prepared AMD routes on identical client demand. Use the matched cold-copy and grouping orders as controls for shift-tolerant candidates and held-out binaries. Continue generation-bound attach shadowing and independent CPU recovery.",
     "release_qualified": false
   },
   "baseline": {

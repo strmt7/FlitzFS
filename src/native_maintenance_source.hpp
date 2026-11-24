@@ -27,6 +27,10 @@ struct NativeMaintenanceSource {
   const bool* terminal=nullptr;
   bool automatic_compression=false;
   std::weak_ptr<const void> active;
+  // Set only by a verified indexed copy that keeps record IDs and revisions.
+  struct VerifiedRelocation {
+    StoreIdentity from{},to{};
+  } relocation;
   struct GroupAppendRefusal {
     StoreIdentity image{};
     std::uint64_t generation=0,shortfall_bytes=0;

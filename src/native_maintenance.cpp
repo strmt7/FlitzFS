@@ -218,6 +218,8 @@ struct NativeGroupMaintenance::Impl {
   // Indexed discovery retains only a window and a bounded set of prior
   // representatives. Neither owns a namespace snapshot or decoded bytes.
   std::map<std::uint64_t,Feature> representatives;
+  // A relocated sample can rejoin discovery only after a live token lookup.
+  std::map<std::uint64_t,Feature> relocated_samples;
   bool extent_scan_exhausted=false;
   std::optional<NativeExtentSelection> refresh_base;
   std::map<Band,Bucket> buckets;
@@ -260,14 +262,17 @@ struct NativeGroupMaintenance::Impl {
         (writer.maintenance_has_candidates() &&
         (image!=image_id || completed_sequence!=writer.maintenance_content_sequence() || new_coherence(owner,image_id)));
   }
-  void reset_index() noexcept {
+  void reset_index(bool keep_relocated_samples=false) noexcept {
     work.reset();staged_groups.clear();staged_objects.clear();deferred_batch_objects.clear();
     staged_extents=staged_search_members=staged_scan_extents=0;
     work_batched=batch_draining=false;
     work_sampled_retry=false;work_sampled_key.reset();group_trial={};
     features.clear();buckets.clear();attempted.clear();attempted_order.clear();candidate_order.clear();
     candidate_index=band_offset=0;completed_sequence=0;phase=Phase::idle;state.owned_payload_bytes=0;pending_history=0;work_ids.clear();
-    representatives.clear();refresh_base.reset();extent_scan_exhausted=false;
+    relocated_samples.clear();
+    if(keep_relocated_samples)relocated_samples.swap(representatives);
+    else representatives.clear();
+    refresh_base.reset();extent_scan_exhausted=false;
     coherence_after=coherence_binding=0;
     coherence_query=0;coherence_alternate.reset();packing_after=0;packing_window.reset();
     checkpoint_loaded=checkpoint_due=false;checkpoint_samples=state.sampled_extents;scan_revisit=false;
@@ -346,6 +351,7 @@ struct NativeGroupMaintenance::Impl {
       if(writer.maintenance_content_sequence()==scan_sequence) {
         update_count=next_update=0;
         completed_sequence=scan_sequence;
+        relocated_samples.clear();
         phase=Phase::idle;
         return;
       }
@@ -384,7 +390,11 @@ struct NativeGroupMaintenance::Impl {
       representatives.emplace(item.object,std::move(feature));
       trim_representatives(maximum_representatives);
     }
-    if(complete){completed_sequence=scan_sequence;phase=Phase::idle;}
+    if(complete) {
+      relocated_samples.clear();
+      completed_sequence=scan_sequence;
+      phase=Phase::idle;
+    }
     ++state.checkpoints_restored;
     return true;
   }
@@ -535,7 +545,12 @@ struct NativeGroupMaintenance::Impl {
     const auto sampled=features.find(id);
     return sampled!=features.end()?sampled->second:representatives.at(id);
   }
+  std::size_t representative_count() const noexcept {
+    return representatives.size()+relocated_samples.size();
+  }
   void trim_representatives(std::size_t maximum) noexcept {
+    while(representative_count()>maximum && !relocated_samples.empty())
+      relocated_samples.erase(relocated_samples.begin());
     while(representatives.size()>maximum) {
       const auto disposable=std::ranges::find_if(representatives,[](const auto& item){return !item.second.token.exact_base;});
       representatives.erase(disposable==representatives.end()?representatives.begin():disposable);
@@ -955,16 +970,21 @@ struct NativeGroupMaintenance::Impl {
         if(!staged_groups.empty())++staged_scan_extents;
         if(!update_count){cursor=token->extent;first=false;}
         if(token->object) {
-          const auto known=representatives.find(token->object);
+          const auto retained=representatives.find(token->object);
+          auto relocated=relocated_samples.extract(token->object);
+          const auto* known=retained!=representatives.end()?&retained->second:
+              (relocated.empty()?nullptr:&relocated.mapped());
           const bool can_publish_catalog=owner.coherence_writer || owner.coherence_storage;
-          if(known!=representatives.end() && known->second.projected && known->second.token.revision==token->revision &&
-              (!owner.automatic_compression || known->second.measured) &&
-              (known->second.deltas_sampled || !can_publish_catalog) &&
-              known->second.token.extent.inode==token->extent.inode &&
-              known->second.token.extent.extent_index==token->extent.extent_index) {
+          if(known && known->projected && known->token.revision==token->revision &&
+              (!owner.automatic_compression || known->measured) &&
+              (known->deltas_sampled || !can_publish_catalog) &&
+              known->token.extent.inode==token->extent.inode &&
+              known->token.extent.extent_index==token->extent.extent_index) {
             // Index lookups provide the revision; a verified payload sample
             // also carries the representation's learned group role.
-            features.insert_or_assign(token->object,known->second);
+            auto matched=*known;
+            matched.token.stored_payload_bytes=token->stored_payload_bytes;
+            features.insert_or_assign(token->object,std::move(matched));
             ++state.reused_features;
           } else {
             auto feature=measure(writer,*token);
@@ -1260,7 +1280,12 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
     p.reset_index();p.state.phase=Phase::failed;return p.progress();
   }
   auto& writer=*source->writer;const auto image=writer.maintenance_identity();
-  if(p.image!=image){p.reset_index();p.image=image;}
+  const bool indexed=writer.maintenance_indexed();
+  if(p.image!=image) {
+    const auto& relocation=source->relocation;
+    p.reset_index(indexed && relocation.from==p.image && relocation.to==image);
+    p.image=image;
+  }
   if(!observed.sequence || observed.sequence<=p.last_observation)return p.defer(Defer::observation);
   p.last_observation=observed.sequence;
   const auto resources=detail::maintenance_resources(observed,now_ms,p.policy);
@@ -1268,7 +1293,6 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
   if(observed.continued && observed.captured_ms!=p.last_capture)return p.defer(Defer::observation);
   const auto elapsed=p.last_capture?(std::min)(observed.captured_ms-p.last_capture,observed.cpu_window_ms):0;
   p.last_capture=observed.captured_ms;
-  const bool indexed=writer.maintenance_indexed();
   auto budget=group_memory_budget(*resources,indexed);
   const bool batched_work=p.work && p.work_batched;
   const bool retained_sections=p.work && !batched_work && p.work->progress().section_comparison;
@@ -1284,12 +1308,12 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
   }
   const auto [maximum_members,maximum_representatives]=budget;
   if(maximum_members<2 || p.group_members()>maximum_members)return p.defer(Defer::memory,true);
-  if(p.representatives.size()>maximum_representatives) {
+  if(p.representative_count()>maximum_representatives) {
     if(p.phase!=Phase::idle)return p.defer(Defer::memory,true);
     p.trim_representatives(maximum_representatives);
   }
   const auto fits=[&](const GroupMemoryBudget& extra) {
-    return p.group_members()<=extra.members && p.representatives.size()<=extra.representatives;
+    return p.group_members()<=extra.members && p.representative_count()<=extra.representatives;
   };
   const auto packing_budget=group_memory_budget(*resources,indexed,sections,true);
   const auto packing_members=indexed && store_zstd_available() && fits(packing_budget)?packing_budget.members:0;

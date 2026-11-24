@@ -184,12 +184,15 @@ and metadata. This fixture measures collective packing. The idle cold-codec
 rewrite, persistent coherence catalog and mounted I/O have their own test paths.
 
 Run `flitzfs_native_group_maintenance_tests --profile-public-reencode FILE`
-for the same fixture with two detached independent rebuild controls. They
-use the native automatic Zstandard policies at levels 3 and 9. Each arm
-reopens the complete mirrored image, checks short ranges and verifies all
-files. Add the printed selector size to the image size. The operation
-exercises the in-format CPU encoder and records settled size and range I/O.
-[Protected-size comparison](evidence/windows-protected-prefix-banks-2026-11-24.json)
+for independent rebuilds at native Zstandard policy levels 3 and 9 and
+three arms using the ordinary stronger staged copy. The latter measure a
+cold copy alone, grouping after that copy, and the cold copy after grouping.
+Each arm reopens the complete mirrored image, checks short ranges and
+verifies all files. Add the selector size to the image size. Sum the stage
+write counters for each order, and report private final-compaction
+measurements separately from stage traffic.
+[Matched order comparison](evidence/windows-collective-cold-order-2026-11-24.json) ·
+[Earlier protected-size controls](evidence/windows-protected-prefix-banks-2026-11-24.json)
 
 For standalone codec controls, pass the individual original files to
 [lzbench v2.4](https://github.com/inikep/lzbench/releases/tag/v2.4) with

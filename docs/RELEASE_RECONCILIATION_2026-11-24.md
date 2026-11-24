@@ -376,22 +376,22 @@ must pay its own observation, model and metadata cost. [E04–E07](IMPLEMENTATIO
 
 #### First settled-size implementation sequence
 
-The first matched independent rebuild now establishes two priorities. The
-existing grouped representation used 950,272 complete bytes on CPython
-revisions versus 1,417,216 for the highest supported independent Zstandard
-policy. On AIT A–P, grouping used 51,617,792 bytes and the independent
-rebuild used 51,355,648. All sizes include the selector and the same
-writable mirroring. Level 9 is the current native writer limit. Standalone
-higher-level codec controls and production rewrite cost still need a paired
-comparison. Compare the combined re-encode and grouping arms next. Advance
-shift-tolerant grouping for revision families. AIT's 0.51% gain from
-independent re-encoding warrants measuring the cost before funding an
-automatic rewrite. [Matched protected-size evidence](evidence/windows-protected-prefix-banks-2026-11-24.json)
+The matched arms use the stronger encoder already available during a
+staged indexed copy. Grouping before that copy saved 73,728 settled bytes
+on CPython revisions and 106,496 on the held-out curl revisions compared
+with the reverse order. It also cut cumulative stage writes by 327,680 and
+311,296 bytes respectively. AIT A–P had no useful grouping in either arm.
+Its stronger copy wrote 50,339,840 bytes to save 1,155,072. These samples
+favor group-first work for observed revision families and combining cold
+encoding with an already-funded reclaim copy on weak-gain cohorts. The
+volume scheduler still uses live resources and generation checks. Continue
+with the shift-tolerant candidate comparison and mounted interference.
+[Matched order and write evidence](evidence/windows-collective-cold-order-2026-11-24.json)
 
 | Step | Production boundary and deliverable | Exit evidence |
 | --- | --- | --- |
 | C1 · Lock inputs and cost axes | Use the indexed rebuild and AIT fixture loader. Freeze whole-file manifests, allocation unit, protection, initial write policy, cache condition, durable generations and reader pins. Record payload, headers, padding, selector, catalog, live and retired backing, and peak temporary bytes. | Compaction and independent CPU reopen agree with the lossless witness. Report writable and sealed-parity sizes in separate series. Reconcile projected image size against occupied backing. |
-| C2 · Measure strong independent compression | Reuse the verified level-3 and level-9 rebuilds and current group control. Compare grouping from stronger independent input and re-encoding after grouping. Measure complete bytes, backing writes and reads, cold random ranges, and foreground delay. Extend to unseen revisions, mixed binaries and already-compressed media held out by provenance. | When independent compression dominates at viable rewrite cost, implement resumable per-object re-encoding through ordinary ownership. Where groups save more and meet the access envelope, prioritize their observed families. |
+| C2 · Measure strong independent compression | Carry the measured level-3 and level-9 rebuilds, group-only and both staged-copy orders into mixed binaries, already-compressed media and ordinary client access. Measure complete bytes, backing writes and reads, cold random ranges and foreground delay. Capture live eligibility separately from the size arms. | Use the cohort-specific savings and rewrite cost to decide whether each independent or combined representation belongs in normal maintenance. Test resumable per-object re-encoding where the gain cannot justify a full copy. |
 | C3 · Find missed candidates cheaply | Keep exact identity before approximate matching. Add a shift-tolerant fragment challenger beside the current offset sketches. Page sparse postings by sketch lane and band, with immutable extent versions and resumable bucket positions. Rank a bounded shortlist by estimated protected savings and send the survivors to the allocator for exact pricing. | Measure candidate recall and marginal savings against exhaustive pricing on small families. Fit page reads, comparisons and rewrite bytes across independent count and size tiers. Validate on a held-out tier and report projections to tens of millions with workload assumptions and uncertainty. |
 | C4 · Refine restartable representations | Stage independent high Zstandard, same-base prefix and shifted copy/residual candidates. Compare different bases as whole proposals. Mix member encodings only when they bind the same reference bytes and pass the complete layout check. Give large families independently addressable frames and a bounded direct dependency set per frame. | Choose the smallest settled feasible image after lossless decode, recoverable references, foreground random access and background interference checks. Attribute any reduction to the contributing representation and placement. |
 | C5 · Publish and retire through the same owner | Bind the proposal to checked image and extent generations. Reprice after competing writes, retain new dependencies before publishing descriptors, and use the current checked copy-on-write root. Queue old ranges after durable references and reader pins clear. Keep ranking feedback reconstructible. | Verify the flush witness, both namespace generations, peer repair and occupied-size plateau through cuts at payload, barrier, root, selector and retirement. Read each recovered case with the independent CPU reader. |
