@@ -102,7 +102,7 @@ class IndexedSharedBasePreparation final {
   bool stage_search(std::size_t maximum_members,std::weak_ptr<const void>& owner_window,NativeSharedBaseSearchPurpose);
   NativeSharedBaseSearchWindow search_window() const noexcept;
   bool price_reference();
-  void admit_variants(bool packing,bool staged_reference) noexcept;
+  void admit_variants(bool packing,bool staged_reference,bool automatic) noexcept;
   bool advance(std::span<const NativeSharedBaseCopyRange>,const NativeSharedBaseSearchReply*);
   NativeSharedBaseCommit finish(PagedObjectStoreWriter&,const PagedObjectStoreSnapshot&,IndexedVolumeRoot&);
 
@@ -166,7 +166,7 @@ class IndexedSharedBasePreparation final {
   std::uint32_t reference_member_=0;
   bool allow_subset_=false,invalidated_=false,search_storage_unavailable_=false;
   bool packing_admitted_=false,staged_reference_admitted_=false,staged_reference_comparison_=false;
-  bool compare_reference_=false,section_comparison_finished_=false;
+  bool compare_sections_=false,compare_prefix_=false,automatic_compression_=false;
   bool packed_only_=false;
 };
 struct IndexedPreparationWatch {

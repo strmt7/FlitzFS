@@ -183,6 +183,14 @@ Report the image and selector sizes, including protected stored objects, index
 and metadata. This fixture measures collective packing. The idle cold-codec
 rewrite, persistent coherence catalog and mounted I/O have their own test paths.
 
+Run `flitzfs_native_group_maintenance_tests --profile-public-reencode FILE`
+for the same fixture with two detached independent rebuild controls. They
+use the native automatic Zstandard policies at levels 3 and 9. Each arm
+reopens the complete mirrored image, checks short ranges and verifies all
+files. Add the printed selector size to the image size. The operation
+exercises the in-format CPU encoder and records settled size and range I/O.
+[Protected-size comparison](evidence/windows-protected-prefix-banks-2026-11-24.json)
+
 For standalone codec controls, pass the individual original files to
 [lzbench v2.4](https://github.com/inikep/lzbench/releases/tag/v2.4) with
 `-elz4,0/zstd,3,12,19/brotli,9 -t0,0 -i1,3 -o4`. Use `-elzma,6` in a

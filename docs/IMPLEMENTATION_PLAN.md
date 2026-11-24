@@ -409,6 +409,15 @@ determine the next route and representation implementation.
 
 #### E04 through E07. Establish the complete-volume compression frontier
 
+Start with C1 and C2 in the
+[settled-size implementation sequence](RELEASE_RECONCILIATION_2026-11-24.md#first-settled-size-implementation-sequence).
+The matched level-3 and level-9 controls already show distinct results for
+CPython revisions and AIT. Measure their interaction with grouping on
+held-out files under the same writable protection and geometry. Price
+protection changes in their own paired runs. Use complete savings and
+rewrite/read costs to choose between independent cold re-encoding and
+deeper similarity work for each data family.
+
 1. **Build the accounting and recall oracles.** Freeze content manifests,
    revision groups and access schedules before tuning. Keep AIT A–H and I–P
    as distinct named partitions and keep an additional corpus/revision

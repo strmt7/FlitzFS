@@ -1068,7 +1068,7 @@ struct NativeGroupMaintenance::Impl {
       }
     }
     if(work) {
-      writer.admit_shared_base_variants(*work,packing_members!=0,work_batched && staged_reference);
+      writer.admit_shared_base_variants(*work,packing_members!=0,work_batched && staged_reference,owner.automatic_compression);
       if(phase==Phase::preparing) {
         auto grant=(std::min)(search.maximum_members,maximum_members);
         if(work_batched)grant=!batch_draining && grant>staged_search_members?

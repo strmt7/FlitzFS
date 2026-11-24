@@ -1,0 +1,214 @@
+{
+  "schema": 1,
+  "date": "2026-11-24",
+  "experimental": true,
+  "scope": "Live AMD SDK callback fixture on Windows. Alternating CPU-cap arms use identical protected mixed-group inputs and binary artifacts. Current implementation checks use the uninstrumented worker.",
+  "source": {
+    "reviewed_commit": "af0aba8556364e643b208ce4694b04456963652f",
+    "reviewed_tree": "3154befa7dcf83310d7c00a5d75a078acfbc2b83",
+    "matched_fixture_commit": "b47de68973472792e15f6f78bdcf58b81090a604",
+    "matched_fixture_blob": "f8a91ba6fa0620caf041f15b8b3bae5518bb94cf",
+    "live_current_fixture_blob": "dce6e1279c27f02d6932135baaf1c3b24013b2f4",
+    "diagnostic_source": {
+      "path": "docs/evidence/windows-amd-group-exchange-phases-2026-11-24.json",
+      "sha256": "58959144475d23df42330fb8d45b65711390753772541c9969ddb14c63386a79"
+    },
+    "ready_dispatch_source": {
+      "path": "docs/evidence/windows-amd-group-read-admission-2026-11-24.json",
+      "sha256": "db260f6a0d220a47982da7cca1607ff50ec34d71a7528083419423dd6dde8919"
+    }
+  },
+  "host": {
+    "windows_build": "26300",
+    "adapter": "AMD Radeon RX 9070 XT",
+    "driver": "32.0.32029.2010",
+    "architecture": "gfx1201",
+    "runtime": "amdhip64_7.dll",
+    "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+    "configuration_sha256": "d201d9dda038857b9f63816a44778dc25bafd08c683d1f5fcd21815ff851c049",
+    "luid": "9d75010000000000"
+  },
+  "matched": {
+    "artifacts": {
+      "flitzfs_winfsp_paged_tests.exe": {
+        "bytes": 2224128,
+        "sha256": "e68c7ddc86ed6ad446489a67c8005e8da1425c55d05ea52b67897e786df05409"
+      },
+      "winfsp-x64.dll": {
+        "bytes": 200816,
+        "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+      },
+      "flitzfs_native_lz4_read_worker.exe": {
+        "bytes": 623616,
+        "sha256": "58443518383c10ac40493d467eccf42f713c150e9ebe3b9844d9a71737074308"
+      },
+      "flitzfs_rocm_native_lz4_decode.dll": {
+        "bytes": 173568,
+        "sha256": "a687a83c30fd5381f90f4754dc4e4d20dcc3d9ae89d064d502baf9a7fc825173"
+      }
+    },
+    "order": "ABBA. A adds the fixture CPU cap. B verifies and uses the enclosing supervisor CPU cap. Worker limits are common.",
+    "trials": [
+      {
+        "arm": "nested-1",
+        "utc": "2026-11-24T22:03:13.9814371Z",
+        "mode": "mixed_sparse_xor_modular",
+        "receipt": "local-run-39e797abd8b647e1857e509a0c5cf8ba",
+        "receipt_sha256": "151fd2c33b135b0e2f8eabf787d92b19ea5e90d6da10d4ff0018257d0c5ea4a5",
+        "log_sha256": "0117fac78867a9f481158a3621112a85a1f3403a77254371b0dad6b10294f84f",
+        "supervisor_cpu_percent": 18,
+        "fixture_cpu_rate_hundredths": 2000,
+        "worker_exchange_ms": 4984,
+        "submission_through_publication_ms": 4984,
+        "gpu_frames_consumed": 2,
+        "late_reply_refused": true,
+        "independent_cpu_exact": true,
+        "backing_writes": 0,
+        "job_peak_commit_bytes": 161054720,
+        "job_retired": true,
+        "instrumentation": {
+          "sha256": "bf7218b4397c469e2f81b47a27f9e2c9b39ca106aade38b10f8dcf447d3d1a0a",
+          "device_initialized_to_kernel_attributes_ms": 4757.081,
+          "upload_finished_to_kernel_sync_ms": 0.118,
+          "entry_to_reply_ms": 4926.643
+        }
+      },
+      {
+        "arm": "supervised-1",
+        "utc": "2026-11-24T22:03:25.9269087Z",
+        "mode": "mixed_sparse_xor_modular",
+        "receipt": "local-run-2adbd763db3b43ce9c017383da9f09e4",
+        "receipt_sha256": "6be24cbbaf9f6d6f3ffba981a07c0f57f080b20599276b338610d0c84ca0c270",
+        "log_sha256": "c702d1167bc8c50f34de4caac02ba565e7a937d0194a369449e85ffc9bd7dbf9",
+        "supervisor_cpu_percent": 18,
+        "fixture_cpu_rate_hundredths": 0,
+        "worker_exchange_ms": 969,
+        "submission_through_publication_ms": 969,
+        "gpu_frames_consumed": 2,
+        "late_reply_refused": true,
+        "independent_cpu_exact": true,
+        "backing_writes": 0,
+        "job_peak_commit_bytes": 162324480,
+        "job_retired": true,
+        "instrumentation": {
+          "sha256": "4a3c0bcaec8c2743fef75c7d0ddf36b2ea448a6c1e55549e6af8dd6f6e878548",
+          "device_initialized_to_kernel_attributes_ms": 804.634,
+          "upload_finished_to_kernel_sync_ms": 0.103,
+          "entry_to_reply_ms": 923.787
+        }
+      },
+      {
+        "arm": "supervised-2",
+        "utc": "2026-11-24T22:03:33.7168438Z",
+        "mode": "mixed_sparse_xor_modular",
+        "receipt": "local-run-b82fc6dc2c974dbcbcad69399709e032",
+        "receipt_sha256": "66c657d7c0a187e1d4a28ee00bd2d16f80d61e02c26165d7cd56abfd3b37c9c4",
+        "log_sha256": "7d8ffe4b04a2cff6caadcad2859af2d267251cd9952f7a85f7ec03ea131d7bcf",
+        "supervisor_cpu_percent": 18,
+        "fixture_cpu_rate_hundredths": 0,
+        "worker_exchange_ms": 985,
+        "submission_through_publication_ms": 985,
+        "gpu_frames_consumed": 2,
+        "late_reply_refused": true,
+        "independent_cpu_exact": true,
+        "backing_writes": 0,
+        "job_peak_commit_bytes": 161951744,
+        "job_retired": true,
+        "instrumentation": {
+          "sha256": "b51ff446018299f6afa2afc210ac16a0269590726e7927236dfd97ed89d08c28",
+          "device_initialized_to_kernel_attributes_ms": 823.384,
+          "upload_finished_to_kernel_sync_ms": 0.179,
+          "entry_to_reply_ms": 940.603
+        }
+      },
+      {
+        "arm": "nested-2",
+        "utc": "2026-11-24T22:03:41.5108563Z",
+        "mode": "mixed_sparse_xor_modular",
+        "receipt": "local-run-fa52fade99a047b0b3649086d7af9c89",
+        "receipt_sha256": "7e4703a71b39e0bfbe7a999c72fa4171ac4c2293a24d6d6bb33d5dbe3e027afe",
+        "log_sha256": "f03b8dc67d6d3ebb9f162ead79327181e494cea21f3a3eebc36025ee1c1d3ffa",
+        "supervisor_cpu_percent": 18,
+        "fixture_cpu_rate_hundredths": 2000,
+        "worker_exchange_ms": 5391,
+        "submission_through_publication_ms": 5406,
+        "gpu_frames_consumed": 2,
+        "late_reply_refused": true,
+        "independent_cpu_exact": true,
+        "backing_writes": 0,
+        "job_peak_commit_bytes": 167198720,
+        "job_retired": true,
+        "instrumentation": {
+          "sha256": "df33468b0e1c5eb17b32fa0b4b54b1583a977ce4472b941c5acb010611c5fbfb",
+          "device_initialized_to_kernel_attributes_ms": 4739.95,
+          "upload_finished_to_kernel_sync_ms": 0.124,
+          "entry_to_reply_ms": 5349.86
+        }
+      }
+    ]
+  },
+  "current": {
+    "artifacts": {
+      "flitzfs_winfsp_paged_tests.exe": {
+        "bytes": 2224640,
+        "sha256": "67c4359ce0d3dadbe0469175423b36874d06aa2d46a218570d53a74779bf8ffb"
+      },
+      "winfsp-x64.dll": {
+        "bytes": 200816,
+        "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+      },
+      "flitzfs_native_lz4_read_worker.exe": {
+        "bytes": 581632,
+        "sha256": "c41816781e474fda107f11691b7cc0adbd492d4b1c60929ca43f97ddbba17379"
+      },
+      "flitzfs_rocm_native_lz4_decode.dll": {
+        "bytes": 173568,
+        "sha256": "a687a83c30fd5381f90f4754dc4e4d20dcc3d9ae89d064d502baf9a7fc825173"
+      }
+    },
+    "trials": [
+      {
+        "arm": "current_mixed",
+        "utc": "2026-11-24T22:04:25.2336876Z",
+        "mode": "mixed_sparse_xor_modular",
+        "receipt": "local-run-ec78ed8ac8c34584bf377308bc616b46",
+        "receipt_sha256": "ea8f6f23876ec07b53738de66d5fecad3ce27d1d03ebec8e0331d22ccc8dc04e",
+        "log_sha256": "d47bab90abdc82ef75775b4ee42b18c815443988387ff6d2378b8d49fdfd2aa4",
+        "supervisor_cpu_percent": 18,
+        "fixture_cpu_rate_hundredths": 0,
+        "worker_exchange_ms": 1125,
+        "submission_through_publication_ms": 1156,
+        "gpu_frames_consumed": 2,
+        "late_reply_refused": true,
+        "independent_cpu_exact": true,
+        "backing_writes": 0,
+        "job_peak_commit_bytes": 192520192,
+        "job_retired": true
+      },
+      {
+        "arm": "current_packed",
+        "utc": "2026-11-24T22:04:33.6309679Z",
+        "mode": "packed_xor",
+        "receipt": "local-run-1c5375825870491c8a0c6b55f0010cd9",
+        "receipt_sha256": "4e3046e5ff65c5532974e3ac68fbf79be57b1abae5398289ec06c5bc37a68e39",
+        "log_sha256": "3d8e111770f73dea3b1a72990779544b39b021e2703802fce47afedb8217fa1a",
+        "supervisor_cpu_percent": 18,
+        "fixture_cpu_rate_hundredths": 0,
+        "worker_exchange_ms": 1266,
+        "submission_through_publication_ms": 1266,
+        "gpu_frames_consumed": 2,
+        "late_reply_refused": true,
+        "independent_cpu_exact": true,
+        "backing_writes": 0,
+        "job_peak_commit_bytes": 165146624,
+        "job_retired": true
+      }
+    ]
+  },
+  "limits": [
+    "The cap control explains a timing bias in the fixture.",
+    "These runs qualify exact callback delivery and retirement for the exercised requests.",
+    "Automatic useful delivery through a mounted volume and a matched CPU benefit remain unmeasured.",
+    "Isolated ready-before-submit timing remains open."
+  ]
+}

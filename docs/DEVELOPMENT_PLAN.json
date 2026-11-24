@@ -21,8 +21,10 @@
     "latest_packed_helper_evidence": "docs/evidence/windows-packed-explorer-2026-11-23.json",
     "latest_mounted_handoff_evidence": "docs/evidence/windows-mounted-packed-handoff-2026-11-23.json",
     "latest_mounted_retirement_evidence": "docs/evidence/windows-mounted-packed-retirement-2026-11-23.json",
-    "latest_amd_evidence": "docs/evidence/windows-amd-group-budget-freshness-2026-11-24.json",
-    "latest_group_exchange_profile": "docs/evidence/windows-amd-group-exchange-phases-2026-11-24.json",
+    "latest_amd_evidence": "docs/evidence/windows-amd-group-supervisor-comparison-2026-11-24.json",
+    "latest_group_exchange_profile": "docs/evidence/windows-amd-group-supervisor-comparison-2026-11-24.json",
+    "latest_protected_size_evidence": "docs/evidence/windows-protected-prefix-banks-2026-11-24.json",
+    "settled_size_implementation": "docs/RELEASE_RECONCILIATION_2026-11-24.md#first-settled-size-implementation-sequence",
     "ntfs_comparison": "docs/BENCHMARK_PROTOCOL.md#plain-and-native-compressed-ntfs",
     "first_implementation_slice": "docs/RELEASE_EXECUTION_PLAN.md#first-implementation-slice",
     "latest_ordinary_amd_write_evidence": "docs/evidence/windows-ordinary-amd-write-demand-2026-11-23.json",
@@ -43,7 +45,7 @@
     "latest_mixed_size_resident_worker": "docs/evidence/windows-mixed-size-resident-worker-2026-11-24.json",
     "latest_write_geometry_calibration": "docs/evidence/windows-amd-write-geometry-calibration-2026-11-24.json",
     "latest_indexed_name_page_inventory": "docs/evidence/indexed-name-page-inventory-2026-11-23.json",
-    "next": "Use the populated Win32 trace to measure ordinary mounted copy, selection and physical settlement. Sparse retirement completes after prepublication; packed retirement advances but needs provider placement and tail work. Run admitted real AMD route comparisons, generation-bound attach shadowing and held-out complete-size trials with independent CPU recovery.",
+    "next": "Use the populated Win32 trace for mounted copy, selection and physical settlement. Apply matched supervision to CPU, cold and prepared AMD routes on identical client demand. Compare the existing high-ratio CPU re-encode with grouped compression at equal protection. Continue generation-bound attach shadowing and independent CPU recovery.",
     "release_qualified": false
   },
   "baseline": {

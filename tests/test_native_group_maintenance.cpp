@@ -205,6 +205,49 @@ std::vector<Bytes> prefix_family(const Bytes& base=data(kNativeExtentBytes,3819)
   return originals;
 }
 
+void indexed_prefix_bank_boundary() {
+  if(!store_zstd_available())return;
+  constexpr StoreCompressionOptions policy{StoreCompressionMode::automatic,3,true};
+  constexpr NativeImageStorage storage{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes};
+  constexpr std::uint32_t unit=65536;
+  constexpr std::size_t start=kNativeExtentBytes/4,token=8,tokens=8192/token;
+  const auto base=data(kNativeExtentBytes,3819);
+  std::array<Bytes,3> files{base,base,base};
+  for(std::size_t file=1;file<files.size();++file) {
+    for(std::size_t at=0;at<tokens;++at) {
+      const auto from=(at*(2*file+7)+19*file)%tokens;
+      std::copy_n(base.begin()+start+from*token,token,files[file].begin()+start+at*token);
+    }
+  }
+  const auto unrelated=data(49152,77);
+  const auto name=[](std::size_t file){return "f"+std::to_string(file);};
+  Fixture f(unit,0,true,policy);
+  for(std::size_t file=0;file<files.size();++file)put(*f.session,name(file),files[file]);
+  put(*f.session,"incumbent",unrelated);
+  const auto prior=f.session->snapshot();
+  NativeMaintenanceProgress progress;
+  {
+    NativeGroupMaintenance maintenance(*f.session);
+    progress=f.finish(maintenance);
+  }
+  f.session.reset();
+  auto target=ram(unit);
+  const auto source=NativeFilesystemSnapshot::open_image(f.image,storage);
+  (void)NativeFilesystemWriter::compact(source,target,id(3),policy);
+  const auto settled=NativeFilesystemSnapshot::open_image(target,storage);
+  // The ordinary grouped frames occupy a fifth pair of banks on this image.
+  require(progress.published_groups==1 && progress.prefixed_zstd_members==2 && target->extent()==8ULL*unit,
+      "New prefixes did not release a pair of 64 KiB allocation banks");
+  for(const auto* snapshot:{&prior,&settled}) {
+    snapshot->verify_all();
+    for(std::size_t file=0;file<files.size();++file)
+      require(snapshot->read(name(file),0,kNativeExtentBytes)==files[file],"Prefix bank comparison changed file bytes");
+    require(snapshot->read("incumbent",0,unrelated.size())==unrelated,"Prefix comparison changed the unrelated file");
+  }
+  std::cout<<"prefix_bank settled="<<target->extent()<<" selector="<<f.head->extent()
+      <<" prefixes="<<progress.prefixed_zstd_members<<" cpu_exact=1 retained_snapshot_exact=1\n";
+}
+
 void indexed_prefixed_reference() {
   using Method=detail::NativeGroupMethod;
   constexpr auto count=prefix_family_count;
@@ -509,7 +552,8 @@ void indexed_uneven_short_packs(bool regression) {
 }
 
 
-void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expected_members=0) {
+void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expected_members=0,
+    bool compare_reencoding=false) {
   if(!store_zstd_available())return;
   constexpr StoreCompressionOptions policy{StoreCompressionMode::automatic,3,true};
   constexpr NativeImageStorage storage{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes};
@@ -538,11 +582,12 @@ void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expect
           snapshot.read(path,0,inputs[i].size())==inputs[i],"similarity packing changed file bytes");
     }
   };
-  const auto settled_image=[&](const NativeFilesystemSnapshot& source,unsigned target) {
+  const auto settled_image=[&](const NativeFilesystemSnapshot& source,unsigned target,int reencode_level=0) {
     auto backing=ram(4096);
-    {
-      const auto compacted=NativeFilesystemWriter::compact(source,backing,id(target),policy);
-    }
+    if(reencode_level)
+      (void)NativeFilesystemWriter::recompress(source,backing,id(target),
+          {StoreCompressionMode::automatic,reencode_level,true});
+    else (void)NativeFilesystemWriter::compact(source,backing,id(target),policy);
     const auto reader=NativeFilesystemSnapshot::open_image(backing,storage);
     const auto read_start=backing->read_bytes;
     for(std::size_t i=0;i<inputs.size();++i) {
@@ -559,6 +604,13 @@ void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expect
   f.session.reset();
   const auto prior=NativeFilesystemSnapshot::open_image(f.image,storage);
   const auto before=settled_image(prior,2);
+  if(compare_reencoding) {
+    for(const int level:{3,9}) {
+      const auto [image_bytes,range_bytes]=settled_image(prior,4,level);
+      std::cout<<"independent_reencode level="<<level<<" image_bytes="<<image_bytes
+          <<" selector_bytes="<<f.head->extent()<<" range_read_bytes="<<range_bytes<<" cpu_exact=1\n";
+    }
+  }
   const auto resolve=[&](const StoreIdentity& key)->std::shared_ptr<StoreByteIo>{return key==id(1)?f.image:nullptr;};
   f.session.emplace(NativeFileSession::resume_closed_indexed_volume(f.head,id(90),1,resolve,policy));
   NativeMaintenanceProgress outcome;
@@ -623,13 +675,13 @@ void profile_cross_window_short_families(bool regression=false) {
   profile_similarity_packing(inputs,regression?2:0);
 }
 
-void profile_public_packs(const std::filesystem::path& filename,bool complete_files) {
+void profile_public_packs(const std::filesystem::path& filename,bool complete_files,bool compare_reencoding=false) {
   if(!store_zstd_available()) {
     require(!complete_files,"complete-file packing profile requires Zstandard");
     return;
   }
   const auto inputs=read_packed_corpus(filename,complete_files);
-  profile_similarity_packing(inputs);
+  profile_similarity_packing(inputs,0,compare_reencoding);
 }
 
 void indexed_cross_window_pack(bool replace_retained) {
@@ -3378,6 +3430,7 @@ int main(int argc,char** argv){try{
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-prefix") {
     indexed_prefixed_reference();
     indexed_prefix_extension(true);
+    indexed_prefix_bank_boundary();
   } else if((argc==2 || argc==3) && std::string_view(argv[1])=="--profile-indexed-prefix-extension") {
     indexed_prefix_extension(false,argc==3?argv[2]:nullptr);
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-batched-prefix") {
@@ -3396,6 +3449,8 @@ int main(int argc,char** argv){try{
     profile_public_packs(argv[2],false);
   } else if(argc==3 && std::string_view(argv[1])=="--profile-public-files") {
     profile_public_packs(argv[2],true);
+  } else if(argc==3 && std::string_view(argv[1])=="--profile-public-reencode") {
+    profile_public_packs(argv[2],true,true);
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-cross-window-pack") {
     indexed_cross_window_pack(false);
     indexed_cross_window_pack(true);

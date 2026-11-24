@@ -182,12 +182,17 @@ verifying its hard CPU rate of at most 20% and its process, priority and
 memory controls. The fixture keeps its own commit, process-count and CPU-time
 limits. The worker keeps its existing per-process admission. The CPU-side
 check accepted a verified 18% supervisor and rejected a mismatched helper
-before dispatch. Two follow-up GPU timing checks encountered active GPU
-pressure before launch.
+before dispatch. After earlier GPU pressure cleared, alternating matched
+mixed-group runs took 969 and 985 ms under the verified supervisor. The
+same artifacts and protected input under the extra 20% fixture rate took
+4,984 and 5,391 ms. The HIP kernel attribute check took about 805–823 ms
+and 4,740–4,757 ms respectively. Every run consumed two exact frames.
+The current prepared packed and mixed callback paths also consumed two
+exact frames each with the ordinary worker.
+[Matched supervisor and live readback evidence](evidence/windows-amd-group-supervisor-comparison-2026-11-24.json)
 
-Complete the comparison on identical protected inputs with alternating
-timing and ordinary fixture arms under fresh headroom. Then compare CPU,
-cold AMD and prepared AMD at observed foreground lead times. Measure
+Compare CPU, cold AMD and prepared AMD at observed foreground lead times
+under matched supervision. Measure
 capture, upload, decode, readback, verification, retirement and late work.
 Prioritize amortizing startup if it dominates with the matched controls.
 Record the interval before submission as well as the interval from

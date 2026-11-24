@@ -515,11 +515,15 @@ sequenceDiagram
     end
 ```
 
-The transport, exact capture and cancellation were verified with Windows
-callback and CPU-backed worker tests. The prepared and cold grouped
-device-decode preflights refused live admission. The installed plain
-LZ4 role has separate executed device evidence. [Prepared worker evidence](../evidence/windows-prepared-group-worker-2026-11-24.json)
-· [Native LZ4 device evidence](../NATIVE_AMD_LZ4_READ.md)
+Windows transport and CPU-backed callback tests verify capture, refusal and
+cancellation. Later admitted physical-host SDK trials consumed the exact
+device-produced packed and mixed frames and verified each through the CPU
+reader. The route uses separate models for a full startup and for dispatch
+after confirmed readiness. Ordinary mounted read acceleration still needs a
+matched CPU comparison with delivered bytes under real demand.
+[Prepared worker evidence](../evidence/windows-prepared-group-worker-2026-11-24.json) ·
+[Live grouped evidence](../evidence/windows-amd-group-supervisor-comparison-2026-11-24.json) ·
+[Native LZ4 device evidence](../NATIVE_AMD_LZ4_READ.md)
 
 ## 10. Verification and remaining integration
 

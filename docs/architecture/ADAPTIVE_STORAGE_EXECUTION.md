@@ -88,6 +88,55 @@ reader releases the old mapping.
 [ReFS tiering and destage](https://learn.microsoft.com/en-us/windows-server/storage/refs/refs-registry-values) ·
 [OpenZFS rewrite](https://openzfs.github.io/openzfs-docs/man/v2.4/8/zfs-rewrite.8.html)
 
+### Settled-size qualification and candidate publication
+
+In the writable indexed path, mirrored payload banks round up the sum of
+stored records and headers. Mirrored index pages and the outer selector
+have their own geometry. A small decrease in stored bytes can remove both
+banks at a boundary. Automatic maintenance can try a prefix frame against
+an already staged and checked base without requiring a whole unit of raw
+savings. The more expensive assembled-section search has a separate work
+threshold. The writer compares encoded alternatives and publishes an
+improvement only when the proposed compacted upper bound is smaller than
+the incumbent lower bound.
+[Paged placement and comparison](../../src/paged_store.cpp) ·
+[Prefix admission and exact CPU decode](../../src/native_indexed_volume.cpp) ·
+[Measured allocation boundary](../evidence/windows-protected-prefix-banks-2026-11-24.json)
+
+The next qualification design uses three comparisons with explicit shared
+inputs. Freeze file revisions, initial write policy, live objects and reader
+pins. Compare independent re-encoding and group candidates under one
+protection profile. Exercise sealed parity and provider relocation with the
+encodings fixed in a second comparison. Run foreground access and durable
+publication against the resulting protected representations. Record
+temporary coexistence separately from settled space and retain exact readback
+for every arm.
+
+```mermaid
+flowchart TD
+    Data["Pinned files, generation, protection and reader pins"]
+    Data --> Control["Independent high-ratio CPU rebuild"]
+    Data --> Search["Paged candidate shortlist and current grouping"]
+    Search --> Trial["Encode and CPU-verify restart frames"]
+    Control --> Price["Count occupied banks, dependencies, metadata and selector"]
+    Trial --> Price
+    Price --> Gate{"Settled savings within access and rewrite budgets?"}
+    Gate -->|Yes| Publish["Recheck source and publish through the volume owner"]
+    Gate -->|No| Learn["Update bounded rebuildable advice"]
+    Publish --> Flush["Flush protected dependencies before the checked root"]
+    Flush --> Retire["Keep prior ranges through durable references and reader pins"]
+    Retire --> Learn
+```
+
+Keep independent re-encoding detached for the initial comparison. Move the
+winning workload to cooperative production work only when the measured
+gain pays for backing writes, decode cost and live temporary space. An
+extent version change invalidates staged proposals. The advisory catalog
+can replay or discard interrupted planning, while root authority and
+published decode dependencies remain protected with the chosen volume
+format.
+[Implementation and exits](../RELEASE_RECONCILIATION_2026-11-24.md#first-settled-size-implementation-sequence)
+
 ## 2. Learn which collective work is worth doing
 
 Use the existing sparse paged coherence index as a starting point. Learn at

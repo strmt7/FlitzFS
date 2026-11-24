@@ -1,0 +1,571 @@
+{
+  "schema": 1,
+  "date": "2026-11-24",
+  "captured_utc": "2026-11-24T22:26:32.1994029Z",
+  "experimental": true,
+  "scope": "Physical Windows host, process-local memory-backed indexed image, CPU compression and independent CPU readback. Resource observations driving maintenance are modeled. Includes a bank-edge regression and matched public complete-file comparisons.",
+  "source": {
+    "parent": "af0aba8556364e643b208ce4694b04456963652f",
+    "parent_tree": "3154befa7dcf83310d7c00a5d75a078acfbc2b83",
+    "tracked_parent_paths": 1074,
+    "comparison_tree": "68b73e14181242d113e5b2e7ce4346c2b3f89f3d",
+    "changes_since_prior_review": [
+      [
+        "M",
+        "docs/DEVELOPMENT_PLAN.json"
+      ],
+      [
+        "M",
+        "docs/DEVELOPMENT_STATE.json"
+      ],
+      [
+        "M",
+        "docs/GPU_RESOURCE_ENVELOPE.md"
+      ],
+      [
+        "M",
+        "docs/IMPLEMENTATION_PLAN.md"
+      ],
+      [
+        "M",
+        "docs/NATIVE_AMD_LZ4_READ.md"
+      ],
+      [
+        "M",
+        "docs/RELEASE_EXECUTION_PLAN.md"
+      ],
+      [
+        "M",
+        "docs/RELEASE_RECONCILIATION_2026-11-24.md"
+      ],
+      [
+        "M",
+        "docs/REPOSITORY_OVERVIEW.md"
+      ],
+      [
+        "M",
+        "docs/STAGED_PAGED_REBUILD.md"
+      ],
+      [
+        "M",
+        "docs/WINFSP_OWNED_CONTROLLER.md"
+      ],
+      [
+        "M",
+        "docs/architecture/CURRENT.md"
+      ],
+      [
+        "M",
+        "docs/architecture/TARGET.md"
+      ],
+      [
+        "A",
+        "docs/evidence/windows-amd-group-budget-freshness-2026-11-24.json"
+      ],
+      [
+        "A",
+        "docs/evidence/windows-amd-group-exchange-phases-2026-11-24.json"
+      ],
+      [
+        "A",
+        "docs/evidence/windows-amd-group-read-admission-2026-11-24.json"
+      ],
+      [
+        "A",
+        "docs/evidence/windows-mounted-range-retirement-2026-11-24.json"
+      ],
+      [
+        "M",
+        "src/windows/gpu_budget.cpp"
+      ],
+      [
+        "M",
+        "src/windows/native_lz4_read_worker.cpp"
+      ],
+      [
+        "M",
+        "src/windows/native_lz4_read_worker.hpp"
+      ],
+      [
+        "M",
+        "tests/test_winfsp_paged.cpp"
+      ],
+      [
+        "M",
+        "tests/test_worker_exchange.cpp"
+      ]
+    ],
+    "relevant_blobs": {
+      "include/flitzfs/native_filesystem.hpp": "0f63ef598a79092f972649e63033d8cb53864d50",
+      "src/native_filesystem.cpp": "27013a2048254a134c1ca3f734942d0569974f59",
+      "src/native_indexed_volume.cpp": "b79cbedda7bea36d39b82e5ad13963e24158c84a",
+      "src/native_indexed_volume.hpp": "dfeb83be32fa72b5d2087c2bf2161b5828d6d28a",
+      "src/native_maintenance.cpp": "3fe54337b5e89d80ffa3a7ffff4e09e898f905f3",
+      "tests/test_native_group_maintenance.cpp": "f599f88e3bd815202d7259255adbbb19c2edb791"
+    },
+    "semantic_search": {
+      "sha256": "9b3f84aa0c0d3f82bded37d1a4e0d2cb15a43a6bd5f98247732d915d9e452b2d",
+      "provider_version": "0.2.43",
+      "commit": "af0aba8556364e643b208ce4694b04456963652f",
+      "scope": [
+        "src/native_maintenance.cpp",
+        "src/indexed_coherence.cpp",
+        "src/native_indexed_volume.cpp",
+        "src/native_shared_base.cpp",
+        "src/native_group_codec.hpp",
+        "tests/test_native_shared_base.cpp",
+        "tests/test_native_paged_maintenance.cpp"
+      ],
+      "response_sha256": "d693dcfedc475c19ebe8bcaf66468e61035b2d6ad17e2bf38354d3e9aea702fd"
+    }
+  },
+  "targeted_geometry": {
+    "allocation_unit_bytes": 65536,
+    "related_extents": 3,
+    "permuted_region_bytes": 8192,
+    "unrelated_bytes": 49152,
+    "selector_bytes": 131072,
+    "old_settled_image_bytes": 655360,
+    "new_settled_image_bytes": 524288,
+    "released_bytes": 131072,
+    "selected_prefixes": 2,
+    "exact_cpu_and_retained_snapshot": true,
+    "baseline_geometry_probe": {
+      "id": "local-run-30fcde68b2d24fe385acab48b66a13c7",
+      "receipt_sha256": "347375201f1a0894be61f38eccb6d76915e13d74d771edb8fc902a45e6637d6d",
+      "output_sha256": "dbcf10f369c76136878f2d763bd9ff053b9d51d31d04800177a81c50647e4099",
+      "exit": 0,
+      "retired": true,
+      "elapsed": 0.23399999999674037,
+      "peak_commit": 14303232,
+      "cpu_cap": 12
+    }
+  },
+  "public_cohorts": [
+    {
+      "cohort": "24 complete CPython files, 12 paths from each recorded revision",
+      "input_sha256": "1e4415e2c80bd97dd16978c2d68f4c403489cf5ca38916bdbf574a174763aead",
+      "file_count": 24,
+      "logical_input_bytes": 2230850,
+      "protection": "mirrored indexed store, 4096-byte isolation unit",
+      "selector_bytes": 131072,
+      "before_maintenance_complete_bytes": 1523712,
+      "settled_grouped_complete_bytes": 950272,
+      "maintenance_backing_read_bytes": 9622717,
+      "maintenance_backing_write_bytes": 1630208,
+      "grouped_members": 44,
+      "maintained_image_bytes_before_rebuild": 3825664,
+      "small_range_read_bytes": {
+        "before": 1030118,
+        "after": 1052927
+      },
+      "checked_old_snapshot_and_exact_new_bytes": true,
+      "independent_rebuilds": [
+        {
+          "zstd_policy_level": 3,
+          "settled_image_bytes": 1392640,
+          "complete_bytes": 1523712,
+          "small_range_read_bytes": 1030118,
+          "cpu_exact": true
+        },
+        {
+          "zstd_policy_level": 9,
+          "settled_image_bytes": 1286144,
+          "complete_bytes": 1417216,
+          "small_range_read_bytes": 988901,
+          "cpu_exact": true
+        }
+      ],
+      "base_profile": {
+        "id": "local-run-a363e369c934498582149e8a142e26c0",
+        "receipt_sha256": "84fa1570c92a99f29e4d09c12ea85023746209eed1cf39381b28d741a4b8f308",
+        "output_sha256": "106403f642644f9b8f07a02d6d2543d274a7ee352d850450333b5e53a6b544a3",
+        "exit": 0,
+        "retired": true,
+        "elapsed": 0.20299999999406282,
+        "peak_commit": 22249472,
+        "cpu_cap": 13
+      },
+      "matched_profile_with_independent_controls": {
+        "id": "local-run-e9c16c240f6a4dab9a2dfa125bc68f28",
+        "receipt_sha256": "c91a855275f7af43aa45b4002ebfb46f11989e82e3b75c0cd25707c274066383",
+        "output_sha256": "f75fc183687d90b7d5bf28bb1e2a5c4fceccf9c8ab2466e5ad7d07610448ee0b",
+        "exit": 0,
+        "retired": true,
+        "peak_commit": 22192128,
+        "cpu_cap": 13
+      }
+    },
+    {
+      "cohort": "AITDCC 2026 A–P, complete canonical 16 files",
+      "input_sha256": "baf1e7283ab49cc5b6c14e77e302637e4f17d84d1603af0fd9f3a62645d6ce1c",
+      "file_count": 16,
+      "logical_input_bytes": 38289319,
+      "protection": "mirrored indexed store, 4096-byte isolation unit",
+      "selector_bytes": 131072,
+      "before_maintenance_complete_bytes": 51617792,
+      "settled_grouped_complete_bytes": 51617792,
+      "maintenance_backing_read_bytes": 66560270,
+      "maintenance_backing_write_bytes": 0,
+      "grouped_members": 0,
+      "maintained_image_bytes_before_rebuild": 53215232,
+      "small_range_read_bytes": {
+        "before": 1343590,
+        "after": 1343590
+      },
+      "checked_old_snapshot_and_exact_new_bytes": true,
+      "independent_rebuilds": [
+        {
+          "zstd_policy_level": 3,
+          "settled_image_bytes": 51486720,
+          "complete_bytes": 51617792,
+          "small_range_read_bytes": 1343590,
+          "cpu_exact": true
+        },
+        {
+          "zstd_policy_level": 9,
+          "settled_image_bytes": 51224576,
+          "complete_bytes": 51355648,
+          "small_range_read_bytes": 1337997,
+          "cpu_exact": true
+        }
+      ],
+      "base_profile": {
+        "id": "local-run-86de9e81ca5e4115be4fbe0a6ba813a6",
+        "receipt_sha256": "4691d57669f4702ba43c54083fa133c0781428b6639e18943042785a22ad76bb",
+        "output_sha256": "0eb7e8f5f8bacd716bef235da2592777437fc1c14766e84d1ffbec98ac5d8462",
+        "exit": 0,
+        "retired": true,
+        "elapsed": 1.7819999999992433,
+        "peak_commit": 295333888,
+        "cpu_cap": 13
+      },
+      "matched_profile_with_independent_controls": {
+        "id": "local-run-c452f7371d3d4bab8a346d54f75cfa36",
+        "receipt_sha256": "1c44413dab93f51fac48355bbc5fd58d5c958e6ffb5fca513297441ded03f8c2",
+        "output_sha256": "99910740580370a7b9ce6b1a970e1d911d499c973d0d47ba0f98ee31ce838eb4",
+        "exit": 0,
+        "retired": true,
+        "peak_commit": 295288832,
+        "cpu_cap": 13
+      }
+    }
+  ],
+  "comparison_inputs": "docs/evidence/aitdcc2026-compression-baseline-2026-11-22.json",
+  "distinct_protection_comparison": "docs/evidence/sealed-indexed-images-2026-11-22.json",
+  "validation": {
+    "zstd": "1.5.7",
+    "baseline_group_fixture_sha256": "a08573c6fbe1503276dabb67b4bad0b6f1446ccfae4603edc5a55400becc5b3f",
+    "final_group_fixture_sha256": "02cd8935c8ab7c4b44e030ac1cb564bff6860d0a98ce95b87304fb645ee825b4",
+    "final_raw_fixture_sha256": "a1725adf40aeb124539609126db72f741f9e88b39a92e43dce69790d725b2cf3",
+    "windows_product_change_group_suite": {
+      "passed": 12,
+      "receipt": {
+        "id": "local-run-30c694d28dd74e3089b3417be65d9259",
+        "receipt_sha256": "f6350753bb0f8769417d05132ef71d28fb3256d68da05579946e267a1308634b",
+        "output_sha256": "ea9d1eb333e782aa165a6278625029305106c92a8f0082d0fc4028763eeceba1",
+        "exit": 0,
+        "retired": true,
+        "elapsed": 16.7809999999954,
+        "peak_commit": 107237376,
+        "cpu_cap": 16
+      }
+    },
+    "exact_final_group_and_prefix": {
+      "passed": 2,
+      "checks": [
+        "PASS: 1199 automatic group maintenance checks; 0 injected publication cases; model resource observations; memory CPU only",
+        "PASS: 2761 automatic group maintenance checks; 369 injected publication cases; model resource observations; memory CPU only"
+      ],
+      "receipt": {
+        "id": "local-run-c80bd7dffe494c8dae65f149721bf8e3",
+        "receipt_sha256": "f12b92c4a6b693e12875cbe57a4bce4d3ab9682b4c8c11beed278919bf547a1d",
+        "output_sha256": "aaa917f567ed8726f2fa87f0c1ce4f9cb1470728e52e2acd7e1e83fe99f1961b",
+        "exit": 0,
+        "retired": true,
+        "peak_commit": 107155456,
+        "cpu_cap": 15
+      }
+    },
+    "exact_codec_free": {
+      "passed": 6,
+      "receipt": {
+        "id": "local-run-722071eea17549dc892290dad943c257",
+        "receipt_sha256": "9b9c0d7b8c590d934dd82007c3b003a81cf218621b356772f7033e4f63902539",
+        "output_sha256": "c703e792e7eac8d77b34241ca0eed6fc13838d7fb4d78a381a40e6c59b036cdb",
+        "exit": 0,
+        "retired": true,
+        "peak_commit": 106934272,
+        "cpu_cap": 15
+      }
+    }
+  },
+  "primary_research": [
+    {
+      "receipt_sha256": "131732ecb1b440cb26f2aa14fde4a06cd25bf0e3626edad3434250ad614503e8",
+      "provider": "0.9.5+flitzzip.portable2",
+      "source_identity": {
+        "tools/crawl4ai_tool.py": "e84a0e54ee07e4e13d3d2f35491f641730096a78126068f232c1f2397a467d8c",
+        "tools/crawl4ai_research.py": "ec3cb7a98eceed8fef08f3af806d6eaed35656bd76ca0ee8853d273f790337a5",
+        "tools/requirements/crawl4ai.txt": "6a42b0ff5ff6c63c843c6329ce823b819fd4f6f068e68d1836ab6dbec96e8f2f",
+        "tools/crawl4ai_sites.json": "e8869cb0488d78762a90aea6ecf2c3616bb89f0c89a8800cc512c613a750dc86",
+        "tools/nltk_distribution.py": "19eb3007c226b1a13e1ad0daa79cbd8a7bf6d082a20bf386e36ac060d0000919",
+        "tools/python_wheel.py": "c3c9a62454cb377203abce32154bec07cbf805bc7420cc89386c1c18370b301a",
+        "tools/test_nltk_model_security.py": "8aab7e2a704af875992ecae9137cdf5e5ff6935a4dd49e6751c54b2629a7280b",
+        "tools/requirements/python-build.txt": "9b280d724fda87773ba33a2654362adad84c68c4f79394adc07ff2e0293ca498",
+        "tools/crawl4ai_source_build.py": "5c27c4693fa0880a8db399825f637b694616963fc11f708afed33fa5b2e38b48",
+        "tools/crawl4ai_download_opener.py": "d5fd20b5545fd64c93a06b3ef07732f1c2da7e09ee6cda80662475007db52538",
+        "tools/test_crawl4ai_downloads.py": "ae4cf54c351a9da2de49caeb96306f384bb6a8f487318eabc69db4132d658619",
+        "third_party/upstream/nltk/3.10.4/distribution.json": "3241a8670f12e205525fc096572ed1969c063f77e13cffd70eff5eb656fbe1b0",
+        "nltk_upstream_wheel": "e46d89e59ef949270e3b19ab097da8dbb09350e05cb5a746ff92f6ccf6e8ce90",
+        "crawl4ai_source_build": "7da6376934254d9ad1de9e016a4509dae32c47559955889424435fcbbc7419f5"
+      },
+      "lock_sha256": "01fbef3b628f772e4aba9724b6ced11c0f211d4d3bf51e38d1b9d0039eac997b",
+      "pages": [
+        {
+          "name": "zstd-prefix",
+          "url": "https://github.com/facebook/zstd/blob/v1.5.7/lib/zstd.h",
+          "http_status": 200,
+          "success": true,
+          "markdown_bytes": 175761,
+          "markdown_sha256": "519e9a6537ecb130ee7204db5aebe3f1c269e0b22730ef7e1614d29c0389cdf9",
+          "native_capture_sha256": "4d01c3171ead4c679fc9f2a81c6a8ecc505ecc4b9462d56afda4ad34b7f0e984"
+        },
+        {
+          "name": "sonic",
+          "url": "https://www.mdpi.com/2073-431X/15/9/607",
+          "success": false,
+          "native_capture_sha256": "f1b5b67b7c3b8bdbc3d1d53b5ae42de601ca8c061d58082d4c95ab2025303328",
+          "failure": "timeout"
+        },
+        {
+          "name": "zipllm",
+          "url": "https://www.usenix.org/conference/nsdi26/presentation/wang-zirui",
+          "http_status": 200,
+          "success": true,
+          "markdown_bytes": 9804,
+          "markdown_sha256": "130eb91378604ebacf1d676184608e3efff8b2f5b0dc03b971bfd011678b2906",
+          "native_capture_sha256": "c832d1cb322e20221bd3e500ae24d6c0195913584e0640bb75795e4c0d242be6"
+        },
+        {
+          "name": "hip-stream",
+          "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/reference/hip_runtime_api/modules/stream_management.html",
+          "http_status": 200,
+          "success": true,
+          "markdown_bytes": 51306,
+          "markdown_sha256": "bee401671f6fc9c05ac9b57c010c93ce535666de88336c70a4d0d7d4d81dae5a",
+          "native_capture_sha256": "81c782c0d480de3ff8f22fc3a093dd307129e70f2049ded693a68507e2e5eed7"
+        },
+        {
+          "name": "diskspd",
+          "url": "https://github.com/microsoft/diskspd/wiki/Command-line-and-parameters",
+          "http_status": 0,
+          "success": false,
+          "markdown_bytes": 0,
+          "markdown_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "native_capture_sha256": "374dcbeb047f941ffa2829b4fe2ae79920ab2aea574fa8446c92c17639714f1a",
+          "failure": "native_failure"
+        },
+        {
+          "name": "native-ntfs",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_compression",
+          "http_status": 0,
+          "success": false,
+          "markdown_bytes": 0,
+          "markdown_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "native_capture_sha256": "e1c5f5e15b91b69472822be2fdd542f8d89c99fc8b527b61cda693e66a457484",
+          "failure": "native_failure"
+        },
+        {
+          "name": "aitdcc",
+          "url": "https://aitdcc.github.io/dataset.html",
+          "http_status": 0,
+          "success": false,
+          "markdown_bytes": 0,
+          "markdown_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "native_capture_sha256": "e76e8ad1905042f33b0a85a7fae327cebd9d62c25326176cdefad3ac66d237ac",
+          "failure": "native_failure"
+        }
+      ]
+    },
+    {
+      "receipt_sha256": "1d960d5d7ebda1a2c926e430eb2ef70e32a8977a79f63354ab0027cb270d6fe7",
+      "provider": "0.9.5+flitzzip.portable2",
+      "source_identity": {
+        "tools/crawl4ai_tool.py": "e84a0e54ee07e4e13d3d2f35491f641730096a78126068f232c1f2397a467d8c",
+        "tools/crawl4ai_research.py": "ec3cb7a98eceed8fef08f3af806d6eaed35656bd76ca0ee8853d273f790337a5",
+        "tools/requirements/crawl4ai.txt": "6a42b0ff5ff6c63c843c6329ce823b819fd4f6f068e68d1836ab6dbec96e8f2f",
+        "tools/crawl4ai_sites.json": "e8869cb0488d78762a90aea6ecf2c3616bb89f0c89a8800cc512c613a750dc86",
+        "tools/nltk_distribution.py": "19eb3007c226b1a13e1ad0daa79cbd8a7bf6d082a20bf386e36ac060d0000919",
+        "tools/python_wheel.py": "c3c9a62454cb377203abce32154bec07cbf805bc7420cc89386c1c18370b301a",
+        "tools/test_nltk_model_security.py": "8aab7e2a704af875992ecae9137cdf5e5ff6935a4dd49e6751c54b2629a7280b",
+        "tools/requirements/python-build.txt": "9b280d724fda87773ba33a2654362adad84c68c4f79394adc07ff2e0293ca498",
+        "tools/crawl4ai_source_build.py": "5c27c4693fa0880a8db399825f637b694616963fc11f708afed33fa5b2e38b48",
+        "tools/crawl4ai_download_opener.py": "d5fd20b5545fd64c93a06b3ef07732f1c2da7e09ee6cda80662475007db52538",
+        "tools/test_crawl4ai_downloads.py": "ae4cf54c351a9da2de49caeb96306f384bb6a8f487318eabc69db4132d658619",
+        "third_party/upstream/nltk/3.10.4/distribution.json": "3241a8670f12e205525fc096572ed1969c063f77e13cffd70eff5eb656fbe1b0",
+        "nltk_upstream_wheel": "e46d89e59ef949270e3b19ab097da8dbb09350e05cb5a746ff92f6ccf6e8ce90",
+        "crawl4ai_source_build": "7da6376934254d9ad1de9e016a4509dae32c47559955889424435fcbbc7419f5"
+      },
+      "lock_sha256": "01fbef3b628f772e4aba9724b6ced11c0f211d4d3bf51e38d1b9d0039eac997b",
+      "pages": [
+        {
+          "name": "native-ntfs",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_compression",
+          "http_status": 200,
+          "success": false,
+          "markdown_bytes": 63183,
+          "markdown_sha256": "48b0bd005d9276173ea26d9d5ddfd0f6019586ea3a1cd33cb8e74730a01f060a",
+          "native_capture_sha256": "c1e1cd0e0d6f943928c7b1c89f5261560e0da107b20ddfbe2b23f1bea7940458",
+          "failure": "unexpected_content"
+        },
+        {
+          "name": "diskspd",
+          "url": "https://github.com/microsoft/diskspd/wiki/Command-line-and-parameters/f65c8d89150f012803d3c24f31d2958edf61cff7",
+          "http_status": 200,
+          "success": true,
+          "markdown_bytes": 23178,
+          "markdown_sha256": "5b109971b60e756c86ee99336a27d739cc910c4e3e7896f6490b04a88c543dc3",
+          "native_capture_sha256": "9ac59ee615ed3ae7940339050a094b221aec86fdb5a48dede9a471292ece8a0f"
+        },
+        {
+          "name": "rocm-core",
+          "url": "https://rocm.docs.amd.com/en/docs-10.2.0/components/core.html",
+          "http_status": 200,
+          "success": true,
+          "markdown_bytes": 27301,
+          "markdown_sha256": "41a1d8e7350b25490cbb9375f431868ded6585d696325ba8596fd0cf1cc40b74",
+          "native_capture_sha256": "7f5cf6d02102c6941a51b33d5a2191727b59570134f3d6590ab26c4d0686cc00"
+        },
+        {
+          "name": "aitdcc",
+          "url": "https://aitdcc.github.io/dataset.html",
+          "http_status": 200,
+          "success": true,
+          "markdown_bytes": 6271,
+          "markdown_sha256": "766801630c0c3f7c80304f41397c0ae265fd0cb79387c2837c920c08b8987676",
+          "native_capture_sha256": "9ef8b8ac328dcb79748e38a0d4ca5a3a6518c0e355017853af8e3c37246df4eb"
+        },
+        {
+          "name": "xll",
+          "url": "https://www.usenix.org/conference/nsdi26/presentation/shawger",
+          "http_status": 200,
+          "success": true,
+          "markdown_bytes": 8836,
+          "markdown_sha256": "690441a6f74b9072f40c7be048f631b89e74051b9c46d493858f18f190c9999c",
+          "native_capture_sha256": "f0d62d585de655b6588e63d67347c891bdfa3d4520581850c55942123eba3f06"
+        },
+        {
+          "name": "sonic",
+          "url": "https://www.mdpi.com/2073-431X/15/9/607",
+          "http_status": 200,
+          "success": true,
+          "markdown_bytes": 97912,
+          "markdown_sha256": "a1d136fb3ce89f619895c3a6f3867c608c3f9b10964b8040fd338f77e8d9e146",
+          "native_capture_sha256": "a98fc5009924dc12697c6e28150a74b4af9f91ab911a44b99ba122048a5c2ae5"
+        }
+      ]
+    },
+    {
+      "receipt_sha256": "646708ebbf1ae7c0a2694c42284e97477e68d13d3a403ca8a40d93382bb3a969",
+      "provider": "0.9.5+flitzzip.portable2",
+      "source_identity": {
+        "tools/crawl4ai_tool.py": "e84a0e54ee07e4e13d3d2f35491f641730096a78126068f232c1f2397a467d8c",
+        "tools/crawl4ai_research.py": "ec3cb7a98eceed8fef08f3af806d6eaed35656bd76ca0ee8853d273f790337a5",
+        "tools/requirements/crawl4ai.txt": "6a42b0ff5ff6c63c843c6329ce823b819fd4f6f068e68d1836ab6dbec96e8f2f",
+        "tools/crawl4ai_sites.json": "e8869cb0488d78762a90aea6ecf2c3616bb89f0c89a8800cc512c613a750dc86",
+        "tools/nltk_distribution.py": "19eb3007c226b1a13e1ad0daa79cbd8a7bf6d082a20bf386e36ac060d0000919",
+        "tools/python_wheel.py": "c3c9a62454cb377203abce32154bec07cbf805bc7420cc89386c1c18370b301a",
+        "tools/test_nltk_model_security.py": "8aab7e2a704af875992ecae9137cdf5e5ff6935a4dd49e6751c54b2629a7280b",
+        "tools/requirements/python-build.txt": "9b280d724fda87773ba33a2654362adad84c68c4f79394adc07ff2e0293ca498",
+        "tools/crawl4ai_source_build.py": "5c27c4693fa0880a8db399825f637b694616963fc11f708afed33fa5b2e38b48",
+        "tools/crawl4ai_download_opener.py": "d5fd20b5545fd64c93a06b3ef07732f1c2da7e09ee6cda80662475007db52538",
+        "tools/test_crawl4ai_downloads.py": "ae4cf54c351a9da2de49caeb96306f384bb6a8f487318eabc69db4132d658619",
+        "third_party/upstream/nltk/3.10.4/distribution.json": "3241a8670f12e205525fc096572ed1969c063f77e13cffd70eff5eb656fbe1b0",
+        "nltk_upstream_wheel": "e46d89e59ef949270e3b19ab097da8dbb09350e05cb5a746ff92f6ccf6e8ce90",
+        "crawl4ai_source_build": "7da6376934254d9ad1de9e016a4509dae32c47559955889424435fcbbc7419f5"
+      },
+      "lock_sha256": "01fbef3b628f772e4aba9724b6ced11c0f211d4d3bf51e38d1b9d0039eac997b",
+      "pages": [
+        {
+          "name": "ntfs-native-control",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_compression",
+          "http_status": 200,
+          "success": true,
+          "markdown_bytes": 63183,
+          "markdown_sha256": "48b0bd005d9276173ea26d9d5ddfd0f6019586ea3a1cd33cb8e74730a01f060a",
+          "native_capture_sha256": "9dfb22f5acc4ce4a958b522f3a928cc02a2bc0b66a1281dd302e2f5bdae8f801"
+        },
+        {
+          "name": "ntfs-size-control",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getcompressedfilesizew",
+          "http_status": 200,
+          "success": true,
+          "markdown_bytes": 37632,
+          "markdown_sha256": "1943b77148828d60f29d4f3e584f58cd93b2ae7a9255f4f624631a7603a48c2e",
+          "native_capture_sha256": "fb328d51c27392c5d928575d999ca18f1e7065cfb26bc56362bf9791fc590c18"
+        },
+        {
+          "name": "winfsp-22",
+          "url": "https://github.com/winfsp/winfsp/releases/tag/v2.2",
+          "http_status": 200,
+          "success": false,
+          "markdown_bytes": 14058,
+          "markdown_sha256": "e0ac00553497ee7f058f79f0d137cf795f0c0005e26b5b33f5968b36606f2624",
+          "native_capture_sha256": "a9b04129d65c7d0b0012a196fbb6724c576688e312d2d7a82c20640fa8a8ef15",
+          "failure": "unexpected_content"
+        },
+        {
+          "name": "windows-flush",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers",
+          "http_status": 200,
+          "success": true,
+          "markdown_bytes": 36207,
+          "markdown_sha256": "116ffcd5a6feba3539c3f668a2c969aa2e38b8f3663a704a7654e7b2a7954e4c",
+          "native_capture_sha256": "fa5f9daa6322a44c19a7166e538552487a9790f30847b5644808d7966e17c6ab"
+        }
+      ]
+    },
+    {
+      "receipt_sha256": "ddd7fa8fcd67ae735fdbe1ee9213949543e02a14e1b705d7216f144067d3db1f",
+      "provider": "0.9.5+flitzzip.portable2",
+      "source_identity": {
+        "tools/crawl4ai_tool.py": "e84a0e54ee07e4e13d3d2f35491f641730096a78126068f232c1f2397a467d8c",
+        "tools/crawl4ai_research.py": "ec3cb7a98eceed8fef08f3af806d6eaed35656bd76ca0ee8853d273f790337a5",
+        "tools/requirements/crawl4ai.txt": "6a42b0ff5ff6c63c843c6329ce823b819fd4f6f068e68d1836ab6dbec96e8f2f",
+        "tools/crawl4ai_sites.json": "e8869cb0488d78762a90aea6ecf2c3616bb89f0c89a8800cc512c613a750dc86",
+        "tools/nltk_distribution.py": "19eb3007c226b1a13e1ad0daa79cbd8a7bf6d082a20bf386e36ac060d0000919",
+        "tools/python_wheel.py": "c3c9a62454cb377203abce32154bec07cbf805bc7420cc89386c1c18370b301a",
+        "tools/test_nltk_model_security.py": "8aab7e2a704af875992ecae9137cdf5e5ff6935a4dd49e6751c54b2629a7280b",
+        "tools/requirements/python-build.txt": "9b280d724fda87773ba33a2654362adad84c68c4f79394adc07ff2e0293ca498",
+        "tools/crawl4ai_source_build.py": "5c27c4693fa0880a8db399825f637b694616963fc11f708afed33fa5b2e38b48",
+        "tools/crawl4ai_download_opener.py": "d5fd20b5545fd64c93a06b3ef07732f1c2da7e09ee6cda80662475007db52538",
+        "tools/test_crawl4ai_downloads.py": "ae4cf54c351a9da2de49caeb96306f384bb6a8f487318eabc69db4132d658619",
+        "third_party/upstream/nltk/3.10.4/distribution.json": "3241a8670f12e205525fc096572ed1969c063f77e13cffd70eff5eb656fbe1b0",
+        "nltk_upstream_wheel": "e46d89e59ef949270e3b19ab097da8dbb09350e05cb5a746ff92f6ccf6e8ce90",
+        "crawl4ai_source_build": "7da6376934254d9ad1de9e016a4509dae32c47559955889424435fcbbc7419f5"
+      },
+      "lock_sha256": "01fbef3b628f772e4aba9724b6ced11c0f211d4d3bf51e38d1b9d0039eac997b",
+      "pages": [
+        {
+          "name": "winfsp-stable",
+          "url": "https://github.com/winfsp/winfsp/releases/latest",
+          "http_status": 200,
+          "success": true,
+          "markdown_bytes": 14058,
+          "markdown_sha256": "e0ac00553497ee7f058f79f0d137cf795f0c0005e26b5b33f5968b36606f2624",
+          "native_capture_sha256": "c3c445877f4dc5e9f116946ec1ce7a41ce1f19fbef8c2192fe3478ce0f0cf09d"
+        }
+      ]
+    }
+  ],
+  "qualification": {
+    "release_qualified": false,
+    "matched_public_size_gain_from_new_prefix_policy": false,
+    "ordinary_mounted_io_measured": false,
+    "physical_media_or_power_loss_measured": false,
+    "real_host_ntfs_comparison": false,
+    "background_latency_representative": false,
+    "next": "Compare independent re-encoding and grouping together on new whole-file cohorts. Use exact occupied bytes, rewrite costs, confirmed reader lifetimes and random range access to choose deeper candidate work."
+  }
+}

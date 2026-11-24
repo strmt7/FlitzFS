@@ -99,9 +99,13 @@ on useful results in the ordinary mounted application.
 
 **Image layout changes already reduce occupied bytes on bounded data.**
 Sealed indexed AIT A–P images occupied 32,440,320 bytes, down from
-51,486,720 with the same compacted encodings and payload protection.
-The stable candidate still needs a held-out whole-volume compression and
-access frontier.
+51,486,720, on conversion from writable mirrors to sealed parity with the
+same encoded objects. Under writable mirroring, collective compression
+saved 573,440 bytes on complete CPython revisions and zero bytes on AIT
+A–P. Both results include selector costs for their respective before and
+after comparisons. The stable candidate still needs the held-out
+whole-volume compression and access frontier.
+[Protected-size comparison](evidence/windows-protected-prefix-banks-2026-11-24.json) ·
 [Cross-group relocation](evidence/dense-cross-group-2026-11-23.json) ·
 [Reopened AMD read](evidence/amd-reopened-paired-sealed-read-2026-11-23.json) ·
 [Sealed image evidence](evidence/sealed-indexed-images-2026-11-22.json) ·
