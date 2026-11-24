@@ -8,8 +8,10 @@ sparse image finished retirement while mounted. Packed physical settlement,
 full-cost AMD comparisons and held-out collective compression are the next
 implementation priorities. [Populated retirement receipt](evidence/windows-mounted-range-retirement-2026-11-24.json)
 
-The prepared grouped decoder passed SDK callback and CPU
-checks. The live AMD preflights recorded no grouped device launches.
+The Radeon returned verified packed and mixed group frames through the
+SDK callback's prepared decoder path, with independent CPU readback.
+Matched ordinary Windows performance evidence is still pending.
+[AMD grouped read evidence](evidence/windows-amd-group-budget-freshness-2026-11-24.json)
 
 The detailed baseline below was reconciled on 23 November against the **1,034-file** tree at
 `1afc654b9ee44952dce82a99a74e474cb5b03fb9`. The review follows the actual Windows

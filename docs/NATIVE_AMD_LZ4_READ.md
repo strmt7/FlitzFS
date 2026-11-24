@@ -147,6 +147,16 @@ invalid result leaves the normal CPU reader in control. The stored format
 uses the existing representations. CPU readers continue to interpret the
 same committed capabilities and data.
 
+The RX 9070 XT returned verified packed and mixed group frames in an
+admitted Windows SDK callback fixture. Two runs of the earlier prepared
+mixed helper refused before initialization with stale budget observations.
+After moving the snapshot start to the first DXGI memory query, two prepared
+mixed runs and a packed regression run delivered two frames each. All
+successful runs passed independent CPU readback, rejected late publication
+and confirmed worker retirement. The corrected prepared exchanges took
+3.8–5.9 seconds after submission in this fixture.
+[Live worker and callback receipt](evidence/windows-amd-group-budget-freshness-2026-11-24.json)
+
 The next qualification compares complete AMD and CPU costs with natural
 foreground lead times. Measure capture, upload, decode, readback, CPU
 verification and worker retirement along with the cost of late work.

@@ -21,7 +21,7 @@
     "latest_packed_helper_evidence": "docs/evidence/windows-packed-explorer-2026-11-23.json",
     "latest_mounted_handoff_evidence": "docs/evidence/windows-mounted-packed-handoff-2026-11-23.json",
     "latest_mounted_retirement_evidence": "docs/evidence/windows-mounted-packed-retirement-2026-11-23.json",
-    "latest_amd_evidence": "docs/evidence/windows-prepared-group-worker-2026-11-24.json",
+    "latest_amd_evidence": "docs/evidence/windows-amd-group-budget-freshness-2026-11-24.json",
     "ntfs_comparison": "docs/BENCHMARK_PROTOCOL.md#plain-and-native-compressed-ntfs",
     "first_implementation_slice": "docs/RELEASE_EXECUTION_PLAN.md#first-implementation-slice",
     "latest_ordinary_amd_write_evidence": "docs/evidence/windows-ordinary-amd-write-demand-2026-11-23.json",

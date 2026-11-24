@@ -23,7 +23,6 @@ WindowsGpuBudgetResult WindowsGpuBudgetSampler::sample() noexcept {
 }
 WindowsGpuBudgetResult WindowsGpuBudgetSampler::collect() noexcept {
   WindowsGpuBudgetResult result;
-  const auto captured=GetTickCount64(); // age includes time spent in OS queries
   const auto observed = [&](WindowsGpuBudgetPhase phase, HRESULT status) noexcept {
     result.phase=phase;result.native_status=static_cast<std::int32_t>(status);
     return SUCCEEDED(status);
@@ -60,6 +59,8 @@ WindowsGpuBudgetResult WindowsGpuBudgetSampler::collect() noexcept {
   }
   const auto index=static_cast<UINT>(std::countr_zero(node_mask_));
   DXGI_QUERY_VIDEO_MEMORY_INFO local{},nonlocal{};
+  // Age starts with the first memory observation and includes every query.
+  const auto captured=GetTickCount64();
   if(!observed(WindowsGpuBudgetPhase::local,adapter_->QueryVideoMemoryInfo(index,DXGI_MEMORY_SEGMENT_GROUP_LOCAL,&local)) ||
       !observed(WindowsGpuBudgetPhase::nonlocal,adapter_->QueryVideoMemoryInfo(index,DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL,&nonlocal))) {
     result.status=WindowsGpuBudgetStatus::query_failed;return result;

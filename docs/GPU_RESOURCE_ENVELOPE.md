@@ -25,8 +25,14 @@ not an assumption about installed capacity.
 ## Observations and arithmetic
 
 The allocating worker's DXGI collector additionally calls GlobalMemoryStatusEx.
-All observations share the existing start timestamp, so collection time counts
-against freshness. Unknown/failed/inconsistent telemetry fails closed.
+The freshness clock starts immediately before the first DXGI memory query,
+after adapter discovery and topology validation. The local and nonlocal
+segment reads, host memory query and final topology check all count against
+the same 50 ms freshness limit. Requests with unknown, failed or inconsistent
+telemetry are refused.
+[Microsoft process video-memory budgets](https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/nf-dxgi1_4-idxgiadapter3-queryvideomemoryinfo) ·
+[DXGI topology validity](https://learn.microsoft.com/en-us/windows/win32/api/dxgi/nf-dxgi-idxgifactory1-iscurrent) ·
+[Prepared mixed-group qualification](evidence/windows-amd-group-budget-freshness-2026-11-24.json)
 
 Required fields include both process memory-segment budgets/usages, dedicated
 capacity, actual physical total/availability and current-process commit
