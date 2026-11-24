@@ -92,8 +92,14 @@ exact checkpoint observation. [Replica scan contract](MIRRORED_PAYLOADS.md#autom
 
 A device launch or route acquisition ends the sequence. Opening a compaction
 candidate, publishing its private roots, switching the selected image and
-reclaiming the old backing each require a fresh CPU capture. The indexed
-compactor can catch up with foreground commits in bounded private steps.
+starting inactive-image retirement each require a fresh CPU capture. After a
+checked release, the same observation can fund more releases in that inactive
+image. Each range step still checks both durable selector peers and absence of
+reader pins. Every continuation refreshes memory headroom, yields to foreground
+work and charges the same elapsed-time budget. Packed tail relocation and
+catalog reclamation have their own admission. The indexed compactor can catch
+up with foreground commits in bounded private steps.
+[Populated retirement evidence](evidence/windows-mounted-range-retirement-2026-11-24.json)
 The selector waits for the current generation, and a late commit returns the
 same candidate to preparation. Group publication,
 indexed inode retirement and advisory checkpoints retain their own fresh

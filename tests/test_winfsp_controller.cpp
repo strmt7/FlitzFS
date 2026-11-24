@@ -1685,7 +1685,7 @@ void volume_file_payload_repair(bool live,RepairFixture fixture=RepairFixture::f
 }
 
 void volume_file_idle_reclamation() {
-  constexpr PagedStoreLimits limits{8ULL*1024*1024};
+  constexpr PagedStoreLimits limits{16ULL*1024*1024};
   const StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
   Provider provider;Provider::active=&provider;
   auto file=std::make_shared<SparseVolumeRam>(4096);
@@ -1698,7 +1698,7 @@ void volume_file_idle_reclamation() {
   require(session.start(plan())==STATUS_SUCCESS,"paired-file native SDK start");
   auto expected=data(15731,901);
   callback_file(provider,0,expected);
-  for(unsigned i=0;i<7;++i) {
+  for(unsigned i=0;i<160;++i) {
     wchar_t name[]=L"\\f0";
     constexpr auto open_file=FILE_NON_DIRECTORY_FILE|(1U<<24);
     PVOID context=nullptr;FSP_FSCTL_FILE_INFO metadata{};
@@ -1713,12 +1713,12 @@ void volume_file_idle_reclamation() {
   NativeMaintenanceObservation observed{1,1000,16ULL<<30,12ULL<<30,32ULL<<30,24ULL<<30,1000,0,1000,true,true};
   using Continuation=WinFspMaintenanceContinuation;
   using Deferral=NativeMaintenanceDeferral;
-  const auto step=[&](bool continued,std::uint64_t age_ms=0) {
+  const auto step=[&](bool continued,std::uint64_t age_ms=0,Continuation route=Continuation::compaction) {
     ++observed.sequence;
     observed.continued=continued;
     if(!continued)observed.captured_ms+=1000;
     return session.advance_background_maintenance(observed,observed.captured_ms+age_ms,{},
-        continued?Continuation::compaction:Continuation::none);
+        continued?route:Continuation::none);
   };
   const auto refuse=[&](Deferral reason,std::uint64_t age_ms=0) {
     const auto writes=file->io.calls;
@@ -1824,10 +1824,28 @@ void volume_file_idle_reclamation() {
         WaitForSingleObject(activity.get(),0)==WAIT_TIMEOUT && session.background_maintenance_pending() &&
         file->io.calls==changes && !file->range_reclaims,"the last reader did not wake retirement exactly once");
   }
-  refuse(Deferral::observation); // Even an unpinned range needs a fresh capture.
-  require(!file->range_reclaims,"continued step reclaimed the old range");
+  refuse(Deferral::observation); // An unpinned range still needs its first fresh capture.
+  require(step(true,0,Continuation::range_retirement).progress.deferral==Deferral::observation &&
+      !file->range_reclaims,"an unauthorized continuation reclaimed the old range");
+  auto retirement=step(false);
+  require(retirement.continuation==Continuation::range_retirement && file->range_reclaims==1,
+      "a checked range release did not admit its next chunk");
+  const auto reclaims=file->range_reclaims;
+  retirement=step(true,0,Continuation::range_retirement);
+  require(!retirement.compaction_failed && retirement.progress.deferral==Deferral::none && file->range_reclaims>reclaims,
+      "continued release did not retire another chunk");
+  if(retirement.continuation==Continuation::range_retirement) {
+    const auto before_foreground=file->io.calls;
+    observed.foreground_pending=true;
+    require(step(true,0,Continuation::range_retirement).progress.deferral==Deferral::foreground &&
+        file->io.calls==before_foreground,"range continuation performed work under foreground demand");
+    observed.foreground_pending=false;
+  }
   for(unsigned tick=0;tick<8 && file->allocated_extent(kNativeVolumeFileImageOffset,limits.maximum_physical_bytes);++tick)
     (void)step(false);
+  const auto settled_calls=file->io.calls;
+  require(step(true,0,Continuation::range_retirement).progress.deferral==Deferral::observation &&
+      file->io.calls==settled_calls,"range continuation escaped its finished retirement");
   require(file->range_reclaims && file->occupied()<before,"the native idle owner did not reclaim the old range");
   session.stop();
   require(session.write_restart_ready(),"paired-file dispatcher did not retire");
@@ -1844,7 +1862,8 @@ void volume_file_idle_reclamation() {
   require(WaitForSingleObject(activity.get(),0)==WAIT_TIMEOUT,"retired owner was signaled by an escaped reader");
   std::cout<<"paired_file_sdk_idle private_steps="<<private_steps<<" fresh_publish_boundaries="<<publish_boundaries
       <<" published=1 prior_readers_preserved=1 reclaimed=1 cpu_reopen=1"
-      <<" pinned_wait_quiescent=1 foreground_write_while_pinned=1 last_reader_woke=1 release_after_owner_quiet=1\n";
+      <<" pinned_wait_quiescent=1 foreground_write_while_pinned=1 last_reader_woke=1"
+      <<" release_after_owner_quiet=1 continued_range_release=1\n";
 }
 enum class ColdFixtureMode { basic, public_corpus, shared_budget };
 void volume_file_screened_cold(std::span<const Bytes> fixture,StoreCompressionOptions foreground,

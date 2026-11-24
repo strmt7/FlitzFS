@@ -892,6 +892,9 @@ bool NativeFileSession::persistent_reclamation_pending(bool allow_cold) const {
 bool NativeFileSession::persistent_reclamation_pending(NativeVolumeReclaimMode mode) const {
   return !poisoned() && impl_->persistent_reclaimer && impl_->persistent_reclaimer->pending(*this,mode);
 }
+bool NativeFileSession::inactive_image_retirement_ready() const noexcept {
+  return !poisoned() && impl_->persistent_reclaimer && impl_->persistent_reclaimer->inactive_image_retirement_ready();
+}
 std::uint64_t NativeFileSession::catalog_retirement_selection(
     std::optional<OptimizationCatalogSelection>& selected) const noexcept {
   if(poisoned())return 0;

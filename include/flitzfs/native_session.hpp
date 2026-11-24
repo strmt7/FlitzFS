@@ -272,6 +272,8 @@ class NativeFileSession final {
   // starting a new image. These operations use the session's control thread.
   bool persistent_reclamation_pending(bool allow_cold=false) const;
   bool persistent_reclamation_pending(NativeVolumeReclaimMode) const;
+  // A subsequent bounded release can only operate on the unpinned inactive image.
+  bool inactive_image_retirement_ready() const noexcept;
   NativeVolumeReclaimProgress advance_persistent_reclamation(const std::function<StoreIdentity()>&,
       bool allow_cold=false,detail::NativeSealScratchOffer={});
   // Release already reclaimable backing under its own storage opportunity.

@@ -3,6 +3,9 @@
 #include "memory_volume_factory.hpp"
 #include "windows_app_budget.hpp"
 #ifdef FLITZFS_OBSERVE_VOLUME_PUBLICATION
+#include "volume_app_winfsp.hpp"
+#include "volume_directory_pin.hpp"
+#include "winfsp_controller.hpp"
 #include "winfsp_native.hpp"
 #endif
 #include "flitzfs/native_volume_file.hpp"
@@ -798,6 +801,7 @@ struct MountedReclaimCycle {
   std::uint64_t baseline_ceiling=0;
   std::uint64_t peak_allocated=0;
   bool mixed_flush=false;
+  bool observe_controller=false;
   std::vector<std::byte> cached_payload;
   MountedClientTrace* client_trace=nullptr;
 };
@@ -1236,7 +1240,7 @@ void mounted_reclamation_cycle(const std::wstring& root,MountedFileActivation& a
       <<" revisions="<<revisions<<" delete_regrow="<<(trial.cycle!=0)
       <<" peak="<<trial.peak_allocated<<" ceiling="<<trial.baseline_ceiling<<std::endl;
   require(trial.peak_allocated>trial.baseline_ceiling,"Mounted churn did not construct reclaimable history");
-  if(activation.recovery==MountedRecoveryPhase::interrupt){
+  if(activation.recovery==MountedRecoveryPhase::interrupt || trial.observe_controller){
     verify_mounted_bytes(retained.file,activation.packed_witness,trace,"witness.bin","held_read");
     if(trace)trace->checkpoint();
     return;
@@ -1887,7 +1891,7 @@ std::vector<std::byte> mounted_reclamation_witness(const std::filesystem::path& 
 }
 
 void observe_detached_reclamation(const MountedFileActivation& activation,StoreIoContract contract,
-    StoreIdentity volume,StoreCompressionOptions foreground) {
+    StoreIdentity volume,StoreCompressionOptions foreground,bool publish_only=false) {
   const auto& trial=activation.reclamation.value();
   const auto before=mounted_backing_space(activation.path,trial.backing);
   using Step=NativeVolumeReclaimProgress;
@@ -1903,6 +1907,7 @@ void observe_detached_reclamation(const MountedFileActivation& activation,StoreI
         session.persistent_reclamation_pending(NativeVolumeReclaimMode::release_backing);++i) {
       step=session.advance_persistent_reclamation(fresh_volume_identity,NativeVolumeReclaimMode::release_backing);
       ++counts[static_cast<std::size_t>(step)];
+      if(publish_only && step==Step::published)break;
       if(step==Step::idle || step==Step::pinned || step==Step::failed)break;
     }
     pending=session.persistent_reclamation_pending(NativeVolumeReclaimMode::release_backing);
@@ -1924,7 +1929,11 @@ void observe_detached_reclamation(const MountedFileActivation& activation,StoreI
   verify("witness.bin",activation.packed_witness);
   verify("payload.bin",activation.packed_payload);
   verify("cached.bin",trial.cached_payload);
-  std::cout<<"detached_reclamation backing="<<reclaim_backing_name(trial.backing)
+  if(publish_only)
+    require(counts[static_cast<std::size_t>(Step::published)]==1 && pending &&
+        independent.info().selection.epoch==old_epoch+1,"The retirement comparison needs a published image and an inactive range");
+  std::cout<<(publish_only?"prepared_reclamation_retirement":"detached_reclamation")
+      <<" backing="<<reclaim_backing_name(trial.backing)
       <<" before="<<before.allocated<<" after="<<after.allocated
       <<" old_epoch="<<old_epoch<<" epoch="<<independent.info().selection.epoch
       <<" pending="<<pending;
@@ -1934,13 +1943,81 @@ void observe_detached_reclamation(const MountedFileActivation& activation,StoreI
   std::cout<<" independent_cpu=exact blake3="<<hex_mounted_digest(population)<<std::endl;
 }
 
+void observe_mounted_reclamation(const MountedFileActivation& activation,StoreIoContract contract,StoreIdentity volume) {
+#ifdef FLITZFS_OBSERVE_VOLUME_PUBLICATION
+  const auto profile=activation.reclamation.value().backing;
+  const auto before=mounted_backing_space(activation.path,profile);
+  const auto mount=disposable_mount_parent()+L"\\FlitzFS-reclamation-observer";
+  const auto parents=pin_volume_path_parents(mount);
+  const auto absent=[&] {
+    return GetFileAttributesW(mount.c_str())==INVALID_FILE_ATTRIBUTES && GetLastError()==ERROR_FILE_NOT_FOUND;
+  };
+  require(absent(),"The owned reclamation observation path is already in use");
+  auto adapter=WinFspNativeWritable::resume_file_volume(activation.path,contract,volume,kWinFspFileForegroundCompression);
+  WinFspVolumeController controller(std::move(adapter),load_volume_app_winfsp(),{mount,true,true});
+  until([&] {
+    const auto status=controller.view();
+    return status.state==SessionState::running || status.retired;
+  },GetTickCount64()+15000,"The reclamation observer could not start");
+  require(controller.view().state==SessionState::running,"The reclamation observer failed to mount");
+
+  using Phase=NativeMaintenancePhase;
+  using Deferral=NativeMaintenanceDeferral;
+  std::array<unsigned,static_cast<std::size_t>(Phase::failed)+1> phases{};
+  std::array<unsigned,static_cast<std::size_t>(Deferral::capacity)+1> deferrals{};
+  WinFspControllerView view;
+  const auto limit=GetTickCount64()+20000;
+  std::uint64_t previous=0;
+  // The serving process only observes its controller. The preceding Win32
+  // clients run outside the helper and cover the retained-reader workload.
+  do {
+    view=controller.view();
+    if(view.maintenance_quanta!=previous) {
+      ++phases[static_cast<std::size_t>(view.maintenance.phase)];
+      ++deferrals[static_cast<std::size_t>(view.maintenance.deferral)];
+      previous=view.maintenance_quanta;
+    }
+    if(view.retired || view.offline || view.maintenance_disabled)break;
+    Sleep(200);
+  }while(GetTickCount64()<limit);
+  controller.stop_and_join();
+  const auto stopped=controller.view();
+  require(stopped.retired && stopped.write_restart_ready && absent(),"Reclamation observer did not retire its mount");
+  const auto after=mounted_backing_space(activation.path,profile);
+  using Io=detail::MaintenanceBackingOperation;
+  const auto& reads=view.maintenance_backing[Io::read];
+  const auto& writes=view.maintenance_backing[Io::write];
+  const auto& flushes=view.maintenance_backing[Io::flush];
+  constexpr std::array phase_names{"idle","scanning","candidates","preparing","publishing","deferred","failed"};
+  constexpr std::array refusal_names{"none","observation","foreground","cpu","memory","duty","other_maintenance","capacity"};
+  static_assert(phase_names.size()==phases.size() && refusal_names.size()==deferrals.size());
+  std::cout<<"mounted_controller_reclamation allocated_before="<<before.allocated
+      <<" allocated_after="<<after.allocated<<" quanta="<<view.maintenance_quanta
+      <<" continued_compaction="<<view.continued_compaction_steps<<" publications="<<view.compactions
+      <<" continued_range_retirement="<<view.continued_range_retirement_steps
+      <<" compaction_failures="<<view.compaction_failures<<" disabled="<<view.maintenance_disabled
+      <<" host_state="<<static_cast<unsigned>(view.host)<<" backing_limited="<<view.backing_limited_continuations
+      <<" read_calls="<<reads.completed<<" read_bytes="<<reads.completed_bytes
+      <<" write_calls="<<writes.completed<<" write_bytes="<<writes.completed_bytes
+      <<" flush_calls="<<flushes.completed;
+  for(std::size_t i=0;i<phases.size();++i)std::cout<<" phase_"<<phase_names[i]<<'='<<phases[i];
+  for(std::size_t i=0;i<deferrals.size();++i)std::cout<<" deferral_"<<refusal_names[i]<<'='<<deferrals[i];
+  std::cout<<" retired=1"<<std::endl;
+#else
+  (void)activation;(void)contract;(void)volume;
+  throw std::runtime_error("Reclamation observation requires the writable WinFsp fixture build");
+#endif
+}
+
 void mounted_reclamation_gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budget,
-    MountedReclaimBacking profile,bool mixed_flush=false,bool record_operations=false) {
+    MountedReclaimBacking profile,bool mixed_flush=false,bool record_operations=false,bool observe_controller=false,
+    bool observe_retirement=false) {
   const auto parent=std::filesystem::path(disposable_mount_parent()).parent_path();
   const bool sparse=profile==MountedReclaimBacking::sparse;
   MountedFileActivation activation{parent/(sparse?L"SparseChurn.flfs":L"PackedChurn.flfs")};
   activation.reclamation=MountedReclaimCycle{profile};
   activation.reclamation->mixed_flush=mixed_flush;
+  activation.reclamation->observe_controller=observe_controller || observe_retirement;
   activation.packed_witness=mounted_reclamation_witness(app);
   std::optional<MountedClientTrace> client_trace;
   if(record_operations) {
@@ -2069,6 +2146,8 @@ void mounted_reclamation_gui_tests(const std::filesystem::path& app,const app_fi
   }
   if(client_trace) {
     require(volume.has_value(),"Missing detached observation identity");
+    if(observe_retirement)observe_detached_reclamation(activation,contract,*volume,foreground,true);
+    if(observe_controller || observe_retirement)observe_mounted_reclamation(activation,contract,*volume);
     observe_detached_reclamation(activation,contract,*volume,foreground);
     std::cout<<"mounted_trace_complete schema=1 records="<<client_trace->records()
         <<" cycles="<<cycles<<" populated="<<mounted_trace_files<<std::endl;
@@ -2184,8 +2263,12 @@ int wmain(int argc,wchar_t** argv) {
     const bool populated=mode==L"--gui-mounted-populated-file-sandbox" || interruption.has_value();
     const bool packed_compare=mode==L"--gui-mounted-packed-compare-sandbox";
     const bool packed=mode==L"--gui-mounted-packed-file-sandbox" || packed_compare;
-    const bool packed_trace=mode==L"--gui-mounted-packed-operation-trace-sandbox";
-    const bool sparse_trace=mode==L"--gui-mounted-sparse-operation-trace-sandbox";
+    const bool packed_observer=mode==L"--gui-mounted-packed-reclamation-observer-sandbox";
+    const bool sparse_observer=mode==L"--gui-mounted-sparse-reclamation-observer-sandbox";
+    const bool packed_retirement=mode==L"--gui-mounted-packed-retirement-observer-sandbox";
+    const bool sparse_retirement=mode==L"--gui-mounted-sparse-retirement-observer-sandbox";
+    const bool packed_trace=mode==L"--gui-mounted-packed-operation-trace-sandbox" || packed_observer || packed_retirement;
+    const bool sparse_trace=mode==L"--gui-mounted-sparse-operation-trace-sandbox" || sparse_observer || sparse_retirement;
     const bool packed_mixed=mode==L"--gui-mounted-mixed-churn-recovery-sandbox" || packed_trace;
     const bool sparse_mixed=mode==L"--gui-mounted-sparse-mixed-churn-recovery-sandbox" || sparse_trace;
     const bool packed_churn=mode==L"--gui-mounted-packed-churn-sandbox" || packed_mixed;
@@ -2208,7 +2291,8 @@ int wmain(int argc,wchar_t** argv) {
       else if(packed)mounted_packed_file_gui_tests(app,budget,packed_compare);
       else if(packed_churn || sparse_churn)
         mounted_reclamation_gui_tests(app,budget,packed_churn?MountedReclaimBacking::packed:MountedReclaimBacking::sparse,
-            packed_mixed || sparse_mixed,packed_trace || sparse_trace);
+            packed_mixed || sparse_mixed,packed_trace || sparse_trace,packed_observer || sparse_observer,
+            packed_retirement || sparse_retirement);
       else if(mode==L"--gui-mounted-file-sandbox" || populated)mounted_file_gui_tests(app,budget,populated,interruption);
       else throw std::runtime_error("Unknown GUI qualification mode");
     } else throw std::runtime_error("Explicit model, maintenance or GUI qualification mode required");

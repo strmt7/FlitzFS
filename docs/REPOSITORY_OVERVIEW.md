@@ -1,10 +1,14 @@
 # FlitzFS repository overview
 
 The [24 November reconciliation](RELEASE_RECONCILIATION_2026-11-24.md) reviews
-the current **1,065-file** tree at `c32348b7efe5aaa789965ee669189840f3f6f5b3`.
-The ordered work starts with one ordinary Windows operation trace, a
-full-cost AMD comparison and settled-byte accounting for collective
-compression. The new prepared grouped decoder passed SDK callback and CPU
+the **1,065-file** base at `c32348b7efe5aaa789965ee669189840f3f6f5b3`
+and the **1,070-path** retirement candidate. The ordinary Windows operation
+trace verifies 1,027 files across three helper lifecycles. The prepublished
+sparse image finished retirement while mounted. Packed physical settlement,
+full-cost AMD comparisons and held-out collective compression are the next
+implementation priorities. [Populated retirement receipt](evidence/windows-mounted-range-retirement-2026-11-24.json)
+
+The prepared grouped decoder passed SDK callback and CPU
 checks. The live AMD preflights recorded no grouped device launches.
 
 The detailed baseline below was reconciled on 23 November against the **1,034-file** tree at

@@ -19,7 +19,11 @@
     "staged_reconciliation_read_calls_after": 3281,
     "detached_packed_reclamation_verified": true,
     "detached_sparse_reclamation_verified": true,
-    "next": "Measure admitted and refused mounted opportunities and phase progress. Detached reclamation publishes and retires both populated images."
+    "mounted_range_retirement_evidence": "docs/evidence/windows-mounted-range-retirement-2026-11-24.json",
+    "retirement_only_sparse_settlement_verified": true,
+    "retirement_only_packed_allocation_decreased": false,
+    "retirement_only_initial_selection_detached": true,
+    "next": "Profile ordinary mounted copy and publication under the same workload, then reduce packed physical settlement cost. Keep full mounted settlement pending for both backings."
   },
   "release_path_review": {
     "evidence": "docs/evidence/release-reconciliation-2026-11-24.json",
@@ -29,6 +33,8 @@
     "remaining_effort_person_weeks": [59, 127],
     "estimate_confidence": "low",
     "immediate_trace": "docs/RELEASE_EXECUTION_PLAN.md#next-integrated-qualification",
+    "current_runtime_tree": "68b73e14181242d113e5b2e7ce4346c2b3f89f3d",
+    "followup_evidence": "docs/evidence/windows-mounted-range-retirement-2026-11-24.json",
     "next_implementation_tickets": "docs/RELEASE_RECONCILIATION_2026-11-24.md#prioritized-implementation",
     "native_ntfs_comparison": "Plain and built-in NTFS compression specified; matched real-host run pending.",
     "mounted_packed_attachment": "Bounded signed guest recovery and continued writes verified, with a 1,024-file packed recovery fixture. Sustained populated settlement and current-client qualification remain open.",

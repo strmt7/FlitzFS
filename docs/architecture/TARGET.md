@@ -131,6 +131,13 @@ Qualify three mechanisms separately before combining them:
    compare generations before publication and retire storage under existing
    reader and object pins. Measure host and provider bytes written, allocator
    metadata and live bytes moved. Retain the staged image rebuild as fallback.
+   Attribute reusable logical slots, freed contiguous tail and physical
+   allocated bytes separately. For a compatible packed backing, first compare
+   placement that keeps a newly selected image out of releasable tail groups
+   with bounded post-publication relocation. A trim requires verified mapping
+   ownership and no live references at the provider's allocation granularity.
+   Use the measured live-move cost to choose the work order.
+   [Retirement and physical allocation evidence](../evidence/windows-mounted-range-retirement-2026-11-24.json)
 3. Reusable allocation. Publish old-to-new ownership in the same transaction
    as the new references. Model interrupted allocation, pending release,
    competing readers and recovery at each barrier before allowing a new writer

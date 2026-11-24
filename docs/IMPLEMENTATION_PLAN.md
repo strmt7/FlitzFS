@@ -285,10 +285,12 @@ indexed or read-only prototypes.
 ### Next implementation tickets
 
 Start with the [24 November work order](RELEASE_RECONCILIATION_2026-11-24.md#prioritized-implementation).
-Use the following source-level tickets inside that sequence. The first
-integration change establishes a common build, external operation witness and
-complete occupancy record. Paired measured results determine which route and
-representation work to implement next.
+Use the following source-level tickets inside that sequence. The populated
+Win32 witness now covers common recovery and allocation controls.
+[Retirement follow-up](RELEASE_RECONCILIATION_2026-11-24.md#immediate-work-after-the-retirement-batch)
+prioritizes normal mounted settlement, packed physical allocation, qualified
+AMD results and held-out complete-volume savings. Paired measurements
+determine the next route and representation implementation.
 
 #### E03 and E08. Qualify ordinary AMD foreground I/O
 

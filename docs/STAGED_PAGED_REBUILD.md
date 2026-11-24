@@ -42,7 +42,9 @@ separate selector switch and reader-safe retirement. The controller can
 advance several private preparation steps within one admitted CPU observation.
 Each step releases the callback lock afterward and requires current memory
 headroom. Candidate creation, private root writes and barriers, selector
-publication and retirement each start from a fresh CPU capture.
+publication and the first retirement step each start from a fresh CPU capture.
+Subsequent checked inactive-image releases can continue under the same
+[controller opportunity](WINFSP_OWNED_CONTROLLER.md#content-events-and-bounded-work).
 
 ## Work phases
 
@@ -159,9 +161,12 @@ from 20,644,702. It exercised the same copy and reconciliation steps,
 including late foreground edits and byte-exact reopen. The populated packed
 and sparse guests still had pending mounted reclamation. Bounded detached
 reclamation published the compacted images and retired the old ranges. The
-controller's progress under its idle and backing budgets remains a separate
-acceptance check.
-[Read accounting and mounted evidence](evidence/windows-staged-reclamation-reads-2026-11-24.json)
+controller can now continue eligible inactive-range releases. In the
+populated guest control, sparse retirement settled while the prepublished
+image stayed mounted. Packed retirement advanced farther before detach.
+The normal path still needs to select and settle a compact image under churn.
+[Read accounting and mounted evidence](evidence/windows-staged-reclamation-reads-2026-11-24.json) ·
+[Retirement evidence](evidence/windows-mounted-range-retirement-2026-11-24.json)
 
 The dedicated memory suite checks all three layouts under 4-KiB and 64-KiB
 failure contracts, both encoding modes, generic empty/1-MiB objects, all phases,

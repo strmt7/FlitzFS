@@ -30,6 +30,9 @@ class NativeVolumeFileReclaimer final {
       std::shared_ptr<NativeVolumeFile::Region> spare,bool recover_spare,
       std::shared_ptr<NativeVolumeFile::CatalogRanges> catalog);
   bool pending(const NativeFileSession&,NativeVolumeReclaimMode) const;
+  bool inactive_image_retirement_ready() const noexcept {
+    return phase_==Phase::retiring && !scratch_ && spare_.use_count()==1;
+  }
   std::optional<NativeDenseFileSpace> dense_file_space() const;
   bool seal_preparation_pending(const NativeFileSession&) const noexcept;
   std::uint64_t projected_seal_writes(const NativeVolumeSelection&,std::uint64_t occupied) const noexcept;

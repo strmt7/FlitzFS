@@ -2,7 +2,9 @@
 
 The diagrams reflect the 24 November source review at
 `c32348b7efe5aaa789965ee669189840f3f6f5b3`. The AMD path includes the
-prepared group worker and separately sealed uniform write batches.
+prepared group worker and separately sealed uniform write batches. The
+mounted reclamation section incorporates the
+[follow-up source and evidence](../evidence/windows-mounted-range-retirement-2026-11-24.json).
 The [release reconciliation](../RELEASE_RECONCILIATION_2026-11-24.md) records
 what is qualified and the [source receipt](../evidence/release-reconciliation-2026-11-24.json)
 binds the review to the code. The [revised architecture](TARGET.md) gives the
@@ -413,11 +415,15 @@ flowchart TD
     Phase -->|Eligible packed tail| Release["Relocate or shorten after settled ownership"]
     Phase -->|Cold work permitted| Screen["Screen and fund cold image work"]
     Phase -->|Deferred| Idle["Another eligible task or wait for evidence"]
-    Advance --> Ownership["Verify image and allocation ownership"]
-    Ownership --> Release
-    Detach["Detached packed fixture with independent native writer"] --> Direct["Explicit native admission and step"]
+    Advance --> Ownership["Recheck both durable selectors and reader pins"]
+    Ownership --> Chunk["Retire one checked range and barrier"]
+    Chunk --> More{"Same idle window, current memory and more unpinned work?"}
+    More -->|Yes| Ownership
+    More -->|Wait or finished| Event
+    Detach["Detached fixture with independent native writer"] --> Direct["Explicit native admission and step"]
     Direct --> Advance
-    Release --> Verify["After retirement, independent CPU reopen and physical accounting"]
+    Chunk --> Release
+    Release --> Verify["Independent CPU reopen and physical accounting"]
 ```
 
 The earlier mounted trace completed inactive-range retirement, then withheld
@@ -425,9 +431,12 @@ eligible physical tail work behind the optional cold-work gate. File-backed
 maintenance now admits eligible backing release through the ordinary idle
 policy. The signed WinFsp guest crossed the packed group boundary and verified
 both version-2 anchors, the held reader, independent CPU reopen and a continued
-write. The next fixture extends this result through repeated settled cycles.
-[Mounted retirement](../evidence/windows-mounted-packed-retirement-2026-11-23.json) ·
-[Next implementation slice](../RELEASE_EXECUTION_PLAN.md#first-implementation-slice)
+write. On the populated trace, the observer begins with a separately selected
+compact image. Sparse backing completed old-range retirement while attached.
+Packed backing progressed without reducing provider allocation in the
+observation. All four observations verified the selected image and retired the guest.
+[Populated retirement](../evidence/windows-mounted-range-retirement-2026-11-24.json) ·
+[Next implementation slice](../RELEASE_EXECUTION_PLAN.md#next-integrated-qualification)
 
 ## 9. AMD work and immediate CPU continuity
 

@@ -32,6 +32,9 @@
     "latest_owner_amd_write_pairs": "docs/evidence/windows-owner-amd-write-pairs-2026-11-23.json",
     "latest_populated_operation_trace": "docs/evidence/windows-populated-client-trace-2026-11-24.json",
     "latest_staged_reclamation": "docs/evidence/windows-staged-reclamation-reads-2026-11-24.json",
+    "verified_runtime_tree": "68b73e14181242d113e5b2e7ce4346c2b3f89f3d",
+    "latest_checked_range_retirement": "docs/evidence/windows-mounted-range-retirement-2026-11-24.json",
+    "next_highest_impact_work": "docs/RELEASE_RECONCILIATION_2026-11-24.md#immediate-work-after-the-retirement-batch",
     "latest_separate_request_admission": "docs/evidence/windows-controller-separate-request-admission-2026-11-24.json",
     "latest_finishable_worker_burst": "docs/evidence/windows-finishable-worker-bursts-2026-11-24.json",
     "latest_arriving_native_write_burst": "docs/evidence/windows-native-arriving-write-burst-2026-11-24.json",
@@ -39,7 +42,7 @@
     "latest_mixed_size_resident_worker": "docs/evidence/windows-mixed-size-resident-worker-2026-11-24.json",
     "latest_write_geometry_calibration": "docs/evidence/windows-amd-write-geometry-calibration-2026-11-24.json",
     "latest_indexed_name_page_inventory": "docs/evidence/indexed-name-page-inventory-2026-11-23.json",
-    "next": "Use the matched populated Win32 trace to measure mounted reclamation admission and phase progress. Staged rebuilds make fewer backing reads and detached reclamation completes on both populated backings. Keep independent recovery and reuse this transcript for incremental admission, complete-cost AMD trials and settled compression.",
+    "next": "Use the populated Win32 trace to measure ordinary mounted copy, selection and physical settlement. Sparse retirement completes after prepublication; packed retirement advances but needs provider placement and tail work. Run admitted real AMD route comparisons, generation-bound attach shadowing and held-out complete-size trials with independent CPU recovery.",
     "release_qualified": false
   },
   "baseline": {

@@ -308,6 +308,7 @@ struct WinFspNativeWritable::Impl {
   MemoryVolumeBacking* memory_backing=nullptr;
   std::optional<detail::VolumeFileProfile> file_profile;
   std::uint64_t last_indexed_observation=0,last_indexed_capture=0;
+  std::uint64_t range_retirement_capture=0;
   bool maintenance_cancelled=false,scrub_yield=false,directory_backfill_yield=false,paired_seal_memory=false;
   std::atomic<bool> callbacks_bound{false};
   StoreIdentity identity{};UINT64 created=0;UINT32 serial=0;
@@ -464,7 +465,7 @@ struct WinFspNativeWritable::Impl {
     return result;
   }
   WinFspMaintenanceResult advance_indexed_maintenance(const NativeMaintenanceObservation& observed,std::uint64_t now,
-      bool repair_rotation,bool allow_cold) {
+      bool repair_rotation,bool allow_cold,WinFspMaintenanceContinuation continuation) {
     using State=WinFspMaintenanceState;
     using Phase=NativeMaintenancePhase;
     using Deferral=NativeMaintenanceDeferral;
@@ -477,8 +478,13 @@ struct WinFspNativeWritable::Impl {
     const auto preparing=[&] {
       return memory_backing?memory_backing->compaction_preparation_pending(session):session.idle_compaction_preparation_pending();
     };
-    if(observed.continued && (repair || repair_rotation || reap || discard_catalog || !preparing()))
-      return defer(Deferral::observation);
+    const bool retiring_range=session.inactive_image_retirement_ready();
+    const auto retirement_capture=std::exchange(range_retirement_capture,0);
+    if(observed.continued) {
+      const bool same_work=continuation==WinFspMaintenanceContinuation::range_retirement?
+          retiring_range && retirement_capture && observed.captured_ms==retirement_capture:preparing();
+      if(repair || repair_rotation || reap || discard_catalog || !same_work)return defer(Deferral::observation);
+    }
     const auto file_mode=file_reclaim_mode(allow_cold);
     const bool persistent=session.persistent_reclamation_pending(file_mode);
     const bool memory=memory_backing && memory_backing->compaction_pending(session,allow_cold);
@@ -530,7 +536,15 @@ struct WinFspNativeWritable::Impl {
       if(persistent) {
         detail::NativeSealScratchOffer scratch;
         if(paired_seal_memory)scratch={*admission.memory-indexed_transaction_scratch,try_locked_seal_scratch};
-        auto result=progress(session.advance_persistent_reclamation(fresh_volume_identity,file_mode,scratch));
+        const auto step=session.advance_persistent_reclamation(fresh_volume_identity,file_mode,scratch);
+        auto result=progress(step);
+        // After a checked release, this window can fund only further
+        // releases of the same inactive image. A publication or a newly
+        // abandoned candidate must wait for its first fresh observation.
+        if(retiring_range && step==NativeVolumeReclaimProgress::retiring && session.inactive_image_retirement_ready()) {
+          range_retirement_capture=observed.captured_ms;
+          result.continuation=WinFspMaintenanceContinuation::range_retirement;
+        }
         result.sealed_image=result.compacted && session.volume_info().selection.sealed_range.has_value();
         return result;
       }
@@ -1460,7 +1474,8 @@ WinFspMaintenanceResult WinFspNativeWritable::advance_background_maintenance(
       return impl_->advance_payload_scrub(observed,now);
     if(continuation==WinFspMaintenanceContinuation::group && !repair && !impl_->session.retirement_pending())
       return impl_->advance_groups(observed,now,search);
-    if(continuation!=WinFspMaintenanceContinuation::compaction || !indexed)
+    if(!indexed || (continuation!=WinFspMaintenanceContinuation::compaction &&
+        continuation!=WinFspMaintenanceContinuation::range_retirement))
       return {WinFspMaintenanceState::busy};
   }
   if(indexed) {
@@ -1468,7 +1483,7 @@ WinFspMaintenanceResult WinFspNativeWritable::advance_background_maintenance(
     // a compaction handoff. Detached-inode reclamation can still invalidate it.
     if(!observed.continued && !repair && !impl_->session.retirement_pending() && impl_->groups && impl_->groups->active_group())
       return impl_->advance_groups(observed,now,search);
-    auto storage=impl_->advance_indexed_maintenance(observed,now,rotation,impl_->cold_compaction_allowed(scrub));
+    auto storage=impl_->advance_indexed_maintenance(observed,now,rotation,impl_->cold_compaction_allowed(scrub),continuation);
     if(!observed.continued && storage.state==WinFspMaintenanceState::unchanged && !search.reply && search.replies.empty()) {
       const bool backfill=impl_->session.directory_backfill_pending();
       const bool group_pending=impl_->groups && impl_->groups->pending();

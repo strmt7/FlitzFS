@@ -8,7 +8,16 @@ ordinary Windows I/O. Share the workload, artifact manifest and independent
 readback across these lanes. Develop the paths needed to obtain those results
 before adding another GPU format or worker protocol.
 
-The reviewed source is
+The follow-up reviews the **1,070-path candidate tree**
+`68b73e14181242d113e5b2e7ce4346c2b3f89f3d` over `7efa78e`.
+It reconciles every changed path after the first review with the current gate
+ledger. The populated trace now gives a common operation witness, and
+inactive-range continuation settles the prepublished sparse case. Packed
+physical settlement and autonomous image selection are the remaining
+reclamation priorities.
+[Follow-up source, correctness and research receipt](evidence/windows-mounted-range-retirement-2026-11-24.json)
+
+The initial reviewed source is
 `c32348b7efe5aaa789965ee669189840f3f6f5b3`, tree
 `2de01631e9021df3006b85f18d80710ed52ae473`. This review inventories all
 1,065 tracked paths and reconciles the product lanes against the previous
@@ -25,7 +34,7 @@ execution scope. [Review and research receipt](evidence/release-reconciliation-2
 | --- | --- | --- |
 | S1 · Exact artifacts | The Windows builds can bind approved WinFsp and AMD package artifacts. Group-worker callback, codec-free, ASan and ROCm link checks identify their exact source and binaries. | Freeze a single package/driver/runtime, CPU decoder registry, OS update, backing and test manifest. Verify the same artifacts in clean install, recovery and benchmark workflows. [Worker build and test receipt](evidence/windows-prepared-group-worker-2026-11-24.json) |
 | S2 · Native scale | Paged inode, directory and extent authority exists. At 16,384 short files, coalescing lowered checked backing calls from 350,772 to 186,089 while checking the same 76,462,421 bytes. The 24 November indexed changes stream more of the checked namespace work. | Separate mount cost from background validation under an exact authority contract. Fit and cross-check separate scale curves for attach, lookup, listing, working set and mutation. [Read coalescing](evidence/indexed-record-read-coalescing-2026-11-23.json) · [Indexed validator](../src/native_indexed_volume.cpp) |
-| S3 · Allocation and reuse | Packed relocation preserved a held reader and crossed a physical allocation boundary in a 60-revision guest trace. Another finite guest run verified repeated packed and sparse settlement. | Prove stable or decreasing settled allocation under sustained mounted churn, pressure, pinned old generations and repair on each supported backing. [Packed retirement](evidence/windows-mounted-packed-retirement-2026-11-23.json) · [Repeated reclamation](evidence/windows-mounted-repeated-reclamation-2026-11-23.json) |
+| S3 · Allocation and reuse | The 1,027-file trace recovered and accepted further writes. Scoped rebuild reconciliation cut backing reads from 7,990 to 3,281. After preselecting a compact image, sparse backing settled while mounted and packed retirement left fewer detached steps. | Select and settle a compact image of the same population through the ordinary mounted owner. Attribute packed physical release and prove a stable occupied size across sustained churn, retained readers and repair. [Rebuild](evidence/windows-staged-reclamation-reads-2026-11-24.json) · [Populated retirement](evidence/windows-mounted-range-retirement-2026-11-24.json) |
 | S4 · AMD and independent CPU continuity | The controller measures CPU write costs and can run paired replay, including separate incoming sizes in a funded prepared worker. Controlled device-produced native extents recovered on CPU. Three paired 1 MiB writes selected CPU. Plain LZ4 read-ahead has verified real device frames. Packed XOR and mixed sparse XOR/modular read-ahead now have prepared capture and CPU/SDK results. Both grouped-decode live preflights refused admission and made zero launches. | In isolated exact-artifact tests, prove device readback for both grouped formats. Then prove automatic ordinary delivery and a benefit on at least one supported workload per advertised AMD read, write and collective role. Preserve correct and immediate CPU selection during contention, faults, cancellation and unsupported runtime. [Paired writes](evidence/windows-owner-amd-write-pairs-2026-11-23.json) · [LZ4 reads](NATIVE_AMD_LZ4_READ.md) · [Grouped preparation](evidence/windows-prepared-group-worker-2026-11-24.json) |
 | S5 · Complete compression | The indexed format has shared bases, packed placements and grouped residuals. The AIT A–P layout trial went from 51,486,720 to 32,440,320 settled bytes with identical encodings and protection. The newer dense Radeon encoder selected 100 rather than 80 outputs and cut reply bytes by 5,120. Both dense arms occupied 1,982,464 bytes after compaction. | Compare marginal settled bytes against strong independent and collective controls on held-out file families, with all dependencies, protection, restart costs and retained readers charged. [Layout trial](evidence/dense-cross-group-2026-11-23.json) · [Dense pair](evidence/windows-collective-dense-readback-2026-11-24.json) |
 | S6 · Autonomous maintenance | The sparse paged catalog, workload samples, yield ranking, bounded continuations, resource admission and checked checkpoint advice exist. The dense CPU read changes cut median full-path time by about 14% in four paired private native-session runs on one fixture. | Measure adaptation profit and low interference on ordinary reactive mixed workloads, establish restart and stale-advice behavior, and coordinate across volumes and media. Treat the CPU timing as one useful control for future grouped AMD trials. [Optimizer source](../src/native_maintenance.cpp) · [Dense CPU readback](evidence/windows-collective-dense-readback-2026-11-24.json) |
@@ -101,13 +110,89 @@ execution scope. [Review and research receipt](evidence/release-reconciliation-2
   [AITDCC 2026 rules and paper reference](https://aitdcc.github.io/)
   · [Canonical corpus and reuse terms](https://aitdcc.github.io/dataset.html)
 
+### Recent research applied to the next experiments
+
+- **Package and runtime identity govern the AMD offer.** AMD publishes Core
+  SDK 10.1.0 with a Windows tarball path and documents the HIP runtime as a
+  component of the SDK. Verify the exact package, HIP runtime and headers,
+  adapter, existing driver, device code and supported compatibility tuple
+  separately. Test 10.1.0 as a private candidate when compatible. The APU
+  coherent-host-memory change in the release notes is scoped to unified-memory
+  devices. Keep the existing discrete-GPU control and measure each transport.
+  Keep only a finite prepared window when it saves work on the same demand.
+  [AMD installation](https://rocm.docs.amd.com/en/docs-10.1.0/install/rocm.html) ·
+  [HIP component installation](https://rocm.docs.amd.com/projects/HIP/en/latest/install/install.html) ·
+  [10.1.0 release notes](https://rocm.docs.amd.com/en/docs-10.1.0/about/release-notes.html)
+- **Test search methods by the protected space they save.** Sonic studies
+  low-similarity chunks that faster detectors can miss. Add a bounded,
+  shift-sensitive feature arm beside existing sketch bands, exact sharing and
+  the small exhaustive reference oracle. ZipLLM finds useful
+  family-specific and tensor-level similarity among model versions. Use
+  pinned weights as a held-out cohort for reversible grouping, and require
+  identical file bytes, including container headers and padding. Any offline
+  learned ranker must earn its catalog space and search time on held-out
+  families. [Sonic](https://www.mdpi.com/2073-431X/15/9/607) ·
+  [ZipLLM](https://www.usenix.org/conference/nsdi26/presentation/wang-zirui)
+- **Keep recognized workloads and size accounting complementary.**
+  DiskSpd covers file I/O rate and latency under common profiles.
+  SPECstorage Solution 2020 publishes distinct software-build, AI image,
+  genomics, video-acquisition and EDA workloads. Use a licensed workload
+  result only when the run meets SPEC's rules, and keep per-workload results.
+  Use pinned real versioned files for compression savings. For NTFS, apply
+  the ordinary native directory setting, query file compression after writing,
+  and pair exact content with actual occupied size.
+  [Microsoft DiskSpd](https://microsoft.github.io/VirtualClient/docs/workloads/diskspd/) ·
+  [SPECstorage](https://www.spec.org/storage2020/) ·
+  [Windows NTFS compression state](https://learn.microsoft.com/en-us/windows/win32/fileio/compression-state) ·
+  [Microsoft compact](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/compact)
+
 ## Prioritized implementation
+
+### Immediate work after the retirement batch
+
+The earlier and revised observers share 6,293 Win32 records, three helper
+lifecycles and exact independent CPU readback of 1,027 files. Detached
+preparation copied and verified the candidate in 8,489 steps before each
+mounted observation. Sparse release advanced from 64 MiB in the earlier
+window to complete old-range retirement in the revised window. Packed
+backing stayed at its starting allocation in both windows. It had 323
+detached retirement steps left instead of 377. Both packed runs settled to
+6,160,384 bytes, and both sparse runs to 5,898,240 bytes. These are guest
+correctness and allocation observations. Performance comparisons use the
+real host. [Paired observations](evidence/windows-mounted-range-retirement-2026-11-24.json)
+
+| Order | Implementation | Exit evidence and next decision |
+| --- | --- | --- |
+| 1 · E02 | Extend the ordinary controller observer from copy through physical settlement, without preselecting the image. Record elapsed and backing work per phase, durable generation and pins, encoded live bytes, provider slots, group high-water mark, safe tail bytes and actual allocation. Use the same transcript with cold work withheld as a correctness control. | Attribute remaining occupied bytes to image preparation, selector admission, reader retention or packed placement. Keep paging and release budgets while changing the measured dominant phase. |
+| 2 · E02 and E11 | For the private copy path, measure verification, copy, index construction and published verification separately. Try coalesced ordered-record reads and bounded page batches with per-item generation checks. For packed backing, compare packing away from the boundary with bounded live-slot relocation using both allocation anchors. | Exact CPU verification and unchanged acknowledged bytes across each cut. Improve full mounted settlement, with stable or decreasing occupied bytes on repeated churn and favorable provider bytes written per byte freed. Retain staged rebuild for unresolved ownership. |
+| 3 · E03 | Retry the prepared grouped decoders under fresh host admission. Pair CPU, cold AMD and prepared AMD on identical protected groups, then qualify verified bytes actually consumed by mounted reads or writes. Record prepare, transfer, compute, validate, deliver and retire costs, including CPU bytes served during preparation. | Select positive complete-cost regions separately for reads, ingestion and deep compression. Keep immediate CPU service on refusal, failure, contention or supersession and prove readiness recovery before another device offer. |
+| 4 · E01, E04–E07 | Use the same client witness for generation-bound attach in shadow mode and for the held-out complete-size oracle. Charge mirrors, dictionaries, catalog, root history, temporary reservations and provider allocation. Compare paged search against exact small-set recall and validate held-out count tiers and file families. | A measured scaling curve and a Pareto frontier of settled bytes, access and rewrite costs determine the next storage format and offline learner. Do not increase state or dependency depth until the complete-volume result justifies it. |
+| 5 · E08–E13 | Carry the resulting reader and writer into exact signed Windows 11 packaging, Explorer/client compatibility, historical format access, operator-free migration and backing recovery. Preserve the independent CPU reader and acknowledge only qualified barriers. Run controlled plain/native NTFS and FlitzFS comparisons on installed Windows with the frozen artifacts. | Each advertised feature and backing has signed-artifact, correctness, failure, interference and comparison evidence. Close S1–S12 before sending the release decision to the owner. |
+
+The storage, AMD and compression lanes may share the transcript and proceed
+independently. A test must answer a release-gate question or distinguish
+the next implementation choice. Use operation and backing counters for fast
+iteration. Reserve the broad fault matrix and comparative benchmark runs
+for material changes and frozen candidates.
+
+For packed allocation work, the design keeps four distinct transition
+records. **Prepared** binds source generation and verified target records.
+**Selected** records both durable selector peers. **Reclaimable** binds the
+inactive range to its current allocation incarnation and empty pin set.
+**Released** records the provider's physical extent and both allocation
+anchors. A crash or ambiguous result returns to independent CPU validation
+at the last durable authority. Tag candidate pages and delayed work with their
+generation, and compare again before installing an optimized action. Refuse a
+release with an unresolved owner. [Target reclamation design](architecture/TARGET.md#3-make-reopen-and-reclamation-scale-incrementally) ·
+[Packed provider](../src/dense_volume_backing.cpp) ·
+[Range owner](../src/native_volume_file.cpp)
 
 ### 1. Extend one mounted trace and one complete accounting record
 
-**Start here.** Extend the existing WinFsp application test with an external
-Win32 operation witness and a versioned, reproducible manifest. Reuse the
-current modeled and mounted publication hooks. Drive create/open, overlapped
+**Shared harness.** The external Win32 witness and versioned transcript are
+implemented for the populated guest. Extend the same workflow to matched
+maintenance, fault, scaling and acceleration arms. Reuse the current modeled
+and mounted publication hooks. Drive create/open, overlapped
 and cached writes, mapping, explicit barriers, rename-overwrite, held readers,
 delete/regrow, listing, range read and final independent reopen. Record the
 client-observed return and barrier, driver/helper/package identities, selector

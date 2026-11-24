@@ -3,8 +3,10 @@
 Reviewed on 24 November 2026 against the 1,065 tracked files at
 `c32348b7efe5aaa789965ee669189840f3f6f5b3` and tree `2de01631e9021df3006b85f18d80710ed52ae473`.
 The [current reconciliation](RELEASE_RECONCILIATION_2026-11-24.md) records
-the evidence, design decisions and prioritized checkpoints.
-[Source and research receipt](evidence/release-reconciliation-2026-11-24.json)
+the evidence, design decisions and prioritized checkpoints. It includes a
+populated retirement follow-up over `7efa78e`.
+[Source and research receipt](evidence/release-reconciliation-2026-11-24.json) ·
+[Follow-up receipt](evidence/windows-mounted-range-retirement-2026-11-24.json)
 Use the [repository overview](REPOSITORY_OVERVIEW.md) for the product snapshot,
 the [current architecture](architecture/CURRENT.md) and [target architecture](architecture/TARGET.md)
 for system flows, and the [detailed implementation plan](IMPLEMENTATION_PLAN.md)
@@ -488,12 +490,17 @@ published compact images and verified all bytes. Both mounted windows ended
 with eligible retirement pending.
 [Staged reclamation evidence](evidence/windows-staged-reclamation-reads-2026-11-24.json)
 
-Measure the controller's admitted and refused opportunities, continuation
-counts and phase progress on the same trace. Distinguish resource admission,
-competing work, private copy, publication and reader-pinned retirement before
-changing the scheduling budget. Add the control with maintenance withheld
-and preserve the independent acknowledgement checks. Collect real-host
-timing once the shared workflow admits qualified backing and artifact pairs.
+The controller now continues checked inactive-image release within the same
+idle window. Paired signed guest runs used the same operation transcript.
+The prepublished sparse case retired the old range while mounted. Packed
+occupied allocation stayed flat during the mounted observations and
+remaining detached steps fell from 377 to 323. The next control must cover
+copy, durable selection and packed physical settlement beginning with the
+ordinary mounted owner, including a maintenance-withheld arm and independent
+write acknowledgements. Measure complete foreground and background cost
+on the real host with qualified backing and exact artifacts.
+[Retirement evidence](evidence/windows-mounted-range-retirement-2026-11-24.json) ·
+[Prioritized follow-up](RELEASE_RECONCILIATION_2026-11-24.md#immediate-work-after-the-retirement-batch)
 
 ### First implementation slice
 

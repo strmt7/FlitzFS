@@ -273,7 +273,7 @@ struct WinFspVolumeController::Impl {
           std::uint64_t scrub_checks=0,scrub_passes=0,scrub_faults=0;
           PagedPayloadScrubResult last_scrub_fault;
           std::optional<PagedPayloadCheckpointObservation> payload_checkpoint;
-          std::uint64_t continued=0,continued_compaction=0;
+          std::uint64_t continued=0,continued_compaction=0,continued_range_retirement=0;
           detail::MaintenanceBackingUse backing_use;
           bool backing_limited=false,read_ahead_prepared=false,read_ahead_backing_refused=false;
           bool read_ahead_demand_sampled=false;
@@ -360,6 +360,7 @@ struct WinFspVolumeController::Impl {
                     result.progress.deferral==NativeMaintenanceDeferral::none) {
                   ++continued;
                   if(continuation==WinFspMaintenanceContinuation::compaction)++continued_compaction;
+                  if(continuation==WinFspMaintenanceContinuation::range_retirement)++continued_range_retirement;
                 }
                 continuation=result.continuation;
                 if(disabled || continuation==WinFspMaintenanceContinuation::none ||
@@ -394,6 +395,7 @@ struct WinFspVolumeController::Impl {
             ++current.maintenance_quanta;
             current.continued_preparation_steps+=continued;
             current.continued_compaction_steps+=continued_compaction;
+            current.continued_range_retirement_steps+=continued_range_retirement;
             if(result.reclaimed)++current.reclamation_quanta;
             if(result.payload_repaired)++current.payload_repairs;
             current.payload_scrub_checks+=scrub_checks;
@@ -459,6 +461,7 @@ struct WinFspVolumeController::Impl {
       WinFspMaintenanceContinuation continuation,bool scrub_due) {
     const auto now=GetTickCount64();
     if(continuation==WinFspMaintenanceContinuation::compaction ||
+        continuation==WinFspMaintenanceContinuation::range_retirement ||
         continuation==WinFspMaintenanceContinuation::payload_scrub)
       return session->advance_background_maintenance(observed,now,{},continuation,scrub_due);
     if(!anchor) {
