@@ -952,6 +952,12 @@ latency before admitting a production profile.
    complete-cost estimate admitted two. Both lanes produced identical
    protected image sizes and verified independent readback.
    [Mixed collective setup evidence](evidence/windows-mixed-collective-setup-2026-11-24.json)
+   Collective arena version 12 adds dense XOR as a third device choice.
+   The indexed publication fixture verified selected bodies and recovered
+   through the CPU when a body reconstructed different bytes. Compare both
+   arena versions and CPU on the same native cohorts. Measure reply bytes,
+   selected representations, complete image size, and total maintenance cost.
+   [Dense XOR qualification](evidence/windows-collective-dense-xor-2026-11-24.json)
    Extend finite exchanges to independently admitted collective cohorts.
    Bind each job to a source revision, verify decoded bytes before publication,
    and retire the helper when admitted work drains or foreground demand rises.

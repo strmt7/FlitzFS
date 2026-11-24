@@ -710,20 +710,37 @@ void collective_reply() {
   auto delta=base;
   for(std::size_t at=0;at<delta.size();at+=4)
     native_fixture::add_little_endian(std::span(delta).subspan(at,4),0x31ac05d9U);
+  auto dense=base;
+  for(std::size_t i=0;i<dense.size();i+=2)dense[i]^=std::byte{1};
   const auto sparse_frame=encode_native_group_sparse_xor(sparse,base,id,1,match::extent_bytes);
   const auto delta_frame=encode_native_group_delta(delta,base,id,1,match::extent_bytes);
-  check(sparse_frame && delta_frame,"Collective advice fixture bodies");
+  const auto dense_frame=encode_native_group_xor(dense,base,id,1,match::extent_bytes);
+  const auto dense_as_sparse=encode_native_group_sparse_xor(dense,base,id,1,match::extent_bytes);
+  check(sparse_frame && delta_frame && dense_frame && dense_as_sparse && dense_frame->size()<dense_as_sparse->size(),
+      "Collective fixture did not cover competing XOR forms");
   const auto delta_body=anchor_search_fixture::modular_advice_payload(*delta_frame);
+  constexpr auto header=kNativeGroupMemberHeaderBytes;
+  const auto dense_bytes=static_cast<match::u32>(dense_frame->size()-header);
+  const auto sparse_bytes=static_cast<match::u32>(dense_as_sparse->size()-header);
+  using Body=match::CollectiveBody;
+  check(match::choose_collective_body(sparse_bytes,0,dense_bytes).method==Body::packed_xor &&
+      match::choose_collective_body(dense_bytes,0,dense_bytes).method==Body::packed_xor &&
+      match::choose_collective_body(sparse_bytes,match::delta_parameters_bytes+dense_bytes-1,dense_bytes).method==
+          Body::modular_delta &&
+      match::choose_collective_body(dense_bytes-1,match::delta_parameters_bytes+dense_bytes,dense_bytes).method==
+          Body::sparse_xor &&
+      match::choose_collective_body(0,0,0).method==Body::none,"Collective choice ignored the stored lengths");
   const std::array<AnchorPackedAdvice,1> bodies{AnchorPackedAdvice{
-      anchor_search_fixture::collective_advice_payload(match::CollectiveBody::sparse_xor,
-          std::span(*sparse_frame).subspan(128)),
-      anchor_search_fixture::collective_advice_payload(match::CollectiveBody::modular_delta,delta_body),{}}};
+      anchor_search_fixture::collective_advice_payload(Body::sparse_xor,std::span(*sparse_frame).subspan(header)),
+      anchor_search_fixture::collective_advice_payload(Body::modular_delta,delta_body),
+      anchor_search_fixture::collective_advice_payload(Body::packed_xor,std::span(*dense_frame).subspan(header)),{}}};
 
-  constexpr std::array<match::u32,1> counts{3};
+  constexpr std::array<match::u32,1> counts{4};
   const auto plan=plan_anchor_match_batch(counts,2,match::device_bytes(2,output),2,output);
   AnchorMatchBatchBuilder builder(150,plan);
   auto members=sparse;
   members.insert(members.end(),delta.begin(),delta.end());
+  members.insert(members.end(),dense.begin(),dense.end());
   members.insert(members.end(),base.begin(),base.end());
   builder.append(11,base,members);
   const auto request=builder.finish();
@@ -742,6 +759,12 @@ void collective_reply() {
           NativePackedGroupCheck::verified &&
       check_native_group_delta_body(checked_delta->bytes,delta,base,id,1,match::extent_bytes).check==
           NativePackedGroupCheck::verified,"Collective body did not independently decode");
+  const auto checked_dense=parse_collective_group_body(decoded[0][2]);
+  check(checked_dense && checked_dense->method==flitzfs::NativePackedGroupMethod::xor_planes &&
+      check_native_group_xor_body(checked_dense->bytes,dense,base,id,1,match::extent_bytes,true).frame==dense_frame,
+      "Collective dense XOR did not preserve the existing CPU frame");
+  check(check_native_group_xor_body(checked_dense->bytes,base,base,id,1,match::extent_bytes,true).check==
+      NativePackedGroupCheck::invalid,"Collective dense XOR used the wrong source");
   constexpr std::size_t first_tag=64+4+64+4;
   for(const auto byte:{first_tag,first_tag+1}) {
     auto invalid=response;
@@ -749,7 +772,10 @@ void collective_reply() {
     rejects([&]{(void)decode_anchor_packed_batch_reply(invalid,request);});
   }
   auto invalid=bodies;
-  invalid[0][1][0]=static_cast<std::byte>(match::CollectiveBody::sparse_xor);
+  invalid[0][1][0]=static_cast<std::byte>(Body::sparse_xor);
+  rejects([&]{(void)encode_anchor_arena_batch_reply(received,invalid);});
+  invalid=bodies;
+  invalid[0][2].pop_back();
   rejects([&]{(void)encode_anchor_arena_batch_reply(received,invalid);});
 }
 

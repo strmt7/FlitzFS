@@ -1,0 +1,561 @@
+{
+  "schema": 1,
+  "date": "2026-11-24",
+  "scope": "Experimental AMD collective arena with dense XOR. Windows native CPU acceptance, staged AMD code object and worker, and physical host admission observations.",
+  "source": {
+    "base": "854df7d967d5b18dfdc34a7d0843970c76890808",
+    "blobs": {
+      "include/flitzfs/gpu_anchor_kernel_api.hpp": "d0a89968e6e12380f91874195eef8045cc9b69c1",
+      "include/flitzfs/gpu_anchor_match.hpp": "acb5cad0d83c8e8a92ad6541bb5b64d7034556f5",
+      "src/gpu/decode_kernel.hip": "167f132f8f165083333c873a2b814c1d806afb4c",
+      "src/native_group_codec.cpp": "12a68d35cd2205a274ec40b69c2982ea8f5dc579",
+      "src/windows/hip_decode_worker.cpp": "a84ae74057bbcd96b7c765bff17fa3e077119efa",
+      "src/windows/hip_worker_main.cpp": "f8c85ac0ec036c8692e8f05ac9fc7288a84f1517",
+      "tests/anchor_search_fixture.hpp": "f8b3b9b955662e7b0a7e55d0bf272b9510b966ff",
+      "tests/rocm_compile/kernel_module.cpp": "66a175dc0443962f957a395f333d71b2bf505d06",
+      "tests/test_gpu_anchor_match.cpp": "c48018877f269ff972706b556cf67a62c659349d",
+      "tests/test_native_group_maintenance.cpp": "c48fdd2bb2f92b490cb4f5ab1695fa86af61daba",
+      "tests/test_winfsp_controller.cpp": "9cbfe61b91f1ab7a113b0be15fb6f9e6d7f56d3d"
+    },
+    "source_navigation": {
+      "receipt": "routing-receipt-7.json",
+      "sha256": "6fbc8195d9b89b05529c4521372fee758a6659666b184fc8683899d5c759a717",
+      "commit": "854df7d967d5b18dfdc34a7d0843970c76890808",
+      "source_files": 5,
+      "actual_searches": 1,
+      "candidates": [
+        {
+          "file_path": "include/flitzfs/gpu_anchor_match.hpp",
+          "start_line": 49,
+          "end_line": 67,
+          "score": 0.8075234381715415
+        },
+        {
+          "file_path": "include/flitzfs/gpu_anchor_match.hpp",
+          "start_line": 66,
+          "end_line": 81,
+          "score": 0.7843886323192759
+        },
+        {
+          "file_path": "src/native_group_codec.cpp",
+          "start_line": 664,
+          "end_line": 683,
+          "score": 0.7700968707615043
+        },
+        {
+          "file_path": "include/flitzfs/gpu_anchor_match.hpp",
+          "start_line": 26,
+          "end_line": 38,
+          "score": 0.763529249374983
+        },
+        {
+          "file_path": "src/native_maintenance.cpp",
+          "start_line": 225,
+          "end_line": 245,
+          "score": 0.758201379078848
+        }
+      ]
+    }
+  },
+  "design": {
+    "accepted_kernel_abi_versions": [
+      9,
+      12
+    ],
+    "stored_member_format": "Existing indexed packed XOR",
+    "stored_header_fields_reused": true,
+    "selection": "Score stored lengths of dense XOR, sparse XOR, and modular delta. Dense wins an XOR tie. Only the chosen body is written into the bounded arena.",
+    "fallback": "Independently reconstruct and compare the member. A body for different plaintext leaves CPU encoding eligible. Final compacted-size admission and publication retain the existing transaction."
+  },
+  "sources": {
+    "pages": [
+      {
+        "name": "falcon-adaptive-bitplanes",
+        "url": "https://arxiv.org/abs/2511.04140",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 8932,
+        "markdown_sha256": "1ffb9e50dd349573c519c36b2324cd92e8d0f634a311dcb8a8c35ac8ddf583a2",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.916,
+        "capture": "falcon-adaptive-bitplanes.native.json",
+        "capture_sha256": "ab17e9e6cb687a230189770c417eb1082557113f94989e485d7b1bcbddf2b210"
+      },
+      {
+        "name": "amd-gpu-compression-studies",
+        "url": "https://escholarship.org/uc/item/5hs138d9",
+        "success": false,
+        "native_success": true,
+        "http_status": 202,
+        "final_http_status": 202,
+        "markdown_bytes": 1,
+        "markdown_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "expected_content": false,
+        "failure_category": "insufficient_content",
+        "error": "",
+        "seconds": 0.77,
+        "capture": "amd-gpu-compression-studies.native.json",
+        "capture_sha256": "0f02a0f6bf2520bb7d447960a413a006f4aa82cd58ab8d063e98a65ae4a5adb6"
+      },
+      {
+        "name": "amd-hip-performance",
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/performance_guidelines.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 51332,
+        "markdown_sha256": "f5b26916040d693275684ca2fd5b19265fe6f96cd77bea62fef8bf9a02020387",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.654,
+        "capture": "amd-hip-performance.native.json",
+        "capture_sha256": "b2e1b65f5bf1f7c481af3d90ab5a830ca66e89f97206905fa7c0f381e17e4fe9"
+      }
+    ],
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "8f7b74fa8f94b3b0d52c40cfc37db28cef4070917971d3dc195d5cfd1a03556c"
+  },
+  "windows_sdk": {
+    "distribution_lock_sha256": "e1b518df1cd18c06df5ed6f23fecd4f7c8344be648af6be039cf4658cfb5e91a",
+    "prior_complete_sdk_receipt_sha256": "a0c96d8bf7884c6ce3e97cc1c06d678db8cab26bc22f0bdaa5e3710c99d60aea",
+    "compile_inputs": {
+      "src/gpu/decode_kernel.hip": {
+        "bytes": 28090,
+        "sha256": "426ad8d3641196c53f9e3342e4ac44a6d5f2f1fb587996abb74f8fc910c5246d"
+      },
+      "src/gpu/decode_kernel.hpp": {
+        "bytes": 5018,
+        "sha256": "57ffed94096d61d24cc5154615a1d2c4c63818602d655fb82959606314848850"
+      },
+      "include/flitzfs/gpu_protocol.hpp": {
+        "bytes": 895,
+        "sha256": "a0c3b5e1170b45ad788c2baebe5323712bcef450f9d4aa681317ef5c5da4e159"
+      },
+      "include/flitzfs/gpu_kernel_api.hpp": {
+        "bytes": 1592,
+        "sha256": "3099ea1f31b8d56de1d9899f4707f0c76486484f1714888690e2c4e615c7f84c"
+      },
+      "include/flitzfs/gpu_match_protocol.hpp": {
+        "bytes": 2632,
+        "sha256": "c978606dd3339666bf3067f8d4c40cd924e390e480d88305d030e1c8b3647192"
+      },
+      "include/flitzfs/gpu_match_kernel_api.hpp": {
+        "bytes": 1053,
+        "sha256": "dd668d84d07a28118ac51ed337e4bcf7dc80980002afe0fd097ccd4152c58b4e"
+      },
+      "include/flitzfs/gpu_anchor_match.hpp": {
+        "bytes": 10810,
+        "sha256": "7e51de5ac399e3c92c17dfd3a733c8189b7da6f6cba4bdbc0451f92e15a8d6fd"
+      },
+      "include/flitzfs/gpu_anchor_kernel_api.hpp": {
+        "bytes": 3921,
+        "sha256": "031d84fbbf899509c878e93578996ae28cf61dedf3f88543a8f3a54e987ee647"
+      }
+    },
+    "code_object": {
+      "bytes": 1548555,
+      "sha256": "e3fe3a64cc3fe84459992c696c712cb8413e41ed3f4d77a0fdee1d1d8aebd96d"
+    },
+    "linked_members": {
+      "flitzfs_hip_worker.exe": {
+        "sha256": "42457674e23c1423b88fbecbbe7a4ac679800fdd603e995f416a5c1dd455f1a5",
+        "bytes": 489984
+      },
+      "hip/flitzfs_rocm_kernels.dll": {
+        "sha256": "1c3668b3c9774b3656e19d7dbc7160bd388d6ba905e05a2184dfde5e544e2bb7",
+        "bytes": 1653248
+      },
+      "flitzfs_rocm_kernels.dll": {
+        "sha256": "1c3668b3c9774b3656e19d7dbc7160bd388d6ba905e05a2184dfde5e544e2bb7",
+        "bytes": 1653248
+      },
+      "flitzfs_rocm_cpu_lz4_probe.exe": {
+        "sha256": "71167552bc215ea9d0f46243d125ecf81120b7086c93a3aba8e333d9ff29c8ba",
+        "bytes": 283648
+      },
+      "hip/amdhip64_7.dll": {
+        "sha256": "5d88a505027b6a5b1c1ea4d4a76b7a9fa4c866a238679d20bee923f78ed38232",
+        "bytes": 17362896
+      }
+    },
+    "verified_pe_exports": [
+      "flitzfs_rocm_anchor_collective_arena_api_v9",
+      "flitzfs_rocm_anchor_collective_arena_api_v12"
+    ],
+    "driver_installed_or_updated_by_trial": false
+  },
+  "cpu_publication": {
+    "injected_body_source": "Existing CPU dense XOR encoder",
+    "accepted_candidates": 3,
+    "rejected_altered_candidate": 1,
+    "recovered_files": 5,
+    "compacted_bytes": 344064,
+    "checks": [
+      "Windows Release",
+      "codec-free Windows Release",
+      "Windows AddressSanitizer"
+    ],
+    "device_executed": false
+  },
+  "public_source_control": {
+    "source": "First six 64 KiB extents from the reviewed public FlitzFS source bank, with deterministic controlled edits",
+    "file_count": 15,
+    "groups": 5,
+    "initial_protected_bytes": 13975552,
+    "grouped_protected_bytes": 1982464,
+    "verified_cpu_readback": true,
+    "observations": [
+      "multiwindow_trial mode=cpu cohort=collective-dense sparse_device=0 reply_bytes=0 copy_suggested_ranges=0 copy_compared_ranges=0 copy_suggested_bytes=0 copy_compared_bytes=0 files=15 groups=5 advised_members=0 capability=7 submitted=0 verified_batches=0 worker_ns=0 submitted_groups=0 verified_groups=0 cpu_groups_before_gpu_reply=0 fully_submitted_batches=0 foreground_cancelled=0 submitted_queued_batches=0 verified_queued_batches=0 dispatches_per_wait=0 queued_worker_wall_ns=0 queued_kernel_wait_ns=0 submitted_kernel_launches=0 largest_dispatch_members=0 empty_batches=0 discovery_ns=0 maintenance_ns=315271000 compact_verify_ns=28700600 input_compacted_bytes=13975552 grouped_compacted_bytes=1982464 packed_widths=0 packed_payload_bytes=0 sampled_bias_members=0 sparse_bodies=0 delta_bodies=0 dense_bodies=0 reference_batches=0 reselected_groups=0 cpu_reference_pairs=300 published_references_changed=0 section_reference_groups=0 packed_reference_groups=0 prefixed_zstd_members=0 retired=true independent_cpu_readback=true modeled_idle_time=true input_blake3=8fb813813dc1bc5484386b8b98dc333e04c9e7bba64520633ddab9418b4c3b7d",
+      "Application fixture peak commit: 79200256 bytes"
+    ]
+  },
+  "device_admission": {
+    "stages": {
+      "legacy": {
+        "flitzfs_winfsp_controller_tests.exe": {
+          "sha256": "13c873a5d0eddedf05d5ae7f00a44cf68985bb97b4544e2f14993f79e0a4707a",
+          "bytes": 2951680
+        },
+        "winfsp-x64.dll": {
+          "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+          "bytes": 200816
+        },
+        "flitzfs_hip_worker.exe": {
+          "sha256": "f909f3037217f1258409b61f184f6abc85b046ee9289da4174eec5257fbb92bc",
+          "bytes": 492544
+        },
+        "hip/flitzfs_rocm_kernels.dll": {
+          "sha256": "2fd26121fff5c0c285fea184dfc426a67c347be9b38a1c6d826bed3a6b75746d",
+          "bytes": 1240576
+        },
+        "public-sample-bank.bin": {
+          "sha256": "6c424230786a8433732a01ebdf270c5ef436c1884df2fbac59a8219a0d2781c4",
+          "bytes": 393216
+        }
+      },
+      "revised": {
+        "flitzfs_winfsp_controller_tests.exe": {
+          "sha256": "13c873a5d0eddedf05d5ae7f00a44cf68985bb97b4544e2f14993f79e0a4707a",
+          "bytes": 2951680
+        },
+        "winfsp-x64.dll": {
+          "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+          "bytes": 200816
+        },
+        "flitzfs_hip_worker.exe": {
+          "sha256": "42457674e23c1423b88fbecbbe7a4ac679800fdd603e995f416a5c1dd455f1a5",
+          "bytes": 489984
+        },
+        "hip/flitzfs_rocm_kernels.dll": {
+          "sha256": "1c3668b3c9774b3656e19d7dbc7160bd388d6ba905e05a2184dfde5e544e2bb7",
+          "bytes": 1653248
+        },
+        "public-sample-bank.bin": {
+          "sha256": "6c424230786a8433732a01ebdf270c5ef436c1884df2fbac59a8219a0d2781c4",
+          "bytes": 393216
+        }
+      }
+    },
+    "physical_observations": {
+      "deepLegacyFirstGate": {
+        "admitted": false,
+        "utc": "2026-11-24T17:35:57.9111138Z",
+        "windows_build": "26300",
+        "devices": [
+          {
+            "Name": "AMD Radeon RX 9070 XT",
+            "Status": "OK",
+            "DriverVersion": "32.0.32029.2010"
+          }
+        ],
+        "cpu": [
+          9.95,
+          12.28
+        ],
+        "peak_gpu_engine": 88.47180818237743,
+        "available_kib": 15515232,
+        "total_kib": 66704480,
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "other_fixture_processes": 0
+      },
+      "deepCandidatePublicGate": {
+        "admitted": false,
+        "utc": "2026-11-24T17:39:01.288542Z",
+        "windows_build": "26300",
+        "devices": [
+          {
+            "Name": "AMD Radeon RX 9070 XT",
+            "Status": "OK",
+            "DriverVersion": "32.0.32029.2010"
+          }
+        ],
+        "cpu": [
+          24,
+          14.61
+        ],
+        "peak_gpu_engine": 89.1673515424219,
+        "available_kib": 15218452,
+        "total_kib": 66704480,
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "other_fixture_processes": 0
+      },
+      "deepCandidateConfirmedGate": {
+        "admitted": false,
+        "utc": "2026-11-24T17:41:51.4750762Z",
+        "windows_build": "26300",
+        "devices": [
+          {
+            "Name": "AMD Radeon RX 9070 XT",
+            "Status": "OK",
+            "DriverVersion": "32.0.32029.2010"
+          }
+        ],
+        "cpu": [
+          17.61,
+          14.56
+        ],
+        "peak_gpu_engine": 88.81657831019807,
+        "available_kib": 15253500,
+        "total_kib": 66704480,
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "other_fixture_processes": 0
+      }
+    },
+    "execution": "No device dispatch. Three real host samples separately refused admission because active GPU engine use was between 88% and 90%. The two staged artifacts remain ready for a paired trial.",
+    "mounted": false,
+    "performance_claim": false
+  },
+  "runs": {
+    "deepNav": {
+      "directory": "local-run-0fb57b92bf9741a581678b2e6ecc4634",
+      "exit": 1,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 34.828,
+      "job_peak_bytes": 973938688,
+      "receipt_sha256": "e4d84da27ad0b5b0b6384472866c09f96a10fe29ec5f34a836ecb2a7d578466c",
+      "log_sha256": "3d18217e0452c293cd319d868595ba7f0d9588d556276b1d56b6e6cf01772389"
+    },
+    "deepNavRecovered": {
+      "directory": "local-run-7489d4976cab4c29aea51c8c6eb1c0b9",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 38.921,
+      "job_peak_bytes": 1087545344,
+      "receipt_sha256": "a65f85b3ab06aa9eb4b66afb94440cdb57080f1d5d1bc60ad14ccd461ff3a0f2",
+      "log_sha256": "5e76ea0172bbb6f16b6bc2145e4dfcfdbd1b12ef08a6004912633db047cddf03"
+    },
+    "deepEncodingResearch": {
+      "directory": "local-run-493a434e8caf4a60a856e94e463db5d8",
+      "exit": 1,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 5.859,
+      "job_peak_bytes": 1168257024,
+      "receipt_sha256": "e5ec6dd683fb8117bca7cd7b52dd7ccf2f490fe899e3be719d2ba624de02e90b",
+      "log_sha256": "220fba456f806f33368b905a7d280f5ed80e4b2b6b1b9ca815bb945d108984d9"
+    },
+    "deepReleaseBuild": {
+      "directory": "local-run-1ebf925342874042aa77a3971b56a197",
+      "exit": 1,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 19.203,
+      "job_peak_bytes": 496320512,
+      "receipt_sha256": "a267bb2e01d607cc88d754629095f6882d41c961c967b4913bc34f3d93974054",
+      "log_sha256": "1a5e016ce661acc91124490566a9cca02fea22544a18371c7b0225c77a5cd507"
+    },
+    "deepReleaseBuildExact": {
+      "directory": "local-run-54a31eb425184b2a964a62433bc39d02",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 39.344,
+      "job_peak_bytes": 455172096,
+      "receipt_sha256": "2ebd8b1c3ffe11b0283704cac53eecaf20e6bfd7b4e53fcf4c9af050ae18749d",
+      "log_sha256": "a895dd1dfe5c12d75988a31d34fb626fee4d6edb700d1823678cad5ca50137c8"
+    },
+    "deepReleaseTest": {
+      "directory": "local-run-2c15e7f969d3474a8b49589c507aff4f",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 13.344,
+      "job_peak_bytes": 326287360,
+      "receipt_sha256": "2e4b56e65a56505fef74ebd472d2457c06d4fbb483aa181bb5352463dfc42ffb",
+      "log_sha256": "b40041b6de6775d420b8453e57d5271aec5c8febeb767cdcb65e528dbb403b05"
+    },
+    "deepHipObject": {
+      "directory": "local-run-daa56409393b4e7590a2cd11959f0926",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 110.594,
+      "job_peak_bytes": 207327232,
+      "receipt_sha256": "bf58fb70773fc36fefbabf28d608094f03c47932cde631df4a46b41301351f3d",
+      "log_sha256": "2e97fb20e6eb226d48cf1c7385a016509d21a1b0ea3e88ece227d69745dc8b11"
+    },
+    "deepHipConfig": {
+      "directory": "local-run-41a31736768b4e619c29de08ffc74ffc",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 8.437,
+      "job_peak_bytes": 331399168,
+      "receipt_sha256": "e6dd8b1d2ed57d123904baa12db99bcce95ad31641dcddd0b39bef45904794d3",
+      "log_sha256": "e5c97e356569a246dec4117c4ae8f30abd68683d0cab764e061b4a42301dbf97"
+    },
+    "deepHipBuild": {
+      "directory": "local-run-47ad613342754b709c116fff89c5db26",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 98.11,
+      "job_peak_bytes": 680263680,
+      "receipt_sha256": "e65d32676bd0735546a49db76228cd96ddb8c932462ccce020aec0fce0858f26",
+      "log_sha256": "3e6a4cde5f39024359fc89b29a1a74860b2536d050cb792516962dc53efe8024"
+    },
+    "deepCpuPublic": {
+      "directory": "local-run-fcdb7a8bb8b94992b52a969eb898c550",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 0.532,
+      "job_peak_bytes": 80515072,
+      "receipt_sha256": "54f870602f3656df8b2c011473f2b1d855b413973e85353fc7b8c18d1538eead",
+      "log_sha256": "69d85b7d578ddfba3d68cb8345ad6a3d50bec474545bafc60164955f10ad6434"
+    },
+    "deepLegacyFirstGate": {
+      "directory": "local-run-589419f13ed74f868d67a79a8d9a5eb2",
+      "exit": 2,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 5.515,
+      "job_peak_bytes": 65376256,
+      "receipt_sha256": "99089eb94e05999081d7a700a296d2b76a6d46ea43d75080cda30bcaba6812e1",
+      "log_sha256": "75624ebad5972a3f1db39e58aba2306c7451e34bb72bfd4f9264db481d7d582c"
+    },
+    "deepCandidatePublicGate": {
+      "directory": "local-run-b3e2a3131de84684bf1928c3598ad0c5",
+      "exit": 2,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 5.781,
+      "job_peak_bytes": 64397312,
+      "receipt_sha256": "cc79d863ac6c18cf2c125402a6e05543e0871da1ed07a51b4e81c0dda327ffb0",
+      "log_sha256": "008d25265d14284da7a22b9dfb629fef393a710909672e0fe5fc334831e38c0f"
+    },
+    "deepCandidateConfirmedGate": {
+      "directory": "local-run-4db244a392f44984883aa8554166c089",
+      "exit": 2,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 3.954,
+      "job_peak_bytes": 103677952,
+      "receipt_sha256": "3aaa98996fb55962755110180eb6c15ba35586e745b041d6c780e1b4e25d11c0",
+      "log_sha256": "0d12697c502f883015725e78b46419bc14679122522f255562d7bfd565de5eee"
+    },
+    "deepRawBuild": {
+      "directory": "local-run-334addd556d741879a66f78c0660b34d",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 51.313,
+      "job_peak_bytes": 493916160,
+      "receipt_sha256": "e70451f6f477ba599b2a1a13ed48ef725efc22141e53c6bf3146f642979bd008",
+      "log_sha256": "d5a6e8f954169723ed7054ab84cac194a5ef9de3ac3fc82a39317768c1bcee7d"
+    },
+    "deepRawTest": {
+      "directory": "local-run-44ecde78c5a94be8bd394532b0f8151c",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 8.156,
+      "job_peak_bytes": 22503424,
+      "receipt_sha256": "68b00828b33b9853ffda5d460d758d1223906f12e8e289fd5055de716da4c51a",
+      "log_sha256": "42c2bad793d31e4699f92ed2f42c492c9c9029500c89d8a6c324a26e71f0960d"
+    },
+    "deepAsanBuild": {
+      "directory": "local-run-f11e912bfe844a4c830b9aa2cccffc47",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 51.735,
+      "job_peak_bytes": 721268736,
+      "receipt_sha256": "3e7ec44da6e0fa70eedbba8b06f7318a5669f50ade0ab2e424e381a91698a9bd",
+      "log_sha256": "e6d4783f8600cc07c5e64027b6d30b87a9904dbb75955230f0c6465bdffbb855"
+    },
+    "deepAsanGate": {
+      "directory": "local-run-93f10211754d4324a4a38dde90be9f89",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 0.125,
+      "job_peak_bytes": 9883648,
+      "receipt_sha256": "1ab37fbffd320b17f304434e0111d941b1b0fd1c6ff75a37214ea6a1de43ebba",
+      "log_sha256": "017e5734db9d4654c869c426781f756cc2ad39aff55ba81583aad172624569fe"
+    },
+    "deepAsanTest": {
+      "directory": "local-run-e5ec3966ca734d8d9f2fd95cec4bac37",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 18.281,
+      "job_peak_bytes": 419348480,
+      "receipt_sha256": "51eb1be1bd73bf0e10e326560e48d5af753226d4761c80469ae942eef64d890e",
+      "log_sha256": "abdf4e4b1d19ac13ef9b9c5250c0c0bd066ea1652e7d1f39c747cb7c67d73dd0"
+    },
+    "deepPublicationReleaseTest": {
+      "directory": "local-run-230ef962bde54456bcd5c3577eeb146f",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 0.204,
+      "job_peak_bytes": 13352960,
+      "receipt_sha256": "2854ff7b05e0b3aaac03dff446cedc7fcdec5b9ef55927aac966ce53a45d6b3d",
+      "log_sha256": "3999511ee11dfef294bb2cfea0396450133fbd2447cc2a4a4d7f259c4e470cf1"
+    },
+    "deepPublicationRawTest": {
+      "directory": "local-run-5e9a1712af6f43d1918a1f08f758f213",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 0.203,
+      "job_peak_bytes": 12730368,
+      "receipt_sha256": "55a9f63a25af77f693de73967a5910a9972bb7b91c732c886f2daef22bb332a2",
+      "log_sha256": "1894e26bb1dc14389bb51735a3ae2ae9e1577a0060dc25d5e494b6ff49751ef1"
+    },
+    "deepPublicationAsanPreflight": {
+      "directory": "local-run-487b5ddc2dba4b1ea1d2a93059ef4bfc",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 0.094,
+      "job_peak_bytes": 10747904,
+      "receipt_sha256": "eb5da648ed1eea727880aa32dca598a6cec0d5ef3997353f7fb2f6104cc4cea4",
+      "log_sha256": "5697d87a12ba87e42ec34b00fec1a2402a549b6b3e27579c10603ecd1d3a8ec5"
+    },
+    "deepPublicationAsanTest": {
+      "directory": "local-run-aa3bcb3033134c75858b020c789bd393",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 0.953,
+      "job_peak_bytes": 125038592,
+      "receipt_sha256": "5a4832d40235fb3ae011f32f95ddc6a74c6b3a34856a96ae2aa0cafe29f210b0",
+      "log_sha256": "f2f19f7c20879ee6b52a652fcdb22afd5068393255948a666de0e5cd61cb82c8"
+    }
+  },
+  "diagnostic_failures": {
+    "first_index": "Private search daemon hit its memory allowance. Retried within an updated allowance from current headroom and verified exact source binding.",
+    "research": "The Berkeley repository page returned HTTP 202 with empty extraction and was excluded from the design.",
+    "first_release_build": "The new test needed the enclosing flitzfs namespace for the public packed-method enum. Corrected and rebuilt successfully."
+  }
+}

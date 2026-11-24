@@ -1046,6 +1046,64 @@ void advised_indexed_maintenance() {
     require(snapshot.read("f"+std::to_string(i),0,kNativeExtentBytes)==original[i],
         "automatic search advice changed committed bytes");
 }
+void collective_dense_advice() {
+  constexpr auto members=4U;
+  Fixture f(4096,0,true);
+  const auto base=family(0);
+  std::array<Bytes,members+1> originals;
+  for(unsigned index=0;index<originals.size();++index) {
+    auto& bytes=originals[index];
+    bytes=base;
+    if(index) {
+      const auto changes=data(kNativeExtentBytes,8121+index);
+      for(std::size_t at=4096;at<bytes.size();++at)bytes[at]^=changes[at]&std::byte{1};
+    }
+    put(*f.session,"f"+std::to_string(index),bytes);
+  }
+  NativeGroupMaintenance controller(*f.session);
+  std::vector<Bytes> bodies;
+  std::vector<NativePackedGroupCheck> verdicts;
+  std::optional<NativeSharedBaseSearchReply> reply;
+  for(unsigned tick=0;tick<1000;++tick) {
+    const auto observation=f.clock.next();
+    const auto progress=controller.advance(observation,f.clock.now,{members,reply?&*reply:nullptr});
+    require(progress.phase!=Phase::failed,"Collective packed advice failed");
+    if(progress.published_groups)break;
+    const auto window=controller.search_window();
+    if(!window || reply)continue;
+    require(progress.search_window_ready && window.members().size()==members,
+        "Collective candidate did not stage a complete group");
+    for(const auto& bytes:window.members()) {
+      const auto packed=detail::encode_native_group_xor(bytes,window.base(),detail::kNativeGroupBaseBit+1,1,kNativeExtentBytes);
+      require(packed && packed->size()>detail::kNativeGroupMemberHeaderBytes,"Missing dense XOR fixture body");
+      bodies.push_back(anchor_search_fixture::collective_advice_payload(anchor_match::CollectiveBody::packed_xor,
+          std::span(*packed).subspan(detail::kNativeGroupMemberHeaderBytes)));
+    }
+    // Keep valid framing and make one body reconstruct the wrong plaintext.
+    bodies.front().back()^=std::byte{1};
+    verdicts.resize(members,NativePackedGroupCheck::pending);
+    reply.emplace(NativeSharedBaseSearchReply{window,{},bodies,verdicts,NativePackedGroupMethod::collective});
+  }
+  const auto result=f.finish(controller);
+  require(reply && result.published_groups==1 && result.advised_members_published==members-1 &&
+      verdicts.front()==NativePackedGroupCheck::invalid &&
+      std::ranges::count(verdicts,NativePackedGroupCheck::verified)==members-1 &&
+      result.minimum_compacted_bytes_saved && !result.owned_payload_bytes && !controller.has_retained_search(),
+      "Collective dense bodies did not publish with independent CPU fallback");
+
+  f.session.reset();
+  const auto original=NativeFilesystemSnapshot::open_image(f.image,{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes});
+  auto packed=ram(f.image->failure_unit);
+  (void)NativeFilesystemWriter::compact(original,packed,id(2),{StoreCompressionMode::raw,1,false});
+  const auto reopened=NativeFilesystemSnapshot::open_image(packed,{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes});
+  reopened.verify_all();
+  for(unsigned index=0;index<originals.size();++index)
+    require(reopened.read("f"+std::to_string(index),0,kNativeExtentBytes)==originals[index],
+        "Collective dense advice changed recovered bytes");
+  std::cout<<"collective_dense_advice cpu_fixture=true accepted="<<result.advised_members_published
+      <<" rejected=1 files="<<originals.size()<<" compacted_bytes="<<packed->extent()
+      <<" independent_cpu_readback=true\n";
+}
 enum class BatchOutcome {accepted,cpu_fallback,changed_source,memory_pressure,
   overlap_success,overlap_fallback,full_overlap_success,full_overlap_fallback};
 void batched_indexed_maintenance(BatchOutcome outcome) {
@@ -3312,6 +3370,7 @@ int main(int argc,char** argv){try{
     modular_delta_indexed_family(bytes,{StoreCompressionMode::automatic,6,true},false);
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-advice") {
     advised_indexed_maintenance();
+    collective_dense_advice();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-yield-order") {
     indexed_candidate_yield_order();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-section-reuse") {

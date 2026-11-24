@@ -158,6 +158,17 @@ const flitzfs::anchor_match::AnchorArenaApi* flitzfs_rocm_anchor_collective_aren
 }
 
 extern "C" __declspec(dllexport)
+const flitzfs::anchor_match::AnchorArenaApi* flitzfs_rocm_anchor_collective_arena_api_v12() noexcept {
+  using namespace flitzfs::anchor_match;
+  static const auto api=[]() noexcept {
+    AnchorArenaApi value{sizeof(AnchorArenaApi),collective_dense_arena_abi_version,nullptr};
+    bind_anchor_collective_arena(value);
+    return value;
+  }();
+  return &api;
+}
+
+extern "C" __declspec(dllexport)
 const flitzfs::anchor_match::AnchorReferenceApi* flitzfs_rocm_anchor_reference_api_v10() noexcept {
   using namespace flitzfs::anchor_match;
   static const auto api=[]() noexcept {

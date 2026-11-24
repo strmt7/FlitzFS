@@ -23,7 +23,7 @@ inline constexpr u32 window_abi_version=2,packed_xor_window_abi_version=3,wide_x
 inline constexpr u32 adaptive_xor_window_abi_version=5,modular_delta_window_abi_version=6;
 inline constexpr u32 sparse_xor_window_abi_version=7;
 inline constexpr u32 sparse_xor_arena_abi_version=8,collective_arena_abi_version=9,reference_price_abi_version=10;
-inline constexpr u32 wide_anchor_window_abi_version=11;
+inline constexpr u32 wide_anchor_window_abi_version=11,collective_dense_arena_abi_version=12;
 constexpr u32 window_version(BatchOutput output) noexcept {
   switch(output) {
     case BatchOutput::anchors:return window_abi_version;
@@ -57,8 +57,10 @@ struct AnchorArenaApi {
 static_assert(std::is_standard_layout_v<AnchorArenaApi> && std::is_trivially_copyable_v<AnchorArenaApi>);
 inline bool compatible_anchor_arena_api(const AnchorArenaApi& api,BatchOutput output) noexcept {
   if(!arena_output(output))return false;
-  const auto version=output==BatchOutput::collective?collective_arena_abi_version:sparse_xor_arena_abi_version;
-  return api.size_bytes==sizeof(AnchorArenaApi) && api.version==version && api.search;
+  const bool version=output==BatchOutput::collective?
+      api.version==collective_arena_abi_version || api.version==collective_dense_arena_abi_version:
+      api.version==sparse_xor_arena_abi_version;
+  return api.size_bytes==sizeof(AnchorArenaApi) && version && api.search;
 }
 using AnchorArenaApiEntry=const AnchorArenaApi* (*)() noexcept;
 using AnchorPriceKernel=void (*)(const u8* base,const u8* peers,u32 peer_count,u32* prices,u32 version);

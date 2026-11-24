@@ -831,14 +831,21 @@ int worker(int argc, wchar_t** argv) {
     const anchor_match::WindowSearchApi* window=nullptr;
     const anchor_match::AnchorArenaApi* arena=nullptr;
     const anchor_match::AnchorReferenceApi* pricing=nullptr;
-    const auto arena_address=(collective || reference || (sparse_xor && !sparse_slot_profile))?
-        GetProcAddress(kernels.get(),collective?"flitzfs_rocm_anchor_collective_arena_api_v9":
-            "flitzfs_rocm_anchor_sparse_xor_arena_api_v8"):nullptr;
+    const auto dense_arena=collective?
+        GetProcAddress(kernels.get(),"flitzfs_rocm_anchor_collective_arena_api_v12"):nullptr;
+    const auto legacy_arena_version=collective?anchor_match::collective_arena_abi_version:
+        anchor_match::sparse_xor_arena_abi_version;
+    const auto expected_arena_version=dense_arena?anchor_match::collective_dense_arena_abi_version:legacy_arena_version;
+    const auto arena_address=dense_arena?dense_arena:
+        (collective || reference || (sparse_xor && !sparse_slot_profile))?
+            GetProcAddress(kernels.get(),collective?"flitzfs_rocm_anchor_collective_arena_api_v9":
+                "flitzfs_rocm_anchor_sparse_xor_arena_api_v8"):nullptr;
     require(!(collective || reference) || arena_address,Exit::unsupported_configuration,"HIP anchor arena entry unavailable",
         HipWorkerStage::kernel_entry);
     if(arena_address) {
       arena=std::bit_cast<anchor_match::AnchorArenaApiEntry>(arena_address)();
-      require(arena && anchor_match::compatible_anchor_arena_api(*arena,anchor_output),Exit::unsupported_configuration,
+      require(arena && arena->version==expected_arena_version && anchor_match::compatible_anchor_arena_api(*arena,anchor_output),
+          Exit::unsupported_configuration,
           "incompatible HIP anchor arena table",HipWorkerStage::kernel_table);
       if(reference) {
         const auto price=GetProcAddress(kernels.get(),"flitzfs_rocm_anchor_reference_api_v10");

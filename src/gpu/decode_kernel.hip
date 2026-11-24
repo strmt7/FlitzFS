@@ -99,6 +99,42 @@ __device__ flitzfs::anchor_match::u64 xor_segment(const unsigned char* base,cons
   return left^right;
 }
 
+template<class Mask>
+__device__ __forceinline__ flitzfs::anchor_match::u32 packed_xor_offsets(const Mask* masks,
+    flitzfs::anchor_match::u32* offsets) {
+  using namespace flitzfs::anchor_match;
+  u32 size=0;
+  for(u32 tile=0;tile<xor_tiles;++tile) {
+    if(offsets)offsets[tile]=size;
+    size+=1+static_cast<u32>(__popc(masks[tile]))*xor_plane_bytes;
+  }
+  return size;
+}
+
+template<class Mask>
+__device__ __forceinline__ void write_packed_xor(const Mask* masks,const flitzfs::anchor_match::u32* offsets,
+    const unsigned char* base,const unsigned char* member,unsigned char* body) {
+  using namespace flitzfs::anchor_match;
+  constexpr auto lanes=xor_plane_bytes;
+  constexpr auto tiles_per_block=threads/lanes;
+  const auto segment=threadIdx.x%lanes;
+  const auto first_tile=threadIdx.x/lanes;
+  for(u32 tile=first_tile;tile<xor_tiles;tile+=tiles_per_block) {
+    const auto mask=static_cast<u32>(masks[tile]);
+    auto* tile_body=body+offsets[tile];
+    if(!segment)*tile_body=static_cast<u8>(mask);
+    if(!mask)continue;
+    const auto at=tile*xor_tile_bytes+segment*8;
+    const auto difference=xor_segment(base+at,member+at);
+    auto plane_offset=1+segment;
+    for(u32 bit=0;bit<8;++bit) {
+      if(!(mask&(1U<<bit)))continue;
+      tile_body[plane_offset]=static_cast<u8>(xor_plane_bits(difference,bit));
+      plane_offset+=xor_plane_bytes;
+    }
+  }
+}
+
 template<unsigned abi,unsigned slot_bytes,unsigned member_limit=flitzfs::anchor_match::max_members>
 __device__ __forceinline__
 void pack_xor_members(const unsigned char* base,const unsigned char* window,unsigned int members,
@@ -128,31 +164,12 @@ void pack_xor_members(const unsigned char* base,const unsigned char* window,unsi
   }
   __syncthreads();
   if(!lane) {
-    unsigned size=0;
-    for(unsigned tile=0;tile<xor_tiles;++tile) {
-      offsets[tile]=size;
-      size+=1+static_cast<unsigned>(__popc(masks[tile]))*xor_plane_bytes;
-    }
+    const auto size=packed_xor_offsets(masks,offsets);
     body_size=size>xor_tiles && size<=slot_bytes-sizeof(u32)?size:0;
     slot[0]=body_size;
   }
   __syncthreads();
-  if(!body_size)return;
-  auto* body=reinterpret_cast<unsigned char*>(slot+1);
-  for(unsigned tile=first_tile;tile<xor_tiles;tile+=tiles_per_block) {
-    const auto mask=masks[tile];
-    auto* tile_body=body+offsets[tile];
-    if(!segment)*tile_body=static_cast<unsigned char>(mask);
-    if(!mask)continue;
-    const auto at=tile*xor_tile_bytes+segment*8;
-    const auto difference=xor_segment(base+at,member+at);
-    unsigned plane_offset=1+segment;
-    for(unsigned bit=0;bit<8;++bit) {
-      if(!(mask&(1U<<bit)))continue;
-      tile_body[plane_offset]=static_cast<unsigned char>(xor_plane_bits(difference,bit));
-      plane_offset+=xor_plane_bytes;
-    }
-  }
+  if(body_size)write_packed_xor(masks,offsets,base,member,reinterpret_cast<u8*>(slot+1));
 }
 
 }
@@ -515,35 +532,64 @@ void flitzfs_anchor_modular_delta_v6(const unsigned char* base,const unsigned ch
   if(size)write_modular_delta(scratch,base,member,slot+1);
 }
 
-extern "C" __global__ __attribute__((amdgpu_flat_work_group_size(64,64)))
-void flitzfs_anchor_collective_arena_v9(const unsigned char* base,const unsigned char* window,unsigned int members,
-    unsigned int* cursor,unsigned int* directory,unsigned int* arena,unsigned int arena_words,unsigned int version) {
+namespace {
+template<flitzfs::anchor_match::u32 Version>
+__device__ __forceinline__ void pack_collective(const unsigned char* base,const unsigned char* window,
+    unsigned int members,unsigned int* cursor,unsigned int* directory,unsigned int* arena,
+    unsigned int arena_words,unsigned int version) {
   using namespace flitzfs::anchor_match;
-  if(version!=collective_arena_abi_version || !base || !window || !arena || !cursor || !directory ||
+  if(version!=Version || !base || !window || !arena || !cursor || !directory ||
       !arena_words || !members || members>dispatch_member_limit(BatchOutput::collective) ||
       blockIdx.x>=members || blockDim.x!=threads)return;
   __shared__ CollectivePackingScratch scratch;
   const auto* member=window+blockIdx.x*extent_bytes;
   size_modular_delta(scratch.delta,base,member);
   const auto delta_bytes=modular_payload_size(scratch.delta);
-  u32 sparse_bytes=0;
   // A bias-only result has no body in the stored frame.
-  if(delta_bytes!=delta_parameters_bytes) {
-    size_sparse_xor(scratch.sparse,base,member);
-    sparse_bytes=scratch.sparse.size;
-  }
-  const bool sparse=sparse_bytes && (!delta_bytes || sparse_bytes<=delta_bytes-delta_parameters_bytes);
-  const auto size=sparse?sparse_bytes:delta_bytes;
+  const bool examine_xor=delta_bytes!=delta_parameters_bytes;
+  if(examine_xor)size_sparse_xor(scratch.sparse,base,member);
   if(!threadIdx.x) {
-    scratch.admitted=reserve_group_body(size?size+collective_body_tag_bytes:0U,cursor,directory,
-        arena_words,scratch.body_offset);
+    const auto sparse_bytes=examine_xor?scratch.sparse.size:0;
+    u32 packed_bytes=0;
+    if constexpr(Version==collective_dense_arena_abi_version) {
+      if(examine_xor) {
+        const auto size=packed_xor_offsets(scratch.sparse.masks,nullptr);
+        if(size>=packed_xor_min_body_bytes && size<=packed_xor_max_body_bytes)packed_bytes=size;
+      }
+    }
+    const auto choice=choose_collective_body(sparse_bytes,delta_bytes,packed_bytes);
+    if(choice.method==CollectiveBody::packed_xor)
+      (void)packed_xor_offsets(scratch.sparse.masks,scratch.sparse.offsets);
+    const auto size=choice.payload_bytes?choice.payload_bytes+collective_body_tag_bytes:0U;
+    scratch.method=reserve_group_body(size,cursor,directory,arena_words,scratch.body_offset)?
+        choice.method:CollectiveBody::none;
   }
   __syncthreads();
-  if(!scratch.admitted || !size)return;
+  if(scratch.method==CollectiveBody::none)return;
   auto* target=arena+scratch.body_offset;
-  if(!threadIdx.x)*target=static_cast<u32>(sparse?CollectiveBody::sparse_xor:CollectiveBody::modular_delta);
-  if(sparse)write_sparse_xor(scratch.sparse,base,member,reinterpret_cast<u8*>(target+1));
-  else write_modular_delta(scratch.delta,base,member,target+1);
+  if(!threadIdx.x)*target=static_cast<u32>(scratch.method);
+  auto* body=reinterpret_cast<u8*>(target+1);
+  switch(scratch.method) {
+    case CollectiveBody::packed_xor:write_packed_xor(scratch.sparse.masks,scratch.sparse.offsets,base,member,body);break;
+    case CollectiveBody::sparse_xor:write_sparse_xor(scratch.sparse,base,member,body);break;
+    case CollectiveBody::modular_delta:write_modular_delta(scratch.delta,base,member,target+1);break;
+    case CollectiveBody::none:break;
+  }
+}
+}
+
+extern "C" __global__ __attribute__((amdgpu_flat_work_group_size(64,64)))
+void flitzfs_anchor_collective_arena_v9(const unsigned char* base,const unsigned char* window,unsigned int members,
+    unsigned int* cursor,unsigned int* directory,unsigned int* arena,unsigned int arena_words,unsigned int version) {
+  pack_collective<flitzfs::anchor_match::collective_arena_abi_version>(
+      base,window,members,cursor,directory,arena,arena_words,version);
+}
+
+extern "C" __global__ __attribute__((amdgpu_flat_work_group_size(64,64)))
+void flitzfs_anchor_collective_arena_v12(const unsigned char* base,const unsigned char* window,unsigned int members,
+    unsigned int* cursor,unsigned int* directory,unsigned int* arena,unsigned int arena_words,unsigned int version) {
+  pack_collective<flitzfs::anchor_match::collective_dense_arena_abi_version>(
+      base,window,members,cursor,directory,arena,arena_words,version);
 }
 
 namespace flitzfs::anchor_match {
@@ -576,7 +622,8 @@ void bind_anchor_sparse_xor_arena(AnchorArenaApi& api) noexcept {
   api.search=flitzfs_anchor_sparse_xor_arena_v8;
 }
 void bind_anchor_collective_arena(AnchorArenaApi& api) noexcept {
-  api.search=flitzfs_anchor_collective_arena_v9;
+  api.search=api.version==collective_dense_arena_abi_version?
+      flitzfs_anchor_collective_arena_v12:flitzfs_anchor_collective_arena_v9;
 }
 void bind_anchor_reference_price(AnchorReferenceApi& api) noexcept {
   api.price=flitzfs_anchor_reference_price_v10;

@@ -191,6 +191,29 @@ device in all three trials. Image size and exact readback matched the
 single-dispatch control. Worker timing ranges overlapped.
 [Partial queue evidence](evidence/amd-partial-dispatch-groups-2026-11-20.json)
 
+### Dense XOR in collective batches
+
+Collective arena version 12 compares the stored lengths of dense XOR, sparse
+XOR, and modular delta for each member. Delta's width and bias travel in the
+reply and occupy existing header fields in storage. Dense XOR wins ties with
+sparse XOR. The kernel prices dense XOR from the masks it already has and writes
+the selected form using the existing compact reply arena. Version 9 remains
+available with its original two reply types.
+
+Dense replies use the existing packed XOR format in the indexed filesystem.
+The writer independently reconstructs and checks the member before considering
+that representation for publication. A CPU fixture supplied four dense replies
+to the normal preparation path. Three were selected, the altered reply fell
+back to the CPU, and all five files reopened byte for byte after compaction.
+[Qualification and device admission](evidence/windows-collective-dense-xor-2026-11-24.json)
+
+AMD recommends minimizing host-device transfers and reusing on-device data.
+Falcon motivates evaluating bit-plane density and reports results on
+floating-point workloads. FlitzFS compares its own lossless byte representations
+and checks complete protected image occupancy.
+[AMD HIP performance guidelines](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/performance_guidelines.html) ·
+[Falcon preprint](https://arxiv.org/abs/2511.04140)
+
 ## SDK-only compression compute candidate
 
 The [typed LZ4 compute implementation and CPU probe](HIP_LZ4_COMPUTE.md)

@@ -46,7 +46,7 @@ inline constexpr auto indexed_sample_bank_bytes=(indexed_batch_families+1)*kNati
 static_assert(kNativeMaxDirtyExtents%indexed_batch_extents_per_file==0 && indexed_batch_members>kNativeMaxExtents);
 enum class IndexedBatchPattern {
   packed_xor,modular_delta,shifted_bias,xor_reference,xor_tile_reference,xor_sparse_reference,xor_full_reference,
-  sparse_xor,sparse_xor_all_planes,collective,revision_corpus,raw_revision_corpus
+  sparse_xor,sparse_xor_all_planes,collective,collective_dense,revision_corpus,raw_revision_corpus
 };
 
 inline bool small_indexed_batch(IndexedBatchPattern pattern) noexcept {
@@ -54,7 +54,8 @@ inline bool small_indexed_batch(IndexedBatchPattern pattern) noexcept {
       pattern==IndexedBatchPattern::xor_tile_reference || pattern==IndexedBatchPattern::xor_sparse_reference ||
       pattern==IndexedBatchPattern::xor_full_reference ||
       pattern==IndexedBatchPattern::sparse_xor ||
-      pattern==IndexedBatchPattern::sparse_xor_all_planes || pattern==IndexedBatchPattern::collective;
+      pattern==IndexedBatchPattern::sparse_xor_all_planes || pattern==IndexedBatchPattern::collective ||
+      pattern==IndexedBatchPattern::collective_dense;
 }
 
 inline void apply_reference_variation(std::span<std::byte> extent,unsigned member) {
@@ -155,7 +156,8 @@ inline std::vector<Bytes> indexed_batch_files(std::span<const std::byte> bank={}
   const bool shifted_bias=pattern==IndexedBatchPattern::shifted_bias;
   const bool xor_reference=pattern==IndexedBatchPattern::xor_reference;
   const bool xor_tile_reference=pattern==IndexedBatchPattern::xor_tile_reference;
-  const bool collective=pattern==IndexedBatchPattern::collective;
+  const bool dense_collective=pattern==IndexedBatchPattern::collective_dense;
+  const bool collective=pattern==IndexedBatchPattern::collective || dense_collective;
   const auto extent_count=small_indexed_batch(pattern)?indexed_small_extents_per_family:kNativeMaxDirtyExtents;
   std::vector<Bytes> files;
   for(std::size_t family=0;family<indexed_batch_families;++family) {
@@ -190,6 +192,13 @@ inline std::vector<Bytes> indexed_batch_files(std::span<const std::byte> bank={}
         }
         if(pattern==IndexedBatchPattern::sparse_xor) {
           apply_sparse_xor_variation(extent,static_cast<unsigned>(member));
+          continue;
+        }
+        if(dense_collective && family==0) {
+          if(member) {
+            const auto changed=native_fixture::data(extent.size(),static_cast<unsigned>(8121+member));
+            for(std::size_t i=0;i<extent.size();++i)extent[i]^=changed[i]&std::byte{1};
+          }
           continue;
         }
         if(pattern==IndexedBatchPattern::sparse_xor_all_planes || (collective && !modular)) {

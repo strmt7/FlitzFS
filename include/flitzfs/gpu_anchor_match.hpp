@@ -63,14 +63,31 @@ struct ModularDeltaScratch {
   u8 widths[delta_modes][xor_tiles];
   u32 sizes[delta_modes],offsets[xor_tiles],mode;
 };
-enum class CollectiveBody : u32 {sparse_xor=1,modular_delta=2};
+enum class CollectiveBody : u32 {none=0,sparse_xor=1,modular_delta=2,packed_xor=3};
 inline constexpr u32 collective_body_tag_bytes=sizeof(u32);
+inline constexpr u32 packed_xor_min_body_bytes=xor_tiles+xor_plane_bytes;
+inline constexpr u32 packed_xor_max_body_bytes=sparse_xor_max_body_bytes;
+struct CollectiveChoice {
+  CollectiveBody method;
+  u32 payload_bytes;
+};
+
+FLITZFS_ANCHOR_INLINE constexpr CollectiveChoice choose_collective_body(u32 sparse,u32 delta,u32 packed) noexcept {
+  // Delta puts its width and bias in the stored header. Compare stored
+  // lengths and keep the dense XOR representation on equal XOR costs.
+  const auto delta_body=delta>=delta_parameters_bytes?delta-delta_parameters_bytes:empty;
+  if(packed && packed<=delta_body && (!sparse || packed<=sparse))return {CollectiveBody::packed_xor,packed};
+  if(sparse && sparse<=delta_body)return {CollectiveBody::sparse_xor,sparse};
+  if(delta_body!=empty)return {CollectiveBody::modular_delta,delta};
+  return {CollectiveBody::none,0};
+}
 static_assert((sparse_xor_arena_directory_words(1)+
     sparse_xor_arena_words(collective_body_tag_bytes+delta_max_payload_bytes))*sizeof(u32)<=xor_wide_slot_bytes);
 struct CollectivePackingScratch {
   ModularDeltaScratch delta;
   SparseXorScratch sparse;
-  u32 body_offset,admitted;
+  u32 body_offset;
+  CollectiveBody method;
 };
 enum class BatchOutput : u32 {
   anchors,packed_xor,wide_packed_xor,modular_delta,sparse_xor,collective,reference_xor,wide_anchors

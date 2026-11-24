@@ -307,7 +307,7 @@ AnchorReadback run_hip_anchor_groups(HMODULE runtime,
     std::span<const detail::AnchorMatchSweepPlan> plans,anchor_match::u32 quantum,HipPhaseRecorder& profile,
     anchor_match::u32 transfer_members,anchor_match::WindowSearchKernel window_search=nullptr,
     std::uint32_t dispatches_per_wait=1,anchor_match::BatchOutput mode=anchor_match::BatchOutput::anchors,
-    AnchorSetupTiming* setup=nullptr,anchor_match::AnchorArenaKernel arena_search=nullptr,
+    AnchorSetupTiming* setup=nullptr,const anchor_match::AnchorArenaApi* arena_api=nullptr,
     anchor_match::AnchorPriceKernel price=nullptr,anchor_match::u32 reference_candidates=0) {
   namespace match=anchor_match;
   const bool packed=!match::copy_output(mode);
@@ -315,6 +315,7 @@ AnchorReadback run_hip_anchor_groups(HMODULE runtime,
   const bool reference=mode==match::BatchOutput::reference_xor;
   const bool sparse=mode==match::BatchOutput::sparse_xor || reference;
   const bool collective=mode==match::BatchOutput::collective;
+  const auto arena_search=arena_api?arena_api->search:nullptr;
   const bool windowed=window_search || arena_search;
   const auto slot_bytes=match::reply_member_bytes(mode);
   const auto words_per_member=slot_bytes/static_cast<match::u32>(sizeof(match::u32));
@@ -397,7 +398,7 @@ AnchorReadback run_hip_anchor_groups(HMODULE runtime,
 
   auto version=match::abi_version;
   auto window_version=match::window_version(mode);
-  auto arena_version=collective?match::collective_arena_abi_version:match::sparse_xor_arena_abi_version;
+  auto arena_version=arena_api?arena_api->version:0U;
   void* arena=nullptr;
   match::u32 arena_words=0;
   void* index_arguments[]{&source,&table,&version};
@@ -579,7 +580,7 @@ std::vector<std::byte> run_hip_anchor_batch_in_worker(HMODULE runtime,
       plan.quantum_members;
   const auto records=run_hip_anchor_groups(runtime,kernel,ordinal,luid,node_mask,
       request.groups(),plan.groups,plan.quantum_members,profile,members,window?window->search:nullptr,
-      dispatches_per_wait,plan.output,setup,arena?arena->search:nullptr,
+      dispatches_per_wait,plan.output,setup,arena,
       reference?reference->price:nullptr,plan.reference_candidates);
   profile.begin(HipPhase::reply_encode);
   auto frame=arena?detail::encode_anchor_arena_batch_reply(request,records.compact,reserve_tail_bytes,records.references):

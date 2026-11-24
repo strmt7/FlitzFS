@@ -2343,6 +2343,7 @@ std::optional<IndexedBatchPattern> multiwindow_pattern(std::string_view mode) {
   if(mode=="sparse-xor" || mode=="sparse-xor-device")return IndexedBatchPattern::sparse_xor;
   if(mode=="sparse-xor-all-planes" || mode=="sparse-xor-all-planes-device")return IndexedBatchPattern::sparse_xor_all_planes;
   if(mode=="collective" || mode=="collective-sparse" || mode=="collective-delta")return IndexedBatchPattern::collective;
+  if(mode=="collective-dense")return IndexedBatchPattern::collective_dense;
   if(mode=="revision-corpus")return IndexedBatchPattern::revision_corpus;
   if(mode=="raw-revision-corpus")return IndexedBatchPattern::raw_revision_corpus;
   return {};
@@ -2488,7 +2489,8 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   const bool full_reference=pattern==IndexedBatchPattern::xor_full_reference;
   const bool all_planes=pattern==IndexedBatchPattern::sparse_xor_all_planes;
   const bool sparse_xor=pattern==IndexedBatchPattern::sparse_xor || all_planes || sparse_reference || full_reference;
-  const bool collective=pattern==IndexedBatchPattern::collective;
+  const bool dense_collective=pattern==IndexedBatchPattern::collective_dense;
+  const bool collective=pattern==IndexedBatchPattern::collective || dense_collective;
   const bool sparse_device=options && options->output==anchor_match::BatchOutput::sparse_xor;
   const bool collective_device=options && options->output==anchor_match::BatchOutput::collective;
   const bool reference_device=options &&
@@ -2577,7 +2579,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   std::uint64_t activity=1;
   std::uint64_t sequence=0,worker_ns=0,cpu_groups_before_gpu_reply=0,fully_submitted=0;
   std::uint64_t packed_payload_bytes=0,sampled_bias_members=0;
-  std::size_t sparse_bodies=0,delta_bodies=0;
+  std::size_t sparse_bodies=0,delta_bodies=0,dense_bodies=0;
   unsigned packed_widths=0;
   const auto next_observation=[&] {
     MEMORYSTATUSEX host{};host.dwLength=sizeof(host);
@@ -2710,6 +2712,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
           body=selected->bytes;
         }
         if(method==NativePackedGroupMethod::sparse_xor)++sparse_bodies;
+        if(method==NativePackedGroupMethod::xor_planes)++dense_bodies;
         if(method==NativePackedGroupMethod::modular_delta) {
           ++delta_bodies;
           packed_widths|=std::to_integer<unsigned>(body.front());
@@ -2870,7 +2873,8 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
         <<" sampled_input_backing="<<baseline_session_reads.sampled_backing
         <<" sampled_grouped_backing="<<grouped_session_reads.sampled_backing<<'\n';
   }
-  const auto cohort=revision?"revision-corpus":collective?(bank.empty()?"collective-synthetic":"collective-public"):
+  const auto cohort=revision?"revision-corpus":dense_collective?"collective-dense":
+      collective?(bank.empty()?"collective-synthetic":"collective-public"):
       full_reference?(bank.empty()?"xor-full-reference-synthetic":"xor-full-reference-public"):
       sparse_reference?(bank.empty()?"xor-sparse-reference-synthetic":"xor-sparse-reference-public"):
       all_planes?(bank.empty()?"sparse-xor-all-planes-synthetic":"sparse-xor-all-planes-public"):
@@ -2900,7 +2904,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
       <<" input_compacted_bytes="<<baseline_bytes<<" grouped_compacted_bytes="<<packed->extent()
       <<" packed_widths="<<packed_widths<<" packed_payload_bytes="<<packed_payload_bytes
       <<" sampled_bias_members="<<sampled_bias_members
-      <<" sparse_bodies="<<sparse_bodies<<" delta_bodies="<<delta_bodies
+      <<" sparse_bodies="<<sparse_bodies<<" delta_bodies="<<delta_bodies<<" dense_bodies="<<dense_bodies
       <<" reference_batches="<<stats.reference_batches<<" reselected_groups="<<stats.reselected_groups
       <<" cpu_reference_pairs="<<progress.cpu_reference_pairs<<" published_references_changed="<<progress.reselected_reference_groups
       <<" section_reference_groups="<<progress.section_reference_groups
@@ -3157,7 +3161,8 @@ int live_anchor_owner(int argc,char** argv) {
     const auto output=wide_copy || reference_xor?anchor_match::BatchOutput::wide_anchors:
         revision_corpus(*multiwindow)?anchor_match::BatchOutput::anchors:
         mode=="xor-full-reference"?anchor_match::BatchOutput::reference_xor:
-        mode=="collective"?anchor_match::BatchOutput::collective:sparse?anchor_match::BatchOutput::sparse_xor:
+        (mode=="collective" || mode=="collective-dense")?anchor_match::BatchOutput::collective:
+        sparse?anchor_match::BatchOutput::sparse_xor:
         modular?anchor_match::BatchOutput::modular_delta:anchor_match::BatchOutput::wide_packed_xor;
     return live_multiwindow_anchor(NativeAnchorSearchOptions{
         .route=*binding.route,.worker=profile,.minimum_members=minimum,

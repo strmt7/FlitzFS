@@ -702,6 +702,12 @@ std::optional<CollectiveGroupBody> parse_collective_group_body(std::span<const s
       if(bytes.size()>=delta_parameters_bytes && bytes.size()<=delta_max_payload_bytes)
         return CollectiveGroupBody{NativePackedGroupMethod::modular_delta,bytes};
       break;
+    case CollectiveBody::packed_xor:
+      if(bytes.size()>=packed_xor_min_body_bytes && bytes.size()<=packed_xor_max_body_bytes &&
+          (bytes.size()-xor_tiles)%xor_plane_bytes==0)
+        return CollectiveGroupBody{NativePackedGroupMethod::xor_planes,bytes};
+      break;
+    case CollectiveBody::none:break;
   }
   return {};
 }
