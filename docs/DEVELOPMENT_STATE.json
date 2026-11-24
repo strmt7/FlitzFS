@@ -146,6 +146,11 @@
     "scope": "Prepared packed XOR reads through WinFsp callbacks and native sessions using protected checkpoint provenance",
     "next": "Exercise the exact decoder on admitted AMD hardware. Compare complete costs, then qualify automatic route selection and cover more shared-base methods."
   },
+  "mixed_group_read_ahead": {
+    "evidence": "docs/evidence/windows-mixed-group-reads-2026-11-24.json",
+    "scope": "Sparse XOR and modular delta share the native protected read-ahead path. Packed XOR retains its compatible worker protocol.",
+    "next": "Qualify exact device output for both worker protocols, model complete costs under observed foreground lead times, and verify ordinary route selection."
+  },
   "architecture_reconciliation": {
     "reviewed_commit": "df5be9b5b9d0bc05ac565eb2da8454ac76bed3d2",
     "reviewed_tree": "a9bab22082849332c28a085f0eb154aaacb15538",

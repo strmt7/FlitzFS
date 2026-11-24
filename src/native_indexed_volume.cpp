@@ -217,7 +217,7 @@ struct DecodedIndexedExtent {
   Bytes data;
   std::size_t payload_offset=0;
   std::uint64_t base=0,reusable_anchor_generation=0;
-  bool packed_slice=false,packed_xor=false;
+  bool packed_slice=false,tiled_group=false;
   std::span<const std::byte> payload() const {return std::span(data).subspan(payload_offset);}
 };
 void verify_base_frame(const Bytes& bytes) {
@@ -310,7 +310,7 @@ DecodedIndexedExtent decode_extent(const PagedObjectStoreSnapshot& source,const 
     while(!decoded.empty() && decoded.back()==std::byte{})decoded.pop_back();
     validate_payload(inode,block,decoded);
     if(retained && anchor==&scratch)retained->remember(scratch);
-    return {std::move(decoded),0,reference.base_id,reusable,false,reference.method==NativeGroupMethod::packed_xor};
+    return {std::move(decoded),0,reference.base_id,reusable,false,native_group_tiled(reference.method)};
   }catch(const std::bad_alloc&){throw;}
   catch(const NativeFsError&){throw;}
   catch(const std::exception&){fail(Code::corrupt,"indexed shared-base proof failed");}
@@ -2342,7 +2342,7 @@ Bytes IndexedVolumeView::read(const IndexedInodeInput& selected,std::uint64_t of
       if(ready && store_.matches_group_read(ready->record,ready->base,*pending.metadata_)) {
         validate_payload(selected,block,ready->bytes);
         extent.data=std::exchange(ready->bytes,Bytes{});
-        extent.packed_xor=true;
+        extent.tiled_group=true;
         ++pending.consumed_;
       }
     }
@@ -2356,7 +2356,7 @@ Bytes IndexedVolumeView::read(const IndexedInodeInput& selected,std::uint64_t of
       extent=decode_extent(store_,index_,root_,entry.value,std::move(*record),
           selected,block,false,&cached_base,retained);
     }
-    if(groups && extent.packed_xor)groups->packed=true;
+    if(groups && extent.tiled_group)groups->tiled=true;
     const auto data=extent.payload();
     const auto begin=block*kNativeExtentBytes;
     const auto from=(std::max)(begin,offset),to=(std::min)(end,begin+data.size());
@@ -2439,10 +2439,11 @@ std::unique_ptr<NativeGroupReadBatch> IndexedVolumeView::capture_group_range(
         get(member.bytes,16)!=block)return {};
     const auto frame=std::span<const std::byte>(member.bytes).subspan(extent_header);
     const auto reference=read_native_group_header(frame,available_group_method(root_.format));
-    if(reference.method!=NativeGroupMethod::packed_xor)continue;
+    if(!native_group_tiled(reference.method))continue;
     if(reference.base_id==entry.value || (reference.base_id&ordinal_mask)>=root_.next_extent ||
         index_.find(native_group_reference_key(reference.base_id,entry.value))!=entry.value)return {};
-    const auto offsets=native_packed_xor_offsets(frame.subspan(kNativeGroupMemberHeaderBytes));
+    const auto parameters=native_group_tile_parameters(frame,reference.method);
+    const auto offsets=native_group_tile_offsets(frame.subspan(kNativeGroupMemberHeaderBytes),reference.method,parameters);
     const auto existing=std::ranges::find_if(batch->bases_,[&](const auto& base) {
       return base.record.object==reference.base_id && base.record.generation==reference.base_generation;
     });
@@ -2460,7 +2461,7 @@ std::unique_ptr<NativeGroupReadBatch> IndexedVolumeView::capture_group_range(
     const auto maximum=static_cast<std::uint32_t>((std::min)(available,std::uint64_t{kNativeExtentBytes}));
     member.bytes.erase(member.bytes.begin(),member.bytes.begin()+extent_header);
     batch->members_.push_back({member.record,block,maximum,base_index,reference.decoded_digest,
-        offsets,std::move(member.bytes)});
+        reference.method,parameters,offsets,std::move(member.bytes)});
     remaining-=cost;
   }
   if(batch->members_.empty() || (interrupted && interrupted()))return {};

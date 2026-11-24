@@ -66,7 +66,7 @@ bool valid_profile(const NativeLz4ReadWorkerProfile& p) {
       std::has_single_bit(p.node_mask) && p.ordinal<64 && p.wave_mask && p.wave_mask<=3 &&
       arch.size()>3 && arch.size()<=32 && arch.starts_with(L"gfx") && std::ranges::all_of(arch,[](wchar_t c) {
         return (c>=L'a' && c<=L'z') || (c>=L'0' && c<=L'9');
-      }) && p.minimum_frames && p.minimum_frames<=p.maximum_frames &&
+      }) && (!p.mixed_groups || p.packed_groups) && p.minimum_frames && p.minimum_frames<=p.maximum_frames &&
       p.maximum_slab_bytes && p.worker.memory_share_divisor && valid_process_budget(p.worker);
 }
 
@@ -152,7 +152,8 @@ bool NativeLz4ReadWorker::start(WinFspReadAheadWork& work,const NativeMaintenanc
   const bool grouped=work.groups!=nullptr;
   const auto available=grouped?work.groups->members().size():work.frames.size();
   if(s.flight || !s.status.retirement_confirmed || s.status.configuration_refused ||
-      available<s.profile.minimum_frames || (grouped && !s.profile.packed_groups) ||
+      available<s.profile.minimum_frames ||
+      (grouped && (!s.profile.packed_groups || (work.groups->mixed_methods() && !s.profile.mixed_groups))) ||
       !work.owner || stop_requested.load(std::memory_order_acquire) || !WorkerExchangeSession::available())
     return false;
   const auto& profile=s.profile;
@@ -275,7 +276,7 @@ bool NativeLz4ReadWorker::verify_and_publish(WinFspNativeWritable& adapter,
       if(ready) {
         s.status.verified_frames+=f.frames;
         published=adapter.publish_read_ahead(f.work,{},std::move(ready),stopped);
-      }else if(!interrupted())throw std::invalid_argument("Packed group reply verification failed");
+      }else if(!interrupted())throw std::invalid_argument("Grouped extent reply verification failed");
     }else {
       auto ready=std::get<detail::NativeLz4ReadExchange>(f.request).accept(result->response,WorkerExecution::hip);
       s.status.verified_frames+=f.frames;

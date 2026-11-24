@@ -89,6 +89,29 @@ void read_grouped_extents() {
       "A separate request reused the prior request's shared base");
   std::cout<<"shared_base_request_cache extents="<<count<<" primary_reads=2 peer_recovery=true byte_exact=true\n";
 }
+Bytes simulate_group_device(const detail::NativeGroupWireRequest& request) {
+  const auto layout=request.layout;
+  const auto output_at=group_decode::output_at(layout);
+  Bytes output(group_decode::slab_bytes(layout)-output_at);
+  const auto* prefix=reinterpret_cast<const group_decode::u8*>(request.upload.data());
+  auto* device_output=reinterpret_cast<group_decode::u8*>(output.data());
+  bool valid=true;
+  for(std::uint32_t i=0;i<layout.members;++i) {
+    group_decode::Member member;
+    std::memcpy(&member,request.upload.data()+i*sizeof(member),sizeof(member));
+    auto* words=device_output+i*kNativeExtentBytes;
+    for(std::uint32_t word=0;word<group_decode::words;++word) {
+      const auto complete=group_decode::reconstruct(member,prefix+group_decode::bases_at(layout),
+          prefix+group_decode::bodies_at(layout),layout,word,words);
+      valid=valid && complete;
+      if(complete && word%group_decode::words_per_tile==0)
+        device_output[group_decode::status_at(layout)-output_at+i*group_decode::tiles+
+            word/group_decode::words_per_tile]=group_decode::complete;
+    }
+  }
+  require(valid,"Shared device semantics failed on checked grouped members");
+  return output;
+}
 void prepared_packed_group_reads() {
   using detail::NativeGroupReadyReads;
   constexpr auto extent=kNativeExtentBytes;
@@ -145,7 +168,7 @@ void prepared_packed_group_reads() {
   constexpr auto slab_limit=512*1024;
   const auto exchange=detail::NativeGroupReadExchange::prepare(*capture,73,count,slab_limit);
   const auto request=detail::decode_native_group_request(exchange.request()->bytes(),count,slab_limit);
-  require(request.layout.bases==1 && request.layout.members==count-1 &&
+  require(request.layout.abi==group_decode::version && request.layout.bases==1 && request.layout.members==count-1 &&
       exchange.device_bytes()==group_decode::slab_bytes(request.layout),"Group wire duplicated its base");
   auto bad_request=Bytes(exchange.request()->bytes().begin(),exchange.request()->bytes().end());
   bad_request[32+offsetof(group_decode::Member,offsets)+2]^=std::byte{1};
@@ -153,25 +176,7 @@ void prepared_packed_group_reads() {
       "Noncanonical tile directory survived wire validation");
   rejects([&]{(void)detail::decode_native_group_request(exchange.request()->bytes(),count,exchange.device_bytes()-1);},
       "A grouped request overran the device grant");
-  const auto output_at=group_decode::output_at(request.layout);
-  Bytes output(exchange.device_bytes()-output_at);
-  const auto* prefix=reinterpret_cast<const group_decode::u8*>(request.upload.data());
-  auto* device_output=reinterpret_cast<group_decode::u8*>(output.data());
-  bool valid=true;
-  for(std::uint32_t i=0;i<request.layout.members;++i) {
-    group_decode::Member member;
-    std::memcpy(&member,request.upload.data()+i*sizeof(member),sizeof(member));
-    auto* words=device_output+i*extent;
-    for(std::uint32_t word=0;word<group_decode::words;++word) {
-      const auto complete=group_decode::reconstruct(member,prefix+group_decode::bases_at(request.layout),
-          prefix+group_decode::bodies_at(request.layout),request.layout,word,words);
-      valid=valid && complete;
-      if(complete && word%group_decode::words_per_tile==0)
-        device_output[group_decode::status_at(request.layout)-output_at+i*group_decode::tiles+
-            word/group_decode::words_per_tile]=group_decode::complete;
-    }
-  }
-  require(valid,"Shared device semantics failed on checked packed members");
+  auto output=simulate_group_device(request);
   constexpr auto backend=WorkerExecution::cpu_semantics;
   output.back()=std::byte{};
   rejects([&]{(void)detail::encode_native_group_reply(request,output,backend);},
@@ -232,6 +237,92 @@ void prepared_packed_group_reads() {
   current.verify_all();
   std::cout<<"prepared_packed_groups bases=1 members=3 cpu_fallback=1 wrong_reply_rejected=1"
       <<" changed_checkpoint_rejected=1 different_backing_rejected=1 observed_repair_rejected=1\n";
+}
+void prepared_mixed_group_reads() {
+  using detail::NativeGroupMethod;
+  constexpr auto extent=kNativeExtentBytes,maximum_members=10U;
+  constexpr auto grant=std::size_t{(2*maximum_members+3)*extent};
+  constexpr auto slab_grant=std::uint64_t{2*1024*1024};
+  constexpr StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
+  const auto base=family(0);
+  auto sparse=sparse_xor_family(3);
+  for(unsigned i=0;i<128;++i)sparse[i]^=std::byte{0x10};
+  std::vector<Bytes> blocks{base,xor_family(1),std::move(sparse)};
+  for(const auto width:{1U,2U,4U,8U}) {
+    auto biased=base;
+    for(std::size_t at=0;at<biased.size();at+=width)
+      add_little_endian(std::span(biased).subspan(at,width),0xc74482fa26e3bd97ULL);
+    blocks.push_back(biased);
+    add_little_endian(std::span(biased).subspan(width,width),1);
+    add_little_endian(std::span(biased).subspan(width*2,width),~std::uint64_t{0});
+    add_little_endian(std::span(biased).last(width),1);
+    if(width==8)add_little_endian(std::span(biased).subspan(272,width),1ULL<<63);
+    blocks.push_back(std::move(biased));
+  }
+  const auto size=static_cast<std::uint32_t>(blocks.size()*extent);
+  Bytes contents;
+  contents.reserve(size);
+  for(const auto& block:blocks)contents.insert(contents.end(),block.begin(),block.end());
+  auto ram=std::make_shared<Ram>();
+  ram->failure_unit=4096;
+  auto writer=NativeFilesystemWriter::initialize_indexed(
+      PagedObjectStoreWriter::create_mirrored(std::make_shared<ConcurrentRam>(ram),identity(),limits,raw));
+  writer.apply(std::array{file_create("mixed"),file_write("mixed",0,contents)});
+  const auto inode=writer.snapshot().stat("mixed").inode;
+  std::vector<NativeExtentSelection> selections;
+  for(std::size_t i=0;i<blocks.size();++i)selections.push_back({inode,i});
+  require(writer.compress_shared_base(selections.front(),selections).applied,"Mixed fixture did not group");
+  auto session=NativeFileSession::create(std::move(writer));
+  const auto file=session.open("mixed",{true,false,true});
+  const auto lease=session.lease_native_group_capture(file,extent);
+  require(bool(lease),"Mixed fixture read lease");
+  auto capture=lease->capture(size-extent,grant);
+  require(capture && capture->bases().size()==1 && capture->members().size()==maximum_members &&
+      capture->mixed_methods(),"Mixed capture lost a codec or duplicated the base");
+  require(capture->members()[0].method==NativeGroupMethod::packed_xor &&
+      capture->members()[1].method==NativeGroupMethod::sparse_xor,"Mixed fixture lost either XOR method");
+  for(unsigned i=0;i<8;++i) {
+    const auto& member=capture->members()[i+2];
+    require(member.method==NativeGroupMethod::modular_delta &&
+        member.parameters.word_bytes==(1U<<(i/2)) && (member.offsets.back()==0)==(i%2==0),
+        "Mixed capture delta width, fields or body");
+    const auto tiles=std::span(member.frame).subspan(detail::kNativeGroupMemberHeaderBytes);
+    if(i==7)require(tiles[member.offsets[1]]==std::byte{64},"Highest residual bit was not exercised");
+  }
+  const auto exchange=detail::NativeGroupReadExchange::prepare(*capture,91,maximum_members,slab_grant);
+  const auto request=detail::decode_native_group_request(exchange.request()->bytes(),maximum_members,slab_grant);
+  require(request.layout.abi==group_decode::mixed_version && request.layout.bases==1,
+      "Mixed device request lost its ABI or reused base");
+  const auto encoded=exchange.request()->bytes();
+  const auto reject=[&](Bytes wrong,const char* error){
+    rejects([&]{(void)detail::decode_native_group_request(wrong,maximum_members,slab_grant);},error);
+  };
+  auto wrong=Bytes(encoded.begin(),encoded.end());
+  wrong[7]=std::byte{'1'};
+  wrong[28]=std::byte{1};
+  reject(std::move(wrong),"Packed-only wire accepted a mixed request");
+  group_decode::Member delta;
+  std::memcpy(&delta,request.upload.data()+2*sizeof(delta),sizeof(delta));
+  const auto prefix_at=32+group_decode::bodies_at(request.layout)+delta.body_at;
+  wrong.assign(encoded.begin(),encoded.end());
+  wrong[prefix_at]=std::byte{3};
+  reject(std::move(wrong),"Mixed wire accepted an unsupported modular word");
+  wrong.assign(encoded.begin(),encoded.end());
+  std::fill_n(wrong.begin()+prefix_at+8,8,std::byte{});
+  reject(std::move(wrong),"Mixed wire accepted an empty modular body without a bias");
+  auto output=simulate_group_device(request);
+  const auto reconstructed=std::span(output).first(size-extent);
+  require(std::ranges::equal(reconstructed,std::span(contents).subspan(extent)),
+      "Mixed device semantics differed from written bytes");
+  const auto reply=detail::encode_native_group_reply(request,output,WorkerExecution::cpu_semantics);
+  auto ready=exchange.accept(*capture,reply,WorkerExecution::cpu_semantics);
+  detail::NativeGroupReadRoute route{ready.get()};
+  require(ready && session.read(file,0,size,nullptr,&route)==contents &&
+      ready->consumed()==maximum_members,"Mixed prepared bytes did not reach the native file session");
+  require(session.read(file,0,size)==contents,"Mixed native CPU reader differed from prepared bytes");
+  session.snapshot().verify_all();
+  std::cout<<"prepared_mixed_groups bases=1 members="<<maximum_members
+      <<" xor_methods=2 modular_widths=4 bias_only=4 maximum_residual_bits=64 native_cpu_exact=1\n";
 }
 void retained_group_anchors() {
   constexpr unsigned family_size=8,files=2*family_size;
@@ -1247,6 +1338,10 @@ void layouts(std::uint32_t unit) {
 int main(int argc,char** argv){try {
   if(argc==2 && std::string_view(argv[1])=="--prepared-packed-reads") {
     prepared_packed_group_reads();
+    return 0;
+  }
+  if(argc==2 && std::string_view(argv[1])=="--prepared-mixed-reads") {
+    prepared_mixed_group_reads();
     return 0;
   }
   if(argc==2 && std::string_view(argv[1])=="--audit-anchor-reads") {

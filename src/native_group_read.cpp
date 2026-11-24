@@ -3,6 +3,10 @@
 #include <utility>
 
 namespace flitzfs::detail {
+bool NativeGroupReadBatch::mixed_methods() const noexcept {
+  return std::ranges::any_of(members_,[](const auto& member){return member.method!=NativeGroupMethod::packed_xor;});
+}
+
 std::size_t NativeGroupReadyReads::descriptor_bytes() noexcept {
   return sizeof(Member)+sizeof(std::vector<std::byte>)+
       sizeof(NativeGroupReadBatch::Member)+sizeof(NativeGroupReadBatch::Base);
@@ -43,8 +47,7 @@ std::unique_ptr<NativeGroupReadyReads> NativeGroupReadyReads::decode_captured(Na
   decoded.reserve(batch.members_.size());
   for(const auto& member:batch.members_) {
     if(interrupted && interrupted())return {};
-    decoded.push_back(decode_native_group_member(member.frame,batch.bases_[member.base].bytes,
-        NativeGroupMethod::packed_xor));
+    decoded.push_back(decode_native_group_member(member.frame,batch.bases_[member.base].bytes,member.method));
   }
   return verify(batch,std::move(decoded),interrupted);
 }

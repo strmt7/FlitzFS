@@ -231,7 +231,7 @@ struct WinFspNativeWritable::Impl {
     std::uint64_t offset=0;
     std::uint32_t bytes=0;
     std::uint64_t created_ms=0,observed_lead_ms=0,demand_cost_ns=0;
-    bool packed=false;
+    bool tiled=false;
     bool overlaps(std::uint64_t start,std::uint32_t length) const noexcept {
       return length && (start<=offset?offset-start<length:start-offset<bytes);
     }
@@ -653,7 +653,7 @@ struct WinFspNativeWritable::Impl {
     Lz4DemandObservation observation;
     const auto start=std::chrono::steady_clock::now();
     auto bytes=session.read(slot.handle,offset,length,&observation,&groups);
-    if((observation.verified_input || groups.packed) && bytes.size()==length) {
+    if((observation.verified_input || groups.tiled) && bytes.size()==length) {
       // Complete demand service includes backing calls and CPU verification.
       const auto elapsed=std::chrono::duration_cast<std::chrono::nanoseconds>(
           std::chrono::steady_clock::now()-start).count();
@@ -701,7 +701,7 @@ struct WinFspNativeWritable::Impl {
       const auto frames=(remaining+kNativeExtentBytes-1)/kNativeExtentBytes;
       const auto window=static_cast<std::uint32_t>(frames*kNativeExtentBytes);
       if(window<=maximum-end-gap)read_ahead=ReadAhead{slot.token,end+gap,window,completed_ms,
-          (std::min)(idle,previous.idle_before_ms),demand_cost,groups.packed};
+          (std::min)(idle,previous.idle_before_ms),demand_cost,groups.tiled};
     }
     return bytes;
   }
@@ -1702,7 +1702,7 @@ std::optional<WinFspReadAheadWork> WinFspNativeWritable::capture_native_lz4_read
       target.bytes=static_cast<std::uint32_t>(frames*kNativeExtentBytes);
       const auto& slot=impl_->resolve(reinterpret_cast<PVOID>(target.token));
       if(slot.provisional || slot.awaiting_overwrite)return {};
-      if(target.packed)group_lease=impl_->session.lease_native_group_capture(slot.handle,target.offset);
+      if(target.tiled)group_lease=impl_->session.lease_native_group_capture(slot.handle,target.offset);
       else lease=impl_->session.lease_native_lz4_capture(slot.handle,target.offset,frame_bytes);
     }
     const auto interrupted=[&]{

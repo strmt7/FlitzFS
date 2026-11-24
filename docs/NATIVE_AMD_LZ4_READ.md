@@ -100,19 +100,26 @@ These single observations include concurrent build activity. The exchange
 covers child setup, device work, transport, verification and retirement.
 [Isolated-worker verification](evidence/native-amd-lz4-ipc-2026-11-22.json)
 
-## Packed shared-base extents
+## Shared-base extent read-ahead
 
-Adjacent reads that encounter packed XOR can forecast a grouped read window.
+Adjacent reads that encounter packed XOR, sparse XOR, or modular delta can
+forecast a grouped read window.
 The capture opens one healthy mirrored checkpoint and verifies each selected
 member, its backreference and the primary record of its base. It retains each
 distinct base once and builds each member's tile offsets from the checked
-packed body. The device request carries one copy of every selected base, and
-each AMD lane reconstructs eight neighboring bytes.
+body. The device request carries one copy of every selected base, and each
+AMD lane reconstructs eight neighboring bytes. Sparse planes use sorted
+exception positions, including inverted planes. Modular delta lanes handle
+1-, 2-, 4-, and 8-byte words and can apply a constant bias with no residual body.
+The compressed bodies cross the device boundary in their existing formats.
 
 The Windows controller can choose CPU preparation or send the batch through
 the existing bounded AMD helper. The installed package's `packed_groups`
-profile requires a pinned module with the group dispatch entry. Profiles
-without that qualification keep their previous AMD LZ4 route. The worker
+profile requires a pinned module with the group dispatch entry. Packed-only
+requests retain the original protocol. A request containing sparse XOR or
+modular delta uses version 2 and requires the separate `mixed_groups` profile
+and version 2 entry. Earlier profiles continue to serve their eligible
+requests. The worker
 checks the request, adapter and live memory again, then completes the command
 and retires before the controller can use the reply.
 
@@ -121,15 +128,22 @@ decoded digest, including bytes outside the requested slice. On demand,
 FlitzFS checks the exact backing checkpoint and both protected record
 bindings before allowing a one-use hit. An unavailable, superseded or
 invalid result leaves the normal CPU reader in control. The stored format
-uses the existing packed XOR representation.
+uses the existing representations. CPU readers continue to interpret the
+same committed capabilities and data.
 
 The next qualification compares complete AMD and CPU costs with natural
 foreground lead times. Measure capture, upload, decode, readback, CPU
 verification and worker retirement along with the cost of late work.
 Use the measured costs to compare finite prepared workers with cold
-dispatch, including contention and release of idle resources. Sparse XOR,
-modular delta and other shared-base methods still use the CPU reader.
-[Windows grouped-read evidence](evidence/windows-prepared-group-reads-2026-11-24.json)
+dispatch, including contention and release of idle resources. Anchor copies,
+aligned patches, prefixed Zstandard, and packed slices remain on the CPU.
+
+PlaneZip's results on model activations motivate retaining per-tile bit-plane
+encodings across the link. FlitzFS needs its own complete-cost measurements
+for ordinary reads. [PlaneZip](https://arxiv.org/abs/2610.25033)
+
+[Packed read-ahead evidence](evidence/windows-prepared-group-reads-2026-11-24.json) ·
+[Mixed decoder evidence](evidence/windows-mixed-group-reads-2026-11-24.json)
 
 ## Prepared native reads
 

@@ -385,11 +385,14 @@ int worker(int argc, wchar_t** argv) {
         "native LZ4 runtime identity changed");
     trace.end(HipPhase::modules_load);
     if(groups) {
-      const auto address=GetProcAddress(kernel.get(),"flitzfs_native_group_decode_api");
+      const auto abi=groups->layout.abi;
+      const auto entry_name=abi==group_decode::mixed_version?"flitzfs_native_group_decode_api_v2":
+          "flitzfs_native_group_decode_api";
+      const auto address=GetProcAddress(kernel.get(),entry_name);
       require(address!=nullptr,Exit::unsupported_configuration,"native group API entry unavailable",HipWorkerStage::kernel_entry);
       const auto entry=std::bit_cast<group_decode::KernelApiEntry>(address);
       const auto* api=entry();
-      require(api && group_decode::compatible(*api),Exit::unsupported_configuration,
+      require(api && group_decode::compatible(*api,abi),Exit::unsupported_configuration,
           "incompatible native group read table",HipWorkerStage::kernel_table);
       const auto reply=run_hip_native_group_read_in_worker(runtime.get(),*api,static_cast<int>(ordinal),
           *sampler,*groups,{&coverage,1});

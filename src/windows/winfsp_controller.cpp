@@ -840,7 +840,8 @@ struct WinFspVolumeController::Impl {
 
   void begin_read_acquisition(const WinFspReadAheadWork& work,const NativeMaintenanceObservation& observed) {
     if(!installed_read || !acquisition_retired || acquisition_thread.joinable() ||
-        (work.groups && !installed_read->packed_groups) ||
+        (work.groups && (!installed_read->packed_groups ||
+            (work.groups->mixed_methods() && !installed_read->mixed_groups))) ||
         stop_requested.load(std::memory_order_acquire) || adapter->foreground_pending() ||
         !WorkerExchangeSession::available())return;
     const auto now=GetTickCount64();

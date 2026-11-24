@@ -225,13 +225,18 @@ def bind(package: Path, approved: str) -> tuple[str, list[str]]:
         require(fields["minimum_frames"] <= fields["maximum_frames"], "Inverted native LZ4 read frame grant")
         slab_bytes = integer(read, "maximum_slab_bytes", 1, fields["worker_memory_mib"] * 1024 * 1024)
         packed_groups = read.get("packed_groups", False)
+        mixed_groups = read.get("mixed_groups", False)
         require(isinstance(packed_groups, bool), "Invalid native read packed_groups")
+        require(isinstance(mixed_groups, bool) and (not mixed_groups or packed_groups), "Invalid native read mixed_groups")
         read_exports = ("flitzfs_native_lz4_decode_api",)
         if packed_groups:
             read_exports += ("flitzfs_native_group_decode_api",)
+        if mixed_groups:
+            read_exports += ("flitzfs_native_group_decode_api_v2",)
         result += artifact(READ_WORKER, "read_worker_sha256", True)
         result += artifact(READ_MODULE, "read_module_sha256", False, read_exports)
         result += f"inline constexpr bool read_packed_groups={'true' if packed_groups else 'false'};\n"
+        result += f"inline constexpr bool read_mixed_groups={'true' if mixed_groups else 'false'};\n"
         result += f'inline constexpr wchar_t read_architecture[]=L"{architecture}";\n'
         result += f"inline constexpr std::uint64_t read_maximum_slab_bytes={slab_bytes}ULL;\n"
         result += f"inline constexpr std::array read_runtime_sha256{{{array_literal(bytes.fromhex(runtime_digest))}}};\n"

@@ -2,6 +2,7 @@
 #include "winfsp_session.hpp"
 #include "native_lz4_read_worker.hpp"
 #include "native_fs_fixture.hpp"
+#include "anchor_search_fixture.hpp"
 #include "native_lz4_fixture.hpp"
 #include "../src/native_lz4_decode_wire.hpp"
 #include "../src/native_name_index.hpp"
@@ -250,23 +251,50 @@ void sequential_read_ahead() {
       <<" capture_backing_bytes="<<capture_bytes<<" ready_backing_bytes="<<ready_bytes
       <<" ordinary_backing_bytes="<<ordinary_bytes<<'\n';
 }
-void packed_group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={}) {
+void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},bool mixed=false) {
   constexpr auto extent=kNativeExtentBytes;
-  Harness h(4096,nullptr,nullptr,nullptr,nullptr,true,{StoreCompressionMode::raw,1,false},true);
+  constexpr PagedStoreLimits limits{kStoreMaxPhysicalBytes};
+  constexpr StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
   std::array<Bytes,10> blocks;
   Bytes file;
   const auto base=family(0);
   for(std::size_t i=0;i<blocks.size();++i) {
     blocks[i]=base;
-    const auto bits=data(extent,32019+static_cast<unsigned>(i));
-    for(std::size_t at=0;at<extent;++at)blocks[i][at]^=bits[at]&std::byte{1};
+    if(mixed) {
+      if(i%2)blocks[i]=calibrated_extent(base,static_cast<unsigned>(i));
+      else anchor_search_fixture::apply_sparse_xor_variation(blocks[i],static_cast<unsigned>(2*i));
+    }else {
+      const auto bits=data(extent,32019+static_cast<unsigned>(i));
+      for(std::size_t at=0;at<extent;++at)blocks[i][at]^=bits[at]&std::byte{1};
+    }
     file.insert(file.end(),blocks[i].begin(),blocks[i].end());
   }
-  const auto context=h.create(47);
-  h.write(context,file);
-  h.finish();
-  require(h.adapter->snapshot().shared_base_info().members>=5,"Packed callback input was not grouped");
-  const auto width=profile?2U:1U;
+  // Select the committed reference before reopening. Optimizer reference
+  // choices are covered separately and do not determine this read fixture.
+  auto seed=std::make_unique<Harness>(4096,nullptr,nullptr,nullptr,nullptr,true,raw);
+  const auto initial=seed->create(47);
+  seed->write(initial,file);
+  seed->close(initial);
+  auto head=seed->head,image=seed->image,advice=seed->advice;
+  auto backing=seed->image_io;
+  seed.reset();
+  {
+    const auto generation=PagedObjectStoreSnapshot::open(backing,limits).info().generation;
+    auto writer=NativeFilesystemWriter::resume(
+        PagedObjectStoreWriter::resume(backing,id(1),generation,limits,raw));
+    const auto inode=writer.snapshot().stat("f47").inode;
+    std::array<NativeExtentSelection,10> selected;
+    for(std::size_t i=0;i<selected.size();++i)selected[i]={inode,i};
+    require(writer.compress_shared_base(selected.front(),selected).applied,
+        "Grouped callback fixture did not publish its reference");
+  }
+  Harness h(4096,&image->stable,&head->stable,&advice->stable,nullptr,true,raw,true);
+  PVOID context=nullptr;
+  FSP_FSCTL_FILE_INFO info{};
+  std::wstring name=L"\\f47";
+  require(h.fs.Interface->Open(&h.fs,name.data(),FILE_NON_DIRECTORY_FILE|(1U<<24),FILE_ALL_ACCESS,&context,&info)==STATUS_SUCCESS,
+      "Grouped callback fixture reopen");
+  constexpr auto width=2U;
   const auto read=[&](unsigned first) {
     const auto begin=file.begin()+first*extent;
     h.read(context,Bytes(begin,begin+width*extent),first*extent);
@@ -286,11 +314,12 @@ void packed_group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={
   const std::atomic<bool> stop{false};
   auto work=h.adapter->capture_native_lz4_read_ahead(admitted,h.clock.now,epoch,stop);
   require(work && work->frames.empty() && work->groups && work->groups->bases().size()==1 &&
-      work->groups->members().size()==width,"Grouped WinFsp forecast did not capture its protected inputs");
+      work->groups->members().size()==width && work->groups->mixed_methods()==mixed,
+      "Grouped WinFsp forecast did not capture its protected inputs");
   if(profile) {
     const auto timeout=profile->worker.timeout_ms;
     NativeLz4ReadWorker worker(std::move(*profile));
-    require(worker.start(*work,admitted,stop),"Live packed-group AMD start refused");
+    require(worker.start(*work,admitted,stop),"Live grouped AMD start refused");
     if(const auto wake=static_cast<HANDLE>(worker.wake_handle()))
       require(WaitForSingleObject(wake,timeout+2500)==WAIT_OBJECT_0,"Packed-group AMD retirement wait");
     worker.observe(*h.adapter,false);
@@ -303,9 +332,9 @@ void packed_group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={
     const auto stats=worker.stats();
     require(stats.submitted==1 && stats.verified_frames==width && stats.retirement_confirmed &&
         !stats.pending && worker.stop(),"Packed-group AMD session was not retired");
-    std::cout<<"winfsp_group_hip verified="<<stats.verified_frames<<" worker_ms="<<stats.last_worker_elapsed_ms
+    std::cout<<"winfsp_group_hip mixed="<<mixed<<" verified="<<stats.verified_frames<<" worker_ms="<<stats.last_worker_elapsed_ms
         <<" exact_child_retired=1\n";
-  }else require(h.adapter->prepare_captured_native_lz4_read(*work,stop),"Packed WinFsp preparation failed");
+  }else require(h.adapter->prepare_captured_native_lz4_read(*work,stop),"Grouped WinFsp preparation failed");
   read(2*width);
   require(h.adapter->native_lz4_read_ahead_hits()==width && h.image->write_bytes==writes,
       "Grouped callback failed to hit or issued a write");
@@ -321,7 +350,7 @@ void packed_group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={
   auto snapshot=h.adapter->snapshot();
   require(snapshot.read("f47",0,file.size())==file,"Independent CPU read changed callback bytes");
   snapshot.verify_all();
-  std::cout<<"winfsp_ready_groups ready_hits="<<width<<" late_refused=1 cpu_readback=1 backing_writes=0\n";
+  std::cout<<"winfsp_ready_groups mixed="<<mixed<<" ready_hits="<<width<<" late_refused=1 cpu_readback=1 backing_writes=0\n";
 }
 
 NativeLz4ReadWorkerProfile group_gpu_profile(wchar_t** arguments) {
@@ -1100,8 +1129,10 @@ void publication_faults(unsigned unit) {
 int wmain(int argc,wchar_t** argv){try {
   app_fixture::Budget budget;
   const auto mode=argc>1?std::wstring_view(argv[1]):std::wstring_view{};
-  if(mode==L"--hip-group-reads" && argc==12) {
-    packed_group_read_ahead(group_gpu_profile(argv));
+  if((mode==L"--hip-group-reads" || mode==L"--hip-mixed-group-reads") && argc==12) {
+    auto profile=group_gpu_profile(argv);
+    profile.mixed_groups=mode==L"--hip-mixed-group-reads";
+    group_read_ahead(std::move(profile),mode==L"--hip-mixed-group-reads");
     return 0;
   }
   if(argc!=2)throw std::runtime_error("Explicit callback/fault mode required");
@@ -1110,7 +1141,8 @@ int wmain(int argc,wchar_t** argv){try {
     deferred_response_busy();resume_formats();indexed_backfill_opportunities();lifecycle();indexed_callbacks(4096);indexed_callbacks(65536);
   }
   else if(mode==L"--ready-lz4-reads")ready_lz4_reads();
-  else if(mode==L"--ready-group-reads")packed_group_read_ahead();
+  else if(mode==L"--ready-group-reads")group_read_ahead();
+  else if(mode==L"--ready-mixed-group-reads")group_read_ahead({},true);
   else if(mode==L"--faults-4096")publication_faults(4096);
   else if(mode==L"--faults-65536")publication_faults(65536);
   else if(mode==L"--profile-indexed-directory")directory_pages(true);

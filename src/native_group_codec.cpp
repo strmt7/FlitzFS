@@ -18,7 +18,7 @@ constexpr auto delta_magic=[] {auto value=aligned_magic;value.back()=std::byte{'
 constexpr auto sparse_xor_magic=[] {auto value=aligned_magic;value.back()=std::byte{'5'};return value;}();
 constexpr auto prefixed_zstd_magic=[] {auto value=aligned_magic;value.back()=std::byte{'6'};return value;}();
 constexpr std::array member_magics{aligned_magic,copy_magic,xor_magic,delta_magic,sparse_xor_magic,prefixed_zstd_magic};
-constexpr std::size_t xor_tile_bytes=kNativePackedXorTileBytes,xor_plane_bytes=xor_tile_bytes/8,xor_tiles=extent/xor_tile_bytes;
+constexpr std::size_t xor_tile_bytes=kNativeGroupTileBytes,xor_plane_bytes=xor_tile_bytes/8,xor_tiles=extent/xor_tile_bytes;
 using anchor_match::sparse_plane_max;
 using anchor_match::sparse_plane_inverse;
 static_assert(extent%xor_tile_bytes==0 && xor_tile_bytes%8==0 &&
@@ -195,11 +195,12 @@ unsigned plane_ones(std::span<const std::byte> plane) noexcept {
   return count;
 }
 
-template<class Dense,class Sparse>
-std::size_t sparse_xor_planes(std::span<const std::byte> body,Dense dense,Sparse sparse) {
+template<class Dense,class Sparse,class Tile=decltype([](std::size_t,const std::byte*){})>
+std::size_t sparse_xor_planes(std::span<const std::byte> body,Dense dense,Sparse sparse,Tile begin_tile={}) {
   std::size_t planes=0;
   for(std::size_t tile=0;tile<xor_tiles;++tile) {
     if(body.empty())fail();
+    begin_tile(tile,body.data());
     const auto mask=std::to_integer<unsigned>(body.front());
     body=body.subspan(1);
     if(!mask)continue;
@@ -524,12 +525,36 @@ NativeGroupReference parse_native_group_member(std::span<const std::byte> bytes,
   }
   return ref;
 }
-NativePackedXorOffsets native_packed_xor_offsets(std::span<const std::byte> body) {
+NativeGroupTileParameters native_group_tile_parameters(std::span<const std::byte> frame,NativeGroupMethod method) {
+  if(method!=NativeGroupMethod::modular_delta)return {};
+  const auto delta=delta_parameters(frame);
+  return {delta.bias,static_cast<std::uint8_t>(delta.word_bytes)};
+}
+
+NativeGroupTileOffsets native_group_tile_offsets(std::span<const std::byte> body,NativeGroupMethod method,
+    NativeGroupTileParameters parameters) {
   if(body.size()>=extent-header)fail();
-  NativePackedXorOffsets offsets;
-  packed_xor_tiles(body,[&](std::size_t tile,unsigned,std::span<const std::byte> planes) {
-    offsets[tile]=static_cast<std::uint16_t>(planes.data()-body.data()-1);
-  });
+  NativeGroupTileOffsets offsets{};
+  const auto start=[&](std::size_t tile,const std::byte* bytes) {
+    offsets[tile]=static_cast<std::uint16_t>(bytes-body.data());
+  };
+  switch(method) {
+    case NativeGroupMethod::packed_xor:
+      packed_xor_tiles(body,[&](std::size_t tile,unsigned,std::span<const std::byte> planes) {
+        start(tile,planes.data()-1);
+      });
+      break;
+    case NativeGroupMethod::sparse_xor:
+      sparse_xor_planes(body,[](auto,auto,auto){},[](auto,auto,auto,auto){},start);
+      break;
+    case NativeGroupMethod::modular_delta:
+      if(!valid_delta_parameters(parameters.word_bytes,parameters.bias) ||
+          (body.empty() && !parameters.bias))fail();
+      if(!body.empty())visit_delta_tiles(body,parameters.word_bytes,[&](std::size_t at,unsigned,
+          std::span<const std::byte> planes) {start(at/xor_tile_bytes,planes.data()-1);});
+      break;
+    default:fail();
+  }
   offsets.back()=static_cast<std::uint16_t>(body.size());
   return offsets;
 }

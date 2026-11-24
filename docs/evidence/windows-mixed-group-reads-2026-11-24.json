@@ -1,0 +1,193 @@
+{
+  "schema": 1,
+  "date": "2026-11-24",
+  "scope": "Owner Windows 11 build 26300. Native session and WinFsp SDK callback tests used privately owned memory backing. No driver or volume mount was involved.",
+  "source": {
+    "base_commit": "e7f27775e06c47f7846009179993d7de0738ec84",
+    "tested_code_tree": "b0b5c5605367a714863bbfa2595ccad0076dd61b",
+    "code_paths": 22,
+    "tree_scope": "Base tree with code and tests applied before this round's developer documentation.",
+    "navigation_receipt_sha256": "b6d7250f484eac57017b01606a6417ffaf9eb932df7f22f59febdec9669c38d2"
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "cfccfe54831bb516f210338d0928ae220fcb3f8fb8f699e2298879e18d1b9c91",
+    "accepted_source": "https://arxiv.org/abs/2610.25033",
+    "capture_sha256": "6186c333bd26a60a726b1ba13c86c9cd72ca629c52769f87d3a041bf34032128",
+    "interpretation": "Model-activation work motivates preserving the compressed tile bodies across the link. Its evaluation does not predict complete filesystem read costs.",
+    "rejected_capture": {
+      "url": "https://arxiv.org/abs/2610.02236",
+      "reason": "Unexpected source content",
+      "sha256": "b8cf1997aadf393fb4bf7ed1c548a97a246e33c33985545a6c6c14393769fbb2"
+    }
+  },
+  "test_results": {
+    "windows_release": 11,
+    "codec_free": 6,
+    "addresssanitizer_tests": 2,
+    "addresssanitizer_runtime_preflight": true,
+    "mixed_session": {
+      "members": 10,
+      "shared_bases": 1,
+      "modular_word_width_bytes": [
+        1,
+        2,
+        4,
+        8
+      ],
+      "constant_bias_members": 4,
+      "largest_residual_width_bits": 64,
+      "packed_and_sparse_xor": true,
+      "ordinary_readback_exact": true,
+      "independent_cpu_recovery_exact": true
+    },
+    "winfsp": {
+      "packed_prepared_members": 2,
+      "mixed_prepared_members": 2,
+      "late_completion_refused": true,
+      "verified_independent_cpu_readback": true
+    },
+    "protocol": "Packed-only requests use v1. New v2 input supports packed XOR, sparse XOR, and modular delta in one batch. The bound module must export the requested ABI.",
+    "gpu_performance_verified": false
+  },
+  "offline_device": {
+    "sdk": "ROCm 10.2.0 whole-package lock",
+    "compiled_targets": [
+      "gfx1201",
+      "gfx90a"
+    ],
+    "object_sha256": "539f60ffaeaa1d9d163fc021ebf7a6a4953d8ab0c1e87c8401a61e9b012d8186",
+    "export_inspection": [
+      "flitzfs_native_lz4_decode_api",
+      "flitzfs_native_group_decode_api",
+      "flitzfs_native_group_decode_api_v2"
+    ],
+    "staged_artifacts": {
+      "flitzfs_winfsp_paged_tests.exe": {
+        "bytes": 2215424,
+        "sha256": "bed47b93d0d91548f7701011a1a16d15bd6f5091ab9f3f555ff0da65fce803fd"
+      },
+      "winfsp-x64.dll": {
+        "bytes": 200816,
+        "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+      },
+      "flitzfs_native_lz4_read_worker.exe": {
+        "bytes": 576512,
+        "sha256": "0d33029716f125549eac83c6d804383222d4427bdd3a290a36e27a8e96e1eb7f"
+      },
+      "flitzfs_rocm_native_lz4_decode.dll": {
+        "bytes": 173568,
+        "sha256": "a687a83c30fd5381f90f4754dc4e4d20dcc3d9ae89d064d502baf9a7fc825173"
+      }
+    }
+  },
+  "device_launch": {
+    "executions": 0,
+    "reason": "Live GPU engine utilization exceeded both trial admissions.",
+    "trial_peak_limit_percent": 15,
+    "observations": [
+      {
+        "admitted": false,
+        "utc": "2026-11-24T18:55:07.0164430Z",
+        "windows_build": "26300",
+        "devices": [
+          {
+            "Name": "AMD Radeon RX 9070 XT",
+            "Status": "OK",
+            "DriverVersion": "32.0.32029.2010"
+          }
+        ],
+        "cpu": [
+          11.23,
+          7.01
+        ],
+        "peak_gpu_engine": 100.10734446349386,
+        "available_kib": 9590108,
+        "total_kib": 66704480,
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "other_fixture_processes": 0
+      },
+      {
+        "admitted": false,
+        "utc": "2026-11-24T19:14:13.0173840Z",
+        "windows_build": "26300",
+        "devices": [
+          {
+            "Name": "AMD Radeon RX 9070 XT",
+            "Status": "OK",
+            "DriverVersion": "32.0.32029.2010"
+          }
+        ],
+        "cpu": [
+          11.95,
+          12.66
+        ],
+        "peak_gpu_engine": 99.75868599184274,
+        "available_kib": 9614604,
+        "total_kib": 66704480,
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "other_fixture_processes": 0
+      }
+    ]
+  },
+  "verification": [
+    {
+      "key": "mixedKernelBuild",
+      "exit": 0,
+      "tree_retired": true,
+      "peak_job_commit_bytes": 314187776,
+      "receipt_sha256": "fd26d2938155a410de51c086011e8b47ef0d3f8a2ccf3bd5d09dca2c7d494129",
+      "log_sha256": "bf568e77850f1d0229f6d2faaa4a7a26afd0c173394895592b1b0a3399a4fd38"
+    },
+    {
+      "key": "mixedSdkBuild",
+      "exit": 0,
+      "tree_retired": true,
+      "peak_job_commit_bytes": 680407040,
+      "receipt_sha256": "bc62a572138b5e933ef6ac5f40c1ec610484a3ec073473789a30931b40f68324",
+      "log_sha256": "83adcdd1c4633dd887b47b81d019ed0a33c4c6559c1d9bc2b7a2949b3f27f73d"
+    },
+    {
+      "key": "mixedReleaseFinal",
+      "exit": 0,
+      "tree_retired": true,
+      "peak_job_commit_bytes": 167686144,
+      "receipt_sha256": "58a9e3191dd94d2abc2a5941476cd3d4afd1111936b7d485d4420fc7e01aa49d",
+      "log_sha256": "32a5cb6f232f207abee4d6ec3c6ff73b5bae410e9d27f3c4661aadd892279e69"
+    },
+    {
+      "key": "mixedRawTests",
+      "exit": 0,
+      "tree_retired": true,
+      "peak_job_commit_bytes": 40189952,
+      "receipt_sha256": "1c5973255f1a636934c96bd688e09399ce355bcb4a267cf0e7dc239d8cc6e195",
+      "log_sha256": "bb29f94a7be7de4fa56c926e11728f994943afd42894c7452c14635aa2915fad"
+    },
+    {
+      "key": "mixedAsanFocus",
+      "exit": 0,
+      "tree_retired": true,
+      "peak_job_commit_bytes": 107585536,
+      "receipt_sha256": "4a186ce9c245585c32bb8f5030d6d844d4208378efcb2bb7eec19d491923a359",
+      "log_sha256": "b3480cdb7ad27056e24af4961dcbb4a7715ca88a9318a6c566adecb810d885c0"
+    },
+    {
+      "key": "freshPackedGate",
+      "exit": 2,
+      "tree_retired": true,
+      "peak_job_commit_bytes": 90488832,
+      "receipt_sha256": "b9a6e5455c07d53c266227aa56323d58d673c4a78a213cc86e852ce07d1732a1",
+      "log_sha256": "70bfd0c92723fb04cb61bb886643eb29a0759abfcb54424343581e1c69bb51c9"
+    },
+    {
+      "key": "mixedTrialGate",
+      "exit": 2,
+      "tree_retired": true,
+      "peak_job_commit_bytes": 97009664,
+      "receipt_sha256": "fb0e938fe0b11c91b4ff0b07ce785805566d00d5b14967f8632b4dabc285bf0c",
+      "log_sha256": "a3204040109184ed6fdf42dc60df6b1bad8a5b13b66810feea4232d1dbc97f93"
+    }
+  ],
+  "fixture_correction": "The generic optimizer selected a different reference for the first forecast test. The callback fixture now publishes a known reference and reopens through the SDK with FILE_OPEN disposition.",
+  "next": "Run exact v1 and v2 hardware checks once the Radeon has headroom. Measure complete cost and foreground overlap before enabling the new profile in an installed package."
+}

@@ -251,8 +251,8 @@ std::vector<std::byte> run_hip_native_group_read_in_worker(HMODULE runtime,const
   auto layout=request.layout;
   auto allocation=group_decode::slab_bytes(layout);
   const auto output=group_decode::output_at(layout);
-  lz4_require(group_decode::compatible(kernel) && group_decode::valid(layout) && request.upload.size()==output,
-      HipWorkerExit::invalid_request,"invalid packed group launch plan");
+  lz4_require(group_decode::compatible(kernel,layout.abi) && group_decode::valid(layout) && request.upload.size()==output,
+      HipWorkerExit::invalid_request,"invalid grouped extent launch plan");
   const auto clear=std::bit_cast<decltype(&hipMemsetAsync)>(GetProcAddress(runtime,"hipMemsetAsync"));
   lz4_require(clear!=nullptr,HipWorkerExit::runtime_unavailable,"packed group output initializer unavailable",
       HipWorkerStage::runtime_api);
@@ -260,7 +260,7 @@ std::vector<std::byte> run_hip_native_group_read_in_worker(HMODULE runtime,const
       [&](const auto& api,auto attributes,auto,auto&& initialize,auto&& memory) {
         memory(HipMemoryPoint::pre_initialize);
         const auto device=initialize();
-        check_lz4_attributes(attributes,kernel.packed_xor,device);
+        check_lz4_attributes(attributes,kernel.decode,device);
         std::vector<std::byte> readback(static_cast<std::size_t>(allocation-output));
         DeviceResources resources(api);
         try {
@@ -278,7 +278,7 @@ std::vector<std::byte> run_hip_native_group_read_in_worker(HMODULE runtime,const
           check_hip(clear(slab+output,0,readback.size(),resources.stream),
               "initialize packed group output",HipWorkerStage::execution);
           void* arguments[]{&slab,&allocation,&layout};
-          check_hip(api.launch(reinterpret_cast<const void*>(kernel.packed_xor),
+          check_hip(api.launch(reinterpret_cast<const void*>(kernel.decode),
               dim3(layout.members*(group_decode::words/device.wave)),dim3(device.wave),arguments,0,resources.stream),
               "submit packed group decoder",HipWorkerStage::execution);
           check_hip(api.synchronize(resources.stream),"complete packed group decoder",HipWorkerStage::execution);

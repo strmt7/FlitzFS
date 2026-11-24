@@ -30,11 +30,14 @@ class NativeGroupReadBatch final {
     std::uint32_t maximum_payload=0;
     std::size_t base=0;
     Digest decoded_digest{};
-    NativePackedXorOffsets offsets;
+    NativeGroupMethod method;
+    NativeGroupTileParameters parameters;
+    NativeGroupTileOffsets offsets;
     std::vector<std::byte> frame;
   };
   std::span<const Base> bases() const noexcept{return bases_;}
   std::span<const Member> members() const noexcept{return members_;}
+  bool mixed_methods() const noexcept;
 
  private:
   friend class IndexedVolumeView;
@@ -79,7 +82,7 @@ class NativeGroupReadyReads final {
 };
 struct NativeGroupReadRoute {
   NativeGroupReadyReads* ready=nullptr;
-  bool packed=false;
+  bool tiled=false;
 };
 
 }

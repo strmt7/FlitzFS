@@ -103,9 +103,19 @@ class NativeGroupSections final {
 };
 
 inline constexpr std::size_t kNativeGroupMemberHeaderBytes=128;
-inline constexpr std::size_t kNativePackedXorTileBytes=256;
-using NativePackedXorOffsets=std::array<std::uint16_t,kNativeExtentBytes/kNativePackedXorTileBytes+1>;
-NativePackedXorOffsets native_packed_xor_offsets(std::span<const std::byte> body);
+inline constexpr std::size_t kNativeGroupTileBytes=256;
+using NativeGroupTileOffsets=std::array<std::uint16_t,kNativeExtentBytes/kNativeGroupTileBytes+1>;
+struct NativeGroupTileParameters {
+  std::uint64_t bias=0;
+  std::uint8_t word_bytes=0;
+};
+constexpr bool native_group_tiled(NativeGroupMethod method) noexcept {
+  return method==NativeGroupMethod::packed_xor || method==NativeGroupMethod::sparse_xor ||
+      method==NativeGroupMethod::modular_delta;
+}
+NativeGroupTileParameters native_group_tile_parameters(std::span<const std::byte> frame,NativeGroupMethod);
+NativeGroupTileOffsets native_group_tile_offsets(std::span<const std::byte> body,NativeGroupMethod,
+    NativeGroupTileParameters={});
 inline constexpr std::size_t kNativeGroupCopyMinimumBytes=kNativeGroupMemberHeaderBytes+8;
 inline constexpr std::size_t kNativeGroupAnchorIndexBytes=65536;
 std::optional<std::vector<std::byte>> encode_native_group_copies(std::span<const std::byte> member,

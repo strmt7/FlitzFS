@@ -10,11 +10,13 @@ using Bytes=std::vector<std::byte>;
 using View=std::span<const std::byte>;
 using group_decode::Layout;
 using group_decode::Member;
+using group_decode::Method;
 constexpr std::size_t request_header=32,reply_header=56;
 constexpr auto request_magic=std::string_view("FLNGRQ01");
+constexpr auto mixed_magic=std::string_view("FLNGRQ02");
 constexpr auto reply_magic=std::string_view("FLNGRP01");
 static_assert(std::endian::native==std::endian::little);
-static_assert(group_decode::extent_bytes==kNativeExtentBytes && group_decode::tile_bytes==kNativePackedXorTileBytes &&
+static_assert(group_decode::extent_bytes==kNativeExtentBytes && group_decode::tile_bytes==kNativeGroupTileBytes &&
     group_decode::maximum_members==kNativeMaxReadBytes/kNativeExtentBytes);
 
 [[noreturn]]void invalid(const char* reason){throw std::invalid_argument(reason);}
@@ -35,6 +37,22 @@ bool valid_execution(WorkerExecution execution) noexcept {
 bool granted(Layout layout,std::uint32_t members,std::uint64_t bytes) noexcept {
   return group_decode::valid(layout) && layout.members<=members && group_decode::slab_bytes(layout)<=bytes;
 }
+Method device_method(NativeGroupMethod method) {
+  switch(method) {
+    case NativeGroupMethod::packed_xor:return Method::packed_xor;
+    case NativeGroupMethod::sparse_xor:return Method::sparse_xor;
+    case NativeGroupMethod::modular_delta:return Method::modular_delta;
+    default:invalid("native group method has no device decoder");
+  }
+}
+NativeGroupMethod native_method(Method method) {
+  switch(method) {
+    case Method::packed_xor:return NativeGroupMethod::packed_xor;
+    case Method::sparse_xor:return NativeGroupMethod::sparse_xor;
+    case Method::modular_delta:return NativeGroupMethod::modular_delta;
+    default:invalid("unsupported native group device method");
+  }
+}
 }
 
 std::size_t native_group_reply_bytes(Layout layout) noexcept {
@@ -48,12 +66,18 @@ NativeGroupReadExchange NativeGroupReadExchange::prepare(const NativeGroupReadBa
   if(!id || !capture.metadata_ || members.empty() || members.size()>group_decode::maximum_members ||
       members.size()>maximum_members)
     invalid("native group request count");
-  Layout layout{static_cast<std::uint32_t>(members.size()),static_cast<std::uint32_t>(bases.size()),0,group_decode::version};
-  for(const auto& member:members)layout.body_bytes+=member.offsets.back();
+  const bool mixed=capture.mixed_methods();
+  Layout layout{static_cast<std::uint32_t>(members.size()),static_cast<std::uint32_t>(bases.size()),0,
+      mixed?group_decode::mixed_version:group_decode::version};
+  for(const auto& member:members) {
+    layout.body_bytes+=member.offsets.back();
+    if(member.method==NativeGroupMethod::modular_delta)layout.body_bytes+=group_decode::delta_prefix_bytes;
+  }
   if(!granted(layout,maximum_members,maximum_device_bytes))invalid("native group request grant");
   Bytes bytes(request_header+group_decode::output_at(layout));
   const auto header=std::span(bytes).first(request_header);
-  std::ranges::copy(std::as_bytes(std::span(request_magic)),header.begin());
+  const auto tag=mixed?mixed_magic:request_magic;
+  std::ranges::copy(std::as_bytes(std::span(tag)),header.begin());
   put(header,8,id,8);put(header,16,layout.members,4);put(header,20,layout.bases,4);
   put(header,24,layout.body_bytes,4);put(header,28,layout.abi,4);
   const auto upload=std::span(bytes).subspan(request_header);
@@ -62,11 +86,18 @@ NativeGroupReadExchange NativeGroupReadExchange::prepare(const NativeGroupReadBa
   std::uint32_t body=0;
   for(std::size_t i=0;i<members.size();++i) {
     const auto& captured=members[i];
-    const auto packed=std::span<const std::byte>(captured.frame).subspan(kNativeGroupMemberHeaderBytes);
-    Member descriptor{static_cast<std::uint32_t>(captured.base),body,static_cast<std::uint32_t>(packed.size()),{},0};
+    const auto tiles=std::span<const std::byte>(captured.frame).subspan(kNativeGroupMemberHeaderBytes);
+    const auto prefix=captured.method==NativeGroupMethod::modular_delta?group_decode::delta_prefix_bytes:0U;
+    Member descriptor{static_cast<std::uint32_t>(captured.base),body,prefix+static_cast<std::uint32_t>(tiles.size()),
+        {},device_method(captured.method)};
     std::ranges::copy(captured.offsets,descriptor.offsets);
     std::memcpy(upload.data()+i*sizeof(Member),&descriptor,sizeof(Member));
-    std::ranges::copy(packed,upload.subspan(group_decode::bodies_at(layout)+body).begin());
+    const auto destination=upload.subspan(group_decode::bodies_at(layout)+body,descriptor.body_bytes);
+    if(prefix) {
+      destination[0]=static_cast<std::byte>(captured.parameters.word_bytes);
+      put(destination,8,captured.parameters.bias,8);
+    }
+    std::ranges::copy(tiles,destination.subspan(prefix).begin());
     body+=descriptor.body_bytes;
   }
   NativeGroupReadExchange exchange;
@@ -80,26 +111,42 @@ NativeGroupReadExchange NativeGroupReadExchange::prepare(const NativeGroupReadBa
 
 NativeGroupWireRequest decode_native_group_request(View bytes,std::uint32_t maximum_members,
     std::uint64_t maximum_device_bytes) {
-  if(bytes.size()<request_header || !magic(bytes,request_magic) || !get(bytes,8,8))invalid("native group request header");
+  if(bytes.size()<request_header || !get(bytes,8,8))invalid("native group request header");
   const Layout layout{static_cast<std::uint32_t>(get(bytes,16,4)),static_cast<std::uint32_t>(get(bytes,20,4)),
       static_cast<std::uint32_t>(get(bytes,24,4)),static_cast<std::uint32_t>(get(bytes,28,4))};
-  if(!granted(layout,maximum_members,maximum_device_bytes) || bytes.size()-request_header!=group_decode::output_at(layout))
+  const bool mixed=layout.abi==group_decode::mixed_version;
+  if(!magic(bytes,mixed?mixed_magic:request_magic) || !granted(layout,maximum_members,maximum_device_bytes) ||
+      bytes.size()-request_header!=group_decode::output_at(layout))
     invalid("native group upload extent");
   const auto upload=bytes.subspan(request_header);
   const auto bodies=upload.subspan(group_decode::bodies_at(layout),layout.body_bytes);
   std::uint32_t body=0;
   std::uint64_t used_bases=0;
+  bool mixed_method=false;
   for(std::uint32_t i=0;i<layout.members;++i) {
     Member member;
     std::memcpy(&member,upload.data()+i*sizeof(Member),sizeof(Member));
-    if(member.reserved || member.base>=layout.bases || member.body_at!=body ||
-        member.body_bytes>bodies.size()-body)invalid("native group member extent");
-    const auto offsets=native_packed_xor_offsets(bodies.subspan(body,member.body_bytes));
+    if(member.base>=layout.bases || member.body_at!=body || member.body_bytes>bodies.size()-body ||
+        (!mixed && member.method!=Method::packed_xor))invalid("native group member extent");
+    auto tiles=bodies.subspan(body,member.body_bytes);
+    const auto method=native_method(member.method);
+    NativeGroupTileParameters parameters;
+    if(method==NativeGroupMethod::modular_delta) {
+      if(tiles.size()<group_decode::delta_prefix_bytes ||
+          std::ranges::any_of(tiles.subspan(1,7),[](auto value){return value!=std::byte{};}))
+        invalid("native group delta parameters");
+      parameters={get(tiles,8,8),std::to_integer<std::uint8_t>(tiles[0])};
+      tiles=tiles.subspan(group_decode::delta_prefix_bytes);
+    }
+    NativeGroupTileOffsets offsets;
+    try {offsets=native_group_tile_offsets(tiles,method,parameters);}
+    catch(const std::runtime_error&) {invalid("native group tile body");}
     if(!std::ranges::equal(offsets,member.offsets))invalid("native group tile offsets");
     body+=member.body_bytes;
     used_bases|=std::uint64_t{1}<<member.base;
+    mixed_method=mixed_method || member.method!=Method::packed_xor;
   }
-  if(body!=bodies.size() || std::popcount(used_bases)!=static_cast<int>(layout.bases) ||
+  if(mixed!=mixed_method || body!=bodies.size() || std::popcount(used_bases)!=static_cast<int>(layout.bases) ||
       std::ranges::any_of(upload.subspan(group_decode::bodies_at(layout)+body),[](auto value){return value!=std::byte{};}))
     invalid("native group upload coverage");
   return {get(bytes,8,8),record_digest(bytes),layout,Bytes(upload.begin(),upload.end())};

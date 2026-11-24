@@ -25,8 +25,9 @@ struct NativeLz4ReadWorkerProfile {
   std::uint32_t minimum_frames=0,maximum_frames=0;
   std::uint64_t maximum_slab_bytes=0;
   std::uint32_t minimum_lead_ms=0;
-  // Packed groups need their own qualification for this exact package.
+  // Each grouped read ABI needs qualification for this exact package.
   bool packed_groups=false;
+  bool mixed_groups=false;
 };
 
 struct NativeLz4ReadWorkerStats {

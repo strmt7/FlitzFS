@@ -184,6 +184,7 @@ class PackageTests(unittest.TestCase):
         self.assertIn('read_architecture[]=L"gfx1201"', header)
         self.assertIn("read_minimum_lead_ms=120U", header)
         self.assertIn("read_packed_groups=false", header)
+        self.assertIn("read_mixed_groups=false", header)
         self.assertEqual(files, ["qualification-manifest.json", READ_EVIDENCE, READ_WORKER, READ_MODULE])
 
     def test_native_read_requires_verified_dispatch(self):
@@ -215,6 +216,26 @@ class PackageTests(unittest.TestCase):
         self.native_read()["qualification_sha256"] = "ef" * 32
         with self.assertRaisesRegex(RuntimeError, "Read qualification digest mismatch"):
             self.bind()
+
+    def test_mixed_group_requires_packed_group_qualification(self):
+        self.native_read()["mixed_groups"] = True
+        with self.assertRaisesRegex(RuntimeError, "Invalid native read mixed_groups"):
+            self.bind()
+
+    def test_mixed_group_requires_its_own_verified_device_entry(self):
+        self.native_read().update(packed_groups=True, mixed_groups=True)
+        with patch("bind_installed_amd_package.pe_function_exports",
+                   return_value={"flitzfs_native_lz4_decode_api", "flitzfs_native_group_decode_api"}):
+            with self.assertRaisesRegex(RuntimeError, "flitzfs_native_group_decode_api_v2"):
+                self.bind()
+
+    def test_mixed_group_binds_both_device_entries(self):
+        self.native_read().update(packed_groups=True, mixed_groups=True)
+        with patch("bind_installed_amd_package.pe_function_exports", return_value={
+            "flitzfs_native_lz4_decode_api", "flitzfs_native_group_decode_api", "flitzfs_native_group_decode_api_v2"
+        }):
+            header, _ = self.bind()
+        self.assertIn("read_mixed_groups=true", header)
 
     def test_manifest_approval_is_required(self):
         self.anchor()

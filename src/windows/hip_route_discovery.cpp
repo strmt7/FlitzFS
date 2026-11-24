@@ -574,7 +574,7 @@ std::optional<InstalledNativeReadProfile> installed_native_read_profile() noexce
   using namespace installed_amd_package;
   return InstalledNativeReadProfile{{read_worker_memory_mib,read_worker_cpu_rate,read_worker_timeout_ms,
       read_memory_share_divisor},read_minimum_frames,read_maximum_frames,read_minimum_lead_ms,read_maximum_slab_bytes,
-      read_packed_groups};
+      read_packed_groups,read_mixed_groups};
 #else
   return {};
 #endif
@@ -612,7 +612,7 @@ std::optional<NativeLz4ReadWorkerProfile> bind_installed_native_read(const HipDi
   return NativeLz4ReadWorkerProfile{route.helper,route.runtime_basename,read_architecture,
       ascii_hex(read_worker_sha256),ascii_hex(read_runtime_sha256),ascii_hex(read_module_sha256),
       route.memory.luid,route.memory.node_mask,route.ordinal,read_wave_mask,p.worker,
-      p.minimum_frames,p.maximum_frames,p.maximum_slab_bytes,p.minimum_lead_ms,p.packed_groups};
+      p.minimum_frames,p.maximum_frames,p.maximum_slab_bytes,p.minimum_lead_ms,p.packed_groups,p.mixed_groups};
 #else
   (void)route;
   return {};

@@ -964,19 +964,20 @@ latency before admitting a production profile.
    apply dense planes one word at a time.
    [Device and CPU read evidence](evidence/windows-collective-dense-readback-2026-11-24.json)
 
-   Packed XOR read-ahead captures both protected records under one mirrored
+   Packed XOR, sparse XOR, and modular delta read-ahead capture both protected records under one mirrored
    checkpoint. The verifier binds results to the current image, backing,
    record generations and decoded digest. One request uploads each distinct
    base once. WinFsp demand uses prepared bytes only while both record
    bindings remain current. CPU reads continue on pressure, a changed binding
    or an unavailable result.
-   [Grouped read-ahead design and verification](NATIVE_AMD_LZ4_READ.md#packed-shared-base-extents)
+   [Grouped read-ahead design and verification](NATIVE_AMD_LZ4_READ.md#shared-base-extent-read-ahead)
 
    Run the device qualification for this exact module and worker. Then compare
    cold and prepared workers using the same captured groups and natural read
    lead times. Record transfer, verification, retirement, cancellation and
-   forecast hit rate before approving automatic use. Apply the verified route
-   to sparse XOR and modular delta when the same comparison justifies them.
+   forecast hit rate before approving automatic use. Qualify v1 and v2 with
+   their exact worker packages. Use the finished comparisons to select which
+   further shared-base methods warrant acceleration.
    Recent GPU bit-packing and tiled-decode work motivates coalesced work and
    bounded materialization. Qualify the benefit with the ordinary file read
    workload where results return to host memory.

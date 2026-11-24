@@ -53,7 +53,7 @@ void bind_decode_kernels(KernelApi& api) noexcept {
 }
 }
 
-extern "C" __global__ void flitzfs_native_group_packed_xor(flitzfs::group_decode::u8* slab,
+extern "C" __global__ void flitzfs_native_group_decode(flitzfs::group_decode::u8* slab,
     flitzfs::group_decode::u64 bytes,flitzfs::group_decode::Layout layout) {
   using namespace flitzfs::group_decode;
   if(!slab || (reinterpret_cast<std::uintptr_t>(slab)&7) || !valid(layout) || bytes!=slab_bytes(layout) ||
@@ -68,7 +68,7 @@ extern "C" __global__ void flitzfs_native_group_packed_xor(flitzfs::group_decode
 }
 
 namespace flitzfs::group_decode {
-void bind_group_decode_kernel(KernelApi& api) noexcept {
-  api={sizeof(KernelApi),version,sizeof(Layout),sizeof(Member),flitzfs_native_group_packed_xor};
+void bind_group_decode_kernel(KernelApi& api,u32 abi) noexcept {
+  api={sizeof(KernelApi),abi,sizeof(Layout),sizeof(Member),flitzfs_native_group_decode};
 }
 }
