@@ -257,8 +257,11 @@ handoff with the same generation witness. [E01](IMPLEMENTATION_PLAN.md#4-e01--sc
 ### 3. Find which AMD work actually wins
 
 The exact staged packed and mixed decoders delivered verified bytes in the
-finite SDK callback path. Compare the same protected inputs with GPU
-disabled, a cold worker and the current one-use preparation. Count
+finite SDK callback path. The grouped traces spend most wall time obtaining
+kernel attributes under nested fixture CPU rates. Complete the paired timing
+control using a verified supervisor, then compare the same protected inputs
+with GPU disabled, a cold worker and the current one-use preparation.
+[Grouped phase analysis](evidence/windows-amd-group-exchange-phases-2026-11-24.json) Count
 CPU-produced foreground bytes before GPU readiness, accepted GPU bytes,
 forecast coverage, later use of cached results and missed or cancelled
 opportunities. A successful frame that a caller never uses has no delivered

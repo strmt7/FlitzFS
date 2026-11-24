@@ -157,9 +157,30 @@ and confirmed worker retirement. The corrected prepared exchanges took
 3.8–5.9 seconds after submission in this fixture.
 [Live worker and callback receipt](evidence/windows-amd-group-budget-freshness-2026-11-24.json)
 
-The next qualification compares complete AMD and CPU costs with natural
-foreground lead times. Measure capture, upload, decode, readback, CPU
-verification and worker retirement along with the cost of late work.
+Private live grouped traces attributed **4,790–5,311 ms** to the worker's
+HIP kernel-attribute checks. Dispatch and wait accounted for **0.103–0.179 ms**.
+Each trace returned two verified frames and passed independent CPU readback.
+The callback fixture's hard CPU rate was nested under the supervisor's rate,
+with the normal per-worker limit still applied. The separate plain LZ4
+control used the same runtime and module, with a different workload and job
+hierarchy. Its 860–881 ms exchanges identify a timing discrepancy to isolate.
+[Live phase evidence](evidence/windows-amd-group-exchange-phases-2026-11-24.json) ·
+[Microsoft nested Job Object CPU rates](https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-jobobject_cpu_rate_control_information)
+
+For a grouped live timing comparison, add `--timed-exchange` after the
+current fixture arguments. It admits an existing supervisor only after
+verifying its hard CPU rate of at most 20% and its process, priority and
+memory controls. The fixture keeps its own commit, process-count and CPU-time
+limits. The worker keeps its existing per-process admission. The CPU-side
+check accepted a verified 18% supervisor and rejected a mismatched helper
+before dispatch. Two follow-up GPU timing checks encountered active GPU
+pressure before launch.
+
+Complete the comparison on identical protected inputs with alternating
+timing and ordinary fixture arms under fresh headroom. Then compare CPU,
+cold AMD and prepared AMD at observed foreground lead times. Measure
+capture, upload, decode, readback, verification, retirement and late work.
+Prioritize amortizing startup if it dominates with the matched controls.
 Record the interval before submission as well as the interval from
 submission to completion. Microsoft's storage timing guidance uses this
 distinction to identify queue and execution costs.

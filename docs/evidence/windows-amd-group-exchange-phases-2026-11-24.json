@@ -1,0 +1,708 @@
+{
+  "schema": 1,
+  "date": "2026-11-24",
+  "scope": "Live Windows SDK callback and helper phase diagnostics, with independent CPU readback. The grouped phase runs used a private instrumented helper. The plain LZ4 control used the normal helper. Their workloads and fixture CPU hierarchies differ.",
+  "source": {
+    "fixture": {
+      "parent": "9c34c986457ae4f52a38a614ddb66fba9430b336",
+      "base_tree": "25338dd441e20ef4dabee8fef5e063a1a9301b7f",
+      "tree": "bbccc52eddbbc67ae6fb4bacfc26ce5b2f6a6e6c",
+      "elements": [
+        {
+          "path": "tests/test_winfsp_paged.cpp",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "f8a91ba6fa0620caf041f15b8b3bae5518bb94cf",
+          "bytes": 71331
+        }
+      ]
+    },
+    "group_diagnostic_source": {
+      "parent": "9c34c986457ae4f52a38a614ddb66fba9430b336",
+      "instrumented": {
+        "src/windows/hip_worker_main.cpp": "5850748da586f56cd729f4d7bd19e57289cf64b2e16c6040046fa15021ad79c7",
+        "src/windows/hip_uniform_lz4_compute.cpp": "4ccd28e7bc9c512b1afd22c031ca9bb15a321e6df3750551b3b8ad5ae62aed99",
+        "src/windows/hip_api.hpp": "75502e1f2241acfec440ef7e61e45961090ba78a672bf32159fee5afd62c96c7"
+      },
+      "header_sha256": "741265f6c5609ca4cc6bc2e618b750b819992e6e4f3fdda1c26580e0857b5f1c",
+      "patch_sha256": "801d149d5a96ab5f0c79ec9c119afb0264efb05dc82e9339dde61077210f898f"
+    },
+    "runtime_source_restored": true
+  },
+  "artifacts": {
+    "restored_normal_worker_sha256": "c41816781e474fda107f11691b7cc0adbd492d4b1c60929ca43f97ddbba17379",
+    "corrected_normal": {
+      "flitzfs_native_lz4_decode_probe.exe": {
+        "bytes": 940544,
+        "sha256": "5b1a6092f6e0384103b1101670fcc5484fc73a19731a02f043932d892b5b8132"
+      },
+      "flitzfs_native_lz4_read_worker.exe": {
+        "bytes": 581632,
+        "sha256": "642ec4e1a36c38b95449e5d693e38f870cb9b3f2164b7ca38732aac282aed790"
+      },
+      "flitzfs_rocm_native_lz4_decode.dll": {
+        "bytes": 173568,
+        "sha256": "a687a83c30fd5381f90f4754dc4e4d20dcc3d9ae89d064d502baf9a7fc825173"
+      }
+    },
+    "group_diagnostic": {
+      "flitzfs_winfsp_paged_tests.exe": {
+        "bytes": 2225152,
+        "sha256": "ef730bb39fd63c4a3480fd0b596a09d7bac7b0f62a50ffc6e578883cc433efb9"
+      },
+      "winfsp-x64.dll": {
+        "bytes": 200816,
+        "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+      },
+      "flitzfs_native_lz4_read_worker.exe": {
+        "bytes": 623616,
+        "sha256": "58443518383c10ac40493d467eccf42f713c150e9ebe3b9844d9a71737074308"
+      },
+      "flitzfs_rocm_native_lz4_decode.dll": {
+        "bytes": 173568,
+        "sha256": "a687a83c30fd5381f90f4754dc4e4d20dcc3d9ae89d064d502baf9a7fc825173"
+      }
+    },
+    "timed_fixture": {
+      "flitzfs_winfsp_paged_tests.exe": {
+        "bytes": 2224128,
+        "sha256": "e68c7ddc86ed6ad446489a67c8005e8da1425c55d05ea52b67897e786df05409"
+      },
+      "winfsp-x64.dll": {
+        "bytes": 200816,
+        "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+      },
+      "flitzfs_native_lz4_read_worker.exe": {
+        "bytes": 623616,
+        "sha256": "58443518383c10ac40493d467eccf42f713c150e9ebe3b9844d9a71737074308"
+      },
+      "flitzfs_rocm_native_lz4_decode.dll": {
+        "bytes": 173568,
+        "sha256": "a687a83c30fd5381f90f4754dc4e4d20dcc3d9ae89d064d502baf9a7fc825173"
+      }
+    }
+  },
+  "grouped_profiles": {
+    "prepared-mixed-group": {
+      "worker": {
+        "mixed": 1,
+        "prepared": 1,
+        "verified": 2,
+        "worker_ms": 5844,
+        "prepared_submit_ms": 5875,
+        "exact_child_retired": 1
+      },
+      "read": {
+        "mixed": 1,
+        "ready_hits": 2,
+        "late_refused": 1,
+        "cpu_readback": 1,
+        "backing_writes": 0
+      },
+      "traces": {
+        "qpc_frequency": 10000000,
+        "trace_sha256": "1be3fc40fdfd64b0a5537b5604ddfaa0f4d3eac8b095d7b9ea6087eacad8e321",
+        "elapsed_qpc_ticks": {
+          "group_entry": 0,
+          "verified_channel": 576,
+          "verified_artifacts": 623998,
+          "initial_budget": 4355105,
+          "loaded_modules": 4488068,
+          "bound_kernel_tables": 4488086,
+          "preinit_budget": 4488486,
+          "hip_init": 4709069,
+          "hip_identity_properties": 4709153,
+          "node_corroboration": 4709155,
+          "device_selected": 4709221,
+          "initialized_and_selected_hip": 4709273,
+          "properties_for_coverage": 4709277,
+          "retired_topology": 4709281,
+          "device_initialized": 4709289,
+          "kernel_attributes": 52610562,
+          "stream_slab_ready": 57735121,
+          "received_request": 57736452,
+          "dispatch_admitted": 57738503,
+          "uploaded": 57849550,
+          "kernel_done": 57850581,
+          "downloaded": 57864381,
+          "post_budget": 57864463,
+          "freed_device": 57897846,
+          "encoded_reply": 57898737,
+          "retired_modules": 57940166,
+          "published_reply": 57941237
+        },
+        "device_and_stream_ready_ms": 5773.512,
+        "kernel_metadata_ms": 4790.127,
+        "dispatch_and_wait_ms": 0.103,
+        "worker_timeline_ms": 5794.124
+      },
+      "job": {
+        "outcome": 0,
+        "cpu_percent": 18,
+        "peak_job_bytes": 162304000,
+        "receipt_sha256": "ad38e83444cb5e9861c9d9147c9f90fc613961417d905454a78f15774c757d5d",
+        "output_sha256": "32b81d81f5895c18de8f01ecbb711286116fed04e13559215c85b0684c2a4274",
+        "job_retired": true,
+        "children_at_root_exit": 0
+      },
+      "admission": {
+        "admitted": true,
+        "utc": "2026-11-24T21:40:37.5043483Z",
+        "windows_build": "26300",
+        "devices": [
+          {
+            "Name": "AMD Radeon RX 9070 XT",
+            "Status": "OK",
+            "DriverVersion": "32.0.32029.2010"
+          }
+        ],
+        "cpu": [
+          21.86,
+          18.96
+        ],
+        "peak_gpu_engine": 0.0,
+        "available_kib": 31920496,
+        "total_kib": 66704480,
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "other_fixture_processes": 0
+      }
+    },
+    "mixed-group": {
+      "worker": {
+        "mixed": 1,
+        "prepared": 0,
+        "verified": 2,
+        "worker_ms": 5610,
+        "prepared_submit_ms": 0,
+        "exact_child_retired": 1
+      },
+      "read": {
+        "mixed": 1,
+        "ready_hits": 2,
+        "late_refused": 1,
+        "cpu_readback": 1,
+        "backing_writes": 0
+      },
+      "traces": {
+        "qpc_frequency": 10000000,
+        "trace_sha256": "c783c296020598b96fa307fd99b66fed7bb4d721e603aa9576c676e1d771a00c",
+        "elapsed_qpc_ticks": {
+          "group_entry": 0,
+          "verified_channel": 1309,
+          "verified_artifacts": 2030590,
+          "initial_budget": 2149873,
+          "loaded_modules": 2277157,
+          "bound_kernel_tables": 2277170,
+          "preinit_budget": 2277665,
+          "hip_init": 2416858,
+          "hip_identity_properties": 2416935,
+          "node_corroboration": 2416941,
+          "device_selected": 2417007,
+          "initialized_and_selected_hip": 2417058,
+          "properties_for_coverage": 2417064,
+          "retired_topology": 2417070,
+          "device_initialized": 2417080,
+          "kernel_attributes": 50401014,
+          "stream_slab_ready": 55498407,
+          "dispatch_admitted": 55498433,
+          "uploaded": 55597984,
+          "kernel_done": 55599440,
+          "downloaded": 55612836,
+          "post_budget": 55612969,
+          "freed_device": 55646037,
+          "encoded_reply": 55646778,
+          "retired_modules": 55690018,
+          "published_reply": 55690558
+        },
+        "device_and_stream_ready_ms": 5549.841,
+        "kernel_metadata_ms": 4798.393,
+        "dispatch_and_wait_ms": 0.146,
+        "worker_timeline_ms": 5569.056
+      },
+      "job": {
+        "outcome": 0,
+        "cpu_percent": 18,
+        "peak_job_bytes": 186777600,
+        "receipt_sha256": "3cf25732a328ca4836d8dae30b3cffb46eff51119b7534fde25590fb7556a160",
+        "output_sha256": "282333e30237e2b632b1ccb0d40a3c3363b32c8dc385ccbb4626bd7b756d1d00",
+        "job_retired": true,
+        "children_at_root_exit": 0
+      },
+      "admission": {
+        "admitted": true,
+        "utc": "2026-11-24T21:40:50.5576270Z",
+        "windows_build": "26300",
+        "devices": [
+          {
+            "Name": "AMD Radeon RX 9070 XT",
+            "Status": "OK",
+            "DriverVersion": "32.0.32029.2010"
+          }
+        ],
+        "cpu": [
+          17.54,
+          15.65
+        ],
+        "peak_gpu_engine": 0.005960120152113991,
+        "available_kib": 29763596,
+        "total_kib": 66704480,
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "other_fixture_processes": 0
+      }
+    },
+    "prepared-group": {
+      "worker": {
+        "mixed": 0,
+        "prepared": 1,
+        "verified": 2,
+        "worker_ms": 5938,
+        "prepared_submit_ms": 5938,
+        "exact_child_retired": 1
+      },
+      "read": {
+        "mixed": 0,
+        "ready_hits": 2,
+        "late_refused": 1,
+        "cpu_readback": 1,
+        "backing_writes": 0
+      },
+      "traces": {
+        "qpc_frequency": 10000000,
+        "trace_sha256": "aad1c26eb7b044bd567bd850500d1b6c50ae870a399a539727224b8fa6572d9c",
+        "elapsed_qpc_ticks": {
+          "group_entry": 0,
+          "verified_channel": 457,
+          "verified_artifacts": 5052254,
+          "initial_budget": 5157644,
+          "loaded_modules": 5287079,
+          "bound_kernel_tables": 5287090,
+          "preinit_budget": 5287500,
+          "hip_init": 5437809,
+          "hip_identity_properties": 5437899,
+          "node_corroboration": 5437903,
+          "device_selected": 5437992,
+          "initialized_and_selected_hip": 5438043,
+          "properties_for_coverage": 5438054,
+          "retired_topology": 5438060,
+          "device_initialized": 5438067,
+          "kernel_attributes": 58546587,
+          "stream_slab_ready": 58645012,
+          "received_request": 58645294,
+          "dispatch_admitted": 58645870,
+          "uploaded": 58769769,
+          "kernel_done": 58771557,
+          "downloaded": 58779615,
+          "post_budget": 58779738,
+          "freed_device": 58818660,
+          "encoded_reply": 58819225,
+          "retired_modules": 58858256,
+          "published_reply": 58858809
+        },
+        "device_and_stream_ready_ms": 5864.501,
+        "kernel_metadata_ms": 5310.852,
+        "dispatch_and_wait_ms": 0.179,
+        "worker_timeline_ms": 5885.881
+      },
+      "job": {
+        "outcome": 0,
+        "cpu_percent": 18,
+        "peak_job_bytes": 163618816,
+        "receipt_sha256": "1137f994c312784fd37a9d5f019178d292e5ce1cd06d30aff599203e17d91107",
+        "output_sha256": "4c7007394f9df755c65f658b70cdfd498636fafe312fda48ef7748da2f18f6f2",
+        "job_retired": true,
+        "children_at_root_exit": 0
+      },
+      "admission": {
+        "admitted": true,
+        "utc": "2026-11-24T21:41:01.8128329Z",
+        "windows_build": "26300",
+        "devices": [
+          {
+            "Name": "AMD Radeon RX 9070 XT",
+            "Status": "OK",
+            "DriverVersion": "32.0.32029.2010"
+          }
+        ],
+        "cpu": [
+          20.11,
+          17.8
+        ],
+        "peak_gpu_engine": 0.0,
+        "available_kib": 29464372,
+        "total_kib": 66704480,
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "other_fixture_processes": 0
+      }
+    }
+  },
+  "plain_lz4_controls": {
+    "profile-prepared": {
+      "job": {
+        "outcome": 0,
+        "cpu_percent": 18,
+        "peak_job_bytes": 153083904,
+        "receipt_sha256": "deee1f7de037c4804fa293ac9dfd5f46b1adb9fc556fef34edc91de324c10191",
+        "output_sha256": "d34f937eb72e047ece11b6e36d0660de23dfce8358bd35bfd215ba46b43b04c3",
+        "job_retired": true,
+        "children_at_root_exit": 0
+      },
+      "pilot": {
+        "architecture": "gfx1201",
+        "frames": 2,
+        "gpu_launched": true,
+        "bytes_exact": true,
+        "cpu_fallback_exact": true,
+        "first_decoded_bytes": 65560,
+        "second_decoded_bytes": 65523,
+        "exact_child_retired": true,
+        "pending_cpu_read_exact": true,
+        "kernel_launches": 2,
+        "reused_device_slab_bytes": 74096,
+        "exchange_ns": 880884600,
+        "device_reserved_bytes": 262144,
+        "prepared": true,
+        "ready_ns": 845100200,
+        "after_submit_ns": 35784400,
+        "capture_ns": 34200,
+        "leased_frames": 2,
+        "capture_batches": 1,
+        "cpu_session_read_ns": 136800,
+        "ready_session_read_ns": 86300,
+        "cpu_backing_bytes": 35393,
+        "ready_backing_bytes": 1380,
+        "capture_backing_bytes": 26309,
+        "prepared_backing_bytes": 27689,
+        "indexed_hits": 2,
+        "public_corpus": false,
+        "child_elapsed_ms": 859,
+        "child_trace_ns": 814179100,
+        "upload_bytes": 17024,
+        "readback_bytes": 131168,
+        "device_guard_bytes": 131136,
+        "phases_ns": {
+          "request_decode": 69600,
+          "bundle_verify": 52766900,
+          "adapter_admit": 9478800,
+          "modules_load": 12643200,
+          "entry_bind": 1200,
+          "device_initialize": 707703300,
+          "stream_allocate": 8718200,
+          "host_to_device": 7797600,
+          "kernel_wait": 701000,
+          "device_to_host": 774100,
+          "cpu_verification": 45300,
+          "post_admission": 8000,
+          "resources_release": 2441500,
+          "reply_encode": 32000,
+          "modules_release": 3174100
+        }
+      }
+    },
+    "profile-cold": {
+      "job": {
+        "outcome": 0,
+        "cpu_percent": 18,
+        "peak_job_bytes": 149225472,
+        "receipt_sha256": "df5761d69acee033add2dde1bf5cec8943c38cc9426251514da723362c8d1b8a",
+        "output_sha256": "f68f77558f291179ebbc618b00fcb13cdf2342152bb57478de2071908d39f284",
+        "job_retired": true,
+        "children_at_root_exit": 0
+      },
+      "pilot": {
+        "architecture": "gfx1201",
+        "frames": 2,
+        "gpu_launched": true,
+        "bytes_exact": true,
+        "cpu_fallback_exact": true,
+        "first_decoded_bytes": 65560,
+        "second_decoded_bytes": 65523,
+        "exact_child_retired": true,
+        "pending_cpu_read_exact": true,
+        "kernel_launches": 2,
+        "reused_device_slab_bytes": 74096,
+        "exchange_ns": 859891000,
+        "device_reserved_bytes": 74096,
+        "prepared": false,
+        "ready_ns": 0,
+        "after_submit_ns": 859891000,
+        "capture_ns": 29600,
+        "leased_frames": 2,
+        "capture_batches": 1,
+        "cpu_session_read_ns": 162400,
+        "ready_session_read_ns": 80400,
+        "cpu_backing_bytes": 35393,
+        "ready_backing_bytes": 1380,
+        "capture_backing_bytes": 26309,
+        "prepared_backing_bytes": 27689,
+        "indexed_hits": 2,
+        "public_corpus": false,
+        "child_elapsed_ms": 860,
+        "child_trace_ns": 816715000,
+        "upload_bytes": 17024,
+        "readback_bytes": 131168,
+        "device_guard_bytes": 131136,
+        "phases_ns": {
+          "request_decode": 36300,
+          "bundle_verify": 55138700,
+          "adapter_admit": 7829100,
+          "modules_load": 12465400,
+          "entry_bind": 1000,
+          "device_initialize": 711983100,
+          "stream_allocate": 10301100,
+          "host_to_device": 9691700,
+          "kernel_wait": 1322100,
+          "device_to_host": 940400,
+          "cpu_verification": 80700,
+          "post_admission": 16200,
+          "resources_release": 3236300,
+          "reply_encode": 43200,
+          "modules_release": 3474500
+        }
+      }
+    }
+  },
+  "cpu_hierarchy_control": {
+    "nested-1": {
+      "job": {
+        "outcome": 0,
+        "cpu_percent": 18,
+        "peak_job_bytes": 166236160,
+        "receipt_sha256": "26441c93f9cc896f351319482167e6c891a57327941e040ec33d171d1a7cdbc0",
+        "output_sha256": "48e2ac1517df97f1eee837ddb551af999cb0bb2d1435909335af2975462b3c3c",
+        "job_retired": true,
+        "children_at_root_exit": 0
+      },
+      "admission": {
+        "admitted": true,
+        "utc": "2026-11-24T21:44:15.1013117Z",
+        "windows_build": "26300",
+        "devices": [
+          {
+            "Name": "AMD Radeon RX 9070 XT",
+            "Status": "OK",
+            "DriverVersion": "32.0.32029.2010"
+          }
+        ],
+        "cpu": [
+          12.66,
+          18.49
+        ],
+        "peak_gpu_engine": 12.584809042601902,
+        "available_kib": 31984188,
+        "total_kib": 66704480,
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "other_fixture_processes": 0
+      },
+      "worker": {
+        "mixed": 1,
+        "prepared": 1,
+        "verified": 2,
+        "worker_ms": 5578,
+        "prepared_submit_ms": 5609,
+        "exact_child_retired": 1
+      },
+      "traces": {
+        "qpc_frequency": 10000000,
+        "trace_sha256": "b34c2405da76f42e77b9eaa6709aec5bb0216ae6ed6d566b27a1cef393bbcfdc",
+        "elapsed_qpc_ticks": {
+          "group_entry": 0,
+          "verified_channel": 460,
+          "verified_artifacts": 1359884,
+          "initial_budget": 1494168,
+          "loaded_modules": 1625126,
+          "bound_kernel_tables": 1625137,
+          "preinit_budget": 1625522,
+          "hip_init": 1747469,
+          "hip_identity_properties": 1747536,
+          "node_corroboration": 1747541,
+          "device_selected": 1747609,
+          "initialized_and_selected_hip": 1747661,
+          "properties_for_coverage": 1747665,
+          "retired_topology": 1747672,
+          "device_initialized": 1747680,
+          "kernel_attributes": 55142302,
+          "stream_slab_ready": 55217069,
+          "received_request": 55217400,
+          "dispatch_admitted": 55218434,
+          "uploaded": 55287370,
+          "kernel_done": 55288153,
+          "downloaded": 55298627,
+          "post_budget": 55298698,
+          "freed_device": 55328425,
+          "encoded_reply": 55329140,
+          "retired_modules": 55361330,
+          "published_reply": 55361749
+        },
+        "device_and_stream_ready_ms": 5521.707,
+        "kernel_metadata_ms": 5339.462,
+        "dispatch_and_wait_ms": 0.078,
+        "worker_timeline_ms": 5536.175
+      }
+    },
+    "supervised-1": {
+      "job": {
+        "outcome": 1,
+        "cpu_percent": 18,
+        "peak_job_bytes": 99495936,
+        "receipt_sha256": "71c461e9d97904f8fe68bf64c4d30e5feeee1edcad5255241b768d178c89ee7e",
+        "output_sha256": "7c392621e14ebab92d5799385382407fedfe6e6b4cdb5620a69a24e90cf673ab",
+        "job_retired": true,
+        "children_at_root_exit": 0
+      },
+      "admission": {
+        "admitted": false,
+        "utc": "2026-11-24T21:44:27.7407074Z",
+        "windows_build": "26300",
+        "devices": [
+          {
+            "Name": "AMD Radeon RX 9070 XT",
+            "Status": "OK",
+            "DriverVersion": "32.0.32029.2010"
+          }
+        ],
+        "cpu": [
+          10.22,
+          13.01
+        ],
+        "peak_gpu_engine": 17.75016185766197,
+        "available_kib": 11627496,
+        "total_kib": 66704480,
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "other_fixture_processes": 0
+      },
+      "decode_launched": false
+    },
+    "supervised-1b": {
+      "job": {
+        "outcome": 1,
+        "cpu_percent": 18,
+        "peak_job_bytes": 93847552,
+        "receipt_sha256": "1a6e7b0b958389115fc3788a7f199567379276b5e9193fc56e04825fea06a715",
+        "output_sha256": "59aef9c541cb2cae3b96e34df1371d19d27d866cd0cf53e17443f4c23587689d",
+        "job_retired": true,
+        "children_at_root_exit": 0
+      },
+      "admission": {
+        "admitted": false,
+        "utc": "2026-11-24T21:45:20.2175066Z",
+        "windows_build": "26300",
+        "devices": [
+          {
+            "Name": "AMD Radeon RX 9070 XT",
+            "Status": "OK",
+            "DriverVersion": "32.0.32029.2010"
+          }
+        ],
+        "cpu": [
+          10.51,
+          8.8
+        ],
+        "peak_gpu_engine": 100.0710374037848,
+        "available_kib": 10163300,
+        "total_kib": 66704480,
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "other_fixture_processes": 0
+      },
+      "decode_launched": false
+    }
+  },
+  "validation": {
+    "groupCostProbeBuild": {
+      "outcome": 0,
+      "cpu_percent": 18,
+      "peak_job_bytes": 338874368,
+      "receipt_sha256": "cfeebd58f1ee7f8eb486d2eb309e3424eea9f97349cf78b85cc7a71fffd9a1ed",
+      "output_sha256": "13b640e4f7c3ac2fb860a1585ac63be467acc7e443fc3d17dc0087f00f6b4ffe",
+      "job_retired": true,
+      "children_at_root_exit": 0
+    },
+    "costTimedFixtureBuild": {
+      "outcome": 0,
+      "cpu_percent": 18,
+      "peak_job_bytes": 343838720,
+      "receipt_sha256": "a3838d8bc8b64019a26c2c83b90aeca346dc7523d064d609ae8a89f9fe767c26",
+      "output_sha256": "66229ec82a6e788010e837ea5bcdc7b445e6788d769cda549c3984ee44679ba2",
+      "job_retired": true,
+      "children_at_root_exit": 0
+    },
+    "timingGuardCpuOnly": {
+      "outcome": 1,
+      "cpu_percent": 18,
+      "peak_job_bytes": 16371712,
+      "receipt_sha256": "b88b28ebe5f430dc0ec7aecdec0118829153372efab2bffd63cf18f86cef1530",
+      "output_sha256": "27f2e0bcc41ca909eca63f1c3eb4c7775b7c6d77d9e74c7c3f995e68e1fb913c",
+      "job_retired": true,
+      "children_at_root_exit": 0,
+      "verified_supervisor_cpu_rate": 1800,
+      "package_refused_before_dispatch": true
+    },
+    "costTimingFixtureCpuCTest": {
+      "outcome": 0,
+      "cpu_percent": 14,
+      "peak_job_bytes": 21114880,
+      "receipt_sha256": "2a820f7c2b2e51c6e98c9906db757a95d410a558db6b992d2b348dcf7c4a87b5",
+      "output_sha256": "0a221f6d0b90e6198e94c5622e365051b2938423ae1f9e73b1acc8c73956e66f",
+      "job_retired": true,
+      "children_at_root_exit": 0
+    },
+    "restoreStandardGroupHelper": {
+      "outcome": 0,
+      "cpu_percent": 15,
+      "peak_job_bytes": 338751488,
+      "receipt_sha256": "bfee21ff00cfe81ae671bd1ceae7fc7ef2ee4d5af7e386d4092e5005263752e1",
+      "output_sha256": "0cc2aba5411e4239a4cb5ef72b2ac913539a988705666e454f791114c3653eeb",
+      "job_retired": true,
+      "children_at_root_exit": 0
+    }
+  },
+  "research": {
+    "capture_receipt_sha256": "1cfceb2bcefc74219ef6fc2e4c7731fcb8fd34d27c17456f2ee534679ab337ab",
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "pages": [
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/sysinfo/acquiring-high-resolution-time-stamps",
+        "http_status": 200,
+        "markdown_bytes": 70440,
+        "markdown_sha256": "b7bb13b0ebe38ff4f4007114b4b3d3a490131be4d5b8dda8ba4af948e27b3f48",
+        "capture_sha256": "170d73f52821daa52dc2353d968495371b8e514c14a2c351e8fa76bc028cc188"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-jobobject_cpu_rate_control_information",
+        "http_status": 200,
+        "markdown_bytes": 23183,
+        "markdown_sha256": "73502ffc956034496337b9934d7441e44169d908134f982af1a704579cf08378",
+        "capture_sha256": "f89a8b797d26579e1b45a64d8ca666a900d812bdb3d06aa76add1bcc4ca738c1"
+      },
+      {
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/reference/hip_runtime_api/modules/initialization_and_version.html",
+        "http_status": 200,
+        "markdown_bytes": 29567,
+        "markdown_sha256": "ae387721fefcf7974e7451d030e8aa85f15271e49a1bc2093faa1c3ef0755a33",
+        "capture_sha256": "aeb13396b0ce5e3f4eeb6496c299a822b50395c359dbd88db67dd44eab8a41d3"
+      },
+      {
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/performance_guidelines.html",
+        "http_status": 200,
+        "markdown_bytes": 51332,
+        "markdown_sha256": "f5b26916040d693275684ca2fd5b19265fe6f96cd77bea62fef8bf9a02020387",
+        "capture_sha256": "21f842684be8ab2151ee08cac58b2190902a2d2c432fe44590cd047edbbcb670"
+      }
+    ]
+  },
+  "navigation": {
+    "receipt_sha256": "6a068268de26bb88ad6289e06400b41e58365f12533bf42b904b68640acede73",
+    "response_sha256": "d055d4f4baab0e9c621d80cdfe3c195c6f1293d37e00156fe746ef8a5b9c55d6"
+  },
+  "summary": {
+    "kernel_metadata_ms": [
+      4790.127,
+      5310.852
+    ],
+    "kernel_dispatch_and_wait_ms": [
+      0.103,
+      0.179
+    ],
+    "matched_cpu_hierarchy_comparison_complete": false,
+    "mounted_performance_qualified": false
+  }
+}

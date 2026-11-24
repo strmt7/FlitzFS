@@ -178,7 +178,9 @@
     "budget_freshness_evidence": "docs/evidence/windows-amd-group-budget-freshness-2026-11-24.json",
     "prepared_mixed_successes_after_fix": 2,
     "verified_frames_per_trial": 2,
-    "next": "Measure process setup, HIP initialization, decode, verification and retirement on identical protected inputs. Qualify useful automatic delivery under ordinary Windows read intervals."
+    "phase_timing_evidence": "docs/evidence/windows-amd-group-exchange-phases-2026-11-24.json",
+    "matched_supervisor_timing_complete": false,
+    "next": "Complete paired grouped callback timings using the verified supervisor mode. Quantify remaining kernel preparation cost, then amortize it over useful admitted batches under ordinary demand."
   },
   "architecture_reconciliation": {
     "reviewed_commit": "df5be9b5b9d0bc05ac565eb2da8454ac76bed3d2",

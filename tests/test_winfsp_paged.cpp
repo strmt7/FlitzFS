@@ -1155,10 +1155,12 @@ void publication_faults(unsigned unit) {
 }
 }
 int wmain(int argc,wchar_t** argv){try {
-  app_fixture::Budget budget;
   const auto mode=argc>1?std::wstring_view(argv[1]):std::wstring_view{};
   const bool warm=mode==L"--hip-prepared-group-reads" || mode==L"--hip-prepared-mixed-group-reads";
-  if((warm || mode==L"--hip-group-reads" || mode==L"--hip-mixed-group-reads") && argc==12) {
+  const bool device=warm || mode==L"--hip-group-reads" || mode==L"--hip-mixed-group-reads";
+  const bool timing=device && argc==13 && std::wstring_view(argv[12])==L"--timed-exchange";
+  app_fixture::Budget budget(true,timing);
+  if(device && (argc==12 || timing)) {
     auto profile=group_gpu_profile(argv);
     const bool mixed=mode==L"--hip-mixed-group-reads" || mode==L"--hip-prepared-mixed-group-reads";
     profile.mixed_groups=mixed;
