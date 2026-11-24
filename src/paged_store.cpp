@@ -421,15 +421,19 @@ void verify_stored_digest(const Entry& e,std::span<const std::byte,record_header
     std::span<const std::byte> payload) {
   if(detail::record_digest(header.first<96>(),payload)!=e.digest)fail("object stored digest");
 }
-std::span<const std::byte> read_checked_frame(const State& s,const Entry& e,std::uint64_t offset,
-    std::span<std::byte> scratch) {
-  const auto frame=scratch.first(record_header_bytes+e.stored);
-  read_record_bytes(*s.image,offset,0,frame,s.mirrored?s.unit:0);
+std::span<const std::byte> checked_frame_payload(const State& s,const Entry& e,
+    std::span<const std::byte> frame) {
   const auto header=frame.first<record_header_bytes>();
   const auto payload=frame.subspan<record_header_bytes>();
   verify_record_header(s,e,header);
   verify_stored_digest(e,header,payload);
   return payload;
+}
+std::span<const std::byte> read_checked_frame(const State& s,const Entry& e,std::uint64_t offset,
+    std::span<std::byte> scratch) {
+  const auto frame=scratch.first(record_header_bytes+e.stored);
+  read_record_bytes(*s.image,offset,0,frame,s.mirrored?s.unit:0);
+  return checked_frame_payload(s,e,frame);
 }
 void read_record_payload(const State& s,const Entry& e,std::uint64_t offset,ObjectRecord& record) {
   auto& payload=record.payload;
@@ -499,7 +503,8 @@ unsigned verify_payload_copies(const State& s,const Entry& e,Bytes* payload=null
   for(const auto at:{e.offset,e.peer}) {
     try {
       if(stored_frame) {
-        stored_frame->resize(record_header_bytes+e.stored);
+        const auto length=record_header_bytes+e.stored;
+        if(stored_frame->size()<length)stored_frame->resize(length);
         (void)read_checked_frame(s,e,at,*stored_frame);
         ++verified;
         continue;
@@ -536,29 +541,91 @@ bool verify_object(const State& s,const Entry& e,Bytes* payload=nullptr,Bytes* s
   if(!verified)fail("both payload copies invalid; no rollback");
   return verified==1;
 }
-template<class Visitor> void walk(const State& s,const Ref& r,std::uint64_t after,Visitor& visitor,bool& done) {
+template<class Visitor> void walk_leaves(const State& s,const Ref& r,std::uint64_t after,Visitor& visitor,bool& done) {
   if(done || !r.count || r.last<=after)return;
-  auto n=read_node(s,r);
-  if(r.height) {for(const auto& child:n.children)walk(s,child,after,visitor,done);}
-  else for(const auto& e:n.entries)if(e.id>after && !done)done=!visitor(e);
+  const auto n=read_node(s,r);
+  if(r.height) {for(const auto& child:n.children)walk_leaves(s,child,after,visitor,done);}
+  else done=!visitor(std::span<const Entry>(n.entries));
+}
+template<class Visitor> void walk(const State& s,const Ref& r,std::uint64_t after,Visitor& visitor,bool& done) {
+  auto leaf=[&](std::span<const Entry> entries) {
+    for(const auto& entry:entries)if(entry.id>after && !visitor(entry))return false;
+    return true;
+  };
+  walk_leaves(s,r,after,leaf,done);
+}
+bool verify_stored_run(const State& s,std::span<const Entry> entries,std::size_t length,Bytes& scratch) {
+  if(scratch.size()<2*length)scratch.resize(2*length);
+  const auto primary=std::span(scratch).first(length);
+  const auto peer=std::span(scratch).subspan(length,length);
+  try {
+    s.image->read_exact(entries.front().offset,primary);
+    s.image->read_exact(entries.front().peer,peer);
+    // Both banks must return the exact frame bytes. Full equality lets the
+    // peer share the framing and digest checks on those identical bytes.
+    if(!std::ranges::equal(primary,peer))fail("stored replica bytes disagree");
+    std::span<const std::byte> remaining=primary;
+    for(const auto& entry:entries) {
+      const auto frame_bytes=record_header_bytes+entry.stored;
+      (void)checked_frame_payload(s,entry,remaining.first(frame_bytes));
+      remaining=remaining.subspan(frame_bytes);
+    }
+    return true;
+  }
+  catch(const std::bad_alloc&){throw;}
+  catch(const detail::StoreCaptureInterrupted&){throw;}
+  catch(const std::exception&) {
+    // Inspect each replica individually for diagnosis, while keeping even a
+    // transient failure from granting writable admission after the fences.
+    s.degraded_payloads=true;
+    return false;
+  }
+}
+void verify_stored_leaf(const State& s,std::span<const Entry> entries,Bytes& scratch) {
+  while(!entries.empty()) {
+    const auto& first=entries.front();
+    const auto bank_bytes=static_cast<std::size_t>(s.unit-first.offset%s.unit);
+    auto length=record_header_bytes+first.stored;
+    std::size_t count=1;
+    // Leaf validation already bound each peer to the same position in the
+    // next bank. Do not read gaps or join records across a bank boundary.
+    while(count<entries.size() && length<=bank_bytes) {
+      const auto& next=entries[count];
+      const auto next_length=record_header_bytes+next.stored;
+      if(next.offset!=first.offset+length || next_length>bank_bytes-length)break;
+      length+=next_length;
+      ++count;
+    }
+    const auto run=entries.first(count);
+    if(count==1 || !verify_stored_run(s,run,length,scratch))
+      for(const auto& entry:run)verify_object(s,entry,nullptr,&scratch);
+    entries=entries.subspan(count);
+  }
 }
 using VerifiedObjectVisitor=std::function<void(std::uint64_t,Bytes)>;
 void verify(const State& s,const VerifiedObjectVisitor* consume=nullptr,
     PayloadVerification verification=PayloadVerification::decoded) {
   s.image->verify_backing();
   (void)read_node(s,s.root);
-  // Only the stored-only pass reuses this frame. Its capacity is bounded by
-  // the checked object descriptor and it never escapes the current walk.
-  Bytes stored_frame;
+  bool done=false;
+  if(verification==PayloadVerification::stored) {
+    Bytes scratch;
+    auto leaf=[&](std::span<const Entry> entries) {
+      verify_stored_leaf(s,entries,scratch);
+      return true;
+    };
+    walk_leaves(s,s.root,0,leaf,done);
+    return;
+  }
   auto visitor=[&](const Entry& e) {
     if(consume) {
       Bytes bytes;
       verify_object(s,e,&bytes);
       (*consume)(e.id,std::move(bytes));
-    }else verify_object(s,e,nullptr,verification==PayloadVerification::stored?&stored_frame:nullptr);
+    }else verify_object(s,e);
     return true;
   };
-  bool done=false;walk(s,s.root,0,visitor,done);
+  walk(s,s.root,0,visitor,done);
 }
 std::array<std::byte,page_bytes> root_bytes(const State& s,std::uint64_t generation) {
   std::array<std::byte,page_bytes> b{};set_magic(b,root_magic);put32(b,8,s.mirrored?2:1);

@@ -3,7 +3,7 @@
   "date": "2026-11-25",
   "capture_utc": "2026-11-24T23:08:33.0142487Z",
   "experimental": true,
-  "scope": "Windows SDK-typed CPU and callback qualification for grouped AMD startup and admission.",
+  "scope": "Windows SDK-typed CPU tests and a bounded installed Radeon trial for grouped startup and admission.",
   "source": {
     "parent": "b4be817e9795ddced29b115ac243935d3030e54a",
     "parent_tree": "3ce4e44a4ed15c7785647a171570be75c9c01a38",
@@ -217,6 +217,43 @@
       "flitzfs_rocm_native_lz4_decode.dll": {
         "bytes": 173568,
         "sha256": "9ac5bb33a7b39ae26712dcdcfcdeb6b4b5fc049175e18dd6f24d047a37b3e128"
+      }
+    },
+    "live_confirmation": {
+      "observed": {
+        "utc": "2026-11-24T23:26:31.2162636Z",
+        "adapter": "AMD Radeon RX 9070 XT",
+        "driver": "32.0.32029.2010",
+        "build": "26300",
+        "gpu_peak_percent": 0,
+        "physical_available_kib": 30778228,
+        "cpu_percent": [
+          12.18,
+          12.82
+        ],
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7"
+      },
+      "live_device_execution": true,
+      "artifact_source_commit": "548310639425629a35946268ea477a4c9012cc92",
+      "mode": "timed-prepared-mixed-group",
+      "architecture": "gfx1201",
+      "verified_gpu_groups": 2,
+      "late_dispatch_refused": true,
+      "independent_cpu_readback": true,
+      "backing_writes": 0,
+      "worker_ms": 1250,
+      "prepared_submit_ms": 1281,
+      "exact_child_retired": true,
+      "receipt": {
+        "run": "local-run-e5a332e371ad4abbb77dd503ffa6f350",
+        "result_sha256": "90c0812895a3fd27e30e43be6e15044c62e43876e0a6e0d10b8867363f511f5a",
+        "log_sha256": "b8b29915a30eba85f8ef943ba9a16d84ef621de7ea4cf2c3b01a2cad61b83ebf",
+        "exit": 0,
+        "retired": true,
+        "children_found_at_retirement": 0,
+        "job_limit_bytes": 1514143744,
+        "peak_job_bytes": 197832704,
+        "duration_s": 7.219000000004598
       }
     },
     "prior_live_reference": "docs/evidence/windows-amd-group-supervisor-comparison-2026-11-24.json",

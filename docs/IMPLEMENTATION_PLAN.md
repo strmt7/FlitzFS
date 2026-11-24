@@ -210,6 +210,11 @@ release gates provide the references.
   and handle exposure. Prototype generation-bound bounded admission alongside
   full CPU validation. Compare successful visibility and damaged-state
   refusal/repair. Specify off-path scrub coverage and time to detection.
+  Keep the [checked post-fence read batches](evidence/indexed-fenced-read-runs-2026-11-25.json)
+  as the current full-scan control. Record checked bytes and read calls by
+  phase and compare packed and fragmented layouts under the same client.
+  Log the first discrepancy between the proposed admission decision and the
+  full audit with the exact selector, generation and touched range.
 - Add segment liveness and durable retirement data while the append-layout
   reader remains available. Prove alternate/old readers, cancellation and
   changed-version costs using staged image handoff as the control. Test a

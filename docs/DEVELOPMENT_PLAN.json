@@ -14,7 +14,7 @@
     "gate_ledger": "docs/RELEASE_EXECUTION_PLAN.md#current-gate-ledger",
     "next_implementation_tickets": "docs/IMPLEMENTATION_PLAN.md#next-implementation-tickets",
     "evidence": "docs/evidence/release-reconciliation-2026-11-24.json",
-    "latest_native_attach_evidence": "docs/evidence/indexed-record-read-coalescing-2026-11-23.json",
+    "latest_native_attach_evidence": "docs/evidence/indexed-fenced-read-runs-2026-11-25.json",
     "latest_chunked_scrub_evidence": "docs/evidence/indexed-scrub-checkpoint-2026-11-23.json",
     "latest_allocator_evidence": "docs/evidence/windows-mounted-repeated-reclamation-2026-11-23.json",
     "latest_recovery_evidence": "docs/evidence/windows-mounted-mixed-flush-recovery-2026-11-23.json",

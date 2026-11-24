@@ -294,11 +294,13 @@ flowchart TD
 ```
 
 Normal indexed remount requires a full native audit and a stored mirror pass.
-Checked record-header and payload spans can share a backing read. The
-selected image and selector must both remain bound through the fences.
-Reader and image pins constrain reclaimable storage. Repair requires a
-verified surviving source.
-[Combined record reads](../evidence/indexed-record-read-coalescing-2026-11-23.json)
+After both fences, a checked leaf can read adjacent whole frames together
+within each bank. The replica spans must match byte for byte and each frame
+still passes its descriptor and stored digest checks. The selected image and
+selector remain bound through the fences. Reader and image pins constrain
+reclaimable storage. Repair requires a verified surviving source.
+[Batched stored replica reads](../evidence/indexed-fenced-read-runs-2026-11-25.json)
+· [Single-frame reads](../evidence/indexed-record-read-coalescing-2026-11-23.json)
 [Selector reopen and audit](../../src/volume_head.cpp#L158)
 · [single-pass indexed audit path](../../src/native_session.cpp#L642)
 · [stored mirror recheck evidence](../evidence/indexed-fenced-stored-recheck-2026-11-22.json)

@@ -780,6 +780,20 @@ Writable reopen still traverses the full inventory, so this improvement
 reduces I/O within each audit.
 [Matched Windows evidence](evidence/indexed-reopen-single-pass-audit-2026-11-20.json)
 
+### Stored replica reads after the fences
+
+A healthy writable reopen reads both replicas again after the image and
+selector fences. A checked leaf can supply one read per bank for adjacent
+whole records. The primary and peer spans must match byte for byte. The
+reader then verifies each frame against its own checked descriptor and
+stored digest. A mismatch or failed read marks the reopen degraded even
+when separate reads can subsequently diagnose a valid copy. A record
+that crosses a bank boundary or cannot join a run uses the individual
+replica path. A batched read stays within the selected bank and needs scratch
+for at most two banks. The full decoded and namespace audit
+still precedes the fences.
+[Matched reopen measurements](evidence/indexed-fenced-read-runs-2026-11-25.json)
+
 ### Decoded name pages within an audit
 
 Each native inventory audit keeps one decoded name-index branch per tree

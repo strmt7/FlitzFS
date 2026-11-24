@@ -201,7 +201,9 @@
     "latest_startup_admission_evidence": "docs/evidence/windows-amd-group-startup-admission-2026-11-25.json",
     "ready_wait_excluded_from_startup": true,
     "metadata_queries_per_distinct_decoder": 2,
-    "current_startup_hardware_comparison": "deferred_by_live_gpu_pressure",
+    "startup_live_sdk_verified_groups": 2,
+    "startup_live_sdk_cpu_readback": true,
+    "current_startup_hardware_comparison": "live_sdk_confirmation_passed_matched_comparison_pending",
     "next": "Measure CPU, cold GPU and verified-ready dispatch on real client demand with the same supervisor. Use accepted work and complete costs to decide how far useful bounded batches can amortize setup."
   },
   "architecture_reconciliation": {
@@ -229,6 +231,16 @@
     "short_16384_reopen_read_calls": {"control": 350772, "combined": 186089},
     "compressed_cpython_2640_reopen_read_calls": {"control": 72529, "combined": 47216},
     "one_image_and_one_selector_fence": true,
+    "healthy_reopen_backing_writes": 0,
+    "startup_requires_inventory_walk": true
+  },
+  "indexed_fenced_read_runs": {
+    "evidence": "docs/evidence/indexed-fenced-read-runs-2026-11-25.json",
+    "short_16384_reopen_read_calls": {"parent": 185960, "batched": 129226},
+    "compressed_cpython_2640_reopen_read_calls": {"parent": 47182, "batched": 40634},
+    "short_16384_reopen_median_ns": {"parent": 134395700, "batched": 121139500},
+    "bytes_read_same": true,
+    "both_fences_preserved": true,
     "healthy_reopen_backing_writes": 0,
     "startup_requires_inventory_walk": true
   },

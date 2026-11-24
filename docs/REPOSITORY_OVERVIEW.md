@@ -66,14 +66,14 @@ persisted retirement checks passed on every cycle. Scale and sustained
 attachment still need separate evidence. [Repeated settlement](evidence/windows-mounted-repeated-reclamation-2026-11-23.json)
 
 **The indexed path spends less backing I/O on the same verification.**
-At 16,384 short files, checked record reads fell from 350,772 to 186,089
-backing calls with the same byte coverage and both fences. In a separate
-16,384-object scrub profile, a batch of up to 64 records reduced reading
-from 677,412,864 to 20,111,360 backing bytes. The live controller repaired
+At 16,384 short files, batching adjacent stored frames after both fences
+reduced backing calls from 185,960 to 129,226 with the same byte coverage.
+A separate 16,384-object scrub profile went from 677,412,864 to 20,111,360
+backing bytes with batches of up to 64 records. The live controller repaired
 a bad peer before the first file read. An in-process observation
 requires complete coverage of an unchanged checkpoint. Writable admission
 still runs the full inventory.
-[Record reads](evidence/indexed-record-read-coalescing-2026-11-23.json) ·
+[Batched stored replica reads](evidence/indexed-fenced-read-runs-2026-11-25.json) ·
 [Scrub and repair](evidence/indexed-scrub-checkpoint-2026-11-23.json)
 
 **Concurrent cached and mapped flushes survived helper interruption.**
@@ -254,12 +254,13 @@ reduced the healthy path from three backing flushes to two. The remaining
 full inventories are still proportional to volume population.
 [Scale and ownership evidence](evidence/indexed-scale-reopen-2026-11-20.json)
 
-The latest matched series at 16,384 files reduced backing read calls by 47%
-by combining checks on each record's header and stored payload into the same
-read where possible. Both passes check the same total bytes and healthy
-startup still walks the selected inventory. The next improvement needs
-generation-bound admission and a bounded follow-on scrub.
-[Record-read evidence](evidence/indexed-record-read-coalescing-2026-11-23.json)
+Combining each record header and payload reduced backing read calls by 47%
+in an earlier 16,384-file trial. The current stored pass also combines
+adjacent whole frames within each bank where the checked leaf permits it.
+Healthy startup still walks the selected inventory. The next improvement
+needs generation-bound admission and a bounded follow-on scrub.
+[Single-frame evidence](evidence/indexed-record-read-coalescing-2026-11-23.json) ·
+[Batched-frame evidence](evidence/indexed-fenced-read-runs-2026-11-25.json)
 
 Directory auditing now finishes short folders with the existing bounded page.
 When a directory continues, an ordered cursor retains the active tree path

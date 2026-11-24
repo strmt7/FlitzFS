@@ -84,6 +84,58 @@ void profile_indexed_reopen(const std::shared_ptr<Ram>& image,const NativeFilesy
   std::cout<<"indexed_reopen_readback files="<<files<<" workload="<<workload<<" exact=1\n";
 }
 
+void indexed_reopen_checks_batched_replicas() {
+  const auto image=empty(),head=empty();
+  const auto first=payload(9027),second=payload(9028);
+  IndexedVolumeBuilder builder(PagedObjectStoreWriter::create_mirrored(image,identity(),limits,raw),
+      1,4,{true,first.size()+second.size()},2);
+  const std::array<IndexedInodeInput,3> inodes{{
+      {1,0,0,1,1,true,""},{2,1,first.size(),1,1,false,"first"},{3,1,second.size(),1,1,false,"second"}}};
+  const std::array<IndexedExtentInput,2> extents{{{2,0,first},{3,0,second}}};
+  builder.append(inodes,extents);
+  const auto source=builder.finish();
+  const auto volume=identity_for(83);
+  {auto owner=NativeVolumeHeadWriter::create(head,volume,source);}
+  const auto offset_of=[&](const Bytes& payload) {
+    const auto match=std::ranges::search(image->live,payload);
+    require(!match.empty(),"batched-replica fixture did not store its raw bytes");
+    return static_cast<std::uint64_t>(match.begin()-image->live.begin());
+  };
+  const auto first_at=offset_of(first),second_at=offset_of(second);
+  require(first_at<second_at && first_at/image->failure_unit==second_at/image->failure_unit,
+      "batched-replica fixture does not share a bank");
+  const auto resolve=[&](const auto& id)->std::shared_ptr<StoreByteIo> {
+    return id==source.identity()?image:nullptr;
+  };
+  const auto reject_after_fences=[&](std::uint64_t bank,bool both) {
+    const auto writes=image->write_bytes+head->write_bytes;
+    const auto image_fences=image->flushes,head_fences=head->flushes;
+    image->corrupt_read_offset=second_at+bank+1;
+    image->corrupt_read_number=2;
+    image->corrupt_followup_offset=both?second_at+image->failure_unit+1:Ram::no_read_fault;
+    image->matching_reads=0;
+    image->corrupted_read_start=Ram::no_read_fault;
+    refuses(NativeFsErrorCode::invalid_operation,[&] {
+      (void)NativeFileSession::resume_closed_indexed_volume(head,volume,1,resolve,raw);
+    });
+    const auto last_bank=both?image->failure_unit:bank;
+    const auto first_peer_at=first_at+last_bank;
+    require(image->corrupted_read_start/image->failure_unit==first_peer_at/image->failure_unit &&
+        image->corrupted_read_start<=first_peer_at && image->flushes==image_fences+1 &&
+        head->flushes==head_fences+1 && image->write_bytes+head->write_bytes==writes,
+        "writable reopen did not reject an interior replica observation after both fences");
+  };
+  reject_after_fences(0,false);
+  reject_after_fences(image->failure_unit,false);
+  // Equality between two identically damaged observations is insufficient.
+  reject_after_fences(0,true);
+  image->corrupt_read_offset=Ram::no_read_fault;
+  const auto session=NativeFileSession::resume_closed_indexed_volume(head,volume,1,resolve,raw);
+  const auto restored=NativeFilesystemSnapshot::open_image(image,source.image_storage());
+  require(restored.read_inode(2,0,first.size())==first && restored.read_inode(3,0,second.size())==second,
+      "failed batched replica check changed the recoverable files");
+}
+
 void populated_native_snapshot(unsigned files=1024,bool reopen_only=false) {
   constexpr unsigned batch=32;
   const std::uint64_t sparse=3+files;
@@ -1745,7 +1797,7 @@ int main(int argc,char** argv) {
       return 0;
     }
     require(argc==1,"unknown indexed volume test option");
-    populated_native_snapshot();indexed_unreachable_name_page();migration(false);migration(true);growing_native_writer();indexed_capacity_and_metadata();indexed_stable_inode_io();indexed_session_lifetimes();indexed_detach_recovery();
+    populated_native_snapshot();indexed_reopen_checks_batched_replicas();indexed_unreachable_name_page();migration(false);migration(true);growing_native_writer();indexed_capacity_and_metadata();indexed_stable_inode_io();indexed_session_lifetimes();indexed_detach_recovery();
     indexed_large_retirement();indexed_head_independent_sequence();indexed_staged_rebuild();indexed_reconciled_rebuild();
     indexed_managed_handoff();indexed_managed_staged_compaction();indexed_managed_staged_faults();
     indexed_transaction_recovery();indexed_query_page_lifetime();indexed_extent_advice();indexed_extent_read_route();

@@ -79,8 +79,9 @@ class Ram final:public StoreByteIo {
   std::uint64_t read_bytes_at_flush=0;
   std::uint64_t write_bytes=0;std::size_t flushes=0;
   std::uint64_t capacity=kStoreMaxPhysicalBytes;
-  std::uint64_t corrupt_read_offset=(std::numeric_limits<std::uint64_t>::max)(),corrupt_read_number=0;
-  mutable std::uint64_t matching_reads=0;
+  static constexpr auto no_read_fault=(std::numeric_limits<std::uint64_t>::max)();
+  mutable std::uint64_t corrupt_read_offset=no_read_fault,corrupt_read_number=0,corrupt_followup_offset=no_read_fault;
+  mutable std::uint64_t matching_reads=0,corrupted_read_start=no_read_fault;
   unsigned failure=0;
   std::uint32_t failure_unit=65536; // Explicit model, default old behavior.
   std::uint64_t extent() const override{return live.size();}
@@ -92,8 +93,15 @@ class Ram final:public StoreByteIo {
     std::copy_n(live.begin()+static_cast<std::ptrdiff_t>(at),out.size(),out.begin());
     // Count every read covering the selected byte, irrespective of the
     // caller's batching. Corrupt just that byte on the selected observation.
-    if(corrupt_read_offset>=at && corrupt_read_offset-at<out.size() && ++matching_reads==corrupt_read_number)
+    if(corrupt_read_offset>=at && corrupt_read_offset-at<out.size() && ++matching_reads==corrupt_read_number) {
+      corrupted_read_start=at;
       out[static_cast<std::size_t>(corrupt_read_offset-at)]^=std::byte{1};
+      if(corrupt_followup_offset!=no_read_fault) {
+        corrupt_read_offset=corrupt_followup_offset;
+        corrupt_followup_offset=no_read_fault;
+        ++corrupt_read_number;
+      }
+    }
   }
   static void copy(Bytes& to,std::uint64_t at,std::span<const std::byte> in,
       std::uint64_t maximum=kStoreMaxPhysicalBytes) {
