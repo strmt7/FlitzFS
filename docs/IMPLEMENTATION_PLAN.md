@@ -924,11 +924,14 @@ latency before admitting a production profile.
    reaches readiness. It verifies the exact supplied prefix in a private
    native image and keeps the originals available through CPU.
    [Arriving native write evidence](evidence/windows-native-arriving-write-burst-2026-11-24.json)
-   Connect the automatic scheduler to this boundary. Measure intervals
-   between arrivals and quantify setup savings over the full cost of retention. Use
-   host activity and current headroom to choose a short wait or finish.
-   Exercise host pressure, foreground interruption, volume close and device
-   changes across the admitted interval.
+   The controller now waits at that boundary when an approved profile and
+   observed write intervals support reuse. It checks resource headroom before
+   capture and supply, finishes an empty wait and cancels on shutdown. The
+   Radeon callback fixtures exercised both outcomes and independent CPU recovery.
+   [Controller arrival evidence](evidence/windows-controller-arriving-write-bursts-2026-11-24.json)
+   Measure setup savings and retention costs with varied real arrival
+   patterns and larger compression jobs. Exercise host pressure, foreground
+   interruption and device changes during the wait before promoting any route.
    Extend finite exchanges to collective work across files. Bind each job to a source revision,
    verify every decoded byte before publication, and retire the helper when
    admitted work drains or foreground demand rises. Compare complete occupied

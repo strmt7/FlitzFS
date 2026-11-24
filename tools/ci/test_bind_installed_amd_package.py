@@ -93,6 +93,7 @@ class PackageTests(unittest.TestCase):
         self.assertIn("write_trial_maximum_batch_chunks=16U", header)
         self.assertIn("write_trial_maximum_launch_chunks=2U", header)
         self.assertIn("write_trial_separate_requests=false", header)
+        self.assertIn("write_trial_await_later_writes=false", header)
         self.assertEqual(files, ["qualification-manifest.json", UNIFORM_WORKER, UNIFORM_MODULE, UNIFORM_TRIAL_EVIDENCE])
 
     def test_write_trial_binds_separate_request_admission(self):
@@ -103,6 +104,17 @@ class PackageTests(unittest.TestCase):
     def test_write_trial_rejects_non_boolean_admission(self):
         self.write_trial()["separate_requests"] = 1
         with self.assertRaisesRegex(RuntimeError, "Invalid write trial separate_requests"):
+            self.bind()
+
+    def test_write_trial_binds_arriving_request_admission(self):
+        profile = self.write_trial()
+        profile.update(separate_requests=True, await_later_writes=True)
+        header, _ = self.bind()
+        self.assertIn("write_trial_await_later_writes=true", header)
+
+    def test_write_trial_rejects_arrival_without_separate_requests(self):
+        self.write_trial()["await_later_writes"] = True
+        with self.assertRaisesRegex(RuntimeError, "Invalid write trial await_later_writes"):
             self.bind()
 
     def test_write_trial_requires_uniform_worker(self):

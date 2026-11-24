@@ -1564,8 +1564,10 @@ int compare_installed_arriving_burst(std::wstring_view mode) {
     const auto first=commit(L"\\first",1,kNativeAmdWriteMinimumPairs);
     std::uint64_t later_sequence=0;
     std::uint32_t boundaries=0;
-    const auto next=[&](std::uint32_t index,detail::NativeCapturedWrite& out) {
-      check(index==++boundaries && !WorkerExchangeSession::available(),
+    const auto next=[&](const NativeAmdWriteBoundary& boundary,detail::NativeCapturedWrite& out) {
+      const auto index=boundary.completed_requests;
+      check(index==++boundaries && boundary.first_ready_ns && boundary.previous_service_ns &&
+          boundary.elapsed_ns>=boundary.first_ready_ns && !WorkerExchangeSession::available(),
           "Later capture did not run while the exact worker was ready");
       if(single || index==2)return PreparedRequestAction::finish;
       out=commit(L"\\later",2,1);

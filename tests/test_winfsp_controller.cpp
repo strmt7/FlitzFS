@@ -4103,6 +4103,94 @@ void concurrent_memory_store_accounting() {
       "Parallel stores did not retire their resident pages");
 }
 
+#ifdef FLITZFS_INDEXED_HIP_FIXTURE
+void amd_write_arrival_trial(std::string_view mode) {
+  const bool later=mode=="later";
+  const bool stop_waiting=mode=="stop";
+  const auto profile=installed_uniform_write_trial_profile();
+  require((later || stop_waiting || mode=="drain") && profile && profile->await_later_writes &&
+      installed_uniform_write_files_present(),"Arriving write trial requires its staged version 6 profile");
+  constexpr std::uint64_t image_capacity=8ULL*1024*1024,allowance=32ULL*1024*1024;
+  auto domain=MemoryVolumeDomain::create(image_capacity+kVolumeHeadBytes+allowance);
+  auto head=domain.create_store(kVolumeHeadBytes);
+  auto image=domain.create_store(image_capacity);
+  NativeMaintenancePolicy policy;
+  policy.maximum_cpu_busy_ppm=500'000;
+  auto source=WinFspNativeWritable::create_managed_indexed(head,id(90),image,id(1),{image_capacity},
+      {StoreCompressionMode::fast,1,false},{},policy);
+  Provider p;
+  Provider::active=&p;
+  WinFspVolumeController owner(std::move(source),p.api(),plan(),domain);
+  await([&]{return owner.view().state==SessionState::running;},5000,"Arriving write controller did not start");
+  const auto* table=p.fs.Interface;
+  const auto security=native_security_fixture::descriptor();
+  const auto make_input=[](unsigned seed) {
+    const auto block=data(kNativeExtentBytes/8,seed);
+    Bytes result(kNativeExtentBytes);
+    for(std::size_t offset=0;offset<result.size();offset+=block.size())
+      std::ranges::copy(block,result.begin()+offset);
+    return result;
+  };
+  auto initial=make_input(918);
+  auto following=make_input(919);
+  const auto commit=[&](PCWSTR name,Bytes& bytes,std::size_t count) {
+    PVOID handle=nullptr;
+    FSP_FSCTL_FILE_INFO info{};
+    require(table->Create(&p.fs,const_cast<PWSTR>(name),FILE_NON_DIRECTORY_FILE,FILE_ALL_ACCESS,FILE_ATTRIBUTE_NORMAL,
+        const_cast<std::byte*>(security.data()),0,&handle,&info)==STATUS_SUCCESS && handle,"Arriving write Create");
+    for(std::size_t i=0;i<count;++i) {
+      if(i)Sleep(1120); // Span the one-second host CPU observation window.
+      ULONG written=0;
+      require(table->Write(&p.fs,handle,bytes.data(),0,static_cast<ULONG>(bytes.size()),FALSE,FALSE,&written,&info)==
+          STATUS_SUCCESS && written==bytes.size(),"Arriving ordinary CPU Write");
+    }
+    callback_cleanup_close(p,handle,true);
+  };
+  commit(L"\\first",initial,kNativeAmdWriteMinimumPairs);
+  await([&]{const auto view=owner.view();return view.amd_write_waiting || view.amd_write_trial.has_value();},13000,
+      "Owner did not reach its arriving write boundary");
+  const auto parked=owner.view();
+  if(!parked.amd_write_waiting && parked.amd_write_trial) {
+    const auto& failed=*parked.amd_write_trial;
+    std::cerr<<"arriving_owner_status="<<static_cast<unsigned>(failed.status)
+        <<" requests="<<failed.device.admitted_requests<<" ready_ns="<<failed.device.ready_ns<<'\n';
+  }
+  require(parked.amd_write_waiting,"Owner did not park a completed request");
+  if(later)commit(L"\\later",following,1);
+  if(stop_waiting)owner.stop_and_join();
+  else await([&]{return owner.view().amd_write_trial.has_value();},9000,"Arriving trial did not settle");
+  const auto view=owner.view();
+  require(view.amd_write_trial && view.amd_write_trial_attempts==1 && !view.amd_write_waiting &&
+      !view.foreground_activation,"Arriving trial lost ownership or offered a foreground route");
+  const auto& trial=*view.amd_write_trial;
+  const auto& device=trial.device;
+  const std::size_t expected=later?2:1;
+  std::cout<<"arriving_owner status="<<static_cast<unsigned>(trial.status)
+      <<" requests="<<device.admitted_requests<<" cpu_writes="<<trial.reference.sample.transactions
+      <<" gpu_writes="<<(device.sample?device.sample->transactions:0)
+      <<" stored="<<(device.sample?device.sample->stored_lz4_candidates:0)
+      <<" parked=1 ready_ns="<<device.ready_ns<<" device_wall_ns="<<trial.device_wall_ns
+      <<" cpu_wall_ns="<<trial.reference.wall_ns<<" retired="<<device.worker_retired<<'\n';
+  if(stop_waiting) {
+    require(trial.status==HipDiscoveryStatus::cancelled && !device.sample && device.worker_retired,
+        "Shutdown did not cancel and retire the parked worker");
+  }else {
+    require(trial.status==HipDiscoveryStatus::ready && device.sample && device.matched_cpu && device.worker_retired &&
+        device.admitted_requests==expected && trial.reference.sample.transactions==expected &&
+        device.sample->cpu_readback_verified && device.sample->transactions==expected &&
+        device.sample->input_digest==trial.reference.sample.input_digest && device.sample->stored_lz4_candidates==expected,
+        "Arriving worker did not verify the same writes as CPU");
+    owner.stop_and_join();
+  }
+  const auto snapshot=NativeFilesystemSnapshot::open_image(image,{NativeImageKind::indexed_paged,image_capacity});
+  snapshot.verify_all();
+  require(snapshot.read("first",0,kNativeExtentBytes)==initial &&
+      (!later || snapshot.read("later",0,kNativeExtentBytes)==following) &&
+      WorkerExchangeSession::available(),"Original acknowledged writes did not survive the arriving trial");
+  std::cout<<"arriving_originals verified=1 source_files="<<expected<<" retained_after_stop=0\n";
+}
+#endif
+
 enum class AmdWriteReplayMode {cpu,paired,interrupt};
 void amd_write_cpu_replay(bool controller_owned,bool grouped=false,AmdWriteReplayMode mode=AmdWriteReplayMode::cpu) {
   if(!gpu_lz4_cpu_verification_available())return;
@@ -4709,6 +4797,7 @@ int main(int argc,char** argv){try {
   const bool amd_cpu_group=argc==2 && std::string_view(argv[1])=="--amd-write-cpu-group";
   const bool amd_write_pair=argc==2 && std::string_view(argv[1])=="--amd-write-pair";
   const bool amd_write_interrupt=argc==2 && std::string_view(argv[1])=="--amd-write-pair-interrupt";
+  const bool amd_write_arrival=argc==3 && std::string_view(argv[1])=="--amd-write-arrival";
   const bool screened_public=argc==3 && std::string_view(argv[1])=="--screened-cold-corpus";
   const bool screened_packed=argc==3 && std::string_view(argv[1])=="--screened-cold-packed";
   const bool live_repair_rotation=argc==2 && std::string_view(argv[1])=="--live-indexed-repair-rotation";
@@ -4718,7 +4807,8 @@ int main(int argc,char** argv){try {
   const bool reconciled_compaction=argc==2 && std::string_view(argv[1])=="--live-indexed-reconcile";
   const bool indexed_compaction=reconciled_compaction || (argc==2 && std::string_view(argv[1])=="--live-indexed-compaction");
   if(lifetime_only || shifted_grouping || checkpoint || remount || volume_file || screened_public || screened_packed || indexed_compaction ||
-      live_payload_repair || indexed_startup || read_ahead || amd_cpu_replay || amd_cpu_group || amd_write_pair || amd_write_interrupt ||
+      live_payload_repair || indexed_startup || read_ahead || amd_cpu_replay || amd_cpu_group || amd_write_pair ||
+      amd_write_interrupt || amd_write_arrival ||
       (argc==2 && (std::string_view(argv[1])=="--memory" || std::string_view(argv[1])=="--memory-handles" ||
       std::string_view(argv[1])=="--read-only-memory" || std::string_view(argv[1])=="--indexed-memory" ||
       std::string_view(argv[1])=="--live-indexed-grouping")))
@@ -4731,7 +4821,16 @@ int main(int argc,char** argv){try {
   else if(lifetime_only)idle_until_owner_stop(31000);
   else if(read_ahead)live_read_ahead_admission();
   else if(amd_cpu_replay || amd_cpu_group)amd_write_cpu_replay(true,amd_cpu_group);
-  else if(amd_write_pair || amd_write_interrupt) {
+  else if(amd_write_arrival) {
+#ifdef FLITZFS_INDEXED_HIP_FIXTURE
+    require(gpu_lz4_cpu_verification_available(),"Arriving Radeon trial requires independent CPU verification");
+    amd_write_arrival_trial(argv[2]);
+    before=handle_count();
+    amd_write_arrival_trial(argv[2]);
+#else
+    throw std::runtime_error("Arriving write trial package is unavailable");
+#endif
+  } else if(amd_write_pair || amd_write_interrupt) {
     require(gpu_lz4_cpu_verification_available(),"Radeon trial requires independent CPU verification");
     const auto mode=amd_write_interrupt?AmdWriteReplayMode::interrupt:AmdWriteReplayMode::paired;
     amd_write_cpu_replay(true,true,mode);

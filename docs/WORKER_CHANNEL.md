@@ -706,7 +706,9 @@ byte for byte on CPU. The version 5 cancellation control exposed no replies.
 The native replay can capture and supply another committed write at this
 boundary. [Arriving native write evidence](evidence/windows-native-arriving-write-burst-2026-11-24.json)
 
-Ordinary scheduling still needs an adaptive wait for later eligible work
-and a live resource decision during that wait. The volume owner can finish
-the burst when the admission window ends normally. Foreground preemption
-and failures use cancellation.
+The volume controller can now park an admitted version 6 worker at that
+boundary and hand it a later write. It derives the wait from observed
+arrival and setup costs, and checks fresh resource and foreground evidence
+before supply. The worker releases its retained HIP state when the burst
+finishes or is cancelled.
+[Controller arrival evidence](evidence/windows-controller-arriving-write-bursts-2026-11-24.json)

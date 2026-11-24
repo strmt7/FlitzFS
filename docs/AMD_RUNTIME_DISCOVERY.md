@@ -34,9 +34,15 @@ native extents. Live demand and memory may yield smaller groups. The optional bo
 separately admitted same-sized requests. Omitting the field selects the
 single grouped exchange. The controller also uses the grouped exchange when
 the captured files have different sizes or the additional reply framing
-does not fit the current allowance. A uniform-only manifest retains
-explicit diagnostic acquisition and ordinary CPU observation. The trial profile permits detached comparison. Foreground
-route selection has its own verified cost evidence requirement.
+does not fit the current allowance under that profile.
+
+The optional boolean `await_later_writes` requires `separate_requests` and
+a worker qualified for the version 6 finishable exchange. The controller can
+start with one eligible write and supply another if it arrives within the
+observed workload and resource budget. Omission keeps the existing
+pre-captured behavior. A uniform-only manifest without a trial profile
+retains diagnostic acquisition and ordinary CPU observation. Foreground route
+selection requires its own verified cost evidence.
 [Owned paired trials](OWNED_DEFERRED_WRITES.md#controller-owned-paired-trials)
 
 ### Shared-base package profile

@@ -74,8 +74,8 @@ std::optional<NativeAmdWriteWorkerPlan> plan_native_amd_write_worker(const Nativ
 std::optional<NativeAmdWriteWorkerPlan> plan_native_amd_write_burst(const NativeAmdStoragePolicy&,
     std::uint32_t request_bytes,std::uint32_t maximum_requests,ProcessBudget,std::uint64_t allowance) noexcept;
 struct NativeAmdDeviceTrial {
-  std::optional<NativeAmdWriteSample> sample;
-  std::uint64_t ready_ns=0,exchange_ns=0;
+  std::optional<NativeAmdWriteSample> sample,matched_cpu;
+  std::uint64_t ready_ns=0,exchange_ns=0,cpu_wall_ns=0;
   std::uint64_t preparation_ns=0,supervised_ns=0,verification_ns=0,replay_ns=0;
   WorkerExchangeCode exchange=WorkerExchangeCode::invalid_response;
   std::uint32_t worker_exit=0,admitted_requests=0;
@@ -98,7 +98,12 @@ NativeAmdDeviceTrial record_native_amd_device_batch(const NativeAmdStoragePolicy
 // The first capture is ready when the worker starts. At each later completed
 // boundary a bounded producer supplies a newly owned capture or finishes the
 // burst. Successful retirement and CPU readback apply to the supplied prefix.
-using NativeAmdWriteContinuation=std::function<PreparedRequestAction(std::uint32_t,detail::NativeCapturedWrite&)>;
+struct NativeAmdWriteBoundary {
+  std::uint32_t completed_requests=0;
+  std::uint64_t first_ready_ns=0,elapsed_ns=0,previous_service_ns=0;
+};
+using NativeAmdWriteContinuation=std::function<PreparedRequestAction(const NativeAmdWriteBoundary&,
+    detail::NativeCapturedWrite&)>;
 NativeAmdDeviceTrial record_native_amd_device_burst(const NativeAmdStoragePolicy&,UniformLz4BatchInput first,
     std::uint32_t maximum_requests,const HipDiscoveredRoute&,NativeUniformSweepGrant,
     ProcessBudget,std::uint64_t memory_allowance,MemoryVolumeDomain*,std::stop_token,

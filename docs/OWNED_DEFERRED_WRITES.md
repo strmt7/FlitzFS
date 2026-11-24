@@ -297,8 +297,9 @@ and device identity govern every handoff. The grouped exchange handles
 profiles and captures that do not qualify for separate admission.
 
 The controller monitors live CPU and memory during the scoped trial. New
-foreground activity, shutdown or lost headroom requests cancellation. It
-settles the trial before making its status visible. Timings include discovery,
+foreground activity cancels active device work. Shutdown or lost host
+headroom also requests cancellation. The controller settles the trial before
+making its status visible. Timings include discovery,
 host preparation, readiness, supervised exchange, parent verification and
 private replay, with whole-arm times alongside. A verified pair finishes the
 attachment's trial. Further attempts after an infrastructure refusal require
@@ -332,6 +333,33 @@ request and recovered the acknowledged files. The complete device arm exceeded
 the CPU cost for these small workloads. The scoped callback trials did not
 mount a filesystem.
 [Separate admission through the controller](evidence/windows-controller-separate-request-admission-2026-11-24.json)
+
+### Reusing the worker for a later write
+
+An approved `await_later_writes` profile can start with one ordinary,
+already-committed write. After completing a request, the worker keeps its
+initialized HIP runtime, stream and bounded working buffer while it sleeps
+on a control event. The wait is limited by recent same-sized write intervals,
+the measured time to first readiness, the remaining exchange budget and the
+host observation window. The worker issues no GPU work during this wait.
+[AMD HIP initialization](https://rocm.docs.amd.com/projects/HIP/en/latest/how-to/hip_runtime_api/initialization.html)
+
+Foreground callbacks continue while the worker is parked. The controller
+offers a single newer same-sized capture after checking the revision, fresh
+CPU and memory observations and the foreground epoch. Device admission is
+checked again before supply. When the window expires normally, the worker
+releases its resources and returns the completed requests. Shutdown or
+refusal discards the speculative result. CPU replay uses the exact verified
+prefix, and the original writes remain readable independently throughout.
+
+The controller fixture on the RX 9070 XT covered a later write, expiration
+with one completed request and shutdown during the wait, twice each. Every
+original file reopened byte for byte on CPU and every worker retired. In the
+two later-arrival fixtures, paired CPU replay took 1.00–1.15 ms. The GPU arm
+took 2.68–2.75 s including readiness and the arrival wait. Discovery has its
+own timing. These measurements describe the two synthetic 64 KiB
+writes in a driver-free callback fixture.
+[Controller arrival evidence](evidence/windows-controller-arriving-write-bursts-2026-11-24.json)
 
 ## Activating a route on a running volume
 

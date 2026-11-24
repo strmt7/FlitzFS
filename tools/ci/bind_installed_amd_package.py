@@ -143,7 +143,11 @@ def bind(package: Path, approved: str) -> tuple[str, list[str]]:
                 "Write trial launch exceeds its approved batch")
         separate_requests = write_trial.get("separate_requests", False)
         require(type(separate_requests) is bool, "Invalid write trial separate_requests")
+        await_later_writes = write_trial.get("await_later_writes", False)
+        require(type(await_later_writes) is bool and (separate_requests or not await_later_writes),
+                "Invalid write trial await_later_writes")
         result += f"inline constexpr bool write_trial_separate_requests={str(separate_requests).lower()};\n"
+        result += f"inline constexpr bool write_trial_await_later_writes={str(await_later_writes).lower()};\n"
         result += f"inline constexpr std::array write_trial_runtime_sha256{{{array_literal(bytes.fromhex(runtime_digest))}}};\n"
         result += "".join(f"inline constexpr std::uint32_t write_trial_{key}={value}U;\n" for key, value in fields.items())
     if anchor is not None:

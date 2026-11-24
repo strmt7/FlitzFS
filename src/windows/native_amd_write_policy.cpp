@@ -375,15 +375,19 @@ NativeAmdDeviceTrial run_native_amd_write_trial(const NativeAmdStoragePolicy& st
     if(finishable) {
       following.reserve(worker->maximum_requests-1);
       const auto member=uniform_lz4_limits(worker->work);
+      TrialClock::time_point supplied_at{};
       const auto decide=[&](std::uint32_t index)->PreparedRequestDecision {
-        if(!index)trial.ready_ns=elapsed_ns(setup);
+        const auto elapsed=elapsed_ns(setup);
+        const auto previous_service=index?elapsed_ns(supplied_at):0;
+        if(!index)trial.ready_ns=elapsed;
         if(!permitted())return {};
         if(!index) {
           ++trial.admitted_requests;
+          supplied_at=TrialClock::now();
           return {PreparedRequestAction::submit,std::move(frame)};
         }
         detail::NativeCapturedWrite captured;
-        const auto action=continuation(index,captured);
+        const auto action=continuation({index,trial.ready_ns,elapsed,previous_service},captured);
         if(stop.stop_requested())return {};
         if(action==PreparedRequestAction::finish) {
           if(captured.sequence || !captured.bytes.empty() || (may_submit && !may_submit()))return {};
@@ -396,6 +400,7 @@ NativeAmdDeviceTrial run_native_amd_write_trial(const NativeAmdStoragePolicy& st
         auto supplied=run_request(request,captured.sequence);
         following.push_back({captured.sequence,std::move(request)});
         ++trial.admitted_requests;
+        supplied_at=TrialClock::now();
         return {action,std::move(supplied)};
       };
       result=WorkerExchangeSession::run_prepared_burst(binding.helper,dispatch.arguments,channel,budget,
@@ -474,6 +479,19 @@ NativeAmdDeviceTrial run_native_amd_write_trial(const NativeAmdStoragePolicy& st
     if(!sample || stop.stop_requested() ||
         !uniform_lz4::add(sample->elapsed_ns,trial.exchange_ns,sample->elapsed_ns))return trial;
     sample->device_executed=true;
+    if(finishable) {
+      const auto funded_replay=replay_funded-worker->parent_metadata_bytes;
+      if(worker->channel.reply_bytes>=funded_replay)return trial;
+      std::vector<UniformLz4BatchInput> supplied;
+      supplied.reserve(batch.members().size());
+      for(std::size_t index=0;index<batch.members().size();++index)
+        supplied.push_back({batch.members()[index].request_id,batch.input(index)});
+      const auto cpu_started=TrialClock::now();
+      trial.matched_cpu=record_native_amd_cpu_batch(storage,supplied,funded_replay-worker->channel.reply_bytes,
+          existing,interrupted);
+      trial.cpu_wall_ns=elapsed_ns(cpu_started);
+      if(!trial.matched_cpu || stop.stop_requested())return trial;
+    }
     trial.sample=sample;
   }catch(...) {}
   return trial;

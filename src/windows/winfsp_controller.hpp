@@ -41,6 +41,7 @@ struct WinFspControllerView {
   std::optional<NativeAmdWriteDemand> amd_write_demand;
   std::optional<WinFspAmdCpuTrial> amd_cpu_trial;
   std::uint64_t amd_cpu_trial_attempts=0,amd_write_trial_attempts=0;
+  bool amd_write_waiting=false;
   std::optional<WinFspAmdWriteTrial> amd_write_trial;
   std::optional<HipDiscoveryStatus> installed_anchor_status,installed_read_status;
   std::uint32_t installed_anchor_attempts=0,installed_anchor_queries=0;
