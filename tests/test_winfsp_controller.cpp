@@ -2384,26 +2384,37 @@ std::vector<Bytes> read_revision_corpus(const std::filesystem::path& path) {
 
 struct RevisionReadProfile {
   std::uint64_t full_logical=0,full_backing=0,sampled_logical=0,sampled_backing=0;
+  std::uint64_t full_ns=0,sampled_ns=0;
 };
 
 template<class Read>
-RevisionReadProfile profile_revision_reads(const Ram& backing,std::span<const Bytes> files,Read&& read) {
+RevisionReadProfile profile_revision_reads(const Ram& backing,std::span<const Bytes> files,Read&& read,
+    unsigned passes=1) {
   RevisionReadProfile result;
   auto read_start=backing.read_bytes;
-  for(std::size_t i=0;i<files.size();++i) {
-    require(read(i,0,static_cast<std::uint32_t>(files[i].size()))==files[i],"Whole revision read differs");
-    result.full_logical+=files[i].size();
+  for(unsigned pass=0;pass<passes;++pass) {
+    for(std::size_t i=0;i<files.size();++i) {
+      const auto start=std::chrono::steady_clock::now();
+      const auto bytes=read(i,0,static_cast<std::uint32_t>(files[i].size()));
+      result.full_ns+=elapsed_ns(start);
+      require(bytes==files[i],"Whole revision read differs");
+      result.full_logical+=files[i].size();
+    }
   }
   result.full_backing=backing.read_bytes-read_start;
   read_start=backing.read_bytes;
-  for(std::size_t i=0;i<files.size();++i) {
-    const auto count=(std::min)(files[i].size(),std::size_t{4096});
-    const auto last=files[i].size()-count;
-    for(const auto offset:{std::size_t{0},last/2,last}) {
-      const auto bytes=read(i,offset,static_cast<std::uint32_t>(count));
-      require(std::ranges::equal(bytes,std::span(files[i]).subspan(offset,count)),
-          "Sampled revision read differs");
-      result.sampled_logical+=count;
+  for(unsigned pass=0;pass<passes;++pass) {
+    for(std::size_t i=0;i<files.size();++i) {
+      const auto count=(std::min)(files[i].size(),std::size_t{4096});
+      const auto last=files[i].size()-count;
+      for(const auto offset:{std::size_t{0},last/2,last}) {
+        const auto start=std::chrono::steady_clock::now();
+        const auto bytes=read(i,offset,static_cast<std::uint32_t>(count));
+        result.sampled_ns+=elapsed_ns(start);
+        require(std::ranges::equal(bytes,std::span(files[i]).subspan(offset,count)),
+            "Sampled revision read differs");
+        result.sampled_logical+=count;
+      }
     }
   }
   result.sampled_backing=backing.read_bytes-read_start;
@@ -2417,7 +2428,7 @@ RevisionReadProfile profile_revision_reads(const NativeFilesystemSnapshot& snaps
   });
 }
 RevisionReadProfile profile_revision_session_reads(NativeFilesystemWriter writer,
-    const Ram& backing,std::span<const Bytes> files) {
+    const Ram& backing,std::span<const Bytes> files,unsigned passes=1) {
   auto session=NativeFileSession::create(std::move(writer));
   std::vector<NativeFileHandle> handles;
   handles.reserve(files.size());
@@ -2425,7 +2436,7 @@ RevisionReadProfile profile_revision_session_reads(NativeFilesystemWriter writer
     handles.push_back(session.open("f"+std::to_string(i),{true,false,false}));
   const auto profile=profile_revision_reads(backing,files,[&](std::size_t i,std::uint64_t offset,std::uint32_t count) {
     return session.read(handles[i],offset,count);
-  });
+  },passes);
   for(const auto& handle:handles) {
     session.cleanup(handle,false);
     session.close(handle);
@@ -2842,7 +2853,8 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   RevisionReadProfile grouped_session_reads;
   {
     auto writer=NativeFilesystemWriter::compact(closed.filesystem(),packed,id(3),compression);
-    if(revision)grouped_session_reads=profile_revision_session_reads(std::move(writer),*packed,originals);
+    if(revision || dense_collective)
+      grouped_session_reads=profile_revision_session_reads(std::move(writer),*packed,originals,dense_collective?16U:1U);
   }
   const auto reopened=NativeFilesystemSnapshot::open_image(packed,{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes});
   const auto audit_bytes_before=packed->read_bytes,audit_calls_before=packed->read_calls;
@@ -2873,6 +2885,10 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
         <<" sampled_input_backing="<<baseline_session_reads.sampled_backing
         <<" sampled_grouped_backing="<<grouped_session_reads.sampled_backing<<'\n';
   }
+  if(dense_collective)std::cout<<"collective_dense_session_reads full_ns="<<grouped_session_reads.full_ns
+      <<" full_logical="<<grouped_session_reads.full_logical<<" full_backing="<<grouped_session_reads.full_backing
+      <<" sampled_ns="<<grouped_session_reads.sampled_ns<<" sampled_logical="<<grouped_session_reads.sampled_logical
+      <<" sampled_backing="<<grouped_session_reads.sampled_backing<<" verified=true\n";
   const auto cohort=revision?"revision-corpus":dense_collective?"collective-dense":
       collective?(bank.empty()?"collective-synthetic":"collective-public"):
       full_reference?(bank.empty()?"xor-full-reference-synthetic":"xor-full-reference-public"):

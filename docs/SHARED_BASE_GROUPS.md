@@ -212,6 +212,18 @@ snapshots verified the bytes again from backing storage. The measurements cover
 backing traffic in the native session, with mounted throughput and latency
 remaining open. [Retained base read evidence](evidence/indexed-retained-anchor-reads-2026-11-20.json)
 
+Indexed reads now retain a lazily computed payload digest with each owned base
+frame. The reader compares that digest to each member's declared dependency and
+checks the reconstructed bytes independently. The existing checkpoint and
+degradation checks clear the cached frame and its digest together. Dense XOR
+planes reconstruct eight bytes per word update on little-endian hosts.
+
+Across four alternating Windows native-session pairs on fifteen public-source
+files with controlled edits, whole-file median read time fell from 57.0 to
+49.0 ms and sampled 4 KiB read time fell from 49.6 to 42.7 ms. Each run verified
+the returned bytes and used identical backing traffic and occupied size.
+[Paired grouped read evidence](evidence/windows-collective-dense-readback-2026-11-24.json)
+
 The subsequent [staged-work validation](evidence/staged-shared-base-2026-11-15.json)
 qualifies the cooperative API, foreground reconciliation, stale/owner/cancel
 guards, private budget refusal and interruption recovery separately from the

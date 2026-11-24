@@ -21,6 +21,20 @@ struct NativeGroupReference {
   NativeGroupMethod method=NativeGroupMethod::aligned_patches;
   bool operator==(const NativeGroupReference&) const=default;
 };
+// The decoded base and its lazy digest move together in the serialized read
+// cache. A caller cannot substitute a digest for different bytes.
+class NativeGroupBase final {
+ public:
+  NativeGroupBase(std::vector<std::byte> record,std::size_t payload_offset);
+  std::span<const std::byte> payload() const noexcept;
+  const Digest& payload_digest() const;
+  std::vector<std::byte> take_payload() &&;
+ private:
+  std::vector<std::byte> record_;
+  std::size_t payload_offset_;
+  mutable std::optional<Digest> digest_;
+};
+
 // Read the bound identity and digests from the header. The checked decoder
 // validates the payload as it reconstructs the member.
 NativeGroupReference read_native_group_header(std::span<const std::byte>,NativeGroupMethod maximum_method);
@@ -28,6 +42,8 @@ NativeGroupReference parse_native_group_member(std::span<const std::byte>,
     NativeGroupMethod maximum_method=NativeGroupMethod::aligned_patches);
 std::vector<std::byte> decode_native_group_member(std::span<const std::byte> member,
     std::span<const std::byte> base,NativeGroupMethod maximum_method=NativeGroupMethod::aligned_patches);
+std::vector<std::byte> decode_native_group_member(std::span<const std::byte> member,
+    const NativeGroupBase& base,NativeGroupMethod maximum_method);
 std::optional<std::vector<std::byte>> encode_native_group_member(std::span<const std::byte> member,
     std::span<const std::byte> base,std::uint64_t base_id,std::uint64_t base_generation);
 std::optional<std::vector<std::byte>> encode_native_group_xor(std::span<const std::byte> member,

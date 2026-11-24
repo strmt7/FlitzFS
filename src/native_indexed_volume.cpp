@@ -290,20 +290,22 @@ DecodedIndexedExtent decode_extent(const PagedObjectStoreSnapshot& source,const 
         auto frame=fetch(source,reference.base_id,base_size,reference.base_generation);
         if(!frame)fail(Code::corrupt,"indexed shared-base generation mismatch");
         verify_base_frame(*frame);
-        scratch={reference.base_id,reference.base_generation,std::move(*frame)};
+        scratch={reference.base_id,reference.base_generation,NativeGroupBase(std::move(*frame),base_magic.size())};
       }
       anchor=&scratch;
     }
-    const auto anchor_payload=std::span<const std::byte>(anchor->frame).subspan(base_magic.size());
+    if(!anchor->base)fail(Code::corrupt,"indexed shared-base frame missing");
     if(slice) {
+      const auto anchor_payload=anchor->base->payload();
+      if(anchor_payload.size()!=kNativeExtentBytes)fail(Code::corrupt,"indexed shared-base size differs");
       const auto data=checked_packed_payload(bytes,*slice,anchor_payload);
       validate_payload(inode,block,data);
       Bytes decoded(data.begin(),data.end());
       if(retained && anchor==&scratch)retained->remember(scratch);
       return {std::move(decoded),0,reference.base_id,0,true};
     }
-    auto decoded=decode_native_group_member(member,anchor_payload,maximum_method);
-    const auto reusable=compare_anchor && std::ranges::equal(decoded,anchor_payload)?anchor->generation:0;
+    auto decoded=decode_native_group_member(member,*anchor->base,maximum_method);
+    const auto reusable=compare_anchor && std::ranges::equal(decoded,anchor->base->payload())?anchor->generation:0;
     while(!decoded.empty() && decoded.back()==std::byte{})decoded.pop_back();
     validate_payload(inode,block,decoded);
     if(retained && anchor==&scratch)retained->remember(scratch);
@@ -1438,12 +1440,11 @@ std::vector<std::byte> IndexedSharedBasePreparation::read_member(Member& member,
   member.previous_base=extent.base;
   member.payload_bytes=extent.payload().size();
   if(reuse_bound_base) {
-    if(!bound.object || bound.object!=extent.base || !bound.generation)
+    if(!bound.object || bound.object!=extent.base || !bound.generation || !bound.base)
       fail(Code::invalid_operation,"indexed candidate no longer refers to a shared base");
     reusable_anchor_=bound.object;
     reusable_generation_=bound.generation;
-    bound.frame.erase(bound.frame.begin(),bound.frame.begin()+static_cast<std::ptrdiff_t>(base_magic.size()));
-    return std::move(bound.frame);
+    return std::move(*bound.base).take_payload();
   }
   if(extent.reusable_anchor_generation) {
     reusable_anchor_=extent.base;

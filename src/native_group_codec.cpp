@@ -161,8 +161,20 @@ void apply_dense_xor_plane(std::span<std::byte> tile,unsigned bit,std::span<cons
   std::size_t at=0;
   for(const auto packed:plane) {
     const auto value=std::to_integer<unsigned>(packed);
-    for(unsigned i=0;i<8;++i)
-      tile[at+i]^=static_cast<std::byte>(((value>>i)&1U)<<bit);
+    if constexpr(std::endian::native==std::endian::little) {
+      // Split the bits into nibbles, pairs and then individual bytes.
+      auto spread=static_cast<std::uint64_t>(value);
+      spread=(spread|(spread<<28))&0x0000000f0000000fULL;
+      spread=(spread|(spread<<14))&0x0003000300030003ULL;
+      spread=(spread|(spread<<7))&0x0101010101010101ULL;
+      std::uint64_t word;
+      std::memcpy(&word,tile.data()+at,sizeof(word));
+      word^=spread<<bit;
+      std::memcpy(tile.data()+at,&word,sizeof(word));
+    } else {
+      for(unsigned i=0;i<8;++i)
+        tile[at+i]^=static_cast<std::byte>(((value>>i)&1U)<<bit);
+    }
     at+=8;
   }
 }
@@ -512,10 +524,35 @@ NativeGroupReference parse_native_group_member(std::span<const std::byte> bytes,
   }
   return ref;
 }
-std::vector<std::byte> decode_native_group_member(std::span<const std::byte> bytes,
-    std::span<const std::byte> base,NativeGroupMethod maximum_method) {
+NativeGroupBase::NativeGroupBase(std::vector<std::byte> record,std::size_t payload_offset)
+    :record_(std::move(record)),payload_offset_(payload_offset) {
+  if(payload().size()!=extent)fail();
+}
+std::span<const std::byte> NativeGroupBase::payload() const noexcept {
+  if(payload_offset_>record_.size() || record_.size()-payload_offset_!=extent)return {};
+  return std::span(record_).subspan(payload_offset_);
+}
+const Digest& NativeGroupBase::payload_digest() const {
+  if(!digest_) {
+    const auto bytes=payload();
+    if(bytes.size()!=extent)fail();
+    digest_=record_digest(bytes);
+  }
+  return *digest_;
+}
+std::vector<std::byte> NativeGroupBase::take_payload() && {
+  if(payload().size()!=extent)fail();
+  record_.erase(record_.begin(),record_.begin()+static_cast<std::ptrdiff_t>(payload_offset_));
+  payload_offset_=0;
+  digest_.reset();
+  return std::move(record_);
+}
+
+namespace {
+std::vector<std::byte> decode_group_member(std::span<const std::byte> bytes,
+    std::span<const std::byte> base,NativeGroupMethod maximum_method,const Digest* retained_digest=nullptr) {
   const auto ref=read_native_group_header(bytes,maximum_method);
-  if(base.size()!=extent || record_digest(base)!=ref.base_digest)fail();
+  if(base.size()!=extent || (retained_digest?*retained_digest:record_digest(base))!=ref.base_digest)fail();
   std::vector<std::byte> result;
   const auto literal=[&](auto offset,auto input){std::copy(input.begin(),input.end(),result.begin()+offset);};
   if(ref.method==NativeGroupMethod::prefixed_zstd) {
@@ -533,6 +570,16 @@ std::vector<std::byte> decode_native_group_member(std::span<const std::byte> byt
     else apply_modular_delta(bytes.subspan(header),delta_parameters(bytes),result);
   }
   if(record_digest(result)!=ref.decoded_digest)fail();return result;
+}
+}
+
+std::vector<std::byte> decode_native_group_member(std::span<const std::byte> bytes,
+    std::span<const std::byte> base,NativeGroupMethod maximum_method) {
+  return decode_group_member(bytes,base,maximum_method);
+}
+std::vector<std::byte> decode_native_group_member(std::span<const std::byte> bytes,
+    const NativeGroupBase& base,NativeGroupMethod maximum_method) {
+  return decode_group_member(bytes,base.payload(),maximum_method,&base.payload_digest());
 }
 void bind_native_group_member(std::span<std::byte> member,std::uint64_t base_id,
     std::uint64_t generation,NativeGroupMethod maximum_method) {

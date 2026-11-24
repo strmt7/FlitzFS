@@ -205,7 +205,15 @@ The writer independently reconstructs and checks the member before considering
 that representation for publication. A CPU fixture supplied four dense replies
 to the normal preparation path. Three were selected, the altered reply fell
 back to the CPU, and all five files reopened byte for byte after compaction.
-[Qualification and device admission](evidence/windows-collective-dense-xor-2026-11-24.json)
+[Initial qualification and device admission](evidence/windows-collective-dense-xor-2026-11-24.json)
+
+A subsequent matched Radeon run produced 20 dense bodies. The revised worker
+returned 539,284 reply bytes and supplied the selected encoding for all 100
+members. The older worker returned 544,404 bytes and supplied 80 selected
+encodings. Both protected images occupied 1,982,464 bytes, and all 15 files
+passed independent CPU readback. The order reversals deferred during GPU load,
+so the timing comparison remains a single pair.
+[Live Radeon evidence](evidence/windows-collective-dense-readback-2026-11-24.json)
 
 AMD recommends minimizing host-device transfers and reusing on-device data.
 Falcon motivates evaluating bit-plane density and reports results on

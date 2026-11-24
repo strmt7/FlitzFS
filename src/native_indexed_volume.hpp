@@ -214,7 +214,7 @@ struct IndexedDirectoryPage {
 };
 struct IndexedSharedBaseRead {
   std::uint64_t object=0,generation=0;
-  std::vector<std::byte> frame;
+  std::optional<NativeGroupBase> base;
 };
 
 // A serialized writer can retain verified base frames at its current

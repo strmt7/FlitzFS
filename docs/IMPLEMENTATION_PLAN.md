@@ -957,7 +957,27 @@ latency before admitting a production profile.
    through the CPU when a body reconstructed different bytes. Compare both
    arena versions and CPU on the same native cohorts. Measure reply bytes,
    selected representations, complete image size, and total maintenance cost.
-   [Dense XOR qualification](evidence/windows-collective-dense-xor-2026-11-24.json)
+   One paired Radeon trial now verifies the third encoding through native
+   publication and CPU recovery. The revised worker supplied 100 selected
+   encodings and the older worker supplied 80. Both images occupied the same
+   number of bytes. Ordinary CPU grouped reads reuse the verified base digest and
+   apply dense planes one word at a time.
+   [Device and CPU read evidence](evidence/windows-collective-dense-readback-2026-11-24.json)
+
+   For accelerated shared-base reads, capture each protected member record and
+   its checked base under the same indexed checkpoint. Bind the capture to the
+   image, member and base generations, the backing records, and the expected
+   decoded digest. Upload each base once for the admitted members that use it.
+   Compare per-tile CPU and AMD costs including transfer, verification, and
+   retirement. Retain the CPU path on pressure, a changed binding, or a late
+   result. The parent checks the reconstructed bytes before ready delivery.
+   Recent GPU bit-packing and tiled-decode work motivates coalesced work and
+   bounded materialization. Qualify the benefit with the ordinary file read
+   workload where results return to host memory.
+   [AMD device layout](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/understand/hardware_implementation.html) ·
+   [Invariant bit packing](https://arxiv.org/abs/2605.30728) ·
+   [Tiled GPU decompression](https://arxiv.org/abs/2610.32695)
+
    Extend finite exchanges to independently admitted collective cohorts.
    Bind each job to a source revision, verify decoded bytes before publication,
    and retire the helper when admitted work drains or foreground demand rises.

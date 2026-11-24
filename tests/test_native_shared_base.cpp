@@ -221,6 +221,29 @@ void packed_xor_codec() {
   rejects([&]{(void)detail::decode_native_group_member(*encoded,base,NativeGroupMethod::anchor_copies);},
       "anchor-copy capability admitted a packed XOR frame");
 
+  // Exercise all eight output bit positions and every packed byte value.
+  auto patterns=base;
+  for(unsigned bit=0;bit<8;++bit) {
+    for(unsigned packed=0;packed<256;++packed) {
+      const auto at=static_cast<std::size_t>(bit*256+packed)*8;
+      for(unsigned lane=0;lane<8;++lane)
+        patterns[at+lane]^=static_cast<std::byte>(((packed>>lane)&1U)<<bit);
+    }
+  }
+  const auto pattern_frame=detail::encode_native_group_xor(patterns,base,id,17,kNativeExtentBytes);
+  Bytes record(8,std::byte{42});
+  record.insert(record.end(),base.begin(),base.end());
+  const detail::NativeGroupBase retained(record,8);
+  require(pattern_frame && detail::decode_native_group_member(*pattern_frame,retained,method)==patterns &&
+      detail::decode_native_group_member(*pattern_frame,base,method)==patterns,"Packed word expansion differs from its byte layout");
+  auto transferred=retained;
+  require(std::move(transferred).take_payload()==base,"Retained base payload transfer changed bytes");
+  auto other=record;
+  other.back()^=std::byte{1};
+  const detail::NativeGroupBase wrong_base(std::move(other),8);
+  rejects([&]{(void)detail::decode_native_group_member(*pattern_frame,wrong_base,method);},
+      "A different retained base decoded the member");
+
   auto member=base;
   member[0]^=std::byte{0x81};
   member[1]^=std::byte{0x80};
@@ -254,6 +277,7 @@ void packed_xor_codec() {
       for(unsigned i=0;i<4;++i)bad[100+i]=static_cast<std::byte>(payload>>(8*i));
     }
     rejects([&]{(void)detail::decode_native_group_member(bad,base,method);},"malformed packed XOR member decoded");
+    rejects([&]{(void)detail::decode_native_group_member(bad,retained,method);},"malformed member used a retained base");
   }
 }
 void sparse_xor_codec() {

@@ -1,0 +1,836 @@
+{
+  "schema": 1,
+  "date": "2026-11-24",
+  "base": "e7258218bc27aef315ff09e8f90823105a0ccac2",
+  "tested_blobs": {
+    "src/native_group_codec.cpp": "3d573f1f05bf6c730462996c9e27c3e60c4578af",
+    "src/native_group_codec.hpp": "a080c503d2f6361b1ebc4b8daaa9c82ba0e3f0bd",
+    "src/native_indexed_volume.cpp": "e585cf53ced7df4d7659bc841f8f4bef91e20921",
+    "src/native_indexed_volume.hpp": "014097ec278508bfee3b99c7d8e8981ac7cbe137",
+    "tests/test_native_shared_base.cpp": "ab0b59a1f79fdbe8a9c2d61fab3ff6935683ba4d",
+    "tests/test_winfsp_controller.cpp": "6b2be197429c5a5e00fda14e39b439921c894e74"
+  },
+  "navigation": {
+    "path": "routing-receipt-0.json",
+    "receipt_sha256": "bc6d52ca635d0ae21e2ae94e86dfa2ebd3a640ed58e7e615c73130afbe3dee44",
+    "commit": "e7258218bc27aef315ff09e8f90823105a0ccac2",
+    "files": 4,
+    "actual_searches": 1,
+    "hits": [
+      {
+        "file_path": "src/native_group_codec.cpp",
+        "start_line": 760,
+        "end_line": 779,
+        "score": 0.7929794380575004
+      },
+      {
+        "file_path": "src/windows/winfsp_native.cpp",
+        "start_line": 1150,
+        "end_line": 1162,
+        "score": 0.7883865660286613
+      },
+      {
+        "file_path": "src/windows/winfsp_native.cpp",
+        "start_line": 276,
+        "end_line": 296,
+        "score": 0.7880931602247028
+      },
+      {
+        "file_path": "src/native_group_codec.cpp",
+        "start_line": 793,
+        "end_line": 810,
+        "score": 0.7796100731249851
+      },
+      {
+        "file_path": "src/native_indexed_volume.cpp",
+        "start_line": 2087,
+        "end_line": 2100,
+        "score": 0.775175880661136
+      }
+    ]
+  },
+  "scope": "Native indexed grouped reads on the owner's Windows host. Paired Radeon verification of the prior collective encoding commit and alternating CPU native-session measurements of the grouped read changes.",
+  "dense_device": {
+    "source_commit": "e7258218bc27aef315ff09e8f90823105a0ccac2",
+    "prior_offline_evidence": "windows-collective-dense-xor-2026-11-24.json",
+    "staged_pins": {
+      "legacy": {
+        "flitzfs_winfsp_controller_tests.exe": {
+          "sha256": "13c873a5d0eddedf05d5ae7f00a44cf68985bb97b4544e2f14993f79e0a4707a",
+          "bytes": 2951680
+        },
+        "winfsp-x64.dll": {
+          "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+          "bytes": 200816
+        },
+        "flitzfs_hip_worker.exe": {
+          "sha256": "f909f3037217f1258409b61f184f6abc85b046ee9289da4174eec5257fbb92bc",
+          "bytes": 492544
+        },
+        "hip/flitzfs_rocm_kernels.dll": {
+          "sha256": "2fd26121fff5c0c285fea184dfc426a67c347be9b38a1c6d826bed3a6b75746d",
+          "bytes": 1240576
+        },
+        "public-sample-bank.bin": {
+          "sha256": "6c424230786a8433732a01ebdf270c5ef436c1884df2fbac59a8219a0d2781c4",
+          "bytes": 393216
+        }
+      },
+      "revised": {
+        "flitzfs_winfsp_controller_tests.exe": {
+          "sha256": "13c873a5d0eddedf05d5ae7f00a44cf68985bb97b4544e2f14993f79e0a4707a",
+          "bytes": 2951680
+        },
+        "winfsp-x64.dll": {
+          "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+          "bytes": 200816
+        },
+        "flitzfs_hip_worker.exe": {
+          "sha256": "42457674e23c1423b88fbecbbe7a4ac679800fdd603e995f416a5c1dd455f1a5",
+          "bytes": 489984
+        },
+        "hip/flitzfs_rocm_kernels.dll": {
+          "sha256": "1c3668b3c9774b3656e19d7dbc7160bd388d6ba905e05a2184dfde5e544e2bb7",
+          "bytes": 1653248
+        },
+        "public-sample-bank.bin": {
+          "sha256": "6c424230786a8433732a01ebdf270c5ef436c1884df2fbac59a8219a0d2781c4",
+          "bytes": 393216
+        }
+      }
+    },
+    "verified_public_group_members": 100,
+    "files_reopened_and_verified_on_cpu": 15,
+    "legacy_advised_members_selected": 80,
+    "revised_advised_members_selected": 100,
+    "dense_replies": 20,
+    "worker_reply_bytes": {
+      "legacy": 544404,
+      "revised": 539284,
+      "saved": 5120
+    },
+    "protected_compacted_bytes": 1982464,
+    "interpretation": "One complete pair. Order reversals deferred on fresh host GPU load. Repeatable timing and PCIe transfer claims require further device trials.",
+    "observations": {
+      "denseCandidateGate": {
+        "admitted": true,
+        "utc": "2026-11-24T17:46:39.9455867Z",
+        "windows_build": "26300",
+        "devices": [
+          {
+            "Name": "AMD Radeon RX 9070 XT",
+            "Status": "OK",
+            "DriverVersion": "32.0.32029.2010"
+          }
+        ],
+        "cpu": [
+          11.16,
+          10.46
+        ],
+        "peak_gpu_engine": 0.15570643191666905,
+        "available_kib": 28433556,
+        "total_kib": 66704480,
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "other_fixture_processes": 0
+      },
+      "denseCandidate": [
+        "multiwindow_trial mode=amd cohort=collective-dense sparse_device=0 reply_bytes=539284 copy_suggested_ranges=0 copy_compared_ranges=0 copy_suggested_bytes=0 copy_compared_bytes=0 files=15 groups=5 advised_members=100 capability=7 submitted=1 verified_batches=1 worker_ns=2836870600 submitted_groups=5 verified_groups=5 cpu_groups_before_gpu_reply=0 fully_submitted_batches=0 foreground_cancelled=0 submitted_queued_batches=0 verified_queued_batches=0 dispatches_per_wait=0 queued_worker_wall_ns=0 queued_kernel_wait_ns=0 submitted_kernel_launches=25 largest_dispatch_members=4 empty_batches=0 discovery_ns=395717400 maintenance_ns=3156160300 compact_verify_ns=30534600 input_compacted_bytes=13975552 grouped_compacted_bytes=1982464 packed_widths=10 packed_payload_bytes=538480 sampled_bias_members=0 sparse_bodies=40 delta_bodies=40 dense_bodies=20 reference_batches=0 reselected_groups=0 cpu_reference_pairs=0 published_references_changed=0 section_reference_groups=0 packed_reference_groups=0 prefixed_zstd_members=0 retired=true independent_cpu_readback=true modeled_idle_time=true input_blake3=8fb813813dc1bc5484386b8b98dc333e04c9e7bba64520633ddab9418b4c3b7d",
+        "Application fixture peak commit: 153792512 bytes"
+      ],
+      "denseLegacyGate": {
+        "admitted": true,
+        "utc": "2026-11-24T17:46:50.2277323Z",
+        "windows_build": "26300",
+        "devices": [
+          {
+            "Name": "AMD Radeon RX 9070 XT",
+            "Status": "OK",
+            "DriverVersion": "32.0.32029.2010"
+          }
+        ],
+        "cpu": [
+          12.76,
+          8.91
+        ],
+        "peak_gpu_engine": 8.129226133915754,
+        "available_kib": 22085608,
+        "total_kib": 66704480,
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "other_fixture_processes": 0
+      },
+      "denseLegacy": [
+        "multiwindow_trial mode=amd cohort=collective-dense sparse_device=0 reply_bytes=544404 copy_suggested_ranges=0 copy_compared_ranges=0 copy_suggested_bytes=0 copy_compared_bytes=0 files=15 groups=5 advised_members=80 capability=7 submitted=1 verified_batches=1 worker_ns=3005895700 submitted_groups=5 verified_groups=5 cpu_groups_before_gpu_reply=0 fully_submitted_batches=0 foreground_cancelled=0 submitted_queued_batches=0 verified_queued_batches=0 dispatches_per_wait=0 queued_worker_wall_ns=0 queued_kernel_wait_ns=0 submitted_kernel_launches=25 largest_dispatch_members=4 empty_batches=0 discovery_ns=1981990200 maintenance_ns=3323706300 compact_verify_ns=29256900 input_compacted_bytes=13975552 grouped_compacted_bytes=1982464 packed_widths=10 packed_payload_bytes=543600 sampled_bias_members=0 sparse_bodies=60 delta_bodies=40 dense_bodies=0 reference_batches=0 reselected_groups=0 cpu_reference_pairs=0 published_references_changed=0 section_reference_groups=0 packed_reference_groups=0 prefixed_zstd_members=0 retired=true independent_cpu_readback=true modeled_idle_time=true input_blake3=8fb813813dc1bc5484386b8b98dc333e04c9e7bba64520633ddab9418b4c3b7d",
+        "Application fixture peak commit: 153157632 bytes"
+      ],
+      "denseLegacyReversedGate": {
+        "admitted": false,
+        "utc": "2026-11-24T17:47:16.4897816Z",
+        "windows_build": "26300",
+        "devices": [
+          {
+            "Name": "AMD Radeon RX 9070 XT",
+            "Status": "OK",
+            "DriverVersion": "32.0.32029.2010"
+          }
+        ],
+        "cpu": [
+          11.14,
+          8.01
+        ],
+        "peak_gpu_engine": 29.70625973163739,
+        "available_kib": 13386992,
+        "total_kib": 66704480,
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "other_fixture_processes": 0
+      },
+      "denseLegacySecondGate": {
+        "admitted": false,
+        "utc": "2026-11-24T17:58:23.7951366Z",
+        "windows_build": "26300",
+        "devices": [
+          {
+            "Name": "AMD Radeon RX 9070 XT",
+            "Status": "OK",
+            "DriverVersion": "32.0.32029.2010"
+          }
+        ],
+        "cpu": [
+          9.01,
+          5.62
+        ],
+        "peak_gpu_engine": 98.93750856126464,
+        "available_kib": 13024872,
+        "total_kib": 66704480,
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "other_fixture_processes": 0
+      }
+    }
+  },
+  "grouped_cpu": {
+    "baseline_build": {
+      "base": "e7258218bc27aef315ff09e8f90823105a0ccac2",
+      "profiling_harness": "6b2be197429c5a5e00fda14e39b439921c894e74",
+      "artifacts": {
+        "flitzfs_winfsp_controller_tests.exe": {
+          "sha256": "2982169a3c52cb3f8024686e874e3153feb576aae98672d32b2565377bd08382",
+          "bytes": 2953216
+        },
+        "winfsp-x64.dll": {
+          "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+          "bytes": 200816
+        },
+        "public-sample-bank.bin": {
+          "sha256": "6c424230786a8433732a01ebdf270c5ef436c1884df2fbac59a8219a0d2781c4",
+          "bytes": 393216
+        }
+      }
+    },
+    "revised_build": {
+      "artifacts": {
+        "flitzfs_winfsp_controller_tests.exe": {
+          "sha256": "d28ecc24fe7759c310753a4951460bf53d9073c1f76dbe56a28644a29b35542c",
+          "bytes": 2954752
+        },
+        "winfsp-x64.dll": {
+          "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+          "bytes": 200816
+        },
+        "public-sample-bank.bin": {
+          "sha256": "6c424230786a8433732a01ebdf270c5ef436c1884df2fbac59a8219a0d2781c4",
+          "bytes": 393216
+        }
+      }
+    },
+    "sample": "Five groups across fifteen files derived from the same public FlitzFS source bank, with controlled edits. Source identity is checked in every run.",
+    "operation": "Native file session with open handles. Sixteen whole-file passes and sixteen passes of three 4 KiB samples per file. Timings cover read calls. Byte comparisons follow each timed call.",
+    "logical_full_bytes": 110100480,
+    "logical_sampled_bytes": 2949120,
+    "protected_compacted_bytes": 1982464,
+    "backing_read_bytes": {
+      "full": 17939192,
+      "sampled": 28887424,
+      "same_in_every_run": true
+    },
+    "paired_runs": [
+      {
+        "pair": 1,
+        "lane": "baseline",
+        "order": [
+          "baseline",
+          "candidate"
+        ],
+        "phase": "readPair1baseline",
+        "full_ns": 63962700,
+        "sampled_ns": 52063500,
+        "input_blake3": "8fb813813dc1bc5484386b8b98dc333e04c9e7bba64520633ddab9418b4c3b7d",
+        "byte_exact": true
+      },
+      {
+        "pair": 1,
+        "lane": "candidate",
+        "order": [
+          "baseline",
+          "candidate"
+        ],
+        "phase": "readPair1candidate",
+        "full_ns": 49349500,
+        "sampled_ns": 47691600,
+        "input_blake3": "8fb813813dc1bc5484386b8b98dc333e04c9e7bba64520633ddab9418b4c3b7d",
+        "byte_exact": true
+      },
+      {
+        "pair": 2,
+        "lane": "candidate",
+        "order": [
+          "candidate",
+          "baseline"
+        ],
+        "phase": "readPair2candidate",
+        "full_ns": 48706500,
+        "sampled_ns": 40795100,
+        "input_blake3": "8fb813813dc1bc5484386b8b98dc333e04c9e7bba64520633ddab9418b4c3b7d",
+        "byte_exact": true
+      },
+      {
+        "pair": 2,
+        "lane": "baseline",
+        "order": [
+          "candidate",
+          "baseline"
+        ],
+        "phase": "readPair2baseline",
+        "full_ns": 56359600,
+        "sampled_ns": 46000600,
+        "input_blake3": "8fb813813dc1bc5484386b8b98dc333e04c9e7bba64520633ddab9418b4c3b7d",
+        "byte_exact": true
+      },
+      {
+        "pair": 3,
+        "lane": "baseline",
+        "order": [
+          "baseline",
+          "candidate"
+        ],
+        "phase": "readPair3baseline",
+        "full_ns": 55924600,
+        "sampled_ns": 48928800,
+        "input_blake3": "8fb813813dc1bc5484386b8b98dc333e04c9e7bba64520633ddab9418b4c3b7d",
+        "byte_exact": true
+      },
+      {
+        "pair": 3,
+        "lane": "candidate",
+        "order": [
+          "baseline",
+          "candidate"
+        ],
+        "phase": "readPair3candidate",
+        "full_ns": 45095900,
+        "sampled_ns": 42699700,
+        "input_blake3": "8fb813813dc1bc5484386b8b98dc333e04c9e7bba64520633ddab9418b4c3b7d",
+        "byte_exact": true
+      },
+      {
+        "pair": 4,
+        "lane": "candidate",
+        "order": [
+          "candidate",
+          "baseline"
+        ],
+        "phase": "readPair4candidate",
+        "full_ns": 56604600,
+        "sampled_ns": 42783600,
+        "input_blake3": "8fb813813dc1bc5484386b8b98dc333e04c9e7bba64520633ddab9418b4c3b7d",
+        "byte_exact": true
+      },
+      {
+        "pair": 4,
+        "lane": "baseline",
+        "order": [
+          "candidate",
+          "baseline"
+        ],
+        "phase": "readPair4baseline",
+        "full_ns": 57595700,
+        "sampled_ns": 50219800,
+        "input_blake3": "8fb813813dc1bc5484386b8b98dc333e04c9e7bba64520633ddab9418b4c3b7d",
+        "byte_exact": true
+      }
+    ],
+    "statistics_ns": {
+      "full_ns": {
+        "legacy": [
+          63962700,
+          56359600,
+          55924600,
+          57595700
+        ],
+        "newer": [
+          49349500,
+          48706500,
+          45095900,
+          56604600
+        ],
+        "median_legacy": 56977650,
+        "median_new": 49028000,
+        "pairs_faster": 4,
+        "median_reduction": 0.13952225126869922
+      },
+      "sampled_ns": {
+        "legacy": [
+          52063500,
+          46000600,
+          48928800,
+          50219800
+        ],
+        "newer": [
+          47691600,
+          40795100,
+          42699700,
+          42783600
+        ],
+        "median_legacy": 49574300,
+        "median_new": 42741650,
+        "pairs_faster": 4,
+        "median_reduction": 0.13782645443304292
+      }
+    },
+    "universal_or_mounted_performance_claim": false
+  },
+  "validation": {
+    "release": "Eight selected grouped read, indexed store, callback and recovery checks passed.",
+    "codec_free": "The same eight checks passed with both LZ4 and Zstandard disabled.",
+    "address_sanitizer": "Runtime preflight, indexed volume and full packed-XOR matrix passed in the first job. Its broad shared-base executable reached its memory allowance and the combined run later reached the time allowance. Isolated retained-anchor, group admission, callback, full sparse-XOR and full modular-delta checks passed.",
+    "injected_cases_each_in_asan": {
+      "packed_xor": 528,
+      "sparse_xor": 528,
+      "modular_delta": 528
+    },
+    "remaining": "The all-in-one legacy shared-base sanitizer run did not finish within the first job's limits. Release and codec-free versions of that run passed.",
+    "initial_build": "A moved local name was still referenced in the existing reuse comparison. Corrected before the validated build."
+  },
+  "research": [
+    {
+      "receipt_sha256": "070dc84a7ef39427641cd5873ebb397b99c47cd3e0851e9624b247650aa71eff",
+      "provider": "0.9.5+flitzzip.portable2",
+      "pages": [
+        {
+          "name": "tile-decompression",
+          "url": "https://arxiv.org/abs/2610.32695",
+          "success": true,
+          "http": 200,
+          "failure": "",
+          "capture_sha256": "13ec9a65b487fce5e8b676ecd8bc5c233375a83d8a17d10f7f0a8c9c9af2d4b1",
+          "markdown_sha256": "9736355c4dc7a3dd90cae7e98146b8d383a099a71287b04e0f2de68649a018fe"
+        },
+        {
+          "name": "invariant-bit-packing",
+          "url": "https://arxiv.org/abs/2605.30728",
+          "success": false,
+          "http": 0,
+          "failure": "native_failure",
+          "capture_sha256": "0e347753d02f3eba27923b218fb6168d4c04e7ddd9314a7036adc675fcb0269a",
+          "markdown_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "amd-device-layout",
+          "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/understand/hardware_implementation.html",
+          "success": false,
+          "http": 0,
+          "failure": "native_failure",
+          "capture_sha256": "e8f47bc04d7af8beb14d694b5acecc86b75c941a2174dbc6c15e8b64bcc53483",
+          "markdown_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    },
+    {
+      "receipt_sha256": "91ab4bb48dbc295b2b2c3fe2702c702b97981d0e2bbcc58994a0f4a8c760e7e7",
+      "provider": "0.9.5+flitzzip.portable2",
+      "pages": [
+        {
+          "name": "invariant-bit-packing",
+          "url": "https://arxiv.org/abs/2605.30728",
+          "success": true,
+          "http": 200,
+          "failure": "",
+          "capture_sha256": "fe9abf7177bb05d4bbb79064805fbd561f6f73d3f46c2bd3039436d34ad19d36",
+          "markdown_sha256": "738b17c7490e6c0f2f80496604f00d17480052a6a71cecbdb6a5dd32f50cc5d3"
+        },
+        {
+          "name": "amd-device-layout",
+          "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/understand/hardware_implementation.html",
+          "success": true,
+          "http": 200,
+          "failure": "",
+          "capture_sha256": "159fcfe40d5b116bff182dfe014dc9f3640f032031b030809470a8dfe67d893e",
+          "markdown_sha256": "7571e70fe66c5df5e4a7dda626e1480e4464841100c40cad0299741a4af486fd"
+        }
+      ]
+    }
+  ],
+  "runs": {
+    "groupReadNavigation": {
+      "directory": "local-run-da7c60a57980477aa0f07291a900774a",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 42.984,
+      "job_limit_bytes": 1476395008,
+      "peak_bytes": 1086705664,
+      "receipt_sha256": "502148b7a870490fefa01eaac5315697879ac144a0403c0d6c3777a10f2cc715",
+      "log_sha256": "d28098bdd744bd92fec6d54f24215340951dd0435e9a21ad377fa694242d0e7f"
+    },
+    "readResearch": {
+      "directory": "local-run-020e21bd789c4d91863421b0701c234c",
+      "exit": 1,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 4.812,
+      "job_limit_bytes": 1124073472,
+      "peak_bytes": 1124999168,
+      "receipt_sha256": "53482416eb6873670aa7ade539f12bb7176efed9942d90107ea239580a4bd1f7",
+      "log_sha256": "716cb09115a6953c19ba979a1d70d7570f34940a593eb52d31e8f5cb9b05e4b3"
+    },
+    "readResearchRetry": {
+      "directory": "local-run-b4ce9fc7e2914c2ca01c94fa88ff1368",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 4.984,
+      "job_limit_bytes": 1454374912,
+      "peak_bytes": 1203130368,
+      "receipt_sha256": "9d610115bc06cb7714ce4d660248a1e5c0b783062ea6ebca71376e6ffd65fe05",
+      "log_sha256": "3ae0edb4dd2b36b025a473bc6523b5a2426375b9bb83585ab9c76f8bf35d9204"
+    },
+    "denseCandidateGate": {
+      "directory": "local-run-2f69edf0e7fb412796a1a7bafd7d9a36",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 3.687,
+      "job_limit_bytes": 1569718272,
+      "peak_bytes": 97284096,
+      "receipt_sha256": "d666fdbbfd7433260cde473a6739b2a54ef6718db6df097d5bc4bf07983c70d3",
+      "log_sha256": "bc658d70c0de0d0eedd3480d6d82cac096b64ac237112ddb4b4bff2012a1b6d1"
+    },
+    "denseCandidate": {
+      "directory": "local-run-86b35fb0f86749ed94752250a140887f",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 3.765,
+      "job_limit_bytes": 2216689664,
+      "peak_bytes": 155115520,
+      "receipt_sha256": "487c90c9efd74c301d656a4136c97fabc228f97eba7c4a31f9ac23228576b938",
+      "log_sha256": "6dc81fbd679e2214b51c450525f205ea665454d8c88c34296a1b4f4bf37d75b3"
+    },
+    "denseLegacyGate": {
+      "directory": "local-run-6341daeef9fe43808b3ca016b76e62fd",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 3.797,
+      "job_limit_bytes": 1173356544,
+      "peak_bytes": 92602368,
+      "receipt_sha256": "c40c0ee17df8cea4baa5568b7cb59c6e673545707263736bb12a4195ceb4816f",
+      "log_sha256": "8e1a8a07911cd3f01e57808dadd25b8e0836ed8b3e0c4fb5b98c78ba2b175780"
+    },
+    "denseLegacy": {
+      "directory": "local-run-0e14fe8a5af5496394d40433211a5fd9",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 5.547,
+      "job_limit_bytes": 2739929088,
+      "peak_bytes": 154501120,
+      "receipt_sha256": "f1243db077c96d0a0a3fb958d0d6db06baf8ad76c84f409dc029f803247c953d",
+      "log_sha256": "0446c5bd475557b9953a368e2e2040dcf598c8d019ea414faf265295619397d8"
+    },
+    "denseLegacyReversedGate": {
+      "directory": "local-run-26c4128a85454ae89e2acd13ed9c4054",
+      "exit": 2,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 5.578,
+      "job_limit_bytes": 597688320,
+      "peak_bytes": 63721472,
+      "receipt_sha256": "4ee333f79b074fa78748a16a9fb39c187d6c15dab60e709521fff7986f0e15f3",
+      "log_sha256": "e9335ee5ad34504889ef54193a85ee0b59f66c41f70519a7880733a56dee9f2c"
+    },
+    "denseLegacySecondGate": {
+      "directory": "local-run-c4c174e1e8d5446eb3dcfacb27b9eb51",
+      "exit": 2,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 5.469,
+      "job_limit_bytes": 569376768,
+      "peak_bytes": 64954368,
+      "receipt_sha256": "fc6524a8312bb57ea76c8c1462f7a5e77c6e5b2d6ae449267db014422ec95ded",
+      "log_sha256": "0ae7ff3bfcf559fe6ef7b2b495646273837bfa1d1eee8fb09cd88cf7a75a7f81"
+    },
+    "readBaselineBuild": {
+      "directory": "local-run-ec47b8d7ca27427e82230319dfb43abe",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 14.453,
+      "job_limit_bytes": 978321408,
+      "peak_bytes": 449908736,
+      "receipt_sha256": "c93ea90b9befa0131b7585dc1a6c3dbb8f9ede62b216b9157b3db2bc1763477a",
+      "log_sha256": "36552d2e5a1b67d5365a00bedafbdb9c48094dfb99f39e8c0a695050eb5446f4"
+    },
+    "readBaselinePilot": {
+      "directory": "local-run-b4f8909561004b67b2659c51e069e221",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 0.672,
+      "job_limit_bytes": 715128832,
+      "peak_bytes": 80527360,
+      "receipt_sha256": "6ee3b5c1fe60b342cc53b289d54334b4adc6198dd73d55739b73def71d07e4b7",
+      "log_sha256": "8c84c62760d496df70e7f2cbb544edf31b96cafe89100d2275d894eb75965afd"
+    },
+    "readCandidateBuild": {
+      "directory": "local-run-9559c3cb66de4f4bbd2938615c4dfc2e",
+      "exit": 1,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 21.906,
+      "job_limit_bytes": 1055916032,
+      "peak_bytes": 500219904,
+      "receipt_sha256": "b87ec0ea15bf260aaafb2ef26706aa65588ebe5da49d5c408a3fa98d9ff39236",
+      "log_sha256": "c212da0687ae9b291dc9a28835ff1e0cef0ad7257373745e3dc1dd1b2430d416"
+    },
+    "readCandidateExactBuild": {
+      "directory": "local-run-25c6235c9ec141679f6daff409245e89",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 39.235,
+      "job_limit_bytes": 1111490560,
+      "peak_bytes": 456085504,
+      "receipt_sha256": "a9c262b5e01c69270b17df95bb30429b35e69afa2b80e78ebca1a82f11746722",
+      "log_sha256": "4c8964bbb0c1ebf37f09d9c88fd8de150b106d3c3be0361f876dbf69b3d36ca5"
+    },
+    "readCandidatePilot": {
+      "directory": "local-run-0f177614fe994fd4bebf0ed550e57730",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 0.64,
+      "job_limit_bytes": 740294656,
+      "peak_bytes": 80535552,
+      "receipt_sha256": "b09cedc1a59472487f32f3d503ac9337f5e06f41ef765f3e0673602556495b27",
+      "log_sha256": "03894d90e9a5890e459dd7c1cd4875115281d365bc8633eb62d323d51b4f9c80"
+    },
+    "readPair1baseline": {
+      "directory": "local-run-a537fa7e4fdb426fa371a297ebcbcd44",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 0.64,
+      "job_limit_bytes": 753926144,
+      "peak_bytes": 80560128,
+      "receipt_sha256": "73b7d29bdc0388043544f2eab556263b7c013d92f3d72f969742d08102197a89",
+      "log_sha256": "4fe8ef5c0d0b193f08ff22ecbad5ed7e7b8ed47b2b69694fdf2cbe71785435a4"
+    },
+    "readPair1candidate": {
+      "directory": "local-run-903556a5816c454ea6e391c31b15e8ef",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 0.593,
+      "job_limit_bytes": 752877568,
+      "peak_bytes": 80523264,
+      "receipt_sha256": "40109f6e1e71594576a3eb581c2927ccf5c0f096b9d74c0c4fe9ee369b43b710",
+      "log_sha256": "d2df9456634f8584e2a0b6c247cbb0416d0f7815117cbe57c15212ce4d62d0a4"
+    },
+    "readPair2candidate": {
+      "directory": "local-run-1eed6a26c6e44ab097bcb47e22c698e8",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 0.625,
+      "job_limit_bytes": 752877568,
+      "peak_bytes": 80515072,
+      "receipt_sha256": "d5e2e50e7c51f4330eff32309303cc7723bf8a7b6368b75aaa84b2d66b8e50f1",
+      "log_sha256": "ed2375cc90523322ff1263f836f9cbe0af01c3d100445e1d0414505a2e07a15d"
+    },
+    "readPair2baseline": {
+      "directory": "local-run-afa092015fb8492f8593902a47c9759c",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 0.593,
+      "job_limit_bytes": 753926144,
+      "peak_bytes": 80453632,
+      "receipt_sha256": "f40fb4d2870f41efd9f226e93ecba03671957b2f72abcccbe8c51e43be5a8e75",
+      "log_sha256": "3bd962ae04d35ffd0d47e715edefb08316c8f788c667ef8fe0d5d4e893a2e683"
+    },
+    "readPair3baseline": {
+      "directory": "local-run-73d6506f887646ff86586759cf9f4356",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 0.594,
+      "job_limit_bytes": 753926144,
+      "peak_bytes": 80527360,
+      "receipt_sha256": "2d1cc4b1d1089c2ce48b4ad56d2e3fc4b1e8eb21f02e03e8fca9f96e9f8bcd04",
+      "log_sha256": "ebbf1f95c6235d420ab7ab77840c4aaae612d09ffb30d28e4f5ee4527c9a7d60"
+    },
+    "readPair3candidate": {
+      "directory": "local-run-40f15753ad5646c7b481749e73b89ab7",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 0.578,
+      "job_limit_bytes": 752877568,
+      "peak_bytes": 80486400,
+      "receipt_sha256": "440f53b7a607d1bd75ef29392c6fd4e2031093dcdd00a5b514b8c6e54ef9e4a0",
+      "log_sha256": "ae6428f17d7b5e74f7cc3e94a1014ebc895b902303a1e00ed9a0674d45580378"
+    },
+    "readPair4candidate": {
+      "directory": "local-run-90fe9ee60cae46efa6f51c01039bd87e",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 0.609,
+      "job_limit_bytes": 735051776,
+      "peak_bytes": 80519168,
+      "receipt_sha256": "5cf7dff19a9bcccab85ef83551cfe40efe0177346992d936002012cba8502359",
+      "log_sha256": "f192457f8769fc354e62c1b63ecab3026d0e7cd85c06e5484598e71c6c5f8f53"
+    },
+    "readPair4baseline": {
+      "directory": "local-run-84d3444bee584a04a760c456ade600a3",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 0.609,
+      "job_limit_bytes": 735051776,
+      "peak_bytes": 80506880,
+      "receipt_sha256": "1478f413fc18006d3ad8a00f27bc5453a72c77347509261fdac4ee912678cc56",
+      "log_sha256": "ffd4007e7e177ae5911f3e2e7b26055f3b34539e97e883cf9485dc2369ba2099"
+    },
+    "readSuite_release": {
+      "directory": "local-run-f223dd5ba6944f4387ffb48341466f48",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 39.079,
+      "job_limit_bytes": 913309696,
+      "peak_bytes": 45989888,
+      "receipt_sha256": "a4fe1941253a451d14c03f860b3281f84eb5c22eb716427b6ad595126324ab61",
+      "log_sha256": "a8cc0ec1b4f5409ff4c3d609f5982abda93a827f6cb6447e2a7f791140516ccc"
+    },
+    "readSuite_raw_build": {
+      "directory": "local-run-4a9cf10045df40379258f910929cb01f",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 55.594,
+      "job_limit_bytes": 1127219200,
+      "peak_bytes": 507809792,
+      "receipt_sha256": "bc60986605269e5e8f92d837e57bccbaf4020f4d57d27a7633f73b4b4c812562",
+      "log_sha256": "0ad2a463cffe00fb32180a7873005df79c3912780cc8036da17d50bf70b10311"
+    },
+    "readSuite_raw": {
+      "directory": "local-run-535a17819cca434b9792215959bb3142",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 39.312,
+      "job_limit_bytes": 860880896,
+      "peak_bytes": 46227456,
+      "receipt_sha256": "5b467c3585c199931a5a54a411e672c25504878b365ee63561a61012bf64a834",
+      "log_sha256": "d93216a6502e70e4c0537a51c0fe03f25d0a6580b2204d07a2e67950203ef25c"
+    },
+    "readSuite_asan_build": {
+      "directory": "local-run-303373eccfd74e5a8bc4daac1837fa9c",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 53.359,
+      "job_limit_bytes": 1022361600,
+      "peak_bytes": 710574080,
+      "receipt_sha256": "7dd23f1463d5c3626316775265c4f4019bef21724527baab103e811b031d3538",
+      "log_sha256": "4f9b51a49d3dd6fa015450fc6c7574257d87460542e15de02278f5dfef252803"
+    },
+    "readAsanRuntime": {
+      "directory": "local-run-4c7e81f2455d4bdfba93f12922d960e2",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 0.172,
+      "job_limit_bytes": 504365056,
+      "peak_bytes": 9641984,
+      "receipt_sha256": "cc30b38c3f60329d8622447f30f335aaa9c73175cbecf379a62711f9f17d2cf1",
+      "log_sha256": "017e5734db9d4654c869c426781f756cc2ad39aff55ba81583aad172624569fe"
+    },
+    "readSuite_asan": {
+      "directory": "local-run-b726a088fdf446078059498f3baf4ebb",
+      "exit": 1460,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 238.078,
+      "job_limit_bytes": 810549248,
+      "peak_bytes": 813252608,
+      "receipt_sha256": "bfe67263b44217b84eff839b8ac46d5d6fbbceb260a302fc4bf7a806f63d5291",
+      "log_sha256": "6edea88391e01c3f446c904f4321278c5252fe24289a194b84289829e3ca5fa8"
+    },
+    "readAsanSplitGate": {
+      "directory": "local-run-a8bd23a0273e4e70ab18075499603125",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 0.11,
+      "job_limit_bytes": 530579456,
+      "peak_bytes": 11137024,
+      "receipt_sha256": "169611fefdb70f2a2d2f30c4dfee826cffe6cf5a23b90d7ad7a56c22105c8115",
+      "log_sha256": "956e4877fb45616c2ff87238779c3b367fb5df0beffdf7d7229b48036a07b115"
+    },
+    "readAsanRetained": {
+      "directory": "local-run-2f347beaf5ac4eeb84ebfb4cad338cd1",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 0.14,
+      "job_limit_bytes": 1211105280,
+      "peak_bytes": 123207680,
+      "receipt_sha256": "dcae40fbfdc9ba7902d1dda32a9219a730ee648b4a90b315eaad5133d4ef4149",
+      "log_sha256": "f323fee99eccab56b90a07665d00b19db9b6094464d794564e08dda3d03e6c90"
+    },
+    "readAsanIntegration": {
+      "directory": "local-run-726da2787a7e467ebc322e4b50ebdb15",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 17.031,
+      "job_limit_bytes": 1210056704,
+      "peak_bytes": 452907008,
+      "receipt_sha256": "bf9ca5cd78ffc831451eae19ab16ff5679a3aaf7d01399d1ca8234c782b1a49f",
+      "log_sha256": "26d59cc12cc4d0dacfbe302599827fca99575d1e153b5d83c47a49cac44beb34"
+    },
+    "readAsanSparse": {
+      "directory": "local-run-a73524e5e7884f1a8818320bde7f90fc",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 99.594,
+      "job_limit_bytes": 1376780288,
+      "peak_bytes": 508768256,
+      "receipt_sha256": "448e26bdd7a172d7a07033cfeda4712023b3fb6a099ded76d0e3f80b4dccace3",
+      "log_sha256": "c87c101b9fb01c52e5ebec0118af3f8b04c848a66a4297dafc510871c5fd0b90"
+    },
+    "readAsanDelta": {
+      "directory": "local-run-06454b628fd5492d9ff482341370c895",
+      "exit": 0,
+      "exit_confirmed": true,
+      "retired": true,
+      "elapsed_seconds": 151.688,
+      "job_limit_bytes": 1483735040,
+      "peak_bytes": 512921600,
+      "receipt_sha256": "25096b9cf72e13c2bcafbdfa38e3b0a0ce49e45a669c6c557de8b8bcfa3f3a80",
+      "log_sha256": "3fed022a0f8402b61753c7e1d64cfc21326a9428a813972c5dbdb9306a16eb1f"
+    }
+  }
+}
