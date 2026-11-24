@@ -1,0 +1,420 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "created_utc": "2026-11-24 23:50:22 UTC",
+  "qualification": "development",
+  "release_qualified": false,
+  "scope": "Windows build 26300 with indexed protected in-process backing and independent CPU reconstruction.",
+  "source": {
+    "parent": "6dbbefdb1135bdde77c7de322780107666a6ca7e",
+    "parent_tree": "3185e62e48c8ab509d7a80f6a747ae775de440b4",
+    "git_blobs": {
+      "src/native_maintenance.cpp": "ef6839d4660dd51b634daa6da771808c4df81fda",
+      "src/native_maintenance_source.hpp": "dc6e968ba9ac5772dc9597d175960d727a197d52",
+      "src/native_session.cpp": "cc3ca36393f47ac92a489d0c26d70852d22a29b1",
+      "tests/test_native_group_maintenance.cpp": "dad00e64d906b23b9a3e61f620379a7cd328168f"
+    },
+    "worktree_sha256": {
+      "src/native_maintenance.cpp": "f6a4fcb3abcfa545cb21d5651de3df3092f169f41bde9efbb68b1dc996d01720",
+      "src/native_maintenance_source.hpp": "e458b73e832eb3868490c56b33dc8dae5178d5291acfb08b7220a27eee6335ff",
+      "src/native_session.cpp": "721086704ba54739d81f44efd376e7904941c9d6f41a051a2b4ceaf26aa4f74b",
+      "tests/test_native_group_maintenance.cpp": "c0e89d8724d9cf8afa7c1522fa051569d1b7dac7c20c31282914f40edffd67e7"
+    },
+    "parent_profile_sha256": "7626633f52a3fb20bb2100c92165672482fee5608aa969e76c1a6b6fb7cfdfb3",
+    "candidate_profile_sha256": "dd41be1424e16b15efeeb81642ce506c91025492357281be5091b8e7f9a23911"
+  },
+  "mechanism": {
+    "hint": "One lowest nonzero rolling signature from existing bands 8 through 11. Search one checked row at a time under the existing observation grant.",
+    "publication": "Optional rolling rows use ordinary typed postings and full write-byte settlement. A clean refusal drops rolling rows before falling back from modular rows.",
+    "integrity": "Live generation, extent identity and CPU byte checks authorize preparation. The existing allocator price and publication protocol authorize the protected group.",
+    "catalog_wire_changed": false,
+    "filesystem_wire_changed": false
+  },
+  "restarted_displaced_extent": {
+    "offset_bytes": 67,
+    "scope": "Fifteen stored extents plus sparse writes that fund the journal, with live representatives constrained by modeled idle headroom.",
+    "test_mode": "--indexed-projected-coherence",
+    "complete_footprint": [
+      "compacted mirrored image",
+      "selector",
+      "advisory journal",
+      "catalog"
+    ],
+    "cases": [
+      {
+        "type": "coherence_shift",
+        "persisted": 0,
+        "stale": 0,
+        "groups": 0,
+        "lookups": 150,
+        "complete_bytes": 2543616,
+        "image_bytes": 2121728,
+        "catalog_bytes": 159744,
+        "intervening_extents": 12,
+        "exact_cpu_readback": 1
+      },
+      {
+        "type": "coherence_shift",
+        "persisted": 1,
+        "stale": 0,
+        "groups": 1,
+        "lookups": 150,
+        "complete_bytes": 2420736,
+        "image_bytes": 1998848,
+        "catalog_bytes": 159744,
+        "intervening_extents": 12,
+        "exact_cpu_readback": 1
+      },
+      {
+        "type": "coherence_shift",
+        "persisted": 1,
+        "stale": 1,
+        "groups": 0,
+        "lookups": 150,
+        "complete_bytes": 2543616,
+        "image_bytes": 2121728,
+        "catalog_bytes": 159744,
+        "intervening_extents": 12,
+        "exact_cpu_readback": 1
+      }
+    ],
+    "settled_reduction_bytes": 122880,
+    "stale_binding_rejected": true
+  },
+  "projected_long_range_control": {
+    "intervening_extents": 374,
+    "rows": [
+      {
+        "parent": {
+          "type": "projected_catalog_discovery",
+          "aligned_only": 0,
+          "intervening_extents": 374,
+          "lookups": 3379,
+          "groups": 1,
+          "minimum_compacted_bytes_saved": 98304,
+          "catalog_bytes": 495616
+        },
+        "with_rolling_key": {
+          "type": "projected_catalog_discovery",
+          "aligned_only": 0,
+          "intervening_extents": 374,
+          "lookups": 3754,
+          "groups": 1,
+          "minimum_compacted_bytes_saved": 98304,
+          "catalog_bytes": 487424
+        }
+      },
+      {
+        "parent": {
+          "type": "projected_catalog_discovery",
+          "aligned_only": 1,
+          "intervening_extents": 374,
+          "lookups": 376,
+          "groups": 0,
+          "minimum_compacted_bytes_saved": 0,
+          "catalog_bytes": 155648
+        },
+        "with_rolling_key": {
+          "type": "projected_catalog_discovery",
+          "aligned_only": 1,
+          "intervening_extents": 374,
+          "lookups": 752,
+          "groups": 0,
+          "minimum_compacted_bytes_saved": 0,
+          "catalog_bytes": 155648
+        }
+      }
+    ]
+  },
+  "real_corpus_rebuild_controls": {
+    "mode": "--profile-public-reencode",
+    "catalog_nominations_required": false,
+    "interpretation": "The public corpus arms retain the previous protected size and backing byte counts. They do not measure additional matches from a populated persistent catalog.",
+    "workloads": [
+      {
+        "workload": "cpython",
+        "fixture_sha256": "1e4415e2c80bd97dd16978c2d68f4c403489cf5ca38916bdbf574a174763aead",
+        "files": 24,
+        "logical_bytes": 2230850,
+        "group_then_cold_complete_bytes": 868352,
+        "data_size_and_io_equal": true,
+        "byte_exact_cpu_readback": true,
+        "control_and_candidate": [
+          {
+            "arm": "parent",
+            "run": "local-run-a97e90a1f6a244d0a4f5b9f2e41e9b60",
+            "result_sha256": "986065a51928cbff538387fae3256303ff06aad3c4a4ef8dec77e1648a4ec33c",
+            "stdout_sha256": "8c6992a7d47695d7bf19bf268a31dbbbedb35a1ad17297440499d86591cb3336",
+            "exit": 0,
+            "retired": true,
+            "children_at_retirement": 0,
+            "memory_limit_bytes": 1180696576,
+            "peak_job_bytes": 22343680
+          },
+          {
+            "arm": "candidate",
+            "run": "local-run-687574b1148f4be3a38ede5e27cd25ac",
+            "result_sha256": "c012897ce505bc40fb134bfe363458a63532301b170f3ee00f1a5d10cf9af876",
+            "stdout_sha256": "5d9a19a0945a20b2245039e291312a8511330accccab173bba9978addc37399b",
+            "exit": 0,
+            "retired": true,
+            "children_at_retirement": 0,
+            "memory_limit_bytes": 2938109952,
+            "peak_job_bytes": 22179840
+          }
+        ]
+      },
+      {
+        "workload": "ait_ap",
+        "fixture_sha256": "baf1e7283ab49cc5b6c14e77e302637e4f17d84d1603af0fd9f3a62645d6ce1c",
+        "files": 16,
+        "logical_bytes": 38289319,
+        "group_then_cold_complete_bytes": 50462720,
+        "data_size_and_io_equal": true,
+        "byte_exact_cpu_readback": true,
+        "control_and_candidate": [
+          {
+            "arm": "parent",
+            "run": "local-run-a20bd7dba1d144e08369f7b1003cfcd7",
+            "result_sha256": "1f9a4ff225feeceacdea875e9839af2cce86485a1bbfd167d0427e6729b5cfef",
+            "stdout_sha256": "5f9643a9630ecb8a9ca1dffc6356cff5b05b3b47a9207cd523ee47d4361775a8",
+            "exit": 0,
+            "retired": true,
+            "children_at_retirement": 0,
+            "memory_limit_bytes": 1181745152,
+            "peak_job_bytes": 406253568
+          },
+          {
+            "arm": "candidate",
+            "run": "local-run-5e8da736c59e412e9708c72db3741dc6",
+            "result_sha256": "42dd902be3328a11cf93be3514d0ee62ec5241658e391fa7d48b74394d7fba09",
+            "stdout_sha256": "ad7631271014209b91bd4305ac0a851a236819a0e69a0bd2ed6623e2f01c3bf1",
+            "exit": 0,
+            "retired": true,
+            "children_at_retirement": 0,
+            "memory_limit_bytes": 2938109952,
+            "peak_job_bytes": 406044672
+          }
+        ]
+      }
+    ]
+  },
+  "verification": {
+    "parent_build": {
+      "run": "local-run-b767567ec73b4dcca829e7d89d58dc81",
+      "result_sha256": "86218b65a600722a88a43a131d3c6934e0b27196530aa1c64796e89293ab0cc8",
+      "stdout_sha256": "e5099d6f1ab394b9de12812ecbce21f89dc6090e752486ca6363ec23c968dc07",
+      "exit": 0,
+      "retired": true,
+      "children_at_retirement": 0,
+      "memory_limit_bytes": 1190133760,
+      "peak_job_bytes": 331718656
+    },
+    "release_build": {
+      "run": "local-run-c8330c2ce98446dabe2c7521c9a7df7b",
+      "result_sha256": "f4236320acde9b2eab0eda010956ceea7bc26d4242b1f4fb41e0c3627c943fda",
+      "stdout_sha256": "e5099d6f1ab394b9de12812ecbce21f89dc6090e752486ca6363ec23c968dc07",
+      "exit": 0,
+      "retired": true,
+      "children_at_retirement": 0,
+      "memory_limit_bytes": 723517440,
+      "peak_job_bytes": 334512128
+    },
+    "release_suite": {
+      "run": "local-run-e907a79d42084d4e80488e7713ff2054",
+      "result_sha256": "fc40b1a65e70a12105faba9c2f1eb96e66c3a4921d77a132cd344c5b0b98006f",
+      "stdout_sha256": "29b943b04bf4a4b32686e25bd79900c51e154442e9af3e0a667f55b99bb3e57a",
+      "exit": 0,
+      "retired": true,
+      "children_at_retirement": 0,
+      "memory_limit_bytes": 255852544,
+      "peak_job_bytes": 166879232
+    },
+    "raw_build": {
+      "run": "local-run-853420d3778f4b89a058c220c39347b1",
+      "result_sha256": "8bce85c967511640947d354cf39d54fbdd210cf425fca5629aaa1321c2fe0e59",
+      "stdout_sha256": "623ee0e400eba275249a80e288c67dd8f751c55066f6c38f42f9f160318f2320",
+      "exit": 0,
+      "retired": true,
+      "children_at_retirement": 0,
+      "memory_limit_bytes": 703594496,
+      "peak_job_bytes": 339406848
+    },
+    "raw_suite": {
+      "run": "local-run-a8331ce1a5464b9da63c66d900511b12",
+      "result_sha256": "7f39815aa3c16ff2c90d79e157dbe003f515b1665e6e0dd0a87bdaf8f8db9fa6",
+      "stdout_sha256": "2d678bf57dc1d220c7e8765e2fde6deb9746c9e48ba46776b436a6731517f03c",
+      "exit": 0,
+      "retired": true,
+      "children_at_retirement": 0,
+      "memory_limit_bytes": 250609664,
+      "peak_job_bytes": 166674432
+    },
+    "asan_build": {
+      "run": "local-run-486f1f71c86148ea98c41d674e5ff091",
+      "result_sha256": "472dbc81d1d2166c5adfd270e304427dc75d1bbf643d698beb463be6bc430177",
+      "stdout_sha256": "555d53e46e8810b6f7e6c1ced3e73b7f1cc8787b0059f271422f48e026b17583",
+      "exit": 0,
+      "retired": true,
+      "children_at_retirement": 0,
+      "memory_limit_bytes": 875560960,
+      "peak_job_bytes": 588685312
+    },
+    "asan_suite": {
+      "run": "local-run-d7044f0aa8f54a86a004151ae18b928c",
+      "result_sha256": "0408e535b462e7ce77b9b3e0c286c9cd8da1021e2dc61e6e890c527cf88e1dde",
+      "stdout_sha256": "8a1f64292013fb4a4556ff8ccd9a49f8d3b85035ed5dd5c2e5eb238ffe0a49c0",
+      "exit": 0,
+      "retired": true,
+      "children_at_retirement": 0,
+      "memory_limit_bytes": 1193279488,
+      "peak_job_bytes": 756649984
+    },
+    "parent_catalog": {
+      "run": "local-run-ea1412f22cf745f5b0924137765e6439",
+      "result_sha256": "e6cead37797f86ecc7d278c8c34877186a948ed28c3018c313323e8004bd2bd2",
+      "stdout_sha256": "d8b8c65a9e017eb989c08c2f501b84bf5fa6f918bffc1b6fc36b53dea3f55f07",
+      "exit": 0,
+      "retired": true,
+      "children_at_retirement": 0,
+      "memory_limit_bytes": 1019215872,
+      "peak_job_bytes": 161591296
+    },
+    "asan_runtime": {
+      "app_local_dll_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed",
+      "test_executable_sha256": "2879672280c3112f05d242f5eda12484150d7671867d83601825b5c07d8f5d0b"
+    },
+    "verified_cases": [
+      "Funded key publication and exact charge",
+      "Tight grant preserves earlier keys",
+      "Uncertain settlement stops writes",
+      "Reopen after historical catalog retention",
+      "Compaction preserves the current rolling row and removes the stale row",
+      "Stale shifted nomination cannot prepare a group",
+      "Byte-exact independent reopen including retained readers"
+    ],
+    "successful_suite_counts": {
+      "windows_and_sdk_callbacks": 11,
+      "raw_only": 8,
+      "asan_including_runtime_preflight": 4
+    }
+  },
+  "initial_refusals": {
+    "prior_row_count_expectations": {
+      "reason": "Three validation configurations still expected the old posting count. Updated the regression oracles to check exactly funded rolling rows and stale-row removal without weakening charge checks.",
+      "receipts": [
+        {
+          "run": "local-run-2e4525bacfb641b49cdef456ac3877db",
+          "result_sha256": "f639f6bd007844538bde867e7f3c4789e9060027dd97ad38760d6f1bdbd1ec50",
+          "stdout_sha256": "cbafda8750265ed5ee836a222c400587aa6613d2628258f20dff6a1efacc6922",
+          "exit": 8,
+          "retired": true,
+          "children_at_retirement": 0,
+          "memory_limit_bytes": 1257242624,
+          "peak_job_bytes": 167239680
+        },
+        {
+          "run": "local-run-64fcb55700a44c40b2176d610b016d9f",
+          "result_sha256": "2756f0a89f3f6e9332a234489d634849bae69e9daeda444cb1d0b7ddf9f22ee4",
+          "stdout_sha256": "5925770f547465c04c98680188bf20fadd65efbe4275cfa95705d8518722a93c",
+          "exit": 8,
+          "retired": true,
+          "children_at_retirement": 0,
+          "memory_limit_bytes": 1013972992,
+          "peak_job_bytes": 166674432
+        },
+        {
+          "run": "local-run-521a2898839a4fa792e979ceaac39bb7",
+          "result_sha256": "bbc9d3d320936f9bac2ef77f8004c6285df8b170de261b24da4b9274e02dd0aa",
+          "stdout_sha256": "a6efe0aefbe09ebac9710b4e7032876d3c1883abdbe256675b51780a9dda9c60",
+          "exit": 8,
+          "retired": true,
+          "children_at_retirement": 0,
+          "memory_limit_bytes": 901775360,
+          "peak_job_bytes": 756744192
+        }
+      ]
+    },
+    "compiler": {
+      "reason": "One rebuild reached the job memory allowance and failed. The retry derived its grant from prior measured compiler use and fresh host headroom.",
+      "receipt": {
+        "run": "local-run-c0d956df804c42d0b1a0d30c9f60ed84",
+        "result_sha256": "0408de6d2285f6abf38a353696912e745e67c8eeceb74c6d175bca87ede3e723",
+        "stdout_sha256": "86b6da1e3943740e29198681376bb0389a96f10fb96e6a4fb66823c1115d9b14",
+        "exit": 1,
+        "retired": true,
+        "children_at_retirement": 0,
+        "memory_limit_bytes": 275775488,
+        "peak_job_bytes": 275832832
+      }
+    }
+  },
+  "source_navigation": {
+    "commit": "6dbbefdb1135bdde77c7de322780107666a6ca7e",
+    "provider": "0.2.43",
+    "actual_searches": 1,
+    "receipt_sha256": "266b5a70e0a0e529a8021b699918941df3ae1f993121d8eb7dcc8e3eebca055a",
+    "native_capture_sha256": "0a742ed78afcf068624410a46225c361ca49d5b306dbe62684b16c81c4a3300f",
+    "execution": {
+      "run": "local-run-d3ecbca14abb436490b722cc6682be08",
+      "result_sha256": "9def4cd06a42fbe056ab1b66409cc42ae9c8854c576c3fa65f63014f1f606ffb",
+      "stdout_sha256": "fd0da2639d1e365a060da2e070537dfcf0c269821f7c359a0282ec1ca6a1d8e9",
+      "exit": 0,
+      "retired": true,
+      "children_at_retirement": 0,
+      "memory_limit_bytes": 1677721600,
+      "peak_job_bytes": 1101455360
+    }
+  },
+  "primary_research": {
+    "provider": "0.9.5+flitzzip.portable2",
+    "robots": true,
+    "external_llm": false,
+    "receipt_sha256": "b706adc024920b008d51677f06ced47703544ff1c9a741cc915d7e75662b0e08",
+    "execution": {
+      "run": "local-run-67aa89fb6f2747d8856f76c321dc63cb",
+      "result_sha256": "65928e1f48151d0e8900dfdec0052eaa93444b5fc671185c208dcf37ee29d7b0",
+      "stdout_sha256": "ffcd14dbcbb307ca373843124d7f125341dc62d096929dacc65b2c0221b03307",
+      "exit": 0,
+      "retired": true,
+      "children_at_retirement": 0,
+      "memory_limit_bytes": 969932800,
+      "peak_job_bytes": 381923328
+    },
+    "pages": [
+      {
+        "url": "https://www.mdpi.com/2079-9292/15/20/4712",
+        "status": 200,
+        "success": true,
+        "substantive_bytes": 87173,
+        "text_sha256": "f7570526def2f58dbcbc0da15c58c48b1ccef7bfd2a156d0c5e423abe3b3f031",
+        "capture_sha256": "e48e7323291bcf310b513bbed5015af7066d4d0e6ae879d6c10ff03bae9d3077"
+      },
+      {
+        "url": "https://www.usenix.org/conference/fast25/presentation/pan",
+        "status": 200,
+        "success": true,
+        "substantive_bytes": 10830,
+        "text_sha256": "d782d3690a00826d6c11f0476bf91a7820b883b7cd177fe0b86907c990618f3d",
+        "capture_sha256": "eb9a1362195566744015e751389e895a221db3af9897822f5d40698228b160de"
+      },
+      {
+        "url": "https://arxiv.org/abs/2611.22847",
+        "status": 200,
+        "success": true,
+        "substantive_bytes": 8462,
+        "text_sha256": "6b3dcaa92b38f6b1ed2544bedb81ab695a43567bb10eb88edcec791bd7d1eac2",
+        "capture_sha256": "35a24210ecef2344620709497dc6f0c8af7cd1faa9357eaef0e8d52c4111c06f"
+      }
+    ]
+  },
+  "pending": [
+    "Measure shifted-candidate recall and net space using funded catalogs populated with held-out real revision histories.",
+    "Rank multiple valid references and compare with exhaustive protected-size pricing on a small oracle.",
+    "Qualify mounted service and catalog cost at realistic scale, including extra lookup work on preceding catalog layouts."
+  ],
+  "cleanup": {
+    "owned_remaining": 0,
+    "sample_utc": "2026-11-24T23:50:48.2739623Z"
+  }
+}

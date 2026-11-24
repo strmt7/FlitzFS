@@ -477,7 +477,10 @@ consume no write allowance.
 
 After ordinary window candidates are exhausted, the maintenance controller
 can look up the primary band, up to four masked signatures and up to four
-modular signatures, according to the catalog's admitted band types. The
+modular signatures, according to the catalog's admitted band types. It can
+also look up one rolling signature from bands 8–11. The lowest nonzero
+signature selects the key, with ties resolved by band order. A shifted
+key already selected as the primary needs no second probe. The
 controller advances one checked primary or alternate lookup per admitted step
 for ungrouped samples. For an alternate, it resumes at the next existing object
 key in the bounded range, reads at most one posting body and retains the cursor
@@ -507,14 +510,22 @@ and counts the catalog in its net-space comparison.
 A managed session can take ownership of a provisioned writer. On settled
 scan windows it offers a rotating batch of retained features using the same
 band and signature rules as lookup. The primary and masked postings get
-space first. Measured modular signatures can fill the remaining posting
-slots and use the same input-funded write grant. If that plan exceeds
-capacity before writing or settling the charge, the controller can retry
-the earlier key families in the same reservation. It charges the full
-published transaction, including root promotion, and refreshes the
-snapshot for later windows. The modular signatures live in paged postings.
+space first. Each offered row can reserve one additional rolling posting
+within the existing batch size. Measured modular signatures can fill the
+available slots. The same input-funded write grant covers all three. A
+clean refusal drops rolling postings first, then modular postings if
+needed. The admitted transaction charges its complete write footprint
+and refreshes the snapshot for later windows. Rolling keys use the
+existing posting schema.
 [Projected catalog validation](evidence/projected-coherence-catalog-2026-11-19.json)
 [Modular catalog validation](evidence/modular-coherence-catalog-2026-11-19.json)
+[Shifted catalog validation](evidence/indexed-shifted-coherence-2026-11-25.json)
+
+The 374-intervening-extent control kept the same group with 3,754 lookups
+instead of 3,379. The older aligned-only catalog took 752 lookups instead
+of 376 and found no new group. Those misses count toward the next admission
+and candidate recall comparison.
+[Lookup-cost measurements](evidence/indexed-shifted-coherence-2026-11-25.json)
 
 The owned indexed Windows memory volume now supplies a private reservation to
 that scanner. The first useful funded batch creates the catalog in one paged

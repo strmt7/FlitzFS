@@ -163,6 +163,14 @@ std::optional<std::uint32_t> detail::coherence_primary_band(
     if(bands[band] && usable_indexed_band(band,bands[band]))return band;
   return {};
 }
+std::optional<std::uint32_t> detail::coherence_shift_band(
+    const std::array<std::uint64_t,kOptimizationGroupBands>& bands) noexcept {
+  std::optional<std::uint32_t> selected;
+  for(std::uint32_t band=positional_bands;band<bands.size();++band) {
+    if(bands[band] && (!selected || bands[band]<bands[*selected]))selected=band;
+  }
+  return selected;
+}
 struct NativeGroupMaintenance::Impl {
   struct Feature {
     NativeContentToken token;
@@ -604,7 +612,7 @@ struct NativeGroupMaintenance::Impl {
     if(!catalog)return false;
     if(catalog->image()!=image){owner.retire_coherence();return false;}
     constexpr auto modular_query=1+kOptimizationXorProjections;
-    const auto queries=catalog->has_modular_keys()?modular_query+kCoherenceModularWidths:
+    const auto shifted_query=catalog->has_modular_keys()?modular_query+kCoherenceModularWidths:
         catalog->has_projected_keys()?modular_query:1;
     const auto generation=catalog->info().generation;
     for(auto sample=features.lower_bound(coherence_after);sample!=features.end();++sample) {
@@ -613,11 +621,14 @@ struct NativeGroupMaintenance::Impl {
         coherence_after=sample->first;coherence_query=0;coherence_alternate.reset();
       }
       if(!indexed_member_candidate(feature.token))continue;
-      while(coherence_query<queries) {
+      while(coherence_query<=shifted_query) {
         const auto query=coherence_query;
         Band key{};
         if(query==0) {
           if(const auto band=detail::coherence_primary_band(feature.bands))key={*band,feature.bands[*band]};
+        }else if(query==shifted_query) {
+          const auto band=detail::coherence_shift_band(feature.bands);
+          if(band && band!=detail::coherence_primary_band(feature.bands))key={*band,feature.bands[*band]};
         }else if(query<modular_query) {
           const auto index=query-1;
           key={kCoherenceMaskedBand+index,feature.projections[index]};

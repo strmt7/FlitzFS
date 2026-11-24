@@ -1104,6 +1104,15 @@ preparation. With a smaller write grant the managed scanner published
 the earlier signature families in the same reservation.
 [Numeric discovery evidence](evidence/modular-coherence-catalog-2026-11-19.json)
 
+The existing rolling sketches now have one input-funded persisted key per
+eligible representative. On the bounded restart fixture, a 67-byte shift
+after twelve unrelated extents reduced the complete settled footprint
+from 2,543,616 to 2,420,736 bytes. The fixture charges the image, selector,
+optimization area and catalog. It also verifies refusal of a stale
+nomination. Expand the comparison across revision histories and count
+tiers before assigning a larger portion of the catalog budget to these keys.
+[Persistent shifted discovery evidence](evidence/indexed-shifted-coherence-2026-11-25.json)
+
 Indexed discovery can start with the extents in a covered history of
 successful foreground writes. In a 1,034-file fixture, checking the changed
 extent and refreshing the representative took two visits. The unmatched

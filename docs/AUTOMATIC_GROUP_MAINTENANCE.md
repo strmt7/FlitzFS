@@ -301,9 +301,15 @@ This is correctness evidence, not a recognized benchmark or real-data size recor
 
 The Windows helper now integrates observations and low-priority opportunities.
 The owned indexed Windows controller uses the reserved advice area for
-checkpoints. Grow the persistent sparse postings beyond the current window to
-support useful long-range matching, and qualify mounted operation. Measure
-write amplification and reader-side cost on varied workloads.
+checkpoints. A funded rolling key now nominates displaced content outside
+the resident window. The first matched restart saved 122,880 settled bytes
+with the catalog, advice and selector included. The controller rechecks
+the exact live extent before preparing a group.
+[Shifted discovery evidence](evidence/indexed-shifted-coherence-2026-11-25.json)
+
+Measure catalog space and extra lookups per recovered candidate across
+unrelated data, churn and large held-out families. Qualify mounted
+interference, write amplification and reader-side cost.
 Compare stronger collective representations on held-out heterogeneous data,
 including useful actual AMD work and independent CPU decoding. These remain
 required product work.

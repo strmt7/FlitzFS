@@ -25,6 +25,7 @@
     "latest_group_exchange_profile": "docs/evidence/windows-amd-group-supervisor-comparison-2026-11-24.json",
     "latest_group_startup_admission": "docs/evidence/windows-amd-group-startup-admission-2026-11-25.json",
     "latest_protected_size_evidence": "docs/evidence/windows-collective-cold-order-2026-11-24.json",
+    "latest_persistent_shift_evidence": "docs/evidence/indexed-shifted-coherence-2026-11-25.json",
     "settled_size_implementation": "docs/RELEASE_RECONCILIATION_2026-11-24.md#first-settled-size-implementation-sequence",
     "ntfs_comparison": "docs/BENCHMARK_PROTOCOL.md#plain-and-native-compressed-ntfs",
     "first_implementation_slice": "docs/RELEASE_EXECUTION_PLAN.md#first-implementation-slice",

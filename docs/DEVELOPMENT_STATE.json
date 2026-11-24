@@ -55,6 +55,15 @@
     "relocation_scan_backing_read_bytes": {"baseline": 1022381, "with_reuse": 195638},
     "automatic_mounted_workload_qualified": false
   },
+  "persistent_shift_discovery": {
+    "evidence": "docs/evidence/indexed-shifted-coherence-2026-11-25.json",
+    "input_shift_bytes": 67,
+    "intervening_extents": 12,
+    "complete_settled_bytes": {"earlier_key_families": 2543616, "with_rolling_key": 2420736},
+    "stale_nomination_refused": true,
+    "catalog_wire_changed": false,
+    "next": "Measure additional postings per recovered candidate and held-out protected size, then compare the bounded shortlist to exhaustive feasible candidates."
+  },
   "ordinary_amd_write_demand": {
     "evidence": "docs/evidence/windows-ordinary-amd-write-demand-2026-11-23.json",
     "scope": "Three recent CPU service observations per eligible aligned size and exact managed policy. The existing activity signal delivers one coalesced observation to the controller.",

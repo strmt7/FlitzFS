@@ -14,6 +14,8 @@ std::optional<MaintenanceResources> maintenance_resources(const NativeMaintenanc
 std::size_t maintenance_group_member_limit(const MaintenanceResources&,bool indexed) noexcept;
 std::optional<std::uint32_t> coherence_primary_band(
     const std::array<std::uint64_t,kOptimizationGroupBands>&);
+std::optional<std::uint32_t> coherence_shift_band(
+    const std::array<std::uint64_t,kOptimizationGroupBands>&) noexcept;
 struct CoherenceScanKeys {
   std::uint32_t representative;
   OptimizationXorSignatures masked;

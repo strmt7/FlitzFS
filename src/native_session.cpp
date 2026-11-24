@@ -405,14 +405,18 @@ struct NativeFileSession::Impl {
     auto row=static_cast<std::uint32_t>(first-features.begin());
     auto signature=std::ranges::lower_bound(keys,row,{},&detail::CoherenceScanKeys::representative);
     auto end=first;
+    std::size_t shifted_count=0;
     const auto nonzero=[](auto key){return key!=0;};
     for(;end!=features.end();++end,++row) {
       const auto band=detail::coherence_primary_band(end->bands);
+      const auto shifted=detail::coherence_shift_band(end->bands);
+      const bool additional_shift=shifted && shifted!=band;
       const bool has_keys=signature!=keys.end() && signature->representative==row;
       const auto signature_count=has_keys?std::ranges::count_if(signature->masked,nonzero):0;
-      const auto needed=static_cast<std::size_t>(band.has_value())+static_cast<std::size_t>(signature_count);
-      if(needed>kNativeMaxDirtyExtents-postings.size())break;
+      const auto needed=static_cast<std::size_t>(band.has_value())+static_cast<std::size_t>(signature_count)+additional_shift;
+      if(needed>kNativeMaxDirtyExtents-postings.size()-shifted_count)break;
       if(band)postings.push_back({*band,*end});
+      shifted_count+=additional_shift;
       if(has_keys) {
         for(std::uint32_t i=0;i<signature->masked.size();++i)
           if(signature->masked[i])postings.push_back({kCoherenceMaskedBand+i,*end,signature->masked[i]});
@@ -421,14 +425,20 @@ struct NativeFileSession::Impl {
     }
     const auto earlier_count=postings.size();
     // Preserve the primary and masked scan coverage. Numeric keys compete for
-    // the remaining slots in the same funded batch.
+    // slots after funding one optional displaced-content key per feature.
     const auto first_row=static_cast<std::uint32_t>(first-features.begin());
+    const auto numeric_limit=kNativeMaxDirtyExtents-shifted_count;
     for(auto extra=std::ranges::lower_bound(keys,first_row,{},&detail::CoherenceScanKeys::representative);
-        extra!=signature && postings.size()<kNativeMaxDirtyExtents;++extra) {
-      for(std::uint32_t i=0;i<extra->modular.size() && postings.size()<kNativeMaxDirtyExtents;++i) {
+        extra!=signature && postings.size()<numeric_limit;++extra) {
+      for(std::uint32_t i=0;i<extra->modular.size() && postings.size()<numeric_limit;++i) {
         if(extra->modular[i])postings.push_back({kCoherenceModularBand+i,
             features[extra->representative],extra->modular[i]});
       }
+    }
+    const auto numeric_count=postings.size();
+    for(auto feature=first;feature!=end;++feature) {
+      const auto band=detail::coherence_shift_band(feature->bands);
+      if(band && band!=detail::coherence_primary_band(feature->bands))postings.push_back({*band,*feature});
     }
     if(postings.empty())return false;
     bool settled_catalog=false;
@@ -455,13 +465,17 @@ struct NativeFileSession::Impl {
           if(result.write_bytes_upper_bound)maintenance->coherence.emplace(catalog.snapshot());
         }
       };
-      try{publish(postings);}
-      catch(const PagedStoreCapacityError&) {
-        // Only a clean pre-publication refusal can retry with the earlier
-        // key families. No charge, partial catalog or poisoned owner is reused.
-        if(!earlier_count || earlier_count==postings.size() || settled_catalog || advice.poisoned() ||
-            (creating?reserved.backing->extent()!=0:maintenance->coherence_writer->poisoned()))throw;
-        publish(std::span(postings).first(earlier_count));
+      std::size_t previous_count=0;
+      for(const auto count:{postings.size(),numeric_count,earlier_count}) {
+        if(count==previous_count)continue;
+        previous_count=count;
+        try{publish(std::span(postings).first(count));break;}
+        catch(const PagedStoreCapacityError&) {
+          // Remove optional rows only after a clean refusal, before credit or
+          // catalog state has changed.
+          if(!earlier_count || count==earlier_count || settled_catalog || advice.poisoned() ||
+              (creating?reserved.backing->extent()!=0:maintenance->coherence_writer->poisoned()))throw;
+        }
       }
       maintenance->coherence_offer_after=(end-1)->object;
     }catch(const PagedStoreCapacityError& error) {

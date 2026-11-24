@@ -397,6 +397,17 @@ volume scheduler still uses live resources and generation checks. Continue
 with the shift-tolerant candidate comparison and mounted interference.
 [Matched order and write evidence](evidence/windows-collective-cold-order-2026-11-24.json)
 
+The 25 November C3 checkpoint persists one rolling key per eligible sample.
+It found a shifted extent across a restart and reduced complete occupied bytes
+in the controlled test. The next C3 comparison should populate the managed
+catalog with real revision histories, then query it under the same live
+resource grants. Use the earlier key families as the control and price both
+the retained catalog and selected data after compaction. Include two live
+prior candidates in the same bucket and compare the selected reference to
+exhaustive feasible candidates. Record recall, unsuccessful probes, catalog
+writes and p95 lookup and read service time before expanding posting coverage.
+[Persistent shift evidence](evidence/indexed-shifted-coherence-2026-11-25.json)
+
 | Step | Production boundary and deliverable | Exit evidence |
 | --- | --- | --- |
 | C1 · Lock inputs and cost axes | Use the indexed rebuild and AIT fixture loader. Freeze whole-file manifests, allocation unit, protection, initial write policy, cache condition, durable generations and reader pins. Record payload, headers, padding, selector, catalog, live and retired backing, and peak temporary bytes. | Compaction and independent CPU reopen agree with the lossless witness. Report writable and sealed-parity sizes in separate series. Reconcile projected image size against occupied backing. |

@@ -2326,7 +2326,7 @@ void indexed_catalog_discovery(CatalogCase scenario,bool projected=false) {
   f.session->bind_indexed_coherence(gate,{kStoreMaxPhysicalBytes});
   gate->refuse=scenario==CatalogCase::unavailable;
   require(controller.pending(),"new catalog did not wake settled maintenance");
-  const auto lookup_quanta=(noise_count+2)*(1+kOptimizationXorProjections+kCoherenceModularWidths);
+  const auto lookup_quanta=(noise_count+2)*(2+kOptimizationXorProjections+kCoherenceModularWidths);
   for(std::size_t tick=0;tick<3000+lookup_quanta && controller.pending();++tick) {
     auto observation=f.clock.next();
     // Reserve just enough modeled headroom for two ordinary members and two
@@ -2438,6 +2438,118 @@ void indexed_catalog_displaced_candidate() {
       with_previous.image_bytes+with_previous.catalog_bytes+with_previous.selector_bytes<
           latest_only.image_bytes+latest_only.catalog_bytes+latest_only.selector_bytes,
       "the displaced live match did not reduce the occupied volume and catalog");
+}
+void indexed_catalog_shift_candidate() {
+  constexpr PagedStoreLimits limits{kStoreMaxPhysicalBytes};
+  constexpr StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
+  Fixture seed(4096,0,true);
+  auto advice=ram(4096),catalog=ram(4096);
+  require(seed.session->create_budgeted_optimization_area(advice).phase==NativeOptimizationPhase::ready,
+      "shifted discovery requires funded advisory storage");
+  seed.session->bind_indexed_coherence_writer(IndexedCoherenceWriter::create(catalog,id(90),id(1),limits));
+  std::vector<std::pair<std::string,Bytes>> files;
+  files.emplace_back("earlier",data(kNativeExtentBytes,714));
+  files.emplace_back("other",data(kNativeExtentBytes,9137));
+  for(unsigned i=0;i<2;++i)files.emplace_back("input-"+std::to_string(i),Bytes(3*kOptimizationGroupScanInputBytes/4));
+  for(const auto& [name,bytes]:files)put(*seed.session,name,bytes);
+  {
+    NativeGroupMaintenance scanner(*seed.session);
+    finish_pending(seed,scanner);
+    require(scanner.progress().checkpoints_published==1 && !scanner.progress().published_groups,
+        "initial shifted scan did not publish its funded samples");
+  }
+  const auto retained_advice=seed.session->optimization_snapshot().state.group_scan;
+  require(retained_advice && retained_advice->representatives.size()==2 && retained_advice->projections.size()==2,
+      "shifted scan did not retain its earlier sample");
+  const auto& earlier=retained_advice->representatives.front();
+  const auto shifted_band=detail::coherence_shift_band(earlier.bands);
+  require(shifted_band && shifted_band!=detail::coherence_primary_band(earlier.bands),
+      "shifted fixture needs a separate rolling key");
+  const auto persisted=IndexedCoherenceSnapshot::open(catalog,id(90),id(1),limits);
+  require(persisted.find(*shifted_band,earlier.bands[*shifted_band])==earlier,
+      "funded scan omitted its shifted posting");
+
+  // Build the prior key families from the same exact checkpoint samples.
+  auto prior_catalog=ram(4096);
+  {
+    std::vector<IndexedCoherencePosting> previous;
+    for(std::uint32_t row=0;row<retained_advice->representatives.size();++row) {
+      const auto& feature=retained_advice->representatives[row];
+      const auto band=detail::coherence_primary_band(feature.bands);
+      require(band.has_value() && retained_advice->projections[row].representative==row &&
+          feature.content==detail::record_digest(files[row].second),
+          "prior catalog control is not bound to the same sample");
+      previous.push_back({*band,feature});
+      const auto& masked=retained_advice->projections[row].signatures;
+      const auto numeric=detail::native_group_delta_signatures(files[row].second);
+      for(std::uint32_t i=0;i<masked.size();++i)if(masked[i])previous.push_back({kCoherenceMaskedBand+i,feature,masked[i]});
+      for(std::uint32_t i=0;i<numeric.size();++i)if(numeric[i])previous.push_back({kCoherenceModularBand+i,feature,numeric[i]});
+    }
+    auto writer=IndexedCoherenceWriter::create(prior_catalog,id(90),id(1),limits);
+    writer.publish(previous,UINT64_MAX);
+    require(!writer.snapshot().find(*shifted_band,earlier.bands[*shifted_band]),"prior catalog gained a rolling key");
+  }
+  for(unsigned i=0;i<12;++i) {
+    files.emplace_back("intervening-"+std::to_string(i),data(kNativeExtentBytes,44000+i));
+    put(*seed.session,files.back().first,files.back().second);
+  }
+  auto displaced=files.front().second;
+  constexpr std::size_t shift=67;
+  std::copy_n(files.front().second.begin(),displaced.size()-shift,displaced.begin()+shift);
+  std::fill_n(displaced.begin(),shift,std::byte{0xf2});
+  files.emplace_back("later",std::move(displaced));
+  put(*seed.session,files.back().first,files.back().second);
+  const auto run=[&](const std::shared_ptr<Ram>& backing,bool shifted,bool stale) {
+    Fixture trial(image(seed.head->stable,4096),image(seed.image->stable,4096),raw);
+    const auto before=trial.session->snapshot();
+    const auto replacement=data(kNativeExtentBytes,72831);
+    if(stale) {
+      const auto handle=trial.session->open("earlier",{true,true,false});
+      trial.session->write(handle,0,replacement);trial.session->cleanup(handle,false);trial.session->close(handle);
+    }
+    trial.session->bind_indexed_coherence(backing,limits);
+    NativeGroupMaintenance scanner(*trial.session);
+    for(unsigned tick=0;tick<2000 && scanner.pending();++tick) {
+      auto observed=trial.clock.next();
+      observed.physical_available=observed.physical_total/16+64*(33ULL*kNativeExtentBytes);
+      const auto lookups=scanner.progress().coherence_lookups;
+      const auto progress=scanner.advance(observed,trial.clock.now);
+      require(progress.phase!=Phase::failed && progress.coherence_lookups<=lookups+1,
+          "shifted discovery exceeded its admitted lookup quantum");
+    }
+    const auto progress=scanner.progress();
+    require(!scanner.pending() && !progress.coherence_failures &&
+        progress.published_groups==(shifted && !stale?1U:0U) &&
+        progress.attempted_groups==(shifted && !stale?1U:0U),
+        "shifted discovery missed a live match or opened a stale one");
+    scanner.cancel();trial.session.reset();
+    const auto current=NativeVolumeHeadView::open(trial.head,id(90),[&](const auto& key)->std::shared_ptr<StoreByteIo> {
+      return key==id(1)?trial.image:nullptr;
+    });
+    const auto compacted=ram(4096);
+    (void)NativeFilesystemWriter::compact(current.filesystem(),compacted,id(2),raw);
+    const auto reopened=NativeFilesystemSnapshot::open_image(compacted,{NativeImageKind::indexed_paged,limits.maximum_physical_bytes});
+    reopened.verify_all();before.verify_all();
+    for(const auto& [name,bytes]:files) {
+      const auto& expected=stale && name=="earlier"?replacement:bytes;
+      for(std::size_t at=0;at<bytes.size();at+=kNativeExtentBytes) {
+        const auto length=(std::min)(std::size_t{kNativeExtentBytes},bytes.size()-at);
+        const auto prior=before.read(name,at,length);
+        const auto recovered=reopened.read(name,at,length);
+        require(std::ranges::equal(prior,std::span(bytes).subspan(at,length)) &&
+            std::ranges::equal(recovered,std::span(expected).subspan(at,length)),"shifted discovery changed file bytes");
+      }
+    }
+    const auto total=compacted->extent()+trial.head->extent()+advice->extent()+backing->extent();
+    std::cout<<"coherence_shift persisted="<<shifted<<" stale="<<stale<<" groups="<<progress.published_groups
+        <<" lookups="<<progress.coherence_lookups<<" complete_bytes="<<total
+        <<" image_bytes="<<compacted->extent()<<" catalog_bytes="<<backing->extent()
+        <<" intervening_extents=12 exact_cpu_readback=1\n";
+    return total;
+  };
+  const auto unshifted=run(prior_catalog,false,false);
+  require(run(catalog,true,false)<unshifted,"shifted match did not repay its occupied catalog space");
+  (void)run(catalog,true,true);
 }
 void indexed_catalog_metadata_space_refusal() {
   OptimizationGroupFeature feature{2,0,detail::kNativeIndexedDataObject+1,1,
@@ -2835,12 +2947,15 @@ void funded_indexed_catalog(CatalogFunding outcome) {
   const auto recorded=*settled.state.settled_input_bytes;
   if(outcome==CatalogFunding::available) {
     const auto spent=backing->write_bytes-catalog_writes;
-    require(view.info().objects==1+2*(1+kOptimizationXorProjections+kCoherenceModularWidths) &&
+    require(view.info().objects==1+2*(2+kOptimizationXorProjections+kCoherenceModularWidths) &&
         view.has_modular_keys() && view.info().physical_end>initial_end && spent>0 &&
         recorded>=kOptimizationGroupScanInputBytes+spent*kOptimizationGroupScanInputPerWriteByte,
         "automatic feature publication escaped its durable write charge");
-    for(const auto& feature:settled.state.group_scan->representatives)
-      require(view.find(0,feature.bands[0])==feature,"catalog lost its sampled representative");
+    for(const auto& feature:settled.state.group_scan->representatives) {
+      const auto shifted=detail::coherence_shift_band(feature.bands);
+      require(view.find(0,feature.bands[0])==feature && shifted &&
+          view.find(*shifted,feature.bands[*shifted])==feature,"catalog lost its aligned or rolling nomination");
+    }
   } else if(outcome==CatalogFunding::checkpoint_only) {
     require(recorded==kOptimizationGroupScanInputBytes && backing->calls==catalog_calls &&
         view.info().objects==1,"checkpoint-only credit permitted catalog writes");
@@ -2920,14 +3035,21 @@ void automatic_indexed_catalog(CatalogFunding outcome) {
     if(outcome==CatalogFunding::available || earlier_only) {
       const auto snapshot=IndexedCoherenceSnapshot::open(backing,id(90),id(1),limits);
       const auto projected=kOptimizationXorProjections+(earlier_only?0:kCoherenceModularWidths);
-      require(snapshot.info().objects==1+2*(1+projected) &&
+      const auto keys_per_feature=1+projected+static_cast<unsigned>(!earlier_only);
+      require(snapshot.info().objects==1+2*keys_per_feature &&
           snapshot.has_projected_keys() && snapshot.has_modular_keys()!=earlier_only && snapshot.info().generation==2 &&
           settled==kOptimizationGroupScanInputBytes+backing->write_bytes*kOptimizationGroupScanInputPerWriteByte,
           "initial catalog and postings escaped one complete charged checkpoint");
       if(earlier_only)std::cout<<"modular_catalog_tight_grant catalog_bytes="<<snapshot.info().physical_end
           <<" charged_catalog_writes="<<backing->write_bytes<<" reservations="<<reservations<<'\n';
-      for(const auto& feature:journal.state.group_scan->representatives)
-        require(snapshot.find(0,feature.bands[0])==feature,"initial catalog lost a real feature");
+      for(const auto& feature:journal.state.group_scan->representatives) {
+        const auto shifted=detail::coherence_shift_band(feature.bands);
+        require(snapshot.find(0,feature.bands[0])==feature && shifted,
+            "initial catalog lost its aligned sample or its expected rolling key");
+        const auto rolling=snapshot.find(*shifted,feature.bands[*shifted]);
+        require(earlier_only?!rolling:rolling==feature,
+            "initial catalog retained a rolling row outside its write grant");
+      }
       reopen_indexed(f,advice,journal.sequence);
       const auto mutations=backing->calls;
       f.session->configure_indexed_coherence(storage);
@@ -3088,6 +3210,10 @@ std::size_t compact_full_indexed_catalog(CoherenceCopyOutcome outcome,std::size_
   constexpr auto numeric_band=kCoherenceModularBand+2;
   const auto keep_numeric=detail::native_group_delta_signatures(stable)[2];
   const auto stale_numeric=detail::native_group_delta_signatures(old)[2];
+  const auto keep_shift=detail::coherence_shift_band(keep.bands),stale_shift=detail::coherence_shift_band(stale.bands);
+  require(keep_shift && stale_shift && original.find(*keep_shift,keep.bands[*keep_shift])==keep &&
+      original.find(*stale_shift,stale.bands[*stale_shift])==stale,
+      "compaction changed the original rolling bindings");
   require(original.find(0,keep.bands[0])==keep && original.find(0,stale.bands[0])==stale,
       "compaction altered the existing catalog's live or old bindings");
   require(original.find(numeric_band,keep_numeric)==projected_keep && original.find(numeric_band,stale_numeric),
@@ -3107,9 +3233,11 @@ std::size_t compact_full_indexed_catalog(CoherenceCopyOutcome outcome,std::size_
     const bool stale_masked_removed=alternate_fixture?
         replacement.has_alternates() && !replacement.next_alternate(masked_band,keep_key):
         !replacement.find(masked_band,stale_key);
-    require(replacement.info().objects==2+kOptimizationXorProjections+kCoherenceModularWidths &&
+    require(replacement.info().objects==3+kOptimizationXorProjections+kCoherenceModularWidths &&
         replacement.find(0,keep.bands[0])==keep && replacement.find(numeric_band,keep_numeric)==projected_keep &&
         !replacement.find(numeric_band,stale_numeric) &&
+        replacement.find(*keep_shift,keep.bands[*keep_shift])==keep &&
+        !replacement.find(*stale_shift,stale.bands[*stale_shift]) &&
         replacement.find(masked_band,keep_key)==projected_keep && !replacement.find(0,stale.bands[0]) &&
         stale_masked_removed,"compaction kept stale postings or lost a current representative");
     if(selection_failed) {
@@ -3460,6 +3588,7 @@ int main(int argc,char** argv){try{
   } else if(argc==3 && std::string_view(argv[1])=="--profile-coherence-reclamation-cut") {
     indexed_catalog_reclamation_at_scale(std::stoul(argv[2]));
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-projected-coherence") {
+    indexed_catalog_shift_candidate();
     for(const auto scenario:{ModularCatalogCase::available,ModularCatalogCase::masked_only,ModularCatalogCase::stale})
       indexed_modular_catalog_discovery(scenario);
     for(const auto scenario:{CatalogCase::available,CatalogCase::aligned_only,CatalogCase::unavailable,CatalogCase::stale})
