@@ -1,0 +1,339 @@
+{
+  "schema": 1,
+  "date": "2026-11-24",
+  "scope": "Windows GPU write calibration by initial write geometry on a single attachment",
+  "source": {
+    "base": "075080efcf4e6dbb2e4e794e5d15b33cfad979e3",
+    "blobs": {
+      "src/windows/winfsp_controller.cpp": "ff66e7bae83a64395f3a0092b351fe9a944889bc",
+      "src/windows/winfsp_controller.hpp": "02d8a44945731e7f8febed383eaeba7ee907eab9",
+      "tests/test_winfsp_controller.cpp": "422089dc6fbdbf5b1ea97ba1372f6f98bcb0dc3d"
+    }
+  },
+  "navigation": {
+    "commit": "075080efcf4e6dbb2e4e794e5d15b33cfad979e3",
+    "dirty_patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "inventory_sha256": "090b93b24c613cf7321088bb7ee32577b5d4995fb05871e7239f5845858b9b3c",
+    "native_response_sha256": "6cba103365d0ead96d5d0e6413558094a8326d237337d54cf721de02eed2c4f8",
+    "source_files": 3,
+    "actual_searches": 1,
+    "provider_version": "0.2.43"
+  },
+  "reused_worker": "docs/evidence/windows-mixed-size-resident-worker-2026-11-24.json",
+  "bound_package": {
+    "manifest_sha256": "47e4276bf3d9189e1a293ae67ed1cce3e8dc59f0ef4262c11d64a7f1c3711e9d",
+    "profile": {
+      "qualification_sha256": "01b2a8b024d155b15072e44feced412cf6208e1e65616f3fadc55871de031004",
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "vendor_id": 4098,
+      "device_id": 30032,
+      "subsystem_id": 606344280,
+      "revision": 192,
+      "worker_memory_mib": 128,
+      "memory_share_divisor": 16,
+      "worker_cpu_rate": 2000,
+      "worker_timeout_ms": 5000,
+      "maximum_identity_queries": 4,
+      "maximum_batch_chunks": 16,
+      "maximum_launch_chunks": 2,
+      "separate_requests": true,
+      "await_later_writes": true,
+      "allow_smaller_writes": true
+    },
+    "artifacts": {
+      "amd/flitzfs_hip_lz4_worker.exe": {
+        "sha256": "5488521657d0be8e91ff497bda27e8ee0c35c1847ec2fd11c5f7def714d97544",
+        "bytes": 622592
+      },
+      "amd/hip-uniform-lz4/flitzfs_rocm_uniform_lz4_candidate.dll": {
+        "sha256": "179797e791a8aac3e43c1277aca4a88edfe4650122af535d08c8b199d32b89c4",
+        "bytes": 322048
+      },
+      "amd/qualification-manifest.json": {
+        "sha256": "47e4276bf3d9189e1a293ae67ed1cce3e8dc59f0ef4262c11d64a7f1c3711e9d",
+        "bytes": 1342
+      },
+      "amd/uniform-write-trial-qualification.json": {
+        "sha256": "01b2a8b024d155b15072e44feced412cf6208e1e65616f3fadc55871de031004",
+        "bytes": 517
+      },
+      "flitzfs_winfsp_controller_tests.exe": {
+        "sha256": "5849334fb8640cfa3610b2434f7e2d36edc814d6cff1e1950fc23e320b35d5b7",
+        "bytes": 2934784
+      },
+      "public-source.txt": {
+        "sha256": "94b4fda579071d14a70c7f06a2626849eabfb9ae5d2a90d6dd3782cecd8f80ab",
+        "bytes": 1114112
+      },
+      "winfsp-x64.dll": {
+        "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+        "bytes": 200816
+      }
+    }
+  },
+  "public_source_fixture": {
+    "source_commit": "075080efcf4e6dbb2e4e794e5d15b33cfad979e3",
+    "segments": [
+      {
+        "path": "tests/test_winfsp_controller.cpp",
+        "bytes": 300977,
+        "sha256": "9d41f6d80161b9f388313b6d918ea0721644ae4b75eb928a1d770f597975dcbc"
+      },
+      {
+        "path": "tests/test_worker_exchange.cpp",
+        "bytes": 122168,
+        "sha256": "73ec63e246d52ae509bce45772047970126d2026fa673bca05c767aeed1c82b7"
+      },
+      {
+        "path": "src/native_session.cpp",
+        "bytes": 120960,
+        "sha256": "764079cea71320f1c623641cb0284a9a2f82997a17e689783916bacf8266fb12"
+      },
+      {
+        "path": "src/native_indexed_volume.cpp",
+        "bytes": 126470,
+        "sha256": "769e7a3da522e537c00b05b510eae14c5b304c5478d09b1801c849c4d08cc782"
+      },
+      {
+        "path": "src/native_maintenance.cpp",
+        "bytes": 72896,
+        "sha256": "2ac973c7e1854301aca13c716c55c5fe2bcb0d59b40f8190d87e6badd7dde7dc"
+      },
+      {
+        "path": "docs/IMPLEMENTATION_PLAN.md",
+        "bytes": 153583,
+        "sha256": "6d6d9af369b86f1e30dde447acf732e5b96ad8a8744a9b2b96f3387865bc4f92"
+      },
+      {
+        "path": "tests/test_paged_store.cpp",
+        "bytes": 36417,
+        "sha256": "3af19c5142e1bbed47caa739eee17b44b46c4a56c6ce02c9f3bc57a3a5cc403d"
+      },
+      {
+        "path": "tests/test_native_indexed_volume.cpp",
+        "bytes": 94607,
+        "sha256": "235f29fdbbe020062d141fd1f1b75f612f6add728f633cac8ae8d0c2609a8d99"
+      },
+      {
+        "path": "src/native_filesystem.cpp",
+        "bytes": 86034,
+        "sha256": "986910e04c5137ea95b1bd8211ceadc0cf3675462a79bf3ac6d9100ecaaed178"
+      }
+    ],
+    "initial_bytes": 65536,
+    "larger_bytes": 1048576
+  },
+  "checks": {
+    "Build": {
+      "run": "local-run-fe55e9a33d1f4c1db24ef057b06eba88",
+      "log_sha256": "e75c380d792cc98a252f995674a242c04d793e25ec724336884a62d39363eaf0",
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 17.25,
+      "job_cpu_ms": 24796.875,
+      "peak_job_bytes": 451018752,
+      "observations": []
+    },
+    "Release": {
+      "run": "local-run-3c55f158bd2c4c2e9253684c5cfd286e",
+      "log_sha256": "74fc142fa67662432d92a2df628638d4fc36d4256a29eaeabdf1f03ca0adc59b",
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 21.594,
+      "job_cpu_ms": 1343.75,
+      "peak_job_bytes": 37646336,
+      "observations": [
+        "100% tests passed out of 3"
+      ]
+    },
+    "Raw": {
+      "run": "local-run-58787eefaf2a432dad9bdeb9f0e996ed",
+      "log_sha256": "0d3f9121a6e2ec8ea8e8001e7b410c17278f5cc64def1e8d8652e6e236725e05",
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 20.532,
+      "job_cpu_ms": 765.625,
+      "peak_job_bytes": 34267136,
+      "observations": [
+        "100% tests passed out of 3"
+      ]
+    },
+    "AsanPreflight": {
+      "run": "local-run-0e32f952154e45eeb0d01c0b476698e6",
+      "log_sha256": "b318e27671ec09d0f48af228ef115562d05a9c1797dba9e9610243277606670a",
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 0.203,
+      "job_cpu_ms": 125,
+      "peak_job_bytes": 9752576,
+      "observations": [
+        "100% tests passed out of 1"
+      ]
+    },
+    "Asan": {
+      "run": "local-run-3d9b4c59e1e24ed8b40583f0bcceb508",
+      "log_sha256": "1e4993d3715b252600f0fc7d0569f09471625f837c7063eb3328f66135c336c4",
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 23.531,
+      "job_cpu_ms": 2468.75,
+      "peak_job_bytes": 483860480,
+      "observations": [
+        "100% tests passed out of 4"
+      ]
+    },
+    "Admission": {
+      "run": "local-run-9232a071b18b4360a2bf024b778a7be2",
+      "log_sha256": "662d7ce581b165a5c0e0741e1bc3ac6f5339f962c9f27e267abdbfb3bbc5c10b",
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 5.016,
+      "job_cpu_ms": 2281.25,
+      "peak_job_bytes": 97386496,
+      "observations": []
+    },
+    "Device": {
+      "run": "local-run-3f94b906350e435d8601261d604d8a51",
+      "log_sha256": "dc05f05f4c46ed6dd453ca1a76b7734c0e422d7246d80c1d0803928b91683211",
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 454.859,
+      "job_cpu_ms": 2515.625,
+      "peak_job_bytes": 124903424,
+      "observations": [
+        "arriving_owner status=0 requests=1 cpu_writes=1 gpu_writes=1 stored=1 verified_input_bytes=65536 exchange=0 worker_exit=0 parked=1 ready_ns=2591292000 device_wall_ns=3804928800 cpu_wall_ns=914100 retired=1",
+        "write_geometry first_bytes=65536 next_eligible_ms=151618122 cooldown_ms=438982",
+        "write_geometry attempts=2 status=0 verified_input_bytes=1048576 exchange=0 worker_exit=0 readiness_ns=1355478800 discovery_ns=288735600 device_wall_ns=2558006400 cpu_wall_ns=7204800 retired=1",
+        "arriving_originals verified=1 source_files=4 retained_after_stop=0",
+        "controller_handles before=324 after=324",
+        "Application fixture peak commit: 123584512 bytes"
+      ]
+    }
+  },
+  "host_admission": {
+    "admitted": true,
+    "when_utc": "2026-11-24T01:41:46.227193Z",
+    "windows_build": "26300",
+    "devices": [
+      {
+        "Name": "AMD Radeon RX 9070 XT",
+        "Status": "OK",
+        "DriverVersion": "32.0.32029.2010"
+      }
+    ],
+    "cpu_percent": [
+      13.7,
+      18.48
+    ],
+    "max_gpu_engine_percent": 1.4881223645010517,
+    "gpu_counters": 1476,
+    "available_kib": 24032488,
+    "total_kib": 66704480,
+    "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+    "other_flitzfs_fixture_processes": 0,
+    "bound_fixture_members": 7
+  },
+  "cooldown_observation": {
+    "remaining_ms": 266935,
+    "fixture_active": true,
+    "worker_processes": 0,
+    "cpu_ms": 484,
+    "private_bytes": 12595200,
+    "observed_utc": "2026-11-24T01:44:48.0163458Z"
+  },
+  "earlier_preemption": {
+    "run": "local-run-ff548e0ee9304f75a162e82f2f099618",
+    "exit_code": 1,
+    "tree_retired": true,
+    "log_sha256": "997fd751c4de54a6ec47eb2848747e4a0346fdf63a1538cf5cc9a8f31d1b9419",
+    "observations": [
+      "write_geometry first_bytes=65536 next_eligible_ms=151011039 cooldown_ms=421024",
+      "write_geometry attempts=2 status=14 verified_input_bytes=0 exchange=5 worker_exit=0 ready_ns=0 device_wall_ns=0 cpu_wall_ns=5786700 retired=0",
+      "after 49 checks: Larger write did not verify as a sealed comparison"
+    ],
+    "correction": "The first fixture kept issuing foreground writes after calibration admitted the larger shape. The final fixture submits one freshly acknowledged write and closes its handle after settlement."
+  },
+  "planning_research": {
+    "review": "DirectStorage Zstd is an optional future read comparison. DirectStorage uses CPU for a system-memory destination, so the GPU proof must include a device buffer and full CPU readback.",
+    "receipt_sha256": "c522cca3dbb71953065cffe4658c33c5ae8df8282c6ea44cacc57ba92b4d18c0",
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "completed_utc": "2026-11-24T02:43:34.042511+01:00",
+    "robots": true,
+    "timeout_seconds": 45,
+    "external_LLM": false,
+    "native_pages": [
+      {
+        "name": "zstd-rollout",
+        "url": "https://devblogs.microsoft.com/directx/directstorage-1-4-release-adds-support-for-zstandard/",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 29850,
+        "markdown_sha256": "f38820a647696e57b5903ff0328997fccdefbc5c6c4a64d6ce31a18c105ac2d0",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 2.381,
+        "capture": "zstd-rollout.native.json",
+        "capture_sha256": "29c37a7111107274f651359ca472a8d47577115d76af729b7dd25d1503033e7d"
+      },
+      {
+        "name": "developer-guidance",
+        "url": "https://github.com/microsoft/DirectStorage/blob/main/Docs/DeveloperGuidance.md",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 31576,
+        "markdown_sha256": "d2a2d3ee94e1683d1ccf031570962693a2917183608e42158dd13d57f7b848ca",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.283,
+        "capture": "developer-guidance.native.json",
+        "capture_sha256": "99b95bb8bdd9359dd573e98105d5b47c82a4932fa8586282767cbbf2206fd5c3"
+      },
+      {
+        "name": "compression-support",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/dstorage/dstorage/ne-dstorage-dstorage_compression_support",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 20943,
+        "markdown_sha256": "40ccebdcfd79c12900f63f29883f7b4ad6c8c6eb6c4b9c494e1f23aadb105a84",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.044,
+        "capture": "compression-support.native.json",
+        "capture_sha256": "23d7d34efeacf5dc8fdbf521a35ca0745dea470e035dddd6424f9e322bbd7ccf"
+      }
+    ],
+    "native_version_inventory": {
+      "url": "https://api.nuget.org/v3-flatcontainer/microsoft.direct3d.directstorage/index.json",
+      "sha256": "c2b5c0d904bf85132bf70b01fefa7b8d96c4409289f634571891e6cc409b9ee0",
+      "stable": "1.3.0",
+      "latest_preview": "1.4.0-preview2-2606.904"
+    }
+  },
+  "postflight": {
+    "running_flitzfs": 0,
+    "mounted_filesystems": 0,
+    "driver_changes": 0,
+    "physical_test_volume_backings": 0
+  },
+  "observed": [
+    "The 64 KiB group settled and assigned the shared cooldown.",
+    "Early large writes could not bypass cooldown. The completed 64 KiB geometry did not use a second GPU trial.",
+    "A new 1 MiB write used a sealed paired comparison on the same controller after cooldown.",
+    "All four acknowledged files independently reopened on CPU."
+  ],
+  "recovered_stage": "The first exclusive fixture lacked enough public bytes and stopped before device admission. A fresh stage bound an additional published source segment.",
+  "scope_limits": [
+    "Callbacks and private replays on one Radeon",
+    "The shape completion history is attachment-local.",
+    "The observed windows do not qualify an automatic foreground device route."
+  ]
+}

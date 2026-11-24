@@ -4106,15 +4106,19 @@ void concurrent_memory_store_accounting() {
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
 void amd_write_arrival_trial(std::string_view mode,const std::filesystem::path& public_input={}) {
   const bool mixed=mode=="mixed";
+  const bool geometry=mode=="geometry";
   const bool oversized=mode=="oversized";
   const bool later=mode=="later" || mixed || oversized;
   const bool receive_later=later && !oversized;
   const bool stop_waiting=mode=="stop";
   const auto profile=installed_uniform_write_trial_profile();
-  require((later || stop_waiting || mode=="drain") && profile && profile->await_later_writes &&
-      (!(mixed || oversized) || profile->allow_smaller_writes) && (mixed || public_input.empty()) &&
+  require((later || stop_waiting || geometry || mode=="drain") && profile && profile->await_later_writes &&
+      (!(mixed || oversized) || profile->allow_smaller_writes) && (mixed || geometry || public_input.empty()) &&
       installed_uniform_write_files_present(),"Arriving write trial requires its staged version 6 profile");
-  constexpr std::uint64_t image_capacity=8ULL*1024*1024,allowance=32ULL*1024*1024;
+  require(!geometry || (profile->maximum_batch_chunks>=4 && profile->maximum_batch_chunks<=
+      kStoreMaxTransactionBytes/kNativeExtentBytes),"Geometry trial exceeds its fixture's native write envelope");
+  const std::uint64_t image_capacity=(geometry?32ULL:8ULL)*1024*1024;
+  constexpr std::uint64_t allowance=32ULL*1024*1024;
   auto domain=MemoryVolumeDomain::create(image_capacity+kVolumeHeadBytes+allowance);
   auto head=domain.create_store(kVolumeHeadBytes);
   auto image=domain.create_store(image_capacity);
@@ -4136,14 +4140,15 @@ void amd_write_arrival_trial(std::string_view mode,const std::filesystem::path& 
     return result;
   };
   auto initial=make_input(918,mixed?2:1);
-  auto following=make_input(919,oversized?2:1);
+  const auto following_chunks=geometry?profile->maximum_batch_chunks:oversized?2U:1U;
+  auto following=make_input(919,following_chunks);
   if(!public_input.empty()) {
     const auto file=ReadOnlyFile::open(public_input);
-    require(file.size()>=initial.size()+following.size(),"Mixed write fixture needs a complete public source");
+    require(file.size()>=initial.size()+following.size(),"Write trial fixture needs a complete public source");
     file.read_exact_at(0,initial.data(),initial.size());
     file.read_exact_at(initial.size(),following.data(),following.size());
   }
-  const auto commit=[&](PCWSTR name,Bytes& bytes,std::size_t count) {
+  const auto commit=[&](PCWSTR name,Bytes& bytes,std::size_t count,bool close=true) {
     PVOID handle=nullptr;
     FSP_FSCTL_FILE_INFO info{};
     require(table->Create(&p.fs,const_cast<PWSTR>(name),FILE_NON_DIRECTORY_FILE,FILE_ALL_ACCESS,FILE_ATTRIBUTE_NORMAL,
@@ -4154,7 +4159,8 @@ void amd_write_arrival_trial(std::string_view mode,const std::filesystem::path& 
       require(table->Write(&p.fs,handle,bytes.data(),0,static_cast<ULONG>(bytes.size()),FALSE,FALSE,&written,&info)==
           STATUS_SUCCESS && written==bytes.size(),"Arriving ordinary CPU Write");
     }
-    callback_cleanup_close(p,handle,true);
+    if(close)callback_cleanup_close(p,handle,true);
+    return handle;
   };
   commit(L"\\first",initial,kNativeAmdWriteMinimumPairs);
   await([&]{const auto view=owner.view();return view.amd_write_waiting || view.amd_write_trial.has_value();},13000,
@@ -4196,14 +4202,53 @@ void amd_write_arrival_trial(std::string_view mode,const std::filesystem::path& 
         (public_input.empty()?device.sample->stored_lz4_candidates==expected_bytes/kNativeExtentBytes:
             device.sample->stored_lz4_candidates<=expected_bytes/kNativeExtentBytes),
         "Arriving worker did not verify the same writes as CPU");
+    if(geometry) {
+      const auto now=GetTickCount64();
+      const auto eligible=trial.next_eligible_ms;
+      require(eligible>now && eligible-now<=900'000,"Geometry trial pacing outside the fixture's runtime budget");
+      std::cout<<"write_geometry first_bytes="<<initial.size()<<" next_eligible_ms="<<eligible
+          <<" cooldown_ms="<<eligible-now<<std::endl;
+      commit(L"\\before-due",following,kNativeAmdWriteMinimumPairs);
+      require(GetTickCount64()<eligible && owner.view().amd_write_trial_attempts==1,
+          "Second write shape bypassed the shared pacing gate");
+      while(GetTickCount64()<eligible)Sleep(1000);
+      commit(L"\\repeat-small",initial,kNativeAmdWriteMinimumPairs);
+      Sleep(2000);
+      require(owner.view().amd_write_trial_attempts==1,"Completed small shape consumed a second device trial");
+      // The before-due writes filled this size's CPU history. Keep this last
+      // acknowledged handle quiet until its comparison has settled.
+      const auto large_handle=commit(L"\\large",following,1,false);
+      await([&] {
+        const auto state=owner.view();
+        return state.amd_write_trial_attempts>=2 && state.amd_write_trial &&
+            state.amd_write_trial->reference.demand.shape.input_bytes==following.size();
+      },18000,"Larger write did not settle on the same controller");
+      const auto state=owner.view();
+      const auto& large_trial=*state.amd_write_trial;
+      const auto& result=large_trial.device;
+      std::cout<<"write_geometry attempts="<<state.amd_write_trial_attempts<<" status="<<static_cast<unsigned>(large_trial.status)
+          <<" verified_input_bytes="<<result.verified_input_bytes<<" exchange="<<static_cast<unsigned>(result.exchange)
+          <<" worker_exit="<<result.worker_exit<<" readiness_ns="<<result.ready_ns<<" discovery_ns="<<large_trial.discovery_ns
+          <<" device_wall_ns="<<large_trial.device_wall_ns
+          <<" cpu_wall_ns="<<large_trial.reference.wall_ns<<" retired="<<result.worker_retired<<std::endl;
+      callback_cleanup_close(p,large_handle,true);
+      require(state.amd_write_trial_attempts==2 && !state.amd_write_waiting && !state.foreground_activation &&
+          large_trial.status==HipDiscoveryStatus::ready && result.sample && result.worker_retired &&
+          result.sample->device_executed && result.sample->cpu_readback_verified && !result.admitted_requests &&
+          result.verified_input_bytes==following.size() && large_trial.reference.input_bytes==following.size() &&
+          result.sample->transactions==1 && result.sample->input_digest==large_trial.reference.sample.input_digest,
+          "Larger write did not verify as a sealed comparison");
+    }
     owner.stop_and_join();
   }
   const auto snapshot=NativeFilesystemSnapshot::open_image(image,{NativeImageKind::indexed_paged,image_capacity});
   snapshot.verify_all();
   require(snapshot.read("first",0,initial.size())==initial &&
       (!later || snapshot.read("later",0,following.size())==following) &&
+      (!geometry || (snapshot.read("before-due",0,following.size())==following &&
+          snapshot.read("repeat-small",0,initial.size())==initial && snapshot.read("large",0,following.size())==following)) &&
       WorkerExchangeSession::available(),"Original acknowledged writes did not survive the arriving trial");
-  std::cout<<"arriving_originals verified=1 source_files="<<(later?2:1)<<" retained_after_stop=0\n";
+  std::cout<<"arriving_originals verified=1 source_files="<<(geometry?4:later?2:1)<<" retained_after_stop=0\n";
 }
 #endif
 
@@ -4843,7 +4888,7 @@ int main(int argc,char** argv){try {
     const std::filesystem::path input=argc==4?argv[3]:"";
     amd_write_arrival_trial(argv[2],input);
     before=handle_count();
-    amd_write_arrival_trial(argv[2],input);
+    if(std::string_view(argv[2])!="geometry")amd_write_arrival_trial(argv[2],input);
 #else
     throw std::runtime_error("Arriving write trial package is unavailable");
 #endif

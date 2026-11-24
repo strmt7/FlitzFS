@@ -301,11 +301,14 @@ foreground activity cancels active device work. Shutdown or lost host
 headroom also requests cancellation. The controller settles the trial before
 making its status visible. Timings include discovery,
 host preparation, readiness, supervised exchange, parent verification and
-private replay, with whole-arm times alongside. A verified pair finishes the
-attachment's trial. Further attempts after an infrastructure refusal require
-changed inputs where applicable, a new write group and pacing from the complete
-cost. Single-request route qualification still requires repeated matched
-measurements for the supported request geometry.
+private replay, with whole-arm times alongside. A verified pair finishes
+calibration for its initial write size under the current storage policy.
+Other sizes can qualify after the shared cooldown and new demand. A change
+in compression policy or backing isolation clears the attachment's completed
+sizes. Further attempts after an infrastructure refusal require changed
+inputs where applicable, fresh writes and pacing from the complete cost.
+Enabling a foreground route still requires repeated matched measurements for
+the supported request geometry.
 
 The initial real-host 1 MiB control captured two committed writes and verified
 sixteen Radeon-produced extents with the independent CPU reader. Both private
@@ -380,6 +383,15 @@ replay took about 1–2 ms in these examples. Complete GPU replay took
 2.45–4.63 s, including readiness and the admission wait. The callback
 fixtures exercised the private replay and original CPU volume.
 [Mixed-size controller evidence](evidence/windows-mixed-size-resident-worker-2026-11-24.json)
+
+A single RX 9070 XT controller completed a 64 KiB comparison and, after
+the shared 439-second cooldown, a sealed 1 MiB comparison. Ordinary writes
+during cooldown still completed on CPU, and writing another 64 KiB file
+after cooldown did not repeat the small comparison. An independent CPU
+reader recovered all four acknowledged files. The larger private CPU replay
+took 7.20 ms. Its complete GPU arm took 2.56 s plus 289 ms of route discovery.
+This workload continues to favor CPU.
+[Geometry calibration evidence](evidence/windows-amd-write-geometry-calibration-2026-11-24.json)
 
 ## Activating a route on a running volume
 

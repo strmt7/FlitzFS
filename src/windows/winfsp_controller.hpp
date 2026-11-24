@@ -18,7 +18,7 @@ struct WinFspAmdWriteTrial {
   NativeAmdDeviceTrial device;
   HipDiscoveryStatus status=HipDiscoveryStatus::invalid_request;
   GpuConfigurationId configuration{};
-  std::uint64_t discovery_ns=0,device_wall_ns=0;
+  std::uint64_t discovery_ns=0,device_wall_ns=0,next_eligible_ms=0;
 };
 struct WinFspControllerView {
   SessionState state=SessionState::ready;

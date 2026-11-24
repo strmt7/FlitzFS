@@ -935,11 +935,15 @@ latency before admitting a production profile.
    controller fixture.
    [Mixed-size controller evidence](evidence/windows-mixed-size-resident-worker-2026-11-24.json)
    Measure setup savings and retention costs with varied real arrival
-   patterns and larger compression jobs. Record completed calibration by
-   request geometry and storage policy so one small CPU-preferred result
-   leaves larger patterns eligible for evaluation. Exercise host pressure,
-   foreground interruption and device changes during the wait before
-   promoting any route.
+   patterns and larger compression jobs. Completed comparisons now apply
+   to one initial write size and storage policy. Larger writes can use a
+   sealed exchange when a second request cannot fit. The shared pacing and
+   fresh source requirements apply across sizes. A single Radeon controller
+   verified both 64 KiB and 1 MiB public-source inputs after the shared cooldown
+   and recovered all acknowledged files independently.
+   [Geometry calibration evidence](evidence/windows-amd-write-geometry-calibration-2026-11-24.json)
+   Exercise host pressure, foreground interruption and device changes
+   during the wait before promoting any route.
    Extend finite exchanges to collective work across files. Bind each job to a source revision,
    verify every decoded byte before publication, and retire the helper when
    admitted work drains or foreground demand rises. Compare complete occupied
@@ -1158,9 +1162,18 @@ RubikFS's 2026 similarity/hotness grouping provides a relevant read-only compari
 ZipLLM and Invariant Bit Packing motivate specialized family/bit-structure
 candidates; they are not evidence of arbitrary-file or AMD gains. The November
 invocation-bottleneck preprint motivates an explicit model-call/decode design.
-Microsoft's 2026 DirectStorage Zstd work is worth a bounded evaluation where its
-destination/readback model fits; lossy conditioning is excluded. See the cited
-primary sources in the [overview](REPOSITORY_OVERVIEW.md#what-current-research-changes).
+For a bounded DirectStorage Zstd evaluation, use unchanged, independently
+decodable FlitzFS frames and charge initialization, submission, transfer,
+readback and CPU verification. DirectStorage uses CPU decompression for
+system-memory destinations. A GPU comparison therefore needs a device
+buffer, verified GPU execution and complete readback into the callback's
+address space. Microsoft introduced Zstd in the 1.4 preview series. The
+24 November package inventory lists 1.3.0 as the latest stable version and
+1.4.0-preview2-2606.904 as the latest preview. Add it to the normal reader
+only after verifying complete operation cost and independent CPU recovery.
+[Microsoft Zstd preview](https://devblogs.microsoft.com/directx/directstorage-1-4-release-adds-support-for-zstandard/) ·
+[Microsoft developer guidance](https://github.com/microsoft/DirectStorage/blob/main/Docs/DeveloperGuidance.md) ·
+[NuGet package inventory](https://api.nuget.org/v3-flatcontainer/microsoft.direct3d.directstorage/index.json)
 
 **Output:** reproducible candidate report, independent decoder and selected
 representation/access specification. **Existing ledger:** A04, G03, Q01.
