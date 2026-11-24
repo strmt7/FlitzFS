@@ -261,7 +261,7 @@ std::vector<std::byte> run_hip_native_group_read_in_worker(HMODULE runtime,
       [&](const auto& api,auto attributes,auto,auto&& initialize,auto&& memory) {
         memory(HipMemoryPoint::pre_initialize);
         const auto device=initialize();
-        for(const auto& kernel:kernels)check_lz4_attributes(attributes,kernel.decode,device);
+        check_group_kernel_attributes(attributes,kernels,device);
         DeviceResources resources(api);
         try {
           check_hip(api.create_stream(&resources.stream,hipStreamNonBlocking,device.priority),

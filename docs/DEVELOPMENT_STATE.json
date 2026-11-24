@@ -1,6 +1,6 @@
 {
   "schema": 2,
-  "updated": "2026-11-24",
+  "updated": "2026-11-25",
   "goal_status": "active",
   "product": "Windows 11 AMD64 filesystem/helper/driver integration; AMD acceleration with independent CPU recovery",
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
@@ -196,8 +196,12 @@
     "matched_supervisor_timing_complete": true,
     "matched_supervisor_timing_scope": "SDK mixed-group fixture using identical artifacts and protected input",
     "matched_supervisor_evidence": "docs/evidence/windows-amd-group-supervisor-comparison-2026-11-24.json",
-    "live_current_exact_group_modes": ["packed_xor", "mixed_sparse_xor_and_modular"],
+    "last_live_sdk_group_modes": ["packed_xor", "mixed_sparse_xor_and_modular"],
     "readiness_admission_evidence": "docs/evidence/windows-amd-group-read-admission-2026-11-24.json",
+    "latest_startup_admission_evidence": "docs/evidence/windows-amd-group-startup-admission-2026-11-25.json",
+    "ready_wait_excluded_from_startup": true,
+    "metadata_queries_per_distinct_decoder": 2,
+    "current_startup_hardware_comparison": "deferred_by_live_gpu_pressure",
     "next": "Measure CPU, cold GPU and verified-ready dispatch on real client demand with the same supervisor. Use accepted work and complete costs to decide how far useful bounded batches can amortize setup."
   },
   "architecture_reconciliation": {

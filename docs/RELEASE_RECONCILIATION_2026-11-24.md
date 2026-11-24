@@ -286,6 +286,15 @@ forecast coverage, later use of cached results and missed or cancelled
 opportunities. A successful frame that a caller never uses has no delivered
 read benefit. Compare with the faster grouped CPU reader now in the tree.
 
+The prepared path now corroborates attributes by distinct function pointer.
+Both tables in the current device module share one decoder. The lead
+estimator uses unready exchanges for setup and excludes any time spent
+waiting after readiness. The SDK tests verify the query count and a
+ready-wait regression. Two live preflights observed 99% GPU utilization
+and deferred the comparison before launching a worker. Use the matched
+supervisor for the next before-and-after comparison.
+[Startup admission evidence](evidence/windows-amd-group-startup-admission-2026-11-25.json)
+
 1. Carry the same receipt from enqueue and capture through reserve/setup,
    transfer, kernel, wait, independent verification, child retirement, and
    native delivery or publication. Report complete wall latency, useful

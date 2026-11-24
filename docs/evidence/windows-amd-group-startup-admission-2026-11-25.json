@@ -1,0 +1,273 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "capture_utc": "2026-11-24T23:08:33.0142487Z",
+  "experimental": true,
+  "scope": "Windows SDK-typed CPU and callback qualification for grouped AMD startup and admission.",
+  "source": {
+    "parent": "b4be817e9795ddced29b115ac243935d3030e54a",
+    "parent_tree": "3ce4e44a4ed15c7785647a171570be75c9c01a38",
+    "source_blobs": {
+      "src/windows/hip_uniform_lz4_compute.cpp": "8eb241d79c430e0b84b5d92f3d66fad10126f8d7",
+      "src/windows/hip_uniform_lz4_compute.hpp": "bf763377987e7b4588c14793881021fc45c4d66d",
+      "src/windows/native_lz4_read_worker.hpp": "b21d43bc8315ddf77f6f645aff87f3a803052b41",
+      "tests/rocm_compile/uniform_lz4_compute_probe.cpp": "1326c3e58d44af0ff341a90febb18b5e03fc00cd",
+      "tests/test_winfsp_paged.cpp": "2bd0f683484efbaefe45786b3fae548f753ee203",
+      "src/gpu/native_lz4_decode.hip": "b6d8bc320ff68287355591bd5e338b6546167054",
+      "tests/rocm_compile/native_lz4_decode_module.cpp": "e38efe49ac256d43f94c8a47c98e14a423bf8e87"
+    },
+    "offline_device_object_sha256": "539f60ffaeaa1d9d163fc021ebf7a6a4953d8ab0c1e87c8401a61e9b012d8186",
+    "offline_device_source_assets": [
+      {
+        "source": "src/gpu/native_lz4_decode_layout.hpp",
+        "sha256": "fb273f8f257077933c363472d1057f31e39914e063f7190929ff0f05ceb6791d"
+      },
+      {
+        "source": "src/gpu/native_lz4_decode_api.hpp",
+        "sha256": "f62b6e55f0c3efac243b1234ccf952fed998035fd1ef2fc63ea49eca448ced38"
+      },
+      {
+        "source": "src/gpu/native_group_decode.hpp",
+        "sha256": "d82b1508a2e2202a814c7320536e4ebae342b44b90d9075695683cd7ddecafb5"
+      },
+      {
+        "source": "src/gpu/native_lz4_decode.hip",
+        "sha256": "005575ce16c7a1adf0ca546e7a34afeeebfb2753dadc52c75928a2b415ab36b4"
+      }
+    ],
+    "offline_device_source_binding": "docs/evidence/windows-mixed-group-reads-2026-11-24.json",
+    "navigation": {
+      "receipt_sha256": "d9b16e98bad4d0bcfc93aec6c2d8e46f8767252bcc38f5e9587510816c210937",
+      "query_response_sha256": "f506979828a7bcdc5a51ef5f84ce56a97568653d0f4c986f72375c006a29ca5f",
+      "exact_parent": "b4be817e9795ddced29b115ac243935d3030e54a",
+      "actual_searches": 1
+    }
+  },
+  "measurements": {
+    "metadata_queries": {
+      "shared_group_decoder": 2,
+      "distinct_group_decoders": 4,
+      "scope": "SDK-typed CPU test with checked HIP attributes results."
+    },
+    "ready_observations": {
+      "cold_observation_ms": 4800,
+      "ready_exchange_including_wait_ms": 12000,
+      "ready_dispatch_observation_ms": 45,
+      "retained_startup_lead_ms": 4800,
+      "slow_ready_dispatch_floor_ms": 1200,
+      "control_refusal": "after 4 checks: Waiting after readiness affected startup or the dispatch floor",
+      "control_receipt": {
+        "run": "local-run-dd43d69cb5144241b8723c70dcaccf46",
+        "result_sha256": "8df49cab92b2df6637a7287f5d1deab7ddf394d1c9630df2c23cda2d50df7e10",
+        "log_sha256": "0aea258c837ec56a339c014dfddd62a02090c0dd282deed1e913aa069b07b48f",
+        "exit": 1,
+        "retired": true,
+        "peak_job_bytes": 3264512
+      },
+      "updated_callback_marker": "winfsp_group_timing startup_observed=1 ready_dispatch_observed=1 overdue_refused=1 ready_wait_excluded=1"
+    }
+  },
+  "qualification": {
+    "exact_worker_and_sdk_build": {
+      "run": "local-run-4bfda25f17384c0e906cab7eceb2e977",
+      "result_sha256": "e60ce3bfab9d8f9e3e866a76f1bb152a3803e15cf3e25dfd546d7059de5c20ae",
+      "log_sha256": "b511a584c3627b1885daf2a1ca768e45318bb92139e64e0987cc434a94286f30",
+      "exit": 0,
+      "retired": true,
+      "peak_job_bytes": 337928192
+    },
+    "native_callback_and_transport_cases": 4,
+    "callback_receipt": {
+      "run": "local-run-c167f333885b41bb8026a5f9b79c212a",
+      "result_sha256": "8a73f255c74e8b604a0caa99962b57083390e5bd37bc6e7d72abcac3e1965645",
+      "log_sha256": "1264fa97598cb5ec89ed83961d2848acc3767a4845524827d12e69768333d22c",
+      "exit": 0,
+      "retired": true,
+      "peak_job_bytes": 21131264
+    },
+    "sdk_probe": {
+      "checks": 6287,
+      "scenarios": 113,
+      "successes": 17,
+      "refusals": 96,
+      "decoder_available": true,
+      "guarded_exit_confirmed": true,
+      "hip_runtime_loaded": false,
+      "gpu_executed": false,
+      "complete": true,
+      "executable_sha256": "9c3508e4f8b3f82ea786a8ab51728335d07574d2ef6b157187d2d3dc42c8b8f0",
+      "receipt": {
+        "run": "local-run-7a3c8801d3f54a48944fb057b7a8453a",
+        "result_sha256": "dfb85794bcec59d71e4200f39217a659f7018cc49586e250e5eab75d80313029",
+        "log_sha256": "72589babcca6af2fddf382a67af43286645f7482c55a7555533bf6760705589b",
+        "exit": 0,
+        "retired": true,
+        "peak_job_bytes": 16384000
+      }
+    },
+    "supported_cpu_decoder": {
+      "available": true,
+      "exit_confirmed": true,
+      "exit_code": 0,
+      "peak_commit_bytes": 2695168,
+      "gpu_executed": false,
+      "complete": true,
+      "probe_sha256": "20c5faeb714037b30b1f7329e66cd0d1c258980b3143b2fe68281b54dd1287e8",
+      "receipt": {
+        "run": "local-run-56b394510e2f45e48205b34087fd4ec7",
+        "result_sha256": "334e60b13d2dd2bcd6eb27448f0bc8adb85b17e2305b92633e40496ef4f930ca",
+        "log_sha256": "5090231e34e8341094e155302d9a3df32fd1d39a5a2cff41018177701a0b3214",
+        "exit": 0,
+        "retired": true,
+        "peak_job_bytes": 4706304
+      }
+    },
+    "previous_build_attempts": [
+      {
+        "reason": "Existing build had an exclusive qualification output.",
+        "receipt": {
+          "run": "local-run-9b82480dd930476ba46d6a3daf2ac8b6",
+          "result_sha256": "3a7bff885ee304fa3fd47a3a7b5259eefec639b05fdafc7d99b9713112e524ca",
+          "log_sha256": "2cfa308870866742a3db3c78cff94174507414761b31ac89a9713cb84ffa3a83",
+          "exit": 1,
+          "retired": true,
+          "peak_job_bytes": 563863552
+        }
+      },
+      {
+        "reason": "Earlier offline device object lacked the current grouped binding.",
+        "receipt": {
+          "run": "local-run-8e411c87ce4047b4994d0fe483e2d20d",
+          "result_sha256": "0b1a9d2a957e9940b4d710d3878d74991036a07b1818957d1219e9708fcca617",
+          "log_sha256": "4798b8457cd5c90f7c924a58008b6672d314f0f3e044b870a068ea0cecff0b91",
+          "exit": 1,
+          "retired": true,
+          "peak_job_bytes": 655142912
+        }
+      }
+    ],
+    "retired": true
+  },
+  "live_host": {
+    "attempts": [
+      {
+        "observed": {
+          "utc": "2026-11-24T23:06:50.4560551Z",
+          "adapter": "AMD Radeon RX 9070 XT",
+          "driver": "32.0.32029.2010",
+          "build": "26300",
+          "compute_peak_percent": 98.96717101766396,
+          "physical_available_kib": 9833704,
+          "cpu_percent": [
+            12.36,
+            10.17
+          ],
+          "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7"
+        },
+        "live_device_execution": false,
+        "reason": "Active GPU workload exceeded the live fixture admission envelope.",
+        "receipt": {
+          "run": "local-run-72dfe55006494af29786abfa51877e4b",
+          "result_sha256": "45f409cbd0867e68fb3bdcb880af77b91a0dce4c63a278e2a5b4f4bd0ea25159",
+          "log_sha256": "f8a5e91fe01856204aa0eb2c413db57aab5c1934a0f95bd4d73bc4556f3a9bc8",
+          "exit": 1,
+          "retired": true,
+          "peak_job_bytes": 106078208
+        }
+      },
+      {
+        "observed": {
+          "utc": "2026-11-24T23:07:51.2283773Z",
+          "adapter": "AMD Radeon RX 9070 XT",
+          "driver": "32.0.32029.2010",
+          "build": "26300",
+          "compute_peak_percent": 99.63197035408456,
+          "physical_available_kib": 9640192,
+          "cpu_percent": [
+            18.44,
+            18.59
+          ],
+          "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7"
+        },
+        "live_device_execution": false,
+        "reason": "Active GPU workload exceeded the live fixture admission envelope.",
+        "receipt": {
+          "run": "local-run-06a3cdb27d95433198d6dc774e71fb38",
+          "result_sha256": "941e7a24e297eca1d7923f09b2e3e00ee2f56e339cb27f4428226bf5bdc25f91",
+          "log_sha256": "fe386096484beaf6d849fb634eb761e06dbcf521fcd4afe7ede6dccfd0483b26",
+          "exit": 1,
+          "retired": true,
+          "peak_job_bytes": 107122688
+        }
+      }
+    ],
+    "staged_artifacts": {
+      "flitzfs_winfsp_paged_tests.exe": {
+        "bytes": 2227712,
+        "sha256": "6f26b3083d47d11b990e7b3cb353d6b5274d4ac74148dc05f0ac63e7fa7b35d2"
+      },
+      "winfsp-x64.dll": {
+        "bytes": 200816,
+        "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+      },
+      "flitzfs_native_lz4_read_worker.exe": {
+        "bytes": 581632,
+        "sha256": "8625a3fa306adce0f3db5a1803ea6b9924147817c73630f75f09d42fdf268ca4"
+      },
+      "flitzfs_rocm_native_lz4_decode.dll": {
+        "bytes": 173568,
+        "sha256": "9ac5bb33a7b39ae26712dcdcfcdeb6b4b5fc049175e18dd6f24d047a37b3e128"
+      }
+    },
+    "prior_live_reference": "docs/evidence/windows-amd-group-supervisor-comparison-2026-11-24.json",
+    "current_wall_time_comparison_complete": false
+  },
+  "research": {
+    "provider": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "b209c3dc4dfdf6c5b55ec3f54203bc50ad655313dbe00f979c05d52b1afd3e12",
+    "pages": [
+      {
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/doxygen/html/group___execution.html",
+        "success": true,
+        "status": 200,
+        "markdown_bytes": 86166,
+        "content_sha256": "01f91f3e054b9aa60d7b3c5a8937dd5d92a74a0cfbcbb39f7831187b8d8c21bc",
+        "capture_sha256": "2e5d02ae9eb20d02f5ee05c01cfe921fdb1b75ed6c64d0cf2351a64be2da8157"
+      },
+      {
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_cpp_language_extensions.html",
+        "success": true,
+        "status": 200,
+        "markdown_bytes": 79604,
+        "content_sha256": "32148e37bf86912f3b310cf2b49c8deedfa877dc7a9518da12bf6b89e44b314b",
+        "capture_sha256": "1e8928f226c75d4c2ab75f6c611734c8bd4f0684d5acb75c9c5b60c5e0f6d1e8"
+      },
+      {
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/initialization.html",
+        "success": true,
+        "status": 200,
+        "markdown_bytes": 24762,
+        "content_sha256": "0c10f76d1d2e978b48e18e7adc6388cab281302448951d65cf568b492a107af5",
+        "capture_sha256": "17e842d7511ed1030963eb8e74599e666ab046beb931181660905674258e43ae"
+      },
+      {
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/performance_guidelines.html",
+        "success": true,
+        "status": 200,
+        "markdown_bytes": 51332,
+        "content_sha256": "f5b26916040d693275684ca2fd5b19265fe6f96cd77bea62fef8bf9a02020387",
+        "capture_sha256": "ea5082d83eb010a87c5483af5ed288fc445e25218759dbee04ee975a67c78a6e"
+      },
+      {
+        "url": "https://github.com/ROCm/clr/blob/develop/hipamd/src/hip_platform.cpp",
+        "success": false,
+        "status": 200,
+        "markdown_bytes": 51313,
+        "content_sha256": "008d88e7a0576593d03373d4fa37b2c8a4ddbe88102e18e1a0bdd886ae4ddf54",
+        "capture_sha256": "ec7209a9d6694766970888b84258cc1e5cba1b5461068593300b18ed3d64500f",
+        "diagnosis": "unexpected_content"
+      }
+    ]
+  },
+  "release_qualified": false
+}

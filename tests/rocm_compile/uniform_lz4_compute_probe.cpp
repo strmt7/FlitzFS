@@ -22,6 +22,8 @@ unsigned checks=0,scenarios=0,refusals=0,successes=0;
 void require(bool value,const char* why){++checks;if(!value)throw std::runtime_error(why);}
 void kernel32(unsigned char*,uniform_lz4::u64,uniform_lz4::Layout){}
 void kernel64(unsigned char*,uniform_lz4::u64,uniform_lz4::Layout){}
+void group_kernel(group_decode::u8* slab,group_decode::u64,group_decode::Layout){slab[0]=1;}
+void other_group_kernel(group_decode::u8* slab,group_decode::u64,group_decode::Layout){slab[0]=2;}
 const auto kernels=uniform_lz4::make_kernel_api(&kernel32,&kernel64);
 const std::array<std::byte,8> identity{std::byte{7}};
 constexpr Lz4KernelCoverage coverage{"gfx1100",3};
@@ -237,12 +239,33 @@ hipError_t launch(const void* entry,dim3 grid,dim3 block,void** args,std::size_t
 }
 hipError_t attributes(hipFuncAttributes* out,const void* entry){
   require(entry==reinterpret_cast<const void*>(&kernel32) ||
-      entry==reinterpret_cast<const void*>(&kernel64),"Unknown function attribute entry");
+      entry==reinterpret_cast<const void*>(&kernel64) || entry==reinterpret_cast<const void*>(&group_kernel) ||
+      entry==reinterpret_cast<const void*>(&other_group_kernel),"Unknown function attribute entry");
   ++active->attribute_queries;
   const auto status=active->step("attributes-"+std::to_string(active->attribute_queries));
   if(status!=hipSuccess || active->missing_attributes)return status;
   out->maxThreadsPerBlock=active->inconsistent_attributes && active->attribute_queries==2?64:1024;
   out->sharedSizeBytes=128;return hipSuccess;
+}
+void group_attributes(const UniformLz4Request& request) {
+  using namespace group_decode;
+  const KernelApi packed{sizeof(KernelApi),version,sizeof(Layout),sizeof(Member),&group_kernel};
+  auto mixed=packed;
+  mixed.abi=mixed_version;
+  constexpr Lz4DeviceInfo device{0,32,65536};
+  {
+    State state(request);Activate owner(state);
+    const std::array entries{packed,mixed};
+    check_group_kernel_attributes(&attributes,entries,device);
+    require(state.attribute_queries==2,"Shared group decoder metadata was queried twice");
+  }
+  {
+    mixed.decode=&other_group_kernel;
+    State state(request);Activate owner(state);
+    const std::array entries{packed,mixed};
+    check_group_kernel_attributes(&attributes,entries,device);
+    require(state.attribute_queries==4,"Distinct group decoder metadata was not corroborated");
+  }
 }
 HipApi functions(){return {&init,&properties,&select,&priorities,&create_stream,&destroy_stream,
     &synchronize,&allocate,&release,&copy,&launch};}
@@ -443,6 +466,7 @@ int wmain(int argc,wchar_t** argv){try{
     return 0;
   }
   require(argc==1,"invalid uniform probe arguments");
+  group_attributes(source);
   {
     WindowsGpuTopologyProbe invalid(std::array<std::byte,8>{});
     require(invalid.sample().status==WindowsGpuTopologyStatus::invalid_identity,

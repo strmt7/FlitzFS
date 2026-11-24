@@ -262,14 +262,19 @@ void group_read_timing() {
       "An early submission contaminated ready dispatch timing");
   require(timing.submit_lead(startup,dispatch,5000,false)==4800,
       "An overdue estimate was accepted as a readiness signal");
-  timing.observe_accepted(900,45,true);
-  require(timing.submit_lead(startup,dispatch,880,true)==45 &&
+  timing.observe_accepted(12000,45,true);
+  require(timing.start_lead(startup)==4800 &&
+      timing.submit_lead(startup,dispatch,880,true)==45 &&
       timing.submit_lead(startup,60,880,true)==60,
-      "A verified ready observation or qualified dispatch floor was ignored");
+      "Waiting after readiness affected startup or the dispatch floor");
+  detail::NativeGroupReadTiming dispatch_only;
+  dispatch_only.observe_accepted(5000,1200,true);
+  require(dispatch_only.start_lead(startup)==1200,
+      "A read worker launched with less lead than its verified dispatch needs");
   timing.observe_accepted(4900,4800,false);
   require(timing.start_lead(startup)==4900 && timing.submit_lead(startup,dispatch,4900,true)==45,
       "A later cold exchange replaced the ready dispatch observation");
-  std::cout<<"winfsp_group_timing startup_observed=1 ready_dispatch_observed=1 overdue_refused=1\n";
+  std::cout<<"winfsp_group_timing startup_observed=1 ready_dispatch_observed=1 overdue_refused=1 ready_wait_excluded=1\n";
 }
 void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},bool mixed=false) {
   constexpr auto extent=kNativeExtentBytes;

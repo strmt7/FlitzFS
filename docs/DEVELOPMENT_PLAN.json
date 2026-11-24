@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated": "2026-11-24",
+  "updated": "2026-11-25",
   "forward_work_rule": "Use current_release_sequence for integration order, and execution_programme and the implementation plan for package dependencies and exits. Historical checkpoints describe completed or partial evidence.",
   "current_release_sequence": {
     "reviewed_commit": "c32348b7efe5aaa789965ee669189840f3f6f5b3",
@@ -23,6 +23,7 @@
     "latest_mounted_retirement_evidence": "docs/evidence/windows-mounted-packed-retirement-2026-11-23.json",
     "latest_amd_evidence": "docs/evidence/windows-amd-group-supervisor-comparison-2026-11-24.json",
     "latest_group_exchange_profile": "docs/evidence/windows-amd-group-supervisor-comparison-2026-11-24.json",
+    "latest_group_startup_admission": "docs/evidence/windows-amd-group-startup-admission-2026-11-25.json",
     "latest_protected_size_evidence": "docs/evidence/windows-collective-cold-order-2026-11-24.json",
     "settled_size_implementation": "docs/RELEASE_RECONCILIATION_2026-11-24.md#first-settled-size-implementation-sequence",
     "ntfs_comparison": "docs/BENCHMARK_PROTOCOL.md#plain-and-native-compressed-ntfs",

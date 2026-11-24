@@ -33,6 +33,16 @@ inline Lz4DeviceInfo uniform_lz4_device_info(const hipDeviceProp_t& p,
       HipWorkerStage::device_properties);
   return {priority,static_cast<std::uint32_t>(wave),p.sharedMemPerBlock};
 }
+inline void check_group_kernel_attributes(Lz4Attributes attributes,
+    std::span<const group_decode::KernelApi> kernels,Lz4DeviceInfo device) {
+  for(std::size_t index=0;index<kernels.size();++index) {
+    const auto kernel=kernels[index].decode;
+    const auto earlier=kernels.first(index);
+    // The verified module can export the same decoder through both wire APIs.
+    if(std::ranges::find(earlier,kernel,&group_decode::KernelApi::decode)==earlier.end())
+      check_lz4_attributes(attributes,kernel,device);
+  }
+}
 inline void uniform_lz4_runtime_preflight(const HipApi& api,
     const uniform_lz4::KernelApi& kernel,Lz4KernelCoverage coverage){
   lz4_require(uniform_lz4::compatible_kernel_api(kernel),HipWorkerExit::invalid_request,

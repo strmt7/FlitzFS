@@ -132,17 +132,27 @@ The helper receives the private request after initialization and releases
 its resources on completion, cancellation, or an unused forecast. Foreground
 activity can supersede the forecast before any use of its result.
 
-The qualified startup lead and the observed full exchange govern preparation.
+The qualified startup lead, measured unready exchanges and verified ready
+dispatch cost govern preparation.
 The controller probes the same helper's readiness without blocking, before
 encoding a request and again before queuing it. An unready worker needs
 enough lead for its estimated remaining setup and dispatch. An overdue
 estimate still requires full lead until the event confirms readiness. Once
 ready, the worker needs the qualified dispatch lead or a longer measured
 ready-to-publication time. Only a verified result published from a request
-submitted to a ready helper can update that estimate. Early submissions
-continue to inform the full exchange estimate.
+submitted to a ready helper updates ready dispatch. Time spent waiting for
+a request after readiness gives no startup sample. Early submissions and
+cold launches inform the full exchange estimate. A startup offer also
+covers the verified dispatch floor.
 [Readiness and fallback evidence](evidence/windows-amd-group-read-admission-2026-11-24.json) ·
 [Windows zero-time wait](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitformultipleobjects)
+
+The packed and mixed tables can name the same device function. The worker
+validates both tables and corroborates attributes for each distinct decode
+function on the admitted device. The current shared decoder needs two
+queries. A module with different device functions needs two per function.
+[HIP function metadata API](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/doxygen/html/group___execution.html) ·
+[Startup admission evidence](evidence/windows-amd-group-startup-admission-2026-11-25.json)
 
 AMD documents stream priority as disabled, so this route relies on
 admission, finite reservations, and cancellation to limit competing work.
