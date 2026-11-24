@@ -84,11 +84,19 @@ The engine retains one unfinished leaf and bounded references per tree level.
 Each payload step admits at most one 1-MiB object. Index work follows one
 leaf's capacity, and tree finishing follows the admitted depth of 16. The
 indexed native path uses the same staged layout with its paged namespace.
+Each verification and copy pass carries a checked tree cursor. Target comparison
+uses a bounded source lookup cache for that pass. A pass change resets both,
+so verification after publication reads the private image again. Mirror
+verification supplies the decoded bytes used by the comparison and still checks
+each stored copy. This preserves the per-step foreground yield point and the
+separate root, data and selector checks.
+
 Resource admission remains the provider/controller's responsibility. There is
 no thread, service, timer, online model or GPU launch. An OS flush can still
 block; this is a bounded-work contract, not a wall-clock or zero-interference
 guarantee. A qualified controller must supply fresh headroom/contention evidence,
 low scheduling/I/O priority and foreground-yield opportunities.
+[Windows background resource scheduling](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadpriority)
 
 ## Foreground reconciliation
 
@@ -144,6 +152,16 @@ rewrite still uses a new image identity.
 [Coherence catalog](OPTIMIZATION_STATE.md#compaction-at-the-append-limit)
 
 ## Executed scope
+
+The populated indexed foreground-reconciliation fixture made 3,281 backing
+read calls after this change, down from 7,990, and read 3,639,264 bytes, down
+from 20,644,702. It exercised the same copy and reconciliation steps,
+including late foreground edits and byte-exact reopen. The populated packed
+and sparse guests still had pending mounted reclamation. Bounded detached
+reclamation published the compacted images and retired the old ranges. The
+controller's progress under its idle and backing budgets remains a separate
+acceptance check.
+[Read accounting and mounted evidence](evidence/windows-staged-reclamation-reads-2026-11-24.json)
 
 The dedicated memory suite checks all three layouts under 4-KiB and 64-KiB
 failure contracts, both encoding modes, generic empty/1-MiB objects, all phases,

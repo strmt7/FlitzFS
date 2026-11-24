@@ -1297,7 +1297,17 @@ void indexed_reconciled_rebuild() {
   const auto pinned=writer.snapshot();
   const auto image_id=identity_for(51);
   auto candidate=writer.prepare_paged_recompression(target,image_id,raw,false,PagedRewriteMode::reconcile_foreground);
-  require(!writer.advance_paged_recompression(candidate),"indexed candidate completed before first scan");
+  std::uint64_t source_reads=0,target_reads=0,read_bytes=0;
+  const auto advance=[&] {
+    const auto source_before=backing->read_calls,target_before=target->read_calls;
+    const auto bytes_before=backing->read_bytes+target->read_bytes;
+    const auto complete=writer.advance_paged_recompression(candidate);
+    source_reads+=backing->read_calls-source_before;
+    target_reads+=target->read_calls-target_before;
+    read_bytes+=backing->read_bytes+target->read_bytes-bytes_before;
+    return complete;
+  };
+  require(!advance(),"indexed candidate completed before first scan");
   // Delete enough adjoining keys to remove old leaves and insert new keys
   // beyond the old tree's end. Neither change should restart the private copy.
   for(unsigned i=0;i<31;++i) {
@@ -1307,13 +1317,13 @@ void indexed_reconciled_rebuild() {
   for(unsigned i=84;i<96;++i)create(i);
   unsigned steps=0;
   while(candidate.progress().phase!=PagedRewritePhase::reconciling) {
-    require(!writer.advance_paged_recompression(candidate) && ++steps<2000,
+    require(!advance() && ++steps<2000,
         "indexed rebuild did not start reconciliation against committed edits");
   }
   // Admit another foreground commit after the delta cursor captured its root.
   create(96);
   unsigned catchup=0;
-  while(!writer.advance_paged_recompression(candidate))
+  while(!advance())
     require(++catchup<500,"indexed reconciliation did not converge");
   require(writer.paged_recompression_ready(candidate),"reconciled image did not bind to the current source");
 
@@ -1327,7 +1337,7 @@ void indexed_reconciled_rebuild() {
   refuses(NativeFsErrorCode::storage_failure,[&]{(void)writer.finish_paged_recompression(candidate);});
   require(target->extent()==previous_target_extent,"stale publication touched the private image");
   unsigned late_steps=0;
-  while(!writer.advance_paged_recompression(candidate))
+  while(!advance())
     require(++late_steps<100,"late foreground commit restarted the full copy");
 
   const auto source=writer.snapshot();
@@ -1355,8 +1365,13 @@ void indexed_reconciled_rebuild() {
     refuses(NativeFsErrorCode::not_found,[&]{(void)observed.stat(name(i));});
   refuses(NativeFsErrorCode::not_found,[&]{(void)observed.stat(former_path);});
   require(rebuilt.snapshot().sequence()==source.sequence(),"reconciled writer cached a stale namespace");
+  // This fixed workload previously used 7,990 reads during staged advances.
+  // Leave margin for layout changes while catching a fresh walk per record.
+  require(source_reads+target_reads<5000,"reconciled rebuild repeated checked backing reads");
   std::cout<<"indexed_reconciliation retained_files="<<expected.size()<<" deleted_files=31 baseline_steps="<<steps
-      <<" catchup_steps="<<catchup<<" late_steps="<<late_steps<<'\n';
+      <<" catchup_steps="<<catchup<<" late_steps="<<late_steps
+      <<" source_read_calls="<<source_reads<<" target_read_calls="<<target_reads
+      <<" read_bytes="<<read_bytes<<'\n';
 }
 
 void advance_to_compaction_ready(NativeFileSession& session) {
@@ -1707,6 +1722,10 @@ void profile_cpython_reopen(const char* path,bool compressed=false) {
 
 int main(int argc,char** argv) {
   try {
+    if(argc==2 && std::string_view(argv[1])=="--reconciled-rebuild"){
+      indexed_reconciled_rebuild();
+      return 0;
+    }
     if(argc==2 && std::string_view(argv[1])=="--scale-audit"){
       populated_native_snapshot(16384);
       return 0;

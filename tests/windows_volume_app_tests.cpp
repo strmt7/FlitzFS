@@ -1886,6 +1886,54 @@ std::vector<std::byte> mounted_reclamation_witness(const std::filesystem::path& 
   return bytes;
 }
 
+void observe_detached_reclamation(const MountedFileActivation& activation,StoreIoContract contract,
+    StoreIdentity volume,StoreCompressionOptions foreground) {
+  const auto& trial=activation.reclamation.value();
+  const auto before=mounted_backing_space(activation.path,trial.backing);
+  using Step=NativeVolumeReclaimProgress;
+  std::array<unsigned,static_cast<std::size_t>(Step::failed)+1> counts{};
+  std::uint64_t old_epoch=0;
+  bool pending=false;
+  {
+    auto session=NativeVolumeFile::resume(activation.path,contract,volume,foreground);
+    old_epoch=session.volume_info().selection.epoch;
+    const auto limit=GetTickCount64()+40000;
+    auto step=Step::copying;
+    for(unsigned i=0;i<65536 && GetTickCount64()<limit &&
+        session.persistent_reclamation_pending(NativeVolumeReclaimMode::release_backing);++i) {
+      step=session.advance_persistent_reclamation(fresh_volume_identity,NativeVolumeReclaimMode::release_backing);
+      ++counts[static_cast<std::size_t>(step)];
+      if(step==Step::idle || step==Step::pinned || step==Step::failed)break;
+    }
+    pending=session.persistent_reclamation_pending(NativeVolumeReclaimMode::release_backing);
+  }
+  const auto after=mounted_backing_space(activation.path,trial.backing);
+  const auto independent=NativeVolumeFile::inspect(activation.path,volume);
+  const auto& reader=independent.filesystem();
+  reader.verify_all();
+  require(reader.list().size()==4 && reader.list("Population").size()==mounted_trace_files,
+      "Detached reclamation changed the client namespace");
+  const auto population=verify_mounted_trace([&](std::size_t i,DWORD size) {
+    return reader.read("Population/"+mounted_trace_name(i,true),0,size);
+  });
+  const auto verify=[&](std::string_view name,const std::vector<std::byte>& bytes) {
+    require(reader.stat(name).logical_bytes==bytes.size() &&
+        reader.read(name,0,static_cast<std::uint32_t>(bytes.size()))==bytes,
+        "Detached reclamation changed client data");
+  };
+  verify("witness.bin",activation.packed_witness);
+  verify("payload.bin",activation.packed_payload);
+  verify("cached.bin",trial.cached_payload);
+  std::cout<<"detached_reclamation backing="<<reclaim_backing_name(trial.backing)
+      <<" before="<<before.allocated<<" after="<<after.allocated
+      <<" old_epoch="<<old_epoch<<" epoch="<<independent.info().selection.epoch
+      <<" pending="<<pending;
+  constexpr std::array names{"idle","copying","ready","published","retiring","pinned","failed"};
+  static_assert(names.size()==counts.size());
+  for(std::size_t i=0;i<counts.size();++i)std::cout<<' '<<names[i]<<'='<<counts[i];
+  std::cout<<" independent_cpu=exact blake3="<<hex_mounted_digest(population)<<std::endl;
+}
+
 void mounted_reclamation_gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budget,
     MountedReclaimBacking profile,bool mixed_flush=false,bool record_operations=false) {
   const auto parent=std::filesystem::path(disposable_mount_parent()).parent_path();
@@ -2019,8 +2067,12 @@ void mounted_reclamation_gui_tests(const std::filesystem::path& app,const app_fi
         "Packed allocation ledger did not agree with the detached file");
     activation.action=VolumeFileAction::open_existing;
   }
-  if(client_trace)std::cout<<"mounted_trace_complete schema=1 records="<<client_trace->records()
-      <<" cycles="<<cycles<<" populated="<<mounted_trace_files<<std::endl;
+  if(client_trace) {
+    require(volume.has_value(),"Missing detached observation identity");
+    observe_detached_reclamation(activation,contract,*volume,foreground);
+    std::cout<<"mounted_trace_complete schema=1 records="<<client_trace->records()
+        <<" cycles="<<cycles<<" populated="<<mounted_trace_files<<std::endl;
+  }
   std::cout<<"mounted_reclaim_complete backing="<<reclaim_backing_name(profile)
       <<" cycles="<<cycles<<" delete_regrow="<<cycles-1<<" continued_writes=1 both_leases_retired=1\n";
   if(mixed_flush)

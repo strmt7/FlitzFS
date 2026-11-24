@@ -31,6 +31,7 @@
     "latest_ordinary_amd_group_capture": "docs/evidence/windows-ordinary-amd-capture-groups-2026-11-23.json",
     "latest_owner_amd_write_pairs": "docs/evidence/windows-owner-amd-write-pairs-2026-11-23.json",
     "latest_populated_operation_trace": "docs/evidence/windows-populated-client-trace-2026-11-24.json",
+    "latest_staged_reclamation": "docs/evidence/windows-staged-reclamation-reads-2026-11-24.json",
     "latest_separate_request_admission": "docs/evidence/windows-controller-separate-request-admission-2026-11-24.json",
     "latest_finishable_worker_burst": "docs/evidence/windows-finishable-worker-bursts-2026-11-24.json",
     "latest_arriving_native_write_burst": "docs/evidence/windows-native-arriving-write-burst-2026-11-24.json",
@@ -38,7 +39,7 @@
     "latest_mixed_size_resident_worker": "docs/evidence/windows-mixed-size-resident-worker-2026-11-24.json",
     "latest_write_geometry_calibration": "docs/evidence/windows-amd-write-geometry-calibration-2026-11-24.json",
     "latest_indexed_name_page_inventory": "docs/evidence/indexed-name-page-inventory-2026-11-23.json",
-    "next": "Use the matched populated Win32 trace to explain and reduce unsettled allocation under churn. Compare the mounted admission, copy, publication and retirement boundaries with bounded detached reclamation. Reuse the transcript for the incremental admission differential, complete-cost AMD trials and held-out settled compression.",
+    "next": "Use the matched populated Win32 trace to measure mounted reclamation admission and phase progress. Staged rebuilds make fewer backing reads and detached reclamation completes on both populated backings. Keep independent recovery and reuse this transcript for incremental admission, complete-cost AMD trials and settled compression.",
     "release_qualified": false
   },
   "baseline": {

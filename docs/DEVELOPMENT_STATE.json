@@ -14,7 +14,12 @@
     "helper_lifecycles_per_backing": 3,
     "packed_settlement_verified": false,
     "sparse_settlement_verified": false,
-    "next": "Explain populated reclamation debt by comparing controller admission, copy, publication and retirement across the mounted and detached paths."
+    "staged_reclamation_evidence": "docs/evidence/windows-staged-reclamation-reads-2026-11-24.json",
+    "staged_reconciliation_read_calls_before": 7990,
+    "staged_reconciliation_read_calls_after": 3281,
+    "detached_packed_reclamation_verified": true,
+    "detached_sparse_reclamation_verified": true,
+    "next": "Measure admitted and refused mounted opportunities and phase progress. Detached reclamation publishes and retires both populated images."
   },
   "release_path_review": {
     "evidence": "docs/evidence/release-reconciliation-2026-11-24.json",

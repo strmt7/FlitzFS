@@ -481,14 +481,19 @@ and settlement have separate verdicts.
 [Trace evidence](evidence/windows-populated-client-trace-2026-11-24.json)
 · [Workload and transcript contract](BENCHMARK_PROTOCOL.md#populated-windows-operation-trace)
 
-Prioritize the populated retirement gap before attempting compression or
-AMD comparisons on the trace. Capture maintenance decisions, pins and
-cooperative copy progress alongside live allocation. Compare mounted
-scheduling with bounded detached reclamation on the same initial state to
-identify whether admission, copy, publication or retirement limits progress.
-Add the control with maintenance withheld and preserve the independent
-acknowledgement checks. Collect real-host timing once the shared workflow
-admits qualified backing and artifact pairs.
+The staged rebuild now makes 59% fewer backing reads on the controlled
+reconciliation fixture. The populated runs also compare mounted observation
+with detached reclamation on the resulting images. Both detached owners
+published compact images and verified all bytes. Both mounted windows ended
+with eligible retirement pending.
+[Staged reclamation evidence](evidence/windows-staged-reclamation-reads-2026-11-24.json)
+
+Measure the controller's admitted and refused opportunities, continuation
+counts and phase progress on the same trace. Distinguish resource admission,
+competing work, private copy, publication and reader-pinned retirement before
+changing the scheduling budget. Add the control with maintenance withheld
+and preserve the independent acknowledgement checks. Collect real-host
+timing once the shared workflow admits qualified backing and artifact pairs.
 
 ### First implementation slice
 

@@ -1218,8 +1218,8 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
   Bytes replacement;
   std::size_t replacement_identity_offset;
   std::optional<RebuildRetention> retention;
-  std::optional<TreeFrontier> filtered_frontier;
-  std::optional<LookupPages> filtered_source_pages;
+  std::optional<TreeFrontier> frontier;
+  std::optional<LookupPages> comparison_source_pages;
   std::optional<RebuildColdEncoding> cold;
   std::function<void(std::uint64_t)> folded_admission;
   struct CompressionScreen {
@@ -1234,7 +1234,7 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
     }
     bool operator==(const RetainedInventory&) const = default;
   } retained,copied;
-  std::uint64_t source_extent=0,target_extent=0,after=0,completed=0,logical=0,stored=0,write_bound=0;
+  std::uint64_t source_extent=0,target_extent=0,completed=0,logical=0,stored=0,write_bound=0;
   PagedRewritePhase phase=PagedRewritePhase::verifying_source;
   bool reencode=true,replacement_seen=false;
   PagedRewriteMode mode;
@@ -1312,36 +1312,34 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
         current.end>=original.end && current.generation>original.generation;
   }
   void reset(PagedRewritePhase next) noexcept {
-    phase=next;after=completed=logical=stored=0;
-    filtered_frontier.reset();
-    filtered_source_pages.reset();
+    phase=next;completed=logical=stored=0;
+    frontier.reset();
+    comparison_source_pages.reset();
   }
   void count(const Entry& entry) {
-    after=entry.id;completed=add(completed,1);logical=add(logical,entry.logical);stored=add(stored,entry.stored);
+    completed=add(completed,1);logical=add(logical,entry.logical);stored=add(stored,entry.stored);
   }
   void totals(const State& state) const {
     if(completed!=state.root.count || logical!=state.root.logical || stored!=state.root.stored)
       fail("staged verification inventory differs");
   }
   template<class Visit> bool visit_quantum(const State& input,Visit&& visit) {
+    if(!input.root.count)return false;
+    // The checkpoint is immutable for this pass. Keep its checked path and
+    // leaf between opportunities without increasing the payload work per step.
+    if(!frontier)frontier.emplace(TreeFrontier{{input.root},{}});
     std::size_t remaining=retention?leaf_capacity(input)/4:1;
     const auto before=completed;
-    auto visitor=[&](const Entry& entry) {
+    while(remaining && frontier->present()) {
+      if(frontier->entries.empty()) {
+        frontier->open(input);
+        continue;
+      }
+      const auto entry=frontier->take();
       if(retention && entry.logical>retention->maximum_object_bytes)fail("oversized advisory record");
       visit(entry);
       count(entry);
-      return --remaining!=0;
-    };
-    if(retention) {
-      if(!filtered_frontier)filtered_frontier.emplace(TreeFrontier{{input.root},{}});
-      auto& frontier=*filtered_frontier;
-      while(remaining && frontier.present()) {
-        if(frontier.entries.empty())frontier.open(input);
-        else visitor(frontier.take());
-      }
-    }else {
-      bool done=false;
-      walk(input,input.root,after,visitor,done);
+      --remaining;
     }
     return completed!=before;
   }
@@ -1410,8 +1408,10 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
       fail("staged target object differs");
     auto expected=read_object(source,expected_entry);
     if(entry.id==1 && !native_root.empty())expected.assign(native_root.begin(),native_root.end());
-    if(read_object(build.next,entry)!=expected)fail("staged target CPU comparison");
-    if(build.next.mirrored && !build.folded)verify_object(build.next,entry);
+    Bytes actual;
+    if(build.next.mirrored && !build.folded)verify_object(build.next,entry,&actual);
+    else actual=read_object(build.next,entry);
+    if(actual!=expected)fail("staged target CPU comparison");
   }
   void mark_ready(const State& current) {
     source_check(current);
@@ -1505,8 +1505,8 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
       measure_compression();
     } else if(phase==PagedRewritePhase::verifying_source) {
       const bool advanced=visit_quantum(original,[&](const Entry& entry) {
-        auto bytes=read_object(original,entry);
-        if(original.mirrored && verify_object(original,entry) && capacity_damage==entry)repair_confirmed=true;
+        Bytes bytes;
+        if(verify_object(original,entry,&bytes) && capacity_damage==entry)repair_confirmed=true;
         if(entry.id==1 && !replacement.empty()) {
           original_root_stored=entry.stored;
           if(bytes.size()!=replacement.size() || replacement_identity_offset>bytes.size() ||
@@ -1578,9 +1578,9 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
         reset(PagedRewritePhase::verifying_target);
       }
     } else if(phase==PagedRewritePhase::verifying_target || phase==PagedRewritePhase::verifying_publication) {
-      if(retention && !filtered_source_pages)filtered_source_pages.emplace();
+      if(!comparison_source_pages)comparison_source_pages.emplace();
       if(!visit_quantum(build.next,[&](const Entry& entry){
-        const auto source=lookup(original,entry.id,filtered_source_pages?&*filtered_source_pages:nullptr);
+        const auto source=lookup(original,entry.id,&*comparison_source_pages);
         if(!source)fail("staged target object differs");
         compare(original,*source,entry,replacement);
       })) {
