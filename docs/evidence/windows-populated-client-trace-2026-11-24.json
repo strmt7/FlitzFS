@@ -1,0 +1,423 @@
+{
+  "schema": 1,
+  "date": "2026-11-24",
+  "release_qualified": false,
+  "scope": "Same populated Win32 workload and acknowledged helper interruption in separate protected Windows Sandbox guests. Correctness and tracked allocation only.",
+  "source": {
+    "base_commit": "5cfdac0d193f526ed3aa51f518008f8b9f3edb59",
+    "base_tree": "f2c2d8f57933cbf7d3c135615917d3ee90eb628f",
+    "tested_code_tree": "df28adbc0fa7261f91cdb8d88ffea51e3e3e89dc",
+    "changed_source_blobs": {
+      "tests/windows_volume_app_tests.cpp": "9882eb2a6cd652f08d9b1791777b2ad7c8d2a3ab",
+      "tools/dev/verify_mounted_client_trace.py": "adc60404d410dd507b3983d69054fc8d5ef7b083"
+    }
+  },
+  "validated_client_transcript": {
+    "sha256": "a819bc8c0ba49580f45c3985470cbf88f3934aa3ac88cb910c4b72b72a984af1",
+    "bytes": 1134259,
+    "records": 6293,
+    "files": 1027,
+    "logical_bytes": 2291854,
+    "cycles": 3,
+    "independent_population_blake3": "24b7b9b2afa3ee9c8043d757ccb4229c4321e8af5352b9800d6a599b8b70faa4",
+    "counts": {
+      "conflicting_open": 1,
+      "cpu_verified": 3,
+      "create": 1030,
+      "enumerate": 3,
+      "flush": 1077,
+      "flush_cached": 3,
+      "flush_mapped": 4,
+      "flush_view": 4,
+      "held_read": 3,
+      "lookup_deleted": 2,
+      "mkdir": 1,
+      "overwrite_open": 1,
+      "range_read": 3,
+      "read": 3076,
+      "rename_replace": 1,
+      "unlink": 2,
+      "write": 1079
+    }
+  },
+  "packed": {
+    "windows_guest_build": "26100",
+    "guest_memory_mib": 4096,
+    "vGPU": false,
+    "binary_identity_sha256": {
+      "flitzfs_volume_app.exe": "f76569163f4fdd86e5f69399c812396593158bd44f284125125b3ac207269a43",
+      "flitzfs_volume_app_tests.exe": "ae311859d1bee9726d9d0cc8435375e822c7aaa300337627f63f8e46665b4ee2",
+      "flitzfs_volume_attachment_tests.exe": "8c7d9faeff32c9b3e5b27d4a2128559b9c70c7fa1ad82f734c6e99bb8d5c9246",
+      "winfsp-x64.dll": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+      "winfsp-x64.sys": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+      "msvcp140.dll": "59d325227321d52b9a523ea401ce6787a5d59f78229a0ff3a6f124e5d3445685",
+      "msvcp140_atomic_wait.dll": "8b10c6bd4c3c427ce7c8be96ef0fef0f8187bc236962be62a03caef834b37dcd",
+      "vcruntime140.dll": "eb1ee979bf02324712346e5bdbfc59c785388bc50d18cc2688aae4b0734915a0",
+      "vcruntime140_1.dll": "a14b4a42a2c6df04d6d53a8340816023d953406f7f3d94996c7cab30c414ff63"
+    },
+    "guest_receipt_sha256": "7dd3e9c9c0ccb19e5306ceaed48bf5c09e87b0dbd3813988841c152c08ac15e3",
+    "sandbox_receipt_sha256": "56e2caa395cd163e368b8d5d5c84f449acf4ee0f98f7763039ea1e66ba4ff1c1",
+    "controller_processes_and_mounts_remaining": 0,
+    "sandbox_inventory_after": [],
+    "driver_unregistration_exit": 0,
+    "driver_retired_with_guest": true,
+    "interruption": {
+      "pid": 2124,
+      "exit_code": 1223,
+      "client_held_through_exit": 1,
+      "old_mount_removed": 1
+    },
+    "independent_cpu_checkpoints": [
+      {
+        "cycle": 1,
+        "epoch": 1,
+        "generation": 5846,
+        "namespace_sequence": 2922,
+        "inner_end": 785645568,
+        "active_payload": 4474312,
+        "allocated": 788135936,
+        "eof": 788135936,
+        "files": 1027,
+        "helper_retired": 1,
+        "blake3": "24b7b9b2afa3ee9c8043d757ccb4229c4321e8af5352b9800d6a599b8b70faa4"
+      },
+      {
+        "cycle": 2,
+        "epoch": 1,
+        "generation": 5894,
+        "namespace_sequence": 2946,
+        "inner_end": 808976384,
+        "active_payload": 4474316,
+        "allocated": 810549248,
+        "eof": 810549248,
+        "files": 1027,
+        "helper_retired": 1,
+        "blake3": "24b7b9b2afa3ee9c8043d757ccb4229c4321e8af5352b9800d6a599b8b70faa4"
+      },
+      {
+        "cycle": 3,
+        "epoch": 1,
+        "generation": 5942,
+        "namespace_sequence": 2970,
+        "inner_end": 832307200,
+        "active_payload": 4474318,
+        "allocated": 833880064,
+        "eof": 833880064,
+        "files": 1027,
+        "helper_retired": 1,
+        "blake3": "24b7b9b2afa3ee9c8043d757ccb4229c4321e8af5352b9800d6a599b8b70faa4"
+      }
+    ],
+    "mounted_reclamation": [
+      {
+        "backing": "packed",
+        "cycle": 1,
+        "epoch": 1,
+        "allocated": 788135936,
+        "eof": 788135936,
+        "image_occupied": 785645568,
+        "image_obsolete": 780009472,
+        "dense_owned": 786563072,
+        "dense_reusable": 0,
+        "dense_tail": 1048576,
+        "eligible_retirement": 1,
+        "retired_inode_pending": 0,
+        "settled_in_window": 0,
+        "independent_cpu": "exact"
+      },
+      {
+        "backing": "packed",
+        "cycle": 3,
+        "epoch": 1,
+        "allocated": 833880064,
+        "eof": 833880064,
+        "image_occupied": 832307200,
+        "image_obsolete": 826671104,
+        "dense_owned": 832569344,
+        "dense_reusable": 655360,
+        "dense_tail": 0,
+        "eligible_retirement": 1,
+        "retired_inode_pending": 0,
+        "settled_in_window": 0,
+        "independent_cpu": "exact"
+      }
+    ],
+    "churn": [
+      {
+        "backing": "packed",
+        "cycle": 1,
+        "live_bytes": 2291854,
+        "revisions": 16,
+        "delete_regrow": 0,
+        "peak": 785907712,
+        "ceiling": 766246912
+      },
+      {
+        "backing": "packed",
+        "cycle": 2,
+        "live_bytes": 2291854,
+        "revisions": 16,
+        "delete_regrow": 1,
+        "peak": 809369600,
+        "ceiling": 766246912
+      },
+      {
+        "backing": "packed",
+        "cycle": 3,
+        "live_bytes": 2291854,
+        "revisions": 16,
+        "delete_regrow": 1,
+        "peak": 832831488,
+        "ceiling": 766246912
+      }
+    ],
+    "settled_checkpoints": 0,
+    "host_supervisor": {
+      "exit_code": 0,
+      "peak_job_bytes": 48201728,
+      "tree_retired": true,
+      "cpu_percent": 12,
+      "supervisor_sha256": "871a45fcd5e30000f50c1c6575e226a44321a80fe9df44ee00e28a64ff1c1648",
+      "log_sha256": "dd6d9796fd61e617443c7f0506ef642e4241682bb0bbb94c5465d5866a5a935f"
+    }
+  },
+  "sparse": {
+    "windows_guest_build": "26100",
+    "guest_memory_mib": 4096,
+    "vGPU": false,
+    "binary_identity_sha256": {
+      "flitzfs_volume_app.exe": "f76569163f4fdd86e5f69399c812396593158bd44f284125125b3ac207269a43",
+      "flitzfs_volume_app_tests.exe": "ae311859d1bee9726d9d0cc8435375e822c7aaa300337627f63f8e46665b4ee2",
+      "flitzfs_volume_attachment_tests.exe": "8c7d9faeff32c9b3e5b27d4a2128559b9c70c7fa1ad82f734c6e99bb8d5c9246",
+      "winfsp-x64.dll": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+      "winfsp-x64.sys": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+      "msvcp140.dll": "59d325227321d52b9a523ea401ce6787a5d59f78229a0ff3a6f124e5d3445685",
+      "msvcp140_atomic_wait.dll": "8b10c6bd4c3c427ce7c8be96ef0fef0f8187bc236962be62a03caef834b37dcd",
+      "vcruntime140.dll": "eb1ee979bf02324712346e5bdbfc59c785388bc50d18cc2688aae4b0734915a0",
+      "vcruntime140_1.dll": "a14b4a42a2c6df04d6d53a8340816023d953406f7f3d94996c7cab30c414ff63"
+    },
+    "guest_receipt_sha256": "0932f6d2882b987bc3431a797afd48df0b3dca2cd2ef05ce2c6a08498ed958be",
+    "sandbox_receipt_sha256": "5d973d3ac2dd325975a2d78621918e353c23133f1355f13630541dcaadc7cc69",
+    "controller_processes_and_mounts_remaining": 0,
+    "sandbox_inventory_after": [],
+    "driver_unregistration_exit": 0,
+    "driver_retired_with_guest": true,
+    "interruption": {
+      "pid": 2128,
+      "exit_code": 1223,
+      "client_held_through_exit": 1,
+      "old_mount_removed": 1
+    },
+    "independent_cpu_checkpoints": [
+      {
+        "cycle": 1,
+        "epoch": 1,
+        "generation": 5424,
+        "namespace_sequence": 2711,
+        "inner_end": 730333184,
+        "active_payload": 4472512,
+        "allocated": 732037120,
+        "eof": 1563426816,
+        "files": 1027,
+        "helper_retired": 1,
+        "blake3": "24b7b9b2afa3ee9c8043d757ccb4229c4321e8af5352b9800d6a599b8b70faa4"
+      },
+      {
+        "cycle": 2,
+        "epoch": 1,
+        "generation": 5472,
+        "namespace_sequence": 2735,
+        "inner_end": 753664000,
+        "active_payload": 4472528,
+        "allocated": 753926144,
+        "eof": 1563426816,
+        "files": 1027,
+        "helper_retired": 1,
+        "blake3": "24b7b9b2afa3ee9c8043d757ccb4229c4321e8af5352b9800d6a599b8b70faa4"
+      },
+      {
+        "cycle": 3,
+        "epoch": 1,
+        "generation": 5520,
+        "namespace_sequence": 2759,
+        "inner_end": 776994816,
+        "active_payload": 4472528,
+        "allocated": 778305536,
+        "eof": 1563426816,
+        "files": 1027,
+        "helper_retired": 1,
+        "blake3": "24b7b9b2afa3ee9c8043d757ccb4229c4321e8af5352b9800d6a599b8b70faa4"
+      }
+    ],
+    "mounted_reclamation": [
+      {
+        "backing": "sparse",
+        "cycle": 1,
+        "epoch": 1,
+        "allocated": 732037120,
+        "eof": 1563426816,
+        "image_occupied": 730333184,
+        "image_obsolete": 724697088,
+        "dense_owned": 0,
+        "dense_reusable": 0,
+        "dense_tail": 0,
+        "eligible_retirement": 1,
+        "retired_inode_pending": 0,
+        "settled_in_window": 0,
+        "independent_cpu": "exact"
+      },
+      {
+        "backing": "sparse",
+        "cycle": 3,
+        "epoch": 1,
+        "allocated": 778305536,
+        "eof": 1563426816,
+        "image_occupied": 776994816,
+        "image_obsolete": 771358720,
+        "dense_owned": 0,
+        "dense_reusable": 0,
+        "dense_tail": 0,
+        "eligible_retirement": 1,
+        "retired_inode_pending": 0,
+        "settled_in_window": 0,
+        "independent_cpu": "exact"
+      }
+    ],
+    "churn": [
+      {
+        "backing": "sparse",
+        "cycle": 1,
+        "live_bytes": 2291854,
+        "revisions": 16,
+        "delete_regrow": 0,
+        "peak": 729284608,
+        "ceiling": 709885952
+      },
+      {
+        "backing": "sparse",
+        "cycle": 2,
+        "live_bytes": 2291854,
+        "revisions": 16,
+        "delete_regrow": 1,
+        "peak": 752615424,
+        "ceiling": 709885952
+      },
+      {
+        "backing": "sparse",
+        "cycle": 3,
+        "live_bytes": 2291854,
+        "revisions": 16,
+        "delete_regrow": 1,
+        "peak": 775946240,
+        "ceiling": 709885952
+      }
+    ],
+    "settled_checkpoints": 0,
+    "host_supervisor": {
+      "exit_code": 0,
+      "peak_job_bytes": 48246784,
+      "tree_retired": true,
+      "cpu_percent": 12,
+      "supervisor_sha256": "8d78e73070e2aa46f84d6391ef2c8346ef18bdb4d0dbebfdc8c4c22db39f7a89",
+      "log_sha256": "466c03710b4c5644dbf22a02b9e8ead5767ab8d49bd4b9299bd5176d4b5a4db3"
+    }
+  },
+  "initial_packed_settlement_failure": {
+    "guest_receipt_sha256": "c2db6c60bec6273ecb8b45e94359939252b9bcddc34841243c84bfc6c322aebb",
+    "trial_exit": 1,
+    "first_cycle_accounting": {
+      "backing": "packed",
+      "cycle": 1,
+      "epoch": 1,
+      "allocated": 776077312,
+      "eof": 776077312,
+      "image_occupied": 773586944,
+      "image_obsolete": 767950848,
+      "dense_owned": 774504448,
+      "dense_reusable": 0,
+      "dense_tail": 1048576,
+      "eligible_retirement": 1,
+      "retired_inode_pending": 0,
+      "independent_cpu": "exact"
+    },
+    "cycle_one_independent_cpu_readback": true,
+    "transcript": {
+      "bytes": 695991,
+      "sha256": "c07b976d8bf2601819aadd89d5e2bddfe7f866ff35f10f3a660392cf9a886d50"
+    },
+    "host_supervisor": {
+      "exit_code": 1,
+      "peak_job_bytes": 53161984,
+      "tree_retired": true,
+      "cpu_percent": 12,
+      "supervisor_sha256": "f57f1a2a6cffe2dd84a68884957470cbfd613c95dd950220804662cdd9859111",
+      "log_sha256": "92a6051680e8d08195864dca2d1e2f36cc619bb060f7aa4bac38df93dd1c6cc0"
+    },
+    "interpretation": "The existing settlement assertion stopped the workload after the first cycle. The new comparative mode records observed debt, exercises the interruption and verifies continuation while the separate settlement gate stays open."
+  },
+  "host_builds_and_cpu_tests": {
+    "release_build": {
+      "exit_code": 0,
+      "peak_job_bytes": 1071054848,
+      "tree_retired": true,
+      "cpu_percent": 27,
+      "supervisor_sha256": "1d91e8503a45af3d8168df0065d934adacaa31be90cb72dfc79a3c1400d87611",
+      "log_sha256": "0073cc2988a9171c0e0cd33eaa61f13dfb588916e4ee4756d7d151a15360b7a7"
+    },
+    "final_build": {
+      "exit_code": 0,
+      "peak_job_bytes": 432324608,
+      "tree_retired": true,
+      "cpu_percent": 17,
+      "supervisor_sha256": "29f7412bfbc86a3bac97e81076cf2f8aeb2fa4fe04a712eb6b5ee417bd42c75d",
+      "log_sha256": "3b5ff4883d6ca647d1afff237980b86a24bc4c63a14c4caef9b47b71ab01d6d2"
+    },
+    "host_cpu_tests": {
+      "exit_code": 0,
+      "peak_job_bytes": 149766144,
+      "tree_retired": true,
+      "cpu_percent": 16,
+      "supervisor_sha256": "fd734e90ffe27f3a8c989cb76b197a46ea473dad20a64c1710b24d8f210fde6f",
+      "log_sha256": "ea43838be6a358e9410706267a64649d643f1f293e84d938466a77db9b71a591"
+    },
+    "app_model": {
+      "exit_code": 0,
+      "peak_job_bytes": 11931648,
+      "tree_retired": true,
+      "cpu_percent": 13,
+      "supervisor_sha256": "39699204b431d20855d01b104c6f3fb32f8c9ee8564ecc0b48563695560792bf",
+      "log_sha256": "6ef3d7ac183e4fb1cbfdbd94e4bdb70f2127688e83d81e057e61021a3dc6a5ff"
+    }
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "bf6949caa5220efbd63b72f6d9556340cb5c8371f7dca0bec938d11c0ac7af0f",
+    "pages": [
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-flushviewoffile",
+        "http_status": 200,
+        "success": true,
+        "markdown_bytes": 30306,
+        "capture_sha256": "8f23058c98d0bc0c463243c3372162bf0fb04f7de103d068089cec3516b2e674"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-movefileexw",
+        "http_status": 200,
+        "success": true,
+        "markdown_bytes": 27494,
+        "capture_sha256": "cd314cc795959e62fd2652b20ea2bb61a24693fd811396dec9741bf3d6a214f6"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-findnextfilew",
+        "http_status": 200,
+        "success": true,
+        "markdown_bytes": 37707,
+        "capture_sha256": "6f22e769514aa65074f0d2bb6d07146c3e007152dc5f90ea699f5de97eb9ac70"
+      }
+    ]
+  },
+  "performance_measured_in_guest": false,
+  "owner_machine_test_mounts": 0,
+  "owner_machine_driver_changes": 0,
+  "gpu_launches": 0
+}

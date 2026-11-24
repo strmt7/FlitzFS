@@ -6,6 +6,16 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "populated_windows_operation_trace": {
+    "evidence": "docs/evidence/windows-populated-client-trace-2026-11-24.json",
+    "matched_client_records": 6293,
+    "independent_cpu_files": 1027,
+    "logical_live_bytes": 2291854,
+    "helper_lifecycles_per_backing": 3,
+    "packed_settlement_verified": false,
+    "sparse_settlement_verified": false,
+    "next": "Explain populated reclamation debt by comparing controller admission, copy, publication and retirement across the mounted and detached paths."
+  },
   "release_path_review": {
     "evidence": "docs/evidence/release-reconciliation-2026-11-24.json",
     "reviewed_parent": "c32348b7efe5aaa789965ee669189840f3f6f5b3",

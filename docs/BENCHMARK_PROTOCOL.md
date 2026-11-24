@@ -361,6 +361,38 @@ admission and scoring to complete results for both paths.
 [Trial evidence](evidence/windows-amd-detached-write-trials-2026-11-23.json) ·
 [Finite Radeon traces](evidence/windows-ordinary-amd-write-demand-2026-11-23.json)
 
+## Populated Windows operation trace
+
+The disposable guest modes `--gui-mounted-packed-operation-trace-sandbox`
+and `--gui-mounted-sparse-operation-trace-sandbox` use the same Win32 client
+and fixed corpus. Both run three helper lifecycles with 1,024 short and
+multi-extent files. They replace an existing rename target, probe sharing,
+enumerate and read the files, and interleave cached and mapped flushes with
+delete/regrow and a held reader. One lifecycle terminates the owned helper
+after the flushes, then independently reopens the volume on CPU. The last
+lifecycle verifies the recovered state and continues writing.
+[Client fixture](../tests/windows_volume_app_tests.cpp)
+
+The client exclusively creates `client-trace.jsonl` in the private guest
+fixture outside the mounted namespace. Schema 1 records consecutive IDs,
+cycle, operation, fixture-relative path, client status, byte range and
+available byte digests. The independent CPU verification closes each cycle.
+The overlapping handle flush outcomes have a stable record order after
+both calls return. The fixture checks their actual overlap separately.
+Use `tools/dev/verify_mounted_client_trace.py` on the exported transcripts to
+validate their operation order, file lengths and matched content witnesses.
+The separate checkpoint rows report backing EOF, allocated bytes, indexed
+generation, namespace sequence and active payload bytes. Reclamation rows
+report obsolete image bytes and pending retirement separately from recovered
+data. [Transcript verifier](../tools/dev/verify_mounted_client_trace.py)
+· [Packed and sparse run evidence](evidence/windows-populated-client-trace-2026-11-24.json)
+
+For mapped data, record the view flush separately from the following file
+handle flush. The combined trace is a correctness and space-accounting
+fixture. Real-host timing and comparisons use the same external workload
+semantics under matched cache, backing and resource conditions.
+[Windows mapped flush contract](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-flushviewoffile)
+
 ## Measurements and anti-bias rules
 
 1. Pin source, binary/tool/runtime hashes, parameters, seeds, corpus, Windows

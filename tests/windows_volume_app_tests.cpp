@@ -739,6 +739,56 @@ struct MountedWritableView {
   std::byte* view=nullptr;
 };
 
+// The client owns this transcript outside the mounted namespace. IDs describe
+// observations, including conflicting requests, independently of helper state.
+class MountedClientTrace {
+ public:
+  explicit MountedClientTrace(const std::filesystem::path& path):output_(path,GENERIC_WRITE,CREATE_NEW) {}
+
+  void start_cycle(unsigned cycle) noexcept {cycle_=cycle;}
+  void record(std::string_view operation,std::string_view path,DWORD status,
+      std::uint64_t offset=0,std::uint64_t requested=0,std::uint64_t transferred=0,
+      std::string_view digest={},std::string_view target={}) {
+    // The transcript only receives fixed/generated ASCII fixture names.
+    const auto safe=[](std::string_view value) {
+      return std::all_of(value.begin(),value.end(),[](char c) {
+        return c>=0x20 && c<=0x7e && c!='"' && c!='\\';
+      });
+    };
+    require(safe(operation) && safe(path) && safe(digest) && safe(target),"Invalid trace field");
+    auto line="{\"id\":"+std::to_string(++records_)+",\"cycle\":"+std::to_string(cycle_)+
+        ",\"operation\":\""+std::string(operation)+"\",\"path\":\""+std::string(path)+
+        "\",\"status\":"+std::to_string(status)+",\"offset\":"+std::to_string(offset)+
+        ",\"requested\":"+std::to_string(requested)+",\"transferred\":"+std::to_string(transferred);
+    if(!digest.empty())line+=",\"blake3\":\""+std::string(digest)+"\"";
+    if(!target.empty())line+=",\"target\":\""+std::string(target)+"\"";
+    line+="}\n";
+    require(line.size()<=2*1024*1024-bytes_,"Mounted client transcript exceeded its fixture budget");
+    DWORD written=0;
+    require(WriteFile(output_.file,line.data(),static_cast<DWORD>(line.size()),&written,nullptr) &&
+        written==line.size(),"Mounted client transcript write failed");
+    bytes_+=written;
+  }
+
+  void checkpoint() {require(FlushFileBuffers(output_.file),"Mounted client transcript flush failed");}
+  std::uint64_t records() const noexcept {return records_;}
+
+ private:
+  MountedTrialFile output_;
+  unsigned cycle_=0;
+  std::uint64_t records_=0,bytes_=0;
+};
+
+bool observe_mounted_call(MountedClientTrace* trace,std::string_view operation,std::string_view path,
+    BOOL result,std::string_view target={}) {
+  const auto status=result?ERROR_SUCCESS:GetLastError();
+  if(trace)trace->record(operation,path,status,0,0,0,{},target);
+  return result!=FALSE;
+}
+
+void write_mounted_bytes(HANDLE,const std::vector<std::byte>&,bool truncate=false,
+    MountedClientTrace* trace=nullptr,std::string_view path={});
+
 enum class MountedRecoveryPhase {none,interrupt,resume};
 enum class MountedRecoveryOperation {create_file,overwrite_and_rename};
 enum class MountedReclaimBacking {packed,sparse};
@@ -749,6 +799,7 @@ struct MountedReclaimCycle {
   std::uint64_t peak_allocated=0;
   bool mixed_flush=false;
   std::vector<std::byte> cached_payload;
+  MountedClientTrace* client_trace=nullptr;
 };
 struct MountedFileActivation {
   std::filesystem::path path;
@@ -783,9 +834,13 @@ std::wstring mounted_trace_path(const std::wstring& directory,std::size_t i,bool
   return directory+L"\\"+std::wstring(name.begin(),name.end());
 }
 
+std::size_t mounted_trace_size(std::size_t i,bool edited) noexcept {
+  if(edited && i==overwritten_trace_file)return 93;
+  return i%64==0?kNativeExtentBytes+79:271+i%389;
+}
+
 std::vector<std::byte> mounted_trace_bytes(std::size_t i,bool edited) {
-  const auto size=i%64==0?kNativeExtentBytes+79:271+i%389;
-  std::vector<std::byte> bytes(edited && i==overwritten_trace_file?93:size);
+  std::vector<std::byte> bytes(mounted_trace_size(i,edited));
   auto state=mounted_trace_seed^static_cast<std::uint32_t>(i);
   for(auto& value:bytes) {
     state=state*1664525U+1013904223U;
@@ -825,46 +880,59 @@ void print_mounted_trace_digest(const char* phase,const detail::Digest& digest) 
       <<" files="<<mounted_trace_files<<" blake3="<<hex_mounted_digest(digest)<<'\n';
 }
 
-void write_mounted_trace(const std::wstring& directory) {
-  require(CreateDirectoryW(directory.c_str(),nullptr)!=FALSE,"Populated directory creation failed");
+void write_mounted_trace(const std::wstring& directory,MountedClientTrace* trace=nullptr) {
+  require(observe_mounted_call(trace,"mkdir","Population",CreateDirectoryW(directory.c_str(),nullptr)),
+      "Populated directory creation failed");
   for(std::size_t i=0;i<mounted_trace_files;++i) {
     const auto bytes=mounted_trace_bytes(i,false);
     MountedTrialFile file(mounted_trace_path(directory,i),GENERIC_WRITE,CREATE_NEW);
-    DWORD written=0;
-    require(WriteFile(file.file,bytes.data(),static_cast<DWORD>(bytes.size()),&written,nullptr) &&
-        written==bytes.size() && FlushFileBuffers(file.file),"Populated create write or flush failed");
+    const auto name="Population/"+mounted_trace_name(i,false);
+    if(trace)trace->record("create",name,ERROR_SUCCESS);
+    write_mounted_bytes(file.file,bytes,false,trace,name);
   }
   std::cout<<"mounted_population phase=seed_flushed files="<<mounted_trace_files<<std::endl;
   {
     const auto path=mounted_trace_path(directory,overwritten_trace_file);
+    const auto name="Population/"+mounted_trace_name(overwritten_trace_file,false);
     {
       MountedTrialFile reader(path,GENERIC_READ,OPEN_EXISTING,FILE_SHARE_READ);
       const auto conflict=CreateFileW(path.c_str(),GENERIC_WRITE,FILE_SHARE_READ,nullptr,OPEN_EXISTING,0,nullptr);
       const auto error=GetLastError();
       if(conflict!=INVALID_HANDLE_VALUE)CloseHandle(conflict);
+      if(trace)trace->record("conflicting_open",name,conflict==INVALID_HANDLE_VALUE?error:ERROR_SUCCESS);
       require(conflict==INVALID_HANDLE_VALUE && error==ERROR_SHARING_VIOLATION,
           "Populated conflicting write returned the wrong sharing status");
     }
     MountedTrialFile replacement(path,GENERIC_WRITE,CREATE_ALWAYS);
     const auto bytes=mounted_trace_bytes(overwritten_trace_file,true);
-    DWORD written=0;
-    require(WriteFile(replacement.file,bytes.data(),static_cast<DWORD>(bytes.size()),&written,nullptr) &&
-        written==bytes.size() && FlushFileBuffers(replacement.file),"Populated overwrite or flush failed");
+    if(trace)trace->record("overwrite_open",name,ERROR_SUCCESS);
+    write_mounted_bytes(replacement.file,bytes,false,trace,name);
   }
   {
     MountedTrialFile file(mounted_trace_path(directory,mapped_trace_file),
         GENERIC_READ|GENERIC_WRITE,OPEN_EXISTING);
     MountedWritableView mapping(file.file);
     constexpr auto offset=kNativeExtentBytes-23;
+    const auto name="Population/"+mounted_trace_name(mapped_trace_file,false);
     std::fill_n(mapping.view+offset,64,std::byte{0x6d});
-    require(FlushViewOfFile(mapping.view+offset,64)!=FALSE,"Mounted dirty view flush failed");
-    require(FlushFileBuffers(file.file)!=FALSE,"Mounted file flush after dirty view failed");
+    require(observe_mounted_call(trace,"flush_view",name,FlushViewOfFile(mapping.view+offset,64)),
+        "Mounted dirty view flush failed");
+    require(observe_mounted_call(trace,"flush_mapped",name,FlushFileBuffers(file.file)),
+        "Mounted file flush after dirty view failed");
   }
   const auto old_path=mounted_trace_path(directory,renamed_trace_file);
   const auto new_path=mounted_trace_path(directory,renamed_trace_file,true);
   constexpr DWORD share=FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE;
   MountedTrialFile retained(old_path,GENERIC_READ,OPEN_EXISTING,share);
-  require(MoveFileExW(old_path.c_str(),new_path.c_str(),0)!=FALSE,
+  const auto old_name="Population/"+mounted_trace_name(renamed_trace_file,false);
+  const auto new_name="Population/"+mounted_trace_name(renamed_trace_file,true);
+  if(trace) {
+    MountedTrialFile destination(new_path,GENERIC_WRITE,CREATE_NEW);
+    trace->record("create",new_name,ERROR_SUCCESS);
+    write_mounted_bytes(destination.file,{std::byte{0xf9}},false,trace,new_name);
+  }
+  require(observe_mounted_call(trace,"rename_replace",old_name,
+      MoveFileExW(old_path.c_str(),new_path.c_str(),trace?MOVEFILE_REPLACE_EXISTING:0),new_name),
       "Populated rename with retained handle failed");
   MountedTrialFile renamed(new_path,GENERIC_READ|GENERIC_WRITE,OPEN_EXISTING,share);
   BY_HANDLE_FILE_INFORMATION prior{},after{};
@@ -873,12 +941,13 @@ void write_mounted_trace(const std::wstring& directory) {
       prior.dwVolumeSerialNumber==after.dwVolumeSerialNumber &&
       prior.nFileIndexHigh==after.nFileIndexHigh && prior.nFileIndexLow==after.nFileIndexLow,
       "Populated rename changed the retained file identity");
-  require(FlushFileBuffers(renamed.file)!=FALSE,"Populated renamed file flush failed");
+  require(observe_mounted_call(trace,"flush",new_name,FlushFileBuffers(renamed.file)),
+      "Populated renamed file flush failed");
   std::cout<<"mounted_population phase=mutations_flushed denied_share_status="<<ERROR_SHARING_VIOLATION
       <<" overwrite=1 mapped_extents=2 retained_identity=1\n";
 }
 
-void verify_mounted_population(const std::wstring& directory,const char* phase) {
+void verify_mounted_population(const std::wstring& directory,const char* phase,MountedClientTrace* trace=nullptr) {
   std::set<std::wstring> remaining;
   for(std::size_t i=0;i<mounted_trace_files;++i) {
     const auto name=mounted_trace_name(i,true);
@@ -895,14 +964,20 @@ void verify_mounted_population(const std::wstring& directory,const char* phase) 
     if(name!=L"." && name!=L"..")
       require(remaining.erase(entry.cFileName)==1,"Populated enumeration returned an unexpected or duplicate name");
   } while(FindNextFileW(search.handle,&entry));
-  require(GetLastError()==ERROR_NO_MORE_FILES && remaining.empty(),"Populated enumeration missed file names");
+  const auto ending=GetLastError();
+  if(trace)trace->record("enumerate","Population",ending,0,mounted_trace_files,mounted_trace_files-remaining.size());
+  require(ending==ERROR_NO_MORE_FILES && remaining.empty(),"Populated enumeration missed file names");
   const auto digest=verify_mounted_trace([&](std::size_t i,DWORD length) {
     MountedTrialFile file(mounted_trace_path(directory,i,true),GENERIC_READ,OPEN_EXISTING);
     LARGE_INTEGER size{};
     require(GetFileSizeEx(file.file,&size) && size.QuadPart==length,"Populated file length differs");
     std::vector<std::byte> bytes(length);
     DWORD read=0;
-    require(ReadFile(file.file,bytes.data(),length,&read,nullptr) && read==length,"Populated file read failed");
+    const auto result=ReadFile(file.file,bytes.data(),length,&read,nullptr);
+    const auto error=result?ERROR_SUCCESS:GetLastError();
+    if(trace)trace->record("read","Population/"+mounted_trace_name(i,true),error,0,length,read,
+        result && read==length?hex_mounted_digest(detail::record_digest(bytes)):std::string{});
+    require(result && read==length,"Populated file read failed");
     return bytes;
   });
   print_mounted_trace_digest(phase,digest);
@@ -939,22 +1014,31 @@ std::vector<std::byte> mounted_overwrite_bytes() {
   return bytes;
 }
 
-void write_mounted_bytes(HANDLE file,const std::vector<std::byte>& bytes,bool truncate=false) {
+void write_mounted_bytes(HANDLE file,const std::vector<std::byte>& bytes,bool truncate,
+    MountedClientTrace* trace,std::string_view path) {
   DWORD written=0;
-  require(WriteFile(file,bytes.data(),static_cast<DWORD>(bytes.size()),&written,nullptr) &&
-      written==bytes.size(),"Mounted write failed");
-  if(truncate)require(SetEndOfFile(file),"Mounted overwrite could not set the new EOF");
-  require(FlushFileBuffers(file),"Mounted file flush failed");
+  const auto result=WriteFile(file,bytes.data(),static_cast<DWORD>(bytes.size()),&written,nullptr);
+  const auto status=result?ERROR_SUCCESS:GetLastError();
+  if(trace)trace->record("write",path,status,0,bytes.size(),written,
+      result && written==bytes.size()?hex_mounted_digest(detail::record_digest(bytes)):std::string{});
+  require(result && written==bytes.size(),"Mounted write failed");
+  if(truncate)require(observe_mounted_call(trace,"truncate",path,SetEndOfFile(file)),
+      "Mounted overwrite could not set the new EOF");
+  require(observe_mounted_call(trace,"flush",path,FlushFileBuffers(file)),"Mounted file flush failed");
 }
 
-void verify_mounted_bytes(HANDLE file,const std::vector<std::byte>& expected) {
+void verify_mounted_bytes(HANDLE file,const std::vector<std::byte>& expected,
+    MountedClientTrace* trace=nullptr,std::string_view path={},std::string_view operation="read") {
   LARGE_INTEGER size{};
   require(GetFileSizeEx(file,&size) && size.QuadPart==static_cast<LONGLONG>(expected.size()),
       "Mounted readback length differs");
   std::vector<std::byte> bytes(expected.size());
   DWORD read=0;
-  require(ReadFile(file,bytes.data(),static_cast<DWORD>(bytes.size()),&read,nullptr) &&
-      read==bytes.size() && bytes==expected,"Mounted file bytes differ");
+  const auto result=ReadFile(file,bytes.data(),static_cast<DWORD>(bytes.size()),&read,nullptr);
+  const auto status=result?ERROR_SUCCESS:GetLastError();
+  if(trace)trace->record(operation,path,status,0,bytes.size(),read,
+      result && read==bytes.size()?hex_mounted_digest(detail::record_digest(bytes)):std::string{});
+  require(result && read==bytes.size() && bytes==expected,"Mounted file bytes differ");
 }
 
 struct MountedBackingSpace {
@@ -1013,9 +1097,13 @@ void mounted_mixed_flush(const std::wstring& root,MountedFileActivation& activat
   LARGE_INTEGER position{};
   position.QuadPart=static_cast<LONGLONG>(cached_offset);
   DWORD written=0;
-  require(SetFilePointerEx(cached.file,position,nullptr,FILE_BEGIN) &&
-      WriteFile(cached.file,cached_patch.data(),cached_count,&written,nullptr) && written==cached_count,
-      "Mixed cached write did not stage its bytes");
+  require(SetFilePointerEx(cached.file,position,nullptr,FILE_BEGIN),"Mixed cached write seek failed");
+  const auto staged=WriteFile(cached.file,cached_patch.data(),cached_count,&written,nullptr);
+  const auto staged_status=staged?ERROR_SUCCESS:GetLastError();
+  if(trial.client_trace)trial.client_trace->record("write","cached.bin",staged_status,cached_offset,
+      cached_count,written,staged && written==cached_count?hex_mounted_digest(detail::record_digest(cached_patch)):
+      std::string{});
+  require(staged && written==cached_count,"Mixed cached write did not stage its bytes");
 
   // Publish the dirty view first. Release the two file-handle flushes at the
   // same barrier and check their actual client call intervals for overlap.
@@ -1024,10 +1112,11 @@ void mounted_mixed_flush(const std::wstring& root,MountedFileActivation& activat
     DWORD error=ERROR_SUCCESS;
     bool acknowledged=false;
   } view,buffer;
+  DWORD mapped_view_status=ERROR_SUCCESS;
   std::barrier start(2);
   std::jthread view_client([&] {
     const bool view_flushed=FlushViewOfFile(mapping.view+mapped_offset,mapped_count)!=FALSE;
-    if(!view_flushed)view.error=GetLastError();
+    if(!view_flushed)view.error=mapped_view_status=GetLastError();
     start.arrive_and_wait();
     view.begin=std::chrono::steady_clock::now();
     if(view_flushed){
@@ -1042,6 +1131,13 @@ void mounted_mixed_flush(const std::wstring& root,MountedFileActivation& activat
   if(!buffer.acknowledged)buffer.error=GetLastError();
   buffer.end=std::chrono::steady_clock::now();
   view_client.join();
+  if(trial.client_trace) {
+    const auto patch=std::span(activation.packed_payload).subspan(mapped_offset,mapped_count);
+    trial.client_trace->record("flush_view","payload.bin",mapped_view_status,mapped_offset,mapped_count,
+        mapped_view_status==ERROR_SUCCESS?mapped_count:0,hex_mounted_digest(detail::record_digest(patch)));
+    trial.client_trace->record("flush_mapped","payload.bin",view.error);
+    trial.client_trace->record("flush_cached","cached.bin",buffer.error);
+  }
   if(!view.acknowledged || !buffer.acknowledged)
     throw std::runtime_error("Concurrent mapped/cached flush failed with Windows statuses "+
         std::to_string(view.error)+"/"+std::to_string(buffer.error));
@@ -1058,25 +1154,37 @@ void mounted_reclamation_cycle(const std::wstring& root,MountedFileActivation& a
   const auto witness=root+L"witness.bin";
   const auto payload=root+L"payload.bin";
   const auto cached=root+L"cached.bin";
+  auto* trace=trial.client_trace;
+  if(trace) {
+    const auto directory=root+mounted_trace_directory;
+    if(!trial.cycle)write_mounted_trace(directory,trace);
+    verify_mounted_population(directory,"mixed_client",trace);
+  }
   if(!trial.cycle){
     MountedTrialFile file(witness,GENERIC_WRITE,CREATE_NEW);
-    write_mounted_bytes(file.file,activation.packed_witness);
+    if(trace)trace->record("create","witness.bin",ERROR_SUCCESS);
+    write_mounted_bytes(file.file,activation.packed_witness,false,trace,"witness.bin");
     if(trial.mixed_flush){
       trial.cached_payload=mounted_client_bytes();
       MountedTrialFile buffer(cached,GENERIC_WRITE,CREATE_NEW);
-      write_mounted_bytes(buffer.file,trial.cached_payload);
+      if(trace)trace->record("create","cached.bin",ERROR_SUCCESS);
+      write_mounted_bytes(buffer.file,trial.cached_payload,false,trace,"cached.bin");
     }
   } else {
     if(trial.mixed_flush){
       MountedTrialFile buffer(cached,GENERIC_READ,OPEN_EXISTING);
-      verify_mounted_bytes(buffer.file,trial.cached_payload);
+      verify_mounted_bytes(buffer.file,trial.cached_payload,trace,"cached.bin");
     }
     {
       MountedTrialFile existing(payload,GENERIC_READ,OPEN_EXISTING);
-      verify_mounted_bytes(existing.file,activation.packed_payload);
+      verify_mounted_bytes(existing.file,activation.packed_payload,trace,"payload.bin");
     }
-    require(DeleteFileW(payload.c_str()),"Mounted reclamation unlink failed");
-    require(GetFileAttributesW(payload.c_str())==INVALID_FILE_ATTRIBUTES && GetLastError()==ERROR_FILE_NOT_FOUND,
+    require(observe_mounted_call(trace,"unlink","payload.bin",DeleteFileW(payload.c_str())),
+        "Mounted reclamation unlink failed");
+    const auto attributes=GetFileAttributesW(payload.c_str());
+    const auto status=attributes==INVALID_FILE_ATTRIBUTES?GetLastError():ERROR_SUCCESS;
+    if(trace)trace->record("lookup_deleted","payload.bin",status);
+    require(attributes==INVALID_FILE_ATTRIBUTES && status==ERROR_FILE_NOT_FOUND,
         "Unlinked mounted payload remains visible");
   }
   MountedTrialFile retained(witness,GENERIC_READ,OPEN_EXISTING,FILE_SHARE_READ|FILE_SHARE_DELETE);
@@ -1087,13 +1195,14 @@ void mounted_reclamation_cycle(const std::wstring& root,MountedFileActivation& a
   trial.peak_allocated=0;
   {
     MountedTrialFile file(payload,GENERIC_WRITE,CREATE_NEW);
+    if(trace)trace->record("create","payload.bin",ERROR_SUCCESS);
     for(unsigned revision=0;revision<revisions;++revision){
       for(auto& byte:activation.packed_payload){
         generator=generator*1664525U+1013904223U;
         byte=static_cast<std::byte>(generator>>24);
       }
       require(SetFilePointerEx(file.file,{},nullptr,FILE_BEGIN),"Cannot rewind the mounted churn payload");
-      write_mounted_bytes(file.file,activation.packed_payload);
+      write_mounted_bytes(file.file,activation.packed_payload,false,trace,"payload.bin");
       const auto space=mounted_backing_space(activation.path,trial.backing);
       trial.peak_allocated=(std::max)(trial.peak_allocated,space.allocated);
       if(!trial.cycle && !revision){
@@ -1104,14 +1213,32 @@ void mounted_reclamation_cycle(const std::wstring& root,MountedFileActivation& a
     }
   }
   if(trial.mixed_flush)mounted_mixed_flush(root,activation);
-  const auto live_bytes=payload_bytes+activation.packed_witness.size()+trial.cached_payload.size();
+  if(trace) {
+    constexpr auto offset=kNativeExtentBytes-7;
+    std::array<std::byte,32> bytes{};
+    MountedTrialFile file(payload,GENERIC_READ,OPEN_EXISTING);
+    LARGE_INTEGER at{};
+    at.QuadPart=offset;
+    require(SetFilePointerEx(file.file,at,nullptr,FILE_BEGIN),"Mounted range seek failed");
+    DWORD read=0;
+    const auto result=ReadFile(file.file,bytes.data(),static_cast<DWORD>(bytes.size()),&read,nullptr);
+    const auto status=result?ERROR_SUCCESS:GetLastError();
+    trace->record("range_read","payload.bin",status,offset,bytes.size(),read,
+        result && read==bytes.size()?hex_mounted_digest(detail::record_digest(bytes)):std::string{});
+    require(result && read==bytes.size() &&
+        std::equal(bytes.begin(),bytes.end(),activation.packed_payload.begin()+offset),
+        "Mounted range read differs");
+  }
+  auto live_bytes=payload_bytes+activation.packed_witness.size()+trial.cached_payload.size();
+  if(trace)for(std::size_t i=0;i<mounted_trace_files;++i)live_bytes+=mounted_trace_size(i,true);
   std::cout<<"mounted_reclaim_burst backing="<<reclaim_backing_name(trial.backing)
       <<" cycle="<<trial.cycle+1<<" live_bytes="<<live_bytes
       <<" revisions="<<revisions<<" delete_regrow="<<(trial.cycle!=0)
       <<" peak="<<trial.peak_allocated<<" ceiling="<<trial.baseline_ceiling<<std::endl;
   require(trial.peak_allocated>trial.baseline_ceiling,"Mounted churn did not construct reclaimable history");
   if(activation.recovery==MountedRecoveryPhase::interrupt){
-    verify_mounted_bytes(retained.file,activation.packed_witness);
+    verify_mounted_bytes(retained.file,activation.packed_witness,trace,"witness.bin","held_read");
+    if(trace)trace->checkpoint();
     return;
   }
   auto settled=mounted_backing_space(activation.path,trial.backing);
@@ -1128,7 +1255,8 @@ void mounted_reclamation_cycle(const std::wstring& root,MountedFileActivation& a
     // check after detach is the actual settlement assertion.
     return now>=observation_end || (settled.allocated<=trial.baseline_ceiling && now-last_change>=5000);
   },deadline-4000,"Cannot observe mounted backing allocation before detach");
-  verify_mounted_bytes(retained.file,activation.packed_witness);
+  verify_mounted_bytes(retained.file,activation.packed_witness,trace,"witness.bin","held_read");
+  if(trace)trace->checkpoint();
   std::cout<<"mounted_reclaim_observation backing="<<reclaim_backing_name(trial.backing)
       <<" cycle="<<trial.cycle+1<<" allocated="<<settled.allocated<<" eof="<<settled.eof
       <<" held_reader=exact"<<std::endl;
@@ -1759,13 +1887,18 @@ std::vector<std::byte> mounted_reclamation_witness(const std::filesystem::path& 
 }
 
 void mounted_reclamation_gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budget,
-    MountedReclaimBacking profile,bool mixed_flush=false) {
+    MountedReclaimBacking profile,bool mixed_flush=false,bool record_operations=false) {
   const auto parent=std::filesystem::path(disposable_mount_parent()).parent_path();
   const bool sparse=profile==MountedReclaimBacking::sparse;
   MountedFileActivation activation{parent/(sparse?L"SparseChurn.flfs":L"PackedChurn.flfs")};
   activation.reclamation=MountedReclaimCycle{profile};
   activation.reclamation->mixed_flush=mixed_flush;
   activation.packed_witness=mounted_reclamation_witness(app);
+  std::optional<MountedClientTrace> client_trace;
+  if(record_operations) {
+    client_trace.emplace(parent/L"client-trace.jsonl");
+    activation.reclamation->client_trace=&*client_trace;
+  }
   constexpr StoreCompressionOptions foreground{StoreCompressionMode::automatic,3,false};
   const StoreIoContract contract{static_cast<std::uint32_t>(kStoreCommitUnit),true,sparse,!sparse};
   std::optional<StoreIdentity> volume;
@@ -1774,7 +1907,19 @@ void mounted_reclamation_gui_tests(const std::filesystem::path& app,const app_fi
     // helper creates packed backing when its live geometry supports it.
     volume=fresh_volume_identity();
 #ifdef FLITZFS_OBSERVE_VOLUME_PUBLICATION
-    constexpr PagedStoreLimits fixture_capacity{64*1024*1024};
+    PagedStoreLimits fixture_capacity{64*1024*1024};
+    if(record_operations) {
+      // Bound the two sparse image ranges inside the disposable guest's
+      // available space. Leave room for the observed populated COW history.
+      constexpr std::uint64_t fixture_backing=3ULL*1024*1024*1024;
+      constexpr std::uint64_t minimum_image=1024ULL*1024*1024;
+      const auto available=std::filesystem::space(parent).available;
+      const auto limits=NativeVolumeFile::paired_image_limits(
+          (std::min<std::uint64_t>)(fixture_backing,available/4),false);
+      require(limits && limits->maximum_physical_bytes>=minimum_image,
+          "Guest cannot fund the populated sparse workload and its retained history");
+      fixture_capacity=*limits;
+    }
     WinFspNativeWritable::create_file_volume(activation.path,contract,*volume,fresh_volume_identity(),
         fixture_capacity,foreground).reset();
     activation.action=VolumeFileAction::open_existing;
@@ -1784,7 +1929,10 @@ void mounted_reclamation_gui_tests(const std::filesystem::path& app,const app_fi
   }
   constexpr unsigned cycles=3;
   auto& trial=*activation.reclamation;
+  std::uint64_t last_epoch=0,last_generation=0,last_namespace=0;
+  unsigned settled_checkpoints=0;
   for(trial.cycle=0;trial.cycle<cycles;++trial.cycle){
+    if(client_trace)client_trace->start_cycle(trial.cycle+1);
     if(mixed_flush && trial.cycle!=0)
       activation.recovery=trial.cycle==1?MountedRecoveryPhase::interrupt:MountedRecoveryPhase::resume;
     gui_tests(app,budget,GuiRuntime::mounted,&activation);
@@ -1795,7 +1943,8 @@ void mounted_reclamation_gui_tests(const std::filesystem::path& app,const app_fi
       epoch=independent.info().selection.epoch;
       const auto& reader=independent.filesystem();
       reader.verify_all();
-      require(reader.list().size()==(mixed_flush?3U:2U),"Independent reclamation namespace differs");
+      const unsigned root_entries=(mixed_flush?3U:2U)+(client_trace?1U:0U);
+      require(reader.list().size()==root_entries,"Independent reclamation namespace differs");
       const auto verify=[&](std::string_view name,const std::vector<std::byte>& bytes){
         require(reader.stat(name).logical_bytes==bytes.size() &&
             reader.read(name,0,static_cast<std::uint32_t>(bytes.size()))==bytes,
@@ -1804,6 +1953,35 @@ void mounted_reclamation_gui_tests(const std::filesystem::path& app,const app_fi
       verify("witness.bin",activation.packed_witness);
       verify("payload.bin",activation.packed_payload);
       if(mixed_flush)verify("cached.bin",trial.cached_payload);
+      if(client_trace) {
+        const auto storage=reader.storage_info();
+        const auto name_sequence=reader.sequence();
+        require(name_sequence>=last_namespace &&
+            (epoch>last_epoch || (epoch==last_epoch && storage.generation>=last_generation)),
+            "Independent mounted checkpoint went backwards");
+        last_namespace=name_sequence;
+        last_epoch=epoch;
+        last_generation=storage.generation;
+        require(reader.list("Population").size()==mounted_trace_files,"Independent population names differ");
+        const auto digest=verify_mounted_trace([&](std::size_t i,DWORD size) {
+          const auto path="Population/"+mounted_trace_name(i,true);
+          const auto file=reader.stat(path);
+          const auto metadata=reader.basic_metadata(file.inode);
+          require(!file.directory && file.logical_bytes==size && metadata && metadata->creation_time,
+              "Independent population metadata differs");
+          return reader.read(path,0,size);
+        });
+        const auto space=mounted_backing_space(activation.path,profile);
+        client_trace->record("cpu_verified","Population",ERROR_SUCCESS,0,mounted_trace_files,
+            mounted_trace_files,hex_mounted_digest(digest));
+        client_trace->checkpoint();
+        std::cout<<"mounted_trace_checkpoint cycle="<<trial.cycle+1<<" epoch="<<epoch
+            <<" generation="<<storage.generation<<" namespace_sequence="<<name_sequence
+            <<" inner_end="<<storage.physical_end<<" active_payload="<<storage.stored_payload_bytes
+            <<" allocated="<<space.allocated<<" eof="<<space.eof
+            <<" files="<<mounted_trace_files+root_entries-1<<" helper_retired=1 blake3="
+            <<hex_mounted_digest(digest)<<std::endl;
+      }
     }
     if(activation.recovery==MountedRecoveryPhase::interrupt){
       std::cout<<"mounted_mixed_recovery phase=independent_after_exit epoch="<<epoch
@@ -1819,6 +1997,10 @@ void mounted_reclamation_gui_tests(const std::filesystem::path& app,const app_fi
     const auto dense=diagnostic.dense_file_space();
     const auto pending=diagnostic.persistent_reclamation_pending(NativeVolumeReclaimMode::release_backing);
     const auto retired_inode_pending=diagnostic.retirement_pending();
+    const bool settled_in_window=!pending && !retired_inode_pending &&
+        settled.allocated<=trial.baseline_ceiling && settled.allocated<trial.peak_allocated &&
+        (!dense || !dense->retired_tail_bytes);
+    if(settled_in_window)++settled_checkpoints;
     std::cout<<"mounted_reclaim_checkpoint backing="<<reclaim_backing_name(profile)
         <<" cycle="<<trial.cycle+1<<" epoch="<<epoch<<" allocated="<<settled.allocated<<" eof="<<settled.eof
         <<" image_occupied="<<space.total_bytes-space.free_bytes<<" image_obsolete="<<space.obsolete_bytes
@@ -1826,20 +2008,24 @@ void mounted_reclamation_gui_tests(const std::filesystem::path& app,const app_fi
         <<" dense_reusable="<<(dense?dense->interior_reusable_bytes:0)
         <<" dense_tail="<<(dense?dense->retired_tail_bytes:0)
         <<" eligible_retirement="<<pending<<" retired_inode_pending="<<retired_inode_pending
+        <<" settled_in_window="<<settled_in_window
         <<" independent_cpu=exact"<<std::endl;
-    require(diagnostic.volume_info().selection.epoch==epoch && !pending && !retired_inode_pending &&
-        settled.allocated<=trial.baseline_ceiling && settled.allocated<trial.peak_allocated,
-        "Automatic mounted reclamation left actionable history or excess allocation");
+    require(diagnostic.volume_info().selection.epoch==epoch,"Detached checkpoint changed during accounting");
+    // The comparative trace retains observed settlement debt across recovery.
+    // The dedicated reclamation workflow still requires settlement in its window.
+    if(!client_trace)require(settled_in_window,"Automatic mounted reclamation left actionable history or excess allocation");
     require(sparse?!dense.has_value():dense && dense->allocated_file_bytes==settled.allocated &&
-        dense->file_end==settled.eof && !dense->retired_tail_bytes,
+        dense->file_end==settled.eof,
         "Packed allocation ledger did not agree with the detached file");
     activation.action=VolumeFileAction::open_existing;
   }
+  if(client_trace)std::cout<<"mounted_trace_complete schema=1 records="<<client_trace->records()
+      <<" cycles="<<cycles<<" populated="<<mounted_trace_files<<std::endl;
   std::cout<<"mounted_reclaim_complete backing="<<reclaim_backing_name(profile)
       <<" cycles="<<cycles<<" delete_regrow="<<cycles-1<<" continued_writes=1 both_leases_retired=1\n";
   if(mixed_flush)
     std::cout<<"mounted_mixed_recovery phase=complete overlap_cycles=3 interrupted_after_both_flushes=1"
-        <<" continued_after_reopen=1 settled_checkpoints=2\n";
+        <<" continued_after_reopen=1 settled_checkpoints="<<settled_checkpoints<<'\n';
 }
 
 void mounted_packed_file_gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budget,bool compare) {
@@ -1946,8 +2132,10 @@ int wmain(int argc,wchar_t** argv) {
     const bool populated=mode==L"--gui-mounted-populated-file-sandbox" || interruption.has_value();
     const bool packed_compare=mode==L"--gui-mounted-packed-compare-sandbox";
     const bool packed=mode==L"--gui-mounted-packed-file-sandbox" || packed_compare;
-    const bool packed_mixed=mode==L"--gui-mounted-mixed-churn-recovery-sandbox";
-    const bool sparse_mixed=mode==L"--gui-mounted-sparse-mixed-churn-recovery-sandbox";
+    const bool packed_trace=mode==L"--gui-mounted-packed-operation-trace-sandbox";
+    const bool sparse_trace=mode==L"--gui-mounted-sparse-operation-trace-sandbox";
+    const bool packed_mixed=mode==L"--gui-mounted-mixed-churn-recovery-sandbox" || packed_trace;
+    const bool sparse_mixed=mode==L"--gui-mounted-sparse-mixed-churn-recovery-sandbox" || sparse_trace;
     const bool packed_churn=mode==L"--gui-mounted-packed-churn-sandbox" || packed_mixed;
     const bool sparse_churn=mode==L"--gui-mounted-sparse-churn-sandbox" || sparse_mixed;
     const bool mounted=argc==3 && (mode==L"--gui-mounted-sandbox" ||
@@ -1968,7 +2156,7 @@ int wmain(int argc,wchar_t** argv) {
       else if(packed)mounted_packed_file_gui_tests(app,budget,packed_compare);
       else if(packed_churn || sparse_churn)
         mounted_reclamation_gui_tests(app,budget,packed_churn?MountedReclaimBacking::packed:MountedReclaimBacking::sparse,
-            packed_mixed || sparse_mixed);
+            packed_mixed || sparse_mixed,packed_trace || sparse_trace);
       else if(mode==L"--gui-mounted-file-sandbox" || populated)mounted_file_gui_tests(app,budget,populated,interruption);
       else throw std::runtime_error("Unknown GUI qualification mode");
     } else throw std::runtime_error("Explicit model, maintenance or GUI qualification mode required");

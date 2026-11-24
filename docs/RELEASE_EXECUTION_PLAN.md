@@ -472,16 +472,23 @@ saving in each lane before expanding format or worker variants.
 
 ### Next integrated qualification
 
-Extend the signed WinFsp mixed-flush trace to populated packed and sparse
-volumes with a fixed logical live set and held readers. Interleave acknowledged
-cached writes, mapped changes, rename, delete/regrow, enumeration and ordinary
-reads. Capture the application's acknowledgement before interrupting the
-owned helper. Verify all affected ranges, neighboring files and expected
-metadata with a separate CPU reader. Run an unchanged control with maintenance
-off and a second trace through automatic settle. Record selected generation,
-per-phase backing bytes/calls/writes/flushes, pins, resource deltas and which
-state was made durable. Use the guest for correctness. Collect throughput and
-latency independently on the measured Windows host. [Existing fixture](evidence/windows-mounted-mixed-flush-recovery-2026-11-23.json)
+The populated packed and sparse runs now share a 6,293-record Win32 transcript
+with 1,027 live files and independent CPU readback across three helper
+lifecycles. The same workload exercises rename replacement, enumeration,
+cached and mapped flushes, held reads and delete/regrow. Backing allocation
+grew despite a fixed live set, and retirement remained pending. Recovery
+and settlement have separate verdicts.
+[Trace evidence](evidence/windows-populated-client-trace-2026-11-24.json)
+· [Workload and transcript contract](BENCHMARK_PROTOCOL.md#populated-windows-operation-trace)
+
+Prioritize the populated retirement gap before attempting compression or
+AMD comparisons on the trace. Capture maintenance decisions, pins and
+cooperative copy progress alongside live allocation. Compare mounted
+scheduling with bounded detached reclamation on the same initial state to
+identify whether admission, copy, publication or retirement limits progress.
+Add the control with maintenance withheld and preserve the independent
+acknowledgement checks. Collect real-host timing once the shared workflow
+admits qualified backing and artifact pairs.
 
 ### First implementation slice
 
