@@ -184,20 +184,27 @@ IndexedInodeInput load_inode(const PagedObjectStoreSnapshot& store,const Indexed
   if(!bytes)fail(Code::not_found,"indexed inode does not exist");
   return decode_inode_with_lifetime(store,root,id,*bytes);
 }
-std::uint64_t extent_begin(const IndexedInodeInput& inode,std::uint64_t block) {
+struct IndexedExtentOwner {
+  explicit IndexedExtentOwner(const IndexedInodeInput& entry) noexcept:
+      inode(entry.inode),size(entry.size),directory(entry.directory),
+      has_inline_data(!entry.inline_data.empty()),has_allocation(entry.allocation.has_value()) {}
+  std::uint64_t inode,size;
+  bool directory,has_inline_data,has_allocation;
+};
+std::uint64_t extent_begin(const IndexedExtentOwner& inode,std::uint64_t block) {
   if(inode.directory || !inode.size || block>(inode.size-1)/kNativeExtentBytes)
     fail(Code::corrupt,"indexed extent outside its file");
   return block*kNativeExtentBytes;
 }
-void validate_payload(const IndexedInodeInput& inode,std::uint64_t block,std::span<const std::byte> payload) {
-  if(!inode.inline_data.empty())fail(Code::corrupt,"inline inode has an external extent");
+void validate_payload(const IndexedExtentOwner& inode,std::uint64_t block,std::span<const std::byte> payload) {
+  if(inode.has_inline_data)fail(Code::corrupt,"inline inode has an external extent");
   const auto begin=extent_begin(inode,block);
   if(payload.empty() || payload.size()>kNativeExtentBytes || payload.size()>inode.size-begin ||
       payload.back()==std::byte{0})
     fail(Code::corrupt,"invalid indexed extent bytes");
 }
 Bytes encode_extent(const IndexedInodeInput& inode,const IndexedExtentInput& extent) {
-  validate_payload(inode,extent.block,extent.bytes);
+  validate_payload(IndexedExtentOwner(inode),extent.block,extent.bytes);
   Bytes bytes(extent_header+extent.bytes.size());
   set_magic(bytes,extent_magic);put(bytes,8,inode.inode);put(bytes,16,extent.block);
   std::copy(extent.bytes.begin(),extent.bytes.end(),bytes.begin()+extent_header);
@@ -270,7 +277,7 @@ Bytes make_packed_slice(NativeExtentSelection extent,std::size_t offset,
   return record;
 }
 DecodedIndexedExtent decode_extent(const PagedObjectStoreSnapshot& source,const NativeNameIndex& index,
-    const IndexedVolumeRoot& root,std::uint64_t object,Bytes bytes,const IndexedInodeInput& inode,
+    const IndexedVolumeRoot& root,std::uint64_t object,Bytes bytes,const IndexedExtentOwner& inode,
     std::uint64_t block,bool compare_anchor=false,IndexedSharedBaseRead* cached_base=nullptr,
     IndexedSharedBaseCache* retained=nullptr) {
   if(bytes.size()<=extent_header || get(bytes,8)!=inode.inode || get(bytes,16)!=block)
@@ -1120,7 +1127,7 @@ class IndexedVolumeTransaction final {
           fail(Code::corrupt,"indexed data identity outside allocator");
         IndexedInodeInput original;original.inode=id;original.size=*n.original_size;
         auto extent=decode_extent(source_,index_,before_,*value.original,
-            required(source_,*value.original,kNativeExtentBytes+extent_header),original,block);
+            required(source_,*value.original,kNativeExtentBytes+extent_header),IndexedExtentOwner(original),block);
         auto& bytes=extent.data;
         bytes.erase(bytes.begin(),bytes.begin()+static_cast<std::ptrdiff_t>(extent.payload_offset));
         if(bytes.capacity()>kStoreMaxTransactionBytes-payload_bytes_)
@@ -1478,7 +1485,7 @@ std::vector<std::byte> IndexedSharedBasePreparation::read_member(Member& member,
   const bool reuse_bound_base=find_reusable_anchor && member.reuse_bound_base;
   IndexedSharedBaseRead bound;
   auto extent=decode_extent(source_,*index_,original_,*object,
-      required(source_,*object,kNativeExtentBytes+extent_header),inode,block,
+      required(source_,*object,kNativeExtentBytes+extent_header),IndexedExtentOwner(inode),block,
       find_reusable_anchor && !reuse_bound_base,reuse_bound_base?&bound:nullptr);
   member.object=*object;
   member.generation=metadata->generation;
@@ -2401,6 +2408,7 @@ Bytes IndexedVolumeView::read(const IndexedInodeInput& selected,std::uint64_t of
   const auto range=index_.list(start.parent,first?std::string_view(start.name):std::string_view{},
       static_cast<std::size_t>(last-first+1));
   if(retained && !retained->bind(store_))retained=nullptr;
+  const IndexedExtentOwner owner(selected);
   auto tiled_end=offset;
   std::uint32_t tiled_bytes=0;
   const auto copy_payload=[&](std::uint64_t begin,std::span<const std::byte> data,bool tiled) {
@@ -2426,7 +2434,7 @@ Bytes IndexedVolumeView::read(const IndexedInodeInput& selected,std::uint64_t of
       auto& pending=*groups->ready;
       auto* ready=pending.find(selected.inode,block,entry.value,(std::max)(begin,offset)-begin);
       if(ready && store_.matches_group_read(ready->record,ready->base,*pending.metadata_)) {
-        validate_payload(selected,block,ready->bytes);
+        validate_payload(owner,block,ready->bytes);
         copy_payload(begin,ready->bytes,true);
         pending.delivered(*ready,end-begin);
         continue;
@@ -2436,7 +2444,7 @@ Bytes IndexedVolumeView::read(const IndexedInodeInput& selected,std::uint64_t of
     }
     if(retained && first==last) {
       if(const auto* member=retained->find_tiled(selected.inode,block,entry.value)) {
-        validate_payload(selected,block,*member);
+        validate_payload(owner,block,*member);
         copy_payload(begin,*member,true);
         continue;
       }
@@ -2448,7 +2456,7 @@ Bytes IndexedVolumeView::read(const IndexedInodeInput& selected,std::uint64_t of
     catch(const std::exception&){fail(Code::storage_failure,"indexed object integrity or read failure");}
     if(!record)fail(Code::corrupt,"indexed object reference missing");
     auto extent=decode_extent(store_,index_,root_,entry.value,std::move(*record),
-        selected,block,false,&cached_base,retained);
+        owner,block,false,&cached_base,retained);
     copy_payload(begin,extent.payload(),extent.tiled_group);
     if(extent.tiled_group) {
       if(groups)groups->decoded_tiled=true;
@@ -2551,7 +2559,7 @@ std::unique_ptr<NativeGroupReadBatch> IndexedVolumeView::capture_group_range(
       batch->bases_.push_back({base.record,NativeGroupBase(std::move(base.bytes),base_magic.size())});
     }
     if(batch->bases_[base_index].bytes.payload_digest()!=reference.base_digest)return {};
-    const auto available=selected.size-extent_begin(selected,block);
+    const auto available=selected.size-extent_begin(IndexedExtentOwner(selected),block);
     const auto maximum=static_cast<std::uint32_t>((std::min)(available,std::uint64_t{kNativeExtentBytes}));
     member.bytes.erase(member.bytes.begin(),member.bytes.begin()+extent_header);
     batch->members_.push_back({member.record,block,maximum,base_index,reference.decoded_digest,
@@ -2609,7 +2617,7 @@ Bytes IndexedVolumeView::materialize_content(NativeContentToken& token,const Ind
     bool published_reference) const {
   auto extent=decode_extent(store_,index_,root_,token.object,
       required(store_,token.object,extent_header+kNativeExtentBytes),
-      inode,token.extent.extent_index,!published_reference);
+      IndexedExtentOwner(inode),token.extent.extent_index,!published_reference);
   (void)check_group_storage(store_);
   token.grouped=extent.base!=0;
   token.exact_base=false;
@@ -2631,7 +2639,7 @@ Bytes IndexedVolumeView::materialize_content(NativeContentToken& token,const Ind
   return full_extent(std::move(extent));
 }
 std::uint64_t IndexedVolumeView::verify_namespace(const IndexedInodeInput& directory,std::size_t path_units,
-    unsigned components,const IndexedReopenAdmission& admission) const {
+    unsigned components,const std::function<void(const IndexedInodeInput&)>& visit) const {
   IndexedDirectoryShape expected;
   std::uint64_t reachable=1;
   const auto limit=root_.name_profile?kIndexedPathUnits:240;
@@ -2648,8 +2656,8 @@ std::uint64_t IndexedVolumeView::verify_namespace(const IndexedInodeInput& direc
       if(!bound)fail(Code::corrupt,"indexed directory shape has an unmeasured child");
       expected.replace({},bound);
     }
-    if(admission)admission(indexed_inode_allocation(child),child.security);
-    reachable=add(reachable,child.directory?verify_namespace(child,units,components+1,admission):1);
+    visit(child);
+    reachable=add(reachable,child.directory?verify_namespace(child,units,components+1,visit):1);
   });
   if(directory.shape && expected!=*directory.shape)
     fail(Code::corrupt,"indexed directory shape differs from its children");
@@ -2662,15 +2670,27 @@ void IndexedVolumeView::verify_inventory(bool published,const IndexedReopenAdmis
   const auto query=store_.scoped_query();
   const auto names=index_.scoped_audit();
   auto remaining_name_pages=index_.verify_reachable_pages();
+  // The decoded object walk checks both inode copies independently. Retain
+  // only the fields needed for extent validation.
+  std::vector<IndexedExtentOwner> namespace_owners;
+  constexpr auto capacity=std::uint64_t{kNativeMaxReadBytes/sizeof(IndexedExtentOwner)};
+  const auto limit=static_cast<std::size_t>((std::min)({capacity,root_.inodes,root_.extents}));
+  try{namespace_owners.reserve(limit);}catch(const std::bad_alloc&){} // The checked fetch remains available.
+  const auto visit=[&](const IndexedInodeInput& entry) {
+    if(admission)admission(indexed_inode_allocation(entry),entry.security);
+    if(entry.size && !entry.directory && entry.inline_data.empty() && namespace_owners.size()<limit &&
+        namespace_owners.size()<namespace_owners.capacity())namespace_owners.emplace_back(entry);
+  };
   const auto root_inode=referenced_inode(1);
-  if(admission)admission(indexed_inode_allocation(root_inode),root_inode.security);
-  if(verify_namespace(root_inode,0,0,admission)!=root_.inodes-root_.detached_inodes)
+  visit(root_inode);
+  if(verify_namespace(root_inode,0,0,visit)!=root_.inodes-root_.detached_inodes)
     fail(Code::corrupt,"indexed namespace has unreachable inodes");
+  std::ranges::sort(namespace_owners,{},&IndexedExtentOwner::inode);
   std::uint64_t inodes=0,extents=0,charged=0,lifetimes=0,detached=0,retiring=0;
   std::uint64_t bases=0,members=0;
   bool found_root=false;
   IndexedSharedBaseCache checked_bases;
-  std::optional<IndexedInodeInput> extent_owner;
+  std::optional<IndexedExtentOwner> extent_owner;
   store_.visit_verified_objects([&](std::uint64_t id,Bytes bytes) {
     if(id==namespace_object) {
       if(!published || bytes!=encode_root(root_))
@@ -2703,7 +2723,11 @@ void IndexedVolumeView::verify_inventory(bool published,const IndexedReopenAdmis
       }
       if(bytes.size()<=extent_header)fail(Code::corrupt,"truncated indexed extent");
       const auto inode=get(bytes,8);
-      if(!extent_owner || extent_owner->inode!=inode)extent_owner=referenced_inode(inode,true);
+      if(!extent_owner || extent_owner->inode!=inode) {
+        const auto known=std::ranges::lower_bound(namespace_owners,inode,{},&IndexedExtentOwner::inode);
+        extent_owner=known!=namespace_owners.end() && known->inode==inode?
+            *known:IndexedExtentOwner(referenced_inode(inode,true));
+      }
       const auto& owner=*extent_owner;
       const auto block=get(bytes,16);
       const auto decoded=decode_extent(store_,index_,root_,id,std::move(bytes),owner,block,
@@ -2712,7 +2736,7 @@ void IndexedVolumeView::verify_inventory(bool published,const IndexedReopenAdmis
       if(index_.find(native_extent_key(owner.inode,block))!=id)
         fail(Code::corrupt,"unreferenced indexed extent");
       ++extents;
-      if(!owner.allocation)charged=add(charged,1);
+      if(!owner.has_allocation)charged=add(charged,1);
     } else if(domain(id)==kNativeNameIndexObject)index_.account_verified_page(id,remaining_name_pages);
     else fail(Code::corrupt,"foreign indexed object domain");
   });

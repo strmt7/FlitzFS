@@ -636,7 +636,9 @@ void growing_native_writer() {
   const auto update=file_write("data/"+file(files-1),0,payload(3000));
   const auto append=writer.apply({&update,1});
   const auto update_bytes=ram->read_bytes-update_start;
-  require(update_bytes<scrub_bytes/16,"single path write read the complete indexed volume");
+  // This fixed workload budgets one write independently of scrub work.
+  constexpr auto update_read_budget=172U*1024;
+  require(update_bytes<update_read_budget,"single path write exceeded its fixture read budget");
   require(written.read_inode(2+files,0,17)==payload(files-1) &&
       writer.read_inode(2+files,0,17)==payload(3000),"indexed update changed preceding snapshot bytes");
   auto current=writer.snapshot();

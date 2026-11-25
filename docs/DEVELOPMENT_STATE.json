@@ -6,6 +6,28 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "reopen_extent_owner_reuse": {
+    "source_base": "16ccbb6246ab9eb1d5ddb4ca6df96d4cab33a26f",
+    "tested_runtime_tree": "085a87a508b527f89b20239ed96c08d5b03a8238",
+    "evidence": "docs/evidence/windows-indexed-extent-owner-audit-2026-11-25.json",
+    "native_16384_pre_flush_read_bytes": [
+      51509020,
+      39081516
+    ],
+    "native_16384_post_flush_verified_bytes": 24446104,
+    "native_16384_backing_calls": [
+      59910,
+      40496
+    ],
+    "sdk_4096_pre_flush_read_bytes": [
+      14361437,
+      11047773
+    ],
+    "sdk_4096_cpu_verified_files": 4097,
+    "single_write_read_bytes": 161532,
+    "selected_windows_checks": 16,
+    "next": "Continue the shadow writable admission and compare its selected root and ownership coverage with the full CPU audit."
+  },
   "file_info_and_cold_group_delivery": {
     "source_base": "9f62a852ceaf9f44d75ce9ff99da8defbc394148",
     "tested_runtime_tree": "fdf70f2bf9f0d27987f8ede58d5a72bae69df96b",

@@ -971,6 +971,25 @@ selector flush with zero reopen writes and exact independent CPU readback.
 The paired timings were close. These samples establish fewer backing reads
 for this audit. [Matched audit evidence](evidence/indexed-name-page-inventory-2026-11-23.json)
 
+### Reuse checked extent owners during inventory
+
+The namespace walk can retain the inode number, EOF and reservation state
+needed to verify file extents. This scratch fits within the existing native
+read budget and lasts for one audited snapshot. A missing owner record uses
+the checked inode lookup, including for detached files. The decoded object
+walk still reads both inode replicas. The stored mirror scan runs with fresh
+reads after the image and selector flushes.
+
+At 16,384 files, reads before the image flush fell from 51,509,020 to
+39,081,516 backing bytes. Both runs verified 24,446,104 bytes after the
+fences. The 4,096-file Windows SDK fixture independently verified a later
+write and metadata update after reopening. Its pre-flush reads fell
+from 14,361,437 to 11,047,773 bytes.
+The 1,024-file and 8,192-file samples predict the held-out total at
+16,384 files within 0.047% for this short-file layout.
+[Matched audit and recovery evidence](evidence/windows-indexed-extent-owner-audit-2026-11-25.json) ·
+[Microsoft file flush contract](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers)
+
 ### Stored mirror recheck on healthy writable reopen
 
 The ordinary indexed reopen takes its initial decoded namespace audit from

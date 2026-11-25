@@ -1,0 +1,400 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "experimental": true,
+  "source": {
+    "parent": "16ccbb6246ab9eb1d5ddb4ca6df96d4cab33a26f",
+    "base_tree": "a86dcbc0b0987ceb4195e2c4bfc30aded3a5a2fe",
+    "tree": "085a87a508b527f89b20239ed96c08d5b03a8238",
+    "elements": [
+      {
+        "path": "src/native_indexed_volume.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "ff2c835362b9595738cc1589ceb004e50345b25b",
+        "bytes": 137816
+      },
+      {
+        "path": "src/native_indexed_volume.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "a5db9006d379716cbd34a52052f16c87c83adbad",
+        "bytes": 14945
+      },
+      {
+        "path": "tests/test_native_indexed_volume.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "851de26e34bbfce101402223621f7cf261abf865",
+        "bytes": 107422
+      }
+    ]
+  },
+  "earlier_runtime": {
+    "parent": "16ccbb6246ab9eb1d5ddb4ca6df96d4cab33a26f",
+    "base_tree": "a86dcbc0b0987ceb4195e2c4bfc30aded3a5a2fe",
+    "tree": "b5d0a2e80522c063127b32b5ebd0ac7a619718d4",
+    "elements": [
+      {
+        "path": "src/native_indexed_volume.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "ff2c835362b9595738cc1589ceb004e50345b25b",
+        "bytes": 137816
+      },
+      {
+        "path": "src/native_indexed_volume.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "a5db9006d379716cbd34a52052f16c87c83adbad",
+        "bytes": 14945
+      }
+    ]
+  },
+  "native_16384": {
+    "before": {
+      "exit": 0,
+      "retired": true,
+      "log_sha256": "c9b47d76bc2daa25028eb2a03ed8f2805099404c9c25e41f6adbe325b60991cc",
+      "peak_job_bytes": 248614912,
+      "work": {
+        "files": 16384,
+        "image_pre_flush_bytes": 51509020,
+        "image_post_flush_bytes": 24446104,
+        "image_read_calls": 59910,
+        "image_flushes": 1,
+        "head_flushes": 1,
+        "backing_write_bytes": 0,
+        "logical_bytes": 278528,
+        "objects": 33194,
+        "object_tree_height": 3,
+        "stored_payload_bytes": 6714760
+      },
+      "independent_cpu": {
+        "files": 16384,
+        "exact": 1
+      }
+    },
+    "after": {
+      "exit": 0,
+      "retired": true,
+      "log_sha256": "43bc9a5189dd73a55f3cb0aa119d182b0c86a903dbf24d2ea8b5fe44e1c1b182",
+      "peak_job_bytes": 248561664,
+      "work": {
+        "files": 16384,
+        "image_pre_flush_bytes": 39081516,
+        "image_post_flush_bytes": 24446104,
+        "image_read_calls": 40496,
+        "image_flushes": 1,
+        "head_flushes": 1,
+        "backing_write_bytes": 0,
+        "logical_bytes": 278528,
+        "objects": 33194,
+        "object_tree_height": 3,
+        "stored_payload_bytes": 6714760
+      },
+      "independent_cpu": {
+        "files": 16384,
+        "exact": 1
+      }
+    }
+  },
+  "windows_sdk_4096": {
+    "before": {
+      "exit": 0,
+      "retired": true,
+      "log_sha256": "f2858427779259f372f54b739ec2b523863a9a242f17365a88b498d9cc5892d4",
+      "peak_job_bytes": 56791040,
+      "work": {
+        "files": 4096,
+        "image_extent_bytes": 17170432,
+        "pre_image_flush_read_bytes": 14361437,
+        "post_image_flush_read_bytes": 7278522,
+        "image_read_calls": 15336,
+        "image_flushes": 1,
+        "head_flushes": 1,
+        "backing_write_bytes": 0
+      },
+      "independent_cpu": {
+        "cpu_files": 4097,
+        "callback_read": 1,
+        "subsequent_write": 1,
+        "metadata_checkpoint": 1,
+        "retired": 1
+      }
+    },
+    "after": {
+      "exit": 0,
+      "retired": true,
+      "log_sha256": "728f07b7d2c183c1e0c87d66427dffc9d4e6d9c747c4c9fda06165403f52a36f",
+      "peak_job_bytes": 56762368,
+      "work": {
+        "files": 4096,
+        "image_extent_bytes": 17170432,
+        "pre_image_flush_read_bytes": 11047773,
+        "post_image_flush_read_bytes": 7278522,
+        "image_read_calls": 10435,
+        "image_flushes": 1,
+        "head_flushes": 1,
+        "backing_write_bytes": 0
+      },
+      "independent_cpu": {
+        "cpu_files": 4097,
+        "callback_read": 1,
+        "subsequent_write": 1,
+        "metadata_checkpoint": 1,
+        "retired": 1
+      }
+    }
+  },
+  "short_file_scaling": {
+    "samples": {
+      "1024": {
+        "pre": 2370924,
+        "post": 1708918,
+        "calls": 2639,
+        "backing": 4079842
+      },
+      "8192": {
+        "pre": 19513726,
+        "post": 12294654,
+        "calls": 20289,
+        "backing": 31808380
+      },
+      "16384": {
+        "pre": 39081516,
+        "post": 24446104,
+        "calls": 40496,
+        "backing": 63527620
+      }
+    },
+    "bytes_per_file": 3868.3786272321427,
+    "intercept": 118622.28571428591,
+    "held_out_prediction": 63498137.71428571,
+    "held_out_error_percent": -0.046408610482009297
+  },
+  "scaling_checks": {
+    "1024": {
+      "exit": 0,
+      "retired": true,
+      "log_sha256": "d94f34564235e0fb107b860ec997fb672c7115c5c8a055e7bc6a4f28bc4d2e1f",
+      "peak_job_bytes": 14954496,
+      "work": {
+        "files": 1024,
+        "image_pre_flush_bytes": 2370924,
+        "image_post_flush_bytes": 1708918,
+        "image_read_calls": 2639,
+        "image_flushes": 1,
+        "head_flushes": 1,
+        "backing_write_bytes": 0,
+        "logical_bytes": 17408,
+        "objects": 2082,
+        "object_tree_height": 2,
+        "stored_payload_bytes": 420966
+      },
+      "independent_cpu": {
+        "files": 1024,
+        "exact": 1
+      }
+    },
+    "8192": {
+      "exit": 0,
+      "retired": true,
+      "log_sha256": "da680990e1cfb06662ec385735f516054c226b2e3b22592b7209bc81e2397150",
+      "peak_job_bytes": 112431104,
+      "work": {
+        "files": 8192,
+        "image_pre_flush_bytes": 19513726,
+        "image_post_flush_bytes": 12294654,
+        "image_read_calls": 20289,
+        "image_flushes": 1,
+        "head_flushes": 1,
+        "backing_write_bytes": 0,
+        "logical_bytes": 139264,
+        "objects": 16600,
+        "object_tree_height": 2,
+        "stored_payload_bytes": 3357934
+      },
+      "independent_cpu": {
+        "files": 8192,
+        "exact": 1
+      }
+    },
+    "16384": {
+      "exit": 0,
+      "retired": true,
+      "log_sha256": "43bc9a5189dd73a55f3cb0aa119d182b0c86a903dbf24d2ea8b5fe44e1c1b182",
+      "peak_job_bytes": 248561664,
+      "work": {
+        "files": 16384,
+        "image_pre_flush_bytes": 39081516,
+        "image_post_flush_bytes": 24446104,
+        "image_read_calls": 40496,
+        "image_flushes": 1,
+        "head_flushes": 1,
+        "backing_write_bytes": 0,
+        "logical_bytes": 278528,
+        "objects": 33194,
+        "object_tree_height": 3,
+        "stored_payload_bytes": 6714760
+      },
+      "independent_cpu": {
+        "files": 16384,
+        "exact": 1
+      }
+    }
+  },
+  "single_write_fixture": {
+    "cases": {
+      "before_write": {
+        "exit": 0,
+        "retired": true,
+        "log_sha256": "cdd605a8a3e4fa4e65beba5ff7d70efd909f6fbb8df65fed87887f48eaf81778",
+        "peak_job_bytes": 36139008,
+        "work": {
+          "files": 1024,
+          "image_bytes": 3801088,
+          "single_write_read_bytes": 161532,
+          "full_scrub_read_bytes": 2817806
+        }
+      },
+      "after_write": {
+        "exit": 0,
+        "retired": true,
+        "log_sha256": "a0184adba7626a770555f7cde8758f2bef3f4414faba61b7dd3c3f82eee768cd",
+        "peak_job_bytes": 35618816,
+        "work": {
+          "files": 1024,
+          "image_bytes": 3801088,
+          "single_write_read_bytes": 161532,
+          "full_scrub_read_bytes": 2261774
+        }
+      },
+      "native": {
+        "exit": 0,
+        "retired": true,
+        "log_sha256": "07806f85ca147054ce8a2bf4a460a49f5c62705722e95136c46f554a3d4c8ad5",
+        "peak_job_bytes": 35577856,
+        "work": {
+          "files": 1024,
+          "image_bytes": 3801088,
+          "single_write_read_bytes": 161532,
+          "full_scrub_read_bytes": 2261774
+        }
+      }
+    },
+    "budget_bytes": 176128,
+    "earlier_failure": "The old test divided the full scrub read count to compute its write budget."
+  },
+  "selected_windows_tests": {
+    "release": {
+      "exit": 8,
+      "retired": true,
+      "log_sha256": "d15af7644c78757057d800e997dbd08efb69be9e5c1f976808103898b40942de",
+      "peak_job_bytes": 62619648,
+      "passed": [
+        "bounded_winfsp_controller",
+        "bounded_winfsp_indexed_memory",
+        "bounded_winfsp_paged_callbacks",
+        "bounded_winfsp_paged_faults-4096",
+        "bounded_winfsp_paged_faults-65536",
+        "bounded_winfsp_paged_ready-lz4-reads",
+        "bounded_winfsp_paged_ready-group-reads",
+        "bounded_winfsp_paged_ready-mixed-group-reads",
+        "bounded_winfsp_paged_ready-segmented-group-reads",
+        "bounded_winfsp_paged_ready-small-stream-group-reads"
+      ]
+    },
+    "raw": {
+      "exit": 0,
+      "retired": true,
+      "log_sha256": "f20f3950800ea6a635720ab763d133dfe4d25282fff73089597f7234d8452464",
+      "peak_job_bytes": 40603648,
+      "passed": [
+        "bounded_native_indexed_volume"
+      ]
+    },
+    "asan": {
+      "exit": 0,
+      "retired": true,
+      "log_sha256": "633af7e8e593953d955e1b06b21bdeabf2c588ef18d58a207d4903b9a527bfd2",
+      "peak_job_bytes": 757805056,
+      "passed": [
+        "windows_asan_runtime_preflight",
+        "bounded_native_indexed_volume",
+        "bounded_winfsp_paged_ready-group-reads",
+        "bounded_winfsp_paged_ready-mixed-group-reads"
+      ]
+    }
+  },
+  "gpu": {
+    "admission": {
+      "admitted": false,
+      "reason": "Existing host load above the fixture envelope",
+      "utc": "2026-11-25T13:00:44.4751784Z",
+      "driver": "32.0.32029.2010",
+      "build": "26300",
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "available_bytes": 17617383424,
+      "reserved_bytes": 4294967296,
+      "gpu_peak": 97.89923446504325,
+      "cpu_peak": 22.1693828636393,
+      "target_samples": 800
+    },
+    "launch": {
+      "exit": 0,
+      "retired": true,
+      "log_sha256": "a716b90fa931b7290c1229179d4b3c26b27998d5bcfcfc025514c181a713d481",
+      "peak_job_bytes": 95870976
+    },
+    "prepared_manifest_sha256": "c0cb30d98584dcddc6b193699867ff330379a3f4f2ec5051a08b36ec34401dbe",
+    "device_work_executed": false
+  },
+  "semantic_routing": {
+    "receipt_sha256": "e91da211ab6470a9682b052625226be9138442d2fd9012573a011d4997dbd61a",
+    "commit": "16ccbb6246ab9eb1d5ddb4ca6df96d4cab33a26f",
+    "source_files": 7,
+    "inventory_sha256": "d1b5ef902ef26832865eacb7bf7865075ff0eaaf986de121bca60fe78e302c90",
+    "native_response_sha256": "04816b3617fefe57a40230742b90a0a2f42c6301a6713a7033766dee3397b965",
+    "actual_searches": 1
+  },
+  "primary_sources": {
+    "provider": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "1c1046291d48c9f9a5f19b7d97b86cd1e4d8fa9589b4e3e8eef5d2ef287bb997",
+    "pages": [
+      {
+        "name": "win32-image-fence",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 36207,
+        "markdown_sha256": "116ffcd5a6feba3539c3f668a2c969aa2e38b8f3663a704a7654e7b2a7954e4c",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.358,
+        "capture": "win32-image-fence.native.json",
+        "capture_sha256": "38faa80c23cc6aeef609aadd66f84ecc62a6c0afcd18751eb1b545754189fe3f"
+      },
+      {
+        "name": "checked-tree-path",
+        "url": "https://docs.kernel.org/filesystems/fsverity.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 49958,
+        "markdown_sha256": "79f5a50205bb33d229560b2e10811857082ee06f7ce98f350a8ca8a467818478",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.762,
+        "capture": "checked-tree-path.native.json",
+        "capture_sha256": "e1a87eca46b067a2b4a6e4092beb2aa3117ff217732971f56fb1b7c0d966d4c1"
+      }
+    ]
+  },
+  "scope": "Windows native and SDK callback test backings. Fresh physical replica verification, both flush boundaries and independent readback are represented by the fixture."
+}
