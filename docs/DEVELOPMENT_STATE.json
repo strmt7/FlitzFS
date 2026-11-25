@@ -6,6 +6,15 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "gpu_engine_admission": {
+    "source_commit": "a1901218c79a299627879663209f65887f8b5de8",
+    "tested_source_tree": "5eb08fe30578050b1c79ef274561f9b393ad83fc",
+    "evidence": "docs/evidence/windows-gpu-engine-admission-2026-11-25.json",
+    "live_busy_adapter_deferred_before_hip": true,
+    "requires_new_engine_observation_for_retry": true,
+    "ordinary_mounted_amd_benefit_qualified": false,
+    "release_qualified": false
+  },
   "namespace_read_window": {
     "source_commit": "1721a945390292cb9e216f44a1591d7514b8bd76",
     "tested_source_tree": "36851a072ba3c224ab3ea863513e366545de3051",

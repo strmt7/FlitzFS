@@ -1,5 +1,6 @@
 #include "gpu_budget.hpp"
 #include "gpu_device_readiness.hpp"
+#include "gpu_engine_activity.hpp"
 #include <windows.h>
 #include <cfg.h>
 #include <dxgi1_4.h>
@@ -10,9 +11,43 @@
 #include <iostream>
 #include <stdexcept>
 #include <string_view>
+#include <limits>
 
 namespace {
 using namespace flitzfs;
+
+void verify_engine_admission() {
+  const auto require=[](bool valid,const char* message) {
+    if(!valid)throw std::runtime_error(message);
+  };
+  std::array<std::byte,8> first{},second{},absent{};
+  first[0]=std::byte{1};
+  second[0]=std::byte{2};
+  absent[0]=std::byte{3};
+  std::array counters{
+    WindowsGpuEngineCounter{L"pid_5_luid_0x00000000_0x00000001_phys_0_eng_4_engtype_Compute",55,true},
+    WindowsGpuEngineCounter{L"pid_7_luid_0x00000000_0x00000001_phys_0_eng_4_engtype_Compute",44,true},
+    WindowsGpuEngineCounter{L"pid_7_luid_0x00000000_0x00000001_phys_1_eng_4_engtype_Copy",12,true},
+    WindowsGpuEngineCounter{L"pid_2_luid_0x00000000_0x00000002_phys_0_eng_4_engtype_3D",20,true}
+  };
+  constexpr auto idle=minimum_background_gpu_idle_ppm;
+  const auto busy=aggregate_windows_gpu_engines(counters,2500);
+  require(busy && !busy->admits(first,2500,idle) && busy->admits(second,2500,idle),
+      "Processes on one physical engine were not added independently of another adapter");
+  require(!busy->admits(absent,2500,idle) && !busy->admits(second,2499,idle) &&
+      !busy->admits(second,2500+gpu_engine_sample_ms+1,idle),
+      "Unknown or stale evidence permitted device activity");
+  counters[1].busy_percent=20;
+  const auto relaxed=aggregate_windows_gpu_engines(counters,3500);
+  require(relaxed && relaxed->admits(first,3500,idle) && relaxed->admits(second,3500,idle),
+      "A new observation failed to admit an engine with recovered capacity");
+  counters[2].busy_percent=(std::numeric_limits<double>::quiet_NaN)();
+  const auto partial=aggregate_windows_gpu_engines(counters,4000);
+  require(partial && !partial->admits(first,4000,idle) && partial->admits(second,4000,idle),
+      "Invalid counters for one adapter affected absence or admission for another");
+  counters[2].instance=L"unknown counter instance";
+  require(!aggregate_windows_gpu_engines(counters,4500),"Unrecognized instance format granted evidence");
+}
 
 void verify_display_readiness() {
   using Status=WindowsAmdDisplayStatus;
@@ -133,6 +168,30 @@ void measure_amd_budget() {
 }
 
 int main(int argc,char** argv){try{
+  if(argc==2 && std::string_view(argv[1])=="--observe-amd-engines") {
+    const auto luid=amd_identity();
+    MEMORYSTATUSEX memory{sizeof(memory)};
+    if(!GlobalMemoryStatusEx(&memory))throw std::runtime_error("Windows memory observation unavailable");
+    const auto allowance=(std::min)(memory.ullAvailPhys,memory.ullAvailPageFile)/64;
+    WindowsGpuEngineSampler sampler;
+    sampler.observe(allowance);
+    Sleep(static_cast<DWORD>(gpu_engine_sample_ms+25));
+    sampler.observe(allowance);
+    const auto now=GetTickCount64();
+    const auto snapshot=sampler.current(now);
+    if(!snapshot)throw std::runtime_error("GPU engine counter observation unavailable");
+    const auto selected=std::ranges::find(snapshot->adapters,luid,&WindowsGpuEngineActivity::Adapter::luid);
+    if(selected==snapshot->adapters.end() || !selected->busy_ppm)
+      throw std::runtime_error("Selected AMD adapter engine counters unavailable");
+    std::cout<<"amd_engine_busy_ppm="<<*selected->busy_ppm<<" adapters="<<snapshot->adapters.size()
+        <<" engine_admitted="<<snapshot->admits(luid,now,minimum_background_gpu_idle_ppm)<<" hip_loaded=0\n";
+    Sleep(static_cast<DWORD>(2*gpu_engine_sample_ms+25));
+    sampler.observe(allowance);
+    if(sampler.current(GetTickCount64()))
+      throw std::runtime_error("Old baseline supplied an engine admission window after a long gap");
+    std::cout<<"expired_baseline_rejected=1\n";
+    return 0;
+  }
   if(argc==2 && std::string_view(argv[1])=="--measure-amd-budget") {
     measure_amd_budget();
     return 0;
@@ -143,6 +202,7 @@ int main(int argc,char** argv){try{
   }
   if(argc!=1)throw std::invalid_argument("unknown budget test mode");
   verify_display_readiness();
+  verify_engine_admission();
   // Invalid requests are rejected before a DXGI factory or adapter is queried.
   std::array<std::byte,8> id{};
   for(auto mask:{0U,1U,3U,0xffffffffU}){

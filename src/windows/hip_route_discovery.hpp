@@ -1,5 +1,6 @@
 #pragma once
 #include "hip_route_binding.hpp"
+#include "gpu_engine_activity.hpp"
 #include "native_lz4_read_worker.hpp"
 #include "flitzfs/gpu_anchor_match.hpp"
 #include "flitzfs/process_budget.hpp"
@@ -12,11 +13,15 @@ enum class HipDiscoveryStatus {
   ready, invalid_request, runtime_unavailable, worker_untrusted,
   no_amd_adapter, ambiguous_adapter, topology_unavailable, resource_deferred,
   transport_busy, identity_unavailable, identity_mismatch, retirement_unconfirmed,
-  package_unavailable, profile_mismatch, cancelled, configuration_quarantined, device_not_ready
+  package_unavailable, profile_mismatch, cancelled, configuration_quarantined, device_not_ready, engine_deferred
 };
 struct HipQualifiedDeviceBinding {
   HipAdapterHardware hardware;
   std::array<std::byte,32> runtime_sha256{};
+};
+struct HipDiscoveryEngineActivity {
+  std::shared_ptr<const WindowsGpuEngineActivity> snapshot;
+  std::uint32_t required_idle_ppm=0;
 };
 // The executable hash and runtime name come from an already trusted package
 // manifest. The latter specifies the ABI that was used to compile the helper.
@@ -30,6 +35,7 @@ struct HipRouteDiscoveryRequest {
   std::array<std::byte,32> anchor_module_sha256{}; // Shared-base worker package, exclusive of uniform.
   std::optional<HipQualifiedDeviceBinding> qualified_device;
   std::array<std::byte,32> native_read_module_sha256{};
+  std::optional<HipDiscoveryEngineActivity> engine_activity;
 };
 struct HipDiscoveredRoute {
   GpuConfigurationId identity{};
@@ -47,6 +53,7 @@ struct HipRouteDiscoveryResult {
   std::uint32_t worker_exit=0,identity_queries=0;
   std::optional<HipDiscoveredRoute> route;
   std::optional<GpuMemorySnapshot> memory_pressure;
+  std::optional<std::array<std::byte,8>> engine_wait_adapter;
 };
 // Require a new admissible budget for the exact adapter and node that
 // previously reported insufficient headroom.
@@ -75,7 +82,8 @@ struct InstalledUniformWriteTrialProfile {
   bool separate_requests=false,await_later_writes=false,allow_smaller_writes=false;
 };
 std::optional<InstalledUniformWriteTrialProfile> installed_uniform_write_trial_profile() noexcept;
-HipRouteDiscoveryResult discover_installed_hip_write_trial_route(std::stop_token={});
+HipRouteDiscoveryResult discover_installed_hip_write_trial_route(std::stop_token={},
+    std::optional<HipDiscoveryEngineActivity> activity={});
 struct InstalledAnchorProfile {
   ProcessBudget worker;
   std::uint32_t minimum_members=0,maximum_members=0,duty_ppm=0;
@@ -85,7 +93,8 @@ struct InstalledAnchorProfile {
 };
 // Pure access to the approved profile embedded by the verifier at build time.
 std::optional<InstalledAnchorProfile> installed_anchor_profile() noexcept;
-HipRouteDiscoveryResult discover_installed_hip_anchor_route(std::stop_token={});
+HipRouteDiscoveryResult discover_installed_hip_anchor_route(std::stop_token={},
+    std::optional<HipDiscoveryEngineActivity> activity={});
 
 struct InstalledNativeReadProfile {
   ProcessBudget worker;
@@ -96,7 +105,8 @@ struct InstalledNativeReadProfile {
   std::uint32_t prepared_group_submit_lead_ms=0;
 };
 std::optional<InstalledNativeReadProfile> installed_native_read_profile() noexcept;
-HipRouteDiscoveryResult discover_installed_hip_native_read_route(std::stop_token={});
+HipRouteDiscoveryResult discover_installed_hip_native_read_route(std::stop_token={},
+    std::optional<HipDiscoveryEngineActivity> activity={});
 std::optional<NativeLz4ReadWorkerProfile> bind_installed_native_read(const HipDiscoveredRoute&);
 
 // A demand-sampled observation from immediately before an installed route

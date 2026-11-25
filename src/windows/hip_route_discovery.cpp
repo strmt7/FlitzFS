@@ -188,6 +188,39 @@ HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest
   if(!WorkerExchangeSession::available()){result.status=Status::transport_busy;return result;}
   const auto* expected=request.qualified_device?&request.qualified_device->hardware:nullptr;
   WindowsAmdDisplaySnapshot display;
+  std::vector<DxgiAmdAdapter> adapters;
+  const auto collect_adapters=[&](std::uint64_t deadline) {
+    display=observe_windows_amd_displays();
+    const auto readiness=check_display_readiness(display,expected);
+    if(readiness!=Status::ready)return readiness;
+    const auto collected=enumerate_amd_adapters(adapters,display,expected,deadline);
+    if(collected!=Status::ready)return collected;
+    if(const auto& engine=request.engine_activity) {
+      const auto candidate=adapters.size()==1?std::optional(adapters.front().luid):std::nullopt;
+      const auto now=GetTickCount64();
+      std::erase_if(adapters,[&](const auto& adapter) {
+        return !engine->snapshot->admits(adapter.luid,now,engine->required_idle_ppm);
+      });
+      if(adapters.empty()) {
+        result.engine_wait_adapter=candidate;
+        return Status::engine_deferred;
+      }
+    }
+    std::stable_sort(adapters.begin(),adapters.end(),[](const auto& a,const auto& b){
+      return a.dedicated_bytes>b.dedicated_bytes;
+    });
+    return Status::ready;
+  };
+  // Automatic discovery can rule out the exact adapter before pinning or
+  // loading the runtime package. The observation owns no GPU resources.
+  if(const auto& engine=request.engine_activity) {
+    const auto now=GetTickCount64();
+    if(!engine->snapshot || !engine->snapshot->fresh(now))return {Status::engine_deferred};
+    try {
+      result.status=collect_adapters(now+request.worker.timeout_ms);
+      if(result.status!=Status::ready)return result;
+    }catch(const std::bad_alloc&){return {Status::resource_deferred};}
+  }
   std::shared_ptr<HipRouteResources> pinned;
   try {
     auto parents = pin_worker_parent(request.helper);
@@ -222,17 +255,12 @@ HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest
     return {Status::profile_mismatch};
 
   const auto deadline=GetTickCount64()+request.worker.timeout_ms;
-  std::vector<DxgiAmdAdapter> adapters;
-  try {
-    display=observe_windows_amd_displays();
-    result.status=check_display_readiness(display,expected);
-    if(result.status!=Status::ready)return result;
-    result.status=enumerate_amd_adapters(adapters,display,expected,deadline);
-    if(result.status!=Status::ready)return result;
-    std::stable_sort(adapters.begin(),adapters.end(),[](const auto& a,const auto& b){
-      return a.dedicated_bytes>b.dedicated_bytes;
-    });
-  }catch(const std::bad_alloc&){result.status=Status::resource_deferred;return result;}
+  if(!request.engine_activity) {
+    try {
+      result.status=collect_adapters(deadline);
+      if(result.status!=Status::ready)return result;
+    }catch(const std::bad_alloc&){result.status=Status::resource_deferred;return result;}
+  }
   // A budget-eligible DXGI adapter gives the metadata worker a budget to
   // check before runtime initialization. The HIP ordinal is matched separately.
   auto bootstrap=adapters.begin();
@@ -251,6 +279,9 @@ HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest
     if(!bound_windows_amd_displays_ready(bootstrap->device_instances))
       return {Status::device_not_ready,0,result.identity_queries};
     const auto& luid=bootstrap->luid;
+    if(const auto& engine=request.engine_activity;
+        !ordinal && engine && !engine->snapshot->admits(luid,GetTickCount64(),engine->required_idle_ppm))
+      return {Status::engine_deferred};
     const auto observation=query_windows_gpu_budget(luid,node);
     if (!admit_discovery_budget(result, observation, luid, node, deadline)) return result;
     if(!bound_windows_amd_displays_ready(bootstrap->device_instances))
@@ -524,7 +555,8 @@ std::optional<InstalledUniformWriteTrialProfile> installed_uniform_write_trial_p
 #endif
 }
 
-HipRouteDiscoveryResult discover_installed_hip_write_trial_route(std::stop_token stop) {
+HipRouteDiscoveryResult discover_installed_hip_write_trial_route(std::stop_token stop,
+    std::optional<HipDiscoveryEngineActivity> activity) {
 #if defined(FLITZFS_BIND_INSTALLED_AMD_PACKAGE) && FLITZFS_INSTALLED_AMD_HAS_WRITE_TRIAL
   using namespace installed_amd_package;
   HipRouteDiscoveryRequest request;
@@ -533,9 +565,11 @@ HipRouteDiscoveryResult discover_installed_hip_write_trial_route(std::stop_token
   request.helper_sha256=worker_sha256;
   request.uniform_module_sha256=uniform_module_sha256;
   request.qualified_device=HipQualifiedDeviceBinding{installed_write_trial_hardware,write_trial_runtime_sha256};
+  request.engine_activity=std::move(activity);
   return discover_application_package(std::move(request),HipRouteRole::uniform,stop);
 #else
   (void)stop;
+  (void)activity;
   return {Status::package_unavailable};
 #endif
 }
@@ -553,7 +587,8 @@ std::optional<InstalledAnchorProfile> installed_anchor_profile() noexcept {
 #endif
 }
 
-HipRouteDiscoveryResult discover_installed_hip_anchor_route(std::stop_token stop) {
+HipRouteDiscoveryResult discover_installed_hip_anchor_route(std::stop_token stop,
+    std::optional<HipDiscoveryEngineActivity> activity) {
 #if defined(FLITZFS_BIND_INSTALLED_AMD_PACKAGE) && FLITZFS_INSTALLED_AMD_HAS_ANCHOR
   using namespace installed_amd_package;
   HipRouteDiscoveryRequest request;
@@ -562,9 +597,11 @@ HipRouteDiscoveryResult discover_installed_hip_anchor_route(std::stop_token stop
   request.helper_sha256=anchor_worker_sha256;
   request.anchor_module_sha256=anchor_module_sha256;
   request.qualified_device=HipQualifiedDeviceBinding{installed_anchor_hardware,anchor_runtime_sha256};
+  request.engine_activity=std::move(activity);
   return discover_application_package(std::move(request),HipRouteRole::anchor,stop);
 #else
   (void)stop;
+  (void)activity;
   return {Status::package_unavailable};
 #endif
 }
@@ -580,7 +617,8 @@ std::optional<InstalledNativeReadProfile> installed_native_read_profile() noexce
 #endif
 }
 
-HipRouteDiscoveryResult discover_installed_hip_native_read_route(std::stop_token stop) {
+HipRouteDiscoveryResult discover_installed_hip_native_read_route(std::stop_token stop,
+    std::optional<HipDiscoveryEngineActivity> activity) {
 #if defined(FLITZFS_BIND_INSTALLED_AMD_PACKAGE) && FLITZFS_INSTALLED_AMD_HAS_NATIVE_READ
   using namespace installed_amd_package;
   HipRouteDiscoveryRequest request;
@@ -589,9 +627,11 @@ HipRouteDiscoveryResult discover_installed_hip_native_read_route(std::stop_token
   request.helper_sha256=read_worker_sha256;
   request.native_read_module_sha256=read_module_sha256;
   request.qualified_device=HipQualifiedDeviceBinding{installed_read_hardware,read_runtime_sha256};
+  request.engine_activity=std::move(activity);
   return discover_application_package(std::move(request),HipRouteRole::native_lz4_read,stop);
 #else
   (void)stop;
+  (void)activity;
   return {Status::package_unavailable};
 #endif
 }

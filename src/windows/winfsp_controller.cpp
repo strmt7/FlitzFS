@@ -64,6 +64,9 @@ struct WinFspVolumeController::Impl {
   std::unique_ptr<NativeAnchorSearchController> anchor;
   std::unique_ptr<NativeLz4ReadWorker> read_worker;
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
+  WindowsGpuEngineSampler gpu_engines;
+  std::uint64_t last_write_engine_sample=0,last_read_engine_sample=0,last_anchor_engine_sample=0;
+  std::optional<std::array<std::byte,8>> write_engine_wait_adapter;
   bool observe_write_reference=false;
   std::optional<bool> write_package_present;
   std::optional<NativeAmdWriteDemand> write_reference_demand;
@@ -306,6 +309,13 @@ struct WinFspVolumeController::Impl {
             if(!refresh_reference && !stop_requested.load(std::memory_order_acquire) &&
                 host.status()!=MaintenanceHostStatus::waiting) {
               if(residency && observed.valid)residency->verify_working_set();
+#ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
+              if((installed || (installed_read && !read_worker) || installed_write_trial) && !interrupted()) {
+                const auto resources=detail::maintenance_resources(observed,GetTickCount64(),
+                    adapter->group_maintenance_policy());
+                if(resources && !resources->cpu_busy)gpu_engines.observe(resources->memory_allowance);
+              }
+#endif
               // A background commit can invalidate the completed read's
               // checkpoint. Give the admitted reply this quantum first.
               const bool verify_before_maintenance=read_worker && read_worker->ready_to_verify() && !interrupted();
@@ -645,7 +655,8 @@ struct WinFspVolumeController::Impl {
   bool write_trial_due(const NativeAmdWriteDemand& demand,std::uint64_t now) const noexcept {
     if(!installed_write_trial || !acquisition_retired || acquisition_thread.joinable() ||
         now<next_write_trial_ms ||
-        demand.shape.storage!=write_calibration_policy)return false;
+        demand.shape.storage!=write_calibration_policy ||
+        !engine_activity(last_write_engine_sample,write_engine_wait_adapter))return false;
     const auto chunks=demand.shape.input_bytes/kNativeExtentBytes;
     const auto maximum=installed_write_trial->maximum_batch_chunks;
     return chunks && chunks<=completed_write_sizes.size() && !completed_write_sizes[chunks-1] &&
@@ -744,15 +755,32 @@ struct WinFspVolumeController::Impl {
     return Action::submit;
   }
 
+  std::optional<HipDiscoveryEngineActivity> engine_activity(std::uint64_t last_used,
+      const std::optional<std::array<std::byte,8>>& waiting_adapter,
+      std::uint64_t duty_ppm=maintenance_wall_share_ppm) const noexcept {
+    const auto now=GetTickCount64();
+    auto snapshot=gpu_engines.current(now);
+    if(!snapshot || last_used==snapshot->captured_ms)return {};
+    // Keep scheduling margin for other GPU clients and cover the existing
+    // two-quantum burst when the role requests a larger work share.
+    const auto idle=static_cast<std::uint32_t>((std::clamp<std::uint64_t>)(2*duty_ppm,
+        minimum_background_gpu_idle_ppm,1000000));
+    if(waiting_adapter && std::ranges::find(snapshot->adapters,*waiting_adapter,&WindowsGpuEngineActivity::Adapter::luid)
+        !=snapshot->adapters.end() && !snapshot->admits(*waiting_adapter,now,idle))return {};
+    return HipDiscoveryEngineActivity{std::move(snapshot),idle};
+  }
+
   void run_write_trial(const InstalledUniformWriteTrialProfile& profile,NativeUniformSweepGrant grant,
       const NativeAmdWriteWorkerPlan& worker_plan,NativeAmdTrialLaunch launch,
       std::span<const detail::NativeCapturedWrite> capture,
-      std::uint64_t allowance,std::stop_token stop) {
+      std::uint64_t allowance,HipDiscoveryEngineActivity activity,std::stop_token stop) {
     const auto started=std::chrono::steady_clock::now();
     write_trial_inputs=std::make_unique<InstalledHipInputWitness>(HipRouteRole::uniform);
-    auto acquired=discover_installed_hip_write_trial_route(stop);
+    auto acquired=discover_installed_hip_write_trial_route(stop,std::move(activity));
     write_trial.discovery_ns=observed_ns(started);
     write_trial.status=acquired.status;
+    write_engine_wait_adapter=acquired.engine_wait_adapter;
+    if(acquired.status==HipDiscoveryStatus::engine_deferred)return;
     if(acquired.status==HipDiscoveryStatus::device_not_ready)write_trial_inputs->note_device_unavailable();
     if(acquired.memory_pressure) {
       write_trial_inputs->note_memory_pressure(*acquired.memory_pressure);
@@ -853,6 +881,9 @@ struct WinFspVolumeController::Impl {
     uniform_lz4::Layout quantum{};
     if(!uniform_lz4::make_layout(std::uint64_t(chunks)*kNativeExtentBytes,kNativeExtentBytes,quantum))return;
     const NativeUniformSweepGrant grant{quantum.chunks,quantum.total_bytes};
+    auto engine=engine_activity(last_write_engine_sample,write_engine_wait_adapter);
+    if(!engine)return;
+    last_write_engine_sample=engine->snapshot->captured_ms;
     write_trial={};
     write_trial_memory_refused=false;
     write_trial_plan=*worker_plan;
@@ -872,11 +903,11 @@ struct WinFspVolumeController::Impl {
     acquisition_finished.store(false,std::memory_order_relaxed);
     try {
       acquisition_thread=std::jthread([this,profile,grant,worker_plan=*worker_plan,launch,allowance,
-          capture=std::move(capture)](std::stop_token stop) noexcept {
+          capture=std::move(capture),engine=std::move(*engine)](std::stop_token stop) noexcept {
         try {
           MaintenanceThreadScope priority;
           if(priority.active()) {
-            run_write_trial(profile,grant,worker_plan,launch,capture,allowance,stop);
+            run_write_trial(profile,grant,worker_plan,launch,capture,allowance,engine,stop);
             if(!priority.finish() && write_trial.status==HipDiscoveryStatus::ready)
               write_trial.status=HipDiscoveryStatus::resource_deferred;
           }
@@ -907,7 +938,7 @@ struct WinFspVolumeController::Impl {
     write_trial.next_eligible_ms=next_write_trial_ms;
     using Status=HipDiscoveryStatus;
     write_trial_requires_evidence=write_trial.status!=Status::ready && write_trial.status!=Status::cancelled &&
-        write_trial.status!=Status::transport_busy &&
+        write_trial.status!=Status::transport_busy && write_trial.status!=Status::engine_deferred &&
         (write_trial.status!=Status::resource_deferred || write_trial_memory_refused);
     if(!write_trial_requires_evidence)write_trial_inputs.reset();
     adapter->signal_foreground_for_anchor(waiting_for_accelerator());
@@ -942,7 +973,8 @@ struct WinFspVolumeController::Impl {
       refused(&WinFspControllerView::installed_read_resource_refusals);
       return;
     }
-    if(read_acquisition_started && read_acquisition.status!=HipDiscoveryStatus::transport_busy) {
+    if(read_acquisition_started && read_acquisition.status!=HipDiscoveryStatus::transport_busy &&
+        read_acquisition.status!=HipDiscoveryStatus::engine_deferred) {
       if(now<next_read_evidence_ms || !read_inputs)return;
       // A sampled input must change. The interval bounds metadata checks.
       next_read_evidence_ms=now+budget.timeout_ms;
@@ -950,18 +982,21 @@ struct WinFspVolumeController::Impl {
     }
     if(stop_requested.load(std::memory_order_acquire) || adapter->foreground_pending() ||
         adapter->foreground_activity()!=work.foreground_epoch)return;
+    auto engine=engine_activity(last_read_engine_sample,read_acquisition.engine_wait_adapter);
+    if(!engine)return;
+    last_read_engine_sample=engine->snapshot->captured_ms;
     read_acquisition_started=true;
     next_read_evidence_ms=now+budget.timeout_ms;
     read_acquisition={};
     acquiring_read=true;
     acquisition_finished.store(false,std::memory_order_relaxed);
     try {
-      acquisition_thread=std::jthread([this](std::stop_token stop) noexcept {
+      acquisition_thread=std::jthread([this,engine=std::move(*engine)](std::stop_token stop) noexcept {
         try {
           MaintenanceThreadScope priority;
           if(priority.active()) {
             read_inputs=std::make_unique<InstalledHipInputWitness>(HipRouteRole::native_lz4_read);
-            read_acquisition=discover_installed_hip_native_read_route(stop);
+            read_acquisition=discover_installed_hip_native_read_route(stop,engine);
             if(read_acquisition.status==HipDiscoveryStatus::ready && read_acquisition.route && !stop.stop_requested()) {
               auto profile=bind_installed_native_read(*read_acquisition.route);
               if(profile)acquired_read_worker=std::make_unique<NativeLz4ReadWorker>(std::move(*profile));
@@ -993,6 +1028,7 @@ struct WinFspVolumeController::Impl {
     acquisition_retired=read_acquisition.status!=HipDiscoveryStatus::retirement_unconfirmed;
     if(read_inputs && read_acquisition.status==HipDiscoveryStatus::device_not_ready)read_inputs->note_device_unavailable();
     if(read_inputs && read_acquisition.memory_pressure)read_inputs->note_memory_pressure(*read_acquisition.memory_pressure);
+    if(read_acquisition.status==HipDiscoveryStatus::engine_deferred)read_inputs.reset();
     if(read_acquisition.status==HipDiscoveryStatus::ready) {
       if(use_route && acquired_read_worker && !stop_requested.load(std::memory_order_acquire)) {
         read_worker=std::move(acquired_read_worker);
@@ -1033,12 +1069,16 @@ struct WinFspVolumeController::Impl {
           observed,GetTickCount64(),adapter->group_maintenance_policy()):std::nullopt;
       const bool deadline_check=resources && !resources->cpu_busy && anchor->take_deadline_recovery();
       if(!deadline_check && acquisition.status!=HipDiscoveryStatus::transport_busy &&
+          acquisition.status!=HipDiscoveryStatus::engine_deferred &&
           (!acquisition_inputs || !acquisition_inputs->changed()))return;
     }
+    auto engine=engine_activity(last_anchor_engine_sample,acquisition.engine_wait_adapter,
+        (std::max)(maintenance_wall_share_ppm,std::uint64_t(installed->duty_ppm)));
+    if(!engine)return;
+    last_anchor_engine_sample=engine->snapshot->captured_ms;
     last_acquisition_candidate=candidate;
     acquisition_started=true;
     acquisition_inputs.reset();
-    // Keep the observed installation and topology on the Windows volume owner.
     try {acquisition_inputs=std::make_unique<InstalledHipInputWitness>();}
     catch(...) {}
     acquisition={};
@@ -1048,10 +1088,10 @@ struct WinFspVolumeController::Impl {
     if(qualifying_device)adapter->signal_foreground_for_anchor(true);
     acquisition_finished.store(false,std::memory_order_relaxed);
     try {
-      acquisition_thread=std::jthread([this,target,budget](std::stop_token stop) noexcept {
+      acquisition_thread=std::jthread([this,target,budget,engine=std::move(*engine)](std::stop_token stop) noexcept {
         try {
           MaintenanceThreadScope priority;
-          acquisition=priority.active()?discover_installed_hip_anchor_route(stop):
+          acquisition=priority.active()?discover_installed_hip_anchor_route(stop,engine):
               HipRouteDiscoveryResult{HipDiscoveryStatus::resource_deferred};
           if(target && acquisition.status==HipDiscoveryStatus::ready && acquisition.route &&
               acquisition.route->identity==target->identity) {
@@ -1086,6 +1126,7 @@ struct WinFspVolumeController::Impl {
     }
     qualifying_device=false;
     acquisition_retired=acquisition.status!=HipDiscoveryStatus::retirement_unconfirmed;
+    if(acquisition.status==HipDiscoveryStatus::engine_deferred)acquisition_inputs.reset();
     if(acquisition_inputs && acquisition.status==HipDiscoveryStatus::device_not_ready)
       acquisition_inputs->note_device_unavailable();
     if (use_route && acquisition_inputs && acquisition.memory_pressure)

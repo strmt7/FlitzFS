@@ -1,6 +1,7 @@
 #include "hip_route_discovery.hpp"
 #include "hip_module_verification.hpp"
 #include <iostream>
+#include <algorithm>
 #include <iterator>
 #include <stdexcept>
 namespace {
@@ -137,8 +138,46 @@ int verify_request_refusals() {
   const auto installed=flitzfs::discover_installed_hip_route(valid.worker,valid.maximum_identity_queries,stop.get_token());
   if(installed.status!=HipDiscoveryStatus::cancelled || installed.route || installed.identity_queries || installed.worker_exit)
     throw std::runtime_error("Cancelled installed write discovery inspected an adapter or opened a route");
+  valid.engine_activity.emplace();
+  const auto missing=flitzfs::discover_system_hip_route(valid);
+  if(missing.status!=HipDiscoveryStatus::engine_deferred || missing.route || missing.identity_queries || missing.worker_exit)
+    throw std::runtime_error("Missing engine telemetry reached package pinning");
   verify_budget_recovery();
   std::cout << "HIP route request refusals: " << std::size(changes) << "\n";
+  return 0;
+}
+int verify_live_engine_admission() {
+  using namespace flitzfs;
+  MEMORYSTATUSEX memory{sizeof(memory)};
+  if(!GlobalMemoryStatusEx(&memory))throw std::runtime_error("Live memory observation unavailable");
+  const auto allowance=(std::min)(memory.ullAvailPhys,memory.ullAvailPageFile)/64;
+  WindowsGpuEngineSampler sampler;
+  sampler.observe(allowance);
+  Sleep(static_cast<DWORD>(gpu_engine_sample_ms+25));
+  sampler.observe(allowance);
+  const auto score=sampler.current(GetTickCount64());
+  if(!score)throw std::runtime_error("Live GPU engine observation unavailable");
+  HipRouteDiscoveryRequest request;
+  // This intentionally absent private package path keeps the fixture free of
+  // worker creation even if the live observation would admit a quiet device.
+  const auto unused=std::filesystem::current_path()/
+      (L"absent-engine-admission-fixture-"+std::to_wstring(GetTickCount64()));
+  if(std::filesystem::exists(unused))throw std::runtime_error("Expected an unused fixture path");
+  request.helper=unused/L"flitzfs_hip_lz4_worker.exe";
+  request.helper_sha256.fill(std::byte{1});
+  request.runtime_basename=L"amdhip64_7.dll";
+  request.worker={128,2000,5000};
+  request.maximum_identity_queries=1;
+  request.engine_activity=HipDiscoveryEngineActivity{score,minimum_background_gpu_idle_ppm};
+  const auto result=discover_system_hip_route(request);
+  const bool missing_package=result.status==HipDiscoveryStatus::worker_untrusted ||
+      result.status==HipDiscoveryStatus::runtime_unavailable;
+  if(result.route || result.identity_queries || result.worker_exit ||
+      (result.status!=HipDiscoveryStatus::engine_deferred && !missing_package))
+    throw std::runtime_error("Unexpected live discovery result: "+std::to_string(static_cast<unsigned>(result.status)));
+  std::cout<<"engine_deferred="<<(result.status==HipDiscoveryStatus::engine_deferred)
+      <<" adapter_matched="<<result.engine_wait_adapter.has_value()
+      <<" identity_queries="<<result.identity_queries<<" hip_loaded=0\n";
   return 0;
 }
 }
@@ -146,6 +185,8 @@ int wmain(int argc,wchar_t** argv) {
   try {
     if (argc == 2 && std::wstring_view(argv[1]) == L"--verify-request-refusals")
       return verify_request_refusals();
+    if(argc==2 && std::wstring_view(argv[1])==L"--verify-live-engine-admission")
+      return verify_live_engine_admission();
     if(argc==3 && std::wstring_view(argv[1])==L"--system-fingerprint") {
       const flitzfs::hip_detail::VerifiedSystemModule observed(argv[2]);
       const flitzfs::hip_detail::VerifiedSystemModule verified(argv[2],std::string_view(hex(observed.digest())));

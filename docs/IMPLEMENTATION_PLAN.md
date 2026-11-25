@@ -297,7 +297,11 @@ Steps E01–E13 below govern dependencies and exit evidence. For E04–E06,
 retain the assembled-prefix candidate in the existing protected exact
 oracle. Measure the added idle work and held-out size before widening
 its use. Prepare the attached CPU, cold AMD and prepared AMD comparison
-through the same ordinary Windows client for E03 and E08.
+through the same ordinary Windows client for E03 and E08. The automatic
+discovery path now consumes recent per-adapter engine activity before
+starting a worker. Extend the admission observation through active retained
+routes and check how quickly it yields and recovers across device contention.
+[Engine activity admission](evidence/windows-gpu-engine-admission-2026-11-25.json)
 [Source-bound comparison](evidence/windows-assembled-prefix-2026-11-25.json)
 
 Use the same external Windows workload to find the largest avoidable costs.

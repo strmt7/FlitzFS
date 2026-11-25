@@ -1,0 +1,386 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "release_qualified": false,
+  "source": {
+    "parent": "a1901218c79a299627879663209f65887f8b5de8",
+    "base_tree": "8d2a481ea083951d09edf2534bed4aa75dc01961",
+    "tree": "5eb08fe30578050b1c79ef274561f9b393ad83fc",
+    "elements": [
+      {
+        "path": "CMakeLists.txt",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "0b617a22bae84636c71da0e5bc8b97b46431ac71",
+        "bytes": 98524
+      },
+      {
+        "path": "src/windows/gpu_engine_activity.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "75c9d7b1d9d9ee459bcf9a1df2073c014a7125b7",
+        "bytes": 7266
+      },
+      {
+        "path": "src/windows/gpu_engine_activity.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "662be9340fcd7f06ce97e805499687fcbe6ca733",
+        "bytes": 1561
+      },
+      {
+        "path": "src/windows/hip_route_discovery.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "2ac4402f4191f9cea97c6eff61127ae1f6c18c78",
+        "bytes": 32484
+      },
+      {
+        "path": "src/windows/hip_route_discovery.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "967dc1f2f5214b6b96e8f5547530970f2c5d5117",
+        "bytes": 6128
+      },
+      {
+        "path": "src/windows/winfsp_controller.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "bb50bd27633dac0302ead849a88859670c2f7e4f",
+        "bytes": 68437
+      },
+      {
+        "path": "tests/test_windows_gpu_budget.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "379c318295d23e7ca5dffd314c366673b51ec2a8",
+        "bytes": 11510
+      },
+      {
+        "path": "tests/win_hip_route_probe.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "2c282fc33ce2fd7dc3e93baab92c2cbebc655348",
+        "bytes": 12255
+      }
+    ]
+  },
+  "scope": {
+    "windows_host": "Windows 11 26H2 build 26300.10075",
+    "driver_state_modified": false,
+    "filesystem_mounted_by_trial": false,
+    "hip_loaded_by_activity_probes": false,
+    "device_compute_trial_admitted": false,
+    "product_scope": "New automatic installed route acquisition"
+  },
+  "policy": {
+    "sample_interval_ms": [
+      1000,
+      2000
+    ],
+    "maximum_observation_age_ms": 1000,
+    "minimum_idle_ppm": 125000,
+    "role_charge": "Reserve capacity for two quanta of the role's assigned duty.",
+    "aggregation": "Sum process loads per adapter LUID, physical adapter and engine. Compare with the busiest engine.",
+    "retry": "A newly sampled target must have enough idle capacity before another automatic acquisition."
+  },
+  "validation": {
+    "release": {
+      "build": {
+        "run": "local-run-76350959ffa54acbaa35607a182e182e",
+        "result_sha256": "0c8e221bbbbafda82888f5f27783382770307dfee4e44eb5fe50008ddaf8837b",
+        "log_sha256": "1dc01ac5df55795f553fe9db31c74be501d578fb96d7b967bc10a867351d9fa7",
+        "exit_code": 0,
+        "tree_retired": true,
+        "memory_bytes": 1261436928,
+        "peak_job_bytes": 356163584,
+        "inherited_error_mode": 32771
+      },
+      "tests": {
+        "receipt": {
+          "run": "local-run-452e14ef47794b4cbee380d15786ce3f",
+          "result_sha256": "f7cc0117adac7a3fefdb28352af560bf6e5d013ad5f0a7a8262993c872e92f8e",
+          "log_sha256": "e3cfc2d28713e2566c73f0708930a73926390d72e8eaf10ce034a75151acc65f",
+          "exit_code": 0,
+          "tree_retired": true,
+          "memory_bytes": 1486880768,
+          "peak_job_bytes": 62545920,
+          "inherited_error_mode": 32771
+        },
+        "passed": [
+          "bounded_winfsp_indexed_memory",
+          "owned_native_deferred_write_sdk",
+          "bounded_windows_gpu_budget_rejection",
+          "bounded_hip_route_request_refusals"
+        ]
+      }
+    },
+    "raw": {
+      "build": {
+        "run": "local-run-23d41f96d0a647b7b9a3a7824eca9e22",
+        "result_sha256": "a1f745cdfca77d3dc91f345395ea1e69e9646f7cdbbe91b02af09df819371ecd",
+        "log_sha256": "80670c4209e7daa264c725a4c4512026202f651f335dfe3106a19ddf74c5c3e0",
+        "exit_code": 0,
+        "tree_retired": true,
+        "memory_bytes": 1299185664,
+        "peak_job_bytes": 838836224,
+        "inherited_error_mode": 32771
+      },
+      "tests": {
+        "receipt": {
+          "run": "local-run-d541440d478e41ab994a233dc30751ae",
+          "result_sha256": "8c9db1248660f6e9e197340fa658d30ccec378743f191ca7c81e3234b14d6a34",
+          "log_sha256": "9351d1a26427abde659ee0f34a6f6d6df4eba87dc5bd62eaa2f98f92f34dd413",
+          "exit_code": 0,
+          "tree_retired": true,
+          "memory_bytes": 1626341376,
+          "peak_job_bytes": 62676992,
+          "inherited_error_mode": 32771
+        },
+        "passed": [
+          "bounded_winfsp_indexed_memory"
+        ]
+      }
+    },
+    "asan": {
+      "build": {
+        "run": "local-run-16abba064b244d47bf4f6862a6984b68",
+        "result_sha256": "525163d50468b34b2a9831cd8bc6465682d57f1eb442f2d384b17e1db12a88f5",
+        "log_sha256": "18ce3f1f9615e39f2bcf710fe79078f31ac024de93e46cfd9b6959255ab99572",
+        "exit_code": 0,
+        "tree_retired": true,
+        "memory_bytes": 1933574144,
+        "peak_job_bytes": 524914688,
+        "inherited_error_mode": 32771
+      },
+      "tests": {
+        "receipt": {
+          "run": "local-run-c52af6a9a28d42609a5cdb613274dca2",
+          "result_sha256": "893678c586bb9a9e4a67c0a45cb67f8f2113f6ee5c6ee150253bf187e0c722a7",
+          "log_sha256": "170579bd73e46a875f6c38d6b20c3adf6f0a34da8d4b10431b226ddb90e53b68",
+          "exit_code": 0,
+          "tree_retired": true,
+          "memory_bytes": 1602224128,
+          "peak_job_bytes": 60801024,
+          "inherited_error_mode": 32771
+        },
+        "passed": [
+          "windows_asan_runtime_preflight",
+          "bounded_windows_gpu_budget_rejection",
+          "bounded_hip_route_request_refusals"
+        ]
+      },
+      "runtime_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed"
+    }
+  },
+  "windows_application": {
+    "build": {
+      "run": "local-run-2c5b57acb0d14267b05e0ac3acfd1f99",
+      "result_sha256": "8bcaca1cda57703c1aa6124065e0cc3d55e464e5acbc99f3ccc32f1c6ac57e94",
+      "log_sha256": "6b19d9f9ba2848bad533b31991c26cef79843fb81636b636d022c58a2cfdd794",
+      "exit_code": 0,
+      "tree_retired": true,
+      "memory_bytes": 1437597696,
+      "peak_job_bytes": 623575040,
+      "inherited_error_mode": 32771
+    },
+    "executable_sha256": "dd35f4eaaf3b222946dc4e4214204c10c7c64f238d2cb7771ef7e106a2d8b7fd",
+    "final_route_probe_regression": {
+      "receipt": {
+        "run": "local-run-33dda5a78c31458aa9919f8fd8a4e8bf",
+        "result_sha256": "01de8df466ea34f2657590963098954d281ed953e9508569f89c0c5ea3ab5345",
+        "log_sha256": "d6d3fd3f2a3872490a22fefc9889c22dfcb0f6d219d474375b68d89b56ebdefa",
+        "exit_code": 0,
+        "tree_retired": true,
+        "memory_bytes": 1346371584,
+        "peak_job_bytes": 9150464,
+        "inherited_error_mode": 32771
+      },
+      "passed": [
+        "bounded_hip_route_request_refusals"
+      ]
+    }
+  },
+  "live": {
+    "activity": {
+      "receipt": {
+        "run": "local-run-aa8234762d2745c9a80cd0fdfa515de8",
+        "result_sha256": "7370582bee501838f68674677c02f9735664a7c40c04134aa43617d834841296",
+        "log_sha256": "6d2c596d1ad810421091f407b584b6113d5a2032303470d22a89e9e8a02bbf6a",
+        "exit_code": 0,
+        "tree_retired": true,
+        "memory_bytes": 1118830592,
+        "peak_job_bytes": 9596928,
+        "inherited_error_mode": 32771
+      },
+      "observed": [
+        "amd_engine_busy_ppm=869568 adapters=2 engine_admitted=1 hip_loaded=0",
+        "expired_baseline_rejected=1"
+      ]
+    },
+    "busy_adapter": {
+      "receipt": {
+        "run": "local-run-ea3a8e39e0ea420ba709109e278b9fa2",
+        "result_sha256": "78d4b2bf1ac4ac55539bac3d9398e5cdec26cf45253549269d384efd1807545c",
+        "log_sha256": "4a58e92e6ac249f2896dbc7fdcf321927a8c4827f3dcc6be087aabb20f5498e0",
+        "exit_code": 0,
+        "tree_retired": true,
+        "memory_bytes": 1189085184,
+        "peak_job_bytes": 9695232,
+        "inherited_error_mode": 32771
+      },
+      "observed": [
+        "engine_deferred=1 adapter_matched=1 identity_queries=0 hip_loaded=0"
+      ]
+    },
+    "less_contended_adapter": {
+      "receipt": {
+        "run": "local-run-0349ee3e17c349bda5f9c6a67926c4a6",
+        "result_sha256": "887a5324049a8806899ee5126589fd953d7512b7d7bbabc30ec0f98e2c8dfb56",
+        "log_sha256": "f947c7b8e34885e1c0ad18a40e3285e1d9338c3d36596da46627a41cd4cc57b1",
+        "exit_code": 0,
+        "tree_retired": true,
+        "memory_bytes": 1182793728,
+        "peak_job_bytes": 16982016,
+        "inherited_error_mode": 32771
+      },
+      "observed": [
+        "engine_deferred=0 adapter_matched=0 identity_queries=0 hip_loaded=0"
+      ]
+    },
+    "physical_test_preflight": {
+      "initial": {
+        "admitted": false,
+        "devices": [
+          {
+            "Name": "AMD Radeon RX 9070 XT",
+            "DriverVersion": "32.0.32029.2010",
+            "Status": "OK"
+          }
+        ],
+        "windows_build": "26300",
+        "free_physical_kib": 16240804,
+        "cpu_percent": [
+          18.416458989540217,
+          25.427142712638474
+        ],
+        "peak_gpu_percent": 99.98815087596637,
+        "other_fixture_processes": 0,
+        "utc": "2026-11-25T17:55:19.6760333Z"
+      },
+      "last": {
+        "admitted": false,
+        "devices": [
+          {
+            "Name": "AMD Radeon RX 9070 XT",
+            "DriverVersion": "32.0.32029.2010",
+            "Status": "OK"
+          }
+        ],
+        "windows_build": "26300",
+        "free_physical_kib": 22518488,
+        "cpu_percent": [
+          22.416971551960152,
+          20.98441206535894
+        ],
+        "peak_gpu_percent": 94.59216057269367,
+        "other_fixture_processes": 0,
+        "utc": "2026-11-25T18:14:34.4068237Z"
+      }
+    }
+  },
+  "earlier_attempts": {
+    "controller_build": {
+      "receipt": {
+        "run": "local-run-5548ae80848c4760aeeb60e4e74cacf3",
+        "result_sha256": "41ecba77c4b095bcdbc6f85ec65d8c235c98e6d9f530d8d22e3b9601334c7d5d",
+        "log_sha256": "9cd7b00721c082bb3030727388f233c096fc400b98d25d2cff80fb594ec372f4",
+        "exit_code": 1,
+        "tree_retired": true,
+        "memory_bytes": 770703360,
+        "peak_job_bytes": 501923840,
+        "inherited_error_mode": 32771
+      },
+      "correction": "Disambiguated the engine observation from the controller's activity event."
+    },
+    "live_missing_package_fixture": {
+      "receipt": {
+        "run": "local-run-4765b0d5a83440f8b484968737c35995",
+        "result_sha256": "b77a0a7a32d737aae5616b5d6e7463bbe30bb120201df5482649ccc4dff8999f",
+        "log_sha256": "7625053a3007cfbfd9cdf0ad3d5a916203667b92260e16b36f3acbf326f34fb1",
+        "exit_code": 1,
+        "tree_retired": true,
+        "memory_bytes": 1135607808,
+        "peak_job_bytes": 10616832,
+        "inherited_error_mode": 32771
+      },
+      "correction": "Recognize the deliberately absent package on a window that the engine gate admits."
+    }
+  },
+  "research": {
+    "provider": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "5f0877bb777b942f509fcc08e771fab8aa1ff3eadab768553b3013094d80e76e",
+    "robots": true,
+    "external_llm": false,
+    "pages": [
+      {
+        "name": "pdh-array",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/pdh/nf-pdh-pdhgetformattedcounterarrayw",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 40634,
+        "markdown_sha256": "4163a3006bdbf31137b5a280ae9ea00647b3c92d2e2c432f8fd45817f10ce420",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.397,
+        "capture": "pdh-array.native.json",
+        "capture_sha256": "d3027448aa6e8b703af4968d684ef3b3b49389e757a6bcf96ac8d79d3c70bbd2"
+      },
+      {
+        "name": "pdh-counter",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/pdh/nf-pdh-pdhaddenglishcounterw",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 37553,
+        "markdown_sha256": "ea2b97dc01d94fe7e56dee27c897468037e9f3b97374c8e6fc3d8f3268881354",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.032,
+        "capture": "pdh-counter.native.json",
+        "capture_sha256": "18af4497f9cfe5252790b0bd78c5b23e4704505f7780104b4ec86f95b1109d80"
+      },
+      {
+        "name": "amd-runtime",
+        "url": "https://rocm.docs.amd.com/en/docs-10.2.0/about/release-notes.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 303361,
+        "markdown_sha256": "18caaf90d5ea55c1acb99c34abb277aa89c6eada8e5300b6ffdebe356e45a728",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.548,
+        "capture": "amd-runtime.native.json",
+        "capture_sha256": "6ef5428fa9a56396f098e0d06082864cec3116573fb50bc4765367ae7bdf3147"
+      }
+    ]
+  },
+  "navigation": {
+    "actual_searches": 1,
+    "inventory_sha256": "8711e33b4c4feb514cee83f5dd3999752646ab3707909303d3154bec83abbd2d",
+    "search_sha256": "2d8b81fc2a53afd8dc685b516a53cede741f1b9d5bfdd31e18cad256d7046a3a"
+  },
+  "cleanup": {
+    "known_owned_processes": 0,
+    "names": []
+  },
+  "release_gates_open": 12
+}

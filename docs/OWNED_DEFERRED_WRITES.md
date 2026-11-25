@@ -181,6 +181,29 @@ image size after retiring scratch.
 [Single-write evidence](evidence/windows-ordinary-amd-cpu-replay-2026-11-23.json) ·
 [Grouped capture evidence](evidence/windows-ordinary-amd-capture-groups-2026-11-23.json)
 
+### Windows engine activity before automatic discovery
+
+The existing Windows controller samples the local GPU Engine counters during
+eligible background opportunities. The sampler uses the caller's live host
+allocation grant and releases its query with the controller. It groups process
+percentages by DXGI adapter LUID, physical adapter and engine. The busiest
+valid engine determines the adapter's observed load. A second adapter's
+sample cannot authorize the target.
+
+A bounded pair uses a sample interval from one to two seconds. A long gap
+starts a new baseline. The controller requires a fresh observation and
+enough capacity for two quanta of the role's duty with a scheduling margin
+of at least one eighth of the busiest engine. It passes that observation to
+automatic installed read, shared-base and write-trial discovery. Discovery
+filters the matching adapters before pinning the runtime or starting the
+identity worker. A renewed attempt requires a new observation. A previously
+deferred matching adapter stays deferred while its engine observation shows
+insufficient headroom. Other resource, scope and process-ownership checks
+still apply. Foreground requests continue through the CPU path.
+[Windows activity admission evidence](evidence/windows-gpu-engine-admission-2026-11-25.json) ·
+[Microsoft wildcard counter values](https://learn.microsoft.com/en-us/windows/win32/api/pdh/nf-pdh-pdhgetformattedcounterarrayw) ·
+[AMD ROCm 10.2.0 release notes](https://rocm.docs.amd.com/en/docs-10.2.0/about/release-notes.html)
+
 ### Detached Radeon write trials
 
 The detached Radeon arm uses the same mirrored native writer and isolation
