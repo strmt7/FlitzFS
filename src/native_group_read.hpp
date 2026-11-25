@@ -38,6 +38,7 @@ class NativeGroupReadBatch final {
   std::span<const Base> bases() const noexcept{return bases_;}
   std::span<const Member> members() const noexcept{return members_;}
   bool mixed_methods() const noexcept;
+  bool has_data_after(std::uint64_t offset) const noexcept;
 
  private:
   friend class IndexedVolumeView;
@@ -61,6 +62,8 @@ class NativeGroupReadyReads final {
       std::vector<std::vector<std::byte>> decoded,const std::function<bool()>& interrupted={});
   static std::unique_ptr<NativeGroupReadyReads> decode_captured(NativeGroupReadBatch&,
       const std::function<bool()>& interrupted={});
+  // Before publication, release complete extents already served by the CPU.
+  void discard_before(std::uint64_t offset) noexcept;
   bool pending() const noexcept{return consumed_<members_.size();}
   std::size_t consumed() const noexcept{return consumed_;}
 

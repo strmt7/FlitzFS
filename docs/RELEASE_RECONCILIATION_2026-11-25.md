@@ -386,6 +386,21 @@ Measure the ready-versus-CPU comparison on the ordinary mounted path.
 [Mixed-width admission evidence](evidence/windows-amd-variable-group-demand-2026-11-25.json) ·
 [Live mixed-width AMD evidence](evidence/windows-amd-mixed-width-live-2026-11-25.json)
 
+The later SDK regression showed that CPU service of one early extent
+discarded a four-extent prepared window. The controller now allows the
+unread extents to remain eligible while a sequential handle stays on the
+same checkpoint. The model fixture returned one extent through CPU
+fallback and then consumed the three verified unread extents in a single
+callback. It also refused a seek, fully consumed window and changed
+checkpoint. The device route still checks confirmed retirement and the
+entire reply before dropping the served prefix. The physical Radeon
+later decoded all four mixed extents. The three unread device extents
+served the next callback, with zero backing writes and independent CPU
+readback. The fixture deferred its first attempt under existing device
+load and completed the second after the adapter became idle.
+[Sequential CPU prefix evidence](evidence/windows-group-read-cpu-prefix-2026-11-25.json) ·
+[Current WinFsp request contract](https://winfsp.dev/doc/WinFsp-API-winfsp.h/)
+
 The new copy path groups preserved records across physical banks while
 retaining a checked leaf and CPU work bound. It cut the copy steps from
 931 to 81 and writes from 4,656 to 1,278 on the fragmented medium-record
@@ -467,7 +482,7 @@ Attribute resource cost and remaining work before changing either phase.
 | S1 · Exact artifacts | Current scoped builds bind source and SDK/CPU artifacts. Earlier real device runs identify their exact ROCm binaries. | Bind one clean Windows 11 update, signed WinFsp pair, helper, workers, CPU decoder table and backing capabilities to the acceptance run. |
 | S2 · Scale | Paged inodes, names and extents are live. Checked replica reads group adjacent frames in a leaf. A single checked view now supplies each maintenance sample. Writable startup still walks the inventory. | Verify bounded attach under a versioned authority contract. Fit and validate separate named-file curves for attach, restart, enumeration, mutation and resident memory. |
 | S3 · Space reuse | The single-view replay released backing bytes while mounted, reported zero maintenance failures and independently verified all 1,027 files. It reached 610 sampled extents with duty still pending. | Trace work grants and refused continuation to the pending cursor. Verify advisory quiescence and repeated settlement under churn, pressure and interruption. |
-| S4 · AMD and CPU continuity | Real Radeon SDK callback trials served four mixed frames. The sealed packed controller now also delivered two exact device frames, recovered superseded demand on CPU and confirmed worker retirement. | Prove a useful automatic region for each advertised AMD role in installed-client paths. Qualify CPU availability, verified delivery and condition-based device recovery. |
+| S4 · AMD and CPU continuity | The physical Radeon decoded a four-extent capture while the first extent used CPU service. The callback consumed the three unread GPU extents. SDK model checks covered seek, full consumption and checkpoint invalidation. | Prove an automatic region that beats CPU on the installed-client path. Retain the separate write and collective gates. |
 | S5 · Compression | Retained same-size selection saved 16 KiB of protected occupied bytes in the controlled window transition. The AITDCC I–P and CPython sizes matched their controls. Earlier protected prefixes and secondary rolling keys showed distinct gains. | Establish a held-out complete-size frontier and measure recall for profitable retained alternatives under a funded index. |
 | S6 · Autonomy | Persistent sparse advice, workload samples, yield ranking and resource admission run in the controller. The candidate sampled the same extents with 22–35% fewer backing calls in two local fixtures. | Measure learning benefit, time to settle, interference, per-volume fairness and bytes written per byte reclaimed across workloads and restart. |
 | S7 · Windows experience | The helper and WinFsp own memory and supported file-backed volumes. Signed guests exercised external clients and verified reopen. | Qualify Explorer and independent apps with the signed candidate. Cover sharing, mapped and cached I/O, names, metadata, repair and clean teardown. |

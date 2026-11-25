@@ -1,0 +1,302 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "qualification": "Windows SDK callbacks",
+  "runtime": {
+    "parent": "7e208e7206fa317e794b6f261910b428ba62c1d5",
+    "base_tree": "b74dc5657f70a05bfebd1e698cf4b5bdef380dad",
+    "tree": "2977732cc73a2d3bd31a90629830f374919742ea",
+    "elements": [
+      {
+        "path": "src/native_group_read.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "35146eda08ed3108ec5d25339ee02e2c86a1201c",
+        "bytes": 3007
+      },
+      {
+        "path": "src/native_group_read.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "c4eae568a51c87b7560f142c2a178c13fc4f900b",
+        "bytes": 3259
+      },
+      {
+        "path": "src/windows/winfsp_native.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "8660501ca17c6351b9bd0d02d9955c7bb94406ff",
+        "bytes": 110489
+      },
+      {
+        "path": "tests/test_winfsp_paged.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "7c99c83ef7b9b70adcd8103a0a8433042649808b",
+        "bytes": 79074
+      }
+    ]
+  },
+  "windows_build": 26300,
+  "behavior": "An early completed CPU extent can leave a still-useful sequential grouped reply eligible on the same open context and checkpoint.",
+  "model": {
+    "captured": 4,
+    "early_cpu": 1,
+    "ready_delivered": 3,
+    "cases": {
+      "release": {
+        "mixed": 1,
+        "ready_hits": 3,
+        "late_refused": 1,
+        "cpu_readback": 1,
+        "backing_writes": 0,
+        "unrelated_callbacks_retained": 1,
+        "checkpoint_change_refused": 1,
+        "expanded": 1,
+        "callbacks": 1,
+        "variable_widths": 1,
+        "cpu_prefix": 1,
+        "detailed_log_sha256": "49a2e9ea095ef7b6ddadd9006c6d0985a9d422619a244d0a65972e3551699a75",
+        "passed_tests": 6
+      },
+      "raw": {
+        "mixed": 1,
+        "ready_hits": 3,
+        "late_refused": 1,
+        "cpu_readback": 1,
+        "backing_writes": 0,
+        "unrelated_callbacks_retained": 1,
+        "checkpoint_change_refused": 1,
+        "expanded": 1,
+        "callbacks": 1,
+        "variable_widths": 1,
+        "cpu_prefix": 1,
+        "detailed_log_sha256": "bbc5ccf44a9231537776a23aa4f421e6e38edf2e3e41a16004d426b6766fb5f9",
+        "passed_tests": 3
+      },
+      "asan": {
+        "mixed": 1,
+        "ready_hits": 3,
+        "late_refused": 1,
+        "cpu_readback": 1,
+        "backing_writes": 0,
+        "unrelated_callbacks_retained": 1,
+        "checkpoint_change_refused": 1,
+        "expanded": 1,
+        "callbacks": 1,
+        "variable_widths": 1,
+        "cpu_prefix": 1,
+        "detailed_log_sha256": "a04bd3d578cc1adbc23a0c5827b4804df7c5e10f3d06b221a99024166f5ea8aa",
+        "passed_tests": 4
+      }
+    },
+    "seek_and_changed_checkpoint_rejected": true,
+    "fully_served_group_rejected": true
+  },
+  "validation": {
+    "regression_before": {
+      "exit_code": 1,
+      "tree_retired": true,
+      "memory_bytes": 2385510400,
+      "peak_job_bytes": 22818816,
+      "cpu_percent": 16,
+      "elapsed_seconds": 0.4850000000005821,
+      "log_sha256": "aa34477da6b64a34a0663947344cefaa26464b183487c153ba4dcdf6940186d9",
+      "receipt_sha256": "b0d93b4dfc8dd7e775c62bbeae7fb3f10de9f73d3718d47c996e459019bdd2c3"
+    },
+    "release": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "memory_bytes": 2368733184,
+      "peak_job_bytes": 58232832,
+      "cpu_percent": 17,
+      "elapsed_seconds": 4.6560000000026776,
+      "log_sha256": "6866df836a0692d2335c13d23ed97f311433a309777a121b5769c479c9245742",
+      "receipt_sha256": "6abf701f9fe5716a8a23ad205ab3ea5b3ddc01e9f2b7e577970aad86ec7cb51d"
+    },
+    "raw": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "memory_bytes": 2545942528,
+      "peak_job_bytes": 27811840,
+      "cpu_percent": 17,
+      "elapsed_seconds": 0.6720000000059372,
+      "log_sha256": "5981486f3f0d516774d343fa81b9125b9b48baf0209928f1c89c64729f43e113",
+      "receipt_sha256": "f5739854944e3ef1983e360701c00418c0ed3346f1ccf5fbead2f627aa3eae21"
+    },
+    "asan": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "memory_bytes": 2595225600,
+      "peak_job_bytes": 394756096,
+      "cpu_percent": 17,
+      "elapsed_seconds": 4.5,
+      "log_sha256": "0daf10ca10118f1423d85b30261c77aa14c6e73409feba92551331c4299414c6",
+      "receipt_sha256": "f09af7fe62c603eb25180b458d805f4f4ff36083cc85d8e44fb524f9cf387df7"
+    },
+    "release_build": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "memory_bytes": 3333423104,
+      "peak_job_bytes": 385875968,
+      "cpu_percent": 18,
+      "elapsed_seconds": 60.98500000000058,
+      "log_sha256": "586586a8cf16ec1f090f0f13428ebcd9506c7a49a996b12696c7c574a74d321a",
+      "receipt_sha256": "bb6a0f3aa80019e8668db8dd04e9a58cb2c28ec4c8a5840d444c1037f1a86afb"
+    },
+    "raw_build": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "memory_bytes": 2923429888,
+      "peak_job_bytes": 409837568,
+      "cpu_percent": 17,
+      "elapsed_seconds": 64.78100000000268,
+      "log_sha256": "cf65f333b0aa48ef1de5a1189d730d99beb476075880606fc7a90ab894b7b891",
+      "receipt_sha256": "8ee2cfd15c2e8b4f6163d1774dd996222f7899e9836c1d2e2e9cadff751f02fb"
+    },
+    "asan_build": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "memory_bytes": 2969567232,
+      "peak_job_bytes": 688635904,
+      "cpu_percent": 17,
+      "elapsed_seconds": 125.14100000000326,
+      "log_sha256": "528ef4339285f03d7226dbdcf5f7198c6581e75971825796fc61f6af2132e49f",
+      "receipt_sha256": "65b87a644d056b4d66c815acfa44f119caa603bf1865ef76a7aaa37f6d305094"
+    }
+  },
+  "addresssanitizer_runtime_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed",
+  "device_fixture": {
+    "manifest_sha256": "d95631e27d7f78c89e770d7455d10fce735f5f7fc72b8fc10be39637dfd9c7e8",
+    "artifacts": {
+      "flitzfs_winfsp_paged_tests.exe": {
+        "sha256": "ead728f3f07fe9fdaf715dedaeb76c251c6c77adbb709b8633db5aa7ca4c0663",
+        "bytes": 2258432
+      },
+      "winfsp-x64.dll": {
+        "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+        "bytes": 200816
+      },
+      "flitzfs_native_lz4_read_worker.exe": {
+        "sha256": "8625a3fa306adce0f3db5a1803ea6b9924147817c73630f75f09d42fdf268ca4",
+        "bytes": 581632
+      },
+      "flitzfs_rocm_native_lz4_decode.dll": {
+        "sha256": "9ac5bb33a7b39ae26712dcdcfcdeb6b4b5fc049175e18dd6f24d047a37b3e128",
+        "bytes": 173568
+      }
+    },
+    "live_attempts": [
+      {
+        "admission": {
+          "admitted": false,
+          "reason": "Existing host load above the fixture envelope",
+          "utc": "2026-11-25T07:31:41.1129266Z",
+          "driver": "32.0.32029.2010",
+          "build": "26300",
+          "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+          "luid": "9d75010000000000",
+          "available_bytes": 22156021760,
+          "reserved_bytes": 4294967296,
+          "gpu_peak": 99.35165077733333,
+          "cpu_peak": 13.415147282149064,
+          "target_samples": 784
+        },
+        "real_device_frames_delivered": 0,
+        "verification": {
+          "exit_code": 0,
+          "tree_retired": true,
+          "memory_bytes": 2550136832,
+          "peak_job_bytes": 105000960,
+          "cpu_percent": 18,
+          "elapsed_seconds": 5.093000000008033,
+          "log_sha256": "f4c31070b18b28c871034f47028498474648a4482937af331d65734300733a16",
+          "receipt_sha256": "8e3bfb983ce7fda3564470f6330e9f58b346aada48b528d05702ad6c7f630001"
+        }
+      },
+      {
+        "admission": {
+          "admitted": true,
+          "reason": null,
+          "utc": "2026-11-25T07:33:45.5293138Z",
+          "driver": "32.0.32029.2010",
+          "build": "26300",
+          "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+          "luid": "9d75010000000000",
+          "available_bytes": 29624098816,
+          "reserved_bytes": 4294967296,
+          "gpu_peak": 0.6966302458988434,
+          "cpu_peak": 18.173115595722532,
+          "target_samples": 768
+        },
+        "real_device_frames_delivered": 3,
+        "verification": {
+          "exit_code": 0,
+          "tree_retired": true,
+          "memory_bytes": 3633315840,
+          "peak_job_bytes": 194195456,
+          "cpu_percent": 18,
+          "elapsed_seconds": 7.546999999991385,
+          "log_sha256": "0144fc8f5ca117f6b9f52444a68527adf2b4d164205ba7802e0d2328d6cd8b11",
+          "receipt_sha256": "109cd858ec845d85623528f9766bf4c8df23b3ec90aff86fb45a4fa5036a0a31"
+        },
+        "worker": {
+          "mixed": 1,
+          "prepared": 1,
+          "verified": 4,
+          "worker_ms": 1187,
+          "prepared_submit_ms": 1218,
+          "exact_child_retired": 1
+        },
+        "callback": {
+          "mixed": 1,
+          "ready_hits": 3,
+          "late_refused": 1,
+          "cpu_readback": 1,
+          "backing_writes": 0,
+          "unrelated_callbacks_retained": 1,
+          "checkpoint_change_refused": 0,
+          "expanded": 1,
+          "callbacks": 1,
+          "variable_widths": 1,
+          "cpu_prefix": 1
+        }
+      }
+    ],
+    "qualified_device_frames_delivered": 3
+  },
+  "source_navigation_receipt_sha256": "eb5446c06a7e4adb9a95523dbf9bc655c8a80f6b907d3aaa2a1fe706c4c3b750",
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "native_receipt_sha256": "6447f701fac149073053a97007a691520aed47f7ea4854acd2c21db7e8794ed2",
+    "sources": [
+      {
+        "name": "buffered-io",
+        "url": "https://www.usenix.org/conference/fast26/presentation/zhan",
+        "final_http_status": 200,
+        "markdown_bytes": 10747,
+        "markdown_sha256": "45d2421d4bcdcce6af20562bf28c70b6be0fe7d7a80f4e42b252aaedb043738d",
+        "capture_sha256": "1248bf965925af5b343b5c60243d62e6de77db5f1e90b0a7b157c87dde7a39cf"
+      },
+      {
+        "name": "winfsp-range",
+        "url": "https://winfsp.dev/doc/WinFsp-API-winfsp.h/",
+        "final_http_status": 200,
+        "markdown_bytes": 73095,
+        "markdown_sha256": "23f2e7b26b2297a12d6e98acb7b612010c44361803cc72c3563f82571cce5837",
+        "capture_sha256": "22892aab16269f04a1b4f81d081dd9247b2db304382a5ed18caff873aab9ebe7"
+      },
+      {
+        "name": "hip-context",
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/execution_context.html",
+        "final_http_status": 200,
+        "markdown_bytes": 79513,
+        "markdown_sha256": "4660319cece3db9e55c5f49170f14490a554a00065a83e4583fed9ecd5b54d83",
+        "capture_sha256": "d7d2e9f0f6081392afe5cb2a01383e21c874d3e5dfcffae3f690a899e0d9d95a"
+      }
+    ],
+    "robots": true,
+    "external_LLM": false
+  },
+  "release_qualified": false
+}

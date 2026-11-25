@@ -558,9 +558,12 @@ single packed or mixed group before pulling the protected payload. It keeps
 the forecast's exact snapshot and range identity. The checked capture can
 queue a shorter immutable request inside the reserved maximum while the child
 prepares HIP. A foreground operation interrupts capture or submission.
-An already submitted request can outlast unrelated read-only callbacks
-while its predicted stream and captured checkpoint are current. The native
-read path remains independently decodable on CPU.
+An already submitted request can outlast unrelated read-only callbacks.
+The same sequential handle may also read an early extent on CPU while
+the worker runs. A verified reply can still supply the unread extents
+on the same checkpoint. A seek, checkpoint change or completely served
+range invalidates the capture. The native read path remains independently
+decodable on CPU.
 
 ```mermaid
 sequenceDiagram
@@ -582,13 +585,16 @@ sequenceDiagram
     opt Unrelated read while submitted work is active
         R->>S: Complete the unrelated read on CPU
     end
-    alt Target demand arrives first or its checkpoint changes
+    opt First extents requested before the worker returns
+        R->>S: Read available demand on CPU
+    end
+    alt No unread extents or captured target invalidated
         R->>S: Read requested range with independent CPU decoder
         C->>W: Cancel owned preparation if active
     else Exact worker reply and confirmed retirement
         W-->>C: Exact reply and terminal exit
-        C->>S: Independently compare bytes and recheck capture identity
-        C-->>R: Make accepted range available to read-ahead
+        C->>S: Verify committed digests and recheck capture identity
+        C-->>R: Make the verified unread extents available
     end
 ```
 
@@ -600,6 +606,7 @@ after confirmed readiness. Ordinary mounted read acceleration still needs a
 matched CPU comparison with delivered bytes under real demand.
 [Prepared worker evidence](../evidence/windows-prepared-group-worker-2026-11-24.json) ·
 [Interleaved callback evidence](../evidence/windows-group-read-stream-binding-2026-11-25.json) ·
+[Sequential CPU prefix evidence](../evidence/windows-group-read-cpu-prefix-2026-11-25.json) ·
 [Live grouped evidence](../evidence/windows-amd-group-supervisor-comparison-2026-11-24.json) ·
 [Native LZ4 device evidence](../NATIVE_AMD_LZ4_READ.md)
 

@@ -132,15 +132,24 @@ The helper receives the private request after initialization and releases
 its resources on completion, cancellation, or an unused forecast. Capture
 and submission still yield when foreground activity changes.
 
-Once submitted, the request belongs to one open context, its read
-progress and the exact image checkpoint. An unrelated read or metadata
-query can complete while the worker owns the request. Verification and
-publication need an idle opportunity. A read on the predicted context, its
-retirement or a changed checkpoint supersedes unpublished work. A ready
-result can survive a different context's read until the predicted stream
-returns. Demand still checks the protected record bindings before using the
-result and reads independently on CPU when it arrives too early.
+Once submitted, the request belongs to one open context, its sequential
+read run and the exact image checkpoint. An unrelated read or metadata query
+can finish while the worker owns the request. The CPU also serves early
+target demand immediately. If that read advances along the same stream
+and leaves part of the grouped capture unread, the worker may finish
+within its original deadline. Verification checks every reply extent
+against its committed digest after confirmed child exit. Publication then
+discards the fully served prefix. A seek, full consumption, context
+retirement or changed checkpoint supersedes the capture. Demand checks
+the protected record bindings again before using a ready extent.
 [Interleaved callback evidence](evidence/windows-group-read-stream-binding-2026-11-25.json)
+
+An admitted physical Radeon trial exercised a four-extent prepared mixed
+capture. The first callback read one extent on CPU while the request was
+pending. After the child retired and all four replies were verified, a
+single callback used the three unread device extents. Independent CPU
+snapshot readback verified all file bytes. The fixture did no backing writes.
+[CPU prefix and remaining grouped extents](evidence/windows-group-read-cpu-prefix-2026-11-25.json)
 
 A qualified prepared worker can now capture a window covering several
 callbacks. The controller uses the bytes already read in consecutive grouped

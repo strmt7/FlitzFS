@@ -277,7 +277,7 @@ void group_read_timing() {
   std::cout<<"winfsp_group_timing startup_observed=1 ready_dispatch_observed=1 overdue_refused=1 ready_wait_excluded=1\n";
 }
 void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},bool mixed=false,bool expanded=false,
-    bool variable_widths=false) {
+    bool variable_widths=false,bool cpu_prefix=false) {
   constexpr auto extent=kNativeExtentBytes;
   constexpr PagedStoreLimits limits{kStoreMaxPhysicalBytes};
   constexpr StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
@@ -405,6 +405,10 @@ void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},bool 
       "Grouped WinFsp forecast did not capture its protected inputs");
   if(worker) {
     require(worker->start(*work,admitted,stop),"Live grouped AMD submission refused");
+    if(cpu_prefix) {
+      read(predicted,1);
+      require(!h.adapter->native_lz4_read_ahead_hits(),"CPU prefix used an unpublished device result");
+    }
     read_unrelated();
     worker->observe(*h.adapter,false);
     if(const auto wake=static_cast<HANDLE>(worker->wake_handle()))
@@ -426,18 +430,26 @@ void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},bool 
         <<" exact_child_retired=1\n";
   }else {
     auto ready=detail::NativeGroupReadyReads::decode_captured(*work->groups);
+    if(cpu_prefix) {
+      read(predicted,1);
+      require(!h.adapter->native_lz4_read_ahead_hits(),"CPU prefix unexpectedly used the unpublished result");
+    }
     read_unrelated();
     require(h.adapter->foreground_activity()!=epoch &&
         h.adapter->read_ahead_state(*work)==WinFspReadAheadState::current &&
         h.adapter->publish_read_ahead(*work,{},std::move(ready),stop),
-        "Unrelated callbacks superseded a verified read result");
+        cpu_prefix?"Sequential CPU prefix superseded the remaining grouped read":"Unrelated callbacks superseded a verified read result");
   }
   read_unrelated();
-  for(auto first=predicted;first<after;) {
-    const auto count=variable_widths?(first==predicted?3U:1U):width;
+  const auto first_ready=predicted+static_cast<unsigned>(cpu_prefix);
+  const auto ready_members=after-first_ready;
+  unsigned callbacks=0;
+  for(auto first=first_ready;first<after;) {
+    const auto count=(std::min)(after-first,variable_widths?(first==first_ready?3U:1U):width);
     read(first,count);
     first+=count;
-    require(h.adapter->native_lz4_read_ahead_hits()==first-predicted && h.image->write_bytes==writes,
+    ++callbacks;
+    require(h.adapter->native_lz4_read_ahead_hits()==first-first_ready && h.image->write_bytes==writes,
         "Grouped callback failed to hit or issued a write");
   }
 
@@ -446,10 +458,10 @@ void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},bool 
   auto superseded=h.adapter->capture_native_lz4_read_ahead(admitted,h.clock.now,next,stop);
   require(superseded && superseded->groups,"Missing second grouped forecast");
   auto late=detail::NativeGroupReadyReads::decode_captured(*superseded->groups);
-  read(after);
+  read(after,superseded->bytes/extent);
   require(late && h.adapter->read_ahead_state(*superseded)==WinFspReadAheadState::superseded &&
       !h.adapter->publish_read_ahead(*superseded,{},std::move(late),stop) &&
-      h.adapter->native_lz4_read_ahead_hits()==members,"Late grouped preparation survived foreground demand");
+      h.adapter->native_lz4_read_ahead_hits()==ready_members,"A fully served range accepted late grouped output");
   if(!worker) {
     const auto foreground=h.adapter->foreground_activity();
     admitted=h.clock.next();
@@ -460,6 +472,19 @@ void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},bool 
   }
   auto unrelated_current=unrelated;
   if(!worker) {
+    if(cpu_prefix) {
+      read(0);
+      read(width);
+      admitted=h.clock.next();
+      auto skipped=h.adapter->capture_native_lz4_read_ahead(admitted,h.clock.now,h.adapter->foreground_activity(),
+          stop,{},WinFspGroupReadWindow{4,0});
+      require(skipped && skipped->groups,"Seek fixture did not capture a grouped window");
+      auto skipped_ready=detail::NativeGroupReadyReads::decode_captured(*skipped->groups);
+      read(2*width+1,1);
+      require(skipped_ready && h.adapter->read_ahead_state(*skipped)==WinFspReadAheadState::superseded &&
+          !h.adapter->publish_read_ahead(*skipped,{},std::move(skipped_ready),stop),
+          "A nonsequential read kept an old grouped window");
+    }
     read(0);
     if(variable_widths)require(!h.adapter->native_lz4_read_ahead_pending(),"Seek kept the previous read forecast");
     read(width);
@@ -472,7 +497,7 @@ void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},bool 
     require(old_ready && h.adapter->read_ahead_state(*old)==WinFspReadAheadState::superseded &&
         !h.adapter->publish_read_ahead(*old,{},std::move(old_ready),stop),"A changed checkpoint accepted old read work");
     read(2*width);
-    require(h.adapter->native_lz4_read_ahead_hits()==members,"Changed checkpoint delivered a speculative result");
+    require(h.adapter->native_lz4_read_ahead_hits()==ready_members,"Changed checkpoint delivered a speculative result");
   }
   h.close(other_context);
   h.close(context);
@@ -480,9 +505,10 @@ void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},bool 
   require(snapshot.read("f47",0,file.size())==file &&
       snapshot.read("f46",0,unrelated_current.size())==unrelated_current,"Independent CPU read changed callback bytes");
   snapshot.verify_all();
-  std::cout<<"winfsp_ready_groups mixed="<<mixed<<" ready_hits="<<members<<" late_refused=1 cpu_readback=1 backing_writes=0"
+  std::cout<<"winfsp_ready_groups mixed="<<mixed<<" ready_hits="<<ready_members<<" late_refused=1 cpu_readback=1 backing_writes=0"
       <<" unrelated_callbacks_retained=1 checkpoint_change_refused="<<!worker
-      <<" expanded="<<expanded<<" callbacks="<<members/width<<" variable_widths="<<variable_widths<<'\n';
+      <<" expanded="<<expanded<<" callbacks="<<callbacks<<" variable_widths="<<variable_widths
+      <<" cpu_prefix="<<cpu_prefix<<'\n';
 }
 
 NativeLz4ReadWorkerProfile group_gpu_profile(wchar_t** arguments) {
@@ -1260,7 +1286,8 @@ void publication_faults(unsigned unit) {
 }
 int wmain(int argc,wchar_t** argv){try {
   const auto mode=argc>1?std::wstring_view(argv[1]):std::wstring_view{};
-  const bool variable_widths=mode==L"--hip-prepared-variable-mixed-group-reads";
+  const bool cpu_prefix=mode==L"--hip-prepared-partial-mixed-group-reads";
+  const bool variable_widths=cpu_prefix || mode==L"--hip-prepared-variable-mixed-group-reads";
   const bool expanded=variable_widths || mode==L"--hip-prepared-expanded-mixed-group-reads";
   const bool warm=expanded || mode==L"--hip-prepared-group-reads" || mode==L"--hip-prepared-mixed-group-reads";
   const bool device=warm || mode==L"--hip-group-reads" || mode==L"--hip-mixed-group-reads";
@@ -1278,7 +1305,7 @@ int wmain(int argc,wchar_t** argv){try {
       profile.minimum_lead_ms=100;
       profile.prepared_group_submit_lead_ms=20;
     }
-    group_read_ahead(std::move(profile),mixed,expanded,variable_widths);
+    group_read_ahead(std::move(profile),mixed,expanded,variable_widths,cpu_prefix);
     return 0;
   }
   if(argc!=2)throw std::runtime_error("Explicit callback/fault mode required");
@@ -1290,6 +1317,7 @@ int wmain(int argc,wchar_t** argv){try {
   else if(mode==L"--ready-group-reads")group_read_ahead();
   else if(mode==L"--ready-mixed-group-reads"){
     group_read_timing();group_read_ahead({},true);group_read_ahead({},true,true);group_read_ahead({},true,true,true);
+    group_read_ahead({},true,true,true,true);
   }
   else if(mode==L"--faults-4096")publication_faults(4096);
   else if(mode==L"--faults-65536")publication_faults(65536);

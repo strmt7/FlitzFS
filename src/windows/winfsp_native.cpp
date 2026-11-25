@@ -218,6 +218,7 @@ struct WinFspNativeWritable::Impl {
   struct ReadHistory {
     std::uint64_t end=0,completed_ms=0,idle_before_ms=0,group_idle_before_ms=0;
     std::uint32_t bytes=0,consecutive_group_bytes=0;
+    std::uint64_t sequential_since=0;
   };
   struct Slot {
     std::uintptr_t token=0;
@@ -680,12 +681,18 @@ struct WinFspNativeWritable::Impl {
         !stopped.load(std::memory_order_acquire) && !foreground.load(std::memory_order_acquire) &&
         (!deferred || (!deferred->publication_pending_locked() && !deferred->stats_locked().worker_busy));
   }
-  bool read_target_current(const WinFspReadAheadWork& work) const noexcept {
+  const Slot* current_read_target(const WinFspReadAheadWork& work) const noexcept {
     if(maintenance_cancelled || !work.token || !work.stream_revision || !work.checkpoint.second ||
-        work.checkpoint!=session.read_ahead_checkpoint())return false;
+        work.checkpoint!=session.read_ahead_checkpoint())return nullptr;
     const auto slot=std::ranges::find(slots,work.token,&Slot::token);
-    return slot!=slots.end() && !slot->provisional && !slot->awaiting_overwrite &&
-        slot->read_revision==work.stream_revision && slot->last_read.bytes;
+    if(slot==slots.end() || slot->provisional || slot->awaiting_overwrite || !slot->last_read.bytes)return nullptr;
+    if(slot->read_revision==work.stream_revision)return &*slot;
+    // A completed CPU read can pass the start of an in-flight group window.
+    // Keep the capture only while that stream still needs some of its bytes.
+    if(work.groups && slot->read_revision>work.stream_revision &&
+        slot->last_read.sequential_since<=work.stream_revision &&
+        work.groups->has_data_after(slot->last_read.end))return &*slot;
+    return nullptr;
   }
   std::vector<std::byte> read_with_demand_sample(const Slot& slot,std::uint64_t offset,std::uint32_t length,
       detail::NativeLz4ReadyReads* ready,detail::NativeGroupReadRoute& groups,bool seed_file_cost,
@@ -748,7 +755,8 @@ struct WinFspNativeWritable::Impl {
     const auto same_width_idle=previous.bytes==length?idle:0;
     // Keep samples from adjacent grouped reads even when the width changes.
     const auto group_idle=previous.consecutive_group_bytes && groups.tiled?idle:0;
-    slot.last_read={end,completed_ms,same_width_idle,group_idle,length,group_bytes};
+    const auto sequential_since=adjacent?previous.sequential_since:slot.read_revision;
+    slot.last_read={end,completed_ms,same_width_idle,group_idle,length,group_bytes,sequential_since};
     if(has_prepared && prepared.pending() &&
         (end<=prepared.target.offset || end-prepared.target.offset<prepared.target.bytes)) {
       prepared_read=std::move(prepared);
@@ -1817,7 +1825,7 @@ WinFspReadAheadState WinFspNativeWritable::read_ahead_state(const WinFspReadAhea
   try {
     std::unique_lock guard(impl_->control,std::try_to_lock);
     if(!guard || foreground_pending())return State::busy;
-    if(!impl_->read_target_current(work))return State::superseded;
+    if(!impl_->current_read_target(work))return State::superseded;
     return impl_->may_prepare_read()?State::current:State::busy;
   }catch(...) {return State::superseded;}
 }
@@ -1828,9 +1836,16 @@ bool WinFspNativeWritable::publish_read_ahead(WinFspReadAheadWork& work,
   try {
     if(work.owner!=this || (groups?lz4 || !groups->pending():!lz4 || !lz4->pending()))return false;
     std::unique_lock guard(impl_->control,std::try_to_lock);
-    if(!guard || !impl_->may_prepare_read() || !impl_->read_target_current(work) ||
+    if(!guard || !impl_->may_prepare_read() ||
         stop_requested.load(std::memory_order_acquire) ||
         (impl_->native_lz4_reads && impl_->native_lz4_reads->pending()))return false;
+    const auto* slot=impl_->current_read_target(work);
+    if(!slot)return false;
+    if(groups && slot->read_revision!=work.stream_revision) {
+      groups->discard_before(slot->last_read.end);
+      if(!groups->pending())return false;
+      if(impl_->read_ahead && impl_->read_ahead->token==work.token)impl_->read_ahead.reset();
+    }
     if(lz4)lz4->keep_metadata(std::move(work.metadata));
     impl_->prepared_read={{work.token,work.offset,work.bytes},std::move(lz4),std::move(groups),work.checkpoint};
     return true;

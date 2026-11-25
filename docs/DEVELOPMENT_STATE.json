@@ -137,6 +137,12 @@
     "mounted_packed_attachment": "Bounded signed guest recovery and continued writes verified, with a 1,024-file packed recovery fixture. Sustained populated settlement and current-client qualification remain open.",
     "automatic_foreground_amd": "Identical captured writes can be replayed on CPU and Radeon. Finite prepared bursts and shape-specific calibration are implemented. The Radeon delivered four prepared grouped extents across two SDK reads. The measured 1 MiB write shape prefers CPU, and useful automatic mounted AMD qualification remains open.",
     "latest_prepared_group_read_evidence": "docs/evidence/windows-expanded-group-read-and-mounted-replay-2026-11-25.json",
+    "sequential_group_read_retention": {
+      "evidence": "docs/evidence/windows-group-read-cpu-prefix-2026-11-25.json",
+      "verified_callback_model": {"captured_extents": 4, "served_on_cpu_first": 1, "ready_extents_delivered": 3},
+      "physical_radeon_sdk_callback": {"verified_device_extents": 4, "consumed_device_extents": 3, "independent_cpu_exact": true, "worker_retired": true},
+      "runtime_tree": "2977732cc73a2d3bd31a90629830f374919742ea"
+    },
     "variable_group_read_forecast": {
       "evidence": "docs/evidence/windows-amd-variable-group-demand-2026-11-25.json",
       "request_widths_extents": [1, 3, 2],

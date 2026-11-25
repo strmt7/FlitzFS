@@ -7,6 +7,13 @@ bool NativeGroupReadBatch::mixed_methods() const noexcept {
   return std::ranges::any_of(members_,[](const auto& member){return member.method!=NativeGroupMethod::packed_xor;});
 }
 
+bool NativeGroupReadBatch::has_data_after(std::uint64_t offset) const noexcept {
+  if(members_.empty())return false;
+  const auto& last=members_.back();
+  const auto block=offset/kNativeExtentBytes;
+  return last.block>block || (last.block==block && offset%kNativeExtentBytes<last.maximum_payload);
+}
+
 std::size_t NativeGroupReadyReads::descriptor_bytes() noexcept {
   return sizeof(Member)+sizeof(std::vector<std::byte>)+
       sizeof(NativeGroupReadBatch::Member)+sizeof(NativeGroupReadBatch::Base);
@@ -18,6 +25,11 @@ NativeGroupReadyReads::Member* NativeGroupReadyReads::find(std::uint64_t inode,s
   const auto found=std::ranges::lower_bound(members_,block,{},&Member::block);
   return found!=members_.end() && found->block==block && found->record.object==object &&
       !found->bytes.empty()?&*found:nullptr;
+}
+
+void NativeGroupReadyReads::discard_before(std::uint64_t offset) noexcept {
+  const auto keep=std::ranges::lower_bound(members_,offset/kNativeExtentBytes,{},&Member::block);
+  members_.erase(members_.begin(),keep);
 }
 
 std::unique_ptr<NativeGroupReadyReads> NativeGroupReadyReads::verify(NativeGroupReadBatch& batch,
