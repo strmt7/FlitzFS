@@ -8,7 +8,7 @@ The current integration design ties durable publication, bounded AMD work,
 sparse advice and measured settlement to the same Windows operation witness
 and complete occupancy record.
 [Reconciled design](../RELEASE_RECONCILIATION_2026-11-25.md#current-reconciliation-and-prioritized-design) ·
-[Implementation order](../IMPLEMENTATION_PLAN.md#execution-after-retained-amd-admission)
+[Implementation order](../IMPLEMENTATION_PLAN.md#execution-after-the-small-file-layout-comparison)
 
 ## 1. Separate volume ownership from presentation and acceleration
 
@@ -376,6 +376,49 @@ required tables/model with versioned, mirrored decode dependencies. Native
 codecs and the recovery package decode on CPU independently of learning, GPU,
 runtime installation and online access. Required model bytes are accounted for
 even when amortized across many members.
+
+### Dense protected short-file records
+
+The small-file comparison found 112 KiB of size with every stored object
+payload length set to zero on the current compact 176 KiB arm. A useful
+next candidate reduces the number of protected records. Inline files on the
+current layout already avoid separate data records. The next comparison
+should preserve that property and price alternate metadata layouts before
+adding another general-purpose codec.
+[Measured footprint](../evidence/windows-small-file-layout-frontier-2026-11-25.json)
+
+Use the native inode identity and directory index as the stable logical
+interface. Compare the current per-inode object with a protected page that
+holds several complete inode rows and their inline bytes. Price an inode
+range map and explicit slot locators with the cost of building, caching
+and publishing them. A point lookup must verify the selected page,
+slot, inode identity and current generation before range I/O. Track
+the decoded bytes for a single tiny file and the writes needed to change
+one row in a warm pack. Prefer a bounded restart unit and immutable copies
+when the pack enters the cold representation.
+
+```mermaid
+flowchart LR
+    Name["Checked directory lookup"] --> Id["Stable inode ID"]
+    Id --> Locator["Map in selected generation"]
+    Locator --> Row["Verify page and slot"]
+    Row --> Read["CPU range read"]
+    Eligible["Eligible short-file rows"] --> Price["Price complete protected layout"]
+    Price --> Private["Write disjoint mirrored candidate"]
+    Private --> Verify["Verify namespace, ownership and contents"]
+    Verify --> Publish["Publish checked selector"]
+    Publish --> Locator
+```
+
+Run pricing and equivalence on a private image with existing record/index
+accounting. Preserve attributes, Windows names, descriptors, object
+ownership and exact contents. Carry every locator, index page, generation
+pin and record copy into the footprint. Require a checked staged reopen
+after private writes and barriers. Test a lost copy, interrupted selector
+publication, held-open files and a tiny file growing into external extents.
+Keep the old authority readable during migration and reclaim it only after
+its references retire. Measure persistent providers under their own
+declared allocation and failure contracts.
 
 ## 5. Share measured resource and rewrite budgets
 

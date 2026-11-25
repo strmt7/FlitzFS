@@ -1,198 +1,154 @@
 # FlitzFS release reconciliation · 25 November 2026
 
-FlitzFS has writable WinFsp integration, protected indexed storage, automatic
-maintenance and independent CPU recovery. This review follows the Windows
-helper, selected image and CPU decoder, private allocation stages, AMD
-worker and recovery boundaries. Each result is tied to its own artifact
-and qualification scope.
-[Source, tests and primary-source captures](evidence/windows-foreground-write-layout-2026-11-25.json) ·
+## Current reconciliation and prioritized design
+
+**Development qualification.** FlitzFS has a writable Windows
+filesystem and an independent CPU reader. Useful automatic AMD service,
+a reproducible settled-size advantage and persistent-media durability
+remain release gates. The owner decides when to release.
+[Gate ledger](RELEASE_EXECUTION_PLAN.md#current-gate-ledger) ·
 [Current architecture](architecture/CURRENT.md) ·
 [Target architecture](architecture/TARGET.md)
 
-## Current reconciliation and prioritized design
+The reviewed source is `c0ac21c01b7f`, with 1,143 tracked paths, 222
+under `src` and `include` and 153 under `tests`. The five commits since
+the previous review at `7d234fc699e5` changed 45 paths, including 27
+source or test paths. The live-source review follows attach, storage
+authority, compression, accelerator work and the installed client.
+The footprint profile adds one diagnostic mode to the frozen source.
+[Source identities, measurements and research captures](evidence/windows-small-file-layout-frontier-2026-11-25.json) ·
+[Prior retained-route review](https://github.com/strmt7/FlitzFS/blob/aae41c7/docs/RELEASE_RECONCILIATION_2026-11-25.md#current-reconciliation-and-prioritized-design)
 
-The review starts from `7d234fc699e5` and the retained-route source receipt.
-The parent has 1,138 tracked paths, including 222 in `src` and `include` and
-153 in `tests`. Changes since the assembled-prefix review cover checked
-sibling reads on writable reopen and exact-adapter pressure admission
-during discovery and after binding. Earlier results retain their own
-artifact scope. All twelve release gates remain open.
-[Retained-route evidence](evidence/windows-retained-amd-admission-2026-11-25.json) ·
-[Current architecture](architecture/CURRENT.md) · [Target architecture](architecture/TARGET.md) ·
-[Gate ledger](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
-
-The grouped read path now preserves a partially checked reply across a
-foreground interruption. Checked bytes remain private until the full reply
-passes and the destination stream and checkpoint are current. The next
-ordinary client trace needs to distinguish a retired worker, a checked
-reply and useful delivery. [Scoped validation](evidence/windows-resumable-group-replies-2026-11-25.json)
-
-The writer now reuses exact prepared records when it compares protected
-group layouts. Four alternating trials on the 24-file CPython revision
-cohort recorded 336.3 ms median group-maintenance work before and
-313.4 ms after. Both builds settled at 696,320 bytes after grouping and
-cold encoding. Independent cold encoding occupied 1,474,560 bytes on
-the same backing geometry. The short-file cohort remained at 524,288
-bytes and showed no measured work reduction. Both cohorts passed
-independent CPU readback and retained-snapshot checks. These are scoped
-native profiles on the Windows host.
-[Paired protected-size evidence](evidence/windows-settled-prepared-records-2026-11-25.json)
-
-The decoded reopen audit can now reuse a full inode replica run checked
-during the namespace walk. The 16,384-file control used 906 fewer
-provider calls and read 2,424,177 fewer bytes before the first flush.
-The CPython control kept its provider count after requiring complete
-runs. The fresh post-flush mirror pass and independent CPU readback
-still cover each image. The next scale gate remains a supported
-incremental authority decision. [Reopen audit evidence](evidence/windows-whole-run-inode-audit-2026-11-25.json)
-
-| Area | What exists and has evidence | Release work |
+| Area | Current evidence | Remaining decision |
 | --- | --- | --- |
-| Windows and setup | Owned writable WinFsp memory and volume-file backings. Signed guest clients exercised cached and mapped writes, flush, interruption and reopen. Private packages can be staged. | Bind the exact signed driver, helper and workers to an ordinary Explorer and Win32 matrix. Qualify dependency setup, relocation, upgrade, rollback and teardown. |
-| Namespace and attach | Paged inode, name and extent indexes are live. Checked sibling reads cut provider calls from 40,496 to 24,825 in the 16,384-file reopen control. Both replica checks and both barriers remain. | Writable attach still performs inventory work. Shadow incremental authority against full verification and measure held-out scale. |
-| AMD and CPU recovery | A ready explicit write offer and supervised grouped read workers exist. Prior Radeon SDK runs consumed checked device bytes. Installed discovery and retained work now require recent evidence for the pinned adapter. | Win through ordinary clients after charging preparation, copy, compute and verification. Prove CPU continuity, bounded retirement and repeatable gains. The detached write trial remains private. |
-| Strong compression | Protected shared bases, independent restart units, shifted similarity and exact settled-size comparisons exist. Assembled prefixes saved 88 KiB on structured revisions with no settled-size change on the matched CPython cohort. | Compare shortlist recall, complete protected size, access and rewrite cost on unseen families against strong independent CPU and current group controls. |
-| Allocation and autonomy | The controller groups, seals, scrubs and reclaims according to workload and resource observations. Bounded mounted churn released bytes. Sparse coherence and write credit persist in maintenance state. | Attribute the first bottleneck on one mixed mounted trace. Verify settlement under pins, concurrent I/O, pressure and restart. Measure learning value and per-medium write cost. |
-| Recovery and evolution | The selected checkpoint, checked dependencies and independent CPU paths support recovery. Modeled cuts and signed guest interruptions cover specific cases. This round keeps the wire format. | Verify acknowledged operations on each supported persistent backing. Freeze historical artifacts and qualify compatibility, mixed formats, survivor repair and offline rescue. |
-| Benchmarks | DiskSpd, an independent Windows operation witness, AITDCC 2026 and named trees have distinct roles. Native samples and guest correctness describe their own boundaries. | Run equivalent real-host plain NTFS, native-compressed NTFS and FlitzFS CPU/AMD arms. Report complete size, latency distributions, useful AMD output, interference and independent readback. |
+| Windows ownership | An owned user-mode helper and WinFsp bridge supply writable mounting and the Explorer path. Signed guest runs cover populated Win32 I/O, flushes and fresh writable reopen. | Qualify installation, interaction, stop and rollback on the exact supported Windows client and artifact. |
+| Indexed storage and scale | Checked name, inode and extent indexes are live. The whole-run audit lowered provider read calls from 24,825 to 23,919 and pre-flush read bytes from 39,081,516 to 36,657,339 in the 16,384-file control. The CPython control retained its counts. | Compare a generation-bound authority summary with the independent full audit, then measure the remaining startup cost and settled churn. |
+| AMD and CPU continuity | Controlled Radeon writes and SDK grouped reads consumed verified device bytes in earlier trials. Retained routes check exact-adapter pressure. The grouped verifier can resume checked members. Prepared write timing now separates readiness from frame construction and verification. | Establish a winning ordinary mounted shape for each device role. Check accepted bytes, retirement, immediate CPU selection and resource cost. |
+| Compression and allocation | Inline data, compact memory checkpoints, protected shared bases and independent restart units are available. A matched CPython revision comparison reused verified records with lower maintenance work and identical 680 KiB settled allocation for the grouped-then-cold arm. | Reduce protected record overhead on tiny files. Compare current and new representations on unseen related families and mixed content. Reconcile provider byte release under repeated mounted churn. |
+| Autonomous maintenance | Sparse coherence and bounded policy state survive restart. A signed populated replay released provider allocation while attached. | Measure eligibility, grants, observed wakes, deferrals, useful savings and foreground interference through a full maintenance cycle. |
+| Durability and compatibility | Mirrored selected roots and dependency checks support CPU recovery. Modeled and signed guest interruptions cover specific writes, rename, EOF and reclamation. | Bind acknowledged operations to each backing failure contract. Qualify survivor repair, historical readers, old-writer refusal and power-cut recovery in disposable fixtures. |
+| Comparison and delivery | DiskSpd, the populated Win32 client, AITDCC 2026 and held-out named trees cover different measurement needs. | Run verified plain NTFS, native-compressed NTFS and FlitzFS CPU/AMD arms on real hardware. Freeze the signed package and complete the supported client and media matrix before owner review. |
 
-[Checked reopen](evidence/windows-indexed-namespace-read-window-2026-11-25.json) ·
-[Protected compression](evidence/windows-assembled-prefix-2026-11-25.json) ·
-[Prepared writes](evidence/windows-prepared-foreground-write-2026-11-25.json) ·
-[Mounted operations](evidence/windows-populated-client-trace-2026-11-24.json) ·
-[Benchmark protocol](BENCHMARK_PROTOCOL.md)
+[Whole-run audit](evidence/windows-whole-run-inode-audit-2026-11-25.json) ·
+[Prepared write phases](evidence/windows-source-free-write-trials-2026-11-25.json) ·
+[Verified record reuse](evidence/windows-settled-prepared-records-2026-11-25.json) ·
+[Populated Windows trace](evidence/windows-populated-client-trace-2026-11-24.json)
+
+### Where space goes on small files
+
+The same 192 held-out CPython files contain 32,922 logical bytes. Each arm
+uses the same 4 KiB in-memory failure contract, protection and content.
+The end figure includes the packed image and selector. The current RAM
+factory uses the combined inline and compact configuration.
+
+| Inode data | Checkpoints | Live image objects | Settled image and selector | With all stored object payload lengths set to zero |
+| --- | --- | ---: | ---: | ---: |
+| Extents | Legacy | 393 | 512 KiB | 432 KiB |
+| Inline | Legacy | 199 | 416 KiB | 352 KiB |
+| Extents | Compact | 393 | 272 KiB | 192 KiB |
+| Inline | Compact | 199 | 176 KiB | 112 KiB |
+
+Independent CPU checks verified contents, short ranges and retained snapshots.
+Independent recompression at Zstandard levels 3 and 9, grouping and the
+cold-copy orders produced the same settled size within each layout. The
+176 KiB arm still used 102,044 image bytes for checkpoint, record, index
+and padding overhead. Its mirrored inode payload accounting includes
+inline file data. The zero-payload calculation is a pricing counterfactual
+that retains all records and cannot represent a readable volume.
+
+The combined configuration occupies 65.6% less than the legacy arm.
+No background grouping ran on its inline files. This directs the next
+small-file slice toward fewer protected records and denser metadata pages.
+The Windows file-backing factory currently declares a 64 KiB failure unit.
+Applying the 4 KiB result to a physical provider requires a separate
+flush, allocation and failure-unit qualification.
+[Footprint receipt](evidence/windows-small-file-layout-frontier-2026-11-25.json) ·
+[Indexed layout and recovery](INDEXED_NATIVE_VOLUME.md)
+
+The current host Radeon passed one short pressure observation. By the time
+the new binaries were ready, three observations saw about 99% existing engine
+load and deferred device execution. No new GPU throughput figure follows
+from those observations.
+[Device observations](evidence/windows-small-file-layout-frontier-2026-11-25.json)
 
 ### Research conclusions
 
-- **Prepare on measured demand.** AMD documents reusable HIP graph instances.
-  Use prepared streams as the control. Trial graph replay for repeated shapes
-  if launch timing is material after activation and transfer. AMD documents
-  Windows component support separately from ROCm Core. Bind the exact supported
-  package, runtime, module and adapter. Leave power policy with Windows.
-  [HIP graphs](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/hipgraph.html) ·
-  [Windows support](https://rocm.docs.amd.com/projects/install-on-windows/en/latest/conceptual/component-support.html)
-- **Trace existing operation boundaries first.** Reuse the Win32 witness and
-  worker phase timestamps. If Windows scheduling or ordering remains unclear,
-  use finite WPR circular memory buffers sized to available headroom. Detect
-  overwritten events before inferring phase timing. [Microsoft WPR logging modes](https://learn.microsoft.com/en-us/windows-hardware/test/wpt/logging-mode)
-- **Measure what a generation already proves.** WOLVES studies write-once
-  metadata on persistent memory. Price FlitzFS root, extent and dependency
-  verification independently. Compare incremental decisions with full
-  verification while retaining the current barrier order. Its published
-  persistent-memory results apply to its platform. [OSDI 2025 WOLVES](https://www.usenix.org/conference/osdi25/presentation/pan)
-- **Rank close chunks within the grant.** RubikFS uses similarity and hotness
-  sorting in read-only images. Test ranking with FlitzFS's sparse postings
-  before exact encoding. Bind each proposal to the extent revision and
-  charge dependency and range-access costs. [FAST 2026 RubikFS](https://www.usenix.org/conference/fast26/presentation/huang)
-- **Match the comparator to the product.** SPECstorage covers categories
-  including software builds, EDA and video. Use them to check coverage.
-  Use DiskSpd and the Win32 witness for local comparisons. SPEC results
-  require its run and reporting rules. Keep named trees and AITDCC as
-  separate compression cohorts. [SPECstorage workloads](https://www.spec.org/storage2020/press/release/) ·
-  [Microsoft DiskSpd](https://github.com/microsoft/diskspd/releases/tag/v2.3)
+- RubikFS at FAST ’26 clusters similar chunks and separates access patterns
+  in immutable images. A November 2026 SkyFS preprint uses bounded reorder
+  windows and sampled layouts with per-window logical mappings. These
+  support trying a bounded, rearranged cold representation and charging
+  its mappings, compression and read amplification. FlitzFS needs its
+  own writable, protected comparison and should retain a cheap independent
+  restart path for individual reads. [RubikFS](https://www.usenix.org/conference/fast26/presentation/huang) ·
+  [SkyFS preprint](https://arxiv.org/abs/2611.22847)
+- EROFS documents inline data and packed fragments. Btrfs documents how
+  inline data can eliminate a separate extent. FlitzFS already gets that
+  first benefit. Price packed, versioned inode rows or short tails to
+  reduce the remaining records, with bounded point reads and a measured
+  cost to rewrite live metadata. [EROFS on-disk design](https://erofs.docs.kernel.org/en/latest/ondisk/core_ondisk.html) ·
+  [Btrfs inline files](https://btrfs.readthedocs.io/en/latest/Inline-files.html)
+- AMD’s ROCm Core SDK 10.2.0 release notes list HIP 7.17.0 and disabled
+  priority streams for that component. HIP documents asynchronous
+  transfer, streams and graph reuse. Test an idle initialized worker
+  with real demand and finite dispatch, and use host scheduling and
+  actual engine load to limit duty. Bind the Windows SDK, observed
+  installed ABI, driver and device separately. A local FlitzZip review
+  confirmed useful precedents for manifest-based package discovery and
+  separate timing of finite device batches. [AMD release notes](https://rocm.docs.amd.com/en/docs-10.2.0/about/release-notes.html) ·
+  [HIP asynchronous execution](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/asynchronous.html) ·
+  [Windows device support](https://rocm.docs.amd.com/projects/install-on-windows/en/latest/reference/system-requirements.html)
+- DiskSpd 2.3 measures Windows I/O. The published AITDCC 2026 catalog
+  fixes the contents and split of 16 files, totaling 38,289,319 bytes.
+  The native NTFS arm uses Windows file compression and verifies its
+  compression state. A named-tree workload and the existing Win32
+  witness cover namespace and flush behavior. [DiskSpd](https://github.com/microsoft/diskspd/releases/tag/v2.3) ·
+  [AITDCC dataset](https://aitdcc.github.io/dataset.html) ·
+  [Microsoft file compression contract](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_compression) ·
+  [Microsoft protocol specification](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/62de177d-ed90-4884-ae04-9de52f1180f1)
 
 ### Design contracts
 
-- The CPU-readable selected checkpoint and its protected objects own durable
-  truth. Background work revalidates the selected generation, source revisions
-  and retained readers before publication. Coherence postings, learned offers
-  and performance observations may be rebuilt. Independent rescue requires
-  only the format and a CPU reader.
-- Separate deployment support, preparation and useful device work. A
-  source-free prepared child is volume-owned and bounded by measured arrival
-  lead, current memory, engine pressure and confirmed retirement. CPU can serve
-  a prefix immediately. A write uses prepared results only if the deadline,
-  protected layout and independent readback agree. CPU fallback may choose a
-  different encoder. All published representations require CPU decoding.
-- Keep grouping size and read granularity independent. Logical families can
-  contain thousands of entries, while smaller independently decodable units
-  share checked immutable bases or dictionaries. Persist sparse versioned
-  postings and bounded work cursors in the internal advice area. Charge
-  heavily populated buckets incrementally. Capture learning and yield without
-  making recovery depend on the model or an online service.
-- Choose the smallest feasible complete settled layout. Charge all copies,
-  dependencies, metadata and allocation slack. Also measure temporary space,
-  access latency, range amplification and bytes rewritten. Admit costly
-  background work only when the expected gain and current medium and resource
-  observations support it. Keep foreground ingestion independent.
-- Make healthy attach proportional to the evidence required at admission.
-  Keep full CPU verification for historical formats, ambiguous generations
-  and recovery. Preserve a committed generation's acknowledgement order
-  during repair, including if compatibility or resource pressure interrupts
-  a migration.
+1. Keep format authority in checked selected roots and immutable referenced
+   objects. The CPU reference opens every supported encoding independently.
+   A candidate layout stays private until it passes size, access and
+   generation checks and succeeds at the existing publication barriers.
+2. Learn which neighbors and representations pay off from bounded sparse
+   postings and local measurements. An optional ranker can prioritize a
+   shortlist. Exact protected bytes and independent readback decide
+   publication. Required bases or model state are immutable protected
+   dependencies. Rebuildable observations and models occupy advisory space.
+3. Draw maintenance grants from current CPU, memory, GPU and backing
+   headroom. Yield between bounded quanta before foreground deadlines,
+   keep a restart cursor and spend rewrite credit against measured savings.
+   Measure work and lifecycle outcomes in the same ordinary client trace.
+4. Keep acceleration finite and withdrawable. Reuse an initialized worker
+   for predicted useful work, with no idle kernels. On failure choose the
+   CPU path immediately and retire the worker independently. Re-admit
+   only on verified quiescence and changed eligibility evidence.
 
 ### Ordered implementation and exits
 
-1. **One ordinary client trace · E02, E03, E08.** Reuse the Win32 client and
-   mount witness with the current helper and signed test environment. Pin the
-   artifacts, operation order and payload hashes. Exercise create, cached and
-   mapped writes, explicit flush, rename, delete, held readers, short and long
-   reads, detach and independent CPU reopen. Join callback, provider and
-   worker observations on the operation and selected generation. Record
-   submitted and consumed bytes, acknowledgement, allocation barriers,
-   retained ranges and worker retirement. Fix the first production bottleneck
-   that the trace identifies. Exit when repeated runs preserve every
-   acknowledged operation and agree with the independent reader.
-   [Existing trace](evidence/windows-populated-client-trace-2026-11-24.json) ·
-   [Allocation and reclamation](RELEASE_EXECUTION_PLAN.md#3-allocation-reclamation-and-acknowledged-data)
-2. **Earn automatic ready AMD admission · E03, E06, E07.** Start with the
-   sequential grouped-read suffix already shown in Radeon SDK tests. Alternate
-   CPU, cold AMD and ready AMD for the identical input and arrival trace.
-   Timestamp activation, transfer, compute, CPU verification, delivery,
-   cancellation and retirement. For writes, promote the prepared exact-layout
-   offer through the native storage owner only after it improves durable
-   service for an observed shape. Measure compression, decompression and
-   collective search independently. A pressure or worker failure returns
-   service to CPU and requires a relevant new observation and confirmed
-   retirement before more device work. Exit with repeatable, useful delivery
-   or durable writes within declared shapes and an end-to-end CPU fallback
-   trace. [AMD implementation](IMPLEMENTATION_PLAN.md#6-e03--useful-automatic-amd-execution-and-cpu-continuity)
-3. **Measure the compression frontier · E04–E07.** Freeze a strong independent
-   CPU control, the best existing group control and a small exact candidate
-   oracle at equal protection. Reuse aligned and shifted postings as a
-   shortlist. Compare assembled prefixes, bounded deltas and local ordering
-   at ingestion, after a declared idle budget and after settlement. Charge
-   all placement and dependency bytes, and measure access and physical
-   rewrites. Split by whole families and hold out complete families. First
-   measure missed profitable candidates and wasted encodes. Train a small
-   local ranker only where it improves on deterministic scoring. Loss of
-   learning state may change maintenance choices. Exit with verified
-   held-out space gains, manageable range reads and justified write costs
-   before selecting another durable method.
-   [Coherence and codec design](architecture/TARGET.md#4-optimize-complete-size-with-bounded-random-access)
-4. **Reduce startup and churn at scale · E01, E02, E07.** Compare one
-   incremental authority decision at a time against the full audit. Inject
-   interrupted writes, stale generations and single-survivor faults in the
-   model before trying supported backing-specific failures. Measure attach,
-   enumeration, mutation, resident memory and reclaim on wide and deep
-   directory trees, short files, sparse large files and churn. Fit separate
-   file-count and touched-page curves. Validate a reserved largest point
-   before extrapolating to tens of millions of entries. Measure near-full
-   allocation plateau with retained readers before choosing larger relocation
-   or allocator work. [Scale implementation](IMPLEMENTATION_PLAN.md#4-e01--scalable-native-inode-name-and-extent-storage)
-5. **Close Windows, format and durability · E08–E11.** Declare signed Windows,
-   driver and provider tuples, installer and decoder capabilities. Exercise
-   client and setup flows. Freeze historical images, readers and writers
-   before changing required features. Stage verified objects, retain current
-   authority during interrupted upgrade and test older-writer refusal. Run
-   per-backing durability and wear qualification in disposable environments
-   within applicable authorization. Exit with offline rescue, clean
-   teardown, a declared failure envelope and independent reconciliation of
-   every acknowledged operation. [Compatibility and recovery](RELEASE_EXECUTION_PLAN.md#6-windows-experience-compatibility-and-installation)
-6. **Freeze, compare and stabilize · E12–E13.** Rotate the same real-host file
-   workloads across plain NTFS, NTFS using its native compression attribute,
-   FlitzFS CPU and FlitzFS AMD. Verify compression state per handle. Preserve
-   operation order, data and backing conditions. Record latency distributions,
-   complete occupied bytes and maintenance work, including poor-compressibility
-   cohorts. Complete the exact-candidate soak and re-run affected gates
-   after material changes. Prepare the release decision packet for the owner.
-   [Benchmark and stabilization gates](RELEASE_EXECUTION_PLAN.md#8-benchmarks-soak-and-the-release-decision)
+Start with one ordinary Windows witness, one protected-size experiment and
+a shadow attach comparison. Each changes behavior after its result identifies
+the first material cost. The detailed plan specifies sources, steps and
+failure checks for these decisions.
+[Implementation sequence](IMPLEMENTATION_PLAN.md#execution-after-the-small-file-layout-comparison) ·
+[Storage design](architecture/TARGET.md#dense-protected-short-file-records) ·
+[Package acceptance contracts](IMPLEMENTATION_PLAN.md#4-e01--scalable-native-inode-name-and-extent-storage)
 
-The estimate remains **59–127 person-weeks**, with low confidence. Reprice
-after ordinary mounted AMD and settlement results, the first held-out
-protected-size frontier and the first supported persistent-backing failure
-campaign. This round changes admission and contributes no new benchmark or
-physical recovery result. [Work and estimate ledger](RELEASE_EXECUTION_PLAN.md#remaining-engineering-effort)
+| Order | Integration slice | Exit |
+| --- | --- | --- |
+| 1 | Extend the existing 6,293-operation Win32 trace with a per-stage work and ownership ledger. Drive a fixed live set through settled churn and reopen. | Reconciled client acknowledgements, per-phase I/O and allocator state, independent CPU contents and diagnosed residual debt. |
+| 2 | Use that client for automatic AMD read, write and collective comparisons. Run the short-file layout and held-out revision experiments alongside CPU attach shadowing. | A reproducible full-path win for each enabled route, a smaller complete protected representation on independent cohorts where it wins, and zero authority differences against a full audit. |
+| 3 | Promote one winning representation through the existing CPU-first format registry. Add bounded local selection, retirement and compatibility migrations. | Recovery, read range, age, version, migration and occupied-byte checks pass at each publication boundary. |
+| 4 | Qualify signed Windows setup, Explorer behavior, supported media, persistent interruption recovery and offline rescue. | Every advertised platform/backing contract has matching evidence and every acknowledged operation inside the fault model reconciles. |
+| 5 | Freeze the package for matched live hardware tests and soak. | The twelve gates have reproducible results, with a readiness packet for the owner. |
+
+The current estimate remains **59–127 person-weeks**, with low confidence.
+The footprint result changes the order of compression work. Reprice when
+ordinary device delivery, a held-out representation and a physical recovery
+campaign give the first independent results.
+[Work and effort ledger](RELEASE_EXECUTION_PLAN.md#remaining-engineering-effort)
 
 ## Reconciliation after protected assembled-prefix selection
 

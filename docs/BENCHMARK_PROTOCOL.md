@@ -303,6 +303,16 @@ checked live locked pages. The settled best arm measured 573,440 and
 DiskSpd and native compressed NTFS comparisons require their own mounted
 and matched evidence. [Matched public-input fixture and controls](evidence/windows-compact-paged-roots-2026-11-25.json)
 
+For the 192-file short-content cohort, use `--profile-public-reencode`,
+`--profile-public-inline`, `--profile-public-compact-checkpoints` and
+`--profile-public-compact-inline` with the same frozen input. The four
+arms price removing separate data records and shortening both
+checkpoint layers independently. The combined current memory layout
+settled at 176 KiB compared with 512 KiB for the legacy configuration.
+The count is image plus selector. Keep advisory space, staging capacity
+and provider allocation in separate columns when moving to a mounted
+workload. [Four-arm footprint and CPU checks](evidence/windows-small-file-layout-frontier-2026-11-25.json)
+
 ### Sealed image pilot
 
 The [sealed format report](SEALED_INDEXED_IMAGE.md#verification-on-windows)

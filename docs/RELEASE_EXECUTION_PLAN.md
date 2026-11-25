@@ -1,13 +1,12 @@
 # FlitzFS stable release execution plan
 
-Current write trials use the active image's protected layout and separate
-ready-worker measurements from cold startup. Settled maintenance now
-compares prefix encoding against an assembled protected base, using the
-existing CPU decoder and allocation rule. The next sequence connects
-these changes to ordinary Windows operations, held-out compression,
-scalable writable attach and backing-specific recovery.
-[Reconciled evidence](evidence/windows-assembled-prefix-2026-11-25.json) ·
-[Implementation sequence](RELEASE_RECONCILIATION_2026-11-25.md#implementation-sequence-and-exit-evidence)
+The next sequence connects ordinary Windows settlement and useful
+automatic AMD delivery to the same client trace. The compact small-file
+baseline isolates structural overhead and supports pricing denser
+protected records. Writable attach and persistent-media recovery retain
+independent evidence requirements.
+[Reconciled evidence](evidence/windows-small-file-layout-frontier-2026-11-25.json) ·
+[Implementation sequence](IMPLEMENTATION_PLAN.md#execution-after-the-small-file-layout-comparison)
 
 Use the [repository overview](REPOSITORY_OVERVIEW.md) for the product snapshot,
 the [current architecture](architecture/CURRENT.md) and [target architecture](architecture/TARGET.md)
@@ -472,7 +471,7 @@ separately. [Persistence model](PERSISTENCE_MODEL.md)
 | 1 | Shared E01/E02/E03/E08/E11/E12 integration trace | Reuse the populated Win32 witness. Attribute charged work, advisory cursor, continuation refusals and actual wakes through quiescence. | Common comparison and fault harness |
 | 2 | E01/E02/E11 checked attach and settled ownership | Full-audit differential with attach phase counters, preserved flush witness and allocator settlement under churn. | Generation-bound prototype and held-out scale curve |
 | 2 | E03/E08 ordinary AMD acquisition and CPU continuity | Pair the later-range candidate with the CPU witness when fresh headroom admits it. Compare initialized leases with cold startup and trace consumed, verified bytes on a winning ordinary I/O shape. | Measured offer and route outcomes by role |
-| 2 | E01/E04/E05/E06 protected-size frontier | Use the reconciled byte ledger to compare fewer protected short-file records in a named tree. Use an exhaustive bounded oracle to measure missed savings on revision families. | A candidate with demonstrable protected savings and usable range reads |
+| 2 | E01/E04/E05/E06 protected-size frontier | Compare denser metadata and point lookups with the current compact, inline control on a named tree. Price missed savings and restart units on held-out revision families. | A candidate with demonstrable protected savings, bounded range reads and a credible migration cost |
 | 3 | E06/E07/E09 collective storage, policy and upgrade | CPU-first reader, protected dependency publication, bounded migration and a measured offline policy. | Windows client, recovery and comparative qualification |
 | 3 | E08–E11 installed Windows experience | Signed artifact passes current Windows 11 installation, interaction and removal, backing lifecycle, compatibility and scoped physical-recovery campaigns. | Freeze executable, driver, format and supported platform inputs |
 | 4 | E12/E13 comparisons and stabilization | Matched real-host reports, reliability and soak evidence, and an owner decision packet for the twelve gates. | Owner approval |

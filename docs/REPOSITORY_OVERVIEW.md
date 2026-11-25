@@ -1,31 +1,30 @@
 # FlitzFS repository overview
 
-FlitzFS is in development qualification. Windows has a writable WinFsp
-path, protected native indexed images, automatic optimization and an
-independent CPU reader. New indexed memory volumes use compact selectors
-and paged roots on qualifying providers. In a matched four-release
-CPython fixture, the paged-root change lowered settled occupancy from
-573,440 to 450,560 bytes. The image retained both protected data copies
-and exact CPU readback, including after automatic sealing and retirement
-in the separate Windows lifecycle fixture.
-
-Earlier SDK fixtures consumed checked Radeon output. The write path can
-prepare a measured worker ahead of need and rechecks the active layout
-before deferral. Settled maintenance can choose existing prefix frames
-over a base assembled from several files. The paired structured revisions
-occupied less space, while the CPython revision cohort retained its
-settled size. The next gates are useful automatic mounted acceleration,
-bounded writable attach, a held-out compression advantage and independent
-verification of acknowledged operations on persistent media. The full
-writable reopen audit now groups requested sibling inode reads. It reduced
-provider read calls by 38.7% on the 16,384-file fixture and kept both
-fresh replica checks and both barriers. [Reopen counts](evidence/windows-indexed-namespace-read-window-2026-11-25.json)
-Installed AMD discovery and retained work now share recent exact-adapter
-engine observations. A retained read route with missing evidence leaves the
-ordinary CPU read-ahead window available.
-[Reconciliation](RELEASE_RECONCILIATION_2026-11-25.md#current-reconciliation-and-prioritized-design) ·
-[Exact tests and research](evidence/windows-retained-amd-admission-2026-11-25.json) ·
+FlitzFS is in development qualification. The writable Windows helper uses
+WinFsp, a protected indexed store and an independent CPU reader. Signed
+guest traces cover populated Win32 operations, cached and mapped flush
+recovery, reclaim while mounted and fresh writable reopen. Ordinary
+automatic AMD service, supported-media durability and exact package
+qualification remain open.
 [Current architecture](architecture/CURRENT.md) ·
+[Release gate ledger](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
+
+The compact inline memory layout settled at 176 KiB for 192 held-out
+CPython files, compared with 512 KiB for legacy extents and checkpoints.
+Both contained exact file bytes under the same modeled protection.
+Re-encoding and grouping saved no further allocated bytes on that cohort.
+The next small-file candidate should reduce protected record overhead.
+[Four-arm comparison](evidence/windows-small-file-layout-frontier-2026-11-25.json)
+
+The recent writable reopen audit saved 906 read calls and 2,424,177
+pre-flush read bytes on the 16,384-file control. The prepared AMD write
+diagnostic now reports readiness separately from frame construction and
+verification. Prior device trials consumed checked Radeon output through
+bounded fixtures. The next work uses one ordinary Windows client trace
+to compare useful AMD service, settlement and startup.
+[Audit](evidence/windows-whole-run-inode-audit-2026-11-25.json) ·
+[Prepared writes](evidence/windows-source-free-write-trials-2026-11-25.json) ·
+[Reconciliation](RELEASE_RECONCILIATION_2026-11-25.md#current-reconciliation-and-prioritized-design) ·
 [Target architecture](architecture/TARGET.md)
 
 The detailed baseline below was reconciled on 23 November against the **1,034-file** tree at

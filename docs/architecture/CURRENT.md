@@ -1,13 +1,14 @@
 # Current FlitzFS architecture
 
 The diagrams trace the implementation reconciled on 25 November. The
-current runtime uses checked extent owners during writable reopen,
-retains verified read tiles and receives eligible live AMD read windows.
-It compares two bounded prefix encodings during staging before the
-normal checked publication. Earlier diagrams cover inline persistent
-placement, mirrored packing and rolling lookup.
+native writable reopen audit reuses verified mirrored inode runs while
+retaining the fresh post-flush check. The Windows controller can resume
+checking an interrupted AMD reply and only publishes the complete
+verified window. Fresh indexed memory volumes use inline short data
+and both compact checkpoint layers. The persistent factory declares
+a different failure contract.
 [Release reconciliation](../RELEASE_RECONCILIATION_2026-11-25.md#current-reconciliation-and-prioritized-design) ·
-[Current runtime evidence](../evidence/windows-retained-amd-admission-2026-11-25.json) ·
+[Layout and verification evidence](../evidence/windows-small-file-layout-frontier-2026-11-25.json) ·
 [Revised architecture](TARGET.md)
 
 ## 1. Process and build boundaries

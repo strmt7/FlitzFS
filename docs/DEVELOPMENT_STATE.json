@@ -6,6 +6,17 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "small_file_layout_frontier": {
+    "source_parent": "c0ac21c01b7f75f3d9cf334332a97369d66496a5",
+    "tested_source_tree": "8ba740866ba033e6e8d59908a536c9f6133b5066",
+    "evidence": "docs/evidence/windows-small-file-layout-frontier-2026-11-25.json",
+    "current_memory_fixture_bytes": 180224,
+    "legacy_fixture_bytes": 524288,
+    "current_zero_stored_payload_counterfactual_bytes": 114688,
+    "cpu_reference_exact": true,
+    "live_amd_compute_observed": false,
+    "release_qualified": false
+  },
   "whole_run_inode_audit": {
     "source_parent": "a0c4ac8ddfeb1598d2395bd62b18c4110231a7cc",
     "tested_source_tree": "7120cede533ff026353ef500ecab203a9bc521a9",

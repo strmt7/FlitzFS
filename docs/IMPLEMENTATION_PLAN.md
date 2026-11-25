@@ -1,12 +1,12 @@
 # FlitzFS detailed implementation plan
 
-**Reconciled on 25 November 2026.** The next integrated milestones are the
-shared Win32 settlement trace, automatic AMD service on identical client
-demand, the indexed attach differential and held-out settled compression.
+**Reconciled on 25 November 2026.** The shared Win32 settlement trace
+supports the next ordinary AMD and attach checks. The protected-size
+comparison puts denser small-file records ahead of another codec sweep.
 The E01–E13 acceptance and dependency contracts below define the release exits.
 [Current assessment](RELEASE_RECONCILIATION_2026-11-25.md#current-reconciliation-and-prioritized-design) ·
-[Source, tests and research](evidence/windows-retained-amd-admission-2026-11-25.json) ·
-[Next implementation sequence](#execution-after-retained-amd-admission)
+[Source, tests and research](evidence/windows-small-file-layout-frontier-2026-11-25.json) ·
+[Next implementation sequence](#execution-after-the-small-file-layout-comparison)
 
 The [current architecture](architecture/CURRENT.md) shows the implementation.
 The [source review](architecture/REVIEW.md) tests the assumptions and the
@@ -289,26 +289,126 @@ Integrated claims depend on the corresponding complete paths. This sequence
 reuses the existing mounted and AMD controls instead of rebuilding the first
 indexed or read-only prototypes.
 
-### Execution after retained AMD admission
+### Execution after the small-file layout comparison
 
-Use the [current reconciliation and design](RELEASE_RECONCILIATION_2026-11-25.md#current-reconciliation-and-prioritized-design)
-and its [ordered work and exits](RELEASE_RECONCILIATION_2026-11-25.md#ordered-implementation-and-exits).
-The next shared deliverable is an ordinary Windows client trace with
-phase-attributed allocation, flush and AMD delivery. The retained route
-checks the controller's fresh exact-adapter observation at staging and
-submission. The grouped-read verifier now retains checked members while a
-foreground callback runs. Attribute worker completion, resumed checking
-and delivery separately in the ordinary client trace. Measure useful
-retirement, CPU fallback and deadlines on the same stream. The prepared
-write trial now constructs its request after readiness. Use that interval
-to price host packing, exchange and verification before comparing
-measured foreground service.
-[Source-free prepared write trial](evidence/windows-source-free-write-trials-2026-11-25.json) ·
-[Resumed reply evidence](evidence/windows-resumable-group-replies-2026-11-25.json)
+The next integrated change will use the populated Windows trace and the
+current compact layout as reference points. The same operation stream
+should expose allocator debt, CPU wait, usable device work and foreground
+cost while maintenance runs. Implement a production change when the trace
+or the size comparison establishes its opportunity.
+[Current reconciliation](RELEASE_RECONCILIATION_2026-11-25.md#current-reconciliation-and-prioritized-design) ·
+[Baseline details](evidence/windows-small-file-layout-frontier-2026-11-25.json)
 
-Fix the first production stage with a material cost. Run the held-out
-settled-size comparison against the strongest existing protected CPU control.
-Use the E01–E13 sections below for proof and ownership.
+#### 1. Make ordinary settlement and acknowledgement measurable
+
+- Reuse the external Win32 client and independent readback in
+  `tools/dev/verify_mounted_client_trace.py`. Freeze input hashes,
+  operation identifiers, accepted completions, expected metadata and the
+  exact signed helper/driver and backing contracts. Record initial mount,
+  each write or flush episode, steady-live-set churn, idle work through
+  settlement, detach and fresh attach.
+- Attribute event-driven maintenance through the controller in
+  `src/windows/winfsp_controller.cpp` and selection in
+  `src/windows/winfsp_native.cpp`. Correlate each eligible work item with
+  its grant, refusal, wake, completed work, bytes written and retained
+  generations. Reuse existing counters and collect missed events only
+  where the next diagnosis needs them. Include provider allocation,
+  reusable ranges, temporary reservation and still-pinned occupied bytes.
+- Correct the first stalled phase and repeat the same trace. Require exact
+  bytes and metadata, correctly ordered flush acknowledgement and stable
+  or falling occupied allocation across repeated equivalent live sets.
+  A delay due to real pressure can retain a verified resumable cursor.
+  A missed wake, repeated unchanged work or stale grant is a failure.
+  [Existing trace and checks](BENCHMARK_PROTOCOL.md#populated-windows-operation-trace)
+
+#### 2. Qualify automatic useful AMD work
+
+- Through the ordinary controller, use identical named Win32 streams
+  for CPU, cold AMD and initialized AMD arms. Match CPU read and write
+  work to each candidate's actual protected layout, file state and access.
+  Record requested, admitted, checked, delivered, committed and abandoned
+  bytes. Measure setup, readiness, batch construction, transfer, device
+  work, CPU comparison, native publication and retirement. Pair runs
+  and rotate order on the same live host.
+- Start with later-range grouped reads and finite windows of new writes.
+  Compare grouped, ordinary ungrouped and sequential reads at useful
+  shapes. Keep the independent CPU reader for every stored encoding and
+  allow different CPU and AMD encoders. For cold similarity work, compare
+  useful matches and complete protected bytes at an equal duty budget.
+- Reuse the prepared worker and installed package discovery in
+  `src/windows/native_amd_write_policy.cpp`, `src/windows/worker_exchange.cpp`
+  and the controller. Test an initialized idle lease with actual demand.
+  Measure working-set residence and GPU engine duty over quiet and busy
+  gaps. Pressure or loss of the consuming generation ends an offer.
+  Keep CPU selection immediate on timeout, driver failure or bad output.
+  Demonstrate quiescent retirement and evidence-driven readmission. Enable
+  an automatic route on a tested tuple and shape only after it wins in
+  ordinary I/O. [AMD work contracts](#6-e03--useful-automatic-amd-execution-and-cpu-continuity)
+
+#### 3. Choose formats on complete settled size
+
+- Start from inline data and both compact checkpoints on the qualified
+  memory provider. Freeze a real named tree with paths, metadata and
+  duplicate contents, and a separate held-out tree. Estimate how many
+  per-inode records and index pages a bounded protected slot table
+  could remove. Price the strongest current compact layout, a denser
+  metadata-only layout and a combined cold tier. Count both copies,
+  all maps, dependencies, reserved space and pinned older generations.
+- For larger revisions, pair current exact sharing, Zstandard, grouped
+  and assembled-prefix variants with a bounded exact neighborhood oracle.
+  Count the available savings missed at shortlist selection and at
+  encoding. Test one additional restartable representation only after the
+  split identifies a material headroom. Keep AITDCC A–H for tuning and
+  I–P for held-out codec results, with isolated named and revision cohorts
+  for namespace and cross-file behavior.
+- For each winner measure cold and cached range reads, dependency
+  fetches, decoded bytes per request, observed latency, reclamation writes
+  and state memory. Prototype on private images. Publish through the
+  existing checked selector only after CPU equivalence, mixed-version
+  recovery, pinned-view and interruption cases pass.
+  [Protected short-file design](architecture/TARGET.md#dense-protected-short-file-records) ·
+  [Collective work contracts](#9-e06--protected-collective-representation-in-ordinary-storage)
+
+#### 4. Bound startup and autonomous work
+
+- Compare a generation-bound attach summary with the full audit in
+  `src/native_indexed_volume.cpp` and `src/paged_store.cpp`. Keep the
+  comparison read-only at first. Check healthy, interrupted, legacy and
+  one-copy-lost cases. A stale summary falls back to full verification.
+  Promote a path after it tracks the same selected generation, ownership,
+  live name and extent counts and verified reference state.
+- Fit costs from multiple feasible file-count and churn tiers. Track
+  page visits, touched references, cache misses, peak committed memory
+  and backing reads. Reserve a higher feasible tier for a holdout, report
+  extrapolation error and carry uncertainty across cache and index-height
+  transitions. Separate modeled large-scale behavior from measured tiers.
+- Persist a bounded incremental coherence index, cursor and outcome
+  history in the protected advisory area. Candidate groups can span
+  many files while each restart unit has a bounded access cost.
+  Compare the existing rules with a small offline ranker against
+  the same protected-size oracle under mix changes. Promote learning
+  after it buys more bytes at comparable maintenance cost. Keep decoder
+  dependencies in protected required state. Measure fresh foreground
+  demand, host and device headroom, physical write cost, usefulness,
+  yield time and restart behavior. [Autonomous policy contracts](#10-e07--autonomous-learning-resource-control-and-background-policy)
+
+#### 5. Close supported-backend and release gates
+
+- Freeze signed setup, supported Windows builds, device/runtime tuples,
+  provider capabilities and old-format CPU fixtures. Prove transactional
+  upgrade and repair with the old view stable through publication.
+  Qualify flush, startup after interruption and independent rescue on
+  each advertised persistent provider in disposable environments.
+- Run DiskSpd and the ordinary client on real Windows with plain NTFS,
+  built-in NTFS compression and the CPU and AMD FlitzFS modes. Verify
+  the NTFS compression attribute, same corpus and successful operation
+  trace. Report image allocation with its metadata and protection,
+  latency distributions, throughput, CPU and GPU cost and foreground
+  impact while maintenance settles.
+- Freeze one artifact set for sustained correctness and resource
+  checks. Resolve material differences, repeat affected checks and
+  hand the owner the measured support matrix and S1–S12 decision
+  packet. [Release gate ledger](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
 
 ### Execution after matching the active write layout
 
@@ -723,13 +823,12 @@ or a new representation.
   after pressure, cancellation and device replacement. Enroll profitable
   shapes on the actual runtime, driver and device tuple.
 - **Compression and record overhead.** Reuse the matched protected-size
-  ledger. The tiny-file cohort occupies 524,288 bytes even after cold
-  re-encoding. With the current record count, a hypothetical zero-byte
-  encoding of its data objects only lowers occupancy to 466,944 bytes.
-  The held-out named tree confirms the inline memory-volume default.
-  Carry its recovery contract into persistent migration, and price
-  compact fragment locators before increasing the short-file search
-  budget. For larger revision families, measure
+  ledger. With current inline and compact settings the tiny-file cohort
+  settled at 180,224 bytes. It occupied 114,688 bytes in the pricing
+  counterfactual with all stored record payload lengths removed. Price
+  fewer protected records and their lookup maps in the held-out named
+  tree before increasing the short-file search budget. Bind persistent
+  migration to its own backing contract. For larger revision families, measure
   the missed savings against a bounded exhaustive candidate oracle.
   Freeze versions and family splits before tuning the shortlist. Use
   the complete saved bytes and measured access and write costs to
