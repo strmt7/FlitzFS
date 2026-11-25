@@ -143,6 +143,111 @@ void generic_maximum_and_empty() {
       require(independent.read(record.id)==original.read(record.id),"mixed-size rebuild bytes differ");
   }
 }
+void mirrored_rebuild_io(bool fragmented) {
+  constexpr auto count=4*kStoreMaxObjects;
+  constexpr StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
+  auto source=std::make_shared<Ram>(),target=std::make_shared<Ram>();
+  source->failure_unit=target->failure_unit=4096;
+  source->capacity=target->capacity=8*1024*1024;
+  auto writer=PagedObjectStoreWriter::create_mirrored(source,identity(),limits,raw);
+  std::vector<StoreMutation> records;
+  records.reserve(count);
+  for(std::size_t i=0;i<count;++i)records.push_back({i+1,false,data(192+i%17*31,static_cast<unsigned>(5500+i))});
+  for(std::size_t at=0;at<count;at+=kStoreMaxObjects)
+    writer.commit(std::span(records).subspan(at,kStoreMaxObjects));
+  if(fragmented) {
+    std::vector<StoreMutation> edits;
+    for(std::size_t i=1;i<count;i+=2) {
+      std::ranges::reverse(records[i].bytes);
+      edits.push_back(records[i]);
+      if(edits.size()==kStoreMaxObjects){writer.commit(edits);edits.clear();}
+    }
+    require(edits.empty(),"fragmented fixture did not complete its commits");
+  }
+  using Phase=PagedRewritePhase;
+  struct Reads {std::uint64_t source_calls=0,target_calls=0,source_bytes=0,target_bytes=0;};
+  const auto counters=[&]{return Reads{source->read_calls,target->read_calls,source->read_bytes,target->read_bytes};};
+  std::array<Reads,static_cast<std::size_t>(Phase::declined)+1> phases{};
+  const auto writes=source->calls;
+  auto candidate=writer.prepare_rebuild(target,next_id(),raw,false);
+  for(unsigned step=0;;++step) {
+    require(step<8*count,"mirrored rebuild did not settle its inventory");
+    const auto phase=candidate.progress().phase;
+    const auto before=counters();
+    const bool complete=candidate.advance(writer);
+    const auto after=counters();
+    auto& measured=phases[static_cast<std::size_t>(phase)];
+    measured.source_calls+=after.source_calls-before.source_calls;
+    measured.target_calls+=after.target_calls-before.target_calls;
+    measured.source_bytes+=after.source_bytes-before.source_bytes;
+    measured.target_bytes+=after.target_bytes-before.target_bytes;
+    if(complete)break;
+  }
+  auto completed=candidate.finish(writer);
+  const auto independent=PagedObjectStoreSnapshot::open(target,limits);
+  require(independent.info().objects==count && completed.snapshot().info().objects==count &&
+      source->calls==writes,"mirrored rebuild changed the inventory or wrote to its source");
+  for(const auto& record:records)
+    require(independent.read(record.id)==record.bytes,"mirrored rebuild changed a verified record");
+  require(phases[static_cast<std::size_t>(Phase::copying)].target_calls<3*count,
+      "mirrored copy reread its checked primary");
+  for(const auto phase:{Phase::verifying_target,Phase::verifying_publication})
+    require(phases[static_cast<std::size_t>(phase)].target_calls<count,
+        "packed verification did not combine adjacent target frames");
+  for(const auto phase:{Phase::verifying_source,Phase::copying,Phase::verifying_target,Phase::verifying_publication}) {
+    const auto& measured=phases[static_cast<std::size_t>(phase)];
+    std::cout<<"staged_io fragmented="<<fragmented<<" phase="<<static_cast<unsigned>(phase)
+        <<" objects="<<count<<" source_calls="<<measured.source_calls<<" target_calls="<<measured.target_calls
+        <<" source_bytes="<<measured.source_bytes<<" target_bytes="<<measured.target_bytes
+        <<" exact_cpu=1\n";
+  }
+}
+void mirrored_rebuild_read_faults() {
+  using Phase=PagedRewritePhase;
+  constexpr StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
+  const std::array records{StoreMutation{1,false,data(319,866)},StoreMutation{2,false,data(271,867)},
+      StoreMutation{3,false,data(401,868)}};
+  auto source=std::make_shared<Ram>();source->failure_unit=4096;
+  auto writer=PagedObjectStoreWriter::create_mirrored(source,identity(),limits,raw);
+  writer.commit(records);
+  const auto mirror_payload=[](const Ram& io,const Bytes& bytes) {
+    const auto first=std::search(io.live.begin(),io.live.end(),bytes.begin(),bytes.end());
+    require(first!=io.live.end(),"verification fixture payload missing");
+    const auto peer=std::search(first+bytes.size(),io.live.end(),bytes.begin(),bytes.end());
+    require(peer!=io.live.end(),"verification fixture peer missing");
+    return static_cast<std::uint64_t>(peer-io.live.begin());
+  };
+  const auto source_calls=source->calls;
+  for(const auto phase:{Phase::verifying_target,Phase::verifying_publication}) {
+    auto target=std::make_shared<Ram>();target->failure_unit=4096;
+    auto candidate=writer.prepare_rebuild(target,next_id(),raw,false);
+    for(unsigned step=0;candidate.progress().phase!=phase;++step) {
+      require(step<32,"mirrored verification fault phase unreachable");
+      candidate.advance(writer);
+    }
+    const auto first_peer=mirror_payload(*target,records[0].bytes);
+    target->corrupt_read_offset=mirror_payload(*target,records[1].bytes);
+    target->corrupt_read_number=1;
+    rejects([&]{candidate.advance(writer);},"transient packed replica mismatch admitted a candidate");
+    require(target->corrupted_read_start<first_peer && candidate.progress().phase==Phase::failed &&
+        !writer.poisoned() && source->calls==source_calls,
+        "batched target corruption failed to fence just the candidate");
+  }
+
+  const auto damaged=mirror_payload(*source,records[1].bytes);
+  source->live[static_cast<std::size_t>(damaged)]^=std::byte{1};
+  auto target=std::make_shared<Ram>();target->failure_unit=4096;
+  auto candidate=writer.prepare_rebuild(target,next_id(),raw,false);
+  for(unsigned step=0;!candidate.advance(writer);++step)
+    require(step<32,"source survivor rebuild stalled");
+  auto rebuilt=candidate.finish(writer);
+  const auto reader=PagedObjectStoreSnapshot::open(target,limits);
+  reader.verify_all();
+  require(source->calls==source_calls && rebuilt.snapshot().info().objects==records.size(),
+      "source survivor rebuild changed its source or inventory");
+  for(const auto& record:records)
+    require(reader.read(record.id)==record.bytes,"source survivor rebuild changed content");
+}
 void admission_and_read_failures() {
   auto source=std::make_shared<Ram>();source->failure_unit=4096;auto writer=fresh(source,2);writer.apply(baseline());
   const auto original=source->live;const auto calls=source->calls;
@@ -239,6 +344,7 @@ void failures(unsigned layout,std::uint32_t unit) {
 }
 int main(){try {
   generic_maximum_and_empty();cancellation_and_owner();admission_and_read_failures();
+  mirrored_rebuild_io(false);mirrored_rebuild_io(true);mirrored_rebuild_read_faults();
   for(bool mirrored:{false,true})changed_copied_descriptor(mirrored);
   for(unsigned layout=0;layout<3;++layout) {
     stale_phases(layout);

@@ -37,6 +37,22 @@ readback, rejection of a late result and worker retirement. A matched
 ordinary-client speed comparison remains open.
 [Live Radeon evidence](evidence/windows-ordinary-reclamation-progress-2026-11-25.json)
 
+## Rebuild verification reads
+
+Coalescing checked frames within a leaf and a bank reduced provider reads
+across the four measured rebuild phases from 14,231 to 9,006 in the
+1,024-record fixture. The fragmented-source case fell from 14,201 to
+10,336, with most of the savings on the packed target. During copy, the
+two-copy check also provides the bytes for independent CPU comparison.
+Transient target corruption still refused both verification passes.
+
+The signed guest matched the 6,293-operation client transcript. It
+advanced 548 copy steps while mounted and completed selection and space
+release after detach. Independent CPU readback verified all 1,027 files.
+Focus the next storage change on fragmented-source reads, copying and
+index construction under the normal foreground-yield budget.
+[Phase counts and signed guest](evidence/windows-rebuild-verification-reads-2026-11-25.json)
+
 ## Reconciled release gates
 
 | Gate | Current evidence | Completion evidence |
@@ -73,6 +89,14 @@ ordinary-client speed comparison remains open.
   the result on the same mutation trace before considering device hints.
   [DOGI](https://www.usenix.org/conference/fast26/presentation/kim-jeeyun) ·
   [WARP](https://www.usenix.org/conference/fast26/presentation/song)
+- **Measure provider reads separately from throughput.** Windows generally
+  serves buffered file reads through its cache. Group adjacent ranges on
+  the existing backing interface and count operations and bytes together.
+  The FAST ’26 grouped I/O work uses similar visibility into neighboring
+  requests for its cloud storage workloads. FlitzFS’s separate CPU and
+  backing checks determine correctness and benefit on its own workloads.
+  [Windows file caching](https://learn.microsoft.com/en-us/windows/win32/fileio/file-caching) ·
+  [FAST ’26 AITURBO](https://www.usenix.org/conference/fast26/presentation/hao)
 - **Measure direct reuse separately from live copying.** FAST ’26 DisCoGC
   reports gains from releasing proven stale ranges independently of
   compaction in its storage system. For FlitzFS, compare a bounded
@@ -167,8 +191,9 @@ and acknowledgements.
    equivalent arm with cold work withheld. Check durable operations and
    bytes with the independent CPU reader after stop and interruption.
 3. Attribute time and bytes to phases before tuning. If copy dominates,
-   group short checks within verified leaves, then measure adjacent
-   stored-record reads and candidate reconstruction separately. Keep
+   group short checks and adjacent stored-record reads as in the current
+   rebuild. Measure the remaining fragmented source, copy and packed
+   index work independently before changing batching or admission. Keep
    independent comparisons and identity rechecks. If placement dominates,
    compare extent age and contiguous-gap candidates in shadow mode. Require an occupied plateau
    and fewer writes per reclaimed byte before replacing the allocator.

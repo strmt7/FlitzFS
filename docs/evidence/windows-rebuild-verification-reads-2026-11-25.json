@@ -1,0 +1,568 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "qualification": "development",
+  "release_qualified": false,
+  "scope": "Matched Windows-host RAM provider counts and signed Windows guest correctness. Counts cover backing calls rather than storage throughput.",
+  "source": {
+    "parent": "bc49cfa8125d2426e4c1c3212ba5419231687b1f",
+    "parent_tree": "b9224e4aa1f2fa535cf4cb9a9916475ce1cab0f4",
+    "candidate_runtime_tree": "ae5765e86650162a884c68ec7b06bc278856067e",
+    "changed_blobs": [
+      {
+        "path": "src/paged_store.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "74aa24ada805bcbd8e0cb9a76ed4b91dd684cbaf",
+        "bytes": 141165
+      },
+      {
+        "path": "tests/test_staged_paged_rebuild.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "da982e29b44702578aa9be8b50d25d1e47a2208f",
+        "bytes": 23473
+      }
+    ],
+    "patch_sha256": "9f85f5dc39b968a7ce2843cc3632bc3f9955fa3dc191c5a510c5a2d57e78a599"
+  },
+  "rebuild": {
+    "baseline": {
+      "receipt_sha256": "d7be87d4343aacfd2ebb0a8b4b046ab5cbb63d348262a30a4ca433711ce09c53",
+      "output_sha256": "696ede9191344da4c501a9397aeeab40f94d0c0a748dbef8a78127bcaa1e7b06",
+      "exit_code": 0,
+      "creation_time_job": true,
+      "inherited_error_mode": 32771,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 18178048,
+      "memory_bytes": 2714763264,
+      "cpu_percent": 20
+    },
+    "candidate": {
+      "receipt_sha256": "0f55cba670dcfbbff7d11ea72b99d4f9479f2a7e75c67da836961f70b707f641",
+      "output_sha256": "4762011ed4a45385e07bf9005c390e5cce26c4ca28a16a441833fb637af9339d",
+      "exit_code": 0,
+      "creation_time_job": true,
+      "inherited_error_mode": 32771,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 17915904,
+      "memory_bytes": 1937768448,
+      "cpu_percent": 20
+    },
+    "profiles": [
+      {
+        "fragmented_source": false,
+        "phase": "verify_source",
+        "records": 1024,
+        "baseline": {
+          "source_calls": 2374,
+          "target_calls": 0,
+          "source_bytes": 1350068,
+          "target_bytes": 0
+        },
+        "candidate": {
+          "source_calls": 1014,
+          "target_calls": 0,
+          "source_bytes": 1350068,
+          "target_bytes": 0
+        },
+        "independent_cpu": true
+      },
+      {
+        "fragmented_source": false,
+        "phase": "copy",
+        "records": 1024,
+        "baseline": {
+          "source_calls": 1206,
+          "target_calls": 3495,
+          "source_bytes": 752858,
+          "target_bytes": 1742478
+        },
+        "candidate": {
+          "source_calls": 1206,
+          "target_calls": 2330,
+          "source_bytes": 752858,
+          "target_bytes": 1161652
+        },
+        "independent_cpu": true
+      },
+      {
+        "fragmented_source": false,
+        "phase": "verify_target",
+        "records": 1024,
+        "baseline": {
+          "source_calls": 1206,
+          "target_calls": 2370,
+          "source_bytes": 752858,
+          "target_bytes": 1325492
+        },
+        "candidate": {
+          "source_calls": 1206,
+          "target_calls": 1020,
+          "source_bytes": 752858,
+          "target_bytes": 1325492
+        },
+        "independent_cpu": true
+      },
+      {
+        "fragmented_source": false,
+        "phase": "verify_publication",
+        "records": 1024,
+        "baseline": {
+          "source_calls": 1210,
+          "target_calls": 2370,
+          "source_bytes": 769242,
+          "target_bytes": 1325492
+        },
+        "candidate": {
+          "source_calls": 1210,
+          "target_calls": 1020,
+          "source_bytes": 769242,
+          "target_bytes": 1325492
+        },
+        "independent_cpu": true
+      },
+      {
+        "fragmented_source": true,
+        "phase": "verify_source",
+        "records": 1024,
+        "baseline": {
+          "source_calls": 2362,
+          "target_calls": 0,
+          "source_bytes": 1350068,
+          "target_bytes": 0
+        },
+        "candidate": {
+          "source_calls": 2362,
+          "target_calls": 0,
+          "source_bytes": 1350068,
+          "target_bytes": 0
+        },
+        "independent_cpu": true
+      },
+      {
+        "fragmented_source": true,
+        "phase": "copy",
+        "records": 1024,
+        "baseline": {
+          "source_calls": 1200,
+          "target_calls": 3495,
+          "source_bytes": 752858,
+          "target_bytes": 1742478
+        },
+        "candidate": {
+          "source_calls": 1200,
+          "target_calls": 2330,
+          "source_bytes": 752858,
+          "target_bytes": 1161652
+        },
+        "independent_cpu": true
+      },
+      {
+        "fragmented_source": true,
+        "phase": "verify_target",
+        "records": 1024,
+        "baseline": {
+          "source_calls": 1200,
+          "target_calls": 2370,
+          "source_bytes": 752858,
+          "target_bytes": 1325492
+        },
+        "candidate": {
+          "source_calls": 1200,
+          "target_calls": 1020,
+          "source_bytes": 752858,
+          "target_bytes": 1325492
+        },
+        "independent_cpu": true
+      },
+      {
+        "fragmented_source": true,
+        "phase": "verify_publication",
+        "records": 1024,
+        "baseline": {
+          "source_calls": 1204,
+          "target_calls": 2370,
+          "source_bytes": 769242,
+          "target_bytes": 1325492
+        },
+        "candidate": {
+          "source_calls": 1204,
+          "target_calls": 1020,
+          "source_bytes": 769242,
+          "target_bytes": 1325492
+        },
+        "independent_cpu": true
+      }
+    ],
+    "measured_phase_totals": [
+      {
+        "fragmented_source": false,
+        "baseline_calls": 14231,
+        "candidate_calls": 9006
+      },
+      {
+        "fragmented_source": true,
+        "baseline_calls": 14201,
+        "candidate_calls": 10336
+      }
+    ],
+    "transient_target_mismatch_rejected_before_and_after_private_publication": true,
+    "damaged_source_copy_rebuilt_with_independent_cpu_readback": true,
+    "write_and_barrier_cuts": 1413,
+    "wire_change": false
+  },
+  "mounted": {
+    "windows_build": "26100",
+    "allocated_while_attached": 849477632,
+    "ordinary_controller": {
+      "allocated_before": 848429056,
+      "allocated_after": 849477632,
+      "allocated_while_attached": 849477632,
+      "eof_while_attached": 849477632,
+      "quiescent": 0,
+      "preselected": 0,
+      "quanta": 72,
+      "continued_compaction": 483,
+      "publications": 0,
+      "continued_range_retirement": 0,
+      "continued_packed_tail": 0,
+      "compaction_failures": 0,
+      "disabled": 0,
+      "host_state": 1,
+      "backing_limited": 18,
+      "read_calls": 5431,
+      "read_bytes": 7076991,
+      "write_calls": 1232,
+      "write_bytes": 1815202,
+      "flush_calls": 0,
+      "phase_idle": 0,
+      "phase_scanning": 0,
+      "phase_candidates": 0,
+      "phase_preparing": 65,
+      "phase_publishing": 0,
+      "phase_deferred": 7,
+      "phase_failed": 0,
+      "deferral_none": 65,
+      "deferral_observation": 7,
+      "deferral_foreground": 0,
+      "deferral_cpu": 0,
+      "deferral_memory": 0,
+      "deferral_duty": 0,
+      "deferral_other_maintenance": 0,
+      "deferral_capacity": 0,
+      "step_copying": 548,
+      "step_ready": 0,
+      "step_published": 0,
+      "step_retiring": 0,
+      "step_pinned": 0,
+      "step_failed": 0,
+      "retired": 1
+    },
+    "detached": {
+      "backing": "packed",
+      "before": 849477632,
+      "after": 6160384,
+      "old_epoch": 1,
+      "epoch": 2,
+      "pending": 0,
+      "idle": 0,
+      "copying": 2843,
+      "ready": 1,
+      "published": 1,
+      "retiring": 409,
+      "pinned": 0,
+      "failed": 0,
+      "independent_cpu": "exact",
+      "blake3": "24b7b9b2afa3ee9c8043d757ccb4229c4321e8af5352b9800d6a599b8b70faa4"
+    },
+    "workload": {
+      "bytes": 1134259,
+      "counts": {
+        "conflicting_open": 1,
+        "cpu_verified": 3,
+        "create": 1030,
+        "enumerate": 3,
+        "flush": 1077,
+        "flush_cached": 3,
+        "flush_mapped": 4,
+        "flush_view": 4,
+        "held_read": 3,
+        "lookup_deleted": 2,
+        "mkdir": 1,
+        "overwrite_open": 1,
+        "range_read": 3,
+        "read": 3076,
+        "rename_replace": 1,
+        "unlink": 2,
+        "write": 1079
+      },
+      "cycles": 3,
+      "files": 1027,
+      "independent_population_blake3": "24b7b9b2afa3ee9c8043d757ccb4229c4321e8af5352b9800d6a599b8b70faa4",
+      "logical_bytes": 2291854,
+      "records": 6293,
+      "sha256": "a819bc8c0ba49580f45c3985470cbf88f3934aa3ac88cb910c4b72b72a984af1"
+    },
+    "ordinary_mounted_settlement": false,
+    "prior_workload": "docs/evidence/windows-ordinary-reclamation-progress-2026-11-25.json",
+    "signed_guest_dependencies": 6,
+    "guest_driver_retired": true,
+    "guest_stop_confirmed": true,
+    "remaining_guest_mounts": 0,
+    "remaining_guest_app_processes": 0,
+    "unregister_exit_code": 0,
+    "guest_manifest_sha256": "8ab727c5f5620b8da84ad30ead261e2a06dd999ee6f27617a6cf8029634215f7",
+    "guest_artifacts": {
+      "flitzfs_volume_app.exe": "0653b75713c03c23b13d4f5bdd6185f16ded9005a003c320dfc7316207d46438",
+      "flitzfs_volume_app_tests.exe": "24a4c7b07ce6b6a2bc28e7295bd15792307234c3714d147151e6624ab7d4038d",
+      "flitzfs_volume_attachment_tests.exe": "2a69f64eec67265b5787f8acd6b6c547c91d9a604168f76e98fa40be63816f83",
+      "winfsp-x64.dll": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+      "winfsp-x64.sys": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+      "msvcp140.dll": "59d325227321d52b9a523ea401ce6787a5d59f78229a0ff3a6f124e5d3445685",
+      "msvcp140_atomic_wait.dll": "8b10c6bd4c3c427ce7c8be96ef0fef0f8187bc236962be62a03caef834b37dcd",
+      "vcruntime140.dll": "eb1ee979bf02324712346e5bdbfc59c785388bc50d18cc2688aae4b0734915a0",
+      "vcruntime140_1.dll": "a14b4a42a2c6df04d6d53a8340816023d953406f7f3d94996c7cab30c414ff63"
+    },
+    "guest_receipt_sha256": "1016471bd202d556bf388040711af0cab892506950bd1217a514d575abf44c88",
+    "sandbox_receipt_sha256": "533b5f75b15c8ccf970e8d38686bb16d3edfd0a2c0478d665308a48bd97ef89b",
+    "supervisor": {
+      "receipt_sha256": "cf66b9c2bfdc09bd8076a4baf08022a48af1af790cfc48902f505b7f7c9e02f9",
+      "output_sha256": "03549961b06b275afb8a591427ef78042de9d34d812b7bf08aaaff919a7aa29f",
+      "exit_code": 0,
+      "creation_time_job": true,
+      "inherited_error_mode": 32771,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 52969472,
+      "memory_bytes": 1620049920,
+      "cpu_percent": 14
+    },
+    "parity_supervisor": {
+      "receipt_sha256": "c0cc66fd956903f6d3c31e5ae42e885e13350fa694d17203c625ed848863ec68",
+      "output_sha256": "51076490298d33e708188b12e36763221eec0553853138078db79753192713eb",
+      "exit_code": 0,
+      "creation_time_job": true,
+      "inherited_error_mode": 32771,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 20639744,
+      "memory_bytes": 2298478592,
+      "cpu_percent": 14
+    },
+    "build": {
+      "receipt_sha256": "c5af5b7ee8c73846b82c4d35628275188c001590cda78490443e9b365774ad87",
+      "output_sha256": "2b57afe15847fd06f486c1cb30e0a4b58b9c36484e0004e858ec6db9302762a4",
+      "exit_code": 0,
+      "creation_time_job": true,
+      "inherited_error_mode": 32771,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 176664576,
+      "memory_bytes": 2773483520,
+      "cpu_percent": 20
+    }
+  },
+  "validation": {
+    "sdk": {
+      "count": 9,
+      "passed": [
+        "bounded_paged_object_store",
+        "bounded_native_indexed_volume",
+        "bounded_native_staged_paged_rebuild",
+        "bounded_native_volume_file",
+        "bounded_native_volume_file_dense_session_cuts",
+        "bounded_native_volume_file_dense_tail",
+        "bounded_native_volume_file_dense_cross_group",
+        "bounded_native_volume_file_sealed_ranges",
+        "bounded_winfsp_volume_file"
+      ],
+      "supervisor": {
+        "receipt_sha256": "ad587812e74cd9cf4dcc956405c5f3172508567334b51b48c26302557278220c",
+        "output_sha256": "970745195e7c946018b761438febb8799251f4434caa6033537abe21dcda349e",
+        "exit_code": 0,
+        "creation_time_job": true,
+        "inherited_error_mode": 32771,
+        "tree_retired": true,
+        "residual_children": 0,
+        "peak_job_bytes": 671019008,
+        "memory_bytes": 2066743296,
+        "cpu_percent": 20
+      }
+    },
+    "raw_only": {
+      "count": 6,
+      "passed": [
+        "bounded_paged_object_store",
+        "bounded_native_staged_paged_rebuild",
+        "bounded_native_volume_file",
+        "bounded_native_volume_file_dense_session_cuts",
+        "bounded_native_volume_file_dense_tail",
+        "bounded_native_volume_file_dense_cross_group"
+      ],
+      "supervisor": {
+        "receipt_sha256": "e34c17a875c2dc028cf277574598362639f269ef76c3e30244a9b56f0beb2a62",
+        "output_sha256": "8003a88c2e54097a23f0a849e4927717e7b0cc366de83bb9f6d231972bec9bd7",
+        "exit_code": 0,
+        "creation_time_job": true,
+        "inherited_error_mode": 32771,
+        "tree_retired": true,
+        "residual_children": 0,
+        "peak_job_bytes": 87683072,
+        "memory_bytes": 1966080000,
+        "cpu_percent": 19
+      }
+    },
+    "asan": {
+      "count": 4,
+      "passed": [
+        "windows_asan_runtime_preflight",
+        "bounded_native_staged_paged_rebuild",
+        "windows_asan_staging_regression",
+        "bounded_winfsp_volume_file"
+      ],
+      "supervisor": {
+        "receipt_sha256": "cd79a179a00bdb4da9714134a004ea80dbfb246ebf52070cd059046b8f11256b",
+        "output_sha256": "1f96c1969d1c2cffd3459ebe9059a7e3ab96e8cce60d8d7e3320497dc6d8607e",
+        "exit_code": 0,
+        "creation_time_job": true,
+        "inherited_error_mode": 32771,
+        "tree_retired": true,
+        "residual_children": 0,
+        "peak_job_bytes": 637231104,
+        "memory_bytes": 1957691392,
+        "cpu_percent": 20
+      }
+    },
+    "sdk_build": {
+      "receipt_sha256": "df7c91fb28bea7378808529439361bb1b3a6819eb86175bc3a45abb8c0a7262e",
+      "output_sha256": "fb7cf8efc345c3a001b41994e2102b37cbdae5332971d0ce45d2426b1cc25fab",
+      "exit_code": 0,
+      "creation_time_job": true,
+      "inherited_error_mode": 32771,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 361422848,
+      "memory_bytes": 2908749824,
+      "cpu_percent": 21
+    },
+    "shared_mirror_checker": {
+      "count": 1,
+      "receipt_sha256": "d8d5f5f796eac1d8dedfa7e98fad98a8866f832d20f399d05667475628bc6d3c",
+      "output_sha256": "e69e3db8dce9b337e6ab822eba8b2279f074594aaa05aa113973afa313efb49f",
+      "tree_retired": true
+    }
+  },
+  "source_navigation": {
+    "receipt_sha256": "b65c09ec21fa48fbe7dc57d8db47db22dc4cbef3c71abd7b816722cdcb41b366",
+    "actual_searches": 1,
+    "exact_parent": "bc49cfa8125d2426e4c1c3212ba5419231687b1f",
+    "native_response_sha256": "d68a61c3816a2c74e75d707c876af613207b78d17e0227c052e718ab81c7ab01",
+    "provider_version": "0.2.43"
+  },
+  "research": {
+    "receipt_sha256": "0ce2479bf4889bb1bf3e44e76c808d3d7dc642e07b3a649dd0e291194bf67ff9",
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "lock_sha256": "01fbef3b628f772e4aba9724b6ced11c0f211d4d3bf51e38d1b9d0039eac997b",
+    "provider_source_identity": {
+      "tools/crawl4ai_tool.py": "e84a0e54ee07e4e13d3d2f35491f641730096a78126068f232c1f2397a467d8c",
+      "tools/crawl4ai_research.py": "ec3cb7a98eceed8fef08f3af806d6eaed35656bd76ca0ee8853d273f790337a5",
+      "tools/requirements/crawl4ai.txt": "6a42b0ff5ff6c63c843c6329ce823b819fd4f6f068e68d1836ab6dbec96e8f2f",
+      "tools/crawl4ai_sites.json": "e8869cb0488d78762a90aea6ecf2c3616bb89f0c89a8800cc512c613a750dc86",
+      "tools/nltk_distribution.py": "19eb3007c226b1a13e1ad0daa79cbd8a7bf6d082a20bf386e36ac060d0000919",
+      "tools/python_wheel.py": "c3c9a62454cb377203abce32154bec07cbf805bc7420cc89386c1c18370b301a",
+      "tools/test_nltk_model_security.py": "8aab7e2a704af875992ecae9137cdf5e5ff6935a4dd49e6751c54b2629a7280b",
+      "tools/requirements/python-build.txt": "9b280d724fda87773ba33a2654362adad84c68c4f79394adc07ff2e0293ca498",
+      "tools/crawl4ai_source_build.py": "5c27c4693fa0880a8db399825f637b694616963fc11f708afed33fa5b2e38b48",
+      "tools/crawl4ai_download_opener.py": "d5fd20b5545fd64c93a06b3ef07732f1c2da7e09ee6cda80662475007db52538",
+      "tools/test_crawl4ai_downloads.py": "ae4cf54c351a9da2de49caeb96306f384bb6a8f487318eabc69db4132d658619",
+      "third_party/upstream/nltk/3.10.4/distribution.json": "3241a8670f12e205525fc096572ed1969c063f77e13cffd70eff5eb656fbe1b0",
+      "nltk_upstream_wheel": "e46d89e59ef949270e3b19ab097da8dbb09350e05cb5a746ff92f6ccf6e8ce90",
+      "crawl4ai_source_build": "7da6376934254d9ad1de9e016a4509dae32c47559955889424435fcbbc7419f5"
+    },
+    "native_pages": [
+      {
+        "name": "win32-positioned-read",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-readfile",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 49272,
+        "markdown_sha256": "bc8dbd3c0109a620d162728b997074eed639180dfa677e04535a521637b5031f",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.459,
+        "capture": "win32-positioned-read.native.json",
+        "capture_sha256": "4a32eb8089b665ed34c03db1db51cc217e7fa2d0ff458ea77656f5858d591e46"
+      },
+      {
+        "name": "win32-buffered-read",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/fileio/file-caching",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 23227,
+        "markdown_sha256": "6f6a632ded8fba3af29ee5630a4126ac5fdb5338b81c1827b3a66556d03ebf62",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.088,
+        "capture": "win32-buffered-read.native.json",
+        "capture_sha256": "ae02d5e13fae5efe59c9a1e383a925bccedad9a890a43037d71d26ef710d02a2"
+      },
+      {
+        "name": "fast26-grouped-io",
+        "url": "https://www.usenix.org/conference/fast26/presentation/hao",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 10512,
+        "markdown_sha256": "820a9ee444cf22d9cde18168f00dc9668867c5b646e2707343e36515b38fe3c8",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.063,
+        "capture": "fast26-grouped-io.native.json",
+        "capture_sha256": "f442aee5cef16f609bf00291034bac617ea062d3e9a695ab75a7a06e637b86c3"
+      },
+      {
+        "name": "fast26-verified-data",
+        "url": "https://www.usenix.org/conference/fast26/presentation/gupta",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 10661,
+        "markdown_sha256": "080bf5e8ff9457bdf7155f0ff8cf24d819c037f6a5cf35f4c56d8cdf4fc08a60",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.253,
+        "capture": "fast26-verified-data.native.json",
+        "capture_sha256": "0d9d936151a47a9a1015a40afc35f71108d2bfad2b5b749e80b7eb98892f1b1a"
+      }
+    ],
+    "robots": true,
+    "timeout_seconds_per_page": 45,
+    "external_LLM": false
+  },
+  "next": [
+    "Attribute remaining mounted work to the fragmented source walk, copy write/readback and index phases.",
+    "Evaluate bounded staging of neighboring short copy records while preserving publisher barriers and interruption checks.",
+    "Keep mounted completion and matched live AMD throughput as independent gates."
+  ],
+  "documentation_validation": {
+    "plan_packages": 13,
+    "numbered_steps": 156,
+    "release_gates": 12,
+    "resolved_relative_links": 475,
+    "source_tree_verified": true,
+    "json_duplicate_keys": 0
+  }
+}

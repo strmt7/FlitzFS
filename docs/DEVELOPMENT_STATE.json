@@ -26,11 +26,13 @@
     "packed_tail_continuation_evidence": "docs/evidence/windows-packed-tail-continuation-2026-11-25.json",
     "packed_model_continued_truncations": 4,
     "packed_model_continued_release_bytes": 12845056,
-    "ordinary_mounted_reclamation_evidence": "docs/evidence/windows-ordinary-reclamation-progress-2026-11-25.json",
-    "ordinary_mounted_copy_steps": 662,
+    "ordinary_mounted_reclamation_evidence": "docs/evidence/windows-rebuild-verification-reads-2026-11-25.json",
+    "ordinary_mounted_copy_steps": 548,
     "ordinary_mounted_publications": 0,
     "ordinary_detached_verified_allocated_bytes": 6160384,
-    "next": "Separate verified source, copy and target costs during live admission. Retain the 6293-operation transcript for automatic selection and packed settlement."
+    "mirrored_rebuild_target_verification_calls_before": 2370,
+    "mirrored_rebuild_target_verification_calls_after": 1020,
+    "next": "Separate fragmented-source, copy write/readback and index costs under mounted admission. Evaluate batching neighboring short copies and keep the matched transcript for packed settlement."
   },
   "release_path_review": {
     "evidence": "docs/evidence/windows-packed-tail-continuation-2026-11-25.json",

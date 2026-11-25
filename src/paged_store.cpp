@@ -469,16 +469,16 @@ ObjectRecord read_record(const State& s,const Entry& e) {
     return survivor;
   }
 }
-Bytes decode_record(const State& s,const Entry& e,const ObjectRecord& record) {
-  const auto& h=record.header;const auto& payload=record.payload;const auto codec=get32(h,12);
-  if(codec==detail::kStoreRaw)return payload;
+Bytes decode_record(const State& s,const Entry& e,std::span<const std::byte> h,std::span<const std::byte> payload) {
+  const auto codec=get32(h,12);
+  if(codec==detail::kStoreRaw)return Bytes(payload.begin(),payload.end());
   auto decoded=s.decoder->decode(codec,payload,e.logical);
   if(detail::record_digest(decoded)!=field<32>(h,56))fail("object decoded digest");
   return decoded;
 }
 Bytes consume_decoded_record(const State& s,const Entry& e,ObjectRecord& record) {
   if(get32(record.header,12)==detail::kStoreRaw)return std::move(record.payload);
-  return decode_record(s,e,record);
+  return decode_record(s,e,record.header,record.payload);
 }
 Bytes read_object(const State& s,const Entry& e,detail::NativeLz4ReadRoute* route=nullptr) {
   auto record=read_record(s,e);
@@ -554,6 +554,23 @@ template<class Visitor> void walk(const State& s,const Ref& r,std::uint64_t afte
   };
   walk_leaves(s,r,after,leaf,done);
 }
+struct MirroredRecordRun {
+  std::size_t count=1,bytes=0;
+};
+MirroredRecordRun mirrored_record_run(const State& s,std::span<const Entry> entries) noexcept {
+  const auto& first=entries.front();
+  const auto bank_bytes=static_cast<std::size_t>(s.unit-first.offset%s.unit);
+  MirroredRecordRun run{1,record_header_bytes+first.stored};
+  while(run.count<entries.size() && run.bytes<=bank_bytes) {
+    const auto& next=entries[run.count];
+    const auto length=record_header_bytes+next.stored;
+    if(next.offset!=first.offset+run.bytes || next.peer!=first.peer+run.bytes || length>bank_bytes-run.bytes)
+      break;
+    run.bytes+=length;
+    ++run.count;
+  }
+  return run;
+}
 bool verify_stored_run(const State& s,std::span<const Entry> entries,std::size_t length,Bytes& scratch) {
   if(scratch.size()<2*length)scratch.resize(2*length);
   const auto primary=std::span(scratch).first(length);
@@ -583,23 +600,11 @@ bool verify_stored_run(const State& s,std::span<const Entry> entries,std::size_t
 }
 void verify_stored_leaf(const State& s,std::span<const Entry> entries,Bytes& scratch) {
   while(!entries.empty()) {
-    const auto& first=entries.front();
-    const auto bank_bytes=static_cast<std::size_t>(s.unit-first.offset%s.unit);
-    auto length=record_header_bytes+first.stored;
-    std::size_t count=1;
-    // Leaf validation already bound each peer to the same position in the
-    // next bank. Do not read gaps or join records across a bank boundary.
-    while(count<entries.size() && length<=bank_bytes) {
-      const auto& next=entries[count];
-      const auto next_length=record_header_bytes+next.stored;
-      if(next.offset!=first.offset+length || next_length>bank_bytes-length)break;
-      length+=next_length;
-      ++count;
-    }
-    const auto run=entries.first(count);
-    if(count==1 || !verify_stored_run(s,run,length,scratch))
-      for(const auto& entry:run)verify_object(s,entry,nullptr,&scratch);
-    entries=entries.subspan(count);
+    const auto run=mirrored_record_run(s,entries);
+    const auto records=entries.first(run.count);
+    if(run.count==1 || !verify_stored_run(s,records,run.bytes,scratch))
+      for(const auto& entry:records)verify_object(s,entry,nullptr,&scratch);
+    entries=entries.subspan(run.count);
   }
 }
 using VerifiedObjectVisitor=std::function<void(std::uint64_t,Bytes)>;
@@ -977,17 +982,23 @@ struct Plan {
 struct TreeFrontier {
   std::vector<Ref> pending;
   std::vector<Entry> entries;
+  std::size_t next_entry=0;
 
-  bool present() const noexcept {return !entries.empty() || !pending.empty();}
-  std::uint64_t first() const noexcept {return entries.empty()?pending.back().first:entries.back().id;}
+  bool has_entries() const noexcept {return next_entry<entries.size();}
+  bool present() const noexcept {return has_entries() || !pending.empty();}
+  std::uint64_t first() const noexcept {return has_entries()?entries[next_entry].id:pending.back().first;}
   void open(const State& state) {
     auto node=read_node(state,pending.back());
     pending.pop_back();
     pending.insert(pending.end(),node.children.rbegin(),node.children.rend());
     entries=std::move(node.entries);
-    std::ranges::reverse(entries);
+    next_entry=0;
   }
-  Entry take() noexcept {auto entry=entries.back();entries.pop_back();return entry;}
+  std::span<const Entry> remaining_entries() const noexcept {
+    return std::span(entries).subspan(next_entry);
+  }
+  void advance(std::size_t count) noexcept {next_entry+=count;}
+  Entry take() noexcept {return entries[next_entry++];}
 };
 // Merge immutable versions of the same tree by key. An identical reference
 // skips its subtree.
@@ -1003,17 +1014,17 @@ struct TreeDifference {
   std::optional<Edit> next(const State& before,const State& after,std::size_t& steps) {
     while(steps && !done()) {
       --steps;
-      if(prior.entries.empty() && current.entries.empty() && prior.present() && current.present() &&
+      if(!prior.has_entries() && !current.has_entries() && prior.present() && current.present() &&
           prior.pending.back()==current.pending.back()) {
         prior.pending.pop_back();current.pending.pop_back();continue;
       }
       const bool old_first=prior.present() && (!current.present() || prior.first()<=current.first());
       const bool new_first=current.present() && (!prior.present() || current.first()<=prior.first());
-      if(old_first && prior.entries.empty() && (!new_first || !current.entries.empty() ||
+      if(old_first && !prior.has_entries() && (!new_first || current.has_entries() ||
           prior.pending.back().height>=current.pending.back().height)) {
         prior.open(before);continue;
       }
-      if(new_first && current.entries.empty()) {current.open(after);continue;}
+      if(new_first && !current.has_entries()) {current.open(after);continue;}
       if(!new_first)return Edit{prior.take().id,{}};
       const auto entry=current.take();
       if(!old_first || !(prior.take()==entry))return Edit{entry.id,entry};
@@ -1081,6 +1092,12 @@ struct Rebuild {
     if(folded)allocation.write_padding(*folded,next.unit);
     else allocation.write_padding(*next.image);
   }
+  Bytes readback(const Entry& entry) const {
+    if(!next.mirrored || folded)return read_object(next,entry);
+    Bytes bytes;
+    verify_object(next,entry,&bytes);
+    return bytes;
+  }
   void append_payload(Entry& entry,const RecordHeader& header,std::span<const std::byte> encoded,
       const Bytes& decoded) {
     allocation.place(next,entry,std::uint64_t{record_header_bytes}+entry.stored,payload_cursor);
@@ -1092,8 +1109,7 @@ struct Rebuild {
       folded->write_exact(offset,header);
       if(!encoded.empty())folded->write_exact(offset+header.size(),encoded);
     }else write_object_record(*next.image,entry,header,encoded,next.unit);
-    if(read_object(next,entry)!=decoded)fail("rebuild CPU comparison");
-    if(next.mirrored && !folded)verify_object(next,entry);
+    if(readback(entry)!=decoded)fail("rebuild CPU comparison");
     if(next.degraded_payloads)fail("rebuild produced degraded payload replicas");
     written_headers=detail::record_digest(written_headers,header);
   }
@@ -1211,7 +1227,7 @@ bool copy_rebuild_object(Rebuild& build,const State& original,const Entry& sourc
     const std::function<bool(std::uint64_t,std::span<const std::byte>)>* keep=nullptr,
     bool* cold_evaluated=nullptr) {
   auto source_record=read_record(original,source_entry);
-  auto bytes=decode_record(original,source_entry,source_record);
+  auto bytes=decode_record(original,source_entry,source_record.header,source_record.payload);
   if(keep && !(*keep)(source_entry.id,bytes))return false;
   if(source_entry.id==replacement_id)bytes.assign(replacement.begin(),replacement.end());
   auto record=prepare_rebuilt_object(build.next,source_entry,std::move(source_record),bytes,
@@ -1287,6 +1303,7 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
   std::optional<RebuildRetention> retention;
   std::optional<TreeFrontier> frontier;
   std::optional<LookupPages> comparison_source_pages;
+  Bytes verification_frames;
   std::optional<RebuildColdEncoding> cold;
   std::function<void(std::uint64_t)> folded_admission;
   struct CompressionScreen {
@@ -1390,27 +1407,15 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
     if(completed!=state.root.count || logical!=state.root.logical || stored!=state.root.stored)
       fail("staged verification inventory differs");
   }
-  template<class Visit> bool visit_quantum(const State& input,Visit&& visit) {
+  template<class Visit> bool visit_copy_quantum(const State& input,Visit&& visit) {
     if(!input.root.count)return false;
-    // The checkpoint is immutable during this pass. Batch small verification
-    // records from its checked leaf. Copying may encode, so it keeps its
-    // existing work unit. Large verification records still run alone.
     if(!frontier)frontier.emplace(TreeFrontier{{input.root},{}});
-    const bool verifying=phase!=PagedRewritePhase::copying;
-    std::size_t remaining=verifying || retention?(std::max)(std::size_t{1},leaf_capacity(input)/4):1;
-    std::uint64_t bytes_left=2*kStoreCommitUnit;
+    std::size_t remaining=retention?(std::max)(std::size_t{1},leaf_capacity(input)/4):1;
     const auto before=completed;
     while(remaining && frontier->present()) {
-      if(frontier->entries.empty()) {
-        if(verifying && completed!=before)break;
+      if(!frontier->has_entries()) {
         frontier->open(input);
         continue;
-      }
-      if(verifying) {
-        const auto& next=frontier->entries.back();
-        const auto bytes=std::uint64_t{next.logical}+next.stored+record_header_bytes;
-        if(completed!=before && bytes>bytes_left)break;
-        bytes_left-=(std::min)(bytes_left,bytes);
       }
       const auto entry=frontier->take();
       if(retention && entry.logical>retention->maximum_object_bytes)fail("oversized advisory record");
@@ -1419,6 +1424,51 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
       --remaining;
     }
     return completed!=before;
+  }
+  template<class Visit> bool verify_quantum(const State& input,bool verify_replicas,Visit&& visit) {
+    if(!input.root.count)return false;
+    if(!frontier)frontier.emplace(TreeFrontier{{input.root},{}});
+    while(frontier->present() && !frontier->has_entries())frontier->open(input);
+    const auto leaf=frontier->remaining_entries();
+    const auto limit=(std::min)(leaf.size(),(std::max)(std::size_t{1},leaf_capacity(input)/4));
+    // Keep the same per-step work budget and stay inside the checked leaf.
+    std::uint64_t bytes_left=2*kStoreCommitUnit;
+    std::size_t selected=0;
+    for(const auto& entry:leaf.first(limit)) {
+      const auto bytes=std::uint64_t{entry.logical}+entry.stored+record_header_bytes;
+      if(selected && bytes>bytes_left)break;
+      if(retention && entry.logical>retention->maximum_object_bytes)fail("oversized advisory record");
+      bytes_left-=(std::min)(bytes_left,bytes);
+      ++selected;
+    }
+    const auto accept=[&](const Entry& entry,Bytes bytes,bool survivor) {
+      visit(entry,std::move(bytes),survivor);
+      count(entry);
+    };
+    for(auto remaining=leaf.first(selected);!remaining.empty();) {
+      const auto run=input.mirrored && verify_replicas?mirrored_record_run(input,remaining):MirroredRecordRun{};
+      const auto entries=remaining.first(run.count);
+      if(run.count>1 && verify_stored_run(input,entries,run.bytes,verification_frames)) {
+        auto frames=std::span<const std::byte>(verification_frames).first(run.bytes);
+        for(const auto& entry:entries) {
+          accept(entry,decode_record(input,entry,frames.first<record_header_bytes>(),
+              frames.subspan(record_header_bytes,entry.stored)),false);
+          frames=frames.subspan(record_header_bytes+entry.stored);
+        }
+      } else {
+        // Gaps, bank boundaries and failed runs keep per-copy verification.
+        for(const auto& entry:entries) {
+          Bytes bytes;
+          bool survivor=false;
+          if(verify_replicas)survivor=verify_object(input,entry,&bytes);
+          else bytes=read_object(input,entry);
+          accept(entry,std::move(bytes),survivor);
+        }
+      }
+      remaining=remaining.subspan(run.count);
+    }
+    frontier->advance(selected);
+    return selected!=0;
   }
   void measure_compression() {
     auto& work=screen;
@@ -1479,16 +1529,13 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
     zeros(*target->lease.image,0,start);
     reset(PagedRewritePhase::copying);
   }
-  void compare(const State& source,const Entry& expected_entry,const Entry& entry,
+  void compare(const State& source,const Entry& expected_entry,const Entry& entry,std::span<const std::byte> actual,
       std::span<const std::byte> native_root) const {
     if(expected_entry.generation!=entry.generation || expected_entry.logical!=entry.logical)
       fail("staged target object differs");
     auto expected=read_object(source,expected_entry);
     if(entry.id==1 && !native_root.empty())expected.assign(native_root.begin(),native_root.end());
-    Bytes actual;
-    if(build.next.mirrored && !build.folded)verify_object(build.next,entry,&actual);
-    else actual=read_object(build.next,entry);
-    if(actual!=expected)fail("staged target CPU comparison");
+    if(!std::ranges::equal(actual,expected))fail("staged target CPU comparison");
   }
   void mark_ready(const State& current) {
     source_check(current);
@@ -1529,7 +1576,7 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
       remaining-=entry.logical;
       auto from=read_record(work.source,entry);
       const bool rebind=entry.id==1;
-      const auto decoded=rebind?Bytes{}:decode_record(work.source,entry,from);
+      const auto decoded=rebind?Bytes{}:decode_record(work.source,entry,from.header,from.payload);
       const auto& bytes=rebind?work.root:decoded;
       auto record=prepare_rebuilt_object(plan.next,entry,std::move(from),bytes,target->encoder,rebind);
       allocation.place(plan.next,record.entry,add(record_header_bytes,record.entry.stored),cursor);
@@ -1563,7 +1610,7 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
     if(const auto edit=work.edits.next(original,work.source,steps)) {
       const auto entry=lookup(build.next,edit->id);
       if(entry.has_value()!=edit->source.has_value())fail("reconciled rebuild membership differs");
-      if(entry)compare(work.source,*edit->source,*entry,work.root);
+      if(entry)compare(work.source,*edit->source,*entry,build.readback(*entry),work.root);
     }
     if(work.edits.done()) {
       original=std::move(work.source);
@@ -1581,9 +1628,8 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
     if(phase==PagedRewritePhase::screening_compression) {
       measure_compression();
     } else if(phase==PagedRewritePhase::verifying_source) {
-      const bool advanced=visit_quantum(original,[&](const Entry& entry) {
-        Bytes bytes;
-        if(verify_object(original,entry,&bytes) && capacity_damage==entry)repair_confirmed=true;
+      const bool advanced=verify_quantum(original,true,[&](const Entry& entry,Bytes bytes,bool survivor) {
+        if(survivor && capacity_damage==entry)repair_confirmed=true;
         if(entry.id==1 && !replacement.empty()) {
           original_root_stored=entry.stored;
           if(bytes.size()!=replacement.size() || replacement_identity_offset>bytes.size() ||
@@ -1621,7 +1667,7 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
     } else if(phase==PagedRewritePhase::awaiting_charge) {
       begin_copy(current);
     } else if(phase==PagedRewritePhase::copying) {
-      const bool advanced=visit_quantum(original,[&](const Entry& entry) {
+      const bool advanced=visit_copy_quantum(original,[&](const Entry& entry) {
         const bool improve=cold && entry.generation>cold->after_generation && cold->eligible(entry.id);
         bool evaluated=false;
         const auto kept=copy_rebuild_object(build,original,entry,target->encoder,replacement.empty()?0:1,
@@ -1656,10 +1702,10 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
       }
     } else if(phase==PagedRewritePhase::verifying_target || phase==PagedRewritePhase::verifying_publication) {
       if(!comparison_source_pages)comparison_source_pages.emplace();
-      if(!visit_quantum(build.next,[&](const Entry& entry){
+      if(!verify_quantum(build.next,!build.folded,[&](const Entry& entry,const Bytes& bytes,bool){
         const auto source=lookup(original,entry.id,&*comparison_source_pages);
         if(!source)fail("staged target object differs");
-        compare(original,*source,entry,replacement);
+        compare(original,*source,entry,bytes,replacement);
       })) {
         totals(build.next);
         if(phase==PagedRewritePhase::verifying_target)reset(PagedRewritePhase::publishing);
@@ -2625,7 +2671,7 @@ PagedPayloadRepairProgress PagedObjectStoreWriter::repair_payload() {
     const auto verified_copy=[&](std::uint64_t offset)->std::optional<ObjectRecord> {
       try {
         auto copy=read_record_at(source,*record,offset);
-        (void)decode_record(source,*record,copy);
+        (void)decode_record(source,*record,copy.header,copy.payload);
         return copy;
       }catch(const std::bad_alloc&){throw;}
       catch(const std::exception&){return {};}

@@ -94,16 +94,32 @@ follows the admitted depth of 16. The indexed native path uses the same
 staged layout with its paged namespace.
 Each verification and copy pass carries a checked tree cursor. Target comparison
 uses a bounded source lookup cache for that pass. A pass change resets both,
-so verification after publication reads the private image again. Mirror
-verification supplies the decoded bytes used by the comparison and still checks
-each stored copy. This preserves the per-step foreground yield point and the
-separate root, data and selector checks.
+so verification after publication reads the private image again.
+
+During copy, an independent two-copy readback supplies the decoded bytes for
+the comparison. During verification, adjacent frames in one checked leaf and
+one bank can share a backing read for each replica. The scanner checks both
+banks for equality, validates each record against its own descriptor and digest,
+and decodes the records for the individual CPU comparisons. A failed run
+triggers the existing per-copy checks. A source survivor can support recovery.
+A degraded target fails staging, including when a later reread succeeds. The
+per-step foreground yield point and separate data, root and selector checks
+remain part of the publication sequence.
 
 The indexed fixture reduced the count from 51 to 33 steps when preserving
 encodings and from 51 to 29 when re-encoding. Both 4-KiB and 64-KiB
 failure-unit models kept the same maximum measured I/O bytes per step.
 The same 1,413 write and barrier cuts ran against the new geometry.
 [Rebuild and mounted trace evidence](evidence/windows-ordinary-reclamation-progress-2026-11-25.json)
+
+In the 1,024-record mirrored fixture, copy readback changed from 3,495 backing
+reads to 2,330. Each packed-target verification pass changed from 2,370 reads
+to 1,020 and checked 1,325,492 bytes. The fragmented-source fixture showed the
+same target gains. Its source scan retained the original cost, since the live
+source records crossed gaps. The measurements count provider calls in the
+Windows-host memory fixture. The two separate faults in a target run were
+rejected before and after the private root publication.
+[Coalesced rebuild verification evidence](evidence/windows-rebuild-verification-reads-2026-11-25.json)
 
 Resource admission remains the provider/controller's responsibility. There is
 no thread, service, timer, online model or GPU launch. An OS flush can still
