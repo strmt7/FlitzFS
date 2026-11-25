@@ -91,6 +91,15 @@ executing synchronous call or publication holds its existing boundary.
 [PDH sample intervals](https://learn.microsoft.com/en-us/windows/win32/perfctrs/collecting-performance-data) ·
 [Windows resource priorities](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadpriority)
 
+A pending read forecast can use the remaining host window when the group
+controller defers for duty and no anchor acquisition or batch is
+waiting. The read still needs fresh memory, measured backing allowance and
+an unchanged foreground epoch. The group keeps its existing duty balance.
+A matched WinFsp callback fixture reproduced the skipped forecast on the
+previous controller. The corrected controller delivered exact bytes on CPU
+and on a physical Radeon, while the group remained pending.
+[Read preparation during group duty](evidence/windows-read-ahead-group-duty-2026-11-25.json)
+
 The helper measures complete elapsed time across the admitted steps, including
 collection, residency checks and priority overhead. It paces subsequent work at a 1%
 elapsed-work target in addition to the core's own accounting. Foreground

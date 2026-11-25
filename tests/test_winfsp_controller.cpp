@@ -607,10 +607,13 @@ void read_capture_pins_selected_image() {
   std::cout<<"read_capture_pin retained_selected_version=1 later_write_exact=1 protected_from_retirement=1"
       <<" retired_after_release=1 reclaimed_locked_bytes="<<before.resident-after.resident<<'\n';
 }
-void live_read_ahead_admission() {
+void live_read_ahead_admission(bool group_duty,std::optional<NativeLz4ReadWorkerProfile> worker={}) {
   require(store_lz4_available(),"live read-ahead requires the pinned LZ4 decoder");
-  read_capture_pins_selected_image();
-  require(MemoryVolumeDomain::cleanup_healthy(),"capture fixture failed to retire its memory domain");
+  const bool device=worker.has_value();
+  if(!group_duty) {
+    read_capture_pins_selected_image();
+    require(MemoryVolumeDomain::cleanup_healthy(),"capture fixture failed to retire its memory domain");
+  }
   constexpr std::uint64_t extent=kNativeExtentBytes,image_capacity=8ULL*1024*1024;
   constexpr StoreCompressionOptions fast{StoreCompressionMode::fast,1,false};
   auto domain=MemoryVolumeDomain::create(image_capacity+kVolumeHeadBytes);
@@ -618,13 +621,16 @@ void live_read_ahead_admission() {
   auto image=std::make_shared<DelayedLookaheadBacking>(domain.create_store(image_capacity));
   NativeMaintenancePolicy qualification;
   qualification.maximum_cpu_busy_ppm=500'000;
+  if(group_duty)qualification.work_share_ppm=1;
   auto adapter=WinFspNativeWritable::create_managed_indexed(head,id(90),image,id(1),{image_capacity},fast,{},qualification);
   require(adapter->enable_native_lz4_read_ahead(),"read-ahead controller could not enable the checked route");
   auto* route=adapter.get();
   Provider provider;
   Provider::active=&provider;
-  WinFspVolumeController controller(std::move(adapter),provider.api(),plan(),domain);
+  WinFspVolumeController controller(std::move(adapter),provider.api(),plan(),domain,
+      std::nullopt,nullptr,std::move(worker));
   await([&]{return controller.view().state==SessionState::running;},5000,"read-ahead controller startup deadline");
+  if(device)require(!controller.view().amd_read.configuration_refused,"read-ahead worker package did not verify");
 
   std::array<Bytes,3> frames{Bytes(extent),Bytes(extent),Bytes(extent)};
   // Two logical holes establish sequential access. The trailing stored extent
@@ -637,6 +643,12 @@ void live_read_ahead_admission() {
   callback_file(provider,0,file,kNativeExtentBytes);
   await([&]{return controller.view().payload_scrub_passes>0 && !route->background_maintenance_pending();},
       12000,"initial maintenance never returned idle credit");
+  if(group_duty) {
+    image->delay_next_idle_read();
+    callback_file(provider,1,data(extent,918),kNativeExtentBytes);
+    await([&]{return controller.view().maintenance.deferral==NativeMaintenanceDeferral::duty;},
+        14000,"pending group work never became duty limited");
+  }
   auto* fs=&provider.fs;
   wchar_t name[]=L"\\f0";
   PVOID context=nullptr;
@@ -665,6 +677,23 @@ void live_read_ahead_admission() {
   const auto fast_sample=controller.view().maintenance_backing;
   demand(2);
   require(route->native_lz4_read_ahead_hits()==1,"controller did not deliver the prepared frame");
+  if(group_duty) {
+    const auto state=controller.view();
+    require(state.maintenance.deferral==NativeMaintenanceDeferral::duty && !state.maintenance_quiescent &&
+        route->background_maintenance_pending(),"read-ahead bypassed or cleared group duty debt");
+    if(device)require(state.amd_read.submitted==1 && state.amd_read.published==1 &&
+        state.amd_read.verified_frames==1 && state.amd_read.retirement_confirmed && !state.amd_read.failures,
+        "controller did not deliver a verified AMD frame during group duty");
+    require(route->snapshot().read("f0",0,static_cast<std::uint32_t>(file.size()))==file,
+        "independent CPU view differs after read-ahead");
+    callback_cleanup_close(provider,context);
+    controller.stop_and_join();
+    require(controller.view().retired && !controller.view().controller_failed &&
+        provider.fs.UserContext==nullptr,"duty-limited read-ahead controller did not retire");
+    std::cout<<"read_ahead_during_group_duty exact_hits=1 duty_retained=1 owner_retired=1"
+        <<" verified_amd_frames="<<state.amd_read.verified_frames<<" independent_cpu=exact\n";
+    return;
+  }
   // Replace the next forecast with a new run over the same backing and arm
   // one slow call before its target becomes eligible.
   demand(0);
@@ -724,12 +753,7 @@ void live_read_ahead_admission() {
       <<" slow_demand_kept_limit=1 timer_only_retries=0 demand_recovered=1 exact_cpu_fallback=1 owner_retired=1\n";
 }
 enum class AmdReadFixtureLayout {mirrored,prepared,automatic_sealed,reopened_pair,reopened_dense};
-int live_amd_read_ahead(char** argv,bool refuse,AmdReadFixtureLayout layout=AmdReadFixtureLayout::mirrored) {
-  const bool sealed=layout!=AmdReadFixtureLayout::mirrored;
-  const bool automatic=layout==AmdReadFixtureLayout::automatic_sealed;
-  const bool dense=layout==AmdReadFixtureLayout::reopened_dense;
-  const bool paired=layout==AmdReadFixtureLayout::reopened_pair || dense;
-  require(store_lz4_available(),"owned AMD read-ahead requires a qualified CPU LZ4 decoder");
+NativeLz4ReadWorkerProfile amd_read_fixture_profile(char** argv,bool refuse,std::uint32_t frames) {
   const auto number=[](std::string_view value) {
     std::uint32_t result=0;
     const auto parsed=std::from_chars(value.data(),value.data()+value.size(),result);
@@ -757,8 +781,18 @@ int live_amd_read_ahead(char** argv,bool refuse,AmdReadFixtureLayout layout=AmdR
   profile.wave_mask=number(argv[10]);
   profile.node_mask=1;
   profile.worker={160,1200,14000,16};
-  profile.minimum_frames=profile.maximum_frames=2;
+  profile.minimum_frames=profile.maximum_frames=frames;
   profile.maximum_slab_bytes=256U*1024U;
+  return profile;
+}
+
+int live_amd_read_ahead(char** argv,bool refuse,AmdReadFixtureLayout layout=AmdReadFixtureLayout::mirrored) {
+  const bool sealed=layout!=AmdReadFixtureLayout::mirrored;
+  const bool automatic=layout==AmdReadFixtureLayout::automatic_sealed;
+  const bool dense=layout==AmdReadFixtureLayout::reopened_dense;
+  const bool paired=layout==AmdReadFixtureLayout::reopened_pair || dense;
+  require(store_lz4_available(),"owned AMD read-ahead requires a qualified CPU LZ4 decoder");
+  auto profile=amd_read_fixture_profile(argv,refuse,2);
   constexpr std::uint64_t extent=kNativeExtentBytes,image_capacity=8ULL*1024*1024;
   constexpr std::size_t window=2*extent;
   constexpr StoreCompressionOptions fast{StoreCompressionMode::fast,1,false};
@@ -5057,6 +5091,10 @@ int main(int argc,char** argv){try {
   }
   if(argc==11) {
     const std::string_view command(argv[1]);
+    if(command=="--live-amd-read-ahead-group-duty") {
+      live_read_ahead_admission(true,amd_read_fixture_profile(argv,false,1));
+      return 0;
+    }
     if(command=="--live-amd-read-ahead" || command=="--live-amd-read-refusal")
       return live_amd_read_ahead(argv,command=="--live-amd-read-refusal");
     if(command=="--live-amd-sealed-read-ahead" || command=="--live-amd-sealed-read-refusal")
@@ -5130,7 +5168,8 @@ int main(int argc,char** argv){try {
   const bool remount=argc==2 && std::string_view(argv[1])=="--memory-remount";
   const bool volume_file=argc==2 && std::string_view(argv[1])=="--volume-file";
   const bool indexed_startup=argc==2 && std::string_view(argv[1])=="--indexed-startup-profile";
-  const bool read_ahead=argc==2 && std::string_view(argv[1])=="--live-read-ahead";
+  const bool read_ahead_group_duty=argc==2 && std::string_view(argv[1])=="--live-read-ahead-group-duty";
+  const bool read_ahead=read_ahead_group_duty || (argc==2 && std::string_view(argv[1])=="--live-read-ahead");
   const bool amd_cpu_replay=argc==2 && std::string_view(argv[1])=="--amd-write-cpu-replay";
   const bool amd_cpu_group=argc==2 && std::string_view(argv[1])=="--amd-write-cpu-group";
   const bool amd_write_pair=argc==2 && std::string_view(argv[1])=="--amd-write-pair";
@@ -5157,7 +5196,7 @@ int main(int argc,char** argv){try {
   require(GetProcessHandleCount(GetCurrentProcess(),&before)!=FALSE,"initial handle count");
   if(argc==1){windows_processor_windows();backing_maintenance_window();event_ownership();lifecycle();idle_until_owner_stop(100);invalid_and_unexpected();live_opportunities();}
   else if(lifetime_only)idle_until_owner_stop(31000);
-  else if(read_ahead)live_read_ahead_admission();
+  else if(read_ahead)live_read_ahead_admission(read_ahead_group_duty);
   else if(amd_cpu_replay || amd_cpu_group)amd_write_cpu_replay(true,amd_cpu_group);
   else if(amd_write_arrival) {
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE

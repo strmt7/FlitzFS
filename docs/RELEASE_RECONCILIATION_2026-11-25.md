@@ -17,6 +17,7 @@ earlier inventory at `de071e9` covered checked sampling, the Zstandard
 update and two changes to grouped AMD delivery. Each signed replay,
 physical AMD run and local profile carries its own source identity.
 [Current code, checks and research receipts](evidence/windows-persistent-inline-reconciliation-2026-11-25.json) ·
+[Controller admission and physical AMD evidence](evidence/windows-read-ahead-group-duty-2026-11-25.json) ·
 [Implementation priorities](#next-decisions-ranked-by-expected-gain)
 [Protected size, source inventory and current decisions](evidence/windows-protected-size-frontier-2026-11-25.json) ·
 [Indexed sampling and source evidence](evidence/windows-indexed-sample-scope-2026-11-25.json) ·
@@ -575,7 +576,7 @@ Attribute resource cost and remaining work before changing either phase.
 | S1 · Exact artifacts | Current scoped builds bind source and SDK/CPU artifacts. Earlier real device runs identify their exact ROCm binaries. | Bind one clean Windows 11 update, signed WinFsp pair, helper, workers, CPU decoder table and backing capabilities to the acceptance run. |
 | S2 · Scale | Paged inodes, names and extents are live. Checked replica reads group adjacent frames in a leaf. A single checked view now supplies each maintenance sample. Writable startup still walks the inventory. | Verify bounded attach under a versioned authority contract. Fit and validate separate named-file curves for attach, restart, enumeration, mutation and resident memory. |
 | S3 · Space reuse | The single-view replay released backing bytes while mounted, reported zero maintenance failures and independently verified all 1,027 files. It reached 610 sampled extents with duty still pending. | Trace work grants and refused continuation to the pending cursor. Verify advisory quiescence and repeated settlement under churn, pressure and interruption. |
-| S4 · AMD and CPU continuity | The physical adaptive window consumed four verified Radeon extents after two early CPU extents. The SDK and earlier physical prefix remain available as separate controls. | Prove an automatic region that beats CPU on the installed-client path. Retain the separate write and collective gates. |
+| S4 · AMD and CPU continuity | The physical adaptive window consumed four verified Radeon extents after two early CPU extents. A fixed controller admitted a verified Radeon frame and exact CPU preparation in matched callback runs while group duty was pending. | Prove an automatic region that beats CPU on the installed-client path. Retain the separate write and collective gates. |
 | S5 · Compression | Inline data saved 168 KiB on a held-out named tree, including the selector and both recovery copies. A signed memory mount and CPU reopen passed. Fresh volume-file creation passed both inline transitions with modeled failures. | Measure complete settled size on a matched persistent named tree. Qualify gradual migration and useful shortlist recall, and extend the held-out frontier with range and write costs. |
 | S6 · Autonomy | Persistent sparse advice, workload samples, yield ranking and resource admission run in the controller. The candidate sampled the same extents with 22–35% fewer backing calls in two local fixtures. | Measure learning benefit, time to settle, interference, per-volume fairness and bytes written per byte reclaimed across workloads and restart. |
 | S7 · Windows experience | The helper and WinFsp own memory and supported file-backed volumes. Signed guests exercised external clients and verified reopen. | Qualify Explorer and independent apps with the signed candidate. Cover sharing, mapped and cached I/O, names, metadata, repair and clean teardown. |
@@ -1218,6 +1219,16 @@ semantics constrain every optimization.
    costs for writes and seek locality.
 
 ### Ready AMD and continuous CPU service
+
+The controller previously waited for group maintenance to be idle before
+preparing a pending read. The fixture held pending group work behind its
+existing duty balance and recorded an unserved forecast on the old
+controller. The corrected controller gave the forecast a chance to use
+the remaining host window, then consumed exact prepared bytes without
+advancing the group. The physical Radeon run used the same source change
+and verified an independently decodable frame through the actual worker
+and WinFsp callbacks.
+[Before and after evidence](evidence/windows-read-ahead-group-duty-2026-11-25.json)
 
 1. Use the normal helper's `winfsp_controller.cpp` and
    `IndexedVolumeView::capture_group_range` as the read entry points.

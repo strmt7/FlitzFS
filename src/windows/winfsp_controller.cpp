@@ -333,8 +333,13 @@ struct WinFspVolumeController::Impl {
                   if(!observed.continued && read_worker && !interrupted())
                     read_ahead_prepared=read_worker->verify_and_publish(
                         *adapter,observed,GetTickCount64(),stop_requested);
+                  // A group duty refusal consumes no group work. A pending
+                  // read can use the remaining host window under its own
+                  // backing and memory admission.
+                  const bool group_yielded=step.continuation==Continuation::group &&
+                      step.progress.deferral==NativeMaintenanceDeferral::duty && !waiting_for_accelerator();
                   const auto demand_sample=!read_ahead_prepared && !observed.continued &&
-                      step.state==WinFspMaintenanceState::unchanged && !interrupted()?
+                      (step.state==WinFspMaintenanceState::unchanged || group_yielded) && !interrupted()?
                       adapter->take_native_lz4_read_ahead_sample(epoch):std::nullopt;
                   if(demand_sample) {
                     read_ahead_timing.observe(*demand_sample);

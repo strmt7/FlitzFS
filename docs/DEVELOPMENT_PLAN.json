@@ -36,6 +36,7 @@
     "latest_protected_size_evidence": "docs/evidence/windows-protected-size-frontier-2026-11-25.json",
     "latest_short_file_inline_evidence": "docs/evidence/windows-inline-small-files-2026-11-25.json",
     "latest_named_inline_and_adaptive_read_evidence": "docs/evidence/windows-inline-named-and-adaptive-read-2026-11-25.json",
+    "latest_read_duty_evidence": "docs/evidence/windows-read-ahead-group-duty-2026-11-25.json",
     "short_file_layout_design": "docs/architecture/ADAPTIVE_STORAGE_EXECUTION.md#protected-short-files-and-complete-size",
     "latest_persistent_shift_evidence": "docs/evidence/release-reconciliation-rolling-lookups-2026-11-25.json",
     "initial_rolling_key_evidence": "docs/evidence/indexed-shifted-coherence-2026-11-25.json",
@@ -1243,18 +1244,18 @@
     "next": "Do not repeat the unchanged case. Implement configuration/recovery keyed complete-cost acquisition and useful comparisons for automatic Windows integration; continue independent CPU recovery, minimum-total-size collective learning and full product gates."
   },
   "current_round": {
-    "source_base": "62f34534c35d3c0a77bf770ba870db70bcd14a33",
-    "contract": "docs/INDEXED_NATIVE_VOLUME.md#inline-short-file-data",
-    "evidence": "docs/evidence/windows-persistent-inline-reconciliation-2026-11-25.json",
-    "status": "Fresh dense and range volume-file creation enables inline short files. Independent CPU reopen verified both representation transitions in 372 modeled interruptions.",
-    "selected_ctest_passed": 14,
-    "actual_gpu_fixture": false,
+    "source_base": "0266f99b03171fbcb44b41634f88f389563631f0",
+    "contract": "docs/WINDOWS_BACKGROUND_MAINTENANCE.md#trusted-opportunities-and-resource-priority",
+    "evidence": "docs/evidence/windows-read-ahead-group-duty-2026-11-25.json",
+    "status": "An unused group-duty opportunity now admits a valid demand forecast through the existing host budget. The corrected controller delivered exact prepared bytes on CPU and physical AMD while group work waited.",
+    "selected_ctest_passed": 3,
+    "actual_gpu_fixture": true,
     "local_mount": false,
     "comparative_benefit_proven": false,
     "ordinary_gpu_route": false,
     "release": false,
     "full_goal_status": "active",
-    "next": "Follow next_highest_impact_work in current_release_sequence."
+    "next": "Measure ordinary mounted settlement and real CPU versus AMD demand using the shared client trace."
   },
   "historical_amd_runtime_discovery_round": {
     "source_base": "a513e0dc9ae35ed0b9c27e52da2df0d4d40bbb02",

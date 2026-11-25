@@ -564,6 +564,13 @@ write shape. [Stream copy and stage evidence](../evidence/windows-amd-stream-cop
 
 ### Prepared grouped read-ahead
 
+The controller can prepare a demanded read when pending group work has
+deferred for duty. The read uses the remaining measured host window and
+its own backing and memory admission. An active anchor acquisition
+or anchor batch retains its grant. Read capture and delivery still bind
+to a checked checkpoint and stream revision.
+[Controller and device evidence](../evidence/windows-read-ahead-group-duty-2026-11-25.json)
+
 An approved nonzero submission-lead profile lets the controller reserve a
 single packed or mixed group before pulling the protected payload. It keeps
 the forecast's exact snapshot and range identity. The checked capture can

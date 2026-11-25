@@ -6,6 +6,18 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "read_ahead_during_group_duty": {
+    "source_base": "0266f99b03171fbcb44b41634f88f389563631f0",
+    "evidence": "docs/evidence/windows-read-ahead-group-duty-2026-11-25.json",
+    "old_controller_left_forecast_pending": true,
+    "cpu_and_amd_callback_hits": [1, 1],
+    "device_verified_frames": 1,
+    "group_duty_preserved": true,
+    "independent_cpu_readback_exact": true,
+    "workers_retired": true,
+    "installed_mounted_speedup_qualified": false,
+    "next": "Carry the same callback path into an ordinary mounted demand trace with measured CPU and ready AMD service."
+  },
   "persistent_inline_creation": {
     "source_base": "62f34534c35d3c0a77bf770ba870db70bcd14a33",
     "evidence": "docs/evidence/windows-persistent-inline-reconciliation-2026-11-25.json",
