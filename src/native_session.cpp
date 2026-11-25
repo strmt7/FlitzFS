@@ -660,7 +660,9 @@ NativeFileSession NativeFileSession::create_volume_impl(std::shared_ptr<StoreByt
   auto writer=[&] {
     if(storage.kind==NativeImageKind::flat)
       return NativeFilesystemWriter::initialize(ObjectStoreWriter::create(image,image_id,foreground,checkpoints));
-    auto objects=PagedObjectStoreWriter::create_mirrored(image,image_id,{storage.maximum_physical_bytes},foreground);
+    const auto layout=storage.kind==NativeImageKind::indexed_paged?
+        PagedStoreBankLayout::shared:PagedStoreBankLayout::separate;
+    auto objects=PagedObjectStoreWriter::create_mirrored(image,image_id,{storage.maximum_physical_bytes},foreground,layout);
     if(storage.kind==NativeImageKind::indexed_paged)
       return NativeFilesystemWriter::initialize_indexed(std::move(objects),data_layout);
     return NativeFilesystemWriter::initialize_shared_bases(std::move(objects));

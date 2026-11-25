@@ -323,10 +323,11 @@ void remove_all_keys() {
   require(writer.snapshot().info().objects==0 && writer.snapshot().info().height==0,"empty tree retained branch");
   apply(writer,put(43));require(writer.snapshot().read(43)==payload(43),"empty tree did not regrow");
 }
-void append_write_accounting() {
+void append_write_accounting(PagedStoreBankLayout layout=PagedStoreBankLayout::separate) {
+  const bool shared=layout==PagedStoreBankLayout::shared;
   for(const auto unit:{4096U,65536U}) {
     auto ram=std::make_shared<Ram>();ram->unit=unit;
-    auto writer=PagedObjectStoreWriter::create_mirrored(ram,identity(),limits,{StoreCompressionMode::raw,6,false});
+    auto writer=PagedObjectStoreWriter::create_mirrored(ram,identity(),limits,{StoreCompressionMode::raw,6,false},layout);
     auto check_append=[&](std::span<const StoreMutation> changes) {
       constexpr std::uint64_t root_write_bytes=2*4096;
       const auto before_extent=ram->extent(),before_writes=ram->write_bytes;
@@ -335,7 +336,7 @@ void append_write_accounting() {
       const auto committed=writer.commit(changes);
       const auto growth=committed.physical_end-before_extent;
       const auto written=ram->write_bytes-before_writes;
-      std::cout<<"append_write_accounting unit="<<unit<<" records="<<changes.size()
+      std::cout<<"append_write_accounting unit="<<unit<<" shared="<<shared<<" records="<<changes.size()
           <<" growth="<<growth<<" written="<<written<<" writes="<<ram->writes-writes
           <<" reads="<<ram->read_calls-reads<<" read_bytes="<<ram->read_bytes-read_bytes
           <<" flushes="<<ram->flushes-flushes<<" image_digest=";
@@ -352,8 +353,33 @@ void append_write_accounting() {
       require(recovered.info().generation==committed.generation,"append root generation");
       for(const auto& change:changes)require(recovered.read(change.id)==change.bytes,"append readback");
       recovered.verify_all();
+      return growth;
     };
-    const auto small=put(1);check_append(std::span(&small,1));
+    const auto small=put(1);
+    const auto can_share=shared && unit>4096;
+    require(check_append(std::span(&small,1))==(can_share?2:4)*std::uint64_t{unit},
+        "small append did not use the expected number of bank pairs");
+    require(ram->stable[8]==static_cast<std::byte>(can_share?3:2),"unexpected bank layout capability");
+    if(can_share) {
+      const auto bank=get64(ram->stable,104)/unit*unit;
+      for(const auto peer:{0U,1U}) {
+        auto damaged=ram->stable;
+        std::fill_n(damaged.begin()+static_cast<std::ptrdiff_t>(bank+peer*unit),unit,std::byte{});
+        auto recovered=PagedObjectStoreSnapshot::open(image(damaged,unit),limits);
+        require(recovered.info().degraded_metadata && recovered.read(small.id)==small.bytes,
+            "loss of a shared failure unit lost both copies");
+        recovered.verify_all();
+      }
+      auto incompatible=ram->stable;
+      incompatible[8]=std::byte{2};
+      digest(incompatible,0);
+      rejects([&]{(void)PagedObjectStoreSnapshot::open(image(incompatible,unit),limits);},
+          "different capabilities in a root pair were accepted");
+      incompatible[kStoreCommitUnit+8]=std::byte{2};
+      digest(incompatible,kStoreCommitUnit);
+      rejects([&]{(void)PagedObjectStoreSnapshot::open(image(incompatible,unit),limits);},
+          "separate-bank grammar accepted a shared leaf");
+    }
     populate(writer,1024);
     std::vector<StoreMutation> scattered;
     for(std::uint64_t id=1;id<=1024;id+=4)scattered.push_back({id,false,Bytes(21,std::byte{0x62})});
@@ -361,10 +387,11 @@ void append_write_accounting() {
   }
 }
 
-void failure_matrix(std::uint32_t unit,bool mirrored=false) {
+void failure_matrix(std::uint32_t unit,bool mirrored=false,
+    PagedStoreBankLayout layout=PagedStoreBankLayout::separate) {
   auto base=std::make_shared<Ram>();base->unit=unit;
   {auto w=mirrored?PagedObjectStoreWriter::create_mirrored(base,identity(),limits,
-        {StoreCompressionMode::raw,6,false}):create(base);
+        {StoreCompressionMode::raw,6,false},layout):create(base);
     populate(w,130);}
   const auto before=base->stable;
   const auto changed_bytes=mirrored?unit+127:912;
@@ -404,7 +431,7 @@ void failure_matrix(std::uint32_t unit,bool mirrored=false) {
     require(ram->damaged_read_at==UINT64_MAX && w.poisoned() && ram->stable==before,
         "failed replica readback reached a publication fence");
   }
-  std::cout<<"failure_matrix unit="<<unit<<" mirrored="<<mirrored
+  std::cout<<"failure_matrix unit="<<unit<<" mirrored="<<mirrored<<" shared="<<(layout==PagedStoreBankLayout::shared)
       <<" operations="<<operations<<" modes=3\n";
 }
 void damage_and_malformed() {
@@ -612,7 +639,12 @@ int main(int argc,char** argv) {
     else if(argc==2 && std::string_view(argv[1])=="--mirrored-append") {
       append_write_accounting();failure_matrix(4096,true);failure_matrix(65536,true);
     }
-    else if(argc==1) {append_write_accounting();paged_coherence_catalog();
+    else if(argc==2 && std::string_view(argv[1])=="--shared-banks") {
+      append_write_accounting();append_write_accounting(PagedStoreBankLayout::shared);
+      failure_matrix(65536,true,PagedStoreBankLayout::shared);
+    }
+    else if(argc==1) {append_write_accounting();append_write_accounting(PagedStoreBankLayout::shared);
+      failure_matrix(65536,true,PagedStoreBankLayout::shared);paged_coherence_catalog();
       coherence_projection_transition(false);coherence_projection_transition(true);
       basic_and_oracle();remove_all_keys();
       failure_matrix(4096);failure_matrix(65536);failure_matrix(4096,true);failure_matrix(65536,true);

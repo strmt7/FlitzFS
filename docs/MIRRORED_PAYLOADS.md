@@ -1,12 +1,13 @@
 # Mirrored paged payloads (experimental)
 
-`PagedObjectStoreWriter::create_mirrored` explicitly creates a new capability-2
-paged image. Every logical object, including native roots, inodes, names and data,
-has two independently checked encoded streams in separate qualified allocation
-units. CPU reading can select the surviving copy. This provides a redundancy
-primitive for future shared decoder dependencies; no grouped/model codec is added.
-Ordinary `create` retains capability 1 and its existing bytes. No existing image
-is upgraded, rewritten, selected or removed automatically.
+`PagedObjectStoreWriter::create_mirrored` creates a new paged image with
+capability 2 by default. Fresh indexed sessions select capability 3
+when the qualified failure unit is larger than an index page.
+Every logical object, including native roots, inodes, names and data,
+has two independently checked encoded streams in separate qualified
+allocation units. The CPU reader can select the surviving copy.
+Ordinary `create` keeps capability 1. Reopen and rebuild preserve the
+selected capability of an existing image.
 Paged-storage capabilities (`FLTXPG01`) and native-namespace capabilities
 (`FLTXPN01`) are separate. Mirrored storage can contain any of the three native
 layouts; indexed names alone do not enable payload mirroring.
@@ -15,9 +16,11 @@ layouts; indexed names alone do not enable payload mirroring.
 
 Root/page magics, 4-KiB pages, root positions, reference fields, publication
 barriers and record codecs retain the contracts in [paged storage](PAGED_OBJECT_STORE.md).
-Root and page capability fields are **2** for mirrored images. New readers accept
-both capabilities; old readers reject capability 2. Mixing the two in a root
-pair or tree is invalid. This changes storage encoding, not a product version.
+The page capability field is **2** for both mirrored layouts. The
+root selects capability **2** for separate payload and index banks
+or **3** for placement that can share a fresh pair. Both intact root
+slots must agree on capability. Earlier readers reject an intact
+unsupported root. A new reader can open all three capabilities.
 
 Mirrored leaves hold at most 55 entries, each 72 bytes; branches retain 35
 references. Integers remain little-endian. An entry contains:
@@ -46,10 +49,25 @@ and checked arithmetic. A primary starts in an even unit; its peer starts at
 `A + U`. The two streams therefore never share a failure unit, including when
 one record spans many units. The peer pointer, full stream bounds, identity,
 generation, lengths, codec, stored digest and independently decoded bytes must
-agree before exposure. Both streams precede their owning leaf page.
+agree before exposure.
 
-Unused bank tails are zeroed and sealed before metadata publication. Subsequent
-transactions never reuse acknowledged bank padding. Packing avoids per-object
+Capability 2 places both copies before the leaf's primary page.
+Capability 3 bounds each copy by its corresponding leaf page. The
+primary payload and metadata occupy even banks, with their peers in
+the following odd banks. The writer can place the first metadata
+page after the payload in the same pair when a page fits after
+alignment. The page stream can continue in additional pairs.
+The writer zeroes the alignment gap and the final tails, reads both
+payload copies independently and uses the existing root flushes.
+
+The 64 KiB model saved one complete bank pair on the single-record
+commit and on the 256-record scattered update. In the 4 KiB model
+the requested and ordinary layouts produced identical persisted
+images. The signed WinFsp guest replay verified the same external
+operations and CPU file contents at lower backing allocation.
+[Layout and recovery checks](evidence/windows-shared-mirrored-banks-2026-11-25.json)
+
+Subsequent transactions never reuse acknowledged bank padding. Packing avoids per-object
 rounding; redundancy still costs approximately two encoded streams plus headers,
 bank tails and the larger index. Complete image/history bytes must always be
 charged. `PagedStoreInfo::stored_payload_bytes` includes both payload copies;

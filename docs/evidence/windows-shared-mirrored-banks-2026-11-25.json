@@ -1,0 +1,349 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "qualification": "experimental",
+  "source": {
+    "base_commit": "cc0455593f0973773c11a15a1289f802dadb3d6c",
+    "base_tree": "90414893e815604cd95107594630aedf93cbedfc",
+    "tested_tree": "dae5f9bcd7fcc2dcfacbed34349bae0235f1735a",
+    "changed_source_blobs": {
+      "include/flitzfs/paged_store.hpp": "191eafad2f12d32577f2f57acebc06312cbed19b",
+      "src/native_session.cpp": "e0804ce3044f93a6a9926d0315eb17de0b3ecc94",
+      "src/paged_store.cpp": "32d5e1d7b0745a11658b9810197309d0906310c7",
+      "tests/test_paged_store.cpp": "19b77da7ff9a223c9f035f977a27545d1a06d7a4"
+    }
+  },
+  "memory_backed_paged_tests": {
+    "separate_and_shared_layouts": [
+      {
+        "unit": 4096,
+        "shared": 0,
+        "records": 1,
+        "growth": 16384,
+        "written": 24576,
+        "writes": 10,
+        "reads": 8,
+        "read_bytes": 24864,
+        "flushes": 3,
+        "image_digest": "7ac9b79388421b79/42b8a714dddc5ec4/55a7920c8fa66b36/87698caa506360ef/"
+      },
+      {
+        "unit": 4096,
+        "shared": 0,
+        "records": 256,
+        "growth": 253952,
+        "written": 262144,
+        "writes": 66,
+        "reads": 66,
+        "read_bytes": 264704,
+        "flushes": 3,
+        "image_digest": "81d13da476f9080d/50433bdec4dbbfeb/10760dd9992825a2/6687ade566057beb/"
+      },
+      {
+        "unit": 65536,
+        "shared": 0,
+        "records": 1,
+        "growth": 262144,
+        "written": 270336,
+        "writes": 70,
+        "reads": 8,
+        "read_bytes": 24864,
+        "flushes": 3,
+        "image_digest": "db7bb8d3a7841f12/3c4e5601a7c730f0/d61ab6bec10225f2/69b65e8051b8e04f/"
+      },
+      {
+        "unit": 65536,
+        "shared": 0,
+        "records": 256,
+        "growth": 393216,
+        "written": 401408,
+        "writes": 82,
+        "reads": 48,
+        "read_bytes": 264704,
+        "flushes": 3,
+        "image_digest": "89406f5917f57826/51f82603828bf5e6/55c897f82c67da7c/8fe12cc0d878c07c/"
+      },
+      {
+        "unit": 4096,
+        "shared": 1,
+        "records": 1,
+        "growth": 16384,
+        "written": 24576,
+        "writes": 10,
+        "reads": 8,
+        "read_bytes": 24864,
+        "flushes": 3,
+        "image_digest": "7ac9b79388421b79/42b8a714dddc5ec4/55a7920c8fa66b36/87698caa506360ef/"
+      },
+      {
+        "unit": 4096,
+        "shared": 1,
+        "records": 256,
+        "growth": 253952,
+        "written": 262144,
+        "writes": 66,
+        "reads": 66,
+        "read_bytes": 264704,
+        "flushes": 3,
+        "image_digest": "81d13da476f9080d/50433bdec4dbbfeb/10760dd9992825a2/6687ade566057beb/"
+      },
+      {
+        "unit": 65536,
+        "shared": 1,
+        "records": 1,
+        "growth": 131072,
+        "written": 139264,
+        "writes": 38,
+        "reads": 8,
+        "read_bytes": 24864,
+        "flushes": 3,
+        "image_digest": "fda4098dfe32f2c7/d8fa4d32ea00b6bf/64e1dd05b09c5e2d/e92d488b06fed9c6/"
+      },
+      {
+        "unit": 65536,
+        "shared": 1,
+        "records": 256,
+        "growth": 262144,
+        "written": 270336,
+        "writes": 50,
+        "reads": 48,
+        "read_bytes": 264704,
+        "flushes": 3,
+        "image_digest": "d7cbe2965ba08c3b/8fb486f202053cc1/fd54ff9f807e6078/8f3a3f9a3e2df9a7/"
+      }
+    ],
+    "unchanged_4k_image_digest": true,
+    "modeled_shared_64k_interruption_cases": 117,
+    "verified_survivor_after_loss_of_either_bank": true,
+    "incompatible_root_pairs_and_shared_leaf_under_separate_grammar_rejected": true,
+    "selected_windows_ctest_passes": 25,
+    "raw_selected_passes": 2,
+    "addresssanitizer_selected_passes": 2,
+    "addresssanitizer_runtime_preflight_passed": true,
+    "ctest_output_sha256": [
+      "b3b32765aba7876081453d77463756856f4e87f4b8c53a5363d3b2bbf7f06e23",
+      "fc1c30dbd62de5e10538df110a17a7415c5936b1f5fdcb55904da0e1d944d25e",
+      "d6af7004fc276d50f691a7c8608bb24af41612d53a5ec88509f3f04d168b1873"
+    ]
+  },
+  "mounted_signed_winfsp_fixture": {
+    "control": "windows-packed-retirement-flushes-2026-11-25.json",
+    "exact_matching_win32_checkpoint_comparison": [
+      {
+        "cycle": 1,
+        "allocated_before_after": [
+          788791296,
+          389283840
+        ],
+        "inner_end_before_after": [
+          788004864,
+          388628480
+        ],
+        "files": 1027,
+        "blake3": "24b7b9b2afa3ee9c8043d757ccb4229c4321e8af5352b9800d6a599b8b70faa4"
+      },
+      {
+        "cycle": 2,
+        "allocated_before_after": [
+          812253184,
+          409468928
+        ],
+        "inner_end_before_after": [
+          811335680,
+          408813568
+        ],
+        "files": 1027,
+        "blake3": "24b7b9b2afa3ee9c8043d757ccb4229c4321e8af5352b9800d6a599b8b70faa4"
+      },
+      {
+        "cycle": 3,
+        "allocated_before_after": [
+          835584000,
+          429654016
+        ],
+        "inner_end_before_after": [
+          834666496,
+          428998656
+        ],
+        "files": 1027,
+        "blake3": "24b7b9b2afa3ee9c8043d757ccb4229c4321e8af5352b9800d6a599b8b70faa4"
+      }
+    ],
+    "ordinary_observation": {
+      "attached_allocation_decreased": false,
+      "controller": {
+        "allocated_after": 434896896,
+        "allocated_before": 429654016,
+        "allocated_while_attached": 435421184,
+        "compaction_failures": 0,
+        "continued_packed_tail": 0,
+        "continued_range_retirement": 63,
+        "flush_calls": 165,
+        "publications": 1,
+        "quanta": 98,
+        "quiescent": 0,
+        "rebuild_publishing_flushes": 5,
+        "rebuild_ready_flushes": 2,
+        "retirement_flush_calls": 158,
+        "retirement_write_bytes": 101920,
+        "sampled_extents": 0,
+        "step_retiring": 79,
+        "write_bytes": 8811006,
+        "write_calls": 798
+      },
+      "detached_completed": {
+        "after": 5767168,
+        "before": 434896896,
+        "epoch": 2
+      },
+      "final_deferral": "none",
+      "final_phase": "preparing",
+      "guest_build": "26100",
+      "guest_memory_mib": 4096,
+      "guest_receipt_sha256": "7fba8d164d621b369eb508e52b44530c01946107f2beb0c077e8060f3596cb16",
+      "historical_client_trace_equal": true,
+      "manifest_sha256": "ac5711135fbb12725a8a956d0b954a9818d71feb9bd859bc9559763a8732a179",
+      "preselected": false,
+      "sandbox_receipt_sha256": "b9e0e9c2aaecfef56e8d89dda67002f59cbd0b61cda49020ded4d60bcc459aac",
+      "sandbox_retired": true,
+      "signed_artifacts_verified": 6,
+      "signed_driver_sha256": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+      "trace": {
+        "bytes": 1134259,
+        "counts": {
+          "conflicting_open": 1,
+          "cpu_verified": 3,
+          "create": 1030,
+          "enumerate": 3,
+          "flush": 1077,
+          "flush_cached": 3,
+          "flush_mapped": 4,
+          "flush_view": 4,
+          "held_read": 3,
+          "lookup_deleted": 2,
+          "mkdir": 1,
+          "overwrite_open": 1,
+          "range_read": 3,
+          "read": 3076,
+          "rename_replace": 1,
+          "unlink": 2,
+          "write": 1079
+        },
+        "cycles": 3,
+        "files": 1027,
+        "independent_population_blake3": "24b7b9b2afa3ee9c8043d757ccb4229c4321e8af5352b9800d6a599b8b70faa4",
+        "logical_bytes": 2291854,
+        "records": 6293,
+        "sha256": "a819bc8c0ba49580f45c3985470cbf88f3934aa3ac88cb910c4b72b72a984af1"
+      }
+    },
+    "preselected_retirement_observation": {
+      "attached_allocation_decreased": false,
+      "controller": {
+        "allocated_after": 437256192,
+        "allocated_before": 437256192,
+        "allocated_while_attached": 437256192,
+        "compaction_failures": 0,
+        "continued_packed_tail": 0,
+        "continued_range_retirement": 87,
+        "flush_calls": 215,
+        "publications": 0,
+        "quanta": 18,
+        "quiescent": 0,
+        "rebuild_publishing_flushes": 0,
+        "rebuild_ready_flushes": 0,
+        "retirement_flush_calls": 215,
+        "retirement_write_bytes": 637024,
+        "sampled_extents": 0,
+        "step_retiring": 104,
+        "write_bytes": 637024,
+        "write_calls": 217
+      },
+      "detached_completed": {
+        "after": 5767168,
+        "before": 437256192,
+        "epoch": 2
+      },
+      "final_deferral": "none",
+      "final_phase": "preparing",
+      "guest_build": "26100",
+      "guest_memory_mib": 4096,
+      "guest_receipt_sha256": "1b70523ffedc3878126d86c1f2f1f19089a29d74b16aa64a2e2a6639b01f6b09",
+      "historical_client_trace_equal": true,
+      "manifest_sha256": "d0b48229ceb1e39c7d6fb1d0641b4f786af8675582d97a10728501b11c56670a",
+      "preselected": true,
+      "sandbox_receipt_sha256": "3df036d8f3007cf271bc2fb100815ab2d86e61983f9743f474f3d0db9e6fbb50",
+      "sandbox_retired": true,
+      "signed_artifacts_verified": 6,
+      "signed_driver_sha256": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+      "trace": {
+        "bytes": 1134259,
+        "counts": {
+          "conflicting_open": 1,
+          "cpu_verified": 3,
+          "create": 1030,
+          "enumerate": 3,
+          "flush": 1077,
+          "flush_cached": 3,
+          "flush_mapped": 4,
+          "flush_view": 4,
+          "held_read": 3,
+          "lookup_deleted": 2,
+          "mkdir": 1,
+          "overwrite_open": 1,
+          "range_read": 3,
+          "read": 3076,
+          "rename_replace": 1,
+          "unlink": 2,
+          "write": 1079
+        },
+        "cycles": 3,
+        "files": 1027,
+        "independent_population_blake3": "24b7b9b2afa3ee9c8043d757ccb4229c4321e8af5352b9800d6a599b8b70faa4",
+        "logical_bytes": 2291854,
+        "records": 6293,
+        "sha256": "a819bc8c0ba49580f45c3985470cbf88f3934aa3ac88cb910c4b72b72a984af1"
+      }
+    },
+    "preselected_witness_sha256": "42faf9dcdeeea1fbcfde1d1bf580fd20398cfeff0fdcf351e013dae441dfa893",
+    "scope": "The matching comparisons measure allocation with identical client operations and CPU-verified file bytes. The observations use a disposable guest. Both attached observations finished with retirement work still pending. In each run detached continuation completed release with exact CPU readback."
+  },
+  "supervisor_runs": [
+    {
+      "run": "compactFreshFinalTests",
+      "confirmed_exit": true,
+      "process_tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 678932480
+    },
+    {
+      "run": "compactFreshRawTests",
+      "confirmed_exit": true,
+      "process_tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 59703296
+    },
+    {
+      "run": "compactFreshAsanTests",
+      "confirmed_exit": true,
+      "process_tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 553672704
+    },
+    {
+      "run": "compactFreshGuestRun",
+      "confirmed_exit": true,
+      "process_tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 45641728
+    },
+    {
+      "run": "compactFreshPreselectedRun",
+      "confirmed_exit": true,
+      "process_tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 48058368
+    }
+  ],
+  "research": "The current placement design uses the Btrfs and Microsoft storage geometry source captures bound in windows-packed-retirement-flushes-2026-11-25.json. The declared write failure unit stays unchanged."
+}

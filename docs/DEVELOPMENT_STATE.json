@@ -6,6 +6,20 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "shared_mirrored_banks": {
+    "source_base": "cc0455593f0973773c11a15a1289f802dadb3d6c",
+    "tested_runtime_tree": "dae5f9bcd7fcc2dcfacbed34349bae0235f1735a",
+    "evidence": "docs/evidence/windows-shared-mirrored-banks-2026-11-25.json",
+    "small_64k_commit_growth_before_and_after": [262144, 131072],
+    "exact_4k_images": true,
+    "modeled_shared_bank_interruptions": 117,
+    "selected_windows_tests_passed": 25,
+    "mounted_cpu_verified_files": 1027,
+    "final_foreground_allocation_before_and_after": [835584000, 429654016],
+    "mounted_ordinary_and_preselected_tail_release_completed": [false, false],
+    "detached_recovered_allocation": 5767168,
+    "next": "Measure retirement scheduling through the first confirmed packed tail shortening. Compare remaining foreground allocation with ready-only operation grouping."
+  },
   "packed_retirement_flush_attribution": {
     "source_base": "db573e903381a539376541f0617920c6c9c1c378",
     "tested_runtime_tree": "83fff72784e2bfcb9e460f818fb637852465f9a6",

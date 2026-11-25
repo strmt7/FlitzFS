@@ -92,6 +92,25 @@ The next storage decision is the cost of the foreground commit
 layout that creates the backing growth.
 [Mounted attribution and ownership proof](evidence/windows-packed-retirement-flushes-2026-11-25.json)
 
+Fresh indexed commits now share space for payload and index data
+within a new mirrored pair. The 64 KiB model grew by 131,072 bytes
+for a single record, down from 262,144. The 4 KiB layout produced the
+same image digest. The model verified 117 interruption cases and CPU
+recovery after loss of either bank.
+
+The matching 6,293-operation mounted replay reduced allocation across
+all three checkpoints. Its final foreground checkpoint fell from
+835,584,000 to 429,654,016 bytes with identical independent content
+digests across all 1,027 files. The ordinary attached observation
+published its replacement and made 79 retirement steps. A separate
+run starting with an already-published replacement made 104 retirement
+steps while attached. Packed tail shortening remained pending in both
+sampling windows. Both resumed and finished through detached
+reclamation at 5,767,168 bytes with exact CPU readback. Trace the
+remaining handoff from range retirement to physical tail release
+before judging attached settlement.
+[Shared bank and matched client evidence](evidence/windows-shared-mirrored-banks-2026-11-25.json)
+
 ### 1. Reduce occupied bytes and repeated writes along the ordinary client path
 
 1. Extend the existing Win32 operation witness and controller receipt

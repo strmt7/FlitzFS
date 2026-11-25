@@ -180,15 +180,19 @@ class PagedObjectStoreSnapshot final {
   explicit PagedObjectStoreSnapshot(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;
 };
+enum class PagedStoreBankLayout { separate, shared };
+
 class PagedObjectStoreWriter final {
  public:
   class Rewrite;
   static PagedObjectStoreWriter create(std::shared_ptr<StoreByteIo> empty,
       StoreIdentity,PagedStoreLimits,StoreCompressionOptions={});
-  // Explicit capability-2 layout: every payload has an independently checked
-  // copy in disjoint qualified failure units. Existing create bytes are unchanged.
+  // Every payload has an independently checked copy in disjoint qualified
+  // failure units. The shared layout uses capability 3 when a bank is
+  // larger than a page.
   static PagedObjectStoreWriter create_mirrored(std::shared_ptr<StoreByteIo> empty,
-      StoreIdentity,PagedStoreLimits,StoreCompressionOptions={});
+      StoreIdentity,PagedStoreLimits,StoreCompressionOptions={},
+      PagedStoreBankLayout=PagedStoreBankLayout::separate);
   // Exclusive explicit recovery. Fully CPU-scrubs before further writes;
   // repairs root publication only. Damaged descendant metadata is readable via
   // its peer but requires a future streaming rebuild before writable resume.
@@ -242,7 +246,8 @@ class PagedObjectStoreWriter final {
   static PagedObjectStoreWriter create_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,
       PagedStoreLimits,StoreCompressionOptions,bool mirrored,std::span<const StoreMutation> initial={},
       std::uint64_t maximum_write_bytes=UINT64_MAX,
-      const std::function<bool(std::uint64_t)>& reserve_writes={},bool compact_metadata=false);
+      const std::function<bool(std::uint64_t)>& reserve_writes={},bool compact_metadata=false,
+      PagedStoreBankLayout=PagedStoreBankLayout::separate);
   struct RebuildColdEncoding {
     std::uint64_t after_generation,first_object,past_last_object;
     std::function<bool(std::uint64_t)> reserve_writes;
