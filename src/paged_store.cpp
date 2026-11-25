@@ -1113,6 +1113,37 @@ struct Rebuild {
     if(next.degraded_payloads)fail("rebuild produced degraded payload replicas");
     written_headers=detail::record_digest(written_headers,header);
   }
+  std::uint64_t remaining_payload_bank_bytes() const noexcept {
+    return allocation.unit?allocation.unit-allocation.used:next.unit;
+  }
+  void append_mirrored_records(std::span<Entry> entries,std::span<const std::byte> frames,
+      std::span<const Bytes> decoded,Bytes& readback_frames) {
+    if(!next.mirrored || folded || entries.size()<2 || decoded.size()!=entries.size())
+      fail("invalid mirrored rebuild batch");
+    for(auto& entry:entries)
+      allocation.place(next,entry,std::uint64_t{record_header_bytes}+entry.stored,payload_cursor);
+    if(payload_cursor>next.limits.maximum_physical_bytes)capacity("rebuild capacity");
+    const auto run=mirrored_record_run(next,entries);
+    if(run.count!=entries.size() || run.bytes!=frames.size())
+      fail("mirrored rebuild batch exceeds its bank");
+    admit_target(payload_cursor);
+    write_padding();
+    next.image->write_exact(entries.front().offset,frames);
+    next.image->write_exact(entries.front().peer,frames);
+    if(!verify_stored_run(next,entries,run.bytes,readback_frames))
+      fail("rebuild produced degraded payload replicas");
+    auto verified=std::span<const std::byte>(readback_frames).first(run.bytes);
+    for(std::size_t i=0;i<entries.size();++i) {
+      const auto& entry=entries[i];
+      if(decode_record(next,entry,verified.first<record_header_bytes>(),
+          verified.subspan(record_header_bytes,entry.stored))!=decoded[i])
+        fail("rebuild CPU comparison");
+      written_headers=detail::record_digest(written_headers,frames.first<record_header_bytes>());
+      const auto frame_size=record_header_bytes+entry.stored;
+      frames=frames.subspan(frame_size);
+      verified=verified.subspan(frame_size);
+    }
+  }
   void finish_payloads() {
     index_start=align(payload_cursor,next.unit);
     if(index_start>next.limits.maximum_physical_bytes)capacity("rebuild capacity");
@@ -1407,23 +1438,76 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
     if(completed!=state.root.count || logical!=state.root.logical || stored!=state.root.stored)
       fail("staged verification inventory differs");
   }
-  template<class Visit> bool visit_copy_quantum(const State& input,Visit&& visit) {
-    if(!input.root.count)return false;
-    if(!frontier)frontier.emplace(TreeFrontier{{input.root},{}});
-    std::size_t remaining=retention?(std::max)(std::size_t{1},leaf_capacity(input)/4):1;
-    const auto before=completed;
+  bool cold_copy_candidate(const Entry& entry) const noexcept {
+    return cold && entry.generation>cold->after_generation && cold->eligible(entry.id);
+  }
+  bool copy_mirrored_prefix(std::span<const Entry> leaf) {
+    if(reencode || retention || build.folded || !build.next.mirrored)return false;
+    const auto limit=(std::min)(leaf.size(),(std::max)(std::size_t{1},leaf_capacity(original)/4));
+    auto bank_left=build.remaining_payload_bank_bytes();
+    std::uint64_t work_left=2*kStoreCommitUnit;
+    std::size_t selected=0,frame_bytes=0;
+    // Preserve the stream order. A record that needs encoding or spans
+    // banks keeps the single-record path and its own admission.
+    for(const auto& entry:leaf.first(limit)) {
+      const auto size=record_header_bytes+entry.stored;
+      const auto work=std::uint64_t{entry.logical}+size;
+      if((entry.id==1 && !replacement.empty()) || cold_copy_candidate(entry) ||
+          size>bank_left || work>work_left)break;
+      bank_left-=size;
+      work_left-=work;
+      frame_bytes+=size;
+      ++selected;
+    }
+    if(selected<2)return false;
+
+    const auto sources=leaf.first(selected);
+    std::vector<Entry> destinations;
+    std::vector<Bytes> decoded;
+    Bytes frames;
+    destinations.reserve(selected);
+    decoded.reserve(selected);
+    frames.reserve(frame_bytes);
+    for(const auto& entry:sources) {
+      auto source=read_record(original,entry);
+      decoded.push_back(decode_record(original,entry,source.header,source.payload));
+      auto prepared=prepare_rebuilt_object(build.next,entry,std::move(source),decoded.back(),target->encoder,false);
+      destinations.push_back(prepared.entry);
+      frames.insert(frames.end(),prepared.header.begin(),prepared.header.end());
+      frames.insert(frames.end(),prepared.payload.begin(),prepared.payload.end());
+    }
+    build.append_mirrored_records(destinations,frames,decoded,verification_frames);
+    for(const auto& entry:sources)count(entry);
+    frontier->advance(selected);
+    return true;
+  }
+  bool copy_quantum() {
+    if(!original.root.count)return false;
+    if(!frontier)frontier.emplace(TreeFrontier{{original.root},{}});
+    while(frontier->present() && !frontier->has_entries())frontier->open(original);
+    if(!frontier->has_entries())return false;
+    if(copy_mirrored_prefix(frontier->remaining_entries()))return true;
+
+    auto remaining=retention?(std::max)(std::size_t{1},leaf_capacity(original)/4):1;
     while(remaining && frontier->present()) {
       if(!frontier->has_entries()) {
-        frontier->open(input);
+        frontier->open(original);
         continue;
       }
       const auto entry=frontier->take();
       if(retention && entry.logical>retention->maximum_object_bytes)fail("oversized advisory record");
-      visit(entry);
+      const bool improve=cold_copy_candidate(entry);
+      bool evaluated=false;
+      const auto kept=copy_rebuild_object(build,original,entry,target->encoder,replacement.empty()?0:1,
+          replacement,reencode,retention?&retention->keep:nullptr,improve?&evaluated:nullptr);
+      // A failed trial leaves its generation eligible. Foreground replay
+      // never advances the coverage of this copy.
+      if(improve && !evaluated)cold_through=(std::min)(cold_through,entry.generation-1);
+      if(retention && kept)copied.include(entry);
       count(entry);
       --remaining;
     }
-    return completed!=before;
+    return true;
   }
   template<class Visit> bool verify_quantum(const State& input,bool verify_replicas,Visit&& visit) {
     if(!input.root.count)return false;
@@ -1667,17 +1751,7 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
     } else if(phase==PagedRewritePhase::awaiting_charge) {
       begin_copy(current);
     } else if(phase==PagedRewritePhase::copying) {
-      const bool advanced=visit_copy_quantum(original,[&](const Entry& entry) {
-        const bool improve=cold && entry.generation>cold->after_generation && cold->eligible(entry.id);
-        bool evaluated=false;
-        const auto kept=copy_rebuild_object(build,original,entry,target->encoder,replacement.empty()?0:1,
-            replacement,reencode,retention?&retention->keep:nullptr,improve?&evaluated:nullptr);
-        // A failed trial leaves that generation eligible again. Replayed
-        // foreground records never advance the initial copy's coverage.
-        if(improve && !evaluated)cold_through=(std::min)(cold_through,entry.generation-1);
-        if(retention && kept)copied.include(entry);
-      });
-      if(!advanced) {
+      if(!copy_quantum()) {
         totals(original);
         if(retention && retained!=copied)fail("filtered copy selection changed");
         build.finish_payloads();

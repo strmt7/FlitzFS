@@ -1,4 +1,5 @@
 #include "native_fs_fixture.hpp"
+#include "record_digest.hpp"
 #include <iostream>
 #include <set>
 namespace {
@@ -165,9 +166,13 @@ void mirrored_rebuild_io(bool fragmented) {
     require(edits.empty(),"fragmented fixture did not complete its commits");
   }
   using Phase=PagedRewritePhase;
-  struct Reads {std::uint64_t source_calls=0,target_calls=0,source_bytes=0,target_bytes=0;};
-  const auto counters=[&]{return Reads{source->read_calls,target->read_calls,source->read_bytes,target->read_bytes};};
-  std::array<Reads,static_cast<std::size_t>(Phase::declined)+1> phases{};
+  struct Work {
+    std::uint64_t source_calls=0,target_calls=0,source_bytes=0,target_bytes=0;
+    std::uint64_t target_writes=0,target_write_bytes=0,steps=0;
+  };
+  const auto counters=[&]{return Work{source->read_calls,target->read_calls,source->read_bytes,target->read_bytes,
+      target->writes,target->write_bytes,0};};
+  std::array<Work,static_cast<std::size_t>(Phase::declined)+1> phases{};
   const auto writes=source->calls;
   auto candidate=writer.prepare_rebuild(target,next_id(),raw,false);
   for(unsigned step=0;;++step) {
@@ -181,6 +186,9 @@ void mirrored_rebuild_io(bool fragmented) {
     measured.target_calls+=after.target_calls-before.target_calls;
     measured.source_bytes+=after.source_bytes-before.source_bytes;
     measured.target_bytes+=after.target_bytes-before.target_bytes;
+    measured.target_writes+=after.target_writes-before.target_writes;
+    measured.target_write_bytes+=after.target_write_bytes-before.target_write_bytes;
+    ++measured.steps;
     if(complete)break;
   }
   auto completed=candidate.finish(writer);
@@ -189,18 +197,29 @@ void mirrored_rebuild_io(bool fragmented) {
       source->calls==writes,"mirrored rebuild changed the inventory or wrote to its source");
   for(const auto& record:records)
     require(independent.read(record.id)==record.bytes,"mirrored rebuild changed a verified record");
-  require(phases[static_cast<std::size_t>(Phase::copying)].target_calls<3*count,
-      "mirrored copy reread its checked primary");
+  const auto& copy_work=phases[static_cast<std::size_t>(Phase::copying)];
+  require(copy_work.target_calls<3*count && copy_work.target_writes<2*count && copy_work.steps<count/2,
+      "mirrored copy did not bound work into adjacent bank writes");
   for(const auto phase:{Phase::verifying_target,Phase::verifying_publication})
     require(phases[static_cast<std::size_t>(phase)].target_calls<count,
         "packed verification did not combine adjacent target frames");
-  for(const auto phase:{Phase::verifying_source,Phase::copying,Phase::verifying_target,Phase::verifying_publication}) {
+  for(const auto phase:{Phase::verifying_source,Phase::copying,Phase::building_index,Phase::verifying_target,
+      Phase::verifying_publication}) {
     const auto& measured=phases[static_cast<std::size_t>(phase)];
     std::cout<<"staged_io fragmented="<<fragmented<<" phase="<<static_cast<unsigned>(phase)
         <<" objects="<<count<<" source_calls="<<measured.source_calls<<" target_calls="<<measured.target_calls
         <<" source_bytes="<<measured.source_bytes<<" target_bytes="<<measured.target_bytes
-        <<" exact_cpu=1\n";
+        <<" target_writes="<<measured.target_writes<<" target_write_bytes="<<measured.target_write_bytes
+        <<" steps="<<measured.steps<<" exact_cpu=1\n";
   }
+  constexpr std::string_view hex="0123456789abcdef";
+  std::string digest;
+  for(const auto value:detail::record_digest(target->live)) {
+    const auto byte=std::to_integer<unsigned>(value);
+    digest.push_back(hex[byte>>4]);
+    digest.push_back(hex[byte&15U]);
+  }
+  std::cout<<"staged_copy_image fragmented="<<fragmented<<" bytes="<<target->extent()<<" blake3="<<digest<<'\n';
 }
 void mirrored_rebuild_read_faults() {
   using Phase=PagedRewritePhase;
@@ -247,6 +266,46 @@ void mirrored_rebuild_read_faults() {
       "source survivor rebuild changed its source or inventory");
   for(const auto& record:records)
     require(reader.read(record.id)==record.bytes,"source survivor rebuild changed content");
+}
+void mirrored_copy_write_faults() {
+  using Phase=PagedRewritePhase;
+  constexpr StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
+  const std::array records{StoreMutation{1,false,data(319,840)},StoreMutation{2,false,data(271,841)},
+      StoreMutation{3,false,data(401,842)}};
+  auto source=std::make_shared<Ram>();source->failure_unit=4096;
+  auto writer=PagedObjectStoreWriter::create_mirrored(source,identity(),limits,raw);
+  writer.commit(records);
+  const auto source_calls=source->calls;
+  const auto original=source->live;
+  const auto prepare=[&](const std::shared_ptr<Ram>& target) {
+    target->failure_unit=4096;
+    auto candidate=writer.prepare_rebuild(target,next_id(),raw,false);
+    for(unsigned step=0;candidate.progress().phase!=Phase::copying;++step) {
+      require(step<16,"copy fault phase unreachable");
+      candidate.advance(writer);
+    }
+    return candidate;
+  };
+  {
+    auto target=std::make_shared<Ram>();
+    auto candidate=prepare(target);
+    const auto before=target->calls;
+    candidate.advance(writer);
+    require(candidate.progress().completed_in_phase==records.size() && target->calls-before==2,
+        "short records did not write one checked batch to each bank");
+  }
+  for(std::size_t cut=0;cut<2;++cut)for(unsigned mode=0;mode<3;++mode) {
+    auto target=std::make_shared<Ram>();
+    auto candidate=prepare(target);
+    target->failure=mode;
+    target->fail_at=target->calls+cut;
+    rejects([&]{candidate.advance(writer);},"interrupted copy batch advanced toward publication");
+    require(candidate.progress().phase==Phase::failed && !writer.poisoned() &&
+        source->calls==source_calls && source->live==original,"copy failure affected the authoritative source");
+    target->live=target->stable;
+    rejects([&]{PagedObjectStoreSnapshot::open(target,limits);},"interrupted private batch exposed a root");
+    ++faults;
+  }
 }
 void admission_and_read_failures() {
   auto source=std::make_shared<Ram>();source->failure_unit=4096;auto writer=fresh(source,2);writer.apply(baseline());
@@ -344,7 +403,7 @@ void failures(unsigned layout,std::uint32_t unit) {
 }
 int main(){try {
   generic_maximum_and_empty();cancellation_and_owner();admission_and_read_failures();
-  mirrored_rebuild_io(false);mirrored_rebuild_io(true);mirrored_rebuild_read_faults();
+  mirrored_rebuild_io(false);mirrored_rebuild_io(true);mirrored_rebuild_read_faults();mirrored_copy_write_faults();
   for(bool mirrored:{false,true})changed_copied_descriptor(mirrored);
   for(unsigned layout=0;layout<3;++layout) {
     stale_phases(layout);

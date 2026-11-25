@@ -53,7 +53,7 @@ Subsequent checked inactive-image releases can continue under the same
 | Phase | Work per advance | Target roots |
 | --- | --- | --- |
 | Verify source | A bounded set of independently decoded records from one checked leaf | Absent |
-| Copy | One record encoded or preserved and independently compared | Absent |
+| Copy | Adjacent preserved frames within one checked leaf and mirror bank, or one record with its own encode/rebind work | Absent |
 | Build index | Up to one leaf of checked candidate headers and the resulting index pages | Absent |
 | Verify target | A bounded set of records individually compared to their source and generation | Absent |
 | Publish | Dependency barrier, two root writes/barriers, independent root reparse | Private complete candidate |
@@ -96,9 +96,14 @@ Each verification and copy pass carries a checked tree cursor. Target comparison
 uses a bounded source lookup cache for that pass. A pass change resets both,
 so verification after publication reads the private image again.
 
-During copy, an independent two-copy readback supplies the decoded bytes for
-the comparison. During verification, adjacent frames in one checked leaf and
-one bank can share a backing read for each replica. The scanner checks both
+During copy, short records that preserve their encoded payload share a write
+and an immediate readback on each mirror. The group stays within a quarter of
+one verified leaf, the remaining bytes of one payload bank and two commit units
+of combined logical, stored and framing work. It retains source order and the
+same payload layout. Cold trials, root rebinding, filtered retention, folded
+layout and records that exceed the current fit use their existing paths.
+During verification, adjacent frames in one checked leaf and one bank can
+share a backing read for each replica. The scanner checks both
 banks for equality, validates each record against its own descriptor and digest,
 and decodes the records for the individual CPU comparisons. A failed run
 triggers the existing per-copy checks. A source survivor can support recovery.
@@ -119,6 +124,14 @@ same target gains. Its source scan retained the original cost, since the live
 source records crossed gaps. The measurements count provider calls in the
 Windows-host memory fixture. The two separate faults in a target run were
 rejected before and after the private root publication.
+
+Batching copy writes reduced copy advances from 1,025 to 300, target writes
+from 4,380 to 1,172 and target read calls from 2,330 to 880. These results
+match on both the contiguous-source and fragmented-source fixtures. The
+backing bytes read and written, completed image bytes and full-image digests
+match each corresponding unbatched control. Six cuts through the two grouped
+writes retained the original authority and left the candidate unpublished.
+[Copy counts and failure checks](evidence/windows-batched-staged-copy-2026-11-25.json)
 [Coalesced rebuild verification evidence](evidence/windows-rebuild-verification-reads-2026-11-25.json)
 
 Resource admission remains the provider/controller's responsibility. There is

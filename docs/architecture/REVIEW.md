@@ -1,8 +1,22 @@
 # Source and architecture review
 
-The [24 November reconciliation](../RELEASE_RECONCILIATION_2026-11-24.md)
-continues this review and has the current gate and work order.
-The findings below describe the 23 November baseline
+The [current reconciliation](../RELEASE_RECONCILIATION_2026-11-25.md)
+has the current gate and work order. The 24 November review is the
+previous full inventory. The batch refresh checked the changed source
+since that inventory and traced the active boundaries below.
+[Current review receipt](../evidence/windows-batched-staged-copy-2026-11-25.json) ·
+[Previous full review](../RELEASE_RECONCILIATION_2026-11-24.md)
+
+| Component checked | Current boundary | Implementation decision |
+| --- | --- | --- |
+| Windows helper and WinFsp callbacks | The controller owns dispatcher lifetime. The native adapter owns namespace and file operation translation. | Use normal client operations from mount through teardown as the integration witness. [Helper](../../src/windows/volume_app_winfsp.cpp) · [Adapter](../../src/windows/winfsp_native.cpp) |
+| Indexed attach and recovery | `verify_inventory` runs a complete checked walk. Reader and writer ownership remain generation-bound. | Compare a shadow admission against full verification at different file counts, with missing and stale coverage cases. [Inventory](../../src/native_indexed_volume.cpp) · [Session](../../src/native_session.cpp) |
+| Rebuild and provider allocation | Private staging coalesces mirror calls while preserving record checks. Selection and backing release have separate authority boundaries. | Attribute actual retained allocation and copy cost before adding a reuse capability. [Paged rebuild](../../src/paged_store.cpp) · [File provider](../../src/native_volume_file.cpp) |
+| AMD input, delivery and setup | The controller owns admission, worker lifecycle and route offers. Ready read results bind to the original range and generation. | Price verified reads, writes and collective work by role and tuple, using immediate CPU continuity. [Controller](../../src/windows/winfsp_controller.cpp) · [Runtime discovery](../../src/windows/hip_route_discovery.cpp) |
+| Protected compression and persistent advice | The coherence catalog nominates extents. The owner verifies candidate savings and bytes before publication. | Measure exhaustive-oracle recall, complete occupied bytes and access cost before changing the codec or stored graph. [Coherence catalog](../../src/indexed_coherence.cpp) · [Maintenance](../../src/native_maintenance.cpp) |
+| Deployment and comparisons | The default WinFsp pin uses v2.2. AMD package provenance, driver compatibility and verified client performance are distinct qualifications. | Bind exact artifacts and prepare matched native NTFS controls on the target Windows client. [Platform ledger](../RELEASE_EXECUTION_PLAN.md#1-candidate-and-platform-ledger) · [Benchmark protocol](../BENCHMARK_PROTOCOL.md) |
+
+The historical findings below describe the 23 November baseline
 [`1afc654b9ee4`](https://github.com/strmt7/FlitzFS/commit/1afc654b9ee44952dce82a99a74e474cb5b03fb9).
 [Current diagrams](CURRENT.md) · [Target architecture](TARGET.md)
 

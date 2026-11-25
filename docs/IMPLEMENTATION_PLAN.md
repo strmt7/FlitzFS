@@ -6,7 +6,7 @@ demand, the indexed attach differential and held-out settled compression.
 The E01–E13 acceptance and dependency contracts below define the release exits.
 [Current assessment](RELEASE_RECONCILIATION_2026-11-25.md) ·
 [Ordered implementation](RELEASE_RECONCILIATION_2026-11-25.md#ordered-implementation-and-decision-points) ·
-[Source and review evidence](evidence/windows-packed-tail-continuation-2026-11-25.json)
+[Source and review evidence](evidence/windows-batched-staged-copy-2026-11-25.json)
 
 The [current architecture](architecture/CURRENT.md) shows the implementation.
 The [source review](architecture/REVIEW.md) tests the assumptions and the
@@ -291,13 +291,14 @@ indexed or read-only prototypes.
 
 ### Next implementation tickets
 
-Start with the [24 November work order](RELEASE_RECONCILIATION_2026-11-24.md#prioritized-implementation).
-Use the following source-level tickets inside that sequence. The populated
-Win32 witness now covers common recovery and allocation controls.
-[Retirement follow-up](RELEASE_RECONCILIATION_2026-11-24.md#immediate-work-after-the-retirement-batch)
-prioritizes normal mounted settlement, packed physical allocation, qualified
-AMD results and held-out complete-volume savings. Paired measurements
-determine the next route and representation implementation.
+Use the reconciliation's current sequence to decide which product change
+earns implementation. The next test should reuse the populated operation
+witness, separate ownership from provider allocation and explain where the
+ordinary controller stops. Then use one paired client trace to price automatic
+AMD service and a protected cohort oracle to identify compression gains.
+Plan the writable-attach differential independently with its complete-audit
+reference and a held-out file-count tier.
+[Current priorities and decisions](RELEASE_RECONCILIATION_2026-11-25.md#ordered-implementation-and-decision-points)
 
 #### E03 and E08. Qualify ordinary AMD foreground I/O
 
@@ -708,11 +709,14 @@ for production-scale completion, but their bounded design/experiments can start 
 
 ## 5. E02 — Allocation, dependency ownership and automatic reclamation
 
-The Windows callback model now admits consecutive confirmed packed EOF
-truncations within the existing measured idle window. Each step checks the
-selector, settled allocator and provider contract. The next E02 exit is an
-ordinary mounted run with no preselection, including per-phase work and actual
-provider allocation. [Implementation sequence](RELEASE_RECONCILIATION_2026-11-25.md#1-close-ordinary-mounted-settlement--e02-e08-e11) ·
+The callback model admits consecutive confirmed packed EOF truncations
+within a measured idle window. Each step checks the selector, allocator and
+provider contract. The staged rebuild now packs adjacent unchanged mirrored
+records into bounded writes with immediate replica and CPU verification.
+Choose between scheduling, placement and local range reuse after a normal
+mounted run accounts for each phase and actual provider allocation.
+[Implementation sequence](RELEASE_RECONCILIATION_2026-11-25.md#1-close-ordinary-mounted-settlement--e02-e08-e11) ·
+[Copy checks](evidence/windows-batched-staged-copy-2026-11-25.json) ·
 [Packed continuation checks](evidence/windows-packed-tail-continuation-2026-11-25.json)
 
 **Reuse:** mirrored payloads, COW records, protected anchors, staged rebuild,
@@ -2286,11 +2290,14 @@ this plan or by reaching an intermediate vertical slice.
 - Keep the full goal intact. Select the next highest-value incomplete product
   slice from this plan; do not redefine completion around a safer fixture.
 - Inspect current local state, preserve the owner's checkout and work on `main`.
-  Commit validated milestones locally and push meaningful checkpoints; do not use
-  GitHub as the working folder or require ordinary hosted CI before local work.
+  Build and verify locally. Publish meaningful checkpoints through the official
+  GitHub connector procedure, binding the expected parent and exact tree.
 - Use current source-bound semantic navigation and recent reputable primary
   research for consequential choices. Reuse a valid unchanged index/evidence;
-  no duplicate large rebuild or unchanged GPU trial to fill a round.
+  reuse the verified result when an unchanged check covers the same input.
+  Choose the next experiment to resolve a release gate or an observed high
+  product cost. Stop adding variants when the existing comparison can decide
+  the next implementation.
 - Freeze actual inputs before final qualification. On a failure, retain it,
   diagnose the mechanism, change only justified code and rebind affected evidence.
   Do not edit source during a successful final run and keep its old attribution.

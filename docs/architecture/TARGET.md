@@ -138,7 +138,9 @@ Qualify three mechanisms separately before combining them:
    placement that keeps a newly selected image out of releasable tail groups
    with bounded post-publication relocation. A trim requires verified mapping
    ownership and no live references at the provider's allocation granularity.
-   Use the measured live-move cost to choose the work order.
+   Reconcile the settled allocation against the selected-image length, pinned
+   generations and unavoidable backing overhead. Use that accounting and the
+   measured live-move cost to choose placement, local reuse or relocation.
    [Retirement and physical allocation evidence](../evidence/windows-mounted-range-retirement-2026-11-24.json)
 3. Reusable allocation. Publish old-to-new ownership in the same transaction
    as the new references. Model interrupted allocation, pending release,
@@ -244,6 +246,15 @@ verification, durable writes, canceled work and GPU setup. Lower host priority
 where supported, split work into bounded quanta and yield before scheduling
 another quantum when I/O arrives or headroom falls. Keep generation-bound
 progress so a restarted volume can resume the last confirmed work.
+
+Within each opportunity, choose the next checked operation by actual evidence
+of urgency and expected durable benefit. A release operation that can fund
+future writes outranks an unfunded codec trial. Estimate the recent cost of each
+phase, charge measured resource consumption afterward and yield before a
+foreground arrival can inherit several queued maintenance steps. Foreground
+pressure can defer an optional phase even while an idle timer is open. Use
+matched replay to tune this policy, with bounded minimum progress for eligible
+scrub and retirement so compression trials cannot starve them.
 
 Persist advisory baselines, candidate outcomes, sampled access class, cursors,
 debits and schema version in the reserved area. Evidence of content,

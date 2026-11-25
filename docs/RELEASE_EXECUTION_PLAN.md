@@ -472,7 +472,7 @@ separately. [Persistence model](PERSISTENCE_MODEL.md)
 The three measurement lanes share the first trace and can progress on
 independent fixtures. Favor the largest measured cost or complete storage
 saving in each lane before expanding format or worker variants.
-[Next implementation steps](RELEASE_RECONCILIATION_2026-11-24.md#prioritized-implementation)
+[Next implementation steps](RELEASE_RECONCILIATION_2026-11-25.md#ordered-implementation-and-decision-points)
 
 ### Next integrated qualification
 
@@ -485,11 +485,13 @@ and settlement have separate verdicts.
 [Trace evidence](evidence/windows-populated-client-trace-2026-11-24.json)
 · [Workload and transcript contract](BENCHMARK_PROTOCOL.md#populated-windows-operation-trace)
 
-The staged rebuild now makes 59% fewer backing reads on the controlled
-reconciliation fixture. The populated runs also compare mounted observation
-with detached reclamation on the resulting images. Both detached owners
-published compact images and verified all bytes. Both mounted windows ended
-with eligible retirement pending.
+The staged rebuild uses 59% fewer backing reads on the earlier controlled
+reconciliation fixture. Batched mirrored copy further reduces calls and
+advances with unchanged image bytes on two source layouts. The populated
+runs compare mounted observation with detached reclamation. Both detached
+owners published compact images and independently verified all bytes. The
+current signed guest stopped at memory admission before the client launched.
+[Current copy evidence](evidence/windows-batched-staged-copy-2026-11-25.json)
 [Staged reclamation evidence](evidence/windows-staged-reclamation-reads-2026-11-24.json)
 
 The controller now continues checked inactive-image release within the same
