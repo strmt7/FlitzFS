@@ -1408,10 +1408,12 @@ void prepared_transactions(const std::filesystem::path& executable) {
   eventually([&]{return WorkerExchangeSession::available();},3000,"abandoned readiness retained a worker");
   for(const bool admit:{false,true}) {
     unsigned readiness=0;
-    const auto result=WorkerExchangeSession::run_prepared_sized(executable,{L"prepared-ok"},frame,
-        prepared_capacity,budget,{},[&] {
+    const auto result=WorkerExchangeSession::run_prepared_sized(executable,{L"prepared-ok"},
+        prepared_capacity,budget,{},[&]() -> SharedWorkerRequest {
           ++readiness;
-          return admit;
+          check(!WorkerExchangeSession::available(),"Ready request lost its worker lease");
+          if(!admit)return {};
+          return std::make_shared<const WorkerRequestSnapshot>(source);
         });
     check(readiness==1 && result.process.exit_confirmed && WorkerExchangeSession::available(),
         "Prepared qualification did not observe readiness and confirmed retirement");
@@ -1434,10 +1436,14 @@ void prepared_transactions(const std::filesystem::path& executable) {
         result.process.exit_confirmed && WorkerExchangeSession::available(),
         "Cancellation during prepared admission did not retire without submitting");
     check_closed(result);
-    const auto presettled=WorkerExchangeSession::run_prepared_sized(executable,{L"prepared-ok"},frame,
-        prepared_capacity,budget,stop.get_token(),[]{return true;});
-    check(presettled.code==WorkerExchangeCode::cancelled && !presettled.process.process_id &&
-        WorkerExchangeSession::available(),"Pre-cancelled prepared qualification started a child");
+    bool constructed=false;
+    const auto presettled=WorkerExchangeSession::run_prepared_sized(executable,{L"prepared-ok"},
+        prepared_capacity,budget,stop.get_token(),[&] {
+          constructed=true;
+          return frame;
+        });
+    check(presettled.code==WorkerExchangeCode::cancelled && !presettled.process.process_id && !constructed &&
+        WorkerExchangeSession::available(),"Pre-cancelled qualification acquired a child or source frame");
   }
   std::cout<<"Prepared exchange: empty startup, exact one-shot frame, CPU semantics, cancellation and retirement passed\n";
 }

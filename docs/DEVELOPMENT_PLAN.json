@@ -50,6 +50,8 @@
     "tested_resumable_group_reply_tree": "24d370efbcbfee71e189533283788f81cd192d58",
     "latest_settled_prepared_records": "docs/evidence/windows-settled-prepared-records-2026-11-25.json",
     "tested_settled_prepared_records_tree": "8d871205921fec9c209460c3d89b223d2322e94d",
+    "latest_source_free_write_trial": "docs/evidence/windows-source-free-write-trials-2026-11-25.json",
+    "tested_source_free_write_trial_tree": "620ae659e68410849bbbfcdf329f394dbb2e2e6f",
     "latest_native_attach_evidence": "docs/evidence/windows-indexed-namespace-read-window-2026-11-25.json",
     "previous_checked_extent_owner_evidence": "docs/evidence/windows-indexed-extent-owner-audit-2026-11-25.json",
     "latest_chunked_scrub_evidence": "docs/evidence/indexed-scrub-checkpoint-2026-11-23.json",

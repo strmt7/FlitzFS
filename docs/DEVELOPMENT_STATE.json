@@ -6,6 +6,14 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "source_free_prepared_write_trial": {
+    "source_parent": "a6b597d86db99b78efa85e5f89b3120e27735336",
+    "tested_source_tree": "620ae659e68410849bbbfcdf329f394dbb2e2e6f",
+    "evidence": "docs/evidence/windows-source-free-write-trials-2026-11-25.json",
+    "request_pack_follows_ready_signal": true,
+    "separate_ready_to_verified_measurement": true,
+    "automatic_foreground_qualification": false
+  },
   "settled_prepared_records": {
     "source_parent": "ec6340e6380c48b4cb13e3a4b528987c264fca24",
     "tested_source_tree": "8d871205921fec9c209460c3d89b223d2322e94d",

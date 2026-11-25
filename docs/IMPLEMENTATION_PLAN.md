@@ -299,7 +299,11 @@ checks the controller's fresh exact-adapter observation at staging and
 submission. The grouped-read verifier now retains checked members while a
 foreground callback runs. Attribute worker completion, resumed checking
 and delivery separately in the ordinary client trace. Measure useful
-retirement, CPU fallback and deadlines on the same stream.
+retirement, CPU fallback and deadlines on the same stream. The prepared
+write trial now constructs its request after readiness. Use that interval
+to price host packing, exchange and verification before comparing
+measured foreground service.
+[Source-free prepared write trial](evidence/windows-source-free-write-trials-2026-11-25.json) ·
 [Resumed reply evidence](evidence/windows-resumable-group-replies-2026-11-25.json)
 
 Fix the first production stage with a material cost. Run the held-out

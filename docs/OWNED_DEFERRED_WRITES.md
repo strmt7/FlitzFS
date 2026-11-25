@@ -363,6 +363,16 @@ inputs where applicable, fresh writes and pacing from the complete cost.
 Enabling a foreground route still requires repeated matched measurements for
 the supported request geometry.
 
+A single prepared exchange now launches from the planned layout and
+capacities. After the worker signals ready and the host rechecks admission,
+the owner packs the captured plaintext into the immutable request. It
+charges packing, submission, transport, retirement and independent
+verification to the post-ready interval. The whole-arm timing still
+includes setup, and the private replay records its write and readback
+separately. This interval describes a detached prepared request. Foreground
+qualification also needs real callback service costs and repeated
+matched outcomes. [Source-free prepared validation](evidence/windows-source-free-write-trials-2026-11-25.json)
+
 The initial real-host 1 MiB control captured two committed writes and verified
 sixteen Radeon-produced extents with the independent CPU reader. Both private
 images occupied 488 KiB. CPU replay took 4.02 ms. Radeon replay took 3.00 s,

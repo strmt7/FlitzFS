@@ -1656,12 +1656,15 @@ int compare_installed_detached_writes(const std::filesystem::path& corpus,bool g
     check(measured.sample && measured.sample->transactions==cpu->transactions &&
         measured.sample->input_digest==cpu->input_digest && measured.sample->device_executed &&
         measured.sample->cpu_readback_verified && measured.sample->retirement_confirmed && measured.worker_retired &&
-        (prepared==(measured.ready_ns!=0)) && (!separate || measured.admitted_requests==requests.size()),
+        (prepared==(measured.ready_ns!=0)) && (!separate || measured.admitted_requests==requests.size()) &&
+        ((launch==NativeAmdTrialLaunch::prepared)==(measured.ready_to_verified_ns!=0)) &&
+        measured.ready_to_verified_ns<=measured.exchange_ns,
         "Detached Radeon write did not verify the same source");
     const auto& sample=*measured.sample;
     std::cout<<"detached_amd_write prepared="<<prepared<<" writes="<<sample.transactions
         <<" bytes="<<source.size()<<" occupied="<<sample.occupied_bytes
         <<" complete_ns="<<sample.elapsed_ns<<" ready_ns="<<measured.ready_ns<<" exchange_ns="<<measured.exchange_ns
+        <<" ready_to_verified_ns="<<measured.ready_to_verified_ns
         <<" stored_candidates="<<sample.stored_lz4_candidates<<" separate_requests="<<separate
         <<" admitted_requests="<<measured.admitted_requests<<" cpu_verified=1 retired=1\n";
   }

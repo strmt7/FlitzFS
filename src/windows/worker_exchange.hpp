@@ -100,6 +100,12 @@ class WorkerExchangeSession final {
       const std::vector<std::wstring>& arguments, SharedWorkerRequest request,
       WorkerChannelCapacity capacity,ProcessBudget budget,std::stop_token,
       const std::function<bool()>& on_ready,std::shared_ptr<const void> pinned_route={});
+  // Construct the immutable frame after exact prepared readiness. An empty
+  // result or cancellation retires the existing worker without submitting.
+  static WorkerExchangeResult run_prepared_sized(const std::filesystem::path& helper,
+      const std::vector<std::wstring>& arguments,WorkerChannelCapacity capacity,ProcessBudget budget,
+      std::stop_token,const std::function<SharedWorkerRequest()>& ready_request,
+      std::shared_ptr<const void> pinned_route={});
   // The first permit delivers the immutable frame. Later permits authorize
   // more work on that frame, from the same child, with one final reply.
   static WorkerExchangeResult run_prepared_windows(const std::filesystem::path& helper,
@@ -148,6 +154,9 @@ class WorkerExchangeSession final {
       WorkerChannelCapacity,ProcessBudget,bool sized,SharedWorkerRequest snapshot={},
       std::shared_ptr<const void> pinned_route={},bool prepared=false,std::uint32_t continuation_windows=0,
       bool repeated_requests=false,bool finishable=false,bool bounded_prepared=false);
+  static WorkerExchangeResult run_prepared_exchange(const std::filesystem::path&,
+      const std::vector<std::wstring>&,WorkerChannelCapacity,ProcessBudget,std::uint32_t,std::stop_token,
+      const std::function<SharedWorkerRequest()>&,const std::function<bool(std::uint32_t)>&,std::shared_ptr<const void>);
   static WorkerExchangeResult run_prepared_sequence(const std::filesystem::path&,
       const std::vector<std::wstring>&,WorkerChannelCapacity,ProcessBudget,std::uint32_t,std::stop_token,
       const std::function<PreparedRequestDecision(std::uint32_t)>&,std::shared_ptr<const void>,bool finishable);

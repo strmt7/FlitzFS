@@ -1,0 +1,210 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "source": {
+    "parent": "a6b597d86db99b78efa85e5f89b3120e27735336",
+    "base_tree": "00490aaa6376a634b10e1e8b4034f07954cf0ab9",
+    "tree": "620ae659e68410849bbbfcdf329f394dbb2e2e6f",
+    "elements": [
+      {
+        "path": "src/windows/native_amd_write_policy.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "6a5351499906d51cdd6ca2ce7592d77febf0574a",
+        "bytes": 31796
+      },
+      {
+        "path": "src/windows/native_amd_write_policy.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "246808870c2cd937d7b6c3370705b919a8f2bbfe",
+        "bytes": 6517
+      },
+      {
+        "path": "src/windows/worker_exchange.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "84cbfc27dcb1480afbe0c84703cab033db69b64a",
+        "bytes": 53979
+      },
+      {
+        "path": "src/windows/worker_exchange.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "66316acfcc27e83d534a0b941804a6e030e0942d",
+        "bytes": 14047
+      },
+      {
+        "path": "tests/test_native_deferred_write_sdk.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "8677bc74d42f0fc563dcf8ab548770d394e05977",
+        "bytes": 121953
+      },
+      {
+        "path": "tests/test_worker_exchange.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "11d5a12b5629e50036bdc66acfdb6b6a8fe32348",
+        "bytes": 128278
+      }
+    ]
+  },
+  "scope": {
+    "mode": "Single prepared exchange in the detached native write comparison.",
+    "request_packing": "After ready and the post-setup resource check.",
+    "ready_to_verified_accounting": "Packing, wire handoff, confirmed retirement, CPU verification and completion budget check.",
+    "native_replay": "Reported independently and still subject to complete CPU readback.",
+    "fresh_amd_compute_executed": false,
+    "mounted": false,
+    "driver_modified": false,
+    "automatic_foreground_qualification": false
+  },
+  "transport_tests": {
+    "backend": "CPU semantics",
+    "ready_factory_invoked_once": true,
+    "refused_request_escapes": false,
+    "pre_cancel_invokes_factory": false,
+    "cancelled_and_completed_children_retire": true
+  },
+  "validation": {
+    "counts": {
+      "release_tests": 3,
+      "raw_tests": 1,
+      "asan_tests": 3
+    },
+    "asan_runtime_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed",
+    "jobs": {
+      "initial_host": {
+        "run": "local-run-597a0630ddf746688e95cda04101541e",
+        "exit_code": 0,
+        "tree_retired": true,
+        "result_sha256": "8d4383f20b292935d253e13f3516c3038436557b1cf954a178dce7e268bd035d",
+        "log_sha256": "2e71c715575dbcebda9be64f394806789a96508a5869f9c37b4ee69540dc82d8"
+      },
+      "final_host": {
+        "run": "local-run-75f16b2fd7fc4e329c586192950bf575",
+        "exit_code": 0,
+        "tree_retired": true,
+        "result_sha256": "00344568a80856ea4f88631eb1151d10d94f18824d31c242845e647cde0fc5d7",
+        "log_sha256": "b7eacb3f7e9365404f4681fcf80f48e4a680daefb28d8469661bd921255afb35"
+      },
+      "research": {
+        "run": "local-run-8a905423f85646c58bccfacaed7f97ad",
+        "exit_code": 0,
+        "tree_retired": true,
+        "result_sha256": "598cf87b7c696ab78910cc051fff82cf420f297d4d5ee5fb6defe2e32fa17bb8",
+        "log_sha256": "f4d5fa99dd96361da9826870e5960d7c1c40cf3a2dcb9774b6c516c1b772977c"
+      },
+      "release_build": {
+        "run": "local-run-ef02697de6a5484ca47a92ab08c2d669",
+        "exit_code": 0,
+        "tree_retired": true,
+        "result_sha256": "070b0f58dc77a8912c073d332b87c48912590e6bf98bd78b25f4054b88d02161",
+        "log_sha256": "efa6410c2b8c05f6b6c5f9a87d7f8e75f3b449d7055837a038fab21862bc982e"
+      },
+      "release_tests": {
+        "run": "local-run-00d41fcda63a4aa8bb544941fcceab1b",
+        "exit_code": 0,
+        "tree_retired": true,
+        "result_sha256": "bc26c1a54220156b929ad4c783a9e33318f1d0f55235200cdfebead34d9d878b",
+        "log_sha256": "2d39ef8e3929e8d0aff458c759300518e6ab45efd7230d07318e1059694ebe28",
+        "passed": [
+          "owned_native_deferred_write_sdk",
+          "bounded_windows_worker_exchange",
+          "bounded_windows_prepared_variable_exchange"
+        ]
+      },
+      "raw_build": {
+        "run": "local-run-011ec0c788eb466e9b6415dfe8a209a9",
+        "exit_code": 0,
+        "tree_retired": true,
+        "result_sha256": "ed75095d4cc185c7baa0a01f950edfc4aba56625ae061fc5830faccd0faa9350",
+        "log_sha256": "7849ef2dda774f8bb58324e16a343514ec15a1549864f54cb6186e7cf380e9e9"
+      },
+      "raw_tests": {
+        "run": "local-run-fcda585293934953bf1decfce0da55f4",
+        "exit_code": 0,
+        "tree_retired": true,
+        "result_sha256": "7e233009f437dc6b35d54f1fdeed16e2178e897398ccb2a8625c23c076275fc3",
+        "log_sha256": "f636ff49bd40b70adfdd6454372c299ae6bc254133b12fb4227fcdd23be51a71",
+        "passed": [
+          "bounded_windows_worker_exchange"
+        ]
+      },
+      "asan_build": {
+        "run": "local-run-a3fe82a6db2e4d2d83854350a3bb9ff0",
+        "exit_code": 0,
+        "tree_retired": true,
+        "result_sha256": "a547ffb3628896a7782a0de05ad54e513e5d2934b8576e32db6a8c5826ed3407",
+        "log_sha256": "a5466cd68a60db500131e3ad7be1473630954c703603c1ea0627e273ca6bee6c"
+      },
+      "asan_tests": {
+        "run": "local-run-b5079212b0424a86bec516a3afa49a2d",
+        "exit_code": 0,
+        "tree_retired": true,
+        "result_sha256": "62784aac098e830c31ebce455954d7c279590a3dc34cdc44f31b575998fc2b6b",
+        "log_sha256": "be5809585465a33cf9e6778c2f74e61ecf9ea2f4959defcdcc9c269861dd1f20",
+        "passed": [
+          "windows_asan_runtime_preflight",
+          "owned_native_deferred_write_sdk",
+          "bounded_windows_worker_exchange"
+        ]
+      }
+    }
+  },
+  "live_engine_observations": {
+    "initial_host": {
+      "admitted": false,
+      "reason": "Existing host load above the fixture envelope",
+      "utc": "2026-11-25T19:14:05.8610730Z",
+      "driver": "32.0.32029.2010",
+      "build": "26300",
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "luid": "9d75010000000000",
+      "available_bytes": 16458747904,
+      "reserved_bytes": 4294967296,
+      "gpu_peak": 100.100817677291,
+      "cpu_peak": 22.268269037489308,
+      "target_samples": 832
+    },
+    "final_host": {
+      "admitted": false,
+      "reason": "Existing host load above the fixture envelope",
+      "utc": "2026-11-25T19:24:30.5926134Z",
+      "driver": "32.0.32029.2010",
+      "build": "26300",
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "luid": "9d75010000000000",
+      "available_bytes": 16573378560,
+      "reserved_bytes": 4294967296,
+      "gpu_peak": 99.85251430585726,
+      "cpu_peak": 8.80053603384371,
+      "target_samples": 832
+    }
+  },
+  "navigation": {
+    "receipt_sha256": "df6f4aa8537e80ccbb0d4c98c6c1c6222ef8b494286795aa2c236d8348e157df",
+    "actual_searches": 1,
+    "response_sha256": "afec4be0f85ab12e74c12fa4ad2a1a89be23a0c64407b9d191485726faf104a3"
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "13cdd17700ce32dff6c23d92eabc057fd060e689a8b0e83289e28539e72f3bf7",
+    "pages": [
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitforsingleobject",
+        "status": 200,
+        "capture_sha256": "70cdc4849e17a82ec40821d6ada769e3ec07cfd5e1493574bedc053c165cf0bd",
+        "text_sha256": "6deccd861eee49fc4f531e354958bd15423cd9a2df2dff46297c29a430238f40"
+      },
+      {
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/asynchronous.html",
+        "status": 200,
+        "capture_sha256": "33a10494302955d851b9fb080e428d8bf048c6a4db53e3c7cce99a5a61002cfd",
+        "text_sha256": "4167596a0f6b6c0281ea842f4eac025a4e457fa0b5627cd88da14196e62a5fdc"
+      }
+    ]
+  },
+  "release_qualified": false
+}

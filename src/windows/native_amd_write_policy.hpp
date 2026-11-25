@@ -75,6 +75,9 @@ std::optional<NativeAmdWriteWorkerPlan> plan_native_amd_write_burst(const Native
 struct NativeAmdDeviceTrial {
   std::optional<NativeAmdWriteSample> sample,matched_cpu;
   std::uint64_t ready_ns=0,exchange_ns=0,cpu_wall_ns=0;
+  // After a source-free readiness signal through exact reply verification
+  // and post-work budget validation. Private native replay is measured separately.
+  std::uint64_t ready_to_verified_ns=0;
   std::uint64_t verified_input_bytes=0;
   std::uint64_t preparation_ns=0,supervised_ns=0,verification_ns=0,replay_ns=0;
   WorkerExchangeCode exchange=WorkerExchangeCode::invalid_response;

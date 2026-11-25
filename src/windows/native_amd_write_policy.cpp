@@ -353,24 +353,32 @@ NativeAmdDeviceTrial run_native_amd_write_trial(const NativeManagedForeground& s
     const GpuHealthEvidence evidence{route.identity,id,0,true,true,before.snapshot};
     const NativeUniformWorkerBinding binding{.helper=route.helper,.configuration=route.identity,
         .ordinal=static_cast<int>(route.ordinal),.runtime_sha256=route.runtime_sha256,.sweep=grant};
-    auto batch=PreparedUniformLz4Batch::prepare(requests,finishable?worker->work:worker->group);
+    std::optional<PreparedUniformLz4Batch> batch;
+    const auto prepare_batch=[&] {
+      batch.emplace(PreparedUniformLz4Batch::prepare(requests,finishable?worker->work:worker->group));
+    };
     const auto run_request=[&](const PreparedUniformLz4& source,std::uint64_t request_id)->SharedWorkerRequest {
       return std::make_shared<const WorkerRequestSnapshot>(encode_uniform_lz4_request(source,request_id));
     };
     NativeUniformDispatch dispatch;
     SharedWorkerRequest frame;
-    if(repeated) {
-      const auto first=batch.prepare_member(0);
-      dispatch=prepare_native_uniform_dispatch(binding,evidence,first,WorkerExecution::hip,nullptr,
-          worker->maximum_requests);
-      frame=run_request(first,batch.members().front().request_id);
+    if(launch==NativeAmdTrialLaunch::prepared) {
+      dispatch=prepare_native_uniform_dispatch(binding,evidence,worker->group,WorkerExecution::hip,nullptr);
+      dispatch.arguments.front()=L"--driver-uniform-lz4-prepared-adapter";
     }else {
-      dispatch=prepare_native_uniform_dispatch(binding,evidence,batch.source(),WorkerExecution::hip);
-      frame=run_request(batch.source(),id);
+      prepare_batch();
+      if(repeated) {
+        const auto first=batch->prepare_member(0);
+        dispatch=prepare_native_uniform_dispatch(binding,evidence,first,WorkerExecution::hip,nullptr,
+            worker->maximum_requests);
+        frame=run_request(first,batch->members().front().request_id);
+      }else {
+        dispatch=prepare_native_uniform_dispatch(binding,evidence,batch->source(),WorkerExecution::hip);
+        frame=run_request(batch->source(),id);
+      }
     }
     WorkerExchangeResult result;
-    if(launch==NativeAmdTrialLaunch::prepared)
-      dispatch.arguments.front()=L"--driver-uniform-lz4-prepared-adapter";
+    std::optional<TrialClock::time_point> service_started;
     const auto setup=TrialClock::now();
     trial.preparation_ns=elapsed_ns(started);
     if(stop.stop_requested() || (may_submit && !may_submit()))return trial;
@@ -406,7 +414,7 @@ NativeAmdDeviceTrial run_native_amd_write_trial(const NativeManagedForeground& s
           if(captured.sequence || !captured.bytes.empty() || (may_submit && !may_submit()))return {};
           return {action,{}};
         }
-        const auto last=following.empty()?batch.members().front().request_id:following.back().request_id;
+        const auto last=following.empty()?batch->members().front().request_id:following.back().request_id;
         const auto bytes=captured.bytes.size();
         if(action!=PreparedRequestAction::submit || captured.sequence<=last ||
             bytes>member.input_bytes || (!allow_smaller_writes && bytes!=member.input_bytes) ||
@@ -429,7 +437,7 @@ NativeAmdDeviceTrial run_native_amd_write_trial(const NativeManagedForeground& s
         if(!index)trial.ready_ns=elapsed_ns(setup);
         if(!permitted())return {};
         if(index) {
-          frame=run_request(batch.prepare_member(index),batch.members()[index].request_id);
+          frame=run_request(batch->prepare_member(index),batch->members()[index].request_id);
           if(stop.stop_requested() || (may_submit && !may_submit()))return {};
         }
         ++trial.admitted_requests;
@@ -438,12 +446,19 @@ NativeAmdDeviceTrial run_native_amd_write_trial(const NativeManagedForeground& s
       result=WorkerExchangeSession::run_prepared_requests(binding.helper,dispatch.arguments,channel,budget,
           static_cast<std::uint32_t>(requests.size()),stop,prepare,route.pins);
     }else if(launch==NativeAmdTrialLaunch::prepared) {
-      const auto ready=[&] {
+      const auto supply=[&]() -> SharedWorkerRequest {
+        const auto ready=TrialClock::now();
         trial.ready_ns=elapsed_ns(setup);
-        return permitted();
+        if(!permitted())return {};
+        prepare_batch();
+        auto request=run_request(batch->source(),id);
+        if(stop.stop_requested() || (may_submit && !may_submit()))return {};
+        service_started=ready;
+        trial.admitted_requests=1;
+        return request;
       };
-      result=WorkerExchangeSession::run_prepared_sized(binding.helper,dispatch.arguments,std::move(frame),
-          channel,budget,stop,ready,route.pins);
+      result=WorkerExchangeSession::run_prepared_sized(binding.helper,dispatch.arguments,
+          channel,budget,stop,supply,route.pins);
     } else {
       result=WorkerExchangeSession::run_sized(binding.helper,dispatch.arguments,std::move(frame),
           channel,budget,stop,route.pins);
@@ -453,7 +468,7 @@ NativeAmdDeviceTrial run_native_amd_write_trial(const NativeManagedForeground& s
     trial.worker_exit=result.process.exit_code;
     trial.worker_retired=result.process.exit_confirmed && result.code!=WorkerExchangeCode::exit_unconfirmed &&
         result.code!=WorkerExchangeCode::supervisor_exit_unconfirmed;
-    if(result.code!=WorkerExchangeCode::completed || !trial.worker_retired || stop.stop_requested())return trial;
+    if(result.code!=WorkerExchangeCode::completed || !trial.worker_retired || !batch || stop.stop_requested())return trial;
     const auto verification=TrialClock::now();
     if(finishable) {
       if(result.completed_requests!=1+following.size() ||
@@ -464,23 +479,23 @@ NativeAmdDeviceTrial run_native_amd_write_trial(const NativeManagedForeground& s
       if(!following.empty()) {
         std::vector<UniformLz4BatchInput> supplied;
         supplied.reserve(result.completed_requests);
-        supplied.push_back({batch.members().front().request_id,batch.input(0)});
+        supplied.push_back({batch->members().front().request_id,batch->input(0)});
         for(const auto& item:following)supplied.push_back({item.request_id,item.batch.plaintext()});
         const auto layout=replay_layout(storage,supplied);
         if(!layout || layout->input_bytes>worker->group.input_bytes)return trial;
-        batch=PreparedUniformLz4Batch::prepare(supplied,*layout);
+        batch.emplace(PreparedUniformLz4Batch::prepare(supplied,*layout));
       }
       std::vector<UniformLz4Request>().swap(following);
     }
     const auto candidates=[&] {
-      if(!repeated)return VerifiedUniformLz4Batch::accept(result.response,batch,id,WorkerExecution::hip);
+      if(!repeated)return VerifiedUniformLz4Batch::accept(result.response,*batch,id,WorkerExecution::hip);
       auto all=std::span<const std::byte>(result.response);
       std::vector<UniformLz4Bytes> replies;
-      const auto count=batch.members().size();
+      const auto count=batch->members().size();
       replies.reserve(count);
       for(std::size_t i=0;i<count;++i)replies.push_back(take_prepared_reply(all));
       if(!all.empty())throw std::invalid_argument("Unexpected native write reply tail");
-      return VerifiedUniformLz4Batch::accept_members(replies,batch,WorkerExecution::hip);
+      return VerifiedUniformLz4Batch::accept_members(replies,*batch,WorkerExecution::hip);
     }();
     std::vector<std::byte>().swap(result.response);
     const auto after=sampler.sample();
@@ -489,13 +504,14 @@ NativeAmdDeviceTrial run_native_amd_write_trial(const NativeManagedForeground& s
         check_gpu_memory_transition(before.snapshot,after.snapshot,route.memory.luid,
             route.memory.node_mask,GetTickCount64(),plan.device_peak_bytes)!=GpuGateCode::admitted)return trial;
     trial.verification_ns=elapsed_ns(verification);
+    if(service_started)trial.ready_to_verified_ns=elapsed_ns(*service_started);
     trial.exchange_ns=elapsed_ns(started);
     const auto replay_funded=(std::min)(funded,host_grant(after.snapshot));
     if(!trial.exchange_ns || replay_funded<=worker->parent_metadata_bytes)return trial;
 
     const auto interrupted=[&] {return stop.stop_requested();};
     const auto replay=TrialClock::now();
-    auto sample=record_native_amd_verified_batch(storage,batch,candidates,replay_funded-worker->parent_metadata_bytes,
+    auto sample=record_native_amd_verified_batch(storage,*batch,candidates,replay_funded-worker->parent_metadata_bytes,
         existing,interrupted);
     trial.replay_ns=elapsed_ns(replay);
     if(!sample || stop.stop_requested() ||
@@ -505,16 +521,16 @@ NativeAmdDeviceTrial run_native_amd_write_trial(const NativeManagedForeground& s
       const auto funded_replay=replay_funded-worker->parent_metadata_bytes;
       if(worker->channel.reply_bytes>=funded_replay)return trial;
       std::vector<UniformLz4BatchInput> supplied;
-      supplied.reserve(batch.members().size());
-      for(std::size_t index=0;index<batch.members().size();++index)
-        supplied.push_back({batch.members()[index].request_id,batch.input(index)});
+      supplied.reserve(batch->members().size());
+      for(std::size_t index=0;index<batch->members().size();++index)
+        supplied.push_back({batch->members()[index].request_id,batch->input(index)});
       const auto cpu_started=TrialClock::now();
       trial.matched_cpu=record_native_amd_cpu_batch(storage,supplied,funded_replay-worker->channel.reply_bytes,
           existing,interrupted);
       trial.cpu_wall_ns=elapsed_ns(cpu_started);
       if(!trial.matched_cpu || stop.stop_requested())return trial;
     }
-    trial.verified_input_bytes=batch.source().layout().input_bytes;
+    trial.verified_input_bytes=batch->source().layout().input_bytes;
     trial.sample=sample;
   }catch(...) {}
   return trial;

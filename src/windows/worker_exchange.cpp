@@ -731,9 +731,27 @@ WorkerExchangeResult WorkerExchangeSession::run_prepared_sized(const std::filesy
       on_ready?std::function<bool(std::uint32_t)>([&](std::uint32_t){return on_ready();}):
           std::function<bool(std::uint32_t)>{},std::move(pinned_route));
 }
+WorkerExchangeResult WorkerExchangeSession::run_prepared_sized(const std::filesystem::path& helper,
+    const std::vector<std::wstring>& arguments,WorkerChannelCapacity capacity,ProcessBudget budget,
+    std::stop_token stop,const std::function<SharedWorkerRequest()>& ready_request,
+    std::shared_ptr<const void> pinned_route) {
+  return run_prepared_exchange(helper,arguments,capacity,budget,1,stop,ready_request,{},std::move(pinned_route));
+}
 WorkerExchangeResult WorkerExchangeSession::run_prepared_windows(const std::filesystem::path& helper,
     const std::vector<std::wstring>& arguments,SharedWorkerRequest request,WorkerChannelCapacity capacity,
     ProcessBudget budget,std::uint32_t windows,std::stop_token stop,
+    const std::function<bool(std::uint32_t)>& admit,std::shared_ptr<const void> pinned_route) {
+  if(!stop.stop_requested())
+    require(request && request->bytes().size()==capacity.request_bytes && admit,"invalid prepared exchange input");
+  const auto supply=[&]() -> SharedWorkerRequest {
+    if(!admit(0))return {};
+    return std::move(request);
+  };
+  return run_prepared_exchange(helper,arguments,capacity,budget,windows,stop,supply,admit,std::move(pinned_route));
+}
+WorkerExchangeResult WorkerExchangeSession::run_prepared_exchange(const std::filesystem::path& helper,
+    const std::vector<std::wstring>& arguments,WorkerChannelCapacity capacity,ProcessBudget budget,
+    std::uint32_t windows,std::stop_token stop,const std::function<SharedWorkerRequest()>& ready_request,
     const std::function<bool(std::uint32_t)>& admit,std::shared_ptr<const void> pinned_route) {
   if(stop.stop_requested()) {
     WorkerExchangeResult refused;
@@ -741,14 +759,15 @@ WorkerExchangeResult WorkerExchangeSession::run_prepared_windows(const std::file
     refused.process.cancelled=true;
     return refused;
   }
-  require(request && request->bytes().size()==capacity.request_bytes && admit && windows &&
+  require(ready_request && windows && (windows==1 || admit) &&
       windows<=capacity.request_bytes && valid_worker_channel_capacity(capacity,budget),
       "invalid prepared exchange input");
   auto session=start_impl(helper,arguments,{},capacity,budget,true,{},std::move(pinned_route),true,windows-1);
   std::stop_callback cancel(stop,[&]() noexcept {(void)session.request_cancel();});
   try {
-    if(!session.wait_prepared(budget.timeout_ms) || stop.stop_requested() ||
-        !admit(0) || !session.submit_prepared(std::move(request))) {
+    SharedWorkerRequest request;
+    if(session.wait_prepared(budget.timeout_ms) && !stop.stop_requested())request=ready_request();
+    if(stop.stop_requested() || !request || !session.submit_prepared(std::move(request))) {
       (void)session.request_cancel();
     } else {
       for(std::uint32_t i=1;i<windows;++i) {

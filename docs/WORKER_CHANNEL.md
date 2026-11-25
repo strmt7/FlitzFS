@@ -661,6 +661,13 @@ enough time remaining in that same job. Unused preparation can be
 canceled while CPU operations continue. Shutdown retains the exact
 supervisor handle until retirement. The child exits before the parent
 uses its reply.
+A single prepared trial can also supply a frame factory. The transport
+starts with bounded capacities and a private empty channel. The qualifying
+caller constructs the immutable frame only after the readiness event. It
+can decline the frame, and the transport checks cancellation again
+before publishing it. Completion still requires exact retirement.
+[Source-free trial validation](evidence/windows-source-free-write-trials-2026-11-25.json)
+
 [Prepared write selection](OWNED_DEFERRED_WRITES.md#preparing-for-a-later-write) ·
 [Windows Job Objects](https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects) ·
 [Windows handle waits](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitforsingleobject)
