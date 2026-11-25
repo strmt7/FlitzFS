@@ -2610,14 +2610,15 @@ acknowledged value. [Scope and evidence](INDEXED_NATIVE_VOLUME.md#incremental-pa
    occupancy, metadata-heavy files, mixed lengths and foreground churn.
    Use the result to rank fresh layout promotion and existing-volume
    migration independently.
-2. **Amortize production migration.** Extend the one-page writer quantum
-   to prepare several eligible pages under the admitted time, scratch
-   and write grant. Keep a retryable cursor at the final checked page.
-   Compare append-batched conversion with conversion during the existing
-   copied checkpoint. Reuse the copy if it reaches the same verified
-   representation with fewer writes and acceptable read amplification.
-   Keep planning local to checked pages. Avoid a complete compacted-size
-   scan for each small proposal.
+2. **Amortize production migration.** The explicit staged reclaim mode now
+   prices the equivalent ordinary and packed copy, converts one inode-page
+   range at a time, and prepares the smaller candidate within its exact
+   projected footprint. The matched CPython comparison reached the same
+   464 KiB settled footprint as the append migration, with zero writes
+   to the selected image and lower target writes than ordinary reclaim.
+   Evaluate the read cost on more diverse occupied images and failure
+   geometries. Use the measured cost when admitting automatic offers.
+   [Source-bound reclaim comparison](evidence/windows-packed-reclaim-2026-11-25.json)
 3. **Fund the ordinary controller.** Add a separate costed maintenance
    offer to the owning session. Avoid concurrent rotation, pending repair
    and reader-pinned retirement debt. Check interactive I/O pressure

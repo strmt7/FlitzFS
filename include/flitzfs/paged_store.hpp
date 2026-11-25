@@ -7,6 +7,23 @@
 namespace flitzfs {
 namespace detail {
 struct FoldedCheckpoint;
+struct ProjectedInodeGroup {
+  std::uint64_t object=0;
+  std::vector<std::uint64_t> replaced;
+  std::vector<std::byte> bytes;
+};
+struct ProjectedInodeStep {
+  std::uint64_t scanned_through=0;
+  const ProjectedInodeGroup* group=nullptr;
+};
+// A bounded mapping over one immutable native source. Returned groups are
+// borrowed until the next call. Generated keys follow all source keys.
+struct PagedInodeProjection {
+  std::uint64_t first_output=0;
+  std::vector<std::byte> rebound_root;
+  std::function<const ProjectedInodeGroup*(std::uint64_t)> group;
+  std::function<std::optional<ProjectedInodeStep>(std::uint64_t)> next;
+};
 class IndexedSharedBasePreparation;
 class IndexedVolumeView;
 class NativeLz4CaptureLease;
@@ -90,7 +107,7 @@ struct PagedPayloadScrubResult {
   // An observation of the paged records, never writable admission authority.
   std::optional<PagedPayloadCheckpointObservation> verified_checkpoint;
 };
-enum class PagedRewriteMode { exact_checkpoint, reconcile_foreground, cold_compression };
+enum class PagedRewriteMode { exact_checkpoint, reconcile_foreground, cold_compression, pack_short_inodes };
 class IndexedCoherenceWriter;
 class PagedObjectStoreWriter;
 class PagedObjectStoreSnapshot final {
@@ -293,7 +310,8 @@ class PagedObjectStoreWriter final {
   Rewrite prepare_rebuild_replacing(std::shared_ptr<StoreByteIo>,StoreIdentity,
       StoreCompressionOptions,std::span<const std::byte> replacement,bool reencode,
       std::size_t identity_offset=40,PagedRewriteMode=PagedRewriteMode::exact_checkpoint,
-      std::optional<RebuildColdEncoding> cold={}) const;
+      std::optional<RebuildColdEncoding> cold={},
+      std::optional<detail::PagedInodeProjection> projection={}) const;
   struct RebuildRetention {
     std::size_t maximum_object_bytes;
     std::function<bool(std::uint64_t,std::span<const std::byte>)> keep;
@@ -306,7 +324,8 @@ class PagedObjectStoreWriter final {
       StoreCompressionOptions,std::span<const std::byte> replacement,bool reencode,
       std::size_t identity_offset,std::optional<RebuildRetention>,PagedRewriteMode,
       std::optional<RebuildColdEncoding> cold={},
-      std::function<void(std::uint64_t)> folded_admission={}) const;
+      std::function<void(std::uint64_t)> folded_admission={},
+      std::optional<detail::PagedInodeProjection> projection={}) const;
   enum class RebuildPayloads { preserve, sealed_workspace, mirrored_recovery };
   static PagedObjectStoreWriter rebuild_replacing(const PagedObjectStoreSnapshot&,
       std::shared_ptr<StoreByteIo>,StoreIdentity,PagedStoreLimits,StoreCompressionOptions,
@@ -391,6 +410,7 @@ class PagedObjectStoreWriter::Rewrite final {
   void verify_folded_source(const PagedObjectStoreWriter&) const;
   detail::FoldedCheckpoint release_folded_workspace(const PagedObjectStoreWriter&);
   std::uint64_t cold_encoding_through() const noexcept;
+  bool packs_short_inodes() const noexcept;
   struct Impl;
   explicit Rewrite(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;

@@ -258,6 +258,20 @@ IndexedInodeInput load_inode(const PagedObjectStoreSnapshot& store,const Indexed
   if(!inode)fail(Code::not_found,"indexed inode does not exist");
   return std::move(*inode);
 }
+Bytes encode_inode_page(const std::array<Bytes,inode_page_slots>& rows) {
+  std::size_t size=inode_page_header;
+  for(const auto& row:rows)size+=row.size();
+  if(size==inode_page_header)return {};
+  Bytes frame(size);
+  set_magic(frame,inode_page_magic);
+  auto output=frame.begin()+inode_page_header;
+  for(std::size_t i=0;i<rows.size();++i) {
+    const auto& row=rows[i];
+    put(frame,8+2*i,row.size(),2);
+    output=std::copy(row.begin(),row.end(),output);
+  }
+  return frame;
+}
 // The transaction visits inode edits in ID order. Keep only the active page
 // in scratch and commit its replacement with the ordinary namespace edits.
 class IndexedInodeUpdates {
@@ -303,21 +317,8 @@ class IndexedInodeUpdates {
 
   void flush_page() {
     if(!dirty_)return;
-    std::size_t size=inode_page_header;
-    for(const auto& row:rows_)size+=row.size();
-    if(size==inode_page_header) {
-      records_.push_back({page_,true,{}});
-    } else {
-      Bytes frame(size);
-      set_magic(frame,inode_page_magic);
-      auto output=frame.begin()+inode_page_header;
-      for(std::size_t i=0;i<rows_.size();++i) {
-        const auto& row=rows_[i];
-        put(frame,8+2*i,row.size(),2);
-        output=std::copy(row.begin(),row.end(),output);
-      }
-      records_.push_back({page_,false,std::move(frame)});
-    }
+    auto frame=encode_inode_page(rows_);
+    records_.push_back({page_,frame.empty(),std::move(frame)});
     dirty_=false;
   }
 
@@ -1553,6 +1554,98 @@ void advance_indexed_retirement(PagedObjectStoreWriter& writer,const PagedObject
   (void)transaction.finish(writer,current);
 }
 
+namespace {
+struct PackedInodeRows {
+  std::uint64_t scanned_through=0;
+  std::vector<std::pair<std::uint64_t,Bytes>> rows;
+};
+std::optional<PackedInodeRows> scan_packed_inode_rows(const PagedObjectStoreSnapshot& source,
+    const IndexedVolumeRoot& root,std::uint64_t after) {
+  const auto last=root.next_inode-1;
+  if(after>=last || last==1)return {};
+  const auto entries=source.list_page(inode_domain|(std::max)(after,std::uint64_t{1}),inode_page_slots);
+  if(entries.empty() || domain(entries.front().id)!=inode_domain)return {};
+  PackedInodeRows group;
+  group.scanned_through=(std::min)(last,(entries.front().id&ordinal_mask)|(inode_page_slots-1));
+  for(const auto& entry:entries) {
+    if(domain(entry.id)!=inode_domain)break;
+    const auto id=entry.id&ordinal_mask;
+    if(id>group.scanned_through)break;
+    if(entry.logical_bytes>maximum_packed_inode_bytes)continue;
+    auto frame=required(source,entry.id,maximum_packed_inode_bytes);
+    if(packable_inode(decode_inode_with_lifetime(source,root,id,frame),frame.size()))
+      group.rows.emplace_back(id,std::move(frame));
+  }
+  return group;
+}
+class IndexedInodeProjection {
+ public:
+  IndexedInodeProjection(const PagedObjectStoreSnapshot& input,IndexedVolumeRoot selected):
+      source_(input),root_(selected) {}
+  const ProjectedInodeGroup* group(std::uint64_t object) {
+    const auto type=domain(object),ordinal=object&ordinal_mask;
+    if(type!=inode_domain && type!=kIndexedInodePageObject)return nullptr;
+    if(!ordinal)return nullptr;
+    const auto page=type==inode_domain?ordinal/inode_page_slots:ordinal-1;
+    if(page>(root_.next_inode-1)/inode_page_slots)return nullptr;
+    const auto first=page*inode_page_slots;
+    if(cached_object_!=inode_page_object(first)) {
+      auto rows=scan_packed_inode_rows(source_,root_,first?first-1:0);
+      if(rows && inode_page_object(rows->scanned_through)==inode_page_object(first))
+        cache(std::move(*rows));
+      else {
+        cached_object_=inode_page_object(first);
+        cached_={};
+      }
+    }
+    return cached_.object?&cached_:nullptr;
+  }
+  std::optional<ProjectedInodeStep> next(std::uint64_t after) {
+    auto rows=scan_packed_inode_rows(source_,root_,after);
+    if(!rows)return {};
+    const auto cursor=rows->scanned_through;
+    cache(std::move(*rows));
+    return ProjectedInodeStep{cursor,cached_.object?&cached_:nullptr};
+  }
+ private:
+  void cache(PackedInodeRows group) {
+    cached_object_=inode_page_object(group.scanned_through);
+    cached_={};
+    if(group.rows.size()<2)return;
+    std::array<Bytes,inode_page_slots> rows;
+    for(auto& [id,frame]:group.rows) {
+      rows[id%inode_page_slots]=std::move(frame);
+      cached_.replaced.push_back(inode_domain|id);
+    }
+    cached_.object=cached_object_;
+    cached_.bytes=encode_inode_page(rows);
+  }
+  const PagedObjectStoreSnapshot& source_;
+  IndexedVolumeRoot root_;
+  std::uint64_t cached_object_=0;
+  ProjectedInodeGroup cached_;
+};
+}
+
+PagedInodeProjection project_indexed_inode_pages(PagedObjectStoreSnapshot source,
+    const IndexedVolumeRoot& current,StoreIdentity target) {
+  if(!current.inline_files || current.packed_inodes || !source.info().mirrored_payloads)
+    fail(Code::invalid_operation,"packed copy needs an unpacked mirrored inline volume");
+  auto next=current;
+  next.identity=target;
+  next.packed_inodes=true;
+  struct OwnedProjection {
+    PagedObjectStoreSnapshot source;
+    IndexedInodeProjection projection;
+    OwnedProjection(PagedObjectStoreSnapshot snapshot,IndexedVolumeRoot root):
+        source(std::move(snapshot)),projection(source,root) {}
+  };
+  const auto owned=std::make_shared<OwnedProjection>(std::move(source),current);
+  return {kIndexedInodePageObject,encode_root(next),
+      [owned](std::uint64_t id){return owned->projection.group(id);},
+      [owned](std::uint64_t after){return owned->projection.next(after);}};
+}
+
 NativePackedInodeMigrationStep advance_indexed_packed_inode_migration(PagedObjectStoreWriter& writer,
     const PagedObjectStoreSnapshot& source,IndexedVolumeRoot& current,std::uint64_t after,
     std::uint64_t maximum_write_bytes) {
@@ -1571,21 +1664,11 @@ NativePackedInodeMigrationStep advance_indexed_packed_inode_migration(PagedObjec
       index.kind()!=index_kind(current) || index.size()!=index_entries(current))
     fail(Code::corrupt,"packed inode migration source changed");
 
-  const auto entries=source.list_page(inode_domain|(std::max)(after,std::uint64_t{1}),inode_page_slots);
-  if(entries.empty() || domain(entries.front().id)!=inode_domain)return {last,0,0,true};
-  const auto group_last=(std::min)(last,(entries.front().id&ordinal_mask)|(inode_page_slots-1));
-  NativePackedInodeMigrationStep result{group_last,0,0,group_last==last};
-  std::vector<std::pair<std::uint64_t,Bytes>> rows;
-  for(const auto& entry:entries) {
-    if(domain(entry.id)!=inode_domain)break;
-    const auto id=entry.id&ordinal_mask;
-    if(id>group_last)break;
-    if(entry.logical_bytes>maximum_packed_inode_bytes)continue;
-    auto frame=required(source,entry.id,maximum_packed_inode_bytes);
-    if(packable_inode(decode_inode_with_lifetime(source,current,id,frame),frame.size()))
-      rows.emplace_back(id,std::move(frame));
-  }
+  auto group=scan_packed_inode_rows(source,current,after);
   require_healthy();
+  if(!group)return {last,0,0,true};
+  auto& rows=group->rows;
+  NativePackedInodeMigrationStep result{group->scanned_through,0,0,group->scanned_through==last};
   // Amortize the page header and tree edits over multiple standalone rows.
   // A later compacted-size comparison decides whether this pays at volume scale.
   if(rows.size()<2)return result;
@@ -3040,7 +3123,43 @@ void IndexedVolumeView::verify_all(const IndexedReopenAdmission& admission) cons
 void IndexedVolumeView::verify_equivalent(const IndexedVolumeView& target) const {
   auto rebound=root_;
   rebound.identity=target.root_.identity;
+  const bool converts=root_.inline_files && !root_.packed_inodes && target.root_.packed_inodes;
+  if(converts)rebound.packed_inodes=true;
   if(rebound!=target.root_)fail(Code::invalid_operation,"indexed handoff changes the native root");
+  if(converts) {
+    // An interrupted selector may choose the new layout. Independently
+    // account every expected target key and compare its canonical bytes.
+    IndexedInodeProjection projection(store_,root_);
+    const auto generation=store_.info().generation;
+    std::uint64_t expected=0,after=0;
+    bool packed_page_seen=false;
+    for(;;) {
+      const auto page=store_.list_page(after,64);
+      if(page.empty())break;
+      for(const auto& entry:page) {
+        if(entry.id>=kIndexedInodePageObject)fail(Code::invalid_operation,"invalid standalone source inventory");
+        const auto* group=projection.group(entry.id);
+        if(group && std::ranges::binary_search(group->replaced,entry.id)) {
+          if(entry.id!=group->replaced.front())continue;
+          const auto packed=target.store_.stat(group->object);
+          if(!packed || packed->generation!=generation || packed->logical_bytes!=group->bytes.size() ||
+              target.store_.read(group->object,maximum_inode_page_bytes)!=group->bytes)
+            fail(Code::invalid_operation,"indexed handoff changes a packed inode page");
+          packed_page_seen=true;
+        }else {
+          const auto record=target.store_.stat(entry.id);
+          if(!record || record->generation!=entry.generation || record->logical_bytes!=entry.logical_bytes ||
+              (entry.id!=namespace_object && target.store_.read(entry.id)!=store_.read(entry.id)))
+            fail(Code::invalid_operation,"indexed handoff changes a standalone object");
+        }
+        ++expected;
+      }
+      after=page.back().id;
+    }
+    if(!packed_page_seen || expected!=target.store_.info().objects)
+      fail(Code::invalid_operation,"indexed handoff changes the projected inventory");
+    return;
+  }
   std::uint64_t after=0;
   for(;;) {
     const auto left=store_.list_page(after,64);

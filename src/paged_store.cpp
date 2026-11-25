@@ -560,18 +560,21 @@ bool verify_object(const State& s,const Entry& e,Bytes* payload=nullptr,Bytes* s
   if(!verified)fail("both payload copies invalid; no rollback");
   return verified==1;
 }
-template<class Visitor> void walk_leaves(const State& s,const Ref& r,std::uint64_t after,Visitor& visitor,bool& done) {
+template<class Visitor> void walk_leaves(const State& s,const Ref& r,std::uint64_t after,
+    Visitor& visitor,bool& done,LookupPages* scoped=nullptr) {
   if(done || !r.count || r.last<=after)return;
-  const auto n=read_node(s,r);
-  if(r.height) {for(const auto& child:n.children)walk_leaves(s,child,after,visitor,done);}
+  Node temporary;
+  const auto& n=lookup_node(s,r,temporary,scoped,nullptr);
+  if(r.height) {for(const auto& child:n.children)walk_leaves(s,child,after,visitor,done,scoped);}
   else done=!visitor(std::span<const Entry>(n.entries));
 }
-template<class Visitor> void walk(const State& s,const Ref& r,std::uint64_t after,Visitor& visitor,bool& done) {
+template<class Visitor> void walk(const State& s,const Ref& r,std::uint64_t after,
+    Visitor& visitor,bool& done,LookupPages* scoped=nullptr) {
   auto leaf=[&](std::span<const Entry> entries) {
     for(const auto& entry:entries)if(entry.id>after && !visitor(entry))return false;
     return true;
   };
-  walk_leaves(s,r,after,leaf,done);
+  walk_leaves(s,r,after,leaf,done,scoped);
 }
 constexpr auto maximum_mirrored_io_bytes=2*kStoreCommitUnit;
 struct MirroredRecordRun {
@@ -1532,6 +1535,7 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
   Bytes replacement;
   std::size_t replacement_identity_offset;
   std::optional<RebuildRetention> retention;
+  std::optional<detail::PagedInodeProjection> projection;
   std::optional<TreeFrontier> frontier;
   std::optional<LookupPages> comparison_source_pages;
   Bytes verification_frames;
@@ -1549,6 +1553,11 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
     }
     bool operator==(const RetainedInventory&) const = default;
   } retained,copied;
+  struct ProjectionInventory {
+    RetainedInventory removed,added;
+    bool operator==(const ProjectionInventory&) const = default;
+  } priced_projection,copied_projection;
+  std::uint64_t projected_end=0,projection_cursor=0,last_projected_object=0;
   std::uint64_t source_extent=0,target_extent=0,completed=0,logical=0,stored=0,write_bound=0;
   PagedRewritePhase phase=PagedRewritePhase::verifying_source;
   bool reencode=true,replacement_seen=false;
@@ -1569,15 +1578,22 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
   Impl(const PagedObjectStoreWriter::Impl& writer,std::shared_ptr<StoreByteIo> output,
       StoreIdentity id,StoreCompressionOptions compression,std::span<const std::byte> root,bool encode,
       std::size_t identity_offset,std::optional<RebuildRetention> filter,PagedRewriteMode rewrite_mode,
-      std::optional<RebuildColdEncoding> cold_encoding,std::function<void(std::uint64_t)> fold)
+      std::optional<RebuildColdEncoding> cold_encoding,std::function<void(std::uint64_t)> fold,
+      std::optional<detail::PagedInodeProjection> projected)
       :original(writer.state),owner(writer.owner),replacement_identity_offset(identity_offset),
-       retention(std::move(filter)),cold(std::move(cold_encoding)),folded_admission(std::move(fold)),
+       retention(std::move(filter)),projection(std::move(projected)),cold(std::move(cold_encoding)),
+       folded_admission(std::move(fold)),
        reencode(encode),mode(rewrite_mode) {
     if(folded_admission && (mode!=PagedRewriteMode::exact_checkpoint || retention || cold ||
         root.empty() || encode || !original.mirrored))
       fail("folded staging requires an exact mirrored native checkpoint");
     if(mode!=PagedRewriteMode::exact_checkpoint && (retention || root.empty() || encode))
-      fail("foreground reconciliation requires a lossless native identity-only rebuild");
+      fail("staged native rebuild mode requires preserved object encodings");
+    if(bool(projection)!=(mode==PagedRewriteMode::pack_short_inodes) ||
+        (projection && (!original.mirrored || cold || folded_admission || !projection->first_output ||
+            !projection->group || !projection->next || projection->rebound_root.size()!=root.size() ||
+            std::ranges::equal(projection->rebound_root,root))))
+      fail("invalid packed inode projection");
     const bool screened=mode==PagedRewriteMode::cold_compression;
     if((screened && !cold) || (cold && (mode==PagedRewriteMode::exact_checkpoint || !cold->first_object ||
         cold->first_object>=cold->past_last_object || cold->after_generation>original.generation ||
@@ -1645,6 +1661,69 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
   bool cold_copy_candidate(const Entry& entry) const noexcept {
     return cold && entry.generation>cold->after_generation && cold->eligible(entry.id);
   }
+  const detail::ProjectedInodeGroup* projected_member(std::uint64_t id) {
+    if(!projection)return nullptr;
+    const auto* group=projection->group(id);
+    return group && std::ranges::binary_search(group->replaced,id)?group:nullptr;
+  }
+  PreparedObject projected_record(const detail::ProjectedInodeGroup& group) {
+    if(group.object<projection->first_output || group.replaced.size()<2 ||
+        group.bytes.empty() || group.bytes.size()>kStoreMaxObjectBytes)
+      fail("invalid projected inode record");
+    Entry synthetic{};
+    synthetic.id=group.object;
+    synthetic.generation=original.generation;
+    return prepare_rebuilt_object(build.next,synthetic,{},group.bytes,target->encoder,true);
+  }
+  void price_projection(const Entry& entry) {
+    if(!projection)return;
+    if(entry.id>=projection->first_output)fail("source occupies projected inode range");
+    if(const auto* group=projected_member(entry.id)) {
+      priced_projection.removed.include(entry);
+      if(entry.id==group->replaced.front())
+        priced_projection.added.include(projected_record(*group).entry);
+    }
+  }
+  void select_projection() {
+    if(!projection)return;
+    const auto& removed=priced_projection.removed;
+    const auto& added=priced_projection.added;
+    if(!added.objects) {
+      projection.reset();
+      return;
+    }
+    if(removed.objects>=original.root.count || removed.stored>original.root.stored-original_root_stored ||
+        removed.logical>original.root.logical || added.objects>=removed.objects)
+      fail("projected inode inventory exceeds its source");
+    const auto unchanged_stored=original.root.stored-original_root_stored;
+    const auto control=packed_rebuild_size(build.next,original.root.count,
+        add(unchanged_stored,target->encoder.encode(replacement).payload.size()));
+    const auto projected=packed_rebuild_size(build.next,add(original.root.count-removed.objects,added.objects),
+        add(add(unchanged_stored-removed.stored,added.stored),
+            target->encoder.encode(projection->rebound_root).payload.size()));
+    if(projected>=control || projected>=source_extent || projected>build.next.limits.maximum_physical_bytes) {
+      projection.reset();
+      return;
+    }
+    projected_end=projected;
+    replacement=std::move(projection->rebound_root);
+    build.next.limits.maximum_physical_bytes=projected;
+  }
+  bool copy_projection_quantum() {
+    if(!projection)return false;
+    const auto step=projection->next(projection_cursor);
+    if(!step)return false;
+    if(step->scanned_through<=projection_cursor)fail("projected inode cursor did not advance");
+    projection_cursor=step->scanned_through;
+    if(const auto* group=step->group) {
+      if(group->object<=last_projected_object)fail("projected inode order changed");
+      auto record=projected_record(*group);
+      build.append_payload(record.entry,record.header,record.payload,group->bytes);
+      copied_projection.added.include(record.entry);
+      last_projected_object=group->object;
+    }
+    return true;
+  }
   bool copy_mirrored_prefix(std::span<const Entry> leaf) {
     if(reencode || retention || build.folded || !build.next.mirrored)return false;
     const auto limit=(std::min)(leaf.size(),(std::max)(std::size_t{1},leaf_capacity(original)/4));
@@ -1656,7 +1735,8 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
       const auto size=record_header_bytes+entry.stored;
       const auto work=std::uint64_t{entry.logical}+size;
       const auto cold_work=cold_copy_candidate(entry)?entry.logical:0;
-      if((entry.id==1 && !replacement.empty()) || work>work_left || cold_work>cold_left)break;
+      if((entry.id==1 && !replacement.empty()) || work>work_left || cold_work>cold_left ||
+          (projection && projected_member(entry.id)))break;
       work_left-=work;
       cold_left-=cold_work;
       frame_bytes+=size;
@@ -1692,7 +1772,7 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
     if(!original.root.count)return false;
     if(!frontier)frontier.emplace(TreeFrontier{{original.root},{}});
     while(frontier->present() && !frontier->has_entries())frontier->open(original);
-    if(!frontier->has_entries())return false;
+    if(!frontier->has_entries())return copy_projection_quantum();
     if(copy_mirrored_prefix(frontier->remaining_entries()))return true;
 
     auto remaining=retention?(std::max)(std::size_t{1},leaf_capacity(original)/4):1;
@@ -1702,6 +1782,12 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
         continue;
       }
       const auto entry=frontier->take();
+      if(projected_member(entry.id)) {
+        copied_projection.removed.include(entry);
+        count(entry);
+        --remaining;
+        continue;
+      }
       if(retention && entry.logical>retention->maximum_object_bytes)fail("oversized advisory record");
       const bool improve=cold_copy_candidate(entry);
       bool evaluated=false;
@@ -1931,10 +2017,12 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
           replacement_seen=true;
         }
         if(retention && retention->keep(entry.id,bytes))retained.include(entry);
+        price_projection(entry);
       });
       if(!advanced) {
         totals(original);
         if(!replacement.empty() && !replacement_seen)fail("staged native root missing");
+        select_projection();
         if(retention) {
           auto projected=packed_rebuild_size(build.next,retained.objects,retained.stored);
           if(build.next.metadata_bytes==compact_metadata_bytes) {
@@ -1961,12 +2049,17 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
       if(!copy_quantum()) {
         totals(original);
         if(retention && retained!=copied)fail("filtered copy selection changed");
+        if(projection && priced_projection!=copied_projection)fail("projected inode copy selection changed");
         build.finish_payloads();
         reset(PagedRewritePhase::building_index);
       }
     } else if(phase==PagedRewritePhase::building_index) {
-      const auto expected_count=retention?retained.objects:original.root.count;
-      const auto expected_logical=retention?retained.logical:original.root.logical;
+      const auto& removed=priced_projection.removed;
+      const auto& added=priced_projection.added;
+      const auto expected_count=projection?add(original.root.count-removed.objects,added.objects):
+          retention?retained.objects:original.root.count;
+      const auto expected_logical=projection?add(original.root.logical-removed.logical,added.logical):
+          retention?retained.logical:original.root.logical;
       const auto remaining=expected_count-completed;
       if(remaining) {
         const auto batch=(std::min)(remaining,std::uint64_t{leaf_capacity(build.next)});
@@ -1979,11 +2072,19 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
         if(completed!=expected_count || logical!=expected_logical)fail("staged copy inventory differs");
         if(retention && (stored!=retained.stored || add(build.next.end,2*page_bytes)!=write_bound))
           fail("filtered copy exceeded its charged plan");
+        if(projection && build.next.end!=projected_end)fail("projected inode allocation differs from its plan");
         reset(PagedRewritePhase::verifying_target);
       }
     } else if(phase==PagedRewritePhase::verifying_target || phase==PagedRewritePhase::verifying_publication) {
       if(!comparison_source_pages)comparison_source_pages.emplace();
       if(!verify_quantum(build.next,!build.folded,[&](const Entry& entry,const Bytes& bytes,bool){
+        if(projection && entry.id>=projection->first_output) {
+          const auto* group=projection->group(entry.id);
+          if(!group || group->object!=entry.id || entry.generation!=original.generation || bytes!=group->bytes)
+            fail("staged inode page CPU comparison");
+          return;
+        }
+        if(projected_member(entry.id))fail("staged target retained a packed inode's standalone record");
         const auto source=lookup(original,entry.id,&*comparison_source_pages);
         if(!source)fail("staged target object differs");
         compare(original,*source,entry,bytes,replacement);
@@ -2040,6 +2141,7 @@ std::uint64_t PagedObjectStoreWriter::Rewrite::cold_encoding_through() const noe
 }
 StoreIdentity PagedObjectStoreWriter::Rewrite::identity() const noexcept {return impl_?impl_->build.next.id:StoreIdentity{};}
 bool PagedObjectStoreWriter::Rewrite::replaces_native_root() const noexcept {return impl_ && !impl_->replacement.empty();}
+bool PagedObjectStoreWriter::Rewrite::packs_short_inodes() const noexcept {return impl_ && bool(impl_->projection);}
 PagedRewriteProgress PagedObjectStoreWriter::Rewrite::progress() const noexcept {
   return impl_?PagedRewriteProgress{impl_->phase,impl_->original.root.count,impl_->completed,impl_->write_bound,
       impl_->build.next.id}:PagedRewriteProgress{};
@@ -2076,8 +2178,10 @@ PagedObjectStoreWriter::Rewrite PagedObjectStoreWriter::prepare_rebuild(std::sha
 }
 PagedObjectStoreWriter::Rewrite PagedObjectStoreWriter::prepare_rebuild_replacing(std::shared_ptr<StoreByteIo> target,
     StoreIdentity id,StoreCompressionOptions compression,std::span<const std::byte> replacement,bool reencode,
-    std::size_t identity_offset,PagedRewriteMode mode,std::optional<RebuildColdEncoding> cold) const {
-  return prepare_rebuild_impl(std::move(target),id,compression,replacement,reencode,identity_offset,{},mode,std::move(cold));
+    std::size_t identity_offset,PagedRewriteMode mode,std::optional<RebuildColdEncoding> cold,
+    std::optional<detail::PagedInodeProjection> projection) const {
+  return prepare_rebuild_impl(std::move(target),id,compression,replacement,reencode,identity_offset,{},
+      mode,std::move(cold),{},std::move(projection));
 }
 PagedObjectStoreWriter::Rewrite PagedObjectStoreWriter::prepare_rebuild_retaining(std::shared_ptr<StoreByteIo> target,
     StoreIdentity id,StoreCompressionOptions compression,RebuildRetention keep) const {
@@ -2088,11 +2192,13 @@ PagedObjectStoreWriter::Rewrite PagedObjectStoreWriter::prepare_rebuild_retainin
 PagedObjectStoreWriter::Rewrite PagedObjectStoreWriter::prepare_rebuild_impl(std::shared_ptr<StoreByteIo> target,
     StoreIdentity id,StoreCompressionOptions compression,std::span<const std::byte> replacement,bool reencode,
     std::size_t identity_offset,std::optional<RebuildRetention> retention,PagedRewriteMode mode,
-    std::optional<RebuildColdEncoding> cold,std::function<void(std::uint64_t)> folded_admission) const {
+    std::optional<RebuildColdEncoding> cold,std::function<void(std::uint64_t)> folded_admission,
+    std::optional<detail::PagedInodeProjection> projection) const {
   if(poisoned())fail("staged rebuild requires a healthy source writer");
   if(!impl_->pending_rebuild.expired())fail("source already has a staged rebuild");
   auto candidate=std::make_unique<Rewrite::Impl>(*impl_,std::move(target),id,compression,
-      replacement,reencode,identity_offset,std::move(retention),mode,std::move(cold),std::move(folded_admission));
+      replacement,reencode,identity_offset,std::move(retention),mode,std::move(cold),std::move(folded_admission),
+      std::move(projection));
   impl_->pending_rebuild=candidate->reservation;return Rewrite(std::move(candidate));
 }
 PagedObjectStoreSnapshot::PagedObjectStoreSnapshot(std::unique_ptr<Impl> p) noexcept:impl_(std::move(p)){}
@@ -2344,7 +2450,11 @@ std::vector<StoreObjectInfo> PagedObjectStoreSnapshot::list_page(std::uint64_t a
   if(!impl_)fail("moved-from snapshot");if(!limit || limit>4096)fail("pagination budget");
   std::vector<StoreObjectInfo> result;result.reserve(limit);bool done=false;
   auto visitor=[&](const Entry& e){result.push_back({e.id,e.generation,e.logical,e.stored});return result.size()<limit;};
-  walk(impl_->state,impl_->state.root,after,visitor,done);return result;
+  // Staging can retain checked metadata for the immutable source. Full
+  // verification uses fresh traversal without this lookup scope.
+  walk(impl_->state,impl_->state.root,after,visitor,done,
+      impl_->lookup_pages?&*impl_->lookup_pages:nullptr);
+  return result;
 }
 void PagedObjectStoreSnapshot::verify_all() const {if(!impl_)fail("moved-from snapshot");verify(impl_->state);}
 void PagedObjectStoreSnapshot::visit_verified_objects(const VerifiedObjectVisitor& consume,AuditMetadataReads* audited) const {

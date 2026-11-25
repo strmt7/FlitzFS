@@ -179,6 +179,43 @@ records. Bind future automatic offers to measured release, write
 credit and verified compatibility.
 [Windows migration and fault evidence](evidence/windows-packed-inode-migration-2026-11-25.json)
 
+### Packing during staged reclaim
+
+The explicit `pack_short_inodes` mode extends staged reclaim for a
+mirrored, inline-capable image with standalone inodes. During source
+verification it examines one inode-page range at a time and prices a
+normal compacted image and the packed candidate with the same mirrored
+geometry. The selector can adopt the packed layout only when its planned
+allocation improves both the ordinary reclaim copy and the occupied
+source. A tie or a sweep with no eligible groups uses ordinary reclaim.
+
+The copy streams original records in key order, preserving the live
+identity and generation of every retained record. It skips the priced
+standalone rows and emits their exact canonical bytes in the generated
+page range. The paged writer reconciles removed and added inventories
+against the price and verifies the complete target, including its
+mirrors, before and after private root publication. The selected root
+activates bit 11 with the packed pages. Source readers hold their exact
+prior view throughout. The original image receives no writes.
+
+On selector recovery, a CPU verifier compares retained objects and
+reconstructs the expected packed pages from the original inode frames.
+It checks every expected target key, generation and canonical byte
+stream and accounts for the complete inventory. A recovered selector
+can therefore name either complete layout. The design follows the same
+relocation principle of retaining logical ownership, and treats a
+selected capability as a reader requirement.
+[Btrfs relocation](https://btrfs.readthedocs.io/en/latest/btrfs-balance.html) ·
+[OpenZFS feature activation](https://openzfs.github.io/openzfs-docs/Basic%20Concepts/Pool%20Structure/Feature%20Flags.html)
+
+The 374-file CPython control settled at 672 KiB and the packed reclaim
+at 464 KiB, including the selector. Target writes fell by 212,992
+bytes. Checked source-page reuse reduced the candidate's additional
+reclaim read cost from 7,376,671 to 757,535 bytes relative to the
+ordinary copy. A complete CPU read of the settled files fetched 1.9%
+more backing bytes. The two layouts produced identical file contents.
+[Copy, recovery and allocation evidence](evidence/windows-packed-reclaim-2026-11-25.json)
+
 ### Name profiles
 
 Profile 0 keeps the earlier ASCII spelling and lowercase keys. The first

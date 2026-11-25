@@ -1450,7 +1450,7 @@ bool NativeFileSession::begin_idle_compaction_impl(std::shared_ptr<StoreByteIo> 
   admit_empty(target);
   const auto foreground=self.volume->foreground;
   std::optional<std::uint64_t> cold_after;
-  if(mode!=PagedRewriteMode::exact_checkpoint && !capacity_repair &&
+  if((screened || mode==PagedRewriteMode::reconcile_foreground) && !capacity_repair &&
       foreground.mode!=StoreCompressionMode::raw && store_zstd_available()) {
     const auto saved=self.current_cold_coverage();
     cold_after=saved?saved->through_generation:0;

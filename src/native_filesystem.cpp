@@ -2222,8 +2222,14 @@ PagedObjectStoreWriter::Rewrite NativeFilesystemWriter::prepare_paged_recompress
         cold.emplace(PagedObjectStoreWriter::RebuildColdEncoding{*cold_after_generation,
             detail::kNativeIndexedDataObject+1,2*detail::kNativeIndexedDataObject,std::move(reserve_writes)});
       }
+      std::optional<detail::PagedInodeProjection> projection;
+      if(mode==PagedRewriteMode::pack_short_inodes) {
+        if(reencode || cold)fail(Code::invalid_operation,"packed rebuild preserves existing payload encodings");
+        projection.emplace(detail::project_indexed_inode_pages(
+            impl_->objects.paged_if()->snapshot_for_staging(true),*impl_->indexed,id));
+      }
       return impl_->objects.prepare_paged_rebuild(std::move(target),id,root,compression,reencode,
-          detail::kIndexedVolumeIdentityOffset,mode,std::move(cold));
+          detail::kIndexedVolumeIdentityOffset,mode,std::move(cold),std::move(projection));
     }catch(const std::bad_alloc&){fail(Code::limit,"staged indexed preparation allocation failure");}
     catch(const NativeFsError&){throw;}
     catch(const std::exception&){fail(Code::storage_failure,"staged indexed preparation failed");}
@@ -2259,6 +2265,7 @@ NativeFilesystemWriter NativeFilesystemWriter::finish_paged_recompression(PagedO
     if(impl_->indexed) {
       auto root=*impl_->indexed;
       root.identity=candidate.identity();
+      root.packed_inodes=root.packed_inodes || candidate.packs_short_inodes();
       auto objects=candidate.finish(*impl_->objects.paged_if());
       auto state=std::make_unique<Impl>(detail::NativeObjectWriter(std::move(objects)));
       state->indexed=root;

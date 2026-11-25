@@ -1766,21 +1766,95 @@ void indexed_managed_staged_compaction() {
            <<" selected_live_file_bytes="<<expected.size()<<'\n';
 }
 
-void indexed_managed_staged_faults() {
+void indexed_managed_packed_reclaim(unsigned files) {
+  const auto volume=identity_for(91),source_id=identity_for(92),target_id=identity_for(93);
+  auto head=empty(),backing=empty(),control=empty(),target=empty();
+  auto session=NativeFileSession::create_indexed_volume(head,volume,backing,source_id,limits,raw,
+      NativeDispositionPolicy::windows_global,{},NativeVolumePlacement::external,
+      NativeIndexedDataLayout::inline_small_files,NativeVolumeHeadLayout::compact,PagedStoreBankLayout::compact);
+  constexpr NativeBasicMetadata attributes{11,22,33,44,0x20};
+  for(unsigned i=0;i<files;++i) {
+    session.create_entry(file(i),false,attributes,native_security_fixture::descriptor());
+    const auto handle=session.open(file(i),{true,true,false});
+    session.write(handle,0,payload(i+500));
+    session.cleanup(handle,false);
+    session.close(handle);
+  }
+  const auto handle=session.open(file(0),{true,true,false});
+  session.write(handle,0,payload(599)); // Ensure ordinary reclaim has superseded records.
+  const auto pinned=session.snapshot();
+  const auto inode=pinned.stat(file(0)).inode;
+  const auto expected=pinned.read(file(0),0,100);
+  const auto retained_source=backing->stable;
+  const auto detached=NativeFilesystemSnapshot::open_image(image(retained_source,4096),pinned.image_storage());
+  (void)NativeFilesystemWriter::compact(detached,control,identity_for(94),raw);
+  const auto source_calls=backing->calls;
+  const auto selector_calls=head->calls;
+  require(session.begin_idle_compaction(target,target_id,PagedRewriteMode::pack_short_inodes),
+      "could not begin priced inode projection");
+  advance_to_compaction_ready(session);
+  require(head->calls==selector_calls && backing->calls==source_calls,"private packed copy wrote the active volume");
+  const auto selected=session.publish_idle_recompression();
+  require(selected && selected->selection.image_identity==target_id && selected->selection.epoch==2 &&
+      backing->stable==retained_source && backing->calls==source_calls &&
+      session.read(handle,0,100)==expected && pinned.read_inode(inode,0,100)==expected,
+      "packed handoff changed a pinned source or live handle");
+  const auto current=session.snapshot();
+  current.verify_all();
+  require(current.sequence()==pinned.sequence() && current.stat(file(0)).inode==inode &&
+      current.basic_metadata(inode)==pinned.basic_metadata(inode),
+      "packed handoff changed the logical namespace");
+  for(unsigned i=0;i<files;++i)
+    require(current.read(file(i),0,100)==pinned.read(file(i),0,100),"packed copy changed acknowledged bytes");
+
+  const auto store=PagedObjectStoreSnapshot::open(target,limits);
+  constexpr auto first_page=kIndexedInodePageObject|1;
+  constexpr auto direct=1ULL<<63;
+  const auto control_store=PagedObjectStoreSnapshot::open(control,limits);
+  if(files>1) {
+    require(store.stat(first_page) && !store.stat(direct|inode) && target->extent()<control->extent() &&
+        store.info().objects<control_store.info().objects && target->write_bytes<control->write_bytes,
+        "paced packing did not beat the equivalent ordinary reclaim");
+  }else require(!store.stat(first_page) && store.stat(direct|inode) &&
+        target->extent()==control->extent(),"empty projection activated a format change");
+  std::cout<<"packed_reclaim_work files="<<files<<" control_bytes="<<control->extent()
+      <<" target_bytes="<<target->extent()<<" control_writes="<<control->write_bytes
+      <<" target_writes="<<target->write_bytes<<" original_unchanged=1\n";
+  session.write(handle,0,payload(600));
+  require(session.read(handle,0,100)==payload(600) && pinned.read_inode(inode,0,100)==expected,
+      "retained writer after packed handoff lost its inode mapping");
+  session.cleanup(handle,false);
+  session.close(handle);
+}
+
+void indexed_managed_staged_faults(bool packed_copy=false) {
   using Error=NativeFsErrorCode;
   constexpr unsigned head_boundaries=4;
   unsigned previous=0,advanced=0;
   for(unsigned mode=0;mode<3;++mode)for(unsigned cut=0;cut<head_boundaries;++cut) {
     const auto volume_id=identity_for(68),source_id=identity_for(69),target_id=identity_for(70);
     auto head=empty(),source=empty(),target=empty();
-    auto session=NativeFileSession::create_indexed_volume(head,volume_id,source,source_id,limits,raw);
+    auto session=NativeFileSession::create_indexed_volume(head,volume_id,source,source_id,limits,raw,
+        NativeDispositionPolicy::aggregate,{},NativeVolumePlacement::external,
+        packed_copy?NativeIndexedDataLayout::inline_small_files:NativeIndexedDataLayout::extents);
     session.create_entry("data");
+    if(packed_copy)for(unsigned i=0;i<48;++i) {
+      const auto name=file(i);
+      session.create_entry(name);
+      const auto small=session.open(name,{true,true,false});
+      session.write(small,0,payload(i+200));
+      session.cleanup(small,false);
+      session.close(small);
+    }
     const auto handle=session.open("data",{true,true,true});
     for(unsigned i=0;i<6;++i)session.write(handle,0,payload(i));
     const auto expected=payload(185);
     session.write(handle,0,expected);
-    require(session.begin_idle_compaction(target,target_id),"could not begin head-fault fixture");
+    const auto layout=packed_copy?PagedRewriteMode::pack_short_inodes:PagedRewriteMode::exact_checkpoint;
+    require(session.begin_idle_compaction(target,target_id,layout),"could not begin head-fault fixture");
     advance_to_compaction_ready(session);
+    if(packed_copy)require(PagedObjectStoreSnapshot::open(target,limits).stat(kIndexedInodePageObject|1).has_value(),
+        "head-fault fixture did not activate the candidate layout");
     const auto source_before=source->stable;
     head->failure=mode;head->fail_at=head->calls+cut;
     refuses(Error::storage_failure,[&]{(void)session.publish_idle_recompression();});
@@ -1790,10 +1864,18 @@ void indexed_managed_staged_faults() {
     else if(recovered.selection.epoch==2 && recovered.selection.image_identity==target_id)++advanced;
     else throw std::runtime_error("staged recovery selected an unrelated image");
     require(session.read(handle,0,100)==expected,"staged selector recovery lost acknowledged bytes");
+    if(packed_copy) {
+      const auto snapshot=session.snapshot();
+      snapshot.verify_all();
+      for(unsigned i=0;i<48;++i)
+        require(snapshot.read(file(i),0,100)==payload(i+200),"projected selector recovery changed a short file");
+    }
     session.cleanup(handle,false);
     session.close(handle);
   }
   require(previous && advanced,"staged selector faults did not exercise both owned images");
+  if(packed_copy)std::cout<<"packed_reclaim_selector_cuts="<<previous+advanced
+      <<" previous="<<previous<<" advanced="<<advanced<<'\n';
 
   auto head=empty(),source=empty(),target=empty();
   auto session=NativeFileSession::create_indexed_volume(
@@ -2013,7 +2095,9 @@ void profile_cpython_reopen(const char* path,bool compressed=false) {
   },encoding);
 }
 
-void profile_named_inline(const std::filesystem::path& path,bool compare_packed=false,bool migrate_packed=false) {
+enum class NamedInlineProfile { inline_control, fresh_packed, migrated, packed_reclaim };
+void profile_named_inline(const std::filesystem::path& path,NamedInlineProfile mode=NamedInlineProfile::inline_control) {
+  const bool compare_packed=mode!=NamedInlineProfile::inline_control;
   const NamedCorpusFixture corpus(path);
   require(store_zstd_available() && corpus.files().size()<=512 && corpus.logical_bytes()<=4ULL*1024*1024,
       "named inline profile exceeds the admitted cohort or lacks Zstandard");
@@ -2029,14 +2113,17 @@ void profile_named_inline(const std::filesystem::path& path,bool compare_packed=
   const auto head_layout=compare_packed?NativeVolumeHeadLayout::compact:NativeVolumeHeadLayout::legacy;
   const auto image_layout=compare_packed?PagedStoreBankLayout::compact:PagedStoreBankLayout::shared;
   for(const auto layout:layouts) {
-    const bool migrate=migrate_packed && layout==NativeIndexedDataLayout::packed_small_file_inodes;
+    const bool packed=layout==NativeIndexedDataLayout::packed_small_file_inodes;
+    const bool migrate=mode==NamedInlineProfile::migrated && packed;
+    const bool staged=mode==NamedInlineProfile::packed_reclaim;
     auto head=empty(),backing=empty(),compacted=empty();
     backing->capacity=compacted->capacity=capacity;
     constexpr auto kind=NativeDispositionPolicy::windows_global;
+    std::uint64_t reclaim_source_reads=0,reclaim_target_reads=0;
     {
       auto session=NativeFileSession::create_indexed_volume(head,identity_for(89),backing,identity(),{capacity},
           encoding,kind,NativeVolumeRootMetadata{directory_info,security},NativeVolumePlacement::external,
-          migrate?NativeIndexedDataLayout::inline_small_files:layout,head_layout,image_layout);
+          migrate || staged?NativeIndexedDataLayout::inline_small_files:layout,head_layout,image_layout);
       for(const auto& directory:corpus.directories())session.create_entry(directory,true,directory_info,security);
       for(const auto& file:corpus.files()) {
         session.create_entry(file.path,false,file_info,security);
@@ -2063,11 +2150,23 @@ void profile_named_inline(const std::filesystem::path& path,bool compare_packed=
             <<" writes="<<backing->write_bytes-writes<<" write_bound="<<charge<<'\n';
       }
       require(session.stats().contexts==0,"named inline profile retained an open context");
+      if(staged) {
+        const auto writes=backing->write_bytes,reads=backing->read_bytes;
+        const auto rewrite=packed?PagedRewriteMode::pack_short_inodes:PagedRewriteMode::exact_checkpoint;
+        require(session.begin_idle_compaction(compacted,identity_for(29),rewrite),"named reclaim could not begin");
+        advance_to_compaction_ready(session);
+        require(session.publish_idle_recompression().has_value() && backing->write_bytes==writes,
+            "named reclaim did not select its copy without source writes");
+        reclaim_source_reads=backing->read_bytes-reads;
+        reclaim_target_reads=compacted->read_bytes;
+      }
     }
-    const auto source=NativeVolumeHeadView::open(head,identity_for(89),[&](const StoreIdentity& id) {
-      return id==identity()?backing:std::shared_ptr<Ram>{};
-    });
-    (void)NativeFilesystemWriter::compact(source.filesystem(),compacted,identity_for(29),encoding);
+    if(!staged) {
+      const auto source=NativeVolumeHeadView::open(head,identity_for(89),[&](const StoreIdentity& id) {
+        return id==identity()?backing:std::shared_ptr<Ram>{};
+      });
+      (void)NativeFilesystemWriter::compact(source.filesystem(),compacted,identity_for(29),encoding);
+    }
     const auto selected=NativeFilesystemSnapshot::open_image(compacted,storage);
     selected.verify_all();
     const auto begin=compacted->read_bytes;
@@ -2075,7 +2174,7 @@ void profile_named_inline(const std::filesystem::path& path,bool compare_packed=
       require(selected.read(file.path,0,static_cast<std::uint32_t>(file.bytes))==corpus.read(file),
           "named inline profile changed CPU bytes");
     }
-    const auto name=migrate?"migrated":layout==NativeIndexedDataLayout::packed_small_file_inodes?"packed":
+    const auto name=migrate?"migrated":packed?(staged?"packed_reclaim":"packed"):
         layout==NativeIndexedDataLayout::inline_small_files?"inline":"extents";
     std::cout<<"named_inline_profile layout="<<name
         <<" files="<<corpus.files().size()<<" directories="<<corpus.directories().size()
@@ -2083,6 +2182,9 @@ void profile_named_inline(const std::filesystem::path& path,bool compare_packed=
         <<" selector_bytes="<<head->extent()<<" ingested_bytes="<<backing->extent()
         <<" physical_read_bytes="<<compacted->read_bytes-begin
         <<" ingest_write_bytes="<<backing->write_bytes+head->write_bytes
+        <<" compaction_write_bytes="<<compacted->write_bytes
+        <<" reclaim_source_read_bytes="<<reclaim_source_reads
+        <<" reclaim_target_read_bytes="<<reclaim_target_reads
         <<" live_extents="<<selected.allocation_usage().live_extents<<" cpu_exact=1\n";
   }
 }
@@ -2103,6 +2205,9 @@ int main(int argc,char** argv) {
       indexed_inline_transitions(layout);
       indexed_inode_page_inventory();
       indexed_packed_inode_migration();
+      indexed_managed_packed_reclaim(48);
+      indexed_managed_packed_reclaim(1);
+      indexed_managed_staged_faults(true);
       std::cout<<"PASS: packed indexed inode lifecycle, fenced transitions and byte-exact CPU readback\n";
       return 0;
     }
@@ -2111,11 +2216,15 @@ int main(int argc,char** argv) {
       return 0;
     }
     if(argc==3 && std::string_view(argv[1])=="--profile-named-packed-inodes"){
-      profile_named_inline(argv[2],true);
+      profile_named_inline(argv[2],NamedInlineProfile::fresh_packed);
       return 0;
     }
     if(argc==3 && std::string_view(argv[1])=="--profile-packed-inode-migration"){
-      profile_named_inline(argv[2],true,true);
+      profile_named_inline(argv[2],NamedInlineProfile::migrated);
+      return 0;
+    }
+    if(argc==3 && std::string_view(argv[1])=="--profile-packed-inode-reclaim"){
+      profile_named_inline(argv[2],NamedInlineProfile::packed_reclaim);
       return 0;
     }
     if(argc==2 && std::string_view(argv[1])=="--reconciled-rebuild"){

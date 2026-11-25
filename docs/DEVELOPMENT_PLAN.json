@@ -3,6 +3,7 @@
   "updated": "2026-11-25",
   "forward_work_rule": "Use current_release_sequence for integration order, and execution_programme and the implementation plan for package dependencies and exits. Historical checkpoints describe completed or partial evidence.",
   "current_release_sequence": {
+    "latest_packed_reclaim": "docs/evidence/windows-packed-reclaim-2026-11-25.json",
     "latest_uniform_slab_reuse": "docs/evidence/windows-uniform-slab-reuse-2026-11-25.json",
     "latest_packed_inode_migration": "docs/evidence/windows-packed-inode-migration-2026-11-25.json",
     "latest_hip_startup_budget_renewal": "docs/evidence/windows-hip-startup-budget-renewal-2026-11-25.json",

@@ -6,6 +6,18 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "packed_reclaim": {
+    "source_parent": "03c513a37807fba5630d2ab53bb38371b771aa30",
+    "tested_source_tree": "50e4628e0e28c540c648ea85b53f6c07f12e732a",
+    "evidence": "docs/evidence/windows-packed-reclaim-2026-11-25.json",
+    "named_plain_settled_bytes": 688128,
+    "named_packed_settled_bytes": 475136,
+    "target_write_bytes_saved": 212992,
+    "active_image_write_bytes": 0,
+    "selector_cuts": 12,
+    "automatic_activation_enabled": false,
+    "release_qualified": false
+  },
   "uniform_slab_reuse": {
     "source_parent": "996228dd8aa37e41d6ce25912d8ecf8f54557dd7",
     "tested_source_tree": "28f3c6993e47af6f2847f1440d8ce01fe872d591",

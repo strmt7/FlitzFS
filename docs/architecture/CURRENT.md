@@ -526,6 +526,33 @@ record-level CPU comparisons before the new image can be selected.
 · [file reclaimer](../../src/native_volume_file.cpp#L227)
 · [staged rebuild](../STAGED_PAGED_REBUILD.md)
 
+### Packed inode projection during reclaim
+
+The explicit packed reclaim mode uses the same staging and selection
+path as an exact checkpoint copy. It examines bounded groups in the
+immutable source. Reusing verified source metadata pages limits repeated
+reads during projection planning. The source and target verification
+walks still validate their physical metadata and record copies.
+
+```mermaid
+flowchart TD
+    Start["Explicit packed reclaim of a mirrored inline image"] --> Price["Verify source and price both protected layouts"]
+    Price --> Compare{"Packed allocation smaller than ordinary reclaim and source?"}
+    Compare -->|No| Plain["Build ordinary compacted image"]
+    Compare -->|Yes| Packed["Stream retained objects, then generate packed inode pages"]
+    Packed --> Witness["Reconcile exact inventories and verify both copies"]
+    Plain --> Witness
+    Witness --> Private["Publish and verify private roots"]
+    Private --> Selector["Switch selector while both image owners are held"]
+    Selector --> Prior["Prior pinned readers"]
+    Selector --> New["Current native lookup and writable session"]
+```
+
+Interrupted selection can recover either complete root using the
+independent CPU comparison. Automatic offer and media qualification
+remain part of the staged release work.
+[Packed reclaim contract](../INDEXED_NATIVE_VOLUME.md#packing-during-staged-reclaim)
+
 ### Mounted reclaim admission and the native control
 
 ```mermaid
