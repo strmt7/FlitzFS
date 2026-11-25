@@ -800,6 +800,30 @@ void reclaimed_ranges() {
       "recycled first range lost the latest acknowledged foreground data");
 }
 
+void dense_replacement_admission() {
+  constexpr auto unit=kStoreCommitUnit;
+  const auto file=std::make_shared<DenseTailRam>();
+  file->bytes.failure_unit=4096;
+  const auto existing=data(unit,214);
+  const auto added=data(2*unit,215);
+  {
+    auto dense=detail::DenseVolumeBacking::create(file,id(79),32*unit,16*unit);
+    dense->write_exact(0,existing);
+    dense->flush();
+    // A later smaller provider grant replaces the earlier grant.
+    dense->admit_range_write(8*unit,6*unit);
+    dense->admit_range_write(8*unit,0);
+    dense->write_exact(4*unit,added);
+    dense->flush();
+  }
+  const auto reopened=detail::DenseVolumeBacking::open(DenseTailRam::replay(*file),false);
+  Bytes prior(existing.size()),latest(added.size());
+  reopened->read_exact(0,prior);
+  reopened->read_exact(4*unit,latest);
+  require(prior==existing && latest==added,"replacement admission changed acknowledged bytes");
+  std::cout<<"dense_replacement_admission fresh_growth=1 cpu_readback=exact\n";
+}
+
 void dense_allocation() {
   constexpr auto unit=kStoreCommitUnit;
   constexpr std::uint64_t logical_limit=8ULL<<40;
@@ -1416,6 +1440,56 @@ void dense_session_reuse() {
   require(independent.filesystem().read("payload",0,50000)==expected &&
       independent.filesystem().read("witness",0,1000)==witness_bytes && !final->calls,
       "independent dense reopen lost acknowledged data");
+}
+
+void dense_seal_workspace_alignment() {
+  if(!store_zstd_available())return;
+  constexpr std::uint64_t capacity=96ULL*1024*1024;
+  const auto file=std::make_shared<DenseTailRam>();
+  file->bytes.failure_unit=4096;
+  file->bytes.capacity=capacity;
+  const StoreCompressionOptions codec{StoreCompressionMode::fast,1,false};
+  auto expected=cold_test_payload();
+  const auto sibling=cold_test_payload(130011);
+  const Bytes sparse(640*1024);
+  using Mode=NativeVolumeReclaimMode;
+  std::uint64_t initial=0,settled=0;
+  {
+    auto session=NativeVolumeFile::create_dense(file,capacity,id(70),id(71),{32ULL*1024*1024},codec);
+    put(session,"payload",expected);
+    put(session,"sibling",sibling);
+    put(session,"sparse",sparse);
+    for(unsigned i=0;i<60;++i) {
+      const auto change=data(3072,9300+i);
+      const auto offset=i*4096;
+      const auto h=session.open("payload",{true,true,false});
+      session.write(h,offset,change);
+      session.cleanup(h,false);
+      session.close(h);
+      std::copy(change.begin(),change.end(),expected.begin()+offset);
+    }
+    initial=file->extent();
+    unsigned next=72,published=0;
+    for(unsigned step=0;step<6000 && session.persistent_reclamation_pending(Mode::include_cold);++step) {
+      const auto mode=session.persistent_reclamation_pending(Mode::shorten_packed_tail)?
+          Mode::shorten_packed_tail:Mode::include_cold;
+      const auto progress=session.advance_persistent_reclamation([&]{return id(next++);},mode);
+      require(progress!=Reclaim::failed,"fitted cold-seal workspace did not admit its checked footprint");
+      published+=progress==Reclaim::published;
+    }
+    settled=file->extent();
+    require(published==2 && session.volume_info().selection.sealed_range &&
+        session.volume_info().selection.epoch==3 && settled<initial &&
+        !session.persistent_reclamation_pending(Mode::include_cold),"packed cold sealing did not complete and retire");
+  }
+  const auto checked=NativeVolumeFile::inspect(DenseTailRam::replay(*file),id(70));
+  const auto& view=checked.filesystem();
+  view.verify_all();
+  require(view.read("payload",0,static_cast<std::uint32_t>(expected.size()))==expected &&
+      view.read("sibling",0,static_cast<std::uint32_t>(sibling.size()))==sibling &&
+      view.read("sparse",0,static_cast<std::uint32_t>(sparse.size()))==sparse,
+      "aligned sealing changed acknowledged files");
+  std::cout<<"dense_aligned_seal before="<<initial<<" settled="<<settled<<" epoch=3 cpu_readback=exact\n";
 }
 
 void dense_session_cuts() {
@@ -2551,6 +2625,7 @@ int main(int argc,char** argv){
   try {
     if(argc==2 && std::string_view(argv[1])=="--dense-allocation") {
       dense_allocation();
+      dense_replacement_admission();
       dense_group_boundary();
       dense_directory_cuts();
       std::cout<<"PASS: "<<checks<<" dense ownership checks\n";
@@ -2558,6 +2633,7 @@ int main(int argc,char** argv){
     }
     if(argc==2 && std::string_view(argv[1])=="--dense-session") {
       dense_session_reuse();
+      dense_seal_workspace_alignment();
       std::cout<<"PASS: "<<checks<<" dense volume session checks\n";
       return 0;
     }

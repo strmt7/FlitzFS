@@ -1967,7 +1967,9 @@ void observe_mounted_reclamation(const MountedFileActivation& activation,StoreIo
   std::array<unsigned,static_cast<std::size_t>(Phase::failed)+1> phases{};
   std::array<unsigned,static_cast<std::size_t>(Deferral::capacity)+1> deferrals{};
   WinFspControllerView view;
-  const auto limit=GetTickCount64()+(preselected?20000:240000);
+  // The ordinary witness can publish, release the old range and run the next
+  // eligible cold cycle before the same controller becomes quiescent.
+  const auto limit=GetTickCount64()+(preselected?20000:480000);
   std::uint64_t previous=0;
   // The serving process only observes its controller. The preceding Win32
   // clients run outside the helper and cover the retained-reader workload.

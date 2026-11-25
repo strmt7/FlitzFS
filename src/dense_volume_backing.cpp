@@ -458,8 +458,10 @@ struct DenseVolumeBacking::Impl {
 
   void admit(std::uint64_t end) {
     if (end > geometry.physical_limit) fail(Code::limit, "dense backing physical capacity");
-    physical->admit_write((std::max)(end, physical_end));
-    admitted_end = (std::max)(admitted_end, end);
+    const auto requested = (std::max)(end, physical_end);
+    physical->admit_write(requested);
+    // The provider's latest grant replaces its previous extent.
+    admitted_end = requested;
   }
 
   void write(std::uint64_t at, std::span<const std::byte> bytes) {

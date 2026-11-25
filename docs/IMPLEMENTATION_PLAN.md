@@ -296,17 +296,17 @@ decision. The expanded [decision table](RELEASE_RECONCILIATION_2026-11-25.md#dec
 defines when to continue with admission and pacing, locality, AMD scheduling
 or a new representation.
 
-- **Mounted settlement.** Record admission, copy phase, verification,
-  selector publication, retained references, provider operations and
-  allocation in order. Reuse the independent client and CPU oracle.
-  The latest signed replay published and reduced provider allocation to
-  6,160,384 bytes while mounted. Detached inspection required no reclamation
-  and verified the selected image. One maintenance failure and the missing
-  quiescence observation keep E02 open. Attribute that failure to its exact
-  reclaimer operation, exercise its recovery boundary, and repeat for clean
-  idle settlement. Then measure real-host phase cost and admitted credit
-  under foreground activity and quiet periods.
-  [Mounted publication and failure evidence](evidence/windows-maintenance-reference-refresh-2026-11-25.json)
+- **Mounted settlement.** The diagnostic signed replay observed catalog
+  retirement encountering a packed write fence. The latest provider grant
+  now determines the packed writer's authority and cold-seal staging
+  reserves the aligned workspace. The fixed model completes both
+  publications with exact CPU readback. Restart the same signed witness
+  when memory admission allows it. Require lower occupied bytes while
+  mounted, zero maintenance failures, controller quiescence and the same
+  selected epoch on independent CPU reopen. If a fence recurs, capture
+  its first provider operation. Use the measured phase, time and
+  allocation ledger to decide between tuning eligibility and local reuse.
+  [Packed admission and sealing evidence](evidence/windows-packed-admission-and-sealing-2026-11-25.json)
 - **Useful device delivery.** Feed observed open stream ranges and
   generations to the existing owner. For read, write and collective work,
   compare CPU, cold GPU and a ready lease using identical observations.
@@ -341,7 +341,7 @@ AMD service and a protected cohort oracle to identify compression gains.
 Plan the writable-attach differential independently with its complete-audit
 reference and a held-out file-count tier.
 [Current priorities and decisions](RELEASE_RECONCILIATION_2026-11-25.md#ordered-implementation-and-decision-points) ·
-[Next bounded work by package](RELEASE_RECONCILIATION_2026-11-25.md#package-handoffs)
+[Implementation packets and exit decisions](RELEASE_RECONCILIATION_2026-11-25.md#implementation-packets-and-exit-decisions)
 
 #### E03 and E08. Qualify ordinary AMD foreground I/O
 

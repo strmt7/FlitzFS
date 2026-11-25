@@ -1,16 +1,15 @@
 # FlitzFS repository overview
 
-The 25 November review reconciles the **1,095-file** parent `ff55509`
-and the staged cold-copy candidate. The short-file replay went from
-215 copy steps to 42 with identical protected image bytes and CPU readback.
-Earlier rolling lookup controls saved 120 KiB of total protected footprint
-each. The latest signed ordinary trace verified 1,027 files across three
-helper lifecycles. Mounted settlement, useful automatic AMD delivery,
-held-out complete-size compression and scalable reopen remain the next
-product milestones.
-[Latest reconciliation](RELEASE_RECONCILIATION_2026-11-25.md) ·
-[Source and validation receipt](evidence/windows-indexed-cold-batched-copy-2026-11-25.json) ·
-[Earlier mounted control](evidence/windows-bank-spanning-mounted-replay-2026-11-25.json)
+The 25 November reconciliation covers the writable WinFsp path, indexed
+storage, AMD work, collective compression and the release gates. The
+latest signed client trace independently verified 1,027 live files.
+It published a compact image and reduced allocated backing while mounted.
+The diagnostic replay found catalog retirement reaching a write fence.
+Local regressions cover the corrected write grant and cold-seal staging.
+The fixed signed replay still needs host memory admission.
+[Current reconciliation](RELEASE_RECONCILIATION_2026-11-25.md) ·
+[Implementation packets](RELEASE_RECONCILIATION_2026-11-25.md#implementation-packets-and-exit-decisions) ·
+[Current test and source evidence](evidence/windows-packed-admission-and-sealing-2026-11-25.json)
 
 The Radeon returned verified packed and mixed group frames through the
 SDK callback's prepared decoder path, with independent CPU readback.

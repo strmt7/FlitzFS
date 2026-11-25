@@ -321,8 +321,10 @@ std::optional<NativeVolumeFileReclaimer::SealPlan> NativeVolumeFileReclaimer::se
   if(selected.sealed_range)return std::nullopt;
   const auto contract=spare_->contract();
   const auto fitted=NativeHybridBacking::workspace_capacity(selected.volume_identity,contract,occupied,spare_->capacity);
-  const auto workspace=fitted-fitted%kStoreCommitUnit;
-  if(workspace<=kVolumeHeadBytes)return std::nullopt;
+  if(fitted<=kVolumeHeadBytes)return std::nullopt;
+  // The workspace region consumes whole commit units. Reserve the unit
+  // containing the last fitted byte, then price the aligned allocation.
+  const auto workspace=(1+(fitted-1)/kStoreCommitUnit)*kStoreCommitUnit;
   const auto base=ProtectedStripeImage::projected_occupied(selected.volume_identity,workspace,
       contract.write_failure_unit_bytes,spare_->capacity);
   const auto staging=workspace+base+kNativeHybridTailPrefixBytes;

@@ -8,7 +8,7 @@ The current integration design ties durable publication, bounded AMD work,
 sparse advice and measured settlement to the same Windows operation witness
 and complete occupancy record.
 [Reconciled design](../RELEASE_RECONCILIATION_2026-11-25.md#target-control-and-storage-design) ·
-[Implementation order](../RELEASE_RECONCILIATION_2026-11-25.md#ordered-implementation-and-decision-points)
+[Implementation order](../RELEASE_RECONCILIATION_2026-11-25.md#implementation-packets-and-exit-decisions)
 
 ## 1. Separate volume ownership from presentation and acceleration
 
@@ -154,8 +154,10 @@ Qualify three mechanisms separately before combining them:
 stateDiagram-v2
     [*] --> Current
     Current --> Candidate: Reserve disjoint ranges and capture versions
-    Candidate --> Current: Decline or cancel before publication
-    Candidate --> Published: Verify bytes, publish new references and flush
+    Candidate --> Admitted: Price aligned workspace and obtain current backing grant
+    Candidate --> Current: Decline if staging does not fit
+    Admitted --> Current: Cancel and retire private staging
+    Admitted --> Published: Verify bytes, publish new references and flush
     Published --> Retained: Track old references until release is proved
     Retained --> Reclaimable: No retained root, reader, owner or worker can refer
     Reclaimable --> Reused: Record new durable allocation incarnation
@@ -163,6 +165,14 @@ stateDiagram-v2
     Retained --> Reopen: Interrupted or uncertain retirement
     Reopen --> Current: CPU verifies selected authority and allocation ownership
 ```
+
+A physical extent grant belongs to the provider's latest admission. A
+later grant can reduce authority. Any resized candidate needs both a
+fresh grant and sufficient complete aligned staging. Keep CPU service on
+the selected, independently verified authority throughout preparation.
+Compare the prospective reuse ledger with the chosen image's full audit
+before treating a retired range as free.
+[Admission and staging evidence](../evidence/windows-packed-admission-and-sealing-2026-11-25.json)
 
 Track accounting at each layer. Logical user bytes, encoded live records,
 redundancy/index bytes, retired history, provider-allocated bytes and peak

@@ -1,15 +1,15 @@
 # FlitzFS stable release execution plan
 
-The latest 25 November review reconciles the 1,095-path parent
-`ff555097b76b491a2ce950a7e9de7c85ca8834f7` and the bounded cold-copy candidate.
-The previous populated retirement and signed replay remain controls for
-the next mounted qualification. The implementation order pairs mounted
-settlement with measured AMD delivery, protected compression and scalable
-writable attach.
+The 25 November reconciliation binds the cold-copy review and the corrected
+packed runtime. The diagnostic signed replay isolated the point where
+catalog retirement encountered a write fence. The replacement admission
+and aligned cold-seal staging regressions passed. The fixed signed replay
+requires fresh memory admission. The work sequence continues through
+settlement, measured AMD delivery, complete-size compression and
+scalable writable attach.
 [Current reconciliation](RELEASE_RECONCILIATION_2026-11-25.md) ·
-[Ordered milestones](RELEASE_RECONCILIATION_2026-11-25.md#ordered-implementation-and-decision-points) ·
-[Source and validation receipt](evidence/windows-indexed-cold-batched-copy-2026-11-25.json) ·
-[Previous mounted receipt](evidence/windows-mounted-range-retirement-2026-11-24.json)
+[Implementation packets and exit decisions](RELEASE_RECONCILIATION_2026-11-25.md#implementation-packets-and-exit-decisions) ·
+[Current runtime evidence](evidence/windows-packed-admission-and-sealing-2026-11-25.json)
 Use the [repository overview](REPOSITORY_OVERVIEW.md) for the product snapshot,
 the [current architecture](architecture/CURRENT.md) and [target architecture](architecture/TARGET.md)
 for system flows, and the [detailed implementation plan](IMPLEMENTATION_PLAN.md)
@@ -495,12 +495,15 @@ advances with unchanged image bytes on two source layouts. The populated
 runs compare mounted observation with detached reclamation. Both detached
 owners published compact images and independently verified all bytes. The
 latest signed replay matched all 6,293 operations and verified 1,027 files.
-The current signed observer published through the normal mounted owner.
-Provider allocation fell from 839,254,016 to 6,160,384 bytes while
-attached. CPU reopen verified all live files and observed no remaining
-reclamation. One maintenance failure and missing controller quiescence
-keep failure-free settlement open. Identify the failed operation and
-repeat the same witness before comparative qualification.
+The ordinary signed observer published and brought provider allocation from
+839,254,016 to 6,160,384 bytes while attached. CPU reopen verified all live
+files and observed no remaining detached reclamation. The diagnostic
+repeat found catalog retirement encountering an already fenced backing.
+Two regressions independently cover the stale write grant and cold-seal
+staging. The fixed signed replay stopped at host memory admission.
+Require zero maintenance failures and explicit quiescence on the fixed
+client trace, then qualify sustained churn.
+[Packed maintenance fixes](evidence/windows-packed-admission-and-sealing-2026-11-25.json) ·
 [Signed packed publication and backing release](evidence/windows-maintenance-reference-refresh-2026-11-25.json) ·
 [Source-audit control](evidence/windows-mirrored-source-audit-2026-11-25.json) ·
 [Cold-batching control](evidence/windows-indexed-cold-batched-copy-2026-11-25.json) ·

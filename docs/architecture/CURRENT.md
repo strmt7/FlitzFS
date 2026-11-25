@@ -4,7 +4,7 @@ The diagrams trace the implementation reconciled on 25 November. They
 cover prepared AMD read delivery, mirrored cold copy across packed banks,
 phase visibility during reclaimer steps and bounded rolling lookup.
 [Release reconciliation](../RELEASE_RECONCILIATION_2026-11-25.md) ·
-[Source and validation receipt](../evidence/windows-indexed-cold-batched-copy-2026-11-25.json) ·
+[Packed admission and sealing evidence](../evidence/windows-packed-admission-and-sealing-2026-11-25.json) ·
 [Revised architecture](TARGET.md)
 
 ## 1. Process and build boundaries
@@ -332,7 +332,10 @@ flowchart TD
 The ordinary packed reclaimer may relocate live units into an earlier
 allocation group. The anchor intent records the checked transition of both
 directories. Readers continue to use the old mapping until both directory
-pairs and the cleared anchor pair have settled.
+pairs and the cleared anchor pair have settled. Subsequent physical writes
+use the backing provider's latest admitted extent. Optional sealing reserves
+and prices the whole aligned workspace that contains the fitted image.
+[Packed admission and cold-sealing evidence](../evidence/windows-packed-admission-and-sealing-2026-11-25.json)
 
 ```mermaid
 sequenceDiagram

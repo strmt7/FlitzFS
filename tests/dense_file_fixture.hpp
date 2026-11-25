@@ -18,6 +18,8 @@ class DenseTailRam final : public StoreByteIo, public detail::DenseFileTailIo {
   void admit_write(std::uint64_t end) override {
     const std::lock_guard lock(mutex_);
     bytes.admit_write(end);
+    if(end<bytes.extent())throw std::runtime_error("modeled admission precedes current extent");
+    admitted_end_=end;
   }
   void read_exact(std::uint64_t offset,std::span<std::byte> out) const override {
     const std::lock_guard lock(mutex_);
@@ -25,6 +27,8 @@ class DenseTailRam final : public StoreByteIo, public detail::DenseFileTailIo {
   }
   void write_exact(std::uint64_t offset,std::span<const std::byte> in) override {
     const std::lock_guard lock(mutex_);
+    if(!in.empty() && (offset>admitted_end_ || in.size()>admitted_end_-offset))
+      throw std::runtime_error("modeled backing write exceeds latest admission");
     bytes.write_exact(offset,in);
   }
   void flush() override {
@@ -46,6 +50,7 @@ class DenseTailRam final : public StoreByteIo, public detail::DenseFileTailIo {
       bytes.stable.resize(static_cast<std::size_t>((std::min)(end,std::uint64_t(bytes.stable.size()))));
       throw std::runtime_error("injected interrupted truncation");
     }
+    admitted_end_=retained;
   }
   static std::shared_ptr<DenseTailRam> replay(const DenseTailRam& from) {
     const std::lock_guard lock(from.mutex_);
@@ -53,10 +58,12 @@ class DenseTailRam final : public StoreByteIo, public detail::DenseFileTailIo {
     io->bytes.live=io->bytes.stable=from.bytes.stable;
     io->bytes.failure_unit=from.bytes.failure_unit;
     io->bytes.capacity=from.bytes.capacity;
+    io->admitted_end_=io->bytes.extent();
     io->truncate_qualified=from.truncate_qualified;
     return io;
   }
  private:
+  std::uint64_t admitted_end_=0;
   mutable std::mutex mutex_;
 };
 

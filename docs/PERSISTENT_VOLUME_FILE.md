@@ -129,6 +129,13 @@ directory stop reopen. Writable recovery stabilizes known peers before
 mapping changes or physical reuse. An uncertain storage operation fences the
 writer until reopen.
 
+The outer file provider replaces its growth admission on every successful
+request. The packed allocator retains the latest granted physical extent.
+A later write that crosses it obtains a fresh grant before modifying the
+backing. This covers smaller maintenance admissions after a larger
+reservation or a tail release.
+[Replacement admission and reopening evidence](evidence/windows-packed-admission-and-sealing-2026-11-25.json)
+
 Compact directory runs limit metadata traffic for contiguous allocations.
 Reopen currently scans the directories and builds an in-memory run index.
 Freed interior units are available to the volume after publication.
@@ -344,8 +351,11 @@ A fresh bulk write can leave insufficient credit for preparation,
 especially for weakly compressible data.
 
 The file workspace starts at the high end of the inactive range and the
-base starts at its beginning. The fitted workspace and projected parity
-layout establish the bounds before writes. The owner verifies the base and
+base starts at its beginning. The file planner rounds the fitted folded
+workspace up to the commit-unit boundary and prices that aligned region
+with the projected parity base and writable tail. The full staging plan
+must fit the inactive range before any optional write charge. The owner
+verifies the base and
 rechecks both current selector peers before releasing a file workspace in
 bounded spans. The tail starts immediately after the base at a boundary
 admitted by the backing's failure-unit contract. Reclamation uses the
