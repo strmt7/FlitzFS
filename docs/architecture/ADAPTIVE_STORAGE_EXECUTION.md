@@ -137,6 +137,74 @@ published decode dependencies remain protected with the chosen volume
 format.
 [Implementation and exits](../RELEASE_RECONCILIATION_2026-11-24.md#first-settled-size-implementation-sequence)
 
+### Protected short files and complete size
+
+In the 192-file CPython profile, retaining the current records and reducing
+their encoded data payload to zero would still occupy 466,944 of 524,288
+bytes. For these sizes, test eliminating records as well as compressing
+payload. Existing indexed extents consume a data object and an extent key
+in addition to the inode and name. The object store charges a checked
+record and an index entry in each protected copy.
+[Size decomposition](../evidence/windows-protected-size-frontier-2026-11-25.json) ·
+[Indexed ownership](../../src/native_indexed_volume.cpp) ·
+[Packed pricing](../../src/paged_store.cpp)
+
+```mermaid
+flowchart TD
+    Base["Freeze live files, protection, geometry and current record inventory"]
+    Base --> Current["Measure independent, grouped and cold encoding controls"]
+    Base --> Inline["Price short data in the checked inode record"]
+    Base --> Fragments["Price shared fragments with a compact protected locator"]
+    Current --> Account["Count image, selector, recovery copies, indexes and live dependencies"]
+    Inline --> Account
+    Fragments --> Account
+    Account --> Uses{"Smaller on held-out files within read and rewrite budgets?"}
+    Uses -->|Yes| Cpu["Define a versioned CPU reader and a writable transition"]
+    Cpu --> Cut["Verify current and prior generations at each interrupted handoff"]
+    Cut --> Pilot["Run the signed Windows client and recovery fixtures"]
+    Uses -->|No| Retain["Record cost and retain the current representation"]
+```
+
+1. **Prototype private layouts.** Price an inline file value in its
+   existing checked inode and a packed fragment record with slice
+   offsets and exact binding. For the inline candidate, calculate
+   the inode's encoded length after adding the value and remove the
+   separate object and extent key in the trial. For the shared record,
+   charge the locators, restart headers, references and retained
+   dictionaries. Count live bytes, reader-pinned history and temporary
+   copy space. Use authored tiny-file trees and a held-out named tree
+   with real names, ACLs and modification patterns.
+2. **Specify one authoritative representation for each range.** Bind
+   inline bytes to an inode revision and length. For external slices,
+   bind their object, generation, offset, length and verified bytes
+   before exposing a read. Validate the full logical range, EOF,
+   holes and capacity changes. Keep random work within a declared
+   restart and read envelope even when a group spans many files.
+   Verify lookup and directory traversal with held handles while
+   individual files grow, truncate, rename, unlink and reopen.
+3. **Publish through the existing fenced owner.** Stage complete new
+   records, the inode, and any allocator and reference edits behind
+   the current root and source revisions. Publish after the protected
+   copies and their metadata are durable. Retain the old representation
+   until every surviving root and reader permits retirement. A newer
+   reader accepts old extents. An older writer must reject the new
+   capability before accepting a writable owner. Test both
+   directions of promotion through growth, interruption and rollback.
+4. **Promote a winning policy only after a matched trial.** Measure
+   metadata read amplification, write amplification, scrub and
+   reclaim cost, and time to settle on unchanged bytes. Compare
+   equally protected profiles before any change to failure isolation.
+   Apply the best tested layout for each workload and backing based
+   on observed resource cost. Keep the local learner's nominations
+   and rejected alternatives rebuildable from authoritative data.
+
+Btrfs demonstrates inline values in a checked metadata leaf. EROFS
+demonstrates inline tails and shared fragments. FlitzFS needs its own
+copy-on-write transitions, independent CPU recovery and release evidence
+for each representation.
+[Btrfs design](https://btrfs.readthedocs.io/en/stable/dev/dev-btrfs-design.html) ·
+[EROFS layout](https://erofs.docs.kernel.org/en/latest/ondisk/core_ondisk.html)
+
 ## 2. Learn which collective work is worth doing
 
 Use the existing sparse paged coherence index as a starting point. Learn at

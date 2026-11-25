@@ -468,10 +468,10 @@ separately. [Persistence model](PERSISTENCE_MODEL.md)
 
 | Start order | Work package | First reviewable output | Next dependency |
 | --- | --- | --- | --- |
-| 1 | Shared E01/E02/E03/E08/E11/E12 integration trace | External Win32 witness, exact artifacts, populated packed/sparse trace, independent CPU readback and a complete occupancy record. | Common comparison and fault harness |
+| 1 | Shared E01/E02/E03/E08/E11/E12 integration trace | Reuse the populated Win32 witness. Attribute charged work, advisory cursor, continuation refusals and actual wakes through quiescence. | Common comparison and fault harness |
 | 2 | E01/E02/E11 checked attach and settled ownership | Full-audit differential with attach phase counters, preserved flush witness and allocator settlement under churn. | Generation-bound prototype and held-out scale curve |
-| 2 | E03/E08 ordinary AMD acquisition and CPU continuity | Exact packed and mixed decode trial where admitted, paired complete-cost CPU/AMD timings, and consumed ordinary I/O on a shape that wins. | Measured offer and route outcomes by role |
-| 2 | E04/E05/E06 complete-size oracle and research | Replayable pinned cohorts, bounded-query recall, independently decoded restart frames and validation split by source family. | A candidate with demonstrable protected savings and usable range reads |
+| 2 | E03/E08 ordinary AMD acquisition and CPU continuity | Pair the later-range candidate with the CPU witness when fresh headroom admits it. Compare initialized leases with cold startup and trace consumed, verified bytes on a winning ordinary I/O shape. | Measured offer and route outcomes by role |
+| 2 | E01/E04/E05/E06 protected-size frontier | Use the reconciled byte ledger to compare fewer protected short-file records in a named tree. Use an exhaustive bounded oracle to measure missed savings on revision families. | A candidate with demonstrable protected savings and usable range reads |
 | 3 | E06/E07/E09 collective storage, policy and upgrade | CPU-first reader, protected dependency publication, bounded migration and a measured offline policy. | Windows client, recovery and comparative qualification |
 | 3 | E08–E11 installed Windows experience | Signed artifact passes current Windows 11 installation, interaction and removal, backing lifecycle, compatibility and scoped physical-recovery campaigns. | Freeze executable, driver, format and supported platform inputs |
 | 4 | E12/E13 comparisons and stabilization | Matched real-host reports, reliability and soak evidence, and an owner decision packet for the twelve gates. | Owner approval |
@@ -479,6 +479,8 @@ separately. [Persistence model](PERSISTENCE_MODEL.md)
 The three measurement lanes share the first trace and can progress on
 independent fixtures. Favor the largest measured cost or complete storage
 saving in each lane before expanding format or worker variants.
+[Current measurements, release gates and research](RELEASE_RECONCILIATION_2026-11-25.md) ·
+[Detailed package steps](IMPLEMENTATION_PLAN.md)
 [Next implementation steps](RELEASE_RECONCILIATION_2026-11-25.md#ordered-implementation-and-decision-points)
 
 ### Next integrated qualification

@@ -6,6 +6,19 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "protected_size_frontier": {
+    "source_reviewed": "de071e900ffb680e6e150de40f54a45249c5fdb9",
+    "evidence": "docs/evidence/windows-protected-size-frontier-2026-11-25.json",
+    "zstd_version": "1.6.0",
+    "cpython_revisions_group_then_cold_complete_bytes": 868352,
+    "cpython_tiny_complete_bytes": 524288,
+    "cpython_tiny_zero_data_payload_same_layout_bytes": 466944,
+    "aitdcc_held_out_best_complete_bytes": 35160064,
+    "current_window_packing_change_retained": false,
+    "latest_physical_later_read_device_launches": 0,
+    "next": "Price an inline owner record and pooled fragment locators under unchanged protection. Use held-out named trees, bounded recall controls and independent CPU recovery.",
+    "release_qualified": false
+  },
   "populated_windows_operation_trace": {
     "evidence": "docs/evidence/windows-populated-client-trace-2026-11-24.json",
     "matched_client_records": 6293,

@@ -1,0 +1,796 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "release_qualified": false,
+  "source": {
+    "reviewed_commit": "de071e900ffb680e6e150de40f54a45249c5fdb9",
+    "reviewed_tree": "f221a2ff2de1e3ad2b51641e9d278a07a231a6a6",
+    "previous_reviewed_commit": "3bbc45afacfc754848fa803009bc4ea7b1c5ee49",
+    "tracked_files": 1106,
+    "tracked_bytes": 20050405,
+    "git_tree_inventory_sha256": "311ec22c6a3c26b670ea9b57ef5ac0bca1ba30154921266c78e37e4f6d639c4f",
+    "new_commits": 4,
+    "changed_paths": 44,
+    "changed_paths_by_area": {
+      ".github": 12,
+      "docs": 10,
+      "docs/evidence": 4,
+      "include": 1,
+      "src": 9,
+      "tests": 2,
+      "tools": 6
+    },
+    "profile_source_tree": "817627aa463f9e928a6378bd5f859f2969459cff",
+    "changed_source": [
+      {
+        "path": "tests/test_native_group_maintenance.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "c84d5a4444e374923b468454ff834b972c7d975d",
+        "bytes": 232018
+      }
+    ],
+    "release_profile_executable_sha256": "f85478c6338786c7e8925ed9c48a11f8904f1b08dafaabe755da8002f20cf1d3"
+  },
+  "scope": {
+    "description": "Local Windows host memory-backed native profiling. Profile names are generated. Settled image and selector include the existing mirrored recovery layout. The optional zero-payload calculations reprice the same record inventory and are counterfactuals.",
+    "zstd_version": "1.6.0",
+    "isolation_bytes": 4096,
+    "product_runtime_changed": false,
+    "measured_windows_client_throughput": false,
+    "small_source_files": {
+      "source_sha256": "a0cf47d48cb8bc4dbd72b0e02dc84290387a767df35a9810d781b2e4dced691f",
+      "fixture_sha256": "ac2c855bfcf450bbdd3d571978fbc806554d66c4e0d168d0d21fc5c5e1d07536",
+      "source_files": 2640,
+      "eligible": 554,
+      "chosen": 192,
+      "logical_bytes": 32922
+    }
+  },
+  "protected_size_profiles": {
+    "cpython_revisions": {
+      "fixture_sha256": "1e4415e2c80bd97dd16978c2d68f4c403489cf5ca38916bdbf574a174763aead",
+      "files": 24,
+      "logical_bytes": 2230850,
+      "layout_arms": [
+        {
+          "arm": "independent_preserved",
+          "objects": 78,
+          "image_bytes": 1392640,
+          "selector_bytes": 131072,
+          "mirrored_data_object_bytes": 1210782,
+          "mirrored_metadata_object_bytes": 4446,
+          "record_index_and_padding_bytes": 177412,
+          "zero_data_layout_bytes": 311296,
+          "zero_payload_layout_bytes": 311296,
+          "image_and_selector_bytes": 1523712
+        },
+        {
+          "arm": "independent_level_3",
+          "objects": 78,
+          "image_bytes": 1392640,
+          "selector_bytes": 131072,
+          "mirrored_data_object_bytes": 1210782,
+          "mirrored_metadata_object_bytes": 4446,
+          "record_index_and_padding_bytes": 177412,
+          "zero_data_layout_bytes": 311296,
+          "zero_payload_layout_bytes": 311296,
+          "image_and_selector_bytes": 1523712
+        },
+        {
+          "arm": "independent_level_9",
+          "objects": 78,
+          "image_bytes": 1286144,
+          "selector_bytes": 131072,
+          "mirrored_data_object_bytes": 1098886,
+          "mirrored_metadata_object_bytes": 3968,
+          "record_index_and_padding_bytes": 183290,
+          "zero_data_layout_bytes": 311296,
+          "zero_payload_layout_bytes": 311296,
+          "image_and_selector_bytes": 1417216
+        },
+        {
+          "arm": "cold_only",
+          "objects": 78,
+          "image_bytes": 1228800,
+          "selector_bytes": 131072,
+          "mirrored_data_object_bytes": 1045236,
+          "mirrored_metadata_object_bytes": 4446,
+          "record_index_and_padding_bytes": 179118,
+          "zero_data_layout_bytes": 311296,
+          "zero_payload_layout_bytes": 311296,
+          "image_and_selector_bytes": 1359872
+        },
+        {
+          "arm": "cold_then_group",
+          "objects": 99,
+          "image_bytes": 811008,
+          "selector_bytes": 131072,
+          "mirrored_data_object_bytes": 623912,
+          "mirrored_metadata_object_bytes": 5026,
+          "record_index_and_padding_bytes": 182070,
+          "zero_data_layout_bytes": 319488,
+          "zero_payload_layout_bytes": 319488,
+          "image_and_selector_bytes": 942080
+        },
+        {
+          "arm": "group_only",
+          "objects": 100,
+          "image_bytes": 819200,
+          "selector_bytes": 131072,
+          "mirrored_data_object_bytes": 631784,
+          "mirrored_metadata_object_bytes": 4974,
+          "record_index_and_padding_bytes": 182442,
+          "zero_data_layout_bytes": 319488,
+          "zero_payload_layout_bytes": 319488,
+          "image_and_selector_bytes": 950272
+        },
+        {
+          "arm": "group_then_cold",
+          "objects": 100,
+          "image_bytes": 737280,
+          "selector_bytes": 131072,
+          "mirrored_data_object_bytes": 547904,
+          "mirrored_metadata_object_bytes": 4974,
+          "record_index_and_padding_bytes": 184402,
+          "zero_data_layout_bytes": 319488,
+          "zero_payload_layout_bytes": 319488,
+          "image_and_selector_bytes": 868352
+        }
+      ],
+      "best_total_bytes": 868352,
+      "group_discovery": {
+        "attempts": 26,
+        "sampled_extents": 72,
+        "packed_groups": 0,
+        "members": 44,
+        "maintenance_read_bytes": 7738981,
+        "maintenance_read_calls": 3200,
+        "maintenance_write_bytes": 1630208
+      },
+      "cold_rebuild": [
+        {
+          "arm": "cold_only",
+          "settled": 1228800,
+          "selector": 131072,
+          "source_read_bytes": 3375822,
+          "target_write_bytes": 1236992,
+          "range_read_bytes": 969340,
+          "selected": 1,
+          "cpu_exact": 1
+        },
+        {
+          "arm": "cold_then_group",
+          "settled": 811008,
+          "selector": 131072,
+          "source_read_bytes": 7486871,
+          "target_write_bytes": 1466368,
+          "range_read_bytes": 1053552,
+          "groups": 21,
+          "cpu_exact": 1
+        },
+        {
+          "arm": "group_then_cold",
+          "settled": 737280,
+          "selector": 131072,
+          "source_read_bytes": 1976519,
+          "target_write_bytes": 745472,
+          "range_read_bytes": 992000,
+          "selected": 1,
+          "cpu_exact": 1
+        }
+      ],
+      "byte_exact_current_and_pinned_cpu_readback": true,
+      "run": "local-run-06fff7fe3fce425e99421c6d4a8aae9f",
+      "result_sha256": "f4c6681ae34fc8d2c892af8d7cc80e076909d202e038fb72fe41290bb70c6599",
+      "output_sha256": "1151950efe7ba6efcb86d87b3d062eb9e6e4b85c4ec10fd45a9f2756b30c13f9",
+      "retired": true,
+      "entry_budget_bytes": 1795162112,
+      "peak_job_bytes": 22749184
+    },
+    "cpython_tiny": {
+      "fixture_sha256": "ac2c855bfcf450bbdd3d571978fbc806554d66c4e0d168d0d21fc5c5e1d07536",
+      "files": 192,
+      "logical_bytes": 32922,
+      "layout_arms": [
+        {
+          "arm": "independent_preserved",
+          "objects": 393,
+          "image_bytes": 393216,
+          "selector_bytes": 131072,
+          "mirrored_data_object_bytes": 55474,
+          "mirrored_metadata_object_bytes": 27022,
+          "record_index_and_padding_bytes": 310720,
+          "zero_data_layout_bytes": 466944,
+          "zero_payload_layout_bytes": 442368,
+          "image_and_selector_bytes": 524288
+        },
+        {
+          "arm": "independent_level_3",
+          "objects": 393,
+          "image_bytes": 393216,
+          "selector_bytes": 131072,
+          "mirrored_data_object_bytes": 55474,
+          "mirrored_metadata_object_bytes": 27022,
+          "record_index_and_padding_bytes": 310720,
+          "zero_data_layout_bytes": 466944,
+          "zero_payload_layout_bytes": 442368,
+          "image_and_selector_bytes": 524288
+        },
+        {
+          "arm": "independent_level_9",
+          "objects": 393,
+          "image_bytes": 393216,
+          "selector_bytes": 131072,
+          "mirrored_data_object_bytes": 55142,
+          "mirrored_metadata_object_bytes": 26078,
+          "record_index_and_padding_bytes": 311996,
+          "zero_data_layout_bytes": 466944,
+          "zero_payload_layout_bytes": 442368,
+          "image_and_selector_bytes": 524288
+        },
+        {
+          "arm": "cold_only",
+          "objects": 393,
+          "image_bytes": 393216,
+          "selector_bytes": 131072,
+          "mirrored_data_object_bytes": 54242,
+          "mirrored_metadata_object_bytes": 27022,
+          "record_index_and_padding_bytes": 311952,
+          "zero_data_layout_bytes": 466944,
+          "zero_payload_layout_bytes": 442368,
+          "image_and_selector_bytes": 524288
+        },
+        {
+          "arm": "cold_then_group",
+          "objects": 393,
+          "image_bytes": 393216,
+          "selector_bytes": 131072,
+          "mirrored_data_object_bytes": 54242,
+          "mirrored_metadata_object_bytes": 27022,
+          "record_index_and_padding_bytes": 311952,
+          "zero_data_layout_bytes": 466944,
+          "zero_payload_layout_bytes": 442368,
+          "image_and_selector_bytes": 524288
+        },
+        {
+          "arm": "group_only",
+          "objects": 393,
+          "image_bytes": 393216,
+          "selector_bytes": 131072,
+          "mirrored_data_object_bytes": 55474,
+          "mirrored_metadata_object_bytes": 27022,
+          "record_index_and_padding_bytes": 310720,
+          "zero_data_layout_bytes": 466944,
+          "zero_payload_layout_bytes": 442368,
+          "image_and_selector_bytes": 524288
+        },
+        {
+          "arm": "group_then_cold",
+          "objects": 393,
+          "image_bytes": 393216,
+          "selector_bytes": 131072,
+          "mirrored_data_object_bytes": 54242,
+          "mirrored_metadata_object_bytes": 27022,
+          "record_index_and_padding_bytes": 311952,
+          "zero_data_layout_bytes": 466944,
+          "zero_payload_layout_bytes": 442368,
+          "image_and_selector_bytes": 524288
+        }
+      ],
+      "best_total_bytes": 524288,
+      "group_discovery": {
+        "attempts": 37,
+        "sampled_extents": 192,
+        "packed_groups": 0,
+        "members": 0,
+        "maintenance_read_bytes": 24103974,
+        "maintenance_read_calls": 9967,
+        "maintenance_write_bytes": 0
+      },
+      "cold_rebuild": [
+        {
+          "arm": "cold_only",
+          "settled": 393216,
+          "selector": 131072,
+          "source_read_bytes": 1073282,
+          "target_write_bytes": 401408,
+          "range_read_bytes": 6303692,
+          "selected": 1,
+          "cpu_exact": 1
+        },
+        {
+          "arm": "cold_then_group",
+          "settled": 393216,
+          "selector": 131072,
+          "source_read_bytes": 19179038,
+          "target_write_bytes": 0,
+          "range_read_bytes": 6303692,
+          "groups": 0,
+          "cpu_exact": 1
+        },
+        {
+          "arm": "group_then_cold",
+          "settled": 393216,
+          "selector": 131072,
+          "source_read_bytes": 1073282,
+          "target_write_bytes": 401408,
+          "range_read_bytes": 6303692,
+          "selected": 1,
+          "cpu_exact": 1
+        }
+      ],
+      "byte_exact_current_and_pinned_cpu_readback": true,
+      "run": "local-run-e2b0e91a18a44ed2bce0ce562aada634",
+      "result_sha256": "b4a87b2f184c5d2f409bbf6f56eb118b373d3b882ae3b3ad3ffcf55f5dc333fd",
+      "output_sha256": "1bfddfdcdc6260f28d410f2c2d754ca5de4e2836310ac9c67befe1c6a40fec83",
+      "retired": true,
+      "entry_budget_bytes": 1118830592,
+      "peak_job_bytes": 74543104
+    },
+    "aitdcc_held_out_extracts": {
+      "fixture_sha256": "26204e32bf232e5a40d5cce9d4f63a87c25fcb19f6eceadbff7c76321468c159",
+      "files": 8,
+      "logical_bytes": 25153011,
+      "layout_arms": [
+        {
+          "arm": "independent_preserved",
+          "objects": 402,
+          "image_bytes": 35635200,
+          "selector_bytes": 131072,
+          "mirrored_data_object_bytes": 35315084,
+          "mirrored_metadata_object_bytes": 5576,
+          "record_index_and_padding_bytes": 314540,
+          "zero_data_layout_bytes": 450560,
+          "zero_payload_layout_bytes": 442368,
+          "image_and_selector_bytes": 35766272
+        },
+        {
+          "arm": "independent_level_3",
+          "objects": 402,
+          "image_bytes": 35635200,
+          "selector_bytes": 131072,
+          "mirrored_data_object_bytes": 35315084,
+          "mirrored_metadata_object_bytes": 5576,
+          "record_index_and_padding_bytes": 314540,
+          "zero_data_layout_bytes": 450560,
+          "zero_payload_layout_bytes": 442368,
+          "image_and_selector_bytes": 35766272
+        },
+        {
+          "arm": "independent_level_9",
+          "objects": 402,
+          "image_bytes": 35553280,
+          "selector_bytes": 131072,
+          "mirrored_data_object_bytes": 35235630,
+          "mirrored_metadata_object_bytes": 5396,
+          "record_index_and_padding_bytes": 312254,
+          "zero_data_layout_bytes": 450560,
+          "zero_payload_layout_bytes": 442368,
+          "image_and_selector_bytes": 35684352
+        },
+        {
+          "arm": "cold_only",
+          "objects": 402,
+          "image_bytes": 35028992,
+          "selector_bytes": 131072,
+          "mirrored_data_object_bytes": 34710516,
+          "mirrored_metadata_object_bytes": 5576,
+          "record_index_and_padding_bytes": 312900,
+          "zero_data_layout_bytes": 450560,
+          "zero_payload_layout_bytes": 442368,
+          "image_and_selector_bytes": 35160064
+        },
+        {
+          "arm": "cold_then_group",
+          "objects": 402,
+          "image_bytes": 35028992,
+          "selector_bytes": 131072,
+          "mirrored_data_object_bytes": 34710516,
+          "mirrored_metadata_object_bytes": 5576,
+          "record_index_and_padding_bytes": 312900,
+          "zero_data_layout_bytes": 450560,
+          "zero_payload_layout_bytes": 442368,
+          "image_and_selector_bytes": 35160064
+        },
+        {
+          "arm": "group_only",
+          "objects": 402,
+          "image_bytes": 35635200,
+          "selector_bytes": 131072,
+          "mirrored_data_object_bytes": 35315084,
+          "mirrored_metadata_object_bytes": 5576,
+          "record_index_and_padding_bytes": 314540,
+          "zero_data_layout_bytes": 450560,
+          "zero_payload_layout_bytes": 442368,
+          "image_and_selector_bytes": 35766272
+        },
+        {
+          "arm": "group_then_cold",
+          "objects": 402,
+          "image_bytes": 35028992,
+          "selector_bytes": 131072,
+          "mirrored_data_object_bytes": 34710516,
+          "mirrored_metadata_object_bytes": 5576,
+          "record_index_and_padding_bytes": 312900,
+          "zero_data_layout_bytes": 450560,
+          "zero_payload_layout_bytes": 442368,
+          "image_and_selector_bytes": 35160064
+        }
+      ],
+      "best_total_bytes": 35160064,
+      "group_discovery": {
+        "attempts": 1,
+        "sampled_extents": 386,
+        "packed_groups": 0,
+        "members": 0,
+        "maintenance_read_bytes": 30874653,
+        "maintenance_read_calls": 10492,
+        "maintenance_write_bytes": 0
+      },
+      "cold_rebuild": [
+        {
+          "arm": "cold_only",
+          "settled": 35028992,
+          "selector": 131072,
+          "source_read_bytes": 89207188,
+          "target_write_bytes": 35037184,
+          "range_read_bytes": 661982,
+          "selected": 1,
+          "cpu_exact": 1
+        },
+        {
+          "arm": "cold_then_group",
+          "settled": 35028992,
+          "selector": 131072,
+          "source_read_bytes": 30416701,
+          "target_write_bytes": 0,
+          "range_read_bytes": 661982,
+          "groups": 0,
+          "cpu_exact": 1
+        },
+        {
+          "arm": "group_then_cold",
+          "settled": 35028992,
+          "selector": 131072,
+          "source_read_bytes": 89207188,
+          "target_write_bytes": 35037184,
+          "range_read_bytes": 661982,
+          "selected": 1,
+          "cpu_exact": 1
+        }
+      ],
+      "byte_exact_current_and_pinned_cpu_readback": true,
+      "run": "local-run-f4d508dae8444a5b839e07a1cbdbabf3",
+      "result_sha256": "f9b12a8206671877c8e60eb89a1a2870080a5292ba4b0493480ff6714d330c0e",
+      "output_sha256": "76d4acd8fbb23d9e32367456aeb560625e4ae969754b93b443e425e2b2e788d6",
+      "retired": true,
+      "entry_budget_bytes": 1794113536,
+      "peak_job_bytes": 267915264
+    }
+  },
+  "unretained_candidate": {
+    "change": "Try matching same-length peers from the current discovery window in the existing retained short-packing shortlist.",
+    "decision": "The candidate made no occupied-byte gain on any comparison and was removed.",
+    "comparisons": {
+      "shuffled": {
+        "baseline_and_trial_complete_bytes": [
+          892928,
+          892928
+        ],
+        "baseline": {
+          "run": "local-run-f33b12c6cce54a8ba927fa8b90bff45d",
+          "result_sha256": "e6a29394f0784f367dfe1fba653ba7184a310b6d385061cc271f034ca3e0e581",
+          "output_sha256": "eeffe70ca6a11f93641f2e6e0743183525ca077b9f7033c684c802a4f3f6946a",
+          "retired": true,
+          "entry_budget_bytes": 1445986304,
+          "peak_job_bytes": 11304960
+        },
+        "trial": {
+          "run": "local-run-49c27d225a7649b1916d3cb2643f882d",
+          "result_sha256": "99cac11a1f899c01338f2892d2b1638bd26affffd855704f98004e06a285bc29",
+          "output_sha256": "78f86b44720907ec6ca37d126464e2bab988a28f0bcb02cb5932db6ea0ff5357",
+          "retired": true,
+          "entry_budget_bytes": 1495269376,
+          "peak_job_bytes": 11173888
+        }
+      },
+      "cpython_revisions": {
+        "baseline_and_trial_complete_bytes": [
+          950272,
+          950272
+        ],
+        "baseline": {
+          "run": "local-run-5883aeb44b854c8db33830addcb69d6c",
+          "result_sha256": "8260ccc4d4b66c5210680e2efe484262e9dcb24d15bae1a29b03f853b3341d16",
+          "output_sha256": "b403a5a54cdc1f646a9875207964aca6ffaadb75b60470928758f095d23cc5c9",
+          "retired": true,
+          "entry_budget_bytes": 1443889152,
+          "peak_job_bytes": 22794240
+        },
+        "trial": {
+          "run": "local-run-cc323499ca344cea934065e1dd43c699",
+          "result_sha256": "990c244df4f6bdf5e8e7c7d436cd2f09102a3eac829f55511e78734e54876318",
+          "output_sha256": "fdd5adfe89285530b851318d7b4a783348c270c93edb6e03a5a896da67e0715d",
+          "retired": true,
+          "entry_budget_bytes": 1506803712,
+          "peak_job_bytes": 22171648
+        }
+      },
+      "aitdcc_held_out_extracts": {
+        "baseline_and_trial_complete_bytes": [
+          35766272,
+          35766272
+        ],
+        "baseline": {
+          "run": "local-run-7de0071bb7dc4f99b8ef7ca4abc9dd32",
+          "result_sha256": "1c04d639fedefa02beef3af93d14363d58362657ee8da96a87bb1bf3123c409c",
+          "output_sha256": "98afeafdf737b6a9bd8d96ff00e6ba00bc956dc7d2d8955d30fe531d828b4cf5",
+          "retired": true,
+          "entry_budget_bytes": 1102053376,
+          "peak_job_bytes": 192004096
+        },
+        "trial": {
+          "run": "local-run-58da3c3b38124808bb6836157e6f9134",
+          "result_sha256": "95330f63e3969aef5ea8775e2d7b6b76d3ccdf09ebc7ea462cefabea1c5746d2",
+          "output_sha256": "989baa79096876cb7e300e1e736e46907a79ba29fbd006036587581f1d8614a8",
+          "retired": true,
+          "entry_budget_bytes": 1505755136,
+          "peak_job_bytes": 191537152
+        }
+      }
+    }
+  },
+  "physical_adaptive_amd_later_read": {
+    "staged_manifest_sha256": "8850bf2b96ec6d5dd46cad58d5638d8f1bd4ac066b717da9b0ac41b3211550e8",
+    "observations": [
+      {
+        "utc": "2026-11-25T07:55:03.4210525Z",
+        "admitted": false,
+        "build": "26300",
+        "reason": "Existing host load above the fixture envelope",
+        "driver": "32.0.32029.2010",
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "gpu_peak": 98.15781901498072,
+        "target_samples": 784,
+        "device_launches": 0,
+        "run": "local-run-661fbbe7900342c4ac2ff817559dc8dd",
+        "result_sha256": "a0fcd2e271c0c2e8888d923a292c1bc665651cf972b76a82100c546690662d1d",
+        "output_sha256": "9b085f0fbae9a896df967561df160bf33c3292e6fc526f9d53ddb7d3ecec3a9b",
+        "retired": true,
+        "entry_budget_bytes": 2322595840,
+        "peak_job_bytes": 96137216
+      },
+      {
+        "utc": "2026-11-25T08:09:38.0826871Z",
+        "admitted": false,
+        "build": "26300",
+        "reason": "Existing host load above the fixture envelope",
+        "driver": "32.0.32029.2010",
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "gpu_peak": 98.67126654400195,
+        "target_samples": 800,
+        "device_launches": 0,
+        "run": "local-run-84908cb3215e4a2c8fe39b6d838c0c0c",
+        "result_sha256": "4fcca4f8e4c7dc0c14fa3f58b126120f55fc95726bb2b9b1d7a1f8bc51f273eb",
+        "output_sha256": "08dc22cf9498fb3fd81e572a28c8b09aaac4583fa24b2a15bd038353d8493f85",
+        "retired": true,
+        "entry_budget_bytes": 2002780160,
+        "peak_job_bytes": 94973952
+      }
+    ],
+    "last_accepted_physical_prefix": "docs/evidence/windows-group-read-cpu-prefix-2026-11-25.json",
+    "adaptive_sdk_checks": "docs/evidence/windows-amd-later-group-window-2026-11-25.json"
+  },
+  "validation": {
+    "protectedLayoutBuild": {
+      "run": "local-run-5eb2dad2ec814a9bb152c42d67403ced",
+      "result_sha256": "de3994d756921d546d827cd09c5514d4d6cdd3a289fa062b86920b9f444f4fa8",
+      "output_sha256": "3aaf18d41e27c682a8b2705541c9a10efd19e787bc0d17f7af7e1d2e9f88757e",
+      "retired": true,
+      "entry_budget_bytes": 1995440128,
+      "peak_job_bytes": 518803456
+    },
+    "currentLayoutCheck-release": {
+      "run": "local-run-ea65d6da7dd94f8495b3cf9931adc158",
+      "result_sha256": "c7508160555584027fa1d813d054f733c60a93248758b6e774122b55c282601c",
+      "output_sha256": "5f3a4e25c4224c33c27b8580ba8eb6be96acf5707045ac66857577689217e878",
+      "retired": true,
+      "entry_budget_bytes": 1794113536,
+      "peak_job_bytes": 66367488,
+      "checks": 1350,
+      "modeled_publication_cases": 6
+    },
+    "currentLayoutCheck-raw": {
+      "run": "local-run-58fa29722fc64be69c9fc0f252a95401",
+      "result_sha256": "7dd05c30f087d5f4bc3f863c8178d6662a0cfa38d91ed6be4aa37cda8e29b922",
+      "output_sha256": "2bd946966e3bc72d17056d927e3ca0ca7f6c10ea9aac29c26d9f6dea24669d2a",
+      "retired": true,
+      "entry_budget_bytes": 1816133632,
+      "peak_job_bytes": 34304000,
+      "checks": 4226,
+      "modeled_publication_cases": 0
+    },
+    "currentLayoutCheck-asan": {
+      "run": "local-run-3c015d9103304300a551df84622569ae",
+      "result_sha256": "99e89ee44bea77d8d78e369d1dc0a2ff11a4c2b34f514d68b911cae0dd3dec5a",
+      "output_sha256": "38c04c8a8bc42fa0726db8fefd6d9170d043fcf88810b7e47f122c1f0a040385",
+      "retired": true,
+      "entry_budget_bytes": 1818230784,
+      "peak_job_bytes": 599392256,
+      "checks": 5092,
+      "modeled_publication_cases": 0
+    }
+  },
+  "navigation": {
+    "provider_version": "0.2.43",
+    "receipt_sha256": "89b74877477a2926c2ba4b85a62315790d36d4edf7a1563b32e937e0bdf4684a",
+    "native_response_sha256": "26b191e905f0787dfaa7c1437df2aafd07d4523fc7bd8d0e8772dfd801713482",
+    "actual_searches": 1
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "robots": true,
+    "external_LLM": false,
+    "native_receipt_sha256": [
+      "fee603dc997c50b73f005acd204796bd0decba8d1bc314d6b07727613706cc2a",
+      "3116f497c13d72e5df6fdf1a6a57bd5bf095262b7f517682b42510f93bfa8ae6",
+      "2df5d420084d6f7faac5995d2e791a772ef2620938fbc434644edefd03ca67c3"
+    ],
+    "sources": [
+      {
+        "name": "erofs-builder",
+        "url": "https://erofs.docs.kernel.org/en/latest/mkfs.html",
+        "final_http_status": 200,
+        "markdown_bytes": 9484,
+        "markdown_sha256": "7113ec00f77833be5d1c843a2bcc599c643fd376f3fd9d662cb871b975072609",
+        "capture_sha256": "ad7092d9313fd96d7258ce3e80763f723a726666bf6a11f883be1c392f30f37a"
+      },
+      {
+        "name": "squashfs-format",
+        "url": "https://docs.kernel.org/next/filesystems/squashfs.html",
+        "final_http_status": 200,
+        "markdown_bytes": 17762,
+        "markdown_sha256": "c2f6b6a123ccb368b78e4713cb6edd50e9b6b2e69f7c7b6b0eae936a135223da",
+        "capture_sha256": "afe434c3f1a0f160a155397beb945449e8018bfc49523da92084555e60fc2f01"
+      },
+      {
+        "name": "rubikfs-paper",
+        "url": "https://www.usenix.org/conference/fast26/presentation/huang",
+        "final_http_status": 200,
+        "markdown_bytes": 10395,
+        "markdown_sha256": "b271b38f1feb88acd780ae11d756c7f3723fecb288cfe5e7803fed9c5d93767d",
+        "capture_sha256": "c07258474d64eb2691804322318058a7cb8c51baf538c003abc9a13fba370596"
+      },
+      {
+        "name": "erofs-layout",
+        "url": "https://erofs.docs.kernel.org/en/latest/design.html",
+        "final_http_status": 200,
+        "markdown_bytes": 9948,
+        "markdown_sha256": "3bf9e0080f6c3ca997bcbb08b42bdbad3a1bfc9a02fb33224d35276abf6ccfc4",
+        "capture_sha256": "20f7e0680f8ccb7b42556b1a669282226a9ccc4fc3cb76de0feacc30f18f8556"
+      },
+      {
+        "name": "hip-initialization",
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/initialization.html",
+        "final_http_status": 200,
+        "markdown_bytes": 24762,
+        "markdown_sha256": "0c10f76d1d2e978b48e18e7adc6388cab281302448951d65cf568b492a107af5",
+        "capture_sha256": "542669ec4f68c28d186f4ac1d23b69468616b01c7ab40c806e86a4cccb1a11a8"
+      },
+      {
+        "name": "hip-windows-release",
+        "url": "https://rocm.docs.amd.com/projects/install-on-windows/en/latest/about/releasenotes.html",
+        "final_http_status": 200,
+        "markdown_bytes": 8475,
+        "markdown_sha256": "d024e28cf80b387e10361fecf1c1ca965c94b4788fab2ba6864922352f949f06",
+        "capture_sha256": "802efcf4d746864cc73a44524250ae9b92e2d18020df92a512d4e07a34773d69"
+      },
+      {
+        "name": "hip-windows-versioning",
+        "url": "https://rocm.docs.amd.com/projects/install-on-windows/en/docs-7.2/about/release-versioning.html",
+        "final_http_status": 200,
+        "markdown_bytes": 6450,
+        "markdown_sha256": "4c3343c1012e3ded4ebf170ba881ef2327e8518176a426a451806c988a9062ba",
+        "capture_sha256": "13a79692be505fb489c7cf98d07e2e137a527192565bf7e8538148e91fca77b9"
+      },
+      {
+        "name": "wddm-recovery",
+        "url": "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/timeout-detection-and-recovery",
+        "final_http_status": 200,
+        "markdown_bytes": 28643,
+        "markdown_sha256": "e14e08e3ff79cd105e92d306076d2106c1f245b81b5dcc305ca6bde41f59434f",
+        "capture_sha256": "54219e05660a958d25ade75a7b144a445ef32a153dce541a47cd2ba7d9f34762"
+      },
+      {
+        "name": "ntfs-state",
+        "url": "https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/62de177d-ed90-4884-ae04-9de52f1180f1",
+        "final_http_status": 200,
+        "markdown_bytes": 19182,
+        "markdown_sha256": "21460720d58a6056cf5f589b16f3bcd8769877834cbb56f7bcb0ac540d5d5c0a",
+        "capture_sha256": "1185d8f82101171bde148b77810b2913b0edfcc41004d816aaf1791848f1604e"
+      },
+      {
+        "name": "diskspd-release",
+        "url": "https://github.com/microsoft/diskspd/releases/tag/v2.3",
+        "final_http_status": 200,
+        "markdown_bytes": 10898,
+        "markdown_sha256": "0365773817f65cbec629c1f9fd781de5dbf2021326e806d424ff0a827f6d0720",
+        "capture_sha256": "7539d68dcef6cb44c1b83a24819fbc1d75fecef98821ded2c65451f293e2dc43"
+      },
+      {
+        "name": "erofs-format",
+        "url": "https://erofs.docs.kernel.org/en/latest/ondisk/core_ondisk.html",
+        "final_http_status": 200,
+        "markdown_bytes": 28044,
+        "markdown_sha256": "85563272e170a6b63cd4b81a7071af0cb8e6742779aadf16676f3cd4819004fd",
+        "capture_sha256": "dc56a1a79a8555d22dce6baec90c10f6c625def216b0ca479aeebaf208568494"
+      },
+      {
+        "name": "btrfs-inline",
+        "url": "https://btrfs.readthedocs.io/en/latest/Inline-files.html",
+        "final_http_status": 200,
+        "markdown_bytes": 6854,
+        "markdown_sha256": "b82d927d169d6b71aa8969e4f3d5afa0a5049850b2db1160478c92a962b6bf75",
+        "capture_sha256": "baa2145a6ca51a57ebe481831e65c4cf805d600ecb78e726b82792fe59cd7bf6"
+      },
+      {
+        "name": "btrfs-cow",
+        "url": "https://btrfs.readthedocs.io/en/stable/dev/dev-btrfs-design.html",
+        "final_http_status": 200,
+        "markdown_bytes": 21674,
+        "markdown_sha256": "7e1ef3566025881caf46d7dd2c30f5465a87260942142e01fc54ef4902629c8b",
+        "capture_sha256": "3ff74a13affb2fefb070ff2f56aa314c9b5626810b5f16e8f6bc28f8a35a74fe"
+      }
+    ],
+    "refused_captures": [
+      {
+        "name": "erofs-design",
+        "url": "https://erofs.docs.kernel.org/en/latest/design.html",
+        "final_http_status": 200,
+        "markdown_bytes": 9948,
+        "markdown_sha256": "3bf9e0080f6c3ca997bcbb08b42bdbad3a1bfc9a02fb33224d35276abf6ccfc4",
+        "capture_sha256": "a232fbbff45295dca153d598e6382992e0f39d4f78bbe166976565982528866a",
+        "category": "unexpected_content",
+        "resolution": "The expected marker was too narrow. Recaptured the design page against substantive cache guidance."
+      },
+      {
+        "name": "rubikfs-full",
+        "url": "https://www.usenix.org/system/files/fast26-huang.pdf",
+        "final_http_status": 0,
+        "markdown_bytes": 0,
+        "markdown_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "capture_sha256": "92edda5dcd8af8c6bef41fdcbca113b39853563b843ef1ae0299c5596c05a6d6",
+        "category": "native_failure",
+        "resolution": "The PDF request began a download during browser navigation. The cited design summary uses the verified official proceedings page."
+      }
+    ]
+  },
+  "documentation_validation": {
+    "packages": 13,
+    "numbered_steps": 156,
+    "release_gates": 12,
+    "resolved_relative_links": 608,
+    "mermaid_diagrams_parsed": 24,
+    "json_duplicate_keys": 0,
+    "tested_profile_blobs_match_current_source": true
+  },
+  "release_gates_open": [
+    "S1",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S6",
+    "S7",
+    "S8",
+    "S9",
+    "S10",
+    "S11",
+    "S12"
+  ],
+  "remaining_effort_person_weeks": [
+    59,
+    127
+  ]
+}

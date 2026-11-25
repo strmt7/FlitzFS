@@ -9,14 +9,14 @@ on held-out workloads. Writable attach must also scale beyond the current
 full audit. Use one operation witness and common accounting across these
 lanes so each change can be judged at the product boundary.
 
-The current review inventories all 1,102 tracked paths at
-`3bbc45afacfc754848fa803009bc4ea7b1c5ee49` and reconciles the candidate
-runtime tree `e67c3163c1026801e56cdde5c620d25b4bcc058a`. The delta from the
-23 November inventory changes the core store and Windows controller,
-including checked rebuild, physical allocation release, SDK delivery and
-access to retained content signatures. Each signed replay, live AMD run and
-local candidate carries its own source identity. The full twelve-gate audit
-below uses the strongest applicable evidence for each gate.
+The current review inventories 1,106 tracked paths at
+`de071e900ffb680e6e150de40f54a45249c5fdb9`. It reconciles 44 changed
+paths across four commits since the inventory at `3bbc45a`, including
+checked sampling, the Zstandard update and two changes to grouped AMD
+delivery. Each signed replay, live AMD run and local profile carries
+its own source identity.
+The twelve-gate audit uses the strongest applicable evidence for each gate.
+[Protected size, source inventory and current decisions](evidence/windows-protected-size-frontier-2026-11-25.json) ·
 [Indexed sampling and source evidence](evidence/windows-indexed-sample-scope-2026-11-25.json) ·
 [Latest signed replay and controller checks](evidence/windows-packed-settlement-credit-2026-11-25.json) ·
 [Packed grant and workspace reconciliation evidence](evidence/windows-packed-admission-and-sealing-2026-11-25.json) ·
@@ -27,6 +27,58 @@ below uses the strongest applicable evidence for each gate.
 [Previous review](RELEASE_RECONCILIATION_2026-11-24.md) ·
 [Package plan](IMPLEMENTATION_PLAN.md) ·
 [Current architecture](architecture/CURRENT.md) · [Target architecture](architecture/TARGET.md)
+
+## Complete protected size and priorities
+
+The profile now reconciles settled image length with an inventory of the
+protected data and metadata objects, then prices the same inventory with
+zero encoded data bytes. Each counterfactual preserves the record count,
+mirrors, placement geometry and selector. All measured arms use Zstandard
+1.6.0 and verify every file and a range from each file through the CPU
+reader. The directory names in these arms come from the harness. The
+larger named tree and mounted trace remain separate workloads.
+
+| Windows host profile | Independent preserved bytes | Best settled bytes | Modeled best layout with zero data-object payload |
+| --- | ---: | ---: | ---: |
+| 24 CPython revision files, 2,230,850 logical bytes | 1,523,712 | 868,352 | 319,488 |
+| 192 CPython files of 1–512 bytes, 32,922 logical bytes | 524,288 | 524,288 | 466,944 |
+| Eight held-out AITDCC extracts, 25,153,011 logical bytes | 35,766,272 | 35,160,064 | 450,560 |
+
+All columns include the selector. Grouping before cold re-encoding
+produced the smallest CPython revision image, 43.0% below its preserved
+control. The tiny cohort spent 37 group attempts and reclaimed zero
+bytes. Eliminating its encoded data entirely while retaining the
+existing records would remove at most 57,344 bytes from the measured
+524,288. Price fewer protected records and mappings first on this
+cohort. Independent cold re-encoding accounted for the entire
+606,208-byte improvement on the AITDCC extracts.
+[Exact byte counts, work and scope](evidence/windows-protected-size-frontier-2026-11-25.json)
+
+Adding same-length peers from the current scan window to the packing
+shortlist saved zero occupied bytes on the shuffled fixture, the
+CPython revisions and the held-out AITDCC extracts. The runtime keeps
+the earlier retained-peer policy. Next compare admission against an
+exhaustive, bounded protected-size oracle and spend new search work
+where the oracle shows material missed savings.
+[Current-window trial](evidence/windows-protected-size-frontier-2026-11-25.json) ·
+[Next compression decisions](IMPLEMENTATION_PLAN.md#e04-through-e07-establish-the-complete-volume-compression-frontier)
+
+The exact-source physical checks of the adaptive later-read window
+deferred before launching a worker, at 98.2% and 98.7% Radeon engine
+utilization. The earlier prefix policy consumed three verified Radeon
+extents after a CPU extent. SDK fixtures for the later policy cover
+the later offset and retirement. Preserve both scopes when comparing
+cold CPU, cold Radeon and prepared Radeon operation.
+[Later-window scope](evidence/windows-amd-later-group-window-2026-11-25.json) ·
+[Physical CPU-prefix receipt](evidence/windows-group-read-cpu-prefix-2026-11-25.json) ·
+[Current preflight receipts](evidence/windows-protected-size-frontier-2026-11-25.json)
+
+The highest-return next decisions are the protected short-file layout,
+verified automatic AMD delivery, and work-grant attribution through
+ordinary mounted settlement. Select the next runtime change from
+their independent evidence. The writable-attach comparison can advance
+while the device lane waits for measurable headroom.
+[Ordered implementation packets](#implementation-packets-and-exit-decisions)
 
 ## One checked snapshot per indexed sample
 
@@ -495,8 +547,8 @@ Attribute resource cost and remaining work before changing either phase.
 | S1 · Exact artifacts | Current scoped builds bind source and SDK/CPU artifacts. Earlier real device runs identify their exact ROCm binaries. | Bind one clean Windows 11 update, signed WinFsp pair, helper, workers, CPU decoder table and backing capabilities to the acceptance run. |
 | S2 · Scale | Paged inodes, names and extents are live. Checked replica reads group adjacent frames in a leaf. A single checked view now supplies each maintenance sample. Writable startup still walks the inventory. | Verify bounded attach under a versioned authority contract. Fit and validate separate named-file curves for attach, restart, enumeration, mutation and resident memory. |
 | S3 · Space reuse | The single-view replay released backing bytes while mounted, reported zero maintenance failures and independently verified all 1,027 files. It reached 610 sampled extents with duty still pending. | Trace work grants and refused continuation to the pending cursor. Verify advisory quiescence and repeated settlement under churn, pressure and interruption. |
-| S4 · AMD and CPU continuity | The physical Radeon decoded a four-extent capture while the first extent used CPU service. The callback consumed the three unread GPU extents. SDK model checks covered seek, full consumption and checkpoint invalidation. | Prove an automatic region that beats CPU on the installed-client path. Retain the separate write and collective gates. |
-| S5 · Compression | Retained same-size selection saved 16 KiB of protected occupied bytes in the controlled window transition. The AITDCC I–P and CPython sizes matched their controls. Earlier protected prefixes and secondary rolling keys showed distinct gains. | Establish a held-out complete-size frontier and measure recall for profitable retained alternatives under a funded index. |
+| S4 · AMD and CPU continuity | The physical Radeon decoded a four-extent capture while the first extent used CPU service. The callback consumed the three unread GPU extents. The later-window SDK model passed. Physical admission for that model deferred under contention. | Prove an automatic region that beats CPU on the installed-client path. Retain the separate write and collective gates. |
+| S5 · Compression | Retained peers saved 16 KiB in a controlled window transition. The three complete-size profiles expose distinct costs for tiny files, revision families and held-out AITDCC extracts. | Validate fewer small-file records at equal protection, measure profitable-discovery recall and extend the held-out frontier with range and write costs. |
 | S6 · Autonomy | Persistent sparse advice, workload samples, yield ranking and resource admission run in the controller. The candidate sampled the same extents with 22–35% fewer backing calls in two local fixtures. | Measure learning benefit, time to settle, interference, per-volume fairness and bytes written per byte reclaimed across workloads and restart. |
 | S7 · Windows experience | The helper and WinFsp own memory and supported file-backed volumes. Signed guests exercised external clients and verified reopen. | Qualify Explorer and independent apps with the signed candidate. Cover sharing, mapped and cached I/O, names, metadata, repair and clean teardown. |
 | S8 · Durability | Interruption fixtures exercised writes, flush, mapping and selector publication with independent CPU readback. | Qualify the acknowledged-operation and survivor-repair envelope for each backing. Explain unrecoverable failures precisely and retain the evidence for recovery. |
@@ -516,6 +568,29 @@ Attribute resource cost and remaining work before changing either phase.
 
 ## Research and design decisions
 
+- **Price record overhead before refining short-file candidates.** The
+  current Btrfs reference documents compressed inline extents protected
+  by metadata checksums. EROFS supports inline tail data and packed
+  fragments. These are design precedents for pricing FlitzFS inline
+  data and shared records under its existing mirrored publication
+  contract. FAST ’26 RubikFS establishes that similarity sorting
+  can help its read-only layout. For FlitzFS measure the cost of
+  discovering matches as well as bytes paid for each added record.
+  [Btrfs inline files](https://btrfs.readthedocs.io/en/latest/Inline-files.html) ·
+  [Btrfs copy-on-write design](https://btrfs.readthedocs.io/en/stable/dev/dev-btrfs-design.html) ·
+  [EROFS format](https://erofs.docs.kernel.org/en/latest/ondisk/core_ondisk.html) ·
+  [FAST ’26 RubikFS](https://www.usenix.org/conference/fast26/presentation/huang)
+- **Separate readiness from workload execution.** AMD documents explicit
+  HIP initialization. Qualify a ready, session-owned worker as a
+  measured alternative to cold launch. Prepare it on ordinary demand,
+  leave device power management to Windows and retire it on sustained
+  inactivity, pressure, incompatible identity or detach. Microsoft
+  documents loss of video-memory allocations during WDDM recovery.
+  Withdraw affected GPU results, serve CPU bytes and require a new
+  identity-and-retirement observation before readmission.
+  [AMD HIP initialization](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/initialization.html) ·
+  [AMD Windows SDK versioning](https://rocm.docs.amd.com/projects/install-on-windows/en/docs-7.2/about/release-versioning.html) ·
+  [Microsoft WDDM recovery](https://learn.microsoft.com/en-us/windows-hardware/drivers/display/timeout-detection-and-recovery)
 - **Reuse checked metadata for the lifetime of the operation.** CoFS
   uses a dense immutable name index in a read-only container deployment.
   FlitzFS accepts concurrent namespace mutations and writable recovery.
@@ -1078,12 +1153,17 @@ semantics constrain every optimization.
    sketch and past outcome features. Log decisions in shadow mode,
    persist versioned bounded advice and test restart, drift and missing
    advice before promotion.
-   Run a separate Zstandard 1.5.7 versus 1.6.0 comparison before
-   updating the control. Verify both reader directions on frozen records
-   and the new encoder's sequence and memory contracts before promoting
-   the dependency pin. Include all high-compression controls in the
-   complete-size ledger at equal protection and random access.
-3. If oracle and actual matches agree and complete size still misses the
+   Use the separately qualified Zstandard 1.6.0 control. Its frozen
+   1.5.7 compatibility arms covered both reader directions and the
+   pinned sequence and prefix paths.
+3. Use the tiny-file cost ledger to prototype inline data and compact
+   fragment references privately. Hold record identity, file semantics,
+   mirrored recovery and workload fixed. Measure the resulting record
+   count, root and name-index overhead, bytes rewritten on growth and
+   random read cost. Run both the tiny cohort and a held-out named tree
+   before introducing any volume-format capability.
+   [Short-file storage design](architecture/ADAPTIVE_STORAGE_EXECUTION.md#protected-short-files-and-complete-size)
+4. If oracle and actual matches agree and complete size still misses the
    target, prototype independently restartable fragment deltas or
    typed XOR residuals for the measured cohort. Define extent offset
    mapping, immutable base references, CPU decode, maximum work per

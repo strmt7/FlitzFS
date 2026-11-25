@@ -700,6 +700,43 @@ void indexed_uneven_short_packs(bool regression) {
 }
 
 
+void profile_protected_layout(const std::shared_ptr<Ram>& backing,
+    std::uint64_t selector_bytes,std::string_view arm) {
+  const auto snapshot=PagedObjectStoreSnapshot::open(backing,{kStoreMaxPhysicalBytes});
+  const auto info=snapshot.info();
+  require(info.mirrored_payloads && info.physical_end==backing->extent(),
+      "layout comparison requires a fully packed mirrored image");
+  std::vector<StoreObjectInfo> records;
+  std::uint64_t after=0;
+  for(;;) {
+    const auto page=snapshot.list_page(after,64);
+    if(page.empty())break;
+    records.insert(records.end(),page.begin(),page.end());
+    after=page.back().id;
+  }
+  require(records.size()==info.objects && snapshot.rebuilt_size(records)==info.physical_end,
+      "packed accounting does not reconcile with the image");
+  std::uint64_t data_bytes=0,metadata_bytes=0;
+  constexpr auto domain_mask=~(detail::kNativeIndexedInodeLimit-1);
+  for(auto& record:records) {
+    const auto bytes=2ULL*record.stored_payload_bytes;
+    if((record.id&domain_mask)==detail::kNativeIndexedDataObject) {
+      data_bytes+=bytes;
+      record.stored_payload_bytes=0;
+    } else metadata_bytes+=bytes;
+  }
+  require(data_bytes+metadata_bytes==info.stored_payload_bytes &&
+      info.stored_payload_bytes<=info.physical_end,"protected payload totals do not reconcile");
+  const auto without_data=snapshot.rebuilt_size(records)+selector_bytes;
+  for(auto& record:records)record.stored_payload_bytes=0;
+  std::cout<<"protected_layout arm="<<arm<<" objects="<<info.objects
+      <<" image_bytes="<<info.physical_end<<" selector_bytes="<<selector_bytes
+      <<" mirrored_data_object_bytes="<<data_bytes<<" mirrored_metadata_object_bytes="<<metadata_bytes
+      <<" record_index_and_padding_bytes="<<info.physical_end-info.stored_payload_bytes
+      <<" zero_data_layout_bytes="<<without_data
+      <<" zero_payload_layout_bytes="<<snapshot.rebuilt_size(records)+selector_bytes<<'\n';
+}
+
 void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expected_members=0,
     bool compare_reencoding=false) {
   if(!store_zstd_available())return;
@@ -743,13 +780,16 @@ void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expect
     verify(reader);
     return std::pair{backing->extent(),small_reads};
   };
-  const auto settled_image=[&](const NativeFilesystemSnapshot& source,unsigned target,int reencode_level=0) {
+  const auto settled_image=[&](const NativeFilesystemSnapshot& source,unsigned target,
+      std::string_view arm,int reencode_level=0) {
     auto backing=ram(4096);
     if(reencode_level)
       (void)NativeFilesystemWriter::recompress(source,backing,id(target),
           {StoreCompressionMode::automatic,reencode_level,true});
     else (void)NativeFilesystemWriter::compact(source,backing,id(target),policy);
-    return check_image(backing);
+    const auto result=check_image(backing);
+    if(compare_reencoding)profile_protected_layout(backing,f.head->extent(),arm);
+    return result;
   };
   const auto cold_copy=[&](Fixture& volume,std::string_view order) {
     using Recompression=NativeFileSession::RecompressionProgress;
@@ -766,6 +806,7 @@ void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expect
     const auto source_reads=volume.image->read_bytes-reads;
     const auto [bytes,range_bytes]=check_image(target);
     verify(retained);
+    profile_protected_layout(target,volume.head->extent(),order);
     std::cout<<"cold_order arm="<<order<<" settled="<<bytes<<" selector="<<volume.head->extent()
         <<" source_read_bytes="<<source_reads<<" target_write_bytes="<<target->write_bytes
         <<" range_read_bytes="<<range_bytes<<" selected="<<selected<<" cpu_exact=1\n";
@@ -774,10 +815,10 @@ void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expect
 
   f.session.reset();
   const auto prior=NativeFilesystemSnapshot::open_image(f.image,storage);
-  const auto before=settled_image(prior,2);
+  const auto before=settled_image(prior,2,"independent_preserved");
   if(compare_reencoding) {
     for(const int level:{3,9}) {
-      const auto [image_bytes,range_bytes]=settled_image(prior,4,level);
+      const auto [image_bytes,range_bytes]=settled_image(prior,4,level==3?"independent_level_3":"independent_level_9",level);
       std::cout<<"independent_reencode level="<<level<<" image_bytes="<<image_bytes
           <<" selector_bytes="<<f.head->extent()<<" range_read_bytes="<<range_bytes<<" cpu_exact=1\n";
     }
@@ -792,7 +833,7 @@ void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expect
     const auto read_bytes=cold_first.image->read_bytes-read_start,write_bytes=cold_first.image->write_bytes-write_start;
     cold_first.session.reset();
     const auto source=NativeFilesystemSnapshot::open_image(cold_first.image,storage);
-    const auto [bytes,range_bytes]=settled_image(source,6);
+    const auto [bytes,range_bytes]=settled_image(source,6,"cold_then_group");
     std::cout<<"cold_order arm=cold_then_group settled="<<bytes<<" selector="<<cold_first.head->extent()
         <<" source_read_bytes="<<read_bytes<<" target_write_bytes="<<write_bytes
         <<" range_read_bytes="<<range_bytes<<" groups="<<progress.published_groups<<" cpu_exact=1\n";
@@ -814,7 +855,7 @@ void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expect
   f.session.reset();
   verify(prior);
   const auto current=NativeFilesystemSnapshot::open_image(f.image,storage);
-  const auto after=settled_image(current,3);
+  const auto after=settled_image(current,3,"group_only");
   const auto members=current.shared_base_info().members;
   std::cout<<"similarity_packing files="<<inputs.size()<<" before_compacted="<<before.first
       <<" after_compacted="<<after.first<<" input_bytes="<<input_bytes

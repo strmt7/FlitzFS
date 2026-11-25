@@ -313,15 +313,21 @@ or a new representation.
   generations to the existing owner. For read, write and collective work,
   compare CPU, cold GPU and a ready lease using identical observations.
   Count useful bytes delivered or committed, discarded bytes and retirement.
-  Quantify resource cost across quiet and active gaps. Enroll profitable
+  Account for initialization separately from each request. Quantify
+  resource cost across quiet and active gaps and confirm retirement
+  after pressure, cancellation and device replacement. Enroll profitable
   shapes on the actual runtime, driver and device tuple.
-- **Compression and search.** Freeze versions and family splits before
-  tuning the shortlist. Measure incremental gains from existing aligned,
-  projected and rolling matches separately. For a small held-out subset,
-  enumerate admissible direct-reference candidates and price them with the
-  existing protection and placement rules. Use the gap between exhaustive
-  and selected savings to choose a better search or a new representation.
-  Compare total settled provider bytes at the same protection level.
+- **Compression and record overhead.** Reuse the matched protected-size
+  ledger. The tiny-file cohort occupies 524,288 bytes even after cold
+  re-encoding. With the current record count, a hypothetical zero-byte
+  encoding of its data objects only lowers occupancy to 466,944 bytes.
+  Price inline data and compact fragment locators before increasing
+  the short-file search budget. For larger revision families, measure
+  the missed savings against a bounded exhaustive candidate oracle.
+  Freeze versions and family splits before tuning the shortlist. Use
+  the complete saved bytes and measured access and write costs to
+  choose between better search and a new representation.
+  [Protected size evidence](evidence/windows-protected-size-frontier-2026-11-25.json)
 - **Writable reopen.** Extend current verified reads and CPU audit with
   a read-only comparison of authority summary, dependency references and
   allocation ownership. Trace differences by checkpoint and touched
@@ -469,22 +475,39 @@ reference and a held-out file-count tier.
 
 Start with C1 and C2 in the
 [settled-size implementation sequence](RELEASE_RECONCILIATION_2026-11-24.md#first-settled-size-implementation-sequence).
-The matched level-3 and level-9 controls already show distinct results for
-CPython revisions and AIT. Measure their interaction with grouping on
-held-out files under the same writable protection and geometry. Price
-protection changes in their own paired runs. Use complete savings and
-rewrite/read costs to choose between independent cold re-encoding and
-deeper similarity work for each data family.
+The current Zstandard 1.6.0 profiles measure independent level-3 and
+level-9 encodings and both orders of grouping and cold re-encoding.
+Grouping followed by cold re-encoding wins on the CPython revision
+cohort. Independent cold re-encoding accounts for the improvement on
+the held-out AITDCC extracts. The tiny CPython files expose a separate
+layout limit. Use these controls before raising model complexity or
+search scope. Price protection changes in their own paired runs.
+[Verified current frontier](evidence/windows-protected-size-frontier-2026-11-25.json)
 
 1. **Build the accounting and recall oracles.** Freeze content manifests,
    revision groups and access schedules before tuning. Keep AIT A–H and I–P
    as distinct named partitions and keep an additional corpus/revision
    holdout independent of AIT pilot work. Count canonical object and
    dependency bytes, namespaces, indices, models, mirrors, retention and
-   provider allocation. Report peak temporary bytes and write amplification
-   separately from settled size. Verify every file and a held-out set of
+   provider allocation. The packed-image profile reconciles record
+   totals against actual image length and the selector. Extend it to
+   mounted provider allocation, pinned readers, reclaimed bytes and the
+   named small-file tree. Rebuild and verify each feasible candidate for
+   a bounded cohort. Keep peak temporary bytes and write amplification
+   separate from settled size. Verify every file and a held-out set of
    random ranges with the independent CPU reader.
-2. **Build scalable candidate discovery.** Extend the
+2. **Reduce the cost per tiny file.** Compare an isolated inline-inode
+   trial and a trial with compact direct locators into restartable
+   protected fragment records. Measure encoded size after changing the
+   owner record and removing its old extent and lookup key. Pin one
+   source snapshot, verify every exact range, and price repeated short
+   writes, growth and read amplification. Demonstrate savings on the
+   held-out directory workload before changing the persistent format.
+   The winning design must preserve mirrored failure isolation, inode
+   lifetimes, owner checks, allocation accounting and rollback. Carry
+   old-format reads and old-writer refusal into E09.
+   [Short-file design](architecture/ADAPTIVE_STORAGE_EXECUTION.md#protected-short-files-and-complete-size)
+3. **Build scalable candidate discovery.** Extend the
    [indexed coherence catalog](../src/indexed_coherence.cpp) from current
    versioned postings. Reconcile by immutable extent/content ID and revision,
    share exact equality only after confirming bytes, and use sparse bands
@@ -494,7 +517,7 @@ deeper similarity work for each data family.
    and throttle frequent-key fan-out. Let one, a few or thousands of files
    share a grouping if attractive. Use independent restart frames and
    versioned dependencies to limit the work required for one file range.
-3. **Test representations before adding disk methods.** Compare current
+4. **Test representations before adding disk methods.** Compare current
    packing, base/residual and strong per-frame controls with content-defined
    matches, dictionary generations, structure-aware residuals and optional
    specialized stages. Vary frame size, group size and dependency sharing
@@ -505,7 +528,7 @@ deeper similarity work for each data family.
    compressed input as realistic controls. A learned codec must earn its
    protected model and compute cost and provide a versioned deterministic
    CPU reader before it can become a stored method.
-4. **Promote the tested format and offline policy.** Introduce only candidates
+5. **Promote the tested format and offline policy.** Introduce only candidates
    that pass size and access checks into the versioned CPU decoder registry.
    Commit protected dependencies and self-contained frame references with
    checked source revisions and reader lifetimes. Off-path preparation
@@ -516,7 +539,7 @@ deeper similarity work for each data family.
    Evaluate workload drift, restart, advice corruption, false positives,
    low resources and two-volume contention. Report foreground overhead,
    saved bytes, time to settle and actual bytes written.
-5. **Fund all autonomous maintenance together.** Run compression, scrubbing,
+6. **Fund all autonomous maintenance together.** Run compression, scrubbing,
    reclamation and migration through the same host/device admission and
    per-volume resource accounting. Use live physical/commit/VRAM budgets,
    CPU/GPU utilization, backing pressure, measured work cost and
