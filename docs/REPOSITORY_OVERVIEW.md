@@ -1,21 +1,24 @@
 # FlitzFS repository overview
 
-The current review covers 1,117 tracked paths at `fec45a0`. A signed
-WinFsp client replay released occupied backing from 407.1 MiB to 4.5 MiB
-while mounted. Independent CPU reopen verified all 1,027 files and reached
-the same occupied size. Cold maintenance still had duty-deferred work.
-The current callback source also reuses a verified CPU tile after a
-partial grouped read. CPU backing reads fell by 43.4% on a matched 4 KiB
-callback sequence. The fixture checked a subsequent overwrite and audited
-the resulting bytes independently.
+This checkpoint reconciles 1,122 tracked paths at `afc4d8f` and the two
+runtime changes in the tested prefix parser. FlitzFS has a writable WinFsp
+path, indexed native storage, autonomous maintenance and an independent CPU
+reader. The signed WinFsp replay at `fec45a0` released occupied backing from
+407.1 MiB to 4.5 MiB while attached and independently recovered 1,027 files.
+Physical Radeon testing on the new runtime delivered two verified grouped
+frames across 32 callbacks. A separate controller fixture delivered one more
+while compression duty was deferred.
 
-FlitzFS has a working writable Windows development path. Automatic AMD
-delivery on ordinary mounted requests, complete-size improvements across
-broader workloads, scalable writable attach and physical-media recovery
-remain release-critical. Prior Radeon fixtures consumed verified packed and
-mixed frames. Both current admission checks found the physical GPU busy.
-[Current reconciliation and execution order](RELEASE_RECONCILIATION_2026-11-25.md#current-round-and-release-decisions) ·
-[Current verification and research](evidence/windows-cpu-tile-and-ordinary-settlement-2026-11-25.json) ·
+The stronger prefix parser reduced the compacted image of a seven-file
+CPython revision extension by 16 KiB. Complete occupied bytes stayed at
+868,352 on the 24-file CPython frontier and 35,160,064 on the held-out AITDCC
+extracts. Earlier owner-record reuse reduced pre-flush reads from 51.5 MB to
+39.1 MB on the 16,384-file writable reopen fixture. Attach still walks the
+inventory. The release blockers are reproducibly useful automatic mounted
+AMD service, scalable attach, a broader equal-protection compression
+advantage and backing-specific recovery of acknowledged operations.
+[Checkpoint and remaining work](RELEASE_RECONCILIATION_2026-11-25.md#current-round-and-release-decisions) ·
+[Exact Windows tests and research](evidence/windows-prefix-parser-reconciliation-2026-11-25.json) ·
 [Current architecture](architecture/CURRENT.md) ·
 [Target architecture](architecture/TARGET.md)
 

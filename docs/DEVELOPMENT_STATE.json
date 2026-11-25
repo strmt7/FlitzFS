@@ -6,6 +6,22 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "protected_prefix_reconciliation": {
+    "reviewed_commit": "afc4d8f499d8ca72bb70c6530377b355851c326f",
+    "tested_runtime_tree": "aeb451f267a7bb57f680741196d16123c38f0bbc",
+    "evidence": "docs/evidence/windows-prefix-parser-reconciliation-2026-11-25.json",
+    "execution_plan": "docs/IMPLEMENTATION_PLAN.md#execution-after-the-protected-prefix-checkpoint",
+    "related_revision_compacted_image_bytes": [319488, 303104],
+    "broader_complete_occupied_bytes": {
+      "cpython_24_revision_files": 868352,
+      "aitdcc_2026_held_out_extracts": 35160064
+    },
+    "windows_tests_passed": {"release": 10, "raw": 4, "address_sanitizer": 5},
+    "physical_amd_frames": {"grouped_callbacks": 2, "controller": 1},
+    "ordinary_host_mount": false,
+    "physical_media_qualified": false,
+    "release": false
+  },
   "reopen_extent_owner_reuse": {
     "source_base": "16ccbb6246ab9eb1d5ddb4ca6df96d4cab33a26f",
     "tested_runtime_tree": "085a87a508b527f89b20239ed96c08d5b03a8238",

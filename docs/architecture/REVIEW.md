@@ -33,6 +33,34 @@ The [review receipt](../evidence/release-plan-refresh-2026-11-23.json) records t
 semantic source routing, exact input evidence and independently retrieved
 primary documentation. [Prior broad source review](../evidence/architecture-reconciliation-2026-11-21.json)
 
+## Reconciliation after the protected prefix trial
+
+The current checkpoint examines the Windows callback and worker changes,
+retirement and indexed ownership changes since `fec45a0`. The existing
+source inventory underpins the whole-repository review. The latest
+evidence binds the narrower changes to their own source trees.
+
+- **Storage authority.** The writable reopen walk reuses owner fields
+  already gathered from checked payloads. The writable barrier and
+  fresh verification remain. Scaling the decision requires a separate
+  summary agreement proof against this reference path.
+- **Windows and GPU.** The installation-independent CPU route remains
+  available through refusal. On the live host the group worker delivered
+  two checked frames and the controller delivered another during the
+  duty wait. The signed mounted client, worker timing and current
+  callbacks belong to distinct evidence lanes.
+- **Compression and maintenance.** The bounded second parser improves
+  one real revision family with the existing decoder and placement.
+  Search recall, restart locality and current protected overhead set
+  the next work. Model and format choices depend on the complete-size
+  oracle and independent CPU access.
+- **Delivery.** Raw and sanitizer configurations ran the relevant
+  groups. The sanitizer executable used the staged exact runtime.
+  Owner-side readiness still depends on the Windows installer,
+  durable upgrade, backed-media recovery and matched baselines.
+[Current evidence](../evidence/windows-prefix-parser-reconciliation-2026-11-25.json) ·
+[Next decisions and tests](../IMPLEMENTATION_PLAN.md#execution-after-the-protected-prefix-checkpoint)
+
 ## Scope and evidence
 
 The broad review at [df5be9b5b9d0](https://github.com/strmt7/FlitzFS/commit/df5be9b5b9d0bc05ac565eb2da8454ac76bed3d2)

@@ -1,24 +1,21 @@
 # FlitzFS release reconciliation · 25 November 2026
 
 FlitzFS has writable WinFsp integration, protected indexed storage,
-independent CPU recovery and bounded AMD execution through controlled
-Windows callbacks. It remains in development qualification. The biggest
-remaining gains are useful automatic AMD delivery, lower complete stored size
-and less inventory work at writable attach. Continue testing occupied-space
-settlement under churn and record it separately from the progress of optional
-cold optimization.
+independent CPU recovery and verified AMD delivery in controlled Windows
+callbacks. It remains in development qualification. Prioritize useful
+automatic mounted AMD service, complete stored size, less inventory work at
+writable attach and sustained occupied-space settlement.
 
-The current inventory covers 1,117 tracked paths at `fec45a0`. Four
-development commits changed 28 paths since the `aae3fae` review. They
-coalesced mirrored I/O, removed a redundant clean retirement flush, shared
-new mirrored banks and shortened the path from logical retirement to
-physical release. The current implementation adds a verified CPU tile
-retained within the existing read budget. The inventory, changed paths,
-tested source trees, research receipts and test scopes are recorded together.
-[Current evidence](evidence/windows-cpu-tile-and-ordinary-settlement-2026-11-25.json) ·
+This review covers 1,122 tracked paths at `afc4d8f` and the tested prefix
+parser changes. It reconciles the runtime paths changed since `fec45a0`
+against the current Windows fixtures and the earlier architecture inventory.
+The signed mount and the current physical AMD runs establish different
+parts of the client path. Each receipt identifies its source and artifacts.
+[Current evidence](evidence/windows-prefix-parser-reconciliation-2026-11-25.json) ·
+[Earlier signed mount](evidence/windows-cpu-tile-and-ordinary-settlement-2026-11-25.json) ·
 [Current architecture](architecture/CURRENT.md) ·
 [Target architecture](architecture/TARGET.md) ·
-[Work packages](IMPLEMENTATION_PLAN.md)
+[Detailed implementation](IMPLEMENTATION_PLAN.md#execution-after-the-protected-prefix-checkpoint)
 
 ## Current round and release decisions
 
@@ -28,9 +25,9 @@ tested source trees, research receipts and test scopes are recorded together.
 | --- | --- | --- |
 | Ordinary mounted allocation | In a signed WinFsp 2.2 guest at `fec45a0`, the same 6,293-record Win32 trace and 1,027 live files independently verified. Allocated backing was 426,901,504 bytes before maintenance and 4,718,592 bytes while attached, with zero compaction failures. Detached maintenance retained 4,718,592 bytes. | Physical release worked in this run. The final duty deferral and zero quiescent observations leave cold convergence and sustained plateau open. Separate those observations before changing maintenance pacing. |
 | Grouped fallback | A paired memory-backed callback trace served the same 32 adjacent 4 KiB reads. CPU backing reads fell from 602,848 to 341,008 bytes and reads of the monitored record fell from 16 to one. The prepared control stayed at 37,216 bytes. An overwrite invalidated the retained data and the independent CPU audit checked the resulting file. | Use this CPU implementation as the new control for AMD break-even. Record real decode cost separately from a retained-tile hit. The callback result applies to the current local source tree. The mounted replay applies to its published parent. |
-| AMD execution | Prior physical Radeon fixtures consumed verified packed and mixed device frames. The two current hardware observations refused new work because the busiest engine was already at approximately 100% and 94%. | Keep production AMD integration on the critical path. Use fresh admission and match delivered ordinary work to the improved CPU control. |
-| Compression and learning | Indexed exact sharing, projected and rolling lookups, short inline data and protected group methods already work in bounded trials. Earlier held-out named-file and CPython revision controls improved complete size by 15.6% and 43.0% on their respective lanes. | Test the savings left by current grouping before adding a stored codec or model. Train any local ranker on candidates with observable complete-cost outcomes. |
-| Scale and recovery | Indexed lookups and bounded background samples avoid a full namespace scan on ordinary file reads. Writable admission still uses full inventory verification. Existing interruption and CPU repair evidence covers modeled and isolated Windows cases. | Put a checkpoint-bound admission decision beside full verification. Make exact agreement the promotion criterion. Extend failure evidence to the supported backing types before release. |
+| AMD execution | The current fixtures used the installed Radeon with fresh host admission. Two CPU-verified grouped frames served 32 callbacks. The controller delivered another frame during a compression duty wait. Both process trees retired. | Prove useful ordinary mounted delivery against the retained-tile CPU control. Measure startup, ready service, cancellation and recovery with the same client. Qualify ordinary writes and background compression on their own shapes. |
+| Compression and learning | A bounded second prefix parser reduced the seven-file revision extension from 319,488 to 303,104 compacted image bytes. Both broader frontiers stayed unchanged. Indexed exact sharing, sparse coherence, inline data and persistent advice remain in use. | Measure missed groups and representation cost in a bounded exhaustive comparison. Spend more search or model work where the complete protected cost shows a repeatable opportunity. |
+| Scale and recovery | Writable reopen reused checked extent owners and reduced backing calls from 59,910 to 40,496 at 16,384 files with both flushes and fresh mirror verification. The inventory walk remains. Existing interruption and CPU repair evidence covers modeled and isolated Windows cases. | Put a checkpoint-bound admission decision beside full verification. Require agreement before promotion and prove survivor repair for each supported backing. |
 | Windows and lifecycle | The helper has writable signed-driver guest evidence and an optional compute process. A native compressed NTFS control has defined measurement and admission rules. | Finish installed-client acceptance, compatible updates, process retirement and paired measurements on the declared Windows and backing matrix. |
 
 ### Current research and design decisions
@@ -80,6 +77,35 @@ tested source trees, research receipts and test scopes are recorded together.
   build and installed runtime and device tuple. Test the common 25H2 client
   and separately qualify additional combinations before listing them.
   [Microsoft Windows 11 release information](https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information)
+
+### Compression and hardware research checkpoint
+
+Each staged prefix now compares the existing level-3 parser and a level-13
+parser with the same per-context allocation bound. The level-13 output
+must fit below the level-3 result when that result exists. Independent CPU
+decoding verifies the chosen frame against the source. The normal
+transaction still decides on complete compacted size and the current
+source generation. Standalone levels 16 and 19 lost the useful prefix
+extension in this envelope.
+[Bounded encoder](../src/store_codec.cpp#L113) ·
+[Checked group publication](../src/native_indexed_volume.cpp#L2114) ·
+[Zstandard v1.6.0 interface](https://raw.githubusercontent.com/facebook/zstd/v1.6.0/lib/zstd.h)
+
+RubikFS found an advantage from clustering by content and access
+temperature on a static image. ParaSync separates fixed work from
+chunk-boundary discovery in file synchronization. For FlitzFS, test
+sparse, resumable candidate retrieval and independently accessible
+protected fragments. Measure the useful grouping through Windows file
+access and mutations under the same durability contract.
+[RubikFS, FAST 2026](https://www.usenix.org/conference/fast26/presentation/huang) ·
+[ParaSync, FAST 2026](https://www.usenix.org/conference/fast26/presentation/zhang-zhihao-parasync)
+
+The validated HIP documentation says stream priorities are disabled.
+Tie optional worker readiness to forecast demand and available resources.
+Bound background submissions and reclaim the session on sustained
+pressure or changed device identity. CPU completion uses its own checked
+path throughout.
+[AMD HIP asynchronous execution](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/asynchronous.html)
 
 ### Implementation order by expected gain
 
@@ -167,10 +193,10 @@ source-bound evidence. Exact current gaps and package ownership are below.
 | Gate | Current limiting evidence | Next acceptance artifact |
 | --- | --- | --- |
 | S1 · Identity | Local, guest and real-device lanes use separately verified manifests. | One reproducible signed candidate and full declared dependency and hardware inventory. |
-| S2 · Scale | Indexed mutation and lookup have bounded controls. Writable attach still has full inventory cost. | Shadow equivalence and held-out growth curves for live directory and extent workloads. |
+| S2 · Scale | Indexed mutation and lookup have bounded controls. Checked owner reuse reduced reopen backing calls by 32.4% at 16,384 files. Writable attach still has full inventory cost. | Shadow equivalence and held-out growth curves for live directory and extent workloads. |
 | S3 · Occupancy | One ordinary signed trace physically settled against detached reopen and finished with duty-deferred work. | Repeated attached plateau, pinned-reader and interruption proof. |
-| S4 · AMD | Held SDK frames have physical Radeon checks. Automatic ordinary route benefit is open. | Same mounted trace delivers useful checked output on real hardware and falls back under refusal and failure. |
-| S5 · Compression | Held-out subset results include complete allocation and independent bytes. | Representative held-out size frontier with metadata, references, recovery and access cost charged. |
+| S4 · AMD | The current SDK callback and controller fixtures delivered independently verified Radeon frames on the owner host. | One ordinary mounted trace delivers useful checked output and demonstrates a complete-path benefit with CPU continuity during refusal and failure. |
+| S5 · Compression | The seven-file prefix extension gained 16 KiB. Complete allocation on both broader held-out controls stayed unchanged. | Diagnose the remaining gain with a bounded exhaustive comparison and same-protection range and write costs. |
 | S6 · Automatic work | Bounded sampling, persistent advice and cooperative duty exist. | Long-lived drift and restart cases with low observed foreground interference and enough idle progress. |
 | S7 · Windows | Signed guest correctness includes normal Win32 clients. | Installed Explorer, service ownership and exact Windows/backing matrix. |
 | S8 · Durability | Transaction cuts and independent CPU checks cover defined models and isolated environments. | Supported media disruption, exact durable acknowledgement and repair witness. |

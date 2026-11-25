@@ -115,20 +115,29 @@ std::optional<std::vector<std::byte>> encode_store_prefix(std::span<const std::b
 #ifdef FLITZFS_STORE_HAS_ZSTD
   if(input.empty() || input.size()!=prefix.size() || input.size()>kStoreMaxMatchInputBytes ||
       exclusive_limit<=1 || exclusive_limit>input.size())return {};
-  Budget budget{kStorePrefixEncoderMemoryCap};
-  std::unique_ptr<ZSTD_CCtx,decltype(&ZSTD_freeCCtx)> context(
-      ZSTD_createCCtx_advanced(budget.callbacks()),&ZSTD_freeCCtx);
-  if(!context ||
-      ZSTD_isError(ZSTD_CCtx_setParameter(context.get(),ZSTD_c_compressionLevel,3)) ||
-      ZSTD_isError(ZSTD_CCtx_setParameter(context.get(),ZSTD_c_windowLog,17)) ||
-      ZSTD_isError(ZSTD_CCtx_setParameter(context.get(),ZSTD_c_checksumFlag,1)) ||
-      ZSTD_isError(ZSTD_CCtx_refPrefix(context.get(),prefix.data(),prefix.size())))return {};
-  Bytes payload(exclusive_limit-1);
-  const auto bytes=ZSTD_compress2(context.get(),payload.data(),payload.size(),input.data(),input.size());
-  if(ZSTD_isError(bytes) || !bytes || bytes>=exclusive_limit)return {};
-  payload.resize(bytes);
-  if(!store_prefix_frame(payload,input.size()))return {};
-  return payload;
+  const auto trial=[&](int level,std::size_t limit)->std::optional<Bytes> {
+    if(limit<=1)return {};
+    Budget budget{kStorePrefixEncoderMemoryCap};
+    std::unique_ptr<ZSTD_CCtx,decltype(&ZSTD_freeCCtx)> context(
+        ZSTD_createCCtx_advanced(budget.callbacks()),&ZSTD_freeCCtx);
+    if(!context ||
+        ZSTD_isError(ZSTD_CCtx_setParameter(context.get(),ZSTD_c_compressionLevel,level)) ||
+        ZSTD_isError(ZSTD_CCtx_setParameter(context.get(),ZSTD_c_windowLog,17)) ||
+        ZSTD_isError(ZSTD_CCtx_setParameter(context.get(),ZSTD_c_checksumFlag,1)) ||
+        ZSTD_isError(ZSTD_CCtx_refPrefix(context.get(),prefix.data(),prefix.size())))return {};
+    Bytes payload(limit-1);
+    const auto bytes=ZSTD_compress2(context.get(),payload.data(),payload.size(),input.data(),input.size());
+    if(ZSTD_isError(bytes) || !bytes || bytes>=limit)return {};
+    payload.resize(bytes);
+    if(!store_prefix_frame(payload,input.size()))return {};
+    return payload;
+  };
+  auto baseline=trial(3,exclusive_limit);
+  // Small frames can favor the faster parser. Keep its result when the
+  // optimal parser cannot beat it or fit the same allocator budget.
+  auto stronger=trial(13,baseline?baseline->size():exclusive_limit);
+  if(stronger)return stronger;
+  return baseline;
 #else
   (void)input;(void)prefix;(void)exclusive_limit;
   return {};

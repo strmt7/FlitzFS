@@ -1,12 +1,13 @@
 # Current FlitzFS architecture
 
-The diagrams trace the implementation reconciled on 25 November. They
-cover prepared AMD read delivery, mirrored cold copy across packed banks,
-phase visibility during reclaimer steps, bounded rolling lookup,
-single-view indexed sampling and inline placement for new persistent
-volumes.
+The diagrams trace the implementation reconciled on 25 November. The
+current runtime uses checked extent owners during writable reopen,
+retains verified read tiles and receives eligible live AMD read windows.
+It compares two bounded prefix encodings during staging before the
+normal checked publication. Earlier diagrams cover inline persistent
+placement, mirrored packing and rolling lookup.
 [Release reconciliation](../RELEASE_RECONCILIATION_2026-11-25.md) ·
-[Packed admission and sealing evidence](../evidence/windows-packed-admission-and-sealing-2026-11-25.json) ·
+[Current runtime evidence](../evidence/windows-prefix-parser-reconciliation-2026-11-25.json) ·
 [Revised architecture](TARGET.md)
 
 ## 1. Process and build boundaries
@@ -431,6 +432,26 @@ then its preferred and remaining distinct rolling keys against the same
 catalog snapshot. The existing live extent, exact-byte and complete-size
 checks govern candidate publication.
 [Secondary rolling lookup](../evidence/release-reconciliation-rolling-lookups-2026-11-25.json)
+
+### Prefix encoding in a staged group
+
+```mermaid
+flowchart TD
+    G["Admitted staged group and immutable checked base"] --> P["Trial level 3 within the member encoding bound"]
+    P --> O["Trial level 13 within any smaller existing frame bound"]
+    O --> R["Keep strictly smaller valid prefix or retain level 3"]
+    R --> V["Independent CPU decoded bytes match the staged extent"]
+    V --> C["Compare complete protected transaction with the other representations"]
+    C -->|Smaller and source current| T["Publish protected base and member through the normal write protocol"]
+    C -->|No gain or stale input| K["Keep the selected live layout"]
+```
+
+The two parser contexts run in sequence under the same allocator bound.
+Admission charges the extra output buffer. Either parser can produce the
+same existing versioned prefix frame. The group can keep other member
+methods and share the selected checked base.
+[Encoder](../../src/store_codec.cpp#L113) ·
+[Publication](../../src/native_indexed_volume.cpp#L2114)
 
 ### Indexed maintenance sample
 

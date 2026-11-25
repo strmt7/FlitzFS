@@ -7,7 +7,8 @@ The E01–E13 acceptance and dependency contracts below define the release exits
 [Current assessment](RELEASE_RECONCILIATION_2026-11-25.md) ·
 [Priority and exit decisions](RELEASE_RECONCILIATION_2026-11-25.md#next-decisions-ranked-by-expected-gain) ·
 [Ordered implementation](RELEASE_RECONCILIATION_2026-11-25.md#ordered-implementation-and-decision-points) ·
-[Source and review evidence](evidence/windows-persistent-inline-reconciliation-2026-11-25.json)
+[Source and review evidence](evidence/windows-prefix-parser-reconciliation-2026-11-25.json) ·
+[Next tested decisions](#execution-after-the-protected-prefix-checkpoint)
 
 The [current architecture](architecture/CURRENT.md) shows the implementation.
 The [source review](architecture/REVIEW.md) tests the assumptions and the
@@ -289,6 +290,94 @@ Preparatory work can proceed in parallel within the dependency graph.
 Integrated claims depend on the corresponding complete paths. This sequence
 reuses the existing mounted and AMD controls instead of rebuilding the first
 indexed or read-only prototypes.
+
+### Execution after the protected prefix checkpoint
+
+The 25 November checkpoint improves one proven revision family while
+retaining the stored format. The current Radeon and CPU fixtures establish
+delivery and exact bytes at the callback boundary. Use these controls to
+close the following integration decisions. The numbered E01–E13 package
+contracts supply the wider acceptance matrices.
+[Source-bound results](evidence/windows-prefix-parser-reconciliation-2026-11-25.json)
+
+1. **Measure the next complete-size opportunity · E04–E07, E12.** Start
+   with an immutable revision family and its checked CPU snapshot.
+   Use one held-out set split by whole family, a named short-file tree,
+   the canonical AITDCC holdout and incompressible controls. For each
+   bounded oracle cohort, enumerate eligible pairs and direct reference
+   groups over checked extent versions. Compare current sparse lookup,
+   exact-content sharing, independent level-3 and deeper frames, the
+   selected prefix parsers and current XOR, aligned and modular bodies.
+   Feed the finalists through the same writer, retirement and compaction.
+   Count the exact missed occupied bytes attributable to lookup, anchor
+   choice, the representation and placement. Report saved bytes per
+   completed trial and per byte rewritten. Reopen independently and
+   read full contents plus the same seeded boundary and random ranges.
+   Include selector, mirrors, index, locator, reserved advice, dependency
+   and padding bytes and report staged coexistence separately.
+2. **Spend the next format change only on the measured gap · E04–E07,
+   E09.** If the oracle finds eligible peers missing from the candidate
+   list, expose its excluded candidate reasons and add the smallest
+   useful lookup lane. Compare bounded rolling or content-defined
+   fragments against the current rolling keys, track resident memory and
+   posting cost at geometric file counts, and keep a durable checked
+   continuation. If good peers are already offered but their frames
+   remain expensive, prototype one directly referenced restartable
+   fragment representation. Measure decode span, dependency fetches,
+   repair behavior, charged metadata and write amplification. Consider
+   a local learned selection policy in shadow mode once there are
+   enough complete-cost labels. Promote it only after held-out workload
+   drift, restart, advice loss and multi-volume interference checks.
+3. **Close the automatic mounted AMD read lane · E03, E08.** Carry
+   client arrival, open-file identity, IO offset, cache state, CPU
+   decode, transfer, kernel, verification and delivered byte counts
+   through the same mounted trace. Alternate exact CPU, cold device
+   and ready device arms. Use ordinary demand to predict a bounded
+   warm interval. Keep only admitted processes, streams and reusable
+   buffers during that interval. Expire on mount shutdown, changed
+   runtime or device state, lost benefit or sustained pressure. Advance
+   a recovery generation after independent health evidence and
+   confirmed worker retirement. Prove continued CPU reads during
+   refusal, cancellation, stale completion and device unavailability.
+   Use ordinary installed foreground writes and cold group service as
+   separate qualification workloads, with visible completed work and
+   independent CPU recovery in each. [AMD stream contract](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/asynchronous.html)
+4. **Prove attach and allocation by phase · E01, E02, E07, E11.** Bind
+   a read-only admission summary to the exact selected root and checked
+   allocation/dependency coverage. Compare its decision and verified
+   extent owners against the full CPU audit on healthy images, old
+   versions, interrupted writes, malformed summaries and failed
+   mirrors. Record minimum data reads, mirrored verification, flushes,
+   retained-reader pins, temporary bytes and final physical release.
+   Keep uncertain decisions on the established audit. Fit separate
+   measured curves for attach, I/O, enumeration and background
+   continuation using the same backing and declared workload shape.
+   Reserve a larger measurement tier for validation before estimating
+   tens of millions of files. Track device-dependent write cost and
+   fair background yielding during sustained churn.
+5. **Move the same candidate through compatibility and recovery ·
+   E08–E11.** Install the signed Windows helper and supported provider
+   on an isolated system first. Reuse the named client for Explorer,
+   mapped/cached I/O, deletion and reopen. Verify versioned CPU rescue
+   without the worker package. Exercise bit-10 migration with frozen
+   existing readers and writers, interruption at each durable phase,
+   verified pre-mutation old-writer refusal and paused resume. Run the
+   declared power/interruption, single-copy-loss and space-exhaustion
+   matrices on disposable persistent backings. Compare every
+   acknowledged operation and both authority paths after restart.
+6. **Qualify matched baselines before owner review · E12–E13.** On the
+   installed Windows host, use file-target DiskSpd 2.3 and the ordinary
+   Win32 traces with matching volume/backing capabilities, cache mode,
+   access schedules and queue settings. Separately confirm Windows
+   reports LZNT1 on the native compressed NTFS arm. Measure complete
+   occupied bytes, byte-exact reads, read and durable-write distributions,
+   idle convergence, peak footprint, time under pressure and total
+   bytes written. Keep guest timing out of the performance comparison.
+   Freeze and verify the complete candidate tuple before compatibility,
+   recovery and soak. Reprice remaining work when the mounted trace,
+   a held-out size advantage and a persistent fault campaign pass.
+   [DiskSpd 2.3](https://github.com/microsoft/diskspd/releases/tag/v2.3) ·
+   [Windows compression state](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/62de177d-ed90-4884-ae04-9de52f1180f1)
 
 ### Next implementation tickets
 

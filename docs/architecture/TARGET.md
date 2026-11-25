@@ -249,6 +249,15 @@ Measure candidate recall and rejected work against an exhaustive oracle on
 controlled small sets, then test skewed, changing and real million-entry
 namespaces without making a square similarity matrix.
 
+Collect measured lookup, reference and representation costs separately.
+Use a small exhaustive family replay to decide whether to improve
+retrieval, change the shared representation or reduce protected record
+overhead. The seven-file prefix improvement and unchanged broader
+frontiers make parser strength a useful control for that replay. Use
+`NativeFileSession` and the independent CPU reader to verify finalists
+with ordinary allocation and identical protection.
+[Prefix trial and held-out controls](../evidence/windows-prefix-parser-reconciliation-2026-11-25.json)
+
 Use an ordered coordinate, payload revision and image identity as the
 minimum resumable advice. A scan unit gets a checked view, samples
 within the current grant and returns owned features before releasing it.
@@ -395,6 +404,15 @@ representative input shape, workload, device memory and recovery generation.
   package in a private stop-confirmed process using the target installed
   runtime. Build and link isolated role controls to detect cross-role symbol
   dependencies early. Link shared verified routines explicitly for each role.
+
+Keep a ready worker inside the owning mount while measured demand and
+live headroom justify its retained buffers. The controller decides
+readiness from request cadence, queued work, service cost and observed
+pressure. It expires the lease when those conditions change. AMD's
+current HIP documentation describes stream priorities as disabled.
+Enforce background limits through bounded submissions, cooperative
+yielding and cancellation of pending work.
+[AMD HIP stream management](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/asynchronous.html)
 
 The normal controller owns calibration beside discovery. Callbacks emit a
 bounded demand and CPU-cost observation. The controller admits complete paired

@@ -46,7 +46,7 @@ GroupMemoryBudget group_memory_budget(const detail::MaintenanceResources& resour
     bool sections=false,bool packing=false) noexcept {
   const bool prefixed=sections && store_zstd_available();
   const auto scratch=fixed_scratch+(indexed?detail::kNativeGroupAnchorIndexBytes:0)+(packing?2*kNativeExtentBytes:0)+
-      (prefixed?(std::max)(detail::kStorePrefixEncoderMemoryCap,detail::kStoreDecoderMemoryCap):0);
+      (prefixed?(std::max)(detail::kStorePrefixEncoderMemoryCap+kNativeExtentBytes,detail::kStoreDecoderMemoryCap):0);
   if(resources.memory_allowance<=scratch)return {};
   const auto available=resources.memory_allowance-scratch;
   // A complete CPU or AMD search window can retain a packed candidate and
