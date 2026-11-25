@@ -302,6 +302,30 @@ across the 4 KiB requests, down from 16 times. Use this CPU baseline
 when determining which ordinary read shapes benefit from preparation.
 [Matched CPU evidence](evidence/windows-cpu-tile-and-ordinary-settlement-2026-11-25.json)
 
+### Reusing preparation after CPU demand advances
+
+A grouped helper can finish initialization while the parent captures its
+first forecast. If a foreground CPU read interrupts the capture, the
+controller can keep the unsubmitted helper for a fresh forecast from the
+same sequential run. It checks the open handle, selected checkpoint,
+sequential history and predicted demand. A seek, changed image, missing
+continuation, or expired demand forecast ends the preparation.
+
+The new capture fits the original process, frame and device allocation
+grants. The controller observes current host and DXGI memory before
+submitting it and preserves the original worker deadline. The eventual
+reader still uses the checked reply only after exact worker retirement and
+independent verification. Ordinary reads can continue while preparation
+is pending. [Windows zero-time wait](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitforsingleobject) ·
+[DXGI current budget](https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/nf-dxgi1_4-idxgiadapter3-queryvideomemoryinfo) ·
+[HIP asynchronous execution](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/asynchronous.html)
+
+The Radeon fixture started one helper, let CPU serve the original forecast,
+and submitted the next range to that helper. It rechecked the resource
+grant, returned two verified grouped extents, and retired the child.
+The CPU control verifies that expired demand and changed checkpoints
+cannot retain the old preparation. [Source-bound Windows results](evidence/windows-prepared-group-reuse-2026-11-25.json)
+
 ### Measuring bytes delivered by grouped read-ahead
 
 The normal Windows controller view reports published, delivered and pending

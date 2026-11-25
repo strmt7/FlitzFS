@@ -367,7 +367,7 @@ struct WinFspVolumeController::Impl {
                       if(work && !read_worker)begin_read_acquisition(*work,*allowance);
 #endif
                       const bool submitted=read_worker && work && read_worker->start(*work,*allowance,stop_requested);
-                      if(read_worker && !submitted)read_worker->abandon_unused_preparation();
+                      if(read_worker && !submitted)read_worker->abandon_unused_preparation(*adapter);
                       if(work && !submitted && !work->expanded_group_window)
                         read_ahead_prepared=adapter->prepare_captured_native_lz4_read(*work,stop_requested);
                       read_ahead_timing.observe(backing_use.elapsed_ns()-before);

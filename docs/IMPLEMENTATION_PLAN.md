@@ -316,14 +316,17 @@ SDK Radeon witness as controls when testing the corresponding layer.
    completion. The shared controller now distinguishes grouped bytes that
    reached a callback from published and pending work. Carry its exact
    totals into the client trace. Alternate CPU, cold and demand-predicted
-   ready runs on matching buffers and file operations. Reuse process, stream and
-   allocations only during a funded window. Invalidate on device or
+   ready runs on matching buffers and file operations. A same-stream
+   CPU read can advance an unsubmitted AMD preparation to a fresh capture
+   within its original job grant and deadline. Measure this alongside
+   cold and uninterrupted ready windows. Invalidate on device or
    runtime change, cancellation, sustained resource pressure or repeated
    lost payback. Admit a new device generation after evidence of recovery
    and confirmed old worker retirement. Deliver the independent CPU path
    on refusal or late completion. Qualify useful AMD selection for all
    advertised roles through the ordinary client.
-   [Grouped callback delivery evidence](evidence/windows-grouped-read-delivery-2026-11-25.json)
+   [Grouped callback delivery evidence](evidence/windows-grouped-read-delivery-2026-11-25.json) ·
+   [Native preparation reuse](evidence/windows-prepared-group-reuse-2026-11-25.json)
 3. **Price the next compression representation · E04–E07, E12.** Re-run
    the exact-peer and protected-placement oracles over held-out current
    projects, binary/data families, already-compressed input and AITDCC 2026.

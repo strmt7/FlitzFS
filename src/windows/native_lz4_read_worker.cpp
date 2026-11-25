@@ -137,20 +137,45 @@ struct NativeLz4ReadWorker::Impl {
     return work.owner && !stopped.load(std::memory_order_acquire) && !work.owner->foreground_pending() &&
         work.owner->foreground_activity()==work.foreground_epoch;
   }
+  struct BudgetObservation {
+    WindowsGpuBudgetResult gpu;
+    ProcessBudget process;
+  };
+  std::optional<BudgetObservation> observe_budget(const NativeMaintenanceObservation& observed,
+      WorkerChannelCapacity capacity) noexcept {
+    ++status.budget_queries;
+    auto sample=query_windows_gpu_budget(profile.luid,profile.node_mask);
+    const auto physical=(std::min)(observed.physical_available,sample.snapshot.physical_available);
+    const auto commit=(std::min)(observed.commit_available,sample.snapshot.commit_available);
+    const auto process=plan_resource_process_budget(profile.worker.memory_mib*mib,physical,commit,
+        profile.worker.memory_share_divisor,profile.worker.cpu_rate,profile.worker.timeout_ms);
+    const auto required=required_sized_worker_headroom(capacity,process);
+    if(!required || physical<required || commit<required)return {};
+    return BudgetObservation{std::move(sample),process};
+  }
+  std::uint64_t preparation_lead(const Flight& f,std::uint64_t now,bool ready) const noexcept {
+    if(now<f.worker.started_at)return 0;
+    const auto elapsed=now-f.worker.started_at;
+    if(elapsed>=profile.worker.timeout_ms)return 0;
+    const auto lead=group_timing.submit_lead(profile.minimum_lead_ms,profile.prepared_group_submit_lead_ms,elapsed,ready);
+    return lead<=profile.worker.timeout_ms-elapsed?lead:0;
+  }
+  bool keep_preparation(const WinFspNativeWritable& adapter,const Flight& f) const noexcept {
+    const auto now=GetTickCount64();
+    return !f.superseded && now>=f.worker.started_at && now-f.worker.started_at<profile.worker.timeout_ms &&
+        (adapter.foreground_pending() || adapter.foreground_activity()!=f.work.foreground_epoch) &&
+        adapter.group_preparation_state(f.work,now)!=WinFspReadAheadState::superseded;
+  }
+
   std::optional<StartedChild> launch(const WinFspReadAheadWork& work,const NativeMaintenanceObservation& observed,
       const std::atomic<bool>& stopped,const LaunchPlan& plan,std::uint64_t required_lead) {
-    ++status.budget_queries;
-    const auto sample=query_windows_gpu_budget(profile.luid,profile.node_mask);
-    const auto& memory=sample.snapshot;
-    const auto physical=(std::min)(observed.physical_available,memory.physical_available);
-    const auto commit=(std::min)(observed.commit_available,memory.commit_available);
-    const auto budget=plan_resource_process_budget(profile.worker.memory_mib*mib,physical,commit,
-        profile.worker.memory_share_divisor,profile.worker.cpu_rate,profile.worker.timeout_ms);
-    const auto required=required_sized_worker_headroom(plan.capacity,budget);
-    if(!required || physical<required || commit<required || !current(work,stopped)) {
+    const auto budget=observe_budget(observed,plan.capacity);
+    if(!budget || !current(work,stopped)) {
       ++status.declined;
       return {};
     }
+    const auto& sample=budget->gpu;
+    const auto& memory=sample.snapshot;
     const std::vector<std::wstring> args{plan.command,std::to_wstring(profile.ordinal),
       hex(profile.luid),std::to_wstring(profile.node_mask),wide(profile.runtime_sha256),wide(profile.module_sha256),
       profile.architecture,std::to_wstring(profile.wave_mask),std::to_wstring(plan.capacity.request_bytes),
@@ -162,8 +187,8 @@ struct NativeLz4ReadWorker::Impl {
         {configuration,++sequence,0,sample.status==WindowsGpuBudgetStatus::success,true,memory},plan.slab,now);
     if(!decision.try_gpu()) {++status.declined;return {};}
     try {
-      auto child=plan.request?WorkerExchangeSession::start_sized(profile.helper,args,plan.request,plan.capacity,budget,package):
-          WorkerExchangeSession::start_prepared_bounded(profile.helper,args,plan.capacity,budget,package);
+      auto child=plan.request?WorkerExchangeSession::start_sized(profile.helper,args,plan.request,plan.capacity,budget->process,package):
+          WorkerExchangeSession::start_prepared_bounded(profile.helper,args,plan.capacity,budget->process,package);
       return StartedChild{std::move(child),decision.ticket,now};
     }catch(...) {
       status.retirement_confirmed=WorkerExchangeSession::available();
@@ -209,8 +234,15 @@ WinFspGroupReadWindow NativeLz4ReadWorker::group_read_window() const noexcept {
   const auto& s=*impl_;
   const auto& profile=s.profile;
   const auto lead=s.group_timing.start_lead(profile.minimum_lead_ms);
-  if(!profile.packed_groups || !lead || s.flight || !s.status.retirement_confirmed ||
-      s.status.configuration_refused || !WorkerExchangeSession::available())return {};
+  if(!profile.packed_groups || s.status.configuration_refused)return {};
+  if(s.flight) {
+    const auto& f=*s.flight;
+    if(f.request || f.superseded)return {};
+    const auto pending_lead=s.preparation_lead(f,GetTickCount64(),f.worker.child.wait_prepared());
+    if(!pending_lead)return {};
+    return {f.preparation.maximum_members,pending_lead,profile.minimum_frames};
+  }
+  if(!lead || !s.status.retirement_confirmed || !WorkerExchangeSession::available())return {};
   const auto grant=detail::plan_native_group_preparation(profile.maximum_frames,profile.maximum_slab_bytes,profile.mixed_groups);
   if(grant.maximum_members<profile.minimum_frames)return {};
   return {grant.maximum_members,lead,profile.minimum_frames};
@@ -236,6 +268,7 @@ bool NativeLz4ReadWorker::prepare_group(const WinFspReadAheadWork& work,const Na
     target.hint_created_ms=work.hint_created_ms;
     target.observed_lead_ms=work.observed_lead_ms;
     target.stream_revision=work.stream_revision;
+    target.sequential_since=work.sequential_since;
     target.checkpoint=work.checkpoint;
     s.flight.emplace(Impl::Flight{{},std::move(*worker),std::move(target),0,0,grant});
     ++s.status.prepared_groups_started;
@@ -258,31 +291,50 @@ bool NativeLz4ReadWorker::start(WinFspReadAheadWork& work,const NativeMaintenanc
     auto& f=*s.flight;
     const auto& target=f.work;
     if(!grouped || f.request || f.superseded || available>f.preparation.maximum_members ||
-        target.owner!=work.owner || target.token!=work.token || target.offset!=work.offset ||
-        target.bytes!=work.bytes || target.foreground_epoch!=work.foreground_epoch ||
-        target.stream_revision!=work.stream_revision || target.checkpoint!=work.checkpoint ||
-        target.hint_created_ms!=work.hint_created_ms || target.observed_lead_ms!=work.observed_lead_ms)return false;
-    const auto lead=[&](std::uint64_t now,bool ready) {
-      const auto elapsed=now>=f.worker.started_at?now-f.worker.started_at:0;
-      return s.group_timing.submit_lead(profile.minimum_lead_ms,profile.prepared_group_submit_lead_ms,elapsed,ready);
-    };
-    const auto ready_before_encoding=f.worker.child.wait_prepared();
+        target.owner!=work.owner || target.token!=work.token || target.checkpoint!=work.checkpoint)return false;
+    const bool retarget=target.sequential_since && work.sequential_since==target.sequential_since &&
+        work.stream_revision>target.stream_revision && work.foreground_epoch>target.foreground_epoch;
+    const bool original=target.offset==work.offset && target.bytes==work.bytes &&
+        target.foreground_epoch==work.foreground_epoch && target.stream_revision==work.stream_revision &&
+        target.hint_created_ms==work.hint_created_ms && target.observed_lead_ms==work.observed_lead_ms;
+    if(!original && !retarget)return false;
     const auto now=GetTickCount64();
-    if(!s.has_lead(work,lead(now,ready_before_encoding),now))return false;
+    const auto lead=s.preparation_lead(f,now,f.worker.child.wait_prepared());
+    if(!lead || !s.has_lead(work,lead,now))return false;
     try {
+      if(retarget) {
+        const auto resources=detail::maintenance_resources(observed,now,work.owner->group_maintenance_policy());
+        if(!resources || resources->cpu_busy) {
+          ++s.status.declined;
+          s.cancel();
+          return false;
+        }
+        const auto budget=s.observe_budget(observed,{f.preparation.request_bytes,f.preparation.reply_bytes});
+        if(!budget || budget->gpu.status!=WindowsGpuBudgetStatus::success ||
+            check_gpu_memory_budget(budget->gpu.snapshot,profile.luid,profile.node_mask,GetTickCount64(),
+                f.preparation.device_bytes)!=GpuGateCode::admitted) {
+          ++s.status.declined;
+          s.cancel();
+          return false;
+        }
+        const auto checked=GetTickCount64();
+        const auto required=s.preparation_lead(f,checked,f.worker.child.wait_prepared());
+        if(!required || !s.has_lead(work,required,checked) || !Impl::current(work,stop_requested))return false;
+      }
       auto exchange=detail::NativeGroupReadExchange::prepare(*work.groups,detail::next_gpu_request_id(),
           f.preparation.maximum_members,f.preparation.device_bytes);
       const auto ready_at_submit=f.worker.child.wait_prepared();
       const auto submitted_at=GetTickCount64();
-      if(exchange.reply_capacity()>f.preparation.reply_bytes || !Impl::current(work,stop_requested) ||
-          !s.has_lead(work,lead(submitted_at,ready_at_submit),submitted_at) ||
-          !f.worker.child.submit_prepared(exchange.request()))return false;
+      const auto required=s.preparation_lead(f,submitted_at,ready_at_submit);
+      if(!required || exchange.reply_capacity()>f.preparation.reply_bytes || !Impl::current(work,stop_requested) ||
+          !s.has_lead(work,required,submitted_at) || !f.worker.child.submit_prepared(exchange.request()))return false;
       f.request.emplace(std::move(exchange));
       f.work=std::move(work);
       f.submitted_at=submitted_at;
       f.ready_at_submit=ready_at_submit;
       f.frames=static_cast<std::uint32_t>(available);
       ++s.status.prepared_groups_submitted;
+      if(retarget)++s.status.prepared_groups_retargeted;
       ++s.status.submitted;
       s.status.submitted_frames+=f.frames;
       return true;
@@ -335,9 +387,9 @@ bool NativeLz4ReadWorker::start(WinFspReadAheadWork& work,const NativeMaintenanc
   }catch(...) {++s.status.declined;}
   return false;
 }
-void NativeLz4ReadWorker::abandon_unused_preparation() noexcept {
+void NativeLz4ReadWorker::abandon_unused_preparation(const WinFspNativeWritable& adapter) noexcept {
   auto& s=*impl_;
-  if(s.flight && !s.flight->request)s.cancel();
+  if(s.flight && !s.flight->request && !s.keep_preparation(adapter,*s.flight))s.cancel();
 }
 
 void NativeLz4ReadWorker::observe(const WinFspNativeWritable& adapter,bool cancel) noexcept {
@@ -357,7 +409,8 @@ void NativeLz4ReadWorker::observe(const WinFspNativeWritable& adapter,bool cance
       s.group_timing.observe_unfinished(sampled-started,f.ready_at_submit);
   }
   const bool obsolete=cancel || state==State::superseded || state==State::demand_served ||
-      (!f.request && (adapter.foreground_pending() || adapter.foreground_activity()!=f.work.foreground_epoch));
+      (!f.request && (adapter.foreground_pending() || adapter.foreground_activity()!=f.work.foreground_epoch) &&
+          !s.keep_preparation(adapter,f));
   if(waited!=WAIT_OBJECT_0) {
     if(obsolete)s.cancel();
     return;

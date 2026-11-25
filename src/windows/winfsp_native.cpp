@@ -1847,6 +1847,7 @@ std::optional<WinFspReadAheadWork> WinFspNativeWritable::capture_native_lz4_read
       work.hint_created_ms=target.created_ms;
       work.observed_lead_ms=target.observed_lead_ms;
       work.stream_revision=slot.read_revision;
+      work.sequential_since=slot.last_read.sequential_since;
       work.checkpoint=impl_->session.read_ahead_checkpoint();
       if(!work.stream_revision || !work.checkpoint.second)return {};
       if(target.tiled) {
@@ -1886,6 +1887,25 @@ WinFspReadAheadState WinFspNativeWritable::read_ahead_state(const WinFspReadAhea
     if(!impl_->current_read_target(work,&demand_served))
       return demand_served?State::demand_served:State::superseded;
     return impl_->may_prepare_read()?State::current:State::busy;
+  }catch(...) {return State::superseded;}
+}
+
+WinFspReadAheadState WinFspNativeWritable::group_preparation_state(const WinFspReadAheadWork& work,
+    std::uint64_t now) const noexcept {
+  using State=WinFspReadAheadState;
+  if(work.owner!=this || !work.sequential_since || requires_offline() || dispatcher_stopped())return State::superseded;
+  try {
+    std::unique_lock guard(impl_->control,std::try_to_lock);
+    if(!guard || foreground_pending())return work.has_read_lead(1,now)?State::busy:State::superseded;
+    const auto& hint=impl_->read_ahead;
+    if(!impl_->may_prepare_read() || !impl_->read_ahead_pending() || !hint->tiled || hint->token!=work.token ||
+        work.checkpoint!=impl_->session.read_ahead_checkpoint() || now<hint->created_ms ||
+        now-hint->created_ms>=hint->observed_lead_ms)return State::superseded;
+    const auto slot=std::ranges::find(impl_->slots,work.token,&Impl::Slot::token);
+    if(slot==impl_->slots.end() || slot->provisional || slot->awaiting_overwrite ||
+        slot->last_read.sequential_since!=work.sequential_since || slot->read_revision<=work.stream_revision)
+      return State::superseded;
+    return State::current;
   }catch(...) {return State::superseded;}
 }
 

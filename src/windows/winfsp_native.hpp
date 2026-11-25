@@ -30,7 +30,7 @@ struct WinFspReadAheadWork {
   std::shared_ptr<detail::PagedReadMetadata> metadata;
   std::unique_ptr<detail::NativeGroupReadBatch> groups;
   std::uint64_t hint_created_ms=0,observed_lead_ms=0;
-  std::uint64_t stream_revision=0;
+  std::uint64_t stream_revision=0,sequential_since=0;
   std::pair<StoreIdentity,std::uint64_t> checkpoint{};
   bool expanded_group_window=false;
   bool has_read_lead(std::uint64_t required_ms,std::uint64_t now_ms) const noexcept {
@@ -222,6 +222,7 @@ class WinFspNativeWritable final {
       const std::function<void(const WinFspReadAheadWork&)>& before_group_capture={},
       WinFspGroupReadWindow group_window={}) noexcept;
   WinFspReadAheadState read_ahead_state(const WinFspReadAheadWork&) const noexcept;
+  WinFspReadAheadState group_preparation_state(const WinFspReadAheadWork&,std::uint64_t now_ms) const noexcept;
   bool publish_read_ahead(WinFspReadAheadWork&,std::unique_ptr<detail::NativeLz4ReadyReads>,
       std::unique_ptr<detail::NativeGroupReadyReads>,
       const std::atomic<bool>& stop_requested,

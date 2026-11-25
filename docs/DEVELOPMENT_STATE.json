@@ -6,6 +6,15 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "grouped_preparation_reuse": {
+    "source_commit": "8ee279eb63a0acd7e638a454cc89bd3bf3c493d8",
+    "tested_source_tree": "a2e0435b4856ceb3c8e15b85d1ee8df36ee7b15a",
+    "evidence": "docs/evidence/windows-prepared-group-reuse-2026-11-25.json",
+    "host_radeon_preparations": 1,
+    "host_radeon_reused_preparations": 1,
+    "host_radeon_verified_extents": 2,
+    "stable_release": false
+  },
   "grouped_read_delivery": {
     "source_commit": "822acde052f9dd7284de5e172b700f1bf11e3887",
     "tested_source_tree": "00d3795943dc1c7105b9715d8f7aaab60722bf33",
