@@ -436,14 +436,13 @@ Bytes prepend_lz4_literals(std::span<const std::byte> prefix,std::span<const std
   result.insert(result.end(),remaining.begin(),remaining.end());
   return result;
 }
-EncodedStoreObject StoreCodecEncoder::encode_with_lz4(std::span<const std::byte> input,
+std::optional<EncodedStoreObject> StoreCodecEncoder::verify_lz4_candidate(std::span<const std::byte> input,
     std::span<const std::byte> candidate,std::uint32_t literal_prefix_bytes) {
   if(input.size()>kStoreMaxObjectBytes)fail("object exceeds codec limit");
-  const auto cpu=[&]{return verify_encoding(encode_compressed(input,true),input);};
   if(impl_->options.mode==StoreCompressionMode::raw || candidate.empty() ||
       literal_prefix_bytes>=input.size() || candidate.size()>=input.size()-literal_prefix_bytes ||
       !store_lz4_available())
-    return cpu();
+    return {};
 
   // Validate independently of the prefix. An LZ4 block cannot use newly
   // prepended metadata as a dictionary to pass validation.
@@ -460,14 +459,23 @@ EncodedStoreObject StoreCodecEncoder::encode_with_lz4(std::span<const std::byte>
   }catch(const std::exception&) {
     owned.clear();
   }
-  if(owned.empty())return cpu();
-
-  // Size the CPU alternative against the immutable input. Validate only
-  // the selected CPU representation, and retain owned bytes for publication.
+  if(owned.empty())return {};
+  return EncodedStoreObject{kStoreLz4,std::move(owned),record_digest(input),false,0,true};
+}
+std::optional<EncodedStoreObject> StoreCodecEncoder::compare_lz4_with_cpu(
+    std::span<const std::byte> input,std::size_t candidate_bytes) {
   auto baseline=encode_compressed(input,false);
   const auto best=baseline.codec==kStoreRaw?input.size():baseline.payload.size();
-  if(owned.size()>=best)return verify_encoding(std::move(baseline),input);
-  return {kStoreLz4,std::move(owned),record_digest(input),false,0,true};
+  if(candidate_bytes>=best)return verify_encoding(std::move(baseline),input);
+  return {};
+}
+EncodedStoreObject StoreCodecEncoder::encode_with_lz4(std::span<const std::byte> input,
+    std::span<const std::byte> candidate,std::uint32_t literal_prefix_bytes) {
+  if(auto verified=verify_lz4_candidate(input,candidate,literal_prefix_bytes)) {
+    if(auto cpu=compare_lz4_with_cpu(input,verified->payload.size()))return std::move(*cpu);
+    return std::move(*verified);
+  }
+  return verify_encoding(encode_compressed(input,true),input);
 }
 EncodedStoreObject StoreCodecEncoder::encode_with_matches(Bytes input,std::span<const StoreMatchProposal> matches) {
 #ifdef FLITZFS_STORE_HAS_SEQUENCE_API

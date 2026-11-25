@@ -62,6 +62,10 @@ class StoreCodecEncoder final {
   EncodedStoreObject encode(std::vector<std::byte> input);
   EncodedStoreObject encode_with_lz4(std::span<const std::byte> input,std::span<const std::byte> candidate,
       std::uint32_t literal_prefix_bytes=0);
+  std::optional<EncodedStoreObject> verify_lz4_candidate(std::span<const std::byte> input,
+      std::span<const std::byte> candidate,std::uint32_t literal_prefix_bytes);
+  // Used only after independently verifying the supplied LZ4 alternative.
+  std::optional<EncodedStoreObject> compare_lz4_with_cpu(std::span<const std::byte> input,std::size_t candidate_bytes);
   EncodedStoreObject encode_with_matches(std::vector<std::byte> input,std::span<const StoreMatchProposal> matches);
   ColdStoreEncoding try_cold_encoding(std::span<const std::byte> input,std::size_t old_size);
   std::size_t peak_bytes() const noexcept;

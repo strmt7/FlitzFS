@@ -4484,7 +4484,8 @@ void amd_write_arrival_trial(std::string_view mode,const std::filesystem::path& 
   const bool mixed=mode=="mixed";
   const bool geometry=mode=="geometry";
   const bool oversized=mode=="oversized";
-  const bool later=mode=="later" || mixed || oversized;
+  const bool allocated=mode=="allocated";
+  const bool later=mode=="later" || mixed || oversized || allocated;
   const bool receive_later=later && !oversized;
   const bool stop_waiting=mode=="stop";
   const auto profile=installed_uniform_write_trial_profile();
@@ -4500,8 +4501,10 @@ void amd_write_arrival_trial(std::string_view mode,const std::filesystem::path& 
   auto image=domain.create_store(image_capacity);
   NativeMaintenancePolicy policy;
   policy.maximum_cpu_busy_ppm=500'000;
+  const auto compression=allocated?StoreCompressionOptions{StoreCompressionMode::automatic,3,false}:
+      StoreCompressionOptions{StoreCompressionMode::fast,1,false};
   auto source=WinFspNativeWritable::create_managed_indexed(head,id(90),image,id(1),{image_capacity},
-      {StoreCompressionMode::fast,1,false},{},policy,NativeIndexedDataLayout::inline_small_files,
+      compression,{},policy,NativeIndexedDataLayout::inline_small_files,
       NativeVolumeHeadLayout::compact,PagedStoreBankLayout::compact);
   const auto storage=source->managed_foreground();
   require(storage && storage->data_layout==NativeIndexedDataLayout::inline_small_files &&
@@ -4513,8 +4516,8 @@ void amd_write_arrival_trial(std::string_view mode,const std::filesystem::path& 
   await([&]{return owner.view().state==SessionState::running;},5000,"Arriving write controller did not start");
   const auto* table=p.fs.Interface;
   const auto security=native_security_fixture::descriptor();
-  const auto make_input=[](unsigned seed,std::size_t chunks) {
-    const auto block=data(kNativeExtentBytes/8,seed);
+  const auto make_input=[&](unsigned seed,std::size_t chunks) {
+    const auto block=data(allocated?kNativeExtentBytes/64:kNativeExtentBytes/8,seed);
     Bytes result(chunks*kNativeExtentBytes);
     for(std::size_t offset=0;offset<result.size();offset+=block.size())
       std::ranges::copy(block,result.begin()+offset);
@@ -4584,6 +4587,14 @@ void amd_write_arrival_trial(std::string_view mode,const std::filesystem::path& 
         (public_input.empty()?device.sample->stored_lz4_candidates==expected_bytes/kNativeExtentBytes:
             device.sample->stored_lz4_candidates<=expected_bytes/kNativeExtentBytes),
         "Arriving worker did not verify the same writes as CPU");
+    if(allocated) {
+      require(device.sample->stored_lz4_without_cpu_comparison==expected &&
+          device.sample->occupied_bytes<=trial.reference.sample.occupied_bytes,
+          "Radeon output did not bypass the CPU comparison inside the protected allocation");
+      std::cout<<"write_lz4_allocation skipped="<<device.sample->stored_lz4_without_cpu_comparison
+          <<" cpu_commit_ns="<<trial.reference.sample.elapsed_ns<<" amd_full_trial_ns="<<device.sample->elapsed_ns
+          <<" device_replay_ns="<<device.replay_ns<<'\n';
+    }
     std::cout<<"write_layout unit="<<storage->layout.isolation_unit<<" compact_roots="<<storage->layout.compact_roots
         <<" shared_banks="<<storage->layout.shared_banks<<" inline_files=1"
         <<" cpu_occupied="<<trial.reference.sample.occupied_bytes

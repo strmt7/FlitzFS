@@ -140,7 +140,7 @@ struct StoreCommitInfo {
   bool degraded_checkpoint=false; // Missing/stale root or damaged manifest replica.
   // Logical objects published using supplied LZ4 candidates in this commit.
   // Snapshot and checkpoint queries return zero.
-  std::uint32_t stored_lz4_candidates=0;
+  std::uint32_t stored_lz4_candidates=0,stored_lz4_without_cpu_comparison=0;
 };
 
 class ObjectStoreSnapshot final {

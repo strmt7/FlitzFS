@@ -7,6 +7,11 @@ priorities, the [detailed implementation tickets](IMPLEMENTATION_PLAN.md#next-im
 for source-level handoffs, and the [current review receipt](evidence/release-plan-refresh-2026-11-23.json)
 for scope and evidence. The entries below retain implementation history.
 
+Verified LZ4 write candidates can skip CPU re-encoding when they leave
+the protected append size unchanged. The next AMD comparison needs
+ordinary client demand, prepared worker costs and settled volume size.
+[Allocation and device evidence](evidence/windows-verified-lz4-allocation-2026-11-25.json)
+
 The decoded indexed audit now groups adjacent mirror reads. The 16,384-file
 fixture used 44% fewer backing reads at writable reopen with the same byte
 coverage. Incremental admission still requires the shadow ownership

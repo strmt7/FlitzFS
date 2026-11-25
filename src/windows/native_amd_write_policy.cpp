@@ -32,6 +32,7 @@ bool verified(const NativeAmdWriteSample& sample,bool amd) noexcept {
   return sample.transactions==1 && sample.elapsed_ns && sample.occupied_bytes &&
       sample.input_digest!=decltype(sample.input_digest){} &&
       sample.cpu_readback_verified && sample.retirement_confirmed && sample.device_executed==amd &&
+      sample.stored_lz4_without_cpu_comparison<=sample.stored_lz4_candidates &&
       (amd || !sample.stored_lz4_candidates);
 }
 }
@@ -159,6 +160,7 @@ std::optional<NativeAmdWriteSample> record_private_writes(const NativeManagedFor
         if(!elapsed || written.bytes!=source.size() ||
             !uniform_lz4::add(sample.elapsed_ns,elapsed,sample.elapsed_ns))return {};
         sample.stored_lz4_candidates+=written.transaction.storage.stored_lz4_candidates;
+        sample.stored_lz4_without_cpu_comparison+=written.transaction.storage.stored_lz4_without_cpu_comparison;
       }
     }
     sample.occupied_bytes=image->extent();

@@ -50,8 +50,11 @@ workloads. [Physical-host evidence](evidence/native-lz4-advice-acceptance-2026-1
 The store reports the number of logical objects that used a supplied LZ4
 candidate in a successful commit. A mirrored object counts once. The result
 travels through the native write receipt. The encoder checks candidate bytes
-on CPU and retains its size comparison. Snapshots and CPU-only writes
-return zero for this counter.
+on CPU. An ordinary mirrored append can use the verified candidate without
+computing the CPU size control when the allocation proof preserves the
+protected appended extent. The normal comparison runs when the index may
+start at a different offset. Snapshots and CPU-only writes return zero for both counters.
+[Verified write selection](OWNED_DEFERRED_WRITES.md#detached-radeon-write-trials)
 
 The foreground evaluator requires independently verified CPU readback,
 retirement and stored device output in each matched AMD sample. The paired

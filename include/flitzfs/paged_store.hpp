@@ -49,6 +49,8 @@ struct PagedStoreInfo {
   std::uint32_t metadata_page_bytes=0;
   // Counts objects once, regardless of the number of protected copies.
   std::uint32_t stored_lz4_candidates=0;
+  // Exact allocation proof allowed these verified candidates to skip encoding a CPU control.
+  std::uint32_t stored_lz4_without_cpu_comparison=0;
 };
 struct PagedStoreWriteResult {
   PagedStoreInfo storage;

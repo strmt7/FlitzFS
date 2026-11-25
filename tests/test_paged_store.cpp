@@ -692,6 +692,61 @@ void codec_modes() {
   require(!reopened.info().stored_lz4_candidates && reopened.read(1)==repeated && reopened.read(2)==changed,
       "candidate accounting or stale input affected independent recovery");
 }
+void verified_lz4_allocation() {
+  if(!store_lz4_available() || !store_zstd_available())return;
+  constexpr StoreCompressionOptions automatic{StoreCompressionMode::automatic,3,false};
+  constexpr std::uint32_t prefix=24,record_header=128;
+  detail::StoreCodecEncoder fast({StoreCompressionMode::fast,3,false}),cpu(automatic);
+  Bytes body(65536),entropy(4096);
+  std::uint64_t state=0xebc3a15c4b7a12cf;
+  for(auto& byte:entropy) {
+    state^=state<<13;state^=state>>7;state^=state<<17;byte=static_cast<std::byte>(state>>23);
+  }
+  for(std::size_t index=0;index<body.size();++index)body[index]=entropy[index%256];
+  body.back()^=std::byte{1}; // Break the exact short motif.
+  const auto block=fast.encode(body);
+  require(block.codec==detail::kStoreLz4,"LZ4 allocation fixture did not obtain a standalone block");
+  Bytes input(entropy.begin(),entropy.begin()+prefix);
+  input.insert(input.end(),body.begin(),body.end());
+  const auto verified=cpu.verify_lz4_candidate(input,block.payload,prefix);
+  const auto baseline=cpu.encode(input);
+  require(verified && baseline.payload.size()<verified->payload.size() &&
+      verified->payload.size()<4096-2*record_header,"LZ4 allocation fixture needs a smaller CPU frame");
+  const auto capacity_between=(baseline.payload.size()+verified->payload.size())/2;
+  require(baseline.payload.size()<capacity_between && capacity_between<verified->payload.size(),
+      "LZ4 allocation fixture cannot straddle the page cutoff");
+  const Bytes filler(entropy.begin(),entropy.begin()+4096-2*record_header-capacity_between);
+  require(cpu.encode(filler).codec==detail::kStoreRaw,"LZ4 allocation fixture must have a fixed-size filler");
+
+  for(const auto layout:{PagedStoreMirroredLayout{4096,false,true},PagedStoreMirroredLayout{16384,true,true}}) {
+    for(const auto size:{1U,2U}) {
+      const auto run=[&](bool advised) {
+        auto ram=std::make_shared<Ram>();
+        ram->unit=layout.isolation_unit;
+        auto writer=PagedObjectStoreWriter::create_mirrored(ram,identity(),limits,automatic,layout);
+        const StoreMutation batch[]{{1,false,input,advised?block.payload:Bytes{},advised?prefix:0U},
+            {2,false,filler}};
+        const auto result=writer.commit_with_write_budget(std::span(batch).first(size),limits.maximum_physical_bytes);
+        auto reopened=PagedObjectStoreSnapshot::open(ram,limits);
+        reopened.verify_all();
+        require(reopened.read(1)==input && (size==1 || reopened.read(2)==filler),
+            "LZ4 allocation changed independently reopened bytes");
+        return result;
+      };
+      const auto control=run(false),advised=run(true);
+      const bool skip=size==1;
+      require(advised.storage.physical_end==control.storage.physical_end &&
+          advised.write_bytes_upper_bound==control.write_bytes_upper_bound &&
+          advised.storage.stored_lz4_without_cpu_comparison==static_cast<std::uint32_t>(skip) &&
+          advised.storage.stored_lz4_candidates==static_cast<std::uint32_t>(skip),
+          "A verified LZ4 alternative changed the allocation or skipped a required comparison");
+      std::cout<<"verified_lz4_allocation unit="<<layout.isolation_unit<<" shared="<<layout.shared_banks
+          <<" records="<<size<<" skipped="<<skip<<" physical="<<advised.storage.physical_end
+          <<" cpu_payload="<<control.storage.stored_payload_bytes
+          <<" selected_payload="<<advised.storage.stored_payload_bytes<<" exact=1\n";
+    }
+  }
+}
 void scale(std::uint64_t count) {
   const auto started=std::chrono::steady_clock::now();auto ram=std::make_shared<Ram>();auto writer=create(ram);
   populate(writer,count);auto snapshot=writer.snapshot();require(snapshot.info().objects==count,"scale inventory");
@@ -744,7 +799,7 @@ int main(int argc,char** argv) {
       coherence_projection_transition(false);coherence_projection_transition(true);
       basic_and_oracle();remove_all_keys();
       failure_matrix(4096);failure_matrix(65536);failure_matrix(4096,true);failure_matrix(65536,true);
-      damage_and_malformed();semantic_pages_and_units();codec_modes();compacted_descriptor_bounds();
+      damage_and_malformed();semantic_pages_and_units();codec_modes();verified_lz4_allocation();compacted_descriptor_bounds();
       rebuild_and_recovery();rebuild_failures();scale(16384);}
     else throw std::runtime_error("unsupported test arguments");
     std::cout<<"paged store checks="<<checks<<"\n";return 0;

@@ -192,9 +192,21 @@ that same input. A stop signal cancels either route.
 
 After exact retirement, the parent verifies and decodes the returned
 candidates against the original bytes. The ordinary native writer chooses
-which encoded extents to store. The complete image is opened and verified by
-the independent CPU reader. The observation records occupied image bytes and
-the number of actually stored device candidates. The measured write interval
+which encoded extents to store. For a verified prefixed LZ4 candidate, it
+can skip computing the CPU size control when even zero-length candidate
+payloads would start the transaction's index at the same offset. All other
+record sizes and the number and width of index entries remain fixed. A
+different projected offset runs the ordinary CPU comparison. Invalid
+advice uses the independent CPU path.
+
+The complete image is opened and verified by the independent CPU reader.
+The observation records occupied image bytes, stored device candidates
+and the subset stored without re-encoding a CPU control. The proof covers
+the current protected image extent and write bound. Settled size after
+repacking remains a separate comparison.
+[Allocation proof and validation](evidence/windows-verified-lz4-allocation-2026-11-25.json)
+
+The measured write interval
 charges the complete worker exchange and native transaction. Independent
 private reopen provides evidence of correctness outside that interval.
 [Windows trial evidence](evidence/windows-amd-detached-write-trials-2026-11-23.json)

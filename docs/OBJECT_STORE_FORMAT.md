@@ -176,6 +176,10 @@ truncated and trailing frames are rejected. Codec 4 stores a complete independen
 LZ4 block with positive logical/stored sizes, stored size strictly below logical
 size, exact CPU decoded length and no external dictionary. Missing or unqualified
 CPU LZ4 support rejects before exposure. Unknown codecs fail explicitly.
+A supplied block with an independently checked literal prefix becomes the
+same codec 4 record after the allocation check. The comparison result is
+a commit statistic outside the stored record.
+[Verified write selection](OWNED_DEFERRED_WRITES.md#detached-radeon-write-trials)
 
 Opening verifies every reachable stored record and its full decoded content
 before exposing a snapshot. Each compressed read verifies both digests again;

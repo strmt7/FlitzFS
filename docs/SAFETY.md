@@ -109,7 +109,9 @@ worker, compute module and installed runtime. It binds controller telemetry
 to the matched adapter. Finite GPU exchanges separately check complete host
 storage, channel capacities and the peak device buffer. The supervisor retains
 its operation deadline, and independent CPU verification covers the entire
-source before a result can reach storage.
+source before a result can reach storage. Mirrored commit verifies both
+new copies even when verified LZ4 advice fits the same allocation as the
+smallest possible CPU representation and skips CPU re-encoding.
 [Indexed advice](NATIVE_WINDOWS_LZ4_ADVICE.md#indexed-native-extents) · [Installed route and evidence](AMD_RUNTIME_DISCOVERY.md)
 
 The copy matcher reads a complete word only when both extents have room.

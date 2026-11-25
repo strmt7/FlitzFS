@@ -14,6 +14,7 @@ struct NativeAmdWriteSample {
   std::uint32_t stored_lz4_candidates=0;
   std::size_t transactions=1;
   NativeAmdWriteShape shape;
+  std::uint32_t stored_lz4_without_cpu_comparison=0;
 };
 
 struct NativeAmdWriteComparison {

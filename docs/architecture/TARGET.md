@@ -458,11 +458,14 @@ measures the client-visible operation including preparation, verification,
 publication and response. Only the full measured operation can qualify the
 production route. Bind the preference to the active layout and a measured
 workload class. Revalidate the budget and configuration when submitting.
-The current LZ4 candidate path verifies the data and encodes a CPU control
-for a size comparison. Evaluate sampled CPU controls with a bounded
-foreground size envelope and cold optimization to avoid paying both
-encoders on every accepted write. Keep per-request lossless verification
-and CPU recovery independent of the selection model.
+A verified LZ4 candidate can skip CPU re-encoding when the foreground
+transaction has the same protected append layout under the candidate and
+a lower bound on CPU output. Exact compacted-size selection still prices
+the actual encoded alternatives. Measure the effects on settled occupancy,
+and compare the ready and cold device paths independently. Keep
+per-request lossless verification and CPU recovery independent of the
+selection model.
+[Allocation proof](../evidence/windows-verified-lz4-allocation-2026-11-25.json)
 
 ```mermaid
 sequenceDiagram

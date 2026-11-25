@@ -788,17 +788,17 @@ struct PayloadAllocation {
     unit=used=0;
   }
   void seal() {seal(unit);}
-  std::uint64_t start_pages(const State& state,std::uint64_t cursor) {
+  std::uint64_t first_page(const State& state,std::uint64_t cursor) const {
     if(state.shared_banks && unit) {
       const auto aligned=align(used,state.metadata_bytes);
-      if(aligned<unit) {
-        const auto first=add(bank,aligned);
-        seal(aligned);
-        return first;
-      }
+      if(aligned<unit)return add(bank,aligned);
     }
-    seal();
     return align(cursor,state.shared_banks?2ULL*state.unit:state.unit);
+  }
+  std::uint64_t start_pages(const State& state,std::uint64_t cursor) {
+    const auto first=first_page(state,cursor);
+    seal(first<cursor?first-bank:unit);
+    return first;
   }
   void place(const State& s,Entry& e,std::uint64_t bytes,std::uint64_t& cursor) {
     e.peer=0;
@@ -888,6 +888,7 @@ struct PreparedObject {
   RecordHeader header{};
   Bytes payload;
   bool used_lz4_candidate=false;
+  const StoreMutation* pending_lz4_comparison=nullptr;
 };
 Bytes reserve_prepared_frames(const State& state,std::span<const PreparedObject> objects,bool readback) {
   Bytes frames;
@@ -935,9 +936,7 @@ void verify_prepared_objects(const State& state,std::span<const PreparedObject> 
     objects=objects.subspan(run.count);
   }
 }
-PreparedObject prepare_object(const State& state,detail::StoreCodecEncoder& encoder,
-    const StoreMutation& mutation) {
-  auto encoded=encoder.encode_with_lz4(mutation.bytes,mutation.lz4_candidate,mutation.lz4_literal_prefix_bytes);
+PreparedObject make_prepared_object(const State& state,const StoreMutation& mutation,detail::EncodedStoreObject encoded) {
   PreparedObject record;
   auto& e=record.entry;
   e={mutation.id,state.checkpoint,0,static_cast<std::uint32_t>(mutation.bytes.size()),
@@ -950,6 +949,50 @@ PreparedObject prepare_object(const State& state,detail::StoreCodecEncoder& enco
   record.payload=std::move(encoded.payload);
   record.used_lz4_candidate=encoded.used_lz4_candidate;
   return record;
+}
+PreparedObject prepare_object(const State& state,detail::StoreCodecEncoder& encoder,
+    const StoreMutation& mutation,bool consider_allocation=false) {
+  if(consider_allocation && mutation.lz4_literal_prefix_bytes) {
+    if(auto verified=encoder.verify_lz4_candidate(mutation.bytes,mutation.lz4_candidate,
+        mutation.lz4_literal_prefix_bytes)) {
+      auto record=make_prepared_object(state,mutation,std::move(*verified));
+      record.pending_lz4_comparison=&mutation;
+      return record;
+    }
+    return make_prepared_object(state,mutation,encoder.encode_with_lz4(mutation.bytes,{}));
+  }
+  return make_prepared_object(state,mutation,
+      encoder.encode_with_lz4(mutation.bytes,mutation.lz4_candidate,mutation.lz4_literal_prefix_bytes));
+}
+std::uint32_t resolve_prepared_lz4(const State& state,detail::StoreCodecEncoder& encoder,
+    std::span<PreparedObject> records,std::uint64_t append_at) {
+  std::uint32_t pending=0;
+  std::uint64_t bytes=0,minimum=0;
+  for(const auto& record:records) {
+    bytes=add(bytes,record_header_bytes+record.entry.stored);
+    if(record.pending_lz4_comparison) {
+      ++pending;
+      minimum=add(minimum,record_header_bytes);
+    }else minimum=add(minimum,record_header_bytes+record.entry.stored);
+  }
+  if(!pending)return 0;
+  const auto first_page=[&](std::uint64_t payload_bytes) {
+    // Mirrored records occupy a continuous logical stream across paired banks.
+    auto cursor=align(append_at,2ULL*state.unit);
+    PayloadAllocation projection;
+    Entry unused;
+    projection.place(state,unused,payload_bytes,cursor);
+    return projection.first_page(state,cursor);
+  };
+  // Even empty payloads would start metadata at the same offset. The number
+  // and widths of index entries are fixed by the transaction's object keys.
+  if(first_page(bytes)==first_page(minimum))return pending;
+  for(auto& record:records)if(const auto* mutation=record.pending_lz4_comparison) {
+    if(auto cpu=encoder.compare_lz4_with_cpu(mutation->bytes,record.entry.stored))
+      record=make_prepared_object(state,*mutation,std::move(*cpu));
+    record.pending_lz4_comparison=nullptr;
+  }
+  return 0;
 }
 void place_object(const State& state,PreparedObject& record,PayloadAllocation& allocation,std::uint64_t& cursor) {
   allocation.place(state,record.entry,std::uint64_t{record_header_bytes}+record.entry.stored,cursor);
@@ -2616,6 +2659,7 @@ PagedStoreWriteResult PagedObjectStoreWriter::commit_impl(
   if(old.degraded_payloads){p.poisoned=true;fail("payload rebuild required before further writes");}
   if(mutations.empty())fail("empty transaction");
   if(old.generation>(std::numeric_limits<std::uint64_t>::max)()-2)capacity("generation exhausted");
+  bool consider_lz4_allocation=false;
   const auto ordered=[&](std::span<const StoreMutation> batch) {
     if(batch.size()>maximum_operations)capacity("transaction operation budget");
     std::vector<const StoreMutation*> result;
@@ -2627,6 +2671,8 @@ PagedStoreWriteResult PagedObjectStoreWriter::commit_impl(
               mutation.lz4_literal_prefix_bytes)))fail("mutation fields");
       input=add(input,mutation.bytes.size());
       if(input>maximum_input)capacity("transaction input budget");
+      if(!compacted && old.mirrored && mutation.lz4_literal_prefix_bytes && !mutation.lz4_candidate.empty())
+        consider_lz4_allocation=true;
       result.push_back(&mutation);
     }
     std::ranges::sort(result,{},&StoreMutation::id);
@@ -2664,6 +2710,7 @@ PagedStoreWriteResult PagedObjectStoreWriter::commit_impl(
     std::vector<PreparedObject> objects;
     std::vector<Change> changes;
     std::uint64_t stored=0;
+    bool has_pending_lz4=false;
   };
   const auto prepare=[&](const auto& batch) {
     PreparedChanges result;
@@ -2674,15 +2721,16 @@ PagedStoreWriteResult PagedObjectStoreWriter::commit_impl(
         result.changes.push_back({mutation->id,true,{}});
         continue;
       }
-      auto record=prepare_object(plan.next,p.encoder,*mutation);
-      if(!compacted)place_object(plan.next,record,allocation,cursor);
-      else if(mutation->id!=compacted->rebound_object)result.stored=add(result.stored,record.entry.stored);
+      auto record=prepare_object(plan.next,p.encoder,*mutation,consider_lz4_allocation);
+      result.has_pending_lz4|=record.pending_lz4_comparison!=nullptr;
+      if(!compacted && !consider_lz4_allocation)place_object(plan.next,record,allocation,cursor);
+      else if(compacted && mutation->id!=compacted->rebound_object)result.stored=add(result.stored,record.entry.stored);
       result.changes.push_back({mutation->id,false,record.entry});
       result.objects.push_back(std::move(record));
     }
     return result;
   };
-  auto [objects,changes,stored]=prepare(sorted);
+  auto [objects,changes,stored,has_pending_lz4]=prepare(sorted);
   if(compacted) {
     try {
       // Alternatives have the same object IDs and erasures. Their old
@@ -2707,9 +2755,9 @@ PagedStoreWriteResult PagedObjectStoreWriter::commit_impl(
     }catch(const std::bad_alloc&){throw;}
     catch(...){p.poisoned=true;throw;}
     if(compacted->sizes.after_upper>=compacted->sizes.before)return {flitzfs::info(old),0};
-
-    // A declined group never needs append space. Use the same sealed data to
-    // lay out and write the selected transaction.
+  }
+  const auto lz4_without_comparison=has_pending_lz4?resolve_prepared_lz4(plan.next,p.encoder,objects,cursor):0U;
+  if(compacted || consider_lz4_allocation) {
     auto record=objects.begin();
     for(auto& change:changes)if(!change.erase) {
       place_object(plan.next,*record,allocation,cursor);
@@ -2750,6 +2798,7 @@ PagedStoreWriteResult PagedObjectStoreWriter::commit_impl(
   p.state=std::move(plan.next);p.append_floor=p.state.end;p.obsolete_bytes=obsolete;
   auto result=flitzfs::info(p.state);
   result.stored_lz4_candidates=stored_lz4_candidates;
+  result.stored_lz4_without_cpu_comparison=lz4_without_comparison;
   return {result,write_bound};
 }
 PagedObjectStoreSnapshot PagedObjectStoreWriter::snapshot() const {

@@ -330,16 +330,17 @@ compatibility matrices for each step.
    and storage cost, then price the actual mounted operation against
    CPU through repeated alternating runs. Track grouped throughput and
    response latency independently.
-2. Evaluate a foreground route that uses verified AMD encoding without
-   regenerating the complete CPU encoding on every successful request.
-   The current LZ4 candidate path runs the CPU encoder to find the better
-   payload. Retain that path as the size control and sample it on
-   representative writes. The alternate path must independently verify
-   every result, use a proven nonexpanding framing rule, bound initial
-   size cost by workload and demonstrate smaller or acceptable settled
-   occupancy with cold optimization enabled. Retain full CPU encoding
-   for a missing or rejected result and for classes with poor observed
-   benefit. First demonstrate an advantage with the current wire methods.
+2. Use the protected allocation proof for verified prefixed AMD candidates.
+   When the candidate and minimum possible payloads start the index at
+   the same position, skipping the CPU comparator preserves the current
+   image extent. Keep the CPU comparator when the projected position
+   differs and during exact compacted-size selection. Measure how often
+   this works on representative mounted writes and what it changes after
+   cold optimization. Use independently verified readback and the
+   ordinary CPU control for every comparison. The next priority is to
+   amortize device preparation across useful work and price remaining
+   end-to-end costs with the current wire methods.
+   [Allocation proof and live trial](evidence/windows-verified-lz4-allocation-2026-11-25.json)
 3. Enroll a route only when a complete repeated comparison and the
    funded operation envelope agree for that device and workload class.
    Include occupied bytes and upper-tail latency in the decision. Bind

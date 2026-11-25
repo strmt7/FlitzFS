@@ -6,6 +6,15 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "verified_lz4_allocation": {
+    "source_commit": "53574258f125ff1cd9e34044246eecdee07e9cc5",
+    "tested_source_tree": "df98e3594595652f3bcaa843c390bdaf3c4a37d5",
+    "evidence": "docs/evidence/windows-verified-lz4-allocation-2026-11-25.json",
+    "current_append_size_preserved": true,
+    "ordinary_mounted_amd_benefit_qualified": false,
+    "safety": "CPU byte verification and mirrored readback remain mandatory",
+    "stable_release": false
+  },
   "foreground_write_layout": {
     "source_commit": "7e093970c5440b782d414264ed0f56fab8957ef4",
     "tested_source_tree": "274939eb3d5c5c28cc07e1e714920cb0c6c861bf",
