@@ -12,6 +12,7 @@
 namespace flitzfs {
 class WinFspNativeWritable;
 struct WinFspReadAheadWork;
+struct WinFspGroupReadWindow;
 struct NativeMaintenanceObservation;
 
 // The installation and workload qualification owner supplies these exact
@@ -75,6 +76,7 @@ class NativeLz4ReadWorker final {
   ~NativeLz4ReadWorker();
   NativeLz4ReadWorker(const NativeLz4ReadWorker&)=delete;
   NativeLz4ReadWorker& operator=(const NativeLz4ReadWorker&)=delete;
+  WinFspGroupReadWindow group_read_window() const noexcept;
   bool prepare_group(const WinFspReadAheadWork&,const NativeMaintenanceObservation&,const std::atomic<bool>&) noexcept;
   bool start(WinFspReadAheadWork&,const NativeMaintenanceObservation&,const std::atomic<bool>&) noexcept;
   void abandon_unused_preparation() noexcept;

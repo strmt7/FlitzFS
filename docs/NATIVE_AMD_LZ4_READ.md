@@ -142,6 +142,23 @@ returns. Demand still checks the protected record bindings before using the
 result and reads independently on CPU when it arrives too early.
 [Interleaved callback evidence](evidence/windows-group-read-stream-binding-2026-11-25.json)
 
+A qualified prepared worker can now capture a window covering several
+callbacks. The controller uses the bytes already read in consecutive grouped
+requests from the same handle. The qualified worker geometry, preparation
+grant, available host memory and observed time before the next request
+bound the capture. A seek starts a new run. Requests that only use
+independent records reset the grouped history. If a wider capture declines
+device submission, the controller drops the optional work and demand reads
+decode on CPU.
+
+The live Radeon SDK fixture used one prepared exchange for four mixed
+grouped extents and delivered them across two reads. It retained the
+result through an unrelated callback, refused a late result, verified
+the data independently on CPU and confirmed worker exit. The matched
+automatic mounted service comparison remains open.
+[Expanded group capture and readback](evidence/windows-expanded-group-read-and-mounted-replay-2026-11-25.json) ·
+[AMD performance guidance](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/performance_guidelines.html)
+
 The qualified startup lead, measured unready exchanges and verified ready
 dispatch cost govern preparation.
 The controller probes the same helper's readiness without blocking, before

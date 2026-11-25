@@ -15,6 +15,10 @@ namespace flitzfs {
 namespace detail {struct NativeCapturedWrite;}
 namespace detail {class NativeLz4ReadyReads;}
 class WinFspNativeWritable;
+struct WinFspGroupReadWindow {
+  std::uint32_t maximum_frames=0;
+  std::uint64_t required_lead_ms=0;
+};
 struct WinFspReadAheadWork {
   const WinFspNativeWritable* owner=nullptr;
   std::uintptr_t token=0;
@@ -26,6 +30,7 @@ struct WinFspReadAheadWork {
   std::uint64_t hint_created_ms=0,observed_lead_ms=0;
   std::uint64_t stream_revision=0;
   std::pair<StoreIdentity,std::uint64_t> checkpoint{};
+  bool expanded_group_window=false;
   bool has_read_lead(std::uint64_t required_ms,std::uint64_t now_ms) const noexcept {
     if(!required_ms)return true;
     if(!hint_created_ms || now_ms<hint_created_ms)return false;
@@ -202,7 +207,8 @@ class WinFspNativeWritable final {
       std::uint64_t foreground_epoch,const std::atomic<bool>* stop_requested=nullptr) noexcept;
   std::optional<WinFspReadAheadWork> capture_native_lz4_read_ahead(const NativeMaintenanceObservation&,
       std::uint64_t now_ms,std::uint64_t foreground_epoch,const std::atomic<bool>& stop_requested,
-      const std::function<void(const WinFspReadAheadWork&)>& before_group_capture={}) noexcept;
+      const std::function<void(const WinFspReadAheadWork&)>& before_group_capture={},
+      WinFspGroupReadWindow group_window={}) noexcept;
   WinFspReadAheadState read_ahead_state(const WinFspReadAheadWork&) const noexcept;
   bool publish_read_ahead(WinFspReadAheadWork&,std::unique_ptr<detail::NativeLz4ReadyReads>,
       std::unique_ptr<detail::NativeGroupReadyReads>,

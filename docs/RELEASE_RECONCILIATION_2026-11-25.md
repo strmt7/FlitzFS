@@ -70,13 +70,26 @@ format, packed offsets and source-order digest.
 Counts match on contiguous and fragmented sources. Both complete images
 match their controls byte for byte. The fault suite exercised 1,419 write
 and barrier cuts, including six across the two grouped writes.
-The signed Windows guest reached the client admission check and refused
-to launch the helper at its measured memory allowance. The Sandbox was
-disposed and its mount and process inventories were empty. The earlier
-signed trace remains the latest completed mounted evidence for the
-packed rebuild. The 18 scoped checks ran on the live Windows 11 26H2
-host at build 26300.10075.
+The first signed Windows guest reached the client admission check and
+refused to launch the helper at its measured memory allowance. The Sandbox
+was disposed. The 18 scoped checks ran on the live Windows 11 26H2 host
+at build 26300.10075.
 [Copy evidence](evidence/windows-batched-staged-copy-2026-11-25.json)
+
+## Signed replay and expanded AMD read window
+
+The subsequent signed replay matched the 6,293-operation transcript and
+verified all 1,027 files across three helper lifecycles with a process cut.
+The ordinary packed controller advanced 701 private rebuild steps and
+ended before selection or space release. It retired the helper, mount and
+guest. The earlier detached control remains the space-release evidence.
+
+A source-bound Radeon SDK run decoded four grouped extents in one prepared
+exchange and served them across two read callbacks. CPU readback matched
+every byte and the worker exited. Compare this wider workload on the installed
+automatic path with matched CPU controls. Attribute the packed controller's
+remaining work to the inner rebuild phases before choosing the next fix.
+[Signed replay and Radeon evidence](evidence/windows-expanded-group-read-and-mounted-replay-2026-11-25.json)
 
 ## Reconciled release gates
 
@@ -264,9 +277,9 @@ before expanding the experiment.
 
 ### 1. Close ordinary mounted settlement · E02, E08, E11
 
-1. Reuse the populated Win32 trace and its independent digest. Rerun the
-   signed current helper once live headroom admits the client. Capture
-   copy, verification, index, publication, pin wait, retirement,
+1. Repeat the validated signed client witness with separate inner-stage
+   counters for the source audit, payload copy, index construction,
+   target verification, publication, pin wait, retirement,
    relocation and shortening outcomes. Record provider calls, bytes
    moved, actual occupied allocation and the reason every funded
    continuation stops. Qualify trace and teardown in the guest.

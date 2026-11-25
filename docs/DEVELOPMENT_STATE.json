@@ -26,10 +26,11 @@
     "packed_tail_continuation_evidence": "docs/evidence/windows-packed-tail-continuation-2026-11-25.json",
     "packed_model_continued_truncations": 4,
     "packed_model_continued_release_bytes": 12845056,
-    "ordinary_mounted_reclamation_evidence": "docs/evidence/windows-rebuild-verification-reads-2026-11-25.json",
-    "ordinary_mounted_copy_steps": 548,
+    "ordinary_mounted_reclamation_evidence": "docs/evidence/windows-expanded-group-read-and-mounted-replay-2026-11-25.json",
+    "ordinary_mounted_copy_steps": 701,
     "ordinary_mounted_publications": 0,
     "ordinary_detached_verified_allocated_bytes": 6160384,
+    "ordinary_detached_verification_evidence": "docs/evidence/windows-rebuild-verification-reads-2026-11-25.json",
     "mirrored_rebuild_target_verification_calls_before": 2370,
     "mirrored_rebuild_target_verification_calls_after": 1020,
     "batched_staged_copy_evidence": "docs/evidence/windows-batched-staged-copy-2026-11-25.json",
@@ -37,8 +38,8 @@
     "batched_staged_copy_target_writes": {"before": 4380, "after": 1172},
     "batched_staged_copy_target_reads": {"before": 2330, "after": 880},
     "batched_staged_copy_complete_images_matched": true,
-    "batched_staged_copy_mounted_client": "Refused at guest memory admission before helper launch. Earlier signed trace remains the completed observation.",
-    "next": "Rerun the ordinary mounted trace after fixture memory admission. Use occupation and phase costs to choose scheduling, placement or checked reuse."
+    "batched_staged_copy_mounted_client": "The initial trial was refused at memory admission. The signed replay later completed the matched client trace and continued private rebuild work while mounted.",
+    "next": "Attribute copying outcomes to the inner source audit, payload copy, index construction and target checks. Use phase and occupied allocation to choose scheduling, placement or local reuse."
   },
   "release_path_review": {
     "evidence": "docs/evidence/windows-batched-staged-copy-2026-11-25.json",
@@ -60,7 +61,8 @@
     "next_implementation_tickets": "docs/RELEASE_RECONCILIATION_2026-11-25.md#ordered-implementation-and-decision-points",
     "native_ntfs_comparison": "Plain and built-in NTFS compression specified; matched real-host run pending.",
     "mounted_packed_attachment": "Bounded signed guest recovery and continued writes verified, with a 1,024-file packed recovery fixture. Sustained populated settlement and current-client qualification remain open.",
-    "automatic_foreground_amd": "Identical captured writes can be replayed on CPU and Radeon. Finite prepared bursts and shape-specific calibration are implemented. The measured 1 MiB write shape prefers CPU, and useful automatic mounted AMD qualification remains open.",
+    "automatic_foreground_amd": "Identical captured writes can be replayed on CPU and Radeon. Finite prepared bursts and shape-specific calibration are implemented. The Radeon delivered four prepared grouped extents across two SDK reads. The measured 1 MiB write shape prefers CPU, and useful automatic mounted AMD qualification remains open.",
+    "latest_prepared_group_read_evidence": "docs/evidence/windows-expanded-group-read-and-mounted-replay-2026-11-25.json",
     "latest_indexed_reopen_evidence": "docs/evidence/indexed-decoded-reopen-runs-2026-11-25.json",
     "incremental_admission": "Both phases of the full reopen audit now group checked mirror reads. The 16,384-file fixture used 72,492 backing reads, down from 129,226. Faster admission still needs a shadow ownership differential."
   },

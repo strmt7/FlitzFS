@@ -205,6 +205,16 @@ NativeLz4ReadWorker::NativeLz4ReadWorker(NativeLz4ReadWorkerProfile p) {
 }
 NativeLz4ReadWorker::~NativeLz4ReadWorker(){(void)stop();}
 
+WinFspGroupReadWindow NativeLz4ReadWorker::group_read_window() const noexcept {
+  const auto& s=*impl_;
+  const auto& profile=s.profile;
+  if(!profile.prepared_group_submit_lead_ms || s.flight || !s.status.retirement_confirmed ||
+      s.status.configuration_refused || !WorkerExchangeSession::available())return {};
+  const auto grant=detail::plan_native_group_preparation(profile.maximum_frames,profile.maximum_slab_bytes,profile.mixed_groups);
+  if(grant.maximum_members<profile.minimum_frames)return {};
+  return {grant.maximum_members,s.group_timing.start_lead(profile.minimum_lead_ms)};
+}
+
 bool NativeLz4ReadWorker::prepare_group(const WinFspReadAheadWork& work,const NativeMaintenanceObservation& observed,
     const std::atomic<bool>& stopped) noexcept {
   auto& s=*impl_;

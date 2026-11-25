@@ -217,7 +217,7 @@ NativeWindowsIoOutcome success() noexcept{return {STATUS_SUCCESS,false};}
 struct WinFspNativeWritable::Impl {
   struct ReadHistory {
     std::uint64_t end=0,completed_ms=0,idle_before_ms=0;
-    std::uint32_t bytes=0;
+    std::uint32_t bytes=0,consecutive_group_bytes=0;
   };
   struct Slot {
     std::uintptr_t token=0;
@@ -233,6 +233,7 @@ struct WinFspNativeWritable::Impl {
     std::uint32_t bytes=0;
     std::uint64_t created_ms=0,observed_lead_ms=0,demand_cost_ns=0;
     bool tiled=false;
+    std::uint32_t consecutive_group_bytes=0;
     bool overlaps(std::uint64_t start,std::uint32_t length) const noexcept {
       return length && (start<=offset?offset-start<length:start-offset<bytes);
     }
@@ -740,7 +741,9 @@ struct WinFspNativeWritable::Impl {
     if(!length || bytes.size()!=length || offset>maximum-length)return bytes;
     const auto end=offset+length;
     const auto completed_ms=GetTickCount64();
-    slot.last_read={end,completed_ms,idle,length};
+    const auto group_bytes=groups.tiled?static_cast<std::uint32_t>((std::min)(
+        std::uint64_t{kNativeMaxReadBytes},std::uint64_t{adjacent?previous.consecutive_group_bytes:0}+length)):0;
+    slot.last_read={end,completed_ms,idle,length,group_bytes};
     if(has_prepared && prepared.pending() &&
         (end<=prepared.target.offset || end-prepared.target.offset<prepared.target.bytes)) {
       prepared_read=std::move(prepared);
@@ -752,7 +755,7 @@ struct WinFspNativeWritable::Impl {
       const auto frames=(remaining+kNativeExtentBytes-1)/kNativeExtentBytes;
       const auto window=static_cast<std::uint32_t>(frames*kNativeExtentBytes);
       if(window<=maximum-end-gap)read_ahead=ReadAhead{slot.token,end+gap,window,completed_ms,
-          (std::min)(idle,previous.idle_before_ms),demand_cost,groups.tiled};
+          (std::min)(idle,previous.idle_before_ms),demand_cost,groups.tiled,group_bytes};
     }
     return bytes;
   }
@@ -1728,7 +1731,8 @@ bool WinFspNativeWritable::advance_native_lz4_read_ahead(
 std::optional<WinFspReadAheadWork> WinFspNativeWritable::capture_native_lz4_read_ahead(
     const NativeMaintenanceObservation& observed,std::uint64_t now,std::uint64_t epoch,
     const std::atomic<bool>& stop_requested,
-    const std::function<void(const WinFspReadAheadWork&)>& before_group_capture) noexcept {
+    const std::function<void(const WinFspReadAheadWork&)>& before_group_capture,
+    WinFspGroupReadWindow group_window) noexcept {
   try {
     const auto resources=detail::maintenance_resources(observed,now,impl_->group_policy);
     constexpr auto frame_bytes=kNativeExtentBytes+detail::kIndexedExtentHeaderBytes;
@@ -1754,8 +1758,6 @@ std::optional<WinFspReadAheadWork> WinFspNativeWritable::capture_native_lz4_read
           observed.sequence<=impl_->last_read_ahead_observation)return {};
       impl_->last_read_ahead_observation=observed.sequence;
       target=*std::exchange(impl_->read_ahead,std::nullopt);
-      const auto frames=(std::min)(std::uint64_t{target.bytes}/kNativeExtentBytes,available_frames);
-      target.bytes=static_cast<std::uint32_t>(frames*kNativeExtentBytes);
       const auto& slot=impl_->resolve(reinterpret_cast<PVOID>(target.token));
       if(slot.provisional || slot.awaiting_overwrite)return {};
       stream_revision=slot.read_revision;
@@ -1770,18 +1772,33 @@ std::optional<WinFspReadAheadWork> WinFspNativeWritable::capture_native_lz4_read
           stop_requested.load(std::memory_order_acquire);
     };
     if((!lease && !group_lease) || interrupted())return {};
-    const auto frame_grant=static_cast<std::size_t>(target.bytes/kNativeExtentBytes)*2*frame_bytes;
-    WinFspReadAheadWork work{this,target.token,target.offset,epoch,target.bytes};
+    const auto immediate_frames=(std::min)(std::uint64_t{target.bytes}/kNativeExtentBytes,available_frames);
+    WinFspReadAheadWork work{this,target.token,target.offset,epoch,
+        static_cast<std::uint32_t>(immediate_frames*kNativeExtentBytes)};
     work.hint_created_ms=target.created_ms;
     work.observed_lead_ms=target.observed_lead_ms;
     work.stream_revision=stream_revision;
     work.checkpoint=checkpoint;
     if(group_lease) {
+      if(group_window.maximum_frames && work.has_read_lead(group_window.required_lead_ms,now)) {
+        // A worker can fund more than one callback when this stream has
+        // already demonstrated that much contiguous grouped demand.
+        const auto frames=(std::min)({available_frames,std::uint64_t{group_window.maximum_frames},
+            std::uint64_t{target.consecutive_group_bytes}/kNativeExtentBytes,
+            ((std::numeric_limits<std::uint64_t>::max)()-work.offset)/kNativeExtentBytes});
+        if(frames>immediate_frames) {
+          work.bytes=static_cast<std::uint32_t>(frames*kNativeExtentBytes);
+          work.expanded_group_window=true;
+        }
+      }
       if(before_group_capture)before_group_capture(work);
       const auto grant=(std::min<std::uint64_t>)(resources->memory_allowance-scratch_bytes,
           std::uint64_t{4}*kNativeMaxReadBytes);
-      work.groups=group_lease->capture(target.bytes,static_cast<std::size_t>(grant),interrupted);
-    }else work.frames=lease->capture_range(target.bytes,frame_grant,interrupted,&work.metadata);
+      work.groups=group_lease->capture(work.bytes,static_cast<std::size_t>(grant),interrupted);
+    }else {
+      const auto frame_grant=static_cast<std::size_t>(immediate_frames)*2*frame_bytes;
+      work.frames=lease->capture_range(work.bytes,frame_grant,interrupted,&work.metadata);
+    }
     if((work.frames.empty() && !work.groups) || interrupted())return {};
     return work;
   }catch(...) {return {};}

@@ -1,0 +1,487 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "qualification": "development",
+  "release_qualified": false,
+  "scope": "Signed Windows correctness replay on the reviewed parent and a separate live Radeon SDK callback test on the expanded read candidate",
+  "source": {
+    "parent": "a7b6bd794e9cd8f6f8fe497b920bc1735c498f91",
+    "base_tree": "bf647485f560192152bff7145a0df89c38d9bd8a",
+    "tree": "2d4b4a9726f367e2d947ff6e4d68fb7d92972df8",
+    "elements": [
+      {
+        "path": "src/windows/native_lz4_read_worker.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "a5a549d4653504112b7614a8d1dbe6ce414b7ee6",
+        "bytes": 21391
+      },
+      {
+        "path": "src/windows/native_lz4_read_worker.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "71f67af25dc9b5b1cbae4da779fc70eee215543f",
+        "bytes": 3788
+      },
+      {
+        "path": "src/windows/winfsp_controller.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "b284aa9a0e6b59827dbdd6bec4b9b4d379d2b812",
+        "bytes": 62003
+      },
+      {
+        "path": "src/windows/winfsp_native.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "3899b4a5868555a597d3a096491696ef6e9c7941",
+        "bytes": 109176
+      },
+      {
+        "path": "src/windows/winfsp_native.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "f99608372211d5cdbb8071bfbdb0c47666ba9524",
+        "bytes": 15491
+      },
+      {
+        "path": "tests/test_winfsp_paged.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "53b4ba865285b2d6130ed619d38938e6b4892727",
+        "bytes": 76358
+      }
+    ],
+    "candidate_source_manifest_sha256": "29d5db836258eab7b316c07c4977dc2db4ac8bdb7d402f9080ee9959722b6e36"
+  },
+  "signed_guest": {
+    "source": {
+      "nonce": "eb9d2f0fb2364f14b534314e0cf61094",
+      "source": "a7b6bd794e9cd8f6f8fe497b920bc1735c498f91",
+      "source_tree": "bf647485f560192152bff7145a0df89c38d9bd8a",
+      "candidate_runtime_tree": "bf647485f560192152bff7145a0df89c38d9bd8a",
+      "fixture": "ordinary-packed",
+      "files": {
+        "flitzfs_volume_app.exe": "69bf1e2328001c80a6b6e9eb513cdee104d7f41281e0700e0d87739c3288e30e",
+        "flitzfs_volume_app_tests.exe": "eac6c137bb83a7933260fb56fe4db6c7f51bf926ff4648ea3eeff743370637e5",
+        "flitzfs_volume_attachment_tests.exe": "fc197157cc31e5cc24dc13e1e7eb1efa13edc66bf0e88d0bb7e5080f48f1767a",
+        "winfsp-x64.dll": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+        "winfsp-x64.sys": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+        "msvcp140.dll": "59d325227321d52b9a523ea401ce6787a5d59f78229a0ff3a6f124e5d3445685",
+        "msvcp140_atomic_wait.dll": "8b10c6bd4c3c427ce7c8be96ef0fef0f8187bc236962be62a03caef834b37dcd",
+        "vcruntime140.dll": "eb1ee979bf02324712346e5bdbfc59c785388bc50d18cc2688aae4b0734915a0",
+        "vcruntime140_1.dll": "a14b4a42a2c6df04d6d53a8340816023d953406f7f3d94996c7cab30c414ff63"
+      },
+      "source_blobs": {},
+      "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "windows_build": "26100",
+    "memory_mib": 4096,
+    "trace": {
+      "bytes": 1134259,
+      "counts": {
+        "conflicting_open": 1,
+        "cpu_verified": 3,
+        "create": 1030,
+        "enumerate": 3,
+        "flush": 1077,
+        "flush_cached": 3,
+        "flush_mapped": 4,
+        "flush_view": 4,
+        "held_read": 3,
+        "lookup_deleted": 2,
+        "mkdir": 1,
+        "overwrite_open": 1,
+        "range_read": 3,
+        "read": 3076,
+        "rename_replace": 1,
+        "unlink": 2,
+        "write": 1079
+      },
+      "cycles": 3,
+      "files": 1027,
+      "independent_population_blake3": "24b7b9b2afa3ee9c8043d757ccb4229c4321e8af5352b9800d6a599b8b70faa4",
+      "logical_bytes": 2291854,
+      "records": 6293,
+      "sha256": "a819bc8c0ba49580f45c3985470cbf88f3934aa3ac88cb910c4b72b72a984af1"
+    },
+    "mounted_rebuild": {
+      "allocated_before": 830078976,
+      "allocated_after": 831651840,
+      "allocated_while_attached": 831913984,
+      "eof_while_attached": 831651840,
+      "quiescent": 0,
+      "preselected": 0,
+      "quanta": 80,
+      "continued_compaction": 622,
+      "publications": 0,
+      "continued_range_retirement": 0,
+      "continued_packed_tail": 0,
+      "compaction_failures": 0,
+      "disabled": 0,
+      "host_state": 1,
+      "backing_limited": 0,
+      "read_calls": 5918,
+      "read_bytes": 7809101,
+      "write_calls": 1852,
+      "write_bytes": 2609666,
+      "flush_calls": 0,
+      "phase_idle": 0,
+      "phase_scanning": 0,
+      "phase_candidates": 0,
+      "phase_preparing": 79,
+      "phase_publishing": 0,
+      "phase_deferred": 1,
+      "phase_failed": 0,
+      "deferral_none": 79,
+      "deferral_observation": 1,
+      "deferral_foreground": 0,
+      "deferral_cpu": 0,
+      "deferral_memory": 0,
+      "deferral_duty": 0,
+      "deferral_other_maintenance": 0,
+      "deferral_capacity": 0,
+      "step_copying": 701,
+      "step_ready": 0,
+      "step_published": 0,
+      "step_retiring": 0,
+      "step_pinned": 0,
+      "step_failed": 0,
+      "retired": 1
+    },
+    "detached_space_release_proven_in_this_trial": false,
+    "guest_disposed": true,
+    "remaining_mounts": 0,
+    "remaining_app_processes": 0,
+    "remaining_guests": 0,
+    "service_stop_exit": 5,
+    "guest_unregistration_exit": 0,
+    "trial_receipt_sha256": "b18fbcbc024f6ede0119372a1cc3e23778ce48d5cad7db20f0fe5b7e5d2884a0",
+    "sandbox_receipt_sha256": "983bde289129a81dd4277b506d67c862bd2e48e7608f1a92506c902e371b0d3f",
+    "build": {
+      "exit_code": 0,
+      "peak_job_bytes": 205918208,
+      "cpu_percent": 19,
+      "memory_bytes": 2192572416,
+      "creation_time_job": true,
+      "inherited_error_mode": 32771,
+      "tree_retired": true,
+      "residual_children": 1,
+      "receipt_sha256": "f1702c2f3c285269e497b49eecfb4aa55860eb5fd3310303fb539f0e8b816d88",
+      "log_sha256": "a7305083fd1b566b56b687a0d6da1f957cfe0daf31aaa301c641519cf8584d14"
+    },
+    "supervision": {
+      "exit_code": 0,
+      "peak_job_bytes": 48095232,
+      "cpu_percent": 14,
+      "memory_bytes": 2200961024,
+      "creation_time_job": true,
+      "inherited_error_mode": 32771,
+      "tree_retired": true,
+      "residual_children": 0,
+      "receipt_sha256": "6e9d5b9c87b3322d5e5fdd06e2f2170ddf3deff028b0cdb796ee8125a5a4722e",
+      "log_sha256": "01514e5fa310ac75ae8d504be0b39c7b8b4010607a276901f0d3d28ed0b88fe0"
+    },
+    "transcript_comparison": {
+      "exit_code": 0,
+      "peak_job_bytes": 20541440,
+      "cpu_percent": 14,
+      "memory_bytes": 1787822080,
+      "creation_time_job": true,
+      "inherited_error_mode": 32771,
+      "tree_retired": true,
+      "residual_children": 0,
+      "receipt_sha256": "0c68d23105f1307b68bff60ab13a59471b29d5f53cf076fd5be1dd77c4209979",
+      "log_sha256": "51076490298d33e708188b12e36763221eec0553853138078db79753192713eb"
+    }
+  },
+  "live_radeon": {
+    "preflight": {
+      "admitted": true,
+      "utc": "2026-11-25T02:05:23.7371082Z",
+      "windows_build": "26300",
+      "devices": [
+        {
+          "Name": "AMD Radeon RX 9070 XT",
+          "Status": "OK",
+          "DriverVersion": "32.0.32029.2010"
+        }
+      ],
+      "cpu": [
+        23.8,
+        24.27
+      ],
+      "peak_gpu_engine": 0.0,
+      "available_kib": 28426592,
+      "total_kib": 66704480,
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "other_fixture_processes": 0
+    },
+    "adapter": {
+      "status": 0,
+      "identity_queries": 1,
+      "worker_exit": 0,
+      "gpu_compute_requested": false,
+      "configuration": "d201d9dda038857b9f63816a44778dc25bafd08c683d1f5fcd21815ff851c049",
+      "luid": "9d75010000000000",
+      "node": 1,
+      "ordinal": 0,
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "local_budget": 16168480768,
+      "vendor_id": 4098,
+      "device_id": 30032,
+      "subsystem_id": 606344280,
+      "revision": 192
+    },
+    "accepted_worker": {
+      "mixed": 1,
+      "prepared": 1,
+      "verified": 4,
+      "worker_ms": 1187,
+      "prepared_submit_ms": 1219,
+      "exact_child_retired": 1
+    },
+    "callback_delivery": {
+      "mixed": 1,
+      "ready_hits": 4,
+      "late_refused": 1,
+      "cpu_readback": 1,
+      "backing_writes": 0,
+      "unrelated_callbacks_retained": 1,
+      "checkpoint_change_refused": 0,
+      "expanded": 1,
+      "callbacks": 2
+    },
+    "artifacts": {
+      "flitzfs_winfsp_paged_tests.exe": {
+        "sha256": "2147800f3889ee18f6e34892046ae04967377dd70371847a9508cd8f8dae73f9",
+        "bytes": 2246656
+      },
+      "winfsp-x64.dll": {
+        "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+        "bytes": 200816
+      },
+      "flitzfs_native_lz4_read_worker.exe": {
+        "sha256": "8625a3fa306adce0f3db5a1803ea6b9924147817c73630f75f09d42fdf268ca4",
+        "bytes": 581632
+      },
+      "flitzfs_rocm_native_lz4_decode.dll": {
+        "sha256": "9ac5bb33a7b39ae26712dcdcfcdeb6b4b5fc049175e18dd6f24d047a37b3e128",
+        "bytes": 173568
+      }
+    },
+    "artifact_manifest_sha256": "907001075ac5f6c4e57ea7711126bd3e6e234f0a62ff81fd7b17ba7ead1b48f7",
+    "one_prepared_exchange": true,
+    "cpu_fallback_readback": true,
+    "scope": "SDK callbacks, no driver change or live mount. No declared comparative speedup.",
+    "candidate_build": {
+      "exit_code": 0,
+      "peak_job_bytes": 372154368,
+      "cpu_percent": 19,
+      "memory_bytes": 1794113536,
+      "creation_time_job": true,
+      "inherited_error_mode": 32771,
+      "tree_retired": true,
+      "residual_children": 1,
+      "receipt_sha256": "af0980fe25a20eb638b89b30c3437849cc7c5772044e2615d88a4c51eeb62bf2",
+      "log_sha256": "a677aecd75c27a19068a728e9bafc40da2576ed97c68cce217d6d38ae0428710"
+    },
+    "supervision": {
+      "exit_code": 0,
+      "peak_job_bytes": 164962304,
+      "cpu_percent": 20,
+      "memory_bytes": 1654652928,
+      "creation_time_job": true,
+      "inherited_error_mode": 32771,
+      "tree_retired": true,
+      "residual_children": 0,
+      "receipt_sha256": "fa7161f57e87cbd23f700c191014e16773d6b76bf38133492335463135bede48",
+      "log_sha256": "3ae45bf3297db092daaefe614c6937a3e9376d25c3b18cd5d59f75cc13af5148"
+    },
+    "earlier_worker_and_module_evidence": "docs/evidence/windows-ordinary-reclamation-progress-2026-11-25.json"
+  },
+  "validation": {
+    "windows_sdk": {
+      "passed": [
+        "bounded_native_indexed_volume",
+        "bounded_winfsp_volume_file",
+        "bounded_winfsp_paged_callbacks",
+        "bounded_winfsp_paged_ready-lz4-reads",
+        "bounded_winfsp_paged_ready-group-reads",
+        "bounded_winfsp_paged_ready-mixed-group-reads"
+      ],
+      "supervision": {
+        "exit_code": 0,
+        "peak_job_bytes": 233279488,
+        "cpu_percent": 19,
+        "memory_bytes": 1646264320,
+        "creation_time_job": true,
+        "inherited_error_mode": 32771,
+        "tree_retired": true,
+        "residual_children": 0,
+        "receipt_sha256": "58733c2143dbdf11858bae7375876a61e61926bb6c2dff6bab5a1f78193397e1",
+        "log_sha256": "53786f4d0ef6e6873fa058987a1ef170d215446a1ff85f9b65f7f4d9e210abd5"
+      }
+    },
+    "windows_asan_sdk": {
+      "passed": [
+        "windows_asan_runtime_preflight",
+        "windows_asan_staging_regression",
+        "bounded_winfsp_volume_file",
+        "bounded_winfsp_paged_ready-lz4-reads",
+        "bounded_winfsp_paged_ready-group-reads",
+        "bounded_winfsp_paged_ready-mixed-group-reads"
+      ],
+      "supervision": {
+        "exit_code": 0,
+        "peak_job_bytes": 636833792,
+        "cpu_percent": 17,
+        "memory_bytes": 1828716544,
+        "creation_time_job": true,
+        "inherited_error_mode": 32771,
+        "tree_retired": true,
+        "residual_children": 0,
+        "receipt_sha256": "5d62aa21667077c3183c7ed7c05caecfda316d27099618ca8e360f8c3bc5784b",
+        "log_sha256": "681a5c2f32a03a7c97a4b1f6d26f95a6059b99f6d9f71a4cdc97b3b4e608461a"
+      }
+    },
+    "asan_build": {
+      "exit_code": 0,
+      "peak_job_bytes": 689795072,
+      "cpu_percent": 17,
+      "memory_bytes": 1939865600,
+      "creation_time_job": true,
+      "inherited_error_mode": 32771,
+      "tree_retired": true,
+      "residual_children": 1,
+      "receipt_sha256": "28cadd4af33503c8797f44d283a38285a75299b1b6038d62167aabd685277d2f",
+      "log_sha256": "c36582ec06cc76a6e4d9bd6c49209bb100c7bc172c39baa8e6a722156e93e077"
+    },
+    "windows_raw_only_compile": {
+      "targets": [
+        "flitzfs_winfsp_paged_tests",
+        "flitzfs_winfsp_controller_tests"
+      ],
+      "job_tree_retired": true,
+      "exit_code": 0,
+      "runtime_checks_run": 0,
+      "compiler_children_reaped": 1,
+      "receipt_sha256": "75e9783ae406c656eec0aff693d2c0a2301e46b3d48e1d5eff6baf7599dc9532",
+      "log_sha256": "29d47997e0b9f95f334e9b5c20770337487044100da9703015f121b1e318a4b4"
+    }
+  },
+  "source_navigation": {
+    "provider_version": "0.2.43",
+    "actual_searches": 1,
+    "source_files": 4,
+    "receipt_sha256": "186fe70222dfd9f9c84385c4a42c83bda0fe19f779b2e395f6ef609a4e376ea0",
+    "response_sha256": "104af8ae32021708f1e9b194951c2462a0dbcfe5f4177b08484c3327535dd6c7",
+    "supervision": {
+      "exit_code": 0,
+      "peak_job_bytes": 1095528448,
+      "cpu_percent": 10,
+      "memory_bytes": 1900019712,
+      "creation_time_job": true,
+      "inherited_error_mode": 32771,
+      "tree_retired": true,
+      "residual_children": 0,
+      "receipt_sha256": "67b646aac73c4e6b9beefc8fc2f2dc9d46156c2b0dcf1c63fc5154ce1beeced0",
+      "log_sha256": "d62b2964ec95cce8325435ad7186e949926a125ae02d81d5158651b6e8356990"
+    }
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "lock_sha256": "01fbef3b628f772e4aba9724b6ced11c0f211d4d3bf51e38d1b9d0039eac997b",
+    "provider_source_identity": {
+      "tools/crawl4ai_tool.py": "e84a0e54ee07e4e13d3d2f35491f641730096a78126068f232c1f2397a467d8c",
+      "tools/crawl4ai_research.py": "ec3cb7a98eceed8fef08f3af806d6eaed35656bd76ca0ee8853d273f790337a5",
+      "tools/requirements/crawl4ai.txt": "6a42b0ff5ff6c63c843c6329ce823b819fd4f6f068e68d1836ab6dbec96e8f2f",
+      "tools/crawl4ai_sites.json": "e8869cb0488d78762a90aea6ecf2c3616bb89f0c89a8800cc512c613a750dc86",
+      "tools/nltk_distribution.py": "19eb3007c226b1a13e1ad0daa79cbd8a7bf6d082a20bf386e36ac060d0000919",
+      "tools/python_wheel.py": "c3c9a62454cb377203abce32154bec07cbf805bc7420cc89386c1c18370b301a",
+      "tools/test_nltk_model_security.py": "8aab7e2a704af875992ecae9137cdf5e5ff6935a4dd49e6751c54b2629a7280b",
+      "tools/requirements/python-build.txt": "9b280d724fda87773ba33a2654362adad84c68c4f79394adc07ff2e0293ca498",
+      "tools/crawl4ai_source_build.py": "5c27c4693fa0880a8db399825f637b694616963fc11f708afed33fa5b2e38b48",
+      "tools/crawl4ai_download_opener.py": "d5fd20b5545fd64c93a06b3ef07732f1c2da7e09ee6cda80662475007db52538",
+      "tools/test_crawl4ai_downloads.py": "ae4cf54c351a9da2de49caeb96306f384bb6a8f487318eabc69db4132d658619",
+      "third_party/upstream/nltk/3.10.4/distribution.json": "3241a8670f12e205525fc096572ed1969c063f77e13cffd70eff5eb656fbe1b0",
+      "nltk_upstream_wheel": "e46d89e59ef949270e3b19ab097da8dbb09350e05cb5a746ff92f6ccf6e8ce90",
+      "crawl4ai_source_build": "7da6376934254d9ad1de9e016a4509dae32c47559955889424435fcbbc7419f5"
+    },
+    "native_pages": [
+      {
+        "name": "hip-performance",
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/performance_guidelines.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 56567,
+        "markdown_sha256": "b1ebddfdf7d3a817d42b7446af31cd37ded972fc43a25f95fe3851ad2d449306",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 3.384,
+        "capture": "hip-performance.native.json",
+        "capture_sha256": "cd4db69a587f183c3d6f79cccbdd42e0c87567ca42291bca548ed004773129b6"
+      },
+      {
+        "name": "hip-asynchronous",
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/asynchronous.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 48777,
+        "markdown_sha256": "4167596a0f6b6c0281ea842f4eac025a4e457fa0b5627cd88da14196e62a5fdc",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.427,
+        "capture": "hip-asynchronous.native.json",
+        "capture_sha256": "dc4443946da3346a5c3d910a4e567f5bbe629b733cfa31ceb3e66973517a2177"
+      },
+      {
+        "name": "windows-gpu-power",
+        "url": "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/gpu-power-management-of-idle-and-active-power",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 27598,
+        "markdown_sha256": "8babd1568f00f5c90483c647f0142a08fac0c2b05bcc40df489e0b275f96b3ab",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 2.003,
+        "capture": "windows-gpu-power.native.json",
+        "capture_sha256": "ea20fd1f65b844f884319c01cfefb9a0e15cdfeb50009621ce5da2b75ed70dae"
+      }
+    ],
+    "robots": true,
+    "timeout_seconds_per_page": 45,
+    "external_LLM": false,
+    "native_receipt_sha256": "612607fce388d0e4c87746f6c415b682f9723c1cff6f33223206e99712290d71",
+    "supervision": {
+      "exit_code": 0,
+      "peak_job_bytes": 420184064,
+      "cpu_percent": 10,
+      "memory_bytes": 1453326336,
+      "creation_time_job": true,
+      "inherited_error_mode": 32771,
+      "tree_retired": true,
+      "residual_children": 0,
+      "receipt_sha256": "336d3f943fcbb8ec84f5876a8ed96c49ce09a4515903078c1bebe295c4668079",
+      "log_sha256": "57a3641d55f85dabf76be9fe47e4efefbe997573a3655354684b25b7f7e1bf21"
+    }
+  },
+  "next": "Use inner staged phase accounting to choose the ordinary packed settlement fix. Compare ready grouped service on the installed path with matched CPU costs and verified demand.",
+  "documentation_validation": {
+    "plan_packages": 13,
+    "numbered_steps": 156,
+    "release_gates": 12,
+    "resolved_relative_links": 515,
+    "source_tree_verified": true,
+    "json_duplicate_keys": 0
+  }
+}
