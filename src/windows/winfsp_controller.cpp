@@ -281,6 +281,7 @@ struct WinFspVolumeController::Impl {
           std::uint64_t continued=0,continued_compaction=0,continued_range_retirement=0,continued_packed_tail=0;
           decltype(WinFspControllerView::file_reclamation_steps) file_reclamation_steps{};
           decltype(WinFspControllerView::file_rebuild_phases) file_rebuild_phases{};
+          std::optional<PagedRewriteProgress> last_file_rebuild_entry;
           detail::MaintenanceBackingUse backing_use;
           bool backing_limited=false,read_ahead_prepared=false,read_ahead_backing_refused=false;
           bool read_ahead_demand_sampled=false;
@@ -309,8 +310,20 @@ struct WinFspVolumeController::Impl {
                 if(observed.continued && interrupted())break;
                 const auto backing_before=backing_use.elapsed_ns();
                 auto step=[&] {
+                  detail::MaintenanceBackingUse step_backing;
+                  auto step=[&] {
+                    const detail::MaintenanceBackingScope measure(step_backing);
+                    return advance(observed,continuation,scrub_due);
+                  }();
+                  backing_use.add(step_backing);
+                  if(step.file_rebuild_entry) {
+                    const auto& entry=*step.file_rebuild_entry;
+                    auto& measured=file_rebuild_phases[static_cast<std::size_t>(entry.phase)];
+                    ++measured.steps;
+                    measured.backing.add(step_backing);
+                    last_file_rebuild_entry=entry;
+                  }
                   const detail::MaintenanceBackingScope measure(backing_use);
-                  auto step=advance(observed,continuation,scrub_due);
                   if(!observed.continued && read_worker && !interrupted())
                     read_ahead_prepared=read_worker->verify_and_publish(
                         *adapter,observed,GetTickCount64(),stop_requested);
@@ -347,8 +360,6 @@ struct WinFspVolumeController::Impl {
                   timing.observe(backing_use.elapsed_ns()-backing_before);
                 if(step.file_reclamation!=NativeVolumeReclaimProgress::idle)
                   ++file_reclamation_steps[static_cast<std::size_t>(step.file_reclamation)];
-                if(step.file_rebuild_phase)
-                  ++file_rebuild_phases[static_cast<std::size_t>(*step.file_rebuild_phase)];
                 result=std::move(step);
                 const auto scrub=result.payload_scrub;
                 scrub_checks+=scrub.examined_objects;
@@ -411,8 +422,12 @@ struct WinFspVolumeController::Impl {
             current.continued_packed_tail_steps+=continued_packed_tail;
             for(std::size_t i=0;i<file_reclamation_steps.size();++i)
               current.file_reclamation_steps[i]+=file_reclamation_steps[i];
-            for(std::size_t i=0;i<file_rebuild_phases.size();++i)
-              current.file_rebuild_phases[i]+=file_rebuild_phases[i];
+            for(std::size_t i=0;i<file_rebuild_phases.size();++i) {
+              auto& phase=current.file_rebuild_phases[i];
+              phase.steps+=file_rebuild_phases[i].steps;
+              phase.backing.add(file_rebuild_phases[i].backing);
+            }
+            if(last_file_rebuild_entry)current.last_file_rebuild_entry=last_file_rebuild_entry;
             if(result.reclaimed)++current.reclamation_quanta;
             if(result.payload_repaired)++current.payload_repairs;
             current.payload_scrub_checks+=scrub_checks;

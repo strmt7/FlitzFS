@@ -554,17 +554,21 @@ template<class Visitor> void walk(const State& s,const Ref& r,std::uint64_t afte
   };
   walk_leaves(s,r,after,leaf,done);
 }
+constexpr auto maximum_mirrored_read_bytes=2*kStoreCommitUnit;
 struct MirroredRecordRun {
   std::size_t count=1,bytes=0;
+  bool combines_reads() const noexcept {
+    // A singleton above the inline buffer can combine its header and payload.
+    return count>1 || (bytes>inline_record_read_bytes && bytes<=maximum_mirrored_read_bytes);
+  }
 };
 MirroredRecordRun mirrored_record_run(const State& s,std::span<const Entry> entries) {
-  constexpr auto maximum_run_bytes=2*kStoreCommitUnit;
   const auto& first=entries.front();
   MirroredRecordRun run{1,record_header_bytes+first.stored};
-  while(run.count<entries.size() && run.bytes<=maximum_run_bytes) {
+  while(run.count<entries.size() && run.bytes<=maximum_mirrored_read_bytes) {
     const auto& next=entries[run.count];
     const auto length=record_header_bytes+next.stored;
-    if(length>maximum_run_bytes-run.bytes)break;
+    if(length>maximum_mirrored_read_bytes-run.bytes)break;
     // Adjacent records follow the same paired stream across banks.
     const auto primary=stream_position(first.offset,run.bytes,s.unit);
     if(next.offset!=primary || next.peer!=add(primary,s.unit))break;
@@ -641,7 +645,7 @@ void verify(const State& s,const VerifiedObjectVisitor* consume=nullptr,
     while(!entries.empty()) {
       const auto run=mirrored_record_run(s,entries);
       const auto records=entries.first(run.count);
-      if(run.count>1 && verify_stored_run(s,records,run.bytes,scratch)) {
+      if(run.combines_reads() && verify_stored_run(s,records,run.bytes,scratch)) {
         if(!stored)verify_decoded_run(s,records,std::span<const std::byte>(scratch).first(run.bytes),consume);
       }else {
         for(const auto& entry:records)visit_one(entry);
@@ -1559,7 +1563,7 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
     for(auto remaining=leaf.first(selected);!remaining.empty();) {
       const auto run=input.mirrored && verify_replicas?mirrored_record_run(input,remaining):MirroredRecordRun{};
       const auto entries=remaining.first(run.count);
-      if(run.count>1 && verify_stored_run(input,entries,run.bytes,verification_frames)) {
+      if(run.combines_reads() && verify_stored_run(input,entries,run.bytes,verification_frames)) {
         auto frames=std::span<const std::byte>(verification_frames).first(run.bytes);
         for(const auto& entry:entries) {
           accept(entry,decode_record(input,entry,frames.first<record_header_bytes>(),
@@ -1861,7 +1865,8 @@ std::uint64_t PagedObjectStoreWriter::Rewrite::cold_encoding_through() const noe
 StoreIdentity PagedObjectStoreWriter::Rewrite::identity() const noexcept {return impl_?impl_->build.next.id:StoreIdentity{};}
 bool PagedObjectStoreWriter::Rewrite::replaces_native_root() const noexcept {return impl_ && !impl_->replacement.empty();}
 PagedRewriteProgress PagedObjectStoreWriter::Rewrite::progress() const noexcept {
-  return impl_?PagedRewriteProgress{impl_->phase,impl_->original.root.count,impl_->completed,impl_->write_bound}:PagedRewriteProgress{};
+  return impl_?PagedRewriteProgress{impl_->phase,impl_->original.root.count,impl_->completed,impl_->write_bound,
+      impl_->build.next.id}:PagedRewriteProgress{};
 }
 bool PagedObjectStoreWriter::Rewrite::advance(const PagedObjectStoreWriter& writer) {
   if(!matches(writer)) {impl_.reset();fail("staged rebuild source owner/generation is stale");}

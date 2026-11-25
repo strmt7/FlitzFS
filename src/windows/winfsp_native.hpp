@@ -69,8 +69,8 @@ struct WinFspMaintenanceResult {
   PagedPayloadScrubResult payload_scrub;
   bool sealed_image=false;
   NativeVolumeReclaimProgress file_reclamation=NativeVolumeReclaimProgress::idle;
-  // Phase observed before advancing the existing candidate.
-  std::optional<PagedRewritePhase> file_rebuild_phase;
+  // Candidate and progress observed before advancing the reclaimer.
+  std::optional<PagedRewriteProgress> file_rebuild_entry;
 };
 class WinFspNativeWritable final {
  public:

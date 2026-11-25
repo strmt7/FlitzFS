@@ -20,6 +20,10 @@ struct WinFspAmdWriteTrial {
   GpuConfigurationId configuration{};
   std::uint64_t discovery_ns=0,device_wall_ns=0,next_eligible_ms=0;
 };
+struct WinFspRebuildPhaseUse {
+  std::uint64_t steps=0;
+  detail::MaintenanceBackingUse backing;
+};
 struct WinFspControllerView {
   SessionState state=SessionState::ready;
   NTSTATUS start_status=STATUS_PENDING;
@@ -30,7 +34,8 @@ struct WinFspControllerView {
   std::uint64_t continued_preparation_steps=0,continued_compaction_steps=0,payload_repairs=0;
   std::uint64_t continued_range_retirement_steps=0,continued_packed_tail_steps=0;
   std::array<std::uint64_t,static_cast<std::size_t>(NativeVolumeReclaimProgress::failed)+1> file_reclamation_steps{};
-  std::array<std::uint64_t,static_cast<std::size_t>(PagedRewritePhase::declined)+1> file_rebuild_phases{};
+  std::array<WinFspRebuildPhaseUse,static_cast<std::size_t>(PagedRewritePhase::declined)+1> file_rebuild_phases{};
+  std::optional<PagedRewriteProgress> last_file_rebuild_entry;
   bool maintenance_quiescent=false;
   std::uint64_t payload_scrub_checks=0,payload_scrub_passes=0,payload_scrub_faults=0;
   PagedPayloadScrubResult last_payload_scrub_fault;

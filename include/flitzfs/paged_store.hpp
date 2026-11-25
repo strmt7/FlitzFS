@@ -322,6 +322,7 @@ enum class PagedRewritePhase {verifying_source,copying,verifying_target,publishi
 struct PagedRewriteProgress {
   PagedRewritePhase phase=PagedRewritePhase::failed;
   std::uint64_t objects=0,completed_in_phase=0,required_write_bytes=0;
+  StoreIdentity candidate_identity{};
 };
 // One control thread. Validate the source owner and checkpoint before using a
 // candidate. The optional indexed compactor reconciles immutable checkpoints.

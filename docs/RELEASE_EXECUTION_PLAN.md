@@ -495,11 +495,13 @@ advances with unchanged image bytes on two source layouts. The populated
 runs compare mounted observation with detached reclamation. Both detached
 owners published compact images and independently verified all bytes. The
 latest signed replay matched all 6,293 operations and verified 1,027 files.
-The phase-entry counts show 250 source verification steps and 134 payload
-copy steps. Selection and settlement remain open. The matched native cold
-copy reduced 215 copy steps to 42 with identical rebuilt bytes. Attribute
-the next change to resource cost and remaining work.
-[Signed replay and matched native control](evidence/windows-indexed-cold-batched-copy-2026-11-25.json) ·
+The latest signed observer attributed 4,428 reads to source verification
+and recorded copy entry cursor 324 of 2,111. The matched source-audit
+fixture reduced backing calls from 5,014 to 3,194 on identical inputs and
+protected output. Measure phase cost and idle admission against remaining
+work. Selection and settlement remain open.
+[Signed replay and matched source audit](evidence/windows-mirrored-source-audit-2026-11-25.json) ·
+[Cold-batching control](evidence/windows-indexed-cold-batched-copy-2026-11-25.json) ·
 [Staged reclamation evidence](evidence/windows-staged-reclamation-reads-2026-11-24.json)
 
 The controller now continues checked inactive-image release within the same

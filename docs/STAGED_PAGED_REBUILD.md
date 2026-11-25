@@ -93,10 +93,23 @@ The engine retains one unfinished leaf and bounded references per tree level.
 A verification step spends up to two commit units on the sum of record
 framing, stored size and logical size within a quarter of one leaf. A record
 larger than that budget receives its own opportunity, up to the existing
-1-MiB object limit. Each record still uses its own replica checks and CPU
-comparison. Index work follows one leaf's capacity, and tree finishing
+1-MiB object limit. A mirrored frame that exceeds the inline buffer and
+fits within two commit units uses the existing paired read scratch for
+its header and payload. This also covers isolated frames in fragmented
+leaves. The mapper splits each read at the bank boundary. The two frames
+must match and pass the checked index digest before CPU decoding. A failed
+combined read marks the source observation degraded and falls back to
+per-copy checks to locate a valid survivor. Index work follows one leaf's
+capacity, and tree finishing
 follows the admitted depth of 16. The indexed native path uses the same
 staged layout with its paged namespace.
+On a matched fragmented 1,024-object fixture with records spanning mirror
+banks, the full source audit dropped from 5,014 backing reads to 3,194.
+Both runs read 4,761,454 source bytes in that phase and produced
+byte-identical images. The two short-record controls matched their read
+counts and image bytes.
+[Matched audit and replica-failure evidence](evidence/windows-mirrored-source-audit-2026-11-25.json)
+
 Each verification and copy pass carries a checked tree cursor. Target comparison
 uses a bounded source lookup cache for that pass. A pass change resets both,
 so verification after publication reads the private image again.

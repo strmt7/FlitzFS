@@ -462,7 +462,11 @@ ends that continuation. The observer counts its admitted steps separately.
 It now also records each persistent-reclaimer outcome. The controller's
 idle observation indicates that no work is eligible at that decision.
 Each admitted reclaimer step can also report the phase of an existing
-paged candidate at entry. Cold-eligible short frames share the mirrored
+paged candidate at entry, its candidate identity, and its object cursor.
+Backing calls, completed bytes and flushes accumulate against that phase
+in a fixed-size array. Optional read-ahead work follows the reclaimer
+measurement scope and is accounted for in the overall totals.
+Cold-eligible short frames share the mirrored
 payload batch within a separate cold-input budget. The writer checks both
 replicas and independent CPU bytes before index construction continues.
 The fixture checks remaining work independently after detach.

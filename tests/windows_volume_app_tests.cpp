@@ -2022,8 +2022,28 @@ void observe_mounted_reclamation(const MountedFileActivation& activation,StoreIo
       "verifying_publication","ready","failed","building_index","awaiting_charge","reconciling",
       "verifying_reconciliation","screening_compression","declined"};
   static_assert(rebuild_phases.size()==view.file_rebuild_phases.size());
-  for(std::size_t i=0;i<rebuild_phases.size();++i)
-    std::cout<<" rebuild_"<<rebuild_phases[i]<<'='<<view.file_rebuild_phases[i];
+  for(std::size_t i=0;i<rebuild_phases.size();++i) {
+    const auto& phase=view.file_rebuild_phases[i];
+    const auto name=rebuild_phases[i];
+    std::cout<<" rebuild_"<<name<<'='<<phase.steps;
+    if(!phase.steps)continue;
+    std::cout<<" rebuild_"<<name<<"_reads="<<phase.backing[Io::read].completed
+        <<" rebuild_"<<name<<"_read_bytes="<<phase.backing[Io::read].completed_bytes
+        <<" rebuild_"<<name<<"_writes="<<phase.backing[Io::write].completed
+        <<" rebuild_"<<name<<"_write_bytes="<<phase.backing[Io::write].completed_bytes
+        <<" rebuild_"<<name<<"_flushes="<<phase.backing[Io::flush].completed;
+  }
+  if(view.last_file_rebuild_entry) {
+    const auto& entry=*view.last_file_rebuild_entry;
+    std::cout<<" rebuild_last_phase="<<rebuild_phases[static_cast<std::size_t>(entry.phase)]
+        <<" rebuild_last_cursor="<<entry.completed_in_phase<<" rebuild_last_objects="<<entry.objects
+        <<" rebuild_last_image=";
+    constexpr std::string_view hex="0123456789abcdef";
+    for(const auto byte:entry.candidate_identity) {
+      const auto value=std::to_integer<unsigned>(byte);
+      std::cout<<hex[value>>4]<<hex[value&15U];
+    }
+  }
   std::cout<<" retired=1"<<std::endl;
 #else
   (void)activation;(void)contract;(void)volume;(void)preselected;

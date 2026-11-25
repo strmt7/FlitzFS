@@ -55,6 +55,37 @@ allocation and reclaimer outcomes. Reconciliation after a ready candidate
 can begin within that step, so these counts cannot measure its elapsed time.
 [Matched cold copy and current qualification](evidence/windows-indexed-cold-batched-copy-2026-11-25.json)
 
+## Fragmented source audit and phase accounting
+
+The mirrored audit now uses its bounded paired scratch to read a medium
+singleton's complete encoded frame from each bank. The index determines the
+frame length. Both frames must match and pass the record digest before
+decoding, with per-copy verification on a read or comparison failure.
+In the fragmented 1,024-object control this reduced source reads from
+5,014 to 3,194. The source-byte count, output BLAKE3 and independent CPU
+readback matched. The short-record controls retained their measured counts.
+
+The controller records backing calls, bytes and flushes at each admitted
+reclaimer phase, plus the last candidate's identity and object cursor.
+The admitted-step scope ends before deferred read-ahead so its effects are
+visible in the overall totals. The Win32 buffered-file path keeps its
+current open contract. Microsoft's scatter-read API requires asynchronous
+unbuffered handles and aligned page buffers. The current optimization
+uses the same checked range and scratch on any qualifying backing.
+[Matched audit evidence](evidence/windows-mirrored-source-audit-2026-11-25.json) ·
+[Microsoft ReadFileScatter contract](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-readfilescatter)
+
+The signed follow-up matched the same 6,293 operations and 1,027 independently
+verified files. Source verification accounted for 4,428 of 4,897 reads and
+5,670,910 of 7,341,540 read bytes across 250 phase entries. It includes the
+private-root initialization at the transition to copy. The observer captured
+39 copy entries. The final candidate's entry cursor was 324 of 2,111 objects,
+with index construction and publication still ahead. Its mount, helper and
+guest retired. The matched local fixture supplies the controlled read-count
+comparison. Installed-host performance and ordinary packed settlement have
+separate acceptance runs.
+[Signed replay with backing attribution](evidence/windows-mirrored-source-audit-2026-11-25.json)
+
 ## Ordinary packed follow-up
 
 The follow-up starts after the 6,293-operation Win32 witness with the
@@ -193,7 +224,7 @@ A forced payload read failure was rejected after the related leaf was
 cached. The CPython-derived case kept its 2,420,736-byte settled footprint.
 [Matched compact and legacy catalog controls](evidence/indexed-coherence-lookup-pages-2026-11-25.json)
 
-### Latest signed packed replay
+### Signed packed replay after cold batching
 
 The new signed guest matched all 6,293 Win32 operations and independently
 verified all 1,027 files across three helper lifecycles. The controller recorded
@@ -475,15 +506,14 @@ before expanding the experiment.
 
 ### 1. Close ordinary mounted settlement · E02, E08, E11
 
-1. Use the phase-entry counts to pick the next measured interval. Take
-   deltas from the controller's existing backing recorder at admitted
-   reclaimer steps. Attribute calls and bytes to source verification,
-   copy, index or publication. Bind the progress cursor and object count to
-   the candidate identity so cancellation and restart have distinct
-   outcomes. Keep aggregate counters per phase and correlate them with
-   foreground activity and the deferral at each idle boundary. Use the
-   signed witness for ordering and independent readback. Measure latency,
-   CPU and backing cost on the qualified host.
+1. Use the recorded phase I/O and candidate cursor to measure remaining
+   work and credit per quiet window on the qualified host. Record CPU and
+   backing time per charged step and why the next step was deferred.
+   Compare grants under active client I/O and confirmed idle. The signed
+   control reached copy cursor 324 of 2,111 during its observation.
+   Retain fresh resource and candidate identity checks at every continuation.
+   Qualify normal mounted publication and settlement with the independent
+   acknowledged-operation witness before expanding the comparison matrix.
 2. On the same 1,027 live files, compare ordinary churn, a cold-work
    control and detached CPU verification. Track the selected generation,
    selector and provider identities, live bytes, reusable slots, pinned

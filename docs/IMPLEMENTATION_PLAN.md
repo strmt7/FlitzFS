@@ -299,13 +299,14 @@ or a new representation.
 - **Mounted settlement.** Record admission, copy phase, verification,
   selector publication, retained references, provider operations and
   allocation in order. Reuse the independent client and CPU oracle.
-  The latest signed trace reached private payload copy, with 250 source
-  verification entries and 134 copy entries observed. Attribute backing
-  calls, bytes, outstanding objects and refusals to those phases. Measure
-  the dominant cost on the qualified host. Compare checked read gathering
-  against the existing verification path if source reads dominate. Choose
-  admission or allocation work when their measured cost justifies it.
-  [Signed replay and matched native control](evidence/windows-indexed-cold-batched-copy-2026-11-25.json)
+  The latest signed trace attributed 4,428 reads to source verification.
+  Private payload copy reached entry cursor 324 of 2,111. Measure phase cost,
+  remaining objects and admitted credits on the qualified host. Calibrate
+  continuation to actual idle capacity if waiting limits progress. Price
+  bounded verified gathering or allocation work only where the attributed
+  costs justify it. Require selector publication and occupied-byte settlement
+  with the independent operation witness.
+  [Signed replay and matched native control](evidence/windows-mirrored-source-audit-2026-11-25.json)
 - **Useful device delivery.** Feed observed open stream ranges and
   generations to the existing owner. For read, write and collective work,
   compare CPU, cold GPU and a ready lease using identical observations.

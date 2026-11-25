@@ -200,6 +200,10 @@ void mirrored_rebuild_io(bool fragmented,bool spanning=false) {
       source->calls==writes,"mirrored rebuild changed the inventory or wrote to its source");
   for(const auto& record:records)
     require(independent.read(record.id)==record.bytes,"mirrored rebuild changed a verified record");
+  if(fragmented && spanning) {
+    const auto& source_work=phases[static_cast<std::size_t>(Phase::verifying_source)];
+    require(source_work.source_calls<4*count,"fragmented audit split bounded headers from payloads");
+  }
   const auto& copy_work=phases[static_cast<std::size_t>(Phase::copying)];
   require(copy_work.target_calls<2*count && copy_work.target_writes<2*count && copy_work.steps<count/4,
       "mirrored copy did not group bounded physical bank operations");
