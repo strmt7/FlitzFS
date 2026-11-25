@@ -394,8 +394,8 @@ int worker(int argc, wchar_t** argv) {
     if(groups)peak=group_decode::slab_bytes(groups->layout);
     if(request)for(const auto& batch:request->batches)peak=(std::max)(peak,std::uint64_t(batch.slab_bytes()));
     std::optional<WindowsGpuBudgetSampler> sampler(std::in_place,luid,node);
-    const auto budget=sampler->sample();
-    require_hip_memory(budget.snapshot,luid,node,GetTickCount64(),peak,HipMemoryPoint::pre_initialize);
+    (void)read_fresh_hip_memory([&]{return sampler->sample().snapshot;},GetTickCount64,
+        luid,node,peak,HipMemoryPoint::pre_initialize);
     require(SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_SYSTEM32)!=0,
         Exit::runtime_unavailable,"restrict native LZ4 DLL lookup");
     trace.end(HipPhase::adapter_admit);
@@ -578,9 +578,8 @@ int worker(int argc, wchar_t** argv) {
     clock.begin(HipPhase::adapter_admit);
     const hip_detail::VerifiedSystemModule installed(hip_bundle::runtime,expected_runtime);
     std::optional<WindowsGpuBudgetSampler> sampler(std::in_place,luid,mask);
-    const auto before=sampler->sample();
-    require_hip_memory(before.snapshot,luid,mask,GetTickCount64(),
-        device_bytes,HipMemoryPoint::pre_initialize);
+    (void)read_fresh_hip_memory([&]{return sampler->sample().snapshot;},GetTickCount64,
+        luid,mask,device_bytes,HipMemoryPoint::pre_initialize);
     clock.end(HipPhase::adapter_admit);clock.begin(HipPhase::modules_load);
     require(SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_SYSTEM32)!=0,
         Exit::runtime_unavailable,"restrict uniform DLL lookup");

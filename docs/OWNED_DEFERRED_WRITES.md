@@ -266,6 +266,8 @@ in a privately owned fixture restored discovery with one identity query.
 The first immediate device write verified successfully. The prepared
 worker then refused a stale pre-initialization memory observation and
 retired. A subsequent fresh observation admitted the full comparison.
+The later worker can renew an otherwise admissible expired observation
+before initializing HIP. [Startup budget policy](GPU_RECOVERY.md#fresh-observations-before-worker-startup)
 
 On the 64 KiB CPython extent, the paired retry measured 0.389 ms on CPU,
 3.663 s for immediate Radeon and 2.311 s for prepared Radeon including

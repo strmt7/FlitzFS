@@ -68,10 +68,12 @@ auto with_uniform_device(HMODULE runtime,int ordinal,WindowsGpuBudgetSampler& sa
       require_fresh_hip_completion(read_memory,monotonic,luid,node_mask,bytes,baseline);
       return;
     }
+    if(point==HipMemoryPoint::pre_initialize) {
+      baseline=read_fresh_hip_memory(read_memory,monotonic,luid,node_mask,bytes,point);
+      return;
+    }
     const auto current=read_memory();
-    if(point==HipMemoryPoint::pre_initialize){
-      require_hip_memory(current,luid,node_mask,monotonic(),bytes,point);baseline=current;
-    }else require_hip_memory(current,luid,node_mask,monotonic(),bytes,point,&baseline);
+    require_hip_memory(current,luid,node_mask,monotonic(),bytes,point,&baseline);
   };
   WindowsGpuTopologyProbe topology(luid);
   const auto single_node=[&](auto identity){

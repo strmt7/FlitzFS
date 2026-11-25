@@ -27,61 +27,76 @@ void rejected(const GpuMemorySnapshot& s,HipMemoryPoint point,std::uint64_t now,
     require(hip_worker_exit_stage(raw)==error.stage,"memory stage lost at process boundary");
   }
 }
-void completion_observations() {
+void refreshed_observations(HipMemoryPoint point) {
   using E=HipWorkerExit;
   using S=HipWorkerStage;
+  const bool completing=point==HipMemoryPoint::completed;
+  const auto stale_stage=completing?S::completed_stale_budget:S::pre_init_stale_budget;
+  const auto pressure_stage=completing?S::completed_headroom:S::pre_init_headroom;
+  const auto invalid_stage=completing?S::completed_invalid_budget:S::pre_init_invalid_budget;
+  const auto wrong_stage=completing?S::completed_wrong_adapter:S::pre_init_wrong_adapter;
   struct Observation {GpuMemorySnapshot memory;std::uint64_t now;};
   const auto baseline=valid();
   auto old=baseline;old.captured_ms=1010;
-  auto fresh=baseline;fresh.captured_ms=1070;
+  auto fresh=baseline;fresh.captured_ms=1070;fresh.local_usage+=4096;
   const Observation stale{old,1061},renewed{fresh,1075};
   const auto attempt=[&](Observation first,Observation second,unsigned queries,S expected=S::none,
       E category=E::temporary_pressure) {
     const std::array observations{first,second};
     unsigned reads=0,clocks=0;
     const auto read=[&] {
-      require(reads<observations.size() && reads==clocks,"unexpected completion observation");
+      require(reads<observations.size() && reads==clocks,"unexpected HIP memory observation");
       return observations.at(reads++).memory;
     };
     const auto clock=[&]{return observations.at(clocks++).now;};
     try {
-      require_fresh_hip_completion(read,clock,identity,1,16492,baseline);
-      require(expected==S::none,"completion observation accepted after refusal");
+      const auto admitted=read_fresh_hip_memory(read,clock,identity,1,16492,point,completing?&baseline:nullptr);
+      require(expected==S::none,"HIP memory observation accepted after refusal");
+      require(admitted.captured_ms==observations[queries-1].memory.captured_ms &&
+          admitted.local_usage==observations[queries-1].memory.local_usage,
+          "HIP memory admission did not retain the accepted observation");
     }catch(const HipWorkerFailure& failure){
-      require(failure.stage==expected && failure.code==category,"completion observation refusal category");
+      require(failure.stage==expected && failure.code==category,"HIP memory observation refusal category");
     }
-    require(reads==queries && clocks==queries,"wrong number of completion queries");
+    require(reads==queries && clocks==queries,"wrong number of HIP memory queries");
   };
   attempt({old,1060},renewed,1); // Exact age boundary.
   attempt(stale,renewed,2);
-  attempt({old,1009},renewed,1,S::completed_stale_budget);
-  attempt(stale,{fresh,1121},2,S::completed_stale_budget);
+  attempt({old,1009},renewed,1,stale_stage);
+  attempt(stale,{fresh,1121},2,stale_stage);
   auto cached=old;cached.captured_ms=1060;
-  attempt(stale,{cached,1062},2,S::completed_stale_budget);
-  attempt(stale,{fresh,1060},2,S::completed_stale_budget);
+  attempt(stale,{cached,1062},2,stale_stage);
+  attempt(stale,{fresh,1060},2,stale_stage);
   auto pressure=old;pressure.commit_available=0;
-  attempt({pressure,1061},renewed,1,S::completed_headroom);
+  attempt({pressure,1061},renewed,1,pressure_stage);
   pressure=fresh;pressure.physical_available=0;
-  attempt(stale,{pressure,1075},2,S::completed_headroom);
+  attempt(stale,{pressure,1075},2,pressure_stage);
   auto invalid=old;invalid.valid=false;
-  attempt({invalid,1061},renewed,1,S::completed_invalid_budget,E::device_fault);
+  attempt({invalid,1061},renewed,1,invalid_stage,E::device_fault);
   invalid=fresh;invalid.valid=false;
-  attempt(stale,{invalid,1075},2,S::completed_invalid_budget,E::device_fault);
-  auto wrong=old;++wrong.dedicated_bytes;
-  attempt({wrong,1061},renewed,1,S::completed_wrong_adapter,E::device_fault);
+  attempt(stale,{invalid,1075},2,invalid_stage,E::device_fault);
+  auto wrong=old;wrong.luid[1]=std::byte{1};
+  attempt({wrong,1061},renewed,1,wrong_stage,E::device_fault);
   wrong=fresh;wrong.luid[1]=std::byte{1};
-  attempt(stale,{wrong,1075},2,S::completed_wrong_adapter,E::device_fault);
-  auto spill=old;spill.nonlocal_usage+=32ULL<<20;
-  attempt({spill,1061},renewed,1,S::completed_nonlocal_growth);
-  spill=fresh;spill.nonlocal_usage+=32ULL<<20;
-  attempt(stale,{spill,1075},2,S::completed_nonlocal_growth);
-  auto prior=old;prior.captured_ms=999;
-  attempt({prior,1061},renewed,1,S::completed_stale_budget);
+  attempt(stale,{wrong,1075},2,wrong_stage,E::device_fault);
+  wrong=fresh;++wrong.dedicated_bytes;
+  attempt(stale,{wrong,1075},2,wrong_stage,E::device_fault);
+  if(completing) {
+    wrong=old;++wrong.dedicated_bytes;
+    attempt({wrong,1061},renewed,1,wrong_stage,E::device_fault);
+    auto spill=old;spill.nonlocal_usage+=32ULL<<20;
+    attempt({spill,1061},renewed,1,S::completed_nonlocal_growth);
+    spill=fresh;spill.nonlocal_usage+=32ULL<<20;
+    attempt(stale,{spill,1075},2,S::completed_nonlocal_growth);
+    auto prior=old;prior.captured_ms=999;
+    attempt({prior,1061},renewed,1,stale_stage);
+  }
 }
 }
 int main(){
   try {
-    completion_observations();
+    refreshed_observations(HipMemoryPoint::pre_initialize);
+    refreshed_observations(HipMemoryPoint::completed);
     using E=HipWorkerExit;
     struct Point {HipMemoryPoint point;const char* invalid;const char* stale;const char* adapter;const char* headroom;const char* growth;};
     for(const auto row:{

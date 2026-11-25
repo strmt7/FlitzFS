@@ -1179,11 +1179,19 @@ int uniform_repeated_gpu_once(int argc,wchar_t** argv) {
     ++children;
     require(result.process.exit_confirmed && WorkerExchangeSession::available(),"Repeated experiment did not retire");
   };
+  const auto report_refusal=[&](const WorkerExchangeResult& result) {
+    std::cerr<<"prepared_requests_refusal code="<<static_cast<unsigned>(result.code)
+        <<" worker_exit="<<result.process.exit_code<<" timed_out="<<result.process.timed_out
+        <<" cancelled="<<result.process.cancelled<<" admitted="<<admitted
+        <<" completed="<<result.completed_requests<<" first_ready_ns="<<ready[0]
+        <<" second_ready_ns="<<ready[1]<<" publication_observed="<<result.publication_observed<<'\n';
+  };
   if(cold){
     for(std::uint32_t i=0;i<jobs;++i){
       const auto result=WorkerExchangeSession::run_prepared_sized(worker,arguments,requests[i],single,budget,{},
           [&]{return static_cast<bool>(prepare(i));});
       retired(result);
+      if(result.code!=WorkerExchangeCode::completed)report_refusal(result);
       require(result.code==WorkerExchangeCode::completed,"Cold uniform worker failed");
       accept(result.response,i);
     }
@@ -1199,8 +1207,10 @@ int uniform_repeated_gpu_once(int argc,wchar_t** argv) {
       require(admitted==1 && ready[1] && result.code==WorkerExchangeCode::cancelled && result.process.exit_code==0 &&
           result.response.empty() && !result.publication_observed,"Refused warm worker exposed a result");
     }else{
-      require(admitted==jobs && result.code==WorkerExchangeCode::completed &&
-          (!finish || result.completed_requests==jobs),"Repeated uniform worker failed");
+      const bool complete=admitted==jobs && result.code==WorkerExchangeCode::completed &&
+          (!finish || result.completed_requests==jobs);
+      if(!complete)report_refusal(result);
+      require(complete,"Repeated uniform worker failed");
       auto sequence=std::span<const std::byte>(result.response);
       for(std::uint32_t i=0;i<jobs;++i)accept(take_prepared_reply(sequence),i);
       require(sequence.empty(),"Unexpected repeated uniform reply tail");

@@ -23,7 +23,12 @@ int main() {
         flitzfs::HipWorkerStage::completed_nonlocal_growth)==0x46531f05U,"new memory diagnostic bytes changed");
     require(flitzfs::hip_worker_diagnostic_exit(flitzfs::HipWorkerExit::device_fault,
         flitzfs::HipWorkerStage::sweep_readback)==0x46532405U,"sweep readback wire stage differs");
-    for(const auto code:{0U,1460U,0xffffffffU,0x46532a02U,0x4653ff04U,0x46530100U,0x46530107U,0x47530102U}) {
+    require(flitzfs::hip_worker_diagnostic_exit(flitzfs::HipWorkerExit::runtime_unavailable,
+        flitzfs::HipWorkerStage::sweep_event_not_ready)==0x46532a02U,"sweep pending diagnostic changed");
+    constexpr auto first_unknown_stage=flitzfs::kHipWorkerLastStage+1;
+    static_assert(first_unknown_stage<=255);
+    constexpr auto unknown_stage_exit=0x46530002U|(first_unknown_stage<<8);
+    for(const auto code:{0U,1460U,0xffffffffU,unknown_stage_exit,0x4653ff04U,0x46530100U,0x46530107U,0x47530102U}) {
       require(flitzfs::hip_worker_exit_category(code)==code,"foreign or unknown code was normalized");
       require(flitzfs::hip_worker_exit_stage(code)==flitzfs::HipWorkerStage::none,"foreign code invented evidence");
     }

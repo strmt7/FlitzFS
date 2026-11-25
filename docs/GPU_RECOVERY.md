@@ -121,6 +121,34 @@ in one AMD exchange. It published one additional group and declined the other.
 All twelve files passed CPU readback. The worker and controller retired.
 [Source-bound recovery evidence](evidence/amd-installed-recovery-2026-11-18.json)
 
+### Fresh observations before worker startup
+
+A live prepared compression worker previously reported a stale memory
+sample before HIP initialization. Prepared compression and native LZ4 read
+workers now use the same bounded renewal rule as completed compression. If age alone prevented admission, the worker takes one newer
+measurement from its selected adapter sampler. The timestamp includes the
+whole query and continues to use the existing 50 ms age limit. The second
+measurement must begin after expiration was observed and retain the adapter
+LUID, node and dedicated capacity. Both measurements pass the same resource
+checks. The uniform compression engine retains the accepted sample as its
+pre-initialization baseline.
+
+An invalid budget, changed adapter, constrained headroom or reversed clock
+keeps the original failure classification. A replacement that is itself
+stale still yields temporary pressure. The single renewal takes place
+inside the existing supervised worker lifetime. The owner can select CPU
+if the worker declines admission, with the existing retirement rules.
+[Windows query contract](https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/nf-dxgi1_4-idxgiadapter3-queryvideomemoryinfo) ·
+[Windows elapsed time](https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-gettickcount64) ·
+[Source and validation evidence](evidence/windows-hip-startup-budget-renewal-2026-11-25.json)
+
+The rebuilt reader delivered two checked extents in the live Radeon WinFsp
+fixture. The compression worker passed the offline SDK build and CPU
+qualification. One prepared compression burst failed to verify both
+replies. The probe now records the worker exit, timeout, readiness and
+completion details for a follow-up. Existing host engine load deferred
+that follow-up. [Device and SDK results](evidence/windows-hip-startup-budget-renewal-2026-11-25.json)
+
 ## Windows device readiness during driver changes
 
 Configuration Manager supplies a read-only view of the present AMD PCI display

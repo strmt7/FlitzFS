@@ -3,6 +3,8 @@
   "updated": "2026-11-25",
   "forward_work_rule": "Use current_release_sequence for integration order, and execution_programme and the implementation plan for package dependencies and exits. Historical checkpoints describe completed or partial evidence.",
   "current_release_sequence": {
+    "latest_hip_startup_budget_renewal": "docs/evidence/windows-hip-startup-budget-renewal-2026-11-25.json",
+    "tested_hip_startup_budget_renewal_tree": "44fc1cd768035798d224336913810c73a3eed7d5",
     "latest_packed_inode_layout": "docs/evidence/windows-packed-inodes-and-radeon-2026-11-25.json",
     "tested_packed_inode_layout_tree": "f4fc420feb626a45bc98d534dbfe7105c9d1c9be",
     "latest_small_file_layout_frontier": "docs/evidence/windows-small-file-layout-frontier-2026-11-25.json",

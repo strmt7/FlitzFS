@@ -1,0 +1,555 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "source": {
+    "parent": "721ad5782c358d01b4822b07d6caeb9d0d22267b",
+    "base_tree": "91bf2cba915ba92abc0883a1dfb9380edac1b629",
+    "tree": "44fc1cd768035798d224336913810c73a3eed7d5",
+    "elements": [
+      {
+        "path": "src/windows/hip_uniform_lz4_compute.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "606eb56d662ff7ddf83c5f1ad472b8aff58e92ef",
+        "bytes": 23867
+      },
+      {
+        "path": "src/windows/hip_worker_budget.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "2cb297ed0c1a3d143d5c400114f0367939091449",
+        "bytes": 4785
+      },
+      {
+        "path": "src/windows/hip_worker_main.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "b1a52b32aaf911fee6400d3fe241fe40b0f80ff4",
+        "bytes": 58809
+      },
+      {
+        "path": "tests/test_hip_worker_budget.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "afe1a68e7371efa9391b568fdc38a914dcc244f5",
+        "bytes": 8132
+      },
+      {
+        "path": "tests/test_hip_worker_exit.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "7fa3e69aec76fa4e567e87ab05bc67e30032f832",
+        "bytes": 3109
+      }
+    ]
+  },
+  "diagnostic_source": {
+    "parent": "721ad5782c358d01b4822b07d6caeb9d0d22267b",
+    "base_tree": "91bf2cba915ba92abc0883a1dfb9380edac1b629",
+    "tree": "8717aca842dad601f58aaae17ea28ca0927b4484",
+    "elements": [
+      {
+        "path": "src/windows/hip_uniform_lz4_compute.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "606eb56d662ff7ddf83c5f1ad472b8aff58e92ef",
+        "bytes": 23867
+      },
+      {
+        "path": "src/windows/hip_worker_budget.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "2cb297ed0c1a3d143d5c400114f0367939091449",
+        "bytes": 4785
+      },
+      {
+        "path": "src/windows/hip_worker_main.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "b1a52b32aaf911fee6400d3fe241fe40b0f80ff4",
+        "bytes": 58809
+      },
+      {
+        "path": "tests/rocm_compile/lz4_runtime_probe.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "ad2aa4ac546048f483ea371c73851836143a75fc",
+        "bytes": 103915
+      },
+      {
+        "path": "tests/test_hip_worker_budget.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "afe1a68e7371efa9391b568fdc38a914dcc244f5",
+        "bytes": 8132
+      },
+      {
+        "path": "tests/test_hip_worker_exit.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "7fa3e69aec76fa4e567e87ab05bc67e30032f832",
+        "bytes": 3109
+      }
+    ]
+  },
+  "live_source_search": {
+    "receipt_sha256": "5993414548bbc961b6c533e14d2bd34ca8724cd1ed25543134bbe38865eaebfb",
+    "native_response_sha256": "cd914816498f9c7dc8e96223ddf71f7027fac9bdcbe14cf6c882ed29909c06f2",
+    "provider_version": "0.2.43",
+    "actual_searches": 1
+  },
+  "scope": "HIP startup budget renewal, CPU diagnostics, source-verified ROCm workers and live Radeon fixtures",
+  "prior_refusal": {
+    "evidence": "docs/evidence/windows-packed-inodes-and-radeon-2026-11-25.json",
+    "exit_code": 1179849476,
+    "stage": "pre_init_stale_budget"
+  },
+  "policy": {
+    "unchanged_max_age_ms": 50,
+    "maximum_renewals_per_observation": 1,
+    "same_adapter_node_and_capacity": true,
+    "checks_both_observations": true,
+    "uses_accepted_baseline": true,
+    "renewal_branch_forced_on_live_device": false
+  },
+  "tests": {
+    "release_tests": {
+      "passed": [
+        "bounded_hip_memory_metadata_wire",
+        "bounded_hip_memory_predicates",
+        "bounded_hip_exit_diagnostics"
+      ],
+      "stdout_sha256": "ca9d68a83c4e0c53d43989fd50ce7688094050135f4a5d39e018bb30112b7d93",
+      "supervisor_receipt_sha256": "040666271be6abaa30d2e964ad24bd28bdc28f9ab2e4e556e6266c7652c96731",
+      "exit_code": 0,
+      "peak_job_bytes": 9195520,
+      "process_tree_retired": true,
+      "children_at_root_exit": 0
+    },
+    "raw_tests": {
+      "passed": [
+        "bounded_hip_memory_predicates"
+      ],
+      "stdout_sha256": "acb1d3c885530c7f9cbf190fd076a8200a28e3605cb8a9039eb89471e8e48cba",
+      "supervisor_receipt_sha256": "f57176f2d5e06c906d2fff0ed776ca2f4b8df02fdbbde6b4aaef62f351eb0ae5",
+      "exit_code": 0,
+      "peak_job_bytes": 9289728,
+      "process_tree_retired": true,
+      "children_at_root_exit": 0
+    },
+    "asan_tests": {
+      "passed": [
+        "windows_asan_runtime_preflight",
+        "bounded_hip_memory_predicates"
+      ],
+      "stdout_sha256": "d9a5f9236e8408f951064a872cb9e809543270990bcc117abfbfec1bf1c7d120",
+      "supervisor_receipt_sha256": "67e299b61afd38308b63b35b01156c653d1c7b8a02a290886d9bbc6d854cf65b",
+      "exit_code": 0,
+      "peak_job_bytes": 62267392,
+      "process_tree_retired": true,
+      "children_at_root_exit": 0
+    },
+    "asan_runtime_preflight": {
+      "passed": [
+        "windows_asan_runtime_preflight"
+      ],
+      "stdout_sha256": "d79ef4d6592b6d0fbf156ecbe1568c77beed3522cc1ebebf361d85d11d75cf78",
+      "supervisor_receipt_sha256": "68c6f0e40e26a93c6ed64f5850cc3918df7af3c768808083d6f933395c4b54d2",
+      "exit_code": 0,
+      "peak_job_bytes": 10776576,
+      "process_tree_retired": true,
+      "children_at_root_exit": 0
+    },
+    "deterministic": {
+      "checks": 299,
+      "gpu_executed": false,
+      "stdout_sha256": "a9dcc56b3cd86c869c6d6a901cc8b0422ddbb6780a22eefd72f3f44515899b34",
+      "supervisor_receipt_sha256": "d3f56dea56ae9cb4ab2ce1c67631bf5501ba363e7960448cb9937bedded10f60",
+      "exit_code": 0,
+      "peak_job_bytes": 2260992,
+      "process_tree_retired": true,
+      "children_at_root_exit": 0
+    },
+    "sdk_uniform_cpu": {
+      "cases": {
+        "checks": 6287,
+        "scenarios": 113,
+        "successes": 17,
+        "refusals": 96,
+        "decoder_available": true,
+        "guarded_exit_confirmed": true,
+        "hip_runtime_loaded": false,
+        "gpu_executed": false,
+        "complete": true
+      },
+      "stdout_sha256": "72589babcca6af2fddf382a67af43286645f7482c55a7555533bf6760705589b",
+      "supervisor_receipt_sha256": "bc1e16f1078a2ee4b0d2eda9cf62f4b97758008dd9d80ccfc22f125ab70f4750",
+      "exit_code": 0,
+      "peak_job_bytes": 16384000,
+      "process_tree_retired": true,
+      "children_at_root_exit": 0
+    }
+  },
+  "sdk": {
+    "distribution": "10.2.0",
+    "source_qualification_sha256": "e66e38bf17ee6ad562e24a5f57b183fd43ffe56cf0037c48c7f8958844c264a3",
+    "device_targets": [
+      "gfx1100",
+      "gfx1101",
+      "gfx1102",
+      "gfx1151",
+      "gfx1200",
+      "gfx1201"
+    ],
+    "offline_device_object_sha256": "4f34103d9b51591d43dd8197c4a1c301984088dd1826c8e9d567cef223aa22ba",
+    "process_receipts": {
+      "native_read_build": {
+        "stdout_sha256": "cc2a7aaad9dc920acb19a2a52cbe48488f02088129d0db722560a7f4300001d9",
+        "supervisor_receipt_sha256": "38ec84b28a1fede9ad85a4c9c3f2b436668b947e53a0739e7e3147a5153056f1",
+        "exit_code": 0,
+        "peak_job_bytes": 598487040,
+        "process_tree_retired": true,
+        "children_at_root_exit": 1
+      },
+      "offline_compile": {
+        "stdout_sha256": "8e85d7d785f5a609536dac9d7f0f88f32cde6006439e1dd57ca2297119062a82",
+        "supervisor_receipt_sha256": "d77f949cb0f2449cedde711b5b7ecbe36fe87ceee0d8b9a04e5ea5bc066b4979",
+        "exit_code": 0,
+        "peak_job_bytes": 340054016,
+        "process_tree_retired": true,
+        "children_at_root_exit": 0
+      },
+      "uniform_sdk_build": {
+        "stdout_sha256": "0002b43fc6712b7b321ef533f61057aa0148eb7c0156126c622c5c5cadeb72e8",
+        "supervisor_receipt_sha256": "3cf79ce01a1c904e0954a309796cf109397c79c72adf43650566d3c413de97a5",
+        "exit_code": 0,
+        "peak_job_bytes": 768569344,
+        "process_tree_retired": true,
+        "children_at_root_exit": 1
+      },
+      "diagnostic_build": {
+        "stdout_sha256": "80ac76ac55fb82cf5114821cf478d9fef694334bd1bf9a8102c6307c192e041e",
+        "supervisor_receipt_sha256": "95789e1dbc4cae8f8780b4d7b6013b94eb66db3840424947948ad7afcb995076",
+        "exit_code": 0,
+        "peak_job_bytes": 384212992,
+        "process_tree_retired": true,
+        "children_at_root_exit": 1
+      }
+    },
+    "prior_build_attempts": {
+      "limited_workspace_refused": {
+        "stdout_sha256": "10240f2029bb5dc6531377c3ddd1adec2188b312318c33beecf8a46b353d220f",
+        "supervisor_receipt_sha256": "780b59c207b4dc8dd13674a1b6be301e5818ea1948eb0b7a8c1c1452c310abd4",
+        "exit_code": 1,
+        "peak_job_bytes": 138731520,
+        "process_tree_retired": true,
+        "children_at_root_exit": 1
+      },
+      "long_output_path_refused": {
+        "stdout_sha256": "edcd5b609858f869d191af036579330f11bc594fd0f74d1dacef1fc6d196877f",
+        "supervisor_receipt_sha256": "4bfb6993e05eb0f1aa4a4be7b9675f04eba94432b1e8640999eeebdf517593d1",
+        "exit_code": 1,
+        "peak_job_bytes": 285650944,
+        "process_tree_retired": true,
+        "children_at_root_exit": 0
+      },
+      "missing_abi_headers_refused": {
+        "stdout_sha256": "569c7106996a34409678fa7080c50d16d4ed0b63c64bef410a8336bb8be02a29",
+        "supervisor_receipt_sha256": "1652074de2b4512e09195d2134cf1d9ae8d1bd7ec06f474fcc2ad00b97a2e776",
+        "exit_code": 1,
+        "peak_job_bytes": 328138752,
+        "process_tree_retired": true,
+        "children_at_root_exit": 1
+      }
+    }
+  },
+  "radeon": {
+    "stages": {
+      "reader": {
+        "manifest_sha256": "3879b8647d00df150fdcc2d870f420881703d8835461625e71a2ce49b7181d18",
+        "artifacts": {
+          "flitzfs_winfsp_paged_tests.exe": {
+            "sha256": "b6ddf846067ea298eccb07bbcf1c3da2ccee5af94662b4c9da008f4a8bfd17f0",
+            "bytes": 2338816
+          },
+          "winfsp-x64.dll": {
+            "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+            "bytes": 200816
+          },
+          "flitzfs_native_lz4_read_worker.exe": {
+            "sha256": "3376c5a48c9a422302228047982b4d86bd1a1603a2d7695882c048835442fb5c",
+            "bytes": 581120
+          },
+          "flitzfs_rocm_native_lz4_decode.dll": {
+            "sha256": "9ac5bb33a7b39ae26712dcdcfcdeb6b4b5fc049175e18dd6f24d047a37b3e128",
+            "bytes": 173568
+          }
+        }
+      },
+      "compressor": {
+        "manifest_sha256": "8a650b6adadadad08a9f1a2fd62a595c119a5a2dfb5bbf6c0878dc9b51306b88",
+        "artifacts": {
+          "flitzfs_hip_lz4_worker.exe": {
+            "sha256": "0a79a5735c6ec402d887dcfe40c41e7d90e5b98c9012dd7ffdb9a1bd3b635318",
+            "bytes": 624128
+          },
+          "flitzfs_lz4_runtime_probe.exe": {
+            "sha256": "e4d67d60b1bc71ef5a20c52067bf8e0d9abb8dcc36db0b8ca2521da504ab11c6",
+            "bytes": 1748480
+          },
+          "hip-uniform-lz4/flitzfs_rocm_uniform_lz4_candidate.dll": {
+            "sha256": "8eb8ed7c8d22129af6a209592d4e81985e8a5c5c4dbed7c4bdefbed68e9cdb00",
+            "bytes": 322048
+          },
+          "hip-lz4/flitzfs_rocm_lz4_candidate.dll": {
+            "sha256": "1ef841997059ddc0b5c6604f8224495e0cb720a15bce79d56205cd17f5d02861",
+            "bytes": 322048
+          }
+        }
+      },
+      "diagnostic": {
+        "manifest_sha256": "e8d2c9c7fc4ad54ba5f4df9befb5a03c4ed45fa66af78e35e952e31dfb9bcd98",
+        "artifacts": {
+          "flitzfs_hip_lz4_worker.exe": {
+            "sha256": "0a79a5735c6ec402d887dcfe40c41e7d90e5b98c9012dd7ffdb9a1bd3b635318",
+            "bytes": 624128
+          },
+          "flitzfs_lz4_runtime_probe.exe": {
+            "sha256": "4d198b5e364699f33265c52a3b4e66d9be6663ac8ff7008b303f6ad066477f30",
+            "bytes": 1749504
+          },
+          "hip-uniform-lz4/flitzfs_rocm_uniform_lz4_candidate.dll": {
+            "sha256": "8eb8ed7c8d22129af6a209592d4e81985e8a5c5c4dbed7c4bdefbed68e9cdb00",
+            "bytes": 322048
+          },
+          "hip-lz4/flitzfs_rocm_lz4_candidate.dll": {
+            "sha256": "1ef841997059ddc0b5c6604f8224495e0cb720a15bce79d56205cd17f5d02861",
+            "bytes": 322048
+          }
+        }
+      }
+    },
+    "observations": [
+      {
+        "observation": {
+          "admitted": false,
+          "reason": "Existing host load above the fixture envelope",
+          "utc": "2026-11-25T20:38:19.5773404Z",
+          "driver": "32.0.32029.2010",
+          "build": "26300",
+          "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+          "luid": "9d75010000000000",
+          "available_bytes": 16312524800,
+          "reserved_bytes": 4294967296,
+          "gpu_peak": 100.31624616628866,
+          "cpu_peak": 9.120472051300954,
+          "target_samples": 832
+        },
+        "stdout_sha256": "a1a728aae3028140cf8be9beaff8857acf99f2966c60553dfe4ac07793821d67",
+        "supervisor_receipt_sha256": "90d29a1fc49d6047e4dede47ba7dff5b3d7d9740b65ca758f1d495619d56ca6a",
+        "exit_code": 0,
+        "peak_job_bytes": 102240256,
+        "process_tree_retired": true,
+        "children_at_root_exit": 0
+      },
+      {
+        "observation": {
+          "admitted": true,
+          "reason": null,
+          "utc": "2026-11-25T20:51:07.2795167Z",
+          "driver": "32.0.32029.2010",
+          "build": "26300",
+          "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+          "luid": "9d75010000000000",
+          "available_bytes": 27236139008,
+          "reserved_bytes": 4294967296,
+          "gpu_peak": 1.7625972077890093,
+          "cpu_peak": 18.928442163035875,
+          "target_samples": 816
+        },
+        "stdout_sha256": "7d4d1f4cbcf8fd6d59750ba86fc11ef5b15c3b91778f4ee644dfb694069b4398",
+        "supervisor_receipt_sha256": "f8b4b6e84c5dbcc21f75fdcf5b22d267fa7c116f2a2409cbfa81d6b0b1bcf335",
+        "exit_code": 0,
+        "peak_job_bytes": 98676736,
+        "process_tree_retired": true,
+        "children_at_root_exit": 0
+      },
+      {
+        "observation": {
+          "admitted": false,
+          "reason": "Existing host load above the fixture envelope",
+          "utc": "2026-11-25T20:55:54.5590058Z",
+          "driver": "32.0.32029.2010",
+          "build": "26300",
+          "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+          "luid": "9d75010000000000",
+          "available_bytes": 15517843456,
+          "reserved_bytes": 4294967296,
+          "gpu_peak": 100.53640307995417,
+          "cpu_peak": 21.911791131778603,
+          "target_samples": 848
+        },
+        "stdout_sha256": "0850732d384f000ec27325f7860d973be17a133b438a65fbe216dbf5cc8fb907",
+        "supervisor_receipt_sha256": "2f23ad5ca592a5ea1b6eb7b53816a016652f59c3ebb680278263eda94f0a81a9",
+        "exit_code": 0,
+        "peak_job_bytes": 106004480,
+        "process_tree_retired": true,
+        "children_at_root_exit": 0
+      },
+      {
+        "observation": {
+          "admitted": true,
+          "reason": null,
+          "utc": "2026-11-25T20:57:39.4544647Z",
+          "driver": "32.0.32029.2010",
+          "build": "26300",
+          "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+          "luid": "9d75010000000000",
+          "available_bytes": 29834518528,
+          "reserved_bytes": 4294967296,
+          "gpu_peak": 1.8184598839155772,
+          "cpu_peak": 20.449723023057885,
+          "target_samples": 832
+        },
+        "stdout_sha256": "9719d21c24c3efbc64c8d3f21fc588cd832d7d49abcaec8da656c7dca7139c82",
+        "supervisor_receipt_sha256": "f861b31f5cfe37d8444803cc57fabc4034314681a6cfa6bf5894a3d0b2fdc2c1",
+        "exit_code": 0,
+        "peak_job_bytes": 105492480,
+        "process_tree_retired": true,
+        "children_at_root_exit": 0
+      },
+      {
+        "observation": {
+          "admitted": false,
+          "reason": "Existing host load above the fixture envelope",
+          "utc": "2026-11-25T20:58:34.8247409Z",
+          "driver": "32.0.32029.2010",
+          "build": "26300",
+          "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+          "luid": "9d75010000000000",
+          "available_bytes": 14986637312,
+          "reserved_bytes": 4294967296,
+          "gpu_peak": 99.31566421716008,
+          "cpu_peak": 18.97987017400563,
+          "target_samples": 848
+        },
+        "stdout_sha256": "5e78bdb3735f2a6a5914bb9637fc0ab12c006f235627b9c02ccff098a8517e55",
+        "supervisor_receipt_sha256": "04534ea6b0718a8fc1030146c42704da1ef38367661cae68634545724e5ea21f",
+        "exit_code": 0,
+        "peak_job_bytes": 109359104,
+        "process_tree_retired": true,
+        "children_at_root_exit": 0
+      },
+      {
+        "observation": {
+          "admitted": false,
+          "reason": "Existing host load above the fixture envelope",
+          "utc": "2026-11-25T21:00:07.4332837Z",
+          "driver": "32.0.32029.2010",
+          "build": "26300",
+          "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+          "luid": "9d75010000000000",
+          "available_bytes": 15984054272,
+          "reserved_bytes": 4294967296,
+          "gpu_peak": 98.15168842747778,
+          "cpu_peak": 7.737080312467093,
+          "target_samples": 848
+        },
+        "stdout_sha256": "fd1f3f02a4b987401b9b4e2a0df0372bbe4d21b46f99b467748aec2d7b80e522",
+        "supervisor_receipt_sha256": "56722024c77cffb6255b6b21bf98b9ef9cf8cfdac66f0e2a5232cbbf626d4d3b",
+        "exit_code": 0,
+        "peak_job_bytes": 94515200,
+        "process_tree_retired": true,
+        "children_at_root_exit": 0
+      }
+    ],
+    "read": {
+      "worker": {
+        "mixed": 1,
+        "prepared": 1,
+        "verified": 2,
+        "worker_ms": 7844,
+        "prepared_submit_ms": 7875,
+        "retargeted": 0,
+        "exact_child_retired": 1
+      },
+      "delivered": {
+        "mixed": 1,
+        "ready_hits": 2,
+        "late_refused": 1,
+        "cpu_readback": 1,
+        "backing_writes": 0,
+        "unrelated_callbacks_retained": 1,
+        "checkpoint_change_refused": 0,
+        "expanded": 0,
+        "callbacks": 1,
+        "variable_widths": 0,
+        "cpu_prefix": 0
+      },
+      "stdout_sha256": "834356fec1208c9bc0b5aa3c52ac5493873f5a2fe3b3ebf7dd61caa56f3f4c6b",
+      "supervisor_receipt_sha256": "ec11c5882cbcdb8022c73d54f314fecad667ac297f910a77c3cc3b4a0f2632e9",
+      "exit_code": 0,
+      "peak_job_bytes": 100519936,
+      "process_tree_retired": true,
+      "children_at_root_exit": 0
+    },
+    "prepared_write_verified": false,
+    "prepared_write_attempts": [
+      {
+        "verified": false,
+        "failure": "Prepared burst failed before producing a verified reply",
+        "stdout_sha256": "9281db09dbd779630ad39f81d8e1cc23fcd009b92fc4caca74626894b579fce8",
+        "supervisor_receipt_sha256": "625ede2417c82fd945f96acfb9c477777e5ea5cc7bc479ae8acb299fc82da2c9",
+        "exit_code": 1,
+        "peak_job_bytes": 83042304,
+        "process_tree_retired": true,
+        "children_at_root_exit": 0
+      }
+    ],
+    "write_inputs": {
+      "source": "Lib/test/test_clinic.py",
+      "extents": [
+        {
+          "bytes": 65536,
+          "sha256": "35c1aeb74c16acb53caae17adaaac6f47ffc09d4d281bab6ad67341467193a82"
+        },
+        {
+          "bytes": 65536,
+          "sha256": "c330bd2479b21b2e9522956a597fb50644211d4d0f91878506c5251823190bb8"
+        }
+      ]
+    },
+    "ordinary_mounted_acceleration_qualified": false
+  },
+  "primary_sources": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "d87c9792c53d6a25bec8daa15008e3deaf6fec46ba452e647257711dcc8f32c7",
+    "pages": [
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/nf-dxgi1_4-idxgiadapter3-queryvideomemoryinfo",
+        "final_http_status": 200,
+        "capture_sha256": "e9650957125fe8dd3dd20f64843e2ec442a73ed61156039d4bff419d49c079ca",
+        "markdown_sha256": "5b279b15cc64337766a88fc68f660baeadfd4a87f24a43920f5ca7ea669a62df"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/ns-dxgi1_4-dxgi_query_video_memory_info",
+        "final_http_status": 200,
+        "capture_sha256": "f72a76d90fadade95828e7f4075bfdf69b0551687a1e1ad3250aee85ca83ad3c",
+        "markdown_sha256": "8113f919b68c514b8914e83ed94797a5d54ff95b3fde0906c5be892252cd2a95"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-gettickcount64",
+        "final_http_status": 200,
+        "capture_sha256": "6f4668a3c12687f3b7c476e697ba6167549a9bc5a06beb7169a8c97bb12a8920",
+        "markdown_sha256": "439ce2fe35860b4981991bf205c3c4f586e20f79716511ebddc84d20bcfa7392"
+      },
+      {
+        "url": "https://rocm.docs.amd.com/en/docs-10.2.0/about/release-notes.html",
+        "final_http_status": 200,
+        "capture_sha256": "d24ff4924fa4806e2feaf38fb0822bda9990ab17a6cecea75e3ec31e4783e5e3",
+        "markdown_sha256": "18caaf90d5ea55c1acb99c34abb277aa89c6eada8e5300b6ffdebe356e45a728"
+      }
+    ]
+  },
+  "release_qualified": false
+}

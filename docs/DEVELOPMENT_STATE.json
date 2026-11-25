@@ -6,6 +6,20 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "hip_startup_budget_renewal": {
+    "source_parent": "721ad5782c358d01b4822b07d6caeb9d0d22267b",
+    "tested_source_tree": "44fc1cd768035798d224336913810c73a3eed7d5",
+    "evidence": "docs/evidence/windows-hip-startup-budget-renewal-2026-11-25.json",
+    "budget_max_age_ms": 50,
+    "maximum_replacement_observations": 1,
+    "memory_predicate_checks": 299,
+    "uniform_sdk_cpu_scenarios": 113,
+    "live_radeon_group_read_hits": 2,
+    "live_prepared_compression_burst_verified": false,
+    "diagnostic_source_tree": "8717aca842dad601f58aaae17ea28ca0927b4484",
+    "automatic_foreground_write_qualified": false,
+    "release_qualified": false
+  },
   "packed_inode_layout": {
     "source_parent": "566026560a3bb804d758539866a9972a2695da70",
     "tested_source_tree": "f4fc420feb626a45bc98d534dbfe7105c9d1c9be",
