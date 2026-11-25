@@ -45,7 +45,7 @@ def copy_notices(destination, source_commit):
         ("BLAKE3-LICENSE-LLVM.txt", root / "third_party/blake3/LICENSE_A2LLVM", "BLAKE3-team/BLAKE3", "1.8.7"),
         ("BLAKE3-LICENSE-CC0.txt", root / "third_party/blake3/LICENSE_CC0", "BLAKE3-team/BLAKE3", "1.8.7"),
         ("Unicode-LICENSE.txt", root / "third_party/unicode-license.txt", "unicode.org", "18.0.0"),
-        ("Zstandard-LICENSE.txt", root / ".ci-deps/zstd/LICENSE", "meta/zstd", "f8745da6ff1ad1e7bab384bd1f9d742439278e99"),
+        ("Zstandard-LICENSE.txt", root / ".ci-deps/zstd/LICENSE", "meta/zstd", "916e8e70b33317d469a41ee837e47317807815c8"),
         ("LZ4-LICENSE.txt", root / ".ci-deps/lz4/LICENSE", "lz4/lz4", "aa4647fad575d01a874aaaadcdbe8e6a40e072f5"),
     )
     captures = []

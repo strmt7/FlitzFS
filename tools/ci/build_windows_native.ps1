@@ -22,14 +22,15 @@ $runtimeFlags = if ($PortableCpu) {
     @('-DCMAKE_POLICY_DEFAULT_CMP0091=NEW', '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded')
 } else { @() }
 foreach ($codec in @('zstd', 'lz4')) {
-    $pin = if ($codec -eq 'zstd') { 'f8745da6ff1ad1e7bab384bd1f9d742439278e99' } else { 'aa4647fad575d01a874aaaadcdbe8e6a40e072f5' }
+    $pin = if ($codec -eq 'zstd') { '916e8e70b33317d469a41ee837e47317807815c8' } else { 'aa4647fad575d01a874aaaadcdbe8e6a40e072f5' }
     $head = git -C ".ci-deps/$codec" rev-parse HEAD
     if ($LASTEXITCODE -or $head -ne $pin) { throw 'Native codec source identity differs' }
     git -C ".ci-deps/$codec" diff --quiet HEAD --
     if ($LASTEXITCODE) { throw 'Native codec source has tracked modifications' }
 }
-# Keep the pinned Zstandard project within the outer build process budget.
-cmake -S .ci-deps/zstd/build/cmake -B .ci-deps/zstd-build -A x64 -DZSTD_BUILD_PROGRAMS=OFF -DZSTD_BUILD_TESTS=OFF -DZSTD_BUILD_SHARED=OFF -DZSTD_BUILD_STATIC=ON -DZSTD_MULTITHREAD_SUPPORT=OFF -DACTIVATE_MULTITHREADED_COMPILATION=OFF "-DZSTD_USE_STATIC_RUNTIME=$zstdRuntime" @runtimeFlags
+# Keep the existing level-5 decoder coverage after the upstream default changed.
+# The native build still shares the outer process budget.
+cmake -S .ci-deps/zstd/build/cmake -B .ci-deps/zstd-build -A x64 -DZSTD_BUILD_PROGRAMS=OFF -DZSTD_BUILD_TESTS=OFF -DZSTD_BUILD_SHARED=OFF -DZSTD_BUILD_STATIC=ON -DZSTD_MULTITHREAD_SUPPORT=OFF -DZSTD_LEGACY_SUPPORT=ON -DZSTD_LEGACY_LEVEL=5 -DACTIVATE_MULTITHREADED_COMPILATION=OFF "-DZSTD_USE_STATIC_RUNTIME=$zstdRuntime" @runtimeFlags
 if ($LASTEXITCODE) { throw 'Zstandard configure failed' }
 cmake --build .ci-deps/zstd-build --config Release --parallel 2 -- /nr:false
 if ($LASTEXITCODE) { throw 'Zstandard build failed' }

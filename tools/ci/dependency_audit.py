@@ -19,7 +19,7 @@ from hosted_semantic import VERSION as SEMANTIC_VERSION, WHEEL_URL, WHEEL_SHA
 REPO="strmt7/FlitzFS"
 PINS=(
     ("cocoindex-io/cocoindex-code","v"+SEMANTIC_VERSION,"5676897a169fe1d46cf1e4d2eaf323c9d91c8587"),
-    ("meta/zstd","v1.5.7","f8745da6ff1ad1e7bab384bd1f9d742439278e99"),
+    ("meta/zstd","v1.6.0","916e8e70b33317d469a41ee837e47317807815c8"),
     ("lz4/lz4","v1.11.1","aa4647fad575d01a874aaaadcdbe8e6a40e072f5"),
     ("BLAKE3-team/BLAKE3","1.8.7","f3149ec5bb5449af877ba20377a11008ff499fa2"),
     ("winfsp/winfsp",None,None),

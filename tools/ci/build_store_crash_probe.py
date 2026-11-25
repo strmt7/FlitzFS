@@ -16,7 +16,8 @@ def main():
     build_options=["--","/nr:false"] if os.name=="nt" else []
     run(["cmake","-S",str(source/"build/cmake"),"-B",str(dependency),*arch,
          "-DCMAKE_BUILD_TYPE=Release","-DZSTD_BUILD_PROGRAMS=OFF","-DZSTD_BUILD_TESTS=OFF",
-         "-DZSTD_BUILD_SHARED=OFF","-DZSTD_BUILD_STATIC=ON","-DZSTD_MULTITHREAD_SUPPORT=OFF"])
+         "-DZSTD_BUILD_SHARED=OFF","-DZSTD_BUILD_STATIC=ON","-DZSTD_MULTITHREAD_SUPPORT=OFF",
+         "-DZSTD_LEGACY_SUPPORT=ON","-DZSTD_LEGACY_LEVEL=5"])
     run(["cmake","--build",str(dependency),"--config","Release","--target","libzstd_static","--parallel","2",*build_options],120)
     name="zstd_static.lib" if os.name=="nt" else "libzstd.a"
     libraries=list(dependency.rglob(name))

@@ -9,7 +9,7 @@ import shutil
 import subprocess
 import sys
 
-PINS={"zstd":"f8745da6ff1ad1e7bab384bd1f9d742439278e99",
+PINS={"zstd":"916e8e70b33317d469a41ee837e47317807815c8",
       "lz4":"aa4647fad575d01a874aaaadcdbe8e6a40e072f5"}
 def run(args,seconds=60):
     return subprocess.run(args,check=True,timeout=seconds,capture_output=False)
@@ -46,7 +46,8 @@ def main():
         source=root/".ci-deps"/codec;source_clean(source,PINS[codec])
         build=output/(codec+"-build")
         options=(["-DZSTD_BUILD_PROGRAMS=OFF","-DZSTD_BUILD_TESTS=OFF","-DZSTD_BUILD_SHARED=OFF",
-                  "-DZSTD_BUILD_STATIC=ON","-DZSTD_MULTITHREAD_SUPPORT=OFF"] if codec=="zstd" else
+                  "-DZSTD_BUILD_STATIC=ON","-DZSTD_MULTITHREAD_SUPPORT=OFF",
+                  "-DZSTD_LEGACY_SUPPORT=ON","-DZSTD_LEGACY_LEVEL=5"] if codec=="zstd" else
                  ["-DBUILD_SHARED_LIBS=OFF","-DBUILD_STATIC_LIBS=ON","-DLZ4_BUILD_CLI=OFF",
                   "-DLZ4_BUILD_LEGACY_LZ4C=OFF","-DLZ4_BUILD_MULTITHREAD=OFF",
                   "-DLZ4_STATIC_MULTITHREAD=OFF","-DLZ4_BUNDLED_MODE=ON"])

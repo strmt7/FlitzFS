@@ -266,6 +266,12 @@ unavailable telemetry rejects work; no GPU runtime or worker is initialized.
 
 ## Source and measured-comparison contract
 
+The current build pins Zstandard 1.6.0 and explicitly preserves the
+previous library's level-5 decoder setting. CPU readers built with
+1.5.7 and 1.6.0 exchanged protected indexed images with standalone and
+prefixed records and separately checked stored sequence frames.
+[Compatibility evidence](evidence/windows-mounted-sample-and-zstd-2026-11-25.json)
+
 The API review used native source bytes from
 [Zstandard 1.5.7 zstd.h](https://github.com/facebook/zstd/blob/f8745da6ff1ad1e7bab384bd1f9d742439278e99/lib/zstd.h),
 Git blob b8c0644a7ec6533916e06aa8392a2727cbe55573. The documented custom-memory

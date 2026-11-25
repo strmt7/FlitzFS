@@ -36,7 +36,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: meta/zstd
-          ref: f8745da6ff1ad1e7bab384bd1f9d742439278e99
+          ref: 916e8e70b33317d469a41ee837e47317807815c8
           path: .ci-deps/zstd
           persist-credentials: false
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1

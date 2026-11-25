@@ -302,13 +302,13 @@ or a new representation.
   now gives group work a way to accumulate fresh CPU-window credit.
   The paced replay completed and isolated a stale retry recommendation.
   The corrected signed build reached 503 sampled extents and kept
-  all live bytes independently readable. Replay the single-view candidate
-  through quiescence under the ordinary duty envelope. Compare
-  checked backing reads per new sample and per restart, eligible work
-  at each wake, and real allocation during the same trace. Use that
-  ledger to choose between eligibility, placement and local reuse.
+  all live bytes independently readable. The signed single-view replay
+  reached 610 samples and reduced backing reads at the same registered
+  controller quanta. Build a bounded ledger of eligible work, grants,
+  refused continuation and actual wakes before repeating the signed
+  trace through quiescence.
   [Signed replay and retained-peer evidence](evidence/windows-retained-short-peer-2026-11-25.json)
-  [Current indexed sample evidence](evidence/windows-indexed-sample-scope-2026-11-25.json)
+  [Current signed replay](evidence/windows-mounted-sample-and-zstd-2026-11-25.json)
 - **Useful device delivery.** Feed observed open stream ranges and
   generations to the existing owner. For read, write and collective work,
   compare CPU, cold GPU and a ready lease using identical observations.
@@ -1319,13 +1319,13 @@ person-weeks, with an explicitly open research tail.
 
 ### Research implications from current sources
 
-Treat the codec control and the restart layout as two separate experiments.
-Qualify Zstandard 1.6.0 against the pinned 1.5.7 static parameter and sequence
-APIs, old records and the same held-out cohorts. For a representation trial,
-vary the logical group size and the independently addressable unit separately
-on one frozen set. Count each dependency, offset entry and recovery copy.
-Use independent CPU range reads under partial failure and report mixed-size
-access cost along the occupied-size frontier.
+Use the separately verified Zstandard 1.6.0 build as the codec control.
+For a representation trial, vary the logical group size and the independently
+addressable unit separately on one frozen set. Count each dependency,
+offset entry and recovery copy. Use independent CPU range reads under
+partial failure and report mixed-size access cost along the occupied-size
+frontier.
+[Codec compatibility evidence](evidence/windows-mounted-sample-and-zstd-2026-11-25.json) ·
 [Zstandard 1.6.0](https://github.com/facebook/zstd/releases/tag/v1.6.0) ·
 [2026 restart-layout preprint](https://arxiv.org/abs/2609.16731)
 

@@ -6,7 +6,7 @@ $ErrorActionPreference='Stop'
 if ([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT) {
     throw 'Digest qualification uses native Windows process APIs'
 }
-$pin='f8745da6ff1ad1e7bab384bd1f9d742439278e99'
+$pin='916e8e70b33317d469a41ee837e47317807815c8'
 $head=git -C .ci-deps/zstd rev-parse HEAD
 if ($LASTEXITCODE -or $head -ne $pin) { throw 'Zstandard source identity' }
 git -C .ci-deps/zstd diff --quiet HEAD --
@@ -15,7 +15,7 @@ foreach ($path in @('.ci-deps/zstd-digest-build','build-digest-auto','build-dige
     if (Test-Path -LiteralPath $path) { throw 'Digest builds require fresh owned output paths' }
 }
 # Keep the pinned Zstandard project within the outer build process budget.
-cmake -S .ci-deps/zstd/build/cmake -B .ci-deps/zstd-digest-build -A x64 -DZSTD_BUILD_PROGRAMS=OFF -DZSTD_BUILD_TESTS=OFF -DZSTD_BUILD_SHARED=OFF -DZSTD_BUILD_STATIC=ON -DZSTD_MULTITHREAD_SUPPORT=OFF -DACTIVATE_MULTITHREADED_COMPILATION=OFF
+cmake -S .ci-deps/zstd/build/cmake -B .ci-deps/zstd-digest-build -A x64 -DZSTD_BUILD_PROGRAMS=OFF -DZSTD_BUILD_TESTS=OFF -DZSTD_BUILD_SHARED=OFF -DZSTD_BUILD_STATIC=ON -DZSTD_MULTITHREAD_SUPPORT=OFF -DZSTD_LEGACY_SUPPORT=ON -DZSTD_LEGACY_LEVEL=5 -DACTIVATE_MULTITHREADED_COMPILATION=OFF
 if ($LASTEXITCODE) { throw 'Digest codec configure' }
 cmake --build .ci-deps/zstd-digest-build --config Release --parallel 2 -- /nr:false
 if ($LASTEXITCODE) { throw 'Digest codec build' }

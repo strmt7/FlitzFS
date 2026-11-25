@@ -53,12 +53,36 @@ retained images.
 This reduces backing calls by 35.2% and 22.5% respectively. These
 counts cover the maintenance interval, excluding fixture creation and
 post-run verification. The I–P fixture contains the previously selected
-bounded extract from each of eight held-out files. The signed 6,293-record
-settlement witness remains bound to its earlier runtime. Replaying it now
-answers whether lower read cost changes completed work per opportunity and
-time to quiescence.
+bounded extract from each of eight held-out files.
 [Fixture and test evidence](evidence/windows-indexed-sample-scope-2026-11-25.json) ·
 [AITDCC 2026](https://aitdcc.github.io/)
+
+### Signed mounted replay and Zstandard update
+
+The published single-view scan passed the signed WinFsp replay on
+Windows 11 build 26100. The normalized 6,293 client records matched
+the prior replay. Independent CPU recovery verified all 1,027 live files.
+After churn, packed allocation fell from 827,719,680 to 6,717,440 bytes
+while attached. Reopen independently verified 6,488,064 allocated bytes
+with zero further reclaim. There were zero failed maintenance steps.
+
+In the same eight-minute observation the scanner covered 610 extents,
+up from 503. Backing read calls across maintenance fell from 45,489 to
+38,563. Both versions recorded 450 controller quanta. The final sample
+still reported a duty deferral, with an 11 ms recommendation. Continue
+with a bounded comparison of window credit, spent work and continuation
+refusals before another full quiescence replay.
+
+Zstandard 1.6.0 is now the pinned source dependency. Each of the 1.5.7
+and 1.6.0 builds independently recovered the other's protected CPU image.
+Both decoded six grouped files, a standalone compressed file and four
+frames produced with externally supplied matches. The two held-out
+corpus sizes matched. The build recipe explicitly retains the prior
+library's level-5 legacy decoder setting. The mounted replay used 1.5.7.
+The 1.6.0 artifact passed local Windows CPU, WinFsp SDK attachment and
+helper checks.
+[Signed replay and codec evidence](evidence/windows-mounted-sample-and-zstd-2026-11-25.json) ·
+[Zstandard 1.6.0](https://github.com/meta/zstd/releases/tag/v1.6.0)
 
 ## Cold copy and inner-phase visibility
 
@@ -442,7 +466,7 @@ Attribute resource cost and remaining work before changing either phase.
 | --- | --- | --- |
 | S1 · Exact artifacts | Current scoped builds bind source and SDK/CPU artifacts. Earlier real device runs identify their exact ROCm binaries. | Bind one clean Windows 11 update, signed WinFsp pair, helper, workers, CPU decoder table and backing capabilities to the acceptance run. |
 | S2 · Scale | Paged inodes, names and extents are live. Checked replica reads group adjacent frames in a leaf. A single checked view now supplies each maintenance sample. Writable startup still walks the inventory. | Verify bounded attach under a versioned authority contract. Fit and validate separate named-file curves for attach, restart, enumeration, mutation and resident memory. |
-| S3 · Space reuse | The corrected signed replay released backing bytes while mounted, reported zero maintenance failures and independently verified all 1,027 files. It reached 503 sampled extents with duty still pending. | Run the same witness through advisory quiescence. Attribute selected-image allocation, retained roots and deferred work independently. Verify repeated settlement under churn, pressure and interruption. |
+| S3 · Space reuse | The single-view replay released backing bytes while mounted, reported zero maintenance failures and independently verified all 1,027 files. It reached 610 sampled extents with duty still pending. | Trace work grants and refused continuation to the pending cursor. Verify advisory quiescence and repeated settlement under churn, pressure and interruption. |
 | S4 · AMD and CPU continuity | Real Radeon SDK callback trials served four mixed frames. The sealed packed controller now also delivered two exact device frames, recovered superseded demand on CPU and confirmed worker retirement. | Prove a useful automatic region for each advertised AMD role in installed-client paths. Qualify CPU availability, verified delivery and condition-based device recovery. |
 | S5 · Compression | Retained same-size selection saved 16 KiB of protected occupied bytes in the controlled window transition. The AITDCC I–P and CPython sizes matched their controls. Earlier protected prefixes and secondary rolling keys showed distinct gains. | Establish a held-out complete-size frontier and measure recall for profitable retained alternatives under a funded index. |
 | S6 · Autonomy | Persistent sparse advice, workload samples, yield ranking and resource admission run in the controller. The candidate sampled the same extents with 22–35% fewer backing calls in two local fixtures. | Measure learning benefit, time to settle, interference, per-volume fairness and bytes written per byte reclaimed across workloads and restart. |
@@ -483,11 +507,10 @@ Attribute resource cost and remaining work before changing either phase.
 - **Refresh the codec control as a separate compatibility change.**
   Official releases currently show WinFsp 2.2, DiskSpd 2.3 and
   Zstandard 1.6.0. The WinFsp release SHA-256 matches the pinned MSI.
-  The measured candidate used Zstandard 1.5.7. Build the new stable
-  codec privately and qualify both directions of CPU readback,
-  parameter and sequence APIs, bounds and corpus deltas before changing
-  the shared pin and comparative baseline. Preserve each historical
-  image's reader support.
+  The codec upgrade passed both CPU read directions with protected frames,
+  the sequence and prefix suites, and matched the two retained corpus
+  sizes. Use the new pinned library for subsequent comparative builds.
+  Keep the library identity in each historical image's evidence.
   [WinFsp 2.2](https://github.com/winfsp/winfsp/releases/tag/v2.2) ·
   [DiskSpd 2.3](https://github.com/microsoft/diskspd/releases/tag/v2.3) ·
   [Zstandard 1.6.0](https://github.com/facebook/zstd/releases/tag/v1.6.0)
@@ -772,7 +795,7 @@ before expanding the experiment.
 
 | Priority | First deliverable | Decision before expanding |
 | --- | --- | --- |
-| 1 · Mounted allocation | Run one source-matched replay of the cheaper scan and observe ordinary allocation release through quiescence | Attribute eligible work, pending duty and completed quanta. Measure the remaining limiting phase before choosing placement, local reuse or pacing. |
+| 1 · Mounted allocation | Reproduce pending advisory work using the observed quanta and duty scope in a bounded controller fixture | Attribute eligible work and refused continuation. Measure the limiting phase before choosing another change or repeating the signed trace. |
 | 2 · Real AMD service and CPU continuity | One repeatable installed-client read shape that consumes verified device bytes, paired with CPU and cold device runs | Promote that shape only with a complete-path win. Use its largest measured cost to choose the next write or collective improvement. |
 | 3 · Compression that changes occupied size | Protected complete-volume profiles and oracle recall on held-out families | Keep the nondominated candidates in size and verified access. Choose an additional representation only when it improves an observed weak cohort. |
 | 4 · Writable reopen at scale | Shadow authority decision beside the full audit and an independently validated scaling model | Fix the largest measured metadata cost. Authorize incremental attachment only when all authority and recovery invariants hold. |
@@ -780,19 +803,17 @@ before expanding the experiment.
 
 ### 1. Close ordinary mounted settlement · E02, E08, E11
 
-1. Stage the current helper and exact signed WinFsp dependency in the disposable
-   client fixture. Replay the existing transcript with the single-view scan.
-   Match all 6,293 trace records and the successful flushes. Require ordinary
-   publication, lower occupied bytes while mounted, zero failed
-   maintenance steps and actual controller quiescence. Verify all 1,027
-   live files after detach at the selected epoch with no further reclaim.
-   If a fence recurs, capture its first provider operation and granted
-   versus attempted extent with the selected epoch. Classify attempted
-   allocation, write, flush, shortening and retirement separately. Use the
-   matching bounded regression before repeating the full witness. For a
-   healthy but incomplete run, distinguish an unready phase from a spent
-   duty or provider budget and record its last checked cursor. Use this
-   observation before changing the governor again.
+1. Reproduce the remaining advisory work in a bounded controller fixture.
+   For each sampling window, record its available credit, predicted and
+   spent work, backing admission, refused continuation and actual next wake.
+   The last mounted duty recommendation was 11 ms. The Windows controller
+   also schedules from the next eligible host CPU sample and its own
+   wall-time debt. Distinguish waiting on fresh evidence from a spent grant
+   before changing the governor. Bind any later signed replay to the
+   same 6,293 client operations, verified flushes and 1,027 files.
+   Require mounted publication, lower occupied bytes, zero failed steps and
+   drained maintenance. For a recurring write fence, capture the first
+   rejected provider operation, selected epoch, grant and attempted extent.
 2. On the same 1,027 live files, compare ordinary churn, a cold-work
    control and detached CPU verification. Track the selected generation,
    selector and provider identities, live bytes, reusable slots, pinned

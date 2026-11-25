@@ -448,7 +448,7 @@ CMake, LLVM, fio and DiskSpd stable tags.
 
 | Dependency/tool | Repository selection | Fresh official result / qualification limit |
 | --- | --- | --- |
-| Zstandard | v1.5.7 pin | Still the latest stable release returned by the API |
+| Zstandard | v1.6.0 pin | Official stable tag published 23 November 2026. Local Windows verified protected reads between 1.5.7 and 1.6.0 in both directions. [Codec and runtime evidence](evidence/windows-mounted-sample-and-zstd-2026-11-25.json) |
 | LZ4 | v1.11.1 pin | Latest stable, published 10 November 2026 |
 | BLAKE3 | 1.8.7 pin | Latest stable returned by the API |
 | WinFsp | Stable v2.2, build 2.2.26323 | Latest stable tag and MSI digest confirmed through GitHub. The disposable guest fixture and current user-mode SDK results have separate receipts. |

@@ -51,7 +51,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: meta/zstd
-          ref: f8745da6ff1ad1e7bab384bd1f9d742439278e99 # v1.5.7
+          ref: 916e8e70b33317d469a41ee837e47317807815c8 # v1.6.0
           path: .ci-deps/zstd
           persist-credentials: false
       - name: Check out latest pinned LZ4 source
@@ -206,7 +206,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: meta/zstd
-          ref: f8745da6ff1ad1e7bab384bd1f9d742439278e99 # v1.5.7
+          ref: 916e8e70b33317d469a41ee837e47317807815c8 # v1.6.0
           path: .ci-deps/zstd
           persist-credentials: false
       - name: Check out latest pinned LZ4 source
@@ -294,7 +294,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: meta/zstd
-          ref: f8745da6ff1ad1e7bab384bd1f9d742439278e99 # v1.5.7
+          ref: 916e8e70b33317d469a41ee837e47317807815c8 # v1.6.0
           path: .ci-deps/zstd
           persist-credentials: false
       - name: Check out pinned LZ4 native dictionary decoder
@@ -385,7 +385,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: meta/zstd
-          ref: f8745da6ff1ad1e7bab384bd1f9d742439278e99 # v1.5.7
+          ref: 916e8e70b33317d469a41ee837e47317807815c8 # v1.6.0
           path: .ci-deps/zstd
           persist-credentials: false
       - name: Check out pinned LZ4 native dictionary decoder
@@ -526,7 +526,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: meta/zstd
-          ref: f8745da6ff1ad1e7bab384bd1f9d742439278e99 # v1.5.7
+          ref: 916e8e70b33317d469a41ee837e47317807815c8 # v1.6.0
           path: .ci-deps/zstd
           persist-credentials: false
       - name: Check out pinned LZ4 native dictionary decoder
