@@ -1,14 +1,11 @@
 # Current FlitzFS architecture
 
-The diagrams reflect the 24 November source review at
-`c32348b7efe5aaa789965ee669189840f3f6f5b3`. The AMD path includes the
-prepared group worker and separately sealed uniform write batches. The
-mounted reclamation section incorporates the
-[follow-up source and evidence](../evidence/windows-mounted-range-retirement-2026-11-24.json).
-The [release reconciliation](../RELEASE_RECONCILIATION_2026-11-24.md) records
-what is qualified and the [source receipt](../evidence/release-reconciliation-2026-11-24.json)
-binds the review to the code. The [revised architecture](TARGET.md) gives the
-proposed boundaries for release.
+The diagrams trace the implementation reconciled on 25 November. They
+cover prepared AMD read delivery, mirrored copy across packed banks and
+bounded rolling lookup in the background controller.
+[Release reconciliation](../RELEASE_RECONCILIATION_2026-11-25.md) ·
+[Source and validation receipt](../evidence/release-reconciliation-rolling-lookups-2026-11-25.json) ·
+[Revised architecture](TARGET.md)
 
 ## 1. Process and build boundaries
 
@@ -394,9 +391,12 @@ flowchart TD
 ```
 
 Existing grouping includes exact sharing, shared-base members and packed slices.
-The sparse catalog can nominate a prior extent by a rolling signature after
-the resident window has passed it. The same extent checks and complete-size
-admission govern the resulting candidate.
+The sparse catalog can nominate a prior extent after it leaves the
+resident window. An extent first checks the preceding key families,
+then its preferred and remaining distinct rolling keys against the same
+catalog snapshot. The existing live extent, exact-byte and complete-size
+checks govern candidate publication.
+[Secondary rolling lookup](../evidence/release-reconciliation-rolling-lookups-2026-11-25.json)
 The current append layout reclaims normal churn by staged image replacement or
 provider-supported tail/region release. It can reconcile unrelated commits
 under bounds. Rebuild still requires alternate capacity and full passes.

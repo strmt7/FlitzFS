@@ -557,6 +557,16 @@ preserves the file's logical zero tail. Work reserved for an AMD batch keeps
 its own source bindings. The controller settles the batch before closing that
 scan window.
 
+Persistent coherence keeps a preferred rolling key per admitted
+representative. A query probes its preferred key and remaining distinct
+rolling bands after the preceding key families. These are stable band
+positions. A shift plus a local edit can preserve the older key in a
+different position from the query's preferred choice. Empty catalogs
+skip lookups. Each admitted advance examines at most one checked key or
+alternate while the existing live extent, CPU and protected-size checks
+govern publication. No additional posting or reader capability is needed.
+[Restart discovery evidence](evidence/release-reconciliation-rolling-lookups-2026-11-25.json)
+
 When a seed has no fitting partner in the current window, the scanner looks
 up retained representatives by rolling fingerprint and checks whether their
 payloads fit. It builds sorted postings once on demand for the admitted

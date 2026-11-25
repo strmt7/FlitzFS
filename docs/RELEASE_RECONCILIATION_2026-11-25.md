@@ -9,12 +9,15 @@ on held-out workloads. Writable attach must also scale beyond the current
 full audit. Use one operation witness and common accounting across these
 lanes so each change can be judged at the product boundary.
 
-This review reconciles the 1,085 tracked files at
-`e2dea97b2c5913c0e6205f67da51ed989feca94f` and the batched copy candidate.
-Sixteen commits changed 70 paths since the 24 November full review.
-The intervening work covers writable verification, space release,
-adaptive compression, AMD startup and device read delivery.
-[Source inventory, checks and research](evidence/windows-batched-staged-copy-2026-11-25.json) ·
+This review binds the **1,089 tracked files** at
+`614d1bdd0acfdf598bd8e001d07832e28fdd909e` and the rolling lookup
+candidate. Four commits changed 27 paths since the earlier 25 November
+inventory. They cover checked reopen, mirrored relocation and AMD read
+delivery. The candidate changes the in-memory search schedule and test
+fixtures. The review uses the earlier full inventory for unchanged
+components and brings each release gate forward.
+[Source inventory, checks and research](evidence/release-reconciliation-rolling-lookups-2026-11-25.json) ·
+[Earlier batched copy review](evidence/windows-batched-staged-copy-2026-11-25.json) ·
 [Earlier packed-tail review](evidence/windows-packed-tail-continuation-2026-11-25.json) ·
 [Previous review](RELEASE_RECONCILIATION_2026-11-24.md) ·
 [Package plan](IMPLEMENTATION_PLAN.md) ·
@@ -98,6 +101,41 @@ fixture. The complete images and independent reads matched. Replay the
 signed populated witness on this change before adjusting controller pacing.
 [Bank-spanning copy evidence](evidence/windows-bank-spanning-rebuild-2026-11-25.json)
 
+## Restart discovery with one stored rolling key
+
+The persisted index retains one rolling key for a candidate. A shifted
+extent can still match that key after a local edit changes which of its
+own rolling signatures it would persist. The scanner checks the preferred
+key and then the remaining distinct rolling bands. Empty catalogs consume
+zero search opportunities. Each step still admits one lookup, including
+alternate lookups. Discovery feeds the existing live-revision, byte and
+cost checks. The writer, durable format and catalog budget are unchanged.
+
+| Paired model-memory restart control | Previous | Candidate |
+| --- | ---: | ---: |
+| Complete protected bytes, controlled shared extents | 2,543,616 | 2,420,736 |
+| Complete protected bytes, CPython-derived extents | 2,543,616 | 2,420,736 |
+| Catalog bytes in each pair | 159,744 | 159,744 |
+| Lookups, controlled shared extents | 150 | 193 |
+| Lookups, CPython-derived extents | 150 | 194 |
+| Lookups, 374 intervening extents with an existing projected match | 3,754 | 4,879 |
+| Lookups, same long-range shape with a single aligned nomination | 752 | 1,880 |
+
+All expected bytes verified through the independent CPU reopen. Stale
+nominations and the controls without rolling keys published no group.
+Windows codec-enabled, raw-only and AddressSanitizer lanes passed. These
+are controlled discovery results. The public case edits a verified
+CPython extent and measures that fixture's protected volume footprint.
+A future corpus run will measure the fraction of natural revisions where
+the extra probes earn their cost.
+[Paired controls and scoped verification](evidence/release-reconciliation-rolling-lookups-2026-11-25.json)
+
+The signed ordinary replay of the bank-spanning copy remains pending.
+This checkpoint's host sample showed 7.63 GiB free with no Sandbox client.
+The established 4 GiB guest preflight needs 8 GiB above the host reserve,
+or 12 GiB free on this host. Keep that admission rule and use the published
+mounted trace as the correctness control when headroom returns.
+
 ## Reconciled release gates
 
 | Gate | Current evidence | Completion evidence |
@@ -106,7 +144,7 @@ signed populated witness on this change before adjusting controller pacing.
 | S2 · Scale | Paged inodes, names and extents are live. Checked replica reads now group within a leaf and a bank, retaining the complete startup walk. | Verify bounded attach under a versioned authority contract. Fit and validate separate named-file curves for attach, restart, enumeration, mutation and resident memory. |
 | S3 · Space reuse | Sparse backing settled while mounted after preselection on the 1,027-file trace. Packed work continued after detach. The new callback fixture releases an already-selected packed image’s confirmed suffix in bounded continuations. | Select and settle through the ordinary mounted controller. Batched copy makes fewer calls on identical bytes in both local layouts. Use the allocation trace to identify the next cost under pinned readers, sustained churn, constrained free space and interruption. |
 | S4 · AMD and CPU continuity | Prepared AMD frames passed earlier SDK tests. The later live trial verified two mixed device frames after an unrelated callback and independent CPU readback. The measured 1 MiB write shape still favors CPU. | Prove a useful automatic region for each advertised AMD role in installed-client paths. Qualify CPU availability, verified delivery and condition-based device recovery. |
-| S5 · Compression | Protected prefix selection can save an allocation pair. A 67-byte-shift restart fixture saves 122,880 complete bytes. Real corpus rebuild controls retained their sizes, with no catalog nominations required. AIT grouping and parity placement showed distinct effects. | Establish a held-out complete-size frontier including metadata and protection. Measure catalog recall and savings with a populated, funded search index. |
+| S5 · Compression | Protected prefix selection can save an allocation pair. Two secondary-key restart controls save 122,880 complete bytes each at the same catalog size. Broader real corpus rebuild controls retained their sizes, with no catalog nominations required. AIT grouping and parity placement showed distinct effects. | Establish a held-out complete-size frontier including metadata and protection. Measure catalog recall and savings with a populated, funded search index. |
 | S6 · Autonomy | Persistent sparse advice, workload samples, yield ranking and resource admission run in the controller. | Measure learning benefit, time to settle, interference, per-volume fairness and bytes written per byte reclaimed across workloads and restart. |
 | S7 · Windows experience | The helper and WinFsp own memory and supported file-backed volumes. Signed guests exercised external clients and verified reopen. | Qualify Explorer and independent apps with the signed candidate. Cover sharing, mapped and cached I/O, names, metadata, repair and clean teardown. |
 | S8 · Durability | Interruption fixtures exercised writes, flush, mapping and selector publication with independent CPU readback. | Qualify the acknowledged-operation and survivor-repair envelope for each backing. Explain unrecoverable failures precisely and retain the evidence for recovery. |
@@ -232,6 +270,36 @@ signed populated witness on this change before adjusting controller pacing.
   fixture runs build 26100 and is useful for correctness. Bind acceptance
   traces and comparisons to the intended Windows 11 x64 update and driver.
   [Windows 11 release information](https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information)
+
+- **Price offset-independent recall at the filesystem boundary.** Use
+  version-separated file trees and an exhaustive small-set savings oracle.
+  Measure recovered protected bytes and idle quanta for each signature family.
+  Test a shared read plan over exact indexed keys if misses dominate. Introduce
+  fragment indexing only when it recovers additional profitable groups with
+  its catalog and maintenance cost included. ParaSync studies work under
+  shifted content and the 2026 preprint compares content-defined chunking
+  choices. RubikFS studies compression and access together on read-only
+  layouts. The writable candidate needs its own churn and restart evidence.
+  [FAST ’26 ParaSync](https://www.usenix.org/conference/fast26/presentation/zhang-zhihao-parasync) ·
+  [CDC evaluation preprint](https://arxiv.org/abs/2610.13704) ·
+  [FAST ’26 RubikFS](https://www.usenix.org/conference/fast26/presentation/huang)
+- **Bind bounded recovery to published ownership.** F2FSJ and Metadata
+  Write-Once measure costs of fine-grained recovery and dependency ordering
+  in their environments. Compare existing COW root publication with a
+  generation-bound changed-range summary on FlitzFS. A new admission path
+  must retain ordered flush and independent full-audit comparison. Model
+  empty, stale, interrupted and corrupt summaries before it admits writes.
+  [OSDI ’25 F2FSJ](https://www.usenix.org/conference/osdi25/presentation/cui) ·
+  [OSDI ’25 Metadata Write-Once](https://www.usenix.org/conference/osdi25/presentation/pan)
+- **Measure GPU submission separately from dependency setup.** HIP graphs
+  can combine recurring operations in one launch. Qualify a reusable graph
+  only if submission dominates on an eligible repeated shape. Compare
+  streams and graphs with the same bytes, verification, demand and resource
+  grants. AMD lists stream-priority limitations for HIP 7.17.0. Admit idle
+  device batches through the controller and measure interaction with normal
+  load.
+  [HIP graphs](https://rocm.docs.amd.com/projects/HIP/en/latest/tutorial/graph_api.html) ·
+  [ROCm 10.2.0 release notes](https://rocm.docs.amd.com/en/docs-10.2.0/about/release-notes.html)
 
 ## Target control and storage design
 
@@ -403,6 +471,20 @@ before expanding the experiment.
 5. Close S1–S12 with the exact signed candidate, fault matrix and soak.
    Compile the compatibility and measured limitation evidence for the
    owner’s release decision.
+
+### Decisions to carry into the package plan
+
+| First measured result | Next implementation |
+| --- | --- |
+| Most unfinished mounted work is waiting for an eligible quantum | Correct the specific resource or foreground gate with the same resident bounds. Show that the changed gate both reaches publication and yields under competing operations. |
+| Most unfinished work is moving verified live bytes after the copy optimizations | Use a disjoint-range ownership differential beside the current full rebuild. Verify retained snapshots and both anchors at every release/reuse boundary before changing allocation authority. |
+| Automatic ready AMD beats CPU only for one consumed read shape | Admit that shape from ordinary client evidence. Reuse the same workload capture and verification for writes and search. Keep measured losing shapes on CPU. |
+| Secondary keys recover some groups, and the saved bytes cluster in a few cohorts | Attribute attempts, stale returns, false positives, hits and realized bytes by family on sealed inputs. If negative probes dominate, measure exact-key read coalescing in the existing index before spending persistent space on more summaries. |
+| The index already finds nearly all profitable groups and protected size still misses the target | Compare exact reuse, strongest independent CPU frames, protected bases and multiple bounded fragments on the same equal-protection cohort. Price a learned residual only after identifying compressed bytes it can remove. |
+| The attach oracle finds a global dependency the summary cannot prove | Classify it and extend the prospective durable proof or retain the full audit for that backing and state. Recheck every crash and repair decision before allowing faster writable attach. |
+
+[Source-level implementation tickets](IMPLEMENTATION_PLAN.md#next-implementation-tickets) ·
+[Storage and optimizer boundaries](architecture/TARGET.md#3-make-reopen-and-reclamation-scale-incrementally)
 
 ## Effort and repricing
 

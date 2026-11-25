@@ -2271,6 +2271,7 @@ void indexed_catalog_discovery(CatalogCase scenario,bool projected=false) {
     NativeGroupMaintenance initial(*f.session);
     for(unsigned tick=0;tick<200 && !initial.progress().checkpoints_published;++tick)
       require(f.step(initial).phase!=Phase::failed,"catalog scanning failed");
+    require(!initial.progress().coherence_lookups,"empty catalog consumed a lookup opportunity");
     const auto saved=read_optimization_state(*advice,id(90));
     const auto before_generations=f.session->snapshot();
     require(saved.state.group_scan && !saved.state.group_scan->representatives.empty() &&
@@ -2439,7 +2440,7 @@ void indexed_catalog_displaced_candidate() {
           latest_only.image_bytes+latest_only.catalog_bytes+latest_only.selector_bytes,
       "the displaced live match did not reduce the occupied volume and catalog");
 }
-void indexed_catalog_shift_candidate() {
+void indexed_catalog_shift_candidate(bool secondary=false,Bytes public_sample={}) {
   constexpr PagedStoreLimits limits{kStoreMaxPhysicalBytes};
   constexpr StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
   Fixture seed(4096,0,true);
@@ -2448,7 +2449,10 @@ void indexed_catalog_shift_candidate() {
       "shifted discovery requires funded advisory storage");
   seed.session->bind_indexed_coherence_writer(IndexedCoherenceWriter::create(catalog,id(90),id(1),limits));
   std::vector<std::pair<std::string,Bytes>> files;
-  files.emplace_back("earlier",data(kNativeExtentBytes,714));
+  const bool public_input=!public_sample.empty();
+  if(!public_input)public_sample=data(kNativeExtentBytes,secondary?715:714);
+  require(public_sample.size()==kNativeExtentBytes,"shift fixture requires one complete extent");
+  files.emplace_back("earlier",std::move(public_sample));
   files.emplace_back("other",data(kNativeExtentBytes,9137));
   for(unsigned i=0;i<2;++i)files.emplace_back("input-"+std::to_string(i),Bytes(3*kOptimizationGroupScanInputBytes/4));
   for(const auto& [name,bytes]:files)put(*seed.session,name,bytes);
@@ -2497,6 +2501,27 @@ void indexed_catalog_shift_candidate() {
   constexpr std::size_t shift=67;
   std::copy_n(files.front().second.begin(),displaced.size()-shift,displaced.begin()+shift);
   std::fill_n(displaced.begin(),shift,std::byte{0xf2});
+  if(secondary) {
+    const auto slot=*shifted_band-(kOptimizationGroupBands-detail::kNativeGroupShiftFeatures);
+    const auto stored_key=earlier.bands[*shifted_band];
+    constexpr auto edit_bytes=2048U;
+    const auto matches_secondary=[&] {
+      const auto keys=detail::native_group_shift_features(displaced);
+      return keys[slot]==stored_key && std::ranges::any_of(keys,[&](auto key){return key && key<stored_key;});
+    };
+    if(public_input) {
+      const auto shifted_bytes=displaced;
+      for(unsigned salt=0;salt<256;++salt) {
+        const auto offset=(salt%(kNativeExtentBytes/edit_bytes))*edit_bytes;
+        displaced=shifted_bytes;
+        std::ranges::copy(data(edit_bytes,32150+salt),displaced.begin()+offset);
+        if(matches_secondary())break;
+      }
+    }else {
+      std::ranges::copy(data(edit_bytes,0x85ebca6bU),displaced.begin());
+    }
+    require(matches_secondary(),"controlled edit did not keep the older key in a secondary band");
+  }
   files.emplace_back("later",std::move(displaced));
   put(*seed.session,files.back().first,files.back().second);
   const auto run=[&](const std::shared_ptr<Ram>& backing,bool shifted,bool stale) {
@@ -2518,9 +2543,9 @@ void indexed_catalog_shift_candidate() {
           "shifted discovery exceeded its admitted lookup quantum");
     }
     const auto progress=scanner.progress();
+    const auto expected_groups=shifted && !stale?1U:0U;
     require(!scanner.pending() && !progress.coherence_failures &&
-        progress.published_groups==(shifted && !stale?1U:0U) &&
-        progress.attempted_groups==(shifted && !stale?1U:0U),
+        progress.published_groups==expected_groups && progress.attempted_groups==expected_groups,
         "shifted discovery missed a live match or opened a stale one");
     scanner.cancel();trial.session.reset();
     const auto current=NativeVolumeHeadView::open(trial.head,id(90),[&](const auto& key)->std::shared_ptr<StoreByteIo> {
@@ -2541,14 +2566,16 @@ void indexed_catalog_shift_candidate() {
       }
     }
     const auto total=compacted->extent()+trial.head->extent()+advice->extent()+backing->extent();
-    std::cout<<"coherence_shift persisted="<<shifted<<" stale="<<stale<<" groups="<<progress.published_groups
+    std::cout<<"coherence_shift persisted="<<shifted<<" stale="<<stale<<" secondary="<<secondary
+        <<" public_input="<<public_input<<" groups="<<progress.published_groups
         <<" lookups="<<progress.coherence_lookups<<" complete_bytes="<<total
         <<" image_bytes="<<compacted->extent()<<" catalog_bytes="<<backing->extent()
         <<" intervening_extents=12 exact_cpu_readback=1\n";
     return total;
   };
   const auto unshifted=run(prior_catalog,false,false);
-  require(run(catalog,true,false)<unshifted,"shifted match did not repay its occupied catalog space");
+  const auto settled=run(catalog,true,false);
+  require(settled<unshifted,"a live rolling match did not reduce the protected footprint");
   (void)run(catalog,true,true);
 }
 void indexed_catalog_metadata_space_refusal() {
@@ -3587,8 +3614,15 @@ int main(int argc,char** argv){try{
     indexed_catalog_reclamation_at_scale();
   } else if(argc==3 && std::string_view(argv[1])=="--profile-coherence-reclamation-cut") {
     indexed_catalog_reclamation_at_scale(std::stoul(argv[2]));
+  } else if(argc==3 && std::string_view(argv[1])=="--profile-public-secondary-coherence") {
+    const auto file=ReadOnlyFile::open(argv[2]);
+    require(file.size()==kNativeExtentBytes,"public secondary-coherence fixture must be one extent");
+    Bytes sample(kNativeExtentBytes);
+    file.read_exact_at(0,sample.data(),sample.size());
+    indexed_catalog_shift_candidate(true,std::move(sample));
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-projected-coherence") {
     indexed_catalog_shift_candidate();
+    indexed_catalog_shift_candidate(true);
     for(const auto scenario:{ModularCatalogCase::available,ModularCatalogCase::masked_only,ModularCatalogCase::stale})
       indexed_modular_catalog_discovery(scenario);
     for(const auto scenario:{CatalogCase::available,CatalogCase::aligned_only,CatalogCase::unavailable,CatalogCase::stale})

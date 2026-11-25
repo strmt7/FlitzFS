@@ -614,21 +614,32 @@ struct NativeGroupMaintenance::Impl {
     constexpr auto modular_query=1+kOptimizationXorProjections;
     const auto shifted_query=catalog->has_modular_keys()?modular_query+kCoherenceModularWidths:
         catalog->has_projected_keys()?modular_query:1;
-    const auto generation=catalog->info().generation;
+    const auto last_query=shifted_query+detail::kNativeGroupShiftFeatures;
+    const auto catalog_info=catalog->info();
+    if(catalog_info.objects<=1)return false; // Only the catalog root is present.
+    const auto generation=catalog_info.generation;
     for(auto sample=features.lower_bound(coherence_after);sample!=features.end();++sample) {
       const auto& feature=sample->second;
       if(coherence_after!=sample->first) {
         coherence_after=sample->first;coherence_query=0;coherence_alternate.reset();
       }
       if(!indexed_member_candidate(feature.token))continue;
-      while(coherence_query<=shifted_query) {
+      const auto primary=detail::coherence_primary_band(feature.bands);
+      while(coherence_query<=last_query) {
         const auto query=coherence_query;
         Band key{};
         if(query==0) {
-          if(const auto band=detail::coherence_primary_band(feature.bands))key={*band,feature.bands[*band]};
-        }else if(query==shifted_query) {
-          const auto band=detail::coherence_shift_band(feature.bands);
-          if(band && band!=detail::coherence_primary_band(feature.bands))key={*band,feature.bands[*band]};
+          if(primary)key={*primary,feature.bands[*primary]};
+        }else if(query>=shifted_query) {
+          // The persisted preferred band belongs to the older extent. An
+          // edit can change the query extent's preference and keep that key.
+          const auto preferred=detail::coherence_shift_band(feature.bands);
+          auto band=preferred;
+          if(query>shifted_query) {
+            band=positional_bands+query-shifted_query-1;
+            if(band==preferred)band.reset();
+          }
+          if(band && band!=primary)key={*band,feature.bands[*band]};
         }else if(query<modular_query) {
           const auto index=query-1;
           key={kCoherenceMaskedBand+index,feature.projections[index]};

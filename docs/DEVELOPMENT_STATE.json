@@ -45,19 +45,21 @@
     "next": "Replay the signed populated client with the bank-spanning copy. Attribute remaining work to the source audit, copy, index and fresh target checks if the candidate still ends before settlement."
   },
   "release_path_review": {
-    "evidence": "docs/evidence/windows-batched-staged-copy-2026-11-25.json",
-    "previous_source_review_evidence": "docs/evidence/windows-packed-tail-continuation-2026-11-25.json",
-    "reviewed_parent": "e2dea97b2c5913c0e6205f67da51ed989feca94f",
-    "tracked_parent_files": 1085,
-    "candidate_runtime_tree": "09bd6ad6935444b3bc65dd538f27dc5d07dc583a",
+    "evidence": "docs/evidence/release-reconciliation-rolling-lookups-2026-11-25.json",
+    "previous_source_review_evidence": "docs/evidence/windows-batched-staged-copy-2026-11-25.json",
+    "reviewed_parent": "614d1bdd0acfdf598bd8e001d07832e28fdd909e",
+    "tracked_parent_files": 1089,
+    "candidate_runtime_tree": "8bb3b9cc7d898e952869b8223d9787a98f31e37f",
     "qualification": "development",
     "remaining_effort_person_weeks": [59, 127],
     "estimate_confidence": "low",
     "immediate_trace": "docs/RELEASE_EXECUTION_PLAN.md#next-integrated-qualification",
-    "current_runtime_tree": "68b73e14181242d113e5b2e7ce4346c2b3f89f3d",
-    "latest_reviewed_commit": "e2dea97b2c5913c0e6205f67da51ed989feca94f",
-    "latest_reviewed_tree": "f21cbd2ec028dce7943778696daf3018da40e4af",
-    "latest_reviewed_tracked_files": 1085,
+    "current_runtime_tree": "8bb3b9cc7d898e952869b8223d9787a98f31e37f",
+    "current_runtime_verification": "Scoped Windows codec-enabled, raw-only and ASan checks. Mounted and Radeon evidence have their own runtime trees.",
+    "prior_verified_runtime_tree": "68b73e14181242d113e5b2e7ce4346c2b3f89f3d",
+    "latest_reviewed_commit": "614d1bdd0acfdf598bd8e001d07832e28fdd909e",
+    "latest_reviewed_tree": "2a4bffdb288099346f0cc976fc0d950030c2fb4d",
+    "latest_reviewed_tracked_files": 1089,
     "followup_evidence": "docs/evidence/windows-mounted-range-retirement-2026-11-24.json",
     "matched_size_evidence": "docs/evidence/windows-collective-cold-order-2026-11-24.json",
     "settled_size_plan": "docs/RELEASE_RECONCILIATION_2026-11-24.md#first-settled-size-implementation-sequence",
@@ -85,7 +87,15 @@
     "complete_settled_bytes": {"earlier_key_families": 2543616, "with_rolling_key": 2420736},
     "stale_nomination_refused": true,
     "catalog_wire_changed": false,
-    "next": "Measure additional postings per recovered candidate and held-out protected size, then compare the bounded shortlist to exhaustive feasible candidates."
+    "secondary_lookup": {
+      "evidence": "docs/evidence/release-reconciliation-rolling-lookups-2026-11-25.json",
+      "additional_postings": 0,
+      "complete_settled_bytes_saved": {"synthetic": 122880, "cpython_derived": 122880},
+      "lookups_projected_long_range": {"before": 3754, "after": 4879},
+      "lookups_long_range_single_aligned_posting": {"before": 752, "after": 1880},
+      "empty_catalog_lookups": 0
+    },
+    "next": "Measure savings and missed profitable candidates on held-out revision histories. Attribute negative lookups before increasing index scope or adding durable postings."
   },
   "ordinary_amd_write_demand": {
     "evidence": "docs/evidence/windows-ordinary-amd-write-demand-2026-11-23.json",

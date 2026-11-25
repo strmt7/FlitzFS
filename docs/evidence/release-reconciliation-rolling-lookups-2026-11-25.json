@@ -1,0 +1,859 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "qualification": "development",
+  "source": {
+    "reviewed_commit": "614d1bdd0acfdf598bd8e001d07832e28fdd909e",
+    "reviewed_tree": "2a4bffdb288099346f0cc976fc0d950030c2fb4d",
+    "tracked_files": 1089,
+    "tracked_bytes": 19431738,
+    "inventory_sha256": "f66174ce79ff55eca4740501ae485a9b65eef566c2c0f88e9c7e5890f622a684",
+    "path_counts": {
+      "(root)": 6,
+      ".github": 19,
+      "cmake": 2,
+      "docs": 595,
+      "evidence": 2,
+      "include": 42,
+      "resources": 7,
+      "src": 177,
+      "tests": 153,
+      "third_party": 19,
+      "tools": 67
+    },
+    "prior_review_commit": "e2dea97b2c5913c0e6205f67da51ed989feca94f",
+    "commits_since_prior": 4,
+    "changed_paths": [
+      "docs/DEVELOPMENT_PLAN.json",
+      "docs/DEVELOPMENT_STATE.json",
+      "docs/IMPLEMENTATION_PLAN.md",
+      "docs/INDEXED_NATIVE_VOLUME.md",
+      "docs/NATIVE_AMD_LZ4_READ.md",
+      "docs/RELEASE_EXECUTION_PLAN.md",
+      "docs/RELEASE_RECONCILIATION_2026-11-25.md",
+      "docs/REPOSITORY_OVERVIEW.md",
+      "docs/ROADMAP.md",
+      "docs/SAFETY.md",
+      "docs/STAGED_PAGED_REBUILD.md",
+      "docs/architecture/CURRENT.md",
+      "docs/architecture/REVIEW.md",
+      "docs/architecture/TARGET.md",
+      "docs/evidence/indexed-decoded-reopen-runs-2026-11-25.json",
+      "docs/evidence/windows-bank-spanning-rebuild-2026-11-25.json",
+      "docs/evidence/windows-batched-staged-copy-2026-11-25.json",
+      "docs/evidence/windows-expanded-group-read-and-mounted-replay-2026-11-25.json",
+      "src/paged_store.cpp",
+      "src/windows/native_lz4_read_worker.cpp",
+      "src/windows/native_lz4_read_worker.hpp",
+      "src/windows/winfsp_controller.cpp",
+      "src/windows/winfsp_native.cpp",
+      "src/windows/winfsp_native.hpp",
+      "tests/test_native_indexed_volume.cpp",
+      "tests/test_staged_paged_rebuild.cpp",
+      "tests/test_winfsp_paged.cpp"
+    ],
+    "candidate_runtime": {
+      "parent": "614d1bdd0acfdf598bd8e001d07832e28fdd909e",
+      "base_tree": "2a4bffdb288099346f0cc976fc0d950030c2fb4d",
+      "tree": "8bb3b9cc7d898e952869b8223d9787a98f31e37f",
+      "elements": [
+        {
+          "path": "src/native_maintenance.cpp",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "e2188794a77031061d6dd3569e29e19e1988be0f",
+          "bytes": 75023
+        },
+        {
+          "path": "tests/test_native_group_maintenance.cpp",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "1a7ea85afe51a008b365b8e19a90634fd456b978",
+          "bytes": 218967
+        }
+      ]
+    },
+    "parent_runtime_with_control_fixture": {
+      "parent": "614d1bdd0acfdf598bd8e001d07832e28fdd909e",
+      "base_tree": "2a4bffdb288099346f0cc976fc0d950030c2fb4d",
+      "tree": "5ee1166ce0b5ef3012ae142381dd8520747dec8f",
+      "elements": [
+        {
+          "path": "tests/test_native_group_maintenance.cpp",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "52afcc3160d8b06bff934b0aad08fdf389fa9617",
+          "bytes": 218922
+        }
+      ]
+    }
+  },
+  "source_navigation": {
+    "provider_version": "0.2.43",
+    "verified_source_files": 3,
+    "dirty_patch_sha256": "e4154c584d3ae49b94a2017a99a2b610b0c1408505f1badf7d230168afad643d",
+    "inventory_sha256": "644c9cd935daeace4b0b21ff501a139b03b6d232ed08a7ac91c756c990def828",
+    "native_response_sha256": "aa95ca5d0873f079de5dee604fcd9628e92c6f0aa210f873f9d812aadd635783",
+    "receipt_sha256": "a7d5c81ba545eeb0ef7fed04fb5a0b03b34c615340a085c8148dcfbf8ae27237",
+    "native_hits": [
+      {
+        "file_path": "src/windows/winfsp_controller.cpp",
+        "start_line": 1,
+        "end_line": 17
+      },
+      {
+        "file_path": "src/windows/winfsp_controller.cpp",
+        "start_line": 286,
+        "end_line": 297
+      },
+      {
+        "file_path": "src/windows/winfsp_controller.cpp",
+        "start_line": 532,
+        "end_line": 537
+      },
+      {
+        "file_path": "src/windows/winfsp_controller.cpp",
+        "start_line": 275,
+        "end_line": 287
+      },
+      {
+        "file_path": "src/windows/winfsp_controller.cpp",
+        "start_line": 312,
+        "end_line": 324
+      }
+    ],
+    "wider_attempt": "A private nine-file index run reached its 150-second job limit before producing a query. It retired and was replaced by a successful three-file run."
+  },
+  "secondary_rolling_lookup": {
+    "pairs": [
+      {
+        "cohort": "synthetic",
+        "parent": {
+          "persisted": 1,
+          "stale": 0,
+          "secondary": 1,
+          "public_input": 0,
+          "groups": 0,
+          "lookups": 150,
+          "complete_bytes": 2543616,
+          "image_bytes": 2121728,
+          "catalog_bytes": 159744,
+          "intervening_extents": 12,
+          "exact_cpu_readback": 1
+        },
+        "candidate": {
+          "persisted": 1,
+          "stale": 0,
+          "secondary": 1,
+          "public_input": 0,
+          "groups": 1,
+          "lookups": 193,
+          "complete_bytes": 2420736,
+          "image_bytes": 1998848,
+          "catalog_bytes": 159744,
+          "intervening_extents": 12,
+          "exact_cpu_readback": 1
+        },
+        "all_parent_controls": [
+          {
+            "persisted": 0,
+            "stale": 0,
+            "secondary": 0,
+            "public_input": 0,
+            "groups": 0,
+            "lookups": 150,
+            "complete_bytes": 2543616,
+            "image_bytes": 2121728,
+            "catalog_bytes": 159744,
+            "intervening_extents": 12,
+            "exact_cpu_readback": 1
+          },
+          {
+            "persisted": 1,
+            "stale": 0,
+            "secondary": 0,
+            "public_input": 0,
+            "groups": 1,
+            "lookups": 150,
+            "complete_bytes": 2420736,
+            "image_bytes": 1998848,
+            "catalog_bytes": 159744,
+            "intervening_extents": 12,
+            "exact_cpu_readback": 1
+          },
+          {
+            "persisted": 1,
+            "stale": 1,
+            "secondary": 0,
+            "public_input": 0,
+            "groups": 0,
+            "lookups": 150,
+            "complete_bytes": 2543616,
+            "image_bytes": 2121728,
+            "catalog_bytes": 159744,
+            "intervening_extents": 12,
+            "exact_cpu_readback": 1
+          },
+          {
+            "persisted": 0,
+            "stale": 0,
+            "secondary": 1,
+            "public_input": 0,
+            "groups": 0,
+            "lookups": 150,
+            "complete_bytes": 2543616,
+            "image_bytes": 2121728,
+            "catalog_bytes": 159744,
+            "intervening_extents": 12,
+            "exact_cpu_readback": 1
+          },
+          {
+            "persisted": 1,
+            "stale": 0,
+            "secondary": 1,
+            "public_input": 0,
+            "groups": 0,
+            "lookups": 150,
+            "complete_bytes": 2543616,
+            "image_bytes": 2121728,
+            "catalog_bytes": 159744,
+            "intervening_extents": 12,
+            "exact_cpu_readback": 1
+          },
+          {
+            "persisted": 1,
+            "stale": 1,
+            "secondary": 1,
+            "public_input": 0,
+            "groups": 0,
+            "lookups": 150,
+            "complete_bytes": 2543616,
+            "image_bytes": 2121728,
+            "catalog_bytes": 159744,
+            "intervening_extents": 12,
+            "exact_cpu_readback": 1
+          }
+        ],
+        "all_candidate_controls": [
+          {
+            "persisted": 0,
+            "stale": 0,
+            "secondary": 0,
+            "public_input": 0,
+            "groups": 0,
+            "lookups": 195,
+            "complete_bytes": 2543616,
+            "image_bytes": 2121728,
+            "catalog_bytes": 159744,
+            "intervening_extents": 12,
+            "exact_cpu_readback": 1
+          },
+          {
+            "persisted": 1,
+            "stale": 0,
+            "secondary": 0,
+            "public_input": 0,
+            "groups": 1,
+            "lookups": 192,
+            "complete_bytes": 2420736,
+            "image_bytes": 1998848,
+            "catalog_bytes": 159744,
+            "intervening_extents": 12,
+            "exact_cpu_readback": 1
+          },
+          {
+            "persisted": 1,
+            "stale": 1,
+            "secondary": 0,
+            "public_input": 0,
+            "groups": 0,
+            "lookups": 195,
+            "complete_bytes": 2543616,
+            "image_bytes": 2121728,
+            "catalog_bytes": 159744,
+            "intervening_extents": 12,
+            "exact_cpu_readback": 1
+          },
+          {
+            "persisted": 0,
+            "stale": 0,
+            "secondary": 1,
+            "public_input": 0,
+            "groups": 0,
+            "lookups": 195,
+            "complete_bytes": 2543616,
+            "image_bytes": 2121728,
+            "catalog_bytes": 159744,
+            "intervening_extents": 12,
+            "exact_cpu_readback": 1
+          },
+          {
+            "persisted": 1,
+            "stale": 0,
+            "secondary": 1,
+            "public_input": 0,
+            "groups": 1,
+            "lookups": 193,
+            "complete_bytes": 2420736,
+            "image_bytes": 1998848,
+            "catalog_bytes": 159744,
+            "intervening_extents": 12,
+            "exact_cpu_readback": 1
+          },
+          {
+            "persisted": 1,
+            "stale": 1,
+            "secondary": 1,
+            "public_input": 0,
+            "groups": 0,
+            "lookups": 195,
+            "complete_bytes": 2543616,
+            "image_bytes": 2121728,
+            "catalog_bytes": 159744,
+            "intervening_extents": 12,
+            "exact_cpu_readback": 1
+          }
+        ]
+      },
+      {
+        "cohort": "cpython_derived",
+        "parent": {
+          "persisted": 1,
+          "stale": 0,
+          "secondary": 1,
+          "public_input": 1,
+          "groups": 0,
+          "lookups": 150,
+          "complete_bytes": 2543616,
+          "image_bytes": 2121728,
+          "catalog_bytes": 159744,
+          "intervening_extents": 12,
+          "exact_cpu_readback": 1
+        },
+        "candidate": {
+          "persisted": 1,
+          "stale": 0,
+          "secondary": 1,
+          "public_input": 1,
+          "groups": 1,
+          "lookups": 194,
+          "complete_bytes": 2420736,
+          "image_bytes": 1998848,
+          "catalog_bytes": 159744,
+          "intervening_extents": 12,
+          "exact_cpu_readback": 1
+        },
+        "all_parent_controls": [
+          {
+            "persisted": 0,
+            "stale": 0,
+            "secondary": 1,
+            "public_input": 1,
+            "groups": 0,
+            "lookups": 150,
+            "complete_bytes": 2543616,
+            "image_bytes": 2121728,
+            "catalog_bytes": 159744,
+            "intervening_extents": 12,
+            "exact_cpu_readback": 1
+          },
+          {
+            "persisted": 1,
+            "stale": 0,
+            "secondary": 1,
+            "public_input": 1,
+            "groups": 0,
+            "lookups": 150,
+            "complete_bytes": 2543616,
+            "image_bytes": 2121728,
+            "catalog_bytes": 159744,
+            "intervening_extents": 12,
+            "exact_cpu_readback": 1
+          },
+          {
+            "persisted": 1,
+            "stale": 1,
+            "secondary": 1,
+            "public_input": 1,
+            "groups": 0,
+            "lookups": 150,
+            "complete_bytes": 2543616,
+            "image_bytes": 2121728,
+            "catalog_bytes": 159744,
+            "intervening_extents": 12,
+            "exact_cpu_readback": 1
+          }
+        ],
+        "all_candidate_controls": [
+          {
+            "persisted": 0,
+            "stale": 0,
+            "secondary": 1,
+            "public_input": 1,
+            "groups": 0,
+            "lookups": 195,
+            "complete_bytes": 2543616,
+            "image_bytes": 2121728,
+            "catalog_bytes": 159744,
+            "intervening_extents": 12,
+            "exact_cpu_readback": 1
+          },
+          {
+            "persisted": 1,
+            "stale": 0,
+            "secondary": 1,
+            "public_input": 1,
+            "groups": 1,
+            "lookups": 194,
+            "complete_bytes": 2420736,
+            "image_bytes": 1998848,
+            "catalog_bytes": 159744,
+            "intervening_extents": 12,
+            "exact_cpu_readback": 1
+          },
+          {
+            "persisted": 1,
+            "stale": 1,
+            "secondary": 1,
+            "public_input": 1,
+            "groups": 0,
+            "lookups": 195,
+            "complete_bytes": 2543616,
+            "image_bytes": 2121728,
+            "catalog_bytes": 159744,
+            "intervening_extents": 12,
+            "exact_cpu_readback": 1
+          }
+        ]
+      }
+    ],
+    "public_provenance": {
+      "archive_sha256": "a0cf47d48cb8bc4dbd72b0e02dc84290387a767df35a9810d781b2e4dced691f",
+      "path": "Lib/_pydecimal.py",
+      "file_bytes": 233115,
+      "file_sha256": "f65b1d4204dd7dbfedf0970bb8d69d1170343df9401deacc5361ee45be16ed70",
+      "extent_bytes": 65536,
+      "extent_offset": 0,
+      "extent_sha256": "ba2cb2d255ca14384053f1a2bb3e0b9fac7a9a52a091b383f0f56ab8aff7832a",
+      "archive": "Python-3.15.2.tar.xz",
+      "official_release": "https://www.python.org/downloads/release/python-3152/",
+      "manipulation": "65,536-byte extent with 67-byte displacement and a controlled 2,048-byte edit"
+    },
+    "long_range_parent": [
+      {
+        "aligned_only": 0,
+        "intervening_extents": 374,
+        "lookups": 3754,
+        "groups": 1,
+        "minimum_compacted_bytes_saved": 98304,
+        "catalog_bytes": 487424
+      },
+      {
+        "aligned_only": 1,
+        "intervening_extents": 374,
+        "lookups": 752,
+        "groups": 0,
+        "minimum_compacted_bytes_saved": 0,
+        "catalog_bytes": 155648
+      }
+    ],
+    "long_range_candidate": [
+      {
+        "aligned_only": 0,
+        "intervening_extents": 374,
+        "lookups": 4879,
+        "groups": 1,
+        "minimum_compacted_bytes_saved": 98304,
+        "catalog_bytes": 487424
+      },
+      {
+        "aligned_only": 1,
+        "intervening_extents": 374,
+        "lookups": 1880,
+        "groups": 0,
+        "minimum_compacted_bytes_saved": 0,
+        "catalog_bytes": 155648
+      }
+    ],
+    "scoped_limit": "One checked key or alternate lookup per admitted advance. Up to three additional rolling key positions per eligible extent.",
+    "additional_catalog_postings": 0,
+    "catalog_wire_changed": false,
+    "empty_catalog_lookup_count": 0,
+    "regression_resolution": "The initial edit spent extra opportunities on the empty index, delaying the first checkpoint. The final candidate returns immediately when only the catalog root exists."
+  },
+  "validation": {
+    "windows_build": 26300,
+    "store_backing": "in-process memory",
+    "gpu_used_in_candidate_tests": false,
+    "runs": {
+      "prior_synthetic": {
+        "exit_code": 0,
+        "timed_out": false,
+        "tree_retired": true,
+        "exit_confirmed": true,
+        "residual_children": 0,
+        "peak_job_bytes": 161431552,
+        "elapsed_seconds": 1.514999999999418,
+        "inherited_error_mode": 32771,
+        "output_sha256": "d7b7ebf69cc996e2eee1dd5682bcc81b12a95a0b0eee7e8ad81af23a721bfef2",
+        "result_sha256": "01a341e0ef1fc3195bd37dbda57a6c36603cc073232c7a003e6273268730d35f"
+      },
+      "prior_public": {
+        "exit_code": 0,
+        "timed_out": false,
+        "tree_retired": true,
+        "exit_confirmed": true,
+        "residual_children": 0,
+        "peak_job_bytes": 31764480,
+        "elapsed_seconds": 0.10899999999674037,
+        "inherited_error_mode": 32771,
+        "output_sha256": "27048fbdda9a3c6dd0e983e2e6b3bfef6b168169dd46ad40408564d89d995ad9",
+        "result_sha256": "99894e3a64b4329e1e7597bb3a76fc7d0cb76425ce8456ae3ffa2e94446abaee"
+      },
+      "first_integration": {
+        "exit_code": 8,
+        "timed_out": false,
+        "tree_retired": true,
+        "exit_confirmed": true,
+        "residual_children": 0,
+        "peak_job_bytes": 166162432,
+        "elapsed_seconds": 2.875,
+        "inherited_error_mode": 32771,
+        "output_sha256": "674abc81d1508979b4259aaff7cb5b85d1d7b3edd9a747d7efc897eaaa527f2a",
+        "result_sha256": "e34b24b5b77c471ccad96df66435474c5b93e6c40c00a37a45cdf8f78278b4df"
+      },
+      "codec_enabled": {
+        "exit_code": 0,
+        "timed_out": false,
+        "tree_retired": true,
+        "exit_confirmed": true,
+        "residual_children": 0,
+        "peak_job_bytes": 166752256,
+        "elapsed_seconds": 3.6719999999913853,
+        "inherited_error_mode": 32771,
+        "output_sha256": "a5dd35296b0c1e6f85ed4bd1a14765d688019fe46efb0affa629c2f57298eb19",
+        "result_sha256": "212acd50c57e2a9070797050d2356a7342aff825222eb3bdf5c557f1ec30f5af",
+        "tests_passed": 6
+      },
+      "raw_only": {
+        "exit_code": 0,
+        "timed_out": false,
+        "tree_retired": true,
+        "exit_confirmed": true,
+        "residual_children": 0,
+        "peak_job_bytes": 166371328,
+        "elapsed_seconds": 3.672000000005937,
+        "inherited_error_mode": 32771,
+        "output_sha256": "868d1fd8a462c0cf9df883f5b3f521141922416ef79ead752e20264e31827bee",
+        "result_sha256": "1ba228bda37b070fd25cba2d33c2f08107bbacce4a72a3a32928cb4eeca5290e",
+        "tests_passed": 6
+      },
+      "windows_asan": {
+        "exit_code": 0,
+        "timed_out": false,
+        "tree_retired": true,
+        "exit_confirmed": true,
+        "residual_children": 0,
+        "peak_job_bytes": 758132736,
+        "elapsed_seconds": 17.531000000002678,
+        "inherited_error_mode": 32771,
+        "output_sha256": "2563aa2e4f0ea8801e4de13c071dd0acd66e384cdfdc671af4827fbf717faaf1",
+        "result_sha256": "97e0ab8e1db48db382caadd8aa40a5cf46ddea02cdc460b7b90db0d7350887aa",
+        "tests_passed": 7
+      },
+      "public_extent": {
+        "exit_code": 0,
+        "timed_out": false,
+        "tree_retired": true,
+        "exit_confirmed": true,
+        "residual_children": 0,
+        "peak_job_bytes": 31760384,
+        "elapsed_seconds": 0.10899999999674037,
+        "inherited_error_mode": 32771,
+        "output_sha256": "3ea358cc7cf06328afa74ddaf36ef769280cfa041cc947155f3a3cd5b6851f35",
+        "result_sha256": "16c5f75a29478fe20ef7fd55db73ebd95f86db0a451e86c3e68a579e386968aa"
+      },
+      "initial_source_routing": {
+        "exit_code": 1460,
+        "timed_out": true,
+        "tree_retired": true,
+        "exit_confirmed": true,
+        "residual_children": 0,
+        "peak_job_bytes": 1068269568,
+        "elapsed_seconds": 150.03100000000268,
+        "inherited_error_mode": 32771,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "result_sha256": "54a58505a79f2c7d041f6f93d5631c0cc6f0872798cf15d7a178af24b83c7ca4"
+      },
+      "current_source_routing": {
+        "exit_code": 0,
+        "timed_out": false,
+        "tree_retired": true,
+        "exit_confirmed": true,
+        "residual_children": 0,
+        "peak_job_bytes": 1082327040,
+        "elapsed_seconds": 23.422000000005937,
+        "inherited_error_mode": 32771,
+        "output_sha256": "ac9245d52c909efda3daacedf9cb3e18f0ad1b28fe11a740ac25c48806f27eff",
+        "result_sha256": "f3496266c8f717995deb842cd093827b32f28f4bb0851cc1734e9356e9fc22cb"
+      }
+    }
+  },
+  "actual_mounted_replay": {
+    "launched": false,
+    "available_host_gib_sample": 7.63,
+    "sandbox_guest_mib": 4096,
+    "admitted_headroom_gib": 8,
+    "host_reserve_gib": 4,
+    "last_matching_witness": "windows-expanded-group-read-and-mounted-replay-2026-11-25.json",
+    "verified_physical_settlement_in_current_candidate": false
+  },
+  "primary_research": [
+    {
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "lock_sha256": "01fbef3b628f772e4aba9724b6ced11c0f211d4d3bf51e38d1b9d0039eac997b",
+      "provider_source_identity": {
+        "tools/crawl4ai_tool.py": "e84a0e54ee07e4e13d3d2f35491f641730096a78126068f232c1f2397a467d8c",
+        "tools/crawl4ai_research.py": "ec3cb7a98eceed8fef08f3af806d6eaed35656bd76ca0ee8853d273f790337a5",
+        "tools/requirements/crawl4ai.txt": "6a42b0ff5ff6c63c843c6329ce823b819fd4f6f068e68d1836ab6dbec96e8f2f",
+        "tools/crawl4ai_sites.json": "e8869cb0488d78762a90aea6ecf2c3616bb89f0c89a8800cc512c613a750dc86",
+        "tools/nltk_distribution.py": "19eb3007c226b1a13e1ad0daa79cbd8a7bf6d082a20bf386e36ac060d0000919",
+        "tools/python_wheel.py": "c3c9a62454cb377203abce32154bec07cbf805bc7420cc89386c1c18370b301a",
+        "tools/test_nltk_model_security.py": "8aab7e2a704af875992ecae9137cdf5e5ff6935a4dd49e6751c54b2629a7280b",
+        "tools/requirements/python-build.txt": "9b280d724fda87773ba33a2654362adad84c68c4f79394adc07ff2e0293ca498",
+        "tools/crawl4ai_source_build.py": "5c27c4693fa0880a8db399825f637b694616963fc11f708afed33fa5b2e38b48",
+        "tools/crawl4ai_download_opener.py": "d5fd20b5545fd64c93a06b3ef07732f1c2da7e09ee6cda80662475007db52538",
+        "tools/test_crawl4ai_downloads.py": "ae4cf54c351a9da2de49caeb96306f384bb6a8f487318eabc69db4132d658619",
+        "third_party/upstream/nltk/3.10.4/distribution.json": "3241a8670f12e205525fc096572ed1969c063f77e13cffd70eff5eb656fbe1b0",
+        "nltk_upstream_wheel": "e46d89e59ef949270e3b19ab097da8dbb09350e05cb5a746ff92f6ccf6e8ce90",
+        "crawl4ai_source_build": "7da6376934254d9ad1de9e016a4509dae32c47559955889424435fcbbc7419f5"
+      },
+      "native_pages": [
+        {
+          "name": "fast26-parasync",
+          "url": "https://www.usenix.org/conference/fast26/presentation/zhang-zhihao-parasync",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 10903,
+          "markdown_sha256": "f5000eb8da5e3a0da721b06a5c7fdcddabe30ff37d0d98e61371971e16f36d2c",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 1.392,
+          "capture": "fast26-parasync.native.json",
+          "capture_sha256": "26691e7bcfe2a667697f29055fbc2447e7f14118c3f0f5e9015027c2dffc6bc0"
+        },
+        {
+          "name": "cdc-study",
+          "url": "https://arxiv.org/abs/2610.13704",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 8069,
+          "markdown_sha256": "572b2f042ac88982ff5806e4da8afa63127430b30803c5e0010af8ed1d4fc555",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.858,
+          "capture": "cdc-study.native.json",
+          "capture_sha256": "c8540beb4aa1882098b64e5d5948514177a6cc1e0df065f115e65ea9ccb83c5f"
+        },
+        {
+          "name": "fast25-medfs",
+          "url": "https://www.usenix.org/conference/fast25/presentation/wu",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 11089,
+          "markdown_sha256": "eccac3054eae2930a74adc32e13bfad7a579f34e7a649c37d7dd451acedf84f9",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 1.032,
+          "capture": "fast25-medfs.native.json",
+          "capture_sha256": "e35d39533a5839cd701dc02e31fc1197ce9d75698b7ec6031dcc62af32e0a74d"
+        }
+      ],
+      "robots": true,
+      "timeout_seconds_per_page": 45,
+      "external_LLM": false,
+      "receipt_sha256": "ddb6318dc44ac0f4761f6a375780ab630612b5e399bf09153f617cd5c2d81099"
+    },
+    {
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "lock_sha256": "01fbef3b628f772e4aba9724b6ced11c0f211d4d3bf51e38d1b9d0039eac997b",
+      "provider_source_identity": {
+        "tools/crawl4ai_tool.py": "e84a0e54ee07e4e13d3d2f35491f641730096a78126068f232c1f2397a467d8c",
+        "tools/crawl4ai_research.py": "ec3cb7a98eceed8fef08f3af806d6eaed35656bd76ca0ee8853d273f790337a5",
+        "tools/requirements/crawl4ai.txt": "6a42b0ff5ff6c63c843c6329ce823b819fd4f6f068e68d1836ab6dbec96e8f2f",
+        "tools/crawl4ai_sites.json": "e8869cb0488d78762a90aea6ecf2c3616bb89f0c89a8800cc512c613a750dc86",
+        "tools/nltk_distribution.py": "19eb3007c226b1a13e1ad0daa79cbd8a7bf6d082a20bf386e36ac060d0000919",
+        "tools/python_wheel.py": "c3c9a62454cb377203abce32154bec07cbf805bc7420cc89386c1c18370b301a",
+        "tools/test_nltk_model_security.py": "8aab7e2a704af875992ecae9137cdf5e5ff6935a4dd49e6751c54b2629a7280b",
+        "tools/requirements/python-build.txt": "9b280d724fda87773ba33a2654362adad84c68c4f79394adc07ff2e0293ca498",
+        "tools/crawl4ai_source_build.py": "5c27c4693fa0880a8db399825f637b694616963fc11f708afed33fa5b2e38b48",
+        "tools/crawl4ai_download_opener.py": "d5fd20b5545fd64c93a06b3ef07732f1c2da7e09ee6cda80662475007db52538",
+        "tools/test_crawl4ai_downloads.py": "ae4cf54c351a9da2de49caeb96306f384bb6a8f487318eabc69db4132d658619",
+        "third_party/upstream/nltk/3.10.4/distribution.json": "3241a8670f12e205525fc096572ed1969c063f77e13cffd70eff5eb656fbe1b0",
+        "nltk_upstream_wheel": "e46d89e59ef949270e3b19ab097da8dbb09350e05cb5a746ff92f6ccf6e8ce90",
+        "crawl4ai_source_build": "7da6376934254d9ad1de9e016a4509dae32c47559955889424435fcbbc7419f5"
+      },
+      "native_pages": [
+        {
+          "name": "rubikfs",
+          "url": "https://www.usenix.org/conference/fast26/presentation/huang",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 10395,
+          "markdown_sha256": "b271b38f1feb88acd780ae11d756c7f3723fecb288cfe5e7803fed9c5d93767d",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.979,
+          "capture": "rubikfs.native.json",
+          "capture_sha256": "b43281679683e51964024332763eabd711f488954869742a945e986ccff649e3"
+        },
+        {
+          "name": "f2fsj",
+          "url": "https://www.usenix.org/conference/osdi25/presentation/cui",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 10567,
+          "markdown_sha256": "e7a4ce40ce6e46564e695765295749e5d60911e98398d0f6458036d7347caa7f",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.999,
+          "capture": "f2fsj.native.json",
+          "capture_sha256": "eb65d0e6687c5a9d18cd06c47d93ade7670065204f75740dc7d2d4f40c8bed42"
+        },
+        {
+          "name": "metadata-once",
+          "url": "https://www.usenix.org/conference/osdi25/presentation/pan",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 9853,
+          "markdown_sha256": "8f61c2a60b2fbcf9b165e89fa334e9a8f03dd99856f92a9d031633f3e59b9a7e",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.967,
+          "capture": "metadata-once.native.json",
+          "capture_sha256": "b33d93110fd2beb72597df2753168b04d4d31a8096997a7e31f196a4ec72b5d0"
+        },
+        {
+          "name": "rocm-10-2-notes",
+          "url": "https://rocm.docs.amd.com/en/docs-10.2.0/about/release-notes.html",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 303361,
+          "markdown_sha256": "18caaf90d5ea55c1acb99c34abb277aa89c6eada8e5300b6ffdebe356e45a728",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 1.489,
+          "capture": "rocm-10-2-notes.native.json",
+          "capture_sha256": "f473a13c1bf29e6f05ec4b033e2de9426bcc6ae797fa7797801f625f4148530f"
+        },
+        {
+          "name": "rocm-10-2-install",
+          "url": "https://rocm.docs.amd.com/en/docs-10.2.0/install/rocm.html?i=tar",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 226294,
+          "markdown_sha256": "a082fe20689a076e121a2b5bc5df69c04752ceaf9cc34884410478c1e5d44ecd",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 2.506,
+          "capture": "rocm-10-2-install.native.json",
+          "capture_sha256": "fc56c586c9fba66592add42dce2fbfcc583d571457f688eba085a19a1fa71148"
+        },
+        {
+          "name": "amd-graph",
+          "url": "https://rocm.docs.amd.com/projects/HIP/en/latest/tutorial/graph_api.html",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 74628,
+          "markdown_sha256": "bcca0208e6945d5bd9437ab5cd4817e71dca134852616dfeaeafc3835412ab05",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 3.815,
+          "capture": "amd-graph.native.json",
+          "capture_sha256": "ad4ec9f9a716e68dcec4897e2665dbbaab6f30fcc6e401927b897b8f751badf3"
+        },
+        {
+          "name": "ntfs-compression",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_compression",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 63183,
+          "markdown_sha256": "48b0bd005d9276173ea26d9d5ddfd0f6019586ea3a1cd33cb8e74730a01f060a",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 2.278,
+          "capture": "ntfs-compression.native.json",
+          "capture_sha256": "763802c9a0f78b2bb55d9df4df3377c3b50eaa0c4b0c6fa605be7839f2b08ded"
+        },
+        {
+          "name": "diskspd",
+          "url": "https://github.com/microsoft/diskspd/releases/tag/v2.3",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 10898,
+          "markdown_sha256": "0365773817f65cbec629c1f9fd781de5dbf2021326e806d424ff0a827f6d0720",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 4.48,
+          "capture": "diskspd.native.json",
+          "capture_sha256": "12cdb713f34fefbf0c970831da840ed4efa6726bfd57b1d97045ff15bc5d6985"
+        }
+      ],
+      "robots": true,
+      "timeout_seconds_per_page": 45,
+      "external_LLM": false,
+      "receipt_sha256": "42fc2bef7345a480f5b9cc4935f268482e464c076bfe0c5071ff1bf4aff6dd62"
+    }
+  ],
+  "release_gates_open": [
+    "S1",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S6",
+    "S7",
+    "S8",
+    "S9",
+    "S10",
+    "S11",
+    "S12"
+  ],
+  "remaining_effort_person_weeks": [
+    59,
+    127
+  ]
+}

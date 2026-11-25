@@ -1,10 +1,10 @@
 # Source and architecture review
 
 The [current reconciliation](../RELEASE_RECONCILIATION_2026-11-25.md)
-has the current gate and work order. The 24 November review is the
-previous full inventory. The batch refresh checked the changed source
-since that inventory and traced the active boundaries below.
-[Current review receipt](../evidence/windows-batched-staged-copy-2026-11-25.json) ·
+has the current gate and work order. The latest review inventories the
+1,089 tracked paths and traces the changed storage, AMD and advisory
+boundaries against the previous reviews.
+[Current review receipt](../evidence/release-reconciliation-rolling-lookups-2026-11-25.json) ·
 [Previous full review](../RELEASE_RECONCILIATION_2026-11-24.md)
 
 | Component checked | Current boundary | Implementation decision |

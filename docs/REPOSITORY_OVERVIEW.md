@@ -1,15 +1,16 @@
 # FlitzFS repository overview
 
-The 25 November review reconciles the **1,085-file** parent `e2dea97`
-and the batched copy candidate. Copy advances fell from 1,025 to 300
-in the 1,024-record mirrored fixture, preserving the completed image.
-The latest completed ordinary Windows trace verified 1,027 files
-across three helper lifecycles and completed packed settlement after
-detach. The current plan prioritizes mounted allocation, useful automatic
-AMD delivery, held-out complete-size compression and scalable reopen.
+The 25 November review reconciles the **1,089-file** parent `614d1bd`
+and the rolling lookup candidate. The bank-spanning copy reduced a
+fragmented fixture from 931 copy steps to 81. The new restart lookup
+recovered a group missed by the older search on two controlled inputs,
+saving 120 KiB of complete protected footprint in each case. The latest
+signed ordinary trace verified 1,027 files across three helper lifecycles.
+The plan prioritizes mounted settlement, useful automatic AMD delivery,
+held-out complete-size compression and scalable reopen.
 [Latest reconciliation](RELEASE_RECONCILIATION_2026-11-25.md) ·
-[Batched copy evidence](evidence/windows-batched-staged-copy-2026-11-25.json) ·
-[Completed mounted observation](evidence/windows-rebuild-verification-reads-2026-11-25.json)
+[Source and validation receipt](evidence/release-reconciliation-rolling-lookups-2026-11-25.json) ·
+[Mounted replay](evidence/windows-expanded-group-read-and-mounted-replay-2026-11-25.json)
 
 The Radeon returned verified packed and mixed group frames through the
 SDK callback's prepared decoder path, with independent CPU readback.
@@ -130,18 +131,17 @@ release, tag, publication or product-version change is authorized by this review
 
 ## What is in the repository
 
-The reviewed tree contains 1,031 tracked files and 17,623,896 tracked bytes.
-The `src/` and `include/` directories contain 214 files and 2,402,562 bytes.
-These counts describe the reviewed commit. The current receipt binds the
-additional source changes and qualification.
+The reviewed parent contains 1,089 tracked files and 19,431,738 tracked
+bytes. It includes 219 files under `src/` and `include/`.
+[Current inventory and source bindings](evidence/release-reconciliation-rolling-lookups-2026-11-25.json)
 
 | Area | Inventory | Responsibility |
 | --- | ---: | --- |
-| `src/` | 172 files | Storage, native filesystem, codecs, Windows adapters, controllers and workers |
+| `src/` | 177 files | Storage, native filesystem, codecs, Windows adapters, controllers and workers |
 | `include/` | 42 files | Public core, session, storage, resource and recovery interfaces |
 | `tests/` | 153 files | Model, malformed-input, failure, SDK, process, application and qualification fixtures |
-| `tools/` | 66 files | Dependency staging, provenance, resource containment and qualification |
-| `docs/` | 543 files | Contracts, plans, historical results and source-bound evidence |
+| `tools/` | 67 files | Dependency staging, provenance, resource containment and qualification |
+| `docs/` | 595 files | Contracts, plans, historical results and source-bound evidence |
 | `.github/` | 19 files | Complementary build, analysis and experimental workflows |
 | `third_party/` | 19 files | Pinned BLAKE3 sources, licensing and provenance |
 | `cmake/`, `evidence/`, `resources/`, and top-level files | 17 files | Build support, historical evidence, branding, README and licensing |

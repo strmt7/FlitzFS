@@ -207,6 +207,34 @@ flowchart TD
     Memo --> Sample
 ```
 
+Price the search before adding a representation. The current scanner
+can query all distinct rolling keys while the writer funds one stored
+key per representative. Keep that control as the baseline.
+
+| Observation on the same frozen cohort | Change to evaluate |
+| --- | --- |
+| Most high-value references are already nominated | Spend idle work on encoding and placement for these live sets. |
+| Catalog misses dominate and a bounded exact-key plan can share checked page reads | Compare shared index reads and a generation-bound negative result cache. Keep the existing per-op backpressure and audit coverage. |
+| Offset changes hide high-value fragment matches | Prototype content-defined fragment sketches and a costed shortlist beside the current index. Include postings, sampled input, rewrites and RAM in the result. |
+| Exhaustive direct references also leave substantial bytes | Try independently decoded subgroup dictionaries, reversible transforms or learned residuals on that cohort. Charge each required table and restore path. |
+
+```mermaid
+flowchart LR
+    Files["Acknowledged versioned extents"] --> Work["Bounded feature scan"]
+    Work --> Existing["Current candidate schedule"]
+    Work --> Candidate["Trial query plan or fragment shortlist"]
+    Existing --> Oracle["Small independent exact-cost oracle"]
+    Candidate --> Oracle
+    Oracle --> Observe["Measure missed savings and spent idle work"]
+    Observe --> Policy["Versioned optional local ranker"]
+    Policy --> Offer["Nominate during future idle grants"]
+    Offer --> Verify["CPU verify dependencies and confirmed savings"]
+    Verify --> Publish["Normal durable commit"]
+```
+
+[Secondary lookup controls](../evidence/release-reconciliation-rolling-lookups-2026-11-25.json) ·
+[FAST ’26 offset-independent delta work](https://www.usenix.org/conference/fast26/presentation/zhang-zhihao-parasync)
+
 A concrete first challenger is **similar fragments with multiple independent
 references**. Measure same-position, shifted and content-defined samples.
 Cluster a bounded batch by estimated shared bytes and access behavior. Choose

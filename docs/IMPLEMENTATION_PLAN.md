@@ -6,7 +6,7 @@ demand, the indexed attach differential and held-out settled compression.
 The E01–E13 acceptance and dependency contracts below define the release exits.
 [Current assessment](RELEASE_RECONCILIATION_2026-11-25.md) ·
 [Ordered implementation](RELEASE_RECONCILIATION_2026-11-25.md#ordered-implementation-and-decision-points) ·
-[Source and review evidence](evidence/windows-batched-staged-copy-2026-11-25.json)
+[Source and review evidence](evidence/release-reconciliation-rolling-lookups-2026-11-25.json)
 
 The [current architecture](architecture/CURRENT.md) shows the implementation.
 The [source review](architecture/REVIEW.md) tests the assumptions and the
@@ -290,6 +290,43 @@ reuses the existing mounted and AMD controls instead of rebuilding the first
 indexed or read-only prototypes.
 
 ### Next implementation tickets
+
+Use one frozen application trace and select one production change per
+decision. The expanded [decision table](RELEASE_RECONCILIATION_2026-11-25.md#decisions-to-carry-into-the-package-plan)
+defines when to continue with admission and pacing, locality, AMD scheduling
+or a new representation.
+
+- **Mounted settlement.** Record admission, copy phase, verification,
+  selector publication, retained references, provider operations and
+  allocation in order. Reuse the independent client and CPU oracle.
+  Qualify the bank-spanning candidate first. If it ends before the
+  ordinary controller selects and releases storage, attribute the first
+  unfinished phase before changing the allocator.
+- **Useful device delivery.** Feed observed open stream ranges and
+  generations to the existing owner. For read, write and collective work,
+  compare CPU, cold GPU and a ready lease using identical observations.
+  Count useful bytes delivered or committed, discarded bytes and retirement.
+  Quantify resource cost across quiet and active gaps. Enroll profitable
+  shapes on the actual runtime, driver and device tuple.
+- **Compression and search.** Freeze versions and family splits before
+  tuning the shortlist. Measure incremental gains from existing aligned,
+  projected and rolling matches separately. For a small held-out subset,
+  enumerate admissible direct-reference candidates and price them with the
+  existing protection and placement rules. Use the gap between exhaustive
+  and selected savings to choose a better search or a new representation.
+  Compare total settled provider bytes at the same protection level.
+- **Writable reopen.** Extend current verified reads and CPU audit with
+  a read-only comparison of authority summary, dependency references and
+  allocation ownership. Trace differences by checkpoint and touched
+  pages. Compare old images, interrupted publications, and one damaged
+  copy. Hold one feasible size tier out from estimation and report the
+  resulting error before extrapolating to larger namespaces.
+- **Product exits.** Bind package and CPU rescue to the exact candidate.
+  Use interrupted upgrade and backend-specific recovery fixtures before
+  representative performance claims. Measure DiskSpd and named-file
+  workloads on installed hardware with verified Windows-native compressed
+  and plain NTFS controls. Stabilize on the evidence-supported Windows
+  and backing matrix before the owner's release decision.
 
 Use the reconciliation's current sequence to decide which product change
 earns implementation. The next test should reuse the populated operation
@@ -1134,9 +1171,15 @@ eligible representative. On the bounded restart fixture, a 67-byte shift
 after twelve unrelated extents reduced the complete settled footprint
 from 2,543,616 to 2,420,736 bytes. The fixture charges the image, selector,
 optimization area and catalog. It also verifies refusal of a stale
-nomination. Expand the comparison across revision histories and count
-tiers before assigning a larger portion of the catalog budget to these keys.
-[Persistent shifted discovery evidence](evidence/indexed-shifted-coherence-2026-11-25.json)
+nomination. The scanner now qualifies secondary rolling matches even when
+the shifted extent prefers a different key. The controlled CPython-derived
+case and the synthetic case each lowered complete occupied bytes by
+122,880. The candidate uses the same 159,744-byte catalog. The long-range
+projected control used 4,879 lookups, up from 3,754. Compare profitable
+recall and query cost on additional revision trees before spending more
+catalog space.
+[Persistent shifted discovery evidence](evidence/indexed-shifted-coherence-2026-11-25.json) ·
+[Secondary rolling lookup evidence](evidence/release-reconciliation-rolling-lookups-2026-11-25.json)
 
 Indexed discovery can start with the extents in a covered history of
 successful foreground writes. In a 1,034-file fixture, checking the changed
