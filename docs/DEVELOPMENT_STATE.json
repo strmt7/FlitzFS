@@ -6,6 +6,22 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "compact_paged_roots": {
+    "source_commit": "216034fb8adfa06247d502f2fef6f9eb19dbc78c",
+    "tested_source_tree": "ccc9c5947d3d6e5dcd84483059db342a4c3e6a92",
+    "evidence": "docs/evidence/windows-compact-paged-roots-2026-11-25.json",
+    "reconciliation": "docs/RELEASE_RECONCILIATION_2026-11-25.md#reconciliation-after-compact-paged-roots",
+    "execution_order": "docs/IMPLEMENTATION_PLAN.md#execution-after-compact-paged-roots",
+    "default_for_new_indexed_windows_memory_volumes": true,
+    "qualified_4_kib_image_prefix_bytes": [131072, 8192],
+    "both_legacy_to_both_compact_locked_bytes": [434176, 188416],
+    "cpython_four_release_complete_bytes": [573440, 450560],
+    "modeled_root_publication_cuts": 120,
+    "host_radeon_verified_group_frames": 2,
+    "functional_ctest_cases": {"release": 11, "raw": 2, "asan": 2},
+    "sanitizer_runtime_preflight_passed": true,
+    "release": false
+  },
   "compact_volume_selector": {
     "source_commit": "ae90510fd3325b9a4a2339e7838f97d67f37d1fb",
     "tested_source_tree": "fe96349c54288d816adf3fd2d7f2d2dc62c49c03",
@@ -109,7 +125,7 @@
     "group_duty_preserved": true,
     "next": "Measure delivered grouped windows and phase-specific misses with the ordinary mounted AMD route under fresh admitted headroom."
   },
-  "release_review": "docs/RELEASE_RECONCILIATION_2026-11-25.md#current-round-and-release-decisions",
+  "release_review": "docs/RELEASE_RECONCILIATION_2026-11-25.md#reconciliation-after-compact-paged-roots",
   "retained_cpu_tile": {
     "source_base": "fec45a0621dfcda23963b96960255d8f9ce67843",
     "runtime_tree": "cc0ad2d2751b5c278a7db3fe835449b6be2e9220",

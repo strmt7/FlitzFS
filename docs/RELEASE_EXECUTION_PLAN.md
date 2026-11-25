@@ -1,13 +1,14 @@
 # FlitzFS stable release execution plan
 
-The current production changes reduce the cost of checked writable reopen
-and one cold revision family. Matched broader complete-size controls
-remained unchanged. Physical Radeon delivery passed at the callback and
-controller boundaries. Qualification now needs those usable paths on the
-same ordinary installed client, plus the protected-size oracle and
-backend-specific recovery.
-[Reconciled evidence](evidence/windows-prefix-parser-reconciliation-2026-11-25.json) ·
-[Implementation sequence](IMPLEMENTATION_PLAN.md#execution-after-the-protected-prefix-checkpoint)
+Compact paged roots lower settled occupancy by 122,880 bytes on the
+matched CPython fixture with a compact selector. Windows memory
+lifecycle checks confirmed stale cancellation, sealing, CPU reopen and
+retirement. The host Radeon delivered verified grouped frames through
+the SDK boundary. The next sequence integrates ordinary mounted CPU
+and AMD service with checks of full protected allocation, scalable
+attach and backing-specific recovery.
+[Reconciled evidence](evidence/windows-compact-paged-roots-2026-11-25.json) ·
+[Implementation sequence](IMPLEMENTATION_PLAN.md#execution-after-compact-paged-roots)
 
 Use the [repository overview](REPOSITORY_OVERVIEW.md) for the product snapshot,
 the [current architecture](architecture/CURRENT.md) and [target architecture](architecture/TARGET.md)

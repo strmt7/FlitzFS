@@ -434,6 +434,66 @@ void failure_matrix(std::uint32_t unit,bool mirrored=false,
   std::cout<<"failure_matrix unit="<<unit<<" mirrored="<<mirrored<<" shared="<<(layout==PagedStoreBankLayout::shared)
       <<" operations="<<operations<<" modes=3\n";
 }
+void compact_root_layout() {
+  constexpr auto layout=PagedStoreBankLayout::compact;
+  constexpr StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
+  const auto marker=[](const Bytes& bytes) {
+    return std::string_view(reinterpret_cast<const char*>(bytes.data()),8);
+  };
+  for(const auto unit:{4096U,8192U,16384U,32768U,65536U}) {
+    auto compact=std::make_shared<Ram>(),legacy=std::make_shared<Ram>();
+    compact->unit=legacy->unit=unit;
+    for(const auto& [backing,style]:std::array{
+          std::pair{compact,layout},std::pair{legacy,PagedStoreBankLayout::shared}}) {
+      auto writer=PagedObjectStoreWriter::create_mirrored(backing,identity(),limits,raw,style);
+      if(style==layout)require(backing->extent()==4ULL*unit,"compact empty checkpoint extent");
+      apply(writer,put(1));
+    }
+    require(marker(compact->stable)==(unit<kStoreCommitUnit?"FLTXPG02":"FLTXPG01") &&
+        legacy->extent()-compact->extent()==2ULL*(kStoreCommitUnit-unit),
+        "root spacing did not match the backend failure unit");
+    for(const auto lost:{0U,1U}) {
+      auto damaged=compact->stable;
+      std::fill_n(damaged.begin()+static_cast<std::ptrdiff_t>(lost*unit),unit,std::byte{});
+      auto survived=image(damaged,unit);
+      const auto reader=PagedObjectStoreSnapshot::open(survived,limits);
+      require(reader.info().degraded_roots && reader.read(1)==payload(1),"isolated root loss changed data");
+      auto writable=PagedObjectStoreWriter::resume(survived,identity(),reader.info().generation,limits,raw);
+      require(!writable.snapshot().info().degraded_roots,"surviving root did not repair its peer");
+      apply(writable,put(2));
+      require(writable.snapshot().read(1)==payload(1),"repaired root append changed data");
+    }
+    const auto original=PagedObjectStoreSnapshot::open(compact,limits);
+    auto moved=image(compact->stable,kStoreCommitUnit);
+    require(PagedObjectStoreSnapshot::open(moved,limits).read(1)==payload(1),
+        "read-only compact image relocation changed data");
+    if(unit<kStoreCommitUnit) {
+      rejects([&]{(void)PagedObjectStoreWriter::resume(moved,identity(),original.info().generation,limits,raw);},
+          "wider failure units acquired the compact writer");
+      require(!moved->calls && moved->stable==compact->stable,"incompatible resume touched the image");
+    }
+    for(const auto target_unit:{unit,static_cast<unsigned>(kStoreCommitUnit)}) {
+      auto replacement=std::make_shared<Ram>();replacement->unit=target_unit;
+      auto next=identity();next[0]^=std::byte{1};
+      auto writer=PagedObjectStoreWriter::rebuild(original,replacement,next,limits,raw);
+      const auto checked=writer.snapshot();
+      checked.verify_all();
+      require(checked.read(1)==payload(1) &&
+          marker(replacement->stable)==(target_unit<kStoreCommitUnit?"FLTXPG02":"FLTXPG01"),
+          "independent rebuild chose the wrong root spacing or data");
+    }
+
+    if(unit==4096) {
+      auto ambiguous=compact->stable;
+      ambiguous.resize(legacy->stable.size());
+      std::fill_n(ambiguous.begin(),unit,std::byte{});
+      std::copy_n(legacy->stable.begin()+kStoreCommitUnit,4096,ambiguous.begin()+kStoreCommitUnit);
+      rejects([&]{(void)PagedObjectStoreSnapshot::open(image(ambiguous,unit),limits);},
+          "conflicting plausible second-root locations were accepted");
+    }
+  }
+}
+
 void damage_and_malformed() {
   auto ram=std::make_shared<Ram>();
   {auto w=create(ram);populate(w,4000);}
@@ -669,6 +729,11 @@ int main(int argc,char** argv) {
     if(argc==2 && std::string_view(argv[1])=="--million")scale(1000000);
     else if(argc==2 && std::string_view(argv[1])=="--mirrored-append") {
       append_write_accounting();failure_matrix(4096,true);failure_matrix(65536,true);
+    }
+    else if(argc==2 && std::string_view(argv[1])=="--compact-roots") {
+      compact_root_layout();
+      failure_matrix(4096,true,PagedStoreBankLayout::compact);
+      failure_matrix(16384,true,PagedStoreBankLayout::compact);
     }
     else if(argc==2 && std::string_view(argv[1])=="--shared-banks") {
       append_write_accounting();append_write_accounting(PagedStoreBankLayout::shared);

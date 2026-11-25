@@ -22,7 +22,10 @@ void put(Bytes& bytes,std::size_t at,std::uint64_t value,unsigned count=8){for(u
 StoreIdentity next_id(){auto id=identity();id[7]=std::byte{98};return id;}
 struct Location{std::uint64_t id=0,primary=0,peer=0,stored=0;};
 std::vector<Location> locations(const Ram& ram) {
-  require(get(ram.live,8,4)==2,"missing mirrored root capability");std::vector<Location> result;
+  const auto capability=get(ram.live,8,4);
+  require((capability==2 || capability==3) && get(ram.live,60,4)==4096,
+      "fixture requires a mirrored root with full-size index pages");
+  std::vector<Location> result;
   auto visit=[&](auto&& self,std::uint64_t page,unsigned depth)->void {
     require(depth<=16,"fixture tree depth");const auto count=get(ram.live,page+40,4),height=get(ram.live,page+12,4);
     for(std::uint64_t i=0;i<count;++i) {

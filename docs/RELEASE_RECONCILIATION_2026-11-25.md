@@ -1,21 +1,121 @@
 # FlitzFS release reconciliation · 25 November 2026
 
-FlitzFS has writable WinFsp integration, protected indexed storage,
-independent CPU recovery and verified AMD delivery in controlled Windows
-callbacks. It remains in development qualification. Prioritize useful
-automatic mounted AMD service, complete stored size, less inventory work at
-writable attach and sustained occupied-space settlement.
-
-This review covers 1,122 tracked paths at `afc4d8f` and the tested prefix
-parser changes. It reconciles the runtime paths changed since `fec45a0`
-against the current Windows fixtures and the earlier architecture inventory.
-The signed mount and the current physical AMD runs establish different
-parts of the client path. Each receipt identifies its source and artifacts.
-[Current evidence](evidence/windows-prefix-parser-reconciliation-2026-11-25.json) ·
-[Earlier signed mount](evidence/windows-cpu-tile-and-ordinary-settlement-2026-11-25.json) ·
+FlitzFS has writable WinFsp integration, protected indexed storage, automatic
+maintenance and independent CPU recovery. This review binds the 1,126-path
+parent `216034fb8adf` to the tested runtime tree `ccc9c5947d3d`. It follows the
+Windows helper, selected image and CPU decoder, private allocation stages,
+AMD worker and recovery boundaries. Older signed mounts, new host checks and
+release comparisons each have their own artifact scope.
+[Source, tests and primary-source captures](evidence/windows-compact-paged-roots-2026-11-25.json) ·
 [Current architecture](architecture/CURRENT.md) ·
-[Target architecture](architecture/TARGET.md) ·
-[Detailed implementation](IMPLEMENTATION_PLAN.md#execution-after-the-protected-prefix-checkpoint)
+[Target architecture](architecture/TARGET.md)
+
+## Reconciliation after compact paged roots
+
+### Completed size and correctness work
+
+The indexed Windows memory-volume factory now requests compact paged roots.
+At a qualified 4 KiB write-failure unit, the image roots occupy 8,192 bytes
+across independent units. The existing selector can use the same spacing.
+Every image reader still accepts the 64 KiB slots used by older images.
+A folded sealed replacement retains its published legacy geometry. The
+workspace reservation includes the prefix expansion before folding, subject
+to the same observed headroom and complete occupied-byte publication check.
+[Wire layout and recovery](PAGED_OBJECT_STORE.md#compact-mirrored-roots)
+
+| Matched outcome | Previous layout | Compact paged roots |
+| --- | ---: | ---: |
+| Four-release CPython settled image and compact selector | 573,440 B | 450,560 B |
+| Checked live Windows locked pages with both legacy or both compact layers | 434,176 B | 188,416 B |
+| Bytes in the two protected data copies on the settled CPython arm | 378,180 B | 378,180 B |
+
+The CPython fixture contains 24 files and 2,510,681 logical bytes. Seven
+matched arms each save 122,880 bytes with the same encoded data and metadata.
+The best settled arm saves **21.4%** from its compact-selector control. With
+both legacy layers the same arm previously occupied 696,320 bytes. The
+remaining 450,560 bytes include 378,180 data-copy bytes, 5,080 mirrored
+metadata-object bytes, 59,108 record/index/padding bytes and an 8,192-byte
+selector. Payload representation now dominates this cohort. Use complete
+occupation on other cohorts before spending effort on more fixed prefixes.
+[Matched layouts, fixture digest and independent CPU checks](evidence/windows-compact-paged-roots-2026-11-25.json)
+
+The final Windows run passed 11 Release checks and two each in raw-only
+and AddressSanitizer builds, plus the sanitizer runtime preflight. The
+compact publication matrix covered 120 modeled cuts. Its tests cover
+either root surviving, ambiguous placements, wider-provider read recovery,
+writable admission and rebuilding. The first sealing test reproduced an
+under-reservation. The corrected run completed stale cancellation, two
+selections and retirement after release of pinned readers. A legacy mirror
+fixture was updated to inspect the two supported mirrored capabilities.
+On the host Radeon, the SDK callback trace delivered two independently
+verified grouped frames across 32 callbacks and retired its worker.
+[Check and device receipts](evidence/windows-compact-paged-roots-2026-11-25.json)
+
+### Reconsidered design and research
+
+- **Size after settlement.** Preserve the compact prefix as a measured
+  placement choice. Price the settled allocation of existing shared bases,
+  independent frames and sealed protection on the same live set before a
+  new wire revision. FAST ’26 RubikFS provides evidence for co-locating
+  similar chunks and access patterns. FAST ’26 SkySync provides evidence
+  for reusing already computed storage observations. Use both as leads for
+  bounded search and reuse while measuring FlitzFS's writable, protected
+  and independently decodable representation.
+  [RubikFS](https://www.usenix.org/conference/fast26/presentation/huang) ·
+  [SkySync](https://www.usenix.org/conference/fast26/presentation/zhang-zhihao)
+- **Local learning.** Use versioned fragment sketches, exposure and
+  payoff observations to choose a representation. Train a small local
+  selector against actual occupied bytes, access and rewrite cost, run it
+  in shadow, and keep the model advisory. TuFaZip demonstrates the
+  general research potential of an online transformer on enwik9 with a
+  two-B200 decoding environment. That workload and execution contract
+  delimit its relevance to the product's random reads and CPU recovery.
+  [Author's decoder and reference artifact](https://github.com/Tufalabs/tufazip/blob/master/README.md)
+- **AMD residency.** Track the Core SDK release, Windows HIP package,
+  compiler/header build, runtime ABI, signed device driver and module
+  identities independently. AMD publishes ROCm Core 10.2.0 and a Windows
+  HIP SDK download labeled 7.2. Use the Windows component compatibility
+  contract and observed runtime when selecting workers. Keep a usable
+  context, streams and reusable buffers across a predicted request
+  window, gated by observed benefit and pressure. The authority and
+  CPU path stay available while a worker is cold, declined or retired.
+  [ROCm Core 10.2.0](https://rocm.docs.amd.com/en/docs-10.2.0/about/release-notes.html) ·
+  [Windows HIP SDK](https://www.amd.com/en/developer/resources/rocm-hub/hip-sdk.html) ·
+  [HIP asynchronous execution](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/asynchronous.html)
+- **Windows compatibility and comparison.** Host fixtures ran on Windows
+  11 26H2 build 26300.10075. Keep the exact build, signed WinFsp driver and
+  DLL, user-mode package and backing tuple in each qualification receipt.
+  Use Microsoft DiskSpd 2.3 for common I/O shapes, an independent Win32
+  replay for metadata and Explorer semantics, and the official AITDCC
+  2026 corpus alongside representative multi-file trees. Verify plain
+  NTFS and the native LZNT1 mode on each comparable target. Microsoft's
+  Hardware Lab Kit has separate kit and playlist coverage by Windows
+  branch, so use its published support for any applicable driver lane.
+  [Windows release information](https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information) ·
+  [Latest reviewed HLK announcement](https://techcommunity.microsoft.com/blog/windows-hardware-certification/hlk-october-refresh-release-for-windows-11-version-25h2-version-26h1-and-windows/4572593) ·
+  [DiskSpd 2.3](https://github.com/microsoft/diskspd/releases/tag/v2.3) ·
+  [Native NTFS compression](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_compression) ·
+  [AITDCC 2026 dataset](https://aitdcc.github.io/dataset.html)
+
+### End-to-end release status
+
+| Release surface | Verified boundary | Evidence still required |
+| --- | --- | --- |
+| Namespace and scale · E01 | Indexed names, inodes and extents with retained and fenced writable reopen. Checked inventory still grows with the live set. | Bounded fast attach shadowed against complete verification, scale curves across file mixes and stable memory under churn |
+| Allocation and recovery · E02, E11 | Paired selectors, private rebuilds, checked handoff, memory sealing and bounded signed guest replay | Repeated real client settlement, provider-specific acknowledged-write recovery, interrupted reclaim and independent CPU salvage |
+| Automatic device service · E03 | Device output consumed in SDK callbacks and CPU fallback verified at the same boundary | Useful settled read, write and background acceleration through ordinary installed mounts with refusal, warmed sessions and verified quiescence |
+| Maximum compression and learning · E04–E07 | Sparse bounded coherence, direct protected sharing, independent CPU decode, restartable maintenance and a measured related-file cohort | Held-out allocation frontier, range-read bounds, resource impact and proven local policy adaptation across volume types |
+| Windows integration and compatibility · E08–E10 | Signed guest attach and bounded helpers. Tests cover legacy and compact roots. | Exact signed installer and Explorer lifecycle on declared 26H2 tuples, compatibility matrix, interrupted mixed-format upgrades and offline CPU restore |
+| Comparative qualification and stabilization · E12–E13 | Recognized tools, native NTFS control protocol and focused branch tests | Alternating live native comparisons, independent fault campaigns and exact-candidate soak and review |
+
+The current range remains **59–127 person-weeks** at low confidence,
+including implementation and qualification. Predictable estimates for
+the compression research depend on the first fair held-out frontier.
+Reprice the corresponding packages after the first installed AMD trace,
+the attach differential, real provider interruption and complete-size
+comparison. The twelve stable release gates remain open. [Ordered
+implementation](IMPLEMENTATION_PLAN.md#execution-after-compact-paged-roots) ·
+[Gate ledger](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
 
 ## Current round and release decisions
 
@@ -628,10 +728,9 @@ and surviving authority. A degraded compact selector moved to a backing
 with a wider failure unit remains readable and rejects writable startup
 before image repair.
 
-Price the fixed root spacing inside the paged image in its own cohort.
-Require a conservative reader transition, exact capacity and recovery
-checks before advancing that format. Qualify allocation and persistence
-against the intended providers.
+The subsequent compact image-root checkpoint prices both layers and
+qualifies memory-provider recovery separately. Its receipt includes the
+prior selector-only control. [Compact paged roots](evidence/windows-compact-paged-roots-2026-11-25.json)
 [Selector wire and recovery](VOLUME_HEAD.md#compact-external-encoding) ·
 [Source-bound measurements](evidence/windows-compact-volume-selector-2026-11-25.json)
 

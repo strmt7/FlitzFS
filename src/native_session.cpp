@@ -637,20 +637,26 @@ NativeFileSession NativeFileSession::create_paged_volume(std::shared_ptr<StoreBy
 NativeFileSession NativeFileSession::create_indexed_volume(std::shared_ptr<StoreByteIo> head,
     StoreIdentity volume,std::shared_ptr<StoreByteIo> image,StoreIdentity image_id,PagedStoreLimits limits,
     StoreCompressionOptions foreground,NativeDispositionPolicy policy,std::optional<NativeVolumeRootMetadata> root,
-    NativeVolumePlacement placement,NativeIndexedDataLayout data_layout,NativeVolumeHeadLayout head_layout) {
+    NativeVolumePlacement placement,NativeIndexedDataLayout data_layout,NativeVolumeHeadLayout head_layout,
+    PagedStoreBankLayout image_layout) {
   if(!limits.maximum_physical_bytes)fail(E::invalid_options,"explicit indexed volume capacity required");
   return create_volume_impl(std::move(head),volume,std::move(image),image_id,
-      {NativeImageKind::indexed_paged,limits.maximum_physical_bytes},foreground,{},policy,root,placement,data_layout,head_layout);
+      {NativeImageKind::indexed_paged,limits.maximum_physical_bytes},foreground,{},policy,root,
+      placement,data_layout,head_layout,image_layout);
 }
 NativeFileSession NativeFileSession::create_volume_impl(std::shared_ptr<StoreByteIo> head,
     StoreIdentity volume,std::shared_ptr<StoreByteIo> image,StoreIdentity image_id,NativeImageStorage storage,
     StoreCompressionOptions foreground,StoreCheckpointOptions checkpoints,NativeDispositionPolicy policy,
     std::optional<NativeVolumeRootMetadata> root,NativeVolumePlacement placement,NativeIndexedDataLayout data_layout,
-    NativeVolumeHeadLayout head_layout) {
+    NativeVolumeHeadLayout head_layout,PagedStoreBankLayout image_layout) {
   admit_policy(policy);detail::validate_store_compression(foreground);
   if(head_layout!=NativeVolumeHeadLayout::legacy &&
       (head_layout!=NativeVolumeHeadLayout::compact || placement!=NativeVolumePlacement::external))
     fail(E::invalid_options,"unsupported volume head layout");
+  if(image_layout!=PagedStoreBankLayout::shared && image_layout!=PagedStoreBankLayout::separate &&
+      (image_layout!=PagedStoreBankLayout::compact || storage.kind!=NativeImageKind::indexed_paged ||
+       head_layout!=NativeVolumeHeadLayout::compact || placement!=NativeVolumePlacement::external))
+    fail(E::invalid_options,"compact indexed roots require a compact external selector");
   if(data_layout!=NativeIndexedDataLayout::extents && data_layout!=NativeIndexedDataLayout::inline_small_files)
     fail(E::invalid_options,"unknown indexed data layout");
   if(volume==StoreIdentity{} || image_id==StoreIdentity{} || volume==image_id || head==image)
@@ -664,8 +670,9 @@ NativeFileSession NativeFileSession::create_volume_impl(std::shared_ptr<StoreByt
   auto writer=[&] {
     if(storage.kind==NativeImageKind::flat)
       return NativeFilesystemWriter::initialize(ObjectStoreWriter::create(image,image_id,foreground,checkpoints));
-    const auto layout=storage.kind==NativeImageKind::indexed_paged?
-        PagedStoreBankLayout::shared:PagedStoreBankLayout::separate;
+    auto layout=storage.kind==NativeImageKind::indexed_paged?image_layout:PagedStoreBankLayout::separate;
+    if(layout==PagedStoreBankLayout::compact && head->contract().write_failure_unit_bytes==kStoreCommitUnit)
+      layout=PagedStoreBankLayout::shared;
     auto objects=PagedObjectStoreWriter::create_mirrored(image,image_id,{storage.maximum_physical_bytes},foreground,layout);
     if(storage.kind==NativeImageKind::indexed_paged)
       return NativeFilesystemWriter::initialize_indexed(std::move(objects),data_layout);

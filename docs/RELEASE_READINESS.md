@@ -1,15 +1,17 @@
 # Release readiness
 
-FlitzFS is in development qualification. Both backing profiles recovered
-acknowledged cached and mapped edits in small mounted guest trials. The
-latest indexed changes reduce backing I/O for full verification and scrub.
-Measured AMD work produced verified extents, and CPU won the three tested
-ordinary-policy write comparisons. The release still depends on large
-writable startup, sustained reuse, useful automatic AMD operation, held-out
-compression, physical recovery and supported signed Windows installation.
-The owner alone makes the release decision.
-[Mounted recovery](evidence/windows-mounted-mixed-flush-recovery-2026-11-23.json) ·
-[Current review](evidence/release-plan-refresh-2026-11-23.json)
+FlitzFS is in development qualification. Recent work reduced the
+settled CPython fixture by 21.4% against its compact-selector control.
+Live Windows fixtures tested the new roots across sealing and recovery,
+and a host Radeon delivered checked frames in SDK callbacks. Small
+signed Windows guest trials had already recovered acknowledged cached
+and mapped edits. Release still depends on useful automatic mounted
+AMD operation, writable attach and reuse at scale, held-out complete-size
+improvements, backing-specific recovery and a supported signed
+installation. The owner makes the release decision.
+[Current reconciliation](RELEASE_RECONCILIATION_2026-11-25.md#reconciliation-after-compact-paged-roots) ·
+[Compact roots and device evidence](evidence/windows-compact-paged-roots-2026-11-25.json) ·
+[Mounted recovery](evidence/windows-mounted-mixed-flush-recovery-2026-11-23.json)
 
 Use the [current gate ledger](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
 for status and acceptance. The [architecture review](architecture/REVIEW.md)

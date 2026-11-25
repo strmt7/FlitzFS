@@ -233,10 +233,14 @@ std::uint64_t NativeHybridBacking::workspace_capacity(StoreIdentity identity,Sto
   if(!valid_store_io_contract(storage) || source_bytes<=roots || source_bytes>maximum_io ||
       staging_bytes<=tail_start || staging_bytes>maximum_io)return 0;
   const auto alignment=(std::max<std::uint64_t>)(root_size,storage.write_failure_unit_bytes);
+  // Folded workspaces retain the legacy root offsets. Include the maximum
+  // prefix growth for any writable source on this provider before folding.
+  const auto prefix_growth=roots-2*alignment;
+  const auto mirrored_limit=source_bytes+(std::min)(prefix_growth,maximum_io-source_bytes);
   const auto budget=staging_bytes-tail_start;
   // The base commits at least as many bytes as the workspace supplies.
   // Search in isolation units so a fitted workspace can be reserved directly.
-  std::uint64_t low=0,high=(std::min)(detail::folded_mirror_extent(source_bytes),budget/2)/alignment;
+  std::uint64_t low=0,high=(std::min)(detail::folded_mirror_extent(mirrored_limit),budget/2)/alignment;
   const auto base_bytes=[&](std::uint64_t workspace) {
     return ProtectedStripeImage::projected_occupied(identity,workspace,storage.write_failure_unit_bytes,maximum_io);
   };

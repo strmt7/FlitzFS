@@ -125,8 +125,9 @@ not interpret these bytes as their old manifests.
 All integers are little-endian; reserved bytes are zero. Integrity uses unkeyed
 BLAKE3, not authentication, encryption or rollback protection.
 
-Two 4-KiB roots occupy separate 64-KiB zones at offsets 0 and 65,536. Immutable
-records begin at 131,072. Root magic is `FLTXPG01`, capability field 1:
+In the legacy layout, two 4 KiB roots occupy separate 64 KiB zones at
+offsets 0 and 65,536. Immutable records begin at 131,072. The root magic
+is `FLTXPG01`. This table also defines the fields of the compact roots.
 
 | Offset | Bytes | Field |
 | ---: | ---: | --- |
@@ -151,6 +152,36 @@ count in a 64-byte header. Their final 32 bytes contain the digest. Leaves have
 lengths (uint32), stored-record digest (32 bytes). Branches contain references.
 Unused bytes are zero. Object records use the existing 128-byte `FLTXDAT1`
 header and independent CPU raw/zero/pattern/optional Zstd/LZ4 codec contracts.
+
+### Compact mirrored roots
+
+New indexed Windows memory volumes request compact image roots alongside
+their compact external selector. Each root retains its 4 KiB encoding and
+occupies a separate provider-qualified failure unit. For narrower
+qualified units the root magic is `FLTXPG02`, the first root starts
+at zero, the second starts at the stored isolation unit, and data starts
+at twice that unit. This encoding uses mirrored capabilities 2 and 3.
+Supported compact isolation units are 4, 8, 16 and 32 KiB. A 64 KiB unit
+uses the legacy spacing and magic.
+
+An intact root at zero names the spacing to check for its peer. If that
+root is unavailable, the reader checks the bounded set of legal second
+slots. It requires an exact root marker, checksum, slot and geometry
+before following the selected tree. Multiple plausible surviving
+second slots cause a refusal. Both intact peers must agree on layout,
+identity and the bound checkpoint history. Ordinary data at other
+offsets has no authority to change the selected image.
+
+Writable recovery requires the backing's failure unit to fit the
+published isolation unit. A rebuild into a new ordinary image preserves
+compact roots where the qualified target geometry permits. Rebuilding
+to a 64 KiB unit or staging a folded sealed image uses the legacy
+spacing required by those layouts. For a folded candidate, reserve the
+additional legacy prefix before applying the workspace folding ratio.
+Placement, capacity, rebuild estimates and obsolete-byte accounting
+use the actual target geometry.
+[Selector format](VOLUME_HEAD.md#compact-external-encoding) ·
+[Mirrored storage qualification](evidence/windows-compact-paged-roots-2026-11-25.json)
 
 ### Compact coherence catalog pages
 

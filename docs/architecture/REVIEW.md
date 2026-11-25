@@ -1,12 +1,12 @@
 # Source and architecture review
 
-The [current reconciliation](../RELEASE_RECONCILIATION_2026-11-25.md#current-round-and-release-decisions)
-covers 1,117 tracked paths and the four storage commits since the previous
-review. The source review follows selected native storage and Windows
-controller paths from recorded operations to backing release, checked
-fetch and recovery. The attached trace and current callback qualification
-have distinct source identities.
-[Inventory, routing and test receipts](../evidence/windows-cpu-tile-and-ordinary-settlement-2026-11-25.json) ·
+The [current reconciliation](../RELEASE_RECONCILIATION_2026-11-25.md#reconciliation-after-compact-paged-roots) binds the 1,126-path
+parent at `216034fb8adf` and the tested source tree `ccc9c5947d3d`. It
+follows ordinary attachment, checked indexed admission, source and
+candidate ownership, device work consumed by callbacks, and the
+settled allocation of protected representations. Older guest mounts
+and current host callback checks retain distinct source identities.
+[Current inventory and test receipts](../evidence/windows-compact-paged-roots-2026-11-25.json) ·
 [Previous full review](../RELEASE_RECONCILIATION_2026-11-24.md)
 
 | Component checked | Current boundary | Implementation decision |

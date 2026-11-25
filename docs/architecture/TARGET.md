@@ -8,7 +8,7 @@ The current integration design ties durable publication, bounded AMD work,
 sparse advice and measured settlement to the same Windows operation witness
 and complete occupancy record.
 [Reconciled design](../RELEASE_RECONCILIATION_2026-11-25.md#target-control-and-storage-design) ·
-[Implementation order](../RELEASE_RECONCILIATION_2026-11-25.md#implementation-packets-and-exit-decisions)
+[Implementation order](../IMPLEMENTATION_PLAN.md#execution-after-compact-paged-roots)
 
 ## 1. Separate volume ownership from presentation and acceleration
 
@@ -257,6 +257,17 @@ frontiers make parser strength a useful control for that replay. Use
 `NativeFileSession` and the independent CPU reader to verify finalists
 with ordinary allocation and identical protection.
 [Prefix trial and held-out controls](../evidence/windows-prefix-parser-reconciliation-2026-11-25.json)
+
+Price each representation after its selected generation settles and old
+reader pins release. The measured store cost includes the selector,
+protected frames, indexes, mandatory references, allocation rounding and
+physical backing after retirement. Track temporary coexistence, scratch
+and actual writes alongside it. Compact roots already removed 120 KiB
+of fixed cost from one 4 KiB placement. The next corpus comparison
+should distinguish achievable savings in the payload encoding from
+savings in its protection layout. A new placement must preserve the
+declared failure coverage and exact independent CPU range decoding.
+[Occupied-byte decomposition](../evidence/windows-compact-paged-roots-2026-11-25.json)
 
 Use an ordered coordinate, payload revision and image identity as the
 minimum resumable advice. A scan unit gets a checked view, samples

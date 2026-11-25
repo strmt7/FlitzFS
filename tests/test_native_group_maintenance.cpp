@@ -37,9 +37,10 @@ struct Fixture {
   explicit Fixture(std::uint32_t unit,unsigned count=8,bool indexed=false,
       StoreCompressionOptions compression={StoreCompressionMode::raw,1,false},
       NativeIndexedDataLayout layout=NativeIndexedDataLayout::extents,
-      NativeVolumeHeadLayout head_layout=NativeVolumeHeadLayout::legacy):head(ram(unit)),image(ram(unit)) {
+      NativeVolumeHeadLayout head_layout=NativeVolumeHeadLayout::legacy,
+      PagedStoreBankLayout image_layout=PagedStoreBankLayout::shared):head(ram(unit)),image(ram(unit)) {
     if(indexed)session.emplace(NativeFileSession::create_indexed_volume(head,id(90),image,id(1),{kStoreMaxPhysicalBytes},
-        compression,NativeDispositionPolicy::aggregate,{},NativeVolumePlacement::external,layout,head_layout));
+        compression,NativeDispositionPolicy::aggregate,{},NativeVolumePlacement::external,layout,head_layout,image_layout));
     else session.emplace(NativeFileSession::create_paged_volume(head,id(90),image,id(1),{kStoreMaxPhysicalBytes},compression));
     for(unsigned i=0;i<count;++i)put(*session,"f"+std::to_string(i),family(i));
   }
@@ -743,12 +744,13 @@ void profile_protected_layout(const std::shared_ptr<Ram>& backing,
 
 void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expected_members=0,
     bool compare_reencoding=false,NativeIndexedDataLayout layout=NativeIndexedDataLayout::extents,
-    NativeVolumeHeadLayout head_layout=NativeVolumeHeadLayout::legacy) {
+    NativeVolumeHeadLayout head_layout=NativeVolumeHeadLayout::legacy,
+    PagedStoreBankLayout image_layout=PagedStoreBankLayout::shared) {
   if(!store_zstd_available())return;
   constexpr StoreCompressionOptions policy{StoreCompressionMode::automatic,3,true};
   constexpr NativeImageStorage storage{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes};
   const auto name=[](std::size_t i){return "pack-profile-"+std::to_string(i);};
-  Fixture f(4096,0,true,policy,layout,head_layout);
+  Fixture f(4096,0,true,policy,layout,head_layout,image_layout);
   std::uint64_t input_bytes=0;
   constexpr std::size_t write_bytes=1024*1024;
   for(std::size_t i=0;i<inputs.size();++i) {
@@ -932,13 +934,14 @@ void profile_retained_short_peer() {
 
 void profile_public_packs(const std::filesystem::path& filename,bool complete_files,bool compare_reencoding=false,
     NativeIndexedDataLayout layout=NativeIndexedDataLayout::extents,
-    NativeVolumeHeadLayout head_layout=NativeVolumeHeadLayout::legacy) {
+    NativeVolumeHeadLayout head_layout=NativeVolumeHeadLayout::legacy,
+    PagedStoreBankLayout image_layout=PagedStoreBankLayout::shared) {
   if(!store_zstd_available()) {
     require(!complete_files,"complete-file packing profile requires Zstandard");
     return;
   }
   const auto inputs=read_packed_corpus(filename,complete_files);
-  profile_similarity_packing(inputs,0,compare_reencoding,layout,head_layout);
+  profile_similarity_packing(inputs,0,compare_reencoding,layout,head_layout,image_layout);
 }
 
 void profile_indexed_pair_oracle(const std::filesystem::path& filename,bool tails=false) {
@@ -4129,6 +4132,9 @@ int main(int argc,char** argv){try{
     profile_indexed_pair_oracle(argv[2],true);
   } else if(argc==3 && std::string_view(argv[1])=="--profile-indexed-pair-oracle") {
     profile_indexed_pair_oracle(argv[2]);
+  } else if(argc==3 && std::string_view(argv[1])=="--profile-public-compact-checkpoints") {
+    profile_public_packs(argv[2],true,true,NativeIndexedDataLayout::extents,
+        NativeVolumeHeadLayout::compact,PagedStoreBankLayout::compact);
   } else if(argc==3 && std::string_view(argv[1])=="--profile-public-compact-selector") {
     profile_public_packs(argv[2],true,true,NativeIndexedDataLayout::extents,NativeVolumeHeadLayout::compact);
   } else if(argc==3 && std::string_view(argv[1])=="--profile-public-inline") {

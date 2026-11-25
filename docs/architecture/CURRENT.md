@@ -175,7 +175,7 @@ coherence postings can be rebuilt from the selected image.
 flowchart LR
     V["Two outer selector slots, legacy or compact"] --> Image["Selected indexed paged image"]
     V -. "staged publication can select" .-> Alternate["Alternate image when provider supports it"]
-    Image --> R["Paired image checkpoint slots"]
+    Image --> R["Paired image checkpoint slots, legacy or compact"]
     R --> Tree["Checked paged object tree and mirrored metadata references"]
     Tree --> Names["Directory-name and ordinal records"]
     Tree --> Inodes["Inode, attributes and lifetime records"]
@@ -187,13 +187,16 @@ flowchart LR
 ```
 
 The memory provider reserves address space and commits pages on demand under a
-shared resource domain. New indexed memory volumes use compact selector slots
-sized by the provider's qualified failure unit. Paired volume files use fixed
-legacy selector slots and can hold image and catalog regions with independent
-lifetime pins. A linear file placement is also
+shared resource domain. New indexed memory volumes can use compact selector
+and image-root slots, with each pair spaced by the provider's qualified
+failure unit. A folded sealed replacement preserves its legacy image
+prefix and reserves workspace for that geometry before building. Paired
+volume files use legacy selector slots and can hold image and catalog
+regions with independent lifetime pins. A linear file placement is also
 readable under its narrower contract. [Memory allocation](../../src/windows/memory_volume.cpp#L79)
 · [file regions](../../src/native_volume_file.cpp#L376)
 · [selector binding](../VOLUME_HEAD.md#compact-external-encoding)
+· [paged-root binding and recovery](../PAGED_OBJECT_STORE.md#compact-mirrored-roots)
 · [typed records](../../src/native_indexed_volume.cpp#L22)
 · [coherence backing](../../include/flitzfs/indexed_coherence.hpp#L92)
 

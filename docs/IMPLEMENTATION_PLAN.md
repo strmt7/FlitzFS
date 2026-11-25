@@ -7,8 +7,8 @@ The E01–E13 acceptance and dependency contracts below define the release exits
 [Current assessment](RELEASE_RECONCILIATION_2026-11-25.md) ·
 [Priority and exit decisions](RELEASE_RECONCILIATION_2026-11-25.md#next-decisions-ranked-by-expected-gain) ·
 [Ordered implementation](RELEASE_RECONCILIATION_2026-11-25.md#ordered-implementation-and-decision-points) ·
-[Source and review evidence](evidence/windows-prefix-parser-reconciliation-2026-11-25.json) ·
-[Next tested decisions](#execution-after-the-protected-prefix-checkpoint)
+[Source and review evidence](evidence/windows-compact-paged-roots-2026-11-25.json) ·
+[Next implementation sequence](#execution-after-compact-paged-roots)
 
 The [current architecture](architecture/CURRENT.md) shows the implementation.
 The [source review](architecture/REVIEW.md) tests the assumptions and the
@@ -291,6 +291,88 @@ Integrated claims depend on the corresponding complete paths. This sequence
 reuses the existing mounted and AMD controls instead of rebuilding the first
 indexed or read-only prototypes.
 
+### Execution after compact paged roots
+
+This sequence promotes an improvement only when it changes the relevant product
+outcome. Use the source-bound 450,560-byte settled CPython result and the
+SDK Radeon witness as controls when testing the corresponding layer.
+[Reconciliation and current research](RELEASE_RECONCILIATION_2026-11-25.md#reconciliation-after-compact-paged-roots) ·
+[Recorded controls](evidence/windows-compact-paged-roots-2026-11-25.json)
+
+1. **Run one ordinary Windows trace · E02, E03, E08.** Extend the signed
+   WinFsp/Win32 replay to bind mount, open file, request range, cached or
+   mapped mode, client completion, explicit durability barriers, maintenance
+   and physical release. Work through the installed helper and identical
+   fixture files for CPU and eligible AMD arms. Use the compact image path
+   as a current memory reference and qualify persistent backing separately.
+   Exercise stop, restart, rename and held reads while compaction and an
+   ordinary write are in flight. Record working-set peaks and the joined
+   helper, dispatcher and device worker. This creates the attribution
+   needed by AMD, recovery and settlement in the same run.
+2. **Make ordinary AMD work pay for itself · E03.** Add role-specific
+   accounting for prepared reads, foreground compression and collective
+   work. For each role record request issue, setup or retained context,
+   transfer, kernel, verification, readiness age, delivered bytes and CPU
+   completion. Alternate CPU, cold and demand-predicted ready runs on
+   matching buffers and file operations. Reuse process, stream and
+   allocations only during a funded window. Invalidate on device or
+   runtime change, cancellation, sustained resource pressure or repeated
+   lost payback. Admit a new device generation after evidence of recovery
+   and confirmed old worker retirement. Deliver the independent CPU path
+   on refusal or late completion. Qualify useful AMD selection for all
+   advertised roles through the ordinary client.
+3. **Price the next compression representation · E04–E07, E12.** Re-run
+   the exact-peer and protected-placement oracles over held-out current
+   projects, binary/data families, already-compressed input and AITDCC 2026.
+   Separate short-tail, shifted-extent, repeated-frame and long-range
+   matches. Price full protected allocation and required dependency bytes,
+   active and pinned copies, verification, rewrite and per-range input.
+   If the eligible oracle misses remain material, recover one bounded
+   lookup lane using existing paged storage and reuse sampled fragment
+   tokens. If matching is already strong, trial direct residuals or shared
+   restartable frames against exact sharing, single-file Zstd and the
+   current packed or sealed protection. Fix the first exact CPU-decodable
+   representation that reduces settled bytes under a declared access and
+   maintenance envelope. Use a held-out set before authorizing a new
+   format or enlarging a protection group.
+4. **Make attach and background work grow with the necessary data · E01,
+   E04, E07.** Start a shadow writable-admission result bound to volume and
+   image identity, the selected root tuple, verified metadata coverage
+   and closed namespace state. Keep the existing complete verifier as
+   the comparison and ambiguity path. Validate touched branches and
+   separately schedule verified coverage over unvisited pages. Exercise
+   cached, stale, missing and interrupted advisory observations. Report
+   attach call count, bytes, resident/cache cost, first-read tails and
+   scan progress for geometric file counts and a held-out larger tier.
+   Fit measured work to page visits, touched extents, payload bytes and
+   fixed overhead. Distinguish validated measurements from extrapolated
+   results for volumes with millions of entries. Keep sparse persisted
+   policy evidence and train an offline selector only after there are
+   representative full-cost labels and measurable shadow gains.
+5. **Qualify compatibility and every claimed recovery domain · E02,
+   E08–E11.** Freeze the candidate decoder registry, media contracts, exact
+   current Windows 11 build, AMD tuples and signed package. Exercise
+   supported old images using both the installed app and standalone CPU
+   recovery. Test new write capability admission in older readers and
+   writers, mixed-generation migration before and after every authority
+   barrier, attach with lost advice, corrupt replica repair, full volume,
+   and rollback until retirement. Run persistent cuts on disposable
+   qualification hardware after isolated driver and helper lifecycle
+   tests. Verify an independent ledger of client-confirmed durable
+   operations against restored file bytes, names and dependencies. Cover
+   provider-specific failure-unit and flush assumptions explicitly.
+6. **Complete comparison and stabilization · E12–E13.** Follow the
+   [comparison protocol](BENCHMARK_PROTOCOL.md). Use matched Windows
+   backing and DiskSpd XML, native NTFS compression verified on every
+   selected file, and independent named-tree/adapted workloads. Run
+   alternating CPU, usable AMD and settled arms with request distributions
+   and a defined interval for maintenance. Record complete allocated
+   bytes, steady throughput, tail latency, background effects, writes per
+   reclaimed byte and exact readback. Reproduce any material win on a
+   held-out corpus and a declared hardware tuple. Freeze the exact
+   supported artifacts for installation, removal, soak and owner review.
+   Close only the gates whose evidence is complete.
+
 ### Execution after the protected prefix checkpoint
 
 The 25 November checkpoint improves one proven revision family while
@@ -340,15 +422,13 @@ contracts supply the wider acceptance matrices.
    a local learned selection policy in shadow mode once there are
    enough complete-cost labels. Promote it only after held-out workload
    drift, restart, advice loss and multi-volume interference checks.
-   The compact external selector reduced checked locked use by
-   122,880 bytes on Windows and passed creation, handoff and peer
-   repair cuts. Next price the paged image's root spacing separately.
-   Freeze both protected copies, record sizes and provider alignment.
-   Compare full occupied bytes after the first write and after
-   retirement. Exercise old readers, mixed generations, relocation
-   to a wider failure unit and interruption at every authority change
-   before advancing the image format.
-   [Selector evidence](evidence/windows-compact-volume-selector-2026-11-25.json)
+   The compact external selector and inner paged roots each save
+   122,880 bytes on a qualified 4 KiB provider. Compare further fixed
+   overhead work against the now dominant protected payload cost.
+   Retain geometry-specific recovery and mixed-version checks before
+   applying a new placement to persistent backings.
+   [Selector evidence](evidence/windows-compact-volume-selector-2026-11-25.json) ·
+   [Image-root evidence](evidence/windows-compact-paged-roots-2026-11-25.json)
 3. **Close the automatic mounted AMD read lane · E03, E08.** Carry
    client arrival, open-file identity, IO offset, cache state, CPU
    decode, transfer, kernel, verification and delivered byte counts

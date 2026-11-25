@@ -36,6 +36,8 @@ The separate legacy `FLTVH001` selector occupies two disjoint 65,536-byte
 slots. A new managed indexed Windows memory volume can use the compact
 external selector defined by the provider's qualified failure unit.
 [Selector formats and recovery](VOLUME_HEAD.md#compact-external-encoding)
+Its indexed image can also place its two roots at the qualified failure
+unit's spacing. [Compact image roots](PAGED_OBJECT_STORE.md#compact-mirrored-roots)
 Flat capability-1 records remain byte-for-byte unchanged. Capability 2 selects
 paged images, retaining all identity/epoch/checkpoint/sequence fields and adding:
 

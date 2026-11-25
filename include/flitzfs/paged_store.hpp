@@ -181,7 +181,7 @@ class PagedObjectStoreSnapshot final {
   explicit PagedObjectStoreSnapshot(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;
 };
-enum class PagedStoreBankLayout { separate, shared };
+enum class PagedStoreBankLayout { separate, shared, compact };
 
 class PagedObjectStoreWriter final {
  public:
@@ -190,7 +190,8 @@ class PagedObjectStoreWriter final {
       StoreIdentity,PagedStoreLimits,StoreCompressionOptions={});
   // Every payload has an independently checked copy in disjoint qualified
   // failure units. The shared layout uses capability 3 when a bank is
-  // larger than a page.
+  // larger than a page. Compact also sizes root slots to the qualified
+  // failure unit when it is narrower than the legacy slot spacing.
   static PagedObjectStoreWriter create_mirrored(std::shared_ptr<StoreByteIo> empty,
       StoreIdentity,PagedStoreLimits,StoreCompressionOptions={},
       PagedStoreBankLayout=PagedStoreBankLayout::separate);

@@ -290,6 +290,19 @@ I/O measurements remain a separate test with equivalent cache, allocation and
 backing settings.
 [Measured runs and source receipts](evidence/aitdcc2026-compression-baseline-2026-11-22.json)
 
+### Measuring the two checkpoint layers
+
+On the same Windows fixture, run the four-release CPython test with
+`--profile-public-compact-selector` and then
+`--profile-public-compact-checkpoints`. Both arms use the same compact
+external selector, verified file bytes and mirrored objects. The
+second arm uses compact image roots. Record occupied selector and image
+bytes, required object copies, record and index overhead, and independently
+checked live locked pages. The settled best arm measured 573,440 and
+450,560 bytes. Use the result to attribute fixed placement cost in memory.
+DiskSpd and native compressed NTFS comparisons require their own mounted
+and matched evidence. [Matched public-input fixture and controls](evidence/windows-compact-paged-roots-2026-11-25.json)
+
 ### Sealed image pilot
 
 The [sealed format report](SEALED_INDEXED_IMAGE.md#verification-on-windows)

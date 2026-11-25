@@ -22,7 +22,7 @@ namespace flitzfs {
 namespace {
 using Bytes=std::vector<std::byte>;
 using detail::Digest;
-constexpr std::uint64_t start=2*kStoreCommitUnit;
+constexpr std::uint64_t legacy_data_start=2*kStoreCommitUnit;
 constexpr std::size_t page_bytes=detail::kPagedStoreCheckpointWriteBytes/2,
     header_bytes=64,ref_bytes=112,record_header_bytes=128;
 constexpr std::uint32_t compact_metadata_bytes=1024;
@@ -31,7 +31,8 @@ constexpr std::size_t compact_ref_bytes=88;
 static_assert(kPagedScrubRecordWorkBytes==2ULL*(record_header_bytes+2ULL*kStoreMaxObjectBytes));
 constexpr std::size_t digest_at=page_bytes-32;
 constexpr std::uint32_t maximum_height=16;
-constexpr char root_magic[]="FLTXPG01",page_magic[]="FLTXPGN1",data_magic[]="FLTXDAT1";
+constexpr char root_magic[]="FLTXPG01",compact_root_magic[]="FLTXPG02";
+constexpr char page_magic[]="FLTXPGN1",data_magic[]="FLTXDAT1";
 [[noreturn]] void fail(const char* why) {throw std::runtime_error(std::string("FlitzFS paged store: ")+why);}
 [[noreturn]] void capacity(const char* why) {throw PagedStoreCapacityError(why);}
 void check_physical_capacity(std::uint64_t required,std::uint64_t maximum) {
@@ -101,7 +102,7 @@ bool magic(std::span<const std::byte> b,const char* value) {
 }
 void set_magic(std::span<std::byte> b,const char* value) {for(std::size_t i=0;i<8;++i)b[i]=static_cast<std::byte>(value[i]);}
 void admit_limits(PagedStoreLimits limits) {
-  if(limits.maximum_physical_bytes<start+2*page_bytes ||
+  if(limits.maximum_physical_bytes<4*page_bytes ||
       limits.maximum_physical_bytes>static_cast<std::uint64_t>((std::numeric_limits<std::int64_t>::max)()))
     fail("explicit supported physical capacity required");
 }
@@ -180,16 +181,20 @@ struct State {
   PagedStoreLimits limits;
   StoreIdentity id{};
   std::uint64_t generation=0,checkpoint=0,end=0;
-  // Commit records and isolation alignment use the wider root format.
+  // Payload and metadata copies live in disjoint isolation units.
   std::uint32_t unit=0,metadata_bytes=page_bytes;
   Ref root;
   bool degraded_roots=false;
   mutable bool degraded_metadata=false;
   bool mirrored=false;
   bool shared_banks=false;
+  bool compact_roots=false;
   mutable bool degraded_payloads=false;
   std::shared_ptr<detail::StoreCodecDecoder> decoder=std::make_shared<detail::StoreCodecDecoder>();
   std::shared_ptr<PayloadRepairQueue> payload_repairs;
+
+  std::uint64_t root_slot_bytes() const noexcept {return compact_roots?unit:kStoreCommitUnit;}
+  std::uint64_t data_start() const noexcept {return 2*root_slot_bytes();}
 };
 bool healthy_lz4_index(const State& s) noexcept {
   return !s.degraded_roots && !s.degraded_metadata && !s.degraded_payloads && !s.image->backing_degraded();
@@ -199,14 +204,15 @@ struct CheckpointKey {
   Ref root;
   std::uint64_t generation,checkpoint,end;
   std::uint32_t unit,metadata_bytes;
-  bool mirrored,shared_banks;
+  bool mirrored,shared_banks,compact_roots;
 
   explicit CheckpointKey(const State& s) noexcept:
       identity(s.id),root(s.root),generation(s.generation),checkpoint(s.checkpoint),end(s.end),
-      unit(s.unit),metadata_bytes(s.metadata_bytes),mirrored(s.mirrored),shared_banks(s.shared_banks) {}
+      unit(s.unit),metadata_bytes(s.metadata_bytes),mirrored(s.mirrored),shared_banks(s.shared_banks),
+      compact_roots(s.compact_roots) {}
   bool matches(const State& s) const noexcept {
     return identity==s.id && mirrored==s.mirrored && shared_banks==s.shared_banks &&
-        generation==s.generation && checkpoint==s.checkpoint &&
+        compact_roots==s.compact_roots && generation==s.generation && checkpoint==s.checkpoint &&
         end==s.end && unit==s.unit && metadata_bytes==s.metadata_bytes && root==s.root;
   }
 };
@@ -231,7 +237,7 @@ std::uint64_t packed_rebuild_size(const State& state,std::uint64_t count,std::ui
     pages=add(pages,level);
   }
   const auto index=paired_bank_bytes(multiply(pages,state.metadata_bytes),state.unit);
-  return add(add(start,payload),index);
+  return add(add(state.data_start(),payload),index);
 }
 PagedStoreInfo info(const State& s) {
   return {s.generation,s.checkpoint,s.end,s.root.count,s.root.logical,s.root.stored*(s.mirrored?2:1),s.root.height,
@@ -239,7 +245,7 @@ PagedStoreInfo info(const State& s) {
 }
 void admit_ref(const State& s,const Ref& r,bool root=false) {
   if(r.height>maximum_height || !r.generation || r.generation>s.checkpoint ||
-      r.primary<start || r.primary%s.metadata_bytes || r.peer!=add(r.primary,s.unit) ||
+      r.primary<s.data_start() || r.primary%s.metadata_bytes || r.peer!=add(r.primary,s.unit) ||
       r.peer>s.end || s.metadata_bytes>s.end-r.peer ||
       (s.shared_banks && (r.primary/s.unit)%2) ||
       (r.primary/s.unit)==(r.peer/s.unit) ||
@@ -308,7 +314,7 @@ Node read_node(const State& s,const Ref& r) {
     for(std::size_t i=0;i<count;++i) {
       auto e=decode_entry(bytes,header_bytes+i*entry_bytes(s),s.mirrored);
       if(!e.generation || e.generation>r.generation || e.logical>kStoreMaxObjectBytes || e.stored>e.logical ||
-          e.offset<start || e.offset>r.primary || std::uint64_t{record_header_bytes}+e.stored>r.primary-e.offset)
+          e.offset<s.data_start() || e.offset>r.primary || std::uint64_t{record_header_bytes}+e.stored>r.primary-e.offset)
         fail("object descriptor bounds");
       const auto peer_limit=s.shared_banks?r.peer:r.primary;
       const auto frame_bytes=std::uint64_t{record_header_bytes}+e.stored;
@@ -670,7 +676,7 @@ void verify(const State& s,const VerifiedObjectVisitor* consume=nullptr,
   walk_leaves(s,s.root,0,leaf,done);
 }
 std::array<std::byte,page_bytes> root_bytes(const State& s,std::uint64_t generation) {
-  std::array<std::byte,page_bytes> b{};set_magic(b,root_magic);
+  std::array<std::byte,page_bytes> b{};set_magic(b,s.compact_roots?compact_root_magic:root_magic);
   put32(b,8,s.shared_banks?3U:(s.mirrored?2U:1U));
   put32(b,12,static_cast<std::uint32_t>(generation%2));put64(b,16,generation);
   put64(b,24,s.checkpoint);put64(b,32,s.end);copy(b,40,s.id);put32(b,56,s.unit);
@@ -686,38 +692,58 @@ State load(std::shared_ptr<StoreByteIo> image,PagedStoreLimits limits,LookupPage
     Node* retain_tree_root=nullptr) {
   admit_limits(limits);if(!image)fail("missing backend");
   const auto extent=image->extent();
-  if(extent<start+2*page_bytes || extent>limits.maximum_physical_bytes)fail("physical capacity/truncation");
-  auto read=[&](unsigned slot)->std::optional<State> {
+  if(extent<4*page_bytes || extent>limits.maximum_physical_bytes)fail("physical capacity/truncation");
+  auto read=[&](unsigned slot,std::uint64_t offset,bool probing=false)->std::optional<State> {
+    if(offset>extent || page_bytes>extent-offset)return {};
     std::array<std::byte,page_bytes> b{};
-    try{image->read_exact(slot*kStoreCommitUnit,b);}
+    try{image->read_exact(offset,b);}
     catch(const std::bad_alloc&){throw;}
     catch(const detail::StoreCaptureInterrupted&){throw;}
     catch(const std::exception&){return {};}
+    // An alternate slot probe can land on ordinary payload or index data.
+    if(probing && (std::memcmp(b.data(),"FLTXPG",6) || get32(b,12)!=slot))return {};
     if(field<32>(b,digest_at)!=detail::record_digest(std::span<const std::byte>(b).first(digest_at)))return {};
     State s;s.image=image;s.limits=limits;s.id=field<16>(b,40);s.generation=get64(b,16);
+    s.compact_roots=magic(b,compact_root_magic);
     const auto capability=get32(b,8);
     s.mirrored=capability==2 || capability==3;
     s.shared_banks=capability==3;
     s.checkpoint=get64(b,24);s.end=get64(b,32);s.unit=get32(b,56);
     s.metadata_bytes=get32(b,60);s.root=decode_ref(b,64);
-    if(!magic(b,root_magic) || (capability!=1 && !s.mirrored) || get32(b,12)!=slot ||
+    const bool legacy=magic(b,root_magic);
+    if(probing && (legacy || s.compact_roots) && s.root_slot_bytes()!=offset)return {};
+    if((!legacy && !s.compact_roots) || (capability!=1 && !s.mirrored) || get32(b,12)!=slot ||
+        (slot && offset!=s.root_slot_bytes()) ||
+        (s.compact_roots && (!s.mirrored || s.unit>=kStoreCommitUnit)) ||
         s.generation%2!=slot || !s.checkpoint || s.checkpoint==(std::numeric_limits<std::uint64_t>::max)() ||
         (s.generation!=s.checkpoint && s.generation!=s.checkpoint+1) || zero(s.id) ||
         s.unit<page_bytes || s.unit>kStoreCommitUnit || (s.unit&(s.unit-1)) ||
         (s.metadata_bytes!=page_bytes && (s.mirrored || s.metadata_bytes!=compact_metadata_bytes)) ||
         s.end>extent || s.end>limits.maximum_physical_bytes ||
-        s.end<start+2*s.unit || s.end%(s.shared_banks?2ULL*s.unit:s.unit) ||
+        s.end<s.data_start()+2*s.unit || s.end%(s.shared_banks?2ULL*s.unit:s.unit) ||
         !zero(std::span<const std::byte>(b).subspan(176,digest_at-176)))
       fail("unsupported/intact root semantics");
     admit_ref(s,s.root,true);return s;
   };
-  auto a=read(0),b=read(1);if(!a && !b)fail("no recovery root");
+  auto a=read(0,0);
+  std::optional<State> b;
+  if(a)b=read(1,a->root_slot_bytes());
+  else {
+    for(std::uint64_t offset=page_bytes;offset<=kStoreCommitUnit;offset*=2) {
+      if(auto recovered=read(1,offset,true)) {
+        if(b)fail("ambiguous recovery root spacing");
+        b=std::move(recovered);
+      }
+    }
+  }
+  if(!a && !b)fail("no recovery root");
   const bool choose_a=a && (!b || a->generation>b->generation);
   auto s=choose_a?*a:*b;const auto& other=choose_a?b:a;
   bool paired=false;
   if(other) {
     if(other->id!=s.id || other->unit!=s.unit || other->metadata_bytes!=s.metadata_bytes ||
-        other->mirrored!=s.mirrored || other->shared_banks!=s.shared_banks || s.generation<=other->generation ||
+        other->mirrored!=s.mirrored || other->shared_banks!=s.shared_banks ||
+        other->compact_roots!=s.compact_roots || s.generation<=other->generation ||
         s.generation-other->generation!=1)fail("conflicting root identities/generations");
     paired=other->checkpoint==s.checkpoint && other->root==s.root && other->end==s.end;
     if(s.generation!=s.checkpoint && !paired)fail("conflicting intact root pair");
@@ -739,7 +765,7 @@ void zeros(StoreByteIo& io,std::uint64_t at,std::uint64_t end) {
     io.write_exact(at,std::span<const std::byte>(b).first(size));at+=size;}
 }
 void publish_root(const State& s,StoreByteIo& output,std::uint64_t generation) {
-  output.write_exact(generation%2*kStoreCommitUnit,root_bytes(s,generation));
+  output.write_exact(generation%2*s.root_slot_bytes(),root_bytes(s,generation));
   output.flush();
 }
 void publish_roots(const State& s,StoreByteIo& output) {
@@ -788,7 +814,7 @@ struct PayloadAllocation {
     for(const auto& [begin,end]:padding) {
       if(!folded_unit)zeros(image,begin,end);
       else {
-        if(begin<start || end-begin>folded_unit-begin%folded_unit)
+        if(begin<legacy_data_start || end-begin>folded_unit-begin%folded_unit)
           fail("invalid folded payload padding");
         if((begin/folded_unit)%2==0) {
           const auto first=detail::folded_mirror_offset(begin,folded_unit);
@@ -1154,13 +1180,13 @@ class FoldedRebuildView final : public StoreByteIo {
       :workspace_(std::move(workspace)),unit_(unit),limit_(limit) {}
   std::uint64_t extent() const override {
     const auto physical=workspace_->extent();
-    if(physical<start || physical>detail::folded_mirror_extent(limit_))fail("folded workspace extent");
-    return start+2*(physical-start);
+    if(physical<legacy_data_start || physical>detail::folded_mirror_extent(limit_))fail("folded workspace extent");
+    return legacy_data_start+2*(physical-legacy_data_start);
   }
   void read_exact(std::uint64_t at,std::span<std::byte> output) const override {
     if(at>limit_ || output.size()>limit_-at)fail("folded workspace read bounds");
-    if(at<start && !output.empty()) {
-      const auto count=(std::min<std::uint64_t>)(output.size(),start-at);
+    if(at<legacy_data_start && !output.empty()) {
+      const auto count=(std::min<std::uint64_t>)(output.size(),legacy_data_start-at);
       workspace_->read_exact(at,output.first(count));
       output=output.subspan(count);
       at+=count;
@@ -1188,7 +1214,7 @@ struct Rebuild {
   // The folded output is private workspace. The ordinary indexed reader
   // sees only its checked, read-only virtual mapping.
   StoreByteIo* folded=nullptr;
-  std::uint64_t payload_cursor=start,index_start=0,index_cursor=start,pages=0;
+  std::uint64_t payload_cursor=0,index_start=0,index_cursor=0,pages=0;
   PayloadAllocation allocation;
   // Bind the index pass to the headers generated and verified during copy.
   // Otherwise the unpublished target could supply its own descriptor digest.
@@ -1522,6 +1548,8 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
     build.next.metadata_bytes=original.metadata_bytes;
     build.next.generation=add(original.generation,2);build.next.checkpoint=original.generation+1;
     build.next.unit=(std::max)(static_cast<std::uint32_t>(page_bytes),image->contract().write_failure_unit_bytes);
+    build.next.compact_roots=original.compact_roots && !folded_admission && build.next.unit<kStoreCommitUnit;
+    build.payload_cursor=build.index_cursor=build.next.data_start();
     if(folded_admission) {
       build.folded=image.get();
       build.next.image=std::make_shared<FoldedRebuildView>(image,build.next.unit,build.next.limits.maximum_physical_bytes);
@@ -1540,7 +1568,8 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
     return mode==PagedRewriteMode::reconcile_foreground && original.image==current.image &&
         current.id==original.id && current.unit==original.unit && current.metadata_bytes==original.metadata_bytes &&
         current.mirrored==original.mirrored && current.shared_banks==original.shared_banks &&
-        current.end>=original.end && current.generation>original.generation;
+        current.compact_roots==original.compact_roots && current.end>=original.end &&
+        current.generation>original.generation;
   }
   void reset(PagedRewritePhase next) noexcept {
     phase=next;completed=logical=stored=0;
@@ -1713,7 +1742,7 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
         capacity("staged repair found neither the reported fault nor a smaller image");
       if(folded_admission)folded_admission(projected);
     }
-    const auto initial_end=start+2*build.next.unit;
+    const auto initial_end=build.next.data_start()+2*build.next.unit;
     if(mode==PagedRewriteMode::cold_compression && original.end<initial_end) {
       phase=PagedRewritePhase::declined;
       return;
@@ -1729,7 +1758,7 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
       if(!retention->charge(write_bound))return;
       build.next.limits.maximum_physical_bytes=write_bound-2*page_bytes;
     }
-    zeros(*target->lease.image,0,start);
+    zeros(*target->lease.image,0,build.next.data_start());
     reset(PagedRewritePhase::copying);
   }
   void compare(const State& source,const Entry& expected_entry,const Entry& entry,std::span<const std::byte> actual,
@@ -2295,15 +2324,17 @@ PagedObjectStoreWriter PagedObjectStoreWriter::create_impl(std::shared_ptr<Store
   auto p=std::make_unique<Impl>(image,options);admit_contract(image->contract());
   if(image->extent())fail("new empty backend required");
   State s;s.image=image;s.limits=limits;s.id=id;s.generation=2;s.checkpoint=1;s.mirrored=mirrored;
-  if(layout!=PagedStoreBankLayout::separate && (layout!=PagedStoreBankLayout::shared || !mirrored))
+  if(layout!=PagedStoreBankLayout::separate && (!mirrored ||
+      (layout!=PagedStoreBankLayout::shared && layout!=PagedStoreBankLayout::compact)))
     fail("invalid paged bank layout");
   if(compact_metadata) {
     if(mirrored)fail("compact metadata requires an advisory store");
     s.metadata_bytes=compact_metadata_bytes;
   }
   s.unit=(std::max)(static_cast<std::uint32_t>(page_bytes),image->contract().write_failure_unit_bytes);
-  s.shared_banks=layout==PagedStoreBankLayout::shared && s.unit>s.metadata_bytes;
-  auto cursor=start;
+  s.shared_banks=layout!=PagedStoreBankLayout::separate && s.unit>s.metadata_bytes;
+  s.compact_roots=layout==PagedStoreBankLayout::compact && s.unit<kStoreCommitUnit;
+  auto cursor=s.data_start();
   std::uint64_t previous=0,input=0;
   PayloadAllocation allocation;
   std::vector<PreparedObject> objects;objects.reserve(initial.size());
@@ -2324,7 +2355,7 @@ PagedObjectStoreWriter PagedObjectStoreWriter::create_impl(std::shared_ptr<Store
   if(write_bound>maximum_write_bytes)capacity("initial transaction write budget");
   image->admit_write(plan.next.end);
   if(reserve_writes && !reserve_writes(write_bound))capacity("initial transaction write reservation declined");
-  zeros(*image,0,start);
+  zeros(*image,0,s.data_start());
   for(const auto& record:objects)
     write_object_record(*image,record.entry,record.header,record.payload,s.unit);
   allocation.write_padding(*image);
@@ -2460,6 +2491,8 @@ State rebuild_checkpoint(const State& original,const std::shared_ptr<StoreByteIo
   build.next.generation=add(original.generation,2);
   build.next.checkpoint=original.generation+1;
   build.next.unit=(std::max)(static_cast<std::uint32_t>(page_bytes),target->contract().write_failure_unit_bytes);
+  build.next.compact_roots=mirrored && original.compact_roots && !folded && build.next.unit<kStoreCommitUnit;
+  build.payload_cursor=build.index_cursor=build.next.data_start();
   if(folded) {
     build.folded=target.get();
     build.next.image=std::make_shared<FoldedRebuildView>(target,build.next.unit,limits.maximum_physical_bytes);
@@ -2470,8 +2503,8 @@ State rebuild_checkpoint(const State& original,const std::shared_ptr<StoreByteIo
     const auto projected=packed_rebuild_size(build.next,original.root.count,projected_stored);
     check_physical_capacity(projected,limits.maximum_physical_bytes);
     build.admit_target(projected);
-  }else build.admit_target(start+2*build.next.unit);
-  zeros(*target,0,start);
+  }else build.admit_target(build.next.data_start()+2*build.next.unit);
+  zeros(*target,0,build.next.data_start());
   auto visitor=[&](const Entry& source_entry) {
     copy_rebuild_object(build,original,source_entry,encoder,replacement_id,replacement,reencode);
     return true;
@@ -2681,7 +2714,7 @@ PagedStoreWriteResult PagedObjectStoreWriter::commit_impl(
   if(old.degraded_metadata) {p.poisoned=true;fail("metadata replica lost during staging");}
   plan.finish(std::move(roots));
   const auto obsolete=add(p.obsolete_bytes,plan.obsolete_bytes);
-  if(obsolete>plan.next.end-start)fail("obsolete byte accounting exceeds committed history");
+  if(obsolete>plan.next.end-plan.next.data_start())fail("obsolete byte accounting exceeds committed history");
   const auto write_bound=add(plan.next.end-old.end,2*page_bytes);
   if(write_bound>maximum_write_bytes)capacity("transaction write budget");
   auto frames=reserve_prepared_frames(plan.next,objects,true);
@@ -2918,7 +2951,7 @@ PagedPayloadRepairProgress PagedObjectStoreWriter::repair_payload() {
         plan.next.root.logical!=source.root.logical || plan.next.root.stored!=source.root.stored)
       fail("payload repair inventory or metadata changed");
     const auto obsolete=add(writer.obsolete_bytes,plan.obsolete_bytes);
-    if(obsolete>plan.next.end-start)fail("payload repair obsolete byte accounting");
+    if(obsolete>plan.next.end-plan.next.data_start())fail("payload repair obsolete byte accounting");
     try{source.image->admit_write(plan.next.end);}
     catch(const std::runtime_error& error){capacity(error.what());}
 

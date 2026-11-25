@@ -1,24 +1,22 @@
 # FlitzFS repository overview
 
-This checkpoint reconciles 1,122 tracked paths at `afc4d8f` and the two
-runtime changes in the tested prefix parser. FlitzFS has a writable WinFsp
-path, indexed native storage, autonomous maintenance and an independent CPU
-reader. The signed WinFsp replay at `fec45a0` released occupied backing from
-407.1 MiB to 4.5 MiB while attached and independently recovered 1,027 files.
-Physical Radeon testing on the new runtime delivered two verified grouped
-frames across 32 callbacks. A separate controller fixture delivered one more
-while compression duty was deferred.
+FlitzFS is in development qualification. Windows has a writable WinFsp
+path, protected native indexed images, automatic optimization and an
+independent CPU reader. New indexed memory volumes use compact selectors
+and paged roots on qualifying providers. In a matched four-release
+CPython fixture, the paged-root change lowered settled occupancy from
+573,440 to 450,560 bytes. The image retained both protected data copies
+and exact CPU readback, including after automatic sealing and retirement
+in the separate Windows lifecycle fixture.
 
-The stronger prefix parser reduced the compacted image of a seven-file
-CPython revision extension by 16 KiB. Complete occupied bytes stayed at
-868,352 on the 24-file CPython frontier and 35,160,064 on the held-out AITDCC
-extracts. Earlier owner-record reuse reduced pre-flush reads from 51.5 MB to
-39.1 MB on the 16,384-file writable reopen fixture. Attach still walks the
-inventory. The release blockers are reproducibly useful automatic mounted
-AMD service, scalable attach, a broader equal-protection compression
-advantage and backing-specific recovery of acknowledged operations.
-[Checkpoint and remaining work](RELEASE_RECONCILIATION_2026-11-25.md#current-round-and-release-decisions) ·
-[Exact Windows tests and research](evidence/windows-prefix-parser-reconciliation-2026-11-25.json) ·
+The host Radeon delivered two checked grouped frames in the SDK
+callback fixture. The latest ordinary signed mount, media recovery,
+indexed scale and GPU comparisons cover different parts of the system.
+The next release gates are useful automatic mounted acceleration,
+bounded writable attach, a held-out compression advantage and
+independent verification of acknowledged operations on persistent media.
+[Reconciliation](RELEASE_RECONCILIATION_2026-11-25.md#reconciliation-after-compact-paged-roots) ·
+[Exact tests and research](evidence/windows-compact-paged-roots-2026-11-25.json) ·
 [Current architecture](architecture/CURRENT.md) ·
 [Target architecture](architecture/TARGET.md)
 

@@ -3566,13 +3566,15 @@ void memory_selector_footprint() {
     require(!view.info().degraded && view.filesystem().stat_inode(1).directory,
         "independent CPU selector did not verify the new root");
     backing.domain->verify_resident();
-    return std::pair{expected,backing.domain->usage().resident};
+    return std::array<std::uint64_t,3>{expected,backing.image->extent(),backing.domain->usage().resident};
   };
-  const auto [legacy,legacy_locked]=measure(false);
-  const auto [compact,compact_locked]=measure(true);
-  require(legacy_locked>=compact_locked && legacy_locked-compact_locked==legacy-compact &&
-      MemoryVolumeDomain::cleanup_healthy(),"selector did not release the expected locked pages");
-  std::cout<<"memory_selector_footprint legacy_head="<<legacy<<" compact_head="<<compact
+  const auto [legacy_head,legacy_image,legacy_locked]=measure(false);
+  const auto [compact_head,compact_image,compact_locked]=measure(true);
+  require(legacy_image-compact_image==legacy_head-compact_head &&
+      legacy_locked-compact_locked==legacy_head-compact_head+legacy_image-compact_image &&
+      MemoryVolumeDomain::cleanup_healthy(),"checkpoints did not save the expected locked pages");
+  std::cout<<"memory_selector_footprint legacy_head="<<legacy_head<<" compact_head="<<compact_head
+      <<" legacy_image="<<legacy_image<<" compact_image="<<compact_image
       <<" legacy_locked="<<legacy_locked<<" compact_locked="<<compact_locked<<" cpu_verified=1\n";
 }
 
@@ -3817,7 +3819,9 @@ void automatic_memory_sealing(bool change_source,bool rotate_sealed=false) {
   unsigned retire_steps=0;
   {
     auto session=NativeFileSession::create_indexed_volume(backing.head,backing.volume_identity,backing.image,
-        backing.image_identity,{backing.layout.image_capacity},raw);
+        backing.image_identity,{backing.layout.image_capacity},raw,NativeDispositionPolicy::aggregate,{},
+        NativeVolumePlacement::external,NativeIndexedDataLayout::extents,NativeVolumeHeadLayout::compact,
+        PagedStoreBankLayout::compact);
     require(session.enable_workload_accounting().enabled,"automatic sealing fixture has no committed-input accounting");
     session.create_entry("visible");
     const auto handle=session.open("visible",{true,true,false});
