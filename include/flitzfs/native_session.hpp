@@ -2,6 +2,7 @@
 #include "flitzfs/volume_head.hpp"
 #include "flitzfs/optimization_state.hpp"
 #include <memory>
+#include <utility>
 
 namespace flitzfs {
 class IndexedCoherenceWriter;
@@ -520,6 +521,8 @@ class NativeFileSession final {
       NativeVolumePlacement=NativeVolumePlacement::external);
   friend class NativeVolumeFile;
   friend class WinFspNativeWritable;
+  // Cached identity and generation for work captured under the Windows owner.
+  std::pair<StoreIdentity,std::uint64_t> read_ahead_checkpoint() const noexcept;
   std::unique_ptr<detail::NativeWriteCaptureLease> lease_committed_write_capture() const;
   void bind_persistent_reclamation(std::shared_ptr<detail::NativeVolumeFileReclaimer>);
   void bind_memory_idle_compaction() noexcept;

@@ -224,6 +224,8 @@ bool NativeLz4ReadWorker::prepare_group(const WinFspReadAheadWork& work,const Na
     WinFspReadAheadWork target{work.owner,work.token,work.offset,work.foreground_epoch,work.bytes};
     target.hint_created_ms=work.hint_created_ms;
     target.observed_lead_ms=work.observed_lead_ms;
+    target.stream_revision=work.stream_revision;
+    target.checkpoint=work.checkpoint;
     s.flight.emplace(Impl::Flight{{},std::move(*worker),std::move(target),0,0,grant});
     ++s.status.prepared_groups_started;
     return true;
@@ -247,6 +249,7 @@ bool NativeLz4ReadWorker::start(WinFspReadAheadWork& work,const NativeMaintenanc
     if(!grouped || f.request || f.superseded || available>f.preparation.maximum_members ||
         target.owner!=work.owner || target.token!=work.token || target.offset!=work.offset ||
         target.bytes!=work.bytes || target.foreground_epoch!=work.foreground_epoch ||
+        target.stream_revision!=work.stream_revision || target.checkpoint!=work.checkpoint ||
         target.hint_created_ms!=work.hint_created_ms || target.observed_lead_ms!=work.observed_lead_ms)return false;
     const auto lead=[&](std::uint64_t now,bool ready) {
       const auto elapsed=now>=f.worker.started_at?now-f.worker.started_at:0;
@@ -330,7 +333,8 @@ void NativeLz4ReadWorker::observe(const WinFspNativeWritable& adapter,bool cance
   auto& s=*impl_;
   if(!s.flight)return;
   auto& f=*s.flight;
-  if(cancel || adapter.foreground_pending() || adapter.foreground_activity()!=f.work.foreground_epoch)s.cancel();
+  if(cancel || (f.request?adapter.read_ahead_state(f.work)==WinFspReadAheadState::superseded:
+      adapter.foreground_pending() || adapter.foreground_activity()!=f.work.foreground_epoch))s.cancel();
   const auto handle=static_cast<HANDLE>(f.worker.child.supervisor_wait_handle());
   if(!handle || WaitForSingleObject(handle,0)!=WAIT_OBJECT_0)return;
   const auto exact=f.worker.child.retirement_confirmed();
@@ -352,13 +356,15 @@ bool NativeLz4ReadWorker::verify_and_publish(WinFspNativeWritable& adapter,
   auto& f=*s.flight;
   const auto* result=f.worker.child.try_result();
   const auto resources=detail::maintenance_resources(observed,now,adapter.group_maintenance_policy());
+  const auto verification_epoch=adapter.foreground_activity();
   if(!resources || resources->cpu_busy || resources->memory_allowance<result->response.size() ||
-      stopped.load(std::memory_order_acquire) || adapter.foreground_pending())return false;
+      stopped.load(std::memory_order_acquire) || adapter.read_ahead_state(f.work)!=WinFspReadAheadState::current ||
+      adapter.foreground_activity()!=verification_epoch)return false;
   bool published=false;
   try {
     const auto interrupted=[&]{
       return stopped.load(std::memory_order_acquire) || adapter.foreground_pending() ||
-          adapter.foreground_activity()!=f.work.foreground_epoch;
+          adapter.foreground_activity()!=verification_epoch;
     };
     if(const auto* exchange=std::get_if<detail::NativeGroupReadExchange>(&*f.request)) {
       auto ready=exchange->accept(*f.work.groups,result->response,WorkerExecution::hip,interrupted);

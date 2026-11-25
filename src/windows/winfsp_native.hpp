@@ -10,6 +10,7 @@
 #include <filesystem>
 #include <functional>
 #include <memory>
+#include <utility>
 namespace flitzfs {
 namespace detail {struct NativeCapturedWrite;}
 namespace detail {class NativeLz4ReadyReads;}
@@ -23,6 +24,8 @@ struct WinFspReadAheadWork {
   std::shared_ptr<detail::PagedReadMetadata> metadata;
   std::unique_ptr<detail::NativeGroupReadBatch> groups;
   std::uint64_t hint_created_ms=0,observed_lead_ms=0;
+  std::uint64_t stream_revision=0;
+  std::pair<StoreIdentity,std::uint64_t> checkpoint{};
   bool has_read_lead(std::uint64_t required_ms,std::uint64_t now_ms) const noexcept {
     if(!required_ms)return true;
     if(!hint_created_ms || now_ms<hint_created_ms)return false;
@@ -30,6 +33,7 @@ struct WinFspReadAheadWork {
     return spent<observed_lead_ms && required_ms<=observed_lead_ms-spent;
   }
 };
+enum class WinFspReadAheadState {current,busy,superseded};
 struct MemoryVolumeBacking;
 // Experimental real writable adapter; qualify backing, runtime and containment.
 // Historical _hosted names remain for ABI/report compatibility, not location.
@@ -198,6 +202,7 @@ class WinFspNativeWritable final {
   std::optional<WinFspReadAheadWork> capture_native_lz4_read_ahead(const NativeMaintenanceObservation&,
       std::uint64_t now_ms,std::uint64_t foreground_epoch,const std::atomic<bool>& stop_requested,
       const std::function<void(const WinFspReadAheadWork&)>& before_group_capture={}) noexcept;
+  WinFspReadAheadState read_ahead_state(const WinFspReadAheadWork&) const noexcept;
   bool publish_read_ahead(WinFspReadAheadWork&,std::unique_ptr<detail::NativeLz4ReadyReads>,
       std::unique_ptr<detail::NativeGroupReadyReads>,
       const std::atomic<bool>& stop_requested) noexcept;

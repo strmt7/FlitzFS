@@ -215,6 +215,15 @@
     "current_startup_hardware_comparison": "live_sdk_confirmation_passed_matched_comparison_pending",
     "next": "Measure CPU, cold GPU and verified-ready dispatch on real client demand with the same supervisor. Use accepted work and complete costs to decide how far useful bounded batches can amortize setup."
   },
+  "group_read_stream_binding": {
+    "evidence": "docs/evidence/windows-group-read-stream-binding-2026-11-25.json",
+    "submitted_work_binds_open_context_and_checkpoint": true,
+    "unrelated_callbacks_preserve_ready_results": true,
+    "packed_and_mixed_cpu_callback_hits_per_case": 2,
+    "late_demand_and_changed_checkpoint_refused": true,
+    "live_radeon_trial": "deferred_by_current_device_utilization",
+    "next": "Measure delivered prepared bytes under interleaved mounted demand and compare to complete CPU service."
+  },
   "architecture_reconciliation": {
     "reviewed_commit": "df5be9b5b9d0bc05ac565eb2da8454ac76bed3d2",
     "reviewed_tree": "a9bab22082849332c28a085f0eb154aaacb15538",

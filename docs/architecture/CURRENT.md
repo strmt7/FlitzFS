@@ -491,7 +491,9 @@ An approved nonzero submission-lead profile lets the controller reserve a
 single packed or mixed group before pulling the protected payload. It keeps
 the forecast's exact snapshot and range identity. The checked capture can
 queue a shorter immutable request inside the reserved maximum while the child
-prepares HIP. A foreground operation can supersede the forecast. The native
+prepares HIP. A foreground operation interrupts capture or submission.
+An already submitted request can outlast unrelated read-only callbacks
+while its predicted stream and captured checkpoint are current. The native
 read path remains independently decodable on CPU.
 
 ```mermaid
@@ -511,7 +513,10 @@ sequenceDiagram
             C->>W: Queue exact bounded payload
         end
     end
-    alt CPU demand supersedes capture or no verified candidate is ready
+    opt Unrelated read while submitted work is active
+        R->>S: Complete the unrelated read on CPU
+    end
+    alt Target demand arrives first or its checkpoint changes
         R->>S: Read requested range with independent CPU decoder
         C->>W: Cancel owned preparation if active
     else Exact worker reply and confirmed retirement
@@ -528,6 +533,7 @@ reader. The route uses separate models for a full startup and for dispatch
 after confirmed readiness. Ordinary mounted read acceleration still needs a
 matched CPU comparison with delivered bytes under real demand.
 [Prepared worker evidence](../evidence/windows-prepared-group-worker-2026-11-24.json) ·
+[Interleaved callback evidence](../evidence/windows-group-read-stream-binding-2026-11-25.json) ·
 [Live grouped evidence](../evidence/windows-amd-group-supervisor-comparison-2026-11-24.json) ·
 [Native LZ4 device evidence](../NATIVE_AMD_LZ4_READ.md)
 

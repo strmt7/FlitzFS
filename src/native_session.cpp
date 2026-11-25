@@ -1838,6 +1838,10 @@ bool NativeFileSession::capture_native_lz4(const NativeFileHandle& handle,std::u
 bool NativeFileSession::supports_leased_lz4_capture() const noexcept {
   return !poisoned() && impl_->writer.supports_leased_lz4_capture();
 }
+std::pair<StoreIdentity,std::uint64_t> NativeFileSession::read_ahead_checkpoint() const noexcept {
+  if(poisoned())return {};
+  return {impl_->writer.maintenance_identity(),impl_->writer.recompression_generation()};
+}
 std::unique_ptr<detail::NativeLz4CaptureLease> NativeFileSession::lease_native_lz4_capture(
     const NativeFileHandle& handle,std::uint64_t offset,std::size_t maximum_encoded) const {
   const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];

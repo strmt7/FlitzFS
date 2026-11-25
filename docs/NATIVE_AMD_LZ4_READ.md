@@ -129,8 +129,18 @@ the callback lock. The helper initializes HIP and reserves a slab while the
 storage reader captures the grouped records. Only the exact forecast can
 queue a request, and its bytes and extent count must fit the reservation.
 The helper receives the private request after initialization and releases
-its resources on completion, cancellation, or an unused forecast. Foreground
-activity can supersede the forecast before any use of its result.
+its resources on completion, cancellation, or an unused forecast. Capture
+and submission still yield when foreground activity changes.
+
+Once submitted, the request belongs to one open context, its read
+progress and the exact image checkpoint. An unrelated read or metadata
+query can complete while the worker owns the request. Verification and
+publication need an idle opportunity. A read on the predicted context, its
+retirement or a changed checkpoint supersedes unpublished work. A ready
+result can survive a different context's read until the predicted stream
+returns. Demand still checks the protected record bindings before using the
+result and reads independently on CPU when it arrives too early.
+[Interleaved callback evidence](evidence/windows-group-read-stream-binding-2026-11-25.json)
 
 The qualified startup lead, measured unready exchanges and verified ready
 dispatch cost govern preparation.
@@ -330,9 +340,9 @@ paged index and passes CPU verification.
 The controller offers this work after ordinary maintenance yields. It
 uses the remaining idle time, current CPU and memory observations, and
 recent measured backing I/O duration. A forecast that exceeds the
-remaining time is dropped. A new foreground operation during preparation
-invalidates publication. Misses, interrupted preparation, and stale
-results use the ordinary CPU read. Preparation has no stored output.
+remaining time is dropped. A new foreground operation interrupts the
+capture or a CPU preparation pass. Misses, interrupted preparation and
+stale results use the ordinary CPU read. Preparation has no stored output.
 
 The pinned LZ4 callback fixture read the predicted extent with 9,284
 backing bytes on demand. The ordinary read used 17,887 bytes. Capture

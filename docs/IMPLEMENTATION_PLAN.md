@@ -997,6 +997,13 @@ latency before admitting a production profile.
    checks both startup and submission lead times. A missed forecast releases
    the unused reservation through the same retirement boundary.
 
+   A submitted request now tracks progress on its own open context and
+   image checkpoint. Include interleaved data reads and metadata queries
+   in the matched mounted workload, along with target demand arriving before
+   readiness and mutations arriving before publication. Count useful
+   prepared bytes separately from verified but unconsumed replies.
+   [Interleaved callback evidence](evidence/windows-group-read-stream-binding-2026-11-25.json)
+
    Run the device qualification for this exact module and worker. Then compare
    cold and prepared workers using the same captured groups and natural read
    lead times. Record transfer, verification, retirement, cancellation and

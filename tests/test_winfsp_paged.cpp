@@ -300,6 +300,10 @@ void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},bool 
   const auto initial=seed->create(47);
   seed->write(initial,file);
   seed->close(initial);
+  const auto unrelated=data(91,237);
+  const auto sibling=seed->create(46);
+  seed->write(sibling,unrelated);
+  seed->close(sibling);
   auto head=seed->head,image=seed->image,advice=seed->advice;
   auto backing=seed->image_io;
   seed.reset();
@@ -314,11 +318,20 @@ void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},bool 
         "Grouped callback fixture did not publish its reference");
   }
   Harness h(4096,&image->stable,&head->stable,&advice->stable,nullptr,true,raw,true);
-  PVOID context=nullptr;
+  PVOID context=nullptr,other_context=nullptr;
   FSP_FSCTL_FILE_INFO info{};
   std::wstring name=L"\\f47";
   require(h.fs.Interface->Open(&h.fs,name.data(),FILE_NON_DIRECTORY_FILE|(1U<<24),FILE_ALL_ACCESS,&context,&info)==STATUS_SUCCESS,
       "Grouped callback fixture reopen");
+  name=L"\\f46";
+  require(h.fs.Interface->Open(&h.fs,name.data(),FILE_NON_DIRECTORY_FILE|(1U<<24),FILE_ALL_ACCESS,&other_context,&info)==STATUS_SUCCESS,
+      "Unrelated callback fixture reopen");
+  const auto read_unrelated=[&] {
+    FSP_FSCTL_FILE_INFO current{};
+    require(h.fs.Interface->GetFileInfo(&h.fs,other_context,&current)==STATUS_SUCCESS &&
+        current.FileSize==unrelated.size(),"Unrelated metadata query changed the file");
+    h.read(other_context,unrelated);
+  };
   constexpr auto width=2U;
   const bool warm=profile && profile->prepared_group_submit_lead_ms!=0;
   const auto read=[&](unsigned first) {
@@ -362,6 +375,8 @@ void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},bool 
       "Grouped WinFsp forecast did not capture its protected inputs");
   if(worker) {
     require(worker->start(*work,admitted,stop),"Live grouped AMD submission refused");
+    read_unrelated();
+    worker->observe(*h.adapter,false);
     if(const auto wake=static_cast<HANDLE>(worker->wake_handle()))
       require(WaitForSingleObject(wake,timeout+2500)==WAIT_OBJECT_0,"Packed-group AMD retirement wait");
     worker->observe(*h.adapter,false);
@@ -379,7 +394,15 @@ void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},bool 
     std::cout<<"winfsp_group_hip mixed="<<mixed<<" prepared="<<warm<<" verified="<<stats.verified_frames
         <<" worker_ms="<<stats.last_worker_elapsed_ms<<" prepared_submit_ms="<<stats.last_prepared_submit_ms
         <<" exact_child_retired=1\n";
-  }else require(h.adapter->prepare_captured_native_lz4_read(*work,stop),"Grouped WinFsp preparation failed");
+  }else {
+    auto ready=detail::NativeGroupReadyReads::decode_captured(*work->groups);
+    read_unrelated();
+    require(h.adapter->foreground_activity()!=epoch &&
+        h.adapter->read_ahead_state(*work)==WinFspReadAheadState::current &&
+        h.adapter->publish_read_ahead(*work,{},std::move(ready),stop),
+        "Unrelated callbacks superseded a verified read result");
+  }
+  read_unrelated();
   read(predicted);
   require(h.adapter->native_lz4_read_ahead_hits()==width && h.image->write_bytes==writes,
       "Grouped callback failed to hit or issued a write");
@@ -388,8 +411,10 @@ void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},bool 
   const auto next=h.adapter->foreground_activity();
   auto superseded=h.adapter->capture_native_lz4_read_ahead(admitted,h.clock.now,next,stop);
   require(superseded && superseded->groups,"Missing second grouped forecast");
+  auto late=detail::NativeGroupReadyReads::decode_captured(*superseded->groups);
   read(predicted+width);
-  require(!h.adapter->prepare_captured_native_lz4_read(*superseded,stop) &&
+  require(late && h.adapter->read_ahead_state(*superseded)==WinFspReadAheadState::superseded &&
+      !h.adapter->publish_read_ahead(*superseded,{},std::move(late),stop) &&
       h.adapter->native_lz4_read_ahead_hits()==width,"Late grouped preparation survived foreground demand");
   if(!worker) {
     const auto foreground=h.adapter->foreground_activity();
@@ -399,11 +424,28 @@ void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},bool 
     require(!cancelled && h.adapter->foreground_activity()!=foreground,
         "Grouped forecast did not yield before capture");
   }
+  auto unrelated_current=unrelated;
+  if(!worker) {
+    read(0);read(width);
+    admitted=h.clock.next();
+    auto old=h.adapter->capture_native_lz4_read_ahead(admitted,h.clock.now,h.adapter->foreground_activity(),stop);
+    require(old && old->groups,"Checkpoint change fixture did not capture its input");
+    auto old_ready=detail::NativeGroupReadyReads::decode_captured(*old->groups);
+    unrelated_current.front()^=std::byte{0x4f};
+    h.write(other_context,unrelated_current);
+    require(old_ready && h.adapter->read_ahead_state(*old)==WinFspReadAheadState::superseded &&
+        !h.adapter->publish_read_ahead(*old,{},std::move(old_ready),stop),"A changed checkpoint accepted old read work");
+    read(2*width);
+    require(h.adapter->native_lz4_read_ahead_hits()==width,"Changed checkpoint delivered a speculative result");
+  }
+  h.close(other_context);
   h.close(context);
   auto snapshot=h.adapter->snapshot();
-  require(snapshot.read("f47",0,file.size())==file,"Independent CPU read changed callback bytes");
+  require(snapshot.read("f47",0,file.size())==file &&
+      snapshot.read("f46",0,unrelated_current.size())==unrelated_current,"Independent CPU read changed callback bytes");
   snapshot.verify_all();
-  std::cout<<"winfsp_ready_groups mixed="<<mixed<<" ready_hits="<<width<<" late_refused=1 cpu_readback=1 backing_writes=0\n";
+  std::cout<<"winfsp_ready_groups mixed="<<mixed<<" ready_hits="<<width<<" late_refused=1 cpu_readback=1 backing_writes=0"
+      <<" unrelated_callbacks_retained=1 checkpoint_change_refused="<<!worker<<'\n';
 }
 
 NativeLz4ReadWorkerProfile group_gpu_profile(wchar_t** arguments) {

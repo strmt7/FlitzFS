@@ -1,0 +1,306 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "qualification": "development",
+  "release_qualified": false,
+  "scope": "Windows SDK callback, raw-only and AddressSanitizer verification of the read-ahead state checks.",
+  "source": {
+    "parent": "9f2e1b103ce8a00edde2f2f6e8292eb1c14a825b",
+    "parent_tree": "03961e25884afdb2aaccbd3ba00258c6049676a7",
+    "git_blobs": {
+      "include/flitzfs/native_session.hpp": "b8296766a78741b583a20ca6d145ba002da4be73",
+      "src/native_session.cpp": "2a7ff7418e10f0fa1e446ad80c94d4c66d755a78",
+      "src/windows/native_lz4_read_worker.cpp": "6c5790f4eabf8cc6f0400782bd2f0843cd20cbef",
+      "src/windows/winfsp_native.cpp": "d787279e7dcdf640a9194a508502b54840fb10d6",
+      "src/windows/winfsp_native.hpp": "bc523f93a2303383b649732ea68882e528d4957c",
+      "tests/test_winfsp_paged.cpp": "f98c80e46dde4dc2937b8df8def2f2b197e538c2"
+    },
+    "worktree_sha256": {
+      "include/flitzfs/native_session.hpp": "fe6e2136fcc105ba4284dff54a5d2a2f0d581a4d654c32eeabd97c0c08827781",
+      "src/native_session.cpp": "175b31ba37f22e4e299f66ed76f87b64c78d1d9621648df3d2334fff4a72a73e",
+      "src/windows/native_lz4_read_worker.cpp": "7cf1bab7ae80429e82c366826c0ab50df16ad13dc8633bd6ecd0ae7a394ca125",
+      "src/windows/winfsp_native.cpp": "cd9226867cf34a631dd5b80c7bb28ab919b5e7eeed203bca6cb647e6e643840b",
+      "src/windows/winfsp_native.hpp": "4f66743fae90c5e89d0e10dad93873259328f015f1710a74bbac237ec3207d53",
+      "tests/test_winfsp_paged.cpp": "3c2c08be01fd27b5e3612c17a98a14e2fd6410d4b239f3527510b0b488767131"
+    },
+    "windows_build": 26300
+  },
+  "changes": {
+    "submission": "New capture and pre-submission preparation still require a quiet foreground epoch.",
+    "submitted": "An immutable submitted request stays bound to the open context, its read revision, and the image identity and generation.",
+    "verification": "Foreground callbacks proceed without waiting for the worker. Reply verification uses an idle opportunity and confirmed worker retirement.",
+    "delivery": "Ready results survive unrelated read-only callbacks. Demand checks stored-record identities and reads independently on CPU if it arrives first.",
+    "cache_limits": "The adapter retains one prepared read window. The worker retains one supervised request with its existing launch reservation and deadline."
+  },
+  "windows_callback_cases": {
+    "modeled_cpu_results": [
+      {
+        "mixed": 0,
+        "ready_hits": 2,
+        "late_refused": 1,
+        "cpu_readback": 1,
+        "backing_writes": 0,
+        "unrelated_callbacks_retained": 1,
+        "checkpoint_change_refused": 1
+      },
+      {
+        "mixed": 1,
+        "ready_hits": 2,
+        "late_refused": 1,
+        "cpu_readback": 1,
+        "backing_writes": 0,
+        "unrelated_callbacks_retained": 1,
+        "checkpoint_change_refused": 1
+      }
+    ],
+    "exact_backing_and_cpu_readback": true,
+    "independent_foreground_demand_while_capture_stalled": true,
+    "unrelated_reads_before_publication_and_delivery": true,
+    "no_speculative_backing_writes": true
+  },
+  "verification": {
+    "ordinaryCandidateBuild": {
+      "run": "local-run-cc2a77a6ef284bce9bad520db0493ff0",
+      "result_sha256": "f971d0cbe4363f6bd767bf87de348deaed29b600170b8cc4e00ea03979a84dc9",
+      "stdout_sha256": "2a530fc6049adc8c776643f35714b3ec1ff00b64b369acb99ee22a7833ca69dd",
+      "exit": 0,
+      "retired": true,
+      "children_at_retirement": 0,
+      "peak_job_bytes": 456892416,
+      "job_limit_bytes": 1169162240,
+      "elapsed_seconds": 65.48500000000058
+    },
+    "ordinaryWindowsSuite": {
+      "run": "local-run-ec1b8d12ea8742cfae95f2faa27b7d8d",
+      "result_sha256": "06bc8c53bd54a49b11aa33c92aea92cdf8af1452491f1105fdfb2a55d20e0a8f",
+      "stdout_sha256": "ff42a75122e9991d9a18544bc36c6184ad06ac757bfd0227ef48f4d6eb2426f0",
+      "exit": 0,
+      "retired": true,
+      "children_at_retirement": 0,
+      "peak_job_bytes": 63156224,
+      "job_limit_bytes": 995098624,
+      "elapsed_seconds": 10.31300000000192
+    },
+    "ordinaryRawBuild": {
+      "run": "local-run-c1cec4efb18044eca75493b788ac8b6c",
+      "result_sha256": "c1832da5e85130f038769500cbcd8684266decfec9ed4ef69da9fd4a7875cd14",
+      "stdout_sha256": "94c43963d54705dca22cdd71863ce262bab60d13187a6ea96e72a333c4a82440",
+      "exit": 0,
+      "retired": true,
+      "children_at_retirement": 0,
+      "peak_job_bytes": 456601600,
+      "job_limit_bytes": 1325400064,
+      "elapsed_seconds": 19.860000000000582
+    },
+    "ordinaryRawSuite": {
+      "run": "local-run-434c108ed4c94c989089c7db03ece1eb",
+      "result_sha256": "3f2104355db5ae75f8644a5d1fa50d2f920ef09136840914e875993c6fa435e0",
+      "stdout_sha256": "94ecab1277508eaaf5893bfcfe5852c24c49f459a33a90dbff9895d96e456e41",
+      "exit": 0,
+      "retired": true,
+      "children_at_retirement": 0,
+      "peak_job_bytes": 25825280,
+      "job_limit_bytes": 832569344,
+      "elapsed_seconds": 3.7030000000013388
+    },
+    "ordinaryAsanConfigure": {
+      "run": "local-run-3a4a91b9bbd24fc3bed5fa91cac6beb8",
+      "result_sha256": "b3051eded4d65bb75ca914d23c44f30f1370381f1b6d25dc87a0d67b224daa23",
+      "stdout_sha256": "335c73e6fb13128020af70dc354aa446accdcc7139a607ec0ba646293ca174b3",
+      "exit": 0,
+      "retired": true,
+      "children_at_retirement": 0,
+      "peak_job_bytes": 26968064,
+      "job_limit_bytes": 1234173952,
+      "elapsed_seconds": 2.875
+    },
+    "ordinarySdkAsanBuild": {
+      "run": "local-run-34dca5ce952d48ea9db512db1654f2a8",
+      "result_sha256": "d4b206d37ca311987954360cf6ce8cfb5e82350c7e9256b2499dcb0bc92aabf6",
+      "stdout_sha256": "5f85eb6096858201833f1816c9f5dbb83955a512401b3eebcc872f2f20017d9f",
+      "exit": 0,
+      "retired": true,
+      "children_at_retirement": 0,
+      "peak_job_bytes": 620204032,
+      "job_limit_bytes": 1476395008,
+      "elapsed_seconds": 72.92199999999866
+    },
+    "ordinarySdkAsanSuite": {
+      "run": "local-run-a89ce76fb79b4a8ea33c0da0ba2cf3f1",
+      "result_sha256": "6050ceabfada378942ef09f92f207bddabd1d3eacc3a738bd36021f173ee71fb",
+      "stdout_sha256": "3f37f06b5551847422bfa76a1e4f10370a1c9d09ba62ce1e0f5bcd67feffdd3d",
+      "exit": 0,
+      "retired": true,
+      "children_at_retirement": 0,
+      "peak_job_bytes": 139235328,
+      "job_limit_bytes": 1098907648,
+      "elapsed_seconds": 1.6569999999992433
+    },
+    "suite_counts": {
+      "sdk_release": 8,
+      "raw_only": 4,
+      "sdk_asan_including_runtime_preflight": 3
+    },
+    "sdk_asan_fixed_cache": {
+      "staged_runtime_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed",
+      "executable_sha256": "80947ff3f34a8faba35f0c70e2a4f392f3f512b711a144c2d342e10f03adcc89"
+    },
+    "retired_aside": {
+      "old_sdk_cache": {
+        "reason": "CMake could not identify the compiler in the older build cache. The working instrumented build was reconfigured with the admitted WinFsp SDK.",
+        "receipt": {
+          "run": "local-run-7141b97489164145878736083c1317ec",
+          "result_sha256": "12514d17d316d25b686408317952d1b47291649933d8326987b3a474f8698764",
+          "stdout_sha256": "f44dd8b5a7ea6e5d80acb0174469f887112fa565105a91b678b4cb2f268a3f49",
+          "exit": 4294967295,
+          "retired": true,
+          "children_at_retirement": 0,
+          "peak_job_bytes": 86224896,
+          "job_limit_bytes": 1499463680,
+          "elapsed_seconds": 1.3280000000013388
+        }
+      }
+    }
+  },
+  "live_device": {
+    "executed_this_source": false,
+    "entrypoint": "timed-prepared-mixed-group",
+    "stage": {
+      "flitzfs_winfsp_paged_tests.exe": {
+        "bytes": 2236928,
+        "sha256": "ecbbe0f9edee02e62ea844d5e76fe925d8c9c2d712d8c2c114f3d0e971659b87"
+      },
+      "winfsp-x64.dll": {
+        "bytes": 200816,
+        "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+      },
+      "flitzfs_native_lz4_read_worker.exe": {
+        "bytes": 581632,
+        "sha256": "8625a3fa306adce0f3db5a1803ea6b9924147817c73630f75f09d42fdf268ca4"
+      },
+      "flitzfs_rocm_native_lz4_decode.dll": {
+        "bytes": 173568,
+        "sha256": "9ac5bb33a7b39ae26712dcdcfcdeb6b4b5fc049175e18dd6f24d047a37b3e128"
+      }
+    },
+    "staged_manifest_sha256": "add599d468df418f7499e41e294bfa5a5e9c11dc03fd09a8f1104849b7f7a8a6",
+    "admission": {
+      "observed": {
+        "admitted": false,
+        "utc": "2026-11-25T00:03:25.0498085Z",
+        "windows_build": "26300",
+        "devices": [
+          {
+            "Name": "AMD Radeon RX 9070 XT",
+            "Status": "OK",
+            "DriverVersion": "32.0.32029.2010"
+          }
+        ],
+        "cpu": [
+          13.53,
+          10.32
+        ],
+        "peak_gpu_engine": 99.02300346255011,
+        "available_kib": 11914964,
+        "total_kib": 66704480,
+        "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+        "other_fixture_processes": 0
+      },
+      "report": "The supervisor refused the busy GPU before HIP identity or worker launch. The tool also printed its generic adapter-admission failure message.",
+      "receipt": {
+        "run": "local-run-8a25f9038da14e14b415767115972ccb",
+        "result_sha256": "b2efdcc31fbf7225fc2655d9b60ee3408763c3a806d4ec08257defcbeef09c60",
+        "stdout_sha256": "3af68cc506c43cdc5ba47ee09d601a71f736bb8b92ac7047b72139b19497bf7f",
+        "exit": 1,
+        "retired": true,
+        "children_at_retirement": 0,
+        "peak_job_bytes": 92901376,
+        "job_limit_bytes": 796917760,
+        "elapsed_seconds": 4.046999999998661
+      }
+    },
+    "passive_recheck": {
+      "utc": "2026-11-25T00:07:01.6816990Z",
+      "available_kib": 11883052,
+      "commit_kib": 60203132,
+      "total_kib": 66704480,
+      "peak_gpu_percent": 99.54373580043995,
+      "prior_luid_peak_percent": 99.54373580043995
+    },
+    "prior_accepted_device_run": "docs/evidence/windows-amd-group-startup-admission-2026-11-25.json",
+    "outstanding": "Deliver exact device frames after an unrelated ordinary callback and measure complete service on the supported mounted client."
+  },
+  "source_navigation": {
+    "provider": "0.2.43",
+    "commit": "9f2e1b103ce8a00edde2f2f6e8292eb1c14a825b",
+    "actual_searches": 1,
+    "receipt_sha256": "5b2223ea1ea22b973c5c57308c2261db136ccd2d08e231daa330c8e74c4bebfd",
+    "native_capture_sha256": "2b91c58625b759f095ad43364cf33aff793ae267c8c26b41a960dd564be54df8",
+    "execution": {
+      "run": "local-run-a428dabea9564ec1b31ac87f20e6fab4",
+      "result_sha256": "176aa4f152b114fffd42ea2d298b139a306e25c2d935e41ac6e1d3175a6f4e96",
+      "stdout_sha256": "5e5fc08784e937792ce7fcf83ad936a842338339e6d883251e211139eebd6f9c",
+      "exit": 0,
+      "retired": true,
+      "children_at_retirement": 0,
+      "peak_job_bytes": 1055817728,
+      "job_limit_bytes": 1872756736,
+      "elapsed_seconds": 40.03100000000268
+    }
+  },
+  "primary_research": {
+    "provider": "0.9.5+flitzzip.portable2",
+    "robots": true,
+    "external_llm": false,
+    "receipt_sha256": "43df2291c5cbe2882940adb464171dc9a807c0f8f2e7b8e06d131f6b1fb7f09a",
+    "execution": {
+      "run": "local-run-d36af27d45854f34b2d3019c38914435",
+      "result_sha256": "9b6a21c173b29733b4b618eea085f876716b0b2e38159595440f18fb52fc514c",
+      "stdout_sha256": "2a6dd85c403781cf8258593c7f885c3ac9ddb117ed81acbe5d689fc4e7eb3548",
+      "exit": 0,
+      "retired": true,
+      "children_at_retirement": 0,
+      "peak_job_bytes": 484134912,
+      "job_limit_bytes": 676331520,
+      "elapsed_seconds": 15.76600000000326
+    },
+    "pages": [
+      {
+        "url": "https://rocm.docs.amd.com/en/docs-10.2.0/about/release-notes.html",
+        "status": 200,
+        "success": true,
+        "substantive_bytes": 308596,
+        "text_sha256": "65dc225b07c55d48d922e0ed3c5a7f692b8de4bc523b4b33a2733cf2c2ff34ea",
+        "capture_sha256": "75270c5040a06a23ec7a7a2b8a6f9e1acee1e6556b28a1dd852e626ed2ec1c04"
+      },
+      {
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/reference/hip_runtime_api/modules/stream_management.html",
+        "status": 200,
+        "success": true,
+        "substantive_bytes": 51306,
+        "text_sha256": "bee401671f6fc9c05ac9b57c010c93ce535666de88336c70a4d0d7d4d81dae5a",
+        "capture_sha256": "19f4920d9b97a7b594fdbbc4808f6270f910180f0a41fee8794245bf1671c830"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/ns-dxgi1_4-dxgi_query_video_memory_info",
+        "status": 200,
+        "success": true,
+        "substantive_bytes": 20625,
+        "text_sha256": "8113f919b68c514b8914e83ed94797a5d54ff95b3fde0906c5be892252cd2a95",
+        "capture_sha256": "e269e7779fbc3f9d5fe57569c6d451071ab1d0aa8449fd2d73b1c6840ee8e695"
+      },
+      {
+        "url": "https://winfsp.dev/doc/WinFsp-API-winfsp.h/",
+        "status": 200,
+        "success": true,
+        "substantive_bytes": 73095,
+        "text_sha256": "23f2e7b26b2297a12d6e98acb7b612010c44361803cc72c3563f82571cce5837",
+        "capture_sha256": "41918b8ca2fc1ec36db3622618ee5f5399febebe7909987eac053ce6da752a3c"
+      }
+    ]
+  },
+  "cleanup": {
+    "owned_remaining": 0,
+    "utc": "2026-11-25T00:08:37.1232380Z"
+  }
+}
