@@ -101,6 +101,17 @@ fixture. The complete images and independent reads matched. Replay the
 signed populated witness on this change before adjusting controller pacing.
 [Bank-spanning copy evidence](evidence/windows-bank-spanning-rebuild-2026-11-25.json)
 
+### Follow-up on both verification passes
+
+The existing paired-stream reader now coalesces exact adjacent frames
+across banks during both target audits and writable reopen. On the
+fragmented rebuild, reads fell from 4,564 to 1,342 per target audit while
+checked bytes and completed images matched. CPU reopen verified every
+file in the 16,384-short-file and 2,640-file CPython controls. Their
+provider reads fell to 60,452 and 21,564 respectively. Repeat the normal
+signed client with the phase counters before tuning selection or pacing.
+[Matched audit measurements](evidence/windows-bank-spanning-verification-2026-11-25.json)
+
 ## Restart discovery with one stored rolling key
 
 The persisted index retains one rolling key for a candidate. A shifted
@@ -141,7 +152,7 @@ mounted trace as the correctness control when headroom returns.
 | Gate | Current evidence | Completion evidence |
 | --- | --- | --- |
 | S1 · Exact artifacts | Current scoped builds bind source and SDK/CPU artifacts. Earlier real device runs identify their exact ROCm binaries. | Bind one clean Windows 11 update, signed WinFsp pair, helper, workers, CPU decoder table and backing capabilities to the acceptance run. |
-| S2 · Scale | Paged inodes, names and extents are live. Checked replica reads now group within a leaf and a bank, retaining the complete startup walk. | Verify bounded attach under a versioned authority contract. Fit and validate separate named-file curves for attach, restart, enumeration, mutation and resident memory. |
+| S2 · Scale | Paged inodes, names and extents are live. Checked replica reads group adjacent frames across banks within each leaf. The complete startup walk still runs. | Verify bounded attach under a versioned authority contract. Fit and validate separate named-file curves for attach, restart, enumeration, mutation and resident memory. |
 | S3 · Space reuse | Sparse backing settled while mounted after preselection on the 1,027-file trace. Packed work continued after detach. The new callback fixture releases an already-selected packed image’s confirmed suffix in bounded continuations. | Select and settle through the ordinary mounted controller. Batched copy makes fewer calls on identical bytes in both local layouts. Use the allocation trace to identify the next cost under pinned readers, sustained churn, constrained free space and interruption. |
 | S4 · AMD and CPU continuity | Prepared AMD frames passed earlier SDK tests. The later live trial verified two mixed device frames after an unrelated callback and independent CPU readback. The measured 1 MiB write shape still favors CPU. | Prove a useful automatic region for each advertised AMD role in installed-client paths. Qualify CPU availability, verified delivery and condition-based device recovery. |
 | S5 · Compression | Protected prefix selection can save an allocation pair. Two secondary-key restart controls save 122,880 complete bytes each at the same catalog size. Broader real corpus rebuild controls retained their sizes, with no catalog nominations required. AIT grouping and parity placement showed distinct effects. | Establish a held-out complete-size frontier including metadata and protection. Measure catalog recall and savings with a populated, funded search index. |

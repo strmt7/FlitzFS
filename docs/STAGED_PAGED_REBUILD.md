@@ -5,10 +5,10 @@ during staged copying and independently verifies both new copies. A staged
 attempt can reconstruct a lost bank while the source remains CPU-readable.
 
 Paged storage now supports an explicit candidate alongside a live foreground
-writer. Full-content verification can check several short records from the
-same checked leaf in one opportunity. The copy retains its single-record
-work unit for ordinary rebuilds. The index phase reads up to one leaf of
-record headers per opportunity.
+writer. Full-content verification can check several records from one
+checked leaf in an opportunity. Preserved mirrored records can share a
+copy operation across banks. Re-encoding and rebinding use their own record
+steps. The index phase reads up to one leaf of record headers per opportunity.
 Native wrappers preserve their namespace format and rebind the image identity.
 This is a maintenance primitive, not an automatic scheduler, active-volume
 handoff, persistent restart journal or collective compression algorithm.
@@ -104,14 +104,17 @@ match the assigned stream position and peer offset. Both replicas are checked
 before the independent CPU comparison of every record. Cold trials, root
 rebinding, filtered retention, folded layout and oversized records use their
 existing paths.
-During verification, adjacent frames in one checked leaf and one bank can
-share a backing read for each replica. The scanner checks both
-banks for equality, validates each record against its own descriptor and digest,
+During verification, adjacent frames in one checked leaf can share
+reads across the paired logical stream. Every next entry must start at
+the expected mapped offset in each replica, so gaps still split runs.
+The reader splits the logical read at physical bank boundaries. A run
+can contain up to 128 KiB of framing per replica. The verifier compares
+the replicas, checks each record against its own descriptor and digest,
 and decodes the records for the individual CPU comparisons. A failed run
 triggers the existing per-copy checks. A source survivor can support recovery.
-A degraded target fails staging, including when a later reread succeeds. The
-per-step foreground yield point and separate data, root and selector checks
-remain part of the publication sequence.
+A degraded target fails staging, including when a later reread succeeds.
+The per-step foreground yield point and separate data, root and selector
+checks remain part of the publication sequence.
 
 The indexed fixture reduced the count from 51 to 33 steps when preserving
 encodings and from 51 to 29 when re-encoding. Both 4-KiB and 64-KiB
@@ -144,6 +147,16 @@ independent readback. Twelve additional cuts exercised the four physical
 writes of a two-bank batch and retained the original authority.
 [Bank-spanning copy evidence](evidence/windows-bank-spanning-rebuild-2026-11-25.json)
 [Coalesced rebuild verification evidence](evidence/windows-rebuild-verification-reads-2026-11-25.json)
+
+Using the paired stream in both target audits cut provider reads from
+4,564 to 1,342 per audit on the fragmented medium-record fixture. The
+short-record controls fell from 1,020 to 508 reads each. Each pair read the
+same bytes through the provider and took the same number of advances.
+The complete three candidate image digests matched their controls.
+Injecting one transient read fault in a later peer bank refused the
+candidate before and after private root publication. A damaged source
+replica still permitted a verified rebuild from its surviving copy.
+[Bank-spanning verification evidence](evidence/windows-bank-spanning-verification-2026-11-25.json)
 
 Resource admission remains the provider/controller's responsibility. There is
 no thread, service, timer, online model or GPU launch. An OS flush can still

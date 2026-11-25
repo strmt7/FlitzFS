@@ -400,10 +400,12 @@ checks govern candidate publication.
 The current append layout reclaims normal churn by staged image replacement or
 provider-supported tail/region release. It can reconcile unrelated commits
 under bounds. Rebuild still requires alternate capacity and full passes.
-Adjacent unchanged mirrored records share copy and readback work within one
-checked leaf. The mapper splits the stream at each physical bank. Each record
-retains its own CPU comparison before the new image can be selected.
-[Staged copy evidence](../evidence/windows-bank-spanning-rebuild-2026-11-25.json)
+Adjacent mirrored records share preserved copy and independent
+verification work within one checked leaf. The mapper splits each
+replica's stream at physical bank boundaries. Both target audits retain
+record-level CPU comparisons before the new image can be selected.
+[Staged copy evidence](../evidence/windows-bank-spanning-rebuild-2026-11-25.json) ·
+[Independent verification evidence](../evidence/windows-bank-spanning-verification-2026-11-25.json)
 [Windows scheduling and pacing](../../src/windows/winfsp_controller.cpp#L205)
 · [native group advancement](../../src/native_maintenance.cpp#L1132)
 · [persistent postings](../../src/indexed_coherence.cpp#L258)

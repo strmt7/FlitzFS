@@ -227,11 +227,14 @@ void mirrored_rebuild_io(bool fragmented,bool spanning=false) {
   std::cout<<"staged_copy_image fragmented="<<fragmented<<" spanning="<<spanning
       <<" bytes="<<target->extent()<<" blake3="<<digest<<'\n';
 }
-void mirrored_rebuild_read_faults() {
+void mirrored_rebuild_read_faults(bool spanning=false) {
   using Phase=PagedRewritePhase;
   constexpr StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
-  const std::array records{StoreMutation{1,false,data(319,866)},StoreMutation{2,false,data(271,867)},
-      StoreMutation{3,false,data(401,868)}};
+  // With the larger records, the second frame crosses a bank and the
+  // third frame follows its tail in the later bank.
+  const std::array records{StoreMutation{1,false,data(spanning?2048:319,866)},
+      StoreMutation{2,false,data(spanning?2145:271,867)},StoreMutation{3,false,data(401,868)}};
+  const auto& damaged_record=records[spanning?2:1].bytes;
   auto source=std::make_shared<Ram>();source->failure_unit=4096;
   auto writer=PagedObjectStoreWriter::create_mirrored(source,identity(),limits,raw);
   writer.commit(records);
@@ -251,15 +254,20 @@ void mirrored_rebuild_read_faults() {
       candidate.advance(writer);
     }
     const auto first_peer=mirror_payload(*target,records[0].bytes);
-    target->corrupt_read_offset=mirror_payload(*target,records[1].bytes);
+    target->corrupt_read_offset=mirror_payload(*target,damaged_record);
     target->corrupt_read_number=1;
     rejects([&]{candidate.advance(writer);},"transient packed replica mismatch admitted a candidate");
-    require(target->corrupted_read_start<first_peer && candidate.progress().phase==Phase::failed &&
-        !writer.poisoned() && source->calls==source_calls,
+    if(spanning) {
+      const auto bank=target->corrupt_read_offset-target->corrupt_read_offset%target->failure_unit;
+      require(target->corrupted_read_start==bank,"verification missed the adjacent peer bytes in the later bank");
+    }else {
+      require(target->corrupted_read_start<first_peer,"verification missed the adjacent peer bytes in the first bank");
+    }
+    require(candidate.progress().phase==Phase::failed && !writer.poisoned() && source->calls==source_calls,
         "batched target corruption failed to fence just the candidate");
   }
 
-  const auto damaged=mirror_payload(*source,records[1].bytes);
+  const auto damaged=mirror_payload(*source,damaged_record);
   source->live[static_cast<std::size_t>(damaged)]^=std::byte{1};
   auto target=std::make_shared<Ram>();target->failure_unit=4096;
   auto candidate=writer.prepare_rebuild(target,next_id(),raw,false);
@@ -411,7 +419,8 @@ void failures(unsigned layout,std::uint32_t unit) {
 int main(){try {
   generic_maximum_and_empty();cancellation_and_owner();admission_and_read_failures();
   mirrored_rebuild_io(false);mirrored_rebuild_io(true);mirrored_rebuild_io(true,true);
-  mirrored_rebuild_read_faults();mirrored_copy_write_faults(false);mirrored_copy_write_faults(true);
+  mirrored_rebuild_read_faults();mirrored_rebuild_read_faults(true);
+  mirrored_copy_write_faults(false);mirrored_copy_write_faults(true);
   for(bool mirrored:{false,true})changed_copied_descriptor(mirrored);
   for(unsigned layout=0;layout<3;++layout) {
     stale_phases(layout);

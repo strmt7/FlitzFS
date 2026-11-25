@@ -793,15 +793,14 @@ reduces I/O within each audit.
 ### Stored replica reads after the fences
 
 A healthy writable reopen reads both replicas again after the image and
-selector fences. A checked leaf can supply one read per bank for adjacent
-whole records. The primary and peer spans must match byte for byte. The
-reader then verifies each frame against its own checked descriptor and
-stored digest. A mismatch or failed read marks the reopen degraded even
-when separate reads can subsequently diagnose a valid copy. A record
-that crosses a bank boundary or cannot join a run uses the individual
-replica path. A batched read stays within the selected bank and needs scratch
-for at most two banks. The full decoded and namespace audit
-still precedes the fences.
+selector fences. A checked leaf can supply adjacent frames from a paired
+stream. The reader splits I/O at each bank boundary, then compares the
+primary and peer bytes. It verifies each frame against its own checked
+descriptor and stored digest. A mismatch or failed read marks the reopen
+degraded even when separate reads can subsequently diagnose a valid copy.
+A physical gap or the 128 KiB framing limit ends a coalesced run. Oversized
+records use the individual replica path. The full decoded and namespace
+audit still precedes the fences.
 [Matched reopen measurements](evidence/indexed-fenced-read-runs-2026-11-25.json)
 
 ### Mirrored reads during the decoded audit
@@ -815,7 +814,7 @@ relationships. If a run fails, each record follows the established survivor
 path and the observation retains degraded status. A decode failure rejects
 both identical copies. The fresh post-fence scan remains in force.
 
-| Windows in-memory workload | Previous backing reads | Current backing reads |
+| Windows in-memory workload | Stored-only coalescing | Decoded and stored coalescing within banks |
 | --- | ---: | ---: |
 | 1,024 short files | 8,138 | 4,604 |
 | 8,192 short files | 64,616 | 36,232 |
@@ -830,6 +829,13 @@ calls for the held-out 8,192-file tier, within 0.15% of observation. The
 evidence records a conditional larger projection with the observed layout
 and locality. The full audit still grows with the object inventory.
 [Decoded reopen measurements and verification](evidence/indexed-decoded-reopen-runs-2026-11-25.json)
+
+Grouping across adjacent banks in both audits reduced backing calls
+further from 72,492 to 60,452 on 16,384 short files, and from 33,754
+to 21,564 on 2,640 compressed CPython files. The byte counts and flush
+boundaries matched, and every file verified by CPU after reopen. The
+earlier scaling fit describes its own layouts and revision.
+[Bank-spanning verification evidence](evidence/windows-bank-spanning-verification-2026-11-25.json)
 
 ### Decoded name pages within an audit
 

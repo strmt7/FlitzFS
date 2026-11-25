@@ -557,15 +557,17 @@ template<class Visitor> void walk(const State& s,const Ref& r,std::uint64_t afte
 struct MirroredRecordRun {
   std::size_t count=1,bytes=0;
 };
-MirroredRecordRun mirrored_record_run(const State& s,std::span<const Entry> entries) noexcept {
+MirroredRecordRun mirrored_record_run(const State& s,std::span<const Entry> entries) {
+  constexpr auto maximum_run_bytes=2*kStoreCommitUnit;
   const auto& first=entries.front();
-  const auto bank_bytes=static_cast<std::size_t>(s.unit-first.offset%s.unit);
   MirroredRecordRun run{1,record_header_bytes+first.stored};
-  while(run.count<entries.size() && run.bytes<=bank_bytes) {
+  while(run.count<entries.size() && run.bytes<=maximum_run_bytes) {
     const auto& next=entries[run.count];
     const auto length=record_header_bytes+next.stored;
-    if(next.offset!=first.offset+run.bytes || next.peer!=first.peer+run.bytes || length>bank_bytes-run.bytes)
-      break;
+    if(length>maximum_run_bytes-run.bytes)break;
+    // Adjacent records follow the same paired stream across banks.
+    const auto primary=stream_position(first.offset,run.bytes,s.unit);
+    if(next.offset!=primary || next.peer!=add(primary,s.unit))break;
     run.bytes+=length;
     ++run.count;
   }
@@ -1560,7 +1562,7 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
           frames=frames.subspan(record_header_bytes+entry.stored);
         }
       } else {
-        // Gaps, bank boundaries and failed runs keep per-copy verification.
+        // Gaps and failed runs keep per-copy verification.
         for(const auto& entry:entries) {
           Bytes bytes;
           bool survivor=false;
