@@ -244,6 +244,16 @@ held-out OpenZFS and SQLite revisions, the ordinary candidates retained the
 same compacted size. [Prefixed Zstandard members](INDEXED_NATIVE_VOLUME.md#prefixed-zstandard-members) ·
 [Cost and readback evidence](evidence/indexed-prefixed-zstd-2026-11-20.json)
 
+Indexed automatic maintenance can also encode members with the assembled
+base as their Zstandard prefix. It funds this proposal separately from
+the ordinary copy and prefix proposals. One idle step stages and
+independently verifies a frame. Resource withdrawal discards the extra
+proposal. The final alternatives share exact member identities and
+protected reference edits. The writer chooses from their complete
+compacted sizes, then checks the existing publication protocol.
+[Assembled-prefix flow](architecture/CURRENT.md#11-compression-over-an-assembled-base) ·
+[Paired comparison](evidence/windows-assembled-prefix-2026-11-25.json)
+
 On indexed volumes, a protected base can also hold several short payloads
 as verified slices. This reduced occupied size by 4.0% for 40 distinct
 Lucide SVGs and by 4.8% for the controlled short-token corpus. Two other

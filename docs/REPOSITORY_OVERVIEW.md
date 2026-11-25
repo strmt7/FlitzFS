@@ -9,14 +9,16 @@ CPython fixture, the paged-root change lowered settled occupancy from
 and exact CPU readback, including after automatic sealing and retirement
 in the separate Windows lifecycle fixture.
 
-The host Radeon delivered checked grouped frames in earlier SDK
-callback fixtures. Current write trials use the active protected image
-layout, and stale measurements cannot defer a write. The next release
-gates are useful automatic mounted acceleration, bounded writable
-attach, a held-out compression advantage and independent verification
-of acknowledged operations on persistent media.
-[Reconciliation](RELEASE_RECONCILIATION_2026-11-25.md#current-reconciliation-and-release-order) ·
-[Exact tests and research](evidence/windows-foreground-write-layout-2026-11-25.json) ·
+Earlier SDK fixtures consumed checked Radeon output. The write path can
+prepare a measured worker ahead of need and rechecks the active layout
+before deferral. Settled maintenance can choose existing prefix frames
+over a base assembled from several files. The paired structured revisions
+occupied less space, while the CPython revision cohort retained its
+settled size. The next gates are useful automatic mounted acceleration,
+bounded writable attach, a held-out compression advantage and independent
+verification of acknowledged operations on persistent media.
+[Reconciliation](RELEASE_RECONCILIATION_2026-11-25.md#reconciliation-after-protected-assembled-prefix-selection) ·
+[Exact tests and research](evidence/windows-assembled-prefix-2026-11-25.json) ·
 [Current architecture](architecture/CURRENT.md) ·
 [Target architecture](architecture/TARGET.md)
 

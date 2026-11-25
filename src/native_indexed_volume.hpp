@@ -105,7 +105,7 @@ class IndexedSharedBasePreparation final {
   bool stage_search(std::size_t maximum_members,std::weak_ptr<const void>& owner_window,NativeSharedBaseSearchPurpose);
   NativeSharedBaseSearchWindow search_window() const noexcept;
   bool price_reference();
-  void admit_variants(bool packing,bool staged_reference,bool automatic) noexcept;
+  void admit_variants(bool packing,bool staged_reference,bool automatic,bool assembled_prefix) noexcept;
   bool advance(std::span<const NativeSharedBaseCopyRange>,const NativeSharedBaseSearchReply*);
   NativeSharedBaseCommit finish(PagedObjectStoreWriter&,const PagedObjectStoreSnapshot&,IndexedVolumeRoot&);
 
@@ -147,7 +147,7 @@ class IndexedSharedBasePreparation final {
   bool can_change_reference() const noexcept;
   void change_reference(std::uint32_t member);
   bool stage_section_reference();
-  bool stage_prefixed_reference();
+  bool stage_prefixed_reference(std::optional<PrefixedReference>&,const SectionReference* sections=nullptr);
   bool stage_packed_reference();
   bool advance_packed_group();
   bool complete_member();
@@ -159,7 +159,7 @@ class IndexedSharedBasePreparation final {
   std::optional<NativeGroupAnchorIndex> anchor_index_;
   std::optional<SearchWindow> search_;
   std::optional<SectionReference> section_reference_;
-  std::optional<PrefixedReference> prefixed_reference_;
+  std::optional<PrefixedReference> prefixed_reference_,prefixed_sections_;
   std::optional<PackedReference> packed_reference_;
   ReferencePricing pricing_;
   std::size_t base_index_=0;
@@ -169,7 +169,8 @@ class IndexedSharedBasePreparation final {
   std::uint32_t reference_member_=0;
   bool allow_subset_=false,invalidated_=false,search_storage_unavailable_=false;
   bool packing_admitted_=false,staged_reference_admitted_=false,staged_reference_comparison_=false;
-  bool compare_sections_=false,compare_prefix_=false,automatic_compression_=false;
+  bool compare_sections_=false,compare_prefix_=false,compare_section_prefix_=false;
+  bool automatic_compression_=false,assembled_prefix_admitted_=false;
   bool packed_only_=false;
 };
 struct IndexedPreparationWatch {

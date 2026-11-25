@@ -786,3 +786,30 @@ specifies the remaining Windows, storage and benchmark qualification.
 [Validation guide](../validation/README.md)
 · [sanitizer preflight](../../cmake/WindowsAsanRuntime.cmake)
 · [installed AMD read evidence](../evidence/amd-reopened-paired-sealed-read-2026-11-23.json)
+
+## 11. Compression over an assembled base
+
+```mermaid
+flowchart TD
+    Extents["Checked extent generations and protected CPU bytes"] --> Stage["One staged group"]
+    Stage --> Nominated["Nominated base with exact patches or prefix frames"]
+    Stage --> Sections["Assemble sections shared by the selected members"]
+    Sections --> Copies["Verified copy and patch frames"]
+    Copies --> Grant{"Current budget covers extra prefix comparison?"}
+    Grant -->|Yes| Prefix["Try a Zstandard prefix for one member per idle step"]
+    Prefix --> Mixed["Mix smaller prefix frames with unchanged copy frames"]
+    Nominated --> Price["Price all surviving proposals using actual protected layout"]
+    Copies --> Price
+    Mixed --> Price
+    Price -->|Strict occupied gain| Publish["Verify live bindings, write both copies and publish root"]
+    Price -->|No gain| Keep["Keep selected representation"]
+    Publish --> CPU["Standalone CPU readback, protected base and retained snapshot"]
+```
+
+The extra budget includes both staged frames and the proposal used by the
+compacted-size comparator. The ordinary scan and its existing candidates
+retain their budgets. If the device previously advised a different
+reference, the selected assembled variant replaces that advice. The
+committed dependency is the assembled base bound to its checked generation.
+This uses the existing prefix and shared-base records.
+[Source and size evidence](../evidence/windows-assembled-prefix-2026-11-25.json)

@@ -43,7 +43,7 @@ constexpr auto representative_scratch=8*(sizeof(OptimizationGroupFeature)+sizeof
 static_assert(kOptimizationGroupRepresentatives>kNativeMaxDirtyExtents);
 struct GroupMemoryBudget {std::size_t members=0,representatives=0;};
 GroupMemoryBudget group_memory_budget(const detail::MaintenanceResources& resources,bool indexed,
-    bool sections=false,bool packing=false) noexcept {
+    bool sections=false,bool packing=false,bool assembled_prefix=false) noexcept {
   const bool prefixed=sections && store_zstd_available();
   const auto scratch=fixed_scratch+(indexed?detail::kNativeGroupAnchorIndexBytes:0)+(packing?2*kNativeExtentBytes:0)+
       (prefixed?(std::max)(detail::kStorePrefixEncoderMemoryCap+kNativeExtentBytes,detail::kStoreDecoderMemoryCap):0);
@@ -52,7 +52,8 @@ GroupMemoryBudget group_memory_budget(const detail::MaintenanceResources& resour
   // A complete CPU or AMD search window can retain a packed candidate and
   // its proposed index edits while the foreground continues.
   const auto member_bytes=member_scratch+(packing?kNativeExtentBytes:0)+
-      (sections?4*kNativeExtentBytes:0)+(prefixed?2*kNativeExtentBytes:0);
+      (sections?4*kNativeExtentBytes:0)+(prefixed?2*kNativeExtentBytes:0)+
+      (assembled_prefix?2*kNativeExtentBytes:0);
   if(available<2*member_bytes)return {};
   const auto extra=indexed?(std::min)(std::uint64_t{kOptimizationGroupRepresentatives-kNativeMaxDirtyExtents},
       (available-2*member_bytes)/representative_scratch):0;
@@ -1088,7 +1089,7 @@ struct NativeGroupMaintenance::Impl {
   }
   void step(NativeFilesystemWriter& writer,std::size_t maximum_members,std::size_t maximum_representatives,
       NativeGroupSearchOpportunity search,detail::NativeMaintenanceSource& owner,
-      bool sections,std::size_t packing_members,bool staged_reference) {
+      bool sections,std::size_t packing_members,bool staged_reference,bool assembled_prefix) {
     const bool can_batch=search.collect_batch && writer.maintenance_indexed();
     const bool collect_batch=can_batch && search.maximum_members;
     if(!staged_groups.empty() && !batch_draining) {
@@ -1135,7 +1136,8 @@ struct NativeGroupMaintenance::Impl {
       }
     }
     if(work) {
-      writer.admit_shared_base_variants(*work,packing_members!=0,work_batched && staged_reference,owner.automatic_compression);
+      writer.admit_shared_base_variants(*work,packing_members!=0,work_batched && staged_reference,
+          owner.automatic_compression,assembled_prefix);
       if(phase==Phase::preparing) {
         auto grant=(std::min)(search.maximum_members,maximum_members);
         if(work_batched)grant=!batch_draining && grant>staged_search_members?
@@ -1372,6 +1374,10 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
   // ordinary scan or batch grant. Account for a simultaneous packed proposal.
   const bool staged_reference=indexed && p.active_group() &&
       fits(group_memory_budget(*resources,indexed,true,packing_members!=0));
+  // Admit the additional assembled-prefix proposal without reducing the
+  // existing scan window or the memory grant for its ordinary alternatives.
+  const bool assembled_prefix=(sections || staged_reference) && source->automatic_compression &&
+      store_zstd_available() && fits(group_memory_budget(*resources,indexed,true,packing_members!=0,true));
   const bool new_catalog=p.new_coherence(*source,image);
   if(!writer.maintenance_has_candidates())p.reset_index();
   const bool discovering=p.discovery_pending(writer,*source,image);
@@ -1422,7 +1428,8 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
       // restartable. The tentative group windows only exist in this process.
       if(!indexed || observed.continued || p.active_group() ||
           !p.checkpoint_step(writer,*source,maximum_representatives,new_catalog))
-        p.step(writer,maximum_members,maximum_representatives,search,*source,sections,packing_members,staged_reference);
+        p.step(writer,maximum_members,maximum_representatives,search,*source,sections,packing_members,
+            staged_reference,assembled_prefix);
       p.prefer_coherence=true;
       p.state.phase=p.phase;
     }

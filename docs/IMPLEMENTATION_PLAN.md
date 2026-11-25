@@ -291,6 +291,15 @@ indexed or read-only prototypes.
 
 ### Execution after matching the active write layout
 
+Start with the latest [repository reconciliation](RELEASE_RECONCILIATION_2026-11-25.md#reconciliation-after-protected-assembled-prefix-selection) and its
+[ordered implementation packets](RELEASE_RECONCILIATION_2026-11-25.md#implementation-sequence-and-exit-evidence).
+Steps E01–E13 below govern dependencies and exit evidence. For E04–E06,
+retain the assembled-prefix candidate in the existing protected exact
+oracle. Measure the added idle work and held-out size before widening
+its use. Prepare the attached CPU, cold AMD and prepared AMD comparison
+through the same ordinary Windows client for E03 and E08.
+[Source-bound comparison](evidence/windows-assembled-prefix-2026-11-25.json)
+
 Use the same external Windows workload to find the largest avoidable costs.
 The changes above establish which protected layout a detached write trial
 actually measures. The release programme remains ordered by the evidence

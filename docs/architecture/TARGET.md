@@ -7,7 +7,7 @@ sequence in the [development plan](../IMPLEMENTATION_PLAN.md#3-execution-order-a
 The current integration design ties durable publication, bounded AMD work,
 sparse advice and measured settlement to the same Windows operation witness
 and complete occupancy record.
-[Reconciled design](../RELEASE_RECONCILIATION_2026-11-25.md#current-reconciliation-and-release-order) ·
+[Reconciled design](../RELEASE_RECONCILIATION_2026-11-25.md#reconciliation-after-protected-assembled-prefix-selection) ·
 [Implementation order](../IMPLEMENTATION_PLAN.md#execution-after-matching-the-active-write-layout)
 
 ## 1. Separate volume ownership from presentation and acceleration
@@ -231,6 +231,30 @@ flowchart TD
 ```
 
 ## 4. Optimize complete size with bounded random access
+
+Use the protected byte cost to choose the representation for each restart
+extent. The implemented assembled-prefix comparison is a candidate in
+this process. Keep the focus on reproducible savings beyond a single
+synthetic family. Charge its extra CPU work before expanding the shortlist.
+[Current candidate flow](CURRENT.md#11-compression-over-an-assembled-base)
+
+```mermaid
+flowchart LR
+    Scan["Versioned extent samples"] --> Rank["Sparse nominations and local yield model"]
+    Rank --> Budget["Fund one finite work grant"]
+    Budget --> CP["Independent encoding, existing and assembled bases"]
+    Budget --> GPU["Qualified AMD match or transform advice"]
+    CP --> Verify["Check exact CPU reconstruction and binding"]
+    GPU --> Verify
+    Verify --> Price["Compare protected bytes, cold ranges and required rewrites"]
+    Price -->|Eligible gain| Commit["Publish independent restart frames and immutable dependencies"]
+    Price -->|No gain or stale| Keep["Keep selected image"]
+    Commit --> Learn["Record observed savings and interference"]
+    Keep --> Learn
+    Learn --> Rank
+    Commit --> Rescue["Read using standalone CPU decoder and surviving copies"]
+```
+
 
 Write data quickly using the best observed fitting raw, LZ4, Zstd or
 verified AMD path for its class and current host. Schedule stronger collective

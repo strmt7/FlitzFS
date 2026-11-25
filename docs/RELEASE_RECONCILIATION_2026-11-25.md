@@ -9,7 +9,130 @@ and qualification scope.
 [Current architecture](architecture/CURRENT.md) ·
 [Target architecture](architecture/TARGET.md)
 
+## Reconciliation after protected assembled-prefix selection
+
+The reviewed parent is `f3dee8627615`. Its 1,133 tracked files include the
+period after the active-layout review, which added allocation-aware LZ4
+admission and a separately measured prepared-write route. The source
+receipt identifies the tested changes, protected-size comparisons and
+current research. The owner retains the release decision. All twelve
+release gates remain open.
+[Source and results](evidence/windows-assembled-prefix-2026-11-25.json) ·
+[Detailed entry and completion conditions](IMPLEMENTATION_PLAN.md) ·
+[Gate ledger](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
+
+| Surface | Implemented and verified to date | Release work |
+| --- | --- | --- |
+| Windows and lifecycle | WinFsp integration and the helper own writable memory and private volume-file backings. Earlier signed guest replays cover populated mounts, mapped flush, interruption, reopen and subsequent writes. This round exercises native maintenance on the owner's Windows 11 26H2 host. | Bind a current signed installer, driver, helper and worker set to an ordinary Explorer and Win32 workload. Qualify install, restart, upgrade and owned cleanup. |
+| Native scale and allocation | Paged namespace, directory, inode and extent lookup are live. Tests exercise checked sample reuse, compact roots, reclamation and pinned generations. Writable attach still requires inventory work, and compaction needs space for a complete replacement. | Shadow incremental admission against the CPU inventory. Identify where bounded range reclamation pays for itself before replacing whole-image work on the ordinary path. |
+| AMD foreground | Exact-layout private replay, prefunded writes and ready-before-write admission exist. Earlier real Radeon runs consumed verified read and write output in controlled callback paths. This host observed a busy engine before this round's planned physical run. | Freeze actual mounted arrival traces and prove automatic wins for each route. Record bytes actually delivered or committed. Preserve immediate CPU selection and evidence-based recovery when the device is unavailable. |
+| Settled compression | Existing protected groups support an immutable file-derived or assembled base. The same group can now trial prefix frames over that assembled base. It keeps the smaller protected image and the independent CPU reader verifies every member. The structured revision fixture gains space. The CPython cohort shows an unchanged settled size. | Extend the complete-size and discovery oracles to fresh families, small files and long collections. Rank candidates before paying for expensive exact encoding and require byte-level evidence before publishing. |
+| Adaptive maintenance | Bounded background work, sparse postings, persistent checkpoints, protected-base reuse and measured yield ranking are present. The new variant uses an additional live memory grant and retains existing alternatives when that grant is withdrawn. | Reuse durable versioned observations across mount and workload changes. Qualify incremental indexing, cold re-encoding, background GPU work and wear budgets together under concurrent real demand. |
+| Recovery and evolution | Checked COW publication, protected decoding dependencies, immutable snapshots and CPU recovery are implemented for the tested formats. Cut tests support specific interruption cases. This round reuses the existing prefix representation and introduces no new wire method. | Measure explicit acknowledgement against each persistent backing's verified failure unit and barrier behavior. Freeze old readers and writers, and qualify mixed versions and transactional rollout. |
+| Comparative evidence | The repository has byte-exact native profiles, installed tools and a protocol for Microsoft DiskSpd and the built-in NTFS compression control. The new paired data are native image measurements on the real host. | Compare equivalent ordinary operations and complete occupied bytes on plain NTFS, built-in compressed NTFS, and FlitzFS with CPU and AMD. Publish distributions, coverage and uncertainty together. |
+
+### Paired complete-size result
+
+| Workload | Settled protected bytes before | Settled protected bytes after |
+| --- | ---: | ---: |
+| Eight controlled 64 KiB revisions with shuffled shared tokens | 532,480 | 442,368 |
+| Twenty-four CPython revision files | 696,320 | 696,320 |
+
+The structured case saved **88 KiB** including the selector and both
+recovery copies. Full reads, sampled ranges and retained snapshots
+matched their original inputs. The CPython run spent additional time in
+background comparisons without reducing occupied bytes. Measure candidate
+ranking and work avoided on unseen families before increasing the share
+given to this encoding.
+[Profile and Windows validation evidence](evidence/windows-assembled-prefix-2026-11-25.json)
+
+### Research decisions
+
+- **Separate how a match is found from how it is stored.** ShieldReduce
+  motivates accounting for locality and restore work when choosing direction
+  within related backup versions. GogetaFS motivates updating content identity
+  with authoritative extent edits where profiling shows duplicated metadata
+  work. For FlitzFS, keep sparse coherence disposable and bind each proposal
+  to the relevant extent generation. Derive dependency ownership and recovery
+  from the selected native root. Compare directed candidates on the same
+  protected restart extent and count base reads and copy-on-write traffic.
+  [ShieldReduce, USENIX ATC 2025](https://www.usenix.org/conference/atc25/presentation/yang-jingyuan) ·
+  [GogetaFS, USENIX FAST 2025](https://www.usenix.org/conference/fast25/presentation/pan)
+- **Use a model where its whole-life cost pays.** The AITDCC 2026 official
+  dataset supplies heterogeneous public data and a reproducible split.
+  The Large Text Compression Benchmark reports Tufazip's single-corpus
+  specialist result with substantial codec time and memory. Treat its score
+  as an upper research comparison for that text corpus. Train a compact,
+  local **ordering** model first, and compare it with the present rule on
+  unseen families and chronological workload changes. Trial a decoding model
+  only when reset boundaries, integer-exact CPU decoding and the entire
+  model dependency are part of the measured representation.
+  [AITDCC 2026 dataset](https://aitdcc.github.io/dataset.html) ·
+  [Large Text Compression Benchmark](https://mattmahoney.net/dc/text.html#1053)
+- **Keep SDK and loaded runtime identities distinct.** AMD's ROCm Core
+  10.2.0 release lists HIP 7.17.0 as a component. AMD's Windows HIP SDK
+  requirements page has its own version and adapter matrix. An installer
+  version cannot identify the HIP DLL the worker will load. Record package,
+  resolved runtime, module, adapter, driver and actual tested functions.
+  AMD hipCOMP lists LZ4 and experimental Zstandard decompression in a
+  technology preview. Evaluate it beside the existing HIP worker on the
+  intended Windows tuple with independent CPU readback. Platform support
+  and complete cost determine whether it enters the product.
+  [AMD ROCm Core 10.2.0 component list](https://rocm.docs.amd.com/en/docs-10.2.0/about/release-notes.html#hip-7-17-0) ·
+  [AMD Windows HIP SDK requirements](https://rocm.docs.amd.com/projects/install-on-windows/en/latest/reference/system-requirements.html) ·
+  [AMD hipCOMP](https://github.com/ROCm/hipCOMP-core)
+- **Use the benchmark that matches the claim.** Microsoft documents Windows
+  11 26H2 and the native NTFS file and directory compression controls.
+  Use default native compression and verify the state of each populated
+  benchmark file using the query control. Record the backing allocation
+  separately from logical file sizes. Use Microsoft DiskSpd 2.3 for controlled
+  I/O shapes and an external client for namespace workload behavior. Use the
+  published SPECstorage workload, version and run rules for any result that
+  claims SPEC comparability. Use AITDCC and frozen CPython revisions for
+  compression and avoid deriving filesystem throughput from codec tests.
+  [Windows 11 servicing](https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information) ·
+  [Native NTFS compression](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_compression) ·
+  [Microsoft DiskSpd 2.3](https://github.com/microsoft/diskspd/releases/tag/v2.3) ·
+  [SPECstorage Solution 2020](https://www.spec.org/storage2020/)
+
+### Implementation sequence and exit evidence
+
+Complete the common ordinary-client trace first. Run independent ranking and
+scalable admission work alongside it. Each packet starts in the existing
+native product path and ends with source-bound evidence. The detailed package
+contracts retain their individual steps and dependencies.
+[Package dependency graph](IMPLEMENTATION_PLAN.md#17-completion-dependency-graph-and-effort)
+
+| Order | Implementation | Exit evidence |
+| --- | --- | --- |
+| 1 · E08 and E11 | Extend the existing signed WinFsp external client with a deterministic operation log covering cached and mapped writes, explicit flush, replacement rename, delete-pending, held readers, detach and restart. Assign acknowledgements an operation ID and record the selected image, admission budget and flush result. Capture backing I/O and allocated bytes from the same run. | Current signed artifact, ordinary client trace, verified close and reopen of all acknowledged data, successful next write, and no owned worker, mount or service left by the fixture. |
+| 2 · E03 | Replay a frozen trace alternating CPU, cold accelerator and prepared accelerator. Begin with sequential grouped reads that can consume the verified suffix after immediate CPU service. Admit foreground writes only for the measured ready route and exact active layout and content shape. Track actual startup, transfer, compute, verification, flush, queue and ignored-work costs. Recover through CPU and withdraw availability immediately when the runtime or adapter evidence changes. | Repeated useful ordinary delivery and commit on the supported Windows and Radeon tuples, paired with independent CPU readback and a bounded cleanup and recovery trace. Measure collective GPU search independently from foreground compression and decompression. |
+| 3 · E01 and E02 | Bind a shadow inventory to the root, generation and validated immutable page ranges. Add dirty shard and deferred retirement cursors. Compare its decisions with the full CPU oracle through churn, split updates and restart. Instrument peak live, retained, reclaimable and actual allocated bytes before deciding whether to add finer-grained reuse. Preserve reader references until selection and retirement are both complete. | Agree with the authority oracle on healthy, older, interrupted and degraded images. Demonstrate actual release under near-full churn and pinned snapshots. Fit attach, lookup, scan and memory scaling on geometric populations and verify against a larger withheld point before extrapolating. |
+| 4 · E04 through E06 | Freeze related-family and unseen-family manifests, exact and sparse shortlist runs, current protected representations, Zstandard independent encodings and compacted controls. Compare the assembled prefix against byte-checked directed matches and small independently readable restart frames. Charge every data replica, reserved page and decoder dependency. Run AMD matching under the same finite grant and validate its output independently before considering publication. | Useful held-out reduction in complete occupied bytes across the intended profiles, with bounded random-read amplification, acceptable latency distributions, CPU recovery and range checks after dependency loss or edits. Keep a candidate experimental when the measured gain is limited to its fixtures. |
+| 5 · E07 | Replay activity, workload changes and new appends against a simple policy and small local ranker. Learn savings, read pressure, prior device usefulness and rewrite cost separately. Persist versioned samples and cursors through the reserved copy-on-write advice path. Share CPU, memory, device and write debit across volumes. Use contention to stop issuing work and durable credit to avoid needless rewriting. | Useful savings on unseen files with a stable backing plateau, prompt yielding, consistent restart and independence from advisory loss or remote services. |
+| 6 · E09 and E10 | Freeze a reader/writer/capability matrix and the historical image set. Perform gradual migration in verified batches with a CPU-readable old checkpoint until selection. Rehearse compatible upgrades and rollback with independent CPU rescue. Verify private dependency setup, relocation, missing AMD and unattended ownership cleanup. | Qualified old reads, pre-mutation old-writer refusal where required, mixed-version restart and repair, and reproducible signed delivery without GPU-driver changes. |
+| 7 · E11 to E13 | Exercise the backing-specific durability matrix and current Windows application behaviors. At equivalent backing, manifests and protection assumptions, measure plain NTFS, native compressed NTFS and FlitzFS. Retest delayed faults, concurrent workload and prolonged churn on the final source and binaries. | Twelve closed gates on the exact candidate, observed protection and useful performance ranges, complete cleanup and the owner's release decision. |
+
+For the compression packet, keep the target ordering observable. Inventory the
+volume before ingestion, after ordinary writes, after a declared idle
+opportunity budget and after settlement. Report time and writes spent reaching
+each point. Hold one data class entirely outside training, keep related
+revisions together within a split, and compare useful margin against both
+protection overhead and independent high-compression controls. Preserve
+negative outcomes and the reason to stop each expensive trial.
+[Benchmark protocol](BENCHMARK_PROTOCOL.md) ·
+[Revised storage and workload policy](architecture/TARGET.md#4-optimize-complete-size-with-bounded-random-access)
+
+The remaining work estimate stays at **59–127 person-weeks**, with low
+confidence and a separate research tail for the compression target. Reprice
+after the first useful mounted AMD route, the scalable attach comparison and
+a persistent-backing interruption campaign. The structured-compression gain
+changes the next candidate trial. It leaves the hardware, scale, durability
+and delivery acceptance work open.
+
 ## Current reconciliation and release order
+
+This checkpoint records the active-layout review and its original implementation order.
 
 ### Current product and release gaps
 

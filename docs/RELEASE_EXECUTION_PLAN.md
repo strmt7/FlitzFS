@@ -1,13 +1,13 @@
 # FlitzFS stable release execution plan
 
-Detached write trials now use the active indexed image's protected
-layout. Live admission rechecks that layout before offering bytes to a
-device worker. Earlier host runs verified grouped Radeon output through
-the SDK boundary. The next sequence compares complete ordinary Windows
-operations and establishes a held-out compression frontier, scalable
-writable attach and backing-specific recovery.
-[Reconciled evidence](evidence/windows-foreground-write-layout-2026-11-25.json) ·
-[Implementation sequence](IMPLEMENTATION_PLAN.md#execution-after-matching-the-active-write-layout)
+Current write trials use the active image's protected layout and separate
+ready-worker measurements from cold startup. Settled maintenance now
+compares prefix encoding against an assembled protected base, using the
+existing CPU decoder and allocation rule. The next sequence connects
+these changes to ordinary Windows operations, held-out compression,
+scalable writable attach and backing-specific recovery.
+[Reconciled evidence](evidence/windows-assembled-prefix-2026-11-25.json) ·
+[Implementation sequence](RELEASE_RECONCILIATION_2026-11-25.md#implementation-sequence-and-exit-evidence)
 
 Use the [repository overview](REPOSITORY_OVERVIEW.md) for the product snapshot,
 the [current architecture](architecture/CURRENT.md) and [target architecture](architecture/TARGET.md)
@@ -19,8 +19,8 @@ preserves the earlier order and assessment.
 
 **Development qualification.** The code provides a writable WinFsp filesystem
 with a native indexed store, independent CPU recovery and protected compression
-dependencies. The latest evidence reduces the cost of checked open and ongoing
-scrub, and confirms small mounted recovery sequences. The next release risks
+dependencies. Current tests confirm a smaller assembled-prefix image on a
+controlled structured revision cohort and unchanged size on CPython. The next release risks
 are ordinary AMD admission, the amount of work startup does at scale, the
 value of stronger collective compression, and recovery on persistent media.
 

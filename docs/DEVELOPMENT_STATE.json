@@ -6,6 +6,18 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "assembled_prefix": {
+    "source_commit": "f3dee8627615e468620d4f006818ee065a6867e3",
+    "tested_source_tree": "b4902b863013d30e904a567619b98f4fc693fc10",
+    "evidence": "docs/evidence/windows-assembled-prefix-2026-11-25.json",
+    "reconciliation": "docs/RELEASE_RECONCILIATION_2026-11-25.md#reconciliation-after-protected-assembled-prefix-selection",
+    "reuses_protected_prefix_method": true,
+    "extra_work_requires_live_funding": true,
+    "structured_revision_complete_bytes": [532480, 442368],
+    "cpython_revision_complete_bytes": [696320, 696320],
+    "release_gates_open": 12,
+    "stable_release": false
+  },
   "prepared_foreground_write": {
     "source_commit": "1a6f320895e7cf896df73f52d2705d573a370c57",
     "tested_source_tree": "751c6abb3d887db7aa6d88ee6bcc396a6f3413ae",

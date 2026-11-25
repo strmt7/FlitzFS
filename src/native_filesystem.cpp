@@ -1825,9 +1825,9 @@ bool NativeFilesystemWriter::price_shared_base_reference(SharedBaseWork& work) {
   return shared_base_step(work,{},nullptr,0,0,true);
 }
 void NativeFilesystemWriter::admit_shared_base_variants(SharedBaseWork& work,bool packing,bool staged_reference,
-    bool automatic) noexcept {
+    bool automatic,bool assembled_prefix) noexcept {
   if(auto* pending=work.impl_.get();pending && pending->indexed) {
-    pending->indexed->admit_variants(packing,staged_reference,automatic);
+    pending->indexed->admit_variants(packing,staged_reference,automatic,assembled_prefix);
     pending->state=pending->indexed->progress();
   }
 }

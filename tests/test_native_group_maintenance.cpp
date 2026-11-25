@@ -317,6 +317,59 @@ std::vector<Bytes> prefix_family(const Bytes& base=data(kNativeExtentBytes,3819)
   return originals;
 }
 
+void indexed_assembled_prefix() {
+  if(!store_zstd_available())return;
+  constexpr StoreCompressionOptions policy{StoreCompressionMode::automatic,3,true};
+  constexpr NativeImageStorage storage{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes};
+  constexpr std::size_t count=8,section=kNativeExtentBytes/count,token=8,words=section/token;
+  const auto common=data(kNativeExtentBytes,1723);
+  const auto name=[](std::size_t file){return "revision-"+std::to_string(file);};
+  Fixture f(4096,0,true,policy);
+  std::array<Bytes,count> files;
+  for(std::size_t file=0;file<files.size();++file) {
+    auto& revision=files[file];
+    revision=common;
+    const auto pool=(file+1)%count*section;
+    for(std::size_t word=0;word<words;++word) {
+      // Each revision replaces a different section with shuffled short tokens
+      // from the common data. The sampled reference may omit a whole section.
+      const auto from=(word*(501+2*file)+71*file)%words;
+      std::copy_n(common.begin()+pool+from*token,token,revision.begin()+file*section+word*token);
+    }
+    put(*f.session,name(file),revision);
+  }
+  f.session.reset();
+  const auto pinned=NativeFilesystemSnapshot::open_image(f.image,storage);
+  const auto resolve=[&](const StoreIdentity& key)->std::shared_ptr<StoreByteIo>{return key==id(1)?f.image:nullptr;};
+  f.session.emplace(NativeFileSession::resume_closed_indexed_volume(f.head,id(90),1,resolve,policy));
+  NativeMaintenanceProgress progress;
+  {
+    NativeGroupMaintenance maintenance(*f.session);
+    progress=f.finish(maintenance);
+  }
+  require(progress.section_reference_groups==1 && progress.prefixed_zstd_members>0,
+      "normal maintenance did not select Zstandard against the assembled reference");
+  f.session.reset();
+  const auto current=NativeFilesystemSnapshot::open_image(f.image,storage);
+  const auto group=current.shared_base_info();
+  require(group.bases==1 && group.members==files.size(),"assembled prefixes lost or duplicated a group member");
+  auto target=ram(4096);
+  (void)NativeFilesystemWriter::compact(current,target,id(3),policy);
+  const auto settled=NativeFilesystemSnapshot::open_image(target,storage);
+  for(const auto* reader:{&pinned,&current,&settled}) {
+    reader->verify_all();
+    for(std::size_t file=0;file<files.size();++file) {
+      require(reader->read(name(file),0,kNativeExtentBytes)==files[file],"assembled prefix changed a revision");
+      const auto offset=file?file*section-8:0;
+      const auto expected=std::span(files[file]).subspan(offset,32);
+      require(std::ranges::equal(reader->read(name(file),offset,expected.size()),expected),
+          "assembled prefix changed a small CPU range");
+    }
+  }
+  std::cout<<"assembled_prefix_members="<<progress.prefixed_zstd_members<<" image_bytes="<<target->extent()
+      <<" selector_bytes="<<f.head->extent()<<" independent_cpu_readback=1 pinned_exact=1\n";
+}
+
 void indexed_prefix_bank_boundary() {
   if(!store_zstd_available())return;
   constexpr StoreCompressionOptions policy{StoreCompressionMode::automatic,3,true};
@@ -1043,7 +1096,7 @@ void profile_indexed_pair_oracle(const std::filesystem::path& filename,bool tail
         expected.push_back(member);
       }
       detail::IndexedSharedBasePreparation work(source,root,base.extent,selected,expected,false,pack);
-      work.admit_variants(true,true,true);
+      work.admit_variants(true,true,true,true);
       if(!pack) {
         require(!work.advance({},nullptr),"pair oracle did not enter encoding");
         std::weak_ptr<const void> owned_window;
@@ -4103,6 +4156,8 @@ int main(int argc,char** argv){try{
     indexed_prefixed_reference();
     indexed_prefix_extension(true);
     indexed_prefix_bank_boundary();
+  } else if(argc==2 && std::string_view(argv[1])=="--indexed-assembled-prefix") {
+    indexed_assembled_prefix();
   } else if((argc==2 || argc==3) && std::string_view(argv[1])=="--profile-indexed-prefix-extension") {
     indexed_prefix_extension(false,argc==3?argv[2]:nullptr);
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-batched-prefix") {

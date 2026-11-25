@@ -1513,6 +1513,7 @@ NativeSharedBaseProgress IndexedSharedBasePreparation::progress() const noexcept
   result.owned_payload_bytes+=nominated_base_.size();
   if(section_reference_)result.owned_payload_bytes+=section_reference_->base.size()+section_reference_->frame_bytes;
   if(prefixed_reference_)result.owned_payload_bytes+=prefixed_reference_->frame_bytes;
+  if(prefixed_sections_)result.owned_payload_bytes+=prefixed_sections_->frame_bytes;
   if(packed_reference_)result.owned_payload_bytes+=packed_reference_->base.capacity()+packed_reference_->frame_bytes;
   if(search_)result.owned_payload_bytes+=search_->bytes->base.size()+
       search_->bytes->members.size()*std::uint64_t(kNativeExtentBytes);
@@ -1603,9 +1604,15 @@ bool IndexedSharedBasePreparation::price_reference() {
   return true;
 }
 
-void IndexedSharedBasePreparation::admit_variants(bool packing,bool staged_reference,bool automatic) noexcept {
+void IndexedSharedBasePreparation::admit_variants(bool packing,bool staged_reference,bool automatic,
+    bool assembled_prefix) noexcept {
   packing_admitted_=packing;
   automatic_compression_=automatic;
+  assembled_prefix_admitted_=assembled_prefix;
+  if(!assembled_prefix) {
+    compare_section_prefix_=false;
+    prefixed_sections_.reset();
+  }
   if(!packing) {
     packed_reference_.reset();
     if(packed_only_)progress_.phase=NativeSharedBasePhase::declined;
@@ -1614,9 +1621,11 @@ void IndexedSharedBasePreparation::admit_variants(bool packing,bool staged_refer
   if(!staged_reference && staged_reference_comparison_) {
     compare_sections_=false;
     compare_prefix_=false;
+    compare_section_prefix_=false;
     staged_reference_comparison_=false;
     section_reference_.reset();
     prefixed_reference_.reset();
+    prefixed_sections_.reset();
   }
 }
 
@@ -1671,25 +1680,28 @@ bool IndexedSharedBasePreparation::stage_section_reference() {
   }
 }
 
-bool IndexedSharedBasePreparation::stage_prefixed_reference() {
+bool IndexedSharedBasePreparation::stage_prefixed_reference(std::optional<PrefixedReference>& proposal,
+    const SectionReference* sections) {
   if(!search_ || !store_zstd_available())return false;
   try {
-    if(!prefixed_reference_)prefixed_reference_.emplace();
-    auto& trial=*prefixed_reference_;
+    if(!proposal)proposal.emplace();
+    auto& trial=*proposal;
     const auto position=trial.frames.size();
     if(position==members_.size()) {
-      if(!trial.frame_bytes)prefixed_reference_.reset();
+      if(!trial.frame_bytes)proposal.reset();
       return false;
     }
     const auto& bytes=position==base_index_?search_->bytes->base:search_->bytes->members[search_slot(position)];
     const auto& member=members_[position];
+    const auto& incumbent=sections?sections->frames[position]:member.frame;
+    const auto& base=sections?sections->base:base_;
     auto& frame=trial.frames.emplace_back();
-    if(member.frame.size()<=extent_header+kNativeGroupMemberHeaderBytes)return true;
-    const auto limit=member.frame.size()-extent_header;
-    const auto encoded=encode_native_group_prefix(bytes,base_,kNativeGroupBaseBit+1,1,limit);
+    if(incumbent.size()<=extent_header+kNativeGroupMemberHeaderBytes)return true;
+    const auto limit=incumbent.size()-extent_header;
+    const auto encoded=encode_native_group_prefix(bytes,base,kNativeGroupBaseBit+1,1,limit);
     if(!encoded)return true;
-    if(!std::ranges::equal(decode_native_group_member(*encoded,base_,NativeGroupMethod::prefixed_zstd),bytes)) {
-      prefixed_reference_.reset();
+    if(!std::ranges::equal(decode_native_group_member(*encoded,base,NativeGroupMethod::prefixed_zstd),bytes)) {
+      proposal.reset();
       return false;
     }
     frame.resize(extent_header+encoded->size());
@@ -1700,7 +1712,7 @@ bool IndexedSharedBasePreparation::stage_prefixed_reference() {
     trial.frame_bytes+=frame.size();
     return true;
   }catch(const std::exception&) {
-    prefixed_reference_.reset();
+    proposal.reset();
     return false;
   }
 }
@@ -1786,9 +1798,16 @@ bool IndexedSharedBasePreparation::advance(std::span<const NativeSharedBaseCopyR
     if(compare_sections_) {
       if(stage_section_reference())return false;
       compare_sections_=false;
-      if(section_reference_)section_reference_->index.reset();
+      if(section_reference_) {
+        section_reference_->index.reset();
+        compare_section_prefix_=assembled_prefix_admitted_;
+      }
     }
-    if(compare_prefix_ && stage_prefixed_reference())return false;
+    if(compare_section_prefix_) {
+      if(stage_prefixed_reference(prefixed_sections_,&*section_reference_))return false;
+      compare_section_prefix_=false;
+    }
+    if(compare_prefix_ && stage_prefixed_reference(prefixed_reference_))return false;
     search_.reset();
     progress_.phase=Phase::ready;
     return true;
@@ -2046,11 +2065,11 @@ NativeSharedBaseCommit IndexedSharedBasePreparation::finish(PagedObjectStoreWrit
   validate_header_fields(next);
   records.push_back({namespace_object,false,encode_root(next)});
   auto proposed=NativeNameIndex::prepare_commit(source,edits,std::move(records),current.format<3);
-  const auto replace_records=[&](std::map<std::uint64_t,Bytes>& replacements) {
+  const auto replace_records=[&](std::span<const StoreMutation> original,std::map<std::uint64_t,Bytes>& replacements) {
     std::vector<StoreMutation> variant;
     std::uint64_t input=0;
-    variant.reserve(proposed.size());
-    for(const auto& mutation:proposed) {
+    variant.reserve(original.size());
+    for(const auto& mutation:original) {
       const auto replacement=replacements.find(mutation.id);
       if(replacement==replacements.end())variant.push_back(mutation);
       else variant.push_back({mutation.id,false,std::move(replacement->second)});
@@ -2080,37 +2099,43 @@ NativeSharedBaseCommit IndexedSharedBasePreparation::finish(PagedObjectStoreWrit
       root.format=(std::max)(current.format,slices?packed_slice_capability:anchor_copy_capability);
       replacements.emplace(namespace_object,encode_root(root));
 
-      return replace_records(replacements);
+      return replace_records(proposed,replacements);
     }catch(const std::bad_alloc&) {
       return {};
     }
   };
   section=alternate_reference(section_reference_,section_root,false);
   if(!direct_pack)packed=alternate_reference(packed_reference_,packed_root,true);
-  std::size_t prefixed_members=0,replaced_advice=0;
-  if(prefixed_reference_ && prefixed_reference_->frames.size()==members_.size()) {
+  std::size_t prefixed_members=0,section_prefixed_members=0,replaced_advice=0;
+  const auto prefix_variant=[&](std::span<const StoreMutation> original,std::optional<PrefixedReference>& trial,
+      IndexedVolumeRoot& root,std::size_t& count,bool track_advice)->std::vector<StoreMutation> {
+    if(original.empty() || !trial || trial->frames.size()!=members_.size())return {};
     try {
       std::map<std::uint64_t,Bytes> replacements;
       for(std::size_t i=0;i<members_.size();++i) {
-        auto& frame=prefixed_reference_->frames[i];
+        auto& frame=trial->frames[i];
         if(frame.empty())continue;
-        replaced_advice+=members_[i].advised;
+        if(track_advice)replaced_advice+=members_[i].advised;
         bind_native_group_member(std::span(frame).subspan(extent_header),anchor,generation,NativeGroupMethod::prefixed_zstd);
         replacements.emplace(members_[i].object,std::move(frame));
       }
-      prefixed_members=replacements.size();
-      prefixed_root.format=(std::max)(next.format,prefixed_zstd_capability);
-      replacements.emplace(namespace_object,encode_root(prefixed_root));
-      prefixed=replace_records(replacements);
+      count=replacements.size();
+      root.format=(std::max)(root.format,prefixed_zstd_capability);
+      replacements.emplace(namespace_object,encode_root(root));
+      return replace_records(original,replacements);
     }catch(const std::bad_alloc&) {
-      prefixed.clear();
+      return {};
     }
-  }
+  };
+  prefixed=prefix_variant(proposed,prefixed_reference_,prefixed_root,prefixed_members,true);
+  auto section_prefixed_root=section_root;
+  auto section_prefixed=prefix_variant(section,prefixed_sections_,section_prefixed_root,section_prefixed_members,false);
+  enum Variant : std::size_t { section_copy=1,nominated_prefix,packed_slice,section_prefix };
   (void)check_group_storage(source);
   std::size_t selected=0;
   try {
     PagedCompactedSizes sizes;
-    const std::array<std::span<const StoreMutation>,3> alternatives{section,prefixed,packed};
+    const std::array<std::span<const StoreMutation>,4> alternatives{section,prefixed,packed,section_prefixed};
     const auto published=writer.commit_if_compacted_smaller(proposed,namespace_object,sizes,alternatives,selected);
     result.before_compacted_lower_bound=sizes.before;
     result.after_compacted_upper_bound=sizes.after_upper;
@@ -2120,15 +2145,17 @@ NativeSharedBaseCommit IndexedSharedBasePreparation::finish(PagedObjectStoreWrit
     if(writer.poisoned())fail(Code::storage_failure,"indexed shared-base publication failed after admission");
     throw NativeFsError(Code::limit,error.what(),error.append_shortfall_bytes());
   }
-  result.section_reference=selected==1;
-  result.packed_reference=packed_only_ || selected==3;
+  result.section_reference=selected==section_copy || selected==section_prefix;
+  result.packed_reference=packed_only_ || selected==packed_slice;
   const bool replaced_reference=result.section_reference || result.packed_reference;
-  result.prefixed_zstd_members=selected==2?prefixed_members:0;
+  result.prefixed_zstd_members=selected==section_prefix?section_prefixed_members:
+      selected==nominated_prefix?prefixed_members:0;
   result.advised_members=replaced_reference?0:
-      progress_.selected_advice_members-(selected==2?replaced_advice:0);
+      progress_.selected_advice_members-(selected==nominated_prefix?replaced_advice:0);
   if(result.packed_reference)current=packed_root;
+  else if(selected==section_prefix)current=section_prefixed_root;
   else if(result.section_reference)current=section_root;
-  else if(result.prefixed_zstd_members)current=prefixed_root;
+  else if(selected==nominated_prefix)current=prefixed_root;
   else current=next;
   result.transaction.sequence=current.sequence;
   auto reference_index=base_index_;
