@@ -6,6 +6,18 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "protected_pair_oracle": {
+    "source_commit": "7b88e80324b319195c3536635c6e0ff998f22876",
+    "tested_source_tree": "cf5bf7ced466e0ea4848ce7fc98e726518fddce7",
+    "evidence": "docs/evidence/windows-protected-pair-oracle-2026-11-25.json",
+    "cpython_two_release_merges": [132, 0],
+    "cpython_four_release_merges": [30, 0],
+    "cpython_four_release_full_file_occupied_bytes": [1662976, 696320],
+    "aitdcc_first_extent_pairs": [56, 4],
+    "aitdcc_first_extent_occupied_bytes": [966656, 958464],
+    "next": "Price nonzero offsets, short tails and protected record overhead in separate matched cohorts.",
+    "release": false
+  },
   "protected_prefix_reconciliation": {
     "reviewed_commit": "afc4d8f499d8ca72bb70c6530377b355851c326f",
     "tested_runtime_tree": "aeb451f267a7bb57f680741196d16123c38f0bbc",

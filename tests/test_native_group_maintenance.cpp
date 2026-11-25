@@ -13,6 +13,7 @@
 #include "native_corpus_fixture.hpp"
 #include <cstring>
 #include <iostream>
+#include <map>
 #include <set>
 namespace {
 using namespace flitzfs;using namespace native_fixture;
@@ -935,6 +936,152 @@ void profile_public_packs(const std::filesystem::path& filename,bool complete_fi
   }
   const auto inputs=read_packed_corpus(filename,complete_files);
   profile_similarity_packing(inputs,0,compare_reencoding,layout);
+}
+
+void profile_indexed_pair_oracle(const std::filesystem::path& filename) {
+  require(store_zstd_available(),"pair oracle requires Zstandard");
+  constexpr StoreCompressionOptions policy{StoreCompressionMode::automatic,3,true};
+  constexpr PagedStoreLimits limits{kStoreMaxPhysicalBytes};
+  constexpr NativeImageStorage storage{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes};
+
+  // Keep one complete first extent per input file. Short files and later
+  // extents have different search spaces and do not enter this profile.
+  const auto files=read_packed_corpus(filename,true);
+  constexpr std::size_t cohort_limit=32;
+  std::vector<Bytes> cohort;
+  for(const auto& file:files) {
+    if(file.size()<kNativeExtentBytes)continue;
+    require(cohort.size()<cohort_limit,"pair oracle cohort exceeds 32 full extents");
+    cohort.emplace_back(file.begin(),file.begin()+kNativeExtentBytes);
+  }
+  require(cohort.size()>=2,"pair oracle cohort needs at least two full extents");
+
+  Fixture volume(4096,0,true,policy);
+  const auto name=[](std::size_t i){return "oracle-"+std::to_string(i);};
+  for(std::size_t i=0;i<cohort.size();++i)put(*volume.session,name(i),cohort[i]);
+  const auto occupied=[&](const std::shared_ptr<Ram>& source) {
+    auto compacted=ram(4096);
+    (void)NativeFilesystemWriter::compact(NativeFilesystemSnapshot::open_image(source,storage),compacted,id(20),policy);
+    const auto checked=NativeFilesystemSnapshot::open_image(compacted,storage);
+    checked.verify_all();
+    for(std::size_t i=0;i<cohort.size();++i) {
+      const auto& expected=cohort[i];
+      const auto path=name(i);
+      require(checked.stat(path).logical_bytes==expected.size() &&
+          checked.read(path,0,expected.size())==expected,"pair oracle CPU reopen differs");
+      const auto end=std::span(expected).last(128);
+      require(std::ranges::equal(checked.read(path,expected.size()-end.size(),end.size()),end),
+          "pair oracle CPU range differs");
+    }
+    return compacted->extent()+volume.head->extent();
+  };
+  volume.session.reset();
+  const auto independent=occupied(volume.image);
+  const auto resolve=[&](const StoreIdentity& key)->std::shared_ptr<StoreByteIo>{
+    return key==id(1)?volume.image:nullptr;
+  };
+  volume.session.emplace(NativeFileSession::resume_closed_indexed_volume(volume.head,id(90),1,resolve,policy));
+  NativeMaintenanceProgress progress;
+  {
+    NativeGroupMaintenance groups(*volume.session);
+    progress=volume.finish(groups);
+  }
+  volume.session.reset();
+  const auto automatic=occupied(volume.image);
+
+  const auto frozen=PagedObjectStoreSnapshot::open(volume.image,limits);
+  const detail::IndexedVolumeView view(frozen,frozen.read(1));
+  std::vector<std::pair<std::size_t,NativeContentToken>> peers;
+  for(std::size_t i=0;i<cohort.size();++i) {
+    const auto sample=view.sample_content({view.resolve(name(i)).inode,0},
+        detail::IndexedContentLookup::published_reference,{});
+    if(!sample)continue;
+    require(sample->payload==cohort[i],"pair oracle bound to the wrong source extent");
+    peers.emplace_back(i,sample->token);
+  }
+
+  const auto price=[&](const NativeContentToken& base,std::span<const NativeContentToken> members)
+      ->std::optional<std::uint64_t> {
+    auto trial=image(volume.image->stable,4096);
+    NativeSharedBaseCommit result;
+    {
+      auto writer=PagedObjectStoreWriter::resume(trial,id(1),frozen.info().generation,limits,policy);
+      const auto source=writer.snapshot();
+      auto root=detail::IndexedVolumeView(source,source.read(1)).root();
+      std::vector<NativeExtentSelection> selected;
+      std::vector<NativeContentToken> expected{base};
+      for(const auto& member:members) {
+        selected.push_back(member.extent);
+        expected.push_back(member);
+      }
+      detail::IndexedSharedBasePreparation work(source,root,base.extent,selected,expected,false,false);
+      work.admit_variants(true,true,true);
+      require(!work.advance({},nullptr),"pair oracle did not enter encoding");
+      std::weak_ptr<const void> owned_window;
+      for(std::size_t i=0;i<members.size();++i)
+        require(work.stage_search(members.size(),owned_window,NativeSharedBaseSearchPurpose::advice),
+            "pair oracle did not stage its checked members");
+      bool done=false;
+      for(std::size_t i=0;i<8*expected.size() && !done;++i)done=work.advance({},nullptr);
+      require(done,"pair oracle did not finish a candidate");
+      if(work.progress().phase==NativeSharedBasePhase::declined)return {};
+      result=work.finish(writer,source,root);
+    }
+    if(!result.applied)return {};
+    const auto bytes=occupied(trial);
+    require(bytes<automatic,"pair oracle published a non-improving protected layout");
+    return bytes;
+  };
+
+  // Try both orientations against the same settled checkpoint. Reuse a
+  // checked base where one exists and leave already grouped peers in place.
+  std::uint64_t best=automatic;
+  std::size_t attempted=0,accepted=0;
+  std::optional<std::pair<std::size_t,std::size_t>> best_pair;
+  for(const auto& [base_index,base]:peers) {
+    for(const auto& [member_index,member]:peers) {
+      if(member.object==base.object || member.grouped)continue;
+      ++attempted;
+      if(const auto bytes=price(base,std::span(&member,1))) {
+        ++accepted;
+        if(*bytes<best) {
+          best=*bytes;
+          best_pair=std::pair{base_index,member_index};
+        }
+      }
+    }
+  }
+
+  // A one-member move can leave its old base live. Move a whole existing
+  // group in the same transaction to price retiring that dependency.
+  std::map<std::uint64_t,std::vector<NativeContentToken>> groups;
+  for(const auto& [file,token]:peers) {
+    if(!token.grouped || token.packed_slice)continue;
+    const auto frame=frozen.read(token.object);
+    const auto ref=detail::read_native_group_header(
+        std::span(frame).subspan(detail::kIndexedExtentHeaderBytes),detail::NativeGroupMethod::prefixed_zstd);
+    groups[ref.base_id].push_back(token);
+  }
+  std::uint64_t best_merge=automatic;
+  std::size_t tried_merges=0,saved_merges=0;
+  for(const auto& [base,reference]:groups) {
+    for(const auto& [other,members]:groups) {
+      if(other==base)continue;
+      ++tried_merges;
+      if(const auto bytes=price(reference.front(),members)) {
+        ++saved_merges;
+        best_merge=(std::min)(best_merge,*bytes);
+      }
+    }
+  }
+  std::cout<<"indexed_pair_oracle files="<<cohort.size()<<" stored_extents="<<peers.size()
+      <<" automatic_attempts="<<progress.attempted_groups<<" automatic_groups="<<progress.published_groups
+      <<" tested_pairs="<<attempted<<" improving_pairs="<<accepted
+      <<" independent_bytes="<<independent<<" automatic_bytes="<<automatic
+      <<" best_pair_bytes="<<best<<" reusable_groups="<<groups.size()<<" tested_merges="<<tried_merges
+      <<" improving_merges="<<saved_merges<<" best_merge_bytes="<<best_merge;
+  if(best_pair)std::cout<<" best_base="<<best_pair->first<<" best_member="<<best_pair->second;
+  std::cout<<" cpu_verified=1\n";
 }
 
 void indexed_cross_window_pack(bool replace_retained) {
@@ -3926,6 +4073,8 @@ int main(int argc,char** argv){try{
     profile_public_packs(argv[2],true);
   } else if(argc==3 && std::string_view(argv[1])=="--profile-public-reencode") {
     profile_public_packs(argv[2],true,true);
+  } else if(argc==3 && std::string_view(argv[1])=="--profile-indexed-pair-oracle") {
+    profile_indexed_pair_oracle(argv[2]);
   } else if(argc==3 && std::string_view(argv[1])=="--profile-public-inline") {
     profile_public_packs(argv[2],true,true,NativeIndexedDataLayout::inline_small_files);
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-cross-window-pack") {

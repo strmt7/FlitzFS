@@ -315,6 +315,17 @@ contracts supply the wider acceptance matrices.
    read full contents plus the same seeded boundary and random ranges.
    Include selector, mirrors, index, locator, reserved advice, dependency
    and padding bytes and report staged coexistence separately.
+   The first oracle prices exhaustive pairs and existing-base merges in
+   three first-extent cohorts. It found one 8 KiB net opportunity in the
+   held-out AITDCC sample and no profitable merges in either CPython
+   cohort. Use the full-file four-release control as a related-data
+   baseline. Extend the oracle to bounded nonzero offsets and short
+   tails before changing the production shortlist. In each class,
+   record whether the best repeatable gain comes from an omitted
+   candidate, a better format for an admitted group or fewer protected
+   records. Keep the tested two-member admission rule until staggered
+   cold-rewrite comparisons show a repeatable advantage.
+   [Completed oracle and source roots](evidence/windows-protected-pair-oracle-2026-11-25.json)
 2. **Spend the next format change only on the measured gap · E04–E07,
    E09.** If the oracle finds eligible peers missing from the candidate
    list, expose its excluded candidate reasons and add the smallest

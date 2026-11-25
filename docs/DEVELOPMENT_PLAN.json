@@ -19,6 +19,7 @@
     "next_implementation_tickets": "docs/IMPLEMENTATION_PLAN.md#next-implementation-tickets",
     "evidence": "docs/evidence/windows-prefix-parser-reconciliation-2026-11-25.json",
     "post_prefix_execution_order": "docs/IMPLEMENTATION_PLAN.md#execution-after-the-protected-prefix-checkpoint",
+    "bounded_pair_oracle": "docs/evidence/windows-protected-pair-oracle-2026-11-25.json",
     "previous_persistent_inline_review": "docs/evidence/windows-persistent-inline-reconciliation-2026-11-25.json",
     "previous_checked_sampling_review": "docs/evidence/windows-indexed-sample-scope-2026-11-25.json",
     "previous_source_review_evidence": "docs/evidence/release-reconciliation-rolling-lookups-2026-11-25.json",

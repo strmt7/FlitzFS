@@ -1,0 +1,661 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "experimental": true,
+  "source": {
+    "parent": "7b88e80324b319195c3536635c6e0ff998f22876",
+    "base_tree": "7eab3eb8e33e70b356662d9634b6902fdeb309ea",
+    "tree": "cf5bf7ced466e0ea4848ce7fc98e726518fddce7",
+    "elements": [
+      {
+        "path": "tests/test_native_group_maintenance.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "8ba4e240b64b0164c66ae970cc9eba007864f779",
+        "bytes": 239645
+      }
+    ]
+  },
+  "semantic_routing": {
+    "provider": "0.2.43",
+    "receipt_sha256": "ed8394162fa435457edfc596af45873af4ac78d0efd735548d82157a9ac71577",
+    "response_sha256": "3aaf9434b254e42e6b7ea43be903b4499b4361c41b11f1bb7658429b0c901b34",
+    "scope_files": 6
+  },
+  "research": {
+    "provider": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "3c51ccae7ddd8cdacc3cddfa541069c4c22d364b11c0d8616e3450dd00ebf4a6",
+    "pages": [
+      {
+        "name": "argus-acm",
+        "url": "https://dl.acm.org/doi/10.1145/3747839",
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 156898,
+        "markdown_sha256": "d727d8e7c129433c1983c51615f159781e5b05edf5908efd44fd4838b8b5a26a",
+        "capture_sha256": "b8e54ae806ecee5167167b309d9b839df3dccf0c997d1dc9696f5e43ea026705"
+      },
+      {
+        "name": "rubikfs-fast26",
+        "url": "https://www.usenix.org/conference/fast26/presentation/huang",
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 10395,
+        "markdown_sha256": "b271b38f1feb88acd780ae11d756c7f3723fecb288cfe5e7803fed9c5d93767d",
+        "capture_sha256": "ec9468a3bcba55b3b30d1868b14210966230de0bc7a8f02b8105f3e456275d4e"
+      },
+      {
+        "name": "parasync-fast26",
+        "url": "https://www.usenix.org/conference/fast26/presentation/zhang-zhihao-parasync",
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 10903,
+        "markdown_sha256": "f5000eb8da5e3a0da721b06a5c7fdcddabe30ff37d0d98e61371971e16f36d2c",
+        "capture_sha256": "02e4e97be64b3d10e8484a17483e1819482caf746fe11d54b24637c5a77d37a4"
+      }
+    ]
+  },
+  "oracle": {
+    "first_complete_extent_per_file_bytes": 65536,
+    "maximum_extents": 32,
+    "occupied_includes_selector": true,
+    "one_trial_per_shared_checkpoint_copy": true,
+    "cohorts": {
+      "cpython": {
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 22577152,
+        "memory_bytes": 1103101952,
+        "cpu_percent": 22,
+        "run_receipt_sha256": "6dfec6b3ec30e189d1acf98225c25f4a3b462cc9e67291c513aa2dca423a6fd0",
+        "log_sha256": "ac052ff44d553ce832f7edc16e952ef5350f8a3f3566c2b115c33a45f5ed97f9",
+        "result": {
+          "files": 24,
+          "stored_extents": 24,
+          "automatic_attempts": 12,
+          "automatic_groups": 12,
+          "tested_pairs": 0,
+          "improving_pairs": 0,
+          "independent_bytes": 1138688,
+          "automatic_bytes": 745472,
+          "best_pair_bytes": 745472,
+          "reusable_groups": 12,
+          "tested_merges": 132,
+          "improving_merges": 0,
+          "best_merge_bytes": 745472,
+          "cpu_verified": 1
+        },
+        "fixture_sha256": "1e4415e2c80bd97dd16978c2d68f4c403489cf5ca38916bdbf574a174763aead"
+      },
+      "aitdcc": {
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 39645184,
+        "memory_bytes": 1102053376,
+        "cpu_percent": 22,
+        "run_receipt_sha256": "577722afed68eac346e3780720fc96542811266067d63076698abb4c9209d971",
+        "log_sha256": "c6f3eb33c32d5ec5b01e1ab22d644d7f8d9bab69be07d956b764aeee1eccc14f",
+        "result": {
+          "files": 8,
+          "stored_extents": 8,
+          "automatic_attempts": 0,
+          "automatic_groups": 0,
+          "tested_pairs": 56,
+          "improving_pairs": 4,
+          "independent_bytes": 966656,
+          "automatic_bytes": 966656,
+          "best_pair_bytes": 958464,
+          "reusable_groups": 0,
+          "tested_merges": 0,
+          "improving_merges": 0,
+          "best_merge_bytes": 966656,
+          "best_base": 0,
+          "best_member": 6,
+          "cpu_verified": 1
+        },
+        "fixture_sha256": "26204e32bf232e5a40d5cce9d4f63a87c25fcb19f6eceadbff7c76321468c159"
+      },
+      "four": {
+        "exit_code": 0,
+        "tree_retired": true,
+        "peak_job_bytes": 19775488,
+        "memory_bytes": 1102053376,
+        "cpu_percent": 22,
+        "run_receipt_sha256": "77e9bbe6e1ee05ba7064551757078177caf5cf11b14e9a95b2524fa44c150075",
+        "log_sha256": "dae5783b58b457d1c7f412d9ac0329b4c1c1b595b6d5132452dc5e64ece5f93d",
+        "result": {
+          "files": 24,
+          "stored_extents": 24,
+          "automatic_attempts": 6,
+          "automatic_groups": 6,
+          "tested_pairs": 0,
+          "improving_pairs": 0,
+          "independent_bytes": 1138688,
+          "automatic_bytes": 565248,
+          "best_pair_bytes": 565248,
+          "reusable_groups": 6,
+          "tested_merges": 30,
+          "improving_merges": 0,
+          "best_merge_bytes": 565248,
+          "cpu_verified": 1
+        },
+        "fixture_sha256": "d053d6acd0551763909205a2ed670d6bf6bc3e61a13ef0cd13ca93e69c5489f9"
+      }
+    }
+  },
+  "four_release_cpython_corpus": {
+    "fixture_sha256": "d053d6acd0551763909205a2ed670d6bf6bc3e61a13ef0cd13ca93e69c5489f9",
+    "fixture_bytes": 2510781,
+    "revisions": [
+      {
+        "tag": "v3.13.9",
+        "sha": "8183fa5e3f78ca6ab862de7fb8b14f3d929421e0",
+        "url": "https://github.com/python/cpython/commit/8183fa5e3f78ca6ab862de7fb8b14f3d929421e0",
+        "date": "2025-10-14T13:52:31Z"
+      },
+      {
+        "tag": "v3.14.5",
+        "sha": "5607950ef232dad16d75c0cf53101d9649d89115",
+        "url": "https://github.com/python/cpython/commit/5607950ef232dad16d75c0cf53101d9649d89115",
+        "date": "2026-05-10T10:21:34Z"
+      },
+      {
+        "tag": "v3.15.0",
+        "sha": "d220409a13b77de7a6c30abe16ea90db01528edc",
+        "url": "https://github.com/python/cpython/commit/d220409a13b77de7a6c30abe16ea90db01528edc",
+        "date": "2026-10-09T11:16:41Z"
+      },
+      {
+        "tag": "v3.15.2",
+        "sha": "5e58eaad7c58df58dfa8ea549c87996e01dd1077",
+        "url": "https://github.com/python/cpython/commit/5e58eaad7c58df58dfa8ea549c87996e01dd1077",
+        "date": "2026-10-25T16:57:51Z"
+      }
+    ],
+    "files": [
+      {
+        "tag": "v3.13.9",
+        "path": "Lib/_pydatetime.py",
+        "url": "https://raw.githubusercontent.com/python/cpython/8183fa5e3f78ca6ab862de7fb8b14f3d929421e0/Lib/_pydatetime.py",
+        "bytes": 91983,
+        "sha256": "f0abda8c410d428678793bff1d8eb9a3c17cb905c0a47adbf2ceef186d7d4d92",
+        "verified_archive": false
+      },
+      {
+        "tag": "v3.13.9",
+        "path": "Lib/_pyio.py",
+        "url": "https://raw.githubusercontent.com/python/cpython/8183fa5e3f78ca6ab862de7fb8b14f3d929421e0/Lib/_pyio.py",
+        "bytes": 93693,
+        "sha256": "fe5f1eebe5d06333f03440392bb1851a6e7cfa3c7e074a3a65a3bf7c4fe5f4ba",
+        "verified_archive": false
+      },
+      {
+        "tag": "v3.13.9",
+        "path": "Lib/asyncio/base_events.py",
+        "url": "https://raw.githubusercontent.com/python/cpython/8183fa5e3f78ca6ab862de7fb8b14f3d929421e0/Lib/asyncio/base_events.py",
+        "bytes": 80760,
+        "sha256": "47491496144e8248f4aebd62aba40b586b6e711f92435b4ca71092ead6eda5b9",
+        "verified_archive": false
+      },
+      {
+        "tag": "v3.13.9",
+        "path": "Lib/doctest.py",
+        "url": "https://raw.githubusercontent.com/python/cpython/8183fa5e3f78ca6ab862de7fb8b14f3d929421e0/Lib/doctest.py",
+        "bytes": 109414,
+        "sha256": "e8553cddb7fa7b2dce21390ced29aeea81115aab0c553ba7692540116bbf3d2b",
+        "verified_archive": false
+      },
+      {
+        "tag": "v3.13.9",
+        "path": "Lib/email/_header_value_parser.py",
+        "url": "https://raw.githubusercontent.com/python/cpython/8183fa5e3f78ca6ab862de7fb8b14f3d929421e0/Lib/email/_header_value_parser.py",
+        "bytes": 111175,
+        "sha256": "cb79aaf3b57072daa004339a824db51e7029539afb1b07d1d807bdbd30495ca1",
+        "verified_archive": false
+      },
+      {
+        "tag": "v3.13.9",
+        "path": "Lib/inspect.py",
+        "url": "https://raw.githubusercontent.com/python/cpython/8183fa5e3f78ca6ab862de7fb8b14f3d929421e0/Lib/inspect.py",
+        "bytes": 128640,
+        "sha256": "5ad68f75310423ad9f36b4d4bb14a22ebfefae7be01716a099bb0dcbcc740537",
+        "verified_archive": false
+      },
+      {
+        "tag": "v3.14.5",
+        "path": "Lib/_pydatetime.py",
+        "url": "https://raw.githubusercontent.com/python/cpython/5607950ef232dad16d75c0cf53101d9649d89115/Lib/_pydatetime.py",
+        "bytes": 95516,
+        "sha256": "2110f90af43143761566480888666874549b2a8996af947fa55fec12fc359cca",
+        "verified_archive": false
+      },
+      {
+        "tag": "v3.14.5",
+        "path": "Lib/_pyio.py",
+        "url": "https://raw.githubusercontent.com/python/cpython/5607950ef232dad16d75c0cf53101d9649d89115/Lib/_pyio.py",
+        "bytes": 95965,
+        "sha256": "1beee84c68ef6f7acb649dd5aada4c2f34f0476b01c293efe4afd9d0fe2d3ff1",
+        "verified_archive": false
+      },
+      {
+        "tag": "v3.14.5",
+        "path": "Lib/asyncio/base_events.py",
+        "url": "https://raw.githubusercontent.com/python/cpython/5607950ef232dad16d75c0cf53101d9649d89115/Lib/asyncio/base_events.py",
+        "bytes": 81191,
+        "sha256": "c04af4235cfb974fac05395c28efc9388bc265f1695becc534d075e68b01adf1",
+        "verified_archive": false
+      },
+      {
+        "tag": "v3.14.5",
+        "path": "Lib/doctest.py",
+        "url": "https://raw.githubusercontent.com/python/cpython/5607950ef232dad16d75c0cf53101d9649d89115/Lib/doctest.py",
+        "bytes": 109533,
+        "sha256": "3e1c718783b5d9b9b9e95ffa13c2ecc221b58f8a1651732ff4b3484a6bceca60",
+        "verified_archive": false
+      },
+      {
+        "tag": "v3.14.5",
+        "path": "Lib/email/_header_value_parser.py",
+        "url": "https://raw.githubusercontent.com/python/cpython/5607950ef232dad16d75c0cf53101d9649d89115/Lib/email/_header_value_parser.py",
+        "bytes": 112649,
+        "sha256": "3c9233249a898edd8a9dd8545c42bf47f7c899b61c2dd248417d704b0dd15770",
+        "verified_archive": false
+      },
+      {
+        "tag": "v3.14.5",
+        "path": "Lib/inspect.py",
+        "url": "https://raw.githubusercontent.com/python/cpython/5607950ef232dad16d75c0cf53101d9649d89115/Lib/inspect.py",
+        "bytes": 127343,
+        "sha256": "9e9793a663928e98cb7b5e300a6fd7a747bb977641eec94c22a6074009aa6c46",
+        "verified_archive": false
+      },
+      {
+        "tag": "v3.15.0",
+        "path": "Lib/_pydatetime.py",
+        "url": "https://raw.githubusercontent.com/python/cpython/d220409a13b77de7a6c30abe16ea90db01528edc/Lib/_pydatetime.py",
+        "bytes": 97356,
+        "sha256": "3a55fdc98158cf969b2a1ba827576eb6a9d7e588c8a0401b3e7e4fbe0ff649c1",
+        "verified_archive": true
+      },
+      {
+        "tag": "v3.15.0",
+        "path": "Lib/_pyio.py",
+        "url": "https://raw.githubusercontent.com/python/cpython/d220409a13b77de7a6c30abe16ea90db01528edc/Lib/_pyio.py",
+        "bytes": 96779,
+        "sha256": "873278d6bd9b499ec904dd9416b381036bb1fcf6310361c006d31d6ba0a5ffe3",
+        "verified_archive": true
+      },
+      {
+        "tag": "v3.15.0",
+        "path": "Lib/asyncio/base_events.py",
+        "url": "https://raw.githubusercontent.com/python/cpython/d220409a13b77de7a6c30abe16ea90db01528edc/Lib/asyncio/base_events.py",
+        "bytes": 81870,
+        "sha256": "4957c8c949facde6efbff64232f7368eb0a21ba87c4c65810363315d94a654d0",
+        "verified_archive": true
+      },
+      {
+        "tag": "v3.15.0",
+        "path": "Lib/doctest.py",
+        "url": "https://raw.githubusercontent.com/python/cpython/d220409a13b77de7a6c30abe16ea90db01528edc/Lib/doctest.py",
+        "bytes": 112885,
+        "sha256": "bcc2e6951bb8663b03c8bed93d8aa6eab498cbfe6a3f653eed3e09af431d4f52",
+        "verified_archive": true
+      },
+      {
+        "tag": "v3.15.0",
+        "path": "Lib/email/_header_value_parser.py",
+        "url": "https://raw.githubusercontent.com/python/cpython/d220409a13b77de7a6c30abe16ea90db01528edc/Lib/email/_header_value_parser.py",
+        "bytes": 115424,
+        "sha256": "fdc6ddfae5a84de05a4afefeb368449d4124d01df875b2d1f19d3dcff3a03ce9",
+        "verified_archive": true
+      },
+      {
+        "tag": "v3.15.0",
+        "path": "Lib/inspect.py",
+        "url": "https://raw.githubusercontent.com/python/cpython/d220409a13b77de7a6c30abe16ea90db01528edc/Lib/inspect.py",
+        "bytes": 131399,
+        "sha256": "a6cb064cd3231c73c97a1728e085d81a5e93ed6c01da4308924ef726342cf86a",
+        "verified_archive": true
+      },
+      {
+        "tag": "v3.15.2",
+        "path": "Lib/_pydatetime.py",
+        "url": "https://raw.githubusercontent.com/python/cpython/5e58eaad7c58df58dfa8ea549c87996e01dd1077/Lib/_pydatetime.py",
+        "bytes": 97835,
+        "sha256": "657fa302b8d219a9ec3fe8997cfe1195b6eaa35e9cabbf402c2aa87f07e0ecec",
+        "verified_archive": true
+      },
+      {
+        "tag": "v3.15.2",
+        "path": "Lib/_pyio.py",
+        "url": "https://raw.githubusercontent.com/python/cpython/5e58eaad7c58df58dfa8ea549c87996e01dd1077/Lib/_pyio.py",
+        "bytes": 96790,
+        "sha256": "553b58f16a118b56602804877a0216cd48b5e8b2876ca6adc348a7773e186364",
+        "verified_archive": true
+      },
+      {
+        "tag": "v3.15.2",
+        "path": "Lib/asyncio/base_events.py",
+        "url": "https://raw.githubusercontent.com/python/cpython/5e58eaad7c58df58dfa8ea549c87996e01dd1077/Lib/asyncio/base_events.py",
+        "bytes": 81922,
+        "sha256": "fabef0e5045a38862ccd271218f5d998f63b798cb1a07e8499684808ff76a89b",
+        "verified_archive": true
+      },
+      {
+        "tag": "v3.15.2",
+        "path": "Lib/doctest.py",
+        "url": "https://raw.githubusercontent.com/python/cpython/5e58eaad7c58df58dfa8ea549c87996e01dd1077/Lib/doctest.py",
+        "bytes": 112918,
+        "sha256": "822e293ae054f1bfc3daaa4ccbe45d523314a26845a10d1be5c6c393b04621cb",
+        "verified_archive": true
+      },
+      {
+        "tag": "v3.15.2",
+        "path": "Lib/email/_header_value_parser.py",
+        "url": "https://raw.githubusercontent.com/python/cpython/5e58eaad7c58df58dfa8ea549c87996e01dd1077/Lib/email/_header_value_parser.py",
+        "bytes": 115787,
+        "sha256": "e95340a5344f50d2c21c7bdeb1335a0a0649ba45273fa82f696c0e10b8449751",
+        "verified_archive": true
+      },
+      {
+        "tag": "v3.15.2",
+        "path": "Lib/inspect.py",
+        "url": "https://raw.githubusercontent.com/python/cpython/5e58eaad7c58df58dfa8ea549c87996e01dd1077/Lib/inspect.py",
+        "bytes": 131854,
+        "sha256": "c658688867700378d174d2e01c6bfa7419dcbc44f185190c1b37faf037054647",
+        "verified_archive": true
+      }
+    ]
+  },
+  "four_release_full_files": {
+    "exit_code": 0,
+    "tree_retired": true,
+    "peak_job_bytes": 24449024,
+    "memory_bytes": 1101004800,
+    "cpu_percent": 22,
+    "run_receipt_sha256": "21c3a449e1397b98225da8604ad50dfd5f811c40e02d631e97753bfa2c8770d7",
+    "log_sha256": "bca1da11198d8ab61e255548739ba2a6fcd16f09037d92657fb56c73afa736c8",
+    "occupied_bytes": {
+      "independent_preserved": 1662976,
+      "independent_level_3": 1662976,
+      "independent_level_9": 1540096,
+      "cold_only": 1474560,
+      "cold_then_group": 745472,
+      "group_only": 745472,
+      "group_then_cold": 696320
+    },
+    "grouping": {
+      "files": 24,
+      "before_compacted": 1531904,
+      "after_compacted": 614400,
+      "input_bytes": 2510681,
+      "selector_bytes": 131072,
+      "ingested_image_bytes": 2473984,
+      "maintained_image_bytes": 3375104,
+      "before_range_read_bytes": 1027032,
+      "after_range_read_bytes": 1066052,
+      "maintenance_read_bytes": 6321767,
+      "maintenance_read_calls": 2424,
+      "sampled_extents": 63,
+      "reused_features": 0,
+      "maintenance_write_bytes": 1007616,
+      "work_ns": 162484400,
+      "packed_groups": 1,
+      "attempts": 15,
+      "yield_observations": 14,
+      "members": 48,
+      "cpu_exact": 1,
+      "retained_snapshot_exact": 1,
+      "idle_io": 0
+    }
+  },
+  "four_release_group_then_cold_layout": {
+    "objects": 91,
+    "image_bytes": 565248,
+    "selector_bytes": 131072,
+    "mirrored_data_object_bytes": 378180,
+    "mirrored_metadata_object_bytes": 5080,
+    "record_index_and_image_padding_bytes": 181988,
+    "modeled_complete_bytes_with_zero_data_object_payload": 319488
+  },
+  "experimental_pair_comparison": {
+    "source_path": "src/native_indexed_volume.cpp",
+    "baseline_blob": "ff2c835362b9595738cc1589ceb004e50345b25b",
+    "trial_blob": "614e5912410eacf6f2be19386c7e21983d9a580a",
+    "baseline_expression": "(reusable_anchor_?!store_zstd_available():count<2)",
+    "trial_expression": "((reusable_anchor_ || count<2) && !store_zstd_available())",
+    "kept": false,
+    "measurements": {
+      "revisions": {
+        "baseline": {
+          "exit_code": 0,
+          "tree_retired": true,
+          "peak_job_bytes": 23248896,
+          "memory_bytes": 1448083456,
+          "cpu_percent": 24,
+          "run_receipt_sha256": "9106e175d8b6fe6ff142b625cd03c306ee2fc0a144dda421f6157a78dad659ba",
+          "log_sha256": "e605e80a01620766b3f8ed5a6eff97bf57a903b1f69dc9c2f94fbec99b62af6b",
+          "occupied_bytes": {
+            "independent_preserved": 1523712,
+            "independent_level_3": 1523712,
+            "independent_level_9": 1417216,
+            "cold_only": 1359872,
+            "cold_then_group": 942080,
+            "group_only": 950272,
+            "group_then_cold": 868352
+          },
+          "grouping": {
+            "files": 24,
+            "before_compacted": 1392640,
+            "after_compacted": 819200,
+            "input_bytes": 2230850,
+            "selector_bytes": 131072,
+            "ingested_image_bytes": 2375680,
+            "maintained_image_bytes": 3825664,
+            "before_range_read_bytes": 1030118,
+            "after_range_read_bytes": 1052927,
+            "maintenance_read_bytes": 7738981,
+            "maintenance_read_calls": 2934,
+            "sampled_extents": 72,
+            "reused_features": 0,
+            "maintenance_write_bytes": 1630208,
+            "work_ns": 71342700,
+            "packed_groups": 0,
+            "attempts": 26,
+            "yield_observations": 25,
+            "members": 44,
+            "cpu_exact": 1,
+            "retained_snapshot_exact": 1,
+            "idle_io": 0
+          }
+        },
+        "candidate": {
+          "exit_code": 0,
+          "tree_retired": true,
+          "peak_job_bytes": 23388160,
+          "memory_bytes": 1289748480,
+          "cpu_percent": 24,
+          "run_receipt_sha256": "3569d3ecf3e65e1dd4fe1bba210b957fb009b257e204c8b40ec098abbc84efb5",
+          "log_sha256": "eb8372d8a6c319e401403723c1c62c36cce664becd4588580defa9a67fd702d0",
+          "occupied_bytes": {
+            "independent_preserved": 1523712,
+            "independent_level_3": 1523712,
+            "independent_level_9": 1417216,
+            "cold_only": 1359872,
+            "cold_then_group": 966656,
+            "group_only": 942080,
+            "group_then_cold": 860160
+          },
+          "grouping": {
+            "files": 24,
+            "before_compacted": 1392640,
+            "after_compacted": 811008,
+            "input_bytes": 2230850,
+            "selector_bytes": 131072,
+            "ingested_image_bytes": 2375680,
+            "maintained_image_bytes": 3833856,
+            "before_range_read_bytes": 1030118,
+            "after_range_read_bytes": 1052520,
+            "maintenance_read_bytes": 8717802,
+            "maintenance_read_calls": 3173,
+            "sampled_extents": 72,
+            "reused_features": 0,
+            "maintenance_write_bytes": 1638400,
+            "work_ns": 134445200,
+            "packed_groups": 6,
+            "attempts": 26,
+            "yield_observations": 25,
+            "members": 50,
+            "cpu_exact": 1,
+            "retained_snapshot_exact": 1,
+            "idle_io": 0
+          }
+        }
+      },
+      "aitdcc": {
+        "baseline": {
+          "exit_code": 0,
+          "tree_retired": true,
+          "peak_job_bytes": 267546624,
+          "memory_bytes": 1440743424,
+          "cpu_percent": 24,
+          "run_receipt_sha256": "0821af1868faf39cdc4c0f73c851a1c3257879415558f0c8d96ce9c090434ba7",
+          "log_sha256": "52bca6a555740464646e3c5bef52a49ff192291989599e4dd997aee226048f9c",
+          "occupied_bytes": {
+            "independent_preserved": 35766272,
+            "independent_level_3": 35766272,
+            "independent_level_9": 35684352,
+            "cold_only": 35160064,
+            "cold_then_group": 35160064,
+            "group_only": 35766272,
+            "group_then_cold": 35160064
+          },
+          "grouping": {
+            "files": 8,
+            "before_compacted": 35635200,
+            "after_compacted": 35635200,
+            "input_bytes": 25153011,
+            "selector_bytes": 131072,
+            "ingested_image_bytes": 36667392,
+            "maintained_image_bytes": 36667392,
+            "before_range_read_bytes": 669843,
+            "after_range_read_bytes": 669843,
+            "maintenance_read_bytes": 30874653,
+            "maintenance_read_calls": 10492,
+            "sampled_extents": 386,
+            "reused_features": 0,
+            "maintenance_write_bytes": 0,
+            "work_ns": 94390700,
+            "packed_groups": 0,
+            "attempts": 1,
+            "yield_observations": 0,
+            "members": 0,
+            "cpu_exact": 1,
+            "retained_snapshot_exact": 1,
+            "idle_io": 0
+          }
+        },
+        "candidate": {
+          "exit_code": 0,
+          "tree_retired": true,
+          "peak_job_bytes": 267333632,
+          "memory_bytes": 1239416832,
+          "cpu_percent": 24,
+          "run_receipt_sha256": "d14df60dac64328607b216c675c292cfc11dc84febacd518bd1c5bb85fb289d0",
+          "log_sha256": "b2c06b1b692aa92920719dd1485e2b368aef74b33cb70341774f007b8e1faefc",
+          "occupied_bytes": {
+            "independent_preserved": 35766272,
+            "independent_level_3": 35766272,
+            "independent_level_9": 35684352,
+            "cold_only": 35160064,
+            "cold_then_group": 35160064,
+            "group_only": 35766272,
+            "group_then_cold": 35160064
+          },
+          "grouping": {
+            "files": 8,
+            "before_compacted": 35635200,
+            "after_compacted": 35635200,
+            "input_bytes": 25153011,
+            "selector_bytes": 131072,
+            "ingested_image_bytes": 36667392,
+            "maintained_image_bytes": 36667392,
+            "before_range_read_bytes": 669843,
+            "after_range_read_bytes": 669843,
+            "maintenance_read_bytes": 30874653,
+            "maintenance_read_calls": 10492,
+            "sampled_extents": 386,
+            "reused_features": 0,
+            "maintenance_write_bytes": 0,
+            "work_ns": 81469400,
+            "packed_groups": 0,
+            "attempts": 1,
+            "yield_observations": 0,
+            "members": 0,
+            "cpu_exact": 1,
+            "retained_snapshot_exact": 1,
+            "idle_io": 0
+          }
+        }
+      }
+    }
+  },
+  "checks": {
+    "release": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 184885248,
+      "memory_bytes": 1350565888,
+      "cpu_percent": 24,
+      "run_receipt_sha256": "0f6e537798fe087ac62e6c8c797931b3c2feaf2fec39fda1fc2799c29425a945",
+      "log_sha256": "85006620a44e86a980c20e9add335910eb650dd69042df17129dc65aee9b91c1",
+      "passed": 4
+    },
+    "raw_only": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 178061312,
+      "memory_bytes": 1355808768,
+      "cpu_percent": 24,
+      "run_receipt_sha256": "893d3b6889108b80bf6284d9689d93e1c97ed5c75239672f0482bf60be5435de",
+      "log_sha256": "6dc95170856189bd7abcaeeb3486d26e925993e44e3be93e493ae806f708f4a0",
+      "passed": 4
+    },
+    "address_sanitizer_pair_oracle": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "peak_job_bytes": 445726720,
+      "memory_bytes": 1871708160,
+      "cpu_percent": 22,
+      "run_receipt_sha256": "242a35c6f95555a21ff3f5537725b41ce6c92f24931a940f1f99db3cbe148d46",
+      "log_sha256": "c6f3eb33c32d5ec5b01e1ab22d644d7f8d9bab69be07d956b764aeee1eccc14f",
+      "result": {
+        "files": 8,
+        "stored_extents": 8,
+        "automatic_attempts": 0,
+        "automatic_groups": 0,
+        "tested_pairs": 56,
+        "improving_pairs": 4,
+        "independent_bytes": 966656,
+        "automatic_bytes": 966656,
+        "best_pair_bytes": 958464,
+        "reusable_groups": 0,
+        "tested_merges": 0,
+        "improving_merges": 0,
+        "best_merge_bytes": 966656,
+        "best_base": 0,
+        "best_member": 6,
+        "cpu_verified": 1
+      }
+    },
+    "staged_sanitizer_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed"
+  },
+  "scope": {
+    "host": "Windows",
+    "filesystem_backing": "memory",
+    "physical_host_mount": false,
+    "physical_amd_trial": false,
+    "production_behavior_changed": false,
+    "release": false
+  }
+}

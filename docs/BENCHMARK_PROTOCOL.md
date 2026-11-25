@@ -183,6 +183,20 @@ Report the image and selector sizes, including protected stored objects, index
 and metadata. This fixture measures collective packing. The idle cold-codec
 rewrite, persistent coherence catalog and mounted I/O have their own test paths.
 
+Run `flitzfs_native_group_maintenance_tests --profile-indexed-pair-oracle FILE`
+to price missed matches in a small, fixed cohort. The input is the same
+packed corpus fixture. The profile takes the first complete 64 KiB
+extent from each eligible file and admits 2–32 extents. It settles
+ordinary maintenance, then uses fresh copies of that checkpoint to price
+every ordered eligible pair with an ungrouped target and every ordered
+merge of complete directly referenced groups. Each accepted change
+rebuilds a protected image and verifies all files and a range from each
+file through the independent CPU reader. Record the fixture hash, the
+eligible pair and merge counts, and complete occupied bytes including
+the selector. Use the complete-file profile for storage and range
+costs beyond the sampled extents.
+[Executed scope and results](evidence/windows-protected-pair-oracle-2026-11-25.json)
+
 Run `flitzfs_native_group_maintenance_tests --profile-public-reencode FILE`
 for independent rebuilds at native Zstandard policy levels 3 and 9 and
 three arms using the ordinary stronger staged copy. The latter measure a

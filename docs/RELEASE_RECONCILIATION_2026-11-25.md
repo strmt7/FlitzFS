@@ -542,6 +542,46 @@ their independent evidence. The writable-attach comparison can advance
 while the device lane waits for measurable headroom.
 [Ordered implementation packets](#implementation-packets-and-exit-decisions)
 
+### Bounded protected pair and merge oracle
+
+The oracle freezes the ordinary maintenance result before each trial.
+It prices ordered direct pairs with ungrouped targets and complete
+merges into a checked existing base. Every accepted trial uses current
+group encoders, the ordinary protected commit and a new compacted image.
+An independent CPU reopen checks full files and ranges. All occupied
+sizes include the selector.
+
+| First-extent cohort | Independent bytes | Ordinary settled bytes | Ordered pairs / profitable | Ordered merges / profitable | Best trial bytes |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| CPython, 12 paths across two releases | 1,138,688 | 745,472 | 0 / 0 | 132 / 0 | 745,472 |
+| CPython, six paths across four pinned releases | 1,138,688 | 565,248 | 0 / 0 | 30 / 0 | 565,248 |
+| AITDCC 2026, eight held-out sources | 966,656 | 966,656 | 56 / 4 | 0 / 0 | 958,464 |
+
+The four-release CPython volume also completed the separate full-file
+comparison. Grouping followed by cold recompression reduced total
+occupied bytes from 1,662,976 to 696,320, a 58.1% reduction on
+2,510,681 logical bytes. The same packed-layout model occupies
+319,488 bytes with zero encoded data payload and the existing record
+counts. That counterfactual identifies a measurable cost in the current
+layout for this cohort. The best first-extent AITDCC trial saved one
+8 KiB protected allocation unit.
+
+A trial that enabled deeper comparison for every new two-member group
+reduced the CPython group-then-cold result by one allocation unit. It
+increased occupied bytes in the cold-then-group arm by three units.
+The runtime keeps its existing admission rule. Test additional offsets
+and short tails at matched protection before broadening discovery or
+adding a persistent grouping structure.
+[Source and bytes](evidence/windows-protected-pair-oracle-2026-11-25.json)
+
+Argus reports duplicate sketch features and shifted boundaries as reasons
+to miss delta candidates. RubikFS found useful clustering under a
+read-only build. For FlitzFS, check whether different-position features
+recover omitted pairs on sampled tails and shifted extents. Use exact
+protected savings and accessed ranges as the labels.
+[Argus](https://dl.acm.org/doi/10.1145/3747839) ·
+[RubikFS, FAST 2026](https://www.usenix.org/conference/fast26/presentation/huang)
+
 ## One checked snapshot per indexed sample
 
 In the previous scan, obtaining an extent token and reading the extent
