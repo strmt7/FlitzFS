@@ -150,6 +150,18 @@ Qualify three mechanisms separately before combining them:
    competing readers and recovery at each barrier before allowing a new writer
    to allocate the range.
 
+Use two measured costs for evacuation. The provider's releasable
+allocation is the sum of complete eligible units after relocation.
+Relocation cost includes rounded protected data, changed mappings,
+retirement writes, CPU verification and workspace. Pinning or an
+unqualified provider makes a unit's immediate release value zero.
+Choose positive net release under the current grant and favor colder
+units with low live data and fewer affected dependencies. Track
+freed physical bytes and reusable holes individually. Compare this
+score with a read-only trace of ready-transaction grouping and the
+existing packed tail path before creating a new format.
+[Ordered mounted investigation](../RELEASE_RECONCILIATION_2026-11-25.md#1-reduce-occupied-bytes-and-repeated-writes-along-the-ordinary-client-path)
+
 ```mermaid
 stateDiagram-v2
     [*] --> Current

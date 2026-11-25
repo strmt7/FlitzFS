@@ -209,8 +209,9 @@ sequenceDiagram
     N->>P: Checked mutations and optional name edits
     P->>P: Seal allocation and changed tree paths
     P->>I: Admit range and reserve write allowance if applicable
-    P->>I: Append payload copies, padding and metadata pages
-    P->>I: Read back new mirrored payloads
+    P->>I: Append contiguous primary and peer runs within each bank
+    P->>I: Seal padding and append metadata pages
+    P->>I: Read both banks and CPU-check each new record
     P->>I: Flush newly reachable objects
     P->>I: Write first new checkpoint slot and flush
     P->>I: Write peer checkpoint slot and flush
@@ -222,6 +223,17 @@ sequenceDiagram
         P-->>N: Return failure and require verified recovery
     end
 ```
+
+The foreground writer and staged reconciliation assemble adjacent prepared
+frames from the same allocated replica stream. The shared mapper stops
+each I/O at the bank boundary. Foreground verification independently
+reads both banks, checks each frame against its descriptor and decodes
+encoded data on the CPU. A degraded read prevents publication even if
+later diagnostic reads pass. Sparse gaps, oversized records and refused
+scratch allocation use the scalar writer. Staged reconciliation checks
+the candidate in its existing verification phase.
+[Packed transaction evidence](../evidence/windows-mirrored-transaction-runs-2026-11-25.json) ·
+[Frame assembly and verification](../../src/paged_store.cpp#L844)
 
 The outer selector changes during image handoff, with its own publication steps.
 Moving short data between an inode and external extents changes the inode,
@@ -236,8 +248,8 @@ The same logical application operation can have more than one observable step
 when Windows supplies a sequence of callbacks. Generation choice and recovered
 bytes matter independently of whether a client already received success.
 [Indexed commit](../../src/native_indexed_volume.cpp#L690)
-· [physical commit](../../src/paged_store.cpp#L1947)
-· [checkpoint slots and flush sequence](../../src/paged_store.cpp#L507)
+· [physical commit](../../src/paged_store.cpp#L2517)
+· [checkpoint slots and flush sequence](../../src/paged_store.cpp#L736)
 · [outer selector publication](../../src/volume_head.cpp#L233)
 
 ## 6. CPU range reads and recoverable damage

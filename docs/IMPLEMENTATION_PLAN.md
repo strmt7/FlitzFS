@@ -786,6 +786,15 @@ for production-scale completion, but their bounded design/experiments can start 
 
 ## 5. E02 — Allocation, dependency ownership and automatic reclamation
 
+The foreground commit and its private reconciliation now batch adjacent
+mirrored frames at the backing failure-unit boundary. In the 256-record
+model the persisted image and three flushes match the earlier scalar
+path. Short commits still pay for paired padding and metadata. Instrument
+ready mutations, live and retained bytes, and flush purpose before
+choosing transaction amortization or local range reuse on the mounted
+path. [Current implementation order](RELEASE_RECONCILIATION_2026-11-25.md#current-findings-and-implementation-order) ·
+[Mirrored transaction evidence](evidence/windows-mirrored-transaction-runs-2026-11-25.json)
+
 The callback model admits consecutive confirmed packed EOF truncations
 within a measured idle window. Each step checks the selector, allocator and
 provider contract. The staged rebuild now packs adjacent unchanged mirrored

@@ -1,17 +1,18 @@
 # FlitzFS repository overview
 
-The latest reconciliation covers the 1,109 tracked paths at `62f3453`,
-the persistent short-file change and all twelve release gates. The
-production dense and range creators now store eligible short-file data
-inside mirrored inodes. The persistent file model verified 372
-interruption cases. A separate Windows memory-volume profile saved 15.6%
-on 374 held-out named files. Grouping and cold re-encoding saved 43.0%
-on the CPython revision cohort. A Radeon SDK run consumed four verified
-later extents after two CPU extents. Useful installed-client acceleration,
-legacy migration and persistent-media recovery remain open.
+The latest reconciliation accounts for 1,113 tracked paths at `aae3fae`
+and revisits all twelve release gates. In a 256-record Windows model,
+mirrored commit writes fell from 1,088 to 66 and reads from 576 to 66
+with the same persisted bytes. The next storage decision is to reduce
+the peak occupancy and write cost of normal mounted churn. On separate
+profiles, inline data saved 15.6% on a held-out named tree, and grouping
+followed by cold re-encoding saved 43.0% on a CPython revision cohort.
+Useful installed-client AMD acceleration, legacy migration and
+persistent-media recovery remain open.
 [Latest reconciliation](RELEASE_RECONCILIATION_2026-11-25.md) ·
 [Persistent creation evidence](evidence/windows-persistent-inline-reconciliation-2026-11-25.json) ·
-[Priority and exit decisions](RELEASE_RECONCILIATION_2026-11-25.md#next-decisions-ranked-by-expected-gain)
+[Mirrored transaction evidence](evidence/windows-mirrored-transaction-runs-2026-11-25.json) ·
+[Priority and exit decisions](RELEASE_RECONCILIATION_2026-11-25.md#current-findings-and-implementation-order)
 
 The 25 November reconciliation covers the writable WinFsp path, indexed
 storage, AMD work, collective compression and the release gates. The

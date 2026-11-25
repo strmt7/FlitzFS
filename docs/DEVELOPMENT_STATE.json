@@ -6,6 +6,21 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "mirrored_transaction_runs": {
+    "source_base": "aae3fae9c9abe8d3fd5e52208629894f35dfe0f9",
+    "evidence": "docs/evidence/windows-mirrored-transaction-runs-2026-11-25.json",
+    "writes_before_and_after_4k": [1088, 66],
+    "reads_before_and_after_4k": [576, 66],
+    "writes_before_and_after_64k": [1104, 82],
+    "reads_before_and_after_64k": [558, 48],
+    "reconciliation_writes_before_and_after": [220, 88],
+    "identical_commit_bytes_and_flushes": true,
+    "windows_selected_ctest_passed": 13,
+    "modeled_mirrored_interruptions": 264,
+    "raw_and_addresssanitizer_passed": true,
+    "mounted_speedup_or_media_durability_qualified": false,
+    "next": "Attribute ordinary mounted peak allocation and flushes, price already-ready transactions, and compare provider-local reclamation with the existing staged path."
+  },
   "small_group_stream_forecast": {
     "source_base": "2c8480e2979479a53dd7c8fc79fe87b46c88502b",
     "evidence": "docs/evidence/windows-small-group-stream-2026-11-25.json",

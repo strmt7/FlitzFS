@@ -43,6 +43,7 @@ class Ram final:public StoreByteIo {
   std::size_t calls=0,writes=0,flushes=0,fail_at=SIZE_MAX;
   unsigned mode=0;
   mutable std::uint64_t read_calls=0,read_bytes=0;
+  mutable std::uint64_t damaged_read_at=UINT64_MAX;
   std::uint64_t write_bytes=0;
   bool refuse=false;
   std::array<bool,2> unreadable_roots{};
@@ -54,6 +55,10 @@ class Ram final:public StoreByteIo {
       throw std::runtime_error("injected root read error");
     if(at>live.size() || out.size()>live.size()-at)throw std::runtime_error("model read bounds");
     ++read_calls;read_bytes+=out.size();std::copy_n(live.begin()+static_cast<std::ptrdiff_t>(at),out.size(),out.begin());
+    if(at==damaged_read_at && !out.empty()) {
+      damaged_read_at=UINT64_MAX;
+      out.front()^=std::byte{1};
+    }
   }
   static void write(Bytes& out,std::uint64_t at,std::span<const std::byte> in) {
     if(at>limits.maximum_physical_bytes || in.size()>limits.maximum_physical_bytes-at)throw std::runtime_error("model capacity");
@@ -325,13 +330,24 @@ void append_write_accounting() {
     auto check_append=[&](std::span<const StoreMutation> changes) {
       constexpr std::uint64_t root_write_bytes=2*4096;
       const auto before_extent=ram->extent(),before_writes=ram->write_bytes;
+      const auto writes=ram->writes,flushes=ram->flushes;
+      const auto reads=ram->read_calls,read_bytes=ram->read_bytes;
       const auto committed=writer.commit(changes);
       const auto growth=committed.physical_end-before_extent;
       const auto written=ram->write_bytes-before_writes;
       std::cout<<"append_write_accounting unit="<<unit<<" records="<<changes.size()
-          <<" growth="<<growth<<" written="<<written<<std::endl;
+          <<" growth="<<growth<<" written="<<written<<" writes="<<ram->writes-writes
+          <<" reads="<<ram->read_calls-reads<<" read_bytes="<<ram->read_bytes-read_bytes
+          <<" flushes="<<ram->flushes-flushes<<" image_digest=";
+      const auto digest=detail::record_digest(ram->stable);
+      for(std::size_t at=0;at<digest.size();at+=8)std::cout<<std::hex<<get64(digest,at)<<'/';
+      std::cout<<std::dec<<'\n';
       require(committed.physical_end==ram->extent(),"paged image extent changed unexpectedly");
       require(written==growth+root_write_bytes,"paged commit rewrote bytes in fresh append space");
+      if(changes.size()>1) {
+        require(ram->writes-writes<changes.size(),"small frames were written individually");
+        require(ram->read_calls-reads<changes.size(),"small frames were verified individually");
+      }
       auto recovered=PagedObjectStoreSnapshot::open(image(ram->stable,unit),limits);
       require(recovered.info().generation==committed.generation,"append root generation");
       for(const auto& change:changes)require(recovered.read(change.id)==change.bytes,"append readback");
@@ -345,11 +361,15 @@ void append_write_accounting() {
   }
 }
 
-void failure_matrix(std::uint32_t unit) {
+void failure_matrix(std::uint32_t unit,bool mirrored=false) {
   auto base=std::make_shared<Ram>();base->unit=unit;
-  {auto w=create(base);populate(w,130);}
+  {auto w=mirrored?PagedObjectStoreWriter::create_mirrored(base,identity(),limits,
+        {StoreCompressionMode::raw,6,false}):create(base);
+    populate(w,130);}
   const auto before=base->stable;
-  const std::array<StoreMutation,3> changes{{{17,false,Bytes(912,std::byte{9})},erase(71),put(150)}};
+  const auto changed_bytes=mirrored?unit+127:912;
+  const std::array<StoreMutation,4> changes{{{17,false,Bytes(changed_bytes,std::byte{9})},
+      erase(71),put(150),put(151)}};
   auto control=image(before,unit);std::size_t operations=0;std::uint64_t new_generation=0;
   {auto s=PagedObjectStoreSnapshot::open(control,limits);auto w=PagedObjectStoreWriter::resume(control,identity(),s.info().generation,limits);
     const auto begin=control->calls;new_generation=w.commit(changes).generation;operations=control->calls-begin;}
@@ -364,7 +384,8 @@ void failure_matrix(std::uint32_t unit) {
     auto crash=image(ram->stable,unit);auto recovered=PagedObjectStoreSnapshot::open(crash,limits);
     const auto bytes=recovered.read(17);const bool updated=bytes==changes[0].bytes;
     require(updated || bytes==payload(17),"partial object survived recovery");
-    require(recovered.stat(71).has_value()!=updated && recovered.stat(150).has_value()==updated,"partial transaction exposed");
+    require(recovered.stat(71).has_value()!=updated && recovered.stat(150).has_value()==updated &&
+        recovered.stat(151).has_value()==updated,"partial transaction exposed");
     recovered.verify_all();
     // Repair mixed/torn roots, preserve orphan tails, continue on a NEW writer.
     auto resumed=PagedObjectStoreWriter::resume(crash,identity(),recovered.info().generation,limits);
@@ -372,7 +393,19 @@ void failure_matrix(std::uint32_t unit) {
     require(resumed.snapshot().read(17)==bytes,"continuation lost recovered object");
   }
   require(new_generation>0,"control generation");
-  std::cout<<"failure_matrix unit="<<unit<<" operations="<<operations<<" modes=3\n";
+  if(mirrored) {
+    auto ram=image(before,unit);
+    const auto generation=PagedObjectStoreSnapshot::open(ram,limits).info().generation;
+    auto w=PagedObjectStoreWriter::resume(ram,identity(),generation,limits);
+    const auto pair_bytes=2ULL*unit;
+    const auto first_payload=(ram->extent()+pair_bytes-1)/pair_bytes*pair_bytes;
+    ram->damaged_read_at=first_payload+unit;
+    rejects([&]{w.commit(changes);},"transient error in new replica was ignored");
+    require(ram->damaged_read_at==UINT64_MAX && w.poisoned() && ram->stable==before,
+        "failed replica readback reached a publication fence");
+  }
+  std::cout<<"failure_matrix unit="<<unit<<" mirrored="<<mirrored
+      <<" operations="<<operations<<" modes=3\n";
 }
 void damage_and_malformed() {
   auto ram=std::make_shared<Ram>();
@@ -576,10 +609,13 @@ void scale(std::uint64_t count) {
 int main(int argc,char** argv) {
   try {
     if(argc==2 && std::string_view(argv[1])=="--million")scale(1000000);
+    else if(argc==2 && std::string_view(argv[1])=="--mirrored-append") {
+      append_write_accounting();failure_matrix(4096,true);failure_matrix(65536,true);
+    }
     else if(argc==1) {append_write_accounting();paged_coherence_catalog();
       coherence_projection_transition(false);coherence_projection_transition(true);
       basic_and_oracle();remove_all_keys();
-      failure_matrix(4096);failure_matrix(65536);
+      failure_matrix(4096);failure_matrix(65536);failure_matrix(4096,true);failure_matrix(65536,true);
       damage_and_malformed();semantic_pages_and_units();codec_modes();rebuild_and_recovery();rebuild_failures();scale(16384);}
     else throw std::runtime_error("unsupported test arguments");
     std::cout<<"paged store checks="<<checks<<"\n";return 0;

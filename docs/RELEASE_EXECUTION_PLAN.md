@@ -1,5 +1,14 @@
 # FlitzFS stable release execution plan
 
+The current implementation order starts with measured attribution of
+mounted allocation and flushes. Grouped mirrored I/O has reduced backing
+calls at identical bytes and durability fences. Rank transaction
+amortization, provider placement and local reuse from the same client
+trace. Advance writable attach and qualify automatic AMD delivery
+alongside that work, with held-out complete-size results governing
+compression changes.
+[Current implementation and exit decisions](RELEASE_RECONCILIATION_2026-11-25.md#current-findings-and-implementation-order)
+
 The 25 November reconciliation binds the cold-copy review and the corrected
 packed runtime. The diagnostic signed replay isolated the point where
 catalog retirement encountered a write fence. The replacement admission

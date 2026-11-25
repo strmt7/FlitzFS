@@ -8,6 +8,7 @@
 #include "store_read_scope.hpp"
 #include <algorithm>
 #include <bit>
+#include <functional>
 #include <limits>
 #include <stdexcept>
 #include <string>
@@ -554,21 +555,22 @@ template<class Visitor> void walk(const State& s,const Ref& r,std::uint64_t afte
   };
   walk_leaves(s,r,after,leaf,done);
 }
-constexpr auto maximum_mirrored_read_bytes=2*kStoreCommitUnit;
+constexpr auto maximum_mirrored_io_bytes=2*kStoreCommitUnit;
 struct MirroredRecordRun {
   std::size_t count=1,bytes=0;
   bool combines_reads() const noexcept {
     // A singleton above the inline buffer can combine its header and payload.
-    return count>1 || (bytes>inline_record_read_bytes && bytes<=maximum_mirrored_read_bytes);
+    return count>1 || (bytes>inline_record_read_bytes && bytes<=maximum_mirrored_io_bytes);
   }
 };
-MirroredRecordRun mirrored_record_run(const State& s,std::span<const Entry> entries) {
-  const auto& first=entries.front();
+template<class Record,class EntryOf=std::identity>
+MirroredRecordRun mirrored_record_run(const State& s,std::span<Record> records,EntryOf entry_of={}) {
+  const auto& first=std::invoke(entry_of,records.front());
   MirroredRecordRun run{1,record_header_bytes+first.stored};
-  while(run.count<entries.size() && run.bytes<=maximum_mirrored_read_bytes) {
-    const auto& next=entries[run.count];
+  while(run.count<records.size() && run.bytes<=maximum_mirrored_io_bytes) {
+    const auto& next=std::invoke(entry_of,records[run.count]);
     const auto length=record_header_bytes+next.stored;
-    if(length>maximum_mirrored_read_bytes-run.bytes)break;
+    if(length>maximum_mirrored_io_bytes-run.bytes)break;
     // Adjacent records follow the same paired stream across banks.
     const auto primary=stream_position(first.offset,run.bytes,s.unit);
     if(next.offset!=primary || next.peer!=add(primary,s.unit))break;
@@ -577,18 +579,22 @@ MirroredRecordRun mirrored_record_run(const State& s,std::span<const Entry> entr
   }
   return run;
 }
-bool verify_stored_run(const State& s,std::span<const Entry> entries,std::size_t length,Bytes& scratch) {
+template<class Record,class EntryOf=std::identity>
+bool verify_stored_run(const State& s,std::span<Record> records,std::size_t length,Bytes& scratch,
+    EntryOf entry_of={}) {
   if(scratch.size()<2*length)scratch.resize(2*length);
   const auto primary=std::span(scratch).first(length);
   const auto peer=std::span(scratch).subspan(length,length);
+  const auto& first=std::invoke(entry_of,records.front());
   try {
-    read_record_bytes(*s.image,entries.front().offset,0,primary,s.unit);
-    read_record_bytes(*s.image,entries.front().peer,0,peer,s.unit);
+    read_record_bytes(*s.image,first.offset,0,primary,s.unit);
+    read_record_bytes(*s.image,first.peer,0,peer,s.unit);
     // Both banks must return the exact frame bytes. Full equality lets the
     // peer share the framing and digest checks on those identical bytes.
     if(!std::ranges::equal(primary,peer))fail("stored replica bytes disagree");
     std::span<const std::byte> remaining=primary;
-    for(const auto& entry:entries) {
+    for(const auto& record:records) {
+      const auto& entry=std::invoke(entry_of,record);
       const auto frame_bytes=record_header_bytes+entry.stored;
       (void)checked_frame_payload(s,entry,remaining.first(frame_bytes));
       remaining=remaining.subspan(frame_bytes);
@@ -605,9 +611,11 @@ bool verify_stored_run(const State& s,std::span<const Entry> entries,std::size_t
   }
 }
 using VerifiedObjectVisitor=std::function<void(std::uint64_t,Bytes)>;
-void verify_decoded_run(const State& s,std::span<const Entry> entries,std::span<const std::byte> frames,
-    const VerifiedObjectVisitor* consume) {
-  for(const auto& entry:entries) {
+template<class Record,class EntryOf=std::identity>
+void verify_decoded_run(const State& s,std::span<Record> records,std::span<const std::byte> frames,
+    const VerifiedObjectVisitor* consume,EntryOf entry_of={}) {
+  for(const auto& record:records) {
+    const auto& entry=std::invoke(entry_of,record);
     const auto frame=frames.first(record_header_bytes+entry.stored);
     const auto header=frame.first<record_header_bytes>();
     Bytes decoded;
@@ -776,6 +784,10 @@ void write_object_record(StoreByteIo& image,const Entry& e,std::span<const std::
     if(!payload.empty())write_record_bytes(image,at,record_header_bytes,payload,e.peer?unit:0);
   }
 }
+void write_mirrored_record_run(const State& state,const Entry& first,std::span<const std::byte> frames) {
+  write_record_bytes(*state.image,first.offset,0,frames,state.unit);
+  write_record_bytes(*state.image,first.peer,0,frames,state.unit);
+}
 struct PreparedPage {Ref ref;std::array<std::byte,page_bytes> bytes{};};
 PreparedPage prepare_page(const State& state,const Node& node,std::uint32_t height,
     std::uint64_t page_start,std::uint64_t ordinal) {
@@ -828,6 +840,52 @@ struct PreparedObject {
   Bytes payload;
   bool used_lz4_candidate=false;
 };
+Bytes reserve_prepared_frames(const State& state,std::span<const PreparedObject> objects,bool readback) {
+  Bytes frames;
+  if(state.mirrored && objects.size()>1) {
+    std::size_t peak_size=0;
+    while(!objects.empty()) {
+      const auto run=mirrored_record_run(state,objects,&PreparedObject::entry);
+      if(run.count>1)peak_size=(std::max)(peak_size,run.bytes);
+      objects=objects.subspan(run.count);
+    }
+    // The same buffer is reused for independent readback. Allocation is
+    // optional and occurs before any write credit or backing is touched.
+    try{frames.reserve(readback?2*peak_size:peak_size);}
+    catch(const std::bad_alloc&){}
+  }
+  return frames;
+}
+void write_prepared_objects(const State& state,std::span<const PreparedObject> objects,Bytes& frames) {
+  while(!objects.empty()) {
+    const auto run=frames.capacity()?mirrored_record_run(state,objects,&PreparedObject::entry):MirroredRecordRun{};
+    const auto& first=objects.front();
+    if(run.count==1)write_object_record(*state.image,first.entry,first.header,first.payload,state.unit);
+    else {
+      frames.clear();
+      for(const auto& record:objects.first(run.count)) {
+        frames.insert(frames.end(),record.header.begin(),record.header.end());
+        frames.insert(frames.end(),record.payload.begin(),record.payload.end());
+      }
+      // The mapper splits each replica at every isolation-unit boundary.
+      write_mirrored_record_run(state,first.entry,frames);
+    }
+    objects=objects.subspan(run.count);
+  }
+}
+void verify_prepared_objects(const State& state,std::span<const PreparedObject> objects,Bytes& frames) {
+  while(!objects.empty()) {
+    const auto run=frames.capacity()?mirrored_record_run(state,objects,&PreparedObject::entry):MirroredRecordRun{};
+    const auto records=objects.first(run.count);
+    if(run.count>1 && verify_stored_run(state,records,run.bytes,frames,&PreparedObject::entry))
+      verify_decoded_run(state,records,std::span<const std::byte>(frames).first(run.bytes),nullptr,
+          &PreparedObject::entry);
+    else {
+      for(const auto& record:records)verify_object(state,record.entry);
+    }
+    objects=objects.subspan(run.count);
+  }
+}
 PreparedObject prepare_object(const State& state,detail::StoreCodecEncoder& encoder,
     const StoreMutation& mutation) {
   auto encoded=encoder.encode_with_lz4(mutation.bytes,mutation.lz4_candidate,mutation.lz4_literal_prefix_bytes);
@@ -1156,8 +1214,7 @@ struct Rebuild {
     write_padding();
     // Each logical replica uses disjoint physical bank writes. The private
     // stream still needs verified readback before any root can name it.
-    write_record_bytes(*next.image,entries.front().offset,0,frames,next.unit);
-    write_record_bytes(*next.image,entries.front().peer,0,frames,next.unit);
+    write_mirrored_record_run(next,entries.front(),frames);
     if(!verify_stored_run(next,entries,frames.size(),readback_frames))
       fail("rebuild produced degraded payload replicas");
     auto verified=std::span<const std::byte>(readback_frames).first(frames.size());
@@ -1703,9 +1760,9 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
       plan.changed_keys=changes.size();
       plan.finish(plan.rewrite(build.next,build.next.root,changes));
       if(plan.next.end>=work.source.end)capacity("reconciled rebuild cannot reduce occupied bytes");
+      auto frames=reserve_prepared_frames(plan.next,objects,false);
       plan.next.image->admit_write(plan.next.end);
-      for(const auto& record:objects)
-        write_object_record(*plan.next.image,record.entry,record.header,record.payload,plan.next.unit);
+      write_prepared_objects(plan.next,objects,frames);
       allocation.write_padding(*plan.next.image);
       plan.write_pages(cursor);
       target->obsolete_bytes=add(target->obsolete_bytes,plan.obsolete_bytes);
@@ -2576,6 +2633,7 @@ PagedStoreWriteResult PagedObjectStoreWriter::commit_impl(
   if(obsolete>plan.next.end-start)fail("obsolete byte accounting exceeds committed history");
   const auto write_bound=add(plan.next.end-old.end,2*page_bytes);
   if(write_bound>maximum_write_bytes)capacity("transaction write budget");
+  auto frames=reserve_prepared_frames(plan.next,objects,true);
   try{old.image->admit_write(plan.next.end);}
   catch(const std::runtime_error& error){capacity(error.what());}
   // The reserved catalog is independent of its credit journal. A failed
@@ -2583,14 +2641,12 @@ PagedStoreWriteResult PagedObjectStoreWriter::commit_impl(
   if(reserve_writes && !reserve_writes(write_bound))capacity("transaction write reservation declined");
   std::uint32_t stored_lz4_candidates=0;
   try {
-    for(const auto& record:objects) {
-      write_object_record(*old.image,record.entry,record.header,record.payload,old.unit);
-      stored_lz4_candidates+=record.used_lz4_candidate;
-    }
+    write_prepared_objects(plan.next,objects,frames);
+    for(const auto& record:objects)stored_lz4_candidates+=record.used_lz4_candidate;
     allocation.write_padding(*old.image);
     plan.write_pages(cursor);
     if(plan.next.mirrored) {
-      for(const auto& record:objects)verify_object(plan.next,record.entry);
+      verify_prepared_objects(plan.next,objects,frames);
       if(plan.next.degraded_payloads)fail("new payload replica failed independent readback");
     }
     publish(plan.next);

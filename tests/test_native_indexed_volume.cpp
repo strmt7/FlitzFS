@@ -1471,13 +1471,21 @@ void indexed_reconciled_rebuild() {
   const auto image_id=identity_for(51);
   auto candidate=writer.prepare_paged_recompression(target,image_id,raw,false,PagedRewriteMode::reconcile_foreground);
   std::uint64_t source_reads=0,target_reads=0,read_bytes=0;
+  std::uint64_t reconciliation_writes=0,reconciliation_bytes=0;
   const auto advance=[&] {
+    const auto phase=candidate.progress().phase;
     const auto source_before=backing->read_calls,target_before=target->read_calls;
     const auto bytes_before=backing->read_bytes+target->read_bytes;
+    const auto writes=target->writes;
+    const auto bytes_written=target->write_bytes;
     const auto complete=writer.advance_paged_recompression(candidate);
     source_reads+=backing->read_calls-source_before;
     target_reads+=target->read_calls-target_before;
     read_bytes+=backing->read_bytes+target->read_bytes-bytes_before;
+    if(phase==PagedRewritePhase::reconciling) {
+      reconciliation_writes+=target->writes-writes;
+      reconciliation_bytes+=target->write_bytes-bytes_written;
+    }
     return complete;
   };
   require(!advance(),"indexed candidate completed before first scan");
@@ -1541,10 +1549,12 @@ void indexed_reconciled_rebuild() {
   // This fixed workload previously used 7,990 reads during staged advances.
   // Leave margin for layout changes while catching a fresh walk per record.
   require(source_reads+target_reads<5000,"reconciled rebuild repeated checked backing reads");
+  require(reconciliation_writes<140,"private reconciliation wrote its small frames individually");
   std::cout<<"indexed_reconciliation retained_files="<<expected.size()<<" deleted_files=31 baseline_steps="<<steps
       <<" catchup_steps="<<catchup<<" late_steps="<<late_steps
       <<" source_read_calls="<<source_reads<<" target_read_calls="<<target_reads
-      <<" read_bytes="<<read_bytes<<'\n';
+      <<" read_bytes="<<read_bytes<<" reconciliation_writes="<<reconciliation_writes
+      <<" reconciliation_bytes="<<reconciliation_bytes<<" target_extent="<<target->extent()<<'\n';
 }
 
 void advance_to_compaction_ready(NativeFileSession& session) {
