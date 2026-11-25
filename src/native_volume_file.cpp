@@ -322,10 +322,12 @@ std::uint64_t NativeVolumeFileReclaimer::projected_seal_writes(
   }catch(const std::exception&){return 0;}
 }
 std::optional<NativeVolumeFileReclaimer::SealPlan> NativeVolumeFileReclaimer::seal_plan(
-    const NativeVolumeSelection& selected,std::uint64_t occupied) const {
+    const NativeVolumeSelection& selected,std::uint64_t occupied,std::uint64_t private_workspace_bytes) const {
   if(selected.sealed_range)return std::nullopt;
   const auto contract=spare_->contract();
-  const auto fitted=NativeHybridBacking::workspace_capacity(selected.volume_identity,contract,occupied,spare_->capacity);
+  const auto workspace_allowance=private_workspace_bytes/kStoreCommitUnit*kStoreCommitUnit;
+  const auto fitted=NativeHybridBacking::workspace_capacity(
+      selected.volume_identity,contract,occupied,spare_->capacity,workspace_allowance);
   if(fitted<=kVolumeHeadBytes)return std::nullopt;
   // The workspace region consumes whole commit units. Reserve the unit
   // containing the last fitted byte, then price the aligned allocation.
@@ -336,7 +338,8 @@ std::optional<NativeVolumeFileReclaimer::SealPlan> NativeVolumeFileReclaimer::se
   // Include overwritten roots and binding records as well as final staging
   // allocation. Charge before writing any candidate bytes.
   const auto writes=staging+kVolumeHeadBytes;
-  if(staging>spare_->capacity)return std::nullopt;
+  const auto backing_bytes=workspace_allowance?base+kNativeHybridTailPrefixBytes:staging;
+  if(backing_bytes>spare_->capacity)return std::nullopt;
   return SealPlan{workspace,staging,writes};
 }
 void NativeVolumeFileReclaimer::bind_wake(const std::shared_ptr<NativeVolumeRangeWake>& wake) noexcept {
@@ -433,17 +436,22 @@ bool NativeVolumeFileReclaimer::shed_scratch(std::uint64_t retained_bytes) noexc
   return true;
 }
 Progress NativeVolumeFileReclaimer::begin_seal(NativeFileSession& session,StoreIdentity identity,
-    const SealPlan& plan,NativeSealScratchOffer offer) {
-  check_inactive(session.volume_info());
+    SealPlan plan,std::uint64_t occupied,NativeSealScratchOffer offer) {
+  const auto current=session.volume_info();
+  check_inactive(current);
   const auto destination=spare_->contract();
-  auto scratch=offer.create && plan.workspace<=offer.bytes?
-      offer.create(plan.workspace,destination):nullptr;
+  const auto private_plan=offer.create && plan.workspace<=offer.bytes?
+      seal_plan(current.selection,occupied,offer.bytes):std::nullopt;
+  auto scratch=private_plan && private_plan->workspace>=plan.workspace &&
+      session.idle_seal_funded(private_plan->writes-private_plan->workspace)?
+      offer.create(private_plan->workspace,destination):nullptr;
   if(scratch) {
     constexpr auto root_unit=static_cast<std::uint32_t>(detail::kPagedStoreCheckpointWriteBytes/2);
     const auto& store=scratch->store();
     const auto contract=store?store->contract():StoreIoContract{};
     if(!valid_store_io_contract(contract) || (std::max)(root_unit,contract.write_failure_unit_bytes)!=
         (std::max)(root_unit,destination.write_failure_unit_bytes))scratch.reset();
+    else plan=*private_plan;
   }
   const auto private_bytes=scratch?plan.workspace:0;
   const auto& file=*spare_->owner;
@@ -556,8 +564,9 @@ Progress NativeVolumeFileReclaimer::advance(NativeFileSession& session,const std
         fail(Error::invalid_operation,"inactive volume range is unavailable");
       if(!reclaim && allow_cold && !session.idle_cold_compaction_pending()) {
         const auto space=session.indexed_volume_space();
-        const auto plan=seal_plan(session.volume_info().selection,space.total_bytes-space.free_bytes);
-        return plan?begin_seal(session,identity(),*plan,scratch):Progress::idle;
+        const auto occupied=space.total_bytes-space.free_bytes;
+        const auto plan=seal_plan(session.volume_info().selection,occupied);
+        return plan?begin_seal(session,identity(),*plan,occupied,scratch):Progress::idle;
       }
       auto rewrite=reclaim?PagedRewriteMode::reconcile_foreground:PagedRewriteMode::cold_compression;
       if(reclaim && mode==NativeVolumeReclaimMode::pack_short_inodes && !packed_copy_attempted_ &&

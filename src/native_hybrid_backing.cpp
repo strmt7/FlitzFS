@@ -229,7 +229,7 @@ NativeHybridBacking::NativeHybridBacking(std::unique_ptr<Impl> state) noexcept:i
 NativeHybridBacking::~NativeHybridBacking()=default;
 
 std::uint64_t NativeHybridBacking::workspace_capacity(StoreIdentity identity,StoreIoContract storage,
-    std::uint64_t source_bytes,std::uint64_t staging_bytes) {
+    std::uint64_t source_bytes,std::uint64_t staging_bytes,std::uint64_t private_workspace_bytes) {
   if(!valid_store_io_contract(storage) || source_bytes<=roots || source_bytes>maximum_io ||
       staging_bytes<=tail_start || staging_bytes>maximum_io)return 0;
   const auto alignment=(std::max<std::uint64_t>)(root_size,storage.write_failure_unit_bytes);
@@ -238,16 +238,18 @@ std::uint64_t NativeHybridBacking::workspace_capacity(StoreIdentity identity,Sto
   const auto prefix_growth=roots-2*alignment;
   const auto mirrored_limit=source_bytes+(std::min)(prefix_growth,maximum_io-source_bytes);
   const auto budget=staging_bytes-tail_start;
-  // The base commits at least as many bytes as the workspace supplies.
-  // Search in isolation units so a fitted workspace can be reserved directly.
-  std::uint64_t low=0,high=(std::min)(detail::folded_mirror_extent(mirrored_limit),budget/2)/alignment;
+  // A file workspace overlaps its candidate's allocation budget. A
+  // separately owned workspace can use its own admitted capacity.
+  const auto workspace_limit=private_workspace_bytes?private_workspace_bytes:budget/2;
+  std::uint64_t low=0,high=(std::min)(detail::folded_mirror_extent(mirrored_limit),workspace_limit)/alignment;
   const auto base_bytes=[&](std::uint64_t workspace) {
     return ProtectedStripeImage::projected_occupied(identity,workspace,storage.write_failure_unit_bytes,maximum_io);
   };
   while(low<high) {
     const auto middle=low+(high-low+1)/2;
     const auto workspace=middle*alignment;
-    if(base_bytes(workspace)<=budget-workspace)low=middle;
+    const auto available=private_workspace_bytes?budget:budget-workspace;
+    if(base_bytes(workspace)<=available)low=middle;
     else high=middle-1;
   }
   const auto workspace=low*alignment;

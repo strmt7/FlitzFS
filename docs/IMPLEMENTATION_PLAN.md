@@ -1,12 +1,12 @@
 # FlitzFS detailed implementation plan
 
-**Reconciled on 25 November 2026.** Wider-geometry packing has verified
-owned-range selection and CPU recovery. Use one populated Win32 trace
-to drive the ordinary AMD, attach and complete-size comparisons. The
-E01–E13 contracts below define the individual release exits.
-[Current assessment](RELEASE_RECONCILIATION_2026-11-25.md#reconciliation-after-owned-range-packing) ·
-[Source, tests and research](evidence/windows-owned-packed-reclaim-2026-11-25.json) ·
-[Ordered implementation steps](RELEASE_RECONCILIATION_2026-11-25.md#implementation-after-owned-range-packing)
+**Reconciled on 26 November 2026.** Enable ordinary AMD operation across
+qualified runtime capabilities, then evaluate settled parity placement
+and bounded writable attach with the populated Windows client trace.
+The E01–E13 contracts below define the individual release exits.
+[Current assessment](RELEASE_RECONCILIATION_2026-11-26.md) ·
+[Source, tests and research](evidence/windows-independent-seal-workspace-2026-11-26.json) ·
+[Ordered implementation steps](RELEASE_RECONCILIATION_2026-11-26.md#detailed-implementation-order)
 
 The [current architecture](architecture/CURRENT.md) shows the implementation.
 The [source review](architecture/REVIEW.md) tests the assumptions and the

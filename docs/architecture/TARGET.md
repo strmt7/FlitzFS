@@ -7,8 +7,8 @@ sequence in the [development plan](../IMPLEMENTATION_PLAN.md#3-execution-order-a
 The current integration design ties durable publication, bounded AMD work,
 sparse advice and measured settlement to the same Windows operation witness
 and complete occupancy record.
-[Reconciled design](../RELEASE_RECONCILIATION_2026-11-25.md#design-decisions-from-current-sources) ·
-[Implementation order](../RELEASE_RECONCILIATION_2026-11-25.md#implementation-after-owned-range-packing)
+[Reconciled design](../RELEASE_RECONCILIATION_2026-11-26.md#target-control-and-storage-design) ·
+[Implementation order](../RELEASE_RECONCILIATION_2026-11-26.md#detailed-implementation-order)
 
 ## 1. Separate volume ownership from presentation and acceleration
 

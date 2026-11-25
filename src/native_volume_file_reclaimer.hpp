@@ -52,8 +52,10 @@ class NativeVolumeFileReclaimer final {
   struct SealPlan {std::uint64_t workspace,staging,writes;};
   bool image_work_pending(const NativeFileSession&,bool allow_cold) const;
   bool dense_work_pending(const NativeFileSession&,NativeVolumeReclaimMode) const;
-  std::optional<SealPlan> seal_plan(const NativeVolumeSelection&,std::uint64_t occupied) const;
-  NativeVolumeReclaimProgress begin_seal(NativeFileSession&,StoreIdentity,const SealPlan&,NativeSealScratchOffer);
+  std::optional<SealPlan> seal_plan(const NativeVolumeSelection&,std::uint64_t occupied,
+      std::uint64_t private_workspace_bytes=0) const;
+  NativeVolumeReclaimProgress begin_seal(NativeFileSession&,StoreIdentity,SealPlan,std::uint64_t occupied,
+      NativeSealScratchOffer);
   NativeVolumeReclaimProgress advance_seal(NativeFileSession&);
   void check_inactive(const NativeVolumeHeadInfo&) const;
   NativeVolumeReclaimProgress retire(const NativeVolumeHeadInfo&);

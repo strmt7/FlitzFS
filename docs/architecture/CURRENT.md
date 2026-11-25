@@ -7,7 +7,10 @@ checking an interrupted AMD reply and only publishes the complete
 verified window. Fresh indexed memory volumes use inline short data
 and both compact checkpoint layers. The persistent factory declares
 a different failure contract.
-[Release reconciliation](../RELEASE_RECONCILIATION_2026-11-25.md#reconciliation-after-owned-range-packing) ·
+The subsequent paired-volume planner gives a qualified private workspace
+its own memory allowance at a funded cold-seal opportunity. It retains
+the checked inactive range for the protected base and writable tail.
+[Cold-seal flow and current reconciliation](../RELEASE_RECONCILIATION_2026-11-26.md#what-the-latest-round-establishes) ·
 [Layout and verification evidence](../evidence/windows-owned-packed-reclaim-2026-11-25.json) ·
 [Revised architecture](TARGET.md)
 

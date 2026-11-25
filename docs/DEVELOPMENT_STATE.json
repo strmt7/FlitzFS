@@ -6,6 +6,18 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "current_release_review": "docs/RELEASE_RECONCILIATION_2026-11-26.md",
+  "independent_seal_workspace": {
+    "source_parent": "d9b20094a3ecaeaf351f0794e201160ad8b7e9c1",
+    "tested_source_tree": "790912f42c849b0a84a62e2c610c97d2a5206b4f",
+    "evidence": "docs/evidence/windows-independent-seal-workspace-2026-11-26.json",
+    "near_full_slot_bytes": 6291456,
+    "model_settled_bytes_with_private_workspace": 4456448,
+    "model_file_only_sealed": false,
+    "sdk_locked_memory_callback_and_cpu_reopen": true,
+    "standalone_memory_only_opportunity_admission": false,
+    "release_qualified": false
+  },
   "subset_reference_refinement": {
     "source_parent": "bc20e10d9977df1bc1ce344305b9e8a0c9e64ad9",
     "tested_source_tree": "8e941395e59888a6257b374f8a506a2181ad9817",

@@ -89,7 +89,7 @@ std::uint64_t MemoryVolumeBacking::seal_workspace_bytes(const NativeFileSession&
       input.committed_input_bytes-attempted_seal_input_<seal_retry_input_)return 0;
   const auto space=session.indexed_volume_space();
   return NativeHybridBacking::workspace_capacity(volume_identity,image->contract(),
-      space.total_bytes-space.free_bytes,staging_bytes);
+      space.total_bytes-space.free_bytes,staging_bytes,0);
 }
 bool MemoryVolumeBacking::selected_image_sealed() const noexcept {
   return dynamic_cast<const NativeHybridBacking*>(image.get())!=nullptr;

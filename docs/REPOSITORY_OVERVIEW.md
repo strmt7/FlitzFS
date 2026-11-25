@@ -1,5 +1,16 @@
 # FlitzFS repository overview
 
+The 26 November review follows the current writable Windows path from
+callback to checked CPU recovery, prices parity staging, and ranks
+ordinary AMD compatibility, settled allocation, writable attach and
+collective compression. In a matched near-full fixture, separate private
+scratch let the image settle at 4.25 MiB from 6 MiB with exact CPU
+readback. The same slot size passed the locked-workspace SDK callback
+test. AMD priority negotiation, comparative mounted service and
+supported-media recovery remain open.
+[Current review and implementation order](RELEASE_RECONCILIATION_2026-11-26.md) ·
+[Latest source and test evidence](evidence/windows-independent-seal-workspace-2026-11-26.json)
+
 FlitzFS is in development qualification. The writable Windows helper uses
 WinFsp, a protected indexed store and an independent CPU reader. Signed
 guest traces cover populated Win32 operations, cached and mapped flush

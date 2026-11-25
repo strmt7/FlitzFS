@@ -4367,8 +4367,8 @@ struct PairedWorkspaceResult {
   std::uint64_t written=0,allocated=0;
 };
 PairedWorkspaceResult volume_file_sealed_callbacks(PairedWorkspaceFixture workspace=PairedWorkspaceFixture::file,
-    std::uint32_t unit=4096) {
-  const PagedStoreLimits limits{(unit==4096?8ULL:16ULL)*1024*1024};
+    std::uint32_t unit=4096,bool near_full=false) {
+  const PagedStoreLimits limits{(near_full?6ULL:unit==4096?8ULL:16ULL)*1024*1024};
   constexpr StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
   auto backing=std::make_shared<SparseVolumeRam>(unit,2*limits.maximum_physical_bytes+2*1024*1024);
   std::optional<MemoryVolumeDomain> occupied_domain;
@@ -4383,8 +4383,9 @@ PairedWorkspaceResult volume_file_sealed_callbacks(PairedWorkspaceFixture worksp
     if(workspace!=PairedWorkspaceFixture::file)adapter->enable_paired_seal_memory();
     WinFspNativeSession session(std::move(adapter),provider.api());
     require(session.start(plan())==STATUS_SUCCESS,"paired seal SDK fixture could not start");
-    callback_file(provider,0,expected,kStoreMaxObjectBytes);
-    callback_file(provider,1,Bytes((unit==4096?2U:3U)*1024*1024),kStoreMaxObjectBytes);
+    const auto write_quantum=near_full?kNativeMaxReadBytes:kStoreMaxObjectBytes;
+    callback_file(provider,0,expected,write_quantum);
+    callback_file(provider,1,Bytes((unit==4096?2U:3U)*1024*1024),write_quantum);
     if(unit!=4096)callback_file(provider,2,Bytes(3U*1024*1024),kStoreMaxObjectBytes);
     wchar_t name[]=L"\\f0";
     PVOID context=nullptr;FSP_FSCTL_FILE_INFO metadata{};
@@ -4436,7 +4437,8 @@ PairedWorkspaceResult volume_file_sealed_callbacks(PairedWorkspaceFixture worksp
   }
   const auto allocated=backing->occupied();
   std::cout<<"paired_sealed_sdk selected=1 held_context=1 stored_tail_edit=1 independent_cpu_reopen=1"
-      <<" workspace="<<static_cast<unsigned>(workspace)<<" unit="<<unit<<" attempted_backing_write_bytes="
+      <<" workspace="<<static_cast<unsigned>(workspace)<<" unit="<<unit
+      <<" slot_bytes="<<limits.maximum_physical_bytes<<" attempted_backing_write_bytes="
       <<attempted_backing_writes<<" allocated_bytes="<<allocated<<" memory_lease_retired=1\n";
   return {attempted_backing_writes,allocated};
 }
@@ -5166,6 +5168,10 @@ int main(int argc,char** argv){try {
        std::string_view(argv[1])=="--live-amd-dense-sealed-refusal");
   app_fixture::Budget budget(true,profile_installed_read || profile_existing_prefix ||
       profile_automatic_sealed_read || profile_paired_sealed_read);DWORD before=0,after=0;
+  if(argc==2 && std::string_view(argv[1])=="--paired-near-full-seal") {
+    (void)volume_file_sealed_callbacks(PairedWorkspaceFixture::locked_memory,4096,true);
+    return 0;
+  }
   if(argc==2 && std::string_view(argv[1])=="--paired-seal-workspaces") {
     for(const auto unit:{4096U,65536U}) {
       const auto file=volume_file_sealed_callbacks(PairedWorkspaceFixture::file,unit);

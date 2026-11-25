@@ -1,12 +1,12 @@
 # FlitzFS stable release execution plan
 
-The next sequence uses the populated Windows trace to qualify useful
-automatic AMD work, writable attach and complete settled allocation.
-The wider-geometry owned-range model verifies a priced packing path
-and leaves its controller admission open. Persistent-media recovery
-retains its own acknowledgement and interruption evidence.
-[Reconciled evidence](evidence/windows-owned-packed-reclaim-2026-11-25.json) ·
-[Implementation sequence](RELEASE_RECONCILIATION_2026-11-25.md#implementation-after-owned-range-packing)
+Begin with AMD stream capability negotiation and the populated Windows
+trace. Separate phase costs for settled parity placement, then bound
+writable attach and measure complete protected size across held-out
+workloads. Persistent-media recovery retains its own acknowledgement
+and interruption evidence.
+[Reconciled evidence](evidence/windows-independent-seal-workspace-2026-11-26.json) ·
+[Implementation sequence](RELEASE_RECONCILIATION_2026-11-26.md#detailed-implementation-order)
 
 Use the [repository overview](REPOSITORY_OVERVIEW.md) for the product snapshot,
 the [current architecture](architecture/CURRENT.md) and [target architecture](architecture/TARGET.md)

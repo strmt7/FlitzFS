@@ -380,12 +380,15 @@ the sealed candidate and leaves the acknowledged image selected.
 
 The Windows controller can place the workspace in locked memory when it
 fits the current idle memory allowance after reserving ordinary
-transaction scratch. The memory provider rechecks physical and commit
-headroom and shares its existing process-wide lease. A refused reservation
-selects the file workspace before charging either path. Both paths use the
-same effective failure-unit geometry and write the protected base and tail
-to the inactive file range. The build releases the workspace before tail
-binding. When the current memory grant can no longer retain the workspace,
+transaction scratch. At an eligible seal opportunity the planner prices
+the aligned workspace against that memory offer, and the parity base and
+writable tail against the inactive range. It requires enough write credit
+for the selected backing placement. The memory provider rechecks physical
+and commit headroom and shares its existing process-wide lease. A declined,
+undersized or incompatible reservation keeps the original file plan.
+Both paths use the same effective failure-unit geometry. The build
+releases the workspace before tail binding. When the current memory grant
+can no longer retain the workspace,
 the owner abandons incomplete work and releases locked pages in bounded
 steps. A verified base that has released its workspace references remains
 eligible to finish later.
@@ -403,6 +406,18 @@ Sixty modeled selector interruptions exercised both workspace paths and
 both failure units. Retiring a partial candidate under pressure preserved
 the previous image and returned its inactive allocation.
 [Workspace placement evidence](evidence/volatile-paired-workspace-2026-11-23.json)
+
+In a 6 MiB inactive slot, the previous planner declined the same source
+with and without a private workspace offer. The new planner still declines
+the file-only arm. With a private workspace it selects the verified parity
+image, retires the old allocation and settles at 4.25 MiB. The model
+preserves a pinned reader and independently recovers the complete file.
+The SDK callback fixture also seals in the 6 MiB slot with locked pages,
+writes through the held handle to the new tail, and independently reopens
+the edited file on CPU. These fixtures exercise the existing funded
+opportunity with modeled backing, including real page locking in the SDK
+fixture.
+[Source-bound comparison](evidence/windows-independent-seal-workspace-2026-11-26.json)
 
 The candidate flush precedes the two independently flushed selector peers.
 The CPU opener validates the selected image identity, range bounds,
