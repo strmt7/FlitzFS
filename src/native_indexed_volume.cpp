@@ -2347,7 +2347,8 @@ const IndexedSharedBaseRead* IndexedSharedBaseCache::find(std::uint64_t object,s
 void IndexedSharedBaseCache::remember(IndexedSharedBaseRead& entry) noexcept {
   // Retained storage fits the existing memory envelope of one native read.
   // Cache allocation failure leaves the request-local verified frame usable.
-  constexpr auto capacity=kNativeMaxReadBytes/(base_size+sizeof(IndexedSharedBaseRead));
+  constexpr auto capacity=(kNativeMaxReadBytes-kNativeExtentBytes-sizeof(TiledMember))/
+      (base_size+sizeof(IndexedSharedBaseRead));
   if(frames_.size()==capacity) {
     std::rotate(frames_.begin(),frames_.begin()+1,frames_.end());
     frames_.back()=std::move(entry);
@@ -2358,7 +2359,19 @@ void IndexedSharedBaseCache::remember(IndexedSharedBaseRead& entry) noexcept {
   entry={};
 }
 
+const Bytes* IndexedSharedBaseCache::find_tiled(std::uint64_t inode,std::uint64_t block,
+    std::uint64_t object) const noexcept {
+  if(member_.object!=object || member_.inode!=inode || member_.block!=block)return nullptr;
+  return &member_.bytes;
+}
+
+void IndexedSharedBaseCache::remember_tiled(std::uint64_t inode,std::uint64_t block,
+    std::uint64_t object,Bytes&& bytes) noexcept {
+  member_={inode,block,object,std::move(bytes)};
+}
+
 void IndexedSharedBaseCache::clear() noexcept {
+  member_={};
   std::vector<IndexedSharedBaseRead>{}.swap(frames_);
   image_={};
   checkpoint_=0;
@@ -2367,7 +2380,7 @@ void IndexedSharedBaseCache::clear() noexcept {
 Bytes IndexedVolumeView::read(const IndexedInodeInput& selected,std::uint64_t offset,std::uint32_t bytes,
     IndexedSharedBaseCache* retained,NativeLz4ReadRoute* route,NativeGroupReadRoute* groups) const {
   if(groups) {
-    groups->tiled=false;
+    groups->decoded_tiled=false;
     groups->tiled_suffix_bytes=0;
   }
   if(selected.lifetime==IndexedLifetime::retiring)fail(Code::not_found,"indexed inode is retired");
@@ -2383,11 +2396,11 @@ Bytes IndexedVolumeView::read(const IndexedInodeInput& selected,std::uint64_t of
     }
     return output;
   }
-  if(retained && !retained->bind(store_))retained=nullptr;
   const auto end=offset+count,first=offset/kNativeExtentBytes,last=(end-1)/kNativeExtentBytes;
   const auto start=native_extent_key(selected.inode,first?first-1:0);
   const auto range=index_.list(start.parent,first?std::string_view(start.name):std::string_view{},
       static_cast<std::size_t>(last-first+1));
+  if(retained && !retained->bind(store_))retained=nullptr;
   auto tiled_end=offset;
   std::uint32_t tiled_bytes=0;
   const auto copy_payload=[&](std::uint64_t begin,std::span<const std::byte> data,bool tiled) {
@@ -2399,7 +2412,6 @@ Bytes IndexedVolumeView::read(const IndexedInodeInput& selected,std::uint64_t of
       if(tiled_end!=from)tiled_bytes=0;
       tiled_bytes+=static_cast<std::uint32_t>(covered_end-from);
       tiled_end=covered_end;
-      groups->tiled=true;
       if(tiled_end==end)groups->tiled_suffix_bytes=tiled_bytes;
     }
   };
@@ -2419,6 +2431,15 @@ Bytes IndexedVolumeView::read(const IndexedInodeInput& selected,std::uint64_t of
         pending.delivered(*ready,end-begin);
         continue;
       }
+      // The prepared lookup may have found damage in the backing.
+      if(ready && retained && !retained->bind(store_))retained=nullptr;
+    }
+    if(retained && first==last) {
+      if(const auto* member=retained->find_tiled(selected.inode,block,entry.value)) {
+        validate_payload(selected,block,*member);
+        copy_payload(begin,*member,true);
+        continue;
+      }
     }
     std::optional<Bytes> record;
     try {
@@ -2426,9 +2447,15 @@ Bytes IndexedVolumeView::read(const IndexedInodeInput& selected,std::uint64_t of
     }catch(const std::bad_alloc&){throw;}
     catch(const std::exception&){fail(Code::storage_failure,"indexed object integrity or read failure");}
     if(!record)fail(Code::corrupt,"indexed object reference missing");
-    const auto extent=decode_extent(store_,index_,root_,entry.value,std::move(*record),
+    auto extent=decode_extent(store_,index_,root_,entry.value,std::move(*record),
         selected,block,false,&cached_base,retained);
     copy_payload(begin,extent.payload(),extent.tiled_group);
+    if(extent.tiled_group) {
+      if(groups)groups->decoded_tiled=true;
+      // Preserve the final tile only when a following read can reuse it.
+      if(retained && block==last && end-begin<kNativeExtentBytes && end<selected.size)
+        retained->remember_tiled(selected.inode,block,entry.value,std::move(extent.data));
+    }
   }
   if(retained)(void)retained->bind(store_);
   return output;

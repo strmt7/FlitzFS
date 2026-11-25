@@ -89,8 +89,8 @@ struct Harness {
     return context;
   }
   PVOID create(unsigned n) {return create(L"\\f"+std::to_wstring(n),false);}
-  void write(PVOID context,const Bytes& bytes){ULONG count=0;FSP_FSCTL_FILE_INFO info{};
-    require(fs.Interface->Write(&fs,context,const_cast<std::byte*>(bytes.data()),0,static_cast<ULONG>(bytes.size()),
+  void write(PVOID context,const Bytes& bytes,std::uint64_t offset=0){ULONG count=0;FSP_FSCTL_FILE_INFO info{};
+    require(fs.Interface->Write(&fs,context,const_cast<std::byte*>(bytes.data()),offset,static_cast<ULONG>(bytes.size()),
         FALSE,FALSE,&count,&info)==STATUS_SUCCESS && count==bytes.size(),"paged SDK Write");}
   void read(PVOID context,const Bytes& expected,std::uint64_t offset=0) {
     Bytes actual(expected.size());ULONG count=0;
@@ -547,9 +547,16 @@ void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},Group
         <<" prepared_member_reads="<<prepared.second<<" cpu_member_reads="<<cpu.second
         <<" device="<<bool(worker)<<" small_request_training="<<small_requests
         <<" skipped_frames="<<(small_requests?predicted-grouped_history_end/extent:0)<<'\n';
-    require(!prepared.second && cpu.second && prepared.first<cpu.first &&
+    require(!prepared.second && cpu.second==1 && prepared.first<cpu.first &&
         h.adapter->native_lz4_read_ahead_hits()==ready_members && h.image->write_bytes==writes,
-        "Segmented demand reread a prepared member or failed to reduce backing work");
+        "Segmented demand reread a prepared or retained CPU member");
+    if(!worker) {
+      const auto offset=first_ready*extent;
+      read_slice(offset);
+      file[offset]^=std::byte{1};
+      h.write(context,Bytes{file[offset]},offset);
+      read_slice(offset);
+    }
     h.close(other_context);
     h.close(context);
     auto snapshot=h.adapter->snapshot();

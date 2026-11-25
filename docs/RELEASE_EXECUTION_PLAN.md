@@ -1,31 +1,13 @@
 # FlitzFS stable release execution plan
 
-The current implementation order starts with measured attribution of
-mounted allocation and flushes. Grouped mirrored I/O has reduced backing
-calls at identical bytes and durability fences. Rank transaction
-amortization, provider placement and local reuse from the same client
-trace. Advance writable attach and qualify automatic AMD delivery
-alongside that work, with held-out complete-size results governing
-compression changes.
-[Current implementation and exit decisions](RELEASE_RECONCILIATION_2026-11-25.md#current-findings-and-implementation-order)
+Use the ordinary mounted trace and improved CPU control for the next AMD
+decision. The signed replay released backing to the same size as an
+independent detached reopen. It ended with cold work duty-deferred. Track
+physical settlement and optimization progress independently, then prioritize
+complete-size improvements and a scalable checked attach.
+[Current reconciliation and execution order](RELEASE_RECONCILIATION_2026-11-25.md#current-round-and-release-decisions) ·
+[Current verification and research](evidence/windows-cpu-tile-and-ordinary-settlement-2026-11-25.json)
 
-The 25 November reconciliation binds the cold-copy review and the corrected
-packed runtime. The diagnostic signed replay isolated the point where
-catalog retirement encountered a write fence. The replacement admission
-and aligned cold-seal staging regressions passed. The corrected signed
-replay released allocation while mounted with zero maintenance failures.
-The signed replay of the single-view scan released allocation while attached,
-verified all live files and covered 610 extents with work still pending.
-Attribute the observed wake and duty delays before changing the scheduler.
-Fresh volume-file creation now uses inline data for short files. Keep the
-next volume work on the ordinary mounted settlement trace and deliberate
-older-format admission. Qualify useful automatic AMD delivery, measure
-held-out occupied size and compare writable attach with its full
-verification control.
-[Current reconciliation](RELEASE_RECONCILIATION_2026-11-25.md) ·
-[Persistent short-file evidence](evidence/windows-persistent-inline-reconciliation-2026-11-25.json) ·
-[Implementation packets and exit decisions](RELEASE_RECONCILIATION_2026-11-25.md#implementation-packets-and-exit-decisions) ·
-[Current mounted and codec evidence](evidence/windows-mounted-sample-and-zstd-2026-11-25.json)
 Use the [repository overview](REPOSITORY_OVERVIEW.md) for the product snapshot,
 the [current architecture](architecture/CURRENT.md) and [target architecture](architecture/TARGET.md)
 for system flows, and the [detailed implementation plan](IMPLEMENTATION_PLAN.md)

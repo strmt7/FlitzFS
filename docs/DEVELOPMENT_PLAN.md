@@ -1,5 +1,8 @@
 # FlitzFS development execution plan
 
+The [current release reconciliation](RELEASE_RECONCILIATION_2026-11-25.md#current-round-and-release-decisions)
+sets the next implementation order, evidence and release decisions.
+
 Use the [revised architecture](architecture/TARGET.md),
 [repository overview](REPOSITORY_OVERVIEW.md) and
 [ordered implementation checkpoints](IMPLEMENTATION_PLAN.md#3-execution-order-and-dependencies). The [execution index](DEVELOPMENT_PLAN.json)

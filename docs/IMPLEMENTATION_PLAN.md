@@ -292,6 +292,15 @@ indexed or read-only prototypes.
 
 ### Next implementation tickets
 
+**Current execution order.** Start from the signed ordinary trace that
+reached 4.5 MiB occupied backing before detach. Carry the retained CPU tile
+control into an ordinary AMD comparison. Distinguish physical settlement
+from cold work still deferred by duty. Then advance the protected-size
+frontier and shadow writable attach in parallel where they share only
+read-only measurements. Promote each independently against S1–S12.
+[Current reconciliation and execution order](RELEASE_RECONCILIATION_2026-11-25.md#current-round-and-release-decisions) ·
+[Current verification and research](evidence/windows-cpu-tile-and-ordinary-settlement-2026-11-25.json)
+
 Use one frozen application trace and select one production change per
 decision. The expanded [decision table](RELEASE_RECONCILIATION_2026-11-25.md#decisions-to-carry-into-the-package-plan)
 defines when to continue with admission and pacing, locality, AMD scheduling

@@ -1,43 +1,23 @@
 # FlitzFS repository overview
 
-The latest reconciliation accounts for 1,113 tracked paths at `aae3fae`
-and revisits all twelve release gates. In a 256-record Windows model,
-mirrored commit writes fell from 1,088 to 66 and reads from 576 to 66
-with the same persisted bytes. The next storage decision is to reduce
-the peak occupancy and write cost of normal mounted churn. On separate
-profiles, inline data saved 15.6% on a held-out named tree, and grouping
-followed by cold re-encoding saved 43.0% on a CPython revision cohort.
-Useful installed-client AMD acceleration, legacy migration and
-persistent-media recovery remain open.
-[Latest reconciliation](RELEASE_RECONCILIATION_2026-11-25.md) ·
-[Persistent creation evidence](evidence/windows-persistent-inline-reconciliation-2026-11-25.json) ·
-[Mirrored transaction evidence](evidence/windows-mirrored-transaction-runs-2026-11-25.json) ·
-[Priority and exit decisions](RELEASE_RECONCILIATION_2026-11-25.md#current-findings-and-implementation-order)
+The current review covers 1,117 tracked paths at `fec45a0`. A signed
+WinFsp client replay released occupied backing from 407.1 MiB to 4.5 MiB
+while mounted. Independent CPU reopen verified all 1,027 files and reached
+the same occupied size. Cold maintenance still had duty-deferred work.
+The current callback source also reuses a verified CPU tile after a
+partial grouped read. CPU backing reads fell by 43.4% on a matched 4 KiB
+callback sequence. The fixture checked a subsequent overwrite and audited
+the resulting bytes independently.
 
-The 25 November reconciliation covers the writable WinFsp path, indexed
-storage, AMD work, collective compression and the release gates. The
-latest signed client trace independently verified 1,027 live files.
-It published a compact image and reduced allocated backing while mounted.
-The diagnostic replay found catalog retirement reaching a write fence.
-Local regressions cover the corrected write grant and cold-seal staging.
-The corrected signed replay recorded zero maintenance failures and byte-exact
-CPU reopen. The signed paced replay completed and exposed a stale retry
-recommendation. The corrected signed build progressed to 503 sampled
-extents with zero maintenance failures. The new retained peer selection
-also saved occupied bytes in a controlled grouping. A physical Radeon
-delivered verified grouped reads through the SDK controller.
-The current checked-sampling change cut 22–35% of maintenance backing
-calls across two local corpus fixtures at the same settled size.
-[Indexed sampling and updated source inventory](evidence/windows-indexed-sample-scope-2026-11-25.json) ·
-[Signed replay and retained-peer evidence](evidence/windows-retained-short-peer-2026-11-25.json) ·
-[Current reconciliation](RELEASE_RECONCILIATION_2026-11-25.md) ·
-[Implementation packets](RELEASE_RECONCILIATION_2026-11-25.md#implementation-packets-and-exit-decisions) ·
-[Previous runtime evidence](evidence/windows-packed-admission-and-sealing-2026-11-25.json)
-
-The Radeon returned verified packed and mixed group frames through the
-SDK callback's prepared decoder path, with independent CPU readback.
-Matched ordinary Windows performance evidence is still pending.
-[AMD grouped read evidence](evidence/windows-amd-group-budget-freshness-2026-11-24.json)
+FlitzFS has a working writable Windows development path. Automatic AMD
+delivery on ordinary mounted requests, complete-size improvements across
+broader workloads, scalable writable attach and physical-media recovery
+remain release-critical. Prior Radeon fixtures consumed verified packed and
+mixed frames. Both current admission checks found the physical GPU busy.
+[Current reconciliation and execution order](RELEASE_RECONCILIATION_2026-11-25.md#current-round-and-release-decisions) ·
+[Current verification and research](evidence/windows-cpu-tile-and-ordinary-settlement-2026-11-25.json) ·
+[Current architecture](architecture/CURRENT.md) ·
+[Target architecture](architecture/TARGET.md)
 
 The detailed baseline below was reconciled on 23 November against the **1,034-file** tree at
 `1afc654b9ee44952dce82a99a74e474cb5b03fb9`. The review follows the actual Windows

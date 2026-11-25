@@ -221,16 +221,25 @@ struct IndexedSharedBaseRead {
   std::optional<NativeGroupBase> base;
 };
 
-// A serialized writer can retain verified base frames at its current
-// checkpoint. An inventory audit uses its own cache for member decoding
-// and checks the stored copies independently.
+// A serialized writer can retain verified bases and a partially read tiled
+// member at its current checkpoint. Inventory audits check stored copies
+// independently and use a request-local cache for base decoding.
 class IndexedSharedBaseCache final {
  public:
   bool bind(const PagedObjectStoreSnapshot&) noexcept;
   const IndexedSharedBaseRead* find(std::uint64_t object,std::uint64_t generation) noexcept;
   void remember(IndexedSharedBaseRead&) noexcept;
+  const std::vector<std::byte>* find_tiled(std::uint64_t inode,std::uint64_t block,
+      std::uint64_t object) const noexcept;
+  void remember_tiled(std::uint64_t inode,std::uint64_t block,std::uint64_t object,
+      std::vector<std::byte>&&) noexcept;
   void clear() noexcept;
  private:
+  struct TiledMember {
+    std::uint64_t inode=0,block=0,object=0;
+    std::vector<std::byte> bytes;
+  };
+  TiledMember member_;
   StoreIdentity image_{};
   std::uint64_t checkpoint_=0;
   std::vector<IndexedSharedBaseRead> frames_;

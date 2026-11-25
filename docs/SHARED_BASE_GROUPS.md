@@ -66,6 +66,13 @@ underlying paged record uses an optional codec, its existing CPU decoder is stil
 required. BLAKE3 detects corruption;
 it does not provide authentication against an adversary who can rewrite the image.
 
+The serialized indexed read path can retain a partial tiled member after
+exact CPU decoding. A following single-extent read reuses it after the
+selected generation and member identity checks. It shares the bounded
+base cache's memory envelope. Independent inventory verification uses its
+own state and reads the backing.
+[Retention evidence](evidence/windows-cpu-tile-and-ordinary-settlement-2026-11-25.json)
+
 ## Mutation, lifetime and recovery
 
 Names, inode identities, attributes, permissions, workload accounting and file

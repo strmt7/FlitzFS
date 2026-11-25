@@ -1,10 +1,12 @@
 # Source and architecture review
 
-The [current reconciliation](../RELEASE_RECONCILIATION_2026-11-25.md)
-has the current gate and work order. The latest review inventories the
-1,095 tracked paths and traces the changed storage, AMD and advisory
-boundaries against the previous reviews.
-[Current review receipt](../evidence/windows-indexed-cold-batched-copy-2026-11-25.json) ·
+The [current reconciliation](../RELEASE_RECONCILIATION_2026-11-25.md#current-round-and-release-decisions)
+covers 1,117 tracked paths and the four storage commits since the previous
+review. The source review follows selected native storage and Windows
+controller paths from recorded operations to backing release, checked
+fetch and recovery. The attached trace and current callback qualification
+have distinct source identities.
+[Inventory, routing and test receipts](../evidence/windows-cpu-tile-and-ordinary-settlement-2026-11-25.json) ·
 [Previous full review](../RELEASE_RECONCILIATION_2026-11-24.md)
 
 | Component checked | Current boundary | Implementation decision |

@@ -742,7 +742,7 @@ struct WinFspNativeWritable::Impl {
     Lz4DemandObservation observation;
     const auto start=std::chrono::steady_clock::now();
     auto bytes=session.read(slot.handle,offset,length,&observation,&groups);
-    if((observation.verified_input || groups.tiled) && bytes.size()==length) {
+    if((observation.verified_input || groups.decoded_tiled) && bytes.size()==length) {
       // Complete demand service includes backing calls and CPU verification.
       const auto elapsed=std::chrono::duration_cast<std::chrono::nanoseconds>(
           std::chrono::steady_clock::now()-start).count();

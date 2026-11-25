@@ -6,6 +6,42 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "release_review": "docs/RELEASE_RECONCILIATION_2026-11-25.md#current-round-and-release-decisions",
+  "retained_cpu_tile": {
+    "source_base": "fec45a0621dfcda23963b96960255d8f9ce67843",
+    "runtime_tree": "cc0ad2d2751b5c278a7db3fe835449b6be2e9220",
+    "evidence": "docs/evidence/windows-cpu-tile-and-ordinary-settlement-2026-11-25.json",
+    "monitored_member_reads_before_after": [
+      16,
+      1
+    ],
+    "grouped_cpu_backing_bytes_before_after": [
+      602848,
+      341008
+    ],
+    "selected_windows_tests_passed": 15,
+    "linked_qualification": "Callback process exercised independent CPU audit and checked bytes after a checkpoint-changing overwrite."
+  },
+  "ordinary_mounted_settlement": {
+    "source_commit": "fec45a0621dfcda23963b96960255d8f9ce67843",
+    "runtime_tree": "da0ba7a4f914a5f717a6035b02ade9174481088e",
+    "evidence": "docs/evidence/windows-cpu-tile-and-ordinary-settlement-2026-11-25.json",
+    "trace_records": 6293,
+    "cpu_verified_files": 1027,
+    "allocated_before_maintenance": 426901504,
+    "allocated_while_attached": 4718592,
+    "allocated_after_independent_reopen": 4718592,
+    "compaction_failures": 0,
+    "terminal_maintenance_quiescence": false,
+    "final_deferral": "duty",
+    "next": "Separate physical settlement from eligible cold work and exercise repeated plateau with held readers and interruption."
+  },
+  "amd_busy_observation": {
+    "evidence": "docs/evidence/windows-cpu-tile-and-ordinary-settlement-2026-11-25.json",
+    "actual_device_request_issued": false,
+    "owner_adapter": "AMD Radeon RX 9070 XT",
+    "next": "Compare normal mounted AMD delivery with the retained-tile CPU baseline under fresh admission."
+  },
   "packed_tail_handoff": {
     "source_base": "61c9b5aee343484d66fa8cacef90cad237ed9152",
     "tested_runtime_tree": "da0ba7a4f914a5f717a6035b02ade9174481088e",
@@ -455,9 +491,9 @@
   },
   "current_product_boundary": {
     "authority": "docs/RELEASE_EXECUTION_PLAN.md#current-gate-ledger",
-    "windows_scope": "Writable WinFsp application in development qualification. Packed and sparse NTFS-backed guest evidence and an in-memory path. Interactive installed client and supported persistent-media qualification are open.",
-    "gpu_scope": "Installed LZ4 read-ahead and collective acquisition in eligible builds, with actual device verification in bounded fixtures. Packed and mixed grouped read-ahead can prepare before protected capture. Grouped device decode, useful mounted read/write selection and product-wide benefit are open.",
-    "advisory_scope": "Sparse persistent coherence postings, funded group selection and cooperative compaction exist. Scalable discovery, learned choice and cross-volume resource scheduling still need product qualification.",
+    "windows_scope": "Writable WinFsp application in development qualification. Ordinary signed Win32 replay reached the physical allocation floor while attached. Repeated settled churn, installed Windows client and physical-media evidence remain open.",
+    "gpu_scope": "Physical Radeon executed packed and mixed grouped decodes in bounded callback fixtures. New headroom checks refused existing device load. Normal mounted benefit across read, write and collective work remains open.",
+    "advisory_scope": "Sparse persistent postings and cooperative maintenance are implemented. The latest ordinary physical release ended with cold work deferred by duty. Persistent convergence and low interference still require qualification.",
     "recovery_scope": "Checked CPU recovery and mirrored transaction evidence from model and guest interruptions. Physical power-loss recovery, versioned rescue distribution and gradual upgrade still need qualification.",
     "historical_detail": "Earlier boundary observations below retain their original qualification scope."
   },

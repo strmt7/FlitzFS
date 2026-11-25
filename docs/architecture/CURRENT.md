@@ -671,6 +671,31 @@ matched CPU comparison with delivered bytes under real demand.
 [Live grouped evidence](../evidence/windows-amd-group-supervisor-comparison-2026-11-24.json) ·
 [Native LZ4 device evidence](../NATIVE_AMD_LZ4_READ.md)
 
+### Retaining one CPU-decoded group tile
+
+The serialized writer can retain the final partially read tiled member
+within its existing read budget. The current read checks the indexed
+extent mapping, image identity and healthy generation before reuse.
+An already verified prepared result has priority. A matching retained tile
+keeps grouped stream coverage but contributes no CPU decode sample.
+Generation change or observed degradation clears the cache. The independent
+CPU audit reads and checks storage with its own state.
+[Retention and overwrite checks](../evidence/windows-cpu-tile-and-ordinary-settlement-2026-11-25.json)
+
+```mermaid
+flowchart TD
+    Read["Indexed range read"] --> Map["Resolve inode and extent at selected checkpoint"]
+    Map --> Ready{"Prepared result still matches?"}
+    Ready -->|Yes| Reply["Return requested bytes and advance stream coverage"]
+    Ready -->|No| Tile{"One extent and matching retained tile?"}
+    Tile -->|Yes| Reply
+    Tile -->|No| Decode["Check backing, base and exact CPU decode"]
+    Decode --> Partial{"Read stops inside final tiled member?"}
+    Partial -->|Yes| Save["Retain one decoded tile under read budget"]
+    Partial -->|No| Reply
+    Save --> Reply
+```
+
 ## 10. Verification and remaining integration
 
 ```mermaid

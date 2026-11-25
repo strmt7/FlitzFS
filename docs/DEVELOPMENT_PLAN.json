@@ -3,18 +3,18 @@
   "updated": "2026-11-25",
   "forward_work_rule": "Use current_release_sequence for integration order, and execution_programme and the implementation plan for package dependencies and exits. Historical checkpoints describe completed or partial evidence.",
   "current_release_sequence": {
-    "reviewed_commit": "aae3fae9c9abe8d3fd5e52208629894f35dfe0f9",
-    "reviewed_tree": "ad18bb20d57cc6d4e89291a6dd27d08bcbc3b14e",
+    "reviewed_commit": "fec45a0621dfcda23963b96960255d8f9ce67843",
+    "reviewed_tree": "43384906408074d9413c80eb5a66e35e9e7dd65d",
     "previous_signed_sampling_runtime_tree": "e67c3163c1026801e56cdde5c620d25b4bcc058a",
     "assessment": "docs/REPOSITORY_OVERVIEW.md",
     "architecture_diagrams": "docs/architecture/CURRENT.md",
     "source_review": "docs/RELEASE_RECONCILIATION_2026-11-25.md",
     "revised_architecture": "docs/architecture/TARGET.md",
-    "ordered_work": "docs/RELEASE_RECONCILIATION_2026-11-25.md#current-findings-and-implementation-order",
+    "ordered_work": "docs/RELEASE_RECONCILIATION_2026-11-25.md#current-round-and-release-decisions",
     "package_contract": "docs/IMPLEMENTATION_PLAN.md",
     "gate_ledger": "docs/RELEASE_EXECUTION_PLAN.md#current-gate-ledger",
     "next_implementation_tickets": "docs/IMPLEMENTATION_PLAN.md#next-implementation-tickets",
-    "evidence": "docs/evidence/windows-mirrored-transaction-runs-2026-11-25.json",
+    "evidence": "docs/evidence/windows-cpu-tile-and-ordinary-settlement-2026-11-25.json",
     "previous_persistent_inline_review": "docs/evidence/windows-persistent-inline-reconciliation-2026-11-25.json",
     "previous_checked_sampling_review": "docs/evidence/windows-indexed-sample-scope-2026-11-25.json",
     "previous_source_review_evidence": "docs/evidence/release-reconciliation-rolling-lookups-2026-11-25.json",
@@ -56,17 +56,17 @@
     "latest_owner_amd_write_pairs": "docs/evidence/windows-owner-amd-write-pairs-2026-11-23.json",
     "latest_populated_operation_trace": "docs/evidence/windows-populated-client-trace-2026-11-24.json",
     "latest_staged_reclamation": "docs/evidence/windows-staged-reclamation-reads-2026-11-24.json",
-    "verified_runtime_tree": "e67c3163c1026801e56cdde5c620d25b4bcc058a",
-    "verified_runtime_scope": "The signed 1.5.7 replay covers this indexed sampling runtime. Zstandard 1.6.0 has separate local CPU, SDK and bidirectional readback evidence. Physical AMD receipts identify their own builds.",
+    "verified_runtime_tree": "da0ba7a4f914a5f717a6035b02ade9174481088e",
+    "verified_runtime_scope": "Signed WinFsp 2.2 ordinary guest replay covers the published parent, including attached allocation reaching the detached floor. Latest CPU tile qualification is separate.",
     "prior_verified_runtime_tree": "c0755b337cdc2e8d5f9e81b2dca623720e359b01",
     "latest_checked_range_retirement": "docs/evidence/windows-mounted-range-retirement-2026-11-24.json",
     "latest_packed_tail_continuation": "docs/evidence/windows-packed-tail-continuation-2026-11-25.json",
     "latest_packed_retirement_flush_attribution": "docs/evidence/windows-packed-retirement-flushes-2026-11-25.json",
     "latest_shared_mirrored_banks": "docs/evidence/windows-shared-mirrored-banks-2026-11-25.json",
     "latest_packed_tail_handoff": "docs/evidence/windows-packed-tail-handoff-2026-11-25.json",
-    "latest_ordinary_mounted_reclamation": "docs/evidence/windows-mounted-sample-and-zstd-2026-11-25.json",
+    "latest_ordinary_mounted_reclamation": "docs/evidence/windows-cpu-tile-and-ordinary-settlement-2026-11-25.json",
     "previous_ordinary_mounted_reclamation": "docs/evidence/windows-retained-short-peer-2026-11-25.json",
-    "latest_reclamation_runtime_tree": "e67c3163c1026801e56cdde5c620d25b4bcc058a",
+    "latest_reclamation_runtime_tree": "da0ba7a4f914a5f717a6035b02ade9174481088e",
     "latest_zstd_compatibility_evidence": "docs/evidence/windows-mounted-sample-and-zstd-2026-11-25.json",
     "latest_reference_and_device_witness": "docs/evidence/windows-maintenance-reference-refresh-2026-11-25.json",
     "latest_staged_copy": "docs/evidence/windows-bank-spanning-rebuild-2026-11-25.json",
@@ -88,7 +88,17 @@
     "latest_mounted_credit_sampling": "docs/evidence/windows-packed-settlement-credit-2026-11-25.json",
     "latest_retry_delay_evidence": "docs/evidence/windows-maintenance-retry-delay-2026-11-25.json",
     "latest_sealed_packed_Radeon_evidence": "docs/evidence/windows-maintenance-retry-delay-2026-11-25.json",
-    "latest_retained_short_peer_evidence": "docs/evidence/windows-retained-short-peer-2026-11-25.json"
+    "latest_retained_short_peer_evidence": "docs/evidence/windows-retained-short-peer-2026-11-25.json",
+    "previous_reconciled_sequence": {
+      "reviewed_commit": "aae3fae9c9abe8d3fd5e52208629894f35dfe0f9",
+      "reviewed_tree": "ad18bb20d57cc6d4e89291a6dd27d08bcbc3b14e",
+      "ordered_work": "docs/RELEASE_RECONCILIATION_2026-11-25.md#current-findings-and-implementation-order",
+      "verified_runtime_tree": "e67c3163c1026801e56cdde5c620d25b4bcc058a",
+      "verified_runtime_scope": "The signed 1.5.7 replay covers this indexed sampling runtime. Zstandard 1.6.0 has separate local CPU, SDK and bidirectional readback evidence. Physical AMD receipts identify their own builds."
+    },
+    "reviewed_tracked_paths": 1117,
+    "latest_cpu_grouped_fallback": "docs/evidence/windows-cpu-tile-and-ordinary-settlement-2026-11-25.json",
+    "latest_callback_runtime_tree": "cc0ad2d2751b5c278a7db3fe835449b6be2e9220"
   },
   "baseline": {
     "commit": "f4928c2d2510cacb55da664a0338c8592194d9a0",
@@ -2432,7 +2442,7 @@
         ]
       }
     ],
-    "superseding_checkpoint_order": "docs/IMPLEMENTATION_PLAN.md#3-execution-order-and-dependencies",
+    "superseding_checkpoint_order": "docs/RELEASE_RECONCILIATION_2026-11-25.md#current-round-and-release-decisions",
     "first_slices": [
       {
         "steps": [

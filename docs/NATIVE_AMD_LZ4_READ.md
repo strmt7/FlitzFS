@@ -294,6 +294,14 @@ for ordinary reads. [PlaneZip](https://arxiv.org/abs/2610.25033)
 [Mixed decoder evidence](evidence/windows-mixed-group-reads-2026-11-24.json) ·
 [Prepared grouped-read evidence](evidence/windows-prepared-group-worker-2026-11-24.json)
 
+The CPU comparison for small adjacent grouped requests now retains one
+verified partial tile at the selected checkpoint. Reuse contributes stream
+coverage to the forecast. The CPU-cost estimator samples actual decode
+work. The current local callback comparison read the monitored member once
+across the 4 KiB requests, down from 16 times. Use this CPU baseline
+when determining which ordinary read shapes benefit from preparation.
+[Matched CPU evidence](evidence/windows-cpu-tile-and-ordinary-settlement-2026-11-25.json)
+
 ## Prepared native reads
 
 The indexed session can capture one owned encoded LZ4 record for a readable

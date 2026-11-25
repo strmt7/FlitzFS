@@ -205,6 +205,31 @@ as an integrity invariant. A new allocator must preserve equivalent guarantees
 under its compatible format contract. [Current paged reference checks](../../src/paged_store.cpp#L255)
 · [write-once recovery study](https://www.usenix.org/conference/osdi25/presentation/pan)
 
+### Measure physical release independently of cold convergence
+
+The volume owner can observe backing allocation reach the independently
+verified retained floor while grouping still has eligible work. Keep
+allocator progress and optimization progress as separate signals. Advance
+either task with its own fresh grant. Count durable physical candidate
+ranges, root or reader pins, and provider release observations for
+allocation. Count checked candidates, complete-size deltas, negative
+rechecks and rewrite cost for optimization. A lack of idle credit defers
+eligible work. It cannot change the bytes the owner acknowledges.
+[Ordinary mounted witness](../evidence/windows-cpu-tile-and-ordinary-settlement-2026-11-25.json)
+
+```mermaid
+flowchart TD
+    Foreground["Foreground operation and durable acknowledgement"] --> Owner["Selected generation and live extent ownership"]
+    Owner --> Allocator["Reclaimable bytes, retained roots and reader pins"]
+    Owner --> Optimizer["Stale or eligible coherence work and protected size"]
+    Observe["Fresh host and backing observations"] --> Allocator
+    Observe --> Optimizer
+    Allocator --> Release["Retire proven ranges then release backing"]
+    Optimizer --> Publish["Check exact bytes then publish profitable replacements"]
+    Publish --> Owner
+    Release --> Witness["Independent reopen verifies live bytes and allocation"]
+```
+
 ## 4. Optimize complete size with bounded random access
 
 Write data quickly using the best observed fitting raw, LZ4, Zstd or
