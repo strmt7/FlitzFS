@@ -311,8 +311,12 @@ void group_read_window() {
       "The later group had too little demonstrated demand");
   std::cout<<"winfsp_group_window skipped_frames=2 useful_frames=4 unstable_refused=1 overdue_refused=1 short_refused=1\n";
 }
-void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},bool mixed=false,bool expanded=false,
-    bool variable_widths=false,bool cpu_prefix=false,bool learned_lead=false) {
+struct GroupReadFixtureOptions {
+  bool mixed=false,expanded=false,variable_widths=false,cpu_prefix=false,learned_lead=false,segmented=false;
+};
+
+void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},GroupReadFixtureOptions options={}) {
+  const auto [mixed,expanded,variable_widths,cpu_prefix,learned_lead,segmented]=options;
   constexpr auto extent=kNativeExtentBytes;
   constexpr PagedStoreLimits limits{kStoreMaxPhysicalBytes};
   constexpr StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
@@ -441,6 +445,7 @@ void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},bool 
   require(forecast_seen && work && work->frames.empty() && work->groups && work->groups->bases().size()==1 &&
       work->groups->members().size()==members && work->groups->mixed_methods()==mixed,
       "Grouped WinFsp forecast did not capture its protected inputs");
+  const auto member_offset=work->groups->members()[static_cast<std::size_t>(cpu_prefix)].record.primary;
   const auto publish_device=[&] {
     worker->observe(*h.adapter,false);
     if(const auto wake=static_cast<HANDLE>(worker->wake_handle()))
@@ -485,6 +490,36 @@ void group_read_ahead(std::optional<NativeLz4ReadWorkerProfile> profile={},bool 
   read_unrelated();
   const auto first_ready=predicted+static_cast<unsigned>(cpu_prefix);
   auto ready_members=after-first_ready;
+  if(segmented) {
+    constexpr auto slice=4096U;
+    // Observe reads of one protected member without injecting a failure.
+    h.image->corrupt_read_offset=member_offset;
+    h.image->corrupt_read_number=(std::numeric_limits<std::uint64_t>::max)();
+    const auto read_slices=[&] {
+      h.image->matching_reads=0;
+      const auto before=h.image->read_bytes;
+      for(auto offset=first_ready*extent;offset<after*extent;offset+=slice)
+        h.read(context,Bytes(file.begin()+offset,file.begin()+offset+slice),offset);
+      return std::pair{h.image->read_bytes-before,h.image->matching_reads};
+    };
+    const auto prepared=read_slices();
+    const auto cpu=read_slices();
+    h.image->corrupt_read_offset=Ram::no_read_fault;
+    std::cout<<"segmented_group_read callbacks="<<(after-first_ready)*extent/slice
+        <<" delivered_frames="<<h.adapter->native_lz4_read_ahead_hits()
+        <<" prepared_backing_bytes="<<prepared.first<<" cpu_backing_bytes="<<cpu.first
+        <<" prepared_member_reads="<<prepared.second<<" cpu_member_reads="<<cpu.second
+        <<" device="<<bool(worker)<<'\n';
+    require(!prepared.second && cpu.second && prepared.first<cpu.first &&
+        h.adapter->native_lz4_read_ahead_hits()==ready_members && h.image->write_bytes==writes,
+        "Segmented demand reread a prepared member or failed to reduce backing work");
+    h.close(other_context);
+    h.close(context);
+    auto snapshot=h.adapter->snapshot();
+    snapshot.verify_all();
+    require(snapshot.read("f47",0,file.size())==file,"Independent CPU read lost segmented group bytes");
+    return;
+  }
   unsigned callbacks=0;
   for(auto first=first_ready;first<after;) {
     const auto count=(std::min)(after-first,variable_widths?(first==first_ready?3U:1U):width);
@@ -1407,12 +1442,13 @@ void publication_faults(unsigned unit) {
 }
 int wmain(int argc,wchar_t** argv){try {
   const auto mode=argc>1?std::wstring_view(argv[1]):std::wstring_view{};
+  const bool segmented=mode==L"--hip-segmented-group-reads";
   const bool learned_lead=mode==L"--hip-prepared-learned-group-reads";
   const bool cpu_prefix=learned_lead || mode==L"--hip-prepared-partial-mixed-group-reads";
   const bool variable_widths=cpu_prefix || mode==L"--hip-prepared-variable-mixed-group-reads";
   const bool expanded=variable_widths || mode==L"--hip-prepared-expanded-mixed-group-reads";
   const bool warm=expanded || mode==L"--hip-prepared-group-reads" || mode==L"--hip-prepared-mixed-group-reads";
-  const bool device=warm || mode==L"--hip-group-reads" || mode==L"--hip-mixed-group-reads";
+  const bool device=warm || segmented || mode==L"--hip-group-reads" || mode==L"--hip-mixed-group-reads";
   const bool timing=device && argc==13 && std::wstring_view(argv[12])==L"--timed-exchange";
   app_fixture::Budget budget(true,timing);
   if(device && (argc==12 || timing)) {
@@ -1427,7 +1463,7 @@ int wmain(int argc,wchar_t** argv){try {
       profile.minimum_lead_ms=100;
       profile.prepared_group_submit_lead_ms=20;
     }
-    group_read_ahead(std::move(profile),mixed,expanded,variable_widths,cpu_prefix,learned_lead);
+    group_read_ahead(std::move(profile),{mixed,expanded,variable_widths,cpu_prefix,learned_lead,segmented});
     return 0;
   }
   if(argc!=2)throw std::runtime_error("Explicit callback/fault mode required");
@@ -1441,11 +1477,15 @@ int wmain(int argc,wchar_t** argv){try {
   }
   else if(mode==L"--ready-lz4-reads")ready_lz4_reads();
   else if(mode==L"--ready-group-reads")group_read_ahead();
+  else if(mode==L"--ready-segmented-group-reads")group_read_ahead({},{.segmented=true});
   else if(mode==L"--ready-mixed-group-reads"){
     group_read_timing();group_read_window();
-    group_read_ahead({},true);group_read_ahead({},true,true);group_read_ahead({},true,true,true);
-    group_read_ahead({},true,true,true,true);
-    group_read_ahead({},true,true,true,true,true);
+    GroupReadFixtureOptions options{.mixed=true};
+    group_read_ahead({},options);
+    options.expanded=true;group_read_ahead({},options);
+    options.variable_widths=true;group_read_ahead({},options);
+    options.cpu_prefix=true;group_read_ahead({},options);
+    options.learned_lead=true;group_read_ahead({},options);
   }
   else if(mode==L"--faults-4096")publication_faults(4096);
   else if(mode==L"--faults-65536")publication_faults(65536);

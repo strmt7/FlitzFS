@@ -6,6 +6,16 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "segmented_grouped_delivery": {
+    "source_base": "05186ed774ba5bf6317ffb92964affc8be2510ea",
+    "evidence": "docs/evidence/windows-group-segmented-reads-2026-11-25.json",
+    "callback_requests_and_bytes_per_request": [32, 4096],
+    "prepared_backing_bytes_before_and_after": [433276, 37216],
+    "ordinary_cpu_backing_bytes": 602848,
+    "verified_device_frames_delivered": 2,
+    "selected_ctest_passed": 7,
+    "installed_mounted_speedup_qualified": false
+  },
   "read_ahead_during_group_duty": {
     "source_base": "0266f99b03171fbcb44b41634f88f389563631f0",
     "evidence": "docs/evidence/windows-read-ahead-group-duty-2026-11-25.json",

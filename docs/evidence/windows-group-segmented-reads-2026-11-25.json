@@ -1,0 +1,212 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "scope": "Indexed grouped prepared-read consumption across adjacent partial requests in the WinFsp callback path and an independent CPU view",
+  "source": {
+    "baseline": "05186ed774ba5bf6317ffb92964affc8be2510ea",
+    "base_tree": "9e2ae316fbb481781cd4bf43fe982803b0aea0a6",
+    "tested_blobs": {
+      "CMakeLists.txt": "ebf6f1cff0f81a9dc6ee210e262f5064b262f284",
+      "src/native_group_read.cpp": "542fbfae38bbe1a8a2681062f6871601d19f2f1f",
+      "src/native_group_read.hpp": "1e7a4f7bf1ce924ba87d0e0624d17ed645603cbb",
+      "src/native_indexed_volume.cpp": "58fa3f6e07bb357befacc563a94dce5361bccb24",
+      "tests/test_native_shared_base.cpp": "bd1e235ea7945d543c17d14e9a01bfb74b2b06f5",
+      "tests/test_winfsp_paged.cpp": "3a8a9e07a47018ad430443ce43fa5cc47ee356db"
+    },
+    "source_navigation": {
+      "provider_version": "0.2.43",
+      "source_files": 11,
+      "inventory_sha256": "957cda3f3a3ea4bfed7cd59b2dcc376c8a3990c96dd04e3327f138161aaa058a",
+      "native_result_sha256": "a7b66b63018c8e1f060a607869df0d29fb71e0db7ec987df702202d8d45ce178"
+    }
+  },
+  "implementation": [
+    "Copy directly from the already bounded and verified group buffer.",
+    "Retain the member only for adjacent consumption within the same prepared window.",
+    "Recheck current member, shared base and checkpoint on each use.",
+    "Release at the logical end and keep existing independent CPU fallback for other requests."
+  ],
+  "comparison": {
+    "fixture": "Same selected compressed file and same sequence of 32 adjacent 4096-byte callback requests over two verified 65536-byte members.",
+    "instrumentation": "Count complete bytes read by the controlled backing provider and reads covering one exact member record. No failure was injected in this comparison.",
+    "old_prepared": {
+      "callbacks": 32,
+      "delivered_frames": 2,
+      "prepared_backing_bytes": 433276,
+      "cpu_backing_bytes": 602848,
+      "prepared_member_reads": 15,
+      "cpu_member_reads": 16,
+      "device": 0,
+      "assertion": "Segmented demand reread a prepared member or failed to reduce backing work.",
+      "exit_code": 1,
+      "process_tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 15163392,
+      "log_sha256": "4abd41071a866e6ee043716d7f7571b917958a3c3599e70c536e783e6ed1ec02"
+    },
+    "corrected_cpu_prepared": {
+      "callbacks": 32,
+      "delivered_frames": 2,
+      "prepared_backing_bytes": 37216,
+      "cpu_backing_bytes": 602848,
+      "prepared_member_reads": 0,
+      "cpu_member_reads": 16,
+      "device": 0,
+      "independent_cpu_bytes": "exact",
+      "backing_writes": 0,
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 15548416,
+      "log_sha256": "f018d64de6bde4f5fd0e6adf82fc0a022c354ae1ba40b71e0e9097f78d9fba3c"
+    },
+    "corrected_radeon_prepared": {
+      "callbacks": 32,
+      "delivered_frames": 2,
+      "prepared_backing_bytes": 37216,
+      "cpu_backing_bytes": 602848,
+      "prepared_member_reads": 0,
+      "cpu_member_reads": 16,
+      "device": 1,
+      "worker_verified_frames": 2,
+      "independent_cpu_bytes": "exact",
+      "backing_writes": 0,
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 179838976,
+      "log_sha256": "de6ac80b8fa2cecd16565ea906ba08e49c8cfa64f340b2cff4ae06f020e6e77e"
+    }
+  },
+  "physical_amd": {
+    "manifest_sha256": "44a765e404c245800c4b3ca91045889dbce55d517ade4dd542277deff8331856",
+    "adapter": "AMD Radeon RX 9070 XT",
+    "architecture": "gfx1201",
+    "driver": "32.0.32029.2010",
+    "windows_build": "26300",
+    "adapter_luid": "9d75010000000000",
+    "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+    "binaries": {
+      "flitzfs_native_lz4_read_worker.exe": {
+        "sha256": "8625a3fa306adce0f3db5a1803ea6b9924147817c73630f75f09d42fdf268ca4",
+        "bytes": 581632
+      },
+      "flitzfs_rocm_native_lz4_decode.dll": {
+        "sha256": "9ac5bb33a7b39ae26712dcdcfcdeb6b4b5fc049175e18dd6f24d047a37b3e128",
+        "bytes": 173568
+      },
+      "winfsp-x64.dll": {
+        "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+        "bytes": 200816
+      },
+      "flitzfs_winfsp_paged_tests.exe": {
+        "sha256": "116ffa0d6688874ecfec7b97121a9622654192c95a213165e837ed8fb7253747",
+        "bytes": 2275840
+      }
+    },
+    "initial_device_engine_percent": 0,
+    "initial_cpu_percent": 22.453848276057144,
+    "available_bytes_at_preflight": 32046178304
+  },
+  "validation": {
+    "release": {
+      "ctest_names": [
+        "bounded_native_prepared_packed_reads",
+        "bounded_native_prepared_mixed_reads",
+        "bounded_winfsp_paged_callbacks",
+        "bounded_winfsp_paged_ready-lz4-reads",
+        "bounded_winfsp_paged_ready-group-reads",
+        "bounded_winfsp_paged_ready-mixed-group-reads",
+        "bounded_winfsp_paged_ready-segmented-group-reads"
+      ],
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 58945536,
+      "log_sha256": "5366eefcbdc4eeab0fa7004105aae7638d30a5f5d9e30137bf4b35cb9eaf8766"
+    },
+    "raw_packed": {
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 8609792,
+      "log_sha256": "2cefa36270f60c103ab55e6d56fbf60fdbac0992da511cffe4eb0fb451d96d74"
+    },
+    "addresssanitizer_packed": {
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 9060352,
+      "log_sha256": "2cefa36270f60c103ab55e6d56fbf60fdbac0992da511cffe4eb0fb451d96d74"
+    },
+    "addresssanitizer_mixed": {
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 12091392,
+      "log_sha256": "ff3a39ff468de09db72ecd9068ca51951bc9fbf7402079064ee8f7e1565d94c5"
+    },
+    "raw_and_sanitizer_binary_digests": {
+      "raw_shared_base_sha256": "eb1061c630f8ab6f4807ceeb878a1a3a54b3a4aae515cf3ac727bb031b7a2f7d",
+      "asan_shared_base_sha256": "baac8892c80fc5ded37eb86d72b0bc58dcb668408bcb9752efb3ad7f0ebe22cc"
+    },
+    "scoped_residual_processes": 0
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "lock_sha256": "01fbef3b628f772e4aba9724b6ced11c0f211d4d3bf51e38d1b9d0039eac997b",
+    "receipt_sha256": "1225babd453960e4a5be25beb529894c7ce2921c88cdc085a5de9740d4a8d5fb",
+    "pages": [
+      {
+        "name": "winfsp-read-api",
+        "url": "https://winfsp.dev/doc/WinFsp-API-winfsp.h/",
+        "http_status": 200,
+        "success": true,
+        "markdown_bytes": 73095,
+        "markdown_sha256": "23f2e7b26b2297a12d6e98acb7b612010c44361803cc72c3563f82571cce5837",
+        "capture_sha256": "ae18810cf8e44c660a7cbb9fc8257a88c9c252981cd969ac2ec241b723df7e92",
+        "error": ""
+      },
+      {
+        "name": "windows-file-caching",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/fileio/file-caching",
+        "http_status": 200,
+        "success": true,
+        "markdown_bytes": 23227,
+        "markdown_sha256": "6f6a632ded8fba3af29ee5630a4126ac5fdb5338b81c1827b3a66556d03ebf62",
+        "capture_sha256": "93e34870cce5156f55a606abf3c0ed30862ca0646b292734e7837b5826f00a0f",
+        "error": ""
+      },
+      {
+        "name": "fast26-grouped-access",
+        "url": "https://www.usenix.org/conference/fast26/presentation/huang",
+        "http_status": 200,
+        "success": true,
+        "markdown_bytes": 10395,
+        "markdown_sha256": "b271b38f1feb88acd780ae11d756c7f3723fecb288cfe5e7803fed9c5d93767d",
+        "capture_sha256": "9d8725a02caa068585504359193e8f0d210a59f063376b71fbd7ebc0cd6dad77",
+        "error": ""
+      },
+      {
+        "name": "windows-readfile",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-readfile",
+        "http_status": 200,
+        "success": true,
+        "markdown_bytes": 49272,
+        "markdown_sha256": "bc8dbd3c0109a620d162728b997074eed639180dfa677e04535a521637b5031f",
+        "capture_sha256": "871e9bb1dd0f32e98fbf0c3b4b0749f5526d49bd13174c676773f0fbc03ba172",
+        "error": ""
+      }
+    ],
+    "robots": true,
+    "external_llm": false
+  },
+  "release_boundary": {
+    "real_amd_compute": true,
+    "sdk_callbacks_with_injected_lifecycle": true,
+    "installed_mount_exercised": false,
+    "end_to_end_client_speedup_qualified": false,
+    "driver_changes": false,
+    "release_qualified": false
+  }
+}

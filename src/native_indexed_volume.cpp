@@ -2384,39 +2384,39 @@ Bytes IndexedVolumeView::read(const IndexedInodeInput& selected,std::uint64_t of
   const auto start=native_extent_key(selected.inode,first?first-1:0);
   const auto range=index_.list(start.parent,first?std::string_view(start.name):std::string_view{},
       static_cast<std::size_t>(last-first+1));
+  const auto copy_payload=[&](std::uint64_t begin,std::span<const std::byte> data) {
+    const auto from=(std::max)(begin,offset),to=(std::min)(end,begin+data.size());
+    if(from<to)std::copy_n(data.begin()+static_cast<std::ptrdiff_t>(from-begin),
+        static_cast<std::size_t>(to-from),output.begin()+static_cast<std::ptrdiff_t>(from-offset));
+  };
   IndexedSharedBaseRead cached_base;
   for(const auto& entry:range) {
     const auto block=native_extent_block(entry.key.name);
     if(block>last)break;
     if((entry.value&ordinal_mask)>=root_.next_extent)
       fail(Code::corrupt,"indexed extent reference exceeds allocator");
-    DecodedIndexedExtent extent;
+    const auto begin=block*kNativeExtentBytes;
     if(groups && groups->ready) {
       auto& pending=*groups->ready;
-      auto* ready=pending.find(selected.inode,block,entry.value);
+      auto* ready=pending.find(selected.inode,block,entry.value,(std::max)(begin,offset)-begin);
       if(ready && store_.matches_group_read(ready->record,ready->base,*pending.metadata_)) {
         validate_payload(selected,block,ready->bytes);
-        extent.data=std::exchange(ready->bytes,Bytes{});
-        extent.tiled_group=true;
-        ++pending.consumed_;
+        copy_payload(begin,ready->bytes);
+        pending.delivered(*ready,end-begin);
+        groups->tiled=true;
+        continue;
       }
     }
-    if(extent.data.empty()) {
-      std::optional<Bytes> record;
-      try {
-        record=store_.read_matching(entry.value,extent_header+kNativeExtentBytes,std::nullopt,route);
-      }catch(const std::bad_alloc&){throw;}
-      catch(const std::exception&){fail(Code::storage_failure,"indexed object integrity or read failure");}
-      if(!record)fail(Code::corrupt,"indexed object reference missing");
-      extent=decode_extent(store_,index_,root_,entry.value,std::move(*record),
-          selected,block,false,&cached_base,retained);
-    }
+    std::optional<Bytes> record;
+    try {
+      record=store_.read_matching(entry.value,extent_header+kNativeExtentBytes,std::nullopt,route);
+    }catch(const std::bad_alloc&){throw;}
+    catch(const std::exception&){fail(Code::storage_failure,"indexed object integrity or read failure");}
+    if(!record)fail(Code::corrupt,"indexed object reference missing");
+    const auto extent=decode_extent(store_,index_,root_,entry.value,std::move(*record),
+        selected,block,false,&cached_base,retained);
     if(groups && extent.tiled_group)groups->tiled=true;
-    const auto data=extent.payload();
-    const auto begin=block*kNativeExtentBytes;
-    const auto from=(std::max)(begin,offset),to=(std::min)(end,begin+data.size());
-    if(from<to)std::copy_n(data.begin()+static_cast<std::ptrdiff_t>(from-begin),
-        static_cast<std::size_t>(to-from),output.begin()+static_cast<std::ptrdiff_t>(from-offset));
+    copy_payload(begin,extent.payload());
   }
   if(retained)(void)retained->bind(store_);
   return output;

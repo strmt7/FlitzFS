@@ -20,15 +20,28 @@ std::size_t NativeGroupReadyReads::descriptor_bytes() noexcept {
 }
 
 NativeGroupReadyReads::Member* NativeGroupReadyReads::find(std::uint64_t inode,std::uint64_t block,
-    std::uint64_t object) noexcept {
+    std::uint64_t object,std::uint64_t offset) noexcept {
   if(inode!=inode_)return nullptr;
   const auto found=std::ranges::lower_bound(members_,block,{},&Member::block);
   return found!=members_.end() && found->block==block && found->record.object==object &&
-      !found->bytes.empty()?&*found:nullptr;
+      !found->bytes.empty() && offset<found->logical_bytes &&
+      (!found->next_offset || found->next_offset==offset)?&*found:nullptr;
+}
+
+void NativeGroupReadyReads::delivered(Member& member,std::uint64_t end) noexcept {
+  if(!member.next_offset)++consumed_;
+  if(end>=member.logical_bytes) {
+    std::vector<std::byte>{}.swap(member.bytes);
+    --pending_members_;
+  }else member.next_offset=static_cast<std::uint32_t>(end);
 }
 
 void NativeGroupReadyReads::discard_before(std::uint64_t offset) noexcept {
-  const auto keep=std::ranges::lower_bound(members_,offset/kNativeExtentBytes,{},&Member::block);
+  const auto keep=std::ranges::upper_bound(members_,offset,{},[](const Member& member) {
+    return member.block*kNativeExtentBytes+member.logical_bytes;
+  });
+  pending_members_-=static_cast<std::size_t>(std::count_if(members_.begin(),keep,
+      [](const Member& member){return !member.bytes.empty();}));
   members_.erase(members_.begin(),keep);
 }
 
@@ -45,10 +58,12 @@ std::unique_ptr<NativeGroupReadyReads> NativeGroupReadyReads::verify(NativeGroup
     if(bytes.size()!=kNativeExtentBytes || record_digest(bytes)!=member.decoded_digest)return {};
     while(!bytes.empty() && bytes.back()==std::byte{})bytes.pop_back();
     if(bytes.empty() || bytes.size()>member.maximum_payload)return {};
-    ready->members_.push_back({member.record,batch.bases_[member.base].record,member.block,std::move(bytes)});
+    ready->members_.push_back({member.record,batch.bases_[member.base].record,member.block,
+        member.maximum_payload,0,std::move(bytes)});
   }
   if(interrupted && interrupted())return {};
   ready->metadata_=std::move(batch.metadata_);
+  ready->pending_members_=ready->members_.size();
   return ready;
 }
 

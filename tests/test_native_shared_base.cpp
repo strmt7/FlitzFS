@@ -213,6 +213,8 @@ void prepared_packed_group_reads() {
   ram->matching_reads=0;
   require(session.read(file,extent,11,nullptr,&route)==Bytes(input.begin()+extent,input.begin()+extent+11) &&
       ready->consumed()==1 && ram->matching_reads==0,"Exact packed read did not use the prepared bytes");
+  require(session.read(file,extent+11,13,nullptr,&route)==Bytes(input.begin()+extent+11,input.begin()+extent+24) &&
+      ready->consumed()==1 && ram->matching_reads==0,"Adjacent range lost the prepared member remainder");
   require(session.read(file,extent,11,nullptr,&route)==Bytes(input.begin()+extent,input.begin()+extent+11) &&
       ready->consumed()==1 && ram->matching_reads==1,"Consumed member did not recover through the CPU");
   require(session.read(file,2*extent,11,nullptr,&route)==Bytes(input.begin()+2*extent,input.begin()+2*extent+11) &&

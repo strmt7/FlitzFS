@@ -585,6 +585,15 @@ on the same checkpoint. A seek, checkpoint change or completely served
 range invalidates the capture. The native read path remains independently
 decodable on CPU.
 
+A callback may request only part of a prepared group member. The reader
+copies the requested bytes and retains the rest of the verified buffer
+within the same admitted window. The next adjacent callback rechecks
+the member, base and checkpoint before using that buffer. Passing the
+member's logical end releases its storage. A seek or stale proof uses
+the normal CPU read path.
+[WinFsp file-system interface](https://winfsp.dev/doc/WinFsp-API-winfsp.h/) ·
+[Segmented CPU and Radeon evidence](../evidence/windows-group-segmented-reads-2026-11-25.json)
+
 ```mermaid
 sequenceDiagram
     participant C as WinFsp controller

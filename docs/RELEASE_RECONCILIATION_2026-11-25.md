@@ -18,6 +18,7 @@ update and two changes to grouped AMD delivery. Each signed replay,
 physical AMD run and local profile carries its own source identity.
 [Current code, checks and research receipts](evidence/windows-persistent-inline-reconciliation-2026-11-25.json) ·
 [Controller admission and physical AMD evidence](evidence/windows-read-ahead-group-duty-2026-11-25.json) ·
+[Segmented grouped read evidence](evidence/windows-group-segmented-reads-2026-11-25.json) ·
 [Implementation priorities](#next-decisions-ranked-by-expected-gain)
 [Protected size, source inventory and current decisions](evidence/windows-protected-size-frontier-2026-11-25.json) ·
 [Indexed sampling and source evidence](evidence/windows-indexed-sample-scope-2026-11-25.json) ·
@@ -1219,6 +1220,16 @@ semantics constrain every optimization.
    costs for writes and seek locality.
 
 ### Ready AMD and continuous CPU service
+
+Two verified group frames served 32 adjacent 4 KiB reads on the revised
+callback path. The previous prepared reader discarded the remainder of
+each frame after its first read. Backing reads fell from 433,276 to
+37,216 bytes on the same selected contents. The ordinary CPU control
+read 602,848 bytes. The physical Radeon run delivered both frames and
+matched the corrected CPU-prepared read counts. The control measures
+backing work at the callback, before comparing complete mounted-client
+time and device startup.
+[Segmented group comparison](evidence/windows-group-segmented-reads-2026-11-25.json)
 
 The controller previously waited for group maintenance to be idle before
 preparing a pending read. The fixture held pending group work behind its
