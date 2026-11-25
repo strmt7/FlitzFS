@@ -301,11 +301,12 @@ or a new representation.
   independently verified all 1,027 files. The controller's duty sampling
   now gives group work a way to accumulate fresh CPU-window credit.
   The paced replay completed and isolated a stale retry recommendation.
-  Require quiescence from the corrected observation-delay build under
-  the normal guest admission reserve.
+  The corrected signed build reached 503 sampled extents and kept
+  all live bytes independently readable. Carry the remaining advisory
+  scan through quiescence under the ordinary duty envelope.
   Use the measured phase, time and allocation ledger to choose between
   tuning eligibility and local reuse.
-  [Mounted, CPU and Radeon evidence](evidence/windows-maintenance-retry-delay-2026-11-25.json)
+  [Signed replay and retained-peer evidence](evidence/windows-retained-short-peer-2026-11-25.json)
 - **Useful device delivery.** Feed observed open stream ranges and
   generations to the existing owner. For read, write and collective work,
   compare CPU, cold GPU and a ready lease using identical observations.

@@ -864,6 +864,21 @@ void profile_cross_window_short_families(bool regression=false) {
   profile_similarity_packing(inputs,regression?2:0);
 }
 
+void profile_retained_short_peer() {
+  constexpr std::size_t first_window=kNativeMaxDirtyExtents;
+  std::vector<Bytes> inputs;
+  inputs.reserve(first_window+2);
+  inputs.push_back(uneven_short_pack_file(1,1));
+  for(std::size_t i=1;i<first_window;++i) {
+    auto& bytes=inputs.emplace_back(data(kNativeExtentBytes,974113+53*i));
+    bytes.back()=std::byte{0x81};
+  }
+  inputs.push_back(uneven_short_pack_file(0,1));
+  inputs.push_back(data(24*1024,69931));
+  inputs.back().back()=std::byte{0x67};
+  profile_similarity_packing(inputs,2);
+}
+
 void profile_public_packs(const std::filesystem::path& filename,bool complete_files,bool compare_reencoding=false) {
   if(!store_zstd_available()) {
     require(!complete_files,"complete-file packing profile requires Zstandard");
@@ -3846,7 +3861,12 @@ int main(int argc,char** argv){try{
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-pack-distinct-short-extents") {
     indexed_pack_distinct_short_extents();
     indexed_uneven_short_packs(true);
-    if(store_zstd_available())profile_cross_window_short_families(true);
+    if(store_zstd_available()) {
+      profile_cross_window_short_families(true);
+      profile_retained_short_peer();
+    }
+  } else if(argc==2 && std::string_view(argv[1])=="--profile-retained-short-peer") {
+    profile_retained_short_peer();
   } else if(argc==2 && std::string_view(argv[1])=="--profile-shuffled-short-packs") {
     profile_shuffled_short_packs();
   } else if(argc==2 && std::string_view(argv[1])=="--profile-cross-window-short-families") {

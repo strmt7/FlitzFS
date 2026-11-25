@@ -849,17 +849,28 @@ struct NativeGroupMaintenance::Impl {
     return packing_window.emplace(std::move(window));
   }
 
-  const Feature* choose_packing_partner(const Feature& seed,std::uint32_t remaining,bool& similar) {
+  const Feature* choose_packing_partner(const Feature& seed,std::uint32_t remaining,bool& similar,
+      const Feature* incumbent) {
+    const auto& sketch=seed.packing;
+    if(incumbent && std::ranges::none_of(sketch,[](auto value){return value!=0;}))return nullptr;
     const auto& index=pack_index();
+    unsigned best=0;
+    if(incumbent) {
+      // A replacement keeps the current bin's count and byte geometry.
+      const auto size=std::lower_bound(index.prior_sizes.begin(),index.prior_sizes.end(),remaining,
+          [](const auto& row,auto value){return row.first<value;});
+      if(size==index.prior_sizes.end() || size->first!=remaining)return nullptr;
+      for(std::size_t i=0;i<sketch.size();++i)
+        best+=sketch[i] && sketch[i]==incumbent->packing[i];
+    }
     const auto candidate=[&](std::uint64_t object) -> const Feature* {
       const auto found=representatives.find(object);
       if(found==representatives.end() || features.contains(object) || staged_objects.contains(object) ||
           deferred_batch_objects.contains(object))return nullptr;
       const auto& feature=found->second;
       const auto size=feature.token.standalone_bytes;
-      return !feature.packing_assigned && size && size<=remaining?&feature:nullptr;
+      return !feature.packing_assigned && size && size<=remaining && (!incumbent || size==remaining)?&feature:nullptr;
     };
-    const auto& sketch=seed.packing;
     std::map<std::uint64_t,unsigned> hits;
     for(unsigned i=0;i<sketch.size();++i) {
       if(!sketch[i])continue;
@@ -872,17 +883,16 @@ struct NativeGroupMaintenance::Impl {
       }
     }
     const Feature* partner=nullptr;
-    unsigned best=0;
     for(const auto& [object,count]:hits) {
       const auto* matched=candidate(object);
-      if(matched && (!partner || count>best || (count==best &&
+      if(matched && (count>best || (partner && count==best &&
           matched->token.standalone_bytes>partner->token.standalone_bytes))) {
         partner=matched;
         best=count;
       }
     }
     similar=partner!=nullptr;
-    if(partner)return partner;
+    if(partner || incumbent)return partner;
     auto prior=std::upper_bound(index.prior_sizes.begin(),index.prior_sizes.end(),remaining,
         [](auto value,const auto& row){return value<row.first;});
     while(prior!=index.prior_sizes.begin()) {
@@ -901,6 +911,7 @@ struct NativeGroupMaintenance::Impl {
     while(seed!=features.end() && !eligible(seed->second))++seed;
     if(seed==features.end())return false;
     std::vector<NativeContentToken> expected;
+    auto last=seed;
     auto remaining=kNativeExtentBytes;
     for(auto next=seed;next!=features.end() && remaining && expected.size()<maximum_members;++next) {
       auto& feature=next->second;
@@ -909,20 +920,28 @@ struct NativeGroupMaintenance::Impl {
       expected.push_back(feature.token);
       feature.packing_assigned=true;
       remaining-=bytes;
+      last=next;
     }
     bool similar=false;
-    if(expected.size()==1) {
-      // Preserve fitting groups in the current window. Only a stranded seed
-      // compares relatives among the earlier, memory-funded representatives.
-      if(const auto* partner=choose_packing_partner(seed->second,remaining,similar)) {
-        const auto& token=partner->token;
-        const auto live=writer.maintenance_token(token.extent);
-        if(!live || live->object!=token.object || live->revision!=token.revision) {
-          representatives.erase(token.object);
+    const bool singleton=expected.size()==1;
+    const auto* incumbent=singleton?nullptr:&last->second;
+    const auto bytes=incumbent?incumbent->token.standalone_bytes:remaining;
+    const auto* partner=representatives.empty()?nullptr:choose_packing_partner(seed->second,bytes,similar,incumbent);
+    if(partner) {
+      const auto& token=partner->token;
+      const auto live=writer.maintenance_token(token.extent);
+      if(!live || live->object!=token.object || live->revision!=token.revision) {
+        representatives.erase(token.object);
+        if(singleton) {
           seed->second.packing_assigned=false;
           return true;
         }
-        expected.push_back(token);
+        similar=false;
+      } else {
+        if(incumbent) {
+          last->second.packing_assigned=false;
+          expected.back()=token;
+        } else expected.push_back(token);
         std::ranges::sort(expected,{},&NativeContentToken::object);
       }
     }

@@ -196,8 +196,12 @@ the observation. A newly calculated duty shortfall can supply a fresh
 delay. The deterministic regression preserves unpaid credit and checks
 that an observation refusal performs no backing work. Codec-enabled,
 raw-only and AddressSanitizer checks passed. The corrected signed
-candidate is staged under the guest's normal memory admission.
-[Mounted, CPU and Radeon evidence](evidence/windows-maintenance-retry-delay-2026-11-25.json)
+replay matched all 6,293 records and verified the same 1,027 files.
+It sampled 503 extents, compared with 76 in the paced replay, and
+ended with a fresh 38 ms duty estimate. The backing still occupied
+6,488,064 bytes after independent CPU reopen with zero further
+reclamation. Full mounted quiescence remains open.
+[Signed replay and retained-peer evidence](evidence/windows-retained-short-peer-2026-11-25.json)
 
 The physical Radeon on the installed host returned two independently
 verified frames through the owned Windows SDK callback controller on a
@@ -223,6 +227,27 @@ different selection rule.
 [AIT Data Compression Challenge 2026](https://aitdcc.github.io/) ·
 [Dataset and canonical digests](https://aitdcc.github.io/dataset.html) ·
 [The 2026 Algorithmic Information Theory Data Compression Challenge](https://arxiv.org/abs/2606.17712)
+
+### Grouping short files across scan windows
+
+When a group already fits, its final member can now be replaced by an
+earlier retained extent of the same length with stronger shared sketch
+evidence. The checked lookup confirms the current object and revision
+before either file participates. The encoder still prices the full
+protected representation before publishing. The grouping uses the
+existing packed format and independent CPU reader.
+
+In the 65-file control, protected occupied bytes including the selector
+went from 8,650,752 to 8,634,368. The improved group used 155,648 bytes
+of modeled maintenance writes. Both logical snapshots read back exactly,
+and the settled controller performed zero additional backing calls.
+Matched AITDCC I–P and CPython revision comparisons retained their
+respective occupied sizes. This validates one missed cross-window
+packing opportunity. Broader candidate selection still needs protected
+whole-volume comparisons.
+[Retained-peer and mounted validation](evidence/windows-retained-short-peer-2026-11-25.json) ·
+[AIT Data Compression Challenge 2026](https://aitdcc.github.io/) ·
+[Dataset paper](https://arxiv.org/abs/2606.17712)
 
 ## Ordinary packed follow-up
 
@@ -386,9 +411,9 @@ Attribute resource cost and remaining work before changing either phase.
 | --- | --- | --- |
 | S1 · Exact artifacts | Current scoped builds bind source and SDK/CPU artifacts. Earlier real device runs identify their exact ROCm binaries. | Bind one clean Windows 11 update, signed WinFsp pair, helper, workers, CPU decoder table and backing capabilities to the acceptance run. |
 | S2 · Scale | Paged inodes, names and extents are live. Checked replica reads group adjacent frames across banks within each leaf. The complete startup walk still runs. | Verify bounded attach under a versioned authority contract. Fit and validate separate named-file curves for attach, restart, enumeration, mutation and resident memory. |
-| S3 · Space reuse | The paced signed replay released allocated bytes while mounted, recorded zero failures and independently verified all 1,027 files. A stale retry estimate was isolated and fixed in a focused regression. | Replay the corrected observation-delay build to quiescence when the guest admission reserve is available. Verify repeated allocation settlement under churn, retained readers, pressure and interruption. |
+| S3 · Space reuse | The corrected signed replay released backing bytes while mounted, reported zero maintenance failures and independently verified all 1,027 files. It reached 503 sampled extents with duty still pending. | Trace the remaining bounded advisory scan to quiescence. Use measured cost to choose a smaller working set while preserving foreground and recovery guarantees. Verify repeated settlement under churn, pressure and interruption. |
 | S4 · AMD and CPU continuity | Real Radeon SDK callback trials served four mixed frames. The sealed packed controller now also delivered two exact device frames, recovered superseded demand on CPU and confirmed worker retirement. | Prove a useful automatic region for each advertised AMD role in installed-client paths. Qualify CPU availability, verified delivery and condition-based device recovery. |
-| S5 · Compression | Protected prefix selection can save an allocation pair. Two secondary-key restart controls save 122,880 complete bytes each at the same catalog size. Broader real corpus rebuild controls retained their sizes, with no catalog nominations required. AIT grouping and parity placement showed distinct effects. | Establish a held-out complete-size frontier including metadata and protection. Measure catalog recall and savings with a populated, funded search index. |
+| S5 · Compression | Retained same-size selection saved 16 KiB of protected occupied bytes in the controlled window transition. The AITDCC I–P and CPython sizes matched their controls. Earlier protected prefixes and secondary rolling keys showed distinct gains. | Establish a held-out complete-size frontier and measure recall for profitable retained alternatives under a funded index. |
 | S6 · Autonomy | Persistent sparse advice, workload samples, yield ranking and resource admission run in the controller. | Measure learning benefit, time to settle, interference, per-volume fairness and bytes written per byte reclaimed across workloads and restart. |
 | S7 · Windows experience | The helper and WinFsp own memory and supported file-backed volumes. Signed guests exercised external clients and verified reopen. | Qualify Explorer and independent apps with the signed candidate. Cover sharing, mapped and cached I/O, names, metadata, repair and clean teardown. |
 | S8 · Durability | Interruption fixtures exercised writes, flush, mapping and selector publication with independent CPU readback. | Qualify the acknowledged-operation and survivor-repair envelope for each backing. Explain unrecoverable failures precisely and retain the evidence for recovery. |
@@ -678,7 +703,7 @@ before expanding the experiment.
 
 | Priority | First deliverable | Decision before expanding |
 | --- | --- | --- |
-| 1 · Mounted allocation | Run the corrected observation-delay controller through selection, allocation release and quiescence | If any failure remains, isolate the first write fence. If the trace settles, use the cost ledger to decide whether local reuse or pacing earns the next change. |
+| 1 · Mounted allocation | Measure the remaining advisory scan and verify quiescence with ordinary allocation release | If any failure remains, isolate the first write fence. If the trace settles, use the cost ledger to decide whether local reuse or pacing earns the next change. |
 | 2 · Real AMD service and CPU continuity | One repeatable installed-client read shape that consumes verified device bytes, paired with CPU and cold device runs | Promote that shape only with a complete-path win. Use its largest measured cost to choose the next write or collective improvement. |
 | 3 · Compression that changes occupied size | Protected complete-volume profiles and oracle recall on held-out families | Keep the nondominated candidates in size and verified access. Choose an additional representation only when it improves an observed weak cohort. |
 | 4 · Writable reopen at scale | Shadow authority decision beside the full audit and an independently validated scaling model | Fix the largest measured metadata cost. Authorize incremental attachment only when all authority and recovery invariants hold. |
@@ -686,7 +711,7 @@ before expanding the experiment.
 
 ### 1. Close ordinary mounted settlement · E02, E08, E11
 
-1. Replay the corrected observation-delay build to quiescence when the guest admission reserve is available.
+1. Trace the remaining bounded advisory scan to quiescence. Use measured cost to choose a smaller working set while preserving foreground and recovery guarantees.
    Match all 6,293 trace records and the successful flushes. Require ordinary
    publication, lower occupied bytes while mounted, zero failed
    maintenance steps and actual controller quiescence. Verify all 1,027
@@ -817,7 +842,7 @@ before expanding the experiment.
 | Package | First bounded change and evidence needed before expansion |
 | --- | --- |
 | E01 · Scale | Compare a version-bound attach summary with the full audit in shadow mode. Record would-accept, audit result, pages touched and disagreement cause. Use held-out file-count tiers and count metadata residency. |
-| E02 · Allocation | Replay the corrected observation-delay build to quiescence when the guest admission reserve is available. Use phase costs to choose local evacuation or admission changes once ordinary settlement is verified. |
+| E02 · Allocation | Trace the remaining bounded advisory scan to quiescence. Use measured cost to choose a smaller working set while preserving foreground and recovery guarantees. Use phase costs to choose local evacuation or admission changes once ordinary settlement is verified. |
 | E03 · AMD | Measure verified-ready and cold delivery on one real grouped-read stream. Charge preparation, transfers, CPU verification, useful delivery and residency. Enroll a repeatable winning shape, then price one representative write shape and one collective job. |
 | E04 · Coherence | Run the funded catalog against a sealed family split. Count candidates retrieved, stale and negative lookups, actual savings and metadata cost versus a bounded exhaustive oracle. Grow discovery where the savings gap justifies additional index space. |
 | E05 · Candidate design | Run independently strong frames, exact reuse, protected bases and short restartable deltas against the same incumbent on held-out families. Add a representation only after locating repeatable residual bytes and bounding CPU access. |

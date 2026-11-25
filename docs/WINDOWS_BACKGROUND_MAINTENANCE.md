@@ -71,7 +71,7 @@ Every group advance clears the previous retry recommendation before
 validating the observation. A refusal can report its own deferral
 without extending an earlier duty estimate. The accumulated duty stays
 with the same group controller and receives only fresh earned credit.
-[Mounted, CPU and Radeon evidence](evidence/windows-maintenance-retry-delay-2026-11-25.json)
+[Signed replay and retained-peer evidence](evidence/windows-retained-short-peer-2026-11-25.json)
 [Windows system timing](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getsystemtimes) ·
 [Processor groups](https://learn.microsoft.com/windows/win32/procthread/processor-groups) ·
 [Native sampling and AMD recovery evidence](evidence/windows-native-cpu-sampling-amd-resume-2026-11-20.json)

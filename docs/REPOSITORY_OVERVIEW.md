@@ -8,9 +8,11 @@ The diagnostic replay found catalog retirement reaching a write fence.
 Local regressions cover the corrected write grant and cold-seal staging.
 The corrected signed replay recorded zero maintenance failures and byte-exact
 CPU reopen. The signed paced replay completed and exposed a stale retry
-recommendation. The corrected build passed focused tests. A physical
-Radeon also delivered verified grouped reads through the SDK controller.
-[Mounted, CPU and Radeon evidence](evidence/windows-maintenance-retry-delay-2026-11-25.json)
+recommendation. The corrected signed build progressed to 503 sampled
+extents with zero maintenance failures. The new retained peer selection
+also saved occupied bytes in a controlled grouping. A physical Radeon
+delivered verified grouped reads through the SDK controller.
+[Signed replay and retained-peer evidence](evidence/windows-retained-short-peer-2026-11-25.json)
 [Current reconciliation](RELEASE_RECONCILIATION_2026-11-25.md) ·
 [Implementation packets](RELEASE_RECONCILIATION_2026-11-25.md#implementation-packets-and-exit-decisions) ·
 [Current test and source evidence](evidence/windows-packed-admission-and-sealing-2026-11-25.json)
