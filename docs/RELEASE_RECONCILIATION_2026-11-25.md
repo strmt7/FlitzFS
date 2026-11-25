@@ -91,6 +91,13 @@ automatic path with matched CPU controls. Attribute the packed controller's
 remaining work to the inner rebuild phases before choosing the next fix.
 [Signed replay and Radeon evidence](evidence/windows-expanded-group-read-and-mounted-replay-2026-11-25.json)
 
+The new copy path groups preserved records across physical banks while
+retaining a checked leaf and CPU work bound. It cut the copy steps from
+931 to 81 and writes from 4,656 to 1,278 on the fragmented medium-record
+fixture. The complete images and independent reads matched. Replay the
+signed populated witness on this change before adjusting controller pacing.
+[Bank-spanning copy evidence](evidence/windows-bank-spanning-rebuild-2026-11-25.json)
+
 ## Reconciled release gates
 
 | Gate | Current evidence | Completion evidence |

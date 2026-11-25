@@ -144,16 +144,19 @@ void generic_maximum_and_empty() {
       require(independent.read(record.id)==original.read(record.id),"mixed-size rebuild bytes differ");
   }
 }
-void mirrored_rebuild_io(bool fragmented) {
+void mirrored_rebuild_io(bool fragmented,bool spanning=false) {
   constexpr auto count=4*kStoreMaxObjects;
   constexpr StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
   auto source=std::make_shared<Ram>(),target=std::make_shared<Ram>();
   source->failure_unit=target->failure_unit=4096;
-  source->capacity=target->capacity=8*1024*1024;
+  source->capacity=target->capacity=spanning?12*1024*1024:8*1024*1024;
   auto writer=PagedObjectStoreWriter::create_mirrored(source,identity(),limits,raw);
   std::vector<StoreMutation> records;
   records.reserve(count);
-  for(std::size_t i=0;i<count;++i)records.push_back({i+1,false,data(192+i%17*31,static_cast<unsigned>(5500+i))});
+  for(std::size_t i=0;i<count;++i) {
+    const auto bytes=spanning?895+i%9*303:192+i%17*31;
+    records.push_back({i+1,false,data(bytes,static_cast<unsigned>(5500+i))});
+  }
   for(std::size_t at=0;at<count;at+=kStoreMaxObjects)
     writer.commit(std::span(records).subspan(at,kStoreMaxObjects));
   if(fragmented) {
@@ -198,15 +201,17 @@ void mirrored_rebuild_io(bool fragmented) {
   for(const auto& record:records)
     require(independent.read(record.id)==record.bytes,"mirrored rebuild changed a verified record");
   const auto& copy_work=phases[static_cast<std::size_t>(Phase::copying)];
-  require(copy_work.target_calls<3*count && copy_work.target_writes<2*count && copy_work.steps<count/2,
-      "mirrored copy did not bound work into adjacent bank writes");
-  for(const auto phase:{Phase::verifying_target,Phase::verifying_publication})
-    require(phases[static_cast<std::size_t>(phase)].target_calls<count,
-        "packed verification did not combine adjacent target frames");
+  require(copy_work.target_calls<2*count && copy_work.target_writes<2*count && copy_work.steps<count/4,
+      "mirrored copy did not group bounded physical bank operations");
+  if(!spanning) {
+    for(const auto phase:{Phase::verifying_target,Phase::verifying_publication})
+      require(phases[static_cast<std::size_t>(phase)].target_calls<count,
+          "packed verification did not combine adjacent target frames");
+  }
   for(const auto phase:{Phase::verifying_source,Phase::copying,Phase::building_index,Phase::verifying_target,
       Phase::verifying_publication}) {
     const auto& measured=phases[static_cast<std::size_t>(phase)];
-    std::cout<<"staged_io fragmented="<<fragmented<<" phase="<<static_cast<unsigned>(phase)
+    std::cout<<"staged_io fragmented="<<fragmented<<" spanning="<<spanning<<" phase="<<static_cast<unsigned>(phase)
         <<" objects="<<count<<" source_calls="<<measured.source_calls<<" target_calls="<<measured.target_calls
         <<" source_bytes="<<measured.source_bytes<<" target_bytes="<<measured.target_bytes
         <<" target_writes="<<measured.target_writes<<" target_write_bytes="<<measured.target_write_bytes
@@ -219,7 +224,8 @@ void mirrored_rebuild_io(bool fragmented) {
     digest.push_back(hex[byte>>4]);
     digest.push_back(hex[byte&15U]);
   }
-  std::cout<<"staged_copy_image fragmented="<<fragmented<<" bytes="<<target->extent()<<" blake3="<<digest<<'\n';
+  std::cout<<"staged_copy_image fragmented="<<fragmented<<" spanning="<<spanning
+      <<" bytes="<<target->extent()<<" blake3="<<digest<<'\n';
 }
 void mirrored_rebuild_read_faults() {
   using Phase=PagedRewritePhase;
@@ -267,11 +273,12 @@ void mirrored_rebuild_read_faults() {
   for(const auto& record:records)
     require(reader.read(record.id)==record.bytes,"source survivor rebuild changed content");
 }
-void mirrored_copy_write_faults() {
+void mirrored_copy_write_faults(bool spanning) {
   using Phase=PagedRewritePhase;
   constexpr StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
-  const std::array records{StoreMutation{1,false,data(319,840)},StoreMutation{2,false,data(271,841)},
-      StoreMutation{3,false,data(401,842)}};
+  const std::array records{StoreMutation{1,false,data(spanning?1800:319,840)},
+      StoreMutation{2,false,data(spanning?2200:271,841)},StoreMutation{3,false,data(spanning?2519:401,842)}};
+  const std::size_t bank_writes=spanning?4:2;
   auto source=std::make_shared<Ram>();source->failure_unit=4096;
   auto writer=PagedObjectStoreWriter::create_mirrored(source,identity(),limits,raw);
   writer.commit(records);
@@ -291,10 +298,10 @@ void mirrored_copy_write_faults() {
     auto candidate=prepare(target);
     const auto before=target->calls;
     candidate.advance(writer);
-    require(candidate.progress().completed_in_phase==records.size() && target->calls-before==2,
-        "short records did not write one checked batch to each bank");
+    require(candidate.progress().completed_in_phase==records.size() && target->calls-before==bank_writes,
+        "copy did not write the checked stream one bank at a time");
   }
-  for(std::size_t cut=0;cut<2;++cut)for(unsigned mode=0;mode<3;++mode) {
+  for(std::size_t cut=0;cut<bank_writes;++cut)for(unsigned mode=0;mode<3;++mode) {
     auto target=std::make_shared<Ram>();
     auto candidate=prepare(target);
     target->failure=mode;
@@ -403,7 +410,8 @@ void failures(unsigned layout,std::uint32_t unit) {
 }
 int main(){try {
   generic_maximum_and_empty();cancellation_and_owner();admission_and_read_failures();
-  mirrored_rebuild_io(false);mirrored_rebuild_io(true);mirrored_rebuild_read_faults();mirrored_copy_write_faults();
+  mirrored_rebuild_io(false);mirrored_rebuild_io(true);mirrored_rebuild_io(true,true);
+  mirrored_rebuild_read_faults();mirrored_copy_write_faults(false);mirrored_copy_write_faults(true);
   for(bool mirrored:{false,true})changed_copied_descriptor(mirrored);
   for(unsigned layout=0;layout<3;++layout) {
     stale_phases(layout);

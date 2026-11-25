@@ -53,7 +53,7 @@ Subsequent checked inactive-image releases can continue under the same
 | Phase | Work per advance | Target roots |
 | --- | --- | --- |
 | Verify source | A bounded set of independently decoded records from one checked leaf | Absent |
-| Copy | Adjacent preserved frames within one checked leaf and mirror bank, or one record with its own encode/rebind work | Absent |
+| Copy | Adjacent preserved frames within one checked leaf, with writes split at each mirror bank, or one record with its own encode/rebind work | Absent |
 | Build index | Up to one leaf of checked candidate headers and the resulting index pages | Absent |
 | Verify target | A bounded set of records individually compared to their source and generation | Absent |
 | Publish | Dependency barrier, two root writes/barriers, independent root reparse | Private complete candidate |
@@ -96,12 +96,14 @@ Each verification and copy pass carries a checked tree cursor. Target comparison
 uses a bounded source lookup cache for that pass. A pass change resets both,
 so verification after publication reads the private image again.
 
-During copy, short records that preserve their encoded payload share a write
-and an immediate readback on each mirror. The group stays within a quarter of
-one verified leaf, the remaining bytes of one payload bank and two commit units
-of combined logical, stored and framing work. It retains source order and the
-same payload layout. Cold trials, root rebinding, filtered retention, folded
-layout and records that exceed the current fit use their existing paths.
+During copy, records that preserve their encoded payload share one verified
+logical stream. The group stays within a quarter of one verified leaf and two
+commit units of combined logical, stored and framing work. The mapper splits
+each replica's read and write at physical bank boundaries. Every entry must
+match the assigned stream position and peer offset. Both replicas are checked
+before the independent CPU comparison of every record. Cold trials, root
+rebinding, filtered retention, folded layout and oversized records use their
+existing paths.
 During verification, adjacent frames in one checked leaf and one bank can
 share a backing read for each replica. The scanner checks both
 banks for equality, validates each record against its own descriptor and digest,
@@ -131,7 +133,16 @@ match on both the contiguous-source and fragmented-source fixtures. The
 backing bytes read and written, completed image bytes and full-image digests
 match each corresponding unbatched control. Six cuts through the two grouped
 writes retained the original authority and left the candidate unpublished.
-[Copy counts and failure checks](evidence/windows-batched-staged-copy-2026-11-25.json)
+[Single-bank copy evidence](evidence/windows-batched-staged-copy-2026-11-25.json)
+
+Allowing a bounded copy to continue across banks reduced advances from 931
+to 81 in a fragmented 1,024-record fixture with 895- to 3,319-byte records.
+Target writes fell from 4,656 to 1,278 and target reads from 4,520 to 1,276.
+Each existing short-record fixture fell from 300 to 81 advances. All three
+paired fixtures retained their completed image digests and passed exact
+independent readback. Twelve additional cuts exercised the four physical
+writes of a two-bank batch and retained the original authority.
+[Bank-spanning copy evidence](evidence/windows-bank-spanning-rebuild-2026-11-25.json)
 [Coalesced rebuild verification evidence](evidence/windows-rebuild-verification-reads-2026-11-25.json)
 
 Resource admission remains the provider/controller's responsibility. There is

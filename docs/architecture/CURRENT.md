@@ -400,9 +400,10 @@ admission govern the resulting candidate.
 The current append layout reclaims normal churn by staged image replacement or
 provider-supported tail/region release. It can reconcile unrelated commits
 under bounds. Rebuild still requires alternate capacity and full passes.
-Short unchanged mirrored records share copy and readback calls within one
-leaf and bank. Each record retains its own CPU comparison before the new
-image can be selected. [Staged copy evidence](../evidence/windows-batched-staged-copy-2026-11-25.json)
+Adjacent unchanged mirrored records share copy and readback work within one
+checked leaf. The mapper splits the stream at each physical bank. Each record
+retains its own CPU comparison before the new image can be selected.
+[Staged copy evidence](../evidence/windows-bank-spanning-rebuild-2026-11-25.json)
 [Windows scheduling and pacing](../../src/windows/winfsp_controller.cpp#L205)
 · [native group advancement](../../src/native_maintenance.cpp#L1132)
 · [persistent postings](../../src/indexed_coherence.cpp#L258)

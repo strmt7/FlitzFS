@@ -39,7 +39,10 @@
     "batched_staged_copy_target_reads": {"before": 2330, "after": 880},
     "batched_staged_copy_complete_images_matched": true,
     "batched_staged_copy_mounted_client": "The initial trial was refused at memory admission. The signed replay later completed the matched client trace and continued private rebuild work while mounted.",
-    "next": "Attribute copying outcomes to the inner source audit, payload copy, index construction and target checks. Use phase and occupied allocation to choose scheduling, placement or local reuse."
+    "bank_spanning_copy_evidence": "docs/evidence/windows-bank-spanning-rebuild-2026-11-25.json",
+    "bank_spanning_copy_steps": {"before": 931, "after": 81},
+    "bank_spanning_copy_target_writes": {"before": 4656, "after": 1278},
+    "next": "Replay the signed populated client with the bank-spanning copy. Attribute remaining work to the source audit, copy, index and fresh target checks if the candidate still ends before settlement."
   },
   "release_path_review": {
     "evidence": "docs/evidence/windows-batched-staged-copy-2026-11-25.json",

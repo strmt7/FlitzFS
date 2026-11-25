@@ -576,8 +576,8 @@ bool verify_stored_run(const State& s,std::span<const Entry> entries,std::size_t
   const auto primary=std::span(scratch).first(length);
   const auto peer=std::span(scratch).subspan(length,length);
   try {
-    s.image->read_exact(entries.front().offset,primary);
-    s.image->read_exact(entries.front().peer,peer);
+    read_record_bytes(*s.image,entries.front().offset,0,primary,s.unit);
+    read_record_bytes(*s.image,entries.front().peer,0,peer,s.unit);
     // Both banks must return the exact frame bytes. Full equality lets the
     // peer share the framing and digest checks on those identical bytes.
     if(!std::ranges::equal(primary,peer))fail("stored replica bytes disagree");
@@ -1131,26 +1131,30 @@ struct Rebuild {
     if(next.degraded_payloads)fail("rebuild produced degraded payload replicas");
     written_headers=detail::record_digest(written_headers,header);
   }
-  std::uint64_t remaining_payload_bank_bytes() const noexcept {
-    return allocation.unit?allocation.unit-allocation.used:next.unit;
-  }
   void append_mirrored_records(std::span<Entry> entries,std::span<const std::byte> frames,
       std::span<const Bytes> decoded,Bytes& readback_frames) {
     if(!next.mirrored || folded || entries.size()<2 || decoded.size()!=entries.size())
       fail("invalid mirrored rebuild batch");
-    for(auto& entry:entries)
-      allocation.place(next,entry,std::uint64_t{record_header_bytes}+entry.stored,payload_cursor);
+    std::uint64_t length=0;
+    for(auto& entry:entries) {
+      const auto frame_bytes=std::uint64_t{record_header_bytes}+entry.stored;
+      allocation.place(next,entry,frame_bytes,payload_cursor);
+      if(entry.offset!=stream_position(entries.front().offset,length,next.unit) ||
+          entry.peer!=add(entry.offset,next.unit))
+        fail("noncontiguous mirrored rebuild stream");
+      length=add(length,frame_bytes);
+    }
     if(payload_cursor>next.limits.maximum_physical_bytes)capacity("rebuild capacity");
-    const auto run=mirrored_record_run(next,entries);
-    if(run.count!=entries.size() || run.bytes!=frames.size())
-      fail("mirrored rebuild batch exceeds its bank");
+    if(length!=frames.size())fail("mirrored rebuild frame length");
     admit_target(payload_cursor);
     write_padding();
-    next.image->write_exact(entries.front().offset,frames);
-    next.image->write_exact(entries.front().peer,frames);
-    if(!verify_stored_run(next,entries,run.bytes,readback_frames))
+    // Each logical replica uses disjoint physical bank writes. The private
+    // stream still needs verified readback before any root can name it.
+    write_record_bytes(*next.image,entries.front().offset,0,frames,next.unit);
+    write_record_bytes(*next.image,entries.front().peer,0,frames,next.unit);
+    if(!verify_stored_run(next,entries,frames.size(),readback_frames))
       fail("rebuild produced degraded payload replicas");
-    auto verified=std::span<const std::byte>(readback_frames).first(run.bytes);
+    auto verified=std::span<const std::byte>(readback_frames).first(frames.size());
     for(std::size_t i=0;i<entries.size();++i) {
       const auto& entry=entries[i];
       if(decode_record(next,entry,verified.first<record_header_bytes>(),
@@ -1462,17 +1466,15 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
   bool copy_mirrored_prefix(std::span<const Entry> leaf) {
     if(reencode || retention || build.folded || !build.next.mirrored)return false;
     const auto limit=(std::min)(leaf.size(),(std::max)(std::size_t{1},leaf_capacity(original)/4));
-    auto bank_left=build.remaining_payload_bank_bytes();
     std::uint64_t work_left=2*kStoreCommitUnit;
     std::size_t selected=0,frame_bytes=0;
-    // Preserve the stream order. A record that needs encoding or spans
-    // banks keeps the single-record path and its own admission.
+    // Preserve stream order and bound the complete per-step decode work.
+    // The paired stream writer splits the batch at every physical bank.
     for(const auto& entry:leaf.first(limit)) {
       const auto size=record_header_bytes+entry.stored;
       const auto work=std::uint64_t{entry.logical}+size;
       if((entry.id==1 && !replacement.empty()) || cold_copy_candidate(entry) ||
-          size>bank_left || work>work_left)break;
-      bank_left-=size;
+          work>work_left)break;
       work_left-=work;
       frame_bytes+=size;
       ++selected;

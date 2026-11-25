@@ -46,8 +46,8 @@
     "latest_packed_tail_continuation": "docs/evidence/windows-packed-tail-continuation-2026-11-25.json",
     "latest_ordinary_mounted_reclamation": "docs/evidence/windows-expanded-group-read-and-mounted-replay-2026-11-25.json",
     "latest_reclamation_runtime_tree": "bf647485f560192152bff7145a0df89c38d9bd8a",
-    "latest_staged_copy": "docs/evidence/windows-batched-staged-copy-2026-11-25.json",
-    "latest_staged_copy_runtime_tree": "09bd6ad6935444b3bc65dd538f27dc5d07dc583a",
+    "latest_staged_copy": "docs/evidence/windows-bank-spanning-rebuild-2026-11-25.json",
+    "latest_staged_copy_runtime_tree": "749528e5cf00d55080b87de34bd67a4ed9048361",
     "next_highest_impact_work": "docs/RELEASE_RECONCILIATION_2026-11-25.md#1-close-ordinary-mounted-settlement--e02-e08-e11",
     "latest_separate_request_admission": "docs/evidence/windows-controller-separate-request-admission-2026-11-24.json",
     "latest_finishable_worker_burst": "docs/evidence/windows-finishable-worker-bursts-2026-11-24.json",
@@ -56,7 +56,7 @@
     "latest_mixed_size_resident_worker": "docs/evidence/windows-mixed-size-resident-worker-2026-11-24.json",
     "latest_write_geometry_calibration": "docs/evidence/windows-amd-write-geometry-calibration-2026-11-24.json",
     "latest_indexed_name_page_inventory": "docs/evidence/indexed-name-page-inventory-2026-11-23.json",
-    "next": "Run the signed populated candidate when available memory admits the client. Trace ordinary copy, selection, logical retirement, relocation and packed shortening through physical settlement. Compare CPU, cold AMD and ready AMD on identical observed client demand. Measure held-out protected compression and shadow writable admission before expanding codecs or formats.",
+    "next": "Replay the bank-spanning copy with the signed populated client when available memory admits the guest. Trace selection, logical retirement, relocation and packed shortening through physical settlement. Compare CPU, cold AMD and ready AMD on identical observed client demand. Measure held-out protected compression and shadow writable admission before expanding codecs or formats.",
     "release_qualified": false
   },
   "baseline": {
