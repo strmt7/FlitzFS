@@ -1,0 +1,703 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "scope": "Explicit packed inode layout, current Windows memory-backed CPU and SDK qualification, and independent controlled live AMD executions",
+  "source": {
+    "core": {
+      "parent": "566026560a3bb804d758539866a9972a2695da70",
+      "base_tree": "0625d4795a1f43ce33718beae87adce62feb3cac",
+      "tree": "e98fda7c13512ee3f8da3e64b1958191597e7bdd",
+      "elements": [
+        {
+          "path": "CMakeLists.txt",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "5912c64d6466682bc84ebbc338ea46874ea6a600",
+          "bytes": 98690
+        },
+        {
+          "path": "include/flitzfs/native_filesystem.hpp",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "33644365999048bbddb783d39fd7c0eb05bb04a3",
+          "bytes": 44761
+        },
+        {
+          "path": "src/native_filesystem.cpp",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "4ea5c3291ed715f6ea6026d903b48e89d31697f4",
+          "bytes": 173960
+        },
+        {
+          "path": "src/native_indexed_volume.cpp",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "6afa6726bd68937679c8980339c80a0a1997dc8b",
+          "bytes": 148442
+        },
+        {
+          "path": "src/native_indexed_volume.hpp",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "6426bb3598575c0321db3e3da975536d1d742c98",
+          "bytes": 15394
+        },
+        {
+          "path": "src/native_session.cpp",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "a755b28cfe419b037b7dd9ae226540c082a0c876",
+          "bytes": 124377
+        },
+        {
+          "path": "src/windows/native_amd_write_policy.cpp",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "8823990d2a9b785c9a92ef9a83c03050df47525a",
+          "bytes": 31719
+        },
+        {
+          "path": "tests/test_native_group_maintenance.cpp",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "b871203b2ce5f31019ca8843cd91394756099226",
+          "bytes": 246470
+        },
+        {
+          "path": "tests/test_native_indexed_volume.cpp",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "015ecc522af6101b6a446efa77918c694bcbc081",
+          "bytes": 112741
+        }
+      ]
+    },
+    "winfsp": {
+      "parent": "566026560a3bb804d758539866a9972a2695da70",
+      "base_tree": "0625d4795a1f43ce33718beae87adce62feb3cac",
+      "tree": "f4fc420feb626a45bc98d534dbfe7105c9d1c9be",
+      "elements": [
+        {
+          "path": "CMakeLists.txt",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "42f4b28b928ff1aaf2ac8b18072b1268d4dfd5b0",
+          "bytes": 98704
+        },
+        {
+          "path": "include/flitzfs/native_filesystem.hpp",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "33644365999048bbddb783d39fd7c0eb05bb04a3",
+          "bytes": 44761
+        },
+        {
+          "path": "src/native_filesystem.cpp",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "4ea5c3291ed715f6ea6026d903b48e89d31697f4",
+          "bytes": 173960
+        },
+        {
+          "path": "src/native_indexed_volume.cpp",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "6afa6726bd68937679c8980339c80a0a1997dc8b",
+          "bytes": 148442
+        },
+        {
+          "path": "src/native_indexed_volume.hpp",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "6426bb3598575c0321db3e3da975536d1d742c98",
+          "bytes": 15394
+        },
+        {
+          "path": "src/native_session.cpp",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "a755b28cfe419b037b7dd9ae226540c082a0c876",
+          "bytes": 124377
+        },
+        {
+          "path": "src/windows/native_amd_write_policy.cpp",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "8823990d2a9b785c9a92ef9a83c03050df47525a",
+          "bytes": 31719
+        },
+        {
+          "path": "tests/test_native_group_maintenance.cpp",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "b871203b2ce5f31019ca8843cd91394756099226",
+          "bytes": 246470
+        },
+        {
+          "path": "tests/test_native_indexed_volume.cpp",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "015ecc522af6101b6a446efa77918c694bcbc081",
+          "bytes": 112741
+        },
+        {
+          "path": "tests/test_winfsp_paged.cpp",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "7b4a1e9f2742a1d7ba9eac286db0b00a3499753a",
+          "bytes": 98705
+        }
+      ]
+    },
+    "compiled_profile_delta_after_core": [
+      "CMakeLists.txt",
+      "tests/test_winfsp_paged.cpp"
+    ],
+    "route_receipt_sha256": "9fefd2703ea1a0fe41db5b88bcdb53c07bdac130dde04b072753562c5dd3ac6d",
+    "route_native_response_sha256": "8b96eede73ecb35c8e892b630de50c98755ffedf1a0eb7630f6221b1546c649b",
+    "provider_version": "0.2.43",
+    "actual_semantic_searches": 1
+  },
+  "footprint": {
+    "isolation_bytes": 4096,
+    "protection": "Mirrored images and paired compact selector and image roots",
+    "occupied_basis": "Packed image extent and selector. Companion advisory space, reserve and overlapping generations are separate.",
+    "tiny_cpython": {
+      "fixture_sha256": "ac2c855bfcf450bbdd3d571978fbc806554d66c4e0d168d0d21fc5c5e1d07536",
+      "arms": [
+        {
+          "layout": "inline",
+          "settled_bytes": 180224,
+          "protected_image": {
+            "arm": "independent_preserved",
+            "objects": 199,
+            "image_bytes": 172032,
+            "selector_bytes": 8192,
+            "mirrored_data_object_bytes": 0,
+            "mirrored_metadata_object_bytes": 69988,
+            "record_index_and_padding_bytes": 102044,
+            "zero_data_layout_bytes": 180224,
+            "zero_payload_layout_bytes": 114688
+          },
+          "range_profile": {
+            "files": 192,
+            "before_compacted": 172032,
+            "after_compacted": 172032,
+            "input_bytes": 32922,
+            "selector_bytes": 8192,
+            "ingested_image_bytes": 10985472,
+            "maintained_image_bytes": 10985472,
+            "before_range_read_bytes": 4565231,
+            "after_range_read_bytes": 4565231,
+            "maintenance_read_bytes": 0,
+            "maintenance_read_calls": 0,
+            "sampled_extents": 0,
+            "reused_features": 0,
+            "maintenance_write_bytes": 0,
+            "work_ns": 0,
+            "packed_groups": 0,
+            "attempts": 0,
+            "yield_observations": 0,
+            "members": 0,
+            "cpu_exact": 1,
+            "retained_snapshot_exact": 1,
+            "idle_io": 0
+          },
+          "stdout_sha256": "fda31b14bdfe5e7b0c4ad3287da9902bb4a2587dfe7e5eceb12c03e1d0ac4cce",
+          "supervisor_receipt_sha256": "2417260e5fe5e210c016d5936475d913f7538deefdcce8767f793e343ef070f1",
+          "exit_code": 0,
+          "process_tree_retired": true,
+          "peak_job_bytes": 52264960
+        },
+        {
+          "layout": "packed",
+          "settled_bytes": 90112,
+          "protected_image": {
+            "arm": "independent_preserved",
+            "objects": 32,
+            "image_bytes": 81920,
+            "selector_bytes": 8192,
+            "mirrored_data_object_bytes": 0,
+            "mirrored_metadata_object_bytes": 50218,
+            "record_index_and_padding_bytes": 31702,
+            "zero_data_layout_bytes": 90112,
+            "zero_payload_layout_bytes": 32768
+          },
+          "range_profile": {
+            "files": 192,
+            "before_compacted": 81920,
+            "after_compacted": 81920,
+            "input_bytes": 32922,
+            "selector_bytes": 8192,
+            "ingested_image_bytes": 6324224,
+            "maintained_image_bytes": 6324224,
+            "before_range_read_bytes": 1964418,
+            "after_range_read_bytes": 1964418,
+            "maintenance_read_bytes": 0,
+            "maintenance_read_calls": 0,
+            "sampled_extents": 0,
+            "reused_features": 0,
+            "maintenance_write_bytes": 0,
+            "work_ns": 0,
+            "packed_groups": 0,
+            "attempts": 0,
+            "yield_observations": 0,
+            "members": 0,
+            "cpu_exact": 1,
+            "retained_snapshot_exact": 1,
+            "idle_io": 0
+          },
+          "stdout_sha256": "282a31c8387746b51d8940e2a93f9f5c68ae248d33b501559206bc179e4293f6",
+          "supervisor_receipt_sha256": "160fbfaf5d1e08301136ff9f900e5e3857e20074b73fe84677773cbe41dc95a4",
+          "exit_code": 0,
+          "process_tree_retired": true,
+          "peak_job_bytes": 31129600
+        }
+      ]
+    },
+    "named_cpython": {
+      "fixture_sha256": "4660e8c0a9487722e0660f82f10dafd3ecbce03a602b84516750cba51f5e2694",
+      "arms": [
+        {
+          "layout": "inline",
+          "files": 374,
+          "directories": 160,
+          "logical_bytes": 574237,
+          "compacted_bytes": 679936,
+          "selector_bytes": 8192,
+          "ingested_bytes": 31965184,
+          "physical_read_bytes": 14039278,
+          "ingest_write_bytes": 39444480,
+          "live_extents": 17,
+          "cpu_exact": 1,
+          "settled_bytes": 688128
+        },
+        {
+          "layout": "packed",
+          "files": 374,
+          "directories": 160,
+          "logical_bytes": 574237,
+          "compacted_bytes": 466944,
+          "selector_bytes": 8192,
+          "ingested_bytes": 32006144,
+          "physical_read_bytes": 14310207,
+          "ingest_write_bytes": 39485440,
+          "live_extents": 17,
+          "cpu_exact": 1,
+          "settled_bytes": 475136
+        }
+      ],
+      "stdout_sha256": "6cfe43624de90d8bb23c840ea2b49e6edce9130fe0ae83ce585a6ae1bdf6aa92",
+      "supervisor_receipt_sha256": "192ec89fe69075c89a99f5693c4aff950a3192f1cc75d5b51d812ed699790237",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "peak_job_bytes": 106405888
+    }
+  },
+  "modeled_recovery": {
+    "growth_and_shrink": [
+      {
+        "direction": "to_extents",
+        "recovery_cases": 33,
+        "previous": 25,
+        "complete": 8
+      },
+      {
+        "direction": "to_inline",
+        "recovery_cases": 33,
+        "previous": 25,
+        "complete": 8
+      }
+    ],
+    "total": 66,
+    "retained_and_independent_cpu_readback": true,
+    "stdout_sha256": "51c21d2f12e15d658907f271e219a626b4d1b84f0ad9c90cc18539f358c20656",
+    "supervisor_receipt_sha256": "f4555985d0cd0d0a743e7975d2b788ca25ab74a6dbd7e0e808314cc32ae374e0",
+    "exit_code": 0,
+    "process_tree_retired": true,
+    "peak_job_bytes": 4317184
+  },
+  "winfsp_callbacks": {
+    "units": [
+      {
+        "unit": 4096,
+        "large_write_bytes": 2097169,
+        "reopened_eof": 100663323,
+        "occupied_bytes": 4440064,
+        "inline_small_files": 1,
+        "packed_inodes": 1
+      },
+      {
+        "unit": 65536,
+        "large_write_bytes": 2097169,
+        "reopened_eof": 100663323,
+        "occupied_bytes": 5242880,
+        "inline_small_files": 1,
+        "packed_inodes": 1
+      }
+    ],
+    "checks_reported": 152,
+    "stdout_sha256": "d048ad65d469378052f93f88459a320d97b9881363c22d0509b2d3cbe71d1a0b",
+    "supervisor_receipt_sha256": "1e3ac69c0ae1af0c0bf5df906cfc90e23c56d84d39f9932d0fb05a71b41fc1f6",
+    "exit_code": 0,
+    "process_tree_retired": true,
+    "peak_job_bytes": 26959872
+  },
+  "tests": {
+    "release_tests": {
+      "passed": [
+        "bounded_native_indexed_volume",
+        "bounded_native_indexed_reopen_replicas",
+        "bounded_native_indexed_inline_files",
+        "bounded_native_indexed_packed_inodes",
+        "bounded_native_indexed_group_maintenance",
+        "bounded_native_indexed_group_resume",
+        "bounded_native_indexed_group_advice",
+        "owned_native_deferred_write_sdk"
+      ],
+      "stdout_sha256": "0844e0aa8eb2dd9399821dd07994ce77bdbb98fb2867548375a450c82efa0375",
+      "supervisor_receipt_sha256": "35b58b3b10184aac59c103abf9f2cc32192f100c3b19b424343d8a80b6394afa",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "peak_job_bytes": 107991040
+    },
+    "sdk_tests": {
+      "passed": [
+        "bounded_winfsp_paged_callbacks",
+        "bounded_winfsp_paged_inline-files",
+        "bounded_winfsp_paged_packed-inodes",
+        "bounded_winfsp_paged_ready-mixed-group-reads"
+      ],
+      "stdout_sha256": "8444df9e8f2e73466cdf78ba8d2b64b47f8c3d2e2f61a4c0d2437f4dbf494798",
+      "supervisor_receipt_sha256": "f4203e8974ebde354cb8fe852457b968ec67960df12189a1f68b4d8f4e7334c8",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "peak_job_bytes": 58032128
+    },
+    "raw_tests": {
+      "passed": [
+        "bounded_native_indexed_reopen_replicas",
+        "bounded_native_indexed_inline_files",
+        "bounded_native_indexed_packed_inodes"
+      ],
+      "stdout_sha256": "83d17d02ef625a7740495c8b95559abe71ec9c45f60d9486cb78929d63335afc",
+      "supervisor_receipt_sha256": "02f3d974a25f758f7c19b3d91d54674e418a5567d760961b0edab4761cd41e99",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "peak_job_bytes": 9785344
+    },
+    "asan_preflight": {
+      "passed": [
+        "windows_asan_runtime_preflight"
+      ],
+      "stdout_sha256": "61112b1678798b5c79858e25939bd7ca86445b5bd1ec1bc728dd37a81dd4f386",
+      "supervisor_receipt_sha256": "ec2715794c48f84236bb0e4249c1fe7f7413a6eec9b55dafbcda2abb64a614ff",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "peak_job_bytes": 10383360
+    },
+    "asan_tests": {
+      "passed": [
+        "windows_asan_runtime_preflight",
+        "bounded_native_indexed_reopen_replicas",
+        "bounded_native_indexed_inline_files",
+        "bounded_native_indexed_packed_inodes"
+      ],
+      "stdout_sha256": "9f734a1c09cf8ea4d7975f62b81e9630b287aebf4d9f66145c14d6a235854b48",
+      "supervisor_receipt_sha256": "2bd543b64a86b9e50576fea26ed7c5821d0c9f7c1f4a4d8cb020846cc29b22a4",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "peak_job_bytes": 189587456
+    }
+  },
+  "asan_runtime_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed",
+  "radeon": {
+    "observations": [
+      {
+        "role": "gpu_busy",
+        "observation": {
+          "admitted": false,
+          "reason": "Existing host load above the fixture envelope",
+          "utc": "2026-11-25T20:07:13.0124811Z",
+          "driver": "32.0.32029.2010",
+          "build": "26300",
+          "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+          "luid": "9d75010000000000",
+          "available_bytes": 15995154432,
+          "reserved_bytes": 4294967296,
+          "gpu_peak": 98.97165271671253,
+          "cpu_peak": 12.890784642544439,
+          "target_samples": 832
+        },
+        "stdout_sha256": "dc5437e54fe86251537ee7561f1938164e72bc9784e8ab9a323bd2a39032e4d8",
+        "supervisor_receipt_sha256": "a3bd1b0cd3c17ddd1e47c1bf7c9a2a1b0fc3711460898c07aa23bd9b5f75ff55",
+        "exit_code": 0,
+        "process_tree_retired": true,
+        "peak_job_bytes": 100368384
+      },
+      {
+        "role": "gpu_read_ready",
+        "observation": {
+          "admitted": true,
+          "reason": null,
+          "utc": "2026-11-25T20:24:46.4713438Z",
+          "driver": "32.0.32029.2010",
+          "build": "26300",
+          "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+          "luid": "9d75010000000000",
+          "available_bytes": 30372950016,
+          "reserved_bytes": 4294967296,
+          "gpu_peak": 1.1807266720193434,
+          "cpu_peak": 14.234497217308595,
+          "target_samples": 816
+        },
+        "stdout_sha256": "4a021734d57a58ca259a09323bb6d8c4052ca99ddaa3a50028a95cc10d8c4fcb",
+        "supervisor_receipt_sha256": "5345551a63f5bdae3f491359d170be5f709ce17390156a82b1790faf71e2cd44",
+        "exit_code": 0,
+        "process_tree_retired": true,
+        "peak_job_bytes": 102711296
+      },
+      {
+        "role": "gpu_unstaged_ready",
+        "observation": {
+          "admitted": true,
+          "reason": null,
+          "utc": "2026-11-25T20:25:54.7469778Z",
+          "driver": "32.0.32029.2010",
+          "build": "26300",
+          "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+          "luid": "9d75010000000000",
+          "available_bytes": 29333319680,
+          "reserved_bytes": 4294967296,
+          "gpu_peak": 1.0526408274535741,
+          "cpu_peak": 32.127133010669326,
+          "target_samples": 816
+        },
+        "stdout_sha256": "15fa0f7ddbb6c116af40e32dcd6cd88d283c3d87beae8ab1fbf45effbe8b263e",
+        "supervisor_receipt_sha256": "61c74909ba0a657ae04bd4ca855f390fd201ccbaad0f0657c224ad3e927338bb",
+        "exit_code": 0,
+        "process_tree_retired": true,
+        "peak_job_bytes": 100843520
+      },
+      {
+        "role": "gpu_first_ready",
+        "observation": {
+          "admitted": true,
+          "reason": null,
+          "utc": "2026-11-25T20:27:35.7210234Z",
+          "driver": "32.0.32029.2010",
+          "build": "26300",
+          "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+          "luid": "9d75010000000000",
+          "available_bytes": 28543971328,
+          "reserved_bytes": 4294967296,
+          "gpu_peak": 0.6460517565992995,
+          "cpu_peak": 18.43372266709371,
+          "target_samples": 816
+        },
+        "stdout_sha256": "da88a91e145b8ed42a61e6e43c93a9501497cbf2ac84be4739dab6d62ba3368c",
+        "supervisor_receipt_sha256": "1f4304e8c833827591cf35b7786b96c438aa6f70dc034afe2d925f6276e141e5",
+        "exit_code": 0,
+        "process_tree_retired": true,
+        "peak_job_bytes": 100745216
+      },
+      {
+        "role": "gpu_retry_ready",
+        "observation": {
+          "admitted": true,
+          "reason": null,
+          "utc": "2026-11-25T20:28:57.7750971Z",
+          "driver": "32.0.32029.2010",
+          "build": "26300",
+          "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+          "luid": "9d75010000000000",
+          "available_bytes": 30198730752,
+          "reserved_bytes": 4294967296,
+          "gpu_peak": 0.7562778870641822,
+          "cpu_peak": 9.342793643301073,
+          "target_samples": 816
+        },
+        "stdout_sha256": "7d0b81df1dbb001fbdf912af2980cc305ab159b9d5cacf24105ed674357036c4",
+        "supervisor_receipt_sha256": "82d5fb47ebf3ee834edac50a29f1e14f7c02a9b33184b0efa738917a5b95a322",
+        "exit_code": 0,
+        "process_tree_retired": true,
+        "peak_job_bytes": 98729984
+      }
+    ],
+    "read_stage_manifest_sha256": "d95631e27d7f78c89e770d7455d10fce735f5f7fc72b8fc10be39637dfd9c7e8",
+    "grouped_read": {
+      "worker": {
+        "mixed": 1,
+        "prepared": 1,
+        "verified": 2,
+        "worker_ms": 7547,
+        "prepared_submit_ms": 7578,
+        "retargeted": 0,
+        "exact_child_retired": 1
+      },
+      "delivery": {
+        "mixed": 1,
+        "ready_hits": 2,
+        "late_refused": 1,
+        "cpu_readback": 1,
+        "backing_writes": 0,
+        "unrelated_callbacks_retained": 1,
+        "checkpoint_change_refused": 0,
+        "expanded": 0,
+        "callbacks": 1,
+        "variable_widths": 0,
+        "cpu_prefix": 0
+      },
+      "stdout_sha256": "4ed23790ed8ac48a2f7e72665498444543fd726e86ceaeed517a67c86663cc82",
+      "supervisor_receipt_sha256": "f823bd43bee8efea7abe6e5d1d2ec08fdbe590fa662602db24622c8017cbe824",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "peak_job_bytes": 99360768
+    },
+    "initial_write_fixture": {
+      "result": "Application-relative approved package absent",
+      "status": 12,
+      "queries": 0,
+      "worker_exit": 0,
+      "stdout_sha256": "54406957e3c2c96e8706303ec697fab89d0a24242a89a89dd612ca6bd67851fd",
+      "supervisor_receipt_sha256": "9846a403b3b634bb34e93c62bfe5cb5a20ad3add71153a05a1c5a8a006e0489a",
+      "exit_code": 1,
+      "process_tree_retired": true,
+      "peak_job_bytes": 4026368
+    },
+    "staged_write": {
+      "manifest_sha256": "47e4276bf3d9189e1a293ae67ed1cce3e8dc59f0ef4262c11d64a7f1c3711e9d",
+      "files": {
+        "flitzfs_hip_lz4_worker.exe": "5488521657d0be8e91ff497bda27e8ee0c35c1847ec2fd11c5f7def714d97544",
+        "hip-uniform-lz4/flitzfs_rocm_uniform_lz4_candidate.dll": "179797e791a8aac3e43c1277aca4a88edfe4650122af535d08c8b199d32b89c4",
+        "uniform-write-trial-qualification.json": "01b2a8b024d155b15072e44feced412cf6208e1e65616f3fadc55871de031004",
+        "flitzfs_native_deferred_write_sdk_tests.exe": "d8b9e9de6080aaa3aa1612d254e0f18419c686db2c65761e1ca1c1bb801f9615",
+        "winfsp-x64.dll": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+      }
+    },
+    "prepared_refusal": {
+      "result": "Temporary pressure, pre-initialization memory sample too old",
+      "verified_immediate": {
+        "prepared": 0,
+        "writes": 1,
+        "bytes": 65536,
+        "occupied": 229376,
+        "complete_ns": 4739379400,
+        "ready_ns": 0,
+        "exchange_ns": 4739076300,
+        "ready_to_verified_ns": 0,
+        "stored_candidates": 1,
+        "separate_requests": 0,
+        "admitted_requests": 0,
+        "cpu_verified": 1,
+        "retired": 1
+      },
+      "prepared": {
+        "prepared": 1,
+        "code": 1,
+        "worker_exit": 1179849476,
+        "retired": 1,
+        "ready_ns": 0,
+        "exchange_ns": 0
+      },
+      "stdout_sha256": "8bc7fe82e5dc829a2f7744ac83f52b6a18cb64394f8c1cd6043ccabdeafa345d",
+      "supervisor_receipt_sha256": "caafedc60e4d664043f5c22d8a09e5e016982243938d5d5fa4912d9a4727c07a",
+      "exit_code": 1,
+      "process_tree_retired": true,
+      "peak_job_bytes": 109670400
+    },
+    "write_source": {
+      "source": "Lib/test/test_clinic.py",
+      "bytes": 65536,
+      "sha256": "35c1aeb74c16acb53caae17adaaac6f47ffc09d4d281bab6ad67341467193a82"
+    },
+    "verified_retry": {
+      "cpu": {
+        "writes": 1,
+        "bytes": 65536,
+        "occupied": 221184,
+        "complete_ns": 389300,
+        "cpu_verified": 1,
+        "retired": 1
+      },
+      "amd": [
+        {
+          "prepared": 0,
+          "writes": 1,
+          "bytes": 65536,
+          "occupied": 229376,
+          "complete_ns": 3663496700,
+          "ready_ns": 0,
+          "exchange_ns": 3663236400,
+          "ready_to_verified_ns": 0,
+          "stored_candidates": 1,
+          "separate_requests": 0,
+          "admitted_requests": 0,
+          "cpu_verified": 1,
+          "retired": 1
+        },
+        {
+          "prepared": 1,
+          "writes": 1,
+          "bytes": 65536,
+          "occupied": 229376,
+          "complete_ns": 2311102500,
+          "ready_ns": 2257924000,
+          "exchange_ns": 2310797400,
+          "ready_to_verified_ns": 52367600,
+          "stored_candidates": 1,
+          "separate_requests": 0,
+          "admitted_requests": 1,
+          "cpu_verified": 1,
+          "retired": 1
+        }
+      ],
+      "completion": {
+        "complete": 1,
+        "scoped_gpu": 1,
+        "parent_runtime_loaded": 0,
+        "parent_peak": 108892160
+      },
+      "stdout_sha256": "ba0a529c79326afcc4d553d1ba925de96d7e93ad8050a096f56a03da587b3076",
+      "supervisor_receipt_sha256": "7055b6d5c9c0c188cc5f540eb3f4d3455bcddedcdafb6dcd7b571d6bc91a8e87",
+      "exit_code": 0,
+      "process_tree_retired": true,
+      "peak_job_bytes": 110211072
+    },
+    "automatic_installed_foreground_wins_qualified": false
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "b84d361413ce739b827e03b0571b76a057a67c9e83c5d7f88f04b257edf6980a",
+    "sources": [
+      {
+        "name": "btrfs-packed-leaf",
+        "url": "https://btrfs.readthedocs.io/en/latest/dev/On-disk-format.html",
+        "final_http_status": 200,
+        "capture_sha256": "44f80fb12a56cdf0a9d0fcf0f685c8d267cf36849be11a6a40867d48192d7483",
+        "markdown_sha256": "fe046e731a5bd1fc15e92b8d5e63863049ed202bb4185549a747c0e19ca6dc61"
+      },
+      {
+        "name": "ext4-inode-tables",
+        "url": "https://docs.kernel.org/filesystems/ext4/inode_table.html",
+        "final_http_status": 200,
+        "capture_sha256": "9c785407a007e7eb7571cf34569225c3b89cdf31f0edffbfd956f475284cbccd",
+        "markdown_sha256": "457ea8be244cbb74ea4ce060ad45f6326f78d33f90c49f6cd75b3d3e46002fc7"
+      },
+      {
+        "name": "erofs-core-layout",
+        "url": "https://erofs.docs.kernel.org/en/latest/ondisk/core_ondisk.html",
+        "final_http_status": 200,
+        "capture_sha256": "723dfc4a8aed53176f6caa3ad0bbd6510a8be33368645a66d30209d64d139acb",
+        "markdown_sha256": "85563272e170a6b63cd4b81a7071af0cb8e6742779aadf16676f3cd4819004fd"
+      }
+    ]
+  },
+  "qualification": {
+    "mounted_winfsp": false,
+    "physical_power_loss": false,
+    "packed_inodes_default": false,
+    "enterprise_release": false
+  }
+}

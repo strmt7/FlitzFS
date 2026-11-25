@@ -4197,6 +4197,9 @@ int main(int argc,char** argv){try{
   } else if(argc==3 && std::string_view(argv[1])=="--profile-public-compact-inline") {
     profile_public_packs(argv[2],true,true,NativeIndexedDataLayout::inline_small_files,
         NativeVolumeHeadLayout::compact,PagedStoreBankLayout::compact);
+  } else if(argc==3 && std::string_view(argv[1])=="--profile-public-packed-inodes") {
+    profile_public_packs(argv[2],true,true,NativeIndexedDataLayout::packed_small_file_inodes,
+        NativeVolumeHeadLayout::compact,PagedStoreBankLayout::compact);
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-cross-window-pack") {
     indexed_cross_window_pack(false);
     indexed_cross_window_pack(true);

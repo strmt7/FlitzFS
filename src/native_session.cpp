@@ -657,7 +657,7 @@ NativeFileSession NativeFileSession::create_volume_impl(std::shared_ptr<StoreByt
       (image_layout!=PagedStoreBankLayout::compact || storage.kind!=NativeImageKind::indexed_paged ||
        head_layout!=NativeVolumeHeadLayout::compact || placement!=NativeVolumePlacement::external))
     fail(E::invalid_options,"compact indexed roots require a compact external selector");
-  if(data_layout!=NativeIndexedDataLayout::extents && data_layout!=NativeIndexedDataLayout::inline_small_files)
+  if(!valid_native_indexed_data_layout(data_layout))
     fail(E::invalid_options,"unknown indexed data layout");
   if(volume==StoreIdentity{} || image_id==StoreIdentity{} || volume==image_id || head==image)
     fail(E::invalid_options,"distinct volume/image identities and backends required");

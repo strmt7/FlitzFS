@@ -379,19 +379,18 @@ even when amortized across many members.
 
 ### Dense protected short-file records
 
-The small-file comparison found 112 KiB of size with every stored object
-payload length set to zero on the current compact 176 KiB arm. A useful
-next candidate reduces the number of protected records. Inline files on the
-current layout already avoid separate data records. The next comparison
-should preserve that property and price alternate metadata layouts before
-adding another general-purpose codec.
-[Measured footprint](../evidence/windows-small-file-layout-frontier-2026-11-25.json)
+The explicit packed layout groups canonical short-file inodes by stable
+ID. It cut the matched footprint from 176 KiB to 88 KiB on the tiny
+cohort and from 672 KiB to 464 KiB on a held-out named tree. The current
+writer can move individual rows between the packed and standalone
+representations in a single protected commit.
+[Measured footprint and recovery](../evidence/windows-packed-inodes-and-radeon-2026-11-25.json) ·
+[Wire format](../INDEXED_NATIVE_VOLUME.md#packed-inode-pages)
 
 Use the native inode identity and directory index as the stable logical
-interface. Compare the current per-inode object with a protected page that
-holds several complete inode rows and their inline bytes. Price an inode
-range map and explicit slot locators with the cost of building, caching
-and publishing them. A point lookup must verify the selected page,
+interface. The first packed layout derives the page and slot directly from
+the inode ID. Evaluate other group boundaries only when the mounted
+read or write cost supports them. A point lookup must verify the selected page,
 slot, inode identity and current generation before range I/O. Track
 the decoded bytes for a single tiny file and the writes needed to change
 one row in a warm pack. Prefer a bounded restart unit and immutable copies

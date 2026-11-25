@@ -7,6 +7,7 @@
 #include "store_codec.hpp"
 #include "flitzfs/gpu_anchor_match.hpp"
 #include <algorithm>
+#include <array>
 #include <bit>
 #include <iterator>
 #include <limits>
@@ -19,6 +20,11 @@ namespace {
 using Bytes=std::vector<std::byte>;
 using Code=NativeFsErrorCode;
 constexpr std::string_view root_magic="FLTXPV01",extent_magic="FLTXPE01";
+constexpr std::string_view inode_page_magic="FLTXIP01";
+constexpr std::size_t inode_page_slots=8;
+constexpr std::size_t inode_page_header=8+2*inode_page_slots;
+constexpr std::size_t maximum_packed_inode_bytes=1024;
+constexpr std::size_t maximum_inode_page_bytes=inode_page_header+inode_page_slots*maximum_packed_inode_bytes;
 constexpr std::string_view member_magic="FLTXPD01",packed_member_magic="FLTXPD02",base_magic="FLTXPA01";
 constexpr std::uint64_t namespace_object=1,inode_domain=1ULL<<63;
 constexpr std::uint64_t lifetime_domain=2ULL<<61,retirement_domain=5ULL<<61;
@@ -31,9 +37,9 @@ constexpr std::uint32_t anchor_copy_capability=4,packed_xor_capability=5,modular
 constexpr std::uint32_t prefixed_zstd_capability=8,packed_slice_capability=9;
 constexpr std::uint32_t directory_shape_feature=1U<<8;
 constexpr std::uint32_t directory_backfill_complete_feature=1U<<9;
-constexpr std::uint32_t inline_file_feature=1U<<10;
+constexpr std::uint32_t inline_file_feature=1U<<10,packed_inode_feature=1U<<11;
 constexpr std::uint32_t namespace_features=kIndexedOrdinalNames|directory_shape_feature|
-    directory_backfill_complete_feature|inline_file_feature;
+    directory_backfill_complete_feature|inline_file_feature|packed_inode_feature;
 constexpr NativeGroupMethod available_group_method(std::uint32_t capability) noexcept {
   if(capability>=prefixed_zstd_capability)return NativeGroupMethod::prefixed_zstd;
   if(capability>=sparse_xor_capability)return NativeGroupMethod::sparse_xor;
@@ -101,6 +107,8 @@ void validate_header_fields(const IndexedVolumeRoot& root) {
     fail(Code::corrupt,"completed indexed backfill lacks shape capability");
   if(root.inline_files && root.format<2)
     fail(Code::corrupt,"inline files require indexed lifetime support");
+  if(root.packed_inodes && !root.inline_files)
+    fail(Code::corrupt,"packed inodes require inline file support");
   if(root.identity==StoreIdentity{} || !root.sequence || root.next_inode<2 ||
       root.next_inode>kNativeIndexedInodeLimit || !root.next_extent ||
       root.next_extent>kNativeIndexedInodeLimit || (!root.workload.enabled && root.workload.committed_input_bytes))
@@ -130,6 +138,7 @@ IndexedVolumeRoot decode_root(std::span<const std::byte> bytes) {
   root.directory_shapes=(features&directory_shape_feature)!=0;
   root.directory_backfill_complete=(features&directory_backfill_complete_feature)!=0;
   root.inline_files=(features&inline_file_feature)!=0;
+  root.packed_inodes=(features&packed_inode_feature)!=0;
   const auto expected_size=root.format==1?original_root_size:root.format==2?lifetime_root_size:root_size;
   if(root.format<1 || root.format>packed_slice_capability || bytes.size()!=expected_size)
     fail(Code::corrupt,"indexed native volume capability and length differ");
@@ -156,7 +165,8 @@ Bytes encode_root(const IndexedVolumeRoot& root) {
   std::copy(root.identity.begin(),root.identity.end(),bytes.begin()+kIndexedVolumeIdentityOffset);
   const auto features=root.name_profile|(root.directory_shapes?directory_shape_feature:0)|
       (root.directory_backfill_complete?directory_backfill_complete_feature:0)|
-      (root.inline_files?inline_file_feature:0);
+      (root.inline_files?inline_file_feature:0)|
+      (root.packed_inodes?packed_inode_feature:0);
   put(bytes,88,kNativeExtentBytes,4);put(bytes,92,features,4);
   return bytes;
 }
@@ -178,12 +188,151 @@ IndexedInodeInput decode_inode_with_lifetime(const PagedObjectStoreSnapshot& sto
   }
   return inode;
 }
-IndexedInodeInput load_inode(const PagedObjectStoreSnapshot& store,const IndexedVolumeRoot& root,std::uint64_t id) {
-  if(!id || id>=root.next_inode)fail(Code::not_found,"indexed inode is outside the namespace");
-  const auto bytes=fetch(store,inode_domain|id,maximum_inode_bytes);
-  if(!bytes)fail(Code::not_found,"indexed inode does not exist");
-  return decode_inode_with_lifetime(store,root,id,*bytes);
+std::uint64_t inode_page_object(std::uint64_t inode) noexcept {
+  return kIndexedInodePageObject|(inode/inode_page_slots+1);
 }
+std::uint64_t first_page_inode(const IndexedVolumeRoot& root,std::uint64_t object) {
+  const auto page=object&ordinal_mask;
+  if(!root.packed_inodes || domain(object)!=kIndexedInodePageObject || !page ||
+      page-1>(root.next_inode-1)/inode_page_slots)
+    fail(Code::corrupt,"invalid indexed inode page identity");
+  return (page-1)*inode_page_slots;
+}
+bool packable_inode(const IndexedInodeInput& inode,std::size_t encoded_bytes) noexcept {
+  return !inode.directory && inode.lifetime==IndexedLifetime::linked &&
+      inode.size<=kIndexedInlineFileBytes && encoded_bytes<=maximum_packed_inode_bytes;
+}
+std::array<std::span<const std::byte>,inode_page_slots> inode_page_rows(
+    const IndexedVolumeRoot& root,std::uint64_t object,std::span<const std::byte> bytes) {
+  const auto first=first_page_inode(root,object);
+  if(bytes.size()<inode_page_header || bytes.size()>maximum_inode_page_bytes || !magic(bytes,inode_page_magic))
+    fail(Code::corrupt,"invalid indexed inode page frame");
+  std::array<std::span<const std::byte>,inode_page_slots> rows{};
+  auto offset=inode_page_header;
+  for(std::size_t i=0;i<rows.size();++i) {
+    const auto length=get(bytes,8+2*i,2);
+    if(!length)continue;
+    if(length>maximum_packed_inode_bytes || length>bytes.size()-offset || first+i<=1 || first+i>=root.next_inode)
+      fail(Code::corrupt,"invalid indexed inode page row");
+    rows[i]=bytes.subspan(offset,static_cast<std::size_t>(length));
+    offset+=static_cast<std::size_t>(length);
+  }
+  if(offset==inode_page_header || offset!=bytes.size())
+    fail(Code::corrupt,"indexed inode page length differs from its rows");
+  return rows;
+}
+IndexedInodeInput decode_packed_inode(const IndexedVolumeRoot& root,std::uint64_t id,
+    std::span<const std::byte> row) {
+  auto inode=decode_indexed_inode(row,id,root);
+  if(!packable_inode(inode,row.size()))fail(Code::corrupt,"ineligible packed indexed inode");
+  return inode;
+}
+std::optional<IndexedInodeInput> inode_from_page(const IndexedVolumeRoot& root,std::uint64_t id,
+    const std::optional<Bytes>& bytes) {
+  if(!bytes)return {};
+  const auto row=inode_page_rows(root,inode_page_object(id),*bytes)[id%inode_page_slots];
+  if(row.empty())return {};
+  return decode_packed_inode(root,id,row);
+}
+IndexedInodeInput load_inode(const PagedObjectStoreSnapshot& store,const IndexedVolumeRoot& root,std::uint64_t id,
+    bool directory_expected=false) {
+  if(!id || id>=root.next_inode)fail(Code::not_found,"indexed inode is outside the namespace");
+  const auto standalone=[&]() ->std::optional<IndexedInodeInput> {
+    const auto bytes=fetch(store,inode_domain|id,maximum_inode_bytes);
+    if(!bytes)return {};
+    return decode_inode_with_lifetime(store,root,id,*bytes);
+  };
+  if(!root.packed_inodes || id==1) {
+    auto inode=standalone();
+    if(!inode)fail(Code::not_found,"indexed inode does not exist");
+    return std::move(*inode);
+  }
+  // Path parents normally use standalone records. Still check a packed
+  // leaf in that position so a valid file ancestor yields not_directory.
+  if(directory_expected) {
+    auto inode=standalone();
+    if(inode)return std::move(*inode);
+  }
+  auto inode=inode_from_page(root,id,fetch(store,inode_page_object(id),maximum_inode_page_bytes));
+  if(!inode && !directory_expected)inode=standalone();
+  if(!inode)fail(Code::not_found,"indexed inode does not exist");
+  return std::move(*inode);
+}
+// The transaction visits inode edits in ID order. Keep only the active page
+// in scratch and commit its replacement with the ordinary namespace edits.
+class IndexedInodeUpdates {
+ public:
+  IndexedInodeUpdates(const PagedObjectStoreSnapshot& store,const IndexedVolumeRoot& before,
+      const IndexedVolumeRoot& next,std::vector<StoreMutation>& records) noexcept:
+      store_(store),before_(before),next_(next),records_(records) {}
+
+  void stage(std::uint64_t id,const IndexedInodeInput* value,bool existed) {
+    if(!value && !existed)return;
+    auto frame=value?encode_indexed_inode(*value,next_):Bytes{};
+    const bool pack=value && packable_inode(*value,frame.size());
+    if(!next_.packed_inodes || id==1 || (!existed && !pack)) {
+      records_.push_back({inode_domain|id,!value,std::move(frame)});
+      return;
+    }
+
+    open_page(inode_page_object(id));
+    auto& row=rows_[id%inode_page_slots];
+    const bool was_packed=!row.empty();
+    if(was_packed && !existed)fail(Code::corrupt,"new indexed inode already occupies a page slot");
+    if(pack) {
+      if(existed && !was_packed)records_.push_back({inode_domain|id,true,{}});
+      row=std::move(frame);
+      dirty_=true;
+    } else {
+      if(was_packed) {
+        row.clear();
+        dirty_=true;
+      }
+      if(value || !was_packed)records_.push_back({inode_domain|id,!value,std::move(frame)});
+    }
+  }
+
+  void flush_page() {
+    if(!dirty_)return;
+    std::size_t size=inode_page_header;
+    for(const auto& row:rows_)size+=row.size();
+    if(size==inode_page_header) {
+      records_.push_back({page_,true,{}});
+    } else {
+      Bytes frame(size);
+      set_magic(frame,inode_page_magic);
+      auto output=frame.begin()+inode_page_header;
+      for(std::size_t i=0;i<rows_.size();++i) {
+        const auto& row=rows_[i];
+        put(frame,8+2*i,row.size(),2);
+        output=std::copy(row.begin(),row.end(),output);
+      }
+      records_.push_back({page_,false,std::move(frame)});
+    }
+    dirty_=false;
+  }
+
+ private:
+  void open_page(std::uint64_t id) {
+    if(page_==id)return;
+    flush_page();
+    page_=id;
+    rows_={};
+    if(const auto bytes=fetch(store_,id,maximum_inode_page_bytes)) {
+      const auto rows=inode_page_rows(before_,id,*bytes);
+      for(std::size_t i=0;i<rows.size();++i)
+        rows_[i].assign(rows[i].begin(),rows[i].end());
+    }
+  }
+
+  const PagedObjectStoreSnapshot& store_;
+  const IndexedVolumeRoot& before_;
+  const IndexedVolumeRoot& next_;
+  std::vector<StoreMutation>& records_;
+  std::array<Bytes,inode_page_slots> rows_;
+  std::uint64_t page_=0;
+  bool dirty_=false;
+};
 struct IndexedExtentOwner {
   explicit IndexedExtentOwner(const IndexedInodeInput& entry) noexcept:
       inode(entry.inode),size(entry.size),directory(entry.directory),
@@ -684,14 +833,11 @@ class IndexedVolumeTransaction final {
         records.push_back(std::move(mutation));
       }
     }
+    IndexedInodeUpdates inode_updates(source_,before_,next_,records);
     for(const auto& [id,changed]:nodes_) {
-      if(changed.value) {
-        records.push_back({inode_domain|id,false,encode_indexed_inode(*changed.value,next_)});
-        if(!changed.original_size)++next_.inodes;
-      } else if(changed.original_size) {
-        records.push_back({inode_domain|id,true,{}});
-        subtract(next_.inodes);
-      }
+      inode_updates.stage(id,changed.value?&*changed.value:nullptr,changed.original_size.has_value());
+      if(changed.value && !changed.original_size)++next_.inodes;
+      else if(!changed.value && changed.original_size)subtract(next_.inodes);
       update_charge(id,changed);
       const auto phase=changed.value?changed.value->lifetime:IndexedLifetime::linked;
       if(!changed.value || phase!=changed.original_lifetime) {
@@ -708,6 +854,7 @@ class IndexedVolumeTransaction final {
         add_lifetime(phase);
       }
     }
+    inode_updates.flush_page();
     remove_unreferenced_bases(index_,retired,next_,records);
     validate_header_fields(next_);
     auto count=index_.size();
@@ -1276,12 +1423,13 @@ IndexedVolumeRoot initialize_indexed_volume(PagedObjectStoreWriter& writer,Nativ
   if(writer.poisoned() || snapshot.info().generation!=2 || !snapshot.info().mirrored_payloads ||
       snapshot.info().objects)
     fail(Code::invalid_operation,"indexed initialization requires a new mirrored store");
-  if(layout!=NativeIndexedDataLayout::extents && layout!=NativeIndexedDataLayout::inline_small_files)
+  if(!valid_native_indexed_data_layout(layout))
     fail(Code::invalid_operation,"unknown indexed data layout");
   IndexedVolumeRoot root;
   root.identity=snapshot.identity();root.sequence=1;root.inodes=1;root.workload.enabled=true;
   root.format=2;root.directory_shapes=true;root.directory_backfill_complete=true;
-  root.inline_files=layout==NativeIndexedDataLayout::inline_small_files;
+  root.inline_files=layout!=NativeIndexedDataLayout::extents;
+  root.packed_inodes=layout==NativeIndexedDataLayout::packed_small_file_inodes;
   IndexedInodeInput directory;
   directory.inode=1;directory.born=1;directory.modified=1;directory.directory=true;
   directory.shape.emplace();
@@ -2227,9 +2375,13 @@ IndexedInodeInput IndexedVolumeView::inode(std::uint64_t id) const {
   if(input.lifetime==IndexedLifetime::retiring)fail(Code::not_found,"indexed inode is retired");
   return input;
 }
-IndexedInodeInput IndexedVolumeView::referenced_inode(std::uint64_t id,bool allow_retiring) const {
-  try{return allow_retiring?load_inode(store_,root_,id):inode(id);}
-  catch(const NativeFsError& error) {
+IndexedInodeInput IndexedVolumeView::referenced_inode(std::uint64_t id,InodeReference use) const {
+  try {
+    auto entry=load_inode(store_,root_,id,use==InodeReference::directory);
+    if(use!=InodeReference::allow_retiring && entry.lifetime==IndexedLifetime::retiring)
+      fail(Code::corrupt,"indexed reference selects a retired inode");
+    return entry;
+  }catch(const NativeFsError& error) {
     if(error.code()==Code::not_found)fail(Code::corrupt,"indexed reference has no inode");
     throw;
   }
@@ -2245,7 +2397,7 @@ IndexedInodeInput IndexedVolumeView::resolve(std::string_view path_value,std::st
     const auto child=index_.find({current.inode,component});
     if(!child)throw NativeFsError(separator==std::string::npos?NativeFsError::MissingPath::name:
         NativeFsError::MissingPath::parent,"indexed path not found");
-    auto entry=referenced_inode(*child);
+    auto entry=referenced_inode(*child,separator==std::string_view::npos?InodeReference::live:InodeReference::directory);
     if(indexed_detached(entry.lifetime) || entry.parent!=current.inode || name_key(entry.name)!=component)
       fail(Code::corrupt,"indexed name points to a different inode");
     if(spelling) {
@@ -2271,7 +2423,7 @@ std::string IndexedVolumeView::path(const IndexedInodeInput& input,bool include_
     if(depth==kIndexedPathDepth || units>limit ||
         index_.find({current->parent,name_key(current->name)})!=current->inode)
       fail(Code::corrupt,"indexed inode ancestry mismatch");
-    parent=referenced_inode(current->parent);
+    parent=referenced_inode(current->parent,InodeReference::directory);
     if(!parent.directory || parent.lifetime!=IndexedLifetime::linked)
       fail(Code::corrupt,"indexed inode has an unavailable parent");
     if(parent.inode!=1) {
@@ -2613,7 +2765,7 @@ std::optional<IndexedVolumeView::CheckedContent> IndexedVolumeView::locate_conte
   } else object=index_.find(native_extent_key(extent.inode,extent.extent_index));
   (void)check_group_storage(store_);
   if(!object)return {};
-  auto inode=referenced_inode(extent.inode,true);
+  auto inode=referenced_inode(extent.inode,InodeReference::allow_retiring);
   NativeContentToken token{extent};
   if(inode.lifetime==IndexedLifetime::linked) {
     if(inode.directory || !inode.size || extent.extent_index>(inode.size-1)/kNativeExtentBytes ||
@@ -2667,8 +2819,23 @@ Bytes IndexedVolumeView::materialize_content(NativeContentToken& token,const Ind
   // encoding. The assembled base can place shared sections at other offsets.
   return full_extent(std::move(extent));
 }
+struct IndexedVolumeView::InodePageCache {
+  std::uint64_t object=0;
+  std::optional<Bytes> bytes;
+
+  std::optional<IndexedInodeInput> read(const PagedObjectStoreSnapshot& store,const IndexedVolumeRoot& root,
+      std::uint64_t inode) {
+    if(!root.packed_inodes || inode<=1)return {};
+    const auto key=inode_page_object(inode);
+    if(key!=object) {
+      bytes=fetch(store,key,maximum_inode_page_bytes);
+      object=key;
+    }
+    return inode_from_page(root,inode,bytes);
+  }
+};
 std::uint64_t IndexedVolumeView::verify_namespace(const IndexedInodeInput& directory,std::size_t path_units,
-    unsigned components,PagedObjectStoreSnapshot::AuditMetadataReads& reads,
+    unsigned components,PagedObjectStoreSnapshot::AuditMetadataReads& reads,InodePageCache& pages,
     const std::function<void(const IndexedInodeInput&,bool)>& visit) const {
   IndexedDirectoryShape expected;
   std::uint64_t reachable=1;
@@ -2678,15 +2845,19 @@ std::uint64_t IndexedVolumeView::verify_namespace(const IndexedInodeInput& direc
       fail(Code::corrupt,"indexed directory contains unreachable children");
     if(!inode || inode>=root_.next_inode)fail(Code::corrupt,"indexed reference has no inode");
     bool verified=false;
-    const auto bytes=[&] {
-      try {
-        return store_.read_audit_metadata(reads,inode_domain|inode,inode_domain|(std::min)(last_inode,root_.next_inode-1),
-            maximum_inode_bytes,verified);
-      }catch(const std::bad_alloc&){throw;}
-      catch(const std::exception&){fail(Code::storage_failure,"indexed object integrity or read failure");}
+    const auto child=[&] {
+      // Account each packed row during the complete verified inventory pass.
+      if(auto packed=pages.read(store_,root_,inode))return std::move(*packed);
+      const auto bytes=[&] {
+        try {
+          return store_.read_audit_metadata(reads,inode_domain|inode,inode_domain|(std::min)(last_inode,root_.next_inode-1),
+              maximum_inode_bytes,verified);
+        }catch(const std::bad_alloc&){throw;}
+        catch(const std::exception&){fail(Code::storage_failure,"indexed object integrity or read failure");}
+      }();
+      if(!bytes)fail(Code::corrupt,"indexed reference has no inode");
+      return decode_inode_with_lifetime(store_,root_,inode,*bytes);
     }();
-    if(!bytes)fail(Code::corrupt,"indexed reference has no inode");
-    const auto child=decode_inode_with_lifetime(store_,root_,inode,*bytes);
     if(indexed_detached(child.lifetime) || child.parent!=directory.inode || name_key(child.name)!=key)
       fail(Code::corrupt,"indexed namespace child differs from its name binding");
     const auto units=path_units+(components?1:0)+indexed_utf16_length(child.name);
@@ -2697,7 +2868,7 @@ std::uint64_t IndexedVolumeView::verify_namespace(const IndexedInodeInput& direc
       expected.replace({},bound);
     }
     visit(child,verified);
-    reachable=add(reachable,child.directory?verify_namespace(child,units,components+1,reads,visit):1);
+    reachable=add(reachable,child.directory?verify_namespace(child,units,components+1,reads,pages,visit):1);
   });
   if(directory.shape && expected!=*directory.shape)
     fail(Code::corrupt,"indexed directory shape differs from its children");
@@ -2737,7 +2908,8 @@ void IndexedVolumeView::verify_inventory(bool published,const IndexedReopenAdmis
   };
   const auto root_inode=referenced_inode(1);
   visit(root_inode,false);
-  if(verify_namespace(root_inode,0,0,reads,visit)!=root_.inodes-root_.detached_inodes)
+  InodePageCache pages;
+  if(verify_namespace(root_inode,0,0,reads,pages,visit)!=root_.inodes-root_.detached_inodes)
     fail(Code::corrupt,"indexed namespace has unreachable inodes");
   std::ranges::sort(namespace_owners,{},&IndexedExtentOwner::inode);
   bool found_root=false;
@@ -2749,9 +2921,17 @@ void IndexedVolumeView::verify_inventory(bool published,const IndexedReopenAdmis
         fail(Code::corrupt,"unexpected indexed root publication");
       found_root=true;
     } else if(domain(id)==inode_domain) {
-      account_inode(decode_inode_with_lifetime(store_,root_,id&ordinal_mask,bytes));
+      const auto inode=id&ordinal_mask;
+      if(pages.read(store_,root_,inode))fail(Code::corrupt,"indexed inode has two representations");
+      account_inode(decode_inode_with_lifetime(store_,root_,inode,bytes));
+    } else if(domain(id)==kIndexedInodePageObject) {
+      const auto first=first_page_inode(root_,id);
+      const auto rows=inode_page_rows(root_,id,bytes);
+      for(std::size_t i=0;i<rows.size();++i) {
+        if(!rows[i].empty())account_inode(decode_packed_inode(root_,first+i,rows[i]));
+      }
     } else if(domain(id)==lifetime_domain || domain(id)==retirement_domain) {
-      const auto entry=referenced_inode(id&ordinal_mask,true);
+      const auto entry=referenced_inode(id&ordinal_mask,InodeReference::allow_retiring);
       if(root_.format<2 || marker_id(entry.inode,entry.lifetime)!=id)
         fail(Code::corrupt,"unreferenced indexed lifetime marker");
     } else if(domain(id)==kNativeIndexedDataObject) {
@@ -2771,7 +2951,7 @@ void IndexedVolumeView::verify_inventory(bool published,const IndexedReopenAdmis
       if(!extent_owner || extent_owner->inode!=inode) {
         const auto known=std::ranges::lower_bound(namespace_owners,inode,{},&IndexedExtentOwner::inode);
         extent_owner=known!=namespace_owners.end() && known->inode==inode?
-            *known:IndexedExtentOwner(referenced_inode(inode,true));
+            *known:IndexedExtentOwner(referenced_inode(inode,InodeReference::allow_retiring));
       }
       const auto& owner=*extent_owner;
       const auto block=get(bytes,16);

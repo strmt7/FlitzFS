@@ -347,13 +347,15 @@ or the size comparison establishes its opportunity.
 
 #### 3. Choose formats on complete settled size
 
-- Start from inline data and both compact checkpoints on the qualified
-  memory provider. Freeze a real named tree with paths, metadata and
-  duplicate contents, and a separate held-out tree. Estimate how many
-  per-inode records and index pages a bounded protected slot table
-  could remove. Price the strongest current compact layout, a denser
-  metadata-only layout and a combined cold tier. Count both copies,
-  all maps, dependencies, reserved space and pinned older generations.
+- Compare the explicit packed inode layout with compact inline controls
+  in the ordinary client trace. The current model cut settled size by
+  50% on the tiny cohort and 31% on the named tree. Price live lookup,
+  append, write amplification and pinned-reader overhead in the mixed
+  workload before selecting the memory default. Stage legacy-to-packed
+  migration in a private image with equivalent logical metadata and
+  independent range readback. Count both copies, all maps, dependencies,
+  reserved space and pinned older generations.
+  [Current packed layout evidence](evidence/windows-packed-inodes-and-radeon-2026-11-25.json)
 - For larger revisions, pair current exact sharing, Zstandard, grouped
   and assembled-prefix variants with a bounded exact neighborhood oracle.
   Count the available savings missed at shortlist selection and at

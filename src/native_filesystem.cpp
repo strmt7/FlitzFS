@@ -2768,8 +2768,10 @@ std::optional<NativeManagedForeground> NativeFilesystemWriter::indexed_foregroun
   if(poisoned() || !impl_->indexed)return {};
   const auto layout=impl_->objects.paged_if()->mirrored_write_layout();
   if(!layout)return {};
-  return NativeManagedForeground{policy,*layout,
-      impl_->indexed->inline_files?NativeIndexedDataLayout::inline_small_files:NativeIndexedDataLayout::extents};
+  auto data_layout=NativeIndexedDataLayout::extents;
+  if(impl_->indexed->packed_inodes)data_layout=NativeIndexedDataLayout::packed_small_file_inodes;
+  else if(impl_->indexed->inline_files)data_layout=NativeIndexedDataLayout::inline_small_files;
+  return NativeManagedForeground{policy,*layout,data_layout};
 }
 std::uint64_t NativeFilesystemWriter::indexed_append_floor() const noexcept {
   if(poisoned() || !impl_->indexed)return 0;

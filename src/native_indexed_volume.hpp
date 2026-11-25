@@ -10,6 +10,7 @@ inline constexpr std::size_t kIndexedVolumeIdentityOffset=72;
 inline constexpr std::size_t kIndexedVolumeRootMaximumBytes=136;
 inline constexpr std::size_t kIndexedExtentHeaderBytes=24;
 inline constexpr std::size_t kIndexedInlineFileBytes=512;
+inline constexpr std::uint64_t kIndexedInodePageObject=6ULL<<61;
 struct IndexedVolumeRoot {
   StoreIdentity identity{};
   std::uint64_t sequence=0,next_inode=2,next_extent=1;
@@ -20,6 +21,7 @@ struct IndexedVolumeRoot {
   bool directory_shapes=false;
   bool directory_backfill_complete=false;
   bool inline_files=false;
+  bool packed_inodes=false;
   std::uint64_t active_lifetimes=0,detached_inodes=0,retiring_inodes=0;
   std::uint64_t shared_bases=0,shared_members=0;
   bool operator==(const IndexedVolumeRoot&) const = default;
@@ -280,9 +282,12 @@ class IndexedVolumeView final {
  private:
   friend class IndexedVolumeBuilder;
   IndexedVolumeView(const PagedObjectStoreSnapshot&,IndexedVolumeRoot root);
-  IndexedInodeInput referenced_inode(std::uint64_t id,bool allow_retiring=false) const;
+  enum class InodeReference {live,directory,allow_retiring};
+  IndexedInodeInput referenced_inode(std::uint64_t id,InodeReference=InodeReference::live) const;
+  struct InodePageCache;
   std::uint64_t verify_namespace(const IndexedInodeInput&,std::size_t path_units,unsigned components,
-      PagedObjectStoreSnapshot::AuditMetadataReads&,const std::function<void(const IndexedInodeInput&,bool)>& visit) const;
+      PagedObjectStoreSnapshot::AuditMetadataReads&,InodePageCache&,
+      const std::function<void(const IndexedInodeInput&,bool)>& visit) const;
   struct CheckedContent {
     NativeContentToken token;
     IndexedInodeInput inode;

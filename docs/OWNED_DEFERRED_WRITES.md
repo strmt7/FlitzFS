@@ -258,6 +258,25 @@ idle residency of any early preparation.
 [AMD initialization](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/initialization.html) ·
 [AMD stream lifecycle](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/reference/hip_runtime_api/modules/stream_management.html)
 
+### Single-extent prepared write on Radeon
+
+The standalone SDK executable initially reported that its application-relative
+AMD package was unavailable. Staging the build-bound `FlitzFSAMD` files
+in a privately owned fixture restored discovery with one identity query.
+The first immediate device write verified successfully. The prepared
+worker then refused a stale pre-initialization memory observation and
+retired. A subsequent fresh observation admitted the full comparison.
+
+On the 64 KiB CPython extent, the paired retry measured 0.389 ms on CPU,
+3.663 s for immediate Radeon and 2.311 s for prepared Radeon including
+startup. The prepared worker reached readiness in 2.258 s and took
+52.4 ms from readiness to verified output. The CPU image occupied
+216 KiB. Both Radeon replays stored one device candidate and occupied
+224 KiB. All three images passed CPU readback. The shape favors CPU.
+The next comparison needs an ordinary mounted workload with enough
+useful demand to amortize preparation and preserve recovery.
+[Measured Radeon comparison](evidence/windows-packed-inodes-and-radeon-2026-11-25.json)
+
 ### Grouped native write replay
 
 The detached replay can send several complete writes in one worker exchange.

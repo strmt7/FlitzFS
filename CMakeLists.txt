@@ -451,7 +451,9 @@ if(FLITZFS_BUILD_TESTS)
   add_test(NAME bounded_native_indexed_volume COMMAND flitzfs_native_indexed_volume_tests)
   add_test(NAME bounded_native_indexed_reopen_replicas COMMAND flitzfs_native_indexed_volume_tests --reopen-replicas)
   add_test(NAME bounded_native_indexed_inline_files COMMAND flitzfs_native_indexed_volume_tests --inline-small-files)
-  set_tests_properties(bounded_native_indexed_volume bounded_native_indexed_inline_files PROPERTIES TIMEOUT 120)
+  add_test(NAME bounded_native_indexed_packed_inodes COMMAND flitzfs_native_indexed_volume_tests --packed-small-file-inodes)
+  set_tests_properties(bounded_native_indexed_volume bounded_native_indexed_inline_files
+    bounded_native_indexed_packed_inodes PROPERTIES TIMEOUT 120)
   add_executable(flitzfs_protected_indexed_image_tests tests/test_protected_indexed_image.cpp)
   target_include_directories(flitzfs_protected_indexed_image_tests PRIVATE src)
   target_link_libraries(flitzfs_protected_indexed_image_tests PRIVATE flitzfs_core)
@@ -988,7 +990,7 @@ if(FLITZFS_BUILD_WINFSP)
     target_link_libraries(flitzfs_winfsp_paged_tests PRIVATE flitzfs_winfsp Threads::Threads)
     add_custom_command(TARGET flitzfs_winfsp_paged_tests POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_if_different "${FLITZFS_WINFSP_DLL}" "$<TARGET_FILE_DIR:flitzfs_winfsp_paged_tests>")
-    foreach(mode callbacks inline-files faults-4096 faults-65536 ready-lz4-reads ready-group-reads
+    foreach(mode callbacks inline-files packed-inodes faults-4096 faults-65536 ready-lz4-reads ready-group-reads
         ready-mixed-group-reads ready-segmented-group-reads ready-small-stream-group-reads)
       add_test(NAME bounded_winfsp_paged_${mode} COMMAND flitzfs_winfsp_paged_tests --${mode})
       set_tests_properties(bounded_winfsp_paged_${mode} PROPERTIES TIMEOUT 120)

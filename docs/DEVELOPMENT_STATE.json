@@ -6,6 +6,20 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "packed_inode_layout": {
+    "source_parent": "566026560a3bb804d758539866a9972a2695da70",
+    "tested_source_tree": "f4fc420feb626a45bc98d534dbfe7105c9d1c9be",
+    "evidence": "docs/evidence/windows-packed-inodes-and-radeon-2026-11-25.json",
+    "tiny_settled_bytes": [180224, 90112],
+    "named_settled_bytes": [688128, 475136],
+    "named_cpu_read_bytes": [14039278, 14310207],
+    "modeled_interruption_cases": 66,
+    "live_radeon_group_read_hits": 2,
+    "live_radeon_prepared_extent_ready_to_verified_ns": 52367600,
+    "packed_inodes_default": false,
+    "mounted_acceleration_qualified": false,
+    "release_qualified": false
+  },
   "small_file_layout_frontier": {
     "source_parent": "c0ac21c01b7f75f3d9cf334332a97369d66496a5",
     "tested_source_tree": "8ba740866ba033e6e8d59908a536c9f6133b5066",

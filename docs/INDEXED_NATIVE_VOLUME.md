@@ -99,6 +99,59 @@ separately.
 [Persistent creation and recovery model](evidence/windows-persistent-inline-reconciliation-2026-11-25.json) ·
 [Release design](architecture/ADAPTIVE_STORAGE_EXECUTION.md#protected-short-files-and-complete-size)
 
+### Packed inode pages
+
+An explicit indexed layout, `packed_small_file_inodes`, adds packed inode
+pages to the inline-file format. Namespace feature bit 11 advertises
+the representation and requires bit 10. The current decoder can open
+earlier roots. A decoder whose feature mask predates bit 11 refuses the
+new root. Compaction keeps both features in the rebound root.
+
+A linked regular file of at most 512 logical bytes is eligible if its
+canonical inode frame fits in 1,024 bytes. Its stable inode ID selects
+one of eight slots. The paged object ID is
+`(6ULL << 61) | (inode / 8 + 1)`, and the slot is `inode % 8`.
+The root inode, directories, larger frames and active delete lifetimes
+use their standalone records. File lookups can fall back from an empty
+slot to a standalone inode. Path traversal looks up a parent in standalone
+storage first and still resolves a packed regular file in that position.
+
+A page starts with the eight bytes `FLTXIP01`, followed by eight
+little-endian 16-bit row lengths. Zero means absent. Nonempty rows follow
+the table in slot order with no padding. Each row is an unchanged
+canonical inode frame with its own decoded identity. No row may address
+a reserved inode or an ID beyond the selected allocator. The maximum
+decoded page size is 8,216 bytes. An empty page is removed.
+
+The paged object store independently checks both mirrored records. Changes
+to a page and any standalone representation share the existing transaction
+with names, extents and lifetime markers. A split or merge therefore
+selects exactly one representation for the inode. Inventory verification
+checks all rows, rejects duplicate representations and counts namespace
+and allocation ownership. It retains one checked page during the name walk
+and still verifies the stored copies in the inventory pass.
+
+Packed pages can save the per-record and index overhead of short inodes,
+at the cost of reading or rewriting neighboring rows. Btrfs leaf items
+illustrate dense metadata slots, and EROFS describes inline data in inode
+layouts. FlitzFS uses its own checked object and publication boundaries.
+[Btrfs on-disk format](https://btrfs.readthedocs.io/en/latest/dev/On-disk-format.html) ·
+[EROFS on-disk format](https://erofs.docs.kernel.org/en/latest/ondisk/core_ondisk.html)
+
+The 192-file short CPython cohort occupied 88 KiB including the selector,
+down from 176 KiB for compact inline files with standalone inodes. The
+live object count went from 199 to 32. The 374-file named tree went from
+672 KiB to 464 KiB. Its full-file CPU reads fetched 1.9% more backing
+bytes, and ingestion wrote 40 KiB more. The short-file range trace
+fetched 57.0% fewer backing bytes. Both configurations kept the same
+protection and independently verified file contents.
+
+The grow and shrink tests recovered the prior or complete generation
+in all 66 modeled interruptions. The Windows SDK callbacks also passed
+on 4 KiB and 64 KiB modeled failure units. The layout remains explicit
+while ordinary mounted I/O and gradual migration are qualified.
+[Footprint, read costs and recovery](evidence/windows-packed-inodes-and-radeon-2026-11-25.json)
+
 ### Name profiles
 
 Profile 0 keeps the earlier ASCII spelling and lowercase keys. The first

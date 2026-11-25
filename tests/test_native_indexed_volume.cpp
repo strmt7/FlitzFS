@@ -1118,7 +1118,7 @@ void indexed_session_lifetimes(NativeIndexedDataLayout layout=NativeIndexedDataL
   const auto initial=payload(518),extra=payload(529);
   session.write(made.handle,0,initial);
   const auto unreserved=session.allocation_usage();
-  const auto live_extents=layout==NativeIndexedDataLayout::inline_small_files?0U:1U;
+  const auto live_extents=layout==NativeIndexedDataLayout::extents?1U:0U;
   require(unreserved.live_extents==live_extents && unreserved.charged_extents==1,
       "indexed unreserved file accounting");
   constexpr std::uint64_t reserved=32U*1024*1024;
@@ -1186,9 +1186,8 @@ void indexed_session_lifetimes(NativeIndexedDataLayout layout=NativeIndexedDataL
   session.snapshot().verify_all();
 }
 
-void indexed_inline_transitions() {
+void indexed_inline_transitions(NativeIndexedDataLayout layout=NativeIndexedDataLayout::inline_small_files) {
   using Error=NativeFsErrorCode;
-  constexpr auto layout=NativeIndexedDataLayout::inline_small_files;
   const auto original=payload(174);
   const auto sentinel=payload(183);
   constexpr auto tail_offset=kNativeExtentBytes+119;
@@ -1281,6 +1280,57 @@ void indexed_inline_transitions() {
   sparse.verify_all();
   require(!sparse.allocation_usage().live_extents && !sparse.allocation_usage().charged_extents &&
       sparse.read("short",0,1024)==Bytes(kIndexedInlineFileBytes),"truncate and sparse regrowth revived old bytes");
+}
+
+void indexed_inode_page_inventory() {
+  using Error=NativeFsErrorCode;
+  auto backing=empty();
+  auto writer=NativeFilesystemWriter::initialize_indexed(
+      PagedObjectStoreWriter::create_mirrored(backing,identity(),limits,raw),
+      NativeIndexedDataLayout::packed_small_file_inodes);
+  const auto one=payload(311),two=payload(312);
+  const auto created=writer.apply(std::array{file_create("one"),file_write("one",0,one),
+      file_create("two"),file_write("two",0,two)});
+  const auto pinned=writer.snapshot();
+  pinned.verify_all();
+  const auto store=PagedObjectStoreSnapshot::open(backing,limits);
+  constexpr auto page=kIndexedInodePageObject|1;
+  constexpr auto standalone=1ULL<<63;
+  require(store.stat(page).has_value() && !store.stat(standalone|created.created_inodes.front()) &&
+      !store.stat(standalone|created.created_inodes.back()),"short inodes did not share an exclusive page");
+  refuses(Error::not_directory,[&]{(void)pinned.read("one/child",0,1);});
+
+  const auto altered=[&](StoreMutation change) {
+    auto replica=image(backing->stable,4096);
+    const auto generation=pinned.storage_info().generation;
+    {
+      auto editor=PagedObjectStoreWriter::resume(replica,identity(),generation,limits,raw);
+      editor.commit({&change,1});
+    }
+    refuses(Error::corrupt,[&] {
+      auto bad=NativeFilesystemSnapshot::open_image(replica,indexed);
+      bad.verify_all();
+    });
+  };
+  auto rows=store.read(page);
+  const auto slot=created.created_inodes.front();
+  const auto length_at=8+2*slot;
+  const auto length=std::to_integer<unsigned>(rows.at(length_at)) |
+      (std::to_integer<unsigned>(rows.at(length_at+1))<<8);
+  require(length && length+24<=rows.size(),"first packed inode has no complete row");
+  altered({standalone|slot,false,Bytes(rows.begin()+24,rows.begin()+24+length)});
+  rows.at(length_at+1)=std::byte{0xff};
+  altered({page,false,std::move(rows)});
+  auto root=store.read(1);
+  root.at(93)&=~std::byte{4};
+  altered({1,false,std::move(root)});
+
+  writer.apply(std::array{file_remove("one"),file_remove("two")});
+  const auto current=PagedObjectStoreSnapshot::open(backing,limits);
+  require(!current.stat(page),"retiring the final row left an empty inode page");
+  writer.snapshot().verify_all();
+  require(pinned.read("one",0,one.size())==one && pinned.read("two",0,two.size())==two,
+      "reclaiming an inode page changed a pinned view");
 }
 
 void indexed_detach_recovery() {
@@ -1890,7 +1940,7 @@ void profile_cpython_reopen(const char* path,bool compressed=false) {
   },encoding);
 }
 
-void profile_named_inline(const std::filesystem::path& path) {
+void profile_named_inline(const std::filesystem::path& path,bool compare_packed=false) {
   const NamedCorpusFixture corpus(path);
   require(store_zstd_available() && corpus.files().size()<=512 && corpus.logical_bytes()<=4ULL*1024*1024,
       "named inline profile exceeds the admitted cohort or lacks Zstandard");
@@ -1900,13 +1950,19 @@ void profile_named_inline(const std::filesystem::path& path) {
   const NativeImageStorage storage{NativeImageKind::indexed_paged,capacity};
   const auto security=native_security_fixture::descriptor();
   constexpr NativeBasicMetadata directory_info{11,22,33,44,0x10},file_info{11,22,33,44,0x20};
-  for(const auto layout:{NativeIndexedDataLayout::extents,NativeIndexedDataLayout::inline_small_files}) {
+  const auto layouts=compare_packed?
+      std::array{NativeIndexedDataLayout::inline_small_files,NativeIndexedDataLayout::packed_small_file_inodes}:
+      std::array{NativeIndexedDataLayout::extents,NativeIndexedDataLayout::inline_small_files};
+  const auto head_layout=compare_packed?NativeVolumeHeadLayout::compact:NativeVolumeHeadLayout::legacy;
+  const auto image_layout=compare_packed?PagedStoreBankLayout::compact:PagedStoreBankLayout::shared;
+  for(const auto layout:layouts) {
     auto head=empty(),backing=empty(),compacted=empty();
     backing->capacity=compacted->capacity=capacity;
     constexpr auto kind=NativeDispositionPolicy::windows_global;
     {
       auto session=NativeFileSession::create_indexed_volume(head,identity_for(89),backing,identity(),{capacity},
-          encoding,kind,NativeVolumeRootMetadata{directory_info,security},NativeVolumePlacement::external,layout);
+          encoding,kind,NativeVolumeRootMetadata{directory_info,security},NativeVolumePlacement::external,layout,
+          head_layout,image_layout);
       for(const auto& directory:corpus.directories())session.create_entry(directory,true,directory_info,security);
       for(const auto& file:corpus.files()) {
         session.create_entry(file.path,false,file_info,security);
@@ -1928,11 +1984,14 @@ void profile_named_inline(const std::filesystem::path& path) {
       require(selected.read(file.path,0,static_cast<std::uint32_t>(file.bytes))==corpus.read(file),
           "named inline profile changed CPU bytes");
     }
-    std::cout<<"named_inline_profile layout="<<(layout==NativeIndexedDataLayout::extents?"extents":"inline")
+    const auto name=layout==NativeIndexedDataLayout::packed_small_file_inodes?"packed":
+        layout==NativeIndexedDataLayout::inline_small_files?"inline":"extents";
+    std::cout<<"named_inline_profile layout="<<name
         <<" files="<<corpus.files().size()<<" directories="<<corpus.directories().size()
         <<" logical_bytes="<<corpus.logical_bytes()<<" compacted_bytes="<<compacted->extent()
         <<" selector_bytes="<<head->extent()<<" ingested_bytes="<<backing->extent()
         <<" physical_read_bytes="<<compacted->read_bytes-begin
+        <<" ingest_write_bytes="<<backing->write_bytes+head->write_bytes
         <<" live_extents="<<selected.allocation_usage().live_extents<<" cpu_exact=1\n";
   }
 }
@@ -1947,8 +2006,20 @@ int main(int argc,char** argv) {
       std::cout<<"PASS: inline indexed lifecycle, fenced transitions and byte-exact CPU readback\n";
       return 0;
     }
+    if(argc==2 && std::string_view(argv[1])=="--packed-small-file-inodes"){
+      constexpr auto layout=NativeIndexedDataLayout::packed_small_file_inodes;
+      indexed_session_lifetimes(layout);
+      indexed_inline_transitions(layout);
+      indexed_inode_page_inventory();
+      std::cout<<"PASS: packed indexed inode lifecycle, fenced transitions and byte-exact CPU readback\n";
+      return 0;
+    }
     if(argc==3 && std::string_view(argv[1])=="--profile-named-inline"){
       profile_named_inline(argv[2]);
+      return 0;
+    }
+    if(argc==3 && std::string_view(argv[1])=="--profile-named-packed-inodes"){
+      profile_named_inline(argv[2],true);
       return 0;
     }
     if(argc==2 && std::string_view(argv[1])=="--reconciled-rebuild"){

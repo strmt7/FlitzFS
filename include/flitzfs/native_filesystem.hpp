@@ -14,7 +14,11 @@ namespace flitzfs {
 class PagedObjectStoreSnapshot;
 class PagedObjectStoreWriter;
 enum class NativeImageKind:std::uint32_t {flat=0,paged=1,indexed_paged=2,sealed_indexed=3};
-enum class NativeIndexedDataLayout {extents,inline_small_files};
+enum class NativeIndexedDataLayout {extents,inline_small_files,packed_small_file_inodes};
+constexpr bool valid_native_indexed_data_layout(NativeIndexedDataLayout layout) noexcept {
+  return layout==NativeIndexedDataLayout::extents || layout==NativeIndexedDataLayout::inline_small_files ||
+      layout==NativeIndexedDataLayout::packed_small_file_inodes;
+}
 struct NativeManagedForeground {
   StoreCompressionOptions compression;
   PagedStoreMirroredLayout layout;

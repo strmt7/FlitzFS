@@ -23,8 +23,7 @@ bool valid_shape(const NativeAmdWriteShape& shape) noexcept {
       valid_store_io_contract({layout.isolation_unit,true}) &&
       layout.isolation_unit>=detail::kPagedStoreCheckpointWriteBytes/2 &&
       (!layout.compact_roots || layout.isolation_unit<kStoreCommitUnit) &&
-      (storage.data_layout==NativeIndexedDataLayout::extents ||
-       storage.data_layout==NativeIndexedDataLayout::inline_small_files) &&
+      valid_native_indexed_data_layout(storage.data_layout) &&
       (compression.mode==StoreCompressionMode::fast || compression.mode==StoreCompressionMode::automatic) &&
       compression.zstd_level>=1 && compression.zstd_level<=9;
 }

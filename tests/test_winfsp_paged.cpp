@@ -1375,7 +1375,7 @@ void indexed_callbacks(unsigned unit,NativeIndexedDataLayout layout=NativeIndexe
   require(fs.Interface->Write(&fs,unicode,unicode_bytes.data(),0,static_cast<ULONG>(unicode_bytes.size()),
       FALSE,FALSE,&bytes,&info)==STATUS_SUCCESS && bytes==unicode_bytes.size(),"indexed SDK Unicode write");
   const auto unicode_id=info.IndexNumber;
-  if(layout==NativeIndexedDataLayout::inline_small_files) {
+  if(layout!=NativeIndexedDataLayout::extents) {
     constexpr ULONG sparse_size=static_cast<ULONG>(detail::kIndexedInlineFileBytes+1);
     require(adapter->snapshot().allocation_usage().live_extents==prior_extents &&
         fs.Interface->SetFileSize(&fs,unicode,sparse_size,FALSE,&info)==STATUS_SUCCESS &&
@@ -1560,7 +1560,8 @@ void indexed_callbacks(unsigned unit,NativeIndexedDataLayout layout=NativeIndexe
   fs.UserContext=nullptr;
   std::cout<<"indexed_winfsp_callbacks unit="<<unit<<" large_write_bytes="<<initial.size()
       <<" reopened_eof="<<eof+tail.size()<<" occupied_bytes="<<occupied
-      <<" inline_small_files="<<(layout==NativeIndexedDataLayout::inline_small_files)<<'\n';
+      <<" inline_small_files="<<(layout!=NativeIndexedDataLayout::extents)
+      <<" packed_inodes="<<(layout==NativeIndexedDataLayout::packed_small_file_inodes)<<'\n';
 }
 
 void publication_faults(unsigned unit) {
@@ -1636,6 +1637,10 @@ int wmain(int argc,wchar_t** argv){try {
   else if(mode==L"--inline-files"){
     indexed_callbacks(4096,NativeIndexedDataLayout::inline_small_files);
     indexed_callbacks(65536,NativeIndexedDataLayout::inline_small_files);
+  }
+  else if(mode==L"--packed-inodes"){
+    indexed_callbacks(4096,NativeIndexedDataLayout::packed_small_file_inodes);
+    indexed_callbacks(65536,NativeIndexedDataLayout::packed_small_file_inodes);
   }
   else if(mode==L"--ready-lz4-reads")ready_lz4_reads();
   else if(mode==L"--ready-group-reads")group_read_ahead();
