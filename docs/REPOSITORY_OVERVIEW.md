@@ -12,10 +12,13 @@ recommendation. The corrected signed build progressed to 503 sampled
 extents with zero maintenance failures. The new retained peer selection
 also saved occupied bytes in a controlled grouping. A physical Radeon
 delivered verified grouped reads through the SDK controller.
-[Signed replay and retained-peer evidence](evidence/windows-retained-short-peer-2026-11-25.json)
+The current checked-sampling change cut 22–35% of maintenance backing
+calls across two local corpus fixtures at the same settled size.
+[Indexed sampling and updated source inventory](evidence/windows-indexed-sample-scope-2026-11-25.json) ·
+[Signed replay and retained-peer evidence](evidence/windows-retained-short-peer-2026-11-25.json) ·
 [Current reconciliation](RELEASE_RECONCILIATION_2026-11-25.md) ·
 [Implementation packets](RELEASE_RECONCILIATION_2026-11-25.md#implementation-packets-and-exit-decisions) ·
-[Current test and source evidence](evidence/windows-packed-admission-and-sealing-2026-11-25.json)
+[Previous runtime evidence](evidence/windows-packed-admission-and-sealing-2026-11-25.json)
 
 The Radeon returned verified packed and mixed group frames through the
 SDK callback's prepared decoder path, with independent CPU readback.

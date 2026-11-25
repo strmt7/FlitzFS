@@ -6,7 +6,7 @@ demand, the indexed attach differential and held-out settled compression.
 The E01–E13 acceptance and dependency contracts below define the release exits.
 [Current assessment](RELEASE_RECONCILIATION_2026-11-25.md) ·
 [Ordered implementation](RELEASE_RECONCILIATION_2026-11-25.md#ordered-implementation-and-decision-points) ·
-[Source and review evidence](evidence/windows-indexed-cold-batched-copy-2026-11-25.json)
+[Source and review evidence](evidence/windows-indexed-sample-scope-2026-11-25.json)
 
 The [current architecture](architecture/CURRENT.md) shows the implementation.
 The [source review](architecture/REVIEW.md) tests the assumptions and the
@@ -302,11 +302,13 @@ or a new representation.
   now gives group work a way to accumulate fresh CPU-window credit.
   The paced replay completed and isolated a stale retry recommendation.
   The corrected signed build reached 503 sampled extents and kept
-  all live bytes independently readable. Carry the remaining advisory
-  scan through quiescence under the ordinary duty envelope.
-  Use the measured phase, time and allocation ledger to choose between
-  tuning eligibility and local reuse.
+  all live bytes independently readable. Replay the single-view candidate
+  through quiescence under the ordinary duty envelope. Compare
+  checked backing reads per new sample and per restart, eligible work
+  at each wake, and real allocation during the same trace. Use that
+  ledger to choose between eligibility, placement and local reuse.
   [Signed replay and retained-peer evidence](evidence/windows-retained-short-peer-2026-11-25.json)
+  [Current indexed sample evidence](evidence/windows-indexed-sample-scope-2026-11-25.json)
 - **Useful device delivery.** Feed observed open stream ranges and
   generations to the existing owner. For read, write and collective work,
   compare CPU, cold GPU and a ready lease using identical observations.
@@ -1316,6 +1318,16 @@ person-weeks, with an explicitly open research tail.
     If none wins, change the research approach; do not relabel the baseline a record.
 
 ### Research implications from current sources
+
+Treat the codec control and the restart layout as two separate experiments.
+Qualify Zstandard 1.6.0 against the pinned 1.5.7 static parameter and sequence
+APIs, old records and the same held-out cohorts. For a representation trial,
+vary the logical group size and the independently addressable unit separately
+on one frozen set. Count each dependency, offset entry and recovery copy.
+Use independent CPU range reads under partial failure and report mixed-size
+access cost along the occupied-size frontier.
+[Zstandard 1.6.0](https://github.com/facebook/zstd/releases/tag/v1.6.0) ·
+[2026 restart-layout preprint](https://arxiv.org/abs/2609.16731)
 
 RubikFS's 2026 similarity/hotness grouping provides a relevant read-only comparison.
 ZipLLM and Invariant Bit Packing motivate specialized family/bit-structure

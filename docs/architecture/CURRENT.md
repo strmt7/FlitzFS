@@ -2,7 +2,8 @@
 
 The diagrams trace the implementation reconciled on 25 November. They
 cover prepared AMD read delivery, mirrored cold copy across packed banks,
-phase visibility during reclaimer steps and bounded rolling lookup.
+phase visibility during reclaimer steps, bounded rolling lookup and
+single-view indexed sampling.
 [Release reconciliation](../RELEASE_RECONCILIATION_2026-11-25.md) ·
 [Packed admission and sealing evidence](../evidence/windows-packed-admission-and-sealing-2026-11-25.json) ·
 [Revised architecture](TARGET.md)
@@ -401,6 +402,31 @@ then its preferred and remaining distinct rolling keys against the same
 catalog snapshot. The existing live extent, exact-byte and complete-size
 checks govern candidate publication.
 [Secondary rolling lookup](../evidence/release-reconciliation-rolling-lookups-2026-11-25.json)
+
+### Indexed maintenance sample
+
+```mermaid
+flowchart LR
+    Entry["Next coordinate, changed coordinate or base refresh"] --> Scope["Open one scoped checked view"]
+    Scope --> Token["Check coordinate, linked inode and record revision"]
+    Token -->|Extent gone or detached| Continue["Advance the cursor"]
+    Token -->|Matching retained feature| Reuse["Carry feature with current stored size"]
+    Token -->|Payload required| Decode["CPU decode and check group witnesses in this view"]
+    Decode --> Close["Release the checked view"]
+    Close --> Measure["Extract features from owned bytes"]
+    Measure --> Continue
+    Reuse --> Continue
+```
+
+The CPU authority for publication remains a fresh source check followed by
+the normal verified transaction. Each sample starts with a new checked
+view. No retained feature owns store pages or keeps a selector pinned
+across a maintenance yield.
+[Sample implementation](../../src/native_indexed_volume.cpp) ·
+[Indexed sample evidence](../evidence/windows-indexed-sample-scope-2026-11-25.json)
+
+### Staged reclaim
+
 The current append layout reclaims normal churn by staged image replacement or
 provider-supported tail/region release. It can reconcile unrelated commits
 under bounds. Rebuild still requires alternate capacity and full passes.

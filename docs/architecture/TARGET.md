@@ -201,6 +201,17 @@ Measure candidate recall and rejected work against an exhaustive oracle on
 controlled small sets, then test skewed, changing and real million-entry
 namespaces without making a square similarity matrix.
 
+Use an ordered coordinate, payload revision and image identity as the
+minimum resumable advice. A scan unit gets a checked view, samples
+within the current grant and returns owned features before releasing it.
+After publication, refer to immutable protected dependencies. On restart,
+verify a cursor and candidate revision in the newly selected authority.
+When a cursor is stale, resume from confirmed coverage or restart a bounded
+range. Store completion coverage per range so a hot bucket or repeated
+overwrite cannot indefinitely displace cold candidates. The background
+store can be rebuilt from checked live data after advice loss.
+[Current sample scope](CURRENT.md#indexed-maintenance-sample)
+
 ```mermaid
 flowchart TD
     Ingest["Fast native ingestion"] --> Stable["Stable file or extent versions"]

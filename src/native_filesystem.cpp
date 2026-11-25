@@ -1383,8 +1383,8 @@ NativeSharedBaseInfo NativeFilesystemSnapshot::shared_base_info() const noexcept
   return impl_?NativeSharedBaseInfo{impl_->model.shared_bases,impl_->model.members.size(),impl_->model.bases.size()}:NativeSharedBaseInfo{};
 }
 std::optional<NativeContentToken> NativeFilesystemWriter::maintenance_next(NativeExtentSelection after,bool first) const {
-  if(!maintenance_supported())fail(Code::invalid_operation,"content scan requires healthy shared-base storage");
-  if(impl_->indexed)return impl_->read_indexed([&](const auto& view){return view.next_content(after,first);});
+  if(!maintenance_supported() || impl_->indexed)
+    fail(Code::invalid_operation,"content scan requires healthy non-indexed shared-base storage");
   for(auto it=first?impl_->model.nodes.begin():impl_->model.nodes.lower_bound(after.inode);it!=impl_->model.nodes.end();++it) {
     const auto& n=it->second;if(n.directory || n.unlinked || n.delete_pending)continue;
     auto extent=first || n.inode!=after.inode?n.extents.begin():n.extents.upper_bound(after.extent_index);
@@ -1398,6 +1398,12 @@ std::optional<NativeContentToken> NativeFilesystemWriter::maintenance_token(Nati
   if(!maintenance_indexed())fail(Code::invalid_operation,"content lookup requires indexed storage");
   return impl_->read_indexed([&](const auto& view){return view.content_at(extent);});
 }
+std::optional<detail::IndexedContentSample> NativeFilesystemWriter::maintenance_sample(
+    NativeExtentSelection extent,detail::IndexedContentLookup lookup,
+    const std::function<bool(const NativeContentToken&)>& read_payload) {
+  if(!maintenance_indexed())fail(Code::invalid_operation,"content sample requires indexed storage");
+  return impl_->read_indexed([&](const auto& view){return view.sample_content(extent,lookup,read_payload);});
+}
 bool NativeFilesystemWriter::maintenance_matches(const NativeContentToken& token) const noexcept {
   if(poisoned() || impl_->indexed || token.object<2 || token.object>kStoreMaxObjects ||
       impl_->shared_owner->revisions[token.object]!=token.revision)return false;
@@ -1406,8 +1412,7 @@ bool NativeFilesystemWriter::maintenance_matches(const NativeContentToken& token
   const auto extent=found->second.extents.find(token.extent.extent_index);
   return extent!=found->second.extents.end() && extent->second==token.object;
 }
-std::vector<std::byte> NativeFilesystemWriter::maintenance_read(NativeContentToken& token,bool published_reference) {
-  if(maintenance_indexed())return impl_->read_indexed([&](const auto& view){return view.read_content(token,published_reference);});
+std::vector<std::byte> NativeFilesystemWriter::maintenance_read(const NativeContentToken& token) {
   if(!maintenance_matches(token))fail(Code::invalid_operation,"stale content sample");
   try{auto source=checked_namespace();return extent_bytes(source,impl_->model,token.object);}
   catch(const std::bad_alloc&){fail(Code::limit,"content sample allocation failure");}

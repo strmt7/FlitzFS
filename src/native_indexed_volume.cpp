@@ -2472,45 +2472,55 @@ std::unique_ptr<NativeGroupReadBatch> IndexedVolumeView::capture_group_range(
   (void)check_group_storage(store_);
   return batch;
 }
-NativeContentToken IndexedVolumeView::content_token(NativeExtentSelection extent,std::uint64_t object) const {
-  const auto selected=referenced_inode(extent.inode,true);
-  if(selected.lifetime!=IndexedLifetime::linked)return {extent};
-  if(selected.directory || !selected.size || extent.extent_index>(selected.size-1)/kNativeExtentBytes ||
-      (object&ordinal_mask)>=root_.next_extent)
-    fail(Code::corrupt,"invalid indexed content selection");
-  const auto metadata=store_.stat(object);
-  if(!metadata)fail(Code::corrupt,"indexed content record is missing");
-  NativeContentToken result{extent,object,metadata->generation,metadata->generation};
-  result.stored_payload_bytes=metadata->stored_payload_bytes;
-  return result;
-}
-std::optional<NativeContentToken> IndexedVolumeView::next_content(NativeExtentSelection after,bool first) const {
+std::optional<IndexedVolumeView::CheckedContent> IndexedVolumeView::locate_content(
+    NativeExtentSelection extent,IndexedContentLookup lookup) const {
   (void)check_group_storage(store_);
-  const auto entry=index_.next_extent(first?std::nullopt:std::optional(native_extent_key(after.inode,after.extent_index)));
-  (void)check_group_storage(store_);
-  if(!entry)return {};
-  auto token=content_token({entry->key.parent-kNativeIndexedInodeLimit,native_extent_block(entry->key.name)},entry->value);
-  (void)check_group_storage(store_);
-  return token;
-}
-std::optional<NativeContentToken> IndexedVolumeView::content_at(NativeExtentSelection extent) const {
-  (void)check_group_storage(store_);
-  const auto object=index_.find(native_extent_key(extent.inode,extent.extent_index));
+  std::optional<std::uint64_t> object;
+  if(lookup==IndexedContentLookup::first || lookup==IndexedContentLookup::after) {
+    const auto start=lookup==IndexedContentLookup::first?std::nullopt:
+        std::optional(native_extent_key(extent.inode,extent.extent_index));
+    if(const auto entry=index_.next_extent(start)) {
+      extent={entry->key.parent-kNativeIndexedInodeLimit,native_extent_block(entry->key.name)};
+      object=entry->value;
+    }
+  } else object=index_.find(native_extent_key(extent.inode,extent.extent_index));
   (void)check_group_storage(store_);
   if(!object)return {};
-  auto token=content_token(extent,*object);
+  auto inode=referenced_inode(extent.inode,true);
+  NativeContentToken token{extent};
+  if(inode.lifetime==IndexedLifetime::linked) {
+    if(inode.directory || !inode.size || extent.extent_index>(inode.size-1)/kNativeExtentBytes ||
+        (*object&ordinal_mask)>=root_.next_extent)
+      fail(Code::corrupt,"invalid indexed content selection");
+    const auto metadata=store_.stat(*object);
+    if(!metadata)fail(Code::corrupt,"indexed content record is missing");
+    token.object=*object;
+    token.revision=token.content_revision=metadata->generation;
+    token.stored_payload_bytes=metadata->stored_payload_bytes;
+  }
   (void)check_group_storage(store_);
-  return token;
+  return CheckedContent{token,std::move(inode)};
 }
-Bytes IndexedVolumeView::read_content(NativeContentToken& token,bool published_reference) const {
-  const auto current=content_at(token.extent);
-  if(!token.object || !current || current->object!=token.object || current->revision!=token.revision)
-    fail(Code::invalid_operation,"stale indexed content sample");
+std::optional<NativeContentToken> IndexedVolumeView::content_at(NativeExtentSelection extent) const {
+  if(const auto checked=locate_content(extent,IndexedContentLookup::exact))return checked->token;
+  return {};
+}
+std::optional<IndexedContentSample> IndexedVolumeView::sample_content(NativeExtentSelection extent,
+    IndexedContentLookup lookup,const std::function<bool(const NativeContentToken&)>& read_payload) const {
+  const auto checked=locate_content(extent,lookup);
+  if(!checked)return {};
+  IndexedContentSample sample{checked->token,{}};
+  // Coordinate, inode, and revision come from this same checked snapshot.
+  if(sample.token.object && (!read_payload || read_payload(sample.token)))
+    sample.payload=materialize_content(sample.token,checked->inode,lookup==IndexedContentLookup::published_reference);
+  return sample;
+}
+Bytes IndexedVolumeView::materialize_content(NativeContentToken& token,const IndexedInodeInput& inode,
+    bool published_reference) const {
   auto extent=decode_extent(store_,index_,root_,token.object,
       required(store_,token.object,extent_header+kNativeExtentBytes),
-      referenced_inode(token.extent.inode),token.extent.extent_index,!published_reference);
+      inode,token.extent.extent_index,!published_reference);
   (void)check_group_storage(store_);
-  token.stored_payload_bytes=current->stored_payload_bytes;
   token.grouped=extent.base!=0;
   token.exact_base=false;
   token.packed_slice=extent.packed_slice;

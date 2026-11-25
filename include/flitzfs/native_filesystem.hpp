@@ -210,6 +210,14 @@ struct NativeContentToken {
   std::uint32_t standalone_bytes=0;
   std::uint32_t stored_payload_bytes=0; // Checked active record size for candidate pricing.
 };
+namespace detail {
+enum class IndexedContentLookup {first,after,exact,published_reference};
+struct IndexedContentSample {
+  NativeContentToken token;
+  // An absent payload was skipped. An empty payload was checked but offers no sample.
+  std::optional<std::vector<std::byte>> payload;
+};
+}
 struct NativeFsCommit {
   StoreCommitInfo storage;
   std::uint64_t sequence=0; // Namespace transaction sequence, distinct from root repair generation.
@@ -647,8 +655,10 @@ class NativeFilesystemWriter final {
       std::function<bool(std::uint64_t)> reserve_writes={}) const;
   std::optional<NativeContentToken> maintenance_next(NativeExtentSelection,bool first) const;
   std::optional<NativeContentToken> maintenance_token(NativeExtentSelection);
+  std::optional<detail::IndexedContentSample> maintenance_sample(NativeExtentSelection,
+      detail::IndexedContentLookup,const std::function<bool(const NativeContentToken&)>& read_payload={});
   bool maintenance_matches(const NativeContentToken&) const noexcept;
-  std::vector<std::byte> maintenance_read(NativeContentToken&,bool published_reference=false);
+  std::vector<std::byte> maintenance_read(const NativeContentToken&);
   std::uint64_t maintenance_content_sequence() const noexcept;
   std::optional<std::size_t> maintenance_changes_since(std::uint64_t,std::span<NativeExtentSelection>) const noexcept;
   bool maintenance_indexed() const noexcept;

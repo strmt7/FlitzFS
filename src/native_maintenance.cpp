@@ -17,6 +17,7 @@
 namespace flitzfs {
 namespace {
 using Digest=detail::Digest;using Phase=NativeMaintenancePhase;using Defer=NativeMaintenanceDeferral;
+using ContentLookup=detail::IndexedContentLookup;
 constexpr std::uint64_t million=1000000,fixed_scratch=16ULL*kNativeExtentBytes,member_scratch=8ULL*kNativeExtentBytes;
 constexpr unsigned positional_bands=8;
 constexpr std::uint64_t yield_scale=1024;
@@ -460,8 +461,7 @@ struct NativeGroupMaintenance::Impl {
       return false;
     }
   }
-  Feature measure(NativeFilesystemWriter& writer,NativeContentToken token,bool published_reference=false) {
-    const auto bytes=writer.maintenance_read(token,published_reference);
+  Feature measure(NativeContentToken token,std::span<const std::byte> bytes,bool indexed) {
     Feature feature;
     feature.token=token;
     feature.measured=true;
@@ -471,7 +471,7 @@ struct NativeGroupMaintenance::Impl {
     constexpr auto width=kNativeExtentBytes/positional_bands;
     for(unsigned i=0;i<positional_bands;++i)
       feature.bands[i]=word(detail::record_digest(std::span<const std::byte>(bytes).subspan(i*width,width)));
-    if(writer.maintenance_indexed()) {
+    if(indexed) {
       const auto short_payload=feature.token.standalone_bytes &&
           feature.token.standalone_bytes<kNativeExtentBytes && store_zstd_available();
       const auto shifted=detail::native_group_shift_features(bytes,short_payload?&feature.packing:nullptr);
@@ -979,11 +979,13 @@ struct NativeGroupMaintenance::Impl {
     phase=Phase::preparing;
     return true;
   }
-  std::optional<NativeContentToken> next_indexed_sample(NativeFilesystemWriter& writer) {
-    if(!update_count)return writer.maintenance_next(cursor,first);
+  std::optional<detail::IndexedContentSample> next_indexed_sample(NativeFilesystemWriter& writer,
+      const std::function<bool(const NativeContentToken&)>& read_payload) {
+    if(!update_count)return writer.maintenance_sample(cursor,first?ContentLookup::first:ContentLookup::after,read_payload);
     if(next_update==update_count)return {};
     const auto extent=updates[next_update++];
-    return writer.maintenance_token(extent).value_or(NativeContentToken{extent});
+    return writer.maintenance_sample(extent,ContentLookup::exact,read_payload).value_or(
+        detail::IndexedContentSample{NativeContentToken{extent},{}});
   }
   void step_indexed(NativeFilesystemWriter& writer,std::size_t maximum_members,
       std::size_t maximum_representatives,bool collect_batch,detail::NativeMaintenanceSource& owner,
@@ -995,10 +997,10 @@ struct NativeGroupMaintenance::Impl {
       const auto selected=*refresh_base;
       refresh_base.reset();
       if(selected.inode) {
-        const auto token=writer.maintenance_token(selected);
-        if(token && token->object) {
-          auto feature=measure(writer,*token,true);
-          if(feature.token.exact_base)representatives.insert_or_assign(token->object,std::move(feature));
+        const auto sample=writer.maintenance_sample(selected,ContentLookup::published_reference);
+        if(sample && sample->payload) {
+          auto feature=measure(sample->token,*sample->payload,true);
+          if(feature.token.exact_base)representatives.insert_or_assign(sample->token.object,std::move(feature));
         }
       }
       trim_representatives(maximum_representatives);
@@ -1006,36 +1008,40 @@ struct NativeGroupMaintenance::Impl {
       return;
     }
     if(phase==Phase::scanning) {
-      const auto token=next_indexed_sample(writer);
-      if(token) {
+      const Feature* reusable=nullptr;
+      const auto sample=next_indexed_sample(writer,[&](const auto& token) {
+        const auto retained=representatives.find(token.object);
+        const auto relocated=relocated_samples.find(token.object);
+        const auto* known=retained!=representatives.end()?&retained->second:
+            (relocated!=relocated_samples.end()?&relocated->second:nullptr);
+        const bool can_publish_catalog=owner.coherence_writer || owner.coherence_storage;
+        if(known && known->projected && known->token.revision==token.revision &&
+            (!owner.automatic_compression || known->measured) &&
+            (known->deltas_sampled || !can_publish_catalog) &&
+            known->token.extent.inode==token.extent.inode &&
+            known->token.extent.extent_index==token.extent.extent_index)reusable=known;
+        return !reusable;
+      });
+      if(sample) {
+        const auto& token=sample->token;
         if(!staged_groups.empty())++staged_scan_extents;
-        if(!update_count){cursor=token->extent;first=false;}
-        if(token->object) {
-          const auto retained=representatives.find(token->object);
-          auto relocated=relocated_samples.extract(token->object);
-          const auto* known=retained!=representatives.end()?&retained->second:
-              (relocated.empty()?nullptr:&relocated.mapped());
-          const bool can_publish_catalog=owner.coherence_writer || owner.coherence_storage;
-          if(known && known->projected && known->token.revision==token->revision &&
-              (!owner.automatic_compression || known->measured) &&
-              (known->deltas_sampled || !can_publish_catalog) &&
-              known->token.extent.inode==token->extent.inode &&
-              known->token.extent.extent_index==token->extent.extent_index) {
-            // Index lookups provide the revision; a verified payload sample
-            // also carries the representation's learned group role.
-            auto matched=*known;
-            matched.token.stored_payload_bytes=token->stored_payload_bytes;
-            features.insert_or_assign(token->object,std::move(matched));
+        if(!update_count){cursor=token.extent;first=false;}
+        if(token.object) {
+          if(reusable) {
+            auto matched=*reusable;
+            matched.token.stored_payload_bytes=token.stored_payload_bytes;
+            features.insert_or_assign(token.object,std::move(matched));
             ++state.reused_features;
           } else {
-            auto feature=measure(writer,*token);
+            auto feature=measure(token,sample->payload.value(),true);
             if(indexed_member_candidate(feature.token) || feature.token.exact_base)
-              features.insert_or_assign(token->object,std::move(feature));
+              features.insert_or_assign(token.object,std::move(feature));
             else {
-              features.erase(token->object);
-              representatives.erase(token->object);
+              features.erase(token.object);
+              representatives.erase(token.object);
             }
           }
+          relocated_samples.erase(token.object);
         }
         if(features.size()>=maximum)rank_buckets(true);
       } else {extent_scan_exhausted=true;rank_buckets(true);}
@@ -1216,7 +1222,8 @@ struct NativeGroupMaintenance::Impl {
         if(found!=features.end() && found->second.token.content_revision==next->content_revision) {
           found->second.token=*next;++state.reused_features;return;
         }
-        features[next->object]=measure(writer,*next);return;
+        const auto bytes=writer.maintenance_read(*next);
+        features[next->object]=measure(*next,bytes,false);return;
       }
       for(auto it=features.begin();it!=features.end();)it=!seen[it->first]?features.erase(it):std::next(it);
       rank_buckets(false);return;

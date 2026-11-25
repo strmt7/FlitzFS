@@ -5,12 +5,13 @@ packed runtime. The diagnostic signed replay isolated the point where
 catalog retirement encountered a write fence. The replacement admission
 and aligned cold-seal staging regressions passed. The corrected signed
 replay released allocation while mounted with zero maintenance failures.
-The work sequence continues through
-settlement, measured AMD delivery, complete-size compression and
-scalable writable attach.
+The current indexed scan uses one checked view per sample and reduced backing
+reads in both corpus fixtures. Complete mounted settlement with that
+candidate, qualify useful automatic AMD delivery, measure held-out occupied
+size and compare writable attach with its full verification control.
 [Current reconciliation](RELEASE_RECONCILIATION_2026-11-25.md) ·
 [Implementation packets and exit decisions](RELEASE_RECONCILIATION_2026-11-25.md#implementation-packets-and-exit-decisions) ·
-[Current runtime evidence](evidence/windows-packed-admission-and-sealing-2026-11-25.json)
+[Current runtime evidence](evidence/windows-indexed-sample-scope-2026-11-25.json)
 Use the [repository overview](REPOSITORY_OVERVIEW.md) for the product snapshot,
 the [current architecture](architecture/CURRENT.md) and [target architecture](architecture/TARGET.md)
 for system flows, and the [detailed implementation plan](IMPLEMENTATION_PLAN.md)
@@ -509,8 +510,12 @@ zero failures. Its final telemetry refusal retained an old duty delay.
 The corrected build clears stale recommendations and preserves the duty
 balance. The signed rerun reduced allocation while mounted, verified
 all live files and reached 503 sampled extents. The remaining work
-was deferred for current duty, with a 38 ms estimate.
+was deferred for current duty, with a 38 ms estimate. Recheck the same
+terminal condition on the single-view candidate. First identify which
+work remained eligible, what grant it awaited and which operation
+would have completed it.
 [Signed replay and retained-peer evidence](evidence/windows-retained-short-peer-2026-11-25.json)
+[Current sample evidence](evidence/windows-indexed-sample-scope-2026-11-25.json)
 [Packed maintenance fixes](evidence/windows-packed-admission-and-sealing-2026-11-25.json) ·
 [Signed packed publication and backing release](evidence/windows-maintenance-reference-refresh-2026-11-25.json) ·
 [Source-audit control](evidence/windows-mirrored-source-audit-2026-11-25.json) ·

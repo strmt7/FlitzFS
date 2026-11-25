@@ -258,9 +258,9 @@ class IndexedVolumeView final {
   std::unique_ptr<NativeGroupReadBatch> capture_group_range(const IndexedInodeInput&,
       std::uint64_t offset,std::uint32_t bytes,std::size_t remaining_frame_bytes,
       const std::function<bool()>& interrupted) const;
-  std::optional<NativeContentToken> next_content(NativeExtentSelection after,bool first) const;
   std::optional<NativeContentToken> content_at(NativeExtentSelection) const;
-  std::vector<std::byte> read_content(NativeContentToken&,bool published_reference) const;
+  std::optional<IndexedContentSample> sample_content(NativeExtentSelection,IndexedContentLookup,
+      const std::function<bool(const NativeContentToken&)>& read_payload) const;
   void verify_all(const IndexedReopenAdmission& admission={}) const;
   void verify_equivalent(const IndexedVolumeView& target) const;
 
@@ -270,7 +270,13 @@ class IndexedVolumeView final {
   IndexedInodeInput referenced_inode(std::uint64_t id,bool allow_retiring=false) const;
   std::uint64_t verify_namespace(const IndexedInodeInput&,std::size_t path_units,unsigned components,
       const IndexedReopenAdmission&) const;
-  NativeContentToken content_token(NativeExtentSelection,std::uint64_t object) const;
+  struct CheckedContent {
+    NativeContentToken token;
+    IndexedInodeInput inode;
+  };
+  std::optional<CheckedContent> locate_content(NativeExtentSelection,IndexedContentLookup) const;
+  std::vector<std::byte> materialize_content(NativeContentToken&,const IndexedInodeInput&,
+      bool published_reference) const;
   void verify_inventory(bool published,const IndexedReopenAdmission& admission={}) const;
   std::string path(const IndexedInodeInput&,bool include_spelling=true) const;
   const PagedObjectStoreSnapshot& store_;

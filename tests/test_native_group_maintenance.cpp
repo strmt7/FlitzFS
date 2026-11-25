@@ -511,11 +511,12 @@ void indexed_prefix_extension(bool verify_improvement,const char* corpus=nullptr
   const auto first_base=[&] {
     const auto pages=PagedObjectStoreSnapshot::open(f.image,{kStoreMaxPhysicalBytes});
     const detail::IndexedVolumeView source(pages,pages.read(1));
-    auto token=source.content_at({source.resolve(name(0)).inode,0});
-    require(token.has_value(),"The original group lost its witness");
-    require(source.read_content(*token,true)==originals.front() && token->grouped,
+    const auto sample=source.sample_content({source.resolve(name(0)).inode,0},
+        detail::IndexedContentLookup::published_reference,{});
+    require(sample.has_value(),"The original group lost its witness");
+    require(sample->payload==originals.front() && sample->token.grouped,
         "The original group lost its linked base");
-    const auto record=pages.read(token->object);
+    const auto record=pages.read(sample->token.object);
     const auto reference=detail::read_native_group_header(
         std::span(record).subspan(detail::kIndexedExtentHeaderBytes),detail::NativeGroupMethod::prefixed_zstd);
     return std::pair{reference.base_id,reference.base_generation};
@@ -800,6 +801,7 @@ void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expect
   f.session.emplace(NativeFileSession::resume_closed_indexed_volume(f.head,id(90),1,resolve,policy));
   NativeMaintenanceProgress outcome;
   const auto before_reads=f.image->read_bytes,before_writes=f.image->write_bytes;
+  const auto before_read_calls=f.image->read_calls;
   {
     NativeGroupMaintenance groups(*f.session);
     outcome=f.finish(groups);
@@ -808,6 +810,7 @@ void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expect
         "completed similarity packing did more backing I/O");
   }
   const auto maintenance_reads=f.image->read_bytes-before_reads,maintenance_writes=f.image->write_bytes-before_writes;
+  const auto maintenance_read_calls=f.image->read_calls-before_read_calls;
   f.session.reset();
   verify(prior);
   const auto current=NativeFilesystemSnapshot::open_image(f.image,storage);
@@ -818,6 +821,8 @@ void profile_similarity_packing(std::span<const Bytes> inputs,std::size_t expect
       <<" selector_bytes="<<f.head->extent()<<" ingested_image_bytes="<<ingested_bytes
       <<" maintained_image_bytes="<<f.image->extent()<<" before_range_read_bytes="<<before.second
       <<" after_range_read_bytes="<<after.second<<" maintenance_read_bytes="<<maintenance_reads
+      <<" maintenance_read_calls="<<maintenance_read_calls
+      <<" sampled_extents="<<outcome.sampled_extents<<" reused_features="<<outcome.reused_features
       <<" maintenance_write_bytes="<<maintenance_writes<<" work_ns="<<outcome.elapsed_work_ns
       <<" packed_groups="<<outcome.packed_reference_groups<<" attempts="<<outcome.attempted_groups
       <<" yield_observations="<<outcome.candidate_yield_observations
@@ -2531,10 +2536,10 @@ void indexed_catalog_displaced_candidate() {
   const detail::IndexedVolumeView source(image_pages,image_pages.read(1));
   const auto posting=[&](const auto& file) {
     const auto inode=source.resolve(file.first).inode;
-    auto token=source.content_at({inode,0});
-    require(token && source.read_content(*token,false)==file.second,"displaced candidate fixture binding");
+    const auto sample=source.sample_content({inode,0},detail::IndexedContentLookup::exact,{});
+    require(sample && sample->payload==file.second,"displaced candidate fixture binding");
     const auto digest=detail::record_digest(std::span(file.second).first(kNativeExtentBytes/8));
-    OptimizationGroupFeature feature{inode,0,token->object,token->revision,detail::record_digest(file.second)};
+    OptimizationGroupFeature feature{inode,0,sample->token.object,sample->token.revision,detail::record_digest(file.second)};
     for(unsigned i=0;i<8;++i)feature.bands[0]|=std::uint64_t(std::to_integer<unsigned>(digest[i]))<<(8*i);
     return IndexedCoherencePosting{0,feature};
   };
@@ -3555,9 +3560,9 @@ void indexed_catalog_reclamation_at_scale(std::optional<std::size_t> final_flush
     const auto pages=PagedObjectStoreSnapshot::open(f.image,limits);
     const detail::IndexedVolumeView view(pages,pages.read(1));
     const auto inode=view.resolve(path).inode;
-    auto token=view.content_at({inode,0});
-    require(token && view.read_content(*token,false)==expected,"seeded extent is absent or different");
-    return OptimizationGroupFeature{inode,0,token->object,token->revision,detail::record_digest(expected)};
+    const auto sample=view.sample_content({inode,0},detail::IndexedContentLookup::exact,{});
+    require(sample && sample->payload==expected,"seeded extent is absent or different");
+    return OptimizationGroupFeature{inode,0,sample->token.object,sample->token.revision,detail::record_digest(expected)};
   };
   const auto older=feature("left",left),newer=feature("right",right);
   require(older.revision<newer.revision,"fixture needs displaced live nominations");
