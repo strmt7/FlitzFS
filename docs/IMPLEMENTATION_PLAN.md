@@ -296,17 +296,15 @@ decision. The expanded [decision table](RELEASE_RECONCILIATION_2026-11-25.md#dec
 defines when to continue with admission and pacing, locality, AMD scheduling
 or a new representation.
 
-- **Mounted settlement.** The diagnostic signed replay observed catalog
-  retirement encountering a packed write fence. The latest provider grant
-  now determines the packed writer's authority and cold-seal staging
-  reserves the aligned workspace. The fixed model completes both
-  publications with exact CPU readback. Restart the same signed witness
-  when memory admission allows it. Require lower occupied bytes while
-  mounted, zero maintenance failures, controller quiescence and the same
-  selected epoch on independent CPU reopen. If a fence recurs, capture
-  its first provider operation. Use the measured phase, time and
-  allocation ledger to decide between tuning eligibility and local reuse.
-  [Packed admission and sealing evidence](evidence/windows-packed-admission-and-sealing-2026-11-25.json)
+- **Mounted settlement.** The corrected signed replay released backing
+  allocation while mounted, encountered zero maintenance failures and
+  independently verified all 1,027 files. The controller's duty sampling
+  now gives group work a way to accumulate fresh CPU-window credit.
+  The paced candidate's signed replay stopped at host memory admission.
+  Replay the paced candidate under fresh memory admission and require controller quiescence.
+  Use the measured phase, time and allocation ledger to choose between
+  tuning eligibility and local reuse.
+  [Signed replay and duty-sampling evidence](evidence/windows-packed-settlement-credit-2026-11-25.json)
 - **Useful device delivery.** Feed observed open stream ranges and
   generations to the existing owner. For read, write and collective work,
   compare CPU, cold GPU and a ready lease using identical observations.

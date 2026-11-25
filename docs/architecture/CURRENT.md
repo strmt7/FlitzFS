@@ -335,7 +335,8 @@ directories. Readers continue to use the old mapping until both directory
 pairs and the cleared anchor pair have settled. Subsequent physical writes
 use the backing provider's latest admitted extent. Optional sealing reserves
 and prices the whole aligned workspace that contains the fitted image.
-[Packed admission and cold-sealing evidence](../evidence/windows-packed-admission-and-sealing-2026-11-25.json)
+[Packed admission and cold-sealing evidence](../evidence/windows-packed-admission-and-sealing-2026-11-25.json) ·
+[Corrected signed replay](../evidence/windows-packed-settlement-credit-2026-11-25.json)
 
 ```mermaid
 sequenceDiagram

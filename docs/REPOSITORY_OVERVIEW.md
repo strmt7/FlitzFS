@@ -6,7 +6,9 @@ latest signed client trace independently verified 1,027 live files.
 It published a compact image and reduced allocated backing while mounted.
 The diagnostic replay found catalog retirement reaching a write fence.
 Local regressions cover the corrected write grant and cold-seal staging.
-The fixed signed replay still needs host memory admission.
+The corrected signed replay recorded zero maintenance failures and byte-exact
+CPU reopen. The paced candidate's signed replay stopped at host memory admission.
+[Signed replay and duty-sampling evidence](evidence/windows-packed-settlement-credit-2026-11-25.json)
 [Current reconciliation](RELEASE_RECONCILIATION_2026-11-25.md) ·
 [Implementation packets](RELEASE_RECONCILIATION_2026-11-25.md#implementation-packets-and-exit-decisions) ·
 [Current test and source evidence](evidence/windows-packed-admission-and-sealing-2026-11-25.json)

@@ -60,6 +60,14 @@ to the pending duty. The normal opportunity still needs current CPU and
 memory evidence. A live Windows check compared an expired reference with a
 refreshed one at the same paid deadline.
 [Reference refresh evidence](evidence/windows-maintenance-reference-refresh-2026-11-25.json)
+
+Group-duty recommendations estimate the time needed to earn enough
+credit. A check only credits a freshly measured CPU interval. Pending
+duty therefore rechecks at the existing CPU sampling cadence if the
+estimate takes longer. The outer elapsed-work deadline still applies.
+Each check can defer again for contention, insufficient memory or an
+unpaid balance. Unrelated retry deadlines keep their original timing.
+[Signed replay and duty-sampling evidence](evidence/windows-packed-settlement-credit-2026-11-25.json)
 [Windows system timing](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getsystemtimes) ·
 [Processor groups](https://learn.microsoft.com/windows/win32/procthread/processor-groups) ·
 [Native sampling and AMD recovery evidence](evidence/windows-native-cpu-sampling-amd-resume-2026-11-20.json)

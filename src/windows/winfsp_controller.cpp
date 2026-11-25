@@ -426,7 +426,7 @@ struct WinFspVolumeController::Impl {
             continue;
           }
           reference_refreshed=false;
-          const auto delay=(std::max)({std::uint64_t(1),host.next_delay_ms(),result.progress.next_opportunity_delay_ms,duty_ms});
+          const auto delay=(std::max)({std::uint64_t(1),host.next_delay_ms(),maintenance_progress_delay_ms(result.progress),duty_ms});
           next=GetTickCount64()+(std::min)(delay,maximum_finite_wait);
           bool notify_integrity_fault=false;
           {

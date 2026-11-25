@@ -3,8 +3,9 @@
 The 25 November reconciliation binds the cold-copy review and the corrected
 packed runtime. The diagnostic signed replay isolated the point where
 catalog retirement encountered a write fence. The replacement admission
-and aligned cold-seal staging regressions passed. The fixed signed replay
-requires fresh memory admission. The work sequence continues through
+and aligned cold-seal staging regressions passed. The corrected signed
+replay released allocation while mounted with zero maintenance failures.
+The work sequence continues through
 settlement, measured AMD delivery, complete-size compression and
 scalable writable attach.
 [Current reconciliation](RELEASE_RECONCILIATION_2026-11-25.md) ·
@@ -500,9 +501,11 @@ The ordinary signed observer published and brought provider allocation from
 files and observed no remaining detached reclamation. The diagnostic
 repeat found catalog retirement encountering an already fenced backing.
 Two regressions independently cover the stale write grant and cold-seal
-staging. The fixed signed replay stopped at host memory admission.
-Require zero maintenance failures and explicit quiescence on the fixed
-client trace, then qualify sustained churn.
+staging. The corrected signed replay released allocation from
+838,205,440 to 6,717,440 bytes while mounted with
+zero maintenance failures. Independent CPU reopen verified the same
+1,027 files. The paced candidate's signed replay stopped at host memory admission. Replay the paced candidate under fresh memory admission and require controller quiescence.
+[Signed replay and duty-sampling evidence](evidence/windows-packed-settlement-credit-2026-11-25.json)
 [Packed maintenance fixes](evidence/windows-packed-admission-and-sealing-2026-11-25.json) ·
 [Signed packed publication and backing release](evidence/windows-maintenance-reference-refresh-2026-11-25.json) ·
 [Source-audit control](evidence/windows-mirrored-source-audit-2026-11-25.json) ·

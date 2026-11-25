@@ -10,15 +10,17 @@ full audit. Use one operation witness and common accounting across these
 lanes so each change can be judged at the product boundary.
 
 The full review of the 1,095-path parent `ff55509` supplies the architecture
-and release-gate baseline. This update reconciles the 1,098 tracked paths
+and release-gate baseline. The preceding update reconciled the 1,098 tracked paths
 at `1568341d62f49108597468cb237f0e8ea3096635` and the runtime candidate tree
 `efdec5fd0abd1265242bd0b6c8ecbaa0a2e80e79`. Three published checkpoints and
 the current patch changed 18 code and build-related paths since that review.
 The changed runtime paths cover checked rebuild, mounted maintenance,
 CPU reference refresh and packed allocation. The prior inventory and gates
 remain the comparison for the unchanged namespace, decoder, lifecycle
-and deployment boundaries.
-[Current runtime and reconciliation evidence](evidence/windows-packed-admission-and-sealing-2026-11-25.json) ·
+and deployment boundaries. The corrected signed replay and follow-up
+duty-sampling candidate are bound to their own exact source receipts.
+[Latest signed replay and controller checks](evidence/windows-packed-settlement-credit-2026-11-25.json) ·
+[Packed grant and workspace reconciliation evidence](evidence/windows-packed-admission-and-sealing-2026-11-25.json) ·
 [Full baseline inventory and source review](evidence/windows-indexed-cold-batched-copy-2026-11-25.json) ·
 [Earlier rolling lookup review](evidence/release-reconciliation-rolling-lookups-2026-11-25.json) ·
 [Earlier batched copy review](evidence/windows-batched-staged-copy-2026-11-25.json) ·
@@ -154,9 +156,29 @@ The final backing measured 2,097,152 bytes and independently verified
 all three files. Codec-enabled, raw-only and AddressSanitizer checks passed.
 The signed probe verified all 1,027 live files after its one retirement
 failure. Its report captures the point where retirement encountered the
-fence. The fixed signed run stopped at host memory admission before the
-guest started. Clean ordinary mounted settlement is still open.
+fence. The first fixed signed attempt stopped at host memory admission.
+A later admitted run exercised the exact published fixes.
 [Diagnostic replay and fixed regressions](evidence/windows-packed-admission-and-sealing-2026-11-25.json)
+
+### Ordinary replay with corrected write grants
+
+The admitted replay matched the 6,293-record Win32 trace with three CPU
+reopen checks. Occupied backing decreased from 838,205,440 to
+6,717,440 bytes while mounted with zero maintenance failures.
+After controller stop the backing used 6,488,064 bytes. Detached
+reopen made no further allocation changes and verified all 1,027 live
+files at epoch 2. The controller was still active at the observation
+limit, with 211 duty deferrals.
+
+Group optimization can earn credit only for the elapsed portion of a
+valid CPU sample. Waiting for the entire estimated credit shortfall may
+skip several samples and collect only the last observed window. The
+controller now bounds a group-duty recheck by the existing sampling
+cadence. It still applies the pacing cost for completed work and requires
+new CPU, memory and foreground admission before any subsequent step.
+The focused control failed with the earlier scheduling rule and passed
+with the change. The paced candidate's signed replay stopped at host memory admission.
+[Signed replay and duty-sampling evidence](evidence/windows-packed-settlement-credit-2026-11-25.json)
 
 ## Ordinary packed follow-up
 
@@ -320,7 +342,7 @@ Attribute resource cost and remaining work before changing either phase.
 | --- | --- | --- |
 | S1 · Exact artifacts | Current scoped builds bind source and SDK/CPU artifacts. Earlier real device runs identify their exact ROCm binaries. | Bind one clean Windows 11 update, signed WinFsp pair, helper, workers, CPU decoder table and backing capabilities to the acceptance run. |
 | S2 · Scale | Paged inodes, names and extents are live. Checked replica reads group adjacent frames across banks within each leaf. The complete startup walk still runs. | Verify bounded attach under a versioned authority contract. Fit and validate separate named-file curves for attach, restart, enumeration, mutation and resident memory. |
-| S3 · Space reuse | The signed ordinary owner published and released backing allocation while mounted. Independent CPU reopen verified all 1,027 files. The diagnostic run found catalog retirement encountering a write fence. The grant and sealing fixes pass bounded models. | Repeat the fixed signed trace through clean quiescence. Qualify repeated settled allocation under churn, retained readers, pressure and interruption. |
+| S3 · Space reuse | The corrected signed replay released backing allocation while mounted, recorded zero maintenance failures and independently verified all 1,027 files. Full controller quiescence remains open. | Replay the paced candidate under fresh memory admission and require controller quiescence. Qualify repeated settled allocation under churn, retained readers, pressure and interruption. |
 | S4 · AMD and CPU continuity | The latest recorded installed Radeon SDK trial delivered four exact frames in two different request sizes, with independent CPU readback and confirmed worker retirement. The measured 1 MiB write shape still favors CPU. | Prove a useful automatic region for each advertised AMD role in installed-client paths. Qualify CPU availability, verified delivery and condition-based device recovery. |
 | S5 · Compression | Protected prefix selection can save an allocation pair. Two secondary-key restart controls save 122,880 complete bytes each at the same catalog size. Broader real corpus rebuild controls retained their sizes, with no catalog nominations required. AIT grouping and parity placement showed distinct effects. | Establish a held-out complete-size frontier including metadata and protection. Measure catalog recall and savings with a populated, funded search index. |
 | S6 · Autonomy | Persistent sparse advice, workload samples, yield ranking and resource admission run in the controller. | Measure learning benefit, time to settle, interference, per-volume fairness and bytes written per byte reclaimed across workloads and restart. |
@@ -612,7 +634,7 @@ before expanding the experiment.
 
 | Priority | First deliverable | Decision before expanding |
 | --- | --- | --- |
-| 1 · Mounted allocation | Run the frozen corrected controller through selection, actual occupied-byte release and quiescence | If any failure remains, isolate the first write fence. If the trace settles, use the cost ledger to decide whether local reuse or pacing earns the next change. |
+| 1 · Mounted allocation | Run the frozen paced controller through selection, actual occupied-byte release and quiescence | If any failure remains, isolate the first write fence. If the trace settles, use the cost ledger to decide whether local reuse or pacing earns the next change. |
 | 2 · Real AMD service and CPU continuity | One repeatable installed-client read shape that consumes verified device bytes, paired with CPU and cold device runs | Promote that shape only with a complete-path win. Use its largest measured cost to choose the next write or collective improvement. |
 | 3 · Compression that changes occupied size | Protected complete-volume profiles and oracle recall on held-out families | Keep the nondominated candidates in size and verified access. Choose an additional representation only when it improves an observed weak cohort. |
 | 4 · Writable reopen at scale | Shadow authority decision beside the full audit and an independently validated scaling model | Fix the largest measured metadata cost. Authorize incremental attachment only when all authority and recovery invariants hold. |
@@ -620,7 +642,7 @@ before expanding the experiment.
 
 ### 1. Close ordinary mounted settlement · E02, E08, E11
 
-1. Resume with the fixed signed candidate at fresh host memory admission.
+1. Replay the paced candidate under fresh memory admission and require controller quiescence.
    Match all 6,293 trace records and the successful flushes. Require ordinary
    publication, lower occupied bytes while mounted, zero failed
    maintenance steps and actual controller quiescence. Verify all 1,027
@@ -751,7 +773,7 @@ before expanding the experiment.
 | Package | First bounded change and evidence needed before expansion |
 | --- | --- |
 | E01 · Scale | Compare a version-bound attach summary with the full audit in shadow mode. Record would-accept, audit result, pages touched and disagreement cause. Use held-out file-count tiers and count metadata residency. |
-| E02 · Allocation | Isolate the first ordinary packed witness's maintenance failure. Repeat through clean quiescence after the confirmed publication and backing release. Price phase costs under real load before choosing local evacuation or admission changes. |
+| E02 · Allocation | Replay the paced candidate under fresh memory admission and require controller quiescence. Use phase costs to choose local evacuation or admission changes once ordinary settlement is verified. |
 | E03 · AMD | Measure verified-ready and cold delivery on one real grouped-read stream. Charge preparation, transfers, CPU verification, useful delivery and residency. Enroll a repeatable winning shape, then price one representative write shape and one collective job. |
 | E04 · Coherence | Run the funded catalog against a sealed family split. Count candidates retrieved, stale and negative lookups, actual savings and metadata cost versus a bounded exhaustive oracle. Grow discovery where the savings gap justifies additional index space. |
 | E05 · Candidate design | Run independently strong frames, exact reuse, protected bases and short restartable deltas against the same incumbent on held-out families. Add a representation only after locating repeatable residual bytes and bounding CPU access. |

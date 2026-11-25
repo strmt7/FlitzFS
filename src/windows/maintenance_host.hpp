@@ -39,6 +39,14 @@ inline constexpr std::uint64_t maintenance_wall_share_ppm=10000;
 inline std::uint64_t maintenance_delay_ms(std::uint64_t elapsed_ns) noexcept {
   return elapsed_ns/maintenance_wall_share_ppm+(elapsed_ns%maintenance_wall_share_ppm!=0);
 }
+inline std::uint64_t maintenance_progress_delay_ms(const NativeMaintenanceProgress& progress) noexcept {
+  // Group duty only earns credit for a fresh CPU window. Recheck at the
+  // sampling cadence so a long estimated wait cannot skip those windows.
+  // The elapsed-work pacing deadline is applied separately by the owner.
+  if(progress.deferral==NativeMaintenanceDeferral::duty)
+    return (std::min)(progress.next_opportunity_delay_ms,detail::maintenance_cpu_sample_ms);
+  return progress.next_opportunity_delay_ms;
+}
 inline bool can_continue_preparation(const NativeMaintenanceProgress& progress) noexcept {
   using Phase=NativeMaintenancePhase;
   return progress.deferral==NativeMaintenanceDeferral::none && !progress.search_window_ready &&

@@ -2013,7 +2013,13 @@ void observe_mounted_reclamation(const MountedFileActivation& activation,StoreIo
       <<" reference_refresh_attempts="<<view.maintenance_reference_refresh_attempts
       <<" read_calls="<<reads.completed<<" read_bytes="<<reads.completed_bytes
       <<" write_calls="<<writes.completed<<" write_bytes="<<writes.completed_bytes
-      <<" flush_calls="<<flushes.completed;
+      <<" flush_calls="<<flushes.completed
+      <<" final_phase="<<phase_names[static_cast<std::size_t>(view.maintenance.phase)]
+      <<" final_deferral="<<refusal_names[static_cast<std::size_t>(view.maintenance.deferral)]
+      <<" requested_delay_ms="<<view.maintenance.next_opportunity_delay_ms
+      <<" sampled_extents="<<view.maintenance.sampled_extents
+      <<" advisory_checkpoints="<<view.maintenance.checkpoints_published
+      <<" sealed_publications="<<view.sealed_compactions;
   for(std::size_t i=0;i<phases.size();++i)std::cout<<" phase_"<<phase_names[i]<<'='<<phases[i];
   for(std::size_t i=0;i<deferrals.size();++i)std::cout<<" deferral_"<<refusal_names[i]<<'='<<deferrals[i];
   constexpr std::array steps{"idle","copying","ready","published","retiring","pinned","failed"};

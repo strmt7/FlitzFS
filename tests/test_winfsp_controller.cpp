@@ -345,9 +345,21 @@ void backing_maintenance_window() {
       !maintenance_reference_delay(3601,4500,1000,2000) &&
       !maintenance_reference_delay(4000,6000,0,5000),
       "reference refresh ignored cadence, wake lateness or missing baseline");
+  NativeMaintenanceProgress progress;
+  progress.deferral=NativeMaintenanceDeferral::duty;
+  progress.next_opportunity_delay_ms=8*detail::maintenance_cpu_sample_ms;
+  require(maintenance_progress_delay_ms(progress)==detail::maintenance_cpu_sample_ms,
+      "duty wait skipped fresh credit-bearing CPU observations");
+  progress.next_opportunity_delay_ms=detail::maintenance_cpu_sample_ms/2;
+  require(maintenance_progress_delay_ms(progress)==progress.next_opportunity_delay_ms,
+      "short group duty delay changed");
+  progress.deferral=NativeMaintenanceDeferral::other_maintenance;
+  progress.next_opportunity_delay_ms=8*detail::maintenance_cpu_sample_ms;
+  require(maintenance_progress_delay_ms(progress)==progress.next_opportunity_delay_ms,
+      "retained-range retry delay changed");
   std::cout<<"maintenance_backing_gate slower_refused=1 missing_preserved=1 recovery_after_observation=1"
       <<" wall_gate_preserved=1 partial_writes_separate=1 isolated_scopes=1"
-      <<" long_wait_reference_refresh=1\n";
+      <<" long_wait_reference_refresh=1 credit_bearing_duty_samples=1\n";
 }
 void native_rng_initialization() {
   std::array<DWORD,3> observed{};const auto cold=handle_count();
