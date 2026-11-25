@@ -319,13 +319,14 @@ contracts supply the wider acceptance matrices.
    three first-extent cohorts. It found one 8 KiB net opportunity in the
    held-out AITDCC sample and no profitable merges in either CPython
    cohort. Use the full-file four-release control as a related-data
-   baseline. Extend the oracle to bounded nonzero offsets and short
-   tails before changing the production shortlist. In each class,
-   record whether the best repeatable gain comes from an omitted
-   candidate, a better format for an admitted group or fewer protected
-   records. Keep the tested two-member admission rule until staggered
-   cold-rewrite comparisons show a repeatable advantage.
-   [Completed oracle and source roots](evidence/windows-protected-pair-oracle-2026-11-25.json)
+   baseline. The subsequent short-tail control found no positive direct
+   pair or packed-pair trial on its three settled cohorts. Compare
+   nonzero offsets and restartable fragments on a separate holdout.
+   Attribute gains to omitted candidates, improved encodings or fewer
+   protected records. Keep the two-member admission rule until
+   staggered cold-rewrite comparisons show a repeatable advantage.
+   [First-extent oracle](evidence/windows-protected-pair-oracle-2026-11-25.json) ·
+   [Tail oracle and actual comparison work](evidence/windows-shared-compaction-inventory-2026-11-25.json)
 2. **Spend the next format change only on the measured gap · E04–E07,
    E09.** If the oracle finds eligible peers missing from the candidate
    list, expose its excluded candidate reasons and add the smallest
@@ -339,6 +340,14 @@ contracts supply the wider acceptance matrices.
    a local learned selection policy in shadow mode once there are
    enough complete-cost labels. Promote it only after held-out workload
    drift, restart, advice loss and multi-volume interference checks.
+   For the protected-layout experiment, report reserved checkpoint
+   bytes, actual allocated pages, both recovery copies and payload.
+   Compare the existing image with a private sparse placement model
+   that preserves slot separation and checked logical bytes. Record
+   first-write and post-retirement space, then verify the same
+   surviving root and acknowledged bytes after each modeled cut.
+   Price changes to checkpoint geometry with mixed readers and
+   writers before promoting a new stored format.
 3. **Close the automatic mounted AMD read lane · E03, E08.** Carry
    client arrival, open-file identity, IO offset, cache state, CPU
    decode, transfer, kernel, verification and delivered byte counts

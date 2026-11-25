@@ -482,6 +482,37 @@ void damage_and_malformed() {
   rejects([&]{s.read(77);},"corrupt object exposed");rejects([&]{s.verify_all();},"scrub ignored corrupt object");
 }
 StoreIdentity copy_identity(){auto id=identity();id[1]=std::byte{71};return id;}
+void compacted_descriptor_bounds() {
+  auto ram=std::make_shared<Ram>();
+  auto writer=PagedObjectStoreWriter::create_mirrored(ram,identity(),limits,
+      {StoreCompressionMode::automatic,3,false});
+  writer.commit(std::array{StoreMutation{1,false,Bytes(57344)},put(2)});
+  const auto snapshot=writer.snapshot();
+  const auto descriptor=*snapshot.stat(1);
+  const auto second=*snapshot.stat(2);
+  require(descriptor.stored_payload_bytes<descriptor.logical_bytes,"identity descriptor was not compressed");
+  const auto lower=snapshot.rebuilt_size(std::array{StoreObjectInfo{1,descriptor.generation,descriptor.logical_bytes,0},second});
+  const auto rewritten=snapshot.rebuilt_size(std::array{StoreObjectInfo{1,descriptor.generation,descriptor.logical_bytes,
+      descriptor.logical_bytes},second});
+  const auto remaining=snapshot.rebuilt_size(std::array{second});
+  const auto check=[&](std::span<const StoreMutation> edits,std::uint64_t rebound,
+      std::uint64_t before,std::uint64_t after) {
+    const auto bounds=snapshot.rebuilt_size_after(edits,rebound);
+    require(bounds.before==before && bounds.after_upper==after,"compacted identity descriptor bounds differ");
+  };
+  check({},1,lower,rewritten);
+  constexpr std::uint32_t replacement_bytes=49152;
+  const auto replaced=snapshot.rebuilt_size(std::array{StoreObjectInfo{1,descriptor.generation,replacement_bytes,
+      replacement_bytes},second});
+  check(std::array{StoreMutation{1,false,Bytes(replacement_bytes)}},1,lower,replaced);
+  check(std::array{erase(1)},1,lower,remaining);
+  const auto prior=snapshot.rebuilt_size(std::array{descriptor,second});
+  const auto added=snapshot.rebuilt_size(std::array{descriptor,second,
+      StoreObjectInfo{3,descriptor.generation,replacement_bytes,replacement_bytes}});
+  check(std::array{StoreMutation{3,false,Bytes(replacement_bytes)}},3,prior,added);
+  rejects([&]{(void)snapshot.rebuilt_size_after(std::array{erase(3)},3);},"priced an absent descriptor erase");
+}
+
 void rebuild_and_recovery() {
   auto ram=std::make_shared<Ram>();
   {auto w=create(ram);populate(w,4000);for(unsigned i=0;i<40;++i)apply(w,put(i+1));}
@@ -648,7 +679,8 @@ int main(int argc,char** argv) {
       coherence_projection_transition(false);coherence_projection_transition(true);
       basic_and_oracle();remove_all_keys();
       failure_matrix(4096);failure_matrix(65536);failure_matrix(4096,true);failure_matrix(65536,true);
-      damage_and_malformed();semantic_pages_and_units();codec_modes();rebuild_and_recovery();rebuild_failures();scale(16384);}
+      damage_and_malformed();semantic_pages_and_units();codec_modes();compacted_descriptor_bounds();
+      rebuild_and_recovery();rebuild_failures();scale(16384);}
     else throw std::runtime_error("unsupported test arguments");
     std::cout<<"paged store checks="<<checks<<"\n";return 0;
   }catch(const std::exception& e){std::cerr<<"after "<<checks<<" checks: "<<e.what()<<"\n";return 1;}

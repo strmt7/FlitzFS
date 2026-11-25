@@ -930,42 +930,46 @@ void place_object(const State& state,PreparedObject& record,PayloadAllocation& a
   check_physical_capacity(cursor,state.limits.maximum_physical_bytes);
 }
 struct Change {std::uint64_t id;bool erase;Entry entry;};
-PagedCompactedSizes compacted_sizes_after(const State& state,std::span<const Change> changes,
+struct CompactedInventory {
+  std::uint64_t before=0,after_count=0,retained_bytes=0;
+};
+CompactedInventory compacted_inventory(const State& state,std::span<const Change> changes,
     std::uint64_t rebound_object) {
   LookupPages scoped;
-  std::uint64_t removed=0,removed_bytes=0,inserted=0,inserted_bytes=0;
-  std::optional<Entry> rebound_before,rebound_after;
+  std::uint64_t removed=0,removed_bytes=0,inserted=0;
+  std::optional<Entry> rebound_before;
+  bool rebound_changed=false;
   for(const auto& change:changes) {
     const auto previous=lookup(state,change.id,&scoped);
     if(previous) {
       ++removed;
       removed_bytes=add(removed_bytes,previous->stored);
     } else if(change.erase)fail("compacted erase references absent object");
-    if(!change.erase) {
-      ++inserted;
-      inserted_bytes=add(inserted_bytes,change.entry.stored);
-    }
+    if(!change.erase)++inserted;
     if(change.id==rebound_object) {
       rebound_before=previous;
-      if(!change.erase)rebound_after=change.entry;
+      rebound_changed=true;
     }
   }
-  if(rebound_object && !rebound_before && !rebound_after) {
-    rebound_before=lookup(state,rebound_object,&scoped);
-    rebound_after=rebound_before;
-  }
+  if(rebound_object && !rebound_changed)rebound_before=lookup(state,rebound_object,&scoped);
   if(removed>state.root.count || removed_bytes>state.root.stored ||
       (rebound_before && rebound_before->stored>state.root.stored))
     fail("compacted change totals exceed verified inventory");
-  // Compaction preserves the sealed payloads except for an identity-bound
-  // descriptor. Its prior size can be zero in the lower bound, and its new
-  // encoded size cannot exceed its logical length.
+  // The identity-bound descriptor can re-encode during compaction.
+  // Price it at zero bytes before the change and its logical size after.
   const auto before_stored=state.root.stored-(rebound_before?rebound_before->stored:0);
-  const auto after_count=add(state.root.count-removed,inserted);
-  auto after_stored=add(state.root.stored-removed_bytes,inserted_bytes);
-  if(rebound_after)after_stored=add(after_stored,rebound_after->logical-rebound_after->stored);
+  auto retained=state.root.stored-removed_bytes;
+  if(rebound_before && !rebound_changed)
+    retained=add(retained,rebound_before->logical-rebound_before->stored);
   return {packed_rebuild_size(state,state.root.count,before_stored),
-          packed_rebuild_size(state,after_count,after_stored)};
+          add(state.root.count-removed,inserted),retained};
+}
+PagedCompactedSizes compacted_sizes_after(const State& state,const CompactedInventory& inventory,
+    std::span<const Change> changes,std::uint64_t rebound_object) {
+  auto stored=inventory.retained_bytes;
+  for(const auto& change:changes)if(!change.erase)
+    stored=add(stored,change.id==rebound_object?change.entry.logical:change.entry.stored);
+  return {inventory.before,packed_rebuild_size(state,inventory.after_count,stored)};
 }
 struct Plan {
   State next;
@@ -2114,7 +2118,8 @@ PagedCompactedSizes PagedObjectStoreSnapshot::rebuilt_size_after(std::span<const
   std::ranges::sort(ordered,{},&Change::id);
   if(std::ranges::adjacent_find(ordered,{},&Change::id)!=ordered.end())
     fail("duplicate compacted record change");
-  return compacted_sizes_after(impl_->state,ordered,rebound_object);
+  const auto inventory=compacted_inventory(impl_->state,ordered,rebound_object);
+  return compacted_sizes_after(impl_->state,inventory,ordered,rebound_object);
 }
 PagedStoreInfo PagedObjectStoreSnapshot::info() const noexcept {return impl_?flitzfs::info(impl_->state):PagedStoreInfo{};}
 std::optional<StoreObjectInfo> PagedObjectStoreSnapshot::stat(std::uint64_t id) const {
@@ -2635,13 +2640,16 @@ PagedStoreWriteResult PagedObjectStoreWriter::commit_impl(
   auto [objects,changes,stored]=prepare(sorted);
   if(compacted) {
     try {
-      compacted->sizes=compacted_sizes_after(old,changes,compacted->rebound_object);
+      // Alternatives have the same object IDs and erasures. Their old
+      // footprint comes from one checked inventory of this checkpoint.
+      const auto inventory=compacted_inventory(old,changes,compacted->rebound_object);
+      compacted->sizes=compacted_sizes_after(old,inventory,changes,compacted->rebound_object);
       for(std::size_t i=0;i<alternatives.size();++i) {
         if(alternatives[i].empty())continue;
         std::optional<PreparedChanges> variant;
         try{variant.emplace(prepare(alternatives[i]));}
         catch(const std::bad_alloc&){continue;}
-        const auto sizes=compacted_sizes_after(old,variant->changes,compacted->rebound_object);
+        const auto sizes=compacted_sizes_after(old,inventory,variant->changes,compacted->rebound_object);
         if(std::pair{sizes.after_upper,variant->stored}<std::pair{compacted->sizes.after_upper,stored}) {
           compacted->sizes=sizes;
           compacted->selected=i+1;

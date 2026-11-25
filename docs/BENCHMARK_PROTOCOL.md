@@ -197,6 +197,16 @@ the selector. Use the complete-file profile for storage and range
 costs beyond the sampled extents.
 [Executed scope and results](evidence/windows-protected-pair-oracle-2026-11-25.json)
 
+Run `flitzfs_native_group_maintenance_tests --profile-indexed-tail-oracle FILE`
+to price short last extents inside their complete files. The profile
+selects files larger than one extent with a partial last extent,
+writes their complete content, and restricts additional trials to the
+terminal extents. It prices checked reference pairs and every fitting
+pair of independent tails that can share the current packed base.
+Each accepted candidate must reduce actual protected occupancy and pass
+a full CPU reopen and end-of-file range comparison.
+[Executed tail and comparison controls](evidence/windows-shared-compaction-inventory-2026-11-25.json)
+
 Run `flitzfs_native_group_maintenance_tests --profile-public-reencode FILE`
 for independent rebuilds at native Zstandard policy levels 3 and 9 and
 three arms using the ordinary stronger staged copy. The latter measure a

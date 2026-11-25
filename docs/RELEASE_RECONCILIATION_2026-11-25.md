@@ -582,6 +582,35 @@ protected savings and accessed ranges as the labels.
 [Argus](https://dl.acm.org/doi/10.1145/3747839) ·
 [RubikFS, FAST 2026](https://www.usenix.org/conference/fast26/presentation/huang)
 
+### Terminal extents and alternative pricing
+
+The terminal-extent profile retained the original files and their
+preceding extents. It found zero additional savings in 398 ordered
+reference trials and 93 fitting packed-pair trials across the two
+CPython cohorts and six eligible AITDCC files. Their complete post-group
+occupancies were 745,472, 974,848 and 22,618,112 bytes respectively.
+Every accepted state was checked through the independent CPU reader.
+
+Compaction admission now reads the incumbent object inventory once for
+alternatives that share the same IDs and erase decisions. Each encoding
+still gets its own complete size estimate, including the logical-size
+bound of the identity-dependent descriptor. The selected candidate
+goes through the fresh transaction rewrite and protected publication.
+
+The four-release CPython run reduced grouping reads from 6,321,767 to
+5,731,943 bytes and from 2,424 to 2,280 calls. Both runs verified the
+same settled 696,320 bytes after cold recompression and wrote 1,007,616
+grouping bytes. On the two-release revision cohort the read counts and
+settled size were equal. These are backing I/O observations.
+[Source-bound Windows tests and complete layouts](evidence/windows-shared-compaction-inventory-2026-11-25.json) ·
+[Compaction pricing](../src/paged_store.cpp)
+
+EROFS documents inline tails and shared fragments. The FlitzFS trials
+show where an additional pair proposal has limited value. Continue with
+a measured cost decomposition of protected records, shared restart
+frames and checkpoint spacing before choosing a new storage layout.
+[EROFS kernel documentation](https://docs.kernel.org/7.1/filesystems/erofs.html)
+
 ## One checked snapshot per indexed sample
 
 In the previous scan, obtaining an extent token and reading the extent

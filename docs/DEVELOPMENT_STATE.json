@@ -6,6 +6,18 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "compaction_inventory_reuse": {
+    "source_commit": "07585fb51dfc3784a6b8878ef7e8c6cc0f8dd1e6",
+    "tested_source_tree": "10c211571a3c63edc87d05d03a144784ba7f106f",
+    "evidence": "docs/evidence/windows-shared-compaction-inventory-2026-11-25.json",
+    "four_release_cpython_grouping_read_bytes": [6321767, 5731943],
+    "four_release_cpython_grouping_read_calls": [2424, 2280],
+    "four_release_cpython_settled_occupied_bytes": 696320,
+    "additional_terminal_pairs_and_packs": [398, 93],
+    "terminal_trials_with_improved_size": 0,
+    "next": "Price the record and checkpoint layout before extending terminal-extent candidate discovery.",
+    "release": false
+  },
   "protected_pair_oracle": {
     "source_commit": "7b88e80324b319195c3536635c6e0ff998f22876",
     "tested_source_tree": "cf5bf7ced466e0ea4848ce7fc98e726518fddce7",

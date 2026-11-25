@@ -1,0 +1,480 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "experimental": true,
+  "source": {
+    "parent": "07585fb51dfc3784a6b8878ef7e8c6cc0f8dd1e6",
+    "base_tree": "6abee89e4641a01ef300d4ad74b3d649e62918bd",
+    "tree": "10c211571a3c63edc87d05d03a144784ba7f106f",
+    "elements": [
+      {
+        "path": "src/paged_store.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "e120d8caa5245e582bac59e7783e49cec4a2a28c",
+        "bytes": 152111
+      },
+      {
+        "path": "tests/test_native_group_maintenance.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "67ee8a3ff28b47b36ce55175861a87ff9a2943d3",
+        "bytes": 242034
+      },
+      {
+        "path": "tests/test_paged_store.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "ebfc149a3afad23fa4143c18114a60782c426fe0",
+        "bytes": 42389
+      }
+    ]
+  },
+  "semantic_routing": {
+    "version": "0.2.43",
+    "receipt_sha256": "647cc52f178fd54ec5bd9365394175f3eae0f98ce6671e1f1de4e8d55fd17018",
+    "native_response_sha256": "6fafc0a3157a7040378d350d514e05fde4150200b1053d2e5594ae0a464eb326",
+    "files": 6
+  },
+  "external_sources": [
+    {
+      "version": "0.9.5+flitzzip.portable2",
+      "receipt_sha256": "d6253f12dbbd0afbd2a8abc1f1d51c71778706a8ed3d3314004c10822a516a56",
+      "pages": [
+        {
+          "name": "linux-erofs",
+          "url": "https://docs.kernel.org/filesystems/erofs.html",
+          "success": false,
+          "http_status": 200,
+          "final_http_status": 200,
+          "failure_category": "unexpected_content",
+          "capture_sha256": "c15af37753c85f1cf448841ea3f74f5722bbd8f1481b86c4c634a17f8f256d34",
+          "markdown_sha256": "48fa545661f211c40644642ab25a258f0bf8144ded43b63a1dd5a7bfa6cdd3a5",
+          "markdown_bytes": 26687
+        },
+        {
+          "name": "btrfs-inline",
+          "url": "https://btrfs.readthedocs.io/en/latest/Administration.html",
+          "success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "failure_category": "",
+          "capture_sha256": "04ec209e980bd2996ab5e83c089336cf2d8f21a0d775eedc93723ce095e80ffe",
+          "markdown_sha256": "452eee3ed09f042496055272efef3e1c6fa98a191e35b3fd30be67a82d99004a",
+          "markdown_bytes": 48867
+        },
+        {
+          "name": "rubikfs-fast26",
+          "url": "https://www.usenix.org/conference/fast26/presentation/huang",
+          "success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "failure_category": "",
+          "capture_sha256": "1c6a11c10b8bcf5a23b865d84b14930a41107ee1681e6146c9d85eb0bf927a99",
+          "markdown_sha256": "b271b38f1feb88acd780ae11d756c7f3723fecb288cfe5e7803fed9c5d93767d",
+          "markdown_bytes": 10395
+        }
+      ]
+    },
+    {
+      "version": "0.9.5+flitzzip.portable2",
+      "receipt_sha256": "cc4f2dde12b540fbbe640a66947b670964c67811b58d858b33b1550e23506359",
+      "pages": [
+        {
+          "name": "linux-erofs-7-1",
+          "url": "https://docs.kernel.org/7.1/filesystems/erofs.html",
+          "success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "failure_category": "",
+          "capture_sha256": "f0e52403c1e40a0d224ca65085d3fc490f8bb40243e037dbe37914536cdff164",
+          "markdown_sha256": "fd75b4dc505d330f646f8b43bfe00a68840a0780ec5c7fb88d16670896e0eca7",
+          "markdown_bytes": 22009
+        },
+        {
+          "name": "erofs-current-features",
+          "url": "https://erofs.docs.kernel.org/en/latest/features.html",
+          "success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "failure_category": "",
+          "capture_sha256": "5c4f543b315cb44139a643e1a7a19ab5ebd29f573a3543cd2c93f6e499dcd6f9",
+          "markdown_sha256": "353071b752fae4ef195515b7d67973566fa8d7c08fff0bab2b42914cb4ac254c",
+          "markdown_bytes": 8615
+        },
+        {
+          "name": "btrfs-inline-leaf",
+          "url": "https://btrfs.readthedocs.io/en/stable/Inline-files.html",
+          "success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "failure_category": "",
+          "capture_sha256": "eb5d2798092611cea98fcdd6b0f124e0ff8c6012f4f163446702eb4749b4c709",
+          "markdown_sha256": "7926f13f4dc39f7f9ddd47cfb4e209ecdb3873211e46eead08eff353b091b284",
+          "markdown_bytes": 6854
+        }
+      ]
+    }
+  ],
+  "cohorts": {
+    "four": {
+      "input_sha256": "d053d6acd0551763909205a2ed670d6bf6bc3e61a13ef0cd13ca93e69c5489f9",
+      "oracle": {
+        "exit_code": 0,
+        "tree_retired": true,
+        "cpu_percent": 23,
+        "peak_job_bytes": 23347200,
+        "memory_bytes": 1250951168,
+        "result_sha256": "b64fd4ba729c05199255ba9b8d1cdc117d75452708828d1278b0a1c217973916",
+        "log_sha256": "c3fe08dae289d03dbfeb5a6add935cba2f696852e47a05c976603b58a1af7564",
+        "observed": {
+          "files": 24,
+          "stored_extents": 24,
+          "automatic_attempts": 15,
+          "automatic_groups": 13,
+          "tested_pairs": 46,
+          "improving_pairs": 0,
+          "tested_packs": 1,
+          "improving_packs": 0,
+          "independent_bytes": 1662976,
+          "automatic_bytes": 745472,
+          "best_pair_bytes": 745472,
+          "best_pack_bytes": 745472,
+          "cpu_verified": 1
+        }
+      },
+      "comparison": {
+        "baseline": {
+          "exit_code": 0,
+          "tree_retired": true,
+          "cpu_percent": 23,
+          "peak_job_bytes": 25145344,
+          "memory_bytes": 1243611136,
+          "result_sha256": "83c65344e8a8862db95d7137d56f80b7360b22b1fd901ae9d38f0ffde816f44d",
+          "log_sha256": "c22b3bd93b342dc81e93bd0d75d4d7f79701e69ded5e95ae27955bef3edc5335",
+          "grouping": {
+            "files": 24,
+            "before_compacted": 1531904,
+            "after_compacted": 614400,
+            "input_bytes": 2510681,
+            "selector_bytes": 131072,
+            "ingested_image_bytes": 2473984,
+            "maintained_image_bytes": 3375104,
+            "before_range_read_bytes": 1027032,
+            "after_range_read_bytes": 1066052,
+            "maintenance_read_bytes": 6321767,
+            "maintenance_read_calls": 2424,
+            "sampled_extents": 63,
+            "reused_features": 0,
+            "maintenance_write_bytes": 1007616,
+            "work_ns": 164713800,
+            "packed_groups": 1,
+            "attempts": 15,
+            "yield_observations": 14,
+            "members": 48,
+            "cpu_exact": 1,
+            "retained_snapshot_exact": 1,
+            "idle_io": 0
+          },
+          "settled_occupied_bytes": 696320
+        },
+        "candidate": {
+          "exit_code": 0,
+          "tree_retired": true,
+          "cpu_percent": 23,
+          "peak_job_bytes": 24440832,
+          "memory_bytes": 1260388352,
+          "result_sha256": "7c316e894a0511c018a2e0d6ba16fdf29e1ef63a986307d7fed1737672b72bb9",
+          "log_sha256": "026286dfda618d81ef83b3d37c169aee308a550ca2a3c8e058b930cc0b2f4948",
+          "grouping": {
+            "files": 24,
+            "before_compacted": 1531904,
+            "after_compacted": 614400,
+            "input_bytes": 2510681,
+            "selector_bytes": 131072,
+            "ingested_image_bytes": 2473984,
+            "maintained_image_bytes": 3375104,
+            "before_range_read_bytes": 1027032,
+            "after_range_read_bytes": 1066052,
+            "maintenance_read_bytes": 5731943,
+            "maintenance_read_calls": 2280,
+            "sampled_extents": 63,
+            "reused_features": 0,
+            "maintenance_write_bytes": 1007616,
+            "work_ns": 201467000,
+            "packed_groups": 1,
+            "attempts": 15,
+            "yield_observations": 14,
+            "members": 48,
+            "cpu_exact": 1,
+            "retained_snapshot_exact": 1,
+            "idle_io": 0
+          },
+          "settled_occupied_bytes": 696320
+        }
+      }
+    },
+    "revisions": {
+      "input_sha256": "1e4415e2c80bd97dd16978c2d68f4c403489cf5ca38916bdbf574a174763aead",
+      "oracle": {
+        "exit_code": 0,
+        "tree_retired": true,
+        "cpu_percent": 23,
+        "peak_job_bytes": 26906624,
+        "memory_bytes": 1251999744,
+        "result_sha256": "69c0946dcd9cad7df279978682a714b13b183fdd1d7bef00c360029842718cc5",
+        "log_sha256": "394aa27a7f8ce6c3849fc8f1a03014e0a2d83899c50983e6b1da844877d887d7",
+        "observed": {
+          "files": 24,
+          "stored_extents": 24,
+          "automatic_attempts": 27,
+          "automatic_groups": 18,
+          "tested_pairs": 322,
+          "improving_pairs": 0,
+          "tested_packs": 91,
+          "improving_packs": 0,
+          "independent_bytes": 1523712,
+          "automatic_bytes": 974848,
+          "best_pair_bytes": 974848,
+          "best_pack_bytes": 974848,
+          "cpu_verified": 1
+        }
+      },
+      "comparison": {
+        "baseline": {
+          "exit_code": 0,
+          "tree_retired": true,
+          "cpu_percent": 23,
+          "peak_job_bytes": 22847488,
+          "memory_bytes": 1243611136,
+          "result_sha256": "017cd8c1afbd8d797d7d32862ed396ca23e09439b10cad222adc180ef2a46480",
+          "log_sha256": "476ea1beac95bf2a38cdc00710ae600ea51f29b59f34bb8c1bc6ed2c3892e46f",
+          "grouping": {
+            "files": 24,
+            "before_compacted": 1392640,
+            "after_compacted": 819200,
+            "input_bytes": 2230850,
+            "selector_bytes": 131072,
+            "ingested_image_bytes": 2375680,
+            "maintained_image_bytes": 3825664,
+            "before_range_read_bytes": 1030118,
+            "after_range_read_bytes": 1052927,
+            "maintenance_read_bytes": 7738981,
+            "maintenance_read_calls": 2934,
+            "sampled_extents": 72,
+            "reused_features": 0,
+            "maintenance_write_bytes": 1630208,
+            "work_ns": 52222100,
+            "packed_groups": 0,
+            "attempts": 26,
+            "yield_observations": 25,
+            "members": 44,
+            "cpu_exact": 1,
+            "retained_snapshot_exact": 1,
+            "idle_io": 0
+          },
+          "settled_occupied_bytes": 868352
+        },
+        "candidate": {
+          "exit_code": 0,
+          "tree_retired": true,
+          "cpu_percent": 23,
+          "peak_job_bytes": 22994944,
+          "memory_bytes": 1249902592,
+          "result_sha256": "2d38e12c84660d4be94c0b970fa78c368471cfd947b0a5fba80dc31d7cf48cbd",
+          "log_sha256": "9d3213b5f8058b5c0d45c95f12408ce3334c4489cd47ec12b49cc1b6d4c94104",
+          "grouping": {
+            "files": 24,
+            "before_compacted": 1392640,
+            "after_compacted": 819200,
+            "input_bytes": 2230850,
+            "selector_bytes": 131072,
+            "ingested_image_bytes": 2375680,
+            "maintained_image_bytes": 3825664,
+            "before_range_read_bytes": 1030118,
+            "after_range_read_bytes": 1052927,
+            "maintenance_read_bytes": 7738981,
+            "maintenance_read_calls": 2934,
+            "sampled_extents": 72,
+            "reused_features": 0,
+            "maintenance_write_bytes": 1630208,
+            "work_ns": 66958200,
+            "packed_groups": 0,
+            "attempts": 26,
+            "yield_observations": 25,
+            "members": 44,
+            "cpu_exact": 1,
+            "retained_snapshot_exact": 1,
+            "idle_io": 0
+          },
+          "settled_occupied_bytes": 868352
+        }
+      }
+    },
+    "ait": {
+      "input_sha256": "26204e32bf232e5a40d5cce9d4f63a87c25fcb19f6eceadbff7c76321468c159",
+      "oracle": {
+        "exit_code": 0,
+        "tree_retired": true,
+        "cpu_percent": 23,
+        "peak_job_bytes": 137035776,
+        "memory_bytes": 1247805440,
+        "result_sha256": "f49da6ee82d8fc17b9c1afff7cd2a904b246bf017466aee9e0f6296e0c5d8832",
+        "log_sha256": "7c2faac0b5193add8c6b32da219b03d55d9395bcf797b8d75fb3e88497a4d819",
+        "observed": {
+          "files": 6,
+          "stored_extents": 6,
+          "automatic_attempts": 1,
+          "automatic_groups": 0,
+          "tested_pairs": 30,
+          "improving_pairs": 0,
+          "tested_packs": 1,
+          "improving_packs": 0,
+          "independent_bytes": 22618112,
+          "automatic_bytes": 22618112,
+          "best_pair_bytes": 22618112,
+          "best_pack_bytes": 22618112,
+          "cpu_verified": 1
+        }
+      }
+    }
+  },
+  "selected_windows_checks": {
+    "release": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "cpu_percent": 24,
+      "peak_job_bytes": 120750080,
+      "memory_bytes": 1349517312,
+      "result_sha256": "16248a2261fb240fc2e2b9a9d01634d2d22421f7851c561652d55e1b046cefdc",
+      "log_sha256": "2a3f1eca09a8a2725fcd1b93c8e2901777cffa2228243ddc535815ffb98c81ae",
+      "passed": 10
+    },
+    "raw": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "cpu_percent": 24,
+      "peak_job_bytes": 179048448,
+      "memory_bytes": 1414529024,
+      "result_sha256": "fd91b27929e72af904e545f0f9aa83487649752eca9e397459b77bbe12274b75",
+      "log_sha256": "d7ec4c814c1fc49571fbdec086c8239827e03c0a8db32022defe12f8319955f7",
+      "passed": 4
+    },
+    "asan": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "cpu_percent": 24,
+      "peak_job_bytes": 612769792,
+      "memory_bytes": 1431306240,
+      "result_sha256": "7a7fb984dd63851d415152ad01e0010281377a31a97cb7f9bc7e3473dced8c3a",
+      "log_sha256": "d011c1bbc3b6c31aeec2cc5f8720e39d49a66f15fbb9bed9943e06bb40b4467c",
+      "passed": 5
+    },
+    "asan_terminal_extent_profile": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "cpu_percent": 24,
+      "peak_job_bytes": 543784960,
+      "memory_bytes": 1224736768,
+      "result_sha256": "722e15dbdcb74905bcee63c82086ee1c3fc28bfb0e726c907cf79af0d727a8e8",
+      "log_sha256": "3d44488c7aed8e1fa21c0997ae15a953bc5e9e4dc42ed27420707fc686131a4d",
+      "observed": {
+        "files": 24,
+        "stored_extents": 24,
+        "automatic_attempts": 15,
+        "automatic_groups": 13,
+        "tested_pairs": 46,
+        "improving_pairs": 0,
+        "tested_packs": 1,
+        "improving_packs": 0,
+        "independent_bytes": 1662976,
+        "automatic_bytes": 745472,
+        "best_pair_bytes": 745472,
+        "best_pack_bytes": 745472,
+        "cpu_verified": 1
+      }
+    },
+    "sanitizer_runtime_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed"
+  },
+  "final_builds": {
+    "release": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "cpu_percent": 24,
+      "peak_job_bytes": 333262848,
+      "memory_bytes": 1375731712,
+      "result_sha256": "4b30d57641a51cc92f4439155a78c2512c4d4759b9fbb00963c75c3455b2ddc6",
+      "log_sha256": "5f6cb15bad11790a99779de7b803d1f50a7bdf5c085bdc1aac632b73558d82c7"
+    },
+    "raw": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "cpu_percent": 25,
+      "peak_job_bytes": 419975168,
+      "memory_bytes": 1450180608,
+      "result_sha256": "5b120704137b27aac17a5e4b8d3113aae8c521159b084793d533b1e3dda1abf1",
+      "log_sha256": "d7a2e1fdc73281e798249c603170b125b6543aa53ffa202f96ba7417253e0d1a"
+    },
+    "asan": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "cpu_percent": 25,
+      "peak_job_bytes": 650878976,
+      "memory_bytes": 1422917632,
+      "result_sha256": "a87b5606526f84f264f2079bd39cb41350bf217a4a5d347e3046cec283dd9d9e",
+      "log_sha256": "4b5e7b8d552e827b72891250d66f002ca69547c9486a7d36d574d3b4603a0cb9"
+    }
+  },
+  "physical_amd": {
+    "exit_code": 0,
+    "tree_retired": true,
+    "cpu_percent": 20,
+    "peak_job_bytes": 98062336,
+    "memory_bytes": 880803840,
+    "result_sha256": "b7b0269152be1eb10d8b8c7e230134ba917036487144836cf0ff064e1239e796",
+    "log_sha256": "4ef8438d8d31e0562e2ac97b23f2c2f0f2eb5abc6f0640366ebce51c0d559b34",
+    "preflight": {
+      "admitted": false,
+      "reason": "Existing host load above the fixture envelope",
+      "utc": "2026-11-25T13:53:28.2419750Z",
+      "driver": "32.0.32029.2010",
+      "build": "26300",
+      "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+      "luid": "9d75010000000000",
+      "available_bytes": 20107902976,
+      "reserved_bytes": 4294967296,
+      "gpu_peak": 99.56181138680583,
+      "cpu_peak": 13.154029014315704,
+      "target_samples": 800
+    },
+    "manifest_sha256": "eff9c4348c704260a4ed497988075aff69a1651833fa9f0aac9d5046799d6389",
+    "artifacts": {
+      "flitzfs_native_lz4_read_worker.exe": {
+        "sha256": "8625a3fa306adce0f3db5a1803ea6b9924147817c73630f75f09d42fdf268ca4",
+        "bytes": 581632
+      },
+      "flitzfs_rocm_native_lz4_decode.dll": {
+        "sha256": "9ac5bb33a7b39ae26712dcdcfcdeb6b4b5fc049175e18dd6f24d047a37b3e128",
+        "bytes": 173568
+      },
+      "winfsp-x64.dll": {
+        "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+        "bytes": 200816
+      },
+      "flitzfs_winfsp_paged_tests.exe": {
+        "sha256": "fefaa0d008c11484aa930b63020b11cb9c47d70827419a239567a365e877f80a",
+        "bytes": 2292736
+      }
+    }
+  },
+  "scope": {
+    "backing": "Windows memory-backed native fixtures",
+    "physical_host_mount": false,
+    "measured_backing_io": true,
+    "time_improvement_claim": false,
+    "physical_media_recovery": false,
+    "driver_changes": false,
+    "ntfs_comparison": false,
+    "release": false
+  }
+}

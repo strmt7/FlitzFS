@@ -938,34 +938,52 @@ void profile_public_packs(const std::filesystem::path& filename,bool complete_fi
   profile_similarity_packing(inputs,0,compare_reencoding,layout);
 }
 
-void profile_indexed_pair_oracle(const std::filesystem::path& filename) {
+void profile_indexed_pair_oracle(const std::filesystem::path& filename,bool tails=false) {
   require(store_zstd_available(),"pair oracle requires Zstandard");
   constexpr StoreCompressionOptions policy{StoreCompressionMode::automatic,3,true};
   constexpr PagedStoreLimits limits{kStoreMaxPhysicalBytes};
   constexpr NativeImageStorage storage{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes};
 
-  // Keep one complete first extent per input file. Short files and later
-  // extents have different search spaces and do not enter this profile.
-  const auto files=read_packed_corpus(filename,true);
+  // The first-extent profile isolates samples. Tail pricing keeps each
+  // file's preceding extents and their sharing in the compacted image.
+  auto files=read_packed_corpus(filename,true);
   constexpr std::size_t cohort_limit=32;
-  std::vector<Bytes> cohort;
-  for(const auto& file:files) {
-    if(file.size()<kNativeExtentBytes)continue;
-    require(cohort.size()<cohort_limit,"pair oracle cohort exceeds 32 full extents");
-    cohort.emplace_back(file.begin(),file.begin()+kNativeExtentBytes);
+  struct SampledFile {Bytes bytes;std::size_t extent;};
+  std::vector<SampledFile> cohort;
+  for(auto& file:files) {
+    if(tails ? file.size()<=kNativeExtentBytes || file.size()%kNativeExtentBytes==0 :
+        file.size()<kNativeExtentBytes)continue;
+    require(cohort.size()<cohort_limit,"pair oracle cohort exceeds 32 samples");
+    if(tails) {
+      const auto extent=file.size()/kNativeExtentBytes;
+      cohort.push_back({std::move(file),extent});
+    } else {
+      file.resize(kNativeExtentBytes);
+      cohort.push_back({std::move(file),0});
+    }
   }
-  require(cohort.size()>=2,"pair oracle cohort needs at least two full extents");
+  require(cohort.size()>=2,"pair oracle cohort needs at least two samples");
 
   Fixture volume(4096,0,true,policy);
   const auto name=[](std::size_t i){return "oracle-"+std::to_string(i);};
-  for(std::size_t i=0;i<cohort.size();++i)put(*volume.session,name(i),cohort[i]);
+  for(std::size_t i=0;i<cohort.size();++i) {
+    const auto path=name(i);
+    const auto bytes=std::span(cohort[i].bytes);
+    volume.session->create_entry(path);
+    auto handle=volume.session->open(path,{true,true,false});
+    constexpr std::size_t write_bytes=1024*1024;
+    for(std::size_t offset=0;offset<bytes.size();offset+=write_bytes)
+      volume.session->write(handle,offset,bytes.subspan(offset,(std::min)(write_bytes,bytes.size()-offset)));
+    volume.session->cleanup(handle,false);
+    volume.session->close(handle);
+  }
   const auto occupied=[&](const std::shared_ptr<Ram>& source) {
     auto compacted=ram(4096);
     (void)NativeFilesystemWriter::compact(NativeFilesystemSnapshot::open_image(source,storage),compacted,id(20),policy);
     const auto checked=NativeFilesystemSnapshot::open_image(compacted,storage);
     checked.verify_all();
     for(std::size_t i=0;i<cohort.size();++i) {
-      const auto& expected=cohort[i];
+      const auto& expected=cohort[i].bytes;
       const auto path=name(i);
       require(checked.stat(path).logical_bytes==expected.size() &&
           checked.read(path,0,expected.size())==expected,"pair oracle CPU reopen differs");
@@ -993,14 +1011,18 @@ void profile_indexed_pair_oracle(const std::filesystem::path& filename) {
   const detail::IndexedVolumeView view(frozen,frozen.read(1));
   std::vector<std::pair<std::size_t,NativeContentToken>> peers;
   for(std::size_t i=0;i<cohort.size();++i) {
-    const auto sample=view.sample_content({view.resolve(name(i)).inode,0},
+    const auto& file=cohort[i];
+    const auto sample=view.sample_content({view.resolve(name(i)).inode,file.extent},
         detail::IndexedContentLookup::published_reference,{});
     if(!sample)continue;
-    require(sample->payload==cohort[i],"pair oracle bound to the wrong source extent");
+    const auto expected=std::span(file.bytes).subspan(file.extent*kNativeExtentBytes);
+    require(sample->payload && sample->payload->size()==kNativeExtentBytes &&
+        std::ranges::equal(std::span(*sample->payload).first(expected.size()),expected),
+        "pair oracle bound to the wrong source extent");
     peers.emplace_back(i,sample->token);
   }
 
-  const auto price=[&](const NativeContentToken& base,std::span<const NativeContentToken> members)
+  const auto price=[&](const NativeContentToken& base,std::span<const NativeContentToken> members,bool pack=false)
       ->std::optional<std::uint64_t> {
     auto trial=image(volume.image->stable,4096);
     NativeSharedBaseCommit result;
@@ -1014,13 +1036,15 @@ void profile_indexed_pair_oracle(const std::filesystem::path& filename) {
         selected.push_back(member.extent);
         expected.push_back(member);
       }
-      detail::IndexedSharedBasePreparation work(source,root,base.extent,selected,expected,false,false);
+      detail::IndexedSharedBasePreparation work(source,root,base.extent,selected,expected,false,pack);
       work.admit_variants(true,true,true);
-      require(!work.advance({},nullptr),"pair oracle did not enter encoding");
-      std::weak_ptr<const void> owned_window;
-      for(std::size_t i=0;i<members.size();++i)
-        require(work.stage_search(members.size(),owned_window,NativeSharedBaseSearchPurpose::advice),
-            "pair oracle did not stage its checked members");
+      if(!pack) {
+        require(!work.advance({},nullptr),"pair oracle did not enter encoding");
+        std::weak_ptr<const void> owned_window;
+        for(std::size_t i=0;i<members.size();++i)
+          require(work.stage_search(members.size(),owned_window,NativeSharedBaseSearchPurpose::advice),
+              "pair oracle did not stage its checked members");
+      }
       bool done=false;
       for(std::size_t i=0;i<8*expected.size() && !done;++i)done=work.advance({},nullptr);
       require(done,"pair oracle did not finish a candidate");
@@ -1050,6 +1074,31 @@ void profile_indexed_pair_oracle(const std::filesystem::path& filename) {
         }
       }
     }
+  }
+
+  if(tails) {
+    std::size_t packed=0,improved=0;
+    std::uint64_t best_pack=automatic;
+    for(const auto& [base_index,base]:peers) {
+      for(const auto& [member_index,member]:peers) {
+        if(member_index<=base_index || !base.standalone_bytes || !member.standalone_bytes ||
+            base.standalone_bytes+member.standalone_bytes>kNativeExtentBytes)continue;
+        ++packed;
+        if(const auto bytes=price(base,std::span(&member,1),true)) {
+          ++improved;
+          best_pack=(std::min)(best_pack,*bytes);
+        }
+      }
+    }
+    std::cout<<"indexed_tail_oracle files="<<cohort.size()<<" stored_extents="<<peers.size()
+        <<" automatic_attempts="<<progress.attempted_groups<<" automatic_groups="<<progress.published_groups
+        <<" tested_pairs="<<attempted<<" improving_pairs="<<accepted
+        <<" tested_packs="<<packed<<" improving_packs="<<improved
+        <<" independent_bytes="<<independent<<" automatic_bytes="<<automatic
+        <<" best_pair_bytes="<<best<<" best_pack_bytes="<<best_pack;
+    if(best_pair)std::cout<<" best_base="<<best_pair->first<<" best_member="<<best_pair->second;
+    std::cout<<" cpu_verified=1\n";
+    return;
   }
 
   // A one-member move can leave its old base live. Move a whole existing
@@ -4073,6 +4122,8 @@ int main(int argc,char** argv){try{
     profile_public_packs(argv[2],true);
   } else if(argc==3 && std::string_view(argv[1])=="--profile-public-reencode") {
     profile_public_packs(argv[2],true,true);
+  } else if(argc==3 && std::string_view(argv[1])=="--profile-indexed-tail-oracle") {
+    profile_indexed_pair_oracle(argv[2],true);
   } else if(argc==3 && std::string_view(argv[1])=="--profile-indexed-pair-oracle") {
     profile_indexed_pair_oracle(argv[2]);
   } else if(argc==3 && std::string_view(argv[1])=="--profile-public-inline") {
