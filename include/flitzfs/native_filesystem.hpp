@@ -15,6 +15,16 @@ class PagedObjectStoreSnapshot;
 class PagedObjectStoreWriter;
 enum class NativeImageKind:std::uint32_t {flat=0,paged=1,indexed_paged=2,sealed_indexed=3};
 enum class NativeIndexedDataLayout {extents,inline_small_files};
+struct NativeManagedForeground {
+  StoreCompressionOptions compression;
+  PagedStoreMirroredLayout layout;
+  NativeIndexedDataLayout data_layout=NativeIndexedDataLayout::extents;
+  bool operator==(const NativeManagedForeground& other) const noexcept {
+    return layout==other.layout && data_layout==other.data_layout &&
+        compression.mode==other.compression.mode && compression.zstd_level==other.compression.zstd_level &&
+        compression.require_zstd==other.compression.require_zstd;
+  }
+};
 struct NativeImageStorage {
   NativeImageKind kind=NativeImageKind::flat;
   std::uint64_t maximum_physical_bytes=0; // Required only for paged images.
@@ -700,6 +710,7 @@ class NativeFilesystemWriter final {
       std::string_view after,std::size_t maximum,
       const std::function<bool(const NativeInodeState&)>& admit) const;
   bool supports_file_contexts() const noexcept;
+  std::optional<NativeManagedForeground> indexed_foreground(StoreCompressionOptions) const noexcept;
   std::uint64_t indexed_append_floor() const noexcept;
   std::uint64_t indexed_obsolete_bytes() const noexcept;
   bool indexed_payload_repair_pending() const noexcept;

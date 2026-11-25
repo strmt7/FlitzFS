@@ -82,8 +82,8 @@ bool NativeDeferredWriteService::enqueue_locked(FSP_FILE_SYSTEM* fs,const Native
         options_.deadline_ms>options_.budget.timeout_ms || bytes.size()<kNativeExtentBytes ||
         (controller_collects_budget() && (!activity_event_ || budget_disabled_)))return false;
     if(const auto& shape=options_.measured_shape;shape &&
-        (bytes.size()!=shape->input_bytes || !native_amd_write_geometry(
-            info_policy_,offset,bytes.size(),append,constrained)))return false;
+        (bytes.size()!=shape->input_bytes || !session_.matches_managed_foreground(shape->storage) ||
+         !native_amd_write_geometry(info_policy_,offset,bytes.size(),append,constrained)))return false;
     const auto now=GetTickCount64();
     const auto gate=check_gpu_memory_budget(health_.memory,health_.memory.luid,health_.memory.node_mask,now,0);
     if(gate!=GpuGateCode::admitted) {

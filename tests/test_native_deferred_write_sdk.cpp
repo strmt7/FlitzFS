@@ -342,7 +342,7 @@ void detached_write_batch(const std::filesystem::path& helper) {
       UniformLz4BatchInput{17,source.last(4*extent)}};
   SYSTEM_INFO system{};
   GetSystemInfo(&system);
-  const NativeAmdStoragePolicy storage{system.dwPageSize,{StoreCompressionMode::fast,1,false}};
+  const NativeManagedForeground storage{{StoreCompressionMode::fast,1,false},{system.dwPageSize}};
   auto domain=MemoryVolumeDomain::create(allowance);
   const auto running=[] {return false;};
   static_assert(sized_worker_memory_share_divisor(ProcessBudget{128,2000,5000})==16);
@@ -362,6 +362,25 @@ void detached_write_batch(const std::filesystem::path& helper) {
   check(cpu && cpu->transactions==3 && cpu->cpu_readback_verified && cpu->retirement_confirmed &&
       !cpu->device_executed && !cpu->stored_lz4_candidates && domain.usage().resident==0,
       "Grouped CPU transaction did not independently reopen");
+  if(system.dwPageSize<kStoreCommitUnit) {
+    auto legacy=storage;
+    legacy.layout.shared_banks=true;
+    legacy.data_layout=NativeIndexedDataLayout::inline_small_files;
+    auto compact=legacy;
+    compact.layout.compact_roots=true;
+    const auto input=requests.front().source;
+    const auto bytes=static_cast<std::uint32_t>(input.size());
+    const NativeAmdWriteShape legacy_shape{bytes,legacy},compact_shape{bytes,compact};
+    const auto old_image=record_native_amd_cpu_trial(legacy_shape,input,allowance,&domain,running);
+    const auto new_image=record_native_amd_cpu_trial(compact_shape,input,allowance,&domain,running);
+    check(old_image && new_image && old_image->shape==legacy_shape && new_image->shape==compact_shape &&
+        old_image->cpu_readback_verified && new_image->cpu_readback_verified &&
+        old_image->input_digest==new_image->input_digest &&
+        old_image->occupied_bytes==new_image->occupied_bytes+2*(kStoreCommitUnit-system.dwPageSize),
+        "Private replay changed the encoded recovery root layout or source");
+    std::cout<<"write_replay_geometry unit="<<system.dwPageSize<<" legacy_bytes="<<old_image->occupied_bytes
+        <<" compact_bytes="<<new_image->occupied_bytes<<" cpu_readback=1\n";
+  }
   // Exercise a complete group beyond the single-transaction format limit.
   std::array<UniformLz4BatchInput,kStoreMaxTransactionBytes/(16*extent)+1> larger{};
   for(std::size_t index=0;index<larger.size();++index)larger[index]={index+1,source};
@@ -421,7 +440,7 @@ void native_amd_worker_plan() {
   constexpr std::uint64_t mib=1024*1024;
   constexpr ProcessBudget budget{128,2000,5000,16};
   constexpr auto allowance=256*mib;
-  const NativeAmdStoragePolicy storage{4096,{StoreCompressionMode::fast,1,false}};
+  const NativeManagedForeground storage{{StoreCompressionMode::fast,1,false},{4096}};
   const std::vector<std::byte> plain(3*kNativeExtentBytes);
   const auto bytes=std::span<const std::byte>(plain);
   const std::array equal{UniformLz4BatchInput{1,bytes.first(kNativeExtentBytes)},
@@ -461,17 +480,26 @@ void native_amd_worker_plan() {
 void native_amd_write_preference() {
   using Preference=NativeAmdWritePreference;
   GpuConfigurationId configuration{};configuration[0]=std::byte{12};
-  const NativeAmdWriteShape shape{4*kNativeExtentBytes,65536,fixture_compression};
+  const NativeAmdWriteShape shape{4*kNativeExtentBytes,{fixture_compression,{65536}}};
   std::array<NativeAmdWriteComparison,3> trials{};
   for(std::size_t i=0;i<trials.size();++i) {
     auto& trial=trials[i];
     trial.amd_first=i%2!=0;
-    trial.cpu={100+i*10,256,{},true,true,false};
+    trial.cpu={100+i*10,256,{},true,true,false,0,1,shape};
     trial.cpu.input_digest[0]=static_cast<std::byte>(i+1);
-    trial.amd={90+i,256,trial.cpu.input_digest,true,true,true,2};
+    trial.amd={90+i,256,trial.cpu.input_digest,true,true,true,2,1,shape};
   }
   const NativeAmdWriteEvidence evidence{configuration,shape,trials};
   check(evaluate_native_amd_writes(evidence)==Preference::amd,"faster matched AMD writes refused");
+  trials[1].amd.shape.storage.layout.shared_banks=true;
+  check(evaluate_native_amd_writes(evidence)==Preference::unqualified,"Different protective bank layout compared");
+  trials[1].amd.shape=shape;
+  trials[1].cpu.shape.storage.data_layout=NativeIndexedDataLayout::inline_small_files;
+  check(evaluate_native_amd_writes(evidence)==Preference::unqualified,"Different indexed root layout compared");
+  trials[1].cpu.shape=shape;
+  trials[1].amd.shape.input_bytes+=kNativeExtentBytes;
+  check(evaluate_native_amd_writes(evidence)==Preference::unqualified,"Different physical trial geometry compared");
+  trials[1].amd.shape=shape;
   trials[1].amd.transactions=2;
   check(evaluate_native_amd_writes(evidence)==Preference::unqualified,"Grouped time qualified a single write");
   trials[1].amd.transactions=1;
@@ -547,7 +575,7 @@ void partial_measured_window_uses_cpu(const std::filesystem::path& worker) {
   const auto block=bytes;
   bytes.insert(bytes.end(),block.begin(),block.end());
   settings.measured_shape=NativeAmdWriteShape{static_cast<std::uint32_t>(bytes.size()),
-      static_cast<std::uint32_t>(kStoreCommitUnit),fixture_compression};
+      {fixture_compression,{static_cast<std::uint32_t>(kStoreCommitUnit),true}}};
   const auto& sample=*settings.controller_health;
   const auto partial=plan_gpu_lz4_window(bytes.size(),kNativeExtentBytes,sample,sample.memory.captured_ms,
       settings.cost,settings.window);
@@ -563,6 +591,33 @@ void partial_measured_window_uses_cpu(const std::filesystem::path& worker) {
       "partially funded measured write was deferred");
   check(!h.adapter->deferred_write_stats().queued && !h.adapter->gpu_budget_task() &&
       h.adapter->snapshot().read("target",0,count)==bytes,"measured-write fallback lost source bytes");
+  h.close(target);
+}
+void mismatched_measured_layout_uses_cpu(const std::filesystem::path& worker) {
+  if(!gpu_lz4_cpu_verification_available())return;
+  auto settings=options(worker,1);
+  settings.binding.sweep.reset();
+  auto bytes=native_lz4_fixture::source();
+  settings.measured_shape=NativeAmdWriteShape{static_cast<std::uint32_t>(bytes.size()),
+      {fixture_compression,{static_cast<std::uint32_t>(kStoreCommitUnit)}}};
+  Harness h(settings,true);
+  const auto actual=h.adapter->managed_foreground();
+  check(actual.has_value(),"Measured layout fixture lost its writable image");
+  auto expected=*actual;
+  expected.layout.shared_banks=!expected.layout.shared_banks;
+  check(expected==settings.measured_shape->storage,"Admission fixture varied more than the protective bank layout");
+  const auto target=h.create(L"\\target");
+  const auto observed=health();
+  check(NativeDeferredWriteService::measured_write_funded(settings,observed,observed.memory.captured_ms) &&
+      WorkerExchangeSession::available(),"Measured layout fixture could not fund its request");
+  h.adapter->publish_deferred_health_hosted(observed);
+  ULONG count=0;
+  FSP_FSCTL_FILE_INFO info{};
+  check(h.fs.Interface->Write(&h.fs,target,bytes.data(),0,static_cast<ULONG>(bytes.size()),
+      FALSE,FALSE,&count,&info)==STATUS_SUCCESS && count==bytes.size(),
+      "Mismatched measured layout deferred an ordinary CPU write");
+  check(!h.adapter->deferred_write_stats().queued &&
+      h.adapter->snapshot().read("target",0,count)==bytes,"Layout mismatch lost or deferred caller bytes");
   h.close(target);
 }
 void completion_budget_refusal(const std::filesystem::path& worker) {
@@ -708,7 +763,7 @@ void ordinary_amd_write_demand(bool owned_controller) {
     };
     const auto verify=[&](const NativeAmdWriteDemand& demand,const std::vector<std::byte>& data,std::uint64_t sequence) {
       check(demand.sequence==sequence && demand.shape.input_bytes==data.size() &&
-          demand.shape.matches_storage(kWinFspFileForegroundCompression,h.image->contract().write_failure_unit_bytes),
+          h.adapter->managed_foreground()==demand.shape.storage,
           "ordinary write demand did not retain exact geometry and compression policy");
       check(std::all_of(demand.samples.begin(),demand.samples.end(),[](const auto& sample){return sample.elapsed_ns>0;}) &&
           std::is_sorted(demand.samples.begin(),demand.samples.end(),[](const auto& a,const auto& b) {
@@ -907,10 +962,12 @@ NativeAmdWriteSample indexed_trial(const HipDiscoveredRoute* route,bool sweep,
           "indexed CPU write outcome");
       h.close(target);
       indexed_oracle(h,prior,expected,grouped);
-      if(shape)*shape={static_cast<std::uint32_t>(source.size()),
-          h.image->contract().write_failure_unit_bytes,fixture.compression};
+      const auto storage=h.adapter->managed_foreground();
+      check(storage.has_value(),"Indexed CPU trial lost its selected layout");
+      const NativeAmdWriteShape selected{static_cast<std::uint32_t>(source.size()),*storage};
+      if(shape)*shape=selected;
       sample={static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(elapsed).count()),
-          h.image->extent(),detail::record_digest(expected),true,false,false};
+          h.image->extent(),detail::record_digest(expected),true,false,false,0,1,selected};
     }
     check_indexed_retirement();
     sample.retirement_confirmed=true;
@@ -942,6 +999,9 @@ NativeAmdWriteSample indexed_trial(const HipDiscoveredRoute* route,bool sweep,
     const auto target=grouped?h.open(L"\\target"):h.create(L"\\target");
     const auto prior=h.adapter->snapshot();
     const auto marker=native_fixture::data(71,492);
+    const auto storage=h.adapter->managed_foreground();
+    check(storage.has_value(),"Indexed device trial lost its selected layout");
+    const NativeAmdWriteShape selected{static_cast<std::uint32_t>(source.size()),*storage};
     if(late_activation) {
       auto before=h.create(L"\\before-route");
       auto bytes=marker;
@@ -949,14 +1009,13 @@ NativeAmdWriteSample indexed_trial(const HipDiscoveredRoute* route,bool sweep,
       check(h.fs.Interface->Write(&h.fs,before,bytes.data(),0,static_cast<ULONG>(bytes.size()),FALSE,FALSE,
           &written,&before_info)==STATUS_SUCCESS && written==bytes.size(),"first write waited for the AMD route");
       h.close(before);
-      options.measured_shape=NativeAmdWriteShape{static_cast<std::uint32_t>(source.size()),
-          h.image->contract().write_failure_unit_bytes,fixture.compression};
+      options.measured_shape=selected;
       check(!NativeDeferredWriteService::measured_write_funded(options,observed,observed.memory.captured_ms),
           "measured sweep was funded with kernel costs alone");
       // The live fixture exercises route activation independently of performance qualification.
       options.cost.sweep_timing=GpuLz4SweepTiming{3000000000,250000000};
       auto mismatch=options;
-      ++mismatch.measured_shape->foreground.zstd_level;
+      mismatch.measured_shape->storage.layout.shared_banks=!storage->layout.shared_banks;
       check(h.controller->offer_qualified_foreground_route(std::move(mismatch)),
           "running controller did not queue the incompatible measurement");
       eventually([&]{return h.controller->view().foreground_activation==NativeDeferredActivation::refused;},
@@ -974,8 +1033,7 @@ NativeAmdWriteSample indexed_trial(const HipDiscoveredRoute* route,bool sweep,
     }
     eventually([&]{return GetTickCount64()-route->memory.captured_ms>kGpuMaxBudgetAgeMs;},
         "initial probe should expire before testing on-demand collection");
-    if(shape)check(shape->matches_storage(fixture.compression,h.image->contract().write_failure_unit_bytes) &&
-        shape->input_bytes==expected.size(),"CPU and AMD write geometry differs");
+    if(shape)check(*shape==selected,"CPU and AMD write geometry differs");
     const auto single=plan_gpu_lz4_window(expected.size(),kNativeExtentBytes,observed,observed.memory.captured_ms,
         cost,options.window);
     const auto planned=options.binding.sweep?plan_gpu_lz4_sweep_window(expected.size(),kNativeExtentBytes,
@@ -1053,7 +1111,7 @@ NativeAmdWriteSample indexed_trial(const HipDiscoveredRoute* route,bool sweep,
     }
     std::cout<<" image_bytes="<<h.image->extent()<<" response_ns="<<ns<<'\n';
     sample={static_cast<std::uint64_t>(ns),h.image->extent(),detail::record_digest(expected),true,false,true,
-        receipt->stored_lz4_candidates};
+        receipt->stored_lz4_candidates,1,selected};
   }
   check_indexed_retirement();
   check(!GetModuleHandleW(route->runtime_basename.c_str()),"HIP runtime entered the filesystem process");
@@ -1140,8 +1198,8 @@ int compare_file_policy(const std::filesystem::path& corpus,bool cpu_only) {
     const auto sample=indexed_trial(nullptr,true,input,false,false,&shape,false,false,fixture);
     check(sample.cpu_readback_verified && sample.retirement_confirmed && !sample.device_executed &&
         !sample.stored_lz4_candidates,"file policy CPU reference was not independently verified");
-    std::cout<<"file_policy_cpu bytes="<<shape.input_bytes<<" isolation_unit="<<shape.isolation_unit
-        <<" mode="<<static_cast<unsigned>(shape.foreground.mode)<<" zstd_level="<<shape.foreground.zstd_level
+    std::cout<<"file_policy_cpu bytes="<<shape.input_bytes<<" isolation_unit="<<shape.storage.layout.isolation_unit
+        <<" mode="<<static_cast<unsigned>(shape.storage.compression.mode)<<" zstd_level="<<shape.storage.compression.zstd_level
         <<" image_bytes="<<sample.occupied_bytes<<" response_ns="<<sample.elapsed_ns<<'\n';
     return 0;
   }
@@ -1269,7 +1327,7 @@ int profile_indexed_cpu_sizes() {
       check(sample.cpu_readback_verified && sample.retirement_confirmed && !sample.device_executed,
           "CPU scaling trial did not independently verify the memory image");
       std::cout<<"indexed_cpu_memory trial="<<trial+1<<" bytes="<<shape.input_bytes
-          <<" mode="<<static_cast<unsigned>(shape.foreground.mode)<<" zstd_level="<<shape.foreground.zstd_level
+          <<" mode="<<static_cast<unsigned>(shape.storage.compression.mode)<<" zstd_level="<<shape.storage.compression.zstd_level
           <<" response_ns="<<sample.elapsed_ns<<" occupied_bytes="<<sample.occupied_bytes
           <<" cpu_readback=1 retired=1\n";
     }
@@ -1445,7 +1503,7 @@ int compare_installed_detached_writes(const std::filesystem::path& corpus,bool g
   const auto allowance=usable_memory_volume_headroom(available)/sized_worker_memory_share_divisor(diagnostic_worker_budget);
   SYSTEM_INFO system{};
   GetSystemInfo(&system);
-  const NativeAmdStoragePolicy storage{system.dwPageSize,{StoreCompressionMode::fast,1,false}};
+  const NativeManagedForeground storage{{StoreCompressionMode::fast,1,false},{system.dwPageSize}};
   const auto input=std::span<const std::byte>(source);
   std::vector<UniformLz4BatchInput> requests;
   const auto extents=source.size()/kNativeExtentBytes;
@@ -1504,7 +1562,7 @@ int compare_installed_arriving_burst(std::wstring_view mode) {
   GetSystemInfo(&system);
   const auto memory=observe_memory_volume_headroom();
   const auto allowance=usable_memory_volume_headroom(memory)/sized_worker_memory_share_divisor(diagnostic_worker_budget);
-  const NativeAmdStoragePolicy storage{system.dwPageSize,{StoreCompressionMode::fast,1,false}};
+  const NativeManagedForeground storage{{StoreCompressionMode::fast,1,false},{system.dwPageSize}};
   constexpr std::uint32_t maximum_requests=3;
   const auto plan=plan_native_amd_write_burst(storage,kNativeExtentBytes,maximum_requests,
       diagnostic_worker_budget,allowance);
@@ -1518,12 +1576,12 @@ int compare_installed_arriving_burst(std::wstring_view mode) {
   std::size_t admitted=0;
   {
     auto head=domain.create_store(kVolumeHeadBytes);
-    auto image=domain.create_store(capacity,storage.isolation_unit);
+    auto image=domain.create_store(capacity,storage.layout.isolation_unit);
     StoreIdentity volume_id{},image_id{};
     volume_id[0]=std::byte{4};
     image_id[0]=std::byte{5};
     FSP_FILE_SYSTEM fs{};
-    auto source=WinFspNativeWritable::create_managed_indexed(head,volume_id,image,image_id,{capacity},storage.foreground);
+    auto source=WinFspNativeWritable::create_managed_indexed(head,volume_id,image,image_id,{capacity},storage.compression);
     check(source->enable_amd_write_demand(),"Could not observe ordinary source writes");
     fs.Version=static_cast<UINT16>(sizeof(fs));
     fs.UmFileContextIsUserContext2=TRUE;
@@ -1767,6 +1825,7 @@ int wmain(int argc,wchar_t** argv){try{
   refused_foreground_offer();
   budget_demand(worker);
   partial_measured_window_uses_cpu(worker);
+  mismatched_measured_layout_uses_cpu(worker);
   completion_budget_refusal(worker);
   for(const auto indexed : {false,true})for(unsigned kind=0;kind<4;++kind){
     run(worker,kind,indexed);

@@ -16,10 +16,17 @@ namespace flitzfs {
 namespace {
 constexpr auto indexed_file_info=NativeFileInfoAllocation::indexed_reserved_cache;
 bool valid_shape(const NativeAmdWriteShape& shape) noexcept {
+  const auto& storage=shape.storage;
+  const auto& layout=storage.layout;
+  const auto& compression=storage.compression;
   return native_amd_write_geometry(indexed_file_info,0,shape.input_bytes,false,false) &&
-      valid_store_io_contract({shape.isolation_unit,true}) &&
-      (shape.foreground.mode==StoreCompressionMode::fast || shape.foreground.mode==StoreCompressionMode::automatic) &&
-      shape.foreground.zstd_level>=1 && shape.foreground.zstd_level<=9;
+      valid_store_io_contract({layout.isolation_unit,true}) &&
+      layout.isolation_unit>=detail::kPagedStoreCheckpointWriteBytes/2 &&
+      (!layout.compact_roots || layout.isolation_unit<kStoreCommitUnit) &&
+      (storage.data_layout==NativeIndexedDataLayout::extents ||
+       storage.data_layout==NativeIndexedDataLayout::inline_small_files) &&
+      (compression.mode==StoreCompressionMode::fast || compression.mode==StoreCompressionMode::automatic) &&
+      compression.zstd_level>=1 && compression.zstd_level<=9;
 }
 bool verified(const NativeAmdWriteSample& sample,bool amd) noexcept {
   return sample.transactions==1 && sample.elapsed_ns && sample.occupied_bytes &&
@@ -42,6 +49,7 @@ NativeAmdWritePreference evaluate_native_amd_writes(const NativeAmdWriteEvidence
   auto previous_order=!evidence.comparisons.front().amd_first;
   for(const auto& trial:evidence.comparisons) {
     if(trial.amd_first==previous_order || trial.cpu.input_digest!=trial.amd.input_digest ||
+        trial.cpu.shape!=shape || trial.amd.shape!=shape ||
         !verified(trial.cpu,false) || !verified(trial.amd,true) ||
         trial.amd.stored_lz4_candidates>shape.input_bytes/kNativeExtentBytes)
       return Result::unqualified;
@@ -63,13 +71,13 @@ std::uint64_t elapsed_ns(TrialClock::time_point started) {
   const auto elapsed=std::chrono::duration_cast<std::chrono::nanoseconds>(TrialClock::now()-started).count();
   return elapsed>0?static_cast<std::uint64_t>(elapsed):0;
 }
-std::optional<uniform_lz4::Layout> replay_layout(const NativeAmdStoragePolicy& storage,
+std::optional<uniform_lz4::Layout> replay_layout(const NativeManagedForeground& storage,
     std::span<const UniformLz4BatchInput> requests) noexcept {
   std::uint64_t last=0,total=0;
   for(const auto& request:requests) {
     const auto bytes=request.source.size();
     if(request.request_id<=last || bytes>kStoreMaxTransactionBytes ||
-        !valid_shape({static_cast<std::uint32_t>(bytes),storage.isolation_unit,storage.foreground}) ||
+        !valid_shape({static_cast<std::uint32_t>(bytes),storage}) ||
         !uniform_lz4::add(total,bytes,total))return {};
     last=request.request_id;
   }
@@ -94,7 +102,7 @@ std::string replay_name(std::size_t member,std::size_t count) {
   return count==1?"qualification":"qualification-"+std::to_string(member);
 }
 
-std::optional<NativeAmdWriteSample> record_private_writes(const NativeAmdStoragePolicy& storage,
+std::optional<NativeAmdWriteSample> record_private_writes(const NativeManagedForeground& storage,
     std::span<const UniformLz4BatchInput> requests,const uniform_lz4::Layout& layout,
     const VerifiedUniformLz4Batch* verified,std::uint64_t allowance,MemoryVolumeDomain* existing,
     const std::function<bool()>& interrupted) {
@@ -109,21 +117,22 @@ std::optional<NativeAmdWriteSample> record_private_writes(const NativeAmdStorage
     if(used.reserved>=used.capacity)return {};
     capacity=(std::min)(capacity,used.capacity-used.reserved);
   }
-  capacity-=capacity%storage.isolation_unit;
+  capacity-=capacity%storage.layout.isolation_unit;
   if(capacity<2ULL*layout.input_bytes+(2ULL+2ULL*requests.size())*kStoreCommitUnit)return {};
   NativeAmdWriteSample sample;
   sample.transactions=requests.size();
+  sample.shape={static_cast<std::uint32_t>(layout.input_bytes),storage};
   {
     std::optional<MemoryVolumeDomain> owned;
     if(!existing)owned.emplace(MemoryVolumeDomain::create(capacity));
     auto& domain=existing?*existing:*owned;
-    auto image=domain.create_store(capacity,storage.isolation_unit);
-    if(image->contract().write_failure_unit_bytes!=storage.isolation_unit || read_scope.interrupted())return {};
+    auto image=domain.create_store(capacity,storage.layout.isolation_unit);
+    if(image->contract().write_failure_unit_bytes!=storage.layout.isolation_unit || read_scope.interrupted())return {};
     StoreIdentity id{};
     id[0]=std::byte{1}; // Private image with no externally addressable identity.
     {
       auto writer=NativeFilesystemWriter::initialize_indexed(PagedObjectStoreWriter::create_mirrored(
-          image,id,{capacity},storage.foreground));
+          image,id,{capacity},storage.compression,storage.layout),storage.data_layout);
       std::vector<NativeLz4ExtentCandidate> advice;
       for(std::size_t index=0;index<requests.size();++index) {
         if(read_scope.interrupted())return {};
@@ -185,7 +194,7 @@ bool native_amd_cpu_replay_fits(std::uint64_t bytes,std::size_t writes,std::uint
       uniform_lz4::add(data,detail::kStoreDecoderMemoryCap+6ULL*kStoreCommitUnit,data) && data<=allowance;
 }
 
-std::optional<NativeAmdWriteSample> record_native_amd_cpu_batch(const NativeAmdStoragePolicy& storage,
+std::optional<NativeAmdWriteSample> record_native_amd_cpu_batch(const NativeManagedForeground& storage,
     std::span<const UniformLz4BatchInput> requests,std::uint64_t allowance,MemoryVolumeDomain* existing,
     const std::function<bool()>& interrupted) noexcept {
   try {
@@ -200,10 +209,10 @@ std::optional<NativeAmdWriteSample> record_native_amd_cpu_trial(const NativeAmdW
     const std::function<bool()>& interrupted) noexcept {
   if(source.size()!=shape.input_bytes)return {};
   const UniformLz4BatchInput request{1,source};
-  return record_native_amd_cpu_batch({shape.isolation_unit,shape.foreground},std::span{&request,1},allowance,existing,interrupted);
+  return record_native_amd_cpu_batch(shape.storage,std::span{&request,1},allowance,existing,interrupted);
 }
 
-std::optional<NativeAmdWriteSample> record_native_amd_verified_batch(const NativeAmdStoragePolicy& storage,
+std::optional<NativeAmdWriteSample> record_native_amd_verified_batch(const NativeManagedForeground& storage,
     const PreparedUniformLz4Batch& batch,const VerifiedUniformLz4Batch& verified,std::uint64_t allowance,
     MemoryVolumeDomain* existing,const std::function<bool()>& interrupted) noexcept {
   try {
@@ -256,7 +265,7 @@ std::optional<NativeAmdWriteWorkerPlan> make_native_amd_worker_plan(const unifor
 }
 }
 
-std::optional<NativeAmdWriteWorkerPlan> plan_native_amd_write_worker(const NativeAmdStoragePolicy& storage,
+std::optional<NativeAmdWriteWorkerPlan> plan_native_amd_write_worker(const NativeManagedForeground& storage,
     std::span<const UniformLz4BatchInput> requests,NativeAmdTrialLaunch launch,ProcessBudget budget,
     std::uint64_t allowance) noexcept {
   const auto group=replay_layout(storage,requests);
@@ -272,10 +281,10 @@ std::optional<NativeAmdWriteWorkerPlan> plan_native_amd_write_worker(const Nativ
       sizeof(UniformLz4Bytes),budget,allowance);
 }
 
-std::optional<NativeAmdWriteWorkerPlan> plan_native_amd_write_burst(const NativeAmdStoragePolicy& storage,
+std::optional<NativeAmdWriteWorkerPlan> plan_native_amd_write_burst(const NativeManagedForeground& storage,
     std::uint32_t request_bytes,std::uint32_t maximum_requests,ProcessBudget budget,
     std::uint64_t allowance) noexcept {
-  if(maximum_requests<2 || !valid_shape({request_bytes,storage.isolation_unit,storage.foreground}))return {};
+  if(maximum_requests<2 || !valid_shape({request_bytes,storage}))return {};
   std::uint64_t bytes=0;
   uniform_lz4::Layout group{},work{};
   if(!uniform_lz4::multiply(request_bytes,maximum_requests,bytes) ||
@@ -294,12 +303,12 @@ NativeAmdDeviceTrial record_native_amd_device_trial(const NativeAmdWriteShape& s
     std::stop_token stop) noexcept {
   if(source.size()!=shape.input_bytes)return {};
   const UniformLz4BatchInput request{1,source};
-  return record_native_amd_device_batch({shape.isolation_unit,shape.foreground},std::span{&request,1},
+  return record_native_amd_device_batch(shape.storage,std::span{&request,1},
       route,grant,budget,allowance,existing,launch,stop);
 }
 
 namespace {
-NativeAmdDeviceTrial run_native_amd_write_trial(const NativeAmdStoragePolicy& storage,
+NativeAmdDeviceTrial run_native_amd_write_trial(const NativeManagedForeground& storage,
     std::span<const UniformLz4BatchInput> requests,const HipDiscoveredRoute& route,NativeUniformSweepGrant grant,
     ProcessBudget budget,std::uint64_t allowance,MemoryVolumeDomain* existing,NativeAmdTrialLaunch launch,
     std::stop_token stop,const std::function<bool()>& may_submit,std::uint32_t burst_limit=0,
@@ -398,7 +407,7 @@ NativeAmdDeviceTrial run_native_amd_write_trial(const NativeAmdStoragePolicy& st
         if(action!=PreparedRequestAction::submit || captured.sequence<=last ||
             bytes>member.input_bytes || (!allow_smaller_writes && bytes!=member.input_bytes) ||
             captured.bytes.capacity()>bytes ||
-            !valid_shape({static_cast<std::uint32_t>(bytes),storage.isolation_unit,storage.foreground}) || !permitted())return {};
+            !valid_shape({static_cast<std::uint32_t>(bytes),storage}) || !permitted())return {};
         uniform_lz4::Layout active{};
         if(!uniform_lz4::make_layout(bytes,member.chunk_bytes,active))return {};
         auto request=PreparedUniformLz4::prepare_owned(std::move(captured.bytes),uniform_lz4_limits(active));
@@ -504,14 +513,14 @@ NativeAmdDeviceTrial run_native_amd_write_trial(const NativeAmdStoragePolicy& st
 }
 }
 
-NativeAmdDeviceTrial record_native_amd_device_batch(const NativeAmdStoragePolicy& storage,
+NativeAmdDeviceTrial record_native_amd_device_batch(const NativeManagedForeground& storage,
     std::span<const UniformLz4BatchInput> requests,const HipDiscoveredRoute& route,NativeUniformSweepGrant grant,
     ProcessBudget budget,std::uint64_t allowance,MemoryVolumeDomain* existing,NativeAmdTrialLaunch launch,
     std::stop_token stop,const std::function<bool()>& may_submit) noexcept {
   return run_native_amd_write_trial(storage,requests,route,grant,budget,allowance,existing,launch,stop,may_submit);
 }
 
-NativeAmdDeviceTrial record_native_amd_device_burst(const NativeAmdStoragePolicy& storage,UniformLz4BatchInput first,
+NativeAmdDeviceTrial record_native_amd_device_burst(const NativeManagedForeground& storage,UniformLz4BatchInput first,
     std::uint32_t maximum_requests,const HipDiscoveredRoute& route,NativeUniformSweepGrant grant,
     ProcessBudget budget,std::uint64_t allowance,MemoryVolumeDomain* existing,std::stop_token stop,
     const NativeAmdWriteContinuation& continuation,const std::function<bool()>& may_submit,bool allow_smaller_writes) noexcept {

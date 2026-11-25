@@ -13,6 +13,7 @@ struct NativeAmdWriteSample {
   bool cpu_readback_verified=false,retirement_confirmed=false,device_executed=false;
   std::uint32_t stored_lz4_candidates=0;
   std::size_t transactions=1;
+  NativeAmdWriteShape shape;
 };
 
 struct NativeAmdWriteComparison {
@@ -36,22 +37,17 @@ std::optional<NativeAmdWriteSample> record_native_amd_cpu_trial(const NativeAmdW
     std::span<const std::byte> source,std::uint64_t memory_allowance,MemoryVolumeDomain*,
     const std::function<bool()>& interrupted) noexcept;
 
-struct NativeAmdStoragePolicy {
-  std::uint32_t isolation_unit=0;
-  StoreCompressionOptions foreground;
-};
-
 // Minimum memory for source, CPU scratch and a mirrored trial image.
 bool native_amd_cpu_replay_fits(std::uint64_t bytes,std::size_t writes,std::uint64_t allowance) noexcept;
 
 // Write each complete source to its own inode in a private volume. Batch
 // samples include the ordered request identities and boundaries in the digest.
-std::optional<NativeAmdWriteSample> record_native_amd_cpu_batch(const NativeAmdStoragePolicy&,
+std::optional<NativeAmdWriteSample> record_native_amd_cpu_batch(const NativeManagedForeground&,
     std::span<const UniformLz4BatchInput>,std::uint64_t memory_allowance,MemoryVolumeDomain*,
     const std::function<bool()>& interrupted) noexcept;
 // Replay independently verified advice from the exact prepared group. This
 // validates storage and recovery. The owner attributes hardware execution.
-std::optional<NativeAmdWriteSample> record_native_amd_verified_batch(const NativeAmdStoragePolicy&,
+std::optional<NativeAmdWriteSample> record_native_amd_verified_batch(const NativeManagedForeground&,
     const PreparedUniformLz4Batch&,const VerifiedUniformLz4Batch&,std::uint64_t memory_allowance,
     MemoryVolumeDomain*,const std::function<bool()>& interrupted) noexcept;
 
@@ -67,11 +63,11 @@ struct NativeAmdWriteWorkerPlan {
   bool fits(ProcessBudget,std::uint64_t allowance) const noexcept;
 };
 // Plan the complete transport and host footprint before touching the runtime.
-std::optional<NativeAmdWriteWorkerPlan> plan_native_amd_write_worker(const NativeAmdStoragePolicy&,
+std::optional<NativeAmdWriteWorkerPlan> plan_native_amd_write_worker(const NativeManagedForeground&,
     std::span<const UniformLz4BatchInput>,NativeAmdTrialLaunch,ProcessBudget,std::uint64_t allowance) noexcept;
 // Reserve an upper bound using one eligible write's size. No future source
 // contents or committed images are needed when planning this exchange.
-std::optional<NativeAmdWriteWorkerPlan> plan_native_amd_write_burst(const NativeAmdStoragePolicy&,
+std::optional<NativeAmdWriteWorkerPlan> plan_native_amd_write_burst(const NativeManagedForeground&,
     std::uint32_t request_bytes,std::uint32_t maximum_requests,ProcessBudget,std::uint64_t allowance) noexcept;
 struct NativeAmdDeviceTrial {
   std::optional<NativeAmdWriteSample> sample,matched_cpu;
@@ -91,7 +87,7 @@ NativeAmdDeviceTrial record_native_amd_device_trial(const NativeAmdWriteShape&,
     std::stop_token) noexcept;
 
 // Share one admitted worker exchange for a complete group of native writes.
-NativeAmdDeviceTrial record_native_amd_device_batch(const NativeAmdStoragePolicy&,
+NativeAmdDeviceTrial record_native_amd_device_batch(const NativeManagedForeground&,
     std::span<const UniformLz4BatchInput>,const HipDiscoveredRoute&,NativeUniformSweepGrant,
     ProcessBudget,std::uint64_t memory_allowance,MemoryVolumeDomain*,NativeAmdTrialLaunch,
     std::stop_token,const std::function<bool()>& may_submit={}) noexcept;
@@ -105,7 +101,7 @@ struct NativeAmdWriteBoundary {
 };
 using NativeAmdWriteContinuation=std::function<PreparedRequestAction(const NativeAmdWriteBoundary&,
     detail::NativeCapturedWrite&)>;
-NativeAmdDeviceTrial record_native_amd_device_burst(const NativeAmdStoragePolicy&,UniformLz4BatchInput first,
+NativeAmdDeviceTrial record_native_amd_device_burst(const NativeManagedForeground&,UniformLz4BatchInput first,
     std::uint32_t maximum_requests,const HipDiscoveredRoute&,NativeUniformSweepGrant,
     ProcessBudget,std::uint64_t memory_allowance,MemoryVolumeDomain*,std::stop_token,
     const NativeAmdWriteContinuation&,const std::function<bool()>& may_submit={},

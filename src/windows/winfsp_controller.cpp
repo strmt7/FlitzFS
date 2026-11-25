@@ -82,7 +82,8 @@ struct WinFspVolumeController::Impl {
   };
   std::optional<WriteArrival> queued_write; // Guarded by mutex.
   std::optional<NativeMaintenanceObservation> write_arrival_observation;
-  NativeAmdWriteShape write_trial_shape,write_calibration_policy;
+  NativeAmdWriteShape write_trial_shape;
+  NativeManagedForeground write_calibration_policy;
   std::uint64_t last_captured_write=0;
   bool acquiring_write=false,write_trial_requires_evidence=false;
   std::bitset<kStoreMaxTransactionBytes/kNativeExtentBytes> recorded_write_sizes,recorded_group_sizes,completed_write_sizes;
@@ -201,8 +202,8 @@ struct WinFspVolumeController::Impl {
             if(observe_write_reference) {
               write_reference_demand.reset();
               const auto& shape=demand->shape;
-              if(!shape.matches_storage(write_calibration_policy.foreground,write_calibration_policy.isolation_unit)) {
-                write_calibration_policy=shape;
+              if(shape.storage!=write_calibration_policy) {
+                write_calibration_policy=shape.storage;
                 recorded_write_sizes.reset();
                 recorded_group_sizes.reset();
                 completed_write_sizes.reset();
@@ -625,7 +626,7 @@ struct WinFspVolumeController::Impl {
       inputs.push_back({item.sequence,item.bytes});
       bytes+=item.bytes.size();
     }
-    const NativeAmdStoragePolicy storage{selected.shape.isolation_unit,selected.shape.foreground};
+    const auto& storage=selected.shape.storage;
     const auto started=std::chrono::steady_clock::now();
     const auto result=record_native_amd_cpu_batch(storage,inputs,allowance->memory_allowance,residency,interrupted);
     if(!result || interrupted())return {};
@@ -644,7 +645,7 @@ struct WinFspVolumeController::Impl {
   bool write_trial_due(const NativeAmdWriteDemand& demand,std::uint64_t now) const noexcept {
     if(!installed_write_trial || !acquisition_retired || acquisition_thread.joinable() ||
         now<next_write_trial_ms ||
-        !demand.shape.matches_storage(write_calibration_policy.foreground,write_calibration_policy.isolation_unit))return false;
+        demand.shape.storage!=write_calibration_policy)return false;
     const auto chunks=demand.shape.input_bytes/kNativeExtentBytes;
     const auto maximum=installed_write_trial->maximum_batch_chunks;
     return chunks && chunks<=completed_write_sizes.size() && !completed_write_sizes[chunks-1] &&
@@ -698,7 +699,7 @@ struct WinFspVolumeController::Impl {
     const auto bytes=available.shape.input_bytes;
     if(available.source_sequence<=last_captured_write || bytes>write_trial_shape.input_bytes ||
         (!allow_smaller && bytes!=write_trial_shape.input_bytes) ||
-        !available.shape.matches_storage(write_trial_shape.foreground,write_trial_shape.isolation_unit))return;
+        available.shape.storage!=write_trial_shape.storage)return;
     const auto now=GetTickCount64();
     const auto& observation=*write_arrival_observation;
     if(now<observation.captured_ms || now-observation.captured_ms>adapter->group_maintenance_policy().maximum_age_ms)return;
@@ -785,7 +786,7 @@ struct WinFspVolumeController::Impl {
     inputs.reserve(capture.size());
     for(const auto& item:capture)inputs.push_back({item.sequence,item.bytes});
     const auto& shape=write_trial.reference.demand.shape;
-    const NativeAmdStoragePolicy storage{shape.isolation_unit,shape.foreground};
+    const auto& storage=shape.storage;
     const auto device=std::chrono::steady_clock::now();
     const bool finishable=profile.await_later_writes && launch==NativeAmdTrialLaunch::prepared_requests;
     if(finishable) {
@@ -815,7 +816,8 @@ struct WinFspVolumeController::Impl {
       write_trial.status=HipDiscoveryStatus::resource_deferred;
     else if(!observed.sample || !observed.worker_retired || !observed.sample->cpu_readback_verified ||
         !observed.sample->retirement_confirmed || !observed.sample->device_executed ||
-        observed.sample->transactions!=reference.transactions || observed.sample->input_digest!=reference.input_digest ||
+        observed.sample->transactions!=reference.transactions || observed.sample->shape!=reference.shape ||
+        observed.sample->input_digest!=reference.input_digest ||
         (finishable && (!observed.matched_cpu || observed.admitted_requests!=reference.transactions)) ||
         (!finishable && launch==NativeAmdTrialLaunch::prepared_requests && observed.admitted_requests!=capture.size())) {
       write_trial.status=HipDiscoveryStatus::configuration_quarantined;
@@ -832,7 +834,7 @@ struct WinFspVolumeController::Impl {
         now<observed.captured_ms || now-observed.captured_ms>adapter->group_maintenance_policy().maximum_age_ms)return;
     const auto profile=*installed_write_trial;
     const auto& shape=reference.demand.shape;
-    const NativeAmdStoragePolicy storage{shape.isolation_unit,shape.foreground};
+    const auto& storage=shape.storage;
     auto launch=profile.separate_requests?NativeAmdTrialLaunch::prepared_requests:NativeAmdTrialLaunch::prepared;
     const auto extent_count=shape.input_bytes/kNativeExtentBytes;
     auto worker_plan=profile.await_later_writes?plan_native_amd_write_burst(storage,shape.input_bytes,
@@ -893,10 +895,10 @@ struct WinFspVolumeController::Impl {
     acquisition_retired=write_trial.status!=HipDiscoveryStatus::retirement_unconfirmed;
     if(acquisition_retired && (!use_pair || adapter->foreground_pending() ||
         adapter->foreground_activity()!=write_trial_epoch.load(std::memory_order_acquire) ||
-        stop_requested.load(std::memory_order_acquire)))
+        adapter->managed_foreground()!=write_trial_shape.storage || stop_requested.load(std::memory_order_acquire)))
       write_trial.status=HipDiscoveryStatus::cancelled;
     const bool matched=write_trial.status==HipDiscoveryStatus::ready && write_trial.device.sample.has_value();
-    if(matched && write_trial_shape.matches_storage(write_calibration_policy.foreground,write_calibration_policy.isolation_unit))
+    if(matched && write_trial_shape.storage==write_calibration_policy)
       completed_write_sizes.set(write_trial_shape.input_bytes/kNativeExtentBytes-1);
     if(!matched)write_trial.device.sample.reset();
     const auto duration=write_trial.discovery_ns+write_trial.device_wall_ns+write_trial.device.cpu_wall_ns;

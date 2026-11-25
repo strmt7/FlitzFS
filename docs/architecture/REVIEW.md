@@ -1,12 +1,12 @@
 # Source and architecture review
 
-The [current reconciliation](../RELEASE_RECONCILIATION_2026-11-25.md#reconciliation-after-compact-paged-roots) binds the 1,126-path
-parent at `216034fb8adf` and the tested source tree `ccc9c5947d3d`. It
-follows ordinary attachment, checked indexed admission, source and
-candidate ownership, device work consumed by callbacks, and the
-settled allocation of protected representations. Older guest mounts
-and current host callback checks retain distinct source identities.
-[Current inventory and test receipts](../evidence/windows-compact-paged-roots-2026-11-25.json) ·
+The [current reconciliation](../RELEASE_RECONCILIATION_2026-11-25.md#current-reconciliation-and-release-order)
+binds the 1,130-path parent at `7e093970c5440` and the tested write-layout
+tree. It reviews ordinary attachment, indexed admission, source and
+candidate ownership, device work consumed by callbacks, and settled
+allocation. The guest mounts, live Radeon results and current CPU
+checks each have matched artifact identities.
+[Current inventory and test receipts](../evidence/windows-foreground-write-layout-2026-11-25.json) ·
 [Previous full review](../RELEASE_RECONCILIATION_2026-11-24.md)
 
 | Component checked | Current boundary | Implementation decision |

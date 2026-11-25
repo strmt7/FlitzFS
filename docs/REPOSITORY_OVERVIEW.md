@@ -9,14 +9,14 @@ CPython fixture, the paged-root change lowered settled occupancy from
 and exact CPU readback, including after automatic sealing and retirement
 in the separate Windows lifecycle fixture.
 
-The host Radeon delivered two checked grouped frames in the SDK
-callback fixture. The latest ordinary signed mount, media recovery,
-indexed scale and GPU comparisons cover different parts of the system.
-The next release gates are useful automatic mounted acceleration,
-bounded writable attach, a held-out compression advantage and
-independent verification of acknowledged operations on persistent media.
-[Reconciliation](RELEASE_RECONCILIATION_2026-11-25.md#reconciliation-after-compact-paged-roots) ·
-[Exact tests and research](evidence/windows-compact-paged-roots-2026-11-25.json) ·
+The host Radeon delivered checked grouped frames in earlier SDK
+callback fixtures. Current write trials use the active protected image
+layout, and stale measurements cannot defer a write. The next release
+gates are useful automatic mounted acceleration, bounded writable
+attach, a held-out compression advantage and independent verification
+of acknowledged operations on persistent media.
+[Reconciliation](RELEASE_RECONCILIATION_2026-11-25.md#current-reconciliation-and-release-order) ·
+[Exact tests and research](evidence/windows-foreground-write-layout-2026-11-25.json) ·
 [Current architecture](architecture/CURRENT.md) ·
 [Target architecture](architecture/TARGET.md)
 

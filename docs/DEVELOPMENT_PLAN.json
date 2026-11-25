@@ -6,8 +6,10 @@
     "latest_grouped_demand_expiry": "docs/evidence/windows-grouped-demand-expiry-2026-11-25.json",
     "latest_grouped_read_delivery": "docs/evidence/windows-grouped-read-delivery-2026-11-25.json",
     "latest_grouped_preparation_reuse": "docs/evidence/windows-prepared-group-reuse-2026-11-25.json",
-    "reviewed_commit": "216034fb8adfa06247d502f2fef6f9eb19dbc78c",
-    "reviewed_tree": "3f48677ab23a8c3978af30abf1a7baab63205f0c",
+    "latest_foreground_write_layout": "docs/evidence/windows-foreground-write-layout-2026-11-25.json",
+    "reviewed_commit": "7e093970c5440b782d414264ed0f56fab8957ef4",
+    "reviewed_tree": "54c6ca8e8098b673f2869caa3c8dee1478b18a8a",
+    "tested_foreground_write_layout_tree": "274939eb3d5c5c28cc07e1e714920cb0c6c861bf",
     "tested_compact_root_runtime_tree": "ccc9c5947d3d6e5dcd84483059db342a4c3e6a92",
     "tested_prefix_runtime_tree": "aeb451f267a7bb57f680741196d16123c38f0bbc",
     "previous_ordinary_settlement_evidence": "docs/evidence/windows-cpu-tile-and-ordinary-settlement-2026-11-25.json",
@@ -16,11 +18,12 @@
     "architecture_diagrams": "docs/architecture/CURRENT.md",
     "source_review": "docs/RELEASE_RECONCILIATION_2026-11-25.md",
     "revised_architecture": "docs/architecture/TARGET.md",
-    "ordered_work": "docs/RELEASE_RECONCILIATION_2026-11-25.md#reconciliation-after-compact-paged-roots",
+    "ordered_work": "docs/IMPLEMENTATION_PLAN.md#execution-after-matching-the-active-write-layout",
     "package_contract": "docs/IMPLEMENTATION_PLAN.md",
     "gate_ledger": "docs/RELEASE_EXECUTION_PLAN.md#current-gate-ledger",
-    "next_implementation_tickets": "docs/IMPLEMENTATION_PLAN.md#next-implementation-tickets",
-    "evidence": "docs/evidence/windows-compact-paged-roots-2026-11-25.json",
+    "next_implementation_tickets": "docs/IMPLEMENTATION_PLAN.md#execution-after-matching-the-active-write-layout",
+    "evidence": "docs/evidence/windows-foreground-write-layout-2026-11-25.json",
+    "previous_compact_root_evidence": "docs/evidence/windows-compact-paged-roots-2026-11-25.json",
     "previous_prefix_evidence": "docs/evidence/windows-prefix-parser-reconciliation-2026-11-25.json",
     "post_prefix_execution_order": "docs/IMPLEMENTATION_PLAN.md#execution-after-the-protected-prefix-checkpoint",
     "bounded_pair_oracle": "docs/evidence/windows-protected-pair-oracle-2026-11-25.json",
@@ -2453,7 +2456,7 @@
         ]
       }
     ],
-    "superseding_checkpoint_order": "docs/RELEASE_RECONCILIATION_2026-11-25.md#current-round-and-release-decisions",
+    "superseding_checkpoint_order": "docs/IMPLEMENTATION_PLAN.md#execution-after-matching-the-active-write-layout",
     "first_slices": [
       {
         "steps": [
@@ -2499,7 +2502,7 @@
       127
     ],
     "research_risk": "The compression target remains an open research question until held-out measured results.",
-    "current_runtime_evidence": "docs/evidence/windows11-sandbox-memory-mount-2026-11-18.json",
+    "current_runtime_evidence": "docs/evidence/windows-foreground-write-layout-2026-11-25.json",
     "windows_read_only_progress": {
       "steps": [
         "E08.1",

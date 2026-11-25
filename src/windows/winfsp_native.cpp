@@ -310,7 +310,7 @@ struct WinFspNativeWritable::Impl {
     // Calibration history only. No backing pin, handle, payload or allocation
     // on the write path. The shape table supplies its bounded metadata size.
     std::array<Source,sizes> sources{};
-    NativeAmdWriteShape source_layout;
+    NativeManagedForeground source_storage;
   };
   struct ActivitySignal final:detail::NativeVolumeRangeWake {
     Handle event;
@@ -387,16 +387,16 @@ struct WinFspNativeWritable::Impl {
     auto& demand=*amd_write_demand;
     const auto index=length/kNativeExtentBytes-1;
     auto& band=demand.by_size[index];
-    if(!band.shape.matches_storage(selected->compression,selected->isolation_unit)) {
+    if(band.shape.storage!=*selected) {
       band={};
-      band.shape={length,selected->isolation_unit,selected->compression};
+      band.shape={length,*selected};
     }
     std::move(band.samples.begin()+1,band.samples.end(),band.samples.begin());
     band.samples.back()={elapsed_ns,GetTickCount64()};
-    if(!demand.source_layout.matches_storage(selected->compression,selected->isolation_unit)) {
+    if(demand.source_storage!=*selected) {
       demand.sources={};
       demand.next_source=0;
-      demand.source_layout=band.shape;
+      demand.source_storage=*selected;
     }
     const auto sequence=++demand.source_sequence;
     if(written.inode && written.modified_sequence && !written.directory && !written.unlinked && !written.delete_pending) {
@@ -1432,13 +1432,20 @@ NativeMaintenancePolicy WinFspNativeWritable::group_maintenance_policy() const n
 bool WinFspNativeWritable::supports_anchor_search() const noexcept {
   return impl_->info_policy==indexed_file_info;
 }
+std::optional<NativeManagedForeground> WinFspNativeWritable::managed_foreground() const noexcept {
+  try {
+    std::unique_lock guard(impl_->control,std::try_to_lock);
+    if(guard)return impl_->session.managed_foreground();
+  }catch(...) {}
+  return {};
+}
 bool WinFspNativeWritable::enable_amd_write_demand() noexcept {
   try {
     std::lock_guard guard(impl_->control);
     if(impl_->callbacks_bound || impl_->info_policy!=indexed_file_info ||
         !gpu_lz4_cpu_verification_available())return false;
     const auto selected=impl_->session.managed_foreground();
-    if(!selected || !valid_store_io_contract({selected->isolation_unit,true}) ||
+    if(!selected || !valid_store_io_contract({selected->layout.isolation_unit,true}) ||
         (selected->compression.mode!=StoreCompressionMode::automatic &&
          selected->compression.mode!=StoreCompressionMode::fast) ||
         selected->compression.zstd_level<1 || selected->compression.zstd_level>9)return false;
@@ -1458,8 +1465,7 @@ std::optional<NativeAmdWriteDemand> WinFspNativeWritable::take_amd_write_demand(
     // Arrivals have a source receipt even if this size has too little history
     // to start a worker. Preserve the separate calibrated demand numbering.
     if(from_arrival)observed.sequence=observed.source_sequence=demand.source_sequence;
-    const auto selected=impl_->session.managed_foreground();
-    if(!selected || !observed.shape.matches_storage(selected->compression,selected->isolation_unit))return {};
+    if(!impl_->session.matches_managed_foreground(observed.shape.storage))return {};
     const auto first=std::ranges::find_if(demand.sources,[&](const auto& source) {
       return source.range.sequence==observed.source_sequence;
     });
@@ -1498,10 +1504,8 @@ std::vector<detail::NativeCapturedWrite> WinFspNativeWritable::capture_amd_write
       const auto sequence=from_arrival?demand.source_sequence:latest.sequence;
       const auto source_sequence=from_arrival?demand.source_sequence:latest.source_sequence;
       if(!observed.sequence || sequence!=observed.sequence || source_sequence!=observed.source_sequence ||
-          latest.shape.input_bytes!=observed.shape.input_bytes ||
-          !latest.shape.matches_storage(observed.shape.foreground,observed.shape.isolation_unit) ||
-          !demand.source_layout.matches_storage(observed.shape.foreground,observed.shape.isolation_unit) ||
-          !impl_->session.matches_managed_foreground(observed.shape.foreground,observed.shape.isolation_unit))return {};
+          latest.shape!=observed.shape || demand.source_storage!=observed.shape.storage ||
+          !impl_->session.matches_managed_foreground(observed.shape.storage))return {};
       const auto fresh=[&](const auto& source) {
         return source.timing.completed_ms<=now && now-source.timing.completed_ms<=2ULL*policy.maximum_cpu_window_ms;
       };
@@ -1712,7 +1716,7 @@ NativeDeferredActivation WinFspNativeWritable::activate_qualified_deferred_write
     const auto& health=*options.controller_health;
     if(impl_->info_policy!=indexed_file_info || shape.input_bytes<kNativeExtentBytes ||
         shape.input_bytes%kNativeExtentBytes || shape.input_bytes>native_windows_write_limit(impl_->info_policy) ||
-        !impl_->session.matches_managed_foreground(shape.foreground,shape.isolation_unit) ||
+        !impl_->session.matches_managed_foreground(shape.storage) ||
         !health.supervisor_quiescent || options.cost.configuration!=health.configuration ||
         options.cost.recovery_generation!=health.recovery_generation ||
         !NativeDeferredWriteService::measured_write_funded(options,health,health.memory.captured_ms))

@@ -4501,7 +4501,12 @@ void amd_write_arrival_trial(std::string_view mode,const std::filesystem::path& 
   NativeMaintenancePolicy policy;
   policy.maximum_cpu_busy_ppm=500'000;
   auto source=WinFspNativeWritable::create_managed_indexed(head,id(90),image,id(1),{image_capacity},
-      {StoreCompressionMode::fast,1,false},{},policy);
+      {StoreCompressionMode::fast,1,false},{},policy,NativeIndexedDataLayout::inline_small_files,
+      NativeVolumeHeadLayout::compact,PagedStoreBankLayout::compact);
+  const auto storage=source->managed_foreground();
+  require(storage && storage->data_layout==NativeIndexedDataLayout::inline_small_files &&
+      storage->layout.compact_roots==(image->contract().write_failure_unit_bytes<kStoreCommitUnit),
+      "Arriving writes did not select the requested protected layout");
   Provider p;
   Provider::active=&p;
   WinFspVolumeController owner(std::move(source),p.api(),plan(),domain);
@@ -4574,10 +4579,15 @@ void amd_write_arrival_trial(std::string_view mode,const std::filesystem::path& 
         device.admitted_requests==expected && trial.reference.sample.transactions==expected &&
         device.sample->cpu_readback_verified && device.sample->transactions==expected &&
         device.sample->input_digest==trial.reference.sample.input_digest &&
-        trial.reference.input_bytes==expected_bytes && device.verified_input_bytes==expected_bytes &&
+        device.sample->shape==NativeAmdWriteShape{static_cast<std::uint32_t>(expected_bytes),*storage} &&
+        device.sample->shape==trial.reference.sample.shape && trial.reference.input_bytes==expected_bytes && device.verified_input_bytes==expected_bytes &&
         (public_input.empty()?device.sample->stored_lz4_candidates==expected_bytes/kNativeExtentBytes:
             device.sample->stored_lz4_candidates<=expected_bytes/kNativeExtentBytes),
         "Arriving worker did not verify the same writes as CPU");
+    std::cout<<"write_layout unit="<<storage->layout.isolation_unit<<" compact_roots="<<storage->layout.compact_roots
+        <<" shared_banks="<<storage->layout.shared_banks<<" inline_files=1"
+        <<" cpu_occupied="<<trial.reference.sample.occupied_bytes
+        <<" amd_occupied="<<device.sample->occupied_bytes<<'\n';
     if(geometry) {
       const auto now=GetTickCount64();
       const auto eligible=trial.next_eligible_ms;
@@ -4612,7 +4622,9 @@ void amd_write_arrival_trial(std::string_view mode,const std::filesystem::path& 
           large_trial.status==HipDiscoveryStatus::ready && result.sample && result.worker_retired &&
           result.sample->device_executed && result.sample->cpu_readback_verified && !result.admitted_requests &&
           result.verified_input_bytes==following.size() && large_trial.reference.input_bytes==following.size() &&
-          result.sample->transactions==1 && result.sample->input_digest==large_trial.reference.sample.input_digest,
+          result.sample->shape==NativeAmdWriteShape{static_cast<std::uint32_t>(following.size()),*storage} &&
+          result.sample->shape==large_trial.reference.sample.shape && result.sample->transactions==1 &&
+          result.sample->input_digest==large_trial.reference.sample.input_digest,
           "Larger write did not verify as a sealed comparison");
     }
     owner.stop_and_join();
@@ -4790,7 +4802,7 @@ void amd_write_cpu_replay(bool controller_owned,bool grouped=false,AmdWriteRepla
         "Consumed grouped receipt was reused");
     const std::array inputs{UniformLz4BatchInput{capture[0].sequence,capture[0].bytes},
         UniformLz4BatchInput{capture[1].sequence,capture[1].bytes}};
-    const auto replay=record_native_amd_cpu_batch({demand->shape.isolation_unit,demand->shape.foreground},
+    const auto replay=record_native_amd_cpu_batch(demand->shape.storage,
         inputs,allowance,&domain,[]{return false;});
     require(replay.has_value(),"Captured private batch could not be reopened");
     sample=*replay;
@@ -4858,10 +4870,7 @@ void amd_write_cpu_replay(bool controller_owned,bool grouped=false,AmdWriteRepla
         recovered.read("stale",0,static_cast<std::uint32_t>(stale.size()))==stale,
         "Private trial changed associated live storage");
     const std::array expected{UniformLz4BatchInput{1,peer},UniformLz4BatchInput{3,bytes}};
-    SYSTEM_INFO system{};
-    GetSystemInfo(&system);
-    const auto replay=record_native_amd_cpu_batch({system.dwPageSize,{StoreCompressionMode::fast,1,false}},
-        expected,allowance,&domain,[]{return false;});
+    const auto replay=record_native_amd_cpu_batch(sample.shape.storage,expected,allowance,&domain,[]{return false;});
     require(replay && replay->input_digest==sample.input_digest,"Grouped CPU trial used different acknowledged bytes");
     std::cout<<"ordinary_amd_cpu_group controller="<<controller_owned<<" closed=2 stale_refused=1"
         <<" bytes="<<bytes.size()+peer.size()<<" retired=1 gpu_trial="<<(mode!=AmdWriteReplayMode::cpu)<<'\n';

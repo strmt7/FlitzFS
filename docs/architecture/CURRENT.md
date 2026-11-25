@@ -6,8 +6,8 @@ retains verified read tiles and receives eligible live AMD read windows.
 It compares two bounded prefix encodings during staging before the
 normal checked publication. Earlier diagrams cover inline persistent
 placement, mirrored packing and rolling lookup.
-[Release reconciliation](../RELEASE_RECONCILIATION_2026-11-25.md) ·
-[Current runtime evidence](../evidence/windows-prefix-parser-reconciliation-2026-11-25.json) ·
+[Release reconciliation](../RELEASE_RECONCILIATION_2026-11-25.md#current-reconciliation-and-release-order) ·
+[Current runtime evidence](../evidence/windows-foreground-write-layout-2026-11-25.json) ·
 [Revised architecture](TARGET.md)
 
 ## 1. Process and build boundaries
@@ -605,6 +605,33 @@ retirement failures separately. Its explicit stream-copy comparison keeps
 the same independent CPU verification and retirement boundary. The
 ordinary helper still needs a measured foreground route for the admitted
 write shape. [Stream copy and stage evidence](../evidence/windows-amd-stream-copy-2026-11-23.json)
+
+
+### Matching the active write layout
+
+Ordinary eligible CPU writes record a demand shape and captured range.
+The exact measured layout comes from the validated indexed writer and
+mirrored checkpoint. The controller compares detached CPU and Radeon
+writes on that layout. The installed trial capability records evidence.
+A separately qualified live route must pass the shape check at activation
+and before each deferred request.
+
+```mermaid
+flowchart TD
+    Commit["CPU write completes on indexed volume"] --> Observe["Record request range, timing and active layout"]
+    Observe --> Copy["Capture an unchanged range from a pinned CPU snapshot"]
+    Copy --> Cpu["Replay CPU writes in a private protected image"]
+    Copy --> Device["Replay checked Radeon output in the same layout"]
+    Cpu --> Compare["Match request bytes, protection, codec policy and readback"]
+    Device --> Compare
+    Compare --> Settle["Check live layout and record detached comparison"]
+    Offer["Independently qualified measured route"] --> Current["Confirm active layout before each deferred write"]
+    Current -->|Match and fresh headroom| Worker["Supervised optional device work"]
+    Current -->|Layout changed or route refused| CpuNow["Ordinary CPU write"]
+```
+
+[Implementation](../../src/windows/native_amd_write_policy.cpp) ·
+[Current evidence](../evidence/windows-foreground-write-layout-2026-11-25.json)
 
 ### Prepared grouped read-ahead
 

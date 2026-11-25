@@ -7,8 +7,8 @@ sequence in the [development plan](../IMPLEMENTATION_PLAN.md#3-execution-order-a
 The current integration design ties durable publication, bounded AMD work,
 sparse advice and measured settlement to the same Windows operation witness
 and complete occupancy record.
-[Reconciled design](../RELEASE_RECONCILIATION_2026-11-25.md#target-control-and-storage-design) ·
-[Implementation order](../IMPLEMENTATION_PLAN.md#execution-after-compact-paged-roots)
+[Reconciled design](../RELEASE_RECONCILIATION_2026-11-25.md#current-reconciliation-and-release-order) ·
+[Implementation order](../IMPLEMENTATION_PLAN.md#execution-after-matching-the-active-write-layout)
 
 ## 1. Separate volume ownership from presentation and acceleration
 
@@ -450,6 +450,43 @@ flowchart LR
     Candidate -->|Verified candidate| Used["Measure actual delivery or committed device output"]
     Used --> Trials
 ```
+
+
+Define two measurements for each candidate. The detached pair attributes
+encoder and protected-image cost on matched inputs. The mounted pair
+measures the client-visible operation including preparation, verification,
+publication and response. Only the full measured operation can qualify the
+production route. Bind the preference to the active layout and a measured
+workload class. Revalidate the budget and configuration when submitting.
+The current LZ4 candidate path verifies the data and encodes a CPU control
+for a size comparison. Evaluate sampled CPU controls with a bounded
+foreground size envelope and cold optimization to avoid paying both
+encoders on every accepted write. Keep per-request lossless verification
+and CPU recovery independent of the selection model.
+
+```mermaid
+sequenceDiagram
+    participant C as Mounted Windows client
+    participant O as Volume owner
+    participant G as Prepared AMD worker
+    participant P as CPU codec and commit
+    C->>O: Write with source bytes
+    alt Qualified route, current measurement and funded work
+        O->>G: Submit an owned request
+        G-->>O: Candidate or failure
+        alt Exact CPU verification succeeds within the operation window
+            O->>P: Publish verified representation
+        else Refusal, expiry or changed evidence
+            O->>P: Encode original source on CPU
+        end
+    else CPU route
+        O->>P: Encode original source on CPU
+    end
+    P-->>O: Ordered commit result
+    O-->>C: One completion
+```
+
+[Detailed sequence](../IMPLEMENTATION_PLAN.md#2-make-the-amd-path-useful-before-enabling-it-by-default)
 
 Runtime acquisition uses fresh, role-specific evidence. Resource pressure
 uses a fresh observation. Device, runtime or integrity failures require a

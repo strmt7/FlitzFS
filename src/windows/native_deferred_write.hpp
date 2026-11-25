@@ -14,12 +14,9 @@ class HipRoutePins;
 using NativeWriteHintQuery=bool(*)(UINT64&) noexcept;
 using NativeWriteResponseSink=void(*)(FSP_FILE_SYSTEM*,FSP_FSCTL_TRANSACT_RSP&) noexcept;
 struct NativeAmdWriteShape {
-  std::uint32_t input_bytes=0,isolation_unit=0;
-  StoreCompressionOptions foreground;
-  bool matches_storage(StoreCompressionOptions selected,std::uint32_t unit) const noexcept {
-    return isolation_unit==unit && foreground.mode==selected.mode &&
-        foreground.zstd_level==selected.zstd_level && foreground.require_zstd==selected.require_zstd;
-  }
+  std::uint32_t input_bytes=0;
+  NativeManagedForeground storage;
+  bool operator==(const NativeAmdWriteShape&) const noexcept=default;
 };
 inline constexpr std::size_t kNativeAmdWriteMinimumPairs=3;
 struct NativeAmdCpuWriteSample {

@@ -285,8 +285,12 @@ to the byte, service-time and memory grant. The CPU arm verifies the private
 image first. The existing acquisition slot owns the captured bytes while the
 Radeon arm reuses its prepared stream across the group's bounded launches.
 The parent takes the response after confirmed retirement and verifies every
-byte independently. Matching compares the ordered member digest and transaction
-count. Each arm uses the same foreground policy and mirrored image geometry.
+byte independently. Matching compares the ordered member digest, transaction
+count and measured shape. Both arms replay the active image's encoded
+isolation unit, bank layout and root spacing with its indexed data layout
+and compression policy. The image extent includes the private image roots,
+pages, protected data copies and allocation padding. The enclosing volume
+selector and provider allocation are separate measurements.
 
 When the profile qualifies separate admission, the controller can give each
 same-sized captured write to the same worker as a separate request. The shared
@@ -304,8 +308,9 @@ host preparation, readiness, supervised exchange, parent verification and
 private replay, with whole-arm times alongside. A verified pair finishes
 calibration for its initial write size under the current storage policy.
 Other sizes can qualify after the shared cooldown and new demand. A change
-in compression policy or backing isolation clears the attachment's completed
-sizes. Further attempts after an infrastructure refusal require changed
+to the active image's layout or compression policy invalidates captured sources
+and completed sizes for the old layout. Settlement checks the active layout.
+Further attempts after an infrastructure refusal require changed
 inputs where applicable, fresh writes and pacing from the complete cost.
 Enabling a foreground route still requires repeated matched measurements for
 the supported request geometry.
@@ -402,8 +407,11 @@ callback owns the volume, and callback completion wakes the owner. The adapter
 requires an indexed managed volume, a pinned uniform worker and runtime, a
 matching measured write size and storage policy, and an independent CPU
 decoder. It binds the existing budget event before admitting the first
-deferred write. Shutdown closes admission and retains ownership of the
-service until its publication and worker retirement settle.
+deferred write. Each deferred admission rechecks the active layout inside
+the volume lock before copying input or asking the device for a budget. A
+layout change sends the next eligible write directly through the CPU path.
+Shutdown keeps ownership until publication and worker retirement settle.
+[Layout replay and fallback checks](evidence/windows-foreground-write-layout-2026-11-25.json)
 
 The live SDK callback fixture wrote a marker on CPU, rejected an offer with a
 different codec policy and applied the matching offer without remounting. An

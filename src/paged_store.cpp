@@ -2315,10 +2315,15 @@ PagedObjectStoreWriter PagedObjectStoreWriter::create_mirrored(std::shared_ptr<S
     PagedStoreLimits limits,StoreCompressionOptions options,PagedStoreBankLayout layout) {
   return create_impl(std::move(image),id,limits,options,true,{},UINT64_MAX,{},false,layout);
 }
+PagedObjectStoreWriter PagedObjectStoreWriter::create_mirrored(std::shared_ptr<StoreByteIo> image,StoreIdentity id,
+    PagedStoreLimits limits,StoreCompressionOptions options,PagedStoreMirroredLayout layout) {
+  return create_impl(std::move(image),id,limits,options,true,{},UINT64_MAX,{},false,
+      PagedStoreBankLayout::separate,layout);
+}
 PagedObjectStoreWriter PagedObjectStoreWriter::create_impl(std::shared_ptr<StoreByteIo> image,StoreIdentity id,
     PagedStoreLimits limits,StoreCompressionOptions options,bool mirrored,std::span<const StoreMutation> initial,
     std::uint64_t maximum_write_bytes,const std::function<bool(std::uint64_t)>& reserve_writes,bool compact_metadata,
-    PagedStoreBankLayout layout) {
+    PagedStoreBankLayout layout,std::optional<PagedStoreMirroredLayout> exact_layout) {
   admit_limits(limits);if(zero(id))fail("nonzero store identity required");
   if(initial.size()>kStoreMaxObjects)capacity("initial transaction operation budget");
   auto p=std::make_unique<Impl>(image,options);admit_contract(image->contract());
@@ -2332,8 +2337,15 @@ PagedObjectStoreWriter PagedObjectStoreWriter::create_impl(std::shared_ptr<Store
     s.metadata_bytes=compact_metadata_bytes;
   }
   s.unit=(std::max)(static_cast<std::uint32_t>(page_bytes),image->contract().write_failure_unit_bytes);
-  s.shared_banks=layout!=PagedStoreBankLayout::separate && s.unit>s.metadata_bytes;
-  s.compact_roots=layout==PagedStoreBankLayout::compact && s.unit<kStoreCommitUnit;
+  if(exact_layout) {
+    if(!mirrored || exact_layout->isolation_unit!=s.unit ||
+        (exact_layout->compact_roots && s.unit>=kStoreCommitUnit))fail("mirrored layout cannot be reproduced");
+    s.shared_banks=exact_layout->shared_banks;
+    s.compact_roots=exact_layout->compact_roots;
+  }else {
+    s.shared_banks=layout!=PagedStoreBankLayout::separate && s.unit>s.metadata_bytes;
+    s.compact_roots=layout==PagedStoreBankLayout::compact && s.unit<kStoreCommitUnit;
+  }
   auto cursor=s.data_start();
   std::uint64_t previous=0,input=0;
   PayloadAllocation allocation;
@@ -3038,6 +3050,11 @@ PagedStoreInfo PagedObjectStoreWriter::flush_checkpoint_verified(
     barrier_entered=true;old.image->flush();check();return result;
   }catch(const std::bad_alloc&) {if(barrier_entered)p.poisoned=true;throw;}
   catch(...) {p.poisoned=true;throw;}
+}
+std::optional<PagedStoreMirroredLayout> PagedObjectStoreWriter::mirrored_write_layout() const noexcept {
+  if(poisoned() || !impl_->state.mirrored)return {};
+  const auto& state=impl_->state;
+  return PagedStoreMirroredLayout{state.unit,state.shared_banks,state.compact_roots};
 }
 bool PagedObjectStoreWriter::poisoned() const noexcept {return !impl_ || impl_->poisoned;}
 } // namespace flitzfs

@@ -1,0 +1,347 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "scope": "Windows indexed foreground write comparison and admission on the active protected image layout",
+  "source": {
+    "base": "7e093970c5440b782d414264ed0f56fab8957ef4",
+    "base_tree": "54c6ca8e8098b673f2869caa3c8dee1478b18a8a",
+    "tracked_paths_in_parent": 1130,
+    "tested_tree": "274939eb3d5c5c28cc07e1e714920cb0c6c861bf",
+    "blobs": {
+      "include/flitzfs/native_filesystem.hpp": "294d4875581f2f91779d48cf59b1e1247860c4d0",
+      "include/flitzfs/native_session.hpp": "cf6ca55fd9f67fc7fae69ccdee7fef92a3f063fb",
+      "include/flitzfs/paged_store.hpp": "10c350fe1fae6781d6a2de7783b9bba7fbb7c267",
+      "src/native_filesystem.cpp": "3a9cbc53552b609bcbec05fc520e2489d0ea2b98",
+      "src/native_session.cpp": "841f7ce3b03042a327e4dedadc7f582e643de8c6",
+      "src/paged_store.cpp": "6ccb2d17bda3e277a8cceeacf591500b24aabccb",
+      "src/windows/native_amd_write_policy.cpp": "01e6b3a31e5b5fb1c377cc9a572437ac872c04fe",
+      "src/windows/native_amd_write_policy.hpp": "da27fb0fc629f35540c29402dd4c6a2aaf2a2439",
+      "src/windows/native_deferred_write.cpp": "940e3a310498b2b40bdc1efab6c0f094f0d09870",
+      "src/windows/native_deferred_write.hpp": "449a9219830a1a0ba79f4e38efe4e08e0ccf9214",
+      "src/windows/winfsp_controller.cpp": "ccb476aedb677ede519d38df1d11df47f9452862",
+      "src/windows/winfsp_memory_volume.cpp": "e9e8823dcfba10db737cb3c8a88c07cb69a70495",
+      "src/windows/winfsp_native.cpp": "022afa546274fb4d43ec1244c9a331038e74cac5",
+      "src/windows/winfsp_native.hpp": "a694d7a7354aca941974cbe00775baf19e92fa72",
+      "tests/test_native_deferred_write_sdk.cpp": "fcace43cf384023d3db8594229595e6b3df61c57",
+      "tests/test_winfsp_controller.cpp": "7aba3e2dce47d93a87633757b45712ff62d54e44"
+    }
+  },
+  "navigation": {
+    "commit": "7e093970c5440b782d414264ed0f56fab8957ef4",
+    "dirty_patch_sha256": "9a4b0cf656549ee48b867ac8c673d69ecd32eeb63ad00e56facc492a39927766",
+    "source_files": 11,
+    "inventory_sha256": "e6dbc15dcb2f7242b2eb9da78d4e483e7a7383a9b8a84785093a5fc8952c9661",
+    "native_response_sha256": "145d6e91a8621852a6b9b89bae1d0ffc506049b8fd39ed615137414a25d16a6c",
+    "actual_searches": 1,
+    "provider_version": "0.2.43",
+    "path_prefixes": [
+      "src/windows/volume_app_winfsp.cpp",
+      "src/windows/winfsp_controller.cpp",
+      "src/windows/native_amd_write_policy.cpp",
+      "src/windows/native_deferred_write.cpp",
+      "src/native_indexed_volume.cpp",
+      "src/native_session.cpp",
+      "src/native_maintenance.cpp",
+      "src/indexed_coherence.cpp",
+      "src/store_codec.cpp",
+      "src/paged_store.cpp",
+      "src/native_volume_file.cpp"
+    ],
+    "query": "Ordinary Windows attachment release blockers, retained startup inventory and reclaim, bounded indexed maintenance, AMD compression benchmarking and consumed device bytes with independent CPU recovery."
+  },
+  "test_runs": {
+    "release": {
+      "passed": [
+        "bounded_paged_object_store",
+        "bounded_paged_compact_roots",
+        "bounded_native_indexed_volume",
+        "bounded_native_indexed_inline_files",
+        "bounded_winfsp_indexed_memory",
+        "bounded_winfsp_compact_selector",
+        "bounded_winfsp_memory_remount",
+        "owned_native_deferred_write_sdk"
+      ],
+      "tree_retired": true,
+      "peak_job_bytes": 63004672,
+      "elapsed_seconds": 8.547000000005937,
+      "log_sha256": "891723ba8e08ce21d9fd362bcf4a4bb48223487912a585dcd7221a6b66e3e6f3",
+      "result_sha256": "88b6602e1f0f86620469b22dfe7e517b881d29dcec1b9efdd3c2e84e56ac78a6",
+      "artifacts": {
+        "flitzfs_paged_store_tests.exe": {
+          "bytes": 870400,
+          "sha256": "397a67f153b1788b16edbb1a6a3d3e50b8820c5a7a6bd53e66d5d55751afa36b"
+        },
+        "flitzfs_native_indexed_volume_tests.exe": {
+          "bytes": 1766912,
+          "sha256": "ada5db07b303c161992d1f75e460633800621667b7e9fe854234c229f0273cbd"
+        },
+        "flitzfs_native_deferred_write_sdk_tests.exe": {
+          "bytes": 2558464,
+          "sha256": "a48ab329412a812b2fe4f44084e279f975574cab44adde8159667c36d4880e47"
+        },
+        "flitzfs_worker_exchange_tests.exe": {
+          "bytes": 1641984,
+          "sha256": "fd272c58fa483dfb61d69d465b2ca5f4729629be3cda4cf6718237c8357afa0b"
+        },
+        "flitzfs_winfsp_controller_tests.exe": {
+          "bytes": 3049984,
+          "sha256": "36285b5adbbc108aa4889a68e5b4e6402ee6c289d0e5b8363a2c2817308e96ef"
+        },
+        "flitzfs_volume_app.exe": {
+          "bytes": 2576896,
+          "sha256": "689198732d3abc205241b88eb26fedf5625a8699d26ab7a14d9dcd6be87dfe46"
+        },
+        "winfsp-x64.dll": {
+          "bytes": 200816,
+          "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+        }
+      }
+    },
+    "raw": {
+      "passed": [
+        "bounded_paged_object_store",
+        "bounded_paged_compact_roots",
+        "bounded_native_indexed_volume",
+        "bounded_native_indexed_inline_files"
+      ],
+      "tree_retired": true,
+      "peak_job_bytes": 59551744,
+      "elapsed_seconds": 3.8589999999967404,
+      "log_sha256": "df90c94f32c642a7b29f81279273dfcd63b840fe3d7c1d81142befc7d08b0921",
+      "result_sha256": "65e60d52511d0ebae2f6a85d9acfff434beef1c0ffb317186cb94fbe5feb4153",
+      "artifacts": {
+        "flitzfs_paged_store_tests.exe": {
+          "bytes": 372224,
+          "sha256": "1532d4746745dc26cbdd767779eb2c2f92421e1cd71b6b51c7a7b99e38cd05d5"
+        },
+        "flitzfs_native_indexed_volume_tests.exe": {
+          "bytes": 1259008,
+          "sha256": "322f3449f33d7a1427a0d2b30ca005f5165facc75a0c7a1ecae5ac4f25ee5b02"
+        }
+      }
+    },
+    "asan": {
+      "passed": [
+        "windows_asan_runtime_preflight",
+        "bounded_paged_object_store",
+        "bounded_paged_compact_roots",
+        "bounded_native_indexed_volume",
+        "bounded_native_indexed_inline_files",
+        "owned_native_deferred_write_sdk"
+      ],
+      "tree_retired": true,
+      "peak_job_bytes": 758054912,
+      "elapsed_seconds": 17.422000000005937,
+      "log_sha256": "4e3325f93daf717249c8f7d6db8f00356ef313494acfbc64af4d6532fd2ecdd7",
+      "result_sha256": "ab57088f49c90132f23ea601e21ed7daeb4bc4f3cc0ac1e8c78832816e883b50",
+      "artifacts": {
+        "flitzfs_paged_store_tests.exe": {
+          "bytes": 2944000,
+          "sha256": "e160c76d55e15a2cca6370c161427c5b9da8fbadffb7e0747fccd7306a891b92"
+        },
+        "flitzfs_native_indexed_volume_tests.exe": {
+          "bytes": 6439424,
+          "sha256": "5e914e71a6be1111809861406a986e3774e8ddacaa607a85bb4aea9cdf773700"
+        },
+        "flitzfs_native_deferred_write_sdk_tests.exe": {
+          "bytes": 8236544,
+          "sha256": "73f3a81a0513efd63bb90a885d5a8f16d943d4b2ea2c8e029cf17017aa15cd8e"
+        },
+        "flitzfs_worker_exchange_tests.exe": {
+          "bytes": 6934016,
+          "sha256": "47091593e81d2bad6cc9b30b55efaabec357f824c7a546066ca5c8e6fc5cbd29"
+        },
+        "clang_rt.asan_dynamic-x86_64.dll": {
+          "bytes": 1731408,
+          "sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed"
+        },
+        "winfsp-x64.dll": {
+          "bytes": 200816,
+          "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+        }
+      }
+    }
+  },
+  "private_cpu_replay": {
+    "isolation_unit_bytes": 4096,
+    "legacy_occupied_bytes": 204800,
+    "compact_occupied_bytes": 81920,
+    "delta_bytes": 122880,
+    "exact_cpu_readback": true,
+    "same_input_digest": true,
+    "complete_private_image": true,
+    "includes_managed_volume_selector": false,
+    "mismatched_protected_layout_refused_before_deferral": true
+  },
+  "host_radeon": {
+    "package_mode": "uniform_write_trial_only",
+    "staged_artifacts": {
+      "amd/flitzfs_hip_lz4_worker.exe": {
+        "bytes": 622592,
+        "sha256": "5488521657d0be8e91ff497bda27e8ee0c35c1847ec2fd11c5f7def714d97544"
+      },
+      "amd/hip-uniform-lz4/flitzfs_rocm_uniform_lz4_candidate.dll": {
+        "bytes": 322048,
+        "sha256": "179797e791a8aac3e43c1277aca4a88edfe4650122af535d08c8b199d32b89c4"
+      },
+      "amd/qualification-manifest.json": {
+        "bytes": 1342,
+        "sha256": "47e4276bf3d9189e1a293ae67ed1cce3e8dc59f0ef4262c11d64a7f1c3711e9d"
+      },
+      "amd/uniform-write-trial-qualification.json": {
+        "bytes": 517,
+        "sha256": "01b2a8b024d155b15072e44feced412cf6208e1e65616f3fadc55871de031004"
+      },
+      "flitzfs_winfsp_controller_tests.exe": {
+        "bytes": 3049984,
+        "sha256": "36285b5adbbc108aa4889a68e5b4e6402ee6c289d0e5b8363a2c2817308e96ef"
+      },
+      "winfsp-x64.dll": {
+        "bytes": 200816,
+        "sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7"
+      }
+    },
+    "headroom_observations": [
+      {
+        "admitted": false,
+        "devices": [
+          {
+            "Name": "AMD Radeon RX 9070 XT",
+            "DriverVersion": "32.0.32029.2010",
+            "Status": "OK"
+          }
+        ],
+        "windows_build": "26300",
+        "free_physical_kib": 20325288,
+        "cpu_percent": [
+          16.85714262940522,
+          16.02329761185286
+        ],
+        "peak_gpu_percent": 97.98952868630475,
+        "other_fixture_processes": 0,
+        "utc": "2026-11-25T15:56:55.8111482Z"
+      },
+      {
+        "admitted": false,
+        "devices": [
+          {
+            "Name": "AMD Radeon RX 9070 XT",
+            "DriverVersion": "32.0.32029.2010",
+            "Status": "OK"
+          }
+        ],
+        "windows_build": "26300",
+        "free_physical_kib": 19815476,
+        "cpu_percent": [
+          26.797506134766657,
+          22.893149694178195
+        ],
+        "peak_gpu_percent": 99.82034850562844,
+        "other_fixture_processes": 0,
+        "utc": "2026-11-25T16:01:50.6424242Z"
+      }
+    ],
+    "reason": "Active WDDM engine utilization exceeded the quiet fixture's allowance in both observations",
+    "launched": false,
+    "mounted_device_work_evidence": false,
+    "previous_verified_read_execution": "docs/evidence/windows-prepared-group-reuse-2026-11-25.json"
+  },
+  "research": [
+    {
+      "capture_sha256": "2f5f0df0b9ac155128759dc12c7bacc72a09e3e33c5939716e8dec809bb648db",
+      "provider": "0.9.5+flitzzip.portable2",
+      "sources": [
+        {
+          "name": "diskspd",
+          "url": "https://github.com/microsoft/diskspd/releases/tag/v2.3",
+          "bytes": 10898,
+          "native_sha256": "9a4fedf6208ab34982fdc2e486f084f41f7227269dcac70b9993b23f7f7219b4",
+          "text_sha256": "0365773817f65cbec629c1f9fd781de5dbf2021326e806d424ff0a827f6d0720"
+        },
+        {
+          "name": "allocation",
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getcompressedfilesizew",
+          "bytes": 37632,
+          "native_sha256": "a7c4c3f848297676c0fb01870ea18e8f4db70b495f62fda8c68a172000486ced",
+          "text_sha256": "1943b77148828d60f29d4f3e584f58cd93b2ae7a9255f4f624631a7603a48c2e"
+        },
+        {
+          "name": "amd-async",
+          "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/asynchronous.html",
+          "bytes": 48777,
+          "native_sha256": "bd4c4b5b046076cb8294e2e49ade81ac314ec845aa420efff6f76e2b1e45a8b8",
+          "text_sha256": "4167596a0f6b6c0281ea842f4eac025a4e457fa0b5627cd88da14196e62a5fdc"
+        }
+      ]
+    },
+    {
+      "capture_sha256": "779560b3e5ad94107bc08f71b54bd88dee5bfe10cfb865039e32817f5788394d",
+      "provider": "0.9.5+flitzzip.portable2",
+      "sources": [
+        {
+          "name": "zstd-160",
+          "url": "https://github.com/meta/zstd/releases/tag/v1.6.0",
+          "bytes": 21975,
+          "native_sha256": "972a186e1394ed48803da6d5fd90fdb7bc4f42f9bcff9f752663338f32bd8e7b",
+          "text_sha256": "0e1c2fc217e03a4d22e09b8e2a893325fa01175b97a25aa13656b9094ded9ddb"
+        },
+        {
+          "name": "qat-sequence",
+          "url": "https://github.com/intel/QAT-ZSTD-Plugin/blob/main/README.md",
+          "bytes": 20561,
+          "native_sha256": "c98e8fb9d53b6ad889ef7da01951d8c69b81db36b54ab1a36bcbe8f3a3d0f37f",
+          "text_sha256": "2c486352b452dbd5fa6576b307dec81a487f61670c3d7ec5fcfd18af60ab2f7e"
+        },
+        {
+          "name": "current-spec",
+          "url": "https://www.spec.org/storage2020/",
+          "bytes": 12248,
+          "native_sha256": "227671f04ce444f58538df1783bfd929ff0e2ef6f53f2023b04b79a4b3b03bbd",
+          "text_sha256": "9a59538b3194052d871fc7af443013161363cc573d0e86c64ddacd900fbe7222"
+        },
+        {
+          "name": "f2fs-epochs",
+          "url": "https://www.usenix.org/conference/osdi25/presentation/cui",
+          "bytes": 10567,
+          "native_sha256": "f130b47e6afc97088f5ed89b253f98c007f8188d835b892ee674ece85b6a3548",
+          "text_sha256": "e7a4ce40ce6e46564e695765295749e5d60911e98398d0f6458036d7347caa7f"
+        },
+        {
+          "name": "amd-core",
+          "url": "https://rocm.docs.amd.com/en/docs-10.2.0/about/release-notes.html",
+          "bytes": 303361,
+          "native_sha256": "02297b73e20af53213665463fae0bf8dfaee4a04cd729274fd1787b5a0aa556a",
+          "text_sha256": "18caaf90d5ea55c1acb99c34abb277aa89c6eada8e5300b6ffdebe356e45a728"
+        },
+        {
+          "name": "windows-zstd",
+          "url": "https://devblogs.microsoft.com/directx/directstorage-1-4-release-adds-support-for-zstandard/",
+          "bytes": 29867,
+          "native_sha256": "ad07f9ee3d90bc5c646ce853df137bed9a67dbc7348223a9be253f492453d3a7",
+          "text_sha256": "40e2464434e8bc86f1159ad2334bf17d5ccc312bb4191e55c107efebe8fad5e2"
+        }
+      ]
+    }
+  ],
+  "cross_repo_reference": {
+    "git_commit": "11396b5123505a4a1959173e1db2d0858c10dd6d",
+    "reviewed": [
+      "src/gpu/hip_device.cpp",
+      "src/gpu/hip_allocation_policy.hpp"
+    ],
+    "use": "Trusted runtime discovery and loaded-file capability checks for design comparison"
+  },
+  "release": {
+    "stable": false,
+    "gates_open": 12,
+    "confidence": "low",
+    "estimated_remaining_person_weeks": [
+      59,
+      127
+    ],
+    "overview": "docs/REPOSITORY_OVERVIEW.md",
+    "reconciliation": "docs/RELEASE_RECONCILIATION_2026-11-25.md#current-reconciliation-and-release-order",
+    "plan": "docs/IMPLEMENTATION_PLAN.md#execution-after-matching-the-active-write-layout",
+    "gates": "docs/RELEASE_EXECUTION_PLAN.md#current-gate-ledger"
+  }
+}

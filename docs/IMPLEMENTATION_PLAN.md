@@ -4,11 +4,9 @@
 shared Win32 settlement trace, automatic AMD service on identical client
 demand, the indexed attach differential and held-out settled compression.
 The E01–E13 acceptance and dependency contracts below define the release exits.
-[Current assessment](RELEASE_RECONCILIATION_2026-11-25.md) ·
-[Priority and exit decisions](RELEASE_RECONCILIATION_2026-11-25.md#next-decisions-ranked-by-expected-gain) ·
-[Ordered implementation](RELEASE_RECONCILIATION_2026-11-25.md#ordered-implementation-and-decision-points) ·
-[Source and review evidence](evidence/windows-compact-paged-roots-2026-11-25.json) ·
-[Next implementation sequence](#execution-after-compact-paged-roots)
+[Current assessment](RELEASE_RECONCILIATION_2026-11-25.md#current-reconciliation-and-release-order) ·
+[Source, tests and research](evidence/windows-foreground-write-layout-2026-11-25.json) ·
+[Next implementation sequence](#execution-after-matching-the-active-write-layout)
 
 The [current architecture](architecture/CURRENT.md) shows the implementation.
 The [source review](architecture/REVIEW.md) tests the assumptions and the
@@ -290,6 +288,168 @@ Preparatory work can proceed in parallel within the dependency graph.
 Integrated claims depend on the corresponding complete paths. This sequence
 reuses the existing mounted and AMD controls instead of rebuilding the first
 indexed or read-only prototypes.
+
+### Execution after matching the active write layout
+
+Use the same external Windows workload to find the largest avoidable costs.
+The changes above establish which protected layout a detached write trial
+actually measures. The release programme remains ordered by the evidence
+retired by each step. The detailed E01–E13 sections define the fault and
+compatibility matrices for each step.
+[Reconciled findings](RELEASE_RECONCILIATION_2026-11-25.md#current-reconciliation-and-release-order) ·
+[Current test and research receipt](evidence/windows-foreground-write-layout-2026-11-25.json)
+
+#### 1. Establish one ordinary Windows comparison
+
+1. Carry the external Win32 client and independent CPU oracle from the
+   existing mounted trace into the current helper. Pin the source, signed
+   WinFsp artifacts, Windows build, backing, physical limits, optional
+   device package and exact corpus. Compare an open/read/update/rename/
+   mapped flush/reopen/delete/regrow sequence with a fixed live set.
+2. Export separate units for client ack and flush latency, checked
+   backing I/O, encoder time, allocated bytes, image extent, retained
+   generations, physical write debit and reclamation. Keep the test data
+   and operations identical between arms. Verify every final namespace
+   transition and file hash from an independent process, including an
+   ordinary write after reopen.
+3. Compare CPU baseline, first AMD use and AMD with prepared work.
+   Select the highest weighted cost actually visible to the client.
+   Keep pure codec and callback traces as localization tools after a
+   client effect has been found. Use signed disposable guests for mount
+   correctness and the real Windows host for timings.
+   [Trace verifier](../tools/dev/verify_mounted_client_trace.py) ·
+   [Windows run protocol](BENCHMARK_PROTOCOL.md#populated-windows-operation-trace)
+
+#### 2. Make the AMD path useful before enabling it by default
+
+1. Extend the existing controller recorder and write route validator.
+   Match input digest, complete request length and boundary, active
+   protection, codec policy, runtime, device and recovery identity.
+   Measure discovery, preparation, transfer, kernel, CPU verification,
+   commit and response cost. Use the private replay to isolate encoder
+   and storage cost, then price the actual mounted operation against
+   CPU through repeated alternating runs. Track grouped throughput and
+   response latency independently.
+2. Evaluate a foreground route that uses verified AMD encoding without
+   regenerating the complete CPU encoding on every successful request.
+   The current LZ4 candidate path runs the CPU encoder to find the better
+   payload. Retain that path as the size control and sample it on
+   representative writes. The alternate path must independently verify
+   every result, use a proven nonexpanding framing rule, bound initial
+   size cost by workload and demonstrate smaller or acceptable settled
+   occupancy with cold optimization enabled. Retain full CPU encoding
+   for a missing or rejected result and for classes with poor observed
+   benefit. First demonstrate an advantage with the current wire methods.
+3. Enroll a route only when a complete repeated comparison and the
+   funded operation envelope agree for that device and workload class.
+   Include occupied bytes and upper-tail latency in the decision. Bind
+   the offer to the verified installed package and layout. Expire negative
+   and positive preferences on relevant workload or configuration
+   changes. Closing the loop with `qualify_native_amd_writes` is an
+   owner change. A detached trial certificate authorizes measurement.
+4. Reuse the existing supervised preparation mechanism for nearby
+   demand. Keep its memory and context resident only while useful.
+   Measure the saved setup cost and full operation cost together. Use
+   bounded outstanding work and restore CPU delivery immediately on
+   refusal, expiry or device failure. Confirm retirement before later
+   accelerator admission and test live refusal followed by recovery.
+5. Apply the same proof to read-ahead against the retained CPU tile
+   baseline and to collective work against the best CPU search within
+   the same resource budget. Count verified bytes delivered or accepted,
+   avoided backing reads, net protected bytes saved, and work canceled or
+   discarded. Prove each role on useful ordinary demand.
+   [Write authority and fallback](OWNED_DEFERRED_WRITES.md#activating-a-route-on-a-running-volume) ·
+   [Codec baseline](../src/store_codec.cpp) ·
+   [AMD role design](architecture/TARGET.md#6-qualify-distinct-amd-roles-on-complete-work)
+
+#### 3. Improve settled size on related data
+
+1. Use the exact protected pair and merge oracle to measure candidate
+   discovery loss and representation loss separately. Include independently
+   encoded raw/LZ4/Zstd extents, exact sharing, existing protected base
+   and prefix methods, and consolidated restart frames. Include the
+   allocated pages, dependencies, redundancy, fragmentation and
+   required workspace when pricing each alternative.
+2. Update versioned sparse fragment postings on changed extents. Use
+   source revision, stable checked identities and bounded candidate
+   queries. Learn which postings bring useful matches by family and
+   position. Advance with resumable keyset cursors. Sweep stale postings
+   in budgeted work and track posting bytes, candidate recall, misses,
+   read amplification and net benefit. Allow a logical family to grow
+   into thousands of members through separately readable restart units.
+3. Try AMD for parallel candidate finding and matching within admitted
+   restart units. Reuse the validated Zstd sequence ingestion mechanism
+   when the format and exact checks fit. Compare it with the current
+   protected-prefix parser and an equally funded CPU search before
+   extending it to indexed staging. Evaluate a standard Zstd GPU
+   decoder only over independently readable frames. Price host readback,
+   supported windows and prefixes, and random-range accesses.
+4. Start with a small local ranking model trained on verified outcomes.
+   Predict bytes saved, bytes rewritten and access work for candidates
+   the sparse index can find. Shadow it against simple rules on held-out
+   file families and changing workloads. Publish advice in a versioned,
+   disposable reserved area with a bounded COW update. Keep decoder
+   dependencies immutable and independently protected. An expensive
+   codec or learned decoder earns a format amendment through a measured
+   settled-size advantage with bounded CPU rescue.
+   [Compression package steps](#8-e05--stronger-collective-compression-research-and-selection) ·
+   [Current compression and learning design](architecture/TARGET.md#4-optimize-complete-size-with-bounded-random-access)
+
+#### 4. Replace startup and reclamation work in verifiable stages
+
+1. Shadow a generation-bound inventory under the current complete attach
+   oracle. Tie each namespace, ownership, dependency and allocation
+   summary to checked immutable pages and to the same published operation
+   sequence. Validate changed shards and outstanding retirement work.
+   Keep complete CPU verification for old, incomplete or inconsistent
+   coverage. Seal the exact point where writable admission has enough
+   evidence. Exercise off-path damage and a crash on either side of the
+   selector change before switching the default.
+2. Use observed working-set, commit, provider and device pressure to
+   choose bounded maintenance work. Carry one reservation and cursor
+   across each accepted quantum. Stop scheduling on foreground demand.
+   Price minimum savings and maximum write debit against the expected
+   life of each representation. Publish new reachability before
+   releasing old allocations and account for pinned readers.
+3. Fit reopen, lookup, scan and settlement measurements at several
+   feasible counts. Include live pages, objects touched, directory
+   fanout, retained versions and mutation rate. Validate on a withheld
+   reachable tier and report residuals, ranges and assumptions on any
+   projection toward tens of millions of files. Measure near-full
+   overwrite/delete/regrow cycles through the ordinary client before
+   claiming stable reuse.
+   [Indexed attach and reclaim](architecture/TARGET.md#3-make-reopen-and-reclamation-scale-incrementally) ·
+   [Scale and allocation packages](#4-e01--scalable-native-inode-name-and-extent-storage)
+
+#### 5. Qualify the candidate as a Windows product
+
+1. Complete the external Explorer and Win32 semantics matrix, portable
+   owner-scoped dependency setup, and memory and persistent backing
+   workflows with the signed candidate. Bind format capability and
+   reader support to each staged artifact. Exercise old images, mixed
+   generations, cancellation during bounded migration and independent
+   CPU recovery without the optional accelerator.
+2. Extend ordered failure injection from model and guest correctness to
+   the declared persistent-media pairs in disposable qualification.
+   Treat the external client's successful flush as the durability
+   witness. Verify earlier data, namespace, dependencies and advisory
+   loss recovery independently. Check repairs and continued ordinary
+   writes under failed CPU/GPU work, exhausted allocations, interrupted
+   maintenance and unexpected stop.
+3. Publish repeatable real-host DiskSpd distributions and a recorded
+   Windows application workflow on matched backing. Include native
+   Windows compressed NTFS alongside plain NTFS and both FlitzFS routes.
+   Use AITDCC 2026 together with held-out multi-file revision families and
+   incompressible controls for complete size. Record setup, background
+   interference, settled size, tail responses and peak resources with
+   exact readback. Refresh the effort estimate when the first useful
+   mounted AMD arm and held-out complete-size frontier exist.
+4. Freeze binaries, libraries, reader support and known limits. Close
+   the gates on the exact candidate with clean install/update/removal,
+   soak, repeatable comparisons and independent restoration. Present
+   the evidence to the owner for the release decision.
+   [Release gate ledger](RELEASE_EXECUTION_PLAN.md#current-gate-ledger) ·
+   [Native NTFS controls](BENCHMARK_PROTOCOL.md#plain-and-native-compressed-ntfs)
 
 ### Execution after compact paged roots
 

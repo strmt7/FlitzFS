@@ -151,6 +151,7 @@ class WinFspNativeWritable final {
   void signal_foreground_for_anchor(bool) noexcept;
   NativeMaintenancePolicy group_maintenance_policy() const noexcept;
   bool supports_anchor_search() const noexcept;
+  std::optional<NativeManagedForeground> managed_foreground() const noexcept;
   // Before binding callbacks. Observe only successful eligible CPU writes.
   bool enable_amd_write_demand() noexcept;
   // A parked, already funded exchange can use the latest committed write

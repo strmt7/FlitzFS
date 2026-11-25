@@ -24,8 +24,7 @@ void WinFspMemoryVolume::start_controller(std::unique_ptr<WinFspNativeWritable> 
     NativeWriteMountPlan plan,std::optional<NativeDeferredWriteOptions> acceleration,
     std::optional<NativeAnchorSearchOptions> anchor) {
   if(acceleration && acceleration->controller_health &&
-      (!acceleration->measured_shape || acceleration->measured_shape->matches_storage(
-          memory_compression,backing_.image->contract().write_failure_unit_bytes)))
+      (!acceleration->measured_shape || adapter->managed_foreground()==acceleration->measured_shape->storage))
     adapter->enable_deferred_writes_hosted(std::move(*acceleration));
   controller_=std::make_unique<WinFspVolumeController>(std::move(adapter),api,std::move(plan),*backing_.domain,
       std::move(anchor),state_changed_);

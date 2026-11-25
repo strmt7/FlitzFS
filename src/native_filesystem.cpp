@@ -2764,6 +2764,13 @@ NativeDirectoryBackfillStep NativeFilesystemWriter::advance_directory_backfill()
 void NativeFilesystemWriter::cancel_directory_backfill() noexcept {
   if(impl_)impl_->directory_backfill={};
 }
+std::optional<NativeManagedForeground> NativeFilesystemWriter::indexed_foreground(StoreCompressionOptions policy) const noexcept {
+  if(poisoned() || !impl_->indexed)return {};
+  const auto layout=impl_->objects.paged_if()->mirrored_write_layout();
+  if(!layout)return {};
+  return NativeManagedForeground{policy,*layout,
+      impl_->indexed->inline_files?NativeIndexedDataLayout::inline_small_files:NativeIndexedDataLayout::extents};
+}
 std::uint64_t NativeFilesystemWriter::indexed_append_floor() const noexcept {
   if(poisoned() || !impl_->indexed)return 0;
   return impl_->objects.paged_append_floor_for_staging();

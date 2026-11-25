@@ -2195,15 +2195,10 @@ void NativeFileSession::cancel_directory_backfill() noexcept {
 }
 std::optional<NativeManagedForeground> NativeFileSession::managed_foreground() const noexcept {
   if(poisoned() || !impl_->volume || !impl_->volume->active_io)return {};
-  const auto& volume=*impl_->volume;
-  return NativeManagedForeground{volume.foreground,volume.active_io->contract().write_failure_unit_bytes};
+  return impl_->writer.indexed_foreground(impl_->volume->foreground);
 }
-bool NativeFileSession::matches_managed_foreground(StoreCompressionOptions compression,
-    std::uint32_t failure_unit) const noexcept {
-  const auto foreground=managed_foreground();
-  return foreground && foreground->isolation_unit==failure_unit &&
-      foreground->compression.mode==compression.mode && foreground->compression.zstd_level==compression.zstd_level &&
-      foreground->compression.require_zstd==compression.require_zstd;
+bool NativeFileSession::matches_managed_foreground(const NativeManagedForeground& expected) const noexcept {
+  return managed_foreground()==expected;
 }
 NativeFilesystemSnapshot NativeFileSession::snapshot() const {
   return ready().writer.snapshot();

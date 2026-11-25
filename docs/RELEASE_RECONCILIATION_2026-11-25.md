@@ -1,12 +1,93 @@
 # FlitzFS release reconciliation · 25 November 2026
 
 FlitzFS has writable WinFsp integration, protected indexed storage, automatic
-maintenance and independent CPU recovery. This review binds the 1,126-path
-parent `216034fb8adf` to the tested runtime tree `ccc9c5947d3d`. It follows the
-Windows helper, selected image and CPU decoder, private allocation stages,
-AMD worker and recovery boundaries. Older signed mounts, new host checks and
-release comparisons each have their own artifact scope.
-[Source, tests and primary-source captures](evidence/windows-compact-paged-roots-2026-11-25.json) ·
+maintenance and independent CPU recovery. This review follows the Windows
+helper, selected image and CPU decoder, private allocation stages, AMD
+worker and recovery boundaries. Each result is tied to its own artifact
+and qualification scope.
+[Source, tests and primary-source captures](evidence/windows-foreground-write-layout-2026-11-25.json) ·
+[Current architecture](architecture/CURRENT.md) ·
+[Target architecture](architecture/TARGET.md)
+
+## Current reconciliation and release order
+
+### Current product and release gaps
+
+The reviewed parent is `7e093970c5440`. The tested source and artifact
+identities are recorded in the same receipt as the results. The compact
+indexed store and Windows callback integration are in development
+qualification. Twelve release gates remain open.
+[Source and evidence](evidence/windows-foreground-write-layout-2026-11-25.json) ·
+[Release gates](RELEASE_EXECUTION_PLAN.md#current-gate-ledger)
+
+| Surface | Current implementation and evidence | Work with the greatest release impact |
+| --- | --- | --- |
+| Windows product | The helper and tray own a WinFsp mount backed by memory or, in enabled configurations, a private persistent volume file. Signed guest fixtures exercised populated write, mapped flush, reopen and continued write. | Replay the same external client on the current artifacts through installation, mounting, restart and removal. Complete the Win32 and Explorer semantics matrix for the declared Windows 11 builds. |
+| Scale and space reuse | Checked paged name, inode and extent lookup and bounded rebuild are implemented. Healthy writable attach still walks the inventory. Verified guest settlement and small compact-root savings cover limited live sets. | Attribute costs on one ordinary workload. Shadow generation-bound incremental attach under the full CPU oracle. Prove allocation reuse under near-full churn and pinned reader lifetimes. |
+| AMD and CPU continuity | Earlier host runs delivered verified grouped read bytes and reused a prepared Radeon read worker after CPU advanced. The write controller can acquire and replay a detached device trial. Replay now uses the active image's exact unit, bank and root encoding and indexed data layout. A mismatched measured route leaves a live write on CPU. | Measure device results consumed by an ordinary mounted read, write and maintenance path. Qualify each using its full cost. Prior measured writes favored CPU. Stage a ready worker and test avoiding duplicate CPU encoding before adding another foreground codec. |
+| Compression and local learning | Extent sharing, protected bases, prefix and residual encodings, coherence postings and schedule budgets exist. The compact replay measured 81,920 bytes versus 204,800 bytes for the same source with legacy root spacing. Earlier related-file results showed savings, while grouping alone left complete AITDCC mirror occupancy unchanged. | Measure the settled frontier on independent and related files. Use the existing exact pair and merge oracle to price ranking errors, then test group shapes that reduce complete protected size. Admit a local model only if it improves decisions on held-out families and under drift. |
+| Durability and evolution | Mirrored data, checked COW selectors, independent CPU open and recovery, and stop-confirmed retirement have model and guest evidence. Advice and required decoder state have different ownership. | Prove the acknowledged-flush contract per persistent provider, recovery from verified surviving data, and older-reader and mixed-format migration behavior. |
+| Comparisons and distribution | Verified tool pins and independent benchmark fixtures exist, including the Windows native NTFS control. The attached evidence covers individual pieces of the product. | Report exact candidate, workload distributions, verified bytes, final occupancy and live system impact. Qualify clean signed setup and recovery and complete exact-candidate soak. |
+
+### Decisions from current research
+
+- **Accelerate work that can change the outcome.** The installed LZ4
+  write path verifies the device bytes and runs the CPU encoder for a
+  size comparison. Measure a route that removes this duplicate encode
+  on admitted inputs before extending device coverage. Keep the
+  CPU-readable representation and sample both occupied size and complete
+  client cost. FlitzFS already has validated frame-level Zstandard
+  sequence ingestion in the flat store. Reuse that proof boundary when
+  evaluating device match proposals for indexed cold staging. The
+  reviewed Zstandard header and Intel's block-level example describe
+  missing history and dictionary support in the block callback. That
+  API would remove the cross-fragment context this design needs.
+  [FlitzFS encoder](../src/store_codec.cpp) ·
+  [Zstandard 1.6.0](https://github.com/meta/zstd/releases/tag/v1.6.0) ·
+  [Intel's offload reference](https://github.com/intel/QAT-ZSTD-Plugin/blob/main/README.md)
+- **Keep useful preparation resident.** Retain a context and funded
+  buffers across nearby work while the owner observes useful demand and
+  headroom. AMD Core 10.2.0 documents disabled stream priority. Bound
+  interference with short submissions, actual transfer and execution
+  costs, and cooperative yielding. The adjacent FlitzZip checkout at
+  `11396b512350` supplies examples of trusted runtime discovery and
+  capability checks against the loaded DLL version. Keep the Windows
+  package, header, loaded DLL, module and driver identities explicit.
+  [AMD Core 10.2.0](https://rocm.docs.amd.com/en/docs-10.2.0/about/release-notes.html) ·
+  [HIP execution and streams](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/asynchronous.html)
+- **Prototype high-ratio read acceleration without committing a format.**
+  Microsoft's DirectStorage preview offers an open Zstd GPU shader
+  initially tuned for chunks up to 256 KiB. Use it to test the cost of
+  decoding and copying a CPU-readable restart frame over a real Radeon
+  range-read workload. Independently verify supported inputs, device
+  execution, host readback and continued CPU service. The experiment
+  is optional to the shared HIP role work.
+  [Microsoft's Zstd implementation and preview scope](https://devblogs.microsoft.com/directx/directstorage-1-4-release-adds-support-for-zstandard/)
+- **Make startup work proportional to changed state and proven coverage.**
+  The F2FSJ results motivate persisting bounded checkpoints and a covered
+  interval of recovery work. Test that idea under FlitzFS's mirrored COW
+  publication and independent checker. Link allocator and dependency
+  coverage to the same selected generation and test mismatches against
+  the current full audit.
+  [F2FSJ, OSDI 2025](https://www.usenix.org/conference/osdi25/presentation/cui)
+- **Match comparisons to their claims.** DiskSpd supplies comparable
+  common Windows I/O shapes. The external Win32 trace supplies namespace,
+  cached and mapped I/O, and successful flush evidence. Use native NTFS
+  compression and verify allocated bytes at file and provider level.
+  SPECstorage's software-build workload is a reference for application
+  operation mixes. Official scores apply to the actual licensed suite.
+  The newer general-purpose compression control remains AITDCC 2026,
+  supplemented by held-out related-file families for co-compression.
+  [DiskSpd 2.3](https://github.com/microsoft/diskspd/releases/tag/v2.3) ·
+  [Microsoft allocation API](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getcompressedfilesizew) ·
+  [SPECstorage](https://www.spec.org/storage2020/) ·
+  [AITDCC 2026](https://aitdcc.github.io/dataset.html)
+
+The working estimate remains **59–127 person-weeks**, with low confidence
+until mounted AMD benefit, held-out protected-size savings and persistent
+recovery are measured. Use the detailed sequence for implementation.
+[Execution sequence](IMPLEMENTATION_PLAN.md#execution-after-matching-the-active-write-layout) ·
+[Effort and dependencies](RELEASE_EXECUTION_PLAN.md#remaining-engineering-effort) ·
 [Current architecture](architecture/CURRENT.md) ·
 [Target architecture](architecture/TARGET.md)
 

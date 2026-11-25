@@ -6,6 +6,17 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "foreground_write_layout": {
+    "source_commit": "7e093970c5440b782d414264ed0f56fab8957ef4",
+    "tested_source_tree": "274939eb3d5c5c28cc07e1e714920cb0c6c861bf",
+    "evidence": "docs/evidence/windows-foreground-write-layout-2026-11-25.json",
+    "reconciliation": "docs/RELEASE_RECONCILIATION_2026-11-25.md#current-reconciliation-and-release-order",
+    "implementation_order": "docs/IMPLEMENTATION_PLAN.md#execution-after-matching-the-active-write-layout",
+    "protected_private_image_bytes_legacy_to_compact": [204800, 81920],
+    "mismatched_measurement_uses_cpu_before_deferral": true,
+    "ordinary_mounted_amd_write_qualified": false,
+    "stable_release": false
+  },
   "grouped_preparation_reuse": {
     "source_commit": "8ee279eb63a0acd7e638a454cc89bd3bf3c493d8",
     "tested_source_tree": "a2e0435b4856ceb3c8e15b85d1ee8df36ee7b15a",

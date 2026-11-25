@@ -183,6 +183,12 @@ class PagedObjectStoreSnapshot final {
 };
 enum class PagedStoreBankLayout { separate, shared, compact };
 
+struct PagedStoreMirroredLayout {
+  std::uint32_t isolation_unit=0;
+  bool shared_banks=false,compact_roots=false;
+  bool operator==(const PagedStoreMirroredLayout&) const noexcept=default;
+};
+
 class PagedObjectStoreWriter final {
  public:
   class Rewrite;
@@ -195,6 +201,10 @@ class PagedObjectStoreWriter final {
   static PagedObjectStoreWriter create_mirrored(std::shared_ptr<StoreByteIo> empty,
       StoreIdentity,PagedStoreLimits,StoreCompressionOptions={},
       PagedStoreBankLayout=PagedStoreBankLayout::separate);
+  // Reproduce a validated mirrored layout in a new store. The provider must
+  // support exactly the encoded isolation unit.
+  static PagedObjectStoreWriter create_mirrored(std::shared_ptr<StoreByteIo> empty,
+      StoreIdentity,PagedStoreLimits,StoreCompressionOptions,PagedStoreMirroredLayout);
   // Exclusive explicit recovery. Fully CPU-scrubs before further writes;
   // repairs root publication only. Damaged descendant metadata is readable via
   // its peer but requires a future streaming rebuild before writable resume.
@@ -237,6 +247,7 @@ class PagedObjectStoreWriter final {
   friend class NativeFileSession;
   friend class NativeFilesystemWriter;
   friend class detail::IndexedSharedBasePreparation;
+  std::optional<PagedStoreMirroredLayout> mirrored_write_layout() const noexcept;
   // The indexed session has already verified the selected native checkpoint and
   // proved retired-owner admission before enabling payload repair.
   static PagedObjectStoreWriter resume_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,
@@ -249,7 +260,8 @@ class PagedObjectStoreWriter final {
       PagedStoreLimits,StoreCompressionOptions,bool mirrored,std::span<const StoreMutation> initial={},
       std::uint64_t maximum_write_bytes=UINT64_MAX,
       const std::function<bool(std::uint64_t)>& reserve_writes={},bool compact_metadata=false,
-      PagedStoreBankLayout=PagedStoreBankLayout::separate);
+      PagedStoreBankLayout=PagedStoreBankLayout::separate,
+      std::optional<PagedStoreMirroredLayout> exact_layout={});
   struct RebuildColdEncoding {
     std::uint64_t after_generation,first_object,past_last_object;
     std::function<bool(std::uint64_t)> reserve_writes;
