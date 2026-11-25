@@ -4855,7 +4855,9 @@ void indexed_memory_composition() {
         "indexed retired inspection lost detached bytes");
     const auto extent_count=snapshot.allocation_usage().live_extents;
     const auto quanta=volume.view().reclamation_quanta;
-    require((quanta<=2 && extent_count==(quanta==0?67:quanta==1?3:2)) &&
+    // Both retained short files occupy inode records. Only the retiring
+    // large file contributes external extents until its last reclaim step.
+    require((quanta<=2 && extent_count==(quanta==0?blocks:quanta==1?1U:0U)) &&
         snapshot.read("f0",0,256)==keep,"indexed reaper extent accounting or retained file bytes");
     sealed.emplace(volume.open_read_only());
     const auto recovered=volume.inspect_retired();

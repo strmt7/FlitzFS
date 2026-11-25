@@ -1220,7 +1220,7 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_indexed_memor
       !backing.domain->owns(*backing.advice))
     throw std::invalid_argument("Indexed initialization requires privately owned memory backing");
   auto adapter=create_managed_indexed(backing.head,backing.volume_identity,backing.image,backing.image_identity,
-      {backing.layout.image_capacity},foreground,backing.advice,group_policy);
+      {backing.layout.image_capacity},foreground,backing.advice,group_policy,NativeIndexedDataLayout::inline_small_files);
   adapter->configure_memory_maintenance(backing);
   return adapter;
 }

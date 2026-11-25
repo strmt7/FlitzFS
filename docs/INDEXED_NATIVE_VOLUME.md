@@ -57,10 +57,11 @@ shared-base backreferences in the same protected tree.
 
 ### Inline short-file data
 
-A newly created experimental indexed volume can select
-`NativeIndexedDataLayout::inline_small_files`. Its checked root advertises
-the feature before a regular inode can contain inline data. The same
-reader supports existing extent-based images. An older reader with the
+Fresh Windows memory volumes select
+`NativeIndexedDataLayout::inline_small_files` through the ordinary
+startup path. The checked root advertises the feature before a regular
+inode can contain inline data. The same reader supports existing
+extent-based images. An older reader with the
 previous namespace-feature mask refuses a root carrying bit 10. Reopen,
 compaction and a group-capability update preserve the feature.
 
@@ -87,9 +88,12 @@ inode become visible through the same checked root. Pending delete and
 detached handles retain the inode until its lifetime ends. Old
 snapshots retain their previous representation.
 
-The experimental layout is available to native and WinFsp callback
-fixtures. Adoption in ordinary volume creation and migration is tracked
-in the release plan. [Inline layout evidence](evidence/windows-inline-small-files-2026-11-25.json) ·
+An external Win32 client exercised the default on 374 held-out CPython
+files, including growth, sparse reads, shrink, rename, enumeration and
+remount. Independent CPU inspection verified both retired selections.
+Persistent-volume adoption and migration have their own qualification.
+[Named Windows qualification](evidence/windows-inline-named-and-adaptive-read-2026-11-25.json) ·
+[Inline layout evidence](evidence/windows-inline-small-files-2026-11-25.json) ·
 [Release design](architecture/ADAPTIVE_STORAGE_EXECUTION.md#protected-short-files-and-complete-size)
 
 ### Name profiles

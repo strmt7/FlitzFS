@@ -321,8 +321,10 @@ or a new representation.
   ledger. The tiny-file cohort occupies 524,288 bytes even after cold
   re-encoding. With the current record count, a hypothetical zero-byte
   encoding of its data objects only lowers occupancy to 466,944 bytes.
-  Price inline data and compact fragment locators before increasing
-  the short-file search budget. For larger revision families, measure
+  The held-out named tree confirms the inline memory-volume default.
+  Carry its recovery contract into persistent migration, and price
+  compact fragment locators before increasing the short-file search
+  budget. For larger revision families, measure
   the missed savings against a bounded exhaustive candidate oracle.
   Freeze versions and family splits before tuning the shortlist. Use
   the complete saved bytes and measured access and write costs to
@@ -496,16 +498,16 @@ search scope. Price protection changes in their own paired runs.
    a bounded cohort. Keep peak temporary bytes and write amplification
    separate from settled size. Verify every file and a held-out set of
    random ranges with the independent CPU reader.
-2. **Reduce the cost per tiny file.** Compare an isolated inline-inode
-   trial and a trial with compact direct locators into restartable
-   protected fragment records. Measure encoded size after changing the
-   owner record and removing its old extent and lookup key. Pin one
-   source snapshot, verify every exact range, and price repeated short
-   writes, growth and read amplification. Demonstrate savings on the
-   held-out directory workload before changing the persistent format.
-   The winning design must preserve mirrored failure isolation, inode
-   lifetimes, owner checks, allocation accounting and rollback. Carry
-   old-format reads and old-writer refusal into E09.
+2. **Reduce the cost per tiny file.** The inline layout now passes a
+   held-out named host comparison and a signed Windows client replay.
+   Fresh Windows memory volumes select it through their normal factory.
+   Before persistent adoption, pin the exact layout and prove old-reader
+   behavior and migration under interruption. Price repeated short
+   writes and growth on each provider. Compare compact direct locators
+   into restartable protected fragments where the small-file record or
+   payload charge remains material. Preserve mirrored failure isolation,
+   inode lifetimes, owner checks, allocation accounting and rollback.
+   Carry old-format reads and old-writer refusal into E09.
    [Short-file design](architecture/ADAPTIVE_STORAGE_EXECUTION.md#protected-short-files-and-complete-size)
 3. **Build scalable candidate discovery.** Extend the
    [indexed coherence catalog](../src/indexed_coherence.cpp) from current

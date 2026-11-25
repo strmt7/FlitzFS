@@ -149,15 +149,17 @@ record and an index entry in each protected copy.
 [Indexed ownership](../../src/native_indexed_volume.cpp) ·
 [Packed pricing](../../src/paged_store.cpp)
 
-The native writer now supports the first inline candidate on explicit
-experimental volumes. The matched 192-file run reduced settled image
-and selector bytes by 98,304 while retaining both protected copies.
-Growth into ordinary extents and shrink into the inode use the existing
-transaction. Independent CPU recovery checks cover both outcomes at
-the modeled interruption points. Continue with a held-out named tree
-and the signed Windows workflow before default selection or migration.
+The matched 192-file run reduced settled image and selector bytes by
+98,304 while retaining both protected copies. A held-out named tree
+with 374 files and 160 directories saved 172,032 bytes on the host
+with matching protection. An isolated signed WinFsp guest verified
+creation, sparse growth, shrink, rename and reopen with the ordinary
+memory-volume owner. Fresh Windows memory volumes select inline data
+automatically. Before extending the policy to persistent volumes,
+qualify format negotiation, migration and retained write cost.
 [Wire and lifecycle contract](../INDEXED_NATIVE_VOLUME.md#inline-short-file-data) ·
-[Executed checks](../evidence/windows-inline-small-files-2026-11-25.json)
+[Named Windows qualification](../evidence/windows-inline-named-and-adaptive-read-2026-11-25.json) ·
+[Modeled interruption coverage](../evidence/windows-inline-small-files-2026-11-25.json)
 
 ```mermaid
 flowchart TD

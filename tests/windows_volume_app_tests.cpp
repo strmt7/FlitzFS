@@ -6,7 +6,10 @@
 #include "volume_app_winfsp.hpp"
 #include "volume_directory_pin.hpp"
 #include "winfsp_controller.hpp"
+#include "winfsp_memory_volume.hpp"
 #include "winfsp_native.hpp"
+#include "native_corpus_fixture.hpp"
+#include "../src/native_indexed_volume.hpp"
 #endif
 #include "flitzfs/native_volume_file.hpp"
 #include "flitzfs/read_only_file.hpp"
@@ -724,6 +727,140 @@ struct MountedTrialFile {
   MountedTrialFile(const MountedTrialFile&)=delete;
   MountedTrialFile& operator=(const MountedTrialFile&)=delete;
 };
+
+#ifdef FLITZFS_OBSERVE_VOLUME_PUBLICATION
+constexpr auto named_mount_leaf=L"named-inline-fixture";
+constexpr std::string_view named_rename="inline-rename-proof";
+
+const native_fixture::NamedCorpusFixture::File& named_edit_file(const native_fixture::NamedCorpusFixture& corpus) {
+  const auto selected=std::ranges::find_if(corpus.files(),[](const auto& file) {
+    return file.bytes && file.bytes<=detail::kIndexedInlineFileBytes;
+  });
+  require(selected!=corpus.files().end(),"Named inline workload requires a nonempty short file");
+  return *selected;
+}
+
+std::filesystem::path mounted_corpus_path(const std::filesystem::path& root,std::string_view path) {
+  auto relative=std::filesystem::u8path(path);
+  relative.make_preferred();
+  return root/relative;
+}
+
+void named_mounted_client(const std::filesystem::path& fixture,bool reopened) {
+  const auto root=std::filesystem::path(disposable_mount_parent())/named_mount_leaf;
+  const native_fixture::NamedCorpusFixture corpus(fixture);
+  const auto& edited=named_edit_file(corpus);
+  const auto original=mounted_corpus_path(root,edited.path);
+  const auto renamed=mounted_corpus_path(root,named_rename);
+  if(!reopened) {
+    for(const auto& directory:corpus.directories())
+      require(CreateDirectoryW(mounted_corpus_path(root,directory).c_str(),nullptr),"Named directory creation failed");
+    for(const auto& file:corpus.files()) {
+      MountedTrialFile out(mounted_corpus_path(root,file.path),GENERIC_WRITE,CREATE_NEW);
+      const auto bytes=corpus.read(file);
+      DWORD written=0;
+      require(WriteFile(out.file,bytes.data(),static_cast<DWORD>(bytes.size()),&written,nullptr) &&
+          written==bytes.size() && FlushFileBuffers(out.file),"Named file write or flush failed");
+    }
+    {
+      MountedTrialFile out(original,GENERIC_READ|GENERIC_WRITE,OPEN_EXISTING);
+      LARGE_INTEGER end;
+      end.QuadPart=kNativeExtentBytes+17;
+      const std::byte tail{0x4b};
+      DWORD transferred=0;
+      require(SetFilePointerEx(out.file,end,nullptr,FILE_BEGIN) &&
+          WriteFile(out.file,&tail,1,&transferred,nullptr) && transferred==1 &&
+          FlushFileBuffers(out.file),"Named inline sparse extension failed");
+      auto expected=corpus.read(edited);
+      expected.resize(static_cast<std::size_t>(end.QuadPart));
+      expected.push_back(tail);
+      std::vector<std::byte> actual(expected.size());
+      require(SetFilePointerEx(out.file,{},nullptr,FILE_BEGIN) &&
+          ReadFile(out.file,actual.data(),static_cast<DWORD>(actual.size()),&transferred,nullptr) &&
+          transferred==actual.size() && actual==expected,"Named inline sparse extension changed bytes");
+      end.QuadPart=static_cast<LONGLONG>(edited.bytes);
+      require(SetFilePointerEx(out.file,end,nullptr,FILE_BEGIN) && SetEndOfFile(out.file) &&
+          FlushFileBuffers(out.file),"Named inline shrink failed");
+    }
+    require(MoveFileW(original.c_str(),renamed.c_str()),"Named inline rename failed");
+  }
+  require(GetFileAttributesW(original.c_str())==INVALID_FILE_ATTRIBUTES &&
+      GetLastError()==ERROR_FILE_NOT_FOUND,"Named inline rename retained its original path");
+  std::set<std::filesystem::path> expected;
+  for(const auto& file:corpus.files()) {
+    const auto name=file.path==edited.path?renamed:mounted_corpus_path(root,file.path);
+    expected.insert(name.lexically_relative(root));
+    MountedTrialFile in(name,GENERIC_READ,OPEN_EXISTING);
+    LARGE_INTEGER size;
+    std::vector<std::byte> actual(static_cast<std::size_t>(file.bytes));
+    DWORD transferred=0;
+    require(GetFileSizeEx(in.file,&size) && size.QuadPart==static_cast<LONGLONG>(file.bytes) &&
+        ReadFile(in.file,actual.data(),static_cast<DWORD>(actual.size()),&transferred,nullptr) &&
+        transferred==actual.size() && actual==corpus.read(file),"Named mounted file differs");
+  }
+  for(const auto& entry:std::filesystem::recursive_directory_iterator(root))
+    if(entry.is_regular_file())require(expected.erase(entry.path().lexically_relative(root))==1,
+        "Named mounted enumeration returned an unexpected file");
+  require(expected.empty(),"Named mounted enumeration omitted files");
+}
+
+void named_mounted_inline(const std::filesystem::path& fixture,const app_fixture::Budget& budget) {
+  const auto parent=disposable_mount_parent();
+  const auto root=std::filesystem::path(parent)/named_mount_leaf;
+  require(GetFileAttributesW(root.c_str())==INVALID_FILE_ATTRIBUTES && GetLastError()==ERROR_FILE_NOT_FOUND,
+      "Named inline mount requires a fresh leaf");
+  std::wstring executable(32768,L'\0');
+  const auto length=GetModuleFileNameW(nullptr,executable.data(),static_cast<DWORD>(executable.size()));
+  require(length && length<executable.size(),"Named client executable identity unavailable");
+  executable.resize(length);
+  const native_fixture::NamedCorpusFixture corpus(fixture);
+  require(corpus.files().size()<=512 && corpus.logical_bytes()<=4ULL*1024*1024,"Named mounted fixture exceeds its budget");
+  const auto& edited=named_edit_file(corpus);
+  std::uint64_t extent_bound=0;
+  for(const auto& file:corpus.files())
+    if(file.bytes>detail::kIndexedInlineFileBytes)
+      extent_bound+=(file.bytes+kNativeExtentBytes-1)/kNativeExtentBytes;
+  const NativeWriteMountPlan plan{root.wstring(),true,true};
+  const auto api=load_volume_app_winfsp();
+  {
+    WinFspMemoryVolume volume(api,plan,NativeImageKind::indexed_paged);
+    for(const bool reopened:{false,true}) {
+      until([&] {
+        const auto status=volume.view();
+        if(status.state==SessionState::failed || status.retired || status.offline)
+          throw std::runtime_error("Named inline mount status "+std::to_string(status.start_status));
+        return status.state==SessionState::running;
+      },GetTickCount64()+25000,"Named inline mount did not start");
+      const auto result=run_bounded_process(executable,
+          {L"--named-inline-client-sandbox",fixture.wstring(),reopened?L"reopen":L"populate"},
+          {static_cast<std::size_t>(budget.child_memory_mib(64)),2000,40000,16});
+      if(!result.exit_confirmed || result.timed_out || result.exit_code)
+        throw std::runtime_error("Named mounted client failed with process status "+std::to_string(result.exit_code));
+      volume.stop_and_join();
+      require(volume.view().retired && volume.view().write_restart_ready &&
+          GetFileAttributesW(root.c_str())==INVALID_FILE_ATTRIBUTES,"Named mounted owner did not retire");
+      {
+        const auto view=volume.inspect_retired();
+        const auto& selected=view.filesystem();
+        selected.verify_all();
+        const auto usage=selected.allocation_usage();
+        require(usage.live_extents && usage.live_extents<=extent_bound,"Fresh Windows memory volume missed inline placement");
+        for(const auto& file:corpus.files()) {
+          const auto path=file.path==edited.path?named_rename:std::string_view(file.path);
+          require(selected.read(path,0,static_cast<std::uint32_t>(file.bytes))==corpus.read(file),
+              "Independent named CPU reopen changed bytes");
+        }
+        std::cout<<"named_inline_mounted reopened="<<reopened<<" files="<<corpus.files().size()
+            <<" directories="<<corpus.directories().size()<<" live_extents="<<usage.live_extents
+            <<" independent_cpu=1 client_retired=1 dispatcher_retired=1"
+            <<" client_peak_commit="<<result.peak_committed_bytes<<'\n';
+      }
+      if(!reopened)volume.remount(api,plan);
+    }
+  }
+  require(MemoryVolumeDomain::cleanup_healthy(),"Named inline memory backing did not retire");
+}
+#endif
 
 struct MountedWritableView {
   explicit MountedWritableView(HANDLE file) {
@@ -2309,6 +2446,15 @@ void mounted_packed_file_gui_tests(const std::filesystem::path& app,const app_fi
 int wmain(int argc,wchar_t** argv) {
   try {
     const auto mode=argc>1?std::wstring_view(argv[1]):std::wstring_view{};
+#ifdef FLITZFS_OBSERVE_VOLUME_PUBLICATION
+    if(argc==4 && mode==L"--named-inline-client-sandbox") {
+      const std::wstring_view phase=argv[3];
+      require(phase==L"reopen" || phase==L"populate","Unexpected named client phase");
+      named_mounted_client(argv[2],phase==L"reopen");
+      return 0;
+    }
+#endif
+    const bool named_inline=argc==3 && mode==L"--named-inline-mounted-sandbox";
     std::optional<MountedRecoveryOperation> interruption;
     if(mode==L"--gui-mounted-flush-recovery-sandbox")interruption=MountedRecoveryOperation::create_file;
     if(mode==L"--gui-mounted-overwrite-recovery-sandbox")interruption=MountedRecoveryOperation::overwrite_and_rename;
@@ -2326,7 +2472,7 @@ int wmain(int argc,wchar_t** argv) {
     const bool packed_churn=mode==L"--gui-mounted-packed-churn-sandbox" || packed_mixed;
     const bool sparse_churn=mode==L"--gui-mounted-sparse-churn-sandbox" || sparse_mixed;
     const bool mounted=argc==3 && (mode==L"--gui-mounted-sandbox" ||
-        mode==L"--gui-mounted-file-sandbox" || populated || packed || packed_churn || sparse_churn);
+        mode==L"--gui-mounted-file-sandbox" || populated || packed || packed_churn || sparse_churn || named_inline);
     app_fixture::Budget budget(!mounted);
     if(argc==2 && std::wstring_view(argv[1])==L"--model") {
       native_initialization();
@@ -2335,6 +2481,10 @@ int wmain(int argc,wchar_t** argv) {
     else if(argc==2 && std::wstring_view(argv[1])==L"--maintenance")maintenance_tests();
     else if(argc==3) {
       const auto app=std::filesystem::path(argv[2]);
+#ifdef FLITZFS_OBSERVE_VOLUME_PUBLICATION
+      if(named_inline)named_mounted_inline(app,budget);
+      else
+#endif
       if(mode==L"--gui")gui_tests(app,budget,GuiRuntime::ordinary);
       else if(mode==L"--gui-qualified-file-controls")gui_tests(app,budget,GuiRuntime::qualified_file_controls);
       else if(mode==L"--gui-missing-winfsp")gui_tests(app,budget,GuiRuntime::missing);

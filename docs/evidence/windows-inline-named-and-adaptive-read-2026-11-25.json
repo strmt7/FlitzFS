@@ -1,0 +1,271 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "release_qualified": false,
+  "source": {
+    "parent": "f3dc2b0f7d93995c7404869dccccbc02bcb31564",
+    "parent_tree": "9c87ddf6d13f779b7d414bdaf1c610b876711ac4",
+    "tested_tree": "bdde48e3c8a3fbc84d497d920db23dbb8ff06fef",
+    "mounted_runtime_tree": "210803c9fa4d757068de9350918f5e239d22479f",
+    "tested_changes": [
+      {
+        "path": "src/windows/winfsp_native.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "3e327c4ca844fd9c23b5ffc3a66c8854329fb0c0",
+        "bytes": 112038
+      },
+      {
+        "path": "tests/native_corpus_fixture.hpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "6247632d6409c0dd4075cf3515eace4c16ff00e2",
+        "bytes": 5010
+      },
+      {
+        "path": "tests/test_native_indexed_volume.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "18cc59629fd60fef9fb6c50d5024f1cb5c290899",
+        "bytes": 106688
+      },
+      {
+        "path": "tests/test_winfsp_controller.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "6d8197741cd0636d7a8a6775cece0eb6be376a81",
+        "bytes": 321787
+      },
+      {
+        "path": "tests/windows_volume_app_tests.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "351e9d9007babb9a7574caeb5eadf85870a63aa5",
+        "bytes": 143632
+      }
+    ],
+    "routing_receipt_sha256": "d9a4ca8e8bb7fa6d7bf5a17621adabc052585237a091d898c89c6b5a26c6ebcf",
+    "routing_native_result_sha256": "a38316202e7eae4f01d72eccb532836345e793a8fc60f450e025aadde5095d8a"
+  },
+  "default_policy": {
+    "fresh_windows_indexed_memory": "inline_small_files",
+    "persistent_migration_qualified": false
+  },
+  "fixtures": {
+    "cpython_3_15_2": {
+      "files": 374,
+      "tiny_holdout": 362,
+      "mixed": 12,
+      "logical_bytes": 574237,
+      "source_sha256": "a0cf47d48cb8bc4dbd72b0e02dc84290387a767df35a9810d781b2e4dced691f",
+      "fixture_sha256": "4660e8c0a9487722e0660f82f10dafd3ecbce03a602b84516750cba51f5e2694"
+    },
+    "exclusion": "Disjoint paths from the earlier 192-file pilot, plus four files in each of three larger size strata."
+  },
+  "host_size": {
+    "zstd": "1.6.0",
+    "same_mirror_and_selector_contract": true,
+    "scope": "Real host, matched native sessions, compacted image and selector. Counts exclude ingest history and distinguish exact backing read byte counts from elapsed performance.",
+    "arms": [
+      {
+        "layout": "extents",
+        "files": 374,
+        "directories": 160,
+        "logical_bytes": 574237,
+        "compacted_bytes": 974848,
+        "selector_bytes": 131072,
+        "ingested_bytes": 43130880,
+        "physical_read_bytes": 19377607,
+        "live_extents": 379,
+        "cpu_exact": 1,
+        "complete_settled_bytes": 1105920
+      },
+      {
+        "layout": "inline",
+        "files": 374,
+        "directories": 160,
+        "logical_bytes": 574237,
+        "compacted_bytes": 802816,
+        "selector_bytes": 131072,
+        "ingested_bytes": 32088064,
+        "physical_read_bytes": 14039278,
+        "live_extents": 17,
+        "cpu_exact": 1,
+        "complete_settled_bytes": 933888
+      }
+    ],
+    "run": "local-run-6b4577f759b54125a523575c47fec7cb",
+    "exit_code": 0,
+    "retired": true,
+    "sha256": "12fabd81101e7fd07012139d1a52001d6558f8cbe8a01a12217ff7ebd176b0ba",
+    "output_sha256": "5d4a65edb7d96141e66e6b2d01be3ead2156b608e85feb5b9001da35e895371e",
+    "peak_job_bytes": 167219200
+  },
+  "mounted_windows": {
+    "build": "26100",
+    "configured_guest_mib": 4096,
+    "scope": "CPU correctness through signed WinFsp with an independent Win32 client. Create, write, flush, sparse growth and read, shrink, rename, enumeration, detach and reopen. No comparative timing.",
+    "manifest_sha256": "09bd1740bebad3f96d14bbee690b27b7da7831e245c094f5d138a04a9f5694f6",
+    "guest_receipt_sha256": "86b2b3626a7bc52c5c0491665ddb766b32d6d83dd6740e7b801fdce60a24c7b3",
+    "sandbox_sha256": "adc078b88f2c31d305b9cfd7ad4bcaa0389e93bd4ca96709acc4599c0d0ad16d",
+    "signed_runtime_sha256": "91d033a687cfa43504c2a8d399e241929f754856668842ded8815fad2e3b00d7",
+    "signed_driver_sha256": "1b4a44a8f84578fee2a0968b0489d470707d758dd44580661f6c3466854bb1d1",
+    "signatures_verified": true,
+    "driver_retired_by_guest_disposal": true,
+    "mounts": [
+      {
+        "reopened": 0,
+        "files": 374,
+        "directories": 160,
+        "live_extents": 17,
+        "independent_cpu": 1,
+        "client_retired": 1,
+        "dispatcher_retired": 1,
+        "client_peak_commit": 3076096
+      },
+      {
+        "reopened": 1,
+        "files": 374,
+        "directories": 160,
+        "live_extents": 17,
+        "independent_cpu": 1,
+        "client_retired": 1,
+        "dispatcher_retired": 1,
+        "client_peak_commit": 2994176
+      }
+    ],
+    "run": "local-run-08e32ef95cc947d388de563dea48090d",
+    "exit_code": 0,
+    "retired": true,
+    "sha256": "afb5444a2791bbc8dd32cf0afc68d9622d25d59b2c900cf644d6938d44f18c38",
+    "output_sha256": "2dbfbc624686079bd5df6ec8b0bef65bc0bf5dd88c9d7794082e2841c7d2cd08",
+    "peak_job_bytes": 47083520
+  },
+  "recovered_attempts": [
+    {
+      "stage": "loader",
+      "cause": "Fixture entered a delay-loaded callback table before using the production verified runtime loader.",
+      "resolution": "Use the same verified loader as the application.",
+      "run": "local-run-48e803a53b60469782e744691b65a3f9",
+      "exit_code": 1,
+      "retired": true,
+      "sha256": "36e0ffc96028b9d8256cddca3898d1587fbba90554aed0b9c50fc93aa5ea4aa7",
+      "output_sha256": "0336618a53db3fb6ed1f598bb542fdfb3b73f98db9cb7e9840a10923b23e3ed8",
+      "peak_job_bytes": 51236864
+    },
+    {
+      "stage": "reopen client",
+      "cause": "The small external reader inherited a 128 MiB GUI child floor. Its first mounted pass and independent CPU inspection succeeded.",
+      "resolution": "Use the native helper floor and retain fresh headroom, the creation-time job limit and measured child retirement.",
+      "run": "local-run-d87f2c4880e94147987e99eade498b2a",
+      "exit_code": 1,
+      "retired": true,
+      "sha256": "064e3c343097aa8ee91d172bf983a54bea3cb91222c4d1d3c13e90be3056c104",
+      "output_sha256": "e38a78f2e09b020159f16e1506818f93b67d0a93755de83268a0846cecab4a5d",
+      "peak_job_bytes": 54894592
+    }
+  ],
+  "physical_adaptive_amd": {
+    "stage_manifest_sha256": "8850bf2b96ec6d5dd46cad58d5638d8f1bd4ac066b717da9b0ac41b3211550e8",
+    "older_exact_stage": true,
+    "windows_build": "26300",
+    "driver": "32.0.32029.2010",
+    "runtime_sha256": "e0681cab356b1f2cae7c180db6dd5d027c32cb83a3901d03df3533a00312f2f7",
+    "admitted_engine_peak_pct": 0.0,
+    "source": "docs/evidence/windows-amd-later-group-window-2026-11-25.json",
+    "learned_delivery": {
+      "required_startup_ms": 1297,
+      "scheduled_lead_ms": 1624,
+      "intervening_cpu_frames": 2,
+      "later_device_frames": 4,
+      "exact_child_retired": 1
+    },
+    "physical_decode": {
+      "mixed": 1,
+      "prepared": 1,
+      "verified": 4,
+      "worker_ms": 1266,
+      "prepared_submit_ms": 1297,
+      "exact_child_retired": 1
+    },
+    "callback_checks": {
+      "mixed": 1,
+      "ready_hits": 7,
+      "late_refused": 1,
+      "cpu_readback": 1,
+      "backing_writes": 0,
+      "unrelated_callbacks_retained": 1,
+      "checkpoint_change_refused": 0,
+      "expanded": 1,
+      "callbacks": 3,
+      "variable_widths": 1,
+      "cpu_prefix": 1
+    },
+    "matched_mounted_speed_comparison": false,
+    "run": "local-run-6e01420e92be48b288217e36d053ed4c",
+    "exit_code": 0,
+    "retired": true,
+    "sha256": "5e206eb3e3cae28e1f34b36d111d4efeb13985f7b9776926281c4e7c07c13c0f",
+    "output_sha256": "a5fa362a8dfff243fea36524722689ffe9e4c4d832ba603c981f53734c3f05e9",
+    "peak_job_bytes": 208826368
+  },
+  "local_validation": {
+    "release": {
+      "ctest_entries": 6,
+      "run": "local-run-597a4913458547149e7ffe50bb3db0fb",
+      "exit_code": 0,
+      "retired": true,
+      "sha256": "a1e48492e80146504367e3d9d796cdb89909f69acd3048649a1cbd39ffd81b0f",
+      "output_sha256": "e5de5ca0d2d42c111c454b317e4eebac8ab199e1bf746736ad8241f58bf920ee",
+      "peak_job_bytes": 63393792
+    },
+    "raw": {
+      "ctest_entries": 1,
+      "run": "local-run-dcb70000458943659ed66f13c3e8c2ce",
+      "exit_code": 0,
+      "retired": true,
+      "sha256": "497aaeb6199666ae2f267ef825ce44fac4dff1b5ead99a33b7fdcfa8b1feeab6",
+      "output_sha256": "30826122082e3bb7f14b692182baa36bde900ee653aa12508e6c5f92ef2fb2c1",
+      "peak_job_bytes": 9285632
+    },
+    "asan": {
+      "ctest_entries": 3,
+      "run": "local-run-724fca1d18414e71b114ee69c3800db1",
+      "exit_code": 0,
+      "retired": true,
+      "sha256": "d1bca296e5ae99d13d65914e899936b537a4894d4056baea32d4377c0e82205e",
+      "output_sha256": "6bdb3a7519f0816c45622ed89230875dac9be982b01d63eba5f490690e4e8113",
+      "peak_job_bytes": 807690240
+    }
+  },
+  "research": {
+    "provider": "0.9.5+flitzzip.portable2",
+    "native_receipt_sha256": "a8f1abf1b2118eaffcf40eeaa3a1b25118c3b3885d8b99e171b91c12bd031a0c",
+    "sources": [
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/security/threat-protection/windows-sandbox/windows-sandbox-configure-using-wsb-file",
+        "final_http_status": 200,
+        "markdown_sha256": "d0cbabfd624992babdf78077804210f258b61d243bf6057189711b47ed3c2c1c",
+        "capture_sha256": "c70dc7a5174b7a5f09b4f598040c2d60cb721b4c6a695e80c93df28803e5402d"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/security/application-security/application-isolation/windows-sandbox/windows-sandbox-cli",
+        "final_http_status": 200,
+        "markdown_sha256": "b70ff3702185a5bf7e30cc89252fe6032b294326b1f55a7f1f7749e45a1cb805",
+        "capture_sha256": "4f361756aadb1b1ddd01ff36ce984453b008f071e2bd87d311cdaa0ed7e35169"
+      },
+      {
+        "url": "https://winfsp.dev/doc/WinFsp-API-winfsp.h/",
+        "final_http_status": 200,
+        "markdown_sha256": "23f2e7b26b2297a12d6e98acb7b612010c44361803cc72c3563f82571cce5837",
+        "capture_sha256": "28f7b9235ec0b37cc5231ab0c2324c3ead01a17e43bd8e6f68ecfab543c0716e"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-setendoffile",
+        "final_http_status": 200,
+        "markdown_sha256": "b361d7dc66180684e4032b287d12dcb2e5ef1245bd209824d73483ed4ac8d710",
+        "capture_sha256": "9a3ffecb77bd1bea106a824f30987433395892feab39431719c7682f275f9a0a"
+      }
+    ]
+  }
+}

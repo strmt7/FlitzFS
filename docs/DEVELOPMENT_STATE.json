@@ -6,6 +6,17 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "named_windows_inline_and_adaptive_read": {
+    "evidence": "docs/evidence/windows-inline-named-and-adaptive-read-2026-11-25.json",
+    "fresh_windows_memory_volume_default": "inline_small_files",
+    "held_out_files": 374,
+    "held_out_directories": 160,
+    "held_out_complete_bytes": [1105920, 933888],
+    "signed_guest_mounts_with_independent_cpu_reopen": 2,
+    "physical_adaptive_read_prefix_cpu_and_later_radeon_extents": [2, 4],
+    "next": "Qualify automatic persistent adoption and migration and measure useful ordinary mounted AMD service against CPU.",
+    "release_qualified": false
+  },
   "inline_short_files": {
     "evidence": "docs/evidence/windows-inline-small-files-2026-11-25.json",
     "initialization": "Experimental indexed volume layout selection",
@@ -13,7 +24,7 @@
     "maximum_inline_file_bytes": 512,
     "matched_extent_and_inline_complete_bytes": [524288, 425984],
     "modeled_transition_interruptions": 198,
-    "next": "Hold out named directories, exercise actual operation mixes and qualify the signed Windows path before choosing defaults or a migration policy.",
+    "next": "Use named_windows_inline_and_adaptive_read for the qualified memory-volume default and remaining persistent migration work.",
     "release_qualified": false
   },
   "protected_size_frontier": {

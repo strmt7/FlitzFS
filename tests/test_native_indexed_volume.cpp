@@ -1,4 +1,5 @@
 #include "native_indexed_volume.hpp"
+#include "native_corpus_fixture.hpp"
 #include "native_fs_fixture.hpp"
 #include "native_lz4_fixture.hpp"
 #include "native_lz4_read.hpp"
@@ -1787,51 +1788,14 @@ void indexed_transaction_recovery() {
   std::cout<<"indexed_writer_faults="<<old+complete<<" previous="<<old<<" committed="<<complete<<'\n';
 }
 
-std::uint32_t fixture_get(std::span<const std::byte> raw,std::size_t offset,unsigned width) {
-  std::uint32_t value=0;
-  for(unsigned i=0;i<width;++i)value|=std::to_integer<std::uint32_t>(raw[offset+i])<<(8*i);
-  return value;
-}
-
 void profile_cpython_reopen(const char* path,bool compressed=false) {
   if(compressed)require(store_zstd_available(),"compressed CPython profile requires Zstandard");
   const auto encoding=compressed?StoreCompressionOptions{StoreCompressionMode::automatic,3,true}:raw;
-  const auto input=ReadOnlyFile::open(path);
-  constexpr std::uint64_t maximum_input=96ULL*1024*1024;
-  require(input.size()>=12 && input.size()<=maximum_input,"source tree fixture length");
-  const auto take=[&](std::uint64_t offset,std::size_t count) {
-    require(offset<=input.size() && count<=input.size()-offset,"truncated source tree fixture");
-    Bytes bytes(count);
-    if(count)input.read_exact_at(offset,bytes.data(),count);
-    return bytes;
-  };
-  const auto header=take(0,12);
-  constexpr std::string_view magic="FLSTREE1";
-  require(std::string_view(reinterpret_cast<const char*>(header.data()),magic.size())==magic,"source tree fixture marker");
-  const auto count=fixture_get(header,8,4);
-  require(count && count<=4096,"source tree fixture file count");
-  struct File {
-    std::string path;
-    std::uint64_t first,bytes;
-  };
-  std::vector<File> files;
+  const NamedCorpusFixture corpus(path);
+  const auto& files=corpus.files();
   std::map<std::string,std::uint64_t> directories{{"",1}};
-  std::uint64_t offset=header.size(),total=0;
-  for(std::uint64_t i=0;i<count;++i) {
-    const auto record=take(offset,8);
-    offset+=8;
-    const auto length=fixture_get(record,0,4),bytes=fixture_get(record,4,4);
-    require(length && length<=1024 && bytes<=1024*1024,"source tree fixture entry bounds");
-    const auto name=take(offset,static_cast<std::size_t>(length));
-    offset+=length;
-    require(bytes<=input.size()-offset,"truncated source tree fixture payload");
-    auto& file=files.emplace_back(File{std::string(reinterpret_cast<const char*>(name.data()),name.size()),offset,bytes});
-    for(auto end=file.path.find('/');end!=std::string::npos;end=file.path.find('/',end+1))
-      directories.try_emplace(file.path.substr(0,end),0);
-    total+=bytes;
-    offset+=bytes;
-  }
-  require(offset==input.size(),"trailing source tree fixture data");
+  for(const auto& directory:corpus.directories())directories.try_emplace(directory,0);
+  const auto total=corpus.logical_bytes();
 
   auto backing=empty();
   backing->capacity=2*total+160ULL*1024*1024;
@@ -1869,7 +1833,7 @@ void profile_cpython_reopen(const char* path,bool compressed=false) {
     const auto leaf=separator==std::string::npos?file.path:file.path.substr(separator+1);
     const auto id=inode++;
     inode_batch.push_back({id,directories.at(parent),file.bytes,2,2,false,leaf});
-    const auto& payload=payloads.emplace_back(take(file.first,static_cast<std::size_t>(file.bytes)));
+    const auto& payload=payloads.emplace_back(corpus.read(file));
     for(std::size_t first=0;first<payload.size();first+=kNativeExtentBytes) {
       auto bytes=std::span(payload).subspan(first,(std::min<std::size_t>)(payload.size()-first,kNativeExtentBytes));
       while(!bytes.empty() && bytes.back()==std::byte{})bytes=bytes.first(bytes.size()-1);
@@ -1884,10 +1848,57 @@ void profile_cpython_reopen(const char* path,bool compressed=false) {
     for(const auto& file:files) {
       require(restored.stat(file.path).logical_bytes==file.bytes &&
           restored.read(file.path,0,static_cast<std::size_t>(file.bytes))==
-              take(file.first,static_cast<std::size_t>(file.bytes)),
+              corpus.read(file),
           "CPython source file differs after indexed reopen");
     }
   },encoding);
+}
+
+void profile_named_inline(const std::filesystem::path& path) {
+  const NamedCorpusFixture corpus(path);
+  require(store_zstd_available() && corpus.files().size()<=512 && corpus.logical_bytes()<=4ULL*1024*1024,
+      "named inline profile exceeds the admitted cohort or lacks Zstandard");
+  constexpr StoreCompressionOptions encoding{StoreCompressionMode::automatic,3,true};
+  const auto count=corpus.files().size()+corpus.directories().size();
+  const auto capacity=kStoreMaxPhysicalBytes+count*kNativeExtentBytes;
+  const NativeImageStorage storage{NativeImageKind::indexed_paged,capacity};
+  const auto security=native_security_fixture::descriptor();
+  constexpr NativeBasicMetadata directory_info{11,22,33,44,0x10},file_info{11,22,33,44,0x20};
+  for(const auto layout:{NativeIndexedDataLayout::extents,NativeIndexedDataLayout::inline_small_files}) {
+    auto head=empty(),backing=empty(),compacted=empty();
+    backing->capacity=compacted->capacity=capacity;
+    constexpr auto kind=NativeDispositionPolicy::windows_global;
+    {
+      auto session=NativeFileSession::create_indexed_volume(head,identity_for(89),backing,identity(),{capacity},
+          encoding,kind,NativeVolumeRootMetadata{directory_info,security},NativeVolumePlacement::external,layout);
+      for(const auto& directory:corpus.directories())session.create_entry(directory,true,directory_info,security);
+      for(const auto& file:corpus.files()) {
+        session.create_entry(file.path,false,file_info,security);
+        const auto handle=session.open(file.path,{true,true,false});
+        session.write(handle,0,corpus.read(file));
+        session.cleanup(handle,false);
+        session.close(handle);
+      }
+      require(session.stats().contexts==0,"named inline profile retained an open context");
+    }
+    const auto source=NativeVolumeHeadView::open(head,identity_for(89),[&](const StoreIdentity& id) {
+      return id==identity()?backing:std::shared_ptr<Ram>{};
+    });
+    (void)NativeFilesystemWriter::compact(source.filesystem(),compacted,identity_for(29),encoding);
+    const auto selected=NativeFilesystemSnapshot::open_image(compacted,storage);
+    selected.verify_all();
+    const auto begin=compacted->read_bytes;
+    for(const auto& file:corpus.files()) {
+      require(selected.read(file.path,0,static_cast<std::uint32_t>(file.bytes))==corpus.read(file),
+          "named inline profile changed CPU bytes");
+    }
+    std::cout<<"named_inline_profile layout="<<(layout==NativeIndexedDataLayout::extents?"extents":"inline")
+        <<" files="<<corpus.files().size()<<" directories="<<corpus.directories().size()
+        <<" logical_bytes="<<corpus.logical_bytes()<<" compacted_bytes="<<compacted->extent()
+        <<" selector_bytes="<<head->extent()<<" ingested_bytes="<<backing->extent()
+        <<" physical_read_bytes="<<compacted->read_bytes-begin
+        <<" live_extents="<<selected.allocation_usage().live_extents<<" cpu_exact=1\n";
+  }
 }
 
 }
@@ -1898,6 +1909,10 @@ int main(int argc,char** argv) {
       indexed_session_lifetimes(NativeIndexedDataLayout::inline_small_files);
       indexed_inline_transitions();
       std::cout<<"PASS: inline indexed lifecycle, fenced transitions and byte-exact CPU readback\n";
+      return 0;
+    }
+    if(argc==3 && std::string_view(argv[1])=="--profile-named-inline"){
+      profile_named_inline(argv[2]);
       return 0;
     }
     if(argc==2 && std::string_view(argv[1])=="--reconciled-rebuild"){

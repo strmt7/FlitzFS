@@ -30,13 +30,19 @@ The twelve-gate audit uses the strongest applicable evidence for each gate.
 
 ## Complete protected size and priorities
 
+Fresh Windows memory volumes now select inline data automatically. The
+held-out CPython tree contained 374 files, including 362 small files
+outside the pilot and 12 larger files. On the host, complete settled
+size fell from 1,105,920 to 933,888 bytes. A signed disposable Windows
+client mounted, grew, shrank, renamed, enumerated and remounted the
+same tree. Both independent CPU inspections verified all bytes.
+[Host size and signed guest correctness](evidence/windows-inline-named-and-adaptive-read-2026-11-25.json)
+
 The opt-in inline layout now occupies 425,984 bytes on the 192-file
 CPython cohort, down 98,304 bytes from the matching extent layout.
 It keeps the same mirror and selector geometry. The versioned inode
 format and both directions of the extent transition passed independent
-CPU reopen. This changes the next decision to measuring named
-trees, write cost and signed Windows client semantics before choosing
-the default or an upgrade strategy.
+CPU reopen. This was the pilot for the named workload.
 [Inline layout and validation scope](evidence/windows-inline-small-files-2026-11-25.json)
 
 The profile now reconciles settled image length with an inventory of the
@@ -72,15 +78,16 @@ where the oracle shows material missed savings.
 [Current-window trial](evidence/windows-protected-size-frontier-2026-11-25.json) ·
 [Next compression decisions](IMPLEMENTATION_PLAN.md#e04-through-e07-establish-the-complete-volume-compression-frontier)
 
-The exact-source physical checks of the adaptive later-read window
-deferred before launching a worker, at 98.2% and 98.7% Radeon engine
-utilization. The earlier prefix policy consumed three verified Radeon
-extents after a CPU extent. SDK fixtures for the later policy cover
-the later offset and retirement. Preserve both scopes when comparing
-cold CPU, cold Radeon and prepared Radeon operation.
+The adaptive later-read window passed a live Radeon run when fresh
+device headroom returned. It consumed four verified Radeon extents
+after two CPU extents, then retired its worker. Earlier physical
+checks deferred under high device load. The live result proves the
+later-offset decision in the SDK fixture. Compare CPU, cold Radeon and
+prepared Radeon service through ordinary installed clients to price the
+complete benefit.
 [Later-window scope](evidence/windows-amd-later-group-window-2026-11-25.json) ·
 [Physical CPU-prefix receipt](evidence/windows-group-read-cpu-prefix-2026-11-25.json) ·
-[Current preflight receipts](evidence/windows-protected-size-frontier-2026-11-25.json)
+[Live adaptive window](evidence/windows-inline-named-and-adaptive-read-2026-11-25.json)
 
 The highest-return next decisions are the protected short-file layout,
 verified automatic AMD delivery, and work-grant attribution through
@@ -556,8 +563,8 @@ Attribute resource cost and remaining work before changing either phase.
 | S1 · Exact artifacts | Current scoped builds bind source and SDK/CPU artifacts. Earlier real device runs identify their exact ROCm binaries. | Bind one clean Windows 11 update, signed WinFsp pair, helper, workers, CPU decoder table and backing capabilities to the acceptance run. |
 | S2 · Scale | Paged inodes, names and extents are live. Checked replica reads group adjacent frames in a leaf. A single checked view now supplies each maintenance sample. Writable startup still walks the inventory. | Verify bounded attach under a versioned authority contract. Fit and validate separate named-file curves for attach, restart, enumeration, mutation and resident memory. |
 | S3 · Space reuse | The single-view replay released backing bytes while mounted, reported zero maintenance failures and independently verified all 1,027 files. It reached 610 sampled extents with duty still pending. | Trace work grants and refused continuation to the pending cursor. Verify advisory quiescence and repeated settlement under churn, pressure and interruption. |
-| S4 · AMD and CPU continuity | The physical Radeon decoded a four-extent capture while the first extent used CPU service. The callback consumed the three unread GPU extents. The later-window SDK model passed. Physical admission for that model deferred under contention. | Prove an automatic region that beats CPU on the installed-client path. Retain the separate write and collective gates. |
-| S5 · Compression | An opt-in inline format saved 96 KiB on the small-file cohort at equal protection. Retained peers previously saved 16 KiB in a controlled window transition. The complete-size profiles expose distinct costs for tiny files, revision families and held-out AITDCC extracts. | Validate the inline result on a held-out named tree and Windows workload. Measure profitable-discovery recall and extend the held-out frontier with range and write costs. |
+| S4 · AMD and CPU continuity | The physical adaptive window consumed four verified Radeon extents after two early CPU extents. The SDK and earlier physical prefix remain available as separate controls. | Prove an automatic region that beats CPU on the installed-client path. Retain the separate write and collective gates. |
+| S5 · Compression | Inline data saved 168 KiB on a held-out named tree, including the selector and both recovery copies. A signed mounted client and CPU reopen passed. New Windows memory volumes now select this layout. | Qualify persistent adoption and versioned migration. Measure profitable-discovery recall and extend the held-out frontier with range and write costs. |
 | S6 · Autonomy | Persistent sparse advice, workload samples, yield ranking and resource admission run in the controller. The candidate sampled the same extents with 22–35% fewer backing calls in two local fixtures. | Measure learning benefit, time to settle, interference, per-volume fairness and bytes written per byte reclaimed across workloads and restart. |
 | S7 · Windows experience | The helper and WinFsp own memory and supported file-backed volumes. Signed guests exercised external clients and verified reopen. | Qualify Explorer and independent apps with the signed candidate. Cover sharing, mapped and cached I/O, names, metadata, repair and clean teardown. |
 | S8 · Durability | Interruption fixtures exercised writes, flush, mapping and selector publication with independent CPU readback. | Qualify the acknowledged-operation and survivor-repair envelope for each backing. Explain unrecoverable failures precisely and retain the evidence for recovery. |
