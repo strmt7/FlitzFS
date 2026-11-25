@@ -6,6 +6,18 @@
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "retained_amd_admission": {
+    "source_parent": "7d234fc699e5f62673f2f07077a8e728fdea7501",
+    "tested_source_tree": "7064a12d7f790ebfd39c04bc4a543c5e3dc0ba54",
+    "evidence": "docs/evidence/windows-retained-amd-admission-2026-11-25.json",
+    "design": "docs/RELEASE_RECONCILIATION_2026-11-25.md#current-reconciliation-and-prioritized-design",
+    "next": "docs/RELEASE_RECONCILIATION_2026-11-25.md#ordered-implementation-and-exits",
+    "retained_read_anchor_and_trial_check_exact_adapter": true,
+    "strengthened_cpu_read_ahead_fallback_verified": true,
+    "new_live_compute": false,
+    "release_gates_open": 12,
+    "release_qualified": false
+  },
   "gpu_engine_admission": {
     "source_commit": "a1901218c79a299627879663209f65887f8b5de8",
     "tested_source_tree": "5eb08fe30578050b1c79ef274561f9b393ad83fc",

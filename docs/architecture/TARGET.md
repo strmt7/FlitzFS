@@ -7,8 +7,8 @@ sequence in the [development plan](../IMPLEMENTATION_PLAN.md#3-execution-order-a
 The current integration design ties durable publication, bounded AMD work,
 sparse advice and measured settlement to the same Windows operation witness
 and complete occupancy record.
-[Reconciled design](../RELEASE_RECONCILIATION_2026-11-25.md#reconciliation-after-protected-assembled-prefix-selection) ·
-[Implementation order](../IMPLEMENTATION_PLAN.md#execution-after-matching-the-active-write-layout)
+[Reconciled design](../RELEASE_RECONCILIATION_2026-11-25.md#current-reconciliation-and-prioritized-design) ·
+[Implementation order](../IMPLEMENTATION_PLAN.md#execution-after-retained-amd-admission)
 
 ## 1. Separate volume ownership from presentation and acceleration
 
@@ -446,7 +446,11 @@ readiness from request cadence, queued work, service cost and observed
 pressure. It expires the lease when those conditions change. AMD's
 current HIP documentation describes stream priorities as disabled.
 Enforce background limits through bounded submissions, cooperative
-yielding and cancellation of pending work.
+yielding and cancellation of pending work. Measure prepared streams before
+trying reusable graphs. Graph replay is a candidate when dispatch overhead is
+a material share of a winning repeated workload. Qualification binds the
+actual Windows package and exact device and runtime.
+[AMD HIP graphs](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/hipgraph.html) ·
 [AMD HIP stream management](https://rocm.docs.amd.com/projects/HIP/en/docs-10.2.0/how-to/hip_runtime_api/asynchronous.html)
 
 The normal controller owns calibration beside discovery. Callbacks emit a

@@ -4,9 +4,9 @@
 shared Win32 settlement trace, automatic AMD service on identical client
 demand, the indexed attach differential and held-out settled compression.
 The E01–E13 acceptance and dependency contracts below define the release exits.
-[Current assessment](RELEASE_RECONCILIATION_2026-11-25.md#current-reconciliation-and-release-order) ·
-[Source, tests and research](evidence/windows-foreground-write-layout-2026-11-25.json) ·
-[Next implementation sequence](#execution-after-matching-the-active-write-layout)
+[Current assessment](RELEASE_RECONCILIATION_2026-11-25.md#current-reconciliation-and-prioritized-design) ·
+[Source, tests and research](evidence/windows-retained-amd-admission-2026-11-25.json) ·
+[Next implementation sequence](#execution-after-retained-amd-admission)
 
 The [current architecture](architecture/CURRENT.md) shows the implementation.
 The [source review](architecture/REVIEW.md) tests the assumptions and the
@@ -289,6 +289,18 @@ Integrated claims depend on the corresponding complete paths. This sequence
 reuses the existing mounted and AMD controls instead of rebuilding the first
 indexed or read-only prototypes.
 
+### Execution after retained AMD admission
+
+Use the [current reconciliation and design](RELEASE_RECONCILIATION_2026-11-25.md#current-reconciliation-and-prioritized-design)
+and its [ordered work and exits](RELEASE_RECONCILIATION_2026-11-25.md#ordered-implementation-and-exits).
+The next shared deliverable is an ordinary Windows client trace with
+phase-attributed allocation, flush and AMD delivery. The retained route
+checks the controller's fresh exact-adapter observation at staging and
+submission. Measure its useful service and retirement through that trace.
+Fix the first production stage with a material cost. Run the held-out
+settled-size comparison against the strongest existing protected CPU control.
+Use the E01–E13 sections below for proof and ownership.
+
 ### Execution after matching the active write layout
 
 Start with the latest [repository reconciliation](RELEASE_RECONCILIATION_2026-11-25.md#reconciliation-after-protected-assembled-prefix-selection) and its
@@ -299,8 +311,9 @@ oracle. Measure the added idle work and held-out size before widening
 its use. Prepare the attached CPU, cold AMD and prepared AMD comparison
 through the same ordinary Windows client for E03 and E08. The automatic
 discovery path now consumes recent per-adapter engine activity before
-starting a worker. Extend the admission observation through active retained
-routes and check how quickly it yields and recovers across device contention.
+starting a worker. Retained routes reuse that observation before staging and
+submission. Verify useful service and recovery across contention in the matched
+ordinary client trace.
 [Engine activity admission](evidence/windows-gpu-engine-admission-2026-11-25.json)
 [Source-bound comparison](evidence/windows-assembled-prefix-2026-11-25.json)
 

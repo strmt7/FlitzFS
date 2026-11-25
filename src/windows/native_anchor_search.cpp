@@ -1,6 +1,7 @@
 #include "native_anchor_launch.hpp"
 #include "anchor_batch_profile.hpp"
 #include "gpu_budget.hpp"
+#include "gpu_engine_activity.hpp"
 #include "gpu_worker_common.hpp"
 #include <algorithm>
 #include <dxgi.h>
@@ -324,6 +325,7 @@ struct NativeAnchorSearchController::Impl {
     bool supervisor_exited=false;
   };
   NativeAnchorSearchOptions options;
+  const WindowsGpuEngineSampler* const engines;
   GpuRecoveryPolicy recovery;
   std::optional<Flight> flight;
   std::vector<NativeSharedBaseSearchWindow> windows;
@@ -338,8 +340,13 @@ struct NativeAnchorSearchController::Impl {
   std::uint64_t recovery_serial=0,route_recovery_generation=0;
   RebindBlock rebind_block=RebindBlock::none;
   bool enabled=false,device_interrupted=false,deadline_observed=false,deadline_check_spent=false;
-  explicit Impl(NativeAnchorSearchOptions configured):options(std::move(configured)) {
+  explicit Impl(NativeAnchorSearchOptions configured,const WindowsGpuEngineSampler* sampler)
+      :options(std::move(configured)),engines(sampler) {
     enabled=valid_anchor_route(options.route) && valid_profile();
+  }
+  bool engine_available(std::uint64_t now) const noexcept {
+    return !engines || engines->available(options.route.memory.luid,now,
+        background_gpu_idle_ppm(options.duty_ppm)).value_or(false);
   }
   bool valid_profile() const noexcept {
     return options.minimum_members && options.minimum_members<=options.maximum_members &&
@@ -411,14 +418,14 @@ struct NativeAnchorSearchController::Impl {
     ++stats.verified_timing_samples;
   }
 };
-NativeAnchorSearchController::NativeAnchorSearchController(NativeAnchorSearchOptions options)
-    :impl_(std::make_unique<Impl>(std::move(options))) {}
+NativeAnchorSearchController::NativeAnchorSearchController(NativeAnchorSearchOptions options,
+    const WindowsGpuEngineSampler* engines):impl_(std::make_unique<Impl>(std::move(options),engines)) {}
 NativeAnchorSearchController::~NativeAnchorSearchController(){impl_->yield(Impl::Disposition::yielded);}
 std::size_t NativeAnchorSearchController::stage_grant(std::uint64_t now,std::size_t funded_extents) const noexcept {
   const auto& self=*impl_;
   const auto& options=self.options;
   if(!self.enabled || self.flight || !self.windows.empty() || self.unobserved_ticket ||
-      now<self.next_launch || funded_extents<2)return 0;
+      now<self.next_launch || funded_extents<2 || !self.engine_available(now))return 0;
   if(options.adaptive_batch_sizing && self.timing.launch_limit(options.worker.timeout_ms)==0 &&
       self.timing.launch_limit(options.worker.timeout_ms,0)==0)return 0;
   // Staging needs the full group to change its shared reference. Limit
@@ -501,6 +508,11 @@ void NativeAnchorSearchController::start(std::span<const NativeSharedBaseSearchW
     const auto begun=GetTickCount64();
     const auto arguments=anchor_worker_arguments(route,*launch);
     if(!self.check_device(ticket))return;
+    if(!self.engine_available(GetTickCount64())) {
+      (void)self.recovery.abandon(ticket,true);
+      ++self.stats.declined;
+      return;
+    }
     auto session=WorkerExchangeSession::start_sized(route.helper,arguments,
         request.snapshot(),capacity,budget,route.pins);
     self.flight.emplace(Impl::Flight{std::move(session),std::move(request),std::move(profile),ticket,begun,

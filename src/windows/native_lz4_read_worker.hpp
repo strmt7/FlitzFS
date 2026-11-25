@@ -11,6 +11,7 @@
 
 namespace flitzfs {
 class WinFspNativeWritable;
+class WindowsGpuEngineSampler;
 struct WinFspReadAheadWork;
 struct WinFspGroupReadWindow;
 struct NativeMaintenanceObservation;
@@ -79,7 +80,7 @@ struct NativeLz4ReadWorkerStats {
 // advisory data. Ordinary callbacks never observe or wait on its child.
 class NativeLz4ReadWorker final {
  public:
-  explicit NativeLz4ReadWorker(NativeLz4ReadWorkerProfile);
+  explicit NativeLz4ReadWorker(NativeLz4ReadWorkerProfile,const WindowsGpuEngineSampler* = nullptr);
   ~NativeLz4ReadWorker();
   NativeLz4ReadWorker(const NativeLz4ReadWorker&)=delete;
   NativeLz4ReadWorker& operator=(const NativeLz4ReadWorker&)=delete;

@@ -1,5 +1,6 @@
 #include "native_lz4_read_worker.hpp"
 #include "gpu_budget.hpp"
+#include "gpu_engine_activity.hpp"
 #include "hip_module_verification.hpp"
 #include "winfsp_native.hpp"
 #include "worker_exchange.hpp"
@@ -115,6 +116,7 @@ struct NativeLz4ReadWorker::Impl {
     bool superseded=false,ready_at_submit=false;
   };
   const NativeLz4ReadWorkerProfile profile;
+  const WindowsGpuEngineSampler* const engines;
   const std::shared_ptr<const PinnedReadPackage> package;
   const GpuConfigurationId configuration;
   GpuRecoveryPolicy policy;
@@ -123,9 +125,14 @@ struct NativeLz4ReadWorker::Impl {
   std::uint64_t sequence=0;
   detail::NativeGroupReadTiming group_timing;
 
-  explicit Impl(NativeLz4ReadWorkerProfile config)
-      :profile(std::move(config)),package(std::make_shared<PinnedReadPackage>(profile)),
+  explicit Impl(NativeLz4ReadWorkerProfile config,const WindowsGpuEngineSampler* sampler)
+      :profile(std::move(config)),engines(sampler),package(std::make_shared<PinnedReadPackage>(profile)),
        configuration(configuration_id(profile)) {}
+
+  std::optional<bool> engine_available(std::uint64_t now) const noexcept {
+    if(!engines)return true;
+    return engines->available(profile.luid,now,minimum_background_gpu_idle_ppm);
+  }
 
   bool has_lead(const WinFspReadAheadWork& work,std::uint64_t required,std::uint64_t now) noexcept {
     if(work.has_read_lead(required,now))return true;
@@ -169,6 +176,7 @@ struct NativeLz4ReadWorker::Impl {
 
   std::optional<StartedChild> launch(const WinFspReadAheadWork& work,const NativeMaintenanceObservation& observed,
       const std::atomic<bool>& stopped,const LaunchPlan& plan,std::uint64_t required_lead) {
+    if(!engine_available(GetTickCount64()).value_or(false))return {};
     const auto budget=observe_budget(observed,plan.capacity);
     if(!budget || !current(work,stopped)) {
       ++status.declined;
@@ -182,7 +190,7 @@ struct NativeLz4ReadWorker::Impl {
       std::to_wstring(plan.capacity.reply_bytes),std::to_wstring(plan.frames),std::to_wstring(plan.slab),
       std::to_wstring(plan.argument)};
     const auto now=GetTickCount64();
-    if(!has_lead(work,required_lead,now))return {};
+    if(!engine_available(now).value_or(false) || !has_lead(work,required_lead,now))return {};
     const auto decision=policy.consider_native_lz4_read(true,
         {configuration,++sequence,0,sample.status==WindowsGpuBudgetStatus::success,true,memory},plan.slab,now);
     if(!decision.try_gpu()) {++status.declined;return {};}
@@ -223,10 +231,10 @@ struct NativeLz4ReadWorker::Impl {
   }
 };
 
-NativeLz4ReadWorker::NativeLz4ReadWorker(NativeLz4ReadWorkerProfile p) {
+NativeLz4ReadWorker::NativeLz4ReadWorker(NativeLz4ReadWorkerProfile p,const WindowsGpuEngineSampler* engines) {
   p.helper.make_preferred();
   if(!valid_profile(p))throw std::invalid_argument("Invalid qualified native LZ4 read worker profile");
-  impl_=std::make_unique<Impl>(std::move(p));
+  impl_=std::make_unique<Impl>(std::move(p),engines);
 }
 NativeLz4ReadWorker::~NativeLz4ReadWorker(){(void)stop();}
 
@@ -234,7 +242,8 @@ WinFspGroupReadWindow NativeLz4ReadWorker::group_read_window() const noexcept {
   const auto& s=*impl_;
   const auto& profile=s.profile;
   const auto lead=s.group_timing.start_lead(profile.minimum_lead_ms);
-  if(!profile.packed_groups || s.status.configuration_refused)return {};
+  if(!profile.packed_groups || s.status.configuration_refused ||
+      !s.engine_available(GetTickCount64()).value_or(false))return {};
   if(s.flight) {
     const auto& f=*s.flight;
     if(f.request || f.superseded)return {};
@@ -253,6 +262,7 @@ bool NativeLz4ReadWorker::prepare_group(const WinFspReadAheadWork& work,const Na
   auto& s=*impl_;
   const auto& profile=s.profile;
   if(!profile.prepared_group_submit_lead_ms || s.flight || !s.status.retirement_confirmed ||
+      !s.engine_available(GetTickCount64()).value_or(false) ||
       s.status.configuration_refused || !Impl::current(work,stopped) || !WorkerExchangeSession::available())return false;
   const auto need=s.group_timing.start_lead(profile.minimum_lead_ms);
   if(!s.has_lead(work,need,GetTickCount64()))return false;
@@ -282,7 +292,7 @@ bool NativeLz4ReadWorker::start(WinFspReadAheadWork& work,const NativeMaintenanc
   const bool grouped=work.groups!=nullptr;
   const auto available=grouped?work.groups->members().size():work.frames.size();
   if(!s.status.retirement_confirmed || s.status.configuration_refused ||
-      available<s.profile.minimum_frames ||
+      !s.engine_available(GetTickCount64()).value_or(false) || available<s.profile.minimum_frames ||
       (grouped && (!s.profile.packed_groups || (work.groups->mixed_methods() && !s.profile.mixed_groups))) ||
       !Impl::current(work,stop_requested))
     return false;
@@ -327,7 +337,8 @@ bool NativeLz4ReadWorker::start(WinFspReadAheadWork& work,const NativeMaintenanc
       const auto submitted_at=GetTickCount64();
       const auto required=s.preparation_lead(f,submitted_at,ready_at_submit);
       if(!required || exchange.reply_capacity()>f.preparation.reply_bytes || !Impl::current(work,stop_requested) ||
-          !s.has_lead(work,required,submitted_at) || !f.worker.child.submit_prepared(exchange.request()))return false;
+          !s.engine_available(submitted_at).value_or(false) || !s.has_lead(work,required,submitted_at) ||
+          !f.worker.child.submit_prepared(exchange.request()))return false;
       f.request.emplace(std::move(exchange));
       f.work=std::move(work);
       f.submitted_at=submitted_at;
@@ -408,7 +419,10 @@ void NativeLz4ReadWorker::observe(const WinFspNativeWritable& adapter,bool cance
     if(waited==WAIT_TIMEOUT && sampled>started && sampled-started<=s.profile.worker.timeout_ms)
       s.group_timing.observe_unfinished(sampled-started,f.ready_at_submit);
   }
-  const bool obsolete=cancel || state==State::superseded || state==State::demand_served ||
+  // A missing observation pauses submission without discarding preparation
+  // between samples. A fresh refusal can retire an unused child.
+  const bool engine_refused=!f.request && !s.engine_available(GetTickCount64()).value_or(true);
+  const bool obsolete=cancel || engine_refused || state==State::superseded || state==State::demand_served ||
       (!f.request && (adapter.foreground_pending() || adapter.foreground_activity()!=f.work.foreground_epoch) &&
           !s.keep_preparation(adapter,f));
   if(waited!=WAIT_OBJECT_0) {

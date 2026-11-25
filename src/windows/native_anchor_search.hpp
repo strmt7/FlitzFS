@@ -8,6 +8,7 @@
 
 namespace flitzfs {
 enum class WorkerExchangeCode;
+class WindowsGpuEngineSampler;
 
 // Supplied by an independently qualified package and workload profile.
 // The memory field is the measured fixed child allowance. Each launch also
@@ -87,7 +88,7 @@ NativeAnchorRecoveryCheck qualify_native_anchor_recovery(NativeAnchorRecoveryTar
 // retains its own route pins and observes exact worker and supervisor exit.
 class NativeAnchorSearchController final {
  public:
-  explicit NativeAnchorSearchController(NativeAnchorSearchOptions);
+  explicit NativeAnchorSearchController(NativeAnchorSearchOptions,const WindowsGpuEngineSampler* = nullptr);
   ~NativeAnchorSearchController();
   NativeAnchorSearchController(const NativeAnchorSearchController&)=delete;
   NativeAnchorSearchController& operator=(const NativeAnchorSearchController&)=delete;

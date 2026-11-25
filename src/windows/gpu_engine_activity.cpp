@@ -105,20 +105,26 @@ struct WindowsGpuEngineSampler::Impl {
   PDH_HQUERY query=nullptr;
   PDH_HCOUNTER counter=nullptr;
   std::uint64_t previous_ms=0;
-  std::shared_ptr<const WindowsGpuEngineActivity> last;
   ~Impl(){if(query)PdhCloseQuery(query);}
   void reset_query() noexcept {
     if(query)PdhCloseQuery(query);
     query=nullptr;
     counter=nullptr;
-    last.reset();
   }
 };
 
 WindowsGpuEngineSampler::WindowsGpuEngineSampler() noexcept=default;
 WindowsGpuEngineSampler::~WindowsGpuEngineSampler()=default;
 std::shared_ptr<const WindowsGpuEngineActivity> WindowsGpuEngineSampler::current(std::uint64_t now) const noexcept {
-  return impl_ && impl_->last && impl_->last->fresh(now)?impl_->last:nullptr;
+  auto latest=latest_.load(std::memory_order_acquire);
+  if(!latest || !latest->fresh(now))return {};
+  return latest;
+}
+std::optional<bool> WindowsGpuEngineSampler::available(const std::array<std::byte,8>& luid,
+    std::uint64_t now,std::uint32_t required_idle) const noexcept {
+  const auto snapshot=current(now);
+  if(!snapshot)return {};
+  return snapshot->admits(luid,now,required_idle);
 }
 void WindowsGpuEngineSampler::observe(std::uint64_t allowance) noexcept {
   try {
@@ -132,7 +138,7 @@ void WindowsGpuEngineSampler::observe(std::uint64_t allowance) noexcept {
     const bool primed=state.query!=nullptr;
     const bool measured_window=primed && ordered && elapsed<=2*gpu_engine_sample_ms;
     state.previous_ms=now;
-    state.last.reset();
+    latest_.store({},std::memory_order_release);
     if(!primed && (PdhOpenQueryW(nullptr,0,&state.query)!=ERROR_SUCCESS ||
         PdhAddEnglishCounterW(state.query,L"\\GPU Engine(*)\\Utilization Percentage",0,&state.counter)!=ERROR_SUCCESS)) {
       state.reset_query();
@@ -168,7 +174,7 @@ void WindowsGpuEngineSampler::observe(std::uint64_t allowance) noexcept {
       counters.push_back({items[i].szName,observation.doubleValue,valid});
     }
     if(auto observed=aggregate_windows_gpu_engines(counters,GetTickCount64()))
-      state.last=std::make_shared<WindowsGpuEngineActivity>(std::move(*observed));
+      latest_.store(std::make_shared<WindowsGpuEngineActivity>(std::move(*observed)),std::memory_order_release);
   }catch(const std::exception&) {}
 }
 }

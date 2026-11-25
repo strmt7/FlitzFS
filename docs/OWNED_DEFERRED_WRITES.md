@@ -181,7 +181,7 @@ image size after retiring scratch.
 [Single-write evidence](evidence/windows-ordinary-amd-cpu-replay-2026-11-23.json) ·
 [Grouped capture evidence](evidence/windows-ordinary-amd-capture-groups-2026-11-23.json)
 
-### Windows engine activity before automatic discovery
+### Windows engine activity for installed automatic routes
 
 The existing Windows controller samples the local GPU Engine counters during
 eligible background opportunities. The sampler uses the caller's live host
@@ -203,6 +203,19 @@ still apply. Foreground requests continue through the CPU path.
 [Windows activity admission evidence](evidence/windows-gpu-engine-admission-2026-11-25.json) ·
 [Microsoft wildcard counter values](https://learn.microsoft.com/en-us/windows/win32/api/pdh/nf-pdh-pdhgetformattedcounterarrayw) ·
 [AMD ROCm 10.2.0 release notes](https://rocm.docs.amd.com/en/docs-10.2.0/about/release-notes.html)
+
+The same controller publishes an immutable observation for retained routes.
+Installed reads check it before sizing device read-ahead, reserving a child
+or submitting a prepared request. Shared-base search checks it before
+staging and again before launch. The detached write trial checks the exact
+bound adapter at preparation and submission. Eligible idle observations
+continue while the trial is parked.
+
+An expired observation pauses new work. A fresh refusal can retire unused
+read preparation. Submitted read and shared-base work retain their existing
+deadline, CPU verification and retirement contracts. There is no additional
+sampling thread or per-request counter query.
+[Retained-route validation](evidence/windows-retained-amd-admission-2026-11-25.json)
 
 ### Detached Radeon write trials
 

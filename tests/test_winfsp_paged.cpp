@@ -1,6 +1,7 @@
 #include "winfsp_native.hpp"
 #include "winfsp_session.hpp"
 #include "native_lz4_read_worker.hpp"
+#include "gpu_engine_activity.hpp"
 #include "native_fs_fixture.hpp"
 #include "anchor_search_fixture.hpp"
 #include "native_lz4_fixture.hpp"
@@ -1597,6 +1598,17 @@ int wmain(int argc,wchar_t** argv){try {
   const bool device=warm || segmented || small_requests || mode==L"--hip-group-reads" || mode==L"--hip-mixed-group-reads";
   const bool timing=device && argc==13 && std::wstring_view(argv[12])==L"--timed-exchange";
   app_fixture::Budget budget(true,timing);
+  if(mode==L"--retained-amd-read-engine-refusal" && argc==12) {
+    auto profile=group_gpu_profile(argv);
+    profile.minimum_lead_ms=100;
+    profile.prepared_group_submit_lead_ms=20;
+    WindowsGpuEngineSampler unobserved;
+    NativeLz4ReadWorker control(profile),retained(std::move(profile),&unobserved);
+    require(control.group_read_window().maximum_frames!=0 && retained.group_read_window().maximum_frames==0,
+        "A retained route requested expanded device read-ahead without a fresh adapter observation");
+    std::cout<<"retained_group_read_ahead=refused explicit_control_window=available hip_loaded=0\n";
+    return 0;
+  }
   if(device && (argc==12 || timing)) {
     auto profile=group_gpu_profile(argv);
     const bool mixed=expanded || mode==L"--hip-mixed-group-reads" || mode==L"--hip-prepared-mixed-group-reads";

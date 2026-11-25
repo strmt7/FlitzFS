@@ -6,8 +6,8 @@ retains verified read tiles and receives eligible live AMD read windows.
 It compares two bounded prefix encodings during staging before the
 normal checked publication. Earlier diagrams cover inline persistent
 placement, mirrored packing and rolling lookup.
-[Release reconciliation](../RELEASE_RECONCILIATION_2026-11-25.md#current-reconciliation-and-release-order) ·
-[Current runtime evidence](../evidence/windows-foreground-write-layout-2026-11-25.json) ·
+[Release reconciliation](../RELEASE_RECONCILIATION_2026-11-25.md#current-reconciliation-and-prioritized-design) ·
+[Current runtime evidence](../evidence/windows-retained-amd-admission-2026-11-25.json) ·
 [Revised architecture](TARGET.md)
 
 ## 1. Process and build boundaries
@@ -577,9 +577,13 @@ uniform acquisition can be cancelled through its supervised exchange.
 
 ```mermaid
 flowchart LR
-    B["Ordinary installed read-ahead or anchor opportunity"] --> Discover["Match package, runtime, adapter LUID and node"]
-    F["SDK-controlled measured foreground offer"] --> Discover
-    Discover --> Admit["Check fresh budgets and supported work"]
+    B["Installed read, shared-base or write-trial opportunity"] --> Discover["Match package, runtime, adapter LUID and node"]
+    P["Maintenance observation of adapter engine load"] --> Discover
+    Discover --> Retained["Retained route checks exact adapter before staging and dispatch"]
+    P --> Retained
+    Retained -->|Fresh allowance| Admit["Check fresh budgets and supported work"]
+    Retained -->|Expired or refused| CPU
+    F["SDK-controlled measured foreground offer"] --> Admit
     Admit -->|Admitted| Worker["Bounded process with owned immutable input"]
     Admit -->|Refused| CPU["Select independent CPU service"]
     Worker -->|Deadline or cancellation| CPU
@@ -591,7 +595,12 @@ flowchart LR
     Quarantine --> CPU
 ```
 
-The most recent uniform worker change allows one qualifying replacement sample
+An unused read preparation can retire after a fresh engine refusal. Pending
+admitted reads still follow the same result and retirement checks. The
+installed write trial uses a freshly checked snapshot for continuations.
+[Retained AMD admission](../OWNED_DEFERRED_WRITES.md#windows-engine-activity-for-installed-automatic-routes)
+
+The uniform worker allows one qualifying replacement sample
 after compute if its first sample has aged out. The same allocation baseline and
 headroom checks apply. An invalid or still-stale result is discarded without an
 additional launch. Current ROCm product, HIP API and loaded runtime ABI identities

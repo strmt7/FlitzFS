@@ -31,6 +31,10 @@ void verify_engine_admission() {
     WindowsGpuEngineCounter{L"pid_2_luid_0x00000000_0x00000002_phys_0_eng_4_engtype_3D",20,true}
   };
   constexpr auto idle=minimum_background_gpu_idle_ppm;
+  WindowsGpuEngineSampler unobserved;
+  require(!unobserved.available(first,2500,idle).has_value() && background_gpu_idle_ppm(10000)==idle &&
+      background_gpu_idle_ppm(100000)==200000 && background_gpu_idle_ppm(UINT64_MAX)==1000000,
+      "Unknown sampler evidence or a role's scheduling reserve was misclassified");
   const auto busy=aggregate_windows_gpu_engines(counters,2500);
   require(busy && !busy->admits(first,2500,idle) && busy->admits(second,2500,idle),
       "Processes on one physical engine were not added independently of another adapter");
@@ -183,8 +187,12 @@ int main(int argc,char** argv){try{
     const auto selected=std::ranges::find(snapshot->adapters,luid,&WindowsGpuEngineActivity::Adapter::luid);
     if(selected==snapshot->adapters.end() || !selected->busy_ppm)
       throw std::runtime_error("Selected AMD adapter engine counters unavailable");
+    const auto admitted=sampler.available(luid,now,minimum_background_gpu_idle_ppm);
+    if(admitted!=snapshot->admits(luid,now,minimum_background_gpu_idle_ppm) ||
+        sampler.available(luid,snapshot->captured_ms+gpu_engine_sample_ms+1,minimum_background_gpu_idle_ppm))
+      throw std::runtime_error("Retained route view differed from the sampled or expired observation");
     std::cout<<"amd_engine_busy_ppm="<<*selected->busy_ppm<<" adapters="<<snapshot->adapters.size()
-        <<" engine_admitted="<<snapshot->admits(luid,now,minimum_background_gpu_idle_ppm)<<" hip_loaded=0\n";
+        <<" engine_admitted="<<*admitted<<" stale_route_refused=1 hip_loaded=0\n";
     Sleep(static_cast<DWORD>(2*gpu_engine_sample_ms+25));
     sampler.observe(allowance);
     if(sampler.current(GetTickCount64()))

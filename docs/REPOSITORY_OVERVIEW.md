@@ -20,8 +20,11 @@ verification of acknowledged operations on persistent media. The full
 writable reopen audit now groups requested sibling inode reads. It reduced
 provider read calls by 38.7% on the 16,384-file fixture and kept both
 fresh replica checks and both barriers. [Reopen counts](evidence/windows-indexed-namespace-read-window-2026-11-25.json)
-[Reconciliation](RELEASE_RECONCILIATION_2026-11-25.md#reconciliation-after-protected-assembled-prefix-selection) ·
-[Exact tests and research](evidence/windows-assembled-prefix-2026-11-25.json) ·
+Installed AMD discovery and retained work now share recent exact-adapter
+engine observations. A retained read route with missing evidence leaves the
+ordinary CPU read-ahead window available.
+[Reconciliation](RELEASE_RECONCILIATION_2026-11-25.md#current-reconciliation-and-prioritized-design) ·
+[Exact tests and research](evidence/windows-retained-amd-admission-2026-11-25.json) ·
 [Current architecture](architecture/CURRENT.md) ·
 [Target architecture](architecture/TARGET.md)
 

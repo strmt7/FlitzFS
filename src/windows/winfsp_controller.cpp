@@ -61,10 +61,12 @@ struct WinFspVolumeController::Impl {
   WinFspNativeWritable* adapter=nullptr; // Valid only until session.stop().
   NativeWriteMountPlan plan;
   MemoryVolumeDomain* residency=nullptr;
+#ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
+  WindowsGpuEngineSampler gpu_engines;
+#endif
   std::unique_ptr<NativeAnchorSearchController> anchor;
   std::unique_ptr<NativeLz4ReadWorker> read_worker;
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
-  WindowsGpuEngineSampler gpu_engines;
   std::uint64_t last_write_engine_sample=0,last_read_engine_sample=0,last_anchor_engine_sample=0;
   std::optional<std::array<std::byte,8>> write_engine_wait_adapter;
   bool observe_write_reference=false;
@@ -310,7 +312,7 @@ struct WinFspVolumeController::Impl {
                 host.status()!=MaintenanceHostStatus::waiting) {
               if(residency && observed.valid)residency->verify_working_set();
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
-              if((installed || (installed_read && !read_worker) || installed_write_trial) && !interrupted()) {
+              if((installed || installed_read || installed_write_trial) && !interrupted()) {
                 const auto resources=detail::maintenance_resources(observed,GetTickCount64(),
                     adapter->group_maintenance_policy());
                 if(resources && !resources->cpu_busy)gpu_engines.observe(resources->memory_allowance);
@@ -691,6 +693,7 @@ struct WinFspVolumeController::Impl {
       write_arrival_observation.reset();
       acquisition_thread.request_stop();
     } else {
+      gpu_engines.observe(resources->memory_allowance);
       write_arrival_observation=observed;
       write_trial_idle_ms.store(observed.captured_ms,std::memory_order_release);
     }
@@ -763,8 +766,7 @@ struct WinFspVolumeController::Impl {
     if(!snapshot || last_used==snapshot->captured_ms)return {};
     // Keep scheduling margin for other GPU clients and cover the existing
     // two-quantum burst when the role requests a larger work share.
-    const auto idle=static_cast<std::uint32_t>((std::clamp<std::uint64_t>)(2*duty_ppm,
-        minimum_background_gpu_idle_ppm,1000000));
+    const auto idle=background_gpu_idle_ppm(duty_ppm);
     if(waiting_adapter && std::ranges::find(snapshot->adapters,*waiting_adapter,&WindowsGpuEngineActivity::Adapter::luid)
         !=snapshot->adapters.end() && !snapshot->admits(*waiting_adapter,now,idle))return {};
     return HipDiscoveryEngineActivity{std::move(snapshot),idle};
@@ -793,7 +795,9 @@ struct WinFspVolumeController::Impl {
     }
     write_trial.configuration=acquired.route->identity;
     const auto policy=adapter->group_maintenance_policy();
-    bool resource_refused=false;
+    bool resource_refused=false,engine_refused=false;
+    const auto adapter_luid=acquired.route->memory.luid;
+    const auto min_idle=background_gpu_idle_ppm(maintenance_wall_share_ppm);
     const auto may_submit=[&]() {
       if(stop.stop_requested() || stop_requested.load(std::memory_order_acquire) ||
           adapter->foreground_pending() ||
@@ -807,8 +811,13 @@ struct WinFspVolumeController::Impl {
           funded=worker_plan.fits(profile.worker,(std::min)(allowance,memory));
         }catch(const std::exception&) {} // Treat changing or missing telemetry as refusal.
       }
-      resource_refused|=!funded;
-      return funded;
+      if(!funded) {
+        resource_refused=true;
+        return false;
+      }
+      const bool available=gpu_engines.available(adapter_luid,GetTickCount64(),min_idle).value_or(false);
+      engine_refused|=!available;
+      return available;
     };
     std::vector<UniformLz4BatchInput> inputs;
     inputs.reserve(capture.size());
@@ -840,6 +849,10 @@ struct WinFspVolumeController::Impl {
         observed.exchange==WorkerExchangeCode::supervisor_exit_unconfirmed)
       write_trial.status=HipDiscoveryStatus::retirement_unconfirmed;
     else if(stop.stop_requested())write_trial.status=HipDiscoveryStatus::cancelled;
+    else if(engine_refused) {
+      write_trial.status=HipDiscoveryStatus::engine_deferred;
+      write_engine_wait_adapter=adapter_luid;
+    }
     else if(resource_refused || (!observed.sample && !observed.supervised_ns))
       write_trial.status=HipDiscoveryStatus::resource_deferred;
     else if(!observed.sample || !observed.worker_retired || !observed.sample->cpu_readback_verified ||
@@ -999,7 +1012,7 @@ struct WinFspVolumeController::Impl {
             read_acquisition=discover_installed_hip_native_read_route(stop,engine);
             if(read_acquisition.status==HipDiscoveryStatus::ready && read_acquisition.route && !stop.stop_requested()) {
               auto profile=bind_installed_native_read(*read_acquisition.route);
-              if(profile)acquired_read_worker=std::make_unique<NativeLz4ReadWorker>(std::move(*profile));
+              if(profile)acquired_read_worker=std::make_unique<NativeLz4ReadWorker>(std::move(*profile),&gpu_engines);
               else read_acquisition.status=HipDiscoveryStatus::profile_mismatch;
             }
             if(!priority.finish()) {
@@ -1144,7 +1157,7 @@ struct WinFspVolumeController::Impl {
               .output=installed->output,
               .maximum_dispatch_members=installed->maximum_dispatch_members,
               .dispatches_per_wait=installed->dispatches_per_wait,
-              .prefer_reference=installed->prefer_reference});
+              .prefer_reference=installed->prefer_reference},&gpu_engines);
         }
       }catch(...) {acquisition.status=HipDiscoveryStatus::resource_deferred;}
     }
