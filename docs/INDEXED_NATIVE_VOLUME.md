@@ -794,6 +794,33 @@ for at most two banks. The full decoded and namespace audit
 still precedes the fences.
 [Matched reopen measurements](evidence/indexed-fenced-read-runs-2026-11-25.json)
 
+### Mirrored reads during the decoded audit
+
+The first audit now uses the same checked mirror runs. The reader fetches
+each bank, compares the complete frames between replicas and verifies every
+frame against its descriptor and stored digest. Identical encoded frames
+share one CPU decode. The native inventory receives each decoded object in
+key order and still checks inode, namespace, extent and protection
+relationships. If a run fails, each record follows the established survivor
+path and the observation retains degraded status. A decode failure rejects
+both identical copies. The fresh post-fence scan remains in force.
+
+| Windows in-memory workload | Previous backing reads | Current backing reads |
+| --- | ---: | ---: |
+| 1,024 short files | 8,138 | 4,604 |
+| 8,192 short files | 64,616 | 36,232 |
+| 16,384 short files | 129,226 | 72,492 |
+| 2,640 CPython files with automatic compression | 40,634 | 33,754 |
+
+Both versions read the same number of bytes per audit, completed one image
+flush and one selector flush, and issued no backing writes. Independent CPU
+readback checked every file. The results count provider calls in the model.
+A line fitted to the candidate's short-file endpoints predicted 36,285
+calls for the held-out 8,192-file tier, within 0.15% of observation. The
+evidence records a conditional larger projection with the observed layout
+and locality. The full audit still grows with the object inventory.
+[Decoded reopen measurements and verification](evidence/indexed-decoded-reopen-runs-2026-11-25.json)
+
 ### Decoded name pages within an audit
 
 Each native inventory audit keeps one decoded name-index branch per tree

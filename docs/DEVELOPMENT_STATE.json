@@ -61,7 +61,8 @@
     "native_ntfs_comparison": "Plain and built-in NTFS compression specified; matched real-host run pending.",
     "mounted_packed_attachment": "Bounded signed guest recovery and continued writes verified, with a 1,024-file packed recovery fixture. Sustained populated settlement and current-client qualification remain open.",
     "automatic_foreground_amd": "Identical captured writes can be replayed on CPU and Radeon. Finite prepared bursts and shape-specific calibration are implemented. The measured 1 MiB write shape prefers CPU, and useful automatic mounted AMD qualification remains open.",
-    "incremental_admission": "Checked read coalescing and batched scrub have lower measured I/O. A complete unchanged scrub observation has no attach authority. Full writable verification remains in force."
+    "latest_indexed_reopen_evidence": "docs/evidence/indexed-decoded-reopen-runs-2026-11-25.json",
+    "incremental_admission": "Both phases of the full reopen audit now group checked mirror reads. The 16,384-file fixture used 72,492 backing reads, down from 129,226. Faster admission still needs a shadow ownership differential."
   },
   "collective_cold_order": {
     "evidence": "docs/evidence/windows-collective-cold-order-2026-11-24.json",

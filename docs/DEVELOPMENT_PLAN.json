@@ -16,7 +16,7 @@
     "next_implementation_tickets": "docs/IMPLEMENTATION_PLAN.md#next-implementation-tickets",
     "evidence": "docs/evidence/windows-batched-staged-copy-2026-11-25.json",
     "previous_source_review_evidence": "docs/evidence/windows-packed-tail-continuation-2026-11-25.json",
-    "latest_native_attach_evidence": "docs/evidence/indexed-fenced-read-runs-2026-11-25.json",
+    "latest_native_attach_evidence": "docs/evidence/indexed-decoded-reopen-runs-2026-11-25.json",
     "latest_chunked_scrub_evidence": "docs/evidence/indexed-scrub-checkpoint-2026-11-23.json",
     "latest_allocator_evidence": "docs/evidence/windows-mounted-repeated-reclamation-2026-11-23.json",
     "latest_recovery_evidence": "docs/evidence/windows-mounted-mixed-flush-recovery-2026-11-23.json",

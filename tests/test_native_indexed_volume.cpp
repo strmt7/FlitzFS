@@ -107,6 +107,27 @@ void indexed_reopen_checks_batched_replicas() {
   const auto resolve=[&](const auto& id)->std::shared_ptr<StoreByteIo> {
     return id==source.identity()?image:nullptr;
   };
+  const auto verify_before_fences=[&](std::uint64_t bank) {
+    const auto snapshot=NativeFilesystemSnapshot::open_image(image,source.image_storage());
+    const auto writes=image->write_bytes;
+    image->corrupt_read_offset=second_at+bank+1;
+    image->corrupt_read_number=1;
+    image->matching_reads=0;
+    image->corrupted_read_start=Ram::no_read_fault;
+    snapshot.verify_all();
+    const auto first_in_bank=first_at+bank;
+    require(snapshot.storage_info().degraded_checkpoint && image->write_bytes==writes &&
+        image->corrupted_read_start/image->failure_unit==first_in_bank/image->failure_unit &&
+        image->corrupted_read_start<=first_in_bank,
+        "decoded audit lost verified survivors or accepted a degraded run");
+    image->corrupt_read_offset=Ram::no_read_fault;
+    require(snapshot.read_inode(2,0,first.size())==first &&
+        snapshot.read_inode(3,0,second.size())==second,
+        "degraded decoded audit changed the recoverable files");
+  };
+  verify_before_fences(0);
+  verify_before_fences(image->failure_unit);
+
   const auto reject_after_fences=[&](std::uint64_t bank,bool both) {
     const auto writes=image->write_bytes+head->write_bytes;
     const auto image_fences=image->flushes,head_fences=head->flushes;

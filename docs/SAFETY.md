@@ -36,6 +36,12 @@ admission. The backfill checks the directory revision again before publication
 and retains the earlier checkpoint if preparing the update exceeds capacity.
 [Automatic backfill](INDEXED_NATIVE_VOLUME.md#automatic-backfill)
 
+The decoded inventory audit can read adjacent mirrored records as one checked
+run. Both spans must match and every record still needs its own stored check
+and CPU validation. A failed run retains degraded status and checks individual
+replicas. Writable reopen still rechecks the selected store after both fences.
+[Decoded audit and survivor checks](INDEXED_NATIVE_VOLUME.md#mirrored-reads-during-the-decoded-audit)
+
 A prefixed Zstandard member binds the same protected base identity and byte
 digest as the older shared-base methods. The CPU checks frame bounds and
 decoded bytes before the optional representation can compete for publication.

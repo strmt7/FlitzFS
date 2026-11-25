@@ -598,39 +598,57 @@ bool verify_stored_run(const State& s,std::span<const Entry> entries,std::size_t
     return false;
   }
 }
-void verify_stored_leaf(const State& s,std::span<const Entry> entries,Bytes& scratch) {
-  while(!entries.empty()) {
-    const auto run=mirrored_record_run(s,entries);
-    const auto records=entries.first(run.count);
-    if(run.count==1 || !verify_stored_run(s,records,run.bytes,scratch))
-      for(const auto& entry:records)verify_object(s,entry,nullptr,&scratch);
-    entries=entries.subspan(run.count);
+using VerifiedObjectVisitor=std::function<void(std::uint64_t,Bytes)>;
+void verify_decoded_run(const State& s,std::span<const Entry> entries,std::span<const std::byte> frames,
+    const VerifiedObjectVisitor* consume) {
+  for(const auto& entry:entries) {
+    const auto frame=frames.first(record_header_bytes+entry.stored);
+    const auto header=frame.first<record_header_bytes>();
+    Bytes decoded;
+    if(consume || get32(header,12)!=detail::kStoreRaw) {
+      try {decoded=decode_record(s,entry,header,frame.subspan<record_header_bytes>());}
+      catch(const std::bad_alloc&){throw;}
+      catch(const std::exception&) {
+        // The checked replicas contain identical encoded bytes. A decode
+        // failure applies to both copies.
+        s.degraded_payloads=true;
+        fail("both payload copies invalid; no rollback");
+      }
+    }
+    if(consume)(*consume)(entry.id,std::move(decoded));
+    frames=frames.subspan(frame.size());
   }
 }
-using VerifiedObjectVisitor=std::function<void(std::uint64_t,Bytes)>;
 void verify(const State& s,const VerifiedObjectVisitor* consume=nullptr,
     PayloadVerification verification=PayloadVerification::decoded) {
   s.image->verify_backing();
   (void)read_node(s,s.root);
   bool done=false;
-  if(verification==PayloadVerification::stored) {
-    Bytes scratch;
-    auto leaf=[&](std::span<const Entry> entries) {
-      verify_stored_leaf(s,entries,scratch);
+  Bytes scratch;
+  const bool stored=verification==PayloadVerification::stored;
+  const auto visit_one=[&](const Entry& entry) {
+    Bytes decoded;
+    verify_object(s,entry,consume?&decoded:nullptr,stored?&scratch:nullptr);
+    if(consume)(*consume)(entry.id,std::move(decoded));
+  };
+  auto leaf=[&](std::span<const Entry> entries) {
+    if(!s.mirrored) {
+      for(const auto& entry:entries)visit_one(entry);
       return true;
-    };
-    walk_leaves(s,s.root,0,leaf,done);
-    return;
-  }
-  auto visitor=[&](const Entry& e) {
-    if(consume) {
-      Bytes bytes;
-      verify_object(s,e,&bytes);
-      (*consume)(e.id,std::move(bytes));
-    }else verify_object(s,e);
+    }
+    while(!entries.empty()) {
+      const auto run=mirrored_record_run(s,entries);
+      const auto records=entries.first(run.count);
+      if(run.count>1 && verify_stored_run(s,records,run.bytes,scratch)) {
+        if(!stored)verify_decoded_run(s,records,std::span<const std::byte>(scratch).first(run.bytes),consume);
+      }else {
+        for(const auto& entry:records)visit_one(entry);
+      }
+      entries=entries.subspan(run.count);
+    }
     return true;
   };
-  walk(s,s.root,0,visitor,done);
+  walk_leaves(s,s.root,0,leaf,done);
 }
 std::array<std::byte,page_bytes> root_bytes(const State& s,std::uint64_t generation) {
   std::array<std::byte,page_bytes> b{};set_magic(b,root_magic);put32(b,8,s.mirrored?2:1);

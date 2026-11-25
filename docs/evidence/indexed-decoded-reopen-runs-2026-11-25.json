@@ -1,0 +1,559 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "qualification": "development",
+  "release_qualified": false,
+  "scope": "Live Windows 11 26H2 build 26300.10075. Indexed reopen verification on in-memory backing.",
+  "source": {
+    "parent": "6ecaa5b0a70bfa9ec4ce4f177b9f9b011af8388e",
+    "base_tree": "67f444b31e3e8f28891da294849fef31628c5996",
+    "tree": "4d9cbab955d3196c81cae6d831584f0c7d0fc253",
+    "elements": [
+      {
+        "path": "src/paged_store.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "8b9f573ba62f29dc1f95e56f13808bf860c7e466",
+        "bytes": 145747
+      },
+      {
+        "path": "tests/test_native_indexed_volume.cpp",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "a12a75706c04eced859663a9040744141816d9e6",
+        "bytes": 99562
+      }
+    ],
+    "runtime_manifest_sha256": "6a0a3e52712808c9c0b95ae9b494ecb60983cb55c3015cae8e4569314778b414",
+    "baseline_build": {
+      "sha256": "c1e8075f4c7065e88eb0928ad31eb6703f6fe8a3193cd2e6bf1f012619aef5ad",
+      "corpus": "a0cf47d48cb8bc4dbd72b0e02dc84290387a767df35a9810d781b2e4dced691f",
+      "parent": "6ecaa5b0a70bfa9ec4ce4f177b9f9b011af8388e"
+    },
+    "candidate_profile_executable_sha256": "73a60fa5c043dc245f7e75a4f5b2cb9d7cf58d1f80f3472e77064a9ad10a15dc"
+  },
+  "mechanism": {
+    "decoded_audit": "Read adjacent frames from each bank, compare both runs, check per-frame stored identity and digest, then decode each shared frame and apply the existing native inventory checks.",
+    "fallback": "Degrade a failed run and recheck each record through the single-record survivor path. Decode failure of identical checked frames rejects both copies.",
+    "fences": "Decoded inventory remains mandatory before the image fence and selector fence. The exact checkpoint and fresh stored mirror pass remain mandatory afterward.",
+    "wire_format_changed": false
+  },
+  "workloads": {
+    "cpython_corpus_sha256": "a0cf47d48cb8bc4dbd72b0e02dc84290387a767df35a9810d781b2e4dced691f",
+    "profiles": {
+      "1024": {
+        "files": 1024,
+        "logical_bytes": 17408,
+        "independent_readback": true,
+        "order": [
+          "parent",
+          "candidate"
+        ],
+        "baseline": {
+          "workload": "short_files",
+          "files": 1024,
+          "image_pre_flush_bytes": 2927196,
+          "image_post_flush_bytes": 1708918,
+          "image_read_calls": 8138,
+          "image_flushes": 1,
+          "head_flushes": 1,
+          "backing_write_bytes": 0,
+          "reopen_ns": 6484000,
+          "logical_bytes": 17408,
+          "objects": 2082,
+          "object_tree_height": 2,
+          "stored_payload_bytes": 420966
+        },
+        "candidate": {
+          "workload": "short_files",
+          "files": 1024,
+          "image_pre_flush_bytes": 2927196,
+          "image_post_flush_bytes": 1708918,
+          "image_read_calls": 4604,
+          "image_flushes": 1,
+          "head_flushes": 1,
+          "backing_write_bytes": 0,
+          "reopen_ns": 6365900,
+          "logical_bytes": 17408,
+          "objects": 2082,
+          "object_tree_height": 2,
+          "stored_payload_bytes": 420966
+        },
+        "parent_trial": {
+          "exit_code": 0,
+          "tree_retired": true,
+          "inherited_error_mode": 32771,
+          "memory_bytes": 618659840,
+          "peak_job_bytes": 14827520,
+          "children_stopped_by_supervisor": 0,
+          "receipt_sha256": "8037e1835a4cd856b9d49e85f1d1b4230150492bd5fefc1e51b652488b6a705d",
+          "log_sha256": "3788cc82ae7fa11a026422ef1756242e3783786c74a60bbf750e85730040a4f6"
+        },
+        "candidate_trial": {
+          "exit_code": 0,
+          "tree_retired": true,
+          "inherited_error_mode": 32771,
+          "memory_bytes": 612368384,
+          "peak_job_bytes": 14835712,
+          "children_stopped_by_supervisor": 0,
+          "receipt_sha256": "3dcf3acac669bf25fc8f41dee1c3a208a2a46c80702b16cd65b87707cf1d1bb3",
+          "log_sha256": "c53c344f50265a1557b437fcf2ffcaee220b9d956c1b5f6312991ea70888a12e"
+        }
+      },
+      "8192": {
+        "files": 8192,
+        "logical_bytes": 139264,
+        "independent_readback": true,
+        "order": [
+          "candidate",
+          "parent"
+        ],
+        "baseline": {
+          "workload": "short_files",
+          "files": 8192,
+          "image_pre_flush_bytes": 25657966,
+          "image_post_flush_bytes": 12294654,
+          "image_read_calls": 64616,
+          "image_flushes": 1,
+          "head_flushes": 1,
+          "backing_write_bytes": 0,
+          "reopen_ns": 69253500,
+          "logical_bytes": 139264,
+          "objects": 16600,
+          "object_tree_height": 2,
+          "stored_payload_bytes": 3357934
+        },
+        "candidate": {
+          "workload": "short_files",
+          "files": 8192,
+          "image_pre_flush_bytes": 25657966,
+          "image_post_flush_bytes": 12294654,
+          "image_read_calls": 36232,
+          "image_flushes": 1,
+          "head_flushes": 1,
+          "backing_write_bytes": 0,
+          "reopen_ns": 62281500,
+          "logical_bytes": 139264,
+          "objects": 16600,
+          "object_tree_height": 2,
+          "stored_payload_bytes": 3357934
+        },
+        "parent_trial": {
+          "exit_code": 0,
+          "tree_retired": true,
+          "inherited_error_mode": 32771,
+          "memory_bytes": 550502400,
+          "peak_job_bytes": 112558080,
+          "children_stopped_by_supervisor": 0,
+          "receipt_sha256": "6f92f3c7f3edf9394576e8178a0d78452b8a0a23285d01b5295dd304fc9b39e2",
+          "log_sha256": "3ca8d898b944fcae15ea8fdf336ee7f73e97fdd626302fdd0213d205052be78f"
+        },
+        "candidate_trial": {
+          "exit_code": 0,
+          "tree_retired": true,
+          "inherited_error_mode": 32771,
+          "memory_bytes": 541065216,
+          "peak_job_bytes": 112717824,
+          "children_stopped_by_supervisor": 0,
+          "receipt_sha256": "0c0d14f223cd24784b690811f44010fccb376f6d8d45a1c404ebdcf9e58da933",
+          "log_sha256": "1d00251287f0810b19477e983bc331a48165c1d4529fd58b3247bb34316e4f03"
+        }
+      },
+      "16384": {
+        "files": 16384,
+        "logical_bytes": 278528,
+        "independent_readback": true,
+        "order": [
+          "parent",
+          "candidate"
+        ],
+        "baseline": {
+          "workload": "short_files",
+          "files": 16384,
+          "image_pre_flush_bytes": 51509020,
+          "image_post_flush_bytes": 24446104,
+          "image_read_calls": 129226,
+          "image_flushes": 1,
+          "head_flushes": 1,
+          "backing_write_bytes": 0,
+          "reopen_ns": 129714600,
+          "logical_bytes": 278528,
+          "objects": 33194,
+          "object_tree_height": 3,
+          "stored_payload_bytes": 6714760
+        },
+        "candidate": {
+          "workload": "short_files",
+          "files": 16384,
+          "image_pre_flush_bytes": 51509020,
+          "image_post_flush_bytes": 24446104,
+          "image_read_calls": 72492,
+          "image_flushes": 1,
+          "head_flushes": 1,
+          "backing_write_bytes": 0,
+          "reopen_ns": 104006300,
+          "logical_bytes": 278528,
+          "objects": 33194,
+          "object_tree_height": 3,
+          "stored_payload_bytes": 6714760
+        },
+        "parent_trial": {
+          "exit_code": 0,
+          "tree_retired": true,
+          "inherited_error_mode": 32771,
+          "memory_bytes": 618659840,
+          "peak_job_bytes": 248942592,
+          "children_stopped_by_supervisor": 0,
+          "receipt_sha256": "b0ed1186f0c0ef9d9fced993d24e3a87f7bdfebf8692723a67965c7c91e43704",
+          "log_sha256": "9614555dad60bec028de3ff6f4332cb03362e67d2754b3cc42f884d76788b088"
+        },
+        "candidate_trial": {
+          "exit_code": 0,
+          "tree_retired": true,
+          "inherited_error_mode": 32771,
+          "memory_bytes": 611319808,
+          "peak_job_bytes": 248594432,
+          "children_stopped_by_supervisor": 0,
+          "receipt_sha256": "2f7de1c60a8ebf8907e54c27f3791f64116d545f58e738489941ed598d978d86",
+          "log_sha256": "7d1123f32510d8959580539f58e2ca7c9ee5d815514295a4578e37f79b292217"
+        }
+      },
+      "cpython": {
+        "files": 2640,
+        "logical_bytes": 47331708,
+        "independent_readback": true,
+        "order": [
+          "parent",
+          "candidate"
+        ],
+        "baseline": {
+          "workload": "cpython_compressed",
+          "files": 2640,
+          "image_pre_flush_bytes": 33605594,
+          "image_post_flush_bytes": 26160180,
+          "image_read_calls": 40634,
+          "image_flushes": 1,
+          "head_flushes": 1,
+          "backing_write_bytes": 0,
+          "reopen_ns": 106008000,
+          "logical_bytes": 47331708,
+          "objects": 5851,
+          "object_tree_height": 2,
+          "stored_payload_bytes": 22973752
+        },
+        "candidate": {
+          "workload": "cpython_compressed",
+          "files": 2640,
+          "image_pre_flush_bytes": 33605594,
+          "image_post_flush_bytes": 26160180,
+          "image_read_calls": 33754,
+          "image_flushes": 1,
+          "head_flushes": 1,
+          "backing_write_bytes": 0,
+          "reopen_ns": 110434800,
+          "logical_bytes": 47331708,
+          "objects": 5851,
+          "object_tree_height": 2,
+          "stored_payload_bytes": 22973752
+        },
+        "parent_trial": {
+          "exit_code": 0,
+          "tree_retired": true,
+          "inherited_error_mode": 32771,
+          "memory_bytes": 619708416,
+          "peak_job_bytes": 117633024,
+          "children_stopped_by_supervisor": 0,
+          "receipt_sha256": "b162e48f3f8fdf3c242ab5c72873ea4e53cfecf7af8a8e5aa45fa39b17102e3a",
+          "log_sha256": "7e6513e49c92ffa2fbf0b599660e33cec6f105dcd2c10fcb07b6359f015f80f2"
+        },
+        "candidate_trial": {
+          "exit_code": 0,
+          "tree_retired": true,
+          "inherited_error_mode": 32771,
+          "memory_bytes": 602931200,
+          "peak_job_bytes": 117657600,
+          "children_stopped_by_supervisor": 0,
+          "receipt_sha256": "dc16d78763c7d2fb1fe19379cacda5a54fa768e251ce6c9c010ebf093e91bb65",
+          "log_sha256": "2891ef7be9a11684ed2540b97455a3e13c70df3260a786bc42658e8e3452ceff"
+        }
+      }
+    }
+  },
+  "read_count_model": {
+    "shape": "One compacted short-file layout with 17 bytes of data per regular file, both mirrored. Fit the two endpoint counts and check the intermediate held-out tier.",
+    "assumptions": "Projection holds measured record and directory shape, packing and locality constant and extends only the fitted read-count line. Tree heights and backing behavior can change. This is no startup time or verified million-file result.",
+    "comparison": {
+      "baseline": {
+        "held_out_8192_prediction": 64645.73,
+        "held_out_8192_observed": 64616,
+        "linear_projection_at_1m": 7883399
+      },
+      "candidate": {
+        "held_out_8192_prediction": 36285.07,
+        "held_out_8192_observed": 36232,
+        "linear_projection_at_1m": 4419870
+      }
+    }
+  },
+  "validation": {
+    "sdk": {
+      "passed": [
+        "bounded_paged_object_store",
+        "bounded_native_indexed_volume",
+        "bounded_native_staged_paged_rebuild",
+        "bounded_native_volume_file",
+        "bounded_native_volume_file_dense_session_cuts",
+        "bounded_native_volume_file_dense_tail",
+        "bounded_native_volume_file_dense_cross_group",
+        "bounded_native_volume_file_sealed_ranges"
+      ],
+      "run": {
+        "exit_code": 8,
+        "tree_retired": true,
+        "inherited_error_mode": 32771,
+        "memory_bytes": 689963008,
+        "peak_job_bytes": 670040064,
+        "children_stopped_by_supervisor": 0,
+        "receipt_sha256": "3d7c1f0fa5034b9103d2cacfb3f0720f0f8936beed50e790c86048779fc9d33e",
+        "log_sha256": "594092f7a6ecb03f86c12aea2ca1c4e87b63372a72de582818e2f906ddf0b862"
+      }
+    },
+    "raw_only": {
+      "passed": [
+        "bounded_paged_object_store",
+        "bounded_native_indexed_volume",
+        "bounded_native_staged_paged_rebuild",
+        "bounded_native_volume_file",
+        "bounded_native_volume_file_dense_session_cuts",
+        "bounded_native_volume_file_dense_tail",
+        "bounded_native_volume_file_dense_cross_group"
+      ],
+      "run": {
+        "exit_code": 0,
+        "tree_retired": true,
+        "inherited_error_mode": 32771,
+        "memory_bytes": 698351616,
+        "peak_job_bytes": 87666688,
+        "children_stopped_by_supervisor": 0,
+        "receipt_sha256": "82d3669d523452c853fd585f9eb7f96481074a83e41cbc594965fc0df9232674",
+        "log_sha256": "a83b779fde36d4d40ccb501b73f96487014397a4be496ea55f38e850b7db43f9"
+      }
+    },
+    "asan_initial": {
+      "passed": [
+        "windows_asan_runtime_preflight",
+        "bounded_native_staged_paged_rebuild",
+        "windows_asan_staging_regression"
+      ],
+      "run": {
+        "exit_code": 8,
+        "tree_retired": true,
+        "inherited_error_mode": 32771,
+        "memory_bytes": 688914432,
+        "peak_job_bytes": 689836032,
+        "children_stopped_by_supervisor": 0,
+        "receipt_sha256": "fd26f3a0d74bd29de21c61d6b0c89523aac30750f8e359ab05a6fc53438a94cc",
+        "log_sha256": "df5d2f5404859fc1b062c74962c01707c8ca5c54432848d5c36f7ee9f32338cf"
+      }
+    },
+    "asan_targeted_retry": {
+      "passed": [
+        "windows_asan_runtime_preflight",
+        "bounded_native_indexed_volume"
+      ],
+      "run": {
+        "exit_code": 0,
+        "tree_retired": true,
+        "inherited_error_mode": 32771,
+        "memory_bytes": 1023410176,
+        "peak_job_bytes": 781905920,
+        "children_stopped_by_supervisor": 0,
+        "receipt_sha256": "72ff95ef4e0ddbaf02dda1ca3485201e342262ec4c32e587e95bfb4cc934931e",
+        "log_sha256": "6a1069d34edf9f6e75d0f38b1ed8ed38a7b29cd8ce3c04642905e8fe84922655"
+      }
+    },
+    "asan_retry_reason": "Initial test job exhausted its committed-memory allowance. Allocator settings are unchanged. Re-run the failed test with a fresh supervised memory allowance.",
+    "asan_unique_passed": [
+      "bounded_native_indexed_volume",
+      "bounded_native_staged_paged_rebuild",
+      "windows_asan_runtime_preflight",
+      "windows_asan_staging_regression"
+    ],
+    "builds": {
+      "parent": {
+        "exit_code": 0,
+        "tree_retired": true,
+        "inherited_error_mode": 32771,
+        "memory_bytes": 727711744,
+        "peak_job_bytes": 81035264,
+        "children_stopped_by_supervisor": 0,
+        "receipt_sha256": "dc4ba044d22a650d1d659836caed7a91afc2a93f1cf7276b164e10915c7b541c",
+        "log_sha256": "6d9d99f9e46724217ae16f5ec5333d23c5442a3f3c110b823b9fae47999e26b9"
+      },
+      "candidate": {
+        "exit_code": 0,
+        "tree_retired": true,
+        "inherited_error_mode": 32771,
+        "memory_bytes": 752877568,
+        "peak_job_bytes": 376647680,
+        "children_stopped_by_supervisor": 1,
+        "receipt_sha256": "d34b3d6def3b4f0046d89f72e5ea2be247b25bc47352753e7c1934c27dbbb071",
+        "log_sha256": "15b14d494a791bb3eceede6b05954f56646ec487a0c31c98a066a60c503c3e08"
+      },
+      "raw": {
+        "exit_code": 0,
+        "tree_retired": true,
+        "inherited_error_mode": 32771,
+        "memory_bytes": 677380096,
+        "peak_job_bytes": 379633664,
+        "children_stopped_by_supervisor": 1,
+        "receipt_sha256": "cef526da38fe0963f40f1a6c81e5322d86f9962ded0211114d9cdefca529c15a",
+        "log_sha256": "e69a20a98632ff05b5862162033cb1824fa078c958199215e6dccfe101b2ad77"
+      },
+      "asan": {
+        "exit_code": 0,
+        "tree_retired": true,
+        "inherited_error_mode": 32771,
+        "memory_bytes": 718274560,
+        "peak_job_bytes": 702328832,
+        "children_stopped_by_supervisor": 1,
+        "receipt_sha256": "570737349092ee6383706f2084cceb34299ea5f8c5f2d5bf050199f32b5931d3",
+        "log_sha256": "07e0218fc4d2910ad64d0787c2c072105cd229afc4fdbcdf87d92a8402150d7b"
+      }
+    },
+    "initial_candidate_compile": {
+      "reason": "Regression fixture called an internal method. Corrected to use the public native snapshot audit.",
+      "run": {
+        "exit_code": 1,
+        "tree_retired": true,
+        "inherited_error_mode": 32771,
+        "memory_bytes": 758120448,
+        "peak_job_bytes": 349544448,
+        "children_stopped_by_supervisor": 1,
+        "receipt_sha256": "56f054c8ed7825ed608b7b27efae80b56256e3d94d1cb85d6961ced8a0bbb3db",
+        "log_sha256": "525095e806170f5bcaf971da444dee76fef0bc40564ae0b607ad9d32938ebea6"
+      }
+    },
+    "winfsp_controller_attachment": {
+      "status": "Refused before checks by the fixture memory reserve",
+      "host_final_check": {
+        "free_kib": 8413724,
+        "commit_kib": 57386648,
+        "total_kib": 66704480,
+        "fixture_safe": false,
+        "guest_safe": false
+      }
+    },
+    "signed_mount_runs": 0,
+    "amd_hardware_runs": 0
+  },
+  "navigation": {
+    "receipt_sha256": "d599d892eb3ebbafb01159cc0b1ad5bd36e813f919d050c0bdeeb57ad5e2a155",
+    "source_files": 4,
+    "native_response_sha256": "52f04738e62d81846451ea6a3634d35b688bf49a42f71fc25afcbe29098fd8b0",
+    "actual_searches": 1,
+    "supervision": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "inherited_error_mode": 32771,
+      "memory_bytes": 1123024896,
+      "peak_job_bytes": 1158991872,
+      "children_stopped_by_supervisor": 0,
+      "receipt_sha256": "a4f6d88bcf80573f23765f335d460e26f22017b17540778fb15baf0d70b6ea6b",
+      "log_sha256": "b66b1b2ec148a72cc04572bc96cb9102c8f6501362af660563b17030a63973b6"
+    }
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "lock_sha256": "01fbef3b628f772e4aba9724b6ced11c0f211d4d3bf51e38d1b9d0039eac997b",
+    "provider_source_identity": {
+      "tools/crawl4ai_tool.py": "e84a0e54ee07e4e13d3d2f35491f641730096a78126068f232c1f2397a467d8c",
+      "tools/crawl4ai_research.py": "ec3cb7a98eceed8fef08f3af806d6eaed35656bd76ca0ee8853d273f790337a5",
+      "tools/requirements/crawl4ai.txt": "6a42b0ff5ff6c63c843c6329ce823b819fd4f6f068e68d1836ab6dbec96e8f2f",
+      "tools/crawl4ai_sites.json": "e8869cb0488d78762a90aea6ecf2c3616bb89f0c89a8800cc512c613a750dc86",
+      "tools/nltk_distribution.py": "19eb3007c226b1a13e1ad0daa79cbd8a7bf6d082a20bf386e36ac060d0000919",
+      "tools/python_wheel.py": "c3c9a62454cb377203abce32154bec07cbf805bc7420cc89386c1c18370b301a",
+      "tools/test_nltk_model_security.py": "8aab7e2a704af875992ecae9137cdf5e5ff6935a4dd49e6751c54b2629a7280b",
+      "tools/requirements/python-build.txt": "9b280d724fda87773ba33a2654362adad84c68c4f79394adc07ff2e0293ca498",
+      "tools/crawl4ai_source_build.py": "5c27c4693fa0880a8db399825f637b694616963fc11f708afed33fa5b2e38b48",
+      "tools/crawl4ai_download_opener.py": "d5fd20b5545fd64c93a06b3ef07732f1c2da7e09ee6cda80662475007db52538",
+      "tools/test_crawl4ai_downloads.py": "ae4cf54c351a9da2de49caeb96306f384bb6a8f487318eabc69db4132d658619",
+      "third_party/upstream/nltk/3.10.4/distribution.json": "3241a8670f12e205525fc096572ed1969c063f77e13cffd70eff5eb656fbe1b0",
+      "nltk_upstream_wheel": "e46d89e59ef949270e3b19ab097da8dbb09350e05cb5a746ff92f6ccf6e8ce90",
+      "crawl4ai_source_build": "7da6376934254d9ad1de9e016a4509dae32c47559955889424435fcbbc7419f5"
+    },
+    "native_pages": [
+      {
+        "name": "win32-readfile",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-readfile",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 49272,
+        "markdown_sha256": "bc8dbd3c0109a620d162728b997074eed639180dfa677e04535a521637b5031f",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 2.159,
+        "capture": "win32-readfile.native.json",
+        "capture_sha256": "322c66b0290e9cd56c0d6db2f01bac9ed5847ad0f40b109a65ef9bdc9282c649"
+      },
+      {
+        "name": "xfs-online-scrub",
+        "url": "https://docs.kernel.org/7.2/filesystems/xfs/xfs-online-fsck-design.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 277714,
+        "markdown_sha256": "9b4749f6308700979f092c7f7c66b8f9c6507ea18525d975b65a40312cf71ff9",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.824,
+        "capture": "xfs-online-scrub.native.json",
+        "capture_sha256": "17c01195d22a63b99270b574cf8ec99a55d556972a3b15bec167c2761150d673"
+      },
+      {
+        "name": "openzfs-scrub",
+        "url": "https://openzfs.github.io/openzfs-docs/man/master/8/zpool-scrub.8.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 19637,
+        "markdown_sha256": "25b42227db38f308ecf27661e5999a31725ffd0869ec7723e5847c2ab2499e35",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.991,
+        "capture": "openzfs-scrub.native.json",
+        "capture_sha256": "c15ce8f50173b94496557b490ee1af430df7a8a21ac76bded2ca881372dee6f2"
+      }
+    ],
+    "robots": true,
+    "timeout_seconds_per_page": 45,
+    "external_LLM": false,
+    "native_receipt_sha256": "4f6661d9275eb99893227c15b9854d6223562e342fe47a8b14e4679bcde6f9a0",
+    "supervision": {
+      "exit_code": 0,
+      "tree_retired": true,
+      "inherited_error_mode": 32771,
+      "memory_bytes": 880803840,
+      "peak_job_bytes": 361705472,
+      "children_stopped_by_supervisor": 0,
+      "receipt_sha256": "7332c3f3159f7971931110af950825f68ca65920213caaece033e0925e0e3f8e",
+      "log_sha256": "dddd40a96f4de269aa4d33ad5d57af2e904c9cccf85e75e94b26843aae3dd658"
+    }
+  },
+  "next": "Use this complete audit for the shadow admission differential and verify the ordinary Win32 witness when fixture resources admit it.",
+  "documentation_validation": {
+    "plan_packages": 13,
+    "numbered_steps": 156,
+    "release_gates": 12,
+    "resolved_relative_links": 763,
+    "source_tree_verified": true,
+    "json_duplicate_keys": 0
+  }
+}

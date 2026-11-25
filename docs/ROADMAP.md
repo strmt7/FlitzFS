@@ -7,6 +7,12 @@ priorities, the [detailed implementation tickets](IMPLEMENTATION_PLAN.md#next-im
 for source-level handoffs, and the [current review receipt](evidence/release-plan-refresh-2026-11-23.json)
 for scope and evidence. The entries below retain implementation history.
 
+The decoded indexed audit now groups adjacent mirror reads. The 16,384-file
+fixture used 44% fewer backing reads at writable reopen with the same byte
+coverage. Incremental admission still requires the shadow ownership
+differential against the complete audit.
+[Current indexed reopen evidence](evidence/indexed-decoded-reopen-runs-2026-11-25.json)
+
 Background CPU preparation can continue on disjoint discovered groups while
 a full batch runs on AMD. Current host trials verified the overlap and CPU
 readback. Complete-operation throughput and mounted AMD qualification remain
